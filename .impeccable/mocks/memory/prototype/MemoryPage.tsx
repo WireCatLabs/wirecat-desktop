@@ -1,7 +1,18 @@
 // Design prototype for the Memory page plan (docs/dev/plans/2026-10-31-memory-page.md). Made-up data, no platform
-// calls. `?memory=<state>` picks what it shows: waiting (default), correct, forget, kept, empty, missing, old, loading,
+// calls. `?layout=a|b|c` picks the arrangement (NEED-167): a, one rack in day groups with tabs; b, two racks, Review
+// above In use; c, a query bar with facets over a flat list. `?memory=<state>` picks what it shows: waiting (default), correct, forget, kept, empty, missing, old, loading,
 // error.
-import { Brain, ExternalLink, FileText, ListChecks, MessageSquareQuote, Pencil, RefreshCw, Trash2, Video } from "lucide-react"
+import {
+  Brain,
+  ExternalLink,
+  FileText,
+  ListChecks,
+  MessageSquareQuote,
+  Pencil,
+  RefreshCw,
+  Trash2,
+  Video,
+} from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { ToolIcon } from "@/features/tools/ToolIcon"
 import { Button } from "@/ui/Button"
@@ -51,7 +62,12 @@ const ENTRIES: Entry[] = [
         text: "Friday after 3 works best for me, send the points the night before?",
       },
       { kind: "tg", who: "Kai Sample", at: "13 Oct 09:12", text: "Can we move it to Friday? Mondays are packed." },
-      { kind: "meeting", who: "Harbour weekly", at: "24 Oct 15:00", text: "…as Kai said, Fridays, and the agenda first." },
+      {
+        kind: "meeting",
+        who: "Harbour weekly",
+        at: "24 Oct 15:00",
+        text: "…as Kai said, Fridays, and the agenda first.",
+      },
     ],
   },
   {
@@ -73,7 +89,7 @@ const ENTRIES: Entry[] = [
     type: "action",
     kind: "Send a message",
     scope: "work",
-    text: "Send Kai the pricing table in Telegram: \"Here is the pricing table I promised, see the second tab.\"",
+    text: 'Send Kai the pricing table in Telegram: "Here is the pricing table I promised, see the second tab."',
     about: "Kai Sample",
     by: "hermes",
     byAgent: true,
@@ -170,6 +186,8 @@ function stateParam(): string {
 
 export function MemoryPage() {
   const state = stateParam()
+  const layout = new URLSearchParams(window.location.search).get("layout") ?? "a"
+  const [query, setQuery] = useState("status:review")
   const [filter, setFilter] = useState<Filter>(state === "kept" ? "inuse" : "review")
   const [open, setOpen] = useState<string | null>(state === "kept" ? null : "memory:41")
   const [about, setAbout] = useState("")
@@ -184,6 +202,18 @@ export function MemoryPage() {
     e.about.toLowerCase().includes(about.trim().toLowerCase()) && e.by.toLowerCase().includes(by.trim().toLowerCase())
   const shown = ENTRIES.filter((e) => matches(e) && (inFilter(filter, e.status) || confirmed.has(e.id)))
   const days = [...new Set(shown.map((e) => e.day))]
+  const row = (e: Entry) => (
+    <Row
+      key={e.id}
+      e={e}
+      status={status(e)}
+      open={open === e.id}
+      onToggle={() => setOpen(open === e.id ? null : e.id)}
+      onConfirm={() => setConfirmed(new Set([...confirmed, e.id]))}
+      onForget={() => setForget(true)}
+      correcting={correcting && e.id === "memory:41"}
+    />
+  )
   const count = (f: Filter) => ENTRIES.filter((e) => inFilter(f, e.status)).length
 
   return (
@@ -195,7 +225,10 @@ export function MemoryPage() {
             What your AI agents concluded about you and the people you talk to, and what they noted as said, decided or
             promised, and what they want to do for you. Each entry shows the messages and notes it rests on. Nothing an
             agent writes counts, and nothing it proposes happens, until you approve it.{" "}
-            <a className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover" href="#x">
+            <a
+              className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
+              href="#x"
+            >
               How memory works
               <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
             </a>
@@ -232,67 +265,105 @@ export function MemoryPage() {
         </ErrorNotice>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-[0.7rem]">
-            <Tabs value={filter} onChange={setFilter} count={count} />
-            <SearchPicker
-              label="About"
-              value={about}
-              onChange={setAbout}
-              placeholder="Anyone"
-              options={["You", "Kai Sample", "Ana Ruiz", "Project Harbour"]}
-            />
-            <SearchPicker
-              label="Written by"
-              value={by}
-              onChange={setBy}
-              placeholder="You or an agent"
-              options={["You", "claude-code", "hermes"]}
-            />
-          </div>
-
-          {state === "loading" ? (
-            <div className="rounded-[0.2rem] border border-line-strong bg-app">
-              {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="flex h-[4.5rem] items-center gap-[0.9rem] border-line px-[1.3rem] not-first:border-t">
-                  <Skeleton className="size-[1.4rem] rounded-full" />
-                  <Skeleton className="h-[1rem] w-[60%]" />
-                </div>
-              ))}
-            </div>
-          ) : state === "empty" ? (
-            <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
-              <p className="font-medium text-ink">No memories yet.</p>
-              <p className="mt-1 max-w-[70ch]">
-                An agent connected to Memo saves what it learns here, for example "Kai prefers Friday calls", with the
-                messages that show it. Ask your agent to remember something, or connect one on the Agents page.
-              </p>
+          {layout === "c" ? (
+            <FacetBar query={query} onQuery={setQuery} />
+          ) : layout === "b" ? (
+            <div className="flex flex-wrap items-center gap-[0.7rem]">
+              <SearchPicker label="About" value={about} onChange={setAbout} placeholder="Anyone" options={PEOPLE} />
+              <SearchPicker
+                label="Written by"
+                value={by}
+                onChange={setBy}
+                placeholder="You or an agent"
+                options={AUTHORS}
+              />
             </div>
           ) : (
+            <div className="flex flex-wrap items-center gap-[0.7rem]">
+              <Tabs value={filter} onChange={setFilter} count={count} />
+              <SearchPicker label="About" value={about} onChange={setAbout} placeholder="Anyone" options={PEOPLE} />
+              <SearchPicker
+                label="Written by"
+                value={by}
+                onChange={setBy}
+                placeholder="You or an agent"
+                options={AUTHORS}
+              />
+            </div>
+          )}
+
+          {state === "loading" || state === "empty" || layout === "a" ? (
+            state === "loading" ? (
+              <div className="rounded-[0.2rem] border border-line-strong bg-app">
+                {[0, 1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex h-[4.5rem] items-center gap-[0.9rem] border-line px-[1.3rem] not-first:border-t"
+                  >
+                    <Skeleton className="size-[1.4rem] rounded-full" />
+                    <Skeleton className="h-[1rem] w-[60%]" />
+                  </div>
+                ))}
+              </div>
+            ) : state === "empty" ? (
+              <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
+                <p className="font-medium text-ink">No memories yet.</p>
+                <p className="mt-1 max-w-[70ch]">
+                  An agent connected to Memo saves what it learns here, for example "Kai prefers Friday calls", with the
+                  messages that show it. Ask your agent to remember something, or connect one on the Agents page.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-[0.2rem] border border-line-strong bg-app">
+                {days.map((day) => (
+                  <section key={day} aria-label={day}>
+                    <h2 className="border-line px-[1.3rem] pt-[0.9rem] pb-[0.3rem] text-[0.9rem] font-medium text-ink-dim [section+section>&]:border-t">
+                      {day}
+                    </h2>
+                    {shown
+                      .filter((e) => e.day === day)
+                      .map((e) => (
+                        <Row
+                          key={e.id}
+                          e={e}
+                          status={status(e)}
+                          open={open === e.id}
+                          onToggle={() => setOpen(open === e.id ? null : e.id)}
+                          onConfirm={() => setConfirmed(new Set([...confirmed, e.id]))}
+                          onForget={() => setForget(true)}
+                          correcting={correcting && e.id === "memory:41"}
+                        />
+                      ))}
+                  </section>
+                ))}
+                {shown.length === 0 && (
+                  <p className="px-[1.3rem] py-[1.2rem] text-[0.95rem] text-ink-soft">Nothing matches these filters.</p>
+                )}
+              </div>
+            )
+          ) : layout === "b" ? (
+            <>
+              <Rack
+                title="Review"
+                hint="Agents wrote these; nothing counts until you confirm"
+                entries={ENTRIES.filter((e) => matches(e) && (e.status === "proposed" || confirmed.has(e.id)))}
+                row={row}
+              />
+              <Rack
+                title="In use"
+                hint="Agents rely on these"
+                entries={ENTRIES.filter((e) => matches(e) && (e.status === "confirmed" || e.status === "accepted"))}
+                row={row}
+              />
+              <p className="text-[0.95rem] text-ink-soft">
+                <a href="#x" className="font-medium text-brand hover:text-brand-hover">
+                  Discarded and replaced · {count("discarded")}
+                </a>
+              </p>
+            </>
+          ) : (
             <div className="rounded-[0.2rem] border border-line-strong bg-app">
-              {days.map((day) => (
-                <section key={day} aria-label={day}>
-                  <h2 className="border-line px-[1.3rem] pt-[0.9rem] pb-[0.3rem] text-[0.9rem] font-medium text-ink-dim [section+section>&]:border-t">
-                    {day}
-                  </h2>
-                  {shown
-                    .filter((e) => e.day === day)
-                    .map((e) => (
-                      <Row
-                        key={e.id}
-                        e={e}
-                        status={status(e)}
-                        open={open === e.id}
-                        onToggle={() => setOpen(open === e.id ? null : e.id)}
-                        onConfirm={() => setConfirmed(new Set([...confirmed, e.id]))}
-                        onForget={() => setForget(true)}
-                        correcting={correcting && e.id === "memory:41"}
-                      />
-                    ))}
-                </section>
-              ))}
-              {shown.length === 0 && (
-                <p className="px-[1.3rem] py-[1.2rem] text-[0.95rem] text-ink-soft">Nothing matches these filters.</p>
-              )}
+              {ENTRIES.filter((e) => e.status === "proposed" || confirmed.has(e.id)).map(row)}
             </div>
           )}
           {state !== "empty" && state !== "loading" && <Activity />}
@@ -318,8 +389,8 @@ export function MemoryPage() {
           <p>Memo erases this from its store and its search. Agents stop finding it.</p>
           <ul className="flex flex-col gap-1 rounded-[0.45rem] border border-line bg-app-2 px-4 py-3">
             <li className="text-ink">
-              The memory <span className="font-mono text-[0.85rem]">memory:41</span>: "Kai Sample prefers calls on Friday
-              afternoons…"
+              The memory <span className="font-mono text-[0.85rem]">memory:41</span>: "Kai Sample prefers calls on
+              Friday afternoons…"
             </li>
             <li>Its 3 links to the messages and the meeting it rests on</li>
             <li>Its entry in Memo's search</li>
@@ -377,7 +448,12 @@ function Row(props: {
               {e.type === "action" ? "Approve" : "Confirm"}
             </Button>
           ) : (
-            <span className={cx("text-[0.9rem]", status === "confirmed" || status === "accepted" ? "text-ink" : "text-ink-dim")}>
+            <span
+              className={cx(
+                "text-[0.9rem]",
+                status === "confirmed" || status === "accepted" ? "text-ink" : "text-ink-dim",
+              )}
+            >
               {said[status]}
             </span>
           )}
@@ -492,7 +568,15 @@ function Details({ e, status, onForget, correcting }: Parameters<typeof Row>[0])
   )
 }
 
-function Tabs({ value, onChange, count }: { value: Filter; onChange: (f: Filter) => void; count: (f: Filter) => number }) {
+function Tabs({
+  value,
+  onChange,
+  count,
+}: {
+  value: Filter
+  onChange: (f: Filter) => void
+  count: (f: Filter) => number
+}) {
   const name = useId()
   const items: [Filter, string][] = [
     ["review", "Review"],
@@ -523,12 +607,106 @@ function Tabs({ value, onChange, count }: { value: Filter; onChange: (f: Filter)
   )
 }
 
+const PEOPLE = ["You", "Kai Sample", "Ana Ruiz", "Project Harbour"]
+const AUTHORS = ["You", "claude-code", "hermes"]
+
+function Rack({
+  title,
+  hint,
+  entries,
+  row,
+}: {
+  title: string
+  hint: string
+  entries: Entry[]
+  row: (e: Entry) => ReactNode
+}) {
+  return (
+    <section className="flex flex-col gap-[0.6rem]">
+      <h2 className="flex items-baseline gap-3">
+        <span className="text-[1.05rem] font-semibold">{title}</span>
+        <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{entries.length}</span>
+        <span className="text-[0.9rem] text-ink-dim">{hint}</span>
+      </h2>
+      <div className="rounded-[0.2rem] border border-line-strong bg-app">{entries.map(row)}</div>
+    </section>
+  )
+}
+
+const FACETS: [string, [string, number][]][] = [
+  [
+    "Status",
+    [
+      ["review", 4],
+      ["in-use", 2],
+      ["discarded", 1],
+    ],
+  ],
+  [
+    "About",
+    [
+      ['"Kai Sample"', 3],
+      ["you", 1],
+      ['"Ana Ruiz"', 1],
+      ['"Project Harbour"', 1],
+    ],
+  ],
+  [
+    "Written by",
+    [
+      ["claude-code", 4],
+      ["hermes", 2],
+      ["you", 1],
+    ],
+  ],
+  [
+    "Kind",
+    [
+      ["memory", 3],
+      ["fact", 3],
+      ["action", 1],
+    ],
+  ],
+]
+
+function FacetBar({ query, onQuery }: { query: string; onQuery: (q: string) => void }) {
+  const key: Record<string, string> = { Status: "status", About: "about", "Written by": "by", Kind: "kind" }
+  return (
+    <div className="flex flex-col gap-[0.7rem]">
+      <input
+        type="search"
+        aria-label="Search memory"
+        value={query}
+        onChange={(ev) => onQuery(ev.target.value)}
+        className="h-[2.8rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.8rem] font-mono text-[0.95rem] text-ink outline-none focus:border-brand"
+      />
+      <div className="flex flex-wrap gap-x-[1.6rem] gap-y-[0.5rem] text-[0.9rem]">
+        {FACETS.map(([name, values]) => (
+          <span key={name} className="flex flex-wrap items-center gap-[0.4rem]">
+            <span className="text-ink-dim">{name}</span>
+            {values.map(([v, n]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => onQuery(`${query} ${key[name]}:${v}`.trim())}
+                className="cursor-pointer rounded-[0.3rem] border border-line bg-app px-[0.45rem] py-[0.1rem] hover:border-brand"
+              >
+                {v.replaceAll('"', "")} <span className="font-mono text-ink-dim">{n}</span>
+              </button>
+            ))}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 const ACTIVITY = [
   { agent: "hermes", did: "Proposed an action: send Kai the pricing table", tool: "memo", at: "Today 05:31" },
   { agent: "claude-code", did: "Saved a memory about Kai Sample", tool: "memo", at: "Today 06:02" },
   { agent: "claude-code", did: "Read 14 messages in the chat with Kai Sample", tool: "tg", at: "Today 06:01" },
   { agent: "hermes", did: "Noted a decision in Project Harbour", tool: "memo", at: "Today 05:47" },
-  { agent: "claude-code", did: "Searched notes for \"Ana flat\"", tool: "memo", at: "Yesterday 21:14" },
+  { agent: "claude-code", did: 'Searched notes for "Ana flat"', tool: "memo", at: "Yesterday 21:14" },
 ]
 
 function Activity() {
@@ -548,7 +726,11 @@ function Activity() {
             key={a.did}
             className="grid grid-cols-[1.1rem_9rem_minmax(0,1fr)_auto] items-center gap-[0.9rem] border-line px-[1.3rem] py-[0.6rem] text-[0.95rem] not-first:border-t"
           >
-            {a.tool === "tg" ? <ToolIcon id="tg" className="size-[1.1rem]" /> : <Brain className="size-[1.1rem] text-ink-soft" aria-hidden />}
+            {a.tool === "tg" ? (
+              <ToolIcon id="tg" className="size-[1.1rem]" />
+            ) : (
+              <Brain className="size-[1.1rem] text-ink-soft" aria-hidden />
+            )}
             <span className="font-mono text-[0.85rem]">{a.agent}</span>
             <span className="truncate text-ink-soft">{a.did}</span>
             <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{a.at}</span>
