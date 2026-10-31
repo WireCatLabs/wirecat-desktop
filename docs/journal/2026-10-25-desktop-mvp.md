@@ -583,6 +583,12 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **TASK-43 итог cli-core (2026-10-31):** NEED-171 сделан — cli-core 0.501.0 (#2236), cli-base 0.67.0 (`page.total`, #417/#418), drive 0.52.0, memo 0.126.0, tg 0.109.0; max #884 и wa #307 смержены, не выпущены (их релизы — владелец). `page.total = {value, relation: eq|gte}`, у drive `item.total`; счёт до 10 000. drive `budget date>=30d`: 7 → 20 хитов; 0 хитов вне фильтра. Замер: cli-testing #276, строки — cli-private #545, POST-119 дополнен.
 - **TASK-43 · Поиск показывает общее число совпадений (2026-10-31):** «Показаны 1–50 из 144» (`144+`, когда инструмент перестал считать), из `page.total` / `item.total`; инструмент без total — прежняя строка «50 результатов». PR #34.
 
+- **NEED-174 итог · max-cli 0.92.0 выпущен (2026-10-31):** с `page.total` (#884), `session start --credential-storage` (#885), `bin/release` спрашивает владельца вместо подписи (#883), docs (#887). Отчёт: cli-private `releases/0.92.0.md` (1d30dff3). Живые прогоны: X2 `mcp:tools` ×3 ~20:28; P5 `search messages` ×3 20:28–20:29 (`page.total` eq = числу строк); `smoke:live` 20:29:39 — 19 ok, 1 skip, 0 fail, тестовые сообщения и папка удалены. Не прогнан вживую `--credential-storage` (разлогинил бы владельца).
+- **FIND-118 · `page.total` не был описан в max `docs/query-language.md`** — исправлено в #887.
+- **FIND-119 · Нестабильный тест max `src/server/server.test.ts`** («sends through the server too…») упал раз на docs-PR #887, прошёл при перезапуске.
+- **FIND-120 · `bin/release` max ставит пакет глобально (`pnpm add -g`) и дописывает исключения в `minimumReleaseAgeExclude`** глобального pnpm (`~/.local/share/pnpm/global/v11/pnpm-workspace.yaml`) — так делает каждый релиз; файл не правили.
+- **FIND-121 · Битая ссылка:** max `docs_ai/releasing.md` и `releases/README.md` ведут на `.claude/skills/release/SKILL.md`; навык лежит в `docs/dev/skills/release/SKILL.md`.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
