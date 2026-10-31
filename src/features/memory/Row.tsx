@@ -47,7 +47,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
   const owner = byOwner(entry)
 
   return (
-    <div ref={row} className="border-line border-t">
+    <div ref={row} data-row className="border-line border-t">
       <div className="grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto_7.6rem] items-center gap-[0.9rem] px-[1.3rem] py-[0.8rem] xl:gap-[1.2rem]">
         <Lamp tone={toneOf(entry.status)} label={m.states[state]} />
         <Icon className="size-[1.6rem] text-ink-soft" strokeWidth={1.6} aria-label={m.record[entry.type]} />
@@ -333,7 +333,10 @@ function CorrectForm({ entry }: { entry: MemoryEntry }) {
       className="step-in flex flex-col gap-[0.5rem]"
       onSubmit={(e) => {
         e.preventDefault()
-        if (changed) correct(entry.ref, oneLine(text))
+        if (!changed) return
+        const row = box.current?.closest<HTMLElement>("[data-row]")
+        // The owner's version unfolds at the top of its day, above this row: keep this row where it is.
+        correct(entry.ref, oneLine(text)).then((done) => done && row && holdInPlace(row))
       }}
     >
       <label htmlFor={id} className="text-[0.9rem] font-medium text-ink-dim">
