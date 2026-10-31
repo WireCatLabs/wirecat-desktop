@@ -151,7 +151,7 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.128.0 or newer (`memory.minVersion` in the catalog); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.130.0 or newer (`memory.minVersion` in the catalog); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list` (each
 `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still shows
 the entries. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare

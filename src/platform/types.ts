@@ -143,7 +143,7 @@ export type Platform = {
   /** Takes the tool's paths off the tunnel; cloudflared stops when no tool is left. */
   cloudflareTunnelClose(id: string): Promise<void>
   cloudflareRoutes(): Promise<TunnelRoute[]>
-  /** memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old" below memo 0.128.0. */
+  /** memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old" below memo 0.130.0. */
   memoryRead(): Promise<MemoryRead>
   /** What a memory or a fact rests on: each source read back, with a quoted line, or marked deleted since. */
   memorySources(ref: string): Promise<MemorySource[]>

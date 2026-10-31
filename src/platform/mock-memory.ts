@@ -309,7 +309,7 @@ export function memoryMock(): Pick<
     async memoryRead(): Promise<MemoryRead> {
       await delay(700)
       if (scenario === "missing") return { kind: "missing" }
-      if (scenario === "old") return { kind: "old", version: "0.124.0", need: "0.128.0" }
+      if (scenario === "old") return { kind: "old", version: "0.124.0", need: "0.130.0" }
       if (fail === "read") throw new Error(BUSY)
       return {
         kind: "ready",

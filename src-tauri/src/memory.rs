@@ -421,10 +421,11 @@ fn correct_args(r: &Ref, old: &Value, text: &str) -> Result<Vec<String>, String>
             args.extend(["--kind".into(), kind, "--scope".into(), scope]);
         }
         Kind::Fact => {
-            if field("kind").as_deref() != Some("decision") || field("status").as_deref() != Some("accepted") {
-                return Err("Memo corrects only an accepted decision; discard or forget this fact instead.".into());
+            if !matches!(field("status").as_deref(), Some("proposed" | "accepted")) {
+                return Err("Memo corrects only a proposed or accepted fact; forget this one instead.".into());
             }
-            args.extend(["--kind".into(), "decision".into()]);
+            let kind = field("kind").ok_or("Memo did not say the fact's kind")?;
+            args.extend(["--kind".into(), kind]);
             for (key, option) in [("scope", "--scope"), ("project", "--project")] {
                 if let Some(v) = field(key) {
                     args.extend([option.into(), v]);
@@ -582,7 +583,7 @@ mod tests {
                 "facts" => json!({"items":[decision("proposed")],"page":{"has_more":true}}),
                 "actions" => json!({"items":[proposal("proposed")],"page":{"has_more":false}}),
                 _ => {
-                    json!({"items":[{"id":"1","actor":{"type":"bot","id":"5","name":"memo-mcp"},"tool":"memories_list",
+                    json!({"items":[{"id":"1","actor":{"type":"bot","id":"5","name":"claude-code"},"tool":"memories_list",
                     "tier":"read","target":null,"status":"ok","error":null,"started_at":"2026-10-31T20:57:31.459Z",
                     "finished_at":"2026-10-31T20:57:31.484Z"}]})
                 }
@@ -606,7 +607,7 @@ mod tests {
         assert_eq!(a.text.as_deref(), Some("Send Kai the pricing table"));
         assert_eq!(a.account.as_deref(), Some("telegram:1"));
         assert_eq!(a.reason.as_deref(), Some("Kai asked twice"));
-        assert_eq!(activity.unwrap()[0].agent.as_deref(), Some("memo-mcp"));
+        assert_eq!(activity.unwrap()[0].agent.as_deref(), Some("claude-code"));
         for args in fake.seen() {
             assert!(args.ends_with(&strs(&["--json", "--no-record"])), "{args:?}");
         }
@@ -693,14 +694,14 @@ mod tests {
     }
 
     #[test]
-    fn only_an_accepted_decision_is_corrected_among_facts() {
+    fn a_proposed_or_accepted_fact_is_corrected_with_its_own_kind() {
         let r = Ref::parse("fact:1").unwrap();
         let args = correct_args(&r, &decision("accepted"), "Launch moves to April").unwrap();
         assert_eq!(&args[..8], strs(&["facts", "add", "--kind", "decision", "--scope", "work", "--project", "HRB"]));
-        assert!(correct_args(&r, &decision("proposed"), "x").is_err());
-        let mut promise = decision("accepted");
+        let mut promise = decision("proposed");
         promise["kind"] = json!("promise");
-        assert!(correct_args(&r, &promise, "x").is_err());
+        assert_eq!(&correct_args(&r, &promise, "x").unwrap()[..4], strs(&["facts", "add", "--kind", "promise"]));
+        assert!(correct_args(&r, &decision("superseded"), "x").is_err());
     }
 
     #[test]
@@ -754,7 +755,7 @@ mod tests {
     /// Against a real memo with a throwaway store: `MEMO_BIN=<memo> cargo test memory -- --ignored`. It writes to that
     /// store, so never point it at the owner's.
     #[test]
-    #[ignore = "needs MEMO_BIN, a memo 0.128.0+ with a throwaway store"]
+    #[ignore = "needs MEMO_BIN, a memo 0.130.0+ with a throwaway store"]
     fn reads_and_writes_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);

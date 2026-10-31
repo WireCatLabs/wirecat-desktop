@@ -13,7 +13,7 @@ describe("memory records", () => {
     expect(toneOf("failed")).toBe("bad")
   })
 
-  it("offers only what memo 0.128.0 does with each record", () => {
+  it("offers only what memo 0.130.0 does with each record", () => {
     expect(can(entry("memory", "summary", "proposed"))).toEqual({
       confirm: true,
       discard: true,
@@ -22,8 +22,9 @@ describe("memory records", () => {
     })
     expect(can(entry("memory", "summary", "superseded")).correct).toBe(false)
     expect(can(entry("fact", "decision", "accepted"))).toMatchObject({ discard: true, correct: true })
-    expect(can(entry("fact", "promise", "accepted"))).toMatchObject({ discard: false, correct: false, forget: true })
-    expect(can(entry("fact", "decision", "proposed"))).toMatchObject({ confirm: true, discard: true, correct: false })
+    expect(can(entry("fact", "promise", "accepted"))).toMatchObject({ discard: false, correct: true, forget: true })
+    expect(can(entry("fact", "decision", "proposed"))).toMatchObject({ confirm: true, discard: true, correct: true })
+    expect(can(entry("fact", "promise", "superseded")).correct).toBe(false)
     expect(can(entry("action", "reply", "proposed"))).toEqual({
       confirm: true,
       discard: true,

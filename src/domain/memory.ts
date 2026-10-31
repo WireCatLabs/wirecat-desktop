@@ -46,9 +46,8 @@ export const byOwner = (e: Entry) => e.author?.type === "person"
 export type Can = { confirm: boolean; discard: boolean; correct: boolean; forget: boolean }
 
 /**
- * What memo 0.128.0 lets the owner do with each record. A fact is corrected only when it is an accepted decision
- * (`facts add --supersedes` takes nothing else, and leaves a proposed one proposed); an action is approved or
- * discarded, never corrected or forgotten.
+ * What memo 0.130.0 lets the owner do with each record. A proposed or accepted fact of any kind is corrected
+ * (`facts add --supersedes`); an action is approved or discarded, never corrected or forgotten.
  */
 export function can(e: Entry): Can {
   const s = e.status
@@ -59,7 +58,7 @@ export function can(e: Entry): Can {
     return {
       confirm: s === "proposed",
       discard: s === "proposed" || (s === "accepted" && decision),
-      correct: s === "accepted" && decision,
+      correct: s === "proposed" || s === "accepted",
       forget: true,
     }
   return {
