@@ -67,7 +67,8 @@ In the patch-rack world of [DESIGN.md](../../../DESIGN.md). Drawn with the app's
   the statuses) and a "Can start now" switch. Each picker is a button that opens a box to type in over a list with
   checkboxes and counts, styled like `Select`. Choosing writes `project:HRB`, `assignee:"Ana Ruiz"`, `priority:0`,
   `due:overdue`, `state:done`, `ready:true` into the query; clearing removes them; typing the words does the same
-  as clicking. A chosen picker shows its value on a purple wash. One component, promoted to `src/ui/Picker.tsx`; it
+  as clicking. The count beside each choice comes from Memo (step 2), never from counting rows in the page; until Memo
+  gives it, the pickers show no counts. A chosen picker shows its value on a purple wash. One component, promoted to `src/ui/Picker.tsx`; it
   also edits cells.
 - **Table view.** One rack, a sticky header row, columns Status · Task (key, mono) · Title · Project · Assignee ·
   Priority · Due. Sort by clicking Status, Task, Priority or Due (`aria-sort`). Priority is a three-bar mark with a word
@@ -79,7 +80,7 @@ In the patch-rack world of [DESIGN.md](../../../DESIGN.md). Drawn with the app's
     date field). The title row opens the task in place (`Collapse`): title and notes to edit with Save and Cancel; on
     the right "Depends on" with each blocker's lamp and "Add a task it waits for"; then History.
 - **Board view.** Four columns side by side, each a rack frame with its lamp, name and count: **To do · Doing · Done ·
-  Dropped**. Done and Dropped show the last 14 days. A card is a row in its column (hairline between, no shadow): key,
+  Dropped**. Done and Dropped show the last 14 days (`closed:` in step 2; the page does not trim them itself). A card is a row in its column (hairline between, no shadow): key,
   priority mark, title (three lines at most), markers, assignee, due, and a "Move to…" picker. At the 960 minimum the
   four columns fit at 12rem each; below that the board scrolls sideways, never the page.
   - **Drag.** Pointer events, not HTML5 drag (RISK-1). A press becomes a drag only after 6 px, so text on a card still
@@ -113,7 +114,7 @@ In the patch-rack world of [DESIGN.md](../../../DESIGN.md). Drawn with the app's
 | Project picker with one chosen | `picker-light.png` | `picker-dark.png` (board) |
 | Editing a cell (Assignee) | `edit-cell-light.png` | — |
 | The 960×640 minimum | `narrow-table-light.png` | `narrow-board-dark.png` |
-| Empty · no match · Memo missing · too old · read failed · write failed · changed elsewhere | `state-empty-light.png`, `state-nomatch-light.png`, `state-missing-light.png`, `state-old-light.png`, `state-error-light.png`, `state-write-fail-light.png`, `state-conflict-light.png` | `state-missing-dark.png` |
+| Empty · no match · Memo missing · too old · read failed · write failed · changed elsewhere | `state-none-light.png`, `state-nomatch-light.png`, `state-missing-light.png`, `state-old-light.png`, `state-fail-light.png`, `state-write-fail-light.png`, `state-conflict-light.png` | `state-missing-dark.png` |
 
 ## Privacy
 
@@ -127,7 +128,8 @@ In the patch-rack world of [DESIGN.md](../../../DESIGN.md). Drawn with the app's
 - **Rule 2.** Each action is a `#[tauri::command]` taking validated values: a task key (`^[A-Z0-9]{2,4}-\d+$`, the same
   plain-word check as `validate_task` in `src-tauri/src/tasks.rs`), a status from the fixed set, a priority 0–4, a date
   `YYYY-MM-DD` or none, a `person:<id>`, a project key, a title (1–500 characters, no control characters) and notes (at
-  most 20,000, Memo's limit). The query is passed as one argument after `--`, never through a shell. Rust maps each to
+  most 20,000, Memo's limit). The query is passed as one argument after `--`, never through a shell, as the Search page does
+  (`src-tauri/src/search.rs`, PR #34), so `-project:HRB` is a query and never a flag. Rust maps each to
   a fixed `memo tasks …` line.
 - **Rule 5.** Nothing is deleted. Drop closes a task as dismissed and keeps it.
 
@@ -150,8 +152,7 @@ In the patch-rack world of [DESIGN.md](../../../DESIGN.md). Drawn with the app's
 `?view=table|kanban`, and `?tasks=` with: `none` (empty), `nomatch`, `missing`, `old`, `fail` (read failed), `write-fail`
 (every edit and drop fails), `conflict` (HRB-12 changed by hermes), `many` (400 tasks in 6 projects, for scrolling,
 counts and the 500 cap), `blocked` (a chain of three). The default has nine tasks in three projects (Harbour launch,
-Operations, Home), made-up people only (Kai Sample, Ana Ruiz), and two agents' claims. The prototype names the empty
-state `empty` and the read failure `error`; the real mock uses the names above, matching the other pages.
+Operations, Home), made-up people only (Kai Sample, Ana Ruiz), and two agents' claims.
 
 ## Build steps
 
@@ -160,7 +161,7 @@ Rule 1: the CLI work goes first, in cli-memo and cli-core, and the app waits for
 | # | Step | Where | Estimate |
 | --- | --- | --- | --- |
 | 1 | States: `in_progress` beside open, done, dismissed; `tasks update --status open\|in_progress` (reopen included, sets `started_at`); contract tests | cli-core store + cli-memo | 0.5–1 day |
-| 2 | List query: `assignee:`, `priority:` (with ranges), `due:` (ranges, `overdue`, `none`), free text over `task_words`, OR within one field, all projects when `project:` is absent, `--sort`, a cursor past 500 | cli-memo `list.ts`, cli-core `work-tasks.ts` | 1.5 days |
+| 2 | List query: `assignee:`, `priority:` (with ranges), `due:` (ranges, `overdue`, `none`), `closed:` (a range, for the last 14 days of Done and Dropped), free text over `task_words`, OR within one field, all projects when `project:` is absent, `--sort`, a cursor past 500; and a count per value of project, assignee, priority and status for the pickers, the way search answers got their totals in cli-core 0.501.0 | cli-memo `list.ts`, cli-core `work-tasks.ts` | 2 days |
 | 3 | List items carry `assignments`, `ready` and `blocked_by`; the list and `show` use the same names (`status`/`state`, `type`/`kind`) | cli-memo | 0.5 day |
 | 4 | `tasks unassign`; `--revision` on `update`, `close`, `assign`, `unassign`, the way reminders and notes have it; `tasks history <key> --json` over `task_events` | cli-memo + cli-core | 1 day |
 | 5 | Order in a column: a `rank` and `tasks move <key> --status <s> --before\|--after <key>` (only if NEED-2 is A) | cli-core + cli-memo | 0.5–1 day |
@@ -174,7 +175,7 @@ Rule 1: the CLI work goes first, in cli-memo and cli-core, and the app waits for
 | 13 | Search: the shared `QueryBar` with Memo's task fields from `memo commands info tasks.list --json` | after PR #34 merges | 0.5 day |
 | 14 | Checks: tests, both themes and 960 width with the capture script, rule 9 (`scripts/scroll-hold.mjs` extended to a drop and a cell edit), keyboard, reduced motion, `pnpm check` | — | 0.5 day |
 
-About 11 working days in all, about 5 of them in cli-memo and cli-core. Without step 5 (NEED-2 B), about 10.
+About 11.5 working days in all, about 5.5 of them in cli-memo and cli-core. Without step 5 (NEED-2 B), about 10.5.
 
 ## Open questions for the owner
 

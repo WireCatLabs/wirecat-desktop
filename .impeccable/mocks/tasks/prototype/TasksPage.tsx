@@ -1,7 +1,7 @@
 // cspell:words hermes
 // Design prototype for the Tasks page plan (docs/dev/plans/2026-10-31-tasks-page.md). Made-up data, no platform calls.
-// `?view=table|kanban` picks the view. `?tasks=<state>` picks what it shows: default, loading, empty, nomatch, missing,
-// old, error, write-fail, conflict. The query box stands in for `src/features/query/QueryBar` (PR #34, not on main yet);
+// `?view=table|kanban` picks the view. `?tasks=<state>` picks what it shows: default, loading, none, nomatch, missing,
+// old, fail, write-fail, conflict. The query box stands in for `src/features/query/QueryBar` (PR #34, not on main yet);
 // the real page sends the query to `memo tasks list <query> --json` and filters nothing itself. Here a tiny parser
 // filters the made-up rows by the same words, so the picture matches what memo would answer.
 import {
@@ -218,11 +218,12 @@ const STATE = params.get("tasks") ?? "default"
 // ---- The query: the one place filters live. Pickers write words into it; memo reads it. ----
 
 type Term = { field: string | null; value: string }
+const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 const quote = (v: string) => (/[\s:()"]/.test(v) ? `"${v}"` : v)
 function terms(q: string): Term[] {
   const out: Term[] = []
   for (const m of q.matchAll(/(?:(\w+):)?(?:"([^"]*)"|(\S+))/g)) {
-    out.push({ field: m[1] ?? null, value: (m[2] ?? m[3] ?? "").toLowerCase() })
+    out.push({ field: m[1] ?? null, value: m[2] ?? m[3] ?? "" })
   }
   return out
 }
@@ -242,7 +243,7 @@ const days = (from: string, to: string) => Math.round((Date.parse(to) - Date.par
 function matches(t: Task, q: string): boolean {
   const by = (field: string) => valuesOf(q, field)
   const any = (field: string, value: string) => {
-    const vs = by(field)
+    const vs = by(field).map((v) => v.toLowerCase())
     return vs.length === 0 || vs.includes(value.toLowerCase())
   }
   if (!any("project", t.project) || !any("state", t.status)) return false
@@ -268,7 +269,7 @@ function matches(t: Task, q: string): boolean {
   }
   const words = terms(q).filter((x) => x.field === null)
   const text = `${t.key} ${t.title} ${t.body}`.toLowerCase()
-  return words.every((w) => text.includes(w.value))
+  return words.every((w) => text.includes(w.value.toLowerCase()))
 }
 
 // ---- The page ----
@@ -314,7 +315,7 @@ export function TasksPage() {
     setQuery(q)
   }
 
-  const unusable = STATE === "missing" || STATE === "old" || STATE === "error"
+  const unusable = STATE === "missing" || STATE === "old" || STATE === "fail"
   return (
     <div className="flex min-w-0 flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -359,7 +360,7 @@ export function TasksPage() {
             Update Memo
           </Button>
         </Notice>
-      ) : STATE === "error" ? (
+      ) : STATE === "fail" ? (
         <ErrorNotice
           detail="memo tasks list: another Memo process holds the store (store.busy)"
           action={<Button size="sm">Try again</Button>}
@@ -376,7 +377,7 @@ export function TasksPage() {
           )}
           {STATE === "loading" ? (
             <LoadingRack />
-          ) : STATE === "empty" ? (
+          ) : STATE === "none" ? (
             <Empty />
           ) : view === "table" ? (
             <Table
@@ -455,13 +456,13 @@ function Filters({ query, onQuery, view }: { query: string; onQuery: (q: string)
           label="Project"
           {...multi(
             "project",
-            PROJECTS.map((p) => ({ value: p.key.toLowerCase(), label: p.name, hint: p.key })),
+            PROJECTS.map((p) => ({ value: p.key, label: p.name, hint: p.key })),
           )}
         />
         <Picker
           label="Assignee"
           {...multi("assignee", [
-            ...PEOPLE.map((p) => ({ value: p.name.toLowerCase(), label: p.name })),
+            ...PEOPLE.map((p) => ({ value: p.name, label: p.name })),
             { value: "none", label: "Nobody" },
           ])}
         />
@@ -540,7 +541,7 @@ function Picker(props: {
       setOpen(false)
       return
     }
-    onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v])
+    onChange(selected.some((s) => same(s, v)) ? selected.filter((s) => !same(s, v)) : [...selected, v])
   }
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") setOpen(false)
@@ -556,7 +557,7 @@ function Picker(props: {
       if (o) toggle(o.value)
     }
   }
-  const names = selected.map((v) => options.find((o) => o.value === v)?.label ?? v)
+  const names = selected.map((v) => options.find((o) => same(o.value, v))?.label ?? v)
   return (
     <div ref={box} className="relative">
       {trigger ? (
@@ -618,7 +619,7 @@ function Picker(props: {
           />
           <ul id={listId} role="listbox" aria-multiselectable={!single} className="max-h-[16rem] overflow-y-auto">
             {shown.map((o, i) => {
-              const on = selected.includes(o.value)
+              const on = selected.some((v) => same(v, o.value))
               return (
                 <li
                   key={o.value}
