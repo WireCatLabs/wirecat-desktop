@@ -553,6 +553,10 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **FIND-117 · Если исправить A на B и забыть B, A остаётся «заменённой» без замены.**
 - **DEBT-10 · `--sources` нет в общем словаре флагов cli-base**; два исключения в memo `lint/overrides.json`, пересмотреть 2027-01-31.
 
+- **RISK-62 закрыт (2026-10-31):** memo 0.128.0 (cli-core #2253 → 0.506.0, cli-memo #523) — «Забыть» записывает наибольший выданный номер (`ids.memories.highest`, `ids.facts.highest` в таблице настроек стора), новые записи берут следующий; без смены схемы. Минимум для десктопа — memo 0.128.0.
+- **FIND-132 · Публикация навыка memo в ClawHub при релизе 0.128.0 упала дважды** (ошибка сервера, затем «Too many writes in a short period»); npm, GitHub release и MCP Registry прошли. Перезапустить job в run 41240121225.
+- **FIND-133 · Смоук агента поставил `@wirecat/cli-memo@^0.128.0` в `/home/leemour/Projects/AI/package.json`** (npm поднялся из временной папки без package.json), переписал `package-lock.json` и `node_modules` (279 МБ) там же. package.json — заготовка `npm init`, не git; что было в нём раньше, неизвестно. Решать владельцу.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
