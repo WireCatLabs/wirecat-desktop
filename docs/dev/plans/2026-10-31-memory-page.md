@@ -159,3 +159,18 @@ About 5 working days in all, about 1.5 of them in cli-memo and cli-core.
 - **NEED-170 · Should agents' proposed actions (`memo actions`) and project or meeting findings wait on this page too?**
   A not in the first version · B yes, as more rows under "Waiting for you". I recommend **A**: approving an action
   makes a task, which belongs to a future Tasks page; the Memory page stays about what is remembered.
+
+## As built (2026-10-31, branch `feat/memory-page`)
+
+Steps 5–7 and 9, on memo 0.128.0 and the owner's answers: layout A (NEED-167), "What agents did" on the page
+(NEED-168 A), Forget erases and Discard stays beside it (NEED-169 A), proposed actions as Review rows with Approve
+(NEED-170 B). Where it differs from the plan above:
+
+- **Correct on facts** only for an accepted decision. memo's `facts add --supersedes` refuses any other kind, and on a
+  proposed decision it leaves the old one proposed; a proposed fact is discarded (rejected) instead.
+- **Discard** replaces "No longer true": a memory goes stale, a proposed fact is rejected, an accepted decision is
+  reversed, an action is rejected. It is offered on proposals too.
+- **Actions** come from `memo actions list`; Approve runs `actions confirm` (a task in that account, nothing sent).
+  They have no sources, Correct or Forget in memo.
+- **About and Written by** are typed fields with suggestions (`src/ui/Combobox.tsx`), matching any part of a name.
+- **Step 8** (open Search with the query filled) waits for PR #34; the page has no Search link yet.
