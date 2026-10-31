@@ -106,6 +106,8 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 - **TASK-46 · План и дизайн страницы «Задачи» (2026-10-31):** Слава: «I think we need to also add Tasks page with table and kanban views and some filters (especially projects, assignee, priority, dates etc as well as search) and allow editing them and switching statuses by dragging etc». Данные — `memo tasks`. Агент пишет план и прототип в ветке `docs/tasks-plan`, по образцу «Памяти».
 - **TASK-45 · поправка:** ссылки на состояния в прошлом ответе показывали одну раскладку A; Слава хотел сравнить раскладки. В прототип добавлен `?layout=a|b|c`.
 
+- **TASK-47 · Проект системы событий для CLI и десктопа (2026-11-01):** по ответу на NEED-178 — подписка на события ядра в CLI, доставка в десктоп, другим серверам и приложениям, приём событий извне. Сначала проект, без кода.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -1123,3 +1125,6 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-188 · Разрешать ли подтверждать факты и памяти по MCP только владельцу?** (см. RISK-70) Сейчас: агент может подтвердить своё. A выключить `facts confirm`/`memories confirm` для MCP по умолчанию, как `meetings actions confirm` · B оставить. Я бы A. **Ответ 2026-10-31: B** (оставить).
 - **NEED-182 · Ответ 2026-10-31: B** — tg и max не выпускать сейчас, ждать следующего релиза.
 - **NEED-175 · Ответ 2026-10-31:** «I'd use these Open, Todo, Progress, Done, Dismissed» — пять фиксированных колонок. Толкование (проверить у Славы): Open — новое, ещё не разобранное; Todo — решено делать; Progress — в работе; Done; Dismissed. memo нужны состояния `todo` и `in_progress` и возврат из Done.
+- **NEED-176 · Ответ 2026-11-01: A, с поправкой:** «let's have priority as a large range, like a decimal mb and say there are 4 prios - low, medium, high, critical we can split by 0.25 ranges or similar and human only sees human value. also check https://github.com/gastownhall/beads for ideas». Порядок в колонке = десятичный приоритет; перетаскивание ставит значение между соседями; человек видит одну из четырёх меток.
+- **NEED-178 · Ответ 2026-11-01: A, и шире:** «this is super unlikely, we need to watch and push changes on change to desktop if it's open. I think we need a proper push system so the changes can be actually pushed and notifications can come etc. can you think whats the best way to design it so we can notify other servers, apps and so on, so it's possible to subscribe to core events in clis, to the events from outside and so on» — см. TASK-47.
+- **NEED-180 · Ответ 2026-11-01: B, иначе:** «I'd add another field like agent to the task, sure, it's separate from assignee».
