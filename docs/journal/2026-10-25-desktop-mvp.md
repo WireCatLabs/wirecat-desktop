@@ -570,6 +570,13 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **RISK-71 · Имя агента — это то, что клиент сам о себе сказал** (`clientInfo`): клиент может назваться `claude-code` или `owner`; на права не влияет, только на подпись.
 - **FIND-138 · tg-cli и whatsapp-cli ещё на cli-base 0.67**, cli-core 0.509.0 требует 0.68 — до подъёма их журнал вызовов пишет `tg-mcp`/`wa-mcp`.
 
+- **TASK-47 · проект событий готов (2026-11-01):** черновой cli-core #2274 (`docs/dev/plans/2026-11-01-events.md`), замер cli-testing #281 (`performance/events/change-detection/`), блог POST-13.f. Таблица `events` в общем сторе, заполняется SQL-триггерами в той же транзакции (работает и для CLI на старых версиях библиотеки); событие — номер, тип (`task.status`), ref, кто, имена полей, без содержимого. Читатели опрашивают `PRAGMA data_version` раз в 250 мс (1,3 мкс на проверку, на Linux каждый коммит виден) — без демона. `<tool> events watch --since <seq> --json` (NDJSON); десктоп держит один такой процесс. Вебхуки потом: `events deliver` по расписанию, Standard Webhooks + CloudEvents; входящие — через Funnel/туннель. Первый шаг — живая «Память», ~3,5 дня (2 cli-core, 1,5 десктоп).
+- **FIND-139 · Часть изменений задач не пишет историю:** claim, release, resolution, verdict, close certainty ничего не пишут в `task_events`; вид `moved` объявлен, но не пишется.
+- **FIND-140 · Уведомления ОС ограничены:** на Windows — только для установленных приложений; действия по клику документированы только для мобильных.
+- **RISK-72 · Слежение за файлом `-wal` опаздывает и дорого:** событие файла приходит раньше видимого коммита; 4 коммита нашёл только 5-секундный страховочный опрос; при синке — в 10–12 раз больше CPU, чем опрос.
+- **RISK-73 · Работающий наблюдатель мешает `store reset`;** после restore номера событий идут назад — в проекте: проверка файла раз в 2 с, переоткрытие, «перечитать».
+- **RISK-74 · Теги задач не дают события** — нужен ещё триггер до выпуска «Задач».
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
@@ -1128,3 +1135,7 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-176 · Ответ 2026-11-01: A, с поправкой:** «let's have priority as a large range, like a decimal mb and say there are 4 prios - low, medium, high, critical we can split by 0.25 ranges or similar and human only sees human value. also check https://github.com/gastownhall/beads for ideas». Порядок в колонке = десятичный приоритет; перетаскивание ставит значение между соседями; человек видит одну из четырёх меток.
 - **NEED-178 · Ответ 2026-11-01: A, и шире:** «this is super unlikely, we need to watch and push changes on change to desktop if it's open. I think we need a proper push system so the changes can be actually pushed and notifications can come etc. can you think whats the best way to design it so we can notify other servers, apps and so on, so it's possible to subscribe to core events in clis, to the events from outside and so on» — см. TASK-47.
 - **NEED-180 · Ответ 2026-11-01: B, иначе:** «I'd add another field like agent to the task, sure, it's separate from assignee».
+- **NEED-189 · Кто отправляет вебхуки, когда десктоп закрыт?** A расписание пользователя раз в минуту + десктоп, пока открыт · B существующие долгие процессы (`serve`, HTTP MCP) · C новый демон. Я бы A. Если не ответишь: ждёт только шаг 4.
+- **NEED-190 · Где хранить секрет вебхука?** A в keyring создавшего инструмента, доставляет только он · B общая запись `wirecat` · C файл только для владельца. Я бы A. Если не ответишь: ждёт шаг 4.
+- **NEED-191 · Писать ли историю для `tasks claim`/`release`?** A нет, у события пустой «кто» · B да, `claimed`/`released`. Я бы B.
+- **NEED-192 · Что может содержать уведомление в мессенджер?** A только ссылки · B заголовки, по явному согласию на подписку. Я бы A по умолчанию, B по согласию.
