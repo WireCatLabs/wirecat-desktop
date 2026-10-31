@@ -1,7 +1,7 @@
 // Design prototype for the Memory page plan (docs/dev/plans/2026-10-31-memory-page.md). Made-up data, no platform
 // calls. `?memory=<state>` picks what it shows: waiting (default), correct, forget, kept, empty, missing, old, loading,
 // error.
-import { Brain, ExternalLink, FileText, MessageSquareQuote, Pencil, RefreshCw, Trash2, Video } from "lucide-react"
+import { Brain, ExternalLink, FileText, ListChecks, MessageSquareQuote, Pencil, RefreshCw, Trash2, Video } from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { ToolIcon } from "@/features/tools/ToolIcon"
 import { Button } from "@/ui/Button"
@@ -11,14 +11,13 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
-import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 
 type Status = "proposed" | "confirmed" | "stale" | "superseded" | "accepted" | "reversed"
 type Source = { kind: "tg" | "note" | "meeting" | "email"; who: string; at: string; text: string }
 type Entry = {
   id: string
-  type: "memory" | "fact"
+  type: "memory" | "fact" | "action"
   kind: string
   scope: "work" | "personal"
   text: string
@@ -65,6 +64,20 @@ const ENTRIES: Entry[] = [
     by: "hermes",
     byAgent: true,
     at: "05:47",
+    day: "Today",
+    status: "proposed",
+    sources: [],
+  },
+  {
+    id: "action:5",
+    type: "action",
+    kind: "Send a message",
+    scope: "work",
+    text: "Send Kai the pricing table in Telegram: \"Here is the pricing table I promised, see the second tab.\"",
+    about: "Kai Sample",
+    by: "hermes",
+    byAgent: true,
+    at: "05:31",
     day: "Today",
     status: "proposed",
     sources: [],
@@ -136,20 +149,20 @@ const tone: Record<Status, LampTone> = {
   reversed: "idle",
 }
 const said: Record<Status, string> = {
-  proposed: "Waits for you",
-  confirmed: "Confirmed",
-  accepted: "Accepted",
-  stale: "No longer holds",
+  proposed: "To review",
+  confirmed: "In use",
+  accepted: "In use",
+  stale: "Discarded",
   superseded: "Replaced",
-  reversed: "Reversed",
+  reversed: "Discarded",
 }
 
-type Filter = "waiting" | "kept" | "past" | "all"
+type Filter = "review" | "inuse" | "discarded" | "all"
 const inFilter = (f: Filter, s: Status) =>
   f === "all" ||
-  (f === "waiting" && s === "proposed") ||
-  (f === "kept" && (s === "confirmed" || s === "accepted")) ||
-  (f === "past" && (s === "stale" || s === "superseded" || s === "reversed"))
+  (f === "review" && s === "proposed") ||
+  (f === "inuse" && (s === "confirmed" || s === "accepted")) ||
+  (f === "discarded" && (s === "stale" || s === "superseded" || s === "reversed"))
 
 function stateParam(): string {
   return new URLSearchParams(window.location.search).get("memory") ?? "waiting"
@@ -157,16 +170,19 @@ function stateParam(): string {
 
 export function MemoryPage() {
   const state = stateParam()
-  const [filter, setFilter] = useState<Filter>(state === "kept" ? "kept" : "waiting")
+  const [filter, setFilter] = useState<Filter>(state === "kept" ? "inuse" : "review")
   const [open, setOpen] = useState<string | null>(state === "kept" ? null : "memory:41")
-  const [about, setAbout] = useState("everyone")
+  const [about, setAbout] = useState("")
+  const [by, setBy] = useState("")
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set())
   const [forget, setForget] = useState(state === "forget")
   const correcting = state === "correct"
 
   const status = (e: Entry): Status => (confirmed.has(e.id) ? (e.type === "fact" ? "accepted" : "confirmed") : e.status)
   // A row confirmed under "Waiting" stays where it is, green, until the filter changes (rule 9).
-  const shown = ENTRIES.filter((e) => inFilter(filter, e.status) || confirmed.has(e.id))
+  const matches = (e: Entry) =>
+    e.about.toLowerCase().includes(about.trim().toLowerCase()) && e.by.toLowerCase().includes(by.trim().toLowerCase())
+  const shown = ENTRIES.filter((e) => matches(e) && (inFilter(filter, e.status) || confirmed.has(e.id)))
   const days = [...new Set(shown.map((e) => e.day))]
   const count = (f: Filter) => ENTRIES.filter((e) => inFilter(f, e.status)).length
 
@@ -177,8 +193,8 @@ export function MemoryPage() {
           <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">Memory</h1>
           <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
             What your AI agents concluded about you and the people you talk to, and what they noted as said, decided or
-            promised. Each entry shows the messages and notes it rests on. Nothing an agent writes counts until you
-            confirm it.{" "}
+            promised, and what they want to do for you. Each entry shows the messages and notes it rests on. Nothing an
+            agent writes counts, and nothing it proposes happens, until you approve it.{" "}
             <a className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover" href="#x">
               How memory works
               <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
@@ -218,39 +234,20 @@ export function MemoryPage() {
         <>
           <div className="flex flex-wrap items-center gap-[0.7rem]">
             <Tabs value={filter} onChange={setFilter} count={count} />
-            <Picker label="About">
-              {(id) => (
-                <Select
-                  id={id}
-                  value={about}
-                  onChange={(v) => v && setAbout(v)}
-                  options={[
-                    { value: "everyone", label: "Everyone" },
-                    { value: "me", label: "You" },
-                    { value: "kai", label: "Kai Sample" },
-                    { value: "ana", label: "Ana Ruiz" },
-                    { value: "hrb", label: "Project Harbour" },
-                  ]}
-                  className="min-w-[11rem]"
-                />
-              )}
-            </Picker>
-            <Picker label="Written by">
-              {(id) => (
-                <Select
-                  id={id}
-                  value="anyone"
-                  onChange={() => {}}
-                  options={[
-                    { value: "anyone", label: "Anyone" },
-                    { value: "you", label: "You" },
-                    { value: "claude-code", label: "claude-code" },
-                    { value: "hermes", label: "hermes" },
-                  ]}
-                  className="min-w-[10rem]"
-                />
-              )}
-            </Picker>
+            <SearchPicker
+              label="About"
+              value={about}
+              onChange={setAbout}
+              placeholder="Anyone"
+              options={["You", "Kai Sample", "Ana Ruiz", "Project Harbour"]}
+            />
+            <SearchPicker
+              label="Written by"
+              value={by}
+              onChange={setBy}
+              placeholder="You or an agent"
+              options={["You", "claude-code", "hermes"]}
+            />
           </div>
 
           {state === "loading" ? (
@@ -293,8 +290,12 @@ export function MemoryPage() {
                     ))}
                 </section>
               ))}
+              {shown.length === 0 && (
+                <p className="px-[1.3rem] py-[1.2rem] text-[0.95rem] text-ink-soft">Nothing matches these filters.</p>
+              )}
             </div>
           )}
+          {state !== "empty" && state !== "loading" && <Activity />}
         </>
       )}
 
@@ -344,7 +345,7 @@ function Row(props: {
 }) {
   const { e, status, open, onToggle, onConfirm } = props
   const panel = useId()
-  const Icon = e.type === "memory" ? Brain : MessageSquareQuote
+  const Icon = e.type === "memory" ? Brain : e.type === "action" ? ListChecks : MessageSquareQuote
   return (
     <div className="border-line border-t">
       <div className="group grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto_7.6rem] items-center gap-[0.9rem] px-[1.3rem] py-[0.8rem] xl:gap-[1.2rem]">
@@ -373,7 +374,7 @@ function Row(props: {
         <span className="flex justify-end">
           {status === "proposed" ? (
             <Button size="md" className="min-w-[7.6rem]" onClick={onConfirm}>
-              Confirm
+              {e.type === "action" ? "Approve" : "Confirm"}
             </Button>
           ) : (
             <span className={cx("text-[0.9rem]", status === "confirmed" || status === "accepted" ? "text-ink" : "text-ink-dim")}>
@@ -442,7 +443,11 @@ function Details({ e, status, onForget, correcting }: Parameters<typeof Row>[0])
           <dt className="text-ink-dim">State</dt>
           <dd className="flex items-center gap-2">
             <Lamp tone={tone[status]} size="sm" />
-            {status === "proposed" ? "Waits for you. Agents see it marked as unconfirmed." : said[status]}
+            {status === "proposed"
+              ? e.type === "action"
+                ? "To review. Nothing is sent until you approve it."
+                : "To review. Agents see it marked as unconfirmed."
+              : said[status]}
           </dd>
         </dl>
 
@@ -474,7 +479,7 @@ function Details({ e, status, onForget, correcting }: Parameters<typeof Row>[0])
             </Button>
             {(status === "confirmed" || status === "accepted") && (
               <Button size="sm" variant="ghost">
-                No longer true
+                Discard
               </Button>
             )}
             <Button size="sm" variant="danger" icon={<Trash2 className="size-4" aria-hidden />} onClick={onForget}>
@@ -490,9 +495,9 @@ function Details({ e, status, onForget, correcting }: Parameters<typeof Row>[0])
 function Tabs({ value, onChange, count }: { value: Filter; onChange: (f: Filter) => void; count: (f: Filter) => number }) {
   const name = useId()
   const items: [Filter, string][] = [
-    ["waiting", "Waiting for you"],
-    ["kept", "Kept"],
-    ["past", "No longer hold"],
+    ["review", "Review"],
+    ["inuse", "In use"],
+    ["discarded", "Discarded"],
     ["all", "All"],
   ]
   return (
@@ -508,7 +513,7 @@ function Tabs({ value, onChange, count }: { value: Filter; onChange: (f: Filter)
             className="peer sr-only"
           />
           <span className="flex h-full cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
-            {id === "waiting" && <Lamp tone="warn" size="sm" />}
+            {id === "review" && <Lamp tone="warn" size="sm" />}
             {label}
             <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{count(id)}</span>
           </span>
@@ -518,14 +523,70 @@ function Tabs({ value, onChange, count }: { value: Filter; onChange: (f: Filter)
   )
 }
 
-function Picker({ label, children }: { label: string; children: (id: string) => ReactNode }) {
+const ACTIVITY = [
+  { agent: "hermes", did: "Proposed an action: send Kai the pricing table", tool: "memo", at: "Today 05:31" },
+  { agent: "claude-code", did: "Saved a memory about Kai Sample", tool: "memo", at: "Today 06:02" },
+  { agent: "claude-code", did: "Read 14 messages in the chat with Kai Sample", tool: "tg", at: "Today 06:01" },
+  { agent: "hermes", did: "Noted a decision in Project Harbour", tool: "memo", at: "Today 05:47" },
+  { agent: "claude-code", did: "Searched notes for \"Ana flat\"", tool: "memo", at: "Yesterday 21:14" },
+]
+
+function Activity() {
+  return (
+    <section aria-labelledby="activity" className="flex flex-col gap-[0.6rem]">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="activity" className="text-[1.05rem] font-semibold">
+          What agents did
+        </h2>
+        <a href="#x" className="text-[0.9rem] font-medium text-brand hover:text-brand-hover">
+          All activity in Logs
+        </a>
+      </div>
+      <ul className="rounded-[0.2rem] border border-line-strong bg-app">
+        {ACTIVITY.map((a) => (
+          <li
+            key={a.did}
+            className="grid grid-cols-[1.1rem_9rem_minmax(0,1fr)_auto] items-center gap-[0.9rem] border-line px-[1.3rem] py-[0.6rem] text-[0.95rem] not-first:border-t"
+          >
+            {a.tool === "tg" ? <ToolIcon id="tg" className="size-[1.1rem]" /> : <Brain className="size-[1.1rem] text-ink-soft" aria-hidden />}
+            <span className="font-mono text-[0.85rem]">{a.agent}</span>
+            <span className="truncate text-ink-soft">{a.did}</span>
+            <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{a.at}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function SearchPicker(props: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  options: string[]
+}) {
   const id = useId()
+  const list = useId()
   return (
     <span className="flex items-center gap-[0.5rem]">
       <label htmlFor={id} className="text-[0.95rem] text-ink-soft">
-        {label}
+        {props.label}
       </label>
-      {children(id)}
+      <input
+        id={id}
+        list={list}
+        type="search"
+        value={props.value}
+        placeholder={props.placeholder}
+        onChange={(ev) => props.onChange(ev.target.value)}
+        className="h-[2.4rem] w-[12rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus:border-brand"
+      />
+      <datalist id={list}>
+        {props.options.map((o) => (
+          <option key={o} value={o} />
+        ))}
+      </datalist>
     </span>
   )
 }
