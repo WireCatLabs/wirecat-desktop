@@ -1,18 +1,9 @@
 import { Check, ChevronDown } from "lucide-react"
-import {
-  type CSSProperties,
-  type KeyboardEvent,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useId,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react"
+import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { cx } from "./cx"
 import { uiMessages } from "./messages"
+import { useCloseOutside, useListPlacement } from "./popup-list"
 
 export type SelectOption<T extends string> = { value: T; label: string; icon?: ReactNode; disabled?: boolean }
 export type SelectGroup<T extends string> = { label: string; options: readonly SelectOption<T>[] }
@@ -41,10 +32,6 @@ const sizes = {
   sm: { button: "h-8 pl-2 pr-1.5 text-[0.875rem] gap-1.5", option: "min-h-[1.85rem] text-[0.875rem]" },
 }
 
-const GAP = 4
-const EDGE = 8
-const MAX_HEIGHT = 288
-
 /**
  * A select-only combobox (WAI-ARIA APG): focus stays on the button and the list follows it with
  * aria-activedescendant. WebKitGTK draws a native <select>'s open list itself, ignoring the theme.
@@ -66,7 +53,6 @@ export function Select<T extends string>({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
   const [listLabel, setListLabel] = useState<string>()
-  const [place, setPlace] = useState<CSSProperties>({ visibility: "hidden" })
   const button = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const typed = useRef({ text: "", at: 0 })
@@ -92,6 +78,8 @@ export function Select<T extends string>({
     setOpen(false)
     if (refocus) button.current?.focus()
   }, [])
+  const closeOutside = useCallback(() => close(false), [close])
+  const inside = useMemo(() => [button, list], [])
   const pick = (i: number) => {
     const o = flat[i]
     if (!o || o.disabled) return
@@ -156,43 +144,8 @@ export function Select<T extends string>({
     }
   }
 
-  useLayoutEffect(() => {
-    if (!open) return
-    const position = () => {
-      const b = button.current?.getBoundingClientRect()
-      const l = list.current
-      if (!b || !l) return
-      const natural = Math.min(l.scrollHeight, MAX_HEIGHT)
-      const below = window.innerHeight - b.bottom - GAP - EDGE
-      const above = b.top - GAP - EDGE
-      const up = natural > below && above > below
-      const width = Math.max(b.width, l.offsetWidth)
-      setPlace({
-        left: Math.max(EDGE, Math.min(b.left, window.innerWidth - width - EDGE)),
-        minWidth: b.width,
-        maxHeight: Math.max(Math.min(MAX_HEIGHT, up ? above : below), 96),
-        ...(up ? { bottom: window.innerHeight - b.top + GAP } : { top: b.bottom + GAP }),
-      })
-    }
-    position()
-    window.addEventListener("resize", position)
-    window.addEventListener("scroll", position, true)
-    return () => {
-      window.removeEventListener("resize", position)
-      window.removeEventListener("scroll", position, true)
-      setPlace({ visibility: "hidden" })
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const outside = (e: PointerEvent) => {
-      const t = e.target as Node
-      if (!button.current?.contains(t) && !list.current?.contains(t)) close(false)
-    }
-    document.addEventListener("pointerdown", outside, true)
-    return () => document.removeEventListener("pointerdown", outside, true)
-  }, [open, close])
+  const place = useListPlacement(open, button, list)
+  useCloseOutside(open, inside, closeOutside)
 
   useEffect(() => {
     if (open && active >= 0) document.getElementById(`${base}-${active}`)?.scrollIntoView?.({ block: "nearest" })
