@@ -103,6 +103,9 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 
 - **TASK-45 · План и дизайн страницы «Память» (2026-10-31):** Слава: «ok let's build memory, prepare a plan, use impeccable for design». Сделано: план `docs/dev/plans/2026-10-31-memory-page.md` (что даёт memo 0.124.0 по командам и полям, работа в CLI, приватность, состояния, сценарии, шаги с оценкой ~4–5 дней), макеты из прототипа на компонентах приложения в `.impeccable/mocks/memory/` (светлая и тёмная, 1280 и 960), surface brief `src-features-memory-memorypage-tsx.md`. Impeccable: concept-seed 71abbb70, страница выбора без ответа за ~6 мин — взята выпавшая структура «журнал» (NEED-167), без генерации изображений (code-led). PR без слияния.
 
+- **TASK-46 · План и дизайн страницы «Задачи» (2026-10-31):** Слава: «I think we need to also add Tasks page with table and kanban views and some filters (especially projects, assignee, priority, dates etc as well as search) and allow editing them and switching statuses by dragging etc». Данные — `memo tasks`. Агент пишет план и прототип в ветке `docs/tasks-plan`, по образцу «Памяти».
+- **TASK-45 · поправка:** ссылки на состояния в прошлом ответе показывали одну раскладку A; Слава хотел сравнить раскладки. В прототип добавлен `?layout=a|b|c`.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
