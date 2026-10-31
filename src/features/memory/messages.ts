@@ -83,6 +83,7 @@ const en = {
       ? "It cites no sources"
       : plural("en", n, { one: "Its link to the source it rests on", other: "Its # links to the sources it rests on" }),
   forgetIndex: (type: Record3): string => (type === "fact" ? "Its tags" : "Its entry in Memo's search"),
+  forgetCited: "Its place as a source of any other memory or fact that cites it",
   forgetStays:
     "The messages, notes and meetings themselves stay. Backups of the store made before now still hold it, until you delete them.",
   forgetInstead: "To keep a record that it was wrong, discard or correct it instead.",
@@ -93,7 +94,7 @@ const en = {
     "Memory is kept by Memo, which is not installed. Install it on the Tools page; your agents can then save what they learn, and you review it here.",
   goTools: "Go to Tools",
   old: (version: string | null, need: string) =>
-    `${version ? `Memo ${version}` : "The installed Memo"} cannot correct or forget a memory, or show its sources. Update Memo to ${need} or newer to use this page.`,
+    `This page needs Memo ${need} or newer${version ? `; this computer has ${version}` : ""}. Update Memo to use it.`,
   update: "Update Memo",
   emptyTitle: "No memories yet.",
   emptyBody:
@@ -220,6 +221,7 @@ const ru: typeof en = {
           other: "Её # ссылки на источники",
         }),
   forgetIndex: (type) => (type === "fact" ? "Её метки" : "Её запись в поиске Memo"),
+  forgetCited: "Её место среди источников других записей и фактов, которые на неё ссылаются",
   forgetStays:
     "Сами сообщения, заметки и встречи останутся. Резервные копии хранилища, сделанные раньше, её сохранят, пока вы их не удалите.",
   forgetInstead: "Чтобы осталась пометка, что запись была неверной, отклоните или исправьте её.",
@@ -230,7 +232,7 @@ const ru: typeof en = {
     "Память хранит Memo, а он не установлен. Установите его на странице «Инструменты»: тогда агенты смогут сохранять то, что узнали, а вы — проверять это здесь.",
   goTools: "К инструментам",
   old: (version, need) =>
-    `${version ? `Memo ${version}` : "Установленный Memo"} не умеет исправлять и забывать записи и показывать их источники. Обновите Memo до ${need} или новее, чтобы пользоваться этой страницей.`,
+    `Этой странице нужен Memo ${need} или новее${version ? `, а на этом компьютере ${version}` : ""}. Обновите Memo, чтобы ею пользоваться.`,
   update: "Обновить Memo",
   emptyTitle: "Записей пока нет.",
   emptyBody:
@@ -354,6 +356,7 @@ const es: typeof en = {
           other: "Sus # enlaces a las fuentes en que se basa",
         }),
   forgetIndex: (type) => (type === "fact" ? "Sus etiquetas" : "Su entrada en la búsqueda de Memo"),
+  forgetCited: "Su lugar como fuente de otras memorias o hechos que la citan",
   forgetStays:
     "Los mensajes, notas y reuniones siguen ahí. Las copias del almacén hechas antes la conservan hasta que las borres.",
   forgetInstead: "Para dejar constancia de que era errónea, descártala o corrígela.",
@@ -364,7 +367,7 @@ const es: typeof en = {
     "La memoria la guarda Memo, que no está instalado. Instálalo en la página Herramientas; así tus agentes podrán guardar lo que aprenden y tú lo revisarás aquí.",
   goTools: "Ir a Herramientas",
   old: (version, need) =>
-    `${version ? `Memo ${version}` : "El Memo instalado"} no puede corregir ni olvidar una memoria ni mostrar sus fuentes. Actualiza Memo a ${need} o posterior para usar esta página.`,
+    `Esta página necesita Memo ${need} o posterior${version ? `; este ordenador tiene la ${version}` : ""}. Actualiza Memo para usarla.`,
   update: "Actualizar Memo",
   emptyTitle: "Aún no hay memorias.",
   emptyBody:

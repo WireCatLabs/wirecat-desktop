@@ -751,6 +751,47 @@ mod tests {
         assert!(!too_old(Some("0.130.2"), "0.128.0"));
     }
 
+    /// Against a real memo with a throwaway store: `MEMO_BIN=<memo> cargo test memory -- --ignored`. It writes to that
+    /// store, so never point it at the owner's.
+    #[test]
+    #[ignore = "needs MEMO_BIN, a memo 0.128.0+ with a throwaway store"]
+    fn reads_and_writes_through_a_real_memo() {
+        let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
+        let call = |a: &[String]| call_at(&bin, a, READ);
+        let raw =
+            |noun: &str| call(&words(&[noun, "list", "--limit", LIMIT])).unwrap()["items"].as_array().unwrap().len();
+        let Read::Ready { entries, activity, .. } = read_with(&call).unwrap() else { panic!("not ready") };
+        assert_eq!(entries.len(), raw("memories") + raw("facts") + raw("actions"), "an item did not parse");
+        assert!(activity.is_some());
+
+        let added = call(&strs(&[
+            "memories",
+            "add",
+            "--kind",
+            "summary",
+            "--scope",
+            "work",
+            "--evidence",
+            "memory:2",
+            "--json",
+            "--no-record",
+            "--",
+            "Probe: Kai is in Lisbon",
+        ]))
+        .unwrap();
+        let r = Ref::parse(body(&added)["ref"].as_str().unwrap()).unwrap();
+        assert!(!sources_with(&call, &r).unwrap().is_empty());
+        assert_eq!(discard_with(&call, &r).unwrap().status, "stale");
+        let fixed = correct_with(&call, &r, "-Probe: Kai is in Porto").unwrap();
+        assert_eq!((fixed.status.as_str(), fixed.supersedes.as_deref()), ("confirmed", Some(r.memo().as_str())));
+        assert_eq!(fixed.text.as_deref(), Some("-Probe: Kai is in Porto"));
+        let old = call(&words(&["memories", "show", &r.memo()])).unwrap();
+        assert_eq!(body(&old)["status"], "superseded");
+        let fixed_ref = Ref::parse(&fixed.reference).unwrap();
+        assert_eq!(forget_with(&call, &fixed_ref).unwrap().links, 1);
+        assert!(call(&words(&["memories", "show", &fixed.reference])).is_err());
+    }
+
     #[cfg(unix)]
     #[test]
     fn runs_a_real_program_and_reads_memos_error_on_a_failure() {

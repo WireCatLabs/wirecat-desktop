@@ -64,6 +64,7 @@ export function ForgetDialog({ entry }: { entry: MemoryEntry | null }) {
             </li>
             <li>{m.forgetLinks(entry.links)}</li>
             <li>{m.forgetIndex(type)}</li>
+            <li>{m.forgetCited}</li>
           </ul>
           <p>{m.forgetStays}</p>
           <p>{m.forgetInstead}</p>

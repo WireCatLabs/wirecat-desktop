@@ -91,3 +91,4 @@
 - `.claude/worktrees/memory-plan` (with its `node_modules`) and the Vite cache it left in `.claude/worktrees/search-page/node_modules/.vite` — Memory plan worktree, remove after PR #35 merges (2026-10-31)
 - `/home/leemour/tmp/memo-0128` — memo 0.128.0 installed into its own folder with a throwaway HOME and store, to check the Memory page's commands; also its screenshots (`shots/`) and the Vite log. Remove after PR for feat/memory-page merges (2026-10-31)
 - `.claude/worktrees/memory-page` (branch `feat/memory-page`, its own `node_modules`) — Memory page build; remove after it merges (2026-10-31)
+- Vite dev server for the Memory page review, PID 3922675 on port 1433 (parent pnpm 3922629), started 2026-10-31 in `.claude/worktrees/memory-page`; stop with `kill 3922675`

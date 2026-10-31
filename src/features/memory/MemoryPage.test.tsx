@@ -39,6 +39,7 @@ describe("Memory", () => {
     expect(dialog).toHaveTextContent("memory:40")
     expect(dialog).toHaveTextContent("Its 2 links to the sources it rests on")
     expect(dialog).toHaveTextContent("Backups of the store made before now still hold it")
+    expect(dialog).toHaveTextContent("source of any other memory or fact that cites it")
     expect(within(dialog).getByRole("button", { name: "Discard instead" })).toBeInTheDocument()
 
     await user.click(within(dialog).getByRole("button", { name: "Forget" }))
