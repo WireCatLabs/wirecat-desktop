@@ -19,6 +19,7 @@ import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema }
 import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
 import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
+import { ForgotSchema, MemoryEntrySchema, MemoryReadSchema, MemorySourceSchema } from "./memory-schemas"
 import { createMock } from "./mock"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
@@ -163,6 +164,12 @@ function createTauri(): Platform {
     cloudflareTunnelOpen: (id, port) => call(v.string(), "cloudflare_tunnel_open", { id, port }),
     cloudflareTunnelClose: (id) => invoke("cloudflare_tunnel_close", { id }),
     cloudflareRoutes: () => call(v.array(TunnelRouteSchema), "cloudflare_routes"),
+    memoryRead: () => call(MemoryReadSchema, "memory_read"),
+    memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
+    memoryConfirm: (ref) => call(MemoryEntrySchema, "memory_confirm", { reference: ref }),
+    memoryDiscard: (ref) => call(MemoryEntrySchema, "memory_discard", { reference: ref }),
+    memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
+    memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
     taskClaims: (id, profile) => call(ClaimsSchema, "task_claims", { id, profile }),
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),
     cancelInstall: (id) => invoke("cancel_install", { id }),

@@ -725,6 +725,25 @@ mod tests {
     }
 
     #[test]
+    fn the_interface_reads_camel_case_names_and_a_kind_tag() {
+        let read = Read::Ready {
+            entries: vec![memory(&agent_memory()).unwrap()],
+            more: false,
+            activity: None,
+            activity_error: None,
+        };
+        let v = serde_json::to_value(read).unwrap();
+        assert_eq!(v["kind"], "ready");
+        assert!(v.get("activityError").is_some());
+        let e = &v["entries"][0];
+        for key in ["ref", "type", "subjectName", "subjectIsOwner", "createdAt", "updatedAt", "links"] {
+            assert!(e.get(key).is_some(), "{key}");
+        }
+        assert_eq!(e["author"]["type"], "bot");
+        assert_eq!(serde_json::to_value(Read::Old { version: None, need: "0.128.0".into() }).unwrap()["kind"], "old");
+    }
+
+    #[test]
     fn a_memo_before_the_minimum_or_one_that_cannot_say_is_too_old() {
         assert!(too_old(Some("0.127.0"), "0.128.0"));
         assert!(too_old(None, "0.128.0"));
