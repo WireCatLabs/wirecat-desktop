@@ -96,7 +96,7 @@ export const useTasks = create<TasksState>((set, get) => {
 
   const replace = (task: Task) =>
     set((s) =>
-      s.outside[task.key]
+      s.outside[task.key] && !s.tasks.some((t) => t.key === task.key)
         ? { outside: { ...s.outside, [task.key]: task }, history: without(s.history, task.key) }
         : {
             tasks: s.tasks.some((t) => t.key === task.key)
@@ -201,7 +201,12 @@ export const useTasks = create<TasksState>((set, get) => {
           order: read.tasks.map((t) => t.key),
           total: read.total,
           more: read.more,
-          outside: {},
+          // The open task stays readable in its dialog when the new search leaves it out.
+          outside: Object.fromEntries(
+            [find(get().open ?? "")]
+              .filter((t): t is Task => Boolean(t && !read.tasks.some((x) => x.key === t.key)))
+              .map((t) => [t.key, t]),
+          ),
           failed: {},
           stale: null,
           loaded: true,
@@ -252,7 +257,8 @@ export const useTasks = create<TasksState>((set, get) => {
       if (find(key)) return
       try {
         const task = await platform.taskShow(key)
-        set((s) => ({ outside: { ...s.outside, [key]: task } }))
+        // The list may have arrived meanwhile; the copy in it is the one rows and writes use.
+        if (!find(key)) set((s) => ({ outside: { ...s.outside, [key]: task } }))
       } catch (e) {
         set((s) => ({ failed: { ...s.failed, [key]: message(e) } }))
       }

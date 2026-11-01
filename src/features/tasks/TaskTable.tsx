@@ -16,7 +16,7 @@ type Sort = { by: SortBy; dir: 1 | -1 }
 
 // Below the table's minimum width it scrolls sideways inside its frame; status, key and title stay in view.
 const GRID =
-  "grid grid-cols-[minmax(36rem,1fr)_7.6rem_7.4rem_7.6rem] items-center gap-x-[0.9rem] pr-[1.3rem] xl:gap-x-[1.2rem]"
+  "grid grid-cols-[minmax(30rem,1fr)_7.6rem_7.4rem_7.6rem] items-center gap-x-[0.9rem] pr-[1.3rem] xl:gap-x-[1.2rem]"
 const LEAD =
   "sticky left-0 z-[1] grid grid-cols-[8.2rem_5.2rem_minmax(0,1fr)] items-center gap-x-[0.9rem] self-stretch bg-app pl-[1.3rem] group-data-[scrolled]/rack:shadow-[1px_0_0_var(--color-line)] xl:gap-x-[1.2rem]"
 
@@ -81,7 +81,7 @@ export function TaskTable({ top }: { top?: React.ReactNode }) {
       onScroll={(e) => setScrolled(e.currentTarget.scrollLeft > 0)}
       className="group/rack overflow-x-auto rounded-[0.2rem] border border-line-strong bg-app"
     >
-      <div className="min-w-[64rem]">
+      <div className="min-w-[58rem]">
         <div className={cx(GRID, "h-[2.6rem] border-line border-b text-[0.9rem] font-medium text-ink-dim")}>
           <span className={LEAD}>
             <span>{head("status", m.status)}</span>
@@ -135,12 +135,12 @@ export function TaskTable({ top }: { top?: React.ReactNode }) {
                 </span>
               </div>
               {failed[t.key] && (
-                <div className="sticky left-0 w-fit max-w-[64rem] px-[1.3rem] pb-[0.6rem]">
+                <div className="sticky left-0 w-fit max-w-[58rem] px-[1.3rem] pb-[0.6rem]">
                   <ErrorNotice inline>{m.notSaved(failed[t.key] ?? "")}</ErrorNotice>
                 </div>
               )}
               {stale === t.key && (
-                <div className="sticky left-0 w-fit max-w-[64rem] px-[1.3rem] pb-[0.6rem]">
+                <div className="sticky left-0 w-fit max-w-[58rem] px-[1.3rem] pb-[0.6rem]">
                   <StaleLine taskKey={t.key} />
                 </div>
               )}

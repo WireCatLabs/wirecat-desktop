@@ -106,6 +106,19 @@ describe("Tasks", () => {
     expect([...document.querySelectorAll("[data-row]")].map((r) => r.getAttribute("data-row"))).toEqual(before)
   })
 
+  it("edits a task opened before the list arrived, and the row shows the change", async () => {
+    const user = userEvent.setup()
+    void useTasks.getState().openTask("OPS-3")
+    render(<TasksPage />)
+    await loaded()
+    const dialog = await screen.findByRole("dialog", { name: "Task OPS-3" })
+    await user.click(await within(dialog).findByRole("combobox", { name: "Priority of OPS-3" }))
+    await user.click(screen.getByRole("option", { name: "Low" }))
+    await waitFor(() =>
+      expect(within(row("OPS-3")).getByRole("combobox", { name: /Priority/ })).toHaveTextContent("Low"),
+    )
+  })
+
   it("moves a card between columns with the keyboard and says each step", async () => {
     const user = userEvent.setup()
     useTasks.setState({ view: "board" })
