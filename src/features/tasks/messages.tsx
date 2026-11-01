@@ -120,6 +120,7 @@ type Words = {
   holdsUpHint: string
   byAgent: string
   byPerson: string
+  editNotes: string
 }
 
 /** "4 Nov": a due day. */
@@ -206,7 +207,7 @@ const en: Words = {
   putBack: (key) => `${key} put back.`,
   titleField: "Title",
   notes: "Notes",
-  notesHint: "Anything you or an agent should know. Markdown.",
+  notesHint: "Anything you or an agent should know. Ctrl+Enter saves.",
   save: "Save",
   cancel: "Cancel",
   saving: "Saving…",
@@ -260,6 +261,7 @@ const en: Words = {
   holdsUpHint: "Open tasks shown here that wait for this one.",
   byAgent: "an agent",
   byPerson: "a person",
+  editNotes: "Edit",
 }
 
 const ru: Words = {
@@ -347,7 +349,7 @@ const ru: Words = {
   putBack: (key) => `${key} возвращена на место.`,
   titleField: "Название",
   notes: "Заметки",
-  notesHint: "Всё, что нужно знать вам или агенту. Markdown.",
+  notesHint: "Всё, что нужно знать вам или агенту. Ctrl+Enter сохраняет.",
   save: "Сохранить",
   cancel: "Отмена",
   saving: "Сохраняю…",
@@ -401,6 +403,7 @@ const ru: Words = {
   holdsUpHint: "Открытые задачи на странице, которые ждут эту.",
   byAgent: "агент",
   byPerson: "человек",
+  editNotes: "Изменить",
 }
 
 const es: Words = {
@@ -482,7 +485,7 @@ const es: Words = {
   putBack: (key) => `${key} devuelta a su sitio.`,
   titleField: "Título",
   notes: "Notas",
-  notesHint: "Lo que tú o un agente debéis saber. Markdown.",
+  notesHint: "Lo que tú o un agente debéis saber. Ctrl+Enter guarda.",
   save: "Guardar",
   cancel: "Cancelar",
   saving: "Guardando…",
@@ -536,6 +539,7 @@ const es: Words = {
   holdsUpHint: "Tareas abiertas mostradas aquí que esperan a esta.",
   byAgent: "un agente",
   byPerson: "una persona",
+  editNotes: "Editar",
 }
 
 export const taskMessages: Messages<Words> = { en, ru, es }
