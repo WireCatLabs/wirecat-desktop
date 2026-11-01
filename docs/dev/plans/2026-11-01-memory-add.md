@@ -193,17 +193,19 @@ What each step calls (after the CLI work below):
 | No text in it | A scanned PDF: it can be kept, found by title and subjects only | `unreadable-*` |
 | The link failed | The answer (401, 404, timeout) and "save it as a file instead" | `link-fail-*` |
 | About | Card, picker, chosen chips, names found in it, the suggest-or-save choice | `about-*` |
+| Picking | The picker open over the step: results grouped under People, Projects, Tasks, a tick on chosen ones | `picker-*` |
 | No model set | "Suggest facts" off, a link to Settings; saving still works | `no-reader-*` |
 | Reading for facts | The busy lamp, placeholder rows, "you can leave this page" | `extracting-*` |
 | Suggestions | Ticks, quotes, the pencil, Keep n | `facts-*`, `narrow-facts-*` |
 | Suggestion failed | The step turns red; the provider's reason; Try again, Keep without facts | `extract-fail-*` |
 | Saved | What exists now and the next steps; the new row behind | `done-*` |
 | Memo too old | Update Memo, the one primary button | `old-*` |
+| No speech model | A recording is chosen but the local speech model is not downloaded: "Turning audio into text needs Memo's speech model (about 600 MB, once)" and Download; the rest of the flow waits | not drawn |
 | Memo missing | The Memory page's own "Memo is not installed" state; no button | (Memory page) |
 
 ## Mock scenarios for the browser build
 
-`?add=source|file|link|text|image|audio|about|extracting|facts|done|too-big|unreadable|link-fail|no-reader|extract-fail|old`.
+`?add=source|file|link|text|image|audio|about|picker|extracting|facts|done|too-big|unreadable|link-fail|no-reader|extract-fail|old`.
 Without `?add`, the panel is closed. In the real mock (`src/platform/mock.ts`), these become `?add=` on the Memory
 page the same way. Made-up data only: projects Northbridge Bench and Harbour launch, people Kai Sample, Lena Ortiz and
 Tom Becker.
@@ -287,6 +289,10 @@ About 12–14 working days, about 8–10 of them in memo and cli-core. Without i
 - drive-cli fetching one file: inferred absent from `folders add` refusing anything but a folder.
 - Who else stages findings besides `codex-nbb-evaluation`: the owner's store was not read.
 - Token cost per source: estimated from words (about 1.4 tokens a word), not measured.
+- "Only save it sends nothing" rests on code and docs (local readers, `e5-small` in `docs/search.md:197-207`), not on a
+  run with the network watched.
+- Local transcription needs a speech model that `memo models list` does not offer yet; its size (about 600 MB) is a
+  guess, not read from cli-core.
 - The prototype runs in Chrome against made-up data; captures use reduced motion, so no animation was checked.
 
 <!-- cspell:words Northbridge Ortiz Becker parakeet gigaam linkedom defuddle unpdf mammoth sherpa Ollama OOXML onnx -->

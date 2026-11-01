@@ -1,6 +1,6 @@
 // cspell:words Northbridge Ortiz Becker
 // Design prototype for docs/dev/plans/2026-11-01-memory-add.md. Made-up data, no platform calls, outside `src`.
-// `?add=<state>` opens the panel at one state: source, file, link, text, image, audio, about, extracting, facts, done,
+// `?add=<state>` opens the panel at one state: source, file, link, text, image, audio, about, picker, extracting, facts, done,
 // and the failures too-big, unreadable, link-fail, no-reader, extract-fail, old. Without it the page shows the
 // "Add to memory" button with the panel closed. The page around the panel is a stand-in for the Memory page
 // (version 2, grouped by subject, PR #37), drawn only far enough to show where the panel sits and where the result
@@ -262,7 +262,7 @@ function Row(props: {
 }
 
 function stepOf(scenario: string | null): Step {
-  if (scenario === "about" || scenario === "no-reader") return "about"
+  if (scenario === "about" || scenario === "no-reader" || scenario === "picker") return "about"
   if (scenario === "extracting" || scenario === "facts" || scenario === "extract-fail") return "facts"
   if (scenario === "done") return "done"
   return "source"
@@ -283,7 +283,7 @@ function AddPanel(props: { initial: string | null; onClose: () => void; onSaved:
     scenario === "link" || scenario === "link-fail" ? "link" : scenario === "text" ? "text" : "file",
   )
   const [about, setAbout] = useState<Subject[]>(
-    step === "source" ? [] : SUBJECTS.filter((s) => s.ref === "project:3" || s.ref === "person:12"),
+    step === "source" || scenario === "picker" ? [] : SUBJECTS.filter((s) => s.ref === "project:3" || s.ref === "person:12"),
   )
   const [suggest, setSuggest] = useState(scenario !== "no-reader")
   const [phase, setPhase] = useState<Phase>(
@@ -669,6 +669,12 @@ function SourceCard({ source, onChange }: { source: Source; onChange?: () => voi
   )
 }
 
+const KINDS: { kind: Subject["kind"]; label: string }[] = [
+  { kind: "person", label: "People" },
+  { kind: "project", label: "Projects" },
+  { kind: "task", label: "Tasks" },
+]
+
 function subjectIcon(kind: Subject["kind"]) {
   if (kind === "person") return <UserRound className="size-4" aria-hidden />
   if (kind === "project") return <FolderKanban className="size-4" aria-hidden />
@@ -687,10 +693,11 @@ function AboutStep(props: {
 }) {
   const id = useId()
   const radio = useId()
-  const [query, setQuery] = useState(props.about.length ? "" : "nor")
+  const [query, setQuery] = useState(props.about.length ? "" : "or")
   const [focused, setFocused] = useState(!props.about.length)
   const chosen = new Set(props.about.map((s) => s.ref))
-  const results = SUBJECTS.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()) && query.length > 0)
+  const matches = SUBJECTS.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()) && query.length > 0)
+  const results = KINDS.flatMap((k) => matches.filter((s) => s.kind === k.kind))
   const mentioned = SUBJECTS.filter((s) => ["project:3", "person:12", "person:17"].includes(s.ref) && !chosen.has(s.ref))
   const toggle = (s: Subject) =>
     props.onAbout(chosen.has(s.ref) ? props.about.filter((a) => a.ref !== s.ref) : [...props.about, s])
@@ -722,7 +729,16 @@ function AboutStep(props: {
               aria-multiselectable
               className="reveal absolute top-[calc(100%+0.3rem)] right-0 left-0 z-20 flex flex-col rounded-[0.45rem] border border-line-strong bg-app p-1 shadow-panel"
             >
-              {results.map((s, i) => (
+              {results.map((s, i) => [
+                results[i - 1]?.kind !== s.kind && (
+                  <li
+                    key={`${s.kind}-head`}
+                    role="presentation"
+                    className="px-2 pt-1.5 pb-0.5 text-[0.85rem] font-medium text-ink-dim"
+                  >
+                    {KINDS.find((k) => k.kind === s.kind)?.label}
+                  </li>
+                ),
                 <li
                   key={s.ref}
                   role="option"
@@ -738,10 +754,9 @@ function AboutStep(props: {
                   <span className="text-ink-soft">{subjectIcon(s.kind)}</span>
                   <span className="min-w-0 flex-1 truncate">{s.name}</span>
                   {s.key && <span className="font-mono text-[0.85rem] text-ink-dim">{s.key}</span>}
-                  <span className="text-[0.85rem] text-ink-dim">{s.kind}</span>
                   <Check className={cx("size-4 text-brand", !chosen.has(s.ref) && "invisible")} aria-hidden />
-                </li>
-              ))}
+                </li>,
+              ])}
             </ul>
           )}
         </div>
