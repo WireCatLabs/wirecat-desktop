@@ -1288,9 +1288,9 @@
         "revoke": ["mcp", "revoke", "--json"],
         "config": null
       },
-      "memory": { "minVersion": "0.131.11" },
+      "memory": { "minVersion": "0.131.14" },
       "tasks": null,
-      "taskBoard": { "minVersion": "0.131.11" },
+      "taskBoard": { "minVersion": "0.131.14" },
       "sync": {
         "run": ["sync", "--record", "--json"],
         "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--json"],

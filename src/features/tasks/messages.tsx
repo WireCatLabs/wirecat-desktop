@@ -107,6 +107,8 @@ type Words = {
   properties: string
   projectHint: string
   moveRefused: string
+  partOf: string
+  moveAlone: (parent: string, project: string) => string
   someoneElse: string
   findPerson: string
   addNamed: (name: string) => string
@@ -271,6 +273,8 @@ const en: Words = {
   properties: "Properties",
   projectHint: "Moving it gives it a new key; the old key still finds it.",
   moveRefused: "Not moved: it has subtasks, which stay in this project. Move them or take them out of this task first:",
+  partOf: "Not moved: this task is part of",
+  moveAlone: (parent, project) => `Move it to ${project} on its own (it leaves ${parent})`,
   someoneElse: "Someone else…",
   findPerson: "Find or add a person",
   addNamed: (name) => `Add “${name}”`,
@@ -437,6 +441,8 @@ const ru: Words = {
   projectHint: "При переносе у задачи будет новый ключ; по старому её тоже можно найти.",
   moveRefused:
     "Не перенесено: у задачи есть подзадачи, они остаются в этом проекте. Сначала перенесите их или уберите из этой задачи:",
+  partOf: "Не перенесено: эта задача — часть",
+  moveAlone: (parent, project) => `Перенести в ${project} отдельно (она выйдет из ${parent})`,
   someoneElse: "Кто-то другой…",
   findPerson: "Найти или добавить человека",
   addNamed: (name) => `Добавить «${name}»`,
@@ -597,6 +603,8 @@ const es: Words = {
   projectHint: "Al moverla recibe una clave nueva; la antigua también la encuentra.",
   moveRefused:
     "No se ha movido: tiene subtareas, que se quedan en este proyecto. Muévelas o sácalas de esta tarea primero:",
+  partOf: "No se ha movido: esta tarea forma parte de",
+  moveAlone: (parent, project) => `Moverla sola a ${project} (sale de ${parent})`,
   someoneElse: "Otra persona…",
   findPerson: "Busca o añade a una persona",
   addNamed: (name) => `Añadir «${name}»`,

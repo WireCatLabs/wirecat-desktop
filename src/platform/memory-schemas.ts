@@ -19,7 +19,14 @@ export const MemoryEntrySchema = v.object({
   ref: v.string(),
   type: v.picklist(["memory", "fact", "action"]),
   kind: v.string(),
+  /** An action's whole text: what it would send, or the task it would make. */
   text,
+  /** memo's English line for an action, used when the page has no words of its own for its verb. */
+  summary: text,
+  verb: text,
+  targetName: text,
+  chatName: text,
+  counts: v.nullable(v.object({ facts: v.number(), tasks: v.number() })),
   status: v.string(),
   subject: text,
   subjectName: text,

@@ -17,7 +17,8 @@ export type View = "table" | "board"
 export type Unusable = { kind: "missing" } | { kind: "old"; version: string | null; need: string }
 export type History = { state: "loading" } | { state: "ready"; events: TaskEvent[] } | { state: "failed" }
 export type Comments = { state: "loading" } | { state: "ready"; items: TaskComment[] } | { state: "failed" }
-export type Subtask = { key: string; title: string }
+/** A subtask memo would not move on its own: its parent, and the project the owner chose. */
+export type Detach = { parent: string; project: string }
 /** A write Memo refused because the task changed after the page read it. */
 export type Stale = { key: string; last: TaskEvent | null }
 /** A line under the board or table that says what a write did beyond what the owner saw: "HRB-3 is now High". */
@@ -55,8 +56,10 @@ type TasksState = {
   note: Note | null
   history: Record<string, History>
   comments: Record<string, Comments>
-  /** A move to another project memo refused: the task's subtasks, which have to move or be detached first. */
-  subtasks: Record<string, Subtask[]>
+  /** A move to another project memo refused: the keys of the task's subtasks, which have to move or leave first. */
+  subtasks: Record<string, string[]>
+  /** A move memo refused because the task is a subtask; the page offers to move it out of its parent. */
+  detach: Record<string, Detach>
   creating: boolean
   load(quiet?: boolean): Promise<void>
   type(query: string): void
@@ -143,6 +146,7 @@ export const useTasks = create<TasksState>((set, get) => {
       busy: { ...s.busy, [key]: true },
       failed: without(s.failed, key),
       subtasks: without(s.subtasks, key),
+      detach: without(s.detach, key),
       stale: null,
       note: null,
     }))
@@ -155,6 +159,8 @@ export const useTasks = create<TasksState>((set, get) => {
         set({ stale: { key, last: out.last } })
       } else if (out.kind === "hasSubtasks") {
         set((s) => ({ subtasks: { ...s.subtasks, [key]: out.subtasks } }))
+      } else if (out.kind === "isSubtask") {
+        // `update` records the project the owner chose, which this answer does not carry.
       } else if (out.task.key !== key) {
         rename(key, out.task)
         now = out.task.key
@@ -192,6 +198,7 @@ export const useTasks = create<TasksState>((set, get) => {
         history: without(s.history, from),
         comments: move(s.comments),
         subtasks: without(s.subtasks, from),
+        detach: without(s.detach, from),
       }
     })
 
@@ -220,6 +227,7 @@ export const useTasks = create<TasksState>((set, get) => {
     history: {},
     comments: {},
     subtasks: {},
+    detach: {},
     creating: false,
 
     async load(quiet = false) {
@@ -318,6 +326,10 @@ export const useTasks = create<TasksState>((set, get) => {
       const t = find(key)
       if (!t) return false
       const out = await settle(key, () => platform.taskUpdate(key, t.revision, edit))
+      if (out?.kind === "isSubtask" && edit.project) {
+        const detach = { parent: out.parent, project: edit.project }
+        set((s) => ({ detach: { ...s.detach, [key]: detach } }))
+      }
       return out?.kind === "saved"
     },
 

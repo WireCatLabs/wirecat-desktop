@@ -157,11 +157,12 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.11 or newer (`memory.minVersion` in the catalog); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.14 or newer (`memory.minVersion` in the catalog); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
 (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
-shows the entries. memo names each record's project (`project_name`) and gives every action a one-line `summary`, which
-is the row's text. A findings batch's sources come from `actions show` when its row opens. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
+shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
+`target_name`, `chat_name`, the whole `text` and, for a findings batch, `counts`. The page writes the row's line from
+them in the interface language; memo's English `summary` is the fallback for a verb the page has no words for. A findings batch's sources come from `actions show` when its row opens. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
 number) and runs a fixed command:
 
 - **Confirm**: `memories confirm`, `facts confirm`; for an action `actions confirm`, which makes a task in the account
@@ -456,8 +457,8 @@ critical, one per quarter) changed. Neighbours memo renumbered to make room are 
 `tasks add` sets the due date and state in the same write. A task is moved to another project with
 `tasks update <key> --project <key>`: memo answers it with its new key there (the old one still finds it), and the
 page carries everything it keeps by key over to the new one. memo refuses to move a task that has subtasks
-(`task.has-subtasks`), naming them only in its message, so Rust reads the project's tasks and answers those whose
-parent it is. A moved subtask loses its parent. Comments are a thread of their own, oldest first; adding one moves no
+(`task.has-subtasks`, their keys in `details.subtasks`), and a subtask that keeps its parent (`task.is-subtask`,
+`details.parent`); the dialog then offers to move it on its own, the same write with `--parent none`. Comments are a thread of their own, oldest first; adding one moves no
 revision. A comment's text and a new person's name go after `--`. The page's minimum memo is the catalog's
 `taskBoard.minVersion`; the catalog's `tasks` key means something else, a source of agents' claims.
 
