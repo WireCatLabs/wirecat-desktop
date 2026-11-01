@@ -70,11 +70,13 @@ describe("About WireCat", () => {
     expect(help).toHaveFocus()
   })
 
-  it("speaks Russian when the language is Russian", async () => {
+  it("speaks Russian and links the Russian policy when the language is Russian", async () => {
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
     useLanguage.setState({ choice: "ru" })
     render(<AboutDialog open onClose={() => undefined} />)
     const dialog = screen.getByRole("dialog", { name: "О WireCat" })
-    expect(within(dialog).getByRole("button", { name: "Политика конфиденциальности" })).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Политика конфиденциальности" }))
+    expect(open).toHaveBeenLastCalledWith("https://wirecat.dev/ru/privacy")
     expect(within(dialog).getByText(/Свободное ПО с открытым исходным кодом по лицензии/)).toBeInTheDocument()
   })
 })
