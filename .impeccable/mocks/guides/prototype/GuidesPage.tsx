@@ -2,7 +2,7 @@
 // installed tools from the app's own store, so `?state=one` and `?state=mixed` change which guides are ready.
 // `?guides=first` arrives from the setup's last step, `?guides=offline` shows the bundled copy with no network,
 // `?guide=<id>` opens one guide, `?q=<words>` starts with a search.
-import { Check, Copy, ExternalLink, Search, ShieldCheck, X } from "lucide-react"
+import { Check, ChevronDown, Copy, ExternalLink, Search, ShieldCheck, X } from "lucide-react"
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 import { KNOWN_AGENTS } from "@/domain/agents"
 import { tools } from "@/domain/catalog"
@@ -13,7 +13,6 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
-import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion"
 import { Select } from "@/ui/Select"
@@ -330,7 +329,11 @@ function Entry({ guide: g, ctx, open, onToggle }: { guide: Guide; ctx: Ctx; open
             {textOf(g.outcome, lang)}
           </span>
         </span>
-        <ExpandChevron open={open} />
+        {/* The shared ExpandChevron's look; PR #47 does not have that component, so the prototype draws its own. */}
+        <ChevronDown
+          aria-hidden
+          className={cx("size-4 shrink-0 text-ink-dim transition-transform duration-200", open && "rotate-180")}
+        />
       </button>
       <Collapse id={panelId} open={open}>
         <div className="pt-[0.4rem] pb-[0.8rem]">
