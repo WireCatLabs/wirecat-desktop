@@ -1,12 +1,13 @@
-import { ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
+import { ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
-import { byDay, distinct, inTab, matchesText, type Tab } from "@/domain/memory"
+import { byDay, distinct, inTab, matchesText, subjectOf, type Tab } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Combobox } from "@/ui/Combobox"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
@@ -18,13 +19,68 @@ import { Activity } from "./Activity"
 import { ForgetDialog } from "./ForgetDialog"
 import { aboutOf, authorOf, dayLabel } from "./labels"
 import { memoryMessages } from "./messages"
-import { Row } from "./Row"
+import { Row, SubjectLabel } from "./Row"
 import { useMemory } from "./store"
+import { MemoryV3 } from "./v3/MemoryV3"
 
 const GUIDE = "https://github.com/WireCatLabs/cli-memo/blob/main/docs/memories.md"
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
 
+/**
+ * Three designs side by side for the owner to compare (`?memory-version=1|2|3`, 1 by default). The switcher shows only
+ * when the address names a version, so the shipped page has none.
+ */
+type Version = "1" | "2" | "3"
+const VERSIONS: Version[] = ["1", "2", "3"]
+const versionParam = () =>
+  typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("memory-version")
+
 export function MemoryPage() {
+  const asked = versionParam()
+  const [version, setVersion] = useState<Version>(VERSIONS.find((v) => v === asked) ?? "1")
+  const pick = (v: Version) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set("memory-version", v)
+    window.history.replaceState(null, "", url)
+    setVersion(v)
+  }
+  // One root: `keepRoom` (ui/motion) holds the page's height on the scroller's first child.
+  return (
+    <div>
+      {asked !== null && <VersionSwitch value={version} onChange={pick} />}
+      {version === "3" ? <MemoryV3 /> : <Ledger bySubject={version === "2"} />}
+    </div>
+  )
+}
+
+function VersionSwitch({ value, onChange }: { value: Version; onChange: (v: Version) => void }) {
+  const m = useMessages(memoryMessages)
+  const name = useId()
+  return (
+    <fieldset className="mx-[2.1rem] mt-[1rem] -mb-[0.4rem] flex items-center gap-[0.6rem] border-0 text-[0.9rem] text-ink-dim">
+      <legend className="float-left mr-[0.2rem]">{m.version}</legend>
+      <span className="inline-flex rounded-[0.45rem] bg-app-3 p-[3px]">
+        {VERSIONS.map((v) => (
+          <label key={v} className="relative">
+            <input
+              type="radio"
+              name={name}
+              checked={v === value}
+              onChange={() => onChange(v)}
+              className="peer sr-only"
+            />
+            <span className="flex h-[1.9rem] cursor-pointer items-center gap-[0.35rem] rounded-[0.35rem] px-[0.65rem] text-ink-soft transition-colors duration-150 hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+              <span className="font-mono tabular-nums">{v}</span>
+              {m.versions[v]}
+            </span>
+          </label>
+        ))}
+      </span>
+    </fieldset>
+  )
+}
+
+function Ledger({ bySubject }: { bySubject: boolean }) {
   const m = useMessages(memoryMessages)
   const lang = useLang()
   const s = useMemory()
@@ -124,7 +180,7 @@ export function MemoryPage() {
               </Button>
             </div>
           ) : (
-            <Rack entries={shown} tab={s.tab} filtering={filtering} lang={lang} />
+            <Rack entries={shown} tab={s.tab} filtering={filtering} lang={lang} bySubject={bySubject} />
           )}
 
           {ready?.more && <p className="text-[0.9rem] text-ink-dim">{m.more}</p>}
@@ -142,11 +198,13 @@ function Rack({
   tab,
   filtering,
   lang,
+  bySubject,
 }: {
   entries: MemoryEntry[]
   tab: Tab
   filtering: boolean
   lang: ReturnType<typeof useLang>
+  bySubject: boolean
 }) {
   const m = useMessages(memoryMessages)
   const leaving = useMemory((s) => s.leaving)
@@ -179,6 +237,8 @@ function Rack({
       </div>
     )
 
+  if (bySubject) return <SubjectRack entries={entries} leaving={leaving} arriving={arriving} />
+
   return (
     <section aria-label={m.rows} className="rounded-[0.2rem] border border-line-strong bg-app">
       {byDay(entries).map(({ day, entries: rows }) => {
@@ -191,6 +251,83 @@ function Rack({
                 <Row entry={e} />
               </Moving>
             ))}
+          </section>
+        )
+      })}
+    </section>
+  )
+}
+
+type Group = { key: string; entries: MemoryEntry[]; waiting: number }
+
+/** Version 2: one run per subject, those with something waiting first, then the most recently touched. */
+function bySubjectGroups(entries: MemoryEntry[]): Group[] {
+  const groups = new Map<string, Group>()
+  for (const e of entries) {
+    const key = subjectOf(e)?.key ?? ""
+    const g = groups.get(key) ?? { key, entries: [], waiting: 0 }
+    g.entries.push(e)
+    if (e.status === "proposed") g.waiting++
+    groups.set(key, g)
+  }
+  return [...groups.values()].sort(
+    (a, b) =>
+      Number(b.waiting > 0) - Number(a.waiting > 0) ||
+      (b.key === "" ? -1 : 0) - (a.key === "" ? -1 : 0) ||
+      (b.entries[0]?.createdAt ?? "").localeCompare(a.entries[0]?.createdAt ?? ""),
+  )
+}
+
+function SubjectRack({
+  entries,
+  leaving,
+  arriving,
+}: {
+  entries: MemoryEntry[]
+  leaving: string[]
+  arriving: string[]
+}) {
+  const m = useMessages(memoryMessages)
+  const [closed, setClosed] = useState<string[]>([])
+  return (
+    <section aria-label={m.rows} className="rounded-[0.2rem] border border-line-strong bg-app">
+      {bySubjectGroups(entries).map((g) => {
+        const subject = g.entries[0] ? subjectOf(g.entries[0]) : null
+        const open = !closed.includes(g.key)
+        return (
+          <section key={g.key || "none"} className="border-line [&+&]:border-t">
+            <h2>
+              <button
+                type="button"
+                aria-expanded={open}
+                onClick={() => setClosed((c) => (open ? [...c, g.key] : c.filter((k) => k !== g.key)))}
+                className="group flex w-full cursor-pointer items-center gap-[0.7rem] px-[1.3rem] pt-[1rem] pb-[0.6rem] text-left"
+              >
+                {subject ? (
+                  <SubjectLabel subject={subject} className="text-[1.05rem] font-semibold" />
+                ) : (
+                  <span className="text-[1.05rem] font-semibold text-ink-soft">{m.noSubject}</span>
+                )}
+                {g.waiting > 0 && <Lamp tone="warn" size="sm" />}
+                <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">
+                  {m.groupCount(g.waiting, g.entries.length)}
+                </span>
+                <ChevronDown
+                  className={cx(
+                    "ml-auto size-4 text-ink-dim transition-transform duration-150 group-hover:text-ink",
+                    !open && "-rotate-90",
+                  )}
+                  aria-hidden
+                />
+              </button>
+            </h2>
+            <Collapse open={open}>
+              {g.entries.map((e) => (
+                <Moving key={e.ref} leaving={leaving.includes(e.ref)} arriving={arriving.includes(e.ref)}>
+                  <Row entry={e} grouped />
+                </Moving>
+              ))}
+            </Collapse>
           </section>
         )
       })}

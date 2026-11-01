@@ -29,6 +29,7 @@ const en = {
   } satisfies Record<State, string>,
   record: { memory: "Memory", fact: "Fact", action: "Action" } satisfies Record<Record3, string>,
   kinds: {
+    evidence_findings: "Findings",
     preference: "Preference",
     summary: "Summary",
     digest: "Digest",
@@ -133,6 +134,35 @@ const en = {
     context: "Read about a person",
   } as Record<string, string>,
   called: "Called",
+  clickToCorrect: "Click to correct",
+  findingsTitle: (facts: number, tasks: number): string =>
+    `${[
+      plural("en", facts, { one: "# fact", other: "# facts" }),
+      plural("en", tasks, { one: "# task", other: "# tasks" }),
+    ]
+      .filter((p) => !p.startsWith("0 "))
+      .join(" and ")} to review`,
+  findingsHead: (project: string) => `What Approve creates in ${project}`,
+  findingsNote: (ticked: number, total: number, project: string): string =>
+    ticked === 0
+      ? "Nothing is ticked. Discard rejects them all."
+      : ticked === total
+        ? `Approve creates all ${total} in ${project}: facts as accepted, tasks on its board.`
+        : `Approve creates the ${plural("en", ticked, { one: "ticked one", other: "# ticked ones" })} in ${project}: facts as accepted, tasks on its board. The others are rejected.`,
+  findingKinds: { fact: "Fact", task: "Task" } as Record<string, string>,
+  outcomes: { accepted: "Created", rejected: "Rejected" } as Record<string, string>,
+  cites: "Cites",
+  include: (text: string) => `Include: ${text}`,
+  noContent: "Memo gives nothing else about this action.",
+  wouldSend: "What it would send",
+  project: "Project",
+  stateReviewFindings: "To review. Nothing is created until you approve, and you pick which findings.",
+  stateReviewed: "Reviewed. The findings marked Created are in the project now.",
+  version: "Design version",
+  versions: { "1": "Current, improved", "2": "By subject", "3": "Rethought" } as Record<string, string>,
+  noSubject: "Not about anyone in particular",
+  groupCount: (waiting: number, total: number) =>
+    waiting > 0 ? `${waiting} waiting · ${total} in all` : plural("en", total, { one: "# entry", other: "# entries" }),
 }
 
 const ru: typeof en = {
@@ -161,6 +191,7 @@ const ru: typeof en = {
   },
   record: { memory: "Память", fact: "Факт", action: "Действие" },
   kinds: {
+    evidence_findings: "Находки",
     preference: "Предпочтение",
     summary: "Сводка",
     digest: "Дайджест",
@@ -271,6 +302,35 @@ const ru: typeof en = {
     context: "Читал о человеке",
   },
   called: "Вызвал",
+  clickToCorrect: "Нажмите, чтобы исправить",
+  findingsTitle: (facts: number, tasks: number): string =>
+    `${[
+      plural("ru", facts, { one: "# факт", few: "# факта", many: "# фактов", other: "# факта" }),
+      plural("ru", tasks, { one: "# задача", few: "# задачи", many: "# задач", other: "# задачи" }),
+    ]
+      .filter((p) => !p.startsWith("0 "))
+      .join(" и ")} на проверку`,
+  findingsHead: (project: string) => `Что создаст «Одобрить» в ${project}`,
+  findingsNote: (ticked: number, total: number, project: string): string =>
+    ticked === 0
+      ? "Ничего не отмечено. «Отклонить» отклонит всё."
+      : `«Одобрить» создаст ${ticked === total ? "все находки" : `отмеченные (${ticked})`} в ${project}: факты как принятые, задачи на его доске.${ticked === total ? "" : " Остальные будут отклонены."}`,
+  findingKinds: { fact: "Факт", task: "Задача" } as Record<string, string>,
+  outcomes: { accepted: "Создано", rejected: "Отклонено" } as Record<string, string>,
+  cites: "Ссылается на",
+  include: (text: string) => `Включить: ${text}`,
+  noContent: "Memo больше ничего не сообщает об этом действии.",
+  wouldSend: "Что будет отправлено",
+  project: "Проект",
+  stateReviewFindings: "На проверке. Ничего не создаётся, пока вы не одобрите, и вы выбираете, какие находки.",
+  stateReviewed: "Проверено. Находки с пометкой «Создано» теперь в проекте.",
+  version: "Версия дизайна",
+  versions: { "1": "Текущая, улучшенная", "2": "По темам", "3": "Переосмысленная" } as Record<string, string>,
+  noSubject: "Ни о ком конкретно",
+  groupCount: (waiting: number, total: number) =>
+    waiting > 0
+      ? `${waiting} ждут · всего ${total}`
+      : plural("ru", total, { one: "# запись", few: "# записи", many: "# записей", other: "# записи" }),
 }
 
 const es: typeof en = {
@@ -299,6 +359,7 @@ const es: typeof en = {
   },
   record: { memory: "Memoria", fact: "Hecho", action: "Acción" },
   kinds: {
+    evidence_findings: "Hallazgos",
     preference: "Preferencia",
     summary: "Resumen",
     digest: "Compendio",
@@ -406,6 +467,35 @@ const es: typeof en = {
     context: "Leyó sobre una persona",
   },
   called: "Llamó a",
+  clickToCorrect: "Haz clic para corregir",
+  findingsTitle: (facts: number, tasks: number): string =>
+    `${[
+      plural("es", facts, { one: "# hecho", other: "# hechos" }),
+      plural("es", tasks, { one: "# tarea", other: "# tareas" }),
+    ]
+      .filter((p) => !p.startsWith("0 "))
+      .join(" y ")} por revisar`,
+  findingsHead: (project: string) => `Lo que Aprobar crea en ${project}`,
+  findingsNote: (ticked: number, total: number, project: string): string =>
+    ticked === 0
+      ? "No hay nada marcado. Descartar los rechaza todos."
+      : `Aprobar crea ${ticked === total ? "los hallazgos" : `los ${ticked} marcados`} en ${project}: los hechos como aceptados, las tareas en su tablero.${ticked === total ? "" : " Los demás se rechazan."}`,
+  findingKinds: { fact: "Hecho", task: "Tarea" } as Record<string, string>,
+  outcomes: { accepted: "Creado", rejected: "Rechazado" } as Record<string, string>,
+  cites: "Cita",
+  include: (text: string) => `Incluir: ${text}`,
+  noContent: "Memo no da nada más sobre esta acción.",
+  wouldSend: "Lo que enviaría",
+  project: "Proyecto",
+  stateReviewFindings: "Por revisar. No se crea nada hasta que lo apruebes, y eliges qué hallazgos.",
+  stateReviewed: "Revisado. Los hallazgos marcados como Creado ya están en el proyecto.",
+  version: "Versión del diseño",
+  versions: { "1": "Actual, mejorada", "2": "Por tema", "3": "Repensada" } as Record<string, string>,
+  noSubject: "Sobre nadie en concreto",
+  groupCount: (waiting: number, total: number) =>
+    waiting > 0
+      ? `${waiting} esperan · ${total} en total`
+      : plural("es", total, { one: "# entrada", other: "# entradas" }),
 }
 
 export const memoryMessages: Messages<typeof en> = { en, ru, es }

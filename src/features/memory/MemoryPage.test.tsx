@@ -77,4 +77,47 @@ describe("Memory", () => {
       expect.stringMatching(/Project Harbour this week/),
     ])
   })
+
+  it("names what a row is about and keeps who wrote it for the opened row", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    // The mock store outlives each test: the first one confirmed Kai's memory.
+    await user.click(screen.getByRole("radio", { name: /All/ }))
+    const kai = row(/Kai Sample prefers calls on Friday/)
+    expect(kai).toHaveTextContent(/Kai Sample\s*·\s*Preference/)
+    expect(kai).not.toHaveTextContent("claude-code")
+    await user.click(screen.getByRole("button", { name: /Kai Sample prefers calls on Friday/ }))
+    expect(await within(kai).findByText("claude-code")).toBeInTheDocument()
+  })
+
+  it("corrects the text where it stands when the opened text is clicked, and Escape puts it back", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    const harbour = screen.getByRole("button", { name: /Harbour launch moves/ })
+    await user.click(harbour)
+    await user.click(screen.getByText(/Harbour launch moves/))
+    const box = screen.getByRole("textbox", { name: "What is true instead" })
+    expect(box).toHaveFocus()
+    await user.keyboard("{Escape}")
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument()
+    expect(screen.getByText(/Harbour launch moves/)).toBeInTheDocument()
+  })
+
+  it("shows an agent's findings and creates only the ticked ones", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    await user.click(screen.getByRole("button", { name: /2 facts and 2 tasks to review/ }))
+    expect(screen.getByText("What Approve creates in Northbridge Bench")).toBeInTheDocument()
+    const ask = screen.getByRole("checkbox", { name: /Ask Tom Becker for read access/ })
+    await user.click(ask)
+    expect(screen.getByText(/creates the 3 ticked ones in Northbridge Bench/)).toBeInTheDocument()
+
+    const batch = row(/2 facts and 2 tasks to review/)
+    await user.click(within(batch).getByRole("button", { name: "Approve" }))
+    await waitFor(() => expect(within(batch).getAllByText("Created")).toHaveLength(3), { timeout: 3000 })
+    expect(within(batch).getByText("Rejected")).toBeInTheDocument()
+  })
 })

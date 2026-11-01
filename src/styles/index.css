@@ -150,6 +150,12 @@ body {
   outline: none;
 }
 
+/* A text field inside a bordered box with other controls (a combobox): the box shows focus, so the field drawing its own ring
+   inside that border gives two rectangles. Unlayered, like the rule above it, so Tailwind's outline-none cannot. */
+.inner-field:focus-visible {
+  outline: none;
+}
+
 @layer base {
   /* Content selects with the mouse; the window's chrome and controls do not. WebKitGTK knows only the prefixed
      property, and the dev server does not add the prefix, so every user-select here is written twice. */

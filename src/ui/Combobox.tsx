@@ -94,6 +94,7 @@ export function Combobox({ value, onChange, options, placeholder, id, className,
       className={cx(
         "relative flex h-[2.4rem] min-w-0 items-center rounded-[0.35rem] border border-line-strong bg-app",
         "hover:border-ink-dim/60 focus-within:border-brand",
+        "has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand",
         className,
       )}
     >
@@ -119,7 +120,7 @@ export function Combobox({ value, onChange, options, placeholder, id, className,
         onClick={() => setOpen((o) => !o)}
         onKeyDown={onKeyDown}
         onBlur={close}
-        className="selectable h-full min-w-0 flex-1 bg-transparent pr-1 pl-2.5 text-[0.95rem] text-ink outline-none placeholder:text-ink-dim"
+        className="selectable inner-field h-full min-w-0 flex-1 bg-transparent pr-1 pl-2.5 text-[0.95rem] text-ink placeholder:text-ink-dim"
       />
       <button
         type="button"
