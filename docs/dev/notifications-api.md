@@ -8,7 +8,9 @@ Base URL: `https://api.wirecat.dev`, or `WIRECAT_API_URL` as for bug reports.
 ## Principles
 
 - **The request says nothing about the owner.** It carries the app's version and OS, the same for every copy of that
-  build. Every language comes back at once, so the app never sends its own. No cookie, no id, nothing stored.
+  build. Every language comes back at once, so the app never sends its own. No cookie and no id. The server keeps
+  no record of who asked, but like every endpoint its request log holds the IP address, Cloudflare's country and the
+  query (checked on production, 2026-11-01).
 - **Read state stays on the computer.** Which notifications were read or removed lives in the interface's storage
   (`wirecat.notifications`) and is never sent.
 - **Plain text only.** The app shows the text as text; no Markdown, no HTML. A link is a separate field and must be

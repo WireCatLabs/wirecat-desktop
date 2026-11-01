@@ -51,13 +51,13 @@ pub struct Link {
     label: Localized,
 }
 
-pub fn fetch() -> Result<Vec<Notification>, String> {
+/// `version` is the app's own (`tauri.conf.json`, from package.json), the one the updater compares, so a notice aimed
+/// at a range of releases reaches exactly those builds.
+pub fn fetch(version: &str) -> Result<Vec<Notification>, String> {
     let url = format!("{}/v1/notifications", report::api_base()?);
     let agent: ureq::Agent = ureq::Agent::config_builder().timeout_global(Some(Duration::from_secs(10))).build().into();
-    let mut request = agent
-        .get(&url)
-        .header("User-Agent", concat!("WireCatDesktop/", env!("CARGO_PKG_VERSION")))
-        .query("version", env!("CARGO_PKG_VERSION"));
+    let mut request =
+        agent.get(&url).header("User-Agent", &format!("WireCatDesktop/{version}")).query("version", version);
     if let Some(platform) = platform() {
         request = request.query("platform", platform);
     }
@@ -128,6 +128,19 @@ mod tests {
         for url in ["http://wirecat.dev", "javascript:alert(1)", "file:///etc/passwd", "https:///x", "https://a b"] {
             assert!(clean(sample(json!({ "url": url }), "info")).link.is_none(), "{url}");
         }
+    }
+
+    #[test]
+    fn reads_the_live_answer_of_api_wirecat_dev() {
+        let live = r#"{"notifications":[{"id":"174325ab-a252-4651-ba6f-af0c6092dba4","severity":"info",
+            "title":{"en":"News from WireCat now arrives here","es":"Las novedades","ru":"Новости"},
+            "body":{"en":"One.\n\nTwo."},"published_at":"2026-11-01T13:28:32.474Z",
+            "expires_at":"2026-11-15T00:00:00.000Z",
+            "link":{"url":"https://wirecat.dev","label":{"en":"Visit wirecat.dev"}}}]}"#;
+        let answer: Answer = serde_json::from_str(live).unwrap();
+        let n = clean(answer.notifications.into_iter().next().unwrap());
+        assert_eq!(n.link.unwrap().url, "https://wirecat.dev");
+        assert_eq!(n.expires_at.as_deref(), Some("2026-11-15T00:00:00.000Z"));
     }
 
     #[test]

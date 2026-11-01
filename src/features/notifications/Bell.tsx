@@ -5,13 +5,14 @@ import { platform } from "@/platform/bridge"
 import type { Localized, Notification } from "@/platform/notifications-schemas"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
-import { focusInPlace } from "@/ui/motion"
+import { focusInPlace, reducedMotion } from "@/ui/motion"
 import { notificationMessages } from "./messages"
 import { unread, useNotifications, visible } from "./store"
 
 const text = (t: { [L in keyof Localized]?: string | undefined }, lang: Lang) => t[lang] || t.en || ""
 
 const DAY = 86_400_000
+const CLOSE_MS = 150
 
 function when(iso: string, lang: Lang, now = Date.now()) {
   const at = Date.parse(iso)
@@ -24,7 +25,10 @@ function when(iso: string, lang: Lang, now = Date.now()) {
 }
 
 const SEVERITY: Record<Notification["severity"], { icon: ReactNode; label: string }> = {
-  security: { icon: <ShieldAlert className="size-[1.15rem]" strokeWidth={1.8} aria-hidden />, label: "text-bad" },
+  security: {
+    icon: <ShieldAlert className="size-[1.15rem] text-bad" strokeWidth={1.8} aria-hidden />,
+    label: "text-ink",
+  },
   update: { icon: <CircleArrowUp className="size-[1.15rem]" strokeWidth={1.8} aria-hidden />, label: "text-warn-ink" },
   info: { icon: <Megaphone className="size-[1.15rem]" strokeWidth={1.8} aria-hidden />, label: "text-brand" },
 }
@@ -37,6 +41,14 @@ export function Bell() {
   const root = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
   const panelId = useId()
+  // Stays mounted while it fades out after closing, so it does not vanish (rule 9).
+  const [mounted, setMounted] = useState(open)
+  if (open && !mounted) setMounted(true)
+  useEffect(() => {
+    if (open) return
+    const t = setTimeout(() => setMounted(false), reducedMotion() ? 0 : CLOSE_MS)
+    return () => clearTimeout(t)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -49,11 +61,18 @@ export function Bell() {
       close()
       trigger.current?.focus()
     }
+    // Tabbing past the last item leaves the panel; it closes rather than stay open behind the focus.
+    const onFocusOut = (e: FocusEvent) => {
+      if (e.relatedTarget && !root.current?.contains(e.relatedTarget as Node)) close()
+    }
+    const el = root.current
     document.addEventListener("mousedown", onDown)
     document.addEventListener("keydown", onKey)
+    el?.addEventListener("focusout", onFocusOut)
     return () => {
       document.removeEventListener("mousedown", onDown)
       document.removeEventListener("keydown", onKey)
+      el?.removeEventListener("focusout", onFocusOut)
     }
   }, [open])
 
@@ -84,12 +103,12 @@ export function Bell() {
           )}
         />
       </button>
-      {open && <Panel id={panelId} />}
+      {mounted && <Panel id={panelId} leaving={!open} />}
     </div>
   )
 }
 
-function Panel({ id }: { id: string }) {
+function Panel({ id, leaving }: { id: string; leaving: boolean }) {
   const m = useMessages(notificationMessages)
   const lang = useLang()
   const items = useNotifications((s) => s.items)
@@ -110,7 +129,14 @@ function Panel({ id }: { id: string }) {
       id={id}
       role="dialog"
       aria-labelledby={headingId}
-      className="absolute top-[calc(100%-0.3rem)] right-0 z-30 flex max-h-[min(36rem,calc(100vh-5rem))] w-[27rem] flex-col overflow-hidden rounded-[0.6rem] border border-line bg-app shadow-panel motion-safe:animate-[select-in_160ms_var(--ease-out-quart)]"
+      aria-hidden={leaving || undefined}
+      inert={leaving || undefined}
+      className={cx(
+        "absolute top-[calc(100%-0.3rem)] right-0 z-30 flex max-h-[min(36rem,calc(100vh-5rem))] w-[27rem] flex-col overflow-hidden rounded-[0.6rem] border border-line bg-app shadow-panel",
+        leaving
+          ? "pointer-events-none animate-[dialog-out_150ms_var(--ease-out-quart)_forwards]"
+          : "motion-safe:animate-[select-in_160ms_var(--ease-out-quart)]",
+      )}
     >
       <h2
         ref={heading}
@@ -174,10 +200,10 @@ function Item({
       <div className="selectable min-w-0 flex-1">
         <p className="flex items-center gap-[0.45rem] text-[0.85rem]">
           <span className={cx("font-medium", severity.label)}>{m.severity[n.severity]}</span>
-          <span aria-hidden className="text-ink-dim">
+          <span aria-hidden className="text-ink-soft">
             ·
           </span>
-          <time dateTime={n.publishedAt} className="text-ink-dim">
+          <time dateTime={n.publishedAt} className="text-ink-soft">
             {when(n.publishedAt, lang)}
           </time>
           {isNew && (

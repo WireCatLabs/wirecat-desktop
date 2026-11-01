@@ -592,8 +592,9 @@ async fn send_report(draft: report::Draft, context: report::Context) -> Result<r
 }
 
 #[tauri::command]
-async fn notifications() -> Result<Vec<notifications::Notification>, String> {
-    blocking(notifications::fetch).await?
+async fn notifications(app: tauri::AppHandle) -> Result<Vec<notifications::Notification>, String> {
+    let version = app.package_info().version.to_string();
+    blocking(move || notifications::fetch(&version)).await?
 }
 
 #[tauri::command]
