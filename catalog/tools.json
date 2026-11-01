@@ -1240,6 +1240,7 @@
         "revoke": ["mcp", "revoke", "--json"],
         "config": null
       },
+      "memory": { "minVersion": "0.130.0" },
       "tasks": null,
       "sync": {
         "run": ["sync", "--record", "--json"],

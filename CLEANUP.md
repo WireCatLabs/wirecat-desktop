@@ -88,3 +88,10 @@
 - `/home/leemour/Projects/AI/cli-base-wt-wcat-plan`, `/home/leemour/Projects/AI/cli-testing-wt-wcat-shared-bin`, `/home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/blog-wcat-bin`, `/home/leemour/Projects/AI/cli-docs-wt-desktop-download` — merged work (2026-10-30)
 - scratchpad `npm-clash/`, `signlog.txt` — test leftovers (2026-10-30)
 - `/home/leemour/Projects/AI/cli-base-wt-wcat-step1`, `/home/leemour/Projects/AI/cli-testing-wt-wcat-cross-os`, `.claude/worktrees/journal-search` — merged work (2026-10-31)
+- `.claude/worktrees/memory-plan` (with its `node_modules`) and the Vite cache it left in `.claude/worktrees/search-page/node_modules/.vite` — Memory plan worktree, remove after PR #35 merges (2026-10-31)
+- `/home/leemour/tmp/memo-0128` — memo 0.128.0 installed into its own folder with a throwaway HOME and store, to check the Memory page's commands; also its screenshots (`shots/`) and the Vite log. Remove after PR for feat/memory-page merges (2026-10-31)
+- `.claude/worktrees/memory-page` (branch `feat/memory-page`, its own `node_modules`) — Memory page build; remove after it merges (2026-10-31)
+- Vite dev server for the Memory page review, PID 3922675 on port 1433 (parent pnpm 3922629), started 2026-10-31 in `.claude/worktrees/memory-page`; stop with `kill 3922675`
+- `/home/leemour/memo-probe-Vihc` — throwaway memo 0.130.0 store (with `before.db`, `before-confirm.db`) used to check what a findings batch carries; remove after the memory-page PR merges (2026-11-01)
+- `/home/leemour/tmp/vite-1434.log`, `/home/leemour/tmp/probe.mjs`, `/home/leemour/tmp/{probe,probe2,t1}.png`, `/home/leemour/tmp/about-focus-*-crop.png`, `/home/leemour/tmp/check-memory.log`, `/home/leemour/tmp/check-rust.log`, `/home/leemour/tmp/pr37-body.md` — scratch from the Memory versions round (2026-11-01)
+- Vite dev server for the Memory versions review, PID 737557 on port 1434 (parent pnpm 737515), started 2026-11-01 in `.claude/worktrees/memory-page`; stop with `kill 737557` (2026-11-01)

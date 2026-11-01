@@ -4,6 +4,7 @@ import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
+import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
 import type { RunDetail, RunsPage } from "./runs-schemas"
@@ -143,6 +144,25 @@ export type Platform = {
   /** Takes the tool's paths off the tunnel; cloudflared stops when no tool is left. */
   cloudflareTunnelClose(id: string): Promise<void>
   cloudflareRoutes(): Promise<TunnelRoute[]>
+  /** memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old" below memo 0.130.0. */
+  memoryRead(): Promise<MemoryRead>
+  /** What a memory or a fact rests on: each source read back, with a quoted line, or marked deleted since. */
+  memorySources(ref: string): Promise<MemorySource[]>
+  /**
+   * Confirms a memory or a fact; approves an action, which becomes a task and sends nothing. For an agent's findings
+   * batch, `accept` names the findings to create (all when absent); the rest are rejected.
+   */
+  memoryConfirm(ref: string, accept?: string[]): Promise<MemoryEntry>
+  /** "No longer holds": a memory goes stale, a fact is rejected or reversed, an action is rejected. */
+  memoryDiscard(ref: string): Promise<MemoryEntry>
+  /** Writes the owner's version, which replaces the old one; answers the new record. */
+  memoryCorrect(ref: string, text: string): Promise<MemoryEntry>
+  /** Erases the record, its links to sources and its search entry. */
+  memoryForget(ref: string): Promise<Forgot>
+  /** A cited source read back: a message with its neighbours, or a note's text. */
+  memorySourceContext(ref: string): Promise<SourceContext>
+  /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
+  memoryOpenSource(ref: string): Promise<void>
   taskClaims(id: string, profile: string): Promise<Claims>
   /** Releases a claim as the owner, who may release any. */
   taskRelease(id: string, profile: string, task: string): Promise<void>

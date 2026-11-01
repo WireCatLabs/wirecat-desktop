@@ -8,7 +8,7 @@ the machine and runs the tools. Nothing here duplicates what a CLI already does.
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, system/, logs/, search/, query/ (the query bar Logs and Search share), config/, settings/, storage/, onboarding/, report/, signin/, update/).
+  features/     one folder per area (tools/, agents/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, config/, settings/, storage/, onboarding/, report/, signin/, update/).
   ui/           presentational parts: Button, Lamp, Stepper… Props in, events out.
   platform/     the only door to Rust. Validates every answer with valibot. Has a browser mock.
   domain/       plain TypeScript: catalog, tool status, doctor summaries. No React, no Tauri.
@@ -46,6 +46,8 @@ src-tauri/src/
                 default handler is a known one (otherwise shown in the file manager), with the `apt`/`dnf` line to copy.
                 Never the plugin's own install, which asks for the password itself (rule 6).
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
+  memory.rs     the Memory page: memo's memories, facts, proposed actions and agents' calls; confirm, discard,
+                correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
   redact.rs     masking tokens, numbers, addresses and names in tool output.
@@ -148,6 +150,28 @@ The dialog lists the store's files and every table with its rows from that previ
 preview says a sync holds the file, and needs the word `clear` typed. "Back up first" is on by default and runs the
 backup above; nothing is cleared unless the zip is finished. The CLI itself refuses while another process has the
 store open, so a running sync or import is never cut off. Only one backup or clear runs at a time (`Running`).
+
+## The Memory page
+
+What agents concluded about the owner and the people around them, read from memo (plan
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.130.0 or newer (`memory.minVersion` in the catalog); an older one
+answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list` (each
+`--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still shows
+the entries. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
+number) and runs a fixed command:
+
+- **Confirm**: `memories confirm`, `facts confirm`; for an action `actions confirm`, which makes a task in the account
+  that would act and sends nothing.
+- **Discard**: a memory `invalidate` (stale), a proposed fact `reject`, an accepted decision `reverse`, an action
+  `reject`. Other facts can only be forgotten.
+- **Correct**: Rust reads the old record with `show` and writes the owner's `add --supersedes` with the old kind,
+  scope, subject and sources (the old record itself when none is left); the text goes after `--`. memo corrects facts
+  only when they are accepted decisions.
+- **Forget**: `memories remove` / `facts remove` erase the record, its links and its search entry. Actions have none.
+
+The text is the owner's own, shown unmasked like the Search page's hits, and it never goes into a log or a report:
+`--no-record` keeps a failed correction's text out of memo's run log. memo decides who wrote a record from `AI_AGENT`
+and `CLAUDECODE`, which `run::command` removes, so the app always writes as the owner.
 
 ## What agents do with the tools
 

@@ -32,6 +32,8 @@ pub struct Tool {
     pub mcp: Option<McpSource>,
     /// The HTTP MCP server for browser apps, run in the background by the tool itself; zoom serves none.
     pub mcp_server: Option<McpServerSource>,
+    /// Only memo: the version its Memory page commands (`memory.rs`) need.
+    pub memory: Option<MemorySource>,
     pub tasks: Option<TasksSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
@@ -105,6 +107,12 @@ pub struct McpServerSource {
     pub revoke: Vec<String>,
     /// `mcp config`, the entry a desktop app pastes; only the messenger CLIs print one.
     pub config: Option<Vec<String>>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemorySource {
+    pub min_version: String,
 }
 
 /// `{task}` is a validated task id or key; `release` names the owner as holder, who may release any claim.

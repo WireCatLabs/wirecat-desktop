@@ -73,6 +73,8 @@ const ToolSchema = v.object({
       config: v.nullable(v.array(v.string())),
     }),
   ),
+  /** The Memory page: memo from this version on lists, corrects and forgets memories, facts and proposed actions. */
+  memory: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
   /** Open tasks with their claim holders, and releasing a claim as the owner. */
   tasks: v.nullable(v.object({ list: v.array(v.string()), release: v.array(v.string()) })),
   /** The tool's own sync; `run` is null when there is none to start and `note` says how it syncs instead. */

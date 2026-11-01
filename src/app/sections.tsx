@@ -3,6 +3,7 @@ import type { ComponentType, SVGProps } from "react"
 import { AgentsPage } from "@/features/agents/AgentsPage"
 import { ConfigPage } from "@/features/config/ConfigPage"
 import { LogsPage } from "@/features/logs/LogsPage"
+import { MemoryPage } from "@/features/memory/MemoryPage"
 import { SearchPage } from "@/features/search/SearchPage"
 import { StoragePage } from "@/features/storage/StoragePage"
 import { ToolsPage } from "@/features/tools/ToolsPage"
@@ -21,7 +22,7 @@ export const sections: readonly Section[] = [
   { id: "tools", icon: Wrench, page: ToolsPage },
   { id: "agents", icon: Bot, page: AgentsPage },
   { id: "search", icon: Search, page: SearchPage },
-  { id: "memory", icon: Brain },
+  { id: "memory", icon: Brain, page: MemoryPage },
   { id: "storage", icon: HardDrive, page: StoragePage, group: "system" },
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },
   { id: "settings", icon: Settings, page: ConfigPage, group: "system" },
