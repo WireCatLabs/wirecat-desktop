@@ -4,6 +4,7 @@ const en = {
   nav: {
     tools: "Tools",
     agents: "Agents",
+    guides: "Guides",
     search: "Search",
     tasks: "Tasks",
     memory: "Memory",
@@ -37,6 +38,7 @@ const ru: typeof en = {
   nav: {
     tools: "Инструменты",
     agents: "Агенты",
+    guides: "Рецепты",
     search: "Поиск",
     tasks: "Задачи",
     memory: "Память",
@@ -71,6 +73,7 @@ const es: typeof en = {
   nav: {
     tools: "Herramientas",
     agents: "Agentes",
+    guides: "Guías",
     search: "Buscar",
     tasks: "Tareas",
     memory: "Memoria",

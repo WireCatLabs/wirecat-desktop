@@ -1,4 +1,4 @@
-import { Bot, Brain, HardDrive, ListTodo, ScrollText, Search, Settings, Wrench } from "lucide-react"
+import { BookOpenText, Bot, Brain, HardDrive, ListTodo, ScrollText, Search, Settings, Wrench } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import { AgentsPage } from "@/features/agents/AgentsPage"
 import { ConfigPage } from "@/features/config/ConfigPage"
@@ -8,6 +8,7 @@ import { SearchPage } from "@/features/search/SearchPage"
 import { StoragePage } from "@/features/storage/StoragePage"
 import { TasksPage } from "@/features/tasks/TasksPage"
 import { ToolsPage } from "@/features/tools/ToolsPage"
+import { GuidesPage } from "../../.impeccable/mocks/guides/prototype/GuidesPage"
 import { AddToMemoryPrototype } from "../../.impeccable/mocks/memory/add/prototype/AddToMemory"
 
 export type Section = {
@@ -28,6 +29,8 @@ export const sections: readonly Section[] = [
   { id: "agents", icon: Bot, page: AgentsPage },
   { id: "search", icon: Search, page: SearchPage },
   { id: "tasks", icon: ListTodo, page: TasksPage },
+  // Review only: the Guides prototype of docs/dev/plans/2026-11-01-guides.md.
+  { id: "guides", icon: BookOpenText, page: GuidesPage },
   { id: "memory", icon: Brain, page: addPrototype ? AddToMemoryPrototype : MemoryPage },
   { id: "storage", icon: HardDrive, page: StoragePage, group: "system" },
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },

@@ -102,3 +102,7 @@
 - `/home/leemour/Projects/AI/wirecat-api/.claude/worktrees/notifications`, its branch `feat/notifications`, local and on origin (squash-merged as WireCatLabs/wirecat-api#5; the wording fix branch `fix/notifications-privacy-wording` too) and its local databases `wirecat_api_development_notifications`, `wirecat_api_test_notifications`; the `.claude/` line it added to wirecat-api's `.git/info/exclude` — merged work (2026-11-01)
 - `/home/leemour/tmp-notif` — release and check logs, notification screenshots, `welcome.json` (the production test notification's source; `bin/notify delete welcome-notifications-2026-11` removes the notification itself) (2026-11-01)
 - `.claude/worktrees/notifications` — once the notifications PR is merged (2026-11-01)
+- worktree `.claude/worktrees/guides-plan` (branch `docs/guides-plan`) — Guides plan and prototype, remove once PR is merged or closed (2026-11-01)
+- Vite dev server on port 1441 for the Guides prototype: pnpm wrapper PID 818180, node PID 818194; stop by those PIDs only (2026-11-01)
+- `/home/leemour/wc-guides-tmp` — downloaded wirecat.dev command pages used to check guide commands (2026-11-01)
+- `.claude/worktrees/guides-plan/.impeccable/mocks/guides/vite.log`, `vite.pid` — untracked server output (2026-11-01)
