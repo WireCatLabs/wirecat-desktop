@@ -5,6 +5,7 @@ import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useTools } from "../tools/store"
 import { ConfigPage } from "./ConfigPage"
+import { findAll } from "./JsonEditor"
 import { useConfig } from "./store"
 
 beforeEach(() => {
@@ -84,6 +85,35 @@ describe("Config", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Save" })).toBeDisabled())
     expect(JSON.parse(editor.value)).toMatchObject({ limit: 25, record: false })
   }, 15000)
+
+  it("finds keys and values in the JSON and steps through the matches", async () => {
+    const user = userEvent.setup()
+    render(<ConfigPage />)
+    await user.click(screen.getByRole("radio", { name: /Telegram/ }))
+    await user.click(await screen.findByRole("radio", { name: "work" }))
+    await screen.findAllByRole("switch", {}, { timeout: 3000 })
+    await user.click(screen.getByRole("tab", { name: "JSON" }))
+    const editor = screen.getByRole("textbox", { name: "Settings as JSON" }) as HTMLTextAreaElement
+    const box = screen.getByRole("searchbox", { name: "Find in the JSON" })
+
+    editor.focus()
+    await user.keyboard("{Control>}f{/Control}")
+    expect(box).toHaveFocus()
+
+    const total = findAll(editor.value, "limit").length
+    expect(total).toBeGreaterThan(0)
+    await user.type(box, "LIMIT")
+    expect(screen.getByText(`1 of ${total}`)).toBeInTheDocument()
+    await user.keyboard("{Enter}")
+    expect(screen.getByText(`${Math.min(2, total)} of ${total}`)).toBeInTheDocument()
+    await user.keyboard("{Shift>}{Enter}{/Shift}")
+    expect(screen.getByText(`1 of ${total}`)).toBeInTheDocument()
+
+    await user.clear(box)
+    await user.type(box, "no such key")
+    expect(screen.getByText("No match")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Next match" })).toBeDisabled()
+  })
 
   it("asks before dropping unsaved JSON when switching profile", async () => {
     const user = userEvent.setup()

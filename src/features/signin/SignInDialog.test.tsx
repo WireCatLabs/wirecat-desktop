@@ -130,8 +130,11 @@ describe("signing in to WhatsApp inside the window", () => {
 
   it("never starts without a valid name the owner typed", async () => {
     signInForm()
-    expect(screen.getByRole("button", { name: "Sign in here" })).toBeDisabled()
+    await userEvent.click(screen.getByRole("button", { name: "Sign in here" }))
+    expect(screen.getByRole("alert")).toHaveTextContent("Type a name for this account first")
+    expect(screen.getByLabelText(/Name for this account/)).toHaveFocus()
     await userEvent.type(screen.getByLabelText(/Name for this account/), "-bad{Enter}")
+    expect(screen.getByRole("alert")).toHaveTextContent("Use letters, digits")
     expect(platform.signIn).not.toHaveBeenCalled()
   })
 })

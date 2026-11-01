@@ -5,6 +5,7 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
 import { reducedMotion } from "@/ui/motion"
+import { arriveFromSetup } from "../../../.impeccable/mocks/guides/prototype/GuidesPage"
 import { AgentsMatrix } from "../agents/AgentsMatrix"
 import { useSystem } from "../system/store"
 import { useTools } from "../tools/store"
@@ -150,7 +151,16 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
         next()
       },
     }
-  } else if (step === "done") primary = { label: m.flow.openTools, run: () => close(false) }
+  } else if (step === "done")
+    // The owner's NEED-C answer B: the guides are where work starts, so they lead; Tools stays one click away.
+    primary = {
+      label: m.done.guides,
+      run: () => {
+        leave()
+        finish()
+        arriveFromSetup()
+      },
+    }
   else
     primary = {
       label: m.flow.continue,
@@ -206,6 +216,7 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
               </Button>
             )}
             {step === "done" && <Button onClick={() => close(true)}>{m.flow.tour}</Button>}
+            {step === "done" && <Button onClick={() => close(false)}>{m.flow.openTools}</Button>}
             <Button variant="primary" size="lg" onClick={primary.run}>
               {primary.label}
             </Button>

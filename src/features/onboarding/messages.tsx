@@ -142,11 +142,13 @@ const en = {
     next: "What next",
     connect: (tool: string) => `Let ChatGPT or Claude use ${tool}`,
     agents: "See which agents use them",
+    guides: "Try your first guide",
   },
   help: {
     help: "Help",
     tour: "Take the tour",
     welcome: "Show the welcome again",
+    privacy: "Privacy",
     about: "About WireCat",
   },
   tour: {
@@ -339,11 +341,13 @@ const ru: OnboardingText = {
     next: "Что дальше",
     connect: (tool) => `Дать ChatGPT или Claude доступ к ${tool}`,
     agents: "Посмотреть, какие агенты их используют",
+    guides: "Попробовать первый рецепт",
   },
   help: {
     help: "Помощь",
     tour: "Пройти экскурсию",
     welcome: "Снова показать приветствие",
+    privacy: "Конфиденциальность",
     about: "О WireCat",
   },
   tour: {
@@ -528,11 +532,13 @@ const es: OnboardingText = {
     next: "Qué sigue",
     connect: (tool) => `Deja que ChatGPT o Claude usen ${tool}`,
     agents: "Ver qué agentes las usan",
+    guides: "Probar tu primera guía",
   },
   help: {
     help: "Ayuda",
     tour: "Hacer el recorrido",
     welcome: "Ver de nuevo la bienvenida",
+    privacy: "Privacidad",
     about: "Acerca de WireCat",
   },
   tour: {

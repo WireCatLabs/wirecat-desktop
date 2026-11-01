@@ -2,7 +2,7 @@ import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
-// `?cloudflare=<state>` opens tg's "Connect an AI app" guide at its address step with the Cloudflare tunnel chosen:
+// `?cloudflare=<state>` opens tg's "MCP server (or connect web)" guide at its address step with the Cloudflare tunnel chosen:
 // `missing` (cloudflared not downloaded), `unsupported` (no build for this processor), `loggedout`, `noaddress`
 // (logged in, no tunnel yet), `ready` (the tunnel exists). `?cloudflare-os=macos|windows` changes the system.
 // `?cloudflare-fail=install|login|address|tunnel` makes that action fail: the download's checksum, the login, a name

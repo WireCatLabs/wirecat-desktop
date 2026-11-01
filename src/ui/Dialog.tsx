@@ -9,7 +9,8 @@ type Props = {
   children: ReactNode
   actions: ReactNode
   onClose: () => void
-  wide?: boolean
+  /** `xl` for an editor with a side column, such as a task's. */
+  wide?: boolean | "xl"
   /** Long forms: the body scrolls between a fixed title and fixed actions, so nothing is cut off. */
   scroll?: boolean
   /** Quiet links under the actions, for what the reader rarely needs. */
@@ -64,7 +65,7 @@ export function Dialog({ open, title, children, actions, onClose, wide = false, 
         e.preventDefault()
         onClose()
       }}
-      className={`m-auto ${wide ? "w-[min(46rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]"} ${scroll ? "max-h-[calc(100vh-2rem)]" : ""} rounded-[0.6rem] border border-line bg-app p-0 text-ink shadow-panel backdrop:bg-black/40 backdrop:backdrop-blur-[1px]`}
+      className={`m-auto ${wide === "xl" ? "w-[min(62rem,calc(100vw-2rem))]" : wide ? "w-[min(46rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]"} ${scroll ? "max-h-[calc(100vh-2rem)]" : ""} rounded-[0.6rem] border border-line bg-app p-0 text-ink shadow-panel backdrop:bg-black/40 backdrop:backdrop-blur-[1px]`}
     >
       {(open || closing) &&
         (scroll ? (

@@ -101,6 +101,7 @@ const en = {
   ),
   allCurrent: "Every skill it can see is current",
   connect: "Connect",
+  chooseATool: "Choose at least one tool to connect.",
   connectTo: (agent: string) => `Connect WireCat to ${agent}`,
   todoMixed: (total: number, agent: string, missing: number, old: number) =>
     `${plural("en", total, { one: "# skill", other: "# skills" })} to set up for ${agent}: ${missing} missing, ${old} old`,
@@ -391,6 +392,7 @@ const ru: typeof en = {
   ),
   allCurrent: "Все навыки, которые он видит, актуальны",
   connect: "Подключить",
+  chooseATool: "Выберите хотя бы один инструмент для подключения.",
   connectTo: (agent) => `Подключить WireCat к ${agent}`,
   todoMixed: (total, agent, missing, old) =>
     `Для ${agent} нужно настроить ${ruCount(total, "навык", "навыка", "навыков")}: не хватает — ${missing}, устарело — ${old}`,
@@ -680,6 +682,7 @@ const es: typeof en = {
   ),
   allCurrent: "Todas las skills que ve están al día",
   connect: "Conectar",
+  chooseATool: "Elige al menos una herramienta para conectar.",
   connectTo: (agent) => `Conectar WireCat a ${agent}`,
   todoMixed: (total, agent, missing, old) =>
     `${plural("es", total, { one: "# skill", other: "# skills" })} por configurar para ${agent}: ${missing} sin instalar y ${plural("es", old, { one: "# antigua", other: "# antiguas" })}`,

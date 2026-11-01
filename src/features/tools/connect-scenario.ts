@@ -2,7 +2,7 @@ import { platform } from "@/platform/bridge"
 import type { AppId } from "./connect-apps"
 
 /**
- * Browser build only: `?connect=<state>` opens tg's "Connect an AI app" guide at that step, for review captures.
+ * Browser build only: `?connect=<state>` opens tg's "MCP server (or connect web)" guide at that step, for review captures.
  * `choose`, `address` (with `?tailscale=<state>` for Tailscale's own steps), `starting`, `instructions`, `waiting`,
  * `unreached` (waiting long enough for the hints), `connected`, `called`, `oldcli`, `funnel-off`, `live`.
  * `?connect-app=claude|other` picks the app (ChatGPT otherwise). `?tailscale=<state>` alone opens it at the address;

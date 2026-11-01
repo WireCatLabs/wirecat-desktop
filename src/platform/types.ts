@@ -4,6 +4,8 @@ import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
+import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
+import type { Notification } from "./notifications-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
 import type { RunDetail, RunsPage } from "./runs-schemas"
@@ -19,10 +21,24 @@ import type {
   StorageFolder,
   ToolState,
 } from "./schemas"
+import type { QueryDraft, SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
 import type { Settings } from "./settings-schemas"
 import type { SignInEvent } from "./signin-schemas"
 import type { LastSync, SyncEvent } from "./sync-schemas"
 import type { FunnelState, TailscaleDownload, TailscaleStatus } from "./tailscale-schemas"
+import type {
+  NewTask,
+  Person,
+  Project,
+  Task,
+  TaskComment,
+  TaskCounts,
+  TaskEdit,
+  TaskEvent,
+  TaskPlace,
+  TaskRead,
+  TaskWrite,
+} from "./task-schemas"
 import type { PackageOutcome, UpdateKind, UpdateProgress } from "./update-schemas"
 
 export type WindowAction = "minimize" | "toggleMaximize" | "close"
@@ -142,6 +158,48 @@ export type Platform = {
   /** Takes the tool's paths off the tunnel; cloudflared stops when no tool is left. */
   cloudflareTunnelClose(id: string): Promise<void>
   cloudflareRoutes(): Promise<TunnelRoute[]>
+  /** memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old" below memo 0.130.0. */
+  memoryRead(): Promise<MemoryRead>
+  /** What a memory or a fact rests on: each source read back, with a quoted line, or marked deleted since. */
+  memorySources(ref: string): Promise<MemorySource[]>
+  /**
+   * Confirms a memory or a fact; approves an action, which becomes a task and sends nothing. For an agent's findings
+   * batch, `accept` names the findings to create (all when absent); the rest are rejected.
+   */
+  memoryConfirm(ref: string, accept?: string[]): Promise<MemoryEntry>
+  /** "No longer holds": a memory goes stale, a fact is rejected or reversed, an action is rejected. */
+  memoryDiscard(ref: string): Promise<MemoryEntry>
+  /** Writes the owner's version, which replaces the old one; answers the new record. */
+  memoryCorrect(ref: string, text: string): Promise<MemoryEntry>
+  /** Erases the record, its links to sources and its search entry. */
+  memoryForget(ref: string): Promise<Forgot>
+  /** A cited source read back: a message with its neighbours, or a note's text. */
+  memorySourceContext(ref: string): Promise<SourceContext>
+  /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
+  memoryOpenSource(ref: string): Promise<void>
+  /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
+  taskList(query: string): Promise<TaskRead>
+  /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */
+  taskCounts(query: string): Promise<TaskCounts>
+  taskShow(key: string): Promise<Task>
+  /** Who changed the task, what and when, oldest first. */
+  taskHistory(key: string): Promise<TaskEvent[]>
+  taskCreate(task: NewTask): Promise<TaskWrite>
+  /** Every write carries the revision the page read; a stale one answers the task as it now is and writes nothing. */
+  taskUpdate(key: string, revision: number, edit: TaskEdit): Promise<TaskWrite>
+  /** A card dropped into a column, above or below another card: memo gives it a priority between its neighbours. */
+  taskMove(key: string, revision: number, place: TaskPlace): Promise<TaskWrite>
+  /** Makes one person the assignee, or nobody with `null`. */
+  taskAssign(key: string, revision: number, person: string | null): Promise<TaskWrite>
+  /** What people and agents wrote on a task, oldest first. */
+  taskComments(key: string): Promise<TaskComment[]>
+  /** Comments in the owner's name; a comment moves no revision. */
+  taskCommentAdd(key: string, text: string): Promise<TaskComment>
+  /** Everyone memo knows: the owner, people from messages, and people added here. */
+  peopleList(): Promise<Person[]>
+  /** Adds a person by name, so a task can be given to them before any message names them. */
+  personAdd(name: string): Promise<Person>
+  projectList(): Promise<Project[]>
   taskClaims(id: string, profile: string): Promise<Claims>
   /** Releases a claim as the owner, who may release any. */
   taskRelease(id: string, profile: string, task: string): Promise<void>
@@ -168,9 +226,25 @@ export type Platform = {
   /** What a bug report carries about this computer, masked, including recent failed runs (private). */
   reportContext(): Promise<ReportContext>
   sendReport(draft: ReportDraft, context: ReportContext): Promise<ReportSent>
+  /** News from WireCat for this version and OS. The request carries nothing about the owner; rejects when offline. */
+  notifications(): Promise<Notification[]>
   /** `query` is the CLI's own filter (exact `field:value` terms); `page` starts at 1. */
   listRuns(id: string, query: string | null, limit: number, page: number): Promise<RunsPage>
   showRun(id: string, run: string): Promise<RunDetail>
+  /**
+   * The tool's own search of what it stored on this computer, for the profile the owner chose (null for a tool
+   * without profiles). Never asks the provider. A query the tool refuses is an answer, not a rejection.
+   */
+  searchStore(id: string, profile: string | null, query: string, limit: number, page: number): Promise<SearchAnswer>
+  /** The values one of the tool's own read-only lists names (`search.values` in the catalog), such as chat titles. */
+  searchValues(id: string, profile: string | null, source: string): Promise<ValueItem[]>
+  /** What surrounds one hit in the local store (`search.context` in the catalog), by the ref the hit carries. */
+  searchContext(id: string, profile: string | null, reference: string): Promise<SearchContext>
+  /**
+   * The owner's words as the tool's query, written by the agent or key the owner set up; never run by itself. Only
+   * the browser build has it so far: the tool command it needs is planned, not built.
+   */
+  searchDraft(id: string, request: string): Promise<QueryDraft>
   /** `profile: null` is the defaults every profile gets, or the one file a tool without per-profile settings keeps. */
   settingsShow(id: string, profile: string | null): Promise<Settings>
   /** `defaults` changes what every profile gets instead of one profile. Rejects with the tool's own message. */

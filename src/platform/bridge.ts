@@ -19,7 +19,15 @@ import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema }
 import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
 import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
+import {
+  ForgotSchema,
+  MemoryEntrySchema,
+  MemoryReadSchema,
+  MemorySourceSchema,
+  SourceContextSchema,
+} from "./memory-schemas"
 import { createMock } from "./mock"
+import { NotificationsSchema } from "./notifications-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
@@ -35,10 +43,21 @@ import {
   StorageSchema,
   ToolStatesSchema,
 } from "./schemas"
+import { SearchAnswerSchema, SearchContextSchema, ValueItemSchema } from "./search-schemas"
 import { SettingsSchema } from "./settings-schemas"
 import { SignInEventSchema } from "./signin-schemas"
 import { LastSyncSchema, SyncEventSchema } from "./sync-schemas"
 import { FunnelStateSchema, PageEventSchema, TailscaleDownloadSchema, TailscaleStatusSchema } from "./tailscale-schemas"
+import {
+  PersonSchema,
+  ProjectSchema,
+  TaskCommentSchema,
+  TaskCountsSchema,
+  TaskEventSchema,
+  TaskReadSchema,
+  TaskSchema,
+  TaskWriteSchema,
+} from "./task-schemas"
 import type { Platform } from "./types"
 import { PackageOutcomeSchema, UpdateKindSchema, UpdateProgressSchema } from "./update-schemas"
 
@@ -163,6 +182,28 @@ function createTauri(): Platform {
     cloudflareTunnelOpen: (id, port) => call(v.string(), "cloudflare_tunnel_open", { id, port }),
     cloudflareTunnelClose: (id) => invoke("cloudflare_tunnel_close", { id }),
     cloudflareRoutes: () => call(v.array(TunnelRouteSchema), "cloudflare_routes"),
+    memoryRead: () => call(MemoryReadSchema, "memory_read"),
+    memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
+    memoryConfirm: (ref, accept) =>
+      call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),
+    memoryDiscard: (ref) => call(MemoryEntrySchema, "memory_discard", { reference: ref }),
+    memorySourceContext: (ref) => call(SourceContextSchema, "memory_source_context", { reference: ref }),
+    memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
+    memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
+    memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
+    taskList: (query) => call(TaskReadSchema, "task_list", { query }),
+    taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
+    taskShow: (key) => call(TaskSchema, "task_show", { key }),
+    taskHistory: (key) => call(v.array(TaskEventSchema), "task_history", { key }),
+    taskCreate: (task) => call(TaskWriteSchema, "task_create", { task }),
+    taskUpdate: (key, revision, edit) => call(TaskWriteSchema, "task_update", { key, revision, edit }),
+    taskMove: (key, revision, place) => call(TaskWriteSchema, "task_move", { key, revision, place }),
+    taskAssign: (key, revision, person) => call(TaskWriteSchema, "task_assign", { key, revision, person }),
+    taskComments: (key) => call(v.array(TaskCommentSchema), "task_comments", { key }),
+    taskCommentAdd: (key, text) => call(TaskCommentSchema, "task_comment_add", { key, text }),
+    peopleList: () => call(v.array(PersonSchema), "people_list"),
+    personAdd: (name) => call(PersonSchema, "person_add", { name }),
+    projectList: () => call(v.array(ProjectSchema), "project_list"),
     taskClaims: (id, profile) => call(ClaimsSchema, "task_claims", { id, profile }),
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),
     cancelInstall: (id) => invoke("cancel_install", { id }),
@@ -203,9 +244,15 @@ function createTauri(): Platform {
     syncStop: (id, profile) => invoke("sync_stop", { id, profile }),
     syncLast: (id, profile) => call(LastSyncSchema, "sync_last", { id, profile }),
     listRuns: (id, query, limit, page) => call(RunsPageSchema, "list_runs", { id, query, limit, page }),
+    searchStore: (id, profile, query, limit, page) =>
+      call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),
+    searchValues: (id, profile, source) => call(v.array(ValueItemSchema), "search_values", { id, profile, source }),
+    searchDraft: () => Promise.reject(new Error("writing a query from words is not built in the app yet")),
+    searchContext: (id, profile, reference) => call(SearchContextSchema, "search_context", { id, profile, reference }),
     showRun: (id, run) => call(RunDetailSchema, "show_run", { id, run }),
     reportContext: () => call(ReportContextSchema, "report_context"),
     sendReport: (draft, context) => call(ReportSentSchema, "send_report", { draft, context }),
+    notifications: () => call(NotificationsSchema, "notifications"),
     settingsShow: (id, profile) => call(SettingsSchema, "settings_show", { id, profile }),
     settingsSet: (id, profile, defaults, setting, value) =>
       invoke("settings_set", { id, profile, defaults, setting, value }),

@@ -71,7 +71,7 @@ const READY: TailscaleStatus = {
   freePorts: [443, 8443, 10000],
 }
 
-const heading = () => screen.getByRole("button", { name: /^Connect an AI app/ })
+const heading = () => screen.getByRole("button", { name: /^MCP server \(or connect web\)/ })
 const row = () => screen.getByRole("list", { name: /MCP server$/ })
 const openDetails = async (user: ReturnType<typeof userEvent.setup>) =>
   user.click(screen.getByRole("button", { name: "Server details" }))
@@ -82,7 +82,7 @@ async function guideAtAddress(user: ReturnType<typeof userEvent.setup>, app = "C
   await user.click(await screen.findByRole("button", { name: new RegExp(`^${app}`) }))
 }
 
-describe("Connect an AI app", () => {
+describe("MCP server (or connect web)", () => {
   it("stays closed with a summary, and says what will happen before anything starts", async () => {
     const user = userEvent.setup()
     const status = vi.spyOn(platform, "mcpServerStatus").mockResolvedValue(OFF)
@@ -358,7 +358,7 @@ const CLOUDFLARE: CloudflareStatus = {
   running: false,
 }
 
-describe("Connect an AI app through a Cloudflare tunnel", () => {
+describe("MCP server (or connect web) through a Cloudflare tunnel", () => {
   it("says Cloudflare can read the messages before it is picked, and keeps Funnel the first choice", async () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "mcpServerStatus").mockResolvedValue(OFF)
@@ -607,7 +607,7 @@ describe("in Russian", () => {
     const user = userEvent.setup()
     render(<McpServer tool={tool("tg")} />)
 
-    const toggle = screen.getByRole("button", { name: /^Подключить ИИ-приложение/ })
+    const toggle = screen.getByRole("button", { name: /^MCP-сервер \(или подключить веб\)/ })
     await waitFor(() => expect(toggle).toHaveTextContent(/Вошли 2 приложения$/))
     await user.click(toggle)
     expect(await screen.findByText("вход 3 дня назад")).toBeVisible()

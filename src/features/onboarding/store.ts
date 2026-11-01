@@ -30,7 +30,7 @@ type OnboardingState = {
 }
 
 // Private windows, previews and some webviews refuse storage outright; the flow must still work for this session.
-const safeStorage: StateStorage = {
+export const safeStorage: StateStorage = {
   getItem: (name) => {
     try {
       return window.localStorage.getItem(name)

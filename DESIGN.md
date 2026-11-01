@@ -2,15 +2,15 @@
 name: WireCat Desktop
 description: The machine as a patch rack. A calm control window onto the WireCat CLI tools.
 colors:
-  light-wall: "#f1f4f2"
+  light-wall: "#f1efed"
   light-app: "#ffffff"
-  light-app-2: "#f6f8f7"
-  light-app-3: "#e5ece7"
-  light-line: "#d6dfd9"
-  light-line-strong: "#ccd7cf"
+  light-app-2: "#f3f1ef"
+  light-app-3: "#e9e8e1"
+  light-line: "#dedbd4"
+  light-line-strong: "#d4d1c8"
   light-ink: "#182822"
   light-ink-soft: "#4c5e55"
-  light-ink-dim: "#63746a"
+  light-ink-dim: "#5a6a61"
   light-brand: "#4b53f0"
   light-brand-hover: "#3a42dc"
   light-brand-soft: "#e8e9fd"
@@ -19,14 +19,15 @@ colors:
   light-warn-ink: "#8a5a00"
   light-bad: "#cf4a2f"
   light-idle: "#a9b5ae"
+  light-off: "#868d89"
   light-on-status: "#ffffff"
   brand-ink: "#ffffff"
-  dark-wall: "#131718"
-  dark-app: "#181c1e"
-  dark-app-2: "#1c2023"
-  dark-app-3: "#23292c"
-  dark-line: "#262c30"
-  dark-line-strong: "#2f373b"
+  dark-wall: "#171614"
+  dark-app: "#1b1a18"
+  dark-app-2: "#201f1c"
+  dark-app-3: "#282723"
+  dark-line: "#2c2b27"
+  dark-line-strong: "#36352f"
   dark-ink: "#e9eeec"
   dark-ink-soft: "#a7b1ae"
   dark-ink-dim: "#87928e"
@@ -38,6 +39,7 @@ colors:
   dark-warn-ink: "#e6b04a"
   dark-bad: "#f07a5f"
   dark-idle: "#4c5659"
+  dark-off: "#757c78"
   dark-on-status: "#0d1512"
 typography:
   display:
@@ -202,7 +204,7 @@ components:
 
 The machine is a patch rack. Each tool is one module row: a status lamp, an icon, the name and command, the installed version, and one action. The window shows readiness first, the user scans six rows, acts on the one that is not green, and watches it verify inline under its row. The design refuses the card grid and the sidebar-plus-detail split.
 
-The world is the WireCat brand from wirecat.dev, made into a desktop tool. A green-tinted wall carries one white rack panel with hairline row dividers. Round lamps carry state. Versions, commands and paths are set in mono, because they are what the machine reports. Purple is the brand and the "do something" colour, so it appears on the logo, the active section marker, text links and at most one primary action per row. Unbounded is the page title and nothing else; Onest does the rest.
+The world is the WireCat brand from wirecat.dev, made into a desktop tool. A warm, slightly yellow wall (the site's grounds since 2026-10-29) carries one white rack panel with hairline row dividers. Round lamps carry state. Versions, commands and paths are set in mono, because they are what the machine reports. Purple is the brand and the "do something" colour, so it appears on the logo, the active section marker, text links and at most one primary action per row. Unbounded is the page title and nothing else; Onest does the rest.
 
 The interface scales with the window, as a native app's content does on different displays: the root font size is fluid and every size is in rem. The surface is flat and quiet. Depth exists only where something floats above the page (a dialog) or is picked out of a group (the selected theme option).
 
@@ -211,7 +213,7 @@ These words come from the surface's direction contract ([the Tools surface brief
 **Key Characteristics:**
 
 - One flat rack panel per page: hairline frame, 0.2rem corners, no shadow, rows split by hairlines.
-- Five lamp tones carry all tool and system state.
+- Seven lamp tones carry all tool, system and task state.
 - Mono with tabular figures for every machine-reported value.
 - Purple is rare and always means brand, link or the one primary action.
 - Unbounded only for page titles; Onest for everything else.
@@ -219,7 +221,7 @@ These words come from the surface's direction contract ([the Tools surface brief
 
 ## Colors
 
-Green-tinted neutrals with one purple, plus a small status set; each token has a light and a dark value, bound through CSS variables on `:root` and `:root[data-theme="dark"]` in [src/styles/index.css](src/styles/index.css).
+Warm neutral grounds and green-tinted text greys (both as on wirecat.dev), with one purple, plus a small status set; each token has a light and a dark value, bound through CSS variables on `:root` and `:root[data-theme="dark"]` in [src/styles/index.css](src/styles/index.css).
 
 ### Primary
 
@@ -235,6 +237,7 @@ Green-tinted neutrals with one purple, plus a small status set; each token has a
 - **Amber Ink** (`warn-ink`): any amber text (a leftover-data status, a shadowed-copy note, the warn pill's label). In light mode it is a dark amber; in dark mode it equals `warn`.
 - **Fault Red** (`bad`): broken lamp, failed step, error text, the danger button's label, error banners (40% border, 10% fill).
 - **Idle Grey** (`idle`): the hollow ring of a missing or checking lamp, and pending stepper dots.
+- **Settled Grey** (`off`): the solid lamp of a dismissed task. Darker than `idle` so a filled dot holds 3:1 against the panel in both themes (`#868d89` light, `#757c78` dark).
 - **On Status** (`on-status`): the check or cross inside a done or failed stepper dot; white in light mode, near-black in dark mode, where the status colours are light.
 
 ### Neutral
@@ -265,7 +268,7 @@ The app follows the site's purple, wall, ink and `app-3` values exactly in light
 
 **The Amber Ink Rule.** `warn` is for lamps, icons and tint fills; any amber text uses `warn-ink`. Light-mode `warn` is too pale to read as text on white.
 
-**The One Purple Action Rule.** A rack row and the panel open under it carry at most one primary (filled purple) button: Install, Update to x, or the panel's Done. Manage, Fix and Cancel are outlined. Dialogs have no primary at all; they pair a ghost "Keep it" with an outlined danger action.
+**The One Purple Action Rule.** A rack row and the panel open under it carry at most one primary (filled purple) button: Install, Update to x, or the panel's Done. Manage, Fix and Cancel are outlined. Dialogs have no primary at all; they pair a ghost "Keep it" with an outlined danger action. A page's main action may be purple in the page header ("Add to memory", owner, NEED-209 A), but only one purple button shows at a time: while the panel it opens is on screen, the header button turns outlined and the panel's own action is the purple one.
 
 **The Semantic Theme Rule.** Bind every colour through the semantic tokens (`bg-app`, `text-ink-soft`, `border-line`); never a raw hex in a component, so both themes switch together.
 
@@ -333,10 +336,20 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
 - **Ghost:** no fill, `ink-soft`; hover fills `app-3`. Used for Keep it, Close, Check, Sign in.
 - **Danger:** outlined only: white surface, red label, the border tints red on hover. Used for Fix, Uninstall, Delete.
 - **Hover / Focus:** colour transitions at 150ms with the quart ease-out; pressing nudges the button down 1px. Focus is the global 2px purple outline at 2px offset. Disabled buttons drop to 45% opacity and stop taking pointer events.
+- **A disabled button explains nothing.** Prefer an active button that says what is missing: pressed too early, it
+  shows a one-line red message under the control to fix ("Choose a profile to search in"), marks that control and moves
+  focus to it; the message folds open with `Collapse` or fills a line kept for it, so nothing below jumps. Disable a
+  button only while its own action runs (its label says so: "Saving…"), or when the reason is printed right beside it
+  ("Soon", "update to search"). A reason only in a tooltip does not count. Rule 5's delete dialogs keep their own gate.
+- **What opens shows that it opens.** A row, group, section or detail that expands carries a chevron (`ExpandChevron`,
+  `src/ui/ExpandChevron.tsx`) at the right edge of what is clicked, pointing down and turning over while open, as on
+  Guides. A button that opens a panel (Manage) carries it after its label. Inline "show more" links keep theirs before
+  the text. Not yet moved: the Logs tables, which scroll sideways in a narrow window (the right edge would be off
+  screen), and the Memory rows; both still show their chevron at the left.
 
 ### Status Lamp (signature)
 
-A round lamp, 1.4rem in rows and 0.85rem in the readiness strip, with exactly five tones: `ok` solid green (installed and current), `warn` solid amber (update available), `bad` solid red (installed but does not start), `idle` hollow grey ring (missing or still checking), `busy` solid purple with a 1.4s pulse (installing or uninstalling). A lamp with meaning carries an accessible label ("Update available"). Tone changes cross-fade over 300ms.
+A round lamp, 1.4rem in rows and 0.85rem in the readiness strip, with exactly seven tones: `ok` solid green (installed and current; a task done), `warn` solid amber (update available; a task to do), `bad` solid red (installed but does not start), `idle` hollow grey ring (missing or still checking; an open task), `off` solid grey (a dismissed task), `busy` solid purple with a 1.4s pulse (installing or uninstalling, an agent working on a task now), `doing` solid purple without a pulse (a task in progress; a page of pulsing rows would be noise, NEED-181). A lamp with meaning carries an accessible label ("Update available"). Tone changes cross-fade over 300ms.
 
 ### Rack Row (signature)
 
@@ -390,7 +403,7 @@ Rule 9 (CLAUDE.md) uses five shared pieces, never ad hoc CSS:
 
 - **Do** put a tool, a storage area or any list of machine things in the rack: one flat panel, one row per thing, hairlines between rows.
 - **Do** give every row exactly one action, and make it primary only when it installs or updates something.
-- **Do** say state with the five lamp tones and plain words beside them, never with colour alone.
+- **Do** say state with the six lamp tones and plain words beside them, never with colour alone.
 - **Do** set versions, commands, paths and sizes in mono with tabular figures.
 - **Do** write sizes in rem so they follow the fluid root size.
 - **Do** let content select with the mouse (text, logs, paths, errors) and keep chrome from selecting: buttons, labels, tabs, menus, the title bar and sidebar (`@layer base` in `index.css`). Text inside a `<button>` can never be selected in WebKit, so a clickable row whose text is worth copying is a `div role="button"` that ignores the click ending a drag (`selectsTextIn`). `.selectable` lets content inside chrome select. Write every `user-select` with its `-webkit-` twin: WebKitGTK reads only that, and the dev server does not add it.

@@ -8,8 +8,9 @@ import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp, type LampTone } from "@/ui/Lamp"
-import { holdInPlace } from "@/ui/motion"
+import { focusInPlace, holdInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
@@ -126,10 +127,12 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
           <Action
             status={status}
             expanded={expanded}
-            disabled={!nodeReady && (status.kind === "missing" || status.kind === "outdated")}
-            disabledReason={m.nodeFirst}
+            needsNode={!nodeReady}
+            nodeFirst={m.nodeFirst}
             controls={panelId}
-            onInstall={() => install(tool.id)}
+            onInstall={() =>
+              nodeReady ? install(tool.id) : focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
+            }
             onToggle={() => toggle(tool.id)}
             onCancel={() => cancel(tool.id)}
             m={m}
@@ -171,8 +174,9 @@ function Version(props: { status: ToolStatus; installed: string | null; m: Tools
 type ActionProps = {
   status: ToolStatus
   expanded: boolean
-  disabled: boolean
-  disabledReason: string
+  /** Install still runs nothing then: the click takes the owner to the Node.js notice that says what to do. */
+  needsNode: boolean
+  nodeFirst: string
   controls: string
   onInstall: () => void
   onToggle: () => void
@@ -181,7 +185,7 @@ type ActionProps = {
 }
 
 function Action(props: ActionProps) {
-  const { status, expanded, disabled, disabledReason, controls, onInstall, onToggle, onCancel, m } = props
+  const { status, expanded, needsNode, nodeFirst, controls, onInstall, onToggle, onCancel, m } = props
   // The column's full width: "Update to 0.95.0" is wider than the other buttons.
   if (status.kind === "checking") return <Skeleton className="h-[2.4rem] w-full" />
   if (status.kind === "working") {
@@ -194,7 +198,7 @@ function Action(props: ActionProps) {
   if (status.kind === "missing" || status.kind === "outdated") {
     const update = status.kind === "outdated"
     return (
-      <Button variant="primary" onClick={onInstall} disabled={disabled} title={disabled ? disabledReason : undefined}>
+      <Button variant="primary" onClick={onInstall} title={needsNode ? nodeFirst : undefined}>
         {update ? m.updateTo(status.latest) : m.install}
       </Button>
     )
@@ -205,9 +209,10 @@ function Action(props: ActionProps) {
       onClick={onToggle}
       aria-expanded={expanded}
       aria-controls={controls}
-      className="min-w-[7.6rem]"
+      className="min-w-[7.6rem] pr-[0.8rem]"
     >
       {status.kind === "broken" ? m.fix : m.manage}
+      <ExpandChevron open={expanded} className="text-current opacity-70" />
     </Button>
   )
 }

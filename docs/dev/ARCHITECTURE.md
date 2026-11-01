@@ -8,7 +8,7 @@ the machine and runs the tools. Nothing here duplicates what a CLI already does.
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, system/, logs/, config/, settings/, storage/, onboarding/, report/, signin/, update/).
+  features/     one folder per area (tools/, agents/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
   ui/           presentational parts: Button, Lamp, Stepper… Props in, events out.
   platform/     the only door to Rust. Validates every answer with valibot. Has a browser mock.
   domain/       plain TypeScript: catalog, tool status, doctor summaries. No React, no Tauri.
@@ -24,6 +24,10 @@ src-tauri/src/
   runs.rs       run logs, read through each tool's own `runs list` / `runs show`; shown unmasked, an exception
                 to rule 4: the tool already hid secrets and phone numbers, and the ids and paths are the owner's
                 to read (NEED-115). report.rs filters them again before anything is sent.
+  search.rs     one tool's own Lucene search of its local store for one profile (`search` in the catalog); hits shown
+                unmasked on the page, an exception to rule 4 like runs.rs: they are the owner's own data, and they are
+                never logged or put in a report. `search_context` reads what surrounds one hit (`search.context` in the
+                catalog) under the same rule: the ref is validated, the answer shown, never logged.
   settings.rs   tool settings: `config show`, and saving only through `config set` / `config unset`.
   storage.rs    each tool's data folders, their sizes and entries (names only); deleting them once unused.
   archive.rs    what the shared archive holds, from a tool's `store info`; the database is never opened.
@@ -43,6 +47,9 @@ src-tauri/src/
                 default handler is a known one (otherwise shown in the file manager), with the `apt`/`dnf` line to copy.
                 Never the plugin's own install, which asks for the password itself (rule 6).
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
+  memory.rs     the Memory page: memo's memories, facts, proposed actions and agents' calls; confirm, discard,
+                correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").
+  task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
   redact.rs     masking tokens, numbers, addresses and names in tool output.
@@ -51,6 +58,7 @@ src-tauri/src/
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
+  notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```
 
 Biome enforces the arrows (`biome.json`, `noRestrictedImports`): `domain` imports nothing above it, `platform`
@@ -146,6 +154,30 @@ preview says a sync holds the file, and needs the word `clear` typed. "Back up f
 backup above; nothing is cleared unless the zip is finished. The CLI itself refuses while another process has the
 store open, so a running sync or import is never cut off. Only one backup or clear runs at a time (`Running`).
 
+## The Memory page
+
+What agents concluded about the owner and the people around them, read from memo (plan
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.11 or newer (`memory.minVersion` in the catalog); an older one
+answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
+(each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
+shows the entries. memo names each record's project (`project_name`) and gives every action a one-line `summary`, which
+is the row's text. A findings batch's sources come from `actions show` when its row opens. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
+number) and runs a fixed command:
+
+- **Confirm**: `memories confirm`, `facts confirm`; for an action `actions confirm`, which makes a task in the account
+  that would act and sends nothing. A findings batch is decided by its id with the fingerprint `actions show` gives:
+  `actions confirm <id> <finding ids…> --fingerprint <hash>`, or `actions reject` when none is ticked.
+- **Discard**: a memory `invalidate` (stale), a proposed fact `reject`, an accepted decision `reverse`, an action
+  `reject`. Other facts can only be forgotten.
+- **Correct**: Rust reads the old record with `show` and writes the owner's `add --supersedes` with the old kind,
+  scope, project, subject and sources (the old record itself when none is left); the text goes after `--`. memo
+  corrects facts only when they are accepted decisions.
+- **Forget**: `memories remove` / `facts remove` erase the record, its links and its search entry. Actions have none.
+
+The text is the owner's own, shown unmasked like the Search page's hits, and it never goes into a log or a report:
+`--no-record` keeps a failed correction's text out of memo's run log. memo decides who wrote a record from `AI_AGENT`
+and `CLAUDECODE`, which `run::command` removes, so the app always writes as the owner.
+
 ## What agents do with the tools
 
 The Agents page has one row per agent found. Each opens to what to fix, the tools (skill and MCP per profile), the
@@ -202,6 +234,39 @@ update checks run once per package and report it for every part. Storage, bug re
 count packages, not rows. A part has no skill of its own (`skill: null`) and stays out of the skills matrix. With
 no interactive `setup` in the CLI, its `signIn.command` is shown to copy and never run. The owner's run logs are read once;
 runs whose command starts with the part's `commandPrefix` (memo's `mail …`) are filed under Email on the Logs page.
+
+## Searching what a tool stored
+
+The Search page (`src/features/search/`) asks one installed tool, for one profile the owner picks, to search what it
+keeps on this computer: `search_store(id, profile, query, limit, page)` runs the catalog's `search` template
+(`search.rs`). Nothing is picked for the owner: the profile list starts empty, and memo, which has no profiles, gets
+none. Each template reads the local store only, checked in cli-core: tg and max `search messages --offline --backend
+archive` (`searchServer` returns before any server call for `archive`, and `--offline` makes the connection throw),
+wa `search messages --offline` (it has no server search), zm `search all --only meetings --max-meetings all
+--offline` (words only: meetings refuse fields, phrases and OR), drive `search --offline`, memo `search notes` (with `--exact` before drive 0.51.0 and memo 0.125.0, whose search by meaning ignored
+field filters; `search.exactBelow` in the catalog, read against the installed version) and
+Email memo's `search mail --source email:<account>` (memo has no `--offline`; it never connects to search). All pass
+`--no-record` and put the query after `--`, so `-chat:x` is a NOT term and never a flag. memo's `search mail` has no
+`--page`: the page shows its best 50 and no pager.
+
+The query is the tool's to parse. A refusal comes back as `queryError` with the closed `query.*` reason and the
+tool's span, drawn in the query bar until the text changes; memo and drive count the span one or two places past the
+text, so it is kept inside the query. zm prints its refusal as a note beside an empty, incomplete answer, read the
+same way. "unknown option" or "unknown command" means the tool is too old (remembered per program, like `runs.rs`),
+and any other refusal is shown in the tool's words. The tool's notes (`missing[].why`, what it did not cover, and its
+stderr lines) are shown as text; its suggested next steps are never run.
+
+Values come from the tool's own read-only lists (`search_values`, `search.values` in the catalog, with
+`--offline`): tg, max and wa `chats list`, `contacts list` and `tags list`. A chat or a person goes into the query by its
+id, which names exactly one (`chat:"-1001762030832"`); the row shows the title and @username. Every value is quoted by
+the rule of cli-base's parser (`quoteValue` in `src/domain/search.ts`). A name that fits several chats or people is
+refused with `details.candidates`; the page offers each as a button that puts its id in place of that term.
+`scripts/search-fields-check.mjs` runs every field, value form, date and example against the installed tools through
+the same Rust code (`cargo test real_batch`).
+
+Which fields the bar suggests is static, in the catalog: `commands --json` gives `query.fields` for list commands
+only, not for `search messages`, `search notes` or `search all`, and a refused field's `details.fields` lists the
+whole parser's vocabulary, the same for every tool. The lists were checked against the installed tools' answers.
 
 ## Profiles and diagnostics
 
@@ -370,6 +435,31 @@ stay behind. Of a failure only the tool's `code`, `reason` and failed run id lea
 chat); the window's words are the app's own, and "Open the run on Logs" opens that run. The Manage panel has one control per profile (Accounts), or
 one for a tool without profiles; the Tools row shows the running sync, its result, or the last sync of its only
 profile, with a Sync or Stop button beside the name. A result stays until dismissed and says what to do next.
+
+## The Tasks page
+
+Plan: `docs/dev/plans/2026-10-31-tasks-page.md`. memo's project tasks only (`project:*`); tasks made from messages stay
+on the Agents page. `task_board.rs` runs memo's own `tasks list|counts|show|history|add|update|move|assign`,
+`tasks comments list|add`, `people list|add` and `projects list`, with `--json --no-record` (a failed edit would otherwise keep the owner's notes in
+memo's run log). The owner's search goes last, after `--`, since memo reads every word after it as the query; the page
+adds the board's default (open work, and what was closed in the last 14 days) unless the search names `state:` or
+`closed:`, and Rust narrows it to `project:*`. Text goes as `--title=<text>`, so a leading dash is never an option.
+Titles, notes and names leave Rust unmasked, an exception to rule 4 like the Memory page: the owner's own data on the
+owner's own page, never logged or put in a report.
+
+Every write passes `--revision` with the revision the page read. memo refuses a stale one (`task.stale`, exit 3) and
+Rust answers the task as it now is with its latest change, so the page says who changed what instead of overwriting
+it. A revision moves only for changes a person could conflict with (from memo 0.131.4, cli-core 0.516.0); an agent
+renewing its claim or setting a follow-up time does not. A dropped card calls `tasks move <key> [--status s] --before|--after <key>`: memo gives it a
+priority between its neighbours, which is also its order in the column, and says when its label (low, medium, high,
+critical, one per quarter) changed. Neighbours memo renumbered to make room are read again with `tasks show`.
+`tasks add` sets the due date and state in the same write. A task is moved to another project with
+`tasks update <key> --project <key>`: memo answers it with its new key there (the old one still finds it), and the
+page carries everything it keeps by key over to the new one. memo refuses to move a task that has subtasks
+(`task.has-subtasks`), naming them only in its message, so Rust reads the project's tasks and answers those whose
+parent it is. A moved subtask loses its parent. Comments are a thread of their own, oldest first; adding one moves no
+revision. A comment's text and a new person's name go after `--`. The page's minimum memo is the catalog's
+`taskBoard.minVersion`; the catalog's `tasks` key means something else, a source of agents' claims.
 
 ## Growing the app
 

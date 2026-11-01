@@ -5,18 +5,19 @@
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-/* WireCat brand (wirecat.dev): purple identity, green-tinted neutrals, Unbounded / Onest / JetBrains Mono. */
+/* WireCat brand (wirecat.dev): purple identity, warm neutral grounds (the site's, 2026-10-29), Unbounded / Onest /
+   JetBrains Mono. Text keeps its green-tinted greys, as the site's does. */
 :root {
   color-scheme: light;
-  --wall: #f1f4f2;
+  --wall: #f1efed;
   --app: #ffffff;
-  --app-2: #f6f8f7;
-  --app-3: #e5ece7;
-  --line: #d6dfd9;
-  --line-strong: #ccd7cf;
+  --app-2: #f3f1ef;
+  --app-3: #e9e8e1;
+  --line: #dedbd4;
+  --line-strong: #d4d1c8;
   --ink: #182822;
   --ink-soft: #4c5e55;
-  --ink-dim: #63746a;
+  --ink-dim: #5a6a61;
   --brand: #4b53f0;
   --brand-hover: #3a42dc;
   --brand-ink: #ffffff;
@@ -26,18 +27,19 @@
   --warn-ink: #8a5a00;
   --bad: #cf4a2f;
   --idle: #a9b5ae;
+  --off: #868d89;
   --on-status: #ffffff;
   --shadow: 0 1px 2px rgb(24 40 34 / 6%), 0 8px 24px rgb(24 40 34 / 5%);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --wall: #131718;
-  --app: #181c1e;
-  --app-2: #1c2023;
-  --app-3: #23292c;
-  --line: #262c30;
-  --line-strong: #2f373b;
+  --wall: #171614;
+  --app: #1b1a18;
+  --app-2: #201f1c;
+  --app-3: #282723;
+  --line: #2c2b27;
+  --line-strong: #36352f;
   --ink: #e9eeec;
   --ink-soft: #a7b1ae;
   --ink-dim: #87928e;
@@ -50,6 +52,7 @@
   --warn-ink: #e6b04a;
   --bad: #f07a5f;
   --idle: #4c5659;
+  --off: #757c78;
   --on-status: #0d1512;
   --shadow: 0 1px 2px rgb(0 0 0 / 30%), 0 8px 24px rgb(0 0 0 / 25%);
 }
@@ -73,6 +76,7 @@
   --color-warn-ink: var(--warn-ink);
   --color-bad: var(--bad);
   --color-idle: var(--idle);
+  --color-off: var(--off);
   --color-on-status: var(--on-status);
   --font-display: "Unbounded Variable", "Unbounded", system-ui, sans-serif;
   --font-sans: "Onest Variable", "Onest", system-ui, sans-serif;
@@ -147,6 +151,12 @@ body {
 
 /* A guide's step heading takes focus so a screen reader starts there; it is not a control, so no ring. */
 .step-heading:focus-visible {
+  outline: none;
+}
+
+/* A text field whose border already shows focus (a combobox's box, an inline correction): the global ring around it
+   reads as a second rectangle. Unlayered, like the rule above it, because Tailwind's layered outline-none loses. */
+.inner-field:focus-visible {
   outline: none;
 }
 
@@ -400,4 +410,12 @@ dialog[data-closing]::backdrop {
 :root[data-input="pointer"] :focus-visible ~ *,
 :root[data-input="pointer"] :has(:focus-visible) {
   outline: none;
+}
+
+/* JetBrains Mono joins >= into ≥; a query must show the characters the tool reads. */
+@utility no-ligatures {
+  font-variant-ligatures: none;
+  font-feature-settings:
+    "liga" 0,
+    "calt" 0;
 }

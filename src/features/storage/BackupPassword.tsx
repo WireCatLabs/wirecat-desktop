@@ -1,5 +1,5 @@
 import { Eye, EyeOff, TriangleAlert } from "lucide-react"
-import { useId, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
 import { MIN_LENGTH, passwordProblem, strength } from "./backup-password"
@@ -13,14 +13,22 @@ type Props = {
   onPassword: (value: string) => void
   onRepeat: (value: string) => void
   disabled: boolean
+  /** Counts the times Back up was pressed with the password not ready; each one says why and focuses the field. */
+  tried: number
 }
 
-export function BackupPassword({ password, repeat, onPassword, onRepeat, disabled }: Props) {
+export function BackupPassword({ password, repeat, onPassword, onRepeat, disabled, tried }: Props) {
   const m = useMessages(backupMessages)
   const id = useId()
   const [shown, setShown] = useState(false)
   const problem = passwordProblem(password, repeat)
-  const loud = problem === "differ" || (password.length > 0 && problem === "space")
+  const loud = problem !== null && (tried > 0 || problem === "differ" || (password.length > 0 && problem === "space"))
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only a new press moves focus, not each keystroke
+  useEffect(() => {
+    if (tried === 0 || !problem) return
+    const repeatFirst = problem === "repeat" || problem === "differ"
+    document.getElementById(`${id}-${repeatFirst ? "again" : "pw"}`)?.focus()
+  }, [tried])
   const level = strength(password)
   const field =
     "selectable h-9 w-full rounded-[0.35rem] border border-line-strong bg-app px-2 pr-9 font-mono text-[0.95rem] text-ink"

@@ -2,6 +2,7 @@ import { Eye, EyeOff } from "lucide-react"
 import { type FormEvent, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { signinMessages } from "./messages"
 import type { Need } from "./store"
 
@@ -47,7 +48,12 @@ export function AnswerForm({ need, sent, onAnswer }: Props) {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!value.trim() || sent) return
+    if (sent) return
+    if (!value.trim()) {
+      setError(m.answerEmpty)
+      input.current?.focus()
+      return
+    }
     const typed = value
     setValue("")
     setError(null)
@@ -73,9 +79,13 @@ export function AnswerForm({ need, sent, onAnswer }: Props) {
           spellCheck={false}
           value={value}
           disabled={sent}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            setValue(e.target.value)
+            setError(null)
+          }}
           aria-describedby={`${id}-hint`}
-          className={FIELD}
+          aria-invalid={error !== null}
+          className={cx(FIELD, "aria-[invalid=true]:border-bad")}
         />
         {need.secret && (
           <button
@@ -91,9 +101,19 @@ export function AnswerForm({ need, sent, onAnswer }: Props) {
         )}
       </div>
       <p id={`${id}-hint`} className="min-h-[1.3rem] text-[0.9rem] text-ink-soft">
-        {error ? <span className="text-bad">{error}</span> : sent ? m.sent : need.hint ? m.hint(need.hint) : m.private}
+        {error ? (
+          <span role="alert" className="text-bad">
+            {error}
+          </span>
+        ) : sent ? (
+          m.sent
+        ) : need.hint ? (
+          m.hint(need.hint)
+        ) : (
+          m.private
+        )}
       </p>
-      <Button type="submit" variant="primary" disabled={sent || !value.trim()} className="self-start">
+      <Button type="submit" variant="primary" disabled={sent} className="self-start">
         {m.continue}
       </Button>
     </form>

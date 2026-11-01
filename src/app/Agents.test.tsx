@@ -201,7 +201,9 @@ describe("Agents", () => {
     expect(within(dialog).getByRole("checkbox", { name: /Telegram/ })).toBeDisabled()
     const whatsapp = within(dialog).getByRole("checkbox", { name: /WhatsApp/ })
     for (const box of within(dialog).getAllByRole("checkbox")) expect(box).not.toBeChecked()
-    expect(within(dialog).getByRole("button", { name: "Connect" })).toBeDisabled()
+    await user.click(within(dialog).getByRole("button", { name: "Connect" }))
+    expect(within(dialog).getByText("Choose at least one tool to connect.")).toBeInTheDocument()
+    expect(whatsapp).toHaveFocus()
     expect(await within(dialog).findByRole("note", {}, wait)).toHaveTextContent(
       /answers in Telegram\. Anyone the bot accepts there can ask it to run the tools/,
     )

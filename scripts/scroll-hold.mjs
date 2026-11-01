@@ -1,5 +1,6 @@
 // Rule 9 regression on the browser build: opening and closing a tool's Manage panel never moves the row that was
-// clicked, and never scrolls the page by itself. Runs at the smallest window, where the page has room to scroll.
+// clicked, and never scrolls the page by itself; on the Tasks page, a card dropped on the board and a cell edited in
+// the table move nothing the owner did not touch. Runs at the smallest window, where the page has room to scroll.
 //   pnpm build && pnpm preview --port 1478 --strictPort
 //   node scripts/scroll-hold.mjs --port 1478 [--width 960] [--height 640]
 // Exits 1 when a clicked row moved more than 2px or jumped between two frames by more than 40px.
@@ -113,6 +114,86 @@ const guide = await page.evaluate(
   height / 2,
 )
 const glide = Math.max(0, ...guide.seen.slice(1).map((t, k) => Math.abs(t - guide.seen[k])))
+
+// Samples where `selector` sits every frame for `ms`, beside the page's scroll.
+const track = (selector, ms) =>
+  page.evaluate(
+    ([selector, ms]) =>
+      new Promise((done) => {
+        const m = document.querySelector("main")
+        const seen = []
+        const end = performance.now() + ms
+        const tick = () => {
+          seen.push({ top: document.querySelector(selector)?.getBoundingClientRect().top ?? null, scroll: m.scrollTop })
+          if (performance.now() < end) requestAnimationFrame(tick)
+          else done(seen)
+        }
+        requestAnimationFrame(tick)
+      }),
+    [selector, ms],
+  )
+const centre = (selector) =>
+  page.evaluate((selector) => {
+    const r = document.querySelector(selector).getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + Math.min(20, r.height / 2), top: r.top }
+  }, selector)
+const stillness = (seen) => ({
+  moved: Math.abs((seen.at(-1).top ?? 0) - (seen[0].top ?? 0)),
+  jump: Math.max(0, ...seen.slice(1).map((s, k) => Math.abs((s.top ?? 0) - (seen[k].top ?? 0)))),
+  scrolled: Math.abs(seen.at(-1).scroll - seen[0].scroll),
+})
+
+// The board: HRB-14 dragged from Todo onto Progress, with the page scrolled; a Done card stays put, the page too.
+await page.goto(`http://localhost:${port}/?onboarding=off&view=board`)
+await page.waitForSelector('[data-card="HRB-14"]')
+await page.waitForTimeout(800)
+await page.evaluate(() => {
+  const m = document.querySelector("main")
+  m.scrollTop += document.querySelector('[data-column="todo"]').getBoundingClientRect().top - 120
+})
+const from = await centre('[data-card="HRB-14"]')
+const onto = await centre('[data-card="HRB-12"]')
+await page.mouse.move(from.x, from.y)
+await page.mouse.down()
+await page.mouse.move(from.x + 20, from.y + 10, { steps: 3 })
+await page.mouse.move(onto.x, onto.y - 10, { steps: 8 })
+const watching = track('[data-card="HRB-8"]', 900)
+await page.mouse.up()
+const drop = stillness(await watching)
+const landed = await page.evaluate(() => {
+  const cards = [...document.querySelectorAll('[data-column="in_progress"] [data-card]')].map((c) => c.dataset.card)
+  return cards.indexOf("HRB-14") === cards.indexOf("HRB-12") - 1
+})
+cases.push([
+  "drop a card on the board",
+  { before: 0, after: landed ? drop.moved : 999, jump: Math.max(drop.jump, drop.scrolled), atTop: false },
+])
+
+// The table: OPS-3's priority changed in place, with the row mid-screen; the row and the page stay put.
+await page.goto(`http://localhost:${port}/?onboarding=off&view=table`)
+await page.waitForSelector('[data-row="OPS-3"]')
+await page.waitForTimeout(800)
+await page.evaluate((y) => {
+  const m = document.querySelector("main")
+  m.scrollTop += document.querySelector('[data-row="OPS-3"]').getBoundingClientRect().top - y
+}, height / 2)
+const cell = await centre('[data-row="OPS-3"] [aria-label="Priority of OPS-3"]')
+await page.mouse.click(cell.x, cell.y)
+await page.locator('[role="option"]:visible', { hasText: /^Low$/ }).waitFor()
+const low = await page.evaluate(() => {
+  const o = [...document.querySelectorAll('[role="option"]')].find(
+    (e) => e.textContent.trim() === "Low" && e.getClientRects().length > 0,
+  )
+  const r = o.getBoundingClientRect()
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+})
+const editing = track('[data-row="OPS-3"]', 900)
+await page.mouse.click(low.x, low.y)
+const edit = stillness(await editing)
+cases.push([
+  "edit a cell in the table",
+  { before: 0, after: edit.moved, jump: Math.max(edit.jump, edit.scrolled), atTop: false },
+])
 
 await browser.close()
 const guideOk = guide.visible && glide <= 80

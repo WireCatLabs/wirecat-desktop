@@ -403,7 +403,7 @@ fn accepted(status: u16, answer: &Value) -> Result<Sent, String> {
     }
 }
 
-fn api_base() -> Result<String, String> {
+pub(crate) fn api_base() -> Result<String, String> {
     let base = std::env::var("WIRECAT_API_URL").unwrap_or_else(|_| DEFAULT_API.into());
     let base = base.trim_end_matches('/').to_string();
     let local = base.starts_with("http://localhost") || base.starts_with("http://127.0.0.1");

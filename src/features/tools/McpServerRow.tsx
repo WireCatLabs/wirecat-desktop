@@ -63,7 +63,7 @@ export function McpServerRow(props: {
   /** Whole-port funnels from when a server spoke for one profile, still on. */
   leftovers: FunnelState[]
   reload(): void
-  /** Opens the "Connect an AI app" guide, which starts the server. */
+  /** Opens the "MCP server (or connect web)" guide, which starts the server. */
   onStart(): void
 }) {
   const { tool, row, funnel, route, leftovers, reload, onStart } = props

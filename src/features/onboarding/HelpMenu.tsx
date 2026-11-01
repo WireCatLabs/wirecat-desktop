@@ -1,10 +1,10 @@
-import { CircleHelp, Compass, Info, Sparkles } from "lucide-react"
+import { CircleHelp, Compass, Info, ShieldCheck, Sparkles } from "lucide-react"
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
 import { onboardingMessages } from "./messages"
 
-type Props = { onTour: () => void; onWelcome: () => void; onAbout: () => void }
+type Props = { onTour: () => void; onWelcome: () => void; onPrivacy: () => void; onAbout: () => void }
 
 const MOVES: Record<string, (at: number, count: number) => number> = {
   ArrowDown: (at, n) => (at + 1) % n,
@@ -13,7 +13,7 @@ const MOVES: Record<string, (at: number, count: number) => number> = {
   End: (_, n) => n - 1,
 }
 
-export function HelpMenu({ onTour, onWelcome, onAbout }: Props) {
+export function HelpMenu({ onTour, onWelcome, onPrivacy, onAbout }: Props) {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -102,6 +102,10 @@ export function HelpMenu({ onTour, onWelcome, onAbout }: Props) {
             {m.welcome}
           </button>
           <hr className="mx-[0.4rem] my-[0.3rem] border-line" />
+          <button type="button" role="menuitem" className={item} onClick={pick(onPrivacy)}>
+            <ShieldCheck className={icon} strokeWidth={1.8} aria-hidden />
+            {m.privacy}
+          </button>
           <button type="button" role="menuitem" className={item} onClick={pick(onAbout)}>
             <Info className={icon} strokeWidth={1.8} aria-hidden />
             {m.about}

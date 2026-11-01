@@ -163,6 +163,7 @@ const en = {
     addDomain: "add your domain",
     name: "Type a new name under the domain you chose in Cloudflare. WireCat makes one tunnel and this one DNS record in your account; nothing else there changes.",
     nameLabel: "Address on your domain",
+    nameEmpty: "Type the address first, such as wirecat.example.com.",
     stays: (host: ReactNode): ReactNode => (
       <>The tunnel for {host} stays in your Cloudflare account until you delete it there.</>
     ),
@@ -337,6 +338,7 @@ const ru: typeof en = {
     addDomain: "добавьте свой домен",
     name: "Введите новое имя на домене, который вы выбрали в Cloudflare. WireCat создаст в вашем аккаунте один туннель и одну эту DNS-запись; больше там ничего не изменится.",
     nameLabel: "Адрес на вашем домене",
+    nameEmpty: "Сначала введите адрес, например wirecat.example.com.",
     stays: (host) => <>Туннель для {host} останется в вашем аккаунте Cloudflare, пока вы не удалите его там.</>,
     making: "Создаём адрес…",
     make: "Создать адрес",
@@ -515,6 +517,7 @@ const es: typeof en = {
     addDomain: "añade tu dominio",
     name: "Escribe un nombre nuevo bajo el dominio que elegiste en Cloudflare. WireCat crea un túnel y este único registro DNS en tu cuenta; nada más cambia allí.",
     nameLabel: "Dirección en tu dominio",
+    nameEmpty: "Primero escribe la dirección, por ejemplo wirecat.example.com.",
     stays: (host) => <>El túnel de {host} se queda en tu cuenta de Cloudflare hasta que lo borres allí.</>,
     making: "Creando la dirección…",
     make: "Crear la dirección",

@@ -11,12 +11,14 @@ import { DEFAULT_SCALE, MAX_SCALE, MIN_SCALE, SCALE_STEP, useScale } from "./sca
 export function AppPreferences() {
   const m = useMessages(settingsMessages)
   return (
-    <section aria-labelledby="app-preferences" className="flex flex-col gap-4">
-      <h2 id="app-preferences" className="text-[1.05rem] font-semibold">
+    <section aria-labelledby="app-preferences" className="@container">
+      <h2 id="app-preferences" className="sr-only">
         {m.app}
       </h2>
-      <ScaleSetting />
-      <LanguageSetting />
+      <div className="grid gap-x-10 gap-y-6 @2xl:grid-cols-2">
+        <LanguageSetting />
+        <ScaleSetting />
+      </div>
     </section>
   )
 }

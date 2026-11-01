@@ -6,13 +6,17 @@ import { cloudflareMock } from "./mock-cloudflare"
 import { newestReader, storeCompatMock } from "./mock-compat"
 import { delay } from "./mock-delay"
 import { mcpServerMock } from "./mock-mcp"
+import { memoryMock } from "./mock-memory"
+import { notificationsMock } from "./mock-notifications"
 import { permissionsMock } from "./mock-permissions"
 import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
+import { searchMock } from "./mock-search"
 import { settingsMock } from "./mock-settings"
 import { linkedProfiles, signInMock } from "./mock-signin"
 import { syncMock } from "./mock-sync"
 import { tailscaleMock } from "./mock-tailscale"
+import { tasksMock } from "./mock-tasks"
 import { updateMock } from "./mock-update"
 import type {
   Diagnosis,
@@ -34,6 +38,8 @@ import type { Platform } from "./types"
 // `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
 // WhatsApp's sign-in on the Tools page (`src/app/scenarios.ts`); `?signin-fail=wa` makes it fail (`mock-signin.ts`).
 // `?mcp=<tool>` opens that tool's MCP server, running; `?mcp-fail=<tool>` makes its Start fail (`mock-mcp.ts`).
+// `?memory=<state>` and `?memory-fail=read|write` set up the Memory page (`mock-memory.ts`).
+// `?tasks=<state>` and `?view=table|board` set up the Tasks page (`mock-tasks.ts`).
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("state") ?? "mixed"
@@ -490,6 +496,8 @@ export function createMock(os: Platform["os"]): Platform {
     storeCheck: () => storeCheckMock(asksArchive()),
     ...backups.api,
     ...agentsMock((id) => installed.get(id)),
+    ...memoryMock(),
+    ...tasksMock(),
     async cancelInstall() {
       cancelled = true
     },
@@ -500,8 +508,10 @@ export function createMock(os: Platform["os"]): Platform {
     ...tailscaleMock(),
     ...cloudflareMock(),
     ...reportMock,
+    ...notificationsMock,
     ...updateMock,
     ...runsMock,
+    ...searchMock,
     ...settingsMock,
     ...permissionsMock(settingsMock),
     async openUrl(url) {

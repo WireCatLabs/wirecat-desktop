@@ -19,6 +19,8 @@ pub struct Tool {
     pub profiles: Option<ProfileSource>,
     pub doctor: Vec<String>,
     pub runs: Option<RunsSource>,
+    /// The tool's own Lucene search of its local store for one profile (`search.rs`).
+    pub search: Option<SearchSource>,
     pub setup: Option<Vec<String>>,
     pub sign_in: Option<SignInSource>,
     pub storage: Storage,
@@ -30,7 +32,12 @@ pub struct Tool {
     pub mcp: Option<McpSource>,
     /// The HTTP MCP server for browser apps, run in the background by the tool itself; zoom serves none.
     pub mcp_server: Option<McpServerSource>,
+    /// Only memo: the version its Memory page commands (`memory.rs`) need.
+    pub memory: Option<MemorySource>,
     pub tasks: Option<TasksSource>,
+    /// The Tasks page's lowest memo: below it the page offers the update instead of a read.
+    #[serde(default)]
+    pub task_board: Option<TaskBoardSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
     /// Another tool's id when this one is a part of its package: same `bin`, `package` and `storage`.
@@ -105,6 +112,12 @@ pub struct McpServerSource {
     pub config: Option<Vec<String>>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MemorySource {
+    pub min_version: String,
+}
+
 /// `{task}` is a validated task id or key; `release` names the owner as holder, who may release any claim.
 #[derive(Debug, Deserialize)]
 pub struct TasksSource {
@@ -112,11 +125,56 @@ pub struct TasksSource {
     pub release: Vec<String>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskBoardSource {
+    pub min_version: String,
+}
+
 /// The tool's own run-log commands; `{run}` is a validated run id.
 #[derive(Debug, Deserialize)]
 pub struct RunsSource {
     pub list: Vec<String>,
     pub show: Vec<String>,
+}
+
+/// `{profile}`, `{query}`, `{limit}` and `{page}` are filled in `search.rs`; a template without `{page}` does not page.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchSource {
+    pub args: Vec<String>,
+    /// Before this version the tool's search by meaning ignored field filters, so `--exact` keeps it off (BUG-35).
+    pub exact_below: Option<String>,
+    pub shape: SearchShape,
+    /// Read-only lists whose items name a field's values, such as chats for `chat:`; `key` is the item's field.
+    #[serde(default)]
+    pub values: std::collections::BTreeMap<String, ValuesSource>,
+    /// What surrounds one hit, read from the local store: `{ref}` is the hit's ref, `{refId}` its last part.
+    pub context: Option<ContextSource>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ContextSource {
+    pub args: Vec<String>,
+}
+
+/// `key` is the item field a query names the value by (a chat's id names exactly one chat); `label` and `detail`
+/// (JSON pointers) are what the row shows, such as the chat's title and @username.
+#[derive(Debug, Deserialize)]
+pub struct ValuesSource {
+    pub args: Vec<String>,
+    pub key: String,
+    pub label: Option<String>,
+    pub detail: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+pub enum SearchShape {
+    #[serde(rename = "items")]
+    Items,
+    /// drive: `item.hits`, and no word on further pages.
+    #[serde(rename = "item.hits")]
+    ItemHits,
 }
 
 /// The tool's own settings commands; saving always goes through `set`/`unset` so the CLI validates each value.

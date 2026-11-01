@@ -9,7 +9,9 @@ mod compat;
 mod install;
 mod mcp;
 mod mcp_server;
+mod memory;
 mod node;
+mod notifications;
 mod package_update;
 #[cfg(test)]
 mod page_loads;
@@ -21,6 +23,7 @@ mod redact;
 mod report;
 mod run;
 mod runs;
+mod search;
 mod settings;
 mod signin;
 mod signin_steps;
@@ -31,6 +34,7 @@ mod system;
 mod tailscale;
 mod tailscale_install;
 mod tailscale_linux;
+mod task_board;
 mod tasks;
 mod terminal;
 mod tools;
@@ -537,9 +541,138 @@ async fn task_release(id: String, profile: String, task: String) -> Result<(), S
 }
 
 #[tauri::command]
+async fn memory_read() -> Result<memory::Read, String> {
+    blocking(memory::read).await?
+}
+
+#[tauri::command]
+async fn memory_sources(reference: String) -> Result<Vec<memory::Source>, String> {
+    blocking(move || memory::sources(&reference)).await?
+}
+
+#[tauri::command]
+async fn memory_confirm(reference: String, accept: Option<Vec<String>>) -> Result<memory::Entry, String> {
+    blocking(move || memory::confirm(&reference, accept.as_deref())).await?
+}
+
+#[tauri::command]
+async fn memory_discard(reference: String) -> Result<memory::Entry, String> {
+    blocking(move || memory::discard(&reference)).await?
+}
+
+#[tauri::command]
+async fn memory_correct(reference: String, text: String) -> Result<memory::Entry, String> {
+    blocking(move || memory::correct(&reference, &text)).await?
+}
+
+#[tauri::command]
+async fn memory_forget(reference: String) -> Result<memory::Forgot, String> {
+    blocking(move || memory::forget(&reference)).await?
+}
+
+#[tauri::command]
+async fn memory_source_context(reference: String) -> Result<memory::Context, String> {
+    blocking(move || memory::context(&reference)).await?
+}
+
+#[tauri::command]
+async fn memory_open_source(reference: String) -> Result<(), String> {
+    blocking(move || memory::open_source(&reference)).await?
+}
+
+#[tauri::command]
+async fn task_list(query: String) -> Result<task_board::Read, String> {
+    blocking(move || task_board::list(&query)).await?
+}
+
+#[tauri::command]
+async fn task_counts(query: String) -> Result<task_board::Counts, String> {
+    blocking(move || task_board::counts(&query)).await?
+}
+
+#[tauri::command]
+async fn task_show(key: String) -> Result<task_board::Task, String> {
+    blocking(move || task_board::show(&key)).await?
+}
+
+#[tauri::command]
+async fn task_history(key: String) -> Result<Vec<task_board::Event>, String> {
+    blocking(move || task_board::history(&key)).await?
+}
+
+#[tauri::command]
+async fn task_create(task: task_board::New) -> Result<task_board::Write, String> {
+    blocking(move || task_board::create(&task)).await?
+}
+
+#[tauri::command]
+async fn task_update(key: String, revision: u64, edit: task_board::Edit) -> Result<task_board::Write, String> {
+    blocking(move || task_board::update(&key, revision, &edit)).await?
+}
+
+#[tauri::command]
+async fn task_move(key: String, revision: u64, place: task_board::Place) -> Result<task_board::Write, String> {
+    blocking(move || task_board::move_task(&key, revision, &place)).await?
+}
+
+#[tauri::command]
+async fn task_assign(key: String, revision: u64, person: Option<String>) -> Result<task_board::Write, String> {
+    blocking(move || task_board::assign(&key, revision, person.as_deref())).await?
+}
+
+#[tauri::command]
+async fn task_comments(key: String) -> Result<Vec<task_board::Comment>, String> {
+    blocking(move || task_board::comments(&key)).await?
+}
+
+#[tauri::command]
+async fn task_comment_add(key: String, text: String) -> Result<task_board::Comment, String> {
+    blocking(move || task_board::comment_add(&key, &text)).await?
+}
+
+#[tauri::command]
+async fn people_list() -> Result<Vec<task_board::Person>, String> {
+    blocking(task_board::people).await?
+}
+
+#[tauri::command]
+async fn person_add(name: String) -> Result<task_board::Person, String> {
+    blocking(move || task_board::person_add(&name)).await?
+}
+
+#[tauri::command]
+async fn project_list() -> Result<Vec<task_board::Project>, String> {
+    blocking(task_board::projects).await?
+}
+
+#[tauri::command]
 async fn list_runs(id: String, query: Option<String>, limit: u32, page: u32) -> Result<serde_json::Value, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || runs::list(tool, query.as_deref(), limit, page)).await?
+}
+
+#[tauri::command]
+async fn search_store(
+    id: String,
+    profile: Option<String>,
+    query: String,
+    limit: u32,
+    page: u32,
+) -> Result<search::Answer, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || search::search(tool, profile.as_deref(), &query, limit, page)).await?
+}
+
+#[tauri::command]
+async fn search_context(id: String, profile: Option<String>, reference: String) -> Result<search::Context, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || search::context(tool, profile.as_deref(), &reference)).await?
+}
+
+#[tauri::command]
+async fn search_values(id: String, profile: Option<String>, source: String) -> Result<Vec<search::ValueItem>, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || search::values(tool, profile.as_deref(), &source)).await?
 }
 
 #[tauri::command]
@@ -588,6 +721,12 @@ async fn report_context() -> Result<report::Context, String> {
 #[tauri::command]
 async fn send_report(draft: report::Draft, context: report::Context) -> Result<report::Sent, String> {
     blocking(move || report::send(draft, context)).await?
+}
+
+#[tauri::command]
+async fn notifications(app: tauri::AppHandle) -> Result<Vec<notifications::Notification>, String> {
+    let version = app.package_info().version.to_string();
+    blocking(move || notifications::fetch(&version)).await?
 }
 
 #[tauri::command]
@@ -715,6 +854,7 @@ async fn update_download_package(
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
 pub fn run() {
     // The login shell's PATH takes about half a second; read it while the window opens, not on the first page.
     std::thread::spawn(paths::search_path);
@@ -788,10 +928,35 @@ pub fn run() {
             cloudflare_routes,
             task_claims,
             task_release,
+            memory_read,
+            memory_sources,
+            memory_confirm,
+            memory_discard,
+            memory_correct,
+            memory_forget,
+            memory_source_context,
+            memory_open_source,
+            task_list,
+            task_counts,
+            task_show,
+            task_history,
+            task_create,
+            task_update,
+            task_move,
+            task_assign,
+            task_comments,
+            task_comment_add,
+            people_list,
+            person_add,
+            project_list,
             report_context,
             send_report,
+            notifications,
             list_runs,
             show_run,
+            search_store,
+            search_values,
+            search_context,
             settings_show,
             settings_set,
             settings_unset,

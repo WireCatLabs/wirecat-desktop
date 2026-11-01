@@ -100,6 +100,34 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 - **TASK-42 · 0.1.1, проверка установки, страница загрузки (2026-10-29):** Слава: «ok fix that, lets check the installations and so on … create a download page on landing and display all versions and autodetect … in docs in general do we have desktop covered?». Пакет Linux `wirecat` (src-tauri/tauri.linux.conf.json: productName `wirecat`, Name=WireCat в .desktop, deb Conflicts/Replaces `wire-cat`, rpm Obsoletes `WireCat`); workflow `install-check.yml` ставит релиз на чистых Windows, macOS, Ubuntu (с 0.1.0 поверх), Fedora и проверяет запуск; страница /download и документация — агентом в cli-docs (PR, без слияния).
 
 - **TASK-43 · Страница поиска в приложении (2026-10-31):** Слава: «how hard would it be to add a search page to desktop where users can search the database using SQL and lucene syntax» → «let's do just lucene then, it can look similar to the log search. can you implement it». Только Lucene (NEED-161 C), один инструмент и профиль (NEED-162 A), команда поиска самого инструмента, только локальные данные. Агент в `.claude/worktrees/search-page`, PR без слияния.
+- **TASK-44 · Страница «Поиск» (2026-10-31, реализация TASK-43, PR #34):** Lucene-поиск по локальному хранилищу одного инструмента для одного профиля (NEED-161 = C, NEED-162 = A), «как поиск в журнале». Сделано: `search_store` + шаблон `search` в каталоге, общий `QueryBar` в `src/features/query/`, страница `src/features/search/`, моки `?search…`. PR WireCatLabs/wirecat-desktop#34, без слияния.
+
+- **TASK-44 · раунд 2 (2026-10-31):** Слава: «the search should be improved to use autosuggests for values eg tags etc. also for date the example gives >= but then autocomplete suggests date and no options… also in dropdown the type field is not real type… the background of the website in light theme is changed a bit, it's more yellowish now» и «there are so many fields and it's not clear what they mean». Сделано в PR #34: поля по группам с описанием и примером, «Ещё поля…», значения из `chats list` / `contacts list` / `tags list` (`--offline`) и из результатов, даты, готовые запросы, тёплые фоны сайта.
+
+- **TASK-44 · раунд 3 (2026-10-31):** Слава после `pnpm app`: «chat search doesnt work, test that all fields actually do search». Сделано: кавычки по правилу парсера (BUG-34), чат и человек по id с выбором при неоднозначном имени (UX-25), `scripts/search-fields-check.mjs` прогнал 713 запросов по 18 профилям через `search_store`; исправлены BUG-35, FIND-103, FIND-104; что требует cli-core — FIND-99, 102, 105, 106. Таблица в PR #34.
+
+- **TASK-45 · План и дизайн страницы «Память» (2026-10-31):** Слава: «ok let's build memory, prepare a plan, use impeccable for design». Сделано: план `docs/dev/plans/2026-10-31-memory-page.md` (что даёт memo 0.124.0 по командам и полям, работа в CLI, приватность, состояния, сценарии, шаги с оценкой ~4–5 дней), макеты из прототипа на компонентах приложения в `.impeccable/mocks/memory/` (светлая и тёмная, 1280 и 960), surface brief `src-features-memory-memorypage-tsx.md`. Impeccable: concept-seed 71abbb70, страница выбора без ответа за ~6 мин — взята выпавшая структура «журнал» (NEED-167), без генерации изображений (code-led). PR без слияния.
+
+- **TASK-46 · План и дизайн страницы «Задачи» (2026-10-31):** Слава: «I think we need to also add Tasks page with table and kanban views and some filters (especially projects, assignee, priority, dates etc as well as search) and allow editing them and switching statuses by dragging etc». Данные — `memo tasks`. Агент пишет план и прототип в ветке `docs/tasks-plan`, по образцу «Памяти».
+- **TASK-45 · поправка:** ссылки на состояния в прошлом ответе показывали одну раскладку A; Слава хотел сравнить раскладки. В прототип добавлен `?layout=a|b|c`.
+
+- **TASK-47 · Проект системы событий для CLI и десктопа (2026-11-01):** по ответу на NEED-178 — подписка на события ядра в CLI, доставка в десктоп, другим серверам и приложениям, приём событий извне. Сначала проект, без кода.
+
+- **TASK-48 · Переосмыслить показ «Памяти», три версии (2026-11-01):** Слава посмотрел страницу на своих данных: «we need to considerable rethink how we display memory, right now it's not clear … use impeccable skill and build 3 versions of Memory page, 1 is current improvement and 3 - completely rethought, think about further features and extension of this page as we'd add more stuff there». См. UX-26…31.
+
+- **TASK-49 · Добавлять в «Память» вручную (2026-11-01):** Слава: «I'd allow to manually add memory via UI - upload a file, past a link to doc, html (we can extract), image url or image itself, audio or just plain text and link it to other entities so AI would be able to create facts from it - how we'd need to decide eg a few facts to suggest to user so it could pick them. I'd also explain that the source will be stored in db and be searchable too». Сначала план и дизайн.
+- **TASK-50 · Собрать всю открытую работу в одну ветку для просмотра (2026-11-01):** Слава: «there's still no Tasks page, only memory, and I see Accounts (I think we removed it?). Basically we need to merge all stuff into 1 branch so I can see all consolidated work and review». Ветка `review/all` из #34, #39, #37, #41, #40; Vite :1437.
+- **TASK-51 · Уведомления и значки (2026-11-01):** Слава: «I'd add notifications that we can show to user, eg important security updates etc. I'd add an api endpoint for notifications in wirecat-api and fetch them each hour and on app start. I'dd add a badge ro similar to the left menu with items that need to be resolved eg tools updated, memory reviewed etc. Not for all so we dont spam user eg at first after install I'd probably show bade on Agents but if user doesnt install skills I'd clear the bade on view and not show it so it doesnt create noise. Some things users just dont have to do. Also we can have a bell next to ? icon displaying notifications and if some are unread. let's test the notification - you can add test one on prod db, just make sure you design them nicely».
+
+- **TASK-52 · Варианты извлечения фактов (2026-11-01):** Слава: «did you use openai model with a key? I think we need to set the key in the desktop app in settings and if it's not set ask user but ideally this shouldnt be required as not everyone has account with an api key, I'd try to actually use an agent instead mb call claude/codex etc via cli or another way to process data and if it doesnt work - provide helpful info on what to setup»; по NEED-199: «need more options to make the final decision». Ответ: ключ не использовался, ничего не построено; план предлагал настроенную модель memo (ключ из переменной окружения). Исследование: CLI-агенты, MCP sampling, свой ключ в keyring, локальная модель, сервер WireCat, очередь для агента.
+- **TASK-53 · Приватность (2026-11-01):** NEED-208 = B «and say that in legal docs»; «I'd add info about privacy under the ? menu explaining that all stuff is local, what we log and not etc». API перестаёт писать IP и страну для уведомлений, политика конфиденциальности на сайте, пункт «Privacy» в меню «?».
+
+- **TASK-54 · Собрать всё в одну ветку, раздел Guides.** «что у нас с Tasks? где их посмотреть? … мы делали Search страницу, не вижу ее … я хочу все собрать вместе»; «Сейчас не вижу опции для просмотра и редактирования памяти … ссылка … опирается на оч старую версию кода».
+  - Причина: я дал ссылку на порт 1436 (worktree memory-add-plan, основа старая), а `?add=` в review/all подменял Memory старой копией страницы из прототипа. В review/all Search, Tasks и Memory v2 были.
+  - Сделано: review/all получил журнал search-page, раунд 3 Add to memory (11b505f), PR #45; кнопка «Add to memory» на настоящей Memory (6d74adf). Одна ссылка: порт 1437.
+  - Guides: раздел меню с рецептами (промпты для агентов, часть текстов здесь, часть с сайта cli-docs, ссылки на полные доки), заметно в онбординге — отдан агенту на план и прототип.
+
+- **TASK-55 · Пробелы CLI для Search (план 2026-11-01-search.md, пункты 1–6).** 1–3 (вложения в попадании, скачать файл по ref офлайн, ссылка на файл) — агент в cli-core + tg/max/wa; 4 (zm passage по ref, говорящий) и 6 (drive documents show по ref) — агент в zoom-cli/drive-cli; 5 (вложения почты) — в очередь агента memo. Релизы tg/max/wa/zm/drive не делаем без владельца; cli-core выпускается по своему процессу. Пункт 7 (`search --explain`) ждёт NEED-221.
 
 ## 2. Вопросы Славы
 
@@ -536,6 +564,218 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **DEBT-7 · Workflow проверки на трёх системах в cli-testing по умолчанию берёт старый коммит cli-base `9785e6c`;** следующие прогоны передают `cli_base_ref` вручную.
 - **RISK-56 · SQL привязал бы пользователей к внутренней схеме, которая меняется с миграциями; общего Lucene-поиска по всем инструментам нет.** Поэтому только Lucene и один инструмент (NEED-161, NEED-162).
 
+- **FIND-95 · Поиск сообщений не сообщает свои поля (2026-10-31).** `commands --json` даёт `query.fields` только у list-команд; у `search messages|notes|all` их нет, а `details.fields` в ошибке `query.unknown-field` — весь словарь парсера, одинаковый у всех. Поэтому поля для подсказок лежат в каталоге (TASK-44). Нужна правка в cli-core.
+- **FIND-96 · memo и drive сдвигают span ошибки запроса (2026-10-31).** `bogus:x` → 0..9, `hello bogus:x` → 7..14 (у tg и wa 0..7 и 6..13). Страница обрезает span по длине запроса. Баг cli-core.
+- **FIND-97 · zm `search all` отказывает в запросе только заметкой (2026-10-31).** Выход 0, `complete: false`, пустые `items`, причина в stderr («meetings support letter/digit words joined by AND…» или «query.invalid-syntax at position 8»). `search.rs` читает это как ошибку. Встречи Zoom ищутся только по словам.
+- **FIND-98 · `max personal` не ищет с `--offline` (2026-10-31).** «nothing recorded for profile "personal" yet»: у профиля нет записанного аккаунта. Страница показывает отказ как есть; `--offline` не убираем. Профиль `mila` ищет нормально.
+
+- **FIND-99 · Хиты WhatsApp без чата (2026-10-31).** Настоящий `wa search messages` отдаёт `ref, timestamp, sender_name, excerpt…`, но не `chat_title`, поэтому колонка «Где» на странице поиска — «—» в каждой строке wa. Из `ref` не вытаскиваем (правило 1). Нужна правка в wa/cli-core.
+- **FIND-100 · `memo search notes` возвращает документы Drive (2026-10-31).** Среди хитов `provider: drive, kind: document`; `--source notes` этого не меняет (проверено на memo 0.122.0). Страница показывает всё, что вернул инструмент; фильтр не добавлен, раз он не действует.
+
+- **UX-21 · Поле запроса рисовало `>=` как `≥`** (лигатуры JetBrains Mono). Исправлено: класс `no-ligatures` на поле, его зеркале и списке; общий бар, значит и Logs.
+- **UX-22 · После ошибки запроса область результатов писала «Выберите инструмент и профиль…»**, хотя оба выбраны. Исправлено в первом раунде: «Исправьте отмеченную часть запроса…».
+- **UX-23 · В списке подсказок справа стояло слово «field» вместо примера.** Теперь у поля описание словами и пример (`from:"Ana Ruiz"`).
+- **UX-24 · Двадцать полей подряд без объяснений.** Теперь 5–6 главных по группам «Кто/Где/Когда/Что/Файлы и ссылки», остальные за «Ещё поля…»; `exact`, `mime`, `lang`, `keyword` убраны из каталога.
+- **BUG-33 · Каретка после выбранной подсказки ставилась через кадр**, и быстро набранные буквы попадали перед ней («hat:desc»). Исправлено: ставится в `useLayoutEffect`, когда текст уже в поле. Нашёл тест.
+- **FIND-101 · `memo search mail` отвечает `query.too-large` на один открытый диапазон дат** (`date:[2026-10-01 TO *]` без слов); со словом работает. Готовые запросы для почты поэтому со словами или `date>=7d`.
+- **FIND-102 · Не у всех полей есть список значений.** `memo tags list` — теги сообщений, не заметок; `drive tags list` требует документ; у memo нет списка ярлыков и папок почты. Эти поля подсказываются только по имени.
+
+- **BUG-34 · Подсказка вставляла `chat:@kyrillic` без кавычек, tg отказывал** («put the value in quotes»). Правило кавычек было угадано, а не взято из парсера cli-base. Исправлено: `quoteValue` следует `src/query/parser.ts` (зарезервированные `+ - ! ( ) : = ^ @ < > [ ] " { } ~ \ /`, `*`/`?`, AND/OR/NOT; внутри кавычек экранируются `"` и `\`), тесты на @имя, пробелы, кириллицу, эмодзи, кавычки, `:`, ведущий `-`, `(`, `*`. Примеры полей в каталоге проверяются тем же правилом.
+- **UX-25 · Имя чата бывает у двух чатов** (`chat:kyrillic` → «matches 2 chats»: у одного title `kyrillic`, у другого username `@kyrillic`). Исправлено: подсказка вставляет id чата (`chat:"-1001762030832"`, в строке видны название и @username); на отказ с `details.candidates` страница показывает кнопки, каждая заменяет терм на id и ищет снова; терм подчёркнут в строке запроса. tg отдаёт кандидатов структурно (`id`, `title`), разбирать текст не нужно.
+
+- **BUG-35 · drive `search` и `memo search notes` не применяют поля к поиску по смыслу (cli-core).** `date:today`, `tag:work`, `author:"…"` без слов дают 20 хитов `found_by: meaning`, ни один не подходит под фильтр; с `--exact` (без смысла) — 0 или только подходящие. Обход в PR #34: шаблоны drive и memo notes передают `--exact`, поиск по смыслу на странице выключен. Нужна правка в cli-core: фильтр полей и для хитов по смыслу. **Исправлено (2026-10-31):** cli-core 0.496.0 (WireCatLabs/cli-core#2223), drive 0.51.0 (WireCatLabs/drive-cli#294), memo 0.125.0 (WireCatLabs/cli-memo#512); замер: cli-testing `performance/search/notes-meaning-filters`. PR #34 передаёт `--exact` только drive < 0.51.0 и memo < 0.125.0 (NEED-166 = A); с новыми версиями проверка полей: 0 хитов вне фильтра.
+- **FIND-103 · `is:` в `search messages` (2026-10-31).** tg и max отвечают `query.unsupported-field` на `is:unread|read|starred`, хотя `unknown-value` перечисляет эти значения; wa принимает только `is:starred`. В каталоге: tg и max без `is`, wa с `is:starred`.
+- **FIND-104 · `wa contacts list` — не те люди, которых знает `from:` (2026-10-31).** В списке есть группы (`…@g.us`), а имена контактов wa `from:` не находит («nobody matches»). Для wa `from:` подсказывает имена отправителей из показанных результатов, не список.
+- **FIND-105 · `from:<id>` для контакта, который ничего не писал, — отказ, а не 0 хитов** (tg: «no person … in what this account has seen»). Страница показывает это как отказ инструмента.
+
+- **FIND-106 · `date:` у drive и memo notes фильтрует одно время, а хит показывает другое (cli-core).** `date:` читает `updated_at` строки документа (`note-search.ts`: «`at` is the time `date:` reads»), а `updated_at` в хите — другое (у drive 4 из 20 хитов `date>=30d` вне диапазона по показанному времени, у memo 16 из 20 внутри). Владелец видит хиты «не того» времени. Нужна правка в cli-core: одно время в фильтре и в ответе. **Исправлено (2026-10-31):** cli-core 0.496.0 (WireCatLabs/cli-core#2223), drive 0.51.0 (WireCatLabs/drive-cli#294), memo 0.125.0 (WireCatLabs/cli-memo#512); замер: cli-testing `performance/search/notes-meaning-filters`; `date:` drive читает то же время, что показывает хит — проверка: 20/20 в диапазоне.
+
+- **RISK-58 · Под узким фильтром хиты по смыслу берутся из 50 ближайших заметок вообще** (drive `budget date>=30d`: 7 хитов, хотя фильтру отвечают 144 документа). Повторено в PR #34: 7 хитов, 0 вне фильтра.
+- **BUG-36 · `search messages --discover` соединяет все поля через AND, и `-tag:x` становится `tag:x`** (cli-core `src/search/question-plan.ts:89`).
+- **RISK-59 · Диск был заполнен на 100% рядом с хранилищем 5,5 ГБ** во время работы над поиском по смыслу; сейчас свободно 26 ГБ.
+- **FIND-109 · Тест таймингов cli-core `transaction.test.ts` один раз упал под нагрузкой.**
+- **DEBT-8 · Экспорт editorial в cli-docs стирает ручные правки** (2026-10-31): `node scripts/export-editorial.mjs` переписывает `lib/editorial/editorial.css` (~10k строк ручных правок). В PR #462 файл откатан вручную.
+- **FIND-110 · BUG-36 не случается** (2026-10-31, агент cli-core): любой оператор (`-`, `OR`, `NOT`, скобки) переводит `--discover` в строгий поиск, так что хиты всегда подчиняются запросу. Реальный эффект — у таких запросов нет хитов по смыслу вообще. Добавлены два теста на текущее поведение. Решение — NEED-173.
+- **RISK-60 · Корневой диск заполнен на 100% (1,4 ГБ свободно)** (2026-10-31). Агент не смог скопировать стор (5,5 ГБ) для замера. `/home` 94%, 22 ГБ.
+- **RISK-61 · Поиск по смыслу в сообщениях всё ещё берёт 100 ближайших по всей базе, потом фильтрует** — узкий фильтр теряет хиты, как заметки до cli-core 0.501.0.
+- **FIND-111 · Тест времени в cli-core `transaction.test.ts` валил CI четыре раза за 2026-10-31**, дважды блокировал релиз.
+- **FIND-112 · Второй шаг `--discover` создаёт временную таблицу** и падает на соединении только для чтения.
+- **FIND-113 · В сторе владельца есть заметки, ждущие индексации, поэтому обычный поиск пишет в стор.** Замер это обходил.
+- **FIND-114 · Бюджет размера списка MCP-инструментов cli-core поднят с 13 000 до 14 000 символов** (схема total добавила ~700).
+- **DEBT-9 · Порог 2 000 в поиске по смыслу внутри фильтра считает заметки, а не куски** — длинные документы дороже.
+- **TASK-43 итог cli-core (2026-10-31):** NEED-171 сделан — cli-core 0.501.0 (#2236), cli-base 0.67.0 (`page.total`, #417/#418), drive 0.52.0, memo 0.126.0, tg 0.109.0; max #884 и wa #307 смержены, не выпущены (их релизы — владелец). `page.total = {value, relation: eq|gte}`, у drive `item.total`; счёт до 10 000. drive `budget date>=30d`: 7 → 20 хитов; 0 хитов вне фильтра. Замер: cli-testing #276, строки — cli-private #545, POST-119 дополнен.
+- **TASK-43 · Поиск показывает общее число совпадений (2026-10-31):** «Показаны 1–50 из 144» (`144+`, когда инструмент перестал считать), из `page.total` / `item.total`; инструмент без total — прежняя строка «50 результатов». PR #34.
+
+- **NEED-174 итог · max-cli 0.92.0 выпущен (2026-10-31):** с `page.total` (#884), `session start --credential-storage` (#885), `bin/release` спрашивает владельца вместо подписи (#883), docs (#887). Отчёт: cli-private `releases/0.92.0.md` (1d30dff3). Живые прогоны: X2 `mcp:tools` ×3 ~20:28; P5 `search messages` ×3 20:28–20:29 (`page.total` eq = числу строк); `smoke:live` 20:29:39 — 19 ok, 1 skip, 0 fail, тестовые сообщения и папка удалены. Не прогнан вживую `--credential-storage` (разлогинил бы владельца).
+- **FIND-118 · `page.total` не был описан в max `docs/query-language.md`** — исправлено в #887.
+- **FIND-119 · Нестабильный тест max `src/server/server.test.ts`** («sends through the server too…») упал раз на docs-PR #887, прошёл при перезапуске.
+- **FIND-120 · `bin/release` max ставит пакет глобально (`pnpm add -g`) и дописывает исключения в `minimumReleaseAgeExclude`** глобального pnpm (`~/.local/share/pnpm/global/v11/pnpm-workspace.yaml`) — так делает каждый релиз; файл не правили.
+- **FIND-121 · Битая ссылка:** max `docs_ai/releasing.md` и `releases/README.md` ведут на `.claude/skills/release/SKILL.md`; навык лежит в `docs/dev/skills/release/SKILL.md`.
+
+- **NEED-173 итог (2026-10-31):** cli-core #2254 вошёл в 0.506.0 (выпустила другая сессия). `--discover` с `-`, `NOT`, `OR`, группами даёт хиты по смыслу, подчиняющиеся всему запросу (общий код с заметками). RISK-61 закрыт: при ≤100 000 сообщений в фильтре оцениваются все векторы (у владельца векторы у ~4% сообщений). FIND-112 закрыт: без временной таблицы. На сторе владельца: 0 хитов вне запроса; по смыслу 0 → 10–17 из 20 для явных запросов; узкий чат 9 → 20 хитов. Бампы: tg #799, max #889, wa #308 смержены, не выпущены; memo 0.128.0 содержит фикс. Замер: cli-testing #278, строки — cli-private #547, POST-119 «третий акт».
+- **RISK-67 · При пороге 100 000 стор, где у всех сообщений есть векторы, тратил бы ~2 с на оценку** — нужен потолок по числу векторов.
+- **FIND-128 · `search all` держит свой путь фильтров для сообщений** (`filtersBeside`, `src/services/search-all.ts`) и пропускает смысл для `NOT`/`OR`/групп — можно перевести на общий код.
+- **FIND-129 · На холодном кэше диска простой `встреча --discover` упал по бюджету времени (2 с)**; на тёплом — нормально.
+- **FIND-130 · Нестабильный тест max `src/store-reset.test.ts`** (таймаут 5,1 с под нагрузкой).
+- **FIND-131 · В cli-memo висит старая ветка `chore/cli-core-meaning-filters`** (бамп 0.496.0) — из-за неё агент открыл и закрыл PR #524.
+
+- **FIND-152 · Моя ошибка снова (как FIND-135): `git commit -a` в worktree memory-page, где работал агент, увёз его незакоммиченные `src-tauri/src/lib.rs` и `memory.rs` (+225 строк) в мой журнальный коммит e1aa38f и запушил.** Ничего не потеряно; агент предупреждён. Правило для себя: в чужом worktree коммитить только по пути (`git commit -- docs/journal/…`), журнальные строки — в свободном worktree.
+- **FIND-107 · В memo нельзя удалить, отклонить или поправить память (2026-10-31).** У `memories` есть только `add`, `list`, `show`, `confirm`, `invalidate`; у `facts` — `confirm` и `reverse` (только принятое решение). Хранилище умеет `supersedes` и `deleted_at` (cli-core `store/sqlite/memories.js`), команды — нет; но `deleted_at` оставляет текст в файле и в индексе `memory_words`, так что «забыть» должно стирать строку, связи и запись индекса. Нужны `memories add --supersedes`, `memories remove`, `facts remove`, `facts reject` (план Memory, шаг 1).
+- **FIND-108 · Список памяти называет людей только номером (2026-10-31).** `subject` — только `person:<id>`, имени в выдаче нет, списка людей в memo нет (`search people` требует имя). Нужно `subject_name` в `memories list` и `facts list`.
+- **RISK-57 · «Подтверждено» не доказывает, что подтвердил владелец (2026-10-31).** Агент в терминале может сам выполнить `memo memories confirm` или передать `--as-owner` (cli-memo `src/author.ts`: «A label, not a check»; docs/memories.md). Приложение пишет как владелец, потому что `run.rs` убирает `AI_AGENT`/`CLAUDECODE`. Страница не обещает больше, чем знает memo.
+- **TASK-45 · memo для «Памяти» выпущен (2026-10-31):** шаги 1–4 плана: cli-core #2234 (0.500.0), cli-memo #521 → memo 0.127.0 (минимум для десктопа). `memories add --supersedes`, `memories remove`/`facts remove` (стирают строку, связи в обе стороны и запись поиска; ответ `{ref, removed, links}`), `facts reject`, `subject_name` + `subject_is_owner` в списках, `show --sources` (`kind`, `tool`, `excerpt` ≤280, `missing`). remove/reject не отданы агентам по MCP; `--supersedes` от агента отказан (exit 5). Блог: POST-120.
+- **RISK-62 · Номер забытой записи может достаться следующей** (memo 0.127.0): id `memories`/`facts` без AUTOINCREMENT; если забыта последняя, новая получит тот же номер, и устаревшая страница подтвердит или забудет не ту. Нужна миграция схемы.
+- **RISK-63 · Текст забытой записи может пожить в журнале WAL**, пока стор читает другой процесс (синк); «Забыть» ждёт читателя до 5 с.
+- **RISK-64 · «Забыть» снимает и чужие ссылки на запись** (память, ссылавшаяся на `fact:4`, теряет это свидетельство) — сделано из-за RISK-62.
+- **FIND-115 · Мягко удалённые памяти (перенос фактов ~30.10) держали текст в поиске**; `facts remove` теперь стирает и старую строку, код индекса не менялся.
+- **FIND-116 · Заметки, приложенные к забытой памяти или факту, остаются** — это отдельные заметки.
+- **FIND-117 · Если исправить A на B и забыть B, A остаётся «заменённой» без замены.**
+- **DEBT-10 · `--sources` нет в общем словаре флагов cli-base**; два исключения в memo `lint/overrides.json`, пересмотреть 2027-01-31.
+
+- **RISK-62 закрыт (2026-10-31):** memo 0.128.0 (cli-core #2253 → 0.506.0, cli-memo #523) — «Забыть» записывает наибольший выданный номер (`ids.memories.highest`, `ids.facts.highest` в таблице настроек стора), новые записи берут следующий; без смены схемы. Минимум для десктопа — memo 0.128.0.
+- **FIND-132 · Публикация навыка memo в ClawHub при релизе 0.128.0 упала дважды** (ошибка сервера, затем «Too many writes in a short period»); npm, GitHub release и MCP Registry прошли. Перезапустить job в run 41240121225.
+- **FIND-133 · Смоук агента поставил `@wirecat/cli-memo@^0.128.0` в `/home/leemour/Projects/AI/package.json`** (npm поднялся из временной папки без package.json), переписал `package-lock.json` и `node_modules` (279 МБ) там же. package.json — заготовка `npm init`, не git; что было в нём раньше, неизвестно. Решать владельцу.
+
+- **TASK-45 · страница «Память» собрана (2026-10-31):** PR #37 (`feat/memory-page`, от `docs/memory-plan`), шаги 5–9 плана кроме 8 (ссылка в Поиск ждёт #34). Раскладка A, `src/ui/Combobox.tsx` для About/Written by, Approve для действий (memo 0.128.0 умеет), «What agents did» из `memo agents list`, минимум memo 0.128.0. `pnpm check`: 396 Vitest + 196 Rust. Vite :1433 (PID 3922675). Реальное приложение с данными владельца не запускалось.
+- **BUG-37 · memo разрешает `--supersedes` только для принятого решения:** для других фактов отказывает; на предложенном решении добавляет новое, а старое оставляет предложенным. Поэтому у предложенного факта на странице есть Discard, а не Correct.
+- **FIND-134 · Журнал вызовов memo пишет агента как `memo-mcp`**, а не `claude-code` — «What agents did» на реальных данных покажет одно имя.
+- **FIND-135 · Моя ошибка: `git commit -a` в worktree memory-plan закоммитил временное подключение прототипа** (`src/app/sections.tsx`, коммит 3e1baff): ветка #35 убирает Accounts и импортирует страницу, которой в ней нет — #35 отдельно сломает сборку `main`.
+- **FIND-136 · «Вы» как автор выводится косвенно:** memo пишет записи владельца как человека без имени; поля «это владелец» нет.
+
+- **NEED-184/186 итог (2026-10-31):** cli-core 0.509.0 (#2265), memo 0.130.0 (#529): агент в `agents list` и автор записей по MCP берутся из `clientInfo.name` (иначе агент, запустивший сервер, иначе `<tool>-mcp`); `facts add --supersedes` для любого предложенного или принятого факта, старый — superseded; агент не заменяет принятый владельцем факт (exit 5). Десктоп (#37): Correct для любого предложенного/принятого факта с его же kind, минимум memo 0.130.0. max #894 смержен, не выпущен; tg и wa не подняты — им нужен cli-base 0.68. Блог: POST-122.
+- **RISK-70 · Агент по MCP может подтвердить свой же факт или память** (`facts confirm`, `memories confirm` доступны по умолчанию; тест memo на это опирается) — «подтверждено» на «Памяти» не значит «владельцем»; дыра в RISK-57: агент предлагает исправление предложенного факта, владелец принимает старый, агент подтверждает своё — факт владельца заменён.
+- **RISK-71 · Имя агента — это то, что клиент сам о себе сказал** (`clientInfo`): клиент может назваться `claude-code` или `owner`; на права не влияет, только на подпись.
+- **FIND-138 · tg-cli и whatsapp-cli ещё на cli-base 0.67**, cli-core 0.509.0 требует 0.68 — до подъёма их журнал вызовов пишет `tg-mcp`/`wa-mcp`.
+
+- **TASK-47 · проект событий готов (2026-11-01):** черновой cli-core #2274 (`docs/dev/plans/2026-11-01-events.md`), замер cli-testing #281 (`performance/events/change-detection/`), блог POST-13.f. Таблица `events` в общем сторе, заполняется SQL-триггерами в той же транзакции (работает и для CLI на старых версиях библиотеки); событие — номер, тип (`task.status`), ref, кто, имена полей, без содержимого. Читатели опрашивают `PRAGMA data_version` раз в 250 мс (1,3 мкс на проверку, на Linux каждый коммит виден) — без демона. `<tool> events watch --since <seq> --json` (NDJSON); десктоп держит один такой процесс. Вебхуки потом: `events deliver` по расписанию, Standard Webhooks + CloudEvents; входящие — через Funnel/туннель. Первый шаг — живая «Память», ~3,5 дня (2 cli-core, 1,5 десктоп).
+- **FIND-139 · Часть изменений задач не пишет историю:** claim, release, resolution, verdict, close certainty ничего не пишут в `task_events`; вид `moved` объявлен, но не пишется.
+- **FIND-140 · Уведомления ОС ограничены:** на Windows — только для установленных приложений; действия по клику документированы только для мобильных.
+- **RISK-72 · Слежение за файлом `-wal` опаздывает и дорого:** событие файла приходит раньше видимого коммита; 4 коммита нашёл только 5-секундный страховочный опрос; при синке — в 10–12 раз больше CPU, чем опрос.
+- **RISK-73 · Работающий наблюдатель мешает `store reset`;** после restore номера событий идут назад — в проекте: проверка файла раз в 2 с, переоткрытие, «перечитать».
+- **RISK-74 · Теги задач не дают события** — нужен ещё триггер до выпуска «Задач».
+
+- **TASK-47 · проект событий переделан (2026-11-01), cli-core #2274:** один фоновый сервер на пользователя для всех инструментов; любая пишущая команда и каждый `mcp serve` проверяют его сокет и, если молчит, запускают отсоединённо, не дожидаясь (как max); прогоны с перенесёнными папками и тесты его не запускают. Сервер: опрос стора 250 мс, вебхуки с повторами, локальные подписчики; новая версия CLI сменяет старый сервер; `store reset` сначала просит его остановиться. `events watch` — запасной путь без сервера, его использует десктоп. Вебхуки — в конфиге инструмента (url, события, вкл.), команды `<tool> webhooks …`, блок «Webhooks» рядом с «Permissions»; добавлять может только владелец; секрет — в keyring инструмента. Порядок: 1) живая «Память» на `events watch` (~2 + 1,5 дня), 2) сервер (3–4 дня), 3) вебхуки (3 + 2 дня).
+- **FIND-141 · Ретранслятор мессенджеров, вероятно, не работает на Windows:** даёт сокету путь к файлу, а Node на Windows принимает только именованные каналы. По коду и докам Node; не запускалось.
+- **RISK-75 · macOS может спросить доступ к Связке ключей,** когда сервер читает секрет из записи другого инструмента, запущенного другим Node. Не проверялось.
+- **SEC-7 · Добавлять вебхук может только владелец:** вебхук копирует события наружу; команды `webhooks` отказывают агентам, как `config set` для `mcp.authority`.
+
+- **TASK-47 · ответы внесены (2026-11-01), cli-core #2274:** сервер не останавливается сам; переключатель «Запускать при входе» на Tools → `<tool> events server autostart on|off|status`, при неудаче — точная команда с кнопкой «Копировать», без `sudo`; секрет вебхука — создаёт CLI или вставляет владелец. Вход в систему без прав администратора: Linux — юнит в `~/.config/systemd/user/`, macOS — LaunchAgent в `~/Library/LaunchAgents` (обе — вывод, документация о правах молчит); Windows — `HKCU\…\Run` вместо Планировщика. Шаг 2 теперь 4–5 дней cli-core + 1 день десктопа.
+- **RISK-76 · По справке Microsoft «Only Administrators can schedule tasks» (`schtasks /create`), а существующие расписания инструментов на Windows создаются без прав администратора** — противоречие, на Windows не проверялось; суточные архивы и follow-ups на Windows могут не создаваться.
+
+- **UX-26 · По записи «Памяти» не видно, к какому проекту она относится** (и, видимо, к чему ещё — фраза Славы оборвана: «what »).
+- **UX-27 · Длинный текст записи обрезан и никогда не раскрывается** — даже в открытом блоке.
+- **UX-28 · Действие «evidence findings» от `codex-nbb-evaluation` открывается пустым** — нет ни текста, ни источников, только «Written by / Saved / Kind / State» и Discard (скриншот Славы, 20 окт.).
+- **UX-29 · «by codex…» в строке не важен** — автора показывать только в раскрытом блоке.
+- **UX-30 · Фокус поля About рисует вторую рамку внутри поля** (синий прямоугольник внутри границы input, скриншот Славы).
+- **UX-31 · Кнопка Correct («Edit») стоит отдельно и выглядит странно** — Слава: ставить рядом с самим текстом; текст до раскрытия резать короче.
+
+- **TASK-46 · memo для «Задач» выпущен (2026-11-01):** memo 0.131.2 на cli-core 0.513.0 (cli-core #2270, #2271, #2273; cli-memo #536) — минимум для десктопа. Состояния `open`/`todo`/`in_progress`/`done`/`dismissed` (= Open/Todo/Progress/Done/Dismissed), `todo` и `in_progress` везде считаются открытой работой; `tasks update --status` возвращает из done/dismissed. Приоритет — число 0–1 с метками low/medium/high/critical по четвертям (старые 0–4 → 0.875/0.625/0.375/0.1875/0.0625, триггер держит старую колонку в согласии). `tasks move --before|--after` ставит число между соседями, ответ говорит о смене метки. `agent` — отдельное поле; claim — аренда, `agent` не трогает. `--revision` → `task.stale`, exit 3. `tasks counts` — счётчики для фильтров (в page не влезли). `tasks history`; история пишется для всех новых записей, включая claim/release/теги. Снятие исполнителя — `tasks assign … --clear`. Миграция стора 41 (события берут 42 — проект поправлен, cli-core 9aa0b509). Блог: POST-123.
+- **RISK-77 · Ревизия задачи растёт при любом изменении, в том числе когда агент продлевает claim или ставит время напоминания** — страница будет часто говорить «изменено в другом месте», пока агент просто работает.
+- **RISK-78 · Записи из tg, max и старого memo не оставляют истории;** их запись приоритета поднимает ревизию на 2.
+- **RISK-79 · Явный `state:open` теперь значит только новые задачи;** без `state:` по-прежнему вся открытая работа.
+- **FIND-142 · `blocked_by` пишет `open` для любого незавершённого блокера**, в том числе в Todo и Progress.
+- **FIND-143 · Перенумерация низкой четверти делает задачи без приоритета «low»;** бросок между critical и high попадает ровно на 0,75 — это critical.
+- **FIND-144 · Перенос рядом с задачей другой колонки падает с «is not a open task»** — плохой текст.
+- **FIND-145 · На свежем сторе имя владельца пустое,** история отмечает его `owner: true`.
+
+- **TASK-48 · три версии «Памяти» готовы (2026-11-01):** ветка `feat/memory-page` (PR #37), заметка `docs/dev/plans/2026-11-01-memory-versions.md`, снимки `.impeccable/mocks/memory/v2/`, Vite :1434. В1 — улучшенная A (проект/субъект в строке, короткий текст до раскрытия, автор только в раскрытом, правка у текста, содержимое у всех видов, находки с галочками); В2 — промежуточная; В3 — переосмысленная: Inbox (клавиши j/k/a/e/d), страницы людей и проектов, Timeline с живыми событиями. UX-30 исправлен в `src/ui/Combobox.tsx`. Рекомендация агента: выпустить В1, расти к странице субъекта из В3.
+- **BUG-38 · Approve/Discard на пустой строке «evidence findings» падали:** memo 0.130.0 отдаёт находки в `memo actions list --json`, а приложение читало только `payload.text|title`; решаются такие действия только через `memo projects actions confirm|reject <project> <id> [findings] --fingerprint <hash>`. Исправлено в В1.
+- **FIND-146 · Отклонение всей пачки находок memo отчитывает как «approved»** с пустым списком принятых.
+- **FIND-147 · Факты и пачки несут `project:<id>` без имени** — лишний вызов `memo projects list` на каждое чтение.
+- **FIND-148 · У памятей нет поля проекта** — проект только как субъект.
+- **FIND-149 · `actions list`/`show` не отдают fingerprint** — два лишних вызова на решение.
+- **FIND-150 · У других видов действий нет читаемого описания.**
+- **FIND-151 · Выдержки источников находок есть только в `projects actions list` без `--brief`.**
+- **DEBT-11 · Удержание прокрутки (`keepRoom`, `src/ui/motion.ts`) ломается на странице с фрагментом в корне** — растягивает первый дочерний элемент контейнера.
+
+- **UX-32 · В версии 2 справа мало метаданных;** дата, вид и т. п. должны быть кликабельны как фильтры; добавить фильтры по виду, диапазону дат и проекту (Слава, скриншот 2026-11-01).
+- **UX-33 · Синонимы в кнопках:** Confirm/Approve и Discard/Forget делают почти одно и то же — «dont use synonyms».
+- **UX-34 · Одобрить или отклонить нельзя без раскрытия строки** — нужны две кнопки прямо в строке.
+- **UX-35 · Время справа в строке («00:51») занимает место** — перенести рядом с «Today».
+- **UX-36 · Источники (документы, сообщения) не открываются** — открыть файл или сообщение с несколькими соседними для контекста.
+- **UX-37 · «All activity in Logs» ведёт в весь журнал** — нужен фильтр только по вызовам, менявшим память.
+
+- **UX-38 · Много действий в строке — кнопка с выпадающим списком:** Слава: «if there are many actions mb add a dropdown? approve and to the right the arrow to pick more actions». Передано агенту версии 2.
+
+- **TASK-48 · версия 2 стала страницей «Память» (2026-11-01), PR #37 (a63328f):** версии 1 и 3 и переключатель убраны. Слова Approve / Reject / Correct / Erase…, вкладка «Rejected», диалог Erase. В строке — Reject и кнопка Approve со стрелкой (`src/ui/SplitButton.tsx`, меню: «Approve some…», Correct, Erase…); у используемых — Correct первым. Время в метке строки («Decision · Today 01:02»). Раскрытая строка показывает все поля memo; проект, «о ком», вид, автор и дата — ссылки-фильтры; новые фильтры Project, Kind, Saved. Источники раскрываются на месте: сообщение с тремя до и после, заметка или документ — текст и «Open file» (только внутри папок заметок memo). «All activity in Logs» открывает Logs с фильтром по запускам memo для памяти, фактов, действий. Vite :1434.
+- **FIND-153 · Источник-встреча не открывается:** у memo нет команды показать всю встречу; `memo meetings passage` требует ссылку на строку стенограммы.
+- **FIND-154 · Ссылки `person:`, `chat:`, `task:` и др. не открываются** — нет команды show; страница пишет «Memo cannot show a … source yet».
+- **FIND-155 · «Соседние» сообщения могут пропускать** — memo отдаёт ближайшие из сохранённых, не обязательно следующие отправленные.
+- **FIND-156 · Заметки, хранимые только в memo, без файла** — показываются текстом, без «Open file».
+- **RISK-80 · Вызовы агентов через MCP memo могут не попасть под фильтр Logs** — фильтр ловит запуски из командной строки (`memo memories add`); не проверено.
+
+- **TASK-49 · план «Добавить в память» (2026-11-01):** черновой PR #40, план `docs/dev/plans/2026-11-01-memory-add.md`, прототип `.impeccable/mocks/memory/add/prototype/AddToMemory.tsx` (панель в четыре шага: Source · About · Facts · Saved), 17 состояний, Vite :1436 (PID 1253030, `?add=<state>`). memo 0.131.3 сегодня: текст — да (заметка до 100 000 символов, со связями); PDF/Word/таблицы — только через наблюдаемую папку, без «добавить один файл», файл не копируется; ссылки — нет; HTML — читатель есть в cli-core, memo его не берёт; картинки — нет (локальный OCR ранее отклонён, решение cli-core №546 (поправка: так записано, чтобы счётчик журнала не принял чужой номер за свой)); аудио — в cli-core есть локальная `parakeet-v3` и OpenAI (#2218), memo не использует; поиск по заметкам и документам — есть. Модель memo вызывает только в `answers create --analyze`. Рекомендация: `memo sources suggest` через уже настроенную модель, результат — пачка находок с галочками. Агент закоммитил 4 строки CLEANUP.md в основной checkout (`feat/desktop-mvp`, ac3398b, не запушено).
+- **FIND-157 · HTML-читатель есть в cli-core, memo им не пользуется.**
+- **FIND-158 · Локальная расшифровка аудио есть в cli-core, memo её не предлагает.**
+- **FIND-159 · Пачка находок не может ссылаться на написанную вручную заметку** — у вставленного текста не будет опоры для фактов.
+- **FIND-160 · `notes edit` не меняет связи заметки.**
+- **FIND-161 · `search all` не ищет по памятям и фактам.**
+- **RISK-81 · Обычный веб-drop файла в окно не даёт путь** — брать пути из события drop самого Tauri.
+- **RISK-82 · По умолчанию агент может сам одобрить пачку находок проекта** — обещание «ничего не считается, пока вы не выбрали» держится, только если такие пачки помечены «только владелец».
+- **RISK-83 · memo читает ключ модели из переменной окружения** — до запуска из приложения перенести в системный keyring.
+
+- **TASK-46 · страница «Задачи» собрана (2026-11-01):** PR #41 (`feat/tasks-page`, поверх #36), Vite :1435. Сначала cli-core #2282 → 0.516.0 и memo #541 → 0.131.4 (минимум): RISK-77 исправлен (продление claim и время напоминания не поднимают ревизию), FIND-144 исправлен (перенос без `--status` встаёт в колонку соседа; иначе `task.column`), `--priority none` снимает приоритет. Таблица и доска с пятью колонками, перетаскивание мышью и клавиатурой, правка в ячейках, история, фильтры Project/Assignee/Priority/Due/Agent со счётчиками, «Can start now». `pnpm check`: 408 Vitest + 199 Rust; тест Rust на настоящем memo 0.131.4; скрипт правила 9 — 5 из 5. Минимум в каталоге — `taskBoard.minVersion` (ключ `tasks` уже занят страницей «Агенты»). Не проверено: перетаскивание в настоящем приложении (WebKitGTK, WebKit, WebView2).
+- **FIND-162 · memo `people list` показывает только владельца и людей, уже назначенных на задачи; команды добавить человека нет** — выбор исполнителя не дотянется до нового человека.
+- **FIND-163 · `tasks add` не принимает срок, статус и агента** — страница делает вторую запись; заметку нельзя очистить (1–20 000 символов); `--priority` берёт только метки; `tasks counts` без счётчиков срока и агента.
+- **FIND-164 · `overdue:true` ловит и задачи со сроком сегодня;** в поиске `7d` значит «7 дней назад», «следующие 7 дней» — только датами.
+- **FIND-165 · История задач отдаёт сроки в миллисекундах эпохи, список — в ISO.**
+- **FIND-166 · Отказ устаревшей записи (`task.stale`) приходит с кодом `configuration_error`.**
+- **FIND-167 · Список называет проект `project:<id>`, счётчики — ключом проекта.**
+- **RISK-84 · PR #41 и PR #37 оба добавляют поле в `catalog.rs` и `catalog.ts`** — ждать небольшого конфликта при слиянии.
+- **TASK-46 · план «Задач» готов (2026-10-31):** черновой PR #36, план `docs/dev/plans/2026-10-31-tasks-page.md`, прототип `.impeccable/mocks/tasks/prototype/TasksPage.tsx`, Vite на :1432 (PID 3603860, подключение в `src/` не закоммичено). Нехватки memo (шаги 1–7 плана, ~5,5 из 11,5 дня): статусов только open/done/dismissed, нет «в работе», `update --status`, reopen; список фильтрует только state/kind/project/ready/source — нет assignee/priority/due/closed, свободного текста, OR, сортировки, >500; нет счётчиков для пикеров; в списке нет assignments/ready/blocked_by и имена полей расходятся с show; нет `tasks unassign`, проверки ревизии, `tasks history`, списка людей; нет ранга в колонке. Агент взял локальные id; сопоставлены ниже. Счётчик NEED выдал уже занятый NEED-174 — пропущен.
+- **FIND-122 · `src-tauri/src/tasks.rs` уже читает claims агентов для «Агентов»** — модуль доски назвать иначе (`task_board.rs`).
+- **FIND-123 · Список и карточка задачи memo называют поля по-разному** (`state`/`kind` против `status`/`type`).
+- **FIND-124 · memo записывает автора неровно:** `update` может записать агента, `add`/`close`/`assign` всегда пишут владельца.
+- **FIND-125 · `memo tasks update --parent none` падает** — подзадачу нельзя отвязать.
+- **FIND-126 · У задач нет MCP-инструментов** — агент только на MCP memo их не видит.
+- **FIND-127 · README memo пишет `relations`, команда — `links`.**
+- **RISK-65 · Обработка перетаскивания файлов в Tauri (включена по умолчанию) может ломать HTML5 drag-and-drop на Windows** — не проверено; дизайн на pointer events.
+- **RISK-66 · При `--limit` ≥500 `has_more` может ложно сказать «больше нет»** — по чтению кода.
+
+- **UX-39 · В интерфейсе не говорить «Memo»:** «Memo's database - wirecat database»; «dont use memo, user doesnt care what memo is, user wirecat. memo is just a command to reach some functionality». Касается и страницы «Память» (#37), и «Добавить в память» (#40). Сохранено в память агента.
+- **UX-40 · Кнопка «Add to memory» не похожа на другие** — сделать основной фиолетовой.
+- **UX-41 · Открытая панель «Add to memory» слита со списком памяти** — разделить отступом; панель огромная, непонятно, что делать и что получишь; File/Link/Text справа не видно, шаги слишком крупные. Передано на переделку (impeccable).
+- **UX-42 · Фраза о хранении слишком техническая** — говорить о пользе: найдётся по словам и смыслу, агенты используют факты в ответах.
+- **BUG-39 · «Next» в «Add to memory» не включается после ввода текста.**
+- **BUG-40 · Чтение ссылки в «Add to memory» не работает.**
+- **UX-43 · Итог «Saved» непонятен:** что именно сохранено; люди, проекты, задачи должны быть выпадающими списками с поиском.
+
+- **TASK-51 · уведомления готовы (2026-11-01):** API wirecat-api #5 (смержен, выкачен `bin/release`, 117 с; `GET /v1/notifications`, `Cache-Control: max-age=300, public`; `bin/notify` create/list/delete) и #6 (текст, не выкачен). Десктоп PR #43: колокольчик у «?», панель, точка на Agents (до первого открытия Agents, больше не возвращается); Memory — после #37; Tools — нет. На проде одно уведомление `welcome-notifications-2026-11` (id 174325ab-a252-4651-ba6f-af0c6092dba4), info, до 2026-11-15, en/ru/es; удалить: `cd /home/leemour/Projects/AI/wirecat-api && bin/notify delete welcome-notifications-2026-11`. #43 влит в `review/all` (719ea8d), `pnpm check`: 458 + 245.
+- **FIND-168 · Первый PR API утверждал, что сервер ничего не хранит о запросе, а лог прода пишет IP и страну** — формулировка исправлена в обоих репозиториях.
+- **FIND-169 · Проверка секретов (gitleaks) в `bin/ci` и хуке из git worktree сканирует 0 коммитов и сообщает об успехе** — значима только из основного checkout.
+- **FIND-170 · Кто уже стоит, увидит точку на Agents один раз после обновления** — приложение не знает, открывал ли он Agents раньше.
+
+- **TASK-49 · «Добавить в память», дизайн 2 (2026-11-01):** PR #40 (6d6d8ef, 4f20e13), влит в `review/all` (c12af1f, `pnpm check` 458 + 245). По UX-39…43 и BUG-39/40: «WireCat» вместо Memo, фиолетовая кнопка, отдельная рамка над списком, компактная шапка с пользой, плитки File/Link/Text слева, «Source · 1 of 4» вместо крупного степпера, Next включается сразу, ссылка читается по Enter/вставке/«Read it», один выбор людей-проектов-задач с поиском и чипами, итог — таблица «Source / Kept / Linked to». 96 снимков в `.impeccable/mocks/memory/add/v2/`. Список под панелью в прототипе — старая заглушка, не страница версии 2.
+
+- **BUG-41 · Переключение File/Text/Link в «Add to memory» медленное, клик иногда не срабатывает.**
+- **UX-44 · «Add to memory»: Text первым; фраза «The source itself turns up…» непонятна — простыми словами; поиск людей, проектов и задач — раздельными полями.**
+
+- **UX-45 · Настройки (2026-11-01):** Слава: «remove WireCat title, and make them on two columns (1 column on small window sizes) I'd put language first then scale»; «in settings I'd also allow JSON search». Сделано в PR #44: заголовок скрыт (для экранных чтецов остался), Language, затем Interface size, две колонки от 42rem контейнера; поиск в JSON (Ctrl F, Enter/Shift Enter, «2 of 5», подсветка). Влито в `review/all` (db4e560).
+
+- **UX-46 · Превью-порты расходятся с общей веткой.** Каждый worktree отдаёт свой Vite (1434–1440), и ссылка на порт ветки-прототипа показала старый код без Search/Tasks и фильтров Memory. Для просмотра давать только порт review/all (1437).
+
+- **UX-47 · Кнопки рецептов говорят «Get Memo».** Правило «в интерфейсе WireCat, не memo»: на Guides установка инструмента должна звучать как польза («Turn on memory»), а не имя CLI. Поправить при сборке страницы.
+
+- **RISK-85 · /home заполнился до 0 байт при сборке Rust** (агент приватности, 2026-11-01). Сейчас /home 14 ГБ свободно (97%), / — 27 ГБ. Замечание в памяти «root почти полон» устарело наоборот: тесно на /home. Сборки Rust параллельных агентов могут падать.
+- **RISK-86 · Метрики rate limit в wirecat-api пишут IP как метку,** если метрики когда-нибудь включат.
+- **FIND-171 · Старая политика приватности ошибалась** (имя профиля в отчёте, бэкапы 14 дней, IP в логе отчёта, ключи WhatsApp/Telegram в файлах, npm спрашивается о версиях) — исправлено в cli-docs #475–477.
+- **FIND-172 · About всегда ссылается на /en/privacy,** не на язык интерфейса.
+- **FIND-173 · docs/dev/notifications-api.md в PR #43 всё ещё пишет, что лог хранит IP** — поправить в #43.
+
+- **UX-48 · Отзыв на второй дизайн Guides:** вступление описывает, что это, а не что получит пользователь; «Copy request» → «Copy prompt»; ссылка «Which agents are ready» уводит со страницы — убрать, при нужде выбор агента выпадающим списком; полный промпт скрыть везде, даже в «Начни отсюда»; страница — оглавление: название + одна строка о результате; «Ready to try» убрать; больше групп (analyze, schedule, verify, gather…) и рецептов; ссылки на блоки групп сверху и поиск. Отдано агенту дизайна (третий раунд).
+
+- **UX-49 · Отзыв на Tasks:** «In task edit we need to change priority, due date, assignee, project. also not clear when it was created and so on. waits for is nice but should be a link … check https://beadmeupscotty.com/ … use min width of tasks and horizontal scroll … in Tasks table view I'd open them in modal not expand». Отдано агенту: модальное окно в таблице, правка всех полей и метаданные, «waits for» ссылкой, минимальная ширина и горизонтальная прокрутка, идеи с beadmeupscotty/beads; работа поверх review/all, перенос в feat/tasks-page.
+
+- **UX-50 · Search: вместо списка ключей подсказки только has:, поиск простым текстом не работает, кнопка Search неактивна без объяснения.** Слава: «button should be active and on click it should show a validation error and explain why … disabled button should rarely be used». Отдано агенту: ключи в подсказках, причина простого поиска, валидация по клику, проход по всем disabled в приложении и правило в DESIGN.md.
+
+- **UX-51 · Search, отзыв 2:** иконка копирования рядом со значением, а не в конце строки; иконки «фильтровать по значению» и «группировать по нему», как в поиске Logs; у всего раскрываемого — видимая стрелка справа, как на Guides (правило на всё приложение). Отдано агенту Search.
+- **IDEA-13 · Контекст вокруг найденного и поиск по типам, плюс поле «сгенерировать запрос через ИИ».** Слава: «find nearest messages by a button or read full transcript or get links to files … how search would work for different types eg meetings, email»; «a field above search to generate a query using AI - ask an agent - say claude/codex or use api key». Отдано агенту Search: действия контекста на командах самих инструментов, раздел плана по типам, прототип поля ИИ по решениям NEED-210…212.
+- **NEED-219 · поправка:** отпал — в третьем варианте Guides карточек нет.
+
+- **FIND-174 · memo 0.131.6 не умеет для окна задачи:** перенос в другой проект (`tasks update --project`), очистка заметки, смена типа (`--kind`), настоящий автор создания (`tasks add` всегда пишет владельца). Окно задачи (review/all 8d93d2e, feat/tasks-page aa7340e) показывает проект только для чтения. Отдано агенту memo.
+
+- **FIND-175 · Поиск простым текстом «не работал», потому что не выбран профиль:** приложение не выбирает профиль за владельца, а код молча ничего не делал, кнопка была неактивна без причины. С профилем поиск находит. Исправлено: кнопка активна и говорит, чего не хватает (PR #34, sweep #48).
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
@@ -818,7 +1058,8 @@ TASK-23, часть 1 (2026-10-27): реестр MCP. PR (не слиты): tg h
 
 TASK-23, часть 2 (2026-10-27): каталоги. Документ — cli-private `marketing/listings.md`, PR https://github.com/WireCatLabs/cli-private/pull/525; идея поста POST-100 в BLOG_IDEAS.md (cli-private main `d10642c5`). PR реестра — все шесть зелёные в CI. **Итог TASK-23:** реестр — PR готовы, ждут ключа, TXT-записи и слияния; каталоги — исследованы (около 40), план «сейчас / потом / никогда» в документе; ничего никуда не отправлено.
 - **FIND-44 · Все шесть MCP-серверов запускаются и отдают список инструментов без входа и без данных** (проверил агент-исследователь: пустой HOME, профиль `probe`; у каждого `<tool>_tools_search`, `<tool>_read`, `<tool>_write`). Значит, каталогам, которые запускают сервер ради списка инструментов (Glama), учётные данные не нужны. Из каталогов прямо пишут, что сами берут записи из официального реестра, только mcp.directory и PulseMCP (последний сейчас на паузе); Glama — вероятно. Звёзд мало (tg 12, max 10, остальные 0–1), поэтому большинство awesome-списков с порогом по звёздам или возрасту — рано.
-- **NEED-77 · Оставить ключ реестра MCP секретом всей организации или перенести в environment-секрет, доступный только релизам с main?** Сейчас: `bin/setup-mcp-registry-key` кладёт `MCP_REGISTRY_PRIVATE_KEY` секретом организации с видимостью `all` (как `CLAWHUB_TOKEN`); любой, кто пушит в любой репозиторий WireCatLabs, может опубликовать или перезаписать любой `dev.wirecat/*` (SEC-6). Варианты: **A** как есть, сейчас пушишь только ты · **B** environment `mcp-registry` с правилом «только main» в шести репозиториях, задача `mcp-registry` объявляет `environment:`. Я бы: **A** сейчас (в организации один участник, внешних соавторов в пяти репозиториях нет — `gh api`, 2026-10-27), **B** — когда появится второй человек с правом записи. Если не ответишь: остаётся A.
+- **NEED-77 · Оставить ключ реестра MCP секретом всей организации или перенести в environment-секрет, доступный только релизам с main?** Сейчас: `bin/setup-mcp-registry-key` кладёт `MCP_REGISTRY_PRIVATE_KEY` секретом организации с видимостью `all` (как `CLAWHUB_TOKEN`); любой, кто пушит в любой репозиторий WireCatLabs, может опубликовать или перезаписать любой `dev.wirecat/*` (SEC-6). Варианты: **A** как есть, сейчас пушишь только ты · **B** environment `mcp-registry` с правилом «только main» в шести репозиториях, задача `mcp-registry` объявляет `environment:`. Я бы: **A** сейчас (в организации один участник, внешних соавторов в пяти репозиториях нет — `gh api`, 2026-10-27), **B** — когда появится второй человек с правом записи. Если не ответишь: остаётся A. **Ответ 2026-10-31: B.**
+- **NEED-174 · Выпустить ли max и wa с total?** Сейчас: max #884 и wa #307 смержены, не выпущены. Варианты: A я выпускаю max, wa выпускает Слава · B ждут следующего релиза. Я бы A. **Ответ 2026-10-31: A** — «sign for me, remove the rule to sign manually - just ask» (в max-cli main подписи уже нет, только вопрос в чате; память агента поправлена).
 - **NEED-78 · Сливать ли пять PR реестра сейчас (без wa), с описанием «Sign in with the <tool> CLI first»?** Сейчас: tg#752, max#842, zoom#286, drive#261, memo#470 зелёные; без ключа задача публикации только пишет notice. wa#273 ждёт решения о выпуске wa. Варианты: **A** слить пять сейчас · **B** сначала запустить скрипт и добавить TXT, потом слить. Я бы: **A** — слияние ничего не публикует, следующий релиз каждого инструмента подхватит ключ, когда он появится. Если не ответишь: PR висят, первая публикация откладывается.
 - **NEED-80 · Выставлять ли серверы в Glama (и через него в список punkpeye/awesome-mcp-servers, 97k звёзд), хотя Glama собирает Docker-образ и запускает сервер для проверки?** Сейчас: punkpeye принимает PR только со значком оценки Glama; Glama нужны `glama.json` и Dockerfile; серверу достаточно запуститься и ответить списком инструментов — без учётных данных (FIND-44). Варианты: **A** добавить `glama.json` и Dockerfile с фиктивным профилем, не создавать в Glama «release» (через него пользователи разворачивают сервер у Glama) · **B** пропустить Glama и punkpeye. Я бы: **A** — самый большой список MCP, учётные данные не нужны. Если не ответишь: нас нет ни в Glama, ни у punkpeye.
 - **NEED-81 · Платить ли $29–$39 за запись, чтобы обойти очередь в MCP Market, mcpservers.org и mcp.so?** Сейчас: бесплатно — 2 недели (mcpservers.org) и 4–6 недель (MCP Market); у mcp.so на странице видна только платная запись. Варианты: **A** только бесплатно · **B** заплатить одному сайту на пробу. Я бы: **A** — несколько недель задержки для маркетинга ничего не стоят. Если не ответишь: бесплатные заявки, mcp.so ждёт.
@@ -1078,3 +1319,149 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-160 · После проверки слить PR #404 и выпустить cli-base 0.66.0?** Ответ (2026-10-30): **A**.
 - **NEED-161 · Первая версия страницы поиска: только Lucene, или Lucene и SQL?** Варианты: A Lucene, SQL позже · B оба · C только Lucene. Я бы A. Ответ (2026-10-31): **C** («let's do just lucene then»).
 - **NEED-162 · Поиск по одному инструменту и профилю, или по всем сразу?** Варианты: A один · B все. Я бы A. Ответа нет — по умолчанию A.
+- **NEED-171 · Искать по смыслу внутри заметок фильтра, когда их немного?** (см. RISK-58). **Ответ 2026-10-31: A**, и «ещё посчитать остальные совпадения и подсказать, что всего больше, как делает elastic» — показывать общее число совпадений фильтра рядом с найденными по смыслу.
+- **NEED-172 · То же исправление для `search messages --discover`?** (см. BUG-36). **Ответ 2026-10-31: A** (Слава написал «AA»).
+- **NEED-173 · Давать ли `--discover` хиты по смыслу для запросов с `-`, `OR`, `NOT` или скобками?** (см. FIND-110). Сейчас: такие запросы идут в строгий поиск без смысла — есть тест «явный синтаксис = строгий поиск». Варианты: A оставить · B хиты по смыслу, подчиняющиеся всему запросу (как заметки в 0.496.0). Я бы B. Если не ответишь: остаётся A.
+  - **Ответ 2026-10-31: B (поправка: ответ был дан, но не отмечен здесь).**
+- **NEED-182 · Выпустить ли tg-cli с исправленным поиском по смыслу (#799, cli-core 0.506.0)?** Сейчас: смержено, `release:check` чист, кроме двух ожидаемых. A выпускаю сейчас · B ждёт. Я бы A.
+- **NEED-164 · Какой раздел делать первым из отложенных?** Ответ (2026-10-31): Memory первой. TASK-45.
+- **NEED-165 · Что делать с заглушками Accounts и Memory в меню?** Ответ (2026-10-31): Accounts убрать (аккаунты остаются в деталях инструмента), Memory оставить.
+- **NEED-167 · Какую раскладку взять для страницы «Память»?** Сейчас: макеты нарисованы в варианте A, страница выбора impeccable осталась без ответа. Варианты: A журнал — одна стойка, группы по дням, фильтр сверху · B две стойки «Ждёт вас» над «Сохранено» · C строка запроса с фасетами, как в Logs. Я бы A: одна стойка на страницу, подтверждённая строка остаётся на месте (правило 9). Если не ответишь: строим A. **Ответ 2026-10-31: A с правками** — «replace long statuses. Waiting for you - Review. No long hold - discarded. Or similar. Kept - maybe In use? I'd make about/Written by searchable». Прототип: вкладки Review / In use / Discarded / All, «No longer true» → Discard, About и Written by — поля с поиском. Смотреть локально: `pnpm exec vite --port 1431` в worktree memory-plan, `?section=memory`. **Окончательно 2026-10-31: «layout A»** (после сравнения A/B/C по ссылкам `?layout=`).
+- **NEED-168 · Где показывать журнал вызовов агентов (`memo agents list`)?** Сейчас: это общий журнал tg, max и memo, не только память. Варианты: A раздел на странице «Память» · B по агенту на странице Agents · C только Logs. Я бы B. Если не ответишь: на странице «Память» только ссылка, журнал не показываем. **Ответ 2026-10-31: A** — раздел «What agents did» на странице «Память», со ссылкой на Logs.
+- **NEED-169 · Удалять ли запись по «Забыть», или только помечать «больше не верно»?** Сейчас: удалить в memo нельзя (FIND-107). Варианты: A оба действия; «Забыть» стирает текст, связи с источниками и запись поиска новой командой `memo memories remove` (старые резервные копии её хранят) · B только пометка. Я бы A. Если не ответишь: шаг 1 плана ждёт. **Ответ 2026-10-31: A.**
+- **NEED-170 · Показывать ли на «Памяти» предложенные агентом действия (`memo actions`) и находки проектов и встреч?** Варианты: A не в первой версии · B да, строками в «Ждёт вас». Я бы A: одобренное действие становится задачей. Если не ответишь: A. **Ответ 2026-10-31: B** — предложенные агентом действия идут строками в Review с кнопкой Approve; ничего не отправляется, пока не одобрено.
+- **NEED-183 · Что делать с `package.json`, `package-lock.json` и `node_modules` (279 МБ) в `/home/leemour/Projects/AI`, изменёнными смоуком агента?** (см. FIND-133) A убрать добавленную зависимость и node_modules · B Слава проверит сам · C оставить. Я бы B.
+- **NEED-185 · Слить #37 (в нём весь #35) и закрыть #35?** (см. FIND-135) A да · B сначала починить #35. Я бы A. **Ответ 2026-10-31: A** (слить #37 после проверки Славой в приложении, закрыть #35).
+- **NEED-186 · Записывать ли в memo имя агента, сделавшего MCP-вызов, вместо `memo-mcp`?** (см. FIND-134) A да, в cli-memo · B оставить. Я бы A. **Ответ 2026-10-31: A.**
+- **NEED-184 · Разрешить ли в memo исправлять любой факт и помечать заменённое предложенное решение?** (см. BUG-37) A да, затем Correct для всех фактов · B оставить. Я бы A. **Ответ 2026-10-31: A.**
+- **NEED-188 · Разрешать ли подтверждать факты и памяти по MCP только владельцу?** (см. RISK-70) Сейчас: агент может подтвердить своё. A выключить `facts confirm`/`memories confirm` для MCP по умолчанию, как `meetings actions confirm` · B оставить. Я бы A. **Ответ 2026-10-31: B** (оставить).
+- **NEED-182 · Ответ 2026-10-31: B** — tg и max не выпускать сейчас, ждать следующего релиза.
+- **NEED-175 · Ответ 2026-10-31:** «I'd use these Open, Todo, Progress, Done, Dismissed» — пять фиксированных колонок. Толкование (проверить у Славы): Open — новое, ещё не разобранное; Todo — решено делать; Progress — в работе; Done; Dismissed. memo нужны состояния `todo` и `in_progress` и возврат из Done.
+- **NEED-176 · Ответ 2026-11-01: A, с поправкой:** «let's have priority as a large range, like a decimal mb and say there are 4 prios - low, medium, high, critical we can split by 0.25 ranges or similar and human only sees human value. also check https://github.com/gastownhall/beads for ideas». Порядок в колонке = десятичный приоритет; перетаскивание ставит значение между соседями; человек видит одну из четырёх меток.
+- **NEED-178 · Ответ 2026-11-01: A, и шире:** «this is super unlikely, we need to watch and push changes on change to desktop if it's open. I think we need a proper push system so the changes can be actually pushed and notifications can come etc. can you think whats the best way to design it so we can notify other servers, apps and so on, so it's possible to subscribe to core events in clis, to the events from outside and so on» — см. TASK-47.
+- **NEED-180 · Ответ 2026-11-01: B, иначе:** «I'd add another field like agent to the task, sure, it's separate from assignee».
+- **NEED-189 · Кто отправляет вебхуки, когда десктоп закрыт?** A расписание пользователя раз в минуту + десктоп, пока открыт · B существующие долгие процессы (`serve`, HTTP MCP) · C новый демон. Я бы A. Если не ответишь: ждёт только шаг 4. **Ответ 2026-11-01: ни A, ни B, ни C как есть** — «we shouldnt rely on desktop for webhooks, its not its responsiblity. it controls stuff -starts,updates etc. we should use a server, ideally a server should always be running after a single cli command is run with core in it that could send webhooks … it should be async to not block the command but still there's always a server running, check our design if its not like this». Проверено: общего сервера ядра сегодня нет, есть только `serve` мессенджеров (`src/cli/messenger/server-command.ts`; max запускает его по команде, `byCommand`). Проект отправлен на переделку: один фоновый сервер на пользователя, запускается любой командой CLI.
+- **NEED-190 · Где хранить секрет вебхука?** A в keyring создавшего инструмента, доставляет только он · B общая запись `wirecat` · C файл только для владельца. Я бы A. Если не ответишь: ждёт шаг 4. **Ответ 2026-11-01:** «I'd add an entry in config to set webhooks and inside the Tools I'd have a block like Permissions for Setting this up» — вебхуки в конфиге инструмента, на панели Tools блок «Webhooks» рядом с «Permissions»; секрет — в keyring (предложено мной, ждёт проекта).
+- **NEED-191 · Писать ли историю для `tasks claim`/`release`?** A нет, у события пустой «кто» · B да, `claimed`/`released`. Я бы B. **Решено по умолчанию B** — делает агент задач memo.
+- **NEED-192 · Что может содержать уведомление в мессенджер?** A только ссылки · B заголовки, по явному согласию на подписку. Я бы A по умолчанию, B по согласию.
+- **Переименование 2026-11-01:** Слава: «also rename Connect an AI app to \"MCP server (or connect web)\"» — заголовок блока на панели инструмента, PR #39; кнопка после входа осталась «Connect an AI app».
+- **NEED-193 · Останавливается ли сервер событий сам?** A никогда после запуска · B работает, пока нужен вебхуку, входящему маршруту или подписчику, иначе стоп через 15 минут простоя. Агент: B; слова Славы «always running» ближе к A. **Ответ 2026-11-01: A** — сервер не останавливается сам.
+- **NEED-194 · Запускается ли сервер при входе в систему?** A нет · B только когда включён входящий маршрут, юнитом, который включает владелец · C всегда. Я бы B. **Ответ 2026-11-01:** «we might need admin rghts for that. I'd allow this via a button on Tools page, if no permissions - give relevant command to run etc» — кнопка «запускать при входе» на странице Tools; если прав не хватает — показать команду. Поправка к его догадке: юниты пользователя (systemd --user, LaunchAgent, задача Планировщика для текущего пользователя) прав администратора, как правило, не требуют — для Windows не проверено.
+- **NEED-195 · Как получатель получает секрет вебхука?** A CLI создаёт, владелец сохраняет в файл · B владелец вставляет секрет получателя · C оба. Я бы C. **Ответ 2026-11-01: C** (оба способа).
+- **NEED-196 · Могут ли подписываться локально не-CLI приложения?** A только через `events watch` или сокет сервера · B ещё локальный HTTP-поток с токеном. Я бы A сейчас.
+- **Блог 2026-11-01:** Слава: «save it as an idea on blog post explaining architecture» — POST-124 в cli-private (7c8d7c9d), раздел «Architecture and shared libraries».
+- **NEED-197 · Какую версию «Памяти» выпускать?** A В1 сейчас, расти к В3 · B В2 · C В3 сразу (нужны memo: имена проектов, проект у памяти, список людей). Я бы A. **Ответ 2026-11-01: B (версия 2)**, с правками — см. UX-32…UX-37.
+- **NEED-198 · Делать ли FIND-146…151 работой в cli-memo?** A да · B нет. Я бы A. **Ответ 2026-11-01: A — «fix them here».**
+- **NEED-199 · Кто читает новый источник и предлагает факты?** A memo через настроенную модель (свой ключ или локальная) · B memo оставляет запрос агенту · C приложение само запускает агента. Я бы A.
+- **NEED-200 · Можно ли предлагать факты для источника о человеке или ни о ком, не только о проекте?** A расширить пачки на любой субъект и на заметки · B только при выбранном проекте. Я бы A. **Ответ 2026-11-01: A.**
+- **NEED-201 · Хранить ли memo собственную копию загруженного файла?** A копия в папке данных memo, одна на одинаковые файлы · B только путь и текст. Я бы A.
+- **NEED-202 · Как читать слова на картинке?** (варианты в плане PR #40)
+- **NEED-203 · Ссылки на Google Docs — через Drive?** (варианты в плане PR #40)
+- **NEED-204 · Выбранные факты сразу считаются вашими?** (варианты в плане PR #40) **Ответ 2026-11-01: A.**
+- **NEED-205 · Доделать ли в memo недостающее для «Задач» (FIND-162…167): добавление людей, срок/статус/агент в `tasks add`, числовой приоритет, счётчики срока и агента, единые форматы?** A да · B позже. Я бы A, начиная с добавления людей. **Ответ 2026-11-01: A.**
+- **NEED-175 · Колонки доски: To do · Doing · Done · Dropped (memo добавляет «в работе» и reopen)?** Варианты: A четыре фиксированные · B свои у проекта · C три, без reopen. Я бы A. Если не ответишь: работа в memo и доска ждут.
+- **NEED-176 · Остаётся ли карточка там, куда её бросили в колонке, после перезагрузки?** A memo хранит ранг (0,5–1 день) · B сортировка по приоритету. Я бы A.
+- **NEED-177 · Показывать ли задачи из сообщений Telegram/MAX?** A сначала только задачи проектов · B оба, с выбором профиля. Я бы A.
+- **NEED-178 · Отказывать ли memo в правке устаревшей копии?** A проверка `--revision`, страница пишет «изменено в другом месте» · B последняя запись выигрывает. Я бы A.
+- **NEED-179 · Ждут ли предложенные агентом действия на «Задачах»?** (NEED-170 отправил их на «Память») A нет, одобренное действие становится обычной задачей · B колонка «Proposed». Я бы A.
+- **NEED-180 · Можно ли назначить задачу агенту?** A нет, «hermes is on it» из его claim · B да. Я бы A.
+- **NEED-181 · Как выглядит «Doing»?** A ровная фиолетовая лампа, шестой тон в DESIGN.md · B пульсирующая. Я бы A.
+- **NEED-206 · Нужна ли точка на Tools при доступных обновлениях?** A нет (Tools — домашняя страница и уже показывает обновления) · B ежечасная проверка в фоне и точка. Я бы A.
+- **NEED-207 · Привязать ли срок приветственного уведомления к выпуску десктопа, а не к 15 ноября?** A оставить 15.11 · B после выпуска удалить и создать заново на 14 дней. Я бы B.
+- **NEED-208 · Перестать ли писать IP для запросов уведомлений?** A оставить и сказать об этом · B не писать IP и страну для этого адреса. Я бы B. **Ответ 2026-11-01: B**, «and say that in legal docs».
+- **NEED-209 · Разрешить ли в DESIGN.md фиолетовую главную кнопку в шапке страницы («Add to memory»)?** A да: главное действие страницы может быть фиолетовым · B правило оставить, кнопку снова сделать контурной. Я бы A. **Ответ 2026-11-01: A.**
+- **NEED-199 · ответ** **2026-11-01:** нужно больше вариантов, см. TASK-52. (вопрос записан в журнале ветки feat/memory-page)
+
+- **NEED-210 · Может ли WireCat запускать собственный залогиненный Claude Code владельца, чтобы читать источники на его подписке?** (в документе PR #45 это NEED-A)
+  - Сейчас: условия Anthropic запрещают приложениям гонять запросы через подписку пользователей, но разрешают пользователю входить в неизменённый Claude Code со своей подпиской. Спайк: 3.7 с, без инструментов.
+  - Варианты: **A** строить сейчас · **B** спросить Anthropic письменно, пока строить остальное · **C** Claude только с API-ключом
+  - Я бы: **B** — текст скорее за нас, но Anthropic может применить правило без предупреждения.
+  - Если не ответит: владельцы только Claude Code без подсказок фактов.
+  - **Ответ 2026-11-01: A.**
+- **NEED-211 · Потратить полдня на проверку «Sign in with ChatGPT» до любой поддержки Codex?** (NEED-B в PR #45)
+  - Сейчас: официальный способ OpenAI для open-source локальных приложений, без инструментов и ключа; preview, не пробовали.
+  - Варианты: **A** сначала проверить · **B** строить только Codex CLI
+  - Я бы: **A** — если сработает, Codex, который видит файлы владельца, не понадобится.
+  - Если не ответит: первая версия на Codex CLI.
+  - **Ответ 2026-11-01: A.**
+- **NEED-212 · Если вход через ChatGPT не сработает, предлагать Codex CLI, хотя он может читать файлы владельца?** (NEED-C в PR #45)
+  - Сейчас: ни один флаг не отключает shell у Codex; враждебная страница может увести его прочитать файл.
+  - Варианты: **A** да, с предупреждением и проверкой, что каждая цитата есть в источнике · **B** нет, владельцам ChatGPT только API-ключ
+  - Я бы: **A** — проверка цитат не пустит украденный файл в память, предупреждение даёт отказаться.
+  - Если не ответит: Codex не строим.
+  - **Ответ 2026-11-01: A.**
+- **NEED-213 · Предлагать локальную модель, только если Ollama уже запущена?** (NEED-D в PR #45)
+  - Сейчас: установка Ollama на Linux требует root (правило 6); спайк qwen3.5:9b — 64 с на 120 слов на CPU.
+  - Варианты: **A** только уже запущенная Ollama · **B** WireCat ставит свою модель (4–6 дней)
+  - Я бы: **A** — без прав администратора и почти без работы.
+  - Если не ответит: локальную модель не предлагаем.
+- **NEED-214 · Как назвать раздел: «Guides» / «Рецепты» / «Guías» или «Recipes» как на сайте?** (NEED-A в плане PR #47)
+  - Сейчас: прототип — Guides / Рецепты / Guías; сайт — Recipes / Рецепты / Recetas.
+  - Варианты: **A** как в прототипе · **B** Recipes / Рецепты / Recetas · **C** Guides / Гайды / Guías
+  - Я бы: **A** — слово владельца, «Рецепты» по-русски лучше «Гайдов».
+  - Если не ответит: A, английское и испанское имя расходятся с сайтом.
+  - **Ответ 2026-11-01: A.**
+- **NEED-215 · Где писать и хранить рецепты: в cli-docs с guides.json, который приложение копирует, или только в приложении?** (NEED-B в PR #47)
+  - Сейчас: рецептов на несколько инструментов нет нигде; сайт JSON не публикует (есть llms.txt и lib/reader-guides.ts).
+  - Варианты: **A** cli-docs + копия в приложении + фоновое обновление через Rust · **B** только в приложении · **C** приложение читает md сайта
+  - Я бы: **A** — одно место, сборка доков ловит переименованную команду, новые рецепты без релиза.
+  - Если не ответит: работа в cli-docs не начинается.
+  - **Ответ 2026-11-01: свой вариант — «хранил рецепты в доках на cli-docs и отображал на сайте, а в приложении забирал их оттуда … и без всяких json». Я согласен: рецепт = md-страница фиксированной формы (frontmatter + разделы Prompt/Steps/Result), сайт отдаёт md, приложение парсит через Rust, копия в сборке, тест формы в cli-docs.**
+- **NEED-216 · Делать ли «Try your first guide» главной кнопкой последнего шага онбординга вместо «Open Tools»?** (NEED-C в PR #47)
+  - Сейчас: главная — Open Tools, рецепт — второстепенная.
+  - Варианты: **A** оставить Open Tools · **B** главной — рецепт
+  - Я бы: **B** — владелец хочет, чтобы после установки сразу начинали работать.
+  - Если не ответит: ссылку на рецепты легко пропустить.
+  - **Ответ 2026-11-01: да (B).**
+- **NEED-217 · Должен ли рецепт сам запускать агента, или только копировать запрос?** (NEED-D в PR #47)
+  - Сейчас: только копирует.
+  - Варианты: **A** только копировать · **B** ещё «Open in Claude Code» в терминале
+  - Я бы: **A** сейчас, B позже — нужен безопасный способ передать текст в терминал.
+  - Если не ответит: A, B в бэклог.
+- **NEED-218 · Добавить в Caddy две строки log_skip для /v1/notifications и установить через bin/install-caddy-addon?** (NEED-1 агента приватности; wirecat-api#7)
+  - Сейчас: приложение IP не пишет (задеплоено, 2c4d102), но общий Caddy пишет IP и страну каждого запроса; политика, README и панель честно это говорят.
+  - Варианты: **A** поставить сейчас и убрать эти оговорки · **B** оставить Caddy как есть
+  - Я бы: **A** — это уже принятое решение NEED-208 B, касается только этого пути, синтаксис проверен `caddy adapt` на сервере.
+  - Если не ответит: IP копятся в логе Caddy (до 90 дней), тексты длиннее.
+  - **Ответ 2026-11-01: A,** «можешь сам все задеплоить, я разрешаю». Отдано агенту приватности: Caddy, политика, панель #46, ссылка About по языку (FIND-172).
+- **NEED-219 · Разрешить ли в DESIGN.md сетку карточек на странице Guides (как исключение рядом с Agents)?**
+  - Сейчас: DESIGN.md запрещает превращать список в сетку карточек; второй дизайн Guides (e4cb541) — плоские карточки без теней, сгруппированные по цели.
+  - Варианты: **A** добавить исключение для Guides, если дизайн принят · **B** вернуть строки
+  - Я бы: **A** — строки и делали страницу похожей на Tools, что владелец и отверг.
+  - Если не ответит: DESIGN.md и прототип противоречат, следующее ревью дизайна может «починить» страницу обратно в строки.
+- **NEED-220 · Переносить ли стрелку раскрытия в таблицах Logs и в строках Memory к правому краю, как в Search, хотя таблица Logs в узком окне прокручивается вбок?** (NEED-1 агента Search)
+  - Сейчас: в Search справа, в Logs и Memory слева.
+  - Варианты: **A** справа везде, а таблицу Logs сузить, чтобы правый край был виден при 960 · **B** слева только в таблицах с прокруткой вбок
+  - Я бы: **A** — одно место для значка проще запомнить.
+  - Если не ответит: страницы остаются разными.
+- **NEED-221 · Показывать ли поле «Опишите, что ищете» в настоящем приложении до появления команды CLI за ним?** (NEED-2 агента Search)
+  - Сейчас: поле только в браузерном макете, в приложении скрыто.
+  - Варианты: **A** скрыто до выхода `search --explain` в cli-core · **B** показать сейчас с «скоро»
+  - Я бы: **A** — неработающее поле та же мёртвая кнопка.
+  - Если не ответит: остаётся только в макете.
+- **NEED-222 · Когда перевести tg, max и wa на cli-core 0.532.0 (вложения в попадании, скачивание по ref офлайн, ссылки на файлы)?**
+  - Сейчас: cli-core 0.532.0 выпущен (cli-core #2330, релиз #2334). tg и max на 0.517.0, wa на 0.506.0; собираются с новой, свои тесты не гоняли. Подъём тянет изменения «may break callers» из 0.518/0.527/0.529 (wa — 0.507–0.516). tg-cli #806 другого агента уже поднимает tg до 0.531.0.
+  - Варианты: **A** поднять все три сейчас, по PR на инструмент · **B** сначала tg через #806, потом max и wa
+  - Я бы: **B** — по одному инструменту с осторожностью к старым ломающим изменениям. Выпуск каждого — отдельный вопрос владельцу (max — да спросить; tg — NEED-182 B «не выпускать сейчас»; WhatsApp выпускает только владелец).
+  - Если не ответит: файловые возможности Search работают только в браузерном макете.
+- **memo 0.131.11 (2026-11-01):** все пробелы FIND-146…151, FIND-162…167 (кроме 166), NEED-200/204, перенос задачи, тип, настоящий автор, комментарии, `due:tomorrow` — выпущены (cli-core #2289/#2291/#2315/#2324, memo #545/#558/#561). Десктоп переводится на 0.131.11 агентом. Вложения почты: `messages show` уже даёт метаданные и текст, байты синк не хранит.
+- **NEED-223 · Должен ли memo уметь сохранять вложение письма на диск, и откуда брать файл?** (NEED-1 агента memo)
+  - Сейчас: memo показывает вложения с текстом, самих файлов нигде нет.
+  - Варианты: **A** почтовый CLI докачивает часть письма с сервера по запросу · **B** хранить все вложения при синке с лимитом размера · **C** только текст
+  - Я бы: **A** — без лишнего места, только то, что попросили.
+  - Если не ответит: только текст.
+- **NEED-224 · Давать ли отказу «задача изменилась» (task.stale) свой код ошибки вместо configuration_error?** (NEED-2 агента memo)
+  - Сейчас: десктоп различает по details.reason; список кодов cli-base закрыт, новый код меняет контракт всех CLI.
+  - Варианты: **A** код conflict в cli-base, согласованный релиз · **B** оставить и задокументировать reason
+  - Я бы: **B** — reason уже машиночитаем.
+  - Если не ответит: остаётся configuration_error + task.stale.
+- **NEED-225 · Что делать с подзадачами при переносе задачи в другой проект?** (NEED-3 агента memo)
+  - Сейчас: перенесённая подзадача отрывается от родителя; задачу с подзадачами memo отказывается переносить.
+  - Варианты: **A** так и оставить · **B** переносить подзадачи вместе с ней
+  - Я бы: **A** — явно, ни одна задача не меняет номер без спроса.
+  - Если не ответит: отказ остаётся.
+- **NEED-226 · Выпускать ли zm и drive с новыми возможностями для Search?** (zoom-cli #326: `cue_ref` и `sender_name` у попаданий, переход на cli-core 0.533.0 и cli-base 0.71.0; drive-cli #313: `documents show <ref>`)
+  - Сейчас: всё слито, не выпущено. Новый zm переводит общее хранилище на схему 43; drive на cli-core 0.507 должен её открыть (minCompatible 34), но это не проверено. MCP-лог zm теперь называет вызвавшее приложение.
+  - Варианты: **A** выпустить оба сейчас · **B** сначала drive (только ref), zm после проверки, что старый drive открывает хранилище схемы 43 · **C** ждать
+  - Я бы: **B** — риск только в общем хранилище, проверка дешёвая.
+  - Если не ответит: Search открывает место встречи и документ только в браузерном макете.

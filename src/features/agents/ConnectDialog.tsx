@@ -1,12 +1,14 @@
 import { TriangleAlert } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { agentPathFix, CHAT_AGENTS, type CheckTool, chatName } from "@/domain/agents"
 import { catalogCommand, findTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
 import { useTools } from "../tools/store"
@@ -85,6 +87,16 @@ export function ConnectDialog({ view }: { view: AgentView }) {
   const m = useMessages(agentsMessages)
 
   const chosen = view.skills.filter((s) => flow.tools.includes(s.tool.id))
+  const [tried, setTried] = useState(false)
+  const toolsId = useId()
+  const noneChosen = tried && chosen.length === 0
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each opening starts without the last one's message
+  useEffect(() => setTried(false), [open])
+  const connect = () => {
+    if (chosen.length > 0) return flow.run(plan())
+    setTried(true)
+    document.getElementById(toolsId)?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus()
+  }
   const chat = CHAT_AGENTS.has(agent.id)
   const readOnlyChoices = chosen.flatMap((s) => {
     const groups = findTool(s.tool.id)?.permissions?.groups ?? []
@@ -138,7 +150,7 @@ export function ConnectDialog({ view }: { view: AgentView }) {
             <Button variant="ghost" onClick={flow.close}>
               {m.cancel}
             </Button>
-            <Button variant="primary" disabled={chosen.length === 0} onClick={() => flow.run(plan())}>
+            <Button variant="primary" onClick={connect}>
               {chosen.length === 0 ? m.connect : m.connectTools(chosen.length)}
             </Button>
           </>
@@ -152,7 +164,11 @@ export function ConnectDialog({ view }: { view: AgentView }) {
       {open && flow.phase === "choose" ? (
         <div className="flex flex-col gap-4">
           <p className="max-w-[70ch] text-[0.95rem] text-ink-soft">{m.connectIntro(agent.name)}</p>
-          <fieldset className="flex flex-col gap-1">
+          <fieldset
+            id={toolsId}
+            className="flex flex-col gap-1"
+            aria-describedby={noneChosen ? `${toolsId}-none` : undefined}
+          >
             <legend className="mb-1 text-[0.9rem] font-medium text-ink-dim">{m.tools}</legend>
             {view.skills.map((s) => {
               const why = unavailable(s, m)
@@ -178,6 +194,11 @@ export function ConnectDialog({ view }: { view: AgentView }) {
               )
             })}
           </fieldset>
+          <Collapse open={noneChosen}>
+            <ErrorNotice inline>
+              <span id={`${toolsId}-none`}>{m.chooseATool}</span>
+            </ErrorNotice>
+          </Collapse>
           {chat && <ChatWarning agentName={agent.name} />}
           {chat && (
             <fieldset className="flex flex-col gap-1">

@@ -2,6 +2,12 @@ import type { ReactNode } from "react"
 import type { Messages } from "@/i18n"
 
 const en = {
+  find: "Find in the JSON",
+  findPlaceholder: "Find a key or a value (Ctrl F)",
+  findCount: (at: number, of: number) => `${at} of ${of}`,
+  findNone: "No match",
+  findPrevious: "Previous match",
+  findNext: "Next match",
   shared: "WireCat (shared)",
   sharedNeedsTool: "Install Telegram, MAX or WhatsApp to change shared settings",
   notInstalled: (name: string) => `${name} is not installed`,
@@ -148,6 +154,12 @@ const en = {
 export type ConfigText = typeof en
 
 const ru: ConfigText = {
+  find: "Найти в JSON",
+  findPlaceholder: "Найти ключ или значение (Ctrl F)",
+  findCount: (at, of) => `${at} из ${of}`,
+  findNone: "Не найдено",
+  findPrevious: "Предыдущее совпадение",
+  findNext: "Следующее совпадение",
   shared: "WireCat (общие)",
   sharedNeedsTool: "Установите Telegram, MAX или WhatsApp, чтобы менять общие настройки",
   notInstalled: (name) => `${name} не установлен`,
@@ -299,6 +311,12 @@ const ru: ConfigText = {
 }
 
 const es: ConfigText = {
+  find: "Buscar en el JSON",
+  findPlaceholder: "Busca una clave o un valor (Ctrl F)",
+  findCount: (at, of) => `${at} de ${of}`,
+  findNone: "Sin resultados",
+  findPrevious: "Coincidencia anterior",
+  findNext: "Coincidencia siguiente",
   shared: "WireCat (compartidos)",
   sharedNeedsTool: "Instala Telegram, MAX o WhatsApp para cambiar los ajustes compartidos",
   notInstalled: (name) => `${name} no está instalado`,
