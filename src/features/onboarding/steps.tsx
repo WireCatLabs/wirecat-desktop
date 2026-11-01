@@ -11,7 +11,6 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
 import { Skeleton, StableText } from "@/ui/Skeleton"
-import { arriveFromSetup } from "../../../.impeccable/mocks/guides/prototype/GuidesPage"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
@@ -605,7 +604,6 @@ export function Done() {
       <section aria-label={m.next} className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-semibold">{m.next}</h2>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => go(arriveFromSetup)}>{m.guides}</Button>
           {browserReady && (
             <Button onClick={() => go(() => openConnect(browserReady.id))}>{m.connect(browserReady.name)}</Button>
           )}
