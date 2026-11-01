@@ -283,6 +283,8 @@ memo с пометкой «About: Email»; чтение логов для отч
 - **ASK-45 · «we need to cover situations when the cli doesnt work on the machine as there's an existing name registered»** и «how and who would it explain if another app calls drive and gets another program?» Ответ: объяснение в приложении не доходит до того, кто вызвал не ту программу; нужны уникальные имена в каждом месте вызова, а короткие — ярлыки только при свободном имени. Приложение сейчас считает любой `tg` в PATH нашим и запускает его с `--version` (`src-tauri/src/tools.rs:111`). Проверка, отказывает ли npm при занятом имени, была заблокирована — не подтверждено. План: cli-base PR #402, `docs/dev/plans/2026-10-30-wcat-umbrella.md`.
 - **ASK-46 · «how hard would it be to add a search page to desktop where users can search the database using SQL and lucene syntax (then converted to SQL)?»** Ответ: средне, около недели. Lucene→SQL уже есть в командах поиска инструментов (cli-core `src/services/messages-search.ts`, `src/cli/messenger/history-query.ts`), хранилище SQLite открывается только на чтение (`query_only`, cli-core `src/store/sqlite/open.ts:33`). Нет: команды `store sql` в CLI (1–2 дня) и страницы (2–3 дня). Запуском Lucene-поиска на настоящем хранилище не проверено.
 
+- **ASK-48 · «where did you see that (install ok installed?»** — не в его выводе apt, а в моей проверке `dpkg -s wirecat` (Status: install ok installed, Version: 0.2.0) после его установки.
+
 ## 3. Находки
 
 **RISK-1 · zm и memo установлены дважды: npm и pnpm**
@@ -777,6 +779,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **FIND-175 · Поиск простым текстом «не работал», потому что не выбран профиль:** приложение не выбирает профиль за владельца, а код молча ничего не делал, кнопка была неактивна без причины. С профилем поиск находит. Исправлено: кнопка активна и говорит, чего не хватает (PR #34, sweep #48).
 
 - **WireCat Desktop 0.2.0 выпущен (2026-11-01, TASK-56):** PR #49 (5915725), закрыты #34–#48; релиз v0.2.0 на всех платформах (run 41352214356). Без прототипа «Add to memory» и поля ИИ в Search (в приложении скрыто). AppImage и .deb в ~/Downloads. Первый CI упал на новом clippy 1.99 (стиль проверок в тестах) — 75f608d. Долг: Guides импортируется из .impeccable/mocks/guides/prototype (sections.tsx, Onboarding.tsx), перенести в src/features/guides/.
+
+- **UX-52 · Установка .deb неинформативна и шумит:** apt пишет «selecting 'wirecat' instead of …» (норма) и «Download is performed unsandboxed as root … couldn't be accessed by user '_apt'» (домашняя папка drwxr-x---). Слава: «output some details during install to track progress and see clear success … and provide some prompts on next actions». Отдано агенту: сообщения postinst в .deb/.rpm, команда установки через читаемую папку во всех местах (README, обновление в приложении, сайт), возможно скрипт установки с шагами.
 
 ## 4. Вопросы к Славе
 
