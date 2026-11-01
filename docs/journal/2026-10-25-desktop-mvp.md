@@ -122,6 +122,11 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 - **TASK-52 · Варианты извлечения фактов (2026-11-01):** Слава: «did you use openai model with a key? I think we need to set the key in the desktop app in settings and if it's not set ask user but ideally this shouldnt be required as not everyone has account with an api key, I'd try to actually use an agent instead mb call claude/codex etc via cli or another way to process data and if it doesnt work - provide helpful info on what to setup»; по NEED-199: «need more options to make the final decision». Ответ: ключ не использовался, ничего не построено; план предлагал настроенную модель memo (ключ из переменной окружения). Исследование: CLI-агенты, MCP sampling, свой ключ в keyring, локальная модель, сервер WireCat, очередь для агента.
 - **TASK-53 · Приватность (2026-11-01):** NEED-208 = B «and say that in legal docs»; «I'd add info about privacy under the ? menu explaining that all stuff is local, what we log and not etc». API перестаёт писать IP и страну для уведомлений, политика конфиденциальности на сайте, пункт «Privacy» в меню «?».
 
+- **TASK-54 · Собрать всё в одну ветку, раздел Guides.** «что у нас с Tasks? где их посмотреть? … мы делали Search страницу, не вижу ее … я хочу все собрать вместе»; «Сейчас не вижу опции для просмотра и редактирования памяти … ссылка … опирается на оч старую версию кода».
+  - Причина: я дал ссылку на порт 1436 (worktree memory-add-plan, основа старая), а `?add=` в review/all подменял Memory старой копией страницы из прототипа. В review/all Search, Tasks и Memory v2 были.
+  - Сделано: review/all получил журнал search-page, раунд 3 Add to memory (11b505f), PR #45; кнопка «Add to memory» на настоящей Memory (6d74adf). Одна ссылка: порт 1437.
+  - Guides: раздел меню с рецептами (промпты для агентов, часть текстов здесь, часть с сайта cli-docs, ссылки на полные доки), заметно в онбординге — отдан агенту на план и прототип.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -745,6 +750,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - **UX-45 · Настройки (2026-11-01):** Слава: «remove WireCat title, and make them on two columns (1 column on small window sizes) I'd put language first then scale»; «in settings I'd also allow JSON search». Сделано в PR #44: заголовок скрыт (для экранных чтецов остался), Language, затем Interface size, две колонки от 42rem контейнера; поиск в JSON (Ctrl F, Enter/Shift Enter, «2 of 5», подсветка). Влито в `review/all` (db4e560).
 
+- **UX-46 · Превью-порты расходятся с общей веткой.** Каждый worktree отдаёт свой Vite (1434–1440), и ссылка на порт ветки-прототипа показала старый код без Search/Tasks и фильтров Memory. Для просмотра давать только порт review/all (1437).
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
@@ -1345,16 +1352,19 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
   - Варианты: **A** строить сейчас · **B** спросить Anthropic письменно, пока строить остальное · **C** Claude только с API-ключом
   - Я бы: **B** — текст скорее за нас, но Anthropic может применить правило без предупреждения.
   - Если не ответит: владельцы только Claude Code без подсказок фактов.
+  - **Ответ 2026-11-01: A.**
 - **NEED-211 · Потратить полдня на проверку «Sign in with ChatGPT» до любой поддержки Codex?** (NEED-B в PR #45)
   - Сейчас: официальный способ OpenAI для open-source локальных приложений, без инструментов и ключа; preview, не пробовали.
   - Варианты: **A** сначала проверить · **B** строить только Codex CLI
   - Я бы: **A** — если сработает, Codex, который видит файлы владельца, не понадобится.
   - Если не ответит: первая версия на Codex CLI.
+  - **Ответ 2026-11-01: A.**
 - **NEED-212 · Если вход через ChatGPT не сработает, предлагать Codex CLI, хотя он может читать файлы владельца?** (NEED-C в PR #45)
   - Сейчас: ни один флаг не отключает shell у Codex; враждебная страница может увести его прочитать файл.
   - Варианты: **A** да, с предупреждением и проверкой, что каждая цитата есть в источнике · **B** нет, владельцам ChatGPT только API-ключ
   - Я бы: **A** — проверка цитат не пустит украденный файл в память, предупреждение даёт отказаться.
   - Если не ответит: Codex не строим.
+  - **Ответ 2026-11-01: A.**
 - **NEED-213 · Предлагать локальную модель, только если Ollama уже запущена?** (NEED-D в PR #45)
   - Сейчас: установка Ollama на Linux требует root (правило 6); спайк qwen3.5:9b — 64 с на 120 слов на CPU.
   - Варианты: **A** только уже запущенная Ollama · **B** WireCat ставит свою модель (4–6 дней)
