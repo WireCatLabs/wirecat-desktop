@@ -292,6 +292,8 @@ memo с пометкой «About: Email»; чтение логов для отч
 
 - **ASK-48 · «where did you see that (install ok installed?»** — не в его выводе apt, а в моей проверке `dpkg -s wirecat` (Status: install ok installed, Version: 0.2.0) после его установки.
 
+- **ASK-49 · «when updating a cli can we check for installed skills and update them automatically? then we wont need to do manual work»** — Да. В приложении уже есть проверка (`skill status`: current/stale/missing/unversioned) и установка (`skill install --for <target>`), но после обновления инструмента их никто не вызывает. Живой пример: у tg 0.112.0 инструкции в ~/.claude и ~/.agents — 0.108.0 (stale). План: после успешного обновления — status, затем install только для мест со stale/unversioned; missing не трогаем.
+
 ## 3. Находки
 
 **RISK-1 · zm и memo установлены дважды: npm и pnpm**
@@ -818,6 +820,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
   - UX-53…UX-56, BUG-46 переданы агенту поиска, ветка `fix/search-real-data`.
 
 - **BUG-48** — номер выдан лишним, не используется.
+
+- **IDEA-18 · CLI сам обновляет устаревшие инструкции для агентов после `npm update -g`** (в cli-core: при первом запуске новой версии — только уже установленные копии), для тех, кто без десктопа.
 
 ## 4. Вопросы к Славе
 
@@ -1552,3 +1556,6 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
   - Я бы: 2 «Your agent finally knows what you know.»
   - **Ответ 2026-11-02:** «Everything you've said. Ready for your agent. - love it». Передано агенту главной в #490.
   - FIND-181: **ответ 2026-11-02: A** — отдано агенту на разбор вместе с языком расшифровки Zoom.
+- **NEED-236 · Обновлять инструкции для агентов автоматически только в десктопе (в 0.2.1) или ещё и в самих CLI (IDEA-18)?**
+  - Варианты: **A** десктоп сейчас, CLI потом · **B** только десктоп · **C** оба сразу
+  - Я бы: **A**.
