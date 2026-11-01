@@ -132,6 +132,7 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 - **TASK-57 · Главная сайта: каналы в первом экране и «Connect your agent» через десктоп (2026-11-02).** Слава: «we need to fix landing there's a switch max/tg - I'd use tg/whatsapp for en/es and for ru tg/max/whatsapp. Also I'd hide max in english and es versions on landing hero - no use in it, just confustion. in the bottom - ok. connecting agent - right now it provides a prompt, I'd hid most of it and allow to copy and focus on promoting desktop app install, so users can get cli or they can install a desktop app. check mb we might need to change more stuff here».
   - Исходник главной — `design/homepage-chat-treatments/release-source.json` + локали, генерация `pnpm landing:export`. Отдано агенту, worktree `cli-docs-wt-landing-hero`, ветка `feat/landing-hero-channels`.
   - В `cli-docs-wt-landing-install` лежат чужие незакоммиченные правки главной от 2026-10-29 (направление «весь контекст», DOCS-14 про блок установки десктопа) — не трогаем.
+  - Дополнение: «also add Google Calendar to the hero tools list» — передано агенту; `@wirecat/gcal-cli` 0.12.0 уже на npm.
 
 ## 2. Вопросы Славы
 
@@ -1505,3 +1506,4 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
   - Варианты: **A** выпустить сейчас · **B** дождаться теста поиска на реальных данных и включить его исправления
   - Я бы: **B** — тест поиска уже идёт; если он найдёт ошибки приложения, лучше один выпуск, а не два.
   - Если не ответит: жду тест, потом спрашиваю снова.
+  - **Ответ 2026-11-02: B.**
