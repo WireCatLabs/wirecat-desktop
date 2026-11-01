@@ -31,6 +31,9 @@ type SearchState = {
   /** The tool's own lists of values, by `tool|profile|version|list`, read once each. */
   lists: Record<string, ValueItem[]>
   loadLists(): void
+  /** Names of ids the owner picked from a refusal's choices, by `field:id`, so the query box can show the name. */
+  named: Record<string, string>
+  remember(field: string, id: string, label: string): void
   /** Tools that answered "too old" to search, by the version that said so; an update brings the tool back. */
   old: Record<string, string | null>
   chooseTool(id: string): void
@@ -75,6 +78,8 @@ export const useSearch = create<SearchState>((set, get) => {
     setGroupBy: (groupBy) => set({ groupBy }),
     old: {},
     lists: {},
+    named: {},
+    remember: (field, id, label) => set((st) => ({ named: { ...st.named, [`${field}:${id}`]: label } })),
     loadLists() {
       const { tool, profile, profiles } = get()
       const search = tool ? findTool(tool)?.search : null

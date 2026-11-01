@@ -1,6 +1,6 @@
 import { ExternalLink, Search, X } from "lucide-react"
 import { Fragment, type KeyboardEvent, useId, useLayoutEffect, useMemo, useRef, useState } from "react"
-import type { Parsed } from "@/domain/runs"
+import type { Parsed, Term } from "@/domain/runs"
 import type { QueryOption, QueryOptions } from "@/domain/search"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -26,6 +26,8 @@ type Props = {
   disabled?: boolean
   /** So the page can move focus here, as Search does when the query is what is missing. */
   inputId?: string
+  /** The name behind an id in a `field:id` term (a contact, a chat), shown beside the box; the query keeps the id. */
+  named?: (field: string, value: string) => string | null
 }
 
 export function QueryBar(props: Props) {
@@ -227,6 +229,22 @@ export function QueryBar(props: Props) {
           })}
         </div>
       )}
+      {props.named && (
+        <NamedTerms
+          query={query}
+          parsed={parsed}
+          named={props.named}
+          onEdit={(t) => {
+            input.current?.focus()
+            input.current?.setSelectionRange(t.start, t.end)
+            sync()
+          }}
+          onRemove={(t) => {
+            onChange(`${query.slice(0, t.start).trimEnd()} ${query.slice(t.end).trimStart()}`.trim())
+            input.current?.focus()
+          }}
+        />
+      )}
       <div className="mt-[0.35rem] flex items-baseline justify-between gap-3 text-[0.9rem]">
         <p id={`${id}-hint`} role={problem ? "alert" : undefined} className={problem ? "text-bad" : "text-ink-dim"}>
           {problem ?? words.hint}
@@ -291,4 +309,59 @@ function Highlight({ query, parsed, problems }: Pick<Props, "query" | "parsed" |
   }
   parts.push(query.slice(at))
   return <span className="text-ink">{parts}</span>
+}
+
+type FieldTerm = Extract<Term, { kind: "field" }>
+
+/** An id in the query reads as the name it stands for; the box keeps the id, since that is what the tool matches. */
+function NamedTerms(props: {
+  query: string
+  parsed: Parsed
+  named: (field: string, value: string) => string | null
+  onEdit: (term: FieldTerm) => void
+  onRemove: (term: FieldTerm) => void
+}) {
+  const m = useMessages(queryMessages)
+  const terms = props.parsed.terms.flatMap((t) => {
+    if (t.kind !== "field") return []
+    const label = props.named(t.field, t.value)
+    return label ? [{ term: t, label }] : []
+  })
+  if (terms.length === 0) return null
+  return (
+    <ul aria-label={m.named} className="reveal mt-[0.4rem] flex flex-wrap gap-[0.4rem]">
+      {terms.map(({ term, label }) => {
+        const shown = `${term.negate ? "-" : ""}${term.field}: ${label}`
+        return (
+          <li
+            key={term.start}
+            className="flex items-center rounded-[0.35rem] border border-line-strong bg-app-2 text-[0.9rem]"
+          >
+            <button
+              type="button"
+              title={props.query.slice(term.start, term.end)}
+              aria-label={m.editTerm(shown)}
+              onClick={() => props.onEdit(term)}
+              className="rounded-l-[0.35rem] py-[0.15rem] pr-[0.3rem] pl-[0.55rem] hover:bg-app-3"
+            >
+              <span className={term.negate ? "text-bad" : "text-ink-soft"}>
+                {term.negate ? "-" : ""}
+                {term.field}:
+              </span>{" "}
+              <span className="font-medium text-ink">{label}</span>
+            </button>
+            <button
+              type="button"
+              aria-label={m.removeTerm(shown)}
+              title={m.removeTerm(shown)}
+              onClick={() => props.onRemove(term)}
+              className="grid h-full place-items-center rounded-r-[0.35rem] px-[0.35rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+            >
+              <X className="size-[0.8rem]" aria-hidden />
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
 }

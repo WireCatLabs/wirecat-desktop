@@ -264,6 +264,14 @@ describe("Search", () => {
     await user.type(bar, "chat:des")
     await user.click(await screen.findByRole("option", { name: /Design crit/ }))
     expect(bar).toHaveValue('has:photo date>=7d chat:"-1001001" ')
+    const names = screen.getByRole("list", { name: "Names in this search" })
+    expect(within(names).getByRole("button", { name: "Edit chat: Design crit" })).toHaveAttribute(
+      "title",
+      'chat:"-1001001"',
+    )
+    await user.click(within(names).getByRole("button", { name: "Remove chat: Design crit" }))
+    expect(bar).toHaveValue("has:photo date>=7d")
+    expect(screen.queryByRole("list", { name: "Names in this search" })).not.toBeInTheDocument()
   }, 15000)
 
   it("turns a chat name that fits two chats into a choice that names one by id", async () => {
@@ -278,6 +286,7 @@ describe("Search", () => {
     expect(await screen.findByText("This name fits several chats. Pick the one you meant below.")).toBeInTheDocument()
     await user.click(await screen.findByRole("button", { name: /^@kyrillic/ }))
     expect(bar).toHaveValue('date>=3d chat:"-1001762030832"')
+    expect(screen.getByRole("button", { name: "Edit chat: @kyrillic" })).toBeInTheDocument()
     await waitFor(() =>
       expect(search).toHaveBeenLastCalledWith("tg", "personal", 'date>=3d chat:"-1001762030832"', 50, 1),
     )
