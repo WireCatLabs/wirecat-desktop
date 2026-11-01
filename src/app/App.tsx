@@ -2,6 +2,8 @@ import { Bug } from "lucide-react"
 import { useEffect, useState } from "react"
 import { AboutDialog } from "@/features/about/AboutDialog"
 import { useNav } from "@/features/nav"
+import { Bell } from "@/features/notifications/Bell"
+import { CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/features/notifications/store"
 import { HelpMenu } from "@/features/onboarding/HelpMenu"
 import { Onboarding, SetupSteps } from "@/features/onboarding/Onboarding"
 import { useOnboarding } from "@/features/onboarding/store"
@@ -50,6 +52,12 @@ export function App() {
     const timer = setInterval(check, CHECK_EVERY_MS)
     return () => clearInterval(timer)
   }, [])
+  useEffect(() => {
+    const check = () => useNotifications.getState().check()
+    check()
+    const timer = setInterval(check, NEWS_EVERY_MS)
+    return () => clearInterval(timer)
+  }, [])
 
   return (
     <div className="flex h-full">
@@ -69,6 +77,7 @@ export function App() {
               >
                 {m.reportProblem}
               </Button>
+              <Bell />
               <HelpMenu
                 onTour={startTour}
                 onWelcome={() => useOnboarding.getState().reopen("welcome")}

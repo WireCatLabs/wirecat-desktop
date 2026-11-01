@@ -10,6 +10,7 @@ mod install;
 mod mcp;
 mod mcp_server;
 mod node;
+mod notifications;
 mod package_update;
 #[cfg(test)]
 mod page_loads;
@@ -591,6 +592,11 @@ async fn send_report(draft: report::Draft, context: report::Context) -> Result<r
 }
 
 #[tauri::command]
+async fn notifications() -> Result<Vec<notifications::Notification>, String> {
+    blocking(notifications::fetch).await?
+}
+
+#[tauri::command]
 fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
     let id = catalog::tool(&id).map_or(id.clone(), |t| catalog::owner(t).id.clone());
     running.cancel(&id);
@@ -790,6 +796,7 @@ pub fn run() {
             task_release,
             report_context,
             send_report,
+            notifications,
             list_runs,
             show_run,
             settings_show,

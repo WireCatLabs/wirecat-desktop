@@ -6,6 +6,7 @@ import { cloudflareMock } from "./mock-cloudflare"
 import { newestReader, storeCompatMock } from "./mock-compat"
 import { delay } from "./mock-delay"
 import { mcpServerMock } from "./mock-mcp"
+import { notificationsMock } from "./mock-notifications"
 import { permissionsMock } from "./mock-permissions"
 import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
@@ -500,6 +501,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...tailscaleMock(),
     ...cloudflareMock(),
     ...reportMock,
+    ...notificationsMock,
     ...updateMock,
     ...runsMock,
     ...settingsMock,

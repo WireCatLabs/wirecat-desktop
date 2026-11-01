@@ -20,6 +20,7 @@ import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema }
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
 import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
 import { createMock } from "./mock"
+import { NotificationsSchema } from "./notifications-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
@@ -206,6 +207,7 @@ function createTauri(): Platform {
     showRun: (id, run) => call(RunDetailSchema, "show_run", { id, run }),
     reportContext: () => call(ReportContextSchema, "report_context"),
     sendReport: (draft, context) => call(ReportSentSchema, "send_report", { draft, context }),
+    notifications: () => call(NotificationsSchema, "notifications"),
     settingsShow: (id, profile) => call(SettingsSchema, "settings_show", { id, profile }),
     settingsSet: (id, profile, defaults, setting, value) =>
       invoke("settings_set", { id, profile, defaults, setting, value }),
