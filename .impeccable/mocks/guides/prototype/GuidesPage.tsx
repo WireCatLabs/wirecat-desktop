@@ -187,13 +187,14 @@ export function GuidesPage() {
         <nav aria-label={m.jumpTo} className="flex flex-wrap gap-x-[0.3rem] gap-y-[0.3rem]">
           {GOALS.map((goal) => {
             const count = GUIDES.filter((g) => g.goal === goal && shown.has(g.id)).length
+            // A goal the search leaves empty has nothing to jump to; it returns when the search changes.
+            if (count === 0) return null
             return (
               <button
                 key={goal}
                 type="button"
-                disabled={count === 0}
                 onClick={() => jump(goal)}
-                className="flex h-[2rem] items-center gap-[0.4rem] rounded-[0.35rem] px-[0.6rem] text-[0.92rem] font-medium text-ink-soft transition-[color,background-color,opacity] duration-150 hover:bg-app-3 hover:text-ink disabled:pointer-events-none disabled:opacity-45"
+                className="flex h-[2rem] items-center gap-[0.4rem] rounded-[0.35rem] px-[0.6rem] text-[0.92rem] font-medium text-ink-soft transition-[color,background-color,opacity] duration-150 hover:bg-app-3 hover:text-ink"
               >
                 {m.goals[goal].name}
                 <span className="font-mono text-[0.85rem] text-ink-dim tabular-nums">{count}</span>
