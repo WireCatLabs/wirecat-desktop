@@ -26,7 +26,8 @@ src-tauri/src/
                 to read (NEED-115). report.rs filters them again before anything is sent.
   search.rs     one tool's own Lucene search of its local store for one profile (`search` in the catalog); hits shown
                 unmasked on the page, an exception to rule 4 like runs.rs: they are the owner's own data, and they are
-                never logged or put in a report.
+                never logged or put in a report. `search_context` reads what surrounds one hit (`search.context` in the
+                catalog) under the same rule: the ref is validated, the answer shown, never logged.
   settings.rs   tool settings: `config show`, and saving only through `config set` / `config unset`.
   storage.rs    each tool's data folders, their sizes and entries (names only); deleting them once unused.
   archive.rs    what the shared archive holds, from a tool's `store info`; the database is never opened.
