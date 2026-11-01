@@ -1,5 +1,5 @@
-import { ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
-import { type ReactNode, useEffect, useId, useState } from "react"
+import { ChevronDown, ExternalLink, LoaderCircle, Plus, RefreshCw } from "lucide-react"
+import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { distinct, inRange, inTab, matchesText, RANGES, type Range, subjectOf, type Tab } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -12,6 +12,8 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
+// Review branch only: PR #40's prototype panel, until it is built for real.
+import { AddPanel } from "../../../.impeccable/mocks/memory/add/prototype/AddToMemory"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
 import { openTool } from "../tools/go"
@@ -30,10 +32,18 @@ export function MemoryPage() {
   const m = useMessages(memoryMessages)
   const s = useMemory()
   const { load } = s
+  const [adding, setAdding] = useState(false)
+  const addHeading = useRef<HTMLHeadingElement>(null)
+  const addOpened = useRef(adding)
 
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    if (adding && !addOpened.current) addHeading.current?.focus()
+    addOpened.current = adding
+  }, [adding])
 
   const ready = s.read?.kind === "ready" ? s.read : null
   const filtered = s.entries.filter(
@@ -69,24 +79,46 @@ export function MemoryPage() {
             </a>
           </p>
         </div>
-        {s.read?.kind !== "missing" && (
+        <div className="flex shrink-0 items-center gap-2">
+          {s.read?.kind !== "missing" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={s.reading}
+              onClick={() => load()}
+              icon={
+                s.reading ? (
+                  <LoaderCircle className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCw className="size-4" aria-hidden />
+                )
+              }
+            >
+              {s.reading && s.read ? m.reading : m.readAgain}
+            </Button>
+          )}
           <Button
-            variant="ghost"
+            variant={adding ? "secondary" : "primary"}
             size="sm"
-            disabled={s.reading}
-            onClick={() => load()}
-            icon={
-              s.reading ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <RefreshCw className="size-4" aria-hidden />
-              )
-            }
+            icon={<Plus className="size-4" aria-hidden />}
+            aria-expanded={adding}
+            aria-controls="add-panel"
+            onClick={() => (adding ? addHeading.current?.focus() : setAdding(true))}
           >
-            {s.reading && s.read ? m.reading : m.readAgain}
+            Add to memory
           </Button>
-        )}
+        </div>
       </div>
+
+      <Collapse open={adding} id="add-panel">
+        <AddPanel
+          scenario={null}
+          heading={addHeading}
+          onClose={() => setAdding(false)}
+          onSaved={() => load()}
+          onAnother={() => {}}
+        />
+      </Collapse>
 
       {s.error ? (
         <ErrorNotice action={<ReportThis what="Reading memory" error={s.error} />}>

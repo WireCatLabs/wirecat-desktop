@@ -394,7 +394,7 @@ function fileOf(scenario: string | null): Source | null {
   return scenario === "file" || stepOf(scenario) !== "source" ? (SOURCES.file ?? null) : null
 }
 
-function AddPanel(props: {
+export function AddPanel(props: {
   scenario: string | null
   heading: RefObject<HTMLHeadingElement | null>
   onClose: () => void
