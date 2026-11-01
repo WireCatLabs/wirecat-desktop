@@ -6,6 +6,7 @@ import { HelpMenu } from "@/features/onboarding/HelpMenu"
 import { Onboarding, SetupSteps } from "@/features/onboarding/Onboarding"
 import { useOnboarding } from "@/features/onboarding/store"
 import { Tour, useTour } from "@/features/onboarding/Tour"
+import { PrivacyDialog } from "@/features/privacy/PrivacyDialog"
 import { ReportDialog } from "@/features/report/ReportDialog"
 import { useReport } from "@/features/report/store"
 import { useApplyScale, useScaleKeys } from "@/features/settings/scale"
@@ -44,6 +45,7 @@ export function App() {
   }
   const toTools = () => setActive("tools")
   const [about, setAbout] = useState(false)
+  const [privacy, setPrivacy] = useState(false)
   useEffect(() => {
     const check = () => useUpdate.getState().check()
     check()
@@ -72,6 +74,7 @@ export function App() {
               <HelpMenu
                 onTour={startTour}
                 onWelcome={() => useOnboarding.getState().reopen("welcome")}
+                onPrivacy={() => setPrivacy(true)}
                 onAbout={() => setAbout(true)}
               />
             </>
@@ -96,6 +99,7 @@ export function App() {
         )}
         <ClearDataOffer />
         <AboutDialog open={about} onClose={() => setAbout(false)} />
+        <PrivacyDialog open={privacy} onClose={() => setPrivacy(false)} />
         <SignInDialog />
         <ReportDialog />
         <UpdateDialog />

@@ -147,6 +147,7 @@ const en = {
     help: "Help",
     tour: "Take the tour",
     welcome: "Show the welcome again",
+    privacy: "Privacy",
     about: "About WireCat",
   },
   tour: {
@@ -344,6 +345,7 @@ const ru: OnboardingText = {
     help: "Помощь",
     tour: "Пройти экскурсию",
     welcome: "Снова показать приветствие",
+    privacy: "Конфиденциальность",
     about: "О WireCat",
   },
   tour: {
@@ -533,6 +535,7 @@ const es: OnboardingText = {
     help: "Ayuda",
     tour: "Hacer el recorrido",
     welcome: "Ver de nuevo la bienvenida",
+    privacy: "Privacidad",
     about: "Acerca de WireCat",
   },
   tour: {
