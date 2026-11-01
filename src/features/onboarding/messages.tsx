@@ -142,6 +142,7 @@ const en = {
     next: "What next",
     connect: (tool: string) => `Let ChatGPT or Claude use ${tool}`,
     agents: "See which agents use them",
+    guides: "Try your first guide",
   },
   help: {
     help: "Help",
@@ -339,6 +340,7 @@ const ru: OnboardingText = {
     next: "Что дальше",
     connect: (tool) => `Дать ChatGPT или Claude доступ к ${tool}`,
     agents: "Посмотреть, какие агенты их используют",
+    guides: "Попробовать первый рецепт",
   },
   help: {
     help: "Помощь",
@@ -528,6 +530,7 @@ const es: OnboardingText = {
     next: "Qué sigue",
     connect: (tool) => `Deja que ChatGPT o Claude usen ${tool}`,
     agents: "Ver qué agentes las usan",
+    guides: "Probar tu primera guía",
   },
   help: {
     help: "Ayuda",

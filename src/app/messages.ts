@@ -4,6 +4,7 @@ const en = {
   nav: {
     tools: "Tools",
     agents: "Agents",
+    guides: "Guides",
     accounts: "Accounts",
     memory: "Memory",
     storage: "Storage",
@@ -35,6 +36,7 @@ const ru: typeof en = {
   nav: {
     tools: "Инструменты",
     agents: "Агенты",
+    guides: "Рецепты",
     accounts: "Аккаунты",
     memory: "Память",
     storage: "Хранилище",
@@ -67,6 +69,7 @@ const es: typeof en = {
   nav: {
     tools: "Herramientas",
     agents: "Agentes",
+    guides: "Guías",
     accounts: "Cuentas",
     memory: "Memoria",
     storage: "Almacenamiento",
