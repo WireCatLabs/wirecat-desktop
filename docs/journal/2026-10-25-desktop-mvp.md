@@ -106,6 +106,9 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 
 - **TASK-44 · раунд 3 (2026-10-31):** Слава после `pnpm app`: «chat search doesnt work, test that all fields actually do search». Сделано: кавычки по правилу парсера (BUG-34), чат и человек по id с выбором при неоднозначном имени (UX-25), `scripts/search-fields-check.mjs` прогнал 713 запросов по 18 профилям через `search_store`; исправлены BUG-35, FIND-103, FIND-104; что требует cli-core — FIND-99, 102, 105, 106. Таблица в PR #34.
 
+- **TASK-50 · Собрать всю открытую работу в одну ветку для просмотра (2026-11-01):** Слава: «there's still no Tasks page, only memory, and I see Accounts (I think we removed it?). Basically we need to merge all stuff into 1 branch so I can see all consolidated work and review». Ветка `review/all` из #34, #39, #37, #41, #40; Vite :1437.
+- **TASK-51 · Уведомления и значки (2026-11-01):** Слава: «I'd add notifications that we can show to user, eg important security updates etc. I'd add an api endpoint for notifications in wirecat-api and fetch them each hour and on app start. I'dd add a badge ro similar to the left menu with items that need to be resolved eg tools updated, memory reviewed etc. Not for all so we dont spam user eg at first after install I'd probably show bade on Agents but if user doesnt install skills I'd clear the bade on view and not show it so it doesnt create noise. Some things users just dont have to do. Also we can have a bell next to ? icon displaying notifications and if some are unread. let's test the notification - you can add test one on prod db, just make sure you design them nicely».
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -597,6 +600,14 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **FIND-131 · В cli-memo висит старая ветка `chore/cli-core-meaning-filters`** (бамп 0.496.0) — из-за неё агент открыл и закрыл PR #524.
 
 - **FIND-152 · Моя ошибка снова (как FIND-135): `git commit -a` в worktree memory-page, где работал агент, увёз его незакоммиченные `src-tauri/src/lib.rs` и `memory.rs` (+225 строк) в мой журнальный коммит e1aa38f и запушил.** Ничего не потеряно; агент предупреждён. Правило для себя: в чужом worktree коммитить только по пути (`git commit -- docs/journal/…`), журнальные строки — в свободном worktree.
+
+- **UX-39 · В интерфейсе не говорить «Memo»:** «Memo's database - wirecat database»; «dont use memo, user doesnt care what memo is, user wirecat. memo is just a command to reach some functionality». Касается и страницы «Память» (#37), и «Добавить в память» (#40). Сохранено в память агента.
+- **UX-40 · Кнопка «Add to memory» не похожа на другие** — сделать основной фиолетовой.
+- **UX-41 · Открытая панель «Add to memory» слита со списком памяти** — разделить отступом; панель огромная, непонятно, что делать и что получишь; File/Link/Text справа не видно, шаги слишком крупные. Передано на переделку (impeccable).
+- **UX-42 · Фраза о хранении слишком техническая** — говорить о пользе: найдётся по словам и смыслу, агенты используют факты в ответах.
+- **BUG-39 · «Next» в «Add to memory» не включается после ввода текста.**
+- **BUG-40 · Чтение ссылки в «Add to memory» не работает.**
+- **UX-43 · Итог «Saved» непонятен:** что именно сохранено; люди, проекты, задачи должны быть выпадающими списками с поиском.
 
 ## 4. Вопросы к Славе
 
