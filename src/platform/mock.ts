@@ -13,6 +13,7 @@ import { settingsMock } from "./mock-settings"
 import { linkedProfiles, signInMock } from "./mock-signin"
 import { syncMock } from "./mock-sync"
 import { tailscaleMock } from "./mock-tailscale"
+import { tasksMock } from "./mock-tasks"
 import { updateMock } from "./mock-update"
 import type {
   Diagnosis,
@@ -34,6 +35,8 @@ import type { Platform } from "./types"
 // `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
 // WhatsApp's sign-in on the Tools page (`src/app/scenarios.ts`); `?signin-fail=wa` makes it fail (`mock-signin.ts`).
 // `?mcp=<tool>` opens that tool's MCP server, running; `?mcp-fail=<tool>` makes its Start fail (`mock-mcp.ts`).
+
+// `?tasks=<state>` and `?view=table|board` set up the Tasks page (`mock-tasks.ts`).
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("state") ?? "mixed"
@@ -490,6 +493,7 @@ export function createMock(os: Platform["os"]): Platform {
     storeCheck: () => storeCheckMock(asksArchive()),
     ...backups.api,
     ...agentsMock((id) => installed.get(id)),
+    ...tasksMock(),
     async cancelInstall() {
       cancelled = true
     },

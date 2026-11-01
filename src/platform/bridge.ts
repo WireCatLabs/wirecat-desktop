@@ -39,6 +39,15 @@ import { SettingsSchema } from "./settings-schemas"
 import { SignInEventSchema } from "./signin-schemas"
 import { LastSyncSchema, SyncEventSchema } from "./sync-schemas"
 import { FunnelStateSchema, PageEventSchema, TailscaleDownloadSchema, TailscaleStatusSchema } from "./tailscale-schemas"
+import {
+  PersonSchema,
+  ProjectSchema,
+  TaskCountsSchema,
+  TaskEventSchema,
+  TaskReadSchema,
+  TaskSchema,
+  TaskWriteSchema,
+} from "./task-schemas"
 import type { Platform } from "./types"
 import { PackageOutcomeSchema, UpdateKindSchema, UpdateProgressSchema } from "./update-schemas"
 
@@ -163,6 +172,16 @@ function createTauri(): Platform {
     cloudflareTunnelOpen: (id, port) => call(v.string(), "cloudflare_tunnel_open", { id, port }),
     cloudflareTunnelClose: (id) => invoke("cloudflare_tunnel_close", { id }),
     cloudflareRoutes: () => call(v.array(TunnelRouteSchema), "cloudflare_routes"),
+    taskList: (query) => call(TaskReadSchema, "task_list", { query }),
+    taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
+    taskShow: (key) => call(TaskSchema, "task_show", { key }),
+    taskHistory: (key) => call(v.array(TaskEventSchema), "task_history", { key }),
+    taskCreate: (task) => call(TaskWriteSchema, "task_create", { task }),
+    taskUpdate: (key, revision, edit) => call(TaskWriteSchema, "task_update", { key, revision, edit }),
+    taskMove: (key, revision, place) => call(TaskWriteSchema, "task_move", { key, revision, place }),
+    taskAssign: (key, revision, person) => call(TaskWriteSchema, "task_assign", { key, revision, person }),
+    peopleList: () => call(v.array(PersonSchema), "people_list"),
+    projectList: () => call(v.array(ProjectSchema), "project_list"),
     taskClaims: (id, profile) => call(ClaimsSchema, "task_claims", { id, profile }),
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),
     cancelInstall: (id) => invoke("cancel_install", { id }),
