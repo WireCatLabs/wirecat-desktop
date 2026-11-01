@@ -1085,7 +1085,7 @@ mod tests {
     /// Against a real memo with a throwaway store that holds projects HRB and OPS:
     /// `MEMO_BIN=<memo> cargo test task_board -- --ignored`. It writes to that store, so never point it at the owner's.
     #[test]
-    #[ignore = "needs MEMO_BIN, a memo 0.131.2+ with a throwaway store"]
+    #[ignore = "needs MEMO_BIN, a memo 0.131.4+ with a throwaway store"]
     fn reads_and_writes_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
@@ -1146,6 +1146,15 @@ mod tests {
         let args = edit_args(&a.key, a.revision, &Edit { state: Some("done".into()), ..Edit::default() }).unwrap();
         let Write::Saved { task: done, .. } = write_with(&call, &a.key, &args).unwrap() else { panic!("not saved") };
         assert!(done.closed_at.is_some());
+        let args =
+            edit_args(&done.key, done.revision, &Edit { priority: Some("none".into()), ..Edit::default() }).unwrap();
+        let Write::Saved { task: done, .. } = write_with(&call, &done.key, &args).unwrap() else { panic!("not saved") };
+        assert_eq!(done.priority, None);
+        // An agent renewing its claim is not a change a person could overwrite: the revision stays.
+        call(&words(&["tasks", "claim", &b.key, "--holder", "probe"])).unwrap();
+        let held = show_with(&call, &b.key).unwrap();
+        call(&words(&["tasks", "claim", &b.key, "--holder", "probe"])).unwrap();
+        assert_eq!(show_with(&call, &b.key).unwrap().revision, held.revision);
         let empty = Edit { description: Some(String::new()), ..Edit::default() };
         assert!(edit_args(&done.key, done.revision, &empty).is_err(), "memo cannot empty the notes");
         let owner = people_with(&call).unwrap().into_iter().find(|p| p.owner).unwrap();

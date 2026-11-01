@@ -385,8 +385,8 @@ owner's own page, never logged or put in a report.
 
 Every write passes `--revision` with the revision the page read. memo refuses a stale one (`task.stale`, exit 3) and
 Rust answers the task as it now is with its latest change, so the page says who changed what instead of overwriting
-it. A revision moves only for changes a person could conflict with (memo from cli-core with RISK-77 fixed); a claim
-being renewed does not. A dropped card calls `tasks move <key> [--status s] --before|--after <key>`: memo gives it a
+it. A revision moves only for changes a person could conflict with (from memo 0.131.4, cli-core 0.516.0); an agent
+renewing its claim or setting a follow-up time does not. A dropped card calls `tasks move <key> [--status s] --before|--after <key>`: memo gives it a
 priority between its neighbours, which is also its order in the column, and says when its label (low, medium, high,
 critical, one per quarter) changed. Neighbours memo renumbered to make room are read again with `tasks show`.
 `tasks add` takes no due date or state, so a new task gets them in a second write. The page's minimum memo is the

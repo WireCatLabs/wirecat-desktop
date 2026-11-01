@@ -104,9 +104,9 @@ describe("Tasks", () => {
   })
 
   it("offers the update when memo is too old, and nothing else", async () => {
-    vi.spyOn(platform, "taskList").mockResolvedValue({ kind: "old", version: "0.130.0", need: "0.131.2" })
+    vi.spyOn(platform, "taskList").mockResolvedValue({ kind: "old", version: "0.131.2", need: "0.131.4" })
     render(<TasksPage />)
-    expect(await screen.findByText(/needs Memo 0.131.2 or newer; 0.130.0 is installed/)).toBeInTheDocument()
+    expect(await screen.findByText(/needs Memo 0.131.4 or newer; 0.131.2 is installed/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
   })

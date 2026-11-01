@@ -430,7 +430,7 @@ export function tasksMock(): TaskApi {
       const s = scenario()
       await delay(s === "loading" ? 60_000 : s === "many" ? 500 : 350)
       if (s === "missing") return { kind: "missing" }
-      if (s === "old") return { kind: "old", version: "0.130.0", need: "0.131.2" }
+      if (s === "old") return { kind: "old", version: "0.130.0", need: "0.131.4" }
       if (s === "fail") throw new Error("another memo process holds the store; try again in a minute")
       if (s === "none") return { kind: "ready", tasks: [], total: 0, more: false }
       try {
