@@ -17,8 +17,9 @@ to hand memo a source, say who or what it is about, and get a few facts from it 
 
 Two promises go with it, and the panel says both in plain words:
 
-- **The source itself is kept.** "The source will be stored in Memo's database on this computer and be searchable
-  too": in Search, and by agents when they look something up. Facts are extra, never instead of the source.
+- **The source itself is kept.** The owner's words were "stored in db and searchable too"; the panel says what that
+  gives him, not where it lives: "The source itself turns up by its words or by what it means, in Search and whenever
+  an agent looks something up." Facts are extra, never instead of the source.
 - **Nothing counts until the owner picks it.** Suggested facts arrive with tick boxes, like a findings batch on the
   Memory page today; only the ticked ones are kept.
 
@@ -92,38 +93,74 @@ the owner added. The prototype draws A.
 
 ## The flow
 
-On the Memory page, a quiet **Add to memory** button sits beside Read again (outlined; no purple on the page
-header). It opens a panel **at the top of the rack**, in place, with `Collapse`, like a row's panel; no dialog,
-because nothing here needs to block the page. One surface, four steps on the shared `Stepper`, each step slides in
-(`.step-in` inside `AutoHeight`); the panel closes only when the owner says so.
+Redrawn 2026-11-01 after the owner's review of the first prototype (screenshots of that round stay in
+[.impeccable/mocks/memory/add/](../../../.impeccable/mocks/memory/add/); this round is in
+[v2/](../../../.impeccable/mocks/memory/add/v2/)).
 
-1. **Source.** "What do you want Memo to keep?" and a text switch **File · Link · Text**.
-   - *File*: a drop zone (drop anywhere on it, or "choose one"), the kinds it takes and the limit in mono. After a
-     pick: a card with the name, size and what memo found ("PDF · 12 pages · text found on every page").
-   - *Link*: an address field and **Read it**. Memo opens the link once, from this computer, and keeps the text as it
-     is today. A page behind a sign-in cannot be read this way; the panel says to save it as a file instead.
-   - *Text*: a title and a text box.
-   - Under every choice, always: "The source will be stored in Memo's database on this computer and be searchable
-     too: in Search, and by your agents when they look something up."
-2. **About.** "Who or what is it about? Facts from it will be filed there. You can skip this."
-   - A searchable picker over people, projects and tasks (one box, results grouped by kind, a tick for each choice,
-     choices shown as removable chips). It is the same picker the Tasks plan asks for (`src/ui/Picker.tsx`).
-   - **Named in it**: people and projects memo already knows whose names appear in the text, one click to add. Found
-     by matching names on this computer; nothing leaves.
-   - Then the choice that is also the consent: **Save it and suggest facts from it** ("Memo sends the text (4,210
-     words) to the model you set in Settings, at OpenAI, with your key") or **Only save it** ("Nothing leaves this
-     computer. It is still searchable, and you can ask for facts later"). Nothing is preselected for the model; with
-     no model set, the first choice is off and the panel says where to set one.
-3. **Facts.** The source is saved first ("runner-notes.pdf is saved and searchable"), so a failed suggestion never
-   loses it. Then "The model at OpenAI is reading it for facts…" with placeholder rows; "You can leave this page: the
-   suggestions will wait in Review under Northbridge Bench." Then the suggestions: the Memory page's findings list,
-   with each fact's tick, Fact or Task, the text (a pencil corrects it in place) and **the words it rests on** with
-   the page. Most are ticked; a task is unticked by default. **Keep 3** creates them; nothing ticked keeps the source
-   only.
-4. **Saved.** "Memo now knows 3 facts from runner-notes.pdf, about Northbridge Bench and Lena Ortiz. Your agents can
-   use it from now on." What exists now: the source (searchable) and the facts (in use, citing the source). Next:
-   **Find it in Search**, **Add another**, **Done**. Behind the panel the new source row appears in its group with a
-   short wash.
+**Wording rule (owner, hard).** The panel never names memo or any CLI. It says WireCat ("Saved in WireCat"), and it
+describes what the owner gets, never where or how it is stored: "your agents use these facts when they answer you",
+"it turns up by its words or by what it means". memo is only the command underneath, in this plan's tables.
+
+On the Memory page, **Add to memory** is the page's filled purple button, beside a ghost Read again (owner: "I'd make
+it purple"). While the panel is open, the button turns outlined and a click moves focus to the panel's title, so the
+panel's own Next, Save or Done stays the one purple action in view (DESIGN.md, the One Purple Action Rule).
+
+The panel is **its own surface above the list**, not part of it (owner: "different semantic blocks"): a hairline frame
+like the rack, with the page's 1.5rem gap below it. The gap lives inside `Collapse`, so it grows with the opening and
+the list slides down instead of jumping. No dialog: nothing here needs to block the page. One surface, four steps,
+each sliding in (`.step-in` inside `AutoHeight`); the panel closes only when the owner says so.
+
+**The panel's head** is compact: the title, and on the Source step two lines on what the owner gets: "Your agents use
+the facts from it when they answer you. The source itself turns up by its words or by what it means, in Search and
+whenever an agent looks something up." Later steps drop those lines; Saved says it again about this source. On the right a small step line replaces the big four-dot stepper: four short bars and
+"Source · 1 of 4" (the bar of a failed step turns red; the label is read out when it changes).
+
+1. **Source.** "What do you want to add?" The three ways are the first thing the eye meets: **File**, **Link** and
+   **Text** as large tiles on the left (an icon, the name, one line: "A document, an image or a recording", "A web
+   page or a public document", "Notes from a call, a decision"); radio buttons underneath, so arrow keys move between
+   them. The chosen way's input fills the right; switching slides it in.
+   - *File*: a drop zone as tall as the tiles ("Drop a file here, or choose one"; "PDF, Word, text and web pages,
+     images, recordings. Up to 50 MB."). After a pick: a card with the name, size and what was found ("PDF · 12
+     pages · text found on every page") and Change.
+   - *Link*: an address field and **Read it**; Enter reads it too, and a pasted address is read at once. "Reading the
+     page…" with a busy lamp, then a card with the page's title, "Web page · 2,380 words, as the page reads today" and
+     the first lines of its text, so the owner sees the right page was read. Under an empty field: "WireCat opens the
+     link once, from this computer, and keeps the text as it reads today. A page that needs you signed in, such as a
+     private Google Doc, cannot be read this way."
+   - *Text*: an optional title and a text box with a live word count. Without a title, the first line names it.
+   - **Next** turns on as soon as there is a file, an `http(s)` address or any words; with a link not yet read, Next
+     reads it and moves on when it is read ("Reading the page…" on the button). While Next is off, one line says
+     what is missing ("Write or paste some text to go on.").
+2. **About.** The source card, then "Who or what is it about?" and "Its facts are linked there, so an agent recalls
+   them when that person, project or task comes up. You can skip this."
+   - A searchable many-of picker, built like the app's `Combobox` (`src/ui/Combobox.tsx` on `feat/memory-page`): one
+     field, chosen items as removable chips inside it, results grouped under People, Projects and Tasks with a tick
+     box each. Focus stays in the field; arrows move, Enter ticks or unticks, Escape closes, Backspace in an empty
+     field removes the last chip. The real panel uses the shared `Picker` if the Tasks plan has landed it.
+   - **Named in it**: people and projects WireCat already knows whose names appear in the text, one click to add.
+     Found by matching names on this computer; nothing leaves.
+   - **Then**, two tiles side by side; the choice is also the consent. **Save it and suggest facts**: "Its text
+     (4,210 words) goes once to your model at OpenAI, with your key. You pick which facts to keep." **Only save it**:
+     "Nothing leaves this computer. It still turns up by its words and meaning; ask for facts any time later." With no
+     model set, the first tile is off and a line says where to set one.
+3. **Facts.** The source is saved first ("runner-notes.pdf is saved in WireCat"), so a failed suggestion never loses
+   it. Then "Your model at OpenAI is reading it for facts…" with placeholder rows; "You can leave this page: the
+   suggestions wait for you under Northbridge Bench." Then "Suggested: 3 facts and 1 task. Each shows the words it
+   comes from. Tick the ones to keep." Each has its tick, Fact or Task, the text (a pencil corrects it in place) and
+   the words it rests on with the page. A task is unticked by default. The line under the list: "Keeping 3 facts,
+   linked to Northbridge Bench. Your agents use them when they answer you; the rest are dropped." The button names
+   what it keeps: **Keep 3 facts**; nothing ticked keeps the source only.
+4. **Saved.** "Saved in WireCat", then a three-row table that says plainly what exists now (owner: "not clear what
+   exactly is saved"):
+   - **Source**: the title and its type ("runner-notes.pdf · PDF · 1.4 MB"; a page shows its title and address).
+   - **Kept (3)**: the kept facts and tasks as their own texts, corrected wording included, each with its Fact or
+     Task label. With none: "None yet. Ask for facts from its row whenever you like."
+   - **Linked to**: the chosen people, projects and tasks as chips.
+   - Then one line on use: "Your agents use these when they answer you, and say runner-notes.pdf is where they came
+     from. Search and your agents find runner-notes.pdf by its words or by what it means."
+   - Next: **Find it in Search**, **Add another**, **Done**. Behind the panel the new row appears in its group with a
+     short wash: "Added by you · PDF · Today" over "runner-notes.pdf · 3 facts your agents use" (a source kept without
+     facts: "found by its words and meaning").
 
 What each step calls (after the CLI work below):
 
@@ -187,8 +224,9 @@ What each step calls (after the CLI work below):
 | State | What the owner sees | Scenario |
 | --- | --- | --- |
 | Closed | The Add to memory button beside Read again | `closed-*` |
-| Source, nothing chosen | Drop zone, kinds and limit, the storage line; Next is off | `source-*` |
-| A file, a link, a text, an image, a recording chosen | The card with what memo found | `file-*`, `link-*`, `text-*`, `image-*`, `audio-*` |
+| Source, nothing chosen | File, Link, Text tiles; the drop zone with kinds and limit; Next is off and says what is missing | `source-*` |
+| A file, a link, a text, an image, a recording chosen | The card with what memo found | `file-*`, `link-*`, `text-*`, `image-*`, `audio-*`; Next turning on as text is typed: `bug-next-text-*` |
+| Reading a link | Busy lamp, "Reading the page…", then the page's title and first lines | `link-reading-*`, `bug-link-reading-*`, `bug-link-read-*` |
 | Too big | The zone frame turns red; one line with the size and what to do | `too-big-*` |
 | No text in it | A scanned PDF: it can be kept, found by title and subjects only | `unreadable-*` |
 | The link failed | The answer (401, 404, timeout) and "save it as a file instead" | `link-fail-*` |
@@ -199,23 +237,25 @@ What each step calls (after the CLI work below):
 | Suggestions | Ticks, quotes, the pencil, Keep n | `facts-*`, `narrow-facts-*` |
 | Suggestion failed | The step turns red; the provider's reason; Try again, Keep without facts | `extract-fail-*` |
 | Saved | What exists now and the next steps; the new row behind | `done-*` |
-| Memo too old | Update Memo, the one primary button | `old-*` |
-| No speech model | A recording is chosen but the local speech model is not downloaded: "Turning audio into text needs Memo's speech model (about 600 MB, once)" and Download; the rest of the flow waits | not drawn |
-| Memo missing | The Memory page's own "Memo is not installed" state; no button | (Memory page) |
+| memo too old | "Adding to memory needs an update", what the installed version cannot do yet, and Update as the one primary button | `old-*` |
+| No speech model | A recording is chosen but the local speech model is not downloaded: "Turning a recording into text needs a speech model on this computer (about 600 MB, once)" and Download; the rest of the flow waits | not drawn |
+| memo missing | The Memory page's own "not installed" state, worded by the same rule; no button | (Memory page) |
 
 ## Mock scenarios for the browser build
 
-`?add=source|file|link|text|image|audio|about|picker|extracting|facts|done|too-big|unreadable|link-fail|no-reader|extract-fail|old`.
-Without `?add`, the panel is closed. In the real mock (`src/platform/mock.ts`), these become `?add=` on the Memory
+`?add=source|file|link|link-reading|text|image|audio|about|picker|extracting|facts|done|too-big|unreadable|link-fail|no-reader|extract-fail|old`,
+and `?add=closed` for the page with the panel closed. Without `?add` the preview shows the Tools page. In the real mock (`src/platform/mock.ts`), these become `?add=` on the Memory
 page the same way. Made-up data only: projects Northbridge Bench and Harbour launch, people Kai Sample, Lena Ortiz and
 Tom Becker.
 
 The prototype is [prototype/AddToMemory.tsx](../../../.impeccable/mocks/memory/add/prototype/AddToMemory.tsx), outside
-`src`, drawn with the app's own `Button`, `Collapse`, `AutoHeight`, `Stepper`, `Lamp`, `Pill` and `ErrorNotice`. The
+`src`, drawn with the app's own `Button`, `Collapse`, `AutoHeight`, `Lamp`, `Pill` and `ErrorNotice`. The
 page around it stands in for the Memory page of PR #37 (not on `main`), and its picker stands in for the `Picker` the
 Tasks plan proposes. Its placeholder rows while facts load are plain blocks, because the capture script waits for
-`.skeleton` to disappear; the real panel uses `Skeleton`. Screenshots, light and dark, 1280×840 and 960×640:
-[.impeccable/mocks/memory/add/](../../../.impeccable/mocks/memory/add/).
+`.skeleton` to disappear; the real panel uses `Skeleton`. Screenshots, light and dark, 1280×840 and 960×640
+(`narrow-*`), with the two fixed bugs shown by typing into the page (`bug-*`):
+[.impeccable/mocks/memory/add/v2/](../../../.impeccable/mocks/memory/add/v2/), made by its `capture.sh`. The first
+round is kept one folder up.
 
 ## Build steps
 
