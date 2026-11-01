@@ -129,6 +129,10 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 
 - **TASK-55 · Пробелы CLI для Search (план 2026-11-01-search.md, пункты 1–6).** 1–3 (вложения в попадании, скачать файл по ref офлайн, ссылка на файл) — агент в cli-core + tg/max/wa; 4 (zm passage по ref, говорящий) и 6 (drive documents show по ref) — агент в zoom-cli/drive-cli; 5 (вложения почты) — в очередь агента memo. Релизы tg/max/wa/zm/drive не делаем без владельца; cli-core выпускается по своему процессу. Пункт 7 (`search --explain`) ждёт NEED-221.
 
+- **TASK-57 · Главная сайта: каналы в первом экране и «Connect your agent» через десктоп (2026-11-02).** Слава: «we need to fix landing there's a switch max/tg - I'd use tg/whatsapp for en/es and for ru tg/max/whatsapp. Also I'd hide max in english and es versions on landing hero - no use in it, just confustion. in the bottom - ok. connecting agent - right now it provides a prompt, I'd hid most of it and allow to copy and focus on promoting desktop app install, so users can get cli or they can install a desktop app. check mb we might need to change more stuff here».
+  - Исходник главной — `design/homepage-chat-treatments/release-source.json` + локали, генерация `pnpm landing:export`. Отдано агенту, worktree `cli-docs-wt-landing-hero`, ветка `feat/landing-hero-channels`.
+  - В `cli-docs-wt-landing-install` лежат чужие незакоммиченные правки главной от 2026-10-29 (направление «весь контекст», DOCS-14 про блок установки десктопа) — не трогаем.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -1489,8 +1493,10 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
   - Варианты: **A** слить сейчас · **B** после проверки владельцем одной командой
   - Я бы: **A** — сообщение после установки от проверки не зависит; если уведомление останется, поправим команду отдельно.
   - Если не ответит: следующий выпуск без сообщения.
+  - **Ответ 2026-11-02:** «I tested, no more warnings» — уведомления `_apt` при установке из /tmp нет. #51 слит (squash, 2026-11-01 23:01 UTC).
 - **NEED-230 · Слить ли cli-docs #488 (команда установки через /tmp на странице загрузки; меняет компонент страницы)?**
   - Сейчас: сайт показывает `sudo apt install ./{deb}` с тем же уведомлением.
   - Варианты: **A** слить после «да» · **B** сначала посмотрите изменение компонента
   - Я бы: **A** — изменение маленькое, проверки зелёные, добавляет только защиту.
   - Если не ответит: пользователи сайта видят уведомление.
+  - **Ответ 2026-11-02: A.** cli-docs #488 слит.
