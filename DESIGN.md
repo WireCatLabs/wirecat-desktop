@@ -341,7 +341,8 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
 - **What opens shows that it opens.** A row, group, section or detail that expands carries a chevron (`ExpandChevron`,
   `src/ui/ExpandChevron.tsx`) at the right edge of what is clicked, pointing down and turning over while open, as on
   Guides. A button that opens a panel (Manage) carries it after its label. Inline "show more" links keep theirs before
-  the text.
+  the text. Not yet moved: the Logs tables, which scroll sideways in a narrow window (the right edge would be off
+  screen), and the Memory rows; both still show their chevron at the left.
 
 ### Status Lamp (signature)
 
