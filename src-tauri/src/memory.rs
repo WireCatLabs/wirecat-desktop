@@ -113,6 +113,9 @@ pub struct Entry {
     pub updated_at: Option<String>,
     /// A findings batch's facts and tasks; absent on every other record.
     pub findings: Option<Vec<Finding>>,
+    pub model: Option<String>,
+    /// How sure the agent said it was, 0 to 1; memo keeps it on memories only.
+    pub confidence: Option<f64>,
 }
 
 /// Memo stages an agent's cited facts and follow-ups about one project as an action of this kind. `actions confirm`
@@ -196,6 +199,8 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
         findings: None,
+        model: text(v, "model"),
+        confidence: v["confidence"].as_f64(),
     })
 }
 
@@ -235,6 +240,8 @@ fn action(v: &Value) -> Option<Entry> {
         target: text(v, "target"),
         created_at: text(v, "created_at")?,
         updated_at: text(v, "decided_at"),
+        model: text(&v["payload"], "agent_model"),
+        confidence: None,
         findings: batch.then(|| findings_of(v)),
         kind,
     })
@@ -648,6 +655,151 @@ pub fn forget(reference: &str) -> Result<Forgot, String> {
     with_memo(|call| forget_with(call, &r))
 }
 
+/// What a cited source says, read back through memo: a message with its neighbours in the chat or thread, or a note.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Context {
+    Messages {
+        items: Vec<ContextMessage>,
+    },
+    Note {
+        title: Option<String>,
+        text: String,
+        file: bool,
+    },
+    /// memo has no command that reads this kind of ref back.
+    Unsupported {
+        prefix: String,
+    },
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ContextMessage {
+    #[serde(rename = "ref")]
+    pub reference: Option<String>,
+    pub sender: Option<String>,
+    pub at: Option<String>,
+    pub text: String,
+    /// The cited message, among its neighbours.
+    pub anchor: bool,
+}
+
+const AROUND: &str = "3";
+const CONTEXT_CHARS: usize = 4000;
+
+enum SourceRef<'a> {
+    Message(&'a str),
+    Note(&'a str),
+    Other(&'a str),
+}
+
+/// A ref the interface hands back: memo's own word, checked before it becomes an argument.
+fn source_ref(s: &str) -> Result<SourceRef<'_>, String> {
+    let bad = || format!("not a source reference: {s}");
+    let (prefix, rest) = s.split_once(':').ok_or_else(bad)?;
+    if rest.is_empty() || s.len() > 400 || plain(s).is_none() || !prefix.bytes().all(|b| b.is_ascii_lowercase()) {
+        return Err(bad());
+    }
+    match prefix {
+        "msg" if rest.bytes().all(|b| b.is_ascii_alphanumeric() || b"%._@/+-=~".contains(&b)) => {
+            Ok(SourceRef::Message(s))
+        }
+        "note" | "document" if rest.bytes().all(|b| b.is_ascii_digit()) => Ok(SourceRef::Note(s)),
+        "msg" | "note" | "document" => Err(bad()),
+        _ => Ok(SourceRef::Other(prefix)),
+    }
+}
+
+fn clipped(t: &str) -> String {
+    if t.chars().count() <= CONTEXT_CHARS {
+        return t.to_string();
+    }
+    let mut cut: String = t.chars().take(CONTEXT_CHARS).collect();
+    cut.push('…');
+    cut
+}
+
+/// Messengers and mail answer in their own shapes; the fields a reader needs, from whichever one is there.
+fn context_message(v: &Value, asked: &str) -> Option<ContextMessage> {
+    let sender = text(v, "sender_name")
+        .or_else(|| text(v, "senderName"))
+        .or_else(|| text(&v["from"], "name"))
+        .or_else(|| text(&v["from"], "address"))
+        .or_else(|| text(v, "from"));
+    let reference = text(v, "ref");
+    Some(ContextMessage {
+        anchor: v["anchor"].as_bool().unwrap_or(false) || reference.as_deref() == Some(asked),
+        sender,
+        at: text(v, "timestamp").or_else(|| text(v, "date")).or_else(|| text(v, "at")),
+        text: clipped(&text(v, "text").or_else(|| text(v, "body")).or_else(|| text(v, "subject"))?),
+        reference,
+    })
+}
+
+fn context_with(call: &Call, reference: &str) -> Result<Context, String> {
+    match source_ref(reference)? {
+        SourceRef::Message(r) => {
+            let v = call(&words(&["messages", "show", r, "--before-n", AROUND, "--after-n", AROUND]))?;
+            let items = v["items"].as_array().map_or_else(|| vec![body(&v).clone()], Clone::clone);
+            Ok(Context::Messages { items: items.iter().filter_map(|m| context_message(m, r)).collect() })
+        }
+        SourceRef::Note(r) => {
+            let v = call(&words(&["notes", "show", r]))?;
+            let note = body(&v);
+            Ok(Context::Note {
+                title: text(note, "title"),
+                text: clipped(&text(note, "text").unwrap_or_default()),
+                file: text(note, "source").as_deref() == Some("file") && text(note, "path").is_some(),
+            })
+        }
+        SourceRef::Other(prefix) => Ok(Context::Unsupported { prefix: prefix.to_string() }),
+    }
+}
+
+pub fn context(reference: &str) -> Result<Context, String> {
+    with_memo(|call| context_with(call, reference))
+}
+
+/// The file a note was read from, found again from memo's answer, never from the interface: only a file inside one of
+/// memo's configured folders.
+fn note_file(call: &Call, reference: &str) -> Result<std::path::PathBuf, String> {
+    let SourceRef::Note(r) = source_ref(reference)? else {
+        return Err("Only a note or a document has a file to open.".into());
+    };
+    let shown = call(&words(&["notes", "show", r]))?;
+    let note = body(&shown);
+    let path = text(note, "path").filter(|_| text(note, "source").as_deref() == Some("file"));
+    let path = path.ok_or("Memo keeps no file for this note.")?;
+    let folders = call(&words(&["folders", "list"]))?;
+    let roots: Vec<std::path::PathBuf> = folders["items"]
+        .as_array()
+        .map(|a| a.iter().filter_map(|f| text(f, "path")).map(std::path::PathBuf::from).collect())
+        .unwrap_or_default();
+    let folder = text(note, "folder_id").and_then(|id| {
+        folders["items"]
+            .as_array()?
+            .iter()
+            .find(|f| text(f, "id").as_deref() == Some(&id))
+            .and_then(|f| text(f, "path"))
+    });
+    let joined = match folder {
+        Some(root) if !Path::new(&path).is_absolute() => Path::new(&root).join(&path),
+        _ => std::path::PathBuf::from(&path),
+    };
+    let file = joined.canonicalize().map_err(|_| "The note's file is not on this computer any more.".to_string())?;
+    let inside = roots.iter().filter_map(|r| r.canonicalize().ok()).any(|root| file.starts_with(root));
+    if !inside || !file.is_file() {
+        return Err("The note's file is outside Memo's folders.".into());
+    }
+    Ok(file)
+}
+
+pub fn open_source(reference: &str) -> Result<(), String> {
+    let file = with_memo(|call| note_file(call, reference))?;
+    tauri_plugin_opener::open_path(&file, None::<&str>).map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -844,6 +996,67 @@ mod tests {
         discard_with(&|a: &[String]| fake.call(a), &Ref::parse("action:9").unwrap()).unwrap();
         let reject = fake.seen().into_iter().find(|a| a.get(2).map(String::as_str) == Some("reject")).unwrap();
         assert_eq!(reject[reject.iter().position(|w| w == "--fingerprint").unwrap() + 1], "old");
+    }
+
+    #[test]
+    fn a_cited_message_comes_back_with_its_neighbours_and_other_refs_say_so() {
+        let fake = Fake::new(|_| {
+            Ok(json!({"items":[
+                {"ref":"msg:telegram/1/77/41","sender_name":"Kai Sample","timestamp":"2026-10-30T10:00:00Z","text":"Mondays are packed."},
+                {"ref":"msg:telegram/1/77/42","sender_name":"Kai Sample","timestamp":"2026-10-30T10:01:00Z","text":"Friday after 3?","anchor":true}
+            ]}))
+        });
+        let call = |a: &[String]| fake.call(a);
+        let Context::Messages { items } = context_with(&call, "msg:telegram/1/77/42").unwrap() else { panic!() };
+        assert_eq!(items.iter().map(|m| m.anchor).collect::<Vec<_>>(), [false, true]);
+        assert_eq!(
+            fake.seen()[0],
+            strs(&[
+                "messages",
+                "show",
+                "msg:telegram/1/77/42",
+                "--before-n",
+                "3",
+                "--after-n",
+                "3",
+                "--json",
+                "--no-record"
+            ])
+        );
+        assert_eq!(context_with(&call, "meeting:88").unwrap(), Context::Unsupported { prefix: "meeting".into() });
+        for bad in ["msg:a b", "--json", "note:1x", "msg:", "document:-1", "msg:x;rm"] {
+            assert!(context_with(&call, bad).is_err(), "{bad}");
+        }
+        assert_eq!(fake.seen().len(), 1, "only the message read reaches memo");
+    }
+
+    #[test]
+    fn a_note_file_opens_only_inside_memos_folders() {
+        let dir = std::env::temp_dir().join(format!("wirecat-memo-open-{}", std::process::id()));
+        let notes = dir.join("notes");
+        std::fs::create_dir_all(&notes).unwrap();
+        std::fs::write(notes.join("Kai.md"), "x").unwrap();
+        std::fs::write(dir.join("outside.md"), "x").unwrap();
+        let root = notes.to_string_lossy().to_string();
+        let answer = move |path: &'static str| {
+            let root = root.clone();
+            Fake::new(move |a| {
+                Ok(if a[0] == "folders" {
+                    json!({"items":[{"id":"1","path":root}]})
+                } else {
+                    json!({"item":{"ref":"note:3","source":"file","folder_id":"1","path":path,"text":"x"}})
+                })
+            })
+        };
+        let inside = answer("Kai.md");
+        assert_eq!(
+            note_file(&|a: &[String]| inside.call(a), "note:3").unwrap(),
+            notes.join("Kai.md").canonicalize().unwrap()
+        );
+        let escape = answer("../outside.md");
+        assert!(note_file(&|a: &[String]| escape.call(a), "note:3").is_err());
+        assert!(note_file(&|a: &[String]| inside.call(a), "msg:telegram/1/2/3").is_err());
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

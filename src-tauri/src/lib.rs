@@ -568,6 +568,16 @@ async fn memory_forget(reference: String) -> Result<memory::Forgot, String> {
 }
 
 #[tauri::command]
+async fn memory_source_context(reference: String) -> Result<memory::Context, String> {
+    blocking(move || memory::context(&reference)).await?
+}
+
+#[tauri::command]
+async fn memory_open_source(reference: String) -> Result<(), String> {
+    blocking(move || memory::open_source(&reference)).await?
+}
+
+#[tauri::command]
 async fn list_runs(id: String, query: Option<String>, limit: u32, page: u32) -> Result<serde_json::Value, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || runs::list(tool, query.as_deref(), limit, page)).await?
@@ -825,6 +835,8 @@ pub fn run() {
             memory_discard,
             memory_correct,
             memory_forget,
+            memory_source_context,
+            memory_open_source,
             report_context,
             send_report,
             list_runs,
