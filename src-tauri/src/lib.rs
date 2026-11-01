@@ -33,6 +33,7 @@ mod system;
 mod tailscale;
 mod tailscale_install;
 mod tailscale_linux;
+mod task_board;
 mod tasks;
 mod terminal;
 mod tools;
@@ -579,6 +580,56 @@ async fn memory_open_source(reference: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+async fn task_list(query: String) -> Result<task_board::Read, String> {
+    blocking(move || task_board::list(&query)).await?
+}
+
+#[tauri::command]
+async fn task_counts(query: String) -> Result<task_board::Counts, String> {
+    blocking(move || task_board::counts(&query)).await?
+}
+
+#[tauri::command]
+async fn task_show(key: String) -> Result<task_board::Task, String> {
+    blocking(move || task_board::show(&key)).await?
+}
+
+#[tauri::command]
+async fn task_history(key: String) -> Result<Vec<task_board::Event>, String> {
+    blocking(move || task_board::history(&key)).await?
+}
+
+#[tauri::command]
+async fn task_create(task: task_board::New) -> Result<task_board::Write, String> {
+    blocking(move || task_board::create(&task)).await?
+}
+
+#[tauri::command]
+async fn task_update(key: String, revision: u64, edit: task_board::Edit) -> Result<task_board::Write, String> {
+    blocking(move || task_board::update(&key, revision, &edit)).await?
+}
+
+#[tauri::command]
+async fn task_move(key: String, revision: u64, place: task_board::Place) -> Result<task_board::Write, String> {
+    blocking(move || task_board::move_task(&key, revision, &place)).await?
+}
+
+#[tauri::command]
+async fn task_assign(key: String, revision: u64, person: Option<String>) -> Result<task_board::Write, String> {
+    blocking(move || task_board::assign(&key, revision, person.as_deref())).await?
+}
+
+#[tauri::command]
+async fn people_list() -> Result<Vec<task_board::Person>, String> {
+    blocking(task_board::people).await?
+}
+
+#[tauri::command]
+async fn project_list() -> Result<Vec<task_board::Project>, String> {
+    blocking(task_board::projects).await?
+}
+
+#[tauri::command]
 async fn list_runs(id: String, query: Option<String>, limit: u32, page: u32) -> Result<serde_json::Value, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || runs::list(tool, query.as_deref(), limit, page)).await?
@@ -856,6 +907,16 @@ pub fn run() {
             memory_forget,
             memory_source_context,
             memory_open_source,
+            task_list,
+            task_counts,
+            task_show,
+            task_history,
+            task_create,
+            task_update,
+            task_move,
+            task_assign,
+            people_list,
+            project_list,
             report_context,
             send_report,
             list_runs,

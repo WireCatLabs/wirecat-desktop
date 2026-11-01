@@ -25,6 +25,18 @@ import type { Settings } from "./settings-schemas"
 import type { SignInEvent } from "./signin-schemas"
 import type { LastSync, SyncEvent } from "./sync-schemas"
 import type { FunnelState, TailscaleDownload, TailscaleStatus } from "./tailscale-schemas"
+import type {
+  NewTask,
+  Person,
+  Project,
+  Task,
+  TaskCounts,
+  TaskEdit,
+  TaskEvent,
+  TaskPlace,
+  TaskRead,
+  TaskWrite,
+} from "./task-schemas"
 import type { PackageOutcome, UpdateKind, UpdateProgress } from "./update-schemas"
 
 export type WindowAction = "minimize" | "toggleMaximize" | "close"
@@ -163,6 +175,23 @@ export type Platform = {
   memorySourceContext(ref: string): Promise<SourceContext>
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
+  /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
+  taskList(query: string): Promise<TaskRead>
+  /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */
+  taskCounts(query: string): Promise<TaskCounts>
+  taskShow(key: string): Promise<Task>
+  /** Who changed the task, what and when, oldest first. */
+  taskHistory(key: string): Promise<TaskEvent[]>
+  taskCreate(task: NewTask): Promise<TaskWrite>
+  /** Every write carries the revision the page read; a stale one answers the task as it now is and writes nothing. */
+  taskUpdate(key: string, revision: number, edit: TaskEdit): Promise<TaskWrite>
+  /** A card dropped into a column, above or below another card: memo gives it a priority between its neighbours. */
+  taskMove(key: string, revision: number, place: TaskPlace): Promise<TaskWrite>
+  /** Makes one person the assignee, or nobody with `null`. */
+  taskAssign(key: string, revision: number, person: string | null): Promise<TaskWrite>
+  /** The owner and everyone who holds a role on a task. */
+  peopleList(): Promise<Person[]>
+  projectList(): Promise<Project[]>
   taskClaims(id: string, profile: string): Promise<Claims>
   /** Releases a claim as the owner, who may release any. */
   taskRelease(id: string, profile: string, task: string): Promise<void>

@@ -1242,6 +1242,7 @@
       },
       "memory": { "minVersion": "0.130.0" },
       "tasks": null,
+      "taskBoard": { "minVersion": "0.131.4" },
       "sync": {
         "run": ["sync", "--record", "--json"],
         "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--json"],

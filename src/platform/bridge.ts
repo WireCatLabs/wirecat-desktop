@@ -47,6 +47,15 @@ import { SettingsSchema } from "./settings-schemas"
 import { SignInEventSchema } from "./signin-schemas"
 import { LastSyncSchema, SyncEventSchema } from "./sync-schemas"
 import { FunnelStateSchema, PageEventSchema, TailscaleDownloadSchema, TailscaleStatusSchema } from "./tailscale-schemas"
+import {
+  PersonSchema,
+  ProjectSchema,
+  TaskCountsSchema,
+  TaskEventSchema,
+  TaskReadSchema,
+  TaskSchema,
+  TaskWriteSchema,
+} from "./task-schemas"
 import type { Platform } from "./types"
 import { PackageOutcomeSchema, UpdateKindSchema, UpdateProgressSchema } from "./update-schemas"
 
@@ -180,6 +189,16 @@ function createTauri(): Platform {
     memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
     memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
+    taskList: (query) => call(TaskReadSchema, "task_list", { query }),
+    taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
+    taskShow: (key) => call(TaskSchema, "task_show", { key }),
+    taskHistory: (key) => call(v.array(TaskEventSchema), "task_history", { key }),
+    taskCreate: (task) => call(TaskWriteSchema, "task_create", { task }),
+    taskUpdate: (key, revision, edit) => call(TaskWriteSchema, "task_update", { key, revision, edit }),
+    taskMove: (key, revision, place) => call(TaskWriteSchema, "task_move", { key, revision, place }),
+    taskAssign: (key, revision, person) => call(TaskWriteSchema, "task_assign", { key, revision, person }),
+    peopleList: () => call(v.array(PersonSchema), "people_list"),
+    projectList: () => call(v.array(ProjectSchema), "project_list"),
     taskClaims: (id, profile) => call(ClaimsSchema, "task_claims", { id, profile }),
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),
     cancelInstall: (id) => invoke("cancel_install", { id }),

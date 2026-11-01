@@ -211,7 +211,7 @@ These words come from the surface's direction contract ([the Tools surface brief
 **Key Characteristics:**
 
 - One flat rack panel per page: hairline frame, 0.2rem corners, no shadow, rows split by hairlines.
-- Five lamp tones carry all tool and system state.
+- Six lamp tones carry all tool, system and task state.
 - Mono with tabular figures for every machine-reported value.
 - Purple is rare and always means brand, link or the one primary action.
 - Unbounded only for page titles; Onest for everything else.
@@ -336,7 +336,7 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
 
 ### Status Lamp (signature)
 
-A round lamp, 1.4rem in rows and 0.85rem in the readiness strip, with exactly five tones: `ok` solid green (installed and current), `warn` solid amber (update available), `bad` solid red (installed but does not start), `idle` hollow grey ring (missing or still checking), `busy` solid purple with a 1.4s pulse (installing or uninstalling). A lamp with meaning carries an accessible label ("Update available"). Tone changes cross-fade over 300ms.
+A round lamp, 1.4rem in rows and 0.85rem in the readiness strip, with exactly six tones: `ok` solid green (installed and current), `warn` solid amber (update available), `bad` solid red (installed but does not start), `idle` hollow grey ring (missing or still checking), `busy` solid purple with a 1.4s pulse (installing or uninstalling, an agent working on a task now), `doing` solid purple without a pulse (a task in progress; a page of pulsing rows would be noise, NEED-181). A lamp with meaning carries an accessible label ("Update available"). Tone changes cross-fade over 300ms.
 
 ### Rack Row (signature)
 
@@ -390,7 +390,7 @@ Rule 9 (CLAUDE.md) uses five shared pieces, never ad hoc CSS:
 
 - **Do** put a tool, a storage area or any list of machine things in the rack: one flat panel, one row per thing, hairlines between rows.
 - **Do** give every row exactly one action, and make it primary only when it installs or updates something.
-- **Do** say state with the five lamp tones and plain words beside them, never with colour alone.
+- **Do** say state with the six lamp tones and plain words beside them, never with colour alone.
 - **Do** set versions, commands, paths and sizes in mono with tabular figures.
 - **Do** write sizes in rem so they follow the fluid root size.
 - **Do** let content select with the mouse (text, logs, paths, errors) and keep chrome from selecting: buttons, labels, tabs, menus, the title bar and sidebar (`@layer base` in `index.css`). Text inside a `<button>` can never be selected in WebKit, so a clickable row whose text is worth copying is a `div role="button"` that ignores the click ending a drag (`selectsTextIn`). `.selectable` lets content inside chrome select. Write every `user-select` with its `-webkit-` twin: WebKitGTK reads only that, and the dev server does not add it.
