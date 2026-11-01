@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, ExternalLink, Search } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useId, useMemo } from "react"
+import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { parseQuery } from "@/domain/runs"
 import {
@@ -16,9 +16,11 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { SearchAnswer, SearchHit } from "@/platform/search-schemas"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { focusInPlace } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
 import { QueryBar } from "../query/QueryBar"
@@ -26,7 +28,7 @@ import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
 import { HitsTable } from "./HitsTable"
 import { searchMessages } from "./messages"
-import { LIMIT, listKey, ready, useSearch } from "./store"
+import { LIMIT, listKey, missing, useSearch } from "./store"
 
 export const SEARCH_DOCS = "https://github.com/WireCatLabs/cli-core/blob/main/docs/search/query-language.md"
 
@@ -51,6 +53,32 @@ export function SearchPage() {
   const what = tool?.search?.what ?? "messages"
   const parsed = useMemo(() => parseQuery(s.query), [s.query])
   const suggest = useSuggest(m, version)
+  const ids = { tool: useId(), profile: useId(), query: useId(), hint: useId() }
+  // Shown only after a search was asked for, and only while the thing is still missing.
+  const [tried, setTried] = useState(false)
+  const gap = tried ? missing(s) : null
+  const noProfiles = Boolean(s.tool) && s.profiles?.length === 0
+  const pickerHint = noProfiles
+    ? s.profilesError
+      ? m.profilesFailed
+      : m.noProfiles(tool?.name ?? s.tool ?? "")
+    : gap === "tool"
+      ? m.needTool
+      : gap === "profile"
+        ? m.needProfile
+        : null
+
+  const submit = () => {
+    const now = useSearch.getState()
+    if (now.loading) return
+    const gone = missing(now)
+    setTried(gone !== null)
+    if (gone === null) {
+      now.search(1)
+      return
+    }
+    if (gone !== "profiles") focusInPlace(document.getElementById(ids[gone]))
+  }
 
   // A query error belongs to the text it was given for; one keystroke later it points at the wrong place.
   const answer = s.answer
@@ -81,11 +109,13 @@ export function SearchPage() {
       ) : (
         <>
           <div className="flex flex-wrap items-start gap-[0.7rem]">
-            <Picker label={m.tool}>
+            <Picker id={ids.tool} label={m.tool}>
               {(id) => (
                 <Select
                   id={id}
                   size="lg"
+                  aria-invalid={gap === "tool"}
+                  aria-describedby={gap === "tool" ? ids.hint : undefined}
                   value={s.tool ?? ""}
                   placeholder={m.chooseTool}
                   onChange={(v) => v && s.chooseTool(v)}
@@ -103,11 +133,13 @@ export function SearchPage() {
               )}
             </Picker>
             {s.profiles !== null && s.tool && (
-              <Picker label={m.profile}>
+              <Picker id={ids.profile} label={m.profile}>
                 {(id) => (
                   <Select
                     id={id}
                     size="lg"
+                    aria-invalid={gap === "profile"}
+                    aria-describedby={pickerHint ? ids.hint : undefined}
                     value={s.profile ?? ""}
                     placeholder={s.profiles === undefined ? m.readingProfiles : m.chooseProfile}
                     disabled={!s.profiles?.length}
@@ -122,16 +154,27 @@ export function SearchPage() {
               </Picker>
             )}
           </div>
-          {s.tool && s.profiles?.length === 0 && (
-            <ErrorNotice inline>{s.profilesError ? m.profilesFailed : m.noProfiles(tool?.name ?? s.tool)}</ErrorNotice>
-          )}
+          <Collapse open={pickerHint !== null}>
+            <ErrorNotice inline>
+              <span id={ids.hint}>{pickerHint}</span>
+            </ErrorNotice>
+          </Collapse>
 
           <div className="flex flex-wrap items-start gap-[0.7rem]">
             <QueryBar
+              inputId={ids.query}
               query={s.query}
               parsed={parsed}
               problems={span ? [span] : ambiguous ? [ambiguous.term] : []}
-              problem={queryError ? problemText(m, queryError) : ambiguous ? m.pickOne(ambiguous.field) : null}
+              problem={
+                queryError
+                  ? problemText(m, queryError)
+                  : ambiguous
+                    ? m.pickOne(ambiguous.field)
+                    : gap === "query"
+                      ? m.needQuery
+                      : null
+              }
               suggest={suggest}
               words={{
                 label: m.searchLabel[what],
@@ -140,14 +183,14 @@ export function SearchPage() {
               }}
               docs={SEARCH_DOCS}
               onChange={s.setQuery}
-              onSubmit={() => s.search(1)}
+              onSubmit={submit}
             />
             <Button
               variant="primary"
               size="lg"
               className="h-[2.8rem]"
-              disabled={!ready(s) || s.loading}
-              onClick={() => s.search(1)}
+              aria-busy={s.loading}
+              onClick={submit}
               icon={<Search className="size-4" aria-hidden />}
             >
               <StableText value={s.loading ? m.searching : m.search} variants={[m.searching, m.search]} />
@@ -374,8 +417,7 @@ function Table(props: { hits: SearchHit[]; placeholders?: number; now: Date; bus
   )
 }
 
-function Picker({ label, children }: { label: string; children: (id: string) => ReactNode }) {
-  const id = useId()
+function Picker({ id, label, children }: { id: string; label: string; children: (id: string) => ReactNode }) {
   return (
     <div className="flex h-[2.8rem] items-center gap-[0.5rem]">
       <label htmlFor={id} className="shrink-0 whitespace-nowrap text-[0.95rem] text-ink-dim">
