@@ -93,9 +93,10 @@ the owner added. The prototype draws A.
 
 ## The flow
 
-Redrawn 2026-11-01 after the owner's review of the first prototype (screenshots of that round stay in
-[.impeccable/mocks/memory/add/](../../../.impeccable/mocks/memory/add/); this round is in
-[v2/](../../../.impeccable/mocks/memory/add/v2/)).
+Redrawn 2026-11-01 after two reviews by the owner. Round 1's screenshots stay in
+[.impeccable/mocks/memory/add/](../../../.impeccable/mocks/memory/add/), round 2's in
+[v2/](../../../.impeccable/mocks/memory/add/v2/), and this round's in [v3/](../../../.impeccable/mocks/memory/add/v3/).
+How facts are made is still undecided (NEED-1); the suggestions are drawn as in round 2.
 
 **Wording rule (owner, hard).** The panel never names memo or any CLI. It says WireCat ("Saved in WireCat"), and it
 describes what the owner gets, never where or how it is stored: "your agents use these facts when they answer you",
@@ -103,22 +104,28 @@ describes what the owner gets, never where or how it is stored: "your agents use
 
 On the Memory page, **Add to memory** is the page's filled purple button, beside a ghost Read again (owner: "I'd make
 it purple"). While the panel is open, the button turns outlined and a click moves focus to the panel's title, so the
-panel's own Next, Save or Done stays the one purple action in view (DESIGN.md, the One Purple Action Rule).
+panel's own Next, Save or Done stays the one purple action in view (DESIGN.md, the One Purple Action Rule; the owner
+allowed a purple page action in NEED-209 A).
 
 The panel is **its own surface above the list**, not part of it (owner: "different semantic blocks"): a hairline frame
 like the rack, with the page's 1.5rem gap below it. The gap lives inside `Collapse`, so it grows with the opening and
 the list slides down instead of jumping. No dialog: nothing here needs to block the page. One surface, four steps,
 each sliding in (`.step-in` inside `AutoHeight`); the panel closes only when the owner says so.
 
-**The panel's head** is compact: the title, and on the Source step two lines on what the owner gets: "Your agents use
-the facts from it when they answer you. The source itself turns up by its words or by what it means, in Search and
-whenever an agent looks something up." Later steps drop those lines; Saved says it again about this source. On the right a small step line replaces the big four-dot stepper: four short bars and
+**The panel's head** is compact: the title, and on the Source step two short sentences in plain words (round 3, owner:
+"use simple words"): "Your agents will use what is in it when they answer you. You can find it later in Search, even
+if you don't remember the exact words." Later steps drop them; Saved says it again about this source. On the right a small step line replaces the big four-dot stepper: four short bars and
 "Source · 1 of 4" (the bar of a failed step turns red; the label is read out when it changes).
 
-1. **Source.** "What do you want to add?" The three ways are the first thing the eye meets: **File**, **Link** and
-   **Text** as large tiles on the left (an icon, the name, one line: "A document, an image or a recording", "A web
-   page or a public document", "Notes from a call, a decision"); radio buttons underneath, so arrow keys move between
-   them. The chosen way's input fills the right; switching slides it in.
+1. **Source.** "What do you want to add?" The three ways are the first thing the eye meets: **Text**, **Link** and
+   **File** as large tiles on the left, Text chosen first (round 3, owner: "the first option should be text"). Each has
+   an icon, the name and one line: "Notes from a call, a decision", "A web page or a public document", "A document, an
+   image or a recording". Radio buttons underneath, so arrow keys move between them. The chosen way's input fills the
+   right and switches at once: no slide and no height change (the tiles set the row's height, and every input fits
+   it), only a 120 ms fade from 55% so the change is seen without waiting for it. Round 2 rebuilt the right side and
+   faded it in from nothing while its height slid for 300 ms, which the owner felt as slow, missed clicks;
+   [v3/tile-clicks.mjs](../../../.impeccable/mocks/memory/add/v3/tile-clicks.mjs) clicks the tiles 20 times fast,
+   then presses the arrow keys 20 times, and checks the right side after each.
    - *File*: a drop zone as tall as the tiles ("Drop a file here, or choose one"; "PDF, Word, text and web pages,
      images, recordings. Up to 50 MB."). After a pick: a card with the name, size and what was found ("PDF · 12
      pages · text found on every page") and Change.
@@ -127,21 +134,23 @@ whenever an agent looks something up." Later steps drop those lines; Saved says 
      the first lines of its text, so the owner sees the right page was read. Under an empty field: "WireCat opens the
      link once, from this computer, and keeps the text as it reads today. A page that needs you signed in, such as a
      private Google Doc, cannot be read this way."
-   - *Text*: an optional title and a text box with a live word count. Without a title, the first line names it.
+   - *Text*: an optional title and a four-line text box with a live word count. Without a title, the first line names
+     it.
    - **Next** turns on as soon as there is a file, an `http(s)` address or any words; with a link not yet read, Next
      reads it and moves on when it is read ("Reading the page…" on the button). While Next is off, one line says
      what is missing ("Write or paste some text to go on.").
-2. **About.** The source card, then "Who or what is it about?" and "Its facts are linked there, so an agent recalls
-   them when that person, project or task comes up. You can skip this."
-   - A searchable many-of picker, built like the app's `Combobox` (`src/ui/Combobox.tsx` on `feat/memory-page`): one
-     field, chosen items as removable chips inside it, results grouped under People, Projects and Tasks with a tick
-     box each. Focus stays in the field; arrows move, Enter ticks or unticks, Escape closes, Backspace in an empty
+2. **About.** The source card, then "Who or what is it about?" and "Your agents then recall it when that person,
+   project or task comes up. You can skip this."
+   - Three searchable fields, one each for **People**, **Projects** and **Tasks** (round 3, owner: "make the search
+     separate"), the same picker three times, built like the app's `Combobox` (`src/ui/Combobox.tsx` on
+     `feat/memory-page`). Each takes several choices, shown as removable chips inside the field, with a tick box per
+     result. Focus stays in the field; arrows move, Enter ticks or unticks, Escape closes, Backspace in an empty
      field removes the last chip. The real panel uses the shared `Picker` if the Tasks plan has landed it.
    - **Named in it**: people and projects WireCat already knows whose names appear in the text, one click to add.
      Found by matching names on this computer; nothing leaves.
    - **Then**, two tiles side by side; the choice is also the consent. **Save it and suggest facts**: "Its text
      (4,210 words) goes once to your model at OpenAI, with your key. You pick which facts to keep." **Only save it**:
-     "Nothing leaves this computer. It still turns up by its words and meaning; ask for facts any time later." With no
+     "Nothing leaves this computer. You can still find it in Search and ask for facts later." With no
      model set, the first tile is off and a line says where to set one.
 3. **Facts.** The source is saved first ("runner-notes.pdf is saved in WireCat"), so a failed suggestion never loses
    it. Then "Your model at OpenAI is reading it for facts…" with placeholder rows; "You can leave this page: the
@@ -156,11 +165,11 @@ whenever an agent looks something up." Later steps drop those lines; Saved says 
    - **Kept (3)**: the kept facts and tasks as their own texts, corrected wording included, each with its Fact or
      Task label. With none: "None yet. Ask for facts from its row whenever you like."
    - **Linked to**: the chosen people, projects and tasks as chips.
-   - Then one line on use: "Your agents use these when they answer you, and say runner-notes.pdf is where they came
-     from. Search and your agents find runner-notes.pdf by its words or by what it means."
+   - Then two short sentences on use: "Your agents use these when they answer you. You can find it later in Search,
+     even if you don't remember the exact words."
    - Next: **Find it in Search**, **Add another**, **Done**. Behind the panel the new row appears in its group with a
      short wash: "Added by you · PDF · Today" over "runner-notes.pdf · 3 facts your agents use" (a source kept without
-     facts: "found by its words and meaning").
+     facts: "runner-notes.pdf · in Search").
 
 What each step calls (after the CLI work below):
 
@@ -254,8 +263,8 @@ page around it stands in for the Memory page of PR #37 (not on `main`), and its 
 Tasks plan proposes. Its placeholder rows while facts load are plain blocks, because the capture script waits for
 `.skeleton` to disappear; the real panel uses `Skeleton`. Screenshots, light and dark, 1280×840 and 960×640
 (`narrow-*`), with the two fixed bugs shown by typing into the page (`bug-*`):
-[.impeccable/mocks/memory/add/v2/](../../../.impeccable/mocks/memory/add/v2/), made by its `capture.sh`. The first
-round is kept one folder up.
+[.impeccable/mocks/memory/add/v3/](../../../.impeccable/mocks/memory/add/v3/), made by its `capture.sh`; round 2 is
+in `v2/` and round 1 one folder up.
 
 ## Build steps
 

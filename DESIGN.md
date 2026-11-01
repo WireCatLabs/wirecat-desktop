@@ -265,7 +265,7 @@ The app follows the site's purple, wall, ink and `app-3` values exactly in light
 
 **The Amber Ink Rule.** `warn` is for lamps, icons and tint fills; any amber text uses `warn-ink`. Light-mode `warn` is too pale to read as text on white.
 
-**The One Purple Action Rule.** A rack row and the panel open under it carry at most one primary (filled purple) button: Install, Update to x, or the panel's Done. Manage, Fix and Cancel are outlined. Dialogs have no primary at all; they pair a ghost "Keep it" with an outlined danger action.
+**The One Purple Action Rule.** A rack row and the panel open under it carry at most one primary (filled purple) button: Install, Update to x, or the panel's Done. Manage, Fix and Cancel are outlined. Dialogs have no primary at all; they pair a ghost "Keep it" with an outlined danger action. A page's main action may be purple in the page header ("Add to memory", owner, NEED-209 A), but only one purple button shows at a time: while the panel it opens is on screen, the header button turns outlined and the panel's own action is the purple one.
 
 **The Semantic Theme Rule.** Bind every colour through the semantic tokens (`bg-app`, `text-ink-soft`, `border-line`); never a raw hex in a component, so both themes switch together.
 

@@ -28,11 +28,13 @@ import {
 import {
   type ClipboardEvent,
   type DragEvent,
+  Fragment,
   type KeyboardEvent,
   type ReactNode,
   type RefObject,
   useEffect,
   useId,
+  useLayoutEffect,
   useRef,
   useState,
 } from "react"
@@ -327,7 +329,7 @@ function savedLine(s: Summary) {
   ]
     .filter(Boolean)
     .join(" and ")
-  return kept ? `${s.source.title} · ${kept} your agents use` : `${s.source.title} · found by its words and meaning`
+  return kept ? `${s.source.title} · ${kept} your agents use` : `${s.source.title} · in Search`
 }
 
 function Group(props: { name: string; icon: ReactNode; waiting: number; all: number; children: ReactNode }) {
@@ -383,8 +385,8 @@ function stepOf(scenario: string | null): Step {
 
 function wayOf(scenario: string | null): Way {
   if (scenario?.startsWith("link")) return "link"
-  if (scenario === "text") return "text"
-  return "file"
+  if (fileOf(scenario) || scenario === "too-big" || scenario === "unreadable") return "file"
+  return "text"
 }
 
 function fileOf(scenario: string | null): Source | null {
@@ -616,8 +618,8 @@ function PanelFrame(props: {
           </h2>
           {props.promise && (
             <p className="mt-1 max-w-[64ch] text-[0.9rem] leading-relaxed text-ink-soft">
-              Your agents use the facts from it when they answer you. The source itself turns up by its words or by what
-              it means, in Search and whenever an agent looks something up.
+              Your agents will use what is in it when they answer you. You can find it later in Search, even if you
+              don’t remember the exact words.
             </p>
           )}
         </div>
@@ -667,10 +669,10 @@ function StepLine({ index, failed }: { index: number; failed: boolean }) {
 
 const WAYS: { value: Way; label: string; hint: string; icon: ReactNode }[] = [
   {
-    value: "file",
-    label: "File",
-    hint: "A document, an image or a recording",
-    icon: <Upload className="size-5" aria-hidden />,
+    value: "text",
+    label: "Text",
+    hint: "Notes from a call, a decision",
+    icon: <Type className="size-5" aria-hidden />,
   },
   {
     value: "link",
@@ -679,10 +681,10 @@ const WAYS: { value: Way; label: string; hint: string; icon: ReactNode }[] = [
     icon: <Link2 className="size-5" aria-hidden />,
   },
   {
-    value: "text",
-    label: "Text",
-    hint: "Notes from a call, a decision",
-    icon: <Type className="size-5" aria-hidden />,
+    value: "file",
+    label: "File",
+    hint: "A document, an image or a recording",
+    icon: <Upload className="size-5" aria-hidden />,
   },
 ]
 
@@ -749,27 +751,25 @@ function SourceStep(props: {
           ))}
         </fieldset>
 
-        <AutoHeight swap={props.way} className="min-w-0">
-          <div key={props.way} className="step-in md:pt-[2.05rem]">
-            {props.way === "file" ? (
-              props.file ? (
-                <SourceCard source={props.file} onChange={() => props.onFile(null)} />
-              ) : (
-                <DropZone scenario={props.scenario} onPick={props.onFile} />
-              )
-            ) : props.way === "link" ? (
-              <LinkField
-                url={props.url}
-                onUrl={props.onUrl}
-                state={props.link}
-                onRead={props.onRead}
-                source={props.linkSource}
-              />
+        <Pane swap={props.way}>
+          {props.way === "file" ? (
+            props.file ? (
+              <SourceCard source={props.file} onChange={() => props.onFile(null)} />
             ) : (
-              <TextField title={props.title} onTitle={props.onTitle} body={props.body} onBody={props.onBody} />
-            )}
-          </div>
-        </AutoHeight>
+              <DropZone scenario={props.scenario} onPick={props.onFile} />
+            )
+          ) : props.way === "link" ? (
+            <LinkField
+              url={props.url}
+              onUrl={props.onUrl}
+              state={props.link}
+              onRead={props.onRead}
+              source={props.linkSource}
+            />
+          ) : (
+            <TextField title={props.title} onTitle={props.onTitle} body={props.body} onBody={props.onBody} />
+          )}
+        </Pane>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
@@ -797,6 +797,27 @@ function SourceStep(props: {
         </span>
       </div>
     </>
+  )
+}
+
+/** The input of the chosen way. Switching swaps it in place: the tiles fix the row's height, so nothing below moves,
+ * and a short fade from mostly visible marks the change without making the owner wait for it. */
+function Pane({ swap, children }: { swap: Way; children: ReactNode }) {
+  const box = useRef<HTMLDivElement>(null)
+  const first = useRef(true)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `swap` is the trigger; the fade runs when the way changes
+  useLayoutEffect(() => {
+    if (first.current) {
+      first.current = false
+      return
+    }
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      box.current?.animate([{ opacity: 0.55 }, { opacity: 1 }], { duration: 120, easing: "ease-out" })
+  }, [swap])
+  return (
+    <div ref={box} className="min-w-0 md:pt-[2.05rem]">
+      {children}
+    </div>
   )
 }
 
@@ -987,7 +1008,7 @@ function TextField(props: { title: string; onTitle: (t: string) => void; body: s
         </span>
         <textarea
           id={body}
-          rows={5}
+          rows={4}
           value={props.body}
           onChange={(e) => props.onBody(e.target.value)}
           placeholder="Paste or write anything: notes from a call, a decision, what someone prefers."
@@ -1055,9 +1076,12 @@ function Chip({ subject, onRemove }: { subject: Subject; onRemove?: () => void }
   )
 }
 
-/** Many-of picker after the app's Combobox (WAI-ARIA list autocomplete): focus stays in the field, the list follows
- * it with aria-activedescendant, and chosen items sit as chips in front of the field. */
+const NONE: Record<Subject["kind"], string> = { person: "No person", project: "No project", task: "No task" }
+
+/** Many-of picker after the app's Combobox (WAI-ARIA list autocomplete), for one kind of subject: focus stays in the
+ * field, the list follows it with aria-activedescendant, and chosen items sit as chips in front of the field. */
 function SubjectPicker(props: {
+  kind: Subject["kind"]
   value: Subject[]
   onChange: (v: Subject[]) => void
   startOpen: boolean
@@ -1071,10 +1095,9 @@ function SubjectPicker(props: {
   const [active, setActive] = useState(props.startOpen ? 0 : -1)
   const chosen = new Set(props.value.map((s) => s.ref))
   const typed = query.trim().toLocaleLowerCase()
-  const shown = KINDS.flatMap((k) =>
-    SUBJECTS.filter((s) => s.kind === k.kind && (!typed || s.name.toLocaleLowerCase().includes(typed))),
-  )
+  const shown = SUBJECTS.filter((s) => s.kind === props.kind && (!typed || s.name.toLocaleLowerCase().includes(typed)))
   const optionId = (s: Subject) => `${base}-${s.ref.replace(":", "-")}`
+  const label = KINDS.find((k) => k.kind === props.kind)?.label.toLocaleLowerCase()
 
   useEffect(() => {
     if (props.startOpen) field.current?.focus()
@@ -1120,7 +1143,7 @@ function SubjectPicker(props: {
 
   const expanded = open && shown.length > 0
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       {/* biome-ignore lint/a11y/noStaticElementInteractions: a click on the frame only moves focus to the field */}
       {/* biome-ignore lint/a11y/useKeyWithClickEvents: the field inside is the keyboard target */}
       <div
@@ -1148,7 +1171,7 @@ function SubjectPicker(props: {
           aria-describedby={props.describedBy}
           aria-activedescendant={expanded && shown[active] ? optionId(shown[active] as Subject) : undefined}
           value={query}
-          placeholder={props.value.length ? "Add more" : "Search people, projects and tasks"}
+          placeholder={props.value.length ? "Add more" : `Search ${label}`}
           onChange={(e) => {
             setQuery(e.target.value)
             setOpen(true)
@@ -1159,7 +1182,7 @@ function SubjectPicker(props: {
           onBlur={() => setOpen(false)}
           onKeyDown={onKeyDown}
           style={{ outline: "none" }}
-          className="selectable h-[1.75rem] min-w-[9rem] flex-1 bg-transparent text-[0.95rem] text-ink placeholder:text-ink-dim"
+          className="selectable h-[1.75rem] min-w-[8rem] flex-1 bg-transparent text-[0.95rem] text-ink placeholder:text-ink-dim"
         />
       </div>
       <div
@@ -1169,52 +1192,40 @@ function SubjectPicker(props: {
         aria-labelledby={props.labelledBy}
         hidden={!open}
         onMouseDown={(e) => e.preventDefault()}
-        className="reveal absolute top-[calc(100%+0.3rem)] right-0 left-0 z-20 max-h-[16rem] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 shadow-panel"
+        className="reveal absolute top-[calc(100%+0.3rem)] right-0 left-0 z-20 max-h-[14rem] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 shadow-panel"
       >
         {!shown.length && (
-          <p className="px-2 py-2 text-[0.9rem] text-ink-soft">No person, project or task matches “{query.trim()}”.</p>
+          <p className="px-2 py-2 text-[0.9rem] text-ink-soft">
+            {NONE[props.kind]} matches “{query.trim()}”.
+          </p>
         )}
-        {KINDS.map((k) => {
-          const items = shown.filter((s) => s.kind === k.kind)
-          if (!items.length) return null
+        {shown.map((s, i) => {
+          const on = chosen.has(s.ref)
           return (
-            // biome-ignore lint/a11y/useSemanticElements: a listbox groups its options with role=group (WAI-ARIA APG)
-            <div key={k.kind} role="group" aria-labelledby={`${base}-${k.kind}`}>
-              <div id={`${base}-${k.kind}`} className="px-2 pt-1.5 pb-0.5 text-[0.85rem] font-medium text-ink-dim">
-                {k.label}
-              </div>
-              {items.map((s) => {
-                const i = shown.indexOf(s)
-                const on = chosen.has(s.ref)
-                return (
-                  // biome-ignore lint/a11y/useKeyWithClickEvents: keys reach options through the combobox field
-                  <div
-                    key={s.ref}
-                    id={optionId(s)}
-                    role="option"
-                    tabIndex={-1}
-                    aria-selected={on}
-                    onMouseMove={() => i !== active && setActive(i)}
-                    onClick={() => toggle(s)}
-                    className={cx(
-                      "flex min-h-[2.1rem] cursor-pointer items-center gap-2 rounded-[0.3rem] px-2 text-[0.95rem] text-ink",
-                      i === active && "bg-app-3",
-                    )}
-                  >
-                    <span
-                      className={cx(
-                        "grid size-[1.05rem] shrink-0 place-items-center rounded-[0.25rem] border transition-colors duration-150",
-                        on ? "border-brand bg-brand text-brand-ink" : "border-line-strong bg-app",
-                      )}
-                    >
-                      {on && <Check className="size-3" strokeWidth={3} aria-hidden />}
-                    </span>
-                    <span className="text-ink-soft">{subjectIcon(s.kind)}</span>
-                    <span className="min-w-0 flex-1 truncate">{s.name}</span>
-                    {s.key && <span className="font-mono text-[0.85rem] text-ink-dim">{s.key}</span>}
-                  </div>
-                )
-              })}
+            // biome-ignore lint/a11y/useKeyWithClickEvents: keys reach options through the combobox field
+            <div
+              key={s.ref}
+              id={optionId(s)}
+              role="option"
+              tabIndex={-1}
+              aria-selected={on}
+              onMouseMove={() => i !== active && setActive(i)}
+              onClick={() => toggle(s)}
+              className={cx(
+                "flex min-h-[2.1rem] cursor-pointer items-center gap-2 rounded-[0.3rem] px-2 text-[0.95rem] text-ink",
+                i === active && "bg-app-3",
+              )}
+            >
+              <span
+                className={cx(
+                  "grid size-[1.05rem] shrink-0 place-items-center rounded-[0.25rem] border transition-colors duration-150",
+                  on ? "border-brand bg-brand text-brand-ink" : "border-line-strong bg-app",
+                )}
+              >
+                {on && <Check className="size-3" strokeWidth={3} aria-hidden />}
+              </span>
+              <span className="min-w-0 flex-1 truncate">{s.name}</span>
+              {s.key && <span className="font-mono text-[0.85rem] text-ink-dim">{s.key}</span>}
             </div>
           )
         })}
@@ -1234,7 +1245,7 @@ function AboutStep(props: {
   onBack: () => void
   onSave: () => void
 }) {
-  const label = useId()
+  const ids = useId()
   const hint = useId()
   const radio = useId()
   const chosen = new Set(props.about.map((s) => s.ref))
@@ -1246,21 +1257,32 @@ function AboutStep(props: {
       <SourceCard source={props.source} />
       <div className="flex flex-col gap-2">
         <div>
-          <p id={label} className="text-[0.95rem] font-medium text-ink">
-            Who or what is it about?
-          </p>
+          <p className="text-[0.95rem] font-medium text-ink">Who or what is it about?</p>
           <p id={hint} className="text-[0.9rem] text-ink-soft">
-            Its facts are linked there, so an agent recalls them when that person, project or task comes up. You can
-            skip this.
+            Your agents then recall it when that person, project or task comes up. You can skip this.
           </p>
         </div>
-        <SubjectPicker
-          value={props.about}
-          onChange={props.onAbout}
-          startOpen={props.openPicker}
-          labelledBy={label}
-          describedBy={hint}
-        />
+        <div className="grid items-start gap-x-3 gap-y-2 md:grid-cols-[6rem_minmax(0,1fr)]">
+          {KINDS.map((k) => (
+            <Fragment key={k.kind}>
+              <span
+                id={`${ids}-${k.kind}`}
+                className="flex items-center gap-1.5 text-[0.9rem] font-medium text-ink-dim md:h-[2.4rem]"
+              >
+                {subjectIcon(k.kind)}
+                {k.label}
+              </span>
+              <SubjectPicker
+                kind={k.kind}
+                value={props.about.filter((s) => s.kind === k.kind)}
+                onChange={(v) => props.onAbout([...props.about.filter((s) => s.kind !== k.kind), ...v])}
+                startOpen={props.openPicker && k.kind === "person"}
+                labelledBy={`${ids}-${k.kind}`}
+                describedBy={hint}
+              />
+            </Fragment>
+          ))}
+        </div>
         {mentioned.length > 0 && (
           <p className="flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[0.9rem] text-ink-soft">
             <span>Named in it:</span>
@@ -1299,7 +1321,7 @@ function AboutStep(props: {
           )}
         </ChoiceTile>
         <ChoiceTile name={radio} checked={!props.suggest} onChange={() => props.onSuggest(false)} title="Only save it">
-          Nothing leaves this computer. It still turns up by its words and meaning; ask for facts any time later.
+          Nothing leaves this computer. You can still find it in Search and ask for facts later.
         </ChoiceTile>
         {props.noReader && (
           <p className="text-[0.9rem] text-ink-soft md:col-span-2">
@@ -1573,9 +1595,9 @@ function DoneStep(props: { summary: Summary; onAnother: () => void; onClose: () 
       </dl>
       <p className="max-w-[72ch] text-[0.9rem] leading-relaxed text-ink-soft">
         {kept
-          ? `Your agents use ${kept === 1 ? "this" : "these"} when they answer you, and say ${source.title} is where ${kept === 1 ? "it" : "they"} came from. `
-          : ""}
-        Search and your agents find {source.title} by its words or by what it means.
+          ? `Your agents use ${kept === 1 ? "this" : "these"} when they answer you.`
+          : "Your agents can read it when they answer you."}{" "}
+        You can find it later in Search, even if you don’t remember the exact words.
       </p>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="flex flex-wrap gap-2">
