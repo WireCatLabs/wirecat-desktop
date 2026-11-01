@@ -1,5 +1,5 @@
 import { Bot, MessageSquare, User } from "lucide-react"
-import { useId, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { useLang, useMessages } from "@/i18n"
 import type { TaskComment } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
@@ -32,6 +32,9 @@ export function Comments({ taskKey }: { taskKey: string }) {
   const failed = useTasks((s) => s.failed[`comment:${taskKey}`])
   const [text, setText] = useState("")
   const ready = text.trim() !== ""
+  useEffect(() => {
+    if (!useTasks.getState().comments[taskKey]) void useTasks.getState().loadComments(taskKey)
+  }, [taskKey])
   const send = async () => {
     if (!ready || busy) return
     if (await useTasks.getState().comment(taskKey, text)) setText("")

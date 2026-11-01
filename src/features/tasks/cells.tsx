@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { addDays, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import type { Task, TaskKind } from "@/platform/task-schemas"
@@ -90,8 +90,11 @@ export function AssigneeCell({ task }: { task: Task }) {
     setFinding(false)
   }
   const current = task.assignees[0] ?? "none"
-  // A person memo did not list (a role given after the page read) still shows, by reference.
-  const refs = [...new Set([...people.map((p) => p.ref), ...task.assignees])]
+  // memo lists every contact, which can be thousands; a row offers the owner and whoever has tasks on the page, and
+  // "Someone else…" searches the rest. A person memo did not list still shows, by reference.
+  const assigned = useTasks((s) => s.assigned)
+  const owner = people.find((p) => p.owner)?.ref
+  const refs = [...new Set([...(owner ? [owner] : []), ...assigned, ...task.assignees])]
   return (
     <div ref={cell}>
       {finding ? (
@@ -127,16 +130,21 @@ function PersonFinder({ task, onDone }: { task: Task; onDone: () => void }) {
   const [adding, setAdding] = useState(false)
   const wrap = useRef<HTMLDivElement>(null)
   useEffect(() => wrap.current?.querySelector("input")?.focus(), [])
-  const named = new Map<string, string>()
-  for (const p of people) {
-    const name = personName(p.ref, people, m)
-    if (!named.has(name)) named.set(name, p.ref)
-  }
+  const named = useMemo(() => {
+    const out = new Map<string, string>()
+    for (const p of people) {
+      const name = p.owner ? m.you : (p.name ?? m.unnamed)
+      if (!out.has(name)) out.set(name, p.ref)
+    }
+    return out
+  }, [people, m])
   const name = typed.trim()
-  const add = name && !named.has(name) ? m.addNamed(name) : null
+  // "ana ruiz" is Ana Ruiz, not a new person.
+  const same = [...named.keys()].find((n) => n.toLocaleLowerCase() === name.toLocaleLowerCase())
+  const add = name && !same ? m.addNamed(name) : null
   const options = [...named.keys(), ...(add ? [add] : [])]
   const choose = async (picked: string) => {
-    const ref = named.get(picked)
+    const ref = named.get(picked) ?? (picked === name && same ? named.get(same) : undefined)
     if (ref) {
       onDone()
       void useTasks.getState().assign(task.key, ref)
@@ -166,7 +174,7 @@ function PersonFinder({ task, onDone }: { task: Task; onDone: () => void }) {
           onDone()
         } else if (e.key === "Enter" && name) {
           e.preventDefault()
-          void choose(named.has(name) ? name : (add ?? name))
+          void choose(same ?? add ?? name)
         }
       }}
     >
