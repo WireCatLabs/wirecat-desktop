@@ -2,7 +2,7 @@ import { delay } from "./mock-delay"
 import type { FunnelState, TailscaleLinux, TailscaleStatus } from "./tailscale-schemas"
 import type { Platform } from "./types"
 
-// `?tailscale=<state>` opens tg's "Connect an AI app" guide at its address step, with Tailscale at that
+// `?tailscale=<state>` opens tg's "MCP server (or connect web)" guide at its address step, with Tailscale at that
 // state: `missing`, `nooperator` (Linux: only root may change Tailscale), `nodaemon` (installed, not running),
 // `loggedout`, `approval` (the tailnet's admin approves new devices), `stopped`, `nohttps`, `nofunnel`, `full` (all
 // three Funnel ports taken), `ready`. `?tailscale-os=macos|windows` changes the install step; Linux is Ubuntu, which

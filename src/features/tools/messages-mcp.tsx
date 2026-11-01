@@ -4,7 +4,7 @@ import { type Messages, plural } from "@/i18n"
 /** The MCP server section: its summary, Server details, the login code and forgetting logins. */
 const en = {
   server: {
-    title: "Connect an AI app",
+    title: "MCP server (or connect web)",
     unreadable: "Could not read it",
     later: "Arrives with the next update",
     off: "Server off",
@@ -104,7 +104,7 @@ const en = {
 
 const ru: typeof en = {
   server: {
-    title: "Подключить ИИ-приложение",
+    title: "MCP-сервер (или подключить веб)",
     unreadable: "Не удалось прочитать",
     later: "Появится в следующем обновлении",
     off: "Сервер выключен",
@@ -207,7 +207,7 @@ const ru: typeof en = {
 
 const es: typeof en = {
   server: {
-    title: "Conectar una app de IA",
+    title: "Servidor MCP (o conectar la web)",
     unreadable: "No se pudo leer",
     later: "Llega con la próxima actualización",
     off: "Servidor apagado",

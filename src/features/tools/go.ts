@@ -8,7 +8,7 @@ export function openTool(id: string) {
   useTools.setState({ expanded: id })
 }
 
-/** Opens a tool's "Connect an AI app" section and brings it into view. */
+/** Opens a tool's "MCP server (or connect web)" section and brings it into view. */
 export function openConnect(id: string) {
   keep(`mcp:${id}`, "open", true)
   keep(`mcp:${id}`, "reveal", true)

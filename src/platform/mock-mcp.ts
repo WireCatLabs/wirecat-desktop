@@ -5,7 +5,7 @@ import type { Platform } from "./types"
 // `?mcp=<tool>` starts with that tool's server running, a login code and two apps logged in, one with a
 // name that tries to look like a file; the Tools page opens it (`src/app/scenarios.ts`). `?mcp-fail=<tool>` makes Start
 // fail as when another server holds the port. `?mcp-old=<tool>` answers as a tool from before `mcp server`.
-// `?connect=<state>` opens tg's "Connect an AI app" guide (`connect-scenario.ts`); from `instructions` on, tg's server
+// `?connect=<state>` opens tg's "MCP server (or connect web)" guide (`connect-scenario.ts`); from `instructions` on, tg's server
 // runs (`tunnel-off`: on the Cloudflare tunnel's address). `connected`: an app logged in after the guide opened; `called`: it also called tg_read; `oldcli`: it logged in,
 // but the tool is too old to report calls; `live`: it logs in after 6 s and calls after 12 s. `?activity=<tool>`: that
 // tool's server runs and ChatGPT called it 2 minutes ago, for the Tools page row. `?public=pending` (public DNS has
