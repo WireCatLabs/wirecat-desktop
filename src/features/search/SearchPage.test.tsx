@@ -97,6 +97,30 @@ describe("Search", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
   })
 
+  it("filters by a value from a result and searches again, or groups the page by it", async () => {
+    const user = userEvent.setup()
+    const search = vi.spyOn(platform, "searchStore")
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByRole("combobox", { name: "Search messages" }), "invoice{Enter}")
+    await user.click(
+      (
+        await screen.findAllByRole("button", { name: "Show the whole result: Harbour flat" }, { timeout: 3000 })
+      )[0] as HTMLElement,
+    )
+
+    await user.click(screen.getByRole("button", { name: "Group by chat" }))
+    expect(screen.getByText("The 50 results on this page by chat")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show results" }))
+
+    await user.click(
+      (await screen.findAllByRole("button", { name: "Show the whole result: Harbour flat" }))[0] as HTMLElement,
+    )
+    await user.click(screen.getByRole("button", { name: "Filter by chat:Harbour flat" }))
+    await waitFor(() => expect(search).toHaveBeenLastCalledWith("tg", "personal", 'invoice chat:"Harbour flat"', 50, 1))
+  }, 15000)
+
   it("shows the tool's query error at its place until the query changes", async () => {
     const user = userEvent.setup()
     render(<SearchPage />)

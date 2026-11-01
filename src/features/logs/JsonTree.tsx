@@ -92,7 +92,8 @@ function Node({ name, value, path, depth, fieldOf, onFilter, onGroup }: NodeProp
       >
         {typeof value === "string" ? `"${text}"` : text}
       </span>
-      <span className="ml-auto flex shrink-0 gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
+      {/* Right after the value, not at the row's end, so the eye does not travel to find what it acts on. */}
+      <span className="flex shrink-0 gap-0.5 self-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
         {filterable && (
           <>
             <LeafAction label={m.filterBy(`${field}:${term}`)} onClick={() => onFilter(field, term, false)}>

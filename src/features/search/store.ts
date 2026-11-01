@@ -25,6 +25,9 @@ type SearchState = {
   /** The call itself failed (the tool is missing, a bad argument), as opposed to an answer the tool gave. */
   error: string | null
   expanded: string | null
+  /** A query field the shown hits are grouped by, on this page only; null shows them one by one. */
+  groupBy: string | null
+  setGroupBy(field: string | null): void
   /** The tool's own lists of values, by `tool|profile|version|list`, read once each. */
   lists: Record<string, ValueItem[]>
   loadLists(): void
@@ -68,6 +71,8 @@ export const useSearch = create<SearchState>((set, get) => {
     loading: false,
     error: null,
     expanded: null,
+    groupBy: null,
+    setGroupBy: (groupBy) => set({ groupBy }),
     old: {},
     lists: {},
     loadLists() {
@@ -100,6 +105,7 @@ export const useSearch = create<SearchState>((set, get) => {
         loading: false,
         error: null,
         expanded: null,
+        groupBy: null,
       })
       if (!t || !usesProfiles(t)) return
       platform.listProfiles(id).then(

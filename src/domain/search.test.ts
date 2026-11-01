@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest"
-import { ambiguousTerm, clampSpan, errorDetail, hitRow, queryReason, quoteValue, suggestSearch } from "./search"
+import {
+  ambiguousTerm,
+  clampSpan,
+  errorDetail,
+  groupHits,
+  hitField,
+  hitRow,
+  queryReason,
+  quoteValue,
+  suggestSearch,
+  toggleSearchTerm,
+} from "./search"
 
 describe("hitRow", () => {
   it("reads a message hit by its chat, sender and excerpt", () => {
@@ -211,5 +222,34 @@ describe("catalog examples", () => {
         const raw = value.startsWith('"') ? value.slice(1, -1).replace(/\\(.)/g, "$1") : value
         expect(f.example, `${tool.id} ${f.name}`).toBe(`${f.name}:${quoteValue(raw)}`)
       }
+  })
+})
+
+describe("filtering and grouping by a hit's value", () => {
+  const msg = { chat_title: "Harbour flat", sender_name: "Ana Ruiz", timestamp: "2026-10-30T18:00:00Z" }
+  it("maps a value to the tool's own field, and only fields the tool knows", () => {
+    expect(hitField(["chat_title"], ["chat", "from"])).toBe("chat")
+    expect(hitField(["email", "labels", "0"], ["label"])).toBe("label")
+    expect(hitField(["chat_title"], ["title"])).toBeNull()
+    expect(hitField(["excerpt"], ["chat", "from"])).toBeNull()
+  })
+
+  it("adds a term quoted as the tool reads it, and takes the same term out again", () => {
+    const q = toggleSearchTerm("invoice", "chat", "Harbour flat")
+    expect(q).toBe('invoice chat:"Harbour flat"')
+    expect(toggleSearchTerm(q, "chat", "Harbour flat")).toBe("invoice")
+    expect(toggleSearchTerm("", "from", "Ana", true)).toBe("-from:Ana")
+  })
+
+  it("groups the shown hits by a field, most first, and never counts the owner as a sender", () => {
+    const hits = [msg, { ...msg, chat_title: "Family" }, msg, { ...msg, sender_is_me: true }]
+    expect(groupHits(hits, "chat").map((g) => [g.value, g.count])).toEqual([
+      ["Harbour flat", 3],
+      ["Family", 1],
+    ])
+    expect(groupHits(hits, "from").map((g) => [g.value, g.count])).toEqual([
+      ["Ana Ruiz", 3],
+      ["", 1],
+    ])
   })
 })
