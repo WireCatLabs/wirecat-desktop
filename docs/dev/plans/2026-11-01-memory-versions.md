@@ -35,7 +35,8 @@ memo stages an agent's cited facts and tasks about one project as an action of k
 
 What changed (shared by all versions): Rust reads the findings and the project; Approve sends only the ticked
 finding ids, Discard rejects all; a batch closed with nothing accepted reads as rejected. Project names come from one
-more call, `memo projects list`, in parallel with the others.
+more call, `memo projects list`, in parallel with the others. The fingerprint lookup pages through
+`projects actions list` (10 a page by default), so an older batch is still found.
 
 The probe batch was written into the throwaway store by hand, following `stage()`'s payload shape, not through
 `projects actions add` (that needs real cited messages). `projects actions reject` ran on it and closed it as
@@ -127,7 +128,8 @@ as memo gains them.
 
 - Approving a real findings batch end to end: memo refused the hand-made batch as stale, so only the command line is
   tested.
-- `memo projects list` on a store with many projects: it takes no `--limit`, and whether it pages is unchecked.
+- `memo projects list` with many projects: with 3 it returned all 3 (`limit: 3`, `has_more: false`); it takes no
+  `--limit`, and a store with hundreds was not tried.
 - The real app (Tauri, WebKitGTK); all screenshots come from Chrome against the mock.
 - Motion with animations on: every capture runs with reduced motion. Of version 3, only the inbox was checked at
   960 px.
