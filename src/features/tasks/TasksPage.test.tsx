@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
@@ -33,6 +33,26 @@ describe("Tasks", () => {
     await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.stringContaining("(project:OPS)")))
     await waitFor(() => expect(row("HRB-12")).toBeNull())
     expect(row("OPS-3")).not.toBeNull()
+  })
+
+  it("filters by a custom due day, with the calendar open at once", async () => {
+    const user = userEvent.setup()
+    const picker = vi.fn()
+    HTMLInputElement.prototype.showPicker = picker
+    const list = vi.spyOn(platform, "taskList")
+    render(<TasksPage />)
+    await loaded()
+    await user.click(screen.getByRole("button", { name: "Due" }))
+    await user.click(screen.getByRole("option", { name: "Today" }))
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.stringContaining("(due:today)")))
+    await user.click(screen.getByRole("button", { name: /^Due/ }))
+    await user.click(screen.getByRole("option", { name: "Custom…" }))
+    const from = screen.getByLabelText("From")
+    await waitFor(() => expect(from).toHaveFocus())
+    expect(picker).toHaveBeenCalled()
+    fireEvent.change(from, { target: { value: "2026-12-01" } })
+    fireEvent.change(screen.getByLabelText("To (optional)"), { target: { value: "2026-12-05" } })
+    expect(screen.getByRole("searchbox", { name: "Search tasks" })).toHaveValue("due:[2026-12-01 TO 2026-12-05]")
   })
 
   it("keeps an edited row in its place and says nothing changed when memo refuses", async () => {

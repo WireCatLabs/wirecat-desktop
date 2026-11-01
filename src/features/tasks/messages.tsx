@@ -121,6 +121,10 @@ type Words = {
   byAgent: string
   byPerson: string
   editNotes: string
+  customDay: string
+  dueFrom: string
+  dueTo: string
+  done: string
 }
 
 /** "4 Nov": a due day. */
@@ -262,6 +266,10 @@ const en: Words = {
   byAgent: "an agent",
   byPerson: "a person",
   editNotes: "Edit",
+  customDay: "Custom…",
+  dueFrom: "From",
+  dueTo: "To (optional)",
+  done: "Done",
 }
 
 const ru: Words = {
@@ -404,6 +412,10 @@ const ru: Words = {
   byAgent: "агент",
   byPerson: "человек",
   editNotes: "Изменить",
+  customDay: "Другие даты…",
+  dueFrom: "С",
+  dueTo: "По (необязательно)",
+  done: "Готово",
 }
 
 const es: Words = {
@@ -540,6 +552,10 @@ const es: Words = {
   byAgent: "un agente",
   byPerson: "una persona",
   editNotes: "Editar",
+  customDay: "Personalizado…",
+  dueFrom: "Desde",
+  dueTo: "Hasta (opcional)",
+  done: "Hecho",
 }
 
 export const taskMessages: Messages<Words> = { en, ru, es }

@@ -34,8 +34,15 @@ describe("the search words the filters write", () => {
   it("writes the due choices memo understands, with the week as dates", () => {
     const today = new Date(2026, 10, 1)
     expect(setDue("x", "week", today)).toBe("x due:[today TO 2026-11-08]")
-    expect(setDue("x due:[today TO 2026-11-08]", "overdue", today)).toBe("x overdue:true")
-    expect(setDue("x overdue:true", "none", today)).toBe("x NOT due:*")
+    expect(setDue("x due:[today TO 2026-11-08]", "overdue", today)).toBe("x overdue:true due:<today")
+    expect(setDue("x overdue:true due:<today", "none", today)).toBe("x NOT due:*")
+    expect(setDue("x", "tomorrow", today)).toBe("x due:2026-11-02")
+    expect(dueOf("x due:2026-11-02", today)).toBe("tomorrow")
+    expect(setDue("x due:today", { from: "2026-11-09", to: "2026-11-04" }, today)).toBe(
+      "x due:[2026-11-04 TO 2026-11-09]",
+    )
+    expect(dueOf("x due:[2026-11-04 TO 2026-11-09]")).toEqual({ from: "2026-11-04", to: "2026-11-09" })
+    expect(dueOf("x due:2026-11-20", today)).toEqual({ from: "2026-11-20" })
     expect(dueOf("x NOT due:*")).toBe("none")
     expect(setDue("x NOT due:*", null, today)).toBe("x")
   })
