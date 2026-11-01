@@ -99,9 +99,9 @@ export function QueryDraft({ tool, onNeedTool, onWritten }: Props) {
       >
         {line.text}
       </p>
-      {state.kind === "query" && state.by === "codex" && (
+      <Collapse open={state.kind === "query" && state.by === "codex"}>
         <p className="text-[0.9rem] text-warn-ink">{m.draft.codexWarning}</p>
-      )}
+      </Collapse>
       <Collapse open={state.kind === "none"}>
         <div className="rounded-[0.45rem] border border-line bg-app px-[1rem] py-[0.8rem] text-[0.92rem]">
           <p className="font-medium text-ink">{m.draft.noneTitle}</p>
