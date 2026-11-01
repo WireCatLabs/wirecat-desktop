@@ -62,7 +62,8 @@ export function Details({ task }: { task: Task }) {
 
   const edit: TaskEdit = {}
   if (title.trim() && title.trim() !== task.title) edit.title = title.trim()
-  if (notes !== (task.description ?? "")) edit.description = notes
+  // memo cannot empty the notes, so an emptied box is not a change it could save.
+  if (notes.trim() && notes !== (task.description ?? "")) edit.description = notes
   if (agent.trim() !== (task.agent ?? "")) edit.agent = agent.trim() || "none"
   const changed = Object.keys(edit).length > 0
   const reset = () => {

@@ -564,6 +564,10 @@ fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, Strin
         args.push(format!("--title={}", validate_title(t)?));
     }
     if let Some(d) = &edit.description {
+        // memo takes 1 to 20,000 characters and has no way to empty the notes yet.
+        if d.trim().is_empty() {
+            return Err("Memo cannot empty a task's notes yet".into());
+        }
         args.push(format!("--description={}", validate_notes(d)?));
     }
     if let Some(p) = &edit.priority {
@@ -1092,6 +1096,30 @@ mod tests {
         assert!(people_with(&call).unwrap().iter().any(|p| p.owner));
         assert!(counts_with(&call, "").unwrap().state.iter().any(|f| f.value == "in_progress"));
         assert!(matches!(list_with(&call, "(").unwrap(), Read::BadQuery { .. }));
+        // The words the page's filters write, inside the board's default, as the page sends them.
+        let week = "due:[today TO 2099-12-31]";
+        for words in [
+            "",
+            "project:(HRB OR OPS)",
+            "assignee:(\"person:2\" OR none)",
+            "-project:OPS budget",
+            week,
+            "NOT due:*",
+            "overdue:true",
+            "agent:*",
+            "ready:true",
+            "priority:(high OR critical)",
+            "state:(todo OR done)",
+        ] {
+            let sent = if words.is_empty() {
+                "(state:(open OR todo OR in_progress) OR closed:>=14d)".to_string()
+            } else {
+                format!("({words}) (state:(open OR todo OR in_progress) OR closed:>=14d)")
+            };
+            assert!(matches!(list_with(&call, &sent).unwrap(), Read::Ready { .. }), "{sent}");
+        }
+        let one = counts_with(&call, "(project:HRB) (state:(open OR todo OR in_progress) OR closed:>=14d)").unwrap();
+        assert!(one.project.iter().any(|f| f.value != "HRB" && f.count > 0), "other projects still counted");
 
         let new = New {
             project: "HRB".into(),
@@ -1118,6 +1146,8 @@ mod tests {
         let args = edit_args(&a.key, a.revision, &Edit { state: Some("done".into()), ..Edit::default() }).unwrap();
         let Write::Saved { task: done, .. } = write_with(&call, &a.key, &args).unwrap() else { panic!("not saved") };
         assert!(done.closed_at.is_some());
+        let empty = Edit { description: Some(String::new()), ..Edit::default() };
+        assert!(edit_args(&done.key, done.revision, &empty).is_err(), "memo cannot empty the notes");
         let owner = people_with(&call).unwrap().into_iter().find(|p| p.owner).unwrap();
         let Write::Saved { task: mine, .. } =
             assign_with(&call, &done.key, done.revision, Some(&owner.reference)).unwrap()
@@ -1130,5 +1160,27 @@ mod tests {
         };
         assert!(nobody.assignees.is_empty());
         assert!(history_with(&call, &a.key).unwrap().iter().any(|e| e.changes.iter().any(|c| c.field == "status")));
+        // What the interface's schemas parse, written out when asked, for a check against real answers.
+        if let Ok(dir) = std::env::var("TASK_BOARD_DUMP") {
+            let put =
+                |name: &str, v: serde_json::Value| std::fs::write(format!("{dir}/{name}.json"), v.to_string()).unwrap();
+            put("read", serde_json::to_value(list_with(&call, "state:*").unwrap()).unwrap());
+            put("counts", serde_json::to_value(counts_with(&call, "").unwrap()).unwrap());
+            put("history", serde_json::to_value(history_with(&call, &a.key).unwrap()).unwrap());
+            put("people", serde_json::to_value(people_with(&call).unwrap()).unwrap());
+            put("projects", serde_json::to_value(projects_with(&call).unwrap()).unwrap());
+            put("show", serde_json::to_value(show_with(&call, &a.key).unwrap()).unwrap());
+            let stale = edit_args(&a.key, 1, &Edit { title: Some("x".into()), ..Edit::default() }).unwrap();
+            put("stale", serde_json::to_value(write_with(&call, &a.key, &stale).unwrap()).unwrap());
+            put(
+                "moved",
+                serde_json::to_value(Write::Saved {
+                    task: moved.clone(),
+                    label: Some(LabelChange { from: Some("low".into()), to: Some("high".into()) }),
+                    renumbered: vec![],
+                })
+                .unwrap(),
+            );
+        }
     }
 }
