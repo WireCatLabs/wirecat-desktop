@@ -1,18 +1,21 @@
-import { ChevronLeft, ChevronRight, ExternalLink, Search } from "lucide-react"
+import { ChevronLeft, ChevronRight, ExternalLink, Search, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
-import { parseQuery } from "@/domain/runs"
+import { formatWhen, parseQuery } from "@/domain/runs"
 import {
   ambiguousTerm,
   clampSpan,
   errorDetail,
+  groupHits,
+  hitField,
   queryReason,
   quoteValue,
   suggestSearch,
+  toggleSearchTerm,
   type ValueOption,
   valuesInHits,
 } from "@/domain/search"
-import { useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { SearchAnswer, SearchHit } from "@/platform/search-schemas"
 import { Button } from "@/ui/Button"
@@ -377,7 +380,11 @@ function resultsView(
           </p>
         ))}
       </div>
-      <Table hits={hits.hits} now={now} busy={s.loading} />
+      {s.groupBy ? (
+        <Grouped hits={hits.hits} field={s.groupBy} now={now} m={m} />
+      ) : (
+        <Table hits={hits.hits} now={now} busy={s.loading} />
+      )}
       {pager && (
         <nav aria-label={m.pages} className="flex items-center justify-center gap-3 text-[0.9rem] text-ink-dim">
           <Button
@@ -400,10 +407,21 @@ function resultsView(
   return { view: "hits", node }
 }
 
+/** Adds the term and searches again: a filter from a result is a new search, not a filter of this page. */
+function filterBy(field: string, value: string, negate: boolean) {
+  const s = useSearch.getState()
+  s.setQuery(toggleSearchTerm(s.query, field, value, negate))
+  s.setGroupBy(null)
+  s.search(1)
+}
+
 function Table(props: { hits: SearchHit[]; placeholders?: number; now: Date; busy: boolean }) {
   const { hits, placeholders = 0, now, busy } = props
   const expanded = useSearch((s) => s.expanded)
   const toggle = useSearch((s) => s.toggle)
+  const tool = useSearch((s) => s.tool)
+  const known = useMemo(() => (tool ? (findTool(tool)?.search?.fields ?? []).map((f) => f.name) : []), [tool])
+  const fieldOf = useCallback((path: string[]) => hitField(path, known), [known])
   return (
     <div
       aria-busy={busy}
@@ -412,7 +430,87 @@ function Table(props: { hits: SearchHit[]; placeholders?: number; now: Date; bus
         busy && hits.length > 0 && "opacity-60",
       )}
     >
-      <HitsTable hits={hits} placeholders={placeholders} now={now} expanded={expanded} onToggle={toggle} />
+      <HitsTable
+        hits={hits}
+        placeholders={placeholders}
+        now={now}
+        expanded={expanded}
+        onToggle={toggle}
+        fieldOf={fieldOf}
+        onFilter={filterBy}
+        onGroup={useSearch.getState().setGroupBy}
+      />
+    </div>
+  )
+}
+
+function Grouped({ hits, field, now, m }: { hits: SearchHit[]; field: string; now: Date; m: Words }) {
+  const lang = useLang()
+  const groups = useMemo(() => groupHits(hits, field), [hits, field])
+  const max = groups[0]?.count ?? 1
+  return (
+    <div className="reveal overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
+      <div className="flex items-center justify-between gap-3 border-line border-b px-[1.3rem] py-[0.5rem] text-[0.9rem]">
+        <span className="text-ink-soft">{m.groupedBy(field, hits.length)}</span>
+        <Button
+          size="sm"
+          variant="ghost"
+          icon={<X className="size-4" aria-hidden />}
+          onClick={() => useSearch.getState().setGroupBy(null)}
+        >
+          {m.ungroup}
+        </Button>
+      </div>
+      <table className="w-full table-fixed border-collapse text-[0.95rem]">
+        <colgroup>
+          <col />
+          <col className="w-[30%]" />
+          <col className="w-[6rem]" />
+          <col className="w-[9rem]" />
+        </colgroup>
+        <thead>
+          <tr className="border-line-strong border-b text-left text-[0.9rem] text-ink-dim">
+            <th className="py-[0.55rem] pl-[1.3rem] font-medium font-mono">{field}</th>
+            <th>
+              <span className="sr-only">{m.share}</span>
+            </th>
+            <th className="pr-[0.9rem] text-right font-medium">{m.count}</th>
+            <th className="pr-[1.3rem] font-medium">{m.latest}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {groups.map((g) => (
+            <tr key={g.value} className="h-[2.6rem] border-line border-b last:border-b-0">
+              <td className="pl-[0.8rem]">
+                {g.value === "" ? (
+                  <span className="px-[0.5rem] text-ink-dim">{m.without(field)}</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => filterBy(field, g.value, false)}
+                    title={m.showOnly(`${field}:${quoteValue(g.value)}`)}
+                    className="flex w-full min-w-0 items-center rounded-[0.3rem] px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3"
+                  >
+                    <span className="truncate">{g.value}</span>
+                  </button>
+                )}
+              </td>
+              <td aria-hidden>
+                <span className="block h-[0.45rem] rounded-full bg-app-3">
+                  <span
+                    className="block h-full rounded-full bg-ink-soft/45"
+                    style={{ width: `${Math.max(2, (g.count / max) * 100)}%` }}
+                  />
+                </span>
+              </td>
+              <td className="pr-[0.9rem] text-right font-mono tabular-nums">{g.count}</td>
+              <td className="truncate pr-[1.3rem] font-mono text-[0.9rem] text-ink-soft tabular-nums">
+                {g.last ? formatWhen(g.last, now, lang) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

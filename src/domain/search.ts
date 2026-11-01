@@ -336,3 +336,62 @@ export function ambiguousTerm(
   const found = ofField.find((t) => typedIn(t) !== "" && named.some((l) => l.includes(typedIn(t)))) ?? ofField[0]
   return found ? { start: found.start, end: found.end, sign: found.sign } : null
 }
+
+/**
+ * Where each query field's value sits in a hit, as the tools print them (`src/platform/mock-search.ts` follows the
+ * same shapes). A hit key with no field here cannot be filtered on: the tool's query has no field for it.
+ */
+const HIT_PATHS: Record<string, readonly (readonly string[])[]> = {
+  chat: [["chat_title"]],
+  from: [["sender_name"], ["email", "from"]],
+  label: [["email", "labels"]],
+  title: [["title"]],
+  tag: [["tags"]],
+}
+
+/** The query field a value in a hit's details filters on, or null; only fields this tool's search knows. */
+export function hitField(path: readonly string[], known: readonly string[]): string | null {
+  // A list's element filters like the list: ["tags", "0"] is a tag.
+  const at = /^\d+$/.test(path.at(-1) ?? "") ? path.slice(0, -1) : path
+  for (const [field, paths] of Object.entries(HIT_PATHS))
+    if (known.includes(field) && paths.some((p) => p.length === at.length && p.every((k, i) => k === at[i])))
+      return field
+  return null
+}
+
+/** The values a hit has for a query field; a list gives each element. */
+export function hitValues(hit: Record<string, unknown>, field: string): string[] {
+  for (const path of HIT_PATHS[field] ?? []) {
+    let v: unknown = hit
+    for (const k of path) v = obj(v)[k]
+    if (hit.sender_is_me === true && field === "from" && path[0] === "sender_name") continue
+    const list = (Array.isArray(v) ? v : [v]).map(str).filter((s): s is string => s !== null)
+    if (list.length > 0) return list
+  }
+  return []
+}
+
+/** Adds `field:value` (or `-field:value`) to the query; the same term again takes it out, as Logs does. */
+export function toggleSearchTerm(query: string, field: string, value: string, negate = false): string {
+  const term = `${negate ? "-" : ""}${field}:${quoteValue(value)}`
+  const parts = query.trim() === "" ? [] : query.trim().split(/\s+(?=(?:[^"]*"[^"]*")*[^"]*$)/)
+  return parts.includes(term) ? parts.filter((p) => p !== term).join(" ") : [...parts, term].join(" ")
+}
+
+export type HitGroup = { value: string; count: number; last: string | null }
+
+/** The shown hits by one field's value, most first; a hit without the field counts under "". */
+export function groupHits(hits: readonly Record<string, unknown>[], field: string): HitGroup[] {
+  const groups = new Map<string, HitGroup>()
+  hits.forEach((hit, i) => {
+    const when = hitRow(hit, i).when
+    const values = hitValues(hit, field)
+    for (const value of values.length ? values : [""]) {
+      const g = groups.get(value) ?? { value, count: 0, last: null }
+      g.count++
+      if (when && (!g.last || when > g.last)) g.last = when
+      groups.set(value, g)
+    }
+  })
+  return [...groups.values()].sort((a, b) => b.count - a.count || a.value.localeCompare(b.value))
+}
