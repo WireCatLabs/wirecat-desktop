@@ -809,6 +809,14 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **FIND-182 · `from:`/`to:` с именем, которого нет в списке людей, — ошибка, а не 0 попаданий**; имя отправителя из попадания tg нельзя вписать обратно в `from:`.
   - BUG-43…45 отданы агенту, ветка `fix/search-real-data`, в выпуск 0.2.1 (NEED-231 = B).
 
+- **UX-53 · Search: сообщения без текста (фото, голос, файл) показаны как «—»** — показывать вид и имя вложения.
+- **UX-54 · Search: раскрытое попадание — сырой JSON с `untrusted`**. Слава: «no idea what untrusted is - it's confusing», «improve the attributes of found stuff». Подписанные поля, `untrusted` скрыть.
+- **UX-55 · Search: `from:6034997871` — числовой id в запросе**; показывать имя контакта, id во всплывающей подсказке, редактируемо.
+- **UX-56 · Кнопки двигаются при нажатии** — «all buttons must have same styles for hover, click etc».
+- **BUG-46 · Search: двойная рамка фокуса у поля запроса.**
+- **BUG-47 · Zoom: расшифровка встречи «Yarik - Slava» на английском, а встреча была на русском.** Отдано агенту на разбор (только чтение).
+  - UX-53…UX-56, BUG-46 переданы агенту поиска, ветка `fix/search-real-data`.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
@@ -1537,5 +1545,8 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-234 · Как позиционировать WireCat теперь: «память мессенджеров для агента» или «личный контекст для ИИ-агента: чаты, почта, встречи, документы, календарь — на вашем компьютере»?**
   - Варианты: **A** личный контекст для агента (категория, все источники, локально) · **B** остаться на мессенджерах, остальное вторым планом · **C** приватность первым
   - Я бы: **A**.
+  - **Ответ 2026-11-02: A** с поправкой: «the messengers are obvious first use as there's no easy way to access them without our clis so in some places mb better use messengers to make it clearer for users. its important so we are understood easily. personal context is too vague and users will walk away but when explaining what we do we can use that etc».
 - **NEED-235 · Какой слоган ставить на главную?** Варианты в ответе 2026-11-02 (1–8).
   - Я бы: 2 «Your agent finally knows what you know.»
+  - **Ответ 2026-11-02:** «Everything you've said. Ready for your agent. - love it». Передано агенту главной в #490.
+  - FIND-181: **ответ 2026-11-02: A** — отдано агенту на разбор вместе с языком расшифровки Zoom.
