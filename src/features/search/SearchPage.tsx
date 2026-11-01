@@ -27,6 +27,7 @@ import { focusInPlace } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
 import { QueryBar } from "../query/QueryBar"
+import { ReportThis } from "../report/ReportThis"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
 import { HitContext } from "./HitContext"
@@ -331,7 +332,15 @@ function resultsView(
 ): { view: string; node: ReactNode } {
   const answer = s.answer
   const page = s.asked?.page ?? 1
-  if (s.error) return { view: "error", node: <ErrorNotice detail={s.error}>{m.failed}</ErrorNotice> }
+  if (s.error)
+    return {
+      view: "error",
+      node: (
+        <ErrorNotice detail={s.error} action={<ReportThis what={`Searching ${toolName}`} error={s.error} />}>
+          {m.failed}
+        </ErrorNotice>
+      ),
+    }
   if (answer?.kind === "old")
     return { view: "old", node: <ErrorNotice detail={answer.message}>{m.tooOld(toolName, version)}</ErrorNotice> }
   if (answer?.kind === "failed") {
@@ -342,7 +351,7 @@ function resultsView(
         <ErrorNotice
           detail={<span className="whitespace-pre-line">{answer.message}</span>}
           action={
-            choices && (
+            choices ? (
               <span className="flex flex-wrap gap-2">
                 {choices.options.map((c) => (
                   <Button
@@ -358,6 +367,8 @@ function resultsView(
                   </Button>
                 ))}
               </span>
+            ) : (
+              <ReportThis what={`Searching ${toolName}`} error={answer.message} />
             )
           }
         >

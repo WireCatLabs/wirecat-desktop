@@ -205,6 +205,21 @@ describe("Search", () => {
     )
   }, 15000)
 
+  it("offers to report a search the tool itself failed", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchStore").mockResolvedValue({
+      kind: "failed",
+      candidates: [],
+      message: "the command failed; this is a bug",
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "MAX")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByRole("combobox", { name: "Search messages" }), "hello{Enter}")
+    expect(await screen.findByText("the command failed; this is a bug")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Report this" })).toBeVisible()
+  }, 15000)
+
   it("offers ready queries, then the tool's own values after a field", async () => {
     const user = userEvent.setup()
     const values = vi.spyOn(platform, "searchValues")
