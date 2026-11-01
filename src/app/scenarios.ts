@@ -2,9 +2,11 @@ import { findTool, syncNeedsProfile } from "@/domain/catalog"
 import { useNav } from "@/features/nav"
 import { STEPS, useOnboarding } from "@/features/onboarding/store"
 import { useSignIn } from "@/features/signin/store"
+import { useTasks } from "@/features/tasks/store"
 import { useTools } from "@/features/tools/store"
 import { useSync } from "@/features/tools/sync-store"
 import { platform } from "@/platform/bridge"
+import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 
 // Browser-only: starts the install named in `?install=<tool>` so a review can capture the progress state.
 // `?onboarding=off` hides the first-run setup for this load, so captures of other screens stay as they were;
@@ -13,6 +15,7 @@ import { platform } from "@/platform/bridge"
 // and breaks its render. `?signin=<tool>` opens that tool's in-window sign-in for a profile named personal.
 // `?mcp=<tool>` and `?mcp-fail=<tool>` open that tool's details, where its MCP server section starts open.
 // `?connect=<state>` opens tg's details at that step of the guide (`src/features/tools/connect-scenario.ts`).
+// `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`).
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
 // `?tailscale=<state>` opens tg's, with the "Connect an AI app" guide's Tailscale steps at that state (`src/platform/mock-tailscale.ts`); `?cloudflare=<state>` the same with the Cloudflare tunnel (`mock-cloudflare.ts`).
 export async function runMockScenario() {
@@ -26,6 +29,13 @@ export async function runMockScenario() {
   if (section) useNav.getState().go(section)
   const step = STEPS.find((s) => s.id === onboarding)
   if (step) useOnboarding.getState().reopen(step.id)
+  const tasks = params.get("tasks")
+  const view = params.get("view")
+  if (tasks || view) {
+    if (view === "board" || view === "table") useTasks.setState({ view })
+    if (tasks === "nomatch") useTasks.setState({ query: MOCK_NOMATCH_QUERY })
+    useNav.getState().go("tasks")
+  }
   const signIn = params.get("signin")
   if (signIn) useSignIn.getState().start(signIn, "personal")
   const mcp =

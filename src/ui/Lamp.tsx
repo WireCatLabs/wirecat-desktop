@@ -1,6 +1,6 @@
 import { cx } from "./cx"
 
-export type LampTone = "ok" | "warn" | "bad" | "idle" | "busy"
+export type LampTone = "ok" | "warn" | "bad" | "idle" | "busy" | "doing"
 
 const tones: Record<LampTone, string> = {
   ok: "bg-ok",
@@ -8,6 +8,8 @@ const tones: Record<LampTone, string> = {
   bad: "bg-bad",
   idle: "bg-transparent ring-[1.5px] ring-inset ring-idle",
   busy: "bg-brand animate-[lamp-pulse_1.4s_ease-in-out_infinite]",
+  // Steady: a page of tasks in progress would pulse everywhere; the pulse stays for work happening right now.
+  doing: "bg-brand",
 }
 
 export function Lamp({ tone, size = "md", label }: { tone: LampTone; size?: "sm" | "md"; label?: string }) {
