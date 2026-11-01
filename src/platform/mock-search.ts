@@ -7,7 +7,9 @@ import type { Platform } from "./types"
 // query nothing matches, `?search-fail=query` on a query the tool refuses with a span, `?search-fail=tool` on the
 // tool's own refusal, `?search-old=<tool>` makes that tool too old to search. Anywhere, a field the tool does not know
 // or an unclosed bracket gets the tool's query error, so the bar can be tried by typing. What surrounds a hit:
-// `?context-fail=old` (the tool is too old to show it), `?context-fail=tool` (the tool refuses).
+// `?context-fail=old` (the tool is too old to show it), `?context-fail=tool` (the tool refuses). A query from plain
+// words: `?search-ai=none` (nothing set up to write one), `?search-ai=fail` (the writer fails), `?search-ai=codex` (Codex
+// writes it). The mock sends nothing anywhere: a few fixed rules stand in for the agent.
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const TOTAL = 128
 
@@ -146,7 +148,40 @@ function around(what: string, ref: string): unknown {
   }
 }
 
-export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "searchContext"> = {
+// Stand-in for the agent: the owner's words become the tool's own fields, never fields it does not have.
+function draft(id: string, request: string): string {
+  const fields = new Set((findTool(id)?.search?.fields ?? []).map((f) => f.name))
+  const words = request.toLowerCase()
+  const terms: string[] = []
+  const person = request.match(/\bfrom ([A-Z][\p{L}]+(?: [A-Z][\p{L}]+)?)/u)?.[1]
+  if (person && fields.has("from")) terms.push(`from:"${person}"`)
+  const chat = request.match(/\bin (?:the )?"?([A-Z][\p{L} ]+?)"? (?:chat|group)\b/u)?.[1]
+  if (chat && fields.has("chat")) terms.push(`chat:"${chat}"`)
+  const kinds: [string, string][] = [
+    ["photo", "photo"],
+    ["picture", "photo"],
+    ["file", "file"],
+    ["link", "link"],
+    ["voice", "voice"],
+  ]
+  const has = kinds.find(([word]) => words.includes(word))?.[1]
+  if (has && fields.has("has")) terms.push(`has:${has}`)
+  if (/last week|this week|7 days/.test(words) && fields.has("date")) terms.push("date>=7d")
+  else if (/last month|30 days/.test(words) && fields.has("date")) terms.push("date>=30d")
+  const topic = words.match(/\babout ([\p{L}]+)/u)?.[1]
+  if (topic) terms.unshift(topic)
+  return terms.join(" ") || words.split(/\s+/).slice(-1)[0] || ""
+}
+
+export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "searchContext" | "searchDraft"> = {
+  async searchDraft(id, request) {
+    await delay(1800)
+    const mode = params.get("search-ai")
+    const by = mode === "codex" ? "codex" : "claude-code"
+    if (mode === "none") return { kind: "none" }
+    if (mode === "fail") return { kind: "failed", by, message: "Claude Code's plan limit is used up for now" }
+    return { kind: "query", by, query: draft(id, request) }
+  },
   async searchContext(id, _profile, reference) {
     await delay(500)
     const search = findTool(id)?.search

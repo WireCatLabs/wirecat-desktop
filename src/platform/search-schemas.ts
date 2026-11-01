@@ -51,3 +51,15 @@ export const SearchContextSchema = v.variant("kind", [
   v.object({ kind: v.literal("failed"), message: v.string() }),
 ])
 export type SearchContext = v.InferOutput<typeof SearchContextSchema>
+
+/** Who turned the owner's words into a query, in the order WireCat tries them (docs/dev/plans/2026-11-01-search.md). */
+export const QueryWriterSchema = v.picklist(["claude-code", "chatgpt", "codex", "key"])
+export type QueryWriter = v.InferOutput<typeof QueryWriterSchema>
+
+export const QueryDraftSchema = v.variant("kind", [
+  v.object({ kind: v.literal("query"), query: v.string(), by: QueryWriterSchema }),
+  /** Nothing on this computer can write one: no signed-in Claude Code or Codex, no ChatGPT plan, no key. */
+  v.object({ kind: v.literal("none") }),
+  v.object({ kind: v.literal("failed"), message: v.string(), by: QueryWriterSchema }),
+])
+export type QueryDraft = v.InferOutput<typeof QueryDraftSchema>

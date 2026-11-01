@@ -21,7 +21,7 @@ import type {
   StorageFolder,
   ToolState,
 } from "./schemas"
-import type { SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
+import type { QueryDraft, SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
 import type { Settings } from "./settings-schemas"
 import type { SignInEvent } from "./signin-schemas"
 import type { LastSync, SyncEvent } from "./sync-schemas"
@@ -233,6 +233,11 @@ export type Platform = {
   searchValues(id: string, profile: string | null, source: string): Promise<ValueItem[]>
   /** What surrounds one hit in the local store (`search.context` in the catalog), by the ref the hit carries. */
   searchContext(id: string, profile: string | null, reference: string): Promise<SearchContext>
+  /**
+   * The owner's words as the tool's query, written by the agent or key the owner set up; never run by itself. Only
+   * the browser build has it so far: the tool command it needs is planned, not built.
+   */
+  searchDraft(id: string, request: string): Promise<QueryDraft>
   /** `profile: null` is the defaults every profile gets, or the one file a tool without per-profile settings keeps. */
   settingsShow(id: string, profile: string | null): Promise<Settings>
   /** `defaults` changes what every profile gets instead of one profile. Rejects with the tool's own message. */

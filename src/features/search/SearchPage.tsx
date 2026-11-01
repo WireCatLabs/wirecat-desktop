@@ -32,6 +32,7 @@ import { ToolIcon } from "../tools/ToolIcon"
 import { HitContext } from "./HitContext"
 import { HitsTable } from "./HitsTable"
 import { searchMessages } from "./messages"
+import { QueryDraft } from "./QueryDraft"
 import { LIMIT, listKey, missing, useSearch } from "./store"
 
 export const SEARCH_DOCS = "https://github.com/WireCatLabs/cli-core/blob/main/docs/search/query-language.md"
@@ -163,6 +164,20 @@ export function SearchPage() {
               <span id={ids.hint}>{pickerHint}</span>
             </ErrorNotice>
           </Collapse>
+
+          {platform.kind === "mock" && (
+            <QueryDraft
+              tool={s.tool}
+              onNeedTool={() => {
+                setTried(true)
+                focusInPlace(document.getElementById(ids.tool))
+              }}
+              onWritten={(query) => {
+                s.setQuery(query)
+                focusInPlace(document.getElementById(ids.query))
+              }}
+            />
+          )}
 
           <div className="flex flex-wrap items-start gap-[0.7rem]">
             <QueryBar
