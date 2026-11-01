@@ -8,6 +8,7 @@ import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
@@ -208,9 +209,10 @@ function Action(props: ActionProps) {
       onClick={onToggle}
       aria-expanded={expanded}
       aria-controls={controls}
-      className="min-w-[7.6rem]"
+      className="min-w-[7.6rem] pr-[0.8rem]"
     >
       {status.kind === "broken" ? m.fix : m.manage}
+      <ExpandChevron open={expanded} className="text-current opacity-70" />
     </Button>
   )
 }

@@ -1,4 +1,3 @@
-import { ChevronRight } from "lucide-react"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { type Lang, useLang, useMessages } from "@/i18n"
@@ -8,8 +7,8 @@ import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelState } from "@/platform/tailscale-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
-import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, PANEL_MS } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
@@ -175,21 +174,13 @@ export function McpServer({ tool }: { tool: CatalogTool }) {
           onClick={() => setOpen((o) => !o)}
           className="group flex w-full min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 rounded text-left"
         >
-          <span className="flex items-center gap-1.5 text-[1.02rem] font-semibold text-ink group-hover:text-brand">
-            <ChevronRight
-              className={cx(
-                "size-4 shrink-0 self-center text-ink-dim transition-transform duration-150 motion-reduce:transition-none",
-                open && "rotate-90",
-              )}
-              aria-hidden
-            />
-            {m.title}
-          </span>
+          <span className="text-[1.02rem] font-semibold text-ink group-hover:text-brand">{m.title}</span>
           {!open && (
             <span className="min-w-0 text-[0.9rem] font-normal text-ink-soft tabular-nums">
               {summary ?? <Skeleton chars={18} />}
             </span>
           )}
+          <ExpandChevron open={open} className="ml-auto self-center" />
         </button>
       </h4>
       <Collapse open={open} id={`${headingId}-body`} className="flex min-w-0 flex-col gap-4 pt-3">

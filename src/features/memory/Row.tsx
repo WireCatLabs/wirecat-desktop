@@ -32,6 +32,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
@@ -531,6 +532,7 @@ function CitedRef({ reference, shown, onToggle }: { reference: string; shown: bo
     >
       {sourceIcon(reference.split(":")[0] ?? "")}
       {reference}
+      <ExpandChevron open={shown} className="size-[0.85rem]" />
     </button>
   )
 }

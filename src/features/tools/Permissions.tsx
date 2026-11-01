@@ -1,4 +1,4 @@
-import { ChevronRight, RefreshCw, Terminal } from "lucide-react"
+import { RefreshCw, Terminal } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { setupCommand } from "@/domain/catalog"
@@ -13,6 +13,7 @@ import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
@@ -156,21 +157,13 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
           onClick={() => setOpen((o) => !o)}
           className="group flex w-full min-w-0 flex-wrap items-baseline gap-x-3 gap-y-1 rounded text-left"
         >
-          <span className="flex items-center gap-1.5 text-[1.02rem] font-semibold text-ink group-hover:text-brand">
-            <ChevronRight
-              className={cx(
-                "size-4 shrink-0 self-center text-ink-dim transition-transform duration-150 motion-reduce:transition-none",
-                open && "rotate-90",
-              )}
-              aria-hidden
-            />
-            {m.heading}
-          </span>
+          <span className="text-[1.02rem] font-semibold text-ink group-hover:text-brand">{m.heading}</span>
           {!open && (
             <span className="min-w-0 text-[0.9rem] font-normal text-ink-soft tabular-nums">
               {data ? m.closed(overview(summaries, m), profile) : error ? m.readFailedShort : <Skeleton chars={34} />}
             </span>
           )}
+          <ExpandChevron open={open} className="ml-auto self-center" />
         </button>
       </h4>
       {/* Outside the closed body: these limit every level, so they stay in sight. */}
