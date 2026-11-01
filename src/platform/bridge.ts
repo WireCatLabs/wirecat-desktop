@@ -51,6 +51,7 @@ import { FunnelStateSchema, PageEventSchema, TailscaleDownloadSchema, TailscaleS
 import {
   PersonSchema,
   ProjectSchema,
+  TaskCommentSchema,
   TaskCountsSchema,
   TaskEventSchema,
   TaskReadSchema,
@@ -198,7 +199,10 @@ function createTauri(): Platform {
     taskUpdate: (key, revision, edit) => call(TaskWriteSchema, "task_update", { key, revision, edit }),
     taskMove: (key, revision, place) => call(TaskWriteSchema, "task_move", { key, revision, place }),
     taskAssign: (key, revision, person) => call(TaskWriteSchema, "task_assign", { key, revision, person }),
+    taskComments: (key) => call(v.array(TaskCommentSchema), "task_comments", { key }),
+    taskCommentAdd: (key, text) => call(TaskCommentSchema, "task_comment_add", { key, text }),
     peopleList: () => call(v.array(PersonSchema), "people_list"),
+    personAdd: (name) => call(PersonSchema, "person_add", { name }),
     projectList: () => call(v.array(ProjectSchema), "project_list"),
     taskClaims: (id, profile) => call(ClaimsSchema, "task_claims", { id, profile }),
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),

@@ -2,12 +2,14 @@ import { Bot, CalendarDays, GitBranch, Lock, User } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { closed, labelOf, STATES, type State } from "@/domain/tasks"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import type { Person, Task, TaskEdit, TaskEvent } from "@/platform/task-schemas"
+import type { Creator, Person, Project, Task, TaskEdit, TaskEvent } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
-import { AssigneeCell, DueCell, PriorityCell, StatusCell } from "./cells"
+import { Comments } from "./Comments"
+import { AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, StatusCell } from "./cells"
 import { dueDay, stamp, type TaskWords, taskMessages } from "./messages"
 import { StaleLine } from "./Note"
 import { personName, StateLamp, TaskLink } from "./parts"
@@ -15,8 +17,13 @@ import { useTasks } from "./store"
 
 const isState = (v: unknown): v is State => typeof v === "string" && (STATES as readonly string[]).includes(v)
 
-function value(field: string, v: unknown, m: TaskWords, people: readonly Person[], lang: Lang): string | null {
+type Known = { people: readonly Person[]; projects: readonly Project[] }
+
+function value(field: string, v: unknown, m: TaskWords, known: Known, lang: Lang): string | null {
+  const { people, projects } = known
   if (v === null || v === undefined || v === "") return null
+  if (field === "project" && typeof v === "string") return projects.find((p) => p.ref === v)?.name ?? v
+  if (field === "type" && typeof v === "string") return m.kinds[v] ?? v
   if (field === "status" && isState(v)) return m.states[v]
   if (field === "priority" && typeof v === "number") return m.labels[labelOf(v) ?? "none"]
   if (field === "due_at" && (typeof v === "number" || typeof v === "string")) return dueDay(new Date(v), lang)
@@ -26,16 +33,16 @@ function value(field: string, v: unknown, m: TaskWords, people: readonly Person[
   return null
 }
 
-export function eventText(e: TaskEvent, m: TaskWords, people: readonly Person[], lang: Lang): string[] {
+export function eventText(e: TaskEvent, m: TaskWords, known: Known, lang: Lang): string[] {
   const who = e.by?.owner ? m.you : (e.by?.name ?? m.someone)
   if (e.kind === "created" || e.changes.length === 0)
     return [e.kind === "created" ? m.created(who) : `${who}: ${e.kind}`]
   return e.changes.map((c) => {
     const field = m.fields[c.field] ?? c.field
     // Notes can be long and are shown above; the history says only that they changed.
-    const from = c.field === "description" ? null : value(c.field, c.from, m, people, lang)
-    const to = c.field === "description" ? null : value(c.field, c.to, m, people, lang)
-    if (c.field === "description") return m.setField(who, field, "…")
+    const from = c.field === "description" ? null : value(c.field, c.from, m, known, lang)
+    const to = c.field === "description" ? null : value(c.field, c.to, m, known, lang)
+    if (c.field === "description") return c.to === null ? m.clearedField(who, field) : m.setField(who, field, "…")
     if (to === null) return m.clearedField(who, field)
     return from === null ? m.setField(who, field, to) : m.changedField(who, field, from, to)
   })
@@ -45,6 +52,9 @@ const KEY = /^[A-Z0-9]{2,4}-\d+$/
 
 const isAgent = (by: TaskEvent["by"]) => Boolean(by && !by.owner && !by.ref?.startsWith("person:"))
 
+/** "You", a person's name, or the agent's. */
+export const creatorName = (c: Creator, m: TaskWords) => (c.owner ? m.you : (c.name ?? m.someone))
+
 function Who({ by }: { by: TaskEvent["by"] }) {
   const m = useMessages(taskMessages)
   if (!by) return null
@@ -52,7 +62,7 @@ function Who({ by }: { by: TaskEvent["by"] }) {
   return <Icon role="img" aria-label={isAgent(by) ? m.byAgent : m.byPerson} className="size-[0.85rem] shrink-0" />
 }
 
-function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
+function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string | undefined }) {
   return (
     <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-baseline gap-x-3 py-[0.15rem]">
       <dt className="text-[0.875rem] text-ink-dim">{label}</dt>
@@ -97,8 +107,9 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
 
   const edit: TaskEdit = {}
   if (title.trim() && title.trim() !== task.title) edit.title = title.trim()
-  // memo cannot empty the notes, so an emptied box is not a change it could save.
-  if (notes.trim() && notes !== (task.description ?? "")) edit.description = notes
+  // An emptied box clears the notes.
+  if (notes.trim() ? notes !== (task.description ?? "") : Boolean(task.description))
+    edit.description = notes.trim() && notes
   if (agent.trim() !== (task.agent ?? "")) edit.agent = agent.trim() || "none"
   const changed = Object.keys(edit).length > 0
   useEffect(() => onDirty?.(changed), [changed, onDirty])
@@ -113,10 +124,9 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
     requestAnimationFrame(() => box.current?.focus())
   }
 
-  const project = task.project.replace(/^project:/, "")
-  const projectName = projects.find((p) => p.key === project)?.name
+  const subtasks = useTasks((s) => s.subtasks[task.key])
   const made = history?.state === "ready" ? history.events.find((e) => e.kind === "created") : undefined
-  const maker = made?.by ? (made.by.owner ? m.you : (made.by.name ?? m.someone)) : null
+  const maker = task.createdBy ? creatorName(task.createdBy, m) : null
   // memo keeps one notes field, so the thread has one entry: whoever last wrote it, or else whoever made the task.
   const wrote =
     history?.state === "ready"
@@ -212,6 +222,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           {failed && <ErrorNotice inline>{m.notSaved(failed)}</ErrorNotice>}
           <StaleLine taskKey={task.key} />
         </form>
+        <Comments taskKey={task.key} />
         <section aria-labelledby={`${id}-waits`} className="flex flex-col gap-[0.4rem]">
           <h3 id={`${id}-waits`} className="flex items-center gap-[0.4rem] text-[0.9rem] font-medium text-ink-dim">
             <GitBranch className="size-[0.95rem]" aria-hidden /> {m.waitsHeading}
@@ -262,7 +273,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           ) : (
             <ul className="flex flex-col gap-[0.25rem] text-[0.9rem]">
               {[...history.events].reverse().flatMap((e, i) =>
-                eventText(e, m, people, lang).map((line, j) => (
+                eventText(e, m, { people, projects }, lang).map((line, j) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: events have no id, and the list is replaced whole
                   <li key={`${e.at}-${i}-${j}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3">
                     <span className="font-mono whitespace-nowrap tabular-nums text-ink-dim">{stamp(e.at, lang)}</span>
@@ -293,24 +304,34 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           <Field label={m.priority}>
             <PriorityCell task={task} />
           </Field>
+          <Field label={m.kind}>
+            <KindCell task={task} />
+          </Field>
           <Field label={m.assignee}>
             <AssigneeCell task={task} />
           </Field>
           <Field label={m.due}>
             <DueCell task={task} />
           </Field>
-          <Field label={m.project} hint={m.projectFixed}>
-            <span className="block truncate py-[0.3rem]">
-              <span className="font-mono text-[0.85rem]">{project}</span>
-              {projectName && <span className="text-ink-soft"> · {projectName}</span>}
-            </span>
+          <Field label={m.project} hint={subtasks ? undefined : m.projectHint}>
+            <ProjectCell task={task} />
+            <Collapse open={Boolean(subtasks)}>
+              <div role="alert" className="mt-[0.3rem] flex flex-col gap-[0.25rem] text-[0.85rem] leading-snug">
+                <span className="text-bad">{m.moveRefused}</span>
+                {subtasks?.map((t) => (
+                  <span key={t.key} className="flex min-w-0 items-center gap-[0.4rem]">
+                    <TaskLink taskKey={t.key} />
+                    <span className="truncate text-ink-soft">{t.title}</span>
+                  </span>
+                ))}
+              </div>
+            </Collapse>
           </Field>
         </dl>
         <dl className="flex flex-col border-line border-t pt-[0.7rem] text-ink-soft">
           <Field label={m.key}>
             <span className="selectable font-mono text-[0.85rem]">{task.key}</span>
           </Field>
-          {task.kind && <Field label={m.kind}>{m.kinds[task.kind] ?? task.kind}</Field>}
           {task.parent && (
             <Field label={m.parent}>
               {KEY.test(task.parent) ? (

@@ -31,6 +31,7 @@ import type {
   Person,
   Project,
   Task,
+  TaskComment,
   TaskCounts,
   TaskEdit,
   TaskEvent,
@@ -190,8 +191,14 @@ export type Platform = {
   taskMove(key: string, revision: number, place: TaskPlace): Promise<TaskWrite>
   /** Makes one person the assignee, or nobody with `null`. */
   taskAssign(key: string, revision: number, person: string | null): Promise<TaskWrite>
-  /** The owner and everyone who holds a role on a task. */
+  /** What people and agents wrote on a task, oldest first. */
+  taskComments(key: string): Promise<TaskComment[]>
+  /** Comments in the owner's name; a comment moves no revision. */
+  taskCommentAdd(key: string, text: string): Promise<TaskComment>
+  /** Everyone memo knows: the owner, people from messages, and people added here. */
   peopleList(): Promise<Person[]>
+  /** Adds a person by name, so a task can be given to them before any message names them. */
+  personAdd(name: string): Promise<Person>
   projectList(): Promise<Project[]>
   taskClaims(id: string, profile: string): Promise<Claims>
   /** Releases a claim as the owner, who may release any. */

@@ -55,9 +55,14 @@ export function Filters() {
     icon: <StateLamp state={s} />,
     count: countOf(counts?.state, s),
   }))
-  // memo counts no agents yet, so the choices are the agents the tasks on screen name.
-  const agents = [...new Set(tasks.flatMap((t) => [t.agent, t.claimedBy]).filter((a): a is string => Boolean(a)))]
-  const agentOptions = [{ value: "*", label: m.anyAgent }, ...agents.sort().map((a) => ({ value: a, label: a }))]
+  // memo counts the agents tasks name; until the counts arrive, the choices are the agents the tasks on screen name.
+  const counted = counts?.agent.filter((f) => f.value !== "none").map((f) => f.value)
+  const agents = counted ?? [...new Set(tasks.flatMap((t) => (t.agent ? [t.agent] : [])))]
+  const agentOptions = [
+    { value: "*", label: m.anyAgent },
+    ...[...agents].sort().map((a) => ({ value: a, label: a, count: countOf(counts?.agent, a) })),
+  ]
+  const dueCount = (bucket: string) => countOf(counts?.due, bucket)
   const due = dueOf(query)
   const [custom, setCustom] = useState(false)
   const dueAnchor = useRef<HTMLSpanElement>(null)
@@ -95,11 +100,11 @@ export function Filters() {
             label={m.due}
             single
             options={[
-              { value: "overdue", label: m.overdue },
-              { value: "today", label: m.today },
+              { value: "overdue", label: m.overdue, count: dueCount("overdue") },
+              { value: "today", label: m.today, count: dueCount("today") },
               { value: "tomorrow", label: m.tomorrow },
               { value: "week", label: m.week },
-              { value: "none", label: m.noDate },
+              { value: "none", label: m.noDate, count: dueCount("none") },
               { value: "custom", label: typeof due === "object" && due ? dueLabel : m.customDay },
             ]}
             selected={due ? [typeof due === "object" ? "custom" : due] : []}

@@ -21,6 +21,8 @@ const WRITE: Duration = Duration::from_secs(30);
 const QUIET: [&str; 2] = ["--json", "--no-record"];
 pub const STATES: [&str; 5] = ["open", "todo", "in_progress", "done", "dismissed"];
 pub const PRIORITIES: [&str; 5] = ["low", "medium", "high", "critical", "none"];
+pub const KINDS: [&str; 3] = ["bug", "feature", "chore"];
+const MAX_NAME: usize = 200;
 
 /// One Memo command: its JSON on success, or the error object Memo printed.
 type Call<'a> = dyn Fn(&[String]) -> Result<Value, Failure> + Sync + 'a;
@@ -79,8 +81,18 @@ pub fn validate_state(state: &str) -> Result<&str, String> {
     STATES.contains(&state).then_some(state).ok_or_else(|| format!("not a task state: {state}"))
 }
 
+/// A label, or a number from 0 to 1 with its decimal point (`0.3`): memo reads a bare `0` … `4` as the old scale.
 pub fn validate_priority(priority: &str) -> Result<&str, String> {
-    PRIORITIES.contains(&priority).then_some(priority).ok_or_else(|| format!("not a priority: {priority}"))
+    let decimal = priority
+        .strip_prefix("0.")
+        .or_else(|| priority.strip_prefix("1."))
+        .is_some_and(|d| !d.is_empty() && d.len() <= 6 && d.bytes().all(|b| b.is_ascii_digit()))
+        && priority.parse::<f64>().is_ok_and(|p| p <= 1.0);
+    (PRIORITIES.contains(&priority) || decimal).then_some(priority).ok_or_else(|| format!("not a priority: {priority}"))
+}
+
+pub fn validate_kind(kind: &str) -> Result<&str, String> {
+    KINDS.contains(&kind).then_some(kind).ok_or_else(|| format!("not a task type: {kind}"))
 }
 
 /// A calendar day, `YYYY-MM-DD`, which Memo reads as local midnight; or `none` to clear the date.
@@ -113,6 +125,23 @@ pub fn validate_notes(notes: &str) -> Result<&str, String> {
     Ok(notes)
 }
 
+/// A comment is Markdown like the notes, and says something.
+pub fn validate_comment(text: &str) -> Result<&str, String> {
+    if text.trim().is_empty() {
+        return Err("a comment says something".into());
+    }
+    validate_notes(text).map_err(|_| format!("a comment is at most {MAX_NOTES} characters"))
+}
+
+/// What to call a new person: one line, as the owner typed it.
+pub fn validate_name(name: &str) -> Result<&str, String> {
+    let n = name.trim();
+    if n.is_empty() || n.chars().count() > MAX_NAME || n.chars().any(char::is_control) {
+        return Err(format!("a name is 1 to {MAX_NAME} characters on one line"));
+    }
+    Ok(n)
+}
+
 /// The owner's search words. The board shows project tasks only, so the query always narrows to `project:*`.
 pub fn board_query(query: &str) -> Result<String, String> {
     let q = query.trim();
@@ -133,7 +162,10 @@ pub struct Blocker {
 #[serde(rename_all = "camelCase")]
 pub struct Task {
     pub key: String,
+    /// The project's key, as memo names it: a task moved to another project keeps its old key as an alias.
     pub project: String,
+    pub project_name: Option<String>,
+    pub created_by: Option<Creator>,
     pub title: String,
     pub description: Option<String>,
     pub kind: Option<String>,
@@ -156,6 +188,19 @@ pub struct Task {
     pub updated_at: Option<String>,
 }
 
+/// Who made a task: the owner, another person or an agent.
+#[derive(Serialize, Debug, PartialEq, Clone)]
+pub struct Creator {
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub name: Option<String>,
+    pub owner: bool,
+}
+
+fn creator(v: &Value) -> Option<Creator> {
+    Some(Creator { kind: text(v, "type")?, name: text(v, "name"), owner: v["owner"].as_bool().unwrap_or(false) })
+}
+
 fn text(v: &Value, key: &str) -> Option<String> {
     v.get(key).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string)
 }
@@ -166,10 +211,10 @@ fn bare_key(reference: &str) -> String {
 
 /// One task from `tasks list`, or from `tasks show` and the writes, which still say `status` and `type`.
 fn task(v: &Value) -> Option<Task> {
-    let key = text(v, "key")?;
-    let project = key.split_once('-')?.0.to_string();
     Some(Task {
-        project,
+        project: text(v, "project_key")?,
+        project_name: text(v, "project_name"),
+        created_by: creator(&v["created_by"]),
         title: text(v, "title")?,
         description: text(v, "description"),
         kind: text(v, "kind").or_else(|| text(v, "type")),
@@ -201,7 +246,7 @@ fn task(v: &Value) -> Option<Task> {
                     .collect()
             })
             .unwrap_or_default(),
-        key,
+        key: text(v, "key")?,
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
     })
@@ -254,7 +299,11 @@ fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Fail
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
         j => Err(Failure {
-            reason: j.as_ref().and_then(|v| v["error"]["reason"].as_str()).map(str::to_string),
+            // memo 0.131.11 puts the reason on the error itself; its notes name `details.reason` as well.
+            reason: j
+                .as_ref()
+                .and_then(|v| v["error"]["reason"].as_str().or_else(|| v["error"]["details"]["reason"].as_str()))
+                .map(str::to_string),
             message: failure(&out, j.as_ref()),
         }),
     }
@@ -325,6 +374,9 @@ pub struct Counts {
     pub assignee: Vec<Facet>,
     pub priority: Vec<Facet>,
     pub state: Vec<Facet>,
+    /// `overdue`, `today`, `upcoming`, `later` and `none`, as memo's `when:` reads them.
+    pub due: Vec<Facet>,
+    pub agent: Vec<Facet>,
 }
 
 fn counts_of(v: &Value) -> Counts {
@@ -347,6 +399,8 @@ fn counts_of(v: &Value) -> Counts {
         assignee: facet("assignee"),
         priority: facet("priority"),
         state: facet("state"),
+        due: facet("due"),
+        agent: facet("agent"),
     }
 }
 
@@ -387,8 +441,28 @@ pub fn people() -> Result<Vec<Person>, String> {
     with_memo(READ, people_with)
 }
 
+/// The name goes after `--`: memo reads every word after it as the name, so one that starts with a dash stays a name.
+fn person_add_with(call: &Call, name: &str) -> Result<Person, Failure> {
+    let mut args = words(&["people", "add"]);
+    args.extend(["--".to_string(), name.to_string()]);
+    let v = call(&args)?;
+    let item = body(&v);
+    let reference = text(item, "ref").filter(|r| validate_person(r).is_ok());
+    let reference =
+        reference.ok_or_else(|| Failure { reason: None, message: "Memo did not name the person".into() })?;
+    Ok(Person { reference, name: text(item, "name"), owner: false })
+}
+
+pub fn person_add(name: &str) -> Result<Person, String> {
+    let name = validate_name(name)?;
+    with_memo(WRITE, |call| person_add_with(call, name))
+}
+
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Project {
+    /// `project:<id>`, as a task's history names a move.
+    #[serde(rename = "ref")]
+    pub reference: Option<String>,
     pub key: String,
     pub name: String,
 }
@@ -400,7 +474,13 @@ fn projects_with(call: &Call) -> Result<Vec<Project>, Failure> {
         .as_array()
         .map(|a| {
             a.iter()
-                .filter_map(|p| Some(Project { key: text(p, "key")?, name: text(p, "name").unwrap_or_default() }))
+                .filter_map(|p| {
+                    Some(Project {
+                        reference: text(p, "ref"),
+                        key: text(p, "key")?,
+                        name: text(p, "name").unwrap_or_default(),
+                    })
+                })
                 .collect()
         })
         .unwrap_or_default())
@@ -471,6 +551,48 @@ pub fn history(key: &str) -> Result<Vec<Event>, String> {
     with_memo(READ, |call| history_with(call, key))
 }
 
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Comment {
+    #[serde(rename = "ref")]
+    pub reference: Option<String>,
+    pub text: String,
+    pub author: Option<Creator>,
+    pub at: String,
+}
+
+fn comment(v: &Value) -> Option<Comment> {
+    Some(Comment {
+        reference: text(v, "ref"),
+        text: text(v, "text")?,
+        author: creator(&v["author"]),
+        at: text(v, "at")?,
+    })
+}
+
+/// Oldest first, as memo lists them.
+fn comments_with(call: &Call, key: &str) -> Result<Vec<Comment>, Failure> {
+    let v = call(&words(&["tasks", "comments", "list", key]))?;
+    Ok(v["items"].as_array().map(|a| a.iter().filter_map(comment).collect()).unwrap_or_default())
+}
+
+pub fn comments(key: &str) -> Result<Vec<Comment>, String> {
+    let key = validate_key(key)?;
+    with_memo(READ, |call| comments_with(call, key))
+}
+
+/// The text goes after `--`, so a comment that starts with a dash is never an option. A comment moves no revision.
+fn comment_add_with(call: &Call, key: &str, text: &str) -> Result<Comment, Failure> {
+    let args = with_query(&["tasks", "comments", "add", key], text);
+    comment(body(&call(&args)?))
+        .ok_or_else(|| Failure { reason: None, message: "Memo's answer did not describe the comment".into() })
+}
+
+pub fn comment_add(key: &str, text: &str) -> Result<Comment, String> {
+    let key = validate_key(key)?;
+    let text = validate_comment(text)?;
+    with_memo(WRITE, |call| comment_add_with(call, key, text))
+}
+
 fn shown(v: &Value) -> Result<Task, Failure> {
     task(body(v)).ok_or_else(|| Failure { reason: None, message: "Memo's answer did not describe the task".into() })
 }
@@ -506,6 +628,15 @@ pub enum Write {
     /// `last` the latest change, so the page can say who changed what.
     #[serde(rename_all = "camelCase")]
     Stale { current: Task, last: Option<Event> },
+    /// memo moves a task to another project only without subtasks; these are the ones it still has.
+    #[serde(rename_all = "camelCase")]
+    HasSubtasks { subtasks: Vec<Subtask> },
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Subtask {
+    pub key: String,
+    pub title: String,
 }
 
 fn stale(f: &Failure) -> bool {
@@ -517,8 +648,28 @@ fn write_with(call: &Call, key: &str, args: &[String]) -> Result<Write, Failure>
     match call(args) {
         Ok(v) => Ok(saved(&v)?),
         Err(f) if stale(&f) => stale_with(call, key),
+        Err(f) if f.reason.as_deref() == Some("task.has-subtasks") => subtasks_with(call, key),
         Err(f) => Err(f),
     }
+}
+
+/// memo's refusal names the subtasks only in its message, and its query has no `parent:` field, so the task's own
+/// project is read and its children picked out.
+fn subtasks_with(call: &Call, key: &str) -> Result<Write, Failure> {
+    let project = show_with(call, key)?.project;
+    let args = with_query(&["tasks", "list", "--limit", LIMIT], &format!("project:{project} state:*"));
+    let v = call(&args)?;
+    let subtasks = v["items"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter_map(task)
+                .filter(|t| t.parent.as_deref() == Some(key))
+                .map(|t| Subtask { key: t.key, title: t.title })
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(Write::HasSubtasks { subtasks })
 }
 
 fn stale_with(call: &Call, key: &str) -> Result<Write, Failure> {
@@ -550,11 +701,15 @@ fn saved(v: &Value) -> Result<Write, Failure> {
 #[serde(rename_all = "camelCase")]
 pub struct Edit {
     pub title: Option<String>,
+    /// Empty clears the notes.
     pub description: Option<String>,
     pub priority: Option<String>,
     pub due: Option<String>,
     pub agent: Option<String>,
     pub state: Option<String>,
+    /// Another project's key: memo gives the task a new key there and the old one still finds it.
+    pub project: Option<String>,
+    pub kind: Option<String>,
 }
 
 /// Text goes as `--title=<text>`, so a title that starts with a dash is never read as an option.
@@ -564,11 +719,8 @@ fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, Strin
         args.push(format!("--title={}", validate_title(t)?));
     }
     if let Some(d) = &edit.description {
-        // memo takes 1 to 20,000 characters and has no way to empty the notes yet.
-        if d.trim().is_empty() {
-            return Err("Memo cannot empty a task's notes yet".into());
-        }
-        args.push(format!("--description={}", validate_notes(d)?));
+        let notes = if d.trim().is_empty() { "none" } else { validate_notes(d)? };
+        args.push(format!("--description={notes}"));
     }
     if let Some(p) = &edit.priority {
         args.push(format!("--priority={}", validate_priority(p)?));
@@ -581,6 +733,12 @@ fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, Strin
     }
     if let Some(s) = &edit.state {
         args.push(format!("--status={}", validate_state(s)?));
+    }
+    if let Some(p) = &edit.project {
+        args.push(format!("--project={}", validate_project(p)?));
+    }
+    if let Some(k) = &edit.kind {
+        args.push(format!("--type={}", validate_kind(k)?));
     }
     if args.len() == 3 {
         return Err("nothing to change".into());
@@ -644,7 +802,7 @@ fn assign_with(call: &Call, key: &str, revision: u64, person: Option<&str>) -> R
         result = write_with(call, key, &words(&["tasks", "assign", key, p, "--clear", &r]))?;
         match &result {
             Write::Saved { task, .. } => rev = task.revision,
-            Write::Stale { .. } => return Ok(result),
+            Write::Stale { .. } | Write::HasSubtasks { .. } => return Ok(result),
         }
     }
     if let (Some(p), false) = (person, has) {
@@ -684,32 +842,19 @@ fn add_args(new: &New) -> Result<Vec<String>, String> {
     if let Some(a) = &new.assignee {
         args.push(format!("--assignee={}", validate_person(a)?));
     }
+    if let Some(d) = new.due.as_deref().filter(|d| *d != "none") {
+        args.push(format!("--due={}", validate_due(d)?));
+    }
+    if let Some(s) = new.state.as_deref().filter(|s| *s != "open") {
+        args.push(format!("--status={}", validate_state(s)?));
+    }
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
     Ok(args)
 }
 
-/// `tasks add` takes no due date or state, so a second write sets them on the task it answered.
-fn create_with(call: &Call, new: &New) -> Result<Write, Failure> {
-    let as_failure = |message: String| Failure { reason: None, message };
-    let added = saved(&call(&add_args(new).map_err(as_failure)?)?)?;
-    let Write::Saved { task, .. } = &added else { return Ok(added) };
-    let state = new.state.as_deref().filter(|s| *s != "open");
-    if new.due.is_none() && state.is_none() {
-        return Ok(added);
-    }
-    let edit = Edit { due: new.due.clone(), state: state.map(str::to_string), ..Edit::default() };
-    let args = edit_args(&task.key, task.revision, &edit).map_err(as_failure)?;
-    write_with(call, &task.key, &args)
-}
-
 pub fn create(new: &New) -> Result<Write, String> {
-    if let Some(d) = &new.due {
-        validate_due(d)?;
-    }
-    if let Some(s) = &new.state {
-        validate_state(s)?;
-    }
-    with_memo(WRITE, |call| create_with(call, new))
+    let args = add_args(new)?;
+    with_memo(WRITE, |call| saved(&call(&args)?))
 }
 
 #[cfg(test)]
@@ -748,10 +893,11 @@ mod tests {
         }
     }
 
-    // Captured from memo 0.131.2 against a throwaway store.
+    // Captured from memo 0.131.11 against a throwaway store.
     fn listed() -> Value {
         json!({"ref":"task:HRB-1","id":"HRB-1","key":"HRB-1","title":"Draft the budget","description":null,
-            "kind":"feature","state":"open","project":"project:1","source_message":null,"priority":0.734_375,
+            "kind":"feature","state":"open","project":"project:1","project_key":"HRB","project_name":"Harbour",
+            "created_by":{"type":"bot","id":"4","name":"hermes","owner":false},"source_message":null,"priority":0.734_375,
             "priority_label":"high","agent":"hermes","revision":5,"parent":null,"due_at":"2026-11-04T23:00:00.000Z",
             "closed_at":null,"reason":null,"category":null,"claimed_by":"hermes",
             "claimed_until":"2026-11-01T00:52:52.096Z","assignments":[{"to":"person:2","role":"assignee"},
@@ -761,7 +907,8 @@ mod tests {
 
     fn card(revision: u64, assignees: &[&str]) -> Value {
         let assignments: Vec<Value> = assignees.iter().map(|p| json!({"to": p, "role": "assignee"})).collect();
-        json!({"id":"HRB-1","ref":"task:HRB-1","key":"HRB-1","project":"project:1","title":"Draft the budget",
+        json!({"id":"HRB-1","ref":"task:HRB-1","key":"HRB-1","project":"project:1","project_key":"HRB",
+            "project_name":"Harbour","created_by":{"type":"person","id":"1","name":null,"owner":true},"title":"Draft the budget",
             "description":null,"type":"feature","status":"in_progress","priority":0.765_625,"priority_label":"critical",
             "agent":null,"revision":revision,"parent":null,"source":null,"due_at":null,"next_check_at":null,
             "closed_at":null,"reason":null,"verdict":null,"category":null,"claimed_by":null,"claimed_until":null,
@@ -794,7 +941,17 @@ mod tests {
         assert!(validate_state("in_progress").is_ok());
         assert!(validate_state("waiting").is_err());
         assert!(validate_priority("none").is_ok());
-        assert!(validate_priority("0.3").is_err());
+        assert!(validate_priority("0.3").is_ok());
+        assert!(validate_priority("1.0").is_ok());
+        for bad in ["3", "0.", "1.5", "0.3e1", "-0.3", ".3"] {
+            assert!(validate_priority(bad).is_err(), "{bad}");
+        }
+        assert!(validate_kind("bug").is_ok());
+        assert!(validate_kind("task").is_err());
+        assert_eq!(validate_name("  Lena Ortiz ").unwrap(), "Lena Ortiz");
+        assert!(validate_name("two\nlines").is_err());
+        assert!(validate_comment("  ").is_err());
+        assert!(validate_comment("a\nb").is_ok());
         assert!(validate_due("2026-11-05").is_ok());
         assert!(validate_due("none").is_ok());
         for bad in ["2026-13-01", "2026-1-01", "tomorrow", "2d"] {
@@ -828,7 +985,8 @@ mod tests {
         let Read::Ready { tasks, total, more } = read else { panic!("not ready") };
         assert_eq!((total, more), (612, true));
         let t = &tasks[0];
-        assert_eq!(t.project, "HRB");
+        assert_eq!((t.project.as_str(), t.project_name.as_deref()), ("HRB", Some("Harbour")));
+        assert_eq!(t.created_by, Some(Creator { kind: "bot".into(), name: Some("hermes".into()), owner: false }));
         assert_eq!(t.assignees, ["person:2"]);
         assert_eq!(t.blocked_by, [Blocker { key: "HRB-3".into(), state: "open".into() }]);
         assert_eq!(t.ready, Some(false));
@@ -879,8 +1037,11 @@ mod tests {
         let c = counts_of(&json!({"item":{"total":3,
             "project":[{"value":"HRB","name":"Harbour launch","count":2}],
             "assignee":[{"value":"none","name":null,"count":2},{"value":"person:2","name":"Ana Ruiz","count":1}],
-            "priority":[{"value":"critical","count":2}],"state":[{"value":"open","count":3}]}}));
+            "priority":[{"value":"critical","count":2}],"state":[{"value":"open","count":3}],
+            "due":[{"value":"overdue","count":1},{"value":"none","count":2}],"agent":[{"value":"hermes","count":1}]}}));
         assert_eq!(c.total, 3);
+        assert_eq!(c.due[0], Facet { value: "overdue".into(), name: None, count: 1 });
+        assert_eq!(c.agent[0].value, "hermes");
         assert_eq!(c.assignee[1], Facet { value: "person:2".into(), name: Some("Ana Ruiz".into()), count: 1 });
         assert_eq!(c.priority[0].name, None);
     }
@@ -899,7 +1060,10 @@ mod tests {
         let people = people_with(&call).unwrap();
         assert_eq!(people.len(), 2);
         assert!(people[0].owner);
-        assert_eq!(projects_with(&call).unwrap(), [Project { key: "HRB".into(), name: "Harbour launch".into() }]);
+        assert_eq!(
+            projects_with(&call).unwrap(),
+            [Project { reference: Some("project:1".into()), key: "HRB".into(), name: "Harbour launch".into() }]
+        );
         assert_eq!(fake.seen()[1], strs(&["projects", "list", "--json", "--no-record", "--", "kind:project"]));
     }
 
@@ -940,7 +1104,75 @@ mod tests {
             ])
         );
         assert!(edit_args("HRB-1", 7, &Edit::default()).is_err());
-        assert!(edit_args("HRB-1", 7, &Edit { priority: Some("0.3".into()), ..Edit::default() }).is_err());
+        assert!(edit_args("HRB-1", 7, &Edit { priority: Some("3".into()), ..Edit::default() }).is_err());
+        let moved = Edit {
+            project: Some("OPS".into()),
+            kind: Some("bug".into()),
+            description: Some(" ".into()),
+            ..Edit::default()
+        };
+        assert_eq!(
+            edit_args("HRB-1", 7, &moved).unwrap()[3..6],
+            strs(&["--description=none", "--project=OPS", "--type=bug"])
+        );
+        assert!(edit_args("HRB-1", 7, &Edit { kind: Some("task".into()), ..Edit::default() }).is_err());
+    }
+
+    #[test]
+    fn a_task_with_subtasks_is_refused_a_move_with_them_listed() {
+        let fake = Fake::new(|a| match a[1].as_str() {
+            "update" => Err(Failure {
+                reason: Some("task.has-subtasks".into()),
+                message: "HRB-1 has subtasks (HRB-3); move or detach them first".into(),
+            }),
+            "show" => Ok(json!({"item": card(4, &[])})),
+            _ => {
+                let mut child = listed();
+                child["key"] = json!("HRB-3");
+                child["title"] = json!("Print flyers");
+                child["parent"] = json!("task:HRB-1");
+                Ok(json!({"items":[listed(), child]}))
+            }
+        });
+        let edit = Edit { project: Some("OPS".into()), ..Edit::default() };
+        let args = edit_args("HRB-1", 4, &edit).unwrap();
+        let out = write_with(&|a: &[String]| fake.call(a), "HRB-1", &args).unwrap();
+        assert_eq!(
+            out,
+            Write::HasSubtasks { subtasks: vec![Subtask { key: "HRB-3".into(), title: "Print flyers".into() }] }
+        );
+        assert_eq!(
+            fake.seen()[2],
+            strs(&["tasks", "list", "--limit", "500", "--json", "--no-record", "--", "project:HRB state:*"])
+        );
+    }
+
+    #[test]
+    fn comments_and_new_people_take_their_text_after_a_double_dash() {
+        let fake = Fake::new(|a| {
+            Ok(match (a[0].as_str(), a.get(2).map(String::as_str)) {
+                ("people", _) => json!({"item":{"ref":"person:4","name":"-Lena"}}),
+                (_, Some("list")) => json!({"items":[{"ref":"note:1","text":"Booked the hall",
+                    "author":{"type":"person","id":"1","name":null,"owner":true},"at":"2026-11-01T20:19:44.490Z"}]}),
+                _ => json!({"item":{"ref":"note:2","text":"-x first","author":{"type":"bot","id":"4","name":"hermes",
+                    "owner":false},"at":"2026-11-01T20:20:00.000Z"}}),
+            })
+        });
+        let call = |a: &[String]| fake.call(a);
+        let listed = comments_with(&call, "HRB-1").unwrap();
+        assert!(listed[0].author.as_ref().unwrap().owner);
+        assert_eq!(
+            comment_add_with(&call, "HRB-1", "-x first").unwrap().author.unwrap().name.as_deref(),
+            Some("hermes")
+        );
+        assert_eq!(
+            person_add_with(&call, "-Lena").unwrap(),
+            Person { reference: "person:4".into(), name: Some("-Lena".into()), owner: false }
+        );
+        let seen = fake.seen();
+        assert_eq!(seen[0], strs(&["tasks", "comments", "list", "HRB-1", "--json", "--no-record"]));
+        assert_eq!(seen[1], strs(&["tasks", "comments", "add", "HRB-1", "--json", "--no-record", "--", "-x first"]));
+        assert_eq!(seen[2], strs(&["people", "add", "--json", "--no-record", "--", "-Lena"]));
     }
 
     #[test]
@@ -1024,8 +1256,7 @@ mod tests {
     }
 
     #[test]
-    fn a_new_task_gets_its_date_and_column_in_a_second_write() {
-        let fake = Fake::new(|a| Ok(json!({"item": card(if a[1] == "add" { 2 } else { 3 }, &[])})));
+    fn a_new_task_gets_its_date_and_column_in_the_same_write() {
         let new = New {
             project: "HRB".into(),
             title: "Print flyers".into(),
@@ -1034,11 +1265,8 @@ mod tests {
             due: Some("2026-11-05".into()),
             state: Some("todo".into()),
         };
-        let out = create_with(&|a: &[String]| fake.call(a), &new).unwrap();
-        assert!(matches!(out, Write::Saved { .. }));
-        let seen = fake.seen();
         assert_eq!(
-            seen[0],
+            add_args(&new).unwrap(),
             strs(&[
                 "tasks",
                 "add",
@@ -1046,16 +1274,16 @@ mod tests {
                 "--title=Print flyers",
                 "--priority=medium",
                 "--assignee=person:2",
+                "--due=2026-11-05",
+                "--status=todo",
                 "--json",
                 "--no-record"
             ])
         );
-        assert_eq!(&seen[1][..5], strs(&["tasks", "update", "HRB-1", "--due=2026-11-05", "--status=todo"]));
-        assert!(seen[1].contains(&"--revision=2".to_string()));
-        let plain = Fake::new(|_| Ok(json!({"item": card(2, &[])})));
-        create_with(&|a: &[String]| plain.call(a), &New { project: "HRB".into(), title: "x".into(), ..New::default() })
-            .unwrap();
-        assert_eq!(plain.seen().len(), 1);
+        let open =
+            New { state: Some("open".into()), ..New { project: "HRB".into(), title: "x".into(), ..New::default() } };
+        assert_eq!(add_args(&open).unwrap().len(), 6);
+        assert!(add_args(&New { due: Some("soon".into()), ..open }).is_err());
     }
 
     #[test]
@@ -1083,9 +1311,10 @@ mod tests {
     }
 
     /// Against a real memo with a throwaway store that holds projects HRB and OPS:
-    /// `MEMO_BIN=<memo> cargo test task_board -- --ignored`. It writes to that store, so never point it at the owner's.
+    /// `MEMO_BIN=<memo> cargo test task_board -- --ignored --test-threads=1` (the two tests share the store). It writes to
+    /// that store, so never point it at the owner's.
     #[test]
-    #[ignore = "needs MEMO_BIN, a memo 0.131.4+ with a throwaway store"]
+    #[ignore = "needs MEMO_BIN, a memo 0.131.11+ with a throwaway store"]
     fn reads_and_writes_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
@@ -1105,7 +1334,8 @@ mod tests {
             "-project:OPS budget",
             week,
             "NOT due:*",
-            "overdue:true",
+            "when:overdue",
+            "due:tomorrow",
             "agent:*",
             "ready:true",
             "priority:(high OR critical)",
@@ -1128,11 +1358,12 @@ mod tests {
             state: Some("todo".into()),
             ..New::default()
         };
-        let Write::Saved { task: a, .. } = create_with(&call, &new).unwrap() else { panic!("not created") };
+        let create = |n: &New| saved(&call(&add_args(n).unwrap()).unwrap()).unwrap();
+        let Write::Saved { task: a, .. } = create(&new) else { panic!("not created") };
         assert_eq!((a.state.as_str(), a.title.as_str()), ("todo", "-Probe the board"));
         let new =
             New { project: "HRB".into(), title: "Probe two".into(), state: Some("todo".into()), ..New::default() };
-        let Write::Saved { task: b, .. } = create_with(&call, &new).unwrap() else { panic!("not created") };
+        let Write::Saved { task: b, .. } = create(&new) else { panic!("not created") };
         let place = Place { state: Some("todo".into()), before: Some(a.key.clone()), after: None };
         let Write::Saved { task: moved, .. } =
             write_with(&call, &b.key, &move_args(&b.key, b.revision, &place).unwrap()).unwrap()
@@ -1155,8 +1386,6 @@ mod tests {
         let held = show_with(&call, &b.key).unwrap();
         call(&words(&["tasks", "claim", &b.key, "--holder", "probe"])).unwrap();
         assert_eq!(show_with(&call, &b.key).unwrap().revision, held.revision);
-        let empty = Edit { description: Some(String::new()), ..Edit::default() };
-        assert!(edit_args(&done.key, done.revision, &empty).is_err(), "memo cannot empty the notes");
         let owner = people_with(&call).unwrap().into_iter().find(|p| p.owner).unwrap();
         let Write::Saved { task: mine, .. } =
             assign_with(&call, &done.key, done.revision, Some(&owner.reference)).unwrap()
@@ -1190,6 +1419,61 @@ mod tests {
                 })
                 .unwrap(),
             );
+        }
+    }
+
+    /// The same throwaway store: notes cleared, the type, comments, a new person and a move to another project.
+    #[test]
+    #[ignore = "needs MEMO_BIN, a memo 0.131.11+ with a throwaway store"]
+    fn comments_people_and_moves_through_a_real_memo() {
+        let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
+        let call = |a: &[String]| call_at(&bin, a, READ);
+        let create = |n: &New| saved(&call(&add_args(n).unwrap()).unwrap()).unwrap();
+        let edit = |t: &Task, e: &Edit| write_with(&call, &t.key, &edit_args(&t.key, t.revision, e).unwrap()).unwrap();
+        let Write::Saved { task, .. } =
+            create(&New { project: "HRB".into(), title: "Probe notes".into(), ..New::default() })
+        else {
+            panic!("not created")
+        };
+        assert!(task.created_by.as_ref().is_some_and(|c| c.owner));
+        let notes = Edit { description: Some("Probe notes".into()), kind: Some("bug".into()), ..Edit::default() };
+        let Write::Saved { task, .. } = edit(&task, &notes) else { panic!("not saved") };
+        assert_eq!((task.description.as_deref(), task.kind.as_deref()), (Some("Probe notes"), Some("bug")));
+        let Write::Saved { task, .. } = edit(&task, &Edit { description: Some(String::new()), ..Edit::default() })
+        else {
+            panic!("not saved")
+        };
+        assert_eq!(task.description, None);
+        let said = comment_add_with(&call, &task.key, "-Probe: booked the hall").unwrap();
+        assert_eq!(said.text, "-Probe: booked the hall");
+        assert_eq!(comments_with(&call, &task.key).unwrap().last().unwrap().text, said.text);
+        let lena = person_add_with(&call, "Probe Lena").unwrap();
+        assert!(people_with(&call).unwrap().iter().any(|p| p.reference == lena.reference));
+
+        let Write::Saved { task: parent, .. } =
+            create(&New { project: "HRB".into(), title: "Probe parent".into(), ..New::default() })
+        else {
+            panic!("not created")
+        };
+        call(&words(&["tasks", "add", "--project=HRB", "--title=Probe child", &format!("--parent={}", parent.key)]))
+            .unwrap();
+        let away = Edit { project: Some("OPS".into()), ..Edit::default() };
+        let Write::HasSubtasks { subtasks } = edit(&parent, &away) else { panic!("moved a task with subtasks") };
+        assert_eq!(subtasks.iter().map(|s| s.title.as_str()).collect::<Vec<_>>(), ["Probe child"]);
+        let Write::Saved { task: gone, .. } = edit(&task, &away) else { panic!("not moved") };
+        assert_eq!(gone.project, "OPS");
+        assert!(gone.key.starts_with("OPS-"));
+        assert_eq!(show_with(&call, &task.key).unwrap().key, gone.key, "the old key still finds it");
+        if let Ok(dir) = std::env::var("TASK_BOARD_DUMP") {
+            let put =
+                |name: &str, v: serde_json::Value| std::fs::write(format!("{dir}/{name}.json"), v.to_string()).unwrap();
+            put("comments", serde_json::to_value(comments_with(&call, &gone.key).unwrap()).unwrap());
+            put("person", serde_json::to_value(&lena).unwrap());
+            put(
+                "moved-project",
+                serde_json::to_value(Write::Saved { task: gone, label: None, renumbered: vec![] }).unwrap(),
+            );
+            put("subtasks", serde_json::to_value(Write::HasSubtasks { subtasks }).unwrap());
         }
     }
 }

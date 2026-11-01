@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react"
 import { addDays, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
-import type { Task } from "@/platform/task-schemas"
+import type { Task, TaskKind } from "@/platform/task-schemas"
+import { Combobox } from "@/ui/Combobox"
 import { cx } from "@/ui/cx"
 import { Select } from "@/ui/Select"
 import { dueDay, taskMessages } from "./messages"
@@ -69,24 +70,158 @@ export function PriorityCell({ task }: { task: Task }) {
   )
 }
 
+const ELSE = "else"
+
 export function AssigneeCell({ task }: { task: Task }) {
   const m = useMessages(taskMessages)
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const people = useTasks((s) => s.people)
+  const [finding, setFinding] = useState(false)
+  const cell = useRef<HTMLDivElement>(null)
+  const back = useRef(false)
+  useEffect(() => {
+    if (!finding && back.current) {
+      back.current = false
+      cell.current?.querySelector<HTMLElement>("button,[role=combobox]")?.focus()
+    }
+  }, [finding])
+  const stop = () => {
+    back.current = true
+    setFinding(false)
+  }
   const current = task.assignees[0] ?? "none"
   // A person memo did not list (a role given after the page read) still shows, by reference.
   const refs = [...new Set([...people.map((p) => p.ref), ...task.assignees])]
   return (
+    <div ref={cell}>
+      {finding ? (
+        <PersonFinder task={task} onDone={stop} />
+      ) : (
+        <Select
+          size="sm"
+          aria-label={m.cell(m.assignee, task.key)}
+          value={current}
+          disabled={busy}
+          onChange={(v) => {
+            if (v === ELSE) setFinding(true)
+            else void useTasks.getState().assign(task.key, v === "none" ? null : v)
+          }}
+          options={[
+            { value: "none", label: m.nobody },
+            ...refs.map((ref) => ({ value: ref, label: personName(ref, people, m) })),
+            { value: ELSE, label: m.someoneElse },
+          ]}
+          className={BARE}
+        />
+      )}
+    </div>
+  )
+}
+
+/** Everyone memo knows, found by name as one types; a name nobody has yet is added as a new person, then assigned. */
+function PersonFinder({ task, onDone }: { task: Task; onDone: () => void }) {
+  const m = useMessages(taskMessages)
+  const people = useTasks((s) => s.people)
+  const failed = useTasks((s) => s.failed.person)
+  const [typed, setTyped] = useState("")
+  const [adding, setAdding] = useState(false)
+  const wrap = useRef<HTMLDivElement>(null)
+  useEffect(() => wrap.current?.querySelector("input")?.focus(), [])
+  const named = new Map<string, string>()
+  for (const p of people) {
+    const name = personName(p.ref, people, m)
+    if (!named.has(name)) named.set(name, p.ref)
+  }
+  const name = typed.trim()
+  const add = name && !named.has(name) ? m.addNamed(name) : null
+  const options = [...named.keys(), ...(add ? [add] : [])]
+  const choose = async (picked: string) => {
+    const ref = named.get(picked)
+    if (ref) {
+      onDone()
+      void useTasks.getState().assign(task.key, ref)
+      return
+    }
+    if (picked !== add || adding) return setTyped(picked)
+    setAdding(true)
+    const person = await useTasks.getState().addPerson(name)
+    setAdding(false)
+    if (!person) return
+    onDone()
+    void useTasks.getState().assign(task.key, person.ref)
+  }
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: the keys belong to the field inside; this only ends the search
+    <div
+      ref={wrap}
+      className="flex flex-col gap-[0.3rem]"
+      onBlur={(e) => {
+        if (!adding && !e.currentTarget.contains(e.relatedTarget)) onDone()
+      }}
+      onKeyDown={(e) => {
+        if (e.defaultPrevented) return
+        if (e.key === "Escape") {
+          // In the task dialog this Escape would close the whole dialog, not only the search.
+          e.preventDefault()
+          onDone()
+        } else if (e.key === "Enter" && name) {
+          e.preventDefault()
+          void choose(named.has(name) ? name : (add ?? name))
+        }
+      }}
+    >
+      <Combobox
+        value={typed}
+        onChange={(v) => void choose(v)}
+        options={options}
+        placeholder={m.findPerson}
+        aria-label={m.findPerson}
+        className="h-8"
+      />
+      {failed && <span className="text-[0.8rem] leading-snug text-bad">{m.personFailed(failed)}</span>}
+    </div>
+  )
+}
+
+export function KindCell({ task }: { task: Task }) {
+  const m = useMessages(taskMessages)
+  const busy = useTasks((s) => Boolean(s.busy[task.key]))
+  const kinds: TaskKind[] = ["feature", "bug", "chore"]
+  const current = kinds.find((k) => k === task.kind)
+  return (
+    <Select<TaskKind | "other">
+      size="sm"
+      aria-label={m.cell(m.kind, task.key)}
+      value={current ?? "other"}
+      disabled={busy}
+      onChange={(kind) => kind !== "other" && void useTasks.getState().update(task.key, { kind })}
+      options={[
+        ...kinds.map((k) => ({ value: k, label: m.kinds[k] ?? k })),
+        // A kind memo keeps for older tasks, which the three choices replace.
+        ...(current
+          ? []
+          : [{ value: "other" as const, label: m.kinds[task.kind ?? ""] ?? task.kind ?? "—", disabled: true }]),
+      ]}
+      className={BARE}
+    />
+  )
+}
+
+export function ProjectCell({ task }: { task: Task }) {
+  const m = useMessages(taskMessages)
+  const busy = useTasks((s) => Boolean(s.busy[task.key]))
+  const projects = useTasks((s) => s.projects)
+  const keys = [...new Set([task.project, ...projects.map((p) => p.key)])]
+  const nameOf = (key: string) =>
+    (key === task.project ? task.projectName : null) ?? projects.find((p) => p.key === key)?.name ?? null
+  return (
     <Select
       size="sm"
-      aria-label={m.cell(m.assignee, task.key)}
-      value={current}
+      aria-label={m.cell(m.project, task.key)}
+      value={task.project}
       disabled={busy}
-      onChange={(v) => void useTasks.getState().assign(task.key, v === "none" ? null : v)}
-      options={[
-        { value: "none", label: m.nobody },
-        ...refs.map((ref) => ({ value: ref, label: personName(ref, people, m) })),
-      ]}
+      onChange={(project) => project !== task.project && void useTasks.getState().update(task.key, { project })}
+      options={keys.map((k) => ({ value: k, label: nameOf(k) ? `${k} · ${nameOf(k)}` : k }))}
       className={BARE}
     />
   )
