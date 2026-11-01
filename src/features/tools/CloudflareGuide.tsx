@@ -178,6 +178,12 @@ function AddressStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const create = async () => {
+    if (busy) return
+    if (!name.trim()) {
+      setError(m.nameEmpty)
+      document.getElementById(id)?.focus()
+      return
+    }
     setBusy(true)
     setError(null)
     try {
@@ -198,7 +204,8 @@ function AddressStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
           className="h-8 w-full max-w-[24rem] rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.85rem] text-ink placeholder:font-sans placeholder:text-ink-dim"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && name.trim() && !busy && create()}
+          onKeyDown={(e) => e.key === "Enter" && create()}
+          aria-invalid={error !== null}
           placeholder={EXAMPLE_HOST}
           autoComplete="off"
           spellCheck={false}
@@ -206,7 +213,7 @@ function AddressStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): 
       </label>
       {s.hostname && <Note>{m.stays(<span className="selectable font-mono">{s.hostname}</span>)}</Note>}
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" variant="primary" onClick={create} disabled={busy || !name.trim()}>
+        <Button size="sm" variant="primary" onClick={create} disabled={busy}>
           {busy ? m.making : m.make}
         </Button>
       </div>

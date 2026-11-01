@@ -182,6 +182,7 @@ const en = {
     openTerminal: "Open terminal",
     openTerminalToSignIn: "Open terminal to sign in",
     nameInvalid: "Use letters, digits, dots, dashes or underscores.",
+    nameEmpty: "Type a name for this account first, such as personal.",
     nameHintHere: (command: ReactNode): ReactNode => (
       <>
         Any short name, such as personal or work: one name per account. Sign in here shows the QR code in this window;
@@ -490,6 +491,7 @@ const ru: typeof en = {
     openTerminal: "Открыть терминал",
     openTerminalToSignIn: "Войти через терминал",
     nameInvalid: "Используйте буквы, цифры, точки, дефисы или подчёркивания.",
+    nameEmpty: "Сначала введите имя для этого аккаунта, например personal.",
     nameHintHere: (command) => (
       <>
         Любое короткое имя, например personal или work: одно имя на аккаунт. «Войти здесь» покажет QR-код в этом окне;
@@ -802,6 +804,7 @@ const es: typeof en = {
     openTerminal: "Abrir terminal",
     openTerminalToSignIn: "Iniciar sesión en el terminal",
     nameInvalid: "Usa letras, cifras, puntos, guiones o guiones bajos.",
+    nameEmpty: "Primero escribe un nombre para esta cuenta, por ejemplo personal.",
     nameHintHere: (command) => (
       <>
         Cualquier nombre corto, como personal o work: un nombre por cuenta. Iniciar sesión aquí muestra el código QR en

@@ -58,7 +58,10 @@ describe("Backups and clearing storage", () => {
     const first = screen.getByLabelText("Password")
     const again = screen.getByLabelText("Repeat password")
     expect(first).toHaveAttribute("type", "password")
-    expect(backUp).toBeDisabled()
+    expect(backUp).toBeEnabled()
+    await user.click(backUp)
+    expect(screen.getByRole("alert")).toBeInTheDocument()
+    expect(first).toHaveFocus()
 
     await user.type(first, "short")
     expect(screen.getByText("Strength: Too short")).toBeInTheDocument()
@@ -73,7 +76,8 @@ describe("Backups and clearing storage", () => {
     await user.type(again, "Long Unrelated Words")
     expect(screen.getByRole("alert")).toHaveTextContent("The two passwords differ.")
     expect(again).toHaveAttribute("aria-invalid", "true")
-    expect(backUp).toBeDisabled()
+    await user.click(backUp)
+    expect(again).toHaveFocus()
 
     await user.type(again, " 7")
     expect(screen.getByText("Strength: Strong")).toBeInTheDocument()

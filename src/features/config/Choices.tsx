@@ -13,20 +13,23 @@ export function Choices({ label, children }: { label: string; children: ReactNod
 export function Choice(props: {
   group: string
   checked: boolean
+  /** Only while the choices are still being read. */
   disabled?: boolean
-  title?: string | undefined
+  /** Why it cannot be chosen now: it stays focusable and dimmed, and choosing it hands this to `onUnavailable`. */
+  unavailable?: string | undefined
+  onUnavailable?: (why: string) => void
   onSelect: () => void
   children: ReactNode
 }) {
-  const { group, checked, disabled, title, onSelect, children } = props
+  const { group, checked, disabled, unavailable, onUnavailable, onSelect, children } = props
   return (
-    <label title={title} className={cx("relative", disabled && "opacity-45")}>
+    <label title={unavailable} className={cx("relative", (disabled || unavailable) && "opacity-45")}>
       <input
         type="radio"
         name={`config-${group}`}
         checked={checked}
         disabled={disabled}
-        onChange={onSelect}
+        onChange={() => (unavailable ? onUnavailable?.(unavailable) : onSelect())}
         className="peer sr-only"
       />
       <span
