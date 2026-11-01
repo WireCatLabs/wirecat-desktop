@@ -96,3 +96,6 @@
 - `/home/leemour/tmp/vite-1434.log`, `/home/leemour/tmp/probe.mjs`, `/home/leemour/tmp/{probe,probe2,t1}.png`, `/home/leemour/tmp/about-focus-*-crop.png`, `/home/leemour/tmp/check-memory.log`, `/home/leemour/tmp/check-rust.log`, `/home/leemour/tmp/pr37-body.md` — scratch from the Memory versions round (2026-11-01)
 - Vite dev server for the Memory versions review, PID 737557 on port 1434 (parent pnpm 737515), started 2026-11-01 in `.claude/worktrees/memory-page`; stop with `kill 737557` (2026-11-01)
 - `/home/leemour/Projects/AI/cli-memo-wt-tasks-verify` (detached worktree of cli-memo, with its `.tmp-store/` throwaway store) — memo 0.131.2 built to check the Tasks page contract (2026-11-01)
+- `.claude/worktrees/review-all` (branch `review/all`, its own `node_modules`) — review branch with all open PRs combined; remove once the owner has reviewed it (2026-11-01)
+- `/home/leemour/tmp-review` — merge helper scripts, `pnpm check` log, Vite log and screenshots for `review/all` (2026-11-01)
+- Vite dev server for `review/all`, PID 392703 on port 1437 (parent pnpm 392636), started 2026-11-01 in `.claude/worktrees/review-all`; stop with `kill 392703` (2026-11-01)

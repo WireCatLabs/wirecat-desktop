@@ -826,6 +826,7 @@ async fn update_download_package(
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
 pub fn run() {
     // The login shell's PATH takes about half a second; read it while the window opens, not on the first page.
     std::thread::spawn(paths::search_path);
