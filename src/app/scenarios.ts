@@ -1,5 +1,6 @@
 import { findTool, syncNeedsProfile } from "@/domain/catalog"
 import { useNav } from "@/features/nav"
+import { useNotifications } from "@/features/notifications/store"
 import { STEPS, useOnboarding } from "@/features/onboarding/store"
 import { useSearch } from "@/features/search/store"
 import { useSignIn } from "@/features/signin/store"
@@ -37,6 +38,7 @@ export async function runMockScenario() {
     if (tasks === "nomatch") useTasks.setState({ query: MOCK_NOMATCH_QUERY })
     useNav.getState().go("tasks")
   }
+  if (params.get("notifications") === "open") openBell()
   const signIn = params.get("signin")
   if (signIn) useSignIn.getState().start(signIn, "personal")
   const mcp =
@@ -93,4 +95,16 @@ export function CrashScenario({ section }: { section: string }): null {
     throw new TypeError("Cannot read properties of undefined (reading 'length')")
   }
   return null
+}
+
+// `?notifications=open` opens the bell's panel once the first check has answered.
+function openBell() {
+  const show = () => useNotifications.getState().show()
+  if (useNotifications.getState().checked) return show()
+  const off = useNotifications.subscribe((s) => {
+    if (!s.checked) return
+    off()
+    show()
+  })
+  useNotifications.getState().check()
 }

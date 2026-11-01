@@ -5,6 +5,7 @@ import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
 import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
+import { useBadges } from "./badges"
 import { appMessages } from "./messages"
 import { type Section, sections } from "./sections"
 import { type ThemeChoice, useTheme } from "./theme"
@@ -18,6 +19,7 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
   ] as const satisfies readonly { value: ThemeChoice; label: string; icon: React.ReactNode }[]
   const theme = useTheme()
   const postponed = useOnboarding((s) => s.status === "later")
+  const badges = useBadges(active)
   return (
     <aside
       className="flex w-[12rem] shrink-0 xl:w-[13.5rem] flex-col border-line border-r bg-wall"
@@ -30,14 +32,14 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
         {sections
           .filter((s) => !s.group)
           .map((s) => (
-            <NavItem key={s.id} section={s} active={active} onSelect={onSelect} />
+            <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
           ))}
       </nav>
       <nav aria-label={m.systemNav} className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
         {sections
           .filter((s) => s.group === "system")
           .map((s) => (
-            <NavItem key={s.id} section={s} active={active} onSelect={onSelect} />
+            <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
           ))}
       </nav>
       {postponed && (
@@ -62,10 +64,12 @@ function NavItem({
   section: s,
   active,
   onSelect,
+  badge,
 }: {
   section: Section
   active: string
   onSelect: (id: string) => void
+  badge: boolean
 }) {
   const m = useMessages(appMessages)
   const ready = Boolean(s.page)
@@ -97,6 +101,16 @@ function NavItem({
       />
       <span className="flex-1">{m.nav[s.id]}</span>
       {!ready && <Pill>{m.soon}</Pill>}
+      {ready && (
+        <span
+          aria-hidden
+          className={cx(
+            "size-[0.5rem] shrink-0 rounded-full bg-brand transition-[opacity,scale] duration-300",
+            badge ? "scale-100 opacity-100" : "scale-0 opacity-0",
+          )}
+        />
+      )}
+      {badge && <span className="sr-only">{m.badgeNew}</span>}
     </button>
   )
 }

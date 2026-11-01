@@ -5,6 +5,7 @@ import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
 import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
+import type { Notification } from "./notifications-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
 import type { RunDetail, RunsPage } from "./runs-schemas"
@@ -218,6 +219,8 @@ export type Platform = {
   /** What a bug report carries about this computer, masked, including recent failed runs (private). */
   reportContext(): Promise<ReportContext>
   sendReport(draft: ReportDraft, context: ReportContext): Promise<ReportSent>
+  /** News from WireCat for this version and OS. The request carries nothing about the owner; rejects when offline. */
+  notifications(): Promise<Notification[]>
   /** `query` is the CLI's own filter (exact `field:value` terms); `page` starts at 1. */
   listRuns(id: string, query: string | null, limit: number, page: number): Promise<RunsPage>
   showRun(id: string, run: string): Promise<RunDetail>

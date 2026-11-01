@@ -99,3 +99,6 @@
 - `.claude/worktrees/review-all` (branch `review/all`, its own `node_modules`) — review branch with all open PRs combined; remove once the owner has reviewed it (2026-11-01)
 - `/home/leemour/tmp-review` — merge helper scripts, `pnpm check` log, Vite log and screenshots for `review/all` (2026-11-01)
 - Vite dev server for `review/all`, PID 392703 on port 1437 (parent pnpm 392636), started 2026-11-01 in `.claude/worktrees/review-all`; stop with `kill 392703` (2026-11-01)
+- `/home/leemour/Projects/AI/wirecat-api/.claude/worktrees/notifications`, its branch `feat/notifications`, local and on origin (squash-merged as WireCatLabs/wirecat-api#5; the wording fix branch `fix/notifications-privacy-wording` too) and its local databases `wirecat_api_development_notifications`, `wirecat_api_test_notifications`; the `.claude/` line it added to wirecat-api's `.git/info/exclude` — merged work (2026-11-01)
+- `/home/leemour/tmp-notif` — release and check logs, notification screenshots, `welcome.json` (the production test notification's source; `bin/notify delete welcome-notifications-2026-11` removes the notification itself) (2026-11-01)
+- `.claude/worktrees/notifications` — once the notifications PR is merged (2026-11-01)
