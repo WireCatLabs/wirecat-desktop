@@ -116,6 +116,8 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 - **TASK-48 · Переосмыслить показ «Памяти», три версии (2026-11-01):** Слава посмотрел страницу на своих данных: «we need to considerable rethink how we display memory, right now it's not clear … use impeccable skill and build 3 versions of Memory page, 1 is current improvement and 3 - completely rethought, think about further features and extension of this page as we'd add more stuff there». См. UX-26…31.
 
 - **TASK-49 · Добавлять в «Память» вручную (2026-11-01):** Слава: «I'd allow to manually add memory via UI - upload a file, past a link to doc, html (we can extract), image url or image itself, audio or just plain text and link it to other entities so AI would be able to create facts from it - how we'd need to decide eg a few facts to suggest to user so it could pick them. I'd also explain that the source will be stored in db and be searchable too». Сначала план и дизайн.
+- **TASK-50 · Собрать всю открытую работу в одну ветку для просмотра (2026-11-01):** Слава: «there's still no Tasks page, only memory, and I see Accounts (I think we removed it?). Basically we need to merge all stuff into 1 branch so I can see all consolidated work and review». Ветка `review/all` из #34, #39, #37, #41, #40; Vite :1437.
+- **TASK-51 · Уведомления и значки (2026-11-01):** Слава: «I'd add notifications that we can show to user, eg important security updates etc. I'd add an api endpoint for notifications in wirecat-api and fetch them each hour and on app start. I'dd add a badge ro similar to the left menu with items that need to be resolved eg tools updated, memory reviewed etc. Not for all so we dont spam user eg at first after install I'd probably show bade on Agents but if user doesnt install skills I'd clear the bade on view and not show it so it doesnt create noise. Some things users just dont have to do. Also we can have a bell next to ? icon displaying notifications and if some are unread. let's test the notification - you can add test one on prod db, just make sure you design them nicely».
 
 ## 2. Вопросы Славы
 
@@ -719,6 +721,14 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **FIND-127 · README memo пишет `relations`, команда — `links`.**
 - **RISK-65 · Обработка перетаскивания файлов в Tauri (включена по умолчанию) может ломать HTML5 drag-and-drop на Windows** — не проверено; дизайн на pointer events.
 - **RISK-66 · При `--limit` ≥500 `has_more` может ложно сказать «больше нет»** — по чтению кода.
+
+- **UX-39 · В интерфейсе не говорить «Memo»:** «Memo's database - wirecat database»; «dont use memo, user doesnt care what memo is, user wirecat. memo is just a command to reach some functionality». Касается и страницы «Память» (#37), и «Добавить в память» (#40). Сохранено в память агента.
+- **UX-40 · Кнопка «Add to memory» не похожа на другие** — сделать основной фиолетовой.
+- **UX-41 · Открытая панель «Add to memory» слита со списком памяти** — разделить отступом; панель огромная, непонятно, что делать и что получишь; File/Link/Text справа не видно, шаги слишком крупные. Передано на переделку (impeccable).
+- **UX-42 · Фраза о хранении слишком техническая** — говорить о пользе: найдётся по словам и смыслу, агенты используют факты в ответах.
+- **BUG-39 · «Next» в «Add to memory» не включается после ввода текста.**
+- **BUG-40 · Чтение ссылки в «Add to memory» не работает.**
+- **UX-43 · Итог «Saved» непонятен:** что именно сохранено; люди, проекты, задачи должны быть выпадающими списками с поиском.
 
 ## 4. Вопросы к Славе
 
