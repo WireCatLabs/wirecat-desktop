@@ -106,3 +106,4 @@
 - Vite dev server on port 1441 for the Guides prototype: pnpm wrapper PID 818180, node PID 818194; stop by those PIDs only (2026-11-01)
 - `/home/leemour/wc-guides-tmp` — downloaded wirecat.dev command pages used to check guide commands (2026-11-01)
 - `.claude/worktrees/guides-plan/.impeccable/mocks/guides/vite.log`, `vite.pid` — untracked server output (2026-11-01)
+- `/home/leemour/Projects/AI/cli-docs/.worktrees/privacy-desktop-app`, `/home/leemour/Projects/AI/cli-docs/.worktrees/privacy-no-proxy-log` (with its node_modules), merged remote branches fix/caddy-skip-notifications (wirecat-api), docs/privacy-no-proxy-log, docs/privacy-desktop-app, docs/privacy-desktop-corrections, docs/privacy-nodejs-offer (cli-docs), fix/notifications-no-ip (wirecat-api) — privacy round, all merged (2026-11-01)
