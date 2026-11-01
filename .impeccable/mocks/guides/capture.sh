@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 PORT=${PORT:-1437}
-OUT=.impeccable/mocks/guides/v3
+OUT=.impeccable/mocks/guides/v4
 shot() { # name query [extra capture args...]
   local name=$1 query=$2
   shift 2
@@ -28,4 +28,3 @@ shot list-ru "?state=mixed&onboarding=off&section=guides&guide=meeting-prep" --l
 WAIT=300 shot checking "?state=mixed&onboarding=off&section=guides"
 shot list-es "?state=mixed&onboarding=off&section=guides" --lang es
 shot search "?state=mixed&onboarding=off&section=guides&q=call"
-shot open-prompt "?state=mixed&onboarding=off&section=guides&guide=requests-to-tasks&prompt=shown"

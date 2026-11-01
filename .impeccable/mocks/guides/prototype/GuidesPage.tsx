@@ -1,8 +1,8 @@
 // Design prototype for docs/dev/plans/2026-11-01-guides.md. Outside `src`, no new platform calls: it reads the
 // installed tools from the app's own store, so `?state=one` and `?state=mixed` change which guides are ready.
 // `?guides=first` arrives from the setup's last step, `?guides=offline` shows the bundled copy with no network,
-// `?guide=<id>` opens one guide (`&prompt=shown` with its prompt shown), `?q=<words>` starts with a search.
-import { Check, ChevronDown, Copy, ExternalLink, Search, ShieldCheck, X } from "lucide-react"
+// `?guide=<id>` opens one guide, `?q=<words>` starts with a search.
+import { Check, Copy, ExternalLink, Search, ShieldCheck, X } from "lucide-react"
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 import { KNOWN_AGENTS } from "@/domain/agents"
 import { tools } from "@/domain/catalog"
@@ -13,6 +13,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion"
 import { Select } from "@/ui/Select"
@@ -311,20 +312,25 @@ function Entry({ guide: g, ctx, open, onToggle }: { guide: Guide; ctx: Ctx; open
           onToggle()
         }}
         className={cx(
-          "group block w-full rounded-[0.4rem] px-[0.75rem] py-[0.55rem] text-left",
+          "group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-[0.8rem] rounded-[0.4rem] px-[0.75rem] py-[0.55rem] text-left",
           "transition-colors duration-150 ease-out-quart",
           open ? "bg-app" : "hover:bg-app-3/70",
         )}
       >
-        <span
-          className={cx(
-            "block text-[1.02rem] font-semibold leading-snug transition-colors duration-150",
-            open ? "text-brand" : "text-ink group-hover:text-brand",
-          )}
-        >
-          {textOf(g.title, lang)}
+        <span className="min-w-0">
+          <span
+            className={cx(
+              "block text-[1.02rem] font-semibold leading-snug transition-colors duration-150",
+              open ? "text-brand" : "text-ink group-hover:text-brand",
+            )}
+          >
+            {textOf(g.title, lang)}
+          </span>
+          <span className="mt-[0.15rem] block text-[0.95rem] leading-snug text-ink-soft">
+            {textOf(g.outcome, lang)}
+          </span>
         </span>
-        <span className="mt-[0.15rem] block text-[0.95rem] leading-snug text-ink-soft">{textOf(g.outcome, lang)}</span>
+        <ExpandChevron open={open} />
       </button>
       <Collapse id={panelId} open={open}>
         <div className="pt-[0.4rem] pb-[0.8rem]">
@@ -358,9 +364,6 @@ function GuideBody(props: {
   const agentId = useId()
   const messenger = fit.messenger
   const [prompt, setPrompt] = useState(() => forMessenger(textOf(g.prompt, lang), messenger))
-  const [showPrompt, setShowPrompt] = useState(
-    !lead && params.get("guide") === g.id && params.get("prompt") === "shown",
-  )
   useEffect(() => setPrompt(forMessenger(textOf(g.prompt, lang), messenger)), [lang, g, messenger])
   useEffect(() => {
     if (scrollTo) box.current?.scrollIntoView({ block: "start" })
@@ -388,103 +391,95 @@ function GuideBody(props: {
       ref={box}
       aria-label={textOf(g.title, lang)}
       onKeyDown={onKeyDown}
-      className="flex flex-col gap-[1.2rem] rounded-[0.45rem] border border-line-strong bg-app p-[1.3rem]"
+      className="@container flex flex-col gap-[1.1rem] rounded-[0.45rem] border border-line-strong bg-app p-[1.3rem]"
     >
-      {lead && (
-        <div className="min-w-0">
-          <h3 className="text-[1.35rem] font-semibold leading-snug">{textOf(g.title, lang)}</h3>
-          <p className="mt-1 text-[0.98rem] text-ink-soft">{textOf(g.outcome, lang)}</p>
-        </div>
-      )}
-
-      <section className="flex flex-col gap-[0.6rem]">
-        <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-2">
-          <CopyButton text={copied} m={m} primary={!quiet && known && fit.ready} />
-          <span className="flex items-center gap-[0.5rem]">
-            <span id={agentId} className="text-[0.9rem] text-ink-dim">
-              {m.agent}
-            </span>
-            <Select
-              size="sm"
-              aria-labelledby={agentId}
-              value={agent}
-              onChange={setAgent}
-              options={[
-                { value: "any", label: m.anyAgent },
-                ...KNOWN_AGENTS.map((a) => ({ value: a.id, label: a.name })),
-                ...APPS.map((a) => ({ value: a.id, label: a.name })),
-              ]}
-            />
-          </span>
-          <button
-            type="button"
-            aria-expanded={showPrompt}
-            aria-controls={promptId}
-            onClick={() => setShowPrompt((s) => !s)}
-            className="ml-auto flex items-center gap-1 text-[0.92rem] font-medium text-ink-soft hover:text-ink"
-          >
-            <StableText value={showPrompt ? m.hidePrompt : m.showPrompt} variants={[m.showPrompt, m.hidePrompt]} />
-            <ChevronDown
-              className={cx("size-4 transition-transform duration-300 ease-out-quart", showPrompt && "rotate-180")}
-              aria-hidden
-            />
-          </button>
-          {onClose && (
-            <Button variant="ghost" size="sm" aria-label={m.close} onClick={onClose} className="-mr-1">
-              <X className="size-4" aria-hidden />
-            </Button>
-          )}
-        </div>
-        <p className="text-[0.9rem] text-ink-soft">{hint}</p>
-        <Collapse id={promptId} open={showPrompt}>
-          <div className="flex flex-col gap-[0.4rem] pt-[0.3rem]">
-            <label htmlFor={`${promptId}-text`} className="sr-only">
+      <div className="grid gap-x-[2.2rem] gap-y-[1.2rem] @min-[46rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+        <section className="flex min-w-0 flex-col gap-[0.7rem]">
+          <div className="flex items-start justify-between gap-3">
+            {lead ? (
+              <div className="min-w-0">
+                <h3 className="text-[1.35rem] font-semibold leading-snug">{textOf(g.title, lang)}</h3>
+                <p className="mt-1 text-[0.98rem] text-ink-soft">{textOf(g.outcome, lang)}</p>
+              </div>
+            ) : (
+              <label htmlFor={promptId} className="pt-[0.3rem] text-[0.9rem] font-medium text-ink-dim">
+                {m.promptLabel}
+              </label>
+            )}
+            {onClose && (
+              <Button variant="ghost" size="sm" aria-label={m.close} onClick={onClose} className="-mt-1 -mr-1">
+                <X className="size-4" aria-hidden />
+              </Button>
+            )}
+          </div>
+          {lead && (
+            <label htmlFor={promptId} className="sr-only">
               {m.promptLabel}
             </label>
-            <div className="rounded-[0.8rem] rounded-br-[0.2rem] bg-brand-soft/70 px-[1rem] py-[0.75rem] focus-within:outline-2 focus-within:outline-brand focus-within:outline-offset-2">
-              <textarea
-                id={`${promptId}-text`}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
-                className="selectable field-sizing-content block w-full resize-none bg-transparent text-[0.98rem] leading-relaxed text-ink outline-none"
-              />
-            </div>
-            <p className="text-[0.9rem] text-ink-dim">{m.askHint}</p>
+          )}
+          <div className="rounded-[0.8rem] rounded-br-[0.2rem] bg-brand-soft/70 px-[1rem] py-[0.75rem] focus-within:outline-2 focus-within:outline-brand focus-within:outline-offset-2">
+            <textarea
+              id={promptId}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              rows={3}
+              className="selectable field-sizing-content block w-full resize-none bg-transparent text-[0.98rem] leading-relaxed text-ink outline-none"
+            />
           </div>
-        </Collapse>
-        {g.saves && (
-          <p className="flex gap-2 text-[0.9rem] text-ink-soft">
-            <ShieldCheck className="mt-[0.15rem] size-[1rem] shrink-0 text-ok" aria-hidden />
-            {m.asksFirst}
-          </p>
-        )}
-      </section>
+          <p className="text-[0.9rem] text-ink-dim">{m.askHint}</p>
+          <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-2">
+            <CopyButton text={copied} m={m} primary={!quiet && known && fit.ready} />
+            <span className="flex items-center gap-[0.5rem]">
+              <span id={agentId} className="text-[0.9rem] text-ink-dim">
+                {m.agent}
+              </span>
+              <Select
+                size="sm"
+                aria-labelledby={agentId}
+                value={agent}
+                onChange={setAgent}
+                options={[
+                  { value: "any", label: m.anyAgent },
+                  ...KNOWN_AGENTS.map((a) => ({ value: a.id, label: a.name })),
+                  ...APPS.map((a) => ({ value: a.id, label: a.name })),
+                ]}
+              />
+            </span>
+          </div>
+          <p className="text-[0.9rem] text-ink-soft">{hint}</p>
+          {g.saves && (
+            <p className="flex gap-2 text-[0.9rem] text-ink-soft">
+              <ShieldCheck className="mt-[0.15rem] size-[1rem] shrink-0 text-ok" aria-hidden />
+              {m.asksFirst}
+            </p>
+          )}
+        </section>
 
-      <div className="grid gap-x-[2rem] gap-y-[1rem] border-line border-t pt-[1.1rem] @min-[44rem]:grid-cols-2">
-        <section className="flex min-w-0 flex-col gap-[0.7rem]">
-          <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.agentRuns}</h4>
-          <ol className="relative flex flex-col gap-[0.8rem] before:absolute before:top-[0.6rem] before:bottom-[0.6rem] before:left-[0.35rem] before:w-px before:bg-line-strong">
-            {g.steps.map((s) => (
-              <li key={s.run} className="relative grid grid-cols-[0.7rem_minmax(0,1fr)] gap-x-[0.8rem]">
-                <span className="mt-[0.45rem] size-[0.7rem] rounded-full border-[1.5px] border-ink-dim bg-app" />
-                <div className="min-w-0">
-                  <p className="text-[0.95rem] text-ink">{textOf(s.text, lang)}</p>
-                  <code className="selectable mt-0.5 block truncate font-mono text-[0.85rem] text-ink-soft">
-                    {forMessenger(s.run, messenger)}
-                  </code>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
-        <section className="flex min-w-0 flex-col gap-[0.7rem]">
-          <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.answers}</h4>
-          <p className="rounded-[0.8rem] rounded-bl-[0.2rem] border border-line bg-app-2 px-[1rem] py-[0.7rem] text-[0.95rem] leading-relaxed text-ink">
-            {textOf(g.result, lang)}
-          </p>
-          <p className="text-[0.9rem] text-ink-dim">{m.account}</p>
-        </section>
+        <div className="flex min-w-0 flex-col gap-[1rem] border-line border-t pt-[1.1rem] @min-[46rem]:border-t-0 @min-[46rem]:border-l @min-[46rem]:pt-0 @min-[46rem]:pl-[2.2rem]">
+          <section className="flex flex-col gap-[0.7rem]">
+            <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.agentRuns}</h4>
+            <ol className="relative flex flex-col gap-[0.8rem] before:absolute before:top-[0.6rem] before:bottom-[0.6rem] before:left-[0.35rem] before:w-px before:bg-line-strong">
+              {g.steps.map((s) => (
+                <li key={s.run} className="relative grid grid-cols-[0.7rem_minmax(0,1fr)] gap-x-[0.8rem]">
+                  <span className="mt-[0.45rem] size-[0.7rem] rounded-full border-[1.5px] border-ink-dim bg-app" />
+                  <div className="min-w-0">
+                    <p className="text-[0.95rem] text-ink">{textOf(s.text, lang)}</p>
+                    <code className="selectable mt-0.5 block truncate font-mono text-[0.85rem] text-ink-soft">
+                      {forMessenger(s.run, messenger)}
+                    </code>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+          <section className="flex flex-col gap-[0.6rem]">
+            <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.answers}</h4>
+            <p className="rounded-[0.8rem] rounded-bl-[0.2rem] border border-line bg-app-2 px-[1rem] py-[0.7rem] text-[0.95rem] leading-relaxed text-ink">
+              {textOf(g.result, lang)}
+            </p>
+            <p className="text-[0.9rem] text-ink-dim">{m.account}</p>
+          </section>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-x-[1.2rem] gap-y-2 border-line border-t pt-[0.9rem]">
