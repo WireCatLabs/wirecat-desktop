@@ -24,6 +24,13 @@ const LINES = [
 ]
 const TITLES = ["Quarterly plan", "Invoice template", "Harbour flat lease", "Weekly sync", "Tax checklist"]
 
+// Photos, voice messages and files often come without text: the page names what they carry instead.
+const FILES = [
+  { position: 1, kind: "photo" },
+  { position: 1, kind: "voice" },
+  { position: 1, kind: "document", name: "invoice.pdf", size: 48213 },
+]
+
 function hit(what: string, i: number): SearchHit {
   const at = new Date(Date.UTC(2026, 9, 30, 18, 0) - i * 7.3 * 3600_000).toISOString()
   const line = LINES[i % LINES.length]
@@ -34,7 +41,8 @@ function hit(what: string, i: number): SearchHit {
       chat_title: CHATS[i % CHATS.length],
       sender_name: PEOPLE[i % PEOPLE.length],
       sender_is_me: i % PEOPLE.length === 4,
-      excerpt: line,
+      excerpt: i % 7 === 3 ? "" : line,
+      ...(i % 7 === 3 ? { attachments: [FILES[i % FILES.length]] } : {}),
       matched_in: "text",
       score: Math.round((1 - i / TOTAL) * 1000) / 1000,
       untrusted: ["chat_title", "sender_name", "excerpt"],

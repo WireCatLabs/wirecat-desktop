@@ -155,7 +155,7 @@ export function QueryBar(props: Props) {
             setOpen(false)
             setAll(false)
           }}
-          className="selectable h-full min-w-0 flex-1 bg-transparent no-ligatures pr-[2.6rem] pl-[2.5rem] font-mono text-[1.02rem] text-transparent caret-ink outline-none placeholder:font-sans placeholder:text-ink-dim"
+          className="selectable inner-field h-full min-w-0 flex-1 bg-transparent no-ligatures pr-[2.6rem] pl-[2.5rem] font-mono text-[1.02rem] text-transparent caret-ink outline-none placeholder:font-sans placeholder:text-ink-dim"
         />
         {query && (
           <button

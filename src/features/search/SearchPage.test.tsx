@@ -38,11 +38,18 @@ describe("Search", () => {
     expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
     expect(search).toHaveBeenLastCalledWith("tg", "personal", "invoice", 50, 1)
     expect(screen.getByText(/searched 12,480 messages/)).toBeInTheDocument()
+    expect(screen.getAllByText("Photo").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Voice message").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("invoice.pdf").length).toBeGreaterThan(0)
 
     await user.click(screen.getAllByRole("button", { name: "Show the whole result: Harbour flat" })[0] as HTMLElement)
-    expect(
-      await screen.findByRole("group", { name: "Everything the tool returned for this result" }),
-    ).toHaveTextContent("chat_title")
+    expect(await screen.findByText("msg:telegram/1/-1000/4000")).toBeInTheDocument()
+    expect(screen.getByText("Reference")).toBeInTheDocument()
+    expect(screen.queryByText("untrusted")).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show raw data" }))
+    const raw = await screen.findByRole("group", { name: "Everything the tool returned for this result" })
+    expect(raw).toHaveTextContent("chat_title")
+    expect(raw).not.toHaveTextContent("untrusted")
 
     await user.click(screen.getByRole("button", { name: "Next page" }))
     expect(await screen.findByText("Showing 51–100 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
