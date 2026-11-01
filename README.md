@@ -27,15 +27,10 @@ Everything stays on your computer.
    | Linux (Fedora, RHEL) | `.rpm` (x86_64) |
    | Linux (other) | `.AppImage` (amd64) |
 
-2. Install it like any other app and open **WireCat**. To install the `.deb` from a terminal, move it to `/tmp`
-   first: apt reads the file as its own restricted user, which cannot open your home folder, and prints a notice
-   about it. Put the version you downloaded in place of `<version>`:
-
-   ```sh
-   mv ~/Downloads/wirecat_<version>_amd64.deb /tmp/ && sudo apt install /tmp/wirecat_<version>_amd64.deb
-   ```
-
-   The install prints what to do next.
+2. Install it like any other app and open **WireCat**. To install the `.deb` from a terminal, copy the command
+   from the [download page](https://wirecat.dev/en/download). It downloads the package into `/tmp` first: apt reads
+   the file as its own restricted user, which cannot open your home folder, and prints a notice about it. The
+   install prints what to do next.
 3. The first start opens a short setup: your computer, which tools to install, which agents to connect, and
    sign-in. You can skip it and open the **Tools** page instead.
 
