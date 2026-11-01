@@ -1,5 +1,5 @@
 import { Bot, CalendarDays, GitBranch, Lock, User } from "lucide-react"
-import { type ReactNode, useEffect, useId, useState } from "react"
+import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { closed, labelOf, STATES, type State } from "@/domain/tasks"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import type { Person, Task, TaskEdit, TaskEvent } from "@/platform/task-schemas"
@@ -80,11 +80,14 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const [title, setTitle] = useState(task.title)
   const [notes, setNotes] = useState(task.description ?? "")
   const [agent, setAgent] = useState(task.agent ?? "")
+  const [writing, setWriting] = useState(!task.description)
+  const box = useRef<HTMLTextAreaElement>(null)
   // A write from elsewhere (a stale refusal shows the current task) resets the fields to what the task now says.
   useEffect(() => {
     setTitle(task.title)
     setNotes(task.description ?? "")
     setAgent(task.agent ?? "")
+    setWriting(!task.description)
   }, [task.title, task.description, task.agent])
 
   useEffect(() => {
@@ -102,12 +105,23 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
     setTitle(task.title)
     setNotes(task.description ?? "")
     setAgent(task.agent ?? "")
+    setWriting(!task.description)
+  }
+  const write = () => {
+    setWriting(true)
+    requestAnimationFrame(() => box.current?.focus())
   }
 
   const project = task.project.replace(/^project:/, "")
   const projectName = projects.find((p) => p.key === project)?.name
   const made = history?.state === "ready" ? history.events.find((e) => e.kind === "created") : undefined
   const maker = made?.by ? (made.by.owner ? m.you : (made.by.name ?? m.someone)) : null
+  // memo keeps one notes field, so the thread has one entry: whoever last wrote it, or else whoever made the task.
+  const wrote =
+    history?.state === "ready"
+      ? ([...history.events].reverse().find((e) => e.changes.some((c) => c.field === "description")) ?? made)
+      : undefined
+  const writer = wrote?.by ? (wrote.by.owner ? m.you : (wrote.by.name ?? m.someone)) : null
   const holdsUp = all.filter((t) => !closed(t.state) && t.blockedBy.some((b) => b.key === task.key))
 
   return (
@@ -129,17 +143,44 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
               className="selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none focus-visible:border-brand"
             />
           </label>
-          <label className="flex flex-col gap-[0.35rem]">
-            <span className="text-[0.9rem] font-medium text-ink-dim">{m.notes}</span>
-            <textarea
-              rows={5}
-              value={notes}
-              maxLength={20_000}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder={m.notesHint}
-              className="selectable rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
-            />
-          </label>
+          <div className="flex flex-col gap-[0.35rem]">
+            <span id={`${id}-notes`} className="text-[0.9rem] font-medium text-ink-dim">
+              {m.notes}
+            </span>
+            {writing ? (
+              <textarea
+                ref={box}
+                aria-labelledby={`${id}-notes`}
+                rows={5}
+                value={notes}
+                maxLength={20_000}
+                onChange={(e) => setNotes(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault()
+                    e.currentTarget.form?.requestSubmit()
+                  }
+                }}
+                placeholder={m.notesHint}
+                className="selectable reveal rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+              />
+            ) : (
+              <article
+                aria-labelledby={`${id}-notes`}
+                className="reveal rounded-[0.45rem] border border-line bg-app-2 px-[0.8rem] pt-[0.5rem] pb-[0.7rem]"
+              >
+                <header className="flex items-center gap-[0.45rem] text-[0.85rem] text-ink-dim">
+                  {wrote && <Who by={wrote.by} />}
+                  {writer && <span className="font-medium text-ink-soft">{writer}</span>}
+                  {wrote && <time dateTime={wrote.at}>{stamp(wrote.at, lang)}</time>}
+                  <Button size="sm" variant="ghost" className="ml-auto" onClick={write}>
+                    {m.editNotes}
+                  </Button>
+                </header>
+                <p className="selectable mt-[0.2rem] text-[0.95rem] whitespace-pre-wrap text-ink">{task.description}</p>
+              </article>
+            )}
+          </div>
           <label className="flex flex-col gap-[0.35rem]">
             <span className="text-[0.9rem] font-medium text-ink-dim">{m.agent}</span>
             <input

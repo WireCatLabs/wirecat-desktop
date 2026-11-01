@@ -91,6 +91,10 @@ describe("Tasks", () => {
     expect(within(dialog).getByText("Created")).toBeInTheDocument()
     expect(await within(dialog).findByText(/by You$/)).toBeInTheDocument()
     expect(within(dialog).getByText("A task cannot move to another project yet.")).toBeInTheDocument()
+    const notes = within(dialog).getByRole("article", { name: "Notes" })
+    expect(notes).toHaveTextContent("Waits until both pilot clinics have said yes.")
+    await user.click(within(notes).getByRole("button", { name: "Edit" }))
+    await waitFor(() => expect(within(dialog).getByRole("textbox", { name: "Notes" })).toHaveFocus())
 
     await user.click(within(dialog).getByRole("combobox", { name: "Priority of HRB-15" }))
     await user.click(screen.getByRole("option", { name: "Low" }))
@@ -117,6 +121,22 @@ describe("Tasks", () => {
     await waitFor(() =>
       expect(within(row("OPS-3")).getByRole("combobox", { name: /Priority/ })).toHaveTextContent("Low"),
     )
+  })
+
+  it("opens the calendar as soon as Another day is chosen, and Escape gives the cell back", async () => {
+    const user = userEvent.setup()
+    const picker = vi.fn()
+    HTMLInputElement.prototype.showPicker = picker
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("OPS-3")).getByRole("combobox", { name: "Due of OPS-3" }))
+    await user.click(screen.getByRole("option", { name: "Another day" }))
+    const field = within(row("OPS-3")).getByLabelText("Due of OPS-3")
+    expect(field).toHaveAttribute("type", "date")
+    expect(field).toHaveFocus()
+    expect(picker).toHaveBeenCalledOnce()
+    await user.keyboard("{Escape}")
+    expect(within(row("OPS-3")).getByRole("combobox", { name: "Due of OPS-3" })).toHaveFocus()
   })
 
   it("moves a card between columns with the keyboard and says each step", async () => {

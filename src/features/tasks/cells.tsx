@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { addDays, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import type { Task } from "@/platform/task-schemas"
@@ -101,6 +101,29 @@ export function DueCell({ task }: { task: Task }) {
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const [picking, setPicking] = useState(false)
   const field = useRef<HTMLInputElement>(null)
+  const cell = useRef<HTMLDivElement>(null)
+  const back = useRef(false)
+  const typed = useRef(0)
+  useEffect(() => {
+    const input = field.current
+    if (picking && input) {
+      input.focus()
+      // Choosing "Another day" opens the calendar at once. The choice was a click or a key a moment ago, which the
+      // browser still counts as the owner's gesture; where it has no picker the focused field takes typing instead.
+      try {
+        input.showPicker?.()
+      } catch {
+        // NotAllowedError or no picker for dates: the focused field is the fallback.
+      }
+    } else if (!picking && back.current) {
+      back.current = false
+      cell.current?.querySelector<HTMLElement>("button,[role=combobox]")?.focus()
+    }
+  }, [picking])
+  const stop = () => {
+    back.current = true
+    setPicking(false)
+  }
   const save = (due: string) => void useTasks.getState().update(task.key, { due })
   const today = new Date()
   const dates = { today, tomorrow: addDays(today, 1), week: addDays(today, 7) }
@@ -114,23 +137,33 @@ export function DueCell({ task }: { task: Task }) {
       <input
         ref={field}
         type="date"
-        // biome-ignore lint/a11y/noAutofocus: the field replaces the cell the owner just chose "another day" in
-        autoFocus
         aria-label={m.cell(m.due, task.key)}
         defaultValue={task.dueAt ? localDay(task.dueAt) : days.today}
+        onChange={(e) => {
+          // A day clicked in the calendar is the answer; typed digits wait for Enter, since "2" is already a year.
+          if (Date.now() - typed.current > 300 && e.currentTarget.value) {
+            save(e.currentTarget.value)
+            stop()
+          }
+        }}
         onKeyDown={(e) => {
+          typed.current = Date.now()
           if (e.key === "Escape") {
             // In the task dialog this Escape would close the whole dialog, not only the date field.
             e.preventDefault()
-            setPicking(false)
+            stop()
           }
           if (e.key === "Enter" && e.currentTarget.value) {
             save(e.currentTarget.value)
-            setPicking(false)
+            stop()
           }
         }}
         onBlur={(e) => {
-          if (e.currentTarget.value && (!task.dueAt || e.currentTarget.value !== localDay(task.dueAt))) {
+          if (
+            !back.current &&
+            e.currentTarget.value &&
+            (!task.dueAt || e.currentTarget.value !== localDay(task.dueAt))
+          ) {
             save(e.currentTarget.value)
           }
           setPicking(false)
@@ -140,7 +173,7 @@ export function DueCell({ task }: { task: Task }) {
     )
   }
   return (
-    <div className="relative">
+    <div ref={cell} className="relative">
       <Select<DueValue>
         size="sm"
         aria-label={m.cell(m.due, task.key)}
