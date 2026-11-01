@@ -7,6 +7,7 @@ import { formatList, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { ReportThis } from "../report/ReportThis"
 import { type ToolsText, toolsMessages } from "./messages"
@@ -87,9 +88,10 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
           type="button"
           onClick={() => setShowLog((v) => !v)}
           aria-expanded={showLog}
-          className="text-[1.05rem] font-medium text-brand hover:text-brand-hover"
+          className="inline-flex items-center gap-1 text-[1.05rem] font-medium text-brand hover:text-brand-hover"
         >
           {showLog ? m.hideLog : m.showLog}
+          <ExpandChevron open={showLog} className="text-current" />
         </button>
 
         <div className="ml-auto flex gap-2">

@@ -338,6 +338,10 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
   focus to it; the message folds open with `Collapse` or fills a line kept for it, so nothing below jumps. Disable a
   button only while its own action runs (its label says so: "Saving…"), or when the reason is printed right beside it
   ("Soon", "update to search"). A reason only in a tooltip does not count. Rule 5's delete dialogs keep their own gate.
+- **What opens shows that it opens.** A row, group, section or detail that expands carries a chevron (`ExpandChevron`,
+  `src/ui/ExpandChevron.tsx`) at the right edge of what is clicked, pointing down and turning over while open, as on
+  Guides. A button that opens a panel (Manage) carries it after its label. Inline "show more" links keep theirs before
+  the text.
 
 ### Status Lamp (signature)
 
