@@ -119,7 +119,7 @@ function SubjectPage({ group, onBack }: { group: SubjectGroup; onBack: () => voi
             <ArrowLeft className="size-4" aria-hidden />
             {t.back}
           </button>
-          <h2 className="mt-[0.6rem] flex items-center gap-[0.5rem] text-[1.5rem] font-semibold leading-tight">
+          <h2 className="mt-[0.6rem] flex items-center gap-[0.5rem] text-[1.2rem] font-semibold leading-tight">
             <SubjectIcon subject={group.subject} />
             {group.name}
           </h2>

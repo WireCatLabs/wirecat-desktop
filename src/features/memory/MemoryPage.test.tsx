@@ -117,7 +117,7 @@ describe("Memory", () => {
 
     const batch = row(/2 facts and 2 tasks to review/)
     await user.click(within(batch).getByRole("button", { name: "Approve" }))
-    await waitFor(() => expect(within(batch).getAllByText("Created")).toHaveLength(3), { timeout: 3000 })
-    expect(within(batch).getByText("Rejected")).toBeInTheDocument()
+    await waitFor(() => expect(within(batch).getAllByText(/^Created/)).toHaveLength(3), { timeout: 3000 })
+    expect(within(batch).getByText(/^Rejected/)).toBeInTheDocument()
   })
 })

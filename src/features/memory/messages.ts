@@ -143,6 +143,9 @@ const en = {
       .filter((p) => !p.startsWith("0 "))
       .join(" and ")} to review`,
   findingsHead: (project: string) => `What Approve creates in ${project}`,
+  findingsFor: (project: string) => `Findings for ${project}`,
+  findingsReviewed: (created: number, rejected: number) =>
+    created === 0 ? "Findings, all rejected" : `Findings: ${created} created, ${rejected} rejected`,
   findingsNote: (ticked: number, total: number, project: string): string =>
     ticked === 0
       ? "Nothing is ticked. Discard rejects them all."
@@ -311,6 +314,9 @@ const ru: typeof en = {
       .filter((p) => !p.startsWith("0 "))
       .join(" и ")} на проверку`,
   findingsHead: (project: string) => `Что создаст «Одобрить» в ${project}`,
+  findingsFor: (project: string) => `Находки для ${project}`,
+  findingsReviewed: (created: number, rejected: number) =>
+    created === 0 ? "Находки, все отклонены" : `Находки: создано ${created}, отклонено ${rejected}`,
   findingsNote: (ticked: number, total: number, project: string): string =>
     ticked === 0
       ? "Ничего не отмечено. «Отклонить» отклонит всё."
@@ -476,6 +482,9 @@ const es: typeof en = {
       .filter((p) => !p.startsWith("0 "))
       .join(" y ")} por revisar`,
   findingsHead: (project: string) => `Lo que Aprobar crea en ${project}`,
+  findingsFor: (project: string) => `Hallazgos para ${project}`,
+  findingsReviewed: (created: number, rejected: number) =>
+    created === 0 ? "Hallazgos, todos rechazados" : `Hallazgos: ${created} creados, ${rejected} rechazados`,
   findingsNote: (ticked: number, total: number, project: string): string =>
     ticked === 0
       ? "No hay nada marcado. Descartar los rechaza todos."

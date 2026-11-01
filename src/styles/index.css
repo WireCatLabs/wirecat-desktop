@@ -150,8 +150,8 @@ body {
   outline: none;
 }
 
-/* A text field inside a bordered box with other controls (a combobox): the box shows focus, so the field drawing its own ring
-   inside that border gives two rectangles. Unlayered, like the rule above it, so Tailwind's outline-none cannot. */
+/* A text field whose border already shows focus (a combobox's box, an inline correction): the global ring around it
+   reads as a second rectangle. Unlayered, like the rule above it, because Tailwind's layered outline-none loses. */
 .inner-field:focus-visible {
   outline: none;
 }

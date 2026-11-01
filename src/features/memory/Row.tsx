@@ -40,6 +40,10 @@ const SUBJECT_ICONS = { project: FolderKanban, person: User, you: UserRound, oth
 /** What the row's text says: the record's own text, or for a findings batch how many facts and tasks it holds. */
 export function textOf(e: MemoryEntry, m: M) {
   if (e.findings) {
+    if (e.status !== "proposed") {
+      const created = e.findings.filter((f) => f.outcome === "accepted").length
+      return m.findingsReviewed(created, e.findings.length - created)
+    }
     const facts = e.findings.filter((f) => f.kind === "fact").length
     return m.findingsTitle(facts, e.findings.length - facts)
   }
@@ -280,7 +284,7 @@ function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: () => vo
             save()
           }
         }}
-        className="selectable -mx-[0.4rem] resize-none overflow-hidden rounded-[0.35rem] border border-line-strong bg-app px-[0.35rem] py-[0.2rem] text-[1rem] leading-snug font-medium text-ink outline-none focus:border-brand aria-[invalid=true]:border-bad"
+        className="selectable inner-field -mx-[0.4rem] resize-none overflow-hidden rounded-[0.35rem] border border-line-strong bg-app px-[0.35rem] py-[0.2rem] text-[1rem] leading-snug font-medium text-ink focus:border-brand focus:ring-1 focus:ring-brand aria-[invalid=true]:border-bad"
       />
       <p id={hint} className="text-[0.9rem] text-ink-dim">
         {m.fixHint}
@@ -384,7 +388,9 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
 
   return (
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
-      <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.findingsHead(project)}</h3>
+      <h3 className="text-[0.9rem] font-medium text-ink-dim">
+        {open ? m.findingsHead(project) : m.findingsFor(project)}
+      </h3>
       <ul className="flex flex-col rounded-[0.45rem] border border-line bg-app">
         {findings.map((f) => {
           const on = !skipped.includes(f.id)
@@ -413,16 +419,14 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
                   <Pill tone={f.kind === "task" ? "brand" : "neutral"}>{m.findingKinds[f.kind] ?? f.kind}</Pill>
                   <span className="selectable min-w-0 text-[0.95rem] text-ink">{f.text}</span>
                 </span>
-                {!open && f.outcome && (
-                  <span className="mt-[0.15rem] block text-[0.85rem] text-ink-dim">
-                    {m.outcomes[f.outcome] ?? f.outcome}
-                  </span>
-                )}
                 {f.reason && (
                   <span className="selectable mt-[0.15rem] block text-[0.9rem] text-ink-soft">{f.reason}</span>
                 )}
                 {f.evidence.length > 0 && (
                   <span className="mt-[0.3rem] flex flex-wrap items-center gap-x-[0.6rem] text-[0.85rem] text-ink-dim">
+                    {!open && f.outcome && (
+                      <span className="font-medium text-ink-soft">{m.outcomes[f.outcome] ?? f.outcome} ·</span>
+                    )}
                     <span>{m.cites}</span>
                     {f.evidence.map((ref) => (
                       <span key={ref} className="selectable inline-flex items-center gap-[0.3rem] font-mono">

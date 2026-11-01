@@ -378,10 +378,10 @@ fn read_with(call: &Call) -> Result<Read, String> {
         let f = s.spawn(|| list(call, "facts", fact));
         let a = s.spawn(|| list(call, "actions", action));
         let g = s.spawn(|| call(&words(&["agents", "list", "--limit", ACTIVITY_LIMIT])));
-        let p = s.spawn(|| call(&words(&["projects", "list"])));
+        let projects = s.spawn(|| call(&words(&["projects", "list"])));
         let stopped = |_| Err("a read stopped".to_string());
         // Without names the rows still read; a project then shows by its ref.
-        let names = p.join().ok().and_then(Result::ok).map(|v| project_names(&v)).unwrap_or_default();
+        let names = projects.join().ok().and_then(Result::ok).map(|v| project_names(&v)).unwrap_or_default();
         (
             m.join().unwrap_or_else(stopped),
             f.join().unwrap_or_else(stopped),
