@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
@@ -29,7 +29,9 @@ describe("Search", () => {
     await waitFor(() => expect(profile).toHaveTextContent("Choose a profile"))
     await user.type(screen.getByRole("combobox", { name: "Search messages" }), "invoice{Enter}")
     expect(search).not.toHaveBeenCalled()
-    expect(screen.getByRole("button", { name: "Search" })).toBeDisabled()
+    expect(await screen.findByText("Choose a profile to search in.")).toBeInTheDocument()
+    expect(profile).toHaveFocus()
+    expect(profile).toHaveAttribute("aria-invalid", "true")
 
     await choose(user, "Profile", "personal")
     await user.click(screen.getByRole("button", { name: "Search" }))
@@ -47,6 +49,53 @@ describe("Search", () => {
     expect(search).toHaveBeenLastCalledWith("tg", "personal", "invoice", 50, 2)
     expect(screen.getByRole("button", { name: "Previous page" })).toBeEnabled()
   }, 15000)
+
+  it("keeps Search active and says what is missing, then runs a plain word search", async () => {
+    const user = userEvent.setup()
+    const search = vi.spyOn(platform, "searchStore")
+    render(<SearchPage />)
+    await waitFor(() => expect(useTools.getState().checked).toBe(true), { timeout: 4000 })
+    const button = screen.getByRole("button", { name: "Search" })
+    expect(button).toBeEnabled()
+
+    await user.click(button)
+    expect(await screen.findByText("Choose a tool to search in.")).toBeInTheDocument()
+    expect(screen.getByRole("combobox", { name: "Tool" })).toHaveFocus()
+
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.click(button)
+    const bar = screen.getByRole("combobox", { name: "Search messages" })
+    expect(await screen.findByText(/Type what to look for/)).toBeInTheDocument()
+    expect(bar).toHaveFocus()
+    expect(search).not.toHaveBeenCalled()
+
+    await user.type(bar, "invoice{Enter}")
+    await waitFor(() => expect(search).toHaveBeenCalledWith("tg", "personal", "invoice", 50, 1))
+    expect(screen.queryByText(/Type what to look for/)).not.toBeInTheDocument()
+  }, 15000)
+
+  it("lists the keys to search by in an empty box, and has: values only after has:", async () => {
+    const user = userEvent.setup()
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    const bar = screen.getByRole("combobox", { name: "Search messages" })
+    await user.click(bar)
+    const list = await screen.findByRole("listbox")
+    const options = within(list)
+      .getAllByRole("option")
+      .map((o) => o.textContent)
+    expect(options[0]).toContain("from:")
+    expect(options.some((o) => o?.startsWith("chat:"))).toBe(true)
+    expect(options.some((o) => o?.startsWith("has:photo"))).toBe(true)
+    expect(within(list).getByText("Try")).toBeInTheDocument()
+
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}")
+    expect(bar).toHaveValue("has:")
+    expect(within(screen.getByRole("listbox")).getByRole("option", { name: /^voice/ })).toBeInTheDocument()
+    await user.keyboard("{Escape}")
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument()
+  })
 
   it("shows the tool's query error at its place until the query changes", async () => {
     const user = userEvent.setup()
@@ -128,4 +177,17 @@ describe("Search", () => {
       expect(search).toHaveBeenLastCalledWith("tg", "personal", 'date>=3d chat:"-1001762030832"', 50, 1),
     )
   }, 15000)
+})
+
+describe("search keys", () => {
+  it("each key a tool searches by has a meaning in every language", async () => {
+    const { tools } = await import("@/domain/catalog")
+    const { searchMessages } = await import("./messages")
+    for (const tool of tools) {
+      const what = tool.search?.what === "documents" ? "notes" : tool.search?.what
+      for (const f of tool.search?.fields ?? [])
+        for (const [lang, m] of Object.entries(searchMessages))
+          expect(m.fields[`${what}:${f.name}`], `${lang} ${tool.id} ${f.name}`).toBeTruthy()
+    }
+  })
 })

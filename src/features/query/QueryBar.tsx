@@ -24,6 +24,8 @@ type Props = {
   /** Enter with no row chosen. Without it, Enter takes the first row, as the Logs filter does. */
   onSubmit?: () => void
   disabled?: boolean
+  /** So the page can move focus here, as Search does when the query is what is missing. */
+  inputId?: string
 }
 
 export function QueryBar(props: Props) {
@@ -80,7 +82,9 @@ export function QueryBar(props: Props) {
       setActive((a) => (a < 0 ? (e.key === "ArrowDown" ? 0 : n - 1) : (a + (e.key === "ArrowDown" ? 1 : n - 1)) % n))
       return
     }
-    const chosen = showList ? suggestions.items[active < 0 && e.key === "Tab" ? 0 : active] : undefined
+    // Tab takes the first row only while a word is being typed; from an empty spot it moves focus on as usual.
+    const first = active < 0 && e.key === "Tab" && suggestions.to > suggestions.from
+    const chosen = showList ? suggestions.items[first ? 0 : active] : undefined
     if ((e.key === "Enter" || e.key === "Tab") && chosen) {
       e.preventDefault()
       accept(chosen)
@@ -119,6 +123,7 @@ export function QueryBar(props: Props) {
         </div>
         <input
           ref={input}
+          id={props.inputId}
           role="combobox"
           aria-label={words.label}
           aria-autocomplete="list"
@@ -140,7 +145,10 @@ export function QueryBar(props: Props) {
           }}
           onKeyDown={onKey}
           onKeyUp={sync}
-          onClick={sync}
+          onClick={() => {
+            sync()
+            setOpen(true)
+          }}
           onScroll={sync}
           onFocus={() => setOpen(true)}
           onBlur={() => {

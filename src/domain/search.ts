@@ -219,16 +219,24 @@ export type SuggestContext = {
   what: string
 }
 
+/** The fields to start with, the rest behind "More fields" until it is chosen. */
+function fieldRows(ctx: SuggestContext, sign: string): QueryOption[] {
+  const shown = byGroup(ctx.all ? ctx.fields : ctx.fields.filter((f) => f.top))
+  const items = shown.map((f) => fieldRow(f, sign, ctx.words))
+  if (!ctx.all && shown.length < ctx.fields.length) items.push({ label: ctx.words.more, insert: "", more: true })
+  return items
+}
+
 export function suggestSearch(query: string, cursor: number, ctx: SuggestContext): QueryOptions {
   if (query.trim() === "") {
-    const items = examples(ctx.what, ctx.now).map((e) => ({
+    const tried = examples(ctx.what, ctx.now).map((e) => ({
       label: e.query,
       insert: e.query,
       note: ctx.exampleWords[e.id],
       group: ctx.words.examplesHeading,
       whole: true,
     }))
-    return { from: 0, to: query.length, items }
+    return { from: 0, to: query.length, items: [...fieldRows(ctx, ""), ...tried] }
   }
   const tok = tokenAt(query, cursor)
   const sign = /^[-+]/.test(tok.raw) ? (tok.raw[0] as string) : ""
@@ -278,13 +286,7 @@ export function suggestSearch(query: string, cursor: number, ctx: SuggestContext
   }
 
   const prefix = body.toLowerCase()
-  if (prefix === "") {
-    const shown = byGroup(ctx.all ? ctx.fields : ctx.fields.filter((f) => f.top))
-    const items: QueryOption[] = shown.map((f) => fieldRow(f, sign, ctx.words))
-    if (!ctx.all && shown.length < ctx.fields.length)
-      items.push({ label: ctx.words.more, insert: "", more: true, group: null })
-    return { ...at, items }
-  }
+  if (prefix === "") return { ...at, items: fieldRows(ctx, sign) }
   const items = byGroup(ctx.fields.filter((f) => f.name.startsWith(prefix) && f.name !== prefix)).map((f) =>
     fieldRow(f, sign, ctx.words),
   )

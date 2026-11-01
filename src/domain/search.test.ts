@@ -109,9 +109,12 @@ describe("suggestSearch", () => {
   const labels = (q: string, at = q.length, all = false) =>
     suggestSearch(q, at, { ...ctx, all }).items.map((i) => i.label)
 
-  it("offers ready queries in an empty box, each replacing the whole query", () => {
-    const found = suggestSearch("", 0, ctx)
-    expect(found.items[1]).toMatchObject({ label: "has:file date:[2026-10-01 TO *]", whole: true })
+  it("offers the keys to search by in an empty box, then ready queries that replace the whole query", () => {
+    expect(labels("").slice(0, 4)).toEqual(["from:", "chat:", "date", "More fields…"])
+    expect(suggestSearch("", 0, ctx).items[0]).toMatchObject({ insert: "from:", open: true, note: "about from" })
+    const tried = suggestSearch("", 0, ctx).items.filter((i) => i.whole)
+    expect(tried[1]).toMatchObject({ label: "has:file date:[2026-10-01 TO *]", group: "Try" })
+    expect(labels("").some((l) => /^has:photo$|^has:file$/.test(l))).toBe(false)
   })
 
   it("shows the first fields by group, the rest behind More fields, and finds a hidden one by name", () => {

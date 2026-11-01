@@ -42,8 +42,15 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 export const listKey = (tool: string, profile: string | null, version: string | null, list: string) =>
   `${tool}|${profile ?? ""}|${version ?? ""}|${list}`
 
-export const ready = (s: Pick<SearchState, "tool" | "profile" | "profiles" | "query">) =>
-  s.tool !== null && s.query.trim() !== "" && (s.profiles === null || s.profile !== null)
+/** What still stops a search, in the order the page asks for it; "profiles" when the tool has none to choose. */
+export type Missing = "tool" | "profiles" | "profile" | "query"
+
+export function missing(s: Pick<SearchState, "tool" | "profile" | "profiles" | "query">): Missing | null {
+  if (s.tool === null) return "tool"
+  if (s.profiles !== null && s.profile === null) return s.profiles?.length === 0 ? "profiles" : "profile"
+  if (s.query.trim() === "") return "query"
+  return null
+}
 
 export const useSearch = create<SearchState>((set, get) => {
   // Only the newest request's answer is shown; a slower earlier one is dropped.
@@ -108,7 +115,7 @@ export const useSearch = create<SearchState>((set, get) => {
     setQuery: (query) => set({ query }),
     async search(page = 1) {
       const s = get()
-      if (!ready(s) || s.tool === null) return
+      if (missing(s) || s.tool === null) return
       const asked: Asked = { tool: s.tool, profile: s.profiles === null ? null : s.profile, query: s.query, page }
       const call = ++seq
       set({ loading: true, error: null })
