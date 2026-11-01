@@ -125,6 +125,10 @@ type Words = {
   dueFrom: string
   dueTo: string
   done: string
+  needTitle: string
+  needProject: string
+  saveFirst: string
+  position: (at: number, of: number) => string
 }
 
 /** "4 Nov": a due day. */
@@ -270,6 +274,10 @@ const en: Words = {
   dueFrom: "From",
   dueTo: "To (optional)",
   done: "Done",
+  needTitle: "Type a title for the task.",
+  needProject: "Choose the project it belongs to.",
+  saveFirst: "Save or discard your changes first.",
+  position: (at, of) => `${at} of ${of}`,
 }
 
 const ru: Words = {
@@ -416,6 +424,10 @@ const ru: Words = {
   dueFrom: "С",
   dueTo: "По (необязательно)",
   done: "Готово",
+  needTitle: "Введите название задачи.",
+  needProject: "Выберите проект задачи.",
+  saveFirst: "Сначала сохраните или отмените изменения.",
+  position: (at, of) => `${at} из ${of}`,
 }
 
 const es: Words = {
@@ -556,6 +568,10 @@ const es: Words = {
   dueFrom: "Desde",
   dueTo: "Hasta (opcional)",
   done: "Hecho",
+  needTitle: "Escribe un título para la tarea.",
+  needProject: "Elige el proyecto de la tarea.",
+  saveFirst: "Guarda o descarta tus cambios primero.",
+  position: (at, of) => `${at} de ${of}`,
 }
 
 export const taskMessages: Messages<Words> = { en, ru, es }

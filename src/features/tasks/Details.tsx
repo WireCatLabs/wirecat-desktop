@@ -4,6 +4,7 @@ import { closed, labelOf, STATES, type State } from "@/domain/tasks"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import type { Person, Task, TaskEdit, TaskEvent } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { AssigneeCell, DueCell, PriorityCell, StatusCell } from "./cells"
@@ -192,11 +193,19 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
               className="selectable h-[2.4rem] max-w-[20rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] font-mono text-[0.9rem] text-ink outline-none placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand"
             />
           </label>
-          <div className="flex gap-2">
-            <Button variant="primary" size="sm" type="submit" disabled={!changed || busy}>
+          {/* The buttons appear with the first change; their line is kept, so nothing below moves. */}
+          <div
+            inert={(!changed && !busy) || undefined}
+            aria-hidden={(!changed && !busy) || undefined}
+            className={cx(
+              "flex gap-2 transition-opacity duration-150",
+              !changed && !busy && "pointer-events-none opacity-0",
+            )}
+          >
+            <Button variant="primary" size="sm" type="submit" disabled={busy}>
               {busy ? m.saving : m.save}
             </Button>
-            <Button size="sm" variant="ghost" onClick={reset} disabled={!changed || busy}>
+            <Button size="sm" variant="ghost" onClick={reset} disabled={busy}>
               {m.cancel}
             </Button>
           </div>
