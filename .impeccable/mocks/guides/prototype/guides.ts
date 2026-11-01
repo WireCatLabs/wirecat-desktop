@@ -2,11 +2,12 @@
 // The shape proposed for guides.json in docs/dev/plans/2026-11-01-guides.md. Commands checked against the live
 // command pages on wirecat.dev (2026-11-01); names and chats are made up.
 import type { Lang } from "@/i18n"
+import { MORE_GUIDES } from "./guides-more"
 
 type Text = { en: string; ru: string; es: string }
 
 /** What the owner wants done; the page groups guides by it, not by tool. */
-export const GOALS = ["catch-up", "prepare", "remember", "plan"] as const
+export const GOALS = ["catch-up", "prepare", "gather", "analyze", "verify", "remember", "plan", "schedule"] as const
 export type Goal = (typeof GOALS)[number]
 
 export type Guide = {
@@ -29,7 +30,7 @@ export const textOf = (t: Text, lang: Lang) => t[lang]
 
 const MESSENGERS = ["tg", "max", "wa"]
 
-export const GUIDES: Guide[] = [
+const FIRST_GUIDES: Guide[] = [
   {
     id: "catch-up",
     goal: "catch-up",
@@ -104,7 +105,7 @@ export const GUIDES: Guide[] = [
           ru: "Собирает сообщения, письма, заметки и события о человеке",
           es: "Reúne mensajes, correo, notas y eventos sobre la persona",
         },
-        run: 'memo context "Kai Sample"',
+        run: "memo context telegram:'Kai Sample'",
       },
       {
         text: {
@@ -112,7 +113,7 @@ export const GUIDES: Guide[] = [
           ru: "Читает, что о нём говорили на прошлых встречах",
           es: "Lee lo que dicen de esa persona las reuniones pasadas",
         },
-        run: 'zm meetings context "Kai Sample"',
+        run: "zm meetings context person:…",
       },
       {
         text: {
@@ -311,7 +312,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "where-decided",
-    goal: "prepare",
+    goal: "verify",
     needs: { all: ["memo"] },
     title: {
       en: "Find where something was decided",
@@ -403,7 +404,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "check-before-reply",
-    goal: "catch-up",
+    goal: "verify",
     needs: { any: MESSENGERS },
     title: {
       en: "Check your promises before you reply",
@@ -551,3 +552,5 @@ export const GUIDES: Guide[] = [
     },
   },
 ]
+
+export const GUIDES: Guide[] = [...FIRST_GUIDES, ...MORE_GUIDES]
