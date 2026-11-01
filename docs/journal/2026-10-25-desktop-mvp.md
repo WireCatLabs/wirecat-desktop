@@ -133,6 +133,8 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
   - Исходник главной — `design/homepage-chat-treatments/release-source.json` + локали, генерация `pnpm landing:export`. Отдано агенту, worktree `cli-docs-wt-landing-hero`, ветка `feat/landing-hero-channels`.
   - В `cli-docs-wt-landing-install` лежат чужие незакоммиченные правки главной от 2026-10-29 (направление «весь контекст», DOCS-14 про блок установки десктопа) — не трогаем.
   - Дополнение: «also add Google Calendar to the hero tools list» — передано агенту; `@wirecat/gcal-cli` 0.12.0 уже на npm.
+  - PR cli-docs #490 (не слит): переключатель демо по языкам, WhatsApp-диалоги для 4 случаев, MAX убран из верха en/es при экспорте, панель Connect: «Get WireCat Desktop» + «Download for <ОС>», CLI вторым, Google Calendar в строке источников. Попутно: ru/es копировали английский запрос (экспорт искал старый текст) — исправлено.
+  - Не прогнаны локально: stable-home, onboarding-merge, whatsapp.spec, mobile-delivery, copy-feedback, public-site-navigation, site-quality (OOM). Запускаются при мерже в main.
 
 ## 2. Вопросы Славы
 
@@ -793,6 +795,11 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **memo 0.131.14 / cli-core 0.538.0 (2026-11-01, NEED-227 B):** пачки находок остаются одобряемыми после соседней (проверка только своих источников; встречи по-прежнему одним снимком); `task.has-subtasks` с details.subtasks; фильтр parent:; перенос подзадачи — отказ task.is-subtask, `--parent none` выносит; у действий verb/target_name/chat_name/text/counts. cli-core #2349, #2356, memo #568. Десктоп переводится агентом на ветке от main.
 
 - **FIND-179 · apt читает локальный .deb от имени `_apt`:** домашняя папка drwxr-x--- даёт уведомление «unsandboxed as root»; `./` и `mktemp -d` (700) не помогают, `/tmp` (644) помогает — прочитано в исходниках apt (acquire.cc, indexfile.cc) и проверено правами без sudo; сам вывод apt из /tmp не видели. Сообщение после установки (postinst .deb/.rpm), команда через /tmp в приложении и на сайте — wirecat-desktop #51, cli-docs #488. Скрипт установки не сделан (на сайте нет скриптов для десктопа; проверка подписи требует minisign).
+
+- **FIND-180 · Локальный сервер Next.js сайта (4–5 ГБ каждый) вызвал OOM killer**, который убил и другие приложения владельца (2026-11-02, агент главной). Браузерные тесты сайта локально гонять по одному или в CI.
+- **IDEA-15 · Блок установки десктопа внизу главной (DOCS-14) и обновить PRODUCT.md cli-docs**: там до сих пор только Telegram и MAX без десктопа.
+- **IDEA-16 · Текст главной шире мессенджеров**: «conversations and notes», «More messenger connections are planned», блок доверия — под направление «чаты, почта, встречи, документы, календари, заметки».
+- **IDEA-17 · Событие аналитики на кнопку скачивания десктопа** с главной; плюс то же правило en/es без MAX на страницах Features и Examples; WhatsApp в результатах демо-поиска.
 
 ## 4. Вопросы к Славе
 
