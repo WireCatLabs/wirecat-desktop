@@ -16,7 +16,8 @@ export type Guide = {
   result: Text
   /** True when the agent saves something: the prompt asks it to show first and save after the owner agrees. */
   saves?: boolean
-  docs: string
+  /** Per language: the site's headings, and so their anchors, are translated. */
+  docs: Text
 }
 
 export const textOf = (t: Text, lang: Lang) => t[lang]
@@ -65,7 +66,11 @@ export const GUIDES: Guide[] = [
       ru: "Короткий список по каждому чату. Каждая строка ведёт к своему сообщению.",
       es: "Una lista breve por chat. Cada línea enlaza al mensaje del que sale.",
     },
-    docs: "https://wirecat.dev/en/docs/tg/recipes#morning-summary",
+    docs: {
+      en: "https://wirecat.dev/en/docs/tg/recipes#morning-summary",
+      ru: "https://wirecat.dev/ru/docs/tg/recipes#утренняя-сводка",
+      es: "https://wirecat.dev/es/docs/tg/recipes#resumen-de-la-mañana",
+    },
   },
   {
     id: "meeting-prep",
@@ -116,7 +121,11 @@ export const GUIDES: Guide[] = [
       ru: "Сводка на один экран и три темы для разговора. У каждой темы есть ссылка на источник.",
       es: "Un resumen de una pantalla y tres temas. Cada tema enlaza a su fuente.",
     },
-    docs: "https://wirecat.dev/en/docs/memo/recipes#prepare-for-a-meeting-with-someone",
+    docs: {
+      en: "https://wirecat.dev/en/docs/memo/recipes#prepare-for-a-meeting-with-someone",
+      ru: "https://wirecat.dev/ru/docs/memo/recipes#подготовка-к-встрече-с-человеком",
+      es: "https://wirecat.dev/es/docs/memo/recipes#prepararte-para-una-reunión-con-alguien",
+    },
   },
   {
     id: "requests-to-tasks",
@@ -160,7 +169,11 @@ export const GUIDES: Guide[] = [
       ru: "Список просьб на выбор, потом задачи со ссылками на сообщения.",
       es: "Una lista de peticiones para elegir y luego tareas que enlazan a cada mensaje.",
     },
-    docs: "https://wirecat.dev/en/docs/memo/recipes#turn-requests-into-tasks",
+    docs: {
+      en: "https://wirecat.dev/en/docs/memo/recipes#turn-requests-into-tasks",
+      ru: "https://wirecat.dev/ru/docs/memo/recipes#превратить-просьбы-в-задачи",
+      es: "https://wirecat.dev/es/docs/memo/recipes#convertir-peticiones-en-tareas",
+    },
   },
   {
     id: "document-facts",
@@ -192,6 +205,14 @@ export const GUIDES: Guide[] = [
       },
       {
         text: {
+          en: "Downloads the file",
+          ru: "Скачивает файл",
+          es: "Descarga el archivo",
+        },
+        run: "tg attachments download",
+      },
+      {
+        text: {
           en: "Reads the text of the file into your archive",
           ru: "Добавляет текст файла в ваш архив",
           es: "Lee el texto del archivo y lo guarda en tu archivo",
@@ -212,7 +233,11 @@ export const GUIDES: Guide[] = [
       ru: "Факты, у каждого ссылка на сообщение и файл. Агент спросит, прежде чем сохранить.",
       es: "Los hechos, cada uno con enlace al mensaje y al archivo. Tu agente pregunta antes de guardar.",
     },
-    docs: "https://wirecat.dev/en/docs/memo/recipes#record-a-decision-from-a-chat",
+    docs: {
+      en: "https://wirecat.dev/en/docs/memo/recipes#record-a-decision-from-a-chat",
+      ru: "https://wirecat.dev/ru/docs/memo/recipes#записать-решение-из-чата",
+      es: "https://wirecat.dev/es/docs/memo/recipes#registrar-una-decisión-de-un-chat",
+    },
   },
   {
     id: "call-follow-up",
@@ -268,7 +293,11 @@ export const GUIDES: Guide[] = [
       ru: "Задачи со ссылкой на момент звонка и черновик, который вы поправите и отправите сами.",
       es: "Tareas que enlazan al momento de la llamada y un borrador que editas y envías tú.",
     },
-    docs: "https://wirecat.dev/en/docs/zm",
+    docs: {
+      en: "https://wirecat.dev/en/docs/memo/recipes#review-a-meetings-decisions-and-follow-ups",
+      ru: "https://wirecat.dev/ru/docs/memo/recipes#проверить-решения-и-поручения-со-встречи",
+      es: "https://wirecat.dev/es/docs/memo/recipes#revisar-las-decisiones-y-los-seguimientos-de-una-reunión",
+    },
   },
   {
     id: "where-decided",
@@ -311,7 +340,11 @@ export const GUIDES: Guide[] = [
       ru: "Цитаты с источниками или честный рассказ, где агент искал.",
       es: "Citas con sus fuentes, o una explicación clara de dónde buscó.",
     },
-    docs: "https://wirecat.dev/en/docs/memo/recipes#find-where-something-was-decided",
+    docs: {
+      en: "https://wirecat.dev/en/docs/memo/recipes#find-where-something-was-decided",
+      ru: "https://wirecat.dev/ru/docs/memo/recipes#где-было-принято-решение",
+      es: "https://wirecat.dev/es/docs/memo/recipes#encontrar-dónde-se-decidió-algo",
+    },
   },
   {
     id: "plan-the-day",
@@ -350,7 +383,11 @@ export const GUIDES: Guide[] = [
       ru: "Список дел на день по порядку, с объяснением порядка.",
       es: "Una lista ordenada para el día, con el motivo de cada lugar.",
     },
-    docs: "https://wirecat.dev/en/docs/memo/tasks",
+    docs: {
+      en: "https://wirecat.dev/en/docs/memo/tasks",
+      ru: "https://wirecat.dev/ru/docs/memo/tasks",
+      es: "https://wirecat.dev/es/docs/memo/tasks",
+    },
   },
   {
     id: "check-before-reply",
@@ -393,7 +430,11 @@ export const GUIDES: Guide[] = [
       ru: "Список обещаний и черновик ответа. Ничего не отправляется.",
       es: "Una lista de promesas y un borrador de respuesta. No se envía nada.",
     },
-    docs: "https://wirecat.dev/en/docs/tg/recipes#draft-a-reply",
+    docs: {
+      en: "https://wirecat.dev/en/docs/tg/recipes#draft-a-reply",
+      ru: "https://wirecat.dev/ru/docs/tg/recipes#составьте-ответ",
+      es: "https://wirecat.dev/es/docs/tg/recipes#redactar-una-respuesta",
+    },
   },
   {
     id: "drive-brief",
@@ -444,7 +485,11 @@ export const GUIDES: Guide[] = [
       ru: "Сводка на одну страницу со ссылками на все документы.",
       es: "Un resumen de una página que enlaza cada documento usado.",
     },
-    docs: "https://wirecat.dev/en/docs/drive/recipes#refresh-a-project-and-prepare-a-meeting-brief",
+    docs: {
+      en: "https://wirecat.dev/en/docs/drive/recipes#refresh-a-project-and-prepare-a-meeting-brief",
+      ru: "https://wirecat.dev/ru/docs/drive/recipes#обновить-проект-и-подготовиться-к-встрече",
+      es: "https://wirecat.dev/es/docs/drive/recipes#actualizar-un-proyecto-y-preparar-una-reunión",
+    },
   },
   {
     id: "remember-preference",
@@ -484,6 +529,10 @@ export const GUIDES: Guide[] = [
       ru: "Одно воспоминание со ссылкой на сообщение. Следующие ответы о Kai будут его учитывать.",
       es: "Un recuerdo enlazado a su mensaje. Las próximas respuestas sobre Kai lo tendrán en cuenta.",
     },
-    docs: "https://wirecat.dev/en/docs/memo/recipes#remember-a-preference-with-its-source",
+    docs: {
+      en: "https://wirecat.dev/en/docs/memo/recipes#remember-a-preference-with-its-source",
+      ru: "https://wirecat.dev/ru/docs/memo/recipes#запомнить-предпочтение-вместе-с-источником",
+      es: "https://wirecat.dev/es/docs/memo/recipes#recordar-una-preferencia-con-su-fuente",
+    },
   },
 ]

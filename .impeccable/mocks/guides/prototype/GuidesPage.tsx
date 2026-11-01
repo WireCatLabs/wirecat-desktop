@@ -413,7 +413,7 @@ function Panel(props: {
           </ul>
         </section>
 
-        <SiteLink href={g.docs.replace("/en/", `/${lang}/`)}>{m.fullGuide}</SiteLink>
+        <SiteLink href={textOf(g.docs, lang)}>{m.fullGuide}</SiteLink>
       </div>
     </div>
   )
