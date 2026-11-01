@@ -1,3 +1,4 @@
+import { X } from "lucide-react"
 import { LABELS, type Label } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
@@ -15,10 +16,24 @@ export function Note() {
         .filter(Boolean)
         .join(" ")
     : ""
+  // It floats over the page's corner, so its words appearing move nothing the owner did not touch.
   return (
-    <p aria-live="polite" className="ml-auto min-w-0 truncate text-[0.9rem] text-ink-soft">
-      {text}
-    </p>
+    <div aria-live="polite" className="pointer-events-none fixed right-[1.6rem] bottom-[1.2rem] z-40 max-w-[28rem]">
+      {text && (
+        <p className="reveal pointer-events-auto flex items-center gap-3 rounded-[0.45rem] border border-line bg-app py-[0.45rem] pr-[0.4rem] pl-[0.9rem] text-[0.9rem] text-ink shadow-panel">
+          <span className="min-w-0 flex-1">{text}</span>
+          <button
+            type="button"
+            aria-label={m.close}
+            title={m.close}
+            onClick={() => useTasks.setState({ note: null })}
+            className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        </p>
+      )}
+    </div>
   )
 }
 

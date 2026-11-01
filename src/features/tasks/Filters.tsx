@@ -5,7 +5,6 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { FilterMenu, type FilterOption } from "./FilterMenu"
 import { taskMessages } from "./messages"
-import { Note } from "./Note"
 import { personName, StateLamp } from "./parts"
 import { useTasks } from "./store"
 
@@ -128,7 +127,6 @@ export function Filters() {
         >
           {m.clear}
         </Button>
-        <Note />
       </div>
     </div>
   )

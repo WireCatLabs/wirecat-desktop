@@ -2,6 +2,7 @@ import { GripVertical } from "lucide-react"
 import {
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
+  type RefObject,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -28,21 +29,30 @@ type Held = { key: string; to: State; index: number }
 const DRAG_PX = 6
 const MOVE_MS = 220
 
-/** Cards that changed place slide from where they were, so a drop or a refusal is seen, never a jump. */
-function useSlide(order: readonly string[], states: string) {
-  const last = useRef(new Map<string, DOMRect>())
+/**
+ * Cards that changed place slide from where they were, so a drop or a refusal is seen, never a jump. Places are kept
+ * relative to the board, so scrolling the page between two changes is not mistaken for a move.
+ */
+function useSlide(board: RefObject<HTMLDivElement | null>, order: readonly string[], states: string) {
+  const last = useRef(new Map<string, { x: number; y: number }>())
   // biome-ignore lint/correctness/useExhaustiveDependencies: the cards are read from the page after each change of order or column
   useLayoutEffect(() => {
-    const cards = document.querySelectorAll<HTMLElement>("[data-card]")
-    const next = new Map<string, DOMRect>()
-    for (const el of cards) next.set(el.dataset.card ?? "", el.getBoundingClientRect())
+    const grid = board.current
+    if (!grid) return
+    const g = grid.getBoundingClientRect()
+    const cards = grid.querySelectorAll<HTMLElement>("[data-card]")
+    const next = new Map<string, { x: number; y: number }>()
+    for (const el of cards) {
+      const r = el.getBoundingClientRect()
+      next.set(el.dataset.card ?? "", { x: r.left - g.left + grid.scrollLeft, y: r.top - g.top })
+    }
     if (!reducedMotion()) {
       for (const el of cards) {
         const before = last.current.get(el.dataset.card ?? "")
         const now = next.get(el.dataset.card ?? "")
         if (!before || !now) continue
-        const dx = before.left - now.left
-        const dy = before.top - now.top
+        const dx = before.x - now.x
+        const dy = before.y - now.y
         if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue
         el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
           duration: MOVE_MS,
@@ -66,7 +76,8 @@ export function TaskBoard() {
   const press = useRef<{ key: string; x: number; y: number; el: HTMLElement } | null>(null)
   const byKey = new Map(tasks.map((t) => [t.key, t]))
   const column = (s: State) => order.filter((k) => byKey.get(k)?.state === s)
-  useSlide(order, tasks.map((t) => t.state).join())
+  const board = useRef<HTMLDivElement>(null)
+  useSlide(board, order, tasks.map((t) => t.state).join())
 
   useEffect(() => {
     if (held) document.querySelector<HTMLElement>(`[data-card="${held.key}"]`)?.focus({ preventScroll: true })
@@ -190,7 +201,10 @@ export function TaskBoard() {
       <p className="sr-only" id="tasks-drag-hint">
         {m.dragHint}
       </p>
-      <div className="grid grid-cols-[repeat(5,minmax(11.5rem,1fr))] gap-[0.75rem] overflow-x-auto pb-[0.4rem] xl:gap-[1rem]">
+      <div
+        ref={board}
+        className="grid grid-cols-[repeat(5,minmax(11.5rem,1fr))] gap-[0.75rem] overflow-x-auto pb-[0.4rem] xl:gap-[1rem]"
+      >
         {STATES.map((s) => {
           const keys = column(s)
           const shown =

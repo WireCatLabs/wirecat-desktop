@@ -8,7 +8,7 @@ the machine and runs the tools. Nothing here duplicates what a CLI already does.
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, system/, logs/, config/, settings/, storage/, onboarding/, report/, signin/, update/).
+  features/     one folder per area (tools/, agents/, tasks/, system/, logs/, config/, settings/, storage/, onboarding/, report/, signin/, update/).
   ui/           presentational parts: Button, Lamp, Stepper… Props in, events out.
   platform/     the only door to Rust. Validates every answer with valibot. Has a browser mock.
   domain/       plain TypeScript: catalog, tool status, doctor summaries. No React, no Tauri.
@@ -43,6 +43,7 @@ src-tauri/src/
                 default handler is a known one (otherwise shown in the file manager), with the `apt`/`dnf` line to copy.
                 Never the plugin's own install, which asks for the password itself (rule 6).
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
+  task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
   redact.rs     masking tokens, numbers, addresses and names in tool output.
@@ -370,6 +371,26 @@ stay behind. Of a failure only the tool's `code`, `reason` and failed run id lea
 chat); the window's words are the app's own, and "Open the run on Logs" opens that run. The Manage panel has one control per profile (Accounts), or
 one for a tool without profiles; the Tools row shows the running sync, its result, or the last sync of its only
 profile, with a Sync or Stop button beside the name. A result stays until dismissed and says what to do next.
+
+## The Tasks page
+
+Plan: `docs/dev/plans/2026-10-31-tasks-page.md`. memo's project tasks only (`project:*`); tasks made from messages stay
+on the Agents page. `task_board.rs` runs memo's own `tasks list|counts|show|history|add|update|move|assign`,
+`people list` and `projects list`, with `--json --no-record` (a failed edit would otherwise keep the owner's notes in
+memo's run log). The owner's search goes last, after `--`, since memo reads every word after it as the query; the page
+adds the board's default (open work, and what was closed in the last 14 days) unless the search names `state:` or
+`closed:`, and Rust narrows it to `project:*`. Text goes as `--title=<text>`, so a leading dash is never an option.
+Titles, notes and names leave Rust unmasked, an exception to rule 4 like the Memory page: the owner's own data on the
+owner's own page, never logged or put in a report.
+
+Every write passes `--revision` with the revision the page read. memo refuses a stale one (`task.stale`, exit 3) and
+Rust answers the task as it now is with its latest change, so the page says who changed what instead of overwriting
+it. A revision moves only for changes a person could conflict with (memo from cli-core with RISK-77 fixed); a claim
+being renewed does not. A dropped card calls `tasks move <key> [--status s] --before|--after <key>`: memo gives it a
+priority between its neighbours, which is also its order in the column, and says when its label (low, medium, high,
+critical, one per quarter) changed. Neighbours memo renumbered to make room are read again with `tasks show`.
+`tasks add` takes no due date or state, so a new task gets them in a second write. The page's minimum memo is the
+catalog's `taskBoard.minVersion`; the catalog's `tasks` key means something else, a source of agents' claims.
 
 ## Growing the app
 

@@ -12,6 +12,7 @@ import { useTools } from "../tools/store"
 import { Filters } from "./Filters"
 import { taskMessages } from "./messages"
 import { NewTask } from "./NewTask"
+import { Note } from "./Note"
 import { useTasks, type View } from "./store"
 import { TaskBoard } from "./TaskBoard"
 import { TaskTable } from "./TaskTable"
@@ -71,6 +72,7 @@ export function TasksPage() {
         </div>
       </div>
       <Body />
+      <Note />
     </div>
   )
 }
