@@ -43,6 +43,8 @@ type TasksState = {
   more: boolean
   counts: TaskCounts | null
   people: Person[]
+  /** Who has a task on the page, as the rows' assignee choices; the full list is searched in the person finder. */
+  assigned: string[]
   projects: Project[]
   open: string | null
   /** Tasks opened through a "waits for" link that the current search leaves out; never shown in the list. */
@@ -207,6 +209,7 @@ export const useTasks = create<TasksState>((set, get) => {
     more: false,
     counts: null,
     people: [],
+    assigned: [],
     projects: [],
     open: null,
     outside: {},
@@ -242,6 +245,7 @@ export const useTasks = create<TasksState>((set, get) => {
           badQuery: null,
           error: null,
           tasks: read.tasks,
+          assigned: [...new Set(read.tasks.flatMap((t) => t.assignees))],
           order: read.tasks.map((t) => t.key),
           total: read.total,
           more: read.more,
@@ -320,6 +324,7 @@ export const useTasks = create<TasksState>((set, get) => {
     async assign(key, person) {
       const t = find(key)
       if (!t) return
+      if (person) set((s) => ({ assigned: s.assigned.includes(person) ? s.assigned : [...s.assigned, person] }))
       await settle(key, () => platform.taskAssign(key, t.revision, person))
     },
 
@@ -411,6 +416,7 @@ export const useTasks = create<TasksState>((set, get) => {
     },
 
     async addPerson(name) {
+      set((s) => ({ failed: without(s.failed, "person") }))
       try {
         const person = await platform.personAdd(name)
         set((s) => ({ people: [...s.people.filter((p) => p.ref !== person.ref), person] }))

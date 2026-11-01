@@ -421,8 +421,9 @@ pub struct Person {
     pub owner: bool,
 }
 
+/// memo lists 500 people unless asked for more, and has no pages; the owner's contacts can run to thousands.
 fn people_with(call: &Call) -> Result<Vec<Person>, Failure> {
-    let v = call(&words(&["people", "list"]))?;
+    let v = call(&words(&["people", "list", "--limit", "5000"]))?;
     Ok(v["items"]
         .as_array()
         .map(|a| {
