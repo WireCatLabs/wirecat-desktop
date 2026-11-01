@@ -5,8 +5,13 @@ import type { Lang } from "@/i18n"
 
 type Text = { en: string; ru: string; es: string }
 
+/** What the owner wants done; the page groups guides by it, not by tool. */
+export const GOALS = ["catch-up", "prepare", "remember", "plan"] as const
+export type Goal = (typeof GOALS)[number]
+
 export type Guide = {
   id: string
+  goal: Goal
   /** Every tool in `all` is needed; one of `any` is enough (a messenger); `extra` adds sources when installed. */
   needs: { all?: string[]; any?: string[]; extra?: string[] }
   title: Text
@@ -27,6 +32,7 @@ const MESSENGERS = ["tg", "max", "wa"]
 export const GUIDES: Guide[] = [
   {
     id: "catch-up",
+    goal: "catch-up",
     needs: { any: MESSENGERS },
     title: {
       en: "Catch up on what you missed",
@@ -74,6 +80,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "meeting-prep",
+    goal: "prepare",
     needs: { all: ["memo"], extra: ["zm"] },
     title: {
       en: "Prepare for a call with someone",
@@ -129,6 +136,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "requests-to-tasks",
+    goal: "plan",
     needs: { all: ["memo"], any: MESSENGERS },
     saves: true,
     title: {
@@ -177,6 +185,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "document-facts",
+    goal: "remember",
     needs: { all: ["memo"], any: MESSENGERS },
     saves: true,
     title: {
@@ -241,6 +250,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "call-follow-up",
+    goal: "plan",
     needs: { all: ["zm", "memo"] },
     saves: true,
     title: {
@@ -301,6 +311,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "where-decided",
+    goal: "prepare",
     needs: { all: ["memo"] },
     title: {
       en: "Find where something was decided",
@@ -348,6 +359,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "plan-the-day",
+    goal: "plan",
     needs: { all: ["memo"] },
     title: { en: "Plan your day", ru: "Спланировать день", es: "Planificar tu día" },
     outcome: {
@@ -391,6 +403,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "check-before-reply",
+    goal: "catch-up",
     needs: { any: MESSENGERS },
     title: {
       en: "Check your promises before you reply",
@@ -438,6 +451,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "drive-brief",
+    goal: "prepare",
     needs: { all: ["drive"] },
     title: {
       en: "Brief yourself on a project from Drive",
@@ -493,6 +507,7 @@ export const GUIDES: Guide[] = [
   },
   {
     id: "remember-preference",
+    goal: "remember",
     needs: { all: ["memo"], any: MESSENGERS },
     saves: true,
     title: {
