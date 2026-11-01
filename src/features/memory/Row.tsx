@@ -527,6 +527,12 @@ function Details({ entry }: { entry: MemoryEntry }) {
             {kindOf(entry.kind, m)}
             {entry.scope && `, ${m.scopes[entry.scope] ?? entry.scope}`}
           </dd>
+          {entry.target && !entry.findings && (
+            <>
+              <dt className="text-ink-dim">{m.actsOn}</dt>
+              <dd className="selectable min-w-0 font-mono text-[0.9rem] break-all">{entry.target}</dd>
+            </>
+          )}
           {entry.account && (
             <>
               <dt className="text-ink-dim">{m.wouldAct}</dt>

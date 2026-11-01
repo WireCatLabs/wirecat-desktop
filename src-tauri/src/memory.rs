@@ -118,6 +118,8 @@ pub struct Entry {
 /// Memo stages an agent's cited facts and follow-ups about one project as an action of this kind. `actions confirm`
 /// and `actions reject` refuse it; it is reviewed through `projects actions`.
 const FINDINGS: &str = "evidence_findings";
+/// 50 batches a page: enough pages for a year of nightly runs on one project.
+const FINDINGS_PAGES: u32 = 8;
 
 /// One fact or task in a findings batch, as `projects actions confirm` creates it.
 #[derive(Serialize, Debug, PartialEq)]
@@ -469,12 +471,7 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     if accept.iter().any(|id| !held.contains(id) || plain(id).is_none()) {
         return Err("Pick only findings this batch holds.".into());
     }
-    let listed = call(&words(&["projects", "actions", "list", &project, "--brief"]))?;
-    let fingerprint = listed["items"]
-        .as_array()
-        .and_then(|a| a.iter().find(|b| b["kind"].as_str() == Some("findings") && text(b, "id") == Some(r.memo())))
-        .and_then(|b| text_field(b, "fingerprint"))
-        .ok_or("Memo no longer lists these findings as waiting; read again.")?;
+    let fingerprint = fingerprint_of(call, &project, &r.memo())?;
     let mut args: Vec<String> = vec!["projects".into(), "actions".into()];
     if accept.is_empty() {
         args.extend(["reject".into(), project, r.memo()]);
@@ -486,6 +483,36 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
     call(&args)?;
     parse_entry(r, &call(&words(&["actions", "show", &r.memo()]))?).map(Some)
+}
+
+/// `projects actions list` shows 10 batches a page by default, newest first; an agent that runs nightly stages more.
+fn fingerprint_of(call: &Call, project: &str, id: &str) -> Result<String, String> {
+    for page in 1..=FINDINGS_PAGES {
+        let listed = call(&words(&[
+            "projects",
+            "actions",
+            "list",
+            project,
+            "--brief",
+            "--limit",
+            "50",
+            "--page",
+            &page.to_string(),
+        ]))?;
+        let found = listed["items"]
+            .as_array()
+            .and_then(|a| {
+                a.iter().find(|b| b["kind"].as_str() == Some("findings") && text(b, "id").as_deref() == Some(id))
+            })
+            .and_then(|b| text_field(b, "fingerprint"));
+        if let Some(fingerprint) = found {
+            return Ok(fingerprint);
+        }
+        if !listed["page"]["has_more"].as_bool().unwrap_or(false) {
+            break;
+        }
+    }
+    Err("Memo no longer lists these findings as waiting; read again.".into())
 }
 
 fn confirm_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Entry, String> {
@@ -798,6 +825,25 @@ mod tests {
         assert_eq!(found[1].evidence, ["msg:telegram/1/77/42"]);
         // A fact names its project by key in this fixture, which `projects list` does not map.
         assert_eq!(entries.iter().find(|e| e.reference == "fact:1").unwrap().project_name, None);
+    }
+
+    #[test]
+    fn an_older_batch_is_found_on_a_later_page() {
+        let fake = Fake::new(|a| {
+            Ok(match (a[0].as_str(), a.get(2).map(String::as_str)) {
+                ("projects", Some("list")) if a.contains(&"1".to_string()) => {
+                    json!({"items":[{"kind":"findings","id":"40","fingerprint":"new"}],"page":{"has_more":true}})
+                }
+                ("projects", Some("list")) => {
+                    json!({"items":[{"kind":"findings","id":"9","fingerprint":"old"}],"page":{"has_more":false}})
+                }
+                ("projects", _) => json!({"item":{}}),
+                _ => json!({"item": findings_batch("proposed", &Value::Null)}),
+            })
+        });
+        discard_with(&|a: &[String]| fake.call(a), &Ref::parse("action:9").unwrap()).unwrap();
+        let reject = fake.seen().into_iter().find(|a| a.get(2).map(String::as_str) == Some("reject")).unwrap();
+        assert_eq!(reject[reject.iter().position(|w| w == "--fingerprint").unwrap() + 1], "old");
     }
 
     #[test]
