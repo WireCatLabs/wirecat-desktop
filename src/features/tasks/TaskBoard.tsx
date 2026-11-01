@@ -198,7 +198,7 @@ export function TaskBoard() {
       </p>
       <div
         ref={board}
-        className="grid grid-cols-[repeat(5,minmax(13rem,1fr))] gap-[0.75rem] overflow-x-auto pb-[0.4rem] xl:gap-[1rem]"
+        className="grid grid-cols-[repeat(5,minmax(12rem,1fr))] gap-[0.75rem] overflow-x-auto pb-[0.4rem] xl:gap-[1rem]"
       >
         {STATES.map((s) => {
           const keys = column(s)
