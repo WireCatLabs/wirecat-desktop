@@ -622,6 +622,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **BUG-41 · Переключение File/Text/Link в «Add to memory» медленное, клик иногда не срабатывает.**
 - **UX-44 · «Add to memory»: Text первым; фраза «The source itself turns up…» непонятна — простыми словами; поиск людей, проектов и задач — раздельными полями.**
 
+- **UX-45 · Настройки (2026-11-01):** Слава: «remove WireCat title, and make them on two columns (1 column on small window sizes) I'd put language first then scale»; «in settings I'd also allow JSON search». Сделано в PR #44: заголовок скрыт (для экранных чтецов остался), Language, затем Interface size, две колонки от 42rem контейнера; поиск в JSON (Ctrl F, Enter/Shift Enter, «2 of 5», подсветка). Влито в `review/all` (db4e560).
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
