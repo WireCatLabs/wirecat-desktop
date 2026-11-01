@@ -766,6 +766,10 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - **UX-50 · Search: вместо списка ключей подсказки только has:, поиск простым текстом не работает, кнопка Search неактивна без объяснения.** Слава: «button should be active and on click it should show a validation error and explain why … disabled button should rarely be used». Отдано агенту: ключи в подсказках, причина простого поиска, валидация по клику, проход по всем disabled в приложении и правило в DESIGN.md.
 
+- **UX-51 · Search, отзыв 2:** иконка копирования рядом со значением, а не в конце строки; иконки «фильтровать по значению» и «группировать по нему», как в поиске Logs; у всего раскрываемого — видимая стрелка справа, как на Guides (правило на всё приложение). Отдано агенту Search.
+- **IDEA-13 · Контекст вокруг найденного и поиск по типам, плюс поле «сгенерировать запрос через ИИ».** Слава: «find nearest messages by a button or read full transcript or get links to files … how search would work for different types eg meetings, email»; «a field above search to generate a query using AI - ask an agent - say claude/codex or use api key». Отдано агенту Search: действия контекста на командах самих инструментов, раздел плана по типам, прототип поля ИИ по решениям NEED-210…212.
+- **NEED-219 · поправка:** отпал — в третьем варианте Guides карточек нет.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
