@@ -218,7 +218,14 @@ function fromText(title: string, body: string): Source | null {
   if (!words) return null
   const first = body.trim().split("\n")[0] ?? ""
   const name = title.trim() || (first.length > 56 ? `${first.slice(0, 55)}…` : first)
-  return { way: "text", kind: "text", title: name, name, detail: `Text you wrote · ${plural(words, "word", "words")}`, words }
+  return {
+    way: "text",
+    kind: "text",
+    title: name,
+    name,
+    detail: `Text you wrote · ${plural(words, "word", "words")}`,
+    words,
+  }
 }
 
 export function AddToMemoryPrototype() {
@@ -314,7 +321,10 @@ export function AddToMemoryPrototype() {
 }
 
 function savedLine(s: Summary) {
-  const kept = [s.facts.length && plural(s.facts.length, "fact", "facts"), s.tasks.length && plural(s.tasks.length, "task", "tasks")]
+  const kept = [
+    s.facts.length && plural(s.facts.length, "fact", "facts"),
+    s.tasks.length && plural(s.tasks.length, "task", "tasks"),
+  ]
     .filter(Boolean)
     .join(" and ")
   return kept ? `${s.source.title} · ${kept} your agents use` : `${s.source.title} · found by its words and meaning`
@@ -395,7 +405,13 @@ function AddPanel(props: {
   const [file, setFile] = useState<Source | null>(fileOf(scenario))
   const [url, setUrl] = useState(scenario === "link-fail" ? INTRANET : scenario?.startsWith("link") ? RUNBOOK : "")
   const [link, setLink] = useState<LinkState>(
-    scenario === "link" ? "read" : scenario === "link-reading" ? "reading" : scenario === "link-fail" ? "failed" : "idle",
+    scenario === "link"
+      ? "read"
+      : scenario === "link-reading"
+        ? "reading"
+        : scenario === "link-fail"
+          ? "failed"
+          : "idle",
   )
   const [title, setTitle] = useState(scenario === "text" ? TEXT_TITLE : "")
   const [body, setBody] = useState(scenario === "text" ? TEXT_BODY : "")
@@ -409,6 +425,7 @@ function AddPanel(props: {
   )
   const [kept, setKept] = useState<string[]>(KEPT)
   const [texts, setTexts] = useState<Record<string, string>>({})
+  const [done, setDone] = useState<Summary | null>(scenario === "done" ? DEMO : null)
 
   const source =
     way === "file"
@@ -448,6 +465,7 @@ function AddPanel(props: {
     }
   const finish = (withFacts: boolean) => {
     const s = summary(withFacts)
+    setDone(s)
     setStep("done")
     if (s) props.onSaved(s)
   }
@@ -487,11 +505,11 @@ function AddPanel(props: {
     )
   }
 
-  const shown = step === "done" ? summary(suggest) : null
   return (
     <PanelFrame
       heading={props.heading}
       step={{ index: STEPS.findIndex((s) => s.id === step), failed: scenario === "extract-fail" }}
+      promise={step === "source"}
       onClose={props.onClose}
     >
       <AutoHeight swap={`${step}-${phase}`}>
@@ -509,7 +527,7 @@ function AddPanel(props: {
                 setLink("idle")
               }}
               link={link}
-              onRead={() => validUrl(url) && setLink("reading")}
+              onRead={(u = url) => validUrl(u) && setLink("reading")}
               linkSource={way === "link" ? source : null}
               title={title}
               onTitle={setTitle}
@@ -548,9 +566,9 @@ function AddPanel(props: {
               onSourceOnly={() => finish(false)}
             />
           )}
-          {step === "done" && (
+          {step === "done" && done && (
             <DoneStep
-              summary={(scenario === "done" ? DEMO : shown) ?? DEMO}
+              summary={done}
               onAnother={() => {
                 setStep("source")
                 setFile(null)
@@ -561,6 +579,7 @@ function AddPanel(props: {
                 setAbout([])
                 setKept(KEPT)
                 setTexts({})
+                setDone(null)
                 setPhase("pick")
                 props.onAnother()
               }}
@@ -576,6 +595,7 @@ function AddPanel(props: {
 function PanelFrame(props: {
   heading: RefObject<HTMLHeadingElement | null>
   step: { index: number; failed: boolean } | null
+  promise?: boolean
   onClose: () => void
   children: ReactNode
 }) {
@@ -584,7 +604,7 @@ function PanelFrame(props: {
       aria-labelledby="add-title"
       className="flex flex-col gap-[1.2rem] rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] pt-[1.1rem] pb-[1.3rem]"
     >
-      <div className="flex items-start justify-between gap-4">
+      <div className={cx("flex justify-between gap-4", props.promise ? "items-start" : "items-center")}>
         <div className="min-w-0">
           <h2
             id="add-title"
@@ -594,10 +614,12 @@ function PanelFrame(props: {
           >
             Add to memory
           </h2>
-          <p className="mt-1 max-w-[64ch] text-[0.9rem] leading-relaxed text-ink-soft">
-            Your agents use the facts from it when they answer you. The source itself turns up by its words or by what
-            it means, in Search and whenever an agent looks something up.
-          </p>
+          {props.promise && (
+            <p className="mt-1 max-w-[64ch] text-[0.9rem] leading-relaxed text-ink-soft">
+              Your agents use the facts from it when they answer you. The source itself turns up by its words or by what
+              it means, in Search and whenever an agent looks something up.
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-3">
           {props.step && <StepLine index={props.step.index} failed={props.step.failed} />}
@@ -650,8 +672,18 @@ const WAYS: { value: Way; label: string; hint: string; icon: ReactNode }[] = [
     hint: "A document, an image or a recording",
     icon: <Upload className="size-5" aria-hidden />,
   },
-  { value: "link", label: "Link", hint: "A web page or a public document", icon: <Link2 className="size-5" aria-hidden /> },
-  { value: "text", label: "Text", hint: "Notes from a call, a decision", icon: <Type className="size-5" aria-hidden /> },
+  {
+    value: "link",
+    label: "Link",
+    hint: "A web page or a public document",
+    icon: <Link2 className="size-5" aria-hidden />,
+  },
+  {
+    value: "text",
+    label: "Text",
+    hint: "Notes from a call, a decision",
+    icon: <Type className="size-5" aria-hidden />,
+  },
 ]
 
 function SourceStep(props: {
@@ -787,6 +819,7 @@ function DropZone({ scenario, onPick }: { scenario: string | null; onPick: (s: S
   const failed = scenario === "too-big" || scenario === "unreadable"
   return (
     <div className="flex flex-col gap-2">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: a drop target; "choose one" inside is the keyboard path */}
       <div
         onDragOver={(e) => {
           e.preventDefault()
@@ -841,7 +874,7 @@ function LinkField(props: {
   url: string
   onUrl: (u: string) => void
   state: LinkState
-  onRead: () => void
+  onRead: (url?: string) => void
   source: Source | null
 }) {
   const id = useId()
@@ -851,7 +884,7 @@ function LinkField(props: {
     if (!validUrl(pasted)) return
     e.preventDefault()
     props.onUrl(pasted)
-    setTimeout(props.onRead, 0)
+    props.onRead(pasted)
   }
   return (
     <div className="flex flex-col gap-3">
@@ -859,7 +892,7 @@ function LinkField(props: {
         className="flex flex-col gap-1.5"
         onSubmit={(e) => {
           e.preventDefault()
-          props.onRead()
+          props.onRead(props.url)
         }}
       >
         <label htmlFor={id} className="text-[0.9rem] font-medium text-ink-dim">
@@ -1139,14 +1172,13 @@ function SubjectPicker(props: {
         className="reveal absolute top-[calc(100%+0.3rem)] right-0 left-0 z-20 max-h-[16rem] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-1 shadow-panel"
       >
         {!shown.length && (
-          <p className="px-2 py-2 text-[0.9rem] text-ink-soft">
-            No person, project or task matches “{query.trim()}”.
-          </p>
+          <p className="px-2 py-2 text-[0.9rem] text-ink-soft">No person, project or task matches “{query.trim()}”.</p>
         )}
         {KINDS.map((k) => {
           const items = shown.filter((s) => s.kind === k.kind)
           if (!items.length) return null
           return (
+            // biome-ignore lint/a11y/useSemanticElements: a listbox groups its options with role=group (WAI-ARIA APG)
             <div key={k.kind} role="group" aria-labelledby={`${base}-${k.kind}`}>
               <div id={`${base}-${k.kind}`} className="px-2 pt-1.5 pb-0.5 text-[0.85rem] font-medium text-ink-dim">
                 {k.label}
@@ -1206,7 +1238,9 @@ function AboutStep(props: {
   const hint = useId()
   const radio = useId()
   const chosen = new Set(props.about.map((s) => s.ref))
-  const mentioned = SUBJECTS.filter((s) => ["project:3", "person:12", "person:17"].includes(s.ref) && !chosen.has(s.ref))
+  const mentioned = SUBJECTS.filter(
+    (s) => ["project:3", "person:12", "person:17"].includes(s.ref) && !chosen.has(s.ref),
+  )
   return (
     <>
       <SourceCard source={props.source} />
@@ -1345,7 +1379,9 @@ function FactsStep(props: {
       </div>
       {props.failed ? (
         <div className="flex flex-col gap-3">
-          <ErrorNotice inline>{READER} answered 429, too many requests: your key’s limit is reached for now.</ErrorNotice>
+          <ErrorNotice inline>
+            {READER} answered 429, too many requests: your key’s limit is reached for now.
+          </ErrorNotice>
           <p className="text-[0.9rem] text-ink-soft">
             The source stays saved. Ask again later from its row, or keep it without facts.
           </p>
@@ -1510,12 +1546,14 @@ function DoneStep(props: { summary: Summary; onAnother: () => void; onClose: () 
         <DoneRow term={kept ? `Kept (${kept})` : "Facts"}>
           {kept ? (
             <ul className="flex flex-col gap-1.5">
-              {[...facts.map((t) => ({ t, task: false })), ...tasks.map((t) => ({ t, task: true }))].map(({ t, task }) => (
-                <li key={t} className="flex items-baseline gap-2 text-[0.95rem] text-ink">
-                  <Pill tone={task ? "brand" : "neutral"}>{task ? "Task" : "Fact"}</Pill>
-                  <span className="selectable min-w-0">{t}</span>
-                </li>
-              ))}
+              {[...facts.map((t) => ({ t, task: false })), ...tasks.map((t) => ({ t, task: true }))].map(
+                ({ t, task }) => (
+                  <li key={t} className="flex items-baseline gap-2 text-[0.95rem] text-ink">
+                    <Pill tone={task ? "brand" : "neutral"}>{task ? "Task" : "Fact"}</Pill>
+                    <span className="selectable min-w-0">{t}</span>
+                  </li>
+                ),
+              )}
             </ul>
           ) : (
             <p className="text-[0.95rem] text-ink-soft">None yet. Ask for facts from its row whenever you like.</p>

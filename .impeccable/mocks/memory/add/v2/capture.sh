@@ -36,3 +36,16 @@ WAIT=100 shot bug-link-reading "?onboarding=off&add=source" --eval "$set_value $
 shot bug-link-read "?onboarding=off&add=source" --eval "$set_value $pick_way $wait way(1); await wait(400);
   set(document.querySelector('#add-panel input[type=url]'), 'https://docs.example.com/northbridge/runbook');
   await wait(50); document.querySelector('#add-panel form button[type=submit]').click(); await wait(2200)"
+# A pasted link is read at once, with no button.
+shot bug-link-paste "?onboarding=off&add=source" --eval "$pick_way $wait way(1); await wait(400);
+  const dt = new DataTransfer(); dt.setData('text', 'https://docs.example.com/northbridge/runbook');
+  document.querySelector('#add-panel input[type=url]').dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true }));
+  await wait(1800)"
+# The picker by keyboard: type "le", Enter ticks Lena Ortiz and she becomes a chip.
+shot picker-keys "?onboarding=off&add=about" --eval "$set_value $wait const f = document.querySelector('#add-panel [role=combobox]');
+  f.focus(); set(f, ''); await wait(100);
+  f.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true })); await wait(100);
+  f.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true })); await wait(100);
+  set(f, 'le'); await wait(100);
+  f.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await wait(100);
+  set(f, 'nor'); await wait(200)"

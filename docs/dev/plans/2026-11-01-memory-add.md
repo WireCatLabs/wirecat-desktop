@@ -110,9 +110,9 @@ like the rack, with the page's 1.5rem gap below it. The gap lives inside `Collap
 the list slides down instead of jumping. No dialog: nothing here needs to block the page. One surface, four steps,
 each sliding in (`.step-in` inside `AutoHeight`); the panel closes only when the owner says so.
 
-**The panel's head** is compact: the title, then two lines on what the owner gets: "Your agents use the facts from it
-when they answer you. The source itself turns up by its words or by what it means, in Search and whenever an agent
-looks something up." On the right a small step line replaces the big four-dot stepper: four short bars and
+**The panel's head** is compact: the title, and on the Source step two lines on what the owner gets: "Your agents use
+the facts from it when they answer you. The source itself turns up by its words or by what it means, in Search and
+whenever an agent looks something up." Later steps drop those lines; Saved says it again about this source. On the right a small step line replaces the big four-dot stepper: four short bars and
 "Source · 1 of 4" (the bar of a failed step turns red; the label is read out when it changes).
 
 1. **Source.** "What do you want to add?" The three ways are the first thing the eye meets: **File**, **Link** and
