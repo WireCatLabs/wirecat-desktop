@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, CircleStop, LoaderCircle, RefreshCw, X } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { type CatalogTool, ownerId, signsInHere, syncNeedsProfile, syncsHere } from "@/domain/catalog"
 import { toolStatus } from "@/domain/status"
 import { advice, clock, type SyncFailure, type SyncWhat, share } from "@/domain/sync"
@@ -8,7 +8,9 @@ import { platform } from "@/platform/bridge"
 import type { LastSync } from "@/platform/sync-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { useLogs } from "../logs/store"
 import { useNav } from "../nav"
@@ -45,6 +47,10 @@ export function SyncControl({ tool, profile }: { tool: CatalogTool; profile: str
   const what: SyncWhat = tool.sync?.what ?? "messages"
   const running = run?.phase === "running"
   const m = useMessages(syncMessages).sync
+  const [refused, setRefused] = useState(false)
+  useEffect(() => {
+    if (!blocked) setRefused(false)
+  }, [blocked])
 
   useEffect(() => {
     void useSync.getState().loadLast(tool.id, profile)
@@ -81,8 +87,7 @@ export function SyncControl({ tool, profile }: { tool: CatalogTool; profile: str
           <Button
             size="sm"
             variant={run ? "secondary" : "primary"}
-            onClick={() => start(tool.id, profile)}
-            disabled={blocked}
+            onClick={() => (blocked ? setRefused(true) : start(tool.id, profile))}
             title={blocked ? m.anotherRunning : undefined}
             icon={<RefreshCw className="size-4" aria-hidden />}
           >
@@ -90,6 +95,9 @@ export function SyncControl({ tool, profile }: { tool: CatalogTool; profile: str
           </Button>
         )}
       </div>
+      <Collapse open={refused && blocked}>
+        <ErrorNotice inline>{m.anotherRunning}</ErrorNotice>
+      </Collapse>
       <AutoHeight swap={running ? "running" : (run?.phase ?? "idle")}>
         {run && !running ? <Next run={run} tool={tool} profile={profile} what={what} m={m} /> : null}
       </AutoHeight>

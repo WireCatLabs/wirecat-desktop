@@ -68,6 +68,8 @@ function NeedsNode({ r }: { r: Readiness }) {
 
   return (
     <section
+      data-node-notice
+      tabIndex={-1}
       aria-label={m.nodeForTools}
       className="flex flex-col gap-4 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-5 py-4"
     >

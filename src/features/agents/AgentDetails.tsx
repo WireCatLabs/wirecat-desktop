@@ -50,15 +50,16 @@ export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): vo
           )}
         </p>
         <span className="flex items-center gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={!connected}
-            onClick={() => useDisconnect.getState().open(agent.id)}
-            aria-label={m.disconnectFrom(agent.name)}
-          >
-            {m.disconnect}
-          </Button>
+          {connected && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => useDisconnect.getState().open(agent.id)}
+              aria-label={m.disconnectFrom(agent.name)}
+            >
+              {m.disconnect}
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"

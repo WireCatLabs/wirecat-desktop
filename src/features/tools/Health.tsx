@@ -27,6 +27,7 @@ import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { focusInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { ReportThis } from "../report/ReportThis"
@@ -285,7 +286,13 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; chec
   const [name, setName] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [opened, setOpened] = useState(false)
+  const [tried, setTried] = useState(false)
   const valid = isValidProfile(name)
+  const problem = name === "" ? (tried ? m.nameEmpty : null) : valid ? null : m.nameInvalid
+  const refuse = () => {
+    setTried(true)
+    focusInPlace(document.getElementById(id))
+  }
   const command = setupCommand(tool, valid ? name : null)
   const id = `profile-${tool.id}`
 
@@ -307,7 +314,7 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; chec
       className="flex flex-col gap-2"
       onSubmit={(e) => {
         e.preventDefault()
-        if (!valid) return
+        if (!valid) return refuse()
         if (here) useSignIn.getState().start(tool.id, name, onCheck)
         else open()
       }}
@@ -326,18 +333,12 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; chec
           }}
           spellCheck={false}
           autoComplete="off"
-          aria-invalid={name !== "" && !valid}
+          aria-invalid={problem !== null}
           aria-describedby={`${id}-hint`}
           className="h-8 min-w-[9rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.875rem] text-ink aria-[invalid=true]:border-bad"
         />
         {here && (
-          <Button
-            size="sm"
-            variant="primary"
-            type="submit"
-            disabled={!valid}
-            icon={<QrCode className="size-4" aria-hidden />}
-          >
+          <Button size="sm" variant="primary" type="submit" icon={<QrCode className="size-4" aria-hidden />}>
             {m.signInHere}
           </Button>
         )}
@@ -345,16 +346,15 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; chec
           size="sm"
           variant={here ? "secondary" : "primary"}
           type={here ? "button" : "submit"}
-          onClick={here ? open : undefined}
-          disabled={!valid}
+          onClick={here ? () => (valid ? open() : refuse()) : undefined}
           icon={<Terminal className="size-4" aria-hidden />}
         >
           {here ? m.openTerminal : m.openTerminalToSignIn}
         </Button>
       </div>
-      {name !== "" && !valid ? (
-        <p id={`${id}-hint`} className="text-[0.9rem] text-bad">
-          {m.nameInvalid}
+      {problem ? (
+        <p id={`${id}-hint`} role="alert" className="text-[0.9rem] text-bad">
+          {problem}
         </p>
       ) : (
         <p id={`${id}-hint`} className="text-[0.9rem] leading-snug text-ink-soft">

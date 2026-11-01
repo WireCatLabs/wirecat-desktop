@@ -220,7 +220,12 @@ function ClientIdForm() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!tool || !profile || !value.trim()) return
+    if (!tool || !profile) return
+    if (!value.trim()) {
+      setError(m.clientIdEmpty)
+      document.getElementById(id)?.focus()
+      return
+    }
     setSaving(true)
     setError(null)
     try {
@@ -255,11 +260,18 @@ function ClientIdForm() {
         autoComplete="off"
         value={value}
         disabled={saving}
-        onChange={(e) => setValue(e.target.value)}
-        className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink"
+        onChange={(e) => {
+          setValue(e.target.value)
+          setError(null)
+        }}
+        aria-invalid={error !== null}
+        aria-describedby={`${id}-error`}
+        className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
       />
-      <p className="min-h-[1.3rem] text-[0.9rem] text-bad">{error}</p>
-      <Button type="submit" variant="primary" disabled={saving || !value.trim()} className="self-start">
+      <p id={`${id}-error`} role={error ? "alert" : undefined} className="min-h-[1.3rem] text-[0.9rem] text-bad">
+        {error}
+      </p>
+      <Button type="submit" variant="primary" disabled={saving} className="self-start">
         {saving ? m.saving : m.saveAndSignIn}
       </Button>
     </form>

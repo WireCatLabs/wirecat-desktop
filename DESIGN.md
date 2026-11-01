@@ -333,6 +333,11 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
 - **Ghost:** no fill, `ink-soft`; hover fills `app-3`. Used for Keep it, Close, Check, Sign in.
 - **Danger:** outlined only: white surface, red label, the border tints red on hover. Used for Fix, Uninstall, Delete.
 - **Hover / Focus:** colour transitions at 150ms with the quart ease-out; pressing nudges the button down 1px. Focus is the global 2px purple outline at 2px offset. Disabled buttons drop to 45% opacity and stop taking pointer events.
+- **A disabled button explains nothing.** Prefer an active button that says what is missing: pressed too early, it
+  shows a one-line red message under the control to fix ("Choose a profile to search in"), marks that control and moves
+  focus to it; the message folds open with `Collapse` or fills a line kept for it, so nothing below jumps. Disable a
+  button only while its own action runs (its label says so: "Saving…"), or when the reason is printed right beside it
+  ("Soon", "update to search"). A reason only in a tooltip does not count. Rule 5's delete dialogs keep their own gate.
 
 ### Status Lamp (signature)
 

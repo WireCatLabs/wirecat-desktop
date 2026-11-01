@@ -30,6 +30,7 @@ export function BackupPanel() {
   const [protect, setProtect] = useState(false)
   const [password, setPassword] = useState("")
   const [repeat, setRepeat] = useState("")
+  const [tried, setTried] = useState(0)
 
   useEffect(() => {
     loadBackups()
@@ -40,6 +41,7 @@ export function BackupPanel() {
   const bin = preview ? (findTool(preview.answeredBy)?.bin ?? preview.answeredBy) : null
   const blocked = protect && passwordProblem(password, repeat) !== null
   const start = () => {
+    if (blocked) return setTried((n) => n + 1)
     const given = protect ? password : undefined
     // Typed once, used once: the fields are emptied as soon as the tool has it.
     setPassword("")
@@ -73,7 +75,7 @@ export function BackupPanel() {
         <Button
           variant="primary"
           onClick={start}
-          disabled={busy || blocked}
+          disabled={busy}
           icon={<Archive className="size-4" aria-hidden />}
           className="min-w-[9.5rem]"
         >
@@ -89,6 +91,7 @@ export function BackupPanel() {
             disabled={busy}
             onChange={(e) => {
               setProtect(e.target.checked)
+              setTried(0)
               setPassword("")
               setRepeat("")
             }}
@@ -106,6 +109,7 @@ export function BackupPanel() {
             onPassword={setPassword}
             onRepeat={setRepeat}
             disabled={busy}
+            tried={tried}
           />
         )}
       </div>

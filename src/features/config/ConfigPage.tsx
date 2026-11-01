@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -46,6 +47,7 @@ export function ConfigPage() {
   const st = useConfig()
   const installs = useTools((s) => s.installs)
   const [pending, setPending] = useState<Switch | null>(null)
+  const [why, setWhy] = useState<string | null>(null)
   const dirty = isDirty(st)
   const latest = useTools((s) => s.latest)
   const shared = st.view === "shared"
@@ -69,7 +71,11 @@ export function ConfigPage() {
       : s.kind === "shared"
         ? st.chooseShared(candidates)
         : st.chooseTarget(s.target)
-  const request = (s: Switch) => (dirty ? setPending(s) : go(s))
+  const request = (s: Switch) => {
+    setWhy(null)
+    if (dirty) setPending(s)
+    else go(s)
+  }
 
   return (
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
@@ -91,9 +97,9 @@ export function ConfigPage() {
           <Choice
             group="tool"
             checked={shared}
-            disabled={candidates.length === 0}
+            unavailable={candidates.length === 0 ? m.sharedNeedsTool : undefined}
+            onUnavailable={setWhy}
             onSelect={() => request({ kind: "shared" })}
-            title={candidates.length === 0 ? m.sharedNeedsTool : undefined}
           >
             <Monogram className="size-4" />
             {m.shared}
@@ -106,9 +112,9 @@ export function ConfigPage() {
                 key={t.id}
                 group="tool"
                 checked={!shared && st.tool === t.id}
-                disabled={missing}
+                unavailable={missing ? m.notInstalled(t.name) : undefined}
+                onUnavailable={setWhy}
                 onSelect={() => request({ kind: "tool", id: t.id })}
-                title={missing ? m.notInstalled(t.name) : undefined}
               >
                 <ToolIcon id={t.id} className="size-4" />
                 {t.name}
@@ -116,6 +122,9 @@ export function ConfigPage() {
             )
           })}
         </Choices>
+        <Collapse open={why !== null}>
+          <ErrorNotice inline>{why}</ErrorNotice>
+        </Collapse>
 
         {tool && src?.perProfile && (
           <ProfilePicker

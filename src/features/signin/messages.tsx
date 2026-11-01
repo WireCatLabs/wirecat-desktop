@@ -75,6 +75,8 @@ const en = {
   hint: (hint: string) => `Hint: ${hint}`,
   private: "Goes straight to the tool on this computer; WireCat keeps no copy.",
   continue: "Continue",
+  answerEmpty: "Type the answer first, then press Continue.",
+  clientIdEmpty: "Paste the Public Client ID first.",
 }
 
 const ru: typeof en = {
@@ -151,6 +153,8 @@ const ru: typeof en = {
   hint: (hint) => `Подсказка: ${hint}`,
   private: "Передаётся прямо инструменту на этом компьютере; WireCat не хранит копию.",
   continue: "Продолжить",
+  answerEmpty: "Сначала введите ответ, затем нажмите «Продолжить».",
+  clientIdEmpty: "Сначала вставьте Public Client ID.",
 }
 
 const es: typeof en = {
@@ -231,6 +235,8 @@ const es: typeof en = {
   hint: (hint) => `Pista: ${hint}`,
   private: "Va directo a la herramienta en este ordenador; WireCat no guarda ninguna copia.",
   continue: "Continuar",
+  answerEmpty: "Primero escribe la respuesta y pulsa Continuar.",
+  clientIdEmpty: "Primero pega el Public Client ID.",
 }
 
 export type SigninMessages = typeof en
