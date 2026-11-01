@@ -762,6 +762,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - **UX-48 · Отзыв на второй дизайн Guides:** вступление описывает, что это, а не что получит пользователь; «Copy request» → «Copy prompt»; ссылка «Which agents are ready» уводит со страницы — убрать, при нужде выбор агента выпадающим списком; полный промпт скрыть везде, даже в «Начни отсюда»; страница — оглавление: название + одна строка о результате; «Ready to try» убрать; больше групп (analyze, schedule, verify, gather…) и рецептов; ссылки на блоки групп сверху и поиск. Отдано агенту дизайна (третий раунд).
 
+- **UX-49 · Отзыв на Tasks:** «In task edit we need to change priority, due date, assignee, project. also not clear when it was created and so on. waits for is nice but should be a link … check https://beadmeupscotty.com/ … use min width of tasks and horizontal scroll … in Tasks table view I'd open them in modal not expand». Отдано агенту: модальное окно в таблице, правка всех полей и метаданные, «waits for» ссылкой, минимальная ширина и горизонтальная прокрутка, идеи с beadmeupscotty/beads; работа поверх review/all, перенос в feat/tasks-page.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
