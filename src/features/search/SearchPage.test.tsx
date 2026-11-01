@@ -143,6 +143,24 @@ describe("Search", () => {
     expect(within(around).getByText("invoice-2026-10.pdf")).toBeInTheDocument()
   }, 15000)
 
+  it("writes a query from plain words into the box, and never searches by itself", async () => {
+    const user = userEvent.setup()
+    const search = vi.spyOn(platform, "searchStore")
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await user.click(screen.getByRole("button", { name: "Write the query" }))
+    expect(screen.getByText("Describe what you want to find first.")).toBeInTheDocument()
+    const request = screen.getByLabelText("Describe what you're looking for")
+    expect(request).toHaveFocus()
+
+    await user.type(request, "photos from Ana Ruiz last week{Enter}")
+    const bar = screen.getByRole("combobox", { name: "Search messages" })
+    await waitFor(() => expect(bar).toHaveValue('from:"Ana Ruiz" has:photo date>=7d'), { timeout: 4000 })
+    expect(bar).toHaveFocus()
+    expect(screen.getByText(/Claude Code, with your Claude plan, wrote the query below/)).toBeInTheDocument()
+    expect(search).not.toHaveBeenCalled()
+  }, 15000)
+
   it("shows the tool's query error at its place until the query changes", async () => {
     const user = userEvent.setup()
     render(<SearchPage />)
