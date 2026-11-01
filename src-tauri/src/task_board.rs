@@ -31,6 +31,8 @@ type Call<'a> = dyn Fn(&[String]) -> Result<Value, Failure> + Sync + 'a;
 pub struct Failure {
     reason: Option<String>,
     message: String,
+    /// What memo adds to some refusals: the subtasks a move leaves behind, the parent a subtask has.
+    details: Value,
 }
 
 impl From<Failure> for String {
@@ -293,17 +295,21 @@ pub enum Read {
 
 fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Failure> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(bin, &refs, Some(&paths::search_path()), timeout)
-        .map_err(|e| Failure { reason: None, message: e.to_string() })?;
+    let out = run::run(bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| Failure {
+        reason: None,
+        details: Value::Null,
+        message: e.to_string(),
+    })?;
     let json = out.json();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
         j => Err(Failure {
-            // memo 0.131.11 puts the reason on the error itself; its notes name `details.reason` as well.
+            // memo puts the reason on the error itself; its notes name `details.reason` as well.
             reason: j
                 .as_ref()
                 .and_then(|v| v["error"]["reason"].as_str().or_else(|| v["error"]["details"]["reason"].as_str()))
                 .map(str::to_string),
+            details: j.as_ref().map_or(Value::Null, |v| v["error"]["details"].clone()),
             message: failure(&out, j.as_ref()),
         }),
     }
@@ -337,7 +343,7 @@ fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Call) -> Result<T, Failure>) 
 }
 
 fn list_with(call: &Call, query: &str) -> Result<Read, Failure> {
-    let q = board_query(query).map_err(|message| Failure { reason: None, message })?;
+    let q = board_query(query).map_err(|message| Failure { reason: None, details: Value::Null, message })?;
     let args = with_query(&["tasks", "list", "--sort", "priority", "--limit", LIMIT], &q);
     let v = match call(&args) {
         Ok(v) => v,
@@ -405,7 +411,7 @@ fn counts_of(v: &Value) -> Counts {
 }
 
 fn counts_with(call: &Call, query: &str) -> Result<Counts, Failure> {
-    let q = board_query(query).map_err(|message| Failure { reason: None, message })?;
+    let q = board_query(query).map_err(|message| Failure { reason: None, details: Value::Null, message })?;
     Ok(counts_of(&call(&with_query(&["tasks", "counts"], &q))?))
 }
 
@@ -449,8 +455,11 @@ fn person_add_with(call: &Call, name: &str) -> Result<Person, Failure> {
     let v = call(&args)?;
     let item = body(&v);
     let reference = text(item, "ref").filter(|r| validate_person(r).is_ok());
-    let reference =
-        reference.ok_or_else(|| Failure { reason: None, message: "Memo did not name the person".into() })?;
+    let reference = reference.ok_or_else(|| Failure {
+        reason: None,
+        details: Value::Null,
+        message: "Memo did not name the person".into(),
+    })?;
     Ok(Person { reference, name: text(item, "name"), owner: false })
 }
 
@@ -584,8 +593,11 @@ pub fn comments(key: &str) -> Result<Vec<Comment>, String> {
 /// The text goes after `--`, so a comment that starts with a dash is never an option. A comment moves no revision.
 fn comment_add_with(call: &Call, key: &str, text: &str) -> Result<Comment, Failure> {
     let args = with_query(&["tasks", "comments", "add", key], text);
-    comment(body(&call(&args)?))
-        .ok_or_else(|| Failure { reason: None, message: "Memo's answer did not describe the comment".into() })
+    comment(body(&call(&args)?)).ok_or_else(|| Failure {
+        reason: None,
+        details: Value::Null,
+        message: "Memo's answer did not describe the comment".into(),
+    })
 }
 
 pub fn comment_add(key: &str, text: &str) -> Result<Comment, String> {
@@ -595,7 +607,11 @@ pub fn comment_add(key: &str, text: &str) -> Result<Comment, String> {
 }
 
 fn shown(v: &Value) -> Result<Task, Failure> {
-    task(body(v)).ok_or_else(|| Failure { reason: None, message: "Memo's answer did not describe the task".into() })
+    task(body(v)).ok_or_else(|| Failure {
+        reason: None,
+        details: Value::Null,
+        message: "Memo's answer did not describe the task".into(),
+    })
 }
 
 fn show_with(call: &Call, key: &str) -> Result<Task, Failure> {
@@ -629,15 +645,12 @@ pub enum Write {
     /// `last` the latest change, so the page can say who changed what.
     #[serde(rename_all = "camelCase")]
     Stale { current: Task, last: Option<Event> },
-    /// memo moves a task to another project only without subtasks; these are the ones it still has.
+    /// memo moves a task to another project only without subtasks; these are the keys of the ones it still has.
     #[serde(rename_all = "camelCase")]
-    HasSubtasks { subtasks: Vec<Subtask> },
-}
-
-#[derive(Serialize, Debug, PartialEq)]
-pub struct Subtask {
-    pub key: String,
-    pub title: String,
+    HasSubtasks { subtasks: Vec<String> },
+    /// A subtask moves to another project only when it leaves its parent in the same write (`detach`).
+    #[serde(rename_all = "camelCase")]
+    IsSubtask { parent: String },
 }
 
 fn stale(f: &Failure) -> bool {
@@ -649,28 +662,24 @@ fn write_with(call: &Call, key: &str, args: &[String]) -> Result<Write, Failure>
     match call(args) {
         Ok(v) => Ok(saved(&v)?),
         Err(f) if stale(&f) => stale_with(call, key),
-        Err(f) if f.reason.as_deref() == Some("task.has-subtasks") => subtasks_with(call, key),
+        Err(f) if f.reason.as_deref() == Some("task.has-subtasks") => {
+            Ok(Write::HasSubtasks { subtasks: keys_in(&f.details["subtasks"]) })
+        }
+        Err(f) if f.reason.as_deref() == Some("task.is-subtask") => match text(&f.details, "parent") {
+            Some(parent) if validate_key(&bare_key(&parent)).is_ok() => {
+                Ok(Write::IsSubtask { parent: bare_key(&parent) })
+            }
+            _ => Err(f),
+        },
         Err(f) => Err(f),
     }
 }
 
-/// memo's refusal names the subtasks only in its message, and its query has no `parent:` field, so the task's own
-/// project is read and its children picked out.
-fn subtasks_with(call: &Call, key: &str) -> Result<Write, Failure> {
-    let project = show_with(call, key)?.project;
-    let args = with_query(&["tasks", "list", "--limit", LIMIT], &format!("project:{project} state:*"));
-    let v = call(&args)?;
-    let subtasks = v["items"]
-        .as_array()
-        .map(|a| {
-            a.iter()
-                .filter_map(task)
-                .filter(|t| t.parent.as_deref() == Some(key))
-                .map(|t| Subtask { key: t.key, title: t.title })
-                .collect()
-        })
-        .unwrap_or_default();
-    Ok(Write::HasSubtasks { subtasks })
+/// Task keys memo named, each checked before the page shows it as a link.
+fn keys_in(v: &Value) -> Vec<String> {
+    v.as_array()
+        .map(|a| a.iter().filter_map(Value::as_str).map(bare_key).filter(|k| validate_key(k).is_ok()).collect())
+        .unwrap_or_default()
 }
 
 fn stale_with(call: &Call, key: &str) -> Result<Write, Failure> {
@@ -698,7 +707,7 @@ fn saved(v: &Value) -> Result<Write, Failure> {
 }
 
 /// What one edit changes; anything left `None` stays as it is.
-#[derive(Deserialize, Debug, Default, PartialEq)]
+#[derive(Deserialize, Debug, Default, PartialEq, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Edit {
     pub title: Option<String>,
@@ -711,6 +720,9 @@ pub struct Edit {
     /// Another project's key: memo gives the task a new key there and the old one still finds it.
     pub project: Option<String>,
     pub kind: Option<String>,
+    /// Takes a subtask out of its parent (`--parent none`), so it can move to another project on its own.
+    #[serde(default)]
+    pub detach: bool,
 }
 
 /// Text goes as `--title=<text>`, so a title that starts with a dash is never read as an option.
@@ -740,6 +752,9 @@ fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, Strin
     }
     if let Some(k) = &edit.kind {
         args.push(format!("--type={}", validate_kind(k)?));
+    }
+    if edit.detach {
+        args.push("--parent=none".into());
     }
     if args.len() == 3 {
         return Err("nothing to change".into());
@@ -803,7 +818,7 @@ fn assign_with(call: &Call, key: &str, revision: u64, person: Option<&str>) -> R
         result = write_with(call, key, &words(&["tasks", "assign", key, p, "--clear", &r]))?;
         match &result {
             Write::Saved { task, .. } => rev = task.revision,
-            Write::Stale { .. } | Write::HasSubtasks { .. } => return Ok(result),
+            Write::Stale { .. } | Write::HasSubtasks { .. } | Write::IsSubtask { .. } => return Ok(result),
         }
     }
     if let (Some(p), false) = (person, has) {
@@ -889,6 +904,7 @@ mod tests {
 
     fn stale_failure() -> Failure {
         Failure {
+            details: Value::Null,
             reason: Some("task.stale".into()),
             message: "task HRB-1 changed since revision 1; it is at 3: read it again".into(),
         }
@@ -1013,6 +1029,7 @@ mod tests {
     fn a_query_memo_cannot_read_is_not_a_failed_read() {
         let fake = Fake::new(|_| {
             Err(Failure {
+                details: Value::Null,
                 reason: Some("query.invalid-syntax".into()),
                 message: "tasks list: query.invalid-syntax at position 12".into(),
             })
@@ -1021,7 +1038,9 @@ mod tests {
             list_with(&|a: &[String]| fake.call(a), "(").unwrap(),
             Read::BadQuery { message: "tasks list: query.invalid-syntax at position 12".into() }
         );
-        let busy = Fake::new(|_| Err(Failure { reason: Some("store.busy".into()), message: "busy".into() }));
+        let busy = Fake::new(|_| {
+            Err(Failure { details: Value::Null, reason: Some("store.busy".into()), message: "busy".into() })
+        });
         assert!(list_with(&|a: &[String]| busy.call(a), "").is_err());
     }
 
@@ -1120,32 +1139,24 @@ mod tests {
     }
 
     #[test]
-    fn a_task_with_subtasks_is_refused_a_move_with_them_listed() {
-        let fake = Fake::new(|a| match a[1].as_str() {
-            "update" => Err(Failure {
-                reason: Some("task.has-subtasks".into()),
-                message: "HRB-1 has subtasks (HRB-3); move or detach them first".into(),
-            }),
-            "show" => Ok(json!({"item": card(4, &[])})),
-            _ => {
-                let mut child = listed();
-                child["key"] = json!("HRB-3");
-                child["title"] = json!("Print flyers");
-                child["parent"] = json!("task:HRB-1");
-                Ok(json!({"items":[listed(), child]}))
-            }
-        });
+    fn a_move_is_refused_for_a_task_with_subtasks_and_for_a_subtask_that_keeps_its_parent() {
+        let refusal =
+            |reason: &str, details: Value| Failure { details, reason: Some(reason.into()), message: "no".into() };
+        let parent = Fake::new(move |_| Err(refusal("task.has-subtasks", json!({"subtasks":["HRB-3", "--x"]}))));
         let edit = Edit { project: Some("OPS".into()), ..Edit::default() };
         let args = edit_args("HRB-1", 4, &edit).unwrap();
-        let out = write_with(&|a: &[String]| fake.call(a), "HRB-1", &args).unwrap();
         assert_eq!(
-            out,
-            Write::HasSubtasks { subtasks: vec![Subtask { key: "HRB-3".into(), title: "Print flyers".into() }] }
+            write_with(&|a: &[String]| parent.call(a), "HRB-1", &args).unwrap(),
+            Write::HasSubtasks { subtasks: vec!["HRB-3".into()] }
         );
+        assert_eq!(parent.seen().len(), 1, "memo names the subtasks itself");
+        let child = Fake::new(move |_| Err(refusal("task.is-subtask", json!({"parent":"HRB-1"}))));
         assert_eq!(
-            fake.seen()[2],
-            strs(&["tasks", "list", "--limit", "500", "--json", "--no-record", "--", "project:HRB state:*"])
+            write_with(&|a: &[String]| child.call(a), "HRB-3", &args).unwrap(),
+            Write::IsSubtask { parent: "HRB-1".into() }
         );
+        let alone = Edit { project: Some("OPS".into()), detach: true, ..Edit::default() };
+        assert_eq!(edit_args("HRB-3", 4, &alone).unwrap()[3..5], strs(&["--project=OPS", "--parent=none"]));
     }
 
     #[test]
@@ -1315,7 +1326,7 @@ mod tests {
     /// `MEMO_BIN=<memo> cargo test task_board -- --ignored --test-threads=1` (the two tests share the store). It writes to
     /// that store, so never point it at the owner's.
     #[test]
-    #[ignore = "needs MEMO_BIN, a memo 0.131.11+ with a throwaway store"]
+    #[ignore = "needs MEMO_BIN, a memo 0.131.14+ with a throwaway store"]
     fn reads_and_writes_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
@@ -1425,7 +1436,7 @@ mod tests {
 
     /// The same throwaway store: notes cleared, the type, comments, a new person and a move to another project.
     #[test]
-    #[ignore = "needs MEMO_BIN, a memo 0.131.11+ with a throwaway store"]
+    #[ignore = "needs MEMO_BIN, a memo 0.131.14+ with a throwaway store"]
     fn comments_people_and_moves_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
@@ -1456,11 +1467,24 @@ mod tests {
         else {
             panic!("not created")
         };
-        call(&words(&["tasks", "add", "--project=HRB", "--title=Probe child", &format!("--parent={}", parent.key)]))
-            .unwrap();
+        let made = call(&words(&[
+            "tasks",
+            "add",
+            "--project=HRB",
+            "--title=Probe child",
+            &format!("--parent={}", parent.key),
+        ]))
+        .unwrap();
+        let child = shown(&made).unwrap();
         let away = Edit { project: Some("OPS".into()), ..Edit::default() };
         let Write::HasSubtasks { subtasks } = edit(&parent, &away) else { panic!("moved a task with subtasks") };
-        assert_eq!(subtasks.iter().map(|s| s.title.as_str()).collect::<Vec<_>>(), ["Probe child"]);
+        assert_eq!(subtasks, std::slice::from_ref(&child.key));
+        let Write::IsSubtask { parent: of } = edit(&child, &away) else { panic!("moved a subtask with its parent") };
+        assert_eq!(of, parent.key);
+        let alone = Edit { detach: true, ..away.clone() };
+        let Write::Saved { task: left, .. } = edit(&child, &alone) else { panic!("not moved on its own") };
+        assert_eq!((left.project.as_str(), left.parent), ("OPS", None));
+        let away = Edit { project: Some("OPS".into()), ..Edit::default() };
         let Write::Saved { task: gone, .. } = edit(&task, &away) else { panic!("not moved") };
         assert_eq!(gone.project, "OPS");
         assert!(gone.key.starts_with("OPS-"));

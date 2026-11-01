@@ -58,7 +58,21 @@ export function textOf(e: MemoryEntry, m: M) {
     const facts = e.findings.filter((f) => f.kind === "fact").length
     return m.findingsTitle(facts, e.findings.length - facts)
   }
+  if (e.type === "action") return actionLine(e, m, true)
   return e.text ?? kindOf(e.kind, m)
+}
+
+/**
+ * An action in the interface's language, from memo's parts: its verb, what it acts on by name and, when asked, its
+ * text. A verb the page has no words for falls back to memo's English line.
+ */
+function actionLine(e: MemoryEntry, m: M, withText: boolean) {
+  const verb = e.verb ? m.verbs[e.verb] : undefined
+  if (!verb) return e.summary ?? e.text ?? kindOf(e.kind, m)
+  const target = e.targetName ?? e.chatName
+  const text = withText ? e.text : null
+  // "Reply to Kai Sample: Here is the pricing table…"; each language's verb is written to take the name after it.
+  return `${verb}${target ? ` ${target}` : ""}${text ? `: ${text}` : ""}`
 }
 
 export function SubjectLabel({ subject, className }: { subject: Subject; className?: string }) {
@@ -624,13 +638,20 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
 }
 
 function ActionFacts({ entry, m }: { entry: MemoryEntry; m: M }) {
-  if (!entry.reason && !entry.text) return <p className="text-[0.95rem] text-ink-soft">{m.noContent}</p>
+  const what = entry.verb || entry.summary ? actionLine(entry, m, false) : null
+  if (!entry.reason && !entry.text && !what) return <p className="text-[0.95rem] text-ink-soft">{m.noContent}</p>
   return (
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
-      {entry.text && (
+      {what && (
         <>
           <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.wouldDo}</h3>
-          <p className="selectable rounded-[0.45rem] border border-line bg-app px-[0.9rem] py-[0.7rem] text-[0.95rem]">
+          <p className="selectable text-[0.95rem]">{what}</p>
+        </>
+      )}
+      {entry.text && (
+        <>
+          <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.wouldSend}</h3>
+          <p className="selectable rounded-[0.45rem] border border-line bg-app px-[0.9rem] py-[0.7rem] text-[0.95rem] whitespace-pre-wrap">
             {entry.text}
           </p>
         </>

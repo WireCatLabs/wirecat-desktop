@@ -18,6 +18,11 @@ const DAY = 24 * HOUR
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString()
 
 const base = {
+  summary: null,
+  verb: null,
+  targetName: null,
+  chatName: null,
+  counts: null,
   subject: null,
   subjectName: null,
   subjectIsOwner: false,
@@ -47,7 +52,11 @@ function seed(): MemoryEntry[] {
       ref: "action:7",
       type: "action",
       kind: "evidence_findings",
-      text: "Create 2 facts and 2 tasks in Northbridge Bench",
+      text: null,
+      summary: "Create 2 facts and 2 tasks in Northbridge Bench",
+      verb: "create",
+      targetName: "Northbridge Bench",
+      counts: { facts: 2, tasks: 2 },
       status: "proposed",
       subject: "project:4",
       subjectName: "Northbridge Bench",
@@ -140,7 +149,12 @@ function seed(): MemoryEntry[] {
       ref: "action:5",
       type: "action",
       kind: "reply",
-      text: "Reply msg:telegram/1/77/42: Here is the pricing table I promised, see the second tab.",
+      text: "Here is the pricing table I promised, see the second tab. The clinic discount is spelled out per seat for 20 and for 50 seats, and the pilot price holds until the end of February.",
+      summary:
+        "Reply Kai Sample: Here is the pricing table I promised, see the second tab. The clinic discount is spelled out per…",
+      verb: "reply",
+      targetName: "Kai Sample",
+      chatName: "Kai Sample",
       status: "proposed",
       author: agent("hermes"),
       links: 0,

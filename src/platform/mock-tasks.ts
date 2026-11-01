@@ -2,7 +2,8 @@
 // The Tasks page in the browser build: made-up tasks and people, and a small reading of memo's query language, so a
 // filter shows what memo would answer. `?tasks=` picks a state: none, nomatch, missing, old, fail, write-fail,
 // conflict (HRB-12 was changed by hermes), many (400 tasks), blocked (a chain of three), loading. HRB-12 has a comment
-// thread; OPS-3 has a subtask, so moving it to another project is refused with that subtask named.
+// thread; OPS-3 has a subtask, OPS-5, so moving OPS-3 to another project is refused with OPS-5 named, and moving
+// OPS-5 offers to take it out of OPS-3 first.
 import {
   claimActive,
   closed,
@@ -607,16 +608,21 @@ export function tasksMock(): TaskApi {
     async taskUpdate(key, revision, edit: TaskEdit) {
       const to = edit.project
       if (to !== undefined && to !== find(key).project) {
-        const subtasks = tasks.filter((t) => t.parent === key).map((t) => ({ key: t.key, title: t.title }))
-        if (subtasks.length > 0 && find(key).revision === revision) {
+        const subtasks = tasks.filter((t) => t.parent === key).map((t) => t.key)
+        const parent = find(key).parent
+        if (find(key).revision === revision && (subtasks.length > 0 || (parent && !edit.detach))) {
           await delay(260)
-          return { kind: "hasSubtasks", subtasks }
+          return parent && !edit.detach ? { kind: "isSubtask", parent } : { kind: "hasSubtasks", subtasks }
         }
       }
       const out = await write(key, revision, (t) => {
         let next = { ...t }
         if (edit.title !== undefined) next.title = edit.title
         if (edit.description !== undefined) next.description = edit.description || null
+        if (edit.detach) {
+          record(key, [{ field: "parent", from: t.parent, to: null }], "parent")
+          next.parent = null
+        }
         if (edit.kind !== undefined) {
           record(key, [{ field: "type", from: t.kind, to: edit.kind }], "type")
           next.kind = edit.kind
