@@ -15,7 +15,7 @@ describe("Memory", () => {
     render(<MemoryPage />)
     await rack()
     expect(screen.getByRole("radio", { name: /Review/ })).toBeChecked()
-    expect(screen.getByRole("button", { name: "Approve" })).toBeInTheDocument()
+    expect(screen.getAllByRole("button", { name: "Approve" })).toHaveLength(2)
 
     const kai = row(/Kai Sample prefers calls on Friday/)
     await user.click(within(kai).getByRole("button", { name: "Confirm" }))
@@ -72,6 +72,9 @@ describe("Memory", () => {
     await user.click(screen.getByRole("radio", { name: /All/ }))
     await user.type(screen.getByRole("combobox", { name: "About" }), "harb")
     const rows = within(await rack()).getAllByRole("button", { expanded: false })
-    expect(rows.map((r) => r.textContent)).toEqual([expect.stringMatching(/Harbour launch moves/)])
+    expect(rows.map((r) => r.textContent)).toEqual([
+      expect.stringMatching(/Harbour launch moves/),
+      expect.stringMatching(/Project Harbour this week/),
+    ])
   })
 })

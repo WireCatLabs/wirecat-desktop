@@ -23,24 +23,89 @@ const base = {
   subjectIsOwner: false,
   scope: "work",
   project: null,
+  projectName: null,
   supersedes: null,
   reason: null,
   account: null,
   target: null,
   updatedAt: null,
+  findings: null,
 } as const
 
 const agent = (name: string) => ({ type: "bot", name })
 const OWNER = { type: "person", name: null }
 
+const NBB = { project: "project:4", projectName: "Northbridge Bench" } as const
+
 function seed(): MemoryEntry[] {
   return [
+    {
+      ...base,
+      ...NBB,
+      ref: "action:7",
+      type: "action",
+      kind: "evidence_findings",
+      text: null,
+      status: "proposed",
+      scope: null,
+      author: agent("codex-nbb-evaluation"),
+      links: 0,
+      reason: null,
+      target: "project:4",
+      createdAt: ago(1.2 * HOUR),
+      findings: [
+        {
+          id: "f1",
+          kind: "fact",
+          text: "The evaluation set moves from 80 to 120 queries, and 40 of the new ones are in Spanish, because the October run scored Spanish answers 18 points below English ones.",
+          reason: null,
+          evidence: ["document:31", "msg:telegram/1/204/1180"],
+          outcome: null,
+        },
+        {
+          id: "f2",
+          kind: "task",
+          text: "Add 40 Spanish queries to the evaluation set before the 12 November review",
+          reason: "Lena Ortiz asked for Spanish coverage in the review thread and nobody took it.",
+          evidence: ["msg:telegram/1/204/1180"],
+          outcome: null,
+        },
+        {
+          id: "f3",
+          kind: "fact",
+          text: "Northbridge Bench runs nightly at 02:00 on the shared runner; a run takes about 40 minutes.",
+          reason: null,
+          evidence: ["document:31"],
+          outcome: null,
+        },
+        {
+          id: "f4",
+          kind: "task",
+          text: "Ask Tom Becker for read access to the runner logs",
+          reason: "Two failed runs last week could not be explained without them.",
+          evidence: ["msg:telegram/1/204/1193", "mail:work/5120"],
+          outcome: null,
+        },
+      ],
+    },
+    {
+      ...base,
+      ...NBB,
+      ref: "fact:21",
+      type: "fact",
+      kind: "decision",
+      text: "Scores below 0.72 on the retrieval suite block a release of the Northbridge ranking model. The threshold was agreed in the 28 October review after the 0.69 run let two broken answers through, and it applies to every model change, including prompt-only ones.",
+      status: "proposed",
+      author: agent("codex-nbb-evaluation"),
+      links: 3,
+      createdAt: ago(1.3 * HOUR),
+    },
     {
       ...base,
       ref: "memory:41",
       type: "memory",
       kind: "preference",
-      text: "Kai Sample prefers calls on Friday afternoons and asks for the agenda the evening before.",
+      text: "Kai Sample prefers calls on Friday afternoons and asks for the agenda the evening before. When a call moves to a Monday he tends to cancel it at the last minute, so propose Friday after 15:00 first and send three or four points by 20:00 the day before.",
       status: "proposed",
       subject: "person:7",
       subjectName: "Kai Sample",
@@ -55,7 +120,8 @@ function seed(): MemoryEntry[] {
       kind: "decision",
       text: "Harbour launch moves to 2 March; the pilot with two clinics stays in February.",
       status: "proposed",
-      project: "HRB",
+      project: "project:3",
+      projectName: "Project Harbour",
       subject: "project:3",
       subjectName: "Project Harbour",
       author: agent("hermes"),
@@ -82,7 +148,7 @@ function seed(): MemoryEntry[] {
       ref: "memory:40",
       type: "memory",
       kind: "summary",
-      text: "Ana Ruiz is moving to Valencia in December and is looking for a flat near the old town.",
+      text: "Ana Ruiz is moving to Valencia in December and is looking for a flat near the old town, two bedrooms, with a budget around 1,400 a month. She asked twice whether you know a landlord there.",
       status: "proposed",
       scope: "personal",
       subject: "person:9",
@@ -90,6 +156,19 @@ function seed(): MemoryEntry[] {
       author: agent("claude-code"),
       links: 2,
       createdAt: ago(DAY + 3 * HOUR),
+    },
+    {
+      ...base,
+      ref: "memory:39",
+      type: "memory",
+      kind: "digest",
+      text: "Project Harbour this week: the clinics confirmed the February pilot, Lena Ortiz owns the onboarding script, and the open question is who signs the data agreement on the clinics' side. Two calls slipped because the agenda arrived late; Kai wants it the evening before.",
+      status: "confirmed",
+      subject: "project:3",
+      subjectName: "Project Harbour",
+      author: agent("hermes"),
+      links: 5,
+      createdAt: ago(DAY + 6 * HOUR),
     },
     {
       ...base,
@@ -112,6 +191,8 @@ function seed(): MemoryEntry[] {
       kind: "promise",
       text: "You promised Kai the pricing table by 4 November.",
       status: "accepted",
+      project: "project:3",
+      projectName: "Project Harbour",
       subject: "person:7",
       subjectName: "Kai Sample",
       author: agent("claude-code"),
@@ -135,7 +216,7 @@ function seed(): MemoryEntry[] {
 }
 
 const PEOPLE = ["Kai Sample", "Ana Ruiz", "Project Harbour", "Lena Ortiz", "Tom Becker"]
-const AGENTS = ["claude-code", "hermes", "openclaw", "codex"]
+const AGENTS = ["claude-code", "hermes", "openclaw", "codex-nbb-evaluation"]
 const STATUSES = ["proposed", "confirmed", "confirmed", "stale", "superseded"]
 
 function many(): MemoryEntry[] {
@@ -161,6 +242,7 @@ function many(): MemoryEntry[] {
               : status,
       subject: `person:${10 + (i % PEOPLE.length)}`,
       subjectName: person,
+      ...(fact ? (i % 2 ? { project: "project:3", projectName: "Project Harbour" } : NBB) : {}),
       author: i % 7 === 0 ? OWNER : agent(AGENTS[i % AGENTS.length] ?? "claude-code"),
       links: 1 + (i % 4),
       createdAt: ago(Math.floor((i * 40) / 300) * DAY + (i % 9) * HOUR),
@@ -259,6 +341,24 @@ const GONE: MemorySource = {
 }
 
 const ACTIVITY: AgentCall[] = [
+  {
+    id: "11",
+    agent: "codex-nbb-evaluation",
+    tool: "projects_actions_add",
+    tier: "write",
+    status: "ok",
+    error: null,
+    at: ago(1.2 * HOUR),
+  },
+  {
+    id: "10",
+    agent: "codex-nbb-evaluation",
+    tool: "facts_add",
+    tier: "write",
+    status: "ok",
+    error: null,
+    at: ago(1.3 * HOUR),
+  },
   { id: "9", agent: "claude-code", tool: "memories_add", tier: "write", status: "ok", error: null, at: ago(2 * HOUR) },
   {
     id: "8",
@@ -305,6 +405,15 @@ export function memoryMock(): Pick<
     return e
   }
 
+  // memo closes a reviewed batch as approved even when nothing was accepted; Rust reads that as rejected.
+  const review = (ref: string, accept: string[]) => {
+    const e = find(ref)
+    const findings = (e.findings ?? []).map((f) => ({ ...f, outcome: accept.includes(f.id) ? "accepted" : "rejected" }))
+    const done = { ...update(ref, accept.length ? "approved" : "rejected"), findings }
+    entries = entries.map((x) => (x.ref === ref ? done : x))
+    return done
+  }
+
   return {
     async memoryRead(): Promise<MemoryRead> {
       await delay(700)
@@ -336,14 +445,16 @@ export function memoryMock(): Pick<
         missing: false,
       }))
     },
-    async memoryConfirm(ref) {
+    async memoryConfirm(ref, accept) {
       await write()
       const e = find(ref)
+      if (e.findings) return review(ref, accept ?? e.findings.map((f) => f.id))
       return update(ref, e.type === "fact" ? "accepted" : e.type === "action" ? "approved" : "confirmed")
     },
     async memoryDiscard(ref) {
       await write()
       const e = find(ref)
+      if (e.findings) return review(ref, [])
       if (e.type === "memory") return update(ref, "stale")
       if (e.type === "action") return update(ref, "rejected")
       if (e.status === "proposed") return update(ref, "rejected")

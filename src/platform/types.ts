@@ -147,8 +147,11 @@ export type Platform = {
   memoryRead(): Promise<MemoryRead>
   /** What a memory or a fact rests on: each source read back, with a quoted line, or marked deleted since. */
   memorySources(ref: string): Promise<MemorySource[]>
-  /** Confirms a memory or a fact; approves an action, which becomes a task and sends nothing. */
-  memoryConfirm(ref: string): Promise<MemoryEntry>
+  /**
+   * Confirms a memory or a fact; approves an action, which becomes a task and sends nothing. For an agent's findings
+   * batch, `accept` names the findings to create (all when absent); the rest are rejected.
+   */
+  memoryConfirm(ref: string, accept?: string[]): Promise<MemoryEntry>
   /** "No longer holds": a memory goes stale, a fact is rejected or reversed, an action is rejected. */
   memoryDiscard(ref: string): Promise<MemoryEntry>
   /** Writes the owner's version, which replaces the old one; answers the new record. */

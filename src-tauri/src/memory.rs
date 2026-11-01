@@ -101,6 +101,8 @@ pub struct Entry {
     pub author: Option<Author>,
     pub scope: Option<String>,
     pub project: Option<String>,
+    /// From `memo projects list`: Memo gives a fact or a findings batch only `project:<id>`.
+    pub project_name: Option<String>,
     pub supersedes: Option<String>,
     /// How many sources it cites: what Forget erases besides the record.
     pub links: usize,
@@ -109,6 +111,57 @@ pub struct Entry {
     pub target: Option<String>,
     pub created_at: String,
     pub updated_at: Option<String>,
+    /// A findings batch's facts and tasks; absent on every other record.
+    pub findings: Option<Vec<Finding>>,
+}
+
+/// Memo stages an agent's cited facts and follow-ups about one project as an action of this kind. `actions confirm`
+/// and `actions reject` refuse it; it is reviewed through `projects actions`.
+const FINDINGS: &str = "evidence_findings";
+
+/// One fact or task in a findings batch, as `projects actions confirm` creates it.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Finding {
+    pub id: String,
+    /// `fact` or `task`.
+    pub kind: String,
+    /// A fact's statement or a task's title.
+    pub text: String,
+    pub reason: Option<String>,
+    pub evidence: Vec<String>,
+    /// After review: `accepted` or `rejected`.
+    pub outcome: Option<String>,
+}
+
+fn findings_of(v: &Value) -> Vec<Finding> {
+    let outcome = |id: &str| {
+        v["result"]["items"]
+            .as_array()
+            .and_then(|items| items.iter().find(|i| i["id"].as_str() == Some(id)))
+            .and_then(|i| text(i, "status"))
+    };
+    v["payload"]["findings"]
+        .as_array()
+        .map(|all| {
+            all.iter()
+                .filter_map(|f| {
+                    let id = text(f, "id")?;
+                    Some(Finding {
+                        outcome: outcome(&id),
+                        kind: text(f, "kind")?,
+                        text: text(f, "statement").or_else(|| text(f, "title"))?,
+                        reason: text(f, "reason"),
+                        evidence: f["evidence"]
+                            .as_array()
+                            .map(|e| e.iter().filter_map(|x| text(x, "reference")).collect())
+                            .unwrap_or_default(),
+                        id,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn text(v: &Value, key: &str) -> Option<String> {
@@ -132,6 +185,7 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         author: author(&v["author"]),
         scope: text(v, "scope"),
         project: text(v, "project"),
+        project_name: None,
         supersedes: text(v, "supersedes"),
         links: v["evidence"].as_array().map_or(0, Vec::len),
         reason: None,
@@ -139,6 +193,7 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         target: None,
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
+        findings: None,
     })
 }
 
@@ -152,18 +207,25 @@ fn fact(v: &Value) -> Option<Entry> {
 
 fn action(v: &Value) -> Option<Entry> {
     let account = &v["account"];
+    let kind = text(v, "kind")?;
+    let batch = kind == FINDINGS;
+    let mut status = text(v, "status")?;
+    // Rejecting every finding still closes the batch as `approved`, with nothing accepted.
+    if batch && status == "approved" && v["result"]["accepted"].as_array().is_some_and(Vec::is_empty) {
+        status = "rejected".into();
+    }
     Some(Entry {
         reference: format!("action:{}", text(v, "id")?),
         record: "action",
-        kind: text(v, "kind")?,
         text: text(&v["payload"], "text").or_else(|| text(&v["payload"], "title")),
-        status: text(v, "status")?,
+        status,
         subject: None,
         subject_name: None,
         subject_is_owner: false,
         author: author(&v["proposed_by"]),
         scope: None,
-        project: None,
+        project: text(v, "target").filter(|t| batch && t.starts_with("project:")),
+        project_name: None,
         supersedes: None,
         links: 0,
         reason: text(v, "reason"),
@@ -171,6 +233,8 @@ fn action(v: &Value) -> Option<Entry> {
         target: text(v, "target"),
         created_at: text(v, "created_at")?,
         updated_at: text(v, "decided_at"),
+        findings: batch.then(|| findings_of(v)),
+        kind,
     })
 }
 
@@ -309,23 +373,30 @@ fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(
 
 /// The four lists at once: each is its own Node.js start, so one after another would take four times as long.
 fn read_with(call: &Call) -> Result<Read, String> {
-    let (memories, facts, actions, agents) = std::thread::scope(|s| {
+    let (memories, facts, actions, agents, names) = std::thread::scope(|s| {
         let m = s.spawn(|| list(call, "memories", memory));
         let f = s.spawn(|| list(call, "facts", fact));
         let a = s.spawn(|| list(call, "actions", action));
         let g = s.spawn(|| call(&words(&["agents", "list", "--limit", ACTIVITY_LIMIT])));
+        let p = s.spawn(|| call(&words(&["projects", "list"])));
         let stopped = |_| Err("a read stopped".to_string());
+        // Without names the rows still read; a project then shows by its ref.
+        let names = p.join().ok().and_then(Result::ok).map(|v| project_names(&v)).unwrap_or_default();
         (
             m.join().unwrap_or_else(stopped),
             f.join().unwrap_or_else(stopped),
             a.join().unwrap_or_else(stopped),
             g.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+            names,
         )
     });
     let (mut entries, mut more) = memories?;
     for (items, has_more) in [facts?, actions?] {
         entries.extend(items);
         more |= has_more;
+    }
+    for e in &mut entries {
+        e.project_name = e.project.as_ref().and_then(|p| names.get(p).cloned());
     }
     // ISO 8601 in UTC, so the text order is the time order.
     entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
@@ -336,6 +407,13 @@ fn read_with(call: &Call) -> Result<Read, String> {
         Err(e) => (None, Some(e)),
     };
     Ok(Read::Ready { entries, more, activity, activity_error })
+}
+
+fn project_names(v: &Value) -> std::collections::HashMap<String, String> {
+    v["items"]
+        .as_array()
+        .map(|a| a.iter().filter_map(|p| Some((text(p, "ref")?, text(p, "name")?))).collect())
+        .unwrap_or_default()
 }
 
 fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
@@ -368,19 +446,68 @@ pub fn sources(reference: &str) -> Result<Vec<Source>, String> {
     with_memo(|call| sources_with(call, &r))
 }
 
-fn confirm_with(call: &Call, r: &Ref) -> Result<Entry, String> {
+/// A findings batch is decided through `projects actions`, with the fingerprint Memo shows there, so the owner
+/// decides on the batch as it is now. `accept` names the findings to create; Memo rejects the others. Only IDs the
+/// batch itself holds reach the command line.
+fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option<Entry>, String> {
+    if r.kind != Kind::Action {
+        return Ok(None);
+    }
+    let shown = call(&words(&["actions", "show", &r.memo()]))?;
+    let item = body(&shown);
+    if text(item, "kind").as_deref() != Some(FINDINGS) {
+        return Ok(None);
+    }
+    let project = text_field(item, "target")
+        .filter(|t| t.starts_with("project:"))
+        .ok_or("Memo did not say which project these findings are about")?;
+    let held: Vec<String> = findings_of(item).into_iter().map(|f| f.id).collect();
+    let accept: Vec<String> = match accept {
+        None => held.clone(),
+        Some(ids) => ids.to_vec(),
+    };
+    if accept.iter().any(|id| !held.contains(id) || plain(id).is_none()) {
+        return Err("Pick only findings this batch holds.".into());
+    }
+    let listed = call(&words(&["projects", "actions", "list", &project, "--brief"]))?;
+    let fingerprint = listed["items"]
+        .as_array()
+        .and_then(|a| a.iter().find(|b| b["kind"].as_str() == Some("findings") && text(b, "id") == Some(r.memo())))
+        .and_then(|b| text_field(b, "fingerprint"))
+        .ok_or("Memo no longer lists these findings as waiting; read again.")?;
+    let mut args: Vec<String> = vec!["projects".into(), "actions".into()];
+    if accept.is_empty() {
+        args.extend(["reject".into(), project, r.memo()]);
+    } else {
+        args.extend(["confirm".into(), project, r.memo()]);
+        args.extend(accept);
+    }
+    args.extend(["--fingerprint".into(), fingerprint]);
+    args.extend(QUIET.iter().map(|s| (*s).to_string()));
+    call(&args)?;
+    parse_entry(r, &call(&words(&["actions", "show", &r.memo()]))?).map(Some)
+}
+
+fn confirm_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Entry, String> {
+    if let Some(e) = review_with(call, r, accept)? {
+        return Ok(e);
+    }
     parse_entry(r, &call(&words(&[r.noun(), "confirm", &r.memo()]))?)
 }
 
-/// Approving an action makes it a task in the account that would act; Memo sends nothing.
-pub fn confirm(reference: &str) -> Result<Entry, String> {
+/// Approving an action makes it a task in the account that would act; Memo sends nothing. Approving findings creates
+/// the facts and tasks named in `accept` (all of them when it is absent).
+pub fn confirm(reference: &str, accept: Option<&[String]>) -> Result<Entry, String> {
     let r = Ref::parse(reference)?;
-    with_memo(|call| confirm_with(call, &r))
+    with_memo(|call| confirm_with(call, &r, accept))
 }
 
 /// Memo has one word per record for "this does not hold": a memory goes stale, a proposed fact is rejected, an
 /// accepted decision is reversed, an action is rejected. Any other fact can only be forgotten.
 fn discard_with(call: &Call, r: &Ref) -> Result<Entry, String> {
+    if let Some(e) = review_with(call, r, Some(&[]))? {
+        return Ok(e);
+    }
     let verb = match r.kind {
         Kind::Memory => "invalidate",
         Kind::Action => "reject",
@@ -631,9 +758,97 @@ mod tests {
     #[test]
     fn approving_an_action_reads_the_proposal_out_of_the_answer() {
         let fake = Fake::new(|_| Ok(json!({"item":{"proposal":proposal("approved"),"task":{"id":"5bc8"}}})));
-        let e = confirm_with(&|a: &[String]| fake.call(a), &Ref::parse("action:1").unwrap()).unwrap();
+        let e = confirm_with(&|a: &[String]| fake.call(a), &Ref::parse("action:1").unwrap(), None).unwrap();
         assert_eq!(e.status, "approved");
-        assert_eq!(fake.seen()[0], strs(&["actions", "confirm", "1", "--json", "--no-record"]));
+        assert_eq!(fake.seen().last().unwrap(), &strs(&["actions", "confirm", "1", "--json", "--no-record"]));
+    }
+
+    // The payload as cli-core's `evidenceFindings.stage` keeps it, read back with memo 0.130.0's `actions list`.
+    fn findings_batch(status: &str, result: &Value) -> Value {
+        json!({"id":"9","kind":"evidence_findings","account":null,"target":"project:1","payload":{"schema_version":1,
+            "key":"nbb-eval","extractor":"codex-nbb-evaluation","findings":[
+                {"id":"f1","kind":"fact","project":"project:1","type":"decision",
+                 "statement":"The eval set moves to 120 queries.","evidence":[{"reference":"document:3","fingerprint":"a"}]},
+                {"id":"f2","kind":"task","project":"project:1","type":"task","title":"Add 40 Spanish queries",
+                 "reason":"Lena asked for Spanish coverage","commitment":"explicit",
+                 "evidence":[{"reference":"msg:telegram/1/77/42","fingerprint":"b"}]}]},
+            "reason":"","status":status,"proposed_by":{"type":"bot","id":"3","name":"codex-nbb-evaluation"},
+            "decided_by":null,"decided_at":null,"executed_at":null,"result":result,"error":null,"verdict":null,
+            "created_at":"2026-11-01T00:16:37.495Z"})
+    }
+
+    #[test]
+    fn a_findings_batch_reads_its_facts_tasks_and_project_name() {
+        let fake = Fake::new(|a| {
+            Ok(match a[0].as_str() {
+                "actions" => json!({"items":[findings_batch("proposed", &Value::Null)]}),
+                "projects" => json!({"items":[{"id":"1","ref":"project:1","key":"NBB","name":"Northbridge Bench"}]}),
+                "facts" => json!({"items":[decision("accepted")]}),
+                _ => json!({"items":[]}),
+            })
+        });
+        let Read::Ready { entries, .. } = read_with(&|a: &[String]| fake.call(a)).unwrap() else { panic!("not ready") };
+        let batch = entries.iter().find(|e| e.reference == "action:9").unwrap();
+        assert_eq!(batch.project_name.as_deref(), Some("Northbridge Bench"));
+        let found = batch.findings.as_ref().unwrap();
+        assert_eq!(
+            found.iter().map(|f| f.text.as_str()).collect::<Vec<_>>(),
+            ["The eval set moves to 120 queries.", "Add 40 Spanish queries"]
+        );
+        assert_eq!(found[1].evidence, ["msg:telegram/1/77/42"]);
+        // A fact names its project by key in this fixture, which `projects list` does not map.
+        assert_eq!(entries.iter().find(|e| e.reference == "fact:1").unwrap().project_name, None);
+    }
+
+    #[test]
+    fn a_batch_closed_with_nothing_accepted_reads_as_rejected() {
+        let closed = findings_batch("approved", &json!({"accepted":[],"items":[{"id":"f1","status":"rejected"}]}));
+        let e = action(&closed).unwrap();
+        assert_eq!(e.status, "rejected");
+        assert_eq!(e.findings.unwrap()[0].outcome.as_deref(), Some("rejected"));
+    }
+
+    #[test]
+    fn findings_are_decided_through_projects_actions_with_the_current_fingerprint() {
+        let fake = Fake::new(|a| {
+            Ok(match (a[0].as_str(), a[1].as_str()) {
+                ("projects", "actions") if a[2] == "list" => {
+                    json!({"items":[{"kind":"findings","id":"9","fingerprint":"5adf3e"}]})
+                }
+                ("projects", _) => json!({"item":{}}),
+                _ => json!({"item": findings_batch("proposed", &Value::Null)}),
+            })
+        });
+        let call = |a: &[String]| fake.call(a);
+        let r = Ref::parse("action:9").unwrap();
+        confirm_with(&call, &r, Some(&strs(&["f2"]))).unwrap();
+        discard_with(&call, &r).unwrap();
+        let seen = fake.seen();
+        assert!(seen.contains(&strs(&[
+            "projects",
+            "actions",
+            "confirm",
+            "project:1",
+            "9",
+            "f2",
+            "--fingerprint",
+            "5adf3e",
+            "--json",
+            "--no-record"
+        ])));
+        assert!(seen.contains(&strs(&[
+            "projects",
+            "actions",
+            "reject",
+            "project:1",
+            "9",
+            "--fingerprint",
+            "5adf3e",
+            "--json",
+            "--no-record"
+        ])));
+        assert!(!seen.iter().any(|a| a[0] == "actions" && a[1] != "show"), "the generic action commands refuse it");
+        assert!(confirm_with(&call, &r, Some(&strs(&["--all"]))).is_err());
     }
 
     #[test]
@@ -648,7 +863,7 @@ mod tests {
             (out, fake.seen().into_iter().map(|a| a[1].clone()).collect::<Vec<_>>())
         };
         assert_eq!(run("memory:3", "").1, ["invalidate"]);
-        assert_eq!(run("action:1", "").1, ["reject"]);
+        assert_eq!(run("action:1", "").1, ["show", "reject"]);
         assert_eq!(run("fact:1", "proposed").1, ["show", "reject"]);
         assert_eq!(run("fact:1", "accepted").1, ["show", "reverse"]);
         let (out, seen) = run("fact:1", "superseded");

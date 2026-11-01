@@ -548,8 +548,8 @@ async fn memory_sources(reference: String) -> Result<Vec<memory::Source>, String
 }
 
 #[tauri::command]
-async fn memory_confirm(reference: String) -> Result<memory::Entry, String> {
-    blocking(move || memory::confirm(&reference)).await?
+async fn memory_confirm(reference: String, accept: Option<Vec<String>>) -> Result<memory::Entry, String> {
+    blocking(move || memory::confirm(&reference, accept.as_deref())).await?
 }
 
 #[tauri::command]

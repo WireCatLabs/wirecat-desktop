@@ -166,7 +166,8 @@ function createTauri(): Platform {
     cloudflareRoutes: () => call(v.array(TunnelRouteSchema), "cloudflare_routes"),
     memoryRead: () => call(MemoryReadSchema, "memory_read"),
     memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
-    memoryConfirm: (ref) => call(MemoryEntrySchema, "memory_confirm", { reference: ref }),
+    memoryConfirm: (ref, accept) =>
+      call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),
     memoryDiscard: (ref) => call(MemoryEntrySchema, "memory_discard", { reference: ref }),
     memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),

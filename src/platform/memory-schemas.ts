@@ -5,6 +5,16 @@ import * as v from "valibot"
 
 const text = v.nullable(v.string())
 
+/** One fact or task of an agent's findings batch; `outcome` is set once the batch is reviewed. */
+export const FindingSchema = v.object({
+  id: v.string(),
+  kind: v.string(),
+  text: v.string(),
+  reason: text,
+  evidence: v.array(v.string()),
+  outcome: text,
+})
+
 export const MemoryEntrySchema = v.object({
   ref: v.string(),
   type: v.picklist(["memory", "fact", "action"]),
@@ -17,6 +27,7 @@ export const MemoryEntrySchema = v.object({
   author: v.nullable(v.object({ type: v.string(), name: text })),
   scope: text,
   project: text,
+  projectName: text,
   supersedes: text,
   links: v.number(),
   reason: text,
@@ -24,6 +35,7 @@ export const MemoryEntrySchema = v.object({
   target: text,
   createdAt: v.string(),
   updatedAt: text,
+  findings: v.nullable(v.array(FindingSchema)),
 })
 
 export const AgentCallSchema = v.object({

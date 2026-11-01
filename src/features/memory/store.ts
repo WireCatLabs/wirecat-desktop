@@ -35,6 +35,8 @@ type MemoryState = {
   failed: Record<string, string>
   correcting: string | null
   forgetting: string | null
+  /** Findings the owner unticked, per batch: Approve creates the rest. */
+  skipped: Record<string, string[]>
   load(): Promise<void>
   setTab(tab: Tab): void
   setAbout(about: string): void
@@ -47,6 +49,7 @@ type MemoryState = {
   forget(ref: string): Promise<void>
   startCorrect(ref: string | null): void
   askForget(ref: string | null): void
+  skip(ref: string, finding: string, skipped: boolean): void
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -97,6 +100,7 @@ export const useMemory = create<MemoryState>((set, get) => {
     failed: {},
     correcting: null,
     forgetting: null,
+    skipped: {},
 
     async load() {
       const call = ++seq
@@ -110,7 +114,7 @@ export const useMemory = create<MemoryState>((set, get) => {
           : entries.some((e) => inTab("review", e.status)) || entries.length === 0
             ? "review"
             : "inuse"
-        set({ read, entries, tab, reading: false, held: [], arriving: [], sources: {}, failed: {} })
+        set({ read, entries, tab, reading: false, held: [], arriving: [], sources: {}, failed: {}, skipped: {} })
       } catch (e) {
         if (call !== seq) return
         set({ error: message(e), reading: false })
@@ -136,7 +140,10 @@ export const useMemory = create<MemoryState>((set, get) => {
       }
     },
     async confirm(ref) {
-      const entry = await run(ref, "confirm", () => platform.memoryConfirm(ref))
+      const findings = get().entries.find((e) => e.ref === ref)?.findings
+      const skipped = get().skipped[ref] ?? []
+      const accept = findings ? findings.map((f) => f.id).filter((id) => !skipped.includes(id)) : undefined
+      const entry = await run(ref, "confirm", () => platform.memoryConfirm(ref, accept))
       if (entry) replace(entry)
     },
     async discard(ref) {
@@ -172,5 +179,10 @@ export const useMemory = create<MemoryState>((set, get) => {
     },
     startCorrect: (ref) => set((s) => ({ correcting: ref, failed: ref ? without(s.failed, ref) : s.failed })),
     askForget: (ref) => set({ forgetting: ref }),
+    skip: (ref, finding, skipped) =>
+      set((s) => {
+        const now = (s.skipped[ref] ?? []).filter((id) => id !== finding)
+        return { skipped: { ...s.skipped, [ref]: skipped ? [...now, finding] : now } }
+      }),
   }
 })

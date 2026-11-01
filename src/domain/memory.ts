@@ -1,6 +1,28 @@
 /** The parts of a Memory page record these rules read; the platform's `MemoryEntry` has them. */
 type Entry = { type: string; kind: string; status: string; author: { type: string } | null }
 
+type Subjected = {
+  subject: string | null
+  subjectName: string | null
+  subjectIsOwner: boolean
+  project: string | null
+  projectName: string | null
+}
+
+export type Subject = { key: string; kind: "you" | "person" | "project" | "other"; name: string | null }
+
+/**
+ * What a record is about, project first: a fact or a findings batch belongs to a project, a memory names a person or
+ * a project as its subject. `name` is null when Memo gave only a ref.
+ */
+export function subjectOf(e: Subjected): Subject | null {
+  if (e.project) return { key: e.project, kind: "project", name: e.projectName }
+  if (e.subjectIsOwner) return { key: "you", kind: "you", name: null }
+  if (!e.subject) return null
+  const kind = e.subject.startsWith("project:") ? "project" : e.subject.startsWith("person:") ? "person" : "other"
+  return { key: e.subject, kind, name: e.subjectName }
+}
+
 export type Tab = "review" | "inuse" | "discarded" | "all"
 export type Tone = "ok" | "warn" | "bad" | "idle"
 /** What the page says about a record's status, in one short word each. */
