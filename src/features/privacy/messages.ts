@@ -23,16 +23,16 @@ const en = {
     } as Sent,
     tools: {
       name: "Tool versions",
-      when: "When you open Tools, at most hourly",
+      when: "When you open Tools; kept for an hour",
       text: "Your npm asks its registry for the newest version of each WireCat tool. WireCat adds nothing to that request.",
     } as Sent,
     update: {
       name: "Update check",
       when: "At start, then every 6 hours",
-      text: "Reads a small file from GitHub. It sends nothing about you.",
+      text: "Reads a small file from GitHub, with no version or id. GitHub sees your IP address, as for any download.",
     } as Sent,
     others:
-      "Other services only when you use a feature that needs them: npm and Node.js to install tools, Tailscale or Cloudflare to connect an AI app.",
+      "Each tool talks to its own service, such as Telegram or Google, directly and never through WireCat. Other services only when a feature needs them: nodejs.org when Node.js is missing, npm to install tools, Tailscale or Cloudflare to connect an AI app.",
   },
   logs: {
     title: "Logs on this computer",
@@ -67,16 +67,16 @@ const ru: typeof en = {
     },
     tools: {
       name: "Версии инструментов",
-      when: "Когда вы открываете «Инструменты», не чаще раза в час",
+      when: "Когда вы открываете «Инструменты»; ответ хранится час",
       text: "Ваш npm спрашивает у своего реестра последнюю версию каждого инструмента WireCat. WireCat ничего не добавляет к этому запросу.",
     },
     update: {
       name: "Проверка обновлений",
       when: "При запуске, затем раз в 6 часов",
-      text: "Читает небольшой файл с GitHub. О вас ничего не отправляет.",
+      text: "Читает небольшой файл с GitHub, без версии и идентификатора. GitHub видит ваш IP-адрес, как при любом скачивании.",
     },
     others:
-      "К другим сервисам — только когда вы пользуетесь функцией: npm и Node.js, чтобы установить инструменты, Tailscale или Cloudflare, чтобы подключить ИИ-приложение.",
+      "Каждый инструмент связывается со своим сервисом, например Telegram или Google, напрямую, а не через WireCat. К другим сервисам — только когда они нужны функции: к nodejs.org, когда нет Node.js, к npm, чтобы установить инструменты, к Tailscale или Cloudflare, чтобы подключить ИИ-приложение.",
   },
   logs: {
     title: "Логи на этом компьютере",
@@ -111,16 +111,16 @@ const es: typeof en = {
     },
     tools: {
       name: "Versiones de las herramientas",
-      when: "Al abrir Herramientas, como mucho cada hora",
+      when: "Al abrir Herramientas; se guarda una hora",
       text: "Tu npm pregunta a su registro por la versión más reciente de cada herramienta de WireCat. WireCat no añade nada a esa petición.",
     },
     update: {
       name: "Comprobación de actualizaciones",
       when: "Al iniciar, y después cada 6 horas",
-      text: "Lee un pequeño archivo de GitHub. No envía nada sobre ti.",
+      text: "Lee un pequeño archivo de GitHub, sin versión ni identificador. GitHub ve tu dirección IP, como en cualquier descarga.",
     },
     others:
-      "Otros servicios solo cuando usas una función: npm y Node.js para instalar herramientas, Tailscale o Cloudflare para conectar una aplicación de IA.",
+      "Cada herramienta habla con su propio servicio, como Telegram o Google, directamente y nunca a través de WireCat. Otros servicios solo cuando una función los necesita: nodejs.org cuando falta Node.js, npm para instalar herramientas, Tailscale o Cloudflare para conectar una aplicación de IA.",
   },
   logs: {
     title: "Registros en este ordenador",
