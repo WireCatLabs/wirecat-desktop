@@ -110,6 +110,8 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 
 - **TASK-48 · Переосмыслить показ «Памяти», три версии (2026-11-01):** Слава посмотрел страницу на своих данных: «we need to considerable rethink how we display memory, right now it's not clear … use impeccable skill and build 3 versions of Memory page, 1 is current improvement and 3 - completely rethought, think about further features and extension of this page as we'd add more stuff there». См. UX-26…31.
 
+- **TASK-49 · Добавлять в «Память» вручную (2026-11-01):** Слава: «I'd allow to manually add memory via UI - upload a file, past a link to doc, html (we can extract), image url or image itself, audio or just plain text and link it to other entities so AI would be able to create facts from it - how we'd need to decide eg a few facts to suggest to user so it could pick them. I'd also explain that the source will be stored in db and be searchable too». Сначала план и дизайн.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -1189,4 +1191,4 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-196 · Могут ли подписываться локально не-CLI приложения?** A только через `events watch` или сокет сервера · B ещё локальный HTTP-поток с токеном. Я бы A сейчас.
 - **Блог 2026-11-01:** Слава: «save it as an idea on blog post explaining architecture» — POST-124 в cli-private (7c8d7c9d), раздел «Architecture and shared libraries».
 - **NEED-197 · Какую версию «Памяти» выпускать?** A В1 сейчас, расти к В3 · B В2 · C В3 сразу (нужны memo: имена проектов, проект у памяти, список людей). Я бы A. **Ответ 2026-11-01: B (версия 2)**, с правками — см. UX-32…UX-37.
-- **NEED-198 · Делать ли FIND-146…151 работой в cli-memo?** A да · B нет. Я бы A.
+- **NEED-198 · Делать ли FIND-146…151 работой в cli-memo?** A да · B нет. Я бы A. **Ответ 2026-11-01: A — «fix them here».**
