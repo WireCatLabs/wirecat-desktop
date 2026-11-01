@@ -28,7 +28,10 @@ const en = {
     `The system installer opened ${file}. Enter your password there to install it, then open WireCat again.`,
   revealed: (file: string) =>
     `${file} is in your Downloads folder. Double-click it to open the installer, enter your password, then open WireCat again.`,
-  terminal: "Or install it from a terminal:",
+  terminal: {
+    deb: "Or install it from a terminal. The command first copies the package to /tmp, because apt cannot read files in your home folder and would print a notice about it. Then it asks for your password, installs WireCat and prints the next steps.",
+    rpm: "Or install it from a terminal. It asks for your password, installs WireCat and prints the next steps.",
+  } satisfies Record<Package, string>,
   copyCommand: "Copy the command",
   whatsNew: (version: string) => `What's new in ${version}`,
   allReleases: "All releases on GitHub",
@@ -65,7 +68,10 @@ const ru: typeof en = {
     `Файл ${file} открыт в установщике программ. Введите там пароль, а после установки снова откройте WireCat.`,
   revealed: (file) =>
     `${file} лежит в папке «Загрузки». Откройте его двойным щелчком, введите пароль, а после установки снова откройте WireCat.`,
-  terminal: "Или установите из терминала:",
+  terminal: {
+    deb: "Или установите из терминала. Команда сначала копирует пакет в /tmp: apt не может читать файлы из вашей домашней папки и написал бы об этом предупреждение. Потом она спросит пароль, установит WireCat и покажет, что делать дальше.",
+    rpm: "Или установите из терминала. Команда спросит пароль, установит WireCat и покажет, что делать дальше.",
+  },
   copyCommand: "Скопировать команду",
   whatsNew: (version) => `Что нового в ${version}`,
   allReleases: "Все выпуски на GitHub",
@@ -102,7 +108,10 @@ const es: typeof en = {
     `El instalador del sistema ha abierto ${file}. Escribe ahí tu contraseña para instalarlo y luego vuelve a abrir WireCat.`,
   revealed: (file) =>
     `${file} está en tu carpeta Descargas. Ábrelo con doble clic, escribe tu contraseña y luego vuelve a abrir WireCat.`,
-  terminal: "O instálalo desde una terminal:",
+  terminal: {
+    deb: "O instálalo desde una terminal. El comando primero copia el paquete a /tmp, porque apt no puede leer archivos de tu carpeta personal y mostraría un aviso. Después te pide la contraseña, instala WireCat y muestra los siguientes pasos.",
+    rpm: "O instálalo desde una terminal. Te pide la contraseña, instala WireCat y muestra los siguientes pasos.",
+  },
   copyCommand: "Copiar el comando",
   whatsNew: (version) => `Novedades de la versión ${version}`,
   allReleases: "Todas las versiones en GitHub",

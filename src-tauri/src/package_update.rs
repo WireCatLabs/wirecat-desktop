@@ -78,14 +78,20 @@ fn shell_word(s: &str) -> String {
     }
 }
 
-/// The line to paste in a terminal. `~/` stays outside the quotes, or the shell would not expand it.
-pub fn install_line(kind: Kind, path: &str) -> String {
-    let manager = if kind == Kind::Rpm { "dnf" } else { "apt" };
+/// The line to paste in a terminal. `~/` stays outside the quotes, or the shell would not expand it. apt reads a local
+/// package as its unprivileged `_apt` user, which cannot enter a home folder that is `drwxr-x---`, and then prints
+/// "Download is performed unsandboxed as root"; a copy in `/tmp` is readable. dnf has no such user. `file` is plain
+/// (checked by `file_name`), so it needs no quoting.
+pub fn install_line(kind: Kind, path: &str, file: &str) -> String {
     let arg = match path.strip_prefix("~/") {
         Some(rest) => format!("~/{}", shell_word(rest)),
         None => shell_word(path),
     };
-    format!("sudo {manager} install {arg}")
+    if kind == Kind::Rpm {
+        format!("sudo dnf install {arg}")
+    } else {
+        format!("cp {arg} /tmp/ && sudo apt install /tmp/{file}")
+    }
 }
 
 fn bad_signature(e: &Error) -> bool {
@@ -143,7 +149,7 @@ fn save(kind: Kind, file: String, bytes: &[u8]) -> Result<Outcome, String> {
     }
     let opened = hand_over(kind, &to);
     let path = paths::tilde(&to.to_string_lossy());
-    let command = install_line(kind, &path);
+    let command = install_line(kind, &path, &file);
     Ok(Outcome::Saved { file, path, opened, command })
 }
 
@@ -216,19 +222,23 @@ mod tests {
 
     #[test]
     fn builds_the_terminal_line() {
+        let deb = "wirecat_0.1.2_amd64.deb";
         assert_eq!(
-            install_line(Kind::Deb, "~/Downloads/wirecat_0.1.2_amd64.deb"),
-            "sudo apt install ~/Downloads/wirecat_0.1.2_amd64.deb"
+            install_line(Kind::Deb, &format!("~/Downloads/{deb}"), deb),
+            format!("cp ~/Downloads/{deb} /tmp/ && sudo apt install /tmp/{deb}")
         );
         assert_eq!(
-            install_line(Kind::Rpm, "~/Downloads/wirecat-0.1.2-1.x86_64.rpm"),
+            install_line(Kind::Rpm, "~/Downloads/wirecat-0.1.2-1.x86_64.rpm", "wirecat-0.1.2-1.x86_64.rpm"),
             "sudo dnf install ~/Downloads/wirecat-0.1.2-1.x86_64.rpm"
         );
         assert_eq!(
-            install_line(Kind::Deb, "~/My Downloads/wirecat_0.1.2_amd64.deb"),
-            "sudo apt install ~/'My Downloads/wirecat_0.1.2_amd64.deb'"
+            install_line(Kind::Deb, &format!("~/My Downloads/{deb}"), deb),
+            format!("cp ~/'My Downloads/{deb}' /tmp/ && sudo apt install /tmp/{deb}")
         );
-        assert_eq!(install_line(Kind::Deb, "/mnt/it's/w.deb"), r"sudo apt install '/mnt/it'\''s/w.deb'");
+        assert_eq!(
+            install_line(Kind::Deb, "/mnt/it's/w.deb", "w.deb"),
+            r"cp '/mnt/it'\''s/w.deb' /tmp/ && sudo apt install /tmp/w.deb"
+        );
     }
 
     #[test]
