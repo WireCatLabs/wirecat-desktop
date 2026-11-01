@@ -86,7 +86,7 @@ export function Details({ task }: { task: Task }) {
             value={title}
             maxLength={500}
             onChange={(e) => setTitle(e.target.value)}
-            className="selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none focus-visible:border-brand focus-visible:outline-none"
+            className="selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none focus-visible:border-brand"
           />
         </label>
         <label className="flex flex-col gap-[0.35rem]">
@@ -97,7 +97,7 @@ export function Details({ task }: { task: Task }) {
             maxLength={20_000}
             onChange={(e) => setNotes(e.target.value)}
             placeholder={m.notesHint}
-            className="selectable rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand focus-visible:outline-none"
+            className="selectable rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
           />
         </label>
         <label className="flex flex-col gap-[0.35rem]">
@@ -108,7 +108,7 @@ export function Details({ task }: { task: Task }) {
             spellCheck={false}
             onChange={(e) => setAgent(e.target.value.replace(/[^\w.-]/g, ""))}
             placeholder={m.agentHint}
-            className="selectable h-[2.4rem] max-w-[20rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] font-mono text-[0.9rem] text-ink outline-none placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand focus-visible:outline-none"
+            className="selectable h-[2.4rem] max-w-[20rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] font-mono text-[0.9rem] text-ink outline-none placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand"
           />
         </label>
         <div className="flex gap-2">

@@ -63,7 +63,7 @@ export function NewTask() {
           maxLength={500}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={m.newTitleHint}
-          className="selectable h-[2.4rem] min-w-[16rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand focus-visible:outline-none"
+          className="selectable h-[2.4rem] min-w-[16rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
         />
         <Select
           aria-label={m.project}

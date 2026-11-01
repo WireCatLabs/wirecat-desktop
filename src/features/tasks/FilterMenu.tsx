@@ -145,7 +145,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false 
             }}
             onKeyDown={onKey}
             placeholder={m.find(label)}
-            className="selectable mb-[0.3rem] h-8 w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.55rem] text-[0.9rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand focus-visible:outline-none"
+            className="selectable inner-field mb-[0.3rem] h-8 w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.55rem] text-[0.9rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
           />
         )}
         <div

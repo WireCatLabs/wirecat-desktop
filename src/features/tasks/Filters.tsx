@@ -76,7 +76,7 @@ export function Filters() {
           aria-invalid={badQuery ? true : undefined}
           aria-describedby={badQuery ? "tasks-bad-query" : undefined}
           className={cx(
-            "selectable h-[2.8rem] w-full rounded-[0.35rem] border bg-app pr-[0.8rem] pl-[2.3rem] font-mono text-[0.95rem] text-ink outline-none placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand focus-visible:outline-none",
+            "selectable h-[2.8rem] w-full rounded-[0.35rem] border bg-app pr-[0.8rem] pl-[2.3rem] font-mono text-[0.95rem] text-ink outline-none placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand",
             badQuery ? "border-bad" : "border-line-strong",
           )}
         />
