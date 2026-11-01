@@ -256,7 +256,7 @@ pub fn status(tool: &Tool) -> Result<ServerStatus, String> {
 pub fn start(tool: &Tool, port: u16, url: &str) -> Result<ServerStatus, String> {
     validate_port(port)?;
     validate_url(url)?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let cmd = server_command(&bin, &args(&source(tool)?.start, port, url)?);
     let out = run::run_command(cmd, Duration::from_mins(1)).map_err(|e| e.to_string())?;
     let json = out.json();

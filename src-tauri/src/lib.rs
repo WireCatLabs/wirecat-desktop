@@ -740,7 +740,7 @@ fn open_setup(id: String, profile: Option<String>) -> Result<(), String> {
     let tool = catalog::tool(&id)?;
     let args = tool.setup.as_ref().ok_or("this tool has no setup flow")?;
     let args = catalog::with_profile(args, profile.as_deref())?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     terminal::open(&bin, &args)
 }
 

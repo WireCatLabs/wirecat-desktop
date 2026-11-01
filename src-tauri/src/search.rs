@@ -140,7 +140,7 @@ pub fn paged(src: &SearchSource) -> bool {
 pub fn search(tool: &Tool, profile: Option<&str>, query: &str, limit: u32, page: u32) -> Result<Answer, String> {
     let src = source(tool)?;
     let args = args(src, profile, query, limit, page)?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let args = with_exact(args, src.exact_below.as_deref(), crate::tools::version_of(&bin).as_deref());
     if let Some(message) = REFUSED.known(&tool.id, SEARCH, &bin) {
         return Ok(Answer::Old { message });
@@ -212,7 +212,7 @@ pub fn context_args(src: &ContextSource, profile: Option<&str>, reference: &str)
 pub fn context(tool: &Tool, profile: Option<&str>, reference: &str) -> Result<Context, String> {
     let src = source(tool)?.context.as_ref().ok_or("this tool shows nothing around a result")?;
     let args = context_args(src, profile, reference)?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(1)).map_err(|e| e.to_string())?;
     if out.code != Some(0) {
@@ -245,7 +245,7 @@ fn values_args(src: &ValuesSource, profile: Option<&str>) -> Result<Vec<String>,
 pub fn values(tool: &Tool, profile: Option<&str>, source: &str) -> Result<Vec<ValueItem>, String> {
     let src = self::source(tool)?.values.get(source).ok_or_else(|| format!("no value list named {source}"))?;
     let args = values_args(src, profile)?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(1)).map_err(|e| e.to_string())?;
     if out.code != Some(0) {
@@ -791,7 +791,7 @@ mod tests {
             let tool = catalog::tool(req["tool"].as_str().unwrap()).unwrap();
             let profile = req["profile"].as_str();
             let answer = if req["kind"] == "version" {
-                Ok(serde_json::json!(paths::find(&tool.bin).and_then(|b| crate::tools::version_of(&b))))
+                Ok(serde_json::json!(crate::tools::program(&tool.bin).and_then(|b| crate::tools::version_of(&b))))
             } else if req["kind"] == "values" {
                 values(tool, profile, req["source"].as_str().unwrap()).map(|v| serde_json::to_value(v).unwrap())
             } else {

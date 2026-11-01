@@ -88,7 +88,7 @@ const en = {
     timedOutHint: "Check your connection and try again.",
     network: "Could not reach the npm registry.",
     networkHint: "Check your internet connection or proxy, then try again.",
-    shadowed: (path: ReactNode): ReactNode => <>Another copy at {path} runs first in a terminal.</>,
+    shadowed: (path: ReactNode): ReactNode => <>WireCat runs another copy of the same or a newer version, at {path}.</>,
     showLog: "Show log",
     hideLog: "Hide log",
     tryAgain: "Try again",
@@ -115,13 +115,14 @@ const en = {
     extra: (n: number, bin: ReactNode, path: ReactNode, version: string, manager: string): ReactNode =>
       n === 2 ? (
         <>
-          2 copies of {bin} are installed. A terminal runs {path} ({version}, {manager}); the other is never used and
-          can confuse updates. Remove it with the program that installed it:
+          2 copies of {bin} are installed. WireCat runs the newest, {path} ({version}, {manager}). A terminal or an
+          agent may still run the other one, and it can confuse updates. Remove it with the program that installed it:
         </>
       ) : (
         <>
-          {n} copies of {bin} are installed. A terminal runs {path} ({version}, {manager}); the others are never used
-          and can confuse updates. Remove them with the program that installed them:
+          {n} copies of {bin} are installed. WireCat runs the newest, {path} ({version}, {manager}). A terminal or an
+          agent may still run another one, and they can confuse updates. Remove them with the program that installed
+          them:
         </>
       ),
     removeCopy: (path: string) => `Copy the command that removes ${path}`,
@@ -396,7 +397,7 @@ const ru: typeof en = {
     timedOutHint: "Проверьте подключение и попробуйте снова.",
     network: "Не удалось связаться с реестром npm.",
     networkHint: "Проверьте подключение к интернету или прокси и попробуйте снова.",
-    shadowed: (path) => <>В терминале первой запускается другая копия: {path}.</>,
+    shadowed: (path) => <>WireCat запускает другую копию той же или более новой версии: {path}.</>,
     showLog: "Показать журнал",
     hideLog: "Скрыть журнал",
     tryAgain: "Попробовать снова",
@@ -423,13 +424,13 @@ const ru: typeof en = {
     extra: (n, bin, path, version, manager) =>
       n === 2 ? (
         <>
-          Установлены 2 копии {bin}. Терминал запускает {path} ({version}, {manager}); другая копия не используется и
-          может мешать обновлениям. Удалите её программой, которая её установила:
+          Установлены 2 копии {bin}. WireCat запускает самую новую: {path} ({version}, {manager}). Терминал или агент
+          может запускать другую, и она может мешать обновлениям. Удалите её программой, которая её установила:
         </>
       ) : (
         <>
-          Установлено копий {bin}: {n}. Терминал запускает {path} ({version}, {manager}); остальные не используются и
-          могут мешать обновлениям. Удалите их программами, которые их установили:
+          Установлено копий {bin}: {n}. WireCat запускает самую новую: {path} ({version}, {manager}). Терминал или агент
+          может запускать другую, и они могут мешать обновлениям. Удалите их программами, которые их установили:
         </>
       ),
     removeCopy: (path) => `Скопировать команду, которая удаляет ${path}`,
@@ -707,7 +708,7 @@ const es: typeof en = {
     timedOutHint: "Comprueba tu conexión y vuelve a intentarlo.",
     network: "No se pudo conectar con el registro de npm.",
     networkHint: "Comprueba tu conexión a internet o el proxy y vuelve a intentarlo.",
-    shadowed: (path) => <>En un terminal se ejecuta primero otra copia, en {path}.</>,
+    shadowed: (path) => <>WireCat ejecuta otra copia de la misma versión o una más reciente, en {path}.</>,
     showLog: "Ver registro",
     hideLog: "Ocultar registro",
     tryAgain: "Reintentar",
@@ -734,13 +735,15 @@ const es: typeof en = {
     extra: (n, bin, path, version, manager) =>
       n === 2 ? (
         <>
-          Hay 2 copias de {bin} instaladas. Un terminal ejecuta {path} ({version}, {manager}); la otra nunca se usa y
-          puede confundir las actualizaciones. Elimínala con el programa que la instaló:
+          Hay 2 copias de {bin} instaladas. WireCat ejecuta la más reciente, {path} ({version}, {manager}). Un terminal
+          o un agente puede ejecutar la otra, y puede confundir las actualizaciones. Elimínala con el programa que la
+          instaló:
         </>
       ) : (
         <>
-          Hay {n} copias de {bin} instaladas. Un terminal ejecuta {path} ({version}, {manager}); las demás nunca se usan
-          y pueden confundir las actualizaciones. Elimínalas con el programa que las instaló:
+          Hay {n} copias de {bin} instaladas. WireCat ejecuta la más reciente, {path} ({version}, {manager}). Un
+          terminal o un agente puede ejecutar otra, y pueden confundir las actualizaciones. Elimínalas con el programa
+          que las instaló:
         </>
       ),
     removeCopy: (path) => `Copiar el comando que elimina ${path}`,

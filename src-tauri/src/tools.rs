@@ -21,7 +21,7 @@ pub struct Install {
 #[serde(rename_all = "camelCase")]
 pub struct ToolState {
     pub id: String,
-    /// In PATH order: the first one is what a terminal runs; the rest are shadowed copies.
+    /// Newest first: the first one is the copy the app runs (`program`); the rest are left unused.
     pub installs: Vec<Install>,
 }
 
@@ -59,12 +59,37 @@ pub fn installed(tool: &Tool) -> bool {
 }
 
 pub fn detect(tool: &Tool, fresh: bool) -> ToolState {
-    let installs = std::thread::scope(|s| {
-        let handles: Vec<_> =
-            paths::find_all(&tool.bin).into_iter().map(|p| s.spawn(move || VERSIONS.inspect(&p, fresh))).collect();
-        handles.into_iter().map(|h| h.join().expect("inspect thread")).collect()
-    });
+    let installs = copies(&tool.bin, fresh).into_iter().map(|(_, i)| i).collect();
     ToolState { id: tool.id.clone(), installs }
+}
+
+/// The copy of a tool the app runs. PATH order cannot say which one the owner's terminal runs: the login shell the
+/// app asks starts from a launcher's bare PATH, and a profile that adds a folder only when it is missing then orders
+/// the folders differently than a terminal does. So the newest copy that starts wins; one copy is never started.
+pub fn program(bin: &str) -> Option<PathBuf> {
+    let found = paths::find_all(bin);
+    if found.len() < 2 {
+        return found.into_iter().next();
+    }
+    copies(bin, false).into_iter().next().map(|(p, _)| p)
+}
+
+fn copies(bin: &str, fresh: bool) -> Vec<(PathBuf, Install)> {
+    let mut copies = std::thread::scope(|s| {
+        let handles: Vec<_> = paths::find_all(bin)
+            .into_iter()
+            .map(|p| s.spawn(move || (p.clone(), VERSIONS.inspect(&p, fresh))))
+            .collect();
+        handles.into_iter().map(|h| h.join().expect("inspect thread")).collect::<Vec<_>>()
+    });
+    newest_first(&mut copies);
+    copies
+}
+
+/// Stable, so equal versions keep PATH order; a copy that does not start goes last.
+fn newest_first(copies: &mut [(PathBuf, Install)]) {
+    let version = |i: &Install| i.version.as_deref().and_then(|v| semver::Version::parse(v).ok());
+    copies.sort_by_key(|c| std::cmp::Reverse(version(&c.1)));
 }
 
 /// A working copy's `--version`, kept while its program file is unchanged. It is still asked again after a while:
@@ -183,7 +208,7 @@ pub struct Profile {
 
 pub fn profiles(tool: &Tool) -> Result<Option<Vec<Profile>>, String> {
     let Some(src) = &tool.profiles else { return Ok(None) };
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = program(&tool.bin).ok_or("the tool is not installed")?;
     let args: Vec<&str> = src.args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &args, Some(&paths::search_path()), Duration::from_secs(30)).map_err(|e| e.to_string())?;
     let value = out.json().ok_or_else(|| redact::text(last_line(&out.stderr)))?;
@@ -231,7 +256,7 @@ pub struct Diagnosis {
 }
 
 pub fn diagnose(tool: &Tool, profile: Option<&str>) -> Result<Diagnosis, String> {
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = program(&tool.bin).ok_or("the tool is not installed")?;
     let args = catalog::with_profile(&tool.doctor, profile)?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let started = Instant::now();
@@ -262,6 +287,20 @@ mod tests {
 
     fn working(version: &str) -> Install {
         Install { path: "~/bin/zm".into(), version: Some(version.into()), manager: "npm", problem: None }
+    }
+
+    #[test]
+    fn the_newest_copy_that_starts_is_run_and_equal_versions_keep_path_order() {
+        let broken = Install { version: None, problem: Some("Cannot find module".into()), ..working("") };
+        let mut copies = vec![
+            (PathBuf::from("/pnpm/drive"), working("0.49.0")),
+            (PathBuf::from("/broken/drive"), broken),
+            (PathBuf::from("/nvm/drive"), working("0.54.3")),
+            (PathBuf::from("/nvm-old/drive"), working("0.54.3")),
+        ];
+        newest_first(&mut copies);
+        let order: Vec<_> = copies.iter().map(|(p, _)| p.to_str().unwrap()).collect();
+        assert_eq!(order, ["/nvm/drive", "/nvm-old/drive", "/pnpm/drive", "/broken/drive"]);
     }
 
     #[test]

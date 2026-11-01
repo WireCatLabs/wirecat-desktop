@@ -115,7 +115,7 @@ pub fn args(tool: &Tool, profile: Option<&str>) -> Result<Vec<String>, String> {
 }
 
 pub fn run(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: &dyn Fn(SyncEvent)) {
-    let Some(bin) = paths::find(&tool.bin) else {
+    let Some(bin) = crate::tools::program(&tool.bin) else {
         return send(failed(format!("{} is not installed.", tool.name), None, None));
     };
     let what = source(tool).map(|s| s.what.clone()).unwrap_or_default();
@@ -282,7 +282,7 @@ pub fn last(tool: &Tool, profile: Option<&str>) -> Result<LastSync, String> {
     let unknown = LastSync { at: None, left: None, known: false };
     let Some(words) = &src.last else { return Ok(unknown) };
     let args = catalog::with_profile(words, profile)?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), LAST_TIMEOUT).map_err(|e| e.to_string())?;
     Ok(match out.json() {

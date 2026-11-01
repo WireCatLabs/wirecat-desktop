@@ -142,7 +142,7 @@ pub struct SkillReport {
 }
 
 pub(crate) fn call(tool: &Tool, args: &[String], timeout: Duration) -> Result<(run::Output, Option<Value>), String> {
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
     let json = out.json();
@@ -223,7 +223,7 @@ const DOCTOR_SKILLS: &str = "doctor skills";
 /// A version that refused `skill status`, or whose doctor lists no skills, is not asked that again until it changes.
 pub fn status(tool: &Tool) -> Result<SkillReport, String> {
     let src: &SkillSource = tool.skill.as_ref().ok_or(NO_SKILL)?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     if REFUSED.known(&tool.id, STATUS, &bin).is_none() {
         let (out, json) = call(tool, &src.status, Duration::from_secs(30))?;
         match json {
