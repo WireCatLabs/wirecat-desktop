@@ -11,13 +11,10 @@ import {
 import { anchorOf, closed, STATES, type State } from "@/domain/tasks"
 import { useMessages } from "@/i18n"
 import type { Task } from "@/platform/task-schemas"
-import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
-import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { reducedMotion } from "@/ui/motion"
 import { Select } from "@/ui/Select"
-import { Details } from "./Details"
 import { taskMessages } from "./messages"
 import { StaleLine } from "./Note"
 import { DueText, Markers, PriorityMark, personName, priorityLabel, StateLamp } from "./parts"
@@ -68,7 +65,6 @@ export function TaskBoard() {
   const m = useMessages(taskMessages)
   const tasks = useTasks((s) => s.tasks)
   const order = useTasks((s) => s.order)
-  const open = useTasks((s) => s.open)
   const query = useTasks((s) => s.query)
   const [drag, setDrag] = useState<Drag | null>(null)
   const [held, setHeld] = useState<Held | null>(null)
@@ -166,7 +162,7 @@ export function TaskBoard() {
         setSaid(m.picked(t.key))
       } else if (e.key === "Enter") {
         e.preventDefault()
-        useTasks.getState().toggle(t.key)
+        void useTasks.getState().openTask(t.key)
       }
       return
     }
@@ -194,7 +190,6 @@ export function TaskBoard() {
   }
 
   const dragged = drag ? byKey.get(drag.key) : undefined
-  const opened = open ? byKey.get(open) : undefined
   const showsClosedDefault = !/(^|[\s(-])(state|closed):/.test(query)
   return (
     <>
@@ -203,7 +198,7 @@ export function TaskBoard() {
       </p>
       <div
         ref={board}
-        className="grid grid-cols-[repeat(5,minmax(11.5rem,1fr))] gap-[0.75rem] overflow-x-auto pb-[0.4rem] xl:gap-[1rem]"
+        className="grid grid-cols-[repeat(5,minmax(13rem,1fr))] gap-[0.75rem] overflow-x-auto pb-[0.4rem] xl:gap-[1rem]"
       >
         {STATES.map((s) => {
           const keys = column(s)
@@ -278,20 +273,6 @@ export function TaskBoard() {
       <p aria-live="assertive" className="sr-only">
         {said}
       </p>
-      <Dialog
-        open={Boolean(opened)}
-        title={opened ? m.details(opened.key) : ""}
-        onClose={() => useTasks.getState().toggle(null)}
-        wide
-        scroll
-        actions={
-          <Button size="sm" variant="ghost" onClick={() => useTasks.getState().toggle(null)}>
-            {m.close}
-          </Button>
-        }
-      >
-        {opened && <Details task={opened} />}
-      </Dialog>
     </>
   )
 }
@@ -316,6 +297,8 @@ function Card(props: {
       role="button"
       tabIndex={0}
       data-card={task.key}
+      data-opens={task.key}
+      aria-haspopup="dialog"
       aria-roledescription={m.draggable}
       aria-describedby="tasks-drag-hint"
       aria-pressed={held || undefined}
@@ -324,7 +307,7 @@ function Card(props: {
       onKeyDown={props.onKeyDown}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("button,[role=combobox],[role=listbox]")) return
-        useTasks.getState().toggle(task.key)
+        void useTasks.getState().openTask(task.key)
       }}
       className={cx(
         "group relative cursor-grab touch-none border-line border-b select-none [-webkit-user-select:none] transition-[background-color,box-shadow] duration-150 last:border-b-0 hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",

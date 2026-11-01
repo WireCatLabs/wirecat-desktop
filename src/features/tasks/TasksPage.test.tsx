@@ -51,7 +51,7 @@ describe("Tasks", () => {
     await user.click(within(row("OPS-3")).getByRole("combobox", { name: "Status of OPS-3" }))
     await user.click(screen.getByRole("option", { name: "Done" }))
     expect(await within(row("OPS-3")).findByRole("alert")).toHaveTextContent(
-      "Memo did not save the change: the store is busy. Nothing changed.",
+      "The change was not saved: the store is busy. Nothing changed.",
     )
     expect(within(row("OPS-3")).getByRole("combobox", { name: /Status/ })).toHaveTextContent("Open")
   })
@@ -78,6 +78,32 @@ describe("Tasks", () => {
     expect(alert).toHaveTextContent("HRB-12 changed elsewhere: hermes changed the status at")
     expect(within(row("HRB-12")).getByRole("combobox", { name: /Status/ })).toHaveTextContent("Todo")
     expect(within(alert).getByRole("button", { name: "Read again" })).toBeInTheDocument()
+  })
+
+  it("opens a row in a dialog that edits every field and follows what the task waits for", async () => {
+    const user = userEvent.setup()
+    const update = vi.spyOn(platform, "taskUpdate")
+    render(<TasksPage />)
+    await loaded()
+    const before = [...document.querySelectorAll("[data-row]")].map((r) => r.getAttribute("data-row"))
+    await user.click(within(row("HRB-15")).getByRole("button", { name: /^HRB-15 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-15" })
+    expect(within(dialog).getByText("Created")).toBeInTheDocument()
+    expect(await within(dialog).findByText(/by You$/)).toBeInTheDocument()
+    expect(within(dialog).getByText("A task cannot move to another project yet.")).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole("combobox", { name: "Priority of HRB-15" }))
+    await user.click(screen.getByRole("option", { name: "Low" }))
+    await waitFor(() => expect(update).toHaveBeenCalledWith("HRB-15", expect.any(Number), { priority: "low" }))
+
+    await user.click(within(dialog).getAllByRole("button", { name: "Open HRB-14" })[0] as HTMLElement)
+    expect(await screen.findByRole("dialog", { name: "Task HRB-14" })).toBeInTheDocument()
+    await user.keyboard("j")
+    expect(await screen.findByRole("dialog", { name: /^Task (?!HRB-14)/ })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Close" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    expect([...document.querySelectorAll("[data-row]")].map((r) => r.getAttribute("data-row"))).toEqual(before)
   })
 
   it("moves a card between columns with the keyboard and says each step", async () => {

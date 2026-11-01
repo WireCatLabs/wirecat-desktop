@@ -15,6 +15,7 @@ import { NewTask } from "./NewTask"
 import { Note } from "./Note"
 import { useTasks, type View } from "./store"
 import { TaskBoard } from "./TaskBoard"
+import { TaskDialog } from "./TaskDialog"
 import { TaskTable } from "./TaskTable"
 
 const GUIDE = "https://github.com/WireCatLabs/cli-memo/blob/main/docs/tasks.md"
@@ -130,6 +131,7 @@ function Body() {
       <Filters />
       <More />
       {loaded ? <Rack /> : <Loading />}
+      <TaskDialog />
     </>
   )
 }
