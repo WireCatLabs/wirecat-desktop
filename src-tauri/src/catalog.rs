@@ -132,6 +132,13 @@ pub struct SearchSource {
     /// Read-only lists whose items name a field's values, such as chats for `chat:`; `key` is the item's field.
     #[serde(default)]
     pub values: std::collections::BTreeMap<String, ValuesSource>,
+    /// What surrounds one hit, read from the local store: `{ref}` is the hit's ref, `{refId}` its last part.
+    pub context: Option<ContextSource>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ContextSource {
+    pub args: Vec<String>,
 }
 
 /// `key` is the item field a query names the value by (a chat's id names exactly one chat); `label` and `detail`

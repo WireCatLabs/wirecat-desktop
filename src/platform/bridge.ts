@@ -35,7 +35,7 @@ import {
   StorageSchema,
   ToolStatesSchema,
 } from "./schemas"
-import { SearchAnswerSchema, ValueItemSchema } from "./search-schemas"
+import { SearchAnswerSchema, SearchContextSchema, ValueItemSchema } from "./search-schemas"
 import { SettingsSchema } from "./settings-schemas"
 import { SignInEventSchema } from "./signin-schemas"
 import { LastSyncSchema, SyncEventSchema } from "./sync-schemas"
@@ -207,6 +207,7 @@ function createTauri(): Platform {
     searchStore: (id, profile, query, limit, page) =>
       call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),
     searchValues: (id, profile, source) => call(v.array(ValueItemSchema), "search_values", { id, profile, source }),
+    searchContext: (id, profile, reference) => call(SearchContextSchema, "search_context", { id, profile, reference }),
     showRun: (id, run) => call(RunDetailSchema, "show_run", { id, run }),
     reportContext: () => call(ReportContextSchema, "report_context"),
     sendReport: (draft, context) => call(ReportSentSchema, "send_report", { draft, context }),

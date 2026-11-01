@@ -37,6 +37,8 @@ const ToolSchema = v.object({
         }),
       ),
       values: v.record(v.string(), v.object({ args: v.array(v.string()), key: v.string() })),
+      /** What surrounds a hit: the messages around it, its mail thread, or a meeting's transcript. */
+      context: v.optional(v.object({ args: v.array(v.string()) })),
     }),
   ),
   setup: v.nullable(v.array(v.string())),

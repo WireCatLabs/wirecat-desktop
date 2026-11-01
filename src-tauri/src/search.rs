@@ -5,7 +5,7 @@
 //! are never logged or put in a report.
 
 use crate::cache::REFUSED;
-use crate::catalog::{self, SearchShape, SearchSource, Tool, ValuesSource};
+use crate::catalog::{self, ContextSource, SearchShape, SearchSource, Tool, ValuesSource};
 use crate::{paths, run};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -152,6 +152,74 @@ pub fn search(tool: &Tool, profile: Option<&str>, query: &str, limit: u32, page:
         REFUSED.remember(&tool.id, SEARCH, &bin, message);
     }
     Ok(answer)
+}
+
+/// What the tool printed around one hit, as it printed it; the page picks the messages or transcript lines.
+#[derive(Debug, Serialize, PartialEq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Context {
+    Found {
+        body: Value,
+    },
+    /// The installed version has no such command yet: the answer is "update it".
+    Old {
+        message: String,
+    },
+    Failed {
+        message: String,
+    },
+}
+
+const MAX_REF: usize = 300;
+
+/// A ref exactly as a search hit names it (`msg:telegram/1/-100123/4000`, `meeting:acct/42`): a known prefix, no
+/// spaces or control characters, so it can never be read as a flag or a second argument.
+fn validate_ref(reference: &str) -> Result<(), String> {
+    let known = ["msg:", "meeting:"].iter().any(|p| reference.starts_with(p));
+    let plain = reference.chars().all(|c| c.is_alphanumeric() || ":/._-@+=".contains(c));
+    if known && plain && reference.len() <= MAX_REF { Ok(()) } else { Err("not a search result reference".into()) }
+}
+
+pub fn context_args(src: &ContextSource, profile: Option<&str>, reference: &str) -> Result<Vec<String>, String> {
+    validate_ref(reference)?;
+    let last = reference.rsplit('/').next().unwrap_or_default();
+    let wants_profile = src.args.iter().any(|a| a.contains("{profile}"));
+    match (wants_profile, profile) {
+        (true, Some(p)) => catalog::validate_profile(p)?,
+        (true, None) => return Err("this needs a profile".into()),
+        (false, _) => {}
+    }
+    if src.args.iter().any(|a| a == "{refId}") && (last.is_empty() || !last.chars().all(|c| c.is_ascii_digit())) {
+        return Err("this result names no stored id".into());
+    }
+    Ok(src
+        .args
+        .iter()
+        .map(|a| match a.as_str() {
+            "{ref}" => reference.to_string(),
+            "{refId}" => last.to_string(),
+            _ => a.replace("{profile}", profile.unwrap_or_default()),
+        })
+        .collect())
+}
+
+pub fn context(tool: &Tool, profile: Option<&str>, reference: &str) -> Result<Context, String> {
+    let src = source(tool)?.context.as_ref().ok_or("this tool shows nothing around a result")?;
+    let args = context_args(src, profile, reference)?;
+    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(1)).map_err(|e| e.to_string())?;
+    if out.code != Some(0) {
+        return Ok(match error_of(&out.stderr, &out.stdout) {
+            Answer::Old { message } => Context::Old { message },
+            Answer::Failed { message, .. } | Answer::QueryError { message, .. } => Context::Failed { message },
+            Answer::Hits { .. } => Context::Failed { message: last_line(&out.stderr, &out.stdout) },
+        });
+    }
+    Ok(match out.json() {
+        Some(body) => Context::Found { body },
+        None => Context::Failed { message: last_line(&out.stderr, &out.stdout) },
+    })
 }
 
 const MAX_VALUES: usize = 2000;
@@ -413,6 +481,26 @@ mod tests {
         assert!(!a.iter().any(|x| x.contains('{')), "{a:?}");
         assert!(!paged(src("email")));
         assert!(args(src("email"), Some("personal"), "budget", 50, 2).is_err());
+    }
+
+    #[test]
+    fn context_takes_only_a_hit_ref_and_reads_the_local_store() {
+        let tg = src("tg").context.as_ref().unwrap();
+        let a = context_args(tg, Some("personal"), "msg:telegram/1/-100123/4000").unwrap();
+        assert_eq!(&a[..4], ["personal", "messages", "context", "msg:telegram/1/-100123/4000"]);
+        assert!(a.contains(&"--offline".to_string()));
+        assert!(context_args(tg, Some("personal"), "--json").is_err());
+        assert!(context_args(tg, Some("personal"), "msg:a b").is_err());
+        assert!(context_args(tg, None, "msg:telegram/1/2/3").is_err());
+        let zm = src("zm").context.as_ref().unwrap();
+        assert_eq!(context_args(zm, Some("work"), "meeting:acct/42").unwrap()[3], "42");
+        assert!(context_args(zm, Some("work"), "meeting:acct/x").is_err());
+        let mail = src("email").context.as_ref().unwrap();
+        assert!(
+            !context_args(mail, Some("personal"), "msg:email/personal/INBOX/9")
+                .unwrap()
+                .contains(&"personal".to_string())
+        );
     }
 
     #[test]

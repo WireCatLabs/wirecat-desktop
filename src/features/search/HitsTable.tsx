@@ -1,4 +1,4 @@
-import { Fragment } from "react"
+import { Fragment, type ReactNode } from "react"
 import { formatWhen } from "@/domain/runs"
 import { hitRow } from "@/domain/search"
 import { formatDate, useLang, useMessages } from "@/i18n"
@@ -21,6 +21,8 @@ type Props = {
   fieldOf?: FieldOf
   onFilter?: (field: string, value: string, negate: boolean) => void
   onGroup?: (field: string) => void
+  /** What a result leads to, above its details. */
+  actions?: (hit: SearchHit) => ReactNode
 }
 
 const FULL: Intl.DateTimeFormatOptions = { dateStyle: "full", timeStyle: "long" }
@@ -102,6 +104,7 @@ export function HitsTable(props: Props) {
                   <td colSpan={5} className="p-0">
                     <Collapse open={open}>
                       <div className="bg-app-2/60 px-[1.3rem] py-[0.9rem]">
+                        {open && props.actions?.(hit)}
                         <JsonTree
                           value={hit}
                           fieldOf={fieldOf}

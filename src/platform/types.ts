@@ -19,7 +19,7 @@ import type {
   StorageFolder,
   ToolState,
 } from "./schemas"
-import type { SearchAnswer, ValueItem } from "./search-schemas"
+import type { SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
 import type { Settings } from "./settings-schemas"
 import type { SignInEvent } from "./signin-schemas"
 import type { LastSync, SyncEvent } from "./sync-schemas"
@@ -179,6 +179,8 @@ export type Platform = {
   searchStore(id: string, profile: string | null, query: string, limit: number, page: number): Promise<SearchAnswer>
   /** The values one of the tool's own read-only lists names (`search.values` in the catalog), such as chat titles. */
   searchValues(id: string, profile: string | null, source: string): Promise<ValueItem[]>
+  /** What surrounds one hit in the local store (`search.context` in the catalog), by the ref the hit carries. */
+  searchContext(id: string, profile: string | null, reference: string): Promise<SearchContext>
   /** `profile: null` is the defaults every profile gets, or the one file a tool without per-profile settings keeps. */
   settingsShow(id: string, profile: string | null): Promise<Settings>
   /** `defaults` changes what every profile gets instead of one profile. Rejects with the tool's own message. */
