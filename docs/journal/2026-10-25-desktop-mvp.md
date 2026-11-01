@@ -127,6 +127,8 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
   - Сделано: review/all получил журнал search-page, раунд 3 Add to memory (11b505f), PR #45; кнопка «Add to memory» на настоящей Memory (6d74adf). Одна ссылка: порт 1437.
   - Guides: раздел меню с рецептами (промпты для агентов, часть текстов здесь, часть с сайта cli-docs, ссылки на полные доки), заметно в онбординге — отдан агенту на план и прототип.
 
+- **TASK-55 · Пробелы CLI для Search (план 2026-11-01-search.md, пункты 1–6).** 1–3 (вложения в попадании, скачать файл по ref офлайн, ссылка на файл) — агент в cli-core + tg/max/wa; 4 (zm passage по ref, говорящий) и 6 (drive documents show по ref) — агент в zoom-cli/drive-cli; 5 (вложения почты) — в очередь агента memo. Релизы tg/max/wa/zm/drive не делаем без владельца; cli-core выпускается по своему процессу. Пункт 7 (`search --explain`) ждёт NEED-221.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
