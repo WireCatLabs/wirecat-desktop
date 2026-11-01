@@ -770,6 +770,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **IDEA-13 · Контекст вокруг найденного и поиск по типам, плюс поле «сгенерировать запрос через ИИ».** Слава: «find nearest messages by a button or read full transcript or get links to files … how search would work for different types eg meetings, email»; «a field above search to generate a query using AI - ask an agent - say claude/codex or use api key». Отдано агенту Search: действия контекста на командах самих инструментов, раздел плана по типам, прототип поля ИИ по решениям NEED-210…212.
 - **NEED-219 · поправка:** отпал — в третьем варианте Guides карточек нет.
 
+- **FIND-174 · memo 0.131.6 не умеет для окна задачи:** перенос в другой проект (`tasks update --project`), очистка заметки, смена типа (`--kind`), настоящий автор создания (`tasks add` всегда пишет владельца). Окно задачи (review/all 8d93d2e, feat/tasks-page aa7340e) показывает проект только для чтения. Отдано агенту memo.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
