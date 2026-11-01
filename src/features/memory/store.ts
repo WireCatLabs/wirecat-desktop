@@ -163,7 +163,8 @@ export const useMemory = create<MemoryState>((set, get) => {
     },
     async loadSources(ref) {
       const entry = get().entries.find((e) => e.ref === ref)
-      if (!entry || entry.type === "action") return
+      // A plain action cites nothing; a findings batch's sources come with it from memo.
+      if (!entry || (entry.type === "action" && !entry.findings)) return
       set((s) => ({ sources: { ...s.sources, [ref]: { state: "loading" } } }))
       try {
         const sources = await platform.memorySources(ref)

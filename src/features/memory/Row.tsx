@@ -545,7 +545,8 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
   const { skip } = useMemory.getState()
   const findings = entry.findings ?? []
   const open = entry.status === "proposed"
-  const project = entry.projectName ?? entry.project ?? m.project
+  // A batch may be about a person or another subject rather than a project.
+  const project = entry.projectName ?? entry.subjectName ?? entry.project ?? m.project
   const ticked = findings.filter((f) => !skipped.includes(f.id)).length
   const [shownRef, setShownRef] = useState<string | null>(null)
 
@@ -628,9 +629,9 @@ function ActionFacts({ entry, m }: { entry: MemoryEntry; m: M }) {
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
       {entry.text && (
         <>
-          <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.wouldSend}</h3>
+          <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.wouldDo}</h3>
           <p className="selectable rounded-[0.45rem] border border-line bg-app px-[0.9rem] py-[0.7rem] text-[0.95rem]">
-            “{entry.text}”
+            {entry.text}
           </p>
         </>
       )}
@@ -693,7 +694,10 @@ function Details({ entry }: { entry: MemoryEntry }) {
   return (
     <div className="grid gap-[1.6rem] border-line border-t bg-app-2/60 px-[1.3rem] py-[1.4rem] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       {entry.findings ? (
-        <Findings entry={entry} />
+        <div className="flex min-w-0 flex-col gap-[1.2rem]">
+          <Findings entry={entry} />
+          <Sources entry={entry} />
+        </div>
       ) : entry.type === "action" ? (
         <ActionFacts entry={entry} m={m} />
       ) : (

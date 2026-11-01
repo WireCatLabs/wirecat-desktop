@@ -92,7 +92,7 @@ pub struct Entry {
     #[serde(rename = "type")]
     pub record: &'static str,
     pub kind: String,
-    /// An action has no text of its own: its payload's `text` or `title` when it has one.
+    /// An action has no text of its own: memo's one-line summary of what it would do.
     pub text: Option<String>,
     pub status: String,
     pub subject: Option<String>,
@@ -101,7 +101,6 @@ pub struct Entry {
     pub author: Option<Author>,
     pub scope: Option<String>,
     pub project: Option<String>,
-    /// From `memo projects list`: Memo gives a fact or a findings batch only `project:<id>`.
     pub project_name: Option<String>,
     pub supersedes: Option<String>,
     /// How many sources it cites: what Forget erases besides the record.
@@ -118,11 +117,9 @@ pub struct Entry {
     pub confidence: Option<f64>,
 }
 
-/// Memo stages an agent's cited facts and follow-ups about one project as an action of this kind. `actions confirm`
-/// and `actions reject` refuse it; it is reviewed through `projects actions`.
+/// Memo stages an agent's cited facts and follow-ups as an action of this kind, decided with the fingerprint
+/// `actions show` gives.
 const FINDINGS: &str = "evidence_findings";
-/// 50 batches a page: enough pages for a year of nightly runs on one project.
-const FINDINGS_PAGES: u32 = 8;
 
 /// One fact or task in a findings batch, as `projects actions confirm` creates it.
 #[derive(Serialize, Debug, PartialEq)]
@@ -190,7 +187,7 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         author: author(&v["author"]),
         scope: text(v, "scope"),
         project: text(v, "project"),
-        project_name: None,
+        project_name: text(v, "project_name"),
         supersedes: text(v, "supersedes"),
         links: v["evidence"].as_array().map_or(0, Vec::len),
         reason: None,
@@ -216,23 +213,18 @@ fn action(v: &Value) -> Option<Entry> {
     let account = &v["account"];
     let kind = text(v, "kind")?;
     let batch = kind == FINDINGS;
-    let mut status = text(v, "status")?;
-    // Rejecting every finding still closes the batch as `approved`, with nothing accepted.
-    if batch && status == "approved" && v["result"]["accepted"].as_array().is_some_and(Vec::is_empty) {
-        status = "rejected".into();
-    }
     Some(Entry {
         reference: format!("action:{}", text(v, "id")?),
         record: "action",
-        text: text(&v["payload"], "text").or_else(|| text(&v["payload"], "title")),
-        status,
-        subject: None,
-        subject_name: None,
+        text: text(v, "summary"),
+        status: text(v, "status")?,
+        subject: text(v, "subject"),
+        subject_name: text(v, "subject_name"),
         subject_is_owner: false,
         author: author(&v["proposed_by"]),
         scope: None,
-        project: text(v, "target").filter(|t| batch && t.starts_with("project:")),
-        project_name: None,
+        project: text(v, "project"),
+        project_name: text(v, "project_name"),
         supersedes: None,
         links: 0,
         reason: text(v, "reason"),
@@ -349,6 +341,12 @@ fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Stri
     let json = out.json();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        // Deciding one batch changes its project, so memo refuses to confirm the other batches staged before it.
+        Some(v) if v["error"]["reason"].as_str() == Some("evidence-findings.stale") => {
+            Err("The project changed since the agent proposed these findings. Discard them, or ask the agent to look \
+                 again."
+                .into())
+        }
         j => Err(failure(&out, j.as_ref())),
     }
 }
@@ -375,37 +373,35 @@ pub fn read() -> Result<Read, String> {
 }
 
 fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(Vec<Entry>, bool), String> {
-    let v = call(&words(&[noun, "list", "--limit", LIMIT]))?;
+    // `actions list` reads every findings batch's sources back unless brief; the page reads them on opening one.
+    let mut parts = vec![noun, "list", "--limit", LIMIT];
+    if noun == "actions" {
+        parts.push("--brief");
+    }
+    let v = call(&words(&parts))?;
     let items = v["items"].as_array().map(|a| a.iter().filter_map(parse).collect()).unwrap_or_default();
     Ok((items, v["page"]["has_more"].as_bool().unwrap_or(false)))
 }
 
 /// The four lists at once: each is its own Node.js start, so one after another would take four times as long.
 fn read_with(call: &Call) -> Result<Read, String> {
-    let (memories, facts, actions, agents, names) = std::thread::scope(|s| {
+    let (memories, facts, actions, agents) = std::thread::scope(|s| {
         let m = s.spawn(|| list(call, "memories", memory));
         let f = s.spawn(|| list(call, "facts", fact));
         let a = s.spawn(|| list(call, "actions", action));
         let g = s.spawn(|| call(&words(&["agents", "list", "--limit", ACTIVITY_LIMIT])));
-        let projects = s.spawn(|| call(&words(&["projects", "list"])));
         let stopped = |_| Err("a read stopped".to_string());
-        // Without names the rows still read; a project then shows by its ref.
-        let names = projects.join().ok().and_then(Result::ok).map(|v| project_names(&v)).unwrap_or_default();
         (
             m.join().unwrap_or_else(stopped),
             f.join().unwrap_or_else(stopped),
             a.join().unwrap_or_else(stopped),
             g.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
-            names,
         )
     });
     let (mut entries, mut more) = memories?;
     for (items, has_more) in [facts?, actions?] {
         entries.extend(items);
         more |= has_more;
-    }
-    for e in &mut entries {
-        e.project_name = e.project.as_ref().and_then(|p| names.get(p).cloned());
     }
     // ISO 8601 in UTC, so the text order is the time order.
     entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
@@ -416,13 +412,6 @@ fn read_with(call: &Call) -> Result<Read, String> {
         Err(e) => (None, Some(e)),
     };
     Ok(Read::Ready { entries, more, activity, activity_error })
-}
-
-fn project_names(v: &Value) -> std::collections::HashMap<String, String> {
-    v["items"]
-        .as_array()
-        .map(|a| a.iter().filter_map(|p| Some((text(p, "ref")?, text(p, "name")?))).collect())
-        .unwrap_or_default()
 }
 
 fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
@@ -442,11 +431,13 @@ fn parse_entry(r: &Ref, v: &Value) -> Result<Entry, String> {
     parsed.ok_or_else(|| "Memo's answer did not describe the record".into())
 }
 
+/// An action answers its sources in `show` itself; a memory or a fact only with `--sources`.
 fn sources_with(call: &Call, r: &Ref) -> Result<Vec<Source>, String> {
-    if r.kind == Kind::Action {
-        return Ok(Vec::new());
-    }
-    let v = call(&words(&[r.noun(), "show", &r.memo(), "--sources"]))?;
+    let v = if r.kind == Kind::Action {
+        call(&words(&["actions", "show", &r.memo()]))?
+    } else {
+        call(&words(&[r.noun(), "show", &r.memo(), "--sources"]))?
+    };
     Ok(body(&v)["sources"].as_array().map(|a| a.iter().filter_map(source).collect()).unwrap_or_default())
 }
 
@@ -455,9 +446,9 @@ pub fn sources(reference: &str) -> Result<Vec<Source>, String> {
     with_memo(|call| sources_with(call, &r))
 }
 
-/// A findings batch is decided through `projects actions`, with the fingerprint Memo shows there, so the owner
-/// decides on the batch as it is now. `accept` names the findings to create; Memo rejects the others. Only IDs the
-/// batch itself holds reach the command line.
+/// A findings batch is decided with the fingerprint `actions show` gives, so the owner decides on the batch as it is
+/// now. `accept` names the findings to create; Memo rejects the others. Only IDs the batch itself holds reach the
+/// command line.
 fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option<Entry>, String> {
     if r.kind != Kind::Action {
         return Ok(None);
@@ -467,9 +458,6 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     if text(item, "kind").as_deref() != Some(FINDINGS) {
         return Ok(None);
     }
-    let project = text_field(item, "target")
-        .filter(|t| t.starts_with("project:"))
-        .ok_or("Memo did not say which project these findings are about")?;
     let held: Vec<String> = findings_of(item).into_iter().map(|f| f.id).collect();
     let accept: Vec<String> = match accept {
         None => held.clone(),
@@ -478,48 +466,14 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     if accept.iter().any(|id| !held.contains(id) || plain(id).is_none()) {
         return Err("Pick only findings this batch holds.".into());
     }
-    let fingerprint = fingerprint_of(call, &project, &r.memo())?;
-    let mut args: Vec<String> = vec!["projects".into(), "actions".into()];
-    if accept.is_empty() {
-        args.extend(["reject".into(), project, r.memo()]);
-    } else {
-        args.extend(["confirm".into(), project, r.memo()]);
-        args.extend(accept);
-    }
+    let fingerprint = text_field(item, "fingerprint").ok_or("Memo did not give these findings' fingerprint")?;
+    // `actions confirm` with no finding named creates them all, so nothing accepted is a rejection.
+    let mut args: Vec<String> = vec!["actions".into(), if accept.is_empty() { "reject" } else { "confirm" }.into()];
+    args.push(r.memo());
+    args.extend(accept);
     args.extend(["--fingerprint".into(), fingerprint]);
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
-    call(&args)?;
-    parse_entry(r, &call(&words(&["actions", "show", &r.memo()]))?).map(Some)
-}
-
-/// `projects actions list` shows 10 batches a page by default, newest first; an agent that runs nightly stages more.
-fn fingerprint_of(call: &Call, project: &str, id: &str) -> Result<String, String> {
-    for page in 1..=FINDINGS_PAGES {
-        let listed = call(&words(&[
-            "projects",
-            "actions",
-            "list",
-            project,
-            "--brief",
-            "--limit",
-            "50",
-            "--page",
-            &page.to_string(),
-        ]))?;
-        let found = listed["items"]
-            .as_array()
-            .and_then(|a| {
-                a.iter().find(|b| b["kind"].as_str() == Some("findings") && text(b, "id").as_deref() == Some(id))
-            })
-            .and_then(|b| text_field(b, "fingerprint"));
-        if let Some(fingerprint) = found {
-            return Ok(fingerprint);
-        }
-        if !listed["page"]["has_more"].as_bool().unwrap_or(false) {
-            break;
-        }
-    }
-    Err("Memo no longer lists these findings as waiting; read again.".into())
+    parse_entry(r, &call(&args)?).map(Some)
 }
 
 fn confirm_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Entry, String> {
@@ -587,13 +541,14 @@ fn correct_args(r: &Ref, old: &Value, text: &str) -> Result<Vec<String>, String>
             }
             let kind = field("kind").ok_or("Memo did not say the fact's kind")?;
             args.extend(["--kind".into(), kind]);
-            for (key, option) in [("scope", "--scope"), ("project", "--project")] {
-                if let Some(v) = field(key) {
-                    args.extend([option.into(), v]);
-                }
+            if let Some(scope) = field("scope") {
+                args.extend(["--scope".into(), scope]);
             }
         }
         Kind::Action => return Err("An action cannot be corrected; discard it instead.".into()),
+    }
+    if let Some(project) = field("project") {
+        args.extend(["--project".into(), project]);
     }
     if let Some(subject) = field("subject") {
         args.extend(["--subject".into(), subject]);
@@ -825,10 +780,11 @@ mod tests {
         }
     }
 
-    // Captured from memo 0.128.0 against a throwaway store.
+    // Captured from memo 0.131.11 against a throwaway store.
     fn agent_memory() -> Value {
         json!({"ref":"memory:3","id":"3","kind":"summary","text":"Ana moves to Valencia","subject":"person:7",
-            "subject_name":"Ana Ruiz","subject_is_owner":false,"author":{"type":"bot","id":"3","name":"claude-code"},
+            "subject_name":"Ana Ruiz","subject_is_owner":false,"project":"project:1","project_name":"Harbour",
+            "author":{"type":"bot","id":"3","name":"claude-code"},
             "model":null,"confidence":null,"status":"proposed","scope":"personal","supersedes":null,
             "evidence":["document:1","document:2"],"last_verified_at":null,"created_at":"2026-10-31T20:55:43.713Z",
             "updated_at":"2026-10-31T20:55:43.713Z"})
@@ -846,7 +802,8 @@ mod tests {
         json!({"id":"1","kind":"create_task","account":{"provider":"telegram","account":"1"},"target":"chat:telegram/1/77",
             "payload":{"title":"Send Kai the pricing table"},"reason":"Kai asked twice","status":status,
             "proposed_by":{"type":"bot","id":"4","name":"hermes"},"decided_by":null,"decided_at":null,
-            "executed_at":null,"result":null,"error":null,"verdict":null,"created_at":"2026-10-31T20:56:09.193Z"})
+            "executed_at":null,"result":null,"error":null,"verdict":null,"created_at":"2026-10-31T20:56:09.193Z",
+            "summary":"Create task chat:telegram/1/77: Send Kai the pricing table","project":null,"project_name":null})
     }
 
     fn strs(v: &[&str]) -> Vec<String> {
@@ -909,11 +866,14 @@ mod tests {
         assert_eq!(m.subject_name.as_deref(), Some("Ana Ruiz"));
         assert_eq!(m.author, Some(Author { kind: "bot".into(), name: Some("claude-code".into()) }));
         assert_eq!(m.links, 2);
+        assert_eq!(m.project_name.as_deref(), Some("Harbour"));
         let a = &entries[0];
-        assert_eq!(a.text.as_deref(), Some("Send Kai the pricing table"));
+        assert_eq!(a.text.as_deref(), Some("Create task chat:telegram/1/77: Send Kai the pricing table"));
         assert_eq!(a.account.as_deref(), Some("telegram:1"));
         assert_eq!(a.reason.as_deref(), Some("Kai asked twice"));
         assert_eq!(activity.unwrap()[0].agent.as_deref(), Some("claude-code"));
+        assert!(fake.seen().iter().any(|a| a[0] == "actions" && a.contains(&"--brief".to_string())));
+        assert!(!fake.seen().iter().any(|a| a[0] == "projects"), "memo names the projects itself");
         for args in fake.seen() {
             assert!(args.ends_with(&strs(&["--json", "--no-record"])), "{args:?}");
         }
@@ -942,7 +902,7 @@ mod tests {
         assert_eq!(fake.seen().last().unwrap(), &strs(&["actions", "confirm", "1", "--json", "--no-record"]));
     }
 
-    // The payload as cli-core's `evidenceFindings.stage` keeps it, read back with memo 0.130.0's `actions list`.
+    // The payload as cli-core's `evidenceFindings.stage` keeps it, read back with memo 0.131.11's `actions show`.
     fn findings_batch(status: &str, result: &Value) -> Value {
         json!({"id":"9","kind":"evidence_findings","account":null,"target":"project:1","payload":{"schema_version":1,
             "key":"nbb-eval","extractor":"codex-nbb-evaluation","findings":[
@@ -953,7 +913,11 @@ mod tests {
                  "evidence":[{"reference":"msg:telegram/1/77/42","fingerprint":"b"}]}]},
             "reason":"","status":status,"proposed_by":{"type":"bot","id":"3","name":"codex-nbb-evaluation"},
             "decided_by":null,"decided_at":null,"executed_at":null,"result":result,"error":null,"verdict":null,
-            "created_at":"2026-11-01T00:16:37.495Z"})
+            "created_at":"2026-11-01T00:16:37.495Z","summary":"Create 1 fact and 1 task in Northbridge Bench",
+            "project":"project:1","project_name":"Northbridge Bench","fingerprint":"5adf3e","subject":"project:1",
+            "subject_name":"Northbridge Bench","sources":[{"ref":"document:3","kind":"document","title":"Eval plan",
+            "sender":null,"at":"2026-10-31T20:55:39.452Z","excerpt":"The eval set moves to 120 queries.",
+            "tool":"notes","missing":false}]})
     }
 
     #[test]
@@ -961,7 +925,6 @@ mod tests {
         let fake = Fake::new(|a| {
             Ok(match a[0].as_str() {
                 "actions" => json!({"items":[findings_batch("proposed", &Value::Null)]}),
-                "projects" => json!({"items":[{"id":"1","ref":"project:1","key":"NBB","name":"Northbridge Bench"}]}),
                 "facts" => json!({"items":[decision("accepted")]}),
                 _ => json!({"items":[]}),
             })
@@ -969,33 +932,13 @@ mod tests {
         let Read::Ready { entries, .. } = read_with(&|a: &[String]| fake.call(a)).unwrap() else { panic!("not ready") };
         let batch = entries.iter().find(|e| e.reference == "action:9").unwrap();
         assert_eq!(batch.project_name.as_deref(), Some("Northbridge Bench"));
+        assert_eq!(batch.subject_name.as_deref(), Some("Northbridge Bench"));
         let found = batch.findings.as_ref().unwrap();
         assert_eq!(
             found.iter().map(|f| f.text.as_str()).collect::<Vec<_>>(),
             ["The eval set moves to 120 queries.", "Add 40 Spanish queries"]
         );
         assert_eq!(found[1].evidence, ["msg:telegram/1/77/42"]);
-        // A fact names its project by key in this fixture, which `projects list` does not map.
-        assert_eq!(entries.iter().find(|e| e.reference == "fact:1").unwrap().project_name, None);
-    }
-
-    #[test]
-    fn an_older_batch_is_found_on_a_later_page() {
-        let fake = Fake::new(|a| {
-            Ok(match (a[0].as_str(), a.get(2).map(String::as_str)) {
-                ("projects", Some("list")) if a.contains(&"1".to_string()) => {
-                    json!({"items":[{"kind":"findings","id":"40","fingerprint":"new"}],"page":{"has_more":true}})
-                }
-                ("projects", Some("list")) => {
-                    json!({"items":[{"kind":"findings","id":"9","fingerprint":"old"}],"page":{"has_more":false}})
-                }
-                ("projects", _) => json!({"item":{}}),
-                _ => json!({"item": findings_batch("proposed", &Value::Null)}),
-            })
-        });
-        discard_with(&|a: &[String]| fake.call(a), &Ref::parse("action:9").unwrap()).unwrap();
-        let reject = fake.seen().into_iter().find(|a| a.get(2).map(String::as_str) == Some("reject")).unwrap();
-        assert_eq!(reject[reject.iter().position(|w| w == "--fingerprint").unwrap() + 1], "old");
     }
 
     #[test]
@@ -1060,54 +1003,34 @@ mod tests {
     }
 
     #[test]
-    fn a_batch_closed_with_nothing_accepted_reads_as_rejected() {
-        let closed = findings_batch("approved", &json!({"accepted":[],"items":[{"id":"f1","status":"rejected"}]}));
-        let e = action(&closed).unwrap();
-        assert_eq!(e.status, "rejected");
-        assert_eq!(e.findings.unwrap()[0].outcome.as_deref(), Some("rejected"));
-    }
-
-    #[test]
-    fn findings_are_decided_through_projects_actions_with_the_current_fingerprint() {
+    fn findings_are_decided_by_id_with_the_fingerprint_show_gives() {
         let fake = Fake::new(|a| {
-            Ok(match (a[0].as_str(), a[1].as_str()) {
-                ("projects", "actions") if a[2] == "list" => {
-                    json!({"items":[{"kind":"findings","id":"9","fingerprint":"5adf3e"}]})
-                }
-                ("projects", _) => json!({"item":{}}),
-                _ => json!({"item": findings_batch("proposed", &Value::Null)}),
-            })
+            Ok(json!({"item": match a[1].as_str() {
+                "show" => findings_batch("proposed", &Value::Null),
+                "reject" => findings_batch("rejected", &json!({"accepted":[]})),
+                _ => findings_batch("approved", &json!({"accepted":["f2"]})),
+            }}))
         });
         let call = |a: &[String]| fake.call(a);
         let r = Ref::parse("action:9").unwrap();
-        confirm_with(&call, &r, Some(&strs(&["f2"]))).unwrap();
-        discard_with(&call, &r).unwrap();
+        assert_eq!(confirm_with(&call, &r, Some(&strs(&["f2"]))).unwrap().status, "approved");
+        assert_eq!(discard_with(&call, &r).unwrap().status, "rejected");
         let seen = fake.seen();
-        assert!(seen.contains(&strs(&[
-            "projects",
-            "actions",
-            "confirm",
-            "project:1",
-            "9",
-            "f2",
-            "--fingerprint",
-            "5adf3e",
-            "--json",
-            "--no-record"
-        ])));
-        assert!(seen.contains(&strs(&[
-            "projects",
-            "actions",
-            "reject",
-            "project:1",
-            "9",
-            "--fingerprint",
-            "5adf3e",
-            "--json",
-            "--no-record"
-        ])));
-        assert!(!seen.iter().any(|a| a[0] == "actions" && a[1] != "show"), "the generic action commands refuse it");
+        assert_eq!(
+            seen[1],
+            strs(&["actions", "confirm", "9", "f2", "--fingerprint", "5adf3e", "--json", "--no-record"])
+        );
+        assert_eq!(seen[3], strs(&["actions", "reject", "9", "--fingerprint", "5adf3e", "--json", "--no-record"]));
+        assert_eq!(seen.len(), 4, "the decision's answer is the batch as it now is");
         assert!(confirm_with(&call, &r, Some(&strs(&["--all"]))).is_err());
+    }
+
+    #[test]
+    fn a_batch_shows_the_sources_memo_reads_back_with_it() {
+        let fake = Fake::new(|_| Ok(json!({"item": findings_batch("proposed", &Value::Null)})));
+        let s = sources_with(&|a: &[String]| fake.call(a), &Ref::parse("action:9").unwrap()).unwrap();
+        assert_eq!(s[0].title.as_deref(), Some("Eval plan"));
+        assert_eq!(fake.seen()[0], strs(&["actions", "show", "9", "--json", "--no-record"]));
     }
 
     #[test]
@@ -1143,6 +1066,8 @@ mod tests {
                 "summary",
                 "--scope",
                 "personal",
+                "--project",
+                "project:1",
                 "--subject",
                 "person:7",
                 "--supersedes",
@@ -1229,7 +1154,7 @@ mod tests {
     /// Against a real memo with a throwaway store: `MEMO_BIN=<memo> cargo test memory -- --ignored`. It writes to that
     /// store, so never point it at the owner's.
     #[test]
-    #[ignore = "needs MEMO_BIN, a memo 0.130.0+ with a throwaway store"]
+    #[ignore = "needs MEMO_BIN, a memo 0.131.11+ with a throwaway store"]
     fn reads_and_writes_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
@@ -1238,6 +1163,24 @@ mod tests {
         let Read::Ready { entries, activity, .. } = read_with(&call).unwrap() else { panic!("not ready") };
         assert_eq!(entries.len(), raw("memories") + raw("facts") + raw("actions"), "an item did not parse");
         assert!(activity.is_some());
+        assert!(
+            entries.iter().filter(|e| e.record == "action").all(|e| e.text.is_some()),
+            "every action has a summary"
+        );
+        if let Some(batch) = entries.iter().find(|e| e.findings.is_some()) {
+            assert!(batch.project_name.is_some());
+            assert!(!sources_with(&call, &Ref::parse(&batch.reference).unwrap()).unwrap().is_empty());
+        }
+        if let Some(waiting) = entries.iter().find(|e| e.findings.is_some() && e.status == "proposed") {
+            let r = Ref::parse(&waiting.reference).unwrap();
+            let first = waiting.findings.as_ref().unwrap()[0].id.clone();
+            let decided = confirm_with(&call, &r, Some(&[first])).unwrap();
+            assert_eq!(decided.status, "approved");
+            assert_eq!(
+                decided.findings.unwrap().iter().filter(|f| f.outcome.as_deref() == Some("accepted")).count(),
+                1
+            );
+        }
 
         let added = call(&strs(&[
             "memories",

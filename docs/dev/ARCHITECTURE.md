@@ -157,19 +157,21 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.130.0 or newer (`memory.minVersion` in the catalog); an older one
-answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list` (each
-`--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still shows
-the entries. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.11 or newer (`memory.minVersion` in the catalog); an older one
+answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
+(each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
+shows the entries. memo names each record's project (`project_name`) and gives every action a one-line `summary`, which
+is the row's text. A findings batch's sources come from `actions show` when its row opens. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
 number) and runs a fixed command:
 
 - **Confirm**: `memories confirm`, `facts confirm`; for an action `actions confirm`, which makes a task in the account
-  that would act and sends nothing.
+  that would act and sends nothing. A findings batch is decided by its id with the fingerprint `actions show` gives:
+  `actions confirm <id> <finding ids…> --fingerprint <hash>`, or `actions reject` when none is ticked.
 - **Discard**: a memory `invalidate` (stale), a proposed fact `reject`, an accepted decision `reverse`, an action
   `reject`. Other facts can only be forgotten.
 - **Correct**: Rust reads the old record with `show` and writes the owner's `add --supersedes` with the old kind,
-  scope, subject and sources (the old record itself when none is left); the text goes after `--`. memo corrects facts
-  only when they are accepted decisions.
+  scope, project, subject and sources (the old record itself when none is left); the text goes after `--`. memo
+  corrects facts only when they are accepted decisions.
 - **Forget**: `memories remove` / `facts remove` erase the record, its links and its search entry. Actions have none.
 
 The text is the owner's own, shown unmasked like the Search page's hits, and it never goes into a log or a report:

@@ -47,8 +47,10 @@ function seed(): MemoryEntry[] {
       ref: "action:7",
       type: "action",
       kind: "evidence_findings",
-      text: null,
+      text: "Create 2 facts and 2 tasks in Northbridge Bench",
       status: "proposed",
+      subject: "project:4",
+      subjectName: "Northbridge Bench",
       scope: null,
       author: agent("codex-nbb-evaluation"),
       links: 0,
@@ -138,7 +140,7 @@ function seed(): MemoryEntry[] {
       ref: "action:5",
       type: "action",
       kind: "reply",
-      text: "Here is the pricing table I promised, see the second tab.",
+      text: "Reply msg:telegram/1/77/42: Here is the pricing table I promised, see the second tab.",
       status: "proposed",
       author: agent("hermes"),
       links: 0,
@@ -256,6 +258,28 @@ function many(): MemoryEntry[] {
 }
 
 const SOURCES: Record<string, MemorySource[]> = {
+  "action:7": [
+    {
+      ref: "document:31",
+      kind: "document",
+      title: "Northbridge Bench: October evaluation",
+      sender: null,
+      at: ago(3 * DAY),
+      excerpt: "Spanish answers scored 18 points below English ones on the 80-query set.",
+      tool: "drive",
+      missing: false,
+    },
+    {
+      ref: "msg:telegram/1/204/1180",
+      kind: "message",
+      title: null,
+      sender: "Lena Ortiz",
+      at: ago(2 * DAY),
+      excerpt: "Can we get Spanish coverage in before the review?",
+      tool: "telegram",
+      missing: false,
+    },
+  ],
   "memory:41": [
     {
       ref: "msg:telegram/1/77/905",
@@ -460,7 +484,7 @@ export function memoryMock(): Pick<
     return e
   }
 
-  // memo closes a reviewed batch as approved even when nothing was accepted; Rust reads that as rejected.
+  // memo closes a batch with nothing accepted as rejected.
   const review = (ref: string, accept: string[]) => {
     const e = find(ref)
     const findings = (e.findings ?? []).map((f) => ({ ...f, outcome: accept.includes(f.id) ? "accepted" : "rejected" }))
@@ -480,7 +504,7 @@ export function memoryMock(): Pick<
     async memoryRead(): Promise<MemoryRead> {
       await delay(700)
       if (scenario === "missing") return { kind: "missing" }
-      if (scenario === "old") return { kind: "old", version: "0.124.0", need: "0.130.0" }
+      if (scenario === "old") return { kind: "old", version: "0.124.0", need: "0.131.11" }
       if (fail === "read") throw new Error(BUSY)
       return {
         kind: "ready",
