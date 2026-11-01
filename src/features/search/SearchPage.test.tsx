@@ -121,6 +121,28 @@ describe("Search", () => {
     await waitFor(() => expect(search).toHaveBeenLastCalledWith("tg", "personal", 'invoice chat:"Harbour flat"', 50, 1))
   }, 15000)
 
+  it("shows the messages around a result, read by the tool for the hit's ref", async () => {
+    const user = userEvent.setup()
+    const context = vi.spyOn(platform, "searchContext")
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByRole("combobox", { name: "Search messages" }), "invoice{Enter}")
+    const show = await screen.findAllByRole(
+      "button",
+      { name: "Show the whole result: Harbour flat" },
+      { timeout: 3000 },
+    )
+    await user.click(show[0] as HTMLElement)
+    await user.click(screen.getByRole("button", { name: "Show messages around it" }))
+    const around = await screen.findByRole("list", { name: "Messages around this result" }, { timeout: 3000 })
+    expect(context).toHaveBeenCalledWith("tg", "personal", "msg:telegram/1/-1000/4000")
+    expect(
+      within(around).getByText("Sent the invoice for October, can you check the VAT line?").closest("li"),
+    ).toHaveAttribute("aria-current", "true")
+    expect(within(around).getByText("invoice-2026-10.pdf")).toBeInTheDocument()
+  }, 15000)
+
   it("shows the tool's query error at its place until the query changes", async () => {
     const user = userEvent.setup()
     render(<SearchPage />)

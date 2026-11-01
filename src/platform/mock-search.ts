@@ -6,7 +6,8 @@ import type { Platform } from "./types"
 // Fictional stores for the browser build. `?search=<tool>` opens the page on that tool's hits, `?search=empty` on a
 // query nothing matches, `?search-fail=query` on a query the tool refuses with a span, `?search-fail=tool` on the
 // tool's own refusal, `?search-old=<tool>` makes that tool too old to search. Anywhere, a field the tool does not know
-// or an unclosed bracket gets the tool's query error, so the bar can be tried by typing.
+// or an unclosed bracket gets the tool's query error, so the bar can be tried by typing. What surrounds a hit:
+// `?context-fail=old` (the tool is too old to show it), `?context-fail=tool` (the tool refuses).
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const TOTAL = 128
 
@@ -65,6 +66,7 @@ function hit(what: string, i: number): SearchHit {
     updated_at: at,
     excerpt: line,
     found_by: ["words"],
+    ...(what === "documents" ? { url: `https://docs.google.com/document/d/mock${200 + i}/edit` } : {}),
   }
 }
 
@@ -104,7 +106,56 @@ const VALUES: Record<string, ValueItem[]> = {
   tags: ["work", "family", "receipts"].map((value) => ({ value, label: null, detail: null })),
 }
 
-export const searchMock: Pick<Platform, "searchStore" | "searchValues"> = {
+const AROUND = [
+  "Can you send me last month's one too?",
+  "Sure, give me a minute",
+  "Here it is",
+  "Thanks! I'll forward it to the accountant",
+  "Got it, looks right",
+]
+
+// The shapes the tools print: `messages context` and memo's `messages show` list `items`, `meetings transcript`
+// lists each transcript with its `lines`.
+function around(what: string, ref: string): unknown {
+  if (what === "meetings")
+    return {
+      items: [
+        {
+          ref: "transcript:1",
+          lines: Array.from({ length: 40 }, (_, i) => ({
+            position: i,
+            offset_ms: i * 60_000,
+            end_ms: i * 60_000 + 55_000,
+            speaker: PEOPLE[i % 4],
+            text: i % 7 === 3 ? LINES[i % LINES.length] : AROUND[i % AROUND.length],
+          })),
+        },
+      ],
+    }
+  const at = Date.UTC(2026, 9, 30, 18, 0)
+  return {
+    items: Array.from({ length: 11 }, (_, i) => ({
+      ref: i === 5 ? ref : `${ref}-${i}`,
+      timestamp: new Date(at + (i - 5) * 240_000).toISOString(),
+      sender_name: PEOPLE[i % PEOPLE.length],
+      sender_is_me: i % PEOPLE.length === 4,
+      text: i === 5 ? LINES[0] : AROUND[i % AROUND.length],
+      attachments: i === 6 ? [{ kind: "file", name: "invoice-2026-10.pdf", size: 48_211 }] : [],
+      anchor: what === "messages" && i === 5 ? true : undefined,
+    })),
+  }
+}
+
+export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "searchContext"> = {
+  async searchContext(id, _profile, reference) {
+    await delay(500)
+    const search = findTool(id)?.search
+    if (!search?.context) throw new Error("this tool shows nothing around a result")
+    const fail = params.get("context-fail")
+    if (fail === "old") return { kind: "old", message: "unknown command 'context'" }
+    if (fail === "tool") return { kind: "failed", message: `${reference} is not in the local store` }
+    return { kind: "found", body: around(search.what, reference) }
+  },
   async searchValues(id, _profile, source) {
     await delay(300)
     if (!findTool(id)?.search?.values[source]) throw new Error(`no value list named ${source}`)

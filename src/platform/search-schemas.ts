@@ -43,3 +43,11 @@ export const ValueItemSchema = v.object({
   detail: v.nullable(v.string()),
 })
 export type ValueItem = v.InferOutput<typeof ValueItemSchema>
+
+// `search_context`'s answer: the tool's JSON as printed; `src/domain/search-context.ts` picks what the page shows.
+export const SearchContextSchema = v.variant("kind", [
+  v.object({ kind: v.literal("found"), body: v.unknown() }),
+  v.object({ kind: v.literal("old"), message: v.string() }),
+  v.object({ kind: v.literal("failed"), message: v.string() }),
+])
+export type SearchContext = v.InferOutput<typeof SearchContextSchema>

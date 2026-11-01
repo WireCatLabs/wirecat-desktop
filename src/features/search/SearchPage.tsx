@@ -29,6 +29,7 @@ import { StableText } from "@/ui/Skeleton"
 import { QueryBar } from "../query/QueryBar"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
+import { HitContext } from "./HitContext"
 import { HitsTable } from "./HitsTable"
 import { searchMessages } from "./messages"
 import { LIMIT, listKey, missing, useSearch } from "./store"
@@ -439,6 +440,11 @@ function Table(props: { hits: SearchHit[]; placeholders?: number; now: Date; bus
         fieldOf={fieldOf}
         onFilter={filterBy}
         onGroup={useSearch.getState().setGroupBy}
+        actions={(hit) =>
+          tool ? (
+            <HitContext hit={hit} tool={tool} profile={useSearch.getState().asked?.profile ?? null} now={now} />
+          ) : null
+        }
       />
     </div>
   )

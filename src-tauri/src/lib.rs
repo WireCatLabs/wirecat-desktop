@@ -649,6 +649,12 @@ async fn search_store(
 }
 
 #[tauri::command]
+async fn search_context(id: String, profile: Option<String>, reference: String) -> Result<search::Context, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || search::context(tool, profile.as_deref(), &reference)).await?
+}
+
+#[tauri::command]
 async fn search_values(id: String, profile: Option<String>, source: String) -> Result<Vec<search::ValueItem>, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || search::values(tool, profile.as_deref(), &source)).await?
@@ -932,6 +938,7 @@ pub fn run() {
             show_run,
             search_store,
             search_values,
+            search_context,
             settings_show,
             settings_set,
             settings_unset,

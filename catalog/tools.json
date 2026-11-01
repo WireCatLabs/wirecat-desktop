@@ -190,6 +190,21 @@
             "label": null,
             "detail": null
           }
+        },
+        "context": {
+          "args": [
+            "{profile}",
+            "messages",
+            "context",
+            "{ref}",
+            "--before-n",
+            "5",
+            "--after-n",
+            "5",
+            "--offline",
+            "--no-record",
+            "--json"
+          ]
         }
       },
       "setup": ["{profile}", "setup"],
@@ -496,6 +511,21 @@
             "label": null,
             "detail": null
           }
+        },
+        "context": {
+          "args": [
+            "{profile}",
+            "messages",
+            "context",
+            "{ref}",
+            "--before-n",
+            "5",
+            "--after-n",
+            "5",
+            "--offline",
+            "--no-record",
+            "--json"
+          ]
         }
       },
       "setup": ["{profile}", "setup"],
@@ -798,6 +828,21 @@
             "label": null,
             "detail": null
           }
+        },
+        "context": {
+          "args": [
+            "{profile}",
+            "messages",
+            "context",
+            "{ref}",
+            "--before-n",
+            "5",
+            "--after-n",
+            "5",
+            "--offline",
+            "--no-record",
+            "--json"
+          ]
         }
       },
       "setup": ["{profile}", "setup"],
@@ -951,7 +996,10 @@
         "shape": "items",
         "what": "meetings",
         "fields": [],
-        "values": {}
+        "values": {},
+        "context": {
+          "args": ["{profile}", "meetings", "transcript", "{refId}", "--no-record", "--json"]
+        }
       },
       "setup": ["{profile}", "session", "start"],
       "skill": {
@@ -1376,7 +1424,10 @@
             "values": null
           }
         ],
-        "values": {}
+        "values": {},
+        "context": {
+          "args": ["messages", "show", "{ref}", "--before-n", "5", "--after-n", "5", "--no-record", "--json"]
+        }
       },
       "setup": null,
       "skill": null,
