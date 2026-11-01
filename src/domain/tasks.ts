@@ -22,7 +22,7 @@ export function labelOf(priority: number | null): Label | null {
 /** Open work and what was closed in the last 14 days; memo's own default hides closed tasks altogether. */
 export const BOARD_DEFAULT = "(state:(open OR todo OR in_progress) OR closed:>=14d)"
 
-/** Fields the filters own. `due` also owns `overdue:` and `NOT due:*`, which the Due filter writes. */
+/** Fields the filters own. `due` also owns `when:` and `NOT due:*`, which the Due filter writes, and `overdue:`. */
 export type Field = "project" | "assignee" | "priority" | "state" | "agent" | "due" | "ready"
 
 const quote = (v: string) => (/^[\w*.-]+$/.test(v) ? v : `"${v.replaceAll('"', "")}"`)
@@ -37,7 +37,7 @@ const owned: Record<Field, string> = {
   priority: "priority",
   state: "state",
   agent: "agent",
-  due: "due|overdue",
+  due: "due|when|overdue",
   ready: "ready",
 }
 
@@ -80,28 +80,25 @@ export const addDays = (from: Date, n: number) => {
 
 const DAY = String.raw`\d{4}-\d{2}-\d{2}`
 
-/**
- * memo's words for each choice. It knows `today` but not `tomorrow`, and reads `7d` as seven days ago, so those days
- * are written out. Overdue also says `due:<today`: memo's `overdue:true` counts a task due today once midnight has
- * passed (FIND-164), and the pair stays right after memo fixes that.
- */
+/** memo's words for each choice. It reads `7d` as seven days ago, so the week's last day is written out. */
 export function dueTerm(choice: DueChoice, today = new Date()): string {
   if (typeof choice === "object") {
     const [a, b] = choice.to && choice.to < choice.from ? [choice.to, choice.from] : [choice.from, choice.to]
     return b && b !== a ? `due:[${a} TO ${b}]` : `due:${a}`
   }
-  if (choice === "overdue") return "overdue:true due:<today"
+  if (choice === "overdue") return "when:overdue"
   if (choice === "today") return "due:today"
-  if (choice === "tomorrow") return `due:${isoDay(addDays(today, 1))}`
-  if (choice === "none") return "NOT due:*"
+  if (choice === "tomorrow") return "due:tomorrow"
+  if (choice === "none") return "when:none"
   return `due:[today TO ${isoDay(addDays(today, 7))}]`
 }
 
 export function dueOf(q: string, today = new Date()): DueChoice | null {
-  if (/(^|\s)overdue:true\b/.test(q)) return "overdue"
-  if (/(^|\s)(NOT\s+|-)due:\*/.test(q)) return "none"
+  if (/(^|\s)(when:overdue|overdue:true)\b/.test(q)) return "overdue"
+  if (/(^|\s)((NOT\s+|-)due:\*|when:none\b)/.test(q)) return "none"
   if (/(^|\s)due:\[today TO /.test(q)) return "week"
-  if (/(^|\s)due:today(\s|$)/.test(q)) return "today"
+  if (/(^|\s)(due|when):today(\s|$)/.test(q)) return "today"
+  if (/(^|\s)due:tomorrow(\s|$)/.test(q)) return "tomorrow"
   const range = new RegExp(String.raw`(?:^|\s)due:\[(${DAY}) TO (${DAY})\]`).exec(q)
   if (range?.[1] && range[2]) return { from: range[1], to: range[2] }
   const day = new RegExp(String.raw`(?:^|\s)due:(${DAY})(?:\s|$)`).exec(q)?.[1]

@@ -105,7 +105,20 @@ type Words = {
   readingTask: string
   openFailed: (key: string, reason: string) => string
   properties: string
-  projectFixed: string
+  projectHint: string
+  moveRefused: string
+  someoneElse: string
+  findPerson: string
+  addNamed: (name: string) => string
+  personFailed: (reason: string) => string
+  comments: string
+  commentsEmpty: string
+  commentsFailed: string
+  addComment: string
+  commentHint: string
+  send: string
+  sending: string
+  commentFailed: (reason: string) => string
   key: string
   kind: string
   kinds: Record<string, string>
@@ -165,7 +178,7 @@ const en: Words = {
   clear: "Clear",
   more: (total) => `Showing the first 500 of ${formatNumber(total, "en")} tasks. Narrow the search to see the rest.`,
   search: "Search tasks",
-  searchHint: "Search tasks, or filter: project:HRB priority:high overdue:true",
+  searchHint: "Search tasks, or filter: project:HRB priority:high when:overdue",
   project: "Project",
   assignee: "Assignee",
   priority: "Priority",
@@ -240,6 +253,8 @@ const en: Words = {
     description: "the notes",
     parent: "the parent task",
     project: "the project",
+    key: "the key",
+    type: "the type",
   },
   newTitle: "Title of the new task",
   newTitleHint: "What is to be done",
@@ -254,7 +269,20 @@ const en: Words = {
   readingTask: "Reading the task…",
   openFailed: (key, reason) => `Could not read ${key}: ${reason}.`,
   properties: "Properties",
-  projectFixed: "A task cannot move to another project yet.",
+  projectHint: "Moving it gives it a new key; the old key still finds it.",
+  moveRefused: "Not moved: it has subtasks, which stay in this project. Move them or take them out of this task first:",
+  someoneElse: "Someone else…",
+  findPerson: "Find or add a person",
+  addNamed: (name) => `Add “${name}”`,
+  personFailed: (reason) => `The person was not added: ${reason}.`,
+  comments: "Comments",
+  commentsEmpty: "No comments yet.",
+  commentsFailed: "Could not read the comments.",
+  addComment: "Add a comment",
+  commentHint: "For you and your agents to read. Ctrl+Enter sends.",
+  send: "Comment",
+  sending: "Sending…",
+  commentFailed: (reason) => `The comment was not added: ${reason}. Your text is still here.`,
   key: "Key",
   kind: "Type",
   kinds: { bug: "Bug", feature: "Feature", chore: "Chore", task: "Task" },
@@ -308,7 +336,7 @@ const ru: Words = {
   clear: "Очистить",
   more: (total) => `Показаны первые 500 из ${formatNumber(total, "ru")} задач. Сузьте поиск, чтобы увидеть остальные.`,
   search: "Поиск задач",
-  searchHint: "Найти задачу или отфильтровать: project:HRB priority:high overdue:true",
+  searchHint: "Найти задачу или отфильтровать: project:HRB priority:high when:overdue",
   project: "Проект",
   assignee: "Исполнитель",
   priority: "Приоритет",
@@ -390,6 +418,8 @@ const ru: Words = {
     description: "заметки",
     parent: "родительская задача",
     project: "проект",
+    key: "ключ",
+    type: "тип",
   },
   newTitle: "Название новой задачи",
   newTitleHint: "Что нужно сделать",
@@ -404,7 +434,21 @@ const ru: Words = {
   readingTask: "Читаю задачу…",
   openFailed: (key, reason) => `Не удалось прочитать ${key}: ${reason}.`,
   properties: "Свойства",
-  projectFixed: "Перенести задачу в другой проект пока нельзя.",
+  projectHint: "При переносе у задачи будет новый ключ; по старому её тоже можно найти.",
+  moveRefused:
+    "Не перенесено: у задачи есть подзадачи, они остаются в этом проекте. Сначала перенесите их или уберите из этой задачи:",
+  someoneElse: "Кто-то другой…",
+  findPerson: "Найти или добавить человека",
+  addNamed: (name) => `Добавить «${name}»`,
+  personFailed: (reason) => `Человек не добавлен: ${reason}.`,
+  comments: "Комментарии",
+  commentsEmpty: "Комментариев пока нет.",
+  commentsFailed: "Не удалось прочитать комментарии.",
+  addComment: "Добавить комментарий",
+  commentHint: "Для вас и ваших агентов. Ctrl+Enter отправляет.",
+  send: "Отправить",
+  sending: "Отправка…",
+  commentFailed: (reason) => `Комментарий не добавлен: ${reason}. Ваш текст остался.`,
   key: "Ключ",
   kind: "Тип",
   kinds: { bug: "Ошибка", feature: "Функция", chore: "Рутина", task: "Задача" },
@@ -459,7 +503,7 @@ const es: Words = {
   more: (total) =>
     `Se muestran las primeras 500 de ${formatNumber(total, "es")} tareas. Acota la búsqueda para ver el resto.`,
   search: "Buscar tareas",
-  searchHint: "Busca tareas o filtra: project:HRB priority:high overdue:true",
+  searchHint: "Busca tareas o filtra: project:HRB priority:high when:overdue",
   project: "Proyecto",
   assignee: "Responsable",
   priority: "Prioridad",
@@ -534,6 +578,8 @@ const es: Words = {
     description: "las notas",
     parent: "la tarea madre",
     project: "el proyecto",
+    key: "la clave",
+    type: "el tipo",
   },
   newTitle: "Título de la nueva tarea",
   newTitleHint: "Qué hay que hacer",
@@ -548,7 +594,21 @@ const es: Words = {
   readingTask: "Leyendo la tarea…",
   openFailed: (key, reason) => `No se pudo leer ${key}: ${reason}.`,
   properties: "Propiedades",
-  projectFixed: "Aún no se puede mover una tarea a otro proyecto.",
+  projectHint: "Al moverla recibe una clave nueva; la antigua también la encuentra.",
+  moveRefused:
+    "No se ha movido: tiene subtareas, que se quedan en este proyecto. Muévelas o sácalas de esta tarea primero:",
+  someoneElse: "Otra persona…",
+  findPerson: "Busca o añade a una persona",
+  addNamed: (name) => `Añadir «${name}»`,
+  personFailed: (reason) => `No se ha añadido a la persona: ${reason}.`,
+  comments: "Comentarios",
+  commentsEmpty: "Aún no hay comentarios.",
+  commentsFailed: "No se han podido leer los comentarios.",
+  addComment: "Añadir un comentario",
+  commentHint: "Para ti y tus agentes. Ctrl+Enter lo envía.",
+  send: "Comentar",
+  sending: "Enviando…",
+  commentFailed: (reason) => `No se ha añadido el comentario: ${reason}. Tu texto sigue aquí.`,
   key: "Clave",
   kind: "Tipo",
   kinds: { bug: "Error", feature: "Función", chore: "Mantenimiento", task: "Tarea" },

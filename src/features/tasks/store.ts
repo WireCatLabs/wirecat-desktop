@@ -6,6 +6,7 @@ import type {
   Person,
   Project,
   Task,
+  TaskComment,
   TaskCounts,
   TaskEdit,
   TaskEvent,
@@ -15,6 +16,8 @@ import type {
 export type View = "table" | "board"
 export type Unusable = { kind: "missing" } | { kind: "old"; version: string | null; need: string }
 export type History = { state: "loading" } | { state: "ready"; events: TaskEvent[] } | { state: "failed" }
+export type Comments = { state: "loading" } | { state: "ready"; items: TaskComment[] } | { state: "failed" }
+export type Subtask = { key: string; title: string }
 /** A write Memo refused because the task changed after the page read it. */
 export type Stale = { key: string; last: TaskEvent | null }
 /** A line under the board or table that says what a write did beyond what the owner saw: "HRB-3 is now High". */
@@ -49,6 +52,9 @@ type TasksState = {
   stale: Stale | null
   note: Note | null
   history: Record<string, History>
+  comments: Record<string, Comments>
+  /** A move to another project memo refused: the task's subtasks, which have to move or be detached first. */
+  subtasks: Record<string, Subtask[]>
   creating: boolean
   load(quiet?: boolean): Promise<void>
   type(query: string): void
@@ -68,6 +74,11 @@ type TasksState = {
   ): Promise<void>
   create(task: NewTask): Promise<boolean>
   loadHistory(key: string): Promise<void>
+  loadComments(key: string): Promise<void>
+  /** Adds the owner's comment; false when memo refused it, with the reason in `failed`. */
+  comment(key: string, text: string): Promise<boolean>
+  /** Adds a person by name and answers them, or null when memo refused. */
+  addPerson(name: string): Promise<Person | null>
   startCreate(on: boolean): void
   dismissStale(): void
 }
@@ -126,18 +137,30 @@ export const useTasks = create<TasksState>((set, get) => {
 
   /** Applies a write's answer; `undo` puts back what the page showed before it. */
   const settle = async (key: string, write: () => Promise<TaskWrite>, undo?: () => void): Promise<TaskWrite | null> => {
-    set((s) => ({ busy: { ...s.busy, [key]: true }, failed: without(s.failed, key), stale: null, note: null }))
+    set((s) => ({
+      busy: { ...s.busy, [key]: true },
+      failed: without(s.failed, key),
+      subtasks: without(s.subtasks, key),
+      stale: null,
+      note: null,
+    }))
     try {
       const out = await write()
+      let now = key
       if (out.kind === "stale") {
         undo?.()
         replace(out.current)
         set({ stale: { key, last: out.last } })
+      } else if (out.kind === "hasSubtasks") {
+        set((s) => ({ subtasks: { ...s.subtasks, [key]: out.subtasks } }))
+      } else if (out.task.key !== key) {
+        rename(key, out.task)
+        now = out.task.key
       } else {
         replace(out.task)
         void refresh(out.renumbered)
       }
-      if (get().open === key) void get().loadHistory(key)
+      if (get().open === now) void get().loadHistory(now)
       void recount()
       return out
     } catch (e) {
@@ -150,6 +173,25 @@ export const useTasks = create<TasksState>((set, get) => {
   }
 
   const find = (key: string) => get().tasks.find((t) => t.key === key) ?? get().outside[key]
+
+  /** A task moved to another project has a new key; everything the page keeps by key follows it. */
+  const rename = (from: string, task: Task) =>
+    set((s) => {
+      const move = <T>(record: Record<string, T>) => {
+        const { [from]: kept, ...rest } = record
+        return kept === undefined ? rest : { ...rest, [task.key]: kept }
+      }
+      const inList = s.tasks.some((t) => t.key === from)
+      return {
+        tasks: s.tasks.map((t) => (t.key === from ? { ...task, ready: task.ready ?? t.ready } : t)),
+        order: s.order.map((k) => (k === from ? task.key : k)),
+        outside: inList ? s.outside : { ...without(s.outside, from), [task.key]: task },
+        open: s.open === from ? task.key : s.open,
+        history: without(s.history, from),
+        comments: move(s.comments),
+        subtasks: without(s.subtasks, from),
+      }
+    })
 
   return {
     query: "",
@@ -173,6 +215,8 @@ export const useTasks = create<TasksState>((set, get) => {
     stale: null,
     note: null,
     history: {},
+    comments: {},
+    subtasks: {},
     creating: false,
 
     async load(quiet = false) {
@@ -249,11 +293,13 @@ export const useTasks = create<TasksState>((set, get) => {
     toggle(key) {
       set((s) => ({ open: key === null || s.open === key ? null : key }))
       if (key && get().open === key && !get().history[key]) void get().loadHistory(key)
+      if (key && get().open === key && !get().comments[key]) void get().loadComments(key)
     },
 
     async openTask(key) {
       set((s) => ({ open: key, failed: find(key) ? s.failed : without(s.failed, key) }))
       if (!get().history[key]) void get().loadHistory(key)
+      if (!get().comments[key]) void get().loadComments(key)
       if (find(key)) return
       try {
         const task = await platform.taskShow(key)
@@ -303,7 +349,8 @@ export const useTasks = create<TasksState>((set, get) => {
       set((s) => ({ busy: { ...s.busy, new: true }, failed: without(s.failed, "new") }))
       try {
         const out = await platform.taskCreate(task)
-        const made = out.kind === "saved" ? out.task : out.current
+        if (out.kind !== "saved") throw new Error("memo did not answer the new task")
+        const made = out.task
         set((s) => ({
           tasks: [made, ...s.tasks.filter((t) => t.key !== made.key)],
           order: [made.key, ...s.order.filter((k) => k !== made.key)],
@@ -331,6 +378,46 @@ export const useTasks = create<TasksState>((set, get) => {
         set((s) => ({ history: { ...s.history, [key]: { state: "ready", events } } }))
       } catch {
         set((s) => ({ history: { ...s.history, [key]: { state: "failed" } } }))
+      }
+    },
+
+    async loadComments(key) {
+      set((s) => ({ comments: { ...s.comments, [key]: { state: "loading" } } }))
+      try {
+        const items = await platform.taskComments(key)
+        set((s) => ({ comments: { ...s.comments, [key]: { state: "ready", items } } }))
+      } catch {
+        set((s) => ({ comments: { ...s.comments, [key]: { state: "failed" } } }))
+      }
+    },
+
+    async comment(key, text) {
+      const slot = `comment:${key}`
+      set((s) => ({ busy: { ...s.busy, [slot]: true }, failed: without(s.failed, slot) }))
+      try {
+        const said = await platform.taskCommentAdd(key, text)
+        set((s) => {
+          const had = s.comments[key]
+          const items = had?.state === "ready" ? [...had.items, said] : [said]
+          return { comments: { ...s.comments, [key]: { state: "ready", items } } }
+        })
+        return true
+      } catch (e) {
+        set((s) => ({ failed: { ...s.failed, [slot]: message(e) } }))
+        return false
+      } finally {
+        set((s) => ({ busy: without(s.busy, slot) }))
+      }
+    },
+
+    async addPerson(name) {
+      try {
+        const person = await platform.personAdd(name)
+        set((s) => ({ people: [...s.people.filter((p) => p.ref !== person.ref), person] }))
+        return person
+      } catch (e) {
+        set((s) => ({ failed: { ...s.failed, person: message(e) } }))
+        return null
       }
     },
 

@@ -578,8 +578,23 @@ async fn task_assign(key: String, revision: u64, person: Option<String>) -> Resu
 }
 
 #[tauri::command]
+async fn task_comments(key: String) -> Result<Vec<task_board::Comment>, String> {
+    blocking(move || task_board::comments(&key)).await?
+}
+
+#[tauri::command]
+async fn task_comment_add(key: String, text: String) -> Result<task_board::Comment, String> {
+    blocking(move || task_board::comment_add(&key, &text)).await?
+}
+
+#[tauri::command]
 async fn people_list() -> Result<Vec<task_board::Person>, String> {
     blocking(task_board::people).await?
+}
+
+#[tauri::command]
+async fn person_add(name: String) -> Result<task_board::Person, String> {
+    blocking(move || task_board::person_add(&name)).await?
 }
 
 #[tauri::command]
@@ -766,6 +781,7 @@ async fn update_download_package(
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+#[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
 pub fn run() {
     // The login shell's PATH takes about half a second; read it while the window opens, not on the first page.
     std::thread::spawn(paths::search_path);
@@ -847,7 +863,10 @@ pub fn run() {
             task_update,
             task_move,
             task_assign,
+            task_comments,
+            task_comment_add,
             people_list,
+            person_add,
             project_list,
             report_context,
             send_report,

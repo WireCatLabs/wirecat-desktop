@@ -1,7 +1,8 @@
 // cspell:words hermes
 // The Tasks page in the browser build: made-up tasks and people, and a small reading of memo's query language, so a
 // filter shows what memo would answer. `?tasks=` picks a state: none, nomatch, missing, old, fail, write-fail,
-// conflict (HRB-12 was changed by hermes), many (400 tasks), blocked (a chain of three), loading.
+// conflict (HRB-12 was changed by hermes), many (400 tasks), blocked (a chain of three), loading. HRB-12 has a comment
+// thread; OPS-3 has a subtask, so moving it to another project is refused with that subtask named.
 import {
   claimActive,
   closed,
@@ -15,10 +16,12 @@ import {
 } from "@/domain/tasks"
 import { delay } from "./mock-delay"
 import type {
+  Creator,
   NewTask,
   Person,
   Project,
   Task,
+  TaskComment,
   TaskCounts,
   TaskEdit,
   TaskEvent,
@@ -34,10 +37,12 @@ const scenario = () => params.get("tasks") ?? "default"
 export const MOCK_NOMATCH_QUERY = 'project:HOME assignee:"person:3" state:done'
 
 const PROJECTS: Project[] = [
-  { key: "HRB", name: "Harbour launch" },
-  { key: "OPS", name: "Operations" },
-  { key: "HOME", name: "Home" },
+  { ref: "project:1", key: "HRB", name: "Harbour launch" },
+  { ref: "project:2", key: "OPS", name: "Operations" },
+  { ref: "project:3", key: "HOME", name: "Home" },
 ]
+const OWNER: Creator = { type: "person", name: null, owner: true }
+const HERMES: Creator = { type: "bot", name: "hermes", owner: false }
 const PEOPLE: Person[] = [
   { ref: "person:1", name: null, owner: true },
   { ref: "person:2", name: "Ana Ruiz", owner: false },
@@ -52,8 +57,11 @@ type Seed = Partial<Task> & Pick<Task, "key" | "title" | "state">
 
 function make(seed: Seed): Task {
   const priority = seed.priority ?? null
+  const project = seed.key.split("-")[0] ?? "HRB"
   return {
-    project: seed.key.split("-")[0] ?? "HRB",
+    project,
+    projectName: PROJECT_SET().find((p) => p.key === project)?.name ?? null,
+    createdBy: OWNER,
     description: null,
     kind: "chore",
     priorityLabel: labelOf(priority),
@@ -107,6 +115,7 @@ function seeds(): Task[] {
       ready: false,
       blockedBy: [{ key: "HRB-14", state: "todo" }],
       description: "Waits until both pilot clinics have said yes.",
+      createdBy: HERMES,
     },
     {
       key: "HRB-9",
@@ -122,6 +131,14 @@ function seeds(): Task[] {
       priority: 0.62,
       assignees: ["person:1"],
       dueAt: day(1),
+    },
+    {
+      key: "OPS-5",
+      title: "Compare the two registrars' renewal prices",
+      state: "in_progress",
+      priority: 0.58,
+      parent: "OPS-3",
+      assignees: ["person:1"],
     },
     {
       key: "OPS-4",
@@ -189,10 +206,16 @@ function seeds(): Task[] {
   return base.map(make)
 }
 
-const PROJECT_SET = () =>
-  scenario() === "many"
-    ? [...PROJECTS, { key: "WEB", name: "Website" }, { key: "FIN", name: "Finance" }, { key: "TRIP", name: "Trip" }]
+function PROJECT_SET(): Project[] {
+  return scenario() === "many"
+    ? [
+        ...PROJECTS,
+        { ref: "project:4", key: "WEB", name: "Website" },
+        { ref: "project:5", key: "FIN", name: "Finance" },
+        { ref: "project:6", key: "TRIP", name: "Trip" },
+      ]
     : PROJECTS
+}
 
 // ---- A small reading of memo's query language: fields, OR, NOT, groups, ranges and plain words ----
 
@@ -327,8 +350,11 @@ function fieldMatch(t: Task, field: string, value: string): boolean {
       const read = (w: string) => (w.toLowerCase() === "today" ? isoDay(now) : w)
       if (range) return day >= read(range[1] ?? "") && day <= read(range[2] ?? "")
       if (v.startsWith("<")) return day < read(v.slice(1))
+      if (v === "tomorrow") return day === isoDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1))
       return day === read(v)
     }
+    case "when":
+      return whenOf(t) === v
     case "overdue":
       return v === "true" && t.dueAt !== null && daysUntil(t.dueAt) < 0 && !closed(t.state)
     case "closed": {
@@ -359,6 +385,15 @@ function matches(t: Task, n: Node): boolean {
   }
 }
 
+/** memo's `when:` buckets: overdue excludes today, upcoming is the next 7 days. */
+function whenOf(t: Task): string {
+  if (!t.dueAt) return "none"
+  const d = daysUntil(t.dueAt)
+  if (d < 0) return closed(t.state) ? "later" : "overdue"
+  if (d === 0) return "today"
+  return d <= 7 ? "upcoming" : "later"
+}
+
 // memo's default: without a state term, closed tasks stay out.
 const DEFAULT_OPEN = "state:(open OR todo OR in_progress)"
 const filter = (all: Task[], q: string) => {
@@ -379,7 +414,10 @@ type TaskApi = Pick<
   | "taskUpdate"
   | "taskMove"
   | "taskAssign"
+  | "taskComments"
+  | "taskCommentAdd"
   | "peopleList"
+  | "personAdd"
   | "projectList"
 >
 
@@ -387,11 +425,28 @@ const STATE_ORDER: TaskState[] = ["open", "todo", "in_progress", "done", "dismis
 
 export function tasksMock(): TaskApi {
   let tasks = seeds()
+  let people = [...PEOPLE]
   const history = new Map<string, TaskEvent[]>()
+  const comments = new Map<string, TaskComment[]>([
+    [
+      "HRB-12",
+      [
+        {
+          ref: "note:31",
+          text: "Kai wants the per-seat price for 20 and for 50 seats.",
+          author: HERMES,
+          at: ago(60 * 26),
+        },
+        { ref: "note:32", text: "Using the clinic tier from the October sheet.", author: OWNER, at: ago(60 * 3) },
+      ],
+    ],
+  ])
+  let noteId = 40
   const you = { ref: "person:1", name: null, owner: true }
   let conflictLeft = scenario() === "conflict"
+  const aliases = new Map<string, string>()
   const find = (key: string) => {
-    const t = tasks.find((x) => x.key === key)
+    const t = tasks.find((x) => x.key === (aliases.get(key) ?? key))
     if (!t) throw new Error(`no task ${key}`)
     return t
   }
@@ -439,7 +494,7 @@ export function tasksMock(): TaskApi {
       const s = scenario()
       await delay(s === "loading" ? 60_000 : s === "many" ? 500 : 350)
       if (s === "missing") return { kind: "missing" }
-      if (s === "old") return { kind: "old", version: "0.130.0", need: "0.131.4" }
+      if (s === "old") return { kind: "old", version: "0.131.4", need: "0.131.11" }
       if (s === "fail") throw new Error("another memo process holds the store; try again in a minute")
       if (s === "none") return { kind: "ready", tasks: [], total: 0, more: false }
       try {
@@ -452,7 +507,8 @@ export function tasksMock(): TaskApi {
     },
     async taskCounts(query): Promise<TaskCounts> {
       await delay(420)
-      if (scenario() === "none") return { total: 0, project: [], assignee: [], priority: [], state: [] }
+      if (scenario() === "none")
+        return { total: 0, project: [], assignee: [], priority: [], state: [], due: [], agent: [] }
       const without = (field: Field) => {
         try {
           return filter(tasks, dropField(query, field))
@@ -479,7 +535,7 @@ export function tasksMock(): TaskApi {
         ),
         assignee: facet(
           "assignee",
-          [{ value: "none", name: null }, ...PEOPLE.map((p) => ({ value: p.ref, name: p.name }))],
+          [{ value: "none", name: null }, ...people.map((p) => ({ value: p.ref, name: p.name }))],
           (t) => (t.assignees.length ? t.assignees : ["none"]),
         ),
         priority: facet(
@@ -492,6 +548,19 @@ export function tasksMock(): TaskApi {
           STATE_ORDER.map((value) => ({ value, name: null })),
           (t) => [t.state],
         ),
+        due: facet(
+          "due",
+          ["overdue", "today", "upcoming", "later", "none"].map((value) => ({ value, name: null })),
+          (t) => [whenOf(t)],
+        ),
+        agent: facet(
+          "agent",
+          [
+            { value: "none", name: null },
+            ...[...new Set(tasks.flatMap((t) => t.agent ?? []))].map((value) => ({ value, name: null })),
+          ],
+          (t) => [t.agent ?? "none"],
+        ),
       }
     },
     async taskShow(key) {
@@ -501,7 +570,8 @@ export function tasksMock(): TaskApi {
     async taskHistory(key) {
       await delay(300)
       const t = find(key)
-      const made: TaskEvent = { at: t.createdAt, kind: "created", by: you, changes: [] }
+      const by = t.createdBy?.owner === false ? { ref: "bot:4", name: t.createdBy.name, owner: false } : you
+      const made: TaskEvent = { at: t.createdAt, kind: "created", by, changes: [] }
       const claim: TaskEvent[] =
         t.claimedBy && claimActive(t.claimedUntil)
           ? [
@@ -529,16 +599,28 @@ export function tasksMock(): TaskApi {
         assignees: n.assignee ? [n.assignee] : [],
         dueAt: n.due ? new Date(`${n.due}T00:00:00`).toISOString() : null,
         createdAt: new Date().toISOString(),
-        revision: 2,
+        revision: 1,
       })
       tasks = [task, ...tasks]
       return { kind: "saved", task, label: null, renumbered: [] }
     },
-    taskUpdate(key, revision, edit: TaskEdit) {
-      return write(key, revision, (t) => {
+    async taskUpdate(key, revision, edit: TaskEdit) {
+      const to = edit.project
+      if (to !== undefined && to !== find(key).project) {
+        const subtasks = tasks.filter((t) => t.parent === key).map((t) => ({ key: t.key, title: t.title }))
+        if (subtasks.length > 0 && find(key).revision === revision) {
+          await delay(260)
+          return { kind: "hasSubtasks", subtasks }
+        }
+      }
+      const out = await write(key, revision, (t) => {
         let next = { ...t }
         if (edit.title !== undefined) next.title = edit.title
         if (edit.description !== undefined) next.description = edit.description || null
+        if (edit.kind !== undefined) {
+          record(key, [{ field: "type", from: t.kind, to: edit.kind }], "type")
+          next.kind = edit.kind
+        }
         if (edit.priority !== undefined) {
           const mid = { critical: 0.875, high: 0.625, medium: 0.375, low: 0.125, none: null }
           next.priority = mid[edit.priority]
@@ -556,6 +638,34 @@ export function tasksMock(): TaskApi {
         if (edit.state !== undefined) next = setState(next, edit.state)
         return next
       })
+      if (out.kind !== "saved" || to === undefined || to === key.split("-")[0]) return out
+      // memo gives the task the next key in its new project; the old key still finds it there.
+      const number =
+        tasks.filter((t) => t.project === to).reduce((m, t) => Math.max(m, Number(t.key.split("-")[1])), 0) + 1
+      const moved: Task = {
+        ...out.task,
+        key: `${to}-${number}`,
+        project: to,
+        projectName: PROJECT_SET().find((p) => p.key === to)?.name ?? null,
+        parent: null,
+      }
+      tasks = tasks.map((t) => (t.key === key ? moved : t))
+      aliases.set(key, moved.key)
+      const from = PROJECT_SET().find((p) => p.key === key.split("-")[0])?.ref ?? null
+      history.set(moved.key, [
+        ...(history.get(key) ?? []),
+        {
+          at: new Date().toISOString(),
+          kind: "project",
+          by: you,
+          changes: [
+            { field: "project", from, to: PROJECT_SET().find((p) => p.key === to)?.ref ?? null },
+            { field: "key", from: key, to: moved.key },
+          ],
+        },
+      ])
+      comments.set(moved.key, comments.get(key) ?? [])
+      return { ...out, task: moved }
     },
     async taskMove(key, revision, place: TaskPlace) {
       const t = find(key)
@@ -584,9 +694,28 @@ export function tasksMock(): TaskApi {
         return { ...t, assignees: person ? [person] : [] }
       })
     },
+    async taskComments(key) {
+      await delay(280)
+      find(key)
+      return comments.get(key) ?? []
+    },
+    async taskCommentAdd(key, text) {
+      await delay(260)
+      if (scenario() === "write-fail") throw new Error("another memo process holds the store; try again in a minute")
+      const said: TaskComment = { ref: `note:${noteId++}`, text, author: OWNER, at: new Date().toISOString() }
+      comments.set(key, [...(comments.get(key) ?? []), said])
+      return said
+    },
     async peopleList() {
       await delay(250)
-      return PEOPLE
+      return people
+    },
+    async personAdd(name) {
+      await delay(260)
+      if (scenario() === "write-fail") throw new Error("another memo process holds the store; try again in a minute")
+      const added: Person = { ref: `person:${people.length + 1}`, name: name.trim(), owner: false }
+      people = [...people, added]
+      return added
     },
     async projectList() {
       await delay(250)

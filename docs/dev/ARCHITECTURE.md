@@ -376,7 +376,7 @@ profile, with a Sync or Stop button beside the name. A result stays until dismis
 
 Plan: `docs/dev/plans/2026-10-31-tasks-page.md`. memo's project tasks only (`project:*`); tasks made from messages stay
 on the Agents page. `task_board.rs` runs memo's own `tasks list|counts|show|history|add|update|move|assign`,
-`people list` and `projects list`, with `--json --no-record` (a failed edit would otherwise keep the owner's notes in
+`tasks comments list|add`, `people list|add` and `projects list`, with `--json --no-record` (a failed edit would otherwise keep the owner's notes in
 memo's run log). The owner's search goes last, after `--`, since memo reads every word after it as the query; the page
 adds the board's default (open work, and what was closed in the last 14 days) unless the search names `state:` or
 `closed:`, and Rust narrows it to `project:*`. Text goes as `--title=<text>`, so a leading dash is never an option.
@@ -389,8 +389,13 @@ it. A revision moves only for changes a person could conflict with (from memo 0.
 renewing its claim or setting a follow-up time does not. A dropped card calls `tasks move <key> [--status s] --before|--after <key>`: memo gives it a
 priority between its neighbours, which is also its order in the column, and says when its label (low, medium, high,
 critical, one per quarter) changed. Neighbours memo renumbered to make room are read again with `tasks show`.
-`tasks add` takes no due date or state, so a new task gets them in a second write. The page's minimum memo is the
-catalog's `taskBoard.minVersion`; the catalog's `tasks` key means something else, a source of agents' claims.
+`tasks add` sets the due date and state in the same write. A task is moved to another project with
+`tasks update <key> --project <key>`: memo answers it with its new key there (the old one still finds it), and the
+page carries everything it keeps by key over to the new one. memo refuses to move a task that has subtasks
+(`task.has-subtasks`), naming them only in its message, so Rust reads the project's tasks and answers those whose
+parent it is. A moved subtask loses its parent. Comments are a thread of their own, oldest first; adding one moves no
+revision. A comment's text and a new person's name go after `--`. The page's minimum memo is the catalog's
+`taskBoard.minVersion`; the catalog's `tasks` key means something else, a source of agents' claims.
 
 ## Growing the app
 
