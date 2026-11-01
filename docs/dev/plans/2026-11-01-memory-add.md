@@ -289,4 +289,4 @@ About 12–14 working days, about 8–10 of them in memo and cli-core. Without i
 - Token cost per source: estimated from words (about 1.4 tokens a word), not measured.
 - The prototype runs in Chrome against made-up data; captures use reduced motion, so no animation was checked.
 
-<!-- cspell:words Northbridge Ortiz Becker parakeet gigaam linkedom defuddle unpdf mammoth sherpa Ollama -->
+<!-- cspell:words Northbridge Ortiz Becker parakeet gigaam linkedom defuddle unpdf mammoth sherpa Ollama OOXML onnx -->
