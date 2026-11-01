@@ -402,7 +402,7 @@ const ru: Words = {
   kinds: { bug: "Ошибка", feature: "Функция", chore: "Рутина", task: "Задача" },
   parent: "Часть задачи",
   createdAt: "Создана",
-  createdBy: (when, who) => `${when}, ${who}`,
+  createdBy: (when, who) => `${when}, автор: ${who}`,
   updatedAt: "Изменена",
   closedAt: "Закрыта",
   revision: "Ревизия",
