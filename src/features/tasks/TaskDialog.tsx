@@ -22,6 +22,8 @@ export function TaskDialog() {
   const task = useTasks((s) => (s.open ? (s.tasks.find((t) => t.key === s.open) ?? s.outside[s.open]) : undefined))
   const failed = useTasks((s) => (s.open ? s.failed[s.open] : undefined))
   const [dirty, setDirty] = useState(false)
+  const [held, setHeld] = useState(false)
+  if (held && !dirty) setHeld(false)
   const last = useRef<string | null>(null)
   if (open) last.current = open
 
@@ -35,7 +37,11 @@ export function TaskDialog() {
   const step = (by: 1 | -1) => {
     const now = shownKeys()
     const i = open ? now.indexOf(open) : -1
-    const next = i < 0 || dirty ? undefined : now[i + by]
+    if (dirty) {
+      setHeld(true)
+      return
+    }
+    const next = i < 0 ? undefined : now[i + by]
     if (next) void useTasks.getState().openTask(next)
   }
 
@@ -76,7 +82,7 @@ export function TaskDialog() {
               variant="ghost"
               aria-label={m.previous}
               title={m.previous}
-              disabled={at <= 0 || dirty}
+              disabled={at <= 0}
               onClick={() => step(-1)}
               icon={<ChevronUp className="size-4" aria-hidden />}
             />
@@ -85,17 +91,31 @@ export function TaskDialog() {
               variant="ghost"
               aria-label={m.next}
               title={m.next}
-              disabled={at < 0 || at >= keys.length - 1 || dirty}
+              disabled={at < 0 || at >= keys.length - 1}
               onClick={() => step(1)}
               icon={<ChevronDown className="size-4" aria-hidden />}
             />
+            {/* The place is why ▲ or ▼ is off at either end of the list. */}
+            {at >= 0 && (
+              <span className="self-center px-1 font-mono text-[0.85rem] text-ink-dim tabular-nums">
+                {m.position(at + 1, keys.length)}
+              </span>
+            )}
           </span>
           <Button size="sm" variant="ghost" onClick={close}>
             {m.close}
           </Button>
         </>
       }
-      footer={<p className="text-[0.8rem] text-ink-dim">{m.keysHint}</p>}
+      footer={
+        // One line for both, so the warning takes the hint's place rather than pushing the dialog taller.
+        <p
+          role={held ? "alert" : undefined}
+          className={held ? "text-[0.85rem] text-bad" : "text-[0.8rem] text-ink-dim"}
+        >
+          {held ? m.saveFirst : m.keysHint}
+        </p>
+      }
     >
       {task ? (
         <div key={task.key} className="reveal">

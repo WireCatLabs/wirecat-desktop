@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react"
 import { LABELS, type Label } from "@/domain/tasks"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Select } from "@/ui/Select"
 import { taskMessages } from "./messages"
@@ -21,14 +23,27 @@ export function NewTask() {
   const [priority, setPriority] = useState<Label | "none">("none")
   const [assignee, setAssignee] = useState("none")
   const [due, setDue] = useState("")
+  const [missing, setMissing] = useState<"title" | "project" | null>(null)
+  const projectBox = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
     field.current?.focus({ preventScroll: true })
   }, [])
 
-  const ready = title.trim() !== "" && project !== "" && !busy
   const submit = async () => {
-    if (!ready) return
+    if (busy) return
+    // Pressed too early, the button says what is missing and takes the owner there (DESIGN.md).
+    if (!title.trim()) {
+      setMissing("title")
+      field.current?.focus()
+      return
+    }
+    if (!project) {
+      setMissing("project")
+      projectBox.current?.querySelector<HTMLElement>("button,[role=combobox]")?.focus()
+      return
+    }
+    setMissing(null)
     const ok = await useTasks.getState().create({
       project,
       title: title.trim(),
@@ -61,18 +76,31 @@ export function NewTask() {
           aria-label={m.newTitle}
           value={title}
           maxLength={500}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={(e) => {
+            setTitle(e.target.value)
+            if (missing === "title") setMissing(null)
+          }}
+          aria-invalid={missing === "title" || undefined}
           placeholder={m.newTitleHint}
-          className="selectable h-[2.4rem] min-w-[16rem] flex-1 rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+          className={cx(
+            "selectable h-[2.4rem] min-w-[16rem] flex-1 rounded-[0.35rem] border bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand",
+            missing === "title" ? "border-bad" : "border-line-strong",
+          )}
         />
-        <Select
-          aria-label={m.project}
-          value={project}
-          placeholder={m.pickProject}
-          onChange={setProject}
-          options={projects.map((p) => ({ value: p.key, label: `${p.key} · ${p.name}` }))}
-          className="w-[13rem]"
-        />
+        <span ref={projectBox} className="inline-flex">
+          <Select
+            aria-label={m.project}
+            {...(missing === "project" ? { "aria-invalid": true } : {})}
+            value={project}
+            placeholder={m.pickProject}
+            onChange={(v) => {
+              setProject(v)
+              if (missing === "project") setMissing(null)
+            }}
+            options={projects.map((p) => ({ value: p.key, label: `${p.key} · ${p.name}` }))}
+            className={cx("w-[13rem]", missing === "project" && "border-bad!")}
+          />
+        </span>
       </div>
       <div className="flex flex-wrap items-center gap-[0.6rem]">
         <Select
@@ -107,11 +135,16 @@ export function NewTask() {
           <Button size="sm" variant="ghost" onClick={close}>
             {m.cancel}
           </Button>
-          <Button size="sm" type="submit" disabled={!ready}>
+          <Button size="sm" type="submit" disabled={busy}>
             {busy ? m.saving : m.add}
           </Button>
         </span>
       </div>
+      <Collapse open={missing !== null}>
+        <p role="alert" className="text-[0.875rem] text-bad">
+          {missing === "project" ? m.needProject : missing === "title" ? m.needTitle : ""}
+        </p>
+      </Collapse>
       {failed && <ErrorNotice inline>{m.notSaved(failed)}</ErrorNotice>}
     </form>
   )

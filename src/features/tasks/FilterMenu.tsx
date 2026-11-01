@@ -1,7 +1,8 @@
-import { Check, ChevronDown } from "lucide-react"
+import { Check } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { useCloseOutside, useListPlacement } from "@/ui/popup-list"
 import { taskMessages } from "./messages"
 
@@ -118,10 +119,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false 
             {names.length > 2 ? m.chosen(names.length) : names.join(", ")}
           </span>
         )}
-        <ChevronDown
-          className={cx("size-4 shrink-0 text-ink-dim transition-transform duration-150", open && "rotate-180")}
-          aria-hidden
-        />
+        <ExpandChevron open={open} className="ml-auto" />
       </button>
       <div
         ref={list}

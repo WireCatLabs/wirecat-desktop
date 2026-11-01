@@ -6,6 +6,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
@@ -70,6 +71,7 @@ export function TasksPage() {
             icon={<Plus className="size-4" aria-hidden />}
           >
             {m.newTask}
+            <ExpandChevron open={creating} className="text-current!" />
           </Button>
         </div>
       </div>
