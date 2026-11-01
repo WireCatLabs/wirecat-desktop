@@ -119,7 +119,11 @@ export function DueCell({ task }: { task: Task }) {
         aria-label={m.cell(m.due, task.key)}
         defaultValue={task.dueAt ? localDay(task.dueAt) : days.today}
         onKeyDown={(e) => {
-          if (e.key === "Escape") setPicking(false)
+          if (e.key === "Escape") {
+            // In the task dialog this Escape would close the whole dialog, not only the date field.
+            e.preventDefault()
+            setPicking(false)
+          }
           if (e.key === "Enter" && e.currentTarget.value) {
             save(e.currentTarget.value)
             setPicking(false)

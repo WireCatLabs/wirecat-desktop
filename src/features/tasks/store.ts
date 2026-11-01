@@ -42,6 +42,8 @@ type TasksState = {
   people: Person[]
   projects: Project[]
   open: string | null
+  /** Tasks opened through a "waits for" link that the current search leaves out; never shown in the list. */
+  outside: Record<string, Task>
   busy: Record<string, true>
   failed: Record<string, string>
   stale: Stale | null
@@ -54,6 +56,8 @@ type TasksState = {
   setDue(choice: DueChoice | null): void
   setView(view: View): void
   toggle(key: string | null): void
+  /** Opens a task in the dialog, reading it first when the list does not hold it. */
+  openTask(key: string): Promise<void>
   update(key: string, edit: TaskEdit): Promise<boolean>
   assign(key: string, person: string | null): Promise<void>
   move(
@@ -91,14 +95,18 @@ export const useTasks = create<TasksState>((set, get) => {
   let typing: ReturnType<typeof setTimeout> | undefined
 
   const replace = (task: Task) =>
-    set((s) => ({
-      tasks: s.tasks.some((t) => t.key === task.key)
-        ? s.tasks.map((t) =>
-            t.key === task.key ? { ...task, ready: task.ready ?? t.ready, blockedBy: t.blockedBy } : t,
-          )
-        : [task, ...s.tasks],
-      history: without(s.history, task.key),
-    }))
+    set((s) =>
+      s.outside[task.key]
+        ? { outside: { ...s.outside, [task.key]: task }, history: without(s.history, task.key) }
+        : {
+            tasks: s.tasks.some((t) => t.key === task.key)
+              ? s.tasks.map((t) =>
+                  t.key === task.key ? { ...task, ready: task.ready ?? t.ready, blockedBy: t.blockedBy } : t,
+                )
+              : [task, ...s.tasks],
+            history: without(s.history, task.key),
+          },
+    )
 
   const recount = async () => {
     try {
@@ -141,7 +149,7 @@ export const useTasks = create<TasksState>((set, get) => {
     }
   }
 
-  const find = (key: string) => get().tasks.find((t) => t.key === key)
+  const find = (key: string) => get().tasks.find((t) => t.key === key) ?? get().outside[key]
 
   return {
     query: "",
@@ -159,6 +167,7 @@ export const useTasks = create<TasksState>((set, get) => {
     people: [],
     projects: [],
     open: null,
+    outside: {},
     busy: {},
     failed: {},
     stale: null,
@@ -192,6 +201,7 @@ export const useTasks = create<TasksState>((set, get) => {
           order: read.tasks.map((t) => t.key),
           total: read.total,
           more: read.more,
+          outside: {},
           failed: {},
           stale: null,
           loaded: true,
@@ -234,6 +244,18 @@ export const useTasks = create<TasksState>((set, get) => {
     toggle(key) {
       set((s) => ({ open: key === null || s.open === key ? null : key }))
       if (key && get().open === key && !get().history[key]) void get().loadHistory(key)
+    },
+
+    async openTask(key) {
+      set((s) => ({ open: key, failed: find(key) ? s.failed : without(s.failed, key) }))
+      if (!get().history[key]) void get().loadHistory(key)
+      if (find(key)) return
+      try {
+        const task = await platform.taskShow(key)
+        set((s) => ({ outside: { ...s.outside, [key]: task } }))
+      } catch (e) {
+        set((s) => ({ failed: { ...s.failed, [key]: message(e) } }))
+      }
     },
 
     async update(key, edit) {

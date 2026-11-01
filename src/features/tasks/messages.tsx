@@ -99,6 +99,27 @@ type Words = {
   noProjects: string
   details: (key: string) => string
   close: string
+  previous: string
+  next: string
+  keysHint: string
+  readingTask: string
+  openFailed: (key: string, reason: string) => string
+  properties: string
+  projectFixed: string
+  key: string
+  kind: string
+  kinds: Record<string, string>
+  parent: string
+  createdAt: string
+  createdBy: (when: string, who: string) => string
+  updatedAt: string
+  closedAt: string
+  revision: string
+  revisionHint: string
+  holdsUp: string
+  holdsUpHint: string
+  byAgent: string
+  byPerson: string
 }
 
 /** "4 Nov": a due day. */
@@ -109,7 +130,7 @@ export const stamp = (iso: string, lang: Lang) =>
 
 const en: Words = {
   title: "Tasks",
-  intro: "What you and your agents plan to do, kept by Memo. Agents read and change the same list.",
+  intro: "What you and your agents plan to do, kept by WireCat. Agents read and change the same list.",
   guide: "How tasks work",
   readAgain: "Read again",
   reading: "Reading…",
@@ -127,10 +148,10 @@ const en: Words = {
   update: "Update Memo",
   readFailed: "Could not read tasks.",
   tryAgain: "Try again",
-  badQuery: "Memo could not read this search. Check the brackets and quotes, or clear it.",
+  badQuery: "This search could not be read. Check the brackets and quotes, or clear it.",
   empty: "No tasks yet.",
   emptyBody:
-    'Add one with New task, or ask an agent connected to Memo: "add a task to send Kai the pricing table on Monday". Tasks you and your agents add appear here.',
+    'Add one with New task, or ask an agent connected to WireCat: "add a task to send Kai the pricing table on Monday". Tasks you and your agents add appear here.',
   noMatch: "No task matches this search. Remove a filter above, or clear them all.",
   clear: "Clear",
   more: (total) => `Showing the first 500 of ${formatNumber(total, "en")} tasks. Narrow the search to see the rest.`,
@@ -165,7 +186,7 @@ const en: Words = {
   forAgent: (agent) => `for ${agent}`,
   cell: (what, key) => `${what} of ${key}`,
   open: (key) => `Open ${key}`,
-  notSaved: (reason) => `Memo did not save the change: ${reason}. Nothing changed.`,
+  notSaved: (reason) => `The change was not saved: ${reason}. Nothing changed.`,
   notMoved: (reason) => `Not moved: ${reason}. The card is back where it was.`,
   changed: (key, who, what, at) =>
     `${key} changed elsewhere: ${who} changed ${what} at ${at}. Your change was not saved; the task shows what it is now.`,
@@ -209,19 +230,41 @@ const en: Words = {
     title: "the title",
     description: "the notes",
     parent: "the parent task",
+    project: "the project",
   },
   newTitle: "Title of the new task",
   newTitleHint: "What is to be done",
   pickProject: "Pick a project",
   add: "Add task",
-  noProjects: "Memo has no project yet. Ask an agent to add one, or run memo projects add.",
+  noProjects: "There is no project yet. Ask an agent to add one.",
   details: (key) => `Task ${key}`,
   close: "Close",
+  previous: "Previous task",
+  next: "Next task",
+  keysHint: "J and K open the next and previous task; Escape closes.",
+  readingTask: "Reading the task…",
+  openFailed: (key, reason) => `Could not read ${key}: ${reason}.`,
+  properties: "Properties",
+  projectFixed: "A task cannot move to another project yet.",
+  key: "Key",
+  kind: "Type",
+  kinds: { bug: "Bug", feature: "Feature", chore: "Chore", task: "Task" },
+  parent: "Part of",
+  createdAt: "Created",
+  createdBy: (when, who) => `${when} by ${who}`,
+  updatedAt: "Updated",
+  closedAt: "Closed",
+  revision: "Revision",
+  revisionHint: "Goes up with every change. An edit made on an older revision is refused, not lost.",
+  holdsUp: "Holds up",
+  holdsUpHint: "Open tasks shown here that wait for this one.",
+  byAgent: "an agent",
+  byPerson: "a person",
 }
 
 const ru: Words = {
   title: "Задачи",
-  intro: "Что вы и ваши агенты собираетесь сделать; хранит Memo. Агенты читают и меняют тот же список.",
+  intro: "Что вы и ваши агенты собираетесь сделать; хранит WireCat. Агенты читают и меняют тот же список.",
   guide: "Как устроены задачи",
   readAgain: "Прочитать заново",
   reading: "Читаю…",
@@ -239,10 +282,10 @@ const ru: Words = {
   update: "Обновить Memo",
   readFailed: "Не удалось прочитать задачи.",
   tryAgain: "Ещё раз",
-  badQuery: "Memo не понял этот поиск. Проверьте скобки и кавычки или очистите его.",
+  badQuery: "Этот поиск не удалось прочитать. Проверьте скобки и кавычки или очистите его.",
   empty: "Задач пока нет.",
   emptyBody:
-    "Добавьте задачу кнопкой «Новая задача» или попросите агента, подключённого к Memo: «добавь задачу отправить Каю прайс в понедельник». Здесь появятся задачи ваши и агентов.",
+    "Добавьте задачу кнопкой «Новая задача» или попросите агента, подключённого к WireCat: «добавь задачу отправить Каю прайс в понедельник». Здесь появятся задачи ваши и агентов.",
   noMatch: "Под этот поиск ничего не подходит. Уберите фильтр выше или очистите все.",
   clear: "Очистить",
   more: (total) => `Показаны первые 500 из ${formatNumber(total, "ru")} задач. Сузьте поиск, чтобы увидеть остальные.`,
@@ -277,7 +320,7 @@ const ru: Words = {
   forAgent: (agent) => `для ${agent}`,
   cell: (what, key) => `${what} задачи ${key}`,
   open: (key) => `Открыть ${key}`,
-  notSaved: (reason) => `Memo не сохранил изменение: ${reason}. Ничего не изменилось.`,
+  notSaved: (reason) => `Изменение не сохранено: ${reason}. Ничего не изменилось.`,
   notMoved: (reason) => `Не перенесено: ${reason}. Карточка вернулась на место.`,
   changed: (key, who, what, at) =>
     `${key} изменили в другом месте: ${who} — ${what}, ${at}. Ваше изменение не сохранено; задача показана такой, какая она сейчас.`,
@@ -328,19 +371,41 @@ const ru: Words = {
     title: "название",
     description: "заметки",
     parent: "родительская задача",
+    project: "проект",
   },
   newTitle: "Название новой задачи",
   newTitleHint: "Что нужно сделать",
   pickProject: "Выберите проект",
   add: "Добавить",
-  noProjects: "В Memo пока нет проектов. Попросите агента добавить проект или выполните memo projects add.",
+  noProjects: "Проектов пока нет. Попросите агента добавить проект.",
   details: (key) => `Задача ${key}`,
   close: "Закрыть",
+  previous: "Предыдущая задача",
+  next: "Следующая задача",
+  keysHint: "J и K открывают следующую и предыдущую задачу; Escape закрывает.",
+  readingTask: "Читаю задачу…",
+  openFailed: (key, reason) => `Не удалось прочитать ${key}: ${reason}.`,
+  properties: "Свойства",
+  projectFixed: "Перенести задачу в другой проект пока нельзя.",
+  key: "Ключ",
+  kind: "Тип",
+  kinds: { bug: "Ошибка", feature: "Функция", chore: "Рутина", task: "Задача" },
+  parent: "Часть задачи",
+  createdAt: "Создана",
+  createdBy: (when, who) => `${when}, ${who}`,
+  updatedAt: "Изменена",
+  closedAt: "Закрыта",
+  revision: "Ревизия",
+  revisionHint: "Растёт с каждым изменением. Правка по старой ревизии отклоняется, а не теряется.",
+  holdsUp: "Задерживает",
+  holdsUpHint: "Открытые задачи на странице, которые ждут эту.",
+  byAgent: "агент",
+  byPerson: "человек",
 }
 
 const es: Words = {
   title: "Tareas",
-  intro: "Lo que tú y tus agentes pensáis hacer, guardado por Memo. Los agentes leen y cambian la misma lista.",
+  intro: "Lo que tú y tus agentes pensáis hacer, guardado por WireCat. Los agentes leen y cambian la misma lista.",
   guide: "Cómo funcionan las tareas",
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
@@ -358,10 +423,10 @@ const es: Words = {
   update: "Actualizar Memo",
   readFailed: "No se pudieron leer las tareas.",
   tryAgain: "Reintentar",
-  badQuery: "Memo no entiende esta búsqueda. Revisa los paréntesis y las comillas, o bórrala.",
+  badQuery: "No se pudo leer esta búsqueda. Revisa los paréntesis y las comillas, o bórrala.",
   empty: "Aún no hay tareas.",
   emptyBody:
-    "Añade una con Nueva tarea, o pídeselo a un agente conectado a Memo: «añade una tarea para enviar a Kai la tabla de precios el lunes». Aquí aparecen las tareas tuyas y de tus agentes.",
+    "Añade una con Nueva tarea, o pídeselo a un agente conectado a WireCat: «añade una tarea para enviar a Kai la tabla de precios el lunes». Aquí aparecen las tareas tuyas y de tus agentes.",
   noMatch: "Ninguna tarea coincide con esta búsqueda. Quita un filtro de arriba o bórralos todos.",
   clear: "Borrar",
   more: (total) =>
@@ -397,7 +462,7 @@ const es: Words = {
   forAgent: (agent) => `para ${agent}`,
   cell: (what, key) => `${what} de ${key}`,
   open: (key) => `Abrir ${key}`,
-  notSaved: (reason) => `Memo no guardó el cambio: ${reason}. No cambió nada.`,
+  notSaved: (reason) => `El cambio no se guardó: ${reason}. No cambió nada.`,
   notMoved: (reason) => `No se movió: ${reason}. La tarjeta volvió a su sitio.`,
   changed: (key, who, what, at) =>
     `${key} cambió en otro sitio: ${who} cambió ${what} a las ${at}. Tu cambio no se guardó; la tarea muestra cómo está ahora.`,
@@ -441,14 +506,36 @@ const es: Words = {
     title: "el título",
     description: "las notas",
     parent: "la tarea madre",
+    project: "el proyecto",
   },
   newTitle: "Título de la nueva tarea",
   newTitleHint: "Qué hay que hacer",
   pickProject: "Elige un proyecto",
   add: "Añadir tarea",
-  noProjects: "Memo aún no tiene proyectos. Pide a un agente que añada uno, o ejecuta memo projects add.",
+  noProjects: "Aún no hay proyectos. Pide a un agente que añada uno.",
   details: (key) => `Tarea ${key}`,
   close: "Cerrar",
+  previous: "Tarea anterior",
+  next: "Tarea siguiente",
+  keysHint: "J y K abren la tarea siguiente y la anterior; Escape cierra.",
+  readingTask: "Leyendo la tarea…",
+  openFailed: (key, reason) => `No se pudo leer ${key}: ${reason}.`,
+  properties: "Propiedades",
+  projectFixed: "Aún no se puede mover una tarea a otro proyecto.",
+  key: "Clave",
+  kind: "Tipo",
+  kinds: { bug: "Error", feature: "Función", chore: "Mantenimiento", task: "Tarea" },
+  parent: "Parte de",
+  createdAt: "Creada",
+  createdBy: (when, who) => `${when}, por ${who}`,
+  updatedAt: "Cambiada",
+  closedAt: "Cerrada",
+  revision: "Revisión",
+  revisionHint: "Sube con cada cambio. Una edición hecha sobre una revisión anterior se rechaza, no se pierde.",
+  holdsUp: "Retiene",
+  holdsUpHint: "Tareas abiertas mostradas aquí que esperan a esta.",
+  byAgent: "un agente",
+  byPerson: "una persona",
 }
 
 export const taskMessages: Messages<Words> = { en, ru, es }

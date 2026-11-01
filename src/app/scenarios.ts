@@ -17,7 +17,8 @@ import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 // and breaks its render. `?signin=<tool>` opens that tool's in-window sign-in for a profile named personal.
 // `?mcp=<tool>` and `?mcp-fail=<tool>` open that tool's details, where its MCP server section starts open.
 // `?connect=<state>` opens tg's details at that step of the guide (`src/features/tools/connect-scenario.ts`).
-// `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`).
+// `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`); `?task=<key>`
+// opens that task's dialog there.
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
 // `?tailscale=<state>` opens tg's, with the "MCP server (or connect web)" guide's Tailscale steps at that state (`src/platform/mock-tailscale.ts`); `?cloudflare=<state>` the same with the Cloudflare tunnel (`mock-cloudflare.ts`).
 export async function runMockScenario() {
@@ -37,6 +38,11 @@ export async function runMockScenario() {
     if (view === "board" || view === "table") useTasks.setState({ view })
     if (tasks === "nomatch") useTasks.setState({ query: MOCK_NOMATCH_QUERY })
     useNav.getState().go("tasks")
+  }
+  const task = params.get("task")
+  if (task) {
+    useNav.getState().go("tasks")
+    void useTasks.getState().openTask(task)
   }
   if (params.get("notifications") === "open") openBell()
   const signIn = params.get("signin")
