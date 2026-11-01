@@ -48,7 +48,11 @@
     "homepage": "https://wirecat.dev",
     "linux": {
       "deb": {
-        "depends": []
+        "depends": [],
+        "postInstallScript": "linux/deb-postinst.sh"
+      },
+      "rpm": {
+        "postInstallScript": "linux/rpm-post.sh"
       }
     }
   }
