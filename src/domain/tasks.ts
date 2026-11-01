@@ -67,7 +67,7 @@ export function setField(q: string, field: Exclude<Field, "due">, values: readon
   return tidy(`${rest} ${written}`)
 }
 
-export type DueChoice = "overdue" | "week" | "none"
+export type DueChoice = "overdue" | "today" | "tomorrow" | "week" | "none" | { from: string; to?: string }
 
 const isoDay = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
@@ -78,17 +78,34 @@ export const addDays = (from: Date, n: number) => {
   return d
 }
 
-/** memo reads `7d` as seven days ago, so "the next seven days" needs the date written out. */
+const DAY = String.raw`\d{4}-\d{2}-\d{2}`
+
+/**
+ * memo's words for each choice. It knows `today` but not `tomorrow`, and reads `7d` as seven days ago, so those days
+ * are written out. Overdue also says `due:<today`: memo's `overdue:true` counts a task due today once midnight has
+ * passed (FIND-164), and the pair stays right after memo fixes that.
+ */
 export function dueTerm(choice: DueChoice, today = new Date()): string {
-  if (choice === "overdue") return "overdue:true"
+  if (typeof choice === "object") {
+    const [a, b] = choice.to && choice.to < choice.from ? [choice.to, choice.from] : [choice.from, choice.to]
+    return b && b !== a ? `due:[${a} TO ${b}]` : `due:${a}`
+  }
+  if (choice === "overdue") return "overdue:true due:<today"
+  if (choice === "today") return "due:today"
+  if (choice === "tomorrow") return `due:${isoDay(addDays(today, 1))}`
   if (choice === "none") return "NOT due:*"
   return `due:[today TO ${isoDay(addDays(today, 7))}]`
 }
 
-export function dueOf(q: string): DueChoice | null {
+export function dueOf(q: string, today = new Date()): DueChoice | null {
   if (/(^|\s)overdue:true\b/.test(q)) return "overdue"
   if (/(^|\s)(NOT\s+|-)due:\*/.test(q)) return "none"
   if (/(^|\s)due:\[today TO /.test(q)) return "week"
+  if (/(^|\s)due:today(\s|$)/.test(q)) return "today"
+  const range = new RegExp(String.raw`(?:^|\s)due:\[(${DAY}) TO (${DAY})\]`).exec(q)
+  if (range?.[1] && range[2]) return { from: range[1], to: range[2] }
+  const day = new RegExp(String.raw`(?:^|\s)due:(${DAY})(?:\s|$)`).exec(q)?.[1]
+  if (day) return day === isoDay(addDays(today, 1)) ? "tomorrow" : { from: day }
   return null
 }
 

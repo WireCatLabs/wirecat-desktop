@@ -2,7 +2,17 @@
 // The Tasks page in the browser build: made-up tasks and people, and a small reading of memo's query language, so a
 // filter shows what memo would answer. `?tasks=` picks a state: none, nomatch, missing, old, fail, write-fail,
 // conflict (HRB-12 was changed by hermes), many (400 tasks), blocked (a chain of three), loading.
-import { claimActive, closed, daysUntil, dropField, type Field, LABELS, labelOf } from "@/domain/tasks"
+import {
+  claimActive,
+  closed,
+  daysUntil,
+  dropField,
+  type Field,
+  isoDay,
+  LABELS,
+  labelOf,
+  localDay,
+} from "@/domain/tasks"
 import { delay } from "./mock-delay"
 import type {
   NewTask,
@@ -313,12 +323,11 @@ function fieldMatch(t: Task, field: string, value: string): boolean {
     case "due": {
       if (v === "*") return t.dueAt !== null
       if (!t.dueAt) return false
-      if (range) {
-        const d = daysUntil(t.dueAt)
-        const end = range[2] ?? ""
-        return d >= 0 && t.dueAt.slice(0, 10) <= end
-      }
-      return false
+      const day = localDay(t.dueAt)
+      const read = (w: string) => (w.toLowerCase() === "today" ? isoDay(now) : w)
+      if (range) return day >= read(range[1] ?? "") && day <= read(range[2] ?? "")
+      if (v.startsWith("<")) return day < read(v.slice(1))
+      return day === read(v)
     }
     case "overdue":
       return v === "true" && t.dueAt !== null && daysUntil(t.dueAt) < 0 && !closed(t.state)
