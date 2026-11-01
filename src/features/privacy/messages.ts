@@ -14,7 +14,7 @@ const en = {
     news: {
       name: "News check",
       when: "At start, then every hour",
-      text: "Only the app version and your system. WireCat's server does not save your IP address for it; only the web server's access log still lists it. What you read stays here.",
+      text: "Only the app version and your system. No server of WireCat logs your IP address for it. What you read stays here.",
     } as Sent,
     report: {
       name: "Bug report",
@@ -58,7 +58,7 @@ const ru: typeof en = {
     news: {
       name: "Проверка новостей",
       when: "При запуске, затем раз в час",
-      text: "Только версия приложения и ваша система. Сервер WireCat не сохраняет для неё ваш IP-адрес; он пока есть только в журнале доступа веб-сервера. Что вы прочитали, остаётся здесь.",
+      text: "Только версия приложения и ваша система. Серверы WireCat не пишут для неё ваш IP-адрес в лог. Что вы прочитали, остаётся здесь.",
     },
     report: {
       name: "Отчёт об ошибке",
@@ -102,7 +102,7 @@ const es: typeof en = {
     news: {
       name: "Comprobación de novedades",
       when: "Al iniciar, y después cada hora",
-      text: "Solo la versión de la aplicación y tu sistema. El servidor de WireCat no guarda tu dirección IP para ella; solo la registra aún el registro de accesos del servidor web. Lo que lees se queda aquí.",
+      text: "Solo la versión de la aplicación y tu sistema. Ningún servidor de WireCat anota tu dirección IP para ella. Lo que lees se queda aquí.",
     },
     report: {
       name: "Informe de error",

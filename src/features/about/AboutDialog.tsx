@@ -1,7 +1,7 @@
 import { Check, Copy, ExternalLink } from "lucide-react"
 import { Fragment, useEffect, useState } from "react"
 import { tools } from "@/domain/catalog"
-import { useMessages } from "@/i18n"
+import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
@@ -17,12 +17,13 @@ const REPO = "https://github.com/WireCatLabs/wirecat-desktop"
 const PRODUCT = "WireCat Desktop"
 const LICENSE = "Apache License 2.0"
 
-const links = [
-  { label: "website", href: "https://wirecat.dev" },
-  { label: "docs", href: "https://wirecat.dev/en/docs" },
-  { label: "source", href: REPO },
-  { label: "privacy", href: "https://wirecat.dev/en/privacy" },
-] as const
+const links = (lang: Lang) =>
+  [
+    { label: "website", href: "https://wirecat.dev" },
+    { label: "docs", href: `https://wirecat.dev/${lang}/docs` },
+    { label: "source", href: REPO },
+    { label: "privacy", href: `https://wirecat.dev/${lang}/privacy` },
+  ] as const
 
 type System = { os: string; arch: string } | null
 
@@ -36,6 +37,7 @@ function versionLine(system: System) {
 
 export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const m = useMessages(aboutMessages)
+  const lang = useLang()
   const readiness = useSystem((s) => s.readiness)
   const installs = useTools((s) => s.installs)
   const installed = tools.flatMap((t) => {
@@ -93,7 +95,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
 
         <nav aria-label={m.links}>
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-            {links.map((l) => (
+            {links(lang).map((l) => (
               <li key={l.href}>
                 <LinkButton href={l.href}>{m[l.label]}</LinkButton>
               </li>
