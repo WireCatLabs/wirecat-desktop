@@ -785,6 +785,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **BUG-42 · Search в 0.2.0 «не работает вообще»: общая база ~/.local/share/WireCat/wirecat.db повреждена** (`database disk image is malformed`, mtime 22:27). tg 0.112.0 падает на любом запросе и даже на `store status` с `command.crashed` — причина видна только в записи запуска (`tg runs show`). Проверено чтением: команда страницы Search для tg personal, 6 запросов (слово, кириллица, from:, date>=, has:) — все падают одинаково. Восстановлением занимается сессия wa (SEC-109, NEED-2126 в max-cli docs_ai): копия corrupt-20261101-2310, recovered-20261101.db, таймеры mail/memo-import остановлены. Я базу не трогаю. Полный тест поиска (все ключи, все профили) — после восстановления. Кнопка «Report this» у ошибки поиска — PR #50.
 - **IDEA-14 · cli-core должен отвечать на повреждённую базу понятной ошибкой** (`store.corrupt` с путём и советом восстановить из резервной копии), а не `command.crashed`; десктоп тогда покажет это на Tools/Storage и в Search. Не начато.
 
+- **memo 0.131.14 / cli-core 0.538.0 (2026-11-01, NEED-227 B):** пачки находок остаются одобряемыми после соседней (проверка только своих источников; встречи по-прежнему одним снимком); `task.has-subtasks` с details.subtasks; фильтр parent:; перенос подзадачи — отказ task.is-subtask, `--parent none` выносит; у действий verb/target_name/chat_name/text/counts. cli-core #2349, #2356, memo #568. Десктоп переводится агентом на ветке от main.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
