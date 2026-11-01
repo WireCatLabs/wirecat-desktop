@@ -108,6 +108,8 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 
 - **TASK-47 · Проект системы событий для CLI и десктопа (2026-11-01):** по ответу на NEED-178 — подписка на события ядра в CLI, доставка в десктоп, другим серверам и приложениям, приём событий извне. Сначала проект, без кода.
 
+- **TASK-48 · Переосмыслить показ «Памяти», три версии (2026-11-01):** Слава посмотрел страницу на своих данных: «we need to considerable rethink how we display memory, right now it's not clear … use impeccable skill and build 3 versions of Memory page, 1 is current improvement and 3 - completely rethought, think about further features and extension of this page as we'd add more stuff there». См. UX-26…31.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -584,6 +586,13 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - **TASK-47 · ответы внесены (2026-11-01), cli-core #2274:** сервер не останавливается сам; переключатель «Запускать при входе» на Tools → `<tool> events server autostart on|off|status`, при неудаче — точная команда с кнопкой «Копировать», без `sudo`; секрет вебхука — создаёт CLI или вставляет владелец. Вход в систему без прав администратора: Linux — юнит в `~/.config/systemd/user/`, macOS — LaunchAgent в `~/Library/LaunchAgents` (обе — вывод, документация о правах молчит); Windows — `HKCU\…\Run` вместо Планировщика. Шаг 2 теперь 4–5 дней cli-core + 1 день десктопа.
 - **RISK-76 · По справке Microsoft «Only Administrators can schedule tasks» (`schtasks /create`), а существующие расписания инструментов на Windows создаются без прав администратора** — противоречие, на Windows не проверялось; суточные архивы и follow-ups на Windows могут не создаваться.
+
+- **UX-26 · По записи «Памяти» не видно, к какому проекту она относится** (и, видимо, к чему ещё — фраза Славы оборвана: «what »).
+- **UX-27 · Длинный текст записи обрезан и никогда не раскрывается** — даже в открытом блоке.
+- **UX-28 · Действие «evidence findings» от `codex-nbb-evaluation` открывается пустым** — нет ни текста, ни источников, только «Written by / Saved / Kind / State» и Discard (скриншот Славы, 20 окт.).
+- **UX-29 · «by codex…» в строке не важен** — автора показывать только в раскрытом блоке.
+- **UX-30 · Фокус поля About рисует вторую рамку внутри поля** (синий прямоугольник внутри границы input, скриншот Славы).
+- **UX-31 · Кнопка Correct («Edit») стоит отдельно и выглядит странно** — Слава: ставить рядом с самим текстом; текст до раскрытия резать короче.
 
 ## 4. Вопросы к Славе
 
