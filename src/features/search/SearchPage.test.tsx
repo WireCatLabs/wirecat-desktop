@@ -220,6 +220,25 @@ describe("Search", () => {
     expect(screen.getByRole("button", { name: "Report this" })).toBeVisible()
   }, 15000)
 
+  it("shows no results, not an error, for an empty answer that did not cover every chat", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchStore").mockResolvedValue({
+      kind: "hits",
+      hits: [],
+      hasMore: false,
+      paged: true,
+      notes: ["searched 207,424 messages in 1,380 chats — 27 never fetched"],
+      total: null,
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "MAX")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByRole("combobox", { name: "Search messages" }), "zzq{Enter}")
+    expect(await screen.findByText(/Nothing matches this search/)).toBeInTheDocument()
+    expect(screen.getByText(/27 never fetched/)).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Report this" })).not.toBeInTheDocument()
+  }, 15000)
+
   it("offers ready queries, then the tool's own values after a field", async () => {
     const user = userEvent.setup()
     const values = vi.spyOn(platform, "searchValues")

@@ -172,11 +172,17 @@ pub enum Context {
 
 const MAX_REF: usize = 300;
 
-/// A ref exactly as a search hit names it (`msg:telegram/1/-100123/4000`, `meeting:acct/42`): a known prefix, no
-/// spaces or control characters, so it can never be read as a flag or a second argument.
+/// A ref exactly as a search hit names it (`msg:telegram/1/-100123/4000`, `meeting:acct/42`,
+/// `msg:email/a%40b.com/9/9`): a known prefix, no spaces or control characters, so it can never be read as a flag or
+/// a second argument. wa and mail percent-encode their addresses, so `%` passes before two hex digits only.
 fn validate_ref(reference: &str) -> Result<(), String> {
     let known = ["msg:", "meeting:"].iter().any(|p| reference.starts_with(p));
-    let plain = reference.chars().all(|c| c.is_alphanumeric() || ":/._-@+=".contains(c));
+    let bytes = reference.as_bytes();
+    let plain = reference.char_indices().all(|(i, c)| {
+        c.is_alphanumeric()
+            || ":/._-@+=".contains(c)
+            || (c == '%' && bytes.get(i + 1..i + 3).is_some_and(|h| h.iter().all(u8::is_ascii_hexdigit)))
+    });
     if known && plain && reference.len() <= MAX_REF { Ok(()) } else { Err("not a search result reference".into()) }
 }
 
@@ -290,12 +296,13 @@ fn read(src: &SearchSource, out: &run::Output, limit: u32) -> Answer {
     };
     let hits = hits.as_array().cloned().unwrap_or_default();
     let total = Total::deserialize(total).ok();
-    // zm reports a query its meeting search refused as a note and an incomplete, empty answer with exit 0.
-    if hits.is_empty() && body["meta"]["complete"] == Value::Bool(false) {
+    // zm answers a query its meeting search refused with exit 0, no hits, an issue and no account searched. A
+    // messenger's empty answer is incomplete too (chats never fetched), but it searched its account: "no results".
+    if hits.is_empty() && nothing_searched(&body["meta"]) {
         if let Some(refused) = notes.iter().find_map(|n| refused_note(n)) {
             return refused;
         }
-        if let Some(note) = notes.first() {
+        if let Some(note) = notes.iter().find(|n| n.contains(" not searched: ")).or(notes.first()) {
             return Answer::Failed { message: note.clone(), candidates: Vec::new() };
         }
     }
@@ -317,6 +324,11 @@ fn read(src: &SearchSource, out: &run::Output, limit: u32) -> Answer {
         }
     }
     Answer::Hits { hits, has_more, paged: paged(src), notes: all, total }
+}
+
+fn nothing_searched(meta: &Value) -> bool {
+    let issues = meta["issues"].as_array().is_some_and(|i| !i.is_empty());
+    issues && meta["accounts"].as_array().is_none_or(Vec::is_empty)
 }
 
 /// Plain lines on stderr are the tool's notes to the reader; its JSON error line is not one.
@@ -492,10 +504,18 @@ mod tests {
         assert!(context_args(tg, Some("personal"), "--json").is_err());
         assert!(context_args(tg, Some("personal"), "msg:a b").is_err());
         assert!(context_args(tg, None, "msg:telegram/1/2/3").is_err());
+        let wa = src("wa").context.as_ref().unwrap();
+        let ref_ = "msg:whatsapp/34600000000%40s.whatsapp.net/34600000000%40s.whatsapp.net/3EB0A1B2C3D4E5F6";
+        assert_eq!(context_args(wa, Some("spanish"), ref_).unwrap()[3], ref_);
+        for bad in ["msg:whatsapp/a%", "msg:whatsapp/a%4", "msg:whatsapp/a%zz/1", "msg:whatsapp/a%4 0", "%40msg:a"] {
+            assert!(context_args(wa, Some("spanish"), bad).is_err(), "{bad}");
+        }
         let zm = src("zm").context.as_ref().unwrap();
         assert_eq!(context_args(zm, Some("work"), "meeting:acct/42").unwrap()[3], "42");
         assert!(context_args(zm, Some("work"), "meeting:acct/x").is_err());
         let mail = src("email").context.as_ref().unwrap();
+        let ref_ = "msg:email/someone%40gmail.com/12345/678";
+        assert_eq!(context_args(mail, Some("personal"), ref_).unwrap()[2], ref_);
         assert!(
             !context_args(mail, Some("personal"), "msg:email/personal/INBOX/9")
                 .unwrap()
@@ -588,7 +608,7 @@ mod tests {
 
     #[test]
     fn zm_refusal_in_a_note_becomes_a_query_error() {
-        let body = r#"{"items":[],"page":{"has_more":false},"meta":{"complete":false}}"#;
+        let body = r#"{"items":[],"page":{"has_more":false},"meta":{"accounts":[],"complete":false,"issues":[{"code":"validation_error","source":"meetings"}]}}"#;
         let note = "meetings not searched: search: query.invalid-syntax at position 8";
         let answer = read(src("zm"), &output(0, body, note), 50);
         assert_eq!(
@@ -603,12 +623,29 @@ mod tests {
 
     #[test]
     fn zm_words_only_refusal_is_its_own_note() {
-        let body = r#"{"items":[],"meta":{"complete":false}}"#;
+        let body = r#"{"items":[],"meta":{"accounts":[],"complete":false,"issues":[{"code":"validation_error","source":"meetings"}]}}"#;
         let note = "meetings not searched: meetings support letter/digit words joined by AND";
         assert_eq!(
             read(src("zm"), &output(0, body, note), 50),
             Answer::Failed { message: note.into(), candidates: vec![] }
         );
+    }
+
+    #[test]
+    fn a_messenger_with_no_match_answers_no_results_and_keeps_its_notes() {
+        let body = r#"{"items":[],"page":{"has_more":false},"missing":[{"field":"coverage","why":"searched 207,424 messages in 1,380 chats — 27 never fetched"}],"meta":{"accounts":["telegram:1"],"complete":false}}"#;
+        let stderr = "also found other forms: zzq → zzq* (english) — --exact for the exact words only\nsearched 207,424 messages in 1,380 chats — 27 never fetched\n";
+        for id in ["tg", "max", "wa"] {
+            let Answer::Hits { hits, notes, .. } = read(src(id), &output(0, body, stderr), 50) else { panic!("{id}") };
+            assert!(hits.is_empty(), "{id}");
+            assert_eq!(notes.len(), 2, "{id}: {notes:?}");
+        }
+    }
+
+    #[test]
+    fn an_empty_zm_answer_that_searched_its_meetings_is_no_results() {
+        let body = r#"{"items":[],"meta":{"accounts":["zoom:zm-profile:personal"],"complete":true}}"#;
+        assert!(matches!(read(src("zm"), &output(0, body, ""), 50), Answer::Hits { .. }));
     }
 
     #[test]

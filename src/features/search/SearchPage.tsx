@@ -384,7 +384,19 @@ function resultsView(
     return { view: "start", node: <Empty>{s.profiles === null ? m.startNoProfile : m.start}</Empty> }
   }
   if (hits.hits.length === 0)
-    return { view: "empty", node: <Empty busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</Empty> }
+    return {
+      view: "empty",
+      node: (
+        <div className="flex flex-col gap-[0.5rem]">
+          <Empty busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</Empty>
+          {hits.notes.map((n) => (
+            <p key={n} className="selectable text-[0.9rem] text-ink-dim">
+              {n}
+            </p>
+          ))}
+        </div>
+      ),
+    }
 
   const pager = hits.paged && (page > 1 || hits.hasMore)
   const node = (

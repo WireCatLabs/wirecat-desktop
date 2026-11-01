@@ -226,10 +226,7 @@ export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "search
     const hits = Array.from({ length: Math.max(0, Math.min(limit, total - from)) }, (_, i) =>
       hit(search.what, from + i),
     )
-    const notes =
-      search.what === "messages" && total > 0
-        ? ["searched 12,480 messages in 64 chats — 3 never fetched, 5 behind"]
-        : []
+    const notes = search.what === "messages" ? ["searched 12,480 messages in 64 chats — 3 never fetched, 5 behind"] : []
     return {
       kind: "hits",
       hits,
