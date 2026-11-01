@@ -25,7 +25,8 @@ Sources are official docs read on 2026-11-01. "Verified" means seen in output on
 4. **Anthropic's terms are ambiguous for this exact use** (WireCat starting the owner's own signed-in `claude`).
    That needs the owner's call (NEED-A), not silence read as a yes.
 5. **OpenAI has an official way for an open-source local app to use the owner's ChatGPT plan** ("Sign in with
-   ChatGPT", ChatGPT plan usage, in preview). WireCat qualifies on paper (public, Apache-2.0, local). It needs no
+   ChatGPT", ChatGPT plan usage, in preview). WireCat qualifies on paper: wirecat-desktop, cli-core and cli-memo are all public and Apache-2.0, and run
+   locally (`gh repo view`). It needs no
    installed CLI and no key. Not tried here.
 6. **MCP sampling is out.** The current spec deprecates it, and no Claude, OpenAI, Cursor or Gemini client supports it.
 7. **A local model works but is slow here.** qwen3.5:9b on this computer's CPU took 64 s for 120 words; a real
@@ -60,8 +61,9 @@ check, the batch writer, 2–3 days).
   `loggedIn: false, authMethod: "none"`. The docs say it exits 1 when signed out
   ([CLI reference](https://code.claude.com/docs/en/cli-reference)).
 - **Run** (memo, not the app, starts it; fixed arguments, the text on stdin, an empty temp folder as working folder):
-  `claude -p --model haiku --tools "" --strict-mcp-config --setting-sources "" --no-session-persistence
+  `claude -p --model <model> --tools "" --strict-mcp-config --setting-sources "" --no-session-persistence
   --output-format json --json-schema <schema> --system-prompt <prompt>`.
+  - The model is the owner's setting, Haiku by default (the spike used `haiku`); WireCat does not choose it.
   - `--tools ""` disables every built-in tool ([CLI reference](https://code.claude.com/docs/en/cli-reference));
     `--strict-mcp-config` with no `--mcp-config` loads no MCP server. The docs say `--tools` does not cover MCP tools,
     so add `--disallowedTools "mcp__*"` as a belt.
@@ -100,7 +102,8 @@ check, the batch writer, 2–3 days).
 - **Run**: `codex exec --skip-git-repo-check --ephemeral --ignore-user-config --ignore-rules --sandbox read-only
   -c approval_policy="never" -c web_search="disabled" --output-schema <file> -o <file> --json -`, prompt and text
   on stdin ([non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode),
-  [config reference](https://learn.chatgpt.com/docs/config-file/config-reference)).
+  [config reference](https://learn.chatgpt.com/docs/config-file/config-reference)). The spike ran without
+  `web_search="disabled"`; that flag comes from the docs and is untested here.
 - **It cannot be limited to "read this text".** No flag removes its shell. Read-only mode "can inspect files, but it
   can't edit files or run commands without approval" ([sandboxing](https://learn.chatgpt.com/docs/sandboxing)); the
   docs do not say whether reading is limited to the working folder. Verified: the run sent **19,574 input tokens**
@@ -127,14 +130,16 @@ check, the batch writer, 2–3 days).
   with `store: false`, `stream: true`; no `temperature`, no `max_output_tokens`, no audio input
   ([limitations](https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations)).
 - **Why it matters**: it is the only official way found to use a consumer plan from a third-party app, it needs no
-  installed CLI and no key, and it is a plain API call with no tools. WireCat is public and Apache-2.0
-  (`gh repo view`).
+  installed CLI and no key, and it is a plain API call with no tools. wirecat-desktop, cli-core and cli-memo are
+  public and Apache-2.0 (`gh repo view`), so the sign-in can live in cli-core (rule 1) and still be "an open-source
+  app".
 - **Unknowns**: it is a preview; whether structured outputs (JSON schema) work on this route, and what each run
   costs against the plan's limits, are not in the pages read. Not tried. The token lives in the keyring (cli-core,
   `oauth:chatgpt:<profile>`), refreshed by cli-core.
 
 ### 4. The owner's own API key
 
+- Code references below are at cli-core `57dc213b`, cli-memo `3abbf3e` and wirecat-api `e9a883c`.
 - cli-core already has a model client with consent and OpenAI and Anthropic adapters, and reads keys from the keyring
   for embeddings (`cli-core/src/models/index.ts:19-79`, `src/embeddings/keys.ts:15-45`). memo's `answers --analyze`
   reads its key only from `MEMO_MODEL_API_KEY` (`cli-memo/src/answers/command.ts:160`). Work: read the analysis key
@@ -265,6 +270,15 @@ picks in Settings → "Reading for facts" once, and the panel names it ("Claude,
    panel says "Reading on this computer takes a few minutes; you can leave this page." Never installed by WireCat.
 5. **Always: "Only save it" and "Ask my agent later"** (the queue). Neither fails.
 
+**The first version, with the picks below.** The list above is the target. Until Anthropic answers (NEED-A), Claude
+Code is not offered, so the first version starts lower:
+
+1. Half a day: spike the ChatGPT plan sign-in on made-up text (NEED-B).
+2. If it works, ship ChatGPT plan sign-in → own key → a running local model → save or ask later. Codex CLI is not
+   needed, and the reader that can see the owner's files never ships.
+3. If it does not work, ship Codex CLI with its warning in its place (NEED-C).
+4. Add Claude Code at the top of the list when Anthropic says yes in writing.
+
 Not built: the WireCat-hosted endpoint (cost, abuse, a privacy policy, GDPR), MCP sampling (deprecated, unsupported),
 Gemini/`agy`, Cursor and the rest (cannot be locked down, or free sign-in ended).
 
@@ -298,15 +312,18 @@ In every case the source is already saved (plan, step 3), and Try again and "Kee
   say they do not prevent "an end user from signing in to the unmodified Claude Code binary with their own Claude
   subscription". A: yes, build it now, the owner's own sign-in · B: ask Anthropic in writing first, build Codex and
   keys meanwhile · C: Claude only with an API key (`--bare`). I would pick **B**: the text leans our way, but enforcement
-  can come "without prior notice", and a written answer costs a week, not a feature.
+  can come "without prior notice", and a written answer costs a week, not a feature. Without an answer, Claude Code
+  owners get no suggestions unless they also have ChatGPT, a key or a local model.
 - **NEED-B · Spike "Sign in with ChatGPT" before choosing between it and Codex CLI?** A: yes, half a day, on made-up
   text · B: build Codex CLI only. I would pick **A**: it is the official route, needs no installed CLI, and has no
-  tools to lock down.
-- **NEED-C · Allow Codex CLI even though it cannot be stopped from reading files?** A: yes, with the panel's warning
-  and memo's quote check · B: only through the ChatGPT plan sign-in (option 3) · C: not at all. I would pick **A** for
-  now and **B** once NEED-B shows the sign-in works.
+  tools to lock down. Without an answer, the first version ships Codex CLI, which can see the owner's files.
+- **NEED-C · If the ChatGPT sign-in fails, allow Codex CLI even though it cannot be stopped from reading files?** A:
+  yes, with the panel's warning and memo's quote check · B: no, ChatGPT owners use a key instead. I would pick **A**:
+  the quote check keeps a stolen file out of memory, and the warning lets the owner say no. Without an answer, it is
+  not built.
 - **NEED-D · Offer a local model?** A: only an Ollama the owner already runs · B: also ship one in the tool (2.5 GB+,
-  4–6 days) · C: no. I would pick **A**: almost free to build, private, and honest about being slow.
+  4–6 days) · C: no. I would pick **A**: almost free to build, private, and honest about being slow. Without an
+  answer, it is not built and offline owners can only save.
 
 ## Not verified
 
