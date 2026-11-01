@@ -1169,7 +1169,7 @@ mod tests {
         );
         if let Some(batch) = entries.iter().find(|e| e.findings.is_some()) {
             assert!(batch.project_name.is_some());
-            assert!(!sources_with(&call, &Ref::parse(&batch.reference).unwrap()).unwrap().is_empty());
+            assert_ne!(sources_with(&call, &Ref::parse(&batch.reference).unwrap()).unwrap(), Vec::<Source>::new());
         }
         if let Some(waiting) = entries.iter().find(|e| e.findings.is_some() && e.status == "proposed") {
             let r = Ref::parse(&waiting.reference).unwrap();
@@ -1198,7 +1198,7 @@ mod tests {
         ]))
         .unwrap();
         let r = Ref::parse(body(&added)["ref"].as_str().unwrap()).unwrap();
-        assert!(!sources_with(&call, &r).unwrap().is_empty());
+        assert_ne!(sources_with(&call, &r).unwrap(), Vec::<Source>::new());
         assert_eq!(discard_with(&call, &r).unwrap().status, "stale");
         let fixed = correct_with(&call, &r, "-Probe: Kai is in Porto").unwrap();
         assert_eq!((fixed.status.as_str(), fixed.supersedes.as_deref()), ("confirmed", Some(r.memo().as_str())));

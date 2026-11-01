@@ -1073,7 +1073,7 @@ mod tests {
         let fake = Fake::new(|_| Ok(history_rows()));
         let h = history_with(&|a: &[String]| fake.call(a), "HRB-1").unwrap();
         assert_eq!(h.len(), 3);
-        assert!(h[0].changes.is_empty());
+        assert_eq!(h[0].changes, Vec::<Change>::new());
         assert_eq!(h[2].by.as_ref().unwrap().name.as_deref(), Some("hermes"));
         assert_eq!(h[2].changes[0], Change { field: "status".into(), from: json!("open"), to: json!("in_progress") });
     }
@@ -1322,7 +1322,7 @@ mod tests {
         let raw = call(&with_query(&["tasks", "list", "--limit", LIMIT], "project:* state:*")).unwrap();
         let Read::Ready { tasks, .. } = list_with(&call, "state:*").unwrap() else { panic!("not ready") };
         assert_eq!(tasks.len(), raw["items"].as_array().unwrap().len(), "a task did not parse");
-        assert!(!projects_with(&call).unwrap().is_empty());
+        assert_ne!(projects_with(&call).unwrap(), Vec::<Project>::new());
         assert!(people_with(&call).unwrap().iter().any(|p| p.owner));
         assert!(counts_with(&call, "").unwrap().state.iter().any(|f| f.value == "in_progress"));
         assert!(matches!(list_with(&call, "(").unwrap(), Read::BadQuery { .. }));
@@ -1397,7 +1397,7 @@ mod tests {
         let Write::Saved { task: nobody, .. } = assign_with(&call, &mine.key, mine.revision, None).unwrap() else {
             panic!("not cleared")
         };
-        assert!(nobody.assignees.is_empty());
+        assert_eq!(nobody.assignees, Vec::<String>::new());
         assert!(history_with(&call, &a.key).unwrap().iter().any(|e| e.changes.iter().any(|c| c.field == "status")));
         // What the interface's schemas parse, written out when asked, for a check against real answers.
         if let Ok(dir) = std::env::var("TASK_BOARD_DUMP") {
