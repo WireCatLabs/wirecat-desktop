@@ -764,6 +764,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - **UX-49 · Отзыв на Tasks:** «In task edit we need to change priority, due date, assignee, project. also not clear when it was created and so on. waits for is nice but should be a link … check https://beadmeupscotty.com/ … use min width of tasks and horizontal scroll … in Tasks table view I'd open them in modal not expand». Отдано агенту: модальное окно в таблице, правка всех полей и метаданные, «waits for» ссылкой, минимальная ширина и горизонтальная прокрутка, идеи с beadmeupscotty/beads; работа поверх review/all, перенос в feat/tasks-page.
 
+- **UX-50 · Search: вместо списка ключей подсказки только has:, поиск простым текстом не работает, кнопка Search неактивна без объяснения.** Слава: «button should be active and on click it should show a validation error and explain why … disabled button should rarely be used». Отдано агенту: ключи в подсказках, причина простого поиска, валидация по клику, проход по всем disabled в приложении и правило в DESIGN.md.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
