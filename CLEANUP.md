@@ -107,3 +107,4 @@
 - `/home/leemour/wc-guides-tmp` — downloaded wirecat.dev command pages used to check guide commands (2026-11-01)
 - `.claude/worktrees/guides-plan/.impeccable/mocks/guides/vite.log`, `vite.pid` — untracked server output (2026-11-01)
 - `/home/leemour/Projects/AI/cli-docs/.worktrees/privacy-desktop-app`, `/home/leemour/Projects/AI/cli-docs/.worktrees/privacy-no-proxy-log` (with its node_modules), merged remote branches fix/caddy-skip-notifications (wirecat-api), docs/privacy-no-proxy-log, docs/privacy-desktop-app, docs/privacy-desktop-corrections, docs/privacy-nodejs-offer (cli-docs), fix/notifications-no-ip (wirecat-api) — privacy round, all merged (2026-11-01)
+- `/home/leemour/Projects/AI/cli-core-wt-search-files` (branch feat/search-hit-files, merged as cli-core #2330, ~800 MB node_modules) and `/home/leemour/tmp-search-files/cli-core-release` — Search gaps 1–3 in cli-core 0.532.0 (2026-11-01)
