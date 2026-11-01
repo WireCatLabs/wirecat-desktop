@@ -63,6 +63,7 @@ export function TasksPage() {
           </Button>
           <ViewSwitch value={view} onChange={(v) => useTasks.getState().setView(v)} />
           <Button
+            variant="primary"
             size="sm"
             aria-expanded={creating}
             onClick={() => useTasks.getState().startCreate(!creating)}

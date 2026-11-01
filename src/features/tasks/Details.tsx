@@ -152,7 +152,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
             />
           </label>
           <div className="flex gap-2">
-            <Button size="sm" type="submit" disabled={!changed || busy}>
+            <Button variant="primary" size="sm" type="submit" disabled={!changed || busy}>
               {busy ? m.saving : m.save}
             </Button>
             <Button size="sm" variant="ghost" onClick={reset} disabled={!changed || busy}>
