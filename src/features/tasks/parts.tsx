@@ -9,10 +9,10 @@ import { useTasks } from "./store"
 
 export const STATE_TONE: Record<State, LampTone> = {
   open: "idle",
-  todo: "idle",
+  todo: "warn",
   in_progress: "doing",
   done: "ok",
-  dismissed: "idle",
+  dismissed: "off",
 }
 
 export function StateLamp({ state }: { state: State }) {

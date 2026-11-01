@@ -19,6 +19,7 @@ colors:
   light-warn-ink: "#8a5a00"
   light-bad: "#cf4a2f"
   light-idle: "#a9b5ae"
+  light-off: "#868d89"
   light-on-status: "#ffffff"
   brand-ink: "#ffffff"
   dark-wall: "#131718"
@@ -38,6 +39,7 @@ colors:
   dark-warn-ink: "#e6b04a"
   dark-bad: "#f07a5f"
   dark-idle: "#4c5659"
+  dark-off: "#757c78"
   dark-on-status: "#0d1512"
 typography:
   display:
@@ -211,7 +213,7 @@ These words come from the surface's direction contract ([the Tools surface brief
 **Key Characteristics:**
 
 - One flat rack panel per page: hairline frame, 0.2rem corners, no shadow, rows split by hairlines.
-- Six lamp tones carry all tool, system and task state.
+- Seven lamp tones carry all tool, system and task state.
 - Mono with tabular figures for every machine-reported value.
 - Purple is rare and always means brand, link or the one primary action.
 - Unbounded only for page titles; Onest for everything else.
@@ -235,6 +237,7 @@ Green-tinted neutrals with one purple, plus a small status set; each token has a
 - **Amber Ink** (`warn-ink`): any amber text (a leftover-data status, a shadowed-copy note, the warn pill's label). In light mode it is a dark amber; in dark mode it equals `warn`.
 - **Fault Red** (`bad`): broken lamp, failed step, error text, the danger button's label, error banners (40% border, 10% fill).
 - **Idle Grey** (`idle`): the hollow ring of a missing or checking lamp, and pending stepper dots.
+- **Settled Grey** (`off`): the solid lamp of a dismissed task. Darker than `idle` so a filled dot holds 3:1 against the panel in both themes (`#868d89` light, `#757c78` dark).
 - **On Status** (`on-status`): the check or cross inside a done or failed stepper dot; white in light mode, near-black in dark mode, where the status colours are light.
 
 ### Neutral
@@ -336,7 +339,7 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
 
 ### Status Lamp (signature)
 
-A round lamp, 1.4rem in rows and 0.85rem in the readiness strip, with exactly six tones: `ok` solid green (installed and current), `warn` solid amber (update available), `bad` solid red (installed but does not start), `idle` hollow grey ring (missing or still checking), `busy` solid purple with a 1.4s pulse (installing or uninstalling, an agent working on a task now), `doing` solid purple without a pulse (a task in progress; a page of pulsing rows would be noise, NEED-181). A lamp with meaning carries an accessible label ("Update available"). Tone changes cross-fade over 300ms.
+A round lamp, 1.4rem in rows and 0.85rem in the readiness strip, with exactly seven tones: `ok` solid green (installed and current; a task done), `warn` solid amber (update available; a task to do), `bad` solid red (installed but does not start), `idle` hollow grey ring (missing or still checking; an open task), `off` solid grey (a dismissed task), `busy` solid purple with a 1.4s pulse (installing or uninstalling, an agent working on a task now), `doing` solid purple without a pulse (a task in progress; a page of pulsing rows would be noise, NEED-181). A lamp with meaning carries an accessible label ("Update available"). Tone changes cross-fade over 300ms.
 
 ### Rack Row (signature)
 
