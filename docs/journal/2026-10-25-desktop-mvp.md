@@ -109,6 +109,9 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 - **TASK-50 · Собрать всю открытую работу в одну ветку для просмотра (2026-11-01):** Слава: «there's still no Tasks page, only memory, and I see Accounts (I think we removed it?). Basically we need to merge all stuff into 1 branch so I can see all consolidated work and review». Ветка `review/all` из #34, #39, #37, #41, #40; Vite :1437.
 - **TASK-51 · Уведомления и значки (2026-11-01):** Слава: «I'd add notifications that we can show to user, eg important security updates etc. I'd add an api endpoint for notifications in wirecat-api and fetch them each hour and on app start. I'dd add a badge ro similar to the left menu with items that need to be resolved eg tools updated, memory reviewed etc. Not for all so we dont spam user eg at first after install I'd probably show bade on Agents but if user doesnt install skills I'd clear the bade on view and not show it so it doesnt create noise. Some things users just dont have to do. Also we can have a bell next to ? icon displaying notifications and if some are unread. let's test the notification - you can add test one on prod db, just make sure you design them nicely».
 
+- **TASK-52 · Варианты извлечения фактов (2026-11-01):** Слава: «did you use openai model with a key? I think we need to set the key in the desktop app in settings and if it's not set ask user but ideally this shouldnt be required as not everyone has account with an api key, I'd try to actually use an agent instead mb call claude/codex etc via cli or another way to process data and if it doesnt work - provide helpful info on what to setup»; по NEED-199: «need more options to make the final decision». Ответ: ключ не использовался, ничего не построено; план предлагал настроенную модель memo (ключ из переменной окружения). Исследование: CLI-агенты, MCP sampling, свой ключ в keyring, локальная модель, сервер WireCat, очередь для агента.
+- **TASK-53 · Приватность (2026-11-01):** NEED-208 = B «and say that in legal docs»; «I'd add info about privacy under the ? menu explaining that all stuff is local, what we log and not etc». API перестаёт писать IP и страну для уведомлений, политика конфиденциальности на сайте, пункт «Privacy» в меню «?».
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -615,6 +618,9 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **FIND-170 · Кто уже стоит, увидит точку на Agents один раз после обновления** — приложение не знает, открывал ли он Agents раньше.
 
 - **TASK-49 · «Добавить в память», дизайн 2 (2026-11-01):** PR #40 (6d6d8ef, 4f20e13), влит в `review/all` (c12af1f, `pnpm check` 458 + 245). По UX-39…43 и BUG-39/40: «WireCat» вместо Memo, фиолетовая кнопка, отдельная рамка над списком, компактная шапка с пользой, плитки File/Link/Text слева, «Source · 1 of 4» вместо крупного степпера, Next включается сразу, ссылка читается по Enter/вставке/«Read it», один выбор людей-проектов-задач с поиском и чипами, итог — таблица «Source / Kept / Linked to». 96 снимков в `.impeccable/mocks/memory/add/v2/`. Список под панелью в прототипе — старая заглушка, не страница версии 2.
+
+- **BUG-41 · Переключение File/Text/Link в «Add to memory» медленное, клик иногда не срабатывает.**
+- **UX-44 · «Add to memory»: Text первым; фраза «The source itself turns up…» непонятна — простыми словами; поиск людей, проектов и задач — раздельными полями.**
 
 ## 4. Вопросы к Славе
 
@@ -1165,5 +1171,6 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-182 · Выпустить ли tg-cli с исправленным поиском по смыслу (#799, cli-core 0.506.0)?** Сейчас: смержено, `release:check` чист, кроме двух ожидаемых. A выпускаю сейчас · B ждёт. Я бы A.
 - **NEED-206 · Нужна ли точка на Tools при доступных обновлениях?** A нет (Tools — домашняя страница и уже показывает обновления) · B ежечасная проверка в фоне и точка. Я бы A.
 - **NEED-207 · Привязать ли срок приветственного уведомления к выпуску десктопа, а не к 15 ноября?** A оставить 15.11 · B после выпуска удалить и создать заново на 14 дней. Я бы B.
-- **NEED-208 · Перестать ли писать IP для запросов уведомлений?** A оставить и сказать об этом · B не писать IP и страну для этого адреса. Я бы B.
-- **NEED-209 · Разрешить ли в DESIGN.md фиолетовую главную кнопку в шапке страницы («Add to memory»)?** A да: главное действие страницы может быть фиолетовым · B правило оставить, кнопку снова сделать контурной. Я бы A.
+- **NEED-208 · Перестать ли писать IP для запросов уведомлений?** A оставить и сказать об этом · B не писать IP и страну для этого адреса. Я бы B. **Ответ 2026-11-01: B**, «and say that in legal docs».
+- **NEED-209 · Разрешить ли в DESIGN.md фиолетовую главную кнопку в шапке страницы («Add to memory»)?** A да: главное действие страницы может быть фиолетовым · B правило оставить, кнопку снова сделать контурной. Я бы A. **Ответ 2026-11-01: A.**
+- **NEED-199 · ответ** **2026-11-01:** нужно больше вариантов, см. TASK-52. (вопрос записан в журнале ветки feat/memory-page)
