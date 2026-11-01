@@ -4,7 +4,7 @@ import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
-import type { Forgot, MemoryEntry, MemoryRead, MemorySource } from "./memory-schemas"
+import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
 import type { RunDetail, RunsPage } from "./runs-schemas"
@@ -158,6 +158,10 @@ export type Platform = {
   memoryCorrect(ref: string, text: string): Promise<MemoryEntry>
   /** Erases the record, its links to sources and its search entry. */
   memoryForget(ref: string): Promise<Forgot>
+  /** A cited source read back: a message with its neighbours, or a note's text. */
+  memorySourceContext(ref: string): Promise<SourceContext>
+  /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
+  memoryOpenSource(ref: string): Promise<void>
   taskClaims(id: string, profile: string): Promise<Claims>
   /** Releases a claim as the owner, who may release any. */
   taskRelease(id: string, profile: string, task: string): Promise<void>

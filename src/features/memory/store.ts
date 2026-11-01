@@ -1,8 +1,12 @@
 import { create } from "zustand"
-import { inTab, type Tab } from "@/domain/memory"
+import { inTab, type Range, type Tab } from "@/domain/memory"
 import { platform } from "@/platform/bridge"
-import type { MemoryEntry, MemoryRead, MemorySource } from "@/platform/memory-schemas"
+import type { MemoryEntry, MemoryRead, MemorySource, SourceContext } from "@/platform/memory-schemas"
 
+export type Context =
+  | { state: "loading" }
+  | { state: "ready"; context: SourceContext }
+  | { state: "failed"; error: string }
 export type Op = "confirm" | "discard" | "correct" | "forget"
 export type Sources =
   | { state: "loading" }
@@ -20,6 +24,11 @@ type MemoryState = {
   tabChosen: boolean
   about: string
   by: string
+  kind: string
+  project: string
+  range: Range
+  /** Cited sources read back in place, by ref. */
+  contexts: Record<string, Context>
   open: string | null
   /**
    * Rows that changed state while shown keep their place under the tab they were in (rule 9): a confirmed row turns
@@ -41,6 +50,11 @@ type MemoryState = {
   setTab(tab: Tab): void
   setAbout(about: string): void
   setBy(by: string): void
+  setKind(kind: string): void
+  setProject(project: string): void
+  setRange(range: Range): void
+  clearFilters(): void
+  loadContext(ref: string): Promise<void>
   toggle(ref: string): void
   loadSources(ref: string): Promise<void>
   confirm(ref: string): Promise<void>
@@ -91,6 +105,10 @@ export const useMemory = create<MemoryState>((set, get) => {
     tabChosen: false,
     about: "",
     by: "",
+    kind: "",
+    project: "",
+    range: "any",
+    contexts: {},
     open: null,
     held: [],
     leaving: [],
@@ -123,6 +141,21 @@ export const useMemory = create<MemoryState>((set, get) => {
     setTab: (tab) => set({ tab, tabChosen: true, held: [], arriving: [] }),
     setAbout: (about) => set({ about }),
     setBy: (by) => set({ by }),
+    setKind: (kind) => set({ kind }),
+    setProject: (project) => set({ project }),
+    setRange: (range) => set({ range }),
+    clearFilters: () => set({ about: "", by: "", kind: "", project: "", range: "any" }),
+    async loadContext(ref) {
+      const had = get().contexts[ref]
+      if (had && had.state !== "failed") return
+      set((s) => ({ contexts: { ...s.contexts, [ref]: { state: "loading" } } }))
+      try {
+        const context = await platform.memorySourceContext(ref)
+        set((s) => ({ contexts: { ...s.contexts, [ref]: { state: "ready", context } } }))
+      } catch (e) {
+        set((s) => ({ contexts: { ...s.contexts, [ref]: { state: "failed", error: message(e) } } }))
+      }
+    },
     toggle(ref) {
       const opening = get().open !== ref
       set((s) => ({ open: opening ? ref : null, correcting: s.correcting === ref ? null : s.correcting }))
@@ -141,7 +174,8 @@ export const useMemory = create<MemoryState>((set, get) => {
     },
     async confirm(ref) {
       const findings = get().entries.find((e) => e.ref === ref)?.findings
-      const skipped = get().skipped[ref] ?? []
+      // Approve on a closed row takes every finding; picking happens in the opened row.
+      const skipped = get().open === ref ? (get().skipped[ref] ?? []) : []
       const accept = findings ? findings.map((f) => f.id).filter((id) => !skipped.includes(id)) : undefined
       const entry = await run(ref, "confirm", () => platform.memoryConfirm(ref, accept))
       if (entry) replace(entry)

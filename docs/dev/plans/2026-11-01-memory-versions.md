@@ -4,8 +4,9 @@ Owner, 2026-11-01, after using the page on his real data: "we need to considerab
 build 3 versions of Memory page, 1 is current improvement and 3 - completely rethought". Journal: TASK-48, UX-26 to
 UX-31. The first plan is [2026-10-31-memory-page.md](2026-10-31-memory-page.md).
 
-All three run in the browser build behind `?memory-version=1|2|3` (1 by default). With the parameter in the address,
-a small "Design version" switch sits above the page; without it there is no switch, so version 1 is what ships.
+**Outcome (NEED-197 = B):** the owner picked version 2, with changes (UX-32 to UX-37, below). Versions 1 and 3 and
+the `?memory-version` switch are gone from `src`; this note and their screenshots stay as the record. The three ran
+side by side in the browser build behind `?memory-version=1|2|3`.
 Screenshots, light and dark: [.impeccable/mocks/memory/v2/](../../../.impeccable/mocks/memory/v2/).
 
 ## What the owner hit, and where each version answers it
@@ -133,3 +134,47 @@ as memo gains them.
 - The real app (Tauri, WebKitGTK); all screenshots come from Chrome against the mock.
 - Motion with animations on: every capture runs with reduced motion. Of version 3, only the inbox was checked at
   960 px.
+
+## What shipped: version 2 with the owner's changes
+
+Screenshots: `final-*` in [.impeccable/mocks/memory/v2/](../../../.impeccable/mocks/memory/v2/).
+
+- **One word per meaning (UX-33).** Approve: anything waiting. Reject: anything waiting, or something in use that
+  proved wrong (keeps a trail). Correct: replace the text (keeps a trail). Erase…: delete for good. The tab is
+  Rejected. memo's own verbs underneath are unchanged (`confirm`, `invalidate`, `reject`, `reverse`, `remove`).
+- **Row actions without opening (UX-34).** A waiting row shows Reject and a split button: Approve, and an arrow to
+  the rest (Approve some… for findings, Correct, Erase…). Approve on a closed findings row creates all of them; an
+  opened row creates the ticked ones. A row in use leads with Correct; its menu has Reject and Erase…. The menu is
+  `src/ui/SplitButton.tsx` (WAI-ARIA menu button; it floats in a fixed layer placed by `popup-list.ts`, so the row
+  never moves). Reject stays visible beside it: at 960 px the row still has room.
+- **No time column (UX-35).** The row's label reads "Decision · Today 01:02".
+- **More details, each a filter (UX-32).** The opened row lists project, about, kind, scope, author, model,
+  confidence, saved, changed, source count, target, account, what it corrects and state. Project, about, kind, author
+  and the saved day are links that set that filter. New filters: Project, Kind and Saved (any time, today, 7 days,
+  30 days, or a day picked from a record).
+- **Sources open in place (UX-36).** A source, or a ref a finding cites, unfolds what memo reads back:
+  - `msg:` (messengers and mail): `memo messages show <ref> --before-n 3 --after-n 3`, the cited one marked;
+  - `note:` and `document:`: `memo notes show <ref>`, with Open file when memo keeps the note as a file. Rust finds
+    the file again from the ref and memo's `folders list`, opens it only inside memo's folders, with the opener
+    plugin;
+  - anything else says memo cannot show it yet.
+- **Logs link (UX-37).** "All activity in Logs" opens Logs with
+  `tool:memo command:"memories *" command:"facts *" command:"actions *" command:"projects actions *"` (one field
+  repeated is OR in the Logs query), over all time.
+
+### What memo cannot serve for opening sources
+
+- **`meeting:<id>`**: memo has no command that shows a whole meeting. `memo meetings passage` reads around a
+  transcript *cue* ref, which a memory's evidence does not carry.
+- **`person:`, `chat:`, `task:` and other refs** a record may cite: no show command for them in this flow.
+- **A message's neighbours are the nearest stored ones**, not necessarily the next sent (cli-core `around()`).
+- **Notes stored inside memo (`source: internal`)** have no file to open.
+- The messenger CLIs (`tg`, `max`, `wa`) were not needed: memo reads the same store.
+
+### Not verified
+
+- `messages show` and `notes show` against real stored messages and notes: their JSON was read from cli-memo and
+  cli-core sources (`senderName` / `sender_name`, `timestamp`, `anchor`; note `source`, `path`, `folder_id`), and
+  Rust accepts either spelling. The probe store holds no messages.
+- Whether memo's MCP calls appear in Logs under these commands; the query matches CLI runs (`memo memories add` and
+  the like).

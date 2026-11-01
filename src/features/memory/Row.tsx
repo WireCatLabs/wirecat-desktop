@@ -1,6 +1,7 @@
 import {
   Brain,
   ChevronDown,
+  ExternalLink,
   FileText,
   FolderKanban,
   ListChecks,
@@ -9,14 +10,22 @@ import {
   MessageSquareQuote,
   MessagesSquare,
   Pencil,
-  Trash2,
   User,
   UserRound,
   Video,
 } from "lucide-react"
-import { type MouseEvent, type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef, useState } from "react"
-import { byOwner, can, type Subject, stateOf, subjectOf, toneOf } from "@/domain/memory"
+import {
+  type MouseEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type ReactNode,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from "react"
+import { byOwner, can, dayKey, type Subject, stateOf, subjectOf, toneOf } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
+import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -27,8 +36,9 @@ import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
+import { SplitButton } from "@/ui/SplitButton"
 import { TextButton } from "@/ui/TextButton"
-import { authorOf, dayLabel, kindOf, savedAt, timeOf } from "./labels"
+import { aboutOf, authorOf, dayLabel, kindOf, savedAt, timeOf } from "./labels"
 import { memoryMessages } from "./messages"
 import { useMemory } from "./store"
 
@@ -68,11 +78,10 @@ export function SubjectLabel({ subject, className }: { subject: Subject; classNa
 }
 
 /**
- * One record. Collapsed, it names what it is about and one line of its text; opened, the text shows whole and is the
- * place to correct it, with its sources or findings and who wrote it underneath. `grouped`: the rack is already cut
- * by subject (version 2), so the row names its day instead.
+ * One record under its subject's heading. Collapsed: its kind, when, one line of text and its actions. Opened: the
+ * text whole, the place to correct it, its sources or findings, and everything Memo says about it.
  */
-export function Row({ entry, grouped = false }: { entry: MemoryEntry; grouped?: boolean }) {
+export function Row({ entry }: { entry: MemoryEntry }) {
   const m = useMessages(memoryMessages)
   const lang = useLang()
   const open = useMemory((s) => s.open === entry.ref)
@@ -80,12 +89,11 @@ export function Row({ entry, grouped = false }: { entry: MemoryEntry; grouped?: 
   const busy = useMemory((s) => s.busy[entry.ref])
   const failed = useMemory((s) => s.failed[entry.ref])
   const skipped = useMemory((s) => s.skipped[entry.ref])
-  const { toggle, confirm, startCorrect } = useMemory.getState()
+  const { toggle, confirm, discard, startCorrect, askForget } = useMemory.getState()
   const panel = useId()
   const row = useRef<HTMLDivElement>(null)
   const state = stateOf(entry.status)
   const Icon = ICONS[entry.type]
-  const subject = subjectOf(entry)
   const allowed = can(entry)
   const editable = open && allowed.correct
   const nothingTicked = !!entry.findings && (skipped?.length ?? 0) >= entry.findings.length
@@ -108,22 +116,28 @@ export function Row({ entry, grouped = false }: { entry: MemoryEntry; grouped?: 
 
   const label = (
     <span className="flex min-w-0 flex-wrap items-center gap-x-[0.5rem] gap-y-[0.1rem] text-[0.9rem] text-ink-soft">
-      {!grouped && subject && <SubjectLabel subject={subject} />}
-      {!grouped && subject && <span aria-hidden>·</span>}
       <span>{kindOf(entry.kind, m)}</span>
-      {grouped && (
-        <>
-          <span aria-hidden>·</span>
-          <span className="font-mono text-[0.85rem] tabular-nums">{dayLabel(entry.createdAt, m, lang)}</span>
-        </>
-      )}
+      <span aria-hidden>·</span>
+      <span className="font-mono text-[0.85rem] tabular-nums">
+        {dayLabel(entry.createdAt, m, lang)} {timeOf(entry.createdAt, lang)}
+      </span>
       {entry.scope === "personal" && <Pill>{m.personal}</Pill>}
     </span>
   )
 
+  const openAnd = (then: () => void) => {
+    if (!open) flip()
+    then()
+  }
+  const correctItem = allowed.correct && { label: m.correct, onSelect: () => openAnd(() => startCorrect(entry.ref)) }
+  const rejectItem = allowed.discard && { label: m.discard, onSelect: () => discard(entry.ref) }
+  const eraseItem = allowed.forget && { label: m.forget, danger: true, onSelect: () => askForget(entry.ref) }
+  const someItem = !!entry.findings && allowed.confirm && { label: m.approveSome, onSelect: () => openAnd(() => {}) }
+  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
+
   return (
     <div ref={row} data-row className="border-line border-t">
-      <div className="grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto_7.6rem] items-start gap-[0.9rem] px-[1.3rem] py-[0.95rem] xl:gap-[1.2rem]">
+      <div className="grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto] items-start gap-[0.9rem] px-[1.3rem] py-[0.95rem] xl:gap-[1.2rem]">
         <span className="mt-[0.55rem]">
           <Lamp tone={toneOf(entry.status)} label={m.states[state]} />
         </span>
@@ -185,25 +199,43 @@ export function Row({ entry, grouped = false }: { entry: MemoryEntry; grouped?: 
             </div>
           )}
         </AutoHeight>
-        <span className="mt-[0.5rem] font-mono text-[0.95rem] tabular-nums text-ink-soft">
-          {timeOf(entry.createdAt, lang)}
-        </span>
-        <span className="mt-[0.15rem] flex justify-end">
+        <span className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]">
           {allowed.confirm ? (
-            <Button
-              className="min-w-[7.6rem]"
-              disabled={!!busy || nothingTicked}
-              onClick={() => confirm(entry.ref)}
-              icon={busy === "confirm" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-            >
-              {entry.type === "action" ? m.approve : m.confirm}
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                disabled={!!busy}
+                onClick={() => discard(entry.ref)}
+                icon={busy === "discard" ? spin : undefined}
+              >
+                {m.discard}
+              </Button>
+              <SplitButton
+                disabled={!!busy}
+                main={{
+                  label: m.approve,
+                  onClick: () => confirm(entry.ref),
+                  disabled: open && nothingTicked,
+                  ...(busy === "confirm" ? { icon: spin } : {}),
+                }}
+                items={[someItem, correctItem, eraseItem].filter((i) => !!i)}
+                menuLabel={m.moreActions}
+              />
+            </>
           ) : (
-            <span
-              className={cx("mt-[0.45rem] text-[0.9rem]", toneOf(entry.status) === "ok" ? "text-ink" : "text-ink-dim")}
-            >
-              {m.states[state]}
-            </span>
+            <>
+              <span className={cx("text-[0.9rem]", toneOf(entry.status) === "ok" ? "text-ink-soft" : "text-ink-dim")}>
+                {m.states[state]}
+              </span>
+              <SplitButton
+                disabled={!!busy}
+                {...(state === "inuse" && correctItem
+                  ? { main: { label: m.correct, onClick: correctItem.onSelect } }
+                  : {})}
+                items={[state === "inuse" ? null : correctItem, rejectItem, eraseItem].filter((i) => !!i)}
+                menuLabel={m.moreActions}
+              />
+            </>
           )}
         </span>
       </div>
@@ -319,9 +351,141 @@ const sourceIcon = (kind: string) => {
   return <FileText className={cls} aria-hidden />
 }
 
-function Sources({ entry }: { entry: MemoryEntry }) {
+/** One source; clicked, it opens what it says in place: the message among its neighbours, or the note. */
+function SourceItem({ source: s }: { source: MemorySource }) {
   const m = useMessages(memoryMessages)
   const lang = useLang()
+  const [open, setOpen] = useState(false)
+  const id = useId()
+  const head = (
+    <>
+      <span className="mt-[0.15rem] text-ink-soft">{sourceIcon(s.kind)}</span>
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <span className="selectable text-[0.9rem] font-medium">
+            {s.sender ?? s.title ?? s.ref ?? s.kind}
+            {s.sender && s.title && <span className="font-normal text-ink-soft"> · {s.title}</span>}
+          </span>
+          {s.at && <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{savedAt(s.at, lang)}</span>}
+        </span>
+        {s.missing ? (
+          <span className="mt-[0.1rem] block text-[0.9rem] text-ink-dim">{m.deletedSince}</span>
+        ) : (
+          s.excerpt && <span className="selectable mt-[0.1rem] block text-[0.95rem] text-ink-soft">“{s.excerpt}”</span>
+        )}
+      </span>
+    </>
+  )
+  if (!s.ref || s.missing)
+    return <li className="flex gap-[0.8rem] border-line px-[0.9rem] py-[0.7rem] not-first:border-t">{head}</li>
+  const ref = s.ref
+  return (
+    <li className="border-line not-first:border-t">
+      <TextButton
+        as="div"
+        aria-expanded={open}
+        aria-controls={id}
+        aria-label={m.showContext(s.sender ?? s.title ?? ref)}
+        onClick={() => {
+          if (!open) useMemory.getState().loadContext(ref)
+          setOpen(!open)
+        }}
+        className="group flex cursor-pointer gap-[0.8rem] px-[0.9rem] py-[0.7rem] transition-colors duration-150 hover:bg-app-2"
+      >
+        {head}
+        <ChevronDown
+          className={cx(
+            "mt-[0.2rem] size-4 shrink-0 text-ink-dim transition-transform duration-150",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </TextButton>
+      <Collapse open={open} id={id}>
+        <SourceContextView reference={ref} />
+      </Collapse>
+    </li>
+  )
+}
+
+/** What memo reads back for a cited ref. Each kind memo cannot read says so instead of failing. */
+export function SourceContextView({ reference }: { reference: string }) {
+  const m = useMessages(memoryMessages)
+  const lang = useLang()
+  const ctx = useMemory((s) => s.contexts[reference])
+  const [opening, setOpening] = useState<string | null>(null)
+  const box = "border-line border-t bg-app-2/70 px-[0.9rem] py-[0.75rem] text-[0.95rem]"
+  if (!ctx || ctx.state === "loading")
+    return (
+      <div className={box}>
+        <Skeleton className="h-[3rem] w-full rounded-[0.35rem]" label={m.readingContext} />
+      </div>
+    )
+  if (ctx.state === "failed")
+    return (
+      <div className={box}>
+        <ErrorNotice inline>
+          {m.contextFailed} {ctx.error}
+        </ErrorNotice>
+      </div>
+    )
+  const c = ctx.context
+  if (c.kind === "unsupported") return <p className={cx(box, "reveal text-ink-dim")}>{m.noContext(c.prefix)}</p>
+  if (c.kind === "note")
+    return (
+      <div className={cx(box, "reveal flex flex-col gap-[0.5rem]")}>
+        {c.title && <p className="font-medium">{c.title}</p>}
+        <p className="selectable max-h-[16rem] overflow-y-auto whitespace-pre-line text-ink-soft">{c.text}</p>
+        {c.file && (
+          <span className="flex flex-wrap items-center gap-3">
+            <Button
+              size="sm"
+              disabled={opening === "busy"}
+              onClick={() => {
+                setOpening("busy")
+                platform
+                  .memoryOpenSource(reference)
+                  .then(() => setOpening(null))
+                  .catch((e: unknown) => setOpening(e instanceof Error ? e.message : String(e)))
+              }}
+              icon={<ExternalLink className="size-4" aria-hidden />}
+            >
+              {m.openFile}
+            </Button>
+            {opening && opening !== "busy" && (
+              <ErrorNotice inline>
+                {m.contextFailed} {opening}
+              </ErrorNotice>
+            )}
+          </span>
+        )}
+      </div>
+    )
+  return (
+    <ol className={cx(box, "reveal flex flex-col gap-[0.45rem]")}>
+      {c.items.map((msg, i) => (
+        <li
+          key={msg.ref ?? i}
+          className={cx(
+            "rounded-[0.35rem] px-[0.6rem] py-[0.35rem]",
+            msg.anchor ? "bg-brand-soft/60 text-ink" : "text-ink-soft",
+          )}
+        >
+          <span className="flex flex-wrap items-baseline justify-between gap-x-3 text-[0.9rem]">
+            <span className="font-medium text-ink">{msg.sender ?? "—"}</span>
+            {msg.at && (
+              <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{savedAt(msg.at, lang)}</span>
+            )}
+          </span>
+          <span className="selectable block whitespace-pre-line">{msg.text}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+function Sources({ entry }: { entry: MemoryEntry }) {
+  const m = useMessages(memoryMessages)
   const sources = useMemory((s) => s.sources[entry.ref])
   if (!sources || sources.state === "loading")
     return (
@@ -344,34 +508,30 @@ function Sources({ entry }: { entry: MemoryEntry }) {
       ) : (
         <ul className="flex flex-col rounded-[0.45rem] border border-line bg-app">
           {sources.sources.map((s: MemorySource) => (
-            <li
-              key={s.ref ?? `${s.kind}|${s.title ?? ""}|${s.at ?? ""}`}
-              className="flex gap-[0.8rem] border-line px-[0.9rem] py-[0.7rem] not-first:border-t"
-            >
-              <span className="mt-[0.15rem] text-ink-soft">{sourceIcon(s.kind)}</span>
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-baseline justify-between gap-x-3">
-                  <span className="selectable text-[0.9rem] font-medium">
-                    {s.sender ?? s.title ?? s.ref ?? s.kind}
-                    {s.sender && s.title && <span className="font-normal text-ink-soft"> · {s.title}</span>}
-                  </span>
-                  {s.at && (
-                    <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{savedAt(s.at, lang)}</span>
-                  )}
-                </span>
-                {s.missing ? (
-                  <span className="mt-[0.1rem] block text-[0.9rem] text-ink-dim">{m.deletedSince}</span>
-                ) : (
-                  s.excerpt && (
-                    <span className="selectable mt-[0.1rem] block text-[0.95rem] text-ink-soft">“{s.excerpt}”</span>
-                  )
-                )}
-              </span>
-            </li>
+            <SourceItem key={s.ref ?? `${s.kind}|${s.title ?? ""}|${s.at ?? ""}`} source={s} />
           ))}
         </ul>
       )}
     </div>
+  )
+}
+
+function CitedRef({ reference, shown, onToggle }: { reference: string; shown: boolean; onToggle: () => void }) {
+  const m = useMessages(memoryMessages)
+  return (
+    <button
+      type="button"
+      aria-expanded={shown}
+      aria-label={m.showContext(reference)}
+      onClick={onToggle}
+      className={cx(
+        "inline-flex cursor-pointer items-center gap-[0.3rem] rounded-[0.25rem] font-mono transition-colors duration-150 hover:text-brand",
+        shown && "text-brand",
+      )}
+    >
+      {sourceIcon(reference.split(":")[0] ?? "")}
+      {reference}
+    </button>
   )
 }
 
@@ -385,6 +545,7 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
   const open = entry.status === "proposed"
   const project = entry.projectName ?? entry.project ?? m.project
   const ticked = findings.filter((f) => !skipped.includes(f.id)).length
+  const [shownRef, setShownRef] = useState<string | null>(null)
 
   return (
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
@@ -429,13 +590,26 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
                     )}
                     <span>{m.cites}</span>
                     {f.evidence.map((ref) => (
-                      <span key={ref} className="selectable inline-flex items-center gap-[0.3rem] font-mono">
-                        {sourceIcon(ref.split(":")[0] ?? "")}
-                        {ref}
-                      </span>
+                      <CitedRef
+                        key={ref}
+                        reference={ref}
+                        shown={shownRef === `${f.id} ${ref}`}
+                        onToggle={() => {
+                          const key = `${f.id} ${ref}`
+                          if (shownRef !== key) useMemory.getState().loadContext(ref)
+                          setShownRef(shownRef === key ? null : key)
+                        }}
+                      />
                     ))}
                   </span>
                 )}
+                {f.evidence.map((ref) => (
+                  <Collapse key={ref} open={shownRef === `${f.id} ${ref}`}>
+                    <div className="mt-[0.5rem] overflow-hidden rounded-[0.35rem] border border-line">
+                      <SourceContextView reference={ref} />
+                    </div>
+                  </Collapse>
+                ))}
               </span>
             </li>
           )
@@ -478,16 +652,41 @@ function stateLine(entry: MemoryEntry, m: M) {
   return m.states[stateOf(entry.status)]
 }
 
+/** A value in the details that, clicked, narrows the page to records that share it. */
+function FilterLink({ label, onClick, mono }: { label: string; onClick: () => void; mono?: boolean }) {
+  const m = useMessages(memoryMessages)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={m.filterBy(label)}
+      aria-label={m.filterBy(label)}
+      className={cx(
+        "cursor-pointer rounded-[0.2rem] text-left text-ink underline decoration-ink-dim/50 decoration-dotted underline-offset-[0.2em] transition-colors duration-150 hover:text-brand hover:decoration-brand",
+        mono && "font-mono text-[0.9rem]",
+      )}
+    >
+      {label}
+    </button>
+  )
+}
+
 function Details({ entry }: { entry: MemoryEntry }) {
   const m = useMessages(memoryMessages)
   const lang = useLang()
-  const busy = useMemory((s) => s.busy[entry.ref])
   const failed = useMemory((s) => s.failed[entry.ref])
   const editing = useMemory((s) => s.correcting === entry.ref)
-  const { discard, askForget } = useMemory.getState()
-  const allowed = can(entry)
+  const { setAbout, setProject, setKind, setBy, setRange } = useMemory.getState()
   const owner = byOwner(entry)
   const subject = subjectOf(entry)
+  const projectName = entry.projectName ?? (subject?.kind === "project" ? subject.name : null)
+  const person = subject && subject.kind !== "project" ? aboutOf(entry, m) : null
+  const row = (dt: string, dd: ReactNode) => (
+    <>
+      <dt className="text-ink-dim">{dt}</dt>
+      <dd className="min-w-0">{dd}</dd>
+    </>
+  )
 
   return (
     <div className="grid gap-[1.6rem] border-line border-t bg-app-2/60 px-[1.3rem] py-[1.4rem] lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
@@ -501,89 +700,54 @@ function Details({ entry }: { entry: MemoryEntry }) {
 
       <div className="flex min-w-0 flex-col gap-[1.1rem]">
         <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-[0.45rem] text-[0.95rem]">
-          {subject && (
+          {projectName && row(m.project, <FilterLink label={projectName} onClick={() => setProject(projectName)} />)}
+          {person && row(m.about, <FilterLink label={person} onClick={() => setAbout(person)} />)}
+          {row(m.kind, <FilterLink label={kindOf(entry.kind, m)} onClick={() => setKind(kindOf(entry.kind, m))} />)}
+          {entry.scope && row(m.scope, m.scopes[entry.scope] ?? entry.scope)}
+          {row(
+            m.writtenBy,
             <>
-              <dt className="text-ink-dim">{subject.kind === "project" ? m.project : m.about}</dt>
-              <dd className="min-w-0">
-                <SubjectLabel subject={subject} className="font-normal" />
-              </dd>
-            </>
+              <FilterLink label={authorOf(entry, m)} mono={!owner} onClick={() => setBy(authorOf(entry, m))} />
+              {!owner && <span className="text-ink-soft"> ({m.agentNote})</span>}
+            </>,
           )}
-          <dt className="text-ink-dim">{m.writtenBy}</dt>
-          <dd>
-            {owner ? (
-              m.you
-            ) : (
-              <>
-                <span className="selectable font-mono text-[0.9rem]">{authorOf(entry, m)}</span>{" "}
-                <span className="text-ink-soft">({m.agentNote})</span>
-              </>
+          {entry.model && row(m.model, <span className="selectable font-mono text-[0.9rem]">{entry.model}</span>)}
+          {entry.confidence !== null &&
+            row(
+              m.confidence,
+              <span className="font-mono text-[0.9rem] tabular-nums">{entry.confidence.toFixed(2)}</span>,
             )}
-          </dd>
-          <dt className="text-ink-dim">{m.saved}</dt>
-          <dd className="font-mono text-[0.9rem] tabular-nums">{savedAt(entry.createdAt, lang)}</dd>
-          <dt className="text-ink-dim">{m.kind}</dt>
-          <dd>
-            {kindOf(entry.kind, m)}
-            {entry.scope && `, ${m.scopes[entry.scope] ?? entry.scope}`}
-          </dd>
-          {entry.target && !entry.findings && (
-            <>
-              <dt className="text-ink-dim">{m.actsOn}</dt>
-              <dd className="selectable min-w-0 font-mono text-[0.9rem] break-all">{entry.target}</dd>
-            </>
+          {row(
+            m.saved,
+            <FilterLink
+              label={savedAt(entry.createdAt, lang)}
+              mono
+              onClick={() => setRange(dayKey(entry.createdAt))}
+            />,
           )}
-          {entry.account && (
-            <>
-              <dt className="text-ink-dim">{m.wouldAct}</dt>
-              <dd className="selectable font-mono text-[0.9rem]">{entry.account}</dd>
-            </>
+          {entry.updatedAt &&
+            entry.updatedAt !== entry.createdAt &&
+            row(
+              m.updated,
+              <span className="font-mono text-[0.9rem] tabular-nums">{savedAt(entry.updatedAt, lang)}</span>,
+            )}
+          {entry.type !== "action" &&
+            row(m.sourcesCount, <span className="font-mono text-[0.9rem] tabular-nums">{entry.links}</span>)}
+          {entry.target &&
+            !entry.findings &&
+            row(m.actsOn, <span className="selectable font-mono text-[0.9rem] break-all">{entry.target}</span>)}
+          {entry.account &&
+            row(m.wouldAct, <span className="selectable font-mono text-[0.9rem]">{entry.account}</span>)}
+          {entry.supersedes &&
+            row(m.corrects, <span className="selectable font-mono text-[0.9rem]">{entry.supersedes}</span>)}
+          {row(
+            m.state,
+            <span className="flex items-start gap-2">
+              <Lamp tone={toneOf(entry.status)} size="sm" />
+              <span className="-mt-[0.2rem]">{stateLine(entry, m)}</span>
+            </span>,
           )}
-          {entry.supersedes && (
-            <>
-              <dt className="text-ink-dim">{m.corrects}</dt>
-              <dd className="selectable font-mono text-[0.9rem]">{entry.supersedes}</dd>
-            </>
-          )}
-          <dt className="text-ink-dim">{m.state}</dt>
-          <dd className="flex items-start gap-2">
-            <Lamp tone={toneOf(entry.status)} size="sm" />
-            <span className="-mt-[0.2rem]">{stateLine(entry, m)}</span>
-          </dd>
         </dl>
-
-        {(allowed.discard || allowed.forget) && (
-          <div className="flex flex-wrap gap-2">
-            {allowed.discard && (
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={!!busy || editing}
-                onClick={() => discard(entry.ref)}
-                icon={busy === "discard" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-              >
-                {m.discard}
-              </Button>
-            )}
-            {allowed.forget && (
-              <Button
-                size="sm"
-                variant="danger"
-                disabled={!!busy || editing}
-                onClick={() => askForget(entry.ref)}
-                icon={
-                  busy === "forget" ? (
-                    <LoaderCircle className="size-4 animate-spin" aria-hidden />
-                  ) : (
-                    <Trash2 className="size-4" aria-hidden />
-                  )
-                }
-              >
-                {m.forget}
-              </Button>
-            )}
-          </div>
-        )}
         {failed && !editing && (
           <ErrorNotice inline>
             {m.writeFailed} {failed}

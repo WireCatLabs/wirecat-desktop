@@ -115,3 +115,17 @@ export const matchesText = (label: string, typed: string) =>
 
 /** Every distinct label, in the order first seen, without empty ones. */
 export const distinct = (labels: readonly (string | null)[]) => [...new Set(labels.filter((l): l is string => !!l))]
+
+/** A date filter: a range back from now, or one calendar day picked from a record (`YYYY-MM-DD`). */
+export type Range = "any" | "today" | "7d" | "30d" | (string & {})
+export const RANGES = ["any", "today", "7d", "30d"] as const
+
+export function inRange(range: Range, iso: string, now = new Date()): boolean {
+  if (range === "any") return true
+  if (range === "today") return dayKey(iso) === dayKey(now.toISOString())
+  if (range === "7d" || range === "30d") {
+    const days = range === "7d" ? 7 : 30
+    return new Date(iso).getTime() >= now.getTime() - days * 86_400_000
+  }
+  return dayKey(iso) === range
+}

@@ -19,7 +19,13 @@ import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema }
 import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
 import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
-import { ForgotSchema, MemoryEntrySchema, MemoryReadSchema, MemorySourceSchema } from "./memory-schemas"
+import {
+  ForgotSchema,
+  MemoryEntrySchema,
+  MemoryReadSchema,
+  MemorySourceSchema,
+  SourceContextSchema,
+} from "./memory-schemas"
 import { createMock } from "./mock"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
@@ -169,6 +175,8 @@ function createTauri(): Platform {
     memoryConfirm: (ref, accept) =>
       call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),
     memoryDiscard: (ref) => call(MemoryEntrySchema, "memory_discard", { reference: ref }),
+    memorySourceContext: (ref) => call(SourceContextSchema, "memory_source_context", { reference: ref }),
+    memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
     memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
     taskClaims: (id, profile) => call(ClaimsSchema, "task_claims", { id, profile }),

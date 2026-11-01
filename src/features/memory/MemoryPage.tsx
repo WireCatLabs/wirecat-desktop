@@ -1,6 +1,6 @@
 import { ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
-import { byDay, distinct, inTab, matchesText, subjectOf, type Tab } from "@/domain/memory"
+import { distinct, inRange, inTab, matchesText, RANGES, type Range, subjectOf, type Tab } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
@@ -10,6 +10,7 @@ import { Combobox } from "@/ui/Combobox"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
+import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
@@ -17,72 +18,16 @@ import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
 import { Activity } from "./Activity"
 import { ForgetDialog } from "./ForgetDialog"
-import { aboutOf, authorOf, dayLabel } from "./labels"
+import { aboutOf, authorOf, dayLabel, kindOf, projectOf } from "./labels"
 import { memoryMessages } from "./messages"
 import { Row, SubjectLabel } from "./Row"
 import { useMemory } from "./store"
-import { MemoryV3 } from "./v3/MemoryV3"
 
 const GUIDE = "https://github.com/WireCatLabs/cli-memo/blob/main/docs/memories.md"
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
 
-/**
- * Three designs side by side for the owner to compare (`?memory-version=1|2|3`, 1 by default). The switcher shows only
- * when the address names a version, so the shipped page has none.
- */
-type Version = "1" | "2" | "3"
-const VERSIONS: Version[] = ["1", "2", "3"]
-const versionParam = () =>
-  typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("memory-version")
-
 export function MemoryPage() {
-  const asked = versionParam()
-  const [version, setVersion] = useState<Version>(VERSIONS.find((v) => v === asked) ?? "1")
-  const pick = (v: Version) => {
-    const url = new URL(window.location.href)
-    url.searchParams.set("memory-version", v)
-    window.history.replaceState(null, "", url)
-    setVersion(v)
-  }
-  // One root: `keepRoom` (ui/motion) holds the page's height on the scroller's first child.
-  return (
-    <div>
-      {asked !== null && <VersionSwitch value={version} onChange={pick} />}
-      {version === "3" ? <MemoryV3 /> : <Ledger bySubject={version === "2"} />}
-    </div>
-  )
-}
-
-function VersionSwitch({ value, onChange }: { value: Version; onChange: (v: Version) => void }) {
   const m = useMessages(memoryMessages)
-  const name = useId()
-  return (
-    <fieldset className="mx-[2.1rem] mt-[1rem] -mb-[0.4rem] flex items-center gap-[0.6rem] border-0 text-[0.9rem] text-ink-dim">
-      <legend className="float-left mr-[0.2rem]">{m.version}</legend>
-      <span className="inline-flex rounded-[0.45rem] bg-app-3 p-[3px]">
-        {VERSIONS.map((v) => (
-          <label key={v} className="relative">
-            <input
-              type="radio"
-              name={name}
-              checked={v === value}
-              onChange={() => onChange(v)}
-              className="peer sr-only"
-            />
-            <span className="flex h-[1.9rem] cursor-pointer items-center gap-[0.35rem] rounded-[0.35rem] px-[0.65rem] text-ink-soft transition-colors duration-150 hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
-              <span className="font-mono tabular-nums">{v}</span>
-              {m.versions[v]}
-            </span>
-          </label>
-        ))}
-      </span>
-    </fieldset>
-  )
-}
-
-function Ledger({ bySubject }: { bySubject: boolean }) {
-  const m = useMessages(memoryMessages)
-  const lang = useLang()
   const s = useMemory()
   const { load } = s
 
@@ -91,11 +36,18 @@ function Ledger({ bySubject }: { bySubject: boolean }) {
   }, [load])
 
   const ready = s.read?.kind === "ready" ? s.read : null
-  const filtered = s.entries.filter((e) => matchesText(aboutOf(e, m), s.about) && matchesText(authorOf(e, m), s.by))
+  const filtered = s.entries.filter(
+    (e) =>
+      matchesText(aboutOf(e, m), s.about) &&
+      matchesText(authorOf(e, m), s.by) &&
+      matchesText(kindOf(e.kind, m), s.kind) &&
+      matchesText(projectOf(e), s.project) &&
+      inRange(s.range, e.createdAt),
+  )
   const shown = filtered.filter((e) => inTab(s.tab, e.status) || s.held.includes(e.ref))
   const count = (tab: Tab) => filtered.filter((e) => inTab(tab, e.status)).length
   const forgetting = s.entries.find((e) => e.ref === s.forgetting) ?? null
-  const filtering = s.about.trim() !== "" || s.by.trim() !== ""
+  const filtering = [s.about, s.by, s.kind, s.project].some((f) => f.trim() !== "") || s.range !== "any"
 
   return (
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
@@ -151,22 +103,39 @@ function Ledger({ bySubject }: { bySubject: boolean }) {
         <OldNotice version={s.read.version} need={s.read.need} />
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-[0.7rem]">
+          <div className="flex flex-col items-start gap-[0.7rem]">
             <Tabs value={s.tab} onChange={s.setTab} count={count} />
-            <Picker
-              label={m.about}
-              value={s.about}
-              onChange={s.setAbout}
-              placeholder={m.aboutAnyone}
-              options={distinct([m.you, ...s.entries.filter((e) => !e.subjectIsOwner).map((e) => aboutOf(e, m))])}
-            />
-            <Picker
-              label={m.by}
-              value={s.by}
-              onChange={s.setBy}
-              placeholder={m.byAnyone}
-              options={distinct([m.you, ...s.entries.map((e) => authorOf(e, m))])}
-            />
+            <div className="flex flex-wrap items-center gap-x-[1rem] gap-y-[0.6rem]">
+              <Picker
+                label={m.about}
+                value={s.about}
+                onChange={s.setAbout}
+                placeholder={m.aboutAnyone}
+                options={distinct([m.you, ...s.entries.filter((e) => !e.subjectIsOwner).map((e) => aboutOf(e, m))])}
+              />
+              <Picker
+                label={m.by}
+                value={s.by}
+                onChange={s.setBy}
+                placeholder={m.byAnyone}
+                options={distinct([m.you, ...s.entries.map((e) => authorOf(e, m))])}
+              />
+              <Picker
+                label={m.projectFilter}
+                value={s.project}
+                onChange={s.setProject}
+                placeholder={m.anyProject}
+                options={distinct(s.entries.map(projectOf))}
+              />
+              <Picker
+                label={m.kindFilter}
+                value={s.kind}
+                onChange={s.setKind}
+                placeholder={m.anyKind}
+                options={distinct(s.entries.map((e) => kindOf(e.kind, m)))}
+              />
+              <DateFilter value={s.range} onChange={s.setRange} />
+            </div>
           </div>
 
           {s.read === null ? (
@@ -180,7 +149,7 @@ function Ledger({ bySubject }: { bySubject: boolean }) {
               </Button>
             </div>
           ) : (
-            <Rack entries={shown} tab={s.tab} filtering={filtering} lang={lang} bySubject={bySubject} />
+            <Rack entries={shown} tab={s.tab} filtering={filtering} />
           )}
 
           {ready?.more && <p className="text-[0.9rem] text-ink-dim">{m.more}</p>}
@@ -193,38 +162,18 @@ function Ledger({ bySubject }: { bySubject: boolean }) {
   )
 }
 
-function Rack({
-  entries,
-  tab,
-  filtering,
-  lang,
-  bySubject,
-}: {
-  entries: MemoryEntry[]
-  tab: Tab
-  filtering: boolean
-  lang: ReturnType<typeof useLang>
-  bySubject: boolean
-}) {
+function Rack({ entries, tab, filtering }: { entries: MemoryEntry[]; tab: Tab; filtering: boolean }) {
   const m = useMessages(memoryMessages)
   const leaving = useMemory((s) => s.leaving)
   const arriving = useMemory((s) => s.arriving)
-  const { setTab, setAbout, setBy } = useMemory.getState()
+  const { setTab, clearFilters } = useMemory.getState()
 
   if (entries.length === 0)
     return (
       <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.2rem] text-[0.95rem] text-ink-soft">
         <p>{filtering ? m.noMatch : m.nothing[tab]}</p>
         {filtering ? (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="mt-2 -ml-2"
-            onClick={() => {
-              setAbout("")
-              setBy("")
-            }}
-          >
+          <Button size="sm" variant="ghost" className="mt-2 -ml-2" onClick={clearFilters}>
             {m.clearFilters}
           </Button>
         ) : (
@@ -237,24 +186,25 @@ function Rack({
       </div>
     )
 
-  if (bySubject) return <SubjectRack entries={entries} leaving={leaving} arriving={arriving} />
+  return <SubjectRack entries={entries} leaving={leaving} arriving={arriving} />
+}
 
+/** Any time, the last days, or the one day a record's date was clicked to filter by. */
+function DateFilter({ value, onChange }: { value: Range; onChange: (r: Range) => void }) {
+  const m = useMessages(memoryMessages)
+  const lang = useLang()
+  const id = useId()
+  const fixed = RANGES.map((r) => ({ value: r as Range, label: m.ranges[r] ?? r }))
+  const options = (RANGES as readonly string[]).includes(value)
+    ? fixed
+    : [...fixed, { value, label: dayLabel(`${value}T12:00:00`, m, lang) }]
   return (
-    <section aria-label={m.rows} className="rounded-[0.2rem] border border-line-strong bg-app">
-      {byDay(entries).map(({ day, entries: rows }) => {
-        const label = dayLabel(rows[0]?.createdAt ?? day, m, lang)
-        return (
-          <section key={day} aria-label={label} className="border-line [&+&]:border-t">
-            <h2 className="px-[1.3rem] pt-[0.9rem] pb-[0.3rem] text-[0.9rem] font-medium text-ink-dim">{label}</h2>
-            {rows.map((e) => (
-              <Moving key={e.ref} leaving={leaving.includes(e.ref)} arriving={arriving.includes(e.ref)}>
-                <Row entry={e} />
-              </Moving>
-            ))}
-          </section>
-        )
-      })}
-    </section>
+    <span className="flex items-center gap-[0.5rem]">
+      <span id={id} className="text-[0.95rem] text-ink-soft">
+        {m.when}
+      </span>
+      <Select value={value} onChange={onChange} options={options} aria-labelledby={id} className="w-[10rem]" />
+    </span>
   )
 }
 
@@ -324,7 +274,7 @@ function SubjectRack({
             <Collapse open={open}>
               {g.entries.map((e) => (
                 <Moving key={e.ref} leaving={leaving.includes(e.ref)} arriving={arriving.includes(e.ref)}>
-                  <Row entry={e} grouped />
+                  <Row entry={e} />
                 </Moving>
               ))}
             </Collapse>
@@ -386,7 +336,7 @@ function Picker(props: {
         onChange={props.onChange}
         options={props.options}
         placeholder={props.placeholder}
-        className="w-[12rem]"
+        className="w-[11rem]"
       />
     </span>
   )

@@ -1,4 +1,4 @@
-import type { AgentCall, MemoryEntry, MemoryRead, MemorySource } from "./memory-schemas"
+import type { AgentCall, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
@@ -30,6 +30,8 @@ const base = {
   target: null,
   updatedAt: null,
   findings: null,
+  model: null,
+  confidence: null,
 } as const
 
 const agent = (name: string) => ({ type: "bot", name })
@@ -110,8 +112,11 @@ function seed(): MemoryEntry[] {
       subject: "person:7",
       subjectName: "Kai Sample",
       author: agent("claude-code"),
+      model: "claude-opus-4",
+      confidence: 0.8,
       links: 3,
       createdAt: ago(2 * HOUR),
+      updatedAt: ago(1.5 * HOUR),
     },
     {
       ...base,
@@ -383,9 +388,59 @@ const ACTIVITY: AgentCall[] = [
   { id: "4", agent: "claude-code", tool: "memories_list", tier: "read", status: "ok", error: null, at: ago(DAY) },
 ]
 
+const CHAT: Record<string, { sender: string; text: string }[]> = {
+  "msg:telegram/1/77/905": [
+    { sender: "You", text: "Can we do the Harbour sync this week?" },
+    { sender: "Kai Sample", text: "Yes, but not Monday, that one always explodes." },
+    { sender: "Kai Sample", text: "Friday after 3 works best for me, send the points the night before?" },
+    { sender: "You", text: "Deal. I'll send them Thursday evening." },
+    { sender: "Kai Sample", text: "Perfect 👍" },
+  ],
+}
+
+function context(ref: string): SourceContext {
+  const prefix = ref.split(":")[0] ?? ""
+  if (prefix === "msg") {
+    const chat = CHAT[ref] ?? [
+      {
+        sender: "Lena Ortiz",
+        text: "Before the review, can we cover Spanish too? Half the pilot users write in Spanish.",
+      },
+      { sender: "Tom Becker", text: "The runner logs are on the shared box, I can give read access." },
+      { sender: "Lena Ortiz", text: "Nobody took the Spanish queries yet, right?" },
+    ]
+    const anchor = CHAT[ref] ? 2 : 0
+    return {
+      kind: "messages",
+      items: chat.map((m, i) => ({
+        ref: i === anchor ? ref : null,
+        sender: m.sender,
+        at: ago((chat.length - i) * 9 * 60_000 + 4 * DAY),
+        text: m.text,
+        anchor: i === anchor,
+      })),
+    }
+  }
+  if (prefix === "note" || prefix === "document")
+    return {
+      kind: "note",
+      title: prefix === "document" ? "Northbridge evaluation plan.md" : "Harbour launch plan",
+      text: "## Plan\n\nLaunch: 2 March. Pilot with two clinics in February, as agreed on the call.\n\nThe evaluation set moves to 120 queries; 40 in Spanish. Nightly run at 02:00 on the shared runner.",
+      file: true,
+    }
+  return { kind: "unsupported", prefix }
+}
+
 export function memoryMock(): Pick<
   Platform,
-  "memoryRead" | "memorySources" | "memoryConfirm" | "memoryDiscard" | "memoryCorrect" | "memoryForget"
+  | "memoryRead"
+  | "memorySources"
+  | "memoryConfirm"
+  | "memoryDiscard"
+  | "memoryCorrect"
+  | "memoryForget"
+  | "memorySourceContext"
+  | "memoryOpenSource"
 > {
   let entries: MemoryEntry[] = scenario === "none" ? [] : scenario === "many" ? many() : seed()
   let next = 50
@@ -415,6 +470,13 @@ export function memoryMock(): Pick<
   }
 
   return {
+    async memorySourceContext(ref) {
+      await delay(350)
+      return context(ref)
+    },
+    async memoryOpenSource() {
+      await delay(200)
+    },
     async memoryRead(): Promise<MemoryRead> {
       await delay(700)
       if (scenario === "missing") return { kind: "missing" }

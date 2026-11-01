@@ -1,7 +1,9 @@
+import { termText } from "@/domain/runs"
 import { useLang, useMessages } from "@/i18n"
 import type { AgentCall } from "@/platform/memory-schemas"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
+import { useLogs } from "../logs/store"
 import { useNav } from "../nav"
 import { dayLabel, timeOf } from "./labels"
 import { memoryMessages } from "./messages"
@@ -10,10 +12,22 @@ import { memoryMessages } from "./messages"
  * Memo's own log of agents' calls (`memo agents list`): the agent, the call and when, never its arguments. Owner's
  * choice (NEED-168): it sits on this page, with everything else in Logs.
  */
+/** Memo's runs that read or changed memory: memories, facts, actions and project findings, OR-ed by the Logs query. */
+export const MEMORY_RUNS = [
+  termText("tool", "memo"),
+  ...["memories *", "facts *", "actions *", "projects actions *"].map((c) => termText("command", c)),
+].join(" ")
+
+export function openMemoryLogs() {
+  const logs = useLogs.getState()
+  logs.setQuery(MEMORY_RUNS)
+  logs.setRange("all")
+  useNav.getState().go("logs")
+}
+
 export function Activity({ calls, error }: { calls: AgentCall[] | null; error: string | null }) {
   const m = useMessages(memoryMessages)
   const lang = useLang()
-  const go = useNav((s) => s.go)
 
   return (
     <section aria-labelledby="memory-activity" className="flex flex-col gap-[0.6rem]">
@@ -23,7 +37,7 @@ export function Activity({ calls, error }: { calls: AgentCall[] | null; error: s
         </h2>
         <button
           type="button"
-          onClick={() => go("logs")}
+          onClick={openMemoryLogs}
           className="cursor-pointer text-[0.9rem] font-medium text-brand hover:text-brand-hover"
         >
           {m.toLogs}

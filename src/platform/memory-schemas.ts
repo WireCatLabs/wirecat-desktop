@@ -36,6 +36,8 @@ export const MemoryEntrySchema = v.object({
   createdAt: v.string(),
   updatedAt: text,
   findings: v.nullable(v.array(FindingSchema)),
+  model: text,
+  confidence: v.nullable(v.number()),
 })
 
 export const AgentCallSchema = v.object({
@@ -73,6 +75,16 @@ export const MemorySourceSchema = v.object({
 
 export const ForgotSchema = v.object({ ref: v.string(), links: v.number() })
 
+export const SourceContextSchema = v.variant("kind", [
+  v.object({
+    kind: v.literal("messages"),
+    items: v.array(v.object({ ref: text, sender: text, at: text, text: v.string(), anchor: v.boolean() })),
+  }),
+  v.object({ kind: v.literal("note"), title: text, text: v.string(), file: v.boolean() }),
+  v.object({ kind: v.literal("unsupported"), prefix: v.string() }),
+])
+
+export type SourceContext = v.InferOutput<typeof SourceContextSchema>
 export type MemoryEntry = v.InferOutput<typeof MemoryEntrySchema>
 export type AgentCall = v.InferOutput<typeof AgentCallSchema>
 export type MemoryRead = v.InferOutput<typeof MemoryReadSchema>
