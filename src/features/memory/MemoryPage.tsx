@@ -105,7 +105,7 @@ export function MemoryPage() {
             aria-controls="add-panel"
             onClick={() => (adding ? addHeading.current?.focus() : setAdding(true))}
           >
-            Add to memory
+            {m.addToMemory}
           </Button>
         </div>
       </div>
