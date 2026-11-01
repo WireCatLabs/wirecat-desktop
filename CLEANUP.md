@@ -88,3 +88,4 @@
 - `/home/leemour/Projects/AI/cli-base-wt-wcat-plan`, `/home/leemour/Projects/AI/cli-testing-wt-wcat-shared-bin`, `/home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/blog-wcat-bin`, `/home/leemour/Projects/AI/cli-docs-wt-desktop-download` — merged work (2026-10-30)
 - scratchpad `npm-clash/`, `signlog.txt` — test leftovers (2026-10-30)
 - `/home/leemour/Projects/AI/cli-base-wt-wcat-step1`, `/home/leemour/Projects/AI/cli-testing-wt-wcat-cross-os`, `.claude/worktrees/journal-search` — merged work (2026-10-31)
+- `/home/leemour/Projects/AI/cli-memo-wt-tasks-verify` (detached worktree of cli-memo, with its `.tmp-store/` throwaway store) — memo 0.131.2 built to check the Tasks page contract (2026-11-01)

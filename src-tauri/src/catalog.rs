@@ -31,6 +31,9 @@ pub struct Tool {
     /// The HTTP MCP server for browser apps, run in the background by the tool itself; zoom serves none.
     pub mcp_server: Option<McpServerSource>,
     pub tasks: Option<TasksSource>,
+    /// The Tasks page's lowest memo: below it the page offers the update instead of a read.
+    #[serde(default)]
+    pub task_board: Option<TaskBoardSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
     /// Another tool's id when this one is a part of its package: same `bin`, `package` and `storage`.
@@ -110,6 +113,12 @@ pub struct McpServerSource {
 pub struct TasksSource {
     pub list: Vec<String>,
     pub release: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskBoardSource {
+    pub min_version: String,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.
