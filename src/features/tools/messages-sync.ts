@@ -1,5 +1,9 @@
 import type { AdviceKind, SyncProgress, SyncSummary, SyncWhat } from "@/domain/sync"
-import { formatNumber, type Messages, plural } from "@/i18n"
+import { formatDate, formatNumber, type Messages, plural } from "@/i18n"
+
+/** The wait a service asked for: whole minutes, and the time after which the next sync may start. */
+type SlowDown = { minutes: number; at: number } | null
+const clockOf = (at: number, lang: "en" | "ru" | "es") => formatDate(at, { hour: "2-digit", minute: "2-digit" }, lang)
 
 const EN_WHAT: Record<SyncWhat, { one: string; other: string; place: [string, string]; noun: string }> = {
   messages: { one: "new message", other: "new messages", place: ["chat", "chats"], noun: "messages" },
@@ -129,6 +133,12 @@ const en = {
     signIn: "Sign in",
     update: (name: string) => `Update ${name}`,
     openRun: "Open the run on Logs",
+    slowDown: (service: string, wait: SlowDown) =>
+      `${service} limits how fast history can be downloaded, and asked to pause. What came in is kept. ${
+        wait
+          ? `It asked to wait ${plural("en", wait.minutes, { one: "# minute", other: "# minutes" })}: sync again after ${clockOf(wait.at, "en")}.`
+          : "Wait a few minutes before you sync again, and longer if it asks again."
+      } The sync continues from where it stopped. WireCat does not try again by itself.`,
     dismiss: "Dismiss",
     rowStopped: "Sync stopped; what came in is kept",
     rowFailed: (title: string) => `Sync: ${title}`,
@@ -224,6 +234,12 @@ const ru: typeof en = {
     signIn: "Войти",
     update: (name) => `Обновить ${name}`,
     openRun: "Открыть запуск в журнале",
+    slowDown: (service, wait) =>
+      `${service} ограничивает скорость загрузки истории и попросил сделать паузу. Полученное сохранено. ${
+        wait
+          ? `Он просит подождать ${plural("ru", wait.minutes, { one: "# минуту", few: "# минуты", many: "# минут", other: "# минуты" })}: синхронизируйте снова после ${clockOf(wait.at, "ru")}.`
+          : "Подождите несколько минут перед следующей синхронизацией, а если он снова попросит паузу, то дольше."
+      } Синхронизация продолжит с того места, где остановилась. Сам WireCat повторять не будет.`,
     dismiss: "Скрыть",
     rowStopped: "Синхронизация остановлена, полученное сохранено",
     rowFailed: (title) => `Синхронизация: ${title}`,
@@ -322,6 +338,12 @@ const es: typeof en = {
     signIn: "Iniciar sesión",
     update: (name) => `Actualizar ${name}`,
     openRun: "Abrir la ejecución en Registros",
+    slowDown: (service, wait) =>
+      `${service} limita la velocidad de descarga del historial y pidió una pausa. Lo recibido se conserva. ${
+        wait
+          ? `Pidió esperar ${plural("es", wait.minutes, { one: "# minuto", other: "# minutos" })}: vuelve a sincronizar después de las ${clockOf(wait.at, "es")}.`
+          : "Espera unos minutos antes de volver a sincronizar, y más si vuelve a pedirlo."
+      } La sincronización sigue desde donde se detuvo. WireCat no lo reintenta por sí solo.`,
     dismiss: "Descartar",
     rowStopped: "Sincronización detenida; lo recibido se conserva",
     rowFailed: (title) => `Sincronización: ${title}`,

@@ -66,7 +66,7 @@ export async function runMockScenario() {
     await useTools.getState().refresh()
     useTools.getState().toggle(mcp)
   }
-  const sync = ["sync", "sync-hold", "sync-fail", "sync-timeout"]
+  const sync = ["sync", "sync-hold", "sync-fail", "sync-timeout", "sync-limited"]
     .map((k) => params.get(k))
     .find((v) => v && v !== "never")
   const syncing = sync ? findTool(sync) : undefined
