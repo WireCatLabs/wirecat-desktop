@@ -29,7 +29,7 @@ const en = {
   revealed: (file: string) =>
     `${file} is in your Downloads folder. Double-click it to open the installer, enter your password, then open WireCat again.`,
   terminal: {
-    deb: "Or install it from a terminal. The command first copies the package to /tmp, because apt cannot read files in your home folder and would print a notice about it. Then it asks for your password, installs WireCat and prints the next steps.",
+    deb: "Or install it from a terminal. The command first copies the package into apt's own folder, because apt cannot read files in your home folder and would print a notice about it. Then it asks for your password, installs WireCat and prints the next steps.",
     rpm: "Or install it from a terminal. It asks for your password, installs WireCat and prints the next steps.",
   } satisfies Record<Package, string>,
   copyCommand: "Copy the command",

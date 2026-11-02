@@ -80,8 +80,12 @@ fn shell_word(s: &str) -> String {
 
 /// The line to paste in a terminal. `~/` stays outside the quotes, or the shell would not expand it. apt reads a local
 /// package as its unprivileged `_apt` user, which cannot enter a home folder that is `drwxr-x---`, and then prints
-/// "Download is performed unsandboxed as root"; a copy in `/tmp` is readable. dnf has no such user. `file` is plain
-/// (checked by `file_name`), so it needs no quoting.
+/// "Download is performed unsandboxed as root". The copy goes to apt's own archive folder, which only root can write and
+/// `_apt` can read: a copy in `/tmp` under the release's public name could be a file another user made beforehand and
+/// still writes to, so their package would be installed as root. dnf has no such user. `file` is plain (checked by
+/// `file_name`), so it needs no quoting.
+const APT_ARCHIVES: &str = "/var/cache/apt/archives";
+
 pub fn install_line(kind: Kind, path: &str, file: &str) -> String {
     let arg = match path.strip_prefix("~/") {
         Some(rest) => format!("~/{}", shell_word(rest)),
@@ -90,7 +94,7 @@ pub fn install_line(kind: Kind, path: &str, file: &str) -> String {
     if kind == Kind::Rpm {
         format!("sudo dnf install {arg}")
     } else {
-        format!("cp {arg} /tmp/ && sudo apt install /tmp/{file}")
+        format!("sudo install -m 644 {arg} {APT_ARCHIVES}/ && sudo apt install {APT_ARCHIVES}/{file}")
     }
 }
 
@@ -123,7 +127,7 @@ fn is_installer(desktop_id: &str) -> bool {
 
 fn default_handler(kind: Kind) -> Option<String> {
     let mime = if kind == Kind::Rpm { "application/x-rpm" } else { "application/vnd.debian.binary-package" };
-    let xdg = which::which("xdg-mime").ok()?;
+    let xdg = crate::paths::which_in("xdg-mime", &std::env::var_os("PATH").unwrap_or_default())?;
     let out = run::run(&xdg, &["query", "default", mime], None, Duration::from_secs(5)).ok()?;
     (out.code == Some(0)).then_some(out.stdout)
 }
@@ -225,7 +229,9 @@ mod tests {
         let deb = "wirecat_0.1.2_amd64.deb";
         assert_eq!(
             install_line(Kind::Deb, &format!("~/Downloads/{deb}"), deb),
-            format!("cp ~/Downloads/{deb} /tmp/ && sudo apt install /tmp/{deb}")
+            format!(
+                "sudo install -m 644 ~/Downloads/{deb} /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/{deb}"
+            )
         );
         assert_eq!(
             install_line(Kind::Rpm, "~/Downloads/wirecat-0.1.2-1.x86_64.rpm", "wirecat-0.1.2-1.x86_64.rpm"),
@@ -233,11 +239,13 @@ mod tests {
         );
         assert_eq!(
             install_line(Kind::Deb, &format!("~/My Downloads/{deb}"), deb),
-            format!("cp ~/'My Downloads/{deb}' /tmp/ && sudo apt install /tmp/{deb}")
+            format!(
+                "sudo install -m 644 ~/'My Downloads/{deb}' /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/{deb}"
+            )
         );
         assert_eq!(
             install_line(Kind::Deb, "/mnt/it's/w.deb", "w.deb"),
-            r"cp '/mnt/it'\''s/w.deb' /tmp/ && sudo apt install /tmp/w.deb"
+            r"sudo install -m 644 '/mnt/it'\''s/w.deb' /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/w.deb"
         );
     }
 
