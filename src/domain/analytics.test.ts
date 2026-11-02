@@ -107,14 +107,14 @@ describe("people and chats", () => {
 describe("tasks", () => {
   it("asks memo for each bar's closed tasks, the first bar starting with the period", () => {
     const r = closedRanges("30d", TODAY)
-    expect(r[0]).toEqual({ key: "2026-09-28", query: "closed:[2026-10-04 TO 2026-10-04]" })
+    expect(r[0]).toEqual({ key: "2026-09-28", query: "state:(done OR dismissed) closed:[2026-10-04 TO 2026-10-04]" })
     expect(r).toHaveLength(6)
     expect(closedRanges("7d", TODAY)).toHaveLength(7)
     const weeks = closedRanges("90d", TODAY)
-    expect(weeks[0]?.query).toBe("closed:[2026-08-05 TO 2026-08-09]")
-    expect(weeks.at(-1)?.query).toBe("closed:[2026-11-02 TO 2026-11-02]")
+    expect(weeks[0]?.query).toBe("state:(done OR dismissed) closed:[2026-08-05 TO 2026-08-09]")
+    expect(weeks.at(-1)?.query).toBe("state:(done OR dismissed) closed:[2026-11-02 TO 2026-11-02]")
     expect(closedRanges("all", TODAY)).toEqual([])
-    expect(closedTerm("7d")).toBe("closed:>=7d")
+    expect(closedTerm("7d")).toBe("state:(done OR dismissed) closed:>=7d")
   })
 
   it("puts tasks, memories and messages per project, busiest first", () => {

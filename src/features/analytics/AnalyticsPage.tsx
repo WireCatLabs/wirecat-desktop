@@ -6,10 +6,11 @@ import { findTool } from "@/domain/catalog"
 import { formatList, useMessages } from "@/i18n"
 import { PERIODS } from "@/platform/analytics-schemas"
 import { ToggleChip } from "@/ui/FilterBar"
+import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
 import { analyticsMessages } from "./messages"
 import { Activity, Helps, Memory, Overview, People, Projects, Tasks } from "./sections"
-import { MESSENGERS, useAnalytics } from "./store"
+import { MESSENGERS, useAnalytics, useShownSources } from "./store"
 
 export function AnalyticsPage() {
   const m = useMessages(analyticsMessages)
@@ -49,9 +50,12 @@ export function AnalyticsPage() {
 
       <div className="flex min-h-[2rem] flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Scope />
-        <ToggleChip on={hideNames} onChange={(on) => useAnalytics.getState().setHideNames(on)}>
-          {m.hideNames}
-        </ToggleChip>
+        <div className="flex flex-wrap items-center gap-[0.5rem]">
+          <Filters />
+          <ToggleChip on={hideNames} onChange={(on) => useAnalytics.getState().setHideNames(on)}>
+            {m.hideNames}
+          </ToggleChip>
+        </div>
       </div>
 
       <Overview />
@@ -69,10 +73,46 @@ export function AnalyticsPage() {
   )
 }
 
+/** Which messengers and profiles the message numbers add up; nothing chosen is every one of them. */
+function Filters() {
+  const m = useMessages(analyticsMessages)
+  const sources = useAnalytics((s) => s.sources)
+  const onlySources = useAnalytics((s) => s.onlySources)
+  const onlyProfiles = useAnalytics((s) => s.onlyProfiles)
+  const present = MESSENGERS.filter((x) => sources[x.id]?.state === "ready")
+  const profiles = [
+    ...new Set(
+      present.flatMap((x) => {
+        const s = sources[x.id]
+        return s?.state === "ready" ? s.profiles : []
+      }),
+    ),
+  ].sort()
+  if (present.length === 0) return null
+  return (
+    <>
+      <FilterMenu
+        label={m.sourceChip}
+        options={present.map((x) => ({ value: x.id, label: findTool(x.id)?.name ?? x.id }))}
+        selected={onlySources}
+        onChange={(ids) => useAnalytics.getState().setOnlySources(ids)}
+      />
+      {profiles.length > 1 && (
+        <FilterMenu
+          label={m.profileChip}
+          options={profiles.map((p) => ({ value: p, label: p }))}
+          selected={onlyProfiles}
+          onChange={(names) => useAnalytics.getState().setOnlyProfiles(names)}
+        />
+      )}
+    </>
+  )
+}
+
 /** Which profiles the message numbers add up, so a total is never read as one account's. */
 function Scope() {
   const m = useMessages(analyticsMessages)
-  const sources = useAnalytics((s) => s.sources)
+  const sources = useShownSources()
   const parts = MESSENGERS.flatMap((x) => {
     const s = sources[x.id]
     return s?.state === "ready" && s.profiles.length

@@ -97,6 +97,6 @@ Each is a CLI change. The app shows nothing in its place.
 
 ## Browser build
 
-`?section=analytics` opens the page. `?analytics=old` (Telegram too old to count), `?analytics=fail` (the work
+`?section=analytics` opens the page. `?analytics=real` (no Preview parts, as in the real app), `?analytics=old` (Telegram too old to count), `?analytics=fail` (the work
 profile does not answer), `?analytics=empty` (no messages in any period). The preview fills gaps 2 and 3 with sample
 numbers marked "Preview"; `analyticsPreview` answers null in the real app.

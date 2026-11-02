@@ -70,7 +70,7 @@ export function ColumnChart({ title, buckets, series, short, long, unit, stale =
   return (
     <figure className={cx("m-0 flex flex-col gap-3 transition-opacity duration-300", stale && "opacity-55")}>
       {series.length > 1 && <Legend series={series} />}
-      <div className="grid grid-cols-[2.8rem_minmax(0,1fr)]">
+      <div className="grid grid-cols-[3.6rem_minmax(0,1fr)]">
         <div aria-hidden className="relative h-[11rem] font-mono text-[0.85rem] text-ink-dim tabular-nums">
           {[1, 0.5, 0].map((f) => (
             <span key={f} className="absolute right-[0.6rem] -translate-y-1/2" style={{ top: `${(1 - f) * 100}%` }}>

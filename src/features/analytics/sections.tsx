@@ -26,7 +26,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./charts"
 import { colorOf, longKey, SOURCE_ORDER, shortKey, sourceName, toolColor, toolName } from "./format"
 import { analyticsMessages } from "./messages"
-import { MESSENGERS, useAnalytics } from "./store"
+import { MESSENGERS, useAnalytics, useShownSources } from "./store"
 
 type M = typeof analyticsMessages.en
 
@@ -193,7 +193,7 @@ const messengerName = (id: string) => findTool(id)?.name ?? id
 
 export function Activity() {
   const m = useMessages(analyticsMessages)
-  const sources = useAnalytics((s) => s.sources)
+  const sources = useShownSources()
   const period = useAnalytics((s) => s.period)
   const today = useAnalytics((s) => s.today)
   const refreshing = useAnalytics((s) => s.refreshing)
@@ -268,7 +268,7 @@ export function Activity() {
 }
 
 function SourceNotes({ m }: { m: M }) {
-  const sources = useAnalytics((s) => s.sources)
+  const sources = useShownSources()
   const lines = MESSENGERS.flatMap((x) => {
     const s = sources[x.id]
     const name = messengerName(x.id)
@@ -289,7 +289,7 @@ function SourceNotes({ m }: { m: M }) {
 
 export function People() {
   const m = useMessages(analyticsMessages)
-  const sources = useAnalytics((s) => s.sources)
+  const sources = useShownSources()
   const hide = useAnalytics((s) => s.hideNames)
   const refreshing = useAnalytics((s) => s.refreshing)
   const [by, setBy] = useState<"senders" | "chats">("senders")

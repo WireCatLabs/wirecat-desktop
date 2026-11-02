@@ -3,7 +3,7 @@ import type { AnalyticsPreview, CountRow, MessageCounts } from "./analytics-sche
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
-// The Analytics page in the browser build. `?analytics=old` (Telegram too old to count), `?analytics=fail` (the work
+// The Analytics page in the browser build. `?analytics=real` (no preview, as the real app), `?analytics=old` (Telegram too old to count), `?analytics=fail` (the work
 // profile does not answer), `?analytics=empty` (nothing in any period). The preview stands in for what no tool counts
 // yet (plan `docs/dev/plans/2026-11-02-analytics.md`); the real app answers null for it.
 
@@ -110,8 +110,9 @@ export const analyticsMock = (
     return { kind: "ready", total, rows, more: false }
   },
 
-  async analyticsPreview(period): Promise<AnalyticsPreview> {
+  async analyticsPreview(period): Promise<AnalyticsPreview | null> {
     await delay(400)
+    if (scenario === "real") return null
     const today = todayIn(Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC")
     const weeks = Math.ceil((PERIOD_DAYS[period] ?? 182) / 7)
     const taskWeeks = Array.from({ length: weeks }, (_, i) => {
@@ -133,7 +134,7 @@ export const analyticsMock = (
 
   // Only the Analytics page asks for closed tasks by a date range; the Tasks page never does.
   async taskCounts(query) {
-    const range = /^closed:\[(\d{4}-\d{2}-\d{2}) TO (\d{4}-\d{2}-\d{2})\]$/.exec(query)
+    const range = /closed:\[(\d{4}-\d{2}-\d{2}) TO (\d{4}-\d{2}-\d{2})\]$/.exec(query)
     if (!range) return base.taskCounts(query)
     const counts = await base.taskCounts("closed:>=1d")
     const [, from = "", to = ""] = range

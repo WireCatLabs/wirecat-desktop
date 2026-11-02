@@ -143,13 +143,18 @@ export function closedRanges(period: Period, today: string): { key: string; quer
     const from = [key, start].sort()[1] ?? key
     const end = grain === "day" ? key : addDays(key, 6)
     const to = end > today ? today : end
-    return { key, query: `closed:[${from} TO ${to}]` }
+    return { key, query: `${CLOSED} closed:[${from} TO ${to}]` }
   })
 }
 
+/**
+ * memo adds `state:(open OR todo OR in_progress)` to a query that names no `state:` (cli-base `defaults`), which would
+ * leave every closed task out of a `closed:` count, so each count names the closed states itself.
+ */
+const CLOSED = "state:(done OR dismissed)"
+
 /** The period as memo's `closed:` reads it; all time names every closed task. */
-export const closedTerm = (period: Period) =>
-  period === "all" ? "state:(done OR dismissed)" : `closed:>=${PERIOD_DAYS[period]}d`
+export const closedTerm = (period: Period) => (period === "all" ? CLOSED : `${CLOSED} closed:>=${PERIOD_DAYS[period]}d`)
 
 type Entry = { type: string; status: string; createdAt: string; project: string | null; projectName: string | null }
 

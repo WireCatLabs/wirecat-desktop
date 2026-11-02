@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { create } from "zustand"
 import { closedRanges, closedTerm, type Period, sumRows, todayIn } from "@/domain/analytics"
 import type { Run } from "@/domain/runs"
@@ -34,6 +35,8 @@ export type SourceCounts =
       chats: CountRow[]
       /** A profile's list was cut at the tool's limit. */
       more: boolean
+      /** Each profile's own answers, so a profile filter can add up fewer of them without asking again. */
+      answers: { profile: string; by: CountBy; rows: CountRow[]; more: boolean }[]
     }
 
 export type Loaded<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error"; error: string }
@@ -62,9 +65,14 @@ type State = {
   refreshing: boolean
   /** Names on screen, or initials; the owner's choice for screen sharing, kept for the session. */
   hideNames: boolean
+  /** Messenger ids and profile names to show; empty is every one. */
+  onlySources: string[]
+  onlyProfiles: string[]
   load(): void
   setPeriod(period: Period): void
   setHideNames(hide: boolean): void
+  setOnlySources(ids: string[]): void
+  setOnlyProfiles(names: string[]): void
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -100,20 +108,65 @@ export function combine(answers: { profile: string; by: CountBy; answer: Message
     if (a.answer.kind === "ready" || failed.some((f) => f.profile === a.profile)) continue
     failed.push({ profile: a.profile, message: a.answer.message })
   }
-  const rows = (by: CountBy) =>
-    sumRows(ready.filter((a) => a.by === by).map((a) => (a.answer.kind === "ready" ? a.answer.rows : [])))
+  const kept = ready.flatMap((a) =>
+    a.answer.kind === "ready" ? [{ profile: a.profile, by: a.by, rows: a.answer.rows, more: a.answer.more }] : [],
+  )
   return {
     state: "ready",
     profiles: profiles.filter((p) => !failed.some((f) => f.profile === p)),
     failed,
-    days: rows("day"),
-    senders: rows("sender").sort((a, b) => b.count - a.count),
-    chats: rows("chat").sort((a, b) => b.count - a.count),
-    more: ready.some((a) => a.answer.kind === "ready" && a.answer.more && a.by === "day"),
+    ...sums(kept),
+    answers: kept,
   }
 }
 
+function sums(answers: { by: CountBy; rows: CountRow[]; more: boolean }[]) {
+  const rows = (by: CountBy) => sumRows(answers.filter((a) => a.by === by).map((a) => a.rows))
+  return {
+    days: rows("day"),
+    senders: rows("sender").sort((a, b) => b.count - a.count),
+    chats: rows("chat").sort((a, b) => b.count - a.count),
+    more: answers.some((a) => a.more && a.by === "day"),
+  }
+}
+
+/**
+ * The messengers and profiles the owner chose to see; nothing chosen is all of them. A filtered-out messenger is left
+ * out, so the others keep their colours and places.
+ */
+export function shown(
+  sources: Readonly<Record<string, SourceCounts>>,
+  ids: readonly string[],
+  profiles: readonly string[],
+): Record<string, SourceCounts> {
+  const out: Record<string, SourceCounts> = {}
+  for (const [id, s] of Object.entries(sources)) {
+    if (ids.length && !ids.includes(id)) continue
+    if (s.state !== "ready" || profiles.length === 0) {
+      out[id] = s
+      continue
+    }
+    const answers = s.answers.filter((a) => profiles.includes(a.profile))
+    out[id] = {
+      ...s,
+      ...sums(answers),
+      profiles: s.profiles.filter((p) => profiles.includes(p)),
+      failed: s.failed.filter((f) => profiles.includes(f.profile)),
+      answers,
+    }
+  }
+  return out
+}
+
 const loadingSources = () => Object.fromEntries(MESSENGERS.map((m) => [m.id, { state: "loading" } as SourceCounts]))
+
+/** The sources as the page shows them, after the owner's filters. */
+export const useShownSources = () => {
+  const sources = useAnalytics((s) => s.sources)
+  const ids = useAnalytics((s) => s.onlySources)
+  const profiles = useAnalytics((s) => s.onlyProfiles)
+  return useMemo(() => shown(sources, ids, profiles), [sources, ids, profiles])
+}
 
 export const useAnalytics = create<State>((set, get) => {
   let round = 0
@@ -213,6 +266,8 @@ export const useAnalytics = create<State>((set, get) => {
     preview: null,
     refreshing: false,
     hideNames: false,
+    onlySources: [],
+    onlyProfiles: [],
     load() {
       set({
         today: todayIn(get().zone),
@@ -231,5 +286,7 @@ export const useAnalytics = create<State>((set, get) => {
       loadPeriod()
     },
     setHideNames: (hideNames) => set({ hideNames }),
+    setOnlySources: (onlySources) => set({ onlySources }),
+    setOnlyProfiles: (onlyProfiles) => set({ onlyProfiles }),
   }
 })
