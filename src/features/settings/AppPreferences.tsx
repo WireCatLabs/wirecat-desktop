@@ -1,5 +1,5 @@
 import { RotateCcw } from "lucide-react"
-import { useEffect, useId, useRef, useState } from "react"
+import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
 import { ENDONYMS, LANGS, type LangChoice, systemLang, useLanguage, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
@@ -64,7 +64,8 @@ function ScaleSetting() {
           value={shown}
           onChange={(e) => setShown(Number(e.target.value))}
           aria-valuetext={`${shown}%`}
-          className="w-[14rem] accent-brand"
+          style={{ "--fill": `${((shown - MIN_SCALE) / (MAX_SCALE - MIN_SCALE)) * 100}%` } as CSSProperties}
+          className="range w-[14rem]"
         />
         <output htmlFor={id} className="w-[3.2rem] text-right font-mono tabular-nums">
           {shown}%

@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from "react"
 import { formatBytes } from "@/domain/format"
 import { formatNumber, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { Dialog } from "@/ui/Dialog"
 import { Skeleton } from "@/ui/Skeleton"
 import { BackupProgress } from "./BackupProgress"
@@ -117,13 +118,7 @@ export function ClearStorageDialog({ open, onClose }: { open: boolean; onClose: 
           )}
 
           <label className="mt-4 flex items-start gap-2.5 text-ink">
-            <input
-              type="checkbox"
-              checked={backupFirst}
-              disabled={working}
-              onChange={(e) => setBackupFirst(e.target.checked)}
-              className="mt-[0.3rem] size-[1.05rem] shrink-0 accent-brand"
-            />
+            <Checkbox checked={backupFirst} disabled={working} onChange={setBackupFirst} className="mt-[0.3rem]" />
             <span>
               {m.backUpFirst}
               <span className="block text-[0.9rem] text-ink-soft">{m.backUpFirstHelp}</span>

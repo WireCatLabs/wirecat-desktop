@@ -244,12 +244,12 @@ function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => vo
   const m = useMessages(memoryMessages)
   const name = useId()
   return (
-    <fieldset className="inline-flex h-[2.8rem] items-center self-start rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
+    <fieldset className="inline-flex h-[2.8rem] items-stretch self-start rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
       <legend className="sr-only">{m.show}</legend>
       {TABS.map((t) => (
-        <label key={t} className="relative h-full">
+        <label key={t} className="relative flex">
           <input type="radio" name={name} checked={t === value} onChange={() => onChange(t)} className="peer sr-only" />
-          <span className="flex h-full cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+          <span className="flex cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
             {t === "review" && count("review") > 0 && <Lamp tone="warn" size="sm" />}
             {m.tabs[t]}
             <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{count(t)}</span>

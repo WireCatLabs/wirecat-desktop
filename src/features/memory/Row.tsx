@@ -29,6 +29,7 @@ import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -575,13 +576,12 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
           return (
             <li key={f.id} className="flex gap-[0.75rem] border-line px-[0.9rem] py-[0.75rem] not-first:border-t">
               {open ? (
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={on}
                   disabled={busy}
                   aria-label={m.include(f.text)}
-                  onChange={(e) => skip(entry.ref, f.id, !e.target.checked)}
-                  className="mt-[0.25rem] size-[1.05rem] shrink-0 accent-brand"
+                  onChange={(checked) => skip(entry.ref, f.id, !checked)}
+                  className="mt-[0.25rem]"
                 />
               ) : (
                 <span className="mt-[0.3rem]">
