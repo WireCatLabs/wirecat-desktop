@@ -73,17 +73,20 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
    runs `npm install --global <package>@latest` — or `pnpm add --global` when pnpm owns the copy that is already
    installed, so an update never leaves a second copy behind.
 4. Each output line is masked and sent as a `log` event; steps arrive as `step` events.
-5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If an older
-   copy still comes first on PATH, the result says which.
+5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If the app
+   would still run another copy (one of the same or a newer version), the result says which.
 6. Every event is parsed by `InstallEventSchema` before the store sees it.
 
 ## Finding tools
 
 An app started from a desktop launcher does not get the PATH a terminal has: nvm, pnpm and Volta add theirs in
 shell profiles. `paths.rs` merges the process PATH, the login shell's PATH (`$SHELL -lic`) and known folders
-(nvm versions newest first, pnpm, Volta, Homebrew, `%APPDATA%\npm`). Every copy of a binary is reported in PATH order;
-the first is the one a terminal runs. Versions come from running the binary, never from `npm ls`, because a tool may
-be installed by npm, pnpm or both.
+(nvm versions newest first, pnpm, Volta, Homebrew, `%APPDATA%\npm`). When a tool has several copies, the app runs the
+newest one that starts (`tools::program`), and the Tools page lists that copy first, then the others to remove. PATH
+order cannot pick it: a launcher's bare PATH makes the login shell order its folders unlike the owner's terminal
+(a profile that adds pnpm only when it is missing puts it first there, after nvm in a terminal). Equal versions keep
+PATH order. Versions come from running the binary, never from `npm ls`, because a tool may be installed by npm, pnpm
+or both.
 
 ## Uninstalling and storage
 

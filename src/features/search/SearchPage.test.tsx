@@ -38,11 +38,18 @@ describe("Search", () => {
     expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
     expect(search).toHaveBeenLastCalledWith("tg", "personal", "invoice", 50, 1)
     expect(screen.getByText(/searched 12,480 messages/)).toBeInTheDocument()
+    expect(screen.getAllByText("Photo").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Voice message").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("invoice.pdf").length).toBeGreaterThan(0)
 
     await user.click(screen.getAllByRole("button", { name: "Show the whole result: Harbour flat" })[0] as HTMLElement)
-    expect(
-      await screen.findByRole("group", { name: "Everything the tool returned for this result" }),
-    ).toHaveTextContent("chat_title")
+    expect(await screen.findByText("msg:telegram/1/-1000/4000")).toBeInTheDocument()
+    expect(screen.getByText("Reference")).toBeInTheDocument()
+    expect(screen.queryByText("untrusted")).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show raw data" }))
+    const raw = await screen.findByRole("group", { name: "Everything the tool returned for this result" })
+    expect(raw).toHaveTextContent("chat_title")
+    expect(raw).not.toHaveTextContent("untrusted")
 
     await user.click(screen.getByRole("button", { name: "Next page" }))
     expect(await screen.findByText("Showing 51–100 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
@@ -220,6 +227,25 @@ describe("Search", () => {
     expect(screen.getByRole("button", { name: "Report this" })).toBeVisible()
   }, 15000)
 
+  it("shows no results, not an error, for an empty answer that did not cover every chat", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchStore").mockResolvedValue({
+      kind: "hits",
+      hits: [],
+      hasMore: false,
+      paged: true,
+      notes: ["searched 207,424 messages in 1,380 chats — 27 never fetched"],
+      total: null,
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "MAX")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByRole("combobox", { name: "Search messages" }), "zzq{Enter}")
+    expect(await screen.findByText(/Nothing matches this search/)).toBeInTheDocument()
+    expect(screen.getByText(/27 never fetched/)).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Report this" })).not.toBeInTheDocument()
+  }, 15000)
+
   it("offers ready queries, then the tool's own values after a field", async () => {
     const user = userEvent.setup()
     const values = vi.spyOn(platform, "searchValues")
@@ -238,6 +264,14 @@ describe("Search", () => {
     await user.type(bar, "chat:des")
     await user.click(await screen.findByRole("option", { name: /Design crit/ }))
     expect(bar).toHaveValue('has:photo date>=7d chat:"-1001001" ')
+    const names = screen.getByRole("list", { name: "Names in this search" })
+    expect(within(names).getByRole("button", { name: "Edit chat: Design crit" })).toHaveAttribute(
+      "title",
+      'chat:"-1001001"',
+    )
+    await user.click(within(names).getByRole("button", { name: "Remove chat: Design crit" }))
+    expect(bar).toHaveValue("has:photo date>=7d")
+    await waitFor(() => expect(screen.queryByRole("list", { name: "Names in this search" })).not.toBeInTheDocument())
   }, 15000)
 
   it("turns a chat name that fits two chats into a choice that names one by id", async () => {
@@ -252,6 +286,7 @@ describe("Search", () => {
     expect(await screen.findByText("This name fits several chats. Pick the one you meant below.")).toBeInTheDocument()
     await user.click(await screen.findByRole("button", { name: /^@kyrillic/ }))
     expect(bar).toHaveValue('date>=3d chat:"-1001762030832"')
+    expect(screen.getByRole("button", { name: "Edit chat: @kyrillic" })).toBeInTheDocument()
     await waitFor(() =>
       expect(search).toHaveBeenLastCalledWith("tg", "personal", 'date>=3d chat:"-1001762030832"', 50, 1),
     )

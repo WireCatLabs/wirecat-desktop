@@ -84,7 +84,7 @@ fn validate_value(value: &str) -> Result<(), String> {
 }
 
 pub(crate) fn run_tool(tool: &Tool, args: &[String]) -> Result<run::Output, String> {
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(1)).map_err(|e| e.to_string())
 }

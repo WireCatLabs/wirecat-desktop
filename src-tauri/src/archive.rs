@@ -337,7 +337,7 @@ pub(crate) enum Answer {
 
 pub(crate) fn ask(tool: &Tool, template: Template, timeout: Duration) -> Result<Answer, String> {
     let Some(args) = template(tool) else { return Ok(Answer::Unknown) };
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
     let json = out.json();

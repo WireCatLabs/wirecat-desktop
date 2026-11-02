@@ -5,10 +5,10 @@ type Variant = "primary" | "secondary" | "ghost" | "danger"
 type Size = "lg" | "md" | "sm"
 
 const variants: Record<Variant, string> = {
-  primary: "bg-brand text-brand-ink hover:bg-brand-hover border-transparent",
-  secondary: "bg-app text-ink border-line-strong hover:bg-app-2 hover:border-ink-dim/60",
-  ghost: "bg-transparent text-ink-soft border-transparent hover:bg-app-3 hover:text-ink",
-  danger: "bg-app text-bad border-line-strong hover:border-bad/60",
+  primary: "bg-brand text-brand-ink border-transparent hover:bg-brand-hover active:bg-brand-hover",
+  secondary: "bg-app text-ink border-line-strong hover:bg-app-2 hover:border-ink-dim/60 active:bg-app-3",
+  ghost: "bg-transparent text-ink-soft border-transparent hover:bg-app-3 hover:text-ink active:bg-app-3",
+  danger: "bg-app text-bad border-line-strong hover:bg-bad/5 hover:border-bad/60 active:bg-bad/10",
 }
 
 const sizes: Record<Size, string> = {
@@ -25,7 +25,8 @@ export function Button({ variant = "secondary", size = "md", icon, className, ch
       type={type ?? "button"}
       className={cx(
         "inline-flex shrink-0 items-center justify-center gap-2 border font-medium whitespace-nowrap",
-        "transition-[background-color,border-color,color,transform] duration-150 ease-out-quart active:translate-y-px",
+        // A press changes colour only: a button that moves under the pointer is a jump (rule 9).
+        "transition-[background-color,border-color,color] duration-150 ease-out-quart",
         "disabled:pointer-events-none disabled:opacity-45",
         variants[variant],
         sizes[size],

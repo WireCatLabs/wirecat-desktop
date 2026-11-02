@@ -394,7 +394,7 @@ pub fn read() -> Result<Read, String> {
     if too_old(first.version.as_deref(), &need) {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
-    let bin = paths::find(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     read_with(&|args: &[String]| call_at(&bin, args, READ))
 }
 
@@ -442,7 +442,7 @@ fn read_with(call: &Call) -> Result<Read, String> {
 
 fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
     let tool = memo()?;
-    let bin = paths::find(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     f(&|args: &[String]| call_at(&bin, args, WRITE))
 }
 

@@ -338,7 +338,7 @@ fn gate() -> Result<Option<Read>, String> {
 
 fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Call) -> Result<T, Failure>) -> Result<T, String> {
     let tool = memo()?;
-    let bin = paths::find(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     f(&|args: &[String]| call_at(&bin, args, timeout)).map_err(String::from)
 }
 

@@ -52,7 +52,7 @@ pub fn answer(id: &str, value: &Answer) -> Result<(), String> {
 }
 
 pub fn run(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: &dyn Fn(SignInEvent)) {
-    let Some(bin) = paths::find(&tool.bin) else {
+    let Some(bin) = crate::tools::program(&tool.bin) else {
         return send(failed(format!("{} is not installed.", tool.name)));
     };
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();

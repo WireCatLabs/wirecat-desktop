@@ -7,7 +7,11 @@ export type HitRow = {
   who: string | null
   fromMe: boolean
   text: string | null
+  /** What the message carries (cli-core 0.532.0+ hits name their files); older tools send none. */
+  files: HitFile[]
 }
+
+export type HitFile = { kind: string; name: string | null }
 
 const str = (v: unknown) => (typeof v === "string" && v.trim() ? v : null)
 const obj = (v: unknown) => (v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {})
@@ -21,7 +25,17 @@ export function hitRow(hit: Record<string, unknown>, index: number): HitRow {
     who: str(hit.sender_name),
     fromMe: hit.sender_is_me === true,
     text: str(hit.excerpt) ?? str(hit.text),
+    files: hitFiles(hit),
   }
+}
+
+export function hitFiles(hit: Record<string, unknown>): HitFile[] {
+  const list = Array.isArray(hit.attachments) ? hit.attachments : []
+  return list.flatMap((raw) => {
+    const f = obj(raw)
+    const kind = str(f.kind)
+    return kind ? [{ kind, name: str(f.name) }] : []
+  })
 }
 
 /**

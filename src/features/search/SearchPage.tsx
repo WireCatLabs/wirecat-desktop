@@ -58,7 +58,7 @@ export function SearchPage() {
   const version = s.tool ? (installs[s.tool]?.[0]?.version ?? null) : null
   const what = tool?.search?.what ?? "messages"
   const parsed = useMemo(() => parseQuery(s.query), [s.query])
-  const suggest = useSuggest(m, version)
+  const { suggest, named } = useSuggest(m, version)
   const ids = { tool: useId(), profile: useId(), query: useId(), hint: useId() }
   // Shown only after a search was asked for, and only while the thing is still missing.
   const [tried, setTried] = useState(false)
@@ -196,6 +196,7 @@ export function SearchPage() {
                       : null
               }
               suggest={suggest}
+              named={named}
               words={{
                 label: m.searchLabel[what],
                 placeholder: m.placeholder[what],
@@ -265,8 +266,17 @@ function useSuggest(m: Words, version: string | null) {
     return out
   }, [fields, answer, lists, tool, profile, version])
 
+  const picked = useSearch((s) => s.named)
+  const named = useCallback(
+    (field: string, value: string) =>
+      picked[`${field}:${value}`] ??
+      values[field]?.find((v) => v.value === value && v.label && v.label !== value)?.label ??
+      null,
+    [values, picked],
+  )
+
   const area = what === "documents" ? "notes" : what
-  return useCallback(
+  const suggest = useCallback(
     (query: string, cursor: number, all: boolean) =>
       suggestSearch(query, cursor, {
         fields,
@@ -287,6 +297,7 @@ function useSuggest(m: Words, version: string | null) {
       }),
     [fields, values, what, area, m],
   )
+  return { suggest, named }
 }
 
 type Candidate = { id: string; label: string | null; field: "chat" | "from" | null }
@@ -358,6 +369,7 @@ function resultsView(
                     key={c.id}
                     size="sm"
                     onClick={() => {
+                      if (c.label && choices.field) s.remember(choices.field, c.id, c.label)
                       s.setQuery(c.query)
                       s.search(1)
                     }}
@@ -384,7 +396,19 @@ function resultsView(
     return { view: "start", node: <Empty>{s.profiles === null ? m.startNoProfile : m.start}</Empty> }
   }
   if (hits.hits.length === 0)
-    return { view: "empty", node: <Empty busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</Empty> }
+    return {
+      view: "empty",
+      node: (
+        <div className="flex flex-col gap-[0.5rem]">
+          <Empty busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</Empty>
+          {hits.notes.map((n) => (
+            <p key={n} className="selectable text-[0.9rem] text-ink-dim">
+              {n}
+            </p>
+          ))}
+        </div>
+      ),
+    }
 
   const pager = hits.paged && (page > 1 || hits.hasMore)
   const node = (

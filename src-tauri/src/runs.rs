@@ -56,7 +56,7 @@ const LIST: &str = "runs list";
 /// word for word, because the interface reads it as "update the tool".
 pub fn list(tool: &Tool, query: Option<&str>, limit: u32, page: u32) -> Result<Value, String> {
     let args = list_args(source(tool)?, query, limit, page)?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     if let Some(refusal) = REFUSED.known(&tool.id, LIST, &bin) {
         return Err(refusal);
     }
@@ -77,7 +77,7 @@ pub fn show(tool: &Tool, run: &str) -> Result<Value, String> {
 }
 
 fn call(tool: &Tool, args: &[String]) -> Result<Value, String> {
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_secs(30)).map_err(|e| e.to_string())?;
     // Run records stay on this computer and the CLI already hid secrets and phone numbers in them, so the Logs page
