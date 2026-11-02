@@ -60,7 +60,10 @@ src-tauri/src/
   terminal.rs   opening a tool's interactive setup in the user's terminal.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
-  sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced.
+  sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced
+                (for tg and max, only a run whose argv has `--all`).
+  background.rs whether a messenger's own `serve` keeps a profile current (`server status`), and starting it through
+                its own `server install` (only when it has no unit) and `server start`. Never systemctl itself.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```

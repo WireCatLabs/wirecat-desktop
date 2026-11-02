@@ -40,6 +40,9 @@ pub struct Tool {
     pub task_board: Option<TaskBoardSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
+    /// The messengers' `serve` in the background, which keeps the archive current between syncs.
+    #[serde(default)]
+    pub background: Option<crate::background::BackgroundSource>,
     /// Another tool's id when this one is a part of its package: same `bin`, `package` and `storage`.
     pub part_of: Option<String>,
     pub name: String,

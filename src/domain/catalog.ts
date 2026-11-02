@@ -81,6 +81,11 @@ const ToolSchema = v.object({
   tasks: v.nullable(v.object({ list: v.array(v.string()), release: v.array(v.string()) })),
   /** The Tasks page's lowest version of the tool; only memo keeps project tasks. */
   taskBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
+  /** The messengers' own `serve` in the background, per profile: `server status`, `server install`, `server start`. */
+  background: v.optional(
+    v.nullable(v.object({ status: v.array(v.string()), install: v.array(v.string()), start: v.array(v.string()) })),
+    null,
+  ),
   /** The tool's own sync; `run` is null when there is none to start and `note` says how it syncs instead. */
   sync: v.nullable(
     v.object({

@@ -1,4 +1,5 @@
 mod archive;
+mod background;
 mod backup;
 mod cache;
 mod catalog;
@@ -488,6 +489,20 @@ async fn cloudflare_routes() -> Result<Vec<cloudflare::RouteState>, String> {
 }
 
 #[tauri::command]
+async fn background_status(id: String, profile: String) -> Result<background::Background, String> {
+    let tool = catalog::tool(&id)?;
+    catalog::validate_profile(&profile)?;
+    blocking(move || background::status(tool, &profile)).await?
+}
+
+#[tauri::command]
+async fn background_keep(id: String, profile: String) -> Result<background::Background, String> {
+    let tool = catalog::tool(&id)?;
+    catalog::validate_profile(&profile)?;
+    blocking(move || background::keep(tool, &profile)).await?
+}
+
+#[tauri::command]
 async fn mcp_server_status(id: String) -> Result<mcp_server::ServerStatus, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || mcp_server::status(tool)).await?
@@ -916,6 +931,8 @@ pub fn run() {
             mcp_check,
             mcp_add,
             mcp_remove,
+            background_status,
+            background_keep,
             mcp_server_status,
             mcp_server_start,
             mcp_server_stop,

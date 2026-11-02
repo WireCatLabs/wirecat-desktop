@@ -1,10 +1,12 @@
 import { delay } from "./mock-delay"
-import type { LastSync, SyncEvent } from "./sync-schemas"
+import type { Background, LastSync, SyncEvent } from "./sync-schemas"
 import type { Platform } from "./types"
 
 // Each tool's sync as Rust reports it: stages read from its notes, then the counts. `?sync=<tool>` starts that tool's
 // sync for personal (`src/app/scenarios.ts`); `?sync-hold=<tool>` keeps it running; `?sync-fail=<tool>` ends it with
 // another sync holding the profile; `?sync-timeout=<tool>` at the time limit; `?sync=never` has no profile synced yet.
+// Background servers: personal runs, any other profile is stopped with its unit written; `?server=off` stops every
+// profile with no unit yet, `?server-fail=<tool>` makes starting it fail as a signed-out profile does.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const MIN = 60_000
@@ -37,8 +39,12 @@ const DONE: Record<string, SyncEvent> = {
   email: { event: "done", summary: { new: 0, places: 0, failed: 0, left: 0, complete: true } },
 }
 
-export function syncMock(): Pick<Platform, "syncRun" | "syncStop" | "syncLast"> {
+export function syncMock(): Pick<
+  Platform,
+  "syncRun" | "syncStop" | "syncLast" | "backgroundStatus" | "backgroundKeep"
+> {
   const stops = new Map<string, () => void>()
+  const kept = new Set<string>()
   const keyOf = (id: string, profile: string | null) => `${id}:${profile ?? ""}`
   return {
     async syncRun(id, profile, onEvent) {
@@ -95,6 +101,20 @@ export function syncMock(): Pick<Platform, "syncRun" | "syncStop" | "syncLast"> 
     },
     async syncStop(id, profile) {
       stops.get(keyOf(id, profile))?.()
+    },
+    async backgroundStatus(id, profile): Promise<Background> {
+      await delay(400)
+      const key = keyOf(id, profile)
+      if (kept.has(key)) return { state: "running" }
+      if (params.get("server") === "off") return { state: "stopped", unit: false }
+      return profile === "personal" ? { state: "running" } : { state: "stopped", unit: true }
+    },
+    async backgroundKeep(id, profile): Promise<Background> {
+      await delay(2200)
+      if (params.get("server-fail") === id)
+        throw new Error(`profile "${profile}" is not logged in — run: ${id} ${profile} setup`)
+      kept.add(keyOf(id, profile))
+      return { state: "running" }
     },
     async syncLast(id, profile): Promise<LastSync> {
       await delay(300)

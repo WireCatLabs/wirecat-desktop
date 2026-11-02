@@ -237,6 +237,11 @@
         ],
         "release": ["{profile}", "tasks", "release", "{task}", "--holder", "owner", "--json"]
       },
+      "background": {
+        "status": ["{profile}", "server", "status", "--no-record", "--json"],
+        "install": ["{profile}", "server", "install", "--json"],
+        "start": ["{profile}", "server", "start", "--json"]
+      },
       "sync": {
         "run": ["{profile}", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"],
         "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "200", "--json"],
@@ -558,6 +563,11 @@
         ],
         "release": ["{profile}", "tasks", "release", "{task}", "--holder", "owner", "--json"]
       },
+      "background": {
+        "status": ["{profile}", "server", "status", "--no-record", "--json"],
+        "install": ["{profile}", "server", "install", "--json"],
+        "start": ["{profile}", "server", "start", "--json"]
+      },
       "sync": {
         "run": ["{profile}", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"],
         "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "200", "--json"],
@@ -874,6 +884,11 @@
           "--json=id,key,claimed_by,claimed_until"
         ],
         "release": ["{profile}", "tasks", "release", "{task}", "--holder", "owner", "--json"]
+      },
+      "background": {
+        "status": ["{profile}", "server", "status", "--no-record", "--json"],
+        "install": ["{profile}", "server", "install", "--json"],
+        "start": ["{profile}", "server", "start", "--json"]
       },
       "sync": {
         "run": null,
