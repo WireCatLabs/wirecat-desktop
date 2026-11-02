@@ -461,8 +461,8 @@ pub fn funnel_open(
     stopped: &dyn Fn() -> bool,
     send: &dyn Fn(PageEvent),
 ) -> Result<String, String> {
-    catalog::tool(tool)?;
     mcp_server::validate_port(port)?;
+    mcp_server::ensure_port_is_ours(catalog::tool(tool)?, port)?;
     let _one = FUNNELS.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let cli = cli().ok_or("Tailscale is not installed.")?;
     let v = json_of(&exec(&cli, &["status", "--json"])?).ok_or("Tailscale is not running on this computer.")?;
