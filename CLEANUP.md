@@ -115,3 +115,4 @@
 /home/leemour/Projects/AI/visage/.claude/worktrees/search-real-data — worktree of merged PR #53 — 2026-11-02
 /home/leemour/Projects/AI/cli-core-wt-skill-refresh — worktree of cli-core #2364, remove after merge — 2026-11-02
 /home/leemour/Projects/AI/visage/.claude/worktrees/skill-refresh — worktree of desktop #54, remove after merge — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/shots — throwaway worktree for desktop screenshots — 2026-11-02
