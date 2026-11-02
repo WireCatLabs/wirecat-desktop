@@ -6,8 +6,11 @@ export type FailReason = "requirements" | "permission" | "network" | "timeout" |
 
 export type InstallRecord = { path: string; version: string | null; manager: string; problem: string | null }
 
+/** The copies of the tool's agent instructions that an update rewrote, because an older version had written them. */
+export type SkillRefresh = { refreshed: ("claude" | "agents" | "hermes")[]; failed: string | null }
+
 export type InstallOutcome =
-  | { event: "done"; version: string; path: string; shadowedBy: string | null }
+  | { event: "done"; version: string; path: string; shadowedBy: string | null; skills?: SkillRefresh | undefined }
   | { event: "removed" }
   | { event: "failed"; reason: FailReason; message: string; hint: string | null }
 

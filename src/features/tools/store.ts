@@ -3,6 +3,7 @@ import { ownerId, samePackage } from "@/domain/catalog"
 import type { DataDeletion, InstallSession, Operation } from "@/domain/status"
 import { platform } from "@/platform/bridge"
 import type { ToolState } from "@/platform/schemas"
+import { useAgents } from "../agents/store"
 import { useStorage } from "../storage/store"
 import { useSystem } from "../system/store"
 import { installedOf, useCompat } from "./compat-store"
@@ -77,8 +78,10 @@ export const useTools = create<ToolsState>((set, get) => {
     }
     await redetect(true).catch(() => undefined)
     if (operation === "uninstall") await deleteData(id)
-    if (operation === "install" && get().sessions[id]?.outcome?.event === "done")
+    if (operation === "install" && get().sessions[id]?.outcome?.event === "done") {
+      void useAgents.getState().recheck(id)
       await useCompat.getState().checkAfterInstall(id, () => installedOf(get().installs))
+    }
     const st = get()
     const nothingLeft = Object.values(st.installs).every((copies) => copies.length === 0)
     if (operation === "uninstall" && st.sessions[id]?.outcome?.event === "removed" && nothingLeft) {

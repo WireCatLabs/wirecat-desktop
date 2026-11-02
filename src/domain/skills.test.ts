@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { cellAction, type SkillReportLike, skillCell } from "./skills"
+import { agentsReading, cellAction, type SkillReportLike, skillCell } from "./skills"
 
 const status = (targets: SkillReportLike["targets"]): SkillReportLike => ({ source: "status", targets })
 
@@ -58,5 +58,13 @@ describe("skillCell", () => {
     })
     expect(cellAction({ kind: "missing" })).toBe("Install")
     expect(cellAction({ kind: "current", installed: "1.0.0" })).toBeNull()
+  })
+})
+
+describe("agentsReading", () => {
+  it("names the agents found that read a place, else Claude Code and the others", () => {
+    const cursor = { name: "Cursor", foundBy: "folder", reads: ["agents", "claude"] } as const
+    expect(agentsReading(["claude"], [cursor], "others")).toEqual(["Cursor"])
+    expect(agentsReading(["claude", "agents"], null, "others")).toEqual(["Claude Code", "others"])
   })
 })

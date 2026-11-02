@@ -23,6 +23,8 @@ type AgentsState = {
   install(id: string, target: SkillTarget): Promise<void>
   /** One at a time: each install is a separate process writing to the same folders. */
   installAll(cells: readonly [string, SkillTarget][]): Promise<void>
+  /** After the tool itself was updated: its copies and its version changed under the answers kept here. */
+  recheck(id: string): Promise<void>
 }
 
 export const cellKey = (id: string, target: SkillTarget) => `${id}:${target}`
@@ -74,6 +76,24 @@ export const useAgents = create<AgentsState>((set, get) => ({
 
   async installAll(cells) {
     for (const [id, target] of cells) await get().install(id, target)
+  },
+
+  async recheck(id) {
+    set((s) => ({
+      written: Object.fromEntries(Object.entries(s.written).filter(([key]) => !key.startsWith(`${id}:`))),
+    }))
+    const agents =
+      get().agents === null
+        ? platform
+            .detectAgents()
+            .then((agents) => set({ agents, agentsError: null }))
+            .catch(() => undefined)
+        : undefined
+    const skills = platform
+      .skillStatus(id)
+      .then((report) => set((s) => ({ skills: { ...s.skills, [id]: { report, error: null } } })))
+      .catch(() => undefined)
+    await Promise.all([agents, skills])
   },
 }))
 
