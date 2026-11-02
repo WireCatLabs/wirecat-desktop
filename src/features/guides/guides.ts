@@ -139,9 +139,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Mensajes, correo, notas y tareas abiertas con una persona, y tres temas para tratar.",
     },
     prompt: {
-      en: "Use memo CLI to prepare me for my call with Kai Sample tomorrow. Show our recent messages and mail, my notes about Kai and the open tasks between us. Give me three points to raise, each with its source.",
-      ru: "Используй memo CLI, чтобы подготовить меня к завтрашнему звонку с Kai Sample. Покажи наши недавние сообщения и письма, мои заметки о Kai и открытые задачи между нами. Дай три темы для разговора, у каждой — источник.",
-      es: "Usa memo CLI para prepararme para mi llamada de mañana con Kai Sample. Muestra nuestros mensajes y correos recientes, mis notas sobre Kai y las tareas abiertas entre nosotros. Dame tres temas para tratar, cada uno con su fuente.",
+      en: "Use memo CLI to prepare me for my call with Kai Moreno tomorrow. Show our recent messages and mail, my notes about Kai and the open tasks between us. Give me three points to raise, each with its source.",
+      ru: "Используй memo CLI, чтобы подготовить меня к завтрашнему звонку с Kai Moreno. Покажи наши недавние сообщения и письма, мои заметки о Kai и открытые задачи между нами. Дай три темы для разговора, у каждой — источник.",
+      es: "Usa memo CLI para prepararme para mi llamada de mañana con Kai Moreno. Muestra nuestros mensajes y correos recientes, mis notas sobre Kai y las tareas abiertas entre nosotros. Dame tres temas para tratar, cada uno con su fuente.",
     },
     extraPrompt: {
       zm: {
@@ -584,9 +584,9 @@ const FIRST_GUIDES: Guide[] = [
       es: "Una preferencia que tu agente tendrá en cuenta, con el mensaje de donde salió.",
     },
     prompt: {
-      en: "Use memo CLI to find what Kai Sample said about meeting times. Show me the memory you would save and the message it is based on. Save it with the message as evidence only after I agree.",
-      ru: "Используй memo CLI, чтобы найти, что Kai Sample говорил о времени встреч. Покажи, что ты сохранишь, и сообщение, на котором это основано. Сохрани со ссылкой на сообщение только после моего согласия.",
-      es: "Usa memo CLI para encontrar lo que dijo Kai Sample sobre los horarios de reunión. Muéstrame el recuerdo que guardarías y el mensaje en el que se basa. Guárdalo con el mensaje como prueba solo cuando yo esté de acuerdo.",
+      en: "Use memo CLI to find what Kai Moreno said about meeting times. Show me the memory you would save and the message it is based on. Save it with the message as evidence only after I agree.",
+      ru: "Используй memo CLI, чтобы найти, что Kai Moreno говорил о времени встреч. Покажи, что ты сохранишь, и сообщение, на котором это основано. Сохрани со ссылкой на сообщение только после моего согласия.",
+      es: "Usa memo CLI para encontrar lo que dijo Kai Moreno sobre los horarios de reunión. Muéstrame el recuerdo que guardarías y el mensaje en el que se basa. Guárdalo con el mensaje como prueba solo cuando yo esté de acuerdo.",
     },
     steps: [
       {

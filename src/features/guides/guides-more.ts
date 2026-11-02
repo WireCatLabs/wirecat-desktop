@@ -411,9 +411,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Las líneas exactas de la transcripción, con quién y cuándo, a favor o en contra.",
     },
     prompt: {
-      en: "Use zm CLI. Kai Sample says we agreed in a call last month to move the Harbour launch to March. Search the meeting transcripts and quote the lines where the launch date came up, with who said them and when. Tell me plainly whether the transcript supports the claim. If you find nothing, tell me what you searched.",
-      ru: "Используй zm CLI. Kai Sample говорит, что в прошлом месяце на звонке мы договорились перенести запуск Harbour на март. Поищи в расшифровках встреч и процитируй строки, где обсуждали дату запуска, — кто и когда это сказал. Скажи прямо, подтверждает ли это расшифровка. Если ничего не найдёшь, скажи, что искал.",
-      es: "Usa zm CLI. Kai Sample dice que el mes pasado acordamos en una llamada mover el lanzamiento de Harbour a marzo. Busca en las transcripciones de las reuniones y cita las líneas donde salió la fecha de lanzamiento, con quién lo dijo y cuándo. Dime claramente si la transcripción lo respalda. Si no encuentras nada, dime qué buscaste.",
+      en: "Use zm CLI. Kai Moreno says we agreed in a call last month to move the Harbour launch to March. Search the meeting transcripts and quote the lines where the launch date came up, with who said them and when. Tell me plainly whether the transcript supports the claim. If you find nothing, tell me what you searched.",
+      ru: "Используй zm CLI. Kai Moreno говорит, что в прошлом месяце на звонке мы договорились перенести запуск Harbour на март. Поищи в расшифровках встреч и процитируй строки, где обсуждали дату запуска, — кто и когда это сказал. Скажи прямо, подтверждает ли это расшифровка. Если ничего не найдёшь, скажи, что искал.",
+      es: "Usa zm CLI. Kai Moreno dice que el mes pasado acordamos en una llamada mover el lanzamiento de Harbour a marzo. Busca en las transcripciones de las reuniones y cita las líneas donde salió la fecha de lanzamiento, con quién lo dijo y cuándo. Dime claramente si la transcripción lo respalda. Si no encuentras nada, dime qué buscaste.",
     },
     steps: [
       {
