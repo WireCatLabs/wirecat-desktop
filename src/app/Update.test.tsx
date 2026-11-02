@@ -1,7 +1,8 @@
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useOnboarding } from "@/features/onboarding/store"
+import { useSystem } from "@/features/system/store"
 import { CHECK_EVERY_MS, useUpdate } from "@/features/update/store"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -19,7 +20,7 @@ describe("App update", () => {
   it("offers nothing when this is the newest release or the check fails", async () => {
     const check = vi.spyOn(platform, "checkUpdate").mockRejectedValue(new Error("offline"))
     render(<App />)
-    await screen.findByText("Node.js 24.19.0")
+    await waitFor(() => expect(useSystem.getState().readiness).not.toBeNull())
     expect(check).toHaveBeenCalled()
     expect(screen.queryByRole("button", { name: /Update to/ })).not.toBeInTheDocument()
   })
@@ -142,7 +143,7 @@ describe("App update", () => {
     it("checks again every 6 hours, and stops when the app closes", async () => {
       const check = vi.spyOn(platform, "checkUpdate").mockResolvedValueOnce(null).mockResolvedValue(offer)
       const { unmount } = render(<App />)
-      await screen.findByText("Node.js 24.19.0")
+      await waitFor(() => expect(useSystem.getState().readiness).not.toBeNull())
       expect(check).toHaveBeenCalledOnce()
       expect(screen.queryByRole("button", { name: "Update to 0.2.0" })).not.toBeInTheDocument()
 

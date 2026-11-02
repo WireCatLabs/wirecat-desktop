@@ -110,10 +110,10 @@ describe("Help", () => {
     await user.click(help)
     await user.click(screen.getByRole("menuitem", { name: "Take the tour" }))
 
-    const first = await screen.findByRole("dialog", { name: "Your computer" })
+    const first = await screen.findByRole("dialog", { name: "Status lamps" })
     expect(within(first).getByRole("button", { name: "Next" })).toHaveFocus()
     await user.keyboard("{Enter}")
-    expect(await screen.findByRole("dialog", { name: "Status lamps" })).toBeInTheDocument()
+    expect(await screen.findByRole("dialog", { name: "One action per tool" })).toBeInTheDocument()
 
     await user.keyboard("{Escape}")
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument()

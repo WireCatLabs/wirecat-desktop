@@ -13,7 +13,6 @@ import { ReportDialog } from "@/features/report/ReportDialog"
 import { useReport } from "@/features/report/store"
 import { useApplyScale, useScaleKeys } from "@/features/settings/scale"
 import { SignInDialog } from "@/features/signin/SignInDialog"
-import { ReadinessStrip } from "@/features/system/ReadinessStrip"
 import { useSystem } from "@/features/system/store"
 import { ClearDataOffer } from "@/features/tools/ClearDataOffer"
 import { CHECK_EVERY_MS, useUpdate } from "@/features/update/store"
@@ -98,17 +97,12 @@ export function App() {
             <Onboarding onExit={toTools} onTour={startTour} />
           </ErrorBoundary>
         ) : (
-          <>
-            <div data-tour="readiness" className="flex h-[3.9rem] shrink-0 items-center px-[2.1rem]">
-              <ReadinessStrip />
-            </div>
-            <main className="min-h-0 flex-1 overflow-y-auto">
-              <ErrorBoundary key={active} scope="page">
-                <CrashScenario section={active} />
-                {Page && <Page />}
-              </ErrorBoundary>
-            </main>
-          </>
+          <main className="min-h-0 flex-1 overflow-y-auto">
+            <ErrorBoundary key={active} scope="page">
+              <CrashScenario section={active} />
+              {Page && <Page />}
+            </ErrorBoundary>
+          </main>
         )}
         <ClearDataOffer />
         <AboutDialog open={about} onClose={() => setAbout(false)} />

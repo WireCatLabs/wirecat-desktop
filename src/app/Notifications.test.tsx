@@ -1,8 +1,9 @@
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useNotifications } from "@/features/notifications/store"
 import { useOnboarding } from "@/features/onboarding/store"
+import { useSystem } from "@/features/system/store"
 import { useTools } from "@/features/tools/store"
 import { platform } from "@/platform/bridge"
 import type { Notification } from "@/platform/notifications-schemas"
@@ -65,7 +66,7 @@ describe("App notifications", () => {
     vi.spyOn(platform, "notifications").mockRejectedValue(new Error("offline"))
     const user = userEvent.setup()
     render(<App />)
-    await screen.findByText("Node.js 24.19.0")
+    await waitFor(() => expect(useSystem.getState().readiness).not.toBeNull())
 
     await user.click(screen.getByRole("button", { name: "Notifications" }))
 

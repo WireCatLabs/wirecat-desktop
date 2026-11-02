@@ -54,15 +54,30 @@ describe("WireCat Desktop", () => {
     expect(screen.queryByText("Checking npm for newer versions…")).not.toBeInTheDocument()
   })
 
-  it("shows the computer's readiness", async () => {
+  it("shows the computer's readiness in the Help menu, which the version number opens too", async () => {
+    const user = userEvent.setup()
     render(<App />)
-    expect(await screen.findByText("Node.js 24.19.0")).toBeInTheDocument()
+    expect(screen.queryByText("Node.js 24.19.0")).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Help" }))
+    const facts = await screen.findByRole("region", { name: "Your computer" })
+    expect(await within(facts).findByText("Node.js 24.19.0")).toBeInTheDocument()
+
+    const version = screen.getByRole("button", { name: /help and this computer/ })
+    await user.click(version)
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument()
+    await user.click(version)
+    expect(screen.getByRole("menu", { name: "Help" })).toBeInTheDocument()
+    await user.keyboard("{Escape}")
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument()
+    expect(version).toHaveFocus()
   })
 
   it("shows the computer's readiness on a page other than Tools", async () => {
     useSystem.setState(useSystem.getInitialState(), true)
     useNav.getState().go("tasks")
+    const user = userEvent.setup()
     render(<App />)
+    await user.click(screen.getByRole("button", { name: /help and this computer/ }))
     expect(await screen.findByText("Node.js 24.19.0")).toBeInTheDocument()
   })
 

@@ -1,8 +1,9 @@
-import { render, screen, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { AboutDialog } from "@/features/about/AboutDialog"
 import { useOnboarding } from "@/features/onboarding/store"
+import { useSystem } from "@/features/system/store"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { App } from "./App"
@@ -14,7 +15,7 @@ describe("About WireCat", () => {
   it("opens from the Help menu by keyboard and copies the version with the build and system", async () => {
     const user = userEvent.setup()
     render(<App />)
-    await screen.findByText("Node.js 24.19.0")
+    await waitFor(() => expect(useSystem.getState().readiness).not.toBeNull())
 
     const help = screen.getByRole("button", { name: "Help" })
     help.focus()
