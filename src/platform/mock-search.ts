@@ -57,7 +57,11 @@ function hit(what: string, i: number): SearchHit {
       chat_title: "INBOX",
       sender_name: PEOPLE[i % 4],
       excerpt: line,
-      email: { subject: `Re: ${TITLES[i % TITLES.length]}`, from: "ana@example.com", labels: ["inbox"] },
+      email: {
+        subject: `Re: ${TITLES[i % TITLES.length]}`,
+        from: `${(PEOPLE[i % 4] ?? "").split(" ")[0]?.toLowerCase()}@example.com`,
+        labels: ["inbox"],
+      },
       untrusted: ["chat_title", "sender_name", "excerpt"],
     }
   if (what === "meetings")
