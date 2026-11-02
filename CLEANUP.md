@@ -113,3 +113,5 @@
 - `.claude/worktrees/linux-install` (feat/linux-install-messages, PR #51), `/home/leemour/Projects/AI/cli-docs-wt-linux-install` (with node_modules, cli-docs #488), `/tmp/wirecat_0.2.0_amd64.deb` (kept for the _apt notice test), scratchpad apt-src clone — Linux install messages (2026-11-01)
 - `.claude/worktrees/memo-0131-14` (merged as #52), `.claude/worktrees/journal-020`, `/home/leemour/tmp-memo14`, `/home/leemour/tmp-memo11` — memo adoption (2026-11-01)
 /home/leemour/Projects/AI/visage/.claude/worktrees/search-real-data — worktree of merged PR #53 — 2026-11-02
+/home/leemour/Projects/AI/cli-core-wt-skill-refresh — worktree of cli-core #2364, remove after merge — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/skill-refresh — worktree of desktop #54, remove after merge — 2026-11-02

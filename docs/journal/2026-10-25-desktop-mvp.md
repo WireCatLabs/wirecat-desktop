@@ -1580,6 +1580,7 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
   - Варианты: **A** десктоп сейчас, CLI потом · **B** только десктоп · **C** оба сразу
   - Я бы: **A**.
   - **Ответ 2026-11-02: C** — и десктоп, и CLI. «dont release 0.2.1 yet, I'd better get more stuff and release 0.3.0». Отдано агенту: cli-core `feat/skill-auto-refresh`, desktop `feat/skill-refresh-on-update`.
+  - PR: cli-core #2364 (27 проверок зелёные), desktop #54 (зелёный, конфликт после #53 — перебазируется). Обновляются только `stale`; `unversioned` (вручную правленные), `missing`, симлинки не трогаются. CLI: маркер `<state>/skill-refresh.json`, одна строка в stderr, отключение `<PREFIX>_NO_SKILL_REFRESH=1`. Чтобы дошло до пользователей CLI, нужны поднятия cli-core во всех CLI и выпуски. Причина отставания tg: postinstall ставит skill только при `TG_INSTALL_AGENT`.
 - **NEED-237 · Запустить ли сейчас полную синхронизацию Telegram (personal) и MAX (default), чтобы догрузить переписку с 28.10?**
   - Варианты: **A** ты жмёшь Sync в десктопе · **B** я запускаю `tg personal messages sync --all` и max так же
   - Я бы: **A** (или B по твоему «да»).
