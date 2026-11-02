@@ -295,14 +295,16 @@ describe("Search", () => {
     await user.type(bar, "chat:des")
     await user.click(await screen.findByRole("option", { name: /Design crit/ }))
     expect(bar).toHaveValue('has:photo date>=7d chat:"-1001001" ')
-    const names = screen.getByRole("list", { name: "Names in this search" })
-    expect(within(names).getByRole("button", { name: "Edit chat: Design crit" })).toHaveAttribute(
-      "title",
-      'chat:"-1001001"',
-    )
-    await user.click(within(names).getByRole("button", { name: "Remove chat: Design crit" }))
+    const chip = screen.getByRole("button", { name: "Edit chat: Design crit" })
+    expect(chip).toHaveAttribute("title", 'chat: Design crit\nchat:"-1001001"')
+    expect(bar).toHaveAccessibleDescription(/Names in this search: chat: Design crit/)
+
+    await user.click(chip)
+    const input = bar as HTMLInputElement
+    expect([input.selectionStart, input.selectionEnd]).toEqual([19, 34])
+    await user.keyboard("{End}{ArrowLeft}{Backspace}")
     expect(bar).toHaveValue("has:photo date>=7d")
-    await waitFor(() => expect(screen.queryByRole("list", { name: "Names in this search" })).not.toBeInTheDocument())
+    expect(screen.queryByRole("button", { name: "Edit chat: Design crit" })).not.toBeInTheDocument()
   }, 15000)
 
   it("turns a chat name that fits two chats into a choice that names one by id", async () => {
