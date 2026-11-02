@@ -45,6 +45,10 @@ export async function npmLines(
 ): Promise<boolean> {
   const batches: string[][] = []
   if (!opts.quiet) {
+    // Wider than any panel: the install log must wrap it, not stretch the row (owner's 0.3.0 review).
+    batches.push([
+      `npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead (required by ${pkg} > @wirecat/cli-core > fetch-blob > node-domexception, resolved from /home/owner/.local/share/pnpm/global/5/.pnpm/node_modules)`,
+    ])
     const lookups = Array.from(
       { length: LOOKUPS },
       (_, i) => `npm http fetch GET 200 https://registry.npmjs.org/${i ? name(i) : pkg} ${40 + ((i * 37) % 300)}ms`,

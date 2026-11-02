@@ -33,6 +33,7 @@ import { RepairSchema } from "./repair-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
 import {
+  CopyRemovalSchema,
   DiagnosisSchema,
   InstallEventSchema,
   LatestVersionsSchema,
@@ -125,6 +126,7 @@ function createTauri(): Platform {
     diagnose: (id, profile) => call(DiagnosisSchema, "diagnose", { id, profile }),
     install: (id, onEvent) => invoke("install_tool", { id, onEvent: events(onEvent) }),
     uninstall: (id, onEvent) => invoke("uninstall_tool", { id, onEvent: events(onEvent) }),
+    removeCopy: (id, path) => call(CopyRemovalSchema, "remove_copy", { id, path }),
     storage: () => call(StorageSchema, "storage_report"),
     clearStorage: (id) => invoke("clear_storage", { id }),
     openFolder: (id, kind, entry) => invoke("open_folder", { id, kind, entry: entry ?? null }),

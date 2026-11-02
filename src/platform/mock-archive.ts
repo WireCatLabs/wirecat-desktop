@@ -26,7 +26,8 @@ const BREAKDOWN: Breakdown = {
     g("email", null, { accounts: 2, emails: 5230 }),
     g("google-drive", null, { accounts: 1, documents: 742 }),
     g("zoom", null, { accounts: 1, meetings: 64 }),
-    g("chat", null, { accounts: 1, chats: 1, messages: 4 }),
+    g("obsidian", null, { accounts: 1, documents: 253 }),
+    g("beeline", null, { accounts: 1, meetings: 412 }),
   ],
   chatKinds: [
     g("telegram", "dialog", { chats: 840, messages: 5120 }),
@@ -35,7 +36,6 @@ const BREAKDOWN: Breakdown = {
     g("whatsapp", "dialog", { chats: 270, messages: 2980 }),
     g("whatsapp", "group", { chats: 42, messages: 1140 }),
     g("max", "dialog", { chats: 88, messages: 1630 }),
-    g("chat", "dialog", { chats: 1, messages: 4 }),
   ],
   accounts: [
     g("telegram", "personal", { chats: 1020, messages: 8900 }),
@@ -46,7 +46,8 @@ const BREAKDOWN: Breakdown = {
     g("email", "•••", { emails: 1130 }),
     g("google-drive", "personal", { documents: 742 }),
     g("zoom", "work", { meetings: 64 }),
-    g("chat", "local", { chats: 1, messages: 4 }),
+    g("obsidian", "vault", { documents: 253 }),
+    g("beeline", "office", { meetings: 412 }),
   ],
   years: [
     g("telegram", "2023", { messages: 1200 }),
@@ -56,7 +57,7 @@ const BREAKDOWN: Breakdown = {
     g("whatsapp", "2025", { messages: 2600 }),
     g("whatsapp", "2026", { messages: 1520 }),
     g("max", "2026", { messages: 1630 }),
-    g("chat", "2026", { messages: 4 }),
+    g("obsidian", "2026", { documents: 253 }),
   ],
   attachmentKinds: [
     { owner: "message", kind: "photo", count: 6210, bytes: 2_140_000_000 },

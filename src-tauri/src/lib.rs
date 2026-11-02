@@ -193,6 +193,20 @@ async fn clear_storage(id: String) -> Result<(), String> {
     blocking(move || storage::clear(&id)).await?
 }
 
+/// One unused copy of a tool, named by the path the interface was given; see `install::remove_copy`.
+#[tauri::command]
+async fn remove_copy(
+    id: String,
+    path: String,
+    running: State<'_, Arc<Running>>,
+) -> Result<install::CopyRemoval, String> {
+    let tool = catalog::owner(catalog::tool(&id)?);
+    let running = Arc::clone(&running);
+    let done = blocking(move || install::remove_copy(tool, &path, &running)).await;
+    compat::forget();
+    done
+}
+
 #[tauri::command]
 async fn open_folder(id: String, kind: String, entry: Option<String>) -> Result<(), String> {
     blocking(move || storage::open(&id, &kind, entry.as_deref())).await?
@@ -933,6 +947,7 @@ pub fn run() {
             diagnose,
             install_tool,
             uninstall_tool,
+            remove_copy,
             cancel_install,
             storage_report,
             clear_storage,

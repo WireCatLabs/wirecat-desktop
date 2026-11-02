@@ -36,7 +36,7 @@ import type { Platform } from "./types"
 // A stand-in for Rust so the interface can be designed and reviewed in a browser.
 // `?state=fresh` shows a machine with nothing installed, `?state=nonode` one without Node.js,
 // `?state=one` only Telegram, `?fail=<tool>` makes that tool's install fail (`?fail=storage`: reading Storage), `?hold=<tool>` keeps it installing (three quarters through the download), `?install=<tool>` starts one,
-// `?npm=quiet` installs like pnpm, which reports no progress.
+// `?npm=quiet` installs like pnpm, which reports no progress, `?copy-fail=zm` makes removing its unused copy fail.
 // `?unconfirmed=<tool>` refuses its install: the release was not built by the tool's own release workflow.
 // `?state=noadmin` has an apt Node whose npm needs administrator rights. With `nonode` or `noadmin`, "Set up Node.js
 // for me" runs a fake download; `?node=fail` makes its checksum mismatch, `?node=ready` starts with it already set up.
@@ -186,6 +186,7 @@ export function createMock(os: Platform["os"]): Platform {
   const backups = backupMock(asksArchive)
   const agents = agentsMock((id) => installed.get(id))
   let cancelled = false
+  let zmCopyRemoved = false
   const MB = 1024 * 1024
   const NODE = { version: "24.22.1", bytes: 58_290_700, dir: "~/.local/share/dev.wirecat.desktop/node/v24.22.1" }
   let managed = params.get("node") === "ready"
@@ -330,7 +331,7 @@ export function createMock(os: Platform["os"]): Platform {
                   manager: "pnpm",
                   problem: null,
                 },
-                ...(id === "zm"
+                ...(id === "zm" && !zmCopyRemoved
                   ? [{ path: "~/.nvm/versions/node/v24.19.0/bin/zm", version: "0.40.0", manager: "npm", problem: null }]
                   : []),
               ]
@@ -546,6 +547,26 @@ export function createMock(os: Platform["os"]): Platform {
     ...agents,
     ...memoryMock(),
     ...tasksMock(),
+    async removeCopy(id) {
+      await delay(1600)
+      if (params.get("copy-fail") === id) {
+        return {
+          removed: false,
+          refused: null,
+          log: [`$ npm uninstall --global ${PACKAGES[id] ?? id}`, "npm error code EACCES", "npm error syscall unlink"],
+          message: "npm could not write to its global folder.",
+          hint: "Use a global folder in your home instead of a system one, then try again.",
+        }
+      }
+      zmCopyRemoved = true
+      return {
+        removed: true,
+        refused: null,
+        log: [`$ npm uninstall --global ${PACKAGES[id] ?? id}`, "", "removed 214 packages in 2s"],
+        message: null,
+        hint: null,
+      }
+    },
     async cancelInstall() {
       cancelled = true
     },

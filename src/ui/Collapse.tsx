@@ -7,13 +7,15 @@ type Props = {
   children: ReactNode
   id?: string
   className?: string
+  /** On the outer box, for its place in a parent grid (`lg:col-span-2`). */
+  frameClassName?: string
 }
 
 /**
  * Opens and closes its content by height. Closed content stays on screen until it has folded away, then unmounts, so
  * whatever it polls or runs on mount stops with it. Fully closed, it takes no room, not even a flex gap.
  */
-export function Collapse({ open, children, id, className }: Props) {
+export function Collapse({ open, children, id, className, frameClassName }: Props) {
   const [mounted, setMounted] = useState(open)
   // The rows open a frame after the content mounts, so the browser has a closed height to animate from.
   const [rows, setRows] = useState(open)
@@ -56,12 +58,13 @@ export function Collapse({ open, children, id, className }: Props) {
       aria-hidden={!open || undefined}
       data-state={open ? "open" : "closed"}
       className={cx(
-        "grid transition-[grid-template-rows] duration-300 ease-out-quart motion-reduce:transition-none",
+        "grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows] duration-300 ease-out-quart motion-reduce:transition-none",
         open && rows ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        frameClassName,
       )}
     >
       {/* Clipped only while it moves, so focus rings and menus inside an open panel are not cut off. */}
-      <div className={cx("min-h-0", (!open || moving || !rows) && "overflow-hidden")}>
+      <div className={cx("min-h-0 min-w-0", (!open || moving || !rows) && "overflow-hidden")}>
         {(open || mounted) && <div className={className}>{open ? children : last.current}</div>}
       </div>
     </div>

@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import type { ArchiveWords, Counted, Dimension, TotalKey } from "@/domain/archive"
 import type { DatabaseWords } from "@/domain/database"
 import type { EntryKey } from "@/domain/files"
+import type { TableGroup } from "@/domain/table-groups"
 import { formatDate, formatNumber, type Lang, type Messages, plural } from "@/i18n"
 import type { StorageFolder } from "@/platform/schemas"
 
@@ -70,6 +71,8 @@ const en = {
   openFolder: (kind: FolderKind, path: string) =>
     `Open ${{ config: "settings", state: "data", cache: "cache" }[kind]} folder ${path}`,
   openInFiles: "Open in file manager",
+  showStoreFile: "Open folder",
+  showStoreFileLabel: (path: string) => `Show ${path} in the file manager`,
   showInFiles: "Show in file manager",
   deleting: "Deleting…",
   delete: "Delete",
@@ -172,7 +175,8 @@ const en = {
   archiveWords: {
     count: counter("en", enCount),
     via: (command) => `via ${command}`,
-    providers: { notes: "Notes", chat: "Chat" },
+    // `chat` is the provider of cli-core's test fixtures; no tool collects it, so rows of it are left from a test.
+    providers: { notes: "Notes", local: "Notes folder", beeline: "Beeline Cloud PBX", chat: "Test data" },
     chatKinds: {
       dialog: "One-to-one",
       group: "Groups",
@@ -265,6 +269,21 @@ const en = {
     search_index: "Search index",
     search_index_part: "Search index part",
   } as Record<string, string>,
+  tableGroup: {
+    messages: "Messages & chats",
+    mail: "Mail",
+    meetings: "Meetings & calendar",
+    documents: "Documents & notes",
+    people: "People & contacts",
+    tasks: "Tasks & projects",
+    memory: "Memory",
+    tags: "Tags & saved searches",
+    search: "Search",
+    system: "Accounts & sync",
+    other: "Other",
+  } as Record<TableGroup, string>,
+  tableGroups: "Show tables",
+  allTables: "All",
   listLater: (tool: string) => `The table list arrives with the next update of ${tool}.`,
   listError: (error: string) => `Could not list the tables: ${error}`,
   findTable: "Find a table",
@@ -327,6 +346,8 @@ const ru: typeof en = {
   leftBehind: "Осталось после удаления инструмента",
   openFolder: (kind, path) => `Открыть папку ${{ config: "настроек", state: "данных", cache: "кеша" }[kind]} ${path}`,
   openInFiles: "Открыть в файловом менеджере",
+  showStoreFile: "Открыть папку",
+  showStoreFileLabel: (path) => `Показать ${path} в файловом менеджере`,
   showInFiles: "Показать в файловом менеджере",
   deleting: "Удаляем…",
   delete: "Удалить",
@@ -428,7 +449,7 @@ const ru: typeof en = {
   archiveWords: {
     count: counter("ru", ruCount),
     via: (command) => `через ${command}`,
-    providers: { notes: "Заметки", chat: "Чат" },
+    providers: { notes: "Заметки", local: "Папка с заметками", beeline: "АТС Билайн", chat: "Тестовые данные" },
     chatKinds: {
       dialog: "Личные",
       group: "Группы",
@@ -523,6 +544,21 @@ const ru: typeof en = {
     search_index: "Поисковый индекс",
     search_index_part: "Часть поискового индекса",
   },
+  tableGroup: {
+    messages: "Сообщения и чаты",
+    mail: "Почта",
+    meetings: "Встречи и календарь",
+    documents: "Документы и заметки",
+    people: "Люди и контакты",
+    tasks: "Задачи и проекты",
+    memory: "Память",
+    tags: "Метки и сохранённые поиски",
+    search: "Поиск",
+    system: "Аккаунты и синхронизация",
+    other: "Другое",
+  },
+  tableGroups: "Показать таблицы",
+  allTables: "Все",
   listLater: (tool) => `Список таблиц появится со следующим обновлением ${tool}.`,
   listError: (error) => `Не удалось получить список таблиц: ${error}`,
   findTable: "Найти таблицу",
@@ -583,6 +619,8 @@ const es: typeof en = {
   openFolder: (kind, path) =>
     `Abrir la carpeta de ${{ config: "ajustes", state: "datos", cache: "caché" }[kind]} ${path}`,
   openInFiles: "Abrir en el gestor de archivos",
+  showStoreFile: "Abrir carpeta",
+  showStoreFileLabel: (path) => `Mostrar ${path} en el gestor de archivos`,
   showInFiles: "Mostrar en el gestor de archivos",
   deleting: "Borrando…",
   delete: "Borrar",
@@ -685,7 +723,7 @@ const es: typeof en = {
   archiveWords: {
     count: counter("es", esCount),
     via: (command) => `vía ${command}`,
-    providers: { notes: "Notas", chat: "Chat" },
+    providers: { notes: "Notas", local: "Carpeta de notas", beeline: "Beeline Cloud PBX", chat: "Datos de prueba" },
     chatKinds: {
       dialog: "Individuales",
       group: "Grupos",
@@ -781,6 +819,21 @@ const es: typeof en = {
     search_index: "Índice de búsqueda",
     search_index_part: "Parte de índice de búsqueda",
   },
+  tableGroup: {
+    messages: "Mensajes y chats",
+    mail: "Correo",
+    meetings: "Reuniones y calendario",
+    documents: "Documentos y notas",
+    people: "Personas y contactos",
+    tasks: "Tareas y proyectos",
+    memory: "Memoria",
+    tags: "Etiquetas y búsquedas guardadas",
+    search: "Búsqueda",
+    system: "Cuentas y sincronización",
+    other: "Otras",
+  },
+  tableGroups: "Mostrar tablas",
+  allTables: "Todas",
   listLater: (tool) => `La lista de tablas llega con la próxima actualización de ${tool}.`,
   listError: (error) => `No se pudieron listar las tablas: ${error}`,
   findTable: "Buscar una tabla",

@@ -1,8 +1,9 @@
 import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useOnboarding } from "@/features/onboarding/store"
 import { useLanguage } from "@/i18n"
+import { platform } from "@/platform/bridge"
 import { App } from "./App"
 
 describe("Storage", () => {
@@ -27,6 +28,38 @@ describe("Storage", () => {
     }
     const tg = await screen.findByRole("list", { name: "What Telegram keeps" })
     expect(within(tg).getByText(/Credentials: size only/)).toBeInTheDocument()
+  }, 15000)
+
+  it("shows the store file in its folder, never opening it", async () => {
+    const open = vi.spyOn(platform, "openFolder")
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole("button", { name: /Storage/ }))
+
+    const show = await screen.findByRole(
+      "button",
+      { name: "Show ~/.local/share/WireCat/wirecat.db in the file manager" },
+      { timeout: 4000 },
+    )
+    await user.click(show)
+    expect(open).toHaveBeenCalledWith("shared", expect.any(String), "wirecat.db")
+    open.mockRestore()
+  }, 15000)
+
+  it("shows the tables of one kind of data, with the kind in its column", async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole("button", { name: /Storage/ }))
+
+    await screen.findByRole("table", { name: "Tables" }, { timeout: 4000 })
+    const groups = screen.getByRole("group", { name: "Show tables" })
+    await user.click(within(groups).getByRole("button", { name: /^Mail/ }))
+    const tables = screen.getByRole("table", { name: "Tables" })
+    const names = within(tables)
+      .getAllByRole("rowheader")
+      .map((r) => r.textContent)
+    expect(names).toEqual(["email_recipients", "email_threads", "emails"])
+    expect(within(tables).getAllByRole("cell", { name: "Mail" })).toHaveLength(3)
   }, 15000)
 
   it("lists the database's tables, measures their sizes and checks its health", async () => {

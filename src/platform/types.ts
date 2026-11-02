@@ -11,6 +11,7 @@ import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
 import type { RunDetail, RunsPage } from "./runs-schemas"
 import type {
+  CopyRemoval,
   Diagnosis,
   InstallEvent,
   NodeEvent,
@@ -71,6 +72,8 @@ export type Platform = {
   install(id: string, onEvent: (e: InstallEvent) => void): Promise<void>
   uninstall(id: string, onEvent: (e: InstallEvent) => void): Promise<void>
   cancelInstall(id: string): Promise<void>
+  /** One unused copy, by the path `detectTools` gave; Rust refuses the copy the app runs and unknown managers. */
+  removeCopy(id: string, path: string): Promise<CopyRemoval>
   storage(): Promise<StorageArea[]>
   clearStorage(id: string): Promise<void>
   /** `entry` opens one item directly inside the folder; Rust builds and checks the path. */

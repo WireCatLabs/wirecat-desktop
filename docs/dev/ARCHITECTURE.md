@@ -113,6 +113,12 @@ Uninstall removes **every** copy of a tool, each with the manager that installed
 beside an nvm copy, `pnpm remove -g`, `bun remove -g`, `volta uninstall`), then checks that the binary is gone. It
 never touches data.
 
+**Remove this copy** (`remove_copy`, `install::remove_copy`) takes one unused copy away and leaves the one the app
+runs. The interface names the copy by the path `detect_tools` gave; Rust refuses it unless it is still one of the
+copies on PATH and not the one `tools::program` picks. Only npm and pnpm: npm runs with the copy's own folder as its
+prefix (the npm beside an nvm copy when there is one), pnpm only when the copy sits in `PNPM_HOME`. Any other copy is
+refused and the page shows the command to run by hand.
+
 Data folders are not guessed from names: `storage.rs` mirrors cli-base's `resolvePaths` (`src/paths.ts` in
 cli-base): `<PREFIX>_{CONFIG,STATE,CACHE}_DIR` first, then the XDG layout on Linux and macOS, `%APPDATA%` and
 `%LOCALAPPDATA%` on Windows. The catalog records each tool's folder name and prefix (`storage`), plus the archive
