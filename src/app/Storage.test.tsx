@@ -46,6 +46,22 @@ describe("Storage", () => {
     open.mockRestore()
   }, 15000)
 
+  it("shows the tables of one kind of data, with the kind in its column", async () => {
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole("button", { name: /Storage/ }))
+
+    await screen.findByRole("table", { name: "Tables" }, { timeout: 4000 })
+    const groups = screen.getByRole("group", { name: "Show tables" })
+    await user.click(within(groups).getByRole("button", { name: /^Mail/ }))
+    const tables = screen.getByRole("table", { name: "Tables" })
+    const names = within(tables)
+      .getAllByRole("rowheader")
+      .map((r) => r.textContent)
+    expect(names).toEqual(["email_recipients", "email_threads", "emails"])
+    expect(within(tables).getAllByRole("cell", { name: "Mail" })).toHaveLength(3)
+  }, 15000)
+
   it("lists the database's tables, measures their sizes and checks its health", async () => {
     const user = userEvent.setup()
     render(<App />)

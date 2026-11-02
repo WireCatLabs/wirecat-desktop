@@ -15,14 +15,14 @@ export function sortTables<T extends TableLike>(
   tables: readonly T[],
   query: string,
   sort: TableSort,
-  kindLabel: (kind: string) => string = (kind) => kind,
+  kindLabel: (table: T) => string = (table) => table.kind,
 ): T[] {
   const q = query.trim().toLowerCase()
   const shown = q === "" ? [...tables] : tables.filter((t) => t.name.toLowerCase().includes(q))
   const dir = sort.descending ? -1 : 1
   return shown.sort((a, b) => {
     if (sort.key === "name" || sort.key === "kind") {
-      const label = (t: T) => (sort.key === "kind" ? kindLabel(t.kind) : t.name)
+      const label = (t: T) => (sort.key === "kind" ? kindLabel(t) : t.name)
       const by = label(a).localeCompare(label(b))
       return by === 0 ? a.name.localeCompare(b.name) : by * dir
     }

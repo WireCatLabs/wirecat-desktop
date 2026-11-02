@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import type { ArchiveWords, Counted, Dimension, TotalKey } from "@/domain/archive"
 import type { DatabaseWords } from "@/domain/database"
 import type { EntryKey } from "@/domain/files"
+import type { TableGroup } from "@/domain/table-groups"
 import { formatDate, formatNumber, type Lang, type Messages, plural } from "@/i18n"
 import type { StorageFolder } from "@/platform/schemas"
 
@@ -268,6 +269,21 @@ const en = {
     search_index: "Search index",
     search_index_part: "Search index part",
   } as Record<string, string>,
+  tableGroup: {
+    messages: "Messages & chats",
+    mail: "Mail",
+    meetings: "Meetings & calendar",
+    documents: "Documents & notes",
+    people: "People & contacts",
+    tasks: "Tasks & projects",
+    memory: "Memory",
+    tags: "Tags & saved searches",
+    search: "Search",
+    system: "Accounts & sync",
+    other: "Other",
+  } as Record<TableGroup, string>,
+  tableGroups: "Show tables",
+  allTables: "All",
   listLater: (tool: string) => `The table list arrives with the next update of ${tool}.`,
   listError: (error: string) => `Could not list the tables: ${error}`,
   findTable: "Find a table",
@@ -528,6 +544,21 @@ const ru: typeof en = {
     search_index: "Поисковый индекс",
     search_index_part: "Часть поискового индекса",
   },
+  tableGroup: {
+    messages: "Сообщения и чаты",
+    mail: "Почта",
+    meetings: "Встречи и календарь",
+    documents: "Документы и заметки",
+    people: "Люди и контакты",
+    tasks: "Задачи и проекты",
+    memory: "Память",
+    tags: "Метки и сохранённые поиски",
+    search: "Поиск",
+    system: "Аккаунты и синхронизация",
+    other: "Другое",
+  },
+  tableGroups: "Показать таблицы",
+  allTables: "Все",
   listLater: (tool) => `Список таблиц появится со следующим обновлением ${tool}.`,
   listError: (error) => `Не удалось получить список таблиц: ${error}`,
   findTable: "Найти таблицу",
@@ -788,6 +819,21 @@ const es: typeof en = {
     search_index: "Índice de búsqueda",
     search_index_part: "Parte de índice de búsqueda",
   },
+  tableGroup: {
+    messages: "Mensajes y chats",
+    mail: "Correo",
+    meetings: "Reuniones y calendario",
+    documents: "Documentos y notas",
+    people: "Personas y contactos",
+    tasks: "Tareas y proyectos",
+    memory: "Memoria",
+    tags: "Etiquetas y búsquedas guardadas",
+    search: "Búsqueda",
+    system: "Cuentas y sincronización",
+    other: "Otras",
+  },
+  tableGroups: "Mostrar tablas",
+  allTables: "Todas",
   listLater: (tool) => `La lista de tablas llega con la próxima actualización de ${tool}.`,
   listError: (error) => `No se pudieron listar las tablas: ${error}`,
   findTable: "Buscar una tabla",

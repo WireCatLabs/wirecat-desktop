@@ -3,8 +3,10 @@ import { useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { sortTables, splitTables, type TableSort, totalBytes } from "@/domain/database"
 import { formatBytes } from "@/domain/format"
+import { groupOf, TABLE_GROUPS, type TableGroup } from "@/domain/table-groups"
 import { formatNumber, useMessages } from "@/i18n"
 import type { Table } from "@/platform/archive-schemas"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
@@ -28,6 +30,7 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
   const tablesError = useStorage((s) => s.tablesError)
   const [query, setQuery] = useState("")
   const [sort, setSort] = useState<TableSort>({ key: "name", descending: false })
+  const [group, setGroup] = useState<TableGroup | null>(null)
   const tool = findTool(answeredBy)?.name ?? answeredBy
 
   if (tables === undefined) return <TablesSkeleton />
@@ -39,9 +42,11 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
     )
 
   const { main, search } = splitTables(tables?.tables ?? [])
-  const kindLabel = (kind: string) => m.tableKind[kind] ?? kind
-  const shownMain = sortTables(main, query, sort, kindLabel)
-  const shownSearch = sortTables(search, query, sort, kindLabel)
+  const groupLabel = (t: Table) => m.tableGroup[groupOf(t)]
+  const kindLabel = (t: Table) => m.tableKind[t.kind] ?? t.kind
+  const inGroup = group === null ? main : main.filter((t) => groupOf(t) === group)
+  const shownMain = sortTables(inGroup, query, sort, groupLabel)
+  const shownSearch = group === null ? sortTables(search, query, sort, kindLabel) : []
   const onSort = (key: TableSort["key"]) =>
     setSort((s) =>
       s.key === key ? { key, descending: !s.descending } : { key, descending: key !== "name" && key !== "kind" },
@@ -72,7 +77,17 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
             </label>
             <MeasureSizes measured={tables.measured} />
           </div>
-          <TableOf tables={shownMain} sort={sort} onSort={onSort} label={m.tables} measured={tables.measured} />
+          <GroupFilter tables={main} value={group} onChange={setGroup} measured={tables.measured} />
+          <AutoHeight swap={group}>
+            <TableOf
+              tables={shownMain}
+              typeOf={groupLabel}
+              sort={sort}
+              onSort={onSort}
+              label={m.tables}
+              measured={tables.measured}
+            />
+          </AutoHeight>
           {query.trim() !== "" && shownMain.length === 0 && shownSearch.length === 0 && (
             <p className="text-[0.9rem] text-ink-soft">{m.noMatch(query.trim())}</p>
           )}
@@ -93,6 +108,7 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
               <p className="mb-2 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.searchNote}</p>
               <TableOf
                 tables={shownSearch}
+                typeOf={kindLabel}
                 sort={sort}
                 onSort={onSort}
                 label={m.searchTablesLabel}
@@ -169,14 +185,56 @@ function MeasureSizes({ measured }: { measured: boolean }) {
   )
 }
 
+/** One choice per group the store has, with its tables and, once measured, their size. */
+function GroupFilter(props: {
+  tables: Table[]
+  value: TableGroup | null
+  onChange: (group: TableGroup | null) => void
+  measured: boolean
+}) {
+  const { tables, value, onChange, measured } = props
+  const m = useMessages(storageMessages)
+  const present = TABLE_GROUPS.map((g) => ({ g, of: tables.filter((t) => groupOf(t) === g) })).filter(
+    (x) => x.of.length > 0,
+  )
+  const choices: { g: TableGroup | null; label: string; of: Table[] }[] = [
+    { g: null, label: m.allTables, of: tables },
+    ...present.map(({ g, of }) => ({ g, label: m.tableGroup[g], of })),
+  ]
+  return (
+    <fieldset className="m-0 flex min-w-0 flex-wrap gap-1 border-0 p-0">
+      <legend className="sr-only">{m.tableGroups}</legend>
+      {choices.map(({ g, label, of }) => (
+        <button
+          key={g ?? "all"}
+          type="button"
+          aria-pressed={value === g}
+          onClick={() => onChange(g)}
+          className={cx(
+            "inline-flex items-baseline gap-1.5 rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-150",
+            value === g ? "bg-app-3 font-medium text-ink" : "text-ink-soft hover:bg-app-2 hover:text-ink",
+          )}
+        >
+          {label}
+          <span className="font-mono text-[0.8rem] font-normal text-ink-dim tabular-nums">
+            {of.length}
+            {measured && ` · ${formatBytes(totalBytes(of))}`}
+          </span>
+        </button>
+      ))}
+    </fieldset>
+  )
+}
+
 function TableOf(props: {
   tables: Table[]
+  typeOf: (t: Table) => string
   sort: TableSort
   onSort: (key: TableSort["key"]) => void
   label: string
   measured: boolean
 }) {
-  const { tables, sort, onSort, label, measured } = props
+  const { tables, typeOf, sort, onSort, label, measured } = props
   const m = useMessages(storageMessages)
   if (tables.length === 0) return null
   return (
@@ -214,7 +272,7 @@ function TableOf(props: {
               <th scope="row" className="selectable px-3 py-[0.35rem] text-left font-mono text-[0.9rem] font-normal">
                 {t.name}
               </th>
-              <td className="px-3 py-[0.35rem] text-ink-soft">{m.tableKind[t.kind] ?? t.kind}</td>
+              <td className="px-3 py-[0.35rem] text-ink-soft">{typeOf(t)}</td>
               <td className="px-3 py-[0.35rem] text-right font-mono tabular-nums">
                 {t.rows === null ? <span className="text-ink-dim">—</span> : formatNumber(t.rows)}
               </td>
