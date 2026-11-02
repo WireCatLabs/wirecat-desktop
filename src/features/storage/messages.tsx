@@ -70,6 +70,8 @@ const en = {
   openFolder: (kind: FolderKind, path: string) =>
     `Open ${{ config: "settings", state: "data", cache: "cache" }[kind]} folder ${path}`,
   openInFiles: "Open in file manager",
+  showStoreFile: "Open folder",
+  showStoreFileLabel: (path: string) => `Show ${path} in the file manager`,
   showInFiles: "Show in file manager",
   deleting: "Deleting…",
   delete: "Delete",
@@ -328,6 +330,8 @@ const ru: typeof en = {
   leftBehind: "Осталось после удаления инструмента",
   openFolder: (kind, path) => `Открыть папку ${{ config: "настроек", state: "данных", cache: "кеша" }[kind]} ${path}`,
   openInFiles: "Открыть в файловом менеджере",
+  showStoreFile: "Открыть папку",
+  showStoreFileLabel: (path) => `Показать ${path} в файловом менеджере`,
   showInFiles: "Показать в файловом менеджере",
   deleting: "Удаляем…",
   delete: "Удалить",
@@ -584,6 +588,8 @@ const es: typeof en = {
   openFolder: (kind, path) =>
     `Abrir la carpeta de ${{ config: "ajustes", state: "datos", cache: "caché" }[kind]} ${path}`,
   openInFiles: "Abrir en el gestor de archivos",
+  showStoreFile: "Abrir carpeta",
+  showStoreFileLabel: (path) => `Mostrar ${path} en el gestor de archivos`,
   showInFiles: "Mostrar en el gestor de archivos",
   deleting: "Borrando…",
   delete: "Borrar",

@@ -1,3 +1,4 @@
+import { FolderOpen } from "lucide-react"
 import type { ReactNode } from "react"
 import { findTool } from "@/domain/catalog"
 import { backupState, healthIssues, healthNotes, schemaState } from "@/domain/database"
@@ -40,7 +41,10 @@ export function DatabaseFacts({ info }: { info: StoreInfo }) {
       <dl className="grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)] gap-x-[1.2rem] gap-y-2 text-[0.95rem]">
         {info.path && (
           <Fact label={m.fact.file}>
-            <span className="selectable block truncate font-mono text-[0.9rem]">{info.path}</span>
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="selectable min-w-0 flex-1 truncate font-mono text-[0.9rem]">{info.path}</span>
+              <ShowFile path={info.path} />
+            </span>
           </Fact>
         )}
         <Fact label={m.fact.size}>
@@ -129,6 +133,34 @@ export function DatabaseFacts({ info }: { info: StoreInfo }) {
         <p className="text-[0.9rem] text-ink-soft">{m.factsLater(tool)}</p>
       )}
     </section>
+  )
+}
+
+/**
+ * Shows the store file in its folder, through the same `open_folder` as the folder rows: Rust joins the file's name to
+ * the shared folder it computes and reveals it, never opens it. A store moved elsewhere (MESSAGING_STORE) is not in
+ * that folder, so it gets no button.
+ */
+function ShowFile({ path }: { path: string }) {
+  const m = useMessages(storageMessages)
+  const folder = useStorage((s) =>
+    s.areas
+      ?.find((a) => a.id === "shared")
+      ?.folders.find((f) => /^[\\/]/.test(path.slice(f.path.length)) && path.startsWith(f.path)),
+  )
+  const name = folder && path.slice(folder.path.length + 1)
+  if (!folder || !name || /[\\/]/.test(name)) return null
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={() => useStorage.getState().open("shared", folder.kind, name)}
+      aria-label={m.showStoreFileLabel(path)}
+      icon={<FolderOpen className="size-4" aria-hidden />}
+      className="shrink-0"
+    >
+      {m.showStoreFile}
+    </Button>
   )
 }
 
