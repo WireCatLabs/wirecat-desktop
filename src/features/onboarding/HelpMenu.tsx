@@ -1,5 +1,5 @@
 import { CircleHelp, Compass, Cpu, Info, ShieldCheck, Sparkles } from "lucide-react"
-import { type KeyboardEvent, useCallback, useEffect, useId, useRef, useState } from "react"
+import { type KeyboardEvent, useCallback, useEffect, useId, useRef } from "react"
 import { create } from "zustand"
 import { ComputerFacts, ManagedNodeDialog, useComputerTrouble } from "@/features/system/ComputerFacts"
 import { useSystem } from "@/features/system/store"
@@ -7,22 +7,26 @@ import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
 import { onboardingMessages } from "./messages"
 
-type Props = { onTour: () => void; onWelcome: () => void; onPrivacy: () => void; onAbout: () => void }
+export type HelpActions = { onTour: () => void; onWelcome: () => void; onPrivacy: () => void; onAbout: () => void }
 
-/**
- * Open or closed, and the button that opened it: the Help button, or the version number in the sidebar. Escape and a
- * pick give focus back to that one.
- */
+/** The two places the same menu opens from: the Help button in the top bar, and the version number in the sidebar. */
+export type HelpPlace = "help" | "version"
+
+/** Which copy is open, and the button that opened it: Escape and a pick give focus back to that one. */
 export const useHelpMenu = create<{
-  open: boolean
+  open: HelpPlace | null
   opener: HTMLElement | null
-  toggle(opener: HTMLElement): void
+  nodeOpen: boolean
+  toggle(place: HelpPlace, opener: HTMLElement): void
   close(): void
+  setNodeOpen(open: boolean): void
 }>((set, get) => ({
-  open: false,
+  open: null,
   opener: null,
-  toggle: (opener) => set(get().open ? { open: false } : { open: true, opener }),
-  close: () => set({ open: false }),
+  nodeOpen: false,
+  toggle: (place, opener) => set(get().open === place ? { open: null } : { open: place, opener }),
+  close: () => set({ open: null }),
+  setNodeOpen: (nodeOpen) => set({ nodeOpen }),
 }))
 
 /** Marks a button outside the menu that toggles it, so the press on it is not taken for a click outside. */
@@ -35,23 +39,78 @@ const MOVES: Record<string, (at: number, count: number) => number> = {
   End: (_, n) => n - 1,
 }
 
-export function HelpMenu({ onTour, onWelcome, onPrivacy, onAbout }: Props) {
-  const open = useHelpMenu((s) => s.open)
-  const { toggle, close } = useHelpMenu.getState()
-  const [nodeOpen, setNodeOpen] = useState(false)
-  const managed = useSystem((s) => s.readiness?.managed ?? null)
+/** The Help button and its copy of the menu. WireCat's Node.js dialog lives here, whichever copy opened it. */
+export function HelpMenu(actions: HelpActions) {
+  const open = useHelpMenu((s) => s.open === "help")
+  const nodeOpen = useHelpMenu((s) => s.nodeOpen)
   const trouble = useComputerTrouble()
-  const root = useRef<HTMLDivElement>(null)
-  const trigger = useRef<HTMLButtonElement>(null)
   const listId = useId()
+  const m = useMessages(onboardingMessages).help
+  const toggle = (e: { currentTarget: HTMLElement }) => useHelpMenu.getState().toggle("help", e.currentTarget)
+
+  return (
+    <div className="relative flex h-full items-center">
+      <button
+        type="button"
+        data-tour="help"
+        {...{ [HELP_OPENER]: "" }}
+        aria-label={trouble ? m.trouble : m.help}
+        title={trouble ? m.trouble : m.help}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        onClick={toggle}
+        onKeyDown={(e) => {
+          if (e.key !== "ArrowDown" || open) return
+          e.preventDefault()
+          toggle(e)
+        }}
+        className={cx(
+          "relative grid size-[2.2rem] place-items-center rounded-[0.4rem] text-ink-soft hover:bg-app-3 hover:text-ink",
+          open && "bg-app-3 text-ink",
+        )}
+      >
+        <CircleHelp className="size-[1.2rem]" strokeWidth={1.8} aria-hidden />
+        <span
+          aria-hidden
+          className={cx(
+            "absolute top-[0.35rem] right-[0.35rem] size-[0.5rem] rounded-full bg-bad ring-2 ring-wall transition-[opacity,scale] duration-300",
+            trouble ? "scale-100 opacity-100" : "scale-0 opacity-0",
+          )}
+        />
+      </button>
+      {open && <HelpPanel place="help" listId={listId} {...actions} />}
+      <ManagedNodeDialog open={nodeOpen} onClose={() => useHelpMenu.getState().setNodeOpen(false)} />
+    </div>
+  )
+}
+
+const PLACES: Record<HelpPlace, string> = {
+  help: "top-[calc(100%-0.3rem)] right-0 origin-top-right motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]",
+  // The version number sits at the foot of the sidebar: its copy rises from there, over the page beside it.
+  version:
+    "bottom-[calc(100%+0.4rem)] left-0 origin-bottom-left motion-safe:animate-[select-up_120ms_var(--ease-out-quart)]",
+}
+
+/** The menu itself, the same items and facts wherever it opens; `place` only says where it hangs. */
+export function HelpPanel({
+  place,
+  listId,
+  onTour,
+  onWelcome,
+  onPrivacy,
+  onAbout,
+}: HelpActions & { place: HelpPlace; listId: string }) {
+  const { close, setNodeOpen } = useHelpMenu.getState()
+  const managed = useSystem((s) => s.readiness?.managed ?? null)
+  const root = useRef<HTMLDivElement>(null)
   const factsId = useId()
   const m = useMessages(onboardingMessages).help
 
-  const backToOpener = useCallback(() => (useHelpMenu.getState().opener ?? trigger.current)?.focus(), [])
+  const backToOpener = useCallback(() => useHelpMenu.getState().opener?.focus(), [])
   const items = () => [...(root.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem]") ?? [])]
 
   useEffect(() => {
-    if (!open) return
     root.current?.querySelector<HTMLButtonElement>("[role=menuitem]")?.focus()
     const onDown = (e: MouseEvent) => {
       const target = e.target as Element
@@ -68,7 +127,7 @@ export function HelpMenu({ onTour, onWelcome, onPrivacy, onAbout }: Props) {
       document.removeEventListener("mousedown", onDown)
       document.removeEventListener("keydown", onKey)
     }
-  }, [open, close, backToOpener])
+  }, [close, backToOpener])
 
   const onMenuKey = (e: KeyboardEvent) => {
     if (e.key === "Tab") return close()
@@ -90,79 +149,51 @@ export function HelpMenu({ onTour, onWelcome, onPrivacy, onAbout }: Props) {
   const icon = "size-[1.1rem] text-ink-soft"
 
   return (
-    <div ref={root} className="relative flex h-full items-center">
-      <button
-        ref={trigger}
-        type="button"
-        data-tour="help"
-        aria-label={trouble ? m.trouble : m.help}
-        title={trouble ? m.trouble : m.help}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-controls={open ? listId : undefined}
-        onClick={(e) => toggle(e.currentTarget)}
-        onKeyDown={(e) => {
-          if (e.key !== "ArrowDown" || open) return
-          e.preventDefault()
-          toggle(e.currentTarget)
-        }}
-        className={cx(
-          "relative grid size-[2.2rem] place-items-center rounded-[0.4rem] text-ink-soft hover:bg-app-3 hover:text-ink",
-          open && "bg-app-3 text-ink",
-        )}
+    <div
+      ref={root}
+      className={cx(
+        "absolute z-30 flex w-max min-w-[15rem] flex-col rounded-[0.6rem] border border-line bg-app p-[0.3rem] shadow-panel",
+        PLACES[place],
+      )}
+    >
+      <ComputerFacts id={factsId} />
+      <hr className="mx-[0.4rem] mb-[0.3rem] border-line" />
+      <div
+        id={listId}
+        role="menu"
+        aria-label={m.help}
+        aria-describedby={factsId}
+        tabIndex={-1}
+        onKeyDown={onMenuKey}
+        className="flex flex-col"
       >
-        <CircleHelp className="size-[1.2rem]" strokeWidth={1.8} aria-hidden />
-        <span
-          aria-hidden
-          className={cx(
-            "absolute top-[0.35rem] right-[0.35rem] size-[0.5rem] rounded-full bg-bad ring-2 ring-wall transition-[opacity,scale] duration-300",
-            trouble ? "scale-100 opacity-100" : "scale-0 opacity-0",
-          )}
-        />
-      </button>
-      {open && (
-        <div className="absolute top-[calc(100%-0.3rem)] right-0 z-30 flex w-max min-w-[15rem] flex-col rounded-[0.6rem] border border-line bg-app p-[0.3rem] shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]">
-          <ComputerFacts id={factsId} />
-          <hr className="mx-[0.4rem] mb-[0.3rem] border-line" />
-          <div
-            id={listId}
-            role="menu"
-            aria-label={m.help}
-            aria-describedby={factsId}
-            tabIndex={-1}
-            onKeyDown={onMenuKey}
-            className="flex flex-col"
-          >
-            {managed && (
-              <>
-                <button type="button" role="menuitem" className={item} onClick={pick(() => setNodeOpen(true))}>
-                  <Cpu className={icon} strokeWidth={1.8} aria-hidden />
-                  {m.node}
-                </button>
-                <hr className="mx-[0.4rem] my-[0.3rem] border-line" />
-              </>
-            )}
-            <button type="button" role="menuitem" className={item} onClick={pick(onTour)}>
-              <Compass className={icon} strokeWidth={1.8} aria-hidden />
-              {m.tour}
-            </button>
-            <button type="button" role="menuitem" className={item} onClick={pick(onWelcome)}>
-              <Sparkles className={icon} strokeWidth={1.8} aria-hidden />
-              {m.welcome}
+        {managed && (
+          <>
+            <button type="button" role="menuitem" className={item} onClick={pick(() => setNodeOpen(true))}>
+              <Cpu className={icon} strokeWidth={1.8} aria-hidden />
+              {m.node}
             </button>
             <hr className="mx-[0.4rem] my-[0.3rem] border-line" />
-            <button type="button" role="menuitem" className={item} onClick={pick(onPrivacy)}>
-              <ShieldCheck className={icon} strokeWidth={1.8} aria-hidden />
-              {m.privacy}
-            </button>
-            <button type="button" role="menuitem" className={item} onClick={pick(onAbout)}>
-              <Info className={icon} strokeWidth={1.8} aria-hidden />
-              {m.about}
-            </button>
-          </div>
-        </div>
-      )}
-      <ManagedNodeDialog open={nodeOpen} onClose={() => setNodeOpen(false)} />
+          </>
+        )}
+        <button type="button" role="menuitem" className={item} onClick={pick(onTour)}>
+          <Compass className={icon} strokeWidth={1.8} aria-hidden />
+          {m.tour}
+        </button>
+        <button type="button" role="menuitem" className={item} onClick={pick(onWelcome)}>
+          <Sparkles className={icon} strokeWidth={1.8} aria-hidden />
+          {m.welcome}
+        </button>
+        <hr className="mx-[0.4rem] my-[0.3rem] border-line" />
+        <button type="button" role="menuitem" className={item} onClick={pick(onPrivacy)}>
+          <ShieldCheck className={icon} strokeWidth={1.8} aria-hidden />
+          {m.privacy}
+        </button>
+        <button type="button" role="menuitem" className={item} onClick={pick(onAbout)}>
+          <Info className={icon} strokeWidth={1.8} aria-hidden />
+          {m.about}
+        </button>
+      </div>
     </div>
   )
 }

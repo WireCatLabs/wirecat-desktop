@@ -4,7 +4,7 @@ import { AboutDialog } from "@/features/about/AboutDialog"
 import { useNav } from "@/features/nav"
 import { Bell } from "@/features/notifications/Bell"
 import { CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/features/notifications/store"
-import { HelpMenu } from "@/features/onboarding/HelpMenu"
+import { type HelpActions, HelpMenu } from "@/features/onboarding/HelpMenu"
 import { Onboarding, SetupSteps } from "@/features/onboarding/Onboarding"
 import { useOnboarding } from "@/features/onboarding/store"
 import { Tour, useTour } from "@/features/onboarding/Tour"
@@ -48,6 +48,12 @@ export function App() {
   const toTools = () => setActive("tools")
   const [about, setAbout] = useState(false)
   const [privacy, setPrivacy] = useState(false)
+  const help: HelpActions = {
+    onTour: startTour,
+    onWelcome: () => useOnboarding.getState().reopen("welcome"),
+    onPrivacy: () => setPrivacy(true),
+    onAbout: () => setAbout(true),
+  }
   useEffect(() => {
     if (!useSystem.getState().readiness) void useSystem.getState().refresh()
   }, [])
@@ -66,7 +72,7 @@ export function App() {
 
   return (
     <div className="flex h-full">
-      {onboarding ? <SetupSteps onExit={toTools} /> : <Sidebar active={active} onSelect={setActive} />}
+      {onboarding ? <SetupSteps onExit={toTools} /> : <Sidebar active={active} onSelect={setActive} help={help} />}
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar>
           {!onboarding && (
@@ -83,12 +89,7 @@ export function App() {
                 {m.reportProblem}
               </Button>
               <Bell />
-              <HelpMenu
-                onTour={startTour}
-                onWelcome={() => useOnboarding.getState().reopen("welcome")}
-                onPrivacy={() => setPrivacy(true)}
-                onAbout={() => setAbout(true)}
-              />
+              <HelpMenu {...help} />
             </>
           )}
         </TopBar>

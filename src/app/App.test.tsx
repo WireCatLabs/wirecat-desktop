@@ -54,22 +54,41 @@ describe("WireCat Desktop", () => {
     expect(screen.queryByText("Checking npm for newer versions…")).not.toBeInTheDocument()
   })
 
-  it("shows the computer's readiness in the Help menu, which the version number opens too", async () => {
+  it("shows the computer's readiness in the Help menu, and the version number opens the same menu beside itself", async () => {
     const user = userEvent.setup()
     render(<App />)
     expect(screen.queryByText("Node.js 24.19.0")).not.toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Help" }))
+    const help = screen.getByRole("button", { name: "Help" })
+    await user.click(help)
     const facts = await screen.findByRole("region", { name: "Your computer" })
     expect(await within(facts).findByText("Node.js 24.19.0")).toBeInTheDocument()
+    const topMenu = screen.getByRole("menu", { name: "Help" })
+    const helpItems = within(topMenu)
+      .getAllByRole("menuitem")
+      .map((i) => i.textContent)
 
     const version = screen.getByRole("button", { name: /help and this computer/ })
     await user.click(version)
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument()
-    await user.click(version)
-    expect(screen.getByRole("menu", { name: "Help" })).toBeInTheDocument()
+    const aside = version.closest("aside") as HTMLElement
+    const own = within(aside).getByRole("menu", { name: "Help" })
+    expect(screen.getAllByRole("menu")).toEqual([own])
+    expect(help).toHaveAttribute("aria-expanded", "false")
+    expect(version).toHaveAttribute("aria-expanded", "true")
+    expect(
+      within(own)
+        .getAllByRole("menuitem")
+        .map((i) => i.textContent),
+    ).toEqual(helpItems)
+    expect(within(aside).getByRole("region", { name: "Your computer" })).toBeInTheDocument()
+    expect(within(own).getAllByRole("menuitem")[0]).toHaveFocus()
+
     await user.keyboard("{Escape}")
     expect(screen.queryByRole("menu")).not.toBeInTheDocument()
     expect(version).toHaveFocus()
+    await user.keyboard("{Enter}")
+    expect(within(aside).getByRole("menu", { name: "Help" })).toBeInTheDocument()
+    await user.click(version)
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument()
   })
 
   it("shows the computer's readiness on a page other than Tools", async () => {
