@@ -251,6 +251,8 @@ pub fn validate_profile(profile: &str) -> Result<(), String> {
     let ok = !profile.is_empty()
         && profile.len() <= 64
         && !profile.starts_with('-')
+        // `.` and `..` are folder names to anything that builds a path from the profile.
+        && !profile.starts_with('.')
         && profile.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'));
     if ok { Ok(()) } else { Err(format!("not a valid profile name: {profile}")) }
 }
@@ -297,6 +299,10 @@ mod tests {
         assert!(validate_profile("--help").is_err());
         assert!(validate_profile("a;rm").is_err());
         assert!(validate_profile("").is_err());
+        for dotted in [".", "..", ".hidden"] {
+            assert!(validate_profile(dotted).is_err(), "{dotted}");
+        }
+        assert!(validate_profile("work.2").is_ok());
     }
 
     #[test]

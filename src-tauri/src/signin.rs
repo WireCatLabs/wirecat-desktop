@@ -42,6 +42,10 @@ pub fn args(tool: &Tool, method: &str, profile: &str) -> Result<Vec<String>, Str
 /// Writes one answer and a newline to the running sign-in. The error never repeats the answer: it may reach the
 /// window's error list.
 pub fn answer(id: &str, value: &Answer) -> Result<(), String> {
+    // A line break would answer the next question too, before the owner saw it.
+    if value.chars().any(char::is_control) {
+        return Err("An answer is one line, without tabs or line breaks.".into());
+    }
     let mut kept = answers().lock().unwrap();
     let stdin = kept.get_mut(&key(id)).ok_or("The sign-in has already ended.")?;
     stdin
@@ -108,6 +112,15 @@ fn failed(message: String) -> SignInEvent {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_answer_with_a_line_break_never_reaches_the_tool() {
+        for bad in ["123\n456", "code\r", "a\tb"] {
+            let refused = answer("tg", &Answer::new(bad.into())).unwrap_err();
+            assert!(refused.contains("one line"), "{bad:?}: {refused}");
+            assert!(!refused.contains(bad), "the error never repeats the answer");
+        }
+    }
 
     #[test]
     fn a_stop_is_done_only_when_the_tool_answered() {
