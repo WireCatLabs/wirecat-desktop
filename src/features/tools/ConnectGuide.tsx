@@ -1077,7 +1077,7 @@ function NextSteps({ tool, name, onAgain }: { tool: CatalogTool; name: string; o
         </Button>
         {others.map((t) => (
           <Button key={t.id} size="sm" variant="ghost" onClick={() => openConnect(t.id)}>
-            {m.too(t.name)}
+            {t.id === "memo" ? m.tooMemo : m.too(t.name)}
           </Button>
         ))}
         <Button size="sm" variant="ghost" onClick={() => useNav.getState().go("logs")}>

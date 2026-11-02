@@ -9,7 +9,7 @@ function Field() {
   return (
     <>
       <label htmlFor="about">About</label>
-      <Combobox id="about" value={value} onChange={setValue} options={["You", "Kai Sample", "Ana Ruiz"]} />
+      <Combobox id="about" value={value} onChange={setValue} options={["You", "Kai Moreno", "Ana Ruiz"]} />
     </>
   )
 }
@@ -21,7 +21,7 @@ describe("Combobox", () => {
     const box = screen.getByRole("combobox", { name: "About" })
 
     await user.type(box, "a")
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Kai Sample", "Ana Ruiz"])
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Kai Moreno", "Ana Ruiz"])
     await user.keyboard("{ArrowDown}{ArrowDown}")
     expect(box).toHaveAttribute("aria-activedescendant", screen.getByRole("option", { name: "Ana Ruiz" }).id)
     await user.keyboard("{Enter}")

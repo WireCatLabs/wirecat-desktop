@@ -314,4 +314,41 @@ mod tests {
         assert_eq!(with_profile(&args, Some("work")).unwrap(), vec!["work", "doctor"]);
         assert!(with_profile(&args, None).is_err());
     }
+
+    /// Desktop's runs keep only failures, so a probe the app repeats on every page would fill the owner's run history
+    /// with the same failure (59 `mcp server status` in tg's). What the owner starts stays recorded.
+    #[test]
+    fn every_read_the_app_asks_on_its_own_is_left_out_of_the_run_history() {
+        for t in &catalog().tools {
+            let mut reads: Vec<&Vec<String>> = Vec::new();
+            reads.extend(t.profiles.as_ref().map(|p| &p.args));
+            reads.extend(t.runs.as_ref().into_iter().flat_map(|r| [&r.list, &r.show]));
+            reads.extend(t.skill.as_ref().into_iter().flat_map(|s| [&s.status, &s.show]));
+            reads.extend(t.skill.as_ref().and_then(|s| s.doctor_skills.as_ref()));
+            reads.extend(t.mcp.as_ref().map(|m| &m.check));
+            reads.extend(t.mcp_server.as_ref().map(|m| &m.status));
+            reads.extend(t.mcp_server.as_ref().and_then(|m| m.config.as_ref()));
+            reads.extend(t.tasks.as_ref().map(|s| &s.list));
+            reads.extend(t.background.as_ref().map(|b| &b.status));
+            reads.extend(t.sync.as_ref().and_then(|s| s.last.as_ref()));
+            reads.extend(t.settings.as_ref().map(|s| &s.show));
+            reads.extend(t.permissions.as_ref().map(|p| &p.commands));
+            reads.extend(
+                [&t.store_info, &t.store_tables, &t.store_table_sizes, &t.store_reset_preview].into_iter().flatten(),
+            );
+            for args in reads {
+                assert!(args.iter().any(|a| a == "--no-record"), "{}: {args:?}", t.id);
+            }
+        }
+    }
+
+    #[test]
+    fn what_the_owner_starts_is_recorded() {
+        for t in &catalog().tools {
+            let starts = [Some(&t.doctor), t.sync.as_ref().and_then(|s| s.run.as_ref()), t.store_check.as_ref()];
+            for args in starts.into_iter().flatten() {
+                assert!(!args.iter().any(|a| a == "--no-record"), "{}: {args:?}", t.id);
+            }
+        }
+    }
 }

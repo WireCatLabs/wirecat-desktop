@@ -236,6 +236,7 @@ const en = {
     copyPrompt: "Copy a prompt to try",
     another: "Connect another app",
     too: (tool: string) => `Connect ${tool} too`,
+    tooMemo: "Connect notes and mail too",
     logs: "See its calls in Logs",
   },
 
@@ -500,6 +501,7 @@ const ru: typeof en = {
     copyPrompt: "Скопировать запрос",
     another: "Подключить другое приложение",
     too: (tool) => `Подключить и ${tool}`,
+    tooMemo: "Подключить и заметки с почтой",
     logs: "Смотреть вызовы в Журнале",
   },
 
@@ -770,6 +772,7 @@ const es: typeof en = {
     copyPrompt: "Copiar una petición para probar",
     another: "Conectar otra app",
     too: (tool) => `Conectar también ${tool}`,
+    tooMemo: "Conectar también notas y correo",
     logs: "Ver sus llamadas en Registros",
   },
 

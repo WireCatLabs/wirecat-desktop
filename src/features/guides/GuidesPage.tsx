@@ -20,7 +20,18 @@ import { useNav } from "../nav"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
-import { fill, GOALS, type Goal, GUIDES, type Guide, promptOf, stepsOf, textOf, variesByMessenger } from "./guides"
+import {
+  docsOf,
+  fill,
+  GOALS,
+  type Goal,
+  GUIDES,
+  type Guide,
+  promptOf,
+  stepsOf,
+  textOf,
+  variesByMessenger,
+} from "./guides"
 import { guidesMessages, type Text } from "./messages"
 
 const params = new URLSearchParams(window.location.search)
@@ -498,7 +509,7 @@ function GuideBody(props: {
 
       <div className="flex flex-wrap items-center justify-between gap-x-[1.2rem] gap-y-2 border-line border-t pt-[0.9rem]">
         <Needs guide={g} fit={fit} messenger={messenger} ctx={ctx} />
-        <SiteLink href={textOf(g.docs, lang)}>{m.fullGuide}</SiteLink>
+        <SiteLink href={docsOf(g, messenger, lang)}>{m.fullGuide}</SiteLink>
       </div>
     </article>
   )

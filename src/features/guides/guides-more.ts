@@ -1,5 +1,12 @@
 // cspell:words Ortiz Harbour Muéstramelo Ponme créala añádelas
-import type { Guide } from "./guides"
+import type { Guide, Text } from "./guides"
+
+/** Defined here, not in guides.ts, which imports this file: the guides below call it while the module loads. */
+export const siteDocs = (path: string, en: string, ru: string, es: string): Text => ({
+  en: `https://wirecat.dev/en/docs/${path}#${en}`,
+  ru: `https://wirecat.dev/ru/docs/${path}#${ru}`,
+  es: `https://wirecat.dev/es/docs/${path}#${es}`,
+})
 
 const MESSENGERS = ["tg", "max", "wa"]
 
@@ -47,9 +54,26 @@ export const MORE_GUIDES: Guide[] = [
       es: "Un informe breve: decisiones, quién hace qué y preguntas abiertas. Cada punto enlaza a su mensaje.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/tg/recipes#weekly-report-on-a-chat",
-      ru: "https://wirecat.dev/ru/docs/tg/recipes#еженедельный-отчет-по-чату",
-      es: "https://wirecat.dev/es/docs/tg/recipes#informe-semanal-sobre-un-chat",
+      by: {
+        tg: siteDocs(
+          "tg/recipes",
+          "weekly-report-on-a-chat",
+          "еженедельный-отчет-по-чату",
+          "informe-semanal-sobre-un-chat",
+        ),
+        max: siteDocs(
+          "max/recipes",
+          "weekly-work-chat-report",
+          "недельный-отчёт-по-рабочему-чату",
+          "informe-semanal-del-trabajo",
+        ),
+        wa: siteDocs(
+          "wa/recipes",
+          "weekly-report-on-a-chat",
+          "еженедельный-отчет-по-чату",
+          "informe-semanal-sobre-un-chat",
+        ),
+      },
     },
   },
   {
@@ -199,9 +223,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Una lista de enlaces por sitio. Cada uno lleva al mensaje en el que llegó.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/tg/query-language#mentions",
-      ru: "https://wirecat.dev/ru/docs/tg/query-language#упоминания",
-      es: "https://wirecat.dev/es/docs/tg/query-language#menciones",
+      by: Object.fromEntries(
+        MESSENGERS.map((m) => [m, siteDocs(`${m}/query-language`, "mentions", "упоминания", "menciones")]),
+      ),
     },
   },
   {
@@ -247,9 +271,12 @@ export const MORE_GUIDES: Guide[] = [
       es: "Dos listas breves: de quién sabes más a menudo y quién dejó de escribir.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/tg/commands#tg-stats-contacts-top",
-      ru: "https://wirecat.dev/ru/docs/tg/commands#tg-stats-contacts-top",
-      es: "https://wirecat.dev/es/docs/tg/commands#tg-stats-contacts-top",
+      by: Object.fromEntries(
+        MESSENGERS.map((m) => {
+          const top = `${m}-stats-contacts-top`
+          return [m, siteDocs(`${m}/commands`, top, top, top)]
+        }),
+      ),
     },
   },
   {
@@ -351,9 +378,22 @@ export const MORE_GUIDES: Guide[] = [
       es: "Una tabla de chats, los peores primero, y una lista de preguntas que siguen esperando.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/tg/rankings#questions-waiting-for-an-answer",
-      ru: "https://wirecat.dev/ru/docs/tg/rankings#вопросы-которые-ждут-ответа",
-      es: "https://wirecat.dev/es/docs/tg/rankings#preguntas-pendientes",
+      by: {
+        tg: siteDocs(
+          "tg/rankings",
+          "questions-waiting-for-an-answer",
+          "вопросы-которые-ждут-ответа",
+          "preguntas-pendientes",
+        ),
+        max: siteDocs(
+          "max/rankings",
+          "questions-waiting-for-an-answer",
+          "вопросы-которые-ждут-ответа",
+          "preguntas-pendientes",
+        ),
+        // WhatsApp has no rankings page; its recipe for unanswered messages is the nearest.
+        wa: siteDocs("wa/recipes", "what-you-have-not-answered", "что-ты-не-ответил", "lo-que-no-has-respondido"),
+      },
     },
   },
   {
@@ -371,9 +411,9 @@ export const MORE_GUIDES: Guide[] = [
       es: "Las líneas exactas de la transcripción, con quién y cuándo, a favor o en contra.",
     },
     prompt: {
-      en: "Use zm CLI. Kai Sample says we agreed in a call last month to move the Harbour launch to March. Search the meeting transcripts and quote the lines where the launch date came up, with who said them and when. Tell me plainly whether the transcript supports the claim. If you find nothing, tell me what you searched.",
-      ru: "Используй zm CLI. Kai Sample говорит, что в прошлом месяце на звонке мы договорились перенести запуск Harbour на март. Поищи в расшифровках встреч и процитируй строки, где обсуждали дату запуска, — кто и когда это сказал. Скажи прямо, подтверждает ли это расшифровка. Если ничего не найдёшь, скажи, что искал.",
-      es: "Usa zm CLI. Kai Sample dice que el mes pasado acordamos en una llamada mover el lanzamiento de Harbour a marzo. Busca en las transcripciones de las reuniones y cita las líneas donde salió la fecha de lanzamiento, con quién lo dijo y cuándo. Dime claramente si la transcripción lo respalda. Si no encuentras nada, dime qué buscaste.",
+      en: "Use zm CLI. Kai Moreno says we agreed in a call last month to move the Harbour launch to March. Search the meeting transcripts and quote the lines where the launch date came up, with who said them and when. Tell me plainly whether the transcript supports the claim. If you find nothing, tell me what you searched.",
+      ru: "Используй zm CLI. Kai Moreno говорит, что в прошлом месяце на звонке мы договорились перенести запуск Harbour на март. Поищи в расшифровках встреч и процитируй строки, где обсуждали дату запуска, — кто и когда это сказал. Скажи прямо, подтверждает ли это расшифровка. Если ничего не найдёшь, скажи, что искал.",
+      es: "Usa zm CLI. Kai Moreno dice que el mes pasado acordamos en una llamada mover el lanzamiento de Harbour a marzo. Busca en las transcripciones de las reuniones y cita las líneas donde salió la fecha de lanzamiento, con quién lo dijo y cuándo. Dime claramente si la transcripción lo respalda. Si no encuentras nada, dime qué buscaste.",
     },
     steps: [
       {
@@ -448,9 +488,10 @@ export const MORE_GUIDES: Guide[] = [
       es: "Un temporizador en tu ordenador. Cada mañana se guarda el resumen y recibes un aviso.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/tg/recipes#running-on-a-schedule",
-      ru: "https://wirecat.dev/ru/docs/tg/recipes#работа-по-расписанию",
-      es: "https://wirecat.dev/es/docs/tg/recipes#programar-las-ejecuciones",
+      by: {
+        tg: siteDocs("tg/recipes", "running-on-a-schedule", "работа-по-расписанию", "programar-las-ejecuciones"),
+        max: siteDocs("max/recipes", "scheduling", "как-запускать-по-расписанию", "programar-ejecuciones"),
+      },
     },
   },
   {

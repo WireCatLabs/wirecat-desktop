@@ -110,3 +110,5 @@
 - `/home/leemour/Projects/AI/cli-core-wt-search-files` (branch feat/search-hit-files, merged as cli-core #2330, ~800 MB node_modules) and `/home/leemour/tmp-search-files/cli-core-release` — Search gaps 1–3 in cli-core 0.532.0 (2026-11-01)
 - `/home/leemour/Projects/AI/zoom-cli-wt-search-place`, `/home/leemour/Projects/AI/drive-cli-wt-search-place`, `/home/leemour/Projects/AI/cli-core-wt-search-place` (branch feat/search-hit-place, merged: zoom-cli #326, drive-cli #313, cli-core #2329) and remote branches feat/search-hit-place in those repos; `/home/leemour/tmp-search-place/` — Search gaps 4 and 6 (2026-11-01)
 - `.impeccable/mocks/guides/prototype/` (`GuidesPage.tsx`, `guides.ts`, `guides-more.ts`, `messages.ts`) — the Guides page and its data now live in `src/features/guides/`; nothing in `src/` imports the prototype any more (2026-11-02)
+- Branch `feat/mcp-profiles-all` (local and origin) — its one commit 7f99a48 was never merged; it is picked into fix/small-0.3-b (2026-11-02)
+- `.claude/worktrees/small-03b` (branch fix/small-0.3-b) — small fixes for 0.3.0, batch b, once its PR is merged (2026-11-02)
