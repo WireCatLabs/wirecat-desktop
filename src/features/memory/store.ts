@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { inTab, type MemoryField, setMemoryField, type Tab } from "@/domain/memory"
+import { can, inTab, type MemoryField, setMemoryField, type Tab } from "@/domain/memory"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemoryRead, MemorySource, SourceContext } from "@/platform/memory-schemas"
 
@@ -43,6 +43,11 @@ type MemoryState = {
   forgetting: string | null
   /** Findings the owner unticked, per batch: Approve creates the rest. */
   skipped: Record<string, string[]>
+  /** Subject groups folded shut: their rows are not on screen, so the page-wide Approve leaves them. */
+  closedGroups: string[]
+  toggleGroup(key: string): void
+  /** Approves these single rows one by one; a findings batch is approved only from its opened row. */
+  confirmMany(refs: string[]): Promise<void>
   load(): Promise<void>
   setTab(tab: Tab): void
   setQuery(query: string): void
@@ -109,6 +114,20 @@ export const useMemory = create<MemoryState>((set, get) => {
     correcting: null,
     forgetting: null,
     skipped: {},
+    closedGroups: [],
+
+    toggleGroup: (key) =>
+      set((s) => ({
+        closedGroups: s.closedGroups.includes(key) ? s.closedGroups.filter((k) => k !== key) : [...s.closedGroups, key],
+      })),
+    async confirmMany(refs) {
+      // One at a time: memo holds a lock per write, and each row turns green as its own answer comes.
+      for (const ref of refs) {
+        const entry = get().entries.find((e) => e.ref === ref)
+        if (!entry || entry.findings || !can(entry).confirm) continue
+        await get().confirm(ref)
+      }
+    },
 
     async load() {
       const call = ++seq

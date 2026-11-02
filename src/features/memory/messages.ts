@@ -183,6 +183,10 @@ const en = {
   moreActions: "More actions",
   reviewFindings: (n: number) => `Review ${n}`,
   approveFindings: (n: number) => `Approve ${n}`,
+  approveShown: (n: number) => `Approve ${n}`,
+  approveShownHint: (n: number) =>
+    `Approves the ${n} shown here with these filters. Rows in another tab, filtered out or in a folded group stay to review.`,
+  approvedShown: (n: number) => `Approved ${n}`,
   showContext: (what: string) => `Show ${what} in context`,
   readingContext: "Reading it…",
   contextFailed: "Could not read it:",
@@ -380,6 +384,10 @@ const ru: typeof en = {
   moreActions: "Другие действия",
   reviewFindings: (n) => `Проверить ${n}`,
   approveFindings: (n) => `Одобрить ${n}`,
+  approveShown: (n) => `Одобрить ${n}`,
+  approveShownHint: (n) =>
+    `Одобряет ${n} показанных здесь с этими фильтрами. Записи в другой вкладке, отфильтрованные или в свёрнутой группе остаются на проверке.`,
+  approvedShown: (n) => `Одобрено: ${n}`,
   showContext: (what: string) => `Показать ${what} в контексте`,
   readingContext: "Читаю…",
   contextFailed: "Не удалось прочитать:",
@@ -576,6 +584,10 @@ const es: typeof en = {
   moreActions: "Más acciones",
   reviewFindings: (n) => `Revisar ${n}`,
   approveFindings: (n) => `Aprobar ${n}`,
+  approveShown: (n) => `Aprobar ${n}`,
+  approveShownHint: (n) =>
+    `Aprueba los ${n} que se ven aquí con estos filtros. Los de otra pestaña, filtrados o en un grupo plegado siguen por revisar.`,
+  approvedShown: (n) => `Aprobados: ${n}`,
   showContext: (what: string) => `Mostrar ${what} en contexto`,
   readingContext: "Leyéndolo…",
   contextFailed: "No se pudo leer:",
