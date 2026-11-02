@@ -1,6 +1,6 @@
 [package]
 name = "wirecat-desktop"
-version = "0.2.0"
+version = "0.3.0"
 description = "WireCat Desktop: install and manage WireCat tools"
 authors = ["Viacheslav Ptsarev"]
 license = "Apache-2.0"
