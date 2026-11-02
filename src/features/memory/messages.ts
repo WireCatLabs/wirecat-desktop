@@ -185,7 +185,7 @@ const en = {
   approveFindings: (n: number) => `Approve ${n}`,
   approveShown: (n: number) => `Approve ${n}`,
   approveShownHint: (n: number) =>
-    `Approves the ${n} shown here with these filters. Rows in another tab, filtered out or in a folded group stay to review.`,
+    `Approves the ${n} facts and memories shown here with these filters. Tasks, agents' findings, and rows in another tab, filtered out or in a folded group stay to review.`,
   approvedShown: (n: number) => `Approved ${n}`,
   showContext: (what: string) => `Show ${what} in context`,
   readingContext: "Reading it…",
@@ -386,7 +386,7 @@ const ru: typeof en = {
   approveFindings: (n) => `Одобрить ${n}`,
   approveShown: (n) => `Одобрить ${n}`,
   approveShownHint: (n) =>
-    `Одобряет ${n} показанных здесь с этими фильтрами. Записи в другой вкладке, отфильтрованные или в свёрнутой группе остаются на проверке.`,
+    `Одобряет факты и воспоминания, показанные здесь с этими фильтрами: ${n}. Задачи, находки агентов и записи в другой вкладке, отфильтрованные или в свёрнутой группе остаются на проверке.`,
   approvedShown: (n) => `Одобрено: ${n}`,
   showContext: (what: string) => `Показать ${what} в контексте`,
   readingContext: "Читаю…",
@@ -586,7 +586,7 @@ const es: typeof en = {
   approveFindings: (n) => `Aprobar ${n}`,
   approveShown: (n) => `Aprobar ${n}`,
   approveShownHint: (n) =>
-    `Aprueba los ${n} que se ven aquí con estos filtros. Los de otra pestaña, filtrados o en un grupo plegado siguen por revisar.`,
+    `Aprueba los ${n} hechos y recuerdos que se ven aquí con estos filtros. Las tareas, los hallazgos de agentes y lo que está en otra pestaña, filtrado o en un grupo plegado siguen por revisar.`,
   approvedShown: (n) => `Aprobados: ${n}`,
   showContext: (what: string) => `Mostrar ${what} en contexto`,
   readingContext: "Leyéndolo…",

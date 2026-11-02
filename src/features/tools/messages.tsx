@@ -192,6 +192,8 @@ const en = {
       </>
     ),
     terminalFailed: "The terminal window did not open:",
+    signedInNow: (profile: string, tool: string) =>
+      `${profile} is signed in to ${tool}. Your agents can use this account now; you can close the terminal window.`,
     checkSignIn: "Check sign-in",
     manual: "Add an account from a terminal; this has no sign-in window yet.",
     howToSetUp: "How to set it up",
@@ -224,7 +226,7 @@ const en = {
     fixIn: (agent: string) => `Fix in ${agent}`,
     otherAgents: "Fix in another agent",
     agentOpened: (agent: string) =>
-      `${agent} opened in a terminal window, in this tool's settings folder, with a prompt about this problem. It makes a backup first and asks before it changes the file. When it is done, press Check health again.`,
+      `${agent} opened in a terminal window, in this tool's settings folder, with a prompt about this problem. It was asked to make a backup first and to change only what this problem names. When it is done, check this account again.`,
     agentPreview: (agent: string) =>
       `This is the browser preview, so nothing opens. In the app, ${agent} starts in a terminal window, in this tool's settings folder, with a prompt about this problem.`,
     agentFailed: (agent: string) => `${agent} did not start:`,
@@ -531,6 +533,8 @@ const ru: typeof en = {
       </>
     ),
     terminalFailed: "Окно терминала не открылось:",
+    signedInNow: (profile, tool) =>
+      `Аккаунт ${profile} вошёл в ${tool}. Теперь агенты могут им пользоваться; окно терминала можно закрыть.`,
     checkSignIn: "Проверить вход",
     manual: "Добавьте аккаунт из терминала: окна входа для этого инструмента пока нет.",
     howToSetUp: "Как настроить",
@@ -563,7 +567,7 @@ const ru: typeof en = {
     fixIn: (agent) => `Исправить в ${agent}`,
     otherAgents: "Исправить в другом агенте",
     agentOpened: (agent) =>
-      `${agent} открылся в окне терминала, в папке настроек этого инструмента, с промптом об этой проблеме. Сначала он сделает резервную копию и спросит, прежде чем менять файл. Когда он закончит, снова нажмите «Проверить состояние».`,
+      `${agent} открылся в окне терминала, в папке настроек этого инструмента, с промптом об этой проблеме. Его попросили сначала сделать резервную копию и менять только то, что названо в проблеме. Когда он закончит, проверьте этот аккаунт снова.`,
     agentPreview: (agent) =>
       `Это предпросмотр в браузере, здесь ничего не открывается. В приложении ${agent} запустится в окне терминала, в папке настроек этого инструмента, с промптом об этой проблеме.`,
     agentFailed: (agent) => `${agent} не запустился:`,
@@ -876,6 +880,8 @@ const es: typeof en = {
       </>
     ),
     terminalFailed: "La ventana del terminal no se abrió:",
+    signedInNow: (profile, tool) =>
+      `${profile} ha iniciado sesión en ${tool}. Tus agentes ya pueden usar esta cuenta; puedes cerrar la ventana del terminal.`,
     checkSignIn: "Comprobar sesión",
     manual: "Añade una cuenta desde un terminal; esta herramienta aún no tiene ventana de inicio de sesión.",
     howToSetUp: "Cómo configurarla",
@@ -910,7 +916,7 @@ const es: typeof en = {
     fixIn: (agent) => `Arreglar en ${agent}`,
     otherAgents: "Arreglar en otro agente",
     agentOpened: (agent) =>
-      `${agent} se abrió en una ventana de terminal, en la carpeta de ajustes de esta herramienta, con un prompt sobre este problema. Primero hace una copia de seguridad y pregunta antes de cambiar el archivo. Cuando termine, vuelve a pulsar Comprobar estado.`,
+      `${agent} se abrió en una ventana de terminal, en la carpeta de ajustes de esta herramienta, con un prompt sobre este problema. Se le pidió hacer primero una copia de seguridad y cambiar solo lo que nombra el problema. Cuando termine, vuelve a comprobar esta cuenta.`,
     agentPreview: (agent) =>
       `Esto es la vista previa en el navegador, así que no se abre nada. En la app, ${agent} se inicia en una ventana de terminal, en la carpeta de ajustes de esta herramienta, con un prompt sobre este problema.`,
     agentFailed: (agent) => `${agent} no se inició:`,

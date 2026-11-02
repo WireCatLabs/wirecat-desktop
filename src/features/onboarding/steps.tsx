@@ -450,7 +450,7 @@ function SignInRow({ tool }: { tool: CatalogTool }) {
             )}
           </ul>
         )}
-        <TerminalStatus tool={tool} onCheck={reload} checking={loading} />
+        <TerminalStatus tool={tool} profiles={profiles} onCheck={reload} checking={loading} />
         {adding ? (
           <>
             {tool.signIn && (

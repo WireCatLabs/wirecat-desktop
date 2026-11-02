@@ -49,12 +49,7 @@ fn command_in(dir: &Path, program: &Path, args: &[String], script: &Path) -> Res
     let parts = [dir.to_string_lossy(), program.to_string_lossy()];
     let all = parts.iter().map(AsRef::as_ref).chain(args.iter().map(String::as_str));
     if cfg!(windows) {
-        // In a .cmd file `%` expands even inside quotes, and a quote cannot be escaped at all.
-        if all.clone().any(|p| p.contains(['"', '%', '\n', '\r', '\0'])) {
-            return Err("A path holds a character a Windows command file cannot carry.".into());
-        }
-        let quoted: Vec<String> = args.iter().map(|a| format!("\"{a}\"")).collect();
-        let body = format!("@echo off\r\ncd /d \"{}\"\r\n\"{}\" {}\r\n", parts[0], parts[1], quoted.join(" "));
+        let body = windows_script(&parts[0], &parts[1], args)?;
         std::fs::write(script, body).map_err(|e| format!("Could not write {}: {e}", script.display()))?;
         return Ok(quote(&script.to_string_lossy()));
     }
@@ -69,6 +64,18 @@ fn command_in(dir: &Path, program: &Path, args: &[String], script: &Path) -> Res
     };
     let line = format!("cd {} && {env}{}", quote(&parts[0]), run.join(" "));
     Ok(line)
+}
+
+/// A `.cmd` file that runs `program` in `dir`. The file is UTF-8 and cmd reads a batch file in the console's code
+/// page, so `chcp 65001` comes first: a user folder named in Cyrillic would otherwise break both paths.
+fn windows_script(dir: &str, program: &str, args: &[String]) -> Result<String, String> {
+    // In a .cmd file `%` expands even inside quotes, and a quote cannot be escaped at all.
+    let mut parts = [dir, program].into_iter().chain(args.iter().map(String::as_str));
+    if parts.any(|p| p.contains(['"', '%', '\n', '\r', '\0'])) {
+        return Err("A path holds a character a Windows command file cannot carry.".into());
+    }
+    let quoted: Vec<String> = args.iter().map(|a| format!("\"{a}\"")).collect();
+    Ok(format!("@echo off\r\nchcp 65001 >nul\r\ncd /d \"{dir}\"\r\n\"{program}\" {}\r\n", quoted.join(" ")))
 }
 
 /// Arguments are validated catalog words and profile names; only the binary path can hold spaces.
@@ -164,10 +171,25 @@ fn launch(line: &str) -> std::io::Result<()> {
         .map(|_| ())
 }
 
-#[cfg(all(test, unix))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test]
+    fn a_windows_script_switches_to_utf8_and_quotes_each_part() {
+        let args = ["Read the file C:\\x.md and do what it asks.".to_string()];
+        let body = windows_script(r"C:\Users\Иван\AppData\Roaming\tg-cli\Config", r"C:\npm\codex.cmd", &args).unwrap();
+        assert_eq!(
+            body,
+            "@echo off\r\nchcp 65001 >nul\r\ncd /d \"C:\\Users\\Иван\\AppData\\Roaming\\tg-cli\\Config\"\r\n\
+             \"C:\\npm\\codex.cmd\" \"Read the file C:\\x.md and do what it asks.\"\r\n"
+        );
+        for bad in ["50%", "a\"b", "a\nb"] {
+            assert!(windows_script(r"C:\d", r"C:\p.exe", &[bad.into()]).is_err(), "{bad}");
+        }
+    }
+
+    #[cfg(unix)]
     #[test]
     fn quotes_every_part_of_an_agent_line_so_a_sentence_stays_one_argument() {
         let line = command_in(

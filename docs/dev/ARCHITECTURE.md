@@ -63,6 +63,7 @@ src-tauri/src/
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
   redact.rs     masking tokens, numbers, addresses and names in tool output.
   terminal.rs   opening a tool's interactive setup in the user's terminal.
+  agent_fix.rs  a coding agent started in a terminal on a prompt about a broken settings file, read from a file.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced

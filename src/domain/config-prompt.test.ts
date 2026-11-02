@@ -45,3 +45,20 @@ describe("the prompt an agent gets about a settings problem", () => {
     expect(prompt).not.toContain("Where:")
   })
 })
+
+describe("an older tool's single error string", () => {
+  it("is treated as a syntax problem when it is a JSON parse error", () => {
+    const max = findTool("max") as NonNullable<ReturnType<typeof findTool>>
+    const prompt = configPrompt(
+      max,
+      {
+        tone: "warn",
+        text: "Could not read ~/.config/max-cli/config.json: Unexpected token } in JSON at position 212",
+        config: { file: "~/.config/max-cli/config.json" },
+      },
+      "personal",
+    )
+    expect(prompt).toContain("Fix only the JSON syntax:")
+    expect(prompt).not.toContain("Where:")
+  })
+})

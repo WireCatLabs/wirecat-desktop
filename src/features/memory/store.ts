@@ -46,8 +46,8 @@ type MemoryState = {
   /** Subject groups folded shut: their rows are not on screen, so the page-wide Approve leaves them. */
   closedGroups: string[]
   toggleGroup(key: string): void
-  /** Approves these single rows one by one; a findings batch is approved only from its opened row. */
-  confirmMany(refs: string[]): Promise<void>
+  /** Approves these single rows one by one and says how many memo approved; a findings batch never is. */
+  confirmMany(refs: string[]): Promise<number>
   load(): Promise<void>
   setTab(tab: Tab): void
   setQuery(query: string): void
@@ -122,11 +122,14 @@ export const useMemory = create<MemoryState>((set, get) => {
       })),
     async confirmMany(refs) {
       // One at a time: memo holds a lock per write, and each row turns green as its own answer comes.
+      let approved = 0
       for (const ref of refs) {
         const entry = get().entries.find((e) => e.ref === ref)
         if (!entry || entry.findings || !can(entry).confirm) continue
         await get().confirm(ref)
+        if (get().entries.find((e) => e.ref === ref)?.status !== entry.status) approved++
       }
+      return approved
     },
 
     async load() {

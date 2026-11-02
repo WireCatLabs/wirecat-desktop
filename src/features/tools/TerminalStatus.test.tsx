@@ -1,22 +1,26 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import type { ReactElement } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
+import type { Profile } from "@/platform/schemas"
 import { NewProfile, TerminalStatus } from "./Health"
 import { useTerminal } from "./terminal-store"
 
 const tg = findTool("tg") as NonNullable<ReturnType<typeof findTool>>
 const realKind = platform.kind
 
+const page = (onCheck: () => void, profiles: Profile[]): ReactElement => (
+  <>
+    <NewProfile tool={tg} onCheck={onCheck} />
+    <TerminalStatus tool={tg} profiles={profiles} onCheck={onCheck} checking={false} />
+  </>
+)
+
 function form(onCheck = vi.fn()) {
-  render(
-    <>
-      <NewProfile tool={tg} onCheck={onCheck} />
-      <TerminalStatus tool={tg} onCheck={onCheck} checking={false} />
-    </>,
-  )
-  return onCheck
+  const view = render(page(onCheck, [{ name: "personal", signedIn: true }]))
+  return Object.assign(onCheck, { rerender: (profiles: Profile[]) => view.rerender(page(onCheck, profiles)) })
 }
 
 async function openTerminalFor(name: string) {
@@ -48,6 +52,14 @@ describe("signing in from a terminal window", () => {
     )
     await userEvent.click(screen.getByRole("button", { name: "Check sign-in" }))
     expect(onCheck).toHaveBeenCalled()
+    onCheck.rerender([
+      { name: "personal", signedIn: true },
+      { name: "work", signedIn: true },
+    ])
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "work is signed in to Telegram. Your agents can use this account now",
+    )
+    expect(screen.queryByRole("button", { name: "Check sign-in" })).toBeNull()
   })
 
   it("in the browser preview, explains what the app would open instead of claiming a terminal opened", async () => {
