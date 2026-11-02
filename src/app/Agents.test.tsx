@@ -253,6 +253,18 @@ describe("Agents", () => {
     expect(within(dialog).getByText("Telegram skill")).toBeInTheDocument()
   }, 20000)
 
+  it("warns that a chat-driven agent reading the same skill folder gets the tools too", async () => {
+    const user = await openAgents()
+    await user.click(await foundTab(/^Codex/))
+    await user.click(await within(pane()).findByRole("button", { name: "Connect WireCat to Codex" }, wait))
+    const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to Codex" })
+    expect(within(dialog).queryByText(/reads the same skill folder/)).not.toBeInTheDocument()
+    await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
+    expect(within(dialog).getByRole("note")).toHaveTextContent(
+      "OpenClaw reads the same skill folder, so it gets these tools too",
+    )
+  }, 20000)
+
   it("keeps a group the owner blocked when it sets a profile read only", async () => {
     const set = vi.spyOn(platform, "settingsSet")
     const user = await openAgents()

@@ -2,6 +2,7 @@ import { TriangleAlert } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { agentPathFix, CHAT_AGENTS, type CheckTool, chatName } from "@/domain/agents"
 import { catalogCommand, findTool } from "@/domain/catalog"
+import type { SkillTarget } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
@@ -78,7 +79,14 @@ function stepText(t: StepText, agent: { id: string; name: string }, m: AgentsMes
 }
 
 /** "Connect WireCat to <agent>": choose tools, install each skill with the tool's own command, check the PATH. */
-export function ConnectDialog({ view }: { view: AgentView }) {
+export function ConnectDialog({
+  view,
+  chatSharers = () => [],
+}: {
+  view: AgentView
+  /** The chat-driven agents that read the same skill folder, so they get the chosen tools too. */
+  chatSharers?: (target: SkillTarget) => string[]
+}) {
   const { agent } = view
   const flow = useConnectFlow()
   const open = flow.agent === agent.id
@@ -99,6 +107,7 @@ export function ConnectDialog({ view }: { view: AgentView }) {
     document.getElementById(toolsId)?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus()
   }
   const chat = CHAT_AGENTS.has(agent.id)
+  const chatOthers = chat ? [] : [...new Set(chosen.flatMap((s) => chatSharers(s.target)))]
   // A tool without per-profile settings would write the level for every profile at once.
   const limitable = (id: string) =>
     (findTool(id)?.permissions?.groups ?? []).length > 0 && findTool(id)?.settings?.perProfile === true
@@ -203,6 +212,15 @@ export function ConnectDialog({ view }: { view: AgentView }) {
             </ErrorNotice>
           </Collapse>
           {chat && <ChatWarning agentName={agent.name} />}
+          {chatOthers.length > 0 && (
+            <div
+              role="note"
+              className="flex items-start gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-4 py-3 text-[0.95rem]"
+            >
+              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
+              <p className="max-w-[70ch]">{m.chatSharers(chatOthers)}</p>
+            </div>
+          )}
           {chat && (
             <fieldset className="flex flex-col gap-1">
               <legend className="mb-1 text-[0.9rem] font-medium text-ink-dim">{m.readOnly}</legend>
