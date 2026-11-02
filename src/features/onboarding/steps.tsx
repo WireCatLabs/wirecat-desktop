@@ -203,7 +203,9 @@ function Progress({ tool }: { tool: CatalogTool }) {
           ? tm.timedOut.install
           : outcome.reason === "network"
             ? tm.network
-            : outcome.message
+            : outcome.reason === "unconfirmed"
+              ? tm.unconfirmed
+              : outcome.message
     text = <span className="text-bad">{message}</span>
   } else if (outcome?.event === "done") {
     tone = "ok"
