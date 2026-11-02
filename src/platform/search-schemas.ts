@@ -58,8 +58,14 @@ export type QueryWriter = v.InferOutput<typeof QueryWriterSchema>
 
 export const QueryDraftSchema = v.variant("kind", [
   v.object({ kind: v.literal("query"), query: v.string(), by: QueryWriterSchema }),
-  /** Nothing on this computer can write one: no signed-in Claude Code or Codex, no ChatGPT plan, no key. */
+  /** Neither Claude Code nor Codex is on this computer. */
   v.object({ kind: v.literal("none") }),
-  v.object({ kind: v.literal("failed"), message: v.string(), by: QueryWriterSchema }),
+  /** `message` is the agent's own words, shown when the reason is `other`. */
+  v.object({
+    kind: v.literal("failed"),
+    reason: v.optional(v.picklist(["signed-out", "timed-out", "empty", "other"]), "other"),
+    message: v.string(),
+    by: QueryWriterSchema,
+  }),
 ])
 export type QueryDraft = v.InferOutput<typeof QueryDraftSchema>

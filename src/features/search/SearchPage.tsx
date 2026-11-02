@@ -166,19 +166,17 @@ export function SearchPage() {
             </ErrorNotice>
           </Collapse>
 
-          {platform.kind === "mock" && (
-            <QueryDraft
-              tool={s.tool}
-              onNeedTool={() => {
-                setTried(true)
-                focusInPlace(document.getElementById(ids.tool))
-              }}
-              onWritten={(query) => {
-                s.setQuery(query)
-                focusInPlace(document.getElementById(ids.query))
-              }}
-            />
-          )}
+          <QueryDraft
+            tool={s.tool}
+            onNeedTool={() => {
+              setTried(true)
+              focusInPlace(document.getElementById(ids.tool))
+            }}
+            onWritten={(query) => {
+              s.setQuery(query)
+              focusInPlace(document.getElementById(ids.query))
+            }}
+          />
 
           <div className="flex flex-wrap items-start gap-[0.7rem]">
             <QueryBar
