@@ -8,11 +8,15 @@ import {
   helped,
   initials,
   mediaTotals,
+  meetingStats,
+  offHours,
   ownersData,
   projectRows,
   sentByMe,
+  spikes,
   sumRows,
   tableRows,
+  todayAndWeek,
   todayIn,
   topRows,
   weekHours,
@@ -259,5 +263,49 @@ describe("views", () => {
     ]
     expect(tableRows(tables, ["message_transcripts", "meeting_transcripts"])).toBe(6)
     expect(tableRows(tables, ["message_links"])).toBeNull()
+  })
+})
+
+describe("round 3", () => {
+  it("splits messages into working hours, evenings and weekends", () => {
+    const grid = Array.from({ length: 7 }, () => Array<number>(24).fill(0))
+    ;(grid[0] as number[])[10] = 6
+    ;(grid[1] as number[])[21] = 3
+    ;(grid[6] as number[])[12] = 1
+    expect(offHours(grid)).toEqual({ total: 10, evenings: 3, weekends: 1 })
+  })
+
+  it("counts today and the week since Monday", () => {
+    const rows = [
+      { key: "2026-11-01", count: 9 },
+      { key: "2026-11-02", count: 2 },
+      { key: "2026-11-04", count: 5 },
+    ]
+    expect(todayAndWeek(rows, "2026-11-04")).toEqual({ today: 5, week: 7 })
+  })
+
+  it("finds a day far above the rest", () => {
+    const b = (key: string, total: number) => ({ key, values: {}, total })
+    const bars = [1, 2, 1, 2, 1, 2, 1, 2, 40].map((t, i) => b(`d${i}`, t))
+    expect(spikes(bars).map((x) => x.key)).toEqual(["d8"])
+    expect(spikes(bars.slice(0, 5))).toEqual([])
+  })
+
+  it("adds meetings up in the period and ranks titles by time", () => {
+    const s = meetingStats(
+      [
+        { started_at: "2026-11-02T09:00:00Z", duration_ms: 3_600_000, title: "Weekly" },
+        { started_at: "2026-10-30T09:00:00Z", duration_ms: 1_800_000, title: "Weekly" },
+        { started_at: "2026-11-01T15:00:00Z", duration_ms: null, title: "1:1" },
+        { started_at: "2026-09-01T09:00:00Z", duration_ms: 3_600_000, title: "Old" },
+      ],
+      "7d",
+      TODAY,
+      "UTC",
+    )
+    expect(s.count).toBe(3)
+    expect(s.minutes).toBe(90)
+    expect(s.meanMinutes).toBe(45)
+    expect(s.series[0]).toEqual({ title: "Weekly", count: 2, minutes: 90 })
   })
 })

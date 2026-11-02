@@ -1,6 +1,6 @@
 import type { StoreCompat } from "@/domain/compat"
 import type { Agent, Chats, Claims, McpHealth, Registrations, SkillReport, SkillText, Target } from "./agents-schemas"
-import type { AnalyticsPreview, Ask, MessageCounts, Period } from "./analytics-schemas"
+import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
@@ -252,6 +252,14 @@ export type Platform = {
    * or chat, of all messages or one kind. Local store only. Names are the owner's own data: shown on the page, never logged or reported.
    */
   messageStats(id: string, profile: string, ask: Ask, timezone: string): Promise<MessageCounts>
+  /** One of the tool's own aggregates for the period (`aggregates` in the catalog); `old` until the tool has it. */
+  analyticsAggregate(
+    id: string,
+    which: Which,
+    profile: string | null,
+    period: Period,
+    timezone: string,
+  ): Promise<Aggregate>
   /** What no tool counts yet: always null in the real app, sample data in the browser build. */
   analyticsPreview(period: Period): Promise<AnalyticsPreview | null>
   /** The values one of the tool's own read-only lists names (`search.values` in the catalog), such as chat titles. */

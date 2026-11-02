@@ -35,7 +35,9 @@ src-tauri/src/
                 catalog) under the same rule: the ref is validated, the answer shown, never logged.
   analytics.rs  the Analytics page's message counts: a messenger's own `stats messages show` per profile, by day, hour,
                 sender or chat, with one fixed term (`from:me`, `has:photo`, `kind:group`…) and the period or the one
-                before it (`stats` in the catalog), local store only. Names shown unmasked, an exception to rule 4 like
+                before it (`stats` in the catalog), local store only. `analytics_aggregate` runs one of a tool's
+                `aggregates` (reply time, waiting on you, chat coverage, mail per day, `zm meetings list`, `memo stats
+                tasks show`); "unknown command" is shown as the update that brings it. Names shown unmasked, an exception to rule 4 like
                 search.rs: never logged or put in a report. Plan `docs/dev/plans/2026-11-02-analytics.md`.
   query_writer.rs the Search page's "Write the query": the owner's words, the tool's keys from the catalog and today's
                 date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or

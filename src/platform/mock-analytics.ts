@@ -1,5 +1,14 @@
 import { addDays, PERIOD_DAYS, todayIn, weekOf } from "@/domain/analytics"
-import type { AnalyticsPreview, Ask, CountRow, MessageCounts, Only } from "./analytics-schemas"
+import type {
+  Aggregate,
+  AnalyticsPreview,
+  Ask,
+  CountRow,
+  MessageCounts,
+  Only,
+  Period,
+  Which,
+} from "./analytics-schemas"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
@@ -125,9 +134,131 @@ function ranked(list: [string, string, number][], total: number, me: boolean): C
   )
 }
 
+/** Commands no CLI has yet (plan, A1–A6): the real app shows "arrives with an update", and so do these scenarios. */
+const PLANNED: readonly Which[] = ["responses", "waiting", "coverage", "mail"]
+const showcaseOn = params.has("showcase")
+
+const SERIES: [string, number, number][] = [
+  ["Harbour weekly", 60, 7],
+  ["1:1 Lucía", 30, 3.5],
+  ["Design crit", 45, 3.5],
+  ["Investor update", 50, 30],
+  ["Ops standup", 15, 1.4],
+]
+
+function aggregateMock(id: string, which: Which, profile: string | null, period: Period, today: string): Aggregate {
+  if (PLANNED.includes(which) && (scenario === "real" || showcaseOn))
+    return { kind: "old", message: `unknown command '${which}'` }
+  const span = PERIOD_DAYS[period] ?? 365
+  const days = Array.from({ length: span }, (_, i) => addDays(today, -(span - 1 - i)))
+  const scale = id === "tg" ? 1 : id === "wa" ? 0.6 : 0.3
+  switch (which) {
+    case "responses": {
+      const rows = days.map((key) => {
+        const r = noise(`resp${id}${profile}${key}`)
+        return {
+          key,
+          replies: Math.round(4 + r * 12 * scale),
+          median_ms: Math.round((8 + r * 40) * 60_000),
+          p90_ms: Math.round((2 + r * 6) * 3_600_000),
+        }
+      })
+      return {
+        kind: "ready",
+        body: {
+          who: "me",
+          replies: rows.reduce((s, r) => s + r.replies, 0),
+          median_ms: Math.round((18 + scale * 9) * 60_000),
+          p90_ms: Math.round((3.5 + scale) * 3_600_000),
+          mean_ms: Math.round(52 * 60_000),
+          rows,
+        },
+      }
+    }
+    case "waiting":
+      return {
+        kind: "ready",
+        body: {
+          chats: Math.round(2 + 5 * scale),
+          messages: Math.round(5 + 14 * scale),
+          oldest_at: new Date(Date.now() - (2 + scale * 3) * 86_400_000).toISOString(),
+        },
+      }
+    case "coverage":
+      return {
+        kind: "ready",
+        body: {
+          chats: Math.round(1600 * scale),
+          fetched: Math.round(1290 * scale),
+          partial: Math.round(190 * scale),
+          never: Math.round(120 * scale),
+        },
+      }
+    case "mail": {
+      const rows = days.map((key) => {
+        const weekend = [0, 6].includes(new Date(`${key}T12:00:00Z`).getUTCDay())
+        const r = noise(`mail${key}`)
+        return {
+          key,
+          received: Math.round((weekend ? 4 : 22) * (0.6 + r)),
+          sent: Math.round((weekend ? 0 : 6) * (0.4 + r)),
+        }
+      })
+      return {
+        kind: "ready",
+        body: {
+          by: "day",
+          received: rows.reduce((s, r) => s + r.received, 0),
+          sent: rows.reduce((s, r) => s + r.sent, 0),
+          rows,
+        },
+      }
+    }
+    case "meetings": {
+      const items = days.flatMap((day) =>
+        SERIES.flatMap(([title, minutes, every], i) => {
+          const weekday = new Date(`${day}T12:00:00Z`).getUTCDay()
+          if (weekday === 0 || weekday === 6 || noise(`${title}${day}`) > 1 / every) return []
+          const start = `${day}T${String(9 + i * 2).padStart(2, "0")}:00:00Z`
+          return [
+            {
+              started_at: start,
+              duration_ms: Math.round(minutes * (0.8 + noise(`d${title}${day}`) * 0.5)) * 60_000,
+              title,
+            },
+          ]
+        }),
+      )
+      return { kind: "ready", body: { items } }
+    }
+    case "taskSources": {
+      const chats: [string, string, number, number][] = [
+        ["chat:telegram/1/-1001", "Harbour launch", 6, 2],
+        ["chat:telegram/1/101", "Lucía Fernández", 3, 0.5],
+        ["chat:whatsapp/1/-3001", "Family", 2, 4],
+        ["chat:email/1/t9", "Invoices", 4, 9],
+        ["meeting:zoom/1/88", "Harbour weekly", 5, 3],
+      ]
+      const rows = chats.map(([chat, name, open, days]) => ({
+        chat,
+        name,
+        open,
+        oldest_open_at: new Date(Date.now() - days * 3 * 86_400_000).toISOString(),
+        median_close_ms: Math.round(days * 86_400_000),
+      }))
+      return { kind: "ready", body: { items: [{ open: rows.reduce((s, r) => s + r.open, 0), rows }] } }
+    }
+  }
+}
+
 export const analyticsMock = (
   base: Pick<Platform, "taskCounts">,
-): Pick<Platform, "messageStats" | "analyticsPreview" | "taskCounts"> => ({
+): Pick<Platform, "messageStats" | "analyticsPreview" | "taskCounts" | "analyticsAggregate"> => ({
+  async analyticsAggregate(id, which, profile, period, timezone): Promise<Aggregate> {
+    await delay(350 + noise(`${id}${which}${profile}`) * 600)
+    return aggregateMock(id, which, profile, period, todayIn(timezone))
+  },
+
   async messageStats(id, profile, ask, timezone): Promise<MessageCounts> {
     const { by } = ask
     await delay(300 + noise(`${id}${profile}${by}${ask.only}`) * 700)

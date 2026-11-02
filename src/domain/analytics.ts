@@ -414,3 +414,75 @@ export function tableRows(tables: readonly { name: string; rows: number | null }
   const found = tables.filter((t) => names.includes(t.name) && t.rows !== null)
   return found.length ? found.reduce((s, t) => s + (t.rows ?? 0), 0) : null
 }
+
+/** Working hours for the after-hours share: Monday to Friday, 9:00 to 18:00 in the owner's zone. */
+export const WORK_HOURS = { from: 9, to: 18 } as const
+
+/** Shares of messages written after working hours on weekdays, and at weekends, from a weekday-by-hour grid. */
+export function offHours(grid: readonly (readonly number[])[]): { total: number; evenings: number; weekends: number } {
+  let total = 0
+  let evenings = 0
+  let weekends = 0
+  for (const [day, row] of grid.entries())
+    for (const [hour, n] of row.entries()) {
+      total += n
+      if (day >= 5) weekends += n
+      else if (hour < WORK_HOURS.from || hour >= WORK_HOURS.to) evenings += n
+    }
+  return { total, evenings, weekends }
+}
+
+/** Today's count and this week's (from Monday), from day rows keyed in the owner's zone. */
+export function todayAndWeek(rows: readonly { key: string; count: number }[], today: string) {
+  const monday = weekOf(today)
+  let day = 0
+  let week = 0
+  for (const r of rows) {
+    if (r.key === today) day += r.count
+    if (r.key >= monday && r.key <= today) week += r.count
+  }
+  return { today: day, week }
+}
+
+/** Days far above the rest: more than the mean plus two standard deviations, busiest first. */
+export function spikes(buckets: readonly Bucket[]): Bucket[] {
+  if (buckets.length < 7) return []
+  const mean = buckets.reduce((s, b) => s + b.total, 0) / buckets.length
+  const sd = Math.sqrt(buckets.reduce((s, b) => s + (b.total - mean) ** 2, 0) / buckets.length)
+  return buckets.filter((b) => sd > 0 && b.total > mean + 2 * sd).sort((a, b) => b.total - a.total)
+}
+
+type Meeting = { started_at: string | null; duration_ms: number | null; title: string | null }
+
+/**
+ * Meetings in the period from a tool's own list: how many, their minutes, per week, and the titles that take the most
+ * time. A title stands for a series: the list names no series yet (plan, A2).
+ */
+export function meetingStats(items: readonly Meeting[], period: Period, today: string, zone: string) {
+  const days = PERIOD_DAYS[period]
+  const from = days === null ? "" : addDays(today, -(days - 1))
+  const dayOfStart = (at: string) => todayIn(zone, new Date(at))
+  const inside = items.filter((m) => m.started_at && dayOfStart(m.started_at) >= from)
+  const minutes = (m: Meeting) => Math.round((m.duration_ms ?? 0) / 60_000)
+  const timed = inside.filter((m) => m.duration_ms !== null && m.duration_ms > 0)
+  const rows = inside.map((m) => ({ key: dayOfStart(m.started_at ?? ""), count: 1 }))
+  const minuteRows = timed.map((m) => ({ key: dayOfStart(m.started_at ?? ""), count: minutes(m) }))
+  const series = new Map<string, { title: string; count: number; minutes: number }>()
+  for (const m of inside) {
+    const title = m.title?.trim() || ""
+    if (!title) continue
+    const s = series.get(title) ?? { title, count: 0, minutes: 0 }
+    s.count += 1
+    s.minutes += minutes(m)
+    series.set(title, s)
+  }
+  const total = timed.reduce((s, m) => s + minutes(m), 0)
+  return {
+    count: inside.length,
+    minutes: total,
+    meanMinutes: timed.length ? Math.round(total / timed.length) : null,
+    rows,
+    minuteRows,
+    series: [...series.values()].sort((a, b) => b.minutes - a.minutes || b.count - a.count).slice(0, 6),
+  }
+}

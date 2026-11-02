@@ -225,7 +225,7 @@ export function createMock(os: Platform["os"]): Platform {
   const program = (path: string, version: string) => ({ path, version, ok: true, problem: null })
   const absent = { path: null, version: null, ok: false, problem: "not found" }
 
-  const stock: Omit<Platform, "messageStats" | "analyticsPreview"> = {
+  const stock: Omit<Platform, "messageStats" | "analyticsPreview" | "analyticsAggregate"> = {
     kind: "mock",
     os,
     async readiness(): Promise<Readiness> {

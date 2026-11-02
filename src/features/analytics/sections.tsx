@@ -27,9 +27,9 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
-import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./charts"
+import { ColumnChart, Legend, PartsBar, RankBars, Stat } from "./charts"
 import { Explorer } from "./explorer"
-import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
+import { colorOf, longKey, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
 
@@ -52,10 +52,10 @@ export function Panel({
   return (
     <section aria-labelledby={id} className="min-w-0 rounded-[0.2rem] border border-line-strong bg-app">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-line border-b px-[1.3rem] py-[0.9rem]">
-        <h2 id={id} className="flex items-center gap-2 text-[1.08rem] font-semibold">
+        <h3 id={id} className="m-0 flex items-center gap-2 text-[1.08rem] font-semibold">
           {title}
           {badge}
-        </h2>
+        </h3>
         <code className="font-mono text-[0.85rem] text-ink-dim">{source}</code>
       </div>
       <div className="flex flex-col gap-[1.3rem] px-[1.3rem] py-[1.1rem]">{children}</div>
@@ -114,8 +114,7 @@ export function Overview() {
       {volume.state === "loading" ? (
         <>
           <StatsSkeleton n={6} label={m.overview} />
-          <Skeleton className="h-[4.3rem] w-full rounded-[0.2rem]" />
-          <Skeleton className="h-[19.6rem] w-full rounded-[0.2rem]" />
+          <Skeleton className="h-[7rem] w-full rounded-[0.2rem]" />
         </>
       ) : volume.state === "error" ? (
         <ErrorNotice inline>{m.storeError(volume.error)}</ErrorNotice>
@@ -132,22 +131,8 @@ export function Overview() {
 
 function OverviewBody({ info }: { info: StoreInfo }) {
   const m = useMessages(analyticsMessages)
-  const sourceName = useSourceName()
   const mine = ownersData(info.rows, info.breakdown?.providers ?? [], info.breakdown?.years ?? [])
   const totals = TOTALS.filter((k) => k !== "accounts" && k !== "attachments" && k in mine.rows)
-  const providers = [...mine.providers].sort(
-    (a, b) => order(a.provider) - order(b.provider) || a.provider.localeCompare(b.provider),
-  )
-  const years = mine.years
-  const yearKeys = [...new Set(years.map((y) => y.key ?? ""))].filter(Boolean).sort()
-  const yearBuckets = yearKeys.map((key) => {
-    const values: Record<string, number> = {}
-    for (const y of years) if (y.key === key) values[y.provider] = (values[y.provider] ?? 0) + y.messages
-    return { key, values, total: Object.values(values).reduce((a, b) => a + b, 0) }
-  })
-  const yearSeries: Series[] = providers
-    .filter((p) => years.some((y) => y.provider === p.provider && y.messages > 0))
-    .map((p) => ({ id: p.provider, label: sourceName(p.provider), color: colorOf(p.provider) }))
   return (
     <div className="reveal flex flex-col gap-[1.3rem]">
       <Stats>
@@ -157,37 +142,6 @@ function OverviewBody({ info }: { info: StoreInfo }) {
         <Stat label={m.size} value={formatBytes(info.fileBytes + info.walBytes)} />
       </Stats>
       <MediaRow kinds={info.breakdown?.attachmentKinds ?? []} />
-      {info.breakdown ? (
-        <>
-          <div className="flex flex-col gap-2">
-            <Sub>{m.bySource}</Sub>
-            <PartsBar
-              label={m.bySource}
-              parts={providers.map((p) => ({
-                id: p.provider,
-                label: sourceName(p.provider),
-                value: p.messages + p.emails + p.documents + p.meetings,
-                color: colorOf(p.provider),
-              }))}
-            />
-          </div>
-          {yearBuckets.length > 1 && (
-            <div className="flex flex-col gap-2">
-              <Sub>{m.byYear}</Sub>
-              <ColumnChart
-                title={m.byYear}
-                buckets={yearBuckets}
-                series={yearSeries}
-                short={(k) => shortKey(k, "year")}
-                long={(k) => longKey(k, "year", m.weekOf)}
-                unit={m.messagesN}
-              />
-            </div>
-          )}
-        </>
-      ) : (
-        <Note>{m.noBreakdown}</Note>
-      )}
     </div>
   )
 }
@@ -226,11 +180,6 @@ function MediaRow({ kinds }: { kinds: readonly { kind: string; count: number; by
       </Stats>
     </div>
   )
-}
-
-const order = (provider: string) => {
-  const i = SOURCE_ORDER.indexOf(provider)
-  return i === -1 ? SOURCE_ORDER.length : i
 }
 
 const messengerName = (id: string) => findTool(id)?.name ?? id
@@ -636,64 +585,63 @@ export function Helps() {
   const runs = useAnalytics((s) => s.runs)
   const period = useAnalytics((s) => s.period)
   const today = useAnalytics((s) => s.today)
+  const h = runs.state === "ready" ? helped(runs.data, period, today) : null
+  const waiting =
+    runs.state === "loading" ? (
+      <Skeleton className="h-[12rem] w-full rounded-[0.2rem]" label={m.helps} />
+    ) : runs.state === "error" ? (
+      <ErrorNotice inline>{m.runsError(runs.error)}</ErrorNotice>
+    ) : null
   return (
-    <Panel id="an-helps" title={m.helps} source="runs list">
-      {runs.state === "loading" ? (
-        <>
-          <StatsSkeleton n={3} label={m.helps} />
-          <Skeleton className="h-[12rem] w-full rounded-[0.2rem]" />
-        </>
-      ) : runs.state === "error" ? (
-        <ErrorNotice inline>{m.runsError(runs.error)}</ErrorNotice>
-      ) : (
-        (() => {
-          const h = helped(runs.data, period, today)
-          return (
+    <>
+      <Panel id="an-helps" title={m.helps} source="runs list">
+        {waiting ??
+          (h && (
             <div className="reveal flex flex-col gap-[1.3rem]">
               <Stats>
                 <Stat label={m.agentRuns} value={formatNumber(h.agentRuns)} note={m.period[period]} />
                 <Stat label={m.mcpCalls} value={formatNumber(h.mcpCalls)} note={m.mcpNote} />
                 <Stat label={m.yourRuns} value={formatNumber(h.yourRuns)} note={m.yourNote} />
               </Stats>
-              {h.agentRuns === 0 ? (
-                <Note>{m.noRuns}</Note>
-              ) : (
-                <div className="grid grid-cols-1 gap-[1.5rem] lg:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <Sub>{m.byAgent}</Sub>
-                    <RankBars
-                      label={m.byAgent}
-                      unit={m.runsN}
-                      rows={h.byAgent.slice(0, 8).map((a) => ({
-                        id: a.name,
-                        title: a.name,
-                        label: a.name,
-                        value: a.count,
-                        color: "var(--series-1)",
-                      }))}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <Sub>{m.byTool}</Sub>
-                    <RankBars
-                      label={m.byTool}
-                      unit={m.runsN}
-                      rows={h.byTool.slice(0, 8).map((t) => ({
-                        id: t.tool,
-                        title: toolName(t.tool),
-                        label: toolName(t.tool),
-                        value: t.count,
-                        color: toolColor(t.tool),
-                      }))}
-                    />
-                  </div>
-                </div>
-              )}
               <Note>{m.helpsNote}</Note>
             </div>
-          )
-        })()
-      )}
-    </Panel>
+          ))}
+      </Panel>
+      <Panel id="an-helps-by" title={m.byAgent} source="runs list">
+        {waiting ??
+          (h &&
+            (h.agentRuns === 0 ? (
+              <Note>{m.noRuns}</Note>
+            ) : (
+              <div className="reveal flex flex-col gap-[1.3rem]">
+                <RankBars
+                  label={m.byAgent}
+                  unit={m.runsN}
+                  rows={h.byAgent.slice(0, 6).map((a) => ({
+                    id: a.name,
+                    title: a.name,
+                    label: a.name,
+                    value: a.count,
+                    color: "var(--series-1)",
+                  }))}
+                />
+                <div className="flex flex-col gap-2">
+                  <Sub>{m.byTool}</Sub>
+                  <RankBars
+                    label={m.byTool}
+                    unit={m.runsN}
+                    rows={h.byTool.slice(0, 7).map((t) => ({
+                      id: t.tool,
+                      title: toolName(t.tool),
+                      label: toolName(t.tool),
+                      value: t.count,
+                      color: toolColor(t.tool),
+                    }))}
+                  />
+                </div>
+              </div>
+            )))}
+      </Panel>
+    </>
   )
 }

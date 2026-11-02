@@ -8,6 +8,8 @@ import { PERIODS } from "@/platform/analytics-schemas"
 import { ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
+import { Load, Meetings, OpenTasks, ReplyTime, TaskSources, WaitingOnYou } from "./daily"
+import { Group } from "./group"
 import { analyticsMessages } from "./messages"
 import { Activity, Helps, Memory, Overview, Panel, People, Projects, Tasks } from "./sections"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
@@ -59,30 +61,42 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      <Overview />
-      <Activity />
-      <div className="grid grid-cols-1 gap-[1.5rem] xl:grid-cols-2">
+      <Group id="today" title={m.groups.today ?? ""}>
+        <ReplyTime />
+        <WaitingOnYou />
+        <Load />
+        <OpenTasks />
+      </Group>
+      <Group id="messages" title={m.groups.messages ?? ""}>
         <Panel id="an-when" title={m.whenTitle} source="stats messages show --by hour">
           <p className="text-[0.9rem] text-ink-soft">{m.whenNote}</p>
           <WhenYouTalk />
         </Panel>
-        <Panel id="an-changes" title={m.changesTitle} source="stats messages show --by sender|chat">
+        <Panel id="an-changes" title={m.outliersTitle} source="stats messages show --by sender|chat|day">
           <WhatChanged />
         </Panel>
-      </div>
-      <div className="grid grid-cols-1 gap-[1.5rem] xl:grid-cols-2">
         <People />
-        <Projects />
-      </div>
-      <div className="grid grid-cols-1 gap-[1.5rem] xl:grid-cols-2">
+        <Activity />
+      </Group>
+      <Group id="meetings" title={m.groups.meetings ?? ""}>
+        <Meetings />
+      </Group>
+      <Group id="work" title={m.groups.work ?? ""}>
         <Tasks />
+        <TaskSources />
+        <Projects />
         <Memory />
-      </div>
-      <Helps />
-      <Panel id="an-health" title={m.health} source="runs list · status">
-        <p className="text-[0.9rem] text-ink-soft">{m.healthNote}</p>
-        <Health />
-      </Panel>
+      </Group>
+      <Group id="agents" title={m.groups.agents ?? ""}>
+        <Helps />
+      </Group>
+      <Group id="storage" title={m.groups.storage ?? ""}>
+        <Overview />
+        <Panel id="an-health" title={m.health} source="runs list · status · store coverage">
+          <p className="text-[0.9rem] text-ink-soft">{m.healthNote}</p>
+          <Health />
+        </Panel>
+      </Group>
     </div>
   )
 }

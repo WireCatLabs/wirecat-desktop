@@ -2,7 +2,16 @@ import { useEffect, useMemo } from "react"
 import { create } from "zustand"
 import { closedRanges, closedTerm, type Period, sumRows, todayIn } from "@/domain/analytics"
 import type { Run } from "@/domain/runs"
-import type { AnalyticsPreview, Ask, CountBy, CountRow, MessageCounts, Only } from "@/platform/analytics-schemas"
+import type {
+  Aggregate,
+  AnalyticsPreview,
+  Ask,
+  CountBy,
+  CountRow,
+  MessageCounts,
+  Only,
+  Which,
+} from "@/platform/analytics-schemas"
 import type { StoreInfo, TableList } from "@/platform/archive-schemas"
 import { platform } from "@/platform/bridge"
 import type { MemoryRead } from "@/platform/memory-schemas"
@@ -58,6 +67,14 @@ export type Extra = { state: "loading" } | { state: "ready"; answers: { profile:
 const profilesKnown = (s: Pick<State, "profilesOf" | "sources">) =>
   MESSENGERS.every((x) => s.profilesOf[x.id] !== undefined || s.sources[x.id]?.state === "missing")
 
+/** One aggregate of one tool: `missing` when the tool is not installed. */
+export type AggState =
+  | { state: "loading" }
+  | { state: "missing" }
+  | { state: "ready"; parts: { profile: string | null; answer: Aggregate }[] }
+
+const aggKey = (which: Which, id: string, period: Period) => `${which}|${id}|${period}`
+
 const specKey = (period: Period, spec: Spec) => `${period}|${spec.by}|${spec.only}|${spec.previous ? 1 : 0}`
 
 type State = {
@@ -86,6 +103,9 @@ type State = {
   extra: Record<string, Record<string, Extra>>
   /** Asks for a spec in the current period unless it was asked already. */
   need(spec: Spec): void
+  /** Aggregates by `which|id|period`, each profile's answer; kept for the session like `extra`. */
+  agg: Record<string, AggState>
+  needAggregate(which: Which, id: string): void
   /** Messenger ids and profile names to show; empty is every one. */
   onlySources: string[]
   onlyProfiles: string[]
@@ -237,6 +257,27 @@ export function useExtra(
   }, [enabled, extra, period, by, only, previous, ids, profiles])
 }
 
+/** One aggregate of one tool in the current period, its profiles narrowed to the owner's choice, asked for on first use. */
+export function useAggregate(which: Which, id: string, enabled = true): AggState {
+  const period = useAnalytics((s) => s.period)
+  const known = useAnalytics((s) => s.profilesOf[id] !== undefined)
+  const state = useAnalytics((s) => s.agg[aggKey(which, id, period)])
+  const ids = useAnalytics((s) => s.onlySources)
+  const profiles = useAnalytics((s) => s.onlyProfiles)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new period, or the profiles becoming known, asks again
+  useEffect(() => {
+    if (enabled) useAnalytics.getState().needAggregate(which, id)
+  }, [enabled, which, id, period, known])
+  return useMemo(() => {
+    if (!enabled || state === undefined) return { state: "loading" }
+    if (state.state !== "ready") return state
+    const messenger = MESSENGERS.some((x) => x.id === id)
+    if (messenger && ids.length && !ids.includes(id)) return { state: "ready", parts: [] }
+    const parts = state.parts.filter((p) => p.profile === null || !profiles.length || profiles.includes(p.profile))
+    return { state: "ready", parts }
+  }, [enabled, state, ids, profiles, id])
+}
+
 export const useAnalytics = create<State>((set, get) => {
   let round = 0
   const extraRun = limiter(3)
@@ -297,7 +338,9 @@ export const useAnalytics = create<State>((set, get) => {
     const ids = SYNCED.filter((id) => installed(id) !== false)
     const lists = await Promise.all(
       ids.map(async (id) => {
-        const profiles = (await platform.listProfiles(id).catch(() => null))?.map((p) => p.name) ?? [null]
+        const listed = (await platform.listProfiles(id).catch(() => null))?.map((p) => p.name) ?? null
+        set((s) => ({ profilesOf: { ...s.profilesOf, [id]: s.profilesOf[id] ?? listed ?? [] } }))
+        const profiles = listed ?? [null]
         return Promise.all(
           (profiles.length ? profiles : [null]).map(async (profile) => {
             const last = await platform.syncLast(id, profile).catch(() => ({ at: null, known: false }))
@@ -374,6 +417,25 @@ export const useAnalytics = create<State>((set, get) => {
     onlyProfiles: [],
     profilesOf: {},
     extra: {},
+    agg: {},
+    needAggregate(which, id) {
+      const { period, zone: tz, profilesOf } = get()
+      const key = aggKey(which, id, period)
+      if (get().agg[key]) return
+      if (installed(id) === false) return set((s) => ({ agg: { ...s.agg, [key]: { state: "missing" } } }))
+      const profiles = profilesOf[id]
+      if (profiles === undefined) return
+      set((s) => ({ agg: { ...s.agg, [key]: { state: "loading" } } }))
+      const asked: (string | null)[] = profiles.length ? profiles : [null]
+      void Promise.all(
+        asked.map(async (profile) => ({
+          profile,
+          answer: await extraRun(() => platform.analyticsAggregate(id, which, profile, period, tz)).catch(
+            (e): Aggregate => ({ kind: "failed", message: message(e) }),
+          ),
+        })),
+      ).then((parts) => set((s) => ({ agg: { ...s.agg, [key]: { state: "ready", parts } } })))
+    },
     need(spec) {
       const { period, zone: tz, profilesOf } = get()
       if ((spec.previous && period === "all") || !profilesKnown(get())) return
@@ -411,6 +473,7 @@ export const useAnalytics = create<State>((set, get) => {
         memory: { state: "loading" },
         runs: { state: "loading" },
         extra: {},
+        agg: {},
         tables: undefined,
         syncs: { state: "loading" },
       })
