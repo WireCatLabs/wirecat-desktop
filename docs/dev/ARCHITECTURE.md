@@ -19,6 +19,9 @@ src-tauri/src/
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
   catalog.rs    the same tools.json, compiled in; profile validation.
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
+  npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
+                that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
+                real install and uninstall against a test package; CI runs it on all three systems.
   tools.rs      finding executables, versions, profiles, doctor runs.
   install.rs    install, update and uninstall with progress events, verification, failure reasons.
   provenance.rs before an install, `npm audit signatures` on a stub project plus the Sigstore certificate's
@@ -78,8 +81,8 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
 1. `ToolRow` calls `useTools().install("drive")` (`src/features/tools/store.ts`). Installs queue; one runs at a time,
    because two global npm installs at once can corrupt each other.
 2. `platform.install` opens a Tauri `Channel` and invokes `install_tool` with the tool **id** only.
-3. Rust looks the id up in the compiled catalog, checks Node.js and that npm's global folder is writable, then
-   runs `npm install --global <package>@latest` — or `pnpm add --global` when pnpm owns the copy that is already
+3. Rust looks the id up in the compiled catalog, checks Node.js, picks a global folder it may write to without
+   administrator rights (`npm_prefix.rs`), then runs `npm install --global <package>@<latest version>` there — or `pnpm add --global` when pnpm owns the copy that is already
    installed, so an update never leaves a second copy behind.
 4. Each output line is masked and sent as a `log` event; steps arrive as `step` events.
 5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If the app
