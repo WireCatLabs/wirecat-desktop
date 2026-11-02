@@ -3,7 +3,7 @@ import { formatDate, formatNumber, type Messages, plural } from "@/i18n"
 
 /** The wait a service asked for: whole minutes, and the time after which the next sync may start. */
 type SlowDown = { minutes: number; at: number } | null
-const clockOf = (at: number, lang: "en" | "ru" | "es") => formatDate(at, { hour: "2-digit", minute: "2-digit" }, lang)
+const clockOf = (at: number, lang: "en" | "ru" | "es") => formatDate(at, { hour: "numeric", minute: "2-digit" }, lang)
 
 const EN_WHAT: Record<SyncWhat, { one: string; other: string; place: [string, string]; noun: string }> = {
   messages: { one: "new message", other: "new messages", place: ["chat", "chats"], noun: "messages" },
