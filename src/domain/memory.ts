@@ -1,3 +1,5 @@
+import { freeWords, setField, valuesOf } from "./query-terms"
+
 /** The parts of a Memory page record these rules read; the platform's `MemoryEntry` has them. */
 type Entry = { type: string; kind: string; status: string; author: { type: string } | null }
 
@@ -109,13 +111,6 @@ export function byDay<T extends { createdAt: string }>(entries: readonly T[]): {
   return groups
 }
 
-/** A filter typed in a field: empty matches everything, anything else matches a label containing it. */
-export const matchesText = (label: string, typed: string) =>
-  typed.trim() === "" || label.toLocaleLowerCase().includes(typed.trim().toLocaleLowerCase())
-
-/** Every distinct label, in the order first seen, without empty ones. */
-export const distinct = (labels: readonly (string | null)[]) => [...new Set(labels.filter((l): l is string => !!l))]
-
 /** A date filter: a range back from now, or one calendar day picked from a record (`YYYY-MM-DD`). */
 export type Range = "any" | "today" | "7d" | "30d" | (string & {})
 export const RANGES = ["any", "today", "7d", "30d"] as const
@@ -128,4 +123,62 @@ export function inRange(range: Range, iso: string, now = new Date()): boolean {
     return new Date(iso).getTime() >= now.getTime() - days * 86_400_000
   }
   return dayKey(iso) === range
+}
+
+// ---- The search words ----
+
+/** The words Memory's search reads. `kind`, `project`, `subject` and `scope` are memo's own; `by` and `when` are the page's. */
+export const MEMORY_FIELDS = "subject|project|kind|scope|by|when"
+export type MemoryField = "subject" | "project" | "kind" | "scope" | "by" | "when"
+
+export type MemoryFilter = Record<Exclude<MemoryField, "when">, string[]> & { when: Range; words: string[] }
+
+export function memoryFilter(q: string): MemoryFilter {
+  return {
+    subject: valuesOf(q, "subject"),
+    project: valuesOf(q, "project"),
+    kind: valuesOf(q, "kind"),
+    scope: valuesOf(q, "scope"),
+    by: valuesOf(q, "by"),
+    when: valuesOf(q, "when").at(-1) ?? "any",
+    words: freeWords(q, MEMORY_FIELDS),
+  }
+}
+
+/** Writes one field's choices into Memory's search. The owner, as a writer, is `by:me`. */
+export const setMemoryField = (q: string, field: MemoryField, values: readonly string[]) => setField(q, field, values)
+
+type Searchable = Entry &
+  Subjected & {
+    text: string | null
+    summary: string | null
+    scope: string | null
+    author: { type: string; name: string | null } | null
+    createdAt: string
+  }
+
+const has = (label: string | null | undefined, value: string) =>
+  !!label && label.toLocaleLowerCase().includes(value.toLocaleLowerCase())
+
+/** The project a record belongs to, by name: its own, or a memory's subject when that is a project. */
+export const projectNameOf = (e: Subjected) =>
+  e.projectName ?? (e.subject?.startsWith("project:") ? e.subjectName : null)
+
+/**
+ * Whether a record passes the search: each field matches any of its values, every free word is found somewhere in
+ * the record. A value matches a ref exactly or a name in part, so `subject:"person:7"` and `subject:kai` both work.
+ */
+export function matchesFilter(e: Searchable, f: MemoryFilter, now = new Date()): boolean {
+  const any = (values: string[], test: (v: string) => boolean) => values.length === 0 || values.some(test)
+  const project = projectNameOf(e)
+  const author = byOwner(e) ? null : (e.author?.name ?? null)
+  return (
+    any(f.subject, (v) => (v === "me" ? e.subjectIsOwner : e.subject === v || has(e.subjectName, v))) &&
+    any(f.scope, (v) => e.scope === v) &&
+    any(f.project, (v) => e.project === v || has(project, v)) &&
+    any(f.kind, (v) => e.kind.toLowerCase() === v.toLowerCase()) &&
+    any(f.by, (v) => (v === "me" ? byOwner(e) : has(author, v))) &&
+    inRange(f.when, e.createdAt, now) &&
+    f.words.every((w) => [e.text, e.summary, e.subjectName, project, author, e.kind].some((label) => has(label, w)))
+  )
 }

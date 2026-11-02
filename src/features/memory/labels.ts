@@ -8,10 +8,6 @@ type M = typeof memoryMessages.en
 /** Who an entry is about, as the About field matches it: "You" in the reader's language for the owner. */
 export const aboutOf = (e: MemoryEntry, m: M) => (e.subjectIsOwner ? m.you : (e.subjectName ?? e.subject ?? ""))
 
-/** The project a record belongs to: a fact's or a batch's own, or a memory whose subject is a project. */
-export const projectOf = (e: MemoryEntry) =>
-  e.projectName ?? (e.subject?.startsWith("project:") ? (e.subjectName ?? "") : "")
-
 export const authorOf = (e: MemoryEntry, m: M) => (byOwner(e) ? m.you : (e.author?.name ?? m.anAgent))
 
 export const kindOf = (kind: string, m: M) => m.kinds[kind] ?? kind.replaceAll("_", " ")

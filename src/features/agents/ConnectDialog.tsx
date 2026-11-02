@@ -5,6 +5,7 @@ import { catalogCommand, findTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
@@ -179,13 +180,11 @@ export function ConnectDialog({ view }: { view: AgentView }) {
                   htmlFor={id}
                   className="flex min-h-9 items-center gap-3 rounded-[0.35rem] px-2 hover:bg-app-3/60"
                 >
-                  <input
+                  <Checkbox
                     id={id}
-                    type="checkbox"
                     checked={flow.tools.includes(s.tool.id)}
                     disabled={why !== null}
                     onChange={() => flow.toggleTool(s.tool.id)}
-                    className="size-[1.05rem] shrink-0 accent-brand"
                   />
                   <ToolIcon id={s.tool.id} className="size-[1.15rem] shrink-0 text-ink" />
                   <span className="font-semibold">{s.tool.name}</span>
@@ -211,12 +210,10 @@ export function ConnectDialog({ view }: { view: AgentView }) {
                   const id = `connect-ro-${c.key}`
                   return (
                     <label key={c.key} htmlFor={id} className="flex min-h-8 items-center gap-3 px-2">
-                      <input
+                      <Checkbox
                         id={id}
-                        type="checkbox"
                         checked={flow.readOnly.includes(c.key)}
                         onChange={() => flow.toggleReadOnly(c.key)}
-                        className="size-[1.05rem] shrink-0 accent-brand"
                       />
                       <span>
                         {c.tool.name} · <span className="font-medium">{c.profile}</span>

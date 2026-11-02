@@ -8,6 +8,7 @@ import type { McpServerStatus, OAuthSettings } from "@/platform/mcp-server-schem
 import type { FunnelState } from "@/platform/tailscale-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Radio } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
@@ -546,16 +547,15 @@ function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunn
           )}
         >
           <span className="flex items-center gap-2">
-            <input
+            <Radio
               id={`${name}-${o.id}`}
-              type="radio"
               name={name}
               value={o.id}
               aria-labelledby={`${name}-${o.id}-title`}
               aria-describedby={`${name}-${o.id}-hint`}
               checked={tunnel === o.id}
               onChange={() => setTunnel(o.id)}
-              className="accent-brand"
+              ring={false}
             />
             <span id={`${name}-${o.id}-title`} className="text-[0.95rem] font-semibold text-ink">
               {o.title}

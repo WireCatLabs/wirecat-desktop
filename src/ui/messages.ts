@@ -13,6 +13,17 @@ const en = {
   stepDone: ", done",
   stepActive: ", in progress",
   stepFailed: ", failed",
+  chosen: (n: number) => `${n} chosen`,
+  find: (what: string) => `Find ${what.toLowerCase()}`,
+  noChoice: "No match",
+  clearFilter: (what: string) => `Clear ${what.toLowerCase()}`,
+  clearAll: "Clear all",
+  previousMonth: "Previous month",
+  nextMonth: "Next month",
+  today: "Today",
+  noDate: "No date",
+  pickDay: "Choose a day",
+  calendarKeys: "Arrows move a day or a week, Page Up and Page Down a month, Enter picks.",
 }
 
 const ru: typeof en = {
@@ -28,6 +39,17 @@ const ru: typeof en = {
   stepDone: ", готово",
   stepActive: ", идёт",
   stepFailed: ", не удалось",
+  chosen: (n) => `выбрано: ${n}`,
+  find: (what) => `Найти: ${what.toLowerCase()}`,
+  noChoice: "Ничего не найдено",
+  clearFilter: (what) => `Сбросить: ${what.toLowerCase()}`,
+  clearAll: "Сбросить всё",
+  previousMonth: "Предыдущий месяц",
+  nextMonth: "Следующий месяц",
+  today: "Сегодня",
+  noDate: "Без даты",
+  pickDay: "Выберите день",
+  calendarKeys: "Стрелки сдвигают на день или неделю, Page Up и Page Down — на месяц, Enter выбирает.",
 }
 
 const es: typeof en = {
@@ -43,6 +65,17 @@ const es: typeof en = {
   stepDone: ", hecho",
   stepActive: ", en curso",
   stepFailed: ", ha fallado",
+  chosen: (n) => `${n} elegidos`,
+  find: (what) => `Buscar ${what.toLowerCase()}`,
+  noChoice: "Sin resultados",
+  clearFilter: (what) => `Quitar ${what.toLowerCase()}`,
+  clearAll: "Quitar todo",
+  previousMonth: "Mes anterior",
+  nextMonth: "Mes siguiente",
+  today: "Hoy",
+  noDate: "Sin fecha",
+  pickDay: "Elige un día",
+  calendarKeys: "Las flechas mueven un día o una semana, Re Pág y Av Pág un mes, Intro elige.",
 }
 
 export const uiMessages: Messages<typeof en> = { en, ru, es }

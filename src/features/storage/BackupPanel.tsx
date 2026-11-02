@@ -4,6 +4,7 @@ import { findTool } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { formatDate, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { Skeleton } from "@/ui/Skeleton"
 import { BackupPassword } from "./BackupPassword"
 import { BackupProgress } from "./BackupProgress"
@@ -85,17 +86,16 @@ export function BackupPanel() {
 
       <div className="flex flex-col gap-3 border-line border-b px-[1.3rem] py-[0.9rem]">
         <label className="flex items-start gap-2.5 text-ink">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={protect}
             disabled={busy}
-            onChange={(e) => {
-              setProtect(e.target.checked)
+            onChange={(checked) => {
+              setProtect(checked)
               setTried(0)
               setPassword("")
               setRepeat("")
             }}
-            className="mt-[0.3rem] size-[1.05rem] shrink-0 accent-brand"
+            className="mt-[0.3rem]"
           />
           <span>
             {m.protect}

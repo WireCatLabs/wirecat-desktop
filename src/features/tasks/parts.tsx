@@ -65,7 +65,7 @@ export function DueText({ task }: { task: Task }) {
   return (
     <span
       className={cx(
-        "font-mono text-[0.9rem] tabular-nums whitespace-nowrap",
+        "min-w-0 truncate font-mono text-[0.9rem] tabular-nums",
         tone === "late" ? "text-bad" : tone === "soon" ? "text-warn-ink" : "text-ink-soft",
       )}
     >
