@@ -219,6 +219,15 @@ const en = {
     configProblems: "Configuration problems",
     openSettingsFolder: "Open settings folder",
     copyFix: "Copy the fix command",
+    copyPrompt: "Copy prompt for an agent",
+    promptCopied: "Prompt copied",
+    fixIn: (agent: string) => `Fix in ${agent}`,
+    otherAgents: "Fix in another agent",
+    agentOpened: (agent: string) =>
+      `${agent} opened in a terminal window, in this tool's settings folder, with a prompt about this problem. It makes a backup first and asks before it changes the file. When it is done, press Check health again.`,
+    agentPreview: (agent: string) =>
+      `This is the browser preview, so nothing opens. In the app, ${agent} starts in a terminal window, in this tool's settings folder, with a prompt about this problem.`,
+    agentFailed: (agent: string) => `${agent} did not start:`,
     fix: "Fix:",
     technical: "Technical details",
     command: "Command",
@@ -549,6 +558,15 @@ const ru: typeof en = {
     configProblems: "Проблемы с настройками",
     openSettingsFolder: "Открыть папку настроек",
     copyFix: "Скопировать команду исправления",
+    copyPrompt: "Скопировать промпт для агента",
+    promptCopied: "Промпт скопирован",
+    fixIn: (agent) => `Исправить в ${agent}`,
+    otherAgents: "Исправить в другом агенте",
+    agentOpened: (agent) =>
+      `${agent} открылся в окне терминала, в папке настроек этого инструмента, с промптом об этой проблеме. Сначала он сделает резервную копию и спросит, прежде чем менять файл. Когда он закончит, снова нажмите «Проверить состояние».`,
+    agentPreview: (agent) =>
+      `Это предпросмотр в браузере, здесь ничего не открывается. В приложении ${agent} запустится в окне терминала, в папке настроек этого инструмента, с промптом об этой проблеме.`,
+    agentFailed: (agent) => `${agent} не запустился:`,
     fix: "Исправить:",
     technical: "Технические подробности",
     command: "Команда",
@@ -887,6 +905,15 @@ const es: typeof en = {
     configProblems: "Problemas de configuración",
     openSettingsFolder: "Abrir la carpeta de ajustes",
     copyFix: "Copiar el comando que lo arregla",
+    copyPrompt: "Copiar el prompt para un agente",
+    promptCopied: "Prompt copiado",
+    fixIn: (agent) => `Arreglar en ${agent}`,
+    otherAgents: "Arreglar en otro agente",
+    agentOpened: (agent) =>
+      `${agent} se abrió en una ventana de terminal, en la carpeta de ajustes de esta herramienta, con un prompt sobre este problema. Primero hace una copia de seguridad y pregunta antes de cambiar el archivo. Cuando termine, vuelve a pulsar Comprobar estado.`,
+    agentPreview: (agent) =>
+      `Esto es la vista previa en el navegador, así que no se abre nada. En la app, ${agent} se inicia en una ventana de terminal, en la carpeta de ajustes de esta herramienta, con un prompt sobre este problema.`,
+    agentFailed: (agent) => `${agent} no se inició:`,
     fix: "Arreglo:",
     technical: "Detalles técnicos",
     command: "Comando",

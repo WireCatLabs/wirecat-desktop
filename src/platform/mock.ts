@@ -526,6 +526,9 @@ export function createMock(os: Platform["os"]): Platform {
     async cancelInstall() {
       cancelled = true
     },
+    async fixInAgent() {
+      await delay(300)
+    },
     // `?terminal=none`: no terminal program found, as Rust words it.
     async openSetup(id, profile) {
       await delay(300)

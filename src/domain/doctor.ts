@@ -1,7 +1,15 @@
 import * as v from "valibot"
 
 /** Where a configuration problem sits. Never a value from the file: values can be tokens. */
-export type ConfigPlace = { file?: string; profile?: string; key?: string; line?: number; column?: number }
+export type ConfigPlace = {
+  file?: string
+  profile?: string
+  key?: string
+  line?: number
+  column?: number
+  /** cli-core's issue kind (`invalid_json`, `unknown_setting`…), for the prompt an agent gets. */
+  kind?: string
+}
 
 /** The app's own words for a finding; the interface writes them in the reader's language. */
 export type DoctorNote =
@@ -77,6 +85,7 @@ const problemSaid = (p: v.InferOutput<typeof Problem>): Pick<Finding, "text" | "
 
 function place(i: v.InferOutput<typeof Issue>): ConfigPlace {
   const at: ConfigPlace = {}
+  if (i.kind) at.kind = i.kind
   if (i.file) at.file = i.file
   if (i.profile) at.profile = i.profile
   if (i.key) at.key = i.key

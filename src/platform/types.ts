@@ -204,6 +204,8 @@ export type Platform = {
   /** Releases a claim as the owner, who may release any. */
   taskRelease(id: string, profile: string, task: string): Promise<void>
   openSetup(id: string, profile: string | null): Promise<void>
+  /** Opens a terminal running `agent` on `prompt`, in the tool's settings folder (`agent_fix.rs`). */
+  fixInAgent(agent: string, tool: string, prompt: string): Promise<void>
   /**
    * Signs the named profile in inside the window with one of the tool's own sign-ins (`signIn.methods` in the catalog);
    * steps arrive as events and the last one is `done`, `failed` or `stopped`. Never with a profile the owner did not

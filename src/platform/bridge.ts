@@ -208,6 +208,7 @@ function createTauri(): Platform {
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),
     cancelInstall: (id) => invoke("cancel_install", { id }),
     openSetup: (id, profile) => invoke("open_setup", { id, profile }),
+    fixInAgent: (agent, tool, prompt) => invoke("fix_in_agent", { agent, tool, prompt }),
     signIn: (id, method, profile, onEvent) => {
       const channel = new Channel<unknown>()
       // An event that does not parse is never thrown: the error would carry the code into the window's error list.

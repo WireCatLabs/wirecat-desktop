@@ -31,7 +31,7 @@ describe("summarize", () => {
     it("marks a file that is not valid JSON as broken, with where it breaks", () => {
       const issue = { kind: "invalid_json", file, line: 12, column: 5, what: "The settings file is not valid JSON." }
       expect(summarize(report({ found: true, issues: [issue] }), 1)).toEqual([
-        { tone: "bad", text: issue.what, config: { file, line: 12, column: 5 } },
+        { tone: "bad", text: issue.what, config: { kind: "invalid_json", file, line: 12, column: 5 } },
       ])
     })
 
@@ -50,7 +50,7 @@ describe("summarize", () => {
         fix: `tg work config unset ${key}`,
       }
       expect(summarize(report({ issues: [issue] }), 0)).toEqual([
-        { tone: "warn", text: issue.what, fix: issue.fix, config: { file, profile: "work", key } },
+        { tone: "warn", text: issue.what, fix: issue.fix, config: { kind, file, profile: "work", key } },
       ])
     })
 
@@ -70,7 +70,7 @@ describe("summarize", () => {
     it("shows a kind it does not know as a warning", () => {
       const issue = { kind: "deprecated_setting", key: "proxy_url", what: "proxy_url is going away." }
       expect(summarize(report({ issues: [issue] }), 0)).toEqual([
-        { tone: "warn", text: "proxy_url is going away.", config: { key: "proxy_url" } },
+        { tone: "warn", text: "proxy_url is going away.", config: { kind: "deprecated_setting", key: "proxy_url" } },
       ])
     })
 
