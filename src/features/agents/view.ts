@@ -303,7 +303,7 @@ export function agentStatus(view: AgentView): AgentStatus {
   if (view.skills.some((s) => s.cell.kind === "checking")) return { kind: "checking" }
   if (view.todo.length > 0) return { kind: "setup", count: view.todo.length }
   const count = otherFixes(view).length + view.signedOut.length
-  if (view.tone === "bad") return { kind: "stuck", count }
+  if (view.tone === "bad" && count > 0) return { kind: "stuck", count }
   if (count > 0 || view.tone === "warn") return { kind: "fix", count: Math.max(count, 1) }
   return { kind: "ready" }
 }
