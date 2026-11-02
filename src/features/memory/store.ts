@@ -1,13 +1,25 @@
 import { create } from "zustand"
-import { can, inTab, type MemoryField, setMemoryField, type Tab } from "@/domain/memory"
+import {
+  can,
+  inTab,
+  type MemoryField,
+  matchesFilter,
+  memoryFilter,
+  setMemoryField,
+  subjectOf,
+  type Tab,
+  tabOf,
+} from "@/domain/memory"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemoryRead, MemorySource, SourceContext } from "@/platform/memory-schemas"
+import { useNav } from "../nav"
+import { useTasks } from "../tasks/store"
 
 export type Context =
   | { state: "loading" }
   | { state: "ready"; context: SourceContext }
   | { state: "failed"; error: string }
-export type Op = "confirm" | "discard" | "correct" | "forget"
+export type Op = "confirm" | "discard" | "correct" | "forget" | "open"
 export type Sources =
   | { state: "loading" }
   | { state: "ready"; sources: MemorySource[] }
@@ -63,6 +75,10 @@ type MemoryState = {
   startCorrect(ref: string | null): void
   askForget(ref: string | null): void
   skip(ref: string, finding: string, skipped: boolean): void
+  /** Opens a record where it is, in its tab, with the search and its group made to show it; false when not read. */
+  reveal(ref: string, from: string): boolean
+  /** Opens on the Tasks page the task `from` became (`task:<id>`); an error stays on the `from` row. */
+  openTask(from: string, task: string): Promise<void>
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -224,6 +240,29 @@ export const useMemory = create<MemoryState>((set, get) => {
     },
     startCorrect: (ref) => set((s) => ({ correcting: ref, failed: ref ? without(s.failed, ref) : s.failed })),
     askForget: (ref) => set({ forgetting: ref }),
+    reveal(ref, from) {
+      const entry = get().entries.find((e) => e.ref === ref)
+      if (!entry) return false
+      const group = subjectOf(entry)?.key
+      const now = get().tab
+      const tab = now === "all" || inTab(now, entry.status) ? now : (tabOf(entry.status) ?? "all")
+      set((s) => ({
+        // Rows held in this tab stay while the owner is sent within it (rule 9); a new tab starts fresh, as setTab does.
+        ...(tab === now ? {} : { tab, tabChosen: true, held: [], arriving: [] }),
+        open: ref,
+        query: matchesFilter(entry, memoryFilter(s.query)) ? s.query : "",
+        closedGroups: s.closedGroups.filter((k) => k !== group),
+        failed: without(s.failed, from),
+      }))
+      if (!get().sources[ref]) get().loadSources(ref)
+      return true
+    },
+    async openTask(from, task) {
+      const shown = await run(from, "open", () => platform.taskShow(task.replace(/^task:/, "")))
+      if (!shown) return
+      useNav.getState().go("tasks")
+      void useTasks.getState().openTask(shown.key)
+    },
     skip: (ref, finding, skipped) =>
       set((s) => {
         const now = (s.skipped[ref] ?? []).filter((id) => id !== finding)

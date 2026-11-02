@@ -13,6 +13,8 @@ export const FindingSchema = v.object({
   reason: text,
   evidence: v.array(v.string()),
   outcome: text,
+  /** What an accepted finding became, `fact:12` or `task:<id>`. */
+  created: text,
 })
 
 export const MemoryEntrySchema = v.object({
@@ -43,6 +45,8 @@ export const MemoryEntrySchema = v.object({
   createdAt: v.string(),
   updatedAt: text,
   findings: v.nullable(v.array(FindingSchema)),
+  /** The task an approved action became, `task:<id>`. */
+  task: text,
   model: text,
   confidence: v.nullable(v.number()),
 })

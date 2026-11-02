@@ -1,6 +1,7 @@
 import {
   Brain,
   ChevronDown,
+  ChevronRight,
   ExternalLink,
   FileText,
   FolderKanban,
@@ -23,7 +24,7 @@ import {
   useRef,
   useState,
 } from "react"
-import { byOwner, can, dayKey, type Subject, stateOf, subjectOf, toneOf } from "@/domain/memory"
+import { byOwner, can, dayKey, type Subject, stateOf, subjectOf, toneOf, undoOf } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
@@ -35,7 +36,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
-import { focusInPlace, holdInPlace } from "@/ui/motion"
+import { focusInPlace, holdInPlace, PANEL_MS, reducedMotion } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { SplitButton } from "@/ui/SplitButton"
@@ -105,12 +106,13 @@ export function Row({ entry }: { entry: MemoryEntry }) {
   const busy = useMemory((s) => s.busy[entry.ref])
   const failed = useMemory((s) => s.failed[entry.ref])
   const skipped = useMemory((s) => s.skipped[entry.ref])
-  const { toggle, confirm, discard, startCorrect, askForget } = useMemory.getState()
+  const { toggle, confirm, discard, startCorrect, askForget, openTask } = useMemory.getState()
   const panel = useId()
   const row = useRef<HTMLDivElement>(null)
   const state = stateOf(entry.status)
   const Icon = ICONS[entry.type]
   const allowed = can(entry)
+  const undo = undoOf(entry)
   const editable = open && allowed.correct
   const ticked = entry.findings ? entry.findings.filter((f) => !skipped?.includes(f.id)).length : 0
 
@@ -146,7 +148,8 @@ export function Row({ entry }: { entry: MemoryEntry }) {
     then()
   }
   const correctItem = allowed.correct && { label: m.correct, onSelect: () => openAnd(() => startCorrect(entry.ref)) }
-  const rejectItem = allowed.discard && { label: m.discard, onSelect: () => discard(entry.ref) }
+  const undoLabel = undo === "reject" || undo === "invalidate" || undo === "reverse" ? m.undo[undo] : null
+  const rejectItem = allowed.discard && undoLabel && { label: undoLabel, onSelect: () => discard(entry.ref) }
   const eraseItem = allowed.forget && { label: m.forget, danger: true, onSelect: () => askForget(entry.ref) }
   // A findings batch is approved from its opened row, so what Approve creates is on screen; closed, it opens.
   const approve = !entry.findings
@@ -159,9 +162,23 @@ export function Row({ entry }: { entry: MemoryEntry }) {
             ticked > 0 ? confirm(entry.ref) : row.current?.querySelector<HTMLElement>("[data-findings] input")?.focus(),
         }
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
+  // A record in use leads with what the owner most likely wants: the task it became, what it created, or an edit.
+  const settled =
+    undo === "task" && entry.task
+      ? {
+          label: m.openTask,
+          icon: busy === "open" ? spin : <ListChecks className="size-4" aria-hidden />,
+          onClick: () => entry.task && openTask(entry.ref, entry.task),
+        }
+      : undo === "created"
+        ? { label: m.whatItMade, expanded: open, onClick: flip }
+        : correctItem
+          ? { label: m.correct, icon: <Pencil className="size-4" aria-hidden />, onClick: correctItem.onSelect }
+          : undefined
+  const editLeads = !!correctItem && undo !== "task" && undo !== "created"
 
   return (
-    <div ref={row} data-row className="border-line border-t">
+    <div ref={row} data-row data-ref={entry.ref} className="border-line border-t">
       <div className="grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto] items-start gap-[0.9rem] px-[1.3rem] py-[0.95rem] xl:gap-[1.2rem]">
         <span className="mt-[0.55rem]">
           <Lamp tone={toneOf(entry.status)} label={m.states[state]} />
@@ -240,6 +257,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
                 main={{ ...approve, ...(busy === "confirm" ? { icon: spin } : {}) }}
                 items={[correctItem, eraseItem].filter((i) => !!i)}
                 menuLabel={m.moreActions}
+                moreLabel={m.moreButton}
               />
             </>
           ) : (
@@ -249,11 +267,10 @@ export function Row({ entry }: { entry: MemoryEntry }) {
               </span>
               <SplitButton
                 disabled={!!busy}
-                {...(state === "inuse" && correctItem
-                  ? { main: { label: m.correct, onClick: correctItem.onSelect } }
-                  : {})}
-                items={[state === "inuse" ? null : correctItem, rejectItem, eraseItem].filter((i) => !!i)}
+                {...(settled ? { main: settled } : {})}
+                items={[editLeads ? null : correctItem, rejectItem, eraseItem].filter((i) => !!i)}
                 menuLabel={m.moreActions}
+                moreLabel={m.moreButton}
               />
             </>
           )}
@@ -568,6 +585,23 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
   const project = entry.projectName ?? entry.subjectName ?? entry.project ?? m.project
   const ticked = findings.filter((f) => !skipped.includes(f.id)).length
   const [shownRef, setShownRef] = useState<string | null>(null)
+  const [gone, setGone] = useState<string[]>([])
+  const opening = useMemory((s) => s.busy[entry.ref] === "open")
+  const { reveal, openTask } = useMemory.getState()
+
+  const openCreated = (id: string, created: string) => {
+    if (created.startsWith("task:")) return void openTask(entry.ref, created)
+    if (!reveal(created, entry.ref)) return setGone((g) => [...g, id])
+    // This batch folds shut, taking the pressed button with it: focus goes to the fact once the rows stop moving.
+    setTimeout(
+      () =>
+        focusInPlace(
+          document.querySelector<HTMLElement>(`[data-ref="${CSS.escape(created)}"] [aria-controls]`),
+          "center",
+        ),
+      reducedMotion() ? 0 : PANEL_MS,
+    )
+  }
 
   return (
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
@@ -603,6 +637,20 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
                 </span>
                 {f.reason && (
                   <span className="selectable mt-[0.15rem] block text-[0.9rem] text-ink-soft">{f.reason}</span>
+                )}
+                {!open && f.outcome === "accepted" && f.created && /^(fact|task):/.test(f.created) && (
+                  <span className="mt-[0.35rem] flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={opening ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+                      onClick={() => f.created && openCreated(f.id, f.created)}
+                    >
+                      {f.created.startsWith("task:") ? m.openTask : m.openFact}
+                      <ChevronRight className="size-4" aria-hidden />
+                    </Button>
+                    {gone.includes(f.id) && <span className="text-[0.9rem] text-ink-dim">{m.createdGone}</span>}
+                  </span>
                 )}
                 {f.evidence.length > 0 && (
                   <span className="mt-[0.3rem] flex flex-wrap items-center gap-x-[0.6rem] text-[0.85rem] text-ink-dim">
@@ -676,7 +724,7 @@ function stateLine(entry: MemoryEntry, m: M) {
     return entry.type === "action" ? m.stateReviewAction : m.stateReview
   }
   if (entry.findings && entry.status === "approved") return m.stateReviewed
-  if (entry.type === "action" && entry.status === "approved") return m.stateApproved
+  if (entry.type === "action" && entry.status === "approved") return entry.task ? m.stateApproved : m.stateApprovedOld
   return m.states[stateOf(entry.status)]
 }
 
@@ -791,6 +839,7 @@ function Details({ entry }: { entry: MemoryEntry }) {
             </span>,
           )}
         </dl>
+        {undoOf(entry) === "none" && <p className="text-[0.9rem] text-ink-soft">{m.noUndoFact}</p>}
         {failed && !editing && (
           <ErrorNotice inline>
             {m.writeFailed} {failed}

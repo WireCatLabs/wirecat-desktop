@@ -70,6 +70,24 @@ export const byOwner = (e: Entry) => e.author?.type === "person"
 export type Can = { confirm: boolean; discard: boolean; correct: boolean; forget: boolean }
 
 /**
+ * How the owner takes back a record already in use, in memo's own words: a memory stops holding (`invalidate`), a
+ * decision is reversed. An approved action is a task now, dismissed on the Tasks page; a reviewed findings batch
+ * made facts and tasks, each erased or dismissed where it is. memo has no way back for any other accepted fact.
+ */
+export type Undo = "reject" | "invalidate" | "reverse" | "task" | "created" | "none" | null
+
+export function undoOf(e: Entry & { findings?: unknown }): Undo {
+  const s = e.status
+  if (s === "proposed") return "reject"
+  if (e.type === "action") return s === "approved" ? (e.findings ? "created" : "task") : null
+  if (e.type === "fact") {
+    if (s !== "accepted") return null
+    return e.kind === "decision" ? "reverse" : "none"
+  }
+  return s === "confirmed" ? "invalidate" : null
+}
+
+/**
  * What memo 0.130.0 lets the owner do with each record. A proposed or accepted fact of any kind is corrected
  * (`facts add --supersedes`); an action is approved or discarded, never corrected or forgotten.
  */

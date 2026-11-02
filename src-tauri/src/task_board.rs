@@ -618,8 +618,15 @@ fn show_with(call: &Call, key: &str) -> Result<Task, Failure> {
     shown(&call(&words(&["tasks", "show", key]))?)
 }
 
+/// A task's id as Memo gives it in `task:<id>` (a UUID): what an approved action or finding names before it has a key.
+fn validate_id(id: &str) -> Result<&str, String> {
+    let ok = plain_word(id, 64, &['-']) && id.chars().all(|c| c == '-' || c.is_ascii_digit() || c.is_ascii_lowercase());
+    if ok { Ok(id) } else { Err(format!("not a task key: {id}")) }
+}
+
+/// Reads one task by its key or, from the Memory page, by the id an approved action or finding names.
 pub fn show(key: &str) -> Result<Task, String> {
-    let key = validate_key(key)?;
+    let key = validate_key(key).or_else(|_| validate_id(key))?;
     with_memo(READ, |call| show_with(call, key))
 }
 
@@ -948,6 +955,10 @@ mod tests {
         assert!(validate_key("OPS2-1").is_ok());
         for bad in ["hrb-1", "HRB", "HRB-", "-HRB-1", "HRB-1;x", "HRB-1 ", "HRB-x", "--json"] {
             assert!(validate_key(bad).is_err(), "{bad}");
+        }
+        assert!(validate_id("0b6f3c1e-9a2d-4c51-8e7f-2d4b6a8c0e13").is_ok());
+        for bad in ["--json", "-1", "TASK", "a b", "task:1", ""] {
+            assert!(validate_id(bad).is_err(), "{bad}");
         }
         assert!(validate_person("person:12").is_ok());
         for bad in ["person:", "person:-1", "person:1 2", "bot:1", "12"] {
