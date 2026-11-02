@@ -80,7 +80,8 @@ describe("App update", () => {
       file: "wirecat_0.2.0_amd64.deb",
       path: "~/Downloads/wirecat_0.2.0_amd64.deb",
       opened: true,
-      command: "sudo apt install ~/Downloads/wirecat_0.2.0_amd64.deb",
+      command:
+        "sudo install -m 644 ~/Downloads/wirecat_0.2.0_amd64.deb /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/wirecat_0.2.0_amd64.deb",
     })
     const user = userEvent.setup()
     render(<App />)
@@ -92,7 +93,12 @@ describe("App update", () => {
     await user.click(within(dialog).getByRole("button", { name: "Download and install" }))
 
     expect(await within(dialog).findByText(/The system installer opened wirecat_0\.2\.0_amd64\.deb/)).toBeVisible()
-    expect(within(dialog).getByText("sudo apt install ~/Downloads/wirecat_0.2.0_amd64.deb")).toBeVisible()
+    expect(within(dialog).getByText(/first copies the package into apt's own folder/)).toBeVisible()
+    expect(
+      within(dialog).getByText(
+        "sudo install -m 644 ~/Downloads/wirecat_0.2.0_amd64.deb /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/wirecat_0.2.0_amd64.deb",
+      ),
+    ).toBeVisible()
     expect(within(dialog).getByRole("button", { name: "Close" })).toHaveFocus()
     expect(download).toHaveBeenCalledWith("0.2.0", expect.any(Function))
     expect(install).not.toHaveBeenCalled()

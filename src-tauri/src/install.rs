@@ -1,5 +1,6 @@
 use crate::catalog::Tool;
-use crate::{node, paths, redact, run, system, tools};
+use crate::provenance::{self, Refusal};
+use crate::{node, npm_prefix, paths, redact, run, skills, system, tools};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -15,7 +16,7 @@ const INSTALL_TIMEOUT: Duration = Duration::from_mins(15);
 pub enum InstallEvent {
     Step { step: Step },
     Log { line: String, stderr: bool },
-    Done { version: String, path: String, shadowed_by: Option<String> },
+    Done { version: String, path: String, shadowed_by: Option<String>, skills: skills::SkillRefresh },
     Removed,
     Failed { reason: Reason, message: String, hint: Option<String> },
 }
@@ -38,27 +39,59 @@ pub enum Reason {
     Timeout,
     Cancelled,
     Verify,
+    /// The release could not be confirmed as built by the tool's own release workflow (`provenance.rs`).
+    Unconfirmed,
     Failed,
 }
 
+/// What runs, and what was asked to stop but has not exited yet. A stopped run keeps its slot until it finishes: a
+/// sign-in started in its grace time would get the answers typed for the old one, and an install or a reset would run
+/// under a sync or a backup that is still writing.
 #[derive(Default)]
-pub struct Running(Mutex<HashSet<String>>);
+pub struct Running(Mutex<Keys>);
+
+#[derive(Default)]
+struct Keys {
+    live: HashSet<String>,
+    stopping: HashSet<String>,
+}
+
+impl Keys {
+    fn busy(&self, id: &str) -> bool {
+        self.live.contains(id) || self.stopping.contains(id)
+    }
+}
 
 impl Running {
     pub fn start(&self, id: &str) -> bool {
-        self.0.lock().unwrap().insert(id.to_string())
+        self.start_unless(id, |_| false)
+    }
+    /// Starts `id` unless it, or any running or stopping key `conflicts` names, is busy; checked under one lock.
+    pub fn start_unless(&self, id: &str, conflicts: impl Fn(&str) -> bool) -> bool {
+        let mut keys = self.0.lock().unwrap();
+        if keys.busy(id) || keys.live.iter().chain(&keys.stopping).any(|k| conflicts(k)) {
+            return false;
+        }
+        keys.live.insert(id.to_string())
     }
     pub fn finish(&self, id: &str) {
-        self.0.lock().unwrap().remove(id);
+        let mut keys = self.0.lock().unwrap();
+        keys.live.remove(id);
+        keys.stopping.remove(id);
     }
+    /// False once the run was asked to stop: the run's own loop reads this to end.
     pub fn is_running(&self, id: &str) -> bool {
-        self.0.lock().unwrap().contains(id)
+        self.0.lock().unwrap().live.contains(id)
+    }
+    /// Running, or stopped and not yet exited.
+    pub fn busy(&self, id: &str) -> bool {
+        self.0.lock().unwrap().busy(id)
     }
     pub fn cancel(&self, id: &str) {
-        self.finish(id);
-    }
-    pub fn any_starting_with(&self, prefix: &str) -> bool {
-        self.0.lock().unwrap().iter().any(|k| k.starts_with(prefix))
+        let mut keys = self.0.lock().unwrap();
+        if keys.live.remove(id) {
+            keys.stopping.insert(id.to_string());
+        }
     }
 }
 
@@ -79,7 +112,8 @@ type Steps = fn(&Tool, &Running, &Channel<InstallEvent>) -> Result<InstallEvent,
 
 fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps: Steps) {
     // npm replaces the program under a running sync, which then fails halfway.
-    if running.any_starting_with(&crate::sync::package_prefix(&tool.id)) || !running.start(&tool.id) {
+    let syncs = crate::sync::package_prefix(&tool.id);
+    if !running.start_unless(&tool.id, |k| k.starts_with(&syncs)) {
         let _ = events.send(InstallEvent::Failed {
             reason: Reason::Failed,
             message: "Another operation on this tool is running, such as a sync. Stop it first.".into(),
@@ -113,10 +147,17 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     }
     let existing = tools::detect(tool, false).installs.into_iter().next();
     let manager = existing.as_ref().map_or("npm", |i| i.manager);
-    // The exact version, not `@latest`: a manager that still holds new releases back then fails loudly instead of
-    // quietly installing an older one.
-    let wanted = tools::latest_version(&tool.package);
-    let spec = format!("{}@{}", tool.package, wanted.as_deref().unwrap_or("latest"));
+    // The exact version, not `@latest`: it is the one whose provenance is checked, and a manager that still holds new
+    // releases back then fails loudly instead of quietly installing an older one.
+    let wanted =
+        tools::latest_version(&tool.package).filter(|v| semver::Version::parse(v).is_ok()).ok_or_else(|| {
+            Failure(
+                Reason::Network,
+                "Could not reach the npm registry.".into(),
+                Some("Check your internet connection or proxy, then try again.".into()),
+            )
+        })?;
+    let spec = format!("{}@{wanted}", tool.package);
     let (program, args): (&str, Vec<&str>) = match manager {
         // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
         "pnpm" => ("pnpm", vec!["add", "--global", &spec, PNPM_WIRECAT_NOW]),
@@ -138,11 +179,17 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         ));
     }
 
+    confirm_release(tool, &wanted, &send)?;
+    let prefix = (program == "npm").then(|| install_prefix(existing.as_ref())).flatten();
+
     send(InstallEvent::Step { step: Step::Install });
-    run_manager(&program_path, &args, tool, running, events, "Installation")?;
+    run_manager(&program_path, &args, prefix.as_deref(), tool, running, events, "Installation")?;
 
     send(InstallEvent::Step { step: Step::Verify });
-    let extra: Vec<_> = system::npm_prefix().map(|p| system::npm_bin_dir(&p)).into_iter().collect();
+    if let Some(p) = &prefix {
+        npm_prefix::reachable_from_terminal(p);
+    }
+    let extra: Vec<_> = prefix.or_else(system::npm_prefix).map(|p| npm_prefix::bin_dir(&p)).into_iter().collect();
     paths::refresh(&extra);
     let state = tools::detect(tool, true);
     let first = state.installs.first().ok_or_else(|| {
@@ -160,7 +207,7 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         )
     })?;
     let ours = state.installs.iter().find(|i| i.manager == manager).unwrap_or(first);
-    if let (Some(wanted), Some(got)) = (wanted.as_deref(), ours.version.as_deref())
+    if let Some(got) = ours.version.as_deref()
         && wanted != got
     {
         return Err(Failure(
@@ -173,7 +220,62 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         ));
     }
     let shadowed_by = (ours.path != first.path).then(|| first.path.clone());
-    Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by })
+    // Only an update: copies left by an uninstalled version are the owner's to refresh, and a first install stays fast.
+    let skills = if existing.is_some() {
+        skills::refresh(tool, &version, |line| send(InstallEvent::Log { line, stderr: false }))
+    } else {
+        skills::SkillRefresh::default()
+    };
+    Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills })
+}
+
+/// Checked with npm whichever manager installs: npm comes with every Node.js.
+fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> Result<(), Failure> {
+    // The end-to-end test's package comes from a registry inside the test, which signs nothing.
+    #[cfg(test)]
+    if tool.package == crate::install_e2e::PACKAGE {
+        return Ok(());
+    }
+    send(InstallEvent::Log {
+        line: format!("Checking that {} {version} was built by {}…", tool.package, tool.repo),
+        stderr: false,
+    });
+    let npm = paths::find("npm").ok_or_else(|| {
+        Failure(
+            Reason::Requirements,
+            "npm was not found, so this release cannot be checked.".into(),
+            Some("Let WireCat set up Node.js for you, or install Node.js again.".into()),
+        )
+    })?;
+    provenance::confirm(&npm, &tool.package, version, &tool.repo).map_err(|refusal| match refusal {
+        Refusal::Unreachable(detail) => {
+            send(InstallEvent::Log { line: redact::text(&detail), stderr: true });
+            Failure(
+                Reason::Network,
+                "Could not check this release with the npm registry.".into(),
+                Some("Check your internet connection or proxy, then try again.".into()),
+            )
+        }
+        Refusal::Unconfirmed(detail) => {
+            send(InstallEvent::Log { line: redact::text(&detail), stderr: true });
+            Failure(
+                Reason::Unconfirmed,
+                format!(
+                    "{} {version} could not be confirmed as built by WireCat, so it was not installed.",
+                    tool.package
+                ),
+                Some("Try again later. If it keeps happening, tell WireCat with Report a problem.".into()),
+            )
+        }
+    })
+}
+
+fn install_prefix(existing: Option<&tools::Install>) -> Option<std::path::PathBuf> {
+    let own = system::npm_prefix();
+    match existing {
+        Some(copy) => npm_prefix::for_update(&paths::untilde(&copy.path), own),
+        None => npm_prefix::for_install(own),
+    }
 }
 
 fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) -> Result<InstallEvent, Failure> {
@@ -188,7 +290,7 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
             _ => ("npm", vec!["uninstall", "--global", &tool.package]),
         };
         // An nvm copy belongs to the npm of that Node version, which sits beside it.
-        let beside = copy.parent().and_then(|dir| which::which_in(program, Some(dir), std::env::temp_dir()).ok());
+        let beside = copy.parent().and_then(|dir| paths::which_in(program, dir.as_os_str()));
         let path = beside.or_else(|| paths::find(program)).ok_or_else(|| {
             Failure(
                 Reason::Requirements,
@@ -196,12 +298,13 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
                 None,
             )
         })?;
-        plan.push((path, args));
+        let prefix = (program == "npm").then(|| npm_prefix::of_copy(&copy)).flatten();
+        plan.push((path, args, prefix));
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Remove });
-    for (program, args) in &plan {
-        run_manager(program, args, tool, running, events, "Uninstalling")?;
+    for (program, args, prefix) in &plan {
+        run_manager(program, args, prefix.as_deref(), tool, running, events, "Uninstalling")?;
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Verify });
@@ -216,10 +319,12 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
     Ok(InstallEvent::Removed)
 }
 
-/// Runs npm, pnpm, bun or volta with streamed, masked output; `what` names the operation in errors.
+/// Runs npm, pnpm, bun or volta with streamed, masked output; `what` names the operation in errors. `prefix` is the
+/// global folder npm acts on, whatever its own config says.
 fn run_manager(
     program: &std::path::Path,
     args: &[&str],
+    prefix: Option<&std::path::Path>,
     tool: &Tool,
     running: &Running,
     events: &Channel<InstallEvent>,
@@ -235,8 +340,8 @@ fn run_manager(
     if let Some(home) = paths::pnpm_home() {
         cmd.env("PNPM_HOME", home);
     }
-    if let Some(runtime) = node::owner_of(program) {
-        cmd.env("npm_config_prefix", runtime);
+    if let Some(prefix) = prefix.map(std::path::Path::to_path_buf).or_else(|| node::owner_of(program)) {
+        cmd.env("npm_config_prefix", prefix);
     }
     let code = run::stream(
         cmd,
@@ -268,8 +373,20 @@ fn run_manager(
 }
 
 fn classify(log: &str, program: &str) -> Failure {
+    classify_on(log, program, cfg!(windows))
+}
+
+/// On Windows npm writes only to folders in the user's profile, so EPERM and EBUSY there mean a running program holds
+/// the tool's files, not a missing administrator right.
+fn classify_on(log: &str, program: &str, windows: bool) -> Failure {
     let l = log.to_lowercase();
-    if l.contains("eacces") || l.contains("eperm") || l.contains("permission denied") {
+    if windows && (l.contains("ebusy") || l.contains("eperm")) {
+        Failure(
+            Reason::Failed,
+            format!("{program} could not replace the tool's files: a running program still uses them."),
+            Some("Close the AI apps and terminals that run this tool, then try again.".into()),
+        )
+    } else if l.contains("eacces") || l.contains("eperm") || l.contains("permission denied") {
         Failure(
             Reason::Permission,
             format!("{program} could not write to its global folder."),
@@ -307,17 +424,48 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_stopped_run_keeps_its_slot_until_it_finishes() {
+        let running = Running::default();
+        assert!(running.start("sign-in:tg"));
+        running.cancel("sign-in:tg");
+        assert!(!running.is_running("sign-in:tg"), "the run's own loop must see the stop");
+        assert!(running.busy("sign-in:tg"));
+        assert!(!running.start("sign-in:tg"), "a second run waits until the first exits");
+        assert!(!running.start_unless("install:tg", |k| k.starts_with("sign-in:")));
+        running.finish("sign-in:tg");
+        assert!(running.start("sign-in:tg"));
+    }
+
+    #[test]
+    fn a_reset_never_starts_under_a_backup_that_is_still_copying() {
+        let running = Running::default();
+        assert!(running.start("backup"));
+        running.cancel("backup");
+        assert!(!running.start_unless("reset", |k| k == "backup"));
+        running.finish("backup");
+        assert!(running.start_unless("reset", |k| k == "backup"));
+        running.cancel("never-started");
+        assert!(!running.busy("never-started"));
+    }
+
+    #[test]
     fn events_reach_the_interface_in_camel_case() {
-        let done = InstallEvent::Done { version: "0.91.0".into(), path: "~/bin/tg".into(), shadowed_by: None };
+        let skills = skills::SkillRefresh { refreshed: vec!["claude".into()], failed: None };
+        let done = InstallEvent::Done { version: "0.91.0".into(), path: "~/bin/tg".into(), shadowed_by: None, skills };
         let json = serde_json::to_value(&done).unwrap();
         assert_eq!(json["event"], "done");
         assert!(json.get("shadowedBy").is_some(), "{json}");
+        assert_eq!(json["skills"], serde_json::json!({"refreshed": ["claude"], "failed": null}));
     }
 
     #[test]
     fn classifies_npm_failures() {
-        assert_eq!(classify("npm ERR! code EACCES", "npm").0, Reason::Permission);
+        assert_eq!(classify_on("npm ERR! code EACCES", "npm", false).0, Reason::Permission);
         assert_eq!(classify("npm ERR! code ENOTFOUND registry", "npm").0, Reason::Network);
         assert_eq!(classify("something odd", "npm").0, Reason::Failed);
+        assert_eq!(classify_on("npm error code EPERM", "npm", false).0, Reason::Permission);
+        let busy = classify_on("npm error code EPERM\nnpm error syscall unlink", "npm", true);
+        assert_eq!(busy.0, Reason::Failed);
+        assert!(busy.1.contains("running program"), "{}", busy.1);
     }
 }

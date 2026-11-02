@@ -52,12 +52,29 @@ export const DiagnosisSchema = v.object({
   stderr: v.string(),
 })
 
-const FailReason = v.picklist(["requirements", "permission", "network", "timeout", "cancelled", "verify", "failed"])
+const FailReason = v.picklist([
+  "requirements",
+  "permission",
+  "network",
+  "timeout",
+  "cancelled",
+  "verify",
+  "unconfirmed",
+  "failed",
+])
 
 export const InstallEventSchema = v.variant("event", [
   v.object({ event: v.literal("step"), step: v.picklist(["check", "install", "remove", "verify"]) }),
   v.object({ event: v.literal("log"), line: v.string(), stderr: v.boolean() }),
-  v.object({ event: v.literal("done"), version: v.string(), path: v.string(), shadowedBy: v.nullable(v.string()) }),
+  v.object({
+    event: v.literal("done"),
+    version: v.string(),
+    path: v.string(),
+    shadowedBy: v.nullable(v.string()),
+    skills: v.optional(
+      v.object({ refreshed: v.array(v.picklist(["claude", "agents", "hermes"])), failed: v.nullable(v.string()) }),
+    ),
+  }),
   v.object({ event: v.literal("removed") }),
   v.object({ event: v.literal("failed"), reason: FailReason, message: v.string(), hint: v.nullable(v.string()) }),
 ])

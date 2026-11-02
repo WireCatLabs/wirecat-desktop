@@ -6,6 +6,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { StorageFolder } from "@/platform/schemas"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -98,12 +99,11 @@ function DeleteDataChoice(props: {
   return (
     <div className="mt-4 border-line border-t pt-3">
       <label className="flex items-start gap-2.5 text-ink">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={checked && !none}
           disabled={data.folders === null || none}
-          onChange={(e) => onChange(e.target.checked)}
-          className="mt-[0.3rem] size-[1.05rem] shrink-0 accent-brand"
+          onChange={onChange}
+          className="mt-[0.3rem]"
         />
         <span>
           {m.alsoDelete(name)}

@@ -8,6 +8,7 @@ import type { McpServerStatus, OAuthSettings } from "@/platform/mcp-server-schem
 import type { FunnelState } from "@/platform/tailscale-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Radio } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
@@ -134,9 +135,17 @@ export function ConnectGuide(props: {
             : await platform.cloudflareTunnelOpen(tool.id, Number(port))
         setPhase("server")
         at = "server"
-        // A failed start leaves Funnel on: turning it off and on again can drop the public name for minutes
-        // (BUG-15), and a retry uses the same address. Server details offers to turn it off.
-        settle(await platform.mcpServerStart(tool.id, Number(port), address))
+        try {
+          settle(await platform.mcpServerStart(tool.id, Number(port), address))
+        } catch (e) {
+          // Left on, the address would publish whatever takes the port next. Closing can cost the public name for a
+          // few minutes (BUG-15); a retry waits for it rather than leave the port open.
+          await (tunnel === "tailscale"
+            ? platform.tailscaleFunnelClose(tool.id)
+            : platform.cloudflareTunnelClose(tool.id)
+          ).catch(() => {})
+          throw e
+        }
       } else {
         setPhase("server")
         settle(await platform.mcpServerStart(tool.id, Number(port), ownUrl.trim().replace(/\/$/, "")))
@@ -546,16 +555,15 @@ function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunn
           )}
         >
           <span className="flex items-center gap-2">
-            <input
+            <Radio
               id={`${name}-${o.id}`}
-              type="radio"
               name={name}
               value={o.id}
               aria-labelledby={`${name}-${o.id}-title`}
               aria-describedby={`${name}-${o.id}-hint`}
               checked={tunnel === o.id}
               onChange={() => setTunnel(o.id)}
-              className="accent-brand"
+              ring={false}
             />
             <span id={`${name}-${o.id}-title`} className="text-[0.95rem] font-semibold text-ink">
               {o.title}
@@ -1069,7 +1077,7 @@ function NextSteps({ tool, name, onAgain }: { tool: CatalogTool; name: string; o
         </Button>
         {others.map((t) => (
           <Button key={t.id} size="sm" variant="ghost" onClick={() => openConnect(t.id)}>
-            {m.too(t.name)}
+            {t.id === "memo" ? m.tooMemo : m.too(t.name)}
           </Button>
         ))}
         <Button size="sm" variant="ghost" onClick={() => useNav.getState().go("logs")}>

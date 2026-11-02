@@ -59,6 +59,24 @@ fn forget_secret(name: &str) -> Result<(), String> {
 
 /// A secret cloudflared can only read from a file (the login certificate), for the length of one command: owner-only,
 /// in the app's folder, and gone when this drops.
+/// A login or a tunnel setup killed halfway leaves cloudflared's certificate or the tunnel's credentials here; the
+/// keyring holds the real copies, so a file left beside them is only a second place for a secret.
+pub fn remove_left_scratch() {
+    if let Ok(dir) = dir() {
+        remove_scratch_in(&dir);
+    }
+}
+
+fn remove_scratch_in(dir: &Path) {
+    for left in [
+        dir.join("cert.pem"),
+        dir.join("credentials.json"),
+        dir.join("login-home").join(".cloudflared").join("cert.pem"),
+    ] {
+        let _ = std::fs::remove_file(left);
+    }
+}
+
 struct Scratch(PathBuf);
 
 impl Scratch {
@@ -527,8 +545,8 @@ fn refusal(log: &str) -> Option<String> {
 /// Routes the tool's paths of the tunnel's hostname to its local port, (re)starts cloudflared with them, and returns
 /// the public address for `mcp server start`: `https://<hostname>/<tool>`.
 pub fn open(tool: &str, port: u16) -> Result<String, String> {
-    catalog::tool(tool)?;
     mcp_server::validate_port(port)?;
+    mcp_server::ensure_port_is_ours(catalog::tool(tool)?, port)?;
     let _one = TUNNEL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut r = load().ok_or("Choose the address on your domain first.")?;
     let credentials = read_secret(CREDENTIALS)?.ok_or(
@@ -584,6 +602,22 @@ pub fn routes() -> Vec<RouteState> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn removes_only_the_scratch_secrets_a_killed_setup_left() {
+        let dir = std::env::temp_dir().join(format!("wirecat-cf-scratch-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("login-home/.cloudflared")).unwrap();
+        for f in ["cert.pem", "credentials.json", "login-home/.cloudflared/cert.pem", "tunnel.json", "cloudflared"] {
+            std::fs::write(dir.join(f), "x").unwrap();
+        }
+        remove_scratch_in(&dir);
+        let left = |f: &str| dir.join(f).exists();
+        let gone = ["cert.pem", "credentials.json", "login-home/.cloudflared/cert.pem"].map(left);
+        let kept = ["tunnel.json", "cloudflared"].map(left);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(gone, [false; 3]);
+        assert_eq!(kept, [true; 2]);
+    }
 
     #[test]
     fn takes_only_a_new_name_under_a_domain() {

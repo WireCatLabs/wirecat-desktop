@@ -10,6 +10,7 @@ import {
   FACETS,
   facetCounts,
   formatDuration,
+  globMatch,
   groupRuns,
   inlineJson,
   inRange,
@@ -52,6 +53,20 @@ const runs: Run[] = [
 const search = (q: string) => runs.filter(matcher(parseQuery(q).terms))
 
 describe("run query", () => {
+  it("matches * patterns part by part, and a pattern full of * stays instant", () => {
+    expect(globMatch("tg*", "tg-cli", true)).toBe(true)
+    expect(globMatch("*cli", "TG-CLI", true)).toBe(true)
+    expect(globMatch("t*c*i", "tg-cli", true)).toBe(true)
+    expect(globMatch("tg", "tg-cli", true)).toBe(false)
+    expect(globMatch("a*a", "a", true)).toBe(false)
+    expect(globMatch("a*a", "aa", true)).toBe(true)
+    expect(globMatch("g-c", "tg-cli", false)).toBe(true)
+    expect(globMatch("x*y", "tg-cli", false)).toBe(false)
+    const started = performance.now()
+    expect(globMatch("*a*a*a*a*b", "a".repeat(2000), true)).toBe(false)
+    expect(performance.now() - started).toBeLessThan(100)
+  })
+
   it("matches fields with wildcards, exclusions and number comparisons", () => {
     expect(search("command:messages*")).toHaveLength(1)
     expect(search("-tool:tg")).toHaveLength(2)

@@ -8,14 +8,22 @@ type SystemState = {
   refresh(): Promise<void>
 }
 
+// The bar above every page and the Tools page both ask at startup; they share one answer.
+let pending: Promise<void> | null = null
+
 export const useSystem = create<SystemState>((set) => ({
   readiness: null,
   error: null,
-  async refresh() {
-    try {
-      set({ readiness: await platform.readiness(), error: null })
-    } catch (e) {
-      set({ error: e instanceof Error ? e.message : String(e) })
-    }
+  refresh() {
+    pending ??= platform
+      .readiness()
+      .then(
+        (readiness) => set({ readiness, error: null }),
+        (e) => set({ error: e instanceof Error ? e.message : String(e) }),
+      )
+      .finally(() => {
+        pending = null
+      })
+    return pending
   },
 }))

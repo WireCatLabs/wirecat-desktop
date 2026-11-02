@@ -127,3 +127,6 @@
 /home/leemour/Projects/AI/visage/.claude/worktrees/tag-main — worktree on main used for bin/tag-release — 2026-11-02
 /home/leemour/Projects/AI/visage/.claude/worktrees/release-030 — worktree of merged #78 — 2026-11-02
 /home/leemour/Projects/AI/cli-docs-wt-deb-sec — worktree of merged cli-docs #503 — 2026-11-02
+- `.impeccable/mocks/guides/prototype/` (`GuidesPage.tsx`, `guides.ts`, `guides-more.ts`, `messages.ts`) — the Guides page and its data now live in `src/features/guides/`; nothing in `src/` imports the prototype any more (2026-11-02)
+- Branch `feat/mcp-profiles-all` (local and origin) — its one commit 7f99a48 was never merged; it is picked into fix/small-0.3-b (2026-11-02)
+- `.claude/worktrees/small-03b` (branch fix/small-0.3-b) — small fixes for 0.3.0, batch b, once its PR is merged (2026-11-02)

@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { inTab, type Range, type Tab } from "@/domain/memory"
+import { inTab, type MemoryField, setMemoryField, type Tab } from "@/domain/memory"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemoryRead, MemorySource, SourceContext } from "@/platform/memory-schemas"
 
@@ -22,11 +22,8 @@ type MemoryState = {
   tab: Tab
   /** The owner picked a tab: a later read no longer chooses one for them. */
   tabChosen: boolean
-  about: string
-  by: string
-  kind: string
-  project: string
-  range: Range
+  /** The search: free words and `field:value` terms, which the filter chips write too. */
+  query: string
   /** Cited sources read back in place, by ref. */
   contexts: Record<string, Context>
   open: string | null
@@ -48,12 +45,9 @@ type MemoryState = {
   skipped: Record<string, string[]>
   load(): Promise<void>
   setTab(tab: Tab): void
-  setAbout(about: string): void
-  setBy(by: string): void
-  setKind(kind: string): void
-  setProject(project: string): void
-  setRange(range: Range): void
-  clearFilters(): void
+  setQuery(query: string): void
+  /** Narrows the search to one value of a field, as a value clicked in a record's details does. */
+  filterBy(field: MemoryField, value: string): void
   loadContext(ref: string): Promise<void>
   toggle(ref: string): void
   loadSources(ref: string): Promise<void>
@@ -103,11 +97,7 @@ export const useMemory = create<MemoryState>((set, get) => {
     reading: false,
     tab: "review",
     tabChosen: false,
-    about: "",
-    by: "",
-    kind: "",
-    project: "",
-    range: "any",
+    query: "",
     contexts: {},
     open: null,
     held: [],
@@ -139,12 +129,8 @@ export const useMemory = create<MemoryState>((set, get) => {
       }
     },
     setTab: (tab) => set({ tab, tabChosen: true, held: [], arriving: [] }),
-    setAbout: (about) => set({ about }),
-    setBy: (by) => set({ by }),
-    setKind: (kind) => set({ kind }),
-    setProject: (project) => set({ project }),
-    setRange: (range) => set({ range }),
-    clearFilters: () => set({ about: "", by: "", kind: "", project: "", range: "any" }),
+    setQuery: (query) => set({ query }),
+    filterBy: (field, value) => set((s) => ({ query: setMemoryField(s.query, field, [value]) })),
     async loadContext(ref) {
       const had = get().contexts[ref]
       if (had && had.state !== "failed") return

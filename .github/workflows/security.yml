@@ -1,0 +1,48 @@
+name: Security
+
+# The checks the CLIs run before each release (cli-base release-checks: CodeQL, gitleaks, zizmor, pnpm audit), plus the
+# Rust advisories they have no step for. Release calls this before any build gets the signing keys.
+# Method and results: cli-testing docs/security/METHOD.md; the runs themselves are private.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, so a new advisory against an unchanged lockfile still shows up between releases.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    uses: WireCatLabs/cli-base/.github/workflows/release-checks.yml@0e62c4e3077058cbec0d94dc8fa82a1fabc2b0e3 # v0.72.0
+    with:
+      languages: '["actions","javascript-typescript","rust"]'
+
+  rust-advisories:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: cargo-audit
+        env:
+          CARGO_AUDIT_VERSION: 0.22.2
+          # Written here rather than read from the same release, which would only prove the two agree.
+          CARGO_AUDIT_SHA256: ab28a1bdb54db4d5d8ad5981cf1f959410370b3d28250dbd35f6a44248620e39
+        # Fails on a known vulnerability. Unmaintained and unsound crates are printed for review: today they are all
+        # in Tauri's own Linux stack (glib, zbus), which this app cannot replace.
+        run: |
+          name="cargo-audit-x86_64-unknown-linux-gnu-v${CARGO_AUDIT_VERSION}"
+          curl -sSfLo cargo-audit.tgz \
+            "https://github.com/rustsec/rustsec/releases/download/cargo-audit%2Fv${CARGO_AUDIT_VERSION}/${name}.tgz"
+          echo "${CARGO_AUDIT_SHA256}  cargo-audit.tgz" | sha256sum -c -
+          tar -xzf cargo-audit.tgz "${name}/cargo-audit"
+          "./${name}/cargo-audit" audit --file src-tauri/Cargo.lock

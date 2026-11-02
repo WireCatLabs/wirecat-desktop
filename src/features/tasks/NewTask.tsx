@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from "react"
 import { LABELS, type Label } from "@/domain/tasks"
-import { useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { DateField } from "@/ui/Calendar"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Select } from "@/ui/Select"
-import { taskMessages } from "./messages"
+import { dueDay, taskMessages } from "./messages"
 import { personName } from "./parts"
 import { useTasks } from "./store"
 
 /** The new task's row: a title and its project (memo needs both), with priority, assignee and due date if known. */
 export function NewTask() {
   const m = useMessages(taskMessages)
+  const lang = useLang()
   const projects = useTasks((s) => s.projects)
   const people = useTasks((s) => s.people)
   const busy = useTasks((s) => Boolean(s.busy.new))
@@ -122,15 +124,13 @@ export function NewTask() {
           ]}
           className="w-[11rem]"
         />
-        <label className="flex items-center gap-[0.4rem] text-[0.875rem] text-ink-soft">
-          {m.due}
-          <input
-            type="date"
-            value={due}
-            onChange={(e) => setDue(e.target.value)}
-            className="selectable h-8 rounded-[0.35rem] border border-line-strong bg-app px-[0.4rem] font-mono text-[0.85rem] text-ink"
-          />
-        </label>
+        <DateField
+          aria-label={m.due}
+          value={due}
+          onChange={setDue}
+          format={(day) => dueDay(new Date(`${day}T00:00:00`), lang)}
+          className="w-[9.5rem]"
+        />
         <span className="ml-auto flex gap-2">
           <Button size="sm" variant="ghost" onClick={close}>
             {m.cancel}

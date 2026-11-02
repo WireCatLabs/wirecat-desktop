@@ -2,9 +2,11 @@ import { TriangleAlert } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { agentPathFix, CHAT_AGENTS, type CheckTool, chatName } from "@/domain/agents"
 import { catalogCommand, findTool } from "@/domain/catalog"
+import type { SkillTarget } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
@@ -77,7 +79,14 @@ function stepText(t: StepText, agent: { id: string; name: string }, m: AgentsMes
 }
 
 /** "Connect WireCat to <agent>": choose tools, install each skill with the tool's own command, check the PATH. */
-export function ConnectDialog({ view }: { view: AgentView }) {
+export function ConnectDialog({
+  view,
+  chatSharers = () => [],
+}: {
+  view: AgentView
+  /** The chat-driven agents that read the same skill folder, so they get the chosen tools too. */
+  chatSharers?: (target: SkillTarget) => string[]
+}) {
   const { agent } = view
   const flow = useConnectFlow()
   const open = flow.agent === agent.id
@@ -98,10 +107,14 @@ export function ConnectDialog({ view }: { view: AgentView }) {
     document.getElementById(toolsId)?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus()
   }
   const chat = CHAT_AGENTS.has(agent.id)
+  const chatOthers = chat ? [] : [...new Set(chosen.flatMap((s) => chatSharers(s.target)))]
+  // A tool without per-profile settings would write the level for every profile at once.
+  const limitable = (id: string) =>
+    (findTool(id)?.permissions?.groups ?? []).length > 0 && findTool(id)?.settings?.perProfile === true
+  const unlimited = chosen.filter((s) => !limitable(s.tool.id)).map((s) => s.tool.name)
   const readOnlyChoices = chosen.flatMap((s) => {
     const groups = findTool(s.tool.id)?.permissions?.groups ?? []
-    // A tool without per-profile settings would write the level for every profile at once.
-    if (groups.length === 0 || !findTool(s.tool.id)?.settings?.perProfile) return []
+    if (!limitable(s.tool.id)) return []
     return (profiles[s.tool.id] ?? []).map((p) => ({
       key: `${s.tool.id}/${p.name}`,
       tool: s.tool,
@@ -109,7 +122,8 @@ export function ConnectDialog({ view }: { view: AgentView }) {
       groups: groups.map((g) => g.key),
     }))
   })
-  const readOnly = readOnlyChoices.filter((c) => flow.readOnly.includes(c.key))
+  // Only a chat-driven agent takes orders from other people; for it, writing is what the owner opts into.
+  const readOnly = chat ? readOnlyChoices.filter((c) => !flow.writable.includes(c.key)) : []
 
   const commands = [
     ...chosen.map((s) => catalogCommand(s.tool, s.tool.skill?.install ?? [], { target: s.target })),
@@ -179,13 +193,11 @@ export function ConnectDialog({ view }: { view: AgentView }) {
                   htmlFor={id}
                   className="flex min-h-9 items-center gap-3 rounded-[0.35rem] px-2 hover:bg-app-3/60"
                 >
-                  <input
+                  <Checkbox
                     id={id}
-                    type="checkbox"
                     checked={flow.tools.includes(s.tool.id)}
                     disabled={why !== null}
                     onChange={() => flow.toggleTool(s.tool.id)}
-                    className="size-[1.05rem] shrink-0 accent-brand"
                   />
                   <ToolIcon id={s.tool.id} className="size-[1.15rem] shrink-0 text-ink" />
                   <span className="font-semibold">{s.tool.name}</span>
@@ -200,31 +212,39 @@ export function ConnectDialog({ view }: { view: AgentView }) {
             </ErrorNotice>
           </Collapse>
           {chat && <ChatWarning agentName={agent.name} />}
+          {chatOthers.length > 0 && (
+            <div
+              role="note"
+              className="flex items-start gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-4 py-3 text-[0.95rem]"
+            >
+              <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
+              <p className="max-w-[70ch]">{m.chatSharers(chatOthers)}</p>
+            </div>
+          )}
           {chat && (
             <fieldset className="flex flex-col gap-1">
               <legend className="mb-1 text-[0.9rem] font-medium text-ink-dim">{m.readOnly}</legend>
               <p className="mb-1 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.readOnlyIntro(agent.name)}</p>
-              {readOnlyChoices.length === 0 ? (
-                <p className="text-[0.9rem] text-ink-dim">{chosen.length === 0 ? m.chooseTool : m.noProfiles}</p>
-              ) : (
+              {chosen.length === 0 && <p className="text-[0.9rem] text-ink-dim">{m.chooseTool}</p>}
+              {unlimited.length > 0 && (
+                <p className="max-w-[70ch] text-[0.9rem] text-warn">{m.cannotLimit(unlimited, agent.name)}</p>
+              )}
+              {readOnlyChoices.length > 0 &&
                 readOnlyChoices.map((c) => {
                   const id = `connect-ro-${c.key}`
                   return (
                     <label key={c.key} htmlFor={id} className="flex min-h-8 items-center gap-3 px-2">
-                      <input
+                      <Checkbox
                         id={id}
-                        type="checkbox"
-                        checked={flow.readOnly.includes(c.key)}
-                        onChange={() => flow.toggleReadOnly(c.key)}
-                        className="size-[1.05rem] shrink-0 accent-brand"
+                        checked={!flow.writable.includes(c.key)}
+                        onChange={() => flow.toggleWritable(c.key)}
                       />
                       <span>
                         {c.tool.name} · <span className="font-medium">{c.profile}</span>
                       </span>
                     </label>
                   )
-                })
-              )}
+                })}
             </fieldset>
           )}
           {commands.length > 0 && (

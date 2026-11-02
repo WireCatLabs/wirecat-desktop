@@ -1,6 +1,6 @@
 [package]
 name = "wirecat-desktop"
-version = "0.2.0"
+version = "0.3.0"
 description = "WireCat Desktop: install and manage WireCat tools"
 authors = ["Viacheslav Ptsarev"]
 license = "Apache-2.0"
@@ -38,6 +38,8 @@ fs4 = { version = "1", default-features = false, features = ["sync"] }
 chrono = { version = "0.4.45", default-features = false, features = ["clock"] }
 zeroize = "1"
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
+base64 = "0.23"
+x509-parser = "0.18"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

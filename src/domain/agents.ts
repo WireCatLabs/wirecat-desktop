@@ -138,7 +138,16 @@ export type Fix =
   | { kind: "tools" }
 
 /** `tools` names the tools an item covers when its id does not start with one. */
-export type CheckItem = { id: string; tone: Tone; title: string; detail: string; fix?: Fix; tools?: string[] }
+/** `note`: something the owner chose or will see later, shown apart from what needs fixing. */
+export type CheckItem = {
+  id: string
+  tone: Tone
+  title: string
+  detail: string
+  fix?: Fix
+  tools?: string[]
+  note?: true
+}
 
 export type CheckTool = { id: string; name: string; bin: string; path: string | null }
 
@@ -306,6 +315,7 @@ export function buildCheck(input: CheckInput): CheckItem[] {
         title: words.blocked(tool.name, profile ?? "", a.blocked, a.total),
         detail: words.blockedDetail(agent.name, tool.name),
         fix: { kind: "tools" },
+        ...(a.blocked < a.total ? { note: true as const } : {}),
       })
     }
   }
@@ -315,6 +325,7 @@ export function buildCheck(input: CheckInput): CheckItem[] {
       tone: "idle",
       title: words.permissionsLater,
       detail: words.permissionsLaterDetail,
+      note: true,
     })
   }
   const rank: Record<Tone, number> = { bad: 0, warn: 1, idle: 2, ok: 3 }

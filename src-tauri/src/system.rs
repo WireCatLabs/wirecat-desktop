@@ -1,4 +1,4 @@
-use crate::{node, paths, run};
+use crate::{node, npm_prefix, paths, run};
 use serde::Serialize;
 use std::ffi::OsStr;
 use std::path::PathBuf;
@@ -12,7 +12,8 @@ pub struct Readiness {
     pub node: Program,
     pub npm: Program,
     pub pnpm: Program,
-    /// Where `npm install -g` puts packages, and whether we may write there without admin rights.
+    /// Where `npm install -g` puts new tools (npm's own folder, or the user's when that one needs administrator
+    /// rights), and whether we may write there; false only when neither folder is writable.
     pub npm_prefix: Option<String>,
     pub npm_prefix_writable: Option<bool>,
     /// The Node.js the app downloaded, if any; `active` when the app runs tools with it.
@@ -40,7 +41,7 @@ pub fn readiness() -> Readiness {
     let node = std::thread::spawn(|| program("node", Some(node_supported)));
     let npm = std::thread::spawn(|| program("npm", None));
     let pnpm = std::thread::spawn(|| program("pnpm", None));
-    let prefix = npm_prefix();
+    let prefix = npm_prefix().map(|own| npm_prefix::for_install(Some(own.clone())).unwrap_or(own));
     let managed = node::installed().map(|m| Managed {
         version: m.version.to_string(),
         dir: paths::tilde(&m.dir.to_string_lossy()),
@@ -52,7 +53,7 @@ pub fn readiness() -> Readiness {
         node: node.join().unwrap_or_default(),
         npm: npm.join().unwrap_or_default(),
         pnpm: pnpm.join().unwrap_or_default(),
-        npm_prefix_writable: prefix.as_ref().map(|p| writable(p)),
+        npm_prefix_writable: prefix.as_ref().map(|p| npm_prefix::writable(p)),
         npm_prefix: prefix.map(|p| paths::tilde(&p.to_string_lossy())),
         managed,
     }
@@ -74,7 +75,7 @@ fn program(bin: &str, check: Option<VersionCheck>) -> Program {
 }
 
 fn program_in(bin: &str, check: Option<VersionCheck>, search: &OsStr) -> Program {
-    let Ok(path) = which::which_in(bin, Some(search), std::env::temp_dir()) else {
+    let Some(path) = paths::which_in(bin, search) else {
         return Program { problem: Some("not found".into()), ..Default::default() };
     };
     let shown = Some(paths::tilde(&path.to_string_lossy()));
@@ -119,25 +120,8 @@ pub fn own_setup_usable(search: &OsStr) -> bool {
     if !program_in("node", Some(node_supported), search).ok {
         return false;
     }
-    let Ok(npm) = which::which_in("npm", Some(search), std::env::temp_dir()) else { return false };
-    npm_prefix_of(&npm, search).is_some_and(|p| writable(&p))
-}
-
-/// The folder npm links executables into: `<prefix>/bin` on Unix, the prefix itself on Windows.
-pub fn npm_bin_dir(prefix: &std::path::Path) -> PathBuf {
-    if cfg!(windows) { prefix.to_path_buf() } else { prefix.join("bin") }
-}
-
-fn writable(prefix: &std::path::Path) -> bool {
-    let dir = if cfg!(windows) { prefix.to_path_buf() } else { prefix.join("lib") };
-    let probe = dir.join(format!(".wirecat-write-test-{}", std::process::id()));
-    match std::fs::write(&probe, b"") {
-        Ok(()) => {
-            let _ = std::fs::remove_file(&probe);
-            true
-        }
-        Err(_) => false,
-    }
+    let Some(npm) = paths::which_in("npm", search) else { return false };
+    npm_prefix::for_install(npm_prefix_of(&npm, search)).is_some()
 }
 
 fn first_line(s: &str) -> String {

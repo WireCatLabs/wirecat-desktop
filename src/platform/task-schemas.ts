@@ -71,8 +71,10 @@ export const TaskWriteSchema = v.variant("kind", [
     renumbered: v.array(v.string()),
   }),
   v.object({ kind: v.literal("stale"), current: TaskSchema, last: v.nullable(TaskEventSchema) }),
-  /** memo moves a task to another project only once it has no subtasks; these are the ones it has. */
-  v.object({ kind: v.literal("hasSubtasks"), subtasks: v.array(v.object({ key: v.string(), title: v.string() })) }),
+  /** memo moves a task to another project only once it has no subtasks; these are their keys. */
+  v.object({ kind: v.literal("hasSubtasks"), subtasks: v.array(v.string()) }),
+  /** A subtask moves to another project only when it leaves its parent in the same write. */
+  v.object({ kind: v.literal("isSubtask"), parent: v.string() }),
 ])
 
 export const TaskCommentSchema = v.object({
@@ -111,6 +113,8 @@ export type TaskEdit = {
   /** Another project's key; the answer's task has its new key there. */
   project?: string
   kind?: TaskKind
+  /** Takes a subtask out of its parent, so it moves to another project on its own. */
+  detach?: boolean
 }
 
 export type TaskPlace = { state?: TaskState; before?: string; after?: string }

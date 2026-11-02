@@ -73,11 +73,12 @@ function Progress() {
 function Saved() {
   const m = useMessages(updateMessages)
   const saved = useUpdate((s) => s.saved)
+  const kind = useUpdate((s) => s.update?.kind)
   if (!saved) return null
   return (
     <div className="flex flex-col gap-3">
       <p className="text-ink">{saved.opened ? m.opened(saved.file) : m.revealed(saved.file)}</p>
-      <p className="text-[0.9rem] text-ink-soft">{m.terminal}</p>
+      <p className="text-[0.9rem] text-ink-soft">{m.terminal[kind === "rpm" ? "rpm" : "deb"]}</p>
       <CopyField value={saved.command} label={m.copyCommand} wrap />
     </div>
   )

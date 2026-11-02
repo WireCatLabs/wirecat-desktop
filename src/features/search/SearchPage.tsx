@@ -27,6 +27,7 @@ import { focusInPlace } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
 import { QueryBar } from "../query/QueryBar"
+import { ReportThis } from "../report/ReportThis"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
 import { HitContext } from "./HitContext"
@@ -57,7 +58,7 @@ export function SearchPage() {
   const version = s.tool ? (installs[s.tool]?.[0]?.version ?? null) : null
   const what = tool?.search?.what ?? "messages"
   const parsed = useMemo(() => parseQuery(s.query), [s.query])
-  const suggest = useSuggest(m, version)
+  const { suggest, named } = useSuggest(m, version)
   const ids = { tool: useId(), profile: useId(), query: useId(), hint: useId() }
   // Shown only after a search was asked for, and only while the thing is still missing.
   const [tried, setTried] = useState(false)
@@ -165,19 +166,17 @@ export function SearchPage() {
             </ErrorNotice>
           </Collapse>
 
-          {platform.kind === "mock" && (
-            <QueryDraft
-              tool={s.tool}
-              onNeedTool={() => {
-                setTried(true)
-                focusInPlace(document.getElementById(ids.tool))
-              }}
-              onWritten={(query) => {
-                s.setQuery(query)
-                focusInPlace(document.getElementById(ids.query))
-              }}
-            />
-          )}
+          <QueryDraft
+            tool={s.tool}
+            onNeedTool={() => {
+              setTried(true)
+              focusInPlace(document.getElementById(ids.tool))
+            }}
+            onWritten={(query) => {
+              s.setQuery(query)
+              focusInPlace(document.getElementById(ids.query))
+            }}
+          />
 
           <div className="flex flex-wrap items-start gap-[0.7rem]">
             <QueryBar
@@ -195,6 +194,7 @@ export function SearchPage() {
                       : null
               }
               suggest={suggest}
+              named={named}
               words={{
                 label: m.searchLabel[what],
                 placeholder: m.placeholder[what],
@@ -264,8 +264,17 @@ function useSuggest(m: Words, version: string | null) {
     return out
   }, [fields, answer, lists, tool, profile, version])
 
+  const picked = useSearch((s) => s.named)
+  const named = useCallback(
+    (field: string, value: string) =>
+      picked[`${field}:${value}`] ??
+      values[field]?.find((v) => v.value === value && v.label && v.label !== value)?.label ??
+      null,
+    [values, picked],
+  )
+
   const area = what === "documents" ? "notes" : what
-  return useCallback(
+  const suggest = useCallback(
     (query: string, cursor: number, all: boolean) =>
       suggestSearch(query, cursor, {
         fields,
@@ -286,6 +295,7 @@ function useSuggest(m: Words, version: string | null) {
       }),
     [fields, values, what, area, m],
   )
+  return { suggest, named }
 }
 
 type Candidate = { id: string; label: string | null; field: "chat" | "from" | null }
@@ -331,7 +341,15 @@ function resultsView(
 ): { view: string; node: ReactNode } {
   const answer = s.answer
   const page = s.asked?.page ?? 1
-  if (s.error) return { view: "error", node: <ErrorNotice detail={s.error}>{m.failed}</ErrorNotice> }
+  if (s.error)
+    return {
+      view: "error",
+      node: (
+        <ErrorNotice detail={s.error} action={<ReportThis what={`Searching ${toolName}`} error={s.error} />}>
+          {m.failed}
+        </ErrorNotice>
+      ),
+    }
   if (answer?.kind === "old")
     return { view: "old", node: <ErrorNotice detail={answer.message}>{m.tooOld(toolName, version)}</ErrorNotice> }
   if (answer?.kind === "failed") {
@@ -342,13 +360,14 @@ function resultsView(
         <ErrorNotice
           detail={<span className="whitespace-pre-line">{answer.message}</span>}
           action={
-            choices && (
+            choices ? (
               <span className="flex flex-wrap gap-2">
                 {choices.options.map((c) => (
                   <Button
                     key={c.id}
                     size="sm"
                     onClick={() => {
+                      if (c.label && choices.field) s.remember(choices.field, c.id, c.label)
                       s.setQuery(c.query)
                       s.search(1)
                     }}
@@ -358,6 +377,8 @@ function resultsView(
                   </Button>
                 ))}
               </span>
+            ) : (
+              <ReportThis what={`Searching ${toolName}`} error={answer.message} />
             )
           }
         >
@@ -373,7 +394,19 @@ function resultsView(
     return { view: "start", node: <Empty>{s.profiles === null ? m.startNoProfile : m.start}</Empty> }
   }
   if (hits.hits.length === 0)
-    return { view: "empty", node: <Empty busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</Empty> }
+    return {
+      view: "empty",
+      node: (
+        <div className="flex flex-col gap-[0.5rem]">
+          <Empty busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</Empty>
+          {hits.notes.map((n) => (
+            <p key={n} className="selectable text-[0.9rem] text-ink-dim">
+              {n}
+            </p>
+          ))}
+        </div>
+      ),
+    }
 
   const pager = hits.paged && (page > 1 || hits.hasMore)
   const node = (

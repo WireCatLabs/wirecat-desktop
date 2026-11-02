@@ -8,7 +8,7 @@ the machine and runs the tools. Nothing here duplicates what a CLI already does.
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
+  features/     one folder per area (tools/, agents/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
   ui/           presentational parts: Button, Lamp, Stepper… Props in, events out.
   platform/     the only door to Rust. Validates every answer with valibot. Has a browser mock.
   domain/       plain TypeScript: catalog, tool status, doctor summaries. No React, no Tauri.
@@ -19,8 +19,13 @@ src-tauri/src/
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
   catalog.rs    the same tools.json, compiled in; profile validation.
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
+  npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
+                that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
+                real install and uninstall against a test package; CI runs it on all three systems.
   tools.rs      finding executables, versions, profiles, doctor runs.
   install.rs    install, update and uninstall with progress events, verification, failure reasons.
+  provenance.rs before an install, `npm audit signatures` on a stub project plus the Sigstore certificate's
+                workflow: the release must be built by its catalog `repo`'s release.yml, or nothing is installed.
   runs.rs       run logs, read through each tool's own `runs list` / `runs show`; shown unmasked, an exception
                 to rule 4: the tool already hid secrets and phone numbers, and the ids and paths are the owner's
                 to read (NEED-115). report.rs filters them again before anything is sent.
@@ -28,6 +33,10 @@ src-tauri/src/
                 unmasked on the page, an exception to rule 4 like runs.rs: they are the owner's own data, and they are
                 never logged or put in a report. `search_context` reads what surrounds one hit (`search.context` in the
                 catalog) under the same rule: the ref is validated, the answer shown, never logged.
+  query_writer.rs the Search page's "Write the query": the owner's words, the tool's keys from the catalog and today's
+                date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or
+                signed out, Codex (`codex exec`, read-only, in an empty folder). One checked line comes back into the
+                query box; nothing is searched until he presses Search. Never a message or a hit.
   settings.rs   tool settings: `config show`, and saving only through `config set` / `config unset`.
   storage.rs    each tool's data folders, their sizes and entries (names only); deleting them once unused.
   archive.rs    what the shared archive holds, from a tool's `store info`; the database is never opened.
@@ -56,7 +65,10 @@ src-tauri/src/
   terminal.rs   opening a tool's interactive setup in the user's terminal.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
-  sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced.
+  sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced
+                (for tg and max, only a run whose argv has `--all`).
+  background.rs whether a messenger's own `serve` keeps a profile current (`server status`), and starting it through
+                its own `server install` (only when it has no unit) and `server start`. Never systemctl itself.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```
@@ -69,21 +81,29 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
 1. `ToolRow` calls `useTools().install("drive")` (`src/features/tools/store.ts`). Installs queue; one runs at a time,
    because two global npm installs at once can corrupt each other.
 2. `platform.install` opens a Tauri `Channel` and invokes `install_tool` with the tool **id** only.
-3. Rust looks the id up in the compiled catalog, checks Node.js and that npm's global folder is writable, then
-   runs `npm install --global <package>@latest` — or `pnpm add --global` when pnpm owns the copy that is already
+3. Rust looks the id up in the compiled catalog, checks Node.js, picks a global folder it may write to without
+   administrator rights (`npm_prefix.rs`), then runs `npm install --global <package>@<latest version>` there — or `pnpm add --global` when pnpm owns the copy that is already
    installed, so an update never leaves a second copy behind.
 4. Each output line is masked and sent as a `log` event; steps arrive as `step` events.
-5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If an older
-   copy still comes first on PATH, the result says which.
-6. Every event is parsed by `InstallEventSchema` before the store sees it.
+5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If the app
+   would still run another copy (one of the same or a newer version), the result says which.
+6. On an update, the tool's own `skill status`, then `skill install --for` each copy that is `stale`, each command
+   line in the log (`skills::refresh`): a copy an older version wrote. A `missing` place stays empty, an `unversioned`
+   file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or
+   why not, rides on the `done` event; a failure is a warning beside a working update. The Agents page then asks that
+   tool again (`useAgents.recheck`).
+7. Every event is parsed by `InstallEventSchema` before the store sees it.
 
 ## Finding tools
 
 An app started from a desktop launcher does not get the PATH a terminal has: nvm, pnpm and Volta add theirs in
 shell profiles. `paths.rs` merges the process PATH, the login shell's PATH (`$SHELL -lic`) and known folders
-(nvm versions newest first, pnpm, Volta, Homebrew, `%APPDATA%\npm`). Every copy of a binary is reported in PATH order;
-the first is the one a terminal runs. Versions come from running the binary, never from `npm ls`, because a tool may
-be installed by npm, pnpm or both.
+(nvm versions newest first, pnpm, Volta, Homebrew, `%APPDATA%\npm`). When a tool has several copies, the app runs the
+newest one that starts (`tools::program`), and the Tools page lists that copy first, then the others to remove. PATH
+order cannot pick it: a launcher's bare PATH makes the login shell order its folders unlike the owner's terminal
+(a profile that adds pnpm only when it is missing puts it first there, after nvm in a terminal). Equal versions keep
+PATH order. Versions come from running the binary, never from `npm ls`, because a tool may be installed by npm, pnpm
+or both.
 
 ## Uninstalling and storage
 
@@ -157,11 +177,12 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.11 or newer (`memory.minVersion` in the catalog); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.14 or newer (`memory.minVersion` in the catalog); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
 (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
-shows the entries. memo names each record's project (`project_name`) and gives every action a one-line `summary`, which
-is the row's text. A findings batch's sources come from `actions show` when its row opens. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
+shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
+`target_name`, `chat_name`, the whole `text` and, for a findings batch, `counts`. The page writes the row's line from
+them in the interface language; memo's English `summary` is the fallback for a verb the page has no words for. A findings batch's sources come from `actions show` when its row opens. Every write takes one validated ref (`memory:N`, `fact:N`, `action:N`; memo names actions by a bare
 number) and runs a fixed command:
 
 - **Confirm**: `memories confirm`, `facts confirm`; for an action `actions confirm`, which makes a task in the account
@@ -456,8 +477,8 @@ critical, one per quarter) changed. Neighbours memo renumbered to make room are 
 `tasks add` sets the due date and state in the same write. A task is moved to another project with
 `tasks update <key> --project <key>`: memo answers it with its new key there (the old one still finds it), and the
 page carries everything it keeps by key over to the new one. memo refuses to move a task that has subtasks
-(`task.has-subtasks`), naming them only in its message, so Rust reads the project's tasks and answers those whose
-parent it is. A moved subtask loses its parent. Comments are a thread of their own, oldest first; adding one moves no
+(`task.has-subtasks`, their keys in `details.subtasks`), and a subtask that keeps its parent (`task.is-subtask`,
+`details.parent`); the dialog then offers to move it on its own, the same write with `--parent none`. Comments are a thread of their own, oldest first; adding one moves no
 revision. A comment's text and a new person's name go after `--`. The page's minimum memo is the catalog's
 `taskBoard.minVersion`; the catalog's `tasks` key means something else, a source of agents' claims.
 

@@ -1,3 +1,4 @@
+import { isNewer, type SkillRefresh } from "@/domain/status"
 import type { Agent, Chats, Claim, Registrations, SkillReport, Target } from "./agents-schemas"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
@@ -82,6 +83,23 @@ const SOURCE: Record<string, string> = {
   cursor: "~/.cursor/mcp.json",
   gemini: "~/.gemini/settings.json",
   opencode: "~/.config/opencode/opencode.json",
+}
+
+/** What Rust's `skills::refresh` does after an update; `?skill-refresh-fail=<tool>` makes it fail. */
+export async function refreshSkillsMock(
+  agents: Pick<Platform, "skillStatus" | "skillInstall">,
+  id: string,
+  version: string,
+): Promise<SkillRefresh> {
+  if (params.get("skill-refresh-fail") === id)
+    return { refreshed: [], failed: `EACCES: permission denied, open '~/.claude/skills/${id}-cli/SKILL.md'` }
+  const report = await agents.skillStatus(id).catch(() => null)
+  const refreshed = (report?.targets ?? [])
+    .filter((t) => t.target !== "hermes")
+    .filter((t) => t.state === "stale" || (t.state === null && t.installed !== null && isNewer(version, t.installed)))
+    .map((t) => t.target)
+  for (const target of refreshed) await agents.skillInstall(id, target)
+  return { refreshed, failed: null }
 }
 
 export function agentsMock(versionOf: (id: string) => string | undefined) {

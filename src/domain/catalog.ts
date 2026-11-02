@@ -81,6 +81,11 @@ const ToolSchema = v.object({
   tasks: v.nullable(v.object({ list: v.array(v.string()), release: v.array(v.string()) })),
   /** The Tasks page's lowest version of the tool; only memo keeps project tasks. */
   taskBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
+  /** The messengers' own `serve` in the background, per profile: `server status`, `server install`, `server start`. */
+  background: v.optional(
+    v.nullable(v.object({ status: v.array(v.string()), install: v.array(v.string()), start: v.array(v.string()) })),
+    null,
+  ),
   /** The tool's own sync; `run` is null when there is none to start and `note` says how it syncs instead. */
   sync: v.nullable(
     v.object({
@@ -196,7 +201,8 @@ export type PermissionGroup = NonNullable<CatalogTool["permissions"]>["groups"][
 export const doctorNeedsProfile = (t: CatalogTool) => t.doctor.includes("{profile}")
 
 export const PROFILE_NAME = /^[A-Za-z0-9._-]{1,64}$/
-export const isValidProfile = (name: string) => PROFILE_NAME.test(name) && !name.startsWith("-")
+export const isValidProfile = (name: string) =>
+  PROFILE_NAME.test(name) && !name.startsWith("-") && !name.startsWith(".")
 
 /** The command line a catalog template runs, for showing before the owner confirms it. */
 export function catalogCommand(t: CatalogTool, args: readonly string[], fill: Record<string, string>): string {

@@ -237,7 +237,7 @@ fn make(
         enough_space(store_dir, store_bytes)?;
     }
 
-    let bin = paths::find(&tool.bin).ok_or("The tool is not installed.")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("The tool is not installed.")?;
     let name = free_name(&dir, &chrono::Local::now().format("%Y-%m-%d-%H%M").to_string(), password.is_some());
     let partial = dir.join(format!(".{name}.partial"));
     let made = if let Some(password) = password {
@@ -477,7 +477,7 @@ pub struct ResetPreview {
 pub fn reset_preview() -> Result<Option<ResetPreview>, String> {
     let Some(tool) = archive::asked(|t| t.store_reset_preview.as_ref()) else { return Ok(None) };
     let Some(args) = tool.store_reset_preview.as_ref() else { return Ok(Some(preview_of(tool, None))) };
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(5)).map_err(|e| e.to_string())?;
     let json = out.json();
@@ -534,7 +534,7 @@ fn preview_of(tool: &Tool, item: Option<&Value>) -> ResetPreview {
 pub fn reset() -> Result<Option<u64>, String> {
     let tool = archive::asked(|t| t.store_reset.as_ref()).ok_or("No installed tool can clear storage.")?;
     let args = tool.store_reset.as_ref().ok_or("No installed tool can clear storage.")?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(10)).map_err(|e| e.to_string())?;
     match out.json() {
@@ -805,7 +805,7 @@ mod tests {
         let events = std::sync::Mutex::new(Vec::new());
         let bytes = fs::metadata(&store).unwrap().len();
         let send = |e: BackupEvent| events.lock().unwrap().push(e);
-        let bin = paths::find(&tool.bin).unwrap();
+        let bin = crate::tools::program(&tool.bin).unwrap();
         let args = tool.store_backup.as_ref().unwrap();
         copy_then_zip(&bin, &tool.bin, args, &copy, &partial, bytes, &|| false, &send).unwrap();
         let events = events.into_inner().unwrap();
@@ -824,7 +824,7 @@ mod tests {
         let store = std::env::var("MESSAGING_STORE").expect("MESSAGING_STORE");
         assert!(!store.ends_with("WireCat/wirecat.db"), "never the owner's store");
         let tool = crate::catalog::tool("tg").unwrap();
-        let bin = paths::find(&tool.bin).unwrap();
+        let bin = crate::tools::program(&tool.bin).unwrap();
         let dir = scratch("real-sealed");
         let sealed = dir.join(".out.db.sealed.partial");
         let args = template(tool.store_backup_encrypted.as_ref().unwrap(), &sealed);

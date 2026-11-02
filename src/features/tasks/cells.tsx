@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { addDays, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import type { Task, TaskKind } from "@/platform/task-schemas"
+import { Calendar, CalendarFooter, DatePopover } from "@/ui/Calendar"
 import { Combobox } from "@/ui/Combobox"
 import { cx } from "@/ui/cx"
 import { Select } from "@/ui/Select"
@@ -237,37 +238,18 @@ export function ProjectCell({ task }: { task: Task }) {
 
 type DueValue = "current" | "today" | "tomorrow" | "week" | "pick" | "none"
 
-/** Today, tomorrow, in a week, no date, or another day typed into a date field that takes the cell's place. */
+/** Today, tomorrow, in a week, no date, or another day from a calendar that opens under the cell at once. */
 export function DueCell({ task }: { task: Task }) {
   const m = useMessages(taskMessages)
   const lang = useLang()
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const [picking, setPicking] = useState(false)
-  const field = useRef<HTMLInputElement>(null)
   const cell = useRef<HTMLDivElement>(null)
-  const back = useRef(false)
-  const typed = useRef(0)
-  useEffect(() => {
-    const input = field.current
-    if (picking && input) {
-      input.focus()
-      // Choosing "Another day" opens the calendar at once. The choice was a click or a key a moment ago, which the
-      // browser still counts as the owner's gesture; where it has no picker the focused field takes typing instead.
-      try {
-        input.showPicker?.()
-      } catch {
-        // NotAllowedError or no picker for dates: the focused field is the fallback.
-      }
-    } else if (!picking && back.current) {
-      back.current = false
-      cell.current?.querySelector<HTMLElement>("button,[role=combobox]")?.focus()
-    }
-  }, [picking])
-  const stop = () => {
-    back.current = true
-    setPicking(false)
-  }
   const save = (due: string) => void useTasks.getState().update(task.key, { due })
+  const stop = (refocus: boolean) => {
+    setPicking(false)
+    if (refocus) cell.current?.querySelector<HTMLElement>("button,[role=combobox]")?.focus()
+  }
   const today = new Date()
   const dates = { today, tomorrow: addDays(today, 1), week: addDays(today, 7) }
   const days: Record<"today" | "tomorrow" | "week", string> = {
@@ -275,46 +257,7 @@ export function DueCell({ task }: { task: Task }) {
     tomorrow: isoDay(dates.tomorrow),
     week: isoDay(dates.week),
   }
-  if (picking) {
-    return (
-      <input
-        ref={field}
-        type="date"
-        aria-label={m.cell(m.due, task.key)}
-        defaultValue={task.dueAt ? localDay(task.dueAt) : days.today}
-        onChange={(e) => {
-          // A day clicked in the calendar is the answer; typed digits wait for Enter, since "2" is already a year.
-          if (Date.now() - typed.current > 300 && e.currentTarget.value) {
-            save(e.currentTarget.value)
-            stop()
-          }
-        }}
-        onKeyDown={(e) => {
-          typed.current = Date.now()
-          if (e.key === "Escape") {
-            // In the task dialog this Escape would close the whole dialog, not only the date field.
-            e.preventDefault()
-            stop()
-          }
-          if (e.key === "Enter" && e.currentTarget.value) {
-            save(e.currentTarget.value)
-            stop()
-          }
-        }}
-        onBlur={(e) => {
-          if (
-            !back.current &&
-            e.currentTarget.value &&
-            (!task.dueAt || e.currentTarget.value !== localDay(task.dueAt))
-          ) {
-            save(e.currentTarget.value)
-          }
-          setPicking(false)
-        }}
-        className="selectable h-8 w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.4rem] font-mono text-[0.85rem] text-ink"
-      />
-    )
-  }
+  const current = task.dueAt ? localDay(task.dueAt) : null
   return (
     <div ref={cell} className="relative">
       <Select<DueValue>
@@ -338,9 +281,26 @@ export function DueCell({ task }: { task: Task }) {
         className={cx(BARE, "[&>span:first-child]:invisible")}
       />
       {/* The trigger's own label is hidden; the coloured date sits over it, as the rest of the page draws dates. */}
-      <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center">
+      <span className="pointer-events-none absolute inset-y-0 left-0 flex max-w-full items-center overflow-hidden pr-[1.6rem]">
         <DueText task={task} />
       </span>
+      <DatePopover open={picking} anchor={cell} onClose={stop} label={m.cell(m.due, task.key)}>
+        <Calendar
+          selected={current ? { from: current } : null}
+          autoFocus
+          label={m.cell(m.due, task.key)}
+          onPick={(day) => {
+            if (day !== current) save(day)
+            stop(true)
+          }}
+        />
+        <CalendarFooter
+          onToday={() => {
+            if (days.today !== current) save(days.today)
+            stop(true)
+          }}
+        />
+      </DatePopover>
     </div>
   )
 }

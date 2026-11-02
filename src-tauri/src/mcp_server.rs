@@ -1,13 +1,14 @@
 use crate::catalog::{self, McpServerSource, Tool};
-use crate::skills::{body, call, failure};
+use crate::skills::{self, body, failure};
 use crate::{paths, run};
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
 
 /// The tool's HTTP MCP server, for browser apps behind the owner's tunnel: the tool's own `mcp server start|stop|status`
-/// and `mcp revoke` (`mcp --revoke` before cli-core 0.463), with no profile, so one server serves every profile and each call names one (TASK-26). The login code, the address and the apps' names leave Rust unmasked, as the sign-in QR does: the
-/// owner needs them as they are. None of it is logged or put in a report.
+/// and `mcp revoke` (`mcp --revoke` before cli-core 0.463), with `--profiles all` (memo has no profiles), so one server
+/// serves every profile and each call names one (TASK-26). The login code, the address and the apps' names leave Rust
+/// unmasked, as the sign-in QR does: the owner needs them as they are. None of it is logged or put in a report.
 #[derive(Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::struct_excessive_bools, reason = "the tool's own answer, field for field")]
@@ -57,6 +58,35 @@ pub struct OAuthSettings {
     pub authorization_endpoint: String,
     pub token_endpoint: String,
     pub registration_endpoint: Option<String>,
+}
+
+/// The owner's ruling: every profile is served, with no switch to narrow it. A tool before cli-core 0.465 serves every
+/// profile on its own and refuses `--profiles`, so that call is repeated without it.
+fn call(tool: &Tool, args: &[String], timeout: Duration) -> Result<(run::Output, Option<Value>), String> {
+    let (out, json) = skills::call(tool, args, timeout)?;
+    if refuses_profiles(json.as_ref()) {
+        return skills::call(tool, &without_profiles(args), timeout);
+    }
+    Ok((out, json))
+}
+
+fn refuses_profiles(json: Option<&Value>) -> bool {
+    json.and_then(|v| v["error"]["message"].as_str()).is_some_and(|m| m.contains("unknown option '--profiles'"))
+}
+
+fn without_profiles(args: &[String]) -> Vec<String> {
+    let mut kept = Vec::with_capacity(args.len());
+    let mut skip = false;
+    for arg in args {
+        if skip {
+            skip = false;
+        } else if arg == "--profiles" {
+            skip = true;
+        } else {
+            kept.push(arg.clone());
+        }
+    }
+    kept
 }
 
 fn source(tool: &Tool) -> Result<&McpServerSource, String> {
@@ -252,11 +282,29 @@ pub fn status(tool: &Tool) -> Result<ServerStatus, String> {
     }
 }
 
+/// A tunnel publishes whatever answers on its local port, so before one opens that must be nothing yet or this tool's
+/// own server. Another program there, a dev server or another user's process on a shared computer, would be put on the
+/// internet without the server's login.
+pub fn ensure_port_is_ours(tool: &Tool, port: u16) -> Result<(), String> {
+    port_is_free_or(port, &tool.name, || status(tool).is_ok_and(|s| s.running && s.port == Some(port)))
+}
+
+fn port_is_free_or(port: u16, name: &str, ours: impl FnOnce() -> bool) -> Result<(), String> {
+    let local = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+    if std::net::TcpStream::connect_timeout(&local, Duration::from_millis(300)).is_err() || ours() {
+        return Ok(());
+    }
+    Err(format!(
+        "Another program already answers on port {port}, so it would be published instead of the {name} server. \
+         Choose another port, or stop that program first."
+    ))
+}
+
 /// The CLI waits up to about 30 seconds for the server to listen.
 pub fn start(tool: &Tool, port: u16, url: &str) -> Result<ServerStatus, String> {
     validate_port(port)?;
     validate_url(url)?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let cmd = server_command(&bin, &args(&source(tool)?.start, port, url)?);
     let out = run::run_command(cmd, Duration::from_mins(1)).map_err(|e| e.to_string())?;
     let json = out.json();
@@ -354,6 +402,17 @@ pub fn config(tool: &Tool) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_tunnel_never_opens_onto_another_programs_port() {
+        let other = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = other.local_addr().unwrap().port();
+        let refused = port_is_free_or(port, "Telegram", || false).unwrap_err();
+        assert!(refused.contains("Another program already answers"), "{refused}");
+        assert!(port_is_free_or(port, "Telegram", || true).is_ok());
+        drop(other);
+        assert!(port_is_free_or(port, "Telegram", || panic!("a free port needs no status")).is_ok());
+    }
     use serde_json::json;
 
     #[test]
@@ -508,6 +567,27 @@ mod tests {
     }
 
     #[test]
+    fn a_tool_before_profiles_is_asked_again_without_it_and_is_not_called_too_old() {
+        let old = json!({ "error": { "message": "unknown option '--profiles'" } });
+        let new = json!({ "error": { "message": "name the profiles to serve: `tg mcp serve --profiles all` — profiles here: a" } });
+        assert!(refuses_profiles(Some(&old)));
+        assert!(!refuses_profiles(Some(&new)));
+        assert!(!unsupported(Some(&new)));
+        let args: Vec<String> = ["mcp", "server", "status", "--profiles", "all", "--json"].map(String::from).to_vec();
+        assert_eq!(without_profiles(&args), ["mcp", "server", "status", "--json"]);
+    }
+
+    #[test]
+    fn every_command_serves_every_profile() {
+        for tool in catalog::catalog().tools.iter().filter(|t| t.profiles.is_some()) {
+            let Some(src) = &tool.mcp_server else { continue };
+            for spec in [&src.start, &src.stop, &src.status, &src.revoke].into_iter().chain(src.config.as_ref()) {
+                assert!(spec.windows(2).any(|w| w[0] == "--profiles" && w[1] == "all"), "{}: {spec:?}", tool.id);
+            }
+        }
+    }
+
+    #[test]
     fn an_old_tool_refusing_mcp_revoke_falls_back_to_the_flag() {
         let old = json!({ "error": { "message": "unknown command 'revoke'" } });
         let other = json!({ "error": { "message": "the server is busy" } });
@@ -518,7 +598,7 @@ mod tests {
 
     #[test]
     fn every_tool_with_a_server_names_its_commands() {
-        for tool in &catalog::catalog().tools {
+        for tool in catalog::catalog().tools.iter().filter(|t| t.profiles.is_some()) {
             let Some(src) = &tool.mcp_server else { continue };
             assert!(
                 src.start.contains(&"{port}".to_string()) && src.start.contains(&"{url}".to_string()),

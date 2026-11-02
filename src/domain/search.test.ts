@@ -25,6 +25,21 @@ describe("hitRow", () => {
       who: "Ana",
       fromMe: false,
       text: "hi",
+      files: [],
+    })
+  })
+
+  it("names the files a hit without text carries", () => {
+    const hit = {
+      excerpt: "",
+      attachments: [{ position: 1, kind: "photo" }, { position: 2, kind: "document", name: "a.pdf" }, {}],
+    }
+    expect(hitRow(hit, 0)).toMatchObject({
+      text: null,
+      files: [
+        { kind: "photo", name: null },
+        { kind: "document", name: "a.pdf" },
+      ],
     })
   })
 

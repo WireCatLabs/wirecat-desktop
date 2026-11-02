@@ -1,4 +1,5 @@
 mod archive;
+mod background;
 mod backup;
 mod cache;
 mod catalog;
@@ -7,18 +8,23 @@ mod cloudflare;
 mod cloudflare_install;
 mod compat;
 mod install;
+#[cfg(test)]
+mod install_e2e;
 mod mcp;
 mod mcp_server;
 mod memory;
 mod node;
 mod notifications;
+mod npm_prefix;
 mod package_update;
 #[cfg(test)]
 mod page_loads;
 mod paths;
 mod permissions;
 mod profile;
+mod provenance;
 mod public_address;
+mod query_writer;
 mod redact;
 mod report;
 mod run;
@@ -78,6 +84,13 @@ async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node::No
             None => Err(node::Failure::no_home()),
         };
         running.finish(node::OPERATION);
+        // Tools installed with this Node.js are linked beside it; on Windows the user Path changes without an
+        // administrator, so a terminal and the AI apps find them with nothing more to do.
+        if cfg!(windows)
+            && let Ok(done) = &result
+        {
+            let _ = profile::add(&node::bin_dir(&done.dir));
+        }
         paths::refresh(&[]);
         send(match result {
             Ok(done) => node::NodeEvent::Done {
@@ -215,7 +228,7 @@ async fn store_backup(
         let send = |e: backup::BackupEvent| {
             let _ = on_event.send(e);
         };
-        if running.is_running(backup::RESET) || !running.start(backup::BACKUP) {
+        if !running.start_unless(backup::BACKUP, |k| k == backup::RESET) {
             return send(backup::BackupEvent::Failed { message: "A backup or a clear is already running.".into() });
         }
         backup::backup(password.as_ref(), &|| !running.is_running(backup::BACKUP), &send);
@@ -248,7 +261,7 @@ async fn store_reset_preview() -> Result<Option<backup::ResetPreview>, String> {
 async fn store_reset(running: State<'_, Arc<Running>>) -> Result<Option<u64>, String> {
     let running = Arc::clone(&running);
     blocking(move || {
-        if running.is_running(backup::BACKUP) || !running.start(backup::RESET) {
+        if !running.start_unless(backup::RESET, |k| k == backup::BACKUP) {
             return Err("A backup or a clear is already running.".to_string());
         }
         let done = backup::reset();
@@ -487,6 +500,20 @@ async fn cloudflare_routes() -> Result<Vec<cloudflare::RouteState>, String> {
 }
 
 #[tauri::command]
+async fn background_status(id: String, profile: String) -> Result<background::Background, String> {
+    let tool = catalog::tool(&id)?;
+    catalog::validate_profile(&profile)?;
+    blocking(move || background::status(tool, &profile)).await?
+}
+
+#[tauri::command]
+async fn background_keep(id: String, profile: String) -> Result<background::Background, String> {
+    let tool = catalog::tool(&id)?;
+    catalog::validate_profile(&profile)?;
+    blocking(move || background::keep(tool, &profile)).await?
+}
+
+#[tauri::command]
 async fn mcp_server_status(id: String) -> Result<mcp_server::ServerStatus, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || mcp_server::status(tool)).await?
@@ -670,6 +697,12 @@ async fn search_context(id: String, profile: Option<String>, reference: String) 
 }
 
 #[tauri::command]
+async fn search_draft(id: String, request: String) -> Result<query_writer::Draft, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || query_writer::write(tool, &request)).await?
+}
+
+#[tauri::command]
 async fn search_values(id: String, profile: Option<String>, source: String) -> Result<Vec<search::ValueItem>, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || search::values(tool, profile.as_deref(), &source)).await?
@@ -731,8 +764,10 @@ async fn notifications(app: tauri::AppHandle) -> Result<Vec<notifications::Notif
 
 #[tauri::command]
 fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
-    let id = catalog::tool(&id).map_or(id.clone(), |t| catalog::owner(t).id.clone());
-    running.cancel(&id);
+    // Only an install's own key: any other string would stop whatever runs under it, a sync or a backup.
+    if let Ok(tool) = catalog::tool(&id) {
+        running.cancel(&catalog::owner(tool).id);
+    }
 }
 
 #[tauri::command]
@@ -740,7 +775,7 @@ fn open_setup(id: String, profile: Option<String>) -> Result<(), String> {
     let tool = catalog::tool(&id)?;
     let args = tool.setup.as_ref().ok_or("this tool has no setup flow")?;
     let args = catalog::with_profile(args, profile.as_deref())?;
-    let bin = paths::find(&tool.bin).ok_or("the tool is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     terminal::open(&bin, &args)
 }
 
@@ -763,7 +798,7 @@ async fn sign_in(
         let key = signin::key(&tool.id);
         if !running.start(&key) {
             return send(signin::SignInEvent::Failed {
-                message: format!("A {} sign-in is already running.", tool.name),
+                message: format!("A {} sign-in is still running or stopping. Try again in a few seconds.", tool.name),
                 code: None,
             });
         }
@@ -803,13 +838,13 @@ async fn sync_run(
             let _ = on_event.send(e);
         };
         let key = sync::key(tool, profile.as_deref());
-        let busy = running.is_running(&catalog::owner(tool).id);
+        let busy = running.busy(&catalog::owner(tool).id);
         if busy || !running.start(&key) {
             return send(sync::SyncEvent::Failed {
                 message: if busy {
                     format!("{} is being installed or updated. Sync when it is done.", tool.name)
                 } else {
-                    "This sync is already running.".into()
+                    "This sync is still running or stopping. Try again in a few seconds.".into()
                 },
                 code: None,
                 reason: Some("app.busy".into()),
@@ -857,7 +892,14 @@ async fn update_download_package(
 #[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
 pub fn run() {
     // The login shell's PATH takes about half a second; read it while the window opens, not on the first page.
-    std::thread::spawn(paths::search_path);
+    std::thread::spawn(|| {
+        paths::search_path();
+        npm_prefix::keep_tools_on_windows_path();
+    });
+    std::thread::spawn(|| {
+        node::make_app_data_private();
+        cloudflare::remove_left_scratch();
+    });
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -903,6 +945,8 @@ pub fn run() {
             mcp_check,
             mcp_add,
             mcp_remove,
+            background_status,
+            background_keep,
             mcp_server_status,
             mcp_server_start,
             mcp_server_stop,
@@ -957,6 +1001,7 @@ pub fn run() {
             search_store,
             search_values,
             search_context,
+            search_draft,
             settings_show,
             settings_set,
             settings_unset,

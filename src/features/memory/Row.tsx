@@ -29,6 +29,7 @@ import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -58,7 +59,21 @@ export function textOf(e: MemoryEntry, m: M) {
     const facts = e.findings.filter((f) => f.kind === "fact").length
     return m.findingsTitle(facts, e.findings.length - facts)
   }
+  if (e.type === "action") return actionLine(e, m, true)
   return e.text ?? kindOf(e.kind, m)
+}
+
+/**
+ * An action in the interface's language, from memo's parts: its verb, what it acts on by name and, when asked, its
+ * text. A verb the page has no words for falls back to memo's English line.
+ */
+function actionLine(e: MemoryEntry, m: M, withText: boolean) {
+  const verb = e.verb ? m.verbs[e.verb] : undefined
+  if (!verb) return e.summary ?? e.text ?? kindOf(e.kind, m)
+  const target = e.targetName ?? e.chatName
+  const text = withText ? e.text : null
+  // "Reply to Kai Moreno: Here is the pricing table…"; each language's verb is written to take the name after it.
+  return `${verb}${target ? ` ${target}` : ""}${text ? `: ${text}` : ""}`
 }
 
 export function SubjectLabel({ subject, className }: { subject: Subject; className?: string }) {
@@ -561,13 +576,12 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
           return (
             <li key={f.id} className="flex gap-[0.75rem] border-line px-[0.9rem] py-[0.75rem] not-first:border-t">
               {open ? (
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={on}
                   disabled={busy}
                   aria-label={m.include(f.text)}
-                  onChange={(e) => skip(entry.ref, f.id, !e.target.checked)}
-                  className="mt-[0.25rem] size-[1.05rem] shrink-0 accent-brand"
+                  onChange={(checked) => skip(entry.ref, f.id, !checked)}
+                  className="mt-[0.25rem]"
                 />
               ) : (
                 <span className="mt-[0.3rem]">
@@ -624,13 +638,20 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
 }
 
 function ActionFacts({ entry, m }: { entry: MemoryEntry; m: M }) {
-  if (!entry.reason && !entry.text) return <p className="text-[0.95rem] text-ink-soft">{m.noContent}</p>
+  const what = entry.verb || entry.summary ? actionLine(entry, m, false) : null
+  if (!entry.reason && !entry.text && !what) return <p className="text-[0.95rem] text-ink-soft">{m.noContent}</p>
   return (
     <div className="flex min-w-0 flex-col gap-[0.6rem]">
-      {entry.text && (
+      {what && (
         <>
           <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.wouldDo}</h3>
-          <p className="selectable rounded-[0.45rem] border border-line bg-app px-[0.9rem] py-[0.7rem] text-[0.95rem]">
+          <p className="selectable text-[0.95rem]">{what}</p>
+        </>
+      )}
+      {entry.text && (
+        <>
+          <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.wouldSend}</h3>
+          <p className="selectable rounded-[0.45rem] border border-line bg-app px-[0.9rem] py-[0.7rem] text-[0.95rem] whitespace-pre-wrap">
             {entry.text}
           </p>
         </>
@@ -679,7 +700,7 @@ function Details({ entry }: { entry: MemoryEntry }) {
   const lang = useLang()
   const failed = useMemory((s) => s.failed[entry.ref])
   const editing = useMemory((s) => s.correcting === entry.ref)
-  const { setAbout, setProject, setKind, setBy, setRange } = useMemory.getState()
+  const { filterBy } = useMemory.getState()
   const owner = byOwner(entry)
   const subject = subjectOf(entry)
   const projectName = entry.projectName ?? (subject?.kind === "project" ? subject.name : null)
@@ -706,14 +727,26 @@ function Details({ entry }: { entry: MemoryEntry }) {
 
       <div className="flex min-w-0 flex-col gap-[1.1rem]">
         <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-[0.45rem] text-[0.95rem]">
-          {projectName && row(m.project, <FilterLink label={projectName} onClick={() => setProject(projectName)} />)}
-          {person && row(m.about, <FilterLink label={person} onClick={() => setAbout(person)} />)}
-          {row(m.kind, <FilterLink label={kindOf(entry.kind, m)} onClick={() => setKind(kindOf(entry.kind, m))} />)}
+          {projectName &&
+            row(m.project, <FilterLink label={projectName} onClick={() => filterBy("project", projectName)} />)}
+          {person &&
+            row(
+              m.about,
+              <FilterLink
+                label={person}
+                onClick={() => filterBy("subject", entry.subjectIsOwner ? "me" : (entry.subject ?? person))}
+              />,
+            )}
+          {row(m.kind, <FilterLink label={kindOf(entry.kind, m)} onClick={() => filterBy("kind", entry.kind)} />)}
           {entry.scope && row(m.scope, m.scopes[entry.scope] ?? entry.scope)}
           {row(
             m.writtenBy,
             <>
-              <FilterLink label={authorOf(entry, m)} mono={!owner} onClick={() => setBy(authorOf(entry, m))} />
+              <FilterLink
+                label={authorOf(entry, m)}
+                mono={!owner}
+                onClick={() => filterBy("by", owner ? "me" : authorOf(entry, m))}
+              />
               {!owner && <span className="text-ink-soft"> ({m.agentNote})</span>}
             </>,
           )}
@@ -728,7 +761,7 @@ function Details({ entry }: { entry: MemoryEntry }) {
             <FilterLink
               label={savedAt(entry.createdAt, lang)}
               mono
-              onClick={() => setRange(dayKey(entry.createdAt))}
+              onClick={() => filterBy("when", dayKey(entry.createdAt))}
             />,
           )}
           {entry.updatedAt &&

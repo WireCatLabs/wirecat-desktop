@@ -92,8 +92,17 @@ pub struct Entry {
     #[serde(rename = "type")]
     pub record: &'static str,
     pub kind: String,
-    /// An action has no text of its own: memo's one-line summary of what it would do.
+    /// An action's text is what it would send or the task it would make, whole.
     pub text: Option<String>,
+    /// memo's English line for an action; the page writes its own from the parts below, in the interface language.
+    pub summary: Option<String>,
+    /// An action's kind as a verb: `reply`, `send`, `create_task`, or `create` for a findings batch.
+    pub verb: Option<String>,
+    /// What the action acts on, by name: a project, a person, a task's title, or a chat's.
+    pub target_name: Option<String>,
+    pub chat_name: Option<String>,
+    /// How many facts and tasks a findings batch would create.
+    pub counts: Option<Counts>,
     pub status: String,
     pub subject: Option<String>,
     pub subject_name: Option<String>,
@@ -120,6 +129,12 @@ pub struct Entry {
 /// Memo stages an agent's cited facts and follow-ups as an action of this kind, decided with the fingerprint
 /// `actions show` gives.
 const FINDINGS: &str = "evidence_findings";
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Counts {
+    pub facts: u64,
+    pub tasks: u64,
+}
 
 /// One fact or task in a findings batch, as `projects actions confirm` creates it.
 #[derive(Serialize, Debug, PartialEq)]
@@ -188,6 +203,11 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         scope: text(v, "scope"),
         project: text(v, "project"),
         project_name: text(v, "project_name"),
+        summary: None,
+        verb: None,
+        target_name: None,
+        chat_name: None,
+        counts: None,
         supersedes: text(v, "supersedes"),
         links: v["evidence"].as_array().map_or(0, Vec::len),
         reason: None,
@@ -216,7 +236,15 @@ fn action(v: &Value) -> Option<Entry> {
     Some(Entry {
         reference: format!("action:{}", text(v, "id")?),
         record: "action",
-        text: text(v, "summary"),
+        text: text(v, "text"),
+        summary: text(v, "summary"),
+        verb: text(v, "verb"),
+        target_name: text(v, "target_name"),
+        chat_name: text(v, "chat_name"),
+        counts: v["counts"].is_object().then(|| Counts {
+            facts: v["counts"]["facts"].as_u64().unwrap_or(0),
+            tasks: v["counts"]["tasks"].as_u64().unwrap_or(0),
+        }),
         status: text(v, "status")?,
         subject: text(v, "subject"),
         subject_name: text(v, "subject_name"),
@@ -341,11 +369,9 @@ fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Stri
     let json = out.json();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
-        // Deciding one batch changes its project, so memo refuses to confirm the other batches staged before it.
+        // A meeting's findings can still change after the agent read them; memo's own words name its command.
         Some(v) if v["error"]["reason"].as_str() == Some("evidence-findings.stale") => {
-            Err("The project changed since the agent proposed these findings. Discard them, or ask the agent to look \
-                 again."
-                .into())
+            Err("These findings changed since the agent proposed them.".into())
         }
         j => Err(failure(&out, j.as_ref())),
     }
@@ -368,7 +394,7 @@ pub fn read() -> Result<Read, String> {
     if too_old(first.version.as_deref(), &need) {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
-    let bin = paths::find(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     read_with(&|args: &[String]| call_at(&bin, args, READ))
 }
 
@@ -416,7 +442,7 @@ fn read_with(call: &Call) -> Result<Read, String> {
 
 fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
     let tool = memo()?;
-    let bin = paths::find(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     f(&|args: &[String]| call_at(&bin, args, WRITE))
 }
 
@@ -752,12 +778,68 @@ fn note_file(call: &Call, reference: &str) -> Result<std::path::PathBuf, String>
 
 pub fn open_source(reference: &str) -> Result<(), String> {
     let file = with_memo(|call| note_file(call, reference))?;
-    tauri_plugin_opener::open_path(&file, None::<&str>).map_err(|e| e.to_string())
+    if runs_as_program(&file) {
+        tauri_plugin_opener::reveal_item_in_dir(&file).map_err(|e| e.to_string())
+    } else {
+        tauri_plugin_opener::open_path(&file, None::<&str>).map_err(|e| e.to_string())
+    }
+}
+
+/// A note's folder may hold files from anywhere (a download, a shared drive), and its default app would run a
+/// launcher or a script on one click; such a file is shown in its folder instead, as the Storage page does.
+fn runs_as_program(file: &Path) -> bool {
+    const PROGRAMS: [&str; 22] = [
+        "app", "appimage", "bat", "cmd", "com", "command", "cpl", "desktop", "exe", "hta", "jar", "js", "jse", "lnk",
+        "msi", "ps1", "scr", "sh", "url", "vbe", "vbs", "workflow",
+    ];
+    let named =
+        file.extension().and_then(|e| e.to_str()).is_some_and(|e| PROGRAMS.contains(&e.to_ascii_lowercase().as_str()));
+    // Only without an extension: files on FAT or NTFS drives and synced folders often carry the bit, and a PDF there
+    // must still open; macOS `open` runs a bare executable in Terminal.
+    #[cfg(unix)]
+    let executable = file.extension().is_none() && {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::metadata(file).is_ok_and(|m| m.permissions().mode() & 0o111 != 0)
+    };
+    #[cfg(not(unix))]
+    let executable = false;
+    named || executable
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_launcher_or_a_script_is_shown_in_its_folder_never_run() {
+        let dir = std::env::temp_dir().join(format!("wirecat-open-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = |name: &str| {
+            let p = dir.join(name);
+            std::fs::write(&p, "x").unwrap();
+            p
+        };
+        let (note, pdf, launcher, script) = (file("note.md"), file("doc.PDF"), file("a.desktop"), file("run.BAT"));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&pdf, std::fs::Permissions::from_mode(0o777)).unwrap();
+        }
+        #[cfg(unix)]
+        let tool = {
+            use std::os::unix::fs::PermissionsExt;
+            let p = file("tool");
+            std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+            p
+        };
+        let seen = [note, pdf, launcher, script].map(|p| runs_as_program(&p));
+        #[cfg(unix)]
+        let executable = runs_as_program(&tool);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(seen, [false, false, true, true]);
+        #[cfg(unix)]
+        assert!(executable);
+    }
     use serde_json::json;
     use std::sync::Mutex;
 
@@ -803,7 +885,9 @@ mod tests {
             "payload":{"title":"Send Kai the pricing table"},"reason":"Kai asked twice","status":status,
             "proposed_by":{"type":"bot","id":"4","name":"hermes"},"decided_by":null,"decided_at":null,
             "executed_at":null,"result":null,"error":null,"verdict":null,"created_at":"2026-10-31T20:56:09.193Z",
-            "summary":"Create task chat:telegram/1/77: Send Kai the pricing table","project":null,"project_name":null})
+            "summary":"Create task Kai Sample: Send Kai the pricing table","project":null,"project_name":null,
+            "verb":"create_task","target_name":"Kai Sample","chat_name":"Kai Sample","text":"Send Kai the pricing table",
+            "counts":null})
     }
 
     fn strs(v: &[&str]) -> Vec<String> {
@@ -868,7 +952,10 @@ mod tests {
         assert_eq!(m.links, 2);
         assert_eq!(m.project_name.as_deref(), Some("Harbour"));
         let a = &entries[0];
-        assert_eq!(a.text.as_deref(), Some("Create task chat:telegram/1/77: Send Kai the pricing table"));
+        assert_eq!(a.text.as_deref(), Some("Send Kai the pricing table"));
+        assert_eq!(a.summary.as_deref(), Some("Create task Kai Sample: Send Kai the pricing table"));
+        assert_eq!((a.verb.as_deref(), a.chat_name.as_deref()), (Some("create_task"), Some("Kai Sample")));
+        assert_eq!(a.counts, None);
         assert_eq!(a.account.as_deref(), Some("telegram:1"));
         assert_eq!(a.reason.as_deref(), Some("Kai asked twice"));
         assert_eq!(activity.unwrap()[0].agent.as_deref(), Some("claude-code"));
@@ -902,7 +989,7 @@ mod tests {
         assert_eq!(fake.seen().last().unwrap(), &strs(&["actions", "confirm", "1", "--json", "--no-record"]));
     }
 
-    // The payload as cli-core's `evidenceFindings.stage` keeps it, read back with memo 0.131.11's `actions show`.
+    // The payload as cli-core's `evidenceFindings.stage` keeps it, read back with memo 0.131.14's `actions show`.
     fn findings_batch(status: &str, result: &Value) -> Value {
         json!({"id":"9","kind":"evidence_findings","account":null,"target":"project:1","payload":{"schema_version":1,
             "key":"nbb-eval","extractor":"codex-nbb-evaluation","findings":[
@@ -914,6 +1001,7 @@ mod tests {
             "reason":"","status":status,"proposed_by":{"type":"bot","id":"3","name":"codex-nbb-evaluation"},
             "decided_by":null,"decided_at":null,"executed_at":null,"result":result,"error":null,"verdict":null,
             "created_at":"2026-11-01T00:16:37.495Z","summary":"Create 1 fact and 1 task in Northbridge Bench",
+            "verb":"create","target_name":"Northbridge Bench","chat_name":null,"text":null,"counts":{"facts":1,"tasks":1},
             "project":"project:1","project_name":"Northbridge Bench","fingerprint":"5adf3e","subject":"project:1",
             "subject_name":"Northbridge Bench","sources":[{"ref":"document:3","kind":"document","title":"Eval plan",
             "sender":null,"at":"2026-10-31T20:55:39.452Z","excerpt":"The eval set moves to 120 queries.",
@@ -933,6 +1021,7 @@ mod tests {
         let batch = entries.iter().find(|e| e.reference == "action:9").unwrap();
         assert_eq!(batch.project_name.as_deref(), Some("Northbridge Bench"));
         assert_eq!(batch.subject_name.as_deref(), Some("Northbridge Bench"));
+        assert_eq!(batch.counts, Some(Counts { facts: 1, tasks: 1 }));
         let found = batch.findings.as_ref().unwrap();
         assert_eq!(
             found.iter().map(|f| f.text.as_str()).collect::<Vec<_>>(),
@@ -1154,7 +1243,7 @@ mod tests {
     /// Against a real memo with a throwaway store: `MEMO_BIN=<memo> cargo test memory -- --ignored`. It writes to that
     /// store, so never point it at the owner's.
     #[test]
-    #[ignore = "needs MEMO_BIN, a memo 0.131.11+ with a throwaway store"]
+    #[ignore = "needs MEMO_BIN, a memo 0.131.14+ with a throwaway store"]
     fn reads_and_writes_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
@@ -1164,8 +1253,8 @@ mod tests {
         assert_eq!(entries.len(), raw("memories") + raw("facts") + raw("actions"), "an item did not parse");
         assert!(activity.is_some());
         assert!(
-            entries.iter().filter(|e| e.record == "action").all(|e| e.text.is_some()),
-            "every action has a summary"
+            entries.iter().filter(|e| e.record == "action").all(|e| e.summary.is_some() && e.verb.is_some()),
+            "every action has a summary and its parts"
         );
         if let Some(batch) = entries.iter().find(|e| e.findings.is_some()) {
             assert!(batch.project_name.is_some());

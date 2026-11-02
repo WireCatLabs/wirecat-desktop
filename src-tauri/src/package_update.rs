@@ -78,14 +78,24 @@ fn shell_word(s: &str) -> String {
     }
 }
 
-/// The line to paste in a terminal. `~/` stays outside the quotes, or the shell would not expand it.
-pub fn install_line(kind: Kind, path: &str) -> String {
-    let manager = if kind == Kind::Rpm { "dnf" } else { "apt" };
+/// The line to paste in a terminal. `~/` stays outside the quotes, or the shell would not expand it. apt reads a local
+/// package as its unprivileged `_apt` user, which cannot enter a home folder that is `drwxr-x---`, and then prints
+/// "Download is performed unsandboxed as root". The copy goes to apt's own archive folder, which only root can write and
+/// `_apt` can read: a copy in `/tmp` under the release's public name could be a file another user made beforehand and
+/// still writes to, so their package would be installed as root. dnf has no such user. `file` is plain (checked by
+/// `file_name`), so it needs no quoting.
+const APT_ARCHIVES: &str = "/var/cache/apt/archives";
+
+pub fn install_line(kind: Kind, path: &str, file: &str) -> String {
     let arg = match path.strip_prefix("~/") {
         Some(rest) => format!("~/{}", shell_word(rest)),
         None => shell_word(path),
     };
-    format!("sudo {manager} install {arg}")
+    if kind == Kind::Rpm {
+        format!("sudo dnf install {arg}")
+    } else {
+        format!("sudo install -m 644 {arg} {APT_ARCHIVES}/ && sudo apt install {APT_ARCHIVES}/{file}")
+    }
 }
 
 fn bad_signature(e: &Error) -> bool {
@@ -117,7 +127,7 @@ fn is_installer(desktop_id: &str) -> bool {
 
 fn default_handler(kind: Kind) -> Option<String> {
     let mime = if kind == Kind::Rpm { "application/x-rpm" } else { "application/vnd.debian.binary-package" };
-    let xdg = which::which("xdg-mime").ok()?;
+    let xdg = crate::paths::which_in("xdg-mime", &std::env::var_os("PATH").unwrap_or_default())?;
     let out = run::run(&xdg, &["query", "default", mime], None, Duration::from_secs(5)).ok()?;
     (out.code == Some(0)).then_some(out.stdout)
 }
@@ -143,7 +153,7 @@ fn save(kind: Kind, file: String, bytes: &[u8]) -> Result<Outcome, String> {
     }
     let opened = hand_over(kind, &to);
     let path = paths::tilde(&to.to_string_lossy());
-    let command = install_line(kind, &path);
+    let command = install_line(kind, &path, &file);
     Ok(Outcome::Saved { file, path, opened, command })
 }
 
@@ -216,19 +226,27 @@ mod tests {
 
     #[test]
     fn builds_the_terminal_line() {
+        let deb = "wirecat_0.1.2_amd64.deb";
         assert_eq!(
-            install_line(Kind::Deb, "~/Downloads/wirecat_0.1.2_amd64.deb"),
-            "sudo apt install ~/Downloads/wirecat_0.1.2_amd64.deb"
+            install_line(Kind::Deb, &format!("~/Downloads/{deb}"), deb),
+            format!(
+                "sudo install -m 644 ~/Downloads/{deb} /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/{deb}"
+            )
         );
         assert_eq!(
-            install_line(Kind::Rpm, "~/Downloads/wirecat-0.1.2-1.x86_64.rpm"),
+            install_line(Kind::Rpm, "~/Downloads/wirecat-0.1.2-1.x86_64.rpm", "wirecat-0.1.2-1.x86_64.rpm"),
             "sudo dnf install ~/Downloads/wirecat-0.1.2-1.x86_64.rpm"
         );
         assert_eq!(
-            install_line(Kind::Deb, "~/My Downloads/wirecat_0.1.2_amd64.deb"),
-            "sudo apt install ~/'My Downloads/wirecat_0.1.2_amd64.deb'"
+            install_line(Kind::Deb, &format!("~/My Downloads/{deb}"), deb),
+            format!(
+                "sudo install -m 644 ~/'My Downloads/{deb}' /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/{deb}"
+            )
         );
-        assert_eq!(install_line(Kind::Deb, "/mnt/it's/w.deb"), r"sudo apt install '/mnt/it'\''s/w.deb'");
+        assert_eq!(
+            install_line(Kind::Deb, "/mnt/it's/w.deb", "w.deb"),
+            r"sudo install -m 644 '/mnt/it'\''s/w.deb' /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/w.deb"
+        );
     }
 
     #[test]

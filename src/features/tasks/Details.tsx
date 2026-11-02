@@ -125,6 +125,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   }
 
   const subtasks = useTasks((s) => s.subtasks[task.key])
+  const detach = useTasks((s) => s.detach[task.key])
   const made = history?.state === "ready" ? history.events.find((e) => e.kind === "created") : undefined
   const maker = task.createdBy ? creatorName(task.createdBy, m) : null
   // memo keeps one notes field, so the thread has one entry: whoever last wrote it, or else whoever made the task.
@@ -313,18 +314,37 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           <Field label={m.due}>
             <DueCell task={task} />
           </Field>
-          <Field label={m.project} hint={subtasks ? undefined : m.projectHint}>
+          <Field label={m.project} hint={subtasks || detach ? undefined : m.projectHint}>
             <ProjectCell task={task} />
             <Collapse open={Boolean(subtasks)}>
               <div role="alert" className="mt-[0.3rem] flex flex-col gap-[0.25rem] text-[0.85rem] leading-snug">
                 <span className="text-bad">{m.moveRefused}</span>
-                {subtasks?.map((t) => (
-                  <span key={t.key} className="flex min-w-0 items-center gap-[0.4rem]">
-                    <TaskLink taskKey={t.key} />
-                    <span className="truncate text-ink-soft">{t.title}</span>
+                {subtasks?.map((key) => (
+                  <span key={key} className="flex min-w-0 items-center gap-[0.4rem]">
+                    <TaskLink taskKey={key} />
+                    <span className="truncate text-ink-soft">{all.find((t) => t.key === key)?.title}</span>
                   </span>
                 ))}
               </div>
+            </Collapse>
+            <Collapse open={Boolean(detach)}>
+              {detach && (
+                <div
+                  role="alert"
+                  className="mt-[0.3rem] flex flex-col items-start gap-[0.35rem] text-[0.85rem] leading-snug"
+                >
+                  <span className="flex flex-wrap items-center gap-x-[0.35rem]">
+                    {m.partOf} <TaskLink taskKey={detach.parent} />
+                  </span>
+                  <Button
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => void useTasks.getState().update(task.key, { project: detach.project, detach: true })}
+                  >
+                    {m.moveAlone(detach.parent, detach.project)}
+                  </Button>
+                </div>
+              )}
             </Collapse>
           </Field>
         </dl>

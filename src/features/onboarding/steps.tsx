@@ -6,6 +6,7 @@ import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
@@ -157,12 +158,7 @@ export function Choose() {
                 </div>
               ) : (
                 <label className={cx(cell, checked ? "bg-brand-soft/50 hover:bg-brand-soft/70" : "hover:bg-app-2")}>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() => toggle(t.id)}
-                    className="mt-[0.2rem] size-[1.05rem] shrink-0 accent-brand"
-                  />
+                  <Checkbox checked={checked} onChange={() => toggle(t.id)} className="mt-[0.2rem]" />
                   {body}
                 </label>
               )}
@@ -207,7 +203,9 @@ function Progress({ tool }: { tool: CatalogTool }) {
           ? tm.timedOut.install
           : outcome.reason === "network"
             ? tm.network
-            : outcome.message
+            : outcome.reason === "unconfirmed"
+              ? tm.unconfirmed
+              : outcome.message
     text = <span className="text-bad">{message}</span>
   } else if (outcome?.event === "done") {
     tone = "ok"

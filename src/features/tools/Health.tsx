@@ -8,7 +8,7 @@ import {
   Terminal,
   XCircle,
 } from "lucide-react"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import {
   type CatalogTool,
   doctorNeedsProfile,
@@ -32,6 +32,7 @@ import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
+import { BackgroundLine } from "./Background"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SyncControl } from "./Sync"
 import { toolText } from "./tool-text"
@@ -95,7 +96,7 @@ export function Health({ tool }: { tool: CatalogTool }) {
       )}
 
       {tool.sync && !syncNeedsProfile(tool) && tool.sync.run && <SyncControl tool={tool} profile={null} />}
-      {note && <p className="text-[0.875rem] text-ink-soft">{note}</p>}
+      {note && <p className="text-[0.875rem] text-ink-soft">{withCode(note)}</p>}
 
       {checkError && (
         <ErrorNotice inline action={<ReportThis what={`Checking ${tool.name}`} tool={tool.id} error={checkError} />}>
@@ -172,6 +173,7 @@ function ProfileList(props: {
                 )}
               </div>
               {syncNeedsProfile(tool) && p.signedIn !== false && <SyncControl tool={tool} profile={p.name} />}
+              {tool.background && p.signedIn !== false && <BackgroundLine tool={tool} profile={p.name} />}
             </li>
           ))}
         </ul>
@@ -489,4 +491,19 @@ function Result({ check, toolId, m }: { check: Check; toolId: string; m: Words }
       </Disclosure>
     </div>
   )
+}
+
+/** tools.json and its translations mark a command with backticks, as the CLIs' own notes do. */
+export function withCode(text: string): ReactNode[] {
+  let at = 0
+  return text.split("`").map((part, i) => {
+    const start = at
+    at += part.length + 1
+    if (i % 2 === 0) return part
+    return (
+      <code key={start} className="selectable font-mono text-[0.85rem] text-ink">
+        {part}
+      </code>
+    )
+  })
 }

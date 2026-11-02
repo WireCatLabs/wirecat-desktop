@@ -14,13 +14,13 @@
       "docs": "https://wirecat.dev/en/docs/tg",
       "repo": "https://github.com/WireCatLabs/tg-cli",
       "profiles": {
-        "args": ["account", "list", "--json"],
+        "args": ["account", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "doctor": ["{profile}", "doctor", "--json"],
       "runs": {
-        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--json"],
-        "show": ["runs", "show", "{run}", "--json"]
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
       "search": {
         "args": [
@@ -209,21 +209,21 @@
       },
       "setup": ["{profile}", "setup"],
       "skill": {
-        "status": ["skill", "status", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"],
         "install": ["skill", "install", "--for", "{target}", "--json"],
-        "show": ["skill", "show", "--json"]
+        "show": ["skill", "show", "--no-record", "--json"]
       },
       "mcp": {
-        "check": ["{profile}", "mcp", "check", "--json"],
+        "check": ["{profile}", "mcp", "check", "--no-record", "--json"],
         "add": ["{profile}", "mcp", "add", "{client}", "--json"]
       },
       "mcpServer": {
         "port": 8765,
-        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--json"],
-        "stop": ["mcp", "server", "stop", "--json"],
-        "status": ["mcp", "server", "status", "--json"],
-        "revoke": ["mcp", "revoke", "--json"],
-        "config": ["mcp", "config", "--json"]
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
       },
       "tasks": {
         "list": [
@@ -233,31 +233,37 @@
           "state:open",
           "--limit",
           "1000",
+          "--no-record",
           "--json=id,key,claimed_by,claimed_until"
         ],
         "release": ["{profile}", "tasks", "release", "{task}", "--holder", "owner", "--json"]
       },
+      "background": {
+        "status": ["{profile}", "server", "status", "--no-record", "--json"],
+        "install": ["{profile}", "server", "install", "--json"],
+        "start": ["{profile}", "server", "start", "--json"]
+      },
       "sync": {
         "run": ["{profile}", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"],
-        "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "50", "--json"],
+        "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "200", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "messages",
         "note": null
       },
-      "storeInfo": ["store", "info", "--json"],
-      "storeTables": ["store", "tables", "list", "--json"],
-      "storeTableSizes": ["store", "tables", "list", "--full", "--json"],
+      "storeInfo": ["store", "info", "--no-record", "--json"],
+      "storeTables": ["store", "tables", "list", "--no-record", "--json"],
+      "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
       "storeCheck": ["store", "check", "--json"],
       "storeBackup": ["store", "backup", "{file}", "--json"],
       "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--json"],
-      "storeResetPreview": ["store", "reset", "--dry-run", "--json"],
+      "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],
       "storeReset": ["store", "reset", "--no-backup", "--yes", "--json"],
       "storage": {
         "app": "tg-cli",
         "env": "TG"
       },
       "settings": {
-        "show": ["{profile}", "config", "show", "--json"],
+        "show": ["{profile}", "config", "show", "--no-record", "--json"],
         "set": ["{profile}", "config", "set", "--json"],
         "unset": ["{profile}", "config", "unset", "--json"],
         "shape": "rows",
@@ -268,7 +274,7 @@
         "readOnly": ["default_profile"]
       },
       "permissions": {
-        "commands": ["{profile}", "commands", "--json"],
+        "commands": ["{profile}", "commands", "--no-record", "--json"],
         "groups": [
           {
             "key": "messages",
@@ -335,13 +341,13 @@
       "docs": "https://wirecat.dev/en/docs/max",
       "repo": "https://github.com/WireCatLabs/max-cli",
       "profiles": {
-        "args": ["account", "list", "--json"],
+        "args": ["account", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "doctor": ["{profile}", "doctor", "--json"],
       "runs": {
-        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--json"],
-        "show": ["runs", "show", "{run}", "--json"]
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
       "search": {
         "args": [
@@ -530,21 +536,21 @@
       },
       "setup": ["{profile}", "setup"],
       "skill": {
-        "status": ["skill", "status", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"],
         "install": ["skill", "install", "--for", "{target}", "--json"],
-        "show": ["skill", "show", "--json"]
+        "show": ["skill", "show", "--no-record", "--json"]
       },
       "mcp": {
-        "check": ["{profile}", "mcp", "check", "--json"],
+        "check": ["{profile}", "mcp", "check", "--no-record", "--json"],
         "add": ["{profile}", "mcp", "add", "{client}", "--json"]
       },
       "mcpServer": {
         "port": 8766,
-        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--json"],
-        "stop": ["mcp", "server", "stop", "--json"],
-        "status": ["mcp", "server", "status", "--json"],
-        "revoke": ["mcp", "revoke", "--json"],
-        "config": ["mcp", "config", "--json"]
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
       },
       "tasks": {
         "list": [
@@ -554,31 +560,37 @@
           "state:open",
           "--limit",
           "1000",
+          "--no-record",
           "--json=id,key,claimed_by,claimed_until"
         ],
         "release": ["{profile}", "tasks", "release", "{task}", "--holder", "owner", "--json"]
       },
+      "background": {
+        "status": ["{profile}", "server", "status", "--no-record", "--json"],
+        "install": ["{profile}", "server", "install", "--json"],
+        "start": ["{profile}", "server", "start", "--json"]
+      },
       "sync": {
         "run": ["{profile}", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"],
-        "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "50", "--json"],
+        "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "200", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "messages",
         "note": null
       },
-      "storeInfo": ["store", "info", "--json"],
-      "storeTables": ["store", "tables", "list", "--json"],
-      "storeTableSizes": ["store", "tables", "list", "--full", "--json"],
+      "storeInfo": ["store", "info", "--no-record", "--json"],
+      "storeTables": ["store", "tables", "list", "--no-record", "--json"],
+      "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
       "storeCheck": ["store", "check", "--json"],
       "storeBackup": ["store", "backup", "{file}", "--json"],
       "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--json"],
-      "storeResetPreview": ["store", "reset", "--dry-run", "--json"],
+      "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],
       "storeReset": ["store", "reset", "--no-backup", "--yes", "--json"],
       "storage": {
         "app": "max-cli",
         "env": "MAX"
       },
       "settings": {
-        "show": ["{profile}", "config", "show", "--json"],
+        "show": ["{profile}", "config", "show", "--no-record", "--json"],
         "set": ["{profile}", "config", "set", "--json"],
         "unset": ["{profile}", "config", "unset", "--json"],
         "shape": "rows",
@@ -589,7 +601,7 @@
         "readOnly": ["default_profile"]
       },
       "permissions": {
-        "commands": ["{profile}", "commands", "--json"],
+        "commands": ["{profile}", "commands", "--no-record", "--json"],
         "groups": [
           {
             "key": "messages",
@@ -647,13 +659,13 @@
       "docs": "https://wirecat.dev/en/docs/wa",
       "repo": "https://github.com/WireCatLabs/whatsapp-cli",
       "profiles": {
-        "args": ["account", "list", "--json"],
+        "args": ["account", "list", "--no-record", "--json"],
         "shape": "items"
       },
       "doctor": ["{profile}", "doctor", "--json"],
       "runs": {
-        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--json"],
-        "show": ["runs", "show", "{run}", "--json"]
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
       "search": {
         "args": [
@@ -847,21 +859,21 @@
       },
       "setup": ["{profile}", "setup"],
       "skill": {
-        "status": ["skill", "status", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"],
         "install": ["skill", "install", "--for", "{target}", "--json"],
-        "show": ["skill", "show", "--json"]
+        "show": ["skill", "show", "--no-record", "--json"]
       },
       "mcp": {
-        "check": ["{profile}", "mcp", "check", "--json"],
+        "check": ["{profile}", "mcp", "check", "--no-record", "--json"],
         "add": ["{profile}", "mcp", "add", "{client}", "--json"]
       },
       "mcpServer": {
         "port": 8768,
-        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--json"],
-        "stop": ["mcp", "server", "stop", "--json"],
-        "status": ["mcp", "server", "status", "--json"],
-        "revoke": ["mcp", "revoke", "--json"],
-        "config": ["mcp", "config", "--json"]
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
       },
       "tasks": {
         "list": [
@@ -871,9 +883,15 @@
           "state:open",
           "--limit",
           "1000",
+          "--no-record",
           "--json=id,key,claimed_by,claimed_until"
         ],
         "release": ["{profile}", "tasks", "release", "{task}", "--holder", "owner", "--json"]
+      },
+      "background": {
+        "status": ["{profile}", "server", "status", "--no-record", "--json"],
+        "install": ["{profile}", "server", "install", "--json"],
+        "start": ["{profile}", "server", "start", "--json"]
       },
       "sync": {
         "run": null,
@@ -882,20 +900,20 @@
         "what": "messages",
         "note": "WhatsApp sends new messages while `wa {profile} serve` runs; there is no sync to start."
       },
-      "storeInfo": ["store", "info", "--json"],
-      "storeTables": ["store", "tables", "list", "--json"],
-      "storeTableSizes": ["store", "tables", "list", "--full", "--json"],
+      "storeInfo": ["store", "info", "--no-record", "--json"],
+      "storeTables": ["store", "tables", "list", "--no-record", "--json"],
+      "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
       "storeCheck": ["store", "check", "--json"],
       "storeBackup": ["store", "backup", "{file}", "--json"],
       "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--json"],
-      "storeResetPreview": ["store", "reset", "--dry-run", "--json"],
+      "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],
       "storeReset": ["store", "reset", "--no-backup", "--yes", "--json"],
       "storage": {
         "app": "whatsapp-cli",
         "env": "WA"
       },
       "settings": {
-        "show": ["{profile}", "config", "show", "--json"],
+        "show": ["{profile}", "config", "show", "--no-record", "--json"],
         "set": ["{profile}", "config", "set", "--json"],
         "unset": ["{profile}", "config", "unset", "--json"],
         "shape": "rows",
@@ -906,7 +924,7 @@
         "readOnly": ["default_profile"]
       },
       "permissions": {
-        "commands": ["{profile}", "commands", "--json"],
+        "commands": ["{profile}", "commands", "--no-record", "--json"],
         "groups": [
           {
             "key": "messages",
@@ -964,13 +982,13 @@
       "docs": "https://wirecat.dev/en/docs/zm",
       "repo": "https://github.com/WireCatLabs/zoom-cli",
       "profiles": {
-        "args": ["doctor", "--json"],
+        "args": ["doctor", "--no-record", "--json"],
         "shape": "item.profiles"
       },
       "doctor": ["{profile}", "session", "status", "--json"],
       "runs": {
-        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--json"],
-        "show": ["runs", "show", "{run}", "--json"]
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
       "search": {
         "args": [
@@ -1003,21 +1021,21 @@
       },
       "setup": ["{profile}", "session", "start"],
       "skill": {
-        "status": ["skill", "status", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"],
         "install": ["skill", "install", "--for", "{target}", "--json"],
-        "show": ["skill", "show", "--json"]
+        "show": ["skill", "show", "--no-record", "--json"]
       },
       "mcp": null,
       "mcpServer": null,
       "tasks": null,
       "sync": {
         "run": ["{profile}", "meetings", "sync", "--record", "--json"],
-        "last": ["runs", "list", "command:\"meetings sync\" status:success", "--limit", "50", "--json"],
+        "last": ["runs", "list", "command:\"meetings sync\" status:success", "--limit", "50", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "meetings",
         "note": null
       },
-      "storeInfo": ["store", "info", "--json"],
+      "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": null,
       "storeTableSizes": null,
       "storeCheck": null,
@@ -1030,7 +1048,7 @@
         "env": "ZM"
       },
       "settings": {
-        "show": ["config", "show", "--json"],
+        "show": ["config", "show", "--no-record", "--json"],
         "set": ["config", "set", "--json"],
         "unset": null,
         "shape": "flat",
@@ -1068,13 +1086,13 @@
       "docs": "https://wirecat.dev/en/docs/drive",
       "repo": "https://github.com/WireCatLabs/drive-cli",
       "profiles": {
-        "args": ["session", "list", "--json"],
+        "args": ["session", "list", "--no-record", "--json"],
         "shape": "item.items"
       },
       "doctor": ["{profile}", "status", "--json"],
       "runs": {
-        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--json"],
-        "show": ["runs", "show", "{run}", "--json"]
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
       "search": {
         "args": [
@@ -1143,28 +1161,28 @@
       },
       "setup": ["{profile}", "session", "start"],
       "skill": {
-        "status": ["skill", "status", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"],
         "install": ["skill", "install", "--for", "{target}", "--json"],
-        "show": ["skill", "show", "--json"]
+        "show": ["skill", "show", "--no-record", "--json"]
       },
       "mcp": null,
       "mcpServer": {
         "port": 8769,
-        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--json"],
-        "stop": ["mcp", "server", "stop", "--json"],
-        "status": ["mcp", "server", "status", "--json"],
-        "revoke": ["mcp", "revoke", "--json"],
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
         "config": null
       },
       "tasks": null,
       "sync": {
         "run": ["{profile}", "sync", "--record", "--json"],
-        "last": ["{profile}", "status", "--json"],
+        "last": ["{profile}", "status", "--no-record", "--json"],
         "lastShape": "driveStatus",
         "what": "files",
         "note": null
       },
-      "storeInfo": ["store", "info", "--json"],
+      "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": null,
       "storeTableSizes": null,
       "storeCheck": null,
@@ -1177,7 +1195,7 @@
         "env": "DRIVE"
       },
       "settings": {
-        "show": ["config", "show", "--json"],
+        "show": ["config", "show", "--no-record", "--json"],
         "set": ["{profile}", "config", "set", "--json"],
         "unset": null,
         "shape": "profiles",
@@ -1211,8 +1229,8 @@
       "profiles": null,
       "doctor": ["doctor", "--json"],
       "runs": {
-        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--json"],
-        "show": ["runs", "show", "{run}", "--json"]
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
       },
       "search": {
         "args": ["search", "notes", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json", "--", "{query}"],
@@ -1274,31 +1292,31 @@
       },
       "setup": null,
       "skill": {
-        "status": ["skill", "status", "--json"],
+        "status": ["skill", "status", "--no-record", "--json"],
         "install": ["skill", "install", "--for", "{target}"],
-        "show": ["skill", "show"],
-        "doctorSkills": ["doctor", "--json"]
+        "show": ["skill", "show", "--no-record"],
+        "doctorSkills": ["doctor", "--no-record", "--json"]
       },
       "mcp": null,
       "mcpServer": {
         "port": 8767,
         "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--json"],
         "stop": ["mcp", "server", "stop", "--json"],
-        "status": ["mcp", "server", "status", "--json"],
+        "status": ["mcp", "server", "status", "--no-record", "--json"],
         "revoke": ["mcp", "revoke", "--json"],
         "config": null
       },
-      "memory": { "minVersion": "0.131.11" },
+      "memory": { "minVersion": "0.131.14" },
       "tasks": null,
-      "taskBoard": { "minVersion": "0.131.11" },
+      "taskBoard": { "minVersion": "0.131.14" },
       "sync": {
         "run": ["sync", "--record", "--json"],
-        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--json"],
+        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "notes and mail",
         "note": null
       },
-      "storeInfo": ["store", "info", "--json"],
+      "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": null,
       "storeTableSizes": null,
       "storeCheck": null,
@@ -1325,7 +1343,7 @@
       "docs": "https://wirecat.dev/en/docs/email",
       "repo": "https://github.com/WireCatLabs/cli-memo",
       "profiles": {
-        "args": ["doctor", "--json"],
+        "args": ["doctor", "--no-record", "--json"],
         "shape": "item.mail.accounts"
       },
       "doctor": ["mail", "check", "{profile}", "--json"],
@@ -1436,7 +1454,7 @@
       "tasks": null,
       "sync": {
         "run": ["sync", "--only", "mail", "--record", "--json"],
-        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--json"],
+        "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "mail",
         "note": null

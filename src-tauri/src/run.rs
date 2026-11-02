@@ -379,6 +379,18 @@ fn kill(child: &mut Child) {
     {
         let _ = Command::new("taskkill").args(["/PID", &child.id().to_string(), "/T", "/F"]).output();
     }
+    // A child that ignores SIGTERM (an npm postinstall, a messenger engine) would outlive the group's leader.
+    let deadline = Instant::now() + Duration::from_secs(2);
+    while Instant::now() < deadline && matches!(child.try_wait(), Ok(None)) {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    #[cfg(unix)]
+    if let Ok(pgid) = i32::try_from(child.id()) {
+        // SAFETY: as above; a group that already exited answers ESRCH, which is ignored.
+        unsafe {
+            libc::kill(-pgid, libc::SIGKILL);
+        }
+    }
     let _ = child.kill();
     let _ = child.wait();
 }

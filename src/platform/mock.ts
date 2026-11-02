@@ -1,5 +1,5 @@
 import { ownerId, tools } from "@/domain/catalog"
-import { agentsMock } from "./mock-agents"
+import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
 import { cloudflareMock } from "./mock-cloudflare"
@@ -13,6 +13,7 @@ import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
 import { settingsMock } from "./mock-settings"
+import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
 import { linkedProfiles, signInMock } from "./mock-signin"
 import { syncMock } from "./mock-sync"
 import { tailscaleMock } from "./mock-tailscale"
@@ -33,6 +34,7 @@ import type { Platform } from "./types"
 // A stand-in for Rust so the interface can be designed and reviewed in a browser.
 // `?state=fresh` shows a machine with nothing installed, `?state=nonode` one without Node.js,
 // `?state=one` only Telegram, `?fail=<tool>` makes that tool's install fail (`?fail=storage`: reading Storage), `?hold=<tool>` keeps it installing, `?install=<tool>` starts one.
+// `?unconfirmed=<tool>` refuses its install: the release was not built by the tool's own release workflow.
 // `?state=noadmin` has an apt Node whose npm needs administrator rights. With `nonode` or `noadmin`, "Set up Node.js
 // for me" runs a fake download; `?node=fail` makes its checksum mismatch, `?node=ready` starts with it already set up.
 // `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
@@ -40,6 +42,7 @@ import type { Platform } from "./types"
 // `?mcp=<tool>` opens that tool's MCP server, running; `?mcp-fail=<tool>` makes its Start fail (`mock-mcp.ts`).
 // `?memory=<state>` and `?memory-fail=read|write` set up the Memory page (`mock-memory.ts`).
 // `?tasks=<state>` and `?view=table|board` set up the Tasks page (`mock-tasks.ts`).
+// `?showcase` is the healthy machine for the website's screenshots (`mock-showcase.ts`).
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("state") ?? "mixed"
@@ -158,20 +161,23 @@ const STATE_ENTRIES: Record<string, [string, boolean, number][]> = {
 
 export function createMock(os: Platform["os"]): Platform {
   const installed = new Map<string, string>(
-    scenario === "mixed"
-      ? [
-          ["tg", "0.88.0"],
-          ["max", "0.74.0"],
-          ["wa", "0.6.0"],
-          ["zm", "0.42.0"],
-          ["memo", "0.93.0"],
-        ]
-      : scenario === "one"
-        ? [["tg", "0.88.0"]]
-        : [],
+    showcase
+      ? Object.entries(SHOWCASE_VERSIONS)
+      : scenario === "mixed"
+        ? [
+            ["tg", "0.88.0"],
+            ["max", "0.74.0"],
+            ["wa", "0.6.0"],
+            ["zm", "0.42.0"],
+            ["memo", "0.93.0"],
+          ]
+        : scenario === "one"
+          ? [["tg", "0.88.0"]]
+          : [],
   )
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
+  const agents = agentsMock((id) => installed.get(id))
   let cancelled = false
   const MB = 1024 * 1024
   const NODE = { version: "24.22.1", bytes: 58_290_700, dir: "~/.local/share/dev.wirecat.desktop/node/v24.22.1" }
@@ -210,7 +216,7 @@ export function createMock(os: Platform["os"]): Platform {
   const program = (path: string, version: string) => ({ path, version, ok: true, problem: null })
   const absent = { path: null, version: null, ok: false, problem: "not found" }
 
-  return {
+  const mock: Platform = {
     kind: "mock",
     os,
     async readiness(): Promise<Readiness> {
@@ -404,9 +410,26 @@ export function createMock(os: Platform["os"]): Platform {
       cancelled = false
       const pkg = PACKAGES[id] ?? id
       onEvent({ event: "step", step: "check" })
+      const version = LATEST[id] ?? "1.0.0"
+      const repo = `https://github.com/WireCatLabs/${pkg.replace("@wirecat/", "")}`
+      onEvent({ event: "log", line: `Checking that ${pkg} ${version} was built by ${repo}…`, stderr: false })
       await delay(700)
+      if (params.get("unconfirmed") === id) {
+        const signer = "https://github.com/someone-else/fork/.github/workflows/publish.yml@refs/heads/main"
+        onEvent({
+          event: "log",
+          line: `built by ${signer}, not by ${repo}/.github/workflows/release.yml`,
+          stderr: true,
+        })
+        return onEvent({
+          event: "failed",
+          reason: "unconfirmed",
+          message: `${pkg} ${version} could not be confirmed as built by WireCat, so it was not installed.`,
+          hint: "Try again later. If it keeps happening, tell WireCat with Report a problem.",
+        })
+      }
       onEvent({ event: "step", step: "install" })
-      onEvent({ event: "log", line: `$ npm install --global ${pkg}@latest --no-fund --no-audit`, stderr: false })
+      onEvent({ event: "log", line: `$ npm install --global ${pkg}@${version} --no-fund --no-audit`, stderr: false })
       for (const line of [
         `npm http fetch GET 200 https://registry.npmjs.org/${pkg} 312ms`,
         "npm http fetch GET 200 https://registry.npmjs.org/@wirecat%2fcli-core 188ms",
@@ -429,9 +452,11 @@ export function createMock(os: Platform["os"]): Platform {
       }
       onEvent({ event: "step", step: "verify" })
       await delay(800)
-      const version = LATEST[id] ?? "1.0.0"
+      const update = installed.has(id)
       installed.set(id, version)
-      onEvent({ event: "done", version, path: `~/.nvm/versions/node/v24.19.0/bin/${id}`, shadowedBy: null })
+      const skills = update ? await refreshSkillsMock(agents, id, version) : undefined
+      const path = `~/.nvm/versions/node/v24.19.0/bin/${id}`
+      onEvent({ event: "done", version, path, shadowedBy: null, ...(skills ? { skills } : {}) })
     },
     async uninstall(given, onEvent: (e: InstallEvent) => void) {
       const id = ownerId(given)
@@ -495,7 +520,7 @@ export function createMock(os: Platform["os"]): Platform {
     storeTables: (sizes) => storeTablesMock(asksArchive(), sizes),
     storeCheck: () => storeCheckMock(asksArchive()),
     ...backups.api,
-    ...agentsMock((id) => installed.get(id)),
+    ...agents,
     ...memoryMock(),
     ...tasksMock(),
     async cancelInstall() {
@@ -519,4 +544,5 @@ export function createMock(os: Platform["os"]): Platform {
     },
     async window() {},
   }
+  return showcase ? { ...mock, ...showcaseMock(mock, installed) } : mock
 }

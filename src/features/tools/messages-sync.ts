@@ -190,6 +190,16 @@ const en = {
       }
     },
   },
+  background: {
+    region: (name: string) => `${name} in the background`,
+    stopped: "Not kept up to date in the background",
+    stoppedDetail: (tool: string) => `New messages reach WireCat only while ${tool} runs in the background.`,
+    keep: "Keep up to date",
+    starting: "Starting…",
+    kept: (tool: string) => `${tool} now keeps this profile up to date in the background.`,
+    keptDetail: "If it stops after this computer restarts, start it here again.",
+    failed: (message: string) => `Could not start it: ${message}`,
+  },
 }
 
 const ru: typeof en = {
@@ -278,6 +288,16 @@ const ru: typeof en = {
       }
     },
   },
+  background: {
+    region: (name) => `${name} в фоне`,
+    stopped: "Не обновляется в фоне",
+    stoppedDetail: (tool) => `Новые сообщения попадают в WireCat, только пока ${tool} работает в фоне.`,
+    keep: "Обновлять в фоне",
+    starting: "Запуск…",
+    kept: (tool) => `Теперь ${tool} обновляет этот профиль в фоне.`,
+    keptDetail: "Если после перезагрузки компьютера он остановится, запустите его здесь снова.",
+    failed: (message) => `Не удалось запустить: ${message}`,
+  },
 }
 
 const es: typeof en = {
@@ -365,7 +385,18 @@ const es: typeof en = {
       }
     },
   },
+  background: {
+    region: (name) => `${name} en segundo plano`,
+    stopped: "No se mantiene al día en segundo plano",
+    stoppedDetail: (tool) => `Los mensajes nuevos llegan a WireCat solo mientras ${tool} funciona en segundo plano.`,
+    keep: "Mantener al día",
+    starting: "Iniciando…",
+    kept: (tool) => `${tool} ya mantiene este perfil al día en segundo plano.`,
+    keptDetail: "Si se detiene al reiniciar el ordenador, vuelve a iniciarlo aquí.",
+    failed: (message) => `No se pudo iniciar: ${message}`,
+  },
 }
 
 export type SyncText = (typeof en)["sync"]
+export type BackgroundText = (typeof en)["background"]
 export const syncMessages: Messages<typeof en> = { en, ru, es }

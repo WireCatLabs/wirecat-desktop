@@ -13,7 +13,8 @@ import type { Platform } from "./types"
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const TOTAL = 128
 
-const CHATS = ["Harbour flat", "Design crit", "Family", "Climbing club", "Accountant"]
+// List lengths share no factor, so neighbouring hits never repeat one chat, sender and line together.
+const CHATS = ["Harbour flat", "Design crit", "Family", "Climbing club", "Accountant", "Studio rent"]
 const PEOPLE = ["Ana Ruiz", "Marco Bellini", "Jo Park", "Lena Vogel", "You"]
 const LINES = [
   "Sent the invoice for October, can you check the VAT line?",
@@ -21,8 +22,17 @@ const LINES = [
   "Let's move the review to Thursday, the invoice can wait",
   "Found the old invoice from the landlord in the shared folder",
   "Draft is ready, invoice numbers start at 2026-041",
+  "Did the gym ever send an invoice for the October fees?",
+  "Paid the electricity invoice, it was 20 € less than September",
 ]
 const TITLES = ["Quarterly plan", "Invoice template", "Harbour flat lease", "Weekly sync", "Tax checklist"]
+
+// Photos, voice messages and files often come without text: the page names what they carry instead.
+const FILES = [
+  { position: 1, kind: "photo" },
+  { position: 1, kind: "voice" },
+  { position: 1, kind: "document", name: "invoice.pdf", size: 48213 },
+]
 
 function hit(what: string, i: number): SearchHit {
   const at = new Date(Date.UTC(2026, 9, 30, 18, 0) - i * 7.3 * 3600_000).toISOString()
@@ -34,7 +44,8 @@ function hit(what: string, i: number): SearchHit {
       chat_title: CHATS[i % CHATS.length],
       sender_name: PEOPLE[i % PEOPLE.length],
       sender_is_me: i % PEOPLE.length === 4,
-      excerpt: line,
+      excerpt: i % 7 === 3 ? "" : line,
+      ...(i % 7 === 3 ? { attachments: [FILES[i % FILES.length]] } : {}),
       matched_in: "text",
       score: Math.round((1 - i / TOTAL) * 1000) / 1000,
       untrusted: ["chat_title", "sender_name", "excerpt"],
@@ -46,7 +57,11 @@ function hit(what: string, i: number): SearchHit {
       chat_title: "INBOX",
       sender_name: PEOPLE[i % 4],
       excerpt: line,
-      email: { subject: `Re: ${TITLES[i % TITLES.length]}`, from: "ana@example.com", labels: ["inbox"] },
+      email: {
+        subject: `Re: ${TITLES[i % TITLES.length]}`,
+        from: `${(PEOPLE[i % 4] ?? "").split(" ")[0]?.toLowerCase()}@example.com`,
+        labels: ["inbox"],
+      },
       untrusted: ["chat_title", "sender_name", "excerpt"],
     }
   if (what === "meetings")
@@ -108,12 +123,35 @@ const VALUES: Record<string, ValueItem[]> = {
   tags: ["work", "family", "receipts"].map((value) => ({ value, label: null, detail: null })),
 }
 
-const AROUND = [
-  "Can you send me last month's one too?",
-  "Sure, give me a minute",
-  "Here it is",
-  "Thanks! I'll forward it to the accountant",
-  "Got it, looks right",
+// One short conversation: five messages before the hit, five after.
+const BEFORE = [
+  "Morning! Are we still on for Thursday?",
+  "Yes, 10:30 works for me",
+  "Good. One thing before then",
+  "Go ahead",
+  "It's about the October paperwork",
+]
+const AFTER = [
+  "Here's the PDF",
+  "Thanks, I'll look at it tonight",
+  "Looks right to me, I'll pass it to the accountant",
+  "Perfect, thank you",
+  "See you Thursday then",
+]
+const SPOKEN = [
+  "Let's start with the numbers from last week",
+  "Bookings are up a little, mostly weekends",
+  "Weekdays are still quiet before noon",
+  "Could we try a morning discount?",
+  "Maybe, but only if the clinic agrees",
+  "I'll ask them on Friday",
+  "Next item is the new website",
+  "The designer sent two versions yesterday",
+  "I prefer the second one, it reads better on a phone",
+  "Same here",
+  "Then we go with the second",
+  "Anything else before we close?",
+  "Only the holiday rota, I'll send it by mail",
 ]
 
 // The shapes the tools print: `messages context` and memo's `messages show` list `items`, `meetings transcript`
@@ -129,48 +167,91 @@ function around(what: string, ref: string): unknown {
             offset_ms: i * 60_000,
             end_ms: i * 60_000 + 55_000,
             speaker: PEOPLE[i % 4],
-            text: i % 7 === 3 ? LINES[i % LINES.length] : AROUND[i % AROUND.length],
+            text: i % 7 === 3 ? LINES[i % LINES.length] : SPOKEN[i % SPOKEN.length],
           })),
         },
       ],
     }
   const at = Date.UTC(2026, 9, 30, 18, 0)
+  // The hit's own number is the last part of its ref (`hit` above), so the middle message is the one clicked.
+  const n = Math.max(0, Number(ref.split("/").pop()) - 4000) || 0
+  const sender = PEOPLE[n % PEOPLE.length] ?? "You"
+  const other = sender === "You" ? (PEOPLE[0] ?? "") : sender
+  const texts = [...BEFORE, LINES[n % LINES.length] ?? "", ...AFTER]
   return {
-    items: Array.from({ length: 11 }, (_, i) => ({
-      ref: i === 5 ? ref : `${ref}-${i}`,
-      timestamp: new Date(at + (i - 5) * 240_000).toISOString(),
-      sender_name: PEOPLE[i % PEOPLE.length],
-      sender_is_me: i % PEOPLE.length === 4,
-      text: i === 5 ? LINES[0] : AROUND[i % AROUND.length],
-      attachments: i === 6 ? [{ kind: "file", name: "invoice-2026-10.pdf", size: 48_211 }] : [],
-      anchor: what === "messages" && i === 5 ? true : undefined,
-    })),
+    items: texts.map((text, i) => {
+      const name = i === 5 ? sender : i % 2 === 0 ? other : "You"
+      return {
+        ref: i === 5 ? ref : `${ref}-${i}`,
+        timestamp: new Date(at + (i - 5) * 240_000).toISOString(),
+        sender_name: name,
+        sender_is_me: name === "You",
+        text,
+        attachments: i === 6 ? [{ kind: "file", name: "invoice-2026-10.pdf", size: 48_211 }] : [],
+        anchor: what === "messages" && i === 5 ? true : undefined,
+      }
+    }),
   }
 }
 
-// Stand-in for the agent: the owner's words become the tool's own fields, never fields it does not have.
+// Russian names after у/от/с stand in the genitive or instrumental; a query names people in the nominative.
+const ENDINGS: [RegExp, string][] = [
+  [/ея$/u, "ей"],
+  [/ей$/u, "я"],
+  [/ой$/u, "а"],
+  [/([гкхжчшщ])и$/u, "$1а"],
+  [/ы$/u, "а"],
+  [/и$/u, "я"],
+  [/([бвдзлмнпрстф])а$/u, "$1"],
+]
+
+function nominative(name: string): string {
+  const ending = ENDINGS.find(([re]) => re.test(name))
+  return ending ? name.replace(ending[0], ending[1]) : name
+}
+
+const FILLER = new Set(
+  (
+    "a an the find show me my messages message about from in on of with that what where how sent last this week month " +
+    "найди покажи сообщения сообщение про о об что где как у от с за на в из прошлой этой неделе неделю месяц " +
+    "busca muestra mensajes sobre de que el la los las del en"
+  ).split(" "),
+)
+
+// Stand-in for the agent in the browser build: a few patterns in English and Russian, only the tool's own keys.
 function draft(id: string, request: string): string {
   const fields = new Set((findTool(id)?.search?.fields ?? []).map((f) => f.name))
   const words = request.toLowerCase()
   const terms: string[] = []
-  const person = request.match(/\bfrom ([A-Z][\p{L}]+(?: [A-Z][\p{L}]+)?)/u)?.[1]
-  if (person && fields.has("from")) terms.push(`from:"${person}"`)
+  const latin = request.match(/\bfrom ([A-Z][\p{L}]+(?: [A-Z][\p{L}]+)?)/u)?.[1]
+  const cyrillic = request.match(/(?:^|\s)(?:у|от|с)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)/u)?.[1]
+  const person = latin ?? cyrillic?.split(" ").map(nominative).join(" ")
+  const personKey = fields.has("from") ? "from" : fields.has("author") ? "author" : null
+  if (person) terms.push(personKey ? `${personKey}:"${person}"` : person)
   const chat = request.match(/\bin (?:the )?"?([A-Z][\p{L} ]+?)"? (?:chat|group)\b/u)?.[1]
   if (chat && fields.has("chat")) terms.push(`chat:"${chat}"`)
-  const kinds: [string, string][] = [
-    ["photo", "photo"],
-    ["picture", "photo"],
-    ["file", "file"],
-    ["link", "link"],
-    ["voice", "voice"],
+  const kinds: [RegExp, string][] = [
+    [/photo|picture|фото/u, "photo"],
+    [/\bfiles?\b|файл/u, "file"],
+    [/link|ссылк/u, "link"],
+    [/\bvoice|голосов/u, "voice"],
   ]
-  const has = kinds.find(([word]) => words.includes(word))?.[1]
+  const has = kinds.find(([word]) => word.test(words))?.[1]
   if (has && fields.has("has")) terms.push(`has:${has}`)
-  if (/last week|this week|7 days/.test(words) && fields.has("date")) terms.push("date>=7d")
-  else if (/last month|30 days/.test(words) && fields.has("date")) terms.push("date>=30d")
-  const topic = words.match(/\babout ([\p{L}]+)/u)?.[1]
-  if (topic) terms.unshift(topic)
-  return terms.join(" ") || words.split(/\s+/).slice(-1)[0] || ""
+  if (/last week|this week|7 days|недел/u.test(words) && fields.has("date")) terms.push("date>=7d")
+  else if (/last month|30 days|месяц/u.test(words) && fields.has("date")) terms.push("date>=30d")
+  const said = new Set([
+    ...(cyrillic ?? latin ?? "").toLowerCase().split(" "),
+    ...(chat ?? "").toLowerCase().split(" "),
+  ])
+  const topic = words
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w && !FILLER.has(w) && !said.has(w) && !kinds.some(([k]) => k.test(w)))
+    .filter(
+      (w) => !/^(photos?|pictures?|files?|links?|voice|фото\p{L}*|ссылк\p{L}*|голосов\p{L}*|chat|group)$/u.test(w),
+    )
+  terms.unshift(...topic.slice(0, 3))
+  return terms.join(" ")
 }
 
 export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "searchContext" | "searchDraft"> = {
@@ -179,8 +260,11 @@ export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "search
     const mode = params.get("search-ai")
     const by = mode === "codex" ? "codex" : "claude-code"
     if (mode === "none") return { kind: "none" }
-    if (mode === "fail") return { kind: "failed", by, message: "Claude Code's plan limit is used up for now" }
-    return { kind: "query", by, query: draft(id, request) }
+    if (mode === "fail") return { kind: "failed", by, reason: "other", message: "Claude AI usage limit reached" }
+    if (mode === "signedout") return { kind: "failed", by, reason: "signed-out", message: "" }
+    const query = draft(id, request)
+    if (!query) return { kind: "failed", by, reason: "empty", message: "" }
+    return { kind: "query", by, query }
   },
   async searchContext(id, _profile, reference) {
     await delay(500)
@@ -226,10 +310,7 @@ export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "search
     const hits = Array.from({ length: Math.max(0, Math.min(limit, total - from)) }, (_, i) =>
       hit(search.what, from + i),
     )
-    const notes =
-      search.what === "messages" && total > 0
-        ? ["searched 12,480 messages in 64 chats — 3 never fetched, 5 behind"]
-        : []
+    const notes = search.what === "messages" ? ["searched 12,480 messages in 64 chats — 3 never fetched, 5 behind"] : []
     return {
       kind: "hits",
       hits,

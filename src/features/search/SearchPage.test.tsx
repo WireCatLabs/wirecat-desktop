@@ -1,7 +1,8 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { useNav } from "../nav"
 import { useTools } from "../tools/store"
 import { SearchPage } from "./SearchPage"
 import { useSearch } from "./store"
@@ -38,11 +39,18 @@ describe("Search", () => {
     expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
     expect(search).toHaveBeenLastCalledWith("tg", "personal", "invoice", 50, 1)
     expect(screen.getByText(/searched 12,480 messages/)).toBeInTheDocument()
+    expect(screen.getAllByText("Photo").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Voice message").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("invoice.pdf").length).toBeGreaterThan(0)
 
     await user.click(screen.getAllByRole("button", { name: "Show the whole result: Harbour flat" })[0] as HTMLElement)
-    expect(
-      await screen.findByRole("group", { name: "Everything the tool returned for this result" }),
-    ).toHaveTextContent("chat_title")
+    expect(await screen.findByText("msg:telegram/1/-1000/4000")).toBeInTheDocument()
+    expect(screen.getByText("Reference")).toBeInTheDocument()
+    expect(screen.queryByText("untrusted")).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show raw data" }))
+    const raw = await screen.findByRole("group", { name: "Everything the tool returned for this result" })
+    expect(raw).toHaveTextContent("chat_title")
+    expect(raw).not.toHaveTextContent("untrusted")
 
     await user.click(screen.getByRole("button", { name: "Next page" }))
     expect(await screen.findByText("Showing 51–100 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
@@ -161,6 +169,36 @@ describe("Search", () => {
     expect(search).not.toHaveBeenCalled()
   }, 15000)
 
+  it("says which agent could not write the query, and how to fix it", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchDraft").mockResolvedValue({
+      kind: "failed",
+      by: "codex",
+      reason: "signed-out",
+      message: "",
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "как купить велосипед у Милы{Enter}")
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Codex, with your ChatGPT plan, could not write the query: it is not signed in. Run codex login once in a terminal.",
+    )
+    expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("")
+  }, 15000)
+
+  it("points to the Agents page when no agent can write the query", async () => {
+    const user = userEvent.setup()
+    const draft = vi.spyOn(platform, "searchDraft").mockResolvedValue({ kind: "none" })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "photos from Ana")
+    await user.click(screen.getByRole("button", { name: "Write the query" }))
+    expect(await screen.findByText(/WireCat needs one of these agents/)).toBeInTheDocument()
+    expect(draft).toHaveBeenCalledWith("tg", "photos from Ana")
+    await user.click(screen.getByRole("button", { name: "Open Agents" }))
+    expect(useNav.getState().active).toBe("agents")
+  }, 15000)
+
   it("shows the tool's query error at its place until the query changes", async () => {
     const user = userEvent.setup()
     render(<SearchPage />)
@@ -205,6 +243,40 @@ describe("Search", () => {
     )
   }, 15000)
 
+  it("offers to report a search the tool itself failed", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchStore").mockResolvedValue({
+      kind: "failed",
+      candidates: [],
+      message: "the command failed; this is a bug",
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "MAX")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByRole("combobox", { name: "Search messages" }), "hello{Enter}")
+    expect(await screen.findByText("the command failed; this is a bug")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Report this" })).toBeVisible()
+  }, 15000)
+
+  it("shows no results, not an error, for an empty answer that did not cover every chat", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchStore").mockResolvedValue({
+      kind: "hits",
+      hits: [],
+      hasMore: false,
+      paged: true,
+      notes: ["searched 207,424 messages in 1,380 chats — 27 never fetched"],
+      total: null,
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "MAX")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByRole("combobox", { name: "Search messages" }), "zzq{Enter}")
+    expect(await screen.findByText(/Nothing matches this search/)).toBeInTheDocument()
+    expect(screen.getByText(/27 never fetched/)).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Report this" })).not.toBeInTheDocument()
+  }, 15000)
+
   it("offers ready queries, then the tool's own values after a field", async () => {
     const user = userEvent.setup()
     const values = vi.spyOn(platform, "searchValues")
@@ -223,6 +295,19 @@ describe("Search", () => {
     await user.type(bar, "chat:des")
     await user.click(await screen.findByRole("option", { name: /Design crit/ }))
     expect(bar).toHaveValue('has:photo date>=7d chat:"-1001001" ')
+    const chip = screen.getByRole("button", { name: "Edit chat: Design crit" })
+    expect(chip).toHaveAttribute("title", 'chat: Design crit\nchat:"-1001001"')
+    expect(bar).toHaveAccessibleDescription(/Names in this search: chat: Design crit/)
+
+    const input = bar as HTMLInputElement
+    act(() => chip.click())
+    expect([input.selectionStart, input.selectionEnd]).toEqual([19, 34])
+    input.setSelectionRange(0, 0)
+    await user.click(chip)
+    expect([input.selectionStart, input.selectionEnd]).toEqual([19, 34])
+    await user.keyboard("{End}{ArrowLeft}{Backspace}")
+    expect(bar).toHaveValue("has:photo date>=7d")
+    expect(screen.queryByRole("button", { name: "Edit chat: Design crit" })).not.toBeInTheDocument()
   }, 15000)
 
   it("turns a chat name that fits two chats into a choice that names one by id", async () => {
@@ -237,6 +322,7 @@ describe("Search", () => {
     expect(await screen.findByText("This name fits several chats. Pick the one you meant below.")).toBeInTheDocument()
     await user.click(await screen.findByRole("button", { name: /^@kyrillic/ }))
     expect(bar).toHaveValue('date>=3d chat:"-1001762030832"')
+    expect(screen.getByRole("button", { name: "Edit chat: @kyrillic" })).toBeInTheDocument()
     await waitFor(() =>
       expect(search).toHaveBeenLastCalledWith("tg", "personal", 'date>=3d chat:"-1001762030832"', 50, 1),
     )

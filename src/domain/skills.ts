@@ -76,3 +76,17 @@ export function cellAction(cell: SkillCell): "Install" | "Update" | null {
 }
 
 export const needsUpdate = (cell: SkillCell) => cell.kind === "stale" || cell.kind === "unversioned"
+
+/**
+ * The agents on this computer that read the places just rewritten, by name; before the agents are known, Claude Code
+ * for its own folder and `others` for the shared one.
+ */
+export function agentsReading(
+  targets: readonly SkillTarget[],
+  agents: readonly { name: string; foundBy: string | null; reads: readonly SkillTarget[] }[] | null,
+  others: string,
+): string[] {
+  const found = (agents ?? []).filter((a) => a.foundBy && a.reads.some((r) => targets.includes(r))).map((a) => a.name)
+  if (found.length > 0) return found
+  return [...new Set(targets.map((t) => (t === "claude" ? "Claude Code" : others)))]
+}

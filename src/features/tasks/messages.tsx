@@ -35,9 +35,6 @@ type Words = {
   status: string
   agent: string
   ready: string
-  chosen: (n: number) => string
-  find: (what: string) => string
-  noChoice: string
   nobody: string
   you: string
   unnamed: string
@@ -107,6 +104,8 @@ type Words = {
   properties: string
   projectHint: string
   moveRefused: string
+  partOf: string
+  moveAlone: (parent: string, project: string) => string
   someoneElse: string
   findPerson: string
   addNamed: (name: string) => string
@@ -135,8 +134,8 @@ type Words = {
   byPerson: string
   editNotes: string
   customDay: string
-  dueFrom: string
-  dueTo: string
+  rangeStart: string
+  rangeEnd: string
   done: string
   needTitle: string
   needProject: string
@@ -186,9 +185,6 @@ const en: Words = {
   status: "Status",
   agent: "Agent",
   ready: "Can start now",
-  chosen: (n) => `${n} chosen`,
-  find: (what) => `Find ${what.toLowerCase()}`,
-  noChoice: "No match",
   nobody: "Nobody",
   you: "You",
   unnamed: "Unnamed person",
@@ -271,6 +267,8 @@ const en: Words = {
   properties: "Properties",
   projectHint: "Moving it gives it a new key; the old key still finds it.",
   moveRefused: "Not moved: it has subtasks, which stay in this project. Move them or take them out of this task first:",
+  partOf: "Not moved: this task is part of",
+  moveAlone: (parent, project) => `Move it to ${project} on its own (it leaves ${parent})`,
   someoneElse: "Someone else…",
   findPerson: "Find or add a person",
   addNamed: (name) => `Add “${name}”`,
@@ -299,8 +297,8 @@ const en: Words = {
   byPerson: "a person",
   editNotes: "Edit",
   customDay: "Custom…",
-  dueFrom: "From",
-  dueTo: "To (optional)",
+  rangeStart: "Pick a day. Pick a second day to make it a range.",
+  rangeEnd: "Now pick the last day of the range, or Done to keep one day.",
   done: "Done",
   needTitle: "Type a title for the task.",
   needProject: "Choose the project it belongs to.",
@@ -344,9 +342,6 @@ const ru: Words = {
   status: "Статус",
   agent: "Агент",
   ready: "Можно начать",
-  chosen: (n) => `выбрано: ${n}`,
-  find: (what) => `Найти: ${what.toLowerCase()}`,
-  noChoice: "Ничего не найдено",
   nobody: "Никто",
   you: "Вы",
   unnamed: "Без имени",
@@ -437,6 +432,8 @@ const ru: Words = {
   projectHint: "При переносе у задачи будет новый ключ; по старому её тоже можно найти.",
   moveRefused:
     "Не перенесено: у задачи есть подзадачи, они остаются в этом проекте. Сначала перенесите их или уберите из этой задачи:",
+  partOf: "Не перенесено: эта задача — часть",
+  moveAlone: (parent, project) => `Перенести в ${project} отдельно (она выйдет из ${parent})`,
   someoneElse: "Кто-то другой…",
   findPerson: "Найти или добавить человека",
   addNamed: (name) => `Добавить «${name}»`,
@@ -465,8 +462,8 @@ const ru: Words = {
   byPerson: "человек",
   editNotes: "Изменить",
   customDay: "Другие даты…",
-  dueFrom: "С",
-  dueTo: "По (необязательно)",
+  rangeStart: "Выберите день. Второй выбранный день задаст период.",
+  rangeEnd: "Теперь выберите последний день периода или нажмите «Готово», чтобы оставить один день.",
   done: "Готово",
   needTitle: "Введите название задачи.",
   needProject: "Выберите проект задачи.",
@@ -511,9 +508,6 @@ const es: Words = {
   status: "Estado",
   agent: "Agente",
   ready: "Se puede empezar",
-  chosen: (n) => `${n} elegidos`,
-  find: (what) => `Buscar ${what.toLowerCase()}`,
-  noChoice: "Sin coincidencias",
   nobody: "Nadie",
   you: "Tú",
   unnamed: "Persona sin nombre",
@@ -597,6 +591,8 @@ const es: Words = {
   projectHint: "Al moverla recibe una clave nueva; la antigua también la encuentra.",
   moveRefused:
     "No se ha movido: tiene subtareas, que se quedan en este proyecto. Muévelas o sácalas de esta tarea primero:",
+  partOf: "No se ha movido: esta tarea forma parte de",
+  moveAlone: (parent, project) => `Moverla sola a ${project} (sale de ${parent})`,
   someoneElse: "Otra persona…",
   findPerson: "Busca o añade a una persona",
   addNamed: (name) => `Añadir «${name}»`,
@@ -625,8 +621,8 @@ const es: Words = {
   byPerson: "una persona",
   editNotes: "Editar",
   customDay: "Personalizado…",
-  dueFrom: "Desde",
-  dueTo: "Hasta (opcional)",
+  rangeStart: "Elige un día. Un segundo día lo convierte en un periodo.",
+  rangeEnd: "Ahora elige el último día del periodo, o pulsa Listo para quedarte con un solo día.",
   done: "Hecho",
   needTitle: "Escribe un título para la tarea.",
   needProject: "Elige el proyecto de la tarea.",

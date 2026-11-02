@@ -40,14 +40,14 @@ type Flow = {
   phase: "choose" | "running" | "done"
   /** Nothing is chosen until the owner ticks it. */
   tools: string[]
-  /** `<tool>/<profile>` to set read only. */
-  readOnly: string[]
+  /** `<tool>/<profile>` the owner unticked: every other profile offered is set read only (SEC-117). */
+  writable: string[]
   chats: Loaded<Chats> | null
   steps: Step[]
   open(agent: string): void
   close(): void
   toggleTool(id: string): void
-  toggleReadOnly(key: string): void
+  toggleWritable(key: string): void
   run(plan: ConnectPlan): Promise<void>
 }
 
@@ -62,12 +62,12 @@ export const useConnectFlow = create<Flow>((set, get) => {
     agent: null,
     phase: "choose",
     tools: [],
-    readOnly: [],
+    writable: [],
     chats: null,
     steps: [],
 
     open(agent) {
-      set({ agent, phase: "choose", tools: [], readOnly: [], steps: [], chats: null })
+      set({ agent, phase: "choose", tools: [], writable: [], steps: [], chats: null })
       if (!CHAT_AGENTS.has(agent)) return
       set({ chats: { state: "loading" } })
       platform.agentChats(agent).then(
@@ -79,9 +79,9 @@ export const useConnectFlow = create<Flow>((set, get) => {
     toggleTool: (id) =>
       set((s) => {
         const tools = toggled(s.tools, id)
-        return { tools, readOnly: s.readOnly.filter((k) => tools.includes(k.split("/")[0] ?? "")) }
+        return { tools, writable: s.writable.filter((k) => tools.includes(k.split("/")[0] ?? "")) }
       }),
-    toggleReadOnly: (key) => set((s) => ({ readOnly: toggled(s.readOnly, key) })),
+    toggleWritable: (key) => set((s) => ({ writable: toggled(s.writable, key) })),
 
     async run(plan) {
       const steps: Step[] = [

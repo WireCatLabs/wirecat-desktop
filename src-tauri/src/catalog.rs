@@ -16,6 +16,8 @@ pub struct Tool {
     pub id: String,
     pub bin: String,
     pub package: String,
+    /// The GitHub repository whose release workflow must have built the npm package (`provenance.rs`).
+    pub repo: String,
     pub profiles: Option<ProfileSource>,
     pub doctor: Vec<String>,
     pub runs: Option<RunsSource>,
@@ -40,6 +42,9 @@ pub struct Tool {
     pub task_board: Option<TaskBoardSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
+    /// The messengers' `serve` in the background, which keeps the archive current between syncs.
+    #[serde(default)]
+    pub background: Option<crate::background::BackgroundSource>,
     /// Another tool's id when this one is a part of its package: same `bin`, `package` and `storage`.
     pub part_of: Option<String>,
     pub name: String,
@@ -151,6 +156,19 @@ pub struct SearchSource {
     pub values: std::collections::BTreeMap<String, ValuesSource>,
     /// What surrounds one hit, read from the local store: `{ref}` is the hit's ref, `{refId}` its last part.
     pub context: Option<ContextSource>,
+    /// `messages`, `meetings`, `documents`, `notes` or `mail`.
+    pub what: String,
+    /// The keys a query may use; what an agent is told when it writes a query from the owner's words.
+    #[serde(default)]
+    pub fields: Vec<SearchField>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SearchField {
+    pub name: String,
+    pub example: String,
+    /// A closed list of values, or the name of a list read from the store (`chats`), which never leaves the computer.
+    pub values: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -238,6 +256,8 @@ pub fn validate_profile(profile: &str) -> Result<(), String> {
     let ok = !profile.is_empty()
         && profile.len() <= 64
         && !profile.starts_with('-')
+        // `.` and `..` are folder names to anything that builds a path from the profile.
+        && !profile.starts_with('.')
         && profile.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.'));
     if ok { Ok(()) } else { Err(format!("not a valid profile name: {profile}")) }
 }
@@ -265,6 +285,14 @@ mod tests {
     }
 
     #[test]
+    fn every_package_is_built_in_a_wirecat_repository() {
+        for t in &catalog().tools {
+            let name = t.repo.strip_prefix("https://github.com/WireCatLabs/").unwrap_or_default();
+            assert!(!name.is_empty() && !name.contains(['/', '@']), "{}: {}", t.id, t.repo);
+        }
+    }
+
+    #[test]
     fn a_part_shares_its_owners_package() {
         let parts: Vec<_> = catalog().tools.iter().filter(|t| t.part_of.is_some()).collect();
         assert!(!parts.is_empty());
@@ -284,6 +312,10 @@ mod tests {
         assert!(validate_profile("--help").is_err());
         assert!(validate_profile("a;rm").is_err());
         assert!(validate_profile("").is_err());
+        for dotted in [".", "..", ".hidden"] {
+            assert!(validate_profile(dotted).is_err(), "{dotted}");
+        }
+        assert!(validate_profile("work.2").is_ok());
     }
 
     #[test]
@@ -291,5 +323,42 @@ mod tests {
         let args = vec!["{profile}".to_string(), "doctor".to_string()];
         assert_eq!(with_profile(&args, Some("work")).unwrap(), vec!["work", "doctor"]);
         assert!(with_profile(&args, None).is_err());
+    }
+
+    /// Desktop's runs keep only failures, so a probe the app repeats on every page would fill the owner's run history
+    /// with the same failure (59 `mcp server status` in tg's). What the owner starts stays recorded.
+    #[test]
+    fn every_read_the_app_asks_on_its_own_is_left_out_of_the_run_history() {
+        for t in &catalog().tools {
+            let mut reads: Vec<&Vec<String>> = Vec::new();
+            reads.extend(t.profiles.as_ref().map(|p| &p.args));
+            reads.extend(t.runs.as_ref().into_iter().flat_map(|r| [&r.list, &r.show]));
+            reads.extend(t.skill.as_ref().into_iter().flat_map(|s| [&s.status, &s.show]));
+            reads.extend(t.skill.as_ref().and_then(|s| s.doctor_skills.as_ref()));
+            reads.extend(t.mcp.as_ref().map(|m| &m.check));
+            reads.extend(t.mcp_server.as_ref().map(|m| &m.status));
+            reads.extend(t.mcp_server.as_ref().and_then(|m| m.config.as_ref()));
+            reads.extend(t.tasks.as_ref().map(|s| &s.list));
+            reads.extend(t.background.as_ref().map(|b| &b.status));
+            reads.extend(t.sync.as_ref().and_then(|s| s.last.as_ref()));
+            reads.extend(t.settings.as_ref().map(|s| &s.show));
+            reads.extend(t.permissions.as_ref().map(|p| &p.commands));
+            reads.extend(
+                [&t.store_info, &t.store_tables, &t.store_table_sizes, &t.store_reset_preview].into_iter().flatten(),
+            );
+            for args in reads {
+                assert!(args.iter().any(|a| a == "--no-record"), "{}: {args:?}", t.id);
+            }
+        }
+    }
+
+    #[test]
+    fn what_the_owner_starts_is_recorded() {
+        for t in &catalog().tools {
+            let starts = [Some(&t.doctor), t.sync.as_ref().and_then(|s| s.run.as_ref()), t.store_check.as_ref()];
+            for args in starts.into_iter().flatten() {
+                assert!(!args.iter().any(|a| a == "--no-record"), "{}: {args:?}", t.id);
+            }
+        }
     }
 }

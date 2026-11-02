@@ -229,11 +229,17 @@ describe("Agents", () => {
     expect(within(dialog).getByText("Choose a tool to see its profiles.")).toBeInTheDocument()
 
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
-    const personal = within(dialog).getByRole("checkbox", { name: "Telegram · personal" })
-    expect(personal).not.toBeChecked()
-    expect(within(dialog).getByRole("checkbox", { name: "Telegram · work" })).not.toBeChecked()
-    await user.click(personal)
+    expect(within(dialog).getByRole("checkbox", { name: "Telegram · personal" })).toBeChecked()
+    const work = within(dialog).getByRole("checkbox", { name: "Telegram · work" })
+    expect(work).toBeChecked()
+    await user.click(work)
     expect(within(dialog).getByText(/tg personal config set --json permissions\.messages readonly/)).toBeInTheDocument()
+    expect(
+      within(dialog).queryByText(/tg work config set --json permissions\.messages readonly/),
+    ).not.toBeInTheDocument()
+    await user.click(within(dialog).getByRole("checkbox", { name: /Memo/ }))
+    expect(within(dialog).getByText(/cannot be limited yet: OpenClaw can change and delete/)).toBeInTheDocument()
+    await user.click(within(dialog).getByRole("checkbox", { name: /Memo/ }))
 
     await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))
     expect(await within(dialog).findByText("OpenClaw cannot find Telegram", {}, wait)).toBeInTheDocument()
@@ -247,6 +253,18 @@ describe("Agents", () => {
     expect(within(dialog).getByText("Telegram skill")).toBeInTheDocument()
   }, 20000)
 
+  it("warns that a chat-driven agent reading the same skill folder gets the tools too", async () => {
+    const user = await openAgents()
+    await user.click(await foundTab(/^Codex/))
+    await user.click(await within(pane()).findByRole("button", { name: "Connect WireCat to Codex" }, wait))
+    const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to Codex" })
+    expect(within(dialog).queryByText(/reads the same skill folder/)).not.toBeInTheDocument()
+    await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
+    expect(within(dialog).getByRole("note")).toHaveTextContent(
+      "OpenClaw reads the same skill folder, so it gets these tools too",
+    )
+  }, 20000)
+
   it("keeps a group the owner blocked when it sets a profile read only", async () => {
     const set = vi.spyOn(platform, "settingsSet")
     const user = await openAgents()
@@ -255,7 +273,6 @@ describe("Agents", () => {
     await user.click(within(pane()).getByRole("button", { name: "Connect WireCat to OpenClaw" }))
     const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to OpenClaw" })
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
-    await user.click(within(dialog).getByRole("checkbox", { name: "Telegram · work" }))
     await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))
     expect(await within(dialog).findByText(/Kept Block on contacts/, {}, wait)).toBeInTheDocument()
     expect(set).toHaveBeenCalledWith("tg", "work", false, "permissions.messages", "readonly")

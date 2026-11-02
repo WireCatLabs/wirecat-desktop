@@ -21,6 +21,23 @@ pub fn root() -> Option<PathBuf> {
     app_data().map(|d| d.join("node"))
 }
 
+/// The app's folder names the public address of every MCP server it published and holds cloudflared's scratch files;
+/// on a computer shared with other users, only the owner may read it. Windows' profile folders are private already.
+pub fn make_app_data_private() {
+    if let Some(dir) = app_data() {
+        make_private(&dir);
+    }
+}
+
+fn make_private(dir: &Path) {
+    let _ = std::fs::create_dir_all(dir);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700));
+    }
+}
+
 /// The app's own data folder, `<app local data>/dev.wirecat.desktop`.
 pub fn app_data() -> Option<PathBuf> {
     let home = paths::home();
@@ -163,6 +180,8 @@ fn agent() -> ureq::Agent {
         .timeout_recv_response(Some(Duration::from_mins(1)))
         // A stalled connection fails; a slow but moving download of 50 MB does not.
         .timeout_per_read(Some(Duration::from_mins(1)))
+        // The checksum comes from the same server, so a redirect down to plain http must fail, not download.
+        .https_only(true)
         .user_agent(concat!("WireCatDesktop/", env!("CARGO_PKG_VERSION")))
         .build()
         .into()
@@ -433,7 +452,7 @@ pub fn remove() -> Result<(), String> {
     let bin = canonical(&bin_dir(&found.dir));
     let using: Vec<String> = tools::detect_owners(false)
         .into_iter()
-        .filter(|t| t.installs.iter().any(|i| canonical(&expand(&i.path)).starts_with(&bin)))
+        .filter(|t| t.installs.iter().any(|i| canonical(&paths::untilde(&i.path)).starts_with(&bin)))
         .map(|t| t.id)
         .collect();
     if !using.is_empty() {
@@ -452,14 +471,6 @@ pub fn remove() -> Result<(), String> {
     Ok(())
 }
 
-/// `tools::detect` reports paths with `~`; turn them back into real ones.
-fn expand(shown: &str) -> PathBuf {
-    match (shown.strip_prefix('~'), paths::home()) {
-        (Some(rest), Some(home)) => home.join(rest.trim_start_matches(['/', '\\'])),
-        _ => PathBuf::from(shown),
-    }
-}
-
 /// A last check before `remove_dir_all`: only a `v<semver>` folder that holds a Node.js binary, never the root
 /// itself, so a `WIRECAT_NODE_DIR` pointing at the home folder cannot turn into deleting it.
 fn ensure_runtime(dir: &Path) -> Result<(), String> {
@@ -475,6 +486,31 @@ fn ensure_runtime(dir: &Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn the_app_folder_is_readable_by_its_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("wirecat-private-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+        make_private(&dir);
+        let mode = std::fs::metadata(&dir).unwrap().permissions().mode() & 0o777;
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(mode, 0o700);
+    }
+
+    #[test]
+    fn a_download_never_goes_over_plain_http() {
+        let server = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/node.tar.gz", server.local_addr().unwrap());
+        let refused = agent().get(&url).call().unwrap_err();
+        assert!(matches!(refused, ureq::Error::RequireHttpsOnly(_)), "{refused}");
+        let refused = crate::cloudflare_install::agent().get(&url).call().unwrap_err();
+        assert!(matches!(refused, ureq::Error::RequireHttpsOnly(_)), "{refused}");
+        let refused = crate::tailscale_install::agent(5).get(&url).call().unwrap_err();
+        assert!(matches!(refused, ureq::Error::RequireHttpsOnly(_)), "{refused}");
+    }
 
     fn release(version: &str, lts: serde_json::Value, files: &[&str]) -> Release {
         Release { version: version.into(), lts, files: files.iter().map(|s| (*s).to_string()).collect() }
