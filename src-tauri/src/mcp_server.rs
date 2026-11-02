@@ -6,8 +6,9 @@ use serde_json::Value;
 use std::time::Duration;
 
 /// The tool's HTTP MCP server, for browser apps behind the owner's tunnel: the tool's own `mcp server start|stop|status`
-/// and `mcp revoke` (`mcp --revoke` before cli-core 0.463), with no profile, so one server serves every profile and each call names one (TASK-26). The login code, the address and the apps' names leave Rust unmasked, as the sign-in QR does: the
-/// owner needs them as they are. None of it is logged or put in a report.
+/// and `mcp revoke` (`mcp --revoke` before cli-core 0.463), with `--profiles all` (memo has no profiles), so one server
+/// serves every profile and each call names one (TASK-26). The login code, the address and the apps' names leave Rust
+/// unmasked, as the sign-in QR does: the owner needs them as they are. None of it is logged or put in a report.
 #[derive(Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::struct_excessive_bools, reason = "the tool's own answer, field for field")]
@@ -578,7 +579,7 @@ mod tests {
 
     #[test]
     fn every_command_serves_every_profile() {
-        for tool in &catalog::catalog().tools {
+        for tool in catalog::catalog().tools.iter().filter(|t| t.profiles.is_some()) {
             let Some(src) = &tool.mcp_server else { continue };
             for spec in [&src.start, &src.stop, &src.status, &src.revoke].into_iter().chain(src.config.as_ref()) {
                 assert!(spec.windows(2).any(|w| w[0] == "--profiles" && w[1] == "all"), "{}: {spec:?}", tool.id);
@@ -597,7 +598,7 @@ mod tests {
 
     #[test]
     fn every_tool_with_a_server_names_its_commands() {
-        for tool in &catalog::catalog().tools {
+        for tool in catalog::catalog().tools.iter().filter(|t| t.profiles.is_some()) {
             let Some(src) = &tool.mcp_server else { continue };
             assert!(
                 src.start.contains(&"{port}".to_string()) && src.start.contains(&"{url}".to_string()),

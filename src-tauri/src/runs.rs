@@ -119,7 +119,17 @@ mod tests {
         let args = list_args(src, Some("status:failed command:\"messages send\""), 500, 2).unwrap();
         assert_eq!(
             args,
-            ["runs", "list", "status:failed command:\"messages send\"", "--limit", "500", "--page", "2", "--json"]
+            [
+                "runs",
+                "list",
+                "status:failed command:\"messages send\"",
+                "--limit",
+                "500",
+                "--page",
+                "2",
+                "--no-record",
+                "--json"
+            ]
         );
         assert!(list_args(src, Some(" --record"), 10, 1).is_err());
         assert!(list_args(src, Some("a\nb"), 10, 1).is_err());
@@ -130,7 +140,7 @@ mod tests {
         let src = source(tg()).unwrap();
         assert_eq!(
             list_args(src, Some("  "), 20, 1).unwrap(),
-            ["runs", "list", "--limit", "20", "--page", "1", "--json"]
+            ["runs", "list", "--limit", "20", "--page", "1", "--no-record", "--json"]
         );
         assert!(list_args(src, None, 0, 1).is_err());
         assert!(list_args(src, None, MAX_LIMIT + 1, 1).is_err());
@@ -147,7 +157,7 @@ mod tests {
     #[test]
     fn show_substitutes_a_valid_run() {
         let src = source(tg()).unwrap();
-        assert_eq!(show_args(src, "run-1").unwrap(), ["runs", "show", "run-1", "--json"]);
+        assert_eq!(show_args(src, "run-1").unwrap(), ["runs", "show", "run-1", "--no-record", "--json"]);
         assert!(show_args(src, "-x").is_err());
     }
 
