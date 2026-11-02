@@ -34,6 +34,14 @@ export const LastSyncSchema = v.object({
   known: v.boolean(),
 })
 
+/** Whether the tool's own `serve` runs for a profile; `unit` is whether its systemd unit or launchd agent exists. */
+export const BackgroundSchema = v.variant("state", [
+  v.object({ state: v.literal("running") }),
+  v.object({ state: v.literal("stopped"), unit: v.nullable(v.boolean()) }),
+  v.object({ state: v.literal("unknown") }),
+])
+
 export type SyncSummary = v.InferOutput<typeof SyncSummarySchema>
 export type SyncEvent = v.InferOutput<typeof SyncEventSchema>
 export type LastSync = v.InferOutput<typeof LastSyncSchema>
+export type Background = v.InferOutput<typeof BackgroundSchema>

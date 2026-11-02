@@ -24,7 +24,7 @@ import type {
 import type { QueryDraft, SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
 import type { Settings } from "./settings-schemas"
 import type { SignInEvent } from "./signin-schemas"
-import type { LastSync, SyncEvent } from "./sync-schemas"
+import type { Background, LastSync, SyncEvent } from "./sync-schemas"
 import type { FunnelState, TailscaleDownload, TailscaleStatus } from "./tailscale-schemas"
 import type {
   NewTask,
@@ -223,6 +223,10 @@ export type Platform = {
   syncStop(id: string, profile: string | null): Promise<void>
   /** When the profile's last successful sync ended, from the tool's own `runs list` or `status`. */
   syncLast(id: string, profile: string | null): Promise<LastSync>
+  /** Whether the tool's own `server status` says its `serve` keeps the profile current (`background` in the catalog). */
+  backgroundStatus(id: string, profile: string): Promise<Background>
+  /** The tool's own `server install` when it has no unit yet, then `server start`; rejects with its words, masked. */
+  backgroundKeep(id: string, profile: string): Promise<Background>
   /** What a bug report carries about this computer, masked, including recent failed runs (private). */
   reportContext(): Promise<ReportContext>
   sendReport(draft: ReportDraft, context: ReportContext): Promise<ReportSent>

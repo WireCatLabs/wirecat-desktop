@@ -32,6 +32,7 @@ import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
+import { BackgroundLine } from "./Background"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SyncControl } from "./Sync"
 import { toolText } from "./tool-text"
@@ -172,6 +173,7 @@ function ProfileList(props: {
                 )}
               </div>
               {syncNeedsProfile(tool) && p.signedIn !== false && <SyncControl tool={tool} profile={p.name} />}
+              {tool.background && p.signedIn !== false && <BackgroundLine tool={tool} profile={p.name} />}
             </li>
           ))}
         </ul>
