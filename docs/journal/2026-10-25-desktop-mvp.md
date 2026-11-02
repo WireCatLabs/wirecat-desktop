@@ -144,6 +144,10 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 - **TASK-59 · Скриншоты десктопа на сайте (2026-11-02).** Слава: «also shall we add som more info on the desktop app? mb add its screenshot on homepage in a block? and add more screenshots in the download? I'd show users what they'll get».
   - Пробные снимки из браузерной сборки (scratchpad/desktop-shots): для витрины не годятся — моки показывают ошибки (схема 33, старые версии, «2 copies installed»), а «Your computer» на Tasks ещё грузится. Нужен чистый демо-сценарий `?showcase` (всё установлено и свежее, данные выдуманные), затем блок на главной и галерея на странице загрузки.
 
+- **TASK-60 · Рецепты под установленные инструменты (2026-11-02).** Слава: «the guides use tg, I'd adapt them depending on what cli user has installed. actually I think we just bake the guides in the desktop since they are just prompts (unless already)».
+  - Уже вшиты: данные и страница в `.impeccable/mocks/guides/prototype/`, приложение импортирует оттуда; с сайта ничего не грузится (план NEED-215 с md-страницами на сайте не делался). Промпты и шаги жёстко на `tg`.
+  - Отдано агенту, ветка `feat/guides-per-tool`: перенос в `src/features/guides/`, промпт и команды под установленный мессенджер, переключатель при нескольких, реальные команды wa/max по их help, пробелы — в отчёт.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -301,6 +305,8 @@ memo с пометкой «About: Email»; чтение логов для отч
 - **ASK-48 · «where did you see that (install ok installed?»** — не в его выводе apt, а в моей проверке `dpkg -s wirecat` (Status: install ok installed, Version: 0.2.0) после его установки.
 
 - **ASK-49 · «when updating a cli can we check for installed skills and update them automatically? then we wont need to do manual work»** — Да. В приложении уже есть проверка (`skill status`: current/stale/missing/unversioned) и установка (`skill install --for <target>`), но после обновления инструмента их никто не вызывает. Живой пример: у tg 0.112.0 инструкции в ~/.claude и ~/.agents — 0.108.0 (stale). План: после успешного обновления — status, затем install только для мест со stale/unversioned; missing не трогаем.
+
+- **ASK-50 · «also I didnt notice the desktop screens there»** — их ещё нет на главной: витрина десктопа (чистый демо-режим и скриншоты) у агента, затем блок на главной и галерея на странице загрузки (TASK-59, NEED-241).
 
 ## 3. Находки
 
