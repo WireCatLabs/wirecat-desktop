@@ -9,6 +9,13 @@ on:
       tag:
         type: string
         required: true
+    secrets:
+      APPLE_ID:
+        required: false
+      APPLE_PASSWORD:
+        required: false
+      APPLE_TEAM_ID:
+        required: false
   workflow_dispatch:
     inputs:
       tag:

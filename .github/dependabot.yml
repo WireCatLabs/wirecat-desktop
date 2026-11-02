@@ -5,10 +5,16 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    # A release must be two weeks old, as for the audit tools; security updates are not delayed.
+    cooldown:
+      default-days: 14
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
+    # A release must be two weeks old, as for the audit tools; security updates are not delayed.
+    cooldown:
+      default-days: 14
     groups:
       tauri:
         patterns: ["@tauri-apps/*"]
@@ -18,5 +24,8 @@ updates:
     directory: /src-tauri
     schedule:
       interval: weekly
+    # A release must be two weeks old, as for the audit tools; security updates are not delayed.
+    cooldown:
+      default-days: 14
     commit-message:
       prefix: "chore(deps)"
