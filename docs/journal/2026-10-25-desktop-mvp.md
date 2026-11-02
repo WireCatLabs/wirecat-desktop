@@ -896,6 +896,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - 2026-11-02: cli-docs #503 (SEC-8) слит. Десктоп: #78 «release: 0.3.0» слит, `bin/tag-release` запушил v0.3.0, release.yml собирает.
 
+- **v0.3.0 выпущен** (release.yml 41466734292: все сборки, подпись и нотаризация macOS прошли), 12 файлов: https://github.com/WireCatLabs/wirecat-desktop/releases/tag/v0.3.0 . .deb скачан в ~/Downloads. Ограничение GitHub API (несколько агентов следили за CI) задержало проверку на ~40 мин.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
