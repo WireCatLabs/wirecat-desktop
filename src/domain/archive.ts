@@ -30,7 +30,9 @@ const PROVIDERS: Record<string, string> = {
   max: "MAX",
   email: "Email",
   "google-drive": "Google Drive",
+  "google-calendar": "Google Calendar",
   zoom: "Zoom",
+  obsidian: "Obsidian",
 }
 
 /** The command that collects each source into storage, so a number can be traced to the tool that wrote it. */
@@ -42,6 +44,10 @@ const COLLECTED_BY: Record<string, string> = {
   "google-drive": "drive",
   zoom: "zm",
   notes: "memo",
+  // A notes folder memo reads: an Obsidian vault, or plain Markdown files ("local").
+  obsidian: "memo",
+  local: "memo",
+  beeline: "beeline",
 }
 
 export const collectedBy = (p: string): string | null => COLLECTED_BY[p] ?? null
@@ -71,7 +77,10 @@ export type ArchiveWords = {
   attachment: (kind: string, owner: string) => string
 }
 
-const providerName = (p: string, w: ArchiveWords) => w.providers[p] ?? PROVIDERS[p] ?? p
+/** A source this page has no name for yet still reads as a name: "google-tasks" becomes "Google Tasks". */
+const titleCase = (id: string) => id.replace(/[-_]+/g, " ").replace(/(^|\s)\p{L}/gu, (c) => c.toUpperCase())
+
+export const providerName = (p: string, w: ArchiveWords) => w.providers[p] ?? PROVIDERS[p] ?? titleCase(p)
 
 export type BarRow = { id: string; label: string; detail: string; value: number; share: number }
 

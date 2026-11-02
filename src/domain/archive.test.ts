@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { storageMessages } from "@/features/storage/messages"
-import { type BreakdownLike, breakdownRows, type GroupLike, totals } from "./archive"
+import { type BreakdownLike, breakdownRows, type GroupLike, providerName, totals } from "./archive"
 import { describeEntry } from "./files"
 
 const words = storageMessages.en.archiveWords
@@ -32,7 +32,7 @@ const breakdown: BreakdownLike = {
 describe("breakdownRows", () => {
   it("names sources with the tool that collects them, sorts largest first and scales bars to the largest", () => {
     const rows = breakdownRows(breakdown, "provider", String, words)
-    expect(rows.map((r) => r.label)).toEqual(["Telegram", "Chat"])
+    expect(rows.map((r) => r.label)).toEqual(["Telegram", "Test data"])
     expect(rows[0]?.share).toBe(1)
     expect(rows[0]?.detail).toMatch(/^via tg · /)
     expect(rows[1]?.detail).toBe("1 account · 4 messages")
@@ -73,4 +73,17 @@ describe("describeEntry", () => {
     expect(describeEntry("max", "cache", "personal.db")?.key).toBe("maxCache")
     expect(describeEntry("tg", "state", "something-new")).toBeNull()
   })
+})
+
+it("names every source the owner's store holds, and an unknown one as a name rather than an id", () => {
+  const ids = ["google-calendar", "obsidian", "beeline", "local", "chat", "google-tasks"]
+  expect(ids.map((p) => providerName(p, words))).toEqual([
+    "Google Calendar",
+    "Obsidian",
+    "Beeline Cloud PBX",
+    "Notes folder",
+    "Test data",
+    "Google Tasks",
+  ])
+  expect(providerName("beeline", storageMessages.ru.archiveWords)).toBe("АТС Билайн")
 })

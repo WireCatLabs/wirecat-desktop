@@ -172,7 +172,8 @@ const en = {
   archiveWords: {
     count: counter("en", enCount),
     via: (command) => `via ${command}`,
-    providers: { notes: "Notes", chat: "Chat" },
+    // `chat` is the provider of cli-core's test fixtures; no tool collects it, so rows of it are left from a test.
+    providers: { notes: "Notes", local: "Notes folder", beeline: "Beeline Cloud PBX", chat: "Test data" },
     chatKinds: {
       dialog: "One-to-one",
       group: "Groups",
@@ -428,7 +429,7 @@ const ru: typeof en = {
   archiveWords: {
     count: counter("ru", ruCount),
     via: (command) => `через ${command}`,
-    providers: { notes: "Заметки", chat: "Чат" },
+    providers: { notes: "Заметки", local: "Папка с заметками", beeline: "АТС Билайн", chat: "Тестовые данные" },
     chatKinds: {
       dialog: "Личные",
       group: "Группы",
@@ -685,7 +686,7 @@ const es: typeof en = {
   archiveWords: {
     count: counter("es", esCount),
     via: (command) => `vía ${command}`,
-    providers: { notes: "Notas", chat: "Chat" },
+    providers: { notes: "Notas", local: "Carpeta de notas", beeline: "Beeline Cloud PBX", chat: "Datos de prueba" },
     chatKinds: {
       dialog: "Individuales",
       group: "Grupos",
