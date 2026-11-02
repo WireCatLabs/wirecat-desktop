@@ -12,8 +12,6 @@ type Props = {
   menuLabel: string
   disabled?: boolean
   className?: string
-  /** `sm` sits in a row of small buttons. */
-  size?: "md" | "sm"
 }
 
 const enabled = (menu: HTMLElement | null) => [
@@ -31,7 +29,7 @@ const MOVES: Record<string, (at: number, count: number) => number> = {
  * A button with its other actions behind an arrow on its right (WAI-ARIA menu button). The menu floats in a fixed
  * layer, so opening it never moves the row it belongs to.
  */
-export function SplitButton({ main, items, menuLabel, disabled, className, size = "md" }: Props) {
+export function SplitButton({ main, items, menuLabel, disabled, className }: Props) {
   const [open, setOpen] = useState<false | "first" | "last">(false)
   const box = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -67,10 +65,8 @@ export function SplitButton({ main, items, menuLabel, disabled, className, size 
     all[move(all.indexOf(document.activeElement as HTMLButtonElement), all.length)]?.focus()
   }
 
-  const part = cx(
-    "inline-flex items-center justify-center border border-line-strong bg-app text-ink transition-colors duration-150 hover:bg-app-2 disabled:pointer-events-none disabled:opacity-45",
-    size === "sm" ? "h-8" : "h-[2.4rem]",
-  )
+  const part =
+    "inline-flex h-[2.4rem] items-center justify-center border border-line-strong bg-app text-ink transition-colors duration-150 hover:bg-app-2 disabled:pointer-events-none disabled:opacity-45"
 
   return (
     <div ref={box} className={cx("inline-flex shrink-0", className)}>
@@ -81,8 +77,7 @@ export function SplitButton({ main, items, menuLabel, disabled, className, size 
           onClick={main.onClick}
           className={cx(
             part,
-            "gap-2 rounded-l-[0.4rem] border-r-0 font-medium whitespace-nowrap",
-            size === "sm" ? "px-3 text-[0.875rem]" : "px-[1rem] text-[0.95rem]",
+            "gap-2 rounded-l-[0.4rem] border-r-0 px-[1rem] text-[0.95rem] font-medium whitespace-nowrap",
           )}
         >
           {main.icon}
@@ -106,8 +101,7 @@ export function SplitButton({ main, items, menuLabel, disabled, className, size 
         }}
         className={cx(
           part,
-          size === "sm" ? "w-8" : "w-[2.2rem]",
-          "text-ink-soft hover:text-ink",
+          "w-[2.2rem] text-ink-soft hover:text-ink",
           main ? "rounded-r-[0.4rem]" : "rounded-[0.4rem] border-transparent bg-transparent hover:bg-app-3",
           open && "bg-app-3 text-ink",
         )}

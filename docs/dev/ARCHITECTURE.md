@@ -65,7 +65,6 @@ src-tauri/src/
   names.rs      the chat titles and contact names the messengers keep, read per profile with their own offline
                 `chats list` / `contacts list`, held in memory only, so doctor output and reports mask them.
   terminal.rs   opening a tool's interactive setup in the user's terminal.
-  agent_fix.rs  a coding agent started in a terminal on a prompt about a broken settings file, read from a file.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced

@@ -194,12 +194,6 @@ fn shared_with<'a>(mine: &[PathBuf], used: &'a [(String, PathBuf)]) -> Option<&'
 }
 
 /// A part's folders are its owner's area, so they are never offered, opened or deleted twice.
-/// The folder a tool keeps its settings in, as cli-base resolves it. It may not exist yet.
-pub fn config_folder(id: &str) -> Result<PathBuf, String> {
-    let tool = catalog::owner(catalog::tool(id)?);
-    folders(&tool.storage).into_iter().find(|(k, _)| *k == "config").map(|(_, p)| p).ok_or("no settings folder".into())
-}
-
 fn area(id: &str) -> Result<&'static catalog::Tool, String> {
     let tool = catalog::tool(id)?;
     if tool.part_of.is_some() { Err(format!("{id} keeps its data with {}", catalog::owner(tool).id)) } else { Ok(tool) }

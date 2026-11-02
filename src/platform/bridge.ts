@@ -29,6 +29,7 @@ import {
 import { createMock } from "./mock"
 import { NotificationsSchema } from "./notifications-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
+import { RepairSchema } from "./repair-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
 import {
@@ -127,6 +128,8 @@ function createTauri(): Platform {
     storage: () => call(StorageSchema, "storage_report"),
     clearStorage: (id) => invoke("clear_storage", { id }),
     openFolder: (id, kind, entry) => invoke("open_folder", { id, kind, entry: entry ?? null }),
+    configRepairSupported: (id, profile) => invoke("config_repair_supported", { id, profile }),
+    configRepair: (id, profile) => call(RepairSchema, "config_repair", { id, profile }),
     storeInfo: () => call(StoreInfoSchema, "store_info"),
     storeCompat: () => call(StoreCompatSchema, "store_compat"),
     storeTables: (sizes) => call(TableListSchema, "store_tables", { sizes }),
@@ -208,7 +211,6 @@ function createTauri(): Platform {
     taskRelease: (id, profile, task) => invoke("task_release", { id, profile, task }),
     cancelInstall: (id) => invoke("cancel_install", { id }),
     openSetup: (id, profile) => invoke("open_setup", { id, profile }),
-    fixInAgent: (agent, tool, prompt) => invoke("fix_in_agent", { agent, tool, prompt }),
     signIn: (id, method, profile, onEvent) => {
       const channel = new Channel<unknown>()
       // An event that does not parse is never thrown: the error would carry the code into the window's error list.

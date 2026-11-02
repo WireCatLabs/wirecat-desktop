@@ -19,6 +19,7 @@ import { syncMock } from "./mock-sync"
 import { tailscaleMock } from "./mock-tailscale"
 import { tasksMock } from "./mock-tasks"
 import { updateMock } from "./mock-update"
+import type { Repair } from "./repair-schemas"
 import type {
   Diagnosis,
   InstallEvent,
@@ -67,6 +68,8 @@ const PACKAGES: Record<string, string> = {
 // Doctor's configuration checks: Telegram's personal profile has every warning kind, work has a broken file, and MAX
 // is a released version that still sends one error string. Tools never put a setting's value into these.
 const TG_CONFIG = "~/.config/tg-cli/config.json"
+// `config repair` fixed tg/work's file in this window; its check then finds nothing wrong.
+let repaired = false
 const MOCK_CONFIG: Record<string, { issues?: Record<string, unknown>[]; error?: string }> = {
   "tg/personal": {
     issues: [
@@ -378,7 +381,8 @@ export function createMock(os: Platform["os"]): Platform {
           stderr: "",
         }
       }
-      const config = MOCK_CONFIG[`${id}/${profile ?? ""}`]
+      const key = `${id}/${profile ?? ""}`
+      const config = repaired && key === "tg/work" ? undefined : MOCK_CONFIG[key]
       if (config) {
         const broken = config.issues?.some((i) => i.kind === "invalid_json") || "error" in config
         return {
@@ -515,6 +519,29 @@ export function createMock(os: Platform["os"]): Platform {
       dataSize[id] = 0
     },
     async openFolder() {},
+    // `?repair=ok|refuse`: the installed tg has `config repair`, and it fixes tg/work's broken file or refuses to.
+    // Without it, every tool is a version from before the command, and no Repair button shows.
+    async configRepairSupported(id) {
+      await delay(300)
+      return id === "tg" && params.has("repair")
+    },
+    async configRepair(): Promise<Repair> {
+      await delay(900)
+      if (params.get("repair") === "refuse")
+        return {
+          state: "refused",
+          message: "cannot repair safely: line 9 holds two values and either could be the one meant",
+          file: TG_CONFIG,
+          line: 9,
+        }
+      repaired = true
+      return {
+        state: "repaired",
+        file: TG_CONFIG,
+        backup: `${TG_CONFIG}.bak-20261102T171502Z`,
+        changes: [{ line: 9, column: 3, what: "added the missing comma before this line" }],
+      }
+    },
     storeInfo: async () => backups.afterClear(await storeInfoMock(newestReader(installed) ?? asksArchive())),
     storeCompat: () => storeCompatMock(installed),
     storeTables: (sizes) => storeTablesMock(asksArchive(), sizes),
@@ -525,9 +552,6 @@ export function createMock(os: Platform["os"]): Platform {
     ...tasksMock(),
     async cancelInstall() {
       cancelled = true
-    },
-    async fixInAgent() {
-      await delay(300)
     },
     // `?terminal=none`: no terminal program found, as Rust words it.
     async openSetup(id, profile) {
