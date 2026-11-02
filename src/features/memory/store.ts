@@ -244,11 +244,11 @@ export const useMemory = create<MemoryState>((set, get) => {
       const entry = get().entries.find((e) => e.ref === ref)
       if (!entry) return false
       const group = subjectOf(entry)?.key
+      const now = get().tab
+      const tab = now === "all" || inTab(now, entry.status) ? now : (tabOf(entry.status) ?? "all")
       set((s) => ({
-        tab: tabOf(entry.status) ?? "all",
-        tabChosen: true,
-        held: [],
-        arriving: [],
+        // Rows held in this tab stay while the owner is sent within it (rule 9); a new tab starts fresh, as setTab does.
+        ...(tab === now ? {} : { tab, tabChosen: true, held: [], arriving: [] }),
         open: ref,
         query: matchesFilter(entry, memoryFilter(s.query)) ? s.query : "",
         closedGroups: s.closedGroups.filter((k) => k !== group),

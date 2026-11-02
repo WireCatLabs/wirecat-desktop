@@ -83,6 +83,7 @@ const en = {
   stateReviewAction: "To review. Nothing is sent until you approve it, and approving only makes it a task.",
   stateApproved:
     "Approved. It became a task in that account; nothing was sent. To take it back, open the task and dismiss it.",
+  stateApprovedOld: "Approved. It became a task in that account; nothing was sent.",
   fixLabel: "What is true instead",
   fixHint: "Saved as yours, approved. The agent's version stays under Rejected as replaced.",
   save: "Save correction",
@@ -295,6 +296,7 @@ const ru: typeof en = {
   stateReviewAction: "На проверку. Ничего не отправится, пока вы не одобрите, а одобрение только создаёт задачу.",
   stateApproved:
     "Одобрено. В этом аккаунте появилась задача; ничего не отправлено. Чтобы отменить, откройте задачу и переведите её в «Отклонено».",
+  stateApprovedOld: "Одобрено. В этом аккаунте появилась задача; ничего не отправлено.",
   fixLabel: "Как на самом деле",
   fixHint: "Сохранится как ваша запись, одобренной. Версия агента останется в «Отклонено» как заменённая.",
   save: "Сохранить исправление",
@@ -511,6 +513,7 @@ const es: typeof en = {
   stateReviewAction: "Por revisar. No se envía nada hasta que lo apruebes, y aprobarlo solo crea una tarea.",
   stateApproved:
     "Aprobado. Se creó una tarea en esa cuenta; no se envió nada. Para deshacerlo, abre la tarea y descártala.",
+  stateApprovedOld: "Aprobado. Se creó una tarea en esa cuenta; no se envió nada.",
   fixLabel: "Lo que es cierto",
   fixHint: "Se guarda como tuyo, aprobado. La versión del agente queda en Rechazado como sustituida.",
   save: "Guardar corrección",

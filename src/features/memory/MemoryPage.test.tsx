@@ -165,7 +165,9 @@ describe("Memory", () => {
     expect(within(batch).getByRole("button", { name: "What it created" })).toHaveAttribute("aria-expanded", "true")
     await user.click(within(batch).getByRole("button", { name: /Open the fact/ }))
     expect(useMemory.getState().open).toBe("fact:22")
-    expect(useMemory.getState().tab).toBe("inuse")
+    expect(useMemory.getState().tab).toBe("all")
+    const fact = row(/Both pilot clinics sign the data agreement/)
+    await waitFor(() => expect(within(fact).getByRole("button", { name: /Both pilot clinics sign/ })).toHaveFocus())
 
     await user.click(within(row(/Findings: 2 created/)).getByRole("button", { name: /What it created/ }))
     await user.click(within(row(/Findings: 2 created/)).getByRole("button", { name: /Open the task/ }))

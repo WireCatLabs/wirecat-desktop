@@ -36,7 +36,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
-import { focusInPlace, holdInPlace, revealIfHidden } from "@/ui/motion"
+import { focusInPlace, holdInPlace, PANEL_MS, reducedMotion } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { SplitButton } from "@/ui/SplitButton"
@@ -592,7 +592,15 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
   const openCreated = (id: string, created: string) => {
     if (created.startsWith("task:")) return void openTask(entry.ref, created)
     if (!reveal(created, entry.ref)) return setGone((g) => [...g, id])
-    requestAnimationFrame(() => revealIfHidden(document.querySelector(`[data-ref="${CSS.escape(created)}"]`), "center"))
+    // This batch folds shut, taking the pressed button with it: focus goes to the fact once the rows stop moving.
+    setTimeout(
+      () =>
+        focusInPlace(
+          document.querySelector<HTMLElement>(`[data-ref="${CSS.escape(created)}"] [aria-controls]`),
+          "center",
+        ),
+      reducedMotion() ? 0 : PANEL_MS,
+    )
   }
 
   return (
@@ -630,7 +638,7 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
                 {f.reason && (
                   <span className="selectable mt-[0.15rem] block text-[0.9rem] text-ink-soft">{f.reason}</span>
                 )}
-                {!open && f.outcome === "accepted" && f.created && (
+                {!open && f.outcome === "accepted" && f.created && /^(fact|task):/.test(f.created) && (
                   <span className="mt-[0.35rem] flex flex-wrap items-center gap-x-3 gap-y-1">
                     <Button
                       size="sm"
@@ -716,7 +724,7 @@ function stateLine(entry: MemoryEntry, m: M) {
     return entry.type === "action" ? m.stateReviewAction : m.stateReview
   }
   if (entry.findings && entry.status === "approved") return m.stateReviewed
-  if (entry.type === "action" && entry.status === "approved") return m.stateApproved
+  if (entry.type === "action" && entry.status === "approved") return entry.task ? m.stateApproved : m.stateApprovedOld
   return m.states[stateOf(entry.status)]
 }
 
