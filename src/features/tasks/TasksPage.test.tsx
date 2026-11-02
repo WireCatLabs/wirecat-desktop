@@ -59,6 +59,24 @@ describe("Tasks", () => {
     expect(screen.queryByRole("dialog", { name: "Custom…" })).not.toBeInTheDocument()
   })
 
+  it("makes a range that starts tomorrow, which memo writes as the word tomorrow", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await user.click(screen.getByRole("button", { name: "Due" }))
+    await user.click(screen.getByRole("option", { name: "Custom…" }))
+    const calendar = screen.getByRole("dialog", { name: "Custom…" })
+    const today = within(calendar).getByRole("button", { current: "date" })
+    await waitFor(() => expect(today).toHaveFocus())
+    await user.keyboard("{ArrowRight}{Enter}{ArrowRight}{Enter}")
+    const day = (n: number) => {
+      const d = new Date(`${today.getAttribute("data-day")}T00:00:00`)
+      d.setDate(d.getDate() + n)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    }
+    expect(screen.getByRole("searchbox", { name: "Search tasks" })).toHaveValue(`due:[${day(1)} TO ${day(2)}]`)
+  })
+
   it("clears one filter from its chip and keeps the rest of the search", async () => {
     const user = userEvent.setup()
     render(<TasksPage />)
@@ -177,6 +195,21 @@ describe("Tasks", () => {
     expect(within(row("OPS-3")).getByRole("combobox", { name: "Due of OPS-3" })).toHaveFocus()
   })
 
+  it("closes only the calendar on Escape inside the task dialog", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("HRB-12")).getByRole("button", { name: /^HRB-12 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-12" })
+    await user.click(within(dialog).getByRole("combobox", { name: "Due of HRB-12" }))
+    await user.click(screen.getByRole("option", { name: "Another day" }))
+    const calendar = within(dialog).getByRole("dialog", { name: "Due of HRB-12" })
+    await waitFor(() => expect(within(calendar).getByRole("button", { pressed: true })).toHaveFocus())
+    await user.keyboard("{Escape}")
+    expect(within(dialog).queryByRole("dialog", { name: "Due of HRB-12" })).not.toBeInTheDocument()
+    expect(screen.getByRole("dialog", { name: "Task HRB-12" })).toBeInTheDocument()
+  })
+
   it("keeps a comment thread, adds a person by name and says why a task with subtasks stays", async () => {
     const user = userEvent.setup()
     const assign = vi.spyOn(platform, "taskAssign")
@@ -184,8 +217,8 @@ describe("Tasks", () => {
     await loaded()
     await user.click(within(row("HRB-12")).getByRole("button", { name: /^HRB-12 / }))
     const dialog = await screen.findByRole("dialog", { name: "Task HRB-12" })
-    const thread = await within(dialog).findByRole("list")
-    expect(thread).toHaveTextContent("Kai wants the per-seat price")
+    // The task's history is a list too, and may arrive first.
+    const thread = (await within(dialog).findByText(/Kai wants the per-seat price/)).closest("ol") as HTMLElement
     await user.type(within(dialog).getByRole("textbox", { name: "Add a comment" }), "-Sent the second tab.")
     await user.click(within(dialog).getByRole("button", { name: "Comment" }))
     await waitFor(() => expect(within(thread).getAllByRole("listitem")).toHaveLength(3))

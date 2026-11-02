@@ -34,6 +34,8 @@ type Props = {
   "aria-labelledby"?: string
   "aria-describedby"?: string
   className?: string
+  /** False when the card around the box already draws the keyboard ring. */
+  ring?: boolean
 }
 
 /**
@@ -49,7 +51,15 @@ export function Radio(props: Omit<Props, "onChange"> & { onChange: () => void })
   return <Native type="radio" {...props} onChange={() => props.onChange()} />
 }
 
-function Native({ type, checked, onChange, disabled, className, ...rest }: Props & { type: "checkbox" | "radio" }) {
+function Native({
+  type,
+  checked,
+  onChange,
+  disabled,
+  className,
+  ring = true,
+  ...rest
+}: Props & { type: "checkbox" | "radio" }) {
   const round = type === "radio"
   return (
     <span className={cx("control-box relative inline-grid shrink-0 place-items-center", className)}>
@@ -65,7 +75,8 @@ function Native({ type, checked, onChange, disabled, className, ...rest }: Props
         on={checked}
         round={round}
         className={cx(
-          "pointer-events-none size-[1.05rem] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand",
+          "pointer-events-none size-[1.05rem]",
+          ring && "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand",
           !checked && "peer-hover:border-ink-dim",
           disabled && "opacity-45",
         )}

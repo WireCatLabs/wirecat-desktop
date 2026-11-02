@@ -342,7 +342,7 @@ export function DateField({ value, onChange, format, className, ...aria }: Field
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={aria["aria-label"]}
+        aria-label={`${aria["aria-label"]}: ${value ? format(value) : m.noDate}`}
         onClick={() => setOpen((o) => !o)}
         onKeyDown={(e) => {
           if (!open && e.key === "ArrowDown") {

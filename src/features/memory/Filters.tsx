@@ -1,5 +1,14 @@
 import { useRef, useState } from "react"
-import { byOwner, inTab, type MemoryField, memoryFilter, projectNameOf, RANGES, setMemoryField } from "@/domain/memory"
+import {
+  byOwner,
+  inTab,
+  type MemoryField,
+  matchesFilter,
+  memoryFilter,
+  projectNameOf,
+  RANGES,
+  setMemoryField,
+} from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
@@ -36,7 +45,12 @@ export function Filters() {
   const whenAnchor = useRef<HTMLSpanElement>(null)
 
   const f = memoryFilter(query)
-  const inView = entries.filter((e) => inTab(tab, e.status))
+  const inTabNow = entries.filter((e) => inTab(tab, e.status))
+  // Each chip counts what the rest of the search leaves, as Tasks' counts do: picking a project narrows the kinds.
+  const others = (name: MemoryField) => {
+    const rest = memoryFilter(setMemoryField(query, name, []))
+    return inTabNow.filter((e) => matchesFilter(e, rest))
+  }
   const field = (name: Exclude<MemoryField, "when">, options: FilterOption[]) => ({
     selected: f[name],
     // A value typed by hand that no record carries still shows, so its chip can clear it.
@@ -47,20 +61,20 @@ export function Filters() {
     onChange: (values: string[]) => setQuery(setMemoryField(query, name, values)),
   })
 
-  const subjects = tally(inView, (e) =>
+  const subjects = tally(others("subject"), (e) =>
     e.subjectIsOwner ? ["me", m.you] : e.subject ? [e.subject, e.subjectName ?? e.subject] : null,
   )
-  const projects = tally(inView, (e) => {
+  const projects = tally(others("project"), (e) => {
     const name = projectNameOf(e)
     return name ? [name, name] : null
   })
-  const kinds = tally(inView, (e) => [e.kind, kindOf(e.kind, m)])
-  const authors = tally(inView, (e) => (byOwner(e) ? ["me", m.you] : [authorOf(e, m), authorOf(e, m)]))
+  const kinds = tally(others("kind"), (e) => [e.kind, kindOf(e.kind, m)])
+  const authors = tally(others("by"), (e) => (byOwner(e) ? ["me", m.you] : [authorOf(e, m), authorOf(e, m)]))
 
   const day = (RANGES as readonly string[]).includes(f.when) ? null : f.when
   const whenOptions: FilterOption[] = [
     ...RANGES.filter((r) => r !== "any").map((r) => ({ value: r, label: m.ranges[r] ?? r })),
-    { value: "day", label: day ? dayLabel(`${day}T12:00:00`, m, lang) : m.otherDay },
+    { value: "day", label: day ? dayLabel(`${day}T12:00:00`, m, lang) : m.otherDay, opens: true },
   ]
 
   return (

@@ -5,6 +5,7 @@ import { Button } from "@/ui/Button"
 import { Calendar, CalendarFooter, DatePopover, type DaySpan } from "@/ui/Calendar"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu, type FilterOption } from "@/ui/FilterMenu"
+import { StableText } from "@/ui/Skeleton"
 import { dueDay, taskMessages } from "./messages"
 import { personName, StateLamp } from "./parts"
 import { useTasks } from "./store"
@@ -91,7 +92,7 @@ export function Filters() {
             { value: "tomorrow", label: m.tomorrow },
             { value: "week", label: m.week },
             { value: "none", label: m.noDate, count: dueCount("none") },
-            { value: "custom", label: typeof due === "object" && due ? dueLabel : m.customDay },
+            { value: "custom", label: typeof due === "object" && due ? dueLabel : m.customDay, opens: true },
           ]}
           selected={due ? [typeof due === "object" ? "custom" : due] : []}
           onChange={([v]) => {
@@ -136,32 +137,38 @@ function DueRange(props: {
 }) {
   const { open, anchor, current, onClose, onChange } = props
   const m = useMessages(taskMessages)
-  // After one click the next one closes the range; a third starts a new one.
+  // The span is kept here, not read back from the search: memo's words for a single day can be "tomorrow", which
+  // reads back as that choice and not as a day. After one click the next one closes the range; a third starts anew.
+  const [span, setSpan] = useState<DaySpan | null>(current)
   const [halfway, setHalfway] = useState(false)
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setSpan(current)
+  }
   const close = (refocus: boolean) => {
     onClose()
     setHalfway(false)
     if (refocus) anchor.current?.querySelector<HTMLElement>("button")?.focus()
   }
-  const pick = (day: string) => {
-    if (halfway && current && day !== current.from) {
-      onChange(day < current.from ? { from: day, to: current.from } : { from: current.from, to: day })
-      setHalfway(false)
-    } else {
-      onChange({ from: day })
-      setHalfway(true)
-    }
+  const pick = (day: string, fresh = false) => {
+    const next: DaySpan =
+      !fresh && halfway && span && day !== span.from
+        ? day < span.from
+          ? { from: day, to: span.from }
+          : { from: span.from, to: day }
+        : { from: day }
+    setSpan(next)
+    setHalfway(!next.to)
+    onChange(next)
   }
   return (
     <DatePopover open={open} anchor={anchor} onClose={close} label={m.customDay}>
-      <Calendar selected={current} onPick={pick} autoFocus label={m.customDay} />
-      <p className="max-w-[17.5rem] px-[0.2rem] text-[0.85rem] text-ink-dim">{halfway ? m.rangeEnd : m.rangeStart}</p>
-      <CalendarFooter
-        onToday={() => {
-          onChange({ from: isoDay(new Date()) })
-          setHalfway(true)
-        }}
-      >
+      <Calendar selected={span} onPick={pick} autoFocus label={m.customDay} />
+      <p className="w-[17.5rem] px-[0.2rem] text-[0.85rem] text-ink-dim">
+        <StableText value={halfway ? m.rangeEnd : m.rangeStart} variants={[m.rangeStart, m.rangeEnd]} />
+      </p>
+      <CalendarFooter onToday={() => pick(isoDay(new Date()), true)}>
         <Button size="sm" variant="ghost" onClick={() => close(true)}>
           {m.done}
         </Button>

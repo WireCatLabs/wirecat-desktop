@@ -555,6 +555,7 @@ function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunn
               aria-describedby={`${name}-${o.id}-hint`}
               checked={tunnel === o.id}
               onChange={() => setTunnel(o.id)}
+              ring={false}
             />
             <span id={`${name}-${o.id}-title`} className="text-[0.95rem] font-semibold text-ink">
               {o.title}

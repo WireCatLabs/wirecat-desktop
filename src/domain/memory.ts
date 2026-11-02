@@ -111,13 +111,6 @@ export function byDay<T extends { createdAt: string }>(entries: readonly T[]): {
   return groups
 }
 
-/** A filter typed in a field: empty matches everything, anything else matches a label containing it. */
-export const matchesText = (label: string, typed: string) =>
-  typed.trim() === "" || label.toLocaleLowerCase().includes(typed.trim().toLocaleLowerCase())
-
-/** Every distinct label, in the order first seen, without empty ones. */
-export const distinct = (labels: readonly (string | null)[]) => [...new Set(labels.filter((l): l is string => !!l))]
-
 /** A date filter: a range back from now, or one calendar day picked from a record (`YYYY-MM-DD`). */
 export type Range = "any" | "today" | "7d" | "30d" | (string & {})
 export const RANGES = ["any", "today", "7d", "30d"] as const
@@ -134,9 +127,9 @@ export function inRange(range: Range, iso: string, now = new Date()): boolean {
 
 // ---- The search words ----
 
-/** The words Memory's search reads. `kind`, `project` and `subject` are memo's own; `by` and `when` are the page's. */
-export const MEMORY_FIELDS = "subject|project|kind|by|when"
-export type MemoryField = "subject" | "project" | "kind" | "by" | "when"
+/** The words Memory's search reads. `kind`, `project`, `subject` and `scope` are memo's own; `by` and `when` are the page's. */
+export const MEMORY_FIELDS = "subject|project|kind|scope|by|when"
+export type MemoryField = "subject" | "project" | "kind" | "scope" | "by" | "when"
 
 export type MemoryFilter = Record<Exclude<MemoryField, "when">, string[]> & { when: Range; words: string[] }
 
@@ -145,6 +138,7 @@ export function memoryFilter(q: string): MemoryFilter {
     subject: valuesOf(q, "subject"),
     project: valuesOf(q, "project"),
     kind: valuesOf(q, "kind"),
+    scope: valuesOf(q, "scope"),
     by: valuesOf(q, "by"),
     when: valuesOf(q, "when").at(-1) ?? "any",
     words: freeWords(q, MEMORY_FIELDS),
@@ -158,6 +152,7 @@ type Searchable = Entry &
   Subjected & {
     text: string | null
     summary: string | null
+    scope: string | null
     author: { type: string; name: string | null } | null
     createdAt: string
   }
@@ -178,7 +173,8 @@ export function matchesFilter(e: Searchable, f: MemoryFilter, now = new Date()):
   const project = projectNameOf(e)
   const author = byOwner(e) ? null : (e.author?.name ?? null)
   return (
-    any(f.subject, (v) => e.subject === v || has(e.subjectName, v) || (v === "me" && e.subjectIsOwner)) &&
+    any(f.subject, (v) => (v === "me" ? e.subjectIsOwner : e.subject === v || has(e.subjectName, v))) &&
+    any(f.scope, (v) => e.scope === v) &&
     any(f.project, (v) => e.project === v || has(project, v)) &&
     any(f.kind, (v) => e.kind.toLowerCase() === v.toLowerCase()) &&
     any(f.by, (v) => (v === "me" ? byOwner(e) : has(author, v))) &&

@@ -13,6 +13,8 @@ export type FilterOption = {
   hint?: string
   count?: number | undefined
   icon?: ReactNode
+  /** Opens something of its own (a calendar) each time it is chosen, so choosing it again never clears it. */
+  opens?: boolean
 }
 
 type Props = {
@@ -71,7 +73,8 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
 
   const toggle = (value: string) => {
     if (single) {
-      onChange(selected.includes(value) ? [] : [value])
+      const opens = options.find((o) => o.value === value)?.opens
+      onChange(selected.includes(value) && !opens ? [] : [value])
       close(true)
       return
     }
