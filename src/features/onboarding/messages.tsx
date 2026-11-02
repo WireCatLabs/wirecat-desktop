@@ -150,12 +150,10 @@ const en = {
     welcome: "Show the welcome again",
     privacy: "Privacy",
     about: "About WireCat",
+    node: "WireCat's Node.js…",
+    trouble: "Help. Node.js or npm needs attention",
   },
   tour: {
-    readiness: {
-      title: "Your computer",
-      text: "WireCat tools run on Node.js and npm. A green lamp means it is here and new enough; hover a value to see where it was found.",
-    },
     lamps: {
       title: "Status lamps",
       text: "Green: installed and current. Amber: an update is ready. Red: installed, but it does not start. A hollow ring: not installed.",
@@ -178,9 +176,9 @@ const en = {
     },
     help: {
       title: "Help is here",
-      text: "Start this tour again, or go back to the setup steps, from this button.",
+      text: "Start this tour again, go back to the setup steps, or see whether Node.js and npm are ready, from this button. The version number at the bottom left opens it too.",
     },
-  } as Record<"readiness" | "lamps" | "action" | "again" | "storage" | "logs" | "help", Stop>,
+  } as Record<"lamps" | "action" | "again" | "storage" | "logs" | "help", Stop>,
 }
 
 export type OnboardingText = typeof en
@@ -349,12 +347,10 @@ const ru: OnboardingText = {
     welcome: "Снова показать приветствие",
     privacy: "Конфиденциальность",
     about: "О WireCat",
+    node: "Node.js от WireCat…",
+    trouble: "Помощь. Node.js или npm требует внимания",
   },
   tour: {
-    readiness: {
-      title: "Ваш компьютер",
-      text: "Инструменты WireCat работают на Node.js и npm. Зелёная лампа значит, что программа есть и её версия достаточно новая; наведите на значение, чтобы увидеть, где она найдена.",
-    },
     lamps: {
       title: "Лампы состояния",
       text: "Зелёная: установлен, последняя версия. Жёлтая: есть обновление. Красная: установлен, но не запускается. Пустое кольцо: не установлен.",
@@ -377,7 +373,7 @@ const ru: OnboardingText = {
     },
     help: {
       title: "Помощь здесь",
-      text: "Этой кнопкой можно снова начать экскурсию или вернуться к шагам настройки.",
+      text: "Этой кнопкой можно снова начать экскурсию, вернуться к шагам настройки или посмотреть, готовы ли Node.js и npm. Номер версии внизу слева открывает то же меню.",
     },
   },
 }
@@ -540,12 +536,10 @@ const es: OnboardingText = {
     welcome: "Ver de nuevo la bienvenida",
     privacy: "Privacidad",
     about: "Acerca de WireCat",
+    node: "El Node.js de WireCat…",
+    trouble: "Ayuda. Node.js o npm necesita atención",
   },
   tour: {
-    readiness: {
-      title: "Tu ordenador",
-      text: "Las herramientas de WireCat funcionan con Node.js y npm. Una luz verde significa que está instalado y es lo bastante reciente; pasa el cursor por un valor para ver dónde se encontró.",
-    },
     lamps: {
       title: "Luces de estado",
       text: "Verde: instalada y al día. Ámbar: hay una actualización. Roja: instalada, pero no arranca. Un anillo vacío: sin instalar.",
@@ -568,7 +562,7 @@ const es: OnboardingText = {
     },
     help: {
       title: "La ayuda está aquí",
-      text: "Desde este botón puedes empezar de nuevo este recorrido o volver a los pasos de configuración.",
+      text: "Desde este botón puedes empezar de nuevo este recorrido, volver a los pasos de configuración o ver si Node.js y npm están listos. El número de versión abajo a la izquierda también lo abre.",
     },
   },
 }

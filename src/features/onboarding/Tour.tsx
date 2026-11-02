@@ -9,7 +9,6 @@ type Stop = { anchor: string; side?: "bottom" | "right"; key: TourStop }
 
 // Anchors are data-tour attributes on the real elements, so the tour follows the interface instead of a copy of it.
 const stops: readonly Stop[] = [
-  { anchor: '[data-tour="readiness"]', key: "readiness" },
   { anchor: '[data-tour="tool"] [role="img"]', key: "lamps" },
   { anchor: '[data-tour="tool-action"]', key: "action" },
   { anchor: '[data-tour="check-again"]', key: "again" },

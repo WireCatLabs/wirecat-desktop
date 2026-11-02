@@ -2,9 +2,9 @@ import { render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { ComputerFacts } from "./ComputerFacts"
 import { NodeNotice } from "./NodeNotice"
 import { useNode } from "./node-store"
-import { ReadinessStrip } from "./ReadinessStrip"
 import { useSystem } from "./store"
 
 const absent = { path: null, version: null, ok: false, problem: "not found" }
@@ -33,7 +33,7 @@ describe("a computer without Node.js, in Russian", () => {
     useLanguage.setState({ choice: "ru" })
     render(
       <>
-        <ReadinessStrip />
+        <ComputerFacts />
         <NodeNotice />
       </>,
     )
