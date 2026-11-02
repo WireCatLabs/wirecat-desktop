@@ -247,6 +247,10 @@ const en = {
   readOnlyIntro: (agent: string) =>
     `${agent} takes orders from the people in its chats, so every profile starts read only: ${agent} can read and search, and the tool refuses to send, change or delete, even when ${agent} is asked to lift the limit itself. Untick a profile only if ${agent} should write with it. This is not a lock against ${agent}: an agent that may run any command can still edit the tool's files, so keep ${agent}'s own approval for commands on. You can change the levels later in the tool's Permissions on the Tools page.`,
   chooseTool: "Choose a tool to see its profiles.",
+  chatSharers: (agents: readonly string[]) =>
+    agents.length === 1
+      ? `${enList(agents)} reads the same skill folder, so it gets these tools too. It answers people in its chats, and nothing here limits it: connect ${enList(agents)} itself to start its profiles read only.`
+      : `${enList(agents)} read the same skill folder, so they get these tools too. They answer people in their chats, and nothing here limits them: connect each of them to start its profiles read only.`,
   cannotLimit: (tools: readonly string[], agent: string) =>
     `${enList(tools)} cannot be limited yet: ${agent} can change and delete with ${tools.length === 1 ? "it" : "them"}.`,
   connectTools: (n: number) => `Connect ${plural("en", n, { one: "# tool", other: "# tools" })}`,
@@ -538,6 +542,10 @@ const ru: typeof en = {
   readOnlyIntro: (agent) =>
     `${agent} выполняет просьбы людей из своих чатов, поэтому каждый профиль сначала только для чтения: ${agent} может читать и искать, а инструмент откажется отправлять, менять или удалять, даже если ${agent} попросят снять это ограничение. Снимите галочку, только если ${agent} должен писать через этот профиль. Это не замок от самого ${agent}: агент, которому можно запускать любые команды, всё равно может изменить файлы инструмента, поэтому оставьте в ${agent} подтверждение команд. Уровни можно изменить позже в разрешениях инструмента на странице «Инструменты».`,
   chooseTool: "Выберите инструмент, чтобы увидеть его профили.",
+  chatSharers: (agents) =>
+    agents.length === 1
+      ? `${ruList(agents)} читает ту же папку навыков и тоже получит эти инструменты. Он выполняет просьбы людей из своих чатов, а здесь ничто его не ограничивает: подключите ${ruList(agents)} отдельно, чтобы его профили сначала были только для чтения.`
+      : `${ruList(agents)} читают ту же папку навыков и тоже получат эти инструменты. Они выполняют просьбы людей из своих чатов, а здесь ничто их не ограничивает: подключите каждого отдельно, чтобы их профили сначала были только для чтения.`,
   cannotLimit: (tools, agent) =>
     `${ruList(tools)} пока нельзя ограничить: ${agent} может через ${tools.length === 1 ? "него" : "них"} менять и удалять.`,
   connectTools: (n) => `Подключить ${ruCount(n, "инструмент", "инструмента", "инструментов")}`,
@@ -833,6 +841,10 @@ const es: typeof en = {
   readOnlyIntro: (agent) =>
     `${agent} atiende a las personas de sus chats, así que cada perfil empieza en solo lectura: ${agent} puede leer y buscar, y la herramienta se niega a enviar, cambiar o borrar, incluso si le piden a ${agent} que quite el límite. Desmarca un perfil solo si ${agent} debe escribir con él. No es un candado contra ${agent}: un agente que puede ejecutar cualquier comando aún puede editar los archivos de la herramienta, así que mantén activada la aprobación de comandos de ${agent}. Puedes cambiar los niveles más tarde en los Permisos de la herramienta, en la página Herramientas.`,
   chooseTool: "Elige una herramienta para ver sus perfiles.",
+  chatSharers: (agents) =>
+    agents.length === 1
+      ? `${esList(agents)} lee la misma carpeta de skills, así que también recibe estas herramientas. Atiende a las personas de sus chats y aquí nada lo limita: conecta ${esList(agents)} por separado para que sus perfiles empiecen en solo lectura.`
+      : `${esList(agents)} leen la misma carpeta de skills, así que también reciben estas herramientas. Atienden a las personas de sus chats y aquí nada los limita: conecta cada uno por separado para que sus perfiles empiecen en solo lectura.`,
   cannotLimit: (tools, agent) =>
     `${esList(tools)} aún no se ${tools.length === 1 ? "puede" : "pueden"} limitar: ${agent} puede cambiar y borrar con ${tools.length === 1 ? "ella" : "ellas"}.`,
   connectTools: (n) => `Conectar ${plural("es", n, { one: "# herramienta", other: "# herramientas" })}`,

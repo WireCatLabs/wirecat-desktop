@@ -1,3 +1,4 @@
+import { CHAT_AGENTS } from "@/domain/agents"
 import { TARGET_FOLDER } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
@@ -74,7 +75,16 @@ export function AgentPane({ entry, all }: { entry: AgentEntry | null; all: Agent
       <div className="border-line border-t pt-4">
         <AgentDetails view={view} onCheck={() => all.checkOne(view.agent.id)} />
       </div>
-      <ConnectDialog view={view} />
+      <ConnectDialog
+        view={view}
+        chatSharers={(t) =>
+          all.entries.flatMap((e) =>
+            e.type === "found" && e.id !== view.agent.id && CHAT_AGENTS.has(e.id) && e.view.agent.reads.includes(t)
+              ? [e.name]
+              : [],
+          )
+        }
+      />
       <DisconnectDialog view={view} sharers={(t) => sharers(all.entries, t, view.agent.id)} />
     </div>
   )
