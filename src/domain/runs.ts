@@ -275,24 +275,30 @@ export function valuesAt(run: Run, path: string): string[] {
   return current.filter((v) => typeof v !== "object").map(String)
 }
 
-const globCache = new Map<string, RegExp>()
-function glob(pattern: string, anchored: boolean): RegExp {
-  const key = `${anchored}:${pattern}`
-  let re = globCache.get(key)
-  if (!re) {
-    const body = pattern
-      .split("*")
-      .map((s) => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
-      .join(".*")
-    re = new RegExp(anchored ? `^${body}$` : body, "i")
-    globCache.set(key, re)
+/**
+ * `*` matches any run of characters, case-insensitively. Found part by part with indexOf, never as a RegExp: a pattern
+ * like `*a*a*a*b` makes a backtracking `.*` regex take seconds per row and freeze the window.
+ */
+export function globMatch(pattern: string, value: string, anchored: boolean): boolean {
+  const parts = pattern.toLowerCase().split("*")
+  const text = value.toLowerCase()
+  if (parts.length === 1) return anchored ? text === parts[0] : text.includes(parts[0] ?? "")
+  const first = parts[0] ?? ""
+  const last = parts[parts.length - 1] ?? ""
+  if (anchored && !(text.startsWith(first) && text.endsWith(last))) return false
+  let at = anchored ? first.length : 0
+  const end = anchored ? text.length - last.length : text.length
+  for (const part of anchored ? parts.slice(1, -1) : parts) {
+    const found = text.indexOf(part, at)
+    if (found < 0 || found + part.length > end) return false
+    at = found + part.length
   }
-  return re
+  return at <= end
 }
 
 function fieldMatches(run: Run, term: Extract<Term, { kind: "field" }>): boolean {
   const values = valuesAt(run, term.field)
-  if (term.op === "=") return values.some((v) => glob(term.value, true).test(v))
+  if (term.op === "=") return values.some((v) => globMatch(term.value, v, true))
   const limit = Number(term.value)
   return values.some((v) => {
     const n = Number(v)
@@ -302,8 +308,7 @@ function fieldMatches(run: Run, term: Extract<Term, { kind: "field" }>): boolean
 }
 
 function textMatches(run: Run, value: string): boolean {
-  const re = glob(value, false)
-  return TEXT_FIELDS.some((f) => valuesAt(run, f).some((v) => re.test(v)))
+  return TEXT_FIELDS.some((f) => valuesAt(run, f).some((v) => globMatch(value, v, false)))
 }
 
 /** A matcher for the whole query; `skipField` leaves that field's terms out, for facet counts. */
