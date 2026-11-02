@@ -907,6 +907,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **BUG-59 · Служба `wa-serve-live-64f1c38c.service` перезапускалась 1424 раза** («provider unavailable / engine stopped», exit 12), работает из main-копии whatsapp-cli. Не трогал.
 - **DEBT-13 · Скрипт `wa-0.27-live-check` меряет время по часам системы** (`date +%s%3N`), получил 8 418 703 245 мс; мерить по монотонным часам.
 
+- Пост о 0.3.0 на сайте (cli-docs #508): https://wirecat.dev/en/blog/wirecat-desktop-0-3 (ru, es). Объявлено в Discord #announcements (вебхук релизов) и в группе Telegram, тема «Релизы» (https://t.me/wirecatdev/27); заметка сводки обновлена (cli-private 9396d058 и исправление порядка строк).
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
