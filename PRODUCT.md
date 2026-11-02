@@ -34,6 +34,12 @@ enough that a developer would recommend it.
 Later (not in the first version): accounts, data and sync coverage, memory, people, projects, relationship
 graphs, agent activity. The structure must leave room for these sections.
 
+Direction (owner, 2026-11-02): WireCat as a whole is becoming the local context layer that any AI agent uses — what
+is true across the user's apps, where it came from, how it connects and what changed. The agent stays the user's
+choice. For this app that means: it shows and manages that context (sources and how far back they reach, imported
+records, memory to review), and it is a client of the tools' import and read commands, never the owner of the data.
+A first import screen validates a JSON file, shows what would change and imports it through the tool.
+
 ## Positioning
 
 The CLI tools are the product; the app is a thin, honest window onto them. It installs the same npm packages
