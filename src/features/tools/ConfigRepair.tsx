@@ -1,5 +1,5 @@
 import { FolderOpen, LoaderCircle, Wrench } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import type { Finding } from "@/domain/doctor"
 import { useMessages } from "@/i18n"
@@ -9,38 +9,19 @@ import { Button } from "@/ui/Button"
 import { ReportThis } from "../report/ReportThis"
 import { toolsMessages } from "./messages"
 
-export type Repaired = Extract<Repair, { state: "repaired" }>
+export type Repaired = Extract<Repair, { state: "repaired" | "unchanged" }>
 type Refused = Extract<Repair, { state: "refused" }>
 
-// One `commands --json` per tool and profile while the window is open; an update reloads the window's tool state.
-const known = new Map<string, Promise<boolean>>()
-export const forgetRepairSupport = () => known.clear()
-
-function useRepairable(tool: CatalogTool, profile: string | null): boolean {
-  const [yes, setYes] = useState(false)
-  useEffect(() => {
-    if (!tool.configRepair) return
-    let live = true
-    const key = `${tool.id}/${profile ?? ""}`
-    let asked = known.get(key)
-    if (!asked) {
-      asked = platform.configRepairSupported(tool.id, profile).catch(() => false)
-      known.set(key, asked)
-    }
-    asked.then((v) => live && setYes(v))
-    return () => {
-      live = false
-    }
-  }, [tool, profile])
-  return yes
-}
+/**
+ * `doctor` names `<tool> config repair` as the fix of an `invalid_json` issue only when the repair would succeed
+ * (cli-core#2422), so that hint is the whole capability check: an older tool never names it.
+ */
+export const offersRepair = (tool: CatalogTool, f: Finding) =>
+  Boolean(tool.configRepair && f.config?.kind === "invalid_json" && f.fix?.includes("config repair"))
 
 const fileName = (path: string) => path.split(/[\\/]/).pop() ?? path
 
-/**
- * A settings file that is not valid JSON, handed to the tool's own `config repair` (rule 1): it fixes what it can prove
- * safe after a backup, or refuses. Shown only when the installed version has the command.
- */
+/** The tool's own repair (rule 1): it mends what has one sensible reading, after a backup, or changes nothing. */
 export function ConfigRepair(props: {
   tool: CatalogTool
   finding: Finding
@@ -49,11 +30,10 @@ export function ConfigRepair(props: {
 }) {
   const { tool, finding, profile, onRepaired } = props
   const m = useMessages(toolsMessages).health
-  const repairable = useRepairable(tool, profile)
   const [running, setRunning] = useState(false)
   const [refused, setRefused] = useState<Refused | null>(null)
   const [error, setError] = useState<string | null>(null)
-  if (!repairable || finding.config?.kind !== "invalid_json") return null
+  if (!offersRepair(tool, finding)) return null
 
   const repair = async () => {
     if (running) return
@@ -62,16 +42,16 @@ export function ConfigRepair(props: {
     setError(null)
     try {
       const r = await platform.configRepair(tool.id, profile)
-      if (r.state === "repaired") onRepaired(r)
-      else setRefused(r)
+      if (r.state === "refused") setRefused(r)
+      else onRepaired(r)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setRunning(false)
     }
   }
-  const file = refused?.file ?? finding.config.file ?? null
-  const line = refused?.line ?? finding.config.line ?? null
+  const file = refused?.file ?? finding.config?.file ?? null
+  const line = refused?.line ?? finding.config?.line ?? null
   const reveal = async () => {
     try {
       // The folder opens with the file selected; the file itself never opens in whatever app claims .json.
@@ -101,11 +81,12 @@ export function ConfigRepair(props: {
       {refused && (
         <div role="status" className="reveal flex flex-col gap-1.5 text-[0.875rem] text-ink-soft">
           <p>
-            {m.repairRefused(tool.name)} {refused.message}
+            {m.repairRefused(tool.name)}
+            {refused.message ? ` ${refused.message}` : ""}
           </p>
           {file && (
             <code className="selectable font-mono text-[0.85rem] break-all">
-              {line === null ? file : `${file}:${line}`}
+              {line === null ? file : `${file}:${line}${refused.column === null ? "" : `:${refused.column}`}`}
             </code>
           )}
           <p>{m.repairByHand}</p>

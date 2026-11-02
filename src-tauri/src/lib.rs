@@ -773,11 +773,6 @@ fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
 }
 
 #[tauri::command]
-async fn config_repair_supported(id: String, profile: Option<String>) -> Result<bool, String> {
-    blocking(move || config_repair::supported(catalog::tool(&id)?, profile.as_deref())).await?
-}
-
-#[tauri::command]
 async fn config_repair(id: String, profile: Option<String>) -> Result<config_repair::Repair, String> {
     blocking(move || config_repair::repair(catalog::tool(&id)?, profile.as_deref())).await?
 }
@@ -1024,7 +1019,6 @@ pub fn run() {
             settings_unset,
             permissions_show,
             open_setup,
-            config_repair_supported,
             config_repair,
             sign_in,
             sign_in_answer,
