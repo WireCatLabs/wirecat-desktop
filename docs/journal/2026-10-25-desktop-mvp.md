@@ -143,6 +143,7 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 
 - **TASK-59 · Скриншоты десктопа на сайте (2026-11-02).** Слава: «also shall we add som more info on the desktop app? mb add its screenshot on homepage in a block? and add more screenshots in the download? I'd show users what they'll get».
   - Пробные снимки из браузерной сборки (scratchpad/desktop-shots): для витрины не годятся — моки показывают ошибки (схема 33, старые версии, «2 copies installed»), а «Your computer» на Tasks ещё грузится. Нужен чистый демо-сценарий `?showcase` (всё установлено и свежее, данные выдуманные), затем блок на главной и галерея на странице загрузки.
+  - PR #58: режим `?showcase` (`src/platform/mock-showcase.ts`), 28 снимков 1440×900 PNG+WebP в scratchpad/showcase с MANIFEST и подписями en/ru/es. Версии инструментов на Tools старые — попросил заменить на текущие с npm.
 
 - **TASK-60 · Рецепты под установленные инструменты (2026-11-02).** Слава: «the guides use tg, I'd adapt them depending on what cli user has installed. actually I think we just bake the guides in the desktop since they are just prompts (unless already)».
   - Уже вшиты: данные и страница в `.impeccable/mocks/guides/prototype/`, приложение импортирует оттуда; с сайта ничего не грузится (план NEED-215 с md-страницами на сайте не делался). Промпты и шаги жёстко на `tg`.
@@ -852,6 +853,10 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **FIND-184 · Установленные zm 0.60.0 и drive 0.54.3 отстают от npm (0.64.0 и 0.55.0)** — поиск по репликам Zoom (`cue_ref`) и `documents show` из этих выпусков у владельца не работают, пока не обновит (Tools → Update).
 
 - #56 (фильтры, TASK-58) и #54 (автообновление инструкций, NEED-236) слиты 2026-11-02; превью main (af34eb4) на http://localhost:1437 (vite preview из worktree shots). cli-core #2364 — конфликт в CHANGELOG, перебазируется.
+
+- **BUG-50 · «Your computer» не догружается, если страница открыта сразу (`?section=tasks|memory`)** — данные системы запрашивает только Tools. Как в настоящем приложении при старте не на Tools — не проверено.
+- **UX-58 · «Check this agent» кладёт заблокированные команды в «Also to fix»** — защита выглядит как проблема.
+- **FIND-185 · Демо-данные повторяются и выглядят ненастоящими** (одинаковые попадания 1 и 6, «Kai Sample», «Sounds great!» подряд); итог поиска инструмента на английском в ru/es интерфейсе.
 
 ## 4. Вопросы к Славе
 
