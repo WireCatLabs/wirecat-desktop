@@ -312,6 +312,9 @@ memo с пометкой «About: Email»; чтение логов для отч
 
 - **ASK-50 · «also I didnt notice the desktop screens there»** — их ещё нет на главной: витрина десктопа (чистый демо-режим и скриншоты) у агента, затем блок на главной и галерея на странице загрузки (TASK-59, NEED-241).
 
+- **ASK-51 · «Telegram больше не отдаёт. - why?»** — Telegram ответил `CHANNEL_INVALID` на чтение истории 11 каналов. Так Telegram отвечает, когда аккаунт больше не может открыть канал: вышел или удалён из него, канал удалён или стал приватным, либо устарел ключ доступа (access hash). Предположение, не проверено по каждому каналу. 27.10 таких было 18.
+- **ASK · «release what you need, tell me if there are blockers to fix»** — CLI: агент сливает и выпускает cli-core, tg, max, zm, memo (#570); WhatsApp не выпускается агентом. Десктоп: PR #78 (0.3.0), затем `bin/tag-release`.
+
 ## 3. Находки
 
 **RISK-1 · zm и memo установлены дважды: npm и pnpm**
@@ -888,6 +891,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - Полная синхронизация tg personal, запущенная напрямую в 06:40: 98 585 сообщений в 331 чате, 11 каналов `CHANNEL_INVALID` (недоступны), run 20261102T055404Z-messages-sync-24a068. Пробел в архиве Telegram с 28.10 закрыт (FIND-181).
 - #76 слит: BUG-57 — MCP-сервер в Manage на tg 0.112 / max 0.95 / wa / drive не работал (команды требуют профиль; добавлено `--profiles all`, отвечает за 59/96/92/92 упавших запусков); фоновые проверки с `--no-record`; «Clear all» внутри поля поиска (BUG-58, пустая строка на es); «Full guide» по мессенджеру; «Connect notes and mail too». Записи агента: `docs/journal/2026-11-02-small-fixes-b.md` (BUG-57, BUG-58, FIND-187, FIND-188, RISK-89, IDEA-21, DEBT-12).
+
+- **SEC-8 · На странице загрузки сайта та же установка через /tmp, что SEC-113 в десктопе** (`wget -O /tmp/{deb} … && sudo apt install /tmp/{deb}`, из cli-docs #488): другой пользователь компьютера может подложить файл. Исправлено в cli-docs #503 той же командой, что в приложении (`/var/cache/apt/archives`).
 
 ## 4. Вопросы к Славе
 
