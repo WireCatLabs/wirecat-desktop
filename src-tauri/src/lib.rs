@@ -867,6 +867,10 @@ async fn update_download_package(
 pub fn run() {
     // The login shell's PATH takes about half a second; read it while the window opens, not on the first page.
     std::thread::spawn(paths::search_path);
+    std::thread::spawn(|| {
+        node::make_app_data_private();
+        cloudflare::remove_left_scratch();
+    });
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
