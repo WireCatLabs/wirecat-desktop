@@ -112,7 +112,7 @@ mod tests {
         let contacts = json!({"items": [{"id": "21", "name": "Adam", "username": "adam_k", "alias": "Адам", "description": null}]});
         assert_eq!(super::names_in(&chats), ["Book club", "Adam", "adam_k"]);
         assert_eq!(super::names_in(&contacts), ["Adam", "Адам", "adam_k"]);
-        assert!(super::names_in(&json!({"error": {"code": "validation_error"}})).is_empty());
+        assert_eq!(super::names_in(&json!({"error": {"code": "validation_error"}})), Vec::<String>::new());
     }
 
     #[test]
