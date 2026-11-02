@@ -282,6 +282,23 @@ describe("Tasks", () => {
     expect(within(todo).getAllByRole("button", { name: /^(OPS|HRB)-\d+ / })[0]).toHaveAccessibleName(/^OPS-3/)
   })
 
+  it("opens a card on a click, never at the end of a drag", async () => {
+    const user = userEvent.setup()
+    useTasks.setState({ view: "board" })
+    document.elementsFromPoint = () => []
+    render(<TasksPage />)
+    const card = await screen.findByRole("button", { name: /^OPS-3 / }, { timeout: 4000 })
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: card, coords: { clientX: 20, clientY: 20 } },
+      { target: card, coords: { clientX: 60, clientY: 40 } },
+      { target: card, coords: { clientX: 22, clientY: 21 } },
+      { keys: "[/MouseLeft]", target: card },
+    ])
+    expect(screen.queryByRole("dialog")).toBeNull()
+    await user.click(card)
+    expect(await screen.findByRole("dialog")).toBeInTheDocument()
+  })
+
   it("offers the update when memo is too old, and nothing else", async () => {
     vi.spyOn(platform, "taskList").mockResolvedValue({ kind: "old", version: "0.131.2", need: "0.131.4" })
     render(<TasksPage />)
