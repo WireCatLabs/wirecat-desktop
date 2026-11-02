@@ -376,6 +376,14 @@ Four steps joined by a 2px track. Done is a green dot with a check, active is a 
 - **Style:** 2rem tall, `app` fill, `line-strong` border, 0.35rem corners, mono text with an Onest placeholder in `ink-dim`.
 - **Error:** the border turns red and a one-line red hint appears below.
 - **Copy field:** a command in mono on `app-2` with a `line` border and an icon button that swaps to a green check for 1.6s.
+- **No native controls.** WebKitGTK and Windows paint their own date pickers, checkboxes, radios, search crosses and
+  sliders, which ignore the theme. Dates use `Calendar` / `DateField` / `DatePopover` (`src/ui/Calendar.tsx`: a month of
+  day buttons, arrows, Page Up/Down, Home/End, week from Sunday in English and Monday in Russian and Spanish);
+  checkboxes and radios use `Checkbox` / `Radio` (`src/ui/Checkbox.tsx`: the real input, transparent, over a drawn
+  box); search fields hide WebKit's cross; the size slider is drawn by `.range` in `index.css`.
+- **Filter bar** (`src/ui/FilterBar.tsx`, `FilterMenu.tsx`): the Tasks and Memory search. One 2.8rem field in mono
+  over a row of 2rem chips. A chip with a value reads "Priority: high" on the brand wash and gains a cross that clears
+  it; a toggle chip carries a box. Chips and typed `field:value` words are one state.
 
 ### Navigation
 
