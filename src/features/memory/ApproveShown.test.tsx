@@ -10,7 +10,7 @@ beforeEach(() => useMemory.setState(useMemory.getInitialState(), true))
 afterEach(() => vi.restoreAllMocks())
 
 const status = (ref: string) => useMemory.getState().entries.find((e) => e.ref === ref)?.status
-const approved = (spy: ReturnType<typeof vi.spyOn>) => spy.mock.calls.map(([ref]) => ref).sort()
+const approved = (spy: { mock: { calls: unknown[][] } }) => spy.mock.calls.map((call) => String(call[0])).sort()
 const page = async () => {
   render(<MemoryPage />)
   await screen.findByRole("region", { name: "Memories, facts and actions" }, { timeout: 4000 })
