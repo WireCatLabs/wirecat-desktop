@@ -98,6 +98,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             <span className="font-mono text-[0.95rem] font-normal text-ink-soft">{tool.bin}</span>
             {tool.partOf && <Pill>{m.partOf(findTool(tool.partOf)?.name ?? tool.partOf)}</Pill>}
             {(installs?.length ?? 0) > 1 && <Pill tone="warn">{m.copies(installs?.length ?? 0)}</Pill>}
+            <ExpandChevron open={expanded} className="self-center group-hover:text-brand" />
           </h3>
           {storageLine ? (
             <p
