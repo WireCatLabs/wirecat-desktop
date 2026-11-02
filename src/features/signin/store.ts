@@ -17,8 +17,8 @@ export const NEEDS_UPDATE = "needs_update"
 /** The tool stopped without a `done` or `failed` event; the English message still goes to the bug report. */
 export const ENDED = "ended"
 
-/** What the dialog shows: the step the tool reached last. */
-export type Phase = "starting" | "scan" | "pair" | "browser" | "answer" | "progress" | "done" | "failed"
+/** What the dialog shows: the step the tool reached last. `plan` says what will happen, before anything runs. */
+export type Phase = "plan" | "starting" | "scan" | "pair" | "browser" | "answer" | "progress" | "done" | "failed"
 
 type SignInState = {
   tool: string | null
@@ -42,7 +42,9 @@ type SignInState = {
   stopping: boolean
   run: number
   onFinish: (() => void) | null
+  /** Without `method` it opens on the plan, and `begin` runs it; with one (a switch, a retry) it runs at once. */
   start(tool: string, profile: string, onFinish?: () => void, method?: string): void
+  begin(): void
   answer(value: string): Promise<void>
   stop(): void
   /** While the tool runs, closing stops it first; the dialog closes when the tool has stopped. */
@@ -68,7 +70,8 @@ const closed = {
   onFinish: null,
 }
 
-export const running = (phase: Phase) => phase !== "done" && phase !== "failed"
+/** A sign-in process runs, or is about to: the plan has started nothing yet. */
+export const running = (phase: Phase) => phase !== "done" && phase !== "failed" && phase !== "plan"
 
 /** `wa`'s wait for the phone's history: a stop then keeps what came. */
 export const receivingHistory = (s: Pick<SignInState, "phase" | "progress">) =>
@@ -117,6 +120,10 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const switching = previous.tool !== null && running(previous.phase)
       if (switching && previous.tool) platform.signInStop(previous.tool).catch(() => {})
       const run = previous.run + 1
+      if (method === undefined && !switching) {
+        set({ ...closed, tool, profile, method: chosen, run, phase: "plan", onFinish: onFinish ?? null })
+        return
+      }
       set({ ...closed, tool, profile, method: chosen, run, onFinish: onFinish ?? null })
       const mine = () => get().run === run && get().tool !== null
       const started = (switching ? ending : Promise.resolve()).then(() =>
@@ -130,6 +137,11 @@ export const useSignIn = create<SignInState>()((set, get) => {
         },
         (e) => mine() && apply({ event: "failed", message: message(e), code: null }),
       )
+    },
+    begin() {
+      const { tool, profile, method, phase, onFinish } = get()
+      if (phase !== "plan" || !tool || !profile || !method) return
+      get().start(tool, profile, onFinish ?? undefined, method)
     },
     async answer(value) {
       const { tool, need, sent } = get()

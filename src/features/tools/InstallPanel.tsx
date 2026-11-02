@@ -13,7 +13,9 @@ import { Stepper, type StepState } from "@/ui/Stepper"
 import { useAgents } from "../agents/store"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
+import { InstallProgress } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
+import { SkillOffer } from "./SkillOffer"
 import { useTools } from "./store"
 
 type Words = ToolsText["install"]
@@ -43,12 +45,20 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
   if (!session) return null
   const outcome = session.outcome
   const names = packageNamesOf(tool.id)
+  const offersSkill =
+    outcome?.event === "done" && session.operation === "install" && !outcome.skills && Boolean(tool.skill)
 
   return (
     <div className="border-line border-t bg-app-2/60 px-[1.3rem] pt-[2rem] pb-[1.6rem]">
       <div className="mx-auto max-w-[62rem]">
         <Stepper steps={stepStates(session, m)} />
       </div>
+
+      <Collapse open={session.operation === "install" && session.step === "install" && !outcome}>
+        <div className="mx-auto mt-[1.6rem] max-w-[62rem]">
+          <InstallProgress session={session} />
+        </div>
+      </Collapse>
 
       <div className="mt-[1.45rem] flex flex-wrap items-center gap-x-4 gap-y-3" aria-live="polite">
         {session.step === "queued" && !outcome && <p className="text-[0.95rem] text-ink-soft">{m.waiting}</p>}
@@ -82,6 +92,7 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
           </div>
         )}
         {outcome?.event === "done" && outcome.skills && <SkillsResult skills={outcome.skills} m={m} />}
+        {offersSkill && <SkillOffer tool={tool} />}
         {outcome?.event === "done" && outcome.shadowedBy && (
           <p className="w-full text-[0.9rem] text-warn-ink">
             {m.shadowed(<code className="font-mono">{outcome.shadowedBy}</code>)}
@@ -134,7 +145,8 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
           {outcome && (
             <Button
               size="sm"
-              variant={outcome.event === "failed" ? "ghost" : "primary"}
+              // The skill offer's button is the next thing to do; Done steps back beside it.
+              variant={outcome.event === "failed" ? "ghost" : offersSkill ? "secondary" : "primary"}
               onClick={() => dismiss(tool.id)}
             >
               {outcome.event === "failed" ? m.close : m.done}

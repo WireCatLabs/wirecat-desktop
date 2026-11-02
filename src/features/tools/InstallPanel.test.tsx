@@ -93,3 +93,28 @@ describe("the agent instructions an update refreshed", () => {
     expect(useNav.getState().active).toBe("agents")
   })
 })
+
+describe("the skill offer after a first install", () => {
+  beforeEach(() => useAgents.setState(useAgents.getInitialState(), true))
+
+  it("adds the skill for the agents found, in one click", async () => {
+    useTools.setState({
+      installs: { tg: [{ path: "~/bin/tg", version: "0.88.0", manager: "npm", problem: null }] },
+      sessions: { tg: done("0.88.0") },
+    })
+    rows(["tg"])
+
+    const offer = await screen.findByRole("region", { name: "Teach your AI agents to use Telegram" })
+    expect(within(offer).getByText("Light on context")).toBeTruthy()
+    await userEvent.click(await within(offer).findByRole("button", { name: /^Add the skill for / }))
+    expect(await within(offer).findByText(/can now use Telegram\.$/, {}, { timeout: 5000 })).toBeTruthy()
+  })
+
+  it("is not offered after an update, which refreshes the copies already there", () => {
+    const skills = { refreshed: [], failed: null }
+    const outcome = { event: "done" as const, version: "0.89.0", path: "~/bin/tg", shadowedBy: null, skills }
+    useTools.setState({ sessions: { tg: { ...done("0.89.0"), outcome } } })
+    rows(["tg"])
+    expect(screen.queryByRole("region", { name: "Teach your AI agents to use Telegram" })).toBeNull()
+  })
+})

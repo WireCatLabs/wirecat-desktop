@@ -5,6 +5,7 @@ import { backupMock } from "./mock-backup"
 import { cloudflareMock } from "./mock-cloudflare"
 import { newestReader, storeCompatMock } from "./mock-compat"
 import { delay } from "./mock-delay"
+import { npmLines } from "./mock-install"
 import { mcpServerMock } from "./mock-mcp"
 import { memoryMock } from "./mock-memory"
 import { notificationsMock } from "./mock-notifications"
@@ -34,7 +35,8 @@ import type { Platform } from "./types"
 
 // A stand-in for Rust so the interface can be designed and reviewed in a browser.
 // `?state=fresh` shows a machine with nothing installed, `?state=nonode` one without Node.js,
-// `?state=one` only Telegram, `?fail=<tool>` makes that tool's install fail (`?fail=storage`: reading Storage), `?hold=<tool>` keeps it installing, `?install=<tool>` starts one.
+// `?state=one` only Telegram, `?fail=<tool>` makes that tool's install fail (`?fail=storage`: reading Storage), `?hold=<tool>` keeps it installing (three quarters through the download), `?install=<tool>` starts one,
+// `?npm=quiet` installs like pnpm, which reports no progress.
 // `?unconfirmed=<tool>` refuses its install: the release was not built by the tool's own release workflow.
 // `?state=noadmin` has an apt Node whose npm needs administrator rights. With `nonode` or `noadmin`, "Set up Node.js
 // for me" runs a fake download; `?node=fail` makes its checksum mismatch, `?node=ready` starts with it already set up.
@@ -435,19 +437,17 @@ export function createMock(os: Platform["os"]): Platform {
         })
       }
       onEvent({ event: "step", step: "install" })
-      onEvent({ event: "log", line: `$ npm install --global ${pkg}@${version} --no-fund --no-audit`, stderr: false })
-      for (const line of [
-        `npm http fetch GET 200 https://registry.npmjs.org/${pkg} 312ms`,
-        "npm http fetch GET 200 https://registry.npmjs.org/@wirecat%2fcli-core 188ms",
-        "npm http fetch GET 200 https://registry.npmjs.org/better-sqlite3 140ms",
-        "added 214 packages in 9s",
-      ]) {
-        await delay(700)
-        if (cancelled)
-          return onEvent({ event: "failed", reason: "cancelled", message: "Installation cancelled.", hint: null })
-        onEvent({ event: "log", line, stderr: false })
-        if (params.get("hold") === id) await new Promise(() => undefined)
-      }
+      const quiet = params.get("npm") === "quiet"
+      const manager = quiet ? "pnpm add --global" : "npm install --global"
+      const flags = quiet ? "" : " --no-fund --no-audit --loglevel http"
+      onEvent({ event: "log", line: `$ ${manager} ${pkg}@${LATEST[id] ?? "latest"}${flags}`, stderr: false })
+      const finished = await npmLines(pkg, (line) => onEvent({ event: "log", line, stderr: line.startsWith("npm ") }), {
+        stop: () => cancelled,
+        hold: params.get("hold") === id,
+        quiet,
+      })
+      if (!finished)
+        return onEvent({ event: "failed", reason: "cancelled", message: "Installation cancelled.", hint: null })
       if (params.get("fail") === id) {
         return onEvent({
           event: "failed",
