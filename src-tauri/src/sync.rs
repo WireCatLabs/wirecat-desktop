@@ -71,6 +71,9 @@ pub enum SyncEvent {
         code: Option<String>,
         reason: Option<String>,
         run: Option<String>,
+        /// How long the service asked to wait before the next try, when the tool says (`retry.after_ms`).
+        #[serde(rename = "retryAfterMs")]
+        retry_after_ms: Option<u64>,
     },
 }
 
@@ -185,7 +188,12 @@ fn error_of(name: &str, line: &str) -> Option<SyncEvent> {
         Some(c) => format!("{name} stopped with the error {c}."),
         None => format!("{name} stopped with an error."),
     };
-    Some(SyncEvent::Failed { message, code, reason: word("reason"), run })
+    let retry_after_ms = e
+        .get("retry")
+        .and_then(|r| r.get("after_ms"))
+        .or_else(|| e.get("details").and_then(|d| d.get("retry_after_ms")))
+        .and_then(Value::as_u64);
+    Some(SyncEvent::Failed { message, code, reason: word("reason"), run, retry_after_ms })
 }
 
 /// A code or reason is an identifier (`provider_unavailable`, `profile.locked`); anything else is dropped.
@@ -219,7 +227,7 @@ fn finish(
 }
 
 fn failed(message: String, code: Option<String>, reason: Option<String>) -> SyncEvent {
-    SyncEvent::Failed { message, code, reason, run: None }
+    SyncEvent::Failed { message, code, reason, run: None, retry_after_ms: None }
 }
 
 fn count(v: &Value, key: &str) -> u64 {
@@ -402,13 +410,27 @@ mod tests {
     #[test]
     fn an_error_keeps_its_code_reason_and_run_but_never_the_tools_words() {
         let line = r#"{"error":{"code":"provider_error","reason":"profile.locked","message":"chat Family Secrets failed","run_id":"20261027T121457Z-messages-sync-db4f0a"}}"#;
-        let SyncEvent::Failed { message, code, reason, run } = error_of("Telegram", line).unwrap() else { panic!() };
+        let SyncEvent::Failed { message, code, reason, run, retry_after_ms } = error_of("Telegram", line).unwrap()
+        else {
+            panic!()
+        };
+        assert_eq!(retry_after_ms, None);
         assert_eq!((code.as_deref(), reason.as_deref()), (Some("provider_error"), Some("profile.locked")));
         assert_eq!(run.as_deref(), Some("20261027T121457Z-messages-sync-db4f0a"));
         assert!(!message.contains("Family"), "{message}");
         let odd = r#"{"error":{"code":"Family Secrets","reason":"a b","run_id":"../x y","message":"m"}}"#;
         let SyncEvent::Failed { code, reason, run, .. } = error_of("Telegram", odd).unwrap() else { panic!() };
         assert_eq!((code, reason, run), (None, None, None));
+    }
+
+    #[test]
+    fn a_rate_limit_keeps_the_wait_the_service_asked_for() {
+        let line = r#"{"error":{"code":"rate_limited","message":"wait","retry":{"safe":true,"after_ms":1500000}}}"#;
+        let SyncEvent::Failed { retry_after_ms, .. } = error_of("Telegram", line).unwrap() else { panic!() };
+        assert_eq!(retry_after_ms, Some(1_500_000));
+        let older = r#"{"error":{"code":"rate_limited","message":"wait","details":{"retry_after_ms":90000}}}"#;
+        let SyncEvent::Failed { retry_after_ms, .. } = error_of("Telegram", older).unwrap() else { panic!() };
+        assert_eq!(retry_after_ms, Some(90_000));
     }
 
     #[test]

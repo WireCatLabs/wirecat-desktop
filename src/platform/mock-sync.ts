@@ -4,7 +4,9 @@ import type { Platform } from "./types"
 
 // Each tool's sync as Rust reports it: stages read from its notes, then the counts. `?sync=<tool>` starts that tool's
 // sync for personal (`src/app/scenarios.ts`); `?sync-hold=<tool>` keeps it running; `?sync-fail=<tool>` ends it with
-// another sync holding the profile; `?sync-timeout=<tool>` at the time limit; `?sync=never` has no profile synced yet.
+// another sync holding the profile; `?sync-timeout=<tool>` at the time limit; `?sync-limited=<tool>` when the service
+// asks to wait 25 minutes (`?sync-limited=<tool>&wait=none` without saying how long); `?sync=never` has no profile synced
+// yet.
 // Background servers: personal runs, any other profile is stopped with its unit written; `?server=off` stops every
 // profile with no unit yet, `?server-fail=<tool>` makes starting it fail as a signed-out profile does.
 
@@ -85,6 +87,16 @@ export function syncMock(): Pick<
           code: "provider_unavailable",
           reason: "profile.locked",
           run: "20261027T121457Z-sync-db4f0a",
+        })
+      }
+      if (params.get("sync-limited") === id) {
+        return onEvent({
+          event: "failed",
+          message: "too many requests; wait",
+          code: "rate_limited",
+          reason: "provider.rate-limited",
+          run: "20261103T091502Z-messages-sync-7c21e0",
+          retryAfterMs: params.get("wait") === "none" ? null : 25 * MIN,
         })
       }
       if (params.get("sync-timeout") === id) {

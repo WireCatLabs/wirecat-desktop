@@ -25,6 +25,8 @@ export const SyncEventSchema = v.variant("event", [
     reason: v.nullable(v.string()),
     /** The tool's failed run, to open on the Logs page; the tool's own message never reaches the window. */
     run: v.nullable(v.string()),
+    /** How long the service asked to wait, when the tool says; older app builds send nothing. */
+    retryAfterMs: v.optional(v.nullable(v.number())),
   }),
 ])
 

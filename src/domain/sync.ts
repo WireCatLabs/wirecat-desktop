@@ -3,7 +3,14 @@ export type SyncWhat = "messages" | "files" | "meetings" | "notes and mail" | "m
 
 export type SyncSummary = { new: number; places: number; failed: number; left: number; complete: boolean }
 
-export type SyncFailure = { message: string; code: string | null; reason: string | null; run: string | null }
+export type SyncFailure = {
+  message: string
+  code: string | null
+  reason: string | null
+  run: string | null
+  /** The wait the service asked for, when the tool reported one. */
+  retryAfterMs?: number | null
+}
 
 /** Why a sync failed, in the categories the interface explains; `failed` shows the tool's own message. */
 export type AdviceKind =

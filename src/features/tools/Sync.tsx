@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, CircleStop, LoaderCircle, RefreshCw, X } from "lucide-react"
+import { AlertTriangle, CheckCircle2, CircleStop, LoaderCircle, RefreshCw, ScrollText, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { type CatalogTool, ownerId, signsInHere, syncNeedsProfile, syncsHere } from "@/domain/catalog"
 import { toolStatus } from "@/domain/status"
@@ -200,7 +200,11 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
     const a = advice(failure)
     body = (
       <div className="flex flex-col gap-2">
-        <p>{m.adviceText(a.kind, profile ?? entry.name, failure.message, Boolean(a.logs))}</p>
+        <p>
+          {a.kind === "rateLimited"
+            ? m.slowDown(entry.name, waitUntil(run.endedAt, failure.retryAfterMs))
+            : m.adviceText(a.kind, profile ?? entry.name, failure.message, Boolean(a.logs))}
+        </p>
         <div className="flex flex-wrap items-center gap-3">
           {a.signIn && entry.setup && profile && (
             <Button
@@ -229,7 +233,12 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
         </div>
         {(failure.code || failure.run) && (
           <div>
-            <Button size="sm" variant="ghost" onClick={() => openRun(entry, failure.run)}>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<ScrollText className="size-4" strokeWidth={1.8} aria-hidden />}
+              onClick={() => openRun(entry, failure.run)}
+            >
               {m.openRun}
             </Button>
           </div>
@@ -248,6 +257,13 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
       {close}
     </div>
   )
+}
+
+/** When the service said the next sync may start, as minutes from the end of this one and a clock time. */
+function waitUntil(endedAt: number | null, waitMs: number | null | undefined) {
+  if (!waitMs || waitMs <= 0) return null
+  const at = (endedAt ?? Date.now()) + waitMs
+  return { minutes: Math.max(1, Math.ceil(waitMs / 60_000)), at }
 }
 
 /** The Logs page, at the failed run when the tool named it, else at this tool's failed syncs. */

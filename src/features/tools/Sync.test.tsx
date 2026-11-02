@@ -93,6 +93,25 @@ describe("syncing a profile from the Manage panel", () => {
     expect(useNav.getState().active).toBe("logs")
   })
 
+  it("explains a rate limit with the wait the service asked for, and says WireCat does not retry", async () => {
+    render(<SyncControl tool={tg} profile="personal" />)
+    await userEvent.click(await screen.findByRole("button", { name: "Sync now" }))
+    send({
+      event: "failed",
+      message: "Telegram stopped with the error rate_limited.",
+      code: "rate_limited",
+      reason: "provider.rate-limited",
+      run: "20261103T091502Z-messages-sync-7c21e0",
+      retryAfterMs: 25 * 60_000,
+    })
+    finish()
+    expect(await screen.findByText("The service asked to slow down")).toBeInTheDocument()
+    expect(screen.getByText(/^Telegram limits how fast history can be downloaded/)).toHaveTextContent(
+      /It asked to wait 25 minutes: sync again after .+\. .* WireCat does not try again by itself\.$/,
+    )
+    expect(screen.getByRole("button", { name: "Open the run on Logs" })).toBeInTheDocument()
+  })
+
   it("syncs memo and Email under one lock, without a profile", () => {
     useSync.getState().start("memo", null)
     useSync.getState().start("email", null)

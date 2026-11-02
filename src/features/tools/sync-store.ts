@@ -79,7 +79,13 @@ export const useSync = create<State>()((set, get) => {
         return patch(key, {
           ...ended,
           phase: "failed",
-          failure: { message: e.message, code: e.code, reason: e.reason, run: e.run },
+          failure: {
+            message: e.message,
+            code: e.code,
+            reason: e.reason,
+            run: e.run,
+            retryAfterMs: e.retryAfterMs ?? null,
+          },
         })
     }
   }
