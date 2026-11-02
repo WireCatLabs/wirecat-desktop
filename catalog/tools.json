@@ -250,6 +250,10 @@
         "what": "messages",
         "note": null
       },
+      "names": [
+        ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
+        ["{profile}", "contacts", "list", "--offline", "--all", "--no-record", "--json"]
+      ],
       "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
@@ -577,6 +581,10 @@
         "what": "messages",
         "note": null
       },
+      "names": [
+        ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
+        ["{profile}", "contacts", "list", "--offline", "--all", "--no-record", "--json"]
+      ],
       "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
@@ -900,6 +908,10 @@
         "what": "messages",
         "note": "WhatsApp sends new messages while `wa {profile} serve` runs; there is no sync to start."
       },
+      "names": [
+        ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],
+        ["{profile}", "contacts", "list", "--offline", "--all", "--no-record", "--json"]
+      ],
       "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],

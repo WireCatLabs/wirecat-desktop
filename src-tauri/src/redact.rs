@@ -78,6 +78,191 @@ fn ipv4() -> &'static Regex {
     R.get_or_init(|| Regex::new(r"\b(?:\d{1,3}\.){3}\d{1,3}\b").unwrap())
 }
 
+/// Words that are chat titles often enough but carry no one's identity, and that a report needs to stay readable.
+/// Compared after folding case; the tools' own names from the catalog and the owner's profile names are added to them.
+const ORDINARY: &[&str] = &[
+    "wirecat",
+    "saved messages",
+    "deleted account",
+    "telegram notifications",
+    "notifications",
+    "sync",
+    "error",
+    "errors",
+    "test",
+    "tests",
+    "bot",
+    "bots",
+    "support",
+    "notes",
+    "news",
+    "work",
+    "family",
+    "friends",
+    "chat",
+    "chats",
+    "group",
+    "home",
+    "general",
+    "admin",
+    "info",
+    "help",
+    "team",
+    "user",
+    "users",
+    "name",
+    "mail",
+    "email",
+    "number",
+    "secret",
+    "token",
+    "hash",
+    "redacted",
+    "null",
+    "true",
+    "false",
+    "none",
+    "unknown",
+    "default",
+    "personal",
+    "profile",
+    "account",
+    "server",
+    "status",
+    "доступ",
+    "избранное",
+    "удалённый аккаунт",
+    "уведомления",
+    "чат",
+    "чаты",
+    "работа",
+    "семья",
+    "друзья",
+    "новости",
+    "заметки",
+    "поддержка",
+    "тест",
+    "бот",
+    "группа",
+    "общий",
+    "дом",
+    "помощь",
+    "команда",
+    "инфо",
+    "ошибка",
+];
+
+const NAME: &str = "[name]";
+
+/// Names of people and chats the messenger tools keep on this computer (`names.rs`), masked as `[name]`.
+///
+/// The rule: a name matches only as a whole, ignoring case (Cyrillic too), and only where it stands as a word of
+/// its own: a letter or digit right before or after it means it is part of another word. Where names overlap, the one
+/// starting first wins, then the longest ("Anna Petrova" before "Anna"). A name is skipped when it has fewer than 3
+/// characters, no letter at all, or is an ordinary word (`ORDINARY`, a tool's name, a profile name): "Mom" is still
+/// masked, "Work" and "Telegram" are not, because masking them would make every report unreadable.
+#[derive(Default)]
+pub struct Names {
+    matcher: Option<aho_corasick::AhoCorasick>,
+}
+
+impl Names {
+    pub fn new(candidates: impl IntoIterator<Item = String>, keep: &[String]) -> Self {
+        let tool_names = crate::catalog::catalog().tools.iter().map(|t| fold(&t.name));
+        let ordinary: std::collections::HashSet<String> =
+            ORDINARY.iter().map(|w| fold(w)).chain(tool_names).chain(keep.iter().map(|k| fold(k))).collect();
+        let mut names: Vec<String> = candidates
+            .into_iter()
+            .map(|c| fold(&c.split_whitespace().collect::<Vec<_>>().join(" ")))
+            .filter(|n| n.chars().count() >= 3 && n.chars().any(char::is_alphabetic) && !ordinary.contains(n))
+            .collect();
+        names.sort_unstable();
+        names.dedup();
+        // Overlapping search reports every name at every place; `text` then picks the matches itself.
+        let matcher = (!names.is_empty()).then(|| aho_corasick::AhoCorasick::new(&names).ok()).flatten();
+        Self { matcher }
+    }
+
+    pub fn text(&self, s: &str) -> String {
+        let Some(matcher) = &self.matcher else { return s.to_string() };
+        let (folded, origin) = folded_with_origin(s);
+        let mut found: Vec<(usize, usize)> = matcher
+            .find_overlapping_iter(&folded)
+            .map(|m| (origin[m.start()], origin[m.end()]))
+            .filter(|&(start, end)| stands_alone(s, start, end))
+            .collect();
+        found.sort_unstable_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
+        let mut out = String::with_capacity(s.len());
+        let mut at = 0;
+        for (start, end) in found {
+            if start >= at {
+                out.push_str(&s[at..start]);
+                out.push_str(NAME);
+                at = end;
+            }
+        }
+        out.push_str(&s[at..]);
+        out
+    }
+
+    pub fn json(&self, value: &mut Value) {
+        if self.matcher.is_none() {
+            return;
+        }
+        match value {
+            Value::Object(map) => map.values_mut().for_each(|v| self.json(v)),
+            Value::Array(items) => items.iter_mut().for_each(|v| self.json(v)),
+            Value::String(s) => *s = self.text(s),
+            _ => {}
+        }
+    }
+}
+
+/// Lower case one character for one, so a match in the folded text maps back to the original exactly. The few
+/// characters whose lower case is longer ("İ") stay as they are; whitespace becomes a space, so a name broken over two
+/// lines still matches.
+fn fold_char(c: char) -> char {
+    if c.is_whitespace() {
+        return ' ';
+    }
+    let mut lower = c.to_lowercase();
+    match (lower.next(), lower.next()) {
+        (Some(l), None) => l,
+        _ => c,
+    }
+}
+
+fn fold(s: &str) -> String {
+    s.trim().chars().map(fold_char).collect()
+}
+
+/// The folded text and, for each of its byte offsets that starts a character (and its end), the original's offset.
+fn folded_with_origin(s: &str) -> (String, Vec<usize>) {
+    let mut folded = String::with_capacity(s.len());
+    let mut origin = Vec::with_capacity(s.len() + 1);
+    for (at, c) in s.char_indices() {
+        let f = fold_char(c);
+        origin.extend(std::iter::repeat_n(at, f.len_utf8()));
+        folded.push(f);
+    }
+    origin.push(s.len());
+    (folded, origin)
+}
+
+fn is_word(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
+
+/// A name's edge that is a letter needs a non-letter beside it; an edge such as an emoji or ")" needs nothing.
+fn stands_alone(s: &str, start: usize, end: usize) -> bool {
+    let name = &s[start..end];
+    let first = name.chars().next().is_some_and(is_word);
+    let last = name.chars().next_back().is_some_and(is_word);
+    let before = s[..start].chars().next_back().is_some_and(is_word);
+    let after = s[end..].chars().next().is_some_and(is_word);
+    !(first && before || last && after)
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -160,5 +345,63 @@ mod tests {
             super::text("client_secret_1234567-abc9def.apps.googleusercontent.com.json"),
             "client_secret_[client id].json"
         );
+    }
+
+    fn names(list: &[&str]) -> super::Names {
+        super::Names::new(list.iter().map(|n| (*n).to_string()), &["personal".to_string()])
+    }
+
+    #[test]
+    fn masks_latin_and_cyrillic_names_whole_and_ignoring_case() {
+        let n = names(&["Anna Petrova", "Анна Петрова", "Book club", "Олег"]);
+        assert_eq!(n.text("anna petrova wrote in BOOK CLUB"), "[name] wrote in [name]");
+        assert_eq!(n.text("АННА ПЕТРОВА и олег"), "[name] и [name]");
+        assert_eq!(n.text("Anna\nPetrova"), "[name]");
+        assert_eq!(n.text("Annabel and Олеговна stay"), "Annabel and Олеговна stay");
+    }
+
+    #[test]
+    fn prefers_the_longest_name_where_names_overlap() {
+        let n = names(&["Anna", "Anna Petrova", "Petrova Team"]);
+        assert_eq!(n.text("Anna Petrova Team"), "[name] Team");
+        assert_eq!(n.text("Anna and Anna Petrova"), "[name] and [name]");
+    }
+
+    #[test]
+    fn edges_that_are_not_letters_need_no_gap() {
+        let n = names(&["Mom ❤️", "Anna (work)", "adam_k"]);
+        assert_eq!(n.text("chat Mom ❤️!"), "chat [name]!");
+        assert_eq!(n.text("x:Anna (work)."), "x:[name].");
+        assert_eq!(n.text("@adam_k's, \"adam_k\""), "@[name]'s, \"[name]\"");
+        assert_eq!(n.text("adam_kk"), "adam_kk");
+    }
+
+    #[test]
+    fn skips_short_numeric_and_ordinary_names() {
+        let n = names(&["Al", "Ян", "12345", "Work", "Telegram", "Семья", "personal", "Bob"]);
+        assert_eq!(
+            n.text("Al, Ян, 12345, work, Telegram, семья, personal, bob"),
+            "Al, Ян, 12345, work, Telegram, семья, personal, [name]"
+        );
+    }
+
+    #[test]
+    fn masks_every_string_in_json_and_keeps_the_rest() {
+        let n = names(&["Book club"]);
+        let mut v = json!({"error": {"message": "cannot read Book club"}, "chats": ["book club"], "count": 3});
+        n.json(&mut v);
+        assert_eq!(v, json!({"error": {"message": "cannot read [name]"}, "chats": ["[name]"], "count": 3}));
+        assert_eq!(super::Names::default().text("Book club"), "Book club");
+    }
+
+    #[test]
+    fn ten_thousand_names_stay_quick() {
+        let many: Vec<String> = (0..10_000).map(|i| format!("Пользователь{i} Иванов")).collect();
+        let started = std::time::Instant::now();
+        let n = super::Names::new(many, &[]);
+        let text = "Пользователь9999 Иванов написал. ".repeat(500);
+        let masked = n.text(&text);
+        assert!(!masked.contains("Иванов"));
+        assert!(started.elapsed() < std::time::Duration::from_secs(2), "{:?}", started.elapsed());
     }
 }

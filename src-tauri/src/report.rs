@@ -1,4 +1,5 @@
-use crate::{catalog, redact, runs, system, tools};
+use crate::redact::Names;
+use crate::{catalog, names, redact, runs, system, tools};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
@@ -42,6 +43,7 @@ pub struct Sent {
 }
 
 pub fn context() -> Context {
+    let names = std::thread::spawn(names::all_known);
     let readiness = system::readiness();
     let tools: Vec<Value> = tools::detect_owners(false)
         .into_iter()
@@ -50,7 +52,10 @@ pub fn context() -> Context {
             Some(json!({ "id": t.id, "version": first.version, "manager": first.manager }))
         })
         .collect();
-    let attachments = Some(json!({ "runs": recent_failures(&tools) }));
+    let mut attachments = Some(json!({ "runs": recent_failures(&tools) }));
+    if let (Some(a), Ok(names)) = (attachments.as_mut(), names.join()) {
+        names.json(a);
+    }
     Context {
         app: json!({ "name": "wirecat-desktop", "version": env!("CARGO_PKG_VERSION") }),
         system: json!({
@@ -92,7 +97,8 @@ fn recent_failures(installed: &[Value]) -> Value {
     safe_runs(&Value::Array(found))
 }
 
-pub fn send(draft: Draft, mut context: Context) -> Result<Sent, String> {
+pub fn send(mut draft: Draft, mut context: Context) -> Result<Sent, String> {
+    mask_names(&names::all_known(), &mut draft, &mut context);
     let body = body(draft, &mut context)?;
     let key = body["idempotencyKey"].as_str().unwrap_or_default().to_string();
     let bytes = payload(body["report"].clone())?;
@@ -115,6 +121,16 @@ pub fn send(draft: Draft, mut context: Context) -> Result<Sent, String> {
     let status = response.status().as_u16();
     let answer: Value = response.body_mut().read_json().unwrap_or(Value::Null);
     accepted(status, &answer)
+}
+
+/// Before the other masks, so a name that looks like an address or a path is still hidden whole.
+fn mask_names(names: &Names, draft: &mut Draft, context: &mut Context) {
+    draft.summary = names.text(&draft.summary);
+    draft.details = names.text(&draft.details);
+    draft.expected = draft.expected.as_deref().map(|e| names.text(e));
+    if let Some(a) = context.attachments.as_mut() {
+        names.json(a);
+    }
 }
 
 /// Logs are always attached, so a report that outgrows the limit sheds the failed runs before it gives up.
@@ -446,6 +462,20 @@ mod tests {
             tool: Some("tg".into()),
             idempotency_key: "00000000-0000-4000-8000-000000000000".into(),
         }
+    }
+
+    #[test]
+    fn masks_known_names_in_what_the_owner_typed_and_in_failed_runs() {
+        let names = Names::new(["Book club".to_string(), "Олег".to_string()], &[]);
+        let mut d = draft("Book club fails", "sync of book club stops; Олег sees nothing");
+        d.expected = Some("BOOK CLUB syncs".into());
+        let mut ctx = context();
+        ctx.attachments =
+            Some(json!({ "runs": [{ "tool": "tg", "runs": [{ "provider_error": "CHAT_FORBIDDEN in Book club" }] }] }));
+        mask_names(&names, &mut d, &mut ctx);
+        let sent = body(d, &mut ctx).unwrap().to_string().to_lowercase();
+        assert!(!sent.contains("book club") && !sent.contains("олег"), "{sent}");
+        assert!(sent.contains("[name] fails") && sent.contains("chat_forbidden in [name]"), "{sent}");
     }
 
     #[test]

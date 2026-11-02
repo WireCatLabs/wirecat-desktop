@@ -62,6 +62,8 @@ src-tauri/src/
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
   redact.rs     masking tokens, numbers, addresses and names in tool output.
+  names.rs      the chat titles and contact names the messengers keep, read per profile with their own offline
+                `chats list` / `contacts list`, held in memory only, so doctor output and reports mask them.
   terminal.rs   opening a tool's interactive setup in the user's terminal.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.

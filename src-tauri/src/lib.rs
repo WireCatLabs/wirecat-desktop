@@ -13,6 +13,7 @@ mod install_e2e;
 mod mcp;
 mod mcp_server;
 mod memory;
+mod names;
 mod node;
 mod notifications;
 mod npm_prefix;

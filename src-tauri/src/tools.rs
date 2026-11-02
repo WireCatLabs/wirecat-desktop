@@ -266,22 +266,26 @@ pub struct Diagnosis {
     pub stderr: String,
 }
 
-pub fn diagnose(tool: &Tool, profile: Option<&str>) -> Result<Diagnosis, String> {
+pub fn diagnose(tool: &'static Tool, profile: Option<&str>) -> Result<Diagnosis, String> {
     let bin = program(&tool.bin).ok_or("the tool is not installed")?;
     let args = catalog::with_profile(&tool.doctor, profile)?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let names = std::thread::spawn(move || crate::names::known([tool]));
     let started = Instant::now();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_secs(90)).map_err(|e| e.to_string())?;
+    let duration_ms = started.elapsed().as_millis();
+    let names = names.join().unwrap_or_default();
     let mut report = out.json();
     if let Some(r) = report.as_mut() {
+        names.json(r);
         redact::json(r);
     }
     Ok(Diagnosis {
         command: format!("{} {}", tool.bin, args.join(" ")),
         exit_code: out.code,
-        duration_ms: started.elapsed().as_millis(),
+        duration_ms,
         report,
-        stderr: redact::text(out.stderr.trim()),
+        stderr: redact::text(&names.text(out.stderr.trim())),
     })
 }
 
