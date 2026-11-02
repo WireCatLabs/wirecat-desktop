@@ -112,3 +112,4 @@
 - `.claude/worktrees/release-020` (branch release/0.2.0, merged as #49), `.claude/worktrees/review-all` (review/all, closed #42) and the Vite on port 1437 (PID 392703), branches of closed PRs #34–#48 — landed in 0.2.0 (2026-11-01)
 - `.claude/worktrees/linux-install` (feat/linux-install-messages, PR #51), `/home/leemour/Projects/AI/cli-docs-wt-linux-install` (with node_modules, cli-docs #488), `/tmp/wirecat_0.2.0_amd64.deb` (kept for the _apt notice test), scratchpad apt-src clone — Linux install messages (2026-11-01)
 - `.claude/worktrees/memo-0131-14` (merged as #52), `.claude/worktrees/journal-020`, `/home/leemour/tmp-memo14`, `/home/leemour/tmp-memo11` — memo adoption (2026-11-01)
+/home/leemour/Projects/AI/visage/.claude/worktrees/search-real-data — worktree of merged PR #53 — 2026-11-02
