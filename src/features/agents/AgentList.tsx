@@ -6,7 +6,7 @@ import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
 import { agentTabId } from "./actions"
 import { agentsMessages } from "./messages"
-import { rowTone } from "./SkillTable"
+import { rowTone, statusWords } from "./SkillTable"
 import type { AgentEntry } from "./view"
 
 /** The agent the owner picked, kept for the app session so coming back to Agents shows the same one. */
@@ -106,7 +106,7 @@ function TabBody({ entry, on, first }: { entry: AgentEntry; on: boolean; first: 
   }
   const { view } = entry
   const checking = view.skills.some((s) => s.cell.kind === "checking")
-  const note = view.todo.length > 0 ? m.toSetUp(view.todo.length) : m.skillsCurrent
+  const note = statusWords(view, m).line
   return (
     <>
       <Lamp size="sm" tone={rowTone(view)} />
