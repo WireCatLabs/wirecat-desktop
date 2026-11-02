@@ -70,6 +70,8 @@ export function TaskBoard() {
   const [held, setHeld] = useState<Held | null>(null)
   const [said, setSaid] = useState("")
   const press = useRef<{ key: string; x: number; y: number; el: HTMLElement } | null>(null)
+  // A drop back where the card started ends on the card itself, so the browser follows it with a click.
+  const dropped = useRef(false)
   const byKey = new Map(tasks.map((t) => [t.key, t]))
   const column = (s: State) => order.filter((k) => byKey.get(k)?.state === s)
   const board = useRef<HTMLDivElement>(null)
@@ -105,7 +107,16 @@ export function TaskBoard() {
 
   const onPointerDown = (e: ReactPointerEvent<HTMLElement>, key: string) => {
     if (e.button !== 0 || held || (e.target as HTMLElement).closest("button,a,input,[role=combobox]")) return
+    dropped.current = false
     press.current = { key, x: e.clientX, y: e.clientY, el: e.currentTarget }
+  }
+
+  const onCardClick = (key: string) => {
+    if (dropped.current) {
+      dropped.current = false
+      return
+    }
+    void useTasks.getState().openTask(key)
   }
 
   useEffect(() => {
@@ -130,6 +141,7 @@ export function TaskBoard() {
     }
     const onUp = () => {
       if (drag) {
+        dropped.current = true
         drop(drag.key, drag.to, drag.before)
         setSaid(m.dropped(drag.key, m.states[drag.to]))
       }
@@ -139,6 +151,7 @@ export function TaskBoard() {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape" && drag) {
         press.current = null
+        dropped.current = true
         setDrag(null)
         setSaid(m.putBack(drag.key))
       }
@@ -238,6 +251,7 @@ export function TaskBoard() {
                         held={held?.key === k}
                         onPointerDown={(e) => onPointerDown(e, k)}
                         onKeyDown={(e) => onCardKey(e, t)}
+                        onOpen={() => onCardClick(k)}
                       />
                     </li>
                   )
@@ -287,6 +301,7 @@ function Card(props: {
   held: boolean
   onPointerDown: (e: ReactPointerEvent<HTMLElement>) => void
   onKeyDown: (e: KeyboardEvent<HTMLElement>) => void
+  onOpen: () => void
 }) {
   const { task, ghost, held } = props
   const m = useMessages(taskMessages)
@@ -307,7 +322,7 @@ function Card(props: {
       onKeyDown={props.onKeyDown}
       onClick={(e) => {
         if ((e.target as HTMLElement).closest("button,[role=combobox],[role=listbox]")) return
-        void useTasks.getState().openTask(task.key)
+        props.onOpen()
       }}
       className={cx(
         "group relative cursor-grab touch-none border-line border-b select-none [-webkit-user-select:none] transition-[background-color,box-shadow] duration-150 last:border-b-0 hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
