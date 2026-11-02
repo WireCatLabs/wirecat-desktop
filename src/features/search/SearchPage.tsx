@@ -15,7 +15,7 @@ import {
   type ValueOption,
   valuesInHits,
 } from "@/domain/search"
-import { useLang, useMessages } from "@/i18n"
+import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { SearchAnswer, SearchHit } from "@/platform/search-schemas"
 import { Button } from "@/ui/Button"
@@ -36,7 +36,9 @@ import { searchMessages } from "./messages"
 import { QueryDraft } from "./QueryDraft"
 import { LIMIT, listKey, missing, useSearch } from "./store"
 
-export const SEARCH_DOCS = "https://github.com/WireCatLabs/cli-core/blob/main/docs/search/query-language.md"
+/** The site's guide to searching, and its page on the query language every tool shares (cli-core). */
+const searchGuide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/search`
+const queryDocs = (lang: Lang) => `https://wirecat.dev/${lang}/docs/tg/query-language`
 
 type Words = (typeof searchMessages)["en"]
 
@@ -44,6 +46,7 @@ const searchable = tools.filter((t) => t.search !== null)
 
 export function SearchPage() {
   const m = useMessages(searchMessages)
+  const lang = useLang()
   const s = useSearch()
   const installs = useTools((t) => t.installs)
   const checked = useTools((t) => t.checked)
@@ -101,7 +104,7 @@ export function SearchPage() {
           {m.intro}{" "}
           <button
             type="button"
-            onClick={() => platform.openUrl(SEARCH_DOCS)}
+            onClick={() => platform.openUrl(searchGuide(lang))}
             className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
           >
             {m.howToSearch}
@@ -200,7 +203,7 @@ export function SearchPage() {
                 placeholder: m.placeholder[what],
                 hint: s.tool === "zm" ? m.wordsOnlyHint : m.hint,
               }}
-              docs={SEARCH_DOCS}
+              docs={queryDocs(lang)}
               onChange={s.setQuery}
               onSubmit={submit}
             />

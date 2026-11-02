@@ -1,6 +1,6 @@
 import { Columns3, ExternalLink, Plus, RefreshCw, Rows3 } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
-import { useMessages } from "@/i18n"
+import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -19,10 +19,11 @@ import { TaskBoard } from "./TaskBoard"
 import { TaskDialog } from "./TaskDialog"
 import { TaskTable } from "./TaskTable"
 
-const GUIDE = "https://github.com/WireCatLabs/cli-memo/blob/main/docs/tasks.md"
+const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/tasks`
 
 export function TasksPage() {
   const m = useMessages(taskMessages)
+  const lang = useLang()
   const unusable = useTasks((s) => s.unusable)
   const loaded = useTasks((s) => s.loaded)
   const reading = useTasks((s) => s.reading)
@@ -44,7 +45,7 @@ export function TasksPage() {
             {m.intro}{" "}
             <button
               type="button"
-              onClick={() => void platform.openUrl(GUIDE)}
+              onClick={() => void platform.openUrl(guide(lang))}
               className="inline-flex cursor-pointer items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
             >
               {m.guide}

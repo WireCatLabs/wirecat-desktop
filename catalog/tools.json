@@ -1078,7 +1078,7 @@
       "signIn": {
         "gives": "Lets your agent find your Zoom meetings and read their transcripts and summaries.",
         "asks": "Your browser opens Zoom to approve access. Zoom first needs an app of your own, made once in the Zoom App Marketplace.",
-        "guide": "https://github.com/WireCatLabs/zoom-cli/blob/main/docs/zoom-app.md",
+        "guide": "https://wirecat.dev/en/docs/zm/zoom-app",
         "methods": [
           {
             "id": "browser",
