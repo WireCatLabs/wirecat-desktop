@@ -13,7 +13,7 @@ import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
 import { settingsMock } from "./mock-settings"
-import { showcase, showcaseMock } from "./mock-showcase"
+import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
 import { linkedProfiles, signInMock } from "./mock-signin"
 import { syncMock } from "./mock-sync"
 import { tailscaleMock } from "./mock-tailscale"
@@ -161,7 +161,7 @@ const STATE_ENTRIES: Record<string, [string, boolean, number][]> = {
 export function createMock(os: Platform["os"]): Platform {
   const installed = new Map<string, string>(
     showcase
-      ? Object.entries(LATEST)
+      ? Object.entries(SHOWCASE_VERSIONS)
       : scenario === "mixed"
         ? [
             ["tg", "0.88.0"],

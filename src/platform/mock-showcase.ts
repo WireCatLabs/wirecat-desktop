@@ -21,6 +21,16 @@ if (showcase) {
   }
 }
 
+// The versions on npm when the website screenshots were taken (2026-11-02), so visitors see current numbers.
+export const SHOWCASE_VERSIONS: Record<string, string> = {
+  tg: "0.112.0",
+  max: "0.95.0",
+  wa: "0.23.0",
+  zm: "0.64.0",
+  drive: "0.55.0",
+  memo: "0.131.14",
+}
+
 const MIN = 60_000
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString()
 
@@ -155,6 +165,10 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
         id,
         installs: [{ path: `~/.local/share/pnpm/bin/${bin}`, version: version(id), manager: "pnpm", problem: null }],
       }))
+    },
+    async latestVersions() {
+      await delay(400)
+      return Object.fromEntries(tools.map((t) => [t.id, version(t.id)]))
     },
     async storeCompat(): Promise<StoreCompat> {
       await delay(300)
