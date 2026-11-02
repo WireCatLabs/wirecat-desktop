@@ -1,5 +1,5 @@
 import { Search } from "lucide-react"
-import type { ReactNode } from "react"
+import { type ReactNode, useRef } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "./Button"
 import { CheckMark } from "./Checkbox"
@@ -29,6 +29,7 @@ export function FilterBar(props: Props) {
   const { query, onQuery, label, placeholder, invalid = false, describedBy, children } = props
   const m = useMessages(uiMessages)
   const clear = props.onClear ?? (() => onQuery(""))
+  const field = useRef<HTMLInputElement>(null)
   return (
     <div className="flex flex-col gap-[0.7rem]">
       {/* Clear all lives in the field: hidden at the end of the chip row it still took room, and a long label
@@ -41,6 +42,7 @@ export function FilterBar(props: Props) {
             aria-hidden
           />
           <input
+            ref={field}
             type="search"
             value={query}
             onChange={(e) => onQuery(e.target.value)}
@@ -66,7 +68,11 @@ export function FilterBar(props: Props) {
         <Button
           variant="ghost"
           size="sm"
-          onClick={clear}
+          onClick={() => {
+            clear()
+            // The button hides once it has worked; focus would otherwise fall to the page.
+            field.current?.focus()
+          }}
           className={cx("absolute top-1/2 right-[0.35rem] -translate-y-1/2", !query && "invisible")}
           tabIndex={query ? undefined : -1}
           aria-hidden={query ? undefined : true}
