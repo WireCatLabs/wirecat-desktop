@@ -1,6 +1,6 @@
-import { ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
+import { Check, ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
-import { inTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
+import { can, inTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
@@ -41,6 +41,10 @@ export function MemoryPage() {
   const count = (tab: Tab) => filtered.filter((e) => inTab(tab, e.status)).length
   const forgetting = s.entries.find((e) => e.ref === s.forgetting) ?? null
   const filtering = s.query.trim() !== ""
+  // On screen: this tab, these filters, a group that is not folded shut. Findings batches are approved in their row.
+  const approvable = shown.filter(
+    (e) => !e.findings && can(e).confirm && !s.closedGroups.includes(subjectOf(e)?.key ?? ""),
+  )
 
   return (
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
@@ -97,7 +101,10 @@ export function MemoryPage() {
       ) : (
         <>
           <div className="flex flex-col gap-[1rem]">
-            <Tabs value={s.tab} onChange={s.setTab} count={count} />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Tabs value={s.tab} onChange={s.setTab} count={count} />
+              <ApproveShown refs={approvable.map((e) => e.ref)} />
+            </div>
             <Filters />
           </div>
 
@@ -172,6 +179,45 @@ function bySubjectGroups(entries: MemoryEntry[]): Group[] {
   )
 }
 
+/** Approves every single row on screen; the count says how many, and the rows turn green where they are. */
+function ApproveShown({ refs }: { refs: string[] }) {
+  const m = useMessages(memoryMessages)
+  const [done, setDone] = useState<number | null>(null)
+  const [running, setRunning] = useState(false)
+  if (refs.length === 0 && done === null) return null
+  if (refs.length === 0 && !running)
+    return (
+      <p role="status" className="reveal inline-flex items-center gap-2 text-[0.9rem] text-ink-soft">
+        <Check className="size-4 text-ok" aria-hidden />
+        {m.approvedShown(done ?? 0)}
+      </p>
+    )
+  const approve = async () => {
+    if (running) return
+    setRunning(true)
+    setDone(null)
+    await useMemory.getState().confirmMany(refs)
+    setDone(refs.length)
+    setRunning(false)
+  }
+  return (
+    <Button
+      size="sm"
+      onClick={approve}
+      title={m.approveShownHint(refs.length)}
+      icon={
+        running ? (
+          <LoaderCircle className="size-4 animate-spin" aria-hidden />
+        ) : (
+          <Check className="size-4" aria-hidden />
+        )
+      }
+    >
+      {m.approveShown(refs.length)}
+    </Button>
+  )
+}
+
 function SubjectRack({
   entries,
   leaving,
@@ -182,7 +228,8 @@ function SubjectRack({
   arriving: string[]
 }) {
   const m = useMessages(memoryMessages)
-  const [closed, setClosed] = useState<string[]>([])
+  const closed = useMemory((s) => s.closedGroups)
+  const toggleGroup = useMemory((s) => s.toggleGroup)
   return (
     <section aria-label={m.rows} className="rounded-[0.2rem] border border-line-strong bg-app">
       {bySubjectGroups(entries).map((g) => {
@@ -194,7 +241,7 @@ function SubjectRack({
               <button
                 type="button"
                 aria-expanded={open}
-                onClick={() => setClosed((c) => (open ? [...c, g.key] : c.filter((k) => k !== g.key)))}
+                onClick={() => toggleGroup(g.key)}
                 className="group flex w-full cursor-pointer items-center gap-[0.7rem] px-[1.3rem] pt-[1rem] pb-[0.6rem] text-left"
               >
                 {subject ? (
