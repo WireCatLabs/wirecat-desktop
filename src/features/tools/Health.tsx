@@ -185,7 +185,7 @@ function ProfileList(props: {
         </p>
       )}
       {tool.setup && <NewProfile tool={tool} onCheck={onReload} />}
-      {tool.setup && <TerminalStatus tool={tool} onCheck={onReload} checking={reloading} />}
+      {tool.setup && <TerminalStatus tool={tool} profiles={profiles} onCheck={onReload} checking={reloading} />}
       {!tool.setup && <ManualSetup tool={tool} onCheck={onReload} checking={reloading} />}
     </div>
   )
@@ -227,16 +227,25 @@ export function useProfiles(id: string) {
 /** What became of the last sign-in handed to a terminal for this tool: opened, the browser preview, or no terminal. */
 export function TerminalStatus({
   tool,
+  profiles,
   onCheck,
   checking,
 }: {
   tool: CatalogTool
+  profiles: Profile[] | null | undefined
   onCheck: () => void
   checking: boolean
 }) {
   const m = useMessages(toolsMessages).health
   const opened = useTerminal((s) => s.byTool[tool.id])
   if (!opened) return null
+  if (profiles?.some((p) => p.name === opened.profile && p.signedIn === true))
+    return (
+      <p role="status" className="reveal flex items-center gap-2 text-[0.9rem] text-ink">
+        <CheckCircle2 className="size-4 shrink-0 text-ok" aria-hidden />
+        {m.signedInNow(opened.profile, tool.name)}
+      </p>
+    )
   const command = setupCommand(tool, opened.profile) ?? ""
   const code = <code className="font-mono whitespace-nowrap text-ink">{command}</code>
   const check = (

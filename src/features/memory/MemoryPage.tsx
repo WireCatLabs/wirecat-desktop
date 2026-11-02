@@ -41,9 +41,10 @@ export function MemoryPage() {
   const count = (tab: Tab) => filtered.filter((e) => inTab(tab, e.status)).length
   const forgetting = s.entries.find((e) => e.ref === s.forgetting) ?? null
   const filtering = s.query.trim() !== ""
-  // On screen: this tab, these filters, a group that is not folded shut. Findings batches are approved in their row.
+  // On screen: this tab, these filters, a group that is not folded. Facts and memories only: a task and an agent's
+  // findings batch are approved in their own row.
   const approvable = shown.filter(
-    (e) => !e.findings && can(e).confirm && !s.closedGroups.includes(subjectOf(e)?.key ?? ""),
+    (e) => e.type !== "action" && !e.findings && can(e).confirm && !s.closedGroups.includes(subjectOf(e)?.key ?? ""),
   )
 
   return (
@@ -103,7 +104,7 @@ export function MemoryPage() {
           <div className="flex flex-col gap-[1rem]">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Tabs value={s.tab} onChange={s.setTab} count={count} />
-              <ApproveShown refs={approvable.map((e) => e.ref)} />
+              <ApproveShown key={`${s.tab}|${s.query}`} refs={approvable.map((e) => e.ref)} />
             </div>
             <Filters />
           </div>
@@ -196,8 +197,7 @@ function ApproveShown({ refs }: { refs: string[] }) {
     if (running) return
     setRunning(true)
     setDone(null)
-    await useMemory.getState().confirmMany(refs)
-    setDone(refs.length)
+    setDone(await useMemory.getState().confirmMany(refs))
     setRunning(false)
   }
   return (

@@ -15,7 +15,8 @@ export function configPrompt(tool: CatalogTool, finding: Finding, profile: strin
   const check = [tool.bin, ...(until < 0 ? tool.doctor : tool.doctor.slice(0, until))]
     .map((w) => (w === "{profile}" ? (at.profile ?? profile ?? "<profile>") : w))
     .join(" ")
-  const syntax = at.kind === "invalid_json"
+  // Older tools send one error string with no kind; theirs is a parse error when it says JSON.
+  const syntax = at.kind === "invalid_json" || (!at.kind && /JSON/i.test(finding.text ?? ""))
   const where =
     at.line === undefined ? null : `line ${at.line}${at.column === undefined ? "" : `, column ${at.column}`}`
   const lines = [
