@@ -118,10 +118,10 @@ function seed(): MemoryEntry[] {
       ref: "memory:41",
       type: "memory",
       kind: "preference",
-      text: "Kai Sample prefers calls on Friday afternoons and asks for the agenda the evening before. When a call moves to a Monday he tends to cancel it at the last minute, so propose Friday after 15:00 first and send three or four points by 20:00 the day before.",
+      text: "Kai Moreno prefers calls on Friday afternoons and asks for the agenda the evening before. When a call moves to a Monday he tends to cancel it at the last minute, so propose Friday after 15:00 first and send three or four points by 20:00 the day before.",
       status: "proposed",
       subject: "person:7",
-      subjectName: "Kai Sample",
+      subjectName: "Kai Moreno",
       author: agent("claude-code"),
       model: "claude-opus-4",
       confidence: 0.8,
@@ -151,10 +151,10 @@ function seed(): MemoryEntry[] {
       kind: "reply",
       text: "Here is the pricing table I promised, see the second tab. The clinic discount is spelled out per seat for 20 and for 50 seats, and the pilot price holds until the end of February.",
       summary:
-        "Reply Kai Sample: Here is the pricing table I promised, see the second tab. The clinic discount is spelled out per…",
+        "Reply Kai Moreno: Here is the pricing table I promised, see the second tab. The clinic discount is spelled out per…",
       verb: "reply",
-      targetName: "Kai Sample",
-      chatName: "Kai Sample",
+      targetName: "Kai Moreno",
+      chatName: "Kai Moreno",
       status: "proposed",
       author: agent("hermes"),
       links: 0,
@@ -215,7 +215,7 @@ function seed(): MemoryEntry[] {
       project: "project:3",
       projectName: "Project Harbour",
       subject: "person:7",
-      subjectName: "Kai Sample",
+      subjectName: "Kai Moreno",
       author: agent("claude-code"),
       links: 1,
       createdAt: ago(3 * DAY + 2 * HOUR),
@@ -225,10 +225,10 @@ function seed(): MemoryEntry[] {
       ref: "memory:31",
       type: "memory",
       kind: "preference",
-      text: "Kai Sample prefers Monday morning calls.",
+      text: "Kai Moreno prefers Monday morning calls.",
       status: "stale",
       subject: "person:7",
-      subjectName: "Kai Sample",
+      subjectName: "Kai Moreno",
       author: agent("claude-code"),
       links: 2,
       createdAt: ago(19 * DAY),
@@ -236,14 +236,14 @@ function seed(): MemoryEntry[] {
   ]
 }
 
-const PEOPLE = ["Kai Sample", "Ana Ruiz", "Project Harbour", "Lena Ortiz", "Tom Becker"]
+const PEOPLE = ["Kai Moreno", "Ana Ruiz", "Project Harbour", "Lena Ortiz", "Tom Becker"]
 const AGENTS = ["claude-code", "hermes", "openclaw", "codex-nbb-evaluation"]
 const STATUSES = ["proposed", "confirmed", "confirmed", "stale", "superseded"]
 
 function many(): MemoryEntry[] {
   return Array.from({ length: 300 }, (_, i) => {
     const fact = i % 3 === 1
-    const person = PEOPLE[i % PEOPLE.length] ?? "Kai Sample"
+    const person = PEOPLE[i % PEOPLE.length] ?? "Kai Moreno"
     const status = STATUSES[i % STATUSES.length] ?? "proposed"
     return {
       ...base,
@@ -299,7 +299,7 @@ const SOURCES: Record<string, MemorySource[]> = {
       ref: "msg:telegram/1/77/905",
       kind: "message",
       title: null,
-      sender: "Kai Sample",
+      sender: "Kai Moreno",
       at: ago(4 * DAY),
       excerpt: "Friday after 3 works best for me, send the points the night before?",
       tool: "telegram",
@@ -309,7 +309,7 @@ const SOURCES: Record<string, MemorySource[]> = {
       ref: "msg:telegram/1/77/612",
       kind: "message",
       title: null,
-      sender: "Kai Sample",
+      sender: "Kai Moreno",
       at: ago(18 * DAY),
       excerpt: "Can we move it to Friday? Mondays are packed.",
       tool: "telegram",
@@ -429,10 +429,10 @@ const ACTIVITY: AgentCall[] = [
 const CHAT: Record<string, { sender: string; text: string }[]> = {
   "msg:telegram/1/77/905": [
     { sender: "You", text: "Can we do the Harbour sync this week?" },
-    { sender: "Kai Sample", text: "Yes, but not Monday, that one always explodes." },
-    { sender: "Kai Sample", text: "Friday after 3 works best for me, send the points the night before?" },
+    { sender: "Kai Moreno", text: "Yes, but not Monday, that one always explodes." },
+    { sender: "Kai Moreno", text: "Friday after 3 works best for me, send the points the night before?" },
     { sender: "You", text: "Deal. I'll send them Thursday evening." },
-    { sender: "Kai Sample", text: "Perfect 👍" },
+    { sender: "Kai Moreno", text: "Perfect 👍" },
   ],
 }
 

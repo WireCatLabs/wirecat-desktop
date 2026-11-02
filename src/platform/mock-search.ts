@@ -13,7 +13,8 @@ import type { Platform } from "./types"
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const TOTAL = 128
 
-const CHATS = ["Harbour flat", "Design crit", "Family", "Climbing club", "Accountant"]
+// List lengths share no factor, so neighbouring hits never repeat one chat, sender and line together.
+const CHATS = ["Harbour flat", "Design crit", "Family", "Climbing club", "Accountant", "Studio rent"]
 const PEOPLE = ["Ana Ruiz", "Marco Bellini", "Jo Park", "Lena Vogel", "You"]
 const LINES = [
   "Sent the invoice for October, can you check the VAT line?",
@@ -21,6 +22,8 @@ const LINES = [
   "Let's move the review to Thursday, the invoice can wait",
   "Found the old invoice from the landlord in the shared folder",
   "Draft is ready, invoice numbers start at 2026-041",
+  "Did the gym ever send an invoice for the October fees?",
+  "Paid the electricity invoice, it was 20 € less than September",
 ]
 const TITLES = ["Quarterly plan", "Invoice template", "Harbour flat lease", "Weekly sync", "Tax checklist"]
 
@@ -116,12 +119,35 @@ const VALUES: Record<string, ValueItem[]> = {
   tags: ["work", "family", "receipts"].map((value) => ({ value, label: null, detail: null })),
 }
 
-const AROUND = [
-  "Can you send me last month's one too?",
-  "Sure, give me a minute",
-  "Here it is",
-  "Thanks! I'll forward it to the accountant",
-  "Got it, looks right",
+// One short conversation: five messages before the hit, five after.
+const BEFORE = [
+  "Morning! Are we still on for Thursday?",
+  "Yes, 10:30 works for me",
+  "Good. One thing before then",
+  "Go ahead",
+  "It's about the October paperwork",
+]
+const AFTER = [
+  "Here's the PDF",
+  "Thanks, I'll look at it tonight",
+  "Looks right to me, I'll pass it to the accountant",
+  "Perfect, thank you",
+  "See you Thursday then",
+]
+const SPOKEN = [
+  "Let's start with the numbers from last week",
+  "Bookings are up a little, mostly weekends",
+  "Weekdays are still quiet before noon",
+  "Could we try a morning discount?",
+  "Maybe, but only if the clinic agrees",
+  "I'll ask them on Friday",
+  "Next item is the new website",
+  "The designer sent two versions yesterday",
+  "I prefer the second one, it reads better on a phone",
+  "Same here",
+  "Then we go with the second",
+  "Anything else before we close?",
+  "Only the holiday rota, I'll send it by mail",
 ]
 
 // The shapes the tools print: `messages context` and memo's `messages show` list `items`, `meetings transcript`
@@ -137,22 +163,30 @@ function around(what: string, ref: string): unknown {
             offset_ms: i * 60_000,
             end_ms: i * 60_000 + 55_000,
             speaker: PEOPLE[i % 4],
-            text: i % 7 === 3 ? LINES[i % LINES.length] : AROUND[i % AROUND.length],
+            text: i % 7 === 3 ? LINES[i % LINES.length] : SPOKEN[i % SPOKEN.length],
           })),
         },
       ],
     }
   const at = Date.UTC(2026, 9, 30, 18, 0)
+  // The hit's own number is the last part of its ref (`hit` above), so the middle message is the one clicked.
+  const n = Math.max(0, Number(ref.split("/").pop()) - 4000) || 0
+  const sender = PEOPLE[n % PEOPLE.length] ?? "You"
+  const other = sender === "You" ? (PEOPLE[0] ?? "") : sender
+  const texts = [...BEFORE, LINES[n % LINES.length] ?? "", ...AFTER]
   return {
-    items: Array.from({ length: 11 }, (_, i) => ({
-      ref: i === 5 ? ref : `${ref}-${i}`,
-      timestamp: new Date(at + (i - 5) * 240_000).toISOString(),
-      sender_name: PEOPLE[i % PEOPLE.length],
-      sender_is_me: i % PEOPLE.length === 4,
-      text: i === 5 ? LINES[0] : AROUND[i % AROUND.length],
-      attachments: i === 6 ? [{ kind: "file", name: "invoice-2026-10.pdf", size: 48_211 }] : [],
-      anchor: what === "messages" && i === 5 ? true : undefined,
-    })),
+    items: texts.map((text, i) => {
+      const name = i === 5 ? sender : i % 2 === 0 ? other : "You"
+      return {
+        ref: i === 5 ? ref : `${ref}-${i}`,
+        timestamp: new Date(at + (i - 5) * 240_000).toISOString(),
+        sender_name: name,
+        sender_is_me: name === "You",
+        text,
+        attachments: i === 6 ? [{ kind: "file", name: "invoice-2026-10.pdf", size: 48_211 }] : [],
+        anchor: what === "messages" && i === 5 ? true : undefined,
+      }
+    }),
   }
 }
 

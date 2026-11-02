@@ -47,7 +47,7 @@ const HERMES: Creator = { type: "bot", name: "hermes", owner: false }
 const PEOPLE: Person[] = [
   { ref: "person:1", name: null, owner: true },
   { ref: "person:2", name: "Ana Ruiz", owner: false },
-  { ref: "person:3", name: "Kai Sample", owner: false },
+  { ref: "person:3", name: "Kai Moreno", owner: false },
 ]
 
 const now = new Date()
