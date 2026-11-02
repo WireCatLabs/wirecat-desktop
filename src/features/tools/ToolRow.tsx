@@ -57,9 +57,18 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
   const t = useMessages(toolsMessages)
   const m = t.row
   const header = useRef<HTMLDivElement>(null)
+  const showInstallPanel = Boolean(session) && !session?.closed?.includes(tool.id)
+  const open = expanded || showInstallPanel
+  // A finished install's panel holds the row open on its own, so closing the row also puts that result away.
   const toggle = (id: string) => {
     if (header.current) holdInPlace(header.current)
-    useTools.getState().toggle(id)
+    const tools = useTools.getState()
+    if (showInstallPanel && session?.outcome) {
+      tools.dismiss(id)
+      if (expanded) tools.toggle(id)
+      return
+    }
+    tools.toggle(id)
   }
 
   const status = toolStatus(installs, latest, session)
@@ -71,7 +80,6 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
   const storageLabel = installed ? fitLabel(fit, t.storage) : null
   const lamp = lampLabel(status, m.status)
   const panelId = `tool-panel-${tool.id}`
-  const showInstallPanel = Boolean(session) && !session?.closed?.includes(tool.id)
   const app = useMcpActivity(tool, installed, expanded)
   const sync = useRowSync(tool, installed)
 
@@ -89,7 +97,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
         <TextButton
           as="div"
           onClick={() => toggle(tool.id)}
-          aria-expanded={expanded}
+          aria-expanded={open}
           aria-controls={panelId}
           className="group min-w-0 py-3 text-left"
         >
@@ -98,7 +106,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             <span className="font-mono text-[0.95rem] font-normal text-ink-soft">{tool.bin}</span>
             {tool.partOf && <Pill>{m.partOf(findTool(tool.partOf)?.name ?? tool.partOf)}</Pill>}
             {(installs?.length ?? 0) > 1 && <Pill tone="warn">{m.copies(installs?.length ?? 0)}</Pill>}
-            <ExpandChevron open={expanded} className="self-center group-hover:text-brand" />
+            <ExpandChevron open={open} className="self-center group-hover:text-brand" />
           </h3>
           {storageLine ? (
             <p
@@ -127,7 +135,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
         <div data-tour="tool-action" className="flex justify-end">
           <Action
             status={status}
-            expanded={expanded}
+            expanded={open}
             needsNode={!nodeReady}
             nodeFirst={m.nodeFirst}
             controls={panelId}
@@ -140,7 +148,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
           />
         </div>
       </div>
-      <Collapse id={panelId} open={expanded || showInstallPanel}>
+      <Collapse id={panelId} open={open}>
         <AutoHeight swap={showInstallPanel}>
           {showInstallPanel ? <InstallPanel tool={tool} /> : <ToolDetails tool={tool} />}
         </AutoHeight>
