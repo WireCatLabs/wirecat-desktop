@@ -212,7 +212,7 @@ function ExpiresIn({ at }: { at: string }) {
 function ClientIdForm() {
   const id = useId()
   const m = useMessages(signinMessages)
-  const { tool, profile, start, onFinish } = useSignIn()
+  const { tool, profile, start, onFinish, method } = useSignIn()
   const guide = tool ? findTool(tool)?.signIn?.guide : undefined
   const [value, setValue] = useState("")
   const [saving, setSaving] = useState(false)
@@ -230,7 +230,7 @@ function ClientIdForm() {
     setError(null)
     try {
       await platform.settingsSet(tool, null, false, "zoom.client_id", value.trim())
-      start(tool, profile, onFinish ?? undefined)
+      start(tool, profile, onFinish ?? undefined, method ?? undefined)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       setSaving(false)

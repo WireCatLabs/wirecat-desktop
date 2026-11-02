@@ -1,4 +1,4 @@
-import { Bot, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
+import { Bot, CheckCircle2, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { type CatalogTool, findTool, ownerId, samePackage, signsInHere, tools } from "@/domain/catalog"
 import { toolStatus } from "@/domain/status"
@@ -7,6 +7,7 @@ import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
@@ -19,6 +20,7 @@ import { NodeNotice } from "../system/NodeNotice"
 import { useSystem } from "../system/store"
 import { openConnect } from "../tools/go"
 import { ManualSetup, NewProfile, TerminalStatus, useProfiles } from "../tools/Health"
+import { InstallProgress } from "../tools/InstallProgress"
 import { toolsMessages } from "../tools/messages"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
@@ -216,8 +218,9 @@ function Progress({ tool }: { tool: CatalogTool }) {
     text = m.already(version(status.version))
   }
 
+  const installing = Boolean(session && !outcome && session.step === "install")
   return (
-    <li className={row}>
+    <li className={cx(row, "flex-wrap gap-y-0")}>
       <Lamp tone={tone} {...(typeof text === "string" ? { label: text } : {})} />
       <ToolIcon id={tool.id} className="size-[1.5rem] shrink-0 text-ink" />
       <span className="w-[9rem] shrink-0 font-semibold">{tool.name}</span>
@@ -237,6 +240,16 @@ function Progress({ tool }: { tool: CatalogTool }) {
           {m.tryAgain}
         </Button>
       )}
+      {/* Collapse sizes to its content, so the full-width line is this wrapper's. */}
+      <div className="basis-full">
+        <Collapse open={installing}>
+          {session && (
+            <div className="pt-[0.8rem] pb-[0.2rem] sm:pl-[3.8rem]">
+              <InstallProgress session={session} compact />
+            </div>
+          )}
+        </Collapse>
+      </div>
     </li>
   )
 }
@@ -245,6 +258,12 @@ export function Install() {
   const chosen = useOnboarding((s) => s.chosen)
   const nodeReady = useSystem((s) => s.readiness?.node.ok ?? false)
   const pending = useTools((s) => chosen.some((id) => !s.installs[id]?.length && !s.sessions[ownerId(id)]))
+  const allDone = useTools(
+    (s) =>
+      chosen.length > 0 &&
+      chosen.every((id) => s.installs[id]?.length) &&
+      chosen.every((id) => !s.sessions[ownerId(id)] || s.sessions[ownerId(id)]?.outcome),
+  )
   const list = tools.filter((t) => chosen.includes(t.id))
   const m = useMessages(onboardingMessages).install
 
@@ -274,7 +293,16 @@ export function Install() {
           </Button>
         </div>
       )}
-      <p className="text-[0.95rem] text-ink-soft">{m.note}</p>
+      <p aria-live="polite" className="flex min-h-[1.6rem] items-center gap-2 text-[0.95rem]">
+        {allDone ? (
+          <>
+            <CheckCircle2 className="size-5 shrink-0 text-ok" aria-hidden />
+            <span className="text-ink">{m.allDone}</span>
+          </>
+        ) : (
+          <span className="text-ink-soft">{m.note}</span>
+        )}
+      </p>
     </>
   )
 }

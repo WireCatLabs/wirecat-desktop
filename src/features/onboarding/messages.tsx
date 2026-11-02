@@ -101,6 +101,7 @@ const en = {
     choose: "Choose tools",
     rest: "Install the rest",
     note: "Installs keep going if you move on. Each one is also shown on the Tools page, with its full log.",
+    allDone: "Everything is installed. Next, give your AI agents the skills to use it.",
   },
   agents: {
     title: "How a tool adds its skill",
@@ -280,6 +281,7 @@ const ru: OnboardingText = {
     choose: "Выбрать инструменты",
     rest: "Установить остальные",
     note: "Установка продолжится, если вы перейдёте дальше. Каждую из них также видно на странице «Инструменты» вместе с полным журналом.",
+    allDone: "Всё установлено. Дальше — дать вашим ИИ-агентам навыки, чтобы они этим пользовались.",
   },
   agents: {
     title: "Как инструмент добавляет свой навык",
@@ -466,6 +468,7 @@ const es: OnboardingText = {
     choose: "Elegir herramientas",
     rest: "Instalar el resto",
     note: "Las instalaciones siguen aunque pases al siguiente paso. Cada una aparece también en la página Herramientas, con su registro completo.",
+    allDone: "Todo está instalado. Ahora, da a tus agentes de IA las habilidades para usarlo.",
   },
   agents: {
     title: "Cómo añade una herramienta su skill",

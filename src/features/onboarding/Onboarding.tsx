@@ -1,6 +1,7 @@
 import { Check } from "lucide-react"
 import { type ComponentType, useEffect, useId, useRef } from "react"
-import { useMessages } from "@/i18n"
+import { tools } from "@/domain/catalog"
+import { formatList, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
@@ -8,6 +9,7 @@ import { reducedMotion } from "@/ui/motion"
 import { AgentsMatrix } from "../agents/AgentsMatrix"
 import { arriveFromSetup } from "../guides/GuidesPage"
 import { useSystem } from "../system/store"
+import { SkillBenefits } from "../tools/SkillOffer"
 import { useTools } from "../tools/store"
 import { onboardingMessages } from "./messages"
 import { Agents, Choose, Computer, Done, Install, installChosen, leave, SignIn, Welcome } from "./steps"
@@ -25,7 +27,14 @@ const bodies: Record<StepId, ComponentType> = {
 
 function AgentsStep() {
   const chosen = useOnboarding((s) => s.chosen)
-  return <Agents matrix={<AgentsMatrix compact expected={chosen} />} />
+  const installs = useTools((s) => s.installs)
+  const names = tools.filter((t) => t.skill && (chosen.includes(t.id) || installs[t.id]?.length)).map((t) => t.name)
+  return (
+    <>
+      {names.length > 0 && <SkillBenefits tool={formatList(names)} />}
+      <Agents matrix={<AgentsMatrix compact expected={chosen} />} />
+    </>
+  )
 }
 
 const indexOf = (id: StepId) => STEPS.findIndex((s) => s.id === id)

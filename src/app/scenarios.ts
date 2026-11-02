@@ -16,7 +16,7 @@ import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 // `?onboarding=off` hides the first-run setup for this load, so captures of other screens stay as they were;
 // `?onboarding=<step>` opens it at that step. `?section=<id>` opens that page without a click, so a layout-shift
 // measurement is not hidden by the browser's 500 ms grace period after input. `?crash=<section>` opens that section
-// and breaks its render. `?signin=<tool>` opens that tool's in-window sign-in for a profile named personal.
+// and breaks its render. `?signin=<tool>` starts that tool's in-window sign-in for a profile named personal; `?signin-plan=<tool>` opens it on its plan.
 // `?mcp=<tool>` and `?mcp-fail=<tool>` open that tool's details, where its MCP server section starts open.
 // `?connect=<state>` opens tg's details at that step of the guide (`src/features/tools/connect-scenario.ts`).
 // `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`); `?task=<key>`
@@ -53,7 +53,12 @@ export async function runMockScenario() {
   }
   if (params.get("notifications") === "open") openBell()
   const signIn = params.get("signin")
-  if (signIn) useSignIn.getState().start(signIn, "personal")
+  if (signIn) {
+    useSignIn.getState().start(signIn, "personal")
+    useSignIn.getState().begin()
+  }
+  const plan = params.get("signin-plan")
+  if (plan) useSignIn.getState().start(plan, "personal")
   const mcp =
     params.get("mcp") ??
     params.get("mcp-fail") ??
@@ -79,6 +84,8 @@ export async function runMockScenario() {
   await searchScenario(params)
   const id = params.get("install")
   if (!id) return
+  // So `?onboarding=install&install=<tool>` shows the same install on the setup's Install step.
+  useOnboarding.setState((s) => ({ chosen: s.chosen.includes(id) ? s.chosen : [...s.chosen, id] }))
   await useTools.getState().refresh()
   useTools.getState().install(id)
 }

@@ -162,7 +162,9 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
         "pnpm" => ("pnpm", vec!["add", "--global", &spec, PNPM_WIRECAT_NOW]),
         "bun" => ("bun", vec!["add", "--global", &spec]),
-        _ => ("npm", vec!["install", "--global", &spec, "--no-fund", "--no-audit"]),
+        // `http` prints a line per package looked up and per package fetched: the only progress npm reports while it
+        // downloads; at its default level it is silent until the end (`install-progress.ts` reads these lines).
+        _ => ("npm", vec!["install", "--global", &spec, "--no-fund", "--no-audit", "--loglevel", "http"]),
     };
     let program_path = paths::find(program).ok_or_else(|| {
         Failure(
@@ -353,7 +355,10 @@ fn run_manager(
                 run::Line::Err(l) => (l, true),
             };
             let line = redact::text(&line);
-            tail.push(line.clone());
+            // A package URL such as `node-gyp-build` would otherwise pick the wrong failure in `classify`.
+            if !line.starts_with("npm http ") {
+                tail.push(line.clone());
+            }
             if tail.len() > 40 {
                 tail.remove(0);
             }

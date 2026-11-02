@@ -51,7 +51,11 @@ function signInForm(onCheck = vi.fn()) {
 
 async function startAs(name: string) {
   await userEvent.type(screen.getByLabelText(/Account name/), `${name}{Enter}`)
-  return screen.getByRole("dialog", { name: "Sign in to WhatsApp" })
+  const dialog = screen.getByRole("dialog", { name: "Sign in to WhatsApp" })
+  expect(within(dialog).getByText(/Settings → Linked devices → Link a device/)).toBeInTheDocument()
+  expect(platform.signIn).not.toHaveBeenCalled()
+  await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+  return dialog
 }
 
 describe("signing in to WhatsApp inside the window", () => {
@@ -143,6 +147,7 @@ describe("answering what the tool asks", () => {
   async function open(tool: string, profile = "personal") {
     render(<SignInDialog />)
     act(() => useSignIn.getState().start(tool, profile))
+    act(() => useSignIn.getState().begin())
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
     return screen.getByRole("dialog")
   }
@@ -222,6 +227,7 @@ describe("in Russian", () => {
     useLanguage.setState({ choice: "ru" })
     render(<SignInDialog />)
     act(() => useSignIn.getState().start("wa", "personal"))
+    act(() => useSignIn.getState().begin())
     const dialog = await screen.findByRole("dialog", { name: "Вход в WhatsApp" })
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
 
@@ -234,6 +240,7 @@ describe("in Russian", () => {
     useLanguage.setState({ choice: "ru" })
     render(<SignInDialog />)
     act(() => useSignIn.getState().start("max", "personal"))
+    act(() => useSignIn.getState().begin())
     const dialog = await screen.findByRole("dialog")
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
     send({ event: "failed", code: "needs_update", message: "This version cannot sign in here yet." })

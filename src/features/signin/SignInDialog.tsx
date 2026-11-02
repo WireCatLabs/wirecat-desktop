@@ -6,6 +6,8 @@ import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { useTerminal } from "../tools/terminal-store"
 import { type SigninMessages, signinMessages } from "./messages"
+import { planMessages } from "./messages-plan"
+import { Plan } from "./Plan"
 import { Stage } from "./Stages"
 import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "./store"
 
@@ -35,7 +37,10 @@ export function SignInDialog() {
             {s.notes.join(" ")}
           </p>
         )}
-        <Stage name={name} />
+        {/* The plan slides away to the live sign-in in the same place (rule 9). */}
+        <div key={s.phase === "plan" ? "plan" : "run"} className="step-in">
+          {s.phase === "plan" ? <Plan /> : <Stage name={name} />}
+        </div>
         <p role="status" className="sr-only">
           {announcement(m.announce, s.phase, s.codes, s.progress?.step === "waiting", s.stopping, s.need?.prompt)}
         </p>
@@ -65,9 +70,29 @@ function announcement(
 function Actions() {
   const s = useSignIn()
   const m = useMessages(signinMessages)
+  const pm = useMessages(planMessages)
   const { stop, close, start, tool, profile, onFinish, phase, stopping, method } = s
   const entry = tool ? findTool(tool) : undefined
   const others = entry ? signInMethods(entry).filter((m) => m.id !== method) : []
+  if (phase === "plan") {
+    return (
+      <>
+        {others.map((other) =>
+          tool && profile ? (
+            <Button key={other.id} variant="ghost" onClick={() => useSignIn.setState({ method: other.id })}>
+              {m.switchTo(other.id, other.label)}
+            </Button>
+          ) : null,
+        )}
+        <Button variant="secondary" onClick={close}>
+          {m.cancel}
+        </Button>
+        <Button variant="primary" onClick={s.begin} data-autofocus>
+          {pm.start}
+        </Button>
+      </>
+    )
+  }
   if (running(phase)) {
     return (
       <>

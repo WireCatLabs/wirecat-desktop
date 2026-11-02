@@ -1,3 +1,5 @@
+import type { NpmProgress } from "./install-progress"
+
 export type InstallStep = "queued" | "check" | "install" | "remove" | "verify"
 
 export type Operation = "install" | "uninstall"
@@ -36,6 +38,10 @@ export type InstallSession = {
   data?: DataDeletion
   /** Rows of the package whose panel the owner already closed; the package's other rows keep theirs. */
   closed?: string[]
+  /** npm's own progress, read from the lines kept out of `log`. */
+  progress?: NpmProgress
+  /** When each step began, in ms since the epoch. */
+  began?: Partial<Record<InstallStep, number>>
 }
 
 export type ToolStatus =
