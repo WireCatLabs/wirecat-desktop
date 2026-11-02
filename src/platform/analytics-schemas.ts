@@ -29,6 +29,8 @@ export type AnalyticsPreview = {
   taskWeeks: { week: string; created: number; closed: number }[]
   /** Messages and mail linked to each project in the period, by project key. */
   projectMessages: Record<string, number>
+  /** Meetings on the calendar for tomorrow: the stored meetings are past ones only (plan, A2). */
+  meetingsTomorrow: number
 }
 
 export type CountRow = v.InferOutput<typeof CountRowSchema>

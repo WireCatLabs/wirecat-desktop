@@ -297,6 +297,7 @@ export const analyticsMock = (
     })
     const scale = (PERIOD_DAYS[period] ?? 365) / 30
     return {
+      meetingsTomorrow: 3,
       taskWeeks,
       projectMessages: {
         HRB: Math.round(412 * scale),
