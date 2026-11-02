@@ -536,6 +536,32 @@ const runsOf = (tool: string) => {
   return runs
 }
 
+/** A sync that just failed in the browser build, so its "Open the run on Logs" lands on a run with the same id. */
+export function recordFailedSync(
+  tool: string,
+  failure: { profile: string | null; command: string; code: string; message: string },
+): string {
+  const started = new Date(Date.now() - 4000)
+  const run_id = `${stamp(started)}-${failure.command.replace(/\s+/g, "-")}-${hex(Math.random)}`
+  runsOf(tool).unshift({
+    run_id,
+    command: failure.command,
+    cli_command: `${tool} ${failure.command}`,
+    ...(failure.profile ? { profile: failure.profile } : {}),
+    started_at: started.toISOString(),
+    completed_at: new Date().toISOString(),
+    duration_ms: 4000,
+    status: "failed",
+    cli_version: PLAN[tool]?.version ?? "1.0.0",
+    error_code: failure.code,
+    codes: [failure.code],
+    kept_because_failed: true,
+    error: { class: "CliError", code: failure.code, message: failure.message },
+    events: [],
+  })
+  return run_id
+}
+
 export const runsMock: Pick<Platform, "listRuns" | "showRun"> = {
   async listRuns(id, _query, limit, page) {
     await delay(PLAN[id]?.wait ?? 300)

@@ -8,6 +8,7 @@ import {
   runTool,
   samePackage,
   setupCommand,
+  syncCommand,
   tools,
 } from "./catalog"
 
@@ -63,5 +64,12 @@ describe("catalog", () => {
       `nvm exec v24.19.0 npm uninstall --global ${pkg}`,
     )
     expect(removeCommand("npm", pkg, "/usr/local/bin/zm")).toBe(`npm uninstall --global ${pkg}`)
+  })
+
+  it("names a sync by the command words its runs record, never a flag's value", () => {
+    const words = (id: string) => syncCommand(findTool(id) as NonNullable<ReturnType<typeof findTool>>)
+    expect(words("tg")).toBe("messages sync")
+    expect(words("zm")).toBe("meetings sync")
+    expect(words("memo")).toBe("sync")
   })
 })

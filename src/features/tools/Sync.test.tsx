@@ -26,6 +26,24 @@ beforeEach(() => {
     })
   })
   vi.spyOn(platform, "syncStop").mockImplementation(async () => send({ event: "stopped" }))
+  useLogs.setState(useLogs.getInitialState(), true)
+  const kept = ["20261027T121457Z-messages-sync-db4f0a", "20261103T091502Z-messages-sync-7c21e0"]
+  vi.spyOn(platform, "listRuns").mockImplementation(async (id) => ({
+    items:
+      id === "tg"
+        ? kept.map((run_id) => ({
+            run_id,
+            command: "messages sync",
+            profile: "personal",
+            status: "failed",
+            started_at: new Date().toISOString(),
+          }))
+        : [],
+    page: { has_more: false },
+  }))
+  vi.spyOn(platform, "showRun").mockImplementation(async (_id, run) => ({
+    item: { run_id: run, command: "messages sync", status: "failed", started_at: new Date().toISOString(), events: [] },
+  }))
 })
 
 afterEach(() => vi.restoreAllMocks())
@@ -89,8 +107,25 @@ describe("syncing a profile from the Manage panel", () => {
     finish()
     expect(await screen.findByText("The sync failed")).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Open the run on Logs" }))
-    expect(useLogs.getState().query).toBe("run_id:20261027T121457Z-messages-sync-db4f0a")
     expect(useNav.getState().active).toBe("logs")
+    await waitFor(() => expect(useLogs.getState().expanded).toBe("tg:20261027T121457Z-messages-sync-db4f0a"))
+    expect(useLogs.getState().query).toBe("run_id:20261027T121457Z-messages-sync-db4f0a")
+    expect(platform.showRun).toHaveBeenCalledWith("tg", "20261027T121457Z-messages-sync-db4f0a")
+  })
+
+  it("reads Logs again when the snapshot on screen predates the failed run", async () => {
+    const run = "20261103T091502Z-messages-sync-7c21e0"
+    vi.mocked(platform.listRuns).mockResolvedValueOnce({ items: [], page: { has_more: false } })
+    await useLogs.getState().load()
+    await useLogs.getState().openRun(run, 'command:"messages sync" status:failed')
+    expect(useLogs.getState().query).toBe(`run_id:${run}`)
+    expect(useLogs.getState().expanded).toBe(`tg:${run}`)
+  })
+
+  it("falls back to the tool's failed syncs when no tool kept the run", async () => {
+    await useLogs.getState().openRun("20261103T091502Z-messages-sync-000000", 'command:"messages sync" status:failed')
+    expect(useLogs.getState().query).toBe('command:"messages sync" status:failed')
+    expect(useLogs.getState().expanded).toBeNull()
   })
 
   it("explains a rate limit with the wait the service asked for, and says WireCat does not retry", async () => {
