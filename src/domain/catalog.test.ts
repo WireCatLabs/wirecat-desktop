@@ -50,6 +50,8 @@ describe("catalog", () => {
   it("accepts plain profile names only", () => {
     expect(isValidProfile("personal")).toBe(true)
     expect(isValidProfile("--json")).toBe(false)
+    expect(isValidProfile("..")).toBe(false)
+    expect(isValidProfile(".hidden")).toBe(false)
     expect(isValidProfile("a b")).toBe(false)
     expect(isValidProfile("x;rm")).toBe(false)
   })

@@ -196,7 +196,8 @@ export type PermissionGroup = NonNullable<CatalogTool["permissions"]>["groups"][
 export const doctorNeedsProfile = (t: CatalogTool) => t.doctor.includes("{profile}")
 
 export const PROFILE_NAME = /^[A-Za-z0-9._-]{1,64}$/
-export const isValidProfile = (name: string) => PROFILE_NAME.test(name) && !name.startsWith("-")
+export const isValidProfile = (name: string) =>
+  PROFILE_NAME.test(name) && !name.startsWith("-") && !name.startsWith(".")
 
 /** The command line a catalog template runs, for showing before the owner confirms it. */
 export function catalogCommand(t: CatalogTool, args: readonly string[], fill: Record<string, string>): string {
