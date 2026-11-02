@@ -1,4 +1,3 @@
-mod agent_fix;
 mod archive;
 mod background;
 mod backup;
@@ -8,6 +7,7 @@ mod chats;
 mod cloudflare;
 mod cloudflare_install;
 mod compat;
+mod config_repair;
 mod install;
 #[cfg(test)]
 mod install_e2e;
@@ -771,6 +771,16 @@ fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
     }
 }
 
+#[tauri::command]
+async fn config_repair_supported(id: String, profile: Option<String>) -> Result<bool, String> {
+    blocking(move || config_repair::supported(catalog::tool(&id)?, profile.as_deref())).await?
+}
+
+#[tauri::command]
+async fn config_repair(id: String, profile: Option<String>) -> Result<config_repair::Repair, String> {
+    blocking(move || config_repair::repair(catalog::tool(&id)?, profile.as_deref())).await?
+}
+
 // Async: finding a terminal waits a moment for each one tried, and macOS waits for its Automation answer.
 #[tauri::command]
 async fn open_setup(id: String, profile: Option<String>) -> Result<(), String> {
@@ -782,12 +792,6 @@ async fn open_setup(id: String, profile: Option<String>) -> Result<(), String> {
         terminal::open(&bin, &args)
     })
     .await?
-}
-
-/// Opens a terminal running a coding agent on a prompt the interface wrote about a tool's broken settings file.
-#[tauri::command]
-async fn fix_in_agent(agent: String, tool: String, prompt: String) -> Result<(), String> {
-    blocking(move || agent_fix::start(&agent, &tool, &prompt)).await?
 }
 
 /// Signs a profile in inside the window with one of the catalog's `signIn.methods`.
@@ -1019,7 +1023,8 @@ pub fn run() {
             settings_unset,
             permissions_show,
             open_setup,
-            fix_in_agent,
+            config_repair_supported,
+            config_repair,
             sign_in,
             sign_in_answer,
             sign_in_stop,

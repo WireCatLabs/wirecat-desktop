@@ -7,6 +7,7 @@ import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-s
 import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
 import type { Permissions } from "./permissions-schemas"
+import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
 import type { RunDetail, RunsPage } from "./runs-schemas"
 import type {
@@ -74,6 +75,9 @@ export type Platform = {
   clearStorage(id: string): Promise<void>
   /** `entry` opens one item directly inside the folder; Rust builds and checks the path. */
   openFolder(id: string, kind: StorageFolder["kind"], entry?: string): Promise<void>
+  /** Whether the installed version has `config repair` (`config_repair.rs`). */
+  configRepairSupported(id: string, profile: string | null): Promise<boolean>
+  configRepair(id: string, profile: string | null): Promise<Repair>
   /** What the shared archive holds, from the installed tool that reads the newest schema; null when none is installed. */
   storeInfo(): Promise<StoreInfo | null>
   /** Every installed tool's own `store info`: whether it reads the shared store, and what its next run does to it. */
@@ -204,8 +208,6 @@ export type Platform = {
   /** Releases a claim as the owner, who may release any. */
   taskRelease(id: string, profile: string, task: string): Promise<void>
   openSetup(id: string, profile: string | null): Promise<void>
-  /** Opens a terminal running `agent` on `prompt`, in the tool's settings folder (`agent_fix.rs`). */
-  fixInAgent(agent: string, tool: string, prompt: string): Promise<void>
   /**
    * Signs the named profile in inside the window with one of the tool's own sign-ins (`signIn.methods` in the catalog);
    * steps arrive as events and the last one is `done`, `failed` or `stopped`. Never with a profile the owner did not

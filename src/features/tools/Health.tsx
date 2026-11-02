@@ -33,7 +33,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
 import { BackgroundLine } from "./Background"
-import { ConfigFix } from "./ConfigFix"
+import { ConfigRepair, type Repaired } from "./ConfigRepair"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SyncControl } from "./Sync"
 import { useTerminal } from "./terminal-store"
@@ -47,9 +47,11 @@ export function Health({ tool }: { tool: CatalogTool }) {
   const { profiles, error: profilesError, loading: reloading, reload } = useProfiles(tool.id)
   const [check, setCheck] = useState<Check | null>(null)
   const [checkError, setCheckError] = useState<string | null>(null)
+  const [repaired, setRepaired] = useState<Repaired | null>(null)
 
   const run = useCallback(
-    async (profile: string | null) => {
+    async (profile: string | null, keepRepaired = false) => {
+      if (!keepRepaired) setRepaired(null)
       setCheck({ profile, state: "running" })
       setCheckError(null)
       try {
@@ -105,7 +107,18 @@ export function Health({ tool }: { tool: CatalogTool }) {
           {checkError}
         </ErrorNotice>
       )}
-      {check && <Result check={check} tool={tool} m={m} />}
+      {repaired && <RepairedNote repaired={repaired} m={m} />}
+      {check && (
+        <Result
+          check={check}
+          tool={tool}
+          m={m}
+          onRepaired={(r) => {
+            setRepaired(r)
+            run(check.profile, true)
+          }}
+        />
+      )}
     </section>
   )
 }
@@ -426,8 +439,14 @@ function where({ file, profile, key, line, column }: ConfigPlace) {
   return [at, profile && `profile ${profile}`, key && `key ${key}`].filter(Boolean).join(" · ")
 }
 
-function ConfigProblems(props: { findings: Finding[]; tool: CatalogTool; profile: string | null; m: Words }) {
-  const { findings, tool, profile, m } = props
+function ConfigProblems(props: {
+  findings: Finding[]
+  tool: CatalogTool
+  profile: string | null
+  m: Words
+  onRepaired: (r: Repaired) => void
+}) {
+  const { findings, tool, profile, m, onRepaired } = props
   const toolId = tool.id
   const [openError, setOpenError] = useState<string | null>(null)
   const open = async () => {
@@ -461,7 +480,7 @@ function ConfigProblems(props: { findings: Finding[]; tool: CatalogTool; profile
                 <span>{said(f, m)}</span>
                 {at && <code className="selectable font-mono text-[0.85rem] break-all text-ink-soft">{at}</code>}
                 {f.fix && <CopyField value={f.fix} label={m.copyFix} />}
-                <ConfigFix tool={tool} finding={f} profile={profile} />
+                <ConfigRepair tool={tool} finding={f} profile={profile} onRepaired={onRepaired} />
               </div>
             </li>
           )
@@ -471,7 +490,26 @@ function ConfigProblems(props: { findings: Finding[]; tool: CatalogTool; profile
   )
 }
 
-function Result({ check, tool, m }: { check: Check; tool: CatalogTool; m: Words }) {
+/** What the tool's repair changed, kept above the fresh check so the owner sees why the problem is gone. */
+function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) {
+  const what = repaired.changes.map((c) => (c.line === null ? c.what : `${c.what} (${m.atLine(c.line)})`)).join("; ")
+  return (
+    <div role="status" className="reveal flex items-start gap-2 rounded-[0.35rem] bg-ok/10 px-3 py-2 text-[0.9rem]">
+      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />
+      <div className="flex min-w-0 flex-col gap-1">
+        <span>{what ? m.repaired(what) : m.repairedNothingListed}</span>
+        {repaired.backup && (
+          <span className="text-ink-soft">
+            {m.backupAt} <code className="selectable font-mono text-[0.85rem] break-all">{repaired.backup}</code>
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function Result(props: { check: Check; tool: CatalogTool; m: Words; onRepaired: (r: Repaired) => void }) {
+  const { check, tool, m, onRepaired } = props
   if (check.state === "running") return <Skeleton className="h-16 w-full" label={m.running} />
   const { result } = check
   const findings = summarize(result.report, result.exitCode)
@@ -479,7 +517,9 @@ function Result({ check, tool, m }: { check: Check; tool: CatalogTool; m: Words 
   const other = findings.filter((f) => !f.config)
   return (
     <div className="flex flex-col gap-2 rounded-[0.45rem] border border-line bg-app p-3" aria-live="polite">
-      {config.length > 0 && <ConfigProblems findings={config} tool={tool} profile={check.profile} m={m} />}
+      {config.length > 0 && (
+        <ConfigProblems findings={config} tool={tool} profile={check.profile} m={m} onRepaired={onRepaired} />
+      )}
       {other.length > 0 && (
         <ul className={cx("flex flex-col gap-1.5", config.length > 0 && "border-line border-t pt-2.5")}>
           {other.map((f) => (

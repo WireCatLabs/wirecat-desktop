@@ -7,7 +7,7 @@ export type ConfigPlace = {
   key?: string
   line?: number
   column?: number
-  /** cli-core's issue kind (`invalid_json`, `unknown_setting`…), for the prompt an agent gets. */
+  /** cli-core's issue kind (`invalid_json`, `unknown_setting`…): only `invalid_json` offers the tool's repair. */
   kind?: string
 }
 
