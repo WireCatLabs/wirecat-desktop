@@ -13,6 +13,7 @@ import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
 import { settingsMock } from "./mock-settings"
+import { showcase, showcaseMock } from "./mock-showcase"
 import { linkedProfiles, signInMock } from "./mock-signin"
 import { syncMock } from "./mock-sync"
 import { tailscaleMock } from "./mock-tailscale"
@@ -40,6 +41,7 @@ import type { Platform } from "./types"
 // `?mcp=<tool>` opens that tool's MCP server, running; `?mcp-fail=<tool>` makes its Start fail (`mock-mcp.ts`).
 // `?memory=<state>` and `?memory-fail=read|write` set up the Memory page (`mock-memory.ts`).
 // `?tasks=<state>` and `?view=table|board` set up the Tasks page (`mock-tasks.ts`).
+// `?showcase` is the healthy machine for the website's screenshots (`mock-showcase.ts`).
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("state") ?? "mixed"
@@ -158,17 +160,19 @@ const STATE_ENTRIES: Record<string, [string, boolean, number][]> = {
 
 export function createMock(os: Platform["os"]): Platform {
   const installed = new Map<string, string>(
-    scenario === "mixed"
-      ? [
-          ["tg", "0.88.0"],
-          ["max", "0.74.0"],
-          ["wa", "0.6.0"],
-          ["zm", "0.42.0"],
-          ["memo", "0.93.0"],
-        ]
-      : scenario === "one"
-        ? [["tg", "0.88.0"]]
-        : [],
+    showcase
+      ? Object.entries(LATEST)
+      : scenario === "mixed"
+        ? [
+            ["tg", "0.88.0"],
+            ["max", "0.74.0"],
+            ["wa", "0.6.0"],
+            ["zm", "0.42.0"],
+            ["memo", "0.93.0"],
+          ]
+        : scenario === "one"
+          ? [["tg", "0.88.0"]]
+          : [],
   )
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
@@ -211,7 +215,7 @@ export function createMock(os: Platform["os"]): Platform {
   const program = (path: string, version: string) => ({ path, version, ok: true, problem: null })
   const absent = { path: null, version: null, ok: false, problem: "not found" }
 
-  return {
+  const mock: Platform = {
     kind: "mock",
     os,
     async readiness(): Promise<Readiness> {
@@ -523,4 +527,5 @@ export function createMock(os: Platform["os"]): Platform {
     },
     async window() {},
   }
+  return showcase ? { ...mock, ...showcaseMock(mock, installed) } : mock
 }

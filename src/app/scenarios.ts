@@ -1,13 +1,16 @@
+import { useSeen } from "@/app/badges"
 import { findTool, syncNeedsProfile } from "@/domain/catalog"
 import { useNav } from "@/features/nav"
 import { useNotifications } from "@/features/notifications/store"
 import { STEPS, useOnboarding } from "@/features/onboarding/store"
 import { useSearch } from "@/features/search/store"
 import { useSignIn } from "@/features/signin/store"
+import { useSystem } from "@/features/system/store"
 import { useTasks } from "@/features/tasks/store"
 import { useTools } from "@/features/tools/store"
 import { useSync } from "@/features/tools/sync-store"
 import { platform } from "@/platform/bridge"
+import { showcase } from "@/platform/mock-showcase"
 import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 
 // Browser-only: starts the install named in `?install=<tool>` so a review can capture the progress state.
@@ -20,10 +23,16 @@ import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 // `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`); `?task=<key>`
 // opens that task's dialog there.
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
+// `?showcase` hides the setup and the Agents dot, and loads "Your computer" on whichever page opens first.
 // `?tailscale=<state>` opens tg's, with the "MCP server (or connect web)" guide's Tailscale steps at that state (`src/platform/mock-tailscale.ts`); `?cloudflare=<state>` the same with the Cloudflare tunnel (`mock-cloudflare.ts`).
 export async function runMockScenario() {
   if (platform.kind !== "mock") return
   const params = new URLSearchParams(window.location.search)
+  if (showcase) {
+    useOnboarding.getState().hide()
+    useSeen.getState().see("agents")
+    void useSystem.getState().refresh()
+  }
   const crash = params.get("crash")
   if (crash) useNav.getState().go(crash)
   const onboarding = params.get("onboarding")
@@ -92,7 +101,9 @@ async function searchScenario(params: URLSearchParams) {
   const profile = profiles.find((p) => p.name === "personal") ?? profiles[0]
   if (profile) search.chooseProfile(profile.name)
   const fail = params.get("search-fail")
-  search.setQuery(fail === "query" ? "invoice bogus:x date>=30d" : tool === "zm" ? "budget review" : "invoice")
+  search.setQuery(
+    fail === "query" ? "invoice bogus:x date>=30d" : tool === "zm" ? "budget review" : showcase ? "Lisbon" : "invoice",
+  )
   await search.search(1)
 }
 
