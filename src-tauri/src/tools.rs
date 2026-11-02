@@ -92,11 +92,14 @@ fn newest_first(copies: &mut [(PathBuf, Install)]) {
     copies.sort_by_key(|c| std::cmp::Reverse(version(&c.1)));
 }
 
-/// A working copy's `--version`, kept while its program file is unchanged. It is still asked again after a while:
-/// a broken dependency or a Node.js switch changes no file of the tool's own.
+/// A copy's `--version`, kept while its program file is unchanged. It is still asked again after a while: a broken
+/// dependency or a Node.js switch changes no file of the tool's own.
 struct Versions(Mutex<HashMap<PathBuf, (Stamp, Instant, Install)>>);
 
 const VERSION_KEPT: Duration = Duration::from_mins(10);
+/// A copy that fails to start is kept briefly too: `program` asks every copy, so an unkept failure cost up to 20 s on
+/// every search. Briefly, because the failure may be a start that timed out on a busy machine.
+const FAILURE_KEPT: Duration = Duration::from_mins(2);
 
 static VERSIONS: LazyLock<Versions> = LazyLock::new(|| Versions(Mutex::new(HashMap::new())));
 
@@ -111,18 +114,17 @@ impl Versions {
             && let Some(now) = &stamp
             && let Some((known, at, install)) = self.0.lock().unwrap().get(path)
             && known == now
-            && at.elapsed() < kept
+            && at.elapsed() < if install.problem.is_some() { kept.min(FAILURE_KEPT) } else { kept }
         {
             return install.clone();
         }
         let install = ask(path);
         let mut map = self.0.lock().unwrap();
         match stamp {
-            // Only a working answer is kept, so a start that timed out on a busy machine is asked again next time.
-            Some(stamp) if install.problem.is_none() => {
+            Some(stamp) => {
                 map.insert(path.to_path_buf(), (stamp, Instant::now(), install.clone()));
             }
-            _ => {
+            None => {
                 map.remove(path);
             }
         }
@@ -324,13 +326,36 @@ mod tests {
         assert_eq!(versions.answer(&p.0, false, kept, ask("2.0.0")).version.as_deref(), Some("2.0.0"));
         assert_eq!(asked.get(), 2);
 
-        // Check again over an unchanged file whose dependency broke.
-        let broken = |_: &Path| Install { problem: Some("Cannot find module".into()), version: None, ..working("") };
-        assert!(versions.answer(&p.0, true, kept, broken).problem.is_some());
-        assert_eq!(versions.answer(&p.0, false, kept, ask("2.0.0")).version.as_deref(), Some("2.0.0"));
-        assert_eq!(asked.get(), 3, "a problem is never kept");
-
         assert_eq!(versions.answer(&p.0, false, Duration::ZERO, ask("2.0.1")).version.as_deref(), Some("2.0.1"));
+    }
+
+    #[test]
+    fn a_copy_that_fails_to_start_is_kept_briefly_and_asked_again_on_check_again() {
+        let p = TempProgram::new("failing");
+        let versions = Versions(Mutex::new(HashMap::new()));
+        let asked = Cell::new(0);
+        let broken = || {
+            let asked = &asked;
+            move |_: &Path| {
+                asked.set(asked.get() + 1);
+                Install { problem: Some("Cannot find module".into()), version: None, ..working("") }
+            }
+        };
+        let kept = Duration::from_mins(10);
+        assert!(versions.answer(&p.0, false, kept, broken()).problem.is_some());
+        assert!(versions.answer(&p.0, false, kept, broken()).problem.is_some());
+        assert_eq!(asked.get(), 1, "a search after a failed start does not wait for it again");
+
+        let fixed = |_: &Path| working("2.0.0");
+        assert_eq!(versions.answer(&p.0, true, kept, fixed).version.as_deref(), Some("2.0.0"));
+
+        let entry = versions.0.lock().unwrap().get(&p.0).cloned().unwrap();
+        let old = Instant::now().checked_sub(FAILURE_KEPT + Duration::from_secs(1)).unwrap();
+        versions.0.lock().unwrap().insert(
+            p.0.clone(),
+            (entry.0, old, Install { problem: Some("timed out".into()), version: None, ..working("") }),
+        );
+        assert_eq!(versions.answer(&p.0, false, kept, fixed).version.as_deref(), Some("2.0.0"), "a failure expires");
     }
 
     #[test]
