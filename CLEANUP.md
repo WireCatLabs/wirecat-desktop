@@ -133,3 +133,4 @@
 - `.claude/worktrees/redact-names` (branch fix/redact-names) — masking known names in doctor output and bug reports, once its PR is merged (2026-11-02)
 - `.claude/worktrees/analytics` (branch feat/analytics) — the Analytics page, once its PR is merged or closed; also the preview on port 1439 it started (2026-11-02)
 - `.claude/worktrees/chevrons` (branch fix/chevrons-right) — chevrons at the right edge in Logs and Memory, once its PR is merged; also its preview on port 1440 (2026-11-03)
+/home/leemour/Projects/AI/cli-core-wt-leaked-test-account — worktree of merged cli-core #2443 — 2026-11-02
