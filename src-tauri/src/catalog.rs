@@ -16,6 +16,8 @@ pub struct Tool {
     pub id: String,
     pub bin: String,
     pub package: String,
+    /// The GitHub repository whose release workflow must have built the npm package (`provenance.rs`).
+    pub repo: String,
     pub profiles: Option<ProfileSource>,
     pub doctor: Vec<String>,
     pub runs: Option<RunsSource>,
@@ -280,6 +282,14 @@ mod tests {
     #[test]
     fn every_catalog_entry_parses() {
         assert_eq!(catalog().tools.len(), 7);
+    }
+
+    #[test]
+    fn every_package_is_built_in_a_wirecat_repository() {
+        for t in &catalog().tools {
+            let name = t.repo.strip_prefix("https://github.com/WireCatLabs/").unwrap_or_default();
+            assert!(!name.is_empty() && !name.contains(['/', '@']), "{}: {}", t.id, t.repo);
+        }
     }
 
     #[test]

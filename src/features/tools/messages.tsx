@@ -88,6 +88,9 @@ const en = {
     timedOutHint: "Check your connection and try again.",
     network: "Could not reach the npm registry.",
     networkHint: "Check your internet connection or proxy, then try again.",
+    unconfirmed: "This release could not be confirmed as built by WireCat, so it was not installed.",
+    unconfirmedHint:
+      "Nothing on your computer changed. Try again later; if it keeps happening, tell us with Report a problem.",
     shadowed: (path: ReactNode): ReactNode => <>WireCat runs another copy of the same or a newer version, at {path}.</>,
     skillsRefreshed: (agents: string) => `Updated the instructions for ${agents} to this version.`,
     skillsFailed: "The update is installed, but the instructions for your AI agents are still the old ones:",
@@ -401,6 +404,9 @@ const ru: typeof en = {
     timedOutHint: "Проверьте подключение и попробуйте снова.",
     network: "Не удалось связаться с реестром npm.",
     networkHint: "Проверьте подключение к интернету или прокси и попробуйте снова.",
+    unconfirmed: "Не удалось подтвердить, что этот выпуск собран WireCat, поэтому он не установлен.",
+    unconfirmedHint:
+      "На компьютере ничего не изменилось. Попробуйте позже; если повторится, напишите нам через «Сообщить о проблеме».",
     shadowed: (path) => <>WireCat запускает другую копию той же или более новой версии: {path}.</>,
     skillsRefreshed: (agents) => `Инструкции для ${agents} обновлены до этой версии.`,
     skillsFailed: "Обновление установлено, но у ИИ-агентов остались старые инструкции:",
@@ -716,6 +722,9 @@ const es: typeof en = {
     timedOutHint: "Comprueba tu conexión y vuelve a intentarlo.",
     network: "No se pudo conectar con el registro de npm.",
     networkHint: "Comprueba tu conexión a internet o el proxy y vuelve a intentarlo.",
+    unconfirmed: "No se pudo confirmar que WireCat compiló esta versión, así que no se instaló.",
+    unconfirmedHint:
+      "Tu equipo no ha cambiado. Vuelve a intentarlo más tarde; si sigue pasando, avísanos con Informar de un problema.",
     shadowed: (path) => <>WireCat ejecuta otra copia de la misma versión o una más reciente, en {path}.</>,
     skillsRefreshed: (agents) => `Se actualizaron las instrucciones de ${agents} a esta versión.`,
     skillsFailed: "La actualización está instalada, pero tus agentes de IA siguen con las instrucciones antiguas:",
