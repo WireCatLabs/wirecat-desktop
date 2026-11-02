@@ -406,7 +406,7 @@ pub enum CopyRefusal {
     Gone,
     /// The copy the app runs.
     Runs,
-    /// Not an npm or pnpm copy WireCat can place, or its manager is missing.
+    /// Not an npm or pnpm copy the app can place, or its manager is missing.
     Manager,
     /// A sync or another install holds the tool.
     Busy,
