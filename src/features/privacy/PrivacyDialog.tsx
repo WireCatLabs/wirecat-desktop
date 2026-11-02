@@ -2,7 +2,6 @@ import { ArrowUpFromLine, ExternalLink, EyeOff, HardDrive, ScrollText } from "lu
 import type { ReactNode } from "react"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { privacyMessages } from "./messages"
 
@@ -17,11 +16,6 @@ export function PrivacyDialog({ open, onClose }: { open: boolean; onClose: () =>
       title={m.title}
       onClose={onClose}
       scroll
-      actions={
-        <Button variant="ghost" data-autofocus onClick={onClose}>
-          {m.close}
-        </Button>
-      }
       footer={
         <button
           type="button"

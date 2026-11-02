@@ -108,7 +108,7 @@ export function UpdateDialog() {
   if (update.kind === "other") {
     actions = (
       <>
-        <Button variant="ghost" onClick={close}>
+        <Button variant="secondary" onClick={close}>
           {m.later}
         </Button>
         <Button
@@ -131,7 +131,7 @@ export function UpdateDialog() {
     const label = update.kind === "self" ? m.install : m.downloadAndInstall
     actions = (
       <>
-        <Button variant="ghost" onClick={close}>
+        <Button variant="secondary" onClick={close}>
           {busy ? m.hide : m.later}
         </Button>
         <Button variant="primary" data-autofocus disabled={busy} onClick={() => useUpdate.getState().install()}>

@@ -600,7 +600,7 @@ function ConfirmWiden(props: {
       onClose={onClose}
       actions={
         <>
-          <Button variant="ghost" onClick={onClose} data-autofocus>
+          <Button variant="secondary" onClick={onClose} data-autofocus>
             {m.keep}
           </Button>
           <Button variant="danger" onClick={onConfirm}>

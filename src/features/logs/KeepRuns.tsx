@@ -50,7 +50,7 @@ export function KeepRuns() {
         onClose={() => setAsk(null)}
         actions={
           <>
-            <Button variant="ghost" onClick={() => setAsk(null)} autoFocus>
+            <Button variant="secondary" onClick={() => setAsk(null)} autoFocus>
               {m.leaveIt}
             </Button>
             <Button

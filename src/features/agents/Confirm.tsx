@@ -63,7 +63,7 @@ export function ConfirmCommand() {
       onClose={() => !running && done()}
       actions={
         <>
-          <Button variant="ghost" data-autofocus disabled={running} onClick={done}>
+          <Button variant="secondary" data-autofocus disabled={running} onClick={done}>
             {error ? m.close : m.cancel}
           </Button>
           <Button variant={pending?.danger ? "danger" : "secondary"} disabled={running} onClick={run}>

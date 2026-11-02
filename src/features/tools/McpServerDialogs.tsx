@@ -48,7 +48,7 @@ export function ForgetLogins(props: { tool: CatalogTool; open: boolean; onClose(
       onClose={busy ? () => {} : onClose}
       actions={
         <>
-          <Button variant="ghost" onClick={onClose} disabled={busy} autoFocus>
+          <Button variant="secondary" onClick={onClose} disabled={busy} autoFocus>
             {m.keep}
           </Button>
           <Button variant="danger" onClick={forget} disabled={busy}>

@@ -2,6 +2,7 @@ import type { Messages } from "@/i18n"
 
 const en = {
   closeTour: "Close the tour",
+  closeDialog: "Close",
   stepOf: (index: number, count: number) => `${index} of ${count}`,
   back: "Back",
   next: "Next",
@@ -28,6 +29,7 @@ const en = {
 
 const ru: typeof en = {
   closeTour: "Закрыть подсказки",
+  closeDialog: "Закрыть",
   stepOf: (index, count) => `${index} из ${count}`,
   back: "Назад",
   next: "Далее",
@@ -54,6 +56,7 @@ const ru: typeof en = {
 
 const es: typeof en = {
   closeTour: "Cerrar la guía",
+  closeDialog: "Cerrar",
   stepOf: (index, count) => `${index} de ${count}`,
   back: "Atrás",
   next: "Siguiente",
