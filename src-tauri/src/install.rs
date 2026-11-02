@@ -41,24 +41,54 @@ pub enum Reason {
     Failed,
 }
 
+/// What runs, and what was asked to stop but has not exited yet. A stopped run keeps its slot until it finishes: a
+/// sign-in started in its grace time would get the answers typed for the old one, and an install or a reset would run
+/// under a sync or a backup that is still writing.
 #[derive(Default)]
-pub struct Running(Mutex<HashSet<String>>);
+pub struct Running(Mutex<Keys>);
+
+#[derive(Default)]
+struct Keys {
+    live: HashSet<String>,
+    stopping: HashSet<String>,
+}
+
+impl Keys {
+    fn busy(&self, id: &str) -> bool {
+        self.live.contains(id) || self.stopping.contains(id)
+    }
+}
 
 impl Running {
     pub fn start(&self, id: &str) -> bool {
-        self.0.lock().unwrap().insert(id.to_string())
+        self.start_unless(id, |_| false)
+    }
+    /// Starts `id` unless it, or any running or stopping key `conflicts` names, is busy; checked under one lock.
+    pub fn start_unless(&self, id: &str, conflicts: impl Fn(&str) -> bool) -> bool {
+        let mut keys = self.0.lock().unwrap();
+        if keys.busy(id) || keys.live.iter().chain(&keys.stopping).any(|k| conflicts(k)) {
+            return false;
+        }
+        keys.live.insert(id.to_string())
     }
     pub fn finish(&self, id: &str) {
-        self.0.lock().unwrap().remove(id);
+        let mut keys = self.0.lock().unwrap();
+        keys.live.remove(id);
+        keys.stopping.remove(id);
     }
+    /// False once the run was asked to stop: the run's own loop reads this to end.
     pub fn is_running(&self, id: &str) -> bool {
-        self.0.lock().unwrap().contains(id)
+        self.0.lock().unwrap().live.contains(id)
+    }
+    /// Running, or stopped and not yet exited.
+    pub fn busy(&self, id: &str) -> bool {
+        self.0.lock().unwrap().busy(id)
     }
     pub fn cancel(&self, id: &str) {
-        self.finish(id);
-    }
-    pub fn any_starting_with(&self, prefix: &str) -> bool {
-        self.0.lock().unwrap().iter().any(|k| k.starts_with(prefix))
+        let mut keys = self.0.lock().unwrap();
+        if keys.live.remove(id) {
+            keys.stopping.insert(id.to_string());
+        }
     }
 }
 
@@ -79,7 +109,8 @@ type Steps = fn(&Tool, &Running, &Channel<InstallEvent>) -> Result<InstallEvent,
 
 fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps: Steps) {
     // npm replaces the program under a running sync, which then fails halfway.
-    if running.any_starting_with(&crate::sync::package_prefix(&tool.id)) || !running.start(&tool.id) {
+    let syncs = crate::sync::package_prefix(&tool.id);
+    if !running.start_unless(&tool.id, |k| k.starts_with(&syncs)) {
         let _ = events.send(InstallEvent::Failed {
             reason: Reason::Failed,
             message: "Another operation on this tool is running, such as a sync. Stop it first.".into(),
@@ -311,6 +342,31 @@ fn path_hint(extra: &[std::path::PathBuf]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_stopped_run_keeps_its_slot_until_it_finishes() {
+        let running = Running::default();
+        assert!(running.start("sign-in:tg"));
+        running.cancel("sign-in:tg");
+        assert!(!running.is_running("sign-in:tg"), "the run's own loop must see the stop");
+        assert!(running.busy("sign-in:tg"));
+        assert!(!running.start("sign-in:tg"), "a second run waits until the first exits");
+        assert!(!running.start_unless("install:tg", |k| k.starts_with("sign-in:")));
+        running.finish("sign-in:tg");
+        assert!(running.start("sign-in:tg"));
+    }
+
+    #[test]
+    fn a_reset_never_starts_under_a_backup_that_is_still_copying() {
+        let running = Running::default();
+        assert!(running.start("backup"));
+        running.cancel("backup");
+        assert!(!running.start_unless("reset", |k| k == "backup"));
+        running.finish("backup");
+        assert!(running.start_unless("reset", |k| k == "backup"));
+        running.cancel("never-started");
+        assert!(!running.busy("never-started"));
+    }
 
     #[test]
     fn events_reach_the_interface_in_camel_case() {

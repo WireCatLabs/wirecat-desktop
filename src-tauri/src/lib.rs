@@ -216,7 +216,7 @@ async fn store_backup(
         let send = |e: backup::BackupEvent| {
             let _ = on_event.send(e);
         };
-        if running.is_running(backup::RESET) || !running.start(backup::BACKUP) {
+        if !running.start_unless(backup::BACKUP, |k| k == backup::RESET) {
             return send(backup::BackupEvent::Failed { message: "A backup or a clear is already running.".into() });
         }
         backup::backup(password.as_ref(), &|| !running.is_running(backup::BACKUP), &send);
@@ -249,7 +249,7 @@ async fn store_reset_preview() -> Result<Option<backup::ResetPreview>, String> {
 async fn store_reset(running: State<'_, Arc<Running>>) -> Result<Option<u64>, String> {
     let running = Arc::clone(&running);
     blocking(move || {
-        if running.is_running(backup::BACKUP) || !running.start(backup::RESET) {
+        if !running.start_unless(backup::RESET, |k| k == backup::BACKUP) {
             return Err("A backup or a clear is already running.".to_string());
         }
         let done = backup::reset();
@@ -738,8 +738,10 @@ async fn notifications(app: tauri::AppHandle) -> Result<Vec<notifications::Notif
 
 #[tauri::command]
 fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
-    let id = catalog::tool(&id).map_or(id.clone(), |t| catalog::owner(t).id.clone());
-    running.cancel(&id);
+    // Only an install's own key: any other string would stop whatever runs under it, a sync or a backup.
+    if let Ok(tool) = catalog::tool(&id) {
+        running.cancel(&catalog::owner(tool).id);
+    }
 }
 
 #[tauri::command]
@@ -770,7 +772,7 @@ async fn sign_in(
         let key = signin::key(&tool.id);
         if !running.start(&key) {
             return send(signin::SignInEvent::Failed {
-                message: format!("A {} sign-in is already running.", tool.name),
+                message: format!("A {} sign-in is still running or stopping. Try again in a few seconds.", tool.name),
                 code: None,
             });
         }
@@ -810,13 +812,13 @@ async fn sync_run(
             let _ = on_event.send(e);
         };
         let key = sync::key(tool, profile.as_deref());
-        let busy = running.is_running(&catalog::owner(tool).id);
+        let busy = running.busy(&catalog::owner(tool).id);
         if busy || !running.start(&key) {
             return send(sync::SyncEvent::Failed {
                 message: if busy {
                     format!("{} is being installed or updated. Sync when it is done.", tool.name)
                 } else {
-                    "This sync is already running.".into()
+                    "This sync is still running or stopping. Try again in a few seconds.".into()
                 },
                 code: None,
                 reason: Some("app.busy".into()),
