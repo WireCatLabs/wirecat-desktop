@@ -883,6 +883,9 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - **BUG-56 · Полная синхронизация tg умирает с EPIPE, когда закрывается вывод**: `tg personal schedule run full-sync` ждёт 30 с, выходит (exit 9), и синхронизация падает на записи (run 20261102T053052Z-messages-sync-f39a28); так же умерла синхронизация, запущенная из десктопа 01.11 (20261101T235549Z…). Передано агенту по фоновым службам. В 06:40 запущена `tg personal messages sync --all --timeout 120m --record` напрямую с выводом в файл (PID 769988). MAX: полная синхронизация в 06:32 прошла (2 с).
 
+- BUG-54/55/56 — причины и PR: cli-core #2401 (`server install` включает unit; ретрай на закрытом keyring с причиной `credentials.unreachable`, до 12 ч; долгие команды переживают закрытый вывод — `cli-core src/cli/program.ts:282-287`), tg-cli #812, max-cli #901 (max serve отвечал 4 на закрытом keyring, `max-cli src/client/session.ts:~72`). Профиль в `max schedule exec` и 30 с у `schedule run` уже исправлены в max 0.96.0 и tg 0.113.0 — у Славы стоят 0.95.0 и 0.112.0. Не слиты. Блог: POST-131 в cli-private.
+- FIND: при загрузке журнал пишет, что `~/.local/share/keyrings/default.keyring` «in an invalid or unrecognized format» — не трогал.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
