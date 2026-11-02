@@ -65,6 +65,17 @@ pub fn reachable_from_terminal(prefix: &Path) {
     }
 }
 
+/// Run at launch, after the search path is built, so the only extra cost is a registry read and a few file checks.
+pub fn keep_tools_on_windows_path() {
+    if !cfg!(windows) {
+        return;
+    }
+    let node = crate::node::in_use().map(|n| crate::node::bin_dir(&n.dir));
+    let user = user_prefix()
+        .filter(|p| crate::catalog::catalog().tools.iter().any(|t| p.join(format!("{}.cmd", t.bin)).is_file()));
+    crate::profile::keep_tools_on_windows_path(node.as_deref(), user.as_deref());
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

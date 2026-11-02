@@ -180,6 +180,31 @@ pub fn ensure_on_windows_path(dir: &Path) -> Result<(), String> {
     windows::set_at_end(dir)
 }
 
+/// At launch on Windows: puts back on the user Path the folders tools run from, when they are missing there. `WireCat`'s
+/// own Node.js goes in front, as after setup; `%APPDATA%\npm` at the end. Only registry reads when nothing is missing.
+pub fn keep_tools_on_windows_path(node: Option<&Path>, user_npm: Option<&Path>) {
+    let value = windows::read().unwrap_or_default();
+    let (front, end) = windows_missing(&value, node, user_npm, |name| std::env::var(name).ok());
+    if let Some(dir) = front {
+        let _ = windows::set(dir, true);
+    }
+    if let Some(dir) = end {
+        let _ = ensure_on_windows_path(dir);
+    }
+}
+
+/// Which of the two folders the user Path lacks; its entries are compared expanded, so `%APPDATA%\npm` counts.
+fn windows_missing<'a>(
+    user_path: &str,
+    node: Option<&'a Path>,
+    user_npm: Option<&'a Path>,
+    var: impl Fn(&str) -> Option<String>,
+) -> (Option<&'a Path>, Option<&'a Path>) {
+    let expanded = windows::expand(user_path, var);
+    let missing = |dir: Option<&'a Path>| dir.filter(|d| !windows::contains(&expanded, &d.to_string_lossy()));
+    (missing(node), missing(user_npm))
+}
+
 /// The PATH a terminal opened now gets: the system Path, then the user Path, read fresh from the registry. The app's
 /// own environment is the one it started with, so a folder added since then would be missing from it.
 pub fn windows_terminal_path() -> Option<std::ffi::OsString> {
@@ -445,6 +470,18 @@ mod tests {
         write(&link, &remove_block(&read(&link).unwrap())).unwrap();
         assert_eq!(std::fs::read_to_string(target).unwrap(), "export A=1\n");
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn at_launch_only_the_missing_tool_folders_go_back_on_the_user_path() {
+        let node = Path::new(r"C:\Users\u\AppData\Local\dev.wirecat.desktop\node\v26.13.0");
+        let npm = Path::new(r"C:\Users\u\AppData\Roaming\npm");
+        let var = |n: &str| (n == "APPDATA").then(|| r"C:\Users\u\AppData\Roaming".to_string());
+        assert_eq!(windows_missing("", Some(node), Some(npm), var), (Some(node), Some(npm)));
+        let both = format!(r"{};%APPDATA%\npm\", node.display());
+        assert_eq!(windows_missing(&both, Some(node), Some(npm), var), (None, None));
+        assert_eq!(windows_missing(r"C:\Other", None, None, var), (None, None));
+        assert_eq!(windows_missing(&node.display().to_string(), None, Some(npm), var), (None, Some(npm)));
     }
 
     #[test]

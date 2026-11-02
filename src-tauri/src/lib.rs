@@ -892,7 +892,10 @@ async fn update_download_package(
 #[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
 pub fn run() {
     // The login shell's PATH takes about half a second; read it while the window opens, not on the first page.
-    std::thread::spawn(paths::search_path);
+    std::thread::spawn(|| {
+        paths::search_path();
+        npm_prefix::keep_tools_on_windows_path();
+    });
     std::thread::spawn(|| {
         node::make_app_data_private();
         cloudflare::remove_left_scratch();
