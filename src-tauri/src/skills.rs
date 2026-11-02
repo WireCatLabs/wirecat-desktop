@@ -438,14 +438,18 @@ mod tests {
         ]);
         assert_eq!(refresh_targets(&r, "0.112.0"), ["claude"], "never installs, never touches Hermes's settings");
         let own = report(&[("claude", None, Some("unversioned")), ("agents", Some("0.112.0"), Some("current"))]);
-        assert!(refresh_targets(&own, "0.112.0").is_empty(), "an unversioned copy is somebody's own file");
+        assert_eq!(
+            refresh_targets(&own, "0.112.0"),
+            Vec::<String>::new(),
+            "an unversioned copy is somebody's own file"
+        );
     }
 
     #[test]
     fn a_doctor_report_is_compared_with_the_new_version() {
         let r = report(&[("claude", Some("0.93.0"), None), ("agents", Some("0.94.0"), None)]);
         assert_eq!(refresh_targets(&r, "0.94.0"), ["claude"]);
-        assert!(refresh_targets(&report(&[("claude", Some("next"), None)]), "0.94.0").is_empty());
+        assert_eq!(refresh_targets(&report(&[("claude", Some("next"), None)]), "0.94.0"), Vec::<String>::new());
     }
 
     fn found(home: &Path, env: &[(&str, &Path)], programs: &[&str]) -> Vec<(&'static str, Option<&'static str>)> {
