@@ -135,10 +135,16 @@ fn provenance_verdict(
     if issuer != GITHUB_ACTIONS {
         return Err(format!("signed with an identity from {issuer}, not from GitHub Actions"));
     }
-    if !workflow.starts_with(&format!("{repo}/{WORKFLOW}@")) {
-        return Err(format!("built by {workflow}, not by {repo}/{WORKFLOW}"));
+    let expected = release_workflow(repo);
+    if workflow != expected {
+        return Err(format!("built by {workflow}, not by {expected}"));
     }
     Ok(())
+}
+
+/// Only `main`: anyone who can push a side branch could otherwise publish a release from it (owner, NEED-2170).
+fn release_workflow(repo: &str) -> String {
+    format!("{repo}/{WORKFLOW}@refs/heads/main")
 }
 
 #[derive(Debug, PartialEq)]
@@ -219,6 +225,14 @@ mod tests {
         let other = "https://github.com/WireCatLabs/max-cli";
         let refused = provenance_verdict(&tg(), "@wirecat/tg-cli", "0.113.0", TG_INTEGRITY, other).unwrap_err();
         assert!(refused.contains("not by https://github.com/WireCatLabs/max-cli/"), "{refused}");
+    }
+
+    #[test]
+    fn only_the_main_branch_counts() {
+        let main = release_workflow(TG_REPO);
+        assert_eq!(main, "https://github.com/WireCatLabs/tg-cli/.github/workflows/release.yml@refs/heads/main");
+        assert_ne!(main, format!("{TG_REPO}/{WORKFLOW}@refs/heads/side"));
+        assert_ne!(main, format!("{TG_REPO}/{WORKFLOW}@refs/tags/v0.113.0"));
     }
 
     #[test]
