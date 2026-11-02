@@ -101,6 +101,8 @@ pub fn send(draft: Draft, mut context: Context) -> Result<Sent, String> {
     let agent: ureq::Agent = ureq::Agent::config_builder()
         .http_status_as_error(false)
         .timeout_global(Some(Duration::from_secs(30)))
+        // A redirect could carry the report to another host, or to plain http.
+        .max_redirects(0)
         .build()
         .into();
     let mut response = agent
@@ -132,14 +134,15 @@ fn payload(mut report: Value) -> Result<Vec<u8>, String> {
 }
 
 fn body(draft: Draft, context: &mut Context) -> Result<Value, String> {
-    let summary = redact::text(draft.summary.trim());
-    let details = redact::text(draft.details.trim());
+    // The limits are on what the owner typed; masking can shorten it.
+    let (summary, details) = (draft.summary.trim(), draft.details.trim());
     if summary.is_empty() || summary.chars().count() > 120 {
         return Err("The summary needs 1 to 120 characters.".into());
     }
     if details.is_empty() || details.chars().count() > 10_000 {
         return Err("The description needs 1 to 10 000 characters.".into());
     }
+    let (summary, details) = (redact::text(summary), redact::text(details));
     // Email is part of memo's package: the server and the issue tracker know the package, so the report goes there
     // and the details say which part it is about.
     let (tool, details) = match &draft.tool {
@@ -404,9 +407,16 @@ fn accepted(status: u16, answer: &Value) -> Result<Sent, String> {
 }
 
 pub(crate) fn api_base() -> Result<String, String> {
-    let base = std::env::var("WIRECAT_API_URL").unwrap_or_else(|_| DEFAULT_API.into());
+    base_from(std::env::var("WIRECAT_API_URL").ok())
+}
+
+fn base_from(value: Option<String>) -> Result<String, String> {
+    let base = value.unwrap_or_else(|| DEFAULT_API.into());
     let base = base.trim_end_matches('/').to_string();
-    let local = base.starts_with("http://localhost") || base.starts_with("http://127.0.0.1");
+    // `http://localhost.example.com` starts the same way; only the loopback host itself may skip TLS.
+    let local = ["http://localhost", "http://127.0.0.1"]
+        .iter()
+        .any(|host| base.strip_prefix(host).is_some_and(|rest| rest.is_empty() || rest.starts_with([':', '/'])));
     if base.starts_with("https://") || local { Ok(base) } else { Err("WIRECAT_API_URL must use https.".into()) }
 }
 
@@ -436,6 +446,18 @@ mod tests {
             tool: Some("tg".into()),
             idempotency_key: "00000000-0000-4000-8000-000000000000".into(),
         }
+    }
+
+    #[test]
+    fn only_loopback_may_use_plain_http_for_the_api() {
+        let base = |v: &str| base_from(Some(v.to_string()));
+        for ok in ["https://api.example.dev", "http://localhost", "http://localhost:8787", "http://127.0.0.1:8787/"] {
+            assert!(base(ok).is_ok(), "{ok}");
+        }
+        for bad in ["http://localhost.evil.example", "http://127.0.0.1.evil.example", "http://api.wirecat.dev"] {
+            assert!(base(bad).is_err(), "{bad}");
+        }
+        assert_eq!(base_from(None).unwrap(), DEFAULT_API);
     }
 
     fn context() -> Context {

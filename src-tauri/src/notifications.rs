@@ -55,7 +55,8 @@ pub struct Link {
 /// at a range of releases reaches exactly those builds.
 pub fn fetch(version: &str) -> Result<Vec<Notification>, String> {
     let url = format!("{}/v1/notifications", report::api_base()?);
-    let agent: ureq::Agent = ureq::Agent::config_builder().timeout_global(Some(Duration::from_secs(10))).build().into();
+    let agent: ureq::Agent =
+        ureq::Agent::config_builder().timeout_global(Some(Duration::from_secs(10))).max_redirects(0).build().into();
     let mut request =
         agent.get(&url).header("User-Agent", &format!("WireCatDesktop/{version}")).query("version", version);
     if let Some(platform) = platform() {
