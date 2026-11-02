@@ -239,7 +239,7 @@
       },
       "sync": {
         "run": ["{profile}", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"],
-        "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "50", "--json"],
+        "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "200", "--json"],
         "lastShape": "runs",
         "what": "messages",
         "note": null
@@ -560,7 +560,7 @@
       },
       "sync": {
         "run": ["{profile}", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"],
-        "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "50", "--json"],
+        "last": ["runs", "list", "command:\"messages sync\" status:success", "--limit", "200", "--json"],
         "lastShape": "runs",
         "what": "messages",
         "note": null

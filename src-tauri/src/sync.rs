@@ -286,12 +286,17 @@ pub fn last(tool: &Tool, profile: Option<&str>) -> Result<LastSync, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), LAST_TIMEOUT).map_err(|e| e.to_string())?;
     Ok(match out.json() {
-        Some(v) if v.get("error").is_none() => read_last(src.last_shape, &v, profile),
+        Some(v) if v.get("error").is_none() => read_last(src.last_shape, &v, profile, whole(src)),
         _ => unknown,
     })
 }
 
-fn read_last(shape: LastShape, v: &Value, profile: Option<&str>) -> LastSync {
+/// The app's sync takes every chat (`--all`); a one-chat `messages sync` an agent ran is not "last synced".
+fn whole(src: &SyncSource) -> bool {
+    src.run.as_ref().is_some_and(|run| run.iter().any(|w| w == "--all"))
+}
+
+fn read_last(shape: LastShape, v: &Value, profile: Option<&str>, whole: bool) -> LastSync {
     let text = |v: &Value, k: &str| v.get(k).and_then(Value::as_str).map(str::to_string);
     match shape {
         LastShape::Runs => {
@@ -300,7 +305,11 @@ fn read_last(shape: LastShape, v: &Value, profile: Option<&str>) -> LastSync {
                 (Some(p), Some(of)) => p == of,
                 _ => true,
             };
-            let at = list(v, "items").iter().find(mine).and_then(|r| text(r, "completed_at"));
+            // A run recorded before the tool kept its `argv` cannot say, and counts as before.
+            let all = |r: &&Value| {
+                !whole || r.get("argv").and_then(Value::as_array).is_none_or(|a| a.iter().any(|w| w == "--all"))
+            };
+            let at = list(v, "items").iter().filter(mine).find(all).and_then(|r| text(r, "completed_at"));
             LastSync { at, left: None, known: true }
         }
         LastShape::DriveStatus => {
@@ -418,11 +427,32 @@ mod tests {
             {"profile": "work", "completed_at": "2026-10-27T10:00:00Z"},
             {"profile": "personal", "completed_at": "2026-10-27T09:00:00Z"}
         ]});
-        assert_eq!(read_last(LastShape::Runs, &runs, Some("personal")).at.as_deref(), Some("2026-10-27T09:00:00Z"));
-        assert_eq!(read_last(LastShape::Runs, &json!({"items": []}), Some("personal")).at, None);
+        let at = |v: &Value| read_last(LastShape::Runs, v, Some("personal"), true).at;
+        assert_eq!(at(&runs).as_deref(), Some("2026-10-27T09:00:00Z"));
+        assert_eq!(at(&json!({"items": []})), None);
         let status = json!({"item": {"last_sync": null, "pending": 4}});
-        let last = read_last(LastShape::DriveStatus, &status, Some("p"));
+        let last = read_last(LastShape::DriveStatus, &status, Some("p"), false);
         assert_eq!((last.at, last.left), (None, Some(4)));
+    }
+
+    #[test]
+    fn last_sync_skips_a_one_chat_sync_when_the_app_syncs_every_chat() {
+        let runs = json!({"items": [
+            {"profile": "personal", "completed_at": "2026-11-01T00:15:00Z",
+             "argv": ["personal", "messages", "sync", "216798584", "--json"]},
+            {"profile": "personal", "completed_at": "2026-10-30T08:00:00Z",
+             "argv": ["personal", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"]}
+        ]});
+        let at = |whole| read_last(LastShape::Runs, &runs, Some("personal"), whole).at;
+        assert_eq!(at(true).as_deref(), Some("2026-10-30T08:00:00Z"));
+        assert_eq!(at(false).as_deref(), Some("2026-11-01T00:15:00Z"));
+    }
+
+    #[test]
+    fn the_messengers_sync_every_chat() {
+        let whole_of = |id: &str| whole(source(catalog::tool(id).unwrap()).unwrap());
+        assert!(whole_of("tg") && whole_of("max"));
+        assert!(!whole_of("zm"));
     }
 
     #[cfg(unix)]
