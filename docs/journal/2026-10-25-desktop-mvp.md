@@ -129,6 +129,31 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 
 - **TASK-55 · Пробелы CLI для Search (план 2026-11-01-search.md, пункты 1–6).** 1–3 (вложения в попадании, скачать файл по ref офлайн, ссылка на файл) — агент в cli-core + tg/max/wa; 4 (zm passage по ref, говорящий) и 6 (drive documents show по ref) — агент в zoom-cli/drive-cli; 5 (вложения почты) — в очередь агента memo. Релизы tg/max/wa/zm/drive не делаем без владельца; cli-core выпускается по своему процессу. Пункт 7 (`search --explain`) ждёт NEED-221.
 
+- **TASK-57 · Главная сайта: каналы в первом экране и «Connect your agent» через десктоп (2026-11-02).** Слава: «we need to fix landing there's a switch max/tg - I'd use tg/whatsapp for en/es and for ru tg/max/whatsapp. Also I'd hide max in english and es versions on landing hero - no use in it, just confustion. in the bottom - ok. connecting agent - right now it provides a prompt, I'd hid most of it and allow to copy and focus on promoting desktop app install, so users can get cli or they can install a desktop app. check mb we might need to change more stuff here».
+  - Исходник главной — `design/homepage-chat-treatments/release-source.json` + локали, генерация `pnpm landing:export`. Отдано агенту, worktree `cli-docs-wt-landing-hero`, ветка `feat/landing-hero-channels`.
+  - В `cli-docs-wt-landing-install` лежат чужие незакоммиченные правки главной от 2026-10-29 (направление «весь контекст», DOCS-14 про блок установки десктопа) — не трогаем.
+  - Дополнение: «also add Google Calendar to the hero tools list» — передано агенту; `@wirecat/gcal-cli` 0.12.0 уже на npm.
+  - PR cli-docs #490 (не слит): переключатель демо по языкам, WhatsApp-диалоги для 4 случаев, MAX убран из верха en/es при экспорте, панель Connect: «Get WireCat Desktop» + «Download for <ОС>», CLI вторым, Google Calendar в строке источников. Попутно: ru/es копировали английский запрос (экспорт искал старый текст) — исправлено.
+  - Не прогнаны локально: stable-home, onboarding-merge, whatsapp.spec, mobile-delivery, copy-feedback, public-site-navigation, site-quality (OOM). Запускаются при мерже в main.
+
+- **TASK-58 · Единые фильтры Memory и Tasks, никаких нативных контролов (2026-11-02).** Слава: «let's unify the search filters for memory and tasks. also never use native components like datepicker, they break the design, make sure the design is the best for every component and the all looks good. in general I like more tasks style».
+  - Нативные на main: `type="date"` в tasks/Filters, NewTask, cells; checkbox в 6 файлах (ConnectDialog, memory/Row, onboarding/steps, BackupPanel, ClearStorageDialog, ToolDetails); radio в 6 (проверить вид); range в AppPreferences. `Select` уже свой.
+  - Отдано агенту, ветка `feat/unified-filters`; Search и кнопки не трогает (их делает fix/search-real-data).
+  - PR #56: `src/ui/FilterBar.tsx` для Tasks и Memory; свой календарь (диапазон, клавиатура, неделя с пн в ru/es), `Checkbox`, `Radio`, ползунок; ключи Memory: kind:, project:, subject:, scope:, by:, when:. Не проверено: радио выбора туннеля на экране, настоящее окно Tauri. Замечено: на 960 px календарь закрывает ряд плашек; в колонке Agent длинные русские статусы обрезаны («К выполн…»).
+
+- **TASK-59 · Скриншоты десктопа на сайте (2026-11-02).** Слава: «also shall we add som more info on the desktop app? mb add its screenshot on homepage in a block? and add more screenshots in the download? I'd show users what they'll get».
+  - Пробные снимки из браузерной сборки (scratchpad/desktop-shots): для витрины не годятся — моки показывают ошибки (схема 33, старые версии, «2 copies installed»), а «Your computer» на Tasks ещё грузится. Нужен чистый демо-сценарий `?showcase` (всё установлено и свежее, данные выдуманные), затем блок на главной и галерея на странице загрузки.
+  - PR #58: режим `?showcase` (`src/platform/mock-showcase.ts`), 28 снимков 1440×900 PNG+WebP в scratchpad/showcase с MANIFEST и подписями en/ru/es. Версии инструментов на Tools старые — попросил заменить на текущие с npm.
+
+- **TASK-60 · Рецепты под установленные инструменты (2026-11-02).** Слава: «the guides use tg, I'd adapt them depending on what cli user has installed. actually I think we just bake the guides in the desktop since they are just prompts (unless already)».
+  - Уже вшиты: данные и страница в `.impeccable/mocks/guides/prototype/`, приложение импортирует оттуда; с сайта ничего не грузится (план NEED-215 с md-страницами на сайте не делался). Промпты и шаги жёстко на `tg`.
+  - Отдано агенту, ветка `feat/guides-per-tool`: перенос в `src/features/guides/`, промпт и команды под установленный мессенджер, переключатель при нескольких, реальные команды wa/max по их help, пробелы — в отчёт.
+  - #60 слит 2026-11-02: `src/features/guides/`, плейсхолдеры программы мессенджера и `<profile>` в шагах, переключатель (иконки), Zoom только если установлен; тест сверяет каждый шаг со списками команд из help. Пробел: утренняя сводка не для wa (нет `schedule` в wa 0.23.0). «Full guide» ведёт на страницы Telegram для max/wa.
+
+- **TASK-61 · README десктопа (2026-11-02).** Слава: «improve the desktop README in github, check our readme standards from clis and adapt to desktop, add screenshots etc». Отдано агенту витрины после #58: стандарт README из cli-base, скриншоты с `<picture>` под тему GitHub.
+
+- **TASK-80 · Пост в блоге на каждый выпуск (2026-11-02).** Слава: «let's post a blog post on each release, make it nice, with an image etc». Пост о 0.3.0 отдан агенту (cli-docs `content/blog/`, en/ru/es, обложка и скриншоты витрины). Правило записано в память.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -282,6 +307,15 @@ memo с пометкой «About: Email»; чтение логов для отч
 
 - **ASK-45 · «we need to cover situations when the cli doesnt work on the machine as there's an existing name registered»** и «how and who would it explain if another app calls drive and gets another program?» Ответ: объяснение в приложении не доходит до того, кто вызвал не ту программу; нужны уникальные имена в каждом месте вызова, а короткие — ярлыки только при свободном имени. Приложение сейчас считает любой `tg` в PATH нашим и запускает его с `--version` (`src-tauri/src/tools.rs:111`). Проверка, отказывает ли npm при занятом имени, была заблокирована — не подтверждено. План: cli-base PR #402, `docs/dev/plans/2026-10-30-wcat-umbrella.md`.
 - **ASK-46 · «how hard would it be to add a search page to desktop where users can search the database using SQL and lucene syntax (then converted to SQL)?»** Ответ: средне, около недели. Lucene→SQL уже есть в командах поиска инструментов (cli-core `src/services/messages-search.ts`, `src/cli/messenger/history-query.ts`), хранилище SQLite открывается только на чтение (`query_only`, cli-core `src/store/sqlite/open.ts:33`). Нет: команды `store sql` в CLI (1–2 дня) и страницы (2–3 дня). Запуском Lucene-поиска на настоящем хранилище не проверено.
+
+- **ASK-48 · «where did you see that (install ok installed?»** — не в его выводе apt, а в моей проверке `dpkg -s wirecat` (Status: install ok installed, Version: 0.2.0) после его установки.
+
+- **ASK-49 · «when updating a cli can we check for installed skills and update them automatically? then we wont need to do manual work»** — Да. В приложении уже есть проверка (`skill status`: current/stale/missing/unversioned) и установка (`skill install --for <target>`), но после обновления инструмента их никто не вызывает. Живой пример: у tg 0.112.0 инструкции в ~/.claude и ~/.agents — 0.108.0 (stale). План: после успешного обновления — status, затем install только для мест со stale/unversioned; missing не трогаем.
+
+- **ASK-50 · «also I didnt notice the desktop screens there»** — их ещё нет на главной: витрина десктопа (чистый демо-режим и скриншоты) у агента, затем блок на главной и галерея на странице загрузки (TASK-59, NEED-241).
+
+- **ASK-51 · «Telegram больше не отдаёт. - why?»** — Telegram ответил `CHANNEL_INVALID` на чтение истории 11 каналов. Так Telegram отвечает, когда аккаунт больше не может открыть канал: вышел или удалён из него, канал удалён или стал приватным, либо устарел ключ доступа (access hash). Предположение, не проверено по каждому каналу. 27.10 таких было 18.
+- **ASK · «release what you need, tell me if there are blockers to fix»** — CLI: агент сливает и выпускает cli-core, tg, max, zm, memo (#570); WhatsApp не выпускается агентом. Десктоп: PR #78 (0.3.0), затем `bin/tag-release`.
 
 ## 3. Находки
 
@@ -775,6 +809,107 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **FIND-174 · memo 0.131.6 не умеет для окна задачи:** перенос в другой проект (`tasks update --project`), очистка заметки, смена типа (`--kind`), настоящий автор создания (`tasks add` всегда пишет владельца). Окно задачи (review/all 8d93d2e, feat/tasks-page aa7340e) показывает проект только для чтения. Отдано агенту memo.
 
 - **FIND-175 · Поиск простым текстом «не работал», потому что не выбран профиль:** приложение не выбирает профиль за владельца, а код молча ничего не делал, кнопка была неактивна без причины. С профилем поиск находит. Исправлено: кнопка активна и говорит, чего не хватает (PR #34, sweep #48).
+
+- **WireCat Desktop 0.2.0 выпущен (2026-11-01, TASK-56):** PR #49 (5915725), закрыты #34–#48; релиз v0.2.0 на всех платформах (run 41352214356). Без прототипа «Add to memory» и поля ИИ в Search (в приложении скрыто). AppImage и .deb в ~/Downloads. Первый CI упал на новом clippy 1.99 (стиль проверок в тестах) — 75f608d. Долг: Guides импортируется из .impeccable/mocks/guides/prototype (sections.tsx, Onboarding.tsx), перенести в src/features/guides/.
+
+- **UX-52 · Установка .deb неинформативна и шумит:** apt пишет «selecting 'wirecat' instead of …» (норма) и «Download is performed unsandboxed as root … couldn't be accessed by user '_apt'» (домашняя папка drwxr-x---). Слава: «output some details during install to track progress and see clear success … and provide some prompts on next actions». Отдано агенту: сообщения postinst в .deb/.rpm, команда установки через читаемую папку во всех местах (README, обновление в приложении, сайт), возможно скрипт установки с шагами.
+
+- **BUG-42 · Search в 0.2.0 «не работает вообще»: общая база ~/.local/share/WireCat/wirecat.db повреждена** (`database disk image is malformed`, mtime 22:27). tg 0.112.0 падает на любом запросе и даже на `store status` с `command.crashed` — причина видна только в записи запуска (`tg runs show`). Проверено чтением: команда страницы Search для tg personal, 6 запросов (слово, кириллица, from:, date>=, has:) — все падают одинаково. Восстановлением занимается сессия wa (у сессии wa это находка безопасности №109 и решение №2126, журнал max-cli docs_ai): копия corrupt-20261101-2310, recovered-20261101.db, таймеры mail/memo-import остановлены. Я базу не трогаю. Полный тест поиска (все ключи, все профили) — после восстановления. Кнопка «Report this» у ошибки поиска — PR #50.
+- **IDEA-14 · cli-core должен отвечать на повреждённую базу понятной ошибкой** (`store.corrupt` с путём и советом восстановить из резервной копии), а не `command.crashed`; десктоп тогда покажет это на Tools/Storage и в Search. Не начато.
+
+- **memo 0.131.14 / cli-core 0.538.0 (2026-11-01, NEED-227 B):** пачки находок остаются одобряемыми после соседней (проверка только своих источников; встречи по-прежнему одним снимком); `task.has-subtasks` с details.subtasks; фильтр parent:; перенос подзадачи — отказ task.is-subtask, `--parent none` выносит; у действий verb/target_name/chat_name/text/counts. cli-core #2349, #2356, memo #568. Десктоп переводится агентом на ветке от main.
+
+- **FIND-179 · apt читает локальный .deb от имени `_apt`:** домашняя папка drwxr-x--- даёт уведомление «unsandboxed as root»; `./` и `mktemp -d` (700) не помогают, `/tmp` (644) помогает — прочитано в исходниках apt (acquire.cc, indexfile.cc) и проверено правами без sudo; сам вывод apt из /tmp не видели. Сообщение после установки (postinst .deb/.rpm), команда через /tmp в приложении и на сайте — wirecat-desktop #51, cli-docs #488. Скрипт установки не сделан (на сайте нет скриптов для десктопа; проверка подписи требует minisign).
+
+- **FIND-180 · Локальный сервер Next.js сайта (4–5 ГБ каждый) вызвал OOM killer**, который убил и другие приложения владельца (2026-11-02, агент главной). Браузерные тесты сайта локально гонять по одному или в CI.
+- **IDEA-15 · Блок установки десктопа внизу главной (DOCS-14) и обновить PRODUCT.md cli-docs**: там до сих пор только Telegram и MAX без десктопа.
+- **IDEA-16 · Текст главной шире мессенджеров**: «conversations and notes», «More messenger connections are planned», блок доверия — под направление «чаты, почта, встречи, документы, календари, заметки».
+- **IDEA-17 · Событие аналитики на кнопку скачивания десктопа** с главной; плюс то же правило en/es без MAX на страницах Features и Examples; WhatsApp в результатах демо-поиска.
+
+- **BUG-43 · Search: пустой ответ tg/max/wa показан как «The search did not run» + Report this** (правило для zm в `src-tauri/src/search.rs` read(): нет попаданий + complete=false + любая заметка в stderr). 326 из 726 запусков. Тест: scratchpad/search-matrix/REPORT.md.
+- **BUG-44 · Search: «сообщения вокруг» для WhatsApp и почты всегда отказ** — `validate_ref` не пускает `%`, а все ref wa и mail закодированы.
+- **BUG-45 · Приложение запускает старую копию инструмента** — drive 0.49.0 из папки pnpm раньше 0.54.3 из nvm (`paths.rs` find берёт первое совпадение).
+- **RISK-87 · wa не соблюдает свой `--timeout 60s`**, приложение обрывает на 90 с; ошибка «time budget» показывается как «исправьте запрос».
+- **FIND-181 · tg personal: с 28.10 в базе 6–107 сообщений в день против 7–10 тыс. раньше** — похоже, архив Telegram не синхронизируется; началось до повреждения базы.
+  - **поправка 2026-11-02:** синхронизация не останавливалась — её в фоне нет вообще с начала октября. 7 355 и 19 018 сообщений за 26–27.10 — один полный sync кнопкой Sync в десктопе 27.10 21:26–22:16 UTC (partial, 2 713 запросов). Сервер tg не установлен (`tg personal server status`: installed:false), max-сервер по требованию гаснет через 15 мин простоя, таймер memo-import берёт только заметки и почту. Восстановление базы ничего не потеряло: все 217 138 id из копии 13:42 на месте (окно 13:42–22:27 не проверено). Отчёт: scratchpad/data-issues/REPORT.md.
+- **FIND-182 · `from:`/`to:` с именем, которого нет в списке людей, — ошибка, а не 0 попаданий**; имя отправителя из попадания tg нельзя вписать обратно в `from:`.
+  - BUG-43…45 отданы агенту, ветка `fix/search-real-data`, в выпуск 0.2.1 (NEED-231 = B).
+
+- **UX-53 · Search: сообщения без текста (фото, голос, файл) показаны как «—»** — показывать вид и имя вложения.
+- **UX-54 · Search: раскрытое попадание — сырой JSON с `untrusted`**. Слава: «no idea what untrusted is - it's confusing», «improve the attributes of found stuff». Подписанные поля, `untrusted` скрыть.
+- **UX-55 · Search: `from:6034997871` — числовой id в запросе**; показывать имя контакта, id во всплывающей подсказке, редактируемо.
+- **UX-56 · Кнопки двигаются при нажатии** — «all buttons must have same styles for hover, click etc».
+- **BUG-46 · Search: двойная рамка фокуса у поля запроса.**
+- **BUG-47 · Zoom: расшифровка встречи «Yarik - Slava» на английском, а встреча была на русском.** Отдано агенту на разбор (только чтение).
+  - **поправка 2026-11-02:** не ошибка данных. Расшифровка встречи 108 русская (31 834 кириллических букв против 293 латинских); английских только 7 строк одного собеседника на 58–60 мин, и «demo» нашло одну из них. «демо» по-русски на 23-й минуте запросом «demo» не находится. Язык расшифровки zm нигде не записывает (`language` пусто у всех 358).
+  - UX-53…UX-56, BUG-46 переданы агенту поиска, ветка `fix/search-real-data`.
+
+- **BUG-48** — номер выдан лишним, не используется.
+
+- **IDEA-18 · CLI сам обновляет устаревшие инструкции для агентов после `npm update -g`** (в cli-core: при первом запуске новой версии — только уже установленные копии), для тех, кто без десктопа.
+
+- **BUG-49 · Десктоп показывает «последняя синхронизация» по любому успешному `messages sync`, включая синхронизацию одного чата** (catalog/tools.json, `src-tauri/src/sync.rs`): Telegram выглядит синхронизированным 01.11, хотя полный sync был 27.10.
+- **UX-57 · Tools не говорит, что инструмент не держит архив свежим** (`server status` → installed:false) и не предлагает `server install/start`.
+- **IDEA-19 · tg serve при старте догружает пропущенное** (`catchUp` выключен, tg-cli `src/telegram/adapter.ts:151`); max-сервер по требованию гаснет через 15 мин.
+- **IDEA-20 · zm записывает язык расшифровки, Search показывает язык и «строка 161 из 192» у попадания во встрече**; опционально поиск «demo» → «демо».
+
+- **BUG-43…46, UX-54, UX-56 исправлены в #53 (слит 2026-11-02).** Пусто без ошибки: ошибка только если `meta.issues` и нет `meta.accounts`. `%XX` в ref. Из нескольких копий инструмента — самая новая (поправка к BUG-45: терминал владельца ставит nvm первым; у приложения pnpm первым из-за `zsh -lic` с пустого PATH). Кнопки без сдвига при нажатии. UX-53 сделан, но tg 0.112.0 не отдаёт `attachments` — виден после выпуска tg на cli-core ≥0.532. UX-55 частично: плашка под полем, в поле всё ещё id.
+- **FIND-183 · Почта: «Показать тред» показывает только само письмо** — `memo messages show` не учитывает «5 до, 5 после».
+- **RISK-88 · Вторая копия инструмента, которая не запускается, проверяется заново на каждом поиске** (до 20 с), неудачная проверка версии не кешируется.
+- Агент поиска удалил по маске свои и чужие файлы в scratchpad/probe (drive/memo/proxy/server .out/.err от ранней работы сессии) — не данные владельца.
+
+- **FIND-184 · Установленные zm 0.60.0 и drive 0.54.3 отстают от npm (0.64.0 и 0.55.0)** — поиск по репликам Zoom (`cue_ref`) и `documents show` из этих выпусков у владельца не работают, пока не обновит (Tools → Update).
+
+- #56 (фильтры, TASK-58) и #54 (автообновление инструкций, NEED-236) слиты 2026-11-02; превью main (af34eb4) на http://localhost:1437 (vite preview из worktree shots). cli-core #2364 — конфликт в CHANGELOG, перебазируется.
+
+- **BUG-50 · «Your computer» не догружается, если страница открыта сразу (`?section=tasks|memory`)** — данные системы запрашивает только Tools. Как в настоящем приложении при старте не на Tools — не проверено.
+- **UX-58 · «Check this agent» кладёт заблокированные команды в «Also to fix»** — защита выглядит как проблема.
+- **FIND-185 · Демо-данные повторяются и выглядят ненастоящими** (одинаковые попадания 1 и 6, «Kai Sample», «Sounds great!» подряд); итог поиска инструмента на английском в ru/es интерфейсе.
+
+- **BUG-51 · «Write the query» в браузерной сборке (порт 1437) — заглушка на английских регулярках**: «как купить велосипед у Милы» → `милы` (берёт последнее слово). Слава: «the generated query didnt work». Настоящее приложение спрашивает агента; на русском не проверено.
+  - **поправка:** в настоящем приложении это вообще не сделано — `src/platform/bridge.ts:250` отвечает «writing a query from words is not built in the app yet». Поле есть только в браузерной сборке.
+
+- **BUG-52 · Доска задач: задача, брошенная на то же место, открывается на редактирование.** Слава: «if I drop the task on the same place it opens it for edit». Отдано агенту `feat/query-writer`.
+
+- 2026-11-02 ночь: слиты #61 (перетаскивание задач не открывает карточку, BUG-52), #58 (`?showcase`), #62 (README со скриншотами, TASK-61), #63 (настоящий «Write the query»: `claude -p --model haiku …`, затем Codex; проверено на 12 придуманных фразах en/ru/es, Codex не запускался). cli-docs #490 перебазирован (4e6f9f73), полная проверка запущена: run 41385240041.
+- Слава уходит на ночь: «keep working, if you get stuck switch to another task, dont ask me questions». Решения ночью принимаю сам и пишу сюда.
+
+- **BUG-53 · Выкладка сайта после #490 упала** (run 41386692447): `tests/public-page-shell.spec.ts` сравнивает ссылки с HTML главной без скриптов, а кнопка скачивания в подвале после скриптов пишет «Download for Linux». Исправлено в cli-docs #494 (слит), выкладка заново: run 41389494001 — **успешно**, wirecat.dev показывает новый слоган и «Inside the app» на /en/download (проверено curl).
+
+- #68 слит (NEED-239, NEED-244): плашка с именем рисуется поверх id в самом поле (ширина = ширине id, поэтому имя длиннее id обрезается «…»; полное имя во всплывающей подсказке), Backspace/Delete убирают термин; у переключателя мессенджера в рецептах подписи, отдельной строкой. Не проверено в WebKitGTK и с IME.
+
+- **IDEA-19, поправка:** catch-up у tg serve уже включён (`catchUp: true` из cli-core `serve-command.ts` через `src/commands/context.ts:97` в `adapter.ts:174`); теряет mtcute 0.32.7 на `differenceTooLong` / `channelDifferenceTooLong`. PR: tg-cli #810 (тесты), cli-core #2388 (дочитывание при старте serve: 7 дней, 500 сообщений на чат, 5 минут). Не слиты — ждут Славу.
+- **RISK-87, причина:** запрос SQLite идёт до конца на главном потоке (`cli-core src/store/drivers/node-sqlite.ts:16`), лимит 2 с проверялся только между запросами (`lucene.ts:120`), ошибка выглядела как «слишком большой запрос». cli-core #2391: проверка времени на каждой строке, новая причина `query.time-limit`. Не слит. Нужны поднятия cli-core в wa, tg, max (и, возможно, memo).
+
+- #71 и #75 слиты (BUG-49, BUG-50, UX-57, UX-58, RISK-88, FIND-185, календарь на 960 px, ширина статусов). Кнопка «Keep up to date» проверена только на заглушке.
+- **BUG-54 · После перезагрузки (04:48) фоновые службы tg/max не поднялись**: `server install` пишет unit с `WantedBy=default.target`, но не включает его (`is-enabled` → disabled); auth-ошибка с кодом 4 запрещает перезапуск (`RestartPreventExitStatus=4`). В 06:30 запустил обе службы вручную (`server start`), включать автозапуск не стал: до входа в систему keyring закрыт, и служба упала бы.
+- **BUG-55 · Ночные полные синхронизации упали при загрузке**: таймеры Persistent сработали до входа; tg — `auth.failed` (keyring закрыт), max — «name a profile», хотя в schedule.json есть `MAX_PROFILE=default` (max `schedule exec` не применяет профиль). Полные синхронизации запущены вручную в 06:31. Исправления в CLI отданы агенту (только PR).
+- **FIND-186 · У tg 59 неудачных запусков `mcp server status` от приложения в журнале запусков**; на испанской странице Tasks пустой промежуток между плашками и таблицей.
+
+- **BUG-56 · Полная синхронизация tg умирает с EPIPE, когда закрывается вывод**: `tg personal schedule run full-sync` ждёт 30 с, выходит (exit 9), и синхронизация падает на записи (run 20261102T053052Z-messages-sync-f39a28); так же умерла синхронизация, запущенная из десктопа 01.11 (20261101T235549Z…). Передано агенту по фоновым службам. В 06:40 запущена `tg personal messages sync --all --timeout 120m --record` напрямую с выводом в файл (PID 769988). MAX: полная синхронизация в 06:32 прошла (2 с).
+
+- BUG-54/55/56 — причины и PR: cli-core #2401 (`server install` включает unit; ретрай на закрытом keyring с причиной `credentials.unreachable`, до 12 ч; долгие команды переживают закрытый вывод — `cli-core src/cli/program.ts:282-287`), tg-cli #812, max-cli #901 (max serve отвечал 4 на закрытом keyring, `max-cli src/client/session.ts:~72`). Профиль в `max schedule exec` и 30 с у `schedule run` уже исправлены в max 0.96.0 и tg 0.113.0 — у Славы стоят 0.95.0 и 0.112.0. Не слиты. Блог: POST-131 в cli-private.
+- FIND: при загрузке журнал пишет, что `~/.local/share/keyrings/default.keyring` «in an invalid or unrecognized format» — не трогал.
+
+- Полная синхронизация tg personal, запущенная напрямую в 06:40: 98 585 сообщений в 331 чате, 11 каналов `CHANNEL_INVALID` (недоступны), run 20261102T055404Z-messages-sync-24a068. Пробел в архиве Telegram с 28.10 закрыт (FIND-181).
+- #76 слит: BUG-57 — MCP-сервер в Manage на tg 0.112 / max 0.95 / wa / drive не работал (команды требуют профиль; добавлено `--profiles all`, отвечает за 59/96/92/92 упавших запусков); фоновые проверки с `--no-record`; «Clear all» внутри поля поиска (BUG-58, пустая строка на es); «Full guide» по мессенджеру; «Connect notes and mail too». Записи агента: `docs/journal/2026-11-02-small-fixes-b.md` (BUG-57, BUG-58, FIND-187, FIND-188, RISK-89, IDEA-21, DEBT-12).
+
+- **SEC-8 · На странице загрузки сайта та же установка через /tmp, что SEC-113 в десктопе** (`wget -O /tmp/{deb} … && sudo apt install /tmp/{deb}`, из cli-docs #488): другой пользователь компьютера может подложить файл. Исправлено в cli-docs #503 той же командой, что в приложении (`/var/cache/apt/archives`).
+
+- 2026-11-02: cli-docs #503 (SEC-8) слит. Десктоп: #78 «release: 0.3.0» слит, `bin/tag-release` запушил v0.3.0, release.yml собирает.
+
+- **v0.3.0 выпущен** (release.yml 41466734292: все сборки, подпись и нотаризация macOS прошли), 12 файлов: https://github.com/WireCatLabs/wirecat-desktop/releases/tag/v0.3.0 . .deb скачан в ~/Downloads. Ограничение GitHub API (несколько агентов следили за CI) задержало проверку на ~40 мин.
+
+- **Выпуски CLI 2026-11-02:** cli-core 0.552.0 (#2388, #2391, #2389, #2401), max 0.97.0 (#901), memo 0.131.15 (#570), zoom 0.65.0 (#328) — проверены `npm view`. tg: #810, #812, поднятие #814 слиты, **не выпущен** — правило выпуска tg требует живой прогон `pnpm smoke:live` владельцем (cli-core меняет команды записи: `<kind>:<text>` читается как ссылка, опция после `--` читается как опция). WhatsApp: #329 (cli-core 0.552) зелёный; выпуск только после «да» Славы на конкретную версию (WC-REL-10) и, при изменении записи, его живого прогона — готовится агентом до этого шага. cli-core 0.551 (другая сессия): `messages sync` по умолчанию пропускает группы больше 50 человек и читает группы на 365 дней назад.
+- NEED-246 (объявление 0.3.0 в Discord и Telegram) задан 2026-11-02, ждёт ответа.
+
+- **WhatsApp 0.27.0:** #329 (cli-core 0.552.0) и #330 (release) слиты. Проверка R1 (только чтение, `wa-0.27-live-check live`) прогнана мной по разрешению Славы: chats list, inbox, store status, `--brief`, окно `messages list` — ok; два поиска, которые раньше шли 66–90 с, — 2,41 с и 1,31 с (по /proc/uptime). Скрипт показал FAIL из-за подсчёта времени через `date +%s%3N` (DEBT ниже). `bin/release` запущен.
+- **BUG-59 · Служба `wa-serve-live-64f1c38c.service` перезапускалась 1424 раза** («provider unavailable / engine stopped», exit 12), работает из main-копии whatsapp-cli. Не трогал.
+- **DEBT-13 · Скрипт `wa-0.27-live-check` меряет время по часам системы** (`date +%s%3N`), получил 8 418 703 245 мс; мерить по монотонным часам.
+
+- Пост о 0.3.0 на сайте (cli-docs #508): https://wirecat.dev/en/blog/wirecat-desktop-0-3 (ru, es). Объявлено в Discord #announcements (вебхук релизов) и в группе Telegram, тема «Релизы» (https://t.me/wirecatdev/27); заметка сводки обновлена (cli-private 9396d058 и исправление порядка строк).
+
+- **@wirecat/whatsapp-cli@0.27.0 выпущен** (bin/release, release.yml 41489649674, тег v0.27.0, npm проверен). tg 0.114.0 выпустила другая сессия (#816) с моей живой проверкой; tg-cli #817 поправил журнал изменений 0.114.0 (`--full-history`, три пропущенных изменения), без выпуска.
 
 ## 4. Вопросы к Славе
 
@@ -1465,3 +1600,102 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
   - Варианты: **A** выпустить оба сейчас · **B** сначала drive (только ref), zm после проверки, что старый drive открывает хранилище схемы 43 · **C** ждать
   - Я бы: **B** — риск только в общем хранилище, проверка дешёвая.
   - Если не ответит: Search открывает место встречи и документ только в браузерном макете.
+- **NEED-228 · Убрать ли старую сборку разработчика (~/.local/bin/wirecat-desktop от 29.10 и её ярлык) после установки 0.2.0 из .deb?**
+  - Сейчас: после установки .deb в меню будет два «WireCat», а команда `wirecat-desktop` скорее всего запустит старую сборку (~/.local/bin раньше /usr/bin в PATH).
+  - Варианты: **A** `bin/install-desktop-entry --remove` после установки · **B** оставить обе
+  - Я бы: **A** — один WireCat, и он новый.
+  - Если не ответит: два ярлыка, команда открывает старую.
+  - **Ответ 2026-11-01: A.** `bin/install-desktop-entry --remove` выполнен: старая сборка и ярлык убраны; .deb 0.2.0 ещё не установлен.
+- **NEED-229 · Включать ли сообщения установщика (#51) в следующий выпуск десктопа сразу или после вашей проверки, что уведомление _apt исчезло?**
+  - Сейчас: #51 открыт, проверки зелёные; не проверено только, что `sudo apt install --reinstall /tmp/wirecat_0.2.0_amd64.deb` не даёт уведомления.
+  - Варианты: **A** слить сейчас · **B** после проверки владельцем одной командой
+  - Я бы: **A** — сообщение после установки от проверки не зависит; если уведомление останется, поправим команду отдельно.
+  - Если не ответит: следующий выпуск без сообщения.
+  - **Ответ 2026-11-02:** «I tested, no more warnings» — уведомления `_apt` при установке из /tmp нет. #51 слит (squash, 2026-11-01 23:01 UTC).
+- **NEED-230 · Слить ли cli-docs #488 (команда установки через /tmp на странице загрузки; меняет компонент страницы)?**
+  - Сейчас: сайт показывает `sudo apt install ./{deb}` с тем же уведомлением.
+  - Варианты: **A** слить после «да» · **B** сначала посмотрите изменение компонента
+  - Я бы: **A** — изменение маленькое, проверки зелёные, добавляет только защиту.
+  - Если не ответит: пользователи сайта видят уведомление.
+  - **Ответ 2026-11-02: A.** cli-docs #488 слит.
+- **NEED-231 · Выпускать ли десктоп 0.2.1 сейчас (кнопка «Report this» в Search #50, memo 0.131.14 #52, сообщения установки на Linux #51)?**
+  - Сейчас: всё три PR в main, у пользователей 0.2.0 без них.
+  - Варианты: **A** выпустить сейчас · **B** дождаться теста поиска на реальных данных и включить его исправления
+  - Я бы: **B** — тест поиска уже идёт; если он найдёт ошибки приложения, лучше один выпуск, а не два.
+  - Если не ответит: жду тест, потом спрашиваю снова.
+  - **Ответ 2026-11-02: B.**
+  - **поправка 2026-11-02:** 0.2.1 не выпускаем, копим на 0.3.0 (ответ к NEED-236).
+- **NEED-232 · Сливать ли главную сайта (cli-docs #490) сейчас, хотя часть браузерных тестов локально не прогнана?**
+  - Сейчас: проверки PR зелёные; 7 браузерных наборов идут только при мерже в main и могут остановить выкладку (вероятнее всего mobile-delivery).
+  - Варианты: **A** слить, при падении — поправить тест следующим PR · **B** сначала посмотреть превью (локально его поднять нельзя из-за памяти)
+  - Я бы: **A** — сайт не выложится с упавшим тестом, так что риск — задержка, а не сломанная страница.
+  - Если не ответит: главная остаётся со старой панелью и MAX в en/es.
+  - **Ответ 2026-11-02:** «на CI можешь запустить?» — запущен Full validation (ci.yml) на ветке: https://github.com/WireCatLabs/cli-docs/actions/runs/41362746002. whatsapp.spec, copy-feedback, public-site-navigation есть только в deploy.
+  - **Ответ 2026-11-02 (после просмотра на localhost:1490):** «1 ok a few fixes»: тень/подъём у выпадающей панели Connect (через impeccable), убрать Examples из верхнего меню, заполнить пустоту под левой колонкой «Что доступно уже сейчас», в «Открытый код» — ссылка на организацию, переделать About («Мы создаём инструменты», «Проект объединяет и создаёт инструменты» — слишком крупно; больше информации). Отдано агенту главной в тот же #490.
+- **NEED-233 · Делать ли следом блок установки десктопа внизу главной и переписать тексты под «весь контекст» (IDEA-15, IDEA-16)?**
+  - Сейчас: внизу только CLI-установка; тексты говорят о мессенджерах и заметках.
+  - Варианты: **A** да, одним следующим PR со скриншотами десктопа 0.2.x · **B** только блок установки · **C** позже
+  - Я бы: **A** — десктоп выпущен, а главная обещает меньше, чем продукт умеет.
+  - Если не ответит: главная продвигает десктоп только в панели Connect.
+  - **Ответ 2026-11-02:** «2 надо в блоки с connect your agent поменять. а вот слоган согласен надо обдумать, дай несколько вариантов, будь креативен. и возможно тут надо подумать, как лучше вообще позиционировать теперь». Понято так: отдельного блока установки нет, десктоп — в блоках Connect (сделано в #490); слоган и позиционирование — варианты в ответе.
+- **NEED-234 · Как позиционировать WireCat теперь: «память мессенджеров для агента» или «личный контекст для ИИ-агента: чаты, почта, встречи, документы, календарь — на вашем компьютере»?**
+  - Варианты: **A** личный контекст для агента (категория, все источники, локально) · **B** остаться на мессенджерах, остальное вторым планом · **C** приватность первым
+  - Я бы: **A**.
+  - **Ответ 2026-11-02: A** с поправкой: «the messengers are obvious first use as there's no easy way to access them without our clis so in some places mb better use messengers to make it clearer for users. its important so we are understood easily. personal context is too vague and users will walk away but when explaining what we do we can use that etc».
+- **NEED-235 · Какой слоган ставить на главную?** Варианты в ответе 2026-11-02 (1–8).
+  - Я бы: 2 «Your agent finally knows what you know.»
+  - **Ответ 2026-11-02:** «Everything you've said. Ready for your agent. - love it». Передано агенту главной в #490.
+  - FIND-181: **ответ 2026-11-02: A** — отдано агенту на разбор вместе с языком расшифровки Zoom.
+- **NEED-236 · Обновлять инструкции для агентов автоматически только в десктопе (в 0.2.1) или ещё и в самих CLI (IDEA-18)?**
+  - Варианты: **A** десктоп сейчас, CLI потом · **B** только десктоп · **C** оба сразу
+  - Я бы: **A**.
+  - **Ответ 2026-11-02: C** — и десктоп, и CLI. «dont release 0.2.1 yet, I'd better get more stuff and release 0.3.0». Отдано агенту: cli-core `feat/skill-auto-refresh`, desktop `feat/skill-refresh-on-update`.
+  - PR: cli-core #2364 (27 проверок зелёные), desktop #54 (зелёный, конфликт после #53 — перебазируется). Обновляются только `stale`; `unversioned` (вручную правленные), `missing`, симлинки не трогаются. CLI: маркер `<state>/skill-refresh.json`, одна строка в stderr, отключение `<PREFIX>_NO_SKILL_REFRESH=1`. Чтобы дошло до пользователей CLI, нужны поднятия cli-core во всех CLI и выпуски. Причина отставания tg: postinstall ставит skill только при `TG_INSTALL_AGENT`.
+- **NEED-237 · Запустить ли сейчас полную синхронизацию Telegram (personal) и MAX (default), чтобы догрузить переписку с 28.10?**
+  - Варианты: **A** ты жмёшь Sync в десктопе · **B** я запускаю `tg personal messages sync --all` и max так же
+  - Я бы: **A** (или B по твоему «да»).
+  - **Ответ 2026-11-02:** «1 started» — Слава запустил синхронизацию tg personal и max default сам.
+- **NEED-238 · Включить ли фоновую синхронизацию: установить серверы tg personal и max default (`server install` + `start`, пользовательские службы systemd) и регулярный полный sync?**
+  - Варианты: **A** да, оба · **B** только tg · **C** нет, вручную
+  - Я бы: **A**.
+  - **Ответ 2026-11-02: A.** Установлены `tg-serve-personal.service` и `max-serve-default.service` (`server install`), расписания `full-sync` ежедневно 04:30 (tg) и 04:45 (max): `messages sync --all --timeout 120m --record`. Серверы запускаются фоновой командой после окончания текущих синхронизаций.
+- **NEED-239 · Показывать в самом поле поиска имя контакта вместо id (редактор с плашками внутри поля) или оставить плашку под полем?**
+  - Варианты: **A** редактор с плашками в поле, к 0.3.0 · **B** оставить плашку под полем
+  - Я бы: **A** — Слава просил именно замену в поле.
+  - **Ответ 2026-11-02: A.** В очереди после агента автообновления инструкций.
+- **NEED-240 · Удалить ли старую копию drive 0.49.0 из папки pnpm?**
+  - Варианты: **A** удалить (команда на странице Tools → drive) · **B** оставить
+  - Я бы: **A** — агенты в оболочках с pnpm первым получают старый drive.
+  - **Ответ 2026-11-02: A.** `pnpm remove -g @wirecat/drive-cli` выполнен; `which -a drive` — только nvm, 0.54.3.
+- **NEED-242 · Делать ли к 0.3.0 настоящее «Write the query» (запрос из слов через Claude Code / Codex пользователя, как решено в NEED-210)?**
+  - Варианты: **A** да, к 0.3.0 · **B** спрятать поле, пока не сделано · **C** позже, поле оставить
+  - Я бы: **A**, а до готовности — B.
+  - **Ответ 2026-11-02: A.** Отдано агенту `feat/query-writer` (Claude Code первым, затем Codex; только описание и ключи, без сообщений).
+
+- **NEED-243 · Какой скриншот поставить в блок про десктоп на главной?** (в ответе 2026-11-02 по ошибке назван NEED-242 — номер не был выдан; NEED-242 — это «Write the query».)
+  - Варианты: **A** Tools, всё зелёное · **B** открытое попадание поиска с перепиской · **C** «Теперь ChatGPT может работать с вашим Telegram»
+  - Я бы: **B**.
+  - Ответ 2026-11-02: «не вижу скриншотов» — галерея поднята на http://localhost:1491.
+  - **Ответ 2026-11-02:** «hard to say I'd use several and I'd cut a piece of it - no need for full page, mb memory is cool but on homepage mb tools? I'd switch dark/light depending on theem mb other screenshots elsewhere. dont show full - likely left from center is most important part». Передано агенту главной: обрезки, Tools главным + Memory/поиск, по теме сайта, галерея на странице загрузки.
+
+- **NEED-241 · Выкладывать ли главную одним PR вместе с блоком десктопа или сначала #490, скриншоты вторым PR?**
+  - Варианты: **A** одним PR · **B** сначала #490
+  - Я бы: **B**.
+  - Ответ 2026-11-02: «где смотреть это?» — #490 на http://localhost:1490.
+  - **Ответ 2026-11-02: A** — «first finish screenshots»: скриншоты в тот же #490.
+- **NEED-244 · Подписывать ли переключатель мессенджера в рецептах названиями (Telegram / MAX / WhatsApp) или оставить только иконки?**
+  - Варианты: **A** только иконки (имя при наведении и в строке «Uses …») · **B** иконки с названиями
+  - Я бы: **B** — иконки трёх мессенджеров легко спутать, Слава просит, чтобы нас понимали сразу.
+  - NEED-244: **решено самостоятельно (Слава разрешил ночью): B** — иконки с подписями; отдано агенту `feat/query-tokens` вместе с NEED-239.
+- **NEED-245 · Выпускать ли WhatsApp (whatsapp-cli) с исправлением лимита времени поиска (cli-core #2391), когда выйдет cli-core?**
+  - Варианты: **A** выпустить самому после поднятия cli-core (PR готовит агент) · **B** отложить
+  - Я бы: **A**.
+  - NEED-245: **Ответ 2026-11-02: «yes»** — передано агенту выпусков (только этот выпуск WhatsApp).
+- **NEED-246 · Объявлять ли WireCat Desktop 0.3.0 в Discord #announcements и в группе Telegram, когда пост в блоге будет на сайте?**
+  - Варианты: **A** предпросмотр (#maintainers и «Избранное»), публикация после «да» · **B** сразу · **C** не объявлять
+  - Я бы: **A**.
+  - NEED-246: **Ответ 2026-11-02: B** — публиковать сразу, без предпросмотра, когда пост будет на сайте.
+- **NEED-247 · Прогнать ли живую проверку tg для выпуска?** **Ответ 2026-11-02:** «ты сам прогони». Прогнал `TG_PROFILE=tgtest pnpm smoke:live` в `tg-cli-wt-release`: все шаги ok, react/unreact skip (нет Premium). Выпуск tg отдан агенту.
+- **NEED-248 · Удалить ли временные рабочие копии сессии?** **Ответ 2026-11-02: A.** Удалены 17 рабочих копий с их ветками (PR слиты); 12 уже убрали агенты. Ветку `main` в visage скрипт удалил вместе с `tag-main` — восстановлена из origin/main. Оставлены: `journal-020` (ветка журнала без PR), `shots` (на нём превью :1437).
+- **ASK · «Upgrading: 0 … when I open wirecat the version is still 0.2.0»** — пакет в /var/cache/apt/archives верный (0.3.0); `apt install -s` без root показывает «Upgrading: 1». Под root поведение не проверено; дана команда: проба от root + `sudo dpkg -i`. Если проба от root даст «Upgrading: 0», команда обновления в приложении и на сайте (SEC-113) не работает.
+- **NEED-249 · Ответ 2026-11-02: A.** Проба `sudo apt install -s /var/cache/apt/archives/wirecat_0.3.0_amd64.deb` → «Upgrading: 1»: команда обновления под root исправна. Установлено через `sudo dpkg -i`: 0.3.0, сообщение после установки показано. Первое «Upgrading: 0» не объяснено.

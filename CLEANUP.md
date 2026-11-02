@@ -109,6 +109,24 @@
 - `/home/leemour/Projects/AI/cli-docs/.worktrees/privacy-desktop-app`, `/home/leemour/Projects/AI/cli-docs/.worktrees/privacy-no-proxy-log` (with its node_modules), merged remote branches fix/caddy-skip-notifications (wirecat-api), docs/privacy-no-proxy-log, docs/privacy-desktop-app, docs/privacy-desktop-corrections, docs/privacy-nodejs-offer (cli-docs), fix/notifications-no-ip (wirecat-api) — privacy round, all merged (2026-11-01)
 - `/home/leemour/Projects/AI/cli-core-wt-search-files` (branch feat/search-hit-files, merged as cli-core #2330, ~800 MB node_modules) and `/home/leemour/tmp-search-files/cli-core-release` — Search gaps 1–3 in cli-core 0.532.0 (2026-11-01)
 - `/home/leemour/Projects/AI/zoom-cli-wt-search-place`, `/home/leemour/Projects/AI/drive-cli-wt-search-place`, `/home/leemour/Projects/AI/cli-core-wt-search-place` (branch feat/search-hit-place, merged: zoom-cli #326, drive-cli #313, cli-core #2329) and remote branches feat/search-hit-place in those repos; `/home/leemour/tmp-search-place/` — Search gaps 4 and 6 (2026-11-01)
+- `.claude/worktrees/release-020` (branch release/0.2.0, merged as #49), `.claude/worktrees/review-all` (review/all, closed #42) and the Vite on port 1437 (PID 392703), branches of closed PRs #34–#48 — landed in 0.2.0 (2026-11-01)
+- `.claude/worktrees/linux-install` (feat/linux-install-messages, PR #51), `/home/leemour/Projects/AI/cli-docs-wt-linux-install` (with node_modules, cli-docs #488), `/tmp/wirecat_0.2.0_amd64.deb` (kept for the _apt notice test), scratchpad apt-src clone — Linux install messages (2026-11-01)
+- `.claude/worktrees/memo-0131-14` (merged as #52), `.claude/worktrees/journal-020`, `/home/leemour/tmp-memo14`, `/home/leemour/tmp-memo11` — memo adoption (2026-11-01)
+/home/leemour/Projects/AI/visage/.claude/worktrees/search-real-data — worktree of merged PR #53 — 2026-11-02
+/home/leemour/Projects/AI/cli-core-wt-skill-refresh — worktree of cli-core #2364, remove after merge — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/skill-refresh — worktree of desktop #54, remove after merge — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/shots — throwaway worktree for desktop screenshots — 2026-11-02
+/home/leemour/Projects/AI/cli-docs-wt-shell-fix — worktree of merged cli-docs #494 — 2026-11-02
+/home/leemour/Projects/AI/cli-docs-wt-landing-hero — worktree of merged cli-docs #490 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/query-tokens — worktree of merged #68 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/query-writer — worktree of merged #63 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/guides-per-tool — worktree of merged #60 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/showcase — worktree of merged #58/#62 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/unified-filters — worktree of merged #56 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/polish-03 — worktree of merged #71/#75 (branches fix/polish-0.3, fix/background-server) — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/tag-main — worktree on main used for bin/tag-release — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/release-030 — worktree of merged #78 — 2026-11-02
+/home/leemour/Projects/AI/cli-docs-wt-deb-sec — worktree of merged cli-docs #503 — 2026-11-02
 - `.impeccable/mocks/guides/prototype/` (`GuidesPage.tsx`, `guides.ts`, `guides-more.ts`, `messages.ts`) — the Guides page and its data now live in `src/features/guides/`; nothing in `src/` imports the prototype any more (2026-11-02)
 - Branch `feat/mcp-profiles-all` (local and origin) — its one commit 7f99a48 was never merged; it is picked into fix/small-0.3-b (2026-11-02)
 - `.claude/worktrees/small-03b` (branch fix/small-0.3-b) — small fixes for 0.3.0, batch b, once its PR is merged (2026-11-02)
