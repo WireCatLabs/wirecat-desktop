@@ -1,7 +1,7 @@
 import { ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
 import { inTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
-import { useMessages } from "@/i18n"
+import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
@@ -21,11 +21,12 @@ import { memoryMessages } from "./messages"
 import { Row, SubjectLabel } from "./Row"
 import { useMemory } from "./store"
 
-const GUIDE = "https://github.com/WireCatLabs/cli-memo/blob/main/docs/memories.md"
+const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/memories`
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
 
 export function MemoryPage() {
   const m = useMessages(memoryMessages)
+  const lang = useLang()
   const s = useMemory()
   const { load } = s
 
@@ -49,10 +50,10 @@ export function MemoryPage() {
           <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
             {m.intro}{" "}
             <a
-              href={GUIDE}
+              href={guide(lang)}
               onClick={(e) => {
                 e.preventDefault()
-                platform.openUrl(GUIDE)
+                platform.openUrl(guide(lang))
               }}
               className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
             >
