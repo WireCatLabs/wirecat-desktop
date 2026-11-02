@@ -192,7 +192,9 @@ function FailureText(props: { outcome: Failed; operation: InstallSession["operat
         ? [m.timedOut[operation], m.timedOutHint]
         : outcome.reason === "network"
           ? [m.network, m.networkHint]
-          : [outcome.message, outcome.hint]
+          : outcome.reason === "unconfirmed"
+            ? [m.unconfirmed, m.unconfirmedHint]
+            : [outcome.message, outcome.hint]
   return (
     <p>
       <span className="font-medium text-ink">{message}</span>

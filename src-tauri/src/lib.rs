@@ -19,6 +19,7 @@ mod page_loads;
 mod paths;
 mod permissions;
 mod profile;
+mod provenance;
 mod public_address;
 mod query_writer;
 mod redact;

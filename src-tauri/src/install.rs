@@ -1,4 +1,5 @@
 use crate::catalog::Tool;
+use crate::provenance::{self, Refusal};
 use crate::{node, paths, redact, run, skills, system, tools};
 use serde::Serialize;
 use std::collections::HashSet;
@@ -38,6 +39,8 @@ pub enum Reason {
     Timeout,
     Cancelled,
     Verify,
+    /// The release could not be confirmed as built by the tool's own release workflow (`provenance.rs`).
+    Unconfirmed,
     Failed,
 }
 
@@ -144,10 +147,17 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     }
     let existing = tools::detect(tool, false).installs.into_iter().next();
     let manager = existing.as_ref().map_or("npm", |i| i.manager);
-    // The exact version, not `@latest`: a manager that still holds new releases back then fails loudly instead of
-    // quietly installing an older one.
-    let wanted = tools::latest_version(&tool.package);
-    let spec = format!("{}@{}", tool.package, wanted.as_deref().unwrap_or("latest"));
+    // The exact version, not `@latest`: it is the one whose provenance is checked, and a manager that still holds new
+    // releases back then fails loudly instead of quietly installing an older one.
+    let wanted =
+        tools::latest_version(&tool.package).filter(|v| semver::Version::parse(v).is_ok()).ok_or_else(|| {
+            Failure(
+                Reason::Network,
+                "Could not reach the npm registry.".into(),
+                Some("Check your internet connection or proxy, then try again.".into()),
+            )
+        })?;
+    let spec = format!("{}@{wanted}", tool.package);
     let (program, args): (&str, Vec<&str>) = match manager {
         // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
         "pnpm" => ("pnpm", vec!["add", "--global", &spec, PNPM_WIRECAT_NOW]),
@@ -168,6 +178,8 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
             Some("Let WireCat set up its own Node.js in your home folder, or point npm at one: npm config set prefix ~/.npm-global.".into()),
         ));
     }
+
+    confirm_release(tool, &wanted, &send)?;
 
     send(InstallEvent::Step { step: Step::Install });
     run_manager(&program_path, &args, tool, running, events, "Installation")?;
@@ -191,7 +203,7 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         )
     })?;
     let ours = state.installs.iter().find(|i| i.manager == manager).unwrap_or(first);
-    if let (Some(wanted), Some(got)) = (wanted.as_deref(), ours.version.as_deref())
+    if let Some(got) = ours.version.as_deref()
         && wanted != got
     {
         return Err(Failure(
@@ -211,6 +223,42 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         skills::SkillRefresh::default()
     };
     Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills })
+}
+
+/// Checked with npm whichever manager installs: npm comes with every Node.js.
+fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> Result<(), Failure> {
+    send(InstallEvent::Log {
+        line: format!("Checking that {} {version} was built by {}…", tool.package, tool.repo),
+        stderr: false,
+    });
+    let npm = paths::find("npm").ok_or_else(|| {
+        Failure(
+            Reason::Requirements,
+            "npm was not found, so this release cannot be checked.".into(),
+            Some("Let WireCat set up Node.js for you, or install Node.js again.".into()),
+        )
+    })?;
+    provenance::confirm(&npm, &tool.package, version, &tool.repo).map_err(|refusal| match refusal {
+        Refusal::Unreachable(detail) => {
+            send(InstallEvent::Log { line: redact::text(&detail), stderr: true });
+            Failure(
+                Reason::Network,
+                "Could not check this release with the npm registry.".into(),
+                Some("Check your internet connection or proxy, then try again.".into()),
+            )
+        }
+        Refusal::Unconfirmed(detail) => {
+            send(InstallEvent::Log { line: redact::text(&detail), stderr: true });
+            Failure(
+                Reason::Unconfirmed,
+                format!(
+                    "{} {version} could not be confirmed as built by WireCat, so it was not installed.",
+                    tool.package
+                ),
+                Some("Try again later. If it keeps happening, tell WireCat with Report a problem.".into()),
+            )
+        }
+    })
 }
 
 fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) -> Result<InstallEvent, Failure> {

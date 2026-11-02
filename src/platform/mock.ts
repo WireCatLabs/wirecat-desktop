@@ -34,6 +34,7 @@ import type { Platform } from "./types"
 // A stand-in for Rust so the interface can be designed and reviewed in a browser.
 // `?state=fresh` shows a machine with nothing installed, `?state=nonode` one without Node.js,
 // `?state=one` only Telegram, `?fail=<tool>` makes that tool's install fail (`?fail=storage`: reading Storage), `?hold=<tool>` keeps it installing, `?install=<tool>` starts one.
+// `?unconfirmed=<tool>` refuses its install: the release was not built by the tool's own release workflow.
 // `?state=noadmin` has an apt Node whose npm needs administrator rights. With `nonode` or `noadmin`, "Set up Node.js
 // for me" runs a fake download; `?node=fail` makes its checksum mismatch, `?node=ready` starts with it already set up.
 // `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
@@ -409,9 +410,26 @@ export function createMock(os: Platform["os"]): Platform {
       cancelled = false
       const pkg = PACKAGES[id] ?? id
       onEvent({ event: "step", step: "check" })
+      const version = LATEST[id] ?? "1.0.0"
+      const repo = `https://github.com/WireCatLabs/${pkg.replace("@wirecat/", "")}`
+      onEvent({ event: "log", line: `Checking that ${pkg} ${version} was built by ${repo}…`, stderr: false })
       await delay(700)
+      if (params.get("unconfirmed") === id) {
+        const signer = "https://github.com/someone-else/fork/.github/workflows/publish.yml@refs/heads/main"
+        onEvent({
+          event: "log",
+          line: `built by ${signer}, not by ${repo}/.github/workflows/release.yml`,
+          stderr: true,
+        })
+        return onEvent({
+          event: "failed",
+          reason: "unconfirmed",
+          message: `${pkg} ${version} could not be confirmed as built by WireCat, so it was not installed.`,
+          hint: "Try again later. If it keeps happening, tell WireCat with Report a problem.",
+        })
+      }
       onEvent({ event: "step", step: "install" })
-      onEvent({ event: "log", line: `$ npm install --global ${pkg}@latest --no-fund --no-audit`, stderr: false })
+      onEvent({ event: "log", line: `$ npm install --global ${pkg}@${version} --no-fund --no-audit`, stderr: false })
       for (const line of [
         `npm http fetch GET 200 https://registry.npmjs.org/${pkg} 312ms`,
         "npm http fetch GET 200 https://registry.npmjs.org/@wirecat%2fcli-core 188ms",
@@ -434,7 +452,6 @@ export function createMock(os: Platform["os"]): Platform {
       }
       onEvent({ event: "step", step: "verify" })
       await delay(800)
-      const version = LATEST[id] ?? "1.0.0"
       const update = installed.has(id)
       installed.set(id, version)
       const skills = update ? await refreshSkillsMock(agents, id, version) : undefined

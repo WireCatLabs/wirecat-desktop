@@ -52,7 +52,16 @@ export const DiagnosisSchema = v.object({
   stderr: v.string(),
 })
 
-const FailReason = v.picklist(["requirements", "permission", "network", "timeout", "cancelled", "verify", "failed"])
+const FailReason = v.picklist([
+  "requirements",
+  "permission",
+  "network",
+  "timeout",
+  "cancelled",
+  "verify",
+  "unconfirmed",
+  "failed",
+])
 
 export const InstallEventSchema = v.variant("event", [
   v.object({ event: v.literal("step"), step: v.picklist(["check", "install", "remove", "verify"]) }),

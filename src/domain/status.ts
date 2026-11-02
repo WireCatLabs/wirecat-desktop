@@ -2,7 +2,15 @@ export type InstallStep = "queued" | "check" | "install" | "remove" | "verify"
 
 export type Operation = "install" | "uninstall"
 
-export type FailReason = "requirements" | "permission" | "network" | "timeout" | "cancelled" | "verify" | "failed"
+export type FailReason =
+  | "requirements"
+  | "permission"
+  | "network"
+  | "timeout"
+  | "cancelled"
+  | "verify"
+  | "unconfirmed"
+  | "failed"
 
 export type InstallRecord = { path: string; version: string | null; manager: string; problem: string | null }
 

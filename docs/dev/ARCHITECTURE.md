@@ -21,6 +21,8 @@ src-tauri/src/
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
   tools.rs      finding executables, versions, profiles, doctor runs.
   install.rs    install, update and uninstall with progress events, verification, failure reasons.
+  provenance.rs before an install, `npm audit signatures` on a stub project plus the Sigstore certificate's
+                workflow: the release must be built by its catalog `repo`'s release.yml, or nothing is installed.
   runs.rs       run logs, read through each tool's own `runs list` / `runs show`; shown unmasked, an exception
                 to rule 4: the tool already hid secrets and phone numbers, and the ids and paths are the owner's
                 to read (NEED-115). report.rs filters them again before anything is sent.
