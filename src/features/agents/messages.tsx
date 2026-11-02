@@ -245,18 +245,19 @@ const en = {
   tools: "Tools",
   readOnly: "Read only",
   readOnlyIntro: (agent: string) =>
-    `A profile set to read only lets ${agent} read and search through it, but not send, change or delete anything. You can change it later in the tool's Permissions on the Tools page.`,
+    `${agent} takes orders from the people in its chats, so every profile starts read only: ${agent} can read and search, and the tool refuses to send, change or delete, even when ${agent} is asked to lift the limit itself. Untick a profile only if ${agent} should write with it. This is not a lock against ${agent}: an agent that may run any command can still edit the tool's files, so keep ${agent}'s own approval for commands on. You can change the levels later in the tool's Permissions on the Tools page.`,
   chooseTool: "Choose a tool to see its profiles.",
-  noProfiles: "The chosen tools have no profiles.",
+  cannotLimit: (tools: readonly string[], agent: string) =>
+    `${enList(tools)} cannot be limited yet: ${agent} can change and delete with ${tools.length === 1 ? "it" : "them"}.`,
   connectTools: (n: number) => `Connect ${plural("en", n, { one: "# tool", other: "# tools" })}`,
   connecting: "Connecting…",
   readingChats: (agent: string) => `Reading which chat apps reach ${agent}`,
   noChats: (agent: string) =>
     `${agent} answers in no chat app now. If you add one later, anyone that bot accepts can ask it to run the tools you connect.`,
   chatsReady: (agent: string, apps: readonly string[], stopped: boolean) =>
-    `${agent} answers in ${enList(apps)}${stopped ? " (stopped now, it starts again with them)" : ""}. Anyone the bot accepts there can ask it to run the tools you connect, with your signed-in accounts. Consider read only for the profiles below.`,
+    `${agent} answers in ${enList(apps)}${stopped ? " (stopped now, it starts again with them)" : ""}. Anyone the bot accepts there can ask it to run the tools you connect, with your signed-in accounts. The profiles below start read only.`,
   chatsFailed: (agent: string, error: string) =>
-    `WireCat could not read which chat apps reach ${agent} (${error}). If it answers in one, anyone the bot accepts can ask it to run the tools you connect. Consider read only for the profiles below.`,
+    `WireCat could not read which chat apps reach ${agent} (${error}). If it answers in one, anyone the bot accepts can ask it to run the tools you connect. The profiles below start read only.`,
   steps: "Steps",
   stepState: { waiting: "waiting", running: "running", ok: "done", warn: "needs attention", failed: "failed" },
   step: {
@@ -535,18 +536,19 @@ const ru: typeof en = {
   tools: "Инструменты",
   readOnly: "Только чтение",
   readOnlyIntro: (agent) =>
-    `В профиле «только чтение» ${agent} может читать и искать, но не может ничего отправлять, менять или удалять. Это можно изменить позже в разрешениях инструмента на странице «Инструменты».`,
+    `${agent} выполняет просьбы людей из своих чатов, поэтому каждый профиль сначала только для чтения: ${agent} может читать и искать, а инструмент откажется отправлять, менять или удалять, даже если ${agent} попросят снять это ограничение. Снимите галочку, только если ${agent} должен писать через этот профиль. Это не замок от самого ${agent}: агент, которому можно запускать любые команды, всё равно может изменить файлы инструмента, поэтому оставьте в ${agent} подтверждение команд. Уровни можно изменить позже в разрешениях инструмента на странице «Инструменты».`,
   chooseTool: "Выберите инструмент, чтобы увидеть его профили.",
-  noProfiles: "У выбранных инструментов нет профилей.",
+  cannotLimit: (tools, agent) =>
+    `${ruList(tools)} пока нельзя ограничить: ${agent} может через ${tools.length === 1 ? "него" : "них"} менять и удалять.`,
   connectTools: (n) => `Подключить ${ruCount(n, "инструмент", "инструмента", "инструментов")}`,
   connecting: "Подключаем…",
   readingChats: (agent) => `Узнаём, через какие чат-приложения доступен ${agent}`,
   noChats: (agent) =>
     `Сейчас ${agent} не отвечает ни в одном чат-приложении. Если вы добавите его позже, любой, кого принимает этот бот, сможет попросить его запустить подключённые инструменты.`,
   chatsReady: (agent, apps, stopped) =>
-    `${agent} отвечает в ${ruList(apps)}${stopped ? " (сейчас остановлен и запустится снова вместе с ними)" : ""}. Любой, кого бот там принимает, может попросить его запустить подключённые инструменты от имени ваших аккаунтов. Подумайте о режиме «только чтение» для профилей ниже.`,
+    `${agent} отвечает в ${ruList(apps)}${stopped ? " (сейчас остановлен и запустится снова вместе с ними)" : ""}. Любой, кого бот там принимает, может попросить его запустить подключённые инструменты от имени ваших аккаунтов. Поэтому профили ниже сначала только для чтения.`,
   chatsFailed: (agent, error) =>
-    `WireCat не смог узнать, через какие чат-приложения доступен ${agent} (${error}). Если он отвечает в одном из них, любой, кого принимает бот, может попросить его запустить подключённые инструменты. Подумайте о режиме «только чтение» для профилей ниже.`,
+    `WireCat не смог узнать, через какие чат-приложения доступен ${agent} (${error}). Если он отвечает в одном из них, любой, кого принимает бот, может попросить его запустить подключённые инструменты. Поэтому профили ниже сначала только для чтения.`,
   steps: "Шаги",
   stepState: { waiting: "ждёт", running: "идёт", ok: "готово", warn: "требует внимания", failed: "не удалось" },
   step: {
@@ -829,18 +831,19 @@ const es: typeof en = {
   tools: "Herramientas",
   readOnly: "Solo lectura",
   readOnlyIntro: (agent) =>
-    `Un perfil en solo lectura deja que ${agent} lea y busque con él, pero no que envíe, cambie ni borre nada. Puedes cambiarlo más tarde en los Permisos de la herramienta, en la página Herramientas.`,
+    `${agent} atiende a las personas de sus chats, así que cada perfil empieza en solo lectura: ${agent} puede leer y buscar, y la herramienta se niega a enviar, cambiar o borrar, incluso si le piden a ${agent} que quite el límite. Desmarca un perfil solo si ${agent} debe escribir con él. No es un candado contra ${agent}: un agente que puede ejecutar cualquier comando aún puede editar los archivos de la herramienta, así que mantén activada la aprobación de comandos de ${agent}. Puedes cambiar los niveles más tarde en los Permisos de la herramienta, en la página Herramientas.`,
   chooseTool: "Elige una herramienta para ver sus perfiles.",
-  noProfiles: "Las herramientas elegidas no tienen perfiles.",
+  cannotLimit: (tools, agent) =>
+    `${esList(tools)} aún no se ${tools.length === 1 ? "puede" : "pueden"} limitar: ${agent} puede cambiar y borrar con ${tools.length === 1 ? "ella" : "ellas"}.`,
   connectTools: (n) => `Conectar ${plural("es", n, { one: "# herramienta", other: "# herramientas" })}`,
   connecting: "Conectando…",
   readingChats: (agent) => `Comprobando desde qué apps de chat se llega a ${agent}`,
   noChats: (agent) =>
     `${agent} no responde ahora en ninguna app de chat. Si añades una más tarde, cualquiera que acepte ese bot podrá pedirle que ejecute las herramientas que conectes.`,
   chatsReady: (agent, apps, stopped) =>
-    `${agent} responde en ${esList(apps)}${stopped ? " (ahora está parado y vuelve a arrancar con ellas)" : ""}. Cualquiera que el bot acepte allí puede pedirle que ejecute las herramientas que conectes, con tus cuentas con sesión iniciada. Plantéate poner en solo lectura los perfiles de abajo.`,
+    `${agent} responde en ${esList(apps)}${stopped ? " (ahora está parado y vuelve a arrancar con ellas)" : ""}. Cualquiera que el bot acepte allí puede pedirle que ejecute las herramientas que conectes, con tus cuentas con sesión iniciada. Por eso los perfiles de abajo empiezan en solo lectura.`,
   chatsFailed: (agent, error) =>
-    `WireCat no pudo comprobar desde qué apps de chat se llega a ${agent} (${error}). Si responde en alguna, cualquiera que el bot acepte puede pedirle que ejecute las herramientas que conectes. Plantéate poner en solo lectura los perfiles de abajo.`,
+    `WireCat no pudo comprobar desde qué apps de chat se llega a ${agent} (${error}). Si responde en alguna, cualquiera que el bot acepte puede pedirle que ejecute las herramientas que conectes. Por eso los perfiles de abajo empiezan en solo lectura.`,
   steps: "Pasos",
   stepState: { waiting: "en espera", running: "en curso", ok: "hecho", warn: "requiere atención", failed: "falló" },
   step: {

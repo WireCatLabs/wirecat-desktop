@@ -99,10 +99,13 @@ export function ConnectDialog({ view }: { view: AgentView }) {
     document.getElementById(toolsId)?.querySelector<HTMLInputElement>("input:not(:disabled)")?.focus()
   }
   const chat = CHAT_AGENTS.has(agent.id)
+  // A tool without per-profile settings would write the level for every profile at once.
+  const limitable = (id: string) =>
+    (findTool(id)?.permissions?.groups ?? []).length > 0 && findTool(id)?.settings?.perProfile === true
+  const unlimited = chosen.filter((s) => !limitable(s.tool.id)).map((s) => s.tool.name)
   const readOnlyChoices = chosen.flatMap((s) => {
     const groups = findTool(s.tool.id)?.permissions?.groups ?? []
-    // A tool without per-profile settings would write the level for every profile at once.
-    if (groups.length === 0 || !findTool(s.tool.id)?.settings?.perProfile) return []
+    if (!limitable(s.tool.id)) return []
     return (profiles[s.tool.id] ?? []).map((p) => ({
       key: `${s.tool.id}/${p.name}`,
       tool: s.tool,
@@ -110,7 +113,8 @@ export function ConnectDialog({ view }: { view: AgentView }) {
       groups: groups.map((g) => g.key),
     }))
   })
-  const readOnly = readOnlyChoices.filter((c) => flow.readOnly.includes(c.key))
+  // Only a chat-driven agent takes orders from other people; for it, writing is what the owner opts into.
+  const readOnly = chat ? readOnlyChoices.filter((c) => !flow.writable.includes(c.key)) : []
 
   const commands = [
     ...chosen.map((s) => catalogCommand(s.tool, s.tool.skill?.install ?? [], { target: s.target })),
@@ -203,25 +207,26 @@ export function ConnectDialog({ view }: { view: AgentView }) {
             <fieldset className="flex flex-col gap-1">
               <legend className="mb-1 text-[0.9rem] font-medium text-ink-dim">{m.readOnly}</legend>
               <p className="mb-1 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.readOnlyIntro(agent.name)}</p>
-              {readOnlyChoices.length === 0 ? (
-                <p className="text-[0.9rem] text-ink-dim">{chosen.length === 0 ? m.chooseTool : m.noProfiles}</p>
-              ) : (
+              {chosen.length === 0 && <p className="text-[0.9rem] text-ink-dim">{m.chooseTool}</p>}
+              {unlimited.length > 0 && (
+                <p className="max-w-[70ch] text-[0.9rem] text-warn">{m.cannotLimit(unlimited, agent.name)}</p>
+              )}
+              {readOnlyChoices.length > 0 &&
                 readOnlyChoices.map((c) => {
                   const id = `connect-ro-${c.key}`
                   return (
                     <label key={c.key} htmlFor={id} className="flex min-h-8 items-center gap-3 px-2">
                       <Checkbox
                         id={id}
-                        checked={flow.readOnly.includes(c.key)}
-                        onChange={() => flow.toggleReadOnly(c.key)}
+                        checked={!flow.writable.includes(c.key)}
+                        onChange={() => flow.toggleWritable(c.key)}
                       />
                       <span>
                         {c.tool.name} · <span className="font-medium">{c.profile}</span>
                       </span>
                     </label>
                   )
-                })
-              )}
+                })}
             </fieldset>
           )}
           {commands.length > 0 && (
