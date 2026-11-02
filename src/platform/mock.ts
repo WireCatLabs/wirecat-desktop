@@ -350,7 +350,7 @@ export function createMock(os: Platform["os"]): Platform {
     },
     async diagnose(id, profile): Promise<Diagnosis> {
       await delay(1000)
-      const command = `${id} ${profile ? `${profile} ` : ""}doctor --json`
+      const command = `${id} ${profile ? `${profile} ` : ""}doctor --record --json`
       if (id === "email") {
         return {
           command: `memo mail check ${profile ?? ""} --json`,
