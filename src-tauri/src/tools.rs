@@ -4,6 +4,7 @@ use crate::{paths, redact, run};
 use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
+use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
@@ -92,9 +93,9 @@ fn newest_first(copies: &mut [(PathBuf, Install)]) {
     copies.sort_by_key(|c| std::cmp::Reverse(version(&c.1)));
 }
 
-/// A copy's `--version`, kept while its program file is unchanged. It is still asked again after a while: a broken
-/// dependency or a Node.js switch changes no file of the tool's own.
-struct Versions(Mutex<HashMap<PathBuf, (Stamp, Instant, Install)>>);
+/// A copy's `--version`, kept while its program file and the search path it ran with are unchanged (setting up
+/// Node.js changes the second). It is still asked again after a while: a broken dependency changes neither.
+struct Versions(Mutex<HashMap<PathBuf, (Stamp, OsString, Instant, Install)>>);
 
 const VERSION_KEPT: Duration = Duration::from_mins(10);
 /// A copy that fails to start is kept briefly too: `program` asks every copy, so an unkept failure cost up to 20 s on
@@ -105,15 +106,23 @@ static VERSIONS: LazyLock<Versions> = LazyLock::new(|| Versions(Mutex::new(HashM
 
 impl Versions {
     fn inspect(&self, path: &Path, fresh: bool) -> Install {
-        self.answer(path, fresh, VERSION_KEPT, inspect)
+        self.answer(path, fresh, VERSION_KEPT, &paths::search_path(), inspect)
     }
 
-    fn answer(&self, path: &Path, fresh: bool, kept: Duration, ask: impl FnOnce(&Path) -> Install) -> Install {
+    fn answer(
+        &self,
+        path: &Path,
+        fresh: bool,
+        kept: Duration,
+        search: &OsStr,
+        ask: impl FnOnce(&Path) -> Install,
+    ) -> Install {
         let stamp = Stamp::of(path);
         if !fresh
             && let Some(now) = &stamp
-            && let Some((known, at, install)) = self.0.lock().unwrap().get(path)
+            && let Some((known, with, at, install)) = self.0.lock().unwrap().get(path)
             && known == now
+            && with == search
             && at.elapsed() < if install.problem.is_some() { kept.min(FAILURE_KEPT) } else { kept }
         {
             return install.clone();
@@ -122,7 +131,7 @@ impl Versions {
         let mut map = self.0.lock().unwrap();
         match stamp {
             Some(stamp) => {
-                map.insert(path.to_path_buf(), (stamp, Instant::now(), install.clone()));
+                map.insert(path.to_path_buf(), (stamp, search.to_os_string(), Instant::now(), install.clone()));
             }
             None => {
                 map.remove(path);
@@ -287,6 +296,8 @@ mod tests {
     use serde_json::json;
     use std::cell::Cell;
 
+    const PATH: &str = "/usr/bin";
+
     fn working(version: &str) -> Install {
         Install { path: "~/bin/zm".into(), version: Some(version.into()), manager: "npm", problem: None }
     }
@@ -318,15 +329,18 @@ mod tests {
             }
         };
         let kept = Duration::from_mins(10);
-        assert_eq!(versions.answer(&p.0, false, kept, ask("1.0.0")).version.as_deref(), Some("1.0.0"));
-        assert_eq!(versions.answer(&p.0, false, kept, ask("never")).version.as_deref(), Some("1.0.0"));
+        assert_eq!(versions.answer(&p.0, false, kept, PATH.as_ref(), ask("1.0.0")).version.as_deref(), Some("1.0.0"));
+        assert_eq!(versions.answer(&p.0, false, kept, PATH.as_ref(), ask("never")).version.as_deref(), Some("1.0.0"));
         assert_eq!(asked.get(), 1);
 
         p.update("2.0.0");
-        assert_eq!(versions.answer(&p.0, false, kept, ask("2.0.0")).version.as_deref(), Some("2.0.0"));
+        assert_eq!(versions.answer(&p.0, false, kept, PATH.as_ref(), ask("2.0.0")).version.as_deref(), Some("2.0.0"));
         assert_eq!(asked.get(), 2);
 
-        assert_eq!(versions.answer(&p.0, false, Duration::ZERO, ask("2.0.1")).version.as_deref(), Some("2.0.1"));
+        assert_eq!(
+            versions.answer(&p.0, false, Duration::ZERO, PATH.as_ref(), ask("2.0.1")).version.as_deref(),
+            Some("2.0.1")
+        );
     }
 
     #[test]
@@ -342,20 +356,34 @@ mod tests {
             }
         };
         let kept = Duration::from_mins(10);
-        assert!(versions.answer(&p.0, false, kept, broken()).problem.is_some());
-        assert!(versions.answer(&p.0, false, kept, broken()).problem.is_some());
+        assert!(versions.answer(&p.0, false, kept, PATH.as_ref(), broken()).problem.is_some());
+        assert!(versions.answer(&p.0, false, kept, PATH.as_ref(), broken()).problem.is_some());
         assert_eq!(asked.get(), 1, "a search after a failed start does not wait for it again");
 
         let fixed = |_: &Path| working("2.0.0");
-        assert_eq!(versions.answer(&p.0, true, kept, fixed).version.as_deref(), Some("2.0.0"));
+        assert_eq!(versions.answer(&p.0, true, kept, PATH.as_ref(), fixed).version.as_deref(), Some("2.0.0"));
 
         let entry = versions.0.lock().unwrap().get(&p.0).cloned().unwrap();
         let old = Instant::now().checked_sub(FAILURE_KEPT + Duration::from_secs(1)).unwrap();
-        versions.0.lock().unwrap().insert(
-            p.0.clone(),
-            (entry.0, old, Install { problem: Some("timed out".into()), version: None, ..working("") }),
+        let timed_out = Install { problem: Some("timed out".into()), version: None, ..working("") };
+        versions.0.lock().unwrap().insert(p.0.clone(), (entry.0, entry.1, old, timed_out));
+        assert_eq!(
+            versions.answer(&p.0, false, kept, PATH.as_ref(), fixed).version.as_deref(),
+            Some("2.0.0"),
+            "a failure expires"
         );
-        assert_eq!(versions.answer(&p.0, false, kept, fixed).version.as_deref(), Some("2.0.0"), "a failure expires");
+    }
+
+    #[test]
+    fn a_new_search_path_asks_a_failed_copy_again() {
+        let p = TempProgram::new("node-switch");
+        let versions = Versions(Mutex::new(HashMap::new()));
+        let kept = Duration::from_mins(10);
+        let broken = |_: &Path| Install { problem: Some("node: not found".into()), version: None, ..working("") };
+        assert!(versions.answer(&p.0, false, kept, PATH.as_ref(), broken).problem.is_some());
+        let with_node = OsStr::new("/home/me/.local/share/wirecat/node/bin:/usr/bin");
+        let fixed = versions.answer(&p.0, false, kept, with_node, |_: &Path| working("2.0.0"));
+        assert_eq!(fixed.version.as_deref(), Some("2.0.0"));
     }
 
     #[test]
