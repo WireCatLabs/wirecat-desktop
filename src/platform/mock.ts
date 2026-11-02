@@ -431,9 +431,11 @@ export function createMock(os: Platform["os"]): Platform {
       onEvent({ event: "step", step: "verify" })
       await delay(800)
       const version = LATEST[id] ?? "1.0.0"
+      const update = installed.has(id)
       installed.set(id, version)
-      const skills = await refreshSkillsMock(agents, id, version)
-      onEvent({ event: "done", version, path: `~/.nvm/versions/node/v24.19.0/bin/${id}`, shadowedBy: null, skills })
+      const skills = update ? await refreshSkillsMock(agents, id, version) : undefined
+      const path = `~/.nvm/versions/node/v24.19.0/bin/${id}`
+      onEvent({ event: "done", version, path, shadowedBy: null, ...(skills ? { skills } : {}) })
     },
     async uninstall(given, onEvent: (e: InstallEvent) => void) {
       const id = ownerId(given)

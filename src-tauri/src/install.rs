@@ -173,7 +173,12 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         ));
     }
     let shadowed_by = (ours.path != first.path).then(|| first.path.clone());
-    let skills = skills::refresh(tool, &version);
+    // Only an update: copies left by an uninstalled version are the owner's to refresh, and a first install stays fast.
+    let skills = if existing.is_some() {
+        skills::refresh(tool, &version, |line| send(InstallEvent::Log { line, stderr: false }))
+    } else {
+        skills::SkillRefresh::default()
+    };
     Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills })
 }
 

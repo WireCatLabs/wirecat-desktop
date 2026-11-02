@@ -303,17 +303,21 @@ fn refresh_targets(report: &SkillReport, version: &str) -> Vec<String> {
         .collect()
 }
 
-/// Rewrites, with the tool's own `skill install`, each copy that `version` makes stale.
-pub fn refresh(tool: &Tool, version: &str) -> SkillRefresh {
-    if tool.skill.is_none() {
+/// Rewrites, with the tool's own `skill install`, each copy that `version` makes stale; `log` gets each command line.
+pub fn refresh(tool: &Tool, version: &str, log: impl Fn(String)) -> SkillRefresh {
+    let Some(src) = tool.skill.as_ref() else {
         return SkillRefresh::default();
-    }
+    };
+    log(format!("$ {} {}", tool.bin, src.status.join(" ")));
     let targets = match status(tool) {
         Ok(report) => refresh_targets(&report, version),
         Err(e) => return SkillRefresh { refreshed: Vec::new(), failed: Some(e) },
     };
     let mut done = SkillRefresh::default();
     for target in targets {
+        if let Ok(args) = install_args(src, &target) {
+            log(format!("$ {} {}", tool.bin, args.join(" ")));
+        }
         match install(tool, &target) {
             Ok(_) => done.refreshed.push(target),
             Err(e) => {
