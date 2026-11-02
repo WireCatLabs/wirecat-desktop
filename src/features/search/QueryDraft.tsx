@@ -8,9 +8,10 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { focusInPlace } from "@/ui/motion"
 import { StableText } from "@/ui/Skeleton"
+import { useNav } from "../nav"
 import { searchMessages } from "./messages"
 
-type State = { kind: "idle" } | { kind: "empty" } | { kind: "writing" } | Draft
+type State = { kind: "idle" } | { kind: "empty" } | { kind: "writing" } | { kind: "error"; message: string } | Draft
 
 type Props = {
   tool: string | null
@@ -42,9 +43,16 @@ export function QueryDraft({ tool, onNeedTool, onWritten }: Props) {
       setState(draft)
       if (draft.kind === "query") onWritten(draft.query)
     } catch (e) {
-      setState({ kind: "failed", by: "claude-code", message: e instanceof Error ? e.message : String(e) })
+      setState({ kind: "error", message: e instanceof Error ? e.message : String(e) })
     }
   }
+
+  const failure = (f: Extract<Draft, { kind: "failed" }>) =>
+    f.reason === "signed-out"
+      ? m.draft.why["signed-out"](f.by === "codex" ? "codex" : "claude-code")
+      : f.reason === "other"
+        ? f.message
+        : m.draft.why[f.reason]
 
   const line =
     state.kind === "empty"
@@ -54,8 +62,10 @@ export function QueryDraft({ tool, onNeedTool, onWritten }: Props) {
         : state.kind === "query"
           ? { text: m.draft.written(m.draft.by[state.by]), bad: false }
           : state.kind === "failed"
-            ? { text: m.draft.failed(m.draft.by[state.by], state.message), bad: true }
-            : { text: m.draft.hint, bad: false }
+            ? { text: m.draft.failed(m.draft.by[state.by], failure(state)), bad: true }
+            : state.kind === "error"
+              ? { text: m.draft.error(state.message), bad: true }
+              : { text: m.draft.hint, bad: false }
 
   return (
     <div className="flex flex-col gap-[0.35rem]">
@@ -111,6 +121,9 @@ export function QueryDraft({ tool, onNeedTool, onWritten }: Props) {
             ))}
           </ol>
           <p className="mt-[0.5rem] text-ink-dim">{m.draft.noneMeanwhile}</p>
+          <Button size="sm" variant="secondary" className="mt-[0.6rem]" onClick={() => useNav.getState().go("agents")}>
+            {m.draft.goAgents}
+          </Button>
         </div>
       </Collapse>
     </div>

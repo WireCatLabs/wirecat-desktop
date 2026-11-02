@@ -19,6 +19,7 @@ mod paths;
 mod permissions;
 mod profile;
 mod public_address;
+mod query_writer;
 mod redact;
 mod report;
 mod run;
@@ -670,6 +671,12 @@ async fn search_context(id: String, profile: Option<String>, reference: String) 
 }
 
 #[tauri::command]
+async fn search_draft(id: String, request: String) -> Result<query_writer::Draft, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || query_writer::write(tool, &request)).await?
+}
+
+#[tauri::command]
 async fn search_values(id: String, profile: Option<String>, source: String) -> Result<Vec<search::ValueItem>, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || search::values(tool, profile.as_deref(), &source)).await?
@@ -957,6 +964,7 @@ pub fn run() {
             search_store,
             search_values,
             search_context,
+            search_draft,
             settings_show,
             settings_set,
             settings_unset,

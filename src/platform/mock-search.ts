@@ -156,29 +156,64 @@ function around(what: string, ref: string): unknown {
   }
 }
 
-// Stand-in for the agent: the owner's words become the tool's own fields, never fields it does not have.
+// Russian names after у/от/с stand in the genitive or instrumental; a query names people in the nominative.
+const ENDINGS: [RegExp, string][] = [
+  [/ея$/u, "ей"],
+  [/ей$/u, "я"],
+  [/ой$/u, "а"],
+  [/([гкхжчшщ])и$/u, "$1а"],
+  [/ы$/u, "а"],
+  [/и$/u, "я"],
+  [/([бвдзлмнпрстф])а$/u, "$1"],
+]
+
+function nominative(name: string): string {
+  const ending = ENDINGS.find(([re]) => re.test(name))
+  return ending ? name.replace(ending[0], ending[1]) : name
+}
+
+const FILLER = new Set(
+  (
+    "a an the find show me my messages message about from in on of with that what where how sent last this week month " +
+    "найди покажи сообщения сообщение про о об что где как у от с за на в из прошлой этой неделе неделю месяц " +
+    "busca muestra mensajes sobre de que el la los las del en"
+  ).split(" "),
+)
+
+// Stand-in for the agent in the browser build: a few patterns in English and Russian, only the tool's own keys.
 function draft(id: string, request: string): string {
   const fields = new Set((findTool(id)?.search?.fields ?? []).map((f) => f.name))
   const words = request.toLowerCase()
   const terms: string[] = []
-  const person = request.match(/\bfrom ([A-Z][\p{L}]+(?: [A-Z][\p{L}]+)?)/u)?.[1]
-  if (person && fields.has("from")) terms.push(`from:"${person}"`)
+  const latin = request.match(/\bfrom ([A-Z][\p{L}]+(?: [A-Z][\p{L}]+)?)/u)?.[1]
+  const cyrillic = request.match(/(?:^|\s)(?:у|от|с)\s+([А-ЯЁ][а-яё]+(?:\s+[А-ЯЁ][а-яё]+)?)/u)?.[1]
+  const person = latin ?? cyrillic?.split(" ").map(nominative).join(" ")
+  const personKey = fields.has("from") ? "from" : fields.has("author") ? "author" : null
+  if (person) terms.push(personKey ? `${personKey}:"${person}"` : person)
   const chat = request.match(/\bin (?:the )?"?([A-Z][\p{L} ]+?)"? (?:chat|group)\b/u)?.[1]
   if (chat && fields.has("chat")) terms.push(`chat:"${chat}"`)
-  const kinds: [string, string][] = [
-    ["photo", "photo"],
-    ["picture", "photo"],
-    ["file", "file"],
-    ["link", "link"],
-    ["voice", "voice"],
+  const kinds: [RegExp, string][] = [
+    [/photo|picture|фото/u, "photo"],
+    [/\bfiles?\b|файл/u, "file"],
+    [/link|ссылк/u, "link"],
+    [/\bvoice|голосов/u, "voice"],
   ]
-  const has = kinds.find(([word]) => words.includes(word))?.[1]
+  const has = kinds.find(([word]) => word.test(words))?.[1]
   if (has && fields.has("has")) terms.push(`has:${has}`)
-  if (/last week|this week|7 days/.test(words) && fields.has("date")) terms.push("date>=7d")
-  else if (/last month|30 days/.test(words) && fields.has("date")) terms.push("date>=30d")
-  const topic = words.match(/\babout ([\p{L}]+)/u)?.[1]
-  if (topic) terms.unshift(topic)
-  return terms.join(" ") || words.split(/\s+/).slice(-1)[0] || ""
+  if (/last week|this week|7 days|недел/u.test(words) && fields.has("date")) terms.push("date>=7d")
+  else if (/last month|30 days|месяц/u.test(words) && fields.has("date")) terms.push("date>=30d")
+  const said = new Set([
+    ...(cyrillic ?? latin ?? "").toLowerCase().split(" "),
+    ...(chat ?? "").toLowerCase().split(" "),
+  ])
+  const topic = words
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter((w) => w && !FILLER.has(w) && !said.has(w) && !kinds.some(([k]) => k.test(w)))
+    .filter(
+      (w) => !/^(photos?|pictures?|files?|links?|voice|фото\p{L}*|ссылк\p{L}*|голосов\p{L}*|chat|group)$/u.test(w),
+    )
+  terms.unshift(...topic.slice(0, 3))
+  return terms.join(" ")
 }
 
 export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "searchContext" | "searchDraft"> = {
@@ -187,8 +222,11 @@ export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "search
     const mode = params.get("search-ai")
     const by = mode === "codex" ? "codex" : "claude-code"
     if (mode === "none") return { kind: "none" }
-    if (mode === "fail") return { kind: "failed", by, message: "Claude Code's plan limit is used up for now" }
-    return { kind: "query", by, query: draft(id, request) }
+    if (mode === "fail") return { kind: "failed", by, reason: "other", message: "Claude AI usage limit reached" }
+    if (mode === "signedout") return { kind: "failed", by, reason: "signed-out", message: "" }
+    const query = draft(id, request)
+    if (!query) return { kind: "failed", by, reason: "empty", message: "" }
+    return { kind: "query", by, query }
   },
   async searchContext(id, _profile, reference) {
     await delay(500)

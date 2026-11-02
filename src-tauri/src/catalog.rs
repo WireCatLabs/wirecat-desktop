@@ -151,6 +151,19 @@ pub struct SearchSource {
     pub values: std::collections::BTreeMap<String, ValuesSource>,
     /// What surrounds one hit, read from the local store: `{ref}` is the hit's ref, `{refId}` its last part.
     pub context: Option<ContextSource>,
+    /// `messages`, `meetings`, `documents`, `notes` or `mail`.
+    pub what: String,
+    /// The keys a query may use; what an agent is told when it writes a query from the owner's words.
+    #[serde(default)]
+    pub fields: Vec<SearchField>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SearchField {
+    pub name: String,
+    pub example: String,
+    /// A closed list of values, or the name of a list read from the store (`chats`), which never leaves the computer.
+    pub values: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]

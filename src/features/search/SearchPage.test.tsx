@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { useNav } from "../nav"
 import { useTools } from "../tools/store"
 import { SearchPage } from "./SearchPage"
 import { useSearch } from "./store"
@@ -166,6 +167,36 @@ describe("Search", () => {
     expect(bar).toHaveFocus()
     expect(screen.getByText(/Claude Code, with your Claude plan, wrote the query below/)).toBeInTheDocument()
     expect(search).not.toHaveBeenCalled()
+  }, 15000)
+
+  it("says which agent could not write the query, and how to fix it", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchDraft").mockResolvedValue({
+      kind: "failed",
+      by: "codex",
+      reason: "signed-out",
+      message: "",
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "как купить велосипед у Милы{Enter}")
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Codex, with your ChatGPT plan, could not write the query: it is not signed in. Run codex login once in a terminal.",
+    )
+    expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("")
+  }, 15000)
+
+  it("points to the Agents page when no agent can write the query", async () => {
+    const user = userEvent.setup()
+    const draft = vi.spyOn(platform, "searchDraft").mockResolvedValue({ kind: "none" })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "photos from Ana")
+    await user.click(screen.getByRole("button", { name: "Write the query" }))
+    expect(await screen.findByText(/WireCat needs one of these agents/)).toBeInTheDocument()
+    expect(draft).toHaveBeenCalledWith("tg", "photos from Ana")
+    await user.click(screen.getByRole("button", { name: "Open Agents" }))
+    expect(useNav.getState().active).toBe("agents")
   }, 15000)
 
   it("shows the tool's query error at its place until the query changes", async () => {

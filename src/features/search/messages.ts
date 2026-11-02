@@ -46,20 +46,29 @@ const en = {
     written: (by: string) => `${by} wrote the query below. Check it, change it if needed, then press Search.`,
     failed: (by: string, why: string) =>
       `${by} could not write the query: ${why}. Try again, or type the query yourself.`,
+    why: {
+      "signed-out": (writer: "claude-code" | "codex"): string =>
+        writer === "codex"
+          ? "it is not signed in. Run codex login once in a terminal"
+          : "it is not signed in. Open a terminal, run claude once and sign in",
+      "timed-out": "it did not answer in time",
+      empty: "it found nothing to search for in these words. Say it differently",
+    },
+    error: (why: string) => `The query could not be written: ${why}.`,
     by: {
       "claude-code": "Claude Code, with your Claude plan,",
       chatgpt: "ChatGPT, with your plan,",
       codex: "Codex, with your ChatGPT plan,",
       key: "Your API key's model",
     } as Record<"claude-code" | "chatgpt" | "codex" | "key", string>,
-    codexWarning: "Codex can look at files on this computer while it writes. WireCat asks it not to.",
-    noneTitle: "To write a query from your words, WireCat needs one of these on this computer:",
+    codexWarning:
+      "Codex can read files on this computer while it writes. WireCat starts it in an empty folder where it can change nothing, and asks it not to look.",
+    noneTitle: "To write a query from your words, WireCat needs one of these agents on this computer:",
     ways: [
-      "Claude Code, signed in: open a terminal, run claude once and sign in.",
-      "Your ChatGPT plan: sign in with ChatGPT in Settings.",
-      "Codex, signed in: run codex login once in a terminal.",
-      "Your own API key, in Settings.",
+      "Claude Code, signed in: install it, open a terminal, run claude once and sign in.",
+      "Codex, signed in: install it and run codex login once in a terminal.",
     ],
+    goAgents: "Open Agents",
     noneMeanwhile: "Meanwhile, type the query yourself: the list under the search box shows the keys you can use.",
   },
   signedOut: (name: string) => `${name} (not signed in)`,
@@ -267,20 +276,29 @@ const ru: typeof en = {
     writing: "Составляем запрос по вашим словам…",
     written: (by) => `${by} составил запрос ниже. Проверьте, поправьте при необходимости и нажмите «Искать».`,
     failed: (by, why) => `${by} не смог составить запрос: ${why}. Попробуйте снова или введите запрос сами.`,
+    why: {
+      "signed-out": (writer) =>
+        writer === "codex"
+          ? "вход не выполнен. Один раз выполните codex login в терминале"
+          : "вход не выполнен. Откройте терминал, запустите claude и войдите",
+      "timed-out": "он не ответил вовремя",
+      empty: "в этих словах нечего искать. Скажите иначе",
+    },
+    error: (why) => `Не удалось составить запрос: ${why}.`,
     by: {
       "claude-code": "Claude Code (ваш план Claude)",
       chatgpt: "ChatGPT (ваш план)",
       codex: "Codex (ваш план ChatGPT)",
       key: "Модель по вашему API-ключу",
     },
-    codexWarning: "Codex может смотреть файлы на этом компьютере, пока пишет. WireCat просит его этого не делать.",
-    noneTitle: "Чтобы составить запрос по вашим словам, WireCat нужно одно из этого на компьютере:",
+    codexWarning:
+      "Codex может читать файлы на этом компьютере, пока пишет. WireCat запускает его в пустой папке, где он ничего не может изменить, и просит не смотреть.",
+    noneTitle: "Чтобы составить запрос по вашим словам, WireCat нужен один из этих агентов на компьютере:",
     ways: [
-      "Claude Code с входом: откройте терминал, запустите claude и войдите.",
-      "Ваш план ChatGPT: войдите через ChatGPT в настройках.",
-      "Codex с входом: один раз выполните codex login в терминале.",
-      "Ваш собственный API-ключ, в настройках.",
+      "Claude Code с входом: установите его, откройте терминал, запустите claude и войдите.",
+      "Codex с входом: установите его и один раз выполните codex login в терминале.",
     ],
+    goAgents: "Открыть «Агенты»",
     noneMeanwhile: "А пока введите запрос сами: список под полем поиска показывает доступные ключи.",
   },
   signedOut: (name) => `${name} (вход не выполнен)`,
@@ -479,21 +497,30 @@ const es: typeof en = {
     writing: "Escribiendo la consulta a partir de tus palabras…",
     written: (by) => `${by} escribió la consulta de abajo. Revísala, cámbiala si hace falta y pulsa Buscar.`,
     failed: (by, why) => `${by} no pudo escribir la consulta: ${why}. Inténtalo de nuevo o escribe la consulta tú.`,
+    why: {
+      "signed-out": (writer) =>
+        writer === "codex"
+          ? "no tiene sesión iniciada. Ejecuta codex login una vez en un terminal"
+          : "no tiene sesión iniciada. Abre un terminal, ejecuta claude una vez e inicia sesión",
+      "timed-out": "no respondió a tiempo",
+      empty: "no encontró nada que buscar en estas palabras. Dilo de otra forma",
+    },
+    error: (why) => `No se pudo escribir la consulta: ${why}.`,
     by: {
       "claude-code": "Claude Code, con tu plan de Claude,",
       chatgpt: "ChatGPT, con tu plan,",
       codex: "Codex, con tu plan de ChatGPT,",
       key: "El modelo de tu clave de API",
     },
-    codexWarning: "Codex puede mirar archivos de este ordenador mientras escribe. WireCat le pide que no lo haga.",
+    codexWarning:
+      "Codex puede leer archivos de este ordenador mientras escribe. WireCat lo inicia en una carpeta vacía donde no puede cambiar nada y le pide que no mire.",
     noneTitle:
-      "Para escribir una consulta a partir de tus palabras, WireCat necesita una de estas opciones en este ordenador:",
+      "Para escribir una consulta a partir de tus palabras, WireCat necesita uno de estos agentes en este ordenador:",
     ways: [
-      "Claude Code con sesión iniciada: abre un terminal, ejecuta claude una vez e inicia sesión.",
-      "Tu plan de ChatGPT: inicia sesión con ChatGPT en Ajustes.",
-      "Codex con sesión iniciada: ejecuta codex login una vez en un terminal.",
-      "Tu propia clave de API, en Ajustes.",
+      "Claude Code con sesión iniciada: instálalo, abre un terminal, ejecuta claude una vez e inicia sesión.",
+      "Codex con sesión iniciada: instálalo y ejecuta codex login una vez en un terminal.",
     ],
+    goAgents: "Abrir Agentes",
     noneMeanwhile:
       "Mientras tanto, escribe la consulta tú: la lista bajo el cuadro de búsqueda muestra las claves disponibles.",
   },

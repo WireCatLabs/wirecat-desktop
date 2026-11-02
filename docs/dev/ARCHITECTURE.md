@@ -28,6 +28,10 @@ src-tauri/src/
                 unmasked on the page, an exception to rule 4 like runs.rs: they are the owner's own data, and they are
                 never logged or put in a report. `search_context` reads what surrounds one hit (`search.context` in the
                 catalog) under the same rule: the ref is validated, the answer shown, never logged.
+  query_writer.rs the Search page's "Write the query": the owner's words, the tool's keys from the catalog and today's
+                date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or
+                signed out, Codex (`codex exec`, read-only, in an empty folder). One checked line comes back into the
+                query box; nothing is searched until he presses Search. Never a message or a hit.
   settings.rs   tool settings: `config show`, and saving only through `config set` / `config unset`.
   storage.rs    each tool's data folders, their sizes and entries (names only); deleting them once unused.
   archive.rs    what the shared archive holds, from a tool's `store info`; the database is never opened.
