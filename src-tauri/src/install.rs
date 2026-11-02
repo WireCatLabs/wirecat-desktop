@@ -194,7 +194,7 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
             _ => ("npm", vec!["uninstall", "--global", &tool.package]),
         };
         // An nvm copy belongs to the npm of that Node version, which sits beside it.
-        let beside = copy.parent().and_then(|dir| which::which_in(program, Some(dir), std::env::temp_dir()).ok());
+        let beside = copy.parent().and_then(|dir| paths::which_in(program, dir.as_os_str()));
         let path = beside.or_else(|| paths::find(program)).ok_or_else(|| {
             Failure(
                 Reason::Requirements,

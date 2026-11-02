@@ -203,7 +203,9 @@ fn area(id: &str) -> Result<&'static catalog::Tool, String> {
 fn ensure_ours(path: &Path, app: &str) -> Result<(), String> {
     let named =
         path.file_name().is_some_and(|n| n == app) || path.parent().and_then(Path::file_name).is_some_and(|n| n == app);
-    let deep = path.is_absolute() && path.components().count() >= 4;
+    // `/home/u/tg-cli/..` is named for the tool by its parent, and is the home folder.
+    let plain = path.components().all(|c| !matches!(c, std::path::Component::ParentDir | std::path::Component::CurDir));
+    let deep = plain && path.is_absolute() && path.components().count() >= 4;
     let not_home = paths::home().is_none_or(|h| path != h);
     if named && deep && not_home {
         Ok(())
@@ -233,6 +235,9 @@ mod tests {
         assert!(ensure_ours(Path::new("/home/u"), "tg-cli").is_err());
         assert!(ensure_ours(Path::new("/tmp/elsewhere"), "tg-cli").is_err());
         assert!(ensure_ours(Path::new("tg-cli"), "tg-cli").is_err());
+        assert!(ensure_ours(Path::new("/home/u/.config/tg-cli/.."), "tg-cli").is_err());
+        assert!(ensure_ours(Path::new("/home/u/tg-cli/../.."), "tg-cli").is_err());
+        assert!(ensure_ours(Path::new("/home/u/x/../tg-cli"), "tg-cli").is_err());
     }
 
     #[test]

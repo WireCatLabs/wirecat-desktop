@@ -159,11 +159,22 @@ fn nvm_bins(root: &Path) -> Vec<PathBuf> {
     versions.into_iter().map(|(_, p)| p).collect()
 }
 
+/// A relative PATH entry (`node_modules/.bin`, `.`) resolves against a working folder; the app has none of its own, and
+/// one anybody can write to, such as the temp folder, would let another user plant the `npm` the app runs.
+fn absolute(path: &std::ffi::OsStr) -> OsString {
+    std::env::join_paths(std::env::split_paths(path).filter(|p| p.is_absolute())).unwrap_or_default()
+}
+
+/// The first executable with this name on `path`, skipping relative entries.
+pub fn which_in(bin: &str, path: &std::ffi::OsStr) -> Option<PathBuf> {
+    which::which_in(bin, Some(absolute(path)), std::env::temp_dir()).ok()
+}
+
 /// Every executable with this name, in PATH order; the first one is the one a terminal runs.
 pub fn find_all(bin: &str) -> Vec<PathBuf> {
-    let cwd = std::env::temp_dir();
-    let mut found: Vec<PathBuf> =
-        which::which_in_all(bin, Some(search_path()), cwd).map(Iterator::collect).unwrap_or_default();
+    let mut found: Vec<PathBuf> = which::which_in_all(bin, Some(absolute(&search_path())), std::env::temp_dir())
+        .map(Iterator::collect)
+        .unwrap_or_default();
     let mut seen = std::collections::HashSet::new();
     found.retain(|p| seen.insert(std::fs::canonicalize(p).unwrap_or_else(|_| p.clone())));
     found
@@ -177,7 +188,7 @@ pub fn find(bin: &str) -> Option<PathBuf> {
 /// runs commands in such a shell, so a tool only the app can find is one the agent cannot run.
 pub fn in_terminal(bin: &str) -> bool {
     let path = login_shell().path.clone().or_else(|| std::env::var_os("PATH"));
-    path.is_some_and(|p| which::which_in(bin, Some(p), std::env::temp_dir()).is_ok())
+    path.is_some_and(|p| which_in(bin, &p).is_some())
 }
 
 /// The PATH `bash -l -c` ends with when started from `base`: Hermes runs every command from a snapshot of such a
@@ -197,7 +208,7 @@ pub fn bash_login_path(_base: &std::ffi::OsStr) -> Option<OsString> {
 }
 
 pub fn finds(bin: &str, path: &std::ffi::OsStr) -> bool {
-    which::which_in(bin, Some(path), std::env::temp_dir()).is_ok()
+    which_in(bin, path).is_some()
 }
 
 pub fn manager_for(path: &Path) -> &'static str {
@@ -223,6 +234,22 @@ pub fn tilde(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn a_relative_path_entry_never_finds_a_program_in_the_temp_folder() {
+        use std::os::unix::fs::PermissionsExt;
+        let planted = std::env::temp_dir().join(format!("wirecat-planted-{}", std::process::id()));
+        let program = planted.join("npm");
+        std::fs::create_dir_all(&planted).unwrap();
+        std::fs::write(&program, "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let relative = planted.file_name().unwrap().to_owned();
+        let found = which_in("npm", &relative);
+        std::fs::remove_dir_all(&planted).unwrap();
+        assert_eq!(found, None);
+        assert_eq!(absolute(std::ffi::OsStr::new("node_modules/.bin:/usr/bin:.")), OsString::from("/usr/bin"));
+    }
 
     #[test]
     fn manager_from_install_location() {

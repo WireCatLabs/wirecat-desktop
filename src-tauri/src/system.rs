@@ -74,7 +74,7 @@ fn program(bin: &str, check: Option<VersionCheck>) -> Program {
 }
 
 fn program_in(bin: &str, check: Option<VersionCheck>, search: &OsStr) -> Program {
-    let Ok(path) = which::which_in(bin, Some(search), std::env::temp_dir()) else {
+    let Some(path) = paths::which_in(bin, search) else {
         return Program { problem: Some("not found".into()), ..Default::default() };
     };
     let shown = Some(paths::tilde(&path.to_string_lossy()));
@@ -119,7 +119,7 @@ pub fn own_setup_usable(search: &OsStr) -> bool {
     if !program_in("node", Some(node_supported), search).ok {
         return false;
     }
-    let Ok(npm) = which::which_in("npm", Some(search), std::env::temp_dir()) else { return false };
+    let Some(npm) = paths::which_in("npm", search) else { return false };
     npm_prefix_of(&npm, search).is_some_and(|p| writable(&p))
 }
 

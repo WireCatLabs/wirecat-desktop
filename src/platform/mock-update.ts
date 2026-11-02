@@ -43,7 +43,10 @@ export const updateMock: Pick<Platform, "checkUpdate" | "installUpdate" | "downl
     if (mode === "signature") return { result: "badSignature" }
     const file = mode === "rpm" ? `wirecat-${version}-1.x86_64.rpm` : `wirecat_${version}_amd64.deb`
     const path = `~/Downloads/${file}`
-    const command = mode === "rpm" ? `sudo dnf install ${path}` : `cp ${path} /tmp/ && sudo apt install /tmp/${file}`
+    const command =
+      mode === "rpm"
+        ? `sudo dnf install ${path}`
+        : `sudo install -m 644 ${path} /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/${file}`
     return { result: "saved", file, path, opened: mode !== "reveal", command }
   },
   async restart() {
