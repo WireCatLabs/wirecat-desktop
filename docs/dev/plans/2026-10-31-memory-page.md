@@ -189,7 +189,9 @@ The owner asked how to unapprove, edit or remove a record once it is in use. Wha
 
 A menu-only button now carries a visible "More" label, and an empty menu never renders.
 
-- [ ] TODO: once memo ships `facts unconfirm` (WireCatLabs/cli-core and WireCatLabs/cli-memo PRs of 2026-11-02, not
-  released yet), map "Undo approval" on an accepted non-decision fact to it in `discard_with`
-  (`src-tauri/src/memory.rs`), set `undoOf` to `reverse`-like for it, raise the catalog's minimum memo, and drop the
-  `noUndoFact` hint.
+- [ ] TODO: once memo ships `memo facts unconfirm <ref>` ([cli-core #2442](https://github.com/WireCatLabs/cli-core/pull/2442),
+  [cli-memo #591](https://github.com/WireCatLabs/cli-memo/pull/591), neither released), map "Undo approval" on an
+  accepted fact an agent wrote to it in `discard_with` (`src-tauri/src/memory.rs`), give it an `Undo` of its own in
+  `undoOf`, raise the catalog's minimum memo, and keep the `noUndoFact` hint only for what memo still refuses: a fact
+  the owner wrote (`fact.owner-written`) and an accepted correction (`fact.unconfirm-correction`). After unconfirm the
+  fact is a proposal again, so an agent allowed to decide may approve it again.
