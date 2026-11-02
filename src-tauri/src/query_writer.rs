@@ -192,8 +192,11 @@ pub fn codex_args<'a>(dir: &'a str, schema: &'a str, last: &'a str) -> Vec<&'a s
 }
 
 fn ask_codex(program: &Path, prompt: &str, message: &str) -> Result<String, Failure> {
-    let dir = std::env::temp_dir().join(format!("wirecat-query-{}", std::process::id()));
-    std::fs::create_dir_all(&dir).map_err(|e| other(&e.to_string()))?;
+    static RUN: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+    let n = RUN.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let dir = std::env::temp_dir().join(format!("wirecat-query-{}-{n}", std::process::id()));
+    // A folder that already exists may be someone else's, with a link where the schema would be written.
+    std::fs::create_dir(&dir).map_err(|e| other(&e.to_string()))?;
     let schema = dir.join("schema.json");
     let last = dir.join("answer.txt");
     let answer = std::fs::write(&schema, SCHEMA).map_err(|e| other(&e.to_string())).and_then(|()| {
