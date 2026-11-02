@@ -379,6 +379,10 @@ function GuideBody(props: {
         : m.pasteTerminal(named.name)
       : m.pasteAny
   const copied = app ? withoutLead(prompt) : prompt
+  // Beside the title or the close button the labelled switch would squeeze them, so it gets a row above the prompt.
+  const switcher = known && varies && fit.messengers.length > 1 && messenger && (
+    <MessengerSwitch choices={fit.messengers} value={messenger} onChange={setPicked} m={m} />
+  )
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape" && onClose && !(e.target instanceof HTMLTextAreaElement)) {
@@ -395,7 +399,7 @@ function GuideBody(props: {
       className="@container flex flex-col gap-[1.1rem] rounded-[0.45rem] border border-line-strong bg-app p-[1.3rem]"
     >
       <div className="grid gap-x-[2.2rem] gap-y-[1.2rem] @min-[46rem]:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
-        <section className="flex min-w-0 flex-col gap-[0.7rem]">
+        <section className="@container/prompt flex min-w-0 flex-col gap-[0.7rem]">
           <div className="flex items-start justify-between gap-3">
             {lead ? (
               <div className="min-w-0">
@@ -408,9 +412,6 @@ function GuideBody(props: {
               </label>
             )}
             <div className="flex shrink-0 items-center gap-[0.6rem]">
-              {known && varies && fit.messengers.length > 1 && messenger && (
-                <MessengerSwitch choices={fit.messengers} value={messenger} onChange={setPicked} m={m} />
-              )}
               {onClose && (
                 <Button variant="ghost" size="sm" aria-label={m.close} onClick={onClose} className="-mt-1 -mr-1">
                   <X className="size-4" aria-hidden />
@@ -418,6 +419,7 @@ function GuideBody(props: {
               )}
             </div>
           </div>
+          {switcher}
           {lead && (
             <label htmlFor={promptId} className="sr-only">
               {m.promptLabel}
@@ -562,13 +564,15 @@ function MessengerSwitch(props: { choices: string[]; value: string; onChange: (i
   const { choices, value, onChange, m } = props
   return (
     <span className="flex items-center gap-[0.5rem]">
-      <span aria-hidden className="text-[0.9rem] text-ink-dim">
+      {/* Named choices say what they are; only the bare icons need the word in front. */}
+      <span aria-hidden className="text-[0.9rem] text-ink-dim @min-[21rem]/prompt:hidden">
         {m.messenger}
       </span>
       <Segmented
         label={m.messenger}
         value={value}
         onChange={onChange}
+        labelClass="hidden @min-[21rem]/prompt:inline"
         options={choices.map((id) => ({
           value: id,
           label: nameOf(id, m),

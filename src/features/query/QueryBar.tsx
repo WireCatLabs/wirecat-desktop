@@ -4,7 +4,6 @@ import type { Parsed, Term } from "@/domain/runs"
 import type { QueryOption, QueryOptions } from "@/domain/search"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { queryMessages } from "./messages"
 
@@ -27,7 +26,7 @@ type Props = {
   disabled?: boolean
   /** So the page can move focus here, as Search does when the query is what is missing. */
   inputId?: string
-  /** The name behind an id in a `field:id` term (a contact, a chat), shown beside the box; the query keeps the id. */
+  /** The name behind an id in a `field:id` term (a contact, a chat), drawn over the term; the query keeps the id. */
   named?: (field: string, value: string) => string | null
 }
 
@@ -37,9 +36,11 @@ export function QueryBar(props: Props) {
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const mirror = useRef<HTMLDivElement>(null)
+  const layer = useRef<HTMLDivElement>(null)
   // With a submit, nothing is chosen until an arrow key moves, so Enter searches instead of taking a row.
   const none = onSubmit ? -1 : 0
   const [cursor, setCursor] = useState(0)
+  const [selection, setSelection] = useState<Span | null>(null)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(none)
   const [all, setAll] = useState(false)
@@ -51,6 +52,9 @@ export function QueryBar(props: Props) {
     input.current?.setSelectionRange(caret.current, caret.current)
     caret.current = null
   }, [query])
+
+  const chips = useMemo(() => chipsOf(parsed, props.named), [parsed, props.named])
+  const covered = (t: Term) => chips.some((c) => c.term === t && !opened(c.term, selection))
 
   const suggestions = useMemo(() => suggest(query, cursor, all), [suggest, query, cursor, all])
   const showList = open && suggestions.items.length > 0
@@ -73,6 +77,15 @@ export function QueryBar(props: Props) {
     caret.current = at
   }
 
+  const removeTerm = (t: FieldTerm) => {
+    const before = query.slice(0, t.start).trimEnd()
+    const after = query.slice(t.end).trimStart()
+    const join = before && after ? " " : ""
+    onChange(`${before}${join}${after}`)
+    caret.current = before.length + join.length
+    setActive(none)
+  }
+
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") {
       if (showList) setOpen(false)
@@ -93,6 +106,17 @@ export function QueryBar(props: Props) {
       accept(chosen)
       return
     }
+    const el = e.currentTarget
+    const back = e.key === "Backspace"
+    if ((back || e.key === "Delete") && el.selectionStart === el.selectionEnd) {
+      const at = el.selectionStart ?? 0
+      const chip = chips.find((c) => (back ? c.term.end : c.term.start) === at)
+      if (chip) {
+        e.preventDefault()
+        removeTerm(chip.term)
+        return
+      }
+    }
     if (e.key === "Enter" && onSubmit) {
       e.preventDefault()
       setOpen(false)
@@ -103,8 +127,11 @@ export function QueryBar(props: Props) {
   const sync = () => {
     const el = input.current
     if (!el) return
-    setCursor(el.selectionStart ?? el.value.length)
+    const start = el.selectionStart ?? el.value.length
+    setCursor(start)
+    setSelection(document.activeElement === el ? { start, end: el.selectionEnd ?? start } : null)
     if (mirror.current) mirror.current.scrollLeft = el.scrollLeft
+    if (layer.current) layer.current.scrollLeft = el.scrollLeft
   }
 
   return (
@@ -122,7 +149,7 @@ export function QueryBar(props: Props) {
           aria-hidden
           className="pointer-events-none absolute inset-y-0 right-[2.6rem] left-[2.5rem] flex items-center overflow-hidden whitespace-pre font-mono text-[1.02rem] no-ligatures"
         >
-          <Highlight query={query} parsed={parsed} problems={problems} />
+          <Highlight query={query} parsed={parsed} problems={problems} covered={covered} />
         </div>
         <input
           ref={input}
@@ -134,7 +161,7 @@ export function QueryBar(props: Props) {
           aria-controls={`${id}-list`}
           aria-activedescendant={showList ? `${id}-${active}` : undefined}
           aria-invalid={problem ? true : undefined}
-          aria-describedby={`${id}-hint`}
+          aria-describedby={chips.length > 0 ? `${id}-hint ${id}-named` : `${id}-hint`}
           spellCheck={false}
           autoComplete="off"
           value={query}
@@ -148,18 +175,46 @@ export function QueryBar(props: Props) {
           }}
           onKeyDown={onKey}
           onKeyUp={sync}
+          onSelect={sync}
           onClick={() => {
             sync()
             setOpen(true)
           }}
           onScroll={sync}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true)
+            sync()
+          }}
           onBlur={() => {
             setOpen(false)
             setAll(false)
+            setSelection(null)
           }}
           className="selectable inner-field h-full min-w-0 flex-1 bg-transparent no-ligatures pr-[2.6rem] pl-[2.5rem] font-mono text-[1.02rem] text-transparent caret-ink outline-none placeholder:font-sans placeholder:text-ink-dim"
         />
+        <div
+          ref={layer}
+          className="pointer-events-none absolute inset-y-0 right-[2.6rem] left-[2.5rem] flex items-center overflow-hidden whitespace-pre font-mono text-[1.02rem] text-transparent no-ligatures"
+        >
+          <Chips
+            query={query}
+            chips={chips}
+            selection={selection}
+            disabled={props.disabled}
+            onPick={(t) => {
+              const el = input.current
+              if (!el) return
+              el.focus()
+              el.setSelectionRange(t.start, t.end)
+              sync()
+            }}
+          />
+        </div>
+        {chips.length > 0 && (
+          <span id={`${id}-named`} className="sr-only">
+            {`${m.named}: ${chips.map((c) => c.shown).join(", ")}`}
+          </span>
+        )}
         {query && (
           <button
             type="button"
@@ -230,22 +285,6 @@ export function QueryBar(props: Props) {
           })}
         </div>
       )}
-      {props.named && (
-        <NamedTerms
-          query={query}
-          parsed={parsed}
-          named={props.named}
-          onEdit={(t) => {
-            input.current?.focus()
-            input.current?.setSelectionRange(t.start, t.end)
-            sync()
-          }}
-          onRemove={(t) => {
-            onChange(`${query.slice(0, t.start).trimEnd()} ${query.slice(t.end).trimStart()}`.trim())
-            input.current?.focus()
-          }}
-        />
-      )}
       <div className="mt-[0.35rem] flex items-baseline justify-between gap-3 text-[0.9rem]">
         <p id={`${id}-hint`} role={problem ? "alert" : undefined} className={problem ? "text-bad" : "text-ink-dim"}>
           {problem ?? words.hint}
@@ -263,7 +302,8 @@ export function QueryBar(props: Props) {
   )
 }
 
-function Highlight({ query, parsed, problems }: Pick<Props, "query" | "parsed" | "problems">) {
+function Highlight(props: Pick<Props, "query" | "parsed" | "problems"> & { covered: (t: Term) => boolean }) {
+  const { query, parsed, problems, covered } = props
   const parts: React.ReactNode[] = []
   let at = 0
   const spans = [
@@ -292,7 +332,13 @@ function Highlight({ query, parsed, problems }: Pick<Props, "query" | "parsed" |
       const neg = s.term.negate ? 1 : 0
       const colon = raw.indexOf(":")
       parts.push(
-        <span key={s.start}>
+        <span
+          key={s.start}
+          className={cx(
+            "transition-opacity duration-150 motion-reduce:transition-none",
+            covered(s.term) && "opacity-0",
+          )}
+        >
           {neg ? <span className="text-bad">-</span> : null}
           <span className="text-ink-soft">{raw.slice(neg, colon)}</span>
           <span className="text-ink-dim">:</span>
@@ -313,60 +359,76 @@ function Highlight({ query, parsed, problems }: Pick<Props, "query" | "parsed" |
 }
 
 type FieldTerm = Extract<Term, { kind: "field" }>
+export type Chip = { term: FieldTerm; label: string; shown: string }
 
-/** An id in the query reads as the name it stands for; the box keeps the id, since that is what the tool matches. */
-function NamedTerms(props: {
+/** Field terms whose id has a name to show; the rest of the query stays plain text. */
+export function chipsOf(parsed: Parsed, named: Props["named"]): Chip[] {
+  if (!named) return []
+  return parsed.terms.flatMap((t) => {
+    if (t.kind !== "field") return []
+    const label = named(t.field, t.value)
+    return label ? [{ term: t, label, shown: `${t.negate ? "-" : ""}${t.field}: ${label}` }] : []
+  })
+}
+
+/** Where the selection reaches into a term, its id shows as text, so it can be edited like any other word. */
+const opened = (t: FieldTerm, sel: Span | null) =>
+  sel !== null &&
+  (sel.start === sel.end ? sel.start > t.start && sel.start < t.end : sel.start < t.end && sel.end > t.start)
+
+/**
+ * Each chip is drawn over its term and holds the term's own text, invisible, so it is exactly as wide as the letters
+ * under it and the caret stays where the input puts it. A name longer than the id is cut short; the title has it all.
+ */
+function Chips(props: {
   query: string
-  parsed: Parsed
-  named: (field: string, value: string) => string | null
-  onEdit: (term: FieldTerm) => void
-  onRemove: (term: FieldTerm) => void
+  chips: Chip[]
+  selection: Span | null
+  disabled: boolean | undefined
+  onPick: (t: FieldTerm) => void
 }) {
   const m = useMessages(queryMessages)
-  const terms = props.parsed.terms.flatMap((t) => {
-    if (t.kind !== "field") return []
-    const label = props.named(t.field, t.value)
-    return label ? [{ term: t, label }] : []
-  })
-  // The last chips stay in place while the row closes, so it has a height to shrink from (rule 9).
-  const last = useRef(terms)
-  if (terms.length > 0) last.current = terms
-  return (
-    <Collapse open={terms.length > 0}>
-      <ul aria-label={m.named} className="flex flex-wrap gap-[0.4rem] pt-[0.4rem]">
-        {last.current.map(({ term, label }) => {
-          const shown = `${term.negate ? "-" : ""}${term.field}: ${label}`
-          return (
-            <li
-              key={term.start}
-              className="flex items-center rounded-[0.35rem] border border-line-strong bg-app-2 text-[0.9rem]"
-            >
-              <button
-                type="button"
-                title={props.query.slice(term.start, term.end)}
-                aria-label={m.editTerm(shown)}
-                onClick={() => props.onEdit(term)}
-                className="rounded-l-[0.35rem] py-[0.15rem] pr-[0.3rem] pl-[0.55rem] hover:bg-app-3"
-              >
-                <span className={term.negate ? "text-bad" : "text-ink-soft"}>
-                  {term.negate ? "-" : ""}
-                  {term.field}:
-                </span>{" "}
-                <span className="font-medium text-ink">{label}</span>
-              </button>
-              <button
-                type="button"
-                aria-label={m.removeTerm(shown)}
-                title={m.removeTerm(shown)}
-                onClick={() => props.onRemove(term)}
-                className="grid h-full place-items-center rounded-r-[0.35rem] px-[0.35rem] text-ink-dim hover:bg-app-3 hover:text-ink"
-              >
-                <X className="size-[0.8rem]" aria-hidden />
-              </button>
-            </li>
-          )
-        })}
-      </ul>
-    </Collapse>
-  )
+  const parts: React.ReactNode[] = []
+  let at = 0
+  for (const { term, label, shown } of props.chips) {
+    parts.push(<span key={`gap-${term.start}`}>{props.query.slice(at, term.start)}</span>)
+    const raw = props.query.slice(term.start, term.end)
+    const hidden = opened(term, props.selection)
+    parts.push(
+      <button
+        key={term.start}
+        type="button"
+        tabIndex={-1}
+        title={`${shown}\n${raw}`}
+        aria-label={m.editTerm(shown)}
+        disabled={props.disabled}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => props.onPick(term)}
+        className={cx(
+          "relative cursor-pointer whitespace-pre border-0 bg-transparent p-0 font-[inherit] text-transparent",
+          "transition-opacity duration-150 motion-reduce:transition-none",
+          hidden ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100",
+        )}
+      >
+        {raw}
+        <span
+          aria-hidden
+          className={cx(
+            "absolute -inset-x-[0.2rem] -inset-y-[0.25rem] flex items-center overflow-hidden rounded-[0.3rem] border",
+            "border-line-strong bg-app-2 px-[0.25rem] font-sans text-[0.95rem] hover:bg-app-3",
+          )}
+        >
+          <span className="min-w-0 truncate text-ink-soft">
+            <span className={term.negate ? "text-bad" : "text-ink-soft"}>
+              {term.negate ? "-" : ""}
+              {term.field}:
+            </span>{" "}
+            <span className="font-medium text-ink">{label}</span>
+          </span>
+        </span>
+      </button>,
+    )
+    at = term.end
+  }
+  return <>{parts}</>
 }
