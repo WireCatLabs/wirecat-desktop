@@ -112,7 +112,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
   const Icon = ICONS[entry.type]
   const allowed = can(entry)
   const editable = open && allowed.correct
-  const nothingTicked = !!entry.findings && (skipped?.length ?? 0) >= entry.findings.length
+  const ticked = entry.findings ? entry.findings.filter((f) => !skipped?.includes(f.id)).length : 0
 
   const flip = () => {
     if (row.current) holdInPlace(row.current)
@@ -148,7 +148,16 @@ export function Row({ entry }: { entry: MemoryEntry }) {
   const correctItem = allowed.correct && { label: m.correct, onSelect: () => openAnd(() => startCorrect(entry.ref)) }
   const rejectItem = allowed.discard && { label: m.discard, onSelect: () => discard(entry.ref) }
   const eraseItem = allowed.forget && { label: m.forget, danger: true, onSelect: () => askForget(entry.ref) }
-  const someItem = !!entry.findings && allowed.confirm && { label: m.approveSome, onSelect: () => openAnd(() => {}) }
+  // A findings batch is approved from its opened row, so what Approve creates is on screen; closed, it opens.
+  const approve = !entry.findings
+    ? { label: m.approve, onClick: () => confirm(entry.ref) }
+    : !open
+      ? { label: m.reviewFindings(entry.findings.length), onClick: flip }
+      : {
+          label: m.approveFindings(ticked),
+          onClick: () =>
+            ticked > 0 ? confirm(entry.ref) : row.current?.querySelector<HTMLElement>("[data-findings] input")?.focus(),
+        }
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   return (
@@ -228,13 +237,8 @@ export function Row({ entry }: { entry: MemoryEntry }) {
               </Button>
               <SplitButton
                 disabled={!!busy}
-                main={{
-                  label: m.approve,
-                  onClick: () => confirm(entry.ref),
-                  disabled: open && nothingTicked,
-                  ...(busy === "confirm" ? { icon: spin } : {}),
-                }}
-                items={[someItem, correctItem, eraseItem].filter((i) => !!i)}
+                main={{ ...approve, ...(busy === "confirm" ? { icon: spin } : {}) }}
+                items={[correctItem, eraseItem].filter((i) => !!i)}
                 menuLabel={m.moreActions}
               />
             </>
@@ -570,7 +574,7 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
       <h3 className="text-[0.9rem] font-medium text-ink-dim">
         {open ? m.findingsHead(project) : m.findingsFor(project)}
       </h3>
-      <ul className="flex flex-col rounded-[0.45rem] border border-line bg-app">
+      <ul data-findings className="flex flex-col rounded-[0.45rem] border border-line bg-app">
         {findings.map((f) => {
           const on = !skipped.includes(f.id)
           return (

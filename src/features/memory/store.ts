@@ -161,9 +161,11 @@ export const useMemory = create<MemoryState>((set, get) => {
     },
     async confirm(ref) {
       const findings = get().entries.find((e) => e.ref === ref)?.findings
-      // Approve on a closed row takes every finding; picking happens in the opened row.
-      const skipped = get().open === ref ? (get().skipped[ref] ?? []) : []
+      // A batch is approved only as the owner sees it: opened, and only the findings still ticked (NEED-2166).
+      if (findings && get().open !== ref) return
+      const skipped = get().skipped[ref] ?? []
       const accept = findings ? findings.map((f) => f.id).filter((id) => !skipped.includes(id)) : undefined
+      if (accept?.length === 0) return
       const entry = await run(ref, "confirm", () => platform.memoryConfirm(ref, accept))
       if (entry) replace(entry)
     },
