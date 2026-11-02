@@ -252,6 +252,24 @@ pub fn status(tool: &Tool) -> Result<ServerStatus, String> {
     }
 }
 
+/// A tunnel publishes whatever answers on its local port, so before one opens that must be nothing yet or this tool's
+/// own server. Another program there, a dev server or another user's process on a shared computer, would be put on the
+/// internet without the server's login.
+pub fn ensure_port_is_ours(tool: &Tool, port: u16) -> Result<(), String> {
+    port_is_free_or(port, &tool.name, || status(tool).is_ok_and(|s| s.running && s.port == Some(port)))
+}
+
+fn port_is_free_or(port: u16, name: &str, ours: impl FnOnce() -> bool) -> Result<(), String> {
+    let local = std::net::SocketAddr::from(([127, 0, 0, 1], port));
+    if std::net::TcpStream::connect_timeout(&local, Duration::from_millis(300)).is_err() || ours() {
+        return Ok(());
+    }
+    Err(format!(
+        "Another program already answers on port {port}, so it would be published instead of the {name} server. \
+         Choose another port, or stop that program first."
+    ))
+}
+
 /// The CLI waits up to about 30 seconds for the server to listen.
 pub fn start(tool: &Tool, port: u16, url: &str) -> Result<ServerStatus, String> {
     validate_port(port)?;
@@ -354,6 +372,17 @@ pub fn config(tool: &Tool) -> Result<String, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_tunnel_never_opens_onto_another_programs_port() {
+        let other = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = other.local_addr().unwrap().port();
+        let refused = port_is_free_or(port, "Telegram", || false).unwrap_err();
+        assert!(refused.contains("Another program already answers"), "{refused}");
+        assert!(port_is_free_or(port, "Telegram", || true).is_ok());
+        drop(other);
+        assert!(port_is_free_or(port, "Telegram", || panic!("a free port needs no status")).is_ok());
+    }
     use serde_json::json;
 
     #[test]

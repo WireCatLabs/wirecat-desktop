@@ -527,8 +527,8 @@ fn refusal(log: &str) -> Option<String> {
 /// Routes the tool's paths of the tunnel's hostname to its local port, (re)starts cloudflared with them, and returns
 /// the public address for `mcp server start`: `https://<hostname>/<tool>`.
 pub fn open(tool: &str, port: u16) -> Result<String, String> {
-    catalog::tool(tool)?;
     mcp_server::validate_port(port)?;
+    mcp_server::ensure_port_is_ours(catalog::tool(tool)?, port)?;
     let _one = TUNNEL.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut r = load().ok_or("Choose the address on your domain first.")?;
     let credentials = read_secret(CREDENTIALS)?.ok_or(

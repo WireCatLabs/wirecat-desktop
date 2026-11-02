@@ -151,7 +151,7 @@ describe("MCP server (or connect web)", () => {
     expect(await screen.findByText(/Register automatically/)).toBeVisible()
   })
 
-  it("says why a start failed, leaves Funnel on so a retry does not toggle it, and offers to try again", async () => {
+  it("says why a start failed, turns Funnel off so nothing else is published on the port, and offers to try again", async () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "mcpServerStatus").mockResolvedValue(OFF)
     vi.spyOn(platform, "tailscaleStatus").mockResolvedValue(READY)
@@ -163,7 +163,7 @@ describe("MCP server (or connect web)", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("port 8765 is in use")
     expect(screen.getByText(/Another program uses this port/)).toBeVisible()
-    expect(close).not.toHaveBeenCalled()
+    expect(close).toHaveBeenCalledWith("tg")
     await user.click(screen.getByRole("button", { name: "Try again" }))
     await waitFor(() => expect(start).toHaveBeenCalledTimes(2))
   })

@@ -135,9 +135,17 @@ export function ConnectGuide(props: {
             : await platform.cloudflareTunnelOpen(tool.id, Number(port))
         setPhase("server")
         at = "server"
-        // A failed start leaves Funnel on: turning it off and on again can drop the public name for minutes
-        // (BUG-15), and a retry uses the same address. Server details offers to turn it off.
-        settle(await platform.mcpServerStart(tool.id, Number(port), address))
+        try {
+          settle(await platform.mcpServerStart(tool.id, Number(port), address))
+        } catch (e) {
+          // Left on, the address would publish whatever takes the port next. Closing can cost the public name for a
+          // few minutes (BUG-15); a retry waits for it rather than leave the port open.
+          await (tunnel === "tailscale"
+            ? platform.tailscaleFunnelClose(tool.id)
+            : platform.cloudflareTunnelClose(tool.id)
+          ).catch(() => {})
+          throw e
+        }
       } else {
         setPhase("server")
         settle(await platform.mcpServerStart(tool.id, Number(port), ownUrl.trim().replace(/\/$/, "")))
