@@ -1,6 +1,6 @@
 use crate::catalog::Tool;
 use crate::provenance::{self, Refusal};
-use crate::{node, paths, redact, run, skills, system, tools};
+use crate::{node, npm_prefix, paths, redact, run, skills, system, tools};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -180,12 +180,16 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     }
 
     confirm_release(tool, &wanted, &send)?;
+    let prefix = (program == "npm").then(|| install_prefix(existing.as_ref())).flatten();
 
     send(InstallEvent::Step { step: Step::Install });
-    run_manager(&program_path, &args, tool, running, events, "Installation")?;
+    run_manager(&program_path, &args, prefix.as_deref(), tool, running, events, "Installation")?;
 
     send(InstallEvent::Step { step: Step::Verify });
-    let extra: Vec<_> = system::npm_prefix().map(|p| system::npm_bin_dir(&p)).into_iter().collect();
+    if let Some(p) = &prefix {
+        npm_prefix::reachable_from_terminal(p);
+    }
+    let extra: Vec<_> = prefix.or_else(system::npm_prefix).map(|p| npm_prefix::bin_dir(&p)).into_iter().collect();
     paths::refresh(&extra);
     let state = tools::detect(tool, true);
     let first = state.installs.first().ok_or_else(|| {
@@ -227,6 +231,11 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
 
 /// Checked with npm whichever manager installs: npm comes with every Node.js.
 fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> Result<(), Failure> {
+    // The end-to-end test's package comes from a registry inside the test, which signs nothing.
+    #[cfg(test)]
+    if tool.package == crate::install_e2e::PACKAGE {
+        return Ok(());
+    }
     send(InstallEvent::Log {
         line: format!("Checking that {} {version} was built by {}…", tool.package, tool.repo),
         stderr: false,
@@ -261,6 +270,14 @@ fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> 
     })
 }
 
+fn install_prefix(existing: Option<&tools::Install>) -> Option<std::path::PathBuf> {
+    let own = system::npm_prefix();
+    match existing {
+        Some(copy) => npm_prefix::for_update(&paths::untilde(&copy.path), own),
+        None => npm_prefix::for_install(own),
+    }
+}
+
 fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) -> Result<InstallEvent, Failure> {
     let _ = events.send(InstallEvent::Step { step: Step::Check });
     let mut plan = Vec::new();
@@ -281,12 +298,13 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
                 None,
             )
         })?;
-        plan.push((path, args));
+        let prefix = (program == "npm").then(|| npm_prefix::of_copy(&copy)).flatten();
+        plan.push((path, args, prefix));
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Remove });
-    for (program, args) in &plan {
-        run_manager(program, args, tool, running, events, "Uninstalling")?;
+    for (program, args, prefix) in &plan {
+        run_manager(program, args, prefix.as_deref(), tool, running, events, "Uninstalling")?;
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Verify });
@@ -301,10 +319,12 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
     Ok(InstallEvent::Removed)
 }
 
-/// Runs npm, pnpm, bun or volta with streamed, masked output; `what` names the operation in errors.
+/// Runs npm, pnpm, bun or volta with streamed, masked output; `what` names the operation in errors. `prefix` is the
+/// global folder npm acts on, whatever its own config says.
 fn run_manager(
     program: &std::path::Path,
     args: &[&str],
+    prefix: Option<&std::path::Path>,
     tool: &Tool,
     running: &Running,
     events: &Channel<InstallEvent>,
@@ -320,8 +340,8 @@ fn run_manager(
     if let Some(home) = paths::pnpm_home() {
         cmd.env("PNPM_HOME", home);
     }
-    if let Some(runtime) = node::owner_of(program) {
-        cmd.env("npm_config_prefix", runtime);
+    if let Some(prefix) = prefix.map(std::path::Path::to_path_buf).or_else(|| node::owner_of(program)) {
+        cmd.env("npm_config_prefix", prefix);
     }
     let code = run::stream(
         cmd,
@@ -353,8 +373,20 @@ fn run_manager(
 }
 
 fn classify(log: &str, program: &str) -> Failure {
+    classify_on(log, program, cfg!(windows))
+}
+
+/// On Windows npm writes only to folders in the user's profile, so EPERM and EBUSY there mean a running program holds
+/// the tool's files, not a missing administrator right.
+fn classify_on(log: &str, program: &str, windows: bool) -> Failure {
     let l = log.to_lowercase();
-    if l.contains("eacces") || l.contains("eperm") || l.contains("permission denied") {
+    if windows && (l.contains("ebusy") || l.contains("eperm")) {
+        Failure(
+            Reason::Failed,
+            format!("{program} could not replace the tool's files: a running program still uses them."),
+            Some("Close the AI apps and terminals that run this tool, then try again.".into()),
+        )
+    } else if l.contains("eacces") || l.contains("eperm") || l.contains("permission denied") {
         Failure(
             Reason::Permission,
             format!("{program} could not write to its global folder."),
@@ -428,8 +460,12 @@ mod tests {
 
     #[test]
     fn classifies_npm_failures() {
-        assert_eq!(classify("npm ERR! code EACCES", "npm").0, Reason::Permission);
+        assert_eq!(classify_on("npm ERR! code EACCES", "npm", false).0, Reason::Permission);
         assert_eq!(classify("npm ERR! code ENOTFOUND registry", "npm").0, Reason::Network);
         assert_eq!(classify("something odd", "npm").0, Reason::Failed);
+        assert_eq!(classify_on("npm error code EPERM", "npm", false).0, Reason::Permission);
+        let busy = classify_on("npm error code EPERM\nnpm error syscall unlink", "npm", true);
+        assert_eq!(busy.0, Reason::Failed);
+        assert!(busy.1.contains("running program"), "{}", busy.1);
     }
 }

@@ -187,7 +187,8 @@ pub fn find(bin: &str) -> Option<PathBuf> {
 /// Whether a terminal finds `bin` on its own PATH, without the folders this app adds to find tools. A coding agent
 /// runs commands in such a shell, so a tool only the app can find is one the agent cannot run.
 pub fn in_terminal(bin: &str) -> bool {
-    let path = login_shell().path.clone().or_else(|| std::env::var_os("PATH"));
+    let fresh = if cfg!(windows) { crate::profile::windows_terminal_path() } else { login_shell().path.clone() };
+    let path = fresh.or_else(|| std::env::var_os("PATH"));
     path.is_some_and(|p| which_in(bin, &p).is_some())
 }
 
@@ -228,6 +229,14 @@ pub fn tilde(s: &str) -> String {
     match home() {
         Some(h) => s.replace(&*h.to_string_lossy(), "~"),
         None => s.to_string(),
+    }
+}
+
+/// `tools::detect` reports paths with `~`; turn them back into real ones.
+pub fn untilde(shown: &str) -> PathBuf {
+    match (shown.strip_prefix('~'), home()) {
+        (Some(rest), Some(home)) => home.join(rest.trim_start_matches(['/', '\\'])),
+        _ => PathBuf::from(shown),
     }
 }
 

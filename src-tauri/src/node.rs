@@ -452,7 +452,7 @@ pub fn remove() -> Result<(), String> {
     let bin = canonical(&bin_dir(&found.dir));
     let using: Vec<String> = tools::detect_owners(false)
         .into_iter()
-        .filter(|t| t.installs.iter().any(|i| canonical(&expand(&i.path)).starts_with(&bin)))
+        .filter(|t| t.installs.iter().any(|i| canonical(&paths::untilde(&i.path)).starts_with(&bin)))
         .map(|t| t.id)
         .collect();
     if !using.is_empty() {
@@ -469,14 +469,6 @@ pub fn remove() -> Result<(), String> {
     }
     paths::refresh(&[]);
     Ok(())
-}
-
-/// `tools::detect` reports paths with `~`; turn them back into real ones.
-fn expand(shown: &str) -> PathBuf {
-    match (shown.strip_prefix('~'), paths::home()) {
-        (Some(rest), Some(home)) => home.join(rest.trim_start_matches(['/', '\\'])),
-        _ => PathBuf::from(shown),
-    }
 }
 
 /// A last check before `remove_dir_all`: only a `v<semver>` folder that holds a Node.js binary, never the root

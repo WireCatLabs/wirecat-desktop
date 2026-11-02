@@ -8,11 +8,14 @@ mod cloudflare;
 mod cloudflare_install;
 mod compat;
 mod install;
+#[cfg(test)]
+mod install_e2e;
 mod mcp;
 mod mcp_server;
 mod memory;
 mod node;
 mod notifications;
+mod npm_prefix;
 mod package_update;
 #[cfg(test)]
 mod page_loads;
@@ -81,6 +84,13 @@ async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node::No
             None => Err(node::Failure::no_home()),
         };
         running.finish(node::OPERATION);
+        // Tools installed with this Node.js are linked beside it; on Windows the user Path changes without an
+        // administrator, so a terminal and the AI apps find them with nothing more to do.
+        if cfg!(windows)
+            && let Ok(done) = &result
+        {
+            let _ = profile::add(&node::bin_dir(&done.dir));
+        }
         paths::refresh(&[]);
         send(match result {
             Ok(done) => node::NodeEvent::Done {
