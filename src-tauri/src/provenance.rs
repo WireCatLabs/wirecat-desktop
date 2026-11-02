@@ -14,11 +14,15 @@ use serde_json::Value;
 use std::fmt::Write;
 use std::path::Path;
 use std::time::Duration;
+use x509_parser::der_parser::parse_der;
 use x509_parser::prelude::{FromDer, GeneralName, X509Certificate};
 
 const REGISTRY: &str = "https://registry.npmjs.org";
 const SLSA_V1: &str = "https://slsa.dev/provenance/v1";
 const WORKFLOW: &str = ".github/workflows/release.yml";
+const GITHUB_ACTIONS: &str = "https://token.actions.githubusercontent.com";
+/// Fulcio's "Issuer (V2)" extension, a DER `UTF8String`; the V1 one at `.1.1` holds raw bytes.
+const OIDC_ISSUER: &str = "1.3.6.1.4.1.57264.1.8";
 
 #[derive(Debug, PartialEq)]
 pub enum Refusal {
@@ -127,27 +131,38 @@ fn provenance_verdict(
     if subject["digest"]["sha512"] != digest.as_str() {
         return Err("the provenance is for another tarball".into());
     }
-    let signer = signer(bundle).ok_or("the provenance has no readable signing certificate")?;
-    let expected = format!("{repo}/{WORKFLOW}@");
-    if !signer.starts_with(&expected) {
-        return Err(format!("built by {signer}, not by {repo}/{WORKFLOW}"));
+    let Signer { issuer, workflow } = signer(bundle).ok_or("the provenance has no readable signing certificate")?;
+    if issuer != GITHUB_ACTIONS {
+        return Err(format!("signed with an identity from {issuer}, not from GitHub Actions"));
+    }
+    if !workflow.starts_with(&format!("{repo}/{WORKFLOW}@")) {
+        return Err(format!("built by {workflow}, not by {repo}/{WORKFLOW}"));
     }
     Ok(())
 }
 
-/// The workflow the Fulcio certificate was issued to: its one URI subject alternative name.
-fn signer(bundle: &Value) -> Option<String> {
+#[derive(Debug, PartialEq)]
+struct Signer {
+    issuer: String,
+    workflow: String,
+}
+
+/// Who the Fulcio certificate was issued to: the OIDC issuer extension and the URI subject alternative name.
+fn signer(bundle: &Value) -> Option<Signer> {
     let material = &bundle["verificationMaterial"];
     let raw = material["certificate"]["rawBytes"]
         .as_str()
         .or_else(|| material["x509CertificateChain"]["certificates"][0]["rawBytes"].as_str())?;
     let der = STANDARD.decode(raw).ok()?;
     let (_, cert) = X509Certificate::from_der(&der).ok()?;
+    let issuer = cert.extensions().iter().find(|e| e.oid.to_id_string() == OIDC_ISSUER)?;
+    let issuer = parse_der(issuer.value).ok()?.1.as_str().ok()?.to_string();
     let san = cert.subject_alternative_name().ok()??;
-    san.value.general_names.iter().find_map(|name| match name {
+    let workflow = san.value.general_names.iter().find_map(|name| match name {
         GeneralName::URI(uri) => Some((*uri).to_string()),
         _ => None,
-    })
+    })?;
+    Some(Signer { issuer, workflow })
 }
 
 fn purl(package: &str, version: &str) -> String {
@@ -192,10 +207,11 @@ mod tests {
     #[test]
     fn the_signer_comes_from_the_certificate() {
         let bundle = &tg()["attestations"][1]["bundle"];
-        assert_eq!(
-            signer(bundle).as_deref(),
-            Some("https://github.com/WireCatLabs/tg-cli/.github/workflows/release.yml@refs/heads/main")
-        );
+        let expected = Signer {
+            issuer: GITHUB_ACTIONS.into(),
+            workflow: "https://github.com/WireCatLabs/tg-cli/.github/workflows/release.yml@refs/heads/main".into(),
+        };
+        assert_eq!(signer(bundle), Some(expected));
     }
 
     #[test]
