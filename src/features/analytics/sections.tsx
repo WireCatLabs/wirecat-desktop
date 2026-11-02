@@ -7,6 +7,7 @@ import {
   helped,
   initials,
   MEMORY_STATUSES,
+  ownersData,
   PERIOD_DAYS,
   projectRows,
   sentByMe,
@@ -24,7 +25,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./charts"
-import { colorOf, longKey, SOURCE_ORDER, shortKey, sourceName, toolColor, toolName } from "./format"
+import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
 
@@ -127,11 +128,13 @@ export function Overview() {
 
 function OverviewBody({ info }: { info: StoreInfo }) {
   const m = useMessages(analyticsMessages)
-  const totals = TOTALS.filter((k) => k !== "accounts" && k !== "attachments" && k in info.rows)
-  const providers = [...(info.breakdown?.providers ?? [])].sort(
+  const sourceName = useSourceName()
+  const mine = ownersData(info.rows, info.breakdown?.providers ?? [], info.breakdown?.years ?? [])
+  const totals = TOTALS.filter((k) => k !== "accounts" && k !== "attachments" && k in mine.rows)
+  const providers = [...mine.providers].sort(
     (a, b) => order(a.provider) - order(b.provider) || a.provider.localeCompare(b.provider),
   )
-  const years = info.breakdown?.years ?? []
+  const years = mine.years
   const yearKeys = [...new Set(years.map((y) => y.key ?? ""))].filter(Boolean).sort()
   const yearBuckets = yearKeys.map((key) => {
     const values: Record<string, number> = {}
@@ -140,12 +143,12 @@ function OverviewBody({ info }: { info: StoreInfo }) {
   })
   const yearSeries: Series[] = providers
     .filter((p) => years.some((y) => y.provider === p.provider && y.messages > 0))
-    .map((p) => ({ id: p.provider, label: sourceName(p.provider, m.notes), color: colorOf(p.provider) }))
+    .map((p) => ({ id: p.provider, label: sourceName(p.provider), color: colorOf(p.provider) }))
   return (
     <div className="reveal flex flex-col gap-[1.3rem]">
       <Stats>
         {totals.map((k) => (
-          <Stat key={k} label={m.totals[k] ?? k} value={formatNumber(info.rows[k] ?? 0)} />
+          <Stat key={k} label={m.totals[k] ?? k} value={formatNumber(mine.rows[k] ?? 0)} />
         ))}
         <Stat label={m.size} value={formatBytes(info.fileBytes + info.walBytes)} />
       </Stats>
@@ -157,7 +160,7 @@ function OverviewBody({ info }: { info: StoreInfo }) {
               label={m.bySource}
               parts={providers.map((p) => ({
                 id: p.provider,
-                label: sourceName(p.provider, m.notes),
+                label: sourceName(p.provider),
                 value: p.messages + p.emails + p.documents + p.meetings,
                 color: colorOf(p.provider),
               }))}
@@ -300,6 +303,7 @@ export function People() {
   })
   const none = !loading && ready.length === 0
   const rows = topRows(Object.fromEntries(ready.map((r) => [r.provider, r.s[by]])), 10)
+  const sourceName = useSourceName()
   const names = (n: string | null) => (n === null ? m.unnamed : hide ? initials(n) : n)
 
   return (
@@ -341,7 +345,7 @@ export function People() {
             stale={refreshing}
             rows={rows.map((r) => ({
               id: r.id,
-              title: `${names(r.name)} · ${sourceName(r.source, m.notes)}`,
+              title: `${names(r.name)} · ${sourceName(r.source)}`,
               label: names(r.name),
               value: r.count,
               color: colorOf(r.source),

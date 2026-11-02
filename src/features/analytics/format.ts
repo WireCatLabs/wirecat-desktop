@@ -1,6 +1,8 @@
 import type { Grain } from "@/domain/analytics"
+import { providerName } from "@/domain/archive"
 import { findTool } from "@/domain/catalog"
-import { formatDate } from "@/i18n"
+import { formatDate, useMessages } from "@/i18n"
+import { storageMessages } from "../storage/messages"
 
 /** Each source keeps its hue whatever is filtered or missing, so a reader who learned "Telegram is blue" stays right. */
 const COLORS: Record<string, string> = {
@@ -15,17 +17,11 @@ const COLORS: Record<string, string> = {
 export const SOURCE_ORDER = Object.keys(COLORS)
 export const colorOf = (provider: string) => COLORS[provider] ?? "var(--series-other)"
 
-const NAMES: Record<string, string> = {
-  telegram: "Telegram",
-  max: "MAX",
-  whatsapp: "WhatsApp",
-  email: "Email",
-  "google-drive": "Google Drive",
-  zoom: "Zoom",
+/** A source by the name Storage gives it, in the interface language: product names, "Notes", "Test data". */
+export function useSourceName(): (provider: string) => string {
+  const words = useMessages(storageMessages).archiveWords
+  return (provider) => providerName(provider, words)
 }
-
-export const sourceName = (provider: string, notes: string) =>
-  NAMES[provider] ?? (provider === "notes" ? notes : provider)
 
 /** The source a tool's runs belong to, for the colour of its bar: Email is a part of Memo with its own source. */
 const TOOL_SOURCE: Record<string, string> = {

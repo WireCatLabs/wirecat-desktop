@@ -297,3 +297,25 @@ export function helped(runs: readonly Run[], period: Period, today: string): Hel
       .map(([v, count]) => ({ [k]: v, count }) as Record<K, string> & { count: number })
   return { agentRuns, mcpCalls, yourRuns, byAgent: sorted(agents, "name"), byTool: sorted(tools, "tool"), since }
 }
+
+/**
+ * Sources that are not the owner's data: `chat` is cli-core's own test program (account 500), which a developer's
+ * store may hold. Storage names it "Test data"; Analytics leaves it out of every number.
+ */
+export const TEST_PROVIDERS: readonly string[] = ["chat"]
+
+type Group = { provider: string; chats: number; messages: number; emails: number; documents: number; meetings: number }
+
+/** Store totals and groups without the test sources: their rows come off the totals the store reports. */
+export function ownersData<G extends Group>(
+  rows: Readonly<Record<string, number>>,
+  providers: readonly G[],
+  years: readonly G[],
+): { rows: Record<string, number>; providers: G[]; years: G[] } {
+  const test = providers.filter((p) => TEST_PROVIDERS.includes(p.provider))
+  const out = { ...rows }
+  for (const k of ["chats", "messages", "emails", "documents", "meetings"] as const)
+    if (k in out) out[k] = Math.max(0, (out[k] ?? 0) - test.reduce((s, p) => s + p[k], 0))
+  const mine = (g: G) => !TEST_PROVIDERS.includes(g.provider)
+  return { rows: out, providers: providers.filter(mine), years: years.filter(mine) }
+}

@@ -31,7 +31,7 @@ Checked against the installed tools on 2026-11-02 (tg 0.112.0, max 0.95.0, wa 0.
 | Messages per project | none | MISSING (3) |
 | Agent runs, MCP calls, your own runs, by agent and tool | each tool's `runs list` (the Logs page's read, 500 per tool): `agent`, `via`, `mcp` | existing, capped |
 | Agent tool calls in memo | `memo agents list` (no counts, 500 rows at most) | existing, capped (4) |
-| Searches run | `<tg\|max\|wa> searches history` | existing, not used yet: see RISK below |
+| Searches run | `<tg\|max\|wa> searches history` | existing, not used yet |
 | Guides used | nothing records it | MISSING, not proposed |
 
 ## The page
@@ -88,10 +88,12 @@ Each is a CLI change. The app shows nothing in its place.
 
 ## Risks
 
-- **RISK: counting writes a search history line.** cli-core's `messages.stats` calls `remember()`, which records the
-  run in `searches history` unless history is off (`src/services/messages.ts`, around line 589). Each page load adds
-  up to three lines per profile. Before "searches run" can be a metric, the tool needs a way to count without
-  recording (`--no-history`), or to tell the app's counts apart.
+- **Not a risk: counting writes no search history.** cli-core's `messages.stats` calls `remember()`, which records
+  the run in `searches history` unless history is off (`src/services/messages.ts`, around line 320). The messenger
+  context sets that switch from the run's `record` setting, so `--no-record` turns history off as well
+  (`src/cli/messenger/context.ts`, around line 792; since cli-core 0.467.0, 2026-10-27). Every template passes
+  `--no-record`, and the installed tg and max carry cli-core 0.531.0 and 0.517.0. Read in the source, not seen in a
+  live run. A tool on an older cli-core would write one line per count.
 - **RISK: about a dozen tool processes per load.** At most three run at once. A slow store makes the page fill
   section by section; the skeletons hold the final size.
 
@@ -99,4 +101,16 @@ Each is a CLI change. The app shows nothing in its place.
 
 `?section=analytics` opens the page. `?analytics=real` (no Preview parts, as in the real app), `?analytics=old` (Telegram too old to count), `?analytics=fail` (the work
 profile does not answer), `?analytics=empty` (no messages in any period). The preview fills gaps 2 and 3 with sample
-numbers marked "Preview"; `analyticsPreview` answers null in the real app.
+numbers marked "Preview"; `analyticsPreview` answers null in the real app and in `?showcase` (the owner's choice,
+2026-11-02: the website shows only what the tools count today).
+
+## Test data
+
+`chat` is cli-core's own test program (account 500). A developer's store may hold it; Storage names it "Test data".
+Analytics leaves it out of every number: its rows come off the store's totals, and it is not a source in any chart
+(`ownersData` in `src/domain/analytics.ts`).
+
+## Decided
+
+- The page stays after Memory in the sidebar (NEED-252, A).
+- `?showcase` hides the "Preview" parts (NEED-253, B).

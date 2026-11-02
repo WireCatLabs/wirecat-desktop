@@ -6,6 +6,7 @@ import {
   closedTerm,
   helped,
   initials,
+  ownersData,
   projectRows,
   sentByMe,
   sumRows,
@@ -176,5 +177,32 @@ describe("how WireCat helps", () => {
       { tool: "memo", count: 1 },
     ])
     expect(h.since).toBe("2026-01-01T00:00:00Z")
+  })
+})
+
+describe("test data", () => {
+  const g = (provider: string, messages: number, chats: number) => ({
+    provider,
+    key: null as string | null,
+    accounts: 1,
+    chats,
+    messages,
+    emails: 0,
+    documents: 0,
+    meetings: 0,
+  })
+
+  it("leaves cli-core's test program out of every number", () => {
+    const d = ownersData(
+      { messages: 904, chats: 12, attachments: 3 },
+      [g("chat", 4, 2), g("telegram", 900, 10)],
+      [
+        { ...g("chat", 4, 2), key: "2026" },
+        { ...g("telegram", 900, 10), key: "2026" },
+      ],
+    )
+    expect(d.rows).toEqual({ messages: 900, chats: 10, attachments: 3 })
+    expect(d.providers.map((p) => p.provider)).toEqual(["telegram"])
+    expect(d.years.map((p) => p.provider)).toEqual(["telegram"])
   })
 })
