@@ -43,7 +43,6 @@ pub struct Sent {
 }
 
 pub fn context() -> Context {
-    let names = std::thread::spawn(names::all_known);
     let readiness = system::readiness();
     let tools: Vec<Value> = tools::detect_owners(false)
         .into_iter()
@@ -52,10 +51,10 @@ pub fn context() -> Context {
             Some(json!({ "id": t.id, "version": first.version, "manager": first.manager }))
         })
         .collect();
-    let mut attachments = Some(json!({ "runs": recent_failures(&tools) }));
-    if let (Some(a), Ok(names)) = (attachments.as_mut(), names.join()) {
-        names.json(a);
-    }
+    let mut runs = recent_failures(&tools);
+    // After the failed runs, whose wait would otherwise lose process slots to the listings.
+    names::all_known().json(&mut runs);
+    let attachments = Some(json!({ "runs": runs }));
     Context {
         app: json!({ "name": "wirecat-desktop", "version": env!("CARGO_PKG_VERSION") }),
         system: json!({
