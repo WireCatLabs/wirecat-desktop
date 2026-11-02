@@ -55,7 +55,7 @@ describe("First start", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Sign in to Telegram" })).toBeNull())
     const driveSignIn = within(signIn).getByRole("heading", { name: "Google Drive" }).closest("li") as HTMLElement
     await user.click(await within(driveSignIn).findByRole("button", { name: "Add another account" }))
-    expect(within(driveSignIn).getByRole("textbox", { name: "Name for another account, Google Drive" })).toHaveValue("")
+    expect(within(driveSignIn).getByRole("textbox", { name: "Account name, Google Drive" })).toHaveValue("")
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await user.click(screen.getByRole("button", { name: "Open Tools" }))
 

@@ -526,7 +526,12 @@ export function createMock(os: Platform["os"]): Platform {
     async cancelInstall() {
       cancelled = true
     },
-    async openSetup() {},
+    // `?terminal=none`: no terminal program found, as Rust words it.
+    async openSetup(id, profile) {
+      await delay(300)
+      if (params.get("terminal") === "none")
+        throw new Error(`Could not open a terminal. Run this yourself: ${id} ${profile ?? ""} setup`)
+    },
     ...signInMock(),
     ...syncMock(),
     ...mcpServerMock(),

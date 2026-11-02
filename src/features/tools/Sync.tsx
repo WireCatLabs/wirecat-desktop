@@ -4,7 +4,6 @@ import { type CatalogTool, ownerId, signsInHere, syncCommand, syncNeedsProfile, 
 import { toolStatus } from "@/domain/status"
 import { advice, clock, type SyncFailure, type SyncWhat, share } from "@/domain/sync"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { LastSync } from "@/platform/sync-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -21,6 +20,7 @@ import { ago } from "./connect-steps"
 import { type SyncText, syncMessages } from "./messages-sync"
 import { useTools } from "./store"
 import { blockedBy, type SyncRun, syncKey, useSync } from "./sync-store"
+import { useTerminal } from "./terminal-store"
 
 type Words = SyncText
 
@@ -212,7 +212,7 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
               onClick={() =>
                 signsInHere(entry)
                   ? useSignIn.getState().start(entry.id, profile)
-                  : platform.openSetup(entry.id, profile)
+                  : useTerminal.getState().open(entry.id, profile)
               }
             >
               {m.signIn}

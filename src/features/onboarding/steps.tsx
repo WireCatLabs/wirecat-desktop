@@ -18,10 +18,11 @@ import { useSignIn } from "../signin/store"
 import { NodeNotice } from "../system/NodeNotice"
 import { useSystem } from "../system/store"
 import { openConnect } from "../tools/go"
-import { FinishInTerminal, ManualSetup, NewProfile, useProfiles } from "../tools/Health"
+import { ManualSetup, NewProfile, TerminalStatus, useProfiles } from "../tools/Health"
 import { toolsMessages } from "../tools/messages"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
+import { useTerminal } from "../tools/terminal-store"
 import { toolText } from "../tools/tool-text"
 import { onboardingMessages } from "./messages"
 import { useOnboarding } from "./store"
@@ -400,9 +401,7 @@ function PendingSignInRow({ tool }: { tool: CatalogTool }) {
 
 function SignInRow({ tool }: { tool: CatalogTool }) {
   const { profiles, error, loading, reload } = useProfiles(tool.id)
-  const [waiting, setWaiting] = useState(false)
   const [adding, setAdding] = useState(false)
-  const [openError, setOpenError] = useState<string | null>(null)
   const m = useMessages(onboardingMessages).signIn
   const manual = !tool.setup
   const count = profiles?.length ?? 0
@@ -416,13 +415,7 @@ function SignInRow({ tool }: { tool: CatalogTool }) {
 
   const signInAgain = async (profile: string) => {
     if (signsInHere(tool)) return useSignIn.getState().start(tool.id, profile, reload)
-    try {
-      await platform.openSetup(tool.id, profile)
-      setOpenError(null)
-      setWaiting(true)
-    } catch (e) {
-      setOpenError(String(e))
-    }
+    await useTerminal.getState().open(tool.id, profile)
   }
 
   return (
@@ -457,15 +450,7 @@ function SignInRow({ tool }: { tool: CatalogTool }) {
             )}
           </ul>
         )}
-        {openError && (
-          <ErrorNotice
-            inline
-            action={<ReportThis what="Opening a terminal to sign in" tool={tool.id} error={openError} />}
-          >
-            {openError}
-          </ErrorNotice>
-        )}
-        {waiting && <FinishInTerminal onCheck={reload} checking={loading} />}
+        <TerminalStatus tool={tool} onCheck={reload} checking={loading} />
         {adding ? (
           <>
             {tool.signIn && (
@@ -492,7 +477,7 @@ function SignInRow({ tool }: { tool: CatalogTool }) {
             {manual ? (
               <ManualSetup tool={tool} onCheck={reload} checking={loading} />
             ) : (
-              <NewProfile tool={tool} label={count ? m.nameAnother : m.nameThis} onCheck={reload} checking={loading} />
+              <NewProfile tool={tool} label={count ? m.addAnother : m.add} onCheck={reload} />
             )}
           </>
         ) : profiles === undefined && !error ? null : (

@@ -179,13 +179,26 @@ const en = {
     noAccountHere: (name: string) => `No account yet. Name it, then sign in to ${name} here or in a terminal window.`,
     noAccountTerminal: (name: string) => `No account yet. Name it, then sign in to ${name} in a terminal window.`,
     noAccount: "No account yet.",
-    finishInTerminal: "Finish signing in in the terminal window, then press Check sign-in.",
+    finishInTerminal: (command: ReactNode): ReactNode => (
+      <>
+        A terminal window opened and runs {command}. Answer its questions there: a code, a QR code or a page in your
+        browser. When it says you are signed in, come back here and press Check sign-in.
+      </>
+    ),
+    terminalPreview: (command: ReactNode): ReactNode => (
+      <>
+        This is the browser preview, so no terminal opens. In the app, this button opens a terminal window that runs{" "}
+        {command}. You answer its questions there, then come back and press Check sign-in.
+      </>
+    ),
+    terminalFailed: "The terminal window did not open:",
     checkSignIn: "Check sign-in",
     manual: "Add an account from a terminal; this has no sign-in window yet.",
     howToSetUp: "How to set it up",
     copyAddAccount: (name: string) => `Copy the command that adds a ${name} account`,
     checkAgain: "Check again",
-    profileName: "Name for this account",
+    profileName: "Add new account",
+    accountName: "Account name",
     signInHere: "Sign in here",
     openTerminal: "Open terminal",
     openTerminalToSignIn: "Open terminal to sign in",
@@ -200,7 +213,8 @@ const en = {
     nameHintTerminal: (command: ReactNode): ReactNode => (
       <>Any short name, such as personal or work: one name per account. The terminal window runs {command}.</>
     ),
-    noTerminal: "No terminal could be opened. Run this yourself:",
+    noTerminal:
+      "WireCat found no terminal program to open, so nothing started. Open a terminal yourself, run this command, then press Check sign-in:",
     copySetup: "Copy the setup command",
     configProblems: "Configuration problems",
     openSettingsFolder: "Open settings folder",
@@ -495,13 +509,26 @@ const ru: typeof en = {
     noAccountHere: (name) => `Аккаунтов пока нет. Дайте аккаунту имя и войдите в ${name} здесь или в окне терминала.`,
     noAccountTerminal: (name) => `Аккаунтов пока нет. Дайте аккаунту имя и войдите в ${name} в окне терминала.`,
     noAccount: "Аккаунтов пока нет.",
-    finishInTerminal: "Завершите вход в окне терминала, затем нажмите «Проверить вход».",
+    finishInTerminal: (command) => (
+      <>
+        Открылось окно терминала, в нём работает {command}. Ответьте там на его вопросы: код, QR-код или страница в
+        браузере. Когда он скажет, что вход выполнен, вернитесь сюда и нажмите «Проверить вход».
+      </>
+    ),
+    terminalPreview: (command) => (
+      <>
+        Это предпросмотр в браузере, терминал здесь не открывается. В приложении эта кнопка открывает окно терминала, в
+        котором работает {command}. Вы отвечаете там на его вопросы, потом возвращаетесь и нажимаете «Проверить вход».
+      </>
+    ),
+    terminalFailed: "Окно терминала не открылось:",
     checkSignIn: "Проверить вход",
     manual: "Добавьте аккаунт из терминала: окна входа для этого инструмента пока нет.",
     howToSetUp: "Как настроить",
     copyAddAccount: (name) => `Скопировать команду, которая добавляет аккаунт ${name}`,
     checkAgain: "Проверить снова",
-    profileName: "Имя для этого аккаунта",
+    profileName: "Добавить аккаунт",
+    accountName: "Имя аккаунта",
     signInHere: "Войти здесь",
     openTerminal: "Открыть терминал",
     openTerminalToSignIn: "Войти через терминал",
@@ -516,7 +543,8 @@ const ru: typeof en = {
     nameHintTerminal: (command) => (
       <>Любое короткое имя, например personal или work: одно имя на аккаунт. Окно терминала запускает {command}.</>
     ),
-    noTerminal: "Не удалось открыть терминал. Выполните это сами:",
+    noTerminal:
+      "WireCat не нашёл программу терминала, поэтому ничего не запустилось. Откройте терминал сами, выполните эту команду и нажмите «Проверить вход»:",
     copySetup: "Скопировать команду настройки",
     configProblems: "Проблемы с настройками",
     openSettingsFolder: "Открыть папку настроек",
@@ -817,13 +845,26 @@ const es: typeof en = {
     noAccountTerminal: (name) =>
       `Aún no hay ninguna cuenta. Ponle un nombre e inicia sesión en ${name} en una ventana de terminal.`,
     noAccount: "Aún no hay ninguna cuenta.",
-    finishInTerminal: "Termina de iniciar sesión en la ventana del terminal y pulsa Comprobar sesión.",
+    finishInTerminal: (command) => (
+      <>
+        Se abrió una ventana de terminal que ejecuta {command}. Responde allí a sus preguntas: un código, un código QR o
+        una página en el navegador. Cuando diga que has iniciado sesión, vuelve aquí y pulsa Comprobar sesión.
+      </>
+    ),
+    terminalPreview: (command) => (
+      <>
+        Esto es la vista previa en el navegador, así que no se abre ningún terminal. En la app, este botón abre una
+        ventana de terminal que ejecuta {command}. Respondes allí a sus preguntas, vuelves y pulsas Comprobar sesión.
+      </>
+    ),
+    terminalFailed: "La ventana del terminal no se abrió:",
     checkSignIn: "Comprobar sesión",
     manual: "Añade una cuenta desde un terminal; esta herramienta aún no tiene ventana de inicio de sesión.",
     howToSetUp: "Cómo configurarla",
     copyAddAccount: (name) => `Copiar el comando que añade una cuenta de ${name}`,
     checkAgain: "Comprobar de nuevo",
-    profileName: "Nombre para esta cuenta",
+    profileName: "Añadir una cuenta",
+    accountName: "Nombre de la cuenta",
     signInHere: "Iniciar sesión aquí",
     openTerminal: "Abrir terminal",
     openTerminalToSignIn: "Iniciar sesión en el terminal",
@@ -840,7 +881,8 @@ const es: typeof en = {
         Cualquier nombre corto, como personal o work: un nombre por cuenta. La ventana del terminal ejecuta {command}.
       </>
     ),
-    noTerminal: "No se pudo abrir ningún terminal. Ejecuta esto tú:",
+    noTerminal:
+      "WireCat no encontró ningún programa de terminal, así que no se inició nada. Abre un terminal, ejecuta este comando y pulsa Comprobar sesión:",
     copySetup: "Copiar el comando de configuración",
     configProblems: "Problemas de configuración",
     openSettingsFolder: "Abrir la carpeta de ajustes",
