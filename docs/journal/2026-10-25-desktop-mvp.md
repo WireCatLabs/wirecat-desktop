@@ -140,6 +140,9 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
   - Нативные на main: `type="date"` в tasks/Filters, NewTask, cells; checkbox в 6 файлах (ConnectDialog, memory/Row, onboarding/steps, BackupPanel, ClearStorageDialog, ToolDetails); radio в 6 (проверить вид); range в AppPreferences. `Select` уже свой.
   - Отдано агенту, ветка `feat/unified-filters`; Search и кнопки не трогает (их делает fix/search-real-data).
 
+- **TASK-59 · Скриншоты десктопа на сайте (2026-11-02).** Слава: «also shall we add som more info on the desktop app? mb add its screenshot on homepage in a block? and add more screenshots in the download? I'd show users what they'll get».
+  - Пробные снимки из браузерной сборки (scratchpad/desktop-shots): для витрины не годятся — моки показывают ошибки (схема 33, старые версии, «2 copies installed»), а «Your computer» на Tasks ещё грузится. Нужен чистый демо-сценарий `?showcase` (всё установлено и свежее, данные выдуманные), затем блок на главной и галерея на странице загрузки.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
