@@ -152,6 +152,8 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 
 - **TASK-61 · README десктопа (2026-11-02).** Слава: «improve the desktop README in github, check our readme standards from clis and adapt to desktop, add screenshots etc». Отдано агенту витрины после #58: стандарт README из cli-base, скриншоты с `<picture>` под тему GitHub.
 
+- **TASK-80 · Пост в блоге на каждый выпуск (2026-11-02).** Слава: «let's post a blog post on each release, make it nice, with an image etc». Пост о 0.3.0 отдан агенту (cli-docs `content/blog/`, en/ru/es, обложка и скриншоты витрины). Правило записано в память.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
@@ -1677,3 +1679,4 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-245 · Выпускать ли WhatsApp (whatsapp-cli) с исправлением лимита времени поиска (cli-core #2391), когда выйдет cli-core?**
   - Варианты: **A** выпустить самому после поднятия cli-core (PR готовит агент) · **B** отложить
   - Я бы: **A**.
+  - NEED-245: **Ответ 2026-11-02: «yes»** — передано агенту выпусков (только этот выпуск WhatsApp).
