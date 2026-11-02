@@ -778,12 +778,68 @@ fn note_file(call: &Call, reference: &str) -> Result<std::path::PathBuf, String>
 
 pub fn open_source(reference: &str) -> Result<(), String> {
     let file = with_memo(|call| note_file(call, reference))?;
-    tauri_plugin_opener::open_path(&file, None::<&str>).map_err(|e| e.to_string())
+    if runs_as_program(&file) {
+        tauri_plugin_opener::reveal_item_in_dir(&file).map_err(|e| e.to_string())
+    } else {
+        tauri_plugin_opener::open_path(&file, None::<&str>).map_err(|e| e.to_string())
+    }
+}
+
+/// A note's folder may hold files from anywhere (a download, a shared drive), and its default app would run a
+/// launcher or a script on one click; such a file is shown in its folder instead, as the Storage page does.
+fn runs_as_program(file: &Path) -> bool {
+    const PROGRAMS: [&str; 22] = [
+        "app", "appimage", "bat", "cmd", "com", "command", "cpl", "desktop", "exe", "hta", "jar", "js", "jse", "lnk",
+        "msi", "ps1", "scr", "sh", "url", "vbe", "vbs", "workflow",
+    ];
+    let named =
+        file.extension().and_then(|e| e.to_str()).is_some_and(|e| PROGRAMS.contains(&e.to_ascii_lowercase().as_str()));
+    // Only without an extension: files on FAT or NTFS drives and synced folders often carry the bit, and a PDF there
+    // must still open; macOS `open` runs a bare executable in Terminal.
+    #[cfg(unix)]
+    let executable = file.extension().is_none() && {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::metadata(file).is_ok_and(|m| m.permissions().mode() & 0o111 != 0)
+    };
+    #[cfg(not(unix))]
+    let executable = false;
+    named || executable
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_launcher_or_a_script_is_shown_in_its_folder_never_run() {
+        let dir = std::env::temp_dir().join(format!("wirecat-open-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = |name: &str| {
+            let p = dir.join(name);
+            std::fs::write(&p, "x").unwrap();
+            p
+        };
+        let (note, pdf, launcher, script) = (file("note.md"), file("doc.PDF"), file("a.desktop"), file("run.BAT"));
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&pdf, std::fs::Permissions::from_mode(0o777)).unwrap();
+        }
+        #[cfg(unix)]
+        let tool = {
+            use std::os::unix::fs::PermissionsExt;
+            let p = file("tool");
+            std::fs::set_permissions(&p, std::fs::Permissions::from_mode(0o755)).unwrap();
+            p
+        };
+        let seen = [note, pdf, launcher, script].map(|p| runs_as_program(&p));
+        #[cfg(unix)]
+        let executable = runs_as_program(&tool);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(seen, [false, false, true, true]);
+        #[cfg(unix)]
+        assert!(executable);
+    }
     use serde_json::json;
     use std::sync::Mutex;
 
