@@ -4,6 +4,7 @@ import type { Parsed, Term } from "@/domain/runs"
 import type { QueryOption, QueryOptions } from "@/domain/search"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { queryMessages } from "./messages"
 
@@ -327,41 +328,45 @@ function NamedTerms(props: {
     const label = props.named(t.field, t.value)
     return label ? [{ term: t, label }] : []
   })
-  if (terms.length === 0) return null
+  // The last chips stay in place while the row closes, so it has a height to shrink from (rule 9).
+  const last = useRef(terms)
+  if (terms.length > 0) last.current = terms
   return (
-    <ul aria-label={m.named} className="reveal mt-[0.4rem] flex flex-wrap gap-[0.4rem]">
-      {terms.map(({ term, label }) => {
-        const shown = `${term.negate ? "-" : ""}${term.field}: ${label}`
-        return (
-          <li
-            key={term.start}
-            className="flex items-center rounded-[0.35rem] border border-line-strong bg-app-2 text-[0.9rem]"
-          >
-            <button
-              type="button"
-              title={props.query.slice(term.start, term.end)}
-              aria-label={m.editTerm(shown)}
-              onClick={() => props.onEdit(term)}
-              className="rounded-l-[0.35rem] py-[0.15rem] pr-[0.3rem] pl-[0.55rem] hover:bg-app-3"
+    <Collapse open={terms.length > 0}>
+      <ul aria-label={m.named} className="flex flex-wrap gap-[0.4rem] pt-[0.4rem]">
+        {last.current.map(({ term, label }) => {
+          const shown = `${term.negate ? "-" : ""}${term.field}: ${label}`
+          return (
+            <li
+              key={term.start}
+              className="flex items-center rounded-[0.35rem] border border-line-strong bg-app-2 text-[0.9rem]"
             >
-              <span className={term.negate ? "text-bad" : "text-ink-soft"}>
-                {term.negate ? "-" : ""}
-                {term.field}:
-              </span>{" "}
-              <span className="font-medium text-ink">{label}</span>
-            </button>
-            <button
-              type="button"
-              aria-label={m.removeTerm(shown)}
-              title={m.removeTerm(shown)}
-              onClick={() => props.onRemove(term)}
-              className="grid h-full place-items-center rounded-r-[0.35rem] px-[0.35rem] text-ink-dim hover:bg-app-3 hover:text-ink"
-            >
-              <X className="size-[0.8rem]" aria-hidden />
-            </button>
-          </li>
-        )
-      })}
-    </ul>
+              <button
+                type="button"
+                title={props.query.slice(term.start, term.end)}
+                aria-label={m.editTerm(shown)}
+                onClick={() => props.onEdit(term)}
+                className="rounded-l-[0.35rem] py-[0.15rem] pr-[0.3rem] pl-[0.55rem] hover:bg-app-3"
+              >
+                <span className={term.negate ? "text-bad" : "text-ink-soft"}>
+                  {term.negate ? "-" : ""}
+                  {term.field}:
+                </span>{" "}
+                <span className="font-medium text-ink">{label}</span>
+              </button>
+              <button
+                type="button"
+                aria-label={m.removeTerm(shown)}
+                title={m.removeTerm(shown)}
+                onClick={() => props.onRemove(term)}
+                className="grid h-full place-items-center rounded-r-[0.35rem] px-[0.35rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+              >
+                <X className="size-[0.8rem]" aria-hidden />
+              </button>
+            </li>
+          )
+        })}
+      </ul>
+    </Collapse>
   )
 }

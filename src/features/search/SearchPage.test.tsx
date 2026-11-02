@@ -271,7 +271,7 @@ describe("Search", () => {
     )
     await user.click(within(names).getByRole("button", { name: "Remove chat: Design crit" }))
     expect(bar).toHaveValue("has:photo date>=7d")
-    expect(screen.queryByRole("list", { name: "Names in this search" })).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByRole("list", { name: "Names in this search" })).not.toBeInTheDocument())
   }, 15000)
 
   it("turns a chat name that fits two chats into a choice that names one by id", async () => {
