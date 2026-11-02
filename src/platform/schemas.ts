@@ -40,6 +40,13 @@ const InstallRecord = v.object({
 
 export const ToolStatesSchema = v.array(v.object({ id: v.string(), installs: v.array(InstallRecord) }))
 
+export const CopyRemovalSchema = v.object({
+  removed: v.boolean(),
+  log: v.array(v.string()),
+  message: v.nullable(v.string()),
+  hint: v.nullable(v.string()),
+})
+
 export const LatestVersionsSchema = v.record(v.string(), v.nullable(v.string()))
 
 export const ProfilesSchema = v.nullable(v.array(v.object({ name: v.string(), signedIn: v.nullable(v.boolean()) })))
@@ -107,6 +114,7 @@ export type ProgramState = v.InferOutput<typeof Program>
 export type ToolState = v.InferOutput<typeof ToolStatesSchema>[number]
 export type Profile = NonNullable<v.InferOutput<typeof ProfilesSchema>>[number]
 export type Diagnosis = v.InferOutput<typeof DiagnosisSchema>
+export type CopyRemoval = v.InferOutput<typeof CopyRemovalSchema>
 export type InstallEvent = v.InferOutput<typeof InstallEventSchema>
 export type NodeOffer = v.InferOutput<typeof NodeOfferSchema>
 export type NodePath = v.InferOutput<typeof NodePathSchema>

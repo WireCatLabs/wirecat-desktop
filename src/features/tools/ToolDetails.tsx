@@ -17,7 +17,9 @@ import { Health } from "./Health"
 import { packageNamesOf } from "./InstallPanel"
 import { McpServer } from "./McpServer"
 import { type ToolsText, toolsMessages } from "./messages"
+import { copiesMessages } from "./messages-copies"
 import { Permissions } from "./Permissions"
+import { type Copy, RemoveCopyDialog } from "./RemoveCopy"
 import { FitDetails } from "./StorageFit"
 import { useTools } from "./store"
 import { toolText } from "./tool-text"
@@ -142,12 +144,13 @@ function DeleteDataChoice(props: {
 export function ToolDetails({ tool }: { tool: CatalogTool }) {
   const installs = useTools((s) => s.installs[tool.id]) ?? []
   const [confirming, setConfirming] = useState(false)
+  const [removing, setRemoving] = useState<Copy | null>(null)
   const t = useMessages(toolsMessages)
   const m = t.details
 
   return (
     <div className="grid gap-x-[2.4rem] gap-y-6 border-line border-t bg-app-2/60 px-[1.3rem] py-[1.4rem] lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-      {installs.length > 1 && <ExtraCopies tool={tool} />}
+      {installs.length > 1 && <ExtraCopies tool={tool} onRemove={setRemoving} />}
       {installs.length > 0 ? (
         <Health tool={tool} />
       ) : (
@@ -194,6 +197,7 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
         )}
       </section>
       <ConfirmUninstall tool={tool} open={confirming} onClose={() => setConfirming(false)} />
+      <RemoveCopyDialog tool={tool} copy={removing} onClose={() => setRemoving(null)} />
       {installs.length > 0 && tool.permissions && <Permissions tool={tool} />}
       {installs.length > 0 && tool.mcpServer && <McpServer tool={tool} />}
     </div>
@@ -201,10 +205,11 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
 }
 
 // Uninstall would take every copy, so the advice removes only the ones the terminal never reaches.
-function ExtraCopies({ tool }: { tool: CatalogTool }) {
+function ExtraCopies({ tool, onRemove }: { tool: CatalogTool; onRemove: (copy: Copy) => void }) {
   const installs = useTools((s) => s.installs[tool.id]) ?? []
   const [first, ...unused] = installs
   const m = useMessages(toolsMessages).details
+  const button = useMessages(copiesMessages).button
   if (!first) return null
   return (
     <section
@@ -229,7 +234,19 @@ function ExtraCopies({ tool }: { tool: CatalogTool }) {
             <span className="text-[0.9rem] text-ink-soft">
               <code className="selectable font-mono">{i.path}</code> · {i.version ?? m.doesNotStart} · {i.manager}
             </span>
-            <CopyField value={removeCommand(i.manager, tool.package, i.path)} label={m.removeCopy(i.path)} />
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="min-w-0 flex-1 basis-[22rem]">
+                <CopyField value={removeCommand(i.manager, tool.package, i.path)} label={m.removeCopy(i.path)} />
+              </div>
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={() => onRemove(i)}
+                icon={<Trash2 className="size-4" aria-hidden />}
+              >
+                {button}
+              </Button>
+            </div>
           </li>
         ))}
       </ul>

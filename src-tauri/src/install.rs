@@ -3,6 +3,7 @@ use crate::provenance::{self, Refusal};
 use crate::{node, npm_prefix, paths, redact, run, skills, system, tools};
 use serde::Serialize;
 use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 use std::time::Duration;
 use tauri::ipc::Channel;
@@ -185,7 +186,7 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     let prefix = (program == "npm").then(|| install_prefix(existing.as_ref())).flatten();
 
     send(InstallEvent::Step { step: Step::Install });
-    run_manager(&program_path, &args, prefix.as_deref(), tool, running, events, "Installation")?;
+    run_manager(&program_path, &args, prefix.as_deref(), tool, running, &send, "Installation")?;
 
     send(InstallEvent::Step { step: Step::Verify });
     if let Some(p) = &prefix {
@@ -305,8 +306,11 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Remove });
+    let send = |e| {
+        let _ = events.send(e);
+    };
     for (program, args, prefix) in &plan {
-        run_manager(program, args, prefix.as_deref(), tool, running, events, "Uninstalling")?;
+        run_manager(program, args, prefix.as_deref(), tool, running, &send, "Uninstalling")?;
     }
 
     let _ = events.send(InstallEvent::Step { step: Step::Verify });
@@ -321,6 +325,99 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
     Ok(InstallEvent::Removed)
 }
 
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct CopyRemoval {
+    pub removed: bool,
+    pub log: Vec<String>,
+    pub message: Option<String>,
+    pub hint: Option<String>,
+}
+
+/// Removes one unused copy of a tool, the one at `shown` (as `tools::detect` reports it), with the manager that put it
+/// there. Never the copy the app runs, and only npm and pnpm: each is told exactly which global folder to act on, so the
+/// other copy cannot be the one removed.
+pub fn remove_copy(tool: &Tool, shown: &str, running: &Running) -> CopyRemoval {
+    let refused = |message: String| CopyRemoval { removed: false, log: Vec::new(), message: Some(message), hint: None };
+    let target = paths::untilde(shown);
+    let found = paths::find_all(&tool.bin);
+    if !found.contains(&target) {
+        return refused(format!("{shown} is no longer a copy of `{}`. Check again.", tool.bin));
+    }
+    if tools::program(&tool.bin).as_ref() == Some(&target) {
+        return refused(format!("{shown} is the copy WireCat runs, so it stays."));
+    }
+    let plan = match copy_removal(&target, &tool.package, paths::pnpm_home().map(PathBuf::from).as_deref()) {
+        Ok(plan) => plan,
+        Err(message) => return refused(message),
+    };
+    let Some(program) = plan.beside(&target).or_else(|| paths::find(plan.program)) else {
+        return refused(format!("{} was not found, so {shown} cannot be removed here.", plan.program));
+    };
+
+    let syncs = crate::sync::package_prefix(&tool.id);
+    if !running.start_unless(&tool.id, |k| k.starts_with(&syncs)) {
+        return refused("Another operation on this tool is running, such as a sync. Stop it first.".into());
+    }
+    let log = Mutex::new(Vec::new());
+    let send = |e| {
+        if let InstallEvent::Log { line, .. } = e {
+            log.lock().unwrap().push(line);
+        }
+    };
+    let args: Vec<&str> = plan.args.iter().map(String::as_str).collect();
+    let result = run_manager(&program, &args, plan.prefix.as_deref(), tool, running, &send, "Removing the copy");
+    running.finish(&tool.id);
+    paths::refresh(&[]);
+    let log = log.into_inner().unwrap();
+    match result {
+        Err(Failure(_, message, hint)) => CopyRemoval { removed: false, log, message: Some(message), hint },
+        Ok(()) if paths::find_all(&tool.bin).contains(&target) => CopyRemoval {
+            removed: false,
+            log,
+            message: Some(format!("{} finished, but {shown} is still there.", plan.program)),
+            hint: Some("Remove it with the program that installed it.".into()),
+        },
+        Ok(()) => CopyRemoval { removed: true, log, message: None, hint: None },
+    }
+}
+
+#[derive(Debug, PartialEq)]
+struct CopyPlan {
+    program: &'static str,
+    args: Vec<String>,
+    /// npm's global folder for this copy, given to npm as its prefix.
+    prefix: Option<PathBuf>,
+}
+
+impl CopyPlan {
+    /// An nvm copy belongs to the npm of that Node version, which sits beside it.
+    fn beside(&self, copy: &Path) -> Option<PathBuf> {
+        (self.program == "npm").then(|| copy.parent().and_then(|dir| paths::which_in("npm", dir.as_os_str()))).flatten()
+    }
+}
+
+fn copy_removal(copy: &Path, package: &str, pnpm_home: Option<&Path>) -> Result<CopyPlan, String> {
+    let shown = paths::tilde(&copy.to_string_lossy());
+    match paths::manager_for(copy) {
+        // pnpm acts on its one global folder; a copy outside it belongs to another pnpm.
+        "pnpm" if pnpm_home.is_some_and(|home| copy.starts_with(home)) => Ok(CopyPlan {
+            program: "pnpm",
+            args: vec!["remove".into(), "--global".into(), package.into()],
+            prefix: None,
+        }),
+        "npm" => match npm_prefix::of_copy(copy) {
+            Some(prefix) => Ok(CopyPlan {
+                program: "npm",
+                args: vec!["uninstall".into(), "--global".into(), package.into()],
+                prefix: Some(prefix),
+            }),
+            None => Err(format!("WireCat cannot tell which npm folder {shown} belongs to.")),
+        },
+        manager => Err(format!("WireCat removes only npm and pnpm copies; remove {shown} with {manager}.")),
+    }
+}
+
 /// Runs npm, pnpm, bun or volta with streamed, masked output; `what` names the operation in errors. `prefix` is the
 /// global folder npm acts on, whatever its own config says.
 fn run_manager(
@@ -329,12 +426,9 @@ fn run_manager(
     prefix: Option<&std::path::Path>,
     tool: &Tool,
     running: &Running,
-    events: &Channel<InstallEvent>,
+    send: &dyn Fn(InstallEvent),
     what: &str,
 ) -> Result<(), Failure> {
-    let send = |e| {
-        let _ = events.send(e);
-    };
     let name = program.file_stem().unwrap_or_default().to_string_lossy().to_string();
     send(InstallEvent::Log { line: format!("$ {name} {}", args.join(" ")), stderr: false });
     let mut tail: Vec<String> = Vec::new();
@@ -472,5 +566,33 @@ mod tests {
         let busy = classify_on("npm error code EPERM\nnpm error syscall unlink", "npm", true);
         assert_eq!(busy.0, Reason::Failed);
         assert!(busy.1.contains("running program"), "{}", busy.1);
+    }
+
+    #[test]
+    fn a_copy_is_removed_by_the_manager_of_its_own_folder() {
+        let pkg = "@wirecat/tg-cli";
+        let home = Path::new("/home/o/.local/share/pnpm");
+        let nvm = Path::new("/home/o/.nvm/versions/node/v24.19.0/bin/tg");
+        assert_eq!(
+            copy_removal(nvm, pkg, Some(home)),
+            Ok(CopyPlan {
+                program: "npm",
+                args: vec!["uninstall".into(), "--global".into(), pkg.into()],
+                prefix: Some(PathBuf::from("/home/o/.nvm/versions/node/v24.19.0")),
+            })
+        );
+        let pnpm = copy_removal(&home.join("bin/tg"), pkg, Some(home)).unwrap();
+        assert_eq!((pnpm.program, pnpm.args), ("pnpm", vec!["remove".into(), "--global".into(), pkg.into()]));
+    }
+
+    #[test]
+    fn a_copy_of_unknown_origin_is_refused() {
+        let pkg = "@wirecat/tg-cli";
+        let other_pnpm = Path::new("/opt/pnpm/bin/tg");
+        assert!(copy_removal(other_pnpm, pkg, Some(Path::new("/home/o/.local/share/pnpm"))).is_err());
+        assert!(copy_removal(other_pnpm, pkg, None).is_err());
+        assert!(copy_removal(Path::new("/home/o/.bun/bin/tg"), pkg, None).unwrap_err().contains("bun"));
+        assert!(copy_removal(Path::new("/home/o/.volta/bin/tg"), pkg, None).is_err());
+        assert!(copy_removal(Path::new("/home/o/tools/tg"), pkg, None).is_err(), "not in a bin folder");
     }
 }

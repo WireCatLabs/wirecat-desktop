@@ -123,13 +123,14 @@ const en = {
       n === 2 ? (
         <>
           2 copies of {bin} are installed. WireCat runs the newest, {path} ({version}, {manager}). A terminal or an
-          agent may still run the other one, and it can confuse updates. Remove it with the program that installed it:
+          agent may still run the other one, and it can confuse updates. Remove it here, or run the command of the
+          program that installed it:
         </>
       ) : (
         <>
           {n} copies of {bin} are installed. WireCat runs the newest, {path} ({version}, {manager}). A terminal or an
-          agent may still run another one, and they can confuse updates. Remove them with the program that installed
-          them:
+          agent may still run another one, and they can confuse updates. Remove them here, or run the command of the
+          program that installed each:
         </>
       ),
     removeCopy: (path: string) => `Copy the command that removes ${path}`,
@@ -476,12 +477,14 @@ const ru: typeof en = {
       n === 2 ? (
         <>
           Установлены 2 копии {bin}. WireCat запускает самую новую: {path} ({version}, {manager}). Терминал или агент
-          может запускать другую, и она может мешать обновлениям. Удалите её программой, которая её установила:
+          может запускать другую, и она может мешать обновлениям. Удалите её здесь или командой программы, которая её
+          установила:
         </>
       ) : (
         <>
           Установлено копий {bin}: {n}. WireCat запускает самую новую: {path} ({version}, {manager}). Терминал или агент
-          может запускать другую, и они могут мешать обновлениям. Удалите их программами, которые их установили:
+          может запускать другую, и они могут мешать обновлениям. Удалите их здесь или командами программ, которые их
+          установили:
         </>
       ),
     removeCopy: (path) => `Скопировать команду, которая удаляет ${path}`,
@@ -832,14 +835,14 @@ const es: typeof en = {
       n === 2 ? (
         <>
           Hay 2 copias de {bin} instaladas. WireCat ejecuta la más reciente, {path} ({version}, {manager}). Un terminal
-          o un agente puede ejecutar la otra, y puede confundir las actualizaciones. Elimínala con el programa que la
-          instaló:
+          o un agente puede ejecutar la otra, y puede confundir las actualizaciones. Elimínala aquí o con el comando del
+          programa que la instaló:
         </>
       ) : (
         <>
           Hay {n} copias de {bin} instaladas. WireCat ejecuta la más reciente, {path} ({version}, {manager}). Un
-          terminal o un agente puede ejecutar otra, y pueden confundir las actualizaciones. Elimínalas con el programa
-          que las instaló:
+          terminal o un agente puede ejecutar otra, y pueden confundir las actualizaciones. Elimínalas aquí o con el
+          comando del programa que instaló cada una:
         </>
       ),
     removeCopy: (path) => `Copiar el comando que elimina ${path}`,
