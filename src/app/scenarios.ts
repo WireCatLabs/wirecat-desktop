@@ -10,7 +10,7 @@ import { useTasks } from "@/features/tasks/store"
 import { useTools } from "@/features/tools/store"
 import { useSync } from "@/features/tools/sync-store"
 import { platform } from "@/platform/bridge"
-import { showcase } from "@/platform/mock-showcase"
+import { showcase, showcaseQuery } from "@/platform/mock-showcase"
 import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 
 // Browser-only: starts the install named in `?install=<tool>` so a review can capture the progress state.
@@ -102,7 +102,13 @@ async function searchScenario(params: URLSearchParams) {
   if (profile) search.chooseProfile(profile.name)
   const fail = params.get("search-fail")
   search.setQuery(
-    fail === "query" ? "invoice bogus:x date>=30d" : tool === "zm" ? "budget review" : showcase ? "Lisbon" : "invoice",
+    fail === "query"
+      ? "invoice bogus:x date>=30d"
+      : tool === "zm"
+        ? "budget review"
+        : showcase
+          ? showcaseQuery()
+          : "invoice",
   )
   await search.search(1)
 }

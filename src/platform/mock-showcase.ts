@@ -2,6 +2,7 @@ import { findTool, ownerId, tools } from "@/domain/catalog"
 import type { StoreCompat } from "@/domain/compat"
 import type { Agent } from "./agents-schemas"
 import { delay } from "./mock-delay"
+import { SHOWCASE_TEXT, showcaseLang } from "./mock-showcase-text"
 import type { RunItem } from "./runs-schemas"
 import type { SearchHit } from "./search-schemas"
 import type { Platform } from "./types"
@@ -44,37 +45,21 @@ const AGENTS: Agent[] = [
 const SERVERS: Record<string, string[]> = { claude: ["memo", "tg-personal"], codex: ["tg-personal"] }
 const SYNCED: Record<string, number> = { tg: 4, max: 9, wa: 6, zm: 38, drive: 22, memo: 15, email: 15 }
 
-const CHATS = [
-  { title: "Lisbon trip", people: ["Ana Ruiz", "Marco Bellini", "You"] },
-  { title: "Design crit", people: ["Marco Bellini", "Kai", "You"] },
-  { title: "Family", people: ["Jo Park", "You"] },
-  { title: "Climbing club", people: ["Lena Vogel", "Kai"] },
-]
-const LINES: [chat: number, from: string, text: string][] = [
-  [0, "Ana Ruiz", "Booked the flat in Alfama for Lisbon, 12–16 May. Check-in after 3 pm"],
-  [0, "Marco Bellini", "Flights to Lisbon are cheaper on Thursday, sending the link"],
-  [1, "Kai", "Can we move the crit to Monday? I'm back from Lisbon on Sunday night"],
-  [0, "You", "Made a shared list for Lisbon: pastéis, Belém, the tram 28 at sunrise"],
-  [2, "Jo Park", "Grandma says bring her a tin of sardines from Lisbon 🙂"],
-  [3, "Lena Vogel", "Anyone up for Sintra cliffs the weekend after Lisbon?"],
-  [0, "Ana Ruiz", "Table for six at a fado place in Lisbon on Friday, 9 pm"],
-  [1, "Marco Bellini", "Moodboard is up, half of it is Lisbon tiles, sorry not sorry"],
-  [0, "Marco Bellini", "Lisbon card covers the trams and most museums, worth it for three days"],
-  [2, "You", "Landing in Lisbon at 14:20, will call when we're at the flat"],
-  [3, "Kai", "Found a climbing gym ten minutes from our Lisbon flat"],
-  [0, "Ana Ruiz", "Weather for Lisbon looks perfect: 24° and sun all week"],
-]
-const AROUND = [
-  "Did anyone find a place yet?",
-  "Ana was looking in Alfama",
-  "Yes! One sec",
-  "Three bedrooms and a terrace with a view",
-  "",
-  "Perfect, I'll book flights tonight",
-  "Who brings the camera?",
-  "Me, and the spare battery this time",
-  "See you all on Thursday",
-]
+const T = SHOWCASE_TEXT[showcase ? showcaseLang() : "en"]
+const LINES = T.lines
+export const showcaseQuery = () => T.query
+
+/** Swaps the stock mocks' English for the interface language: whole strings first, then names inside the rest. */
+function localise<V>(value: V): V {
+  if (typeof value === "string") {
+    const whole = T.text[value] ?? value
+    return T.names.reduce((s, [from, to]) => s.replaceAll(from, to), whole) as V
+  }
+  if (Array.isArray(value)) return value.map(localise) as V
+  if (value && typeof value === "object")
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, localise(v)])) as V
+  return value
+}
 
 const sentAt = (i: number) => Date.UTC(2026, 9, 31, 19, 12) - i * 9.4 * 3600_000
 
@@ -83,8 +68,8 @@ function lisbonHit(i: number): SearchHit {
   return {
     ref: `msg:telegram/1/-100${2000 + chat}/${7000 + i}`,
     timestamp: new Date(sentAt(i)).toISOString(),
-    chat_title: CHATS[chat]?.title,
-    sender_name: from,
+    chat_title: T.chats[chat]?.title,
+    sender_name: from === "You" ? T.you : from,
     sender_is_me: from === "You",
     excerpt: text,
     matched_in: "text",
@@ -99,7 +84,7 @@ function conversation(ref: string) {
     LINES.findIndex((_, n) => lisbonHit(n).ref === ref),
   )
   const [chat, sender, text] = LINES[i] as (typeof LINES)[number]
-  const people = CHATS[chat]?.people ?? ["You"]
+  const people = T.chats[chat]?.people ?? ["You"]
   const at = sentAt(i)
   return {
     items: Array.from({ length: 9 }, (_, n) => {
@@ -107,9 +92,9 @@ function conversation(ref: string) {
       return {
         ref: n === 4 ? ref : `${ref}-${n}`,
         timestamp: new Date(at + (n - 4) * 180_000).toISOString(),
-        sender_name: from,
+        sender_name: from === "You" ? T.you : from,
         sender_is_me: from === "You",
-        text: n === 4 ? text : AROUND[n],
+        text: n === 4 ? text : T.around[n],
         attachments: [],
         anchor: n === 4 ? true : undefined,
       }
@@ -255,8 +240,15 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
       if (answer.kind !== "ready") return answer
       const soon = new Date(Date.now() + 2 * 24 * 60 * MIN).toISOString()
       const late = (due: string | null, closed: string | null) => due && !closed && Date.parse(due) < Date.now()
-      return { ...answer, tasks: answer.tasks.map((t) => (late(t.dueAt, t.closedAt) ? { ...t, dueAt: soon } : t)) }
+      const tasks = answer.tasks.map((t) => (late(t.dueAt, t.closedAt) ? { ...t, dueAt: soon } : t))
+      return localise({ ...answer, tasks })
     },
+    taskShow: async (key) => localise(await base.taskShow(key)),
+    taskCounts: async (query) => localise(await base.taskCounts(query)),
+    peopleList: async () => localise(await base.peopleList()),
+    projectList: async () => localise(await base.projectList()),
+    memoryRead: async (...args) => localise(await base.memoryRead(...args)),
+    memorySources: async (ref) => localise(await base.memorySources(ref)),
     async searchStore(id, profile, query, limit, page) {
       const answer = await base.searchStore(id, profile, query, limit, page)
       if (answer.kind !== "hits") return answer
@@ -266,7 +258,7 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
         hits: LINES.map((_, i) => lisbonHit(i)),
         hasMore: false,
         paged: answer.paged,
-        notes: ["searched 18,240 messages in 72 chats"],
+        notes: [T.note],
         total: { value: LINES.length, relation: "eq" },
       }
     },
