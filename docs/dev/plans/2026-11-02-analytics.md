@@ -97,6 +97,104 @@ Each extra count is one `stats messages show` per profile, three at a time, aske
 6. **Time saved by agents**: not built. No tool records how long a task would have taken by hand, and a guess would
    be a number the page cannot stand behind.
 
+## CLI aggregates wanted (specs for the CLI work, 2026-11-02, round 3)
+
+Every command below is read-only, reads the local store only (`--offline` where the tool has it), accepts
+`--no-record --json`, takes the period as a query term after `--` (`date>=30d`, `date:[60d TO 30d]`, nothing for all
+time) and answers one `item`. Times are ISO 8601 UTC; day keys are `YYYY-MM-DD` in `--timezone`, week keys the Monday
+`YYYY-MM-DD`. Counts only: no message text. Names appear only where a row is a chat, a sender or a meeting series; the
+app shows them locally and never logs them. A tool without the command answers "unknown command", which the app shows
+as "arrives with a <tool> update". The app's catalog block is `aggregates` (`catalog/tools.json`).
+
+### A1 · Mail in and out per day (memo)
+
+```text
+memo stats mail show [--source email:<account>] --by day|week|sender --timezone <zone> --limit <n> --no-record --json -- [query]
+```
+
+```json
+{ "item": { "by": "day", "received": 412, "sent": 96,
+  "rows": [ { "key": "2026-11-01", "name": null, "received": 14, "sent": 3 } ] } }
+```
+
+`--by sender` keys a row by the sender's address id and gives `name`; `sent` is 0 there. Query fields as `search mail`.
+
+### A2 · Meetings per day and week, duration, series (zm; memo for calendar events later)
+
+```text
+zm <profile> stats meetings show --by day|week|series --timezone <zone> --limit <n> --no-record --json -- [query]
+```
+
+```json
+{ "item": { "by": "week", "meetings": 18, "minutes": 940, "mean_minutes": 52.2,
+  "rows": [ { "key": "2026-10-26", "name": null, "meetings": 5, "minutes": 260, "mean_minutes": 52 } ] } }
+```
+
+`--by series` keys a row by the series id and gives its title as `name`, busiest (most minutes) first. A meeting with
+no end counts in `meetings`, not in `minutes`.
+
+### A3 · Response time, aggregate (tg, max, wa; cli-core)
+
+```text
+<bin> <profile> stats messages responses --who me|others --by day|total --timezone <zone> --no-record --json -- [query]
+```
+
+```json
+{ "item": { "who": "me", "replies": 233, "median_ms": 1260000, "p90_ms": 15400000, "mean_ms": 4100000,
+  "buckets": { "under_5m": 81, "under_1h": 74, "under_1d": 61, "over_1d": 17 },
+  "rows": [ { "key": "2026-11-01", "replies": 9, "median_ms": 900000, "p90_ms": 7200000, "mean_ms": 2100000 } ] } }
+```
+
+`me`: how long the owner took to answer someone else's message in a one-to-one chat or a direct mention, measured from
+the message to the owner's next message in that chat. `others`: the same for replies to the owner. No per-person rows
+here; `stats contacts responses` keeps those.
+
+### A4 · Waiting on you (tg, max, wa; cli-core)
+
+```text
+<bin> <profile> stats messages waiting --no-record --json -- [query]
+```
+
+```json
+{ "item": { "chats": 7, "messages": 19, "oldest_at": "2026-10-28T09:12:00Z",
+  "by_kind": { "private": 5, "group": 2 } } }
+```
+
+A chat waits when its last message is not the owner's and asks something of the owner (a question in a one-to-one
+chat, or a mention). Counts only.
+
+### A5 · Transcripts over time (cli-core query language)
+
+`has:transcript` in the messages query language, so `stats messages show --by day -- has:transcript date>=30d`
+counts voice messages that have a transcription. Meeting transcripts come from A2 with `has:transcript`.
+
+### A6 · Chats never fetched (tg, max, wa; cli-core)
+
+```text
+<bin> <profile> store coverage --no-record --json
+```
+
+```json
+{ "item": { "chats": 1611, "fetched": 1288, "partial": 201, "never": 122, "oldest_message_at": "2019-03-02T10:00:00Z" } }
+```
+
+### A7 · Tasks by where they came from, with resolve times (memo)
+
+`memo stats tasks show` already gives per chat `open`, `oldest_open_at` and `median_close_ms`. Wanted on top:
+
+```text
+memo stats tasks show --by chat|meeting|project --timezone <zone> --no-record --json -- [query]
+```
+
+```json
+{ "item": { "open": 31, "created": 44, "closed": 39, "median_close_ms": 172800000, "mean_open_age_ms": 518400000,
+  "rows": [ { "key": "chat:telegram/1/-1001", "name": "Harbour launch", "open": 4, "created": 9, "closed": 7,
+    "median_close_ms": 86400000, "mean_open_age_ms": 259200000 } ] } }
+```
+
+and a `created` time field in the task query language (`created>=30d`), so the period applies to `created` and
+`closed`. `--by meeting` keys a row by the meeting the task was found in (`meeting:<account>/<id>`).
+
 ## Decisions
 
 - **One messenger, every profile.** Without `--source`, `stats messages show` counts the profile's own account
