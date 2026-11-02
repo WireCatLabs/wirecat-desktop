@@ -102,9 +102,6 @@ export function TaskDialog() {
               </span>
             )}
           </span>
-          <Button size="sm" variant="ghost" onClick={close}>
-            {m.close}
-          </Button>
         </>
       }
       footer={

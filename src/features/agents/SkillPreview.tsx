@@ -4,7 +4,6 @@ import { findTool } from "@/domain/catalog"
 import { SKILL_TARGETS, TARGET_FOLDER } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
@@ -47,18 +46,7 @@ export function SkillPreview() {
   const differs = copies.some((c) => c.installed && version && c.installed !== version)
 
   return (
-    <Dialog
-      open={id !== null}
-      wide
-      scroll
-      title={tool ? m.skillTitle(tool.name) : ""}
-      onClose={close}
-      actions={
-        <Button variant="ghost" data-autofocus onClick={close}>
-          {m.close}
-        </Button>
-      }
-    >
+    <Dialog open={id !== null} wide scroll title={tool ? m.skillTitle(tool.name) : ""} onClose={close}>
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[0.9rem]">
         <dt className="text-ink-dim">{m.comesWith(tool?.bin ?? "")}</dt>
         <dd className="selectable font-mono text-ink tabular-nums">{version ?? "—"}</dd>

@@ -161,7 +161,7 @@ export function ConnectDialog({
       actions={
         flow.phase === "choose" ? (
           <>
-            <Button variant="ghost" onClick={flow.close}>
+            <Button variant="secondary" onClick={flow.close}>
               {m.cancel}
             </Button>
             <Button variant="primary" onClick={connect}>

@@ -1,7 +1,6 @@
 import { useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
-import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { toolsMessages } from "./messages"
 import { permissionsMessages } from "./messages-permissions"
@@ -23,18 +22,7 @@ export function LevelsHelp({ tool }: { tool: CatalogTool }) {
       >
         {m.open}
       </button>
-      <Dialog
-        open={open}
-        wide
-        scroll
-        title={m.title}
-        onClose={() => setOpen(false)}
-        actions={
-          <Button onClick={() => setOpen(false)} data-autofocus>
-            {m.close}
-          </Button>
-        }
-      >
+      <Dialog open={open} wide scroll title={m.title} onClose={() => setOpen(false)}>
         <p>{m.intro(tool.bin)}</p>
         <dl className="mt-3 flex flex-col gap-2.5">
           {LEVELS.map((l) => (

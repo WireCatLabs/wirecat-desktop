@@ -3,7 +3,6 @@ import { Fragment, useEffect, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { Monogram } from "@/ui/Logo"
 import { useReport } from "../report/store"
@@ -51,16 +50,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
   }
 
   return (
-    <Dialog
-      open={open}
-      title={m.title}
-      onClose={onClose}
-      actions={
-        <Button variant="ghost" data-autofocus onClick={onClose}>
-          {m.close}
-        </Button>
-      }
-    >
+    <Dialog open={open} title={m.title} onClose={onClose}>
       <div className="flex flex-col gap-5">
         <div className="flex items-start gap-4">
           <Monogram className="size-[3rem] shrink-0" />

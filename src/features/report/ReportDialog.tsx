@@ -351,7 +351,7 @@ function Actions({ fields }: { fields: ReportFields }) {
           {m.openOnGitHub}
         </Button>
       )}
-      <Button variant="ghost" onClick={close}>
+      <Button variant="secondary" onClick={close}>
         {m.cancel}
       </Button>
       <Button

@@ -30,7 +30,7 @@ export function ForgetDialog({ entry }: { entry: MemoryEntry | null }) {
       onClose={close}
       actions={
         <>
-          <Button variant="ghost" data-autofocus onClick={close}>
+          <Button variant="secondary" data-autofocus onClick={close}>
             {m.keep}
           </Button>
           {canDiscard && (

@@ -153,7 +153,7 @@ export function ConfigPage() {
         onClose={() => setPending(null)}
         actions={
           <>
-            <Button variant="ghost" onClick={() => setPending(null)} autoFocus>
+            <Button variant="secondary" onClick={() => setPending(null)} autoFocus>
               {m.discard.keep}
             </Button>
             <Button

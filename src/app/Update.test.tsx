@@ -99,7 +99,7 @@ describe("App update", () => {
         "sudo install -m 644 ~/Downloads/wirecat_0.2.0_amd64.deb /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/wirecat_0.2.0_amd64.deb",
       ),
     ).toBeVisible()
-    expect(within(dialog).getByRole("button", { name: "Close" })).toHaveFocus()
+    expect(within(dialog).getAllByRole("button", { name: "Close" })[0]).toHaveFocus()
     expect(download).toHaveBeenCalledWith("0.2.0", expect.any(Function))
     expect(install).not.toHaveBeenCalled()
   })

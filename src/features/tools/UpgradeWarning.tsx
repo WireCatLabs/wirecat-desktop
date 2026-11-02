@@ -25,7 +25,7 @@ export function UpgradeWarning() {
       onClose={close}
       actions={
         <>
-          <Button variant="ghost" data-autofocus onClick={close}>
+          <Button variant="secondary" data-autofocus onClick={close}>
             {m.notNow}
           </Button>
           {updatable.length > 0 && (
