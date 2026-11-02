@@ -46,6 +46,10 @@ const COLLECTED_BY: Record<string, string> = {
 
 export const collectedBy = (p: string): string | null => COLLECTED_BY[p] ?? null
 
+/** The source a tool collects into storage, by its program: memo's `msg:whatsapp/…` for `wa`. */
+export const providerOf = (bin: string): string | null =>
+  Object.keys(COLLECTED_BY).find((p) => COLLECTED_BY[p] === bin) ?? null
+
 /** Totals in the order the page shows them; only the tables this store has. */
 export const TOTALS = ["messages", "chats", "emails", "documents", "meetings", "attachments", "accounts"] as const
 export type TotalKey = (typeof TOTALS)[number]
