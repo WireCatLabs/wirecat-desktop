@@ -9,7 +9,7 @@ export function CheckMark({ on, round = false, className }: { on: boolean; round
       className={cx(
         "grid size-[1rem] shrink-0 place-items-center border transition-colors duration-150",
         round ? "rounded-full" : "rounded-[0.25rem]",
-        on ? "border-brand bg-brand text-brand-ink" : "border-line-strong bg-app",
+        on ? "border-brand bg-brand text-brand-ink" : "border-ink-dim/55 bg-app",
         className,
       )}
     >
@@ -65,8 +65,8 @@ function Native({ type, checked, onChange, disabled, className, ...rest }: Props
         on={checked}
         round={round}
         className={cx(
-          "pointer-events-none size-[1.05rem] peer-hover:border-ink-dim/70 peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand",
-          checked && "peer-hover:border-brand",
+          "pointer-events-none size-[1.05rem] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand",
+          !checked && "peer-hover:border-ink-dim",
           disabled && "opacity-45",
         )}
       />

@@ -121,7 +121,9 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
           }}
           className={cx(
             "flex min-w-0 cursor-pointer items-center gap-[0.35rem] rounded-[0.3rem] pr-[0.4rem] pl-[0.6rem] transition-colors duration-150",
-            on ? "text-ink-soft hover:bg-brand/10" : "text-ink-soft hover:bg-app-2 hover:text-ink",
+            on
+              ? "text-ink-soft hover:bg-brand/10 active:bg-brand/15"
+              : "text-ink-soft hover:bg-app-2 hover:text-ink active:bg-app-3",
           )}
         >
           <span className="shrink-0">{on ? `${label}:` : label}</span>
@@ -142,7 +144,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
               onChange([])
               button.current?.focus()
             }}
-            className="grid w-[1.9rem] shrink-0 cursor-pointer place-items-center rounded-r-[0.3rem] border-brand/30 border-l text-ink-dim transition-colors duration-150 hover:bg-brand/10 hover:text-ink"
+            className="grid w-[1.9rem] shrink-0 cursor-pointer place-items-center rounded-r-[0.3rem] border-brand/30 border-l text-ink-dim transition-colors duration-150 hover:bg-brand/10 hover:text-ink active:bg-brand/15"
           >
             <X className="size-[0.9rem]" aria-hidden />
           </button>

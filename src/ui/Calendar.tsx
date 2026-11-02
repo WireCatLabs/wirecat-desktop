@@ -168,7 +168,7 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
           aria-label={m.previousMonth}
           title={m.previousMonth}
           onClick={() => go(shiftMonth(focus, -1))}
-          className="grid size-8 cursor-pointer place-items-center rounded-[0.35rem] text-ink-soft hover:bg-app-3 hover:text-ink"
+          className="grid size-8 cursor-pointer place-items-center rounded-[0.35rem] text-ink-soft hover:bg-app-3 hover:text-ink active:bg-app-3"
         >
           <ChevronLeft className="size-4" aria-hidden />
         </button>
@@ -180,7 +180,7 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
           aria-label={m.nextMonth}
           title={m.nextMonth}
           onClick={() => go(shiftMonth(focus, 1))}
-          className="grid size-8 cursor-pointer place-items-center rounded-[0.35rem] text-ink-soft hover:bg-app-3 hover:text-ink"
+          className="grid size-8 cursor-pointer place-items-center rounded-[0.35rem] text-ink-soft hover:bg-app-3 hover:text-ink active:bg-app-3"
         >
           <ChevronRight className="size-4" aria-hidden />
         </button>
@@ -230,10 +230,13 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
                       className={cx(
                         "relative grid h-[2.2rem] w-full cursor-pointer place-items-center font-mono text-[0.9rem] tabular-nums transition-colors duration-150",
                         end
-                          ? "rounded-[0.35rem] bg-brand font-semibold text-brand-ink hover:bg-brand-hover"
+                          ? "rounded-[0.35rem] bg-brand font-semibold text-brand-ink hover:bg-brand-hover active:bg-brand-hover"
                           : between
                             ? "bg-brand-soft text-ink hover:bg-brand/20"
-                            : cx("rounded-[0.35rem] hover:bg-app-3", inMonth ? "text-ink" : "text-ink-dim/70"),
+                            : cx(
+                                "rounded-[0.35rem] hover:bg-app-3 active:bg-line",
+                                inMonth ? "text-ink" : "text-ink-dim/70",
+                              ),
                       )}
                     >
                       {parse(day).getDate()}

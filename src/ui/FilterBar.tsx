@@ -94,8 +94,8 @@ export function ToggleChip({
       className={cx(
         "flex h-8 cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] border px-[0.6rem] text-[0.875rem] transition-colors duration-150",
         on
-          ? "border-brand/50 bg-brand-soft text-ink hover:bg-brand/15"
-          : "border-line-strong bg-app text-ink-soft hover:bg-app-2 hover:text-ink",
+          ? "border-brand/50 bg-brand-soft text-ink hover:bg-brand/15 active:bg-brand/20"
+          : "border-line-strong bg-app text-ink-soft hover:bg-app-2 hover:text-ink active:bg-app-3",
       )}
     >
       <CheckMark on={on} className="size-[0.95rem]" />
