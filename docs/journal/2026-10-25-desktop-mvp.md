@@ -136,6 +136,10 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
   - PR cli-docs #490 (не слит): переключатель демо по языкам, WhatsApp-диалоги для 4 случаев, MAX убран из верха en/es при экспорте, панель Connect: «Get WireCat Desktop» + «Download for <ОС>», CLI вторым, Google Calendar в строке источников. Попутно: ru/es копировали английский запрос (экспорт искал старый текст) — исправлено.
   - Не прогнаны локально: stable-home, onboarding-merge, whatsapp.spec, mobile-delivery, copy-feedback, public-site-navigation, site-quality (OOM). Запускаются при мерже в main.
 
+- **TASK-58 · Единые фильтры Memory и Tasks, никаких нативных контролов (2026-11-02).** Слава: «let's unify the search filters for memory and tasks. also never use native components like datepicker, they break the design, make sure the design is the best for every component and the all looks good. in general I like more tasks style».
+  - Нативные на main: `type="date"` в tasks/Filters, NewTask, cells; checkbox в 6 файлах (ConnectDialog, memory/Row, onboarding/steps, BackupPanel, ClearStorageDialog, ToolDetails); radio в 6 (проверить вид); range в AppPreferences. `Select` уже свой.
+  - Отдано агенту, ветка `feat/unified-filters`; Search и кнопки не трогает (их делает fix/search-real-data).
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
