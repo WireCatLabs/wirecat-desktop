@@ -2,8 +2,8 @@ import { ArrowDown, ArrowUp } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import * as v from "valibot"
 import { addDays, meetingStats, weekOf } from "@/domain/analytics"
-import { formatList, formatNumber, useLang, useMessages } from "@/i18n"
-import { MailSchema, MeetingsListSchema, WaitingSchema } from "@/platform/analytics-schemas"
+import { formatNumber, useLang, useMessages } from "@/i18n"
+import { MailSchema, MeetingsListSchema } from "@/platform/analytics-schemas"
 import { platform } from "@/platform/bridge"
 import { Skeleton } from "@/ui/Skeleton"
 import { analyticsMessages } from "./messages"
@@ -156,61 +156,6 @@ export function WeekTiles() {
         format={(n) => `${made === null ? "—" : formatNumber(made)} · ${formatNumber(n)}`}
         {...(made === null && closed ? { note: m.madeLater } : {})}
       />
-    </section>
-  )
-}
-
-/** What needs the owner now, each a link to the card that explains it. */
-export function Attention() {
-  const m = useMessages(analyticsMessages)
-  const preview = useAnalytics((s) => s.preview)
-  const today = useAnalytics((s) => s.today)
-  const waiting = [
-    ready(useAggregate("waiting", "tg"), WaitingSchema),
-    ready(useAggregate("waiting", "max"), WaitingSchema),
-    ready(useAggregate("waiting", "wa"), WaitingSchema),
-  ]
-  const [old, setOld] = useState<number | null>(null)
-  useEffect(() => {
-    const cutoff = addDays(today, -14)
-    void platform
-      .taskList("")
-      .then((r) =>
-        setOld(
-          r.kind === "ready"
-            ? r.tasks.filter((t) => !["done", "dismissed"].includes(t.state) && t.createdAt.slice(0, 10) < cutoff)
-                .length
-            : null,
-        ),
-      )
-      .catch(() => setOld(null))
-  }, [today])
-  const chats = waiting.flatMap((w) => w.bodies).reduce((s, b) => s + b.chats, 0)
-  const anyWaiting = waiting.some((w) => w.bodies.length)
-  const items: [string, string, ReactNode][] = [
-    [
-      "#an-waiting",
-      m.waitingLink(anyWaiting ? m.waitingChats(chats) : "—"),
-      anyWaiting ? null : m.needsUpdate(formatList(["Telegram", "MAX", "WhatsApp"])),
-    ],
-    ["#an-open", m.oldTasksLink(old === null ? "—" : formatNumber(old)), null],
-    [
-      "#an-meetings",
-      m.tomorrowLink(preview ? formatNumber(preview.meetingsTomorrow) : "—"),
-      preview ? null : m.needsUpdate("Zoom"),
-    ],
-  ]
-  return (
-    <section
-      aria-label={m.attention}
-      className="grid grid-cols-1 gap-[1rem] rounded-[0.2rem] border border-warn/40 bg-warn/10 px-[1.1rem] py-[0.9rem] md:grid-cols-3"
-    >
-      {items.map(([href, text, note]) => (
-        <a key={href} href={href} className="flex flex-col gap-0.5 text-[1rem] font-medium text-ink hover:text-brand">
-          {text}
-          {note && <span className="text-[0.85rem] font-normal text-ink-soft">{note}</span>}
-        </a>
-      ))}
     </section>
   )
 }

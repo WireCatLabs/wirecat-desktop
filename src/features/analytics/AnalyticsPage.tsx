@@ -1,21 +1,19 @@
 import "./analytics.css"
 import { LoaderCircle } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import type { Period } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
 import { formatList, useMessages } from "@/i18n"
-import { PERIODS } from "@/platform/analytics-schemas"
 import { ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
 import { Cards } from "./cards"
 import { Group } from "./group"
-import { chosenLayout, LAYOUTS } from "./layout"
+import { LAYOUT, TOP } from "./layout"
 import { analyticsMessages } from "./messages"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
-import { Tabs } from "./tabs"
 
-/** The layouts on trial offer a week or a month only (NEED-256). */
+/** A week or a month: the page is about now, the archive section keeps the longer view (NEED-256 A). */
 const WEEK_OR_MONTH = ["7d", "30d"] as const
 
 export function AnalyticsPage() {
@@ -23,8 +21,6 @@ export function AnalyticsPage() {
   const period = useAnalytics((s) => s.period)
   const refreshing = useAnalytics((s) => s.refreshing)
   const hideNames = useAnalytics((s) => s.hideNames)
-  const [layout] = useState(chosenLayout)
-  const periods = layout.sections === LAYOUTS.current?.sections ? PERIODS : WEEK_OR_MONTH
 
   useEffect(() => {
     useAnalytics.getState().load()
@@ -50,7 +46,7 @@ export function AnalyticsPage() {
         <Segmented<Period>
           label={m.periodLabel}
           value={period}
-          options={periods.map((p) => ({ value: p, label: m.period[p] ?? p, icon: null }))}
+          options={WEEK_OR_MONTH.map((p) => ({ value: p, label: m.period[p] ?? p, icon: null }))}
           onChange={(p) => useAnalytics.getState().setPeriod(p)}
           labelClass=""
         />
@@ -66,16 +62,12 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      {layout.top && <Cards ids={layout.top} />}
-      {layout.tabs ? (
-        <Tabs sections={layout.sections} />
-      ) : (
-        layout.sections.map((g) => (
-          <Group key={g.id} id={g.id} title={m.groups[g.id] ?? g.id} closed={g.closed ?? false}>
-            <Cards ids={g.cards} />
-          </Group>
-        ))
-      )}
+      <Cards ids={TOP} />
+      {LAYOUT.map((g) => (
+        <Group key={g.id} id={g.id} title={m.groups[g.id] ?? g.id} closed={g.closed ?? false}>
+          <Cards ids={g.cards} />
+        </Group>
+      ))}
     </div>
   )
 }

@@ -9,11 +9,13 @@ import {
   initials,
   mediaTotals,
   meetingStats,
+  meetingWeekdays,
   offHours,
   ownersData,
   projectRows,
   sentByMe,
   spikes,
+  statusBuckets,
   sumRows,
   tableRows,
   todayAndWeek,
@@ -307,5 +309,47 @@ describe("round 3", () => {
     expect(s.minutes).toBe(90)
     expect(s.meanMinutes).toBe(45)
     expect(s.series[0]).toEqual({ title: "Weekly", count: 2, minutes: 90 })
+  })
+})
+
+describe("the last two charts", () => {
+  it("counts facts per bar by what became of them", () => {
+    const e = (status: string, at: string) => ({
+      type: "fact",
+      status,
+      createdAt: at,
+      project: null,
+      projectName: null,
+    })
+    const b = statusBuckets(
+      [
+        e("accepted", "2026-11-02T08:00:00Z"),
+        e("proposed", "2026-11-02T09:00:00Z"),
+        e("accepted", "2026-10-01T00:00:00Z"),
+      ],
+      "fact",
+      "7d",
+      TODAY,
+      "day",
+    )
+    expect(b.at(-1)?.values).toEqual({ accepted: 1, proposed: 1 })
+    expect(b.reduce((s, x) => s + x.total, 0)).toBe(2)
+  })
+
+  it("puts meeting minutes on weekdays, the busiest titles apart and the rest as other", () => {
+    const r = meetingWeekdays(
+      [
+        { started_at: "2026-11-02T09:00:00Z", duration_ms: 3_600_000, title: "Weekly" },
+        { started_at: "2026-10-28T09:00:00Z", duration_ms: 1_800_000, title: "1:1" },
+        { started_at: "2026-10-28T12:00:00Z", duration_ms: 600_000, title: "Tiny" },
+      ],
+      "7d",
+      TODAY,
+      "UTC",
+      2,
+    )
+    expect(r.series).toEqual(["Weekly", "1:1", "other"])
+    expect(r.buckets[0]?.values).toEqual({ Weekly: 60 })
+    expect(r.buckets[2]?.values).toEqual({ "1:1": 30, other: 10 })
   })
 })

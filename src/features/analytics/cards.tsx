@@ -1,7 +1,7 @@
 import { CARDS, type CardId } from "./layout"
 
 /** Strips that read across the page: they take a whole row of a section's grid. */
-const WIDE: readonly CardId[] = ["week", "attention"]
+const WIDE: readonly CardId[] = ["week"]
 
 export function Cards({ ids }: { ids: readonly CardId[] }) {
   return ids.map((id) => {

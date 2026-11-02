@@ -486,3 +486,61 @@ export function meetingStats(items: readonly Meeting[], period: Period, today: s
     series: [...series.values()].sort((a, b) => b.minutes - a.minutes || b.count - a.count).slice(0, 6),
   }
 }
+
+/** Entries of one type per bar by when they were written, split by what became of each (its status now). */
+export function statusBuckets(
+  entries: readonly Entry[],
+  type: "memory" | "fact",
+  period: Period,
+  today: string,
+  grain: Grain,
+): Bucket[] {
+  const rows: Record<string, { key: string; count: number }[]> = {}
+  for (const e of entries) {
+    if (e.type !== type || !inPeriod(e.createdAt, period, today)) continue
+    const list = rows[e.status] ?? []
+    list.push({ key: e.createdAt.slice(0, 10), count: 1 })
+    rows[e.status] = list
+  }
+  return bucketDays(rows, period, today, grain)
+}
+
+/**
+ * Meeting minutes per weekday (Monday first, keys "0" to "6"), split by the titles that take the most time; the rest
+ * is `other`.
+ */
+export function meetingWeekdays(
+  items: readonly { started_at: string | null; duration_ms: number | null; title: string | null }[],
+  period: Period,
+  today: string,
+  zone: string,
+  top = 4,
+): { buckets: Bucket[]; series: string[] } {
+  const days = PERIOD_DAYS[period]
+  const from = days === null ? "" : addDays(today, -(days - 1))
+  const inside = items.filter(
+    (m) => m.started_at && (m.duration_ms ?? 0) > 0 && todayIn(zone, new Date(m.started_at)) >= from,
+  )
+  const byTitle = new Map<string, number>()
+  for (const m of inside) {
+    const t = m.title?.trim() || "other"
+    byTitle.set(t, (byTitle.get(t) ?? 0) + (m.duration_ms ?? 0))
+  }
+  const series = [...byTitle]
+    .sort((a, b) => b[1] - a[1])
+    .map(([t]) => t)
+    .filter((t) => t !== "other")
+    .slice(0, top)
+  const buckets: Bucket[] = Array.from({ length: 7 }, (_, d) => ({ key: String(d), values: {}, total: 0 }))
+  for (const m of inside) {
+    const day = (new Date(`${todayIn(zone, new Date(m.started_at ?? ""))}T12:00:00Z`).getUTCDay() + 6) % 7
+    const title = m.title?.trim() ?? ""
+    const id = series.includes(title) ? title : "other"
+    const minutes = Math.round((m.duration_ms ?? 0) / 60_000)
+    const b = buckets[day]
+    if (!b) continue
+    b.values[id] = (b.values[id] ?? 0) + minutes
+    b.total += minutes
+  }
+  return { buckets, series: buckets.some((b) => (b.values.other ?? 0) > 0) ? [...series, "other"] : series }
+}

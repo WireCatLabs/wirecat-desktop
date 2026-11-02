@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import * as v from "valibot"
-import { bucketDays, meetingStats, PERIOD_DAYS, todayAndWeek } from "@/domain/analytics"
+import { addDays, bucketDays, meetingStats, meetingWeekdays, PERIOD_DAYS, todayAndWeek } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
 import { formatDate, formatList, formatNumber, useLang, useMessages } from "@/i18n"
 import {
@@ -429,6 +429,57 @@ export function TaskSources() {
             </tbody>
           </table>
           <p className="text-[0.85rem] text-ink-dim">{m.taskSourcesNote}</p>
+        </div>
+      )}
+    </Panel>
+  )
+}
+
+/** Meeting minutes per weekday, split by the titles that take the most time. From `zm meetings list`. */
+export function MeetingDays() {
+  const m = useMessages(analyticsMessages)
+  const lang = useLang()
+  const period = useAnalytics((s) => s.period)
+  const today = useAnalytics((s) => s.today)
+  const zone = useAnalytics((s) => s.zone)
+  const state = useAggregate("meetings", "zm")
+  const r = readParts([["zm", state]], MeetingsListSchema)
+  const { buckets, series } = meetingWeekdays(
+    r.ready.flatMap((p) => p.body.items),
+    period,
+    today,
+    zone,
+  )
+  const day = (k: string) =>
+    formatDate(new Date(`${addDays("2026-11-02", Number(k))}T12:00:00Z`), { weekday: "short", timeZone: "UTC" }, lang)
+  const longDay = (k: string) =>
+    formatDate(new Date(`${addDays("2026-11-02", Number(k))}T12:00:00Z`), { weekday: "long", timeZone: "UTC" }, lang)
+  const slots = ["var(--series-6)", "var(--series-1)", "var(--series-2)", "var(--series-5)"]
+  return (
+    <Panel id="an-meeting-days" title={m.meetingDaysTitle} source="zm meetings list">
+      {state.state === "missing" ? (
+        <p className="text-[0.9rem] text-ink-soft">{m.needsUpdate("Zoom")}</p>
+      ) : r.loading ? (
+        <CardSkeleton label={m.meetingDaysTitle} />
+      ) : !r.ready.length ? (
+        <Missing old={r.old} failed={r.failed} />
+      ) : buckets.every((b) => b.total === 0) ? (
+        <p className="text-[0.9rem] text-ink-soft">{m.noMeetings}</p>
+      ) : (
+        <div className="reveal flex flex-col gap-2">
+          <ColumnChart
+            title={m.meetingDaysTitle}
+            buckets={buckets}
+            series={series.map((t, i) => ({
+              id: t,
+              label: t === "other" ? m.otherSeries : t,
+              color: t === "other" ? "var(--series-other)" : (slots[i] ?? "var(--series-other)"),
+            }))}
+            short={day}
+            long={longDay}
+            unit={(n) => m.minutes(n)}
+          />
+          <p className="text-[0.85rem] text-ink-dim">{m.meetingDaysNote}</p>
         </div>
       )}
     </Panel>

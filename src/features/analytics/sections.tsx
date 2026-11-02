@@ -13,6 +13,7 @@ import {
   PERIOD_DAYS,
   projectRows,
   sentByMe,
+  statusBuckets,
   statusCounts,
   tableRows,
   taskGrain,
@@ -708,5 +709,42 @@ export function Helps() {
             )))}
       </Panel>
     </>
+  )
+}
+
+/** Facts per week by what became of each: accepted, still waiting, rejected. From the same 500 facts as Memory. */
+export function MemoryWeeks() {
+  const m = useMessages(analyticsMessages)
+  const memory = useAnalytics((s) => s.memory)
+  const period = useAnalytics((s) => s.period)
+  const today = useAnalytics((s) => s.today)
+  const grain = period === "7d" ? "day" : "week"
+  const palette = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)", "var(--series-5)"]
+  return (
+    <Panel id="an-fact-weeks" title={m.factWeeksTitle} source="facts list">
+      {memory.state === "loading" ? (
+        <ChartSkeleton />
+      ) : memory.state === "error" ? (
+        <ErrorNotice inline>{m.memoryError(memory.error)}</ErrorNotice>
+      ) : memory.data.kind !== "ready" ? (
+        <Note>{memory.data.kind === "missing" ? m.memoryMissing : m.memoryOld}</Note>
+      ) : (
+        <div className="reveal flex flex-col gap-2">
+          <ColumnChart
+            title={m.factWeeksTitle}
+            buckets={statusBuckets(memory.data.entries, "fact", period, today, grain)}
+            series={FACT_STATUSES.map((st, i) => ({
+              id: st,
+              label: m.memoryStatus[st] ?? st,
+              color: palette[i] ?? "var(--series-other)",
+            }))}
+            short={(k) => shortKey(k, grain)}
+            long={(k) => longKey(k, grain, m.weekOf)}
+            unit={m.entriesN}
+          />
+          <Note>{m.factWeeksNote}</Note>
+        </div>
+      )}
+    </Panel>
   )
 }

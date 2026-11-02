@@ -97,6 +97,24 @@ Each extra count is one `stats messages show` per profile, three at a time, aske
 6. **Time saved by agents**: not built. No tool records how long a task would have taken by hand, and a guess would
    be a number the page cannot stand behind.
 
+## Decided: layout A (NEED-256)
+
+The owner looked at three layouts in the browser (`?layout=a|b|c`, removed again) and chose A: "use A, add 1 more chart
+on memory and 1 more to meetings and that's it". The page now opens with this week against the same days of last week
+(messages received, emails, meeting hours, tasks made and closed), then folding sections: Messages, Tasks, Meetings,
+Agents, and Archive, folded at first. The period switch offers a week or a month; the archive keeps the longer view.
+
+The two last charts, both on data the tools give today:
+
+- **Facts by what became of them** (Tasks section, beside Memory): facts per week, by the week they were written and
+  their status now (accepted, waiting, rejected, reversed, replaced), from `facts list`. memo does not record when a
+  fact was approved, so "approved per week" is read as "written that week and accepted since" (proposal: an
+  `accepted_at` field on facts).
+- **Meeting time by weekday** (Meetings section): minutes per weekday, split by the four titles that take the most
+  time and the rest, from `zm meetings list`.
+
+No more cards in this round.
+
 ## Round 3: what opens the page, and the layout
 
 The owner, 2026-11-03: "Messages by year … seems useless - it duplicates our storage data and gives no insights to
