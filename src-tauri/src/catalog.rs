@@ -26,6 +26,10 @@ pub struct Tool {
     /// The messengers' own counts of what they stored, for the Analytics page (`analytics.rs`).
     #[serde(default)]
     pub stats: Option<StatsSource>,
+    /// Aggregates for the Analytics page by name (`responses`, `meetings`, `mail`…); a tool too old for one answers
+    /// "unknown command" and the page says which update brings it.
+    #[serde(default)]
+    pub aggregates: std::collections::BTreeMap<String, AggregateSource>,
     pub setup: Option<Vec<String>>,
     pub sign_in: Option<SignInSource>,
     pub storage: Storage,
@@ -178,6 +182,13 @@ pub struct SearchSource {
 #[derive(Debug, Deserialize)]
 pub struct StatsSource {
     pub messages: Vec<String>,
+}
+
+/// `date` is the query field the period applies to; `None` when the command takes no period.
+#[derive(Debug, Deserialize)]
+pub struct AggregateSource {
+    pub args: Vec<String>,
+    pub date: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

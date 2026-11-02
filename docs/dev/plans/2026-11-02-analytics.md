@@ -97,6 +97,45 @@ Each extra count is one `stats messages show` per profile, three at a time, aske
 6. **Time saved by agents**: not built. No tool records how long a task would have taken by hand, and a guess would
    be a number the page cannot stand behind.
 
+## Round 3: what opens the page, and the layout
+
+The owner, 2026-11-03: "Messages by year … seems useless - it duplicates our storage data and gives no insights to
+user. I'd also not put Messages over time on top as it's not [something] that users wanna see every day first and [don't] make
+the chart 100% width, only on small screens". Also: average response time, mail and meetings per day, meeting
+duration, tasks per chat and meeting, time to resolve, age of open tasks, outliers; sections that fold.
+
+Productivity tools that track people's own work (RescueTime, Clockwise, Microsoft Viva Insights, Slack's analytics,
+Superhuman's email stats, Telegram's channel statistics) lead with a few numbers a person acts on today: how long
+replies take, who waits for an answer, today's meeting and message load, work outside working hours, focus time
+against meeting time. Totals of what is stored are a storage view, not an insight, so they move to the bottom.
+
+**Order, top to bottom.** Each section folds (a chevron at the right edge of its heading; the choice is kept in
+`localStorage`, `wirecat.analytics.closed`); a folded section asks its tools nothing.
+
+1. **Today** (open): reply time (A3), waiting on you (A4), today's and this week's messages, emails (A1) and
+   meetings, open tasks with their age, overdue and due today.
+2. **Messages**: when you talk (weekday by hour, with the share after hours and at weekends), what changed and what
+   stands out (outliers), who you hear from, messages over time (the chart with the dropdowns).
+3. **Meetings**: meetings per week, hours per week, the average length, the series that take the most hours.
+4. **Work**: projects, tasks (closed per week, tasks by chat with time to close), memory.
+5. **Agents**: how WireCat helps.
+6. **Storage and sync**: what WireCat keeps (totals, attachments, transcripts, links) and whether each tool is up to
+   date.
+
+**Removed.** "Messages by year" and "Where it comes from": both repeat the Storage page's totals by source and answer
+nothing a person acts on.
+
+**Layout.** Inside a section, panels sit in a grid of two columns from 1024 px of window width (`lg`), one column
+below it. No chart spans the page on a wide window. A panel keeps its height while it loads (skeletons of the final
+size), so neither column moves when the other fills.
+
+**Built from existing commands now:** meetings from `zm <profile> meetings list` (start, duration, title; up to 500
+in the period); tasks by chat from `memo stats tasks show` (open, oldest open, median time to close); after-hours
+and weekend shares from the hour counts; outliers from the day, chat and meeting counts already read (a day above the
+mean by more than two standard deviations; the chat that grew most; the meeting title with the most hours). Reply
+time, waiting on you, mail per day and chats never fetched show "arrives with a <tool> update" until A1, A3, A4 and
+A6 exist; the browser build fills them with sample numbers marked "Preview".
+
 ## CLI aggregates wanted (specs for the CLI work, 2026-11-02, round 3)
 
 Every command below is read-only, reads the local store only (`--offline` where the tool has it), accepts

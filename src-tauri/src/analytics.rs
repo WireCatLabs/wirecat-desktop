@@ -5,7 +5,7 @@
 //! to rule 4 like `search.rs`: they are never logged or put in a report.
 
 use crate::cache::REFUSED;
-use crate::catalog::{self, StatsSource, Tool};
+use crate::catalog::{self, AggregateSource, StatsSource, Tool};
 use crate::{paths, run};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -205,6 +205,82 @@ pub fn messages(tool: &Tool, profile: &str, ask: Ask, timezone: &str) -> Result<
     Ok(counts)
 }
 
+/// An aggregate the page reads as the tool printed it: counts, times and, for a series or a chat, its name.
+#[derive(Debug, Serialize, PartialEq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Aggregate {
+    Ready { body: Value },
+    Old { message: String },
+    Failed { message: String },
+}
+
+const AGGREGATES: [&str; 6] = ["responses", "waiting", "coverage", "meetings", "mail", "taskSources"];
+
+pub fn aggregate_args(
+    src: &AggregateSource,
+    profile: Option<&str>,
+    period: Period,
+    timezone: &str,
+) -> Result<Vec<String>, String> {
+    validate_timezone(timezone)?;
+    let wants_profile = src.args.iter().any(|a| a == "{profile}");
+    match (wants_profile, profile) {
+        (true, Some(p)) => catalog::validate_profile(p)?,
+        (true, None) => return Err("this count needs a profile".into()),
+        (false, Some(_)) => return Err("this tool has no profiles".into()),
+        (false, None) => {}
+    }
+    let term = match (&src.date, period.days()) {
+        (Some(field), Some(days)) => Some(format!("{field}>={days}d")),
+        _ => None,
+    };
+    let mut args: Vec<String> = src
+        .args
+        .iter()
+        .map(|a| match a.as_str() {
+            "{profile}" => profile.unwrap_or_default().to_string(),
+            "{timezone}" => timezone.to_string(),
+            other => other.to_string(),
+        })
+        .collect();
+    match term {
+        Some(t) => {
+            if let Some(q) = args.iter_mut().find(|a| *a == "{query}") {
+                *q = t;
+            }
+        }
+        None => args.retain(|a| a != "--" && a != "{query}"),
+    }
+    Ok(args)
+}
+
+pub fn aggregate(
+    tool: &Tool,
+    which: &str,
+    profile: Option<&str>,
+    period: Period,
+    timezone: &str,
+) -> Result<Aggregate, String> {
+    let name = AGGREGATES.iter().find(|n| **n == which).ok_or("not a known count")?;
+    let src = tool.aggregates.get(*name).ok_or("this tool has no such count")?;
+    let args = aggregate_args(src, profile, period, timezone)?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let out = run::run(&bin, &refs, Some(&paths::search_path()), TIMEOUT).map_err(|e| e.to_string())?;
+    let json = out.json();
+    if out.code == Some(0)
+        && let Some(v) = json.as_ref().filter(|v| v.get("error").is_none())
+    {
+        let body = v.get("item").cloned().unwrap_or_else(|| v.clone());
+        return Ok(Aggregate::Ready { body });
+    }
+    let message = json
+        .as_ref()
+        .and_then(|v| v["error"]["message"].as_str())
+        .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
+    Ok(if too_old(&message) { Aggregate::Old { message } } else { Aggregate::Failed { message } })
+}
+
 /// The answer sits under `item`; an older envelope put it first in `items`.
 fn body(v: &Value) -> Option<&Value> {
     v.get("item").or_else(|| v["items"].get(0)).filter(|b| b["rows"].is_array())
@@ -360,6 +436,26 @@ mod tests {
         assert!(matches!(c, Counts::Old { .. }));
         let err = json!({"error":{"code":"validation_error","message":"the store is locked"}});
         assert_eq!(read(&output(1, "", &err.to_string())), Counts::Failed { message: "the store is locked".into() });
+    }
+
+    #[test]
+    fn aggregates_read_the_local_store_and_put_the_period_on_their_own_field() {
+        for t in &catalog::catalog().tools {
+            for (name, a) in &t.aggregates {
+                assert!(AGGREGATES.contains(&name.as_str()), "{}: {name}", t.id);
+                assert!(a.args.iter().any(|w| w == "--no-record"), "{}: {name}", t.id);
+                assert!(!a.args.iter().any(|w| w == "--sync-first" || w == "--record"), "{}: {name}", t.id);
+            }
+        }
+        let zm = catalog::tool("zm").unwrap();
+        let a = aggregate_args(&zm.aggregates["meetings"], Some("personal"), Period::Week, "UTC").unwrap();
+        assert_eq!(&a[a.len() - 2..], ["--", "started_at>=7d"]);
+        let memo = catalog::tool("memo").unwrap();
+        let t = aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, "UTC").unwrap();
+        assert!(!t.iter().any(|w| w == "--"));
+        assert!(aggregate_args(&memo.aggregates["mail"], Some("x"), Period::Week, "UTC").is_err());
+        let all = aggregate_args(&memo.aggregates["mail"], None, Period::All, "UTC").unwrap();
+        assert!(!all.iter().any(|w| w == "--" || w == "{query}"));
     }
 
     #[test]
