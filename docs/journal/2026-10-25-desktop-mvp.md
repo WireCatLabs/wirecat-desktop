@@ -149,6 +149,8 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
   - Уже вшиты: данные и страница в `.impeccable/mocks/guides/prototype/`, приложение импортирует оттуда; с сайта ничего не грузится (план NEED-215 с md-страницами на сайте не делался). Промпты и шаги жёстко на `tg`.
   - Отдано агенту, ветка `feat/guides-per-tool`: перенос в `src/features/guides/`, промпт и команды под установленный мессенджер, переключатель при нескольких, реальные команды wa/max по их help, пробелы — в отчёт.
 
+- **TASK-61 · README десктопа (2026-11-02).** Слава: «improve the desktop README in github, check our readme standards from clis and adapt to desktop, add screenshots etc». Отдано агенту витрины после #58: стандарт README из cli-base, скриншоты с `<picture>` под тему GitHub.
+
 ## 2. Вопросы Славы
 
 **ASK-1 · «the size of everything is too large… let's make stuff much smaller»**
