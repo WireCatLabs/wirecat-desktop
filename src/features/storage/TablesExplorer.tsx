@@ -8,6 +8,7 @@ import { formatNumber, useMessages } from "@/i18n"
 import type { Table } from "@/platform/archive-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -46,7 +47,9 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
   const kindLabel = (t: Table) => m.tableKind[t.kind] ?? t.kind
   const inGroup = group === null ? main : main.filter((t) => groupOf(t) === group)
   const shownMain = sortTables(inGroup, query, sort, groupLabel)
-  const shownSearch = group === null ? sortTables(search, query, sort, kindLabel) : []
+  // Full-text indexes count as search: they stay under their heading for All and Search, and fold away for the rest.
+  const searchShown = group === null || group === "search"
+  const shownSearch = sortTables(search, query, sort, kindLabel)
   const onSort = (key: TableSort["key"]) =>
     setSort((s) =>
       s.key === key ? { key, descending: !s.descending } : { key, descending: key !== "name" && key !== "kind" },
@@ -77,7 +80,7 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
             </label>
             <MeasureSizes measured={tables.measured} />
           </div>
-          <GroupFilter tables={main} value={group} onChange={setGroup} measured={tables.measured} />
+          <GroupFilter tables={[...main, ...search]} value={group} onChange={setGroup} measured={tables.measured} />
           <AutoHeight swap={group}>
             <TableOf
               tables={shownMain}
@@ -88,10 +91,10 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
               measured={tables.measured}
             />
           </AutoHeight>
-          {query.trim() !== "" && shownMain.length === 0 && shownSearch.length === 0 && (
+          {query.trim() !== "" && shownMain.length === 0 && (!searchShown || shownSearch.length === 0) && (
             <p className="text-[0.9rem] text-ink-soft">{m.noMatch(query.trim())}</p>
           )}
-          {shownSearch.length > 0 && (
+          <Collapse open={searchShown && shownSearch.length > 0}>
             <Disclosure
               summary={
                 <>
@@ -115,7 +118,7 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
                 measured={tables.measured}
               />
             </Disclosure>
-          )}
+          </Collapse>
         </>
       )}
     </Frame>
