@@ -75,34 +75,32 @@ export function TaskDialog() {
       wide="xl"
       scroll
       actions={
-        <>
-          <span className="mr-auto flex gap-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label={m.previous}
-              title={m.previous}
-              disabled={at <= 0}
-              onClick={() => step(-1)}
-              icon={<ChevronUp className="size-4" aria-hidden />}
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              aria-label={m.next}
-              title={m.next}
-              disabled={at < 0 || at >= keys.length - 1}
-              onClick={() => step(1)}
-              icon={<ChevronDown className="size-4" aria-hidden />}
-            />
-            {/* The place is why ▲ or ▼ is off at either end of the list. */}
-            {at >= 0 && (
-              <span className="self-center px-1 font-mono text-[0.85rem] text-ink-dim tabular-nums">
-                {m.position(at + 1, keys.length)}
-              </span>
-            )}
-          </span>
-        </>
+        <span className="mr-auto flex gap-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label={m.previous}
+            title={m.previous}
+            disabled={at <= 0}
+            onClick={() => step(-1)}
+            icon={<ChevronUp className="size-4" aria-hidden />}
+          />
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-label={m.next}
+            title={m.next}
+            disabled={at < 0 || at >= keys.length - 1}
+            onClick={() => step(1)}
+            icon={<ChevronDown className="size-4" aria-hidden />}
+          />
+          {/* The place is why ▲ or ▼ is off at either end of the list. */}
+          {at >= 0 && (
+            <span className="self-center px-1 font-mono text-[0.85rem] text-ink-dim tabular-nums">
+              {m.position(at + 1, keys.length)}
+            </span>
+          )}
+        </span>
       }
       footer={
         // One line for both, so the warning takes the hint's place rather than pushing the dialog taller.
