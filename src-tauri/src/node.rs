@@ -21,6 +21,23 @@ pub fn root() -> Option<PathBuf> {
     app_data().map(|d| d.join("node"))
 }
 
+/// The app's folder names the public address of every MCP server it published and holds cloudflared's scratch files;
+/// on a computer shared with other users, only the owner may read it. Windows' profile folders are private already.
+pub fn make_app_data_private() {
+    if let Some(dir) = app_data() {
+        make_private(&dir);
+    }
+}
+
+fn make_private(dir: &Path) {
+    let _ = std::fs::create_dir_all(dir);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(dir, std::fs::Permissions::from_mode(0o700));
+    }
+}
+
 /// The app's own data folder, `<app local data>/dev.wirecat.desktop`.
 pub fn app_data() -> Option<PathBuf> {
     let home = paths::home();
@@ -475,6 +492,19 @@ fn ensure_runtime(dir: &Path) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[cfg(unix)]
+    #[test]
+    fn the_app_folder_is_readable_by_its_owner_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("wirecat-private-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+        make_private(&dir);
+        let mode = std::fs::metadata(&dir).unwrap().permissions().mode() & 0o777;
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(mode, 0o700);
+    }
 
     fn release(version: &str, lts: serde_json::Value, files: &[&str]) -> Release {
         Release { version: version.into(), lts, files: files.iter().map(|s| (*s).to_string()).collect() }
