@@ -27,9 +27,9 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
-import { ColumnChart, Legend, PartsBar, RankBars, Stat } from "./charts"
+import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./charts"
 import { Explorer } from "./explorer"
-import { colorOf, longKey, shortKey, toolColor, toolName, useSourceName } from "./format"
+import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
 
@@ -127,6 +127,71 @@ export function Overview() {
       )}
     </Panel>
   )
+}
+
+/** Where the stored data comes from and how it grew by year, from the same `store info` as the totals. */
+export function StorageBreakdown() {
+  const m = useMessages(analyticsMessages)
+  const volume = useAnalytics((s) => s.volume)
+  const sourceName = useSourceName()
+  return (
+    <Panel id="an-breakdown" title={m.bySource} source="store info">
+      {volume.state === "loading" ? (
+        <Skeleton className="h-[19rem] w-full rounded-[0.2rem]" label={m.bySource} />
+      ) : volume.state !== "ready" || volume.data === null || !volume.data.breakdown ? (
+        <Note>{m.noBreakdown}</Note>
+      ) : (
+        (() => {
+          const info = volume.data
+          const mine = ownersData(info.rows, info.breakdown?.providers ?? [], info.breakdown?.years ?? [])
+          const providers = [...mine.providers].sort(
+            (a, b) => order(a.provider) - order(b.provider) || a.provider.localeCompare(b.provider),
+          )
+          const years = mine.years
+          const yearKeys = [...new Set(years.map((y) => y.key ?? ""))].filter(Boolean).sort()
+          const yearBuckets = yearKeys.map((key) => {
+            const values: Record<string, number> = {}
+            for (const y of years) if (y.key === key) values[y.provider] = (values[y.provider] ?? 0) + y.messages
+            return { key, values, total: Object.values(values).reduce((a, b) => a + b, 0) }
+          })
+          const yearSeries: Series[] = providers
+            .filter((p) => years.some((y) => y.provider === p.provider && y.messages > 0))
+            .map((p) => ({ id: p.provider, label: sourceName(p.provider), color: colorOf(p.provider) }))
+          return (
+            <div className="reveal flex flex-col gap-[1.3rem]">
+              <PartsBar
+                label={m.bySource}
+                parts={providers.map((p) => ({
+                  id: p.provider,
+                  label: sourceName(p.provider),
+                  value: p.messages + p.emails + p.documents + p.meetings,
+                  color: colorOf(p.provider),
+                }))}
+              />
+              {yearBuckets.length > 1 && (
+                <div className="flex flex-col gap-2">
+                  <Sub>{m.byYear}</Sub>
+                  <ColumnChart
+                    title={m.byYear}
+                    buckets={yearBuckets}
+                    series={yearSeries}
+                    short={(k) => shortKey(k, "year")}
+                    long={(k) => longKey(k, "year", m.weekOf)}
+                    unit={m.messagesN}
+                  />
+                </div>
+              )}
+            </div>
+          )
+        })()
+      )}
+    </Panel>
+  )
+}
+
+const order = (provider: string) => {
+  const i = SOURCE_ORDER.indexOf(provider)
+  return i === -1 ? SOURCE_ORDER.length : i
 }
 
 function OverviewBody({ info }: { info: StoreInfo }) {

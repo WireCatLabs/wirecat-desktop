@@ -122,8 +122,10 @@ against meeting time. Totals of what is stored are a storage view, not an insigh
 6. **Storage and sync**: what WireCat keeps (totals, attachments, transcripts, links) and whether each tool is up to
    date.
 
-**Removed.** "Messages by year" and "Where it comes from": both repeat the Storage page's totals by source and answer
-nothing a person acts on.
+**Moved down, not removed** (the owner, later the same night: reorder, do not delete). "Messages by year" and "Where
+it comes from" are one panel in Storage and sync. The order itself waits for the owner's choice between layouts: it is
+one list, `LAYOUT` in `src/features/analytics/layout.tsx` (sections, then cards by id from `CARDS`), so a new order is
+an edit of that list only.
 
 **Layout.** Inside a section, panels sit in a grid of two columns from 1024 px of window width (`lg`), one column
 below it. No chart spans the page on a wide window. A panel keeps its height while it loads (skeletons of the final

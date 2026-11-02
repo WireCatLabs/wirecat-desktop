@@ -8,12 +8,10 @@ import { PERIODS } from "@/platform/analytics-schemas"
 import { ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
-import { Load, Meetings, OpenTasks, ReplyTime, TaskSources, WaitingOnYou } from "./daily"
 import { Group } from "./group"
+import { CARDS, LAYOUT } from "./layout"
 import { analyticsMessages } from "./messages"
-import { Activity, Helps, Memory, Overview, Panel, People, Projects, Tasks } from "./sections"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
-import { Health, WhatChanged, WhenYouTalk } from "./views"
 
 export function AnalyticsPage() {
   const m = useMessages(analyticsMessages)
@@ -61,42 +59,14 @@ export function AnalyticsPage() {
         </div>
       </div>
 
-      <Group id="today" title={m.groups.today ?? ""}>
-        <ReplyTime />
-        <WaitingOnYou />
-        <Load />
-        <OpenTasks />
-      </Group>
-      <Group id="messages" title={m.groups.messages ?? ""}>
-        <Panel id="an-when" title={m.whenTitle} source="stats messages show --by hour">
-          <p className="text-[0.9rem] text-ink-soft">{m.whenNote}</p>
-          <WhenYouTalk />
-        </Panel>
-        <Panel id="an-changes" title={m.outliersTitle} source="stats messages show --by sender|chat|day">
-          <WhatChanged />
-        </Panel>
-        <People />
-        <Activity />
-      </Group>
-      <Group id="meetings" title={m.groups.meetings ?? ""}>
-        <Meetings />
-      </Group>
-      <Group id="work" title={m.groups.work ?? ""}>
-        <Tasks />
-        <TaskSources />
-        <Projects />
-        <Memory />
-      </Group>
-      <Group id="agents" title={m.groups.agents ?? ""}>
-        <Helps />
-      </Group>
-      <Group id="storage" title={m.groups.storage ?? ""}>
-        <Overview />
-        <Panel id="an-health" title={m.health} source="runs list · status · store coverage">
-          <p className="text-[0.9rem] text-ink-soft">{m.healthNote}</p>
-          <Health />
-        </Panel>
-      </Group>
+      {LAYOUT.map((g) => (
+        <Group key={g.id} id={g.id} title={m.groups[g.id] ?? g.id}>
+          {g.cards.map((c) => {
+            const Card = CARDS[c]
+            return <Card key={c} />
+          })}
+        </Group>
+      ))}
     </div>
   )
 }
