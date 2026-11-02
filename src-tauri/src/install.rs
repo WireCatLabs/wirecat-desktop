@@ -1,5 +1,5 @@
 use crate::catalog::Tool;
-use crate::{node, paths, redact, run, system, tools};
+use crate::{node, paths, redact, run, skills, system, tools};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -15,7 +15,7 @@ const INSTALL_TIMEOUT: Duration = Duration::from_mins(15);
 pub enum InstallEvent {
     Step { step: Step },
     Log { line: String, stderr: bool },
-    Done { version: String, path: String, shadowed_by: Option<String> },
+    Done { version: String, path: String, shadowed_by: Option<String>, skills: skills::SkillRefresh },
     Removed,
     Failed { reason: Reason, message: String, hint: Option<String> },
 }
@@ -173,7 +173,13 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         ));
     }
     let shadowed_by = (ours.path != first.path).then(|| first.path.clone());
-    Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by })
+    // Only an update: copies left by an uninstalled version are the owner's to refresh, and a first install stays fast.
+    let skills = if existing.is_some() {
+        skills::refresh(tool, &version, |line| send(InstallEvent::Log { line, stderr: false }))
+    } else {
+        skills::SkillRefresh::default()
+    };
+    Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills })
 }
 
 fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) -> Result<InstallEvent, Failure> {
@@ -308,10 +314,12 @@ mod tests {
 
     #[test]
     fn events_reach_the_interface_in_camel_case() {
-        let done = InstallEvent::Done { version: "0.91.0".into(), path: "~/bin/tg".into(), shadowed_by: None };
+        let skills = skills::SkillRefresh { refreshed: vec!["claude".into()], failed: None };
+        let done = InstallEvent::Done { version: "0.91.0".into(), path: "~/bin/tg".into(), shadowed_by: None, skills };
         let json = serde_json::to_value(&done).unwrap();
         assert_eq!(json["event"], "done");
         assert!(json.get("shadowedBy").is_some(), "{json}");
+        assert_eq!(json["skills"], serde_json::json!({"refreshed": ["claude"], "failed": null}));
     }
 
     #[test]

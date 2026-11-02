@@ -269,6 +269,66 @@ pub fn install(tool: &Tool, target: &str) -> Result<Option<String>, String> {
     }
 }
 
+/// What an update did to the copies of its SKILL.md that an older version wrote.
+#[derive(Serialize, Clone, Debug, Default, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct SkillRefresh {
+    pub refreshed: Vec<String>,
+    /// Masked, like every failure here; the update itself still succeeded.
+    pub failed: Option<String>,
+}
+
+fn older(installed: &str, version: &str) -> bool {
+    match (semver::Version::parse(installed), semver::Version::parse(version)) {
+        (Ok(installed), Ok(version)) => installed < version,
+        _ => false,
+    }
+}
+
+/// Only copies an older release wrote: `missing` is where the owner chose not to install, and `unversioned` is a file
+/// no released `skill install` wrote (each stamps its version), so somebody's own. Never Hermes: `--for hermes` also
+/// changes Hermes's settings, and when Hermes reads `~/.agents/skills` the `agents` copy already covers it.
+fn refresh_targets(report: &SkillReport, version: &str) -> Vec<String> {
+    report
+        .targets
+        .iter()
+        .filter(|t| t.target != "hermes")
+        .filter(|t| match t.state.as_deref() {
+            Some("stale") => true,
+            // `memo doctor` reports the version only.
+            None => t.installed.as_deref().is_some_and(|i| older(i, version)),
+            _ => false,
+        })
+        .map(|t| t.target.clone())
+        .collect()
+}
+
+/// Rewrites, with the tool's own `skill install`, each copy that `version` makes stale; `log` gets each command line.
+pub fn refresh(tool: &Tool, version: &str, log: impl Fn(String)) -> SkillRefresh {
+    let Some(src) = tool.skill.as_ref() else {
+        return SkillRefresh::default();
+    };
+    log(format!("$ {} {}", tool.bin, src.status.join(" ")));
+    let targets = match status(tool) {
+        Ok(report) => refresh_targets(&report, version),
+        Err(e) => return SkillRefresh { refreshed: Vec::new(), failed: Some(e) },
+    };
+    let mut done = SkillRefresh::default();
+    for target in targets {
+        if let Ok(args) = install_args(src, &target) {
+            log(format!("$ {} {}", tool.bin, args.join(" ")));
+        }
+        match install(tool, &target) {
+            Ok(_) => done.refreshed.push(target),
+            Err(e) => {
+                done.failed = Some(e);
+                break;
+            }
+        }
+    }
+    done
+}
+
 #[derive(Serialize, Debug)]
 pub struct SkillText {
     pub name: String,
@@ -354,6 +414,42 @@ mod tests {
         assert_eq!(from_status(&json!({"targets": []})), Vec::<TargetStatus>::new());
         assert!(validate_target("hermes").is_ok());
         assert!(from_doctor(&json!({"skills": []})).iter().all(|t| t.target != "hermes"));
+    }
+
+    fn report(rows: &[(&str, Option<&str>, Option<&str>)]) -> SkillReport {
+        let targets = rows
+            .iter()
+            .map(|(target, installed, state)| TargetStatus {
+                target: (*target).into(),
+                path: None,
+                installed: installed.map(str::to_string),
+                state: state.map(str::to_string),
+            })
+            .collect();
+        SkillReport { source: "status", targets }
+    }
+
+    #[test]
+    fn an_update_refreshes_only_copies_an_older_release_wrote() {
+        let r = report(&[
+            ("claude", Some("0.108.0"), Some("stale")),
+            ("agents", None, Some("missing")),
+            ("hermes", Some("0.108.0"), Some("stale")),
+        ]);
+        assert_eq!(refresh_targets(&r, "0.112.0"), ["claude"], "never installs, never touches Hermes's settings");
+        let own = report(&[("claude", None, Some("unversioned")), ("agents", Some("0.112.0"), Some("current"))]);
+        assert_eq!(
+            refresh_targets(&own, "0.112.0"),
+            Vec::<String>::new(),
+            "an unversioned copy is somebody's own file"
+        );
+    }
+
+    #[test]
+    fn a_doctor_report_is_compared_with_the_new_version() {
+        let r = report(&[("claude", Some("0.93.0"), None), ("agents", Some("0.94.0"), None)]);
+        assert_eq!(refresh_targets(&r, "0.94.0"), ["claude"]);
+        assert_eq!(refresh_targets(&report(&[("claude", Some("next"), None)]), "0.94.0"), Vec::<String>::new());
     }
 
     fn found(home: &Path, env: &[(&str, &Path)], programs: &[&str]) -> Vec<(&'static str, Option<&'static str>)> {

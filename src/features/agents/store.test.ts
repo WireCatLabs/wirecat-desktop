@@ -26,3 +26,13 @@ it("keeps the last skill states while it asks again, and says when every tool ha
   expect(useAgents.getState()).toMatchObject({ refreshing: false, answered: true })
   expect(useAgents.getState().skills.tg?.report).toEqual(report("0.89.0"))
 })
+
+it("after the tool is updated, forgets what this session wrote for it and asks it again", async () => {
+  useAgents.setState({ agents: [], written: { "tg:claude": "0.108.0", "wa:claude": "0.7.0" } })
+  vi.spyOn(platform, "skillStatus").mockResolvedValue(report("0.112.0"))
+
+  await useAgents.getState().recheck("tg")
+
+  expect(useAgents.getState().written).toEqual({ "wa:claude": "0.7.0" })
+  expect(useAgents.getState().skills.tg?.report).toEqual(report("0.112.0"))
+})

@@ -75,7 +75,12 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
 4. Each output line is masked and sent as a `log` event; steps arrive as `step` events.
 5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If the app
    would still run another copy (one of the same or a newer version), the result says which.
-6. Every event is parsed by `InstallEventSchema` before the store sees it.
+6. On an update, the tool's own `skill status`, then `skill install --for` each copy that is `stale`, each command
+   line in the log (`skills::refresh`): a copy an older version wrote. A `missing` place stays empty, an `unversioned`
+   file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or
+   why not, rides on the `done` event; a failure is a warning beside a working update. The Agents page then asks that
+   tool again (`useAgents.recheck`).
+7. Every event is parsed by `InstallEventSchema` before the store sees it.
 
 ## Finding tools
 

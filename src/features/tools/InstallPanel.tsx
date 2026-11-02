@@ -2,13 +2,16 @@ import { AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { type CatalogTool, ownerId, samePackage } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
-import { type DataDeletion, type InstallOutcome, type InstallSession, STEPS } from "@/domain/status"
+import { agentsReading } from "@/domain/skills"
+import { type DataDeletion, type InstallOutcome, type InstallSession, type SkillRefresh, STEPS } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Stepper, type StepState } from "@/ui/Stepper"
+import { useAgents } from "../agents/store"
+import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
 import { type ToolsText, toolsMessages } from "./messages"
 import { useTools } from "./store"
@@ -78,6 +81,7 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
             <FailureText outcome={outcome} operation={session.operation} untouched={Boolean(session.data)} m={m} />
           </div>
         )}
+        {outcome?.event === "done" && outcome.skills && <SkillsResult skills={outcome.skills} m={m} />}
         {outcome?.event === "done" && outcome.shadowedBy && (
           <p className="w-full text-[0.9rem] text-warn-ink">
             {m.shadowed(<code className="font-mono">{outcome.shadowedBy}</code>)}
@@ -143,6 +147,30 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
         <Log lines={session.log} m={m} />
       </Collapse>
     </div>
+  )
+}
+
+function SkillsResult({ skills, m }: { skills: SkillRefresh; m: Words }) {
+  const agents = useAgents((s) => s.agents)
+  if (skills.failed)
+    return (
+      <div className="flex w-full flex-wrap items-center gap-x-3 gap-y-1.5 text-[0.9rem]">
+        <p className="flex min-w-0 flex-1 basis-[16rem] items-start gap-2 text-warn-ink">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span className="selectable">
+            {m.skillsFailed} {skills.failed}
+          </span>
+        </p>
+        <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("agents")}>
+          {m.openAgents}
+        </Button>
+      </div>
+    )
+  if (skills.refreshed.length === 0) return null
+  return (
+    <p className="w-full text-[0.95rem] text-ink-soft">
+      {m.skillsRefreshed(formatList(agentsReading(skills.refreshed, agents, m.otherAgents)))}
+    </p>
   )
 }
 

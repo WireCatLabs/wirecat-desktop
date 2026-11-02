@@ -1,5 +1,5 @@
 import { ownerId, tools } from "@/domain/catalog"
-import { agentsMock } from "./mock-agents"
+import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
 import { cloudflareMock } from "./mock-cloudflare"
@@ -172,6 +172,7 @@ export function createMock(os: Platform["os"]): Platform {
   )
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
+  const agents = agentsMock((id) => installed.get(id))
   let cancelled = false
   const MB = 1024 * 1024
   const NODE = { version: "24.22.1", bytes: 58_290_700, dir: "~/.local/share/dev.wirecat.desktop/node/v24.22.1" }
@@ -430,8 +431,11 @@ export function createMock(os: Platform["os"]): Platform {
       onEvent({ event: "step", step: "verify" })
       await delay(800)
       const version = LATEST[id] ?? "1.0.0"
+      const update = installed.has(id)
       installed.set(id, version)
-      onEvent({ event: "done", version, path: `~/.nvm/versions/node/v24.19.0/bin/${id}`, shadowedBy: null })
+      const skills = update ? await refreshSkillsMock(agents, id, version) : undefined
+      const path = `~/.nvm/versions/node/v24.19.0/bin/${id}`
+      onEvent({ event: "done", version, path, shadowedBy: null, ...(skills ? { skills } : {}) })
     },
     async uninstall(given, onEvent: (e: InstallEvent) => void) {
       const id = ownerId(given)
@@ -495,7 +499,7 @@ export function createMock(os: Platform["os"]): Platform {
     storeTables: (sizes) => storeTablesMock(asksArchive(), sizes),
     storeCheck: () => storeCheckMock(asksArchive()),
     ...backups.api,
-    ...agentsMock((id) => installed.get(id)),
+    ...agents,
     ...memoryMock(),
     ...tasksMock(),
     async cancelInstall() {
