@@ -20,7 +20,7 @@ import { useNav } from "../nav"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
-import { fill, GOALS, type Goal, GUIDES, type Guide, textOf, variesByMessenger } from "./guides"
+import { fill, GOALS, type Goal, GUIDES, type Guide, promptOf, stepsOf, textOf, variesByMessenger } from "./guides"
 import { guidesMessages, type Text } from "./messages"
 
 const params = new URLSearchParams(window.location.search)
@@ -365,7 +365,7 @@ function GuideBody(props: {
   const messenger = (picked && fit.messengers.includes(picked) ? picked : fit.messengers[0]) ?? g.needs.any?.[0] ?? null
   const [edits, setEdits] = useState<Record<string, string>>({})
   const variant = `${lang}/${messenger}`
-  const prompt = edits[variant] ?? fill(textOf(g.prompt, lang), messenger)
+  const prompt = edits[variant] ?? fill(promptOf(g, lang, ctx.has), messenger)
   useEffect(() => {
     if (scrollTo) box.current?.scrollIntoView({ block: "start" })
   }, [scrollTo])
@@ -470,7 +470,7 @@ function GuideBody(props: {
             <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.agentRuns}</h4>
             <Crossfade swap={String(messenger)}>
               <ol className="relative flex flex-col gap-[0.8rem] before:absolute before:top-[0.6rem] before:bottom-[0.6rem] before:left-[0.35rem] before:w-px before:bg-line-strong">
-                {g.steps.map((s) => (
+                {stepsOf(g, ctx.has).map((s) => (
                   <li key={s.run} className="relative grid grid-cols-[0.7rem_minmax(0,1fr)] gap-x-[0.8rem]">
                     <span className="mt-[0.45rem] size-[0.7rem] rounded-full border-[1.5px] border-ink-dim bg-app" />
                     <div className="min-w-0">

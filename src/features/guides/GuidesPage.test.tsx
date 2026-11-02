@@ -116,3 +116,20 @@ it("names the messenger switch in Russian", () => {
   expect(within(box).getByRole("group", { name: "Мессенджер" })).toBeInTheDocument()
   expect(promptOf(box)).toMatch(/^Используй tg CLI\. /)
 })
+
+it("adds Zoom to a guide only when Zoom is installed", () => {
+  installed("memo")
+  const { unmount } = render(<GuidesPage />)
+  openGuide("Prepare for a call with someone")
+  let box = guide("Prepare for a call with someone")
+  expect(promptOf(box)).not.toMatch(/zm CLI/)
+  expect(runsOf(box).some((run) => run?.startsWith("zm "))).toBe(false)
+  unmount()
+
+  installed("memo", "zm")
+  render(<GuidesPage />)
+  openGuide("Prepare for a call with someone")
+  box = guide("Prepare for a call with someone")
+  expect(promptOf(box)).toMatch(/Use zm CLI too, for what we said in past Zoom meetings\.$/)
+  expect(runsOf(box)).toContain("zm <profile> meetings context person:…")
+})
