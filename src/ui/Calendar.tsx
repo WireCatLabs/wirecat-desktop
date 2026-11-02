@@ -98,10 +98,16 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, on mount
   useEffect(() => {
     if (!autoFocus) return
-    // A frame later: the popover is placed (and visible) only after its own layout pass.
-    const frame = requestAnimationFrame(() =>
-      grid.current?.querySelector<HTMLElement>(`[data-day="${focus}"]`)?.focus({ preventScroll: true }),
-    )
+    // The popover turns visible only after its own layout pass, and under reduced motion the global 0.01ms
+    // transition still holds `visibility: hidden` for a frame, so focus is tried each frame until it lands.
+    let frame = 0
+    let tries = 0
+    const attempt = () => {
+      const day = grid.current?.querySelector<HTMLElement>(`[data-day="${focus}"]`)
+      day?.focus({ preventScroll: true })
+      if (document.activeElement !== day && ++tries < 10) frame = requestAnimationFrame(attempt)
+    }
+    frame = requestAnimationFrame(attempt)
     return () => cancelAnimationFrame(frame)
   }, [])
 
