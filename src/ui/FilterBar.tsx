@@ -31,46 +31,51 @@ export function FilterBar(props: Props) {
   const clear = props.onClear ?? (() => onQuery(""))
   return (
     <div className="flex flex-col gap-[0.7rem]">
-      <label className="relative block">
-        <span className="sr-only">{label}</span>
-        <Search
-          className="pointer-events-none absolute top-1/2 left-[0.8rem] size-4 -translate-y-1/2 text-ink-dim"
-          aria-hidden
-        />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          onKeyDown={(e) => {
-            // The native field clears itself on Escape without telling React; the page's own Clear does it instead.
-            if (e.key === "Escape" && query) {
-              e.preventDefault()
-              clear()
-            }
-          }}
-          placeholder={placeholder}
-          spellCheck={false}
-          autoComplete="off"
-          aria-invalid={invalid || undefined}
-          aria-describedby={describedBy}
-          className={cx(
-            "selectable inner-field h-[2.8rem] w-full rounded-[0.35rem] border bg-app pr-[0.8rem] pl-[2.3rem] font-mono text-[0.95rem] text-ink outline-none no-ligatures placeholder:font-sans placeholder:text-ink-dim hover:border-ink-dim/60 focus-visible:border-brand",
-            invalid ? "border-bad hover:border-bad" : "border-line-strong",
-          )}
-        />
-      </label>
-      <div data-chip-row className="flex flex-wrap items-center gap-[0.5rem]">
-        {children}
+      {/* Clear all lives in the field: hidden at the end of the chip row it still took room, and a long label
+          (Spanish) wrapped it alone onto a second, empty-looking line. */}
+      <div className="relative">
+        <label className="relative block">
+          <span className="sr-only">{label}</span>
+          <Search
+            className="pointer-events-none absolute top-1/2 left-[0.8rem] size-4 -translate-y-1/2 text-ink-dim"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            onKeyDown={(e) => {
+              // The native field clears itself on Escape without telling React; the page's own Clear does it instead.
+              if (e.key === "Escape" && query) {
+                e.preventDefault()
+                clear()
+              }
+            }}
+            placeholder={placeholder}
+            spellCheck={false}
+            autoComplete="off"
+            aria-invalid={invalid || undefined}
+            aria-describedby={describedBy}
+            className={cx(
+              "selectable inner-field h-[2.8rem] w-full rounded-[0.35rem] border bg-app pl-[2.3rem] font-mono text-[0.95rem] text-ink outline-none no-ligatures placeholder:font-sans placeholder:text-ink-dim hover:border-ink-dim/60 focus-visible:border-brand",
+              query ? "pr-[9rem]" : "pr-[0.8rem]",
+              invalid ? "border-bad hover:border-bad" : "border-line-strong",
+            )}
+          />
+        </label>
         <Button
           variant="ghost"
           size="sm"
           onClick={clear}
-          className={cx(!query && "invisible")}
+          className={cx("absolute top-1/2 right-[0.35rem] -translate-y-1/2", !query && "invisible")}
           tabIndex={query ? undefined : -1}
           aria-hidden={query ? undefined : true}
         >
           {m.clearAll}
         </Button>
+      </div>
+      <div data-chip-row className="flex flex-wrap items-center gap-[0.5rem]">
+        {children}
       </div>
     </div>
   )
