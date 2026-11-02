@@ -254,8 +254,8 @@ function createTauri(): Platform {
     searchStore: (id, profile, query, limit, page) =>
       call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),
     searchValues: (id, profile, source) => call(v.array(ValueItemSchema), "search_values", { id, profile, source }),
-    messageStats: (id, profile, period, by, timezone) =>
-      call(MessageCountsSchema, "message_stats", { id, profile, period, by, timezone }),
+    messageStats: (id, profile, ask, timezone) =>
+      call(MessageCountsSchema, "message_stats", { id, profile, ask, timezone }),
     analyticsPreview: async () => null,
     searchDraft: (id, request) => call(QueryDraftSchema, "search_draft", { id, request }),
     searchContext: (id, profile, reference) => call(SearchContextSchema, "search_context", { id, profile, reference }),

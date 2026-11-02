@@ -57,6 +57,46 @@ pass the colour-blind checks in both themes. Three light hues are under 3:1 on w
 numbers", a table of every value. Hover or the arrow keys pick a bar. A new period keeps the last charts, dimmed,
 until it arrives.
 
+## Second round (owner's review, 2026-11-02)
+
+The owner: "What WireCat keeps — I'd add images, audio, transcripts. Also make the chart interactive to fit different
+stuff, e.g. use dropdowns. Review analytics and improve, think what users may want to see here and what would help."
+
+| Added | Source | State |
+| --- | --- | --- |
+| Images, voice and audio, video, files: count and size | `store info` `by_attachment_kind`, grouped (`mediaTotals`) | existing |
+| Transcripts (voice messages and meetings as text) | `store tables list`: rows of `message_transcripts` and `meeting_transcripts` | existing |
+| Links shared in messages | `store tables list`: rows of `message_links` | existing |
+| One chart with dropdowns: measure, split, step | `stats messages show --by day` with a fixed term: `from:me`, `has:photo`, `has:voice`, `has:video`, `has:file`, `has:link`, `kind:private\|group\|channel`; tasks and memory from the reads above | existing |
+| Received messages | every message less `from:me`, day by day | existing, derived |
+| When you talk: weekday by hour | `stats messages show --by hour` | existing |
+| What changed: who went quiet, which chats grew | `--by sender` and `--by chat` for the period and for `date:[2Nd TO Nd]` | existing |
+| Is everything up to date: last sync per tool and profile | each tool's own last sync (`sync_last`, as on the Tools page) | existing |
+
+The chart's choices: **Show** (messages, sent by you, received, photos, voice messages, videos, files, links, tasks
+closed, memories and facts), **Split by** (source, profile, chat type for all messages, nothing) and **Step** (day,
+week, month, as the period allows). Clicking a legend name hides that series in the bars and the numbers table; the
+others keep their colours. Every count the chart asks for is kept for the session, so a choice seen once comes back at
+once, and a new period keeps the last chart, dimmed, until its numbers arrive.
+
+Each extra count is one `stats messages show` per profile, three at a time, asked only when its view is on screen.
+
+### Missing for the next views
+
+1. **How fast you reply, and chats waiting for you.** `tg stats contacts responses` (median and p90 reply time per
+   person) and `tg stats messages unanswered` exist for the messengers; the page does not read them yet. Needed from
+   the CLI: the owner's own reply time as one row (`--who me`), and a count of chats whose last message waits for the
+   owner, so the page shows a number and not a list of names.
+2. **Mail per day, per sender** (memo): gap 1 above. The chart then gains Email in Messages and a Mail measure.
+3. **Meetings per day** (zm or memo): `store info` counts meetings, but no command counts them by day. Proposed:
+   `zm <profile> stats meetings show --by day|week --json`, rows `{key, count, minutes}`.
+4. **Voice transcriptions over time**: the store's tables give a total only. Proposed: `has:transcript` in the
+   messages query language, so the chart's Show list gains it.
+5. **Chats never fetched**: a sync's coverage per chat (how many chats have no history in the store). Proposed:
+   `<tool> <profile> store coverage --json` with `{chats, fetched, never}`.
+6. **Time saved by agents**: not built. No tool records how long a task would have taken by hand, and a guess would
+   be a number the page cannot stand behind.
+
 ## Decisions
 
 - **One messenger, every profile.** Without `--source`, `stats messages show` counts the profile's own account

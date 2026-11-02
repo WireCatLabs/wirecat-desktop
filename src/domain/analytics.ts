@@ -71,11 +71,11 @@ export function bucketDays(
   bySource: Readonly<Record<string, readonly { key: string; count: number }[]>>,
   period: Period,
   today: string,
+  grain: Grain = grainOf(period),
 ): Bucket[] {
-  const grain = grainOf(period)
   const days = Object.values(bySource).flatMap((rows) => rows.map((r) => r.key))
   const first = days.length ? ([...days].sort()[0] ?? null) : null
-  const keys = bucketsFor(period, today, first)
+  const keys = bucketsFor(period, today, first, grain)
   const at = new Map(keys.map((k) => [k, { key: k, values: {} as Record<string, number>, total: 0 }]))
   for (const [source, rows] of Object.entries(bySource)) {
     for (const r of rows) {
@@ -174,14 +174,19 @@ const inPeriod = (at: string, period: Period, today: string) => {
 }
 
 /** New memories and facts per bar, by when they were written. Dates are UTC, as memo writes them. */
-export function entryBuckets(entries: readonly Entry[], period: Period, today: string): Bucket[] {
+export function entryBuckets(
+  entries: readonly Entry[],
+  period: Period,
+  today: string,
+  grain: Grain = grainOf(period),
+): Bucket[] {
   const rows: Record<string, { key: string; count: number }[]> = { memory: [], fact: [] }
   for (const e of entries) {
     if (e.type !== "memory" && e.type !== "fact") continue
     if (!inPeriod(e.createdAt, period, today)) continue
     rows[e.type]?.push({ key: e.createdAt.slice(0, 10), count: 1 })
   }
-  return bucketDays(rows, period, today)
+  return bucketDays(rows, period, today, grain)
 }
 
 export type ProjectRow = {
@@ -318,4 +323,94 @@ export function ownersData<G extends Group>(
     if (k in out) out[k] = Math.max(0, (out[k] ?? 0) - test.reduce((s, p) => s + p[k], 0))
   const mine = (g: G) => !TEST_PROVIDERS.includes(g.provider)
   return { rows: out, providers: providers.filter(mine), years: years.filter(mine) }
+}
+
+/** Weekday rows (Monday first) by 24 hours, from hour keys `2026-11-02T14` in the owner's zone. */
+export function weekHours(rows: readonly { key: string; count: number }[]): number[][] {
+  const grid = Array.from({ length: 7 }, () => Array<number>(24).fill(0))
+  for (const r of rows) {
+    const hour = Number(r.key.slice(11, 13))
+    if (!Number.isInteger(hour) || hour > 23) continue
+    const day = (new Date(`${r.key.slice(0, 10)}T12:00:00Z`).getUTCDay() + 6) % 7
+    const row = grid[day]
+    if (row) row[hour] = (row[hour] ?? 0) + r.count
+  }
+  return grid
+}
+
+export type Change = { id: string; source: string; name: string | null; before: number; now: number }
+
+/**
+ * Who wrote much less, and which chats grew most, against the same length of time just before. A row needs `least`
+ * messages in the busier of the two windows, so one message more or less is not news.
+ */
+export function changes(
+  now: Readonly<Record<string, readonly { key: string; name: string | null; count: number }[]>>,
+  before: Readonly<Record<string, readonly { key: string; name: string | null; count: number }[]>>,
+  least = 10,
+): { quieter: Change[]; busier: Change[] } {
+  const all = new Map<string, Change>()
+  const add = (rows: typeof now, side: "now" | "before") => {
+    for (const [source, list] of Object.entries(rows))
+      for (const r of list) {
+        if (r.key === "me") continue
+        const id = `${source}:${r.key}`
+        const c = all.get(id) ?? { id, source, name: r.name, before: 0, now: 0 }
+        c.name ??= r.name
+        c[side] += r.count
+        all.set(id, c)
+      }
+  }
+  add(now, "now")
+  add(before, "before")
+  const rows = [...all.values()].filter((c) => Math.max(c.before, c.now) >= least)
+  return {
+    quieter: rows
+      .filter((c) => c.now <= c.before / 2)
+      .sort((a, b) => b.before - b.now - (a.before - a.now))
+      .slice(0, 6),
+    busier: rows
+      .filter((c) => c.now >= c.before * 1.5)
+      .sort((a, b) => b.now - b.before - (a.now - a.before))
+      .slice(0, 6),
+  }
+}
+
+export const MEDIA = ["images", "audio", "video", "files"] as const
+export type Media = (typeof MEDIA)[number] | "other"
+
+const MEDIA_OF: Record<string, Media> = {
+  photo: "images",
+  image: "images",
+  sticker: "images",
+  voice: "audio",
+  audio: "audio",
+  video: "video",
+  video_note: "video",
+  animation: "video",
+  gif: "video",
+  document: "files",
+  file: "files",
+}
+
+/** Attachments by what a person would call them, from the store's own kinds; a kind not listed counts as other. */
+export function mediaTotals(
+  kinds: readonly { kind: string; count: number; bytes: number }[],
+): Record<Media, { count: number; bytes: number }> {
+  const out = Object.fromEntries([...MEDIA, "other"].map((m) => [m, { count: 0, bytes: 0 }])) as Record<
+    Media,
+    { count: number; bytes: number }
+  >
+  for (const k of kinds) {
+    const m = MEDIA_OF[k.kind.toLowerCase()] ?? "other"
+    out[m].count += k.count
+    out[m].bytes += k.bytes
+  }
+  return out
+}
+
+/** Rows of the store's own tables that hold transcripts and links; null when the store has none of them. */
+export function tableRows(tables: readonly { name: string; rows: number | null }[], names: readonly string[]) {
+  const found = tables.filter((t) => names.includes(t.name) && t.rows !== null)
+  return found.length ? found.reduce((s, t) => s + (t.rows ?? 0), 0) : null
 }

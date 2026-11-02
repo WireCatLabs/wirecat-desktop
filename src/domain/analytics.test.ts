@@ -2,16 +2,20 @@ import { describe, expect, it } from "vitest"
 import {
   bucketDays,
   bucketsFor,
+  changes,
   closedRanges,
   closedTerm,
   helped,
   initials,
+  mediaTotals,
   ownersData,
   projectRows,
   sentByMe,
   sumRows,
+  tableRows,
   todayIn,
   topRows,
+  weekHours,
   weekOf,
 } from "./analytics"
 
@@ -204,5 +208,56 @@ describe("test data", () => {
     expect(d.rows).toEqual({ messages: 900, chats: 10, attachments: 3 })
     expect(d.providers.map((p) => p.provider)).toEqual(["telegram"])
     expect(d.years.map((p) => p.provider)).toEqual(["telegram"])
+  })
+})
+
+describe("views", () => {
+  it("puts hours on a Monday-first week", () => {
+    const g = weekHours([
+      { key: "2026-11-02T09", count: 3 },
+      { key: "2026-11-08T23", count: 2 },
+      { key: "2026-11-09T09", count: 1 },
+    ])
+    expect(g[0]?.[9]).toBe(4)
+    expect(g[6]?.[23]).toBe(2)
+  })
+
+  it("finds who went quiet and which chats grew, past a floor and without the owner", () => {
+    const c = changes(
+      {
+        tg: [
+          { key: "1", name: "Ana", count: 4 },
+          { key: "2", name: "Bo", count: 40 },
+          { key: "me", name: null, count: 9 },
+        ],
+      },
+      {
+        tg: [
+          { key: "1", name: "Ana", count: 30 },
+          { key: "2", name: "Bo", count: 20 },
+          { key: "3", name: "Cy", count: 6 },
+        ],
+      },
+    )
+    expect(c.quieter.map((x) => [x.id, x.before, x.now])).toEqual([["tg:1", 30, 4]])
+    expect(c.busier.map((x) => x.id)).toEqual(["tg:2"])
+  })
+
+  it("groups attachment kinds as people name them and counts transcript tables", () => {
+    const t = mediaTotals([
+      { kind: "photo", count: 3, bytes: 30 },
+      { kind: "Voice", count: 2, bytes: 4 },
+      { kind: "document", count: 1, bytes: 9 },
+      { kind: "poll", count: 5, bytes: 0 },
+    ])
+    expect(t.images).toEqual({ count: 3, bytes: 30 })
+    expect(t.audio.count).toBe(2)
+    expect(t.other.count).toBe(5)
+    const tables = [
+      { name: "message_transcripts", rows: 4 },
+      { name: "meeting_transcripts", rows: 2 },
+    ]
+    expect(tableRows(tables, ["message_transcripts", "meeting_transcripts"])).toBe(6)
+    expect(tableRows(tables, ["message_links"])).toBeNull()
   })
 })

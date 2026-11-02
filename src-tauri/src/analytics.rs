@@ -32,12 +32,23 @@ pub enum Period {
 }
 
 impl Period {
-    /// The query term the tool reads; "all" has none.
-    fn term(self) -> Option<&'static str> {
+    /// The query term the tool reads; "all" has none. `previous` is the window of the same length just before it.
+    fn term(self, previous: bool) -> Result<Option<String>, String> {
+        let days = match self {
+            Self::Week => 7,
+            Self::Month => 30,
+            Self::Quarter => 90,
+            Self::All if previous => return Err("all time has no period before it".into()),
+            Self::All => return Ok(None),
+        };
+        Ok(Some(if previous { format!("date:[{}d TO {days}d]", days * 2) } else { format!("date>={days}d") }))
+    }
+
+    fn days(self) -> Option<u32> {
         match self {
-            Self::Week => Some("date>=7d"),
-            Self::Month => Some("date>=30d"),
-            Self::Quarter => Some("date>=90d"),
+            Self::Week => Some(7),
+            Self::Month => Some(30),
+            Self::Quarter => Some(90),
             Self::All => None,
         }
     }
@@ -47,6 +58,7 @@ impl Period {
 #[serde(rename_all = "lowercase")]
 pub enum By {
     Day,
+    Hour,
     Sender,
     Chat,
 }
@@ -55,10 +67,56 @@ impl By {
     fn word(self) -> &'static str {
         match self {
             Self::Day => "day",
+            Self::Hour => "hour",
             Self::Sender => "sender",
             Self::Chat => "chat",
         }
     }
+}
+
+/// Which messages to count: a fixed term of the tool's own query language, never the owner's words.
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum Only {
+    #[default]
+    All,
+    Sent,
+    Photo,
+    Voice,
+    Video,
+    File,
+    Link,
+    Private,
+    Group,
+    Channel,
+}
+
+impl Only {
+    fn term(self) -> Option<&'static str> {
+        match self {
+            Self::All => None,
+            Self::Sent => Some("from:me"),
+            Self::Photo => Some("has:photo"),
+            Self::Voice => Some("has:voice"),
+            Self::Video => Some("has:video"),
+            Self::File => Some("has:file"),
+            Self::Link => Some("has:link"),
+            Self::Private => Some("kind:private"),
+            Self::Group => Some("kind:group"),
+            Self::Channel => Some("kind:channel"),
+        }
+    }
+}
+
+/// One count the page asks for: the period (or the one before it), how to group, and which messages.
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+pub struct Ask {
+    pub period: Period,
+    pub by: By,
+    #[serde(default)]
+    pub only: Only,
+    #[serde(default)]
+    pub previous: bool,
 }
 
 #[derive(Debug, Serialize, PartialEq)]
@@ -99,40 +157,41 @@ fn source(tool: &Tool) -> Result<&StatsSource, String> {
     tool.stats.as_ref().ok_or_else(|| "This tool keeps no messages to count.".into())
 }
 
-pub fn args(src: &StatsSource, profile: &str, period: Period, by: By, timezone: &str) -> Result<Vec<String>, String> {
+pub fn args(src: &StatsSource, profile: &str, ask: Ask, timezone: &str) -> Result<Vec<String>, String> {
     catalog::validate_profile(profile)?;
     validate_timezone(timezone)?;
-    let limit = match by {
-        By::Day if period == Period::All => ALL_DAYS,
-        By::Day => 100,
-        By::Sender | By::Chat => TOP,
+    let limit = match (ask.by, ask.period.days()) {
+        (By::Day, None) => ALL_DAYS,
+        (By::Day, Some(_)) => 200,
+        (By::Hour, None) => ALL_DAYS * 24,
+        (By::Hour, Some(d)) => d * 2 * 24 + 48,
+        (By::Sender | By::Chat, _) => TOP,
     };
+    let terms: Vec<String> =
+        ask.period.term(ask.previous)?.into_iter().chain(ask.only.term().map(str::to_string)).collect();
     let mut args: Vec<String> = src
         .messages
         .iter()
         .map(|a| match a.as_str() {
             "{profile}" => profile.to_string(),
-            "{by}" => by.word().to_string(),
+            "{by}" => ask.by.word().to_string(),
             "{timezone}" => timezone.to_string(),
             "{limit}" => limit.to_string(),
             other => other.to_string(),
         })
         .collect();
-    // An empty word after `--` would be read as a query of its own, so "all" drops both.
-    match period.term() {
-        Some(term) => {
-            if let Some(q) = args.iter_mut().find(|a| *a == "{query}") {
-                *q = term.to_string();
-            }
-        }
-        None => args.retain(|a| a != "--" && a != "{query}"),
+    // An empty word after `--` would be read as a query of its own, so with no terms both go.
+    if terms.is_empty() {
+        args.retain(|a| a != "--" && a != "{query}");
+    } else if let Some(q) = args.iter_mut().find(|a| *a == "{query}") {
+        *q = terms.join(" ");
     }
     Ok(args)
 }
 
-pub fn messages(tool: &Tool, profile: &str, period: Period, by: By, timezone: &str) -> Result<Counts, String> {
+pub fn messages(tool: &Tool, profile: &str, ask: Ask, timezone: &str) -> Result<Counts, String> {
     let src = source(tool)?;
-    let args = args(src, profile, period, by, timezone)?;
+    let args = args(src, profile, ask, timezone)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     if let Some(message) = REFUSED.known(&tool.id, STATS, &bin) {
         return Ok(Counts::Old { message });
@@ -219,30 +278,48 @@ mod tests {
         }
     }
 
+    const fn ask(period: Period, by: By) -> Ask {
+        Ask { period, by, only: Only::All, previous: false }
+    }
+
     #[test]
     fn a_period_is_a_fixed_term_after_the_separator() {
-        let a = args(src("tg"), "personal", Period::Month, By::Day, "Europe/Madrid").unwrap();
+        let a = args(src("tg"), "personal", ask(Period::Month, By::Day), "Europe/Madrid").unwrap();
         assert_eq!(&a[..4], ["personal", "stats", "messages", "show"]);
         assert_eq!(&a[a.len() - 2..], ["--", "date>=30d"]);
         assert!(a.windows(2).any(|w| w == ["--by", "day"]));
         assert!(a.windows(2).any(|w| w == ["--timezone", "Europe/Madrid"]));
-        assert!(a.windows(2).any(|w| w == ["--limit", "100"]));
+    }
+
+    #[test]
+    fn a_kind_of_message_and_the_period_before_are_fixed_terms_too() {
+        let a = args(
+            src("tg"),
+            "personal",
+            Ask { period: Period::Week, by: By::Sender, only: Only::Photo, previous: true },
+            "UTC",
+        )
+        .unwrap();
+        assert_eq!(a.last().map(String::as_str), Some("date:[14d TO 7d] has:photo"));
+        let sent = args(src("tg"), "p", Ask { only: Only::Sent, ..ask(Period::All, By::Day) }, "UTC").unwrap();
+        assert_eq!(&sent[sent.len() - 2..], ["--", "from:me"]);
+        assert!(args(src("tg"), "p", Ask { previous: true, ..ask(Period::All, By::Day) }, "UTC").is_err());
     }
 
     #[test]
     fn all_time_drops_the_query_and_keeps_every_day() {
-        let a = args(src("wa"), "personal", Period::All, By::Day, "UTC").unwrap();
+        let a = args(src("wa"), "personal", ask(Period::All, By::Day), "UTC").unwrap();
         assert!(!a.iter().any(|w| w == "--" || w == "{query}"));
         assert!(a.windows(2).any(|w| w == ["--limit", &ALL_DAYS.to_string()]));
-        let top = args(src("max"), "work", Period::All, By::Sender, "UTC").unwrap();
+        let top = args(src("max"), "work", ask(Period::All, By::Sender), "UTC").unwrap();
         assert!(top.windows(2).any(|w| w == ["--limit", &TOP.to_string()]));
     }
 
     #[test]
     fn refuses_a_profile_or_zone_that_could_be_a_flag() {
-        assert!(args(src("tg"), "--all", Period::Week, By::Day, "UTC").is_err());
-        assert!(args(src("tg"), "personal", Period::Week, By::Day, "--json").is_err());
-        assert!(args(src("tg"), "personal", Period::Week, By::Day, "Europe/Madrid now").is_err());
+        assert!(args(src("tg"), "--all", ask(Period::Week, By::Day), "UTC").is_err());
+        assert!(args(src("tg"), "personal", ask(Period::Week, By::Day), "--json").is_err());
+        assert!(args(src("tg"), "personal", ask(Period::Week, By::Day), "Europe/Madrid now").is_err());
         assert!(validate_timezone("America/Argentina/Buenos_Aires").is_ok());
         assert!(validate_timezone("Etc/GMT+3").is_ok());
     }
@@ -251,6 +328,9 @@ mod tests {
     fn periods_and_groupings_read_as_the_interface_sends_them() {
         assert_eq!(serde_json::from_value::<Period>(json!("90d")).unwrap(), Period::Quarter);
         assert_eq!(serde_json::from_value::<By>(json!("sender")).unwrap(), By::Sender);
+        let a: Ask = serde_json::from_value(json!({"period":"7d","by":"hour"})).unwrap();
+        assert_eq!(a, ask(Period::Week, By::Hour));
+        assert!(serde_json::from_value::<Only>(json!("has:photo")).is_err());
         assert!(serde_json::from_value::<Period>(json!("365d")).is_err());
     }
 

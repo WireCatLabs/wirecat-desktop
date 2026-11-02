@@ -37,17 +37,37 @@ type ColumnProps = {
   unit: (n: number) => string
   /** Dimmed while a new period is read. */
   stale?: boolean
+  /** Series the reader switched off in the legend; they leave the bars and the table, and keep their colours. */
+  hidden?: ReadonlySet<string>
+  onToggle?: (id: string) => void
 }
 
 /**
  * Stacked columns over time, one hue per series in a fixed order. Hover or the arrow keys pick a bar; its numbers
  * show above it and are read out. Every number is also in the table under the chart.
  */
-export function ColumnChart({ title, buckets, series, short, long, unit, stale = false }: ColumnProps) {
+export function ColumnChart({
+  title,
+  buckets: all,
+  series: every,
+  short,
+  long,
+  unit,
+  stale = false,
+  hidden,
+  onToggle,
+}: ColumnProps) {
   const m = useMessages(analyticsMessages)
   const lang = useLang()
   const [active, setActive] = useState<number | null>(null)
   const plot = useRef<HTMLDivElement>(null)
+  const series = hidden ? every.filter((s) => !hidden.has(s.id)) : every
+  const buckets = hidden?.size
+    ? all.map((b) => {
+        const values = Object.fromEntries(Object.entries(b.values).filter(([k]) => !hidden.has(k)))
+        return { ...b, values, total: Object.values(values).reduce((a, v) => a + v, 0) }
+      })
+    : all
   const max = niceMax(buckets.reduce((a, b) => Math.max(a, b.total), 0))
   const n = buckets.length
   const shown = labelled(n)
@@ -69,7 +89,9 @@ export function ColumnChart({ title, buckets, series, short, long, unit, stale =
 
   return (
     <figure className={cx("m-0 flex flex-col gap-3 transition-opacity duration-300", stale && "opacity-55")}>
-      {series.length > 1 && <Legend series={series} />}
+      {every.length > 1 && (
+        <Legend series={every} {...(hidden ? { hidden } : {})} {...(onToggle ? { onToggle } : {})} />
+      )}
       <div className="grid grid-cols-[3.6rem_minmax(0,1fr)]">
         <div aria-hidden className="relative h-[11rem] font-mono text-[0.85rem] text-ink-dim tabular-nums">
           {[1, 0.5, 0].map((f) => (
@@ -185,16 +207,50 @@ function Tip({ at, children }: { at: number; children: ReactNode }) {
   )
 }
 
-export function Legend({ series, values }: { series: readonly Series[]; values?: Record<string, ReactNode> }) {
+export function Legend({
+  series,
+  values,
+  hidden,
+  onToggle,
+}: {
+  series: readonly Series[]
+  values?: Record<string, ReactNode>
+  /** With `onToggle`, each entry is a button that shows or hides its series. */
+  hidden?: ReadonlySet<string>
+  onToggle?: (id: string) => void
+}) {
   return (
     <ul className="m-0 flex list-none flex-wrap gap-x-[1.1rem] gap-y-1 p-0 text-[0.9rem] text-ink-soft">
-      {series.map((s) => (
-        <li key={s.id} className="flex items-center gap-[0.45rem]">
-          <span aria-hidden className="size-[0.65rem] rounded-[2px]" style={{ background: s.color }} />
-          {s.label}
-          {values?.[s.id] !== undefined && <span className="font-mono text-ink tabular-nums">{values[s.id]}</span>}
-        </li>
-      ))}
+      {series.map((s) => {
+        const off = hidden?.has(s.id) ?? false
+        const body = (
+          <>
+            <span
+              aria-hidden
+              className={cx("size-[0.65rem] rounded-[2px] border transition-opacity duration-150", off && "opacity-30")}
+              style={{ background: off ? "transparent" : s.color, borderColor: s.color }}
+            />
+            <span className={cx(off && "text-ink-dim line-through")}>{s.label}</span>
+            {values?.[s.id] !== undefined && <span className="font-mono text-ink tabular-nums">{values[s.id]}</span>}
+          </>
+        )
+        return (
+          <li key={s.id}>
+            {onToggle ? (
+              <button
+                type="button"
+                aria-pressed={!off}
+                onClick={() => onToggle(s.id)}
+                className="flex cursor-pointer items-center gap-[0.45rem] rounded-[0.3rem] px-1 -mx-1 hover:bg-app-2 hover:text-ink"
+              >
+                {body}
+              </button>
+            ) : (
+              <span className="flex items-center gap-[0.45rem]">{body}</span>
+            )}
+          </li>
+        )
+      })}
     </ul>
   )
 }

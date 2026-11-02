@@ -33,8 +33,9 @@ src-tauri/src/
                 unmasked on the page, an exception to rule 4 like runs.rs: they are the owner's own data, and they are
                 never logged or put in a report. `search_context` reads what surrounds one hit (`search.context` in the
                 catalog) under the same rule: the ref is validated, the answer shown, never logged.
-  analytics.rs  the Analytics page's message counts: a messenger's own `stats messages show` per profile, by day, sender
-                or chat (`stats` in the catalog), local store only. Names shown unmasked, an exception to rule 4 like
+  analytics.rs  the Analytics page's message counts: a messenger's own `stats messages show` per profile, by day, hour,
+                sender or chat, with one fixed term (`from:me`, `has:photo`, `kind:group`…) and the period or the one
+                before it (`stats` in the catalog), local store only. Names shown unmasked, an exception to rule 4 like
                 search.rs: never logged or put in a report. Plan `docs/dev/plans/2026-11-02-analytics.md`.
   query_writer.rs the Search page's "Write the query": the owner's words, the tool's keys from the catalog and today's
                 date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or

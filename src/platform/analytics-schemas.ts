@@ -6,7 +6,11 @@ const count = v.pipe(v.number(), v.integer(), v.minValue(0))
 
 export const PERIODS = ["7d", "30d", "90d", "all"] as const
 export type Period = (typeof PERIODS)[number]
-export type CountBy = "day" | "sender" | "chat"
+export type CountBy = "day" | "hour" | "sender" | "chat"
+/** Which messages to count; each is a fixed term in Rust (`from:me`, `has:photo`, `kind:group`…). */
+export type Only = "all" | "sent" | "photo" | "voice" | "video" | "file" | "link" | "private" | "group" | "channel"
+/** One count: the period or, with `previous`, the same length just before it. */
+export type Ask = { period: Period; by: CountBy; only: Only; previous: boolean }
 
 export const CountRowSchema = v.object({ key: v.string(), name: v.nullable(v.string()), count })
 

@@ -1,5 +1,5 @@
-import { addDays, PERIOD_DAYS, type Period, todayIn, weekOf } from "@/domain/analytics"
-import type { AnalyticsPreview, CountRow, MessageCounts } from "./analytics-schemas"
+import { addDays, PERIOD_DAYS, todayIn, weekOf } from "@/domain/analytics"
+import type { AnalyticsPreview, Ask, CountRow, MessageCounts, Only } from "./analytics-schemas"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
@@ -71,15 +71,51 @@ const CHATS: Record<string, [string, string, number][]> = {
   ],
 }
 
-function days(id: string, profile: string, period: Period, today: string): CountRow[] {
-  const span = PERIOD_DAYS[period] ?? (scenario === "empty" ? 0 : 600)
+/** How much of the traffic each kind is, so a kind's bars follow the whole but not in lockstep. */
+const ONLY_SHARE: Record<Only, number> = {
+  all: 1,
+  sent: 0.31,
+  photo: 0.09,
+  voice: 0.05,
+  video: 0.02,
+  file: 0.03,
+  link: 0.07,
+  private: 0.46,
+  group: 0.41,
+  channel: 0.13,
+}
+
+function days(id: string, profile: string, ask: Ask, today: string): CountRow[] {
+  const span = PERIOD_DAYS[ask.period] ?? (scenario === "empty" ? 0 : 600)
+  const end = ask.previous ? -span : 0
   const rows: CountRow[] = []
   for (let i = span; i >= 0; i -= 1) {
-    const day = addDays(today, -i)
-    const count = scenario === "empty" ? 0 : dayCount(`${id}/${profile}`, day)
+    const day = addDays(today, end - i)
+    const whole = scenario === "empty" ? 0 : dayCount(`${id}/${profile}`, day)
+    const share = ONLY_SHARE[ask.only] * (0.7 + noise(`${ask.only}${day}`) * 0.6)
+    const count = ask.only === "all" ? whole : Math.round(whole * Math.min(1, share))
     if (count > 0) rows.push({ key: day, name: null, count })
   }
   return rows
+}
+
+/** A day's messages spread over its hours: quiet nights, a morning and an evening peak, a later start at weekends. */
+function hours(rows: CountRow[]): CountRow[] {
+  const out: CountRow[] = []
+  for (const r of rows) {
+    const weekend = [0, 6].includes(new Date(`${r.key}T12:00:00Z`).getUTCDay())
+    const weights = Array.from({ length: 24 }, (_, h) => {
+      const morning = Math.exp(-((h - (weekend ? 12 : 10)) ** 2) / 8)
+      const evening = Math.exp(-((h - 20) ** 2) / 6) * (weekend ? 1.3 : 0.9)
+      return h < 7 ? 0.03 : morning + evening + 0.15
+    })
+    const sum = weights.reduce((a, b) => a + b, 0)
+    weights.forEach((w, h) => {
+      const count = Math.round((r.count * w) / sum)
+      if (count > 0) out.push({ key: `${r.key}T${String(h).padStart(2, "0")}`, name: null, count })
+    })
+  }
+  return out
 }
 
 function ranked(list: [string, string, number][], total: number, me: boolean): CountRow[] {
@@ -92,21 +128,29 @@ function ranked(list: [string, string, number][], total: number, me: boolean): C
 export const analyticsMock = (
   base: Pick<Platform, "taskCounts">,
 ): Pick<Platform, "messageStats" | "analyticsPreview" | "taskCounts"> => ({
-  async messageStats(id, profile, period, by, timezone): Promise<MessageCounts> {
-    await delay(500 + noise(`${id}${profile}${by}`) * 900)
+  async messageStats(id, profile, ask, timezone): Promise<MessageCounts> {
+    const { by } = ask
+    await delay(300 + noise(`${id}${profile}${by}${ask.only}`) * 700)
     if (scenario === "old" && id === "tg") return { kind: "old", message: "unknown command 'stats'" }
     if (scenario === "fail" && profile === "work")
       return { kind: "failed", message: "another process holds the store; try again in a minute" }
     const today = todayIn(timezone)
-    const dayRows = days(id, profile, period, today)
+    const dayRows = days(id, profile, ask, today)
     const total = dayRows.reduce((s, r) => s + r.count, 0)
     const share = profile === "work" ? 0.5 : 1
+    // The period before: people and chats shift a little, and one person goes quiet, so the comparison has a story.
+    const drift = (list: [string, string, number][]) =>
+      ask.previous
+        ? list.map(([k, n, w], i): [string, string, number] => [k, n, i === 1 ? w * 3.2 : w * (0.6 + noise(k) * 0.7)])
+        : list
     const rows =
       by === "day"
         ? dayRows
-        : total === 0
-          ? []
-          : ranked((by === "sender" ? PEOPLE : CHATS)[id] ?? [], total * share, by === "sender")
+        : by === "hour"
+          ? hours(dayRows)
+          : total === 0
+            ? []
+            : ranked(drift((by === "sender" ? PEOPLE : CHATS)[id] ?? []), total * share, by === "sender")
     return { kind: "ready", total, rows, more: false }
   },
 

@@ -711,12 +711,11 @@ async fn search_store(
 async fn message_stats(
     id: String,
     profile: String,
-    period: analytics::Period,
-    by: analytics::By,
+    ask: analytics::Ask,
     timezone: String,
 ) -> Result<analytics::Counts, String> {
     let tool = catalog::tool(&id)?;
-    blocking(move || analytics::messages(tool, &profile, period, by, &timezone)).await?
+    blocking(move || analytics::messages(tool, &profile, ask, &timezone)).await?
 }
 
 #[tauri::command]

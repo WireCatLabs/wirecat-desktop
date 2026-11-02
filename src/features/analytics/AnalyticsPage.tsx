@@ -9,8 +9,9 @@ import { ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
 import { analyticsMessages } from "./messages"
-import { Activity, Helps, Memory, Overview, People, Projects, Tasks } from "./sections"
+import { Activity, Helps, Memory, Overview, Panel, People, Projects, Tasks } from "./sections"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
+import { Health, WhatChanged, WhenYouTalk } from "./views"
 
 export function AnalyticsPage() {
   const m = useMessages(analyticsMessages)
@@ -61,6 +62,15 @@ export function AnalyticsPage() {
       <Overview />
       <Activity />
       <div className="grid grid-cols-1 gap-[1.5rem] xl:grid-cols-2">
+        <Panel id="an-when" title={m.whenTitle} source="stats messages show --by hour">
+          <p className="text-[0.9rem] text-ink-soft">{m.whenNote}</p>
+          <WhenYouTalk />
+        </Panel>
+        <Panel id="an-changes" title={m.changesTitle} source="stats messages show --by sender|chat">
+          <WhatChanged />
+        </Panel>
+      </div>
+      <div className="grid grid-cols-1 gap-[1.5rem] xl:grid-cols-2">
         <People />
         <Projects />
       </div>
@@ -69,6 +79,10 @@ export function AnalyticsPage() {
         <Memory />
       </div>
       <Helps />
+      <Panel id="an-health" title={m.health} source="runs list · status">
+        <p className="text-[0.9rem] text-ink-soft">{m.healthNote}</p>
+        <Health />
+      </Panel>
     </div>
   )
 }

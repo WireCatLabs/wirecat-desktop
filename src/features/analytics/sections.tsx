@@ -6,12 +6,15 @@ import {
   grainOf,
   helped,
   initials,
+  MEDIA,
   MEMORY_STATUSES,
+  mediaTotals,
   ownersData,
   PERIOD_DAYS,
   projectRows,
   sentByMe,
   statusCounts,
+  tableRows,
   taskGrain,
   topRows,
 } from "@/domain/analytics"
@@ -25,13 +28,14 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./charts"
+import { Explorer } from "./explorer"
 import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
 
 type M = typeof analyticsMessages.en
 
-function Panel({
+export function Panel({
   id,
   title,
   source,
@@ -152,6 +156,7 @@ function OverviewBody({ info }: { info: StoreInfo }) {
         ))}
         <Stat label={m.size} value={formatBytes(info.fileBytes + info.walBytes)} />
       </Stats>
+      <MediaRow kinds={info.breakdown?.attachmentKinds ?? []} />
       {info.breakdown ? (
         <>
           <div className="flex flex-col gap-2">
@@ -187,6 +192,42 @@ function OverviewBody({ info }: { info: StoreInfo }) {
   )
 }
 
+function MediaRow({ kinds }: { kinds: readonly { kind: string; count: number; bytes: number }[] }) {
+  const m = useMessages(analyticsMessages)
+  const tables = useAnalytics((s) => s.tables)
+  const media = mediaTotals(kinds)
+  const list = tables?.tables ?? []
+  const transcripts = tableRows(list, ["message_transcripts", "meeting_transcripts"])
+  const links = tableRows(list, ["message_links"])
+  const shown = MEDIA.filter((k) => media[k].count > 0)
+  if (!shown.length && transcripts === null && links === null && tables !== undefined) return null
+  return (
+    <div className="flex flex-col gap-2">
+      <Sub>{m.mediaHead}</Sub>
+      <Stats>
+        {shown.map((k) => (
+          <Stat
+            key={k}
+            label={m.media[k] ?? k}
+            value={formatNumber(media[k].count)}
+            note={media[k].bytes > 0 ? formatBytes(media[k].bytes) : undefined}
+          />
+        ))}
+        {tables === undefined ? (
+          <Stat label={m.transcripts} value={<Skeleton chars={4} />} />
+        ) : (
+          <>
+            {transcripts !== null && (
+              <Stat label={m.transcripts} value={formatNumber(transcripts)} note={m.transcriptsNote} />
+            )}
+            {links !== null && <Stat label={m.links} value={formatNumber(links)} note={m.linksNote} />}
+          </>
+        )}
+      </Stats>
+    </div>
+  )
+}
+
 const order = (provider: string) => {
   const i = SOURCE_ORDER.indexOf(provider)
   return i === -1 ? SOURCE_ORDER.length : i
@@ -199,7 +240,6 @@ export function Activity() {
   const sources = useShownSources()
   const period = useAnalytics((s) => s.period)
   const today = useAnalytics((s) => s.today)
-  const refreshing = useAnalytics((s) => s.refreshing)
   const loading = MESSENGERS.some((x) => sources[x.id]?.state === "loading")
   const ready = MESSENGERS.flatMap((x) => {
     const s = sources[x.id]
@@ -215,14 +255,9 @@ export function Activity() {
     (a, b) => (a === null || b.total > a.total ? b : a),
     null,
   )
-  const series: Series[] = ready.map((r) => ({
-    id: r.provider,
-    label: messengerName(r.id),
-    color: colorOf(r.provider),
-  }))
 
   return (
-    <Panel id="an-activity" title={m.activity} source="stats messages show --by day">
+    <Panel id="an-activity" title={m.activity} source="stats messages show · tasks counts · memories list">
       {none ? (
         <Note>{m.noMessengers}</Note>
       ) : loading && ready.length === 0 ? (
@@ -250,19 +285,7 @@ export function Activity() {
               />
             )}
           </Stats>
-          {total === 0 ? (
-            <Note>{m.noMessages}</Note>
-          ) : (
-            <ColumnChart
-              title={m.activity}
-              buckets={buckets}
-              series={series}
-              short={(k) => shortKey(k, grain)}
-              long={(k) => longKey(k, grain, m.weekOf)}
-              unit={m.messagesN}
-              stale={refreshing}
-            />
-          )}
+          <Explorer />
           <SourceNotes m={m} />
         </div>
       )}
