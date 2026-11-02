@@ -33,6 +33,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
 import { BackgroundLine } from "./Background"
+import { ConfigFix } from "./ConfigFix"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SyncControl } from "./Sync"
 import { useTerminal } from "./terminal-store"
@@ -104,7 +105,7 @@ export function Health({ tool }: { tool: CatalogTool }) {
           {checkError}
         </ErrorNotice>
       )}
-      {check && <Result check={check} toolId={tool.id} m={m} />}
+      {check && <Result check={check} tool={tool} m={m} />}
     </section>
   )
 }
@@ -416,7 +417,9 @@ function where({ file, profile, key, line, column }: ConfigPlace) {
   return [at, profile && `profile ${profile}`, key && `key ${key}`].filter(Boolean).join(" · ")
 }
 
-function ConfigProblems({ findings, toolId, m }: { findings: Finding[]; toolId: string; m: Words }) {
+function ConfigProblems(props: { findings: Finding[]; tool: CatalogTool; profile: string | null; m: Words }) {
+  const { findings, tool, profile, m } = props
+  const toolId = tool.id
   const [openError, setOpenError] = useState<string | null>(null)
   const open = async () => {
     try {
@@ -449,6 +452,7 @@ function ConfigProblems({ findings, toolId, m }: { findings: Finding[]; toolId: 
                 <span>{said(f, m)}</span>
                 {at && <code className="selectable font-mono text-[0.85rem] break-all text-ink-soft">{at}</code>}
                 {f.fix && <CopyField value={f.fix} label={m.copyFix} />}
+                <ConfigFix tool={tool} finding={f} profile={profile} />
               </div>
             </li>
           )
@@ -458,7 +462,7 @@ function ConfigProblems({ findings, toolId, m }: { findings: Finding[]; toolId: 
   )
 }
 
-function Result({ check, toolId, m }: { check: Check; toolId: string; m: Words }) {
+function Result({ check, tool, m }: { check: Check; tool: CatalogTool; m: Words }) {
   if (check.state === "running") return <Skeleton className="h-16 w-full" label={m.running} />
   const { result } = check
   const findings = summarize(result.report, result.exitCode)
@@ -466,7 +470,7 @@ function Result({ check, toolId, m }: { check: Check; toolId: string; m: Words }
   const other = findings.filter((f) => !f.config)
   return (
     <div className="flex flex-col gap-2 rounded-[0.45rem] border border-line bg-app p-3" aria-live="polite">
-      {config.length > 0 && <ConfigProblems findings={config} toolId={toolId} m={m} />}
+      {config.length > 0 && <ConfigProblems findings={config} tool={tool} profile={check.profile} m={m} />}
       {other.length > 0 && (
         <ul className={cx("flex flex-col gap-1.5", config.length > 0 && "border-line border-t pt-2.5")}>
           {other.map((f) => (

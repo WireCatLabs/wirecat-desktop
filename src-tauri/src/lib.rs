@@ -1,3 +1,4 @@
+mod agent_fix;
 mod archive;
 mod background;
 mod backup;
@@ -373,8 +374,8 @@ async fn tailscale_download(
 }
 
 #[tauri::command]
-fn tailscale_terminal(what: String) -> Result<(), String> {
-    terminal::open_line(&tailscale::terminal_line(&what)?)
+async fn tailscale_terminal(what: String) -> Result<(), String> {
+    blocking(move || terminal::open_line(&tailscale::terminal_line(&what)?)).await?
 }
 
 #[tauri::command]
@@ -771,13 +772,23 @@ fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
     }
 }
 
+// Async: finding a terminal waits a moment for each one tried, and macOS waits for its Automation answer.
 #[tauri::command]
-fn open_setup(id: String, profile: Option<String>) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    let args = tool.setup.as_ref().ok_or("this tool has no setup flow")?;
-    let args = catalog::with_profile(args, profile.as_deref())?;
-    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
-    terminal::open(&bin, &args)
+async fn open_setup(id: String, profile: Option<String>) -> Result<(), String> {
+    blocking(move || {
+        let tool = catalog::tool(&id)?;
+        let args = tool.setup.as_ref().ok_or("this tool has no setup flow")?;
+        let args = catalog::with_profile(args, profile.as_deref())?;
+        let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
+        terminal::open(&bin, &args)
+    })
+    .await?
+}
+
+/// Opens a terminal running a coding agent on a prompt the interface wrote about a tool's broken settings file.
+#[tauri::command]
+async fn fix_in_agent(agent: String, tool: String, prompt: String) -> Result<(), String> {
+    blocking(move || agent_fix::start(&agent, &tool, &prompt)).await?
 }
 
 /// Signs a profile in inside the window with one of the catalog's `signIn.methods`.
@@ -1009,6 +1020,7 @@ pub fn run() {
             settings_unset,
             permissions_show,
             open_setup,
+            fix_in_agent,
             sign_in,
             sign_in_answer,
             sign_in_stop,
