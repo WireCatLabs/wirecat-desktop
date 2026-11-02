@@ -35,6 +35,7 @@ import { useSignIn } from "../signin/store"
 import { BackgroundLine } from "./Background"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SyncControl } from "./Sync"
+import { useTerminal } from "./terminal-store"
 import { toolText } from "./tool-text"
 
 type Words = ToolsText["health"]
@@ -165,7 +166,7 @@ function ProfileList(props: {
                     onClick={() =>
                       signsInHere(tool)
                         ? useSignIn.getState().start(tool.id, p.name, onReload)
-                        : platform.openSetup(tool.id, p.name)
+                        : useTerminal.getState().open(tool.id, p.name)
                     }
                   >
                     {p.signedIn === false ? m.signIn : m.setUp}
@@ -182,7 +183,8 @@ function ProfileList(props: {
           {tool.setup ? (signsInHere(tool) ? m.noAccountHere(tool.name) : m.noAccountTerminal(tool.name)) : m.noAccount}
         </p>
       )}
-      {tool.setup && <NewProfile tool={tool} onCheck={onReload} checking={reloading} />}
+      {tool.setup && <NewProfile tool={tool} onCheck={onReload} />}
+      {tool.setup && <TerminalStatus tool={tool} onCheck={onReload} checking={reloading} />}
       {!tool.setup && <ManualSetup tool={tool} onCheck={onReload} checking={reloading} />}
     </div>
   )
@@ -221,22 +223,52 @@ export function useProfiles(id: string) {
   return { profiles, error, loading, reload }
 }
 
-export function FinishInTerminal({ onCheck, checking }: { onCheck: () => void; checking: boolean }) {
+/** What became of the last sign-in handed to a terminal for this tool: opened, the browser preview, or no terminal. */
+export function TerminalStatus({
+  tool,
+  onCheck,
+  checking,
+}: {
+  tool: CatalogTool
+  onCheck: () => void
+  checking: boolean
+}) {
   const m = useMessages(toolsMessages).health
+  const opened = useTerminal((s) => s.byTool[tool.id])
+  if (!opened) return null
+  const command = setupCommand(tool, opened.profile) ?? ""
+  const code = <code className="font-mono whitespace-nowrap text-ink">{command}</code>
+  const check = (
+    <Button
+      size="sm"
+      variant="secondary"
+      onClick={onCheck}
+      icon={<RefreshCw className={cx("size-4", checking && "animate-spin")} aria-hidden />}
+    >
+      {checking ? m.checking : m.checkSignIn}
+    </Button>
+  )
+  if (opened.state === "failed") {
+    const noTerminal = opened.error.startsWith("Could not open a terminal")
+    return (
+      <div role="status" className="reveal flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <p className="min-w-0 flex-1 text-[0.9rem] text-ink-soft">
+            {noTerminal ? m.noTerminal : `${m.terminalFailed} ${opened.error}`}
+          </p>
+          <ReportThis what="Opening a terminal to sign in" tool={tool.id} command={command} error={opened.error} />
+        </div>
+        {command && <CopyField value={command} label={m.copySetup} />}
+        <div>{check}</div>
+      </div>
+    )
+  }
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[0.35rem] bg-brand-soft/60 px-3 py-2">
-      <p role="status" className="min-w-0 flex-1 text-[0.9rem] text-ink">
-        {m.finishInTerminal}
+    <div className="reveal flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[0.35rem] bg-brand-soft/60 px-3 py-2">
+      <p role="status" className="min-w-0 flex-1 text-[0.9rem] leading-snug text-ink">
+        {opened.state === "preview" ? m.terminalPreview(code) : m.finishInTerminal(code)}
       </p>
-      <Button
-        size="sm"
-        variant="secondary"
-        onClick={onCheck}
-        disabled={checking}
-        icon={<RefreshCw className={cx("size-4", checking && "animate-spin")} aria-hidden />}
-      >
-        {checking ? m.checking : m.checkSignIn}
-      </Button>
+      {check}
     </div>
   )
 }
@@ -282,12 +314,10 @@ export function ManualSetup(props: { tool: CatalogTool; onCheck: () => void; che
   )
 }
 
-export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; checking: boolean; label?: string }) {
+export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; label?: string }) {
   const m = useMessages(toolsMessages).health
-  const { tool, onCheck, checking, label = m.profileName } = props
+  const { tool, label = m.profileName } = props
   const [name, setName] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [opened, setOpened] = useState(false)
   const [tried, setTried] = useState(false)
   const valid = isValidProfile(name)
   const problem = name === "" ? (tried ? m.nameEmpty : null) : valid ? null : m.nameInvalid
@@ -295,19 +325,8 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; chec
     setTried(true)
     focusInPlace(document.getElementById(id))
   }
-  const command = setupCommand(tool, valid ? name : null)
   const id = `profile-${tool.id}`
-
-  const open = async () => {
-    try {
-      await platform.openSetup(tool.id, name)
-      setError(null)
-      setOpened(true)
-    } catch (e) {
-      setError(String(e))
-      setOpened(false)
-    }
-  }
+  const open = () => useTerminal.getState().open(tool.id, name)
 
   const here = signsInHere(tool)
 
@@ -317,22 +336,24 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; chec
       onSubmit={(e) => {
         e.preventDefault()
         if (!valid) return refuse()
-        if (here) useSignIn.getState().start(tool.id, name, onCheck)
+        if (here) useSignIn.getState().start(tool.id, name, props.onCheck)
         else open()
       }}
     >
-      <label className="text-[0.9rem] font-medium text-ink" htmlFor={id}>
+      <h5 id={`${id}-title`} className="text-[0.9rem] font-medium text-ink">
         {label}
         <span className="sr-only">, {tool.name}</span>
-      </label>
+      </h5>
       <div className="flex flex-wrap gap-2">
         <input
           id={id}
           value={name}
           onChange={(e) => {
             setName(e.target.value.trim())
-            setOpened(false)
+            useTerminal.getState().clear(tool.id)
           }}
+          aria-label={`${m.accountName}, ${tool.name}`}
+          placeholder={m.accountName}
           spellCheck={false}
           autoComplete="off"
           aria-invalid={problem !== null}
@@ -364,16 +385,6 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; chec
             <code className="font-mono whitespace-nowrap text-ink">{setupCommand(tool, valid ? name : "<name>")}</code>,
           )}
         </p>
-      )}
-      {opened && <FinishInTerminal onCheck={onCheck} checking={checking} />}
-      {error && (
-        <div className="flex flex-col gap-1.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <p className="text-[0.9rem] text-ink-soft">{m.noTerminal}</p>
-            <ReportThis what="Opening a terminal to sign in" tool={tool.id} command={command} error={error} />
-          </div>
-          {command && <CopyField value={command} label={m.copySetup} />}
-        </div>
       )}
     </form>
   )

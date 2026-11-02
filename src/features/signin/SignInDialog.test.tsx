@@ -42,7 +42,7 @@ if (!wa) throw new Error("wa is in the catalog")
 function signInForm(onCheck = vi.fn()) {
   render(
     <>
-      <NewProfile tool={wa as NonNullable<typeof wa>} onCheck={onCheck} checking={false} />
+      <NewProfile tool={wa as NonNullable<typeof wa>} onCheck={onCheck} />
       <SignInDialog />
     </>,
   )
@@ -50,7 +50,7 @@ function signInForm(onCheck = vi.fn()) {
 }
 
 async function startAs(name: string) {
-  await userEvent.type(screen.getByLabelText(/Name for this account/), `${name}{Enter}`)
+  await userEvent.type(screen.getByLabelText(/Account name/), `${name}{Enter}`)
   return screen.getByRole("dialog", { name: "Sign in to WhatsApp" })
 }
 
@@ -132,8 +132,8 @@ describe("signing in to WhatsApp inside the window", () => {
     signInForm()
     await userEvent.click(screen.getByRole("button", { name: "Sign in here" }))
     expect(screen.getByRole("alert")).toHaveTextContent("Type a name for this account first")
-    expect(screen.getByLabelText(/Name for this account/)).toHaveFocus()
-    await userEvent.type(screen.getByLabelText(/Name for this account/), "-bad{Enter}")
+    expect(screen.getByLabelText(/Account name/)).toHaveFocus()
+    await userEvent.type(screen.getByLabelText(/Account name/), "-bad{Enter}")
     expect(screen.getByRole("alert")).toHaveTextContent("Use letters, digits")
     expect(platform.signIn).not.toHaveBeenCalled()
   })

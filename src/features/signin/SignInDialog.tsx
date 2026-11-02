@@ -2,9 +2,9 @@ import { Terminal } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
+import { useTerminal } from "../tools/terminal-store"
 import { type SigninMessages, signinMessages } from "./messages"
 import { Stage } from "./Stages"
 import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "./store"
@@ -101,7 +101,8 @@ function Actions() {
             variant="secondary"
             icon={<Terminal className="size-4" aria-hidden />}
             onClick={() => {
-              platform.openSetup(tool, profile).catch(() => {})
+              // The tool's details page under the dialog says whether the terminal opened, and what to do next.
+              useTerminal.getState().open(tool, profile)
               close()
             }}
           >
