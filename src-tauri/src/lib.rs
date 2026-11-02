@@ -1,3 +1,4 @@
+mod analytics;
 mod archive;
 mod background;
 mod backup;
@@ -707,6 +708,18 @@ async fn search_store(
 }
 
 #[tauri::command]
+async fn message_stats(
+    id: String,
+    profile: String,
+    period: analytics::Period,
+    by: analytics::By,
+    timezone: String,
+) -> Result<analytics::Counts, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || analytics::messages(tool, &profile, period, by, &timezone)).await?
+}
+
+#[tauri::command]
 async fn search_context(id: String, profile: Option<String>, reference: String) -> Result<search::Context, String> {
     let tool = catalog::tool(&id)?;
     blocking(move || search::context(tool, profile.as_deref(), &reference)).await?
@@ -1026,6 +1039,7 @@ pub fn run() {
             list_runs,
             show_run,
             search_store,
+            message_stats,
             search_values,
             search_context,
             search_draft,

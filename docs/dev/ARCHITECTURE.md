@@ -8,7 +8,7 @@ the machine and runs the tools. Nothing here duplicates what a CLI already does.
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
+  features/     one folder per area (tools/, agents/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
   ui/           presentational parts: Button, Lamp, Stepper… Props in, events out.
   platform/     the only door to Rust. Validates every answer with valibot. Has a browser mock.
   domain/       plain TypeScript: catalog, tool status, doctor summaries. No React, no Tauri.
@@ -33,6 +33,9 @@ src-tauri/src/
                 unmasked on the page, an exception to rule 4 like runs.rs: they are the owner's own data, and they are
                 never logged or put in a report. `search_context` reads what surrounds one hit (`search.context` in the
                 catalog) under the same rule: the ref is validated, the answer shown, never logged.
+  analytics.rs  the Analytics page's message counts: a messenger's own `stats messages show` per profile, by day, sender
+                or chat (`stats` in the catalog), local store only. Names shown unmasked, an exception to rule 4 like
+                search.rs: never logged or put in a report. Plan `docs/dev/plans/2026-11-02-analytics.md`.
   query_writer.rs the Search page's "Write the query": the owner's words, the tool's keys from the catalog and today's
                 date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or
                 signed out, Codex (`codex exec`, read-only, in an empty folder). One checked line comes back into the

@@ -207,6 +207,27 @@
           ]
         }
       },
+      "stats": {
+        "messages": [
+          "{profile}",
+          "stats",
+          "messages",
+          "show",
+          "--by",
+          "{by}",
+          "--timezone",
+          "{timezone}",
+          "--limit",
+          "{limit}",
+          "--offline",
+          "--timeout",
+          "60s",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ]
+      },
       "setup": ["{profile}", "setup"],
       "skill": {
         "status": ["skill", "status", "--no-record", "--json"],
@@ -539,6 +560,27 @@
           ]
         }
       },
+      "stats": {
+        "messages": [
+          "{profile}",
+          "stats",
+          "messages",
+          "show",
+          "--by",
+          "{by}",
+          "--timezone",
+          "{timezone}",
+          "--limit",
+          "{limit}",
+          "--offline",
+          "--timeout",
+          "60s",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ]
+      },
       "setup": ["{profile}", "setup"],
       "skill": {
         "status": ["skill", "status", "--no-record", "--json"],
@@ -866,6 +908,27 @@
             "--json"
           ]
         }
+      },
+      "stats": {
+        "messages": [
+          "{profile}",
+          "stats",
+          "messages",
+          "show",
+          "--by",
+          "{by}",
+          "--timezone",
+          "{timezone}",
+          "--limit",
+          "{limit}",
+          "--offline",
+          "--timeout",
+          "60s",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ]
       },
       "setup": ["{profile}", "setup"],
       "skill": {

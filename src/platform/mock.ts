@@ -1,5 +1,6 @@
 import { ownerId, tools } from "@/domain/catalog"
 import { agentsMock, refreshSkillsMock } from "./mock-agents"
+import { analyticsMock } from "./mock-analytics"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
 import { cloudflareMock } from "./mock-cloudflare"
@@ -224,7 +225,7 @@ export function createMock(os: Platform["os"]): Platform {
   const program = (path: string, version: string) => ({ path, version, ok: true, problem: null })
   const absent = { path: null, version: null, ok: false, problem: "not found" }
 
-  const mock: Platform = {
+  const stock: Omit<Platform, "messageStats" | "analyticsPreview"> = {
     kind: "mock",
     os,
     async readiness(): Promise<Readiness> {
@@ -593,5 +594,6 @@ export function createMock(os: Platform["os"]): Platform {
     },
     async window() {},
   }
+  const mock: Platform = { ...stock, ...analyticsMock(stock) }
   return showcase ? { ...mock, ...showcaseMock(mock, installed) } : mock
 }

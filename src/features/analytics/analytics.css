@@ -1,0 +1,25 @@
+/* The Analytics page's series colours. Purple stays the brand's and the status tones stay the lamps', so a chart
+   never reads as an action or a warning. Six slots in a fixed order, checked with a colour-blindness validator
+   against the app's own surfaces (#ffffff light, #1b1a18 dark): adjacent pairs pass colour-blind separation in both
+   themes. Three light slots sit under 3:1 on white, so every chart has its numbers as a table one click away. */
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-other: #a3a8a0;
+  --grid: #ebe9e3;
+}
+
+:root[data-theme="dark"] {
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-other: #6a706b;
+  --grid: #26251f;
+}
