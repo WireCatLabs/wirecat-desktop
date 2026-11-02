@@ -148,6 +148,7 @@ worktree. Отправка репортов — `report.rs` и `src/features/rep
 - **TASK-60 · Рецепты под установленные инструменты (2026-11-02).** Слава: «the guides use tg, I'd adapt them depending on what cli user has installed. actually I think we just bake the guides in the desktop since they are just prompts (unless already)».
   - Уже вшиты: данные и страница в `.impeccable/mocks/guides/prototype/`, приложение импортирует оттуда; с сайта ничего не грузится (план NEED-215 с md-страницами на сайте не делался). Промпты и шаги жёстко на `tg`.
   - Отдано агенту, ветка `feat/guides-per-tool`: перенос в `src/features/guides/`, промпт и команды под установленный мессенджер, переключатель при нескольких, реальные команды wa/max по их help, пробелы — в отчёт.
+  - #60 слит 2026-11-02: `src/features/guides/`, плейсхолдеры программы мессенджера и `<profile>` в шагах, переключатель (иконки), Zoom только если установлен; тест сверяет каждый шаг со списками команд из help. Пробел: утренняя сводка не для wa (нет `schedule` в wa 0.23.0). «Full guide» ведёт на страницы Telegram для max/wa.
 
 - **TASK-61 · README десктопа (2026-11-02).** Слава: «improve the desktop README in github, check our readme standards from clis and adapt to desktop, add screenshots etc». Отдано агенту витрины после #58: стандарт README из cli-base, скриншоты с `<picture>` под тему GitHub.
 
@@ -1637,3 +1638,6 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
   - Я бы: **B**.
   - Ответ 2026-11-02: «где смотреть это?» — #490 на http://localhost:1490.
   - **Ответ 2026-11-02: A** — «first finish screenshots»: скриншоты в тот же #490.
+- **NEED-244 · Подписывать ли переключатель мессенджера в рецептах названиями (Telegram / MAX / WhatsApp) или оставить только иконки?**
+  - Варианты: **A** только иконки (имя при наведении и в строке «Uses …») · **B** иконки с названиями
+  - Я бы: **B** — иконки трёх мессенджеров легко спутать, Слава просит, чтобы нас понимали сразу.
