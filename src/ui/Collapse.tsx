@@ -56,12 +56,12 @@ export function Collapse({ open, children, id, className }: Props) {
       aria-hidden={!open || undefined}
       data-state={open ? "open" : "closed"}
       className={cx(
-        "grid transition-[grid-template-rows] duration-300 ease-out-quart motion-reduce:transition-none",
+        "grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows] duration-300 ease-out-quart motion-reduce:transition-none",
         open && rows ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
       )}
     >
       {/* Clipped only while it moves, so focus rings and menus inside an open panel are not cut off. */}
-      <div className={cx("min-h-0", (!open || moving || !rows) && "overflow-hidden")}>
+      <div className={cx("min-h-0 min-w-0", (!open || moving || !rows) && "overflow-hidden")}>
         {(open || mounted) && <div className={className}>{open ? children : last.current}</div>}
       </div>
     </div>
