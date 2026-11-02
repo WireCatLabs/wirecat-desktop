@@ -118,3 +118,8 @@
 /home/leemour/Projects/AI/visage/.claude/worktrees/shots — throwaway worktree for desktop screenshots — 2026-11-02
 /home/leemour/Projects/AI/cli-docs-wt-shell-fix — worktree of merged cli-docs #494 — 2026-11-02
 /home/leemour/Projects/AI/cli-docs-wt-landing-hero — worktree of merged cli-docs #490 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/query-tokens — worktree of merged #68 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/query-writer — worktree of merged #63 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/guides-per-tool — worktree of merged #60 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/showcase — worktree of merged #58/#62 — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/unified-filters — worktree of merged #56 — 2026-11-02
