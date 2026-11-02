@@ -128,7 +128,6 @@ function createTauri(): Platform {
     storage: () => call(StorageSchema, "storage_report"),
     clearStorage: (id) => invoke("clear_storage", { id }),
     openFolder: (id, kind, entry) => invoke("open_folder", { id, kind, entry: entry ?? null }),
-    configRepairSupported: (id, profile) => invoke("config_repair_supported", { id, profile }),
     configRepair: (id, profile) => call(RepairSchema, "config_repair", { id, profile }),
     storeInfo: () => call(StoreInfoSchema, "store_info"),
     storeCompat: () => call(StoreCompatSchema, "store_compat"),

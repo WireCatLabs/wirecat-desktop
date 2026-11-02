@@ -115,6 +115,8 @@ const MOCK_CONFIG: Record<string, { issues?: Record<string, unknown>[]; error?: 
         line: 9,
         column: 3,
         what: "The settings file is not valid JSON: a comma is missing before this line.",
+        // doctor names the repair only when it would succeed; `refuse` plays a file that changed in between.
+        ...(params.has("repair") ? { fix: "tg config repair" } : {}),
       },
     ],
   },
@@ -519,27 +521,21 @@ export function createMock(os: Platform["os"]): Platform {
       dataSize[id] = 0
     },
     async openFolder() {},
-    // `?repair=ok|refuse`: the installed tg has `config repair`, and it fixes tg/work's broken file or refuses to.
-    // Without it, every tool is a version from before the command, and no Repair button shows.
-    async configRepairSupported(id) {
-      await delay(300)
-      return id === "tg" && params.has("repair")
-    },
+    // `?repair=ok|refuse`, as Rust reads cli-core's answers (cli-core#2422). With `ok` doctor names the repair as the
+    // fix for tg/work and the repair mends the file; with `refuse` it fails with `config.unrepairable` at line 9.
     async configRepair(): Promise<Repair> {
       await delay(900)
       if (params.get("repair") === "refuse")
-        return {
-          state: "refused",
-          message: "cannot repair safely: line 9 holds two values and either could be the one meant",
-          file: TG_CONFIG,
-          line: 9,
-        }
+        return { state: "refused", message: "two entries on one line", file: TG_CONFIG, line: 9, column: 3 }
       repaired = true
       return {
         state: "repaired",
         file: TG_CONFIG,
         backup: `${TG_CONFIG}.bak-20261102T171502Z`,
-        changes: [{ line: 9, column: 3, what: "added the missing comma before this line" }],
+        changes: [
+          { line: 9, kind: "missing_comma" },
+          { line: 14, kind: "trailing_comma" },
+        ],
       }
     },
     storeInfo: async () => backups.afterClear(await storeInfoMock(newestReader(installed) ?? asksArchive())),

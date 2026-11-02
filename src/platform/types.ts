@@ -75,8 +75,7 @@ export type Platform = {
   clearStorage(id: string): Promise<void>
   /** `entry` opens one item directly inside the folder; Rust builds and checks the path. */
   openFolder(id: string, kind: StorageFolder["kind"], entry?: string): Promise<void>
-  /** Whether the installed version has `config repair` (`config_repair.rs`). */
-  configRepairSupported(id: string, profile: string | null): Promise<boolean>
+  /** The tool's own `config repair` (`config_repair.rs`), offered where `doctor` names it as the fix. */
   configRepair(id: string, profile: string | null): Promise<Repair>
   /** What the shared archive holds, from the installed tool that reads the newest schema; null when none is installed. */
   storeInfo(): Promise<StoreInfo | null>

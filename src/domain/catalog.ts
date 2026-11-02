@@ -100,7 +100,7 @@ const ToolSchema = v.object({
   storeTables: v.nullable(v.array(v.string())),
   storeTableSizes: v.nullable(v.array(v.string())),
   storeCheck: v.nullable(v.array(v.string())),
-  configRepair: v.optional(v.nullable(v.object({ run: v.array(v.string()), commands: v.array(v.string()) })), null),
+  configRepair: v.optional(v.nullable(v.array(v.string())), null),
   storeBackup: v.nullable(v.array(v.string())),
   storeBackupEncrypted: v.nullable(v.array(v.string())),
   storeResetPreview: v.nullable(v.array(v.string())),

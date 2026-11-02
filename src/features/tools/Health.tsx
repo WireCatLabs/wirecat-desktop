@@ -33,7 +33,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
 import { BackgroundLine } from "./Background"
-import { ConfigRepair, type Repaired } from "./ConfigRepair"
+import { ConfigRepair, offersRepair, type Repaired } from "./ConfigRepair"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SyncControl } from "./Sync"
 import { useTerminal } from "./terminal-store"
@@ -479,7 +479,7 @@ function ConfigProblems(props: {
               <div className="flex min-w-0 flex-1 flex-col gap-1">
                 <span>{said(f, m)}</span>
                 {at && <code className="selectable font-mono text-[0.85rem] break-all text-ink-soft">{at}</code>}
-                {f.fix && <CopyField value={f.fix} label={m.copyFix} />}
+                {f.fix && !offersRepair(tool, f) && <CopyField value={f.fix} label={m.copyFix} />}
                 <ConfigRepair tool={tool} finding={f} profile={profile} onRepaired={onRepaired} />
               </div>
             </li>
@@ -492,7 +492,17 @@ function ConfigProblems(props: {
 
 /** What the tool's repair changed, kept above the fresh check so the owner sees why the problem is gone. */
 function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) {
-  const what = repaired.changes.map((c) => (c.line === null ? c.what : `${c.what} (${m.atLine(c.line)})`)).join("; ")
+  if (repaired.state === "unchanged")
+    return (
+      <p role="status" className="reveal flex items-center gap-2 text-[0.9rem] text-ink-soft">
+        <CheckCircle2 className="size-4 shrink-0 text-ok" aria-hidden />
+        {repaired.reason === "no settings file" ? m.repairNoFile : m.repairNothing}
+      </p>
+    )
+  const said = (kind: string) => m.repairKind[kind as keyof Words["repairKind"]] ?? kind.replaceAll("_", " ")
+  const what = repaired.changes
+    .map((c) => (c.line === null ? said(c.kind) : `${said(c.kind)} (${m.atLine(c.line)})`))
+    .join("; ")
   return (
     <div role="status" className="reveal flex items-start gap-2 rounded-[0.35rem] bg-ok/10 px-3 py-2 text-[0.9rem]">
       <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />

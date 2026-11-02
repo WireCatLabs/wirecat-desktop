@@ -254,10 +254,7 @@
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
       "storeCheck": ["store", "check", "--record", "--json"],
-      "configRepair": {
-        "run": ["{profile}", "config", "repair", "--record", "--json"],
-        "commands": ["{profile}", "commands", "--no-record", "--json"]
-      },
+      "configRepair": ["{profile}", "config", "repair", "--record", "--json"],
       "storeBackup": ["store", "backup", "{file}", "--record", "--json"],
       "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--record", "--json"],
       "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],
@@ -585,10 +582,7 @@
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
       "storeCheck": ["store", "check", "--record", "--json"],
-      "configRepair": {
-        "run": ["{profile}", "config", "repair", "--record", "--json"],
-        "commands": ["{profile}", "commands", "--no-record", "--json"]
-      },
+      "configRepair": ["{profile}", "config", "repair", "--record", "--json"],
       "storeBackup": ["store", "backup", "{file}", "--record", "--json"],
       "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--record", "--json"],
       "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],
@@ -912,10 +906,7 @@
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
       "storeCheck": ["store", "check", "--record", "--json"],
-      "configRepair": {
-        "run": ["{profile}", "config", "repair", "--record", "--json"],
-        "commands": ["{profile}", "commands", "--no-record", "--json"]
-      },
+      "configRepair": ["{profile}", "config", "repair", "--record", "--json"],
       "storeBackup": ["store", "backup", "{file}", "--record", "--json"],
       "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--record", "--json"],
       "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],

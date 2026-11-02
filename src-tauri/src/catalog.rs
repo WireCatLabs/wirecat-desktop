@@ -64,16 +64,10 @@ pub struct Tool {
     pub store_reset_preview: Option<Vec<String>>,
     /// `store reset` with no backup beside the store: the app makes its own first, when the owner keeps it.
     pub store_reset: Option<Vec<String>>,
+    /// `config repair`: the tool mends a settings file whose JSON is broken only in its syntax, after a backup, or
+    /// refuses. Offered only where `doctor` names it as the fix, which it does only when the repair would succeed.
     #[serde(default)]
-    pub config_repair: Option<ConfigRepairSource>,
-}
-
-/// `config repair`: the tool fixes a settings file that is not valid JSON, when it can do so safely, after a backup.
-/// `commands` lists what the installed version knows, so an older one is never asked.
-#[derive(Debug, Deserialize)]
-pub struct ConfigRepairSource {
-    pub run: Vec<String>,
-    pub commands: Vec<String>,
+    pub config_repair: Option<Vec<String>>,
 }
 
 /// The rest of `signIn` is text for the interface.
@@ -374,7 +368,7 @@ mod tests {
                 t.store_backup.as_ref(),
                 t.store_backup_encrypted.as_ref(),
                 t.store_reset.as_ref(),
-                t.config_repair.as_ref().map(|r| &r.run),
+                t.config_repair.as_ref(),
             ];
             for args in starts.into_iter().flatten() {
                 assert!(args.iter().any(|a| a == "--record"), "{}: {args:?}", t.id);
