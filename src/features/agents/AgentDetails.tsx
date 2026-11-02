@@ -19,7 +19,7 @@ import { useConnect } from "./connect"
 import { installedCopies, useDisconnect } from "./DisconnectDialog"
 import { type AgentsMessages, agentsMessages } from "./messages"
 import { useAgents } from "./store"
-import type { AgentView } from "./view"
+import { type AgentView, otherFixes } from "./view"
 
 const box = "rounded-[0.45rem] border border-line bg-app"
 
@@ -110,13 +110,10 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-/** What is left once skills are dealt with: sign-in, PATH, permissions. Skill items live in the skills list. */
 function OtherFixes({ view }: { view: AgentView }) {
   const m = useMessages(agentsMessages)
   if (!view.items) return <Skeleton className="h-10 w-full" label={m.checkingLabel} />
-  const shown = view.items.filter(
-    (i) => i.tone !== "ok" && !i.note && !i.id.endsWith(":skill") && !i.id.startsWith("skill:"),
-  )
+  const shown = otherFixes(view)
   if (shown.length === 0 && view.signedOut.length === 0)
     return <p className="text-[0.9rem] text-ink-soft">{m.nothingElse(view.agent.name)}</p>
   return (

@@ -109,7 +109,9 @@ describe("Agents", () => {
     await user.click(within(dialog).getByRole("button", { name: "Install all" }))
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument(), wait)
 
-    expect(await within(pane()).findByText("Every skill it can see is current", {}, wait)).toBeInTheDocument()
+    // Codex still has something under Also to fix in the mock, so the header, its line in the list and its lamp say so.
+    expect(await within(pane()).findByText(/^Its skills are current, but .* Codex/, {}, wait)).toBeInTheDocument()
+    expect(screen.getByRole("tab", { name: /^Codex.*(to fix|Cannot run its tools)/ })).toBeInTheDocument()
     expect(within(pane()).queryByRole("button", { name: /^Install all/ })).not.toBeInTheDocument()
     expect(within(pane()).getByRole("img", { name: "Telegram skill for Codex: Current" })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole("tab", { name: /^Codex/ })).toHaveFocus())

@@ -12,7 +12,15 @@ import { openManage } from "./AgentDetails"
 import { askAgentSkills, askSkillInstall } from "./actions"
 import { type AgentsMessages, agentsMessages } from "./messages"
 import { useSkillPreview } from "./SkillPreview"
-import { type AgentSkill, type AgentsView, type AgentView, sharers, todoInstalls, todoSentence } from "./view"
+import {
+  type AgentSkill,
+  type AgentsView,
+  type AgentView,
+  agentStatus,
+  sharers,
+  todoInstalls,
+  todoSentence,
+} from "./view"
 
 export const SKILL_TONE: Record<SkillCell["kind"], LampTone> = {
   checking: "idle",
@@ -29,11 +37,34 @@ const skillLook = (s: AgentSkill, m: AgentsMessages) =>
   s.busy ? { tone: "busy" as const, word: m.writing } : { tone: SKILL_TONE[s.cell.kind], word: m.state[s.cell.kind] }
 
 export function rowTone(view: AgentView): LampTone {
-  if (view.skills.some((s) => s.busy)) return "busy"
-  if (view.skills.some((s) => s.cell.kind === "checking")) return "idle"
-  if (view.tone === "bad") return "bad"
-  if (view.todo.length > 0 || view.tone === "warn" || view.signedOut.length > 0) return "warn"
-  return "ok"
+  const status = agentStatus(view)
+  switch (status.kind) {
+    case "busy":
+      return "busy"
+    case "checking":
+      return "idle"
+    case "ready":
+      return "ok"
+    case "stuck":
+      return "bad"
+    default:
+      return view.tone === "bad" ? "bad" : "warn"
+  }
+}
+
+/** The header's sentence and the list's short line, from the same reading as the lamp. */
+export function statusWords(view: AgentView, m: AgentsMessages): { line: string; sentence: string } {
+  const status = agentStatus(view)
+  switch (status.kind) {
+    case "setup":
+      return { line: m.toSetUp(status.count), sentence: todoSentence(view, m) }
+    case "stuck":
+      return { line: m.cannotRun, sentence: m.currentButStuck(view.agent.name) }
+    case "fix":
+      return { line: m.toFix(status.count), sentence: m.currentButFix(status.count, view.agent.name) }
+    default:
+      return { line: m.skillsCurrent, sentence: m.allCurrent }
+  }
 }
 
 /** The agent's one primary action: install every missing or old skill. */

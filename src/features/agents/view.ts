@@ -287,3 +287,23 @@ export function todoSentence(view: AgentView, m: AgentsMessages): string {
 }
 
 export const todoInstalls = (view: AgentView) => view.todo.some((s) => s.action === "Install")
+
+/** What is left once skills are dealt with: sign-in, PATH, permissions. Skill items live in the skills list. */
+export const otherFixes = (view: AgentView) =>
+  (view.items ?? []).filter((i) => i.tone !== "ok" && !i.note && !i.id.endsWith(":skill") && !i.id.startsWith("skill:"))
+
+/**
+ * One reading of the agent for its lamp, its line in the list and the page's header, so they never disagree.
+ * `stuck`: its skills are current but it can run none of its tools (red, `overall`); `fix`: other things to fix.
+ */
+export type AgentStatus = { kind: "busy" | "checking" | "ready" } | { kind: "setup" | "stuck" | "fix"; count: number }
+
+export function agentStatus(view: AgentView): AgentStatus {
+  if (view.skills.some((s) => s.busy)) return { kind: "busy" }
+  if (view.skills.some((s) => s.cell.kind === "checking")) return { kind: "checking" }
+  if (view.todo.length > 0) return { kind: "setup", count: view.todo.length }
+  const count = otherFixes(view).length + view.signedOut.length
+  if (view.tone === "bad") return { kind: "stuck", count }
+  if (count > 0 || view.tone === "warn") return { kind: "fix", count: Math.max(count, 1) }
+  return { kind: "ready" }
+}

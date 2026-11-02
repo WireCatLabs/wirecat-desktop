@@ -86,6 +86,12 @@ const en = {
   lookingForAgents: "Looking for agents",
   toSetUp: (n: number) => `${n} to set up`,
   skillsCurrent: "Skills current",
+  toFix: (n: number) => plural("en", n, { one: "# thing to fix", other: "# things to fix" }),
+  cannotRun: "Cannot run its tools",
+  currentButFix: (n: number, agent: string) =>
+    `Its skills are current, but ${plural("en", n, { one: "one more thing stops", other: "# more things stop" })} ${agent}: see Also to fix below.`,
+  currentButStuck: (agent: string) =>
+    `Its skills are current, but ${agent} cannot run any WireCat tool yet. Also to fix, below, says how.`,
 
   seenBody: (sessions: number) =>
     `The run logs name this agent (${plural("en", sessions, { one: "# session", other: "# sessions" })}), but WireCat does not detect it, so it cannot say which skills it reads.`,
@@ -383,6 +389,11 @@ const ru: typeof en = {
   lookingForAgents: "Ищем агентов",
   toSetUp: (n) => `Настроить: ${n}`,
   skillsCurrent: "Навыки актуальны",
+  toFix: (n) => `Исправить: ${n}`,
+  cannotRun: "Не может запустить инструменты",
+  currentButFix: (n, agent) => `Навыки актуальны, но ${agent} мешает ещё кое-что (${n}): см. «Что ещё исправить» ниже.`,
+  currentButStuck: (agent) =>
+    `Навыки актуальны, но ${agent} пока не может запустить ни один инструмент WireCat. Как это исправить, сказано ниже в «Что ещё исправить».`,
 
   seenBody: (sessions) =>
     `Этот агент есть в журналах запусков (${ruCount(sessions, "сеанс", "сеанса", "сеансов")}), но WireCat не умеет его находить и не может сказать, какие навыки он читает.`,
@@ -678,6 +689,12 @@ const es: typeof en = {
   lookingForAgents: "Buscando agentes",
   toSetUp: (n) => `${n} por configurar`,
   skillsCurrent: "Skills al día",
+  toFix: (n) => `${n} por arreglar`,
+  cannotRun: "No puede ejecutar sus herramientas",
+  currentButFix: (n, agent) =>
+    `Sus skills están al día, pero ${n === 1 ? "queda una cosa" : `quedan ${n} cosas`} en Qué más arreglar que impiden funcionar a ${agent}.`,
+  currentButStuck: (agent) =>
+    `Sus skills están al día, pero ${agent} aún no puede ejecutar ninguna herramienta de WireCat. Qué más arreglar, abajo, explica cómo.`,
 
   seenBody: (sessions) =>
     `Los registros de ejecución nombran a este agente (${plural("es", sessions, { one: "# sesión", other: "# sesiones" })}), pero WireCat no lo detecta, así que no puede decir qué skills lee.`,

@@ -10,8 +10,8 @@ import { useConnectFlow } from "./connect-flow"
 import { DisconnectDialog } from "./DisconnectDialog"
 import { agentsMessages } from "./messages"
 import { SeenLink } from "./PageParts"
-import { AgentCta, SkillTable } from "./SkillTable"
-import { type AgentEntry, type AgentsView, sharers, todoSentence } from "./view"
+import { AgentCta, SkillTable, statusWords } from "./SkillTable"
+import { type AgentEntry, type AgentsView, sharers } from "./view"
 
 /** The selected agent: its skills with one Install all, then what else stops it, its sessions, tasks and MCP. */
 export function AgentPane({ entry, all }: { entry: AgentEntry | null; all: AgentsView }) {
@@ -55,7 +55,7 @@ export function AgentPane({ entry, all }: { entry: AgentEntry | null; all: Agent
             {view.agent.name}
           </h2>
           <p className="mt-1 text-[0.95rem] text-ink-soft">
-            {checking ? <Skeleton chars={34} /> : view.todo.length > 0 ? todoSentence(view, m) : m.allCurrent}
+            {checking ? <Skeleton chars={34} /> : statusWords(view, m).sentence}
           </p>
         </div>
         <div className="flex items-center gap-2">
