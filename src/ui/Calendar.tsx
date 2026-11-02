@@ -273,7 +273,7 @@ type PopoverProps = {
  */
 export function DatePopover({ open, anchor, onClose, label, children }: PopoverProps) {
   const box = useRef<HTMLDivElement>(null)
-  const place = useListPlacement(open, anchor, box, 440)
+  const place = useListPlacement(open, anchor, box, { maxHeight: 440, fixed: true })
   const inside = useMemo(() => [box, anchor], [anchor])
   const outside = useCallback(() => onClose(false), [onClose])
   useCloseOutside(open, inside, outside)
