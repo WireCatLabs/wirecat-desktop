@@ -100,15 +100,15 @@ body,
 /* WebKit (the Linux and macOS webviews) styles scrollbars only through these; without explicit hover and active
    colours its dragged thumb falls back to black, which vanishes in dark mode. */
 ::-webkit-scrollbar {
-  width: 11px;
-  height: 11px;
+  width: 13px;
+  height: 13px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--ink-dim) 55%, transparent);
-  border: 3px solid transparent;
+  border: 2px solid transparent;
   border-radius: 999px;
   background-clip: padding-box;
 }
@@ -364,6 +364,18 @@ body {
    which is invisible because the track is transparent. */
 main {
   scrollbar-gutter: stable;
+}
+
+/* The window has no title bar, so on Linux Tauri claims the outermost 5 px (times GDK's whole scale factor) inside the
+   webview for resizing (BORDERLESS_RESIZE_INSET in tauri-runtime-wry's undecorated_resizing.rs). A scrollbar at the
+   very edge then shows the resize cursor and half of it cannot be grabbed; this keeps it clear of that strip. */
+main {
+  margin-right: 5px;
+}
+@media (min-resolution: 2dppx) {
+  main {
+    margin-right: 10px;
+  }
 }
 @supports not (scrollbar-gutter: stable) {
   main {
