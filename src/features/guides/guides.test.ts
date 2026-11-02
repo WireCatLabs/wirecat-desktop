@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { providerOf } from "@/domain/archive"
 import { LANGS } from "@/i18n"
 import fixture from "./commands.fixture.json"
-import { fill, GUIDES, variesByMessenger } from "./guides"
+import { docsOf, fill, GUIDES, variesByMessenger } from "./guides"
 
 const MESSENGERS = ["tg", "max", "wa"]
 
@@ -89,4 +89,17 @@ it("names no other messenger once a guide is filled for one", () => {
         expect(t).not.toMatch(/\{(?:cli|provider)\}/)
       }
     }
+})
+
+it("links each messenger's full guide to that messenger's own page", () => {
+  for (const g of GUIDES)
+    for (const messenger of g.needs.any ?? [null])
+      for (const lang of LANGS) {
+        const url = docsOf(g, messenger, lang)
+        const page = url.match(/^https:\/\/wirecat\.dev\/(\w+)\/docs\/([\w-]+)/)
+        expect(page?.[1], `${g.id} ${lang}`).toBe(lang)
+        const other = MESSENGERS.filter((id) => id !== messenger).includes(page?.[2] ?? "")
+        expect(other, `${g.id} for ${messenger}: ${url}`).toBe(false)
+        if (messenger) expect(url, `${g.id} for ${messenger}`).not.toBe(`https://wirecat.dev/${lang}/docs`)
+      }
 })

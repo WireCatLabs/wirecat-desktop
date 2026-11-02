@@ -3,9 +3,9 @@
 import { providerOf } from "@/domain/archive"
 import { findTool } from "@/domain/catalog"
 import type { Lang } from "@/i18n"
-import { MORE_GUIDES } from "./guides-more"
+import { MORE_GUIDES, siteDocs } from "./guides-more"
 
-type Text = { en: string; ru: string; es: string }
+export type Text = { en: string; ru: string; es: string }
 
 /** What the owner wants done; the page groups guides by it, not by tool. */
 export const GOALS = ["catch-up", "prepare", "gather", "analyze", "verify", "remember", "plan", "schedule"] as const
@@ -30,11 +30,21 @@ export type Guide = {
   result: Text
   /** True when the agent saves something: the prompt asks it to show first and save after the owner agrees. */
   saves?: boolean
-  /** Per language: the site's headings, and so their anchors, are translated. */
-  docs: Text
+  /**
+   * Per language: the site's headings, and so their anchors, are translated. A guide whose page differs by messenger
+   * names one per messenger in `by`: each tool has its own pages, and MAX's headings are not Telegram's.
+   */
+  docs: Text | { by: Record<string, Text> }
 }
 
 export const textOf = (t: Text, lang: Lang) => t[lang]
+
+/** The "Full guide" link for the messenger on screen; the site's docs index rather than another messenger's page. */
+export function docsOf(g: Guide, messenger: string | null, lang: Lang) {
+  if (!("by" in g.docs)) return g.docs[lang]
+  const page = messenger ? g.docs.by[messenger] : undefined
+  return page ? page[lang] : `https://wirecat.dev/${lang}/docs`
+}
 
 const binOf = (id: string) => findTool(id)?.bin ?? id
 
@@ -107,9 +117,11 @@ const FIRST_GUIDES: Guide[] = [
       es: "Una lista breve por chat. Cada línea enlaza al mensaje del que sale.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/tg/recipes#morning-summary",
-      ru: "https://wirecat.dev/ru/docs/tg/recipes#утренняя-сводка",
-      es: "https://wirecat.dev/es/docs/tg/recipes#resumen-de-la-mañana",
+      by: {
+        tg: siteDocs("tg/recipes", "morning-summary", "утренняя-сводка", "resumen-de-la-mañana"),
+        max: siteDocs("max/recipes", "morning-summary", "утренняя-сводка", "resumen-de-la-mañana"),
+        wa: siteDocs("wa/recipes", "morning-summary", "утренний-обзор", "resumen-de-la-mañana"),
+      },
     },
   },
   {
@@ -493,9 +505,11 @@ const FIRST_GUIDES: Guide[] = [
       es: "Una lista de promesas y un borrador de respuesta. No se envía nada.",
     },
     docs: {
-      en: "https://wirecat.dev/en/docs/tg/recipes#draft-a-reply",
-      ru: "https://wirecat.dev/ru/docs/tg/recipes#составьте-ответ",
-      es: "https://wirecat.dev/es/docs/tg/recipes#redactar-una-respuesta",
+      by: {
+        tg: siteDocs("tg/recipes", "draft-a-reply", "составьте-ответ", "redactar-una-respuesta"),
+        max: siteDocs("max/recipes", "drafting-a-reply", "черновик-ответа", "borrador-de-respuesta"),
+        wa: siteDocs("wa/recipes", "draft-a-reply", "составьте-ответ", "redactar-una-respuesta"),
+      },
     },
   },
   {
