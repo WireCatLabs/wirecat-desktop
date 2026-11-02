@@ -44,7 +44,7 @@ describe("catalog", () => {
     const tg = findTool("tg")
     if (!tg) throw new Error("tg missing")
     expect(setupCommand(tg, "work")).toBe("tg work setup")
-    expect(doctorCommand(tg, "work")).toBe("tg work doctor --json")
+    expect(doctorCommand(tg, "work")).toBe("tg work doctor --record --json")
   })
 
   it("accepts plain profile names only", () => {

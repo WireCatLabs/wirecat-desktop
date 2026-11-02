@@ -762,7 +762,7 @@ mod tests {
         let tool = crate::catalog::tool("tg").unwrap();
         let args = tool.store_backup.clone().unwrap();
         let built = template(&args, Path::new("/x/.copy.db.partial"));
-        assert_eq!(built, ["store", "backup", "/x/.copy.db.partial", "--json"]);
+        assert_eq!(built, ["store", "backup", "/x/.copy.db.partial", "--record", "--json"]);
     }
 
     #[test]

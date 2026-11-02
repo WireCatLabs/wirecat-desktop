@@ -298,6 +298,11 @@ The CLIs differ: `tg`, `max`, `wa` list profiles with `account list --json`, `dr
 `memo doctor --json`, by name only. The catalog records each tool's command and the JSON shape to read.
 Doctor output is masked in Rust and summarised in `src/domain/doctor.ts`; the raw (masked) JSON stays one click away.
 
+Every command the app runs carries `WIRECAT_CALLER=desktop`, and cli-core keeps such a run only when it fails, unless the
+command says `--record`. The reads the app makes on its own pass `--no-record`; what the owner starts (Check, sync, store
+check, backup, reset) passes `--record`, so the Logs page shows it whether it worked or not
+(`what_the_owner_starts_is_recorded` in `catalog.rs`).
+
 ## Signing in inside the window
 
 Each tool with `signIn.methods` in the catalog signs in without a terminal (step 2 of

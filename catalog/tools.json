@@ -17,7 +17,7 @@
         "args": ["account", "list", "--no-record", "--json"],
         "shape": "items"
       },
-      "doctor": ["{profile}", "doctor", "--json"],
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
       "runs": {
         "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
@@ -257,11 +257,11 @@
       "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
-      "storeCheck": ["store", "check", "--json"],
-      "storeBackup": ["store", "backup", "{file}", "--json"],
-      "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--json"],
+      "storeCheck": ["store", "check", "--record", "--json"],
+      "storeBackup": ["store", "backup", "{file}", "--record", "--json"],
+      "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--record", "--json"],
       "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],
-      "storeReset": ["store", "reset", "--no-backup", "--yes", "--json"],
+      "storeReset": ["store", "reset", "--no-backup", "--yes", "--record", "--json"],
       "storage": {
         "app": "tg-cli",
         "env": "TG"
@@ -348,7 +348,7 @@
         "args": ["account", "list", "--no-record", "--json"],
         "shape": "items"
       },
-      "doctor": ["{profile}", "doctor", "--json"],
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
       "runs": {
         "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
@@ -588,11 +588,11 @@
       "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
-      "storeCheck": ["store", "check", "--json"],
-      "storeBackup": ["store", "backup", "{file}", "--json"],
-      "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--json"],
+      "storeCheck": ["store", "check", "--record", "--json"],
+      "storeBackup": ["store", "backup", "{file}", "--record", "--json"],
+      "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--record", "--json"],
       "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],
-      "storeReset": ["store", "reset", "--no-backup", "--yes", "--json"],
+      "storeReset": ["store", "reset", "--no-backup", "--yes", "--record", "--json"],
       "storage": {
         "app": "max-cli",
         "env": "MAX"
@@ -670,7 +670,7 @@
         "args": ["account", "list", "--no-record", "--json"],
         "shape": "items"
       },
-      "doctor": ["{profile}", "doctor", "--json"],
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
       "runs": {
         "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
@@ -915,11 +915,11 @@
       "storeInfo": ["store", "info", "--no-record", "--json"],
       "storeTables": ["store", "tables", "list", "--no-record", "--json"],
       "storeTableSizes": ["store", "tables", "list", "--full", "--no-record", "--json"],
-      "storeCheck": ["store", "check", "--json"],
-      "storeBackup": ["store", "backup", "{file}", "--json"],
-      "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--json"],
+      "storeCheck": ["store", "check", "--record", "--json"],
+      "storeBackup": ["store", "backup", "{file}", "--record", "--json"],
+      "storeBackupEncrypted": ["store", "backup", "--encrypt", "{file}", "--record", "--json"],
       "storeResetPreview": ["store", "reset", "--dry-run", "--no-record", "--json"],
-      "storeReset": ["store", "reset", "--no-backup", "--yes", "--json"],
+      "storeReset": ["store", "reset", "--no-backup", "--yes", "--record", "--json"],
       "storage": {
         "app": "whatsapp-cli",
         "env": "WA"
@@ -997,7 +997,7 @@
         "args": ["doctor", "--no-record", "--json"],
         "shape": "item.profiles"
       },
-      "doctor": ["{profile}", "session", "status", "--json"],
+      "doctor": ["{profile}", "session", "status", "--record", "--json"],
       "runs": {
         "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
@@ -1101,7 +1101,7 @@
         "args": ["session", "list", "--no-record", "--json"],
         "shape": "item.items"
       },
-      "doctor": ["{profile}", "status", "--json"],
+      "doctor": ["{profile}", "status", "--record", "--json"],
       "runs": {
         "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
@@ -1239,7 +1239,7 @@
       "docs": "https://wirecat.dev/en/docs/memo",
       "repo": "https://github.com/WireCatLabs/cli-memo",
       "profiles": null,
-      "doctor": ["doctor", "--json"],
+      "doctor": ["doctor", "--record", "--json"],
       "runs": {
         "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
         "show": ["runs", "show", "{run}", "--no-record", "--json"]
@@ -1358,7 +1358,7 @@
         "args": ["doctor", "--no-record", "--json"],
         "shape": "item.mail.accounts"
       },
-      "doctor": ["mail", "check", "{profile}", "--json"],
+      "doctor": ["mail", "check", "{profile}", "--record", "--json"],
       "runs": null,
       "search": {
         "args": [

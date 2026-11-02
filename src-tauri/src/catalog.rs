@@ -356,12 +356,21 @@ mod tests {
         }
     }
 
+    /// The app runs tools with `WIRECAT_CALLER=desktop`, and cli-core then keeps a run that succeeded only when the
+    /// command says `--record`; without it the owner's Logs page showed only the failures of what he started.
     #[test]
     fn what_the_owner_starts_is_recorded() {
         for t in &catalog().tools {
-            let starts = [Some(&t.doctor), t.sync.as_ref().and_then(|s| s.run.as_ref()), t.store_check.as_ref()];
+            let starts = [
+                Some(&t.doctor),
+                t.sync.as_ref().and_then(|s| s.run.as_ref()),
+                t.store_check.as_ref(),
+                t.store_backup.as_ref(),
+                t.store_backup_encrypted.as_ref(),
+                t.store_reset.as_ref(),
+            ];
             for args in starts.into_iter().flatten() {
-                assert!(!args.iter().any(|a| a == "--no-record"), "{}: {args:?}", t.id);
+                assert!(args.iter().any(|a| a == "--record"), "{}: {args:?}", t.id);
             }
         }
     }

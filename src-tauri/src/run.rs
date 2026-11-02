@@ -77,7 +77,8 @@ fn agent_env(names: impl Iterator<Item = std::ffi::OsString>) -> Vec<std::ffi::O
 }
 
 /// cli-core records a run with `via: "desktop"` and keeps it only when it fails, so the app's own reads (runs list,
-/// doctor, status) do not fill the owner's logs.
+/// status) do not fill the owner's logs. What the owner starts (Check, sync, backup, reset) passes `--record` in the
+/// catalog, so it is kept when it succeeds too.
 pub const CALLER_ENV: &str = "WIRECAT_CALLER";
 
 pub fn command(program: &Path, args: &[&str], path_env: Option<&std::ffi::OsStr>) -> Command {
