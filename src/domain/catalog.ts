@@ -149,6 +149,13 @@ export function findTool(id: string): CatalogTool | undefined {
 /** The tool whose package is installed for `id`: installs, updates and uninstalls run once, under this id. */
 export const ownerId = (id: string) => findTool(id)?.partOf ?? id
 
+/** The command a tool's sync records in its runs: the words before the first flag (`messages sync`, not `120m`). */
+export function syncCommand(tool: CatalogTool): string {
+  const words = (tool.sync?.run ?? []).filter((w) => w !== "{profile}")
+  const flag = words.findIndex((w) => w.startsWith("-"))
+  return (flag < 0 ? words : words.slice(0, flag)).join(" ")
+}
+
 /** Every tool that one install brings, the owner first. */
 export const samePackage = (id: string) => tools.filter((t) => ownerId(t.id) === ownerId(id))
 

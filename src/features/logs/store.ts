@@ -76,6 +76,8 @@ type LogsState = {
   setRange(range: RangeId): void
   setGroupBy(field: string | null): void
   toggle(key: string, run: Run): void
+  /** Reads again and opens one run; when no tool has it, `fallback` becomes the search instead of an empty table. */
+  openRun(runId: string | null, fallback: string): Promise<void>
 }
 
 const message = (e: unknown) => {
@@ -303,6 +305,26 @@ export const useLogs = create<LogsState>((set, get) => {
     setQuery: (query) => set({ query }),
     setRange: (range) => set({ range }),
     setGroupBy: (groupBy) => set({ groupBy }),
+
+    async openRun(runId, fallback) {
+      const query = runId ? `run_id:${runId}` : fallback
+      set({ query, range: "all", expanded: null })
+      // The snapshot on screen may predate the run; a round already running may too, so a second read follows it.
+      const find = () =>
+        Object.values(get().sources)
+          .flatMap((s) => s.runs)
+          .find((r) => r.run_id === runId)
+      await get().load()
+      if (!runId) return
+      let run = find()
+      if (!run) {
+        await get().load()
+        run = find()
+      }
+      if (get().query !== query) return
+      if (run) get().toggle(runKey(run), run)
+      else set({ query: fallback })
+    },
 
     toggle(key, run) {
       if (get().expanded === key) {

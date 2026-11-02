@@ -1,4 +1,6 @@
+import { findTool, ownerId, syncCommand } from "@/domain/catalog"
 import { delay } from "./mock-delay"
+import { recordFailedSync } from "./mock-runs"
 import type { Background, LastSync, SyncEvent } from "./sync-schemas"
 import type { Platform } from "./types"
 
@@ -80,22 +82,28 @@ export function syncMock(): Pick<
       if (!stopped && stages.length === 0 && (await wait(4000))) stopped = true
       stops.delete(key)
       if (stopped) return onEvent({ event: "stopped" })
+      const entry = findTool(id)
+      const command = entry ? syncCommand(entry) : "sync"
       if (params.get("sync-fail") === id) {
+        const message = "another sync or knowledge operation holds this profile's lock; retry later"
+        const code = "provider_unavailable"
         return onEvent({
           event: "failed",
-          message: "another sync or knowledge operation holds this profile's lock; retry later",
-          code: "provider_unavailable",
+          message,
+          code,
           reason: "profile.locked",
-          run: "20261027T121457Z-sync-db4f0a",
+          run: recordFailedSync(ownerId(id), { profile, command, code, message }),
         })
       }
       if (params.get("sync-limited") === id) {
+        const message = "too many requests; wait"
+        const code = "rate_limited"
         return onEvent({
           event: "failed",
-          message: "too many requests; wait",
-          code: "rate_limited",
+          message,
+          code,
           reason: "provider.rate-limited",
-          run: "20261103T091502Z-messages-sync-7c21e0",
+          run: recordFailedSync(ownerId(id), { profile, command, code, message }),
           retryAfterMs: params.get("wait") === "none" ? null : 25 * MIN,
         })
       }

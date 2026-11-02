@@ -1,6 +1,6 @@
 import { AlertTriangle, CheckCircle2, CircleStop, LoaderCircle, RefreshCw, ScrollText, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { type CatalogTool, ownerId, signsInHere, syncNeedsProfile, syncsHere } from "@/domain/catalog"
+import { type CatalogTool, ownerId, signsInHere, syncCommand, syncNeedsProfile, syncsHere } from "@/domain/catalog"
 import { toolStatus } from "@/domain/status"
 import { advice, clock, type SyncFailure, type SyncWhat, share } from "@/domain/sync"
 import { useMessages } from "@/i18n"
@@ -268,10 +268,7 @@ function waitUntil(endedAt: number | null, waitMs: number | null | undefined) {
 
 /** The Logs page, at the failed run when the tool named it, else at this tool's failed syncs. */
 function openRun(entry: CatalogTool, run: string | null) {
-  const words = (entry.sync?.run ?? []).filter((w) => w !== "{profile}" && !w.startsWith("-"))
-  const logs = useLogs.getState()
-  logs.setQuery(run ? `run_id:${run}` : `command:"${words.join(" ")}" status:failed`)
-  logs.setRange("all")
+  useLogs.getState().openRun(run, `command:"${syncCommand(entry)}" status:failed`)
   useNav.getState().go("logs")
 }
 
