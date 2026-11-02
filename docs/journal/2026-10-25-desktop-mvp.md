@@ -886,6 +886,9 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - BUG-54/55/56 — причины и PR: cli-core #2401 (`server install` включает unit; ретрай на закрытом keyring с причиной `credentials.unreachable`, до 12 ч; долгие команды переживают закрытый вывод — `cli-core src/cli/program.ts:282-287`), tg-cli #812, max-cli #901 (max serve отвечал 4 на закрытом keyring, `max-cli src/client/session.ts:~72`). Профиль в `max schedule exec` и 30 с у `schedule run` уже исправлены в max 0.96.0 и tg 0.113.0 — у Славы стоят 0.95.0 и 0.112.0. Не слиты. Блог: POST-131 в cli-private.
 - FIND: при загрузке журнал пишет, что `~/.local/share/keyrings/default.keyring` «in an invalid or unrecognized format» — не трогал.
 
+- Полная синхронизация tg personal, запущенная напрямую в 06:40: 98 585 сообщений в 331 чате, 11 каналов `CHANNEL_INVALID` (недоступны), run 20261102T055404Z-messages-sync-24a068. Пробел в архиве Telegram с 28.10 закрыт (FIND-181).
+- #76 слит: BUG-57 — MCP-сервер в Manage на tg 0.112 / max 0.95 / wa / drive не работал (команды требуют профиль; добавлено `--profiles all`, отвечает за 59/96/92/92 упавших запусков); фоновые проверки с `--no-record`; «Clear all» внутри поля поиска (BUG-58, пустая строка на es); «Full guide» по мессенджеру; «Connect notes and mail too». Записи агента: `docs/journal/2026-11-02-small-fixes-b.md` (BUG-57, BUG-58, FIND-187, FIND-188, RISK-89, IDEA-21, DEBT-12).
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
