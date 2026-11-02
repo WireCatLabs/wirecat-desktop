@@ -7,6 +7,7 @@ import { platform } from "@/platform/bridge"
 import type { StorageFolder } from "@/platform/schemas"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
+import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -19,7 +20,7 @@ import { McpServer } from "./McpServer"
 import { type ToolsText, toolsMessages } from "./messages"
 import { copiesMessages } from "./messages-copies"
 import { Permissions } from "./Permissions"
-import { type Copy, RemoveCopyDialog } from "./RemoveCopy"
+import { type Copy, RemoveCopyDialog, removable } from "./RemoveCopy"
 import { FitDetails } from "./StorageFit"
 import { useTools } from "./store"
 import { toolText } from "./tool-text"
@@ -150,7 +151,9 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
 
   return (
     <div className="grid gap-x-[2.4rem] gap-y-6 border-line border-t bg-app-2/60 px-[1.3rem] py-[1.4rem] lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
-      {installs.length > 1 && <ExtraCopies tool={tool} onRemove={setRemoving} />}
+      <Collapse open={installs.length > 1} frameClassName="lg:col-span-2">
+        <ExtraCopies tool={tool} installs={installs} onRemove={setRemoving} />
+      </Collapse>
       {installs.length > 0 ? (
         <Health tool={tool} />
       ) : (
@@ -205,8 +208,9 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
 }
 
 // Uninstall would take every copy, so the advice removes only the ones the terminal never reaches.
-function ExtraCopies({ tool, onRemove }: { tool: CatalogTool; onRemove: (copy: Copy) => void }) {
-  const installs = useTools((s) => s.installs[tool.id]) ?? []
+// The copies come as a prop, so the notice keeps its last words while it folds away after a removal.
+function ExtraCopies(props: { tool: CatalogTool; installs: Copy[]; onRemove: (copy: Copy) => void }) {
+  const { tool, installs, onRemove } = props
   const [first, ...unused] = installs
   const m = useMessages(toolsMessages).details
   const button = useMessages(copiesMessages).button
@@ -214,7 +218,7 @@ function ExtraCopies({ tool, onRemove }: { tool: CatalogTool; onRemove: (copy: C
   return (
     <section
       aria-label={m.extraLabel(tool.name)}
-      className="flex flex-col gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-4 py-3 lg:col-span-2"
+      className="flex flex-col gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-4 py-3"
     >
       <p className="flex items-start gap-2 text-[0.95rem] text-ink">
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
@@ -238,14 +242,16 @@ function ExtraCopies({ tool, onRemove }: { tool: CatalogTool; onRemove: (copy: C
               <div className="min-w-0 flex-1 basis-[22rem]">
                 <CopyField value={removeCommand(i.manager, tool.package, i.path)} label={m.removeCopy(i.path)} />
               </div>
-              <Button
-                size="sm"
-                variant="danger"
-                onClick={() => onRemove(i)}
-                icon={<Trash2 className="size-4" aria-hidden />}
-              >
-                {button}
-              </Button>
+              {removable(i) && (
+                <Button
+                  size="sm"
+                  variant="danger"
+                  onClick={() => onRemove(i)}
+                  icon={<Trash2 className="size-4" aria-hidden />}
+                >
+                  {button}
+                </Button>
+              )}
             </div>
           </li>
         ))}

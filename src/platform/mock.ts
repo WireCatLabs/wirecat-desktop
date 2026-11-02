@@ -552,6 +552,7 @@ export function createMock(os: Platform["os"]): Platform {
       if (params.get("copy-fail") === id) {
         return {
           removed: false,
+          refused: null,
           log: [`$ npm uninstall --global ${PACKAGES[id] ?? id}`, "npm error code EACCES", "npm error syscall unlink"],
           message: "npm could not write to its global folder.",
           hint: "Use a global folder in your home instead of a system one, then try again.",
@@ -560,6 +561,7 @@ export function createMock(os: Platform["os"]): Platform {
       zmCopyRemoved = true
       return {
         removed: true,
+        refused: null,
         log: [`$ npm uninstall --global ${PACKAGES[id] ?? id}`, "", "removed 214 packages in 2s"],
         message: null,
         hint: null,

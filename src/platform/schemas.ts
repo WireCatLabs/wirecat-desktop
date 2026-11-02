@@ -42,6 +42,7 @@ export const ToolStatesSchema = v.array(v.object({ id: v.string(), installs: v.a
 
 export const CopyRemovalSchema = v.object({
   removed: v.boolean(),
+  refused: v.nullable(v.picklist(["gone", "runs", "manager", "busy"])),
   log: v.array(v.string()),
   message: v.nullable(v.string()),
   hint: v.nullable(v.string()),

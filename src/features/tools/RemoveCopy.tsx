@@ -14,6 +14,9 @@ import { useTools } from "./store"
 
 export type Copy = ToolState["installs"][number]
 
+/** The managers `remove_copy` acts for; any other copy keeps only its command to run by hand. */
+export const removable = (copy: Copy) => copy.manager === "npm" || copy.manager === "pnpm"
+
 type Phase = { step: "confirm" } | { step: "running" } | { step: "result"; result: CopyRemoval }
 
 /**
@@ -51,7 +54,8 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
     try {
       result = await platform.removeCopy(tool.id, target.path)
     } catch (e) {
-      result = { removed: false, log: [], message: e instanceof Error ? e.message : String(e), hint: null }
+      const message = e instanceof Error ? e.message : String(e)
+      result = { removed: false, refused: null, log: [], message, hint: null }
     }
     setPhase({ step: "result", result })
     await useTools.getState().refresh(true)
@@ -114,7 +118,7 @@ export function RemoveCopyDialog(props: { tool: CatalogTool; copy: Copy | null; 
               <AlertTriangle className="mt-0.5 size-5 shrink-0 text-bad" aria-hidden />
               <span>
                 <span className="font-medium text-ink">{m.failed}</span>{" "}
-                {[result.message, result.hint].filter(Boolean).join(" ")}
+                {result.refused ? m.refused[result.refused] : [result.message, result.hint].filter(Boolean).join(" ")}
               </span>
             </p>
             <p className="text-ink-soft">{m.byHand}</p>

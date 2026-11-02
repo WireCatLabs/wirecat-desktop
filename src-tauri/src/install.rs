@@ -329,6 +329,8 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
 #[serde(rename_all = "camelCase")]
 pub struct CopyRemoval {
     pub removed: bool,
+    /// Why nothing ran, for the interface to say in the reader's language; `message` is the English fallback.
+    pub refused: Option<CopyRefusal>,
     pub log: Vec<String>,
     pub message: Option<String>,
     pub hint: Option<String>,
@@ -338,26 +340,38 @@ pub struct CopyRemoval {
 /// there. Never the copy the app runs, and only npm and pnpm: each is told exactly which global folder to act on, so the
 /// other copy cannot be the one removed.
 pub fn remove_copy(tool: &Tool, shown: &str, running: &Running) -> CopyRemoval {
-    let refused = |message: String| CopyRemoval { removed: false, log: Vec::new(), message: Some(message), hint: None };
+    let refused = |why: CopyRefusal, message: String| CopyRemoval {
+        removed: false,
+        refused: Some(why),
+        log: Vec::new(),
+        message: Some(message),
+        hint: None,
+    };
     let target = paths::untilde(shown);
     let found = paths::find_all(&tool.bin);
     if !found.contains(&target) {
-        return refused(format!("{shown} is no longer a copy of `{}`. Check again.", tool.bin));
+        return refused(CopyRefusal::Gone, format!("{shown} is no longer a copy of `{}`. Check again.", tool.bin));
     }
     if tools::program(&tool.bin).as_ref() == Some(&target) {
-        return refused(format!("{shown} is the copy WireCat runs, so it stays."));
+        return refused(CopyRefusal::Runs, format!("{shown} is the copy WireCat runs, so it stays."));
     }
     let plan = match copy_removal(&target, &tool.package, paths::pnpm_home().map(PathBuf::from).as_deref()) {
         Ok(plan) => plan,
-        Err(message) => return refused(message),
+        Err(message) => return refused(CopyRefusal::Manager, message),
     };
     let Some(program) = plan.beside(&target).or_else(|| paths::find(plan.program)) else {
-        return refused(format!("{} was not found, so {shown} cannot be removed here.", plan.program));
+        return refused(
+            CopyRefusal::Manager,
+            format!("{} was not found, so {shown} cannot be removed here.", plan.program),
+        );
     };
 
     let syncs = crate::sync::package_prefix(&tool.id);
     if !running.start_unless(&tool.id, |k| k.starts_with(&syncs)) {
-        return refused("Another operation on this tool is running, such as a sync. Stop it first.".into());
+        return refused(
+            CopyRefusal::Busy,
+            "Another operation on this tool is running, such as a sync. Stop it first.".into(),
+        );
     }
     let log = Mutex::new(Vec::new());
     let send = |e| {
@@ -371,15 +385,31 @@ pub fn remove_copy(tool: &Tool, shown: &str, running: &Running) -> CopyRemoval {
     paths::refresh(&[]);
     let log = log.into_inner().unwrap();
     match result {
-        Err(Failure(_, message, hint)) => CopyRemoval { removed: false, log, message: Some(message), hint },
+        Err(Failure(_, message, hint)) => {
+            CopyRemoval { removed: false, refused: None, log, message: Some(message), hint }
+        }
         Ok(()) if paths::find_all(&tool.bin).contains(&target) => CopyRemoval {
             removed: false,
+            refused: None,
             log,
             message: Some(format!("{} finished, but {shown} is still there.", plan.program)),
             hint: Some("Remove it with the program that installed it.".into()),
         },
-        Ok(()) => CopyRemoval { removed: true, log, message: None, hint: None },
+        Ok(()) => CopyRemoval { removed: true, refused: None, log, message: None, hint: None },
     }
+}
+
+#[derive(Serialize, Debug, PartialEq, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+pub enum CopyRefusal {
+    /// No longer one of the copies on PATH.
+    Gone,
+    /// The copy the app runs.
+    Runs,
+    /// Not an npm or pnpm copy WireCat can place, or its manager is missing.
+    Manager,
+    /// A sync or another install holds the tool.
+    Busy,
 }
 
 #[derive(Debug, PartialEq)]
@@ -568,6 +598,7 @@ mod tests {
         assert!(busy.1.contains("running program"), "{}", busy.1);
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn a_copy_is_removed_by_the_manager_of_its_own_folder() {
         let pkg = "@wirecat/tg-cli";
@@ -585,6 +616,7 @@ mod tests {
         assert_eq!((pnpm.program, pnpm.args), ("pnpm", vec!["remove".into(), "--global".into(), pkg.into()]));
     }
 
+    #[cfg(not(windows))]
     #[test]
     fn a_copy_of_unknown_origin_is_refused() {
         let pkg = "@wirecat/tg-cli";
