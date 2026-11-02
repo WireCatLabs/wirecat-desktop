@@ -50,12 +50,14 @@ pub fn linux_package(os_release: &str, arch: &str) -> Option<&'static str> {
     }
 }
 
-fn agent(redirects: u32) -> ureq::Agent {
+pub(crate) fn agent(redirects: u32) -> ureq::Agent {
     ureq::Agent::config_builder()
         .timeout_connect(Some(Duration::from_secs(30)))
         .timeout_recv_response(Some(Duration::from_mins(1)))
         .timeout_per_read(Some(Duration::from_mins(1)))
         .max_redirects(redirects)
+        // The checksum comes from the same server, so a redirect down to plain http must fail, not download.
+        .https_only(true)
         .user_agent(concat!("WireCatDesktop/", env!("CARGO_PKG_VERSION")))
         .build()
         .into()

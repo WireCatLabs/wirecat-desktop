@@ -180,6 +180,8 @@ fn agent() -> ureq::Agent {
         .timeout_recv_response(Some(Duration::from_mins(1)))
         // A stalled connection fails; a slow but moving download of 50 MB does not.
         .timeout_per_read(Some(Duration::from_mins(1)))
+        // The checksum comes from the same server, so a redirect down to plain http must fail, not download.
+        .https_only(true)
         .user_agent(concat!("WireCatDesktop/", env!("CARGO_PKG_VERSION")))
         .build()
         .into()
@@ -504,6 +506,18 @@ mod tests {
         let mode = std::fs::metadata(&dir).unwrap().permissions().mode() & 0o777;
         std::fs::remove_dir_all(&dir).unwrap();
         assert_eq!(mode, 0o700);
+    }
+
+    #[test]
+    fn a_download_never_goes_over_plain_http() {
+        let server = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+        let url = format!("http://{}/node.tar.gz", server.local_addr().unwrap());
+        let refused = agent().get(&url).call().unwrap_err();
+        assert!(matches!(refused, ureq::Error::RequireHttpsOnly(_)), "{refused}");
+        let refused = crate::cloudflare_install::agent().get(&url).call().unwrap_err();
+        assert!(matches!(refused, ureq::Error::RequireHttpsOnly(_)), "{refused}");
+        let refused = crate::tailscale_install::agent(5).get(&url).call().unwrap_err();
+        assert!(matches!(refused, ureq::Error::RequireHttpsOnly(_)), "{refused}");
     }
 
     fn release(version: &str, lts: serde_json::Value, files: &[&str]) -> Release {
