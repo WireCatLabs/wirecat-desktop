@@ -5560,6 +5560,7 @@ dependencies = [
 name = "wirecat-desktop"
 version = "0.3.0"
 dependencies = [
+ "aho-corasick",
  "base64 0.23.1",
  "chrono",
  "flate2",

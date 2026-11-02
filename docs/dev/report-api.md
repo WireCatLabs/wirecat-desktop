@@ -10,7 +10,8 @@ Base URL: `https://api.wirecat.dev`. The desktop app reads `WIRECAT_API_URL` to 
 
 - **The public issue never carries logs.** It holds the user's text, the app and tool versions, the OS and the
   report id. Logs go to private storage on the server and are linked from nowhere public.
-- **The client masks first, the server masks again.** Everything the desktop sends has been through `redact.rs`.
+- **The client masks first, the server masks again.** Everything the desktop sends has been through `redact.rs`,
+  including the chat titles and contact names tg, max and wa keep on this computer (`names.rs`).
   The server runs its own pass before storing, because a client bug must not become a leak.
 - **No accounts, no keys in the app.** A desktop app cannot keep a secret, so the endpoint is public and protected
   by size limits, a per-IP rate limit and schema validation.

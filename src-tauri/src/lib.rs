@@ -11,6 +11,7 @@ mod install;
 mod mcp;
 mod mcp_server;
 mod memory;
+mod names;
 mod node;
 mod notifications;
 mod package_update;

@@ -48,6 +48,10 @@ pub struct Tool {
     /// Another tool's id when this one is a part of its package: same `bin`, `package` and `storage`.
     pub part_of: Option<String>,
     pub name: String,
+    /// Read-only listings of one profile's stored chats and contacts, without connecting (`--offline`); their titles
+    /// and names are masked in doctor output and bug reports (`names.rs`). Only the messengers keep such names.
+    #[serde(default)]
+    pub names: Option<Vec<Vec<String>>>,
     /// `store info` of the shared store. tg, max and wa answer it; zm, drive and memo from their release on cli-core
     /// with WireCatLabs/cli-core#1973, and an older one says "unknown command".
     pub store_info: Option<Vec<String>>,
