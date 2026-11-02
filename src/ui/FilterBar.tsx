@@ -59,7 +59,7 @@ export function FilterBar(props: Props) {
           )}
         />
       </label>
-      <div className="flex flex-wrap items-center gap-[0.5rem]">
+      <div data-chip-row className="flex flex-wrap items-center gap-[0.5rem]">
         {children}
         <Button
           variant="ghost"
