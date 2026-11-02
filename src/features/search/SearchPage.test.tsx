@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
@@ -299,8 +299,11 @@ describe("Search", () => {
     expect(chip).toHaveAttribute("title", 'chat: Design crit\nchat:"-1001001"')
     expect(bar).toHaveAccessibleDescription(/Names in this search: chat: Design crit/)
 
-    await user.click(chip)
     const input = bar as HTMLInputElement
+    act(() => chip.click())
+    expect([input.selectionStart, input.selectionEnd]).toEqual([19, 34])
+    input.setSelectionRange(0, 0)
+    await user.click(chip)
     expect([input.selectionStart, input.selectionEnd]).toEqual([19, 34])
     await user.keyboard("{End}{ArrowLeft}{Backspace}")
     expect(bar).toHaveValue("has:photo date>=7d")

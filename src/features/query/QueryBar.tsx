@@ -402,10 +402,8 @@ function Chips(props: {
         title={`${shown}\n${raw}`}
         aria-label={m.editTerm(shown)}
         disabled={props.disabled}
-        onMouseDown={(e) => {
-          e.preventDefault()
-          props.onPick(term)
-        }}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => props.onPick(term)}
         className={cx(
           "relative cursor-pointer whitespace-pre border-0 bg-transparent p-0 font-[inherit] text-transparent",
           "transition-opacity duration-150 motion-reduce:transition-none",
