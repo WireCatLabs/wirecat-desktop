@@ -909,6 +909,8 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 
 - Пост о 0.3.0 на сайте (cli-docs #508): https://wirecat.dev/en/blog/wirecat-desktop-0-3 (ru, es). Объявлено в Discord #announcements (вебхук релизов) и в группе Telegram, тема «Релизы» (https://t.me/wirecatdev/27); заметка сводки обновлена (cli-private 9396d058 и исправление порядка строк).
 
+- **@wirecat/whatsapp-cli@0.27.0 выпущен** (bin/release, release.yml 41489649674, тег v0.27.0, npm проверен). tg 0.114.0 выпустила другая сессия (#816) с моей живой проверкой; tg-cli #817 поправил журнал изменений 0.114.0 (`--full-history`, три пропущенных изменения), без выпуска.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
