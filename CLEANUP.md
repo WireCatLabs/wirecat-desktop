@@ -124,3 +124,6 @@
 /home/leemour/Projects/AI/visage/.claude/worktrees/showcase — worktree of merged #58/#62 — 2026-11-02
 /home/leemour/Projects/AI/visage/.claude/worktrees/unified-filters — worktree of merged #56 — 2026-11-02
 /home/leemour/Projects/AI/visage/.claude/worktrees/polish-03 — worktree of merged #71/#75 (branches fix/polish-0.3, fix/background-server) — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/tag-main — worktree on main used for bin/tag-release — 2026-11-02
+/home/leemour/Projects/AI/visage/.claude/worktrees/release-030 — worktree of merged #78 — 2026-11-02
+/home/leemour/Projects/AI/cli-docs-wt-deb-sec — worktree of merged cli-docs #503 — 2026-11-02
