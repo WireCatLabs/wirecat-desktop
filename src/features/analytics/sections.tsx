@@ -109,8 +109,8 @@ export function Overview() {
       {volume.state === "loading" ? (
         <>
           <StatsSkeleton n={6} label={m.overview} />
-          <Skeleton className="h-[2.4rem] w-full rounded-[0.2rem]" />
-          <ChartSkeleton />
+          <Skeleton className="h-[4.3rem] w-full rounded-[0.2rem]" />
+          <Skeleton className="h-[19.6rem] w-full rounded-[0.2rem]" />
         </>
       ) : volume.state === "error" ? (
         <ErrorNotice inline>{m.storeError(volume.error)}</ErrorNotice>
