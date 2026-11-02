@@ -90,18 +90,26 @@ describe("Memory", () => {
     expect(within(row(/You want reminders in the morning/)).getByRole("img", { name: "Replaced" })).toBeInTheDocument()
   })
 
-  it("filters by a value clicked in the details, and by kind typed", async () => {
+  it("filters by a value clicked in the details, and the chip and the search say the same", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)
     await all(user)
     await user.click(screen.getByRole("button", { name: /Harbour launch moves/ }))
     await user.click(screen.getByRole("button", { name: "Show only Decision" }))
-    expect(screen.getByRole("combobox", { name: "Kind" })).toHaveValue("Decision")
+    const search = screen.getByRole("searchbox", { name: "Search memory" })
+    expect(search).toHaveValue("kind:decision")
+    expect(screen.getByRole("button", { name: "Kind: Decision" })).toBeInTheDocument()
     const texts = within(await rack())
       .getAllByRole("button", { name: /moves|Scores/ })
       .map((b) => b.textContent)
     expect(texts.every((t) => /Decision/.test(t ?? ""))).toBe(true)
     expect(screen.queryByRole("button", { name: /Kai Sample prefers/ })).not.toBeInTheDocument()
+
+    await user.type(search, " pilot")
+    expect(within(await rack()).getAllByRole("button", { name: /Harbour launch moves/ })).not.toHaveLength(0)
+    expect(screen.queryByRole("button", { name: /Scores below/ })).not.toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Clear kind" }))
+    expect(search).toHaveValue("pilot")
   })
 
   it("opens a cited message among its neighbours in place", async () => {

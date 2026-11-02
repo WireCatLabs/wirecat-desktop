@@ -1,6 +1,8 @@
 // The Tasks page's plain logic: the search words the filters write, priority labels, due dates and board order.
 // memo answers the query; nothing here filters tasks itself.
 
+import { dropFields, valuesOf as termValues, tidy, setField as writeField } from "./query-terms"
+
 export const STATES = ["open", "todo", "in_progress", "done", "dismissed"] as const
 export type State = (typeof STATES)[number]
 export const LABELS = ["critical", "high", "medium", "low"] as const
@@ -25,12 +27,6 @@ export const BOARD_DEFAULT = "(state:(open OR todo OR in_progress) OR closed:>=1
 /** Fields the filters own. `due` also owns `when:` and `NOT due:*`, which the Due filter writes, and `overdue:`. */
 export type Field = "project" | "assignee" | "priority" | "state" | "agent" | "due" | "ready"
 
-const quote = (v: string) => (/^[\w*.-]+$/.test(v) ? v : `"${v.replaceAll('"', "")}"`)
-const unquote = (v: string) => (v.startsWith('"') && v.endsWith('"') ? v.slice(1, -1) : v)
-
-// One term of a field: `field:value`, `field:"a b"`, `field:(a OR "b c")`, `field:[a TO b]`, with an optional NOT.
-const VALUE = String.raw`(?:"[^"]*"|\([^)]*\)|\[[^\]]*\]|[^\s()]+)`
-const term = (fields: string) => new RegExp(String.raw`(^|\s)(?:NOT\s+|-)?(?:${fields}):${VALUE}`, "g")
 const owned: Record<Field, string> = {
   project: "project",
   assignee: "assignee",
@@ -41,31 +37,15 @@ const owned: Record<Field, string> = {
   ready: "ready",
 }
 
-const tidy = (q: string) => q.replace(/\s+/g, " ").trim()
-
 /** The query without any term of the field. */
-export const dropField = (q: string, field: Field) => tidy(q.replaceAll(term(owned[field]), " "))
+export const dropField = (q: string, field: Field) => dropFields(q, owned[field])
 
 /** The values the query asks for in a field, as written: `project:(HRB OR OPS)` gives HRB and OPS. */
-export function valuesOf(q: string, field: Exclude<Field, "due">): string[] {
-  const out: string[] = []
-  for (const m of q.matchAll(new RegExp(String.raw`(?:^|\s)${field}:(${VALUE})`, "g"))) {
-    const raw = m[1] ?? ""
-    if (raw.startsWith("(")) {
-      for (const part of raw.slice(1, -1).split(/\s+OR\s+/)) if (part.trim()) out.push(unquote(part.trim()))
-    } else out.push(unquote(raw))
-  }
-  return out
-}
+export const valuesOf = (q: string, field: Exclude<Field, "due">) => termValues(q, field)
 
 /** Writes one field's choices into the query, in place of what it said before. */
-export function setField(q: string, field: Exclude<Field, "due">, values: readonly string[]): string {
-  const rest = dropField(q, field)
-  if (values.length === 0) return rest
-  const words = values.map(quote)
-  const written = words.length === 1 ? `${field}:${words[0]}` : `${field}:(${words.join(" OR ")})`
-  return tidy(`${rest} ${written}`)
-}
+export const setField = (q: string, field: Exclude<Field, "due">, values: readonly string[]) =>
+  writeField(q, field, values)
 
 export type DueChoice = "overdue" | "today" | "tomorrow" | "week" | "none" | { from: string; to?: string }
 

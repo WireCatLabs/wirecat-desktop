@@ -1,24 +1,22 @@
 import { ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
-import { distinct, inRange, inTab, matchesText, RANGES, type Range, subjectOf, type Tab } from "@/domain/memory"
-import { useLang, useMessages } from "@/i18n"
+import { inTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
+import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
-import { Combobox } from "@/ui/Combobox"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
-import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
 import { Activity } from "./Activity"
+import { Filters } from "./Filters"
 import { ForgetDialog } from "./ForgetDialog"
-import { aboutOf, authorOf, dayLabel, kindOf, projectOf } from "./labels"
 import { memoryMessages } from "./messages"
 import { Row, SubjectLabel } from "./Row"
 import { useMemory } from "./store"
@@ -36,18 +34,12 @@ export function MemoryPage() {
   }, [load])
 
   const ready = s.read?.kind === "ready" ? s.read : null
-  const filtered = s.entries.filter(
-    (e) =>
-      matchesText(aboutOf(e, m), s.about) &&
-      matchesText(authorOf(e, m), s.by) &&
-      matchesText(kindOf(e.kind, m), s.kind) &&
-      matchesText(projectOf(e), s.project) &&
-      inRange(s.range, e.createdAt),
-  )
+  const filter = memoryFilter(s.query)
+  const filtered = s.entries.filter((e) => matchesFilter(e, filter))
   const shown = filtered.filter((e) => inTab(s.tab, e.status) || s.held.includes(e.ref))
   const count = (tab: Tab) => filtered.filter((e) => inTab(tab, e.status)).length
   const forgetting = s.entries.find((e) => e.ref === s.forgetting) ?? null
-  const filtering = [s.about, s.by, s.kind, s.project].some((f) => f.trim() !== "") || s.range !== "any"
+  const filtering = s.query.trim() !== ""
 
   return (
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
@@ -103,39 +95,9 @@ export function MemoryPage() {
         <OldNotice version={s.read.version} need={s.read.need} />
       ) : (
         <>
-          <div className="flex flex-col items-start gap-[0.7rem]">
+          <div className="flex flex-col gap-[1rem]">
             <Tabs value={s.tab} onChange={s.setTab} count={count} />
-            <div className="flex flex-wrap items-center gap-x-[1rem] gap-y-[0.6rem]">
-              <Picker
-                label={m.about}
-                value={s.about}
-                onChange={s.setAbout}
-                placeholder={m.aboutAnyone}
-                options={distinct([m.you, ...s.entries.filter((e) => !e.subjectIsOwner).map((e) => aboutOf(e, m))])}
-              />
-              <Picker
-                label={m.by}
-                value={s.by}
-                onChange={s.setBy}
-                placeholder={m.byAnyone}
-                options={distinct([m.you, ...s.entries.map((e) => authorOf(e, m))])}
-              />
-              <Picker
-                label={m.projectFilter}
-                value={s.project}
-                onChange={s.setProject}
-                placeholder={m.anyProject}
-                options={distinct(s.entries.map(projectOf))}
-              />
-              <Picker
-                label={m.kindFilter}
-                value={s.kind}
-                onChange={s.setKind}
-                placeholder={m.anyKind}
-                options={distinct(s.entries.map((e) => kindOf(e.kind, m)))}
-              />
-              <DateFilter value={s.range} onChange={s.setRange} />
-            </div>
+            <Filters />
           </div>
 
           {s.read === null ? (
@@ -166,14 +128,14 @@ function Rack({ entries, tab, filtering }: { entries: MemoryEntry[]; tab: Tab; f
   const m = useMessages(memoryMessages)
   const leaving = useMemory((s) => s.leaving)
   const arriving = useMemory((s) => s.arriving)
-  const { setTab, clearFilters } = useMemory.getState()
+  const { setTab, setQuery } = useMemory.getState()
 
   if (entries.length === 0)
     return (
       <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.2rem] text-[0.95rem] text-ink-soft">
         <p>{filtering ? m.noMatch : m.nothing[tab]}</p>
         {filtering ? (
-          <Button size="sm" variant="ghost" className="mt-2 -ml-2" onClick={clearFilters}>
+          <Button size="sm" variant="ghost" className="mt-2 -ml-2" onClick={() => setQuery("")}>
             {m.clearFilters}
           </Button>
         ) : (
@@ -187,25 +149,6 @@ function Rack({ entries, tab, filtering }: { entries: MemoryEntry[]; tab: Tab; f
     )
 
   return <SubjectRack entries={entries} leaving={leaving} arriving={arriving} />
-}
-
-/** Any time, the last days, or the one day a record's date was clicked to filter by. */
-function DateFilter({ value, onChange }: { value: Range; onChange: (r: Range) => void }) {
-  const m = useMessages(memoryMessages)
-  const lang = useLang()
-  const id = useId()
-  const fixed = RANGES.map((r) => ({ value: r as Range, label: m.ranges[r] ?? r }))
-  const options = (RANGES as readonly string[]).includes(value)
-    ? fixed
-    : [...fixed, { value, label: dayLabel(`${value}T12:00:00`, m, lang) }]
-  return (
-    <span className="flex items-center gap-[0.5rem]">
-      <span id={id} className="text-[0.95rem] text-ink-soft">
-        {m.when}
-      </span>
-      <Select value={value} onChange={onChange} options={options} aria-labelledby={id} className="w-[10rem]" />
-    </span>
-  )
 }
 
 type Group = { key: string; entries: MemoryEntry[]; waiting: number }
@@ -301,7 +244,7 @@ function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => vo
   const m = useMessages(memoryMessages)
   const name = useId()
   return (
-    <fieldset className="inline-flex h-[2.8rem] items-center rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
+    <fieldset className="inline-flex h-[2.8rem] items-center self-start rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
       <legend className="sr-only">{m.show}</legend>
       {TABS.map((t) => (
         <label key={t} className="relative h-full">
@@ -314,31 +257,6 @@ function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => vo
         </label>
       ))}
     </fieldset>
-  )
-}
-
-function Picker(props: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  placeholder: string
-  options: string[]
-}) {
-  const id = useId()
-  return (
-    <span className="flex items-center gap-[0.5rem]">
-      <label htmlFor={id} className="text-[0.95rem] text-ink-soft">
-        {props.label}
-      </label>
-      <Combobox
-        id={id}
-        value={props.value}
-        onChange={props.onChange}
-        options={props.options}
-        placeholder={props.placeholder}
-        className="w-[11rem]"
-      />
-    </span>
   )
 }
 

@@ -1,10 +1,11 @@
-import { Check } from "lucide-react"
+import { X } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { formatNumber, useLang, useMessages } from "@/i18n"
-import { cx } from "@/ui/cx"
-import { ExpandChevron } from "@/ui/ExpandChevron"
-import { useCloseOutside, useListPlacement } from "@/ui/popup-list"
-import { taskMessages } from "./messages"
+import { CheckMark } from "./Checkbox"
+import { cx } from "./cx"
+import { ExpandChevron } from "./ExpandChevron"
+import { uiMessages } from "./messages"
+import { useCloseOutside, useListPlacement } from "./popup-list"
 
 export type FilterOption = {
   value: string
@@ -21,20 +22,24 @@ type Props = {
   onChange: (values: string[]) => void
   /** One choice at a time, as the Due filter. */
   single?: boolean
+  /** What the chip says once something is chosen, when the option's own label is too long for it. */
+  shown?: string
 }
 
 const SEARCH_FROM = 7
 
 /**
- * A filter: a button that opens a list of choices with memo's count beside each. Several may be chosen; a long list
- * gets a field to narrow it. The list floats over the page (`popup-list`), so opening it moves nothing.
+ * A filter chip: a button that opens a list of choices with a count beside each. Several may be chosen; a long list
+ * gets a field to narrow it. The list floats over the page (`popup-list`), so opening it moves nothing. Once something
+ * is chosen the chip says what ("Priority: high") and grows a cross that clears it.
  */
-export function FilterMenu({ label, options, selected, onChange, single = false }: Props) {
-  const m = useMessages(taskMessages)
+export function FilterMenu({ label, options, selected, onChange, single = false, shown: chipText }: Props) {
+  const m = useMessages(uiMessages)
   const lang = useLang()
   const [open, setOpen] = useState(false)
   const [text, setText] = useState("")
   const [active, setActive] = useState(0)
+  const chip = useRef<HTMLSpanElement>(null)
   const button = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLInputElement>(null)
@@ -51,7 +56,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false 
   }, [])
   const closeOutside = useCallback(() => close(false), [close])
   const inside = useMemo(() => [button, list], [])
-  const place = useListPlacement(open, button, list)
+  const place = useListPlacement(open, chip, list)
   useCloseOutside(open, inside, closeOutside)
 
   useEffect(() => {
@@ -91,36 +96,58 @@ export function FilterMenu({ label, options, selected, onChange, single = false 
 
   const names = selected.map((v) => options.find((o) => o.value === v)?.label ?? v)
   const listId = `${base}-list`
+  const on = selected.length > 0
   return (
     <>
-      <button
-        ref={button}
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
-        onClick={() => (open ? close(false) : setOpen(true))}
-        onKeyDown={(e) => {
-          if (!open && (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")) {
-            e.preventDefault()
-            setOpen(true)
-          }
-        }}
+      <span
+        ref={chip}
         className={cx(
-          "flex h-8 max-w-[18rem] cursor-pointer items-center gap-[0.4rem] rounded-[0.35rem] border pr-[0.4rem] pl-[0.6rem] text-[0.875rem] transition-colors duration-150",
-          selected.length > 0
-            ? "border-brand/50 bg-brand-soft text-ink"
-            : "border-line-strong bg-app text-ink-soft hover:bg-app-2",
+          "inline-flex h-8 max-w-[20rem] min-w-0 items-stretch rounded-[0.35rem] border text-[0.875rem] transition-colors duration-150",
+          on ? "border-brand/50 bg-brand-soft" : "border-line-strong bg-app",
         )}
       >
-        <span className="shrink-0">{label}</span>
-        {names.length > 0 && (
-          <span className="min-w-0 truncate font-medium text-ink">
-            {names.length > 2 ? m.chosen(names.length) : names.join(", ")}
-          </span>
+        <button
+          ref={button}
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => (open ? close(false) : setOpen(true))}
+          onKeyDown={(e) => {
+            if (!open && (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")) {
+              e.preventDefault()
+              setOpen(true)
+            }
+          }}
+          className={cx(
+            "flex min-w-0 cursor-pointer items-center gap-[0.35rem] rounded-[0.3rem] pr-[0.4rem] pl-[0.6rem] transition-colors duration-150",
+            on ? "text-ink-soft hover:bg-brand/10" : "text-ink-soft hover:bg-app-2 hover:text-ink",
+          )}
+        >
+          <span className="shrink-0">{on ? `${label}:` : label}</span>
+          {on && " "}
+          {on && (
+            <span className="min-w-0 truncate font-medium text-ink">
+              {chipText ?? (names.length > 2 ? m.chosen(names.length) : names.join(", "))}
+            </span>
+          )}
+          <ExpandChevron open={open} className="ml-[0.1rem]" />
+        </button>
+        {on && (
+          <button
+            type="button"
+            aria-label={m.clearFilter(label)}
+            title={m.clearFilter(label)}
+            onClick={() => {
+              onChange([])
+              button.current?.focus()
+            }}
+            className="grid w-[1.9rem] shrink-0 cursor-pointer place-items-center rounded-r-[0.3rem] border-brand/30 border-l text-ink-dim transition-colors duration-150 hover:bg-brand/10 hover:text-ink"
+          >
+            <X className="size-[0.9rem]" aria-hidden />
+          </button>
         )}
-        <ExpandChevron open={open} className="ml-auto" />
-      </button>
+      </span>
       <div
         ref={list}
         hidden={!open}
@@ -157,14 +184,14 @@ export function FilterMenu({ label, options, selected, onChange, single = false 
           className="outline-none"
         >
           {shown.map((o, i) => {
-            const on = selected.includes(o.value)
+            const picked = selected.includes(o.value)
             return (
               <div
                 key={o.value}
                 id={`${base}-${i}`}
                 role="option"
                 tabIndex={-1}
-                aria-selected={on}
+                aria-selected={picked}
                 onMouseDown={(e) => e.preventDefault()}
                 onMouseUp={() => toggle(o.value)}
                 onMouseMove={() => i !== active && setActive(i)}
@@ -173,16 +200,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false 
                   i === active && "bg-app-3",
                 )}
               >
-                <span
-                  aria-hidden
-                  className={cx(
-                    "grid size-[1rem] shrink-0 place-items-center border",
-                    single ? "rounded-full" : "rounded-[0.25rem]",
-                    on ? "border-brand bg-brand text-brand-ink" : "border-line-strong",
-                  )}
-                >
-                  {on && <Check className="size-3" strokeWidth={3} />}
-                </span>
+                <CheckMark on={picked} round={single} />
                 {o.icon}
                 <span className="min-w-0 flex-1 truncate">{o.label}</span>
                 {o.hint && <span className="font-mono text-[0.85rem] text-ink-dim">{o.hint}</span>}

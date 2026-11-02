@@ -12,6 +12,8 @@ export function useListPlacement(
   open: boolean,
   anchor: RefObject<HTMLElement | null>,
   list: RefObject<HTMLElement | null>,
+  /** A calendar is taller than a list and must not scroll inside itself. */
+  maxHeight = MAX_HEIGHT,
 ): CSSProperties {
   const [place, setPlace] = useState<CSSProperties>({ visibility: "hidden" })
   useLayoutEffect(() => {
@@ -20,7 +22,7 @@ export function useListPlacement(
       const b = anchor.current?.getBoundingClientRect()
       const l = list.current
       if (!b || !l) return
-      const natural = Math.min(l.scrollHeight, MAX_HEIGHT)
+      const natural = Math.min(l.scrollHeight, maxHeight)
       const below = window.innerHeight - b.bottom - GAP - EDGE
       const above = b.top - GAP - EDGE
       const up = natural > below && above > below
@@ -28,7 +30,7 @@ export function useListPlacement(
       setPlace({
         left: Math.max(EDGE, Math.min(b.left, window.innerWidth - width - EDGE)),
         minWidth: b.width,
-        maxHeight: Math.max(Math.min(MAX_HEIGHT, up ? above : below), 96),
+        maxHeight: Math.max(Math.min(maxHeight, up ? above : below), 96),
         ...(up ? { bottom: window.innerHeight - b.top + GAP } : { top: b.bottom + GAP }),
       })
     }
@@ -40,7 +42,7 @@ export function useListPlacement(
       window.removeEventListener("scroll", position, true)
       setPlace({ visibility: "hidden" })
     }
-  }, [open, anchor, list])
+  }, [open, anchor, list, maxHeight])
   return place
 }
 

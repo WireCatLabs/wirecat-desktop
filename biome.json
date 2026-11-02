@@ -20,6 +20,16 @@
       "tailwindDirectives": true
     }
   },
+  "linter": {
+    "rules": {
+      "a11y": {
+        "noLabelWithoutControl": {
+          "level": "error",
+          "options": { "inputComponents": ["Checkbox", "Radio"] }
+        }
+      }
+    }
+  },
   "overrides": [
     {
       "includes": ["src/domain/**", "!**/*.test.*"],

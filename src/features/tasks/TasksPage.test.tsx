@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
@@ -35,24 +35,40 @@ describe("Tasks", () => {
     expect(row("OPS-3")).not.toBeNull()
   })
 
-  it("filters by a custom due day, with the calendar open at once", async () => {
+  it("filters by a custom due range picked on the calendar, which opens focused", async () => {
     const user = userEvent.setup()
-    const picker = vi.fn()
-    HTMLInputElement.prototype.showPicker = picker
     const list = vi.spyOn(platform, "taskList")
     render(<TasksPage />)
     await loaded()
     await user.click(screen.getByRole("button", { name: "Due" }))
     await user.click(screen.getByRole("option", { name: /^Today/ }))
     await waitFor(() => expect(list).toHaveBeenLastCalledWith(expect.stringContaining("(due:today)")))
+    expect(screen.getByRole("button", { name: "Due: Today" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: /^Due/ }))
     await user.click(screen.getByRole("option", { name: "Custom…" }))
-    const from = screen.getByLabelText("From")
-    await waitFor(() => expect(from).toHaveFocus())
-    expect(picker).toHaveBeenCalled()
-    fireEvent.change(from, { target: { value: "2026-12-01" } })
-    fireEvent.change(screen.getByLabelText("To (optional)"), { target: { value: "2026-12-05" } })
-    expect(screen.getByRole("searchbox", { name: "Search tasks" })).toHaveValue("due:[2026-12-01 TO 2026-12-05]")
+    const calendar = screen.getByRole("dialog", { name: "Custom…" })
+    const today = within(calendar).getByRole("button", { current: "date" })
+    await waitFor(() => expect(today).toHaveFocus())
+    await user.keyboard("{Enter}{ArrowRight}{ArrowRight}{Enter}")
+    const from = today.getAttribute("data-day")
+    const day = new Date(`${from}T00:00:00`)
+    day.setDate(day.getDate() + 2)
+    const to = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`
+    expect(screen.getByRole("searchbox", { name: "Search tasks" })).toHaveValue(`due:[${from} TO ${to}]`)
+    await user.keyboard("{Escape}")
+    expect(screen.queryByRole("dialog", { name: "Custom…" })).not.toBeInTheDocument()
+  })
+
+  it("clears one filter from its chip and keeps the rest of the search", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    const search = screen.getByRole("searchbox", { name: "Search tasks" })
+    await user.type(search, "launch priority:high")
+    expect(await screen.findByRole("button", { name: "Priority: High" })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Clear priority" }))
+    expect(search).toHaveValue("launch")
+    expect(screen.getByRole("button", { name: "Priority" })).toHaveFocus()
   })
 
   it("keeps an edited row in its place and says nothing changed when memo refuses", async () => {
@@ -150,17 +166,14 @@ describe("Tasks", () => {
 
   it("opens the calendar as soon as Another day is chosen, and Escape gives the cell back", async () => {
     const user = userEvent.setup()
-    const picker = vi.fn()
-    HTMLInputElement.prototype.showPicker = picker
     render(<TasksPage />)
     await loaded()
     await user.click(within(row("OPS-3")).getByRole("combobox", { name: "Due of OPS-3" }))
     await user.click(screen.getByRole("option", { name: "Another day" }))
-    const field = within(row("OPS-3")).getByLabelText("Due of OPS-3")
-    expect(field).toHaveAttribute("type", "date")
-    expect(field).toHaveFocus()
-    expect(picker).toHaveBeenCalledOnce()
+    const calendar = screen.getByRole("dialog", { name: "Due of OPS-3" })
+    await waitFor(() => expect(within(calendar).getByRole("button", { pressed: true })).toHaveFocus())
     await user.keyboard("{Escape}")
+    expect(screen.queryByRole("dialog", { name: "Due of OPS-3" })).not.toBeInTheDocument()
     expect(within(row("OPS-3")).getByRole("combobox", { name: "Due of OPS-3" })).toHaveFocus()
   })
 

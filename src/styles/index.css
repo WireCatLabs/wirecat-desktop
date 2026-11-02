@@ -419,3 +419,17 @@ dialog[data-closing]::backdrop {
     "liga" 0,
     "calt" 0;
 }
+
+/* A calendar's next month slides in from the side it comes from. */
+@keyframes month-next {
+  from {
+    opacity: 0;
+    transform: translateX(0.6rem);
+  }
+}
+@keyframes month-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-0.6rem);
+  }
+}
