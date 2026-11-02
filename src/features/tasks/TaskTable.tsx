@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { closed, STATES } from "@/domain/tasks"
-import { useMessages } from "@/i18n"
+import { type Lang, useLang, useMessages } from "@/i18n"
 import type { Task } from "@/platform/task-schemas"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -16,9 +16,17 @@ type Sort = { by: SortBy; dir: 1 | -1 }
 
 // Below the table's minimum width it scrolls sideways inside its frame; status, key and title stay in view.
 const GRID =
-  "grid grid-cols-[minmax(30rem,1fr)_7.6rem_7.4rem_7.6rem] items-center gap-x-[0.9rem] pr-[1.3rem] xl:gap-x-[1.2rem]"
+  "grid grid-cols-[minmax(30rem,1fr)_7.6rem_var(--priority)_7.6rem] items-center gap-x-[0.9rem] pr-[1.3rem] xl:gap-x-[1.2rem]"
 const LEAD =
-  "sticky left-0 z-[1] grid grid-cols-[8.2rem_5.2rem_minmax(0,1fr)] items-center gap-x-[0.9rem] self-stretch bg-app pl-[1.3rem] group-data-[scrolled]/rack:shadow-[1px_0_0_var(--color-line)] xl:gap-x-[1.2rem]"
+  "sticky left-0 z-[1] grid grid-cols-[var(--status)_5.2rem_minmax(0,1fr)] items-center gap-x-[0.9rem] self-stretch bg-app pl-[1.3rem] group-data-[scrolled]/rack:shadow-[1px_0_0_var(--color-line)] xl:gap-x-[1.2rem]"
+
+// Wide enough for each language's longest status and priority, so none is cut ("К выполнению", "Без приоритета").
+// One width per language, not per value: a cell that changes never moves the columns (rule 9).
+const WIDTHS: Record<Lang, { "--status": string; "--priority": string }> = {
+  en: { "--status": "8.2rem", "--priority": "8.2rem" },
+  ru: { "--status": "9.9rem", "--priority": "10.5rem" },
+  es: { "--status": "9rem", "--priority": "9rem" },
+}
 
 const keyOf = (t: Task, by: SortBy): number | string => {
   if (by === "priority") return -(t.priority ?? -1)
@@ -41,6 +49,7 @@ function sortKeys(tasks: readonly Task[], sort: Sort): string[] {
 
 export function TaskTable({ top }: { top?: React.ReactNode }) {
   const m = useMessages(taskMessages)
+  const lang = useLang()
   const tasks = useTasks((s) => s.tasks)
   const order = useTasks((s) => s.order)
   const failed = useTasks((s) => s.failed)
@@ -81,7 +90,7 @@ export function TaskTable({ top }: { top?: React.ReactNode }) {
       onScroll={(e) => setScrolled(e.currentTarget.scrollLeft > 0)}
       className="group/rack overflow-x-auto rounded-[0.2rem] border border-line-strong bg-app"
     >
-      <div className="min-w-[58rem]">
+      <div className="min-w-[calc(50.6rem+var(--priority))]" style={WIDTHS[lang] as React.CSSProperties}>
         <div className={cx(GRID, "h-[2.6rem] border-line border-b text-[0.9rem] font-medium text-ink-dim")}>
           <span className={LEAD}>
             <span>{head("status", m.status)}</span>

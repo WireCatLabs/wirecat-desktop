@@ -292,7 +292,7 @@ export function DatePopover({ open, anchor, onClose, label, children }: PopoverP
           onClose(true)
         }
       }}
-      className="fixed z-50 flex flex-col gap-[0.5rem] rounded-[0.45rem] border border-line bg-app p-[0.6rem] text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
+      className="fixed z-50 flex flex-col gap-[0.5rem] overflow-y-auto overscroll-contain rounded-[0.45rem] border border-line bg-app p-[0.6rem] text-ink shadow-panel motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
     >
       {children}
     </div>

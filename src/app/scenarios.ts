@@ -5,7 +5,6 @@ import { useNotifications } from "@/features/notifications/store"
 import { STEPS, useOnboarding } from "@/features/onboarding/store"
 import { useSearch } from "@/features/search/store"
 import { useSignIn } from "@/features/signin/store"
-import { useSystem } from "@/features/system/store"
 import { useTasks } from "@/features/tasks/store"
 import { useTools } from "@/features/tools/store"
 import { useSync } from "@/features/tools/sync-store"
@@ -23,7 +22,7 @@ import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 // `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`); `?task=<key>`
 // opens that task's dialog there.
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
-// `?showcase` hides the setup and the Agents dot, and loads "Your computer" on whichever page opens first.
+// `?showcase` hides the setup and the Agents dot.
 // `?tailscale=<state>` opens tg's, with the "MCP server (or connect web)" guide's Tailscale steps at that state (`src/platform/mock-tailscale.ts`); `?cloudflare=<state>` the same with the Cloudflare tunnel (`mock-cloudflare.ts`).
 export async function runMockScenario() {
   if (platform.kind !== "mock") return
@@ -31,7 +30,6 @@ export async function runMockScenario() {
   if (showcase) {
     useOnboarding.getState().hide()
     useSeen.getState().see("agents")
-    void useSystem.getState().refresh()
   }
   const crash = params.get("crash")
   if (crash) useNav.getState().go(crash)

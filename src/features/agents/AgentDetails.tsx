@@ -1,6 +1,6 @@
 import { RefreshCw } from "lucide-react"
 import type { ReactNode } from "react"
-import { type Session, sessionQuery } from "@/domain/agents"
+import { type CheckItem, type Session, sessionQuery } from "@/domain/agents"
 import { formatWhen, shortSession } from "@/domain/runs"
 import { TARGET_FOLDER } from "@/domain/skills"
 import { useLang, useMessages } from "@/i18n"
@@ -38,6 +38,7 @@ export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): vo
   const checking = useConnect((s) => s.checking[agent.id] === true)
   const skills = useAgents((s) => s.skills)
   const connected = installedCopies(view, skills).length > 0
+  const notes = view.items?.filter((i) => i.note) ?? []
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -72,9 +73,16 @@ export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): vo
         </span>
       </div>
       <div className="grid gap-4 xl:grid-cols-2">
-        <Section title={m.alsoFix}>
-          <OtherFixes view={view} />
-        </Section>
+        <div className="flex flex-col gap-4">
+          <Section title={m.alsoFix}>
+            <OtherFixes view={view} />
+          </Section>
+          {notes.length > 0 && (
+            <Section title={m.permissions}>
+              <Notes items={notes} />
+            </Section>
+          )}
+        </div>
         <Section title={m.recentSessions}>
           <Sessions agent={agent} sessions={view.sessions} />
         </Section>
@@ -104,36 +112,17 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 
 /** What is left once skills are dealt with: sign-in, PATH, permissions. Skill items live in the skills list. */
 function OtherFixes({ view }: { view: AgentView }) {
-  const go = useNav((s) => s.go)
   const m = useMessages(agentsMessages)
   if (!view.items) return <Skeleton className="h-10 w-full" label={m.checkingLabel} />
-  const shown = view.items.filter((i) => i.tone !== "ok" && !i.id.endsWith(":skill") && !i.id.startsWith("skill:"))
+  const shown = view.items.filter(
+    (i) => i.tone !== "ok" && !i.note && !i.id.endsWith(":skill") && !i.id.startsWith("skill:"),
+  )
   if (shown.length === 0 && view.signedOut.length === 0)
     return <p className="text-[0.9rem] text-ink-soft">{m.nothingElse(view.agent.name)}</p>
   return (
     <ul className={cx(box, "divide-y divide-line")} aria-label={m.otherFixes(view.agent.name)}>
       {shown.map((item) => (
-        <li key={item.id} className="flex flex-col gap-2 px-4 py-2.5">
-          <div className="flex items-start gap-2.5">
-            <span className="mt-[0.4rem]">
-              <Lamp size="sm" tone={item.tone} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[0.95rem] text-ink">{item.title}</p>
-              {item.detail && <p className="mt-0.5 max-w-[70ch] text-[0.9rem] text-ink-soft">{item.detail}</p>}
-            </div>
-            {item.fix?.kind === "tools" && (
-              <Button size="sm" variant="ghost" onClick={() => go("tools")}>
-                {m.openTools}
-              </Button>
-            )}
-          </div>
-          {item.fix?.kind === "command" && (
-            <div className="pl-6">
-              <CopyField value={item.fix.command} label={m.copyCommand} />
-            </div>
-          )}
-        </li>
+        <CheckRow key={item.id} item={item} />
       ))}
       {view.signedOut.map(({ tool, profile }) => (
         <li key={`signin:${tool.id}/${profile}`} className="flex items-start gap-2.5 px-4 py-2.5">
@@ -154,6 +143,46 @@ function OtherFixes({ view }: { view: AgentView }) {
         </li>
       ))}
     </ul>
+  )
+}
+
+/** What the owner chose, such as blocked commands: worth knowing, nothing to fix. */
+function Notes({ items }: { items: readonly CheckItem[] }) {
+  const m = useMessages(agentsMessages)
+  return (
+    <ul className={cx(box, "divide-y divide-line")} aria-label={m.permissions}>
+      {items.map((item) => (
+        <CheckRow key={item.id} item={item} />
+      ))}
+    </ul>
+  )
+}
+
+function CheckRow({ item }: { item: CheckItem }) {
+  const go = useNav((s) => s.go)
+  const m = useMessages(agentsMessages)
+  return (
+    <li className="flex flex-col gap-2 px-4 py-2.5">
+      <div className="flex items-start gap-2.5">
+        <span className="mt-[0.4rem]">
+          <Lamp size="sm" tone={item.tone} />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[0.95rem] text-ink">{item.title}</p>
+          {item.detail && <p className="mt-0.5 max-w-[70ch] text-[0.9rem] text-ink-soft">{item.detail}</p>}
+        </div>
+        {item.fix?.kind === "tools" && (
+          <Button size="sm" variant="ghost" onClick={() => go("tools")}>
+            {m.openTools}
+          </Button>
+        )}
+      </div>
+      {item.fix?.kind === "command" && (
+        <div className="pl-6">
+          <CopyField value={item.fix.command} label={m.copyCommand} />
+        </div>
+      )}
+    </li>
   )
 }
 

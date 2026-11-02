@@ -14,6 +14,7 @@ import { useReport } from "@/features/report/store"
 import { useApplyScale, useScaleKeys } from "@/features/settings/scale"
 import { SignInDialog } from "@/features/signin/SignInDialog"
 import { ReadinessStrip } from "@/features/system/ReadinessStrip"
+import { useSystem } from "@/features/system/store"
 import { ClearDataOffer } from "@/features/tools/ClearDataOffer"
 import { CHECK_EVERY_MS, useUpdate } from "@/features/update/store"
 import { UpdateButton, UpdateDialog } from "@/features/update/UpdateDialog"
@@ -48,6 +49,9 @@ export function App() {
   const toTools = () => setActive("tools")
   const [about, setAbout] = useState(false)
   const [privacy, setPrivacy] = useState(false)
+  useEffect(() => {
+    if (!useSystem.getState().readiness) void useSystem.getState().refresh()
+  }, [])
   useEffect(() => {
     const check = () => useUpdate.getState().check()
     check()

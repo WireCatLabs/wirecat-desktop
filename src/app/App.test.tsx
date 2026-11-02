@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useNav } from "@/features/nav"
 import { useOnboarding } from "@/features/onboarding/store"
+import { useSystem } from "@/features/system/store"
 import { useTools } from "@/features/tools/store"
 import { App } from "./App"
 
@@ -11,6 +12,7 @@ describe("WireCat Desktop", () => {
   beforeEach(() => {
     useOnboarding.setState({ status: "done", open: false })
     useTools.setState(useTools.getInitialState(), true)
+    useNav.setState(useNav.getInitialState(), true)
   })
 
   it("installs a missing tool and shows it verified", async () => {
@@ -53,6 +55,13 @@ describe("WireCat Desktop", () => {
   })
 
   it("shows the computer's readiness", async () => {
+    render(<App />)
+    expect(await screen.findByText("Node.js 24.19.0")).toBeInTheDocument()
+  })
+
+  it("shows the computer's readiness on a page other than Tools", async () => {
+    useSystem.setState(useSystem.getInitialState(), true)
+    useNav.getState().go("tasks")
     render(<App />)
     expect(await screen.findByText("Node.js 24.19.0")).toBeInTheDocument()
   })

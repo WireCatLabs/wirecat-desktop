@@ -62,15 +62,16 @@ export function DueText({ task }: { task: Task }) {
   const lang = useLang()
   if (!task.dueAt) return <span className="text-ink-dim">—</span>
   const tone = dueTone(task.dueAt, task.state)
+  // A long "late" word (ru "просрочено") moves under the date instead of being cut.
   return (
     <span
       className={cx(
-        "min-w-0 truncate font-mono text-[0.9rem] tabular-nums",
+        "inline-flex min-w-0 flex-wrap items-baseline gap-x-[0.35rem] leading-[1.15]",
         tone === "late" ? "text-bad" : tone === "soon" ? "text-warn-ink" : "text-ink-soft",
       )}
     >
-      {dueDay(task.dueAt, lang)}
-      {tone === "late" && <span className="ml-[0.35rem] font-sans text-[0.85rem]">{m.late}</span>}
+      <span className="font-mono text-[0.9rem] tabular-nums">{dueDay(task.dueAt, lang)}</span>
+      {tone === "late" && <span className="text-[0.85rem]">{m.late}</span>}
     </span>
   )
 }

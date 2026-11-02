@@ -72,7 +72,7 @@ function actionLine(e: MemoryEntry, m: M, withText: boolean) {
   if (!verb) return e.summary ?? e.text ?? kindOf(e.kind, m)
   const target = e.targetName ?? e.chatName
   const text = withText ? e.text : null
-  // "Reply to Kai Sample: Here is the pricing table…"; each language's verb is written to take the name after it.
+  // "Reply to Kai Moreno: Here is the pricing table…"; each language's verb is written to take the name after it.
   return `${verb}${target ? ` ${target}` : ""}${text ? `: ${text}` : ""}`
 }
 
