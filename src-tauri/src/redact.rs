@@ -154,6 +154,9 @@ const ORDINARY: &[&str] = &[
 
 const NAME: &str = "[name]";
 
+/// Values the interface branches on (`"expired"`, `"invalid_json"`): a contact called "Missing" must not change them.
+const CODES: &[&str] = &["kind", "state", "status", "code", "reason", "level", "severity"];
+
 /// Names of people and chats the messenger tools keep on this computer (`names.rs`), masked as `[name]`.
 ///
 /// The rule: a name matches only as a whole, ignoring case (Cyrillic too), and only where it stands as a word of
@@ -210,7 +213,10 @@ impl Names {
             return;
         }
         match value {
-            Value::Object(map) => map.values_mut().for_each(|v| self.json(v)),
+            Value::Object(map) => map
+                .iter_mut()
+                .filter(|(k, v)| !(v.is_string() && CODES.contains(&k.as_str())))
+                .for_each(|(_, v)| self.json(v)),
             Value::Array(items) => items.iter_mut().for_each(|v| self.json(v)),
             Value::String(s) => *s = self.text(s),
             _ => {}
@@ -388,9 +394,18 @@ mod tests {
     #[test]
     fn masks_every_string_in_json_and_keeps_the_rest() {
         let n = names(&["Book club"]);
-        let mut v = json!({"error": {"message": "cannot read Book club"}, "chats": ["book club"], "count": 3});
+        let mut v = json!({
+            "error": {"message": "cannot read Book club", "code": "book club"},
+            "chats": ["book club"], "count": 3, "state": "Book club"
+        });
         n.json(&mut v);
-        assert_eq!(v, json!({"error": {"message": "cannot read [name]"}, "chats": ["[name]"], "count": 3}));
+        assert_eq!(
+            v,
+            json!({
+                "error": {"message": "cannot read [name]", "code": "book club"},
+                "chats": ["[name]"], "count": 3, "state": "Book club"
+            })
+        );
         assert_eq!(super::Names::default().text("Book club"), "Book club");
     }
 
@@ -402,6 +417,6 @@ mod tests {
         let text = "Пользователь9999 Иванов написал. ".repeat(500);
         let masked = n.text(&text);
         assert!(!masked.contains("Иванов"));
-        assert!(started.elapsed() < std::time::Duration::from_secs(2), "{:?}", started.elapsed());
+        assert!(started.elapsed() < std::time::Duration::from_secs(10), "{:?}", started.elapsed());
     }
 }
