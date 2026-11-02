@@ -302,6 +302,14 @@ body {
   }
 }
 
+/* A list that opens upward rises from its anchor below it. */
+@keyframes select-up {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+
 /* Loading without layout shift: docs/dev/ARCHITECTURE.md. The text form keeps its line's height and draws the bar
    inside it. */
 .skeleton-text {

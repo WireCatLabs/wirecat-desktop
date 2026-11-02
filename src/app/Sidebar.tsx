@@ -1,5 +1,6 @@
 import { ListChecks, Monitor, Moon, Sun } from "lucide-react"
-import { HELP_OPENER, useHelpMenu } from "@/features/onboarding/HelpMenu"
+import { useId } from "react"
+import { HELP_OPENER, type HelpActions, HelpPanel, useHelpMenu } from "@/features/onboarding/HelpMenu"
 import { useOnboarding } from "@/features/onboarding/store"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
@@ -11,7 +12,8 @@ import { appMessages } from "./messages"
 import { type Section, sections } from "./sections"
 import { type ThemeChoice, useTheme } from "./theme"
 
-export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: string) => void }) {
+export function Sidebar(props: { active: string; onSelect: (id: string) => void; help: HelpActions }) {
+  const { active, onSelect, help } = props
   const m = useMessages(appMessages)
   const themeOptions = [
     { value: "light", label: m.themeLight, icon: <Sun className="size-4" aria-hidden /> },
@@ -21,7 +23,8 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
   const theme = useTheme()
   const postponed = useOnboarding((s) => s.status === "later")
   const badges = useBadges(active)
-  const versionOpen = useHelpMenu((s) => s.open && s.opener?.hasAttribute(HELP_OPENER) === true)
+  const versionOpen = useHelpMenu((s) => s.open === "version")
+  const versionMenu = useId()
   return (
     <aside
       className="flex w-[12rem] shrink-0 xl:w-[13.5rem] flex-col border-line border-r bg-wall"
@@ -55,21 +58,25 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
         </button>
       )}
       <div className="flex items-center justify-between border-line border-t px-[1.4rem] pt-[1rem] pb-[1.6rem]">
-        <button
-          type="button"
-          {...{ [HELP_OPENER]: "" }}
-          aria-haspopup="menu"
-          aria-expanded={versionOpen}
-          aria-label={m.version(__APP_VERSION__)}
-          title={m.version(__APP_VERSION__)}
-          onClick={(e) => useHelpMenu.getState().toggle(e.currentTarget)}
-          className={cx(
-            "-mx-[0.4rem] rounded-[0.35rem] px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-150 hover:bg-app-3 hover:text-ink",
-            versionOpen && "bg-app-3 text-ink",
-          )}
-        >
-          {__APP_VERSION__}
-        </button>
+        <div className="relative">
+          <button
+            type="button"
+            {...{ [HELP_OPENER]: "" }}
+            aria-haspopup="menu"
+            aria-expanded={versionOpen}
+            aria-controls={versionOpen ? versionMenu : undefined}
+            aria-label={m.version(__APP_VERSION__)}
+            title={m.version(__APP_VERSION__)}
+            onClick={(e) => useHelpMenu.getState().toggle("version", e.currentTarget)}
+            className={cx(
+              "-mx-[0.4rem] rounded-[0.35rem] px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-150 hover:bg-app-3 hover:text-ink",
+              versionOpen && "bg-app-3 text-ink",
+            )}
+          >
+            {__APP_VERSION__}
+          </button>
+          {versionOpen && <HelpPanel place="version" listId={versionMenu} {...help} />}
+        </div>
         <Segmented label={m.theme} value={theme.choice} options={themeOptions} onChange={theme.set} />
       </div>
     </aside>
