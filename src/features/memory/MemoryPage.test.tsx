@@ -1,7 +1,8 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { matcher, parseQuery, type Run } from "@/domain/runs"
+import { platform } from "@/platform/bridge"
 import { useLogs } from "../logs/store"
 import { MEMORY_RUNS } from "./Activity"
 import { MemoryPage } from "./MemoryPage"
@@ -122,19 +123,24 @@ describe("Memory", () => {
     expect(await screen.findByText("Deal. I'll send them Thursday evening.")).toBeInTheDocument()
   })
 
-  it("shows an agent's findings and creates only the ticked ones", async () => {
+  it("approves only the findings on screen and ticked, with their count on the button; the rest stay unapproved", async () => {
+    const confirm = vi.spyOn(platform, "memoryConfirm")
     const user = userEvent.setup()
     render(<MemoryPage />)
     await rack()
-    await user.click(screen.getByRole("button", { name: /2 facts and 2 tasks to review/ }))
+    const batch = row(/2 facts and 2 tasks to review/)
+    await user.click(within(batch).getByRole("button", { name: "Review 4" }))
+    expect(confirm).not.toHaveBeenCalled()
     expect(screen.getByText("What Approve creates in Northbridge Bench")).toBeInTheDocument()
+
     await user.click(screen.getByRole("checkbox", { name: /Ask Tom Becker for read access/ }))
     expect(screen.getByText(/creates the 3 ticked ones in Northbridge Bench/)).toBeInTheDocument()
-
-    const batch = row(/2 facts and 2 tasks to review/)
-    await user.click(within(batch).getByRole("button", { name: "Approve" }))
+    await user.click(within(batch).getByRole("button", { name: "Approve 3" }))
     await waitFor(() => expect(within(batch).getAllByText(/^Created/)).toHaveLength(3), { timeout: 3000 })
+    const [, accept] = confirm.mock.calls[0] ?? []
+    expect(accept).toHaveLength(3)
     expect(within(batch).getByText(/^Rejected/)).toBeInTheDocument()
+    confirm.mockRestore()
   })
 
   it("sends All activity to Logs filtered to memo's memory runs", async () => {

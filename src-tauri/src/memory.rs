@@ -485,10 +485,8 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
         return Ok(None);
     }
     let held: Vec<String> = findings_of(item).into_iter().map(|f| f.id).collect();
-    let accept: Vec<String> = match accept {
-        None => held.clone(),
-        Some(ids) => ids.to_vec(),
-    };
+    // Approving every finding unseen is what NEED-2166 ruled out: the window names the ones the owner saw ticked.
+    let accept: Vec<String> = accept.ok_or("Open the findings and tick the ones to approve.")?.to_vec();
     if accept.iter().any(|id| !held.contains(id) || plain(id).is_none()) {
         return Err("Pick only findings this batch holds.".into());
     }
@@ -510,7 +508,7 @@ fn confirm_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Entry
 }
 
 /// Approving an action makes it a task in the account that would act; Memo sends nothing. Approving findings creates
-/// the facts and tasks named in `accept` (all of them when it is absent).
+/// the facts and tasks named in `accept`, which a findings batch must have.
 pub fn confirm(reference: &str, accept: Option<&[String]>) -> Result<Entry, String> {
     let r = Ref::parse(reference)?;
     with_memo(|call| confirm_with(call, &r, accept))
@@ -1112,6 +1110,7 @@ mod tests {
         assert_eq!(seen[3], strs(&["actions", "reject", "9", "--fingerprint", "5adf3e", "--json", "--no-record"]));
         assert_eq!(seen.len(), 4, "the decision's answer is the batch as it now is");
         assert!(confirm_with(&call, &r, Some(&strs(&["--all"]))).is_err());
+        assert!(confirm_with(&call, &r, None).is_err(), "a batch is never approved without naming its findings");
     }
 
     #[test]
