@@ -21,7 +21,7 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
   const theme = useTheme()
   const postponed = useOnboarding((s) => s.status === "later")
   const badges = useBadges(active)
-  const helpOpen = useHelpMenu((s) => s.open)
+  const versionOpen = useHelpMenu((s) => s.open && s.opener?.hasAttribute(HELP_OPENER) === true)
   return (
     <aside
       className="flex w-[12rem] shrink-0 xl:w-[13.5rem] flex-col border-line border-r bg-wall"
@@ -59,13 +59,13 @@ export function Sidebar({ active, onSelect }: { active: string; onSelect: (id: s
           type="button"
           {...{ [HELP_OPENER]: "" }}
           aria-haspopup="menu"
-          aria-expanded={helpOpen}
+          aria-expanded={versionOpen}
           aria-label={m.version(__APP_VERSION__)}
           title={m.version(__APP_VERSION__)}
           onClick={(e) => useHelpMenu.getState().toggle(e.currentTarget)}
           className={cx(
             "-mx-[0.4rem] rounded-[0.35rem] px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-150 hover:bg-app-3 hover:text-ink",
-            helpOpen && "bg-app-3 text-ink",
+            versionOpen && "bg-app-3 text-ink",
           )}
         >
           {__APP_VERSION__}
