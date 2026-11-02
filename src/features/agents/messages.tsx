@@ -34,9 +34,8 @@ const enCheck: CheckWords = {
   permissionsUnread: (tool, profile) => `${tool} (${profile}) permissions could not be read`,
   allowsAll: (tool, profile) => `${tool} (${profile}) allows every command`,
   blocked: (tool, profile, blocked, total) =>
-    `${tool} (${profile}): ${blocked} of ${plural("en", total, { one: "# command is", other: "# commands are" })} blocked`,
-  blockedDetail: (agent, tool) =>
-    `Its permissions stop ${agent} from running them. Change them in ${tool}'s Manage panel.`,
+    `${tool} (${profile}): ${blocked} of ${plural("en", total, { one: "# command", other: "# commands" })} blocked by your permissions`,
+  blockedDetail: (agent, tool) => `${agent} cannot run them. You can change this in ${tool}'s Manage panel.`,
   permissionsLater: "Permissions are read when you check this agent",
   permissionsLaterDetail: "The check asks each tool which commands every profile allows.",
   skillOld: (tool, version) => `${tool} skill is old (${version})`,
@@ -165,6 +164,7 @@ const en = {
   disconnectFrom: (agent: string) => `Disconnect WireCat from ${agent}`,
   checkThis: "Check this agent",
   alsoFix: "Also to fix",
+  permissions: "Permissions",
   recentSessions: "Recent sessions",
   tasksHeld: "Tasks it holds",
   nothingElse: (agent: string) => `Nothing else stops ${agent}.`,
@@ -324,9 +324,9 @@ const ruCheck: CheckWords = {
   permissionsUnread: (tool, profile) => `Не удалось прочитать разрешения ${tool} (${profile})`,
   allowsAll: (tool, profile) => `${tool} (${profile}) разрешает все команды`,
   blocked: (tool, profile, blocked, total) =>
-    `${tool} (${profile}): заблокировано ${blocked} из ${ruCount(total, "команды", "команд", "команд")}`,
+    `${tool} (${profile}): ваши разрешения блокируют ${blocked} из ${ruCount(total, "команды", "команд", "команд")}`,
   blockedDetail: (agent, tool) =>
-    `Разрешения не дают ${agent} их выполнять. Измените их в панели «Управление» инструмента ${tool}.`,
+    `${agent} не может их выполнять. Это можно изменить в панели «Управление» инструмента ${tool}.`,
   permissionsLater: "Разрешения читаются при проверке этого агента",
   permissionsLaterDetail: "Проверка спрашивает у каждого инструмента, какие команды разрешены в каждом профиле.",
   skillOld: (tool, version) => `Навык ${tool} устарел (${version})`,
@@ -462,6 +462,7 @@ const ru: typeof en = {
   disconnectFrom: (agent) => `Отключить WireCat от ${agent}`,
   checkThis: "Проверить агента",
   alsoFix: "Что ещё исправить",
+  permissions: "Разрешения",
   recentSessions: "Последние сеансы",
   tasksHeld: "Его задачи",
   nothingElse: (agent) => `Больше ничто не мешает ${agent}.`,
@@ -615,9 +616,8 @@ const esCheck: CheckWords = {
   permissionsUnread: (tool, profile) => `No se pudieron leer los permisos de ${tool} (${profile})`,
   allowsAll: (tool, profile) => `${tool} (${profile}) permite todos los comandos`,
   blocked: (tool, profile, blocked, total) =>
-    `${tool} (${profile}): ${blocked} de ${plural("es", total, { one: "# comando", other: "# comandos" })} bloqueados`,
-  blockedDetail: (agent, tool) =>
-    `Sus permisos impiden que ${agent} los ejecute. Cámbialos en el panel Gestionar de ${tool}.`,
+    `${tool} (${profile}): ${blocked} de ${plural("es", total, { one: "# comando", other: "# comandos" })} bloqueados por tus permisos`,
+  blockedDetail: (agent, tool) => `${agent} no puede ejecutarlos. Puedes cambiarlo en el panel Gestionar de ${tool}.`,
   permissionsLater: "Los permisos se leen cuando compruebas este agente",
   permissionsLaterDetail: "La comprobación pregunta a cada herramienta qué comandos permite cada perfil.",
   skillOld: (tool, version) => `La skill de ${tool} está desactualizada (${version})`,
@@ -754,6 +754,7 @@ const es: typeof en = {
   disconnectFrom: (agent) => `Desconectar WireCat de ${agent}`,
   checkThis: "Comprobar este agente",
   alsoFix: "Qué más arreglar",
+  permissions: "Permisos",
   recentSessions: "Sesiones recientes",
   tasksHeld: "Tareas que tiene",
   nothingElse: (agent) => `Nada más le impide funcionar a ${agent}.`,

@@ -155,11 +155,18 @@ describe("buildCheck", () => {
     expect(buildCheck(base).find((i) => i.id === "permissions")?.title).toMatch(/when you check this agent/)
     const items = buildCheck({ ...base, access: { "tg/work": { blocked: 3, total: 50 }, "tg/personal": "no answer" } })
     expect(items.find((i) => i.id === "tg/work:permissions")).toMatchObject({
-      title: "Telegram (work): 3 of 50 commands are blocked",
-      fix: { kind: "tools" },
+      title: "Telegram (work): 3 of 50 commands blocked by your permissions",
+      note: true,
     })
     expect(items.find((i) => i.id === "tg/personal:permissions")?.detail).toBe("no answer")
     expect(items.some((i) => i.id === "permissions")).toBe(false)
+  })
+
+  it("counts a profile that blocks every command as something to fix, not a note", () => {
+    const items = buildCheck({ ...base, access: { "tg/work": { blocked: 50, total: 50 } } })
+    const item = items.find((i) => i.id === "tg/work:permissions")
+    expect(item).toMatchObject({ tone: "warn", fix: { kind: "tools" } })
+    expect(item?.note).toBeUndefined()
   })
 
   it("names the folder instead of a shell line on Windows", () => {
