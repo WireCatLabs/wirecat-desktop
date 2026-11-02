@@ -876,6 +876,11 @@ https://pnpm.io/settings#minimumreleaseage). tg 0.86…0.91 вышли за по
 - **IDEA-19, поправка:** catch-up у tg serve уже включён (`catchUp: true` из cli-core `serve-command.ts` через `src/commands/context.ts:97` в `adapter.ts:174`); теряет mtcute 0.32.7 на `differenceTooLong` / `channelDifferenceTooLong`. PR: tg-cli #810 (тесты), cli-core #2388 (дочитывание при старте serve: 7 дней, 500 сообщений на чат, 5 минут). Не слиты — ждут Славу.
 - **RISK-87, причина:** запрос SQLite идёт до конца на главном потоке (`cli-core src/store/drivers/node-sqlite.ts:16`), лимит 2 с проверялся только между запросами (`lucene.ts:120`), ошибка выглядела как «слишком большой запрос». cli-core #2391: проверка времени на каждой строке, новая причина `query.time-limit`. Не слит. Нужны поднятия cli-core в wa, tg, max (и, возможно, memo).
 
+- #71 и #75 слиты (BUG-49, BUG-50, UX-57, UX-58, RISK-88, FIND-185, календарь на 960 px, ширина статусов). Кнопка «Keep up to date» проверена только на заглушке.
+- **BUG-54 · После перезагрузки (04:48) фоновые службы tg/max не поднялись**: `server install` пишет unit с `WantedBy=default.target`, но не включает его (`is-enabled` → disabled); auth-ошибка с кодом 4 запрещает перезапуск (`RestartPreventExitStatus=4`). В 06:30 запустил обе службы вручную (`server start`), включать автозапуск не стал: до входа в систему keyring закрыт, и служба упала бы.
+- **BUG-55 · Ночные полные синхронизации упали при загрузке**: таймеры Persistent сработали до входа; tg — `auth.failed` (keyring закрыт), max — «name a profile», хотя в schedule.json есть `MAX_PROFILE=default` (max `schedule exec` не применяет профиль). Полные синхронизации запущены вручную в 06:31. Исправления в CLI отданы агенту (только PR).
+- **FIND-186 · У tg 59 неудачных запусков `mcp server status` от приложения в журнале запусков**; на испанской странице Tasks пустой промежуток между плашками и таблицей.
+
 ## 4. Вопросы к Славе
 
 **NEED-1 · Можно ли отступить от одобренного макета: Cancel вместо Install во время установки и настоящие описания?**
