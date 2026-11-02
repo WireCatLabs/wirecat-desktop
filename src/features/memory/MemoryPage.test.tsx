@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { matcher, parseQuery, type Run } from "@/domain/runs"
 import { platform } from "@/platform/bridge"
 import { useLogs } from "../logs/store"
+import { useNav } from "../nav"
+import { useTasks } from "../tasks/store"
 import { MEMORY_RUNS } from "./Activity"
 import { MemoryPage } from "./MemoryPage"
 import { useMemory } from "./store"
@@ -82,7 +84,7 @@ describe("Memory", () => {
     await rack()
     await user.click(screen.getByRole("radio", { name: /In use/ }))
     const mine = row(/You want reminders in the morning/)
-    await user.click(within(mine).getByRole("button", { name: "Correct" }))
+    await user.click(within(mine).getByRole("button", { name: "Edit" }))
     const box = screen.getByRole("textbox", { name: "What is true instead" })
     await user.clear(box)
     await user.type(box, "You want reminders before 10:00.")
@@ -141,6 +143,75 @@ describe("Memory", () => {
     expect(accept).toHaveLength(3)
     expect(within(batch).getByText(/^Rejected/)).toBeInTheDocument()
     confirm.mockRestore()
+  })
+
+  it("opens the task an approved action became, on the Tasks page", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await all(user)
+    const approved = row(/Make a task for Kai Moreno: Send Kai the pricing table/)
+    await user.click(within(approved).getByRole("button", { name: "Open the task" }))
+    await waitFor(() => expect(useNav.getState().active).toBe("tasks"))
+    expect(useTasks.getState().open).toBe("HRB-12")
+  })
+
+  it("lists what an approved findings batch created, each one a click away", async () => {
+    const user = userEvent.setup()
+    useNav.setState({ active: "memory" })
+    render(<MemoryPage />)
+    await all(user)
+    const batch = row(/Findings: 2 created, 1 rejected/)
+    await user.click(within(batch).getByRole("button", { name: "What it created" }))
+    expect(within(batch).getByRole("button", { name: "What it created" })).toHaveAttribute("aria-expanded", "true")
+    await user.click(within(batch).getByRole("button", { name: /Open the fact/ }))
+    expect(useMemory.getState().open).toBe("fact:22")
+    expect(useMemory.getState().tab).toBe("inuse")
+
+    await user.click(within(row(/Findings: 2 created/)).getByRole("button", { name: /What it created/ }))
+    await user.click(within(row(/Findings: 2 created/)).getByRole("button", { name: /Open the task/ }))
+    await waitFor(() => expect(useTasks.getState().open).toBe("HRB-14"))
+  })
+
+  it("takes back an approval where memo can: a memory stops holding, a decision is undone", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    await user.click(screen.getByRole("radio", { name: /In use/ }))
+    const digest = row(/Project Harbour this week/)
+    await user.click(within(digest).getByRole("button", { name: "More actions" }))
+    await user.click(screen.getByRole("menuitem", { name: "No longer true" }))
+    await waitFor(() => expect(within(digest).getByRole("img", { name: "Rejected" })).toBeInTheDocument())
+
+    const decision = row(/Both pilot clinics sign the data agreement/)
+    expect(within(decision).getByRole("button", { name: "Edit" })).toBeInTheDocument()
+    await user.click(within(decision).getByRole("button", { name: "More actions" }))
+    await user.click(screen.getByRole("menuitem", { name: "Undo approval" }))
+    await waitFor(() => expect(within(decision).getByRole("img", { name: "Rejected" })).toBeInTheDocument())
+  })
+
+  it("offers Edit and Erase on an approved fact memo cannot take back, and says why", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    await user.click(screen.getByRole("radio", { name: /In use/ }))
+    const promise = row(/You promised Kai the pricing table/)
+    await user.click(within(promise).getByRole("button", { name: "More actions" }))
+    expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Erase…"])
+    await user.keyboard("{Escape}")
+    await user.click(screen.getByRole("button", { name: /You promised Kai the pricing table/ }))
+    expect(within(promise).getByText(/can take back the approval of a decision only/)).toBeInTheDocument()
+  })
+
+  it("never shows a menu button that opens an empty menu", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await all(user)
+    for (const more of screen.getAllByRole("button", { name: "More actions" })) {
+      expect(more).toBeEnabled()
+      await user.click(more)
+      expect(screen.getAllByRole("menuitem").length).toBeGreaterThan(0)
+      await user.keyboard("{Escape}")
+    }
   })
 
   it("sends All activity to Logs filtered to memo's memory runs", async () => {

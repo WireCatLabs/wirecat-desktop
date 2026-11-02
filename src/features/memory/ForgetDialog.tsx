@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react"
-import { can } from "@/domain/memory"
+import { can, undoOf } from "@/domain/memory"
 import { useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
@@ -15,13 +15,14 @@ export function firstWords(text: string | null) {
   return words.length > WORDS ? `${words.slice(0, WORDS).join(" ")}…` : words.join(" ")
 }
 
-/** Lists exactly what Memo's `remove` erases (rule 5), and offers Reject, which keeps a trail, beside it. */
+/** Lists exactly what Memo's `remove` erases (rule 5), and offers the step that keeps a trail beside it. */
 export function ForgetDialog({ entry }: { entry: MemoryEntry | null }) {
   const m = useMessages(memoryMessages)
   const { forget, discard, askForget } = useMemory.getState()
   const close = () => askForget(null)
   const type = entry?.type ?? "memory"
-  const canDiscard = entry ? can(entry).discard : false
+  const undo = entry && can(entry).discard ? undoOf(entry) : null
+  const instead = undo === "reject" || undo === "invalidate" || undo === "reverse" ? m.undoInstead[undo] : null
 
   return (
     <Dialog
@@ -33,7 +34,7 @@ export function ForgetDialog({ entry }: { entry: MemoryEntry | null }) {
           <Button variant="secondary" data-autofocus onClick={close}>
             {m.keep}
           </Button>
-          {canDiscard && (
+          {instead && (
             <Button
               onClick={() => {
                 if (!entry) return
@@ -41,7 +42,7 @@ export function ForgetDialog({ entry }: { entry: MemoryEntry | null }) {
                 discard(entry.ref)
               }}
             >
-              {m.discardInstead}
+              {instead}
             </Button>
           )}
           <Button

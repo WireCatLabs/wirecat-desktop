@@ -1,15 +1,25 @@
 import { ChevronDown, Ellipsis } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import { cx } from "./cx"
+import { ExpandChevron } from "./ExpandChevron"
 import { useCloseOutside, useListPlacement } from "./popup-list"
 
 export type MenuItem = { label: string; onSelect: () => void; danger?: boolean; disabled?: boolean }
 
 type Props = {
   /** The main action; without one, only the menu button shows. */
-  main?: { label: string; onClick: () => void; icon?: ReactNode; disabled?: boolean }
+  main?: {
+    label: string
+    onClick: () => void
+    icon?: ReactNode
+    disabled?: boolean
+    /** Set when the main action opens something: the button then ends with the chevron that says so. */
+    expanded?: boolean
+  }
   items: MenuItem[]
   menuLabel: string
+  /** The words on the menu button when there is no main action, so it reads as a button and not as decoration. */
+  moreLabel: string
   disabled?: boolean
   className?: string
 }
@@ -29,7 +39,7 @@ const MOVES: Record<string, (at: number, count: number) => number> = {
  * A button with its other actions behind an arrow on its right (WAI-ARIA menu button). The menu floats in a fixed
  * layer, so opening it never moves the row it belongs to.
  */
-export function SplitButton({ main, items, menuLabel, disabled, className }: Props) {
+export function SplitButton({ main, items, menuLabel, moreLabel, disabled, className }: Props) {
   const [open, setOpen] = useState<false | "first" | "last">(false)
   const box = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -65,8 +75,11 @@ export function SplitButton({ main, items, menuLabel, disabled, className }: Pro
     all[move(all.indexOf(document.activeElement as HTMLButtonElement), all.length)]?.focus()
   }
 
+  const hasMenu = items.length > 0
   const part =
     "inline-flex h-[2.4rem] items-center justify-center border border-line-strong bg-app text-ink transition-colors duration-150 hover:bg-app-2 disabled:pointer-events-none disabled:opacity-45"
+
+  if (!main && !hasMenu) return null
 
   return (
     <div ref={box} className={cx("inline-flex shrink-0", className)}>
@@ -75,39 +88,52 @@ export function SplitButton({ main, items, menuLabel, disabled, className }: Pro
           type="button"
           disabled={disabled || main.disabled}
           onClick={main.onClick}
+          aria-expanded={main.expanded}
           className={cx(
             part,
-            "gap-2 rounded-l-[0.4rem] border-r-0 px-[1rem] text-[0.95rem] font-medium whitespace-nowrap",
+            "gap-2 px-[1rem] text-[0.95rem] font-medium whitespace-nowrap",
+            hasMenu ? "rounded-l-[0.4rem] border-r-0" : "rounded-[0.4rem]",
           )}
         >
           {main.icon}
           {main.label}
+          {main.expanded !== undefined && <ExpandChevron open={main.expanded} />}
         </button>
       )}
-      <button
-        ref={trigger}
-        type="button"
-        aria-label={menuLabel}
-        title={menuLabel}
-        aria-haspopup="menu"
-        aria-expanded={!!open}
-        aria-controls={open ? id : undefined}
-        disabled={disabled || items.length === 0}
-        onClick={() => setOpen((o) => (o ? false : "first"))}
-        onKeyDown={(e) => {
-          if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return
-          e.preventDefault()
-          setOpen(e.key === "ArrowDown" ? "first" : "last")
-        }}
-        className={cx(
-          part,
-          "w-[2.2rem] text-ink-soft hover:text-ink",
-          main ? "rounded-r-[0.4rem]" : "rounded-[0.4rem] border-transparent bg-transparent hover:bg-app-3",
-          open && "bg-app-3 text-ink",
-        )}
-      >
-        {main ? <ChevronDown className="size-4" aria-hidden /> : <Ellipsis className="size-4" aria-hidden />}
-      </button>
+      {hasMenu && (
+        <button
+          ref={trigger}
+          type="button"
+          aria-label={menuLabel}
+          title={menuLabel}
+          aria-haspopup="menu"
+          aria-expanded={!!open}
+          aria-controls={open ? id : undefined}
+          disabled={disabled}
+          onClick={() => setOpen((o) => (o ? false : "first"))}
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return
+            e.preventDefault()
+            setOpen(e.key === "ArrowDown" ? "first" : "last")
+          }}
+          className={cx(
+            part,
+            main
+              ? "w-[2.2rem] rounded-r-[0.4rem] text-ink-soft hover:text-ink"
+              : "gap-[0.45rem] rounded-[0.4rem] px-[0.85rem] text-[0.95rem] font-medium whitespace-nowrap",
+            open && "bg-app-3 text-ink",
+          )}
+        >
+          {main ? (
+            <ChevronDown className="size-4" aria-hidden />
+          ) : (
+            <>
+              <Ellipsis className="size-4 text-ink-soft" aria-hidden />
+              {moreLabel}
+            </>
+          )}
+        </button>
+      )}
       {open && (
         <div
           ref={menu}

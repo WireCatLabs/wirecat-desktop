@@ -83,6 +83,12 @@ function make(seed: Seed): Task {
   }
 }
 
+/** Ids as Memo names a task in `task:<id>` before the page knows its key: the Memory page opens them by id. */
+export const TASK_IDS: Record<string, string> = {
+  "4f1c7a52-3b9e-4d21-a6c8-5e7f90b1d234": "HRB-12",
+  "9a2e6b14-7c3d-4f58-b1e0-2c8d4a6f9e71": "HRB-14",
+}
+
 function seeds(): Task[] {
   const base: Seed[] = [
     {
@@ -445,7 +451,7 @@ export function tasksMock(): TaskApi {
   let noteId = 40
   const you = { ref: "person:1", name: null, owner: true }
   let conflictLeft = scenario() === "conflict"
-  const aliases = new Map<string, string>()
+  const aliases = new Map<string, string>(Object.entries(TASK_IDS))
   const find = (key: string) => {
     const t = tasks.find((x) => x.key === (aliases.get(key) ?? key))
     if (!t) throw new Error(`no task ${key}`)

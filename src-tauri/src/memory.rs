@@ -121,6 +121,8 @@ pub struct Entry {
     pub updated_at: Option<String>,
     /// A findings batch's facts and tasks; absent on every other record.
     pub findings: Option<Vec<Finding>>,
+    /// The task an approved action became (`task:<id>`): the owner dismisses it there, since Memo has no undo.
+    pub task: Option<String>,
     pub model: Option<String>,
     /// How sure the agent said it was, 0 to 1; memo keeps it on memories only.
     pub confidence: Option<f64>,
@@ -149,14 +151,13 @@ pub struct Finding {
     pub evidence: Vec<String>,
     /// After review: `accepted` or `rejected`.
     pub outcome: Option<String>,
+    /// What an accepted finding became, `fact:12` or `task:<id>`: undoing the batch means erasing or dismissing it.
+    pub created: Option<String>,
 }
 
 fn findings_of(v: &Value) -> Vec<Finding> {
-    let outcome = |id: &str| {
-        v["result"]["items"]
-            .as_array()
-            .and_then(|items| items.iter().find(|i| i["id"].as_str() == Some(id)))
-            .and_then(|i| text(i, "status"))
+    let item = |id: &str| {
+        v["result"]["items"].as_array().and_then(|items| items.iter().find(|i| i["id"].as_str() == Some(id)))
     };
     v["payload"]["findings"]
         .as_array()
@@ -164,8 +165,10 @@ fn findings_of(v: &Value) -> Vec<Finding> {
             all.iter()
                 .filter_map(|f| {
                     let id = text(f, "id")?;
+                    let decided = item(&id);
                     Some(Finding {
-                        outcome: outcome(&id),
+                        outcome: decided.and_then(|i| text(i, "status")),
+                        created: decided.and_then(|i| text_field(i, "reference")),
                         kind: text(f, "kind")?,
                         text: text(f, "statement").or_else(|| text(f, "title"))?,
                         reason: text(f, "reason"),
@@ -216,6 +219,7 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
         findings: None,
+        task: None,
         model: text(v, "model"),
         confidence: v["confidence"].as_f64(),
     })
@@ -263,6 +267,7 @@ fn action(v: &Value) -> Option<Entry> {
         model: text(&v["payload"], "agent_model"),
         confidence: None,
         findings: batch.then(|| findings_of(v)),
+        task: text_field(&v["result"], "task").map(|id| format!("task:{id}")),
         kind,
     })
 }
@@ -452,7 +457,12 @@ fn parse_entry(r: &Ref, v: &Value) -> Result<Entry, String> {
         Kind::Memory => memory(item),
         Kind::Fact => fact(item),
         // `actions confirm` answers the action and the task it became.
-        Kind::Action => action(item.get("proposal").unwrap_or(item)),
+        Kind::Action => action(item.get("proposal").unwrap_or(item)).map(|mut e| {
+            if e.task.is_none() {
+                e.task = text_field(&item["task"], "id").map(|id| format!("task:{id}"));
+            }
+            e
+        }),
     };
     parsed.ok_or_else(|| "Memo's answer did not describe the record".into())
 }
@@ -984,7 +994,27 @@ mod tests {
         let fake = Fake::new(|_| Ok(json!({"item":{"proposal":proposal("approved"),"task":{"id":"5bc8"}}})));
         let e = confirm_with(&|a: &[String]| fake.call(a), &Ref::parse("action:1").unwrap(), None).unwrap();
         assert_eq!(e.status, "approved");
+        assert_eq!(e.task.as_deref(), Some("task:5bc8"), "the page opens the task it became");
         assert_eq!(fake.seen().last().unwrap(), &strs(&["actions", "confirm", "1", "--json", "--no-record"]));
+    }
+
+    #[test]
+    fn an_approved_action_read_back_names_the_task_it_became() {
+        let mut approved = proposal("approved");
+        approved["result"] = json!({"task":"5bc8"});
+        assert_eq!(action(&approved).unwrap().task.as_deref(), Some("task:5bc8"));
+        assert_eq!(action(&proposal("proposed")).unwrap().task, None);
+    }
+
+    #[test]
+    fn a_reviewed_batch_names_what_each_accepted_finding_became() {
+        let result = json!({"preview_fingerprint":"5adf3e","accepted":["f1"],"items":[
+            {"id":"f1","fingerprint":"a","status":"accepted","reference":"fact:12","reused":false},
+            {"id":"f2","fingerprint":"b","status":"rejected","reference":null,"reused":false}]});
+        let found = action(&findings_batch("approved", &result)).unwrap().findings.unwrap();
+        assert_eq!(found[0].outcome.as_deref(), Some("accepted"));
+        assert_eq!(found[0].created.as_deref(), Some("fact:12"));
+        assert_eq!(found[1].created, None);
     }
 
     // The payload as cli-core's `evidenceFindings.stage` keeps it, read back with memo 0.131.14's `actions show`.

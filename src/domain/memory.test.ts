@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { byDay, can, inTab, matchesFilter, memoryFilter, setMemoryField, tabOf, toneOf } from "./memory"
+import { byDay, can, inTab, matchesFilter, memoryFilter, setMemoryField, tabOf, toneOf, undoOf } from "./memory"
 
 const entry = (type: string, kind: string, status: string) => ({ type, kind, status, author: { type: "bot" } })
 
@@ -32,6 +32,16 @@ describe("memory records", () => {
       forget: false,
     })
     expect(can(entry("action", "reply", "approved")).discard).toBe(false)
+  })
+
+  it("takes back an approval the way memo can, and says when it cannot", () => {
+    expect(undoOf(entry("memory", "summary", "confirmed"))).toBe("invalidate")
+    expect(undoOf(entry("fact", "decision", "accepted"))).toBe("reverse")
+    expect(undoOf(entry("fact", "promise", "accepted"))).toBe("none")
+    expect(undoOf(entry("action", "reply", "approved"))).toBe("task")
+    expect(undoOf({ ...entry("action", "evidence_findings", "approved"), findings: [] })).toBe("created")
+    expect(undoOf(entry("fact", "decision", "proposed"))).toBe("reject")
+    expect(undoOf(entry("memory", "summary", "stale"))).toBeNull()
   })
 
   it("groups a newest-first list into runs of one local day", () => {

@@ -1,5 +1,6 @@
 import type { AgentCall, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import { delay } from "./mock-delay"
+import { TASK_IDS } from "./mock-tasks"
 import type { Platform } from "./types"
 
 // The Memory page's stand-in for memo, with made-up people only. `?memory=none` holds nothing, `missing` has no memo,
@@ -35,9 +36,12 @@ const base = {
   target: null,
   updatedAt: null,
   findings: null,
+  task: null,
   model: null,
   confidence: null,
 } as const
+
+const [PRICING_TASK = "", CLINICS_TASK = ""] = Object.keys(TASK_IDS).map((id) => `task:${id}`)
 
 const agent = (name: string) => ({ type: "bot", name })
 const OWNER = { type: "person", name: null }
@@ -74,6 +78,7 @@ function seed(): MemoryEntry[] {
           reason: null,
           evidence: ["document:31", "msg:telegram/1/204/1180"],
           outcome: null,
+          created: null,
         },
         {
           id: "f2",
@@ -82,6 +87,7 @@ function seed(): MemoryEntry[] {
           reason: "Lena Ortiz asked for Spanish coverage in the review thread and nobody took it.",
           evidence: ["msg:telegram/1/204/1180"],
           outcome: null,
+          created: null,
         },
         {
           id: "f3",
@@ -90,6 +96,7 @@ function seed(): MemoryEntry[] {
           reason: null,
           evidence: ["document:31"],
           outcome: null,
+          created: null,
         },
         {
           id: "f4",
@@ -98,6 +105,7 @@ function seed(): MemoryEntry[] {
           reason: "Two failed runs last week could not be explained without them.",
           evidence: ["msg:telegram/1/204/1193", "mail:work/5120"],
           outcome: null,
+          created: null,
         },
       ],
     },
@@ -177,6 +185,93 @@ function seed(): MemoryEntry[] {
       author: agent("claude-code"),
       links: 2,
       createdAt: ago(DAY + 3 * HOUR),
+    },
+    {
+      ...base,
+      ref: "action:4",
+      type: "action",
+      kind: "create_task",
+      text: "Send Kai the pricing table with the clinic discount",
+      summary: "Create task Kai Moreno: Send Kai the pricing table with the clinic discount",
+      verb: "create_task",
+      targetName: "Kai Moreno",
+      chatName: "Kai Moreno",
+      status: "approved",
+      author: agent("hermes"),
+      links: 0,
+      reason: "Kai asked for the pricing table twice this week.",
+      scope: null,
+      account: "telegram:1",
+      target: "chat:telegram/1/77",
+      task: PRICING_TASK,
+      createdAt: ago(DAY + 4 * HOUR),
+      updatedAt: ago(DAY + 3.5 * HOUR),
+    },
+    {
+      ...base,
+      ref: "action:3",
+      type: "action",
+      kind: "evidence_findings",
+      text: null,
+      summary: "Create 1 fact and 2 tasks in Project Harbour",
+      verb: "create",
+      targetName: "Project Harbour",
+      counts: { facts: 1, tasks: 2 },
+      status: "approved",
+      project: "project:3",
+      projectName: "Project Harbour",
+      subject: "project:3",
+      subjectName: "Project Harbour",
+      scope: null,
+      author: agent("hermes"),
+      links: 0,
+      target: "project:3",
+      createdAt: ago(DAY + 5 * HOUR),
+      updatedAt: ago(DAY + 4.5 * HOUR),
+      findings: [
+        {
+          id: "h1",
+          kind: "fact",
+          text: "Both pilot clinics sign the data agreement before the February pilot starts.",
+          reason: null,
+          evidence: ["msg:telegram/1/204/1170"],
+          outcome: "accepted",
+          created: "fact:22",
+        },
+        {
+          id: "h2",
+          kind: "task",
+          text: "Book the two pilot clinics for February",
+          reason: "The pilot dates depend on both clinics saying yes.",
+          evidence: ["msg:telegram/1/204/1170"],
+          outcome: "accepted",
+          created: CLINICS_TASK,
+        },
+        {
+          id: "h3",
+          kind: "task",
+          text: "Print the onboarding script for the clinics",
+          reason: "Lena mentioned it once, as an idea.",
+          evidence: ["msg:telegram/1/204/1172"],
+          outcome: "rejected",
+          created: null,
+        },
+      ],
+    },
+    {
+      ...base,
+      ref: "fact:22",
+      type: "fact",
+      kind: "decision",
+      text: "Both pilot clinics sign the data agreement before the February pilot starts.",
+      status: "accepted",
+      project: "project:3",
+      projectName: "Project Harbour",
+      subject: "project:3",
+      subjectName: "Project Harbour",
+      author: agent("hermes"),
+      links: 1,
+      createdAt: ago(DAY + 4.5 * HOUR),
     },
     {
       ...base,
@@ -501,7 +596,12 @@ export function memoryMock(): Pick<
   // memo closes a batch with nothing accepted as rejected.
   const review = (ref: string, accept: string[]) => {
     const e = find(ref)
-    const findings = (e.findings ?? []).map((f) => ({ ...f, outcome: accept.includes(f.id) ? "accepted" : "rejected" }))
+    const findings = (e.findings ?? []).map((f) => {
+      const accepted = accept.includes(f.id)
+      // The mock has no store behind it: a created fact is not added, a created task is one the Tasks mock holds.
+      const created = !accepted ? null : f.kind === "task" ? CLINICS_TASK : null
+      return { ...f, outcome: accepted ? "accepted" : "rejected", created }
+    })
     const done = { ...update(ref, accept.length ? "approved" : "rejected"), findings }
     entries = entries.map((x) => (x.ref === ref ? done : x))
     return done
@@ -549,7 +649,12 @@ export function memoryMock(): Pick<
       await write()
       const e = find(ref)
       if (e.findings) return review(ref, accept ?? e.findings.map((f) => f.id))
-      return update(ref, e.type === "fact" ? "accepted" : e.type === "action" ? "approved" : "confirmed")
+      if (e.type === "action") {
+        const done = { ...update(ref, "approved"), task: PRICING_TASK }
+        entries = entries.map((x) => (x.ref === ref ? done : x))
+        return done
+      }
+      return update(ref, e.type === "fact" ? "accepted" : "confirmed")
     },
     async memoryDiscard(ref) {
       await write()

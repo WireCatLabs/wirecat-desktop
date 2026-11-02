@@ -174,3 +174,22 @@ Steps 5–7 and 9, on memo 0.128.0 and the owner's answers: layout A (NEED-167),
   They have no sources, Correct or Forget in memo.
 - **About and Written by** are typed fields with suggestions (`src/ui/Combobox.tsx`), matching any part of a name.
 - **Step 8** (open Search with the query filled) waits for PR #34; the page has no Search link yet.
+
+## Taking back an approval (2026-11-02, branch `feat/memory-undo`)
+
+The owner asked how to unapprove, edit or remove a record once it is in use. What each approved kind offers now:
+
+| Record | Main button | More menu | memo verb |
+| --- | --- | --- | --- |
+| Memory in use | Edit | No longer true, Erase… | `memories add --supersedes`, `invalidate`, `remove` |
+| Accepted decision | Edit | Undo approval, Erase… | `facts add --supersedes`, `reverse`, `remove` |
+| Other accepted fact | Edit | Erase…, plus a hint in its details | `facts add --supersedes`, `remove` |
+| Approved action | Open the task | none | the task it became (`result.task`), dismissed on Tasks |
+| Reviewed findings batch | What it created | none | each created fact or task opens from its finding (`result.items[].reference`) |
+
+A menu-only button now carries a visible "More" label, and an empty menu never renders.
+
+- [ ] TODO: once memo ships `facts unconfirm` (WireCatLabs/cli-core and WireCatLabs/cli-memo PRs of 2026-11-02, not
+  released yet), map "Undo approval" on an accepted non-decision fact to it in `discard_with`
+  (`src-tauri/src/memory.rs`), set `undoOf` to `reverse`-like for it, raise the catalog's minimum memo, and drop the
+  `noUndoFact` hint.

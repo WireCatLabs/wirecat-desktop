@@ -1,4 +1,4 @@
-import type { State, Tab } from "@/domain/memory"
+import type { State, Tab, Undo } from "@/domain/memory"
 import { type Messages, plural } from "@/i18n"
 
 type Record3 = "memory" | "fact" | "action"
@@ -53,7 +53,18 @@ const en = {
   confirm: "Approve",
   approve: "Approve",
   discard: "Reject",
-  correct: "Correct",
+  correct: "Edit",
+  undo: { reject: "Reject", invalidate: "No longer true", reverse: "Undo approval" } satisfies Record<
+    Exclude<Undo, "task" | "created" | "none" | null>,
+    string
+  >,
+  moreButton: "More",
+  openTask: "Open the task",
+  openFact: "Open the fact",
+  whatItMade: "What it created",
+  noUndoFact:
+    "WireCat can take back the approval of a decision only. To change this fact, edit it; to drop it, erase it.",
+  createdGone: "It is not on this page: it may have been erased. Read again to check.",
   forget: "Erase…",
   restsOn: (n: number) => `What it rests on · ${plural("en", n, { one: "# source", other: "# sources" })}`,
   noSources: "No sources are recorded for it.",
@@ -70,7 +81,8 @@ const en = {
   corrects: "Corrects",
   stateReview: "To review. Agents see it marked as not yet approved.",
   stateReviewAction: "To review. Nothing is sent until you approve it, and approving only makes it a task.",
-  stateApproved: "Approved. It became a task in that account; nothing was sent.",
+  stateApproved:
+    "Approved. It became a task in that account; nothing was sent. To take it back, open the task and dismiss it.",
   fixLabel: "What is true instead",
   fixHint: "Saved as yours, approved. The agent's version stays under Rejected as replaced.",
   save: "Save correction",
@@ -87,9 +99,13 @@ const en = {
   forgetCited: "Its place as a source of any other memory or fact that cites it",
   forgetStays:
     "The messages, notes and meetings themselves stay. Backups of the store made before now still hold it, until you delete them.",
-  forgetInstead: "To keep a record that it was wrong, reject or correct it instead.",
+  forgetInstead: "To keep a record that it was wrong, mark it or edit it instead.",
   keep: "Keep it",
-  discardInstead: "Reject instead",
+  undoInstead: {
+    reject: "Reject instead",
+    invalidate: "Mark no longer true instead",
+    reverse: "Undo approval instead",
+  } satisfies Record<Exclude<Undo, "task" | "created" | "none" | null>, string>,
   forgetNow: "Erase",
   missing:
     "Memory is kept by Memo, which is not installed. Install it on the Tools page; your agents can then save what they learn, and you review it here.",
@@ -134,7 +150,7 @@ const en = {
     context: "Read about a person",
   } as Record<string, string>,
   called: "Called",
-  clickToCorrect: "Click to correct",
+  clickToCorrect: "Click to edit",
   findingsTitle: (facts: number, tasks: number): string =>
     `${[
       plural("en", facts, { one: "# fact", other: "# facts" }),
@@ -194,7 +210,8 @@ const en = {
   noContext: (prefix: string) => `A ${prefix} source cannot be shown here yet.`,
   project: "Project",
   stateReviewFindings: "To review. Nothing is created until you approve, and you pick which findings.",
-  stateReviewed: "Reviewed. The findings marked Created are in the project now.",
+  stateReviewed:
+    "Reviewed. The findings marked Created are in the project now. To take one back, open it: erase the fact or dismiss the task.",
   noSubject: "Not about anyone in particular",
   groupCount: (waiting: number, total: number) =>
     waiting > 0 ? `${waiting} waiting · ${total} in all` : plural("en", total, { one: "# entry", other: "# entries" }),
@@ -250,7 +267,15 @@ const ru: typeof en = {
   confirm: "Одобрить",
   approve: "Одобрить",
   discard: "Отклонить",
-  correct: "Исправить",
+  correct: "Изменить",
+  undo: { reject: "Отклонить", invalidate: "Больше не верно", reverse: "Отменить одобрение" },
+  moreButton: "Ещё",
+  openTask: "Открыть задачу",
+  openFact: "Открыть факт",
+  whatItMade: "Что создано",
+  noUndoFact:
+    "Пока WireCat может отменить одобрение только у решения. Чтобы поменять этот факт, измените его; чтобы убрать, сотрите.",
+  createdGone: "Этого нет на странице: возможно, запись стёрта. Прочитайте заново, чтобы проверить.",
   forget: "Стереть…",
   restsOn: (n) =>
     `На чём основано · ${plural("ru", n, { one: "# источник", few: "# источника", many: "# источников", other: "# источника" })}`,
@@ -268,7 +293,8 @@ const ru: typeof en = {
   corrects: "Исправляет",
   stateReview: "На проверку. Агенты видят её как ещё не одобренную.",
   stateReviewAction: "На проверку. Ничего не отправится, пока вы не одобрите, а одобрение только создаёт задачу.",
-  stateApproved: "Одобрено. В этом аккаунте появилась задача; ничего не отправлено.",
+  stateApproved:
+    "Одобрено. В этом аккаунте появилась задача; ничего не отправлено. Чтобы отменить, откройте задачу и переведите её в «Отклонено».",
   fixLabel: "Как на самом деле",
   fixHint: "Сохранится как ваша запись, одобренной. Версия агента останется в «Отклонено» как заменённая.",
   save: "Сохранить исправление",
@@ -290,9 +316,13 @@ const ru: typeof en = {
   forgetCited: "Её место среди источников других записей и фактов, которые на неё ссылаются",
   forgetStays:
     "Сами сообщения, заметки и встречи останутся. Резервные копии хранилища, сделанные раньше, её сохранят, пока вы их не удалите.",
-  forgetInstead: "Чтобы осталась пометка, что запись была неверной, отклоните или исправьте её.",
+  forgetInstead: "Чтобы осталась пометка, что запись была неверной, отметьте или измените её.",
   keep: "Оставить",
-  discardInstead: "Лучше отклонить",
+  undoInstead: {
+    reject: "Лучше отклонить",
+    invalidate: "Лучше отметить «больше не верно»",
+    reverse: "Лучше отменить одобрение",
+  },
   forgetNow: "Стереть",
   missing:
     "Память хранит Memo, а он не установлен. Установите его на странице «Инструменты»: тогда агенты смогут сохранять то, что узнали, а вы — проверять это здесь.",
@@ -337,7 +367,7 @@ const ru: typeof en = {
     context: "Читал о человеке",
   },
   called: "Вызвал",
-  clickToCorrect: "Нажмите, чтобы исправить",
+  clickToCorrect: "Нажмите, чтобы изменить",
   findingsTitle: (facts: number, tasks: number): string =>
     `${[
       plural("ru", facts, { one: "# факт", few: "# факта", many: "# фактов", other: "# факта" }),
@@ -395,7 +425,8 @@ const ru: typeof en = {
   noContext: (prefix: string) => `Источник ${prefix} здесь пока не показать.`,
   project: "Проект",
   stateReviewFindings: "На проверке. Ничего не создаётся, пока вы не одобрите, и вы выбираете, какие находки.",
-  stateReviewed: "Проверено. Находки с пометкой «Создано» теперь в проекте.",
+  stateReviewed:
+    "Проверено. Находки с пометкой «Создано» теперь в проекте. Чтобы отменить одну, откройте её: сотрите факт или переведите задачу в «Отклонено».",
   noSubject: "Ни о ком конкретно",
   groupCount: (waiting: number, total: number) =>
     waiting > 0
@@ -453,7 +484,15 @@ const es: typeof en = {
   confirm: "Aprobar",
   approve: "Aprobar",
   discard: "Rechazar",
-  correct: "Corregir",
+  correct: "Editar",
+  undo: { reject: "Rechazar", invalidate: "Ya no es cierto", reverse: "Deshacer aprobación" },
+  moreButton: "Más",
+  openTask: "Abrir la tarea",
+  openFact: "Abrir el hecho",
+  whatItMade: "Qué creó",
+  noUndoFact:
+    "Por ahora WireCat solo puede deshacer la aprobación de una decisión. Para cambiar este hecho, edítalo; para quitarlo, bórralo.",
+  createdGone: "No está en esta página: puede que se haya borrado. Vuelve a leer para comprobarlo.",
   forget: "Borrar…",
   restsOn: (n) => `En qué se basa · ${plural("es", n, { one: "# fuente", other: "# fuentes" })}`,
   noSources: "No hay fuentes registradas para esto.",
@@ -470,7 +509,8 @@ const es: typeof en = {
   corrects: "Corrige",
   stateReview: "Por revisar. Los agentes la ven marcada como aún no aprobada.",
   stateReviewAction: "Por revisar. No se envía nada hasta que lo apruebes, y aprobarlo solo crea una tarea.",
-  stateApproved: "Aprobado. Se creó una tarea en esa cuenta; no se envió nada.",
+  stateApproved:
+    "Aprobado. Se creó una tarea en esa cuenta; no se envió nada. Para deshacerlo, abre la tarea y descártala.",
   fixLabel: "Lo que es cierto",
   fixHint: "Se guarda como tuyo, aprobado. La versión del agente queda en Rechazado como sustituida.",
   save: "Guardar corrección",
@@ -490,9 +530,13 @@ const es: typeof en = {
   forgetCited: "Su lugar como fuente de otras memorias o hechos que la citan",
   forgetStays:
     "Los mensajes, notas y reuniones siguen ahí. Las copias del almacén hechas antes la conservan hasta que las borres.",
-  forgetInstead: "Para dejar constancia de que era errónea, recházala o corrígela.",
+  forgetInstead: "Para dejar constancia de que era errónea, márcala o edítala.",
   keep: "Conservar",
-  discardInstead: "Mejor rechazar",
+  undoInstead: {
+    reject: "Mejor rechazar",
+    invalidate: "Mejor marcar que ya no es cierto",
+    reverse: "Mejor deshacer la aprobación",
+  },
   forgetNow: "Borrar",
   missing:
     "La memoria la guarda Memo, que no está instalado. Instálalo en la página Herramientas; así tus agentes podrán guardar lo que aprenden y tú lo revisarás aquí.",
@@ -537,7 +581,7 @@ const es: typeof en = {
     context: "Leyó sobre una persona",
   },
   called: "Llamó a",
-  clickToCorrect: "Haz clic para corregir",
+  clickToCorrect: "Haz clic para editar",
   findingsTitle: (facts: number, tasks: number): string =>
     `${[
       plural("es", facts, { one: "# hecho", other: "# hechos" }),
@@ -595,7 +639,8 @@ const es: typeof en = {
   noContext: (prefix: string) => `Una fuente ${prefix} aún no se puede mostrar aquí.`,
   project: "Proyecto",
   stateReviewFindings: "Por revisar. No se crea nada hasta que lo apruebes, y eliges qué hallazgos.",
-  stateReviewed: "Revisado. Los hallazgos marcados como Creado ya están en el proyecto.",
+  stateReviewed:
+    "Revisado. Los hallazgos marcados como Creado ya están en el proyecto. Para deshacer uno, ábrelo: borra el hecho o descarta la tarea.",
   noSubject: "Sobre nadie en concreto",
   groupCount: (waiting: number, total: number) =>
     waiting > 0
