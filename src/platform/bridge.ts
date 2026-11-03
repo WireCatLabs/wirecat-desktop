@@ -15,6 +15,7 @@ import {
   SkillWrittenSchema,
   TerminalReachSchema,
 } from "./agents-schemas"
+import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
 import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
@@ -253,6 +254,11 @@ function createTauri(): Platform {
     searchStore: (id, profile, query, limit, page) =>
       call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),
     searchValues: (id, profile, source) => call(v.array(ValueItemSchema), "search_values", { id, profile, source }),
+    messageStats: (id, profile, ask, timezone) =>
+      call(MessageCountsSchema, "message_stats", { id, profile, ask, timezone }),
+    analyticsAggregate: (id, which, profile, period, timezone) =>
+      call(AggregateSchema, "analytics_aggregate", { id, which, profile, period, timezone }),
+    analyticsPreview: async () => null,
     searchDraft: (id, request) => call(QueryDraftSchema, "search_draft", { id, request }),
     searchContext: (id, profile, reference) => call(SearchContextSchema, "search_context", { id, profile, reference }),
     showRun: (id, run) => call(RunDetailSchema, "show_run", { id, run }),

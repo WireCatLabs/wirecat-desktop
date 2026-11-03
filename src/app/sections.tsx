@@ -1,6 +1,18 @@
-import { BookOpenText, Bot, Brain, HardDrive, ListTodo, ScrollText, Search, Settings, Wrench } from "lucide-react"
+import {
+  BookOpenText,
+  Bot,
+  Brain,
+  ChartColumnBig,
+  HardDrive,
+  ListTodo,
+  ScrollText,
+  Search,
+  Settings,
+  Wrench,
+} from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 import { AgentsPage } from "@/features/agents/AgentsPage"
+import { AnalyticsPage } from "@/features/analytics/AnalyticsPage"
 import { ConfigPage } from "@/features/config/ConfigPage"
 import { GuidesPage } from "@/features/guides/GuidesPage"
 import { LogsPage } from "@/features/logs/LogsPage"
@@ -27,6 +39,7 @@ export const sections: readonly Section[] = [
   { id: "tasks", icon: ListTodo, page: TasksPage },
   { id: "guides", icon: BookOpenText, page: GuidesPage },
   { id: "memory", icon: Brain, page: MemoryPage },
+  { id: "analytics", icon: ChartColumnBig, page: AnalyticsPage },
   { id: "storage", icon: HardDrive, page: StoragePage, group: "system" },
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },
   { id: "settings", icon: Settings, page: ConfigPage, group: "system" },

@@ -248,6 +248,8 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
     peopleList: async () => localise(await base.peopleList()),
     projectList: async () => localise(await base.projectList()),
     memoryRead: async (...args) => localise(await base.memoryRead(...args)),
+    // The website shows only what the tools count today, never the Analytics page's sample "Preview" parts.
+    analyticsPreview: async () => null,
     memorySources: async (ref) => localise(await base.memorySources(ref)),
     async searchStore(id, profile, query, limit, page) {
       const answer = await base.searchStore(id, profile, query, limit, page)

@@ -1,5 +1,6 @@
 import type { StoreCompat } from "@/domain/compat"
 import type { Agent, Chats, Claims, McpHealth, Registrations, SkillReport, SkillText, Target } from "./agents-schemas"
+import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
@@ -246,6 +247,21 @@ export type Platform = {
    * without profiles). Never asks the provider. A query the tool refuses is an answer, not a rejection.
    */
   searchStore(id: string, profile: string | null, query: string, limit: number, page: number): Promise<SearchAnswer>
+  /**
+   * A messenger's own count of what it stored for one profile in the period, by day, hour, sender (`me` is the owner)
+   * or chat, of all messages or one kind. Local store only. Names are the owner's own data: shown on the page, never logged or reported.
+   */
+  messageStats(id: string, profile: string, ask: Ask, timezone: string): Promise<MessageCounts>
+  /** One of the tool's own aggregates for the period (`aggregates` in the catalog); `old` until the tool has it. */
+  analyticsAggregate(
+    id: string,
+    which: Which,
+    profile: string | null,
+    period: Period,
+    timezone: string,
+  ): Promise<Aggregate>
+  /** What no tool counts yet: always null in the real app, sample data in the browser build. */
+  analyticsPreview(period: Period): Promise<AnalyticsPreview | null>
   /** The values one of the tool's own read-only lists names (`search.values` in the catalog), such as chat titles. */
   searchValues(id: string, profile: string | null, source: string): Promise<ValueItem[]>
   /** What surrounds one hit in the local store (`search.context` in the catalog), by the ref the hit carries. */

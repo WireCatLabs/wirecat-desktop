@@ -23,6 +23,13 @@ pub struct Tool {
     pub runs: Option<RunsSource>,
     /// The tool's own Lucene search of its local store for one profile (`search.rs`).
     pub search: Option<SearchSource>,
+    /// The messengers' own counts of what they stored, for the Analytics page (`analytics.rs`).
+    #[serde(default)]
+    pub stats: Option<StatsSource>,
+    /// Aggregates for the Analytics page by name (`responses`, `meetings`, `mail`…); a tool too old for one answers
+    /// "unknown command" and the page says which update brings it.
+    #[serde(default)]
+    pub aggregates: std::collections::BTreeMap<String, AggregateSource>,
     pub setup: Option<Vec<String>>,
     pub sign_in: Option<SignInSource>,
     pub storage: Storage,
@@ -169,6 +176,19 @@ pub struct SearchSource {
     /// The keys a query may use; what an agent is told when it writes a query from the owner's words.
     #[serde(default)]
     pub fields: Vec<SearchField>,
+}
+
+/// `{profile}`, `{by}`, `{timezone}`, `{limit}` and `{query}` are filled by `analytics.rs` from validated values.
+#[derive(Debug, Deserialize)]
+pub struct StatsSource {
+    pub messages: Vec<String>,
+}
+
+/// `date` is the query field the period applies to; `None` when the command takes no period.
+#[derive(Debug, Deserialize)]
+pub struct AggregateSource {
+    pub args: Vec<String>,
+    pub date: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

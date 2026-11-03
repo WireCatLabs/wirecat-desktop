@@ -207,6 +207,69 @@
           ]
         }
       },
+      "aggregates": {
+        "responses": {
+          "args": [
+            "{profile}",
+            "stats",
+            "messages",
+            "responses",
+            "--who",
+            "me",
+            "--by",
+            "day",
+            "--timezone",
+            "{timezone}",
+            "--offline",
+            "--timeout",
+            "60s",
+            "--no-record",
+            "--json",
+            "--",
+            "{query}"
+          ],
+          "date": "date"
+        },
+        "waiting": {
+          "args": [
+            "{profile}",
+            "stats",
+            "messages",
+            "waiting",
+            "--offline",
+            "--timeout",
+            "60s",
+            "--no-record",
+            "--json"
+          ],
+          "date": null
+        },
+        "coverage": {
+          "args": ["{profile}", "store", "coverage", "--offline", "--no-record", "--json"],
+          "date": null
+        }
+      },
+      "stats": {
+        "messages": [
+          "{profile}",
+          "stats",
+          "messages",
+          "show",
+          "--by",
+          "{by}",
+          "--timezone",
+          "{timezone}",
+          "--limit",
+          "{limit}",
+          "--offline",
+          "--timeout",
+          "60s",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ]
+      },
       "setup": ["{profile}", "setup"],
       "skill": {
         "status": ["skill", "status", "--no-record", "--json"],
@@ -539,6 +602,69 @@
           ]
         }
       },
+      "aggregates": {
+        "responses": {
+          "args": [
+            "{profile}",
+            "stats",
+            "messages",
+            "responses",
+            "--who",
+            "me",
+            "--by",
+            "day",
+            "--timezone",
+            "{timezone}",
+            "--offline",
+            "--timeout",
+            "60s",
+            "--no-record",
+            "--json",
+            "--",
+            "{query}"
+          ],
+          "date": "date"
+        },
+        "waiting": {
+          "args": [
+            "{profile}",
+            "stats",
+            "messages",
+            "waiting",
+            "--offline",
+            "--timeout",
+            "60s",
+            "--no-record",
+            "--json"
+          ],
+          "date": null
+        },
+        "coverage": {
+          "args": ["{profile}", "store", "coverage", "--offline", "--no-record", "--json"],
+          "date": null
+        }
+      },
+      "stats": {
+        "messages": [
+          "{profile}",
+          "stats",
+          "messages",
+          "show",
+          "--by",
+          "{by}",
+          "--timezone",
+          "{timezone}",
+          "--limit",
+          "{limit}",
+          "--offline",
+          "--timeout",
+          "60s",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ]
+      },
       "setup": ["{profile}", "setup"],
       "skill": {
         "status": ["skill", "status", "--no-record", "--json"],
@@ -867,6 +993,69 @@
           ]
         }
       },
+      "aggregates": {
+        "responses": {
+          "args": [
+            "{profile}",
+            "stats",
+            "messages",
+            "responses",
+            "--who",
+            "me",
+            "--by",
+            "day",
+            "--timezone",
+            "{timezone}",
+            "--offline",
+            "--timeout",
+            "60s",
+            "--no-record",
+            "--json",
+            "--",
+            "{query}"
+          ],
+          "date": "date"
+        },
+        "waiting": {
+          "args": [
+            "{profile}",
+            "stats",
+            "messages",
+            "waiting",
+            "--offline",
+            "--timeout",
+            "60s",
+            "--no-record",
+            "--json"
+          ],
+          "date": null
+        },
+        "coverage": {
+          "args": ["{profile}", "store", "coverage", "--offline", "--no-record", "--json"],
+          "date": null
+        }
+      },
+      "stats": {
+        "messages": [
+          "{profile}",
+          "stats",
+          "messages",
+          "show",
+          "--by",
+          "{by}",
+          "--timezone",
+          "{timezone}",
+          "--limit",
+          "{limit}",
+          "--offline",
+          "--timeout",
+          "60s",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ]
+      },
       "setup": ["{profile}", "setup"],
       "skill": {
         "status": ["skill", "status", "--no-record", "--json"],
@@ -1032,6 +1221,23 @@
         "values": {},
         "context": {
           "args": ["{profile}", "meetings", "transcript", "{refId}", "--no-record", "--json"]
+        }
+      },
+      "aggregates": {
+        "meetings": {
+          "args": [
+            "{profile}",
+            "meetings",
+            "list",
+            "--limit",
+            "500",
+            "--offline",
+            "--no-record",
+            "--json",
+            "--",
+            "{query}"
+          ],
+          "date": "started_at"
         }
       },
       "setup": ["{profile}", "session", "start"],
@@ -1304,6 +1510,28 @@
         ],
         "values": {},
         "exactBelow": "0.125.0"
+      },
+      "aggregates": {
+        "mail": {
+          "args": [
+            "stats",
+            "mail",
+            "show",
+            "--by",
+            "day",
+            "--timezone",
+            "{timezone}",
+            "--no-record",
+            "--json",
+            "--",
+            "{query}"
+          ],
+          "date": "date"
+        },
+        "taskSources": {
+          "args": ["stats", "tasks", "show", "--no-record", "--json"],
+          "date": null
+        }
       },
       "setup": null,
       "skill": {

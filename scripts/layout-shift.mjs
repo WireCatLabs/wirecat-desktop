@@ -52,6 +52,7 @@ const PAGES = {
   agents: { query: "?onboarding=off&section=agents" },
   "agents-revisit": { query: "?onboarding=off&section=agents", clicks: [nav("tools"), nav("agents")] },
   storage: { query: "?onboarding=off&section=storage" },
+  analytics: { query: "?onboarding=off&section=analytics" },
   logs: { query: "?onboarding=off&section=logs" },
   settings: { query: "?onboarding=off&section=tools", clicks: [nav("settings")] },
   "settings-telegram": {
