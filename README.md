@@ -55,10 +55,6 @@ WireCat Desktop runs on:
 3. The first start opens a short setup: your computer, which tools to install, which agents to connect, and
    sign-in. You can skip it and open the **Tools** page instead.
 
-WireCat Desktop starts without Node.js. The tools it installs need Node.js 22.16 or newer (or 24 or newer) with npm.
-If Node.js is missing or too old, the app says so. It can set up its own copy of Node.js in your user folder, and your
-own copy stays as it is.
-
 The app looks for updates while it runs and offers a new version when there is one.
 
 ## Pages
@@ -101,13 +97,13 @@ The app installs the same npm packages as a command-line user.
 
 | Tool | Command | Package |
 | --- | --- | --- |
-| Telegram | `tg` | `@wirecat/tg-cli` |
-| MAX | `max` | `@wirecat/max-cli` |
-| WhatsApp | `wa` | `@wirecat/whatsapp-cli` |
-| Zoom | `zm` | `@wirecat/zoom-cli` |
-| Google Drive | `drive` | `@wirecat/drive-cli` |
-| Memo | `memo` | `@wirecat/cli-memo` |
-| Email | `memo mail` | `@wirecat/cli-memo`, installed with Memo |
+| [Telegram](https://wirecat.dev/en/docs/tg) | `tg` | `@wirecat/tg-cli` |
+| [MAX](https://wirecat.dev/en/docs/max) | `max` | `@wirecat/max-cli` |
+| [WhatsApp](https://wirecat.dev/en/docs/wa) | `wa` | `@wirecat/whatsapp-cli` |
+| [Zoom](https://wirecat.dev/en/docs/zm) | `zm` | `@wirecat/zoom-cli` |
+| [Google Drive](https://wirecat.dev/en/docs/drive) | `drive` | `@wirecat/drive-cli` |
+| [Memo](https://wirecat.dev/en/docs/memo) | `memo` | `@wirecat/cli-memo` |
+| [Email](https://wirecat.dev/en/docs/email) | `memo mail` | `@wirecat/cli-memo`, installed with Memo |
 
 ## For AI agents
 
