@@ -1,13 +1,4 @@
-import {
-  ArrowDown,
-  ArrowUp,
-  BotMessageSquare,
-  ChevronRight,
-  Globe,
-  Monitor,
-  SquareTerminal,
-  UserRound,
-} from "lucide-react"
+import { ArrowDown, ArrowUp, BotMessageSquare, Globe, Monitor, SquareTerminal, UserRound } from "lucide-react"
 import { Fragment } from "react"
 import {
   agentName,
@@ -23,6 +14,7 @@ import {
 } from "@/domain/runs"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
 import { selectsTextIn } from "@/ui/selection"
@@ -192,26 +184,6 @@ export function RunsTable({
             fresh?.has(key) && "reveal",
           )}
         >
-          <td className="pl-[0.55rem]">
-            <button
-              type="button"
-              aria-expanded={open}
-              aria-label={(open ? m.hideRun : m.showRun)(
-                commandLabel(m, commandOf(run)),
-                formatWhen(run.started_at, now, lang),
-              )}
-              onClick={(e) => {
-                e.stopPropagation()
-                onToggle(key, run)
-              }}
-              className="grid size-[1.5rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
-            >
-              <ChevronRight
-                aria-hidden
-                className={cx("size-[0.95rem] transition-transform duration-150", open && "rotate-90")}
-              />
-            </button>
-          </td>
           <td
             className="font-mono text-[0.9rem] text-ink-soft tabular-nums"
             title={formatDate(run.started_at, FULL, lang)}
@@ -241,8 +213,25 @@ export function RunsTable({
           <td className="pr-[1rem] text-right font-mono text-[0.9rem] text-ink-soft tabular-nums">
             {formatDuration(run.duration_ms)}
           </td>
-          <td className="truncate pr-[1.3rem] font-mono text-[0.9rem]">
+          <td className="truncate font-mono text-[0.9rem]">
             {run.error_code ?? <span className="text-ink-dim">—</span>}
+          </td>
+          <td className="pr-[0.55rem]">
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-label={(open ? m.hideRun : m.showRun)(
+                commandLabel(m, commandOf(run)),
+                formatWhen(run.started_at, now, lang),
+              )}
+              onClick={(e) => {
+                e.stopPropagation()
+                onToggle(key, run)
+              }}
+              className="grid size-[1.5rem] place-items-center rounded-[0.3rem] text-ink-dim hover:bg-app-3 hover:text-ink"
+            >
+              <ExpandChevron open={open} />
+            </button>
           </td>
         </tr>
         {open && (
@@ -256,25 +245,24 @@ export function RunsTable({
     )
   }
 
-  // The fixed columns alone take ~55rem; below that the command column would shrink to nothing, so the table
-  // keeps a minimum width and scrolls sideways instead.
+  // 56rem fits the page at the 960 px minimum window (13 px root, sidebar and gutters), so the chevron at the right
+  // edge stays on screen; only a narrower window scrolls sideways.
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[66rem] table-fixed border-collapse text-[0.95rem] [&_td]:pr-[0.9rem] [&_th]:pr-[0.9rem]">
+      <table className="w-full min-w-[56rem] table-fixed border-collapse text-[0.95rem] [&_td]:pr-[0.7rem] [&_th]:pr-[0.7rem] [&_td:first-child]:pl-[0.8rem] [&_th:first-child]:pl-[0.8rem]">
         <colgroup>
-          <col className="w-[2.2rem]" />
-          <col className="w-[8.6rem]" />
-          <col className="w-[7.6rem]" />
-          <col className="w-[7.4rem]" />
+          <col className="w-[6.6rem]" />
+          <col className="w-[6.9rem]" />
+          <col className="w-[6.2rem]" />
           <col />
-          <col className="w-[9rem]" />
-          <col className="w-[6.8rem]" />
-          <col className="w-[5.6rem]" />
-          <col className="w-[9.6rem]" />
+          <col className="w-[7.6rem]" />
+          <col className="w-[6.4rem]" />
+          <col className="w-[5rem]" />
+          <col className="w-[6.6rem]" />
+          <col className="w-[2.4rem]" />
         </colgroup>
         <thead>
           <tr className="border-line-strong border-b text-left text-[0.9rem] text-ink-dim">
-            <th className="sr-only">{m.details}</th>
             <th aria-sort={newest ? "descending" : "ascending"} className="py-[0.55rem] font-medium">
               <button
                 type="button"
@@ -296,7 +284,8 @@ export function RunsTable({
             <th className="font-medium">{m.agent}</th>
             <th className="font-medium">{m.status}</th>
             <th className="pr-[1rem] text-right font-medium">{m.took}</th>
-            <th className="pr-[1.3rem] font-medium">{m.errorCode}</th>
+            <th className="font-medium">{m.errorCode}</th>
+            <th className="sr-only">{m.details}</th>
           </tr>
         </thead>
         {sections ? (
