@@ -102,8 +102,9 @@ The app installs the same npm packages as a command-line user.
 | [WhatsApp](https://wirecat.dev/en/docs/wa) | `wa` | `@wirecat/whatsapp-cli` |
 | [Zoom](https://wirecat.dev/en/docs/zm) | `zm` | `@wirecat/zoom-cli` |
 | [Google Drive](https://wirecat.dev/en/docs/drive) | `drive` | `@wirecat/drive-cli` |
+| [Google Calendar](https://wirecat.dev/en/docs/gcal) | `gcal` | `@wirecat/gcal-cli` |
 | [Memo](https://wirecat.dev/en/docs/memo) | `memo` | `@wirecat/cli-memo` |
-| [Email](https://wirecat.dev/en/docs/email) | `memo mail` | `@wirecat/cli-memo`, installed with Memo |
+| [Email](https://wirecat.dev/en/docs/mail) | `mail` | `@wirecat/mail-cli` |
 
 ## For AI agents
 
