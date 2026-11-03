@@ -115,6 +115,10 @@ The two last charts, both on data the tools give today:
 
 No more cards in this round.
 
+Last change before merging (NEED-257 A, NEED-258 A): "Open tasks" and "Tasks" showed the same open and overdue
+counts, so Tasks is one card (open now, overdue, due today, oldest open, closed in the period, and the made-against-
+closed chart); "Today and this week" repeated the top tiles and is gone.
+
 ## Round 3: what opens the page, and the layout
 
 The owner, 2026-11-03: "Messages by year … seems useless - it duplicates our storage data and gives no insights to

@@ -1,6 +1,6 @@
 import type { ComponentType } from "react"
 import { useMessages } from "@/i18n"
-import { Load, MeetingDays, Meetings, OpenTasks, ReplyTime, TaskSources, WaitingOnYou } from "./daily"
+import { MeetingDays, Meetings, ReplyTime, TaskSources, WaitingOnYou } from "./daily"
 import { analyticsMessages } from "./messages"
 import {
   Activity,
@@ -50,8 +50,6 @@ function UpToDate() {
 export const CARDS = {
   reply: ReplyTime,
   waiting: WaitingOnYou,
-  load: Load,
-  openTasks: OpenTasks,
   when: When,
   standsOut: StandsOut,
   people: People,
@@ -87,8 +85,8 @@ export const TOP: readonly CardId[] = ["week"]
  */
 export const LAYOUT: readonly Section[] = [
   { id: "messages", cards: ["activity", "people", "reply", "waiting", "when", "standsOut"] },
-  { id: "tasks", cards: ["openTasks", "taskSources", "tasks", "projects", "memory", "memoryWeeks"] },
-  { id: "meetings", cards: ["meetings", "meetingDays", "load"] },
+  { id: "tasks", cards: ["tasks", "taskSources", "projects", "memory", "memoryWeeks"] },
+  { id: "meetings", cards: ["meetings", "meetingDays"] },
   { id: "agents", cards: ["helps"] },
   { id: "archive", cards: ["kept", "breakdown", "upToDate"], closed: true },
 ]

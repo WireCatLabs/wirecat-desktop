@@ -22,7 +22,7 @@ import {
 import { TOTALS } from "@/domain/archive"
 import { findTool } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
-import { formatNumber, useMessages } from "@/i18n"
+import { formatNumber, useLang, useMessages } from "@/i18n"
 import type { StoreInfo } from "@/platform/archive-schemas"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -32,6 +32,7 @@ import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./ch
 import { Explorer } from "./explorer"
 import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
+import { duration, useOldestOpen } from "./reads"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
 
 type M = typeof analyticsMessages.en
@@ -495,16 +496,18 @@ export function Tasks() {
   const period = useAnalytics((s) => s.period)
   const preview = useAnalytics((s) => s.preview)
   const refreshing = useAnalytics((s) => s.refreshing)
+  const lang = useLang()
+  const oldest = useOldestOpen()
   const grain = taskGrain(period)
   return (
-    <Panel id="an-tasks" title={m.tasks} source="tasks counts">
+    <Panel id="an-tasks" title={m.tasks} source="tasks counts · stats tasks show">
       {tasks.state === "missing" ? (
         <Note>{m.tasksMissing}</Note>
       ) : tasks.state === "error" ? (
         <ErrorNotice inline>{m.tasksError(tasks.error)}</ErrorNotice>
       ) : tasks.state === "loading" ? (
         <>
-          <StatsSkeleton n={3} label={m.tasks} />
+          <StatsSkeleton n={5} label={m.tasks} />
           <ChartSkeleton />
         </>
       ) : (
@@ -519,6 +522,11 @@ export function Tasks() {
                 </span>
               }
             />
+            <Stat
+              label={m.dueToday}
+              value={formatNumber(tasks.data.open.due.find((d) => d.value === "today")?.count ?? 0)}
+            />
+            <Stat label={m.oldestOpen} value={oldest ? duration(Date.now() - Date.parse(oldest), m, lang) : "—"} />
             <Stat label={m.closedIn} value={formatNumber(tasks.data.closed.total)} note={m.period[period]} />
           </Stats>
           {preview ? (
