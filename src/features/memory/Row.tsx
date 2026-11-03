@@ -201,30 +201,24 @@ export function Row({ entry }: { entry: MemoryEntry }) {
                 onClick={onHead}
                 aria-expanded={open}
                 aria-controls={panel}
-                className="group min-w-0 flex-1 cursor-pointer rounded-[0.3rem] text-left"
+                className="group flex min-w-0 flex-1 cursor-pointer items-start gap-[0.6rem] rounded-[0.3rem] text-left"
               >
-                <span className="flex items-center gap-[0.4rem]">
-                  {label}
-                  <ChevronDown
+                <span className="block min-w-0 flex-1">
+                  <span className="flex items-center gap-[0.4rem]">{label}</span>
+                  <span
+                    data-text
+                    title={editable ? m.clickToCorrect : undefined}
                     className={cx(
-                      "size-4 shrink-0 text-ink-dim opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100",
-                      open && "rotate-180 opacity-100",
+                      "selectable mt-[0.25rem] text-[1rem] leading-snug font-medium",
+                      open ? "block whitespace-pre-line" : "line-clamp-1 group-hover:text-brand",
+                      editable &&
+                        "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-150 hover:bg-app-3",
                     )}
-                    aria-hidden
-                  />
+                  >
+                    {textOf(entry, m)}
+                  </span>
                 </span>
-                <span
-                  data-text
-                  title={editable ? m.clickToCorrect : undefined}
-                  className={cx(
-                    "selectable mt-[0.25rem] text-[1rem] leading-snug font-medium",
-                    open ? "block whitespace-pre-line" : "line-clamp-1 group-hover:text-brand",
-                    editable &&
-                      "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-150 hover:bg-app-3",
-                  )}
-                >
-                  {textOf(entry, m)}
-                </span>
+                <ExpandChevron open={open} className="mt-[0.2rem] group-hover:text-ink" />
               </TextButton>
               {editable && (
                 <button
