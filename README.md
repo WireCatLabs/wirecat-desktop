@@ -1,65 +1,69 @@
 # WireCat Desktop
 
-Install, sign in to, connect and check the [WireCat](https://wirecat.dev) tools for AI agents, without typing npm
-commands.
+**Everything you've said, ready for your agent.**
 
-WireCat gives your AI agent your messengers (Telegram, WhatsApp, MAX), then your mail, Zoom meetings, Google Drive
-documents and notes. Each service has a small command-line tool. WireCat Desktop is the window that installs those
-tools, signs you in, and connects them to Claude Code, Codex, ChatGPT, Claude and other agents. Everything stays on
-your computer.
+[WireCat](https://wirecat.dev) connects the AI agent you already use — Claude Code, Codex, Cursor, Gemini CLI,
+ChatGPT, Claude and others — to your Telegram, WhatsApp and MAX chats, Zoom meetings, Google Drive documents,
+calendar, mail and notes. Each service has a small open-source command-line tool. The tools sync your data into one
+local store on your computer, so your agent can search it, quote its sources and act within limits you set. Nothing
+goes to a WireCat server.
 
-[Releases](https://github.com/WireCatLabs/wirecat-desktop/releases) · [WireCat](https://wirecat.dev) ·
-[Report a problem](https://github.com/WireCatLabs/wirecat-desktop/issues)
+WireCat Desktop is the app for all of it. You use it to set the tools up, and then to see and work with what they
+keep: search your chats, share a task list with your agents, approve what they remember, and decide what each agent
+may do.
+
+[Download](https://wirecat.dev/en/download) · [Releases](https://github.com/WireCatLabs/wirecat-desktop/releases) ·
+[WireCat](https://wirecat.dev) · [Report a problem](https://github.com/WireCatLabs/wirecat-desktop/issues)
 
 [![CI](https://github.com/WireCatLabs/wirecat-desktop/actions/workflows/ci.yml/badge.svg)](https://github.com/WireCatLabs/wirecat-desktop/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/WireCatLabs/wirecat-desktop)](https://github.com/WireCatLabs/wirecat-desktop/releases/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
+## Key features
+
+- **Search everything you synced.** One search over your chats, meetings and notes, read from the copy on your
+  computer. Open a result to see the conversation around it and the exact source.
+- **Connect any agent.** Finds Claude Code, Codex, Cursor, Gemini CLI and other agents on your computer and gives
+  them each tool's skill and MCP server. Connects ChatGPT and Claude in the browser step by step.
+- **Decide what agents may do.** Set the permission level for each account.
+- **Approve what agents remember.** Conclusions about you and the people you talk to wait in a review queue. Nothing
+  counts until you approve it.
+- **Share tasks with your agents.** One task list, as a table or a board, that you and your agents both change.
+- **Ready-made guides.** Prompts for your agent, such as a catch-up on what you missed or a brief before a call.
+- **Manage the tools.** Install, update and remove the WireCat CLI tools, sign in to accounts, run syncs and health
+  checks, without typing npm commands.
+- **Your data, under your control.** Back up or clear the local store, read every tool run in the logs, and change
+  settings in one place. In English, Russian and Spanish, with a light and a dark theme.
+
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/tools-dark.webp">
-  <img src="docs/images/tools-light.webp" width="1280" alt="The Tools page: Telegram and WhatsApp installed and signed in, with WhatsApp's account, install path and storage check open">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/search-hit-dark.webp">
+  <img src="docs/images/search-hit-light.webp" width="1280" alt="Search: Telegram messages that mention Lisbon, one opened with the messages around it">
 </picture>
 
-## Quick start
+## Install
 
-1. Download the file for your system from the [download page](https://wirecat.dev/en/download) or the
-   [latest release](https://github.com/WireCatLabs/wirecat-desktop/releases/latest):
+WireCat Desktop runs on:
 
-   | System | File type |
-   | --- | --- |
-   | macOS | `.dmg` (universal) |
-   | Windows | `.exe` installer (64 bit) |
-   | Linux (Debian, Ubuntu) | `.deb` (amd64) |
-   | Linux (Fedora, RHEL) | `.rpm` (x86_64) |
-   | Linux (other) | `.AppImage` (amd64) |
+- **macOS**, on Apple Silicon and Intel
+- **Windows**, 64-bit
+- **Linux**, 64-bit (x86_64), with packages for the common distributions and a portable build for the rest
 
-2. Install it like any other app and open **WireCat**. On Linux, the download page has the full command for the
-   current version. For a `.deb` you already downloaded, copy it to `/tmp` first: apt reads the file as its own
-   restricted user, which cannot open your home folder, and prints a notice about it.
-
-   ```sh
-   cp ~/Downloads/wirecat_*_amd64.deb /tmp/ && sudo apt install /tmp/wirecat_*_amd64.deb
-   ```
-
-   Keep only one WireCat `.deb` in Downloads, or the pattern matches several files. For an `.rpm`, run
-   `sudo dnf install ~/Downloads/wirecat-*.x86_64.rpm`. The install prints what to do next.
+1. Get the installer for your system from the [download page](https://wirecat.dev/en/download) or the
+   [latest release](https://github.com/WireCatLabs/wirecat-desktop/releases/latest). The download page also has
+   the install command for Linux.
+2. Install it like any other app and open **WireCat**.
 3. The first start opens a short setup: your computer, which tools to install, which agents to connect, and
    sign-in. You can skip it and open the **Tools** page instead.
 
-WireCat Desktop starts without Node.js. The tools it installs need Node.js 22.16 or newer (or 24 or newer) with npm.
-If Node.js is missing or too old, the app says so. It can set up its own copy of Node.js in your user folder, and your
-own copy stays as it is.
+The app looks for updates while it runs and offers a new version when there is one.
 
-The app looks for updates while it runs and offers a new version when there is one. On Linux, a `.deb` or `.rpm` copy
-downloads the new package to your Downloads folder and hands it to the system's installer.
-
-## What you can do
+## Pages
 
 The sidebar has these pages:
 
 | Page | What it does |
 | --- | --- |
-| Tools | Shows every WireCat tool, which are installed and in which version. Installs, updates and uninstalls them, runs a tool's own health check, and signs in to an account. |
+| Tools | Shows every WireCat CLI tool, which are installed and in which version. Installs, updates and uninstalls them, runs a tool's own health check, and signs in to an account. |
 | Agents | Finds the AI agents on this computer and gives them each tool's skill and MCP server. Also connects ChatGPT and Claude in the browser through a tool's MCP server. |
 | Search | Searches what one tool keeps on this computer, for one account. It reads the local copy only and never asks the service. Your agent can write the query from a plain sentence. |
 | Tasks | One task list for you and your agents, as a table or a board. Memo keeps it, and agents read and change the same list. |
@@ -80,8 +84,8 @@ On each tool you can also:
 
 | | |
 | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/search-hit-dark.webp"><img src="docs/images/search-hit-light.webp" width="480" alt="Search: Telegram messages that mention Lisbon, one opened with the messages around it"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tasks-dark.webp"><img src="docs/images/tasks-light.webp" width="480" alt="Tasks as a board, from Open to Done"></picture> |
-| **Search** what you synced, and open a result to read the conversation around it. | **Tasks** that you and your agents share. |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tools-dark.webp"><img src="docs/images/tools-light.webp" width="480" alt="The Tools page: Telegram and WhatsApp installed and signed in, with WhatsApp's account, install path and storage check open"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tasks-dark.webp"><img src="docs/images/tasks-light.webp" width="480" alt="Tasks as a board, from Open to Done"></picture> |
+| **Tools** installed, signed in and synced, each with its accounts and checks. | **Tasks** that you and your agents share. |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/memory-dark.webp"><img src="docs/images/memory-light.webp" width="480" alt="Memory: decisions and preferences waiting for approval"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/connect-dark.webp"><img src="docs/images/connect-light.webp" width="480" alt="The last step of connecting ChatGPT: ChatGPT can now use your Telegram"></picture> |
 | **Memory** that waits for your approval. | **Connect** ChatGPT or Claude in the browser, step by step. |
 
@@ -93,13 +97,14 @@ The app installs the same npm packages as a command-line user.
 
 | Tool | Command | Package |
 | --- | --- | --- |
-| Telegram | `tg` | `@wirecat/tg-cli` |
-| MAX | `max` | `@wirecat/max-cli` |
-| WhatsApp | `wa` | `@wirecat/whatsapp-cli` |
-| Zoom | `zm` | `@wirecat/zoom-cli` |
-| Google Drive | `drive` | `@wirecat/drive-cli` |
-| Memo | `memo` | `@wirecat/cli-memo` |
-| Email | `memo mail` | `@wirecat/cli-memo`, installed with Memo |
+| [Telegram](https://wirecat.dev/en/docs/tg) | `tg` | `@wirecat/tg-cli` |
+| [MAX](https://wirecat.dev/en/docs/max) | `max` | `@wirecat/max-cli` |
+| [WhatsApp](https://wirecat.dev/en/docs/wa) | `wa` | `@wirecat/whatsapp-cli` |
+| [Zoom](https://wirecat.dev/en/docs/zm) | `zm` | `@wirecat/zoom-cli` |
+| [Google Drive](https://wirecat.dev/en/docs/drive) | `drive` | `@wirecat/drive-cli` |
+| [Google Calendar](https://wirecat.dev/en/docs/gcal) | `gcal` | `@wirecat/gcal-cli` |
+| [Memo](https://wirecat.dev/en/docs/memo) | `memo` | `@wirecat/cli-memo` |
+| [Email](https://wirecat.dev/en/docs/mail) | `mail` | `@wirecat/mail-cli` |
 
 ## For AI agents
 
