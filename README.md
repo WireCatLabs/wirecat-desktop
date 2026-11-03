@@ -3,8 +3,8 @@
 **Everything you've said, ready for your agent.**
 
 [WireCat](https://wirecat.dev) connects the AI agent you already use — Claude Code, Codex, Cursor, Gemini CLI,
-ChatGPT, Claude and others — to your Telegram, WhatsApp and MAX chats, Zoom meetings, Google Drive documents, mail and
-notes. Each service has a small open-source command-line tool. The tools sync your data into one local store on your
+ChatGPT, Claude and others — to your Telegram, WhatsApp and MAX chats, Zoom meetings, Google Drive documents, calendar,
+mail and notes. Each service has a small open-source command-line tool. The tools sync your data into one local store on your
 computer, so your agent can search it, quote its sources and act within limits you set. Nothing goes to a WireCat
 server.
 
