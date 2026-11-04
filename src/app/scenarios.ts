@@ -37,8 +37,8 @@ export async function runMockScenario() {
   if (onboarding === "off") useOnboarding.getState().hide()
   const section = params.get("section")
   if (section) useNav.getState().go(section)
-  const step = STEPS.find((s) => s.id === onboarding)
-  if (step) useOnboarding.getState().reopen(step.id)
+  const step = STEPS.find((s) => s === onboarding)
+  if (step) useOnboarding.getState().reopen(step)
   const tasks = params.get("tasks")
   const view = params.get("view")
   if (tasks || view) {
