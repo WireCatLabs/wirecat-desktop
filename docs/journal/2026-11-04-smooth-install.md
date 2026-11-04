@@ -24,6 +24,24 @@ also during install the cli was installing quite slow on onboarding … how much
 - Ожидание: общий процент, полоса по инструментам, примерная оценка времени, советы «Пока ждёте» (листаются сами каждые
   9 с, стоят при наведении, фокусе и reduced motion).
 
+**TASK-91 · Кнопка «Исправить ›» с агентом**
+Слава: «On errors I'd add a button Fix > with terminal icon to run agent with a prompt and if impossible fallback to
+showing user info with a prompt to copy and instructions on what happened, that agent couldnt be invoked (with
+suggestions why) and how to fix the original issue and then a suggestion on how to fix the agent».
+Статус: сделано в ветке. Rust пишет промпт в файл (`<app data>/fix-prompts/<ms>.md`, 0600, хранит 20 последних) и
+открывает Claude Code, Codex или Gemini CLI в терминале одной фиксированной фразой «прочитай файл …» — текст ошибки в
+командную строку не попадает (правило 2; `src-tauri/src/fix_agent.rs`). Панель под ошибкой: кнопки найденных агентов,
+причина, если агент не запустился (нет в PATH / терминал не открылся / macOS запретил), и «Сделать самому» с промптом и
+советом WireCat. Есть в онбординге, на странице Tools, в общем сообщении навыков (после автоматического Fix) и при
+ошибке правки PATH. Claude Code и Codex: начальный промпт подтверждён их `--help`; Gemini CLI не установлен — не
+проверено; Windows — не проверено.
+
+**TASK-92 · Повторить установку с нуля, не трогая настоящий tg**
+Слава: «let's also try somehow simulate the install again so I can check the onboarding, issues and usability of our
+UI. mb remove tg cli (while keeping the keyring entries and database and config etc)». Вместо удаления своего tg —
+`bin/try-fresh-install`: отладочная сборка в пустом домашнем каталоге, без Node.js в PATH и без доступа к keyring
+(`DBUS_SESSION_BUS_ADDRESS=disabled:`). Настоящие tg, данные, настройки и вход не читаются и не меняются.
+
 ## 2. Вопросы Славы
 
 **ASK-56 · «can you give quick prompt to codex to try to find the tg cli location»**
@@ -34,6 +52,11 @@ PATH процесса и сохранённого PATH пользователя.
 **ASK-57 · «they are using 0.3.0 is this correct?»**
 Да. В 0.3.0 приложение ставит свой Node и инструменты в `%LOCALAPPDATA%\dev.wirecat.desktop\node\v<версия>\` и пишет эту
 папку в PATH пользователя только по кнопке «Add to PATH» (FIND-196). Слава: «there is no System page in wirecat».
+
+**ASK-58 · «desktop prompted me to install node.js, I clicked the button. after I installed tg cli I saw the warning that there are 2 cli versions installed, why?»**
+Точно не знаю — нужны два пути из предупреждения (FIND-198). На Windows поиск находит в каждой папке только `tg.cmd`
+(`which` 8.0.6: файл без расширения проходит лишь через `GetBinaryTypeW`, скрипт npm его не проходит), значит копии в
+двух разных папках. Вероятные причины в FIND-198.
 
 ## 3. Находки
 
@@ -74,6 +97,12 @@ Linux, npm 11.17, node 24.19, @wirecat/tg-cli 0.115.0, чистый префик
 **RISK-96 · Правка PATH на macOS и Windows не проверена на настоящей машине**
 Unix-ветка покрыта тестами чистых функций, запись в реестр Windows и `.zshrc` на macOS не запускались.
 
+**FIND-198 · Две копии tg после установки на Windows — версии причин**
+Не воспроизведено. (a) Codex, пока искал `tg`, сам поставил его своим npm в `%APPDATA%\npm`; (b) Node.js приложения
+ставился дважды (две папки `v<версия>`), старая осталась в PATH пользователя, и в ней свой `tg.cmd`; (c) npm приложения
+взял префикс из чужого `.npmrc`. Проверка: Tools → панель tg показывает обе папки; `bin/try-fresh-install` повторяет
+первый запуск на Linux.
+
 ## 4. Вопросы к Славе
 
 **NEED-2184 · Добавлять ли папку своего Node в PATH пользователя автоматически после установки, а не по кнопке?**
@@ -88,9 +117,11 @@ Unix-ветка покрыта тестами чистых функций, за�
 - Варианты: **A** прислать скриншот или текст · **B** оставить как есть
 - Я бы: **A** — если ошибка не про PATH, Fix её не исправит, и нужен другой шаг.
 - Если не ответить: Fix перепроверит навыки, но причина вне PATH останется.
+- **Ответ Славы (2026-11-04):** «dont remember, cant see now» — текста нет; проверим на повторной установке (TASK-92).
 
 **NEED-2186 · Выпустить ли эти исправления версией 0.3.1 сразу после слияния PR?**
 - Сейчас: у пользователя 0.3.0 без автодобавления в PATH; в main уже 35 коммитов после 0.3.0 плюс эта ветка.
 - Варианты: **A** выпустить сразу после слияния · **B** ждать следующего планового выпуска
 - Я бы: **A** — пользователи Windows без своего Node сейчас упираются в «агент не находит tg».
 - Если не ответить: исправление ждёт следующего выпуска.
+- **Ответ Славы (2026-11-04):** **B** — ждать планового выпуска.

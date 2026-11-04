@@ -90,6 +90,7 @@ const en = {
   install: {
     list: "Installing",
     notInstalled: "Not installed",
+    notInstalledFailed: "Did not install",
     checking: "Checking…",
     queued: "Waiting for its turn",
     installing: "Installing",
@@ -328,6 +329,7 @@ const ru: OnboardingText = {
   install: {
     list: "Установка",
     notInstalled: "Не установлен",
+    notInstalledFailed: "Не установился",
     checking: "Проверяем…",
     queued: "Ждёт своей очереди",
     installing: "Устанавливается",
@@ -585,6 +587,7 @@ const es: OnboardingText = {
   install: {
     list: "Instalando",
     notInstalled: "Sin instalar",
+    notInstalledFailed: "No se instaló",
     checking: "Comprobando…",
     queued: "Esperando su turno",
     installing: "Instalando",

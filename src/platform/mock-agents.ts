@@ -124,6 +124,7 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
     | "skillShow"
     | "terminalReach"
     | "fixTerminalPath"
+    | "fixWithAgent"
     | "agentChats"
     | "mcpRegistrations"
     | "mcpCheck"
@@ -181,6 +182,20 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
           .filter((id) => versionOf(id))
           .map((id) => [id, onPath.has(id) || !missing.includes(id)]),
       )
+    },
+    // `?agent-fail=missing|terminal|automation`: the agent cannot be started, for that reason.
+    async fixWithAgent(agent) {
+      await delay(700)
+      const file = `~/.local/share/dev.wirecat.desktop/fix-prompts/${Date.now()}.md`
+      const reason = (["missing", "terminal", "automation"] as const).find((r) => r === params.get("agent-fail"))
+      if (!reason) return { started: true, agent, file, reason: null, message: null }
+      const message =
+        reason === "automation"
+          ? "macOS did not let WireCat open Terminal. Allow it in System Settings, Privacy & Security, Automation, under WireCat."
+          : reason === "terminal"
+            ? "Could not open a terminal."
+            : null
+      return { started: false, agent, file, reason, message }
     },
     async fixTerminalPath(ids) {
       await delay(900)

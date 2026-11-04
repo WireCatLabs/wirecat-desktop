@@ -9,6 +9,7 @@ mod cloudflare;
 mod cloudflare_install;
 mod compat;
 mod config_repair;
+mod fix_agent;
 mod install;
 #[cfg(test)]
 mod install_e2e;
@@ -57,6 +58,11 @@ use tauri::ipc::Channel;
 
 async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> Result<T, String> {
     tauri::async_runtime::spawn_blocking(f).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn fix_with_agent(agent: String, prompt: String) -> Result<fix_agent::AgentRun, String> {
+    blocking(move || fix_agent::run(&agent, &prompt)).await?
 }
 
 #[tauri::command]
@@ -963,6 +969,7 @@ pub fn run() {
             update_kind,
             update_download_package,
             readiness,
+            fix_with_agent,
             node_offer,
             setup_node,
             cancel_node_setup,

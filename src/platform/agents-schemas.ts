@@ -47,6 +47,16 @@ export const PathFixSchema = v.object({
 })
 export type PathFix = v.InferOutput<typeof PathFixSchema>
 
+/** What `fix_with_agent` did: the agent opened in a terminal with the prompt file, or why it could not. */
+export const AgentRunSchema = v.object({
+  started: v.boolean(),
+  agent: v.string(),
+  file: v.string(),
+  reason: v.nullable(v.picklist(["missing", "terminal", "automation"])),
+  message: v.nullable(v.string()),
+})
+export type AgentRun = v.InferOutput<typeof AgentRunSchema>
+
 /** WireCat server names an agent has registered, and where that was read. */
 export const RegistrationsSchema = v.object({
   source: v.string(),

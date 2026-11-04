@@ -1,9 +1,11 @@
 import { CheckCircle2 } from "lucide-react"
+import { useId, useState } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FixButton, FixPanel } from "../fix/AgentFix"
 import { agentsMessages } from "./messages"
 import { usePathFix } from "./path-fix"
 
@@ -22,6 +24,8 @@ export function PathFixResult({ agent, manual }: { agent: string; manual: string
   const m = useMessages(agentsMessages)
   const status = usePathFix((s) => s.status)
   const shown = status.state === "done" || status.state === "failed"
+  const [fixOpen, setFixOpen] = useState(false)
+  const fixId = useId()
   const line = status.state === "done" ? status.fix.manual : status.state === "failed" ? manual : null
   return (
     <Collapse open={shown}>
@@ -37,9 +41,24 @@ export function PathFixResult({ agent, manual }: { agent: string; manual: string
           </p>
         )}
         {status.state === "failed" && (
-          <ErrorNotice inline detail={status.error}>
-            {m.pathFix.failed}
-          </ErrorNotice>
+          <>
+            <ErrorNotice
+              inline
+              detail={status.error}
+              action={<FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />}
+            >
+              {m.pathFix.failed}
+            </ErrorNotice>
+            <FixPanel
+              id={fixId}
+              open={fixOpen}
+              problem={{
+                what: "Adding the folders of WireCat tools to the user's PATH",
+                error: status.error,
+                hint: manual ? `Add this line to the shell's startup file: ${manual}` : null,
+              }}
+            />
+          </>
         )}
         {line && (
           <>

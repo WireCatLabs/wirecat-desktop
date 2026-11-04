@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { type CatalogTool, ownerId, samePackage } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { agentsReading } from "@/domain/skills"
@@ -11,9 +11,10 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { useAgents } from "../agents/store"
+import { FixButton, FixPanel } from "../fix/AgentFix"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
-import { failureWords, useFailureMessages } from "./failure-words"
+import { failureWords, failureWordsEn, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SkillOffer } from "./SkillOffer"
@@ -42,6 +43,8 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
   const shared = samePackage(tool.id).length > 1
   const { install, uninstall, dismiss } = useTools.getState()
   const [showLog, setShowLog] = useState(false)
+  const [fixOpen, setFixOpen] = useState(false)
+  const fixId = useId()
   const m = useMessages(toolsMessages).install
   if (!session) return null
   const outcome = session.outcome
@@ -120,6 +123,9 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
             />
           )}
           {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
+            <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
+          )}
+          {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
             <Button
               size="sm"
               variant="secondary"
@@ -156,6 +162,18 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
         </div>
       </div>
 
+      {outcome?.event === "failed" && (
+        <FixPanel
+          id={fixId}
+          open={fixOpen}
+          problem={{
+            what: `${session.operation === "install" ? "Installing" : "Uninstalling"} ${tool.name} (${tool.package})`,
+            error: failureWordsEn(outcome, session.operation)[0],
+            hint: failureWordsEn(outcome, session.operation)[1],
+            log: session.log,
+          }}
+        />
+      )}
       <Collapse open={showLog}>
         <Log lines={session.log} m={m} />
       </Collapse>

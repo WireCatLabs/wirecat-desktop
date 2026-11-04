@@ -70,3 +70,8 @@ export function failureWords(
       return [outcome.message, outcome.hint]
   }
 }
+
+/** The same words in English, for a prompt or a report: what the owner saw, in the language agents follow best. */
+export function failureWordsEn(outcome: Failed, operation: InstallSession["operation"]): [string, string | null] {
+  return failureWords(outcome, operation, { ...toolsMessages.en.install, ...failureMessages.en })
+}

@@ -5,12 +5,7 @@ use std::process::{Command, Stdio};
 /// Setup flows (QR codes, phone codes, browser sign-in) belong to the CLI, so we open them
 /// in the user's terminal instead of re-implementing them.
 pub fn open(bin: &Path, args: &[String]) -> Result<(), String> {
-    let mut line = format!("{} {}", quote(&bin.to_string_lossy()), args.join(" "));
-    // The new terminal reads the user's own PATH, where an older Node may come first; a tool installed with
-    // WireCat's Node.js would then start under it and fail. `env` works the same from sh, zsh and fish.
-    if cfg!(unix) && crate::node::in_use().is_some() {
-        line = format!("env PATH={} {line}", quote(&paths::search_path().to_string_lossy()));
-    }
+    let line = with_path(format!("{} {}", quote(&bin.to_string_lossy()), args.join(" ")));
     launch(&line).map_err(|e| {
         let run = format!("{} {}", bin.file_name().unwrap_or_default().to_string_lossy(), args.join(" "));
         if e.kind() == std::io::ErrorKind::PermissionDenied {
@@ -19,6 +14,36 @@ pub fn open(bin: &Path, args: &[String]) -> Result<(), String> {
             format!("Could not open a terminal. Run this yourself: {run}")
         }
     })
+}
+
+/// Like `open`, but every argument is quoted: they can hold free text (a sentence around a file path).
+pub fn open_agent(bin: &Path, args: &[String]) -> Result<(), String> {
+    let quoted: Vec<String> = args.iter().map(|a| quote(a)).collect();
+    let line = with_path(format!("{} {}", quote(&bin.to_string_lossy()), quoted.join(" ")));
+    // cmd drops the first and last quote of a `/k` line that starts with one; the extra pair is what it eats.
+    let line = if cfg!(windows) { format!("\"{line}\"") } else { line };
+    launch(&line).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::PermissionDenied {
+            AUTOMATION.to_string()
+        } else {
+            "Could not open a terminal.".to_string()
+        }
+    })
+}
+
+/// True when `open_agent` failed because macOS refused Terminal control.
+pub fn is_automation(message: &str) -> bool {
+    message == AUTOMATION
+}
+
+/// The new terminal reads the user's own PATH, where an older Node may come first; a tool installed with
+/// `WireCat`'s Node.js would then start under it and fail. `env` works the same from sh, zsh and fish.
+fn with_path(line: String) -> String {
+    if cfg!(unix) && crate::node::in_use().is_some() {
+        format!("env PATH={} {line}", quote(&paths::search_path().to_string_lossy()))
+    } else {
+        line
+    }
 }
 
 /// macOS asks once whether `WireCat` may control Terminal; after a No, every `do script` fails with error -1743.

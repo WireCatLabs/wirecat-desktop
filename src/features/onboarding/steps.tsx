@@ -1,5 +1,5 @@
 import { Bot, CheckCircle2, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { type CatalogTool, findTool, ownerId, samePackage, signsInHere, tools } from "@/domain/catalog"
 import { toolStatus } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
@@ -14,12 +14,13 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
 import { Skeleton, StableText } from "@/ui/Skeleton"
+import { FixButton, FixPanel } from "../fix/AgentFix"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
 import { NodeNotice } from "../system/NodeNotice"
 import { useSystem } from "../system/store"
-import { failureWords, useFailureMessages } from "../tools/failure-words"
+import { failureWords, failureWordsEn, useFailureMessages } from "../tools/failure-words"
 import { openConnect } from "../tools/go"
 import { ManualSetup, NewProfile, TerminalStatus, useProfiles } from "../tools/Health"
 import { InstallProgress } from "../tools/InstallProgress"
@@ -193,11 +194,13 @@ function Progress({ tool }: { tool: CatalogTool }) {
   const m = useMessages(onboardingMessages).install
   const tm = useMessages(toolsMessages).install
   const fm = useFailureMessages()
+  const [fixOpen, setFixOpen] = useState(false)
+  const fixId = useId()
   const version = (v: string) => <span className="font-mono tabular-nums">{v}</span>
 
   let tone: LampTone = "idle"
   let text: ReactNode = m.notInstalled
-  let hint: string | null = null
+  let detail: ReactNode = null
   if (status.kind === "checking") text = m.checking
   else if (session && !outcome) {
     tone = session.step === "queued" ? "idle" : "busy"
@@ -205,8 +208,13 @@ function Progress({ tool }: { tool: CatalogTool }) {
   } else if (outcome?.event === "failed" && session) {
     tone = "bad"
     const [message, next] = failureWords(outcome, session.operation, fm)
-    hint = next
-    text = <span className="text-bad">{message}</span>
+    text = <span className="text-bad">{m.notInstalledFailed}</span>
+    detail = (
+      <>
+        <span className="block text-bad">{message}</span>
+        {next && <span className="block text-ink-soft">{next}</span>}
+      </>
+    )
   } else if (outcome?.event === "done") {
     tone = "ok"
     text = m.installed(version(outcome.version))
@@ -232,6 +240,9 @@ function Progress({ tool }: { tool: CatalogTool }) {
           log={session.log.slice(-200)}
         />
       )}
+      {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
+        <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
+      )}
       {outcome?.event === "failed" && (
         <Button size="sm" onClick={() => useTools.getState().install(tool.id)}>
           {m.tryAgain}
@@ -246,11 +257,23 @@ function Progress({ tool }: { tool: CatalogTool }) {
             </div>
           )}
         </Collapse>
-        <Collapse open={hint !== null}>
-          <p className="selectable max-w-[70ch] pt-[0.4rem] pb-[0.2rem] text-[0.9rem] text-ink-soft sm:pl-[3.8rem]">
-            {hint}
-          </p>
+        <Collapse open={detail !== null}>
+          <p className="selectable max-w-[70ch] pt-[0.4rem] pb-[0.2rem] text-[0.9rem] sm:pl-[3.8rem]">{detail}</p>
         </Collapse>
+        {outcome?.event === "failed" && session && (
+          <div className="sm:pl-[3.8rem]">
+            <FixPanel
+              id={fixId}
+              open={fixOpen}
+              problem={{
+                what: `Installing ${tool.name} (${tool.package})`,
+                error: failureWordsEn(outcome, session.operation)[0],
+                hint: failureWordsEn(outcome, session.operation)[1],
+                log: session.log,
+              }}
+            />
+          </div>
+        )}
       </div>
     </li>
   )

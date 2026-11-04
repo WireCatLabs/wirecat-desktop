@@ -27,7 +27,8 @@ export type Batch = {
 /** One tool's share of its own install, weighted so the bar keeps moving through npm's long lookup phase. */
 export function toolFraction({ session, installed }: BatchItem): number {
   if (!session) return installed ? 1 : 0
-  if (session.outcome) return 1
+  // A failed tool is not part of what got done, so a batch that failed is not shown as 100%.
+  if (session.outcome) return session.outcome.event === "failed" ? 0 : 1
   if (session.step === "check") return 0.05
   if (session.step === "verify") return 0.95
   if (session.step !== "install") return 0

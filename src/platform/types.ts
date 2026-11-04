@@ -1,6 +1,7 @@
 import type { StoreCompat } from "@/domain/compat"
 import type {
   Agent,
+  AgentRun,
   Chats,
   Claims,
   McpHealth,
@@ -123,6 +124,8 @@ export type Platform = {
   terminalReach(agent?: string): Promise<Record<string, boolean>>
   /** Puts the folders of these tools on the user's PATH where a new terminal does not find them. */
   fixTerminalPath(ids: string[]): Promise<PathFix>
+  /** Opens a coding agent (`claude`, `codex`, `gemini`) in a terminal with this prompt, written to a file by Rust. */
+  fixWithAgent(agent: string, prompt: string): Promise<AgentRun>
   /** Which chat apps drive the agent (Hermes's gateway, OpenClaw's channels), read only. */
   agentChats(agent: string): Promise<Chats>
   /** WireCat servers an agent has registered; rejects when the agent's list cannot be read. */

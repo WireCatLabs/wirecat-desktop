@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Starts WireCat as on a computer that has never seen it: an empty home folder, no Node.js on PATH and no keyring.
+# Your own tools, settings, data and sign-ins are not read and not changed.
+#
+#   bin/try-fresh-install           start (the same throwaway home as last time)
+#   bin/try-fresh-install --reset   start from an empty home again
+#
+# Needs the debug build: pnpm tauri build --debug --no-bundle
+set -euo pipefail
+
+root=$(cd "$(dirname "$0")/.." && pwd)
+app="$root/src-tauri/target/debug/wirecat-desktop"
+if [ ! -x "$app" ]; then
+  echo "No build yet. Run: pnpm tauri build --debug --no-bundle" >&2
+  exit 1
+fi
+
+sandbox="${XDG_CACHE_HOME:-$HOME/.cache}/wirecat-fresh-install"
+if [ "${1:-}" = "--reset" ]; then
+  rm -rf -- "$sandbox"
+fi
+mkdir -p "$sandbox/home"
+echo "Throwaway home: $sandbox/home"
+
+pass=()
+for var in DISPLAY WAYLAND_DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_SESSION_TYPE XDG_CURRENT_DESKTOP LANG \
+  WEBKIT_DISABLE_DMABUF_RENDERER WEBKIT_DISABLE_COMPOSITING_MODE GDK_BACKEND; do
+  if [ -n "${!var:-}" ]; then pass+=("$var=${!var}"); fi
+done
+
+# DBUS_SESSION_BUS_ADDRESS=disabled: keeps the keyring out of reach. Unsetting it is not enough: D-Bus then falls back
+# to $XDG_RUNTIME_DIR/bus, which the window needs, and reaches the keyring anyway.
+exec env -i "${pass[@]}" \
+  HOME="$sandbox/home" USER="$USER" LOGNAME="${LOGNAME:-$USER}" SHELL=/bin/bash \
+  PATH=/usr/local/bin:/usr/bin:/bin \
+  DBUS_SESSION_BUS_ADDRESS=disabled: \
+  "$app"

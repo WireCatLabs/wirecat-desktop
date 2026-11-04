@@ -1,8 +1,10 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useOnboarding } from "@/features/onboarding/store"
+import { useTools } from "@/features/tools/store"
 import { useLanguage } from "@/i18n"
+import { platform } from "@/platform/bridge"
 import { App } from "./App"
 
 const stored = () => JSON.parse(localStorage.getItem("wirecat.onboarding") ?? "{}").state?.status
@@ -24,6 +26,37 @@ describe("First start", () => {
     await user.click(await screen.findByRole("checkbox", { name: /Google Drive/ }))
     expect(await screen.findByRole("button", { name: "Установить 1 инструмент" })).toBeInTheDocument()
   })
+
+  it("offers an agent to fix a failed install, and the prompt to copy when the agent cannot start", async () => {
+    vi.spyOn(platform, "install").mockImplementation(async (_id, onEvent) => {
+      onEvent({ event: "failed", reason: "disk", message: "ENOSPC", hint: null })
+    })
+    const fix = vi.spyOn(platform, "fixWithAgent").mockResolvedValue({
+      started: false,
+      agent: "claude",
+      file: "",
+      reason: "missing",
+      message: null,
+    })
+    const user = userEvent.setup()
+    render(<App />)
+    await user.click(screen.getByRole("button", { name: "Get started" }))
+    await screen.findByText("Ready to install WireCat tools.")
+    await user.click(screen.getByRole("button", { name: "Continue" }))
+    await user.click(await screen.findByRole("checkbox", { name: /Google Drive/ }))
+    await user.click(screen.getByRole("button", { name: "Install 1 tool" }))
+
+    await user.click(await screen.findByRole("button", { name: "Fix" }, { timeout: 8000 }))
+    const panel = await screen.findByRole("region", { name: "Fix with an AI agent" })
+    await user.click(await within(panel).findByRole("button", { name: "Open Claude Code" }))
+    expect(fix.mock.calls[0]?.[0]).toBe("claude")
+    expect(fix.mock.calls[0]?.[1]).toMatch(/failed while installing Google Drive/)
+    expect(await within(panel).findByText("Could not start Claude Code.")).toBeInTheDocument()
+    expect(fix.mock.calls[0]?.[1]).toMatch(/Error: There is not enough free space/)
+    expect(within(panel).getByText(/Paste this into any AI agent/)).toBeInTheDocument()
+    vi.restoreAllMocks()
+    useTools.setState({ sessions: {} })
+  }, 20000)
 
   it("installs the chosen tool, then lands on Tools and is not shown again", async () => {
     const user = userEvent.setup()

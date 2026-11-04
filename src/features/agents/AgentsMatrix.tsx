@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from "react"
+import { type ReactNode, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { cellAction, type SkillCell, type SkillTarget, TARGET_FOLDER } from "@/domain/skills"
 import { formatList, type Lang, useMessages } from "@/i18n"
@@ -9,6 +9,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
+import { FixButton, FixPanel } from "../fix/AgentFix"
 import { ReportThis } from "../report/ReportThis"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
@@ -16,6 +17,7 @@ import { askSkillInstall } from "./actions"
 import { ConfirmCommand } from "./Confirm"
 import { agentsMessages } from "./messages"
 import { PathFixButton, PathFixResult } from "./PathFixResult"
+import { usePathFix } from "./path-fix"
 import { SKILL_TONE } from "./SkillTable"
 import { catalogTools, useSkillMatrix } from "./skill-matrix"
 import { useAgents } from "./store"
@@ -66,6 +68,9 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
     r.cells.filter((c) => c.cell.kind === "failed" && !c.busy).map((c) => ({ tool: r.tool, cell: c.cell })),
   )
   const grouped = failed.length > 1
+  const tried = usePathFix((s) => s.status.state === "done" || s.status.state === "failed")
+  const [fixOpen, setFixOpen] = useState(false)
+  const fixId = useId()
   const failedTools = [...new Set(failed.map((f) => f.tool.id))]
   const failedText = [
     ...new Set(failed.map((f) => (f.cell.kind === "failed" ? `${f.tool.name}: ${f.cell.message}` : ""))),
@@ -94,13 +99,27 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
           }
           action={
             <span className="flex items-center gap-2">
-              <PathFixButton tools={failedTools} />
+              {/* The automatic fix first; once it ran and the checks still fail, an agent looks for the cause. */}
+              {tried ? (
+                <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
+              ) : (
+                <PathFixButton tools={failedTools} />
+              )}
               <ReportThis what="Checking skills" error={failedText.join("\n")} />
             </span>
           }
         >
           {m.pathFix.skillsFailed(failed.length)}
         </ErrorNotice>
+        <FixPanel
+          id={fixId}
+          open={fixOpen}
+          problem={{
+            what: "Checking the agent skills of the WireCat tools it just installed",
+            error: failedText.join("\n"),
+            hint: "Putting the tools' folders on PATH and checking again did not help.",
+          }}
+        />
       </Collapse>
       <PathFixResult agent={names(found ?? []) || m.pathFix.yourAgents} manual={null} />
       <div className="overflow-x-auto rounded-[0.2rem] border border-line-strong bg-app">
