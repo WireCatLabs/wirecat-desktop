@@ -1,6 +1,15 @@
 import { Check } from "lucide-react"
 import { type ComponentType, useEffect, useId, useRef } from "react"
-import { computerGate, nextStep, previousStep, primaryAction, skipTarget, stepIndex } from "@/domain/onboarding-flow"
+import {
+  canOpen,
+  computerGate,
+  type Gate,
+  nextStep,
+  previousStep,
+  primaryAction,
+  skipTarget,
+  stepIndex,
+} from "@/domain/onboarding-flow"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Crossfade } from "@/ui/Crossfade"
@@ -14,7 +23,7 @@ import { useNode } from "../system/node-store"
 import { useSystem } from "../system/store"
 import { StillInstalling, useUnfinishedInstalls } from "../tools/InstallProgress"
 import { useTools } from "../tools/store"
-import { onboardingMessages } from "./messages"
+import { type OnboardingText, onboardingMessages } from "./messages"
 import { Agents, Choose, Computer, Done, Install, installChosen, leave, SignIn, Welcome } from "./steps"
 import { STEPS, type StepId, useOnboarding } from "./store"
 
@@ -58,11 +67,29 @@ function SkillWhy() {
   )
 }
 
+const gateText = (gate: Gate, m: OnboardingText["flow"]) =>
+  gate === "checking"
+    ? m.blockedChecking
+    : gate === "settingUp"
+      ? m.blockedSettingUp
+      : gate === "node"
+        ? m.blockedNode
+        : null
+
+const useComputerGate = () => {
+  const readiness = useSystem((s) => s.readiness)
+  const running = useNode((s) => s.running)
+  const myself = useNode((s) => s.myself)
+  return computerGate(readiness, running, myself)
+}
+
 /** The setup steps take the sidebar's place while the flow is open. */
 export function SetupSteps({ onExit }: { onExit: () => void }) {
   const step = useOnboarding((s) => s.step)
   const m = useMessages(onboardingMessages)
   const current = stepIndex(step)
+  // The sidebar must not jump past the Node.js gate that holds Continue on Your computer.
+  const gate = useComputerGate()
   return (
     <aside
       className="flex w-[12rem] shrink-0 flex-col border-line border-r bg-wall xl:w-[13.5rem]"
@@ -75,15 +102,22 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
         <ol className="flex flex-col gap-[0.15rem]">
           {STEPS.map((s, i) => {
             const here = i === current
+            const shut = !canOpen(s, gate)
             return (
               <li key={s}>
                 <button
                   type="button"
                   aria-current={here ? "step" : undefined}
-                  onClick={() => useOnboarding.getState().go(s)}
+                  aria-disabled={shut || undefined}
+                  title={shut ? (gateText(gate, m.flow) ?? undefined) : undefined}
+                  onClick={shut ? undefined : () => useOnboarding.getState().go(s)}
                   className={cx(
                     "relative flex min-h-[2.3rem] w-full items-center gap-[0.75rem] px-[1.5rem] py-[0.3rem] text-left text-[0.95rem] leading-tight",
-                    here ? "font-semibold text-ink" : "text-ink-soft hover:text-ink",
+                    here
+                      ? "font-semibold text-ink"
+                      : shut
+                        ? "cursor-not-allowed text-ink-dim"
+                        : "text-ink-soft hover:text-ink",
                   )}
                 >
                   <span
@@ -145,9 +179,7 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
   const { go, finish } = useOnboarding.getState()
   // The Install and Done steps show each install in place; the others say only that one is still going.
   const stillInstalling = useUnfinishedInstalls().length > 0 && step !== "install" && step !== "done"
-  const readiness = useSystem((s) => s.readiness)
-  const nodeRunning = useNode((s) => s.running)
-  const myself = useNode((s) => s.myself)
+  const computer = useComputerGate()
   const blockedId = useId()
 
   useEffect(() => {
@@ -203,15 +235,7 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
           : { label: m.flow.continue, run: () => go(nextStep(step, chosen.length)) }
 
   // Tools cannot install without Node.js, so the computer step holds until it is ready or the owner takes it on.
-  const gate = step === "computer" ? computerGate(readiness, nodeRunning, myself) : null
-  const blocked =
-    gate === "checking"
-      ? m.flow.blockedChecking
-      : gate === "settingUp"
-        ? m.flow.blockedSettingUp
-        : gate === "node"
-          ? m.flow.blockedNode
-          : null
+  const blocked = step === "computer" ? gateText(computer, m.flow) : null
   const skipTo = skipTarget(step)
   const skip = skipTo ? () => go(skipTo) : null
   const back = previousStep(step)
