@@ -75,6 +75,13 @@ api_id, api_hash, затем QR или телефон+код, затем пар�
 vitest. Текст про пароль поправлен: Telegram получает доказательство, не сам пароль. Хэш на картинке закрашен (2084b2f, проверил картинку); в feat/smooth-install влито одним коммитом 5850bf2, чтобы старая
 картинка не попала в историю; ветку feat/tg-signin не пушить, удалить (CLEANUP.md). 221 тест signin+domain после слияния.
 
+**TASK-100 · Оболочка пользователя по-настоящему** — SHELL, затем оболочка учётной записи (/etc/passwd, на macOS dscl),
+затем /bin/sh; флаги проверки под каждую оболочку. Подагент, ветка fix/user-shell.
+
+**TASK-101 · Отчёт об архитектуре и правила для ИИ** — docs/dev/architecture-report.md, docs/dev/guides/*.md (new-screen,
+new-component, application-logic, rust-command, testing, i18n, release, reuse), ссылка из CLAUDE.md. Сравнение UI-библиотек
+(с shadcn, Tailwind, React Aria, Radix, Base UI, Ark, Mantine, HeroUI) — docs/dev/ui-libraries.md. Подагенты.
+
 ## 2. Вопросы Славы
 
 **ASK-56 · «can you give quick prompt to codex to try to find the tg cli location»**
@@ -101,6 +108,10 @@ ready for the heavy extension»** — ответ после аудита (TASK-9
 **ASK-60 · «why radix exactly? and are there any alternatives? ... do we just need a UI library? what about storage, caching,
 other layers. and what about rust backend ... I still have no idea how it works»** — ответ в чате 2026-11-04: схема
 работы, сравнение React Aria / Radix / Base UI / Ark, слои данных и Rust; решение — NEED-2189 переформулирован.
+
+**ASK-61 · «but shall we use bash? I think we need to identify user's default shell eg zsh, fish etc and adjust
+accordingly, falling back to smth»** — уже берём оболочку из SHELL (profile.rs, paths.rs), bash был только тем случаем, где
+флаги отличаются. Пробел: без SHELL падаем в sh — TASK-100 добавляет оболочку учётной записи.
 
 ## 3. Находки
 
@@ -228,3 +239,10 @@ why we have this section». Решение: без серверов WireCat ра
 - Варианты: **A** сейчас · **B** когда будет готов PR #93
 - Я бы: **A**.
 - **Ответ Славы (2026-11-04):** **B**.
+
+**NEED-2191 · TanStack Query для ответов Rust и типы TypeScript из Rust?** — **Ответ Славы (2026-11-04):** **A** (оба).
+
+**NEED-2192 · Типизированные ошибки Rust, лог-файл, lib.rs по фичам?** — **Ответ Славы (2026-11-04):** **A**, отдельным PR.
+
+**NEED-2189 · (обновление)** — Слава: «still dont see most popular tools like shadcn, tailwind ... need better comparison
+and explanation». Ждёт сравнения (TASK-101).
