@@ -177,11 +177,14 @@ export function Choose() {
   )
 }
 
-/** Queues the chosen tools that are not on the computer yet; the store runs them one by one. */
+/**
+ * Queues the chosen tools that are not on the computer yet; the store runs them one by one. In the order the Install
+ * step lists them, not the order they were ticked, so "1 of 3" is the tool at the top.
+ */
 export function installChosen() {
   const { chosen } = useOnboarding.getState()
   const st = useTools.getState()
-  for (const id of chosen) {
+  for (const { id } of tools.filter((t) => chosen.includes(t.id))) {
     if (!installedVersion(id) && !st.sessions[ownerId(id)]) st.install(id)
   }
 }
