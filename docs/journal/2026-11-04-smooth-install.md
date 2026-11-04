@@ -298,6 +298,6 @@ GitHub, удалить чистые, остальные списком. (Пап�
 - Если не ответить: с начала.
 - **Ответ Славы (2026-11-04):** «check if the steps could have been passed eg at least 1 cli installed, logged in etc and
   either move user to a relevent step or show home - tools page (right now it's home default), home may change later» —
-  шаг выводится из реального состояния (TASK-104, подагент, ветка feat/onboarding-resume).
+  шаг выводится из реального состояния (TASK-105, подагент, ветка feat/onboarding-resume).
 
 (NEED-2198 выдан счётчиком и не использован.)
