@@ -7,6 +7,7 @@ import {
   nextStep,
   previousStep,
   primaryAction,
+  skillInPlace,
   skipTarget,
   stepIndex,
 } from "@/domain/onboarding-flow"
@@ -16,6 +17,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
 import { reducedMotion } from "@/ui/motion"
+import { Skeleton } from "@/ui/Skeleton"
 import { AgentsMatrix } from "../agents/AgentsMatrix"
 import { useSkillMatrix } from "../agents/skill-matrix"
 import { arriveFromSetup } from "../guides/GuidesPage"
@@ -86,8 +88,9 @@ const useComputerGate = () => {
 /** The setup steps take the sidebar's place while the flow is open. */
 export function SetupSteps({ onExit }: { onExit: () => void }) {
   const step = useOnboarding((s) => s.step)
+  const resuming = useOnboarding((s) => s.resuming)
   const m = useMessages(onboardingMessages)
-  const current = stepIndex(step)
+  const current = resuming ? -1 : stepIndex(step)
   // The sidebar must not jump past the Node.js gate that holds Continue on Your computer.
   const gate = useComputerGate()
   return (
@@ -166,7 +169,28 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
   )
 }
 
-export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
+/** The step's frame, held while the setup reads what this computer already has, so no step shows and then jumps. */
+function Resuming() {
+  const m = useMessages(onboardingMessages).flow
+  return (
+    <main aria-busy="true" className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto flex min-h-full max-w-[48rem] flex-col gap-[1.5rem] px-[2.1rem] pt-[2.4rem]">
+        <div className="flex flex-col gap-[0.8rem]">
+          <Skeleton className="h-[2.1rem] w-[16rem]" label={m.resuming} />
+          <Skeleton className="h-[1.6rem] w-full max-w-[40rem]" />
+        </div>
+        <Skeleton className="h-[12rem] w-full" />
+      </div>
+    </main>
+  )
+}
+
+export function Onboarding(props: { onExit: () => void; onTour: () => void }) {
+  const resuming = useOnboarding((s) => s.resuming)
+  return resuming ? <Resuming /> : <Steps {...props} />
+}
+
+function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
   const step = useOnboarding((s) => s.step)
   const chosen = useOnboarding((s) => s.chosen)
   const m = useMessages(onboardingMessages)
@@ -198,9 +222,7 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
   const Body = bodies[step]
   const toInstall = chosen.filter((id) => !installs[id]?.length).length
   // Until one skill is in place, Continue leaves the step without the thing it is for, so Install leads instead.
-  const hasSkill = useSkillMatrix().rows.some((r) =>
-    r.cells.some((c) => c.cell.kind === "current" || c.cell.kind === "stale"),
-  )
+  const hasSkill = useSkillMatrix().rows.some((r) => skillInPlace(r.cells.map((c) => c.cell.kind)))
   const quietContinue = step === "agents" && !hasSkill
 
   const close = (tour: boolean) => {

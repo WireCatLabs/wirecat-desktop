@@ -1,6 +1,7 @@
 import { ListChecks, Monitor, Moon, Sun } from "lucide-react"
 import { useId } from "react"
 import { HELP_OPENER, type HelpActions, HelpPanel, useHelpMenu } from "@/features/onboarding/HelpMenu"
+import { resumeSetup } from "@/features/onboarding/resume"
 import { useOnboarding } from "@/features/onboarding/store"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
@@ -50,7 +51,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
       {postponed && (
         <button
           type="button"
-          onClick={() => useOnboarding.getState().reopen()}
+          onClick={() => void resumeSetup("reopen")}
           className="mx-[1rem] mb-[1rem] flex items-center gap-[0.7rem] rounded-[0.4rem] border border-line-strong bg-app px-[0.8rem] py-[0.6rem] text-left text-[0.95rem] text-ink hover:border-brand/50"
         >
           <ListChecks className="size-[1.1rem] shrink-0 text-brand" strokeWidth={1.8} aria-hidden />
