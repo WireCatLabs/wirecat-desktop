@@ -97,7 +97,7 @@ export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): vo
           </ul>
         </Section>
       )}
-      <AdvancedMcp agent={agent} />
+      <AdvancedMcp key={agent.id} agent={agent} />
     </div>
   )
 }

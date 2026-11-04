@@ -1,15 +1,14 @@
 import { Check } from "lucide-react"
 import { type ComponentType, useEffect, useId, useRef } from "react"
-import { tools } from "@/domain/catalog"
-import { formatList, useMessages } from "@/i18n"
+import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
 import { reducedMotion } from "@/ui/motion"
 import { AgentsMatrix } from "../agents/AgentsMatrix"
+import { useSkillMatrix } from "../agents/skill-matrix"
 import { arriveFromSetup } from "../guides/GuidesPage"
 import { useSystem } from "../system/store"
-import { SkillBenefits } from "../tools/SkillOffer"
 import { useTools } from "../tools/store"
 import { onboardingMessages } from "./messages"
 import { Agents, Choose, Computer, Done, Install, installChosen, leave, SignIn, Welcome } from "./steps"
@@ -27,13 +26,31 @@ const bodies: Record<StepId, ComponentType> = {
 
 function AgentsStep() {
   const chosen = useOnboarding((s) => s.chosen)
-  const installs = useTools((s) => s.installs)
-  const names = tools.filter((t) => t.skill && (chosen.includes(t.id) || installs[t.id]?.length)).map((t) => t.name)
   return (
     <>
-      {names.length > 0 && <SkillBenefits tool={formatList(names)} />}
+      <SkillWhy />
       <Agents matrix={<AgentsMatrix compact expected={chosen} />} />
     </>
+  )
+}
+
+function SkillWhy() {
+  const m = useMessages(onboardingMessages).agents.why
+  return (
+    <section aria-label={m.label} className="flex max-w-[62ch] flex-col gap-[0.8rem] text-[1rem] leading-relaxed">
+      <p>
+        {m.ask} <q className="font-medium text-ink">{m.example}</q>
+      </p>
+      <ul className="flex flex-col gap-[0.4rem] text-ink-soft">
+        {m.points.map((point) => (
+          <li key={point} className="flex gap-[0.6rem]">
+            <span aria-hidden className="mt-[0.7rem] size-[0.3rem] shrink-0 rounded-full bg-brand" />
+            {point}
+          </li>
+        ))}
+      </ul>
+      <p>{m.next}</p>
+    </section>
   )
 }
 
@@ -142,6 +159,11 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
   const Body = bodies[step]
   const next = (id?: StepId) => go(id ?? STEPS[Math.min(i + 1, STEPS.length - 1)]?.id ?? "done")
   const toInstall = chosen.filter((id) => !installs[id]?.length).length
+  // Until one skill is in place, Continue leaves the step without the thing it is for, so Install leads instead.
+  const hasSkill = useSkillMatrix().rows.some((r) =>
+    r.cells.some((c) => c.cell.kind === "current" || c.cell.kind === "stale"),
+  )
+  const quietContinue = step === "agents" && !hasSkill
 
   const close = (tour: boolean) => {
     leave()
@@ -226,7 +248,7 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
             )}
             {step === "done" && <Button onClick={() => close(true)}>{m.flow.tour}</Button>}
             {step === "done" && <Button onClick={() => close(false)}>{m.flow.openTools}</Button>}
-            <Button variant="primary" size="lg" onClick={primary.run}>
+            <Button variant={quietContinue ? "secondary" : "primary"} size="lg" onClick={primary.run}>
               {primary.label}
             </Button>
           </div>

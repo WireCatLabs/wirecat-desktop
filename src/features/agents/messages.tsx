@@ -113,6 +113,11 @@ const en = {
   todoOld: (n: number, agent: string) =>
     `${plural("en", n, { one: "# skill", other: "# skills" })} for ${agent} ${n === 1 ? "is" : "are"} old`,
   installAll: "Install all",
+  installEverywhere: (tool: string, agents: string) => `Install the ${tool} skill for ${agents}`,
+  installingAll: "Installing…",
+  allInstalled: "Installed for all",
+  toolWrites: (tool: string, folders: readonly string[]) =>
+    `${tool} writes its own skill file into ${enList(folders)}, one after another.`,
   updateAll: "Update all",
   action: { Install: "Install", Update: "Update" },
 
@@ -206,16 +211,11 @@ const en = {
   olderSessions: (n: number) => `and ${n} older on the Logs page`,
   copyCommand: "Copy the command",
 
-  advancedMcp: "Advanced: MCP",
-  mcpIntro:
-    "For chat apps and agents on another computer. Agents on this computer use the tools directly through their skill.",
-  readingMcp: "Reading MCP servers",
-  mcpUnread: (agent: string, file: ReactNode): ReactNode => (
-    <>
-      WireCat does not read {agent}'s MCP servers. See {file}.
-    </>
-  ),
-  noMcp: (agent: string) => `${agent} has no WireCat MCP server registered.`,
+  mcpTitle: "WireCat MCP servers",
+  mcpIntro: (agent: string) =>
+    `${agent} also has these WireCat MCP servers. It does not need them: it uses the tools through its skill. Remove them unless you set them up on purpose.`,
+  mcpGone: (agent: string) => `${agent} has no WireCat MCP servers left. It uses the tools through its skill.`,
+  mcpChatApps: "To let ChatGPT or Claude in the browser use your tools, connect them on the Tools page.",
   mcpList: (agent: string) => `WireCat MCP servers in ${agent}`,
   readFrom: (source: ReactNode): ReactNode => <>Read from {source}</>,
   remove: "Remove",
@@ -436,6 +436,10 @@ const ru: typeof en = {
       other: `# навыка для ${agent} устарели`,
     }),
   installAll: "Установить все",
+  installEverywhere: (tool, agents) => `Установить навык ${tool} для ${agents}`,
+  installingAll: "Устанавливаем…",
+  allInstalled: "Установлен для всех",
+  toolWrites: (tool, folders) => `${tool} по очереди записывает файл своего навыка в ${ruList(folders)}.`,
   updateAll: "Обновить все",
   action: { Install: "Установить", Update: "Обновить" },
 
@@ -533,16 +537,12 @@ const ru: typeof en = {
   olderSessions: (n) => `и ещё ${n} — в журнале`,
   copyCommand: "Скопировать команду",
 
-  advancedMcp: "Дополнительно: MCP",
-  mcpIntro:
-    "Для чат-приложений и агентов на другом компьютере. Агенты на этом компьютере работают с инструментами напрямую, через навык.",
-  readingMcp: "Читаем MCP-серверы",
-  mcpUnread: (agent, file) => (
-    <>
-      WireCat не читает MCP-серверы {agent}. Смотрите {file}.
-    </>
-  ),
-  noMcp: (agent) => `В ${agent} не зарегистрирован ни один MCP-сервер WireCat.`,
+  mcpTitle: "MCP-серверы WireCat",
+  mcpIntro: (agent) =>
+    `У ${agent} есть ещё и эти MCP-серверы WireCat. Они ему не нужны: с инструментами он работает через навык. Удалите их, если не добавляли специально.`,
+  mcpGone: (agent) => `У ${agent} больше нет MCP-серверов WireCat. С инструментами он работает через навык.`,
+  mcpChatApps:
+    "Чтобы ChatGPT или Claude в браузере работали с вашими инструментами, подключите их на странице «Инструменты».",
   mcpList: (agent) => `MCP-серверы WireCat в ${agent}`,
   readFrom: (source) => <>Прочитано из {source}</>,
   remove: "Удалить",
@@ -757,6 +757,10 @@ const es: typeof en = {
       other: `# skills para ${agent} están desactualizadas`,
     }),
   installAll: "Instalar todas",
+  installEverywhere: (tool, agents) => `Instalar la skill de ${tool} para ${agents}`,
+  installingAll: "Instalando…",
+  allInstalled: "Instalada para todos",
+  toolWrites: (tool, folders) => `${tool} escribe su propio archivo de skill en ${esList(folders)}, una tras otra.`,
   updateAll: "Actualizar todas",
   action: { Install: "Instalar", Update: "Actualizar" },
 
@@ -850,16 +854,11 @@ const es: typeof en = {
   olderSessions: (n) => `y ${n} más antiguas en la página Registros`,
   copyCommand: "Copiar el comando",
 
-  advancedMcp: "Avanzado: MCP",
-  mcpIntro:
-    "Para apps de chat y agentes en otro ordenador. Los agentes de este ordenador usan las herramientas directamente con su skill.",
-  readingMcp: "Leyendo los servidores MCP",
-  mcpUnread: (agent, file) => (
-    <>
-      WireCat no lee los servidores MCP de {agent}. Consulta {file}.
-    </>
-  ),
-  noMcp: (agent) => `${agent} no tiene registrado ningún servidor MCP de WireCat.`,
+  mcpTitle: "Servidores MCP de WireCat",
+  mcpIntro: (agent) =>
+    `${agent} también tiene estos servidores MCP de WireCat. No los necesita: usa las herramientas con su skill. Quítalos si no los configuraste a propósito.`,
+  mcpGone: (agent) => `${agent} ya no tiene servidores MCP de WireCat. Usa las herramientas con su skill.`,
+  mcpChatApps: "Para que ChatGPT o Claude en el navegador usen tus herramientas, conéctalos en la página Herramientas.",
   mcpList: (agent) => `Servidores MCP de WireCat en ${agent}`,
   readFrom: (source) => <>Leído de {source}</>,
   remove: "Quitar",

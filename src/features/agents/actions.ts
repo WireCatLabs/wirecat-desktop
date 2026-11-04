@@ -53,6 +53,42 @@ export function askSkillInstall(
   })
 }
 
+/**
+ * One tool's skill in every place an agent found reads. The dialog closes as soon as it is confirmed: each cell then
+ * shows its own progress and its own failure, which a dialog over the table would hide.
+ */
+export function askToolSkills(
+  id: string,
+  targets: readonly SkillTarget[],
+  readers: string,
+  action: "Install" | "Update",
+) {
+  const t = tool(id)
+  if (!t.skill || targets.length === 0) return
+  const install = t.skill.install
+  useConfirm.getState().ask({
+    text: (m) => ({
+      title: action === "Install" ? m.installSkillTitle(t.name, readers) : m.updateSkillTitle(t.name, readers),
+      body: h(
+        "p",
+        null,
+        m.toolWrites(
+          t.name,
+          targets.map((target) => TARGET_FOLDER[target]),
+        ),
+      ),
+      action: action === "Install" ? m.installAll : m.updateAll,
+    }),
+    command: targets.map((target) => catalogCommand(t, install, { target })).join("\n"),
+    tool: id,
+    run: async () => {
+      void useAgents.getState().installAll(targets.map((target): [string, SkillTarget] => [id, target]))
+      return true
+    },
+    failure: () => undefined,
+  })
+}
+
 /** Every missing or old skill of one agent, one after another; `also` names the other agents reading each folder. */
 export function askAgentSkills(view: AgentView, also: (target: SkillTarget) => string[]) {
   const cells = view.todo.map((s): [string, SkillTarget] => [s.tool.id, s.target])

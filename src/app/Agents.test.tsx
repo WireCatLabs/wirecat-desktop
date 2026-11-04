@@ -167,7 +167,7 @@ describe("Agents", () => {
     )
   }, 20000)
 
-  it("keeps MCP out of the main flow and lists existing servers read-only under Advanced", async () => {
+  it("keeps MCP out of the main flow, shows leftover servers to remove, and no section without them", async () => {
     const add = vi.spyOn(platform, "mcpAdd")
     const check = vi.spyOn(platform, "mcpCheck")
     const remove = vi.spyOn(platform, "mcpRemove")
@@ -183,11 +183,10 @@ describe("Agents", () => {
     await user.click(within(connect).getByRole("button", { name: "Cancel" }))
     expect(check).not.toHaveBeenCalled()
 
-    const advanced = within(pane()).getByRole("button", { name: "Advanced: MCP" })
-    expect(advanced).toHaveAttribute("aria-expanded", "false")
-    await user.click(advanced)
-    expect(within(pane()).getByText(/Agents on this computer use the tools directly/)).toBeVisible()
-    const servers = await within(pane()).findByRole("list", { name: "WireCat MCP servers in Claude Code" }, wait)
+    const section = await within(pane()).findByRole("region", { name: "WireCat MCP servers" }, wait)
+    expect(within(section).getByText(/It does not need them/)).toBeInTheDocument()
+    expect(within(section).getByRole("button", { name: "Open Tools" })).toBeInTheDocument()
+    const servers = within(section).getByRole("list", { name: "WireCat MCP servers in Claude Code" })
     expect(within(servers).getByText("tg-personal")).toBeInTheDocument()
 
     await user.click(
@@ -197,9 +196,12 @@ describe("Agents", () => {
     expect(within(dialog).getByText("claude mcp remove tg-personal --scope user")).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Remove" }))
     expect(remove).toHaveBeenCalledWith("tg", "personal", "claude")
-    expect(
-      await within(pane()).findByText("Claude Code has no WireCat MCP server registered.", {}, wait),
-    ).toBeInTheDocument()
+    expect(await within(section).findByText(/has no WireCat MCP servers left/, {}, wait)).toBeInTheDocument()
+    expect(within(section).queryByRole("list")).toBeNull()
+
+    await user.click(await foundTab(/^Codex/))
+    await within(pane()).findByRole("heading", { name: "Codex" }, wait)
+    expect(within(pane()).queryByRole("region", { name: "WireCat MCP servers" })).toBeNull()
     expect(add).not.toHaveBeenCalled()
   }, 20000)
 

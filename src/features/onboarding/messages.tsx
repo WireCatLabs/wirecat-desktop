@@ -166,6 +166,18 @@ const en = {
     title: "How a tool adds its skill",
     text: "Some tools offer to add their skill while you sign in, in the next step: the terminal asks which agent should get it. Any tool can also add its own skill from a terminal, for Claude Code, Codex and Gemini CLI.",
     list: "Skill commands",
+    why: {
+      label: "How a skill helps",
+      ask: "With a skill, you ask your agent in plain words, for example:",
+      example: "What did Anna send me yesterday?",
+      points: [
+        "The agent knows which tool can answer and runs it for you.",
+        "Without the skill, the agent does not know the tool is there.",
+        "The skill takes almost no room. The agent reads it only when your question needs the tool.",
+        "It is one small file on this computer. You can remove it later on the Agents page.",
+      ],
+      next: "Install the skill for your agents below.",
+    },
   },
   signIn: {
     list: "Tools to sign in to",
@@ -417,6 +429,18 @@ const ru: OnboardingText = {
     title: "Как инструмент добавляет свой навык",
     text: "Некоторые инструменты предлагают добавить навык во время входа, на следующем шаге: терминал спросит, какому агенту его отдать. Любой инструмент может добавить свой навык и из терминала — для Claude Code, Codex и Gemini CLI.",
     list: "Команды для навыков",
+    why: {
+      label: "Чем помогает навык",
+      ask: "С навыком вы просите агента обычными словами, например:",
+      example: "Что Аня прислала мне вчера?",
+      points: [
+        "Агент знает, какой инструмент может ответить, и сам его запускает.",
+        "Без навыка агент не знает, что инструмент есть.",
+        "Навык почти не занимает места. Агент читает его, только когда вопрос требует инструмента.",
+        "Это один небольшой файл на этом компьютере. Удалить его можно потом на странице «Агенты».",
+      ],
+      next: "Установите навык для своих агентов ниже.",
+    },
   },
   signIn: {
     list: "Инструменты для входа",
@@ -665,6 +689,18 @@ const es: OnboardingText = {
     title: "Cómo añade una herramienta su skill",
     text: "Algunas herramientas ofrecen añadir su skill al iniciar sesión, en el siguiente paso: la terminal pregunta qué agente debe recibirla. Cualquier herramienta también puede añadir su skill desde una terminal, para Claude Code, Codex y Gemini CLI.",
     list: "Comandos de skills",
+    why: {
+      label: "Para qué sirve una skill",
+      ask: "Con una skill, le pides a tu agente las cosas con tus palabras, por ejemplo:",
+      example: "¿Qué me envió Anna ayer?",
+      points: [
+        "El agente sabe qué herramienta puede responder y la ejecuta por ti.",
+        "Sin la skill, el agente no sabe que la herramienta existe.",
+        "La skill casi no ocupa espacio. El agente la lee solo cuando tu pregunta necesita la herramienta.",
+        "Es un archivo pequeño en este equipo. Puedes quitarla más tarde en la página Agentes.",
+      ],
+      next: "Instala la skill para tus agentes aquí abajo.",
+    },
   },
   signIn: {
     list: "Herramientas en las que iniciar sesión",
