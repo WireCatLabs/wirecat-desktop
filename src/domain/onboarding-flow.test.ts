@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest"
 import {
+  accountReady,
   canOpen,
   computerGate,
   type Facts,
+  furthest,
   nextStep,
+  type Progress,
   previousStep,
   primaryAction,
+  resumeAt,
   STEPS,
+  skillInPlace,
   skipTarget,
 } from "./onboarding-flow"
 
@@ -85,5 +90,103 @@ describe("the main button", () => {
     expect(primaryAction("welcome", 0, false)).toBe("start")
     expect(primaryAction("done", 0, true)).toBe("guides")
     expect(primaryAction("install", 3, true)).toBe("continue")
+  })
+})
+
+describe("where the setup opens", () => {
+  const done: Progress = {
+    reached: "done",
+    nodeReady: true,
+    installed: 2,
+    installing: false,
+    agentFound: true,
+    skillInAgent: true,
+    signedOut: 0,
+  }
+  const fresh: Progress = {
+    reached: "welcome",
+    nodeReady: false,
+    installed: 0,
+    installing: false,
+    agentFound: false,
+    skillInAgent: false,
+    signedOut: 0,
+  }
+
+  it("opens at Welcome when nothing is done yet, with or without Node.js", () => {
+    expect(resumeAt(fresh)).toBe("welcome")
+    expect(resumeAt({ ...fresh, nodeReady: true })).toBe("welcome")
+    expect(resumeAt({ ...fresh, nodeReady: true, agentFound: true })).toBe("welcome")
+  })
+
+  it("opens at Your computer when the owner went past Welcome and Node.js is missing", () => {
+    expect(resumeAt({ ...fresh, reached: "computer" })).toBe("computer")
+    expect(resumeAt({ ...fresh, reached: "signin" })).toBe("computer")
+  })
+
+  it("opens at Choose when Node.js is ready and no tool is installed", () => {
+    expect(resumeAt({ ...fresh, reached: "computer", nodeReady: true })).toBe("choose")
+    expect(resumeAt({ ...done, installed: 0 })).toBe("choose")
+  })
+
+  it("opens at Install while an install runs, whatever else is true", () => {
+    expect(resumeAt({ ...fresh, installing: true })).toBe("install")
+    expect(resumeAt({ ...done, installing: true })).toBe("install")
+    expect(resumeAt({ ...done, installing: true, signedOut: 2, skillInAgent: false })).toBe("install")
+  })
+
+  it("opens at Your computer when tools are installed but Node.js is gone", () => {
+    expect(resumeAt({ ...done, nodeReady: false })).toBe("computer")
+    expect(resumeAt({ ...done, nodeReady: false, reached: "welcome" })).toBe("computer")
+  })
+
+  it("opens at Agents when an agent is found and no tool's skill is in it", () => {
+    expect(resumeAt({ ...done, skillInAgent: false })).toBe("agents")
+    expect(resumeAt({ ...done, skillInAgent: false, signedOut: 1 })).toBe("agents")
+  })
+
+  it("skips Agents when no agent is found", () => {
+    expect(resumeAt({ ...done, agentFound: false, skillInAgent: false })).toBe("home")
+    expect(resumeAt({ ...done, agentFound: false, skillInAgent: false, signedOut: 1 })).toBe("signin")
+  })
+
+  it("opens at Sign in when an installed tool has no account signed in", () => {
+    expect(resumeAt({ ...done, signedOut: 1 })).toBe("signin")
+    expect(resumeAt({ ...done, signedOut: 1, reached: "welcome" })).toBe("signin")
+  })
+
+  it("goes home when everything is done, even on a first start", () => {
+    expect(resumeAt(done)).toBe("home")
+    expect(resumeAt({ ...done, reached: "welcome" })).toBe("home")
+  })
+
+  it("keeps the furthest step as the hint", () => {
+    expect(furthest("welcome", "choose")).toBe("choose")
+    expect(furthest("signin", "computer")).toBe("signin")
+  })
+})
+
+describe("whether a tool has an account to work with", () => {
+  it("needs one account not signed out", () => {
+    expect(accountReady([], false)).toBe(false)
+    expect(accountReady([{ signedIn: false }], false)).toBe(false)
+    expect(accountReady([{ signedIn: false }, { signedIn: true }], false)).toBe(true)
+  })
+
+  it("does not hold the setup for what the tool cannot tell", () => {
+    expect(accountReady([{ signedIn: null }], false)).toBe(true)
+    expect(accountReady(null, false)).toBe(true)
+    expect(accountReady(undefined, false)).toBe(true)
+  })
+
+  it("takes any listed account of a tool set up by hand", () => {
+    expect(accountReady([], true)).toBe(false)
+    expect(accountReady([{ signedIn: false }], true)).toBe(true)
+  })
+
+  it("counts a current or older skill copy as in place", () => {
+    expect(skillInPlace(["missing", "stale"])).toBe(true)
+    expect(skillInPlace(["current"])).toBe(true)
+    expect(skillInPlace(["missing", "unknown", "checking"])).toBe(false)
   })
 })

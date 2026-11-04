@@ -1,5 +1,8 @@
 import { create } from "zustand"
 
+/** The page the app opens on and falls back to, such as after the setup. */
+export const HOME_SECTION = "tools"
+
 type Nav = {
   /** The section on screen, so one page can send the owner to another (Agents → Logs for a session). */
   active: string
@@ -13,7 +16,8 @@ type Nav = {
 // An in-memory stack, not window.history: the webview may map mouse buttons to its own history, and the mock's
 // `?state=` query must stay as loaded.
 export const useNav = create<Nav>((set) => ({
-  active: typeof window !== "undefined" && new URLSearchParams(window.location.search).has("add") ? "memory" : "tools",
+  active:
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("add") ? "memory" : HOME_SECTION,
   past: [],
   next: [],
   go: (section) => set((s) => (section === s.active ? s : { active: section, past: [...s.past, s.active], next: [] })),

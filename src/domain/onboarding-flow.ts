@@ -54,3 +54,51 @@ export function primaryAction(step: StepId, toInstall: number, nodeReady: boolea
   if (step === "choose" && toInstall > 0 && nodeReady) return "install"
   return "continue"
 }
+
+/** What the computer already has, read when the setup opens, so it starts where the owner stands. */
+export type Progress = {
+  /** The furthest step the owner opened before; a hint only, the computer's state wins. */
+  reached: StepId
+  nodeReady: boolean
+  installed: number
+  installing: boolean
+  agentFound: boolean
+  skillInAgent: boolean
+  /** Installed tools that sign in and have no account signed in yet. */
+  signedOut: number
+}
+
+export type Resume = StepId | "home"
+
+/** Where the setup opens: the first thing still missing, or home once nothing is. */
+export function resumeAt(p: Progress): Resume {
+  if (p.installing) return "install"
+  if (p.installed === 0) {
+    // Node.js often comes with the computer; until the owner has gone past Welcome, that alone is not progress.
+    if (p.reached === "welcome") return "welcome"
+    return p.nodeReady ? "choose" : "computer"
+  }
+  if (!p.nodeReady) return "computer"
+  if (p.agentFound && !p.skillInAgent) return "agents"
+  if (p.signedOut > 0) return "signin"
+  return "home"
+}
+
+export const furthest = (a: StepId, b: StepId): StepId => (stepIndex(a) >= stepIndex(b) ? a : b)
+
+/**
+ * Whether a tool has an account to work with. A tool set up by hand (`manual`) shows a listed account as ready; a
+ * sign-in it cannot report (`signedIn: null`), a tool without accounts (`null`) or a listing that failed
+ * (`undefined`) does not hold the setup, since the owner could not fix it there either.
+ */
+export function accountReady(
+  profiles: readonly { signedIn: boolean | null }[] | null | undefined,
+  manual: boolean,
+): boolean {
+  if (!profiles) return true
+  if (manual) return profiles.length > 0
+  return profiles.some((p) => p.signedIn !== false)
+}
+
+/** A skill is in place for an agent when its copy is there, current or older. */
+export const skillInPlace = (kinds: readonly string[]) => kinds.some((k) => k === "current" || k === "stale")

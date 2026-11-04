@@ -1,11 +1,12 @@
 import { Bug } from "lucide-react"
 import { useEffect, useState } from "react"
 import { AboutDialog } from "@/features/about/AboutDialog"
-import { useNav } from "@/features/nav"
+import { HOME_SECTION, useNav } from "@/features/nav"
 import { Bell } from "@/features/notifications/Bell"
 import { CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/features/notifications/store"
 import { type HelpActions, HelpMenu } from "@/features/onboarding/HelpMenu"
 import { Onboarding, SetupSteps } from "@/features/onboarding/Onboarding"
+import { resumeSetup } from "@/features/onboarding/resume"
 import { useOnboarding } from "@/features/onboarding/store"
 import { Tour, useTour } from "@/features/onboarding/Tour"
 import { PrivacyDialog } from "@/features/privacy/PrivacyDialog"
@@ -45,7 +46,7 @@ export function App() {
     setActive("tools")
     useTour.getState().start()
   }
-  const toTools = () => setActive("tools")
+  const toHome = () => setActive(HOME_SECTION)
   const [about, setAbout] = useState(false)
   const [privacy, setPrivacy] = useState(false)
   const help: HelpActions = {
@@ -55,7 +56,8 @@ export function App() {
     onAbout: () => setAbout(true),
   }
   useEffect(() => {
-    if (!useSystem.getState().readiness) void useSystem.getState().refresh()
+    if (useOnboarding.getState().resuming) void resumeSetup("start")
+    else if (!useSystem.getState().readiness) void useSystem.getState().refresh()
   }, [])
   useEffect(() => {
     const check = () => useUpdate.getState().check()
@@ -72,7 +74,7 @@ export function App() {
 
   return (
     <div className="flex h-full">
-      {onboarding ? <SetupSteps onExit={toTools} /> : <Sidebar active={active} onSelect={setActive} help={help} />}
+      {onboarding ? <SetupSteps onExit={toHome} /> : <Sidebar active={active} onSelect={setActive} help={help} />}
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar>
           {!onboarding && (
@@ -95,7 +97,7 @@ export function App() {
         </TopBar>
         {onboarding ? (
           <ErrorBoundary scope="page">
-            <Onboarding onExit={toTools} onTour={startTour} />
+            <Onboarding onExit={toHome} onTour={startTour} />
           </ErrorBoundary>
         ) : (
           <main className="min-h-0 flex-1 overflow-y-auto">
