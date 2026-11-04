@@ -1803,3 +1803,20 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-75 · ответ 2026-11-03: A** — отдельный npm-пакет (напр. `@wirecat/funnel`), Desktop ставит его как инструмент.
 - **NEED-76 · ответ 2026-11-03: A** — логи Tailscale выключены (`TS_NO_LOGS_NO_SUPPORT`). Слава: "also mention this in site terms, privacy, and wherever needed (including privacy in desktop)".
 - **NEED-74 · ответ 2026-11-03: A** — один вход владельца с эфемерной тестовой нодой, когда помощник будет готов.
+
+- **NEED-262 · Что удалить, чтобы освободить диск (4,9 ГБ свободно, 97%)?** **Ответ 2026-11-05:** Слава сам просит другие сессии проверить свои временные папки.
+- **NEED-261 · Выпускать ли WhatsApp на новом cli-core в составе 0.4.0?** **Ответ 2026-11-05: A**, "but dont wait for releases" — понято как: выпускать CLI (и WhatsApp) по мере готовности, не ждать отдельного «да» на каждый выпуск.
+
+### memo: NEED-223/224/225, 2026-11-03
+
+- NEED-225 · cli-core#2462 смёрджен: перенос задачи в другой проект переносит подзадачи, ответ `movedSubtasks [{from,to}]`, причина `task.has-subtasks` убрана.
+- NEED-225 · cli-memo#600 черновик: справка `--project`, docs, тест `moved_subtasks`; ждёт выпуска cli-core и подъёма версии.
+- NEED-223 · cli-core#2464 смёрджен: политика вложений (по умолчанию вкл., 10 МБ на файл, `not-read`/`too-large`), `readEmailWhole`, `store.mail.emailPlace`; план `docs/dev/mail-attachments-plan.md`. IMAP всё равно отдаёт письмо целиком: лимит не бережёт сеть.
+- NEED-223 · cli-core#2473 открыт: общий `messages show` с хуком `whole` перечитывает письмо с пропущенным вложением; при сбое — сохранённое письмо и issue `mail.attachments-unread`.
+- NEED-223 · mail-cli#73 черновик: настройки профиля `read_attachments`, `max_attachment_mb`; `sync --attachments/--no-attachments/--max-attachment-mb`; `messages show` читает письмо целиком; сохранение — уже существующий `attachments download`. Ждёт выпуска cli-core с #2464 и #2473; сквозная проверка не сделана.
+- NEED-224 · cli-base#458 смёрджен: код ошибки `conflict`, exit 15, причина по умолчанию `write.conflict`.
+- NEED-224 · cli-core#2467 черновик: `task.stale` → `conflict`; ждёт выпуска cli-base.
+- NEED-224 · cli-memo#601 черновик: справка `--revision`, docs, тест; ждёт выпусков cli-base и cli-core.
+- Десктоп (не правился): `task_board.rs` — ветка `HasSubtasks` станет мёртвой, `Saved` должен показать `moved_subtasks`; stale по `details.reason` продолжает работать; `src/domain/sync.ts` не знает `conflict`.
+- NEED-223 · cli-core#2473 смёрджен (2026-11-05), после регистрации причины `mail.attachments-unread`. cli-core 0.563.0 уже на npm с #2462 и #2464 (выпущен не этой сессией); #2473 ещё не выпущен — mail-cli#73 ждёт следующего выпуска, cli-memo#600 можно поднимать до 0.563.0.
+- Блог: POST-136 «лимит вложений бережёт индекс, а не трафик» добавлен в cli-private BLOG_IDEAS.md.
