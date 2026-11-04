@@ -108,7 +108,11 @@ body,
 }
 ::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--ink-dim) 55%, transparent);
+  /* Drawn against the track's outer side: main keeps clear of the resize strip (below), so a centred thumb read as
+     floating too far from the window edge. */
   border: 2px solid transparent;
+  border-right-width: 0;
+  border-left-width: 4px;
   border-radius: 999px;
   background-clip: padding-box;
 }
