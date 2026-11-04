@@ -159,7 +159,11 @@ describe("Agents", () => {
     await user.click(within(fixes).getByRole("button", { name: "Fix" }))
     expect(fix).toHaveBeenCalledWith(["zm"])
     expect(
-      await within(pane()).findByText(/Added ~\/\.local\/bin to PATH in ~\/\.zshrc\. Restart Claude Code/, {}, wait),
+      await within(pane()).findByText(
+        /Added ~\/\.local\/bin to PATH in ~\/\.zshrc, ~\/\.bashrc\. Restart Claude Code/,
+        {},
+        wait,
+      ),
     ).toBeInTheDocument()
     await waitFor(
       () => expect(within(pane()).queryByText("A new terminal cannot find Zoom")).not.toBeInTheDocument(),

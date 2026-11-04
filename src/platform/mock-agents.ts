@@ -1,5 +1,5 @@
 import { isNewer, type SkillRefresh } from "@/domain/status"
-import type { Agent, Chats, Claim, Registrations, SkillReport, Target } from "./agents-schemas"
+import type { Agent, Chats, Claim, PathFix, Registrations, SkillReport, Target } from "./agents-schemas"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
@@ -102,9 +102,63 @@ export async function refreshSkillsMock(
   return { refreshed, failed: null }
 }
 
-export function agentsMock(versionOf: (id: string) => string | undefined) {
+const SHELL_FILE: Record<string, string> = {
+  bash: "~/.bashrc",
+  zsh: "~/.zshrc",
+  fish: "~/.config/fish/conf.d/wirecat-desktop.fish",
+}
+const SHELL_PROGRAM: Record<string, string> = { bash: "/usr/bin/bash", zsh: "/usr/bin/zsh", fish: "/usr/bin/fish" }
+const shellName = (program: string) => program.split("/").pop() ?? program
+
+export function agentsMock(versionOf: (id: string) => string | undefined, os: Platform["os"] = "linux") {
   const written = new Map<string, string>()
   const onPath = new Set<string>()
+  // `?path-shells=bash,zsh,fish`: the shells /etc/shells lists here; the first is the account's.
+  const installedShells = (params.get("path-shells") ?? "zsh,bash")
+    .split(",")
+    .filter((s) => SHELL_PROGRAM[s])
+    .map((s) => SHELL_PROGRAM[s] as string)
+  let chosen: string | null = null
+  const terminalShell = () => chosen ?? installedShells[0] ?? "/bin/sh"
+  /**
+   * `?path-fail=always`: the files are written but a new terminal still misses the tools, whichever shell is picked.
+   * `?path-fail=first`: it misses them until the owner picks their shell.
+   */
+  const pathFix = (ids: string[]): PathFix => {
+    const fail = params.get("path-fail")
+    const misses = fail === "always" || (fail === "first" && chosen === null)
+    if (os === "windows") {
+      if (!misses) for (const id of ids) onPath.add(id)
+      return {
+        added: ["%APPDATA%\\npm"],
+        unreachable: misses ? ids : [],
+        file: "HKEY_CURRENT_USER\\Environment\\Path",
+        manual: misses ? "C:\\Users\\you\\AppData\\Roaming\\npm" : null,
+        restart: true,
+        shells: [],
+      }
+    }
+    const primary = terminalShell()
+    const shells = installedShells
+      .map((program) => ({
+        name: shellName(program),
+        program,
+        files: [SHELL_FILE[shellName(program)] ?? "~/.profile"],
+        finds: program === primary ? !misses : true,
+        primary: program === primary,
+      }))
+      .sort((a, b) => Number(b.primary) - Number(a.primary))
+    if (!misses) for (const id of ids) onPath.add(id)
+    const fish = shellName(primary) === "fish"
+    return {
+      added: ["~/.local/bin"],
+      unreachable: misses ? ids : [],
+      file: SHELL_FILE[shellName(primary)] ?? null,
+      manual: misses ? (fish ? 'set -gx PATH "$HOME/.local/bin" $PATH' : 'export PATH="$HOME/.local/bin:$PATH"') : null,
+      restart: true,
+      shells,
+    }
+  }
   const servers: Record<string, Set<string>> = {
     claude: new Set(["tg-personal"]),
     codex: new Set(),
@@ -124,6 +178,8 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
     | "skillShow"
     | "terminalReach"
     | "fixTerminalPath"
+    | "terminalShells"
+    | "useTerminalShell"
     | "runAgent"
     | "agentChats"
     | "mcpRegistrations"
@@ -209,9 +265,20 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
           file: null,
           manual: 'export PATH="$HOME/.local/bin:$PATH"',
           restart: false,
+          shells: [],
         }
-      for (const id of ids) onPath.add(id)
-      return { added: ["~/.local/bin"], unreachable: [], file: "~/.zshrc", manual: null, restart: true }
+      return pathFix(ids)
+    },
+    async terminalShells() {
+      await delay(200)
+      return { shells: ["/bin/sh", ...installedShells], current: terminalShell(), chosen }
+    },
+    async useTerminalShell(shell, ids) {
+      await delay(900)
+      if (shell !== "/bin/sh" && !installedShells.includes(shell))
+        throw new Error(`${shell} is not one of the shells this computer lists in /etc/shells.`)
+      chosen = shell
+      return pathFix(ids)
     },
     async agentChats(agent) {
       await delay(450)
