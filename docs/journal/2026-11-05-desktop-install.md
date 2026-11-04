@@ -25,14 +25,14 @@
 
 ## 2. Вопросы Славы
 
-**ASK-62 · «Use phone number instead was loading for a bit and then went back to Sign in to Telegram. does it work at all?»**
+**ASK-65 · «Use phone number instead was loading for a bit and then went back to Sign in to Telegram. does it work at all?»**
 Ответ после разбора (TASK-107, BUG-71).
 
-**ASK-63 · «Scan in Telegram → Settings → Devices → Link Desktop - may it differ on android/ios?»**
+**ASK-66 · «Scan in Telegram → Settings → Devices → Link Desktop - may it differ on android/ios?»**
 Да: на Android кнопка «Add Device» (его скриншот), на iOS «Link Desktop Device» (по словам Telegram, не проверено на
 iPhone, см. TASK-97 вчера). Делаем вкладки с миниатюрой (TASK-107).
 
-**ASK-64 · «when we ask for password we say its not stored and only sent to tg? I'm not sure i've seen it»**
+**ASK-67 · «when we ask for password we say its not stored and only sent to tg? I'm not sure i've seen it»**
 Заметка добавлена вчера (5850bf2) под полем пароля для tg; проверяем, почему не видна (TASK-107).
 
 ## 3. Находки
