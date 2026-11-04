@@ -23,7 +23,7 @@ import { useSystem } from "../system/store"
 import { failureWords, failureWordsEn, useFailureMessages } from "../tools/failure-words"
 import { openConnect } from "../tools/go"
 import { ManualSetup, NewProfile, TerminalStatus, useProfiles } from "../tools/Health"
-import { InstallProgress } from "../tools/InstallProgress"
+import { InstallLine, InstallProgress } from "../tools/InstallProgress"
 import { toolsMessages } from "../tools/messages"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
@@ -223,7 +223,7 @@ function Progress({ tool }: { tool: CatalogTool }) {
     text = m.already(version(status.version))
   }
 
-  const installing = Boolean(session && !outcome && session.step === "install")
+  const installing = Boolean(session && !outcome && session.step !== "queued")
   return (
     <li className={cx(row, "flex-wrap gap-y-0")}>
       <Lamp tone={tone} {...(typeof text === "string" ? { label: text } : {})} />
@@ -328,7 +328,9 @@ export function Install() {
         {allDone ? (
           <>
             <CheckCircle2 className="size-5 shrink-0 text-ok" aria-hidden />
-            <span className="text-ink">{m.allDone}</span>
+            <span className="text-ink">
+              {m.allDone} {m.moreLater}
+            </span>
           </>
         ) : (
           <span className="text-ink-soft">{m.note}</span>
@@ -645,6 +647,7 @@ export function leave() {
 export function Done() {
   const chosen = useOnboarding((s) => s.chosen)
   const installs = useTools((s) => s.installs)
+  const sessions = useTools((s) => s.sessions)
   const list = tools.filter((t) => chosen.includes(t.id))
   const browserReady = list.find((t) => t.mcpServer && installs[t.id]?.[0]?.version)
   const m = useMessages(onboardingMessages).done
@@ -660,19 +663,28 @@ export function Done() {
         <ul aria-label={m.list} className={rack}>
           {list.map((t) => {
             const version = installs[t.id]?.[0]?.version
+            const session = sessions[ownerId(t.id)]
+            const running = session && !session.outcome && session.operation === "install" ? session : null
             return (
               <li key={t.id} className={row}>
-                <Lamp tone={version ? "ok" : "idle"} />
+                <Lamp tone={version ? "ok" : running ? "busy" : "idle"} />
                 <ToolIcon id={t.id} className="size-[1.5rem] shrink-0 text-ink" />
                 <span className="flex-1 font-semibold">{t.name}</span>
-                <span className={cx("font-mono text-[1.02rem] tabular-nums", version ? "text-ink" : "text-ink-soft")}>
-                  {version ?? m.notInstalled}
-                </span>
+                {running ? (
+                  <div className="w-[16rem] max-w-[50%]">
+                    <InstallLine session={running} name={t.name} />
+                  </div>
+                ) : (
+                  <span className={cx("font-mono text-[1.02rem] tabular-nums", version ? "text-ink" : "text-ink-soft")}>
+                    {version ?? m.notInstalled}
+                  </span>
+                )}
               </li>
             )
           })}
         </ul>
       )}
+      <p className="max-w-[65ch] text-[0.95rem] text-ink-soft">{m.moreLater}</p>
       <section aria-label={m.next} className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-semibold">{m.next}</h2>
         <div className="flex flex-wrap gap-2">

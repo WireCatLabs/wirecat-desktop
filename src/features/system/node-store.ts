@@ -14,6 +14,9 @@ type NodeState = {
   received: number
   total: number | null
   failure: Failure | null
+  /** The owner chose to install Node.js himself, so setup lets him go on without it. */
+  myself: boolean
+  setMyself(myself: boolean): void
   path: NodePath | null
   busy: boolean
   error: string | null
@@ -35,6 +38,8 @@ export const useNode = create<NodeState>((set, get) => ({
   received: 0,
   total: null,
   failure: null,
+  myself: false,
+  setMyself: (myself) => set({ myself }),
   path: null,
   busy: false,
   error: null,
@@ -50,7 +55,8 @@ export const useNode = create<NodeState>((set, get) => ({
     if (get().running) return
     set({ running: true, step: "check", received: 0, total: null, failure: null })
     await platform.setupNode((e) => {
-      if (e.event === "step") set({ step: e.step })
+      // Each step counts its own bytes: the download, then the archive read back while unpacking.
+      if (e.event === "step") set({ step: e.step, received: 0, total: null })
       else if (e.event === "progress") set({ received: e.received, total: e.total })
       else if (e.event === "failed") set({ failure: e, running: false })
       else set({ running: false, step: null })

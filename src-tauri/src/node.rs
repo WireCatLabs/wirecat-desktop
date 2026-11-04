@@ -259,10 +259,24 @@ pub fn offer() -> Result<Offer, String> {
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "event")]
 pub enum NodeEvent {
-    Step { step: Step },
-    Progress { received: u64, total: Option<u64> },
-    Done { version: String, path: String, path_fix: Option<crate::terminal_path::PathFix> },
-    Failed { reason: Reason, message: String, hint: Option<String> },
+    Step {
+        step: Step,
+    },
+    /// Bytes of the archive so far: downloaded during `download`, read back out of it during `unpack`.
+    Progress {
+        received: u64,
+        total: Option<u64>,
+    },
+    Done {
+        version: String,
+        path: String,
+        path_fix: Option<crate::terminal_path::PathFix>,
+    },
+    Failed {
+        reason: Reason,
+        message: String,
+        hint: Option<String>,
+    },
 }
 
 #[derive(Serialize, Clone, Copy, Debug, PartialEq)]
@@ -272,6 +286,8 @@ pub enum Step {
     Download,
     Verify,
     Unpack,
+    /// Putting Node.js's folder on the user's PATH (`terminal_path::after_node_setup`, run by the command).
+    Path,
 }
 
 #[derive(Debug)]
@@ -359,7 +375,7 @@ pub fn setup(root: &Path, emit: &dyn Fn(NodeEvent), cancelled: &dyn Fn() -> bool
 
     emit(NodeEvent::Step { step: Step::Unpack });
     let unpacked = scratch.0.join("unpacked");
-    extract(target.asset.archive, &archive, &unpacked)?;
+    extract_with_progress(target.asset.archive, &archive, &unpacked, emit, cancelled)?;
     let inner = unpacked.join(format!("node-{}-{}", target.tag(), target.asset.platform));
     if !node_exe(&inner).is_file() {
         return Err(Failure::new(Reason::Verify, "The archive does not contain Node.js where expected.".into(), None));
@@ -420,8 +436,60 @@ fn download(
     Ok(format!("{:x}", hasher.finalize()))
 }
 
+/// Counts the archive's bytes as the unpacker reads them, so unpacking reports how far through the archive it is.
+/// A zip reads its directory at the end first, so the count can run slightly past the size; it is capped there.
+struct Counting<'a, R> {
+    inner: R,
+    read: u64,
+    total: u64,
+    last: Instant,
+    emit: &'a dyn Fn(NodeEvent),
+    cancelled: &'a dyn Fn() -> bool,
+}
+
+impl<R: Read> Read for Counting<'_, R> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        if (self.cancelled)() {
+            return Err(std::io::Error::other("cancelled"));
+        }
+        let n = self.inner.read(buf)?;
+        self.read += n as u64;
+        if self.last.elapsed() >= Duration::from_millis(100) {
+            (self.emit)(NodeEvent::Progress { received: self.read.min(self.total), total: Some(self.total) });
+            self.last = Instant::now();
+        }
+        Ok(n)
+    }
+}
+
+impl<R: std::io::Seek> std::io::Seek for Counting<'_, R> {
+    fn seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
+        self.inner.seek(pos)
+    }
+}
+
+fn extract_with_progress(
+    kind: Archive,
+    archive: &Path,
+    into: &Path,
+    emit: &dyn Fn(NodeEvent),
+    cancelled: &dyn Fn() -> bool,
+) -> Result<(), Failure> {
+    let file = std::fs::File::open(archive).map_err(|e| disk("read", archive, &e))?;
+    let total = file.metadata().map_err(|e| disk("read", archive, &e))?.len();
+    emit(NodeEvent::Progress { received: 0, total: Some(total) });
+    let reader = Counting { inner: file, read: 0, total, last: Instant::now(), emit, cancelled };
+    let result = unpack_from(kind, reader, archive, into);
+    if cancelled() {
+        return Err(cancelled_failure());
+    }
+    result?;
+    emit(NodeEvent::Progress { received: total, total: Some(total) });
+    Ok(())
+}
+
 /// Both archive kinds are compiled everywhere so the Windows path is built and tested on every platform.
-fn extract(kind: Archive, archive: &Path, into: &Path) -> Result<(), Failure> {
+fn unpack_from<R: Read + std::io::Seek>(kind: Archive, file: R, archive: &Path, into: &Path) -> Result<(), Failure> {
     let unpack = |e: &dyn std::fmt::Display| {
         Failure::new(
             Reason::Verify,
@@ -429,7 +497,6 @@ fn extract(kind: Archive, archive: &Path, into: &Path) -> Result<(), Failure> {
             None,
         )
     };
-    let file = std::fs::File::open(archive).map_err(|e| disk("read", archive, &e))?;
     match kind {
         Archive::TarGz => {
             let mut tar = tar::Archive::new(flate2::read::GzDecoder::new(std::io::BufReader::new(file)));
@@ -583,9 +650,59 @@ nothex  node-v24.22.1-win-x64.zip
             zip.finish().unwrap();
         }
         let out = dir.join("out");
-        let _ = extract(Archive::Zip, &archive, &out);
+        let _ = extract_with_progress(Archive::Zip, &archive, &out, &|_| {}, &|| false);
         assert!(out.join("node-v1.0.0-win-x64/node.exe").is_file());
         assert!(!dir.join("escape.txt").exists());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn unpacking_reports_how_far_through_the_archive_it_is() {
+        let dir = std::env::temp_dir().join(format!("wirecat-unpack-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let archive = dir.join("a.tar.gz");
+        {
+            let gz =
+                flate2::write::GzEncoder::new(std::fs::File::create(&archive).unwrap(), flate2::Compression::fast());
+            let mut tar = tar::Builder::new(gz);
+            let data = vec![7u8; 256 * 1024];
+            let mut header = tar::Header::new_gnu();
+            header.set_size(data.len() as u64);
+            header.set_mode(0o644);
+            header.set_cksum();
+            tar.append_data(&mut header, "node-v1.0.0-linux-x64/bin/node", data.as_slice()).unwrap();
+            tar.into_inner().unwrap().finish().unwrap();
+        }
+        let size = std::fs::metadata(&archive).unwrap().len();
+        let seen = std::sync::Mutex::new(Vec::new());
+        let emit = |e: NodeEvent| {
+            if let NodeEvent::Progress { received, total } = e {
+                seen.lock().unwrap().push((received, total));
+            }
+        };
+        let out = dir.join("out");
+        extract_with_progress(Archive::TarGz, &archive, &out, &emit, &|| false).unwrap();
+        let seen = seen.into_inner().unwrap();
+        assert_eq!(seen.first(), Some(&(0, Some(size))));
+        assert_eq!(seen.last(), Some(&(size, Some(size))));
+        assert!(seen.windows(2).all(|w| w[0].0 <= w[1].0));
+        assert!(out.join("node-v1.0.0-linux-x64/bin/node").is_file());
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn a_cancel_stops_unpacking() {
+        let dir = std::env::temp_dir().join(format!("wirecat-unpack-cancel-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let archive = dir.join("a.zip");
+        {
+            let mut zip = zip::ZipWriter::new(std::fs::File::create(&archive).unwrap());
+            zip.start_file("node-v1.0.0-win-x64/node.exe", zip::write::SimpleFileOptions::default()).unwrap();
+            zip.write_all(b"MZ").unwrap();
+            zip.finish().unwrap();
+        }
+        let failure = extract_with_progress(Archive::Zip, &archive, &dir.join("out"), &|_| {}, &|| true).unwrap_err();
+        assert_eq!(failure.reason, Reason::Cancelled);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 

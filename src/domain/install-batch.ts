@@ -24,20 +24,50 @@ export type Batch = {
   failed: number
 }
 
-/** One tool's share of its own install, weighted so the bar keeps moving through npm's long lookup phase. */
-export function toolFraction({ session, installed }: BatchItem): number {
-  if (!session) return installed ? 1 : 0
+/** What one tool's install is doing now, with npm's own counts where it reports them. */
+export type ToolStage =
+  | { kind: "idle" }
+  | { kind: "waiting" }
+  | { kind: "check" }
+  | { kind: "resolve"; looked: number }
+  | { kind: "fetch"; done: number; total: number | null }
+  | { kind: "setup" }
+  /** A manager that reports nothing (pnpm, bun): it runs, and that is all that is known. */
+  | { kind: "quiet" }
+  | { kind: "verify" }
+  | { kind: "done" }
+  | { kind: "failed" }
+
+export type ToolProgress = { stage: ToolStage; fraction: number }
+
+/**
+ * One tool's share of its own install, weighted so the bar keeps moving through npm's long lookup phase. The
+ * overview and every row read this one mapping, so a row's bar and its slice of the overview never disagree.
+ */
+export function toolProgress({ session, installed }: BatchItem): ToolProgress {
+  if (!session) return installed ? { stage: { kind: "done" }, fraction: 1 } : { stage: { kind: "idle" }, fraction: 0 }
   // A failed tool is not part of what got done, so a batch that failed is not shown as 100%.
-  if (session.outcome) return session.outcome.event === "failed" ? 0 : 1
-  if (session.step === "check") return 0.05
-  if (session.step === "verify") return 0.95
-  if (session.step !== "install") return 0
+  if (session.outcome)
+    return session.outcome.event === "failed"
+      ? { stage: { kind: "failed" }, fraction: 0 }
+      : { stage: { kind: "done" }, fraction: 1 }
+  if (session.step === "queued") return { stage: { kind: "waiting" }, fraction: 0 }
+  if (session.step === "check") return { stage: { kind: "check" }, fraction: 0.05 }
+  if (session.step === "verify") return { stage: { kind: "verify" }, fraction: 0.95 }
+  if (session.step !== "install") return { stage: { kind: "check" }, fraction: 0 }
   const p = session.progress
-  if (!p || p.phase === null) return 0.1
-  if (p.phase === "resolve") return 0.1 + 0.25 * Math.min(1, p.looked / LOOKUPS)
-  if (p.phase === "fetch") return 0.35 + 0.55 * (p.total ? Math.min(1, p.done / p.total) : 0)
-  return 0.9
+  if (!p || p.phase === null) return { stage: { kind: "quiet" }, fraction: 0.1 }
+  if (p.phase === "resolve")
+    return { stage: { kind: "resolve", looked: p.looked }, fraction: 0.1 + 0.25 * Math.min(1, p.looked / LOOKUPS) }
+  if (p.phase === "fetch")
+    return {
+      stage: { kind: "fetch", done: p.done, total: p.total },
+      fraction: 0.35 + 0.55 * (p.total ? Math.min(1, p.done / p.total) : 0),
+    }
+  return { stage: { kind: "setup" }, fraction: 0.9 }
 }
+
+export const toolFraction = (item: BatchItem): number => toolProgress(item).fraction
 
 const tookMs = (s: InstallSession) => (s.ended && s.began?.check ? s.ended - s.began.check : null)
 

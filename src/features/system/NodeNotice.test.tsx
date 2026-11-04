@@ -1,7 +1,8 @@
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import type { NodeEvent } from "@/platform/schemas"
 import { ComputerFacts } from "./ComputerFacts"
 import { NodeNotice } from "./NodeNotice"
 import { useNode } from "./node-store"
@@ -43,5 +44,30 @@ describe("a computer without Node.js, in Russian", () => {
       await screen.findByText(/с nodejs\.org, сверяется с опубликованными контрольными суммами/),
     ).toBeInTheDocument()
     expect(screen.getByRole("region", { name: "Ваш компьютер" })).toHaveTextContent("Node.js не найден")
+  })
+})
+
+describe("setting Node.js up", () => {
+  it("shows how far through the archive unpacking is, then the PATH step", async () => {
+    let send: (e: NodeEvent) => void = () => {}
+    vi.spyOn(platform, "setupNode").mockImplementation(async (onEvent) => {
+      send = onEvent
+      await new Promise(() => {})
+    })
+    render(<NodeNotice />)
+    act(() => {
+      void useNode.getState().setup()
+    })
+    act(() => {
+      send({ event: "step", step: "unpack" })
+      send({ event: "progress", received: 15, total: 30 })
+    })
+    const bar = screen.getByRole("progressbar", { name: "Unpacking Node.js" })
+    expect(bar).toHaveAttribute("aria-valuenow", "50")
+    expect(screen.getByText("50% of the archive")).toBeInTheDocument()
+
+    act(() => send({ event: "step", step: "path" }))
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
+    expect(screen.getByText(/Adding Node.js to your PATH/)).toBeInTheDocument()
   })
 })

@@ -93,7 +93,7 @@ export const InstallEventSchema = v.variant("event", [
 ])
 
 export const NodeEventSchema = v.variant("event", [
-  v.object({ event: v.literal("step"), step: v.picklist(["check", "download", "verify", "unpack"]) }),
+  v.object({ event: v.literal("step"), step: v.picklist(["check", "download", "verify", "unpack", "path"]) }),
   v.object({ event: v.literal("progress"), received: v.number(), total: v.nullable(v.number()) }),
   v.object({
     event: v.literal("done"),

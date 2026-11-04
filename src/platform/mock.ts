@@ -294,7 +294,15 @@ export function createMock(os: Platform["os"]): Platform {
         })
       }
       onEvent({ event: "step", step: "unpack" })
-      await delay(900)
+      const slices = params.get("node") === "slow" ? 60 : 12
+      for (let i = 0; i <= slices; i++) {
+        if (nodeCancelled)
+          return onEvent({ event: "failed", reason: "cancelled", message: "Node.js setup cancelled.", hint: null })
+        onEvent({ event: "progress", received: Math.round((NODE.bytes * i) / slices), total: NODE.bytes })
+        await delay(150)
+      }
+      onEvent({ event: "step", step: "path" })
+      await delay(500)
       managed = true
       onEvent({ event: "done", version: NODE.version, path: NODE.dir })
     },
