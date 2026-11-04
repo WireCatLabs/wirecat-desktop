@@ -32,7 +32,7 @@ enum Shell {
 
 struct Env {
     macos: bool,
-    shell: Option<String>,
+    shell: Option<PathBuf>,
     home: PathBuf,
     zdotdir: Option<PathBuf>,
     xdg_config: Option<PathBuf>,
@@ -43,7 +43,7 @@ impl Env {
         let abs = |v: &str| std::env::var_os(v).map(PathBuf::from).filter(|p| p.is_absolute());
         Some(Self {
             macos: cfg!(target_os = "macos"),
-            shell: std::env::var("SHELL").ok(),
+            shell: paths::user_shell(),
             home: paths::home()?,
             zdotdir: abs("ZDOTDIR"),
             xdg_config: abs("XDG_CONFIG_HOME"),
@@ -51,7 +51,7 @@ impl Env {
     }
 
     fn shell(&self) -> (Shell, String) {
-        let name = self.shell.as_deref().and_then(|s| Path::new(s).file_name()?.to_str()).unwrap_or("sh");
+        let name = self.shell.as_deref().and_then(|s| s.file_name()?.to_str()).unwrap_or("sh");
         let kind = match name {
             "bash" => Shell::Bash,
             "zsh" => Shell::Zsh,

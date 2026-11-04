@@ -87,10 +87,10 @@ pub fn forget_login_shell() {
 
 #[cfg(unix)]
 fn read_login_shell() -> ShellEnv {
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+    let shell = user_shell().unwrap_or_else(|| PathBuf::from("/bin/sh"));
     let script = "printf '__WIRECAT_PATH__%s__WIRECAT_PNPM__%s' \"$PATH\" \"$PNPM_HOME\"";
     let flags = terminal_flags(&shell, cfg!(target_os = "linux"));
-    let Ok(out) = crate::run::run(Path::new(&shell), &[flags, script], None, Duration::from_secs(5)) else {
+    let Ok(out) = crate::run::run(&shell, &[flags, script], None, Duration::from_secs(5)) else {
         return ShellEnv::default();
     };
     let Some((_, rest)) = out.stdout.rsplit_once("__WIRECAT_PATH__") else { return ShellEnv::default() };
@@ -101,11 +101,68 @@ fn read_login_shell() -> ShellEnv {
 
 /// The shell a new terminal window starts, so the check reads the same file `profile.rs` writes. Linux terminals
 /// start bash as a non-login shell, which reads `.bashrc`; a login bash reads only `.profile` or `.bash_profile`, and a
-/// fresh account's `.profile` need not source `.bashrc`, so `-l` there misses the app's own PATH block.
+/// fresh account's `.profile` need not source `.bashrc`, so `-l` there misses the app's own PATH block. zsh and fish
+/// read their interactive file in a login shell too. Any other shell (dash, ksh) gets no file from the app, so the
+/// check asks what a login shell reads: `~/.profile`.
 #[cfg(unix)]
-fn terminal_flags(shell: &str, linux: bool) -> &'static str {
-    let bash = Path::new(shell).file_name().is_some_and(|n| n == "bash");
-    if bash && linux { "-ic" } else { "-lic" }
+fn terminal_flags(shell: &Path, linux: bool) -> &'static str {
+    match shell.file_name().and_then(|n| n.to_str()) {
+        Some("bash") if linux => "-ic",
+        Some("bash" | "zsh" | "fish") => "-lic",
+        _ => "-lc",
+    }
+}
+
+/// The user's own shell: `$SHELL` when it is a real file (a launcher may set none, or a stale one), else the one the
+/// account database lists, else `/bin/sh`. `None` only on Windows.
+pub fn user_shell() -> Option<PathBuf> {
+    if cfg!(windows) {
+        return None;
+    }
+    let usable = |p: &PathBuf| p.is_absolute() && p.is_file();
+    std::env::var_os("SHELL")
+        .map(PathBuf::from)
+        .filter(usable)
+        .or_else(|| account_shell().filter(usable))
+        .or_else(|| Some(PathBuf::from("/bin/sh")))
+}
+
+fn account_shell() -> Option<PathBuf> {
+    let user = ["USER", "LOGNAME"].iter().find_map(|v| std::env::var(v).ok()).filter(|u| valid_user(u))?;
+    let timeout = Duration::from_secs(3);
+    if cfg!(target_os = "macos") {
+        let out = crate::run::run(
+            Path::new("/usr/bin/dscl"),
+            &[".", "-read", &format!("/Users/{user}"), "UserShell"],
+            None,
+            timeout,
+        )
+        .ok()?;
+        return parse_dscl_shell(&out.stdout);
+    }
+    let getent = ["/usr/bin/getent", "/bin/getent"].into_iter().map(Path::new).find(|p| p.is_file())?;
+    let out = crate::run::run(getent, &["passwd", &user], None, timeout).ok()?;
+    parse_passwd_shell(&out.stdout, &user)
+}
+
+fn valid_user(user: &str) -> bool {
+    !user.is_empty()
+        && user.len() <= 64
+        && !user.starts_with('-')
+        && user.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '$'))
+}
+
+/// The shell field (the last) of the passwd line for `user`.
+fn parse_passwd_shell(passwd: &str, user: &str) -> Option<PathBuf> {
+    let line = passwd.lines().find(|l| l.split(':').next() == Some(user))?;
+    let shell = line.split(':').nth(6)?.trim();
+    (!shell.is_empty()).then(|| PathBuf::from(shell))
+}
+
+/// `UserShell: /bin/zsh`, as `dscl . -read /Users/<user> UserShell` prints it.
+fn parse_dscl_shell(out: &str) -> Option<PathBuf> {
+    let shell = out.lines().find_map(|l| l.strip_prefix("UserShell:"))?.trim();
+    (!shell.is_empty()).then(|| PathBuf::from(shell))
 }
 
 #[cfg(windows)]
@@ -266,11 +323,42 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn checks_bash_on_linux_as_a_new_terminal_starts_it() {
-        assert_eq!(terminal_flags("/bin/bash", true), "-ic");
-        assert_eq!(terminal_flags("/usr/bin/bash", false), "-lic");
-        assert_eq!(terminal_flags("/bin/zsh", true), "-lic");
-        assert_eq!(terminal_flags("/usr/bin/fish", true), "-lic");
+    fn checks_each_shell_as_a_new_terminal_starts_it() {
+        let flags = |s: &str, linux| terminal_flags(Path::new(s), linux);
+        assert_eq!(flags("/bin/bash", true), "-ic");
+        assert_eq!(flags("/usr/bin/bash", false), "-lic");
+        assert_eq!(flags("/bin/zsh", true), "-lic");
+        assert_eq!(flags("/bin/zsh", false), "-lic");
+        assert_eq!(flags("/usr/bin/fish", true), "-lic");
+        assert_eq!(flags("/bin/dash", true), "-lc");
+        assert_eq!(flags("/bin/sh", false), "-lc");
+    }
+
+    #[test]
+    fn reads_the_shell_from_a_passwd_line() {
+        let passwd = "leemour:x:1000:1000:Slava,,,:/home/leemour:/usr/bin/zsh\n";
+        assert_eq!(parse_passwd_shell(passwd, "leemour"), Some(PathBuf::from("/usr/bin/zsh")));
+        assert_eq!(parse_passwd_shell(passwd, "lee"), None);
+        assert_eq!(parse_passwd_shell("leemour:x:1000:1000::/home/leemour:\n", "leemour"), None);
+        assert_eq!(parse_passwd_shell("leemour:x:1000", "leemour"), None);
+        assert_eq!(parse_passwd_shell("", "leemour"), None);
+    }
+
+    #[test]
+    fn reads_the_shell_from_dscl_output() {
+        assert_eq!(parse_dscl_shell("UserShell: /bin/zsh\n"), Some(PathBuf::from("/bin/zsh")));
+        assert_eq!(parse_dscl_shell("UserShell:\n"), None);
+        assert_eq!(parse_dscl_shell("<dscl_cmd> DS Error: -14136 (eDSRecordNotFound)"), None);
+    }
+
+    #[test]
+    fn accepts_only_plain_account_names() {
+        assert!(valid_user("leemour"));
+        assert!(valid_user("first.last-2"));
+        assert!(!valid_user(""));
+        assert!(!valid_user("-o"));
+        assert!(!valid_user("a b"));
+        assert!(!valid_user("a/b"));
     }
 
     use super::*;
