@@ -69,7 +69,8 @@ what to do eg check next guide etc». Вместе с NEED-2187 (экран «к
 **TASK-96 итог (2026-11-04):** feat/tg-signin 33db891, 0fbad56. Реальный порядок: tg открывает my.telegram.org, спрашивает
 api_id, api_hash, затем QR или телефон+код, затем пароль 2FA. Ошибки Telegram с причиной и кнопкой назад
 (src/domain/telegram-signin.ts), заметка keyring (src/domain/signin-notes.ts), картинки в src/assets/signin. 687 тестов
-vitest. Текст про пароль поправлен: Telegram получает доказательство, не сам пароль. Хэш на картинке отправлен закрасить.
+vitest. Текст про пароль поправлен: Telegram получает доказательство, не сам пароль. Хэш на картинке закрашен (2084b2f, проверил картинку); в feat/smooth-install влито одним коммитом 5850bf2, чтобы старая
+картинка не попала в историю; ветку feat/tg-signin не пушить, удалить (CLEANUP.md). 221 тест signin+domain после слияния.
 
 ## 2. Вопросы Славы
 
