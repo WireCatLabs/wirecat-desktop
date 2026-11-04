@@ -84,7 +84,8 @@ vitest. Текст про пароль поправлен: Telegram получа
 new-component, application-logic, rust-command, testing, i18n, release, reuse), ссылка из CLAUDE.md. Сравнение UI-библиотек
 (с shadcn, Tailwind, React Aria, Radix, Base UI, Ark, Mantine, HeroUI) — docs/dev/ui-libraries.md. Подагенты.
 
-**TASK-102 · Тесты на весь первый запуск и установку** — Слава: «cover the onboarding and install steps with tests so we
+**TASK-102 · Тесты на весь первый запуск и установку** — **влито** (merge test/onboarding-install): 51 новый тест,
+src/domain/onboarding-flow.ts, src/testing/onboarding.tsx; 753 теста, 3 прогона подряд без сбоев. — Слава: «cover the onboarding and install steps with tests so we
 dont get regression there - this is critical». Подагент, ветка test/onboarding-install. Чистка диска /home по просьбе
 Славы («you free - find merged worktrees/branches, npm and other build caches etc») — подагент, журнал удалений в CLEANUP.md.
 NEED-2189 — Слава думает, спросить снова после сравнения.
@@ -204,6 +205,19 @@ why we have this section». Решение: без серверов WireCat ра
 нажатие добавило второй блок (видно в `~/.cache/wirecat-fresh-install/home/.bashrc`). Исправлено: на Linux bash проверяется
 как новый терминал (`-ic`), `src-tauri/src/paths.rs` `terminal_flags`, тест.
 
+**BUG-65 · Боковая панель настройки пропускала проверку Node.js** — Continue был заблокирован, а шаги в панели открывались.
+Исправлено (0ec6958): шаги после «Ваш компьютер» недоступны с той же причиной.
+
+**BUG-66 · Причина блокировки Continue устаревала на 200 мс** — текст внутри анимации затухания, две копии с одним id,
+экранный диктор читал старую. Исправлено (35bd6cb).
+
+**BUG-67 · Установка считала «n из N» не в том порядке** — ставились в порядке отметок, считались в порядке списка.
+Исправлено (0a79584): очередь идёт по списку на экране.
+
+**RISK-100 · Кэш модулей vitest прятал новые файлы сообщений от catalogs.test.ts** — `import.meta.glob` в кэшированном
+преобразовании; fix/messages.ts и signin/messages-telegram.ts не проверялись локально (73 вместо 77 тестов). CI с чистой
+установкой не задет. Выключил `fsModuleCache` в vitest.config.ts; полный прогон 56 с, как и раньше.
+
 ## 4. Вопросы к Славе
 
 **NEED-2184 · Добавлять ли папку своего Node в PATH пользователя автоматически после установки, а не по кнопке?**
@@ -264,3 +278,20 @@ classes. Do not add shadcn or a kit.»
 
 **NEED-2193 · Где жить общим частям (ToolIcon, ReportThis, safeStorage, JsonTree)?** — A `src/shared/` · B ui/ и platform/.
 Я бы A. **Ответ Славы (2026-11-04):** **A**.
+
+**NEED-2194 · Удалить ли ~/.cache/wirecat-bench (7 ГБ данных бенчмарков)?** — A удалить · B оставить. Я бы B, пока не
+подтверждено, что результаты в cli-testing.
+
+**NEED-2195 · Посмотреть ли внутрь ~/.local/share/WireCat (13 ГБ) только на чтение?** — Я бы A: если там копятся кэши,
+приложение должно их чистить.
+
+**NEED-2196 · Удалить ли старые worktree в visage/.claude/worktrees, чьи PR слиты или закрыты?** — Я бы A: проверить PR на
+GitHub, удалить чистые, остальные списком. (Папки сборки в них уже удалены, 76 ГБ.)
+
+**NEED-2197 · После «Настроить позже» и перезапуска открывать настройку там, где остановились, а не с приветствия?**
+- Сейчас: сохраняется только статус, настройка открывается с Welcome.
+- Варианты: **A** продолжать с сохранённого шага · **B** с начала
+- Я бы: **A** — человек уже прошёл Node.js и выбор, повторять скучно.
+- Если не ответить: с начала.
+
+(NEED-2198 выдан счётчиком и не использован.)
