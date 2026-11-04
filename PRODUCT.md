@@ -84,6 +84,9 @@ authentication. Everything stays on the user's computer.
 3. One obvious action per tool; details on demand.
 4. Errors say what happened and what to do next, with the raw log one click away.
 5. Never choose an account or profile for the user.
+6. Keep what WireCat extracts, not the file. Added files and mail attachments are read into the database (text,
+   metadata) and the file itself is not kept. A copy is kept only when the user asks for it with a flag
+   (NEED-201).
 
 ## Accessibility & Inclusion
 
