@@ -58,7 +58,7 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
         <Stepper steps={stepStates(session, m)} />
       </div>
 
-      <Collapse open={session.operation === "install" && session.step === "install" && !outcome}>
+      <Collapse open={session.operation === "install" && session.step !== "queued" && !outcome}>
         <div className="mx-auto mt-[1.6rem] max-w-[62rem]">
           <InstallProgress session={session} />
         </div>

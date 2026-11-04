@@ -17,6 +17,7 @@ import { TextButton } from "@/ui/TextButton"
 import { useSystem } from "../system/store"
 import { activityOf } from "./connect-steps"
 import { InstallPanel } from "./InstallPanel"
+import { InstallLine } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
 import { fitLabel, fitLine, useLatestKnown } from "./StorageFit"
 import { RowSyncButton, RowSyncLine, useRowSync } from "./Sync"
@@ -82,6 +83,8 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
   const panelId = `tool-panel-${tool.id}`
   const app = useMcpActivity(tool, installed, expanded)
   const sync = useRowSync(tool, installed)
+  // The same live progress the setup shows, so an install started there is visible here with the panel shut.
+  const installing = session && !session.outcome && session.operation === "install" ? session : null
 
   return (
     <li data-tour="tool" className="border-line border-b last:border-b-0">
@@ -108,7 +111,11 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             {(installs?.length ?? 0) > 1 && <Pill tone="warn">{m.copies(installs?.length ?? 0)}</Pill>}
             <ExpandChevron open={open} className="self-center group-hover:text-brand" />
           </h3>
-          {storageLine ? (
+          {installing ? (
+            <div className="mt-1 max-w-[28rem]">
+              <InstallLine session={installing} name={tool.name} />
+            </div>
+          ) : storageLine ? (
             <p
               title={storageLine}
               className={cx("mt-1 truncate text-[0.95rem]", severity === "bad" ? "text-bad" : "text-warn-ink")}

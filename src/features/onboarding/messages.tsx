@@ -58,6 +58,9 @@ const en = {
     installTools: (n: number) => plural("en", n, { one: "Install # tool", other: "Install # tools" }),
     openTools: "Open Tools",
     continue: "Continue",
+    blockedChecking: "Checking this computer first…",
+    blockedSettingUp: "Continue opens once Node.js is set up.",
+    blockedNode: "Set up Node.js, or choose “I'll install it myself”, to continue.",
     back: "Back",
     skip: "Skip",
     tour: "Take the tour",
@@ -103,6 +106,7 @@ const en = {
     rest: "Install the rest",
     note: "Installs keep going if you move on. Each one is also shown on the Tools page, with its full log.",
     allDone: "Everything is installed. Next, give your AI agents the skills to use it.",
+    moreLater: "You can install other tools later on the Tools page.",
   },
   wait: {
     label: "Progress of all installs",
@@ -197,6 +201,7 @@ const en = {
   done: {
     list: "Your tools",
     notInstalled: "Not installed",
+    moreLater: "You can install other tools later on the Tools page.",
     next: "What next",
     connect: (tool: string) => `Let ChatGPT or Claude use ${tool}`,
     agents: "See which agents use them",
@@ -296,6 +301,9 @@ const ru: OnboardingText = {
       }),
     openTools: "Открыть инструменты",
     continue: "Продолжить",
+    blockedChecking: "Сначала проверяем компьютер…",
+    blockedSettingUp: "«Продолжить» откроется, когда Node.js будет установлен.",
+    blockedNode: "Чтобы продолжить, установите Node.js или выберите «Установлю самостоятельно».",
     back: "Назад",
     skip: "Пропустить",
     tour: "Пройти экскурсию",
@@ -342,6 +350,7 @@ const ru: OnboardingText = {
     rest: "Установить остальные",
     note: "Установка продолжится, если вы перейдёте дальше. Каждую из них также видно на странице «Инструменты» вместе с полным журналом.",
     allDone: "Всё установлено. Дальше — дать вашим ИИ-агентам навыки, чтобы они этим пользовались.",
+    moreLater: "Другие инструменты можно установить позже на странице «Инструменты».",
   },
   wait: {
     label: "Ход всех установок",
@@ -464,6 +473,7 @@ const ru: OnboardingText = {
   done: {
     list: "Ваши инструменты",
     notInstalled: "Не установлен",
+    moreLater: "Другие инструменты можно установить позже на странице «Инструменты».",
     next: "Что дальше",
     connect: (tool) => `Дать ChatGPT или Claude доступ к ${tool}`,
     agents: "Посмотреть, какие агенты их используют",
@@ -554,6 +564,9 @@ const es: OnboardingText = {
     installTools: (n) => plural("es", n, { one: "Instalar # herramienta", other: "Instalar # herramientas" }),
     openTools: "Abrir Herramientas",
     continue: "Continuar",
+    blockedChecking: "Primero comprobamos este equipo…",
+    blockedSettingUp: "Continuar se activa cuando Node.js esté listo.",
+    blockedNode: "Para continuar, prepara Node.js o elige «Lo instalo yo».",
     back: "Atrás",
     skip: "Omitir",
     tour: "Hacer el recorrido",
@@ -600,6 +613,7 @@ const es: OnboardingText = {
     rest: "Instalar el resto",
     note: "Las instalaciones siguen aunque pases al siguiente paso. Cada una aparece también en la página Herramientas, con su registro completo.",
     allDone: "Todo está instalado. Ahora, da a tus agentes de IA las habilidades para usarlo.",
+    moreLater: "Puedes instalar otras herramientas más tarde en la página Herramientas.",
   },
   wait: {
     label: "Progreso de todas las instalaciones",
@@ -713,6 +727,7 @@ const es: OnboardingText = {
   done: {
     list: "Tus herramientas",
     notInstalled: "Sin instalar",
+    moreLater: "Puedes instalar otras herramientas más tarde en la página Herramientas.",
     next: "Qué sigue",
     connect: (tool) => `Deja que ChatGPT o Claude usen ${tool}`,
     agents: "Ver qué agentes las usan",

@@ -96,6 +96,9 @@ async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node::No
         running.finish(node::OPERATION);
         // Tools installed with this Node.js are linked beside it; the user's PATH changes without an administrator,
         // so a terminal and the AI apps find them with nothing more to do. A failure here never fails the setup.
+        if result.is_ok() {
+            send(node::NodeEvent::Step { step: node::Step::Path });
+        }
         let path_fix = result.as_ref().ok().and_then(|done| terminal_path::after_node_setup(&node::bin_dir(&done.dir)));
         paths::refresh(&[]);
         send(match result {

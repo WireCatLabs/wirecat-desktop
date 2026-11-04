@@ -3,12 +3,15 @@ import { type ComponentType, useEffect, useId, useRef } from "react"
 import { tools } from "@/domain/catalog"
 import { formatList, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
 import { reducedMotion } from "@/ui/motion"
 import { AgentsMatrix } from "../agents/AgentsMatrix"
 import { arriveFromSetup } from "../guides/GuidesPage"
+import { useNode } from "../system/node-store"
 import { useSystem } from "../system/store"
+import { StillInstalling, useUnfinishedInstalls } from "../tools/InstallProgress"
 import { SkillBenefits } from "../tools/SkillOffer"
 import { useTools } from "../tools/store"
 import { onboardingMessages } from "./messages"
@@ -124,6 +127,12 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
   const headingId = useId()
   const shown = useRef(step)
   const { go, finish } = useOnboarding.getState()
+  // The Install and Done steps show each install in place; the others say only that one is still going.
+  const stillInstalling = useUnfinishedInstalls().length > 0 && step !== "install" && step !== "done"
+  const readiness = useSystem((s) => s.readiness)
+  const nodeRunning = useNode((s) => s.running)
+  const myself = useNode((s) => s.myself)
+  const blockedId = useId()
 
   useEffect(() => {
     useTools.getState().refresh()
@@ -176,7 +185,20 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
       run: () => next(step === "choose" && chosen.length === 0 ? "agents" : undefined),
     }
 
-  const skip = step === "welcome" || step === "done" ? null : () => next(step === "choose" ? "agents" : undefined)
+  // Tools cannot install without Node.js, so the computer step holds until it is ready or the owner takes it on.
+  const computerOk = Boolean(readiness?.node.ok && readiness.npm.ok && readiness.npmPrefixWritable !== false)
+  const blocked =
+    step !== "computer" || computerOk || myself
+      ? null
+      : !readiness
+        ? m.flow.blockedChecking
+        : nodeRunning
+          ? m.flow.blockedSettingUp
+          : m.flow.blockedNode
+  const skip =
+    step === "welcome" || step === "done" || step === "computer"
+      ? null
+      : () => next(step === "choose" ? "agents" : undefined)
 
   return (
     <main ref={scroller} aria-labelledby={headingId} className="min-h-0 flex-1 overflow-y-auto">
@@ -218,7 +240,19 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
                 {m.flow.back}
               </Button>
             )}
-            <span className="flex-1" />
+            {/* Why Continue is held, or that an install started earlier is still running: it outlives its step. */}
+            <Crossfade
+              swap={blocked ? `blocked:${blocked}` : stillInstalling ? "busy" : "idle"}
+              className="min-w-0 flex-1 px-2"
+            >
+              {blocked ? (
+                <p id={blockedId} className="text-right text-[0.9rem] leading-snug text-ink-soft">
+                  {blocked}
+                </p>
+              ) : (
+                stillInstalling && <StillInstalling />
+              )}
+            </Crossfade>
             {skip && (
               <Button variant="ghost" onClick={skip}>
                 {m.flow.skip}
@@ -226,7 +260,14 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
             )}
             {step === "done" && <Button onClick={() => close(true)}>{m.flow.tour}</Button>}
             {step === "done" && <Button onClick={() => close(false)}>{m.flow.openTools}</Button>}
-            <Button variant="primary" size="lg" onClick={primary.run}>
+            <Button
+              variant="primary"
+              size="lg"
+              aria-disabled={blocked ? true : undefined}
+              aria-describedby={blocked ? blockedId : undefined}
+              className={cx(blocked && "cursor-not-allowed opacity-45 hover:bg-brand")}
+              onClick={blocked ? undefined : primary.run}
+            >
               {primary.label}
             </Button>
           </div>

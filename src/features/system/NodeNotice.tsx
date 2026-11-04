@@ -1,5 +1,5 @@
 import { Download, ExternalLink } from "lucide-react"
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId } from "react"
 import { requirements } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { useMessages } from "@/i18n"
@@ -16,7 +16,7 @@ import { systemMessages } from "./messages"
 import { type NodeStep, useNode } from "./node-store"
 import { useSystem } from "./store"
 
-const STEPS: readonly NodeStep[] = ["check", "download", "verify", "unpack"]
+const STEPS: readonly NodeStep[] = ["check", "download", "verify", "unpack", "path"]
 
 const NODEJS_ORG = "nodejs.org"
 
@@ -54,7 +54,7 @@ function NeedsNode({ r }: { r: Readiness }) {
   const offerError = useNode((s) => s.offerError)
   const running = useNode((s) => s.running)
   const failure = useNode((s) => s.failure)
-  const [manual, setManual] = useState(false)
+  const manual = useNode((s) => s.myself)
   const manualId = useId()
   const m = useMessages(systemMessages)
 
@@ -89,7 +89,7 @@ function NeedsNode({ r }: { r: Readiness }) {
           >
             {m.setUp}
           </Button>
-          <Button aria-expanded={manual} aria-controls={manualId} onClick={() => setManual((m) => !m)}>
+          <Button aria-expanded={manual} aria-controls={manualId} onClick={() => useNode.getState().setMyself(!manual)}>
             {m.installMyself}
           </Button>
           <p className="min-w-0 text-[0.875rem] text-ink-soft">
@@ -136,31 +136,40 @@ function Progress() {
   return (
     <div className="flex flex-col gap-4 rounded-[0.45rem] border border-line bg-app px-5 py-4">
       <Stepper steps={steps} />
-      {step === "download" && !failure && (
-        <div className="flex items-center gap-4">
-          <div
-            role="progressbar"
-            aria-label={m.downloading}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={pct ?? undefined}
-            className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-3"
-          >
+      {(step === "download" || step === "unpack") && !failure && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-4">
             <div
-              className="h-full rounded-full bg-brand transition-[width] duration-150 ease-out-quart"
-              style={{ width: `${pct ?? 0}%` }}
-            />
+              role="progressbar"
+              aria-label={step === "download" ? m.downloading : m.unpacking}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={pct ?? undefined}
+              className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-3"
+            >
+              <div
+                className="h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-150 motion-safe:ease-out-quart"
+                style={{ width: `${pct ?? 0}%` }}
+              />
+            </div>
+            <span className="shrink-0 font-mono text-[0.875rem] tabular-nums text-ink-soft">
+              {step === "unpack" && pct !== null
+                ? m.ofArchive(pct)
+                : total
+                  ? m.ofTotal(formatBytes(received), formatBytes(total))
+                  : formatBytes(received)}
+            </span>
           </div>
-          <span className="shrink-0 font-mono text-[0.875rem] tabular-nums text-ink-soft">
-            {total ? m.ofTotal(formatBytes(received), formatBytes(total)) : formatBytes(received)}
-          </span>
+          {step === "unpack" && (
+            <p className="text-[0.95rem] text-ink-soft">{offer?.dir ? m.unpackInto(offer.dir) : m.unpackHome}</p>
+          )}
         </div>
       )}
-      {running && step !== "download" && (
+      {running && (step === "check" || step === "verify" || step === "path") && (
         <p aria-live="polite" className="text-[0.95rem] text-ink-soft">
           {step === "check" && m.asking(NODEJS_ORG)}
           {step === "verify" && m.verifying(NODEJS_ORG)}
-          {step === "unpack" && (offer?.dir ? m.unpackInto(offer.dir) : m.unpackHome)}
+          {step === "path" && m.pathing}
         </p>
       )}
       {failure && (
