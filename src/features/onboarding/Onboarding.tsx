@@ -280,15 +280,19 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
                 {m.flow.back}
               </Button>
             )}
+            {/* Crossfade keeps the old reason on screen while it fades, so the description lives outside it, once. */}
+            {blocked && (
+              <span id={blockedId} hidden>
+                {blocked}
+              </span>
+            )}
             {/* Why Continue is held, or that an install started earlier is still running: it outlives its step. */}
             <Crossfade
               swap={blocked ? `blocked:${blocked}` : stillInstalling ? "busy" : "idle"}
               className="min-w-0 flex-1 px-2"
             >
               {blocked ? (
-                <p id={blockedId} className="text-right text-[0.9rem] leading-snug text-ink-soft">
-                  {blocked}
-                </p>
+                <p className="text-right text-[0.9rem] leading-snug text-ink-soft">{blocked}</p>
               ) : (
                 stillInstalling && <StillInstalling />
               )}
