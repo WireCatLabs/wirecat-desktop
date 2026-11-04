@@ -39,6 +39,11 @@ const en = {
   pasteAny: "Paste it into Claude Code, Codex, Hermes or another agent that has WireCat's skills.",
   promptLabel: "The prompt for your agent",
   askHint: "Change the names and dates to yours before you copy.",
+  askHintOpen: "Change the names and dates to yours first. Copy and Open both use the text as it is here.",
+  openIn: (agent: string) => `Open in ${agent}`,
+  opening: "Opening…",
+  startedIn: (agent: string) =>
+    `${agent} opened in a terminal with this request. If a name or date is missing, it asks you.`,
   asksFirst: "Your agent shows you what it would save and saves only after you agree.",
   agentRuns: "Your agent runs",
   answers: "And answers with",
@@ -88,6 +93,11 @@ const ru: typeof en = {
   pasteAny: "Вставьте его в Claude Code, Codex, Hermes или другого агента с навыками WireCat.",
   promptLabel: "Промпт для агента",
   askHint: "Замените имена и даты на свои перед копированием.",
+  askHintOpen:
+    "Сначала замените имена и даты на свои. И копирование, и запуск берут текст в том виде, в каком он здесь.",
+  openIn: (agent) => `Открыть в ${agent}`,
+  opening: "Открываем…",
+  startedIn: (agent) => `${agent} открыт в терминале с этой просьбой. Если не хватает имени или даты, он спросит.`,
   asksFirst: "Агент покажет, что собирается сохранить, и сохранит только после вашего согласия.",
   agentRuns: "Агент запускает",
   answers: "И отвечает",
@@ -137,6 +147,12 @@ const es: typeof en = {
   pasteAny: "Pégalo en Claude Code, Codex, Hermes u otro agente con las habilidades de WireCat.",
   promptLabel: "El prompt para tu agente",
   askHint: "Cambia los nombres y las fechas por los tuyos antes de copiar.",
+  askHintOpen:
+    "Primero cambia los nombres y las fechas por los tuyos. Copiar y Abrir usan el texto tal como está aquí.",
+  openIn: (agent) => `Abrir en ${agent}`,
+  opening: "Abriendo…",
+  startedIn: (agent) =>
+    `${agent} se abrió en un terminal con esta petición. Si falta un nombre o una fecha, te lo pregunta.`,
   asksFirst: "Tu agente te muestra lo que guardaría y solo lo guarda cuando estés de acuerdo.",
   agentRuns: "Tu agente ejecuta",
   answers: "Y responde con",

@@ -1,5 +1,5 @@
 import { tools } from "@/domain/catalog"
-import { needsUpdate, SKILL_TARGETS, type SkillTarget, skillCell } from "@/domain/skills"
+import { needsUpdate, type SkillTarget, skillCell, skillColumns } from "@/domain/skills"
 import { isNewer } from "@/domain/status"
 import { useTools } from "../tools/store"
 import { cellKey, useAgents } from "./store"
@@ -19,8 +19,8 @@ export function useSkillMatrix() {
   const detected = Object.keys(installs).length > 0
   const installed = catalogTools.filter((t) => (installs[t.id]?.length ?? 0) > 0)
   const found = agents?.filter((a) => a.foundBy !== null) ?? null
-  const targets =
-    found && found.length > 0 ? SKILL_TARGETS.filter((t) => found.some((a) => a.reads.includes(t))) : SKILL_TARGETS
+  const columns = skillColumns(agents)
+  const targets = columns.map((c) => c.target)
   const rows = installed.map((tool) => {
     const cliVersion = installs[tool.id]?.[0]?.version ?? null
     const skill = skills[tool.id]
@@ -53,6 +53,7 @@ export function useSkillMatrix() {
     detected,
     agents,
     found,
+    columns,
     targets,
     rows,
     stale,

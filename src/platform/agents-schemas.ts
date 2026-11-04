@@ -47,7 +47,7 @@ export const PathFixSchema = v.object({
 })
 export type PathFix = v.InferOutput<typeof PathFixSchema>
 
-/** What `fix_with_agent` did: the agent opened in a terminal with the prompt file, or why it could not. */
+/** What `run_agent` did: the agent opened in a terminal with the prompt file, or why it could not. */
 export const AgentRunSchema = v.object({
   started: v.boolean(),
   agent: v.string(),

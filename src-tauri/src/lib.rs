@@ -1,3 +1,4 @@
+mod agent_run;
 mod analytics;
 mod archive;
 mod background;
@@ -9,7 +10,6 @@ mod cloudflare;
 mod cloudflare_install;
 mod compat;
 mod config_repair;
-mod fix_agent;
 mod install;
 #[cfg(test)]
 mod install_e2e;
@@ -61,8 +61,8 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> 
 }
 
 #[tauri::command]
-async fn fix_with_agent(agent: String, prompt: String) -> Result<fix_agent::AgentRun, String> {
-    blocking(move || fix_agent::run(&agent, &prompt)).await?
+async fn run_agent(agent: String, prompt: String) -> Result<agent_run::AgentRun, String> {
+    blocking(move || agent_run::run(&agent, &prompt)).await?
 }
 
 #[tauri::command]
@@ -972,7 +972,7 @@ pub fn run() {
             update_kind,
             update_download_package,
             readiness,
-            fix_with_agent,
+            run_agent,
             node_offer,
             setup_node,
             cancel_node_setup,

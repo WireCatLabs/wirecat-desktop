@@ -1,11 +1,12 @@
+import { useRef } from "react"
 import { connections, serverName } from "@/domain/agents"
 import { tools as catalogTools } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
-import type { Agent } from "@/platform/agents-schemas"
+import type { Agent, Registrations } from "@/platform/agents-schemas"
 import { Button } from "@/ui/Button"
-import { Disclosure } from "@/ui/Disclosure"
+import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { Skeleton } from "@/ui/Skeleton"
+import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
 import { askMcpRemove, mcpKey } from "./actions"
 import { useConnect } from "./connect"
@@ -14,62 +15,59 @@ import { agentsMessages } from "./messages"
 // Email shares memo's program, so one entry per program keeps a server from being listed twice.
 const PROGRAMS = catalogTools.filter((t) => !t.partOf)
 
-/** Read-only: agents here use the tools through their skill, so MCP is never offered, only cleaned up. */
+/**
+ * Leftover WireCat MCP servers an agent here has registered, to remove: agents on this computer use the tools through
+ * their skill, so MCP is never offered here. Shown only once such a server is found, and kept after the last one is
+ * removed this visit, so the owner sees that it worked instead of the section vanishing under the pointer.
+ */
 export function AdvancedMcp({ agent }: { agent: Agent }) {
-  const m = useMessages(agentsMessages)
-  return (
-    <Disclosure summary={m.advancedMcp}>
-      <div className="flex flex-col gap-2 pl-[1.25rem]">
-        <p className="max-w-[70ch] text-[0.9rem] text-ink-soft">{m.mcpIntro}</p>
-        <Servers agent={agent} />
-      </div>
-    </Disclosure>
-  )
-}
-
-function Servers({ agent }: { agent: Agent }) {
   const servers = useConnect((s) => s.servers[agent.id])
   const m = useMessages(agentsMessages)
-  if (!servers || servers.state === "loading") return <Skeleton className="h-8 w-full" label={m.readingMcp} />
-  if (servers.state === "error")
-    return (
-      <ErrorNotice inline action={<ReportThis what={`Reading ${agent.name} MCP servers`} error={servers.error} />}>
-        {servers.error}
-      </ErrorNotice>
-    )
-  const { names, canRemove, source, unread } = servers.data
-  if (unread)
-    return (
-      <p className="max-w-[70ch] text-[0.9rem] text-ink-soft">
-        {m.mcpUnread(agent.name, <code className="selectable font-mono text-[0.85rem]">{unread}</code>)}
-      </p>
-    )
-  const rows = PROGRAMS.flatMap((tool) =>
-    connections(names, tool.bin, []).map((row) => ({ tool, profile: row.profile })),
-  )
+  // A removal reads the servers again; the last answer stays on screen meanwhile, so the list does not blink.
+  const last = useRef<Registrations | null>(null)
+  if (servers?.state === "ready") last.current = servers.data
+  const data = last.current
+  const rows =
+    data && !data.unread
+      ? PROGRAMS.flatMap((tool) => connections(data.names, tool.bin, []).map((row) => ({ tool, profile: row.profile })))
+      : []
+  const seen = useRef(false)
+  if (rows.length > 0) seen.current = true
   return (
-    <>
-      {rows.length === 0 ? (
-        <p className="text-[0.9rem] text-ink-soft">{m.noMcp(agent.name)}</p>
-      ) : (
-        <ul className="flex flex-col gap-1.5" aria-label={m.mcpList(agent.name)}>
-          {rows.map(({ tool, profile }) => (
-            <ServerRow
-              key={serverName(tool.bin, profile)}
-              agent={agent}
-              toolId={tool.id}
-              toolName={tool.name}
-              name={serverName(tool.bin, profile)}
-              profile={profile}
-              canRemove={canRemove}
-            />
-          ))}
-        </ul>
-      )}
-      <p className="text-[0.85rem] text-ink-dim">
-        {m.readFrom(<span className="selectable font-mono">{source}</span>)}
-      </p>
-    </>
+    <Collapse open={seen.current}>
+      <section aria-label={m.mcpTitle} className="flex flex-col gap-2">
+        <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.mcpTitle}</h4>
+        <p className="max-w-[70ch] text-[0.95rem] text-ink-soft">
+          {rows.length > 0 ? m.mcpIntro(agent.name) : m.mcpGone(agent.name)}
+        </p>
+        {rows.length > 0 && data && (
+          <ul className="flex flex-col gap-1.5" aria-label={m.mcpList(agent.name)}>
+            {rows.map(({ tool, profile }) => (
+              <ServerRow
+                key={serverName(tool.bin, profile)}
+                agent={agent}
+                toolId={tool.id}
+                toolName={tool.name}
+                name={serverName(tool.bin, profile)}
+                profile={profile}
+                canRemove={data.canRemove}
+              />
+            ))}
+          </ul>
+        )}
+        {data && (
+          <p className="text-[0.85rem] text-ink-dim">
+            {m.readFrom(<span className="selectable font-mono">{data.source}</span>)}
+          </p>
+        )}
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem] text-ink-soft">
+          {m.mcpChatApps}
+          <Button size="sm" variant="ghost" onClick={() => useNav.getState().go("tools")}>
+            {m.openTools}
+          </Button>
+        </p>
+      </section>
+    </Collapse>
   )
 }
 

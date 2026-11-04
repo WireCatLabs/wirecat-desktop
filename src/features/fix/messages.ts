@@ -15,9 +15,9 @@ const en = {
     missing: (agent: string, bin: string) =>
       `${agent} is not on this computer's PATH, so WireCat cannot start it. Open a new terminal and run ${bin}: if it is not found, install ${agent} again; if it starts, restart WireCat so it sees the new PATH.`,
     terminal:
-      "WireCat could not open a terminal window. Open a terminal yourself, start your agent there and paste the prompt below.",
+      "WireCat could not open a terminal window. Open a terminal yourself, start your agent there and paste the prompt into it.",
     automation:
-      "macOS did not let WireCat open Terminal. Allow it in System Settings, Privacy & Security, Automation, under WireCat, then try again. Until then, paste the prompt below into your agent.",
+      "macOS did not let WireCat open Terminal. Allow it in System Settings, Privacy & Security, Automation, under WireCat, then try again. Until then, copy the prompt and paste it into your agent.",
   },
   yourself: "Do it yourself",
   promptLead: "Paste this into any AI agent, or follow it yourself:",
@@ -40,9 +40,9 @@ const ru: typeof en = {
     missing: (agent, bin) =>
       `${agent} нет в PATH этого компьютера, поэтому WireCat не может его запустить. Откройте новый терминал и выполните ${bin}: если команда не найдена, установите ${agent} заново; если запустился — перезапустите WireCat, чтобы он увидел новый PATH.`,
     terminal:
-      "WireCat не смог открыть окно терминала. Откройте терминал сами, запустите там агента и вставьте промпт ниже.",
+      "WireCat не смог открыть окно терминала. Откройте терминал сами, запустите там агента и вставьте в него промпт.",
     automation:
-      "macOS не разрешил WireCat открыть Терминал. Разрешите в Системных настройках: Конфиденциальность и безопасность, Автоматизация, WireCat — и попробуйте снова. А пока вставьте промпт ниже в своего агента.",
+      "macOS не разрешил WireCat открыть Терминал. Разрешите в Системных настройках: Конфиденциальность и безопасность, Автоматизация, WireCat — и попробуйте снова. А пока скопируйте промпт и вставьте его в своего агента.",
   },
   yourself: "Сделать самому",
   promptLead: "Вставьте это в любого ИИ-агента или выполните сами:",
@@ -65,9 +65,9 @@ const es: typeof en = {
     missing: (agent, bin) =>
       `${agent} no está en el PATH de este equipo, así que WireCat no puede iniciarlo. Abre un terminal nuevo y ejecuta ${bin}: si no se encuentra, instala ${agent} de nuevo; si arranca, reinicia WireCat para que vea el PATH nuevo.`,
     terminal:
-      "WireCat no pudo abrir una ventana de terminal. Abre un terminal tú mismo, inicia allí tu agente y pega el prompt de abajo.",
+      "WireCat no pudo abrir una ventana de terminal. Abre un terminal tú mismo, inicia allí tu agente y pega en él el prompt.",
     automation:
-      "macOS no dejó que WireCat abriera Terminal. Permítelo en Ajustes del Sistema, Privacidad y seguridad, Automatización, en WireCat, y vuelve a intentarlo. Mientras tanto, pega el prompt de abajo en tu agente.",
+      "macOS no dejó que WireCat abriera Terminal. Permítelo en Ajustes del Sistema, Privacidad y seguridad, Automatización, en WireCat, y vuelve a intentarlo. Mientras tanto, copia el prompt y pégalo en tu agente.",
   },
   yourself: "Hacerlo tú mismo",
   promptLead: "Pega esto en cualquier agente de IA o síguelo tú mismo:",

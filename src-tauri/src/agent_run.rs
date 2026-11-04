@@ -52,7 +52,7 @@ fn validate(agent: &str, prompt: &str) -> Result<&'static str, String> {
 
 pub fn run(agent: &str, prompt: &str) -> Result<AgentRun, String> {
     let program = validate(agent, prompt)?;
-    let dir = node::app_data().ok_or("No data folder.")?.join("fix-prompts");
+    let dir = node::app_data().ok_or("No data folder.")?.join("agent-prompts");
     let file = write_prompt(&dir, prompt).map_err(|e| format!("Could not save the prompt: {e}"))?;
     prune(&dir, KEEP);
     let result = |started, reason, message| AgentRun {

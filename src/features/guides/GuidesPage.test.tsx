@@ -1,6 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
-import { beforeEach, expect, it } from "vitest"
+import userEvent from "@testing-library/user-event"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
+import { platform } from "@/platform/bridge"
+import { useAgents } from "../agents/store"
 import { useTools } from "../tools/store"
 import { GuidesPage } from "./GuidesPage"
 
@@ -132,4 +135,58 @@ it("adds Zoom to a guide only when Zoom is installed", () => {
   box = guide("Prepare for a call with someone")
   expect(promptOf(box)).toMatch(/Use zm CLI too, for what we said in past Zoom meetings\.$/)
   expect(runsOf(box)).toContain("zm <profile> meetings context person:…")
+})
+
+describe("Open in an agent", () => {
+  const found = [
+    { id: "claude", name: "Claude Code", foundBy: "program" as const, reads: ["claude" as const] },
+    { id: "codex", name: "Codex", foundBy: null, reads: ["agents" as const] },
+  ]
+  beforeEach(() => {
+    useAgents.setState(useAgents.getInitialState(), true)
+    vi.spyOn(platform, "detectAgents").mockResolvedValue(found)
+  })
+  afterEach(() => {
+    vi.restoreAllMocks()
+    localStorage.clear()
+  })
+
+  it("starts the chosen agent with the prompt as edited, and offers it only for an agent it can start", async () => {
+    localStorage.setItem("wirecat.guides.agent", "claude")
+    const run = vi
+      .spyOn(platform, "runAgent")
+      .mockResolvedValue({ started: true, agent: "claude", file: "~/x.md", reason: null, message: null })
+    installed("tg")
+    render(<GuidesPage />)
+    const box = guide("Catch up on what you missed")
+    const open = await within(box).findByRole("button", { name: "Open in Claude Code" })
+    fireEvent.change(within(box).getByRole("textbox"), { target: { value: "Use tg CLI. Catch me up on Anna." } })
+    fireEvent.click(open)
+    expect(await within(box).findByText(/Claude Code opened in a terminal with this request/)).toBeInTheDocument()
+    expect(run).toHaveBeenCalledWith("claude", "Use tg CLI. Catch me up on Anna.")
+
+    const user = userEvent.setup()
+    await user.click(within(box).getByRole("combobox", { name: "Your agent" }))
+    await user.click(screen.getByRole("option", { name: "Codex" }))
+    expect(within(box).getByRole("combobox", { name: "Your agent" })).toHaveTextContent("Codex")
+    expect(within(box).queryByRole("button", { name: /^Open in/ })).not.toBeInTheDocument()
+  })
+
+  it("says why the agent did not start and keeps Copy prompt", async () => {
+    localStorage.setItem("wirecat.guides.agent", "claude")
+    vi.spyOn(platform, "runAgent").mockResolvedValue({
+      started: false,
+      agent: "claude",
+      file: "",
+      reason: "terminal",
+      message: "no terminal",
+    })
+    installed("tg")
+    render(<GuidesPage />)
+    const box = guide("Catch up on what you missed")
+    fireEvent.click(await within(box).findByRole("button", { name: "Open in Claude Code" }))
+    expect(await within(box).findByText("Could not start Claude Code.")).toBeInTheDocument()
+    expect(within(box).getByText(/could not open a terminal window/)).toBeInTheDocument()
+    expect(within(box).getByRole("button", { name: "Copy prompt" })).toBeEnabled()
+  })
 })

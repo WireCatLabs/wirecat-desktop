@@ -18,6 +18,8 @@ type AgentsState = {
   refreshing: boolean
   /** Every tool answered once this session; the page asks for logs and claims only after, so skills come first. */
   answered: boolean
+  /** Finds the agents only, once; for pages that start an agent and need no skills. */
+  detect(): Promise<void>
   /** Asks every installed tool at once; each row fills in as its tool answers. */
   load(installed: readonly string[]): Promise<void>
   install(id: string, target: SkillTarget): Promise<void>
@@ -31,6 +33,26 @@ export const cellKey = (id: string, target: SkillTarget) => `${id}:${target}`
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
+// Every guide on the page asks at once; one question answers them all.
+let detecting: Promise<void> | null = null
+
+/** The install itself, for a cell already marked busy; clears the mark when done. */
+async function write(id: string, target: SkillTarget) {
+  const key = cellKey(id, target)
+  const set = useAgents.setState
+  set((s) => ({ failures: without(s.failures, key) }))
+  try {
+    const version = await platform.skillInstall(id, target)
+    set((s) => ({ written: { ...s.written, [key]: version } }))
+    const report = await platform.skillStatus(id).catch(() => null)
+    if (report) set((s) => ({ skills: { ...s.skills, [id]: { report, error: null } } }))
+  } catch (e) {
+    set((s) => ({ failures: { ...s.failures, [key]: message(e) } }))
+  } finally {
+    set((s) => ({ busy: without(s.busy, key) }))
+  }
+}
+
 export const useAgents = create<AgentsState>((set, get) => ({
   agents: null,
   agentsError: null,
@@ -40,6 +62,18 @@ export const useAgents = create<AgentsState>((set, get) => ({
   failures: {},
   refreshing: false,
   answered: false,
+
+  async detect() {
+    if (get().agents !== null) return
+    detecting ??= platform
+      .detectAgents()
+      .then((agents) => set({ agents, agentsError: null }))
+      .catch((e) => set({ agents: [], agentsError: message(e) }))
+      .finally(() => {
+        detecting = null
+      })
+    await detecting
+  },
 
   async load(installed) {
     set({ refreshing: true, failures: {} })
@@ -61,21 +95,15 @@ export const useAgents = create<AgentsState>((set, get) => ({
   async install(id, target) {
     const key = cellKey(id, target)
     if (get().busy[key]) return
-    set((s) => ({ busy: { ...s.busy, [key]: true }, failures: without(s.failures, key) }))
-    try {
-      const version = await platform.skillInstall(id, target)
-      set((s) => ({ written: { ...s.written, [key]: version } }))
-      const report = await platform.skillStatus(id).catch(() => null)
-      if (report) set((s) => ({ skills: { ...s.skills, [id]: { report, error: null } } }))
-    } catch (e) {
-      set((s) => ({ failures: { ...s.failures, [key]: message(e) } }))
-    } finally {
-      set((s) => ({ busy: without(s.busy, key) }))
-    }
+    set((s) => ({ busy: { ...s.busy, [key]: true } }))
+    await write(id, target)
   },
 
+  // Every cell is busy from the start, so one still waiting its turn offers no Install of its own meanwhile.
   async installAll(cells) {
-    for (const [id, target] of cells) await get().install(id, target)
+    const todo = cells.filter(([id, target]) => !get().busy[cellKey(id, target)])
+    set((s) => ({ busy: { ...s.busy, ...Object.fromEntries(todo.map(([id, t]) => [cellKey(id, t), true])) } }))
+    for (const [id, target] of todo) await write(id, target)
   },
 
   async recheck(id) {

@@ -124,7 +124,7 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
     | "skillShow"
     | "terminalReach"
     | "fixTerminalPath"
-    | "fixWithAgent"
+    | "runAgent"
     | "agentChats"
     | "mcpRegistrations"
     | "mcpCheck"
@@ -133,9 +133,11 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
     | "taskClaims"
     | "taskRelease"
   > = {
+    // `?agents=cursor`: Cursor is the only agent found, as on a computer with only Cursor installed.
     async detectAgents() {
       await delay(300)
-      return AGENTS
+      const only = params.get("agents")
+      return only ? AGENTS.map((a) => ({ ...a, foundBy: a.id === only ? ("program" as const) : null })) : AGENTS
     },
     async skillStatus(id): Promise<SkillReport> {
       await delay(400 + id.length * 120)
@@ -184,9 +186,9 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
       )
     },
     // `?agent-fail=missing|terminal|automation`: the agent cannot be started, for that reason.
-    async fixWithAgent(agent) {
+    async runAgent(agent) {
       await delay(700)
-      const file = `~/.local/share/dev.wirecat.desktop/fix-prompts/${Date.now()}.md`
+      const file = `~/.local/share/dev.wirecat.desktop/agent-prompts/${Date.now()}.md`
       const reason = (["missing", "terminal", "automation"] as const).find((r) => r === params.get("agent-fail"))
       if (!reason) return { started: true, agent, file, reason: null, message: null }
       const message =
