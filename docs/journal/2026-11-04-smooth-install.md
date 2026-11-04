@@ -82,6 +82,11 @@ vitest. Текст про пароль поправлен: Telegram получа
 new-component, application-logic, rust-command, testing, i18n, release, reuse), ссылка из CLAUDE.md. Сравнение UI-библиотек
 (с shadcn, Tailwind, React Aria, Radix, Base UI, Ark, Mantine, HeroUI) — docs/dev/ui-libraries.md. Подагенты.
 
+**TASK-102 · Тесты на весь первый запуск и установку** — Слава: «cover the onboarding and install steps with tests so we
+dont get regression there - this is critical». Подагент, ветка test/onboarding-install. Чистка диска /home по просьбе
+Славы («you free - find merged worktrees/branches, npm and other build caches etc») — подагент, журнал удалений в CLEANUP.md.
+NEED-2189 — Слава думает, спросить снова после сравнения.
+
 ## 2. Вопросы Славы
 
 **ASK-56 · «can you give quick prompt to codex to try to find the tg cli location»**
