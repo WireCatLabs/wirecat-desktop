@@ -14,9 +14,9 @@ import { useSystem } from "@/features/system/store"
 import { progressMessages } from "@/features/tools/messages-progress"
 import { useTools } from "@/features/tools/store"
 import { useLanguage } from "@/i18n"
-import type { Agent } from "@/platform/agents-schemas"
+import type { Agent, SkillReport } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
-import type { InstallEvent, NodeEvent, Readiness } from "@/platform/schemas"
+import type { InstallEvent, NodeEvent, Profile, Readiness } from "@/platform/schemas"
 
 /** The English catalogs, so a test names a button the way the interface does and survives a copy change. */
 export const m = onboardingMessages.en
@@ -197,12 +197,34 @@ export const agent = (id: string, name: string, found = true): Agent => ({
   reads: ["claude"],
 })
 
+/** A skill report where each place agents read holds the tool's skill in `state`. */
+export const skillIn = (state: "current" | "missing"): SkillReport => ({
+  source: "status",
+  targets: (["claude", "agents"] as const).map((target) => ({
+    target,
+    path: null,
+    installed: state === "current" ? "1.0.0" : null,
+    state,
+  })),
+})
+
 type Start = {
   step?: StepId
   chosen?: string[]
   computer?: Readiness | null
   installed?: Record<string, string>
   agents?: Agent[]
+  /**
+   * `fresh` starts the app as on a first start, so the setup reads the computer before it shows a step; `later` as
+   * after "Set up later" and a restart, with the setup closed until the owner presses Finish setup.
+   */
+  start?: "open" | "fresh" | "later"
+  /** The furthest step reached in an earlier run. */
+  reached?: StepId
+  /** Each tool's accounts; tools not named have none. Only spied on when given. */
+  profiles?: Record<string, Profile[] | null>
+  /** Each tool's skill report; tools not named have no skill in any place. Only spied on when given. */
+  skills?: Record<string, SkillReport>
 }
 
 /**
@@ -215,6 +237,10 @@ export function startOnboarding({
   computer = readyComputer,
   installed = {},
   agents = [],
+  start = "open",
+  reached = step,
+  profiles,
+  skills,
 }: Start = {}) {
   localStorage.clear()
   useLanguage.setState({ choice: "en" })
@@ -222,12 +248,21 @@ export function startOnboarding({
   useAgents.setState(useAgents.getInitialState(), true)
   useTools.setState({ ...useTools.getInitialState(), sessions: {}, installs: {}, checked: false }, true)
   useSystem.setState({ readiness: computer, error: null })
-  useOnboarding.setState({ status: "new", open: true, step, chosen })
+  useOnboarding.setState({
+    status: start === "later" ? "later" : "new",
+    open: start !== "later",
+    resuming: start === "fresh",
+    step,
+    reached,
+    chosen,
+  })
 
   const facts = { current: computer }
   vi.spyOn(platform, "readiness").mockImplementation(async () => facts.current ?? readyComputer)
   vi.spyOn(platform, "nodeOffer").mockResolvedValue({ version: "24.22.1", bytes: 58_290_700, dir: "~/.local/share/x" })
   vi.spyOn(platform, "detectAgents").mockResolvedValue(agents)
+  if (profiles) vi.spyOn(platform, "listProfiles").mockImplementation(async (id) => profiles[id] ?? [])
+  if (skills) vi.spyOn(platform, "skillStatus").mockImplementation(async (id) => skills[id] ?? skillIn("missing"))
   const npm = fakeInstaller(installed)
   const node = fakeNodeSetup(facts)
   const user = userEvent.setup()
