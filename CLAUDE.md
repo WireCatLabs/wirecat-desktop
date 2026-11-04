@@ -7,6 +7,19 @@ request travels from a button to a process. Product truth is [`PRODUCT.md`](PROD
 The repository is `wirecat-desktop` (the local folder may still be called `visage`, its old name); the product is
 **WireCat**. The old name `visage` never appears in the interface.
 
+## Before you change code
+
+Read the guide for your task in [`docs/dev/guides/`](docs/dev/guides/). Each marks what is true today and what is the
+target after the refactor in [`docs/dev/architecture-report.md`](docs/dev/architecture-report.md).
+
+| Task | Guide |
+| --- | --- |
+| New page, new component | [`new-screen.md`](docs/dev/guides/new-screen.md), [`new-component.md`](docs/dev/guides/new-component.md) |
+| Where logic, fetches and state go | [`application-logic.md`](docs/dev/guides/application-logic.md) |
+| New Rust command | [`rust-command.md`](docs/dev/guides/rust-command.md) |
+| Tests, text on screen, release | [`testing.md`](docs/dev/guides/testing.md), [`i18n.md`](docs/dev/guides/i18n.md), [`release.md`](docs/dev/guides/release.md) |
+| Anything new: search first | [`reuse.md`](docs/dev/guides/reuse.md) |
+
 ## Commands
 
 | Task | Command |

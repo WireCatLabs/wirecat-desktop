@@ -3,6 +3,8 @@
 WireCat Desktop is a thin window onto the WireCat CLIs. The interface is React in the system webview; Rust inspects
 the machine and runs the tools. Nothing here duplicates what a CLI already does.
 
+New here? Read [the architecture report](architecture-report.md) first. Rules per kind of change are in [guides/](guides/).
+
 ## The layers
 
 ```text
