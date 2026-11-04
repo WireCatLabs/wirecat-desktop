@@ -93,7 +93,10 @@ NEED-2189 — Слава думает, спросить снова после с
 **TASK-103 · PATH во все оболочки пользователя, выбор оболочки, понятная ошибка** — Слава: «I dont think we should rely on
 shell that started the desktop app, more on the user shell, I'd maybe add to path in multiple shell profile files? not sure.
 And mb allow the user to pick the shell if the adding to path didnt work? if still fails show actionable message».
-Подагент, ветка feat/shell-profiles.
+Подагент, ветка feat/shell-profiles. **Влито**: оболочка терминала = выбранная в приложении → оболочка учётной
+записи → $SHELL → /bin/sh; блок в файл оболочки терминала (создаётся) и в существующие файлы других установленных bash/zsh/fish;
+дубль папки убран; после неудачи — выбор оболочки (`terminal_shells`, `use_terminal_shell`), затем строка+файл и Fix ›.
+764 теста vitest, 363 Rust. На настоящих оболочках, macOS, fish, Windows не проверено.
 
 ## 2. Вопросы Славы
 
