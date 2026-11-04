@@ -346,6 +346,16 @@ before starting again. Cancel, Escape and Stop call `sign_in_stop`: SIGTERM to t
 answer with what it kept (WhatsApp's history), then the whole group is killed. Switching method (tg's QR or phone)
 stops the running sign-in first.
 
+Telegram's first sign-in needs the owner's own app keys: tg opens my.telegram.org/apps and asks for App api_id and App
+api_hash (its default `--app browser`; the app never passes `--app auto`). Beside those two questions the dialog shows
+the steps on that site with two pictures of it (`src/assets/signin/`, the owner's screens with the app name, date and
+api_id painted over). The keys typed in the dialog stay in a variable outside the store until the sign-in ends or the
+dialog closes, so a try after Telegram refused them starts with them filled in; tg itself saves them only after
+Telegram accepts them. `src/domain/telegram-signin.ts` reads tg's failure line into a cause, a fix and the way back
+(enter the keys, the number, a new code or the password again, or wait); `src/domain/signin-notes.ts` turns cli-base's
+keyring warning into a calm notice with the file's path. Mock scenarios: `?signin-fail=tg-apiid|tg-flood|tg-code`,
+`?signin-keyring=file`.
+
 ## The MCP server for browser apps
 
 ChatGPT and Claude in the browser reach a tool through its HTTP MCP server behind the owner's tunnel (step 3 of

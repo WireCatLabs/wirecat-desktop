@@ -8,7 +8,8 @@ import type { Messages } from "@/i18n"
  * scan); tg-cli's postinstall note ("allow about five minutes"). Files are 0600, which binds only on macOS and Linux,
  * so the text does not promise that only the owner can read them. A tool without an entry shows only the steps and WireCat's own line.
  */
-type Plan = { steps: string[]; time?: string; kept?: string[] }
+/** `appKeys`: the steps open with making the owner's own app keys (`messages-telegram.ts`), the first time only. */
+type Plan = { steps: string[]; time?: string; kept?: string[]; appKeys?: boolean }
 
 const en = {
   what: "What happens",
@@ -18,8 +19,8 @@ const en = {
   wirecat: "WireCat keeps no copy: what you type goes straight to the tool on this computer.",
   plans: {
     "tg:qr": {
+      appKeys: true,
       steps: [
-        "The first time for this account: your phone number, then the code Telegram sends to your Telegram app. With them the tool makes your own Telegram app keys.",
         "Scan a QR code in Telegram on your phone: Settings → Devices → Link Desktop Device.",
         "If your account has two-step verification: its password.",
       ],
@@ -32,11 +33,8 @@ const en = {
       ],
     },
     "tg:phone": {
-      steps: [
-        "The first time for this account: your phone number, then the code Telegram sends to your Telegram app. With them the tool makes your own Telegram app keys.",
-        "The login code Telegram sends.",
-        "If your account has two-step verification: its password.",
-      ],
+      appKeys: true,
+      steps: ["The login code Telegram sends.", "If your account has two-step verification: its password."],
       time: "Allow about five minutes.",
       kept: [
         "Your phone number and the codes go only to Telegram.",
@@ -77,8 +75,8 @@ const en = {
 export type PlanText = typeof en
 
 const TG_RU: Plan = {
+  appKeys: true,
   steps: [
-    "В первый раз для этого аккаунта: номер телефона, затем код, который Telegram пришлёт в приложение Telegram. С ними инструмент создаст ваши собственные ключи приложения Telegram.",
     "Отсканируйте QR-код в Telegram на телефоне: Настройки → Устройства → Подключить устройство.",
     "Если включена двухэтапная проверка — её пароль.",
   ],
@@ -101,7 +99,7 @@ const ru: PlanText = {
     "tg:qr": TG_RU,
     "tg:phone": {
       ...TG_RU,
-      steps: [TG_RU.steps[0] ?? "", "Код входа, который пришлёт Telegram.", TG_RU.steps[2] ?? ""],
+      steps: ["Код входа, который пришлёт Telegram.", TG_RU.steps[1] ?? ""],
     },
     wa: {
       steps: [
@@ -133,8 +131,8 @@ const ru: PlanText = {
 }
 
 const TG_ES: Plan = {
+  appKeys: true,
   steps: [
-    "La primera vez para esta cuenta: tu número de teléfono y luego el código que Telegram envía a tu app de Telegram. Con ellos la herramienta crea tus propias claves de aplicación de Telegram.",
     "Escanea un código QR en Telegram en el teléfono: Ajustes → Dispositivos → Vincular dispositivo.",
     "Si tu cuenta tiene verificación en dos pasos: su contraseña.",
   ],
@@ -157,7 +155,7 @@ const es: PlanText = {
     "tg:qr": TG_ES,
     "tg:phone": {
       ...TG_ES,
-      steps: [TG_ES.steps[0] ?? "", "El código de inicio de sesión que envía Telegram.", TG_ES.steps[2] ?? ""],
+      steps: ["El código de inicio de sesión que envía Telegram.", TG_ES.steps[1] ?? ""],
     },
     wa: {
       steps: [

@@ -45,6 +45,8 @@ type SignInState = {
   /** Without `method` it opens on the plan, and `begin` runs it; with one (a switch, a retry) it runs at once. */
   start(tool: string, profile: string, onFinish?: () => void, method?: string): void
   begin(): void
+  /** Starts the same sign-in again, after a failure. */
+  again(): void
   answer(value: string): Promise<void>
   stop(): void
   /** While the tool runs, closing stops it first; the dialog closes when the tool has stopped. */
@@ -77,6 +79,14 @@ export const running = (phase: Phase) => phase !== "done" && phase !== "failed" 
 export const receivingHistory = (s: Pick<SignInState, "phase" | "progress">) =>
   s.phase === "progress" && (s.progress?.step === "history" || s.progress?.step === "waiting")
 
+/**
+ * The app keys typed in this dialog, so a new try after Telegram refused them opens with them filled in for editing.
+ * Outside the store, so no snapshot of it carries them; forgotten when the sign-in ends or the dialog closes.
+ */
+const keys = new Map<string, string>()
+const KEPT = new Set(["api_id", "api_hash"])
+export const keptAnswer = (field: string) => keys.get(field) ?? ""
+
 /** The run in flight, so a new one waits for it to end. */
 let ending: Promise<unknown> = Promise.resolve()
 
@@ -100,11 +110,13 @@ export const useSignIn = create<SignInState>()((set, get) => {
       case "progress":
         return set({ ...next, phase: "progress", progress: e, qr: null, url: null })
       case "done":
+        keys.clear()
         set({ ...next, phase: "done", done: e, qr: null, url: null, stopping: false })
         return get().onFinish?.()
       case "failed":
         return set({ ...next, phase: "failed", failure: e, qr: null, url: null, stopping: false })
       case "stopped":
+        keys.clear()
         return set({ ...closed })
     }
   }
@@ -117,6 +129,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const chosen = method ?? (entry ? signInMethods(entry)[0]?.id : undefined) ?? "qr"
       const previous = get()
       // Switching methods: the tool runs one sign-in at a time, so the last run ends before the next starts.
+      if (previous.tool !== tool || previous.profile !== profile) keys.clear()
       const switching = previous.tool !== null && running(previous.phase)
       if (switching && previous.tool) platform.signInStop(previous.tool).catch(() => {})
       const run = previous.run + 1
@@ -143,10 +156,15 @@ export const useSignIn = create<SignInState>()((set, get) => {
       if (phase !== "plan" || !tool || !profile || !method) return
       get().start(tool, profile, onFinish ?? undefined, method)
     },
+    again() {
+      const { tool, profile, onFinish, method } = get()
+      if (tool && profile) get().start(tool, profile, onFinish ?? undefined, method ?? undefined)
+    },
     async answer(value) {
       const { tool, need, sent } = get()
       if (!tool || !need || sent) return
       set({ sent: true })
+      if (KEPT.has(need.field)) keys.set(need.field, value)
       try {
         await platform.signInAnswer(tool, value)
       } catch (e) {
@@ -162,7 +180,10 @@ export const useSignIn = create<SignInState>()((set, get) => {
     },
     close() {
       if (running(get().phase) && get().tool) get().stop()
-      else set({ ...closed })
+      else {
+        keys.clear()
+        set({ ...closed })
+      }
     },
   }
 })

@@ -94,8 +94,12 @@ export function Dialog({ open, title, children, actions, onClose, wide = false, 
       data-closing={closing || undefined}
       aria-hidden={closing || undefined}
       inert={closing || undefined}
-      onClose={onClose}
+      // React passes a dialog's close and cancel up to a dialog that holds it (an image enlarged from a sign-in).
+      onClose={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
       onCancel={(e) => {
+        if (e.target !== e.currentTarget) return
         e.preventDefault()
         onClose()
       }}

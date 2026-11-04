@@ -1,4 +1,4 @@
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, ShieldCheck } from "lucide-react"
 import { type FormEvent, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
@@ -22,13 +22,17 @@ type Props = {
   need: Need
   sent: boolean
   onAnswer: (value: string) => Promise<void>
+  /** What this dialog was told before, for a new try after a refusal; empty for most questions. */
+  initial?: string
+  /** What happens to the answer, said beside the field. */
+  note?: string | undefined
 }
 
 /**
  * One answer to the tool's question. The value lives in this field only: it is cleared once sent, and a new question
- * starts with an empty field.
+ * starts with `initial`, empty unless it asks again for app keys typed in this dialog.
  */
-export function AnswerForm({ need, sent, onAnswer }: Props) {
+export function AnswerForm({ need, sent, onAnswer, initial = "", note }: Props) {
   const id = useId()
   const m = useMessages(signinMessages)
   const input = useRef<HTMLInputElement>(null)
@@ -38,9 +42,9 @@ export function AnswerForm({ need, sent, onAnswer }: Props) {
   const label = sentence(need.prompt.replace(/\s*\(not shown\)\s*$/, ""))
   const kind = INPUT[need.field] ?? { complete: "off" }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: each new question starts empty and takes focus
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new question starts from what was typed before, if anything, and takes focus
   useEffect(() => {
-    setValue("")
+    setValue(initial)
     setShown(false)
     setError(null)
     input.current?.focus()
@@ -113,6 +117,12 @@ export function AnswerForm({ need, sent, onAnswer }: Props) {
           m.private
         )}
       </p>
+      {note && (
+        <p className="flex items-start gap-2 text-[0.85rem] leading-snug text-ink-soft">
+          <ShieldCheck className="mt-[0.1rem] size-4 shrink-0 text-ok" aria-hidden />
+          <span>{note}</span>
+        </p>
+      )}
       <Button type="submit" variant="primary" disabled={sent} className="self-start">
         {m.continue}
       </Button>
