@@ -89,6 +89,11 @@ dont get regression there - this is critical». Подагент, ветка tes
 Славы («you free - find merged worktrees/branches, npm and other build caches etc») — подагент, журнал удалений в CLEANUP.md.
 NEED-2189 — Слава думает, спросить снова после сравнения.
 
+**TASK-103 · PATH во все оболочки пользователя, выбор оболочки, понятная ошибка** — Слава: «I dont think we should rely on
+shell that started the desktop app, more on the user shell, I'd maybe add to path in multiple shell profile files? not sure.
+And mb allow the user to pick the shell if the adding to path didnt work? if still fails show actionable message».
+Подагент, ветка feat/shell-profiles.
+
 ## 2. Вопросы Славы
 
 **ASK-56 · «can you give quick prompt to codex to try to find the tg cli location»**
@@ -253,3 +258,9 @@ why we have this section». Решение: без серверов WireCat ра
 
 **NEED-2189 · (обновление)** — Слава: «still dont see most popular tools like shadcn, tailwind ... need better comparison
 and explanation». Ждёт сравнения (TASK-101).
+
+**NEED-2189 · Библиотека поведения UI** — **Ответ Славы (2026-11-04):** «Use React Aria Components, with our own Tailwind
+classes. Do not add shadcn or a kit.»
+
+**NEED-2193 · Где жить общим частям (ToolIcon, ReportThis, safeStorage, JsonTree)?** — A `src/shared/` · B ui/ и platform/.
+Я бы A. **Ответ Славы (2026-11-04):** **A**.
