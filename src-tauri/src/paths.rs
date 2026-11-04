@@ -89,13 +89,23 @@ pub fn forget_login_shell() {
 fn read_login_shell() -> ShellEnv {
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
     let script = "printf '__WIRECAT_PATH__%s__WIRECAT_PNPM__%s' \"$PATH\" \"$PNPM_HOME\"";
-    let Ok(out) = crate::run::run(Path::new(&shell), &["-lic", script], None, Duration::from_secs(5)) else {
+    let flags = terminal_flags(&shell, cfg!(target_os = "linux"));
+    let Ok(out) = crate::run::run(Path::new(&shell), &[flags, script], None, Duration::from_secs(5)) else {
         return ShellEnv::default();
     };
     let Some((_, rest)) = out.stdout.rsplit_once("__WIRECAT_PATH__") else { return ShellEnv::default() };
     let (path, pnpm) = rest.split_once("__WIRECAT_PNPM__").unwrap_or((rest, ""));
     let non_empty = |s: &str| (!s.trim().is_empty()).then(|| OsString::from(s.trim()));
     ShellEnv { path: non_empty(path), pnpm_home: non_empty(pnpm) }
+}
+
+/// The shell a new terminal window starts, so the check reads the same file `profile.rs` writes. Linux terminals
+/// start bash as a non-login shell, which reads `.bashrc`; a login bash reads only `.profile` or `.bash_profile`, and a
+/// fresh account's `.profile` need not source `.bashrc`, so `-l` there misses the app's own PATH block.
+#[cfg(unix)]
+fn terminal_flags(shell: &str, linux: bool) -> &'static str {
+    let bash = Path::new(shell).file_name().is_some_and(|n| n == "bash");
+    if bash && linux { "-ic" } else { "-lic" }
 }
 
 #[cfg(windows)]
@@ -253,6 +263,16 @@ pub fn untilde(shown: &str) -> PathBuf {
 
 #[cfg(test)]
 mod tests {
+
+    #[cfg(unix)]
+    #[test]
+    fn checks_bash_on_linux_as_a_new_terminal_starts_it() {
+        assert_eq!(terminal_flags("/bin/bash", true), "-ic");
+        assert_eq!(terminal_flags("/usr/bin/bash", false), "-lic");
+        assert_eq!(terminal_flags("/bin/zsh", true), "-lic");
+        assert_eq!(terminal_flags("/usr/bin/fish", true), "-lic");
+    }
+
     use super::*;
 
     #[cfg(unix)]
