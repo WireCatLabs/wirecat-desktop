@@ -514,6 +514,24 @@ mod tests {
         std::fs::remove_dir_all(&home).unwrap();
     }
 
+    /// The onboarding table once headed both folder columns "Cursor": Cursor reads both, and each column named every
+    /// agent found that reads it. Detection reports it once; the first folder in `reads` is the one the interface
+    /// files it under.
+    #[test]
+    fn an_agent_found_by_program_and_folder_is_listed_once() {
+        let home = temp_home("cursor");
+        std::fs::create_dir_all(home.join(".cursor")).unwrap();
+        let all = detect(Some(&home), |_| None, |p| p == "cursor-agent" || p == "cursor");
+        let mut ids: Vec<_> = all.iter().map(|a| a.id).collect();
+        ids.sort_unstable();
+        ids.dedup();
+        assert_eq!(ids.len(), all.len(), "one entry per agent");
+        let found: Vec<_> = all.iter().filter(|a| a.found_by.is_some()).map(|a| (a.id, a.found_by)).collect();
+        assert_eq!(found, [("cursor", Some("program"))]);
+        assert_eq!(all.iter().find(|a| a.id == "cursor").unwrap().reads, ["agents", "claude"]);
+        std::fs::remove_dir_all(&home).unwrap();
+    }
+
     #[test]
     fn doctor_skills_leave_the_comparison_to_the_interface() {
         let v = json!({"item": {"skills": [{"target": "claude", "path": "/x/SKILL.md", "version": "0.93.0"}]}});

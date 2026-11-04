@@ -42,7 +42,7 @@ export function SkillBenefits({ tool, className }: { tool: string; className?: s
  */
 export function SkillOffer({ tool }: { tool: CatalogTool }) {
   const m = useMessages(skillOfferMessages)
-  const { found, rows } = useSkillMatrix()
+  const { found, rows, columns } = useSkillMatrix()
   const failures = useAgents((s) => s.failures)
   const row = rows.find((r) => r.tool.id === tool.id)
   const clicked = useRef(false)
@@ -53,7 +53,7 @@ export function SkillOffer({ tool }: { tool: CatalogTool }) {
     if (st.agents === null && !st.refreshing) void st.load([tool.id])
   }, [tool.id])
 
-  const readers = (target: SkillTarget) => found?.filter((a) => a.reads.includes(target)) ?? []
+  const readers = (target: SkillTarget) => columns.find((c) => c.target === target)?.readers ?? []
   const cells = row?.cells.filter((c) => readers(c.target).length > 0 && c.cell.kind !== "unsupported") ?? []
   const names = formatList([...new Set(cells.flatMap((c) => readers(c.target).map((a) => a.name)))])
   const todo = cells.filter((c) => c.cell.kind === "missing" || needsUpdate(c.cell))
