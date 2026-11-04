@@ -185,7 +185,7 @@ export function createMock(os: Platform["os"]): Platform {
   )
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
-  const agents = agentsMock((id) => installed.get(id))
+  const agents = agentsMock((id) => installed.get(id), os)
   let cancelled = false
   let zmCopyRemoved = false
   const MB = 1024 * 1024

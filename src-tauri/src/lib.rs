@@ -348,6 +348,18 @@ async fn fix_terminal_path(ids: Vec<String>) -> Result<terminal_path::PathFix, S
     blocking(move || terminal_path::fix(&ids)).await?
 }
 
+/// The shells `/etc/shells` lists that exist here, for "Which shell does your terminal run?".
+#[tauri::command]
+async fn terminal_shells() -> Result<terminal_path::ShellChoices, String> {
+    blocking(terminal_path::choices).await
+}
+
+/// Saves the shell the user picked (one of `terminal_shells`), then puts the listed tools on its PATH and checks again.
+#[tauri::command]
+async fn use_terminal_shell(shell: String, ids: Vec<String>) -> Result<terminal_path::PathFix, String> {
+    blocking(move || terminal_path::use_shell(&shell, &ids)).await?
+}
+
 #[tauri::command]
 async fn agent_chats(agent: String) -> Result<chats::Chats, String> {
     blocking(move || chats::read(&agent)).await?
@@ -1006,6 +1018,8 @@ pub fn run() {
             skill_show,
             terminal_reach,
             fix_terminal_path,
+            terminal_shells,
+            use_terminal_shell,
             agent_chats,
             mcp_registrations,
             mcp_check,

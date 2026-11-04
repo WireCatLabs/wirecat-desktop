@@ -18,6 +18,49 @@ pub struct PathFix {
     pub manual: Option<String>,
     /// Open terminals and AI apps keep the old PATH until they restart.
     pub restart: bool,
+    /// Each shell whose files the app keeps, after the change: the terminal's own first.
+    pub shells: Vec<ShellReach>,
+}
+
+#[derive(Serialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ShellReach {
+    pub name: String,
+    /// The program, as `/etc/shells` or the account lists it.
+    pub program: Option<String>,
+    /// Startup files that hold the app's blocks, `~`-shortened.
+    pub files: Vec<String>,
+    /// A new terminal running this shell finds every tool that was missing. `None`: the shell did not answer.
+    pub finds: Option<bool>,
+    /// The shell the user's terminal runs.
+    pub primary: bool,
+}
+
+/// The shells the user may say their terminal runs, for the picker shown when the check still fails.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShellChoices {
+    pub shells: Vec<String>,
+    /// The shell the checks use now.
+    pub current: Option<String>,
+    /// Set when the user picked it, rather than the account listing it.
+    pub chosen: Option<String>,
+}
+
+pub fn choices() -> ShellChoices {
+    let shells = paths::installed_shells().iter().map(|p| p.to_string_lossy().to_string()).collect();
+    let show = |p: Option<PathBuf>| p.map(|p| p.to_string_lossy().to_string());
+    ShellChoices { shells, current: show(paths::user_shell()), chosen: show(paths::chosen_shell()) }
+}
+
+/// The user says which shell their terminal runs: saved, so every later check uses it, then the fix runs again.
+pub fn use_shell(shell: &str, ids: &[String]) -> Result<PathFix, String> {
+    if cfg!(windows) {
+        return Err("Windows terminals read the PATH from your user settings, not from a shell.".into());
+    }
+    let program = paths::validate_shell(shell, &paths::installed_shells())?;
+    paths::choose_shell(&program)?;
+    fix(ids)
 }
 
 /// Fixes every listed tool that is installed but not found by a fresh terminal.
@@ -30,7 +73,58 @@ pub fn fix(ids: &[String]) -> Result<PathFix, String> {
             missing.push((id.clone(), dir));
         }
     }
-    Ok(apply(&missing, profile::plan_folder, profile::add_folder))
+    let mut result = apply(&missing, profile::plan_folder, profile::add_folder);
+    if !missing.is_empty() && !cfg!(windows) {
+        paths::forget_login_shell();
+        let bins: Vec<String> =
+            missing.iter().filter_map(|(id, _)| catalog::tool(id).ok().map(|t| t.bin.clone())).collect();
+        let shells = profile::shell_files();
+        let reach = |program: &Path| paths::shell_path(program).map(|p| bins.iter().all(|b| paths::finds(b, &p)));
+        check(&mut result, &missing, &shells, reach, |dir| profile::plan_folder(dir).line);
+    }
+    Ok(result)
+}
+
+/// Asks each shell whether it now finds the tools. A written file is not enough: a profile may reset PATH after the
+/// block, or the terminal may run another shell. When the terminal's own shell still misses them, the tools stay
+/// unreachable and the line to add by hand is given.
+pub fn check(
+    fix: &mut PathFix,
+    missing: &[(String, PathBuf)],
+    shells: &[profile::ShellFiles],
+    reach: impl Fn(&Path) -> Option<bool>,
+    line: impl Fn(&Path) -> String,
+) {
+    fix.shells = shells
+        .iter()
+        .map(|s| ShellReach {
+            name: s.name.clone(),
+            program: s.program.as_ref().map(|p| p.to_string_lossy().to_string()),
+            files: s.files.iter().map(|f| paths::tilde(&f.to_string_lossy())).collect(),
+            finds: s.program.as_deref().and_then(&reach),
+            primary: s.primary,
+        })
+        .collect();
+    fix.shells.sort_by_key(|s| !s.primary);
+    let primary = fix.shells.iter().find(|s| s.primary);
+    if primary.is_none_or(|s| s.finds != Some(false)) {
+        return;
+    }
+    for (id, _) in missing {
+        if !fix.unreachable.contains(id) {
+            fix.unreachable.push(id.clone());
+        }
+    }
+    if fix.manual.is_none() {
+        let mut lines: Vec<String> = Vec::new();
+        for (_, dir) in missing {
+            let l = line(dir);
+            if !lines.contains(&l) {
+                lines.push(l);
+            }
+        }
+        fix.manual = Some(lines.join("\n"));
+    }
 }
 
 /// `missing` is tool id and the folder holding its program. A folder is written once however many tools share it.
@@ -144,7 +238,54 @@ mod tests {
         let json = serde_json::to_value(&fix).unwrap();
         assert_eq!(
             json,
-            serde_json::json!({"added": [], "unreachable": [], "file": null, "manual": null, "restart": false})
+            serde_json::json!({"added": [], "unreachable": [], "file": null, "manual": null, "restart": false, "shells": []})
         );
+    }
+
+    fn shells() -> Vec<profile::ShellFiles> {
+        vec![
+            profile::ShellFiles {
+                name: "bash".into(),
+                program: Some("/bin/bash".into()),
+                files: vec!["/home/u/.bashrc".into()],
+                primary: false,
+            },
+            profile::ShellFiles {
+                name: "zsh".into(),
+                program: Some("/usr/bin/zsh".into()),
+                files: vec!["/home/u/.zshrc".into()],
+                primary: true,
+            },
+        ]
+    }
+
+    #[test]
+    fn a_written_file_the_terminal_shell_still_misses_leaves_the_tools_unreachable_with_the_line() {
+        let missing = [one("tg", "/opt/x/bin"), one("max", "/opt/x/bin")];
+        let mut fix = apply(&missing, |_| plan(false, true), |_| Ok(plan(true, true)));
+        check(
+            &mut fix,
+            &missing,
+            &shells(),
+            |p| Some(p.ends_with("bash")),
+            |_| "export PATH=\"/opt/x/bin:$PATH\"".into(),
+        );
+        assert_eq!(fix.shells[0].name, "zsh", "the terminal's shell first");
+        assert_eq!(fix.shells[0].finds, Some(false));
+        assert_eq!(fix.shells[1].finds, Some(true));
+        assert_eq!(fix.unreachable, vec!["tg".to_string(), "max".to_string()]);
+        assert_eq!(fix.manual.as_deref(), Some("export PATH=\"/opt/x/bin:$PATH\""));
+        assert_eq!(fix.added, vec!["/opt/x/bin".to_string()], "what was written is still reported");
+    }
+
+    #[test]
+    fn a_shell_that_finds_the_tools_or_does_not_answer_changes_nothing() {
+        let missing = [one("tg", "/opt/x/bin")];
+        for answer in [Some(true), None] {
+            let mut fix = apply(&missing, |_| plan(false, true), |_| Ok(plan(true, true)));
+            check(&mut fix, &missing, &shells(), |_| answer, |_| unreachable!());
+            assert!(fix.unreachable.is_empty() && fix.manual.is_none());
+            assert_eq!(fix.shells.len(), 2);
+        }
     }
 }

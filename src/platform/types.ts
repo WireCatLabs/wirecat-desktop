@@ -7,6 +7,7 @@ import type {
   McpHealth,
   PathFix,
   Registrations,
+  ShellChoices,
   SkillReport,
   SkillText,
   Target,
@@ -124,6 +125,10 @@ export type Platform = {
   terminalReach(agent?: string): Promise<Record<string, boolean>>
   /** Puts the folders of these tools on the user's PATH where a new terminal does not find them. */
   fixTerminalPath(ids: string[]): Promise<PathFix>
+  /** The shells installed here (Linux and macOS), for the owner to say which one their terminal runs. */
+  terminalShells(): Promise<ShellChoices>
+  /** Saves the owner's shell (one of `terminalShells`), puts these tools on its PATH and checks again. */
+  useTerminalShell(shell: string, ids: string[]): Promise<PathFix>
   /** Opens a coding agent (`claude`, `codex`, `gemini`) in a terminal with this prompt, written to a file by Rust. */
   runAgent(agent: string, prompt: string): Promise<AgentRun>
   /** Which chat apps drive the agent (Hermes's gateway, OpenClaw's channels), read only. */

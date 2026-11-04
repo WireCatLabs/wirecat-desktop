@@ -38,14 +38,33 @@ export const SkillTextSchema = v.object({ name: v.string(), content: v.string() 
 export const TerminalReachSchema = v.record(v.string(), v.boolean())
 
 /** What `fix_terminal_path` changed: folders put on the user's PATH, and where, or the line to add by hand. */
+/** One shell whose startup files hold WireCat's PATH blocks, and whether a new terminal running it finds the tools. */
+export const ShellReachSchema = v.object({
+  name: v.string(),
+  program: v.nullable(v.string()),
+  files: v.array(v.string()),
+  finds: v.nullable(v.boolean()),
+  primary: v.boolean(),
+})
+export type ShellReach = v.InferOutput<typeof ShellReachSchema>
+
 export const PathFixSchema = v.object({
   added: v.array(v.string()),
   unreachable: v.array(v.string()),
   file: v.nullable(v.string()),
   manual: v.nullable(v.string()),
   restart: v.boolean(),
+  shells: v.optional(v.array(ShellReachSchema), []),
 })
 export type PathFix = v.InferOutput<typeof PathFixSchema>
+
+/** The shells `/etc/shells` lists that exist, the one the checks use now, and the one the owner picked, if any. */
+export const ShellChoicesSchema = v.object({
+  shells: v.array(v.string()),
+  current: v.nullable(v.string()),
+  chosen: v.nullable(v.string()),
+})
+export type ShellChoices = v.InferOutput<typeof ShellChoicesSchema>
 
 /** What `run_agent` did: the agent opened in a terminal with the prompt file, or why it could not. */
 export const AgentRunSchema = v.object({

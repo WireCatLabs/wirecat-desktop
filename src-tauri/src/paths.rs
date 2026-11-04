@@ -99,6 +99,21 @@ fn read_login_shell() -> ShellEnv {
     ShellEnv { path: non_empty(path), pnpm_home: non_empty(pnpm) }
 }
 
+/// The PATH a new terminal running `shell` ends with. Asked fresh each time: used right after the app edits a file.
+#[cfg(unix)]
+pub fn shell_path(shell: &Path) -> Option<OsString> {
+    let flags = terminal_flags(shell, cfg!(target_os = "linux"));
+    let out =
+        crate::run::run(shell, &[flags, "printf '__WIRECAT_PATH__%s' \"$PATH\""], None, Duration::from_secs(5)).ok()?;
+    let (_, path) = out.stdout.rsplit_once("__WIRECAT_PATH__")?;
+    (!path.trim().is_empty()).then(|| OsString::from(path.trim()))
+}
+
+#[cfg(windows)]
+pub fn shell_path(_shell: &Path) -> Option<OsString> {
+    None
+}
+
 /// The shell a new terminal window starts, so the check reads the same file `profile.rs` writes. Linux terminals
 /// start bash as a non-login shell, which reads `.bashrc`; a login bash reads only `.profile` or `.bash_profile`, and a
 /// fresh account's `.profile` need not source `.bashrc`, so `-l` there misses the app's own PATH block. zsh and fish
@@ -113,18 +128,71 @@ fn terminal_flags(shell: &Path, linux: bool) -> &'static str {
     }
 }
 
-/// The user's own shell: `$SHELL` when it is a real file (a launcher may set none, or a stale one), else the one the
-/// account database lists, else `/bin/sh`. `None` only on Windows.
+/// The shell the user's terminal runs: the one they chose in the app, else the account's login shell, else `$SHELL`,
+/// else `/bin/sh`. `$SHELL` comes last because it is what started the app: a session started before `chsh`, or a
+/// launcher, keeps an old one. `None` only on Windows.
 pub fn user_shell() -> Option<PathBuf> {
     if cfg!(windows) {
         return None;
     }
     let usable = |p: &PathBuf| p.is_absolute() && p.is_file();
-    std::env::var_os("SHELL")
-        .map(PathBuf::from)
-        .filter(usable)
-        .or_else(|| account_shell().filter(usable))
+    chosen_shell()
+        .or_else(|| cached_account_shell().filter(usable))
+        .or_else(|| std::env::var_os("SHELL").map(PathBuf::from).filter(usable))
         .or_else(|| Some(PathBuf::from("/bin/sh")))
+}
+
+fn cached_account_shell() -> Option<PathBuf> {
+    static ACCOUNT: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+    ACCOUNT.get_or_init(account_shell).clone()
+}
+
+/// The shells `/etc/shells` lists that exist on this computer, one per real program (`/bin/bash` and `/usr/bin/bash`
+/// are often the same file), in the file's order.
+pub fn installed_shells() -> Vec<PathBuf> {
+    let listed = std::fs::read_to_string("/etc/shells").map(|c| parse_etc_shells(&c)).unwrap_or_default();
+    let mut seen = std::collections::HashSet::new();
+    listed
+        .into_iter()
+        .filter(|p| p.is_file())
+        .filter(|p| seen.insert(std::fs::canonicalize(p).unwrap_or_else(|_| p.clone())))
+        .collect()
+}
+
+fn parse_etc_shells(content: &str) -> Vec<PathBuf> {
+    content.lines().map(str::trim).filter(|l| l.starts_with('/')).map(PathBuf::from).collect()
+}
+
+/// The interface sends a path back; only one of the listed shells is accepted, compared as text, never resolved.
+pub fn validate_shell(shell: &str, listed: &[PathBuf]) -> Result<PathBuf, String> {
+    listed
+        .iter()
+        .find(|p| p.as_os_str() == shell)
+        .cloned()
+        .ok_or_else(|| format!("{shell} is not one of the shells this computer lists in /etc/shells."))
+}
+
+fn chosen_file() -> Option<PathBuf> {
+    crate::node::app_data().map(|d| d.join("terminal-shell.json"))
+}
+
+/// The shell the user said their terminal runs; ignored once it is no longer installed.
+pub fn chosen_shell() -> Option<PathBuf> {
+    let text = std::fs::read_to_string(chosen_file()?).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let shell = value["shell"].as_str()?;
+    validate_shell(shell, &installed_shells()).ok()
+}
+
+pub fn choose_shell(shell: &Path) -> Result<(), String> {
+    let file = chosen_file().ok_or("The app's data folder is unknown.")?;
+    if let Some(dir) = file.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("Could not create {}: {e}", tilde(&dir.to_string_lossy())))?;
+    }
+    let json = serde_json::json!({ "shell": shell.to_string_lossy() }).to_string();
+    std::fs::write(&file, json).map_err(|e| format!("Could not save the shell choice: {e}"))?;
+    forget_login_shell();
+    Ok(())
 }
 
 fn account_shell() -> Option<PathBuf> {
@@ -342,6 +410,18 @@ mod tests {
         assert_eq!(parse_passwd_shell("leemour:x:1000:1000::/home/leemour:\n", "leemour"), None);
         assert_eq!(parse_passwd_shell("leemour:x:1000", "leemour"), None);
         assert_eq!(parse_passwd_shell("", "leemour"), None);
+    }
+
+    #[test]
+    fn lists_only_absolute_shells_and_accepts_only_a_listed_one() {
+        let listed = parse_etc_shells("# /etc/shells\n/bin/sh\n/usr/bin/zsh\n\n  /usr/bin/fish  \nbash\n");
+        let as_paths: Vec<PathBuf> = ["/bin/sh", "/usr/bin/zsh", "/usr/bin/fish"].map(PathBuf::from).into();
+        assert_eq!(listed, as_paths);
+        assert_eq!(validate_shell("/usr/bin/zsh", &listed), Ok(PathBuf::from("/usr/bin/zsh")));
+        assert!(validate_shell("/usr/bin/zsh -c id", &listed).is_err());
+        assert!(validate_shell("/usr/bin/../bin/zsh", &listed).is_err());
+        assert!(validate_shell("zsh", &listed).is_err());
+        assert!(validate_shell("", &listed).is_err());
     }
 
     #[test]
