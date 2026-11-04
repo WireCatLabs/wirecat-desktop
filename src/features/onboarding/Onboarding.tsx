@@ -1,5 +1,6 @@
 import { Check } from "lucide-react"
 import { type ComponentType, useEffect, useId, useRef } from "react"
+import { computerGate, nextStep, previousStep, primaryAction, skipTarget, stepIndex } from "@/domain/onboarding-flow"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Crossfade } from "@/ui/Crossfade"
@@ -57,13 +58,11 @@ function SkillWhy() {
   )
 }
 
-const indexOf = (id: StepId) => STEPS.findIndex((s) => s.id === id)
-
 /** The setup steps take the sidebar's place while the flow is open. */
 export function SetupSteps({ onExit }: { onExit: () => void }) {
   const step = useOnboarding((s) => s.step)
   const m = useMessages(onboardingMessages)
-  const current = indexOf(step)
+  const current = stepIndex(step)
   return (
     <aside
       className="flex w-[12rem] shrink-0 flex-col border-line border-r bg-wall xl:w-[13.5rem]"
@@ -77,11 +76,11 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
           {STEPS.map((s, i) => {
             const here = i === current
             return (
-              <li key={s.id}>
+              <li key={s}>
                 <button
                   type="button"
                   aria-current={here ? "step" : undefined}
-                  onClick={() => useOnboarding.getState().go(s.id)}
+                  onClick={() => useOnboarding.getState().go(s)}
                   className={cx(
                     "relative flex min-h-[2.3rem] w-full items-center gap-[0.75rem] px-[1.5rem] py-[0.3rem] text-left text-[0.95rem] leading-tight",
                     here ? "font-semibold text-ink" : "text-ink-soft hover:text-ink",
@@ -107,7 +106,7 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
                   >
                     {i < current ? <Check className="size-3" strokeWidth={3} /> : i + 1}
                   </span>
-                  {m.steps[s.id]}
+                  {m.steps[s]}
                 </button>
               </li>
             )
@@ -163,10 +162,8 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
     heading.current?.focus({ preventScroll: true })
   }, [step])
 
-  const i = indexOf(step)
   const page = m.pages[step]
   const Body = bodies[step]
-  const next = (id?: StepId) => go(id ?? STEPS[Math.min(i + 1, STEPS.length - 1)]?.id ?? "done")
   const toInstall = chosen.filter((id) => !installs[id]?.length).length
   // Until one skill is in place, Continue leaves the step without the thing it is for, so Install leads instead.
   const hasSkill = useSkillMatrix().rows.some((r) =>
@@ -181,46 +178,43 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
     if (tour) onTour()
   }
 
-  let primary: { label: string; run: () => void }
-  if (step === "welcome") primary = { label: m.flow.getStarted, run: () => next() }
-  else if (step === "choose" && toInstall > 0 && nodeReady) {
-    primary = {
-      label: m.flow.installTools(toInstall),
-      run: () => {
-        installChosen()
-        next()
-      },
-    }
-  } else if (step === "done")
-    // The owner's NEED-C answer B: the guides are where work starts, so they lead; Tools stays one click away.
-    primary = {
-      label: m.done.guides,
-      run: () => {
-        leave()
-        finish()
-        arriveFromSetup()
-      },
-    }
-  else
-    primary = {
-      label: m.flow.continue,
-      run: () => next(step === "choose" && chosen.length === 0 ? "agents" : undefined),
-    }
+  const kind = primaryAction(step, toInstall, nodeReady)
+  const primary: { label: string; run: () => void } =
+    kind === "start"
+      ? { label: m.flow.getStarted, run: () => go(nextStep(step, chosen.length)) }
+      : kind === "install"
+        ? {
+            label: m.flow.installTools(toInstall),
+            run: () => {
+              installChosen()
+              go(nextStep(step, chosen.length))
+            },
+          }
+        : kind === "guides"
+          ? // The owner's NEED-C answer B: the guides are where work starts, so they lead; Tools stays one click away.
+            {
+              label: m.done.guides,
+              run: () => {
+                leave()
+                finish()
+                arriveFromSetup()
+              },
+            }
+          : { label: m.flow.continue, run: () => go(nextStep(step, chosen.length)) }
 
   // Tools cannot install without Node.js, so the computer step holds until it is ready or the owner takes it on.
-  const computerOk = Boolean(readiness?.node.ok && readiness.npm.ok && readiness.npmPrefixWritable !== false)
+  const gate = step === "computer" ? computerGate(readiness, nodeRunning, myself) : null
   const blocked =
-    step !== "computer" || computerOk || myself
-      ? null
-      : !readiness
-        ? m.flow.blockedChecking
-        : nodeRunning
-          ? m.flow.blockedSettingUp
-          : m.flow.blockedNode
-  const skip =
-    step === "welcome" || step === "done" || step === "computer"
-      ? null
-      : () => next(step === "choose" ? "agents" : undefined)
+    gate === "checking"
+      ? m.flow.blockedChecking
+      : gate === "settingUp"
+        ? m.flow.blockedSettingUp
+        : gate === "node"
+          ? m.flow.blockedNode
+          : null
+  const skipTo = skipTarget(step)
+  const skip = skipTo ? () => go(skipTo) : null
+  const back = previousStep(step)
 
   return (
     <main ref={scroller} aria-labelledby={headingId} className="min-h-0 flex-1 overflow-y-auto">
@@ -257,8 +251,8 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
         ) : (
           // Pinned to the bottom of the window, so a step's content loading or growing never moves it.
           <div className="sticky bottom-0 mt-auto flex items-center gap-2 border-line border-t bg-wall pt-[1.2rem] pb-[2.2rem]">
-            {i > 0 && (
-              <Button variant="ghost" onClick={() => go(STEPS[i - 1]?.id ?? "welcome")}>
+            {back && (
+              <Button variant="ghost" onClick={() => go(back)}>
                 {m.flow.back}
               </Button>
             )}

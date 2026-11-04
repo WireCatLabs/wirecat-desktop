@@ -1,17 +1,8 @@
 import { create } from "zustand"
 import { createJSONStorage, persist, type StateStorage } from "zustand/middleware"
+import { STEPS, type StepId } from "@/domain/onboarding-flow"
 
-export const STEPS = [
-  { id: "welcome" },
-  { id: "computer" },
-  { id: "choose" },
-  { id: "install" },
-  { id: "agents" },
-  { id: "signin" },
-  { id: "done" },
-] as const
-
-export type StepId = (typeof STEPS)[number]["id"]
+export { STEPS, type StepId }
 
 /** Absent on the first start; "later" when the owner postponed it, "done" once finished. */
 type Status = "new" | "later" | "done"
