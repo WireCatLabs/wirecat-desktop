@@ -56,6 +56,9 @@ UI. mb remove tg cli (while keeping the keyring entries and database and config 
 
 **TASK-97 · Скриншоты my.telegram.org и привязки устройства в cli-docs и tg-cli** — с вкладками iOS/Android; личные данные
 закрыть (SEC-114). Статус: в работе (подагент).
+- **2026-11-04:** готово, не запушено. tg-cli `.claude/worktrees/tg-app-docs` 6a09711 (docs/sessions.md + 7 PNG); cli-docs
+  `.claude/worktrees/tg-app-docs` 9311897f (translations/pages/tg/installation.{en,es,ru}.md, вкладки iOS/Android, `#q-scan`).
+  Путь на iOS (Settings › Devices › Link Desktop Device) подтверждён только частично; сборка сайта не запускалась.
 
 **TASK-98 · Аудит фронтенда** — слои, модульность, библиотека компонентов, тесты; рефакторинг после покрытия тестами.
 Статус: аудит в работе (подагент), рефакторинг отдельным PR после отчёта.
@@ -135,6 +138,8 @@ Unix-ветка покрыта тестами чистых функций, за�
 
 **SEC-114 · На скриншотах Славы личные данные** — номер телефона (экран кода), api_id и название app (AISWE), имена
 устройств и город (Android «Devices»). В публичные cli-docs и tg-cli только после закрашивания.
+- **2026-11-04:** я сам просмотрел 4 изменённых PNG (код, credentials, обе Android): номер, api_id, AISWE, город, устройство
+  закрыты; копии в двух репо побайтно одинаковые.
 
 **DEBT-14 · Фичи импортируют друг друга по кругу** — tools↔agents, storage, onboarding, logs, config; правило запрещает
 только импорт из app. Нужен общий слой (ToolIcon, ReportThis, safeStorage, JsonTree, реестр инструментов) и index.ts на фичу.
