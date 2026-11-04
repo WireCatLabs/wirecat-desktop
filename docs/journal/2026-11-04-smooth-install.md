@@ -76,9 +76,11 @@ vitest. Текст про пароль поправлен: Telegram получа
 картинка не попала в историю; ветку feat/tg-signin не пушить, удалить (CLEANUP.md). 221 тест signin+domain после слияния.
 
 **TASK-100 · Оболочка пользователя по-настоящему** — SHELL, затем оболочка учётной записи (/etc/passwd, на macOS dscl),
-затем /bin/sh; флаги проверки под каждую оболочку. Подагент, ветка fix/user-shell.
+затем /bin/sh; флаги проверки под каждую оболочку. Подагент, ветка fix/user-shell. **Влито 51140e5**, 349 тестов Rust; fish и macOS не запускались.
 
-**TASK-101 · Отчёт об архитектуре и правила для ИИ** — docs/dev/architecture-report.md, docs/dev/guides/*.md (new-screen,
+**TASK-101 · Отчёт об архитектуре и правила для ИИ** — **готово:** be623db (сравнение), b254072 (отчёт + 8 гайдов + раздел
+в CLAUDE.md). Предложено сверх 2 и 3: Playwright smoke + axe, бюджет размера бандла, порог покрытия только domain, Ladle
+для ui/; не нужно: Storybook, снимки, визуальная регрессия в CI, роутер. — docs/dev/architecture-report.md, docs/dev/guides/*.md (new-screen,
 new-component, application-logic, rust-command, testing, i18n, release, reuse), ссылка из CLAUDE.md. Сравнение UI-библиотек
 (с shadcn, Tailwind, React Aria, Radix, Base UI, Ark, Mantine, HeroUI) — docs/dev/ui-libraries.md. Подагенты.
 
