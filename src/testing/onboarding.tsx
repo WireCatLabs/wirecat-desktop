@@ -144,7 +144,7 @@ export function fakeInstaller(installed: Record<string, string> = {}) {
     /** `manual` is the PATH line the owner adds himself, for a shell WireCat does not edit. */
     async finish(id: string, version = "1.0.0", manual: string | null = null) {
       versions.set(id, version)
-      const pathFix = manual ? { added: [], unreachable: [], file: null, manual, restart: true } : null
+      const pathFix = manual ? { added: [], unreachable: [], file: null, manual, restart: true, shells: [] } : null
       await end(id, { event: "done", version, path: `~/.local/bin/${id}`, shadowedBy: null, pathFix })
     },
     fail: (id: string, reason: string, message = "npm failed", hint: string | null = null) =>
