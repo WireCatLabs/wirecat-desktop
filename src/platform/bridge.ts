@@ -161,7 +161,7 @@ function createTauri(): Platform {
     skillShow: (id) => call(SkillTextSchema, "skill_show", { id }),
     terminalReach: (agent) => call(TerminalReachSchema, "terminal_reach", agent ? { agent } : {}),
     fixTerminalPath: (ids) => call(PathFixSchema, "fix_terminal_path", { ids }),
-    fixWithAgent: (agent, prompt) => call(AgentRunSchema, "fix_with_agent", { agent, prompt }),
+    runAgent: (agent, prompt) => call(AgentRunSchema, "run_agent", { agent, prompt }),
     agentChats: (agent) => call(ChatsSchema, "agent_chats", { agent }),
     mcpRegistrations: (agent) => call(RegistrationsSchema, "mcp_registrations", { agent }),
     mcpCheck: (id, profile) => call(McpHealthSchema, "mcp_check", { id, profile }),

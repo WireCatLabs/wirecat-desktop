@@ -71,6 +71,8 @@ src-tauri/src/
   names.rs      the chat titles and contact names the messengers keep, read per profile with their own offline
                 `chats list` / `contacts list`, held in memory only, so doctor output and reports mask them.
   terminal.rs   opening a tool's interactive setup in the user's terminal.
+  agent_run.rs  `run_agent`: Claude Code, Codex or Gemini CLI opened in a terminal with a prompt saved to a private file
+                (Fix › under an error, Open in on a guide); only those three programs, found on PATH.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced
@@ -149,7 +151,8 @@ Each tool writes its skill (`SKILL.md`) to `~/.claude/skills` and `~/.agents/ski
 `skill install --for claude|agents`; the catalog's `skill` templates hold those commands, `skill status` and
 `skill show`. The app never reads a `SKILL.md` file itself. A tool from before `skill status` answers "unknown command" and its cells show "unknown";
 memo falls back to the skill list in `doctor --json`. Agents are found by program on PATH or by their settings
-folder (`skills.rs`); which folder each agent reads comes from the agents' own docs.
+folder (`skills.rs`); which folder each agent reads comes from the agents' own docs. The skill table files each agent found under the
+first folder it reads (`skillColumns`), so Cursor, which reads both, heads one column, not two.
 
 Shared storage is described by `store info --json` (`storeInfo` in the catalog). `compat.rs` asks every installed
 package at once, read-only, and the answer of the tool that reads the newest schema fills the Storage page; tables and
