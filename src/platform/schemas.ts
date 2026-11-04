@@ -1,4 +1,5 @@
 import * as v from "valibot"
+import { PathFixSchema } from "./agents-schemas"
 
 // What Rust sends is checked here once, so a drift between the two sides fails loudly at the boundary
 // instead of rendering `undefined` somewhere in the interface.
@@ -68,6 +69,9 @@ const FailReason = v.picklist([
   "cancelled",
   "verify",
   "unconfirmed",
+  "disk",
+  "proxy",
+  "longPath",
   "failed",
 ])
 
@@ -82,6 +86,7 @@ export const InstallEventSchema = v.variant("event", [
     skills: v.optional(
       v.object({ refreshed: v.array(v.picklist(["claude", "agents", "hermes"])), failed: v.nullable(v.string()) }),
     ),
+    pathFix: v.optional(v.nullable(PathFixSchema)),
   }),
   v.object({ event: v.literal("removed") }),
   v.object({ event: v.literal("failed"), reason: FailReason, message: v.string(), hint: v.nullable(v.string()) }),
@@ -90,7 +95,12 @@ export const InstallEventSchema = v.variant("event", [
 export const NodeEventSchema = v.variant("event", [
   v.object({ event: v.literal("step"), step: v.picklist(["check", "download", "verify", "unpack"]) }),
   v.object({ event: v.literal("progress"), received: v.number(), total: v.nullable(v.number()) }),
-  v.object({ event: v.literal("done"), version: v.string(), path: v.string() }),
+  v.object({
+    event: v.literal("done"),
+    version: v.string(),
+    path: v.string(),
+    pathFix: v.optional(v.nullable(PathFixSchema)),
+  }),
   v.object({ event: v.literal("failed"), reason: FailReason, message: v.string(), hint: v.nullable(v.string()) }),
 ])
 

@@ -41,7 +41,13 @@ describe("First start", () => {
     await user.click(screen.getByRole("button", { name: "Install 1 tool" }))
 
     const progress = await screen.findByRole("list", { name: "Installing" })
+    expect(screen.getByRole("progressbar", { name: "Progress of all installs" })).toBeInTheDocument()
+    const tips = screen.getByRole("region", { name: "While you wait" })
+    expect(within(tips).getByText("Your agent runs the tools for you")).toBeInTheDocument()
+    await user.click(within(tips).getByRole("button", { name: "Next tip" }))
+    expect(await within(tips).findByText("Your documents, as text")).toBeInTheDocument()
     expect(await within(progress).findByText("0.30.0", {}, { timeout: 8000 })).toBeInTheDocument()
+    expect(await screen.findByText(/see the new tools only after you restart them/)).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await user.click(screen.getByRole("button", { name: "Continue" }))

@@ -261,7 +261,7 @@ pub fn offer() -> Result<Offer, String> {
 pub enum NodeEvent {
     Step { step: Step },
     Progress { received: u64, total: Option<u64> },
-    Done { version: String, path: String },
+    Done { version: String, path: String, path_fix: Option<crate::terminal_path::PathFix> },
     Failed { reason: Reason, message: String, hint: Option<String> },
 }
 

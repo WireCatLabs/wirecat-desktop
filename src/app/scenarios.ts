@@ -82,12 +82,12 @@ export async function runMockScenario() {
     useSync.getState().start(syncing.id, syncNeedsProfile(syncing) ? "personal" : null)
   }
   await searchScenario(params)
-  const id = params.get("install")
-  if (!id) return
-  // So `?onboarding=install&install=<tool>` shows the same install on the setup's Install step.
-  useOnboarding.setState((s) => ({ chosen: s.chosen.includes(id) ? s.chosen : [...s.chosen, id] }))
+  const ids = params.get("install")?.split(",").filter(Boolean) ?? []
+  if (ids.length === 0) return
+  // So `?onboarding=install&install=<tool>[,<tool>…]` shows the same installs on the setup's Install step.
+  useOnboarding.setState((s) => ({ chosen: [...new Set([...s.chosen, ...ids])] }))
   await useTools.getState().refresh()
-  useTools.getState().install(id)
+  for (const id of ids) useTools.getState().install(id)
 }
 
 // `?search=<tool>` opens Search on that tool's hits, `?search=empty` on a query nothing matches, `?search-fail=query`

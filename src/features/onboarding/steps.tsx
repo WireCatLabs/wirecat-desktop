@@ -8,6 +8,7 @@ import type { Profile } from "@/platform/schemas"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
+import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
@@ -18,6 +19,7 @@ import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
 import { NodeNotice } from "../system/NodeNotice"
 import { useSystem } from "../system/store"
+import { failureWords, useFailureMessages } from "../tools/failure-words"
 import { openConnect } from "../tools/go"
 import { ManualSetup, NewProfile, TerminalStatus, useProfiles } from "../tools/Health"
 import { InstallProgress } from "../tools/InstallProgress"
@@ -26,6 +28,7 @@ import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
 import { useTerminal } from "../tools/terminal-store"
 import { toolText } from "../tools/tool-text"
+import { InstallOverview, InstallTips } from "./InstallWait"
 import { onboardingMessages } from "./messages"
 import { useOnboarding } from "./store"
 
@@ -189,26 +192,20 @@ function Progress({ tool }: { tool: CatalogTool }) {
   const outcome = session?.outcome
   const m = useMessages(onboardingMessages).install
   const tm = useMessages(toolsMessages).install
+  const fm = useFailureMessages()
   const version = (v: string) => <span className="font-mono tabular-nums">{v}</span>
 
   let tone: LampTone = "idle"
   let text: ReactNode = m.notInstalled
+  let hint: string | null = null
   if (status.kind === "checking") text = m.checking
   else if (session && !outcome) {
     tone = session.step === "queued" ? "idle" : "busy"
     text = session.step === "queued" ? m.queued : m.step(tm.steps.install[session.step] ?? m.installing)
-  } else if (outcome?.event === "failed") {
+  } else if (outcome?.event === "failed" && session) {
     tone = "bad"
-    const message =
-      outcome.reason === "cancelled"
-        ? tm.cancelled.install
-        : outcome.reason === "timeout"
-          ? tm.timedOut.install
-          : outcome.reason === "network"
-            ? tm.network
-            : outcome.reason === "unconfirmed"
-              ? tm.unconfirmed
-              : outcome.message
+    const [message, next] = failureWords(outcome, session.operation, fm)
+    hint = next
     text = <span className="text-bad">{message}</span>
   } else if (outcome?.event === "done") {
     tone = "ok"
@@ -249,6 +246,11 @@ function Progress({ tool }: { tool: CatalogTool }) {
             </div>
           )}
         </Collapse>
+        <Collapse open={hint !== null}>
+          <p className="selectable max-w-[70ch] pt-[0.4rem] pb-[0.2rem] text-[0.9rem] text-ink-soft sm:pl-[3.8rem]">
+            {hint}
+          </p>
+        </Collapse>
       </div>
     </li>
   )
@@ -262,6 +264,11 @@ export function Install() {
     (s) =>
       chosen.length > 0 &&
       chosen.every((id) => s.installs[id]?.length) &&
+      chosen.every((id) => !s.sessions[ownerId(id)] || s.sessions[ownerId(id)]?.outcome),
+  )
+  const settledWithOne = useTools(
+    (s) =>
+      chosen.some((id) => s.sessions[ownerId(id)]?.outcome?.event === "done") &&
       chosen.every((id) => !s.sessions[ownerId(id)] || s.sessions[ownerId(id)]?.outcome),
   )
   const list = tools.filter((t) => chosen.includes(t.id))
@@ -281,6 +288,7 @@ export function Install() {
   return (
     <>
       <NodeNotice />
+      <InstallOverview chosen={list.map((t) => t.id)} />
       <ul aria-label={m.list} className={rack}>
         {list.map((t) => (
           <Progress key={t.id} tool={t} />
@@ -303,7 +311,37 @@ export function Install() {
           <span className="text-ink-soft">{m.note}</span>
         )}
       </p>
+      <Collapse open={settledWithOne}>
+        <RestartNote chosen={list.map((t) => t.id)} />
+      </Collapse>
+      <InstallTips chosen={list.map((t) => t.id)} />
     </>
+  )
+}
+
+/** Open apps keep the PATH they started with, which is why Codex can miss a tool that is installed and on PATH. */
+function RestartNote({ chosen }: { chosen: readonly string[] }) {
+  const w = useMessages(onboardingMessages).wait
+  const manual = useTools((s) => {
+    for (const id of chosen) {
+      const outcome = s.sessions[ownerId(id)]?.outcome
+      if (outcome?.event === "done" && outcome.pathFix?.manual) return outcome.pathFix.manual
+    }
+    return null
+  })
+  return (
+    <div className="flex flex-col gap-2 text-[0.95rem] text-ink-soft">
+      <p className="flex items-start gap-2">
+        <RefreshCw aria-hidden className="mt-[0.2rem] size-4 shrink-0" />
+        {w.restart}
+      </p>
+      {manual && (
+        <>
+          <p>{w.manual}</p>
+          <CopyField value={manual} label={w.manual} />
+        </>
+      )}
+    </div>
   )
 }
 

@@ -1,6 +1,6 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 static SEARCH_PATH: RwLock<Option<OsString>> = RwLock::new(None);
@@ -68,10 +68,21 @@ struct ShellEnv {
     pnpm_home: Option<OsString>,
 }
 
-/// Asked once: an interactive login shell is slow and its rc files do not change while the app runs.
-fn login_shell() -> &'static ShellEnv {
-    static ENV: OnceLock<ShellEnv> = OnceLock::new();
-    ENV.get_or_init(read_login_shell)
+static LOGIN_SHELL: RwLock<Option<Arc<ShellEnv>>> = RwLock::new(None);
+
+/// Asked once, as an interactive login shell is slow; only the app's own PATH edits change its rc files.
+fn login_shell() -> Arc<ShellEnv> {
+    if let Some(env) = LOGIN_SHELL.read().unwrap().as_ref() {
+        return Arc::clone(env);
+    }
+    let env = Arc::new(read_login_shell());
+    *LOGIN_SHELL.write().unwrap() = Some(Arc::clone(&env));
+    env
+}
+
+/// Called after the app edits a shell profile, so the next reachability check reads it again.
+pub fn forget_login_shell() {
+    *LOGIN_SHELL.write().unwrap() = None;
 }
 
 #[cfg(unix)]

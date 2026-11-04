@@ -76,7 +76,9 @@ fn audit_verdict(code: Option<i32>, stdout: &str) -> Result<(), Refusal> {
     let out: Value = serde_json::from_str(stdout).unwrap_or_default();
     if let Some(error) = out.get("error") {
         let code = error["code"].as_str().unwrap_or_default();
-        let summary = error["summary"].as_str().unwrap_or("npm audit signatures failed").to_string();
+        let summary = error["summary"].as_str().unwrap_or("npm audit signatures failed");
+        // The code goes into the text so `install::classify` can tell a certificate or proxy problem from the rest.
+        let summary = if code.is_empty() { summary.to_string() } else { format!("{code}: {summary}") };
         let network = ["ENOTFOUND", "ETIMEDOUT", "ECONNRESET", "ECONNREFUSED", "EAI_AGAIN"].contains(&code);
         return Err(if network { Refusal::Unreachable(summary) } else { Refusal::Unconfirmed(summary) });
     }

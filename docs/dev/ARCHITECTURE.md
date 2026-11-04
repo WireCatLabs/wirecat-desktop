@@ -94,7 +94,13 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
    installed, so an update never leaves a second copy behind.
 4. Each output line is masked and sent as a `log` event; steps arrive as `step` events.
 5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If the app
-   would still run another copy (one of the same or a newer version), the result says which.
+   would still run another copy (one of the same or a newer version), the result says which. When npm installed into
+   the user prefix (`~/.local`, `%APPDATA%\npm`) and a fresh terminal does not find the tool, its folder goes on the
+   user's PATH (`terminal_path.rs`); the `done` event carries what changed as `pathFix`, or the line to add by hand.
+   WireCat's own Node.js folder goes on PATH the same way right after its setup, on every OS. Open apps keep their old
+   PATH, so the setup tells the owner to restart them; this is why an AI app opened before the install misses a tool.
+   A network failure of `npm view` or of the install is retried once after 3 s; disk, proxy and certificate, and
+   Windows long-path errors get their own reasons with the next step to take.
 6. On an update, the tool's own `skill status`, then `skill install --for` each copy that is `stale`, each command
    line in the log (`skills::refresh`): a copy an older version wrote. A `missing` place stays empty, an `unversioned`
    file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or
@@ -239,7 +245,8 @@ agent's recent sessions and the tasks it holds.
   the app; the holder (`claude-code:<session>`, `codex:<thread>`, an agent's name) is matched to its agent.
   Release runs `tasks release <task> --holder owner`, because the app may itself run inside an agent's terminal.
 - **Check** joins these with `paths::in_terminal` (is the tool on the PATH a terminal has, without the folders the
-  app adds), runs `mcp check` for every connected profile and counts the commands each profile's permissions block
+  app adds; one item for every tool it misses, whose Fix runs `fix_terminal_path` and then asks the tools and their
+  skills again), runs `mcp check` for every connected profile and counts the commands each profile's permissions block
   (the Permissions block's `permissions_show`).
 - **Skill preview** shows `skill show --json`, the SKILL.md the installed version ships, beside the installed copies'
   versions. The app does not read an installed SKILL.md, so what an update changes waits for a CLI that prints it.

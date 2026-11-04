@@ -4,6 +4,9 @@ use std::path::{Path, PathBuf};
 
 const START: &str = "# Added by WireCat Desktop: Node.js for WireCat tools. Delete this block to undo.";
 const END: &str = "# End of WireCat Desktop block";
+// A second block, so the Node.js line (replaced on every Node.js update) never overwrites the tool folders.
+const TOOLS_START: &str = "# Added by WireCat Desktop: folders of WireCat tools. Delete this block to undo.";
+const TOOLS_END: &str = "# End of WireCat Desktop tools block";
 
 /// What "Add to PATH" would do, shown in full before anything is written.
 #[derive(Serialize)]
@@ -95,20 +98,49 @@ impl Env {
 /// The block always goes in front of PATH: tools start with `#!/usr/bin/env node`, and an older Node earlier in
 /// PATH would run them and fail.
 fn insert_block(content: &str, line: &str) -> String {
-    let mut out = remove_block(content);
+    insert_marked(content, START, END, &[line.to_string()])
+}
+
+fn insert_marked(content: &str, start: &str, end: &str, lines: &[String]) -> String {
+    let mut out = remove_marked(content, start, end);
     if !out.is_empty() && !out.ends_with('\n') {
         out.push('\n');
     }
     if !out.is_empty() {
         out.push('\n');
     }
-    out + &[START, line, END, ""].join("\n")
+    let mut block = vec![start];
+    block.extend(lines.iter().map(String::as_str));
+    block.extend([end, ""]);
+    out + &block.join("\n")
 }
 
 fn remove_block(content: &str) -> String {
-    let Some(start) = content.find(START) else { return content.to_string() };
-    let Some(end_rel) = content[start..].find(END) else { return content.to_string() };
-    let mut end = start + end_rel + END.len();
+    remove_marked(content, START, END)
+}
+
+/// The lines of the tools block, in file order; empty when there is none.
+fn tools_lines(content: &str) -> Vec<String> {
+    let Some(start) = content.find(TOOLS_START) else { return vec![] };
+    let body = &content[start + TOOLS_START.len()..];
+    let Some(end) = body.find(TOOLS_END) else { return vec![] };
+    body[..end].lines().map(str::trim).filter(|l| !l.is_empty()).map(String::from).collect()
+}
+
+/// Adds one folder's line to the tools block, newest first; the same line twice changes nothing.
+fn insert_folder(content: &str, line: &str) -> String {
+    let mut lines = tools_lines(content);
+    if lines.iter().any(|l| l == line) {
+        return content.to_string();
+    }
+    lines.insert(0, line.to_string());
+    insert_marked(content, TOOLS_START, TOOLS_END, &lines)
+}
+
+fn remove_marked(content: &str, start_marker: &str, end_marker: &str) -> String {
+    let Some(start) = content.find(start_marker) else { return content.to_string() };
+    let Some(end_rel) = content[start..].find(end_marker) else { return content.to_string() };
+    let mut end = start + end_rel + end_marker.len();
     if content[end..].starts_with('\n') {
         end += 1;
     }
@@ -134,8 +166,44 @@ pub fn plan(bin: &Path) -> PathPlan {
     let (shell, name) = env.shell();
     let file = env.file(shell);
     let (line, automatic) = env.line(shell, bin);
-    let added = file.as_ref().and_then(|f| std::fs::read_to_string(f).ok()).is_some_and(|c| c.contains(START));
+    // The exact line: a block left by an older Node.js version does not put this one on PATH.
+    let added = file
+        .as_ref()
+        .and_then(|f| std::fs::read_to_string(f).ok())
+        .is_some_and(|c| c.contains(START) && c.contains(&line));
     PathPlan { shell: name, file: file.map(|f| paths::tilde(&f.to_string_lossy())), line, added, automatic }
+}
+
+/// `plan` for a tool folder, which lives in its own block beside the Node.js one.
+pub fn plan_folder(dir: &Path) -> PathPlan {
+    let mut plan = plan(dir);
+    if cfg!(windows) {
+        return plan;
+    }
+    plan.added = Env::current()
+        .and_then(|env| env.file(env.shell().0))
+        .and_then(|f| std::fs::read_to_string(f).ok())
+        .is_some_and(|c| tools_lines(&c).contains(&plan.line));
+    plan
+}
+
+/// Puts a tool folder on the user's PATH next to the Node.js one; adding the same folder again changes nothing.
+pub fn add_folder(dir: &Path) -> Result<PathPlan, String> {
+    if cfg!(windows) {
+        ensure_on_windows_path(dir)?;
+        return Ok(plan(dir));
+    }
+    let env = Env::current().ok_or("Your home folder is unknown.")?;
+    let (shell, _) = env.shell();
+    let (line, automatic) = env.line(shell, dir);
+    let file = env.file(shell).filter(|_| automatic).ok_or("Add the line to your shell's startup file yourself.")?;
+    let content = read(&file)?;
+    let updated = insert_folder(&content, &line);
+    if updated != content {
+        write(&file, &updated)?;
+        crate::paths::forget_login_shell();
+    }
+    Ok(plan_folder(dir))
 }
 
 pub fn add(bin: &Path) -> Result<PathPlan, String> {
@@ -149,6 +217,7 @@ pub fn add(bin: &Path) -> Result<PathPlan, String> {
     let file = env.file(shell).filter(|_| automatic).ok_or("Add the line to your shell's startup file yourself.")?;
     let content = read(&file)?;
     write(&file, &insert_block(&content, &line))?;
+    crate::paths::forget_login_shell();
     Ok(plan(bin))
 }
 
@@ -168,6 +237,7 @@ pub fn remove(bin: &Path) -> Result<PathPlan, String> {
     } else if left != content {
         write(&file, &left)?;
     }
+    crate::paths::forget_login_shell();
     Ok(plan(bin))
 }
 
@@ -448,6 +518,23 @@ mod tests {
         assert_eq!(remove_block(&twice), "alias ll='ls -l'\nexport EDITOR=vim\n");
         assert_eq!(remove_block(original), original);
         assert_eq!(remove_block(&insert_block("", "x")), "");
+    }
+
+    #[test]
+    fn several_folders_share_a_tools_block_beside_the_node_block() {
+        let (a, b, node) = ("export PATH=\"/a:$PATH\"", "export PATH=\"/b:$PATH\"", "export PATH=\"/n:$PATH\"");
+        let original = "export EDITOR=vim\n";
+        let with_node = insert_block(original, node);
+        let one = insert_folder(&with_node, a);
+        assert_eq!(insert_folder(&one, a), one, "the same folder twice changes nothing");
+        let two = insert_folder(&one, b);
+        assert_eq!(tools_lines(&two), vec![b.to_string(), a.to_string()]);
+        let node_again = insert_block(&two, "export PATH=\"/n2:$PATH\"");
+        assert_eq!(tools_lines(&node_again).len(), 2, "a Node.js update keeps the tool folders");
+        assert_eq!(node_again.matches(START).count(), 1);
+        let without_node = remove_block(&node_again);
+        assert!(!without_node.contains("/n2:") && without_node.contains(TOOLS_START));
+        assert_eq!(remove_marked(&without_node, TOOLS_START, TOOLS_END), original);
     }
 
     #[test]

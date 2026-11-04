@@ -37,6 +37,16 @@ export const SkillTextSchema = v.object({ name: v.string(), content: v.string() 
 /** By tool id: whether a terminal's own PATH finds the tool, without the folders the app adds. */
 export const TerminalReachSchema = v.record(v.string(), v.boolean())
 
+/** What `fix_terminal_path` changed: folders put on the user's PATH, and where, or the line to add by hand. */
+export const PathFixSchema = v.object({
+  added: v.array(v.string()),
+  unreachable: v.array(v.string()),
+  file: v.nullable(v.string()),
+  manual: v.nullable(v.string()),
+  restart: v.boolean(),
+})
+export type PathFix = v.InferOutput<typeof PathFixSchema>
+
 /** WireCat server names an agent has registered, and where that was read. */
 export const RegistrationsSchema = v.object({
   source: v.string(),

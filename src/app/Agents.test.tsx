@@ -137,8 +137,8 @@ describe("Agents", () => {
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
     const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" }, wait)
-    expect(await within(fixes).findByText("Zoom is not on a terminal's PATH", {}, wait)).toBeInTheDocument()
-    expect(within(fixes).getByText(/^export PATH=/)).toBeInTheDocument()
+    expect(await within(fixes).findByText("A new terminal cannot find Zoom", {}, wait)).toBeInTheDocument()
+    expect(within(fixes).getByRole("button", { name: "Fix" })).toBeInTheDocument()
     expect(await within(fixes).findByText(/Telegram profile/, {}, wait)).toHaveTextContent(
       "Telegram profile work is not signed in",
     )
@@ -148,6 +148,23 @@ describe("Agents", () => {
     expect(useNav.getState().active).toBe("tools")
     expect(useTools.getState().expanded).toBe("tg")
     expect(check).not.toHaveBeenCalled()
+  }, 20000)
+
+  it("puts the tools a terminal misses on PATH with one Fix, and says to restart the agent", async () => {
+    const fix = vi.spyOn(platform, "fixTerminalPath")
+    const user = await openAgents()
+    await foundTab(/^Claude Code.*to set up/)
+    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" }, wait)
+    await within(fixes).findByText("A new terminal cannot find Zoom", {}, wait)
+    await user.click(within(fixes).getByRole("button", { name: "Fix" }))
+    expect(fix).toHaveBeenCalledWith(["zm"])
+    expect(
+      await within(pane()).findByText(/Added ~\/\.local\/bin to PATH in ~\/\.zshrc\. Restart Claude Code/, {}, wait),
+    ).toBeInTheDocument()
+    await waitFor(
+      () => expect(within(pane()).queryByText("A new terminal cannot find Zoom")).not.toBeInTheDocument(),
+      wait,
+    )
   }, 20000)
 
   it("keeps MCP out of the main flow and lists existing servers read-only under Advanced", async () => {

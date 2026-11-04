@@ -134,6 +134,8 @@ export type Tone = "ok" | "warn" | "bad" | "idle"
 export type Fix =
   | { kind: "skill"; tool: string; target: SkillTarget; label: "Install" | "Update" }
   | { kind: "command"; command: string }
+  /** Puts the tools' folders on the user's PATH; `manual` is the line for a shell WireCat does not edit. */
+  | { kind: "path"; tools: string[]; manual: string | null }
   /** Something to change on the Tools page: a tool update, or a profile's permissions. */
   | { kind: "tools" }
 
@@ -156,9 +158,8 @@ export type CheckWords = {
   cannotFind: (agent: string, tools: readonly string[]) => string
   hermesPath: string
   openclawPath: string
-  notOnPath: (tool: string) => string
-  notOnPathWindows: (agent: string, bin: string, folder: string | null) => string
-  notOnPathShell: (agent: string, bin: string) => string
+  notOnPath: (tools: readonly string[]) => string
+  notOnPathDetail: (agent: string) => string
   skillCurrent: (tool: string) => string
   cannotReport: (tools: readonly string[]) => string
   tooOld: string
@@ -250,21 +251,24 @@ export function buildCheck(input: CheckInput): CheckItem[] {
       ...(ownPath.command ? { fix: { kind: "command", command: ownPath.command } } : {}),
     })
 
-  for (const tool of tools) {
-    if (!ownPath && reach && reach[tool.id] === false) {
-      items.push({
-        id: `${tool.id}:path`,
-        tone: "bad",
-        title: words.notOnPath(tool.name),
-        detail: input.windows
-          ? words.notOnPathWindows(agent.name, tool.bin, tool.path ? folderOf(tool.path) : null)
-          : words.notOnPathShell(agent.name, tool.bin),
-        ...(tool.path && !input.windows
-          ? { fix: { kind: "command", command: `export PATH="${folderOf(tool.path)}:$PATH"` } }
-          : {}),
-      })
-    }
+  // One item for every tool a terminal misses: they share one cause and one fix.
+  if (!ownPath && unreachable.length > 0) {
+    const dirs = unique(unreachable.flatMap((t) => (t.path ? [folderOf(t.path)] : [])))
+    items.push({
+      id: "path:tools",
+      tone: "bad",
+      title: words.notOnPath(unreachable.map((t) => t.name)),
+      detail: words.notOnPathDetail(agent.name),
+      tools: unreachable.map((t) => t.id),
+      fix: {
+        kind: "path",
+        tools: unreachable.map((t) => t.id),
+        manual: input.windows || dirs.length === 0 ? null : `export PATH="${dirs.join(":")}:$PATH"`,
+      },
+    })
+  }
 
+  for (const tool of tools) {
     const cells = agent.reads.map((target) => ({ target, cell: skills[tool.id]?.[target] }))
     const known = cells.filter((c): c is { target: SkillTarget; cell: SkillCell } => c.cell !== undefined)
     if (known.some((c) => c.cell.kind === "current")) {

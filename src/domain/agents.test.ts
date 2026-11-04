@@ -127,8 +127,12 @@ describe("buildCheck", () => {
   it("lists what to fix worst first, each with its fix", () => {
     const items = buildCheck(base)
     const by = (id: string) => items.find((i) => i.id === id)
-    expect(items[0]?.id).toBe("zm:path")
-    expect(by("zm:path")?.fix).toEqual({ kind: "command", command: 'export PATH="/usr/lib/node/bin:$PATH"' })
+    expect(items[0]?.id).toBe("path:tools")
+    expect(by("path:tools")?.fix).toEqual({
+      kind: "path",
+      tools: ["zm"],
+      manual: 'export PATH="/usr/lib/node/bin:$PATH"',
+    })
     expect(by("zm:skill")).toMatchObject({ tone: "warn", fix: { kind: "skill", tool: "zm", target: "claude" } })
     expect(by("skill:unknown")?.title).toBe("MAX cannot report its skill")
     expect(items.some((i) => /mcp/i.test(i.id + i.title + i.detail))).toBe(false)
@@ -169,18 +173,24 @@ describe("buildCheck", () => {
     expect(item?.note).toBeUndefined()
   })
 
-  it("names the folder instead of a shell line on Windows", () => {
-    const item = buildCheck({ ...base, windows: true }).find((i) => i.id === "zm:path")
-    expect(item?.fix).toBeUndefined()
-    expect(item?.detail).toMatch(/Add \/usr\/lib\/node\/bin to your user Path/)
+  it("gives every tool a terminal misses one item and one fix", () => {
+    const items = buildCheck({ ...base, reach: { tg: false, zm: false } })
+    const path = items.filter((i) => i.id.includes("path"))
+    expect(path).toHaveLength(1)
+    expect(path[0]).toMatchObject({
+      title: "A new terminal cannot find Telegram and Zoom",
+      tools: ["tg", "zm"],
+      fix: {
+        kind: "path",
+        tools: ["tg", "zm"],
+        manual: 'export PATH="$HOME/.local/share/pnpm:/usr/lib/node/bin:$PATH"',
+      },
+    })
   })
 
-  it("turns the home folder into $HOME so the line works in a shell", () => {
-    const items = buildCheck({ ...base, reach: { tg: false } })
-    expect(items.find((i) => i.id === "tg:path")?.fix).toEqual({
-      kind: "command",
-      command: 'export PATH="$HOME/.local/share/pnpm:$PATH"',
-    })
+  it("has no shell line to copy on Windows", () => {
+    const item = buildCheck({ ...base, windows: true }).find((i) => i.id === "path:tools")
+    expect(item?.fix).toEqual({ kind: "path", tools: ["zm"], manual: null })
   })
 })
 

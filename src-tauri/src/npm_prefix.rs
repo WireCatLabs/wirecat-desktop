@@ -57,12 +57,15 @@ pub fn writable(prefix: &Path) -> bool {
     }
 }
 
-/// A Windows terminal finds what npm links into the user prefix only when it is on the user Path; npm's installer
-/// adds it, a zip or winget Node.js does not.
-pub fn reachable_from_terminal(prefix: &Path) {
-    if cfg!(windows) && user_prefix().is_some_and(|u| u == prefix) {
-        let _ = crate::profile::ensure_on_windows_path(prefix);
+/// A terminal finds what npm links into the user prefix only when that folder is on the user's PATH: Windows' npm
+/// installer adds it, a zip or winget Node.js does not, and many Linux and macOS profiles leave `~/.local/bin` out.
+/// `None` when nothing needed doing; never an error, the install is done either way.
+pub fn reachable_from_terminal(prefix: &Path, id: &str, bin: &str) -> Option<crate::terminal_path::PathFix> {
+    if user_prefix().is_none_or(|u| u != prefix) || paths::in_terminal(bin) {
+        return None;
     }
+    let missing = [(id.to_string(), bin_dir(prefix))];
+    Some(crate::terminal_path::apply(&missing, crate::profile::plan_folder, crate::profile::add_folder))
 }
 
 /// Run at launch, after the search path is built, so the only extra cost is a registry read and a few file checks.

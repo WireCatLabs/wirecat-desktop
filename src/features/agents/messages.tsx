@@ -19,11 +19,9 @@ const enCheck: CheckWords = {
     "OpenClaw runs commands with its gateway's PATH. Add the folders to tools.exec.pathPrepend with OpenClaw's own " +
     "command below. It replaces the whole list and works only while the gateway is stopped: stop the gateway, add " +
     "the folders that openclaw config get tools.exec.pathPrepend already lists, run it, then start the gateway again.",
-  notOnPath: (tool) => `${tool} is not on a terminal's PATH`,
-  notOnPathWindows: (agent, bin, folder) =>
-    `${agent} runs commands in a terminal, and a new terminal does not find ${bin}. Add ${folder ?? "its folder"} to your user Path in Windows settings, then restart ${agent}.`,
-  notOnPathShell: (agent, bin) =>
-    `${agent} runs commands in a terminal, and a new terminal does not find ${bin}. Add its folder to PATH in your shell profile, then restart ${agent}.`,
+  notOnPath: (tools) => `A new terminal cannot find ${enList(tools)}`,
+  notOnPathDetail: (agent) =>
+    `${agent} runs commands in a terminal. Fix puts the tools' folders on your PATH; then restart ${agent}.`,
   skillCurrent: (tool) => `${tool} skill is current`,
   cannotReport: (tools) =>
     tools.length === 1 ? `${enList(tools)} cannot report its skill` : `${enList(tools)} cannot report their skills`,
@@ -131,6 +129,23 @@ const en = {
   read: "Read",
   readSkill: (tool: string) => `Read the ${tool} skill`,
   openTools: "Open Tools",
+  pathFix: {
+    fix: "Fix",
+    fixing: "Fixing…",
+    checkAgain: "Check again",
+    added: (folders: string, file: string | null, agent: string) =>
+      `Added ${folders} to PATH${file ? ` in ${file}` : ""}. Restart ${agent} and any open terminal so they see it.`,
+    already: (agent: string) =>
+      `Nothing to add: the folders are on PATH. Restart ${agent} if it still cannot find them.`,
+    manual:
+      "WireCat does not edit this shell's settings. Add this line to your shell profile, then open a new terminal:",
+    failed: "Could not change PATH.",
+    yourAgents: "your AI agents",
+    skillsFailed: (n: number) =>
+      plural("en", n, { one: "# skill could not be checked", other: "# skills could not be checked" }),
+    skillsFailedHint:
+      "Usually the app looked before a fresh install was ready. Fix puts the tools on PATH and checks every skill again.",
+  },
   installSkill: (tool: string, agent: string) => `Install the ${tool} skill for ${agent}`,
   updateSkill: (tool: string, agent: string) => `Update the ${tool} skill for ${agent}`,
   state: {
@@ -317,11 +332,9 @@ const ruCheck: CheckWords = {
     "OpenClaw ниже. Она заменяет весь список и работает, только пока шлюз остановлен: остановите шлюз, добавьте в " +
     "команду папки, которые уже показывает openclaw config get tools.exec.pathPrepend, выполните её и снова " +
     "запустите шлюз.",
-  notOnPath: (tool) => `${tool} нет в PATH терминала`,
-  notOnPathWindows: (agent, bin, folder) =>
-    `${agent} запускает команды в терминале, а новый терминал не находит ${bin}. Добавьте ${folder ?? "его папку"} в пользовательскую переменную Path в настройках Windows и перезапустите ${agent}.`,
-  notOnPathShell: (agent, bin) =>
-    `${agent} запускает команды в терминале, а новый терминал не находит ${bin}. Добавьте его папку в PATH в профиле оболочки и перезапустите ${agent}.`,
+  notOnPath: (tools) => `Новый терминал не находит ${ruList(tools)}`,
+  notOnPathDetail: (agent) =>
+    `${agent} запускает команды в терминале. «Исправить» добавит папки инструментов в PATH; затем перезапустите ${agent}.`,
   skillCurrent: (tool) => `Навык ${tool} актуален`,
   cannotReport: (tools) =>
     tools.length === 1
@@ -439,6 +452,27 @@ const ru: typeof en = {
   read: "Читать",
   readSkill: (tool) => `Прочитать навык ${tool}`,
   openTools: "К инструментам",
+  pathFix: {
+    fix: "Исправить",
+    fixing: "Исправляем…",
+    checkAgain: "Проверить снова",
+    added: (folders: string, file: string | null, agent: string) =>
+      `${folders} добавлено в PATH${file ? ` в ${file}` : ""}. Перезапустите ${agent} и открытые терминалы, чтобы они это увидели.`,
+    already: (agent: string) =>
+      `Добавлять нечего: папки уже в PATH. Перезапустите ${agent}, если он всё ещё их не находит.`,
+    manual:
+      "WireCat не меняет настройки этой оболочки. Добавьте эту строку в профиль оболочки и откройте новый терминал:",
+    failed: "Не удалось изменить PATH.",
+    yourAgents: "ваших ИИ-агентов",
+    skillsFailed: (n: number) =>
+      plural("ru", n, {
+        one: "# навык не удалось проверить",
+        few: "# навыка не удалось проверить",
+        other: "# навыков не удалось проверить",
+      }),
+    skillsFailedHint:
+      "Обычно приложение заглянуло раньше, чем свежая установка была готова. «Исправить» добавит инструменты в PATH и проверит все навыки снова.",
+  },
   installSkill: (tool, agent) => `Установить навык ${tool} для ${agent}`,
   updateSkill: (tool, agent) => `Обновить навык ${tool} для ${agent}`,
   state: {
@@ -619,11 +653,9 @@ const esCheck: CheckWords = {
     "comando de OpenClaw que ves abajo. Sustituye la lista entera y solo funciona con el gateway parado: para el " +
     "gateway, añade las carpetas que ya muestra openclaw config get tools.exec.pathPrepend, ejecútalo y vuelve a " +
     "arrancar el gateway.",
-  notOnPath: (tool) => `${tool} no está en el PATH del terminal`,
-  notOnPathWindows: (agent, bin, folder) =>
-    `${agent} ejecuta comandos en un terminal, y un terminal nuevo no encuentra ${bin}. Añade ${folder ?? "su carpeta"} a la variable Path de tu usuario en la configuración de Windows y reinicia ${agent}.`,
-  notOnPathShell: (agent, bin) =>
-    `${agent} ejecuta comandos en un terminal, y un terminal nuevo no encuentra ${bin}. Añade su carpeta al PATH en el perfil de tu shell y reinicia ${agent}.`,
+  notOnPath: (tools) => `Un terminal nuevo no encuentra ${esList(tools)}`,
+  notOnPathDetail: (agent) =>
+    `${agent} ejecuta comandos en un terminal. Arreglar pone las carpetas de las herramientas en tu PATH; luego reinicia ${agent}.`,
   skillCurrent: (tool) => `La skill de ${tool} está al día`,
   cannotReport: (tools) =>
     tools.length === 1
@@ -741,6 +773,23 @@ const es: typeof en = {
   read: "Leer",
   readSkill: (tool) => `Leer la skill de ${tool}`,
   openTools: "Ir a Herramientas",
+  pathFix: {
+    fix: "Arreglar",
+    fixing: "Arreglando…",
+    checkAgain: "Comprobar de nuevo",
+    added: (folders: string, file: string | null, agent: string) =>
+      `${folders} añadido al PATH${file ? ` en ${file}` : ""}. Reinicia ${agent} y los terminales abiertos para que lo vean.`,
+    already: (agent: string) =>
+      `Nada que añadir: las carpetas ya están en el PATH. Reinicia ${agent} si aún no las encuentra.`,
+    manual:
+      "WireCat no edita la configuración de este shell. Añade esta línea al perfil de tu shell y abre un terminal nuevo:",
+    failed: "No se pudo cambiar el PATH.",
+    yourAgents: "tus agentes de IA",
+    skillsFailed: (n: number) =>
+      plural("es", n, { one: "No se pudo comprobar # skill", other: "No se pudieron comprobar # skills" }),
+    skillsFailedHint:
+      "Normalmente la app miró antes de que una instalación nueva estuviera lista. Arreglar pone las herramientas en el PATH y vuelve a comprobar cada skill.",
+  },
   installSkill: (tool, agent) => `Instalar la skill de ${tool} para ${agent}`,
   updateSkill: (tool, agent) => `Actualizar la skill de ${tool} para ${agent}`,
   state: {

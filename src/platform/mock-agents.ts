@@ -104,6 +104,7 @@ export async function refreshSkillsMock(
 
 export function agentsMock(versionOf: (id: string) => string | undefined) {
   const written = new Map<string, string>()
+  const onPath = new Set<string>()
   const servers: Record<string, Set<string>> = {
     claude: new Set(["tg-personal"]),
     codex: new Set(),
@@ -122,6 +123,7 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
     | "skillInstall"
     | "skillShow"
     | "terminalReach"
+    | "fixTerminalPath"
     | "agentChats"
     | "mcpRegistrations"
     | "mcpCheck"
@@ -138,6 +140,8 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
       await delay(400 + id.length * 120)
       const version = versionOf(id)
       if (!version) throw new Error("the tool is not installed")
+      // `?skills-fail=1`: every tool's check fails alike, as when the app cannot start the tools it just installed.
+      if (params.get("skills-fail") && !onPath.has(id)) throw new Error(`${id}: command not found in PATH`)
       const own = copies[id] ?? {}
       const places: Target[] = KNOWS_HERMES.has(id) ? ["claude", "agents", "hermes"] : ["claude", "agents"]
       const targets = places.map((target) => {
@@ -171,12 +175,26 @@ export function agentsMock(versionOf: (id: string) => string | undefined) {
     },
     async terminalReach(agent) {
       await delay(250)
-      const missing = agent === "hermes" ? ["tg", "max"] : ["zm"]
+      const missing = agent === "hermes" ? ["tg", "max"] : (params.get("path")?.split(",") ?? ["zm"])
       return Object.fromEntries(
         ["tg", "max", "wa", "zm", "drive", "memo"]
           .filter((id) => versionOf(id))
-          .map((id) => [id, !missing.includes(id)]),
+          .map((id) => [id, onPath.has(id) || !missing.includes(id)]),
       )
+    },
+    async fixTerminalPath(ids) {
+      await delay(900)
+      // `?path-manual=1`: a shell WireCat does not edit, so the owner gets the line to add.
+      if (params.get("path-manual"))
+        return {
+          added: [],
+          unreachable: ids,
+          file: null,
+          manual: 'export PATH="$HOME/.local/bin:$PATH"',
+          restart: false,
+        }
+      for (const id of ids) onPath.add(id)
+      return { added: ["~/.local/bin"], unreachable: [], file: "~/.zshrc", manual: null, restart: true }
     },
     async agentChats(agent) {
       await delay(450)

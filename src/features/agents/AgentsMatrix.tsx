@@ -4,6 +4,7 @@ import { cellAction, type SkillCell, type SkillTarget, TARGET_FOLDER } from "@/d
 import { formatList, type Lang, useMessages } from "@/i18n"
 import type { Agent } from "@/platform/agents-schemas"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
@@ -14,6 +15,7 @@ import { ToolIcon } from "../tools/ToolIcon"
 import { askSkillInstall } from "./actions"
 import { ConfirmCommand } from "./Confirm"
 import { agentsMessages } from "./messages"
+import { PathFixButton, PathFixResult } from "./PathFixResult"
 import { SKILL_TONE } from "./SkillTable"
 import { catalogTools, useSkillMatrix } from "./skill-matrix"
 import { useAgents } from "./store"
@@ -59,6 +61,16 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
     .flatMap((r) => r.cells.map((c) => ({ tool: r.tool.id, target: c.target, kind: c.cell.kind })))
     .find((c) => c.kind === "checking")
 
+  // One failure repeated in every cell says one thing; it is said once above the table, with the fix.
+  const failed = rows.flatMap((r) =>
+    r.cells.filter((c) => c.cell.kind === "failed" && !c.busy).map((c) => ({ tool: r.tool, cell: c.cell })),
+  )
+  const grouped = failed.length > 1
+  const failedTools = [...new Set(failed.map((f) => f.tool.id))]
+  const failedText = [
+    ...new Set(failed.map((f) => (f.cell.kind === "failed" ? `${f.tool.name}: ${f.cell.message}` : ""))),
+  ]
+
   if (detected && rows.length === 0) {
     return (
       <p className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-5 text-[0.95rem] text-ink-soft">
@@ -72,6 +84,25 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
       {compact && found !== null && found.length === 0 && (
         <p className="rounded-[0.2rem] border border-warn/40 bg-warn/10 px-4 py-3 text-[0.95rem]">{m.noAgent}</p>
       )}
+      <Collapse open={grouped}>
+        <ErrorNotice
+          detail={
+            <>
+              <span className="block">{m.pathFix.skillsFailedHint}</span>
+              <span className="selectable mt-1 block font-mono text-[0.85rem]">{failedText[0]}</span>
+            </>
+          }
+          action={
+            <span className="flex items-center gap-2">
+              <PathFixButton tools={failedTools} />
+              <ReportThis what="Checking skills" error={failedText.join("\n")} />
+            </span>
+          }
+        >
+          {m.pathFix.skillsFailed(failed.length)}
+        </ErrorNotice>
+      </Collapse>
+      <PathFixResult agent={names(found ?? []) || m.pathFix.yourAgents} manual={null} />
       <div className="overflow-x-auto rounded-[0.2rem] border border-line-strong bg-app">
         <table aria-label={m.matrixLabel} className="w-full border-collapse text-left">
           <thead>
@@ -138,6 +169,7 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
                             cell={c.cell}
                             busy={c.busy}
                             failure={c.failure}
+                            grouped={grouped}
                             tool={r.tool.id}
                             toolName={r.tool.name}
                             column={columnName(c.target)}
@@ -195,6 +227,8 @@ function Cell(props: {
   cell: SkillCell
   busy: boolean
   failure: string | null
+  /** The table's own notice already says why this cell failed. */
+  grouped: boolean
   tool: string
   toolName: string
   column: string
@@ -202,7 +236,7 @@ function Cell(props: {
   report: string
   onInstall: (action: "Install" | "Update") => void
 }) {
-  const { first, cell, busy, failure, tool, toolName, column, report, onInstall } = props
+  const { first, cell, busy, failure, grouped, tool, toolName, column, report, onInstall } = props
   const m = useMessages(agentsMessages)
   if (cell.kind === "checking" && !busy)
     return (
@@ -235,7 +269,7 @@ function Cell(props: {
           </Button>
         )}
       </div>
-      {cell.kind === "failed" && !busy && (
+      {cell.kind === "failed" && !busy && !grouped && (
         <ErrorNotice
           inline
           className="mt-1"

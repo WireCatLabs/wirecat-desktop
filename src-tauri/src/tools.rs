@@ -163,12 +163,20 @@ fn inspect(path: &Path) -> Install {
 
 /// The registry's latest version of one package, via the user's npm so registry and proxy settings apply.
 pub fn latest_version(package: &str) -> Option<String> {
-    let npm = paths::find("npm")?;
-    run::run(&npm, &["view", package, "version"], Some(&paths::search_path()), Duration::from_secs(20))
-        .ok()
-        .filter(|o| o.code == Some(0))
-        .map(|o| o.stdout.trim().to_string())
-        .filter(|v| !v.is_empty())
+    latest_version_checked(package).ok()
+}
+
+/// `latest_version` with npm's own words when it fails, for `install::classify` to tell the cause.
+pub fn latest_version_checked(package: &str) -> Result<String, String> {
+    let npm = paths::find("npm").ok_or("npm was not found")?;
+    let out = run::run(&npm, &["view", package, "version"], Some(&paths::search_path()), Duration::from_secs(20))
+        .map_err(|e| format!("network: npm view did not finish: {e}"))?;
+    let version = out.stdout.trim().to_string();
+    if out.code == Some(0) && !version.is_empty() {
+        Ok(version)
+    } else {
+        Err(format!("{}\n{}", out.stderr, out.stdout))
+    }
 }
 
 /// Releases come a few times a day at most, and `npm view` is the slowest call on the Tools page.

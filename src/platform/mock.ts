@@ -453,7 +453,8 @@ export function createMock(os: Platform["os"]): Platform {
       if (params.get("fail") === id) {
         return onEvent({
           event: "failed",
-          reason: "network",
+          // `?fail-reason=disk|proxy|longPath` shows the other failures that have their own words.
+          reason: (["disk", "proxy", "longPath"] as const).find((r) => r === params.get("fail-reason")) ?? "network",
           message: "Could not reach the npm registry.",
           hint: "Check your internet connection or proxy, then try again.",
         })

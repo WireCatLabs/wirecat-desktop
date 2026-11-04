@@ -46,6 +46,7 @@ mod tailscale_linux;
 mod task_board;
 mod tasks;
 mod terminal;
+mod terminal_path;
 mod tools;
 
 use install::{InstallEvent, Running};
@@ -87,18 +88,15 @@ async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node::No
             None => Err(node::Failure::no_home()),
         };
         running.finish(node::OPERATION);
-        // Tools installed with this Node.js are linked beside it; on Windows the user Path changes without an
-        // administrator, so a terminal and the AI apps find them with nothing more to do.
-        if cfg!(windows)
-            && let Ok(done) = &result
-        {
-            let _ = profile::add(&node::bin_dir(&done.dir));
-        }
+        // Tools installed with this Node.js are linked beside it; the user's PATH changes without an administrator,
+        // so a terminal and the AI apps find them with nothing more to do. A failure here never fails the setup.
+        let path_fix = result.as_ref().ok().and_then(|done| terminal_path::after_node_setup(&node::bin_dir(&done.dir)));
         paths::refresh(&[]);
         send(match result {
             Ok(done) => node::NodeEvent::Done {
                 version: done.version.to_string(),
                 path: paths::tilde(&done.dir.to_string_lossy()),
+                path_fix,
             },
             Err(f) => f.into(),
         });
@@ -333,6 +331,12 @@ async fn terminal_reach(agent: Option<String>) -> Result<HashMap<String, bool>, 
             .collect()
     })
     .await
+}
+
+/// Puts the folders of the listed installed tools on the user's PATH when a fresh terminal does not find them.
+#[tauri::command]
+async fn fix_terminal_path(ids: Vec<String>) -> Result<terminal_path::PathFix, String> {
+    blocking(move || terminal_path::fix(&ids)).await?
 }
 
 #[tauri::command]
@@ -991,6 +995,7 @@ pub fn run() {
             skill_install,
             skill_show,
             terminal_reach,
+            fix_terminal_path,
             agent_chats,
             mcp_registrations,
             mcp_check,

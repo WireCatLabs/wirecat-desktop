@@ -15,11 +15,26 @@ const INSTALL_TIMEOUT: Duration = Duration::from_mins(15);
 // `rename_all` renames only the variants; the fields need `rename_all_fields` to reach the interface as camelCase.
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "event")]
 pub enum InstallEvent {
-    Step { step: Step },
-    Log { line: String, stderr: bool },
-    Done { version: String, path: String, shadowed_by: Option<String>, skills: skills::SkillRefresh },
+    Step {
+        step: Step,
+    },
+    Log {
+        line: String,
+        stderr: bool,
+    },
+    Done {
+        version: String,
+        path: String,
+        shadowed_by: Option<String>,
+        skills: skills::SkillRefresh,
+        path_fix: Option<crate::terminal_path::PathFix>,
+    },
     Removed,
-    Failed { reason: Reason, message: String, hint: Option<String> },
+    Failed {
+        reason: Reason,
+        message: String,
+        hint: Option<String>,
+    },
 }
 
 #[derive(Serialize, Clone, Copy)]
@@ -38,6 +53,12 @@ pub enum Reason {
     Permission,
     Network,
     Timeout,
+    /// No space left on the drive (ENOSPC).
+    Disk,
+    /// A proxy or a company certificate sits between the computer and the registry.
+    Proxy,
+    /// Windows refused a path that is too long.
+    LongPath,
     Cancelled,
     Verify,
     /// The release could not be confirmed as built by the tool's own release workflow (`provenance.rs`).
@@ -150,14 +171,10 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     let manager = existing.as_ref().map_or("npm", |i| i.manager);
     // The exact version, not `@latest`: it is the one whose provenance is checked, and a manager that still holds new
     // releases back then fails loudly instead of quietly installing an older one.
-    let wanted =
-        tools::latest_version(&tool.package).filter(|v| semver::Version::parse(v).is_ok()).ok_or_else(|| {
-            Failure(
-                Reason::Network,
-                "Could not reach the npm registry.".into(),
-                Some("Check your internet connection or proxy, then try again.".into()),
-            )
-        })?;
+    let wanted = retry_on_network(&|| !running.is_running(&tool.id), &send, "npm view", || {
+        let latest = tools::latest_version_checked(&tool.package).map_err(|log| classify_registry(&log))?;
+        semver::Version::parse(&latest).map(|_| latest).map_err(|_| classify_registry("network: unreadable version"))
+    })?;
     let spec = format!("{}@{wanted}", tool.package);
     let (program, args): (&str, Vec<&str>) = match manager {
         // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
@@ -186,12 +203,12 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     let prefix = (program == "npm").then(|| install_prefix(existing.as_ref())).flatten();
 
     send(InstallEvent::Step { step: Step::Install });
-    run_manager(&program_path, &args, prefix.as_deref(), tool, running, &send, "Installation")?;
+    retry_on_network(&|| !running.is_running(&tool.id), &send, "the installation", || {
+        run_manager(&program_path, &args, prefix.as_deref(), tool, running, &send, "Installation")
+    })?;
 
     send(InstallEvent::Step { step: Step::Verify });
-    if let Some(p) = &prefix {
-        npm_prefix::reachable_from_terminal(p);
-    }
+    let path_fix = prefix.as_deref().and_then(|p| npm_prefix::reachable_from_terminal(p, &tool.id, &tool.bin));
     let extra: Vec<_> = prefix.or_else(system::npm_prefix).map(|p| npm_prefix::bin_dir(&p)).into_iter().collect();
     paths::refresh(&extra);
     let state = tools::detect(tool, true);
@@ -229,7 +246,7 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     } else {
         skills::SkillRefresh::default()
     };
-    Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills })
+    Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills, path_fix })
 }
 
 /// Checked with npm whichever manager installs: npm comes with every Node.js.
@@ -253,14 +270,20 @@ fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> 
     provenance::confirm(&npm, &tool.package, version, &tool.repo).map_err(|refusal| match refusal {
         Refusal::Unreachable(detail) => {
             send(InstallEvent::Log { line: redact::text(&detail), stderr: true });
-            Failure(
-                Reason::Network,
-                "Could not check this release with the npm registry.".into(),
-                Some("Check your internet connection or proxy, then try again.".into()),
-            )
+            specific(&detail, cfg!(windows)).unwrap_or_else(|| {
+                Failure(
+                    Reason::Network,
+                    "Could not check this release with the npm registry.".into(),
+                    Some("Check your internet connection or proxy, then try again.".into()),
+                )
+            })
         }
         Refusal::Unconfirmed(detail) => {
             send(InstallEvent::Log { line: redact::text(&detail), stderr: true });
+            // A certificate or disk problem stops the check itself; the release is not at fault.
+            if let Some(failure) = specific(&detail, cfg!(windows)) {
+                return failure;
+            }
             Failure(
                 Reason::Unconfirmed,
                 format!(
@@ -505,11 +528,97 @@ fn classify(log: &str, program: &str) -> Failure {
     classify_on(log, program, cfg!(windows))
 }
 
+/// The `npm view` step has no program name in its text: Network unless the words say otherwise.
+fn classify_registry(log: &str) -> Failure {
+    specific(log, cfg!(windows)).unwrap_or_else(|| {
+        Failure(
+            Reason::Network,
+            "Could not reach the npm registry.".into(),
+            Some("Check your internet connection or proxy, then try again.".into()),
+        )
+    })
+}
+
+/// Causes that stop an install or a check whichever step meets them, and that more tries do not cure. Disk first: a
+/// full drive breaks every later step. Certificates before the generic network words, as a proxy that rewrites
+/// certificates also shows up as a failed fetch.
+fn specific(log: &str, windows: bool) -> Option<Failure> {
+    let l = log.to_lowercase();
+    let has = |words: &[&str]| words.iter().any(|k| l.contains(k));
+    if has(&["enospc", "no space left"]) {
+        Some(Failure(
+            Reason::Disk,
+            "There is not enough free space on the drive.".into(),
+            Some("A tool needs about 200 MB. Free some space on the drive npm installs to, then try again.".into()),
+        ))
+    } else if has(&["path too long", "max_path", "filename or extension is too long"])
+        || (windows && has(&["enametoolong"]))
+    {
+        Some(Failure(
+            Reason::LongPath,
+            "Windows refused a file path because it is too long.".into(),
+            Some(
+                "Turn on long paths in Settings > System > For developers (Enable long paths), then try again. \
+                 No command line is needed."
+                    .into(),
+            ),
+        ))
+    } else if has(&[
+        "self_signed_cert_in_chain",
+        "self-signed certificate",
+        "unable_to_get_issuer_cert_locally",
+        "unable_to_verify_leaf_signature",
+        "cert_has_expired",
+        "e407",
+        "proxy",
+    ]) {
+        Some(Failure(
+            Reason::Proxy,
+            "A proxy or a security certificate blocks the connection to the npm registry.".into(),
+            Some(
+                "Ask your IT team for the company certificate file, then run `npm config set cafile <file>`. If a \
+                 proxy is needed, run `npm config set proxy <address>` and `npm config set https-proxy <address>`. \
+                 Then try again."
+                    .into(),
+            ),
+        ))
+    } else {
+        None
+    }
+}
+
+/// One more try after a short wait when the first failed on the network and nothing else: a dropped connection often
+/// is gone a moment later, any other cause comes back the same.
+fn retry_on_network<T>(
+    cancelled: &dyn Fn() -> bool,
+    send: &dyn Fn(InstallEvent),
+    what: &str,
+    mut attempt: impl FnMut() -> Result<T, Failure>,
+) -> Result<T, Failure> {
+    let first = attempt();
+    if !matches!(first, Err(Failure(Reason::Network, ..))) {
+        return first;
+    }
+    send(InstallEvent::Log {
+        line: format!("The network failed during {what}. Trying once more in 3 s."),
+        stderr: false,
+    });
+    for _ in 0..30 {
+        if cancelled() {
+            return first;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    attempt()
+}
+
 /// On Windows npm writes only to folders in the user's profile, so EPERM and EBUSY there mean a running program holds
 /// the tool's files, not a missing administrator right.
 fn classify_on(log: &str, program: &str, windows: bool) -> Failure {
     let l = log.to_lowercase();
-    if windows && (l.contains("ebusy") || l.contains("eperm")) {
+    if let Some(failure) = specific(log, windows) {
+        failure
+    } else if windows && (l.contains("ebusy") || l.contains("eperm")) {
         Failure(
             Reason::Failed,
             format!("{program} could not replace the tool's files: a running program still uses them."),
@@ -580,7 +689,13 @@ mod tests {
     #[test]
     fn events_reach_the_interface_in_camel_case() {
         let skills = skills::SkillRefresh { refreshed: vec!["claude".into()], failed: None };
-        let done = InstallEvent::Done { version: "0.91.0".into(), path: "~/bin/tg".into(), shadowed_by: None, skills };
+        let done = InstallEvent::Done {
+            version: "0.91.0".into(),
+            path: "~/bin/tg".into(),
+            shadowed_by: None,
+            skills,
+            path_fix: None,
+        };
         let json = serde_json::to_value(&done).unwrap();
         assert_eq!(json["event"], "done");
         assert!(json.get("shadowedBy").is_some(), "{json}");
@@ -596,6 +711,53 @@ mod tests {
         let busy = classify_on("npm error code EPERM\nnpm error syscall unlink", "npm", true);
         assert_eq!(busy.0, Reason::Failed);
         assert!(busy.1.contains("running program"), "{}", busy.1);
+    }
+
+    #[test]
+    fn classifies_disk_proxy_and_long_path_failures() {
+        assert_eq!(classify_on("npm error code ENOSPC\nnpm error nospc", "npm", false).0, Reason::Disk);
+        assert_eq!(classify_on("write failed: No space left on device", "npm", false).0, Reason::Disk);
+        for code in [
+            "SELF_SIGNED_CERT_IN_CHAIN",
+            "UNABLE_TO_GET_ISSUER_CERT_LOCALLY",
+            "UNABLE_TO_VERIFY_LEAF_SIGNATURE",
+            "CERT_HAS_EXPIRED",
+            "E407 Proxy Authentication Required",
+        ] {
+            let log = format!("npm error code {code}\nnpm error network request failed");
+            assert_eq!(classify_on(&log, "npm", false).0, Reason::Proxy, "{code}");
+        }
+        assert_eq!(classify_on("npm error code ENAMETOOLONG", "npm", true).0, Reason::LongPath);
+        assert_eq!(classify_on("npm error code ENAMETOOLONG", "npm", false).0, Reason::Failed);
+        assert_eq!(classify_on("The specified path is too long (MAX_PATH)", "npm", false).0, Reason::LongPath);
+        assert_eq!(classify_registry("npm error code UNABLE_TO_VERIFY_LEAF_SIGNATURE").0, Reason::Proxy);
+        assert_eq!(classify_registry("npm error code ENOTFOUND").0, Reason::Network);
+    }
+
+    #[test]
+    fn reasons_reach_the_interface_in_camel_case() {
+        let name = |r: Reason| serde_json::to_value(r).unwrap();
+        assert_eq!(name(Reason::Disk), "disk");
+        assert_eq!(name(Reason::Proxy), "proxy");
+        assert_eq!(name(Reason::LongPath), "longPath");
+    }
+
+    #[test]
+    fn only_a_network_failure_is_tried_again() {
+        let tries = std::cell::Cell::new(0);
+        let net = || {
+            tries.set(tries.get() + 1);
+            Err::<(), _>(Failure(Reason::Network, String::new(), None))
+        };
+        assert!(retry_on_network(&|| false, &|_| {}, "x", net).is_err());
+        assert_eq!(tries.get(), 2);
+        tries.set(0);
+        let other = || {
+            tries.set(tries.get() + 1);
+            Err::<(), _>(Failure(Reason::Proxy, String::new(), None))
+        };
+        assert!(retry_on_network(&|| false, &|_| {}, "x", other).is_err());
+        assert_eq!(tries.get(), 1);
     }
 
     #[cfg(not(windows))]

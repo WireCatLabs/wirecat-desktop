@@ -13,6 +13,7 @@ import { Stepper, type StepState } from "@/ui/Stepper"
 import { useAgents } from "../agents/store"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
+import { failureWords, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SkillOffer } from "./SkillOffer"
@@ -197,16 +198,7 @@ type Failed = Extract<InstallOutcome, { event: "failed" }>
 /** Rust's reasons with one fixed sentence are told in the reader's language; the rest name the program or path. */
 function FailureText(props: { outcome: Failed; operation: InstallSession["operation"]; untouched: boolean; m: Words }) {
   const { outcome, operation, untouched, m } = props
-  const [message, hint] =
-    outcome.reason === "cancelled"
-      ? [m.cancelled[operation], null]
-      : outcome.reason === "timeout"
-        ? [m.timedOut[operation], m.timedOutHint]
-        : outcome.reason === "network"
-          ? [m.network, m.networkHint]
-          : outcome.reason === "unconfirmed"
-            ? [m.unconfirmed, m.unconfirmedHint]
-            : [outcome.message, outcome.hint]
+  const [message, hint] = failureWords(outcome, operation, useFailureMessages())
   return (
     <p>
       <span className="font-medium text-ink">{message}</span>
