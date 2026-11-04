@@ -77,6 +77,23 @@ export function cellAction(cell: SkillCell): "Install" | "Update" | null {
 
 export const needsUpdate = (cell: SkillCell) => cell.kind === "stale" || cell.kind === "unversioned"
 
+type FoundAgent = { foundBy: string | null; reads: readonly SkillTarget[] }
+
+/**
+ * The places to show a skill in, each with the agents found that it serves. An agent is filed under the first place it
+ * reads only: Cursor reads both folders, and naming it under each headed two columns "Cursor" when it was the only
+ * agent found. A place no found agent reads first is left out; with no agent found, every place is shown.
+ */
+export function skillColumns<A extends FoundAgent>(
+  agents: readonly A[] | null,
+): { target: SkillTarget; readers: A[] }[] {
+  const found = (agents ?? []).filter((a) => a.foundBy !== null)
+  if (found.length === 0) return SKILL_TARGETS.map((target) => ({ target, readers: [] }))
+  return SKILL_TARGETS.map((target) => ({ target, readers: found.filter((a) => a.reads[0] === target) })).filter(
+    (c) => c.readers.length > 0,
+  )
+}
+
 /**
  * The agents on this computer that read the places just rewritten, by name; before the agents are known, Claude Code
  * for its own folder and `others` for the shared one.

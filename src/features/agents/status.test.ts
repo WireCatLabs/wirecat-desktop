@@ -31,7 +31,13 @@ const view = (items: CheckItem[], tone: AgentView["tone"]): AgentView =>
     signedOut: [],
   }) as unknown as AgentView
 
-const notOnPath: CheckItem = { id: "tg:path", tone: "bad", title: "Telegram is not on a terminal's PATH", detail: "" }
+const notOnPath: CheckItem = {
+  id: "path:tools",
+  tone: "bad",
+  title: "A new terminal cannot find Telegram",
+  detail: "",
+  tools: ["tg"],
+}
 
 describe("an agent whose skills are current", () => {
   it("is green and says so when nothing else stops it", () => {

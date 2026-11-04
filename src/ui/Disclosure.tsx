@@ -1,13 +1,25 @@
 import { ChevronRight } from "lucide-react"
-import { type ReactNode, useId, useState } from "react"
+import { type ReactNode, useEffect, useId, useState } from "react"
 import { Collapse } from "./Collapse"
 import { cx } from "./cx"
 import { Skeleton } from "./Skeleton"
 
 /** A quiet "more" link that folds its content open in place; a button, because `<details>` cannot animate in WebKit. */
-export function Disclosure({ summary, children }: { summary: ReactNode; children: ReactNode }) {
-  const [open, setOpen] = useState(false)
+export function Disclosure({
+  summary,
+  children,
+  openWhen = false,
+}: {
+  summary: ReactNode
+  children: ReactNode
+  /** Opens it once this turns true, as when it holds the only way left; the owner can still fold it again. */
+  openWhen?: boolean
+}) {
+  const [open, setOpen] = useState(openWhen)
   const id = useId()
+  useEffect(() => {
+    if (openWhen) setOpen(true)
+  }, [openWhen])
   return (
     <div>
       <button

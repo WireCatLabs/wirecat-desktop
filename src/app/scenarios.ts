@@ -37,8 +37,8 @@ export async function runMockScenario() {
   if (onboarding === "off") useOnboarding.getState().hide()
   const section = params.get("section")
   if (section) useNav.getState().go(section)
-  const step = STEPS.find((s) => s.id === onboarding)
-  if (step) useOnboarding.getState().reopen(step.id)
+  const step = STEPS.find((s) => s === onboarding)
+  if (step) useOnboarding.getState().reopen(step)
   const tasks = params.get("tasks")
   const view = params.get("view")
   if (tasks || view) {
@@ -82,12 +82,12 @@ export async function runMockScenario() {
     useSync.getState().start(syncing.id, syncNeedsProfile(syncing) ? "personal" : null)
   }
   await searchScenario(params)
-  const id = params.get("install")
-  if (!id) return
-  // So `?onboarding=install&install=<tool>` shows the same install on the setup's Install step.
-  useOnboarding.setState((s) => ({ chosen: s.chosen.includes(id) ? s.chosen : [...s.chosen, id] }))
+  const ids = params.get("install")?.split(",").filter(Boolean) ?? []
+  if (ids.length === 0) return
+  // So `?onboarding=install&install=<tool>[,<tool>…]` shows the same installs on the setup's Install step.
+  useOnboarding.setState((s) => ({ chosen: [...new Set([...s.chosen, ...ids])] }))
   await useTools.getState().refresh()
-  useTools.getState().install(id)
+  for (const id of ids) useTools.getState().install(id)
 }
 
 // `?search=<tool>` opens Search on that tool's hits, `?search=empty` on a query nothing matches, `?search-fail=query`

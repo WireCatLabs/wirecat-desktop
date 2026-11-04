@@ -1,6 +1,6 @@
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::sync::{Mutex, OnceLock, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::Duration;
 
 static SEARCH_PATH: RwLock<Option<OsString>> = RwLock::new(None);
@@ -68,23 +68,169 @@ struct ShellEnv {
     pnpm_home: Option<OsString>,
 }
 
-/// Asked once: an interactive login shell is slow and its rc files do not change while the app runs.
-fn login_shell() -> &'static ShellEnv {
-    static ENV: OnceLock<ShellEnv> = OnceLock::new();
-    ENV.get_or_init(read_login_shell)
+static LOGIN_SHELL: RwLock<Option<Arc<ShellEnv>>> = RwLock::new(None);
+
+/// Asked once, as an interactive login shell is slow; only the app's own PATH edits change its rc files.
+fn login_shell() -> Arc<ShellEnv> {
+    if let Some(env) = LOGIN_SHELL.read().unwrap().as_ref() {
+        return Arc::clone(env);
+    }
+    let env = Arc::new(read_login_shell());
+    *LOGIN_SHELL.write().unwrap() = Some(Arc::clone(&env));
+    env
+}
+
+/// Called after the app edits a shell profile, so the next reachability check reads it again.
+pub fn forget_login_shell() {
+    *LOGIN_SHELL.write().unwrap() = None;
 }
 
 #[cfg(unix)]
 fn read_login_shell() -> ShellEnv {
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+    let shell = user_shell().unwrap_or_else(|| PathBuf::from("/bin/sh"));
     let script = "printf '__WIRECAT_PATH__%s__WIRECAT_PNPM__%s' \"$PATH\" \"$PNPM_HOME\"";
-    let Ok(out) = crate::run::run(Path::new(&shell), &["-lic", script], None, Duration::from_secs(5)) else {
+    let flags = terminal_flags(&shell, cfg!(target_os = "linux"));
+    let Ok(out) = crate::run::run(&shell, &[flags, script], None, Duration::from_secs(5)) else {
         return ShellEnv::default();
     };
     let Some((_, rest)) = out.stdout.rsplit_once("__WIRECAT_PATH__") else { return ShellEnv::default() };
     let (path, pnpm) = rest.split_once("__WIRECAT_PNPM__").unwrap_or((rest, ""));
     let non_empty = |s: &str| (!s.trim().is_empty()).then(|| OsString::from(s.trim()));
     ShellEnv { path: non_empty(path), pnpm_home: non_empty(pnpm) }
+}
+
+/// The PATH a new terminal running `shell` ends with. Asked fresh each time: used right after the app edits a file.
+#[cfg(unix)]
+pub fn shell_path(shell: &Path) -> Option<OsString> {
+    let flags = terminal_flags(shell, cfg!(target_os = "linux"));
+    let out =
+        crate::run::run(shell, &[flags, "printf '__WIRECAT_PATH__%s' \"$PATH\""], None, Duration::from_secs(5)).ok()?;
+    let (_, path) = out.stdout.rsplit_once("__WIRECAT_PATH__")?;
+    (!path.trim().is_empty()).then(|| OsString::from(path.trim()))
+}
+
+#[cfg(windows)]
+pub fn shell_path(_shell: &Path) -> Option<OsString> {
+    None
+}
+
+/// The shell a new terminal window starts, so the check reads the same file `profile.rs` writes. Linux terminals
+/// start bash as a non-login shell, which reads `.bashrc`; a login bash reads only `.profile` or `.bash_profile`, and a
+/// fresh account's `.profile` need not source `.bashrc`, so `-l` there misses the app's own PATH block. zsh and fish
+/// read their interactive file in a login shell too. Any other shell (dash, ksh) gets no file from the app, so the
+/// check asks what a login shell reads: `~/.profile`.
+#[cfg(unix)]
+fn terminal_flags(shell: &Path, linux: bool) -> &'static str {
+    match shell.file_name().and_then(|n| n.to_str()) {
+        Some("bash") if linux => "-ic",
+        Some("bash" | "zsh" | "fish") => "-lic",
+        _ => "-lc",
+    }
+}
+
+/// The shell the user's terminal runs: the one they chose in the app, else the account's login shell, else `$SHELL`,
+/// else `/bin/sh`. `$SHELL` comes last because it is what started the app: a session started before `chsh`, or a
+/// launcher, keeps an old one. `None` only on Windows.
+pub fn user_shell() -> Option<PathBuf> {
+    if cfg!(windows) {
+        return None;
+    }
+    let usable = |p: &PathBuf| p.is_absolute() && p.is_file();
+    chosen_shell()
+        .or_else(|| cached_account_shell().filter(usable))
+        .or_else(|| std::env::var_os("SHELL").map(PathBuf::from).filter(usable))
+        .or_else(|| Some(PathBuf::from("/bin/sh")))
+}
+
+fn cached_account_shell() -> Option<PathBuf> {
+    static ACCOUNT: std::sync::OnceLock<Option<PathBuf>> = std::sync::OnceLock::new();
+    ACCOUNT.get_or_init(account_shell).clone()
+}
+
+/// The shells `/etc/shells` lists that exist on this computer, one per real program (`/bin/bash` and `/usr/bin/bash`
+/// are often the same file), in the file's order.
+pub fn installed_shells() -> Vec<PathBuf> {
+    let listed = std::fs::read_to_string("/etc/shells").map(|c| parse_etc_shells(&c)).unwrap_or_default();
+    let mut seen = std::collections::HashSet::new();
+    listed
+        .into_iter()
+        .filter(|p| p.is_file())
+        .filter(|p| seen.insert(std::fs::canonicalize(p).unwrap_or_else(|_| p.clone())))
+        .collect()
+}
+
+fn parse_etc_shells(content: &str) -> Vec<PathBuf> {
+    content.lines().map(str::trim).filter(|l| l.starts_with('/')).map(PathBuf::from).collect()
+}
+
+/// The interface sends a path back; only one of the listed shells is accepted, compared as text, never resolved.
+pub fn validate_shell(shell: &str, listed: &[PathBuf]) -> Result<PathBuf, String> {
+    listed
+        .iter()
+        .find(|p| p.as_os_str() == shell)
+        .cloned()
+        .ok_or_else(|| format!("{shell} is not one of the shells this computer lists in /etc/shells."))
+}
+
+fn chosen_file() -> Option<PathBuf> {
+    crate::node::app_data().map(|d| d.join("terminal-shell.json"))
+}
+
+/// The shell the user said their terminal runs; ignored once it is no longer installed.
+pub fn chosen_shell() -> Option<PathBuf> {
+    let text = std::fs::read_to_string(chosen_file()?).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let shell = value["shell"].as_str()?;
+    validate_shell(shell, &installed_shells()).ok()
+}
+
+pub fn choose_shell(shell: &Path) -> Result<(), String> {
+    let file = chosen_file().ok_or("The app's data folder is unknown.")?;
+    if let Some(dir) = file.parent() {
+        std::fs::create_dir_all(dir).map_err(|e| format!("Could not create {}: {e}", tilde(&dir.to_string_lossy())))?;
+    }
+    let json = serde_json::json!({ "shell": shell.to_string_lossy() }).to_string();
+    std::fs::write(&file, json).map_err(|e| format!("Could not save the shell choice: {e}"))?;
+    forget_login_shell();
+    Ok(())
+}
+
+fn account_shell() -> Option<PathBuf> {
+    let user = ["USER", "LOGNAME"].iter().find_map(|v| std::env::var(v).ok()).filter(|u| valid_user(u))?;
+    let timeout = Duration::from_secs(3);
+    if cfg!(target_os = "macos") {
+        let out = crate::run::run(
+            Path::new("/usr/bin/dscl"),
+            &[".", "-read", &format!("/Users/{user}"), "UserShell"],
+            None,
+            timeout,
+        )
+        .ok()?;
+        return parse_dscl_shell(&out.stdout);
+    }
+    let getent = ["/usr/bin/getent", "/bin/getent"].into_iter().map(Path::new).find(|p| p.is_file())?;
+    let out = crate::run::run(getent, &["passwd", &user], None, timeout).ok()?;
+    parse_passwd_shell(&out.stdout, &user)
+}
+
+fn valid_user(user: &str) -> bool {
+    !user.is_empty()
+        && user.len() <= 64
+        && !user.starts_with('-')
+        && user.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '$'))
+}
+
+/// The shell field (the last) of the passwd line for `user`.
+fn parse_passwd_shell(passwd: &str, user: &str) -> Option<PathBuf> {
+    let line = passwd.lines().find(|l| l.split(':').next() == Some(user))?;
+    let shell = line.split(':').nth(6)?.trim();
+    (!shell.is_empty()).then(|| PathBuf::from(shell))
+}
+
+/// `UserShell: /bin/zsh`, as `dscl . -read /Users/<user> UserShell` prints it.
+fn parse_dscl_shell(out: &str) -> Option<PathBuf> {
+    let shell = out.lines().find_map(|l| l.strip_prefix("UserShell:"))?.trim();
+    (!shell.is_empty()).then(|| PathBuf::from(shell))
 }
 
 #[cfg(windows)]
@@ -242,6 +388,59 @@ pub fn untilde(shown: &str) -> PathBuf {
 
 #[cfg(test)]
 mod tests {
+
+    #[cfg(unix)]
+    #[test]
+    fn checks_each_shell_as_a_new_terminal_starts_it() {
+        let flags = |s: &str, linux| terminal_flags(Path::new(s), linux);
+        assert_eq!(flags("/bin/bash", true), "-ic");
+        assert_eq!(flags("/usr/bin/bash", false), "-lic");
+        assert_eq!(flags("/bin/zsh", true), "-lic");
+        assert_eq!(flags("/bin/zsh", false), "-lic");
+        assert_eq!(flags("/usr/bin/fish", true), "-lic");
+        assert_eq!(flags("/bin/dash", true), "-lc");
+        assert_eq!(flags("/bin/sh", false), "-lc");
+    }
+
+    #[test]
+    fn reads_the_shell_from_a_passwd_line() {
+        let passwd = "leemour:x:1000:1000:Slava,,,:/home/leemour:/usr/bin/zsh\n";
+        assert_eq!(parse_passwd_shell(passwd, "leemour"), Some(PathBuf::from("/usr/bin/zsh")));
+        assert_eq!(parse_passwd_shell(passwd, "lee"), None);
+        assert_eq!(parse_passwd_shell("leemour:x:1000:1000::/home/leemour:\n", "leemour"), None);
+        assert_eq!(parse_passwd_shell("leemour:x:1000", "leemour"), None);
+        assert_eq!(parse_passwd_shell("", "leemour"), None);
+    }
+
+    #[test]
+    fn lists_only_absolute_shells_and_accepts_only_a_listed_one() {
+        let listed = parse_etc_shells("# /etc/shells\n/bin/sh\n/usr/bin/zsh\n\n  /usr/bin/fish  \nbash\n");
+        let as_paths: Vec<PathBuf> = ["/bin/sh", "/usr/bin/zsh", "/usr/bin/fish"].map(PathBuf::from).into();
+        assert_eq!(listed, as_paths);
+        assert_eq!(validate_shell("/usr/bin/zsh", &listed), Ok(PathBuf::from("/usr/bin/zsh")));
+        assert!(validate_shell("/usr/bin/zsh -c id", &listed).is_err());
+        assert!(validate_shell("/usr/bin/../bin/zsh", &listed).is_err());
+        assert!(validate_shell("zsh", &listed).is_err());
+        assert!(validate_shell("", &listed).is_err());
+    }
+
+    #[test]
+    fn reads_the_shell_from_dscl_output() {
+        assert_eq!(parse_dscl_shell("UserShell: /bin/zsh\n"), Some(PathBuf::from("/bin/zsh")));
+        assert_eq!(parse_dscl_shell("UserShell:\n"), None);
+        assert_eq!(parse_dscl_shell("<dscl_cmd> DS Error: -14136 (eDSRecordNotFound)"), None);
+    }
+
+    #[test]
+    fn accepts_only_plain_account_names() {
+        assert!(valid_user("leemour"));
+        assert!(valid_user("first.last-2"));
+        assert!(!valid_user(""));
+        assert!(!valid_user("-o"));
+        assert!(!valid_user("a b"));
+        assert!(!valid_user("a/b"));
+    }
+
     use super::*;
 
     #[cfg(unix)]

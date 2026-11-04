@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { agentsReading, cellAction, type SkillReportLike, skillCell } from "./skills"
+import { agentsReading, cellAction, type SkillReportLike, type SkillTarget, skillCell, skillColumns } from "./skills"
 
 const status = (targets: SkillReportLike["targets"]): SkillReportLike => ({ source: "status", targets })
 
@@ -66,5 +66,35 @@ describe("agentsReading", () => {
     const cursor = { name: "Cursor", foundBy: "folder", reads: ["agents", "claude"] } as const
     expect(agentsReading(["claude"], [cursor], "others")).toEqual(["Cursor"])
     expect(agentsReading(["claude", "agents"], null, "others")).toEqual(["Claude Code", "others"])
+  })
+})
+
+describe("skillColumns", () => {
+  const agent = (name: string, reads: SkillTarget[], foundBy: "program" | "folder" | null = "program") => ({
+    name,
+    foundBy,
+    reads,
+  })
+
+  it("names an agent that reads both folders once, when it is the only one found", () => {
+    const columns = skillColumns([agent("Cursor", ["agents", "claude"]), agent("Claude Code", ["claude"], null)])
+    expect(columns.map((c) => [c.target, c.readers.map((a) => a.name)])).toEqual([["agents", ["Cursor"]]])
+  })
+
+  it("gives each found agent one column", () => {
+    const columns = skillColumns([
+      agent("Claude Code", ["claude"]),
+      agent("Codex", ["agents"]),
+      agent("Cursor", ["agents", "claude"]),
+    ])
+    expect(columns.map((c) => [c.target, c.readers.map((a) => a.name)])).toEqual([
+      ["claude", ["Claude Code"]],
+      ["agents", ["Codex", "Cursor"]],
+    ])
+  })
+
+  it("shows every place while no agent is found", () => {
+    expect(skillColumns([]).map((c) => c.target)).toEqual(["claude", "agents", "hermes"])
+    expect(skillColumns(null).map((c) => c.target)).toEqual(["claude", "agents", "hermes"])
   })
 })

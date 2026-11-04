@@ -1,13 +1,19 @@
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
-import { afterEach } from "vitest"
-import { useNav } from "@/features/nav"
+import { afterEach, beforeEach } from "vitest"
+import { HOME_SECTION, useNav } from "@/features/nav"
+import { useOnboarding } from "@/features/onboarding/store"
 import { resetKept } from "@/features/tools/kept"
 import { useLanguage } from "@/i18n"
 
+// A fresh store resumes the setup from the computer's state; a test that wants that asks for it (`resumeOnboarding`).
+beforeEach(() => {
+  useOnboarding.setState({ resuming: false })
+})
+
 afterEach(() => {
   cleanup()
-  useNav.setState({ active: "tools" })
+  useNav.setState({ active: HOME_SECTION })
   resetKept()
   useLanguage.setState({ choice: "en" })
 })

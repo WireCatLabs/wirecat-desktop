@@ -1,6 +1,7 @@
 import { Terminal } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
+import { keyringFallback } from "@/domain/signin-notes"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
@@ -10,6 +11,7 @@ import { planMessages } from "./messages-plan"
 import { Plan } from "./Plan"
 import { Stage } from "./Stages"
 import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "./store"
+import { KeyringNotice } from "./TelegramGuide"
 
 /**
  * Signs a profile in with the tool's own sign-in, drawn in the window: a QR code, a code for the phone, a page to
@@ -22,6 +24,8 @@ export function SignInDialog() {
   const name = tool?.name ?? s.tool ?? ""
   const body = useRef<HTMLDivElement>(null)
   const ended = !running(s.phase)
+  const keyring = s.notes.map(keyringFallback).find((k) => k !== null) ?? null
+  const notes = s.notes.filter((n) => keyringFallback(n) === null)
 
   // The button that had focus goes away when the sign-in ends; its replacement takes focus instead of the page.
   useEffect(() => {
@@ -29,14 +33,15 @@ export function SignInDialog() {
   }, [ended])
 
   return (
-    <Dialog open={s.tool !== null} wide title={m.title(name)} onClose={s.close} actions={<Actions />}>
+    <Dialog open={s.tool !== null} wide scroll title={m.title(name)} onClose={s.close} actions={<Actions />}>
       <div ref={body} className="flex flex-col gap-3">
         <p>{m.intro(<code className="font-mono text-ink">{s.profile}</code>, name)}</p>
-        {s.notes.length > 0 && (
+        {notes.length > 0 && (
           <p className="selectable rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-[0.9rem] leading-snug text-ink">
-            {s.notes.join(" ")}
+            {notes.join(" ")}
           </p>
         )}
+        {keyring && <KeyringNotice fallback={keyring} />}
         {/* The plan slides away to the live sign-in in the same place (rule 9). */}
         <div key={s.phase === "plan" ? "plan" : "run"} className="step-in">
           {s.phase === "plan" ? <Plan /> : <Stage name={name} />}
@@ -134,11 +139,7 @@ function Actions() {
             {m.openTerminal}
           </Button>
         )}
-        <Button
-          variant="secondary"
-          onClick={() => tool && profile && start(tool, profile, onFinish ?? undefined, method ?? undefined)}
-          data-autofocus
-        >
+        <Button variant="secondary" onClick={s.again} data-autofocus>
           {m.tryAgain}
         </Button>
       </>

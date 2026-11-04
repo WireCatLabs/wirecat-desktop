@@ -137,8 +137,8 @@ describe("Agents", () => {
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
     const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" }, wait)
-    expect(await within(fixes).findByText("Zoom is not on a terminal's PATH", {}, wait)).toBeInTheDocument()
-    expect(within(fixes).getByText(/^export PATH=/)).toBeInTheDocument()
+    expect(await within(fixes).findByText("A new terminal cannot find Zoom", {}, wait)).toBeInTheDocument()
+    expect(within(fixes).getByRole("button", { name: "Fix" })).toBeInTheDocument()
     expect(await within(fixes).findByText(/Telegram profile/, {}, wait)).toHaveTextContent(
       "Telegram profile work is not signed in",
     )
@@ -150,7 +150,28 @@ describe("Agents", () => {
     expect(check).not.toHaveBeenCalled()
   }, 20000)
 
-  it("keeps MCP out of the main flow and lists existing servers read-only under Advanced", async () => {
+  it("puts the tools a terminal misses on PATH with one Fix, and says to restart the agent", async () => {
+    const fix = vi.spyOn(platform, "fixTerminalPath")
+    const user = await openAgents()
+    await foundTab(/^Claude Code.*to set up/)
+    const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" }, wait)
+    await within(fixes).findByText("A new terminal cannot find Zoom", {}, wait)
+    await user.click(within(fixes).getByRole("button", { name: "Fix" }))
+    expect(fix).toHaveBeenCalledWith(["zm"])
+    expect(
+      await within(pane()).findByText(
+        /Added ~\/\.local\/bin to PATH in ~\/\.zshrc, ~\/\.bashrc\. Restart Claude Code/,
+        {},
+        wait,
+      ),
+    ).toBeInTheDocument()
+    await waitFor(
+      () => expect(within(pane()).queryByText("A new terminal cannot find Zoom")).not.toBeInTheDocument(),
+      wait,
+    )
+  }, 20000)
+
+  it("keeps MCP out of the main flow, shows leftover servers to remove, and no section without them", async () => {
     const add = vi.spyOn(platform, "mcpAdd")
     const check = vi.spyOn(platform, "mcpCheck")
     const remove = vi.spyOn(platform, "mcpRemove")
@@ -166,11 +187,10 @@ describe("Agents", () => {
     await user.click(within(connect).getByRole("button", { name: "Cancel" }))
     expect(check).not.toHaveBeenCalled()
 
-    const advanced = within(pane()).getByRole("button", { name: "Advanced: MCP" })
-    expect(advanced).toHaveAttribute("aria-expanded", "false")
-    await user.click(advanced)
-    expect(within(pane()).getByText(/Agents on this computer use the tools directly/)).toBeVisible()
-    const servers = await within(pane()).findByRole("list", { name: "WireCat MCP servers in Claude Code" }, wait)
+    const section = await within(pane()).findByRole("region", { name: "WireCat MCP servers" }, wait)
+    expect(within(section).getByText(/It does not need them/)).toBeInTheDocument()
+    expect(within(section).getByRole("button", { name: "Open Tools" })).toBeInTheDocument()
+    const servers = within(section).getByRole("list", { name: "WireCat MCP servers in Claude Code" })
     expect(within(servers).getByText("tg-personal")).toBeInTheDocument()
 
     await user.click(
@@ -180,9 +200,12 @@ describe("Agents", () => {
     expect(within(dialog).getByText("claude mcp remove tg-personal --scope user")).toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Remove" }))
     expect(remove).toHaveBeenCalledWith("tg", "personal", "claude")
-    expect(
-      await within(pane()).findByText("Claude Code has no WireCat MCP server registered.", {}, wait),
-    ).toBeInTheDocument()
+    expect(await within(section).findByText(/has no WireCat MCP servers left/, {}, wait)).toBeInTheDocument()
+    expect(within(section).queryByRole("list")).toBeNull()
+
+    await user.click(await foundTab(/^Codex/))
+    await within(pane()).findByRole("heading", { name: "Codex" }, wait)
+    expect(within(pane()).queryByRole("region", { name: "WireCat MCP servers" })).toBeNull()
     expect(add).not.toHaveBeenCalled()
   }, 20000)
 

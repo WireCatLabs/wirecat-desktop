@@ -3,6 +3,8 @@
 WireCat Desktop is a thin window onto the WireCat CLIs. The interface is React in the system webview; Rust inspects
 the machine and runs the tools. Nothing here duplicates what a CLI already does.
 
+New here? Read [the architecture report](architecture-report.md) first. Rules per kind of change are in [guides/](guides/).
+
 ## The layers
 
 ```text
@@ -71,6 +73,8 @@ src-tauri/src/
   names.rs      the chat titles and contact names the messengers keep, read per profile with their own offline
                 `chats list` / `contacts list`, held in memory only, so doctor output and reports mask them.
   terminal.rs   opening a tool's interactive setup in the user's terminal.
+  agent_run.rs  `run_agent`: Claude Code, Codex or Gemini CLI opened in a terminal with a prompt saved to a private file
+                (Fix › under an error, Open in on a guide); only those three programs, found on PATH.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced
@@ -94,7 +98,13 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
    installed, so an update never leaves a second copy behind.
 4. Each output line is masked and sent as a `log` event; steps arrive as `step` events.
 5. Verification re-resolves PATH (npm's bin folder may be new), finds the binary and runs `--version`. If the app
-   would still run another copy (one of the same or a newer version), the result says which.
+   would still run another copy (one of the same or a newer version), the result says which. When npm installed into
+   the user prefix (`~/.local`, `%APPDATA%\npm`) and a fresh terminal does not find the tool, its folder goes on the
+   user's PATH (`terminal_path.rs`); the `done` event carries what changed as `pathFix`, or the line to add by hand.
+   WireCat's own Node.js folder goes on PATH the same way right after its setup, on every OS. Open apps keep their old
+   PATH, so the setup tells the owner to restart them; this is why an AI app opened before the install misses a tool.
+   A network failure of `npm view` or of the install is retried once after 3 s; disk, proxy and certificate, and
+   Windows long-path errors get their own reasons with the next step to take.
 6. On an update, the tool's own `skill status`, then `skill install --for` each copy that is `stale`, each command
    line in the log (`skills::refresh`): a copy an older version wrote. A `missing` place stays empty, an `unversioned`
    file is somebody's own, and Hermes is left out (`--for hermes` changes Hermes's settings). What was rewritten, or
@@ -143,7 +153,8 @@ Each tool writes its skill (`SKILL.md`) to `~/.claude/skills` and `~/.agents/ski
 `skill install --for claude|agents`; the catalog's `skill` templates hold those commands, `skill status` and
 `skill show`. The app never reads a `SKILL.md` file itself. A tool from before `skill status` answers "unknown command" and its cells show "unknown";
 memo falls back to the skill list in `doctor --json`. Agents are found by program on PATH or by their settings
-folder (`skills.rs`); which folder each agent reads comes from the agents' own docs.
+folder (`skills.rs`); which folder each agent reads comes from the agents' own docs. The skill table files each agent found under the
+first folder it reads (`skillColumns`), so Cursor, which reads both, heads one column, not two.
 
 Shared storage is described by `store info --json` (`storeInfo` in the catalog). `compat.rs` asks every installed
 package at once, read-only, and the answer of the tool that reads the newest schema fills the Storage page; tables and
@@ -239,7 +250,8 @@ agent's recent sessions and the tasks it holds.
   the app; the holder (`claude-code:<session>`, `codex:<thread>`, an agent's name) is matched to its agent.
   Release runs `tasks release <task> --holder owner`, because the app may itself run inside an agent's terminal.
 - **Check** joins these with `paths::in_terminal` (is the tool on the PATH a terminal has, without the folders the
-  app adds), runs `mcp check` for every connected profile and counts the commands each profile's permissions block
+  app adds; one item for every tool it misses, whose Fix runs `fix_terminal_path` and then asks the tools and their
+  skills again), runs `mcp check` for every connected profile and counts the commands each profile's permissions block
   (the Permissions block's `permissions_show`).
 - **Skill preview** shows `skill show --json`, the SKILL.md the installed version ships, beside the installed copies'
   versions. The app does not read an installed SKILL.md, so what an update changes waits for a CLI that prints it.
@@ -338,6 +350,16 @@ Zoom without its own app's Public Client ID fails, and the dialog asks for it an
 before starting again. Cancel, Escape and Stop call `sign_in_stop`: SIGTERM to the tool alone, five seconds for it to
 answer with what it kept (WhatsApp's history), then the whole group is killed. Switching method (tg's QR or phone)
 stops the running sign-in first.
+
+Telegram's first sign-in needs the owner's own app keys: tg opens my.telegram.org/apps and asks for App api_id and App
+api_hash (its default `--app browser`; the app never passes `--app auto`). Beside those two questions the dialog shows
+the steps on that site with two pictures of it (`src/assets/signin/`, the owner's screens with the app name, date and
+api_id painted over). The keys typed in the dialog stay in a variable outside the store until the sign-in ends or the
+dialog closes, so a try after Telegram refused them starts with them filled in; tg itself saves them only after
+Telegram accepts them. `src/domain/telegram-signin.ts` reads tg's failure line into a cause, a fix and the way back
+(enter the keys, the number, a new code or the password again, or wait); `src/domain/signin-notes.ts` turns cli-base's
+keyring warning into a calm notice with the file's path. Mock scenarios: `?signin-fail=tg-apiid|tg-flood|tg-code`,
+`?signin-keyring=file`.
 
 ## The MCP server for browser apps
 

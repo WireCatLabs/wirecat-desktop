@@ -17,6 +17,9 @@ export default defineConfig({
     maxWorkers: 4,
     // The app tests click through whole flows against the mock's real delays; 5 s fails them on a busy machine.
     testTimeout: 15_000,
+    // The cached transform of a test keeps its old import.meta.glob result: a new messages file went unchecked by
+    // catalogs.test.ts until the cache was deleted (RISK-100).
+    fsModuleCache: false,
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],

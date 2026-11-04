@@ -1,17 +1,31 @@
 import { Check } from "lucide-react"
 import { type ComponentType, useEffect, useId, useRef } from "react"
-import { tools } from "@/domain/catalog"
-import { formatList, useMessages } from "@/i18n"
+import {
+  canOpen,
+  computerGate,
+  type Gate,
+  nextStep,
+  previousStep,
+  primaryAction,
+  skillInPlace,
+  skipTarget,
+  stepIndex,
+} from "@/domain/onboarding-flow"
+import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
 import { reducedMotion } from "@/ui/motion"
+import { Skeleton } from "@/ui/Skeleton"
 import { AgentsMatrix } from "../agents/AgentsMatrix"
+import { useSkillMatrix } from "../agents/skill-matrix"
 import { arriveFromSetup } from "../guides/GuidesPage"
+import { useNode } from "../system/node-store"
 import { useSystem } from "../system/store"
-import { SkillBenefits } from "../tools/SkillOffer"
+import { StillInstalling, useUnfinishedInstalls } from "../tools/InstallProgress"
 import { useTools } from "../tools/store"
-import { onboardingMessages } from "./messages"
+import { type OnboardingText, onboardingMessages } from "./messages"
 import { Agents, Choose, Computer, Done, Install, installChosen, leave, SignIn, Welcome } from "./steps"
 import { STEPS, type StepId, useOnboarding } from "./store"
 
@@ -27,23 +41,58 @@ const bodies: Record<StepId, ComponentType> = {
 
 function AgentsStep() {
   const chosen = useOnboarding((s) => s.chosen)
-  const installs = useTools((s) => s.installs)
-  const names = tools.filter((t) => t.skill && (chosen.includes(t.id) || installs[t.id]?.length)).map((t) => t.name)
   return (
     <>
-      {names.length > 0 && <SkillBenefits tool={formatList(names)} />}
+      <SkillWhy />
       <Agents matrix={<AgentsMatrix compact expected={chosen} />} />
     </>
   )
 }
 
-const indexOf = (id: StepId) => STEPS.findIndex((s) => s.id === id)
+function SkillWhy() {
+  const m = useMessages(onboardingMessages).agents.why
+  return (
+    <section aria-label={m.label} className="flex max-w-[62ch] flex-col gap-[0.8rem] text-[1rem] leading-relaxed">
+      <p>
+        {m.ask} <q className="font-medium text-ink">{m.example}</q>
+      </p>
+      <ul className="flex flex-col gap-[0.4rem] text-ink-soft">
+        {m.points.map((point) => (
+          <li key={point} className="flex gap-[0.6rem]">
+            <span aria-hidden className="mt-[0.7rem] size-[0.3rem] shrink-0 rounded-full bg-brand" />
+            {point}
+          </li>
+        ))}
+      </ul>
+      <p>{m.next}</p>
+    </section>
+  )
+}
+
+const gateText = (gate: Gate, m: OnboardingText["flow"]) =>
+  gate === "checking"
+    ? m.blockedChecking
+    : gate === "settingUp"
+      ? m.blockedSettingUp
+      : gate === "node"
+        ? m.blockedNode
+        : null
+
+const useComputerGate = () => {
+  const readiness = useSystem((s) => s.readiness)
+  const running = useNode((s) => s.running)
+  const myself = useNode((s) => s.myself)
+  return computerGate(readiness, running, myself)
+}
 
 /** The setup steps take the sidebar's place while the flow is open. */
 export function SetupSteps({ onExit }: { onExit: () => void }) {
   const step = useOnboarding((s) => s.step)
+  const resuming = useOnboarding((s) => s.resuming)
   const m = useMessages(onboardingMessages)
-  const current = indexOf(step)
+  const current = resuming ? -1 : stepIndex(step)
+  // The sidebar must not jump past the Node.js gate that holds Continue on Your computer.
+  const gate = useComputerGate()
   return (
     <aside
       className="flex w-[12rem] shrink-0 flex-col border-line border-r bg-wall xl:w-[13.5rem]"
@@ -56,15 +105,22 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
         <ol className="flex flex-col gap-[0.15rem]">
           {STEPS.map((s, i) => {
             const here = i === current
+            const shut = !canOpen(s, gate)
             return (
-              <li key={s.id}>
+              <li key={s}>
                 <button
                   type="button"
                   aria-current={here ? "step" : undefined}
-                  onClick={() => useOnboarding.getState().go(s.id)}
+                  aria-disabled={shut || undefined}
+                  title={shut ? (gateText(gate, m.flow) ?? undefined) : undefined}
+                  onClick={shut ? undefined : () => useOnboarding.getState().go(s)}
                   className={cx(
                     "relative flex min-h-[2.3rem] w-full items-center gap-[0.75rem] px-[1.5rem] py-[0.3rem] text-left text-[0.95rem] leading-tight",
-                    here ? "font-semibold text-ink" : "text-ink-soft hover:text-ink",
+                    here
+                      ? "font-semibold text-ink"
+                      : shut
+                        ? "cursor-not-allowed text-ink-dim"
+                        : "text-ink-soft hover:text-ink",
                   )}
                 >
                   <span
@@ -87,7 +143,7 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
                   >
                     {i < current ? <Check className="size-3" strokeWidth={3} /> : i + 1}
                   </span>
-                  {m.steps[s.id]}
+                  {m.steps[s]}
                 </button>
               </li>
             )
@@ -113,7 +169,28 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
   )
 }
 
-export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
+/** The step's frame, held while the setup reads what this computer already has, so no step shows and then jumps. */
+function Resuming() {
+  const m = useMessages(onboardingMessages).flow
+  return (
+    <main aria-busy="true" className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto flex min-h-full max-w-[48rem] flex-col gap-[1.5rem] px-[2.1rem] pt-[2.4rem]">
+        <div className="flex flex-col gap-[0.8rem]">
+          <Skeleton className="h-[2.1rem] w-[16rem]" label={m.resuming} />
+          <Skeleton className="h-[1.6rem] w-full max-w-[40rem]" />
+        </div>
+        <Skeleton className="h-[12rem] w-full" />
+      </div>
+    </main>
+  )
+}
+
+export function Onboarding(props: { onExit: () => void; onTour: () => void }) {
+  const resuming = useOnboarding((s) => s.resuming)
+  return resuming ? <Resuming /> : <Steps {...props} />
+}
+
+function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
   const step = useOnboarding((s) => s.step)
   const chosen = useOnboarding((s) => s.chosen)
   const m = useMessages(onboardingMessages)
@@ -124,6 +201,10 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
   const headingId = useId()
   const shown = useRef(step)
   const { go, finish } = useOnboarding.getState()
+  // The Install and Done steps show each install in place; the others say only that one is still going.
+  const stillInstalling = useUnfinishedInstalls().length > 0 && step !== "install" && step !== "done"
+  const computer = useComputerGate()
+  const blockedId = useId()
 
   useEffect(() => {
     useTools.getState().refresh()
@@ -137,11 +218,12 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
     heading.current?.focus({ preventScroll: true })
   }, [step])
 
-  const i = indexOf(step)
   const page = m.pages[step]
   const Body = bodies[step]
-  const next = (id?: StepId) => go(id ?? STEPS[Math.min(i + 1, STEPS.length - 1)]?.id ?? "done")
   const toInstall = chosen.filter((id) => !installs[id]?.length).length
+  // Until one skill is in place, Continue leaves the step without the thing it is for, so Install leads instead.
+  const hasSkill = useSkillMatrix().rows.some((r) => skillInPlace(r.cells.map((c) => c.cell.kind)))
+  const quietContinue = step === "agents" && !hasSkill
 
   const close = (tour: boolean) => {
     leave()
@@ -150,33 +232,35 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
     if (tour) onTour()
   }
 
-  let primary: { label: string; run: () => void }
-  if (step === "welcome") primary = { label: m.flow.getStarted, run: () => next() }
-  else if (step === "choose" && toInstall > 0 && nodeReady) {
-    primary = {
-      label: m.flow.installTools(toInstall),
-      run: () => {
-        installChosen()
-        next()
-      },
-    }
-  } else if (step === "done")
-    // The owner's NEED-C answer B: the guides are where work starts, so they lead; Tools stays one click away.
-    primary = {
-      label: m.done.guides,
-      run: () => {
-        leave()
-        finish()
-        arriveFromSetup()
-      },
-    }
-  else
-    primary = {
-      label: m.flow.continue,
-      run: () => next(step === "choose" && chosen.length === 0 ? "agents" : undefined),
-    }
+  const kind = primaryAction(step, toInstall, nodeReady)
+  const primary: { label: string; run: () => void } =
+    kind === "start"
+      ? { label: m.flow.getStarted, run: () => go(nextStep(step, chosen.length)) }
+      : kind === "install"
+        ? {
+            label: m.flow.installTools(toInstall),
+            run: () => {
+              installChosen()
+              go(nextStep(step, chosen.length))
+            },
+          }
+        : kind === "guides"
+          ? // The owner's NEED-C answer B: the guides are where work starts, so they lead; Tools stays one click away.
+            {
+              label: m.done.guides,
+              run: () => {
+                leave()
+                finish()
+                arriveFromSetup()
+              },
+            }
+          : { label: m.flow.continue, run: () => go(nextStep(step, chosen.length)) }
 
-  const skip = step === "welcome" || step === "done" ? null : () => next(step === "choose" ? "agents" : undefined)
+  // Tools cannot install without Node.js, so the computer step holds until it is ready or the owner takes it on.
+  const blocked = step === "computer" ? gateText(computer, m.flow) : null
+  const skipTo = skipTarget(step)
+  const skip = skipTo ? () => go(skipTo) : null
+  const back = previousStep(step)
 
   return (
     <main ref={scroller} aria-labelledby={headingId} className="min-h-0 flex-1 overflow-y-auto">
@@ -213,12 +297,28 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
         ) : (
           // Pinned to the bottom of the window, so a step's content loading or growing never moves it.
           <div className="sticky bottom-0 mt-auto flex items-center gap-2 border-line border-t bg-wall pt-[1.2rem] pb-[2.2rem]">
-            {i > 0 && (
-              <Button variant="ghost" onClick={() => go(STEPS[i - 1]?.id ?? "welcome")}>
+            {back && (
+              <Button variant="ghost" onClick={() => go(back)}>
                 {m.flow.back}
               </Button>
             )}
-            <span className="flex-1" />
+            {/* Crossfade keeps the old reason on screen while it fades, so the description lives outside it, once. */}
+            {blocked && (
+              <span id={blockedId} hidden>
+                {blocked}
+              </span>
+            )}
+            {/* Why Continue is held, or that an install started earlier is still running: it outlives its step. */}
+            <Crossfade
+              swap={blocked ? `blocked:${blocked}` : stillInstalling ? "busy" : "idle"}
+              className="min-w-0 flex-1 px-2"
+            >
+              {blocked ? (
+                <p className="text-right text-[0.9rem] leading-snug text-ink-soft">{blocked}</p>
+              ) : (
+                stillInstalling && <StillInstalling />
+              )}
+            </Crossfade>
             {skip && (
               <Button variant="ghost" onClick={skip}>
                 {m.flow.skip}
@@ -226,7 +326,14 @@ export function Onboarding({ onExit, onTour }: { onExit: () => void; onTour: () 
             )}
             {step === "done" && <Button onClick={() => close(true)}>{m.flow.tour}</Button>}
             {step === "done" && <Button onClick={() => close(false)}>{m.flow.openTools}</Button>}
-            <Button variant="primary" size="lg" onClick={primary.run}>
+            <Button
+              variant={quietContinue ? "secondary" : "primary"}
+              size="lg"
+              aria-disabled={blocked ? true : undefined}
+              aria-describedby={blocked ? blockedId : undefined}
+              className={cx(blocked && "cursor-not-allowed opacity-45 hover:bg-brand")}
+              onClick={blocked ? undefined : primary.run}
+            >
               {primary.label}
             </Button>
           </div>

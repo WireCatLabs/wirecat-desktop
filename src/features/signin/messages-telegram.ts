@@ -1,0 +1,298 @@
+import type { TelegramFailureKind } from "@/domain/telegram-signin"
+import type { Messages } from "@/i18n"
+
+type Parts = { hours: number; minutes: number; seconds: number }
+type Explained = { cause: string; fix: string }
+
+/**
+ * Telegram's own sign-in, in WireCat's words. The app steps follow tg's `session start` with `--app browser`, the
+ * app's default: tg opens my.telegram.org/apps, then asks for App api_id and App api_hash (tg-cli
+ * `src/commands/session.ts`). The form's rules are the ones my.telegram.org shows (2026-11-04). The password line was
+ * checked in `signin.rs` (the answer goes to the tool's stdin and is wiped, never logged) and tg-cli (the password is
+ * never written; mtcute's `checkPassword` sends Telegram an SRP proof, not the password).
+ */
+const en = {
+  firstTime: "First time only",
+  appSteps: [
+    "Open my.telegram.org in the browser and sign in with your phone number. Telegram sends a code as a message in your Telegram app. Type it on the site, and never give it to anyone else.",
+    'Open Development Tools and create an app. App title: at least 5 characters. Short name: 5 to 32 letters and digits. Platform: Desktop, for example. URL and description can stay empty. Do not use the word "Telegram" in the title or the short name. If you already have an app, skip this step.',
+    "Copy App api_id and App api_hash and paste them here. The api_hash is a secret: keep it private. With these keys the tool reaches your account through your own app.",
+  ],
+  guideTitle: "Your own Telegram app keys",
+  shots: {
+    create: {
+      alt: 'The "Create new application" form on my.telegram.org: App title, Short name, URL, Platform and Description.',
+      caption: "The form for a new app",
+    },
+    credentials: {
+      alt: "The Credentials card on my.telegram.org: App api_id, a number, and App api_hash, marked secret.",
+      caption: "Where the keys are",
+    },
+  },
+  enlarge: (caption: string) => `Enlarge: ${caption}`,
+  copyLink: (host: string) => `Copy the link to ${host}`,
+  keyring: {
+    title: "Your sign-in is saved in a file",
+    body: "The system password store did not answer, so the tool saved the sign-in in a file that only you can read. This is not a problem: everything works.",
+    file: "File",
+    details: "Details",
+    said: "The tool said:",
+  },
+  password:
+    "WireCat does not keep this password, and neither does the tool. It is used once to sign in: Telegram receives only a proof made from it, never the password itself.",
+  telegramSaid: "Telegram's error:",
+  fix: {
+    keys: "Enter the keys again",
+    phone: "Enter the number again",
+    code: "Get a new code",
+    password: "Enter the password again",
+  },
+  wait: ({ hours, minutes, seconds }: Parts) =>
+    [hours && `${hours} h`, minutes && `${minutes} min`, (seconds || (!hours && !minutes)) && `${seconds} s`]
+      .filter(Boolean)
+      .join(" "),
+  failures: {
+    apiIdInvalid: {
+      cause: "Telegram did not accept the app keys.",
+      fix: "The api_id and the api_hash must come from the same app. Copy both again from my.telegram.org, and check for a missing digit or an extra space.",
+    },
+    apiIdPublished: {
+      cause: "Telegram no longer accepts these app keys: they were published, for example in code on the internet.",
+      fix: "Use keys that were never shared. If my.telegram.org does not let you make a new app, ask Telegram support for new keys.",
+    },
+    phoneInvalid: {
+      cause: "Telegram does not know this phone number.",
+      fix: "Enter it in international format, with the country code: for example +34 600 000 000.",
+    },
+    phoneBanned: {
+      cause: "Telegram has blocked this phone number.",
+      fix: "WireCat cannot change this. Contact Telegram support at telegram.org/support.",
+    },
+    codeInvalid: {
+      cause: "The login code was wrong.",
+      fix: "Get a new code, and type it exactly as Telegram sent it.",
+    },
+    codeExpired: {
+      cause: "The login code has expired.",
+      fix: "Get a new code, and enter it within a few minutes.",
+    },
+    passwordInvalid: {
+      cause: "The two-step verification password was wrong.",
+      fix: "Enter the password you set in Telegram under Settings → Privacy and Security → Two-Step Verification.",
+    },
+    passwordNeeded: {
+      cause: "This account has two-step verification.",
+      fix: "Try again: the sign-in then asks for its password.",
+    },
+    loginEnded: {
+      cause: "Telegram ended the earlier login, for example after Terminate All Other Sessions.",
+      fix: "Try again to sign in anew.",
+    },
+    floodWait: {
+      cause: "Telegram asks you to wait before the next try.",
+      fix: "Try again later. Trying too early makes the wait longer.",
+    },
+    network: {
+      cause: "WireCat could not reach Telegram.",
+      fix: "Check the internet connection, and the VPN or proxy if you use one. Then try again.",
+    },
+    telegramDown: {
+      cause: "Telegram had a problem on its side.",
+      fix: "Wait a minute, then try again.",
+    },
+  } as Record<TelegramFailureKind, Explained>,
+  waitFor: (wait: string) => `Telegram asks you to wait ${wait} before the next try.`,
+  waitUntil: (clock: string) => `You can try again at ${clock}. Trying earlier makes the wait longer.`,
+}
+
+const ru: typeof en = {
+  firstTime: "Только в первый раз",
+  appSteps: [
+    "Откройте my.telegram.org в браузере и войдите по номеру телефона. Telegram пришлёт код сообщением в приложение Telegram. Введите его на сайте и никому не сообщайте.",
+    "Откройте Development Tools и создайте приложение. App title — не короче 5 символов. Short name — от 5 до 32 латинских букв и цифр. Platform — например, Desktop. URL и описание можно не заполнять. Не используйте слово «Telegram» в названии и в коротком имени. Если приложение уже есть, пропустите этот шаг.",
+    "Скопируйте App api_id и App api_hash и вставьте их сюда. api_hash — секрет, никому его не показывайте. С этими ключами инструмент входит в ваш аккаунт через ваше собственное приложение.",
+  ],
+  guideTitle: "Ваши собственные ключи приложения Telegram",
+  shots: {
+    create: {
+      alt: "Форма «Create new application» на my.telegram.org: App title, Short name, URL, Platform и Description.",
+      caption: "Форма нового приложения",
+    },
+    credentials: {
+      alt: "Карточка Credentials на my.telegram.org: App api_id — число, и App api_hash с пометкой secret.",
+      caption: "Где найти ключи",
+    },
+  },
+  enlarge: (caption) => `Увеличить: ${caption}`,
+  copyLink: (host) => `Скопировать ссылку на ${host}`,
+  keyring: {
+    title: "Вход сохранён в файле",
+    body: "Системное хранилище паролей не ответило, поэтому инструмент сохранил вход в файле, который можете прочитать только вы. Это не страшно: всё работает.",
+    file: "Файл",
+    details: "Подробности",
+    said: "Сообщение инструмента:",
+  },
+  password:
+    "Ни WireCat, ни инструмент не сохраняют этот пароль. Он нужен один раз для входа: Telegram получает только доказательство, вычисленное из него, а не сам пароль.",
+  telegramSaid: "Ошибка Telegram:",
+  fix: {
+    keys: "Ввести ключи заново",
+    phone: "Ввести номер заново",
+    code: "Получить новый код",
+    password: "Ввести пароль заново",
+  },
+  wait: ({ hours, minutes, seconds }) =>
+    [hours && `${hours} ч`, minutes && `${minutes} мин`, (seconds || (!hours && !minutes)) && `${seconds} с`]
+      .filter(Boolean)
+      .join(" "),
+  failures: {
+    apiIdInvalid: {
+      cause: "Telegram не принял ключи приложения.",
+      fix: "api_id и api_hash должны быть от одного приложения. Скопируйте оба заново с my.telegram.org и проверьте, нет ли пропущенной цифры или лишнего пробела.",
+    },
+    apiIdPublished: {
+      cause: "Telegram больше не принимает эти ключи: они были опубликованы, например в коде в интернете.",
+      fix: "Используйте ключи, которые никому не передавались. Если my.telegram.org не даёт создать новое приложение, попросите новые ключи у поддержки Telegram.",
+    },
+    phoneInvalid: {
+      cause: "Telegram не знает этот номер телефона.",
+      fix: "Введите его в международном формате, с кодом страны: например +7 900 000-00-00.",
+    },
+    phoneBanned: {
+      cause: "Telegram заблокировал этот номер.",
+      fix: "WireCat не может это изменить. Обратитесь в поддержку Telegram: telegram.org/support.",
+    },
+    codeInvalid: {
+      cause: "Код входа неверный.",
+      fix: "Получите новый код и введите его точно так, как его прислал Telegram.",
+    },
+    codeExpired: {
+      cause: "Срок кода входа истёк.",
+      fix: "Получите новый код и введите его в течение нескольких минут.",
+    },
+    passwordInvalid: {
+      cause: "Пароль двухэтапной проверки неверный.",
+      fix: "Введите пароль, заданный в Telegram: Настройки → Конфиденциальность → Облачный пароль.",
+    },
+    passwordNeeded: {
+      cause: "У этого аккаунта включена двухэтапная проверка.",
+      fix: "Повторите вход: он спросит пароль.",
+    },
+    loginEnded: {
+      cause: "Telegram завершил прежний вход, например после «Завершить все другие сеансы».",
+      fix: "Повторите, чтобы войти заново.",
+    },
+    floodWait: {
+      cause: "Telegram просит подождать перед следующей попыткой.",
+      fix: "Повторите позже. Слишком ранняя попытка удлиняет ожидание.",
+    },
+    network: {
+      cause: "WireCat не смог связаться с Telegram.",
+      fix: "Проверьте подключение к интернету, а также VPN или прокси, если они есть. Затем повторите.",
+    },
+    telegramDown: {
+      cause: "У Telegram сбой на его стороне.",
+      fix: "Подождите минуту и повторите.",
+    },
+  },
+  waitFor: (wait) => `Telegram просит подождать ${wait} перед следующей попыткой.`,
+  waitUntil: (clock) => `Повторить можно в ${clock}. Более ранняя попытка удлинит ожидание.`,
+}
+
+const es: typeof en = {
+  firstTime: "Solo la primera vez",
+  appSteps: [
+    "Abre my.telegram.org en el navegador e inicia sesión con tu número de teléfono. Telegram envía un código como mensaje en tu app de Telegram. Escríbelo en el sitio y no se lo des a nadie.",
+    "Abre Development Tools y crea una app. App title: al menos 5 caracteres. Short name: de 5 a 32 letras y cifras. Platform: por ejemplo, Desktop. La URL y la descripción pueden quedar vacías. No uses la palabra «Telegram» en el título ni en el nombre corto. Si ya tienes una app, salta este paso.",
+    "Copia App api_id y App api_hash y pégalos aquí. El api_hash es secreto: no lo compartas. Con estas claves la herramienta entra en tu cuenta a través de tu propia app.",
+  ],
+  guideTitle: "Tus propias claves de app de Telegram",
+  shots: {
+    create: {
+      alt: "El formulario «Create new application» de my.telegram.org: App title, Short name, URL, Platform y Description.",
+      caption: "El formulario de una app nueva",
+    },
+    credentials: {
+      alt: "La tarjeta Credentials de my.telegram.org: App api_id, un número, y App api_hash, marcado como secreto.",
+      caption: "Dónde están las claves",
+    },
+  },
+  enlarge: (caption) => `Ampliar: ${caption}`,
+  copyLink: (host) => `Copiar el enlace a ${host}`,
+  keyring: {
+    title: "Tu sesión se guardó en un archivo",
+    body: "El almacén de contraseñas del sistema no respondió, así que la herramienta guardó la sesión en un archivo que solo tú puedes leer. No es un problema: todo funciona.",
+    file: "Archivo",
+    details: "Detalles",
+    said: "La herramienta dijo:",
+  },
+  password:
+    "Ni WireCat ni la herramienta guardan esta contraseña. Se usa una vez para iniciar sesión: Telegram recibe solo una prueba calculada a partir de ella, nunca la contraseña.",
+  telegramSaid: "Error de Telegram:",
+  fix: {
+    keys: "Volver a escribir las claves",
+    phone: "Volver a escribir el número",
+    code: "Pedir un código nuevo",
+    password: "Volver a escribir la contraseña",
+  },
+  wait: ({ hours, minutes, seconds }) =>
+    [hours && `${hours} h`, minutes && `${minutes} min`, (seconds || (!hours && !minutes)) && `${seconds} s`]
+      .filter(Boolean)
+      .join(" "),
+  failures: {
+    apiIdInvalid: {
+      cause: "Telegram no aceptó las claves de la app.",
+      fix: "El api_id y el api_hash deben ser de la misma app. Cópialos de nuevo desde my.telegram.org y revisa que no falte una cifra ni sobre un espacio.",
+    },
+    apiIdPublished: {
+      cause: "Telegram ya no acepta estas claves: se publicaron, por ejemplo en código en internet.",
+      fix: "Usa claves que nunca se hayan compartido. Si my.telegram.org no te deja crear otra app, pide claves nuevas al soporte de Telegram.",
+    },
+    phoneInvalid: {
+      cause: "Telegram no conoce este número de teléfono.",
+      fix: "Escríbelo en formato internacional, con el prefijo del país: por ejemplo +34 600 000 000.",
+    },
+    phoneBanned: {
+      cause: "Telegram ha bloqueado este número.",
+      fix: "WireCat no puede cambiarlo. Escribe al soporte de Telegram en telegram.org/support.",
+    },
+    codeInvalid: {
+      cause: "El código de inicio de sesión era incorrecto.",
+      fix: "Pide un código nuevo y escríbelo tal como lo envió Telegram.",
+    },
+    codeExpired: {
+      cause: "El código de inicio de sesión ha caducado.",
+      fix: "Pide un código nuevo y escríbelo en pocos minutos.",
+    },
+    passwordInvalid: {
+      cause: "La contraseña de la verificación en dos pasos era incorrecta.",
+      fix: "Escribe la contraseña que pusiste en Telegram, en Ajustes → Privacidad y seguridad → Verificación en dos pasos.",
+    },
+    passwordNeeded: {
+      cause: "Esta cuenta tiene verificación en dos pasos.",
+      fix: "Reintenta: el inicio de sesión pedirá su contraseña.",
+    },
+    loginEnded: {
+      cause: "Telegram cerró la sesión anterior, por ejemplo tras «Cerrar todas las demás sesiones».",
+      fix: "Reintenta para iniciar sesión de nuevo.",
+    },
+    floodWait: {
+      cause: "Telegram pide esperar antes del siguiente intento.",
+      fix: "Reintenta más tarde. Intentarlo antes alarga la espera.",
+    },
+    network: {
+      cause: "WireCat no pudo conectar con Telegram.",
+      fix: "Revisa la conexión a internet, y la VPN o el proxy si usas uno. Después reintenta.",
+    },
+    telegramDown: {
+      cause: "Telegram tuvo un problema por su parte.",
+      fix: "Espera un minuto y reintenta.",
+    },
+  },
+  waitFor: (wait) => `Telegram pide esperar ${wait} antes del siguiente intento.`,
+  waitUntil: (clock) => `Podrás reintentar a las ${clock}. Intentarlo antes alarga la espera.`,
+}
+
+export type TelegramMessages = typeof en
+
+export const telegramMessages: Messages<TelegramMessages> = { en, ru, es }

@@ -1,5 +1,5 @@
 import { AlertTriangle, CheckCircle2, RotateCcw } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { type CatalogTool, ownerId, samePackage } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { agentsReading } from "@/domain/skills"
@@ -11,8 +11,10 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { useAgents } from "../agents/store"
+import { FixButton, FixPanel } from "../fix/AgentFix"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
+import { failureWords, failureWordsEn, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SkillOffer } from "./SkillOffer"
@@ -41,6 +43,8 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
   const shared = samePackage(tool.id).length > 1
   const { install, uninstall, dismiss } = useTools.getState()
   const [showLog, setShowLog] = useState(false)
+  const [fixOpen, setFixOpen] = useState(false)
+  const fixId = useId()
   const m = useMessages(toolsMessages).install
   if (!session) return null
   const outcome = session.outcome
@@ -54,7 +58,7 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
         <Stepper steps={stepStates(session, m)} />
       </div>
 
-      <Collapse open={session.operation === "install" && session.step === "install" && !outcome}>
+      <Collapse open={session.operation === "install" && session.step !== "queued" && !outcome}>
         <div className="mx-auto mt-[1.6rem] max-w-[62rem]">
           <InstallProgress session={session} />
         </div>
@@ -119,6 +123,9 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
             />
           )}
           {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
+            <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
+          )}
+          {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
             <Button
               size="sm"
               variant="secondary"
@@ -155,6 +162,18 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
         </div>
       </div>
 
+      {outcome?.event === "failed" && (
+        <FixPanel
+          id={fixId}
+          open={fixOpen}
+          problem={{
+            what: `${session.operation === "install" ? "Installing" : "Uninstalling"} ${tool.name} (${tool.package})`,
+            error: failureWordsEn(outcome, session.operation)[0],
+            hint: failureWordsEn(outcome, session.operation)[1],
+            log: session.log,
+          }}
+        />
+      )}
       <Collapse open={showLog}>
         <Log lines={session.log} m={m} />
       </Collapse>
@@ -197,16 +216,7 @@ type Failed = Extract<InstallOutcome, { event: "failed" }>
 /** Rust's reasons with one fixed sentence are told in the reader's language; the rest name the program or path. */
 function FailureText(props: { outcome: Failed; operation: InstallSession["operation"]; untouched: boolean; m: Words }) {
   const { outcome, operation, untouched, m } = props
-  const [message, hint] =
-    outcome.reason === "cancelled"
-      ? [m.cancelled[operation], null]
-      : outcome.reason === "timeout"
-        ? [m.timedOut[operation], m.timedOutHint]
-        : outcome.reason === "network"
-          ? [m.network, m.networkHint]
-          : outcome.reason === "unconfirmed"
-            ? [m.unconfirmed, m.unconfirmedHint]
-            : [outcome.message, outcome.hint]
+  const [message, hint] = failureWords(outcome, operation, useFailureMessages())
   return (
     <p>
       <span className="font-medium text-ink">{message}</span>

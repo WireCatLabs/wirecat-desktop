@@ -1,10 +1,11 @@
 // `?guides=first` arrives from the setup's last step, `?guides=offline` shows the bundled copy with no network,
 // `?guide=<id>` opens one guide, `?q=<words>` starts with a search.
-import { Check, ChevronDown, Copy, ExternalLink, Search, ShieldCheck, X } from "lucide-react"
+import { Check, ChevronDown, Copy, ExternalLink, Search, ShieldCheck, SquareTerminal, X } from "lucide-react"
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 import { KNOWN_AGENTS } from "@/domain/agents"
 import { tools } from "@/domain/catalog"
 import { formatList, LANGS, type Lang, useLang, useMessages } from "@/i18n"
+import type { AgentRun } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -16,6 +17,7 @@ import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion"
 import { Segmented } from "@/ui/Segmented"
 import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
+import { AgentRunNote, runAgent, STARTABLE, useStartableAgents } from "../fix/run-agent"
 import { useNav } from "../nav"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
@@ -390,6 +392,15 @@ function GuideBody(props: {
         : m.pasteTerminal(named.name)
       : m.pasteAny
   const copied = app ? withoutLead(prompt) : prompt
+  // Only an agent WireCat can start and found as a program gets Open; for the others the choice shapes the copy text.
+  const startable = useStartableAgents(Boolean(named && named.id in STARTABLE))
+  const launch = startable?.find((a) => a.id === agent) ?? null
+  const [run, setRun] = useState<{ agent: string; result: AgentRun | null } | null>(null)
+  const shownRun = run?.agent === agent ? run : null
+  const open = async (id: string) => {
+    setRun({ agent: id, result: null })
+    setRun({ agent: id, result: await runAgent(id, prompt) })
+  }
   // Beside the title or the close button the labelled switch would squeeze them, so it gets a row above the prompt.
   const switcher = known && varies && fit.messengers.length > 1 && messenger && (
     <MessengerSwitch choices={fit.messengers} value={messenger} onChange={setPicked} m={m} />
@@ -449,9 +460,21 @@ function GuideBody(props: {
               </div>
             </Crossfade>
           </AutoHeight>
-          <p className="text-[0.9rem] text-ink-dim">{m.askHint}</p>
+          <p className="text-[0.9rem] text-ink-dim">{launch ? m.askHintOpen : m.askHint}</p>
           <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-2">
             <CopyButton text={copied} m={m} primary={!quiet && known && fit.ready} />
+            {launch && (
+              <Button
+                disabled={shownRun !== null && shownRun.result === null}
+                onClick={() => open(launch.id)}
+                icon={<SquareTerminal className="size-4 text-ink-dim" aria-hidden />}
+              >
+                <StableText
+                  value={shownRun && !shownRun.result ? m.opening : m.openIn(launch.name)}
+                  variants={[m.opening, m.openIn(launch.name)]}
+                />
+              </Button>
+            )}
             <span className="flex items-center gap-[0.5rem]">
               <span id={agentId} className="text-[0.9rem] text-ink-dim">
                 {m.agent}
@@ -470,6 +493,13 @@ function GuideBody(props: {
             </span>
           </div>
           <p className="text-[0.9rem] text-ink-soft">{hint}</p>
+          <div aria-live="polite">
+            <Collapse open={Boolean(shownRun?.result)}>
+              {shownRun?.result && launch && (
+                <AgentRunNote run={shownRun.result} name={launch.name} started={m.startedIn(launch.name)} />
+              )}
+            </Collapse>
+          </div>
           {g.saves && (
             <p className="flex gap-2 text-[0.9rem] text-ink-soft">
               <ShieldCheck className="mt-[0.15rem] size-[1rem] shrink-0 text-ok" aria-hidden />

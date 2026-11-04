@@ -19,11 +19,9 @@ const enCheck: CheckWords = {
     "OpenClaw runs commands with its gateway's PATH. Add the folders to tools.exec.pathPrepend with OpenClaw's own " +
     "command below. It replaces the whole list and works only while the gateway is stopped: stop the gateway, add " +
     "the folders that openclaw config get tools.exec.pathPrepend already lists, run it, then start the gateway again.",
-  notOnPath: (tool) => `${tool} is not on a terminal's PATH`,
-  notOnPathWindows: (agent, bin, folder) =>
-    `${agent} runs commands in a terminal, and a new terminal does not find ${bin}. Add ${folder ?? "its folder"} to your user Path in Windows settings, then restart ${agent}.`,
-  notOnPathShell: (agent, bin) =>
-    `${agent} runs commands in a terminal, and a new terminal does not find ${bin}. Add its folder to PATH in your shell profile, then restart ${agent}.`,
+  notOnPath: (tools) => `A new terminal cannot find ${enList(tools)}`,
+  notOnPathDetail: (agent) =>
+    `${agent} runs commands in a terminal. Fix puts the tools' folders on your PATH; then restart ${agent}.`,
   skillCurrent: (tool) => `${tool} skill is current`,
   cannotReport: (tools) =>
     tools.length === 1 ? `${enList(tools)} cannot report its skill` : `${enList(tools)} cannot report their skills`,
@@ -115,6 +113,11 @@ const en = {
   todoOld: (n: number, agent: string) =>
     `${plural("en", n, { one: "# skill", other: "# skills" })} for ${agent} ${n === 1 ? "is" : "are"} old`,
   installAll: "Install all",
+  installEverywhere: (tool: string, agents: string) => `Install the ${tool} skill for ${agents}`,
+  installingAll: "Installing…",
+  allInstalled: "Installed for all",
+  toolWrites: (tool: string, folders: readonly string[]) =>
+    `${tool} writes its own skill file into ${enList(folders)}, one after another.`,
   updateAll: "Update all",
   action: { Install: "Install", Update: "Update" },
 
@@ -131,6 +134,23 @@ const en = {
   read: "Read",
   readSkill: (tool: string) => `Read the ${tool} skill`,
   openTools: "Open Tools",
+  pathFix: {
+    fix: "Fix",
+    fixing: "Fixing…",
+    checkAgain: "Check again",
+    added: (folders: string, file: string | null, agent: string) =>
+      `Added ${folders} to PATH${file ? ` in ${file}` : ""}. Restart ${agent} and any open terminal so they see it.`,
+    already: (agent: string) =>
+      `Nothing to add: the folders are on PATH. Restart ${agent} if it still cannot find them.`,
+    manual:
+      "WireCat does not edit this shell's settings. Add this line to your shell profile, then open a new terminal:",
+    failed: "Could not change PATH.",
+    yourAgents: "your AI agents",
+    skillsFailed: (n: number) =>
+      plural("en", n, { one: "# skill could not be checked", other: "# skills could not be checked" }),
+    skillsFailedHint:
+      "Usually the app looked before a fresh install was ready. Fix puts the tools on PATH and checks every skill again.",
+  },
   installSkill: (tool: string, agent: string) => `Install the ${tool} skill for ${agent}`,
   updateSkill: (tool: string, agent: string) => `Update the ${tool} skill for ${agent}`,
   state: {
@@ -191,16 +211,11 @@ const en = {
   olderSessions: (n: number) => `and ${n} older on the Logs page`,
   copyCommand: "Copy the command",
 
-  advancedMcp: "Advanced: MCP",
-  mcpIntro:
-    "For chat apps and agents on another computer. Agents on this computer use the tools directly through their skill.",
-  readingMcp: "Reading MCP servers",
-  mcpUnread: (agent: string, file: ReactNode): ReactNode => (
-    <>
-      WireCat does not read {agent}'s MCP servers. See {file}.
-    </>
-  ),
-  noMcp: (agent: string) => `${agent} has no WireCat MCP server registered.`,
+  mcpTitle: "WireCat MCP servers",
+  mcpIntro: (agent: string) =>
+    `${agent} also has these WireCat MCP servers. It does not need them: it uses the tools through its skill. Remove them unless you set them up on purpose.`,
+  mcpGone: (agent: string) => `${agent} has no WireCat MCP servers left. It uses the tools through its skill.`,
+  mcpChatApps: "To let ChatGPT or Claude in the browser use your tools, connect them on the Tools page.",
   mcpList: (agent: string) => `WireCat MCP servers in ${agent}`,
   readFrom: (source: ReactNode): ReactNode => <>Read from {source}</>,
   remove: "Remove",
@@ -317,11 +332,9 @@ const ruCheck: CheckWords = {
     "OpenClaw ниже. Она заменяет весь список и работает, только пока шлюз остановлен: остановите шлюз, добавьте в " +
     "команду папки, которые уже показывает openclaw config get tools.exec.pathPrepend, выполните её и снова " +
     "запустите шлюз.",
-  notOnPath: (tool) => `${tool} нет в PATH терминала`,
-  notOnPathWindows: (agent, bin, folder) =>
-    `${agent} запускает команды в терминале, а новый терминал не находит ${bin}. Добавьте ${folder ?? "его папку"} в пользовательскую переменную Path в настройках Windows и перезапустите ${agent}.`,
-  notOnPathShell: (agent, bin) =>
-    `${agent} запускает команды в терминале, а новый терминал не находит ${bin}. Добавьте его папку в PATH в профиле оболочки и перезапустите ${agent}.`,
+  notOnPath: (tools) => `Новый терминал не находит ${ruList(tools)}`,
+  notOnPathDetail: (agent) =>
+    `${agent} запускает команды в терминале. «Исправить» добавит папки инструментов в PATH; затем перезапустите ${agent}.`,
   skillCurrent: (tool) => `Навык ${tool} актуален`,
   cannotReport: (tools) =>
     tools.length === 1
@@ -423,6 +436,10 @@ const ru: typeof en = {
       other: `# навыка для ${agent} устарели`,
     }),
   installAll: "Установить все",
+  installEverywhere: (tool, agents) => `Установить навык ${tool} для ${agents}`,
+  installingAll: "Устанавливаем…",
+  allInstalled: "Установлен для всех",
+  toolWrites: (tool, folders) => `${tool} по очереди записывает файл своего навыка в ${ruList(folders)}.`,
   updateAll: "Обновить все",
   action: { Install: "Установить", Update: "Обновить" },
 
@@ -439,6 +456,27 @@ const ru: typeof en = {
   read: "Читать",
   readSkill: (tool) => `Прочитать навык ${tool}`,
   openTools: "К инструментам",
+  pathFix: {
+    fix: "Исправить",
+    fixing: "Исправляем…",
+    checkAgain: "Проверить снова",
+    added: (folders: string, file: string | null, agent: string) =>
+      `${folders} добавлено в PATH${file ? ` в ${file}` : ""}. Перезапустите ${agent} и открытые терминалы, чтобы они это увидели.`,
+    already: (agent: string) =>
+      `Добавлять нечего: папки уже в PATH. Перезапустите ${agent}, если он всё ещё их не находит.`,
+    manual:
+      "WireCat не меняет настройки этой оболочки. Добавьте эту строку в профиль оболочки и откройте новый терминал:",
+    failed: "Не удалось изменить PATH.",
+    yourAgents: "ваших ИИ-агентов",
+    skillsFailed: (n: number) =>
+      plural("ru", n, {
+        one: "# навык не удалось проверить",
+        few: "# навыка не удалось проверить",
+        other: "# навыков не удалось проверить",
+      }),
+    skillsFailedHint:
+      "Обычно приложение заглянуло раньше, чем свежая установка была готова. «Исправить» добавит инструменты в PATH и проверит все навыки снова.",
+  },
   installSkill: (tool, agent) => `Установить навык ${tool} для ${agent}`,
   updateSkill: (tool, agent) => `Обновить навык ${tool} для ${agent}`,
   state: {
@@ -499,16 +537,12 @@ const ru: typeof en = {
   olderSessions: (n) => `и ещё ${n} — в журнале`,
   copyCommand: "Скопировать команду",
 
-  advancedMcp: "Дополнительно: MCP",
-  mcpIntro:
-    "Для чат-приложений и агентов на другом компьютере. Агенты на этом компьютере работают с инструментами напрямую, через навык.",
-  readingMcp: "Читаем MCP-серверы",
-  mcpUnread: (agent, file) => (
-    <>
-      WireCat не читает MCP-серверы {agent}. Смотрите {file}.
-    </>
-  ),
-  noMcp: (agent) => `В ${agent} не зарегистрирован ни один MCP-сервер WireCat.`,
+  mcpTitle: "MCP-серверы WireCat",
+  mcpIntro: (agent) =>
+    `У ${agent} есть ещё и эти MCP-серверы WireCat. Они ему не нужны: с инструментами он работает через навык. Удалите их, если не добавляли специально.`,
+  mcpGone: (agent) => `У ${agent} больше нет MCP-серверов WireCat. С инструментами он работает через навык.`,
+  mcpChatApps:
+    "Чтобы ChatGPT или Claude в браузере работали с вашими инструментами, подключите их на странице «Инструменты».",
   mcpList: (agent) => `MCP-серверы WireCat в ${agent}`,
   readFrom: (source) => <>Прочитано из {source}</>,
   remove: "Удалить",
@@ -619,11 +653,9 @@ const esCheck: CheckWords = {
     "comando de OpenClaw que ves abajo. Sustituye la lista entera y solo funciona con el gateway parado: para el " +
     "gateway, añade las carpetas que ya muestra openclaw config get tools.exec.pathPrepend, ejecútalo y vuelve a " +
     "arrancar el gateway.",
-  notOnPath: (tool) => `${tool} no está en el PATH del terminal`,
-  notOnPathWindows: (agent, bin, folder) =>
-    `${agent} ejecuta comandos en un terminal, y un terminal nuevo no encuentra ${bin}. Añade ${folder ?? "su carpeta"} a la variable Path de tu usuario en la configuración de Windows y reinicia ${agent}.`,
-  notOnPathShell: (agent, bin) =>
-    `${agent} ejecuta comandos en un terminal, y un terminal nuevo no encuentra ${bin}. Añade su carpeta al PATH en el perfil de tu shell y reinicia ${agent}.`,
+  notOnPath: (tools) => `Un terminal nuevo no encuentra ${esList(tools)}`,
+  notOnPathDetail: (agent) =>
+    `${agent} ejecuta comandos en un terminal. Arreglar pone las carpetas de las herramientas en tu PATH; luego reinicia ${agent}.`,
   skillCurrent: (tool) => `La skill de ${tool} está al día`,
   cannotReport: (tools) =>
     tools.length === 1
@@ -725,6 +757,10 @@ const es: typeof en = {
       other: `# skills para ${agent} están desactualizadas`,
     }),
   installAll: "Instalar todas",
+  installEverywhere: (tool, agents) => `Instalar la skill de ${tool} para ${agents}`,
+  installingAll: "Instalando…",
+  allInstalled: "Instalada para todos",
+  toolWrites: (tool, folders) => `${tool} escribe su propio archivo de skill en ${esList(folders)}, una tras otra.`,
   updateAll: "Actualizar todas",
   action: { Install: "Instalar", Update: "Actualizar" },
 
@@ -741,6 +777,23 @@ const es: typeof en = {
   read: "Leer",
   readSkill: (tool) => `Leer la skill de ${tool}`,
   openTools: "Ir a Herramientas",
+  pathFix: {
+    fix: "Arreglar",
+    fixing: "Arreglando…",
+    checkAgain: "Comprobar de nuevo",
+    added: (folders: string, file: string | null, agent: string) =>
+      `${folders} añadido al PATH${file ? ` en ${file}` : ""}. Reinicia ${agent} y los terminales abiertos para que lo vean.`,
+    already: (agent: string) =>
+      `Nada que añadir: las carpetas ya están en el PATH. Reinicia ${agent} si aún no las encuentra.`,
+    manual:
+      "WireCat no edita la configuración de este shell. Añade esta línea al perfil de tu shell y abre un terminal nuevo:",
+    failed: "No se pudo cambiar el PATH.",
+    yourAgents: "tus agentes de IA",
+    skillsFailed: (n: number) =>
+      plural("es", n, { one: "No se pudo comprobar # skill", other: "No se pudieron comprobar # skills" }),
+    skillsFailedHint:
+      "Normalmente la app miró antes de que una instalación nueva estuviera lista. Arreglar pone las herramientas en el PATH y vuelve a comprobar cada skill.",
+  },
   installSkill: (tool, agent) => `Instalar la skill de ${tool} para ${agent}`,
   updateSkill: (tool, agent) => `Actualizar la skill de ${tool} para ${agent}`,
   state: {
@@ -801,16 +854,11 @@ const es: typeof en = {
   olderSessions: (n) => `y ${n} más antiguas en la página Registros`,
   copyCommand: "Copiar el comando",
 
-  advancedMcp: "Avanzado: MCP",
-  mcpIntro:
-    "Para apps de chat y agentes en otro ordenador. Los agentes de este ordenador usan las herramientas directamente con su skill.",
-  readingMcp: "Leyendo los servidores MCP",
-  mcpUnread: (agent, file) => (
-    <>
-      WireCat no lee los servidores MCP de {agent}. Consulta {file}.
-    </>
-  ),
-  noMcp: (agent) => `${agent} no tiene registrado ningún servidor MCP de WireCat.`,
+  mcpTitle: "Servidores MCP de WireCat",
+  mcpIntro: (agent) =>
+    `${agent} también tiene estos servidores MCP de WireCat. No los necesita: usa las herramientas con su skill. Quítalos si no los configuraste a propósito.`,
+  mcpGone: (agent) => `${agent} ya no tiene servidores MCP de WireCat. Usa las herramientas con su skill.`,
+  mcpChatApps: "Para que ChatGPT o Claude en el navegador usen tus herramientas, conéctalos en la página Herramientas.",
   mcpList: (agent) => `Servidores MCP de WireCat en ${agent}`,
   readFrom: (source) => <>Leído de {source}</>,
   remove: "Quitar",

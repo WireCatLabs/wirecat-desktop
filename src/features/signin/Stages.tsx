@@ -2,6 +2,7 @@ import { CheckCircle2, ExternalLink, LoaderCircle } from "lucide-react"
 import { type FormEvent, useEffect, useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { qrModules, qrPath } from "@/domain/qr"
+import { type TelegramFix, telegramFailure } from "@/domain/telegram-signin"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
@@ -12,7 +13,18 @@ import { ReportThis } from "../report/ReportThis"
 import { openConnect, openTool } from "../tools/go"
 import { AnswerForm } from "./AnswerForm"
 import { signinMessages } from "./messages"
-import { ENDED, NEEDS_UPDATE, type OpenUrl, type Pairing, type Qr, receivingHistory, useSignIn } from "./store"
+import { telegramMessages } from "./messages-telegram"
+import {
+  ENDED,
+  keptAnswer,
+  NEEDS_UPDATE,
+  type OpenUrl,
+  type Pairing,
+  type Qr,
+  receivingHistory,
+  useSignIn,
+} from "./store"
+import { isTelegramApps, OpenLink, TelegramAppGuide, TelegramFailureText } from "./TelegramGuide"
 
 const STAGE = "flex min-h-[19rem] flex-col items-center justify-center gap-3 text-center"
 
@@ -21,6 +33,7 @@ const sentence = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}${/[.!
 export function Stage({ name }: { name: string }) {
   const s = useSignIn()
   const m = useMessages(signinMessages)
+  const tm = useMessages(telegramMessages)
   if (s.phase === "starting") {
     return (
       <div className={STAGE}>
@@ -32,17 +45,30 @@ export function Stage({ name }: { name: string }) {
   if (s.phase === "scan" && s.qr) return <ScanStage qr={s.qr} />
   if (s.phase === "pair" && s.pairing) return <PairStage pairing={s.pairing} />
   if (s.phase === "answer" && s.need) {
+    const telegramApps = s.url !== null && isTelegramApps(s.url)
+    const guide = telegramApps && APP_KEYS.has(s.need.field)
+    const form = (
+      <AnswerForm
+        need={s.need}
+        sent={s.sent}
+        onAnswer={s.answer}
+        initial={keptAnswer(s.need.field)}
+        note={s.tool === "tg" && s.need.field === "password" ? tm.password : undefined}
+      />
+    )
     return (
       <div className="flex min-h-[19rem] flex-col items-center justify-center gap-4">
-        {s.url && <BrowserLink url={s.url} compact />}
-        <AnswerForm need={s.need} sent={s.sent} onAnswer={s.answer} />
+        {s.url && guide && <TelegramAppGuide url={s.url} />}
+        {s.url && !telegramApps && <BrowserLink url={s.url} compact />}
+        {/* Under the guide the field lines up with the steps' text, as their next step. */}
+        {guide ? <div className="w-full pl-[2.05rem]">{form}</div> : form}
       </div>
     )
   }
   if (s.phase === "browser" && s.url) {
     return (
       <div className={STAGE}>
-        <BrowserLink url={s.url} />
+        {isTelegramApps(s.url) ? <TelegramAppGuide url={s.url} /> : <BrowserLink url={s.url} />}
         <p className="flex items-center gap-2 text-[0.9rem] text-ink-soft">
           <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
           {m.waitingBrowser}
@@ -84,6 +110,8 @@ export function Stage({ name }: { name: string }) {
   }
   if (s.phase === "failed" && s.failure) {
     const needsClientId = s.tool === "zm" && s.failure.message.includes("zoom.client_id")
+    const telegram = s.tool === "tg" ? telegramFailure(s.failure.message, s.failure.code) : null
+    const fix = telegram && isFixLabel(telegram.fix) ? telegram.fix : null
     return (
       <div className="flex min-h-[19rem] flex-col justify-center gap-4">
         {needsClientId ? (
@@ -91,15 +119,30 @@ export function Stage({ name }: { name: string }) {
         ) : (
           <ErrorNotice
             action={
-              <ReportThis
-                what={`Signing in to ${name} as ${s.profile}`}
-                tool={s.tool}
-                error={s.failure.message}
-                onOpen={() => useSignIn.getState().close()}
-              />
+              <>
+                {fix && (
+                  <Button size="sm" variant="secondary" onClick={s.again}>
+                    {tm.fix[fix]}
+                  </Button>
+                )}
+                <ReportThis
+                  what={`Signing in to ${name} as ${s.profile}`}
+                  tool={s.tool}
+                  error={s.failure.message}
+                  onOpen={() => useSignIn.getState().close()}
+                />
+              </>
             }
           >
-            {s.failure.code === NEEDS_UPDATE ? m.needsUpdate : s.failure.code === ENDED ? m.ended : s.failure.message}
+            {telegram ? (
+              <TelegramFailureText failure={telegram} />
+            ) : s.failure.code === NEEDS_UPDATE ? (
+              m.needsUpdate
+            ) : s.failure.code === ENDED ? (
+              m.ended
+            ) : (
+              s.failure.message
+            )}
           </ErrorNotice>
         )}
       </div>
@@ -107,6 +150,12 @@ export function Stage({ name }: { name: string }) {
   }
   return <div className={STAGE} />
 }
+
+const APP_KEYS = new Set(["api_id", "api_hash"])
+
+/** The fixes with a button of their own; the rest are the dialog's Try again, or nothing the window can do. */
+const isFixLabel = (fix: TelegramFix): fix is "keys" | "phone" | "code" | "password" =>
+  fix === "keys" || fix === "phone" || fix === "code" || fix === "password"
 
 /** The tool has usually opened the page itself; the button opens it again. */
 function BrowserLink({ url, compact = false }: { url: OpenUrl; compact?: boolean }) {
@@ -121,15 +170,9 @@ function BrowserLink({ url, compact = false }: { url: OpenUrl; compact?: boolean
       <p className={compact ? "text-[0.9rem] text-ink-soft" : "text-[0.95rem] text-ink"}>
         {url.purpose ? sentence(url.purpose) : m.continueOn(host)}
       </p>
-      <Button
-        variant={compact ? "secondary" : "primary"}
-        size={compact ? "sm" : "md"}
-        className={compact ? "self-start" : undefined}
-        icon={<ExternalLink className="size-4" aria-hidden />}
-        onClick={() => platform.openUrl(url.url)}
-      >
-        {m.openHost(host)}
-      </Button>
+      <div className={compact ? "self-start" : undefined}>
+        <OpenLink url={url.url} primary={!compact} />
+      </div>
     </div>
   )
 }

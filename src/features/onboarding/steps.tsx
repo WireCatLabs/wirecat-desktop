@@ -1,5 +1,5 @@
 import { Bot, CheckCircle2, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { type CatalogTool, findTool, ownerId, samePackage, signsInHere, tools } from "@/domain/catalog"
 import { toolStatus } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
@@ -8,24 +8,28 @@ import type { Profile } from "@/platform/schemas"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
+import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
 import { Skeleton, StableText } from "@/ui/Skeleton"
+import { FixButton, FixPanel } from "../fix/AgentFix"
 import { useNav } from "../nav"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
 import { NodeNotice } from "../system/NodeNotice"
 import { useSystem } from "../system/store"
+import { failureWords, failureWordsEn, useFailureMessages } from "../tools/failure-words"
 import { openConnect } from "../tools/go"
 import { ManualSetup, NewProfile, TerminalStatus, useProfiles } from "../tools/Health"
-import { InstallProgress } from "../tools/InstallProgress"
+import { InstallLine, InstallProgress } from "../tools/InstallProgress"
 import { toolsMessages } from "../tools/messages"
 import { useTools } from "../tools/store"
 import { ToolIcon } from "../tools/ToolIcon"
 import { useTerminal } from "../tools/terminal-store"
 import { toolText } from "../tools/tool-text"
+import { InstallOverview, InstallTips } from "./InstallWait"
 import { onboardingMessages } from "./messages"
 import { useOnboarding } from "./store"
 
@@ -173,11 +177,14 @@ export function Choose() {
   )
 }
 
-/** Queues the chosen tools that are not on the computer yet; the store runs them one by one. */
+/**
+ * Queues the chosen tools that are not on the computer yet; the store runs them one by one. In the order the Install
+ * step lists them, not the order they were ticked, so "1 of 3" is the tool at the top.
+ */
 export function installChosen() {
   const { chosen } = useOnboarding.getState()
   const st = useTools.getState()
-  for (const id of chosen) {
+  for (const { id } of tools.filter((t) => chosen.includes(t.id))) {
     if (!installedVersion(id) && !st.sessions[ownerId(id)]) st.install(id)
   }
 }
@@ -189,27 +196,28 @@ function Progress({ tool }: { tool: CatalogTool }) {
   const outcome = session?.outcome
   const m = useMessages(onboardingMessages).install
   const tm = useMessages(toolsMessages).install
+  const fm = useFailureMessages()
+  const [fixOpen, setFixOpen] = useState(false)
+  const fixId = useId()
   const version = (v: string) => <span className="font-mono tabular-nums">{v}</span>
 
   let tone: LampTone = "idle"
   let text: ReactNode = m.notInstalled
+  let detail: ReactNode = null
   if (status.kind === "checking") text = m.checking
   else if (session && !outcome) {
     tone = session.step === "queued" ? "idle" : "busy"
     text = session.step === "queued" ? m.queued : m.step(tm.steps.install[session.step] ?? m.installing)
-  } else if (outcome?.event === "failed") {
+  } else if (outcome?.event === "failed" && session) {
     tone = "bad"
-    const message =
-      outcome.reason === "cancelled"
-        ? tm.cancelled.install
-        : outcome.reason === "timeout"
-          ? tm.timedOut.install
-          : outcome.reason === "network"
-            ? tm.network
-            : outcome.reason === "unconfirmed"
-              ? tm.unconfirmed
-              : outcome.message
-    text = <span className="text-bad">{message}</span>
+    const [message, next] = failureWords(outcome, session.operation, fm)
+    text = <span className="text-bad">{m.notInstalledFailed}</span>
+    detail = (
+      <>
+        <span className="block text-bad">{message}</span>
+        {next && <span className="block text-ink-soft">{next}</span>}
+      </>
+    )
   } else if (outcome?.event === "done") {
     tone = "ok"
     text = m.installed(version(outcome.version))
@@ -218,7 +226,7 @@ function Progress({ tool }: { tool: CatalogTool }) {
     text = m.already(version(status.version))
   }
 
-  const installing = Boolean(session && !outcome && session.step === "install")
+  const installing = Boolean(session && !outcome && session.step !== "queued")
   return (
     <li className={cx(row, "flex-wrap gap-y-0")}>
       <Lamp tone={tone} {...(typeof text === "string" ? { label: text } : {})} />
@@ -235,6 +243,9 @@ function Progress({ tool }: { tool: CatalogTool }) {
           log={session.log.slice(-200)}
         />
       )}
+      {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
+        <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
+      )}
       {outcome?.event === "failed" && (
         <Button size="sm" onClick={() => useTools.getState().install(tool.id)}>
           {m.tryAgain}
@@ -249,6 +260,23 @@ function Progress({ tool }: { tool: CatalogTool }) {
             </div>
           )}
         </Collapse>
+        <Collapse open={detail !== null}>
+          <p className="selectable max-w-[70ch] pt-[0.4rem] pb-[0.2rem] text-[0.9rem] sm:pl-[3.8rem]">{detail}</p>
+        </Collapse>
+        {outcome?.event === "failed" && session && (
+          <div className="sm:pl-[3.8rem]">
+            <FixPanel
+              id={fixId}
+              open={fixOpen}
+              problem={{
+                what: `Installing ${tool.name} (${tool.package})`,
+                error: failureWordsEn(outcome, session.operation)[0],
+                hint: failureWordsEn(outcome, session.operation)[1],
+                log: session.log,
+              }}
+            />
+          </div>
+        )}
       </div>
     </li>
   )
@@ -262,6 +290,11 @@ export function Install() {
     (s) =>
       chosen.length > 0 &&
       chosen.every((id) => s.installs[id]?.length) &&
+      chosen.every((id) => !s.sessions[ownerId(id)] || s.sessions[ownerId(id)]?.outcome),
+  )
+  const settledWithOne = useTools(
+    (s) =>
+      chosen.some((id) => s.sessions[ownerId(id)]?.outcome?.event === "done") &&
       chosen.every((id) => !s.sessions[ownerId(id)] || s.sessions[ownerId(id)]?.outcome),
   )
   const list = tools.filter((t) => chosen.includes(t.id))
@@ -281,6 +314,7 @@ export function Install() {
   return (
     <>
       <NodeNotice />
+      <InstallOverview chosen={list.map((t) => t.id)} />
       <ul aria-label={m.list} className={rack}>
         {list.map((t) => (
           <Progress key={t.id} tool={t} />
@@ -297,13 +331,45 @@ export function Install() {
         {allDone ? (
           <>
             <CheckCircle2 className="size-5 shrink-0 text-ok" aria-hidden />
-            <span className="text-ink">{m.allDone}</span>
+            <span className="text-ink">
+              {m.allDone} {m.moreLater}
+            </span>
           </>
         ) : (
           <span className="text-ink-soft">{m.note}</span>
         )}
       </p>
+      <Collapse open={settledWithOne}>
+        <RestartNote chosen={list.map((t) => t.id)} />
+      </Collapse>
+      <InstallTips chosen={list.map((t) => t.id)} />
     </>
+  )
+}
+
+/** Open apps keep the PATH they started with, which is why Codex can miss a tool that is installed and on PATH. */
+function RestartNote({ chosen }: { chosen: readonly string[] }) {
+  const w = useMessages(onboardingMessages).wait
+  const manual = useTools((s) => {
+    for (const id of chosen) {
+      const outcome = s.sessions[ownerId(id)]?.outcome
+      if (outcome?.event === "done" && outcome.pathFix?.manual) return outcome.pathFix.manual
+    }
+    return null
+  })
+  return (
+    <div className="flex flex-col gap-2 text-[0.95rem] text-ink-soft">
+      <p className="flex items-start gap-2">
+        <RefreshCw aria-hidden className="mt-[0.2rem] size-4 shrink-0" />
+        {w.restart}
+      </p>
+      {manual && (
+        <>
+          <p>{w.manual}</p>
+          <CopyField value={manual} label={w.manual} />
+        </>
+      )}
+    </div>
   )
 }
 
@@ -584,6 +650,7 @@ export function leave() {
 export function Done() {
   const chosen = useOnboarding((s) => s.chosen)
   const installs = useTools((s) => s.installs)
+  const sessions = useTools((s) => s.sessions)
   const list = tools.filter((t) => chosen.includes(t.id))
   const browserReady = list.find((t) => t.mcpServer && installs[t.id]?.[0]?.version)
   const m = useMessages(onboardingMessages).done
@@ -599,19 +666,28 @@ export function Done() {
         <ul aria-label={m.list} className={rack}>
           {list.map((t) => {
             const version = installs[t.id]?.[0]?.version
+            const session = sessions[ownerId(t.id)]
+            const running = session && !session.outcome && session.operation === "install" ? session : null
             return (
               <li key={t.id} className={row}>
-                <Lamp tone={version ? "ok" : "idle"} />
+                <Lamp tone={version ? "ok" : running ? "busy" : "idle"} />
                 <ToolIcon id={t.id} className="size-[1.5rem] shrink-0 text-ink" />
                 <span className="flex-1 font-semibold">{t.name}</span>
-                <span className={cx("font-mono text-[1.02rem] tabular-nums", version ? "text-ink" : "text-ink-soft")}>
-                  {version ?? m.notInstalled}
-                </span>
+                {running ? (
+                  <div className="w-[16rem] max-w-[50%]">
+                    <InstallLine session={running} name={t.name} />
+                  </div>
+                ) : (
+                  <span className={cx("font-mono text-[1.02rem] tabular-nums", version ? "text-ink" : "text-ink-soft")}>
+                    {version ?? m.notInstalled}
+                  </span>
+                )}
               </li>
             )
           })}
         </ul>
       )}
+      <p className="max-w-[65ch] text-[0.95rem] text-ink-soft">{m.moreLater}</p>
       <section aria-label={m.next} className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-semibold">{m.next}</h2>
         <div className="flex flex-wrap gap-2">

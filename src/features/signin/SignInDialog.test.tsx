@@ -222,6 +222,104 @@ describe("answering what the tool asks", () => {
   })
 })
 
+describe("Telegram's own app keys", () => {
+  const APPS = "https://my.telegram.org/apps"
+
+  async function openTg() {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("tg", "personal"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Telegram" })
+    expect(within(dialog).getAllByText("First time only")).toHaveLength(3)
+    act(() => useSignIn.getState().begin())
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    send({ event: "openUrl", url: APPS, purpose: "copy App api_id and App api_hash" })
+    send({ event: "needs", field: "api_id", secret: false, prompt: "App api_id", hint: null })
+    return dialog
+  }
+
+  it("shows the steps on my.telegram.org beside the question, with pictures to enlarge and a link to copy", async () => {
+    const user = userEvent.setup()
+    const dialog = await openTg()
+    const guide = within(dialog).getByRole("region", { name: "Your own Telegram app keys" })
+    expect(within(guide).getByRole("button", { name: "Open my.telegram.org" })).toBeInTheDocument()
+    expect(within(dialog).getByLabelText("App api_id")).toHaveFocus()
+
+    await user.click(within(guide).getByRole("button", { name: "Copy the link to my.telegram.org" }))
+    expect(await navigator.clipboard.readText()).toBe(APPS)
+    expect(within(guide).getByRole("button", { name: "Copied" })).toBeInTheDocument()
+
+    await user.click(within(guide).getByRole("button", { name: "Enlarge: Where the keys are" }))
+    const big = screen.getByRole("dialog", { name: "Where the keys are" })
+    expect(within(big).getByRole("img", { name: /Credentials card/ })).toBeInTheDocument()
+    fireEvent(big, new Event("cancel", { cancelable: true }))
+    expect(screen.queryByRole("dialog", { name: "Where the keys are" })).toBeNull()
+    expect(screen.getByRole("dialog", { name: "Sign in to Telegram" })).toBeInTheDocument()
+    expect(platform.signInStop).not.toHaveBeenCalled()
+  })
+
+  it("explains refused app keys and opens the next try with the keys filled in for editing", async () => {
+    const dialog = await openTg()
+    await userEvent.type(within(dialog).getByLabelText("App api_id"), "123{Enter}")
+    send({ event: "needs", field: "api_hash", secret: true, prompt: "App api_hash (not shown)", hint: null })
+    await userEvent.type(within(dialog).getByLabelText("App api_hash"), "not-a-real-hash{Enter}")
+    expect(JSON.stringify(useSignIn.getState())).not.toContain("not-a-real-hash")
+
+    send({ event: "failed", code: "provider_error", message: "Telegram refused: API_ID_INVALID" })
+    const alert = within(dialog).getByRole("alert")
+    expect(alert).toHaveTextContent("did not accept the app keys")
+    expect(alert).toHaveTextContent("API_ID_INVALID")
+    expect(within(dialog).getByRole("button", { name: "Try again" })).toBeInTheDocument()
+
+    await userEvent.click(within(alert).getByRole("button", { name: "Enter the keys again" }))
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalledTimes(2))
+    send({ event: "openUrl", url: APPS, purpose: null })
+    send({ event: "needs", field: "api_id", secret: false, prompt: "App api_id", hint: null })
+    expect(within(dialog).getByLabelText("App api_id")).toHaveValue("123")
+    await userEvent.type(within(dialog).getByLabelText("App api_id"), "4{Enter}")
+    expect(platform.signInAnswer).toHaveBeenLastCalledWith("tg", "1234")
+    send({ event: "needs", field: "api_hash", secret: true, prompt: "App api_hash (not shown)", hint: null })
+    expect(within(dialog).getByLabelText("App api_hash")).toHaveValue("not-a-real-hash")
+  })
+
+  it("says how long Telegram asks to wait, and offers only Try again", async () => {
+    const dialog = await openTg()
+    send({ event: "failed", code: "rate_limited", message: "Telegram asks to wait 420 s before the next request" })
+    const alert = within(dialog).getByRole("alert")
+    expect(alert).toHaveTextContent("wait 7 min before the next try")
+    expect(within(alert).queryByRole("button", { name: /again/ })).toBeNull()
+    expect(within(dialog).getByRole("button", { name: "Try again" })).toHaveFocus()
+  })
+
+  it("offers a new code when the code expired", async () => {
+    const dialog = await openTg()
+    send({ event: "failed", code: "provider_error", message: "Telegram refused: PHONE_CODE_EXPIRED" })
+    expect(within(within(dialog).getByRole("alert")).getByRole("button", { name: "Get a new code" })).toBeEnabled()
+  })
+
+  it("says calmly that the sign-in went to a file when there is no keyring, with the error folded away", async () => {
+    const dialog = await openTg()
+    send({
+      event: "note",
+      text: "could not reach the OS keyring — it may be locked (Platform failure: DBus error: no secrets); using ~/.config/tg-cli/credentials.json instead, readable only by you",
+    })
+    const note = within(dialog).getByRole("note")
+    expect(within(note).getByText("~/.config/tg-cli/credentials.json").tagName.toLowerCase()).toBe("code")
+    expect(within(dialog).queryByRole("alert")).toBeNull()
+    const details = within(note).getByRole("button", { name: "Details" })
+    expect(details).toHaveAttribute("aria-expanded", "false")
+    await userEvent.click(details)
+    expect(details).toHaveAttribute("aria-expanded", "true")
+    expect(within(note).getByText(/DBus error: no secrets/)).toBeInTheDocument()
+  })
+
+  it("says beside the two-step password that it is never kept", async () => {
+    const dialog = await openTg()
+    send({ event: "needs", field: "password", secret: true, prompt: "2FA password (not shown)", hint: null })
+    expect(within(dialog).queryByRole("region", { name: "Your own Telegram app keys" })).toBeNull()
+    expect(within(dialog).getByText(/never the password itself/)).toBeInTheDocument()
+  })
+})
+
 describe("in Russian", () => {
   it("names the dialog and counts what came from the phone in Russian forms", async () => {
     useLanguage.setState({ choice: "ru" })

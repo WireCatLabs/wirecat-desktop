@@ -185,7 +185,7 @@ export function createMock(os: Platform["os"]): Platform {
   )
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
-  const agents = agentsMock((id) => installed.get(id))
+  const agents = agentsMock((id) => installed.get(id), os)
   let cancelled = false
   let zmCopyRemoved = false
   const MB = 1024 * 1024
@@ -294,7 +294,15 @@ export function createMock(os: Platform["os"]): Platform {
         })
       }
       onEvent({ event: "step", step: "unpack" })
-      await delay(900)
+      const slices = params.get("node") === "slow" ? 60 : 12
+      for (let i = 0; i <= slices; i++) {
+        if (nodeCancelled)
+          return onEvent({ event: "failed", reason: "cancelled", message: "Node.js setup cancelled.", hint: null })
+        onEvent({ event: "progress", received: Math.round((NODE.bytes * i) / slices), total: NODE.bytes })
+        await delay(150)
+      }
+      onEvent({ event: "step", step: "path" })
+      await delay(500)
       managed = true
       onEvent({ event: "done", version: NODE.version, path: NODE.dir })
     },
@@ -453,7 +461,8 @@ export function createMock(os: Platform["os"]): Platform {
       if (params.get("fail") === id) {
         return onEvent({
           event: "failed",
-          reason: "network",
+          // `?fail-reason=disk|proxy|longPath` shows the other failures that have their own words.
+          reason: (["disk", "proxy", "longPath"] as const).find((r) => r === params.get("fail-reason")) ?? "network",
           message: "Could not reach the npm registry.",
           hint: "Check your internet connection or proxy, then try again.",
         })

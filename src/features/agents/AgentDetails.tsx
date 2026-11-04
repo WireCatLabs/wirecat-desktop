@@ -18,6 +18,7 @@ import { ClaimRow } from "./ClaimRow"
 import { useConnect } from "./connect"
 import { installedCopies, useDisconnect } from "./DisconnectDialog"
 import { type AgentsMessages, agentsMessages } from "./messages"
+import { PathFixButton, PathFixResult } from "./PathFixResult"
 import { useAgents } from "./store"
 import { type AgentView, otherFixes } from "./view"
 
@@ -96,7 +97,7 @@ export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): vo
           </ul>
         </Section>
       )}
-      <AdvancedMcp agent={agent} />
+      <AdvancedMcp key={agent.id} agent={agent} />
     </div>
   )
 }
@@ -114,32 +115,43 @@ function OtherFixes({ view }: { view: AgentView }) {
   const m = useMessages(agentsMessages)
   if (!view.items) return <Skeleton className="h-10 w-full" label={m.checkingLabel} />
   const shown = otherFixes(view)
+  const path = shown.find((i) => i.fix?.kind === "path")?.fix
+  // Below the list, not in the row: the row goes once Fix worked, and what to do next must stay.
+  const result = <PathFixResult agent={view.agent.name} manual={path?.kind === "path" ? path.manual : null} />
   if (shown.length === 0 && view.signedOut.length === 0)
-    return <p className="text-[0.9rem] text-ink-soft">{m.nothingElse(view.agent.name)}</p>
+    return (
+      <>
+        <p className="text-[0.9rem] text-ink-soft">{m.nothingElse(view.agent.name)}</p>
+        {result}
+      </>
+    )
   return (
-    <ul className={cx(box, "divide-y divide-line")} aria-label={m.otherFixes(view.agent.name)}>
-      {shown.map((item) => (
-        <CheckRow key={item.id} item={item} />
-      ))}
-      {view.signedOut.map(({ tool, profile }) => (
-        <li key={`signin:${tool.id}/${profile}`} className="flex items-start gap-2.5 px-4 py-2.5">
-          <span className="mt-[0.4rem]">
-            <Lamp size="sm" tone="warn" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-[0.95rem] text-ink">
-              {m.profileSignedOut(tool.name, <span className="font-medium">{profile}</span>)}
-            </p>
-            <p className="mt-0.5 max-w-[70ch] text-[0.9rem] text-ink-soft">
-              {m.profileSignedOutDetail(view.agent.name, tool.name)}
-            </p>
-          </div>
-          <Button size="sm" onClick={() => openManage(tool.id)} aria-label={m.signInTo(tool.name, profile)}>
-            {m.signInButton}
-          </Button>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className={cx(box, "divide-y divide-line")} aria-label={m.otherFixes(view.agent.name)}>
+        {shown.map((item) => (
+          <CheckRow key={item.id} item={item} />
+        ))}
+        {view.signedOut.map(({ tool, profile }) => (
+          <li key={`signin:${tool.id}/${profile}`} className="flex items-start gap-2.5 px-4 py-2.5">
+            <span className="mt-[0.4rem]">
+              <Lamp size="sm" tone="warn" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.95rem] text-ink">
+                {m.profileSignedOut(tool.name, <span className="font-medium">{profile}</span>)}
+              </p>
+              <p className="mt-0.5 max-w-[70ch] text-[0.9rem] text-ink-soft">
+                {m.profileSignedOutDetail(view.agent.name, tool.name)}
+              </p>
+            </div>
+            <Button size="sm" onClick={() => openManage(tool.id)} aria-label={m.signInTo(tool.name, profile)}>
+              {m.signInButton}
+            </Button>
+          </li>
+        ))}
+      </ul>
+      {result}
+    </>
   )
 }
 
@@ -168,6 +180,7 @@ function CheckRow({ item }: { item: CheckItem }) {
           <p className="text-[0.95rem] text-ink">{item.title}</p>
           {item.detail && <p className="mt-0.5 max-w-[70ch] text-[0.9rem] text-ink-soft">{item.detail}</p>}
         </div>
+        {item.fix?.kind === "path" && <PathFixButton tools={item.fix.tools} />}
         {item.fix?.kind === "tools" && (
           <Button size="sm" variant="ghost" onClick={() => go("tools")}>
             {m.openTools}

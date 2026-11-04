@@ -58,6 +58,10 @@ const en = {
     installTools: (n: number) => plural("en", n, { one: "Install # tool", other: "Install # tools" }),
     openTools: "Open Tools",
     continue: "Continue",
+    blockedChecking: "Checking this computer first…",
+    resuming: "Checking what is already set up…",
+    blockedSettingUp: "Continue opens once Node.js is set up.",
+    blockedNode: "Set up Node.js, or choose “I'll install it myself”, to continue.",
     back: "Back",
     skip: "Skip",
     tour: "Take the tour",
@@ -90,6 +94,7 @@ const en = {
   install: {
     list: "Installing",
     notInstalled: "Not installed",
+    notInstalledFailed: "Did not install",
     checking: "Checking…",
     queued: "Waiting for its turn",
     installing: "Installing",
@@ -102,11 +107,82 @@ const en = {
     rest: "Install the rest",
     note: "Installs keep going if you move on. Each one is also shown on the Tools page, with its full log.",
     allDone: "Everything is installed. Next, give your AI agents the skills to use it.",
+    moreLater: "You can install other tools later on the Tools page.",
+  },
+  wait: {
+    label: "Progress of all installs",
+    of: (n: number, total: number) => `${n} of ${total}`,
+    installing: (name: string) => `Installing ${name}`,
+    waiting: "Starting",
+    finished: (n: number) => plural("en", n, { one: "# tool installed", other: "# tools installed" }),
+    failed: (n: number) => plural("en", n, { one: "# did not install", other: "# did not install" }),
+    left: {
+      almost: "Almost done",
+      underMinute: "Less than a minute left",
+      minutes: (n: number) => plural("en", n, { one: "About a minute left", other: "About # minutes left" }),
+    },
+    typical: "Usually a minute or two per tool. A slow connection makes it longer.",
+    restart: "AI apps and terminals that were already open see the new tools only after you restart them.",
+    manual: "Your shell is one WireCat does not edit. Add this line to its startup file, then open a new terminal:",
+    hints: "While you wait",
+    hintOf: (n: number, total: number) => `${n} / ${total}`,
+    previous: "Previous tip",
+    next: "Next tip",
+    tips: {
+      agents: {
+        title: "Your agent runs the tools for you",
+        text: "In the next step you give Claude Code, Codex or another agent a skill for each tool. Then you just ask it, for example: what did Anna send me yesterday?",
+      },
+      tg: {
+        title: "Find any Telegram message",
+        text: "After a sync, your agent searches your chats without opening Telegram, and quotes the message it found.",
+      },
+      wa: {
+        title: "WhatsApp chats your agent can read",
+        text: "Your agent reads and searches your WhatsApp chats, and can answer for you when you ask it to.",
+      },
+      zm: {
+        title: "Ask what was agreed on a call",
+        text: "Zoom keeps the transcripts and summaries of your recorded meetings, so your agent can tell you who promised what.",
+      },
+      drive: {
+        title: "Your documents, as text",
+        text: "Drive copies the folders you choose as plain text, so your agent can quote a Doc, a Sheet or a PDF.",
+      },
+      memo: {
+        title: "Mail and notes in one search",
+        text: "Memo keeps your notes and mail together, and your agent searches them along with your messages.",
+      },
+      guides: {
+        title: "A brief before each call",
+        text: "Guides show your agent how to give you a morning catch-up, a brief before a call, and tasks from what people asked you.",
+      },
+      memory: {
+        title: "You approve what it remembers",
+        text: "Memory shows what your agents noted about you and the people you talk to. Nothing counts until you approve it.",
+      },
+      local: {
+        title: "It all stays on this computer",
+        text: "Tools keep their data in folders on this computer. Storage shows each folder and how much space it takes.",
+      },
+    },
   },
   agents: {
     title: "How a tool adds its skill",
     text: "Some tools offer to add their skill while you sign in, in the next step: the terminal asks which agent should get it. Any tool can also add its own skill from a terminal, for Claude Code, Codex and Gemini CLI.",
     list: "Skill commands",
+    why: {
+      label: "How a skill helps",
+      ask: "With a skill, you ask your agent in plain words, for example:",
+      example: "What did Anna send me yesterday?",
+      points: [
+        "The agent knows which tool can answer and runs it for you.",
+        "Without the skill, the agent does not know the tool is there.",
+        "The skill takes almost no room. The agent reads it only when your question needs the tool.",
+        "It is one small file on this computer. You can remove it later on the Agents page.",
+      ],
+      next: "Install the skill for your agents below.",
+    },
   },
   signIn: {
     list: "Tools to sign in to",
@@ -138,6 +214,7 @@ const en = {
   done: {
     list: "Your tools",
     notInstalled: "Not installed",
+    moreLater: "You can install other tools later on the Tools page.",
     next: "What next",
     connect: (tool: string) => `Let ChatGPT or Claude use ${tool}`,
     agents: "See which agents use them",
@@ -237,6 +314,10 @@ const ru: OnboardingText = {
       }),
     openTools: "Открыть инструменты",
     continue: "Продолжить",
+    blockedChecking: "Сначала проверяем компьютер…",
+    resuming: "Проверяем, что уже настроено…",
+    blockedSettingUp: "«Продолжить» откроется, когда Node.js будет установлен.",
+    blockedNode: "Чтобы продолжить, установите Node.js или выберите «Установлю самостоятельно».",
     back: "Назад",
     skip: "Пропустить",
     tour: "Пройти экскурсию",
@@ -270,6 +351,7 @@ const ru: OnboardingText = {
   install: {
     list: "Установка",
     notInstalled: "Не установлен",
+    notInstalledFailed: "Не установился",
     checking: "Проверяем…",
     queued: "Ждёт своей очереди",
     installing: "Устанавливается",
@@ -282,11 +364,94 @@ const ru: OnboardingText = {
     rest: "Установить остальные",
     note: "Установка продолжится, если вы перейдёте дальше. Каждую из них также видно на странице «Инструменты» вместе с полным журналом.",
     allDone: "Всё установлено. Дальше — дать вашим ИИ-агентам навыки, чтобы они этим пользовались.",
+    moreLater: "Другие инструменты можно установить позже на странице «Инструменты».",
+  },
+  wait: {
+    label: "Ход всех установок",
+    of: (n: number, total: number) => `${n} из ${total}`,
+    installing: (name: string) => `Устанавливается ${name}`,
+    waiting: "Начинаем",
+    finished: (n: number) =>
+      plural("ru", n, {
+        one: "# инструмент установлен",
+        few: "# инструмента установлено",
+        other: "# инструментов установлено",
+      }),
+    failed: (n: number) =>
+      plural("ru", n, { one: "# не установился", few: "# не установились", other: "# не установились" }),
+    left: {
+      almost: "Почти готово",
+      underMinute: "Осталось меньше минуты",
+      minutes: (n: number) =>
+        plural("ru", n, {
+          one: "Осталось около # минуты",
+          few: "Осталось около # минут",
+          other: "Осталось около # минут",
+        }),
+    },
+    typical: "Обычно минута-две на инструмент. При медленном интернете дольше.",
+    restart: "ИИ-приложения и терминалы, открытые до установки, увидят новые инструменты только после перезапуска.",
+    manual:
+      "WireCat не меняет настройки вашей оболочки. Добавьте эту строку в её файл запуска и откройте новый терминал:",
+    hints: "Пока ждёте",
+    hintOf: (n: number, total: number) => `${n} / ${total}`,
+    previous: "Предыдущий совет",
+    next: "Следующий совет",
+    tips: {
+      agents: {
+        title: "Агент сам запускает инструменты",
+        text: "На следующем шаге вы дадите Claude Code, Codex или другому агенту навык для каждого инструмента. Потом просто спросите, например: что Аня прислала мне вчера?",
+      },
+      tg: {
+        title: "Любое сообщение в Telegram",
+        text: "После синхронизации агент ищет в ваших чатах, не открывая Telegram, и цитирует найденное сообщение.",
+      },
+      wa: {
+        title: "Чаты WhatsApp, которые читает агент",
+        text: "Агент читает ваши чаты WhatsApp, ищет в них и может ответить за вас, когда вы попросите.",
+      },
+      zm: {
+        title: "Спросите, о чём договорились на звонке",
+        text: "Zoom хранит расшифровки и итоги записанных встреч, и агент расскажет, кто что обещал.",
+      },
+      drive: {
+        title: "Ваши документы как текст",
+        text: "Drive копирует выбранные папки простым текстом, и агент может процитировать документ, таблицу или PDF.",
+      },
+      memo: {
+        title: "Почта и заметки в одном поиске",
+        text: "Memo хранит заметки и почту вместе, и агент ищет в них вместе с вашими сообщениями.",
+      },
+      guides: {
+        title: "Справка перед каждым звонком",
+        text: "Рецепты учат агента утренней сводке, справке перед звонком и задачам из того, о чём вас просили.",
+      },
+      memory: {
+        title: "Что запомнить, решаете вы",
+        text: "В Памяти видно, что агенты отметили о вас и ваших собеседниках. Ничего не считается, пока вы не одобрите.",
+      },
+      local: {
+        title: "Всё остаётся на этом компьютере",
+        text: "Инструменты хранят данные в папках на этом компьютере. В Хранилище видно каждую папку и её размер.",
+      },
+    },
   },
   agents: {
     title: "Как инструмент добавляет свой навык",
     text: "Некоторые инструменты предлагают добавить навык во время входа, на следующем шаге: терминал спросит, какому агенту его отдать. Любой инструмент может добавить свой навык и из терминала — для Claude Code, Codex и Gemini CLI.",
     list: "Команды для навыков",
+    why: {
+      label: "Чем помогает навык",
+      ask: "С навыком вы просите агента обычными словами, например:",
+      example: "Что Аня прислала мне вчера?",
+      points: [
+        "Агент знает, какой инструмент может ответить, и сам его запускает.",
+        "Без навыка агент не знает, что инструмент есть.",
+        "Навык почти не занимает места. Агент читает его, только когда вопрос требует инструмента.",
+        "Это один небольшой файл на этом компьютере. Удалить его можно потом на странице «Агенты».",
+      ],
+      next: "Установите навык для своих агентов ниже.",
+    },
   },
   signIn: {
     list: "Инструменты для входа",
@@ -334,6 +499,7 @@ const ru: OnboardingText = {
   done: {
     list: "Ваши инструменты",
     notInstalled: "Не установлен",
+    moreLater: "Другие инструменты можно установить позже на странице «Инструменты».",
     next: "Что дальше",
     connect: (tool) => `Дать ChatGPT или Claude доступ к ${tool}`,
     agents: "Посмотреть, какие агенты их используют",
@@ -424,6 +590,10 @@ const es: OnboardingText = {
     installTools: (n) => plural("es", n, { one: "Instalar # herramienta", other: "Instalar # herramientas" }),
     openTools: "Abrir Herramientas",
     continue: "Continuar",
+    blockedChecking: "Primero comprobamos este equipo…",
+    resuming: "Comprobando qué está ya configurado…",
+    blockedSettingUp: "Continuar se activa cuando Node.js esté listo.",
+    blockedNode: "Para continuar, prepara Node.js o elige «Lo instalo yo».",
     back: "Atrás",
     skip: "Omitir",
     tour: "Hacer el recorrido",
@@ -457,6 +627,7 @@ const es: OnboardingText = {
   install: {
     list: "Instalando",
     notInstalled: "Sin instalar",
+    notInstalledFailed: "No se instaló",
     checking: "Comprobando…",
     queued: "Esperando su turno",
     installing: "Instalando",
@@ -469,11 +640,84 @@ const es: OnboardingText = {
     rest: "Instalar el resto",
     note: "Las instalaciones siguen aunque pases al siguiente paso. Cada una aparece también en la página Herramientas, con su registro completo.",
     allDone: "Todo está instalado. Ahora, da a tus agentes de IA las habilidades para usarlo.",
+    moreLater: "Puedes instalar otras herramientas más tarde en la página Herramientas.",
+  },
+  wait: {
+    label: "Progreso de todas las instalaciones",
+    of: (n: number, total: number) => `${n} de ${total}`,
+    installing: (name: string) => `Instalando ${name}`,
+    waiting: "Empezando",
+    finished: (n: number) => plural("es", n, { one: "# herramienta instalada", other: "# herramientas instaladas" }),
+    failed: (n: number) => plural("es", n, { one: "# no se instaló", other: "# no se instalaron" }),
+    left: {
+      almost: "Casi listo",
+      underMinute: "Queda menos de un minuto",
+      minutes: (n: number) => plural("es", n, { one: "Queda un minuto", other: "Quedan unos # minutos" }),
+    },
+    typical: "Suele tardar uno o dos minutos por herramienta. Con una conexión lenta, más.",
+    restart:
+      "Las apps de IA y los terminales que ya estaban abiertos solo ven las herramientas nuevas tras reiniciarlos.",
+    manual:
+      "WireCat no edita la configuración de tu shell. Añade esta línea a su archivo de inicio y abre un terminal nuevo:",
+    hints: "Mientras esperas",
+    hintOf: (n: number, total: number) => `${n} / ${total}`,
+    previous: "Consejo anterior",
+    next: "Consejo siguiente",
+    tips: {
+      agents: {
+        title: "Tu agente usa las herramientas por ti",
+        text: "En el siguiente paso das a Claude Code, Codex u otro agente una habilidad para cada herramienta. Luego solo pregúntale, por ejemplo: ¿qué me mandó Ana ayer?",
+      },
+      tg: {
+        title: "Cualquier mensaje de Telegram",
+        text: "Tras una sincronización, tu agente busca en tus chats sin abrir Telegram y cita el mensaje que encontró.",
+      },
+      wa: {
+        title: "Chats de WhatsApp que tu agente puede leer",
+        text: "Tu agente lee y busca en tus chats de WhatsApp, y puede responder por ti cuando se lo pidas.",
+      },
+      zm: {
+        title: "Pregunta qué se acordó en una llamada",
+        text: "Zoom guarda las transcripciones y resúmenes de tus reuniones grabadas, así tu agente te dice quién prometió qué.",
+      },
+      drive: {
+        title: "Tus documentos, como texto",
+        text: "Drive copia las carpetas que eliges como texto, así tu agente puede citar un Doc, una hoja o un PDF.",
+      },
+      memo: {
+        title: "Correo y notas en una búsqueda",
+        text: "Memo guarda tus notas y tu correo juntos, y tu agente busca en ellos junto con tus mensajes.",
+      },
+      guides: {
+        title: "Un resumen antes de cada llamada",
+        text: "Las guías enseñan a tu agente a darte un resumen cada mañana, un repaso antes de una llamada y tareas de lo que te pidieron.",
+      },
+      memory: {
+        title: "Tú apruebas lo que recuerda",
+        text: "Memoria muestra lo que tus agentes anotaron sobre ti y las personas con las que hablas. Nada cuenta hasta que lo apruebas.",
+      },
+      local: {
+        title: "Todo se queda en este ordenador",
+        text: "Las herramientas guardan sus datos en carpetas de este ordenador. Almacenamiento muestra cada carpeta y cuánto ocupa.",
+      },
+    },
   },
   agents: {
     title: "Cómo añade una herramienta su skill",
     text: "Algunas herramientas ofrecen añadir su skill al iniciar sesión, en el siguiente paso: la terminal pregunta qué agente debe recibirla. Cualquier herramienta también puede añadir su skill desde una terminal, para Claude Code, Codex y Gemini CLI.",
     list: "Comandos de skills",
+    why: {
+      label: "Para qué sirve una skill",
+      ask: "Con una skill, le pides a tu agente las cosas con tus palabras, por ejemplo:",
+      example: "¿Qué me envió Anna ayer?",
+      points: [
+        "El agente sabe qué herramienta puede responder y la ejecuta por ti.",
+        "Sin la skill, el agente no sabe que la herramienta existe.",
+        "La skill casi no ocupa espacio. El agente la lee solo cuando tu pregunta necesita la herramienta.",
+        "Es un archivo pequeño en este equipo. Puedes quitarla más tarde en la página Agentes.",
+      ],
+      next: "Instala la skill para tus agentes aquí abajo.",
+    },
   },
   signIn: {
     list: "Herramientas en las que iniciar sesión",
@@ -522,6 +766,7 @@ const es: OnboardingText = {
   done: {
     list: "Tus herramientas",
     notInstalled: "Sin instalar",
+    moreLater: "Puedes instalar otras herramientas más tarde en la página Herramientas.",
     next: "Qué sigue",
     connect: (tool) => `Deja que ChatGPT o Claude usen ${tool}`,
     agents: "Ver qué agentes las usan",

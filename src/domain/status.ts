@@ -12,7 +12,19 @@ export type FailReason =
   | "cancelled"
   | "verify"
   | "unconfirmed"
+  | "disk"
+  | "proxy"
+  | "longPath"
   | "failed"
+
+/** What `fix_terminal_path` and a finished install or Node.js setup changed on the user's PATH. */
+export type PathFix = {
+  added: string[]
+  unreachable: string[]
+  file: string | null
+  manual: string | null
+  restart: boolean
+}
 
 export type InstallRecord = { path: string; version: string | null; manager: string; problem: string | null }
 
@@ -20,7 +32,15 @@ export type InstallRecord = { path: string; version: string | null; manager: str
 export type SkillRefresh = { refreshed: ("claude" | "agents" | "hermes")[]; failed: string | null }
 
 export type InstallOutcome =
-  | { event: "done"; version: string; path: string; shadowedBy: string | null; skills?: SkillRefresh | undefined }
+  | {
+      event: "done"
+      version: string
+      path: string
+      shadowedBy: string | null
+      skills?: SkillRefresh | undefined
+      /** Folders put on the user's PATH so terminals and AI apps find the tool, or what is left to do by hand. */
+      pathFix?: PathFix | null | undefined
+    }
   | { event: "removed" }
   | { event: "failed"; reason: FailReason; message: string; hint: string | null }
 
@@ -42,6 +62,8 @@ export type InstallSession = {
   progress?: NpmProgress
   /** When each step began, in ms since the epoch. */
   began?: Partial<Record<InstallStep, number>>
+  /** When the outcome arrived, in ms since the epoch. */
+  ended?: number
 }
 
 export type ToolStatus =

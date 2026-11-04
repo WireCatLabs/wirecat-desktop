@@ -1,3 +1,4 @@
+mod agent_run;
 mod analytics;
 mod archive;
 mod background;
@@ -46,6 +47,7 @@ mod tailscale_linux;
 mod task_board;
 mod tasks;
 mod terminal;
+mod terminal_path;
 mod tools;
 
 use install::{InstallEvent, Running};
@@ -56,6 +58,11 @@ use tauri::ipc::Channel;
 
 async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> Result<T, String> {
     tauri::async_runtime::spawn_blocking(f).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+async fn run_agent(agent: String, prompt: String) -> Result<agent_run::AgentRun, String> {
+    blocking(move || agent_run::run(&agent, &prompt)).await?
 }
 
 #[tauri::command]
@@ -87,18 +94,18 @@ async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node::No
             None => Err(node::Failure::no_home()),
         };
         running.finish(node::OPERATION);
-        // Tools installed with this Node.js are linked beside it; on Windows the user Path changes without an
-        // administrator, so a terminal and the AI apps find them with nothing more to do.
-        if cfg!(windows)
-            && let Ok(done) = &result
-        {
-            let _ = profile::add(&node::bin_dir(&done.dir));
+        // Tools installed with this Node.js are linked beside it; the user's PATH changes without an administrator,
+        // so a terminal and the AI apps find them with nothing more to do. A failure here never fails the setup.
+        if result.is_ok() {
+            send(node::NodeEvent::Step { step: node::Step::Path });
         }
+        let path_fix = result.as_ref().ok().and_then(|done| terminal_path::after_node_setup(&node::bin_dir(&done.dir)));
         paths::refresh(&[]);
         send(match result {
             Ok(done) => node::NodeEvent::Done {
                 version: done.version.to_string(),
                 path: paths::tilde(&done.dir.to_string_lossy()),
+                path_fix,
             },
             Err(f) => f.into(),
         });
@@ -333,6 +340,24 @@ async fn terminal_reach(agent: Option<String>) -> Result<HashMap<String, bool>, 
             .collect()
     })
     .await
+}
+
+/// Puts the folders of the listed installed tools on the user's PATH when a fresh terminal does not find them.
+#[tauri::command]
+async fn fix_terminal_path(ids: Vec<String>) -> Result<terminal_path::PathFix, String> {
+    blocking(move || terminal_path::fix(&ids)).await?
+}
+
+/// The shells `/etc/shells` lists that exist here, for "Which shell does your terminal run?".
+#[tauri::command]
+async fn terminal_shells() -> Result<terminal_path::ShellChoices, String> {
+    blocking(terminal_path::choices).await
+}
+
+/// Saves the shell the user picked (one of `terminal_shells`), then puts the listed tools on its PATH and checks again.
+#[tauri::command]
+async fn use_terminal_shell(shell: String, ids: Vec<String>) -> Result<terminal_path::PathFix, String> {
+    blocking(move || terminal_path::use_shell(&shell, &ids)).await?
 }
 
 #[tauri::command]
@@ -959,6 +984,7 @@ pub fn run() {
             update_kind,
             update_download_package,
             readiness,
+            run_agent,
             node_offer,
             setup_node,
             cancel_node_setup,
@@ -991,6 +1017,9 @@ pub fn run() {
             skill_install,
             skill_show,
             terminal_reach,
+            fix_terminal_path,
+            terminal_shells,
+            use_terminal_shell,
             agent_chats,
             mcp_registrations,
             mcp_check,

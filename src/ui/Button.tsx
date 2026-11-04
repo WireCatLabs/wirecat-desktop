@@ -23,6 +23,7 @@ export function Button({ variant = "secondary", size = "md", icon, className, ch
   return (
     <button
       type={type ?? "button"}
+      data-variant={variant}
       className={cx(
         "inline-flex shrink-0 items-center justify-center gap-2 border font-medium whitespace-nowrap",
         // A press changes colour only: a button that moves under the pointer is a jump (rule 9).

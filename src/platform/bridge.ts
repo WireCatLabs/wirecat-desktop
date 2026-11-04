@@ -5,11 +5,14 @@ import { relaunch } from "@tauri-apps/plugin-process"
 import { check, type Update } from "@tauri-apps/plugin-updater"
 import * as v from "valibot"
 import {
+  AgentRunSchema,
   AgentsSchema,
   ChatsSchema,
   ClaimsSchema,
   McpHealthSchema,
+  PathFixSchema,
   RegistrationsSchema,
+  ShellChoicesSchema,
   SkillReportSchema,
   SkillTextSchema,
   SkillWrittenSchema,
@@ -158,6 +161,10 @@ function createTauri(): Platform {
     skillInstall: (id, target) => call(SkillWrittenSchema, "skill_install", { id, target }),
     skillShow: (id) => call(SkillTextSchema, "skill_show", { id }),
     terminalReach: (agent) => call(TerminalReachSchema, "terminal_reach", agent ? { agent } : {}),
+    fixTerminalPath: (ids) => call(PathFixSchema, "fix_terminal_path", { ids }),
+    terminalShells: () => call(ShellChoicesSchema, "terminal_shells"),
+    useTerminalShell: (shell, ids) => call(PathFixSchema, "use_terminal_shell", { shell, ids }),
+    runAgent: (agent, prompt) => call(AgentRunSchema, "run_agent", { agent, prompt }),
     agentChats: (agent) => call(ChatsSchema, "agent_chats", { agent }),
     mcpRegistrations: (agent) => call(RegistrationsSchema, "mcp_registrations", { agent }),
     mcpCheck: (id, profile) => call(McpHealthSchema, "mcp_check", { id, profile }),

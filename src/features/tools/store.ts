@@ -76,12 +76,13 @@ export const useTools = create<ToolsState>((set, get) => {
             if (isProgressLine(e.line)) return { ...s, progress }
             return { ...s, progress, log: [...s.log.slice(-499), e.line] }
           })
-        else patchSession(id, (s) => ({ ...s, outcome: e }))
+        else patchSession(id, (s) => ({ ...s, outcome: e, ended: Date.now() }))
       })
     } catch (e) {
       patchSession(id, (s) => ({
         ...s,
         outcome: { event: "failed", reason: "failed", message: message(e), hint: null },
+        ended: Date.now(),
       }))
     }
     await redetect(true).catch(() => undefined)
