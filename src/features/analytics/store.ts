@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useMemo } from "react"
 import { create } from "zustand"
 import { closedRanges, closedTerm, type Period, sumRows, todayIn } from "@/domain/analytics"
 import type { Run } from "@/domain/runs"
@@ -17,7 +17,9 @@ import type { StoreInfo, TableList } from "@/platform/archive-schemas"
 import { platform } from "@/platform/bridge"
 import type { MemoryRead } from "@/platform/memory-schemas"
 import type { Project, TaskCounts } from "@/platform/task-schemas"
+import { queryClient } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
+import { analyticsKeys, earlierAnswer, installed, limiter, useAggregateQuery, useExtraQueries } from "./api"
 
 /** The messengers that count their own messages, and the source each writes into storage. */
 export const MESSENGERS = [
@@ -61,9 +63,6 @@ export type TaskNumbers = {
 /** A count beyond the page's own three (day, sender, chat): an hour, a kind of message, the period before. */
 /** `period` fixes the window for a card that does not follow the page's period (the week summary). */
 export type Spec = { by: CountBy; only: Only; previous: boolean; period?: Period }
-/** One messenger's answers to a spec, per profile; a profile that failed or is too old has none. */
-export type Extra = { state: "loading" } | { state: "ready"; answers: { profile: string; rows: CountRow[] }[] }
-
 /** Every messenger has said which profiles it has, or that it is not installed. */
 const profilesKnown = (s: Pick<State, "profilesOf" | "sources">) =>
   MESSENGERS.every((x) => s.profilesOf[x.id] !== undefined || s.sources[x.id]?.state === "missing")
@@ -73,10 +72,6 @@ export type AggState =
   | { state: "loading" }
   | { state: "missing" }
   | { state: "ready"; parts: { profile: string | null; answer: Aggregate }[] }
-
-const aggKey = (which: Which, id: string, period: Period) => `${which}|${id}|${period}`
-
-const specKey = (period: Period, spec: Spec) => `${period}|${spec.by}|${spec.only}|${spec.previous ? 1 : 0}`
 
 type State = {
   period: Period
@@ -100,13 +95,6 @@ type State = {
   hideNames: boolean
   /** Each messenger's profiles, as listed when the page loaded. */
   profilesOf: Record<string, string[]>
-  /** Extra counts by `specKey`, then messenger id; kept for the session, so a period seen once comes back at once. */
-  extra: Record<string, Record<string, Extra>>
-  /** Asks for a spec in the current period unless it was asked already. */
-  need(spec: Spec): void
-  /** Aggregates by `which|id|period`, each profile's answer; kept for the session like `extra`. */
-  agg: Record<string, AggState>
-  needAggregate(which: Which, id: string, period?: Period): void
   /** Messenger ids and profile names to show; empty is every one. */
   onlySources: string[]
   onlyProfiles: string[]
@@ -118,23 +106,8 @@ type State = {
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
 
-/** At most `n` tool processes at once: every one is a Node.js start, and the page asks a dozen. */
-function limiter(n: number) {
-  let running = 0
-  const waiting: (() => void)[] = []
-  return async <T>(job: () => Promise<T>): Promise<T> => {
-    if (running >= n) await new Promise<void>((go) => waiting.push(go))
-    running += 1
-    try {
-      return await job()
-    } finally {
-      running -= 1
-      waiting.shift()?.()
-    }
-  }
-}
+const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
 
 const BYS: readonly CountBy[] = ["day", "sender", "chat"]
 /** The tools that sync data into the store, in the order the page lists them. */
@@ -228,67 +201,74 @@ export function useExtra(
 } {
   const current = useAnalytics((s) => s.period)
   const period = spec.period ?? current
-  const extra = useAnalytics((s) => s.extra)
+  const zone = useAnalytics((s) => s.zone)
+  const profilesOf = useAnalytics((s) => s.profilesOf)
   const ids = useAnalytics((s) => s.onlySources)
   const profiles = useAnalytics((s) => s.onlyProfiles)
   const known = useAnalytics(profilesKnown)
   const { by, only, previous } = spec
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new period, or the profiles becoming known, asks again
-  useEffect(() => {
-    if (enabled) useAnalytics.getState().need({ by, only, previous, period })
-  }, [enabled, by, only, previous, period, known])
+  const asking = useMemo(
+    () => (known ? MESSENGERS.map((x) => x.id).filter((id) => profilesOf[id]?.length) : []),
+    [known, profilesOf],
+  )
+  // The page's own load already asks for every day's messages of its period.
+  const own = by === "day" && only === "all" && !previous && period === current
+  const results = useExtraQueries(
+    asking,
+    { by, only, previous },
+    { period, zone, profilesOf },
+    { enabled: enabled && !(previous && period === "all"), own },
+  )
   return useMemo(() => {
     if (!enabled) return { bySource: {}, byProfile: {}, loading: false, stale: false }
-    const now = extra[specKey(period, { by, only, previous })]
-    const settled = (set: Record<string, Extra> | undefined) =>
-      set !== undefined && Object.values(set).every((e) => e.state === "ready")
-    const fallback = Object.entries(extra).find(
-      ([k, set]) => k.endsWith(`|${by}|${only}|${previous ? 1 : 0}`) && settled(set),
-    )?.[1]
-    const use = settled(now) ? now : (fallback ?? now)
+    const settled = asking.length > 0 && results.every((r) => r !== undefined)
+    const earlier = settled ? [] : asking.map((id) => earlierAnswer(id, { by, only, previous }))
+    const stale = !settled && asking.length > 0 && earlier.every((e) => e !== undefined)
+    const use = stale ? earlier : results
     const bySource: Record<string, CountRow[]> = {}
     const byProfile: Record<string, CountRow[]> = {}
-    for (const [id, e] of Object.entries(use ?? {})) {
-      if (ids.length && !ids.includes(id)) continue
-      if (e.state !== "ready") continue
-      const chosen = e.answers.filter((a) => !profiles.length || profiles.includes(a.profile))
+    asking.forEach((id, n) => {
+      const answers = use[n]
+      if (!answers || (ids.length && !ids.includes(id))) return
+      const chosen = answers.filter((a) => !profiles.length || profiles.includes(a.profile))
       bySource[id] = sumRows(chosen.map((a) => a.rows))
       for (const a of chosen) byProfile[`${id}/${a.profile}`] = a.rows
-    }
-    return { bySource, byProfile, loading: !settled(now) && use === now, stale: !settled(now) && use !== now }
-  }, [enabled, extra, period, by, only, previous, ids, profiles])
+    })
+    return { bySource, byProfile, loading: !settled && !stale, stale }
+  }, [enabled, asking, results, ids, profiles, by, only, previous])
 }
 
 /** One aggregate of one tool in the current period, its profiles narrowed to the owner's choice, asked for on first use. */
 export function useAggregate(which: Which, id: string, enabled = true, fixed?: Period): AggState {
   const current = useAnalytics((s) => s.period)
   const period = fixed ?? current
-  const known = useAnalytics((s) => s.profilesOf[id] !== undefined)
-  const state = useAnalytics((s) => s.agg[aggKey(which, id, period)])
+  const zone = useAnalytics((s) => s.zone)
+  const listed = useAnalytics((s) => s.profilesOf[id])
   const ids = useAnalytics((s) => s.onlySources)
   const profiles = useAnalytics((s) => s.onlyProfiles)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new period, or the profiles becoming known, asks again
-  useEffect(() => {
-    if (enabled) useAnalytics.getState().needAggregate(which, id, period)
-  }, [enabled, which, id, period, known])
+  const missing = useTools((s) => s.installs[id]?.length === 0)
+  const query = useAggregateQuery(
+    which,
+    id,
+    listed === undefined ? null : { period, zone, profiles: listed },
+    enabled && !missing,
+  )
+  const parts = query.data
   return useMemo(() => {
-    if (!enabled || state === undefined) return { state: "loading" }
-    if (state.state !== "ready") return state
+    if (!enabled) return { state: "loading" }
+    if (missing) return { state: "missing" }
+    if (parts === undefined) return { state: "loading" }
     const messenger = MESSENGERS.some((x) => x.id === id)
     if (messenger && ids.length && !ids.includes(id)) return { state: "ready", parts: [] }
-    const parts = state.parts.filter((p) => p.profile === null || !profiles.length || profiles.includes(p.profile))
-    return { state: "ready", parts }
-  }, [enabled, state, ids, profiles, id])
+    return {
+      state: "ready",
+      parts: parts.filter((p) => p.profile === null || !profiles.length || profiles.includes(p.profile)),
+    }
+  }, [enabled, missing, parts, ids, profiles, id])
 }
 
 export const useAnalytics = create<State>((set, get) => {
   let round = 0
-  const extraRun = limiter(3)
-
-  const installed = (id: string) => {
-    const installs = useTools.getState().installs[id]
-    return installs === undefined ? null : installs.length > 0
-  }
 
   const loadSource = async (id: string, period: Period, tz: string, mine: number, run: ReturnType<typeof limiter>) => {
     const ok = installed(id)
@@ -310,11 +290,9 @@ export const useAnalytics = create<State>((set, get) => {
     const days = answers.flatMap((a) =>
       a.by === "day" && a.answer.kind === "ready" ? [{ profile: a.profile, rows: a.answer.rows }] : [],
     )
-    const key = specKey(period, { by: "day", only: "all", previous: false })
-    set((s) => ({
-      sources: { ...s.sources, [id]: combine(answers) },
-      extra: { ...s.extra, [key]: { ...s.extra[key], [id]: { state: "ready", answers: days } } },
-    }))
+    const spec = { by: "day", only: "all", previous: false } as const
+    queryClient().setQueryData(analyticsKeys.extra(id, spec, { period, zone: tz, profiles }), days)
+    set((s) => ({ sources: { ...s.sources, [id]: combine(answers) } }))
   }
 
   const loadTasks = async (period: Period, today: string, mine: number, run: ReturnType<typeof limiter>) => {
@@ -419,56 +397,6 @@ export const useAnalytics = create<State>((set, get) => {
     onlySources: [],
     onlyProfiles: [],
     profilesOf: {},
-    extra: {},
-    agg: {},
-    needAggregate(which, id, fixed) {
-      const { zone: tz, profilesOf } = get()
-      const period = fixed ?? get().period
-      const key = aggKey(which, id, period)
-      if (get().agg[key]) return
-      if (installed(id) === false) return set((s) => ({ agg: { ...s.agg, [key]: { state: "missing" } } }))
-      const profiles = profilesOf[id]
-      if (profiles === undefined) return
-      set((s) => ({ agg: { ...s.agg, [key]: { state: "loading" } } }))
-      const asked: (string | null)[] = profiles.length ? profiles : [null]
-      void Promise.all(
-        asked.map(async (profile) => ({
-          profile,
-          answer: await extraRun(() => platform.analyticsAggregate(id, which, profile, period, tz)).catch(
-            (e): Aggregate => ({ kind: "failed", message: message(e) }),
-          ),
-        })),
-      ).then((parts) => set((s) => ({ agg: { ...s.agg, [key]: { state: "ready", parts } } })))
-    },
-    need(spec) {
-      const { zone: tz, profilesOf } = get()
-      const period = spec.period ?? get().period
-      if ((spec.previous && period === "all") || !profilesKnown(get())) return
-      // The page's own load already asks for every day's messages of its period.
-      if (spec.by === "day" && spec.only === "all" && !spec.previous && period === get().period) return
-      const key = specKey(period, spec)
-      if (get().extra[key]) return
-      const ids = MESSENGERS.map((x) => x.id).filter((id) => profilesOf[id]?.length)
-      if (!ids.length) return
-      set((s) => ({
-        extra: { ...s.extra, [key]: Object.fromEntries(ids.map((id) => [id, { state: "loading" } as Extra])) },
-      }))
-      for (const id of ids) {
-        const profiles = profilesOf[id] ?? []
-        void Promise.all(
-          profiles.map(async (profile) => {
-            const answer = await extraRun(() =>
-              platform.messageStats(id, profile, { by: spec.by, only: spec.only, previous: spec.previous, period }, tz),
-            ).catch((): MessageCounts => ({ kind: "failed", message: "" }))
-            return answer.kind === "ready" ? [{ profile, rows: answer.rows }] : []
-          }),
-        ).then((parts) =>
-          set((s) => ({
-            extra: { ...s.extra, [key]: { ...s.extra[key], [id]: { state: "ready", answers: parts.flat() } } },
-          })),
-        )
-      }
-    },
     load() {
       set({
         today: todayIn(get().zone),
@@ -477,11 +405,10 @@ export const useAnalytics = create<State>((set, get) => {
         tasks: { state: "loading" },
         memory: { state: "loading" },
         runs: { state: "loading" },
-        extra: {},
-        agg: {},
         tables: undefined,
         syncs: { state: "loading" },
       })
+      void queryClient().resetQueries({ queryKey: analyticsKeys.all })
       loadOnce()
       loadPeriod()
     },
