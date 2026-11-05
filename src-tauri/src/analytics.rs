@@ -214,7 +214,19 @@ pub enum Aggregate {
     Failed { message: String },
 }
 
-const AGGREGATES: [&str; 6] = ["responses", "waiting", "coverage", "meetings", "mail", "taskSources"];
+const AGGREGATES: [&str; 9] = [
+    "responses",
+    "waiting",
+    "coverage",
+    "meetings",
+    "meetingsWeek",
+    "meetingsSeries",
+    "mail",
+    "taskSources",
+    "taskMeetings",
+];
+/// Rows to ask for when the period is all time: a day or week row per bar, years of them.
+const ALL_ROWS: u32 = 5000;
 
 pub fn aggregate_args(
     src: &AggregateSource,
@@ -230,19 +242,28 @@ pub fn aggregate_args(
         (false, Some(_)) => return Err("this tool has no profiles".into()),
         (false, None) => {}
     }
-    let term = match (&src.date, period.days()) {
+    let days = period.days();
+    let term = match (&src.date, days) {
         (Some(field), Some(days)) => Some(format!("{field}>={days}d")),
         _ => None,
     };
-    let mut args: Vec<String> = src
-        .args
-        .iter()
-        .map(|a| match a.as_str() {
-            "{profile}" => profile.unwrap_or_default().to_string(),
-            "{timezone}" => timezone.to_string(),
-            other => other.to_string(),
-        })
-        .collect();
+    let limit = days.map_or(ALL_ROWS, |d| (d + 7).max(50));
+    let mut args: Vec<String> = Vec::with_capacity(src.args.len());
+    for a in &src.args {
+        match a.as_str() {
+            "{profile}" => args.push(profile.unwrap_or_default().to_string()),
+            "{timezone}" => args.push(timezone.to_string()),
+            "{limit}" => args.push(limit.to_string()),
+            // All time has no start: the option goes with its value.
+            "{since}" => match days {
+                Some(d) => args.push(format!("{d}d")),
+                None => {
+                    args.pop();
+                }
+            },
+            other => args.push(other.to_string()),
+        }
+    }
     match term {
         Some(t) => {
             if let Some(q) = args.iter_mut().find(|a| *a == "{query}") {
@@ -265,6 +286,11 @@ pub fn aggregate(
     let src = tool.aggregates.get(*name).ok_or("this tool has no such count")?;
     let args = aggregate_args(src, profile, period, timezone)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
+    if let Some(min) = &src.min_version
+        && older(crate::tools::version_of(&bin).as_deref(), min)
+    {
+        return Ok(Aggregate::Old { message: format!("needs {} {min} or newer", tool.bin) });
+    }
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), TIMEOUT).map_err(|e| e.to_string())?;
     let json = out.json();
@@ -279,6 +305,12 @@ pub fn aggregate(
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
     Ok(if too_old(&message) { Aggregate::Old { message } } else { Aggregate::Failed { message } })
+}
+
+/// A version that cannot be read counts as older: the command it lacks would only fail.
+fn older(version: Option<&str>, min: &str) -> bool {
+    let Ok(min) = semver::Version::parse(min) else { return false };
+    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < min)
 }
 
 /// The answer sits under `item`; an older envelope put it first in `items`.
@@ -450,12 +482,31 @@ mod tests {
         let zm = catalog::tool("zm").unwrap();
         let a = aggregate_args(&zm.aggregates["meetings"], Some("personal"), Period::Week, "UTC").unwrap();
         assert_eq!(&a[a.len() - 2..], ["--", "started_at>=7d"]);
+        let week = aggregate_args(&zm.aggregates["meetingsWeek"], Some("p"), Period::Month, "Europe/Madrid").unwrap();
+        assert!(week.windows(2).any(|w| w == ["--since-time", "30d"]));
+        assert!(week.windows(2).any(|w| w == ["--timezone", "Europe/Madrid"]));
+        let ever = aggregate_args(&zm.aggregates["meetingsSeries"], Some("p"), Period::All, "UTC").unwrap();
+        assert!(!ever.iter().any(|w| w == "--since-time" || w.starts_with('{')));
+        assert!(ever.windows(2).any(|w| w == ["--limit", &ALL_ROWS.to_string()]));
         let memo = catalog::tool("memo").unwrap();
         let t = aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, "UTC").unwrap();
-        assert!(!t.iter().any(|w| w == "--"));
-        assert!(aggregate_args(&memo.aggregates["mail"], Some("x"), Period::Week, "UTC").is_err());
-        let all = aggregate_args(&memo.aggregates["mail"], None, Period::All, "UTC").unwrap();
-        assert!(!all.iter().any(|w| w == "--" || w == "{query}"));
+        assert_eq!(&t[t.len() - 2..], ["--", "created>=30d"]);
+        let mail = catalog::tool("email").unwrap();
+        assert!(aggregate_args(&mail.aggregates["mail"], None, Period::Week, "UTC").is_err());
+        let m = aggregate_args(&mail.aggregates["mail"], Some("ya"), Period::Week, "UTC").unwrap();
+        assert_eq!(&m[..4], ["ya", "stats", "messages", "show"]);
+        assert!(m.windows(2).any(|w| w == ["--limit", "50"]));
+        let tg = catalog::tool("tg").unwrap();
+        let c = aggregate_args(&tg.aggregates["coverage"], Some("personal"), Period::All, "UTC").unwrap();
+        assert_eq!(&c[..4], ["personal", "store", "chats", "status"]);
+    }
+
+    #[test]
+    fn a_version_too_old_for_a_count_is_said_before_anything_runs() {
+        assert!(older(Some("0.115.0"), "0.116.0"));
+        assert!(!older(Some("0.116.0"), "0.116.0"));
+        assert!(older(None, "0.116.0"));
+        assert!(!older(Some("0.1.0"), "not a version"));
     }
 
     #[test]
@@ -466,5 +517,33 @@ mod tests {
             serde_json::to_value(c).unwrap(),
             json!({"kind":"ready","total":1,"more":false,"rows":[{"key":"2026-11-01","name":null,"count":1}]})
         );
+    }
+
+    /// Times reply time and waiting on you against the owner's own store, through the page's own path. Read only:
+    /// `--offline --no-record`, counts only. `cargo test real_reply_counts_timing -- --ignored --nocapture`.
+    #[test]
+    #[ignore = "reads the owner's real store"]
+    fn real_reply_counts_timing() {
+        let only = std::env::var("TIMING_TOOLS").unwrap_or_else(|_| "tg,max,wa".into());
+        for id in only.split(',') {
+            let tool = catalog::tool(id).unwrap();
+            let Ok(Some(profiles)) = crate::tools::profiles(tool) else { continue };
+            for p in profiles {
+                for which in ["responses", "waiting", "coverage"] {
+                    for period in [Period::Month, Period::All] {
+                        let started = std::time::Instant::now();
+                        let answer = aggregate(tool, which, Some(&p.name), period, "Europe/Madrid");
+                        let kind = match &answer {
+                            Ok(Aggregate::Ready { body }) if body.as_object().is_some_and(|o| !o.is_empty()) => "ready",
+                            Ok(Aggregate::Ready { .. }) => "empty",
+                            Ok(Aggregate::Old { .. }) => "old",
+                            Ok(Aggregate::Failed { .. }) => "failed",
+                            Err(_) => "error",
+                        };
+                        println!("{id} {which} {period:?}: {kind} in {} ms", started.elapsed().as_millis());
+                    }
+                }
+            }
+        }
     }
 }

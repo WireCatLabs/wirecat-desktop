@@ -228,7 +228,8 @@
             "--",
             "{query}"
           ],
-          "date": "date"
+          "date": "date",
+          "minVersion": "0.116.0"
         },
         "waiting": {
           "args": [
@@ -236,17 +237,19 @@
             "stats",
             "messages",
             "waiting",
+            "--timezone",
+            "{timezone}",
             "--offline",
             "--timeout",
             "60s",
             "--no-record",
             "--json"
           ],
-          "date": null
+          "minVersion": "0.116.0"
         },
         "coverage": {
-          "args": ["{profile}", "store", "coverage", "--offline", "--no-record", "--json"],
-          "date": null
+          "args": ["{profile}", "store", "chats", "status", "--offline", "--timeout", "60s", "--no-record", "--json"],
+          "minVersion": "0.116.0"
         }
       },
       "stats": {
@@ -631,17 +634,17 @@
             "stats",
             "messages",
             "waiting",
+            "--timezone",
+            "{timezone}",
             "--offline",
             "--timeout",
             "60s",
             "--no-record",
             "--json"
-          ],
-          "date": null
+          ]
         },
         "coverage": {
-          "args": ["{profile}", "store", "coverage", "--offline", "--no-record", "--json"],
-          "date": null
+          "args": ["{profile}", "store", "chats", "status", "--offline", "--timeout", "60s", "--no-record", "--json"]
         }
       },
       "stats": {
@@ -1014,7 +1017,8 @@
             "--",
             "{query}"
           ],
-          "date": "date"
+          "date": "date",
+          "minVersion": "0.29.0"
         },
         "waiting": {
           "args": [
@@ -1022,17 +1026,19 @@
             "stats",
             "messages",
             "waiting",
+            "--timezone",
+            "{timezone}",
             "--offline",
             "--timeout",
             "60s",
             "--no-record",
             "--json"
           ],
-          "date": null
+          "minVersion": "0.29.0"
         },
         "coverage": {
-          "args": ["{profile}", "store", "coverage", "--offline", "--no-record", "--json"],
-          "date": null
+          "args": ["{profile}", "store", "chats", "status", "--offline", "--timeout", "60s", "--no-record", "--json"],
+          "minVersion": "0.29.0"
         }
       },
       "stats": {
@@ -1238,6 +1244,44 @@
             "{query}"
           ],
           "date": "started_at"
+        },
+        "meetingsWeek": {
+          "args": [
+            "{profile}",
+            "stats",
+            "meetings",
+            "history",
+            "--by",
+            "week",
+            "--timezone",
+            "{timezone}",
+            "--since-time",
+            "{since}",
+            "--limit",
+            "{limit}",
+            "--offline",
+            "--no-record",
+            "--json"
+          ]
+        },
+        "meetingsSeries": {
+          "args": [
+            "{profile}",
+            "stats",
+            "meetings",
+            "history",
+            "--by",
+            "series",
+            "--timezone",
+            "{timezone}",
+            "--since-time",
+            "{since}",
+            "--limit",
+            "{limit}",
+            "--offline",
+            "--no-record",
+            "--json"
+          ]
         }
       },
       "setup": ["{profile}", "session", "start"],
@@ -1568,13 +1612,13 @@
         "exactBelow": "0.125.0"
       },
       "aggregates": {
-        "mail": {
+        "taskSources": {
           "args": [
             "stats",
-            "mail",
+            "tasks",
             "show",
             "--by",
-            "day",
+            "chat",
             "--timezone",
             "{timezone}",
             "--no-record",
@@ -1582,11 +1626,25 @@
             "--",
             "{query}"
           ],
-          "date": "date"
+          "date": "created",
+          "minVersion": "0.131.26"
         },
-        "taskSources": {
-          "args": ["stats", "tasks", "show", "--no-record", "--json"],
-          "date": null
+        "taskMeetings": {
+          "args": [
+            "stats",
+            "tasks",
+            "show",
+            "--by",
+            "meeting",
+            "--timezone",
+            "{timezone}",
+            "--no-record",
+            "--json",
+            "--",
+            "{query}"
+          ],
+          "date": "created",
+          "minVersion": "0.131.26"
         }
       },
       "setup": null,
@@ -1814,6 +1872,28 @@
             "password": "MAIL_PASSWORD"
           }
         ]
+      },
+      "aggregates": {
+        "mail": {
+          "args": [
+            "{profile}",
+            "stats",
+            "messages",
+            "show",
+            "--by",
+            "day",
+            "--timezone",
+            "{timezone}",
+            "--limit",
+            "{limit}",
+            "--no-record",
+            "--json",
+            "--",
+            "{query}"
+          ],
+          "date": "date",
+          "minVersion": "0.15.0"
+        }
       }
     }
   ],

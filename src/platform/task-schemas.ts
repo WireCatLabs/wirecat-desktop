@@ -69,10 +69,10 @@ export const TaskWriteSchema = v.variant("kind", [
     task: TaskSchema,
     label: v.nullable(v.object({ from: v.nullable(v.string()), to: v.nullable(v.string()) })),
     renumbered: v.array(v.string()),
+    /** The subtasks a move to another project took with it, each under its new key there. */
+    moved: v.optional(v.array(v.object({ from: v.string(), to: v.string() })), []),
   }),
   v.object({ kind: v.literal("stale"), current: TaskSchema, last: v.nullable(TaskEventSchema) }),
-  /** memo moves a task to another project only once it has no subtasks; these are their keys. */
-  v.object({ kind: v.literal("hasSubtasks"), subtasks: v.array(v.string()) }),
   /** A subtask moves to another project only when it leaves its parent in the same write. */
   v.object({ kind: v.literal("isSubtask"), parent: v.string() }),
 ])

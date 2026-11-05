@@ -1,12 +1,12 @@
-import { addDays, bucketDays, meetingStats, meetingWeekdays, PERIOD_DAYS } from "@/domain/analytics"
+import { addDays, bucketDays, meetingWeekdays, PERIOD_DAYS } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
 import { formatDate, formatList, formatNumber, useLang, useMessages } from "@/i18n"
-import { MeetingsListSchema, ResponsesSchema, TaskSourcesSchema, WaitingSchema } from "@/platform/analytics-schemas"
+import { MeetingsListSchema, ResponsesSchema, WaitingSchema } from "@/platform/analytics-schemas"
 import { cx } from "@/ui/cx"
 import { Skeleton } from "@/ui/Skeleton"
-import { ColumnChart, RankBars, Stat } from "./charts"
+import { ColumnChart, PartsBar, RankBars, Stat } from "./charts"
 import { analyticsMessages } from "./messages"
-import { duration, readParts } from "./reads"
+import { duration, readParts, useMeetingNumbers, useTaskSources } from "./reads"
 import { Panel } from "./sections"
 import { type AggState, useAggregate, useAnalytics } from "./store"
 
@@ -25,6 +25,8 @@ const CardSkeleton = ({ label }: { label: string }) => (
   <Skeleton className="h-[8.5rem] w-full rounded-[0.2rem]" label={label} />
 )
 
+const BUCKETS = ["under_5m", "under_1h", "under_1d", "over_1d"] as const
+
 export function ReplyTime() {
   const m = useMessages(analyticsMessages)
   const lang = useLang()
@@ -35,6 +37,12 @@ export function ReplyTime() {
   ]
   const live = states.filter(([, s]) => s.state !== "missing")
   const r = readParts(live, ResponsesSchema)
+  const buckets = BUCKETS.map((k, i) => ({
+    id: k,
+    label: m.bucket[k] ?? k,
+    value: r.ready.reduce((s, p) => s + (p.body.buckets?.[k] ?? 0), 0),
+    color: `var(--series-${i + 1})`,
+  }))
   return (
     <Panel id="an-reply" title={m.replyTitle} source="stats messages responses --who me">
       {r.loading && !r.ready.length ? (
@@ -71,6 +79,12 @@ export function ReplyTime() {
               </li>
             ))}
           </ul>
+          {buckets.some((b) => b.value > 0) && (
+            <div className="flex flex-col gap-2">
+              <h4 className="m-0 text-[0.9rem] font-medium text-ink-dim">{m.replyBuckets}</h4>
+              <PartsBar label={m.replyBuckets} parts={buckets} />
+            </div>
+          )}
           <p className="text-[0.85rem] text-ink-dim">{m.replyNote}</p>
           {r.old.length > 0 && <Missing old={r.old} failed={[]} />}
         </div>
@@ -90,6 +104,10 @@ export function WaitingOnYou() {
   const live = states.filter(([, s]) => s.state !== "missing")
   const r = readParts(live, WaitingSchema)
   const chats = r.ready.reduce((s, p) => s + p.body.chats, 0)
+  const kinds = r.ready.reduce(
+    (s, p) => ({ private: s.private + (p.body.by_kind?.private ?? 0), group: s.group + (p.body.by_kind?.group ?? 0) }),
+    { private: 0, group: 0 },
+  )
   const oldest = r.ready
     .map((p) => p.body.oldest_at)
     .filter((x): x is string => x !== null)
@@ -113,6 +131,11 @@ export function WaitingOnYou() {
               note={oldest ? m.oldestWait(formatDate(oldest, { day: "numeric", month: "long" }, lang)) : undefined}
             />
           </dl>
+          {kinds.private + kinds.group > 0 && (
+            <p className="text-[0.9rem] text-ink-soft">
+              {m.waitingKinds(formatNumber(kinds.private), formatNumber(kinds.group))}
+            </p>
+          )}
           {r.old.length > 0 && <Missing old={r.old} failed={[]} />}
         </div>
       )}
@@ -125,40 +148,34 @@ export function Meetings() {
   const lang = useLang()
   const period = useAnalytics((s) => s.period)
   const today = useAnalytics((s) => s.today)
-  const zone = useAnalytics((s) => s.zone)
-  const state = useAggregate("meetings", "zm")
-  const r = readParts([["zm", state]], MeetingsListSchema)
-  const stats = meetingStats(
-    r.ready.flatMap((p) => p.body.items),
-    period,
-    today,
-    zone,
-  )
-  const weeks = Math.max(1, (PERIOD_DAYS[period] ?? Math.max(7, stats.rows.length)) / 7)
-  const perWeek = stats.minutes / 60 / weeks
-  const buckets = bucketDays({ meetings: stats.rows }, period, today, "week")
+  const { numbers, loading, missing, old, failed } = useMeetingNumbers()
+  const source = numbers?.from === "list" ? "zm meetings list" : "zm stats meetings history"
+  const weeks = Math.max(1, (PERIOD_DAYS[period] ?? Math.max(7, (numbers?.weeks.length ?? 1) * 7)) / 7)
+  const perWeek = (numbers?.minutes ?? 0) / 60 / weeks
+  const buckets = bucketDays({ meetings: numbers?.weeks ?? [] }, period, today, "week")
   const hoursFmt = new Intl.NumberFormat(lang, { maximumFractionDigits: 1 })
+  const seriesName = (s: { title: string | null }) => s.title ?? m.oneOffMeetings
   return (
     <>
-      <Panel id="an-meetings" title={m.meetingsTitle} source="zm meetings list">
-        {state.state === "missing" ? (
+      <Panel id="an-meetings" title={m.meetingsTitle} source={source}>
+        {missing ? (
           <p className="text-[0.9rem] text-ink-soft">{m.needsUpdate("Zoom")}</p>
-        ) : r.loading ? (
+        ) : loading ? (
           <CardSkeleton label={m.meetingsTitle} />
-        ) : !r.ready.length ? (
-          <Missing old={r.old} failed={r.failed} />
-        ) : stats.count === 0 ? (
+        ) : !numbers ? (
+          <Missing old={old} failed={failed} />
+        ) : numbers.count === 0 ? (
           <p className="text-[0.9rem] text-ink-soft">{m.noMeetings}</p>
         ) : (
           <div className="reveal flex flex-col gap-4">
             <dl className="m-0 grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-x-[1.2rem] gap-y-4">
-              <Stat label={m.meetingsCount} value={formatNumber(stats.count)} note={m.period[period]} />
+              <Stat label={m.meetingsCount} value={formatNumber(numbers.count)} note={m.period[period]} />
               <Stat
                 label={m.meetingHours}
                 value={m.hours(hoursFmt.format(perWeek))}
                 note={m.ofWeek(Math.round((perWeek / 40) * 100))}
               />
-              {stats.meanMinutes !== null && <Stat label={m.meanLength} value={m.minutes(stats.meanMinutes)} />}
+              {numbers.meanMinutes !== null && <Stat label={m.meanLength} value={m.minutes(numbers.meanMinutes)} />}
             </dl>
             <ColumnChart
               title={m.meetingsPerWeek}
@@ -177,26 +194,26 @@ export function Meetings() {
           </div>
         )}
       </Panel>
-      <Panel id="an-series" title={m.seriesTitle} source="zm meetings list">
-        {r.loading ? (
+      <Panel id="an-series" title={m.seriesTitle} source={source}>
+        {loading ? (
           <CardSkeleton label={m.seriesTitle} />
-        ) : stats.series.length === 0 ? (
+        ) : !numbers?.series.length ? (
           <p className="text-[0.9rem] text-ink-soft">{m.noMeetings}</p>
         ) : (
           <div className="reveal flex flex-col gap-3">
             <RankBars
               label={m.seriesTitle}
               unit={(n) => m.minutes(n)}
-              rows={stats.series.map((s) => ({
-                id: s.title,
-                title: `${s.title} · ${s.count}`,
-                label: s.title,
+              rows={numbers.series.map((s) => ({
+                id: s.id,
+                title: `${seriesName(s)} · ${s.count}`,
+                label: seriesName(s),
                 detail: <span className="shrink-0 font-mono text-[0.85rem] text-ink-dim">×{s.count}</span>,
                 value: s.minutes,
-                color: "var(--series-6)",
+                color: s.title === null ? "var(--series-other)" : "var(--series-6)",
               }))}
             />
-            <p className="text-[0.85rem] text-ink-dim">{m.seriesNote}</p>
+            {numbers.from === "list" && <p className="text-[0.85rem] text-ink-dim">{m.seriesNote}</p>}
           </div>
         )}
       </Panel>
@@ -209,14 +226,14 @@ export function TaskSources() {
   const lang = useLang()
   const hide = useAnalytics((s) => s.hideNames)
   const state = useAggregate("taskSources", "memo")
-  const r = readParts([["memo", state]], TaskSourcesSchema)
+  const r = useTaskSources()
   const rows = r.ready
-    .flatMap((p) => p.body.items.flatMap((i) => i.rows))
+    .flatMap((p) => p.body.rows)
     .filter((x) => x.open > 0)
     .sort((a, b) => b.open - a.open)
     .slice(0, 8)
   const label = (row: (typeof rows)[number]) =>
-    hide || !row.name ? row.chat.replace(/^(chat|meeting):([a-z]+)\/.*$/, "$2") : row.name
+    hide || !row.name ? row.key.replace(/^(chat|meeting):([a-z]+)\/.*$/, "$2") : row.name
   return (
     <Panel id="an-sources" title={m.taskSourcesTitle} source="stats tasks show">
       {state.state === "missing" ? (
@@ -249,7 +266,7 @@ export function TaskSources() {
             </thead>
             <tbody className="selectable">
               {rows.map((row) => (
-                <tr key={row.chat} className="border-line border-t">
+                <tr key={row.key} className="border-line border-t">
                   <th scope="row" className={cx("max-w-[14rem] truncate py-[0.45rem] text-left font-normal")}>
                     {label(row)}
                   </th>

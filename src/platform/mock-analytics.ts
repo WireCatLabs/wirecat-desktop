@@ -134,8 +134,8 @@ function ranked(list: [string, string, number][], total: number, me: boolean): C
   )
 }
 
-/** Commands no CLI has yet (plan, A1–A6): the real app shows "arrives with an update", and so do these scenarios. */
-const PLANNED: readonly Which[] = ["responses", "waiting", "coverage", "mail"]
+/** zm's own meeting counts, not released yet: `?analytics=real` and the website show the page as an older zm does. */
+const PLANNED: readonly Which[] = ["meetingsWeek", "meetingsSeries"]
 const showcaseOn = params.has("showcase")
 
 const SERIES: [string, number, number][] = [
@@ -171,6 +171,12 @@ function aggregateMock(id: string, which: Which, profile: string | null, period:
           median_ms: Math.round((18 + scale * 9) * 60_000),
           p90_ms: Math.round((3.5 + scale) * 3_600_000),
           mean_ms: Math.round(52 * 60_000),
+          buckets: {
+            under_5m: Math.round(40 * scale),
+            under_1h: Math.round(55 * scale),
+            under_1d: Math.round(30 * scale),
+            over_1d: Math.round(9 * scale),
+          },
           rows,
         },
       }
@@ -182,6 +188,7 @@ function aggregateMock(id: string, which: Which, profile: string | null, period:
           chats: Math.round(2 + 5 * scale),
           messages: Math.round(5 + 14 * scale),
           oldest_at: new Date(Date.now() - (2 + scale * 3) * 86_400_000).toISOString(),
+          by_kind: { private: Math.round(1 + 4 * scale), group: Math.round(1 + scale) },
         },
       }
     case "coverage":
@@ -231,22 +238,78 @@ function aggregateMock(id: string, which: Which, profile: string | null, period:
       )
       return { kind: "ready", body: { items } }
     }
-    case "taskSources": {
-      const chats: [string, string, number, number][] = [
+    case "taskSources":
+    case "taskMeetings": {
+      const all: [string, string, number, number][] = [
         ["chat:telegram/1/-1001", "Harbour launch", 6, 2],
         ["chat:telegram/1/101", "Lucía Fernández", 3, 0.5],
         ["chat:whatsapp/1/-3001", "Family", 2, 4],
         ["chat:email/1/t9", "Invoices", 4, 9],
         ["meeting:zoom/1/88", "Harbour weekly", 5, 3],
       ]
-      const rows = chats.map(([chat, name, open, days]) => ({
-        chat,
-        name,
-        open,
-        oldest_open_at: new Date(Date.now() - days * 3 * 86_400_000).toISOString(),
-        median_close_ms: Math.round(days * 86_400_000),
+      const kind = which === "taskMeetings" ? "meeting:" : "chat:"
+      const rows = all
+        .filter(([key]) => key.startsWith(kind))
+        .map(([key, name, open, days]) => ({
+          key,
+          name,
+          open,
+          created: Math.round(open * 1.5),
+          closed: Math.round(open * 1.2),
+          oldest_open_at: new Date(Date.now() - days * 3 * 86_400_000).toISOString(),
+          median_close_ms: Math.round(days * 86_400_000),
+          mean_open_age_ms: Math.round(days * 2 * 86_400_000),
+        }))
+      const sum = (k: "open" | "created" | "closed") => rows.reduce((t, r) => t + r[k], 0)
+      return {
+        kind: "ready",
+        body: {
+          open: sum("open"),
+          created: sum("created"),
+          closed: sum("closed"),
+          median_close_ms: 2 * 86_400_000,
+          mean_open_age_ms: 5 * 86_400_000,
+          rows,
+        },
+      }
+    }
+    case "meetingsWeek":
+    case "meetingsSeries": {
+      const counted = days.flatMap((day) =>
+        SERIES.flatMap(([title, minutes, every], i) => {
+          const weekday = new Date(`${day}T12:00:00Z`).getUTCDay()
+          if (weekday === 0 || weekday === 6 || noise(`${title}${day}`) > 1 / every) return []
+          return [{ day, title, i, minutes: Math.round(minutes * (0.8 + noise(`d${title}${day}`) * 0.5)) }]
+        }),
+      )
+      const rows = new Map<string, { key: string; name: string | null; meetings: number; minutes: number }>()
+      for (const c of counted) {
+        const key = which === "meetingsWeek" ? weekOf(c.day) : c.i === 4 ? "no-series" : `series:${c.i + 1}`
+        const name = which === "meetingsWeek" || key === "no-series" ? null : c.title
+        const r = rows.get(key) ?? { key, name, meetings: 0, minutes: 0 }
+        r.meetings += 1
+        r.minutes += c.minutes
+        rows.set(key, r)
+      }
+      const list = [...rows.values()].map((r) => ({
+        ...r,
+        mean_minutes: Math.round(r.minutes / r.meetings),
+        transcripts: 0,
       }))
-      return { kind: "ready", body: { items: [{ open: rows.reduce((s, r) => s + r.open, 0), rows }] } }
+      const meetings = counted.length
+      const minutes = counted.reduce((t, c) => t + c.minutes, 0)
+      return {
+        kind: "ready",
+        body: {
+          by: which === "meetingsWeek" ? "week" : "series",
+          meetings,
+          minutes,
+          mean_minutes: meetings ? Math.round(minutes / meetings) : null,
+          transcripts: Math.round(meetings * 0.7),
+          rows: list,
+          has_more: false,
+        },
+      }
     }
   }
 }

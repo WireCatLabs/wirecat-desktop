@@ -56,8 +56,8 @@ type TasksState = {
   note: Note | null
   history: Record<string, History>
   comments: Record<string, Comments>
-  /** A move to another project memo refused: the keys of the task's subtasks, which have to move or leave first. */
-  subtasks: Record<string, string[]>
+  /** The subtasks a move to another project took along, by the moved task's new key, so its dialog can say so. */
+  moved: Record<string, { from: string; to: string }[]>
   /** A move memo refused because the task is a subtask; the page offers to move it out of its parent. */
   detach: Record<string, Detach>
   creating: boolean
@@ -145,7 +145,7 @@ export const useTasks = create<TasksState>((set, get) => {
     set((s) => ({
       busy: { ...s.busy, [key]: true },
       failed: without(s.failed, key),
-      subtasks: without(s.subtasks, key),
+      moved: without(s.moved, key),
       detach: without(s.detach, key),
       stale: null,
       note: null,
@@ -157,13 +157,19 @@ export const useTasks = create<TasksState>((set, get) => {
         undo?.()
         replace(out.current)
         set({ stale: { key, last: out.last } })
-      } else if (out.kind === "hasSubtasks") {
-        set((s) => ({ subtasks: { ...s.subtasks, [key]: out.subtasks } }))
       } else if (out.kind === "isSubtask") {
         // `update` records the project the owner chose, which this answer does not carry.
       } else if (out.task.key !== key) {
         rename(key, out.task)
         now = out.task.key
+        if (out.moved.length) {
+          set((s) => ({ moved: { ...s.moved, [now]: out.moved } }))
+          const carried = await Promise.all(out.moved.map((x) => platform.taskShow(x.to).catch(() => null)))
+          out.moved.forEach((x, i) => {
+            const t = carried[i]
+            if (t) rename(x.from, t)
+          })
+        }
       } else {
         replace(out.task)
         void refresh(out.renumbered)
@@ -197,7 +203,7 @@ export const useTasks = create<TasksState>((set, get) => {
         open: s.open === from ? task.key : s.open,
         history: without(s.history, from),
         comments: move(s.comments),
-        subtasks: without(s.subtasks, from),
+        moved: without(s.moved, from),
         detach: without(s.detach, from),
       }
     })
@@ -226,7 +232,7 @@ export const useTasks = create<TasksState>((set, get) => {
     note: null,
     history: {},
     comments: {},
-    subtasks: {},
+    moved: {},
     detach: {},
     creating: false,
 

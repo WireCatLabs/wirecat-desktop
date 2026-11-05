@@ -200,6 +200,9 @@ pub struct StatsSource {
 pub struct AggregateSource {
     pub args: Vec<String>,
     pub date: Option<String>,
+    /// The tool's first version with this command; below it the page says which update brings it.
+    #[serde(default, rename = "minVersion")]
+    pub min_version: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

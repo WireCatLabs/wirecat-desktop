@@ -647,17 +647,34 @@ pub enum Write {
         label: Option<LabelChange>,
         /// Other tasks Memo gave new priorities to make room; the page reads them again.
         renumbered: Vec<String>,
+        /// The subtasks a move to another project took with it, each with its old and new key.
+        moved: Vec<MovedSubtask>,
     },
     /// Someone changed the task after the page read it; nothing was written. `current` is the task as it is now and
     /// `last` the latest change, so the page can say who changed what.
     #[serde(rename_all = "camelCase")]
     Stale { current: Task, last: Option<Event> },
-    /// memo moves a task to another project only without subtasks; these are the keys of the ones it still has.
-    #[serde(rename_all = "camelCase")]
-    HasSubtasks { subtasks: Vec<String> },
     /// A subtask moves to another project only when it leaves its parent in the same write (`detach`).
     #[serde(rename_all = "camelCase")]
     IsSubtask { parent: String },
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct MovedSubtask {
+    pub from: String,
+    pub to: String,
+}
+
+/// Each `{from, to}` memo named, both keys checked before the page shows them as links.
+fn moved_in(v: &Value) -> Vec<MovedSubtask> {
+    v.as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|m| {
+            let key = |k: &str| m[k].as_str().map(bare_key).filter(|k| validate_key(k).is_ok());
+            Some(MovedSubtask { from: key("from")?, to: key("to")? })
+        })
+        .collect()
 }
 
 fn stale(f: &Failure) -> bool {
@@ -669,9 +686,6 @@ fn write_with(call: &Call, key: &str, args: &[String]) -> Result<Write, Failure>
     match call(args) {
         Ok(v) => Ok(saved(&v)?),
         Err(f) if stale(&f) => stale_with(call, key),
-        Err(f) if f.reason.as_deref() == Some("task.has-subtasks") => {
-            Ok(Write::HasSubtasks { subtasks: keys_in(&f.details["subtasks"]) })
-        }
         Err(f) if f.reason.as_deref() == Some("task.is-subtask") => match text(&f.details, "parent") {
             Some(parent) if validate_key(&bare_key(&parent)).is_ok() => {
                 Ok(Write::IsSubtask { parent: bare_key(&parent) })
@@ -680,13 +694,6 @@ fn write_with(call: &Call, key: &str, args: &[String]) -> Result<Write, Failure>
         },
         Err(f) => Err(f),
     }
-}
-
-/// Task keys memo named, each checked before the page shows it as a link.
-fn keys_in(v: &Value) -> Vec<String> {
-    v.as_array()
-        .map(|a| a.iter().filter_map(Value::as_str).map(bare_key).filter(|k| validate_key(k).is_ok()).collect())
-        .unwrap_or_default()
 }
 
 fn stale_with(call: &Call, key: &str) -> Result<Write, Failure> {
@@ -708,9 +715,15 @@ fn saved(v: &Value) -> Result<Write, Failure> {
                 .as_array()
                 .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
                 .unwrap_or_default(),
+            moved: moved_in(&item["moved_subtasks"]),
         });
     }
-    Ok(Write::Saved { task: shown(item)?, label: None, renumbered: Vec::new() })
+    Ok(Write::Saved {
+        task: shown(item)?,
+        label: None,
+        renumbered: Vec::new(),
+        moved: moved_in(&item["moved_subtasks"]),
+    })
 }
 
 /// What one edit changes; anything left `None` stays as it is.
@@ -818,14 +831,14 @@ fn assign_with(call: &Call, key: &str, revision: u64, person: Option<&str>) -> R
     }
     let off: Vec<String> = current.assignees.iter().filter(|p| Some(p.as_str()) != person).cloned().collect();
     let has = person.is_some_and(|p| current.assignees.iter().any(|a| a == p));
-    let mut result = Write::Saved { task: current, label: None, renumbered: Vec::new() };
+    let mut result = Write::Saved { task: current, label: None, renumbered: Vec::new(), moved: Vec::new() };
     let mut rev = revision;
     for p in &off {
         let r = format!("--revision={rev}");
         result = write_with(call, key, &words(&["tasks", "assign", key, p, "--clear", &r]))?;
         match &result {
             Write::Saved { task, .. } => rev = task.revision,
-            Write::Stale { .. } | Write::HasSubtasks { .. } | Write::IsSubtask { .. } => return Ok(result),
+            Write::Stale { .. } | Write::IsSubtask { .. } => return Ok(result),
         }
     }
     if let (Some(p), false) = (person, has) {
@@ -1150,17 +1163,24 @@ mod tests {
     }
 
     #[test]
-    fn a_move_is_refused_for_a_task_with_subtasks_and_for_a_subtask_that_keeps_its_parent() {
+    fn a_move_takes_the_subtasks_along_and_is_refused_for_a_subtask_that_keeps_its_parent() {
         let refusal =
             |reason: &str, details: Value| Failure { details, reason: Some(reason.into()), message: "no".into() };
-        let parent = Fake::new(move |_| Err(refusal("task.has-subtasks", json!({"subtasks":["HRB-3", "--x"]}))));
+        let parent = Fake::new(move |_| {
+            let mut item = card(5, &[]);
+            item["key"] = json!("OPS-9");
+            item["moved_subtasks"] = json!([{"from": "HRB-3", "to": "OPS-10"}, {"from": "--x", "to": "OPS-11"}]);
+            Ok(json!({ "item": item, "meta": {} }))
+        });
         let edit = Edit { project: Some("OPS".into()), ..Edit::default() };
         let args = edit_args("HRB-1", 4, &edit).unwrap();
-        assert_eq!(
-            write_with(&|a: &[String]| parent.call(a), "HRB-1", &args).unwrap(),
-            Write::HasSubtasks { subtasks: vec!["HRB-3".into()] }
-        );
-        assert_eq!(parent.seen().len(), 1, "memo names the subtasks itself");
+        let Write::Saved { task, moved, .. } = write_with(&|a: &[String]| parent.call(a), "HRB-1", &args).unwrap()
+        else {
+            panic!("not saved")
+        };
+        assert_eq!(task.key, "OPS-9");
+        assert_eq!(parent.seen().len(), 1);
+        assert_eq!(moved, [MovedSubtask { from: "HRB-3".into(), to: "OPS-10".into() }]);
         let child = Fake::new(move |_| Err(refusal("task.is-subtask", json!({"parent":"HRB-1"}))));
         assert_eq!(
             write_with(&|a: &[String]| child.call(a), "HRB-3", &args).unwrap(),
@@ -1235,7 +1255,7 @@ mod tests {
                 "--no-record"
             ])
         );
-        let Write::Saved { task, label, renumbered } =
+        let Write::Saved { task, label, renumbered, .. } =
             write_with(&|a: &[String]| fake.call(a), "HRB-1", &args).unwrap()
         else {
             panic!("not saved")
@@ -1338,6 +1358,7 @@ mod tests {
     /// that store, so never point it at the owner's.
     #[test]
     #[ignore = "needs MEMO_BIN, a memo 0.131.14+ with a throwaway store"]
+    #[allow(clippy::too_many_lines, reason = "one probe walks every write against one store, in order")]
     fn reads_and_writes_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
@@ -1439,6 +1460,7 @@ mod tests {
                     task: moved.clone(),
                     label: Some(LabelChange { from: Some("low".into()), to: Some("high".into()) }),
                     renumbered: vec![],
+                    moved: vec![],
                 })
                 .unwrap(),
             );
@@ -1488,14 +1510,11 @@ mod tests {
         .unwrap();
         let child = shown(&made).unwrap();
         let away = Edit { project: Some("OPS".into()), ..Edit::default() };
-        let Write::HasSubtasks { subtasks } = edit(&parent, &away) else { panic!("moved a task with subtasks") };
-        assert_eq!(subtasks, std::slice::from_ref(&child.key));
         let Write::IsSubtask { parent: of } = edit(&child, &away) else { panic!("moved a subtask with its parent") };
         assert_eq!(of, parent.key);
-        let alone = Edit { detach: true, ..away.clone() };
-        let Write::Saved { task: left, .. } = edit(&child, &alone) else { panic!("not moved on its own") };
-        assert_eq!((left.project.as_str(), left.parent), ("OPS", None));
-        let away = Edit { project: Some("OPS".into()), ..Edit::default() };
+        let Write::Saved { task: carried, moved, .. } = edit(&parent, &away) else { panic!("not moved") };
+        let from: Vec<&str> = moved.iter().map(|m| m.from.as_str()).collect();
+        assert_eq!((carried.project.as_str(), from), ("OPS", vec![child.key.as_str()]));
         let Write::Saved { task: gone, .. } = edit(&task, &away) else { panic!("not moved") };
         assert_eq!(gone.project, "OPS");
         assert!(gone.key.starts_with("OPS-"));
@@ -1507,9 +1526,9 @@ mod tests {
             put("person", serde_json::to_value(&lena).unwrap());
             put(
                 "moved-project",
-                serde_json::to_value(Write::Saved { task: gone, label: None, renumbered: vec![] }).unwrap(),
+                serde_json::to_value(Write::Saved { task: gone, label: None, renumbered: vec![], moved: vec![] })
+                    .unwrap(),
             );
-            put("subtasks", serde_json::to_value(Write::HasSubtasks { subtasks }).unwrap());
         }
     }
 }

@@ -258,6 +258,32 @@ memo stats tasks show --by chat|meeting|project --timezone <zone> --no-record --
 and a `created` time field in the task query language (`created>=30d`), so the period applies to `created` and
 `closed`. `--by meeting` keys a row by the meeting the task was found in (`meeting:<account>/<id>`).
 
+## Wired to the released commands (0.4.0, 2026-11-05)
+
+The specs above shipped, with these names. Each card asks the tool's own command through `analytics_aggregate`; a
+catalog `minVersion` says the tool is too old before anything runs, and "unknown command" from a tool without a
+`minVersion` says the same, so the card reads "arrives with an update".
+
+| Spec | Command the app runs | First version |
+| --- | --- | --- |
+| A1 mail in and out | `mail <profile> stats messages show --by day --timezone <z> --limit <n> -- date>=Nd` | mail-cli 0.15.0 |
+| A2 meetings | `zm <profile> stats meetings history --by week\|series --timezone <z> --since-time Nd --limit <n>` | not released yet: older zm answers "unknown command" and the cards add up `zm meetings list` as before |
+| A3 reply time | `<tg\|max\|wa> <profile> stats messages responses --who me --by day --timezone <z> -- date>=Nd` | tg 0.116.0, wa 0.29.0; max: next release |
+| A4 waiting on you | `<tg\|max\|wa> <profile> stats messages waiting --timezone <z>` | the same |
+| A6 chats never fetched | `<tg\|max\|wa> <profile> store chats status` | the same |
+| A7 tasks by source | `memo stats tasks show --by chat\|meeting --timezone <z> -- created>=Nd` | memo 0.131.26 |
+
+Reply time also shows how the replies split into under 5 minutes, under an hour, under a day and longer; waiting on
+you splits one-to-one chats from groups; the Tasks card adds the tasks made in the period (A7 `created`, chats and
+meetings together). The weekday chart and the week tiles still add up `zm meetings list`, which has each meeting's
+start.
+
+**Speed, measured (RISK).** A3, A4 and A6 had been checked on empty stores only. Timed once on the owner's store (about
+6 GB) through the page's own command path, read only (`--offline --no-record`): every call answered in 0.3 to 0.65 s
+for tg (4 profiles) and wa, 30 days and all time alike; max, still on 0.99.0, answered "too old" in 0.3 to 1.6 s. All
+under the 2 s line, so the cards load with the page and need no lazy loading. Repeat with the ignored test
+`real_reply_counts_timing` in `src-tauri/src/analytics.rs`.
+
 ## Decisions
 
 - **One messenger, every profile.** Without `--source`, `stats messages show` counts the profile's own account

@@ -32,7 +32,7 @@ import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./ch
 import { Explorer } from "./explorer"
 import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
-import { duration, useOldestOpen } from "./reads"
+import { duration, useOldestOpen, useTaskSources } from "./reads"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
 
 type M = typeof analyticsMessages.en
@@ -498,6 +498,9 @@ export function Tasks() {
   const refreshing = useAnalytics((s) => s.refreshing)
   const lang = useLang()
   const oldest = useOldestOpen()
+  const sources = useTaskSources()
+  // Each task comes from one chat or one meeting, so the two answers add up without counting one twice.
+  const made = sources.ready.length ? sources.ready.reduce((s, p) => s + p.body.created, 0) : null
   const grain = taskGrain(period)
   return (
     <Panel id="an-tasks" title={m.tasks} source="tasks counts · stats tasks show">
@@ -528,6 +531,7 @@ export function Tasks() {
             />
             <Stat label={m.oldestOpen} value={oldest ? duration(Date.now() - Date.parse(oldest), m, lang) : "—"} />
             <Stat label={m.closedIn} value={formatNumber(tasks.data.closed.total)} note={m.period[period]} />
+            {made !== null && <Stat label={m.madeIn} value={formatNumber(made)} note={m.period[period]} />}
           </Stats>
           {preview ? (
             <div className="flex flex-col gap-2">

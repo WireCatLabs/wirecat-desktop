@@ -35,7 +35,16 @@ export type CountRow = v.InferOutput<typeof CountRowSchema>
 export type MessageCounts = v.InferOutput<typeof MessageCountsSchema>
 
 /** The Analytics page's aggregates by name, as in the catalog's `aggregates`. */
-export type Which = "responses" | "waiting" | "coverage" | "meetings" | "mail" | "taskSources"
+export type Which =
+  | "responses"
+  | "waiting"
+  | "coverage"
+  | "meetings"
+  | "meetingsWeek"
+  | "meetingsSeries"
+  | "mail"
+  | "taskSources"
+  | "taskMeetings"
 
 /** What a tool printed for one aggregate; `old` when the installed version does not have the command yet. */
 export const AggregateSchema = v.variant("kind", [
@@ -48,14 +57,22 @@ export type Aggregate = v.InferOutput<typeof AggregateSchema>
 const n = v.pipe(v.number(), v.minValue(0))
 const ms = v.nullable(n)
 
+const Buckets = v.looseObject({ under_5m: n, under_1h: n, under_1d: n, over_1d: n })
+
 export const ResponsesSchema = v.looseObject({
   replies: n,
   median_ms: ms,
   p90_ms: ms,
   mean_ms: v.optional(ms, null),
+  buckets: v.optional(v.nullable(Buckets), null),
   rows: v.optional(v.array(v.looseObject({ key: v.string(), replies: n, median_ms: ms, p90_ms: ms })), []),
 })
-export const WaitingSchema = v.looseObject({ chats: n, messages: n, oldest_at: v.nullable(v.string()) })
+export const WaitingSchema = v.looseObject({
+  chats: n,
+  messages: n,
+  oldest_at: v.nullable(v.string()),
+  by_kind: v.optional(v.nullable(v.looseObject({ private: n, group: n })), null),
+})
 export const CoverageSchema = v.looseObject({ chats: n, fetched: n, partial: v.optional(n, 0), never: n })
 export const MeetingsListSchema = v.looseObject({
   items: v.array(
@@ -71,19 +88,32 @@ export const MailSchema = v.looseObject({
   sent: n,
   rows: v.array(v.looseObject({ key: v.string(), received: n, sent: n })),
 })
+/** zm's own meeting counts per day, week or series (`series:<id>` rows, and one `no-series` row). */
+export const MeetingHistorySchema = v.looseObject({
+  meetings: n,
+  minutes: n,
+  mean_minutes: v.nullable(n),
+  rows: v.array(
+    v.looseObject({ key: v.string(), name: v.optional(v.nullable(v.string()), null), meetings: n, minutes: n }),
+  ),
+})
+
+/** memo's tasks per chat or meeting: open now, made and closed in the period, how long they take. */
 export const TaskSourcesSchema = v.looseObject({
-  items: v.array(
+  open: n,
+  created: n,
+  closed: n,
+  median_close_ms: ms,
+  mean_open_age_ms: ms,
+  rows: v.array(
     v.looseObject({
+      key: v.string(),
+      name: v.optional(v.nullable(v.string()), null),
       open: n,
-      rows: v.array(
-        v.looseObject({
-          chat: v.string(),
-          name: v.optional(v.nullable(v.string()), null),
-          open: n,
-          oldest_open_at: v.nullable(v.string()),
-          median_close_ms: ms,
-        }),
-      ),
+      created: v.optional(n, 0),
+      closed: v.optional(n, 0),
+      oldest_open_at: v.nullable(v.string()),
+      median_close_ms: ms,
     }),
   ),
 })
@@ -94,3 +124,4 @@ export type Coverage = v.InferOutput<typeof CoverageSchema>
 export type MeetingsList = v.InferOutput<typeof MeetingsListSchema>
 export type Mail = v.InferOutput<typeof MailSchema>
 export type TaskSources = v.InferOutput<typeof TaskSourcesSchema>
+export type MeetingHistory = v.InferOutput<typeof MeetingHistorySchema>

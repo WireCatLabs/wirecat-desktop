@@ -40,7 +40,8 @@ const BUSY = new Set(["profile.locked", "sync.running", "device.in-use", "app.bu
 export function advice(f: SyncFailure): Advice {
   const plain = { again: false, signIn: false, report: false }
   if (f.code === "timeout") return { ...plain, kind: "timeout", again: true }
-  if (f.reason && BUSY.has(f.reason)) return { ...plain, kind: "busy", again: true }
+  // `conflict` (cli-core exit 15): another writer changed the same thing first, so reading again and retrying works.
+  if ((f.reason && BUSY.has(f.reason)) || f.code === "conflict") return { ...plain, kind: "busy", again: true }
   if (f.code === "configuration_error" && /newer version|schema/.test(f.message)) return { ...plain, kind: "update" }
   if (f.code === "authentication_error") return { ...plain, kind: "signedOut", signIn: true }
   if (f.code === "rate_limited") return { ...plain, kind: "rateLimited", again: true }
