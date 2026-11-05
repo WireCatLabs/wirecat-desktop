@@ -16,7 +16,6 @@ const tool = (id: string) => {
 }
 
 beforeEach(() => {
-  useBotSignIn.setState(useBotSignIn.getInitialState(), true)
   vi.spyOn(platform, "listBots").mockResolvedValue([{ name: "sales", source: "keyring" }])
   vi.spyOn(platform, "openUrl").mockResolvedValue()
 })

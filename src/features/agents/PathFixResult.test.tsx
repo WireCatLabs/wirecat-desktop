@@ -38,7 +38,6 @@ const picker = () => screen.queryByRole("group", { name: "Which shell does your 
 
 describe("PathFixResult", () => {
   beforeEach(() => {
-    usePathFix.setState(usePathFix.getInitialState(), true)
     vi.spyOn(platform, "terminalReach").mockResolvedValue({ zm: false })
     vi.spyOn(platform, "terminalShells").mockResolvedValue({
       shells: ["/bin/sh", "/usr/bin/bash", "/usr/bin/zsh"],

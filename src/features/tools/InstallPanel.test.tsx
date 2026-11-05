@@ -30,9 +30,6 @@ const panelOpen = (name: string) => {
   const panel = row(name).querySelector<HTMLElement>('[data-state="open"]')
   return panel !== null && within(panel).queryByRole("button", { name: "Done" }) !== null
 }
-
-beforeEach(() => useTools.setState(useTools.getInitialState(), true))
-
 describe("Done on a finished install", () => {
   it("closes only that tool's panel", async () => {
     useTools.setState({ sessions: { tg: done("0.89.0"), wa: done("0.7.0") } })
@@ -52,7 +49,6 @@ describe("the agent instructions an update refreshed", () => {
   })
 
   beforeEach(() => {
-    useAgents.setState(useAgents.getInitialState(), true)
     useNav.setState({ active: "tools", past: [], next: [] })
   })
 
@@ -83,8 +79,6 @@ describe("the agent instructions an update refreshed", () => {
 })
 
 describe("the skill offer after a first install", () => {
-  beforeEach(() => useAgents.setState(useAgents.getInitialState(), true))
-
   it("adds the skill for the agents found, in one click", async () => {
     useTools.setState({
       installs: { tg: [{ path: "~/bin/tg", version: "0.88.0", manager: "npm", problem: null }] },

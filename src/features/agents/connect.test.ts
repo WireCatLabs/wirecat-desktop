@@ -1,8 +1,7 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest"
+import { afterEach, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useConnect } from "./connect"
 
-beforeEach(() => useConnect.setState(useConnect.getInitialState(), true))
 afterEach(() => vi.restoreAllMocks())
 
 it("never asks a profile that is not signed in for its tasks, and keeps it out of the errors", async () => {

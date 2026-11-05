@@ -4,7 +4,6 @@ import { beforeAll, beforeEach, expect, it } from "vitest"
 import { addCommunityTools } from "@/domain/catalog"
 import { useOnboarding } from "@/features/onboarding/store"
 import { ACME } from "@/platform/mock-community"
-import { useTools } from "./store"
 
 let App: FC
 
@@ -13,9 +12,7 @@ beforeAll(async () => {
   ;({ App } = await import("@/app/App"))
 })
 
-beforeEach(() => {
-  useTools.setState(useTools.getInitialState(), true)
-})
+beforeEach(() => {})
 
 it("lists a registered tool on the Tools page with its badge and trust note", async () => {
   useOnboarding.setState({ status: "done", open: false })

@@ -1,13 +1,12 @@
 import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useNav } from "../nav"
 import { useTools } from "../tools/store"
 import { SearchPage } from "./SearchPage"
 import { useSearch } from "./store"
 
-beforeEach(() => useSearch.setState(useSearch.getInitialState(), true))
 afterEach(() => vi.restoreAllMocks())
 
 async function choose(user: ReturnType<typeof userEvent.setup>, box: string, option: string) {

@@ -51,7 +51,6 @@ const stored = () => JSON.parse(localStorage.getItem(KEY) ?? "{}").state?.status
 /** A new start of the app: the store begins from scratch and reads what the last run saved. */
 async function restart() {
   const saved = localStorage.getItem(KEY)
-  useOnboarding.setState(useOnboarding.getInitialState(), true)
   if (saved) localStorage.setItem(KEY, saved)
   await useOnboarding.persist.rehydrate()
 }

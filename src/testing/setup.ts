@@ -1,24 +1,32 @@
 import "@testing-library/jest-dom/vitest"
 import { cleanup } from "@testing-library/react"
-import { afterEach, beforeEach } from "vitest"
-import { HOME_SECTION, useNav } from "@/features/nav"
-import { useOnboarding } from "@/features/onboarding/store"
-import { resetKept } from "@/features/tools/kept"
-import { useLanguage } from "@/i18n"
+import { afterEach, beforeEach, vi } from "vitest"
 import { initPlatform } from "@/platform/bridge"
+import { resetStores } from "./stores"
 
 await initPlatform()
 
+// Every store the app creates is recorded, so `resetStores` can put each one back without a list to keep in step.
+vi.mock("zustand", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("zustand")>()
+  const { track } = await import("./registry")
+  const create = ((initializer?: unknown) =>
+    initializer
+      ? track(actual.create(initializer as never))
+      : (inner: never) => track(actual.create(inner))) as typeof actual.create
+  return { ...actual, create }
+})
+
 // A fresh store resumes the setup from the computer's state; a test that wants that asks for it (`resumeOnboarding`).
-beforeEach(() => {
+beforeEach(async () => {
+  resetStores()
+  const { useOnboarding } = await import("@/features/onboarding/store")
   useOnboarding.setState({ resuming: false })
 })
 
 afterEach(() => {
   cleanup()
-  useNav.setState({ active: HOME_SECTION })
-  resetKept()
-  useLanguage.setState({ choice: "en" })
+  resetStores()
 })
 
 // jsdom has no matchMedia; the theme follows it.
@@ -41,6 +49,3 @@ HTMLDialogElement.prototype.close ??= function (this: HTMLDialogElement) {
   this.open = false
   this.dispatchEvent(new Event("close"))
 }
-
-// The suite reads English; a machine set to Russian or Spanish would otherwise switch it.
-useLanguage.setState({ choice: "en" })

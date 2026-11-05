@@ -61,7 +61,7 @@ describe("Agents", () => {
     expect(within(pane()).getByRole("heading", { name: "Claude Code" })).toBeInTheDocument()
     expect(await within(pane()).findAllByText(/Update MAX/, {}, wait)).toHaveLength(1)
     expect(within(pane()).getAllByText(/Update Zoom/)).toHaveLength(1)
-    expect(screen.getByRole("button", { name: /Check again|Checking/ })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getAllByRole("button", { name: /Check again|Checking/ })).toHaveLength(1), wait)
   }, 20000)
 
   it("moves through agents with the arrow keys, Home and End, and shows where a missing agent's skills go", async () => {
@@ -280,12 +280,14 @@ describe("Agents", () => {
 
   it("warns that a chat-driven agent reading the same skill folder gets the tools too", async () => {
     const user = await openAgents()
+    await user.click(await foundTab(/^OpenClaw/))
+    await within(pane()).findByRole("list", { name: "Other things to fix for OpenClaw" }, wait)
     await user.click(await foundTab(/^Codex/))
     await user.click(await within(pane()).findByRole("button", { name: "Connect WireCat to Codex" }, wait))
     const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to Codex" })
     expect(within(dialog).queryByText(/reads the same skill folder/)).not.toBeInTheDocument()
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
-    expect(within(dialog).getByRole("note")).toHaveTextContent(
+    expect(await within(dialog).findByRole("note", {}, wait)).toHaveTextContent(
       "OpenClaw reads the same skill folder, so it gets these tools too",
     )
   }, 20000)
@@ -298,6 +300,7 @@ describe("Agents", () => {
     await user.click(within(pane()).getByRole("button", { name: "Connect WireCat to OpenClaw" }))
     const dialog = await screen.findByRole("dialog", { name: "Connect WireCat to OpenClaw" })
     await user.click(within(dialog).getByRole("checkbox", { name: /Telegram/ }))
+    await within(dialog).findByRole("checkbox", { name: "Telegram · work" }, wait)
     await user.click(within(dialog).getByRole("button", { name: "Connect 1 tool" }))
     expect(await within(dialog).findByText(/Kept Block on contacts/, {}, wait)).toBeInTheDocument()
     expect(set).toHaveBeenCalledWith("tg", "work", false, "permissions.messages", "readonly")
@@ -307,7 +310,7 @@ describe("Agents", () => {
   it("explains how to disconnect, since no tool can remove its skill", async () => {
     const user = await openAgents()
     await user.click(await foundTab(/^Codex/))
-    const disconnect = within(pane()).getByRole("button", { name: "Disconnect WireCat from Codex" })
+    const disconnect = await within(pane()).findByRole("button", { name: "Disconnect WireCat from Codex" }, wait)
     await waitFor(() => expect(disconnect).toBeEnabled(), wait)
     await user.click(disconnect)
     const dialog = await screen.findByRole("dialog", { name: "Disconnect WireCat from Codex" })

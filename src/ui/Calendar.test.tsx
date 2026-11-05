@@ -1,10 +1,8 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { Calendar } from "./Calendar"
-
-afterEach(() => useLanguage.setState({ choice: "en" }))
 
 const focused = () => document.activeElement?.getAttribute("data-day")
 

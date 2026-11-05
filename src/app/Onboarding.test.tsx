@@ -180,7 +180,6 @@ describe("Connect agents step", () => {
       checked: true,
       refresh: async () => undefined,
     })
-    useAgents.setState(useAgents.getInitialState(), true)
     vi.spyOn(platform, "skillStatus").mockResolvedValue({
       source: "status",
       targets: [
@@ -191,7 +190,6 @@ describe("Connect agents step", () => {
   })
   afterEach(() => {
     vi.restoreAllMocks()
-    useTools.setState(useTools.getInitialState(), true)
   })
 
   it("heads one column for Cursor when it is the only agent found, though it reads both folders", async () => {

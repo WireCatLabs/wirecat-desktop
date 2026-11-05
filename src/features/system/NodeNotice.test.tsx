@@ -11,7 +11,6 @@ import { useSystem } from "./store"
 const absent = { path: null, version: null, ok: false, problem: "not found" }
 
 beforeEach(() => {
-  useNode.setState(useNode.getInitialState(), true)
   vi.spyOn(platform, "nodeOffer").mockResolvedValue({ version: "24.19.0", bytes: null, dir: "~/.local/share/wirecat" })
   useSystem.setState({
     readiness: {

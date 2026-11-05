@@ -17,9 +17,6 @@ function installed(...ids: string[]) {
     refresh: async () => undefined,
   })
 }
-
-beforeEach(() => useTools.setState(useTools.getInitialState(), true))
-
 const guide = (name: string) => screen.getByRole("article", { name })
 const promptOf = (box: HTMLElement) => (within(box).getByRole("textbox") as HTMLTextAreaElement).value
 const runsOf = (box: HTMLElement) => Array.from(box.querySelectorAll("code")).map((c) => c.textContent)
@@ -143,7 +140,6 @@ describe("Open in an agent", () => {
   ]
   beforeEach(async () => {
     vi.spyOn(platform, "detectAgents").mockResolvedValue(found)
-    useAgents.setState(useAgents.getInitialState(), true)
     // A detection an earlier guide test started may still be pending; let it land before the list is set.
     await useAgents.getState().detect()
     useAgents.setState({ agents: found })

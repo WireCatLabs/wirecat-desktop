@@ -25,7 +25,6 @@ const pending: (() => void)[] = []
 
 beforeEach(() => {
   useOnboarding.setState({ open: false })
-  useSignIn.setState(useSignIn.getInitialState(), true)
   vi.spyOn(platform, "signIn").mockImplementation((_id, _method, _profile, onEvent) => {
     send = (e) => act(() => onEvent(e))
     return new Promise((resolve) => {
