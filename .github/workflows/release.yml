@@ -71,9 +71,11 @@ jobs:
           fi
           # The id comes from the create call itself: the release list lags behind a new draft, and an empty id makes
           # tauri-action skip every upload while the build still passes.
+          # The notes are written before tagging (.claude/skills/release-notes), not generated from the PR list.
           if [ -z "${id:-}" ]; then
+            [ -s "docs/releases/${TAG#v}.md" ] || { echo "::error::docs/releases/${TAG#v}.md is missing."; exit 1; }
             id="$(gh api -X POST "repos/$GITHUB_REPOSITORY/releases" -f tag_name="$TAG" -f target_commitish="$GITHUB_SHA" \
-              -f name="WireCat ${TAG#v}" -F draft=true -F generate_release_notes=true --jq .id)"
+              -f name="WireCat ${TAG#v}" -F draft=true -F "body=@docs/releases/${TAG#v}.md" --jq .id)"
           fi
           if [ -z "${id:-}" ]; then
             echo "::error::Could not create or find the draft release for $TAG."
