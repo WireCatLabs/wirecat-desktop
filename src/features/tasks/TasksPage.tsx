@@ -264,7 +264,7 @@ function ViewSwitch({ value, onChange }: { value: View; onChange: (v: View) => v
             onChange={() => onChange(id)}
             className="peer sr-only"
           />
-          <span className="flex h-full cursor-pointer items-center gap-[0.4rem] rounded-[0.35rem] px-[0.65rem] text-[0.875rem] text-ink-soft transition-colors duration-150 peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand hover:text-ink">
+          <span className="flex h-full cursor-pointer items-center gap-[0.4rem] rounded-[0.35rem] px-[0.65rem] text-[0.875rem] text-ink-soft transition-colors duration-(--motion-fast) peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand hover:text-ink">
             {icon}
             {label}
           </span>

@@ -1,8 +1,9 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react"
+import { type CSSProperties, type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react"
 import { cx } from "./cx"
 import { MOTION, reducedMotion } from "./motion"
 
-export const FADE_MS = MOTION.normal
+/** How long the leaving view takes to fade out, unless the swap names its own `ms`. */
+export const FADE_MS = MOTION.exit
 
 type Layer = { key: string; node: ReactNode }
 
@@ -20,8 +21,11 @@ export function Crossfade(props: {
   className?: string
   /** `end` for a view that sits at the right of its cell (a row's button): the leaving copy keeps to that edge. */
   align?: "start" | "end"
+  /** One duration for both views, for a swap the eye should follow (a whole step); otherwise out `exit`, in `normal`. */
+  ms?: number
 }) {
-  const { swap, children, className, align = "start" } = props
+  const { swap, children, className, align = "start", ms } = props
+  const fade = ms === undefined ? undefined : ({ "--fade": `${ms}ms` } as CSSProperties)
   const edge = align === "end" ? "flex justify-end" : undefined
   const [leaving, setLeaving] = useState<Layer[]>([])
   const [current, setCurrent] = useState(swap)
@@ -47,9 +51,9 @@ export function Crossfade(props: {
 
   useEffect(() => {
     if (leaving.length === 0) return
-    const t = setTimeout(() => setLeaving([]), FADE_MS)
+    const t = setTimeout(() => setLeaving([]), ms ?? FADE_MS)
     return () => clearTimeout(t)
-  }, [leaving])
+  }, [leaving, ms])
 
   // One keyed list, so the view that starts leaving keeps its mounted instance instead of being rebuilt.
   const layers = [...leaving.map((l) => ({ ...l, out: true })), { key: swap, node: children, out: false }]
@@ -62,11 +66,12 @@ export function Crossfade(props: {
             inert
             aria-hidden
             className={cx("fade-out pointer-events-none absolute inset-x-0 top-0", edge)}
+            style={fade}
           >
             {l.node}
           </div>
         ) : (
-          <div key={l.key} ref={shownRef} className={cx(leaving.length > 0 && "fade-in", edge)}>
+          <div key={l.key} ref={shownRef} className={cx(leaving.length > 0 && "fade-in", edge)} style={fade}>
             {l.node}
           </div>
         ),

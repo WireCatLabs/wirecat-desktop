@@ -1,5 +1,5 @@
 import { Terminal } from "lucide-react"
-import { type ReactNode, useEffect, useRef } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { keyringFallback } from "@/domain/signin-notes"
 import { telegramNote } from "@/domain/telegram-signin"
@@ -9,12 +9,13 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { Dialog } from "@/ui/Dialog"
+import { MOTION } from "@/ui/motion"
 import { useTerminal } from "../tools/terminal-store"
 import { type SigninMessages, signinMessages } from "./messages"
 import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import { Plan } from "./Plan"
-import { Stage, stageKey } from "./Stages"
+import { type SignInView, Stage, stageKey } from "./Stages"
 import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "./store"
 import { KeyringNotice } from "./TelegramGuide"
 import { TelegramPath } from "./TelegramPath"
@@ -24,7 +25,8 @@ import { TelegramPath } from "./TelegramPath"
  * open, the questions the tool asks, then its progress.
  */
 export function SignInDialog() {
-  const s = useSignIn()
+  const live = useSignIn()
+  const s = useHeldSwitch(live)
   const m = useMessages(signinMessages)
   const tm = useMessages(telegramMessages)
   const tool = s.tool ? findTool(s.tool) : undefined
@@ -42,11 +44,11 @@ export function SignInDialog() {
   }, [ended])
 
   return (
-    <Dialog open={s.tool !== null} wide="xl" scroll title={m.title(name)} onClose={s.close} actions={<Actions />}>
-      <div ref={body} className="flex flex-col gap-3 text-[1rem]">
+    <Dialog open={live.tool !== null} wide="xl" scroll title={m.title(name)} onClose={live.close} actions={<Actions />}>
+      <div ref={body} className="flex flex-col gap-3 text-[1.1rem]">
         <p>{m.intro(<code className="font-mono text-ink">{s.profile}</code>, name)}</p>
         <Collapse open={notes.length > 0}>
-          <p className="selectable rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-[0.95rem] leading-snug text-ink">
+          <p className="selectable rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-body leading-snug text-ink">
             {notes.join(" ")}
           </p>
         </Collapse>
@@ -57,7 +59,9 @@ export function SignInDialog() {
         </Collapse>
         {/* One step fades into the next in the same place, and the box follows its height (rule 9). */}
         <AutoHeight swap={key}>
-          <Crossfade swap={key}>{s.phase === "plan" ? <Plan /> : <Stage name={name} s={s} />}</Crossfade>
+          <Crossfade swap={key} ms={MOTION.swap}>
+            {s.phase === "plan" ? <Plan /> : <Stage name={name} s={s} />}
+          </Crossfade>
         </AutoHeight>
         <p role="status" className="sr-only">
           {s.phase === "starting" && s.switchingTo
@@ -69,6 +73,31 @@ export function SignInDialog() {
       </div>
     </Dialog>
   )
+}
+
+/**
+ * A switch of method says "Switching to…" long enough to read, even when the tool answers at once: until `hold` has
+ * passed, the dialog keeps drawing the switching moment. Only the picture waits; the tool's next step is already in the
+ * store, and a failure or a close is shown at once.
+ */
+function useHeldSwitch(s: SignInView): SignInView {
+  const held = useRef<{ view: SignInView; until: number } | null>(null)
+  const [, redraw] = useState(0)
+  // On the keys step the switch keeps the keys on screen and says nothing, so there is nothing to read.
+  if (s.phase === "starting" && s.switchingTo && stageKey(s) === "starting") {
+    if (held.current?.view.run !== s.run) held.current = { view: s, until: Date.now() + MOTION.hold }
+    else held.current.view = s
+  }
+  const h = held.current
+  const wait = h && h.view.run === s.run && s.tool !== null && running(s.phase) ? h.until - Date.now() : 0
+  const holding = wait > 0
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one timer per held switch, not one per redraw
+  useEffect(() => {
+    if (!holding) return
+    const t = setTimeout(() => redraw((n) => n + 1), wait)
+    return () => clearTimeout(t)
+  }, [holding])
+  return holding && h ? h.view : s
 }
 
 function announcement(

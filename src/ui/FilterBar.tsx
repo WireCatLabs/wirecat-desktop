@@ -103,7 +103,7 @@ export function ToggleChip({
       aria-pressed={on}
       onClick={() => onChange(!on)}
       className={cx(
-        "flex h-8 cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] border px-[0.6rem] text-[0.875rem] transition-colors duration-150",
+        "flex h-8 cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] border px-[0.6rem] text-[0.875rem] transition-colors duration-(--motion-fast)",
         on
           ? "border-brand/50 bg-brand-soft text-ink hover:bg-brand/15 active:bg-brand/20"
           : "border-line-strong bg-app text-ink-soft hover:bg-app-2 hover:text-ink active:bg-app-3",

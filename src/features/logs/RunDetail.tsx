@@ -253,7 +253,10 @@ function Events(props: { events: RunEvent[]; onFilter: Filter; onGroup: (field: 
                     >
                       <ChevronRight
                         aria-hidden
-                        className={cx("size-[0.85rem] transition-transform duration-150", isOpen && "rotate-90")}
+                        className={cx(
+                          "size-[0.85rem] transition-transform duration-(--motion-fast)",
+                          isOpen && "rotate-90",
+                        )}
                       />
                     </button>
                   </td>

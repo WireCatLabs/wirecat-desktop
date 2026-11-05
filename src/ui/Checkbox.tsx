@@ -7,7 +7,7 @@ export function CheckMark({ on, round = false, className }: { on: boolean; round
     <span
       aria-hidden
       className={cx(
-        "grid size-[1rem] shrink-0 place-items-center border transition-colors duration-150",
+        "grid size-[1rem] shrink-0 place-items-center border transition-colors duration-(--motion-fast)",
         round ? "rounded-full" : "rounded-[0.25rem]",
         on ? "border-brand bg-brand text-brand-ink" : "border-ink-dim/55 bg-app",
         className,

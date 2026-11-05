@@ -45,7 +45,7 @@ import {
   TelegramScanSteps,
 } from "./TelegramGuide"
 
-const STAGE = "flex min-h-[19rem] flex-col items-center justify-center gap-3 text-center text-[1rem]"
+const STAGE = "flex min-h-[19rem] flex-col items-center justify-center gap-3 text-center text-[1.1rem]"
 
 const sentence = (s: string) => `${s.charAt(0).toUpperCase()}${s.slice(1)}${/[.!?…]$/.test(s) ? "" : "."}`
 
@@ -107,7 +107,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
       return result.problem === null ? tm.phonePreview(formatPhone(result.value)) : null
     }
     return (
-      <div className="flex min-h-[19rem] flex-col items-center justify-center gap-4 text-[1rem]">
+      <div className="flex min-h-[19rem] flex-col items-center justify-center gap-4 text-[1.1rem]">
         {s.url && !isTelegramApps(s.url) && <BrowserLink url={s.url} compact />}
         <AnswerForm
           need={s.need}
@@ -178,7 +178,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     const hints = telegram?.fix === "keys" ? keyHints(keptAnswer("api_id"), keptAnswer("api_hash")) : []
     const switchFailed = s.switchingTo ? tm.switchFailed[s.switchingTo] : undefined
     return (
-      <div className="flex min-h-[19rem] flex-col justify-center gap-4 text-[1rem]">
+      <div className="flex min-h-[19rem] flex-col justify-center gap-4 text-[1.1rem]">
         {switchFailed && <p className="font-medium text-ink">{switchFailed}</p>}
         {needsClientId ? (
           <ClientIdForm />
@@ -238,7 +238,7 @@ function KeysStage({ name, s }: { name: string; s: SignInView }) {
   }
   const next = s.method ? tm.next[s.method] : undefined
   return (
-    <div className="flex flex-col gap-5 py-1 text-[1rem]">
+    <div className="flex flex-col gap-5 py-1 text-[1.1rem]">
       <TelegramAppGuide url={s.url ?? APPS} />
       {/* Under the guide the field lines up with the steps' text, as their next step. */}
       <div className="flex flex-col gap-1 pl-[2.05rem]">
@@ -250,7 +250,7 @@ function KeysStage({ name, s }: { name: string; s: SignInView }) {
           initial={keptAnswer(need.field)}
           check={check}
         />
-        {next && <p className="text-[0.95rem] text-ink-dim">{next}</p>}
+        {next && <p className="text-body text-ink-dim">{next}</p>}
       </div>
     </div>
   )
@@ -270,7 +270,7 @@ function BrowserLink({ url, compact = false }: { url: OpenUrl; compact?: boolean
         compact ? "flex w-full max-w-[24rem] flex-col gap-2" : "flex max-w-[26rem] flex-col items-center gap-3"
       }
     >
-      <p className={compact ? "text-[0.95rem] text-ink-soft" : "text-[1rem] text-ink"}>
+      <p className={compact ? "text-body text-ink-soft" : "text-[1.1rem] text-ink"}>
         {url.purpose ? sentence(url.purpose) : m.continueOn(host)}
       </p>
       <div className={compact ? "self-start" : undefined}>
@@ -331,7 +331,7 @@ function ScanStage({
   const state = scannedAt !== null ? "accepted" : late !== null ? "late" : "scan"
   const scan = qr.scan ? `${qr.scan.charAt(0).toUpperCase()}${qr.scan.slice(1)}.` : null
   return (
-    <div className="flex min-h-[19rem] flex-wrap items-center justify-center gap-x-8 gap-y-4 py-2 text-[1rem]">
+    <div className="flex min-h-[19rem] flex-wrap items-center justify-center gap-x-8 gap-y-4 py-2 text-[1.1rem]">
       <QrImage text={qr.text} used={state !== "scan"} />
       <AutoHeight swap={state} className="min-w-[16rem] flex-1">
         <Crossfade swap={state}>
@@ -365,7 +365,7 @@ function Waiting({ title, seconds, body }: { title: string; seconds: number; bod
       <p className="flex items-center gap-2.5 font-medium text-ink">
         <LoaderCircle className="size-5 shrink-0 text-brand motion-safe:animate-spin" aria-hidden />
         <span>{title}</span>
-        <span className="font-mono text-[0.9rem] font-normal text-ink-dim tabular-nums">{m.elapsed(seconds)}</span>
+        <span className="font-mono text-[0.95rem] font-normal text-ink-dim tabular-nums">{m.elapsed(seconds)}</span>
       </p>
       <p className="text-ink-soft">{body}</p>
     </div>
@@ -398,7 +398,7 @@ function QrImage({ text, used = false }: { text: string; used?: boolean }) {
       viewBox={`0 0 ${size} ${size}`}
       shapeRendering="crispEdges"
       className={cx(
-        "size-[17rem] shrink-0 rounded-[0.35rem] border border-line transition-opacity duration-300 ease-out-quart",
+        "size-[17rem] shrink-0 rounded-[0.35rem] border border-line transition-opacity duration-(--motion-slow) ease-out-quart",
         used && "opacity-30",
       )}
     >
@@ -418,7 +418,7 @@ function ExpiresIn({ at }: { at: string }) {
     const timer = setInterval(() => setSeconds(left()), 1000)
     return () => clearInterval(timer)
   }, [at])
-  return <p className="text-[0.95rem] text-ink-dim tabular-nums">{seconds > 0 ? m.expiresIn(seconds) : m.expired}</p>
+  return <p className="text-body text-ink-dim tabular-nums">{seconds > 0 ? m.expiresIn(seconds) : m.expired}</p>
 }
 
 /** Zoom signs in with an app of the owner's own; its Public Client ID is saved with zm's own `config set`. */
@@ -464,7 +464,7 @@ function ClientIdForm() {
           {m.howToMakeApp}
         </Button>
       )}
-      <label htmlFor={id} className="mt-1 text-[1rem] font-medium text-ink">
+      <label htmlFor={id} className="mt-1 text-[1.1rem] font-medium text-ink">
         {m.clientId}
       </label>
       <input
@@ -479,9 +479,9 @@ function ClientIdForm() {
         }}
         aria-invalid={error !== null}
         aria-describedby={`${id}-error`}
-        className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
+        className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1.1rem] text-ink aria-[invalid=true]:border-bad"
       />
-      <p id={`${id}-error`} role={error ? "alert" : undefined} className="min-h-[1.3rem] text-[0.95rem] text-bad">
+      <p id={`${id}-error`} role={error ? "alert" : undefined} className="min-h-[1.3rem] text-body text-bad">
         {error}
       </p>
       <Button type="submit" variant="primary" disabled={saving} className="self-start">

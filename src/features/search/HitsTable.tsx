@@ -69,7 +69,7 @@ export function HitsTable(props: Props) {
                     if (!selectsTextIn(e.currentTarget)) onToggle(key)
                   }}
                   className={cx(
-                    "group h-[2.6rem] cursor-pointer border-line border-b transition-colors duration-150 hover:bg-app-2",
+                    "group h-[2.6rem] cursor-pointer border-line border-b transition-colors duration-(--motion-fast) hover:bg-app-2",
                     open && "bg-app-2",
                   )}
                 >
@@ -197,7 +197,7 @@ function HitFields({ hit, row, fieldOf, onFilter, onGroup }: FieldsProps) {
               <span className={cx("min-w-0 whitespace-pre-line break-words", r.mono && "font-mono text-[0.9rem]")}>
                 {r.value}
               </span>
-              <span className="flex shrink-0 gap-0.5 self-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
+              <span className="flex shrink-0 gap-0.5 self-center opacity-0 transition-opacity duration-(--motion-fast) group-hover:opacity-100 focus-within:opacity-100">
                 {field && r.value && (
                   <FieldButtons field={field} value={r.value} onFilter={onFilter} onGroup={onGroup} />
                 )}

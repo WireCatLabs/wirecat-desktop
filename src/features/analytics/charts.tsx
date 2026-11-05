@@ -88,7 +88,9 @@ export function ColumnChart({
     `${long(b.key)}: ${unit(b.total)}${series.length > 1 ? ` (${series.map((s) => `${s.label} ${formatNumber(b.values[s.id] ?? 0)}`).join(", ")})` : ""}`
 
   return (
-    <figure className={cx("m-0 flex flex-col gap-3 transition-opacity duration-300", stale && "opacity-55")}>
+    <figure
+      className={cx("m-0 flex flex-col gap-3 transition-opacity duration-(--motion-slow)", stale && "opacity-55")}
+    >
       {every.length > 1 && (
         <Legend series={every} {...(hidden ? { hidden } : {})} {...(onToggle ? { onToggle } : {})} />
       )}
@@ -129,7 +131,7 @@ export function ColumnChart({
               <div key={b.key} className="flex h-full min-w-0 flex-1 items-end justify-center">
                 <div
                   className={cx(
-                    "flex w-[min(1.5rem,68%)] flex-col-reverse gap-[2px] overflow-hidden rounded-t-[4px] transition-opacity duration-150",
+                    "flex w-[min(1.5rem,68%)] flex-col-reverse gap-[2px] overflow-hidden rounded-t-[4px] transition-opacity duration-(--motion-fast)",
                     active !== null && active !== i && "opacity-45",
                   )}
                   style={{ height: `${(b.total / max) * 100}%` }}
@@ -227,7 +229,10 @@ export function Legend({
           <>
             <span
               aria-hidden
-              className={cx("size-[0.65rem] rounded-[2px] border transition-opacity duration-150", off && "opacity-30")}
+              className={cx(
+                "size-[0.65rem] rounded-[2px] border transition-opacity duration-(--motion-fast)",
+                off && "opacity-30",
+              )}
               style={{ background: off ? "transparent" : s.color, borderColor: s.color }}
             />
             <span className={cx(off && "text-ink-dim line-through")}>{s.label}</span>
@@ -306,7 +311,7 @@ export function RankBars({
     <ol
       aria-label={label}
       className={cx(
-        "m-0 flex list-none flex-col gap-[0.55rem] p-0 transition-opacity duration-300",
+        "m-0 flex list-none flex-col gap-[0.55rem] p-0 transition-opacity duration-(--motion-slow)",
         stale && "opacity-55",
       )}
     >

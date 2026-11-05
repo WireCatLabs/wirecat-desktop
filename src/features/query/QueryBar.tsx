@@ -138,7 +138,7 @@ export function QueryBar(props: Props) {
     <div className="relative min-w-0 flex-1 basis-[26rem]">
       <div
         className={cx(
-          "relative flex h-[2.8rem] items-center rounded-[0.4rem] border bg-app transition-colors duration-150",
+          "relative flex h-[2.8rem] items-center rounded-[0.4rem] border bg-app transition-colors duration-(--motion-fast)",
           "focus-within:border-brand",
           problem ? "border-bad/70" : "border-line-strong",
         )}
@@ -335,7 +335,7 @@ function Highlight(props: Pick<Props, "query" | "parsed" | "problems"> & { cover
         <span
           key={s.start}
           className={cx(
-            "transition-opacity duration-150 motion-reduce:transition-none",
+            "transition-opacity duration-(--motion-fast) motion-reduce:transition-none",
             covered(s.term) && "opacity-0",
           )}
         >
@@ -406,7 +406,7 @@ function Chips(props: {
         onClick={() => props.onPick(term)}
         className={cx(
           "relative cursor-pointer whitespace-pre border-0 bg-transparent p-0 font-[inherit] text-transparent",
-          "transition-opacity duration-150 motion-reduce:transition-none",
+          "transition-opacity duration-(--motion-fast) motion-reduce:transition-none",
           hidden ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100",
         )}
       >

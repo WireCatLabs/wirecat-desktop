@@ -97,7 +97,7 @@ export function Bell() {
         <span
           aria-hidden
           className={cx(
-            "absolute top-[0.4rem] right-[0.4rem] size-[0.6rem] rounded-full ring-2 ring-wall transition-[opacity,scale] duration-200",
+            "absolute top-[0.4rem] right-[0.4rem] size-[0.6rem] rounded-full ring-2 ring-wall transition-[opacity,scale] duration-(--motion-normal)",
             security ? "bg-bad" : "bg-brand",
             count > 0 ? "scale-100 opacity-100" : "scale-50 opacity-0",
           )}
@@ -134,7 +134,7 @@ function Panel({ id, leaving }: { id: string; leaving: boolean }) {
       className={cx(
         "absolute top-[calc(100%-0.3rem)] right-0 z-30 flex max-h-[min(36rem,calc(100vh-5rem))] w-[27rem] flex-col overflow-hidden rounded-[0.6rem] border border-line bg-app shadow-panel",
         leaving
-          ? "pointer-events-none animate-[dialog-out_150ms_var(--ease-out-quart)_forwards]"
+          ? "pointer-events-none animate-[dialog-out_var(--motion-exit)_var(--ease-out-quart)_forwards]"
           : "motion-safe:animate-[select-in_160ms_var(--ease-out-quart)]",
       )}
     >

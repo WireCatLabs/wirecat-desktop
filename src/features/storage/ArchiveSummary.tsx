@@ -119,7 +119,7 @@ function Contents({ info }: { info: StoreInfo }) {
                 aria-pressed={dim === d}
                 onClick={() => setDim(d)}
                 className={cx(
-                  "rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-150",
+                  "rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-(--motion-fast)",
                   dim === d ? "bg-app-3 font-medium text-ink" : "text-ink-soft hover:bg-app-2 hover:text-ink",
                 )}
               >

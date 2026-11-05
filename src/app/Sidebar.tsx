@@ -70,7 +70,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
             title={m.version(__APP_VERSION__)}
             onClick={(e) => useHelpMenu.getState().toggle("version", e.currentTarget)}
             className={cx(
-              "-mx-[0.4rem] rounded-[0.35rem] px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-150 hover:bg-app-3 hover:text-ink",
+              "-mx-[0.4rem] rounded-[0.35rem] px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink",
               versionOpen && "bg-app-3 text-ink",
             )}
           >
@@ -114,7 +114,7 @@ function NavItem({
       <span
         aria-hidden
         className={cx(
-          "absolute inset-y-0 left-0 w-[4px] rounded-r-full bg-brand transition-transform duration-200",
+          "absolute inset-y-0 left-0 w-[4px] rounded-r-full bg-brand transition-transform duration-(--motion-normal)",
           current ? "scale-y-100" : "scale-y-0",
         )}
       />
@@ -129,7 +129,7 @@ function NavItem({
         <span
           aria-hidden
           className={cx(
-            "size-[0.5rem] shrink-0 rounded-full bg-brand transition-[opacity,scale] duration-300",
+            "size-[0.5rem] shrink-0 rounded-full bg-brand transition-[opacity,scale] duration-(--motion-slow)",
             badge ? "scale-100 opacity-100" : "scale-0 opacity-0",
           )}
         />

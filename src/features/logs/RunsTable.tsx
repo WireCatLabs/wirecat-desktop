@@ -179,7 +179,7 @@ export function RunsTable({
             if (!selectsTextIn(e.currentTarget)) onToggle(key, run)
           }}
           className={cx(
-            "group h-[2.6rem] cursor-pointer border-line border-b transition-colors duration-150 hover:bg-app-2",
+            "group h-[2.6rem] cursor-pointer border-line border-b transition-colors duration-(--motion-fast) hover:bg-app-2",
             open && "bg-app-2",
             fresh?.has(key) && "reveal",
           )}

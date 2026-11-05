@@ -16,6 +16,7 @@ import {
   rowBar,
   startOnboarding,
 } from "@/testing/onboarding"
+import { MOTION } from "@/ui/motion"
 import { failureWordsEn } from "../tools/failure-words"
 import { useTools } from "../tools/store"
 import { InstallTips } from "./InstallWait"
@@ -84,7 +85,9 @@ describe("one tool installing", () => {
     await npm.finish("drive", "0.30.0")
     await waitFor(() => expect(progressOf(overviewBar())).toBe(100))
     expect(within(installRow(DRIVE)).getByText(/0\.30\.0/)).toBeInTheDocument()
-    await waitFor(() => expect(rowBar(DRIVE)).toBeNull())
+    // The finished bar stays full for a moment before it folds away.
+    expect(progressOf(rowBar(DRIVE) as HTMLElement)).toBe(100)
+    await waitFor(() => expect(rowBar(DRIVE)).toBeNull(), { timeout: MOTION.hold + MOTION.slow + 1000 })
   })
 
   it("names the tool, its place in the batch and a time estimate", async () => {

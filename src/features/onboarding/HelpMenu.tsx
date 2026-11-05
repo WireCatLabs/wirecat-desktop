@@ -80,7 +80,7 @@ export function HelpMenu(actions: HelpActions) {
         <span
           aria-hidden
           className={cx(
-            "absolute top-[0.35rem] right-[0.35rem] size-[0.5rem] rounded-full bg-bad ring-2 ring-wall transition-[opacity,scale] duration-300",
+            "absolute top-[0.35rem] right-[0.35rem] size-[0.5rem] rounded-full bg-bad ring-2 ring-wall transition-[opacity,scale] duration-(--motion-slow)",
             trouble ? "scale-100 opacity-100" : "scale-0 opacity-0",
           )}
         />

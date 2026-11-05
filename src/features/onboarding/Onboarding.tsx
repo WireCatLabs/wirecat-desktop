@@ -1,5 +1,5 @@
 import { Check } from "lucide-react"
-import { type ComponentType, useEffect, useId, useRef } from "react"
+import { type ComponentType, useEffect, useId, useLayoutEffect, useRef } from "react"
 import {
   canOpen,
   computerGate,
@@ -17,7 +17,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
 import { uiMessages } from "@/ui/messages"
-import { reducedMotion } from "@/ui/motion"
+import { leaveBehind, reducedMotion, useLastChildren } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
 import { AgentsMatrix } from "../agents/AgentsMatrix"
 import { useSkillMatrix } from "../agents/skill-matrix"
@@ -115,7 +115,7 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
                   <span
                     aria-hidden
                     className={cx(
-                      "absolute top-[calc(50%+0.6rem)] left-[2.1rem] h-[1.25rem] w-[2px] -translate-x-1/2 transition-colors duration-300",
+                      "absolute top-[calc(50%+0.6rem)] left-[2.1rem] h-[1.25rem] w-[2px] -translate-x-1/2 transition-colors duration-(--motion-slow)",
                       done ? "bg-brand" : "bg-line-strong",
                     )}
                   />
@@ -138,7 +138,7 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
                   <span
                     aria-hidden
                     className={cx(
-                      "absolute inset-y-0 left-0 w-[4px] rounded-r-full bg-brand transition-transform duration-200",
+                      "absolute inset-y-0 left-0 w-[4px] rounded-r-full bg-brand transition-transform duration-(--motion-normal)",
                       here ? "scale-y-100" : "scale-y-0",
                     )}
                   />
@@ -146,7 +146,7 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
                     aria-hidden
                     className={cx(
                       "grid size-[1.2rem] shrink-0 place-items-center rounded-full font-mono text-[0.85rem] tabular-nums",
-                      "transition-colors duration-300",
+                      "transition-colors duration-(--motion-slow)",
                       here
                         ? "bg-brand text-brand-ink"
                         : done
@@ -214,6 +214,7 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
   const scroller = useRef<HTMLElement>(null)
   const headingId = useId()
   const shown = useRef(step)
+  const stage = useRef<HTMLDivElement>(null)
   const { go, finish } = useOnboarding.getState()
   // The Install and Done steps show each install in place; the others say only that one is still going.
   const stillInstalling = useUnfinishedInstalls().length > 0 && step !== "install" && step !== "done"
@@ -230,6 +231,19 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
     shown.current = step
     scroller.current?.scrollTo?.({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" })
     heading.current?.focus({ preventScroll: true })
+  }, [step])
+  // The step that left fades out where it was while the new one slides in over it.
+  const left = useRef(step)
+  const previous = useLastChildren(stage)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a ref from useLastChildren, read when the switch happens
+  useLayoutEffect(() => {
+    const el = stage.current
+    const view = scroller.current
+    if (left.current === step || !el || !view) return
+    left.current = step
+    const gone = previous.current.filter((c) => !c.isConnected)
+    const height = view.scrollTop + view.clientHeight - el.offsetTop
+    leaveBehind(gone, el, { top: 0, left: 0, width: el.clientWidth, height })
   }, [step])
 
   const page = m.pages[step]
@@ -278,21 +292,23 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
         )}
       >
         {/* Each step slides in where the last one was; the footer below stays put. */}
-        <div key={step} className="step-in flex flex-col gap-[1.5rem]">
-          <div className="flex flex-col gap-[0.8rem]">
-            <h1
-              ref={heading}
-              id={headingId}
-              tabIndex={-1}
-              className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]"
-              style={{ outline: "none" }}
-            >
-              {page.title}
-            </h1>
-            <p className="max-w-[60ch] text-[1.05rem] leading-relaxed text-ink-soft">{page.lead}</p>
-          </div>
+        <div ref={stage} className="relative flex flex-col">
+          <div key={step} className="step-in flex flex-col gap-[1.5rem]">
+            <div className="flex flex-col gap-[0.8rem]">
+              <h1
+                ref={heading}
+                id={headingId}
+                tabIndex={-1}
+                className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]"
+                style={{ outline: "none" }}
+              >
+                {page.title}
+              </h1>
+              <p className="max-w-[60ch] text-[1.05rem] leading-relaxed text-ink-soft">{page.lead}</p>
+            </div>
 
-          <Body />
+            <Body />
+          </div>
         </div>
 
         {step === "welcome" ? (

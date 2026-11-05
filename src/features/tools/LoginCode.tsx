@@ -55,7 +55,7 @@ export function LoginCode({
     <div className="flex flex-col gap-1">
       <div
         className={cx(
-          "rounded-[0.45rem] motion-safe:transition-shadow motion-safe:duration-300",
+          "rounded-[0.45rem] motion-safe:transition-shadow motion-safe:duration-(--motion-slow)",
           usedAfter !== null && "ring-2 ring-brand/50",
         )}
       >

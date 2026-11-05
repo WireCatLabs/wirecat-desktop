@@ -6,6 +6,7 @@ import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { MOCK_CODES } from "@/platform/mock-qr"
 import type { SignInEvent } from "@/platform/signin-schemas"
+import { MOTION } from "@/ui/motion"
 import { useOnboarding } from "../onboarding/store"
 import { recentErrors } from "../report/errors"
 import { useReport } from "../report/store"
@@ -235,8 +236,11 @@ describe("answering what the tool asks", () => {
       expect(platform.signIn).toHaveBeenLastCalledWith("tg", "phone", "work", expect.any(Function)),
     )
     send({ event: "needs", field: "phone", secret: false, prompt: "phone number, international format", hint: null })
-    await vi.waitFor(() =>
-      expect(within(dialog).queryByText("Switching to phone sign-in…", { selector: STAGE_TEXT })).toBeNull(),
+    // Long enough to read, even though tg asked at once.
+    expect(within(dialog).getByText("Switching to phone sign-in…", { selector: STAGE_TEXT })).toBeInTheDocument()
+    await vi.waitFor(
+      () => expect(within(dialog).queryByText("Switching to phone sign-in…", { selector: STAGE_TEXT })).toBeNull(),
+      { timeout: MOTION.hold + MOTION.swap + 1000 },
     )
     expect(within(dialog).getByRole("textbox", { name: "Phone number, international format" })).toHaveFocus()
 

@@ -84,7 +84,7 @@ function Stack({ frames }: { frames: string[] }) {
       >
         <ChevronRight
           aria-hidden
-          className={cx("size-[0.9rem] transition-transform duration-150", open && "rotate-90")}
+          className={cx("size-[0.9rem] transition-transform duration-(--motion-fast)", open && "rotate-90")}
         />
         {m.whereInTool(frames.length)}
       </button>

@@ -484,7 +484,7 @@ function Table(props: { hits: SearchHit[]; placeholders?: number; now: Date; bus
     <div
       aria-busy={busy}
       className={cx(
-        "overflow-hidden rounded-[0.2rem] border border-line-strong bg-app transition-opacity duration-200",
+        "overflow-hidden rounded-[0.2rem] border border-line-strong bg-app transition-opacity duration-(--motion-normal)",
         busy && hits.length > 0 && "opacity-60",
       )}
     >
@@ -594,7 +594,7 @@ function Empty({ children, busy = false }: { children: ReactNode; busy?: boolean
     <p
       aria-busy={busy}
       className={cx(
-        "rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft transition-opacity duration-200",
+        "rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft transition-opacity duration-(--motion-normal)",
         busy && "opacity-60",
       )}
     >

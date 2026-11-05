@@ -1,6 +1,7 @@
 import { useId, useRef } from "react"
 import { useMessages } from "@/i18n"
 import { Crossfade } from "@/ui/Crossfade"
+import { MOTION } from "@/ui/motion"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { telegramMessages } from "./messages-telegram"
 import { isPassword, type SignInView } from "./Stages"
@@ -24,7 +25,7 @@ function stepOf(s: SignInView): number | null {
 export function TelegramPath({ s }: { s: SignInView }) {
   const method = s.method ?? "qr"
   return (
-    <Crossfade swap={method}>
+    <Crossfade swap={method} ms={MOTION.swap}>
       <Path s={s} method={method} />
     </Crossfade>
   )
@@ -44,7 +45,7 @@ function Path({ s, method }: { s: SignInView; method: string }) {
     i < at ? "done" : i > at ? "todo" : s.phase === "failed" ? "failed" : "active"
   return (
     <section aria-labelledby={id} className="flex flex-col gap-3">
-      <h3 id={id} className="text-[1rem] font-semibold text-ink">
+      <h3 id={id} className="text-[1.15rem] font-semibold text-ink">
         {tm.method[method]}
       </h3>
       <Stepper steps={labels.map((label, i) => ({ label, state: state(i) }))} />

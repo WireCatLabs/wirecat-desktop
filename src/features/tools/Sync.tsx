@@ -125,7 +125,7 @@ function Progress({ run, m }: { run: SyncRun; m: Words }) {
           <div className="bar-indeterminate h-full rounded-full bg-brand" />
         ) : (
           <div
-            className="h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-300"
+            className="h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-(--motion-slow)"
             style={{ width: `${Math.max(3, pct)}%` }}
           />
         )}
@@ -349,7 +349,7 @@ export function RowSyncButton({
   return (
     <button
       type="button"
-      className="inline-flex size-9 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-150 hover:bg-app-3 hover:text-ink disabled:opacity-45"
+      className="inline-flex size-9 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink disabled:opacity-45"
       aria-label={running ? m.stopSyncing(name) : m.syncNamed(name)}
       title={running ? m.stopTitle : m.syncNow}
       disabled={running && info.run?.stopping}

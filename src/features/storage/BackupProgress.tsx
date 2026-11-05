@@ -23,7 +23,7 @@ export function BackupProgress({ progress, onCancel }: { progress: Progress; onC
           className={
             unknown
               ? "h-full w-full rounded-full bg-brand/60 motion-safe:animate-pulse"
-              : "h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-150"
+              : "h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-(--motion-fast)"
           }
           style={unknown ? undefined : { width: `${pct}%` }}
         />

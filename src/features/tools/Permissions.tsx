@@ -242,7 +242,7 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
           <ul
             aria-label={m.list(tool.name)}
             className={cx(
-              "divide-y divide-line rounded-[0.45rem] border border-line bg-app transition-opacity duration-150",
+              "divide-y divide-line rounded-[0.45rem] border border-line bg-app transition-opacity duration-(--motion-fast)",
               loading && "opacity-60",
             )}
           >

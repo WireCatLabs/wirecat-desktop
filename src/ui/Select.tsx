@@ -215,7 +215,7 @@ export function Select<T extends string>({
         </span>
         <ChevronDown
           className={cx(
-            "size-4 shrink-0 text-ink-dim transition-transform duration-150",
+            "size-4 shrink-0 text-ink-dim transition-transform duration-(--motion-fast)",
             open && "rotate-180 text-ink",
           )}
           aria-hidden

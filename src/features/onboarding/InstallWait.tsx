@@ -213,7 +213,7 @@ function TurnButton({ label, onClick, children }: { label: string; onClick: () =
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="inline-flex size-8 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-150 hover:bg-app-3 hover:text-ink"
+      className="inline-flex size-8 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
     >
       {children}
     </button>

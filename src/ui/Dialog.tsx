@@ -5,7 +5,7 @@ import { cx } from "./cx"
 import { uiMessages } from "./messages"
 import { MOTION, reducedMotion } from "./motion"
 
-const CLOSE_MS = MOTION.fast
+const CLOSE_MS = MOTION.exit
 
 type Props = {
   open: boolean
@@ -81,7 +81,7 @@ export function Dialog({ open, title, children, actions, onClose, wide = false, 
       onClick={onClose}
       // A dialog with nothing to choose starts on its way out; a field or a choice marked data-autofocus comes first.
       data-autofocus={shown.actions ? undefined : true}
-      className="absolute top-[1.1rem] right-[1.1rem] grid size-[2.1rem] place-items-center rounded-[0.4rem] text-ink-dim transition-colors duration-150 hover:bg-app-3 hover:text-ink"
+      className="absolute top-[1.1rem] right-[1.1rem] grid size-[2.1rem] place-items-center rounded-[0.4rem] text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
     >
       <X className="size-[1.15rem]" strokeWidth={1.8} aria-hidden />
     </button>
