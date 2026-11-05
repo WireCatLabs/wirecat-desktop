@@ -86,6 +86,17 @@ export function waitParts(seconds: number) {
  * Whether a retry may send the app keys typed before without asking: Telegram did not refuse them. A failure this
  * file cannot read may be about the keys, so it asks again.
  */
+export const MY_TELEGRAM = "my.telegram.org"
+
+/** tg's page for the app keys, which it opens before asking for them. */
+export const isTelegramAppsUrl = (url: string) => {
+  try {
+    return new URL(url).host === MY_TELEGRAM
+  } catch {
+    return false
+  }
+}
+
 export const keysStillGood = (failure: TelegramFailure | null) => failure !== null && failure.fix !== "keys"
 
 export type KeyField = "api_id" | "api_hash"

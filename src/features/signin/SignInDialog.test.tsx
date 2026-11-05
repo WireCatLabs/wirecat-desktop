@@ -13,10 +13,14 @@ import { NewProfile } from "../tools/Health"
 import { SignInDialog } from "./SignInDialog"
 import { useSignIn } from "./store"
 
+/** Text drawn in the dialog, not the line read out to a screen reader. */
+const STAGE_TEXT = "p:not([role=status])"
+
 const SCAN = "scan in WhatsApp → Settings → Linked devices → Link a device"
 
 let send: (e: SignInEvent) => void = () => undefined
 let finish: () => void = () => undefined
+const pending: (() => void)[] = []
 
 beforeEach(() => {
   useOnboarding.setState({ open: false })
@@ -25,13 +29,20 @@ beforeEach(() => {
     send = (e) => act(() => onEvent(e))
     return new Promise((resolve) => {
       finish = resolve
+      pending.push(resolve)
     })
   })
   vi.spyOn(platform, "signInStop").mockResolvedValue()
   vi.spyOn(platform, "signInAnswer").mockResolvedValue()
 })
 
-afterEach(() => {
+afterEach(async () => {
+  // The next test's run waits for these to end, as the tool runs one sign-in at a time; a run waiting for an earlier one
+  // starts once that one ends, so this repeats.
+  for (let round = 0; round < 5; round++) {
+    for (const end of pending.splice(0)) end()
+    await act(() => new Promise((done) => setTimeout(done, 0)))
+  }
   vi.restoreAllMocks()
   useReport.getState().close()
 })
@@ -97,19 +108,45 @@ describe("signing in to WhatsApp inside the window", () => {
     expect(screen.queryByRole("dialog")).toBeNull()
   })
 
-  it("asks the tool to stop on Escape and closes once it has stopped", async () => {
-    signInForm()
+  it("closes on Escape at once and stops the tool behind it, refreshing the accounts once it has ended", async () => {
+    const onCheck = signInForm()
     const dialog = await startAs("work")
     send({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: SCAN })
 
     // jsdom does not turn Escape into the dialog's cancel event, which the browser does.
     fireEvent(dialog, new Event("cancel", { cancelable: true }))
+    expect(screen.queryByRole("dialog")).toBeNull()
     expect(platform.signInStop).toHaveBeenCalledWith("wa")
-    expect(within(dialog).getByRole("button", { name: "Stopping…" })).toBeDisabled()
+    expect(onCheck).not.toHaveBeenCalled()
 
     send({ event: "stopped" })
     finish()
+    await vi.waitFor(() => expect(onCheck).toHaveBeenCalledOnce())
     expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("closes at once while the tool is still starting, and stops the run again once Rust has it", async () => {
+    signInForm()
+    const dialog = await startAs("personal")
+    expect(within(dialog).getByText(/Asking WhatsApp how to sign in/)).toBeInTheDocument()
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Close" }))
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(platform.signInStop).toHaveBeenCalledTimes(1)
+
+    // The first stop came before Rust registered the run; its first word shows it still runs, so it is stopped again.
+    send({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: SCAN })
+    expect(platform.signInStop).toHaveBeenCalledTimes(2)
+    expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("closes on Cancel at once too, without waiting for the tool", async () => {
+    signInForm()
+    const dialog = await startAs("personal")
+    send({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: SCAN })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Cancel" }))
+    expect(screen.queryByRole("dialog")).toBeNull()
+    expect(platform.signInStop).toHaveBeenCalledWith("wa")
   })
 
   it("shows the tool's refusal with Report this, and the report carries no code", async () => {
@@ -174,15 +211,84 @@ describe("answering what the tool asks", () => {
     expect(within(dialog).getByText(/is signed in as personal\./)).toBeInTheDocument()
   })
 
-  it("offers Telegram's other way in, and starts it after the running one stops", async () => {
+  it("switches to the phone number in plain sight: heading, steps, the way back, and a wait that says so", async () => {
     const dialog = await open("tg", "work")
     send({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: "scan in Telegram" })
+    expect(within(dialog).getByRole("heading", { name: "Sign in with a QR code" })).toBeInTheDocument()
+    const qrPath = within(dialog).getByRole("region", { name: "Sign in with a QR code" })
+    expect(within(qrPath).getByText("Scan the QR code")).toBeInTheDocument()
+
     await userEvent.click(within(dialog).getByRole("button", { name: "Use phone number instead" }))
     expect(platform.signInStop).toHaveBeenCalledWith("tg")
+    expect(within(dialog).getByRole("heading", { name: "Sign in with your phone number" })).toBeInTheDocument()
+    const phonePath = within(dialog).getByRole("region", { name: "Sign in with your phone number" })
+    expect(within(phonePath).getByText("Phone number")).toBeInTheDocument()
+    expect(within(phonePath).getByText("Code from Telegram")).toBeInTheDocument()
+    expect(within(phonePath).getByText("Two-step password, if set")).toBeInTheDocument()
+    expect(within(dialog).getByText("Switching to phone sign-in…", { selector: STAGE_TEXT })).toBeInTheDocument()
+    expect(within(dialog).queryByRole("img", { name: /QR code/ })).toBeNull()
+    expect(within(dialog).getByRole("button", { name: "Use QR code instead" })).toBeInTheDocument()
+    expect(within(dialog).queryByRole("button", { name: "Use phone number instead" })).toBeNull()
+
     finish()
     await vi.waitFor(() =>
       expect(platform.signIn).toHaveBeenLastCalledWith("tg", "phone", "work", expect.any(Function)),
     )
+    send({ event: "needs", field: "phone", secret: false, prompt: "phone number, international format", hint: null })
+    await vi.waitFor(() =>
+      expect(within(dialog).queryByText("Switching to phone sign-in…", { selector: STAGE_TEXT })).toBeNull(),
+    )
+    expect(within(dialog).getByRole("textbox", { name: "Phone number, international format" })).toHaveFocus()
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Use QR code instead" }))
+    expect(within(dialog).getByRole("heading", { name: "Sign in with a QR code" })).toBeInTheDocument()
+    expect(within(dialog).getByText("Switching to QR code sign-in…", { selector: STAGE_TEXT })).toBeInTheDocument()
+    finish()
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenLastCalledWith("tg", "qr", "work", expect.any(Function)))
+  })
+
+  it("says the switch failed, and why, when tg cannot start again", async () => {
+    const dialog = await open("tg", "work")
+    send({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: "scan in Telegram" })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Use phone number instead" }))
+    finish()
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalledTimes(2))
+    send({ event: "failed", code: null, message: "A Telegram sign-in is still running or stopping." })
+
+    expect(within(dialog).getByText("Could not switch to phone sign-in.")).toBeInTheDocument()
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("still running or stopping")
+    expect(within(dialog).queryByRole("img", { name: /QR code/ })).toBeNull()
+    expect(within(dialog).getByRole("button", { name: "Try again" })).toHaveFocus()
+  })
+
+  it("lets only digits and a leading plus into the phone number, cleans a paste and refuses a short number", async () => {
+    const user = userEvent.setup()
+    const dialog = await open("tg")
+    send({ event: "needs", field: "phone", secret: false, prompt: "phone number, international format", hint: null })
+    const field = within(dialog).getByRole("textbox", { name: "Phone number, international format" })
+    expect(within(dialog).getByText(/With \+ and the country code/)).toBeInTheDocument()
+
+    await user.type(field, "+3a4b-6")
+    expect(field).toHaveValue("+346")
+    await user.keyboard("{Enter}")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("This has 3 digits")
+    expect(platform.signInAnswer).not.toHaveBeenCalled()
+
+    await user.clear(field)
+    await user.click(field)
+    await user.paste("Phone: +34 (612) 345-678")
+    expect(field).toHaveValue("+34612345678")
+    expect(within(dialog).getByText("Telegram gets +34 612 345 678.")).toBeInTheDocument()
+    await user.keyboard("{Enter}")
+    expect(platform.signInAnswer).toHaveBeenCalledWith("tg", "+34612345678")
+  })
+
+  it("asks for the country code when a number comes without one", async () => {
+    const dialog = await open("tg")
+    send({ event: "needs", field: "phone", secret: false, prompt: "phone number, international format", hint: null })
+    await userEvent.type(within(dialog).getByRole("textbox", { name: /Phone number/ }), "612 345 678{Enter}")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Start with + and the country code")
+    expect(platform.signInAnswer).not.toHaveBeenCalled()
   })
 
   it("keeps Zoom's page beside the pasted-address fallback, and drops the question when the browser answers", async () => {
@@ -205,6 +311,7 @@ describe("answering what the tool asks", () => {
     vi.spyOn(platform, "settingsSet").mockResolvedValue()
     const dialog = await open("zm")
     send({ event: "failed", code: "configuration_error", message: "run zm config set zoom.client_id <id> first" })
+    finish()
     await userEvent.type(within(dialog).getByLabelText("Public Client ID"), "abcDEF123{Enter}")
     expect(platform.settingsSet).toHaveBeenCalledWith("zm", null, false, "zoom.client_id", "abcDEF123")
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalledTimes(2))
@@ -274,6 +381,7 @@ describe("Telegram's own app keys", () => {
     expect(JSON.stringify(useSignIn.getState())).not.toContain(FAKE_HASH)
 
     send({ event: "failed", code: "provider_error", message: "Telegram refused: API_ID_INVALID" })
+    finish()
     const alert = within(dialog).getByRole("alert")
     expect(alert).toHaveTextContent("did not accept the app keys")
     expect(alert).toHaveTextContent("API_ID_INVALID")

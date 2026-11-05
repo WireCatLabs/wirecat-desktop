@@ -6,8 +6,9 @@ import type { Platform } from "./types"
 // Each tool's sign-in as it streams it off a terminal with `--json --answer-stdin`. `?signin-fail=wa` makes WhatsApp
 // refuse after the first code, as when another wa holds the profile; `?signin-fail=zm` is Zoom without its own app's
 // Public Client ID, until one is saved. Telegram: `?signin-fail=tg-apiid` refuses the app keys once (the next try signs
-// in), `tg-flood` asks to wait seven minutes, `tg-code` says the login code expired; `?signin-keyring=file` is tg with
-// no system keyring, saving to a file instead. `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and
+// in), `tg-flood` asks to wait seven minutes, `tg-code` says the login code expired, `tg-switch` refuses every run
+// after the first, as when the last one has not stopped yet (a switch of method fails at once);
+// `?signin-keyring=file` is tg with no system keyring, saving to a file instead. `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and
 // tg says nothing for 12 s, as after a real scan (Telegram moves the login to the account's data centre);
 // `&signin-scanned=1` adds the progress line tg-cli could print at the scan.
 
@@ -24,6 +25,7 @@ const KEYRING_NOTE =
   "~/.config/tg-cli/credentials.json instead, readable only by you"
 
 let apiIdRefused = false
+let tgRuns = 0
 
 const WARNING = [
   "Before you link: wa is not an official WhatsApp app, and WhatsApp may ban an account that uses one.",
@@ -89,6 +91,13 @@ const scripts: Record<string, (s: Script, method: string) => Promise<SignInEvent
     return kept(18_400)
   },
   async tg(s, method) {
+    tgRuns += 1
+    if (fails === "tg-switch" && tgRuns > 1)
+      return {
+        event: "failed",
+        code: null,
+        message: "A Telegram sign-in is still running or stopping. Try again in a few seconds.",
+      }
     if (keyringFile) s.emit({ event: "note", text: KEYRING_NOTE })
     s.emit({
       event: "openUrl",

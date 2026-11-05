@@ -37,6 +37,10 @@ type Props = {
   /** The tool refused the last answer and asks again. */
   problem?: string | undefined
   check?: Check | undefined
+  /** What the field keeps of each keystroke or paste: a phone number drops everything but digits and a leading +. */
+  filter?: ((typed: string) => string) | undefined
+  /** Said under the field while the typed value is good: the number as it will be sent, for example. */
+  preview?: ((typed: string) => string | null) | undefined
 }
 
 /**
@@ -44,7 +48,19 @@ type Props = {
  * starts with `initial`, empty unless it asks again for app keys typed in this dialog. The button sits beside the
  * field, so the line under it can change length without moving the button under the pointer (rule 9).
  */
-export function AnswerForm({ need, sent, onAnswer, initial = "", note, hint, status, problem, check }: Props) {
+export function AnswerForm({
+  need,
+  sent,
+  onAnswer,
+  initial = "",
+  note,
+  hint,
+  status,
+  problem,
+  check,
+  filter,
+  preview,
+}: Props) {
   const id = useId()
   const m = useMessages(signinMessages)
   const input = useRef<HTMLInputElement>(null)
@@ -90,7 +106,7 @@ export function AnswerForm({ need, sent, onAnswer, initial = "", note, hint, sta
       {status ?? m.sent}
     </span>
   ) : (
-    (hint ?? (need.hint ? m.hint(need.hint) : m.private))
+    (value && preview?.(value)) || (hint ?? (need.hint ? m.hint(need.hint) : m.private))
   )
 
   return (
@@ -110,7 +126,7 @@ export function AnswerForm({ need, sent, onAnswer, initial = "", note, hint, sta
             value={value}
             disabled={sent}
             onChange={(e) => {
-              setValue(e.target.value)
+              setValue(filter ? filter(e.target.value) : e.target.value)
               setError(null)
             }}
             aria-describedby={`${id}-hint`}

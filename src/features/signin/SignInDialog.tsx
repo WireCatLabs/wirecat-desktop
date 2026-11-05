@@ -12,10 +12,12 @@ import { Dialog } from "@/ui/Dialog"
 import { useTerminal } from "../tools/terminal-store"
 import { type SigninMessages, signinMessages } from "./messages"
 import { planMessages } from "./messages-plan"
+import { telegramMessages } from "./messages-telegram"
 import { Plan } from "./Plan"
 import { Stage, stageKey } from "./Stages"
 import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "./store"
 import { KeyringNotice } from "./TelegramGuide"
+import { TelegramPath } from "./TelegramPath"
 
 /**
  * Signs a profile in with the tool's own sign-in, drawn in the window: a QR code, a code for the phone, a page to
@@ -24,6 +26,7 @@ import { KeyringNotice } from "./TelegramGuide"
 export function SignInDialog() {
   const s = useSignIn()
   const m = useMessages(signinMessages)
+  const tm = useMessages(telegramMessages)
   const tool = s.tool ? findTool(s.tool) : undefined
   const name = tool?.name ?? s.tool ?? ""
   const body = useRef<HTMLDivElement>(null)
@@ -48,14 +51,20 @@ export function SignInDialog() {
           </p>
         </Collapse>
         <Collapse open={keyring !== null}>{keyring && <KeyringNotice fallback={keyring} />}</Collapse>
+        {/* The plan lists the same path in full; once tg runs, this says which way in it is and where. */}
+        <Collapse open={s.tool === "tg" && s.phase !== "plan"}>
+          <TelegramPath s={s} />
+        </Collapse>
         {/* One step fades into the next in the same place, and the box follows its height (rule 9). */}
         <AutoHeight swap={key}>
           <Crossfade swap={key}>{s.phase === "plan" ? <Plan /> : <Stage name={name} s={s} />}</Crossfade>
         </AutoHeight>
         <p role="status" className="sr-only">
-          {s.phase === "scan" && s.scannedAt !== null
-            ? m.announce.scanned
-            : announcement(m.announce, s.phase, s.codes, s.progress?.step === "waiting", s.stopping, s.need?.prompt)}
+          {s.phase === "starting" && s.switchingTo
+            ? tm.switching[s.switchingTo]
+            : s.phase === "scan" && s.scannedAt !== null
+              ? m.announce.scanned
+              : announcement(m.announce, s.phase, s.codes, s.progress?.step === "waiting", s.stopping, s.need?.prompt)}
         </p>
       </div>
     </Dialog>
@@ -92,8 +101,8 @@ function Actions() {
       <>
         {others.map((other) =>
           tool && profile ? (
-            <Button key={other.id} variant="ghost" onClick={() => useSignIn.setState({ method: other.id })}>
-              {m.switchTo(other.id, other.label)}
+            <Button key="switch" variant="ghost" onClick={() => useSignIn.setState({ method: other.id })}>
+              <SwitchLabel id={other.id} label={other.label} />
             </Button>
           ) : null,
         )}
@@ -112,15 +121,16 @@ function Actions() {
         {others.map((method) =>
           tool && profile && phase !== "progress" ? (
             <Button
-              key={method.id}
+              key="switch"
               variant="ghost"
               onClick={() => start(tool, profile, onFinish ?? undefined, method.id, true)}
             >
-              {m.switchTo(method.id, method.label)}
+              <SwitchLabel id={method.id} label={method.label} />
             </Button>
           ) : null,
         )}
-        <Button variant="secondary" onClick={stop} disabled={stopping}>
+        {/* Cancel closes at once; only "Stop and keep" waits, to say what the phone sent before the stop. */}
+        <Button variant="secondary" onClick={receivingHistory(s) ? stop : close} disabled={stopping}>
           <Steady
             shown={stopping ? m.stopping : receivingHistory(s) ? m.stopKeep : m.cancel}
             others={[m.cancel, m.stopping]}
@@ -160,6 +170,16 @@ function Actions() {
     <Button variant="primary" onClick={close} data-autofocus>
       {m.done}
     </Button>
+  )
+}
+
+/** The other way in; after a switch the label fades to the way back, in the button's place. */
+function SwitchLabel({ id, label }: { id: string; label: string }) {
+  const m = useMessages(signinMessages)
+  return (
+    <Crossfade swap={id} className="inline-grid">
+      {m.switchTo(id, label)}
+    </Crossfade>
   )
 }
 

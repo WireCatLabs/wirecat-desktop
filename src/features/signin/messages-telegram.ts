@@ -1,3 +1,4 @@
+import type { PhoneProblem } from "@/domain/phone"
 import type { KeyHint, KeyProblem, TelegramFailureKind } from "@/domain/telegram-signin"
 import type { Messages } from "@/i18n"
 
@@ -45,6 +46,39 @@ const en = {
     qr: "After the keys: a QR code to scan with Telegram on your phone.",
     phone: "After the keys: your phone number, then the code Telegram sends.",
   } as Record<string, string>,
+  method: {
+    qr: "Sign in with a QR code",
+    phone: "Sign in with your phone number",
+  } as Record<string, string>,
+  path: {
+    qr: ["Scan the QR code", "Two-step password, if set"],
+    phone: ["Phone number", "Code from Telegram", "Two-step password, if set"],
+  } as Record<string, string[]>,
+  switching: {
+    qr: "Switching to QR code sign-in…",
+    phone: "Switching to phone sign-in…",
+  } as Record<string, string>,
+  switchingWhy: "Telegram's sign-in starts again the new way. This takes a few seconds.",
+  switchFailed: {
+    qr: "Could not switch to QR code sign-in.",
+    phone: "Could not switch to phone sign-in.",
+  } as Record<string, string>,
+  phoneHint: "With + and the country code, for example +34 612 345 678. Spaces and dashes are removed.",
+  phonePreview: (phone: string) => `Telegram gets ${phone}.`,
+  phoneProblem: (p: PhoneProblem): string => {
+    switch (p.problem) {
+      case "empty":
+        return "Type your phone number first, with + and the country code."
+      case "noCountry":
+        return "Start with + and the country code, for example +34 for Spain or +7 for Russia."
+      case "zeroCountry":
+        return "A country code never starts with 0. Type + and then the country code."
+      case "short":
+        return `This has ${p.digits} digits. A number with its country code has at least 8.`
+      case "long":
+        return `This has ${p.digits} digits. A number with its country code has at most 15.`
+    }
+  },
   keyProblem: (p: KeyProblem): string => {
     switch (p.problem) {
       case "empty":
@@ -186,6 +220,39 @@ const ru: typeof en = {
   next: {
     qr: "После ключей — QR-код, который нужно отсканировать в Telegram на телефоне.",
     phone: "После ключей — номер телефона, затем код от Telegram.",
+  },
+  method: {
+    qr: "Вход по QR-коду",
+    phone: "Вход по номеру телефона",
+  },
+  path: {
+    qr: ["Сканирование QR-кода", "Облачный пароль, если есть"],
+    phone: ["Номер телефона", "Код от Telegram", "Облачный пароль, если есть"],
+  },
+  switching: {
+    qr: "Переключаемся на вход по QR-коду…",
+    phone: "Переключаемся на вход по номеру телефона…",
+  },
+  switchingWhy: "Вход в Telegram начинается заново, новым способом. Это займёт несколько секунд.",
+  switchFailed: {
+    qr: "Не удалось переключиться на вход по QR-коду.",
+    phone: "Не удалось переключиться на вход по номеру телефона.",
+  },
+  phoneHint: "С + и кодом страны, например +7 912 345 6789. Пробелы и дефисы убираются.",
+  phonePreview: (phone) => `Telegram получит ${phone}.`,
+  phoneProblem: (p) => {
+    switch (p.problem) {
+      case "empty":
+        return "Сначала введите номер телефона с + и кодом страны."
+      case "noCountry":
+        return "Начните с + и кода страны, например +7 для России или +34 для Испании."
+      case "zeroCountry":
+        return "Код страны не начинается с 0. Введите + и затем код страны."
+      case "short":
+        return `Здесь ${p.digits} цифр. В номере с кодом страны их не меньше 8.`
+      case "long":
+        return `Здесь ${p.digits} цифр. В номере с кодом страны их не больше 15.`
+    }
   },
   keyProblem: (p) => {
     switch (p.problem) {
@@ -336,6 +403,39 @@ const es: typeof en = {
   next: {
     qr: "Después de las claves: un código QR para escanear con Telegram en el teléfono.",
     phone: "Después de las claves: tu número de teléfono y el código que envía Telegram.",
+  },
+  method: {
+    qr: "Iniciar sesión con un código QR",
+    phone: "Iniciar sesión con tu número de teléfono",
+  },
+  path: {
+    qr: ["Escanear el código QR", "Contraseña de dos pasos, si la hay"],
+    phone: ["Número de teléfono", "Código de Telegram", "Contraseña de dos pasos, si la hay"],
+  },
+  switching: {
+    qr: "Cambiando al inicio de sesión con código QR…",
+    phone: "Cambiando al inicio de sesión con el teléfono…",
+  },
+  switchingWhy: "El inicio de sesión de Telegram empieza de nuevo de la otra forma. Tarda unos segundos.",
+  switchFailed: {
+    qr: "No se pudo cambiar al inicio de sesión con código QR.",
+    phone: "No se pudo cambiar al inicio de sesión con el teléfono.",
+  },
+  phoneHint: "Con + y el prefijo del país, por ejemplo +34 612 345 678. Se quitan los espacios y guiones.",
+  phonePreview: (phone) => `Telegram recibe ${phone}.`,
+  phoneProblem: (p) => {
+    switch (p.problem) {
+      case "empty":
+        return "Primero escribe tu número con + y el prefijo del país."
+      case "noCountry":
+        return "Empieza con + y el prefijo del país, por ejemplo +34 para España o +52 para México."
+      case "zeroCountry":
+        return "Un prefijo de país nunca empieza por 0. Escribe + y después el prefijo."
+      case "short":
+        return `Tiene ${p.digits} dígitos. Un número con su prefijo tiene al menos 8.`
+      case "long":
+        return `Tiene ${p.digits} dígitos. Un número con su prefijo tiene como máximo 15.`
+    }
   },
   keyProblem: (p) => {
     switch (p.problem) {
