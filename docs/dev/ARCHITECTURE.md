@@ -20,6 +20,11 @@ src-tauri/src/
   lib.rs        Tauri commands: the whole native surface, one function each.
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
   catalog.rs    the same tools.json, compiled in; profile validation.
+  community.rs  community tools (made outside WireCatLabs) added to that catalog at start, from
+                `<app data>/extra-tools.json` while `WIRECAT_EXTRA_TOOLS=1` is set; every word plain, no name or data
+                folder of ours, no `@wirecat` package. `extra_tools` hands the accepted entries to the interface, which
+                loads them before any page module (`src/main.tsx` imports `src/start.tsx` after). See
+                [cli-registry.md](cli-registry.md).
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
   npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
@@ -72,7 +77,9 @@ src-tauri/src/
   redact.rs     masking tokens, numbers, addresses and names in tool output.
   names.rs      the chat titles and contact names the messengers keep, read per profile with their own offline
                 `chats list` / `contacts list`, held in memory only, so doctor output and reports mask them.
-  terminal.rs   opening a tool's interactive setup in the user's terminal.
+  terminal.rs   opening a tool's interactive setup in the user's terminal: the line runs in the user's own shell
+                (`paths::user_shell`) as a new window starts it, quoted for POSIX or fish, then `exec`s that shell so
+                the window stays open; a shell the app does not know runs the line in `/bin/sh` first.
   agent_run.rs  `run_agent`: Claude Code, Codex or Gemini CLI opened in a terminal with a prompt saved to a private file
                 (Fix › under an error, Open in on a guide); only those three programs, found on PATH.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
@@ -573,7 +580,7 @@ the page down. Only the user's own click may change the layout.
 - **Numbers** use `tabular-nums` (or the mono font), so a count changing from 9 to 10 does not move its neighbours.
 - **`.reveal`** fades content in where its placeholder was. Under reduced motion it is instant.
 - **Global:** `main` reserves the scrollbar's gutter, so a page growing past the window does not narrow and re-wrap,
-  and `src/main.tsx` renders after the bundled fonts load, so the first frame is not laid out in a fallback font.
+  and `src/start.tsx` renders after the bundled fonts load, so the first frame is not laid out in a fallback font.
 
 **How to check.** On the browser build:
 

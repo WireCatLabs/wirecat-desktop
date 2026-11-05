@@ -1,12 +1,15 @@
 use crate::paths;
+use std::ffi::OsString;
 use std::path::Path;
-use std::process::{Command, Stdio};
+#[cfg(not(target_os = "macos"))]
+use std::process::Command;
+#[cfg(target_os = "linux")]
+use std::process::Stdio;
 
 /// Setup flows (QR codes, phone codes, browser sign-in) belong to the CLI, so we open them
 /// in the user's terminal instead of re-implementing them.
 pub fn open(bin: &Path, args: &[String]) -> Result<(), String> {
-    let line = with_path(format!("{} {}", quote(&bin.to_string_lossy()), args.join(" ")));
-    launch(&line).map_err(|e| {
+    open_in_shell(bin, args, false).map_err(|e| {
         let run = format!("{} {}", bin.file_name().unwrap_or_default().to_string_lossy(), args.join(" "));
         if e.kind() == std::io::ErrorKind::PermissionDenied {
             format!("{AUTOMATION} Or run this yourself: {run}")
@@ -18,11 +21,7 @@ pub fn open(bin: &Path, args: &[String]) -> Result<(), String> {
 
 /// Like `open`, but every argument is quoted: they can hold free text (a sentence around a file path).
 pub fn open_agent(bin: &Path, args: &[String]) -> Result<(), String> {
-    let quoted: Vec<String> = args.iter().map(|a| quote(a)).collect();
-    let line = with_path(format!("{} {}", quote(&bin.to_string_lossy()), quoted.join(" ")));
-    // cmd drops the first and last quote of a `/k` line that starts with one; the extra pair is what it eats.
-    let line = if cfg!(windows) { format!("\"{line}\"") } else { line };
-    launch(&line).map_err(|e| {
+    open_in_shell(bin, args, true).map_err(|e| {
         if e.kind() == std::io::ErrorKind::PermissionDenied {
             AUTOMATION.to_string()
         } else {
@@ -36,14 +35,18 @@ pub fn is_automation(message: &str) -> bool {
     message == AUTOMATION
 }
 
+/// The line runs in the shell the user's own terminal runs, not `sh`, so their rc files apply (an agent's API key
+/// exported in `.zshrc`) and the window stays in that shell when the command ends.
+fn open_in_shell(bin: &Path, args: &[String], quote_args: bool) -> std::io::Result<()> {
+    let shell = paths::user_shell();
+    let syntax = line_syntax(shell.as_deref());
+    launch(shell.as_deref(), &command_line(syntax, bin, args, quote_args, app_node_path().as_deref()), syntax)
+}
+
 /// The new terminal reads the user's own PATH, where an older Node may come first; a tool installed with
 /// `WireCat`'s Node.js would then start under it and fail. `env` works the same from sh, zsh and fish.
-fn with_path(line: String) -> String {
-    if cfg!(unix) && crate::node::in_use().is_some() {
-        format!("env PATH={} {line}", quote(&paths::search_path().to_string_lossy()))
-    } else {
-        line
-    }
+fn app_node_path() -> Option<OsString> {
+    (cfg!(unix) && crate::node::in_use().is_some()).then(paths::search_path)
 }
 
 /// macOS asks once whether `WireCat` may control Terminal; after a No, every `do script` fails with error -1743.
@@ -51,19 +54,95 @@ const AUTOMATION: &str = "macOS did not let WireCat open Terminal. Allow it in S
 Automation, under WireCat.";
 
 /// A fixed line from `tailscale::terminal_line`: Tailscale's own install command. It asks for the password itself;
-/// the app runs no `sudo`.
+/// the app runs no `sudo`. It is written for `sh`, so a fish user's terminal gets it through `/bin/sh`.
 pub fn open_line(line: &str) -> Result<(), String> {
-    launch(line).map_err(|_| format!("Could not open a terminal. Run this yourself: {line}"))
+    launch(paths::user_shell().as_deref(), line, Syntax::Posix)
+        .map_err(|_| format!("Could not open a terminal. Run this yourself: {line}"))
 }
 
-/// Arguments are validated catalog words and profile names; only the binary path can hold spaces.
-fn quote(s: &str) -> String {
-    if cfg!(windows) { format!("\"{s}\"") } else { format!("'{}'", s.replace('\'', r"'\''")) }
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Syntax {
+    Posix,
+    Fish,
+    Cmd,
+}
+
+/// The syntax `shell` reads, for the shells the app knows; `None` for any other (nu, xonsh, elvish).
+fn reads(shell: &Path) -> Option<Syntax> {
+    match shell.file_name()?.to_str()? {
+        "sh" | "bash" | "zsh" | "dash" | "ksh" | "ksh93" | "mksh" | "ash" | "yash" => Some(Syntax::Posix),
+        "fish" => Some(Syntax::Fish),
+        _ => None,
+    }
+}
+
+/// Windows has no user shell here and runs cmd; a shell the app does not know gets a POSIX line run by `/bin/sh`.
+fn line_syntax(shell: Option<&Path>) -> Syntax {
+    match shell {
+        None => Syntax::Cmd,
+        Some(s) => reads(s).unwrap_or(Syntax::Posix),
+    }
+}
+
+/// Arguments are validated catalog words and profile names (plain in every shell); only the binary path, the PATH
+/// value and an agent's sentence can hold spaces or quotes. fish reads `\\` and `\'` inside single quotes, so its
+/// backslashes are doubled; POSIX takes everything literally up to the next quote.
+fn quote(syntax: Syntax, s: &str) -> String {
+    match syntax {
+        Syntax::Posix => format!("'{}'", s.replace('\'', r"'\''")),
+        Syntax::Fish => format!("'{}'", s.replace('\\', r"\\").replace('\'', r"\'")),
+        Syntax::Cmd => format!("\"{s}\""),
+    }
+}
+
+fn command_line(
+    syntax: Syntax,
+    bin: &Path,
+    args: &[String],
+    quote_args: bool,
+    path: Option<&std::ffi::OsStr>,
+) -> String {
+    let args: Vec<String> = if quote_args { args.iter().map(|a| quote(syntax, a)).collect() } else { args.to_vec() };
+    let line = format!("{} {}", quote(syntax, &bin.to_string_lossy()), args.join(" "));
+    let line = match path {
+        Some(p) if syntax != Syntax::Cmd => format!("env PATH={} {line}", quote(syntax, &p.to_string_lossy())),
+        _ => line,
+    };
+    // cmd drops the first and last quote of a `/k` line that starts with one; the extra pair is what it eats.
+    if syntax == Syntax::Cmd && quote_args { format!("\"{line}\"") } else { line }
+}
+
+/// The program and arguments a Linux terminal is given: the user's shell runs the line the way a new window starts
+/// it, then becomes that shell (`exec`), so the window stays open like any terminal. A line in another syntax runs
+/// in `/bin/sh` first.
+#[cfg(all(unix, any(target_os = "linux", test)))]
+fn shell_argv(shell: &Path, line: &str, syntax: Syntax) -> Vec<String> {
+    let name = shell.to_string_lossy();
+    if reads(shell) == Some(syntax) {
+        let flags = paths::terminal_flags(shell, true);
+        // Linux terminals start bash without `-l` (see `terminal_flags`); every other shell as a login shell.
+        let again = if flags == "-ic" { String::new() } else { " -l".to_string() };
+        return vec![name.to_string(), flags.to_string(), format!("{line}; exec {}{again}", quote(syntax, &name))];
+    }
+    let again = if reads(shell).is_some() { " -l" } else { "" };
+    vec!["/bin/sh".into(), "-c".into(), format!("{line}; exec {}{again}", quote(Syntax::Posix, &name))]
+}
+
+/// What Terminal types into its new window. That window already runs the user's shell and stays open; only a line in
+/// another syntax is wrapped in `/bin/sh -c`.
+#[cfg(all(unix, any(target_os = "macos", test)))]
+fn terminal_app_script(shell: Option<&Path>, line: &str, syntax: Syntax) -> String {
+    let typed = match shell.and_then(reads) {
+        Some(s) if s == syntax => line.to_string(),
+        _ => format!("/bin/sh -c {}", quote(Syntax::Posix, line)),
+    };
+    let escaped = typed.replace('\\', "\\\\").replace('"', "\\\"");
+    format!("tell application \"Terminal\" to do script \"{escaped}\"")
 }
 
 #[cfg(target_os = "linux")]
-fn launch(line: &str) -> std::io::Result<()> {
-    let script = format!("{line}; echo; printf 'Press Enter to close. '; read _");
+fn launch(shell: Option<&Path>, line: &str, syntax: Syntax) -> std::io::Result<()> {
+    let argv = shell_argv(shell.unwrap_or(Path::new("/bin/sh")), line, syntax);
     let path = paths::search_path();
     let mut candidates: Vec<(String, Vec<&str>)> = Vec::new();
     if let Ok(t) = std::env::var("TERMINAL") {
@@ -87,7 +166,7 @@ fn launch(line: &str) -> std::io::Result<()> {
         let Some(exe) = paths::find(&term) else { continue };
         let spawned = Command::new(exe)
             .args(flag)
-            .args(["sh", "-c", &script])
+            .args(&argv)
             .env("PATH", &path)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -117,16 +196,10 @@ fn exited_with_error(child: &mut std::process::Child) -> bool {
 }
 
 #[cfg(target_os = "macos")]
-fn launch(line: &str) -> std::io::Result<()> {
-    let escaped = line.replace('\\', "\\\\").replace('"', "\\\"");
+fn launch(shell: Option<&Path>, line: &str, syntax: Syntax) -> std::io::Result<()> {
     // Waited for, not only spawned: a refused Automation permission is known only from osascript's exit.
-    let out = Command::new("osascript")
-        .args([
-            "-e",
-            &format!("tell application \"Terminal\" to do script \"{escaped}\""),
-            "-e",
-            "tell application \"Terminal\" to activate",
-        ])
+    let out = std::process::Command::new("osascript")
+        .args(["-e", &terminal_app_script(shell, line, syntax), "-e", "tell application \"Terminal\" to activate"])
         .output()?;
     if out.status.success() {
         Ok(())
@@ -140,11 +213,137 @@ fn launch(line: &str) -> std::io::Result<()> {
 // `start` reads its first quoted argument as the window title, and cmd does not understand Rust's
 // backslash-escaped quotes, so the command line is passed raw.
 #[cfg(windows)]
-fn launch(line: &str) -> std::io::Result<()> {
+fn launch(_shell: Option<&Path>, line: &str, _syntax: Syntax) -> std::io::Result<()> {
     use std::os::windows::process::CommandExt;
     Command::new("cmd")
         .raw_arg(format!("/c start \"WireCat\" cmd /k {line}"))
         .env("PATH", paths::search_path())
         .spawn()
         .map(|_| ())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::ffi::OsStr;
+
+    fn words(list: &[&str]) -> Vec<String> {
+        list.iter().map(ToString::to_string).collect()
+    }
+
+    const SENTENCE: &str = "Read the file /home/o'neil/a\\b.md and follow it.";
+
+    #[test]
+    fn knows_each_shells_syntax() {
+        assert_eq!(line_syntax(Some(Path::new("/usr/bin/zsh"))), Syntax::Posix);
+        assert_eq!(line_syntax(Some(Path::new("/bin/bash"))), Syntax::Posix);
+        assert_eq!(line_syntax(Some(Path::new("/usr/bin/fish"))), Syntax::Fish);
+        assert_eq!(line_syntax(Some(Path::new("/usr/bin/nu"))), Syntax::Posix);
+        assert_eq!(reads(Path::new("/usr/bin/nu")), None);
+        assert_eq!(line_syntax(None), Syntax::Cmd);
+    }
+
+    #[test]
+    fn quotes_a_sentence_for_posix_and_for_fish() {
+        assert_eq!(quote(Syntax::Posix, SENTENCE), r"'Read the file /home/o'\''neil/a\b.md and follow it.'");
+        assert_eq!(quote(Syntax::Fish, SENTENCE), r"'Read the file /home/o\'neil/a\\b.md and follow it.'");
+    }
+
+    #[test]
+    fn leaves_catalog_words_plain_unless_asked() {
+        let bin = Path::new("/home/u/My Tools/tg");
+        let args = words(&["personal", "session", "start"]);
+        assert_eq!(
+            command_line(Syntax::Posix, bin, &args, false, None),
+            "'/home/u/My Tools/tg' personal session start"
+        );
+        let path = Some(OsStr::new("/a b:/usr/bin"));
+        assert_eq!(
+            command_line(Syntax::Fish, bin, &args, false, path),
+            "env PATH='/a b:/usr/bin' '/home/u/My Tools/tg' personal session start"
+        );
+    }
+
+    #[test]
+    fn windows_line_is_unchanged() {
+        let bin = Path::new(r"C:\Users\u\AppData\Roaming\npm\claude.cmd");
+        let args = words(&["Read the file x.md"]);
+        assert_eq!(
+            command_line(Syntax::Cmd, bin, &args, true, Some(OsStr::new("ignored"))),
+            r#"""C:\Users\u\AppData\Roaming\npm\claude.cmd" "Read the file x.md"""#
+        );
+        assert_eq!(
+            command_line(Syntax::Cmd, bin, &words(&["setup"]), false, None),
+            format!("\"{}\" setup", bin.display())
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn zsh_runs_the_line_as_a_login_shell_and_stays_in_zsh() {
+        let line = command_line(Syntax::Posix, Path::new("/usr/bin/claude"), &words(&[SENTENCE]), true, None);
+        assert_eq!(
+            shell_argv(Path::new("/usr/bin/zsh"), &line, Syntax::Posix),
+            words(&[
+                "/usr/bin/zsh",
+                "-lic",
+                r"'/usr/bin/claude' 'Read the file /home/o'\''neil/a\b.md and follow it.'; exec '/usr/bin/zsh' -l",
+            ])
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn bash_runs_the_line_as_linux_terminals_start_it() {
+        assert_eq!(
+            shell_argv(Path::new("/bin/bash"), "'/b/tg' personal setup", Syntax::Posix),
+            words(&["/bin/bash", "-ic", "'/b/tg' personal setup; exec '/bin/bash'"])
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn fish_gets_a_fish_line() {
+        let line = command_line(Syntax::Fish, Path::new("/usr/bin/claude"), &words(&[SENTENCE]), true, None);
+        assert_eq!(
+            shell_argv(Path::new("/usr/bin/fish"), &line, Syntax::Fish),
+            words(&[
+                "/usr/bin/fish",
+                "-lic",
+                r"'/usr/bin/claude' 'Read the file /home/o\'neil/a\\b.md and follow it.'; exec '/usr/bin/fish' -l",
+            ])
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_posix_line_for_fish_or_an_unknown_shell_runs_in_sh_first() {
+        let line = "curl -fsSL https://tailscale.com/install.sh | sh";
+        assert_eq!(
+            shell_argv(Path::new("/usr/bin/fish"), line, Syntax::Posix),
+            words(&["/bin/sh", "-c", &format!("{line}; exec '/usr/bin/fish' -l")])
+        );
+        assert_eq!(
+            shell_argv(Path::new("/usr/bin/nu"), "'/b/tg' setup", Syntax::Posix),
+            words(&["/bin/sh", "-c", "'/b/tg' setup; exec '/usr/bin/nu'"])
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn terminal_app_types_the_line_for_its_shell() {
+        let posix = r"'/b/claude' 'it'\''s'";
+        assert_eq!(
+            terminal_app_script(Some(Path::new("/bin/zsh")), posix, Syntax::Posix),
+            r#"tell application "Terminal" to do script "'/b/claude' 'it'\\''s'""#
+        );
+        assert_eq!(
+            terminal_app_script(Some(Path::new("/opt/homebrew/bin/fish")), r"'/b/claude' 'it\'s'", Syntax::Fish),
+            r#"tell application "Terminal" to do script "'/b/claude' 'it\\'s'""#
+        );
+        assert_eq!(
+            terminal_app_script(Some(Path::new("/opt/homebrew/bin/nu")), "'/b/tg' setup", Syntax::Posix),
+            r#"tell application "Terminal" to do script "/bin/sh -c ''\\''/b/tg'\\'' setup'""#
+        );
+    }
 }

@@ -8,6 +8,9 @@ const CATALOG_JSON: &str = include_str!("../../catalog/tools.json");
 pub struct Catalog {
     pub tools: Vec<Tool>,
     pub shared_storage: Storage,
+    /// Community tools added from `community.rs`, as written, and the entries it left out.
+    #[serde(skip)]
+    pub extra: crate::community::Extra,
 }
 
 #[derive(Debug, Deserialize)]
@@ -270,7 +273,15 @@ pub struct ProfileSource {
 
 pub fn catalog() -> &'static Catalog {
     static CATALOG: OnceLock<Catalog> = OnceLock::new();
-    CATALOG.get_or_init(|| serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid"))
+    CATALOG.get_or_init(|| {
+        let mut catalog: Catalog = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
+        if let Some(text) = crate::community::read() {
+            let (tools, extra) = crate::community::parse(&text, &catalog);
+            catalog.tools.extend(tools);
+            catalog.extra = extra;
+        }
+        catalog
+    })
 }
 
 pub fn tool(id: &str) -> Result<&'static Tool, String> {

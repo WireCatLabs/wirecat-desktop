@@ -1,6 +1,15 @@
 import { Bot, CheckCircle2, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
-import { type CatalogTool, findTool, ownerId, samePackage, signsInHere, tools } from "@/domain/catalog"
+import {
+  type CatalogTool,
+  findTool,
+  isCommunity,
+  maker,
+  ownerId,
+  samePackage,
+  signsInHere,
+  tools,
+} from "@/domain/catalog"
 import { accountReady, afterSignIn } from "@/domain/onboarding-flow"
 import { toolStatus } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
@@ -150,9 +159,15 @@ export function Choose() {
                   <span className="text-[1.02rem] font-semibold">{t.name}</span>
                   <span className="font-mono text-[0.9rem] text-ink-soft">{t.bin}</span>
                   {t.partOf && <Pill>{m.partOf(findTool(t.partOf)?.name ?? t.partOf)}</Pill>}
+                  {isCommunity(t) && <Pill>{tm.row.community}</Pill>}
                   {installed && <Pill tone="brand">{m.installed}</Pill>}
                 </span>
                 <span className="mt-0.5 block text-[0.9rem] leading-snug text-ink-soft">{toolText(tm, t).tagline}</span>
+                {isCommunity(t) && !installed && (
+                  <span className="mt-0.5 block text-[0.85rem] leading-snug text-ink-soft">
+                    {tm.row.trust(maker(t))}
+                  </span>
+                )}
               </span>
             </>
           )

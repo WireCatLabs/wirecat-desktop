@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react"
 import { useRef } from "react"
-import { type CatalogTool, findTool, ownerId } from "@/domain/catalog"
+import { type CatalogTool, findTool, isCommunity, maker, ownerId } from "@/domain/catalog"
 import { fitSeverity } from "@/domain/compat"
 import { type ToolStatus, toolStatus } from "@/domain/status"
 import { useMessages } from "@/i18n"
@@ -108,6 +108,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             {tool.name}
             <span className="font-mono text-[0.95rem] font-normal text-ink-soft">{tool.bin}</span>
             {tool.partOf && <Pill>{m.partOf(findTool(tool.partOf)?.name ?? tool.partOf)}</Pill>}
+            {isCommunity(tool) && <Pill>{m.community}</Pill>}
             {(installs?.length ?? 0) > 1 && <Pill tone="warn">{m.copies(installs?.length ?? 0)}</Pill>}
             <ExpandChevron open={open} className="self-center group-hover:text-brand" />
           </h3>
@@ -133,6 +134,8 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
                 {app.claimedName ?? m.browserApp} · {activityOf(app)}
               </span>
             </p>
+          ) : isCommunity(tool) && !installs?.length ? (
+            <p className="mt-1 line-clamp-2 text-[0.95rem] text-ink-soft">{m.trust(maker(tool))}</p>
           ) : (
             <p className="mt-1 truncate text-[0.95rem] text-ink-soft">{toolText(t, tool).tagline}</p>
           )}
