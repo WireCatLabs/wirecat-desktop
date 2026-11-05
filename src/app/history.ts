@@ -1,6 +1,6 @@
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react"
-import { useNav } from "@/features/nav"
 import { platform } from "@/platform/bridge"
+import { useNav } from "@/shared/nav"
 import { arrive, leaveBehind, useLastChildren } from "@/ui/motion"
 
 const BACK = 3

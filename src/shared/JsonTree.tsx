@@ -2,8 +2,8 @@ import { Check, ChevronRight, Copy, Filter, FilterX, Group } from "lucide-react"
 import { useEffect, useState } from "react"
 import { inlineJson } from "@/domain/runs"
 import { useMessages } from "@/i18n"
+import { sharedMessages } from "@/shared/messages"
 import { cx } from "@/ui/cx"
-import { logsMessages } from "./messages"
 
 /** Maps a leaf's path to a run field the query can filter on, or null when no run summary carries it. */
 export type FieldOf = (path: string[]) => string | null
@@ -40,7 +40,7 @@ function Children({ value, path, depth, ...rest }: NodeProps) {
 }
 
 function Node({ name, value, path, depth, fieldOf, onFilter, onGroup }: NodeProps & { name: string }) {
-  const m = useMessages(logsMessages)
+  const m = useMessages(sharedMessages)
   const nested = value !== null && typeof value === "object"
   const size = nested ? (Array.isArray(value) ? value.length : Object.keys(value as object).length) : 0
   const [open, setOpen] = useState(depth < 3 && size <= 12)
@@ -133,7 +133,7 @@ function LeafAction({ label, onClick, children }: { label: string; onClick: () =
 }
 
 export function CopyValue({ value, label }: { value: string; label?: string }) {
-  const m = useMessages(logsMessages)
+  const m = useMessages(sharedMessages)
   const [copied, setCopied] = useState(false)
   useEffect(() => {
     if (!copied) return

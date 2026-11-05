@@ -32,3 +32,17 @@ export const useNav = create<Nav>((set) => ({
       return to === undefined ? s : { active: to, past: [...s.past, s.active], next: rest }
     }),
 }))
+
+let surfaceName: () => string | null = () => null
+
+/** A surface that covers the sections (the first-run setup) names itself here, so a report says where the owner was. */
+export const nameCoveringSurface = (name: () => string | null) => {
+  surfaceName = name
+}
+
+export function currentPageName() {
+  const covering = surfaceName()
+  if (covering) return covering
+  const id = useNav.getState().active
+  return id.charAt(0).toUpperCase() + id.slice(1)
+}

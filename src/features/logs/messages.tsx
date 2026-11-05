@@ -234,12 +234,6 @@ const en = {
   causes: "Causes",
   whereInTool: (frames: number) => `Where in the tool · ${plural("en", frames, { one: "# frame", other: "# frames" })}`,
 
-  items: (n: number) => plural("en", n, { one: "# item", other: "# items" }),
-  filterBy: (term: string) => `Filter by ${term}`,
-  exclude: (term: string) => `Exclude ${term}`,
-  copyValue: "Copy value",
-  copied: "Copied",
-
   searchRuns: "Search runs",
   placeholder: "status:failed command:sync* -profile:work timeout",
   searchHint: "field:value to filter, * matches anything, a leading - excludes. Two values of one field match either.",
@@ -526,12 +520,6 @@ const ru: typeof en = {
   causes: "Причины",
   whereInTool: (frames) => `Где в инструменте · ${ruCount(frames, "кадр", "кадра", "кадров")}`,
 
-  items: (n) => ruCount(n, "элемент", "элемента", "элементов"),
-  filterBy: (term) => `Фильтровать по ${term}`,
-  exclude: (term) => `Исключить ${term}`,
-  copyValue: "Скопировать значение",
-  copied: "Скопировано",
-
   searchRuns: "Поиск по запускам",
   placeholder: "status:failed command:sync* -profile:work timeout",
   searchHint:
@@ -798,12 +786,6 @@ const es: typeof en = {
   causedBy: "Causa",
   causes: "Causas",
   whereInTool: (frames) => `Dónde en la herramienta · ${plural("es", frames, { one: "# marco", other: "# marcos" })}`,
-
-  items: (n) => plural("es", n, { one: "# elemento", other: "# elementos" }),
-  filterBy: (term) => `Filtrar por ${term}`,
-  exclude: (term) => `Excluir ${term}`,
-  copyValue: "Copiar el valor",
-  copied: "Copiado",
 
   searchRuns: "Buscar ejecuciones",
   placeholder: "status:failed command:sync* -profile:work timeout",

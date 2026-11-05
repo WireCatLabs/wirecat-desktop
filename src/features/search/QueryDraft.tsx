@@ -3,12 +3,12 @@ import { useId, useState } from "react"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { QueryDraft as Draft } from "@/platform/search-schemas"
+import { useNav } from "@/shared/nav"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { focusInPlace } from "@/ui/motion"
 import { StableText } from "@/ui/Skeleton"
-import { useNav } from "../nav"
 import { searchMessages } from "./messages"
 
 type State = { kind: "idle" } | { kind: "empty" } | { kind: "writing" } | { kind: "error"; message: string } | Draft

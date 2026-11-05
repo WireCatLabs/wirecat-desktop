@@ -1,12 +1,12 @@
 import { useCallback, useLayoutEffect, useState } from "react"
 import { create } from "zustand"
 import { useLang, useMessages } from "@/i18n"
+import { HOME_SECTION, useNav } from "@/shared/nav"
 import { Button } from "@/ui/Button"
 import { Callout } from "@/ui/Callout"
 import { focusInPlace, reducedMotion } from "@/ui/motion"
 import { greetOnArrival } from "../guides/GuidesPage"
 import { useGuideStart } from "../guides/start-store"
-import { HOME_SECTION, useNav } from "../nav"
 import { type DemoPage, type DemoScene, hideDemo, showDemo, stageDemo } from "./demo"
 import { onboardingMessages, type TourStop } from "./messages"
 

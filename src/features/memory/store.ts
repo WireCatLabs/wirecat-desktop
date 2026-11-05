@@ -13,7 +13,7 @@ import {
 import { messagesOf } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemoryRead, MemorySource, SourceContext } from "@/platform/memory-schemas"
-import { useNav } from "../nav"
+import { useNav } from "@/shared/nav"
 import { useTasks } from "../tasks/store"
 import { memoryMessages } from "./messages"
 
