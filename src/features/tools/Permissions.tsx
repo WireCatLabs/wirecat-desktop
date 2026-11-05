@@ -1,5 +1,5 @@
 import { RefreshCw, Terminal } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
+import { type ReactNode, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { setupCommand } from "@/domain/catalog"
 import { readLast, remember } from "@/features/config"
@@ -18,7 +18,7 @@ import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
-import { useProfiles } from "./Health"
+import { usePermissions, useProfiles, useSetPermission } from "./api"
 import { LevelsHelp } from "./LevelsHelp"
 import { toolsMessages } from "./messages"
 import { type PermissionsText, permissionsMessages } from "./messages-permissions"
@@ -78,41 +78,20 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
   const headingId = useId()
   const { profiles } = useProfiles(tool.id)
   const [profile, setProfile] = useState<string | null>(() => initialProfile(tool.id))
-  const [data, setData] = useState<Data | null>(null)
-  // A profile's own key hides the same key in `defaults`, so what removing it gives back is read separately.
-  const [defaults, setDefaults] = useState<OwnLevel[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const read = usePermissions(tool.id, profile)
+  const data = read.data?.data ?? null
+  const defaults = read.data?.defaults ?? null
+  const error = read.error ? message(read.error) : null
+  const loading = read.isFetching
+  const setPermission = useSetPermission(tool.id, profile)
   const [rows, setRows] = useState<Record<string, Row>>({})
   const [confirming, setConfirming] = useState<Change | null>(null)
   const [open, setOpen] = useState(false)
-  const latest = useRef(0)
   const defaultsView = profile === null
   const t = useMessages(toolsMessages)
   const m = useMessages(permissionsMessages).permissions
 
-  const load = useCallback(async () => {
-    const call = ++latest.current
-    setLoading(true)
-    try {
-      const [next, base] = await Promise.all([
-        platform.permissionsShow(tool.id, profile),
-        profile === null ? null : platform.permissionsShow(tool.id, null),
-      ])
-      if (call !== latest.current) return
-      setData(next)
-      setDefaults(base?.levels ?? null)
-      setError(null)
-    } catch (e) {
-      if (call === latest.current) setError(message(e))
-    } finally {
-      if (call === latest.current) setLoading(false)
-    }
-  }, [tool.id, profile])
-
-  useEffect(() => {
-    load()
-  }, [load])
+  const load = () => void read.refetch()
 
   // A profile remembered from another page may be gone; the defaults are never someone's account.
   useEffect(() => {
@@ -128,14 +107,11 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
   const save = async (change: Change) => {
     setRows((r) => ({ ...r, [change.key]: { state: "saving" } }))
     try {
-      const setting = `permissions.${change.key}`
-      if (change.level === null) await platform.settingsUnset(tool.id, profile, defaultsView, setting)
-      else await platform.settingsSet(tool.id, profile, defaultsView, setting, change.level)
+      await setPermission.mutateAsync({ key: change.key, level: change.level })
       setRows(({ [change.key]: _, ...rest }) => rest)
     } catch (e) {
       setRows((r) => ({ ...r, [change.key]: { state: "failed", message: message(e), tool: tool.id, key: change.key } }))
     }
-    await load()
   }
 
   const request = (change: Change, widening: boolean) => (widening ? setConfirming(change) : save(change))

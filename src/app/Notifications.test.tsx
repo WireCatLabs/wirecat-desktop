@@ -1,4 +1,3 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useNotifications } from "@/features/notifications/store"
@@ -7,6 +6,7 @@ import type { Notification } from "@/platform/notifications-schemas"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 import { useSeen } from "./badges"
 

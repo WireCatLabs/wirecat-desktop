@@ -1,4 +1,3 @@
-import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
@@ -6,6 +5,7 @@ import { platform } from "@/platform/bridge"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelHelperStatus, TailscaleStatus } from "@/platform/tailscale-schemas"
 import { useTools } from "@/shared/tools-store"
+import { render, screen, waitFor } from "@/testing/render"
 import { McpServer } from "./McpServer"
 
 const tg = findTool("tg")

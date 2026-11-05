@@ -1,4 +1,3 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { ReportDialog } from "@/features/report/ReportDialog"
@@ -7,6 +6,7 @@ import { captureErrors, clearErrors, recentErrors } from "@/shared/errors"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { ErrorBoundary } from "./ErrorBoundary"
 
 function Broken(): null {

@@ -1,4 +1,3 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { App } from "@/app/App"
 import { appMessages } from "@/app/messages"
@@ -22,6 +21,7 @@ import {
   sm,
   startOnboarding,
 } from "@/testing/onboarding"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { uiMessages } from "@/ui/messages"
 
 // Every answer the mock gives comes at once; the tests wait only for what they drive.

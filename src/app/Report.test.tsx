@@ -1,8 +1,8 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
 async function openReport() {

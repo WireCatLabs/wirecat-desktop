@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { useState } from "react"
 import { describe, expect, it } from "vitest"
 import { parseQuery } from "@/domain/runs"
+import { render, screen } from "@/testing/render"
 import { QueryBar } from "./QueryBar"
 
 const NAMES: Record<string, string> = { "from:6034997871": "Милочка" }

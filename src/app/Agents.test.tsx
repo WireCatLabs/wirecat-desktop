@@ -1,4 +1,3 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useAgentChoice } from "@/features/agents/AgentList"
@@ -7,6 +6,7 @@ import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
 const wait = { timeout: 8000 }

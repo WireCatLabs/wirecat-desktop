@@ -1,8 +1,8 @@
-import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import type { TailscaleLinux, TailscaleStatus } from "@/platform/tailscale-schemas"
+import { render, screen, within } from "@/testing/render"
 import { guideUrl, TailscaleGuide } from "./TailscaleGuide"
 
 afterEach(() => vi.restoreAllMocks())

@@ -1,4 +1,3 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { AboutDialog } from "@/features/about/AboutDialog"
@@ -6,6 +5,7 @@ import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
 describe("About WireCat", () => {

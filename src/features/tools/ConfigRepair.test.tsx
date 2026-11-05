@@ -1,8 +1,8 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { Health } from "./Health"
 
 const tg = findTool("tg") as NonNullable<ReturnType<typeof findTool>>

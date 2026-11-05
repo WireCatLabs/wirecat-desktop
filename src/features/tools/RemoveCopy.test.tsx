@@ -1,9 +1,9 @@
-import { fireEvent, render, screen, within } from "@testing-library/react"
 import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useTools } from "@/shared/tools-store"
+import { fireEvent, render, screen, within } from "@/testing/render"
 import { ToolDetails } from "./ToolDetails"
 
 const zm = findTool("zm") as NonNullable<ReturnType<typeof findTool>>

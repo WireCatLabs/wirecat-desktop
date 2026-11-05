@@ -1,4 +1,3 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useMemory } from "@/features/memory/store"
@@ -7,6 +6,7 @@ import { useSearch } from "@/features/search/store"
 import { useTasks } from "@/features/tasks/store"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
 const MEMORY_EXAMPLE = "Ana Ruiz promised to send the signed contract by Thursday."

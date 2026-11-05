@@ -1,3 +1,4 @@
+import { QueryClientProvider } from "@tanstack/react-query"
 import { Bug } from "lucide-react"
 import { Suspense, useEffect, useRef, useState } from "react"
 import { AboutDialog, docsPage } from "@/features/about"
@@ -13,6 +14,7 @@ import { currentLang, useApplyLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { HOME_SECTION, useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { queryClient } from "@/shared/query"
 import { useReport } from "@/shared/report-store"
 import { useSystem } from "@/shared/system-store"
 import { Button } from "@/ui/Button"
@@ -28,6 +30,14 @@ import { TopBar } from "./TopBar"
 import { useApplyTheme } from "./theme"
 
 export function App() {
+  return (
+    <QueryClientProvider client={queryClient()}>
+      <Shell />
+    </QueryClientProvider>
+  )
+}
+
+function Shell() {
   useApplyTheme()
   useApplyLang()
   const m = useMessages(appMessages)
