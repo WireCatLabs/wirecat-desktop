@@ -201,3 +201,11 @@ macOS (лимит кучи ~2 ГБ) тесты бот-API падают с OOM. t
 
 **NEED-2211 · Делать ли в max-cli то же исправление таймеров, что уронило релиз tg на macOS, до следующего релиза?**
 A — PR сейчас; B — ждать падения. Ответ: A.
+
+- **Релиз 0.4.0 (2026-11-05):** Слава: «all good lets release 0.4.0», «I allow releases, dont get blocked and release please».
+  #96 слит (8ff5f78) после слияния с main (#97, вход для mail/gcal/drive/zoom) и правки clippy 1.99 (assert_is_empty);
+  тег v0.4.0, релиз опубликован: https://github.com/WireCatLabs/wirecat-desktop/releases/tag/v0.4.0 (12 файлов,
+  macOS нотаризован). max-cli#913 открыт (NEED-2211 A). Список сообщества на wirecat.dev ещё не опубликован: деплой
+  cli-docs падает на устаревших браузерных тестах после перестройки меню (#551, #553 исправлены, дальше подагент).
+- **A10 (2026-11-05):** cli-docs #551, #553, #554 исправили устаревшие браузерные тесты; деплой 41964293216 зелёный; https://wirecat.dev/registry/v1/desktop-tools.json отдаётся, minisign принимает подпись, tools пуст (в tools.json нет community-записей).
+- **NEED-2212 (2026-11-05):** удалить ли сейчас слитые worktree, ветки и папки сборки из CLEANUP.md? Варианты: A удалить всё сейчас · B оставить до max-cli. **Ответ: A.** Удалены install-polish, motion-2, tour-2, release-040, motion, tg-signin-3, tour-demo, cli-registry, community-registry, context-direction с ветками и cli-docs-wt-registry; max-cli abort-timeout оставлен до слияния #913.
