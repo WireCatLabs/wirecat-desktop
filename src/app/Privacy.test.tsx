@@ -30,6 +30,7 @@ describe("Privacy", () => {
     }
     expect(within(dialog).getByText("News check")).toBeInTheDocument()
     expect(within(dialog).getByText("Only when you send one")).toBeInTheDocument()
+    expect(within(dialog).getByText(/turns off Tailscale's logs and support data/)).toBeInTheDocument()
 
     await user.click(within(dialog).getByRole("button", { name: "Close" }))
     expect(screen.queryByRole("dialog", { name: "Privacy" })).not.toBeInTheDocument()
