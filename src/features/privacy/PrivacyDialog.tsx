@@ -8,7 +8,7 @@ import { privacyMessages } from "./messages"
 export function PrivacyDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const m = useMessages(privacyMessages)
   const policy = `https://wirecat.dev/${useLang()}/privacy`
-  const sent = [m.sends.news, m.sends.report, m.sends.tools, m.sends.update]
+  const sent = [m.sends.news, m.sends.report, m.sends.tools, m.sends.update, m.sends.funnel]
 
   return (
     <Dialog

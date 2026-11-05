@@ -31,6 +31,11 @@ const en = {
       when: "At start, then every 6 hours",
       text: "Reads a small file from GitHub, with no version or id. GitHub sees your IP address, as for any download.",
     } as Sent,
+    funnel: {
+      name: "Public address",
+      when: "Only while you keep it on",
+      text: "WireCat's own Tailscale connection lets an AI app in the browser reach your MCP server through Tailscale Funnel. WireCat turns off Tailscale's logs and support data. Tailscale still sees this device in your network and the time and size of each connection. It cannot read what is sent. The address shows up in public certificate logs.",
+    } as Sent,
     others:
       "Each tool talks to its own service, such as Telegram or Google, directly and never through WireCat. Other services only when a feature needs them: nodejs.org when Node.js is missing, npm to install tools, Tailscale or Cloudflare to connect an AI app.",
   },
@@ -75,6 +80,11 @@ const ru: typeof en = {
       when: "При запуске, затем раз в 6 часов",
       text: "Читает небольшой файл с GitHub, без версии и идентификатора. GitHub видит ваш IP-адрес, как при любом скачивании.",
     },
+    funnel: {
+      name: "Публичный адрес",
+      when: "Только пока он включён",
+      text: "Собственное подключение WireCat к Tailscale даёт ИИ-приложению в браузере доступ к вашему MCP-серверу через Tailscale Funnel. WireCat выключает логи и данные для поддержки Tailscale. Tailscale по-прежнему видит это устройство в вашей сети, время и объём каждого соединения. Прочитать, что передаётся, он не может. Адрес виден в открытых журналах сертификатов.",
+    },
     others:
       "Каждый инструмент связывается со своим сервисом, например Telegram или Google, напрямую, а не через WireCat. К другим сервисам — только когда они нужны функции: к nodejs.org, когда нет Node.js, к npm, чтобы установить инструменты, к Tailscale или Cloudflare, чтобы подключить ИИ-приложение.",
   },
@@ -118,6 +128,11 @@ const es: typeof en = {
       name: "Comprobación de actualizaciones",
       when: "Al iniciar, y después cada 6 horas",
       text: "Lee un pequeño archivo de GitHub, sin versión ni identificador. GitHub ve tu dirección IP, como en cualquier descarga.",
+    },
+    funnel: {
+      name: "Dirección pública",
+      when: "Solo mientras la mantengas activa",
+      text: "La conexión propia de WireCat a Tailscale permite que una aplicación de IA en el navegador llegue a tu servidor MCP a través de Tailscale Funnel. WireCat desactiva los logs y los datos de soporte de Tailscale. Tailscale sigue viendo este dispositivo en tu red y la hora y el tamaño de cada conexión. No puede leer lo que se envía. La dirección aparece en los registros públicos de certificados.",
     },
     others:
       "Cada herramienta habla con su propio servicio, como Telegram o Google, directamente y nunca a través de WireCat. Otros servicios solo cuando una función los necesita: nodejs.org cuando falta Node.js, npm para instalar herramientas, Tailscale o Cloudflare para conectar una aplicación de IA.",
