@@ -1,7 +1,10 @@
 # Community CLIs in the desktop app
 
-Status: **design**. The app side is built behind a flag and reads a local file; the signed registry it would fetch
-does not exist yet.
+Status: **built, not live**. The app fetches and checks the signed list; cli-docs builds and signs it on deploy
+(`scripts/desktop-registry.ts`, `.github/workflows/deploy.yml`). It goes live when the owner has run cli-docs'
+`bin/registry-key` and pasted the public key it prints into [`src-tauri/registry-key.pub`](../../src-tauri/registry-key.pub).
+Until then the app fetches nothing. Decided 2026-11-05: the list lives in cli-docs `tools.json` (NEED-2204 A) and is
+signed in CI with a key the owner holds (NEED-2205 A).
 
 ## What exists today (2026-11-05)
 
@@ -21,15 +24,17 @@ does not exist yet.
 
 ## What the app does now
 
-`src-tauri/src/community.rs` adds community tools to the compiled catalog once, at start, from
-`<app data>/extra-tools.json`, and only while the environment has `WIRECAT_EXTRA_TOOLS=1`. Without the flag, or
-with a broken file, the app has exactly its built-in tools.
+`src-tauri/src/community.rs` adds community tools to the compiled catalog once, at start, from one of two sources:
 
-The file has the shape the registry would serve:
+- **The signed list**, while Settings → Advanced → "Show community tools" is on (`<app data>/community-tools.json`,
+  off by default). `registry.rs` reads the copy kept in `<app data>/registry/`, checks its signature and expiry again,
+  and hands its entries over. Without a good copy the app has its built-in tools only.
+- **A local file**, for development: `<app data>/extra-tools.json` while the environment has `WIRECAT_EXTRA_TOOLS=1`,
+  shaped `{ "version": 1, "tools": [...] }`. The flag wins over the setting.
 
-```json
-{ "version": 1, "tools": [{ "id": "acme", "community": true, "...": "every key a tools.json entry has" }] }
-```
+The switch is off by default because no community tool has been reviewed yet, and turning it on is the owner's own
+choice to trust a review that checks how a tool is built and released, not what it does. A change takes effect at the
+next start; the page says so and offers Restart now.
 
 An entry is a `catalog/tools.json` entry with `"community": true`. Every key a built-in entry has must be there
 (`null` when unused): Rust tolerates a missing one, the interface does not, and an entry the interface refuses is not
@@ -69,22 +74,24 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
   repository the entry names.
 - **What it does not guarantee:** what the binary does once it runs, or that the repository's owner is who they say.
 
-## The registry (proposed)
+## The registry
 
-1. **Source.** The community entries stay in cli-docs `tools.json`; each gets a `desktop` object holding its catalog
-   entry. One pull request lists the tool on the site and in the app, reviewed once. The review list gains: the
-   entry passes `community.rs` (a check script in cli-docs runs the same rules), and its doctor and setup words work
-   on the tagged release.
-2. **Publishing.** cli-docs' deploy builds `https://wirecat.dev/registry/v1/tools.json` from those entries, with a
-   `serial` that only grows and an `expires` date about 30 days out, and signs it with an Ed25519 key kept only in
-   the `production` environment of that repository (minisign, as the app updater already uses). The signature is
-   `tools.json.minisig` beside it.
-3. **The app.** At start it reads the cached copy from `<app data>/registry/`, then fetches the fixed URL in the
-   background (HTTPS only, no redirects off `wirecat.dev`, a size cap). It keeps the new copy only when the signature
-   verifies against a public key compiled into the app, the serial is not lower than the cached one (no rollback to an
-   older list) and it has not expired. A copy that fails keeps the cached one; no cache keeps the built-in catalog.
-   The same `community.rs` rules then apply to every entry. A new list takes effect at the next start, so a page
-   never changes under the owner.
+1. **Source.** The community entries stay in cli-docs `tools.json`; each gets a `desktop` object holding the catalog
+   keys the site does not already have (`tagline`, `bin`, the command words, `storage`…). The list fills `id`, `name`,
+   `package`, `repo`, `summary` and `docs` from the entry itself. One pull request lists the tool on the site and in
+   the app, reviewed once. cli-docs' tests run the same rules as `community.rs` (`desktopProblems`,
+   `registryProblems`), so a bad entry fails the pull request; the app checks again anyway.
+2. **Publishing.** Every deploy of cli-docs (each merge to `main`, and daily) builds
+   `https://wirecat.dev/registry/v1/desktop-tools.json`, signs it with minisign in a job of the `production`
+   environment that holds only the signing key, and serves the signature beside it as `desktop-tools.json.minisig`.
+   The file is `{ "format": 1, "version": <build time in seconds>, "generated_at", "expires_at": <30 days on>,
+   "tools": [...] }`. The daily deploy keeps it fresh; a deploy that stops lets it expire.
+3. **The app.** `registry.rs` fetches the fixed URL at start and then at most once a day, only while the switch is on
+   and the build has a real key (HTTPS only, no redirects, 512 KB cap). It keeps the new copy only when the signature
+   verifies against `registry-key.pub` (a key of its own, never the updater's), the version is not lower than the
+   copy kept (no rollback to an older list, even after that copy expired) and it has not expired. A copy that fails
+   leaves the kept one; no good copy leaves the built-in catalog. The same `community.rs` rules then apply to every
+   entry. A new list takes effect at the next start, so a page never changes under the owner.
 4. **Removal.** A tool pulled from the list stops being offered. An installed copy stays installed and is listed as
    "No longer listed", with Uninstall; the app never removes it on its own.
 5. **Icons.** No code from the registry. Either the generic package icon (today), or an optional `icon` holding one
@@ -93,7 +100,7 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
 
 ## Open decisions
 
-- Whether the registry lives in cli-docs `tools.json` (one review, one list) or in a repository of its own.
-- Who holds the signing key, and whether a signed list needs a second maintainer's approval.
+- Whether a signed list needs a second maintainer's approval (today: the pull request review and the `production`
+  environment's rules).
 - Whether community tools may use the store commands (backup, reset), `bot` or the Memory and Tasks pages later.
-- Whether the flag should stay an environment variable or become a setting under Advanced.
+- Removal (point 4) and icons (point 5) are not built yet.

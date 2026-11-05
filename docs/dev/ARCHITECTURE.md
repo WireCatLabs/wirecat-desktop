@@ -20,11 +20,14 @@ src-tauri/src/
   lib.rs        Tauri commands: the whole native surface, one function each.
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
   catalog.rs    the same tools.json, compiled in; profile validation.
-  community.rs  community tools (made outside WireCatLabs) added to that catalog at start, from
+  community.rs  community tools (made outside WireCatLabs) added to that catalog at start, from the signed list's
+                cached copy while "Show community tools" is on (`registry.rs`), or from
                 `<app data>/extra-tools.json` while `WIRECAT_EXTRA_TOOLS=1` is set; every word plain, no name or data
                 folder of ours, no `@wirecat` package. `extra_tools` hands the accepted entries to the interface, which
                 loads them before any page module (`src/main.tsx` imports `src/start.tsx` after). See
                 [cli-registry.md](cli-registry.md).
+  registry.rs   the signed community list: fetched from wirecat.dev at start and at most daily, kept only when
+                minisign verifies it against `registry-key.pub`, it has not expired and is not older than the copy kept.
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
   npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the

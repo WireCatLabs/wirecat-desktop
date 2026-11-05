@@ -59,7 +59,7 @@ describe("Config", () => {
     await user.click(screen.getByRole("radio", { name: /Telegram/ }))
     expect(screen.getByRole("tab", { name: "Settings" })).toBeInTheDocument()
     await user.click(await screen.findByRole("radio", { name: "work" }))
-    expect((await screen.findAllByRole("switch", {}, { timeout: 3000 })).length).toBeGreaterThan(0)
+    expect(await screen.findByRole("switch", { name: /^record/ }, { timeout: 3000 })).toBeInTheDocument()
     expect(screen.getByText(/TG_REQUESTS_PER_MINUTE/)).toBeInTheDocument()
 
     await user.click(screen.getByRole("tab", { name: "JSON" }))
@@ -91,7 +91,7 @@ describe("Config", () => {
     render(<ConfigPage />)
     await user.click(screen.getByRole("radio", { name: /Telegram/ }))
     await user.click(await screen.findByRole("radio", { name: "work" }))
-    await screen.findAllByRole("switch", {}, { timeout: 3000 })
+    await screen.findByRole("switch", { name: /^record/ }, { timeout: 3000 })
     await user.click(screen.getByRole("tab", { name: "JSON" }))
     const editor = screen.getByRole("textbox", { name: "Settings as JSON" }) as HTMLTextAreaElement
     const box = screen.getByRole("searchbox", { name: "Find in the JSON" })

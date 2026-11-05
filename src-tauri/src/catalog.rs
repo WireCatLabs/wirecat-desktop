@@ -275,8 +275,7 @@ pub fn catalog() -> &'static Catalog {
     static CATALOG: OnceLock<Catalog> = OnceLock::new();
     CATALOG.get_or_init(|| {
         let mut catalog: Catalog = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
-        if let Some(text) = crate::community::read() {
-            let (tools, extra) = crate::community::parse(&text, &catalog);
+        if let Some((tools, extra)) = crate::community::load(&catalog) {
             catalog.tools.extend(tools);
             catalog.extra = extra;
         }

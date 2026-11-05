@@ -41,6 +41,12 @@ zeroize = "1"
 keyring = { version = "3", features = ["apple-native", "windows-native", "sync-secret-service", "crypto-rust"] }
 base64 = "0.23"
 x509-parser = "0.18"
+# Already in the build through tauri-plugin-updater; checks the community list's signature (registry.rs).
+minisign-verify = "0.3"
+
+[dev-dependencies]
+# Makes a throwaway key pair and signs test lists; never in the app.
+minisign = "0.10"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
