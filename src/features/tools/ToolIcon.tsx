@@ -1,4 +1,4 @@
-import { CalendarDays, Mail, MessageCircle, MessagesSquare, NotebookText, Package, Send, Video } from "lucide-react"
+import { CalendarDays, Globe, Mail, MessageCircle, MessagesSquare, NotebookText, Package, Send, Video } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 
 function DriveIcon(props: SVGProps<SVGSVGElement>) {
@@ -28,6 +28,7 @@ const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   gcal: CalendarDays,
   memo: NotebookText,
   email: Mail,
+  funnel: Globe,
 }
 
 /** A community tool ships no icon in the app's code, so every one shows the same package. */

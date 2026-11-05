@@ -12,6 +12,7 @@ mod cloudflare_install;
 mod community;
 mod compat;
 mod config_repair;
+mod funnel_helper;
 mod install;
 #[cfg(test)]
 mod install_e2e;
@@ -466,6 +467,7 @@ async fn tailscale_login(
 fn tailscale_stop(running: State<'_, Arc<Running>>) {
     running.cancel(tailscale::LOGIN);
     running.cancel(tailscale::FUNNEL);
+    running.cancel(funnel_helper::START);
 }
 
 #[tauri::command]
@@ -489,14 +491,50 @@ async fn tailscale_funnel_open(
     .await?
 }
 
+/// Closes the tool's paths on both: the system's Tailscale and the app's own connection.
 #[tauri::command]
 async fn tailscale_funnel_close(id: String) -> Result<(), String> {
-    blocking(move || tailscale::funnel_close(&id)).await?
+    blocking(move || tailscale::funnel_close(&id).and(funnel_helper::close(&id))).await?
 }
 
 #[tauri::command]
 async fn tailscale_funnels() -> Result<Vec<tailscale::FunnelState>, String> {
-    blocking(tailscale::funnels).await
+    blocking(|| {
+        let mut all = tailscale::funnels();
+        all.extend(funnel_helper::funnels());
+        all
+    })
+    .await
+}
+
+#[tauri::command]
+async fn funnel_helper_status() -> Result<funnel_helper::Status, String> {
+    blocking(funnel_helper::status).await
+}
+
+/// Starts the app's own Tailscale connection and waits for the owner in the browser; `tailscale_stop` ends the wait.
+#[tauri::command]
+async fn funnel_helper_start(
+    running: State<'_, Arc<Running>>,
+    on_event: Channel<tailscale::PageEvent>,
+) -> Result<funnel_helper::Status, String> {
+    let running = Arc::clone(&running);
+    blocking(move || {
+        if !running.start(funnel_helper::START) {
+            return Err("WireCat's Tailscale connection is already starting.".to_string());
+        }
+        let result = funnel_helper::start(&|| !running.is_running(funnel_helper::START), &|e| {
+            let _ = on_event.send(e);
+        });
+        running.finish(funnel_helper::START);
+        result
+    })
+    .await?
+}
+
+#[tauri::command]
+async fn funnel_helper_open(id: String, port: u16) -> Result<String, String> {
+    blocking(move || funnel_helper::open(&id, port)).await?
 }
 
 #[tauri::command]
@@ -1092,6 +1130,9 @@ pub fn run() {
             tailscale_funnel_open,
             tailscale_funnel_close,
             tailscale_funnels,
+            funnel_helper_status,
+            funnel_helper_start,
+            funnel_helper_open,
             cloudflare_status,
             cloudflare_install,
             cloudflare_login,

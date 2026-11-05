@@ -46,6 +46,18 @@ export const FunnelStateSchema = v.object({
   live: v.boolean(),
   /** Under the tool's path of the shared address; false for a whole-port funnel from before, shown only to close. */
   shared: v.boolean(),
+  /** The system's Tailscale, or WireCat's own connection (`funnel_helper.rs`). */
+  via: v.optional(v.picklist(["tailscale", "wirecat"]), "tailscale"),
+})
+
+/** WireCat's own Tailscale connection, from `wirecat-funnel status --json`. */
+export const FunnelHelperStatusSchema = v.object({
+  installed: v.boolean(),
+  state: v.picklist(["stopped", "starting", "needs-login", "needs-approval", "needs-funnel", "running", "error"]),
+  url: v.nullable(v.pipe(v.string(), v.startsWith("https://"))),
+  /** A Tailscale page the owner opens next: sign in, approve the device, or allow Funnel. A one-time login link: never log it. */
+  actionUrl: v.nullable(v.pipe(v.string(), v.url())),
+  error: v.nullable(v.string()),
 })
 
 /** A Tailscale page the app opened in the browser; the address is a one-time login link: never log it. */
@@ -55,3 +67,4 @@ export type TailscaleLinux = v.InferOutput<typeof TailscaleLinuxSchema>
 export type TailscaleStatus = v.InferOutput<typeof TailscaleStatusSchema>
 export type TailscaleDownload = v.InferOutput<typeof TailscaleDownloadSchema>
 export type FunnelState = v.InferOutput<typeof FunnelStateSchema>
+export type FunnelHelperStatus = v.InferOutput<typeof FunnelHelperStatusSchema>

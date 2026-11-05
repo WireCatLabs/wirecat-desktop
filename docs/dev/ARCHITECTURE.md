@@ -65,6 +65,9 @@ src-tauri/src/
   mcp.rs        which WireCat MCP servers each agent has registered; adding through the tool's own `mcp add`.
   mcp_server.rs each tool's HTTP MCP server for browser apps: its own `mcp server start|stop|status` and `mcp --revoke`.
   tailscale.rs  Tailscale Funnel for an MCP server: its state, `tailscale login`, and Funnel on and off for ports the app set up.
+  funnel_helper.rs WireCat's own Tailscale connection, `wirecat-funnel` (catalog entry `funnel`, a helper the pages do
+                not list): `start`/`status`/`stop --json` and `route add|remove` of a tool's three paths, for a computer
+                without the Tailscale app. Its funnels join `tailscale_funnels`, marked `via: wirecat`.
   tailscale_install.rs Tailscale's official installer or package, downloaded into Downloads and handed to the system.
   tailscale_linux.rs Tailscale's install commands for this Linux, from /etc/os-release and lists of known releases.
   cloudflare.rs  A Cloudflare tunnel on the owner's own domain: login, the tunnel and its DNS record, cloudflared run in the background.

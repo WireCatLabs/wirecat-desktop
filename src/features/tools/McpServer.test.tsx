@@ -287,7 +287,15 @@ describe("MCP server (or connect web)", () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "mcpServerStatus").mockResolvedValue({ ...RUNNING, clients: [] })
     vi.spyOn(platform, "tailscaleFunnels").mockResolvedValue([
-      { tool: "tg", profile: null, url: "https://x.ts.net/tg", port: 9001, live: false, shared: true },
+      {
+        tool: "tg",
+        profile: null,
+        url: "https://x.ts.net/tg",
+        port: 9001,
+        live: false,
+        shared: true,
+        via: "tailscale",
+      },
     ])
     const open = vi.spyOn(platform, "tailscaleFunnelOpen").mockResolvedValue("https://x.ts.net/tg")
     render(<McpServer tool={tool("tg")} />)
@@ -542,7 +550,7 @@ describe("server details", () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "mcpServerStatus").mockResolvedValue({ ...RUNNING, connectorUrl: "https://h.ts.net/tg/mcp" })
     vi.spyOn(platform, "tailscaleFunnels").mockResolvedValue([
-      { tool: "tg", profile: null, url: "https://h.ts.net/tg", port: 9001, live: true, shared: true },
+      { tool: "tg", profile: null, url: "https://h.ts.net/tg", port: 9001, live: true, shared: true, via: "tailscale" },
     ])
     const stop = vi.spyOn(platform, "mcpServerStop").mockResolvedValue()
     const close = vi.spyOn(platform, "tailscaleFunnelClose").mockResolvedValue()
@@ -567,7 +575,15 @@ describe("server details", () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "mcpServerStatus").mockResolvedValue(OFF)
     vi.spyOn(platform, "tailscaleFunnels").mockResolvedValue([
-      { tool: "tg", profile: "work", url: "https://h.ts.net:8443", port: 9002, live: true, shared: false },
+      {
+        tool: "tg",
+        profile: "work",
+        url: "https://h.ts.net:8443",
+        port: 9002,
+        live: true,
+        shared: false,
+        via: "tailscale",
+      },
     ])
     const close = vi.spyOn(platform, "tailscaleFunnelClose").mockResolvedValue()
     render(<McpServer tool={tool("tg")} />)

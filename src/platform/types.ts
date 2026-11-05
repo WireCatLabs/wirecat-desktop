@@ -42,7 +42,7 @@ import type { QueryDraft, SearchAnswer, SearchContext, ValueItem } from "./searc
 import type { Settings } from "./settings-schemas"
 import type { SignInEvent, SignInInputs } from "./signin-schemas"
 import type { Background, LastSync, SyncEvent } from "./sync-schemas"
-import type { FunnelState, TailscaleDownload, TailscaleStatus } from "./tailscale-schemas"
+import type { FunnelHelperStatus, FunnelState, TailscaleDownload, TailscaleStatus } from "./tailscale-schemas"
 import type {
   NewTask,
   Person,
@@ -180,6 +180,12 @@ export type Platform = {
   /** Turns off only the paths the app set up for this tool, an older whole-port funnel of it too. */
   tailscaleFunnelClose(id: string): Promise<void>
   tailscaleFunnels(): Promise<FunnelState[]>
+  /** WireCat's own Tailscale connection: installed, and where it is (`wirecat-funnel status --json`). */
+  funnelHelperStatus(): Promise<FunnelHelperStatus>
+  /** Starts it and waits until it runs; each Tailscale page it needs opens in the browser once and `onPage` gets it. */
+  funnelHelperStart(onPage: (url: string) => void): Promise<FunnelHelperStatus>
+  /** Adds the tool's three paths to it, to the tool's local port; answers `https://<name>/<tool>`. */
+  funnelHelperOpen(id: string, port: number): Promise<string>
   /** Every step of the Cloudflare tunnel guide at once: cloudflared downloaded, account connected, address made. */
   cloudflareStatus(): Promise<CloudflareStatus>
   /** Downloads cloudflared's own release into the app's folder, checked against GitHub's checksum; answers its version. */

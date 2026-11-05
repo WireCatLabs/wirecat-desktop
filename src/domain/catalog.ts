@@ -6,6 +6,8 @@ const ToolSchema = v.object({
   name: v.string(),
   /** Another tool's id: this one ships in that tool's package and has no install of its own. */
   partOf: v.optional(v.pipe(v.string(), v.regex(/^[a-z]+$/))),
+  /** Installed and run by the app for a feature and never listed as a tool: WireCat's own Tailscale connection. */
+  helper: v.optional(v.boolean(), false),
   /** The owner's command group that is this part, such as memo's `mail …`: its run logs are filed under the part. */
   commandPrefix: v.optional(v.string()),
   tagline: v.pipe(v.string(), v.maxLength(55)),
@@ -190,7 +192,9 @@ export type SearchField = NonNullable<CatalogTool["search"]>["fields"][number]
 
 const catalog = v.parse(CatalogSchema, raw)
 
-const all: CatalogTool[] = [...catalog.tools]
+/** The tools the pages list; a helper (WireCat's own Tailscale connection) is installed by a feature and never listed. */
+const all: CatalogTool[] = catalog.tools.filter((t) => !t.helper)
+const helpers: readonly CatalogTool[] = catalog.tools.filter((t) => t.helper)
 export const tools: readonly CatalogTool[] = all
 export const requirements = catalog.requirements
 export const sharedStorage = catalog.sharedStorage
@@ -223,8 +227,11 @@ const describe = (entry: unknown) =>
 export const maker = (t: CatalogTool) => t.repo.replace(/^https:\/\/github\.com\//, "").split("/")[0] ?? t.repo
 
 export function findTool(id: string): CatalogTool | undefined {
-  return tools.find((t) => t.id === id)
+  return all.find((t) => t.id === id) ?? helpers.find((t) => t.id === id)
 }
+
+/** WireCat's own Tailscale connection (`wirecat-funnel`), installed from the connect guide. */
+export const FUNNEL_HELPER = "funnel"
 
 /** The tool whose package is installed for `id`: installs, updates and uninstalls run once, under this id. */
 export const ownerId = (id: string) => findTool(id)?.partOf ?? id

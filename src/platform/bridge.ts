@@ -55,7 +55,13 @@ import { QueryDraftSchema, SearchAnswerSchema, SearchContextSchema, ValueItemSch
 import { SettingsSchema } from "./settings-schemas"
 import { SignInEventSchema } from "./signin-schemas"
 import { BackgroundSchema, LastSyncSchema, SyncEventSchema } from "./sync-schemas"
-import { FunnelStateSchema, PageEventSchema, TailscaleDownloadSchema, TailscaleStatusSchema } from "./tailscale-schemas"
+import {
+  FunnelHelperStatusSchema,
+  FunnelStateSchema,
+  PageEventSchema,
+  TailscaleDownloadSchema,
+  TailscaleStatusSchema,
+} from "./tailscale-schemas"
 import {
   PersonSchema,
   ProjectSchema,
@@ -191,6 +197,9 @@ function createTauri(): Platform {
       call(v.string(), "tailscale_funnel_open", { id, port, onEvent: pages(onPage) }),
     tailscaleFunnelClose: (id) => invoke("tailscale_funnel_close", { id }),
     tailscaleFunnels: () => call(v.array(FunnelStateSchema), "tailscale_funnels"),
+    funnelHelperStatus: () => call(FunnelHelperStatusSchema, "funnel_helper_status"),
+    funnelHelperStart: (onPage) => call(FunnelHelperStatusSchema, "funnel_helper_start", { onEvent: pages(onPage) }),
+    funnelHelperOpen: (id, port) => call(v.string(), "funnel_helper_open", { id, port }),
     cloudflareStatus: () => call(CloudflareStatusSchema, "cloudflare_status"),
     cloudflareInstall: () => call(v.string(), "cloudflare_install"),
     cloudflareLogin: (onPage) => invoke("cloudflare_login", { onEvent: pages(onPage) }),

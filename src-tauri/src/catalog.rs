@@ -336,7 +336,7 @@ mod tests {
 
     #[test]
     fn every_catalog_entry_parses() {
-        assert_eq!(catalog().tools.len(), 8);
+        assert_eq!(catalog().tools.len(), 9);
     }
 
     #[test]
@@ -418,7 +418,8 @@ mod tests {
                 t.store_reset.as_ref(),
                 t.config_repair.as_ref(),
             ];
-            for args in starts.into_iter().flatten() {
+            // A helper has no doctor: an empty list is no command.
+            for args in starts.into_iter().flatten().filter(|a| !a.is_empty()) {
                 assert!(args.iter().any(|a| a == "--record"), "{}: {args:?}", t.id);
             }
         }
