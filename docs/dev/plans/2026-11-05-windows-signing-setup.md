@@ -17,8 +17,8 @@ in [the first-release plan](2026-10-29-first-release.md#windows-certum); the sec
 - **The `release` environment** of wirecat-desktop ([Settings → Environments](https://github.com/WireCatLabs/wirecat-desktop/settings/environments))
   admits only `v*` tags (deployment policy 65676080). A branch or a pull request cannot read its secrets. It has no
   required reviewers yet, and administrators can bypass it.
-- **The workflow** ([`release.yml`](../../../.github/workflows/release.yml)), changed in the pull request that added
-  this file:
+- **The workflow** ([`release.yml`](../../../.github/workflows/release.yml)), changed in
+  [#131](https://github.com/WireCatLabs/wirecat-desktop/pull/131):
   - builds ssign from our fork at the full commit hash, with `cargo install --locked`;
   - stops before signing when the secrets exist but `WINDOWS_SIGNER_SHA1` does not;
   - after the build, unpacks the installer and checks the installer and every `.exe` inside it: the signature is
