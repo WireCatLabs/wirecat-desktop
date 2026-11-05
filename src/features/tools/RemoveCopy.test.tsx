@@ -11,7 +11,6 @@ const kept = { path: "~/.local/share/pnpm/bin/zm", version: "0.42.0", manager: "
 const extra = { path: "~/.nvm/versions/node/v24.19.0/bin/zm", version: "0.40.0", manager: "npm", problem: null }
 
 beforeEach(() => {
-  useTools.setState(useTools.getInitialState(), true)
   useTools.setState({ installs: { zm: [kept, extra] }, latest: { zm: "0.42.0" } })
   vi.restoreAllMocks()
 })

@@ -12,7 +12,6 @@ const tg = findTool("tg") as NonNullable<ReturnType<typeof findTool>>
 
 beforeEach(() => {
   useOnboarding.setState({ status: "done", open: false })
-  useTools.setState(useTools.getInitialState(), true)
   window.getSelection()?.removeAllRanges()
 })
 

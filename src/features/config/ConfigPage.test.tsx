@@ -9,7 +9,6 @@ import { findAll } from "./JsonEditor"
 import { useConfig } from "./store"
 
 beforeEach(() => {
-  useConfig.setState(useConfig.getInitialState(), true)
   localStorage.clear()
 })
 afterEach(() => vi.restoreAllMocks())
@@ -30,8 +29,6 @@ describe("Config", () => {
     await waitFor(() => expect(screen.getByRole("radio", { name: "Defaults (all profiles)" })).toBeChecked())
     await user.click(await screen.findByRole("radio", { name: "work" }))
     unmount()
-
-    useConfig.setState(useConfig.getInitialState(), true)
     render(<ConfigPage />)
     await waitFor(() => expect(screen.getByRole("radio", { name: "work" })).toBeChecked())
   })

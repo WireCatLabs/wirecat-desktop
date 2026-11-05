@@ -5,7 +5,6 @@ import { App } from "@/app/App"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { InstallEvent } from "@/platform/schemas"
-import { useNode } from "../system/node-store"
 import { useSystem } from "../system/store"
 import { useTools } from "../tools/store"
 import { useOnboarding } from "./store"
@@ -44,7 +43,6 @@ function holdInstall() {
 beforeEach(() => {
   localStorage.clear()
   useLanguage.setState({ choice: "en" })
-  useNode.setState(useNode.getInitialState(), true)
   useTools.setState({ sessions: {} })
 })
 

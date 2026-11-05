@@ -1,12 +1,11 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { LogsPage } from "./LogsPage"
-import { timing, useLogs } from "./store"
+import { timing } from "./store"
 
-beforeEach(() => useLogs.setState(useLogs.getInitialState(), true))
 afterEach(() => vi.restoreAllMocks())
 
 const loaded = () =>

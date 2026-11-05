@@ -1,12 +1,11 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactElement } from "react"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import { NewProfile, TerminalStatus } from "./Health"
-import { useTerminal } from "./terminal-store"
 
 const tg = findTool("tg") as NonNullable<ReturnType<typeof findTool>>
 const realKind = platform.kind
@@ -27,8 +26,6 @@ async function openTerminalFor(name: string) {
   await userEvent.type(screen.getByRole("textbox", { name: "Account name, Telegram" }), name)
   await userEvent.click(screen.getByRole("button", { name: "Open terminal" }))
 }
-
-beforeEach(() => useTerminal.setState(useTerminal.getInitialState(), true))
 afterEach(() => {
   vi.restoreAllMocks()
   Object.assign(platform, { kind: realKind })

@@ -20,7 +20,6 @@ function held<T>() {
 }
 
 beforeEach(() => {
-  useTools.setState(useTools.getInitialState(), true)
   useSystem.setState({ readiness: null, error: null })
 })
 afterEach(() => vi.restoreAllMocks())

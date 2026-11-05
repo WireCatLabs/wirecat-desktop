@@ -13,7 +13,6 @@ let send: (e: SyncEvent) => void = () => undefined
 let finish: () => void = () => undefined
 
 beforeEach(() => {
-  useSync.setState(useSync.getInitialState(), true)
   vi.spyOn(platform, "syncLast").mockResolvedValue({
     at: new Date(Date.now() - 12 * 60_000).toISOString(),
     left: null,
@@ -26,7 +25,6 @@ beforeEach(() => {
     })
   })
   vi.spyOn(platform, "syncStop").mockImplementation(async () => send({ event: "stopped" }))
-  useLogs.setState(useLogs.getInitialState(), true)
   const kept = ["20261027T121457Z-messages-sync-db4f0a", "20261103T091502Z-messages-sync-7c21e0"]
   vi.spyOn(platform, "listRuns").mockImplementation(async (id) => ({
     items:

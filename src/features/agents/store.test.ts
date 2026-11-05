@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, expect, it, vi } from "vitest"
+import { afterEach, expect, it, vi } from "vitest"
 import type { SkillReport } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import { useAgents } from "./store"
@@ -7,8 +7,6 @@ const report = (installed: string): SkillReport => ({
   source: "status",
   targets: [{ target: "claude", path: "~/.claude/skills/tg-cli/SKILL.md", installed, state: "current" }],
 })
-
-beforeEach(() => useAgents.setState(useAgents.getInitialState(), true))
 afterEach(() => vi.restoreAllMocks())
 
 it("keeps the last skill states while it asks again, and says when every tool has answered", async () => {

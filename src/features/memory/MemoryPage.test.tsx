@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { matcher, parseQuery, type Run } from "@/domain/runs"
 import { platform } from "@/platform/bridge"
 import { useLogs } from "../logs/store"
@@ -9,8 +9,6 @@ import { useTasks } from "../tasks/store"
 import { MEMORY_RUNS } from "./Activity"
 import { MemoryPage } from "./MemoryPage"
 import { useMemory } from "./store"
-
-beforeEach(() => useMemory.setState(useMemory.getInitialState(), true))
 
 // The mock store outlives each test, so a later test reads what an earlier one approved or rejected.
 const rack = () => screen.findByRole("region", { name: "Memories, facts and actions" }, { timeout: 4000 })

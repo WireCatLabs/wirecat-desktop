@@ -1,12 +1,11 @@
 import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { MemoryPage } from "./MemoryPage"
 import { useMemory } from "./store"
 
 // The mock store outlives each test in this file: the second test starts with what the first approved.
-beforeEach(() => useMemory.setState(useMemory.getInitialState(), true))
 afterEach(() => vi.restoreAllMocks())
 
 const status = (ref: string) => useMemory.getState().entries.find((e) => e.ref === ref)?.status

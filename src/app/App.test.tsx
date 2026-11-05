@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useNav } from "@/features/nav"
 import { useOnboarding } from "@/features/onboarding/store"
-import { useSystem } from "@/features/system/store"
 import { useTools } from "@/features/tools/store"
 import { App } from "./App"
 
@@ -11,8 +10,6 @@ import { App } from "./App"
 describe("WireCat Desktop", () => {
   beforeEach(() => {
     useOnboarding.setState({ status: "done", open: false })
-    useTools.setState(useTools.getInitialState(), true)
-    useNav.setState(useNav.getInitialState(), true)
   })
 
   it("installs a missing tool and shows it verified", async () => {
@@ -92,7 +89,6 @@ describe("WireCat Desktop", () => {
   })
 
   it("shows the computer's readiness on a page other than Tools", async () => {
-    useSystem.setState(useSystem.getInitialState(), true)
     useNav.getState().go("tasks")
     const user = userEvent.setup()
     render(<App />)
@@ -146,7 +142,6 @@ describe("WireCat Desktop", () => {
   })
 
   it("steps back and forward through visited sections with the mouse buttons and Alt+arrows", async () => {
-    useNav.setState(useNav.getInitialState(), true)
     const user = userEvent.setup()
     render(<App />)
     const current = () => screen.getByRole("button", { current: "page" })

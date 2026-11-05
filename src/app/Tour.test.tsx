@@ -49,9 +49,6 @@ describe("Tour", () => {
   beforeEach(() => {
     localStorage.clear()
     useOnboarding.setState({ status: "done", open: false })
-    useMemory.setState(useMemory.getInitialState(), true)
-    useTasks.setState(useTasks.getInitialState(), true)
-    useSearch.setState(useSearch.getInitialState(), true)
   })
   afterEach(() => {
     useTour.getState().close()
