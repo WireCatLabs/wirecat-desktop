@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { Aggregate, MessageCounts } from "@/platform/analytics-schemas"
 import { platform } from "@/platform/bridge"
 import { act, render, renderHook, screen, waitFor } from "@/testing/render"
+import { useClosedWeeks } from "./api"
 import { MeetingDays } from "./daily"
 import { useAnalytics, useExtra } from "./store"
 
@@ -90,5 +91,27 @@ describe("extra message counts", () => {
     const { result } = renderHook(() => useExtra(hours))
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.bySource.tg).toEqual([])
+  })
+})
+
+describe("closed tasks this week and last", () => {
+  it("are null while memo counts and when it cannot, then both numbers", async () => {
+    const counts = vi.spyOn(platform, "taskCounts").mockRejectedValueOnce(new Error("memo is busy"))
+    const none: never[] = []
+    counts.mockResolvedValue({
+      total: 3,
+      project: none,
+      assignee: none,
+      priority: none,
+      state: none,
+      due: none,
+      agent: none,
+    })
+    const failed = renderHook(() => useClosedWeeks("2026-11-05"))
+    expect(failed.result.current).toBeNull()
+    await waitFor(() => expect(counts).toHaveBeenCalledTimes(2))
+    expect(failed.result.current).toBeNull()
+    const { result } = renderHook(() => useClosedWeeks("2026-11-06"))
+    await waitFor(() => expect(result.current).toEqual({ now: 3, last: 3 }))
   })
 })

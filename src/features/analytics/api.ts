@@ -1,6 +1,6 @@
 import { type UseQueryResult, useQueries, useQuery } from "@tanstack/react-query"
 import { useCallback } from "react"
-import type { Period } from "@/domain/analytics"
+import { addDays, type Period, weekOf } from "@/domain/analytics"
 import type { Aggregate, CountRow, MessageCounts, Which } from "@/platform/analytics-schemas"
 import { platform } from "@/platform/bridge"
 import { queryClient } from "@/shared/query"
@@ -113,4 +113,22 @@ export function useAggregateQuery(which: Which, id: string, asked: Asked | null,
     enabled: enabled && asked !== null,
     ...SESSION,
   })
+}
+
+/** Closed tasks this week and on the same days last week, from memo's own counts; null until both answer or if not. */
+export function useClosedWeeks(today: string) {
+  const q = useQuery({
+    queryKey: ["analytics", "closedWeeks", today],
+    queryFn: async () => {
+      const monday = weekOf(today)
+      const range = (from: string, to: string) => `state:(done OR dismissed) closed:[${from} TO ${to}]`
+      const [now, last] = await Promise.all([
+        platform.taskCounts(range(monday, today)),
+        platform.taskCounts(range(addDays(monday, -7), addDays(today, -7))),
+      ])
+      return { now: now.total, last: last.total }
+    },
+    ...SESSION,
+  })
+  return q.data ?? null
 }
