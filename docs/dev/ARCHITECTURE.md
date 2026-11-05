@@ -17,8 +17,14 @@ src/
 catalog/
   tools.json    the tool list, read by both TypeScript and Rust.
 src-tauri/src/
-  lib.rs        Tauri commands: the whole native surface, one function each.
+  lib.rs        start-up and the `invoke_handler` list naming every command.
+  commands/     Tauri commands, one file per feature: the whole native surface, one function each. A command
+                fails with `error.rs`'s `{ kind, message }` (`unknown_tool`, `invalid_profile`, `not_installed`,
+                `busy`, `internal`, `failed`); `platform/command-error.ts` turns it into an `Error` with that message.
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
+  log.rs        a daily log file in the app's log folder, last seven kept: each command's name, duration and result
+                kind, and each program `run.rs` starts (file name, duration, exit). Every line goes through
+                `redact.rs` first.
   catalog.rs    the same tools.json, compiled in; profile validation.
   community.rs  community tools (made outside WireCatLabs) added to that catalog at start, from the signed list's
                 cached copy while "Show community tools" is on (`registry.rs`), or from
