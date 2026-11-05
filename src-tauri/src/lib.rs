@@ -21,6 +21,7 @@ mod install;
 #[cfg(test)]
 mod install_e2e;
 mod log;
+mod mail_agent;
 mod mcp;
 mod mcp_server;
 mod memory;
@@ -113,6 +114,9 @@ pub fn run() {
             commands::tools::remove_copy,
             commands::tools::background_status,
             commands::tools::background_keep,
+            commands::tools::mail_agent_status,
+            commands::tools::mail_agent_set,
+            commands::tools::mail_agent_waiting,
             commands::tools::cancel_install,
             commands::tools::config_repair,
             commands::tools::open_setup,

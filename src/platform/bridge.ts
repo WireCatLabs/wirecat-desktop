@@ -232,6 +232,9 @@ function createTauri(): Platform {
     syncLast: (id, profile) => invoke("sync_last", { id, profile }),
     backgroundStatus: (id, profile) => invoke("background_status", { id, profile }),
     backgroundKeep: (id, profile) => invoke("background_keep", { id, profile }),
+    mailAgentStatus: (id) => invoke("mail_agent_status", { id }),
+    mailAgentSet: (id, on) => invoke("mail_agent_set", { id, on }),
+    mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
     listRuns: (id, query, limit, page) => call(RunsPageSchema, "list_runs", { id, query, limit, page }),
     searchStore: (id, profile, query, limit, page) =>
       call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),

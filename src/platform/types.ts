@@ -15,6 +15,7 @@ import type {
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
+import type { MailAgent } from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
@@ -283,6 +284,12 @@ export type Platform = {
   backgroundStatus(id: string, profile: string): Promise<Background>
   /** The tool's own `server install` when it has no unit yet, then `server start`; rejects with its words, masked. */
   backgroundKeep(id: string, profile: string): Promise<Background>
+  /** memo's mail agent schedule (`mailAgent` in the catalog): on or off, its last run and the day's spend. */
+  mailAgentStatus(id: string): Promise<MailAgent>
+  /** memo's own `schedule agent` or `schedule remove`; rejects with memo's words, masked. */
+  mailAgentSet(id: string, on: boolean): Promise<MailAgent>
+  /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */
+  mailAgentWaiting(id: string): Promise<number | null>
   /** What a bug report carries about this computer, masked, including recent failed runs (private). */
   reportContext(): Promise<ReportContext>
   sendReport(draft: ReportDraft, context: ReportContext): Promise<ReportSent>

@@ -110,6 +110,8 @@ src-tauri/src/
                 (for tg and max, only a run whose argv has `--all`).
   background.rs whether a messenger's own `serve` keeps a profile current (`server status`), and starting it through
                 its own `server install` (only when it has no unit) and `server start`. Never systemctl itself.
+  mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
+                the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```

@@ -160,6 +160,15 @@ export type InstallStep = "check" | "install" | "remove" | "verify";
 
 export type Kind = "config" | "state" | "cache";
 
+/**  The last run without its output: the agent's answer may quote mail. */
+export type LastRun = {
+	at: string,
+	exitCode: number,
+	/**  memo's words for a run it did not start, such as the day's cost cap. */
+	reason: string | null,
+	failures: number | null,
+};
+
 export type LastSync = {
 	/**  When the newest successful sync ended, as the tool printed it. */
 	at: string | null,
@@ -172,6 +181,12 @@ export type LoginCode = {
 	code: string,
 	expiresAt: string,
 };
+
+export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
+/**  `harness`: whether the agent program is on PATH, so turning it on can work. */
+{ state: "off"; harness: boolean } | 
+/**  `spent_today_usd` is `None` where memo does not report it. */
+{ state: "on"; when: string; last: LastRun | null; spentTodayUsd: number | null };
 
 export type Managed = {
 	version: string,

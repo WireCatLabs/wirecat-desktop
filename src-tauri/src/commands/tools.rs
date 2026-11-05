@@ -2,7 +2,7 @@ use super::{attempt, blocking, known_tool, valid_profile};
 use crate::error::AppError;
 use crate::install::InstallEvent;
 use crate::install::Running;
-use crate::{background, catalog, compat, config_repair, install, terminal, tools};
+use crate::{background, catalog, compat, config_repair, install, mail_agent, terminal, tools};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::State;
@@ -104,6 +104,33 @@ pub async fn background_keep(id: String, profile: String) -> Result<background::
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
         attempt(move || background::keep(tool, &profile)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn mail_agent_status(id: String) -> Result<mail_agent::MailAgent, AppError> {
+    crate::log::command("mail_agent_status", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || mail_agent::status(tool)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn mail_agent_set(id: String, on: bool) -> Result<mail_agent::MailAgent, AppError> {
+    crate::log::command("mail_agent_set", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || mail_agent::set(tool, on)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn mail_agent_waiting(id: String) -> Result<Option<u64>, AppError> {
+    crate::log::command("mail_agent_waiting", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || mail_agent::waiting(tool)).await
     })
     .await
 }
