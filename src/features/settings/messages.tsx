@@ -20,8 +20,9 @@ const en = {
     </>
   ),
   tool: "Tool",
-  advanced: "Advanced",
-  community: "Show community tools",
+  community: "Enable community tools",
+  communityInfo: "About community tools",
+  communityHow: "How to make your own",
   communityHelp:
     "Tools made outside WireCat, from a list WireCat reviews and signs. The review checks how a tool is built and " +
     "released, not everything it does: installing one runs its code on this computer, as any npm package does. " +
@@ -50,8 +51,9 @@ const ru: typeof en = {
     </>
   ),
   tool: "Инструмент",
-  advanced: "Дополнительно",
-  community: "Показывать инструменты сообщества",
+  community: "Включить инструменты сообщества",
+  communityInfo: "Об инструментах сообщества",
+  communityHow: "Как сделать свой",
   communityHelp:
     "Инструменты, сделанные не в WireCat, из списка, который WireCat проверяет и подписывает. Проверка смотрит, как " +
     "инструмент собран и выпущен, а не всё, что он делает: установка запускает его код на этом компьютере, как у " +
@@ -81,8 +83,9 @@ const es: typeof en = {
     </>
   ),
   tool: "Herramienta",
-  advanced: "Avanzado",
-  community: "Mostrar herramientas de la comunidad",
+  community: "Activar herramientas de la comunidad",
+  communityInfo: "Sobre las herramientas de la comunidad",
+  communityHow: "Cómo crear el tuyo",
   communityHelp:
     "Herramientas hechas fuera de WireCat, de una lista que WireCat revisa y firma. La revisión comprueba cómo se " +
     "construye y publica una herramienta, no todo lo que hace: instalarla ejecuta su código en este ordenador, como " +
