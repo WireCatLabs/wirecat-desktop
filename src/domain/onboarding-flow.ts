@@ -170,7 +170,7 @@ export const setupTools = <T extends { id: string }>(
   installs: Installs,
 ) => all.filter((t) => chosen.includes(t.id) || installs[t.id]?.length)
 
-type Signing = { setup?: unknown; signIn?: { command?: unknown } | undefined }
+type Signing = { setup?: unknown; signIn?: { command?: unknown } | null | undefined }
 
 /** A tool the Sign in step has something to do for. */
 export const signsIn = (t: Signing) => Boolean(t.setup || t.signIn?.command)
@@ -207,7 +207,7 @@ export const computerLine = (program: "node" | "npm", p: Program | undefined): C
     : null
 
 /** The version a Done row shows and what runs beside it: an install of this flow still in progress. */
-export function doneRow(version: string | undefined, session: InstallSession | undefined) {
+export function doneRow(version: string | null | undefined, session: InstallSession | undefined) {
   const running = session && !session.outcome && session.operation === "install" ? session : null
   return { running, tone: version ? "ok" : running ? "busy" : "idle" } as const
 }
