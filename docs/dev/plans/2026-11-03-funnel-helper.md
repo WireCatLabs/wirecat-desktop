@@ -35,7 +35,7 @@ Every command prints one JSON object with `--json`, and a short human line witho
 | Command | What it does |
 | --- | --- |
 | `wirecat-funnel start [--hostname <name>]` | starts the background process if none runs, waits up to 20 s until it is `running` or needs the owner, prints the status |
-| `wirecat-funnel stop` | stops the background process by the PID it recorded, prints the status |
+| `wirecat-funnel stop` | asks the background process to stop through its control endpoint, waits until it has, prints the status |
 | `wirecat-funnel status` | prints the status; never starts anything |
 | `wirecat-funnel route add <path> <port>` | sends `https://<node><path>…` to `http://127.0.0.1:<port><path>…`; prints the routes |
 | `wirecat-funnel route remove <path>` | removes one route; prints the routes |
@@ -53,8 +53,7 @@ admin console. It is a small addition when Desktop gets a "Sign out" button.
   "state": "running",
   "pid": 41231,
   "url": "https://wirecat.tail1234.ts.net",
-  "login_url": null,
-  "funnel_url": null,
+  "action_url": null,
   "error": null,
   "routes": [{ "path": "/tg", "port": 8765 }],
   "dir": "/home/me/.local/share/wirecat-funnel",
@@ -68,19 +67,26 @@ admin console. It is a small addition when Desktop gets a "Sign out" button.
 | --- | --- | --- |
 | `stopped` | no process | Start |
 | `starting` | the process runs, Tailscale is not up yet | progress |
-| `needs-login` | open `login_url` and sign in to Tailscale | the link, opened once in the browser |
-| `needs-approval` | the tailnet's device approval is on: an admin approves the node | the admin console link |
-| `needs-funnel` | the node may not use Funnel; `funnel_url` turns it on (Tailscale's own `QueryFeature("funnel")`) | the link |
+| `needs-login` | open `action_url` and sign in to Tailscale | the link, opened once in the browser |
+| `needs-approval` | the tailnet's device approval is on: an admin approves the node at `action_url` | the link |
+| `needs-funnel` | the node may not use Funnel; `action_url` turns it on (Tailscale's own `QueryFeature("funnel")`) | the link |
 | `running` | Funnel is on; `url` is the public address | the address |
 | `error` | `error` says why, in plain words | the text |
 
-All keys are always present, `null` when empty **(mine)**: one valibot schema in Desktop, no optional fields. The
-node key and anything else in Tailscale's state never appear in the status or the logs.
+All keys are always present, `null` when empty **(mine)**: one valibot schema in Desktop, no optional fields. One
+`action_url` rather than one field per kind of link **(mine)**: `state` already says what the page is for. A failed
+command prints `{"error": "…"}` and exits 1. The node key and anything else in Tailscale's state never appear in the
+status or the logs.
+
+**Control endpoint (mine).** The running process answers `GET /status` and `POST /stop` on `127.0.0.1:<random>`,
+behind a random token; port, token and PID are in `control.json` (mode 600). `status` and `stop` talk to it, so no
+command sends a signal to a PID that may by now be another program, and `stop` is a clean stop on Windows too.
+`status` with no answer is `stopped`.
 
 ### The login link
 
 `run` starts tsnet with no auth key. tsnet asks the control server for a login and the link appears in the backend's
-status (`AuthURL`). The process reads it every second while the state is `NeedsLogin` and writes it into the status.
+status (`AuthURL`). The process reads it every second while the state is `NeedsLogin` and publishes it as `action_url`.
 `start` returns as soon as the state is `needs-login`, so Desktop gets the link at once and polls `status` every 2 s
 until `running`. Once logged in, the node stays logged in across restarts (state on disk) until its key expires
 (180 days by default, research section 5).
@@ -119,7 +125,7 @@ cli-base's layout (`cli-base/src/paths.ts`), for app name `wirecat-funnel`:
 - `WIRECAT_FUNNEL_STATE_DIR` overrides it.
 
 Folder mode 700. Inside: `tailscaled.state` (the node's keys: a secret, mode 600, written by tsnet), certificates,
-`routes.json`, `status.json`, `pid`, and Tailscale's own `tailscaled.log.conf` and `tailscaled.log*.txt` (section 4).
+`routes.json`, `control.json`, `run.log` (what `start`'s background process printed), and Tailscale's own `tailscaled.log.conf` and `tailscaled.log*.txt` (section 4).
 Nothing outside this folder. The catalog's `storage` entry names the folder and prefix, so `storage.rs` lists it and
 deletes it only after the helper is uninstalled, unchanged.
 
@@ -160,8 +166,8 @@ Desktop work is a later PR; this is its shape.
   `route add <path> <port> --json` and `route remove <path> --json`. Paths come from `tailscale.rs`'s `mounts(tool)`, the
   port from `mcp_server::validate_port`. The answer is parsed with one schema.
 - **The guide.** At the Tailscale step: "No Tailscale on this computer? WireCat can join your tailnet by itself, no
-  password." Install, then `start`. `needs-login`: open `login_url` once and show "Signing in to Tailscale…", polling
-  `status`. `needs-funnel` and `needs-approval`: the same with their link. `running`: add the routes, then
+  password." Install, then `start`. `needs-login`: open `action_url` once and show "Signing in to Tailscale…", polling
+  `status`. `needs-funnel` and `needs-approval`: the same with `action_url`. `running`: add the routes, then
   `mcp server start --public-url <url>/<tool>`, as with the system Tailscale.
 - **Stopping.** The MCP server's Stop removes its three routes. When no route is left, Desktop runs `stop`. Desktop
   quitting leaves the helper running, like the MCP servers it started.
@@ -169,8 +175,9 @@ Desktop work is a later PR; this is its shape.
   logs ([Tailscale: HTTPS](https://tailscale.com/kb/1153/enabling-https): "the machine names are still published in
   the public ledger"), so the default carries neither the computer's nor the owner's name. A second computer gets
   `wirecat-1` from Tailscale.
-- **Stop on Windows.** Windows has no signal to ask a process to finish. `stop` kills it there. Funnel's flag stays in
-  the state, but nothing listens, and tsnet's `Up` clears the serve settings on the next start.
+- **Stop on Windows.** Windows has no signal to ask a process to finish, so `stop` goes through the control endpoint
+  on every system. A process killed anyway leaves Funnel's flag in the state, but nothing listens, and tsnet's `Up`
+  clears the serve settings on the next start.
 
 ## 6. Release pipeline
 
@@ -210,9 +217,10 @@ helper ships.
 3. Starts the helper with `--ephemeral`: in-memory state, `Ephemeral: true`, logging off, a temporary folder for
    certificates, hostname `wirecat-check`, listener `FunnelOnly`, so a success can only come through Funnel.
 4. Prints the login link; the owner signs in in the browser. The script never signs in.
-5. Waits for `running`, then calls `https://<name>/mcp` with an address from public DNS (`curl --doh-url
-   https://1.1.1.1/dns-query`), so the request does not take the tailnet path of the system Tailscale. Retries up to
-   10 min while public DNS catches up.
+5. Waits for `running`, then calls `https://<name>/mcp` at an address from public DNS (`dig @1.1.1.1`, then
+   `curl --resolve`), so the request does not take the tailnet path of the system Tailscale. Retries up to 10 min
+   while public DNS catches up. (DNS over HTTPS to 1.1.1.1 was refused on this machine; plain DNS answered.)
+   It also counts the helper's lookups of `log.tailscale.com` while logged in, which should be 0.
 6. Prints pass or fail, stops the helper by its PID, removes its temporary folder. The ephemeral node is removed by
    Tailscale 30–60 min later ([kb/1111](https://tailscale.com/kb/1111/ephemeral-nodes)); on failure the script says
    where to remove it by hand.
@@ -233,3 +241,10 @@ Unknown until it runs: whether a tsnet `Ephemeral` node accepts an interactive l
 - **RISK-96 · A tsnet ephemeral node may not take an interactive login.** Then the live check needs an ephemeral
   auth key, which the owner makes in the admin console, and the script takes it from a file of mode 600.
 - Key expiry after 180 days and Tailscale updates (research section 5) stay as they are.
+
+## Built (2026-11-05)
+
+Repository https://github.com/WireCatLabs/funnel-cli (private), PR #1. The owner's check:
+`/home/leemour/Projects/AI/funnel-cli/bin/live-check`. Measured on this Linux machine, no login: the binary reaches
+`needs-login` in 1.3 s, the only name it looks up in 30 s is `controlplane.tailscale.com`, its log buffers stay at 0
+bytes; linux-x64 binary 22.4 MB (8.9 MB packed).
