@@ -1,5 +1,28 @@
 import { describe, expect, it } from "vitest"
-import { byDay, can, inTab, matchesFilter, memoryFilter, setMemoryField, tabOf, toneOf, undoOf } from "./memory"
+import {
+  actionSentence,
+  actionTargetOf,
+  approveMode,
+  batchSubjectOf,
+  byDay,
+  can,
+  createdTarget,
+  findingsCounts,
+  inTab,
+  isCorrection,
+  matchesFilter,
+  memoryFilter,
+  oneLine,
+  refKind,
+  setMemoryField,
+  sourceKindOf,
+  stateLineOf,
+  tabOf,
+  tickedCount,
+  toneOf,
+  undoMenuKey,
+  undoOf,
+} from "./memory"
 
 const entry = (type: string, kind: string, status: string) => ({ type, kind, status, author: { type: "bot" } })
 
@@ -100,5 +123,106 @@ describe("Memory's search", () => {
     expect(q).toBe("friday kind:(decision OR preference)")
     expect(memoryFilter(q)).toMatchObject({ kind: ["decision", "preference"], words: ["friday"] })
     expect(setMemoryField(q, "kind", [])).toBe("friday")
+  })
+})
+
+describe("rules of a record's row", () => {
+  it("puts a correction on one line and ignores one that changes nothing", () => {
+    expect(oneLine("  a\n\n b\t c ")).toBe("a b c")
+    expect(isCorrection("same\nthing", "same thing")).toBe(false)
+    expect(isCorrection("  ", "x")).toBe(false)
+    expect(isCorrection("new", null)).toBe(true)
+  })
+
+  it("counts what Approve would create", () => {
+    const f = [
+      { id: "a", kind: "fact" },
+      { id: "b", kind: "task" },
+    ]
+    expect(tickedCount(f, ["b"])).toBe(1)
+    expect(tickedCount(f, undefined)).toBe(2)
+    expect(tickedCount(null, [])).toBe(0)
+  })
+
+  it("tells a batch by facts and tasks, then by created and left", () => {
+    const f = [
+      { id: "a", kind: "fact", outcome: "accepted" },
+      { id: "b", kind: "task", outcome: "rejected" },
+      { id: "c", kind: "fact" },
+    ]
+    expect(findingsCounts(f, "proposed")).toEqual({ reviewed: false, first: 2, second: 1 })
+    expect(findingsCounts(f, "approved")).toEqual({ reviewed: true, first: 1, second: 2 })
+  })
+
+  it("picks a source's icon kind and a ref's kind", () => {
+    expect(["meeting", "mail", "message", "msg", "doc", ""].map(sourceKindOf)).toEqual([
+      "meeting",
+      "mail",
+      "message",
+      "message",
+      "note",
+      "note",
+    ])
+    expect(refKind("mail:42")).toBe("mail")
+    expect(refKind("")).toBe("")
+  })
+
+  it("opens what a finding made only when it is a fact or a task", () => {
+    expect(createdTarget("task:9")).toBe("task")
+    expect(createdTarget("fact:3")).toBe("fact")
+    expect(createdTarget("memory:3")).toBeNull()
+    expect(createdTarget(null)).toBeNull()
+  })
+
+  it("puts only memo's own ways back in the menu", () => {
+    expect(["reject", "invalidate", "reverse", "revoke"].map((u) => undoMenuKey(u as never))).toEqual([
+      "reject",
+      "invalidate",
+      "reverse",
+      "revoke",
+    ])
+    expect(undoMenuKey("task")).toBeNull()
+    expect(undoMenuKey("created")).toBeNull()
+    expect(undoMenuKey("none")).toBeNull()
+    expect(undoMenuKey(null)).toBeNull()
+  })
+
+  it("approves a batch only from its opened row", () => {
+    expect(approveMode(false, false)).toBe("approve")
+    expect(approveMode(true, false)).toBe("review")
+    expect(approveMode(true, true)).toBe("approveFindings")
+  })
+
+  it("words the state by what the record is", () => {
+    const base = { type: "memory", kind: "summary", author: null }
+    expect(stateLineOf({ ...base, status: "proposed", findings: [] })).toBe("reviewFindings")
+    expect(stateLineOf({ ...base, type: "action", status: "proposed" })).toBe("reviewAction")
+    expect(stateLineOf({ ...base, status: "proposed" })).toBe("review")
+    expect(stateLineOf({ ...base, status: "approved", findings: [] })).toBe("reviewed")
+    expect(stateLineOf({ ...base, type: "action", status: "approved", task: "t" })).toBe("approved")
+    expect(stateLineOf({ ...base, type: "action", status: "approved" })).toBe("approvedOld")
+    expect(stateLineOf({ ...base, status: "confirmed" })).toEqual({ state: "inuse" })
+  })
+
+  it("builds an action's sentence from its verb, target and text", () => {
+    expect(actionTargetOf({ targetName: "Kai", chatName: "Team" })).toBe("Kai")
+    expect(actionTargetOf({ chatName: "Team" })).toBe("Team")
+    expect(actionTargetOf({})).toBeNull()
+    expect(actionSentence("Reply to", "Kai", "Hello")).toBe("Reply to Kai: Hello")
+    expect(actionSentence("Reply", null, null)).toBe("Reply")
+  })
+
+  it("names a batch's subject from project, then subject, then ref", () => {
+    const e = {
+      subject: "person:1",
+      subjectName: "Kai",
+      subjectIsOwner: false,
+      project: "project:2",
+      projectName: null,
+    }
+    expect(batchSubjectOf(e, "Project")).toBe("Kai")
+    expect(batchSubjectOf({ ...e, projectName: "Apollo" }, "Project")).toBe("Apollo")
+    expect(batchSubjectOf({ ...e, subjectName: null }, "Project")).toBe("project:2")
+    expect(batchSubjectOf({ ...e, subjectName: null, project: null }, "Project")).toBe("Project")
   })
 })

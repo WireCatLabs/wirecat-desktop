@@ -207,3 +207,91 @@ export function matchesFilter(e: Searchable, f: MemoryFilter, now = new Date()):
     f.words.every((w) => [e.text, e.summary, e.subjectName, project, author, e.kind].some((label) => has(label, w)))
   )
 }
+
+/** Line breaks become spaces: memo keeps a memory as one or two sentences, and Rust refuses control characters. */
+export const oneLine = (text: string) => text.replace(/\s+/g, " ").trim()
+
+/** Whether a correction says something new: not empty, not the text it replaces once both are on one line. */
+export const isCorrection = (text: string, original: string | null) =>
+  oneLine(text) !== "" && oneLine(text) !== oneLine(original ?? "")
+
+type Finding = { id: string; kind: string; outcome?: string | null }
+
+/** How many findings Approve would create: the ones the owner did not untick. */
+export const tickedCount = (findings: readonly Finding[] | null, skipped: readonly string[] | undefined) =>
+  findings ? findings.filter((f) => !skipped?.includes(f.id)).length : 0
+
+/**
+ * The two counts a findings batch is told by: once reviewed, the ones created and the ones left; before, its facts
+ * and its tasks.
+ */
+export function findingsCounts(findings: readonly Finding[], status: string) {
+  if (status !== "proposed") {
+    const created = findings.filter((f) => f.outcome === "accepted").length
+    return { reviewed: true, first: created, second: findings.length - created }
+  }
+  const facts = findings.filter((f) => f.kind === "fact").length
+  return { reviewed: false, first: facts, second: findings.length - facts }
+}
+
+export type SourceKind = "meeting" | "mail" | "message" | "note"
+
+/** Which icon a source gets; `msg` is memo's short ref prefix for a chat message. */
+export function sourceKindOf(kind: string): SourceKind {
+  if (kind === "meeting" || kind === "mail") return kind
+  return kind === "message" || kind === "msg" ? "message" : "note"
+}
+
+/** The kind a ref names: `mail:123` is a mail. */
+export const refKind = (ref: string) => ref.split(":")[0] ?? ""
+
+/** What a finished finding made, when it can be opened: a fact is shown in the list, a task on the Tasks page. */
+export function createdTarget(created: string | null | undefined): "task" | "fact" | null {
+  if (!created) return null
+  if (created.startsWith("task:")) return "task"
+  return created.startsWith("fact:") ? "fact" : null
+}
+
+/** The record's own undo in the menu, or null when memo has none or the lead button takes it. */
+export const undoMenuKey = (undo: Undo) =>
+  undo === "reject" || undo === "invalidate" || undo === "reverse" || undo === "revoke" ? undo : null
+
+export type ApproveMode = "approve" | "review" | "approveFindings"
+
+/** A findings batch is approved from its opened row, so what Approve creates is on screen; closed, it opens. */
+export const approveMode = (hasFindings: boolean, open: boolean): ApproveMode =>
+  !hasFindings ? "approve" : open ? "approveFindings" : "review"
+
+export type StateLine =
+  | "review"
+  | "reviewFindings"
+  | "reviewAction"
+  | "reviewed"
+  | "approved"
+  | "approvedOld"
+  | { state: State }
+
+type Stated = Entry & { findings?: unknown; task?: unknown }
+
+/** Which sentence the details give for the record's state. */
+export function stateLineOf(e: Stated): StateLine {
+  if (e.status === "proposed") {
+    if (e.findings) return "reviewFindings"
+    return e.type === "action" ? "reviewAction" : "review"
+  }
+  if (e.findings && e.status === "approved") return "reviewed"
+  if (e.type === "action" && e.status === "approved") return e.task ? "approved" : "approvedOld"
+  return { state: stateOf(e.status) }
+}
+
+/** What an action acts on, by name: its target, or the chat it would write in. */
+export const actionTargetOf = (e: { targetName?: string | null; chatName?: string | null }) =>
+  e.targetName ?? e.chatName ?? null
+
+/** "Reply to Kai Moreno: Here is the pricing table…"; each language's verb is written to take the name after it. */
+export const actionSentence = (verb: string, target: string | null, text: string | null) =>
+  `${verb}${target ? ` ${target}` : ""}${text ? `: ${text}` : ""}`
+
+/** What a findings batch is about: a project, or the person or other subject it names. */
+export const batchSubjectOf = (e: Subjected, fallback: string) =>
+  e.projectName ?? e.subjectName ?? e.project ?? fallback
