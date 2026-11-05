@@ -10,7 +10,9 @@ beforeEach(() => useLogs.setState(useLogs.getInitialState(), true))
 afterEach(() => vi.restoreAllMocks())
 
 const loaded = () =>
-  waitFor(() => expect(screen.getByRole("button", { name: "Read again" })).toBeEnabled(), { timeout: 4000 })
+  waitFor(() => expect(screen.getByRole("button", { name: "Read again" })).toHaveAttribute("aria-busy", "false"), {
+    timeout: 4000,
+  })
 
 const openSettings = async (user: ReturnType<typeof userEvent.setup>, name = "Log settings") => {
   await user.click(screen.getByRole("button", { name: new RegExp(`^${name}`) }))
@@ -37,6 +39,10 @@ describe("Logs", () => {
     expect(await screen.findByRole("progressbar", { name: "Tools read" })).toBeInTheDocument()
     release()
     await loaded()
+
+    const agents = within(screen.getByRole("region", { name: "Agent" }))
+    expect(agents.getAllByRole("button", { pressed: false }).length).toBeGreaterThan(0)
+    expect(agents.queryByText("none")).not.toBeInTheDocument()
 
     const tools = screen.getByRole("region", { name: "Tool" })
     await user.click(within(tools).getByRole("button", { name: /WhatsApp/ }))
@@ -210,9 +216,12 @@ describe("Logs", () => {
     useLanguage.setState({ choice: "ru" })
     const user = userEvent.setup()
     render(<LogsPage />)
-    await waitFor(() => expect(screen.getByRole("button", { name: "Прочитать заново" })).toBeEnabled(), {
-      timeout: 4000,
-    })
+    await waitFor(
+      () => expect(screen.getByRole("button", { name: "Прочитать заново" })).toHaveAttribute("aria-busy", "false"),
+      {
+        timeout: 4000,
+      },
+    )
 
     expect(screen.getByRole("heading", { name: "Журнал" })).toBeInTheDocument()
     const keeping = await openSettings(user, "Настройки журнала")

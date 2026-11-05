@@ -218,8 +218,8 @@ export function LogsPage() {
               {m.live}
             </Button>
             <Button
-              onClick={() => load()}
-              disabled={reading.length > 0}
+              onClick={() => reading.length === 0 && load()}
+              aria-busy={reading.length > 0}
               icon={<RefreshCw className={cx("size-4", reading.length > 0 && "animate-spin")} aria-hidden />}
             >
               <StableText value={reading.length > 0 ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
