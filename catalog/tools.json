@@ -1292,7 +1292,8 @@
             "--offline",
             "--no-record",
             "--json"
-          ]
+          ],
+          "minVersion": "0.67.0"
         },
         "meetingsSeries": {
           "args": [
@@ -1311,7 +1312,8 @@
             "--offline",
             "--no-record",
             "--json"
-          ]
+          ],
+          "minVersion": "0.67.0"
         }
       },
       "setup": ["{profile}", "session", "start"],
@@ -1694,7 +1696,8 @@
         "config": null
       },
       "memory": {
-        "minVersion": "0.131.14"
+        "minVersion": "0.131.14",
+        "revokeMinVersion": "0.131.28"
       },
       "tasks": null,
       "taskBoard": {

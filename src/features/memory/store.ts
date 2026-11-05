@@ -10,10 +10,12 @@ import {
   type Tab,
   tabOf,
 } from "@/domain/memory"
+import { messagesOf } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry, MemoryRead, MemorySource, SourceContext } from "@/platform/memory-schemas"
 import { useNav } from "../nav"
 import { useTasks } from "../tasks/store"
+import { memoryMessages } from "./messages"
 
 export type Context =
   | { state: "loading" }
@@ -83,7 +85,17 @@ type MemoryState = {
   openTask(from: string, task: string): Promise<void>
 }
 
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
+const REFUSALS = ["fact.not-accepted", "fact.owner-written", "fact.revoke-correction"] as const
+
+/** memo's reasons for refusing `facts revoke` arrive as they are and are worded here in the owner's language. */
+const message = (e: unknown) => {
+  const text = e instanceof Error ? e.message : String(e)
+  const reason = REFUSALS.find((r) => r === text)
+  return (reason && messagesOf(memoryMessages).revokeRefused[reason]) || text
+}
+
+/** The installed memo takes back an agent's accepted fact. */
+export const canRevoke = (s: { read: MemoryRead | null }) => s.read?.kind === "ready" && s.read.revoke
 const without = <T>(record: Record<string, T>, key: string) => {
   const { [key]: _, ...rest } = record
   return rest

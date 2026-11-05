@@ -54,16 +54,25 @@ const en = {
   approve: "Approve",
   discard: "Reject",
   correct: "Edit",
-  undo: { reject: "Reject", invalidate: "No longer true", reverse: "Undo approval" } satisfies Record<
-    Exclude<Undo, "task" | "created" | "none" | null>,
-    string
-  >,
+  undo: {
+    reject: "Reject",
+    invalidate: "No longer true",
+    reverse: "Undo approval",
+    revoke: "Undo approval",
+  } satisfies Record<Exclude<Undo, "task" | "created" | "none" | null>, string>,
   moreButton: "More",
   openTask: "Open the task",
   openFact: "Open the fact",
   whatItMade: "What it created",
   noUndoFact:
     "WireCat can take back the approval of a decision only. To change this fact, edit it; to drop it, erase it.",
+  noUndoOwnFact: "You wrote this fact yourself, so there is no approval to take back. Edit it, or erase it.",
+  noUndoCorrection: "This is a correction you accepted; its approval cannot be taken back. Edit it, or erase it.",
+  revokeRefused: {
+    "fact.not-accepted": "This fact is not approved, so there is nothing to take back.",
+    "fact.owner-written": "You wrote this fact yourself, so there is no approval to take back.",
+    "fact.revoke-correction": "This fact corrects an earlier one; its approval cannot be taken back. Edit it instead.",
+  } as Record<string, string>,
   createdGone: "It is not on this page: it may have been erased. Read again to check.",
   forget: "Erase…",
   restsOn: (n: number) => `What it rests on · ${plural("en", n, { one: "# source", other: "# sources" })}`,
@@ -106,6 +115,7 @@ const en = {
     reject: "Reject instead",
     invalidate: "Mark no longer true instead",
     reverse: "Undo approval instead",
+    revoke: "Undo approval instead",
   } satisfies Record<Exclude<Undo, "task" | "created" | "none" | null>, string>,
   forgetNow: "Erase",
   missing:
@@ -269,13 +279,25 @@ const ru: typeof en = {
   approve: "Одобрить",
   discard: "Отклонить",
   correct: "Изменить",
-  undo: { reject: "Отклонить", invalidate: "Больше не верно", reverse: "Отменить одобрение" },
+  undo: {
+    reject: "Отклонить",
+    invalidate: "Больше не верно",
+    reverse: "Отменить одобрение",
+    revoke: "Отменить одобрение",
+  },
   moreButton: "Ещё",
   openTask: "Открыть задачу",
   openFact: "Открыть факт",
   whatItMade: "Что создано",
   noUndoFact:
     "Пока WireCat может отменить одобрение только у решения. Чтобы поменять этот факт, измените его; чтобы убрать, сотрите.",
+  noUndoOwnFact: "Этот факт записали вы сами, отменять нечего. Измените его или сотрите.",
+  noUndoCorrection: "Это принятое вами исправление, его одобрение не отменить. Измените его или сотрите.",
+  revokeRefused: {
+    "fact.not-accepted": "Этот факт не одобрен, отменять нечего.",
+    "fact.owner-written": "Этот факт записали вы сами, отменять нечего.",
+    "fact.revoke-correction": "Этот факт исправляет прежний, его одобрение не отменить. Лучше измените его.",
+  },
   createdGone: "Этого нет на странице: возможно, запись стёрта. Прочитайте заново, чтобы проверить.",
   forget: "Стереть…",
   restsOn: (n) =>
@@ -324,6 +346,7 @@ const ru: typeof en = {
     reject: "Лучше отклонить",
     invalidate: "Лучше отметить «больше не верно»",
     reverse: "Лучше отменить одобрение",
+    revoke: "Лучше отменить одобрение",
   },
   forgetNow: "Стереть",
   missing:
@@ -487,13 +510,26 @@ const es: typeof en = {
   approve: "Aprobar",
   discard: "Rechazar",
   correct: "Editar",
-  undo: { reject: "Rechazar", invalidate: "Ya no es cierto", reverse: "Deshacer aprobación" },
+  undo: {
+    reject: "Rechazar",
+    invalidate: "Ya no es cierto",
+    reverse: "Deshacer aprobación",
+    revoke: "Deshacer aprobación",
+  },
   moreButton: "Más",
   openTask: "Abrir la tarea",
   openFact: "Abrir el hecho",
   whatItMade: "Qué creó",
   noUndoFact:
     "Por ahora WireCat solo puede deshacer la aprobación de una decisión. Para cambiar este hecho, edítalo; para quitarlo, bórralo.",
+  noUndoOwnFact: "Este hecho lo escribiste tú, así que no hay aprobación que deshacer. Edítalo o bórralo.",
+  noUndoCorrection: "Es una corrección que aceptaste; su aprobación no se puede deshacer. Edítala o bórrala.",
+  revokeRefused: {
+    "fact.not-accepted": "Este hecho no está aprobado, así que no hay nada que deshacer.",
+    "fact.owner-written": "Este hecho lo escribiste tú, así que no hay aprobación que deshacer.",
+    "fact.revoke-correction":
+      "Este hecho corrige otro anterior; su aprobación no se puede deshacer. Edítalo en su lugar.",
+  },
   createdGone: "No está en esta página: puede que se haya borrado. Vuelve a leer para comprobarlo.",
   forget: "Borrar…",
   restsOn: (n) => `En qué se basa · ${plural("es", n, { one: "# fuente", other: "# fuentes" })}`,
@@ -539,6 +575,7 @@ const es: typeof en = {
     reject: "Mejor rechazar",
     invalidate: "Mejor marcar que ya no es cierto",
     reverse: "Mejor deshacer la aprobación",
+    revoke: "Mejor deshacer la aprobación",
   },
   forgetNow: "Borrar",
   missing:

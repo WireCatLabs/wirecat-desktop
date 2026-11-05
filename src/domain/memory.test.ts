@@ -44,6 +44,16 @@ describe("memory records", () => {
     expect(undoOf(entry("memory", "summary", "stale"))).toBeNull()
   })
 
+  it("takes back an agent's accepted fact once memo can, never the owner's own or a correction", () => {
+    const promise = entry("fact", "promise", "accepted")
+    expect(undoOf(promise, true)).toBe("revoke")
+    expect(can(promise, true).discard).toBe(true)
+    expect(undoOf({ ...promise, author: { type: "person" } }, true)).toBe("none")
+    expect(undoOf({ ...promise, supersedes: "fact:7" }, true)).toBe("none")
+    expect(can({ ...promise, supersedes: "fact:7" }, true).discard).toBe(false)
+    expect(undoOf(entry("fact", "decision", "accepted"), true)).toBe("reverse")
+  })
+
   it("groups a newest-first list into runs of one local day", () => {
     const at = (d: number, h: number) => ({ createdAt: new Date(2026, 9, d, h).toISOString() })
     const groups = byDay([at(31, 23), at(31, 1), at(30, 22), at(28, 9)])
