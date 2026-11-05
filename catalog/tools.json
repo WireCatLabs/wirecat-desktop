@@ -787,7 +787,8 @@
       },
       "bot": {
         "set": ["{profile}", "bot", "auth", "set", "--record", "--json"],
-        "list": ["wirecat", "bot", "list", "--no-record", "--json"],
+        "list": ["bot", "list", "--no-record", "--json"],
+        "listMinVersion": "0.102.0",
         "token": "opaque",
         "create": "https://business.max.ru/self",
         "docs": "https://github.com/WireCatLabs/max-cli/blob/main/docs/bot.md",
