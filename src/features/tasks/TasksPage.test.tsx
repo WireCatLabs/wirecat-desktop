@@ -210,7 +210,7 @@ describe("Tasks", () => {
     expect(screen.getByRole("dialog", { name: "Task HRB-12" })).toBeInTheDocument()
   })
 
-  it("keeps a comment thread, adds a person by name and says why a task with subtasks stays", async () => {
+  it("keeps a comment thread, adds a person by name and moves a subtask out on its own", async () => {
     const user = userEvent.setup()
     const assign = vi.spyOn(platform, "taskAssign")
     render(<TasksPage />)
@@ -231,13 +231,7 @@ describe("Tasks", () => {
     expect(useTasks.getState().people.map((p) => p.name)).toContain("Lena Ortiz")
 
     await user.click(screen.getByRole("button", { name: "Close" }))
-    await user.click(within(row("OPS-3")).getByRole("button", { name: /^OPS-3 / }))
-    const ops = await screen.findByRole("dialog", { name: "Task OPS-3" })
-    await user.click(within(ops).getByRole("combobox", { name: "Project of OPS-3" }))
-    await user.click(screen.getByRole("option", { name: "HOME · Home" }))
-    expect(await within(ops).findByText(/it has subtasks/)).toBeInTheDocument()
-    expect(within(ops).getByRole("button", { name: "Open OPS-5" })).toBeInTheDocument()
-    await user.click(within(ops).getByRole("button", { name: "Open OPS-5" }))
+    await user.click(within(row("OPS-5")).getByRole("button", { name: /^OPS-5 / }))
     const sub = await screen.findByRole("dialog", { name: "Task OPS-5" })
     await user.click(within(sub).getByRole("combobox", { name: "Project of OPS-5" }))
     await user.click(screen.getByRole("option", { name: "HRB · Harbour launch" }))
@@ -257,6 +251,28 @@ describe("Tasks", () => {
     expect(await screen.findByRole("dialog", { name: "Task HRB-17" })).toBeInTheDocument()
     expect(row("HRB-17")).toBeInTheDocument()
     expect(row("OPS-4")).toBeNull()
+  })
+
+  it("says which subtasks a move to another project took along", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("HRB-12")).getByRole("button", { name: /^HRB-12 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-12" })
+    const task = useTasks.getState().tasks.find((t) => t.key === "HRB-12")
+    if (!task) throw new Error("no HRB-12")
+    vi.spyOn(platform, "taskUpdate").mockResolvedValue({
+      kind: "saved",
+      task: { ...task, key: "HOME-9", project: "HOME", projectName: "Home", revision: task.revision + 1 },
+      label: null,
+      renumbered: [],
+      moved: [{ from: "HRB-13", to: "HOME-10" }],
+    })
+    await user.click(within(dialog).getByRole("combobox", { name: "Project of HRB-12" }))
+    await user.click(screen.getByRole("option", { name: "HOME · Home" }))
+    const moved = await screen.findByRole("dialog", { name: "Task HOME-9" })
+    expect(await within(moved).findByText("Its subtask moved with it:")).toBeInTheDocument()
+    expect(within(moved).getByRole("button", { name: "Open HOME-10" })).toBeInTheDocument()
   })
 
   it("moves a card between columns with the keyboard and says each step", async () => {

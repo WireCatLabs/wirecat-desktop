@@ -488,7 +488,7 @@ export function tasksMock(): TaskApi {
     const next = put({ ...change(t), revision: t.revision + 1, updatedAt: new Date().toISOString() })
     return label
       ? { ...(label as Extract<TaskWrite, { kind: "saved" }>), task: next }
-      : { kind: "saved", task: next, label: null, renumbered: [] }
+      : { kind: "saved", task: next, label: null, renumbered: [], moved: [] }
   }
 
   const setState = (t: Task, state: TaskState): Task => {
@@ -609,16 +609,15 @@ export function tasksMock(): TaskApi {
         revision: 1,
       })
       tasks = [task, ...tasks]
-      return { kind: "saved", task, label: null, renumbered: [] }
+      return { kind: "saved", task, label: null, renumbered: [], moved: [] }
     },
     async taskUpdate(key, revision, edit: TaskEdit) {
       const to = edit.project
       if (to !== undefined && to !== find(key).project) {
-        const subtasks = tasks.filter((t) => t.parent === key).map((t) => t.key)
         const parent = find(key).parent
-        if (find(key).revision === revision && (subtasks.length > 0 || (parent && !edit.detach))) {
+        if (find(key).revision === revision && parent && !edit.detach) {
           await delay(260)
-          return parent && !edit.detach ? { kind: "isSubtask", parent } : { kind: "hasSubtasks", subtasks }
+          return { kind: "isSubtask", parent }
         }
       }
       const out = await write(key, revision, (t) => {
@@ -677,7 +676,15 @@ export function tasksMock(): TaskApi {
         },
       ])
       comments.set(moved.key, comments.get(key) ?? [])
-      return { ...out, task: moved }
+      // memo takes the subtasks along, each with the next key in the new project.
+      const carried = tasks.filter((t) => t.parent === key)
+      const keys = carried.map((t, i) => ({ from: t.key, to: `${to}-${number + i + 1}` }))
+      tasks = tasks.map((t) => {
+        const k = keys.find((x) => x.from === t.key)
+        return k ? { ...t, key: k.to, project: to, projectName: moved.projectName, parent: moved.key } : t
+      })
+      for (const k of keys) aliases.set(k.from, k.to)
+      return { ...out, task: moved, moved: keys }
     },
     async taskMove(key, revision, place: TaskPlace) {
       const t = find(key)
@@ -697,7 +704,7 @@ export function tasksMock(): TaskApi {
           record(key, [{ field: "priority", from: x.priority, to: priority }], "priority")
           return { ...setState(x, state), priority, priorityLabel: to }
         },
-        { kind: "saved", task: t, label: from !== to ? { from, to } : null, renumbered: [] },
+        { kind: "saved", task: t, label: from !== to ? { from, to } : null, renumbered: [], moved: [] },
       )
     },
     taskAssign(key, revision, person) {

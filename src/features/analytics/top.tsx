@@ -113,7 +113,7 @@ export function WeekTiles() {
   const preview = useAnalytics((s) => s.preview)
   const all = useExtra({ by: "day", only: "all", previous: false, period: "30d" })
   const sent = useExtra({ by: "day", only: "sent", previous: false, period: "30d" })
-  const mail = ready(useAggregate("mail", "memo", true, "30d"), MailSchema)
+  const mail = ready(useAggregate("mail", "email", true, "30d"), MailSchema)
   const meetings = ready(useAggregate("meetings", "zm", true, "30d"), MeetingsListSchema)
   const closed = useClosedWeeks(today)
 
@@ -141,7 +141,7 @@ export function WeekTiles() {
         label={m.weekEmails}
         now={mail.loading ? null : mail.bodies.length ? emails.now : 0}
         last={mail.bodies.length ? emails.last : null}
-        {...(!mail.loading && !mail.bodies.length ? { format: () => "—", note: m.needsUpdate("Memo") } : {})}
+        {...(!mail.loading && !mail.bodies.length ? { format: () => "—", note: m.needsUpdate("Email") } : {})}
       />
       <Tile
         label={m.weekMeetingHours}

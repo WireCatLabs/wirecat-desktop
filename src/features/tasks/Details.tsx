@@ -124,7 +124,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
     requestAnimationFrame(() => box.current?.focus())
   }
 
-  const subtasks = useTasks((s) => s.subtasks[task.key])
+  const moved = useTasks((s) => s.moved[task.key])
   const detach = useTasks((s) => s.detach[task.key])
   const made = history?.state === "ready" ? history.events.find((e) => e.kind === "created") : undefined
   const maker = task.createdBy ? creatorName(task.createdBy, m) : null
@@ -314,15 +314,16 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           <Field label={m.due}>
             <DueCell task={task} />
           </Field>
-          <Field label={m.project} hint={subtasks || detach ? undefined : m.projectHint}>
+          <Field label={m.project} hint={moved || detach ? undefined : m.projectHint}>
             <ProjectCell task={task} />
-            <Collapse open={Boolean(subtasks)}>
-              <div role="alert" className="mt-[0.3rem] flex flex-col gap-[0.25rem] text-[0.85rem] leading-snug">
-                <span className="text-bad">{m.moveRefused}</span>
-                {subtasks?.map((key) => (
-                  <span key={key} className="flex min-w-0 items-center gap-[0.4rem]">
-                    <TaskLink taskKey={key} />
-                    <span className="truncate text-ink-soft">{all.find((t) => t.key === key)?.title}</span>
+            <Collapse open={Boolean(moved)}>
+              <div role="status" className="mt-[0.3rem] flex flex-col gap-[0.25rem] text-[0.85rem] leading-snug">
+                <span className="text-ink-soft">{m.movedWith(moved?.length ?? 0)}</span>
+                {moved?.map((x) => (
+                  <span key={x.to} className="flex min-w-0 items-center gap-[0.4rem]">
+                    <span className="font-mono text-ink-dim line-through">{x.from}</span>
+                    <TaskLink taskKey={x.to} />
+                    <span className="truncate text-ink-soft">{all.find((t) => t.key === x.to)?.title}</span>
                   </span>
                 ))}
               </div>

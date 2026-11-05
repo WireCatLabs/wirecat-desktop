@@ -103,7 +103,7 @@ type Words = {
   openFailed: (key: string, reason: string) => string
   properties: string
   projectHint: string
-  moveRefused: string
+  movedWith: (n: number) => string
   partOf: string
   moveAlone: (parent: string, project: string) => string
   someoneElse: string
@@ -266,7 +266,7 @@ const en: Words = {
   openFailed: (key, reason) => `Could not read ${key}: ${reason}.`,
   properties: "Properties",
   projectHint: "Moving it gives it a new key; the old key still finds it.",
-  moveRefused: "Not moved: it has subtasks, which stay in this project. Move them or take them out of this task first:",
+  movedWith: (n) => plural("en", n, { one: "Its subtask moved with it:", other: "Its # subtasks moved with it:" }),
   partOf: "Not moved: this task is part of",
   moveAlone: (parent, project) => `Move it to ${project} on its own (it leaves ${parent})`,
   someoneElse: "Someone else…",
@@ -430,8 +430,13 @@ const ru: Words = {
   openFailed: (key, reason) => `Не удалось прочитать ${key}: ${reason}.`,
   properties: "Свойства",
   projectHint: "При переносе у задачи будет новый ключ; по старому её тоже можно найти.",
-  moveRefused:
-    "Не перенесено: у задачи есть подзадачи, они остаются в этом проекте. Сначала перенесите их или уберите из этой задачи:",
+  movedWith: (n) =>
+    plural("ru", n, {
+      one: "Вместе с ней перенесена # подзадача:",
+      few: "Вместе с ней перенесены # подзадачи:",
+      many: "Вместе с ней перенесены # подзадач:",
+      other: "Вместе с ней перенесены # подзадачи:",
+    }),
   partOf: "Не перенесено: эта задача — часть",
   moveAlone: (parent, project) => `Перенести в ${project} отдельно (она выйдет из ${parent})`,
   someoneElse: "Кто-то другой…",
@@ -589,8 +594,8 @@ const es: Words = {
   openFailed: (key, reason) => `No se pudo leer ${key}: ${reason}.`,
   properties: "Propiedades",
   projectHint: "Al moverla recibe una clave nueva; la antigua también la encuentra.",
-  moveRefused:
-    "No se ha movido: tiene subtareas, que se quedan en este proyecto. Muévelas o sácalas de esta tarea primero:",
+  movedWith: (n) =>
+    plural("es", n, { one: "Su subtarea se movió con ella:", other: "Sus # subtareas se movieron con ella:" }),
   partOf: "No se ha movido: esta tarea forma parte de",
   moveAlone: (parent, project) => `Moverla sola a ${project} (sale de ${parent})`,
   someoneElse: "Otra persona…",

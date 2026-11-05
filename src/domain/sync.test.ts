@@ -7,6 +7,8 @@ describe("a failed sync sorted into the way out", () => {
     for (const reason of ["profile.locked", "sync.running", "device.in-use", "app.busy"]) {
       expect(advice({ message: "x", code: "provider_unavailable", reason, run: null }).kind).toBe("busy")
     }
+    const conflict = advice({ message: "x", code: "conflict", reason: "task.stale", run: null })
+    expect([conflict.kind, conflict.again]).toEqual(["busy", true])
   })
 
   it("tells a refused command apart, with an update and a report", () => {

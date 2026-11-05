@@ -138,7 +138,7 @@ function limiter(n: number) {
 
 const BYS: readonly CountBy[] = ["day", "sender", "chat"]
 /** The tools that sync data into the store, in the order the page lists them. */
-const SYNCED = ["tg", "max", "wa", "zm", "drive", "memo"]
+const SYNCED = ["tg", "max", "wa", "email", "zm", "drive", "memo"]
 
 /** Adds a messenger's profiles up; a profile that failed is named, the others still count. */
 export function combine(answers: { profile: string; by: CountBy; answer: MessageCounts }[]): SourceCounts {
