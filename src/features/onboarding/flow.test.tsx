@@ -419,6 +419,10 @@ describe("finishing the setup", () => {
     const last = await screen.findByRole("dialog", { name: m.tour.guide.title })
     expect(useNav.getState().active).toBe("guides")
     expect(within(last).getByRole("button", { name: m.tourEnd.tryGuide })).toHaveFocus()
+    expect(within(last).getByRole("button", { name: m.tourEnd.tryGuide })).not.toHaveAttribute(
+      "data-variant",
+      "primary",
+    )
     expect(within(last).getByRole("button", { name: m.tourEnd.openTools })).toBeInTheDocument()
 
     const start = screen.getByRole("region", { name: guidesMessages.en.welcomeTitle })

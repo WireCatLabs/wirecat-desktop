@@ -182,7 +182,7 @@ function TourSteps() {
         <>
           {starter && (
             <>
-              <Button data-primary size="sm" variant="primary" onClick={tryGuide}>
+              <Button data-primary size="sm" onClick={tryGuide}>
                 {all.tourEnd.tryGuide}
               </Button>
               <Button size="sm" onClick={() => useGuideStart.getState().next()}>
