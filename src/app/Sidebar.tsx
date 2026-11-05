@@ -28,7 +28,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
   const versionMenu = useId()
   return (
     <aside
-      className="flex w-[12rem] shrink-0 xl:w-[13.5rem] flex-col border-line border-r bg-wall"
+      className="reveal flex w-[12rem] shrink-0 xl:w-[13.5rem] flex-col border-line border-r bg-wall"
       data-tauri-drag-region
     >
       <div className="flex h-[7rem] items-center px-[1.5rem] pb-[0.6rem]" data-tauri-drag-region>

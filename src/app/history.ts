@@ -1,6 +1,7 @@
-import { useEffect } from "react"
+import { type RefObject, useEffect, useLayoutEffect, useRef } from "react"
 import { useNav } from "@/features/nav"
 import { platform } from "@/platform/bridge"
+import { arrive } from "@/ui/motion"
 
 const BACK = 3
 const FORWARD = 4
@@ -9,6 +10,40 @@ const editable = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))
 
 const dialogOpen = () => document.querySelector("dialog[open]") !== null
+
+const scrolled = new Map<string, number>()
+
+/**
+ * A new section arrives with a short rise instead of a cut, and each section keeps where the owner left it: back on
+ * Tools, the list is where it was; a section not seen yet opens at its top. One scroller serves every page, so
+ * without this a page would open at the last page's offset.
+ */
+export function useSectionSwitch(scroller: RefObject<HTMLElement | null>, active: string | null) {
+  const shown = useRef(active)
+  useLayoutEffect(() => {
+    const el = scroller.current
+    if (!el || active === null) return
+    const save = () => scrolled.set(active, el.scrollTop)
+    el.addEventListener("scroll", save, { passive: true })
+    return () => el.removeEventListener("scroll", save)
+  }, [scroller, active])
+  useLayoutEffect(() => {
+    const el = scroller.current
+    if (shown.current === active) return
+    shown.current = active
+    // null while the setup holds the window; leaving it brings the page back like any other switch.
+    if (!el || active === null) return
+    const top = scrolled.get(active) ?? 0
+    el.scrollTop = top
+    for (const page of el.children) arrive(page)
+    if (top === 0) return
+    // Rows that load a frame later make the page short at first, which clamps the offset; set it again once they are in.
+    const frame = requestAnimationFrame(() => {
+      el.scrollTop = top
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [scroller, active])
+}
 
 /** The mouse's back and forward buttons, Alt+Left/Right, and Cmd+[ / Cmd+] on macOS step through visited sections. */
 export function useSectionHistory(enabled: boolean) {
