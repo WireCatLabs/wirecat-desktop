@@ -13,7 +13,7 @@ const offer = { version: "0.2.0", notes: "Faster Storage page.", kind: "self" as
 describe("App update", () => {
   beforeEach(() => {
     useOnboarding.setState({ status: "done", open: false })
-    useUpdate.setState({ update: null, open: false, phase: "available", progress: null, saved: null, error: null })
+    useUpdate.setState({ update: null, open: false, phase: "available", progress: null, saved: null, failure: null })
   })
   afterEach(() => vi.restoreAllMocks())
 
@@ -67,7 +67,10 @@ describe("App update", () => {
     const dialog = await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })
     await user.click(within(dialog).getByRole("button", { name: "Install and restart" }))
 
-    expect(await within(dialog).findByRole("alert")).toHaveTextContent("The download stopped: connection reset")
+    const alert = await within(dialog).findByRole("alert")
+    expect(alert).toHaveTextContent("WireCat could not reach the update server.")
+    expect(alert).toHaveTextContent("Check your internet connection, then try again.")
+    expect(alert).toHaveTextContent("Details: The download stopped: connection reset")
     expect(within(dialog).getByRole("button", { name: "Try again" })).toBeEnabled()
     await user.click(within(dialog).getByRole("button", { name: "Open the download page" }))
     expect(open).toHaveBeenCalledWith("https://wirecat.dev/en/download")
@@ -94,6 +97,9 @@ describe("App update", () => {
     await user.click(within(dialog).getByRole("button", { name: "Download and install" }))
 
     expect(await within(dialog).findByText(/The system installer opened wirecat_0\.2\.0_amd64\.deb/)).toBeVisible()
+    expect(
+      within(dialog).getByText(/close the installer, nothing is installed\. The package stays at ~\/Downloads\//),
+    ).toBeVisible()
     expect(within(dialog).getByText(/first copies the package into apt's own folder/)).toBeVisible()
     expect(
       within(dialog).getByText(
@@ -103,6 +109,48 @@ describe("App update", () => {
     expect(within(dialog).getAllByRole("button", { name: "Close" })[0]).toHaveFocus()
     expect(download).toHaveBeenCalledWith("0.2.0", expect.any(Function))
     expect(install).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [
+      { reason: "offline", detail: "error sending request for url (https://api.github.com/x)" },
+      "WireCat could not reach the update server.",
+      "Check your internet connection, then try again.",
+    ],
+    [
+      { reason: "server", detail: "Download request failed with status: 429 Too Many Requests" },
+      "GitHub, where WireCat keeps its updates, did not answer.",
+      "Try again in a few minutes.",
+    ],
+    [
+      { reason: "diskFull", folder: "~/Downloads", detail: "No space left on device (os error 28)" },
+      "There is not enough free space in ~/Downloads for the update.",
+      "Free some space on this disk",
+    ],
+    [
+      { reason: "notWritable", folder: "~/Downloads", detail: "Permission denied (os error 13)" },
+      "WireCat cannot save the update in ~/Downloads.",
+      "Make sure the folder exists and you can save files in it",
+    ],
+    [
+      { reason: "newer", version: "0.2.1" },
+      "WireCat 0.2.1 is out now.",
+      "Close this window and open the update again.",
+    ],
+  ] as const)("explains a failed package download (%o) and what to do next", async (failure, message, next) => {
+    vi.spyOn(platform, "checkUpdate").mockResolvedValue({ ...offer, kind: "deb" })
+    vi.spyOn(platform, "downloadPackageUpdate").mockRejectedValue(failure)
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole("button", { name: "Update to 0.2.0" }))
+    const dialog = await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })
+    await user.click(within(dialog).getByRole("button", { name: "Download and install" }))
+    const alert = await within(dialog).findByRole("alert")
+    expect(alert.querySelector("p")).toHaveTextContent(message)
+    expect(alert).toHaveTextContent(next)
+    expect(alert.querySelector("p")).not.toHaveTextContent(/https?:|os error/)
+    expect(within(dialog).getByRole("button", { name: "Try again" })).toBeEnabled()
   })
 
   it("says plainly when the package fails the signature check", async () => {

@@ -19,3 +19,11 @@ export const PackageOutcomeSchema = v.variant("result", [
   v.object({ result: v.literal("badSignature") }),
 ])
 export type PackageOutcome = v.InferOutput<typeof PackageOutcomeSchema>
+
+/** Why a package download failed (`package_update::Failure`). `detail` is technical text for a small line only. */
+export const UpdateFailureSchema = v.variant("reason", [
+  v.object({ reason: v.picklist(["offline", "server", "other"]), detail: v.string() }),
+  v.object({ reason: v.picklist(["diskFull", "notWritable"]), folder: v.string(), detail: v.string() }),
+  v.object({ reason: v.literal("newer"), version: v.string() }),
+])
+export type UpdateFailure = v.InferOutput<typeof UpdateFailureSchema>

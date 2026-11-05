@@ -3,12 +3,13 @@ import { type ReactNode, useEffect } from "react"
 import { formatBytes } from "@/domain/format"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import type { UpdateFailure } from "@/platform/types"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { updateMessages } from "./messages"
+import { type UpdateMessages, updateMessages } from "./messages"
 import { downloadPage, updatesSection, useUpdate } from "./store"
 
 const RELEASES = "https://github.com/WireCatLabs/wirecat-desktop/releases"
@@ -78,16 +79,57 @@ function Saved() {
   return (
     <div className="flex flex-col gap-3">
       <p className="text-ink">{saved.opened ? m.opened(saved.file) : m.revealed(saved.file)}</p>
+      <p className="text-[0.9rem] text-ink-soft">{m.keep(saved.path)}</p>
       <p className="text-[0.9rem] text-ink-soft">{m.terminal[kind === "rpm" ? "rpm" : "deb"]}</p>
       <CopyField value={saved.command} label={m.copyCommand} wrap />
     </div>
   )
 }
 
+/** What went wrong and what to do; the technical text only in a small line under them. */
+function explain(
+  m: UpdateMessages,
+  f: UpdateFailure | null,
+): { message: string; next: string; detail?: string | undefined } {
+  switch (f?.reason) {
+    case "offline":
+      return { message: m.offline, next: m.offlineNext, detail: f.detail }
+    case "server":
+      return { message: m.server, next: m.serverNext, detail: f.detail }
+    case "diskFull":
+      return { message: m.diskFull(f.folder), next: m.diskFullNext, detail: f.detail }
+    case "notWritable":
+      return { message: m.notWritable(f.folder), next: m.notWritableNext, detail: f.detail }
+    case "newer":
+      return { message: m.newer(f.version), next: m.newerNext }
+    default:
+      return { message: m.failed, next: m.failedDetail, detail: f?.detail }
+  }
+}
+
+function Failed({ action }: { action: ReactNode }) {
+  const m = useMessages(updateMessages)
+  const failure = useUpdate((s) => s.failure)
+  const { message, next, detail } = explain(m, failure)
+  return (
+    <ErrorNotice
+      action={action}
+      detail={
+        <>
+          {next}
+          {detail && <span className="mt-1 block break-words text-[0.8rem] text-ink-dim">{m.details(detail)}</span>}
+        </>
+      }
+    >
+      {message}
+    </ErrorNotice>
+  )
+}
+
 export function UpdateDialog() {
   const m = useMessages(updateMessages)
   const lang = useLang()
-  const { update, open, phase, error } = useUpdate()
+  const { update, open, phase } = useUpdate()
   // The pressed button went away with the download; the step's own button takes the focus, not the page behind.
   useEffect(() => {
     if (phase === "saved") document.querySelector<HTMLElement>("[data-update-done]")?.focus()
@@ -173,11 +215,7 @@ export function UpdateDialog() {
                 {m.rejected}
               </ErrorNotice>
             )}
-            {phase === "failed" && (
-              <ErrorNotice detail={m.failedDetail} action={pageButton}>
-                {error ?? m.failed}
-              </ErrorNotice>
-            )}
+            {phase === "failed" && <Failed action={pageButton} />}
           </div>
         </AutoHeight>
       </div>

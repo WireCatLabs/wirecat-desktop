@@ -58,16 +58,95 @@ pub enum Outcome {
     BadSignature,
 }
 
-/// The release's own file name, so the owner recognises it in Downloads; anything else is refused rather than written.
-fn file_name(kind: Kind, url: &tauri::Url) -> Option<String> {
-    let name = url.path_segments()?.next_back()?;
-    let ext = match kind {
-        Kind::Deb => ".deb",
-        Kind::Rpm => ".rpm",
-        _ => return None,
-    };
-    let plain = name.bytes().all(|b| b.is_ascii_alphanumeric() || b"._+~-".contains(&b));
-    (plain && name.starts_with("wirecat") && name.ends_with(ext)).then(|| name.to_string())
+/// Why a package download failed, so the dialog can say what to do next. `detail` is the technical text for a small
+/// line under the advice, never the main message.
+#[derive(Serialize, Debug, PartialEq, Eq)]
+#[serde(tag = "reason", rename_all = "camelCase")]
+pub enum Failure {
+    Offline {
+        detail: String,
+    },
+    /// GitHub keeps the releases: a rate limit or a server error there, not on this computer.
+    Server {
+        detail: String,
+    },
+    DiskFull {
+        folder: String,
+        detail: String,
+    },
+    NotWritable {
+        folder: String,
+        detail: String,
+    },
+    Newer {
+        version: String,
+    },
+    Other {
+        detail: String,
+    },
+}
+
+fn busy_status(code: u16) -> bool {
+    matches!(code, 403 | 429 | 500..=599)
+}
+
+/// The plugin reports a refused download only as text: "Download request failed with status: 403 Forbidden".
+fn status_in(text: &str) -> Option<u16> {
+    text.rsplit_once("status: ")?.1.get(..3)?.parse().ok()
+}
+
+fn failure(e: &Error) -> Failure {
+    let detail = e.to_string();
+    match e {
+        Error::Reqwest(r) if r.status().is_some_and(|s| busy_status(s.as_u16())) => Failure::Server { detail },
+        Error::Reqwest(r) if r.is_connect() || r.is_timeout() || r.is_request() || r.is_body() => {
+            Failure::Offline { detail }
+        }
+        Error::Network(text) if status_in(text).is_some_and(busy_status) => Failure::Server { detail },
+        // The plugin says this when every endpoint answered without a usable latest.json.
+        Error::ReleaseNotFound => Failure::Server { detail },
+        _ => Failure::Other { detail },
+    }
+}
+
+fn write_failure(folder: &Path, e: &std::io::Error) -> Failure {
+    use std::io::ErrorKind;
+    let folder = paths::tilde(&folder.to_string_lossy());
+    let detail = e.to_string();
+    match e.kind() {
+        ErrorKind::StorageFull | ErrorKind::QuotaExceeded => Failure::DiskFull { folder, detail },
+        _ => Failure::NotWritable { folder, detail },
+    }
+}
+
+/// A plain release version such as `0.4.0` or `0.5.0-beta.1`: it becomes part of a file name and a terminal line.
+fn plain_version(version: &str) -> bool {
+    let core = version.split(['-', '+']).next().unwrap_or_default();
+    let parts: Vec<&str> = core.split('.').collect();
+    version.len() <= 64
+        && parts.len() == 3
+        && parts.iter().all(|p| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()))
+        && version.bytes().all(|b| b.is_ascii_alphanumeric() || b".-+".contains(&b))
+}
+
+/// The release's own asset name, so the owner recognises it in Downloads. It is built, not read from the download URL:
+/// the manifest points at GitHub API addresses (`/releases/assets/<id>`) that carry no file name.
+fn file_name(kind: Kind, version: &str, arch: &str) -> Option<String> {
+    if !plain_version(version) {
+        return None;
+    }
+    match kind {
+        Kind::Deb => {
+            let arch = match arch {
+                "x86_64" => "amd64",
+                "aarch64" => "arm64",
+                other => other,
+            };
+            Some(format!("wirecat_{version}_{arch}.deb"))
+        }
+        Kind::Rpm => Some(format!("wirecat-{version}-1.{arch}.rpm")),
+        _ => None,
+    }
 }
 
 fn shell_word(s: &str) -> String {
@@ -141,16 +220,21 @@ fn hand_over(kind: Kind, path: &Path) -> bool {
     opened
 }
 
-fn save(kind: Kind, file: String, bytes: &[u8]) -> Result<Outcome, String> {
-    let dir = paths::downloads().ok_or("No home folder to download into.")?;
-    std::fs::create_dir_all(&dir).map_err(|e| format!("Could not create {}: {e}", dir.display()))?;
-    let to = dir.join(&file);
+fn write_package(dir: &Path, file: &str, bytes: &[u8]) -> Result<std::path::PathBuf, Failure> {
+    std::fs::create_dir_all(dir).map_err(|e| write_failure(dir, &e))?;
+    let to = dir.join(file);
     let partial = dir.join(format!(".{file}.partial"));
     let written = std::fs::write(&partial, bytes).and_then(|()| std::fs::rename(&partial, &to));
     if let Err(e) = written {
         let _ = std::fs::remove_file(&partial);
-        return Err(format!("Could not write to {}: {e}", paths::tilde(&dir.to_string_lossy())));
+        return Err(write_failure(dir, &e));
     }
+    Ok(to)
+}
+
+fn save(kind: Kind, file: String, bytes: &[u8]) -> Result<Outcome, Failure> {
+    let dir = paths::downloads().ok_or_else(|| Failure::Other { detail: "No home folder to download into.".into() })?;
+    let to = write_package(&dir, &file, bytes)?;
     let opened = hand_over(kind, &to);
     let path = paths::tilde(&to.to_string_lossy());
     let command = install_line(kind, &path, &file);
@@ -163,18 +247,25 @@ pub async fn download<R: tauri::Runtime>(
     app: &tauri::AppHandle<R>,
     version: &str,
     on_event: &Channel<Progress>,
-) -> Result<Outcome, String> {
+) -> Result<Outcome, Failure> {
     let kind = current();
     if !matches!(kind, Kind::Deb | Kind::Rpm) {
-        return Err("This copy was not installed from a .deb or .rpm package.".into());
+        return Err(Failure::Other { detail: "This copy was not installed from a .deb or .rpm package.".into() });
     }
-    let net = |e: Error| format!("The download stopped: {e}");
-    let update = app.updater().map_err(net)?.check().await.map_err(net)?.ok_or("No update was found to download.")?;
+    let net = |e: Error| failure(&e);
+    let update = app
+        .updater()
+        .map_err(net)?
+        .check()
+        .await
+        .map_err(net)?
+        .ok_or_else(|| Failure::Other { detail: "No update was found to download.".into() })?;
     if update.version != version {
-        return Err(format!("WireCat {} is out now. Close this window and open the update again.", update.version));
+        return Err(Failure::Newer { version: update.version });
     }
-    let file = file_name(kind, &update.download_url)
-        .ok_or_else(|| format!("The update's package has an unexpected name: {}", update.download_url))?;
+    let file = file_name(kind, &update.version, std::env::consts::ARCH).ok_or_else(|| Failure::Other {
+        detail: format!("The update's version is not a plain one: {}", update.version),
+    })?;
     let mut downloaded = 0u64;
     let bytes = update.download(
         |chunk, total| {
@@ -188,7 +279,9 @@ pub async fn download<R: tauri::Runtime>(
         Err(e) if bad_signature(&e) => return Ok(Outcome::BadSignature),
         Err(e) => return Err(net(e)),
     };
-    tauri::async_runtime::spawn_blocking(move || save(kind, file, &bytes)).await.map_err(|e| e.to_string())?
+    tauri::async_runtime::spawn_blocking(move || save(kind, file, &bytes))
+        .await
+        .map_err(|e| Failure::Other { detail: e.to_string() })?
 }
 
 #[cfg(test)]
@@ -206,22 +299,76 @@ mod tests {
     }
 
     #[test]
-    fn keeps_the_release_file_name_and_refuses_the_rest() {
-        let url = |s: &str| tauri::Url::parse(s).unwrap();
-        let base = "https://github.com/WireCatLabs/wirecat-desktop/releases/download/v0.1.2";
-        assert_eq!(
-            file_name(Kind::Deb, &url(&format!("{base}/wirecat_0.1.2_amd64.deb"))).unwrap(),
-            "wirecat_0.1.2_amd64.deb"
-        );
-        assert_eq!(
-            file_name(Kind::Rpm, &url(&format!("{base}/wirecat-0.1.2-1.x86_64.rpm"))).unwrap(),
-            "wirecat-0.1.2-1.x86_64.rpm"
-        );
-        assert_eq!(file_name(Kind::Deb, &url(&format!("{base}/wirecat_0.1.2_amd64.AppImage"))), None);
-        assert_eq!(file_name(Kind::Rpm, &url(&format!("{base}/wirecat_0.1.2_amd64.deb"))), None);
-        assert_eq!(file_name(Kind::Deb, &url(&format!("{base}/.wirecat.deb"))), None);
-        assert_eq!(file_name(Kind::Deb, &url(&format!("{base}/wirecat%20x.deb"))), None);
-        assert_eq!(file_name(Kind::Other, &url(&format!("{base}/wirecat_0.1.2_amd64.deb"))), None);
+    fn names_the_package_like_the_release_asset() {
+        assert_eq!(file_name(Kind::Deb, "0.4.0", "x86_64").unwrap(), "wirecat_0.4.0_amd64.deb");
+        assert_eq!(file_name(Kind::Rpm, "0.4.0", "x86_64").unwrap(), "wirecat-0.4.0-1.x86_64.rpm");
+        assert_eq!(file_name(Kind::Deb, "0.5.0-beta.1", "aarch64").unwrap(), "wirecat_0.5.0-beta.1_arm64.deb");
+        assert_eq!(file_name(Kind::Other, "0.4.0", "x86_64"), None);
+        assert_eq!(file_name(Kind::SelfUpdate, "0.4.0", "x86_64"), None);
+    }
+
+    #[test]
+    fn a_github_api_asset_url_does_not_stop_the_update() {
+        // v0.4.0's latest.json, linux-x86_64-deb: the name came from this URL and was refused.
+        let url = "https://api.github.com/repos/WireCatLabs/wirecat-desktop/releases/assets/711991432";
+        assert!(tauri::Url::parse(url).is_ok());
+        assert_eq!(file_name(Kind::Deb, "0.4.0", "x86_64").unwrap(), "wirecat_0.4.0_amd64.deb");
+    }
+
+    #[test]
+    fn refuses_a_version_that_is_not_plain() {
+        for bad in ["", "0.4", "v0.4.0", "0.4.0/../x", "0.4.0 x", "0.4.0;rm", "../0.4.0", "0.4.a"] {
+            assert_eq!(file_name(Kind::Deb, bad, "x86_64"), None, "{bad:?} was accepted");
+        }
+    }
+
+    #[test]
+    fn a_rate_limit_or_server_error_is_github_not_the_network() {
+        let refused = |code: &str| Error::Network(format!("Download request failed with status: {code}"));
+        assert!(matches!(failure(&refused("403 Forbidden")), Failure::Server { .. }));
+        assert!(matches!(failure(&refused("429 Too Many Requests")), Failure::Server { .. }));
+        assert!(matches!(failure(&refused("502 Bad Gateway")), Failure::Server { .. }));
+        assert!(matches!(failure(&Error::ReleaseNotFound), Failure::Server { .. }));
+        assert!(matches!(failure(&refused("404 Not Found")), Failure::Other { .. }));
+    }
+
+    #[test]
+    fn no_connection_is_told_to_check_the_internet() {
+        let _ = rustls::crypto::ring::default_provider().install_default();
+        let sent = tauri::async_runtime::block_on(reqwest::Client::new().get("http://127.0.0.1:1/").send());
+        let e = Error::Reqwest(sent.expect_err("nothing listens on port 1"));
+        assert!(matches!(failure(&e), Failure::Offline { .. }));
+    }
+
+    #[test]
+    fn a_full_disk_names_the_folder() {
+        let dir = Path::new("/home/someone/Downloads");
+        let full = std::io::Error::from_raw_os_error(28);
+        assert!(matches!(write_failure(dir, &full), Failure::DiskFull { folder, .. } if folder.ends_with("Downloads")));
+        let denied = std::io::Error::from(std::io::ErrorKind::PermissionDenied);
+        assert!(matches!(write_failure(dir, &denied), Failure::NotWritable { .. }));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_folder_that_cannot_be_written_is_named_and_left_clean() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = std::env::temp_dir().join(format!("wirecat-package-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let result = write_package(&dir, "wirecat_0.4.0_amd64.deb", b"package");
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let left = std::fs::read_dir(&dir).unwrap().count();
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert!(matches!(result, Err(Failure::NotWritable { .. })), "{result:?}");
+        assert_eq!(left, 0, "a partial file was left behind");
+    }
+
+    #[test]
+    fn a_failure_reaches_the_interface_with_its_reason() {
+        let json =
+            serde_json::to_value(Failure::DiskFull { folder: "~/Downloads".into(), detail: "x".into() }).unwrap();
+        assert_eq!(json, serde_json::json!({ "reason": "diskFull", "folder": "~/Downloads", "detail": "x" }));
     }
 
     #[test]

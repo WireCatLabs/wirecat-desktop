@@ -1,11 +1,26 @@
 import { delay } from "./mock-delay"
-import type { Platform, UpdateKind } from "./types"
+import type { Platform, UpdateFailure, UpdateKind } from "./types"
 
 // `?update=available` offers 0.2.0; `downloading` holds the download at 40%; `fail` stops it halfway with an error.
 // A copy from a Linux package: `deb` and `rpm` download it and open the system's installer; `reveal` shows the .deb in
 // the file manager instead (no known installer opens it); `signature` is a .deb whose download fails the signature
 // check; `other` is a Linux build that does not know how it was installed. No parameter: no update.
-const mode = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("update")
+// `?update-fail=offline|server|disk|readonly|newer` (with `deb` or `rpm`): the package download fails for that reason.
+const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
+const mode = params.get("update")
+
+const failures: Record<string, UpdateFailure> = {
+  offline: {
+    reason: "offline",
+    detail:
+      "error sending request for url (https://api.github.com/repos/WireCatLabs/wirecat-desktop/releases/assets/1)",
+  },
+  server: { reason: "server", detail: "Download request failed with status: 429 Too Many Requests" },
+  disk: { reason: "diskFull", folder: "~/Downloads", detail: "No space left on device (os error 28)" },
+  readonly: { reason: "notWritable", folder: "~/Downloads", detail: "Permission denied (os error 13)" },
+  newer: { reason: "newer", version: "0.2.1" },
+}
+const failure = failures[params.get("update-fail") ?? ""]
 
 const TOTAL = 18_400_000
 
@@ -39,7 +54,9 @@ export const updateMock: Pick<Platform, "checkUpdate" | "installUpdate" | "downl
     await delay(600)
   },
   async downloadPackageUpdate(version, onProgress) {
+    if (failure?.reason === "newer") throw failure
     await download(onProgress)
+    if (failure) throw failure
     if (mode === "signature") return { result: "badSignature" }
     const file = mode === "rpm" ? `wirecat-${version}-1.x86_64.rpm` : `wirecat_${version}_amd64.deb`
     const path = `~/Downloads/${file}`

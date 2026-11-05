@@ -40,6 +40,19 @@ const en = {
   rejectedDetail: "Nothing was saved. Try again later, or get WireCat from the download page.",
   failedDetail: "Try again, or get WireCat from the download page.",
   failed: "The update could not be installed.",
+  offline: "WireCat could not reach the update server.",
+  offlineNext: "Check your internet connection, then try again.",
+  server: "GitHub, where WireCat keeps its updates, did not answer.",
+  serverNext: "Try again in a few minutes.",
+  diskFull: (folder: string) => `There is not enough free space in ${folder} for the update.`,
+  diskFullNext: "Free some space on this disk, for example empty the Trash, then try again.",
+  notWritable: (folder: string) => `WireCat cannot save the update in ${folder}.`,
+  notWritableNext: "Make sure the folder exists and you can save files in it, then try again.",
+  newer: (version: string) => `WireCat ${version} is out now.`,
+  newerNext: "Close this window and open the update again.",
+  details: (text: string) => `Details: ${text}`,
+  keep: (path: string) =>
+    `If you cancel the password prompt or close the installer, nothing is installed. The package stays at ${path}: open it again later, or use the command below.`,
 }
 
 const ru: typeof en = {
@@ -69,7 +82,7 @@ const ru: typeof en = {
   revealed: (file) =>
     `${file} лежит в папке «Загрузки». Откройте его двойным щелчком, введите пароль, а после установки снова откройте WireCat.`,
   terminal: {
-    deb: "Или установите из терминала. Команда сначала копирует пакет в /tmp: apt не может читать файлы из вашей домашней папки и написал бы об этом предупреждение. Потом она спросит пароль, установит WireCat и покажет, что делать дальше.",
+    deb: "Или установите из терминала. Команда сначала копирует пакет в собственную папку apt: apt не может читать файлы из вашей домашней папки и написал бы об этом предупреждение. Потом она спросит пароль, установит WireCat и покажет, что делать дальше.",
     rpm: "Или установите из терминала. Команда спросит пароль, установит WireCat и покажет, что делать дальше.",
   },
   copyCommand: "Скопировать команду",
@@ -80,6 +93,19 @@ const ru: typeof en = {
   rejectedDetail: "Ничего не сохранено. Попробуйте позже или скачайте WireCat на странице загрузки.",
   failedDetail: "Попробуйте снова или скачайте WireCat на странице загрузки.",
   failed: "Не удалось установить обновление.",
+  offline: "WireCat не смог связаться с сервером обновлений.",
+  offlineNext: "Проверьте подключение к интернету и попробуйте снова.",
+  server: "GitHub, где лежат обновления WireCat, не ответил.",
+  serverNext: "Попробуйте снова через несколько минут.",
+  diskFull: (folder) => `В папке ${folder} не хватает места для обновления.`,
+  diskFullNext: "Освободите место на диске, например очистите корзину, и попробуйте снова.",
+  notWritable: (folder) => `WireCat не может сохранить обновление в папку ${folder}.`,
+  notWritableNext: "Проверьте, что папка существует и вы можете сохранять в неё файлы, и попробуйте снова.",
+  newer: (version) => `Уже вышел WireCat ${version}.`,
+  newerNext: "Закройте это окно и откройте обновление снова.",
+  details: (text) => `Подробности: ${text}`,
+  keep: (path) =>
+    `Если вы отмените ввод пароля или закроете установщик, ничего не установится. Пакет останется в ${path}: откройте его позже или используйте команду ниже.`,
 }
 
 const es: typeof en = {
@@ -109,7 +135,7 @@ const es: typeof en = {
   revealed: (file) =>
     `${file} está en tu carpeta Descargas. Ábrelo con doble clic, escribe tu contraseña y luego vuelve a abrir WireCat.`,
   terminal: {
-    deb: "O instálalo desde una terminal. El comando primero copia el paquete a /tmp, porque apt no puede leer archivos de tu carpeta personal y mostraría un aviso. Después te pide la contraseña, instala WireCat y muestra los siguientes pasos.",
+    deb: "O instálalo desde una terminal. El comando primero copia el paquete a la carpeta propia de apt, porque apt no puede leer archivos de tu carpeta personal y mostraría un aviso. Después te pide la contraseña, instala WireCat y muestra los siguientes pasos.",
     rpm: "O instálalo desde una terminal. Te pide la contraseña, instala WireCat y muestra los siguientes pasos.",
   },
   copyCommand: "Copiar el comando",
@@ -120,6 +146,20 @@ const es: typeof en = {
   rejectedDetail: "No se ha guardado nada. Vuelve a intentarlo más tarde o descarga WireCat en la página de descargas.",
   failedDetail: "Vuelve a intentarlo o descarga WireCat en la página de descargas.",
   failed: "No se ha podido instalar la actualización.",
+  offline: "WireCat no ha podido conectar con el servidor de actualizaciones.",
+  offlineNext: "Comprueba tu conexión a internet y vuelve a intentarlo.",
+  server: "GitHub, donde WireCat guarda sus actualizaciones, no ha respondido.",
+  serverNext: "Vuelve a intentarlo dentro de unos minutos.",
+  diskFull: (folder) => `No hay espacio libre suficiente en ${folder} para la actualización.`,
+  diskFullNext: "Libera espacio en este disco, por ejemplo vaciando la papelera, y vuelve a intentarlo.",
+  notWritable: (folder) => `WireCat no puede guardar la actualización en ${folder}.`,
+  notWritableNext: "Comprueba que la carpeta existe y que puedes guardar archivos en ella, y vuelve a intentarlo.",
+  newer: (version) => `Ya ha salido WireCat ${version}.`,
+  newerNext: "Cierra esta ventana y vuelve a abrir la actualización.",
+  details: (text) => `Detalles: ${text}`,
+  keep: (path) =>
+    `Si cancelas la contraseña o cierras el instalador, no se instala nada. El paquete se queda en ${path}: ábrelo más tarde o usa el comando de abajo.`,
 }
 
-export const updateMessages: Messages<typeof en> = { en, ru, es }
+export type UpdateMessages = typeof en
+export const updateMessages: Messages<UpdateMessages> = { en, ru, es }
