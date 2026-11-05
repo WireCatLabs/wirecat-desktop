@@ -28,6 +28,7 @@ target after the refactor in [`docs/dev/architecture-report.md`](docs/dev/archit
 | Run the real app | `pnpm app` (Linux needs `bin/install-linux-deps` once) |
 | Put WireCat in the Linux app launcher | `bin/install-desktop-entry` (`--remove` takes it out) |
 | Everything CI runs | `pnpm check` |
+| Write the notes for a release, before `bin/tag-release` | the `release-notes` skill (`.claude/skills/release-notes`) writes `docs/releases/<version>.md` |
 | A first start on a clean computer, your own tools and sign-ins untouched (Linux) | `pnpm tauri build --debug --no-bundle`, then `bin/try-fresh-install` (`--reset` empties its home); the skill `.claude/skills/try-fresh-install` has the checklist |
 | Screenshot the browser build | `node scripts/capture.mjs out.png "?state=fresh" [--dark] [--width 1280]` |
 | Rule 9 check: a tool's panel never moves the clicked row | `pnpm build && pnpm preview --port 1478 --strictPort`, then `node scripts/scroll-hold.mjs --port 1478` |

@@ -73,6 +73,7 @@ import {
   TaskWriteSchema,
 } from "./task-schemas"
 import type { Platform } from "./types"
+import { plainNotes } from "./update-notes"
 import { PackageOutcomeSchema, UpdateKindSchema, UpdateProgressSchema } from "./update-schemas"
 
 /** A page event that does not parse is dropped: the browser has the page open anyway. */
@@ -299,7 +300,7 @@ function createTauri(): Platform {
       if (!next) return null
       found = next
       const kind = await call(UpdateKindSchema, "update_kind")
-      return { version: found.version, notes: found.body?.trim() || null, kind }
+      return { version: found.version, notes: plainNotes(found.body), kind }
     },
     installUpdate: async (onProgress) => {
       if (!found) throw new Error("No update was found to install.")
