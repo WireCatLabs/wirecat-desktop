@@ -221,6 +221,7 @@ const en = {
   },
   help: {
     help: "Help",
+    docs: "WireCat documentation",
     tour: "Take the tour",
     welcome: "Show the welcome again",
     privacy: "Privacy",
@@ -253,9 +254,13 @@ const en = {
       title: "Search",
       text: "Find a message, a mail or a meeting across every tool, in what is stored on this computer.",
     },
+    tasks: {
+      title: "Tasks",
+      text: "Tasks for your projects, from you and your agents. An agent can turn a request it finds in your messages into a task once you approve it. Each task has an assignee, you or someone else, a priority and a due date. The rows here are examples.",
+    },
     memory: {
       title: "Memory",
-      text: "What your agents saved about people and projects: facts and tasks you can confirm or correct.",
+      text: "What your agents saved from your chats, mail and notes: facts about people and projects, preferences, promises and decisions. Approve, correct or forget each one; nothing counts until you approve it. The rows here are examples.",
     },
     system: {
       title: "Storage, Logs and Settings",
@@ -263,16 +268,20 @@ const en = {
     },
     help: {
       title: "Help is here",
-      text: "Start this tour again, go back to the setup steps, or see whether Node.js and npm are ready, from this button. The version number at the bottom left opens it too.",
+      text: "Open the WireCat documentation, start this tour again, go back to the setup steps, or see whether Node.js and npm are ready, from this button. The version number at the bottom left opens it too.",
     },
     guide: {
       title: "Your first guide",
       text: "A guide is a request you copy into your agent, with the steps it will run. Try this one, or look at the next.",
     },
   } as Record<
-    "tools" | "lamps" | "action" | "agents" | "how" | "search" | "memory" | "system" | "help" | "guide",
+    "tools" | "lamps" | "action" | "agents" | "how" | "search" | "tasks" | "memory" | "system" | "help" | "guide",
     Stop
   >,
+  demo: {
+    label: "Example",
+    text: "Rows for the tour, not your data. They go away when the tour ends.",
+  },
   tourEnd: {
     tryGuide: "Try this guide",
     nextGuide: "Next guide",
@@ -529,6 +538,7 @@ const ru: OnboardingText = {
   },
   help: {
     help: "Помощь",
+    docs: "Документация WireCat",
     tour: "Пройти экскурсию",
     welcome: "Снова показать приветствие",
     privacy: "Конфиденциальность",
@@ -561,9 +571,13 @@ const ru: OnboardingText = {
       title: "Поиск",
       text: "Найти сообщение, письмо или встречу во всех инструментах, среди того, что хранится на этом компьютере.",
     },
+    tasks: {
+      title: "Задачи",
+      text: "Задачи ваших проектов, от вас и ваших агентов. Просьбу, найденную в ваших сообщениях, агент может превратить в задачу, когда вы её одобрите. У каждой задачи есть исполнитель (вы или кто-то другой), приоритет и срок. Здесь показаны примеры.",
+    },
     memory: {
       title: "Память",
-      text: "Что агенты сохранили о людях и проектах: факты и задачи, которые можно подтвердить или исправить.",
+      text: "Что агенты сохранили из ваших чатов, почты и заметок: факты о людях и проектах, предпочтения, обещания и решения. Каждую запись можно одобрить, исправить или забыть; ничего не считается, пока вы не одобрите. Здесь показаны примеры.",
     },
     system: {
       title: "Хранилище, журнал и настройки",
@@ -571,12 +585,16 @@ const ru: OnboardingText = {
     },
     help: {
       title: "Помощь здесь",
-      text: "Этой кнопкой можно снова начать экскурсию, вернуться к шагам настройки или посмотреть, готовы ли Node.js и npm. Номер версии внизу слева открывает то же меню.",
+      text: "Этой кнопкой можно открыть документацию WireCat, снова начать экскурсию, вернуться к шагам настройки или посмотреть, готовы ли Node.js и npm. Номер версии внизу слева открывает то же меню.",
     },
     guide: {
       title: "Ваш первый рецепт",
       text: "Рецепт: просьба, которую вы копируете агенту, и шаги, которые он выполнит. Попробуйте этот или посмотрите следующий.",
     },
+  },
+  demo: {
+    label: "Пример",
+    text: "Строки для экскурсии, а не ваши данные. Они исчезнут, когда экскурсия закончится.",
   },
   tourEnd: {
     tryGuide: "Попробовать рецепт",
@@ -816,6 +834,7 @@ const es: OnboardingText = {
   },
   help: {
     help: "Ayuda",
+    docs: "Documentación de WireCat",
     tour: "Hacer el recorrido",
     welcome: "Ver de nuevo la bienvenida",
     privacy: "Privacidad",
@@ -848,9 +867,13 @@ const es: OnboardingText = {
       title: "Buscar",
       text: "Encuentra un mensaje, un correo o una reunión en todas las herramientas, en lo que está guardado en este ordenador.",
     },
+    tasks: {
+      title: "Tareas",
+      text: "Las tareas de tus proyectos, tuyas y de tus agentes. Un agente puede convertir en tarea una petición que encuentra en tus mensajes, cuando la apruebas. Cada tarea tiene un responsable, tú u otra persona, una prioridad y una fecha límite. Las filas de aquí son ejemplos.",
+    },
     memory: {
       title: "Memoria",
-      text: "Lo que tus agentes guardaron sobre personas y proyectos: datos y tareas que puedes confirmar o corregir.",
+      text: "Lo que tus agentes guardaron de tus chats, correo y notas: datos sobre personas y proyectos, preferencias, promesas y decisiones. Aprueba, corrige u olvida cada uno; nada cuenta hasta que lo apruebas. Las filas de aquí son ejemplos.",
     },
     system: {
       title: "Almacenamiento, Registros y Ajustes",
@@ -858,12 +881,16 @@ const es: OnboardingText = {
     },
     help: {
       title: "La ayuda está aquí",
-      text: "Desde este botón puedes empezar de nuevo este recorrido, volver a los pasos de configuración o ver si Node.js y npm están listos. El número de versión abajo a la izquierda también lo abre.",
+      text: "Desde este botón puedes abrir la documentación de WireCat, empezar de nuevo este recorrido, volver a los pasos de configuración o ver si Node.js y npm están listos. El número de versión abajo a la izquierda también lo abre.",
     },
     guide: {
       title: "Tu primera guía",
       text: "Una guía es una petición que copias en tu agente, con los pasos que ejecutará. Prueba esta o mira la siguiente.",
     },
+  },
+  demo: {
+    label: "Ejemplo",
+    text: "Filas para el recorrido, no son tus datos. Desaparecen cuando termina el recorrido.",
   },
   tourEnd: {
     tryGuide: "Probar esta guía",

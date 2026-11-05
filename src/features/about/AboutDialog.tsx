@@ -16,10 +16,12 @@ const REPO = "https://github.com/WireCatLabs/wirecat-desktop"
 const PRODUCT = "WireCat Desktop"
 const LICENSE = "Apache License 2.0"
 
+export const docsPage = (lang: Lang) => `https://wirecat.dev/${lang}/docs`
+
 const links = (lang: Lang) =>
   [
     { label: "website", href: "https://wirecat.dev" },
-    { label: "docs", href: `https://wirecat.dev/${lang}/docs` },
+    { label: "docs", href: docsPage(lang) },
     { label: "source", href: REPO },
     { label: "privacy", href: `https://wirecat.dev/${lang}/privacy` },
   ] as const
