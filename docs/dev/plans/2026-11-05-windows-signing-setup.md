@@ -73,9 +73,10 @@ sudo apt install zbar-tools
     old phone setup stop working, so step 4 re-scans it.
 
 **Step 3. Save the QR image to memory, not to disk.** `/dev/shm` is a folder held in RAM; it is gone after a
-reboot. Right-click the QR code → "Save image as…" → `/dev/shm/simplysign-qr.png`. If the browser cannot save it,
-take an area screenshot and save it to the same path. Do not save it to Downloads or Pictures, and do not copy it to
-the clipboard: those keep a copy.
+reboot. Right-click the QR code → "Save image as…" → `/dev/shm/simplysign-qr.png`. Do not save it to Downloads or
+Pictures, and do not copy it to the clipboard: those keep a copy. If the browser cannot save it and you use the
+built-in screenshot (Shift+PrtSc), Ubuntu also saves it to `/home/leemour/Pictures/Screenshots` and copies it to the
+clipboard: in step 6, shred that file too, and copy some other text to replace the clipboard.
 
 **Step 4. Scan the same QR code with the SimplySign phone app**, as Certum's guide says. Keep the page open. The
 script in step 5 asks for the code the app shows, so the app must already work.
@@ -91,6 +92,8 @@ script in step 5 asks for the code the app shows, so the app must already work.
   check, and the seed is never printed.
 - It stores `CERTUM_EMAIL` and `CERTUM_OTP` as secrets in the `release` environment and `WINDOWS_SIGNER_SHA1` as a
   variable there. It prints the certificate's subject, its end date and its thumbprint; these are public.
+- The printed subject must name you or WireCat, not a Certum CA. If it names Certum, the PEM file starts with the CA
+  certificate of a chain: save only your own certificate block to a file and run `--thumbprint-from` on that.
 - If it says the code does not match, wait for the next code and run it again.
 
 **Step 6. Delete the image:**
