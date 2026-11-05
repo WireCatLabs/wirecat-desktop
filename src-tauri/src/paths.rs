@@ -321,9 +321,20 @@ pub fn find_all(bin: &str) -> Vec<PathBuf> {
     let mut found: Vec<PathBuf> = which::which_in_all(bin, Some(absolute(&search_path())), std::env::temp_dir())
         .map(Iterator::collect)
         .unwrap_or_default();
-    let mut seen = std::collections::HashSet::new();
-    found.retain(|p| seen.insert(std::fs::canonicalize(p).unwrap_or_else(|_| p.clone())));
+    one_per_folder(&mut found);
     found
+}
+
+/// npm links one install as `tg`, `tg.cmd` and `tg.ps1`, and a PATHEXT that lists `.PS1` makes `which` return the last
+/// one too: a second "copy" that cannot even start. A terminal runs the first match in a folder, so that one counts.
+fn one_per_folder(found: &mut Vec<PathBuf>) {
+    let real = |p: &Path| std::fs::canonicalize(p).unwrap_or_else(|_| p.to_path_buf());
+    let mut files = std::collections::HashSet::new();
+    let mut folders = std::collections::HashSet::new();
+    found.retain(|p| {
+        let folder = p.parent().map(real);
+        files.insert(real(p)) && folders.insert(folder)
+    });
 }
 
 pub fn find(bin: &str) -> Option<PathBuf> {
@@ -457,6 +468,21 @@ mod tests {
         std::fs::remove_dir_all(&planted).unwrap();
         assert_eq!(found, None);
         assert_eq!(absolute(std::ffi::OsStr::new("node_modules/.bin:/usr/bin:.")), OsString::from("/usr/bin"));
+    }
+
+    #[test]
+    fn the_shims_of_one_install_are_one_copy() {
+        let dir = std::env::temp_dir().join(format!("wirecat-shims-{}", std::process::id()));
+        let other = dir.join("other");
+        std::fs::create_dir_all(&other).unwrap();
+        let mut found: Vec<PathBuf> =
+            [dir.join("tg.cmd"), dir.join("tg.ps1"), other.join("tg.cmd")].into_iter().collect();
+        for p in &found {
+            std::fs::write(p, "").unwrap();
+        }
+        one_per_folder(&mut found);
+        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(found, [dir.join("tg.cmd"), other.join("tg.cmd")]);
     }
 
     #[test]
