@@ -1,8 +1,9 @@
-//! Community tools: CLIs made outside `WireCatLabs`, added to the compiled catalog at start. Until the signed
-//! registry exists (docs/dev/cli-registry.md) they come only from `<app data>/extra-tools.json`, and only while
-//! `WIRECAT_EXTRA_TOOLS=1` is set. An entry passes only when every command word is plain (no shell syntax), its
-//! package and repository are outside `@wirecat` and `WireCatLabs`, and it claims no name or folder of ours. Installing
-//! it still needs npm provenance from its own repository's `release.yml` (`provenance.rs`).
+//! Community tools: CLIs made outside `WireCatLabs`, added to the compiled catalog at start. They come from the signed
+//! list (`registry.rs`) while the owner has "Show community tools" on, or, for development, from
+//! `<app data>/extra-tools.json` while `WIRECAT_EXTRA_TOOLS=1` is set. An entry passes only when every command word is
+//! plain (no shell syntax), its package and repository are outside `@wirecat` and `WireCatLabs`, and it claims no name
+//! or folder of ours. Installing it still needs npm provenance from its own repository's `release.yml`
+//! (`provenance.rs`).
 
 use crate::catalog::{Catalog, Tool};
 use serde::Serialize;
@@ -11,7 +12,7 @@ use std::collections::HashSet;
 
 pub const FLAG: &str = "WIRECAT_EXTRA_TOOLS";
 const FILE: &str = "extra-tools.json";
-const MAX_BYTES: usize = 512 * 1024;
+pub const MAX_BYTES: usize = 512 * 1024;
 const MAX_TOOLS: usize = 32;
 
 /// Fields a community tool may not set: parts of our packages, memo's own pages, a bot token on stdin, and emptying
@@ -27,12 +28,20 @@ pub struct Extra {
     pub rejected: Vec<String>,
 }
 
-/// The file's text when the flag is on; `None` otherwise or when there is no file.
-pub fn read() -> Option<String> {
-    if std::env::var(FLAG).ok().as_deref() != Some("1") {
+/// The community tools to add at start: the development file while the flag is on, else the signed list's cached copy
+/// while the owner has them shown; `None` when neither applies.
+pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
+    if std::env::var(FLAG).ok().as_deref() == Some("1") {
+        let text = std::fs::read_to_string(crate::node::app_data()?.join(FILE)).ok()?;
+        return Some(parse(&text, builtin));
+    }
+    if !crate::registry::shown() {
         return None;
     }
-    std::fs::read_to_string(crate::node::app_data()?.join(FILE)).ok()
+    Some(match crate::registry::at_start() {
+        Ok(entries) => entries_of("The community list", entries, builtin),
+        Err(why) => (Vec::new(), Extra { tools: Vec::new(), rejected: vec![why] }),
+    })
 }
 
 /// The entries of `text` that may join `builtin`, each parsed as a catalog tool.
@@ -53,11 +62,17 @@ pub fn parse(text: &str, builtin: &Catalog) -> (Vec<Tool>, Extra) {
             return (Vec::new(), extra);
         }
     };
+    entries_of(FILE, entries, builtin)
+}
+
+/// The same checks for every source: the first `MAX_TOOLS` entries, each against ours and the ones before it.
+pub fn entries_of(source: &str, entries: Vec<Value>, builtin: &Catalog) -> (Vec<Tool>, Extra) {
+    let mut extra = Extra::default();
     let mut taken = Taken::of(builtin);
     let mut tools = Vec::new();
     for (i, entry) in entries.into_iter().enumerate() {
         if tools.len() == MAX_TOOLS {
-            extra.rejected.push(format!("Only the first {MAX_TOOLS} tools are read."));
+            extra.rejected.push(format!("{source}: only the first {MAX_TOOLS} tools are read."));
             break;
         }
         let label = entry["id"].as_str().map_or_else(|| format!("entry {}", i + 1), str::to_string);
@@ -382,9 +397,8 @@ mod tests {
     }
 
     #[test]
-    fn the_built_in_catalog_is_the_fallback_without_the_flag() {
+    fn the_built_in_catalog_is_the_fallback_without_the_flag_or_the_setting() {
         assert!(std::env::var(FLAG).is_err());
-        assert_eq!(read(), None);
         assert!(catalog().extra.tools.is_empty());
     }
 }

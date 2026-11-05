@@ -23,7 +23,7 @@ import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema }
 import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
 import { BotProfilesSchema, BotResultSchema } from "./bot-schemas"
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
-import { ExtraToolsSchema } from "./community-schemas"
+import { CommunityStatusSchema, ExtraToolsSchema } from "./community-schemas"
 import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
 import {
   ForgotSchema,
@@ -117,6 +117,8 @@ function createTauri(): Platform {
     os: detectOs(),
     readiness: () => call(ReadinessSchema, "readiness"),
     extraTools: () => call(ExtraToolsSchema, "extra_tools"),
+    communityStatus: () => call(CommunityStatusSchema, "community_status"),
+    setCommunityShown: (show) => invoke("set_community_shown", { show }),
     nodeOffer: () => call(NodeOfferSchema, "node_offer"),
     setupNode: (onEvent) => {
       const channel = new Channel<unknown>()

@@ -1,7 +1,7 @@
-import type { ExtraTools } from "./community-schemas"
+import type { CommunityStatus, ExtraTools } from "./community-schemas"
 
-/** A community tool as `<app data>/extra-tools.json` would hold it; `?community=1` lists it, `?community=bad` adds a
- * second entry Rust would have refused. */
+/** A community tool as the signed list would hold it; `?community=1` lists it, `?community=bad` adds a second entry
+ * Rust would have refused, `?community-key=none` is a build without the list's key. */
 export const ACME = {
   id: "acme",
   community: true,
@@ -39,4 +39,18 @@ export function extraToolsMock(scenario: string | null): ExtraTools {
   if (scenario === "1") return { tools: [ACME], rejected: [] }
   if (scenario === "bad") return { tools: [ACME, { ...ACME, id: "evil", package: "@wirecat/evil" }], rejected: [] }
   return { tools: [], rejected: [] }
+}
+
+/** The Settings switch; `?community=1` or `bad` starts it on, as the list could only have been read then. */
+export function communityMock(params: URLSearchParams) {
+  let show = params.has("community")
+  const available = params.get("community-key") !== "none"
+  return {
+    async communityStatus(): Promise<CommunityStatus> {
+      return { show, available, listed: extraToolsMock(params.get("community")).tools.length }
+    },
+    async setCommunityShown(next: boolean) {
+      show = next
+    },
+  }
 }

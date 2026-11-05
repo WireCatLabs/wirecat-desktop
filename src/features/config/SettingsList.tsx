@@ -7,6 +7,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
+import { Switch } from "@/ui/Switch"
 import { ReportThis } from "../report/ReportThis"
 import { isReadOnly } from "./diff"
 import { configMessages } from "./messages"
@@ -181,28 +182,7 @@ function Control({
 }) {
   const v = row.value
   if (typeof v === "boolean") {
-    return (
-      <button
-        id={id}
-        type="button"
-        role="switch"
-        aria-checked={v}
-        disabled={disabled}
-        onClick={() => onCommit(!v)}
-        className={cx(
-          "relative inline-flex h-[1.4rem] w-[2.5rem] shrink-0 items-center rounded-full border transition-colors duration-150 ease-out-quart disabled:opacity-45",
-          v ? "border-brand bg-brand" : "border-line-strong bg-app-3",
-        )}
-      >
-        <span
-          aria-hidden
-          className={cx(
-            "absolute size-[1rem] rounded-full bg-app shadow-panel transition-transform duration-150 ease-out-quart",
-            v ? "translate-x-[1.15rem]" : "translate-x-[0.15rem]",
-          )}
-        />
-      </button>
-    )
+    return <Switch id={id} checked={v} disabled={disabled} onChange={onCommit} />
   }
   if (Array.isArray(v)) return <ListControl id={id} items={v.map(String)} disabled={disabled} onCommit={onCommit} />
   return <TextControl id={id} value={v} disabled={disabled} onCommit={onCommit} />
