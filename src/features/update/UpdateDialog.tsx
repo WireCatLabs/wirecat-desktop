@@ -9,6 +9,7 @@ import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { ProgressBar } from "@/ui/ProgressBar"
 import { type UpdateMessages, updateMessages } from "./messages"
 import { downloadPage, updatesSection, useUpdate } from "./store"
 
@@ -51,19 +52,14 @@ function Progress() {
   const share = progress?.total ? Math.min(1, progress.downloaded / progress.total) : null
   return (
     <div className="flex flex-col gap-2">
-      <span
-        role="progressbar"
-        aria-label={m.downloadingLabel}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={share === null ? undefined : Math.round(share * 100)}
-        className="h-[0.3rem] w-full overflow-hidden rounded-full bg-app-3"
-      >
-        <span
-          className="block h-full rounded-full bg-brand transition-[width] duration-(--motion-slow) ease-out-quart"
-          style={{ width: `${Math.max(4, (share ?? 0) * 100)}%` }}
-        />
-      </span>
+      <ProgressBar
+        label={m.downloadingLabel}
+        value={share === null ? null : share * 100}
+        size="line"
+        pace="slow"
+        minShare={4}
+        className="w-full"
+      />
       <p className="text-[0.9rem] text-ink-soft">
         {progress?.total ? m.downloaded(formatBytes(progress.downloaded), formatBytes(progress.total)) : m.downloading}
       </p>

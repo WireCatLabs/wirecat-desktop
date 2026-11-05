@@ -1,10 +1,9 @@
-import { type KeyboardEvent, useRef } from "react"
 import { create } from "zustand"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
-import { agentTabId } from "./actions"
+import { Tab, TabList } from "@/ui/Tabs"
 import { agentsMessages } from "./messages"
 import { rowTone, statusWords } from "./SkillTable"
 import type { AgentEntry } from "./view"
@@ -26,58 +25,27 @@ export function selectedEntry(entries: readonly AgentEntry[], chosen: string | n
   )
 }
 
-export const PANEL_ID = "agent-panel"
-
-const KEYS: Record<string, (i: number, n: number) => number> = {
-  ArrowDown: (i, n) => (i + 1) % n,
-  ArrowUp: (i, n) => (i - 1 + n) % n,
-  Home: () => 0,
-  End: (_, n) => n - 1,
-}
-
 /** Every agent as a vertical tab list; arrows, Home and End move the selection, as in any tab list. */
-export function AgentList({ entries, selected }: { entries: readonly AgentEntry[]; selected: string | null }) {
-  const choose = useAgentChoice((s) => s.choose)
+export function AgentList({ entries }: { entries: readonly AgentEntry[] }) {
   const m = useMessages(agentsMessages)
-  const tabs = useRef<(HTMLButtonElement | null)[]>([])
-  const onKey = (event: KeyboardEvent, i: number) => {
-    const move = KEYS[event.key]
-    if (!move) return
-    event.preventDefault()
-    const next = move(i, entries.length)
-    const e = entries[next]
-    if (e) choose(e.id)
-    tabs.current[next]?.focus()
-  }
   return (
-    <div role="tablist" aria-label={m.title} aria-orientation="vertical" className="flex flex-col @min-[52rem]:py-2">
-      {entries.map((e, i) => {
-        const on = e.id === selected
-        return (
-          <button
-            key={e.id}
-            ref={(el) => {
-              tabs.current[i] = el
-            }}
-            type="button"
-            role="tab"
-            id={agentTabId(e.id)}
-            aria-selected={on}
-            aria-controls={PANEL_ID}
-            tabIndex={on ? 0 : -1}
-            onClick={() => choose(e.id)}
-            onKeyDown={(ev) => onKey(ev, i)}
-            className={cx(
+    <TabList aria-label={m.title} className="flex flex-col @min-[52rem]:py-2">
+      {entries.map((e, i) => (
+        <Tab
+          key={e.id}
+          id={e.id}
+          className={({ isSelected }) =>
+            cx(
               "relative flex min-h-[3.9rem] items-center gap-3 rounded-[0.45rem] border px-4 py-2 text-left transition-colors duration-(--motion-fast)",
               "@min-[52rem]:-mr-px @min-[52rem]:rounded-r-none @min-[52rem]:border-r-0",
-              on ? "z-10 border-line-strong bg-app" : "border-transparent hover:bg-app-3/60",
-            )}
-          >
-            <TabBody entry={e} on={on} first={i === 0} />
-          </button>
-        )
-      })}
-    </div>
+              isSelected ? "z-10 border-line-strong bg-app" : "border-transparent hover:bg-app-3/60",
+            )
+          }
+        >
+          {({ isSelected }) => <TabBody entry={e} on={isSelected} first={i === 0} />}
+        </Tab>
+      ))}
+    </TabList>
   )
 }
 

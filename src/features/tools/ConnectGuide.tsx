@@ -18,6 +18,7 @@ import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace } from "@/ui/motion"
+import { ProgressBar } from "@/ui/ProgressBar"
 import { CloudflareGuide, useCloudflare } from "./CloudflareGuide"
 import { cloudflareSteps } from "./cloudflare-steps"
 import { APPS, type AppId, type AppStep, connectorName, testPrompt } from "./connect-apps"
@@ -819,20 +820,14 @@ function ReachStep(props: {
       </ul>
       {reach.state === "publishing" && (
         <div className="flex max-w-[34rem] flex-col gap-1.5">
-          <div
-            className="h-1.5 overflow-hidden rounded-full bg-app-3"
-            role="progressbar"
-            aria-label={m.barLabel}
-            aria-valuemin={0}
-            aria-valuemax={10}
-            aria-valuenow={minutes}
-            aria-valuetext={m.barValue(minutes)}
-          >
-            <div
-              className="h-full rounded-full bg-brand transition-[width] duration-1000 ease-linear"
-              style={{ width: `${Math.max(share * 100, 2)}%` }}
-            />
-          </div>
+          <ProgressBar
+            label={m.barLabel}
+            value={share * 10}
+            max={10}
+            valueText={m.barValue(minutes)}
+            pace="steady"
+            minShare={2}
+          />
           <Note>{m.wait(funnel, minutes, name)}</Note>
           {share >= 1 && <p className="text-[0.9rem] text-warn-ink">{funnel ? m.slowFunnel : m.slowDns(host)}</p>}
         </div>
