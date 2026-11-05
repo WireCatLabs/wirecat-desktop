@@ -169,7 +169,7 @@ export function agentsMock(versionOf: (id: string) => string | undefined, os: Pl
     openclaw: new Set(),
   }
   const claims = structuredClone(CLAIMS)
-  const bin = (id: string) => (id === "email" ? "memo" : id)
+  const bin = (id: string) => (id === "email" ? "mail" : id)
   const mock: Pick<
     Platform,
     | "detectAgents"

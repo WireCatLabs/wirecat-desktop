@@ -23,11 +23,13 @@ import { ReportThis } from "../report/ReportThis"
 import { openConnect, openTool } from "../tools/go"
 import { AnswerForm, type Check } from "./AnswerForm"
 import { signinMessages } from "./messages"
+import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import {
   APP_KEYS,
   ENDED,
   keptAnswer,
+  methodOf,
   NEEDS_UPDATE,
   type Need,
   type OpenUrl,
@@ -76,6 +78,7 @@ export function stageKey(s: SignInView) {
 export function Stage({ name, s }: { name: string; s: SignInView }) {
   const m = useMessages(signinMessages)
   const tm = useMessages(telegramMessages)
+  const pm = useMessages(planMessages)
   if (isKeys(s)) return <KeysStage name={name} s={s} />
   if (s.phase === "starting") {
     const switching = s.switchingTo ? tm.switching[s.switchingTo] : undefined
@@ -173,6 +176,10 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
   }
   if (s.phase === "failed" && s.failure) {
     const needsClientId = s.tool === "zm" && s.failure.message.includes("zoom.client_id")
+    // A tool from before WireCat's Google app (gcal 0.19) refuses to start without the owner's own.
+    const needsOwnApp =
+      Boolean(s.tool && methodOf(s.tool, s.method)?.clientFile) &&
+      /no Google OAuth client|own Google app/.test(s.failure.message)
     const telegram = s.tool === "tg" ? telegramFailure(s.failure.message, s.failure.code) : null
     const fix = telegram && isFixLabel(telegram.fix) ? telegram.fix : null
     const hints = telegram?.fix === "keys" ? keyHints(keptAnswer("api_id"), keptAnswer("api_hash")) : []
@@ -182,6 +189,20 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
         {switchFailed && <p className="font-medium text-ink">{switchFailed}</p>}
         {needsClientId ? (
           <ClientIdForm />
+        ) : needsOwnApp ? (
+          <ErrorNotice
+            action={
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => useSignIn.setState({ phase: "plan", failure: null, planError: pm.noWireCatApp(name) })}
+              >
+                {pm.ownApp}
+              </Button>
+            }
+          >
+            {pm.noWireCatApp(name)}
+          </ErrorNotice>
         ) : (
           <ErrorNotice
             action={

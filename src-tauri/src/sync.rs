@@ -263,6 +263,16 @@ fn summary_of(what: &str, item: &Value) -> Summary {
                 complete: left == 0,
             }
         }
+        "mail" => {
+            let left = count(item, "remaining");
+            Summary {
+                new: count(item, "saved"),
+                places: 0,
+                failed: count(item, "unreadable"),
+                left,
+                complete: flag(item, "complete").unwrap_or(left == 0),
+            }
+        }
         "meetings" => {
             let failed = list(item, "warnings").len() as u64;
             Summary { new: count(item, "meetings"), places: 0, failed, left: 0, complete: failed == 0 }
@@ -348,10 +358,11 @@ mod tests {
     }
 
     #[test]
-    fn memo_and_email_share_one_key_and_messengers_have_one_per_profile() {
+    fn memo_has_one_key_and_mail_and_messengers_have_one_per_profile() {
         let memo = catalog::tool("memo").unwrap();
+        assert_eq!(key(memo, None), "sync:memo");
         let email = catalog::tool("email").unwrap();
-        assert_eq!(key(memo, None), key(email, None));
+        assert_ne!(key(email, Some("a")), key(email, Some("b")));
         let tg = catalog::tool("tg").unwrap();
         assert_ne!(key(tg, Some("a")), key(tg, Some("b")));
         assert!(key(tg, Some("a")).starts_with(&package_prefix("tg")));
@@ -383,6 +394,9 @@ mod tests {
             summary_of("notes and mail", &memo),
             Summary { new: 7, places: 2, failed: 0, left: 0, complete: false }
         );
+        let mail =
+            json!({"address": "me@example.com", "saved": 40, "remaining": 120, "unreadable": 1, "complete": false});
+        assert_eq!(summary_of("mail", &mail), Summary { new: 40, places: 0, failed: 1, left: 120, complete: false });
         let zm = json!({"meetings": 3, "warnings": []});
         assert_eq!(summary_of("meetings", &zm), Summary { new: 3, places: 0, failed: 0, left: 0, complete: true });
     }

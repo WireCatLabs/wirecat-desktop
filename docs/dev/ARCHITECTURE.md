@@ -288,13 +288,13 @@ Every write on the page (skill install, MCP add or remove, task release) opens a
 
 ## One package, several tools
 
-Email is a row of its own over memo's package (`partOf: "memo"` in the catalog): the same `bin`, `package` and
-`storage`. Install, update, uninstall and cancel act on the owner's id in Rust (`catalog::owner`) and in the
+A row can ship inside another tool's package (`partOf` in the catalog): the same `bin`, `package` and `storage`. No
+row does today; Email was one over memo's package until it moved to mail-cli's own `mail`. Install, update, uninstall and cancel act on the owner's id in Rust (`catalog::owner`) and in the
 interface (`ownerId`), so the package is installed once and the install queue never runs it twice. Detection and
 update checks run once per package and report it for every part. Storage, bug reports and the Node.js removal check
 count packages, not rows. A part has no skill of its own (`skill: null`) and stays out of the skills matrix. With
 no interactive `setup` in the CLI, its `signIn.command` is shown to copy and never run. The owner's run logs are read once;
-runs whose command starts with the part's `commandPrefix` (memo's `mail …`) are filed under Email on the Logs page.
+runs whose command starts with the part's `commandPrefix` are filed under the part on the Logs page.
 
 ## Searching what a tool stored
 
@@ -306,9 +306,8 @@ archive` (`searchServer` returns before any server call for `archive`, and `--of
 wa `search messages --offline` (it has no server search), zm `search all --only meetings --max-meetings all
 --offline` (words only: meetings refuse fields, phrases and OR), drive `search --offline`, memo `search notes` (with `--exact` before drive 0.51.0 and memo 0.125.0, whose search by meaning ignored
 field filters; `search.exactBelow` in the catalog, read against the installed version) and
-Email memo's `search mail --source email:<account>` (memo has no `--offline`; it never connects to search). All pass
-`--no-record` and put the query after `--`, so `-chat:x` is a NOT term and never a flag. memo's `search mail` has no
-`--page`: the page shows its best 50 and no pager.
+Email mail's `search messages --offline --backend archive`. All pass `--no-record` and put the query after `--`, so
+`-chat:x` is a NOT term and never a flag. A template without `{page}` would show its best results and no pager.
 
 The query is the tool's to parse. A refusal comes back as `queryError` with the closed `query.*` reason and the
 tool's span, drawn in the query bar until the text changes; memo and drive count the span one or two places past the
@@ -331,9 +330,8 @@ whole parser's vocabulary, the same for every tool. The lists were checked again
 
 ## Profiles and diagnostics
 
-The CLIs differ: `tg`, `max`, `wa` list profiles with `account list --json`, `drive` with `session list --json`,
-`zm` in `doctor --json`, and `memo` has none; Email lists memo's mail accounts from `item.mail.accounts` of
-`memo doctor --json`, by name only. The catalog records each tool's command and the JSON shape to read.
+The CLIs differ: `tg`, `max`, `wa` list profiles with `account list --json`, `drive`, `gcal` and Email's `mail` with
+`session list --json` (by name only: mail's address stays in Rust), `zm` in `doctor --json`, and `memo` has none. The catalog records each tool's command and the JSON shape to read.
 Doctor output is masked in Rust and summarised in `src/domain/doctor.ts`; the raw (masked) JSON stays one click away.
 
 Every command the app runs carries `WIRECAT_CALLER=desktop`, and cli-core keeps such a run only when it fails, unless the
@@ -344,9 +342,9 @@ check, backup, reset) passes `--record`, so the Logs page shows it whether it wo
 ## Signing in inside the window
 
 Each tool with `signIn.methods` in the catalog signs in without a terminal (step 2 of
-`docs/dev/plans/2026-10-26-mcp-full-commands.md`): tg (QR or phone), max (QR), wa (QR), zm and drive (the browser).
-"Sign in here" opens a dialog, and `sign_in(id, method, profile)` runs that method's words for the profile the owner
-named. With `--json` the tool prints each step as a JSON line on stderr, from cli-core's `signInSteps` (0.443) and
+`docs/dev/plans/2026-10-26-mcp-full-commands.md`): tg (QR or phone), max (QR), wa (QR), zm, drive and gcal (the
+browser), and Email (Microsoft in the browser, Gmail or another server with an app password). "Sign in here" opens a
+dialog, and `sign_in(id, method, profile, inputs)` runs that method's words for the profile the owner named. With `--json` the tool prints each step as a JSON line on stderr, from cli-core's `signInSteps` (0.443) and
 `loginQr`: `qr`, `pairing_code`, `open_url`, `needs` and `progress`. `signin_steps.rs` reads them, the tool's notes and
 its stdout answer into steps on a `Channel`; `signin.rs` runs the tool with its stdin kept open
 (`run::stream_stoppable`). A `needs` step draws a field, masked when `secret`; the answer goes through
@@ -364,6 +362,21 @@ Zoom without its own app's Public Client ID fails, and the dialog asks for it an
 before starting again. Cancel, Escape and Stop call `sign_in_stop`: SIGTERM to the tool alone, five seconds for it to
 answer with what it kept (WhatsApp's history), then the whole group is killed. Switching method (tg's QR or phone)
 stops the running sign-in first.
+
+The dialog opens on the plan (`Plan.tsx`, text in `messages-plan.ts`): the steps, what will be asked, what access the
+tool gets and what stays on this computer, each claim checked in the tool's source. Email's methods are its providers
+(`signIn.pick`): the plan starts with that choice, and a failed try goes back to it. What the plan asks before the run
+reaches the tool only where the method names it, checked in `signin.rs`: the address after the method's `address`
+flag (mail's `--address`; mail finds the server itself), the app password in the variable its `password` names
+(`MAIL_PASSWORD`, never a word on the command line), and the owner's own Google client JSON as text, written for that
+run to a 0600 file in a 0700 folder and passed with the method's `clientFile` flag (`--client-file`); the folder goes
+when the run ends, as the tools keep the client with their sign-in. The password and the JSON stay outside the store,
+beside Telegram's keys. "Use my own app" is WC-SECR-25's override from the window: a client file for Google (drive,
+gcal, Gmail), or for Microsoft the Application ID saved first as the method's `clientId` setting
+(`microsoft_client_id`, for that profile). mail 0.14 has no `signInSteps`, so the app passes `--quiet` and reads its
+one remaining line, `Open Microsoft sign-in: <url>`, as the page to open. gcal before WireCat's Google app refuses
+with "no Google OAuth client"; the dialog then goes back to the plan with the own-app choice open. Mock scenarios:
+`?signin=email`, `?signin=gcal`, `?signin-fail=email`.
 
 Telegram's first sign-in needs the owner's own app keys: tg opens my.telegram.org/apps and asks for App api_id and App
 api_hash (its default `--app browser`; the app never passes `--app auto`). Beside those two questions the dialog shows

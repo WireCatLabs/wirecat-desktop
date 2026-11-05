@@ -76,7 +76,7 @@ describe("signing in to WhatsApp inside the window", () => {
     expect(screen.getByRole("button", { name: "Open terminal" })).toBeInTheDocument()
     const dialog = await startAs("personal")
 
-    expect(platform.signIn).toHaveBeenCalledWith("wa", "qr", "personal", expect.any(Function))
+    expect(platform.signIn).toHaveBeenCalledWith("wa", "qr", "personal", expect.any(Function), {})
     send({ event: "note", text: "Before you link: wa is not an official WhatsApp app." })
     send({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: SCAN })
     const code = within(dialog).getByRole("img", { name: /QR code/ })
@@ -192,7 +192,7 @@ describe("answering what the tool asks", () => {
 
   it("asks Telegram's questions one at a time, masks the password and keeps no answer", async () => {
     const dialog = await open("tg")
-    expect(platform.signIn).toHaveBeenCalledWith("tg", "qr", "personal", expect.any(Function))
+    expect(platform.signIn).toHaveBeenCalledWith("tg", "qr", "personal", expect.any(Function), {})
     send({ event: "openUrl", url: "https://my.telegram.org/apps", purpose: "copy App api_id and App api_hash" })
     expect(within(dialog).getByRole("button", { name: "Open my.telegram.org" })).toBeInTheDocument()
 
@@ -233,7 +233,7 @@ describe("answering what the tool asks", () => {
 
     finish()
     await vi.waitFor(() =>
-      expect(platform.signIn).toHaveBeenLastCalledWith("tg", "phone", "work", expect.any(Function)),
+      expect(platform.signIn).toHaveBeenLastCalledWith("tg", "phone", "work", expect.any(Function), {}),
     )
     send({ event: "needs", field: "phone", secret: false, prompt: "phone number, international format", hint: null })
     // Long enough to read, even though tg asked at once.
@@ -248,7 +248,9 @@ describe("answering what the tool asks", () => {
     expect(within(dialog).getByRole("heading", { name: "Sign in with a QR code" })).toBeInTheDocument()
     expect(within(dialog).getByText("Switching to QR code sign-in…", { selector: STAGE_TEXT })).toBeInTheDocument()
     finish()
-    await vi.waitFor(() => expect(platform.signIn).toHaveBeenLastCalledWith("tg", "qr", "work", expect.any(Function)))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenLastCalledWith("tg", "qr", "work", expect.any(Function), {}),
+    )
   })
 
   it("says the switch failed, and why, when tg cannot start again", async () => {
@@ -472,7 +474,7 @@ describe("Telegram's own app keys", () => {
     expect(within(dialog).getByText(/After the keys: your phone number/)).toBeInTheDocument()
     finish()
     await vi.waitFor(() =>
-      expect(platform.signIn).toHaveBeenLastCalledWith("tg", "phone", "personal", expect.any(Function)),
+      expect(platform.signIn).toHaveBeenLastCalledWith("tg", "phone", "personal", expect.any(Function), {}),
     )
 
     send({ event: "openUrl", url: APPS, purpose: null })
@@ -538,6 +540,50 @@ describe("Telegram's QR code", () => {
     expect(within(dialog).queryByText(/a new one is on its way/)).toBeNull()
     send({ event: "needs", field: "password", secret: true, prompt: "2FA password (not shown)", hint: null })
     expect(within(dialog).getByLabelText("2FA password", { selector: "input" })).toHaveFocus()
+  })
+})
+
+describe("signing in to mail", () => {
+  it("asks the provider first, then sends the address and app password the steps asked for", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Email" })
+    await userEvent.click(within(dialog).getByRole("radio", { name: /Another mail server/ }))
+    // The steps of the provider left behind fade out over the new ones for a moment.
+    await vi.waitFor(() =>
+      expect(within(dialog).getAllByText(/only the domain, never the whole address/)).toHaveLength(1),
+    )
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Type the mail address first.")
+
+    await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@example.com")
+    await userEvent.type(within(dialog).getByLabelText("App password"), "abcd efgh")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("email", "imap", "work", expect.any(Function), {
+        address: "me@example.com",
+        password: "abcd efgh",
+      }),
+    )
+    expect(JSON.stringify(useSignIn.getState())).not.toContain("abcd efgh")
+  })
+
+  it("saves the owner's own Microsoft app for the profile before the browser opens", async () => {
+    const saved = vi.spyOn(platform, "settingsSet").mockResolvedValue()
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    const dialog = screen.getByRole("dialog")
+    expect(within(dialog).getByRole("radio", { name: /Microsoft/ })).toBeChecked()
+    expect(within(dialog).queryByLabelText("App password")).not.toBeInTheDocument()
+    await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@outlook.com")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Use my own app" }))
+    await userEvent.type(within(dialog).getByLabelText("Application (client) ID"), "1111-2222")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    expect(saved).toHaveBeenCalledWith("email", "work", false, "microsoft_client_id", "1111-2222")
+    expect(platform.signIn).toHaveBeenCalledWith("email", "microsoft", "work", expect.any(Function), {
+      address: "me@outlook.com",
+    })
   })
 })
 

@@ -434,7 +434,7 @@ mod tests {
     #[test]
     fn every_template_reads_only_the_local_store() {
         for tool in &catalog::catalog().tools {
-            let src = source(tool).unwrap();
+            let Ok(src) = source(tool) else { continue };
             let a = &src.args;
             let id = &tool.id;
             assert_eq!(a.last().map(String::as_str), Some("{query}"), "{id}: the query comes last");
@@ -487,12 +487,11 @@ mod tests {
     }
 
     #[test]
-    fn email_names_the_mailbox_inside_a_word() {
-        let a = args(src("email"), Some("personal"), "budget", 50, 1).unwrap();
-        assert!(a.windows(2).any(|w| w == ["--source", "email:personal"]), "{a:?}");
-        assert!(!a.iter().any(|x| x.contains('{')), "{a:?}");
-        assert!(!paged(src("email")));
-        assert!(args(src("email"), Some("personal"), "budget", 50, 2).is_err());
+    fn email_searches_its_profiles_mail_on_this_computer_only() {
+        let a = args(src("email"), Some("personal"), "budget", 50, 2).unwrap();
+        assert_eq!(&a[..3], ["personal", "search", "messages"]);
+        assert!(a.windows(2).any(|w| w == ["--backend", "archive"]) && a.contains(&"--offline".to_string()), "{a:?}");
+        assert!(a.windows(2).any(|w| w == ["--page", "2"]), "{a:?}");
     }
 
     #[test]
@@ -515,12 +514,7 @@ mod tests {
         assert!(context_args(zm, Some("work"), "meeting:acct/x").is_err());
         let mail = src("email").context.as_ref().unwrap();
         let ref_ = "msg:email/someone%40gmail.com/12345/678";
-        assert_eq!(context_args(mail, Some("personal"), ref_).unwrap()[2], ref_);
-        assert!(
-            !context_args(mail, Some("personal"), "msg:email/personal/INBOX/9")
-                .unwrap()
-                .contains(&"personal".to_string())
-        );
+        assert_eq!(&context_args(mail, Some("personal"), ref_).unwrap()[..4], ["personal", "messages", "show", ref_]);
     }
 
     #[test]
@@ -580,9 +574,14 @@ mod tests {
 
     #[test]
     fn unpaged_search_never_offers_a_next_page() {
+        let unpaged: SearchSource = serde_json::from_value(serde_json::json!({
+            "args": ["search", "--json", "--", "{query}"], "shape": "items", "what": "notes", "context": null
+        }))
+        .unwrap();
         let body = r#"{"items":[{"ref":"msg:1"}],"page":{"has_more":true}}"#;
-        let Answer::Hits { has_more, paged, .. } = read(src("email"), &output(0, body, ""), 1) else { panic!() };
+        let Answer::Hits { has_more, paged, .. } = read(&unpaged, &output(0, body, ""), 1) else { panic!() };
         assert!(!has_more && !paged);
+        assert!(args(&unpaged, None, "x", 50, 2).is_err());
     }
 
     #[test]
@@ -709,7 +708,7 @@ mod tests {
 
     #[test]
     fn value_lists_read_only_the_local_store() {
-        for tool in &catalog::catalog().tools {
+        for tool in catalog::catalog().tools.iter().filter(|t| t.search.is_some()) {
             for (name, src) in &source(tool).unwrap().values {
                 let a = &src.args;
                 let id = &tool.id;

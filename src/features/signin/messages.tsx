@@ -43,7 +43,7 @@ const en = {
   expiresIn: (seconds: number) => `This code expires in ${seconds} s.`,
   expired: "This code has expired; a new one is on its way.",
   clientIdIntro:
-    "Zoom signs in through an app of your own, made once in the Zoom App Marketplace. Paste its Public Client ID.",
+    "Zoom lets a program in only through an app registered in the Zoom App Marketplace, and Zoom has not approved a WireCat app for everyone yet. So you make one for your own account, once: the guide shows each screen. Then copy its Public Client ID from Basic Information → App Credentials, after turning on Use Public Client OAuth, and paste it here. Not the Client ID or the Client Secret: the tool uses neither.",
   howToMakeApp: "How to make the app",
   clientId: "Public Client ID",
   saving: "Saving…",
@@ -129,7 +129,7 @@ const ru: typeof en = {
   expiresIn: (seconds) => `Код истечёт через ${seconds} с.`,
   expired: "Срок кода истёк; новый уже в пути.",
   clientIdIntro:
-    "Zoom выполняет вход через ваше собственное приложение, созданное один раз в Zoom App Marketplace. Вставьте его Public Client ID.",
+    "Zoom пускает программу только через приложение, зарегистрированное в Zoom App Marketplace, а приложение WireCat для всех Zoom ещё не одобрил. Поэтому вы один раз создаёте своё, для своего аккаунта: в инструкции показан каждый экран. Затем включите Use Public Client OAuth в Basic Information → App Credentials, скопируйте Public Client ID и вставьте его сюда. Не Client ID и не Client Secret: инструмент не использует ни то, ни другое.",
   howToMakeApp: "Как создать приложение",
   clientId: "Public Client ID",
   saving: "Сохраняем…",
@@ -219,7 +219,7 @@ const es: typeof en = {
   expiresIn: (seconds) => `Este código caduca en ${seconds} s.`,
   expired: "Este código ha caducado; ya viene uno nuevo.",
   clientIdIntro:
-    "Zoom inicia sesión a través de una app tuya, creada una vez en Zoom App Marketplace. Pega su Public Client ID.",
+    "Zoom deja entrar a un programa solo a través de una app registrada en Zoom App Marketplace, y Zoom aún no ha aprobado una app de WireCat para todos. Así que creas una para tu propia cuenta, una sola vez: la guía muestra cada pantalla. Después activa Use Public Client OAuth en Basic Information → App Credentials, copia el Public Client ID y pégalo aquí. No el Client ID ni el Client Secret: la herramienta no usa ninguno.",
   howToMakeApp: "Cómo crear la app",
   clientId: "Public Client ID",
   saving: "Guardando…",

@@ -43,18 +43,6 @@ describe("Done on a finished install", () => {
     expect(panelOpen("Telegram")).toBe(false)
     expect(panelOpen("WhatsApp")).toBe(true)
   })
-
-  it("leaves the other row of a shared package open until it is closed too", async () => {
-    useTools.setState({ sessions: { memo: done("0.95.0") } })
-    rows(["memo", "email"])
-
-    await userEvent.click(within(row("Memo")).getByRole("button", { name: "Done" }))
-    expect(panelOpen("Memo")).toBe(false)
-    expect(panelOpen("Email")).toBe(true)
-
-    await userEvent.click(within(row("Email")).getByRole("button", { name: "Done" }))
-    expect(useTools.getState().sessions).toEqual({})
-  })
 })
 
 describe("the agent instructions an update refreshed", () => {

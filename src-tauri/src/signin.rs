@@ -3,8 +3,10 @@ use crate::paths;
 use crate::run::{self, RunError};
 use crate::signin_steps::Parser;
 pub use crate::signin_steps::SignInEvent;
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::io::Write;
+use std::path::PathBuf;
 use std::process::ChildStdin;
 use std::sync::{Mutex, OnceLock};
 use std::time::Duration;
@@ -28,15 +30,123 @@ fn answers() -> &'static Mutex<HashMap<String, ChildStdin>> {
     A.get_or_init(Mutex::default)
 }
 
+/// What the owner typed in the window before the run: each reaches the tool only if the method names its flag.
+#[derive(Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Inputs {
+    pub address: Option<String>,
+    pub password: Option<String>,
+    /// The text of the owner's own OAuth client JSON, not a path: the window has no file paths.
+    pub client_file: Option<String>,
+}
+
+/// A run ready to start: its words, the variables it reads, and the client file it may name, removed with this.
+pub struct Prepared {
+    pub args: Vec<String>,
+    env: Vec<(String, Answer)>,
+    _client: Option<ClientFile>,
+}
+
 /// The catalog's words for the method with the profile the owner chose or named; never a default one.
-pub fn args(tool: &Tool, method: &str, profile: &str) -> Result<Vec<String>, String> {
-    let words = tool
+pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<Prepared, String> {
+    let method = tool
         .sign_in
         .as_ref()
         .and_then(|s| s.methods.iter().find(|m| m.id == method))
-        .map(|m| &m.words)
         .ok_or_else(|| format!("{} cannot sign in from the app this way", tool.name))?;
-    catalog::with_profile(words, Some(profile))
+    let mut args = catalog::with_profile(&method.words, Some(profile))?;
+    let mut env = Vec::new();
+    let mut client = None;
+    if let Some(address) = inputs.address {
+        args.extend([flag(method.address.as_ref(), "an address")?.clone(), valid_address(&address)?]);
+    }
+    if let Some(password) = inputs.password {
+        let password = Answer::new(password);
+        if password.is_empty() || password.len() > 1024 || password.chars().any(char::is_control) {
+            return Err("The app password is one line of at most 1024 characters.".into());
+        }
+        env.push((flag(method.password.as_ref(), "a password")?.clone(), password));
+    }
+    if let Some(json) = inputs.client_file {
+        let name = flag(method.client_file.as_ref(), "an app of your own")?;
+        let file = ClientFile::write(&json)?;
+        args.extend([name.clone(), file.path().to_string_lossy().into_owned()]);
+        client = Some(file);
+    }
+    Ok(Prepared { args, env, _client: client })
+}
+
+fn flag<'a>(name: Option<&'a String>, what: &str) -> Result<&'a String, String> {
+    name.ok_or_else(|| format!("This sign-in takes no {what}."))
+}
+
+/// One address, never a flag: the tool's discovery takes it from here.
+fn valid_address(address: &str) -> Result<String, String> {
+    let address = address.trim();
+    let shaped = address.split_once('@').is_some_and(|(user, domain)| {
+        !user.is_empty()
+            && domain.contains('.')
+            && !domain.starts_with('.')
+            && !domain.ends_with('.')
+            && !domain.contains('@')
+    });
+    if !shaped
+        || address.len() > 254
+        || address.starts_with('-')
+        || address.chars().any(|c| c.is_whitespace() || c.is_control())
+    {
+        return Err("Type the whole mail address, such as name@example.com.".into());
+    }
+    Ok(address.to_string())
+}
+
+/// The owner's client JSON in a folder only they can open, for one run; the tool keeps the client with its sign-in,
+/// so the file goes when the run ends.
+struct ClientFile {
+    dir: PathBuf,
+}
+
+impl ClientFile {
+    const MAX: usize = 64 * 1024;
+
+    fn write(json: &str) -> Result<Self, String> {
+        let refused =
+            || "This is not an OAuth client file. Download the JSON of a Desktop app client again.".to_string();
+        if json.len() > Self::MAX {
+            return Err(refused());
+        }
+        let value: serde_json::Value = serde_json::from_str(json).map_err(|_| refused())?;
+        let client = value.get("installed").or_else(|| value.get("web")).ok_or_else(refused)?;
+        if client["client_id"].as_str().is_none_or(|id| id.trim().is_empty()) {
+            return Err(refused());
+        }
+        let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+        let dir = std::env::temp_dir().join(format!("wirecat-client-{}-{nanos}", std::process::id()));
+        let mut folder = std::fs::DirBuilder::new();
+        #[cfg(unix)]
+        std::os::unix::fs::DirBuilderExt::mode(&mut folder, 0o700);
+        folder.create(&dir).map_err(|e| format!("Could not keep the client file for the sign-in: {e}"))?;
+        let file = Self { dir };
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+        options
+            .open(file.path())
+            .and_then(|mut f| f.write_all(json.as_bytes()))
+            .map_err(|e| format!("Could not keep the client file for the sign-in: {e}"))?;
+        Ok(file)
+    }
+
+    fn path(&self) -> PathBuf {
+        self.dir.join("client.json")
+    }
+}
+
+impl Drop for ClientFile {
+    fn drop(&mut self) {
+        let _ = std::fs::remove_dir_all(&self.dir);
+    }
 }
 
 /// Writes one answer and a newline to the running sign-in. The error never repeats the answer: it may reach the
@@ -55,12 +165,15 @@ pub fn answer(id: &str, value: &Answer) -> Result<(), String> {
         .map_err(|_| "The tool stopped before it read the answer.".to_string())
 }
 
-pub fn run(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: &dyn Fn(SignInEvent)) {
+pub fn run(tool: &Tool, prepared: &Prepared, stopped: &dyn Fn() -> bool, send: &dyn Fn(SignInEvent)) {
     let Some(bin) = crate::tools::program(&tool.bin) else {
         return send(failed(format!("{} is not installed.", tool.name)));
     };
-    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let cmd = run::command(&bin, &refs, Some(&paths::search_path()));
+    let refs: Vec<&str> = prepared.args.iter().map(String::as_str).collect();
+    let mut cmd = run::command(&bin, &refs, Some(&paths::search_path()));
+    for (name, value) in &prepared.env {
+        cmd.env(name, value.as_str());
+    }
     let mut parser = Parser::default();
     let mut outcome = None;
     let k = key(&tool.id);
@@ -134,21 +247,71 @@ mod tests {
         assert!(matches!(finish("wa", Err(RunError::TimedOut), None, false), SignInEvent::Failed { .. }));
     }
 
+    fn words(tool: &str, method: &str, profile: &str) -> Result<Vec<String>, String> {
+        args(catalog::tool(tool).unwrap(), method, profile, Inputs::default()).map(|p| p.args)
+    }
+
     #[test]
     fn runs_the_catalogs_words_for_a_method_and_a_profile_the_owner_named() {
-        let wa = catalog::tool("wa").unwrap();
-        assert_eq!(args(wa, "qr", "personal").unwrap(), ["personal", "session", "start", "qr", "--json"]);
-        let tg = catalog::tool("tg").unwrap();
+        assert_eq!(words("wa", "qr", "personal").unwrap(), ["personal", "session", "start", "qr", "--json"]);
         assert_eq!(
-            args(tg, "phone", "work").unwrap(),
+            words("tg", "phone", "work").unwrap(),
             ["work", "session", "start", "phone", "--json", "--answer-stdin"]
         );
         for bad in ["", "--help", "a;rm -rf ~", "../x y"] {
-            assert!(args(wa, "qr", bad).is_err(), "{bad}");
+            assert!(words("wa", "qr", bad).is_err(), "{bad}");
         }
-        assert!(args(wa, "phone", "personal").is_err());
-        assert!(args(catalog::tool("memo").unwrap(), "qr", "personal").is_err());
+        assert!(words("wa", "phone", "personal").is_err());
+        assert!(words("memo", "qr", "personal").is_err());
         assert!(catalog::tool("nope").is_err());
+    }
+
+    #[test]
+    fn what_the_owner_typed_goes_only_where_the_method_names_it() {
+        let email = catalog::tool("email").unwrap();
+        let typed = |address: &str, password: Option<&str>| Inputs {
+            address: Some(address.into()),
+            password: password.map(str::to_string),
+            client_file: None,
+        };
+        let imap = args(email, "imap", "work", typed(" me@example.com ", Some("app pass"))).unwrap();
+        assert_eq!(imap.args, ["work", "session", "start", "--json", "--quiet", "--address", "me@example.com"]);
+        assert_eq!(
+            imap.env.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect::<Vec<_>>(),
+            [("MAIL_PASSWORD", "app pass")]
+        );
+        assert!(!imap.args.iter().any(|a| a.contains("app pass")), "the password is never a word");
+        for bad in ["--help@x.com", "me", "me@localhost", "a b@x.com", "me\n@x.com", "@x.com"] {
+            assert!(args(email, "imap", "work", typed(bad, None)).is_err(), "{bad}");
+        }
+        assert!(
+            args(email, "microsoft", "work", typed("me@outlook.com", Some("x"))).is_err(),
+            "Microsoft takes no password"
+        );
+        assert!(args(catalog::tool("tg").unwrap(), "qr", "work", typed("me@x.com", None)).is_err());
+        assert!(args(email, "imap", "work", typed("me@x.com", Some("a\nb"))).is_err());
+    }
+
+    #[test]
+    fn an_own_client_file_is_private_and_gone_after_the_run() {
+        let gcal = catalog::tool("gcal").unwrap();
+        let json = r#"{"installed":{"client_id":"1.apps.googleusercontent.com","client_secret":"s"}}"#;
+        let own = |text: &str| Inputs { client_file: Some(text.into()), ..Inputs::default() };
+        let prepared = args(gcal, "browser", "personal", own(json)).unwrap();
+        let path = PathBuf::from(prepared.args.last().unwrap());
+        assert_eq!(prepared.args[prepared.args.len() - 2], "--client-file");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), json);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+        }
+        drop(prepared);
+        assert!(!path.exists());
+        for bad in ["{}", "not json", r#"{"installed":{"client_id":""}}"#] {
+            assert!(args(gcal, "browser", "personal", own(bad)).is_err(), "{bad}");
+        }
+        assert!(args(catalog::tool("zm").unwrap(), "browser", "personal", own(json)).is_err());
     }
 
     #[test]

@@ -123,7 +123,7 @@ describe("suggestSearch", () => {
         "links30",
         "voice30",
         "mailWeek",
-        "important30",
+        "attachments30",
         "invoice30",
         "changed30",
         "titled",

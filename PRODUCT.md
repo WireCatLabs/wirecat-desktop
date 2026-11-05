@@ -34,6 +34,12 @@ enough that a developer would recommend it.
 Later (not in the first version): accounts, data and sync coverage, memory, people, projects, relationship
 graphs, agent activity. The structure must leave room for these sections.
 
+Direction (owner, 2026-11-02): WireCat as a whole is becoming the local context layer that any AI agent uses — what
+is true across the user's apps, where it came from, how it connects and what changed. The agent stays the user's
+choice. For this app that means: it shows and manages that context (sources and how far back they reach, imported
+records, memory to review), and it is a client of the tools' import and read commands, never the owner of the data.
+A first import screen validates a JSON file, shows what would change and imports it through the tool.
+
 ## Positioning
 
 The CLI tools are the product; the app is a thin, honest window onto them. It installs the same npm packages
@@ -44,9 +50,9 @@ authentication. Everything stays on the user's computer.
 
 - Tools (catalog, 2026-10-25): Telegram `tg` (@wirecat/tg-cli), MAX `max` (@wirecat/max-cli), WhatsApp `wa`
   (@wirecat/whatsapp-cli), Zoom `zm` (@wirecat/zoom-cli), Google Drive `drive` (@wirecat/drive-cli), Memo
-  `memo` (@wirecat/cli-memo). All six shown equally (owner, 2026-10-25). Email is a seventh row over memo's package
-  and `memo mail` commands, with its own accounts, checks and logs; installing either installs both (owner, NEED-13
-  answer B, 2026-10-25).
+  `memo` (@wirecat/cli-memo). All six shown equally (owner, 2026-10-25). Email is mail-cli `mail`
+  (@wirecat/mail-cli), its own package since `memo mail` moved there (owner, 2026-11-05; it was a row over memo's
+  package, NEED-13 answer B, 2026-10-25). Google Calendar is `gcal` (@wirecat/gcal-cli).
 - Requirements: Node `^22.16.0 || >=24` with npm. The app itself must start without Node.
 - Account commands take an explicit profile (`tg personal doctor`); no profile is ever assumed. memo has no
   profiles. Setup flows are interactive and run in a terminal.
@@ -84,6 +90,9 @@ authentication. Everything stays on the user's computer.
 3. One obvious action per tool; details on demand.
 4. Errors say what happened and what to do next, with the raw log one click away.
 5. Never choose an account or profile for the user.
+6. Keep what WireCat extracts, not the file. Added files and mail attachments are read into the database (text,
+   metadata) and the file itself is not kept. A copy is kept only when the user asks for it with a flag
+   (NEED-201).
 
 ## Accessibility & Inclusion
 

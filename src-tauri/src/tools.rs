@@ -239,7 +239,6 @@ fn parse_profiles(v: &Value, shape: &str) -> Vec<Profile> {
         "items" => &v["items"],
         "item.profiles" => &v["item"]["profiles"],
         "item.items" => &v["item"]["items"],
-        "item.mail.accounts" => &v["item"]["mail"]["accounts"],
         _ => &Value::Null,
     };
     // A missing-profile error lists the profiles too; tools that fail that way still tell us.
@@ -250,8 +249,7 @@ fn parse_profiles(v: &Value, shape: &str) -> Vec<Profile> {
         .filter_map(|p| match p {
             Value::String(name) => Some(Profile { name: name.clone(), signed_in: None }),
             Value::Object(o) => Some(Profile {
-                // memo's mail accounts carry `name`, beside an address that must stay in Rust.
-                name: o.get("profile").or_else(|| o.get("name"))?.as_str()?.to_string(),
+                name: o.get("profile")?.as_str()?.to_string(),
                 // cli-core 0.466 says it outright; older tools only leave `account` empty.
                 signed_in: o
                     .get("signed_in")
@@ -420,9 +418,8 @@ mod tests {
         let drive = json!({"item": {"items": [{"profile": "work"}]}});
         assert_eq!(parse_profiles(&drive, "item.items")[0].signed_in, None);
 
-        let memo = json!({"item": {"mail": {"accounts": [{"name": "work", "address": "a@b.c", "mode": "gmail"}]}}});
-        let mail = parse_profiles(&memo, "item.mail.accounts");
-        assert_eq!((mail[0].name.as_str(), mail[0].signed_in), ("work", None));
+        let mail = json!({"items": [{"profile": "work", "address": "a@b.c", "auth": "oauth"}]});
+        assert_eq!(parse_profiles(&mail, "items")[0].signed_in, None);
 
         let err = json!({"error": {"details": {"profiles": ["a", "b"]}}});
         assert_eq!(parse_profiles(&err, "items").len(), 2);

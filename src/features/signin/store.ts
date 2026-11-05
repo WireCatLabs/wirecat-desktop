@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
-import type { SignInEvent } from "@/platform/signin-schemas"
+import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
 
 type Of<K extends SignInEvent["event"]> = Extract<SignInEvent, { event: K }>
 export type Qr = Of<"qr">
@@ -56,10 +56,20 @@ type SignInState = {
    * before that step says the switch failed.
    */
   switchingTo: string | null
+  /** Typed in the plan before the run: the mail address, and the name of the owner's own client file, if chosen. */
+  address: string
+  ownFile: string | null
+  /** The owner's own app id (Microsoft's Application ID), saved as the method's `clientId` setting before the run. */
+  ownId: string
+  /** The own app id could not be saved, so the plan stays open with the tool's reason. */
+  planError: string | null
+  /** Start was pressed without what the method needs. */
+  planMissing: "address" | "password" | null
   run: number
   onFinish: (() => void) | null
   /** Without `method` it opens on the plan, and `begin` runs it; with one (a switch, a retry) it runs at once. */
   start(tool: string, profile: string, onFinish?: () => void, method?: string, reuse?: boolean): void
+  /** Saves the owner's own app id first when one is typed, then runs the sign-in. */
   begin(): void
   /** Starts the same sign-in again, after a failure. */
   again(): void
@@ -91,6 +101,11 @@ const closed = {
   scannedAt: null as number | null,
   switchingTo: null as string | null,
   onFinish: null,
+  address: "",
+  ownFile: null,
+  ownId: "",
+  planError: null,
+  planMissing: null,
 }
 
 /** A sign-in process runs, or is about to: the plan has started nothing yet. */
@@ -108,6 +123,40 @@ const keys = new Map<string, string>()
 const KEPT = new Set(["api_id", "api_hash"])
 export const keptAnswer = (field: string) => keys.get(field) ?? ""
 export const APP_KEYS = KEPT
+
+/** The app password and the client file's text, kept beside the app keys and forgotten with them. */
+const typed: { password: string | undefined; clientFile: string | undefined } = {
+  password: undefined,
+  clientFile: undefined,
+}
+const forget = () => {
+  keys.clear()
+  typed.password = undefined
+  typed.clientFile = undefined
+}
+export const setPassword = (value: string) => {
+  typed.password = value
+}
+export const setClientFile = (name: string | null, text?: string) => {
+  typed.clientFile = name ? text : undefined
+  useSignIn.setState({ ownFile: name })
+}
+
+/** Only what the method takes, and the owner's own app before an app password: with it, Gmail signs in by browser. */
+export const methodOf = (tool: string, method: string | null) => {
+  const entry = findTool(tool)
+  return entry ? signInMethods(entry).find((m) => m.id === method) : undefined
+}
+
+function inputsFor(tool: string, method: string, address: string): SignInInputs {
+  const m = methodOf(tool, method)
+  if (!m) return {}
+  const inputs: SignInInputs = {}
+  if (m.address && address.trim()) inputs.address = address.trim()
+  if (m.clientFile && typed.clientFile) inputs.clientFile = typed.clientFile
+  else if (m.password && typed.password) inputs.password = typed.password
+  return inputs
+}
 
 /** The run in flight, so a new one waits for it to end: the tool runs one sign-in at a time. */
 let ending: Promise<unknown> = Promise.resolve()
@@ -169,13 +218,13 @@ export const useSignIn = create<SignInState>()((set, get) => {
         return set({ ...next, phase: "progress", progress: e, qr: null, url: null, expect: null })
       }
       case "done":
-        keys.clear()
+        forget()
         set({ ...next, phase: "done", done: e, qr: null, url: null, stopping: false, switchingTo: null })
         return get().onFinish?.()
       case "failed":
         return set({ ...next, phase: "failed", failure: e, qr: null, url: null, stopping: false })
       case "stopped":
-        keys.clear()
+        forget()
         return set({ ...closed })
     }
   }
@@ -188,12 +237,14 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const chosen = method ?? (entry ? signInMethods(entry)[0]?.id : undefined) ?? "qr"
       const previous = get()
       // Switching methods: the tool runs one sign-in at a time, so the last run ends before the next starts.
-      if (previous.tool !== tool || previous.profile !== profile) keys.clear()
+      const same = previous.tool === tool && previous.profile === profile
+      if (!same) forget()
+      const kept = same ? { address: previous.address, ownFile: previous.ownFile, ownId: previous.ownId } : {}
       const switching = previous.tool !== null && running(previous.phase)
       if (switching && previous.tool) stopInBackground(previous.tool)
       const run = previous.run + 1
       if (method === undefined && !switching) {
-        set({ ...closed, tool, profile, method: chosen, run, phase: "plan", onFinish: onFinish ?? null })
+        set({ ...closed, ...kept, tool, profile, method: chosen, run, phase: "plan", onFinish: onFinish ?? null })
         return
       }
       const reusing = (reuse || switching) && keys.size > 0
@@ -202,6 +253,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const keysFirst = !(reusing && bothKeys()) && (keys.size > 0 || onKeys)
       set({
         ...closed,
+        ...kept,
         tool,
         profile,
         method: chosen,
@@ -211,6 +263,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
         expect: keysFirst ? "keys" : null,
         switchingTo: switching ? chosen : null,
       })
+      const inputs = inputsFor(tool, chosen, get().address)
       const mine = () => get().run === run && get().tool !== null
       // A stop sent before Rust registered the run is lost, so a word from a run nobody watches stops it again. Rust
       // sends the last word after the tool exited: from then on the next run may start, and a late word is ignored.
@@ -226,7 +279,9 @@ export const useSignIn = create<SignInState>()((set, get) => {
         if (final) over()
       }
       // A run closed a moment ago may still be stopping, even when nothing runs on screen.
-      const started = previousEnded().then(() => (mine() ? platform.signIn(tool, chosen, profile, onEvent) : undefined))
+      const started = previousEnded().then(() =>
+        mine() ? platform.signIn(tool, chosen, profile, onEvent, inputs) : undefined,
+      )
       ending = Promise.race([started.catch(() => {}), last]).then(() => {
         ended = true
       })
@@ -239,9 +294,16 @@ export const useSignIn = create<SignInState>()((set, get) => {
       )
     },
     begin() {
-      const { tool, profile, method, phase, onFinish } = get()
+      const { tool, profile, method, phase, onFinish, ownId, address, ownFile } = get()
       if (phase !== "plan" || !tool || !profile || !method) return
-      get().start(tool, profile, onFinish ?? undefined, method)
+      const chosen = methodOf(tool, method)
+      if (chosen?.address && !address.trim()) return set({ planMissing: "address" })
+      if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
+      const setting = chosen?.clientId
+      const run = () => get().start(tool, profile, onFinish ?? undefined, method)
+      if (!setting || !ownId.trim()) return run()
+      set({ planError: null })
+      platform.settingsSet(tool, profile, false, setting, ownId.trim()).then(run, (e) => set({ planError: message(e) }))
     },
     again() {
       const { tool, profile, onFinish, method, failure } = get()
@@ -268,7 +330,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
     },
     close() {
       const { tool, phase, onFinish } = get()
-      keys.clear()
+      forget()
       set({ ...closed })
       if (!tool || !running(phase)) return
       stopInBackground(tool)

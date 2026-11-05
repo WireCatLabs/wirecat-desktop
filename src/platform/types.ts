@@ -40,7 +40,7 @@ import type {
 } from "./schemas"
 import type { QueryDraft, SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
 import type { Settings } from "./settings-schemas"
-import type { SignInEvent } from "./signin-schemas"
+import type { SignInEvent, SignInInputs } from "./signin-schemas"
 import type { Background, LastSync, SyncEvent } from "./sync-schemas"
 import type { FunnelState, TailscaleDownload, TailscaleStatus } from "./tailscale-schemas"
 import type {
@@ -246,7 +246,13 @@ export type Platform = {
    * steps arrive as events and the last one is `done`, `failed` or `stopped`. Never with a profile the owner did not
    * choose.
    */
-  signIn(id: string, method: string, profile: string, onEvent: (e: SignInEvent) => void): Promise<void>
+  signIn(
+    id: string,
+    method: string,
+    profile: string,
+    onEvent: (e: SignInEvent) => void,
+    inputs?: SignInInputs,
+  ): Promise<void>
   /** The answer to the running sign-in's `needs` step, written to the tool's stdin; never logged or kept. */
   signInAnswer(id: string, value: string): Promise<void>
   /** Asks the tool to stop, then ends it after a few seconds; `signIn` then answers `stopped`, or `done` with what came. */

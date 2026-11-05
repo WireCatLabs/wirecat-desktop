@@ -883,11 +883,12 @@ async fn sign_in(
     id: String,
     method: String,
     profile: String,
+    inputs: Option<signin::Inputs>,
     running: State<'_, Arc<Running>>,
     on_event: Channel<signin::SignInEvent>,
 ) -> Result<(), String> {
     let tool = catalog::tool(&id)?;
-    let args = signin::args(tool, &method, &profile)?;
+    let prepared = signin::args(tool, &method, &profile, inputs.unwrap_or_default())?;
     let running = Arc::clone(&running);
     blocking(move || {
         let send = |e: signin::SignInEvent| {
@@ -900,7 +901,7 @@ async fn sign_in(
                 code: None,
             });
         }
-        signin::run(tool, &args, &|| !running.is_running(&key), &send);
+        signin::run(tool, &prepared, &|| !running.is_running(&key), &send);
         running.finish(&key);
     })
     .await

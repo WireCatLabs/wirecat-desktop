@@ -1,6 +1,6 @@
 import { delay } from "./mock-delay"
 import { MOCK_CODES } from "./mock-qr"
-import type { SignInEvent } from "./signin-schemas"
+import type { SignInEvent, SignInInputs } from "./signin-schemas"
 import type { Platform } from "./types"
 
 // Each tool's sign-in as it streams it off a terminal with `--json --answer-stdin`. `?signin-fail=wa` makes WhatsApp
@@ -8,9 +8,11 @@ import type { Platform } from "./types"
 // Public Client ID, until one is saved. Telegram: `?signin-fail=tg-apiid` refuses the app keys once (the next try signs
 // in), `tg-flood` asks to wait seven minutes, `tg-code` says the login code expired, `tg-switch` refuses every run
 // after the first, as when the last one has not stopped yet (a switch of method fails at once);
-// `?signin-keyring=file` is tg with no system keyring, saving to a file instead. `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and
-// tg says nothing for 12 s, as after a real scan (Telegram moves the login to the account's data centre);
-// `&signin-scanned=1` adds the progress line tg-cli could print at the scan.
+// `?signin-keyring=file` is tg with no system keyring, saving to a file instead. `?signin-fail=email` is a mail server
+// refusing the app password; gcal refuses until the owner picks a client file of their own.
+// `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and tg says nothing for 12 s, as after a real scan
+// (Telegram moves the login to the account's data centre); `&signin-scanned=1` adds the progress line tg-cli could print
+// at the scan.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
@@ -70,7 +72,9 @@ export const saveMockClientId = () => {
   clientIdSaved = true
 }
 
-const scripts: Record<string, (s: Script, method: string) => Promise<SignInEvent>> = {
+const GOOGLE_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=mock"
+
+const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) => Promise<SignInEvent>> = {
   async wa(s) {
     for (const text of WARNING) s.emit({ event: "note", text })
     s.emit({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: WA_SCAN })
@@ -166,6 +170,40 @@ const scripts: Record<string, (s: Script, method: string) => Promise<SignInEvent
     })
     return (await s.wait(6000)) ? STOPPED : signedIn
   },
+  // gcal 0.19 has no WireCat app yet: without the owner's own, it refuses as the real one does.
+  async gcal(s, _method, inputs) {
+    if (!inputs.clientFile)
+      return {
+        event: "failed",
+        code: "configuration_error",
+        message:
+          "no Google OAuth client is set up: set GCAL_GOOGLE_CLIENT_ID and GCAL_GOOGLE_CLIENT_SECRET to your own Desktop app client; or pass --client-file <path> with the Desktop app client JSON from Google Cloud Console",
+      }
+    s.emit({
+      event: "openUrl",
+      url: GOOGLE_URL,
+      purpose: "Choose the Google account and allow read access to Calendar",
+    })
+    return (await s.wait(5000)) ? STOPPED : signedIn
+  },
+  async email(s, method, inputs) {
+    if (fails === "email")
+      return {
+        event: "failed",
+        code: "authentication_error",
+        message: "the server refused the login: the password may be the account password instead of an app password",
+      }
+    if (method === "microsoft" || inputs.clientFile) {
+      const host =
+        method === "microsoft" ? "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" : GOOGLE_URL
+      s.emit({ event: "openUrl", url: `${host}?client_id=mock`, purpose: null })
+      if (await s.wait(5000)) return STOPPED
+    } else {
+      s.emit({ event: "progress", step: "check", message: "checking the password with the server" })
+      if (await s.wait(2000)) return STOPPED
+    }
+    return signedIn
+  },
 }
 
 const WA_SCAN = "scan in WhatsApp → Settings → Linked devices → Link a device"
@@ -175,7 +213,7 @@ export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signIn
   let reply: ((value: string) => void) | null = null
 
   return {
-    async signIn(id, method, profile, onEvent) {
+    async signIn(id, method, profile, onEvent, inputs = {}) {
       let stopped = false
       stop = () => {
         stopped = true
@@ -201,7 +239,7 @@ export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signIn
       await delay(500)
       const script = scripts[id]
       const end = script
-        ? await script({ emit: onEvent, wait, ask, profile, id }, method)
+        ? await script({ emit: onEvent, wait, ask, profile, id }, method, inputs)
         : ({ event: "failed", message: "This tool cannot sign in here.", code: null } as SignInEvent)
       await delay(400)
       if (end.event === "done" && !linkedProfiles.includes(profile)) linkedProfiles.push(profile)

@@ -2,11 +2,10 @@ import type { ReactNode } from "react"
 import { type CatalogTool, tools } from "@/domain/catalog"
 import type { DoctorNote } from "@/domain/doctor"
 import { formatNumber, type Messages, plural } from "@/i18n"
+import { syncNote } from "./tool-text"
 
 type Em = (text: string) => ReactNode
 type Step = Record<string, string>
-
-import { syncNote } from "./tool-text"
 
 const byId = (pick: (t: CatalogTool) => string | null | undefined) =>
   Object.fromEntries(tools.flatMap((t) => (pick(t) ? [[t.id, pick(t) as string]] : [])))
@@ -339,8 +338,9 @@ const RU_TAGLINE: Record<string, string> = {
   wa: "Ваш аккаунт WhatsApp как связанное устройство",
   zm: "Расшифровки и записи Zoom с поиском",
   drive: "Папки Google Drive как локальный текст с поиском",
+  gcal: "События Google Календаря с поиском на вашем компьютере",
   memo: "Заметки, люди и воспоминания в одном месте для вашего агента",
-  email: "Ваша почта, с поиском вместе с заметками и сообщениями",
+  email: "Ваша почта с поиском на вашем компьютере",
 }
 const RU_SUMMARY: Record<string, string> = {
   tg: "Клиент Telegram для терминала и ИИ-агентов, на вашем собственном аккаунте.",
@@ -349,9 +349,10 @@ const RU_SUMMARY: Record<string, string> = {
   zm: "Сохраняйте расшифровки и записи Zoom, ищите в них нужное и давайте агенту контекст к следующему звонку.",
   drive:
     "Импортируйте выбранные папки Google, ищите по документам локально и храните теги, заметки и воспоминания со ссылкой на источник.",
-  memo: "Ваши заметки и сообщения в одном месте для ИИ-агента: поиск, теги, люди и воспоминания — на вашем компьютере. Почта приходит через Email, который входит в Memo.",
+  gcal: "Копируйте события Google Календаря на этот компьютер, ищите по ним без сети и давайте агенту контекст каждой встречи.",
+  memo: "Ваши заметки и сообщения в одном месте для ИИ-агента: поиск, теги, люди и воспоминания — на вашем компьютере.",
   email:
-    "Gmail и другая почта IMAP в локальном хранилище Memo, через Himalaya: ищите по ней вместе с заметками и сообщениями и смотрите, как продвигается каждый импорт. Импорт никогда не меняет ваш почтовый ящик, и Memo никогда не отправляет почту.",
+    "Gmail, Outlook и другая почта IMAP, скопированная на ваш компьютер: ищите по ней без сети, читайте переписку целиком и смотрите, докуда дошла каждая синхронизация. Синхронизация никогда не меняет ваш ящик.",
 }
 const RU_NOTE: Record<string, string> = {
   wa: "WhatsApp присылает новые сообщения, пока работает `wa serve`; синхронизацию запускать не нужно.",
@@ -705,8 +706,9 @@ const ES_TAGLINE: Record<string, string> = {
   wa: "Tu cuenta de WhatsApp como dispositivo vinculado",
   zm: "Transcripciones y grabaciones de Zoom, con búsqueda",
   drive: "Carpetas de Google Drive como texto local con búsqueda",
+  gcal: "Eventos de Google Calendar, con búsqueda en tu equipo",
   memo: "Notas, personas y memorias en un solo lugar para tu agente",
-  email: "Tu correo, con búsqueda junto a tus notas y mensajes",
+  email: "Tu correo, con búsqueda en tu equipo",
 }
 const ES_SUMMARY: Record<string, string> = {
   tg: "Un cliente de Telegram para el terminal y para agentes de IA, con tu propia cuenta.",
@@ -715,9 +717,10 @@ const ES_SUMMARY: Record<string, string> = {
   zm: "Guarda transcripciones y grabaciones de Zoom, busca en lo que se dijo en las reuniones y da contexto a tu agente para la próxima llamada.",
   drive:
     "Importa carpetas de Google seleccionadas, busca en los documentos en local y guarda etiquetas, notas y memorias con su fuente.",
-  memo: "Tus notas y mensajes en un solo lugar para tu agente de IA: búsqueda, etiquetas, personas y memorias, en tu ordenador. El correo llega a través de Email, que forma parte de Memo.",
+  gcal: "Copia los eventos de Google Calendar a este equipo, búscalos sin conexión y da a tu agente el contexto de cada reunión.",
+  memo: "Tus notas y mensajes en un solo lugar para tu agente de IA: búsqueda, etiquetas, personas y memorias, en tu ordenador.",
   email:
-    "Gmail y otro correo IMAP en el almacenamiento local de Memo, leído con Himalaya: búscalo junto a tus notas y mensajes y mira cómo va cada importación. Importar nunca cambia tu buzón, y Memo nunca envía correo.",
+    "Gmail, Outlook y otro correo IMAP copiado a tu equipo: búscalo sin conexión, lee hilos enteros y mira hasta dónde llegó cada sincronización. La sincronización nunca cambia tu buzón.",
 }
 const ES_NOTE: Record<string, string> = {
   wa: "WhatsApp envía los mensajes nuevos mientras se ejecuta `wa serve`; no hay sincronización que iniciar.",
