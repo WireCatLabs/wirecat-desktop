@@ -6,6 +6,7 @@ import { formatList, type Lang, useMessages } from "@/i18n"
 import type { Agent } from "@/platform/agents-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
@@ -79,7 +80,7 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
 
   if (detected && rows.length === 0) {
     return (
-      <p className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-5 text-[0.95rem] text-ink-soft">
+      <p className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-5 text-body text-ink-soft">
         {m.noTool}
       </p>
     )
@@ -88,7 +89,7 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
   return (
     <div className="flex flex-col gap-3">
       {compact && found !== null && found.length === 0 && (
-        <p className="rounded-[0.2rem] border border-warn/40 bg-warn/10 px-4 py-3 text-[0.95rem]">{m.noAgent}</p>
+        <p className="rounded-[0.2rem] border border-warn/40 bg-warn/10 px-4 py-3 text-body">{m.noAgent}</p>
       )}
       <Collapse open={grouped}>
         <ErrorNotice
@@ -212,17 +213,17 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
         </table>
       </div>
       {detected && notInstalled.length > 0 && !compact && (
-        <p className="text-[0.9rem] text-ink-soft">{m.notInstalledNote(notInstalled.map((t) => t.name))}</p>
+        <p className="text-body text-ink-soft">{m.notInstalledNote(notInstalled.map((t) => t.name))}</p>
       )}
       {silent.length === 0 && firstChecking && (
         // Old tools are the usual case, so their note's line is kept until every skill has answered.
-        <p className={cx("leading-snug", compact ? "text-[0.9rem]" : "text-[0.9rem]")}>
+        <p className="text-body leading-snug">
           <Skeleton chars={60} />
         </p>
       )}
       {silent.length > 0 && (
         // Last under the table, as it arrives last: inside a row it would push every row under it down.
-        <p className={cx("leading-snug text-ink-soft", compact ? "text-[0.9rem]" : "text-[0.9rem]")}>
+        <p className="text-body leading-snug text-ink-soft">
           {m.silent(silent.map((r) => r.tool.name))}{" "}
           {silent.some((r) => r.newer)
             ? compact
@@ -276,14 +277,16 @@ function InstallAll({ tool, cells, readers }: { tool: CatalogTool; cells: readon
     )
   else
     content = (
-      <span className="flex items-center gap-1.5 text-[0.9rem] text-ink-soft">
+      <span className="flex items-center gap-1.5 text-[0.95rem] text-ink-soft">
         <Check aria-hidden className="size-4 text-ok" />
         {m.allInstalled}
       </span>
     )
+  // One view for the button while it runs and before: a new copy would lose the focus the dialog hands back to it.
+  const view = checking ? "checking" : working || todo.length > 0 ? "button" : "done"
   return (
     <div aria-live="polite" className="mt-2 flex min-h-8 items-center pl-[2.3rem]">
-      {content}
+      <Crossfade swap={view}>{content}</Crossfade>
     </div>
   )
 }
@@ -337,20 +340,27 @@ function Cell(props: {
     <div aria-live="polite">
       <div className="flex min-h-8 items-center gap-2">
         <Lamp size="sm" tone={look.tone} label={m.skillState(toolName, column, look.word)} />
-        <span className={cx("text-[0.95rem]", cell.kind === "stale" && !busy && "text-warn-ink")}>{look.word}</span>
+        {/* "Missing" → "Writing…" → "Installed" fade into each other, as the lamp beside them does. */}
+        <Crossfade swap={look.word}>
+          <span className={cx("whitespace-nowrap text-[0.95rem]", cell.kind === "stale" && !busy && "text-warn-ink")}>
+            {look.word}
+          </span>
+        </Crossfade>
         {version && <span className="selectable font-mono text-[0.9rem] text-ink-soft tabular-nums">{version}</span>}
-        {action && (
-          <Button
-            size="sm"
-            variant={primary && action === "Install" ? "primary" : "secondary"}
-            className="ml-auto"
-            disabled={busy}
-            onClick={() => onInstall(action)}
-            aria-label={action === "Install" ? m.installSkill(toolName, column) : m.updateSkill(toolName, column)}
-          >
-            {m.action[action]}
-          </Button>
-        )}
+        {/* The button fades out once its work is done instead of vanishing under the pointer. */}
+        <Crossfade swap={action ?? "none"} align="end" className="ml-auto">
+          {action && (
+            <Button
+              size="sm"
+              variant={primary && action === "Install" ? "primary" : "secondary"}
+              disabled={busy}
+              onClick={() => onInstall(action)}
+              aria-label={action === "Install" ? m.installSkill(toolName, column) : m.updateSkill(toolName, column)}
+            >
+              {m.action[action]}
+            </Button>
+          )}
+        </Crossfade>
       </div>
       {cell.kind === "failed" && !busy && !grouped && (
         <ErrorNotice

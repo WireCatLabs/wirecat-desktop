@@ -3,7 +3,10 @@ import { type ReactNode, useEffect, useRef } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { needsUpdate, type SkillTarget } from "@/domain/skills"
 import { formatList, useMessages } from "@/i18n"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
+import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
@@ -25,7 +28,7 @@ export function SkillBenefits({ tool, className }: { tool: string; className?: s
         return (
           <li key={point.title} className="flex items-start gap-2.5">
             <Icon className="mt-[0.2rem] size-[1.05rem] shrink-0 text-brand" strokeWidth={1.8} aria-hidden />
-            <p className="text-[0.9rem] leading-snug">
+            <p className="text-body leading-snug">
               <span className="block font-medium text-ink">{point.title}</span>
               <span className="text-ink-soft">{point.text(tool)}</span>
             </p>
@@ -68,30 +71,35 @@ export function SkillOffer({ tool }: { tool: CatalogTool }) {
   }
 
   let body: ReactNode
+  let view = "button"
   if (found !== null && found.length === 0) {
+    view = "no-agent"
     body = (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="min-w-0 flex-1 basis-[20rem] text-[0.9rem] text-ink-soft">{m.noAgent}</p>
+        <p className="min-w-0 flex-1 basis-[20rem] text-body text-ink-soft">{m.noAgent}</p>
         <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("agents")}>
           {m.openAgents}
         </Button>
       </div>
     )
   } else if (checking) {
+    view = "checking"
     body = <Skeleton className="h-8 w-[18rem]" label={m.looking} />
   } else if (todo.length === 0 && !working && cells.some((c) => c.cell.kind !== "current")) {
     // The tool could not say whether its skill is there (too old, or its status failed): claim nothing.
+    view = "unclear"
     body = (
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <p className="min-w-0 flex-1 basis-[20rem] text-[0.9rem] text-ink-soft">{m.unclear(tool.name)}</p>
+        <p className="min-w-0 flex-1 basis-[20rem] text-body text-ink-soft">{m.unclear(tool.name)}</p>
         <Button size="sm" variant="secondary" onClick={() => useNav.getState().go("agents")}>
           {m.openAgents}
         </Button>
       </div>
     )
   } else if (todo.length === 0 && !working) {
+    view = "done"
     body = (
-      <p className="flex min-h-8 items-center gap-2 text-[0.95rem]">
+      <p className="flex min-h-8 items-center gap-2 text-body">
         <CheckCircle2 className="size-5 shrink-0 text-ok" aria-hidden />
         <span>{clicked.current ? m.added(names, tool.name) : m.already(names, tool.name)}</span>
       </p>
@@ -111,15 +119,22 @@ export function SkillOffer({ tool }: { tool: CatalogTool }) {
     >
       <h3 className="text-[1.02rem] font-semibold leading-tight">{m.title(tool.name)}</h3>
       <SkillBenefits tool={tool.name} />
-      <div aria-live="polite">{body}</div>
-      {failure && !working && (
-        <ErrorNotice
-          inline
-          action={<ReportThis what={`Adding the ${tool.name} skill`} tool={tool.id} error={failure} />}
-        >
-          {m.failed} {failure}
-        </ErrorNotice>
-      )}
+      {/* Add → Adding… → Added: one state fades into the next and the box's height follows. */}
+      <AutoHeight swap={view} className="-mx-1 px-1">
+        <div aria-live="polite">
+          <Crossfade swap={view}>{body}</Crossfade>
+        </div>
+      </AutoHeight>
+      <Collapse open={Boolean(failure) && !working}>
+        {failure && (
+          <ErrorNotice
+            inline
+            action={<ReportThis what={`Adding the ${tool.name} skill`} tool={tool.id} error={failure} />}
+          >
+            {m.failed} {failure}
+          </ErrorNotice>
+        )}
+      </Collapse>
     </section>
   )
 }
