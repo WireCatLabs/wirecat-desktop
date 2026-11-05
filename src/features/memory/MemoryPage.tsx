@@ -11,6 +11,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
 import { useNav } from "../nav"
+import { DemoNote } from "../onboarding/DemoNote"
 import { ReportThis } from "../report/ReportThis"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
@@ -28,11 +29,11 @@ export function MemoryPage() {
   const m = useMessages(memoryMessages)
   const lang = useLang()
   const s = useMemory()
-  const { load } = s
+  const { load, demo } = s
 
   useEffect(() => {
-    load()
-  }, [load])
+    if (!demo) load()
+  }, [load, demo])
 
   const ready = s.read?.kind === "ready" ? s.read : null
   const filter = memoryFilter(s.query)
@@ -67,7 +68,7 @@ export function MemoryPage() {
             </a>
           </p>
         </div>
-        {s.read?.kind !== "missing" && (
+        {s.read?.kind !== "missing" && !demo && (
           <Button
             variant="ghost"
             size="sm"
@@ -86,47 +87,50 @@ export function MemoryPage() {
         )}
       </div>
 
-      {s.error ? (
-        <ErrorNotice action={<ReportThis what="Reading memory" error={s.error} />}>
-          {m.readFailed} {s.error}
-        </ErrorNotice>
-      ) : s.read?.kind === "missing" ? (
-        <Notice>
-          <p>{m.missing}</p>
-          <Button size="sm" onClick={() => openTool("memo")}>
-            {m.goTools}
-          </Button>
-        </Notice>
-      ) : s.read?.kind === "old" ? (
-        <OldNotice version={s.read.version} need={s.read.need} />
-      ) : (
-        <>
-          <div className="flex flex-col gap-[1rem]">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Tabs value={s.tab} onChange={s.setTab} count={count} />
-              <ApproveShown key={`${s.tab}|${s.query}`} refs={approvable.map((e) => e.ref)} />
+      {demo && <DemoNote />}
+      <div inert={demo || undefined} className="contents">
+        {s.error ? (
+          <ErrorNotice action={<ReportThis what="Reading memory" error={s.error} />}>
+            {m.readFailed} {s.error}
+          </ErrorNotice>
+        ) : s.read?.kind === "missing" ? (
+          <Notice>
+            <p>{m.missing}</p>
+            <Button size="sm" onClick={() => openTool("memo")}>
+              {m.goTools}
+            </Button>
+          </Notice>
+        ) : s.read?.kind === "old" ? (
+          <OldNotice version={s.read.version} need={s.read.need} />
+        ) : (
+          <>
+            <div className="flex flex-col gap-[1rem]">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <Tabs value={s.tab} onChange={s.setTab} count={count} />
+                <ApproveShown key={`${s.tab}|${s.query}`} refs={approvable.map((e) => e.ref)} />
+              </div>
+              <Filters />
             </div>
-            <Filters />
-          </div>
 
-          {s.read === null ? (
-            <RackSkeleton />
-          ) : s.entries.length === 0 ? (
-            <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
-              <p className="font-medium text-ink">{m.emptyTitle}</p>
-              <p className="mt-1 max-w-[70ch]">{m.emptyBody}</p>
-              <Button size="sm" className="mt-3" onClick={() => useNav.getState().go("agents")}>
-                {m.goAgents}
-              </Button>
-            </div>
-          ) : (
-            <Rack entries={shown} tab={s.tab} filtering={filtering} />
-          )}
+            {s.read === null ? (
+              <RackSkeleton />
+            ) : s.entries.length === 0 ? (
+              <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
+                <p className="font-medium text-ink">{m.emptyTitle}</p>
+                <p className="mt-1 max-w-[70ch]">{m.emptyBody}</p>
+                <Button size="sm" className="mt-3" onClick={() => useNav.getState().go("agents")}>
+                  {m.goAgents}
+                </Button>
+              </div>
+            ) : (
+              <Rack entries={shown} tab={s.tab} filtering={filtering} />
+            )}
 
-          {ready?.more && <p className="text-[0.9rem] text-ink-dim">{m.more}</p>}
-          {ready && <Activity calls={ready.activity} error={ready.activityError} />}
-        </>
-      )}
+            {ready?.more && <p className="text-[0.9rem] text-ink-dim">{m.more}</p>}
+            {ready && <Activity calls={ready.activity} error={ready.activityError} />}
+          </>
+        )}
+      </div>
 
       <ForgetDialog entry={forgetting} />
     </div>

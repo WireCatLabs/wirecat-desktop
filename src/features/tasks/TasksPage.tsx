@@ -8,6 +8,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Skeleton, StableText } from "@/ui/Skeleton"
+import { DemoNote } from "../onboarding/DemoNote"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
 import { Filters } from "./Filters"
@@ -30,10 +31,11 @@ export function TasksPage() {
   const error = useTasks((s) => s.error)
   const view = useTasks((s) => s.view)
   const creating = useTasks((s) => s.creating)
+  const demo = useTasks((s) => s.demo)
 
   useEffect(() => {
-    void useTasks.getState().load()
-  }, [])
+    if (!demo) void useTasks.getState().load()
+  }, [demo])
 
   const usable = loaded && !unusable && !error
   return (
@@ -53,7 +55,11 @@ export function TasksPage() {
             </button>
           </p>
         </div>
-        <div className={cx("flex items-center gap-2", !usable && "invisible")} aria-hidden={!usable || undefined}>
+        <div
+          className={cx("flex items-center gap-2", !usable && "invisible")}
+          aria-hidden={!usable || undefined}
+          inert={demo || undefined}
+        >
           <Button
             variant="ghost"
             size="sm"
@@ -76,8 +82,11 @@ export function TasksPage() {
           </Button>
         </div>
       </div>
-      <Body />
-      <Note />
+      {demo && <DemoNote />}
+      <div inert={demo || undefined} className="contents">
+        <Body />
+        <Note />
+      </div>
     </div>
   )
 }

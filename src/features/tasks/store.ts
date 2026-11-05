@@ -25,6 +25,8 @@ export type Stale = { key: string; last: TaskEvent | null }
 export type Note = { key: string; label: string | null; column: State | null }
 
 type TasksState = {
+  /** The tour's example rows are on screen (onboarding/demo.ts): a read waits until they go. */
+  demo: boolean
   /** What the owner typed or the filters wrote; memo reads it, the page filters nothing itself. */
   query: string
   view: View
@@ -203,6 +205,7 @@ export const useTasks = create<TasksState>((set, get) => {
     })
 
   return {
+    demo: false,
     query: "",
     view: savedView(),
     unusable: null,
@@ -231,6 +234,7 @@ export const useTasks = create<TasksState>((set, get) => {
     creating: false,
 
     async load(quiet = false) {
+      if (get().demo) return
       const mine = ++seq
       const q = boardQuery(get().query)
       set({ reading: true, ...(quiet ? {} : { error: null }) })
@@ -239,7 +243,7 @@ export const useTasks = create<TasksState>((set, get) => {
       const projects = platform.projectList().catch(() => null)
       try {
         const read = await platform.taskList(q)
-        if (mine !== seq) return
+        if (mine !== seq || get().demo) return
         if (read.kind === "missing" || read.kind === "old") {
           set({ unusable: read, loaded: true, reading: false })
           return
@@ -269,11 +273,11 @@ export const useTasks = create<TasksState>((set, get) => {
           reading: false,
         })
       } catch (e) {
-        if (mine === seq) set({ error: message(e), loaded: true, reading: false })
+        if (mine === seq && !get().demo) set({ error: message(e), loaded: true, reading: false })
         return
       }
       const [c, p, j] = await Promise.all([counts, people, projects])
-      if (mine !== seq) return
+      if (mine !== seq || get().demo) return
       set((s) => ({ counts: c, people: p ?? s.people, projects: j ?? s.projects }))
     },
 

@@ -393,7 +393,7 @@ describe("finishing the setup", () => {
     expect(useNav.getState().active).toBe("tools")
 
     await user.click(within(first).getByRole("button", { name: ui.next }))
-    const order = ["lamps", "action", "agents", "how", "search", "memory", "system", "help"] as const
+    const order = ["lamps", "action", "agents", "how", "search", "tasks", "memory", "system", "help"] as const
     for (const stop of order) {
       const dialog = await screen.findByRole("dialog", { name: m.tour[stop].title })
       expect(useNav.getState().active, stop).not.toBe("guides")

@@ -20,7 +20,7 @@ describe("About WireCat", () => {
     const help = screen.getByRole("button", { name: "Help" })
     help.focus()
     await user.keyboard("{ArrowDown}")
-    expect(screen.getByRole("menuitem", { name: "Take the tour" })).toHaveFocus()
+    expect(screen.getByRole("menuitem", { name: "WireCat documentation" })).toHaveFocus()
     await user.keyboard("{End}{Enter}")
 
     const dialog = await screen.findByRole("dialog", { name: "About WireCat" })

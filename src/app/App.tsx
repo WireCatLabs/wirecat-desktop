@@ -1,6 +1,6 @@
 import { Bug } from "lucide-react"
 import { useEffect, useState } from "react"
-import { AboutDialog } from "@/features/about/AboutDialog"
+import { AboutDialog, docsPage } from "@/features/about/AboutDialog"
 import { HOME_SECTION, useNav } from "@/features/nav"
 import { Bell } from "@/features/notifications/Bell"
 import { CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/features/notifications/store"
@@ -19,7 +19,8 @@ import { useSystem } from "@/features/system/store"
 import { ClearDataOffer } from "@/features/tools/ClearDataOffer"
 import { CHECK_EVERY_MS, useUpdate } from "@/features/update/store"
 import { UpdateButton, UpdateDialog } from "@/features/update/UpdateDialog"
-import { useApplyLang, useMessages } from "@/i18n"
+import { currentLang, useApplyLang, useMessages } from "@/i18n"
+import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { useFinishBoot } from "./boot"
 import { ErrorBoundary } from "./ErrorBoundary"
@@ -49,6 +50,7 @@ export function App() {
   const [about, setAbout] = useState(false)
   const [privacy, setPrivacy] = useState(false)
   const help: HelpActions = {
+    onDocs: () => void platform.openUrl(docsPage(currentLang())),
     onTour: startTour,
     onWelcome: () => useOnboarding.getState().reopen("welcome"),
     onPrivacy: () => setPrivacy(true),

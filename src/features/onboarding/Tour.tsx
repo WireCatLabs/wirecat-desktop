@@ -1,16 +1,27 @@
 import { useCallback, useLayoutEffect, useState } from "react"
 import { create } from "zustand"
-import { useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Callout } from "@/ui/Callout"
 import { focusInPlace, reducedMotion } from "@/ui/motion"
 import { greetOnArrival } from "../guides/GuidesPage"
 import { useGuideStart } from "../guides/start-store"
 import { HOME_SECTION, useNav } from "../nav"
+import { type DemoPage, hideDemo, showDemo } from "./demo"
 import { onboardingMessages, type TourStop } from "./messages"
 
-/** `anchor` null is a stop about no one element (how WireCat works with an agent): the panel sits in the middle. */
-type Stop = { key: TourStop; anchor: string | null; fallback?: string; side?: "bottom" | "right"; section?: string }
+/**
+ * `anchor` null is a stop about no one element (how WireCat works with an agent): the panel sits in the middle.
+ * `section` is the page the stop opens; without one the stop stays on the page before it (Help is in the top bar).
+ */
+type Stop = {
+  key: TourStop
+  anchor: string | null
+  fallback?: string
+  side?: "bottom" | "right"
+  section?: string
+  demo?: DemoPage
+}
 
 // Anchors are data-tour attributes on the real elements, so the tour follows the interface instead of a copy of it.
 // It walks the sidebar top to bottom and ends on the first guide, where the work starts (owner, 2026-11-05).
@@ -18,11 +29,12 @@ export const STOPS: readonly Stop[] = [
   { key: "tools", anchor: '[data-tour="nav-tools"]', side: "right", section: "tools" },
   { key: "lamps", anchor: '[data-tour="tool"] [role="img"]', section: "tools" },
   { key: "action", anchor: '[data-tour="tool-action"]', section: "tools" },
-  { key: "agents", anchor: '[data-tour="nav-agents"]', side: "right" },
-  { key: "how", anchor: null },
-  { key: "search", anchor: '[data-tour="nav-search"]', side: "right" },
-  { key: "memory", anchor: '[data-tour="nav-memory"]', side: "right" },
-  { key: "system", anchor: '[data-tour="nav-system"]', side: "right" },
+  { key: "agents", anchor: '[data-tour="nav-agents"]', side: "right", section: "agents" },
+  { key: "how", anchor: null, section: "agents" },
+  { key: "search", anchor: '[data-tour="nav-search"]', side: "right", section: "search" },
+  { key: "tasks", anchor: '[data-tour="nav-tasks"]', side: "right", section: "tasks", demo: "tasks" },
+  { key: "memory", anchor: '[data-tour="nav-memory"]', side: "right", section: "memory", demo: "memory" },
+  { key: "system", anchor: '[data-tour="nav-system"]', side: "right", section: "storage" },
   { key: "help", anchor: '[data-tour="help"]' },
   // With no guide the tools can run yet there is no "Start here"; the page's own heading stands in.
   { key: "guide", anchor: '[data-tour="guide-start"]', fallback: '[data-tour="guides"]', section: "guides" },
@@ -67,8 +79,18 @@ function TourSteps() {
   const [dir, setDir] = useState<1 | -1>(1)
   const [shown, setShown] = useState<{ index: number; el: Element | null } | null>(null)
   const all = useMessages(onboardingMessages)
+  const lang = useLang()
   const m = all.tour
   const stop = STOPS[index]
+  const demo = stop?.demo
+
+  // Before the page opens, so it never reads the owner's records for a stop that shows examples. Leaving the stop,
+  // closing the tour or Escape takes them away; a restart never had them, they are kept in memory only.
+  useLayoutEffect(() => {
+    if (!demo) return
+    showDemo(demo, lang)
+    return () => hideDemo(demo)
+  }, [demo, lang])
 
   useLayoutEffect(() => {
     if (!stop) return
