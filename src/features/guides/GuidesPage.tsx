@@ -2,7 +2,6 @@
 // `?guide=<id>` opens one guide, `?q=<words>` starts with a search.
 import { Check, ChevronDown, Copy, ExternalLink, Search, ShieldCheck, SquareTerminal, X } from "lucide-react"
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
-import { KNOWN_AGENTS } from "@/domain/agents"
 import { tools } from "@/domain/catalog"
 import { formatList, LANGS, type Lang, useLang, useMessages } from "@/i18n"
 import type { AgentRun } from "@/platform/agents-schemas"
@@ -15,9 +14,8 @@ import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion"
 import { Segmented } from "@/ui/Segmented"
-import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
-import { AgentRunNote, runAgent, STARTABLE, useStartableAgents } from "../fix/run-agent"
+import { AgentRunNote, runAgent, useStartableAgents } from "../fix/run-agent"
 import { useNav } from "../nav"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
@@ -55,14 +53,6 @@ export function startOrder(fits: Map<string, Fit>): string[] {
 // The first guide here that the owner's tools can run is the one the page offers first.
 const START_ORDER = ["catch-up", "plan-the-day", "where-decided", "meeting-prep", "drive-brief", "call-follow-up"]
 
-// Apps that reach WireCat through its connector, not a command line: they get the prompt without "Use tg CLI.".
-const APPS = [
-  { id: "chatgpt", name: "ChatGPT" },
-  { id: "claude-app", name: "Claude" },
-]
-const CHAT_AGENTS = new Set(["hermes", "openclaw"])
-const AGENT_KEY = "wirecat.guides.agent"
-
 const nameOf = (id: string, m: Text) => (id === "memo" ? m.memory : (tools.find((t) => t.id === id)?.name ?? id))
 const orList = (items: string[], lang: Lang) => new Intl.ListFormat(lang, { type: "disjunction" }).format(items)
 
@@ -77,13 +67,6 @@ export function fitOf(g: Guide, has: (id: string) => boolean): Fit {
   return { ready, missing, messengers, extras: (g.needs.extra ?? []).filter(has) }
 }
 
-// "Use tg CLI." is for the agent; people read the request without it.
-const LEAD = /^(?:Use|Usa|Используй) [^.]*?CLI(?:\.|,? (?:to|para|чтобы))\s*/
-function withoutLead(prompt: string) {
-  const rest = prompt.replace(LEAD, "")
-  return rest.charAt(0).toUpperCase() + rest.slice(1)
-}
-
 const fold = (s: string) => s.toLocaleLowerCase().normalize("NFD").replace(/\p{M}/gu, "")
 // Every language at once: an owner who reads Spanish may still type the English word he saw on the site.
 const haystack = new Map(
@@ -93,14 +76,6 @@ const haystack = new Map(
 const stems = (w: string) => (w.length >= 5 ? [w, w.slice(0, -1), w.slice(0, Math.max(4, w.length - 2))] : [w])
 const matches = (g: Guide, words: string[]) =>
   words.every((w) => stems(w).some((stem) => haystack.get(g.id)?.includes(stem)))
-
-function readAgent() {
-  try {
-    return localStorage.getItem(AGENT_KEY) ?? "any"
-  } catch {
-    return "any"
-  }
-}
 
 function useFits() {
   const installs = useTools((s) => s.installs)
@@ -117,8 +92,6 @@ type Ctx = {
   has: (id: string) => boolean
   known: boolean
   fits: Map<string, Fit>
-  agent: string
-  setAgent: (id: string) => void
 }
 
 export function GuidesPage() {
@@ -128,15 +101,6 @@ export function GuidesPage() {
   const [welcome] = useState(firstVisit)
   const [open, setOpen] = useState<string | null>(params.get("guide"))
   const [query, setQuery] = useState(params.get("q") ?? "")
-  const [agent, setAgentState] = useState(readAgent)
-  const setAgent = (id: string) => {
-    setAgentState(id)
-    try {
-      localStorage.setItem(AGENT_KEY, id)
-    } catch {
-      // Without storage the choice lasts until the page closes.
-    }
-  }
   // Fixed once the tools are known, so installing one later does not swap the guide the owner is reading.
   const order = useRef<string[] | null>(null)
   if (known && !order.current) order.current = startOrder(fits)
@@ -154,7 +118,7 @@ export function GuidesPage() {
     useTools.getState().refresh()
   }, [])
 
-  const ctx: Ctx = { m, lang, has, known, fits, agent, setAgent }
+  const ctx: Ctx = { m, lang, has, known, fits }
 
   const jump = (goal: Goal) => {
     const h = headings.current.get(goal)
@@ -384,11 +348,10 @@ function GuideBody(props: {
   onClose?: () => void
 }) {
   const { guide: g, ctx, lead, quiet, scrollTo, onClose } = props
-  const { m, lang, known, agent, setAgent } = ctx
+  const { m, lang, known } = ctx
   const fit = ctx.fits.get(g.id) as Fit
   const box = useRef<HTMLElement>(null)
   const promptId = useId()
-  const agentId = useId()
   const varies = variesByMessenger(g)
   const [picked, setPicked] = useState<string | null>(null)
   // With none installed the guide reads as written for the first one, under "Needs a messenger".
@@ -399,21 +362,11 @@ function GuideBody(props: {
   useEffect(() => {
     if (scrollTo) box.current?.scrollIntoView({ block: "start" })
   }, [scrollTo])
-  const app = APPS.find((a) => a.id === agent)
-  const named = KNOWN_AGENTS.find((a) => a.id === agent)
-  const hint = app
-    ? m.pasteApp(app.name)
-    : named
-      ? CHAT_AGENTS.has(named.id)
-        ? m.pasteChat(named.name)
-        : m.pasteTerminal(named.name)
-      : m.pasteAny
-  const copied = app ? withoutLead(prompt) : prompt
-  // Only an agent WireCat can start and found as a program gets Open; for the others the choice shapes the copy text.
-  const startable = useStartableAgents(Boolean(named && named.id in STARTABLE))
-  const launch = startable?.find((a) => a.id === agent) ?? null
+  // Every agent WireCat can start and found on this computer gets its own Open; any other agent takes the copy.
+  const launchers = useStartableAgents() ?? []
   const [run, setRun] = useState<{ agent: string; result: AgentRun | null } | null>(null)
-  const shownRun = run?.agent === agent ? run : null
+  const launch = launchers.find((a) => a.id === run?.agent) ?? null
+  const shownRun = launch ? run : null
   const open = async (id: string) => {
     setRun({ agent: id, result: null })
     setRun({ agent: id, result: await runAgent(id, prompt) })
@@ -477,39 +430,24 @@ function GuideBody(props: {
               </div>
             </Crossfade>
           </AutoHeight>
-          <p className="text-[0.9rem] text-ink-dim">{launch ? m.askHintOpen : m.askHint}</p>
+          <p className="text-[0.9rem] text-ink-dim">{launchers.length > 0 ? m.askHintOpen : m.askHint}</p>
           <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-2">
-            <CopyButton text={copied} m={m} primary={!quiet && known && fit.ready} />
-            {launch && (
-              <Button
-                disabled={shownRun !== null && shownRun.result === null}
-                onClick={() => open(launch.id)}
-                icon={<SquareTerminal className="size-4 text-ink-dim" aria-hidden />}
-              >
-                <StableText
-                  value={shownRun && !shownRun.result ? m.opening : m.openIn(launch.name)}
-                  variants={[m.opening, m.openIn(launch.name)]}
-                />
-              </Button>
-            )}
-            <span className="flex items-center gap-[0.5rem]">
-              <span id={agentId} className="text-[0.9rem] text-ink-dim">
-                {m.agent}
-              </span>
-              <Select
-                size="sm"
-                aria-labelledby={agentId}
-                value={agent}
-                onChange={setAgent}
-                options={[
-                  { value: "any", label: m.anyAgent },
-                  ...KNOWN_AGENTS.map((a) => ({ value: a.id, label: a.name })),
-                  ...APPS.map((a) => ({ value: a.id, label: a.name })),
-                ]}
-              />
-            </span>
+            <CopyButton text={prompt} m={m} primary={!quiet && known && fit.ready} />
+            {launchers.map((a) => {
+              const opening = shownRun?.agent === a.id && !shownRun.result
+              return (
+                <Button
+                  key={a.id}
+                  disabled={shownRun !== null && shownRun.result === null}
+                  onClick={() => open(a.id)}
+                  icon={<SquareTerminal className="size-4 text-ink-dim" aria-hidden />}
+                >
+                  <StableText value={opening ? m.opening : m.openIn(a.name)} variants={[m.opening, m.openIn(a.name)]} />
+                </Button>
+              )
+            })}
           </div>
-          <p className="text-[0.9rem] text-ink-soft">{hint}</p>
+          <p className="text-[0.9rem] text-ink-soft">{m.pasteAny}</p>
           <div aria-live="polite">
             <Collapse open={Boolean(shownRun?.result)}>
               {shownRun?.result && launch && (
