@@ -61,6 +61,13 @@ docs/dev/cli-registry.md. 842 теста, 391 Rust.
 whatsapp-cli#334 (черновик, ждёт релиза cli-core), tg-cli#823 (строка scanned). Не слиты, не выпущены. После выпуска
 cli-core в каталоге приложения заменить `wirecat` в bot.list на `["bot","list","--no-record","--json"]`.
 
+**TASK-114 · Медленнее и плавнее** — Слава: «better transition between install steps but still too fast, make it at least
+twice slower, mb add animation; between screens also a bit smoother; modal appears almost instantly a bit smoother too;
+Sign in to Telegram - text still too small; when I switch QR-code/number the transition is too fast still». Подагент, feat/motion-2.
+
+**TASK-115 · Тур: 1–2 остановки на Search, Memory и Tasks, что там можно сделать** — Слава: «you didnt add 1-2 more steps
+in search, memory and tasks for showing what can be done there». Подагент, feat/tour-2.
+
 ## 2. Вопросы Славы
 
 **ASK-65 · «Use phone number instead was loading for a bit and then went back to Sign in to Telegram. does it work at all?»**
