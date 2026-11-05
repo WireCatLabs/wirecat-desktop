@@ -469,7 +469,7 @@ function GuideBody(props: {
                   value={prompt}
                   onChange={(e) => setEdits((all) => ({ ...all, [variant]: e.target.value }))}
                   rows={3}
-                  className="selectable field-sizing-content block w-full resize-none bg-transparent text-[0.98rem] leading-relaxed text-ink outline-none"
+                  className="inner-field selectable field-sizing-content block w-full resize-none bg-transparent text-[0.98rem] leading-relaxed text-ink outline-none"
                 />
               </div>
             </Crossfade>
