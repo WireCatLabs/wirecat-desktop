@@ -12,12 +12,12 @@ Status: **done** · **running** (a worker is on it now) · **open** (not started
 | # | Note | Status | What is left |
 |---|---|---|---|
 | A1 | "picking agent does not difference" (guide's Your agent picker) | **open** | The picker changes nothing: the prompt depends only on language and messenger (`GuidesPage.tsx:394`). "Open in <agent>" shows only for Claude Code, Codex or Gemini when found, and the test run finds none. Fix: per agent, the paste hint says where to paste ("Cursor: open the chat with Ctrl+L, paste"), and the prompt's first line names the agent's skill usage if it differs; or remove the picker. Recommend: keep it and make each choice change the hint and the action visibly. |
-| A2 | Install steps "at least twice slower", a small animation | **running** | Worker `motion-2`: rows hold 1.2 s, a check-mark animation, a gentle "All set". |
-| A3 | Screens and dialogs open "a bit smoother" | **running** | `motion-2`: longer section and step transitions, dialog scale and fade. |
-| A4 | Telegram sign-in text "still too small" | **running** | `motion-2`. |
-| A5 | QR ↔ phone switch "too fast still" | **running** | `motion-2`: slower cross-fade, "Switching…" readable for at least 0.7 s. |
-| A6 | Tour: 1–2 more stops on Search, Memory, Tasks showing what you can do | **running** | Worker `tour-2`, with example data. |
-| A7 | 10 s of silence after scanning the QR | **partly** | The dialog shows "Waiting for Telegram…" with a counter. The real fix (tg prints "scan accepted") is merged in tg-cli but **tg 0.116.0 is not on npm**: its release crashes on macOS. A worker is finding the cause. |
+| A2 | Install steps "at least twice slower", a small animation | **done** | Worker `motion-2`: rows hold 1.2 s, a check-mark animation, a gentle "All set". |
+| A3 | Screens and dialogs open "a bit smoother" | **done** | `motion-2`: longer section and step transitions, dialog scale and fade. |
+| A4 | Telegram sign-in text "still too small" | **done** | `motion-2`. |
+| A5 | QR ↔ phone switch "too fast still" | **done** | `motion-2`: slower cross-fade, "Switching…" readable for at least 0.7 s. |
+| A6 | Tour: 1–2 more stops on Search, Memory, Tasks showing what you can do | **done** | Worker `tour-2`, with example data. |
+| A7 | 10 s of silence after scanning the QR | **partly** (tg 0.116.0 released) | The dialog shows "Waiting for Telegram…" with a counter. The real fix (tg prints "scan accepted") is merged in tg-cli but **tg 0.116.0 is not on npm**: its release crashes on macOS. A worker is finding the cause. |
 | A8 | Step indicator "as circles at the top" | **partly** | Built into the sidebar's numbered circles (line, checks, "done") instead of a second row at the top. Say if you still want it at the top. |
 | A9 | Two purple buttons on the last tour stop ("Try this guide" and "Copy prompt") | **open** | Breaks the one-primary-button rule. Small fix. |
 | A10 | Community CLIs "picked up by desktop" | **partly** | App side merged into #96 (signed list, off by default). cli-docs #546 merged; its first signed deploy is running. Then check `https://wirecat.dev/registry/v1/desktop-tools.json`. No community tool is listed yet. |

@@ -68,6 +68,14 @@ Sign in to Telegram - text still too small; when I switch QR-code/number the tra
 **TASK-115 · Тур: 1–2 остановки на Search, Memory и Tasks, что там можно сделать** — Слава: «you didnt add 1-2 more steps
 in search, memory and tasks for showing what can be done there». Подагент, feat/tour-2.
 
+- **Итог TASK-114 (2026-11-05):** feat/motion-2 слит в install-polish (A2–A5): токены step 560, hold 1200, swap 450,
+  exit 200; строка установки держит зелёную полосу 1,2 с с галкой; экран и шаг — наложение старого с затуханием; диалог
+  scale+fade 280/200; текст входа Telegram 1.1rem; «Switching…» не меньше 1,2 с. 870 тестов зелёные. Тёмная тема новых
+  мест не снята, с настоящим tg не проверено.
+- **Итог TASK-115 (2026-11-05):** feat/tour-2 слит (66c9d70): 17 остановок вместо 11, по две новых на Search, Tasks,
+  Memory, примеры только на время тура. Старый текст Search «across every tool» был неверен (ищет один инструмент и
+  профиль) — переписан на трёх языках.
+
 ## 2. Вопросы Славы
 
 **ASK-65 · «Use phone number instead was loading for a bit and then went back to Sign in to Telegram. does it work at all?»**
@@ -116,6 +124,10 @@ iPhone, см. TASK-97 вчера). Делаем вкладки с миниатю
 cli-core «регистрация» — жёсткий список `WIRECAT_TOOLS` (src/cli/help/first-screen.ts:36).
 
 **BUG-78 · «Open terminal» запускал sh вместо оболочки пользователя** — src-tauri/src/terminal.rs, исправлено.
+
+**RISK-101 · В max-cli та же утечка таймеров, что уронила релиз tg 0.116.0 на macOS** — `AbortSignal.timeout` в
+max-cli src/bot/transport.ts, upload.ts, bot/uploads.ts, commands/bot-context.ts держит завершённую команду 30 с; на
+macOS (лимит кучи ~2 ГБ) тесты бот-API падают с OOM. tg исправлен в tg-cli#827, выпущен 0.116.0 (A7 закрыт).
 
 ## 4. Вопросы к Славе
 
@@ -170,3 +182,13 @@ cli-core «регистрация» — жёсткий список `WIRECAT_TOO
 
 (Поправка: в чате NEED-2206 сначала означал «включать ли список сейчас» — Слава ответил делом, запустив bin/registry-key;
 номер в журнале отдан вопросу про tg 0.116.0.)
+
+**NEED-2208 · Менять ли подсказку по выбранному агенту в гайде или убрать выбор агента?** Сейчас выбор ничего не меняет
+(промпт зависит только от языка и мессенджера, GuidesPage.tsx:394). A — своя подсказка «куда вставить» на агента плюс
+«Open in» для запускаемых; B — убрать. Я бы A.
+
+**NEED-2209 · Кружки шагов только в боковой панели или ещё строкой сверху?** A — только сбоку (сейчас так); B — ещё
+сверху. Я бы A.
+
+**NEED-2210 · Оставить 17 остановок тура или короткий тур на 7 плюс «покажи ещё» на каждой странице?** A — 17; B — 7 и
+отдельные туры по страницам. Я бы B.
