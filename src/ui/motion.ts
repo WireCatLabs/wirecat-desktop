@@ -51,6 +51,8 @@ export function keepRoom(el: Element): HTMLElement | null {
   const scroller = scrollerOf(el)
   const page = scroller?.firstElementChild
   if (!scroller || !(page instanceof HTMLElement)) return null
+  // At the top there is no scroll to clamp; the room would only hold a dialog at its old height until a scroll.
+  if (scroller.scrollTop <= 0) return scroller
   reserve(scroller, page, scroller.scrollTop + scroller.clientHeight)
   return scroller
 }
