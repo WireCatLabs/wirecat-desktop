@@ -55,6 +55,8 @@ const en = {
     },
     withStorage: (status: string, storage: string) => `${status}. ${storage}`,
     partOf: (name: string) => `Part of ${name}`,
+    community: "Community",
+    trust: (maker: string) => `Made by ${maker}, not by WireCat. The app checks where npm built it, not what it does.`,
     copies: (n: number) => plural("en", n, { one: "# copy installed", other: "# copies installed" }),
     browserApp: "A browser app",
     nodeFirst: "Node.js is needed first",
@@ -403,6 +405,8 @@ const ru: typeof en = {
     },
     withStorage: (status, storage) => `${status}. ${storage}`,
     partOf: (name) => `Входит в ${name}`,
+    community: "Сообщество",
+    trust: (maker) => `Сделано ${maker}, не WireCat. Приложение проверяет, где npm собрал пакет, но не что он делает.`,
     copies: (n) =>
       plural("ru", n, {
         one: "# копия установлена",
@@ -767,6 +771,8 @@ const es: typeof en = {
     },
     withStorage: (status, storage) => `${status}. ${storage}`,
     partOf: (name) => `Parte de ${name}`,
+    community: "Comunidad",
+    trust: (maker) => `Hecho por ${maker}, no por WireCat. La app comprueba dónde npm lo compiló, no lo que hace.`,
     copies: (n) => plural("es", n, { one: "# copia instalada", other: "# copias instaladas" }),
     browserApp: "Una app del navegador",
     nodeFirst: "Primero hace falta Node.js",

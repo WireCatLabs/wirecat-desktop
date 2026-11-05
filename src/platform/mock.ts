@@ -5,6 +5,7 @@ import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
 import { botMock } from "./mock-bot"
 import { cloudflareMock } from "./mock-cloudflare"
+import { extraToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock } from "./mock-compat"
 import { delay } from "./mock-delay"
 import { npmLines } from "./mock-install"
@@ -229,6 +230,9 @@ export function createMock(os: Platform["os"]): Platform {
   const stock: Omit<Platform, "messageStats" | "analyticsPreview" | "analyticsAggregate"> = {
     kind: "mock",
     os,
+    async extraTools() {
+      return extraToolsMock(params.get("community"))
+    },
     async readiness(): Promise<Readiness> {
       await delay(450)
       const managedInfo = managed ? { version: NODE.version, dir: NODE.dir, active: true } : null

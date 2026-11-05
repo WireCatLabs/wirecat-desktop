@@ -17,6 +17,7 @@ import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
+import type { ExtraTools } from "./community-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
 import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
@@ -68,6 +69,8 @@ export type Platform = {
   kind: "tauri" | "mock"
   os: "linux" | "macos" | "windows"
   readiness(): Promise<Readiness>
+  /** Community tools from `<app data>/extra-tools.json`, read only while `WIRECAT_EXTRA_TOOLS=1` is set. */
+  extraTools(): Promise<ExtraTools>
   /** The Node.js build "Set up Node.js for me" would download from nodejs.org. */
   nodeOffer(): Promise<NodeOffer>
   setupNode(onEvent: (e: NodeEvent) => void): Promise<void>

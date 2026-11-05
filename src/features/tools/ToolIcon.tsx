@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, MessagesSquare, NotebookText, Send, Video } from "lucide-react"
+import { Mail, MessageCircle, MessagesSquare, NotebookText, Package, Send, Video } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 
 function DriveIcon(props: SVGProps<SVGSVGElement>) {
@@ -29,7 +29,8 @@ const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   email: Mail,
 }
 
+/** A community tool ships no icon in the app's code, so every one shows the same package. */
 export function ToolIcon({ id, className }: { id: string; className?: string }) {
-  const Icon = icons[id] ?? NotebookText
+  const Icon = icons[id] ?? Package
   return <Icon className={className} strokeWidth={1.75} aria-hidden />
 }

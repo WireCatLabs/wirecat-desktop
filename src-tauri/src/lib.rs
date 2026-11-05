@@ -9,6 +9,7 @@ mod catalog;
 mod chats;
 mod cloudflare;
 mod cloudflare_install;
+mod community;
 mod compat;
 mod config_repair;
 mod install;
@@ -64,6 +65,12 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> 
 #[tauri::command]
 async fn run_agent(agent: String, prompt: String) -> Result<agent_run::AgentRun, String> {
     blocking(move || agent_run::run(&agent, &prompt)).await?
+}
+
+/// The community tools Rust accepted at start, so the interface lists exactly the tools Rust will run.
+#[tauri::command]
+fn extra_tools() -> community::Extra {
+    catalog::catalog().extra.clone()
 }
 
 #[tauri::command]
@@ -1003,6 +1010,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(Arc::new(Running::default()))
         .invoke_handler(tauri::generate_handler![
+            extra_tools,
             update_kind,
             update_download_package,
             readiness,
