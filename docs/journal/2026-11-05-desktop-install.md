@@ -30,6 +30,25 @@ Done; Done → «Show me around», тур из 10 остановок до пер
 каталог `bot` в catalog/tools.json, src-tauri/src/bots.rs (`bot_sign_in`, `list_bots`), список Bots с меткой на Tools.
 Настоящий токен не проверялся. 838 тестов, 373 Rust.
 
+**TASK-109 · Плавность во всём приложении и честный прогресс** — плавные смены экранов, кнопок, окон (и не только онбординг,
+например установка навыка); шаги установки чуть медленнее; полоса npm install и «Add to PATH» без настоящего прогресса —
+сделать настоящий или правдоподобный; текст описаний инструментов крупнее. Подагент, feat/motion-pass.
+
+**TASK-110 · Вход в Telegram, третий круг** — окно не закрывается сразу по X в начале (BUG-74); переключение на телефон:
+кнопка «Use QR code instead» не обновлялась, заголовки и шаги не меняются явно, нет плавности, ошибка без подробностей (BUG-75);
+проверка телефона до отправки (только цифры, вставка с очисткой; посмотреть, что есть в cli-core). Подагент, feat/tg-signin-3.
+
+**TASK-111 · Тур: Agents не переключает экран (BUG-76); остановки Memory и Tasks с демо-данными, удалить после тура;
+первый пункт Help ведёт на документацию tg (BUG-77).** Подагент, feat/tour-demo.
+
+**TASK-112 · Чужие CLI регистрируются и подхватываются приложением; терминал открывает sh вместо zsh** — Слава: «make sure
+others can register their CLIs and they are picked up by desktop too», «Open the terminal starts sh although I use zsh -
+still a bug». Подагент, feat/cli-registry.
+
+**TASK-108 продолжение · CLI-исправления** — cli-core#2486 (бот не в account list, id без кавычек, bot list без слова),
+whatsapp-cli#334 (черновик, ждёт релиза cli-core), tg-cli#823 (строка scanned). Не слиты, не выпущены. После выпуска
+cli-core в каталоге приложения заменить `wirecat` в bot.list на `["bot","list","--no-record","--json"]`.
+
 ## 2. Вопросы Славы
 
 **ASK-65 · «Use phone number instead was loading for a bit and then went back to Sign in to Telegram. does it work at all?»**
