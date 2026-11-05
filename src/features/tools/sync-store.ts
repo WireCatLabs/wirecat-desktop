@@ -122,11 +122,19 @@ export const useSync = create<State>()((set, get) => {
                 code: null,
                 reason: null,
                 run: null,
+                retryAfterMs: null,
               })
           },
           (e) =>
             running() &&
-            apply(tool, profile, { event: "failed", message: message(e), code: null, reason: null, run: null }),
+            apply(tool, profile, {
+              event: "failed",
+              message: message(e),
+              code: null,
+              reason: null,
+              run: null,
+              retryAfterMs: null,
+            }),
         )
     },
     stop(tool, profile) {

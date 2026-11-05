@@ -12,7 +12,7 @@
 mail-triage --max-cost 1` и `memo schedule remove mail-triage`), последний запуск и как прошёл, потрачено сегодня,
 сколько предложений ждёт (`memo review status`), команда `memo review list`. Нет memo — кнопка «Open Memo»; memo старше
 0.131.26 — просьба обновить; нет claude на PATH — переключатель выключен и объяснение; отказ memo — его слова.
-Команды в `catalog/tools.json` (`email.mailAgent`), Rust `src-tauri/src/mail_agent.rs`. Таймер пишет сам memo
+Команды в `catalog/tools.json` (`email.mailAgent`), Rust `src-tauri/src/mail_agent.rs`; типы ответа сгенерированы в `src/platform/bindings.ts` (после PR 129). Таймер пишет сам memo
 (systemd, launchd, Task Scheduler). `--max-cost-per-day` не передаётся: в конфиге memo `schedule_max_cost_per_day` = 5,
 как и в просьбе. `--max-cost 1` передаётся: у него нет значения по умолчанию в конфиге. Настоящее расписание
 `mail-triage` владельца не трогалось; живая проверка шла на имени `wcd-probe` с временными MEMO_STATE_DIR и

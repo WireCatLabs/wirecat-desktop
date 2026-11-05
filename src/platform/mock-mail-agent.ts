@@ -1,4 +1,4 @@
-import type { MailAgent } from "./mail-agent-schemas"
+import type { MailAgent } from "./bindings"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 

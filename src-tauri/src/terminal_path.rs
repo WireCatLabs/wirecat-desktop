@@ -5,7 +5,7 @@ use crate::{catalog, paths, profile};
 use serde::Serialize;
 use std::path::{Path, PathBuf};
 
-#[derive(Serialize, Clone, Default, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Clone, Default, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PathFix {
     /// Folders now on the PATH, `~`-shortened.
@@ -22,7 +22,7 @@ pub struct PathFix {
     pub shells: Vec<ShellReach>,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ShellReach {
     pub name: String,

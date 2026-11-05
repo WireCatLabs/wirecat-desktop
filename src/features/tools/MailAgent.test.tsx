@@ -1,8 +1,8 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
+import type { MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import type { MailAgent as State } from "@/platform/mail-agent-schemas"
 import { MailAgent } from "./MailAgent"
 
 const email = findTool("email") as NonNullable<ReturnType<typeof findTool>>

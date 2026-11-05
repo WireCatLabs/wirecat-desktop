@@ -16,6 +16,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { ProgressBar } from "@/ui/ProgressBar"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { ago } from "./connect-steps"
 import { type SyncText, syncMessages } from "./messages-sync"
@@ -112,24 +113,14 @@ function Progress({ run, m }: { run: SyncRun; m: Words }) {
   const pct = run.stopping ? null : share(run.progress)
   return (
     <div className="flex flex-col gap-1">
-      <div
-        role="progressbar"
-        aria-label={m.syncing}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={pct ?? undefined}
-        aria-valuetext={stage}
-        className="h-1.5 w-full max-w-[22rem] overflow-hidden rounded-full bg-app-3"
-      >
-        {pct === null ? (
-          <div className="bar-indeterminate h-full rounded-full bg-brand" />
-        ) : (
-          <div
-            className="h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-(--motion-slow)"
-            style={{ width: `${Math.max(3, pct)}%` }}
-          />
-        )}
-      </div>
+      <ProgressBar
+        label={m.syncing}
+        value={pct}
+        valueText={stage}
+        pace="slow"
+        minShare={3}
+        className="w-full max-w-[22rem]"
+      />
       <p className="flex gap-2 text-[0.9rem] text-ink-soft tabular-nums">
         <span className="truncate">
           {stage}

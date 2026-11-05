@@ -8,7 +8,7 @@ use ureq::unversioned::transport::{DefaultConnector, NextTimeout};
 /// Whether the internet can reach the server's address (BUG-15). This computer cannot tell by itself: `MagicDNS`
 /// answers its own Tailscale name with the 100.x tailnet address. So the name is looked up through public
 /// DNS-over-HTTPS, and the server's metadata is fetched from the public address that lookup gave.
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct PublicCheck {
     pub host: String,
@@ -16,7 +16,7 @@ pub struct PublicCheck {
     pub answer: Answer,
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum Dns {
     /// Public DNS has an address for the name.
@@ -27,8 +27,9 @@ pub enum Dns {
     Unknown,
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", tag = "kind")]
+#[serde(rename = "PublicAnswer")]
 pub enum Answer {
     /// Not tried: the name has no public address.
     NotTried,

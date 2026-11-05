@@ -47,6 +47,8 @@ thiserror = "2"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std", "registry"] }
+specta = { version = "=2.0.0-rc.26", features = ["derive"] }
+specta-typescript = "=0.0.13"
 
 [dev-dependencies]
 # Makes a throwaway key pair and signs test lists; never in the app.
@@ -54,6 +56,8 @@ minisign = "0.10"
 # Make a real refused connection for the update error test; both already in the build through tauri-plugin-updater.
 reqwest = { version = "0.13", default-features = false }
 rustls = { version = "0.23", default-features = false, features = ["ring"] }
+specta-serde = "=0.0.13"
+specta-util = "=0.0.13"
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]

@@ -9,8 +9,9 @@ use tauri_plugin_updater::{Error, UpdaterExt};
 /// How this copy takes an update. A .deb or .rpm copy can only be replaced with administrator rights, which the app
 /// never asks for (rule 6): it downloads the signed package and hands it to the system's installer, which asks for the
 /// password itself. The updater plugin's own `install` would run `pkexec` or pipe a password to `sudo -S`.
-#[derive(Serialize, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(specta::Type, Serialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "lowercase")]
+#[serde(rename = "UpdateKind")]
 pub enum Kind {
     #[serde(rename = "self")]
     SelfUpdate,
@@ -36,14 +37,16 @@ pub fn current() -> Kind {
     kind(cfg!(target_os = "linux"), tauri::utils::platform::bundle_type())
 }
 
-#[derive(Serialize, Clone)]
+#[derive(specta::Type, Serialize, Clone)]
+#[serde(rename = "UpdateProgress")]
 pub struct Progress {
     pub downloaded: u64,
     pub total: Option<u64>,
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(tag = "result", rename_all = "camelCase")]
+#[serde(rename = "PackageOutcome")]
 pub enum Outcome {
     #[serde(rename_all = "camelCase")]
     Saved {
@@ -60,8 +63,9 @@ pub enum Outcome {
 
 /// Why a package download failed, so the dialog can say what to do next. `detail` is the technical text for a small
 /// line under the advice, never the main message.
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(tag = "reason", rename_all = "camelCase")]
+#[serde(rename = "UpdateFailure")]
 pub enum Failure {
     Offline {
         detail: String,

@@ -201,11 +201,12 @@ fn url_of(r: &Record, tool: &str) -> String {
     format!("https://{}/{tool}", r.hostname)
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq, Default)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::struct_excessive_bools, reason = "one answer per step of the guide")]
+#[serde(rename = "CloudflareStatus")]
 pub struct Status {
-    pub os: &'static str,
+    pub os: crate::system::Os,
     /// cloudflared publishes a build for this computer.
     pub supported: bool,
     pub installed: bool,
@@ -226,8 +227,11 @@ fn version(program: &Path) -> Option<String> {
 
 pub fn status() -> Status {
     let os = cloudflare_install::os();
-    let mut s =
-        Status { os, supported: cloudflare_install::asset(os, std::env::consts::ARCH).is_some(), ..Status::default() };
+    let mut s = Status {
+        os: crate::system::Os::current(),
+        supported: cloudflare_install::asset(os, std::env::consts::ARCH).is_some(),
+        ..Status::default()
+    };
     let Ok(program) = program() else { return s };
     s.version = program.is_file().then(|| version(&program)).flatten();
     s.installed = s.version.is_some();
@@ -582,8 +586,9 @@ pub fn close(tool: &str) -> Result<(), String> {
     save(&r)
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "TunnelRoute")]
 pub struct RouteState {
     pub tool: String,
     pub url: String,

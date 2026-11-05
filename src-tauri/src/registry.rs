@@ -194,8 +194,9 @@ fn write_shown(file: &Path, show: bool) -> Result<(), String> {
 
 /// What the Settings page shows: the owner's choice, whether this build can fetch the list at all, and how many tools
 /// the copy kept at start added.
-#[derive(serde::Serialize, Debug)]
+#[derive(specta::Type, serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "CommunityStatus")]
 pub struct Status {
     pub show: bool,
     pub available: bool,

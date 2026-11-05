@@ -25,7 +25,7 @@ pub struct MailAgentSource {
     pub waiting: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase", tag = "state")]
 pub enum MailAgent {
     NoMemo,
@@ -48,7 +48,7 @@ pub enum MailAgent {
 }
 
 /// The last run without its output: the agent's answer may quote mail.
-#[derive(Debug, Serialize, Clone, PartialEq)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LastRun {
     pub at: String,

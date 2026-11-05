@@ -29,7 +29,7 @@ export type PathFix = {
 export type InstallRecord = { path: string; version: string | null; manager: string; problem: string | null }
 
 /** The copies of the tool's agent instructions that an update rewrote, because an older version had written them. */
-export type SkillRefresh = { refreshed: ("claude" | "agents" | "hermes")[]; failed: string | null }
+export type SkillRefresh = { refreshed: string[]; failed: string | null }
 
 export type InstallOutcome =
   | {

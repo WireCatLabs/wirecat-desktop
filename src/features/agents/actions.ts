@@ -23,8 +23,7 @@ const tool = (id: string) => {
 }
 
 /** The agent's tab in the list: an Install button that was pressed is gone once its skill is written. */
-export const agentTabId = (agent: string) => `agent-tab-${agent}`
-const agentTab = (agent: string) => () => document.getElementById(agentTabId(agent))
+const agentTab = (agent: string) => () => document.querySelector<HTMLElement>(`[data-tab="${CSS.escape(agent)}"]`)
 
 export function askSkillInstall(
   id: string,

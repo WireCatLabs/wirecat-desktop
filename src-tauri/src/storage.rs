@@ -5,18 +5,36 @@ use std::path::{Path, PathBuf};
 
 pub const SHARED: &str = "shared";
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Folder {
-    pub kind: &'static str,
+    pub kind: Kind,
     pub path: String,
     pub bytes: u64,
     /// The folder's own entries, largest first, so the interface can say what each one is.
     pub entries: Vec<Entry>,
 }
 
+#[derive(specta::Type, Serialize, Clone, Copy, Debug, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Kind {
+    Config,
+    State,
+    Cache,
+}
+
+impl Kind {
+    fn name(self) -> &'static str {
+        match self {
+            Kind::Config => "config",
+            Kind::State => "state",
+            Kind::Cache => "cache",
+        }
+    }
+}
+
 /// Names and sizes only: nothing inside is opened, so sign-in sessions stay unread.
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Entry {
     pub name: String,
@@ -26,7 +44,7 @@ pub struct Entry {
 
 const MAX_ENTRIES: usize = 40;
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Area {
     /// A tool id, or `shared` for the archive every tool reads.
@@ -39,26 +57,26 @@ pub struct Area {
 
 /// Mirrors cli-base's `resolvePaths` (src/paths.ts): `<PREFIX>_{CONFIG,STATE,CACHE}_DIR` win, then the XDG
 /// layout on Linux and macOS, then `%APPDATA%`/`%LOCALAPPDATA%` on Windows. Keep the two in step.
-fn folders(s: &Storage) -> Vec<(&'static str, PathBuf)> {
+fn folders(s: &Storage) -> Vec<(Kind, PathBuf)> {
     let over = |kind: &str| std::env::var_os(format!("{}_{kind}_DIR", s.env)).map(PathBuf::from);
     let home = paths::home().unwrap_or_default();
-    let base: [(&'static str, PathBuf); 3] = if cfg!(windows) {
+    let base: [(Kind, PathBuf); 3] = if cfg!(windows) {
         let roaming = std::env::var_os("APPDATA").map_or_else(|| home.join("AppData/Roaming"), PathBuf::from);
         let local = std::env::var_os("LOCALAPPDATA").map_or_else(|| home.join("AppData/Local"), PathBuf::from);
         [
-            ("config", roaming.join(&s.app).join("Config")),
-            ("state", local.join(&s.app).join("Data")),
-            ("cache", local.join(&s.app).join("Cache")),
+            (Kind::Config, roaming.join(&s.app).join("Config")),
+            (Kind::State, local.join(&s.app).join("Data")),
+            (Kind::Cache, local.join(&s.app).join("Cache")),
         ]
     } else {
         let xdg = |var: &str, fallback: &str| std::env::var_os(var).map_or_else(|| home.join(fallback), PathBuf::from);
         [
-            ("config", xdg("XDG_CONFIG_HOME", ".config").join(&s.app)),
-            ("state", xdg("XDG_DATA_HOME", ".local/share").join(&s.app)),
-            ("cache", xdg("XDG_CACHE_HOME", ".cache").join(&s.app)),
+            (Kind::Config, xdg("XDG_CONFIG_HOME", ".config").join(&s.app)),
+            (Kind::State, xdg("XDG_DATA_HOME", ".local/share").join(&s.app)),
+            (Kind::Cache, xdg("XDG_CACHE_HOME", ".cache").join(&s.app)),
         ]
     };
-    base.into_iter().map(|(kind, p)| (kind, over(&kind.to_uppercase()).unwrap_or(p))).collect()
+    base.into_iter().map(|(kind, p)| (kind, over(&kind.name().to_uppercase()).unwrap_or(p))).collect()
 }
 
 pub fn report() -> Vec<Area> {
@@ -117,7 +135,7 @@ fn size(path: &Path) -> u64 {
 /// names the entry, and a name that is not a plain child of the folder is refused.
 pub fn open(id: &str, kind: &str, entry: Option<&str>) -> Result<(), String> {
     let storage = if id == SHARED { &catalog::catalog().shared_storage } else { &area(id)?.storage };
-    let (_, path) = folders(storage).into_iter().find(|(k, _)| *k == kind).ok_or("unknown folder kind")?;
+    let (_, path) = folders(storage).into_iter().find(|(k, _)| k.name() == kind).ok_or("unknown folder kind")?;
     if !path.is_dir() {
         return Err("That folder no longer exists.".into());
     }
@@ -270,7 +288,7 @@ mod tests {
     fn resolves_the_xdg_layout() {
         let s = Storage { app: "zm".into(), env: "ZM_TEST_NONE".into() };
         let kinds: Vec<_> = folders(&s).into_iter().map(|(k, p)| (k, p.ends_with("zm"))).collect();
-        assert_eq!(kinds, vec![("config", true), ("state", true), ("cache", true)]);
+        assert_eq!(kinds, vec![(Kind::Config, true), (Kind::State, true), (Kind::Cache, true)]);
     }
 
     #[test]

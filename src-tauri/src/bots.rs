@@ -47,7 +47,7 @@ pub struct BotField {
     pub words: Vec<String>,
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(specta::Type, Debug, Serialize, PartialEq, Eq)]
 #[serde(tag = "outcome", rename_all = "camelCase")]
 pub enum BotResult {
     /// The bot's own public name and username, as the messenger reported them; never the token.
@@ -62,7 +62,7 @@ pub enum BotResult {
     },
 }
 
-#[derive(Debug, Serialize, PartialEq, Eq)]
+#[derive(specta::Type, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BotProfile {
     pub name: String,

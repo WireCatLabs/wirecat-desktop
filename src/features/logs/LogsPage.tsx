@@ -31,6 +31,7 @@ import { cx } from "@/ui/cx"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { reducedMotion } from "@/ui/motion"
+import { ProgressBar } from "@/ui/ProgressBar"
 import { Select } from "@/ui/Select"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { Facets } from "./Facets"
@@ -396,19 +397,7 @@ function Loading(props: { reading: string[]; total: number; facetsOpen: boolean;
       </div>
       <div className="flex min-w-0 flex-col gap-[0.7rem]">
         <p className="flex flex-wrap items-center gap-x-[0.6rem] text-[0.9rem] text-ink-soft">
-          <span
-            role="progressbar"
-            aria-label={m.toolsRead}
-            aria-valuemin={0}
-            aria-valuemax={total}
-            aria-valuenow={done}
-            className="h-[0.3rem] w-[8rem] overflow-hidden rounded-full bg-app-3"
-          >
-            <span
-              className="block h-full rounded-full bg-brand transition-[width] duration-(--motion-progress) ease-out-quart"
-              style={{ width: `${Math.max(8, (done / Math.max(total, 1)) * 100)}%` }}
-            />
-          </span>
+          <ProgressBar label={m.toolsRead} value={done} max={total} size="line" minShare={8} className="w-[8rem]" />
           <span className="tabular-nums">{m.toolsDone(done, total, reading.map(toolName))}</span>
         </p>
         <div className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">

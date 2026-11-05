@@ -490,9 +490,9 @@ export function createMock(os: Platform["os"]): Platform {
       const update = installed.has(id)
       installed.set(id, version)
       if (update) onEvent({ event: "check", what: "skills" })
-      const skills = update ? await refreshSkillsMock(agents, id, version) : undefined
+      const skills = update ? await refreshSkillsMock(agents, id, version) : { refreshed: [], failed: null }
       const path = `~/.nvm/versions/node/v24.19.0/bin/${id}`
-      onEvent({ event: "done", version, path, shadowedBy: null, ...(skills ? { skills } : {}) })
+      onEvent({ event: "done", version, path, shadowedBy: null, skills, pathFix: null })
     },
     async uninstall(given, onEvent: (e: InstallEvent) => void) {
       const id = ownerId(given)

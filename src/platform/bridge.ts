@@ -20,13 +20,8 @@ import {
 } from "./agents-schemas"
 import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
-import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
-import { BotProfilesSchema, BotResultSchema } from "./bot-schemas"
-import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
+import type { BackupEvent } from "./backup-schemas"
 import { commandError } from "./command-error"
-import { CommunityStatusSchema, ExtraToolsSchema } from "./community-schemas"
-import { MailAgentSchema, WaitingSchema } from "./mail-agent-schemas"
-import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
 import {
   ForgotSchema,
   MemoryEntrySchema,
@@ -36,26 +31,13 @@ import {
 } from "./memory-schemas"
 import { NotificationsSchema } from "./notifications-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
-import { RepairSchema } from "./repair-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
-import {
-  CopyRemovalSchema,
-  DiagnosisSchema,
-  InstallEventSchema,
-  LatestVersionsSchema,
-  NodeEventSchema,
-  NodeOfferSchema,
-  NodePathSchema,
-  ProfilesSchema,
-  ReadinessSchema,
-  StorageSchema,
-  ToolStatesSchema,
-} from "./schemas"
+import type { InstallEvent, NodeEvent } from "./schemas"
 import { QueryDraftSchema, SearchAnswerSchema, SearchContextSchema, ValueItemSchema } from "./search-schemas"
 import { SettingsSchema } from "./settings-schemas"
 import { SignInEventSchema } from "./signin-schemas"
-import { BackgroundSchema, LastSyncSchema, SyncEventSchema } from "./sync-schemas"
+import type { SyncEvent } from "./sync-schemas"
 import {
   FunnelHelperStatusSchema,
   FunnelStateSchema,
@@ -75,7 +57,7 @@ import {
 } from "./task-schemas"
 import type { Platform } from "./types"
 import { plainNotes } from "./update-notes"
-import { PackageOutcomeSchema, UpdateKindSchema, UpdateProgressSchema } from "./update-schemas"
+import type { UpdateKind, UpdateProgress } from "./update-schemas"
 
 /** A page event that does not parse is dropped: the browser has the page open anyway. */
 function pages(onPage: (url: string) => void) {
@@ -98,22 +80,9 @@ async function invoke<T>(cmd: string, args?: InvokeArgs): Promise<T> {
 const call = async <S extends v.GenericSchema>(schema: S, cmd: string, args?: Record<string, unknown>) =>
   v.parse(schema, await invoke(cmd, args))
 
-function events(onEvent: (e: v.InferOutput<typeof InstallEventSchema>) => void) {
-  const channel = new Channel<unknown>()
-  channel.onmessage = (raw) => {
-    const parsed = v.safeParse(InstallEventSchema, raw)
-    // A dropped event would leave the step spinning forever; say so instead.
-    onEvent(
-      parsed.success
-        ? parsed.output
-        : {
-            event: "failed",
-            reason: "failed",
-            message: "The app could not read the installer's last answer.",
-            hint: "Press Check again to see what is installed now.",
-          },
-    )
-  }
+function events(onEvent: (e: InstallEvent) => void) {
+  const channel = new Channel<InstallEvent>()
+  channel.onmessage = onEvent
   return channel
 }
 
@@ -131,52 +100,45 @@ function createTauri(): Platform {
   return {
     kind: "tauri",
     os: detectOs(),
-    readiness: () => call(ReadinessSchema, "readiness"),
-    extraTools: () => call(ExtraToolsSchema, "extra_tools"),
-    communityStatus: () => call(CommunityStatusSchema, "community_status"),
+    readiness: () => invoke("readiness"),
+    extraTools: () => invoke("extra_tools"),
+    communityStatus: () => invoke("community_status"),
     setCommunityShown: (show) => invoke("set_community_shown", { show }),
-    nodeOffer: () => call(NodeOfferSchema, "node_offer"),
+    nodeOffer: () => invoke("node_offer"),
     setupNode: (onEvent) => {
-      const channel = new Channel<unknown>()
-      channel.onmessage = (raw) => onEvent(v.parse(NodeEventSchema, raw))
+      const channel = new Channel<NodeEvent>()
+      channel.onmessage = onEvent
       return invoke("setup_node", { onEvent: channel })
     },
     cancelNodeSetup: () => invoke("cancel_node_setup"),
     removeNode: () => invoke("remove_node"),
-    nodePath: () => call(NodePathSchema, "node_path"),
-    setNodePath: (add) => call(NodePathSchema, "set_node_path", { add }),
-    detectTools: (fresh = false) => call(ToolStatesSchema, "detect_tools", { fresh }),
-    latestVersions: (fresh = false) => call(LatestVersionsSchema, "latest_versions", { fresh }),
-    listProfiles: (id) => call(ProfilesSchema, "list_profiles", { id }),
-    diagnose: (id, profile) => call(DiagnosisSchema, "diagnose", { id, profile }),
+    nodePath: () => invoke("node_path"),
+    setNodePath: (add) => invoke("set_node_path", { add }),
+    detectTools: (fresh = false) => invoke("detect_tools", { fresh }),
+    latestVersions: (fresh = false) => invoke("latest_versions", { fresh }),
+    listProfiles: (id) => invoke("list_profiles", { id }),
+    diagnose: (id, profile) => invoke("diagnose", { id, profile }),
     install: (id, onEvent) => invoke("install_tool", { id, onEvent: events(onEvent) }),
     uninstall: (id, onEvent) => invoke("uninstall_tool", { id, onEvent: events(onEvent) }),
-    removeCopy: (id, path) => call(CopyRemovalSchema, "remove_copy", { id, path }),
-    storage: () => call(StorageSchema, "storage_report"),
+    removeCopy: (id, path) => invoke("remove_copy", { id, path }),
+    storage: () => invoke("storage_report"),
     clearStorage: (id) => invoke("clear_storage", { id }),
     openFolder: (id, kind, entry) => invoke("open_folder", { id, kind, entry: entry ?? null }),
-    configRepair: (id, profile) => call(RepairSchema, "config_repair", { id, profile }),
+    configRepair: (id, profile) => invoke("config_repair", { id, profile }),
     storeInfo: () => call(StoreInfoSchema, "store_info"),
     storeCompat: () => call(StoreCompatSchema, "store_compat"),
     storeTables: (sizes) => call(TableListSchema, "store_tables", { sizes }),
     storeCheck: () => call(StoreCheckSchema, "store_check"),
     storeBackup: (onEvent, password) => {
-      const channel = new Channel<unknown>()
-      channel.onmessage = (raw) => {
-        const parsed = v.safeParse(BackupEventSchema, raw)
-        onEvent(
-          parsed.success
-            ? parsed.output
-            : { event: "failed", message: "The app could not read the backup's progress." },
-        )
-      }
+      const channel = new Channel<BackupEvent>()
+      channel.onmessage = onEvent
       return invoke("store_backup", { password: password ?? null, onEvent: channel })
     },
     cancelStoreBackup: () => invoke("cancel_store_backup"),
-    listBackups: () => call(BackupsSchema, "list_backups"),
+    listBackups: () => invoke("list_backups"),
     openBackups: (name) => invoke("open_backups", { name }),
-    storeResetPreview: () => call(ResetPreviewSchema, "store_reset_preview"),
-    storeReset: () => call(ResetDoneSchema, "store_reset"),
+    storeResetPreview: () => invoke("store_reset_preview"),
+    storeReset: () => invoke("store_reset"),
     detectAgents: () => call(AgentsSchema, "detect_agents"),
     skillStatus: (id) => call(SkillReportSchema, "skill_status", { id }),
     skillInstall: (id, target) => call(SkillWrittenSchema, "skill_install", { id, target }),
@@ -191,13 +153,13 @@ function createTauri(): Platform {
     mcpCheck: (id, profile) => call(McpHealthSchema, "mcp_check", { id, profile }),
     mcpAdd: (id, profile, agent, allowWrites) => invoke("mcp_add", { id, profile, agent, allowWrites }),
     mcpRemove: (id, profile, agent) => invoke("mcp_remove", { id, profile, agent }),
-    mcpServerStatus: (id) => call(McpServerStatusSchema, "mcp_server_status", { id }),
-    mcpServerStart: (id, port, url) => call(McpServerStatusSchema, "mcp_server_start", { id, port, url }),
+    mcpServerStatus: (id) => invoke("mcp_server_status", { id }),
+    mcpServerStart: (id, port, url) => invoke("mcp_server_start", { id, port, url }),
     mcpServerStop: (id) => invoke("mcp_server_stop", { id }),
     mcpServerRevoke: (id) => invoke("mcp_server_revoke", { id }),
     mcpServerConfig: (id) => call(v.string(), "mcp_server_config", { id }),
-    mcpServerOAuth: (id) => call(OAuthSettingsSchema, "mcp_server_oauth", { id }),
-    mcpServerPublic: (id) => call(PublicCheckSchema, "mcp_server_public", { id }),
+    mcpServerOAuth: (id) => invoke("mcp_server_oauth", { id }),
+    mcpServerPublic: (id) => invoke("mcp_server_public", { id }),
     tailscaleStatus: () => call(TailscaleStatusSchema, "tailscale_status"),
     tailscaleDownload: (kind) => call(TailscaleDownloadSchema, "tailscale_download", { kind }),
     tailscaleTerminal: (what) => invoke("tailscale_terminal", { what }),
@@ -210,14 +172,14 @@ function createTauri(): Platform {
     funnelHelperStatus: () => call(FunnelHelperStatusSchema, "funnel_helper_status"),
     funnelHelperStart: (onPage) => call(FunnelHelperStatusSchema, "funnel_helper_start", { onEvent: pages(onPage) }),
     funnelHelperOpen: (id, port) => call(v.string(), "funnel_helper_open", { id, port }),
-    cloudflareStatus: () => call(CloudflareStatusSchema, "cloudflare_status"),
+    cloudflareStatus: () => invoke("cloudflare_status"),
     cloudflareInstall: () => call(v.string(), "cloudflare_install"),
     cloudflareLogin: (onPage) => invoke("cloudflare_login", { onEvent: pages(onPage) }),
     cloudflareStop: () => invoke("cloudflare_stop"),
     cloudflareCreate: (hostname) => call(v.string(), "cloudflare_create", { hostname }),
     cloudflareTunnelOpen: (id, port) => call(v.string(), "cloudflare_tunnel_open", { id, port }),
     cloudflareTunnelClose: (id) => invoke("cloudflare_tunnel_close", { id }),
-    cloudflareRoutes: () => call(v.array(TunnelRouteSchema), "cloudflare_routes"),
+    cloudflareRoutes: () => invoke("cloudflare_routes"),
     memoryRead: () => call(MemoryReadSchema, "memory_read"),
     memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
     memoryConfirm: (ref, accept) =>
@@ -259,33 +221,20 @@ function createTauri(): Platform {
     },
     signInAnswer: (id, value) => invoke("sign_in_answer", { id, value }),
     signInStop: (id) => invoke("sign_in_stop", { id }),
-    botSignIn: (id, profile, token, fields) => call(BotResultSchema, "bot_sign_in", { id, profile, token, fields }),
-    listBots: (id) => call(BotProfilesSchema, "list_bots", { id }),
+    botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
+    listBots: (id) => invoke("list_bots", { id }),
     syncRun: (id, profile, onEvent) => {
-      const channel = new Channel<unknown>()
-      channel.onmessage = (raw) => {
-        const parsed = v.safeParse(SyncEventSchema, raw)
-        onEvent(
-          parsed.success
-            ? parsed.output
-            : {
-                event: "failed",
-                message: "The app could not read the sync's answer.",
-                code: null,
-                reason: null,
-                run: null,
-              },
-        )
-      }
+      const channel = new Channel<SyncEvent>()
+      channel.onmessage = onEvent
       return invoke("sync_run", { id, profile, onEvent: channel })
     },
     syncStop: (id, profile) => invoke("sync_stop", { id, profile }),
-    syncLast: (id, profile) => call(LastSyncSchema, "sync_last", { id, profile }),
-    backgroundStatus: (id, profile) => call(BackgroundSchema, "background_status", { id, profile }),
-    backgroundKeep: (id, profile) => call(BackgroundSchema, "background_keep", { id, profile }),
-    mailAgentStatus: (id) => call(MailAgentSchema, "mail_agent_status", { id }),
-    mailAgentSet: (id, on) => call(MailAgentSchema, "mail_agent_set", { id, on }),
-    mailAgentWaiting: (id) => call(WaitingSchema, "mail_agent_waiting", { id }),
+    syncLast: (id, profile) => invoke("sync_last", { id, profile }),
+    backgroundStatus: (id, profile) => invoke("background_status", { id, profile }),
+    backgroundKeep: (id, profile) => invoke("background_keep", { id, profile }),
+    mailAgentStatus: (id) => invoke("mail_agent_status", { id }),
+    mailAgentSet: (id, on) => invoke("mail_agent_set", { id, on }),
+    mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
     listRuns: (id, query, limit, page) => call(RunsPageSchema, "list_runs", { id, query, limit, page }),
     searchStore: (id, profile, query, limit, page) =>
       call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),
@@ -311,7 +260,7 @@ function createTauri(): Platform {
       const next = await check()
       if (!next) return null
       found = next
-      const kind = await call(UpdateKindSchema, "update_kind")
+      const kind = await invoke<UpdateKind>("update_kind")
       return { version: found.version, notes: plainNotes(found.body), kind }
     },
     installUpdate: async (onProgress) => {
@@ -325,9 +274,9 @@ function createTauri(): Platform {
       })
     },
     downloadPackageUpdate: (version, onProgress) => {
-      const channel = new Channel<unknown>()
-      channel.onmessage = (raw) => onProgress(v.parse(UpdateProgressSchema, raw))
-      return call(PackageOutcomeSchema, "update_download_package", { version, onEvent: channel })
+      const channel = new Channel<UpdateProgress>()
+      channel.onmessage = onProgress
+      return invoke("update_download_package", { version, onEvent: channel })
     },
     restart: () => relaunch(),
     openUrl: (url) => openUrl(url),

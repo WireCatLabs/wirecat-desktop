@@ -4,13 +4,14 @@ use serde::Serialize;
 use serde_json::Value;
 
 /// One mend, by line and kind (`trailing_comma`, `missing_comma`…); cli-core never prints a value.
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq)]
+#[serde(rename = "RepairChange")]
 pub struct Change {
     pub line: Option<u64>,
     pub kind: String,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq)]
 #[serde(tag = "state", rename_all = "camelCase")]
 pub enum Repair {
     #[serde(rename_all = "camelCase")]

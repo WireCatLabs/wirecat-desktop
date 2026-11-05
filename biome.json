@@ -12,7 +12,8 @@
       "!src-tauri/gen",
       "!other",
       "!.impeccable",
-      "!.worktrees"
+      "!.worktrees",
+      "!src/platform/bindings.ts"
     ]
   },
   "css": {
