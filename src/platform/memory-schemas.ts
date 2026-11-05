@@ -70,6 +70,8 @@ export const MemoryReadSchema = v.variant("kind", [
     more: v.boolean(),
     activity: v.nullable(v.array(AgentCallSchema)),
     activityError: text,
+    /** The installed memo takes back an agent's accepted fact (`facts revoke`, memo 0.131.28). */
+    revoke: v.optional(v.boolean(), false),
   }),
 ])
 

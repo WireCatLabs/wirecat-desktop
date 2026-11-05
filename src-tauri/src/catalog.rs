@@ -153,6 +153,9 @@ pub struct McpServerSource {
 #[serde(rename_all = "camelCase")]
 pub struct MemorySource {
     pub min_version: String,
+    /// The first memo with `facts revoke`; below it an accepted fact that is not a decision has no way back.
+    #[serde(default)]
+    pub revoke_min_version: Option<String>,
 }
 
 /// `{task}` is a validated task id or key; `release` names the owner as holder, who may release any claim.

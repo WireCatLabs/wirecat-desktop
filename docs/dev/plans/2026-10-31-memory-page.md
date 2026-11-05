@@ -195,3 +195,14 @@ A menu-only button now carries a visible "More" label, and an empty menu never r
   `undoOf`, raise the catalog's minimum memo, and keep the `noUndoFact` hint only for what memo still refuses: a fact
   the owner wrote (`fact.owner-written`) and an accepted correction (`fact.unconfirm-correction`). After unconfirm the
   fact is a proposal again, so an agent allowed to decide may approve it again.
+
+## Taking back an agent's fact (memo 0.131.28, 2026-11-05)
+
+`memo facts revoke fact:<id> --json` puts an agent's accepted fact back to proposed (`confirmed_by` null). The More
+menu's "Undo approval" runs it for any accepted fact an agent wrote, from the catalog's `memory.revokeMinVersion`
+(0.131.28); an accepted decision keeps `facts reverse`. memo refuses the owner's own fact (`fact.owner-written`), an
+accepted correction (`fact.revoke-correction`) and a fact that is not accepted (`fact.not-accepted`): the page hides the
+menu item for the first two, which it can tell from the row (author, `supersedes`), and words all three in the owner's
+language if memo answers one. No `--as-owner`: the app removes `AI_AGENT` and `CLAUDECODE` before every run, so memo
+already acts as the owner, and the flag would ask y/N at a terminal. The fact's `revoked` history step is not shown: the
+Memory page has no history view.

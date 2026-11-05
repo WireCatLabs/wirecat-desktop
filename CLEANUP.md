@@ -136,3 +136,4 @@
 /home/leemour/Projects/AI/cli-core-wt-leaked-test-account — worktree of merged cli-core #2443 — 2026-11-02
 - `.claude/worktrees/journal-1105` (branch docs/journal-1105b) — journal worktree, once its PR is merged (2026-11-05)
 - `.claude/worktrees/analytics-cli` (branch feat/analytics-cli) — Analytics on the released CLI counts, once its PR is merged; also its preview on port 1441 (2026-11-05)
+- `.claude/worktrees/facts-revoke` (branch feat/facts-revoke) — take back an agent fact for 0.4.0, once its PR is merged; also its preview on port 1442 (2026-11-05)

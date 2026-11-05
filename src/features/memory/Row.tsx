@@ -43,7 +43,7 @@ import { SplitButton } from "@/ui/SplitButton"
 import { TextButton } from "@/ui/TextButton"
 import { aboutOf, authorOf, dayLabel, kindOf, savedAt, timeOf } from "./labels"
 import { memoryMessages } from "./messages"
-import { useMemory } from "./store"
+import { canRevoke, useMemory } from "./store"
 
 type M = typeof memoryMessages.en
 
@@ -111,8 +111,9 @@ export function Row({ entry }: { entry: MemoryEntry }) {
   const row = useRef<HTMLDivElement>(null)
   const state = stateOf(entry.status)
   const Icon = ICONS[entry.type]
-  const allowed = can(entry)
-  const undo = undoOf(entry)
+  const revoke = useMemory(canRevoke)
+  const allowed = can(entry, revoke)
+  const undo = undoOf(entry, revoke)
   const editable = open && allowed.correct
   const ticked = entry.findings ? entry.findings.filter((f) => !skipped?.includes(f.id)).length : 0
 
@@ -148,7 +149,8 @@ export function Row({ entry }: { entry: MemoryEntry }) {
     then()
   }
   const correctItem = allowed.correct && { label: m.correct, onSelect: () => openAnd(() => startCorrect(entry.ref)) }
-  const undoLabel = undo === "reject" || undo === "invalidate" || undo === "reverse" ? m.undo[undo] : null
+  const undoLabel =
+    undo === "reject" || undo === "invalidate" || undo === "reverse" || undo === "revoke" ? m.undo[undo] : null
   const rejectItem = allowed.discard && undoLabel && { label: undoLabel, onSelect: () => discard(entry.ref) }
   const eraseItem = allowed.forget && { label: m.forget, danger: true, onSelect: () => askForget(entry.ref) }
   // A findings batch is approved from its opened row, so what Approve creates is on screen; closed, it opens.
@@ -749,6 +751,7 @@ function FilterLink({ label, onClick, mono }: { label: string; onClick: () => vo
 function Details({ entry }: { entry: MemoryEntry }) {
   const m = useMessages(memoryMessages)
   const lang = useLang()
+  const revoke = useMemory(canRevoke)
   const failed = useMemory((s) => s.failed[entry.ref])
   const editing = useMemory((s) => s.correcting === entry.ref)
   const { filterBy } = useMemory.getState()
@@ -838,7 +841,11 @@ function Details({ entry }: { entry: MemoryEntry }) {
             </span>,
           )}
         </dl>
-        {undoOf(entry) === "none" && <p className="text-[0.9rem] text-ink-soft">{m.noUndoFact}</p>}
+        {undoOf(entry, revoke) === "none" && (
+          <p className="text-[0.9rem] text-ink-soft">
+            {!revoke ? m.noUndoFact : byOwner(entry) ? m.noUndoOwnFact : m.noUndoCorrection}
+          </p>
+        )}
         {failed && !editing && (
           <ErrorNotice inline>
             {m.writeFailed} {failed}

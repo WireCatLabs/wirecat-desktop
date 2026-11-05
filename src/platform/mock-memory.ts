@@ -626,6 +626,7 @@ export function memoryMock(): Pick<
         more: scenario === "many",
         activity: scenario === "none" ? [] : ACTIVITY,
         activityError: null,
+        revoke: params.get("memory-revoke") !== "old",
       }
     },
     async memorySources(ref) {
@@ -664,6 +665,9 @@ export function memoryMock(): Pick<
       if (e.type === "action") return update(ref, "rejected")
       if (e.status === "proposed") return update(ref, "rejected")
       if (e.status === "accepted" && e.kind === "decision") return update(ref, "reversed")
+      if (e.status === "accepted" && e.author?.type === "person") throw new Error("fact.owner-written")
+      if (e.status === "accepted" && e.supersedes) throw new Error("fact.revoke-correction")
+      if (e.status === "accepted" && params.get("memory-revoke") !== "old") return update(ref, "proposed")
       throw new Error("Only a proposed fact or an accepted decision can be discarded.")
     },
     async memoryCorrect(ref, text) {

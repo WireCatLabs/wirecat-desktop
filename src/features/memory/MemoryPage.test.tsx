@@ -191,10 +191,11 @@ describe("Memory", () => {
     await waitFor(() => expect(within(decision).getByRole("img", { name: "Rejected" })).toBeInTheDocument())
   })
 
-  it("offers Edit and Erase on an approved fact memo cannot take back, and says why", async () => {
+  it("on an older memo offers only Edit and Erase on an approved fact, and says why", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)
     await rack()
+    useMemory.setState((s) => (s.read?.kind === "ready" ? { read: { ...s.read, revoke: false } } : {}))
     await user.click(screen.getByRole("radio", { name: /In use/ }))
     const promise = row(/You promised Kai the pricing table/)
     await user.click(within(promise).getByRole("button", { name: "More actions" }))
@@ -202,6 +203,20 @@ describe("Memory", () => {
     await user.keyboard("{Escape}")
     await user.click(screen.getByRole("button", { name: /You promised Kai the pricing table/ }))
     expect(within(promise).getByText(/can take back the approval of a decision only/)).toBeInTheDocument()
+  })
+
+  it("takes back an agent's approved fact, which then waits for review again", async () => {
+    const user = userEvent.setup()
+    const discard = vi.spyOn(platform, "memoryDiscard")
+    render(<MemoryPage />)
+    await rack()
+    await user.click(screen.getByRole("radio", { name: /In use/ }))
+    const promise = row(/You promised Kai the pricing table/)
+    await user.click(within(promise).getByRole("button", { name: "More actions" }))
+    expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Undo approval", "Erase…"])
+    await user.click(screen.getByRole("menuitem", { name: "Undo approval" }))
+    expect(discard).toHaveBeenCalledWith("fact:12")
+    await waitFor(() => expect(within(promise).getByRole("img", { name: "To review" })).toBeInTheDocument())
   })
 
   it("never shows a menu button that opens an empty menu", async () => {

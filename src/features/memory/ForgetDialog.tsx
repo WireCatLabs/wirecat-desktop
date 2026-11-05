@@ -5,7 +5,7 @@ import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { memoryMessages } from "./messages"
-import { useMemory } from "./store"
+import { canRevoke, useMemory } from "./store"
 
 const WORDS = 12
 
@@ -21,8 +21,10 @@ export function ForgetDialog({ entry }: { entry: MemoryEntry | null }) {
   const { forget, discard, askForget } = useMemory.getState()
   const close = () => askForget(null)
   const type = entry?.type ?? "memory"
-  const undo = entry && can(entry).discard ? undoOf(entry) : null
-  const instead = undo === "reject" || undo === "invalidate" || undo === "reverse" ? m.undoInstead[undo] : null
+  const revoke = useMemory(canRevoke)
+  const undo = entry && can(entry, revoke).discard ? undoOf(entry, revoke) : null
+  const instead =
+    undo === "reject" || undo === "invalidate" || undo === "reverse" || undo === "revoke" ? m.undoInstead[undo] : null
 
   return (
     <Dialog

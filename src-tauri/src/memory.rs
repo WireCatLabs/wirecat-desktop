@@ -320,6 +320,8 @@ pub enum Read {
         /// `None` when only the activity log could not be read; the entries still show.
         activity: Option<Vec<Activity>>,
         activity_error: Option<String>,
+        /// The installed memo takes back the approval of an agent's fact (`facts revoke`).
+        revoke: bool,
     },
 }
 
@@ -378,8 +380,20 @@ fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Stri
         Some(v) if v["error"]["reason"].as_str() == Some("evidence-findings.stale") => {
             Err("These findings changed since the agent proposed them.".into())
         }
+        // The page words these in the owner's language, so the reason goes back as it is.
+        Some(v) if v["error"]["reason"].as_str().is_some_and(|r| REVOKE_REFUSALS.contains(&r)) => {
+            Err(v["error"]["reason"].as_str().unwrap_or_default().to_string())
+        }
         j => Err(failure(&out, j.as_ref())),
     }
+}
+
+/// `facts revoke` refuses a fact that is not accepted, one the owner wrote, and an accepted correction.
+pub const REVOKE_REFUSALS: [&str; 3] = ["fact.not-accepted", "fact.owner-written", "fact.revoke-correction"];
+
+/// Whether the installed memo has `facts revoke`.
+fn can_revoke(tool: &Tool, version: Option<&str>) -> bool {
+    tool.memory.as_ref().and_then(|m| m.revoke_min_version.as_deref()).is_some_and(|min| !too_old(version, min))
 }
 
 fn memo() -> Result<&'static Tool, String> {
@@ -400,7 +414,8 @@ pub fn read() -> Result<Read, String> {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
     let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
-    read_with(&|args: &[String]| call_at(&bin, args, READ))
+    let revoke = can_revoke(tool, crate::tools::version_of(&bin).as_deref());
+    read_with(&|args: &[String]| call_at(&bin, args, READ), revoke)
 }
 
 fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(Vec<Entry>, bool), String> {
@@ -415,7 +430,7 @@ fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(
 }
 
 /// The four lists at once: each is its own Node.js start, so one after another would take four times as long.
-fn read_with(call: &Call) -> Result<Read, String> {
+fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
     let (memories, facts, actions, agents) = std::thread::scope(|s| {
         let m = s.spawn(|| list(call, "memories", memory));
         let f = s.spawn(|| list(call, "facts", fact));
@@ -442,7 +457,7 @@ fn read_with(call: &Call) -> Result<Read, String> {
         }
         Err(e) => (None, Some(e)),
     };
-    Ok(Read::Ready { entries, more, activity, activity_error })
+    Ok(Read::Ready { entries, more, activity, activity_error, revoke })
 }
 
 fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
@@ -525,8 +540,9 @@ pub fn confirm(reference: &str, accept: Option<&[String]>) -> Result<Entry, Stri
 }
 
 /// Memo has one word per record for "this does not hold": a memory goes stale, a proposed fact is rejected, an
-/// accepted decision is reversed, an action is rejected. Any other fact can only be forgotten.
-fn discard_with(call: &Call, r: &Ref) -> Result<Entry, String> {
+/// accepted decision is reversed, an action is rejected. An agent's other accepted fact goes back to proposed with
+/// `facts revoke` (memo 0.131.28); before it, and for the owner's own fact or a correction, it can only be forgotten.
+fn discard_with(call: &Call, r: &Ref, revoke: bool) -> Result<Entry, String> {
     if let Some(e) = review_with(call, r, Some(&[]))? {
         return Ok(e);
     }
@@ -536,9 +552,13 @@ fn discard_with(call: &Call, r: &Ref) -> Result<Entry, String> {
         Kind::Fact => {
             let shown = call(&words(&["facts", "show", &r.memo()]))?;
             let f = fact(body(&shown)).ok_or("Memo's answer did not describe the fact")?;
+            let owners = f.author.as_ref().is_some_and(|a| a.kind == "person");
             match (f.status.as_str(), f.kind.as_str()) {
                 ("proposed", _) => "reject",
                 ("accepted", "decision") => "reverse",
+                ("accepted", _) if revoke && owners => return Err("fact.owner-written".into()),
+                ("accepted", _) if revoke && f.supersedes.is_some() => return Err("fact.revoke-correction".into()),
+                ("accepted", _) if revoke => "revoke",
                 _ => return Err("Only a proposed fact or an accepted decision can be discarded.".into()),
             }
         }
@@ -548,7 +568,10 @@ fn discard_with(call: &Call, r: &Ref) -> Result<Entry, String> {
 
 pub fn discard(reference: &str) -> Result<Entry, String> {
     let r = Ref::parse(reference)?;
-    with_memo(|call| discard_with(call, &r))
+    let tool = memo()?;
+    let revoke =
+        crate::tools::program(&tool.bin).is_some_and(|bin| can_revoke(tool, crate::tools::version_of(&bin).as_deref()));
+    with_memo(|call| discard_with(call, &r, revoke))
 }
 
 /// A word Memo gave back goes into a command line again, so it must not read as an option.
@@ -944,7 +967,8 @@ mod tests {
                 }
             })
         });
-        let Read::Ready { entries, more, activity, activity_error } = read_with(&|a: &[String]| fake.call(a)).unwrap()
+        let Read::Ready { entries, more, activity, activity_error, .. } =
+            read_with(&|a: &[String]| fake.call(a), false).unwrap()
         else {
             panic!("not ready")
         };
@@ -980,13 +1004,13 @@ mod tests {
             "agents" => Err("unknown command 'agents'".into()),
             _ => Ok(json!({"items":[]})),
         });
-        let read = read_with(&|a: &[String]| fake.call(a)).unwrap();
+        let read = read_with(&|a: &[String]| fake.call(a), false).unwrap();
         assert!(matches!(read, Read::Ready { activity: None, activity_error: Some(_), .. }));
         let busy = Fake::new(|a| match a[0].as_str() {
             "facts" => Err("the store is busy".into()),
             _ => Ok(json!({"items":[]})),
         });
-        assert_eq!(read_with(&|a: &[String]| busy.call(a)), Err("the store is busy".into()));
+        assert_eq!(read_with(&|a: &[String]| busy.call(a), false), Err("the store is busy".into()));
     }
 
     #[test]
@@ -1045,7 +1069,9 @@ mod tests {
                 _ => json!({"items":[]}),
             })
         });
-        let Read::Ready { entries, .. } = read_with(&|a: &[String]| fake.call(a)).unwrap() else { panic!("not ready") };
+        let Read::Ready { entries, .. } = read_with(&|a: &[String]| fake.call(a), false).unwrap() else {
+            panic!("not ready")
+        };
         let batch = entries.iter().find(|e| e.reference == "action:9").unwrap();
         assert_eq!(batch.project_name.as_deref(), Some("Northbridge Bench"));
         assert_eq!(batch.subject_name.as_deref(), Some("Northbridge Bench"));
@@ -1131,7 +1157,7 @@ mod tests {
         let call = |a: &[String]| fake.call(a);
         let r = Ref::parse("action:9").unwrap();
         assert_eq!(confirm_with(&call, &r, Some(&strs(&["f2"]))).unwrap().status, "approved");
-        assert_eq!(discard_with(&call, &r).unwrap().status, "rejected");
+        assert_eq!(discard_with(&call, &r, false).unwrap().status, "rejected");
         let seen = fake.seen();
         assert_eq!(
             seen[1],
@@ -1159,7 +1185,7 @@ mod tests {
                     json!({"item": if a[0] == "memories" { agent_memory() } else if a[0] == "facts" { decision(status) } else { proposal("rejected") }}),
                 )
             });
-            let out = discard_with(&|a: &[String]| fake.call(a), &Ref::parse(reference).unwrap());
+            let out = discard_with(&|a: &[String]| fake.call(a), &Ref::parse(reference).unwrap(), false);
             (out, fake.seen().into_iter().map(|a| a[1].clone()).collect::<Vec<_>>())
         };
         assert_eq!(run("memory:3", "").1, ["invalidate"]);
@@ -1169,6 +1195,25 @@ mod tests {
         let (out, seen) = run("fact:1", "superseded");
         assert!(out.is_err());
         assert_eq!(seen, ["show"]);
+    }
+
+    #[test]
+    fn an_agents_accepted_fact_is_revoked_and_the_owners_or_a_correction_is_refused_first() {
+        let run = |fact: Value, revoke: bool| {
+            let fake = Fake::new(move |_| Ok(json!({ "item": fact.clone() })));
+            let out = discard_with(&|a: &[String]| fake.call(a), &Ref::parse("fact:1").unwrap(), revoke);
+            (out, fake.seen().into_iter().map(|a| a[1].clone()).collect::<Vec<_>>())
+        };
+        let mut agents = decision("accepted");
+        agents["kind"] = json!("fact");
+        assert_eq!(run(agents.clone(), true).1, ["show", "revoke"]);
+        assert!(run(agents.clone(), false).0.is_err(), "an older memo has no way back");
+        let mut owners = agents.clone();
+        owners["author"] = json!({"type":"person","id":"1","name":null});
+        assert_eq!(run(owners, true), (Err("fact.owner-written".into()), vec!["show".to_string()]));
+        let mut correction = agents;
+        correction["supersedes"] = json!("fact:7");
+        assert_eq!(run(correction, true), (Err("fact.revoke-correction".into()), vec!["show".to_string()]));
     }
 
     #[test]
@@ -1249,9 +1294,11 @@ mod tests {
             more: false,
             activity: None,
             activity_error: None,
+            revoke: true,
         };
         let v = serde_json::to_value(read).unwrap();
         assert_eq!(v["kind"], "ready");
+        assert_eq!(v["revoke"], true);
         assert!(v.get("activityError").is_some());
         let e = &v["entries"][0];
         for key in ["ref", "type", "subjectName", "subjectIsOwner", "createdAt", "updatedAt", "links"] {
@@ -1278,7 +1325,7 @@ mod tests {
         let call = |a: &[String]| call_at(&bin, a, READ);
         let raw =
             |noun: &str| call(&words(&[noun, "list", "--limit", LIMIT])).unwrap()["items"].as_array().unwrap().len();
-        let Read::Ready { entries, activity, .. } = read_with(&call).unwrap() else { panic!("not ready") };
+        let Read::Ready { entries, activity, .. } = read_with(&call, false).unwrap() else { panic!("not ready") };
         assert_eq!(entries.len(), raw("memories") + raw("facts") + raw("actions"), "an item did not parse");
         assert!(activity.is_some());
         assert!(
@@ -1317,7 +1364,7 @@ mod tests {
         .unwrap();
         let r = Ref::parse(body(&added)["ref"].as_str().unwrap()).unwrap();
         assert_ne!(sources_with(&call, &r).unwrap(), Vec::<Source>::new());
-        assert_eq!(discard_with(&call, &r).unwrap().status, "stale");
+        assert_eq!(discard_with(&call, &r, false).unwrap().status, "stale");
         let fixed = correct_with(&call, &r, "-Probe: Kai is in Porto").unwrap();
         assert_eq!((fixed.status.as_str(), fixed.supersedes.as_deref()), ("confirmed", Some(r.memo().as_str())));
         assert_eq!(fixed.text.as_deref(), Some("-Probe: Kai is in Porto"));

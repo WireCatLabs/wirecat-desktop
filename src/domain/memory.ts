@@ -74,15 +74,22 @@ export type Can = { confirm: boolean; discard: boolean; correct: boolean; forget
  * decision is reversed. An approved action is a task now, dismissed on the Tasks page; a reviewed findings batch
  * made facts and tasks, each erased or dismissed where it is. memo has no way back for any other accepted fact.
  */
-export type Undo = "reject" | "invalidate" | "reverse" | "task" | "created" | "none" | null
+export type Undo = "reject" | "invalidate" | "reverse" | "revoke" | "task" | "created" | "none" | null
 
-export function undoOf(e: Entry & { findings?: unknown }): Undo {
+type Held = Entry & { findings?: unknown; supersedes?: string | null }
+
+/**
+ * An agent's accepted fact goes back to proposed with `facts revoke` when the installed memo has it (`revoke`). memo
+ * refuses it for the owner's own fact and for an accepted correction, so those keep only Edit and Erase.
+ */
+export function undoOf(e: Held, revoke = false): Undo {
   const s = e.status
   if (s === "proposed") return "reject"
   if (e.type === "action") return s === "approved" ? (e.findings ? "created" : "task") : null
   if (e.type === "fact") {
     if (s !== "accepted") return null
-    return e.kind === "decision" ? "reverse" : "none"
+    if (e.kind === "decision") return "reverse"
+    return revoke && !byOwner(e) && !e.supersedes ? "revoke" : "none"
   }
   return s === "confirmed" ? "invalidate" : null
 }
@@ -91,9 +98,9 @@ export function undoOf(e: Entry & { findings?: unknown }): Undo {
  * What memo 0.130.0 lets the owner do with each record. A proposed or accepted fact of any kind is corrected
  * (`facts add --supersedes`); an action is approved or discarded, never corrected or forgotten.
  */
-export function can(e: Entry): Can {
+export function can(e: Held, revoke = false): Can {
   const s = e.status
-  const decision = e.kind === "decision"
+  const decision = e.kind === "decision" || undoOf(e, revoke) === "revoke"
   if (e.type === "action")
     return { confirm: s === "proposed", discard: s === "proposed", correct: false, forget: false }
   if (e.type === "fact")

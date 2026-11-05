@@ -267,7 +267,7 @@ catalog `minVersion` says the tool is too old before anything runs, and "unknown
 | Spec | Command the app runs | First version |
 | --- | --- | --- |
 | A1 mail in and out | `mail <profile> stats messages show --by day --timezone <z> --limit <n> -- date>=Nd` | mail-cli 0.15.0 |
-| A2 meetings | `zm <profile> stats meetings history --by week\|series --timezone <z> --since-time Nd --limit <n>` | not released yet: older zm answers "unknown command" and the cards add up `zm meetings list` as before |
+| A2 meetings | `zm <profile> stats meetings history --by week\|series --timezone <z> --since-time Nd --limit <n>` | zm 0.67.0; an older zm keeps the cards on `zm meetings list` |
 | A3 reply time | `<tg\|max\|wa> <profile> stats messages responses --who me --by day --timezone <z> -- date>=Nd` | tg 0.116.0, wa 0.29.0; max: next release |
 | A4 waiting on you | `<tg\|max\|wa> <profile> stats messages waiting --timezone <z>` | the same |
 | A6 chats never fetched | `<tg\|max\|wa> <profile> store chats status` | the same |
