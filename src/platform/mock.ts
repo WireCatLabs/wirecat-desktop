@@ -3,6 +3,7 @@ import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { analyticsMock } from "./mock-analytics"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
+import { botMock } from "./mock-bot"
 import { cloudflareMock } from "./mock-cloudflare"
 import { newestReader, storeCompatMock } from "./mock-compat"
 import { delay } from "./mock-delay"
@@ -587,6 +588,7 @@ export function createMock(os: Platform["os"]): Platform {
         throw new Error(`Could not open a terminal. Run this yourself: ${id} ${profile ?? ""} setup`)
     },
     ...signInMock(),
+    ...botMock(),
     ...syncMock(),
     ...mcpServerMock(),
     ...tailscaleMock(),

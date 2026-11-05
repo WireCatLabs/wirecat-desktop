@@ -382,6 +382,14 @@
           }
         ]
       },
+      "bot": {
+        "set": ["{profile}", "bot", "auth", "set", "--record", "--json"],
+        "list": ["wirecat", "bot", "list", "--no-record", "--json"],
+        "token": "telegram",
+        "create": "https://t.me/BotFather",
+        "docs": "https://github.com/WireCatLabs/tg-cli/blob/main/docs/bot.md",
+        "fields": []
+      },
       "signIn": {
         "gives": "Lets your agent read and search your Telegram chats, and send messages when you ask.",
         "asks": "The first time, your phone number and the code Telegram sends, to register your own Telegram app. Then a QR code to scan in Telegram: Settings → Devices → Link Desktop Device.",
@@ -773,6 +781,14 @@
           }
         ]
       },
+      "bot": {
+        "set": ["{profile}", "bot", "auth", "set", "--record", "--json"],
+        "list": ["wirecat", "bot", "list", "--no-record", "--json"],
+        "token": "opaque",
+        "create": "https://business.max.ru/self",
+        "docs": "https://github.com/WireCatLabs/max-cli/blob/main/docs/bot.md",
+        "fields": []
+      },
       "signIn": {
         "gives": "Lets your agent read and search your MAX chats, and send messages when you ask.",
         "asks": "A QR code to scan with the MAX app on your phone.",
@@ -1162,6 +1178,20 @@
             "key": "tasks",
             "label": "Tasks"
           }
+        ]
+      },
+      "bot": {
+        "set": ["{profile}", "bot", "auth", "set", "--record", "--json"],
+        "list": ["wirecat", "bot", "list", "--no-record", "--json"],
+        "token": "opaque",
+        "create": "https://developers.facebook.com/apps/",
+        "docs": "https://github.com/WireCatLabs/whatsapp-cli/blob/main/docs/bot.md",
+        "fields": [
+          {
+            "key": "phone_number_id",
+            "words": ["{profile}", "config", "set", "--bot", "phone_number_id", "{value}", "--json"]
+          },
+          { "key": "waba_id", "words": ["{profile}", "config", "set", "--bot", "waba_id", "{value}", "--json"] }
         ]
       },
       "signIn": {
