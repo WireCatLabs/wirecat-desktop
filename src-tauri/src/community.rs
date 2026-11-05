@@ -319,7 +319,7 @@ mod tests {
         assert_eq!(tools.len(), 1);
         assert_eq!(tools[0].package, "@example/acme-cli");
         assert_eq!(extra.tools[0]["tagline"], "Acme notes in your archive");
-        assert!(extra.rejected.is_empty());
+        assert!(extra.rejected.is_empty(), "{:?}", extra.rejected);
     }
 
     #[test]
@@ -362,7 +362,7 @@ mod tests {
             assert!(!rejected(&entry).is_empty(), "{app} {env}");
         }
         let tg = &catalog().tools.iter().find(|t| t.id == "tg").unwrap().storage;
-        assert!(!rejected(&with("storage", json!({ "app": tg.app, "env": "ACME" }))).is_empty());
+        assert!(!rejected(&with("storage", json!({ "app": tg.app, "env": "ACME" }))).is_empty(), "tg's folders taken");
     }
 
     #[test]
@@ -399,6 +399,6 @@ mod tests {
     #[test]
     fn the_built_in_catalog_is_the_fallback_without_the_flag_or_the_setting() {
         assert!(std::env::var(FLAG).is_err());
-        assert!(catalog().extra.tools.is_empty());
+        assert!(catalog().extra.tools.is_empty(), "community tools read while off");
     }
 }

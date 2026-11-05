@@ -308,7 +308,10 @@ mod tests {
         let mut extra = values;
         extra.insert("permissions.send".into(), "1".into());
         assert!(field_args(wa, "shop", &extra).is_err());
-        assert!(field_args(catalog::tool("tg").unwrap(), "sales", &BTreeMap::new()).unwrap().is_empty());
+        assert!(
+            field_args(catalog::tool("tg").unwrap(), "sales", &BTreeMap::new()).unwrap().is_empty(),
+            "tg takes no field"
+        );
     }
 
     #[test]
