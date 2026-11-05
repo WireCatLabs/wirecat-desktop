@@ -1,4 +1,4 @@
-import { Bot, CheckCircle2, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
+import { Bot, Check, CheckCircle2, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
 import {
   type CatalogTool,
@@ -23,7 +23,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
-import { usePaced } from "@/ui/motion"
+import { MOTION, useLinger, usePaced } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { FixButton, FixPanel } from "../fix/AgentFix"
@@ -261,11 +261,22 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
     text = m.already(version(status.version))
   }
 
-  // A failure is told at once; only a success holds its full bar for a moment.
-  const installing = Boolean(session) && shown === "run" && outcome?.event !== "failed"
+  // A failure is told at once; only a success holds its full bar for a moment, while the next row's bar opens.
+  const running = Boolean(session) && shown === "run" && outcome?.event !== "failed"
+  const installing = useLinger(running) && outcome?.event !== "failed"
   return (
     <li className={cx(row, "flex-wrap gap-y-0")}>
-      <Lamp tone={tone} {...(typeof text === "string" ? { label: text } : {})} />
+      <span className="relative grid shrink-0 place-items-center">
+        <Lamp tone={tone} {...(typeof text === "string" ? { label: text } : {})} />
+        {/* Only a tool installed in this flow: one that was already here has nothing to celebrate. */}
+        {outcome?.event === "done" && (
+          <Check
+            aria-hidden
+            strokeWidth={3.2}
+            className="check-in pointer-events-none absolute size-[0.85rem] text-on-status"
+          />
+        )}
+      </span>
       <ToolIcon id={tool.id} className="size-[1.5rem] shrink-0 text-ink" />
       <span className="w-[9rem] shrink-0 font-semibold">{tool.name}</span>
       <span aria-live="polite" className="min-w-0 flex-1 text-body text-ink-soft">
@@ -291,7 +302,7 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
       <div className="basis-full">
         <Collapse open={installing}>
           {session && (
-            <div className="pt-[0.8rem] pb-[0.2rem] sm:pl-[3.8rem]">
+            <div className={cx("pt-[0.8rem] pb-[0.2rem] sm:pl-[3.8rem]", installing && "step-in")}>
               <InstallProgress session={session} compact />
             </div>
           )}
@@ -368,11 +379,11 @@ export function Install() {
         </div>
       )}
       <div aria-live="polite">
-        <Crossfade swap={allDone && settled ? "done" : "note"}>
+        <Crossfade swap={allDone && settled ? "done" : "note"} ms={MOTION.step}>
           <p className="flex min-h-[1.6rem] items-center gap-2 text-body">
             {allDone && settled ? (
               <>
-                <CheckCircle2 className="size-5 shrink-0 text-ok" aria-hidden />
+                <CheckCircle2 className="check-in size-5 shrink-0 text-ok" aria-hidden />
                 <span className="text-ink">
                   {m.allDone} {m.moreLater}
                 </span>
