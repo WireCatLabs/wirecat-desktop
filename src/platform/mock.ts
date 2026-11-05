@@ -9,6 +9,7 @@ import { communityMock, extraToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock } from "./mock-compat"
 import { delay } from "./mock-delay"
 import { npmLines } from "./mock-install"
+import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
 import { memoryMock } from "./mock-memory"
 import { notificationsMock } from "./mock-notifications"
@@ -607,6 +608,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...signInMock(),
     ...botMock(),
     ...syncMock(),
+    ...mailAgentMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
     ...cloudflareMock(),

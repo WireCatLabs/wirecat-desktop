@@ -58,6 +58,9 @@ pub struct Tool {
     /// The messengers' `serve` in the background, which keeps the archive current between syncs.
     #[serde(default)]
     pub background: Option<crate::background::BackgroundSource>,
+    /// Only email: memo's scheduled agent that reads new mail and proposes tasks, invoices and facts.
+    #[serde(default)]
+    pub mail_agent: Option<crate::mail_agent::MailAgentSource>,
     /// Another tool's id when this one is a part of its package: same `bin`, `package` and `storage`.
     pub part_of: Option<String>,
     pub name: String,

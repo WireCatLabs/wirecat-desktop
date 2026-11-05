@@ -1856,6 +1856,29 @@
         "what": "mail",
         "note": null
       },
+      "mailAgent": {
+        "via": "memo",
+        "minVersion": "0.131.26",
+        "name": "mail-triage",
+        "harness": "claude",
+        "list": ["schedule", "list", "name:mail-triage", "--no-record", "--json"],
+        "on": [
+          "schedule",
+          "agent",
+          "mail-triage",
+          "claude",
+          "Run memo skill show mail-triage and follow it.",
+          "--every",
+          "5m",
+          "--on-new-mail",
+          "mail-triage",
+          "--max-cost",
+          "1",
+          "--json"
+        ],
+        "off": ["schedule", "remove", "mail-triage", "--json"],
+        "waiting": ["review", "status", "--no-record", "--json"]
+      },
       "storeInfo": null,
       "storeTables": null,
       "storeTableSizes": null,

@@ -17,6 +17,7 @@ import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { Health } from "./Health"
 import { packageNamesOf } from "./InstallPanel"
+import { MailAgent } from "./MailAgent"
 import { McpServer } from "./McpServer"
 import { type ToolsText, toolsMessages } from "./messages"
 import { copiesMessages } from "./messages-copies"
@@ -202,6 +203,7 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
       <ConfirmUninstall tool={tool} open={confirming} onClose={() => setConfirming(false)} />
       <RemoveCopyDialog tool={tool} copy={removing} onClose={() => setRemoving(null)} />
       {installs.length > 0 && tool.permissions && <Permissions tool={tool} />}
+      {installs.length > 0 && tool.mailAgent && <MailAgent tool={tool} />}
       {installs.length > 0 && tool.mcpServer && <McpServer tool={tool} />}
     </div>
   )

@@ -25,6 +25,7 @@ import { BotProfilesSchema, BotResultSchema } from "./bot-schemas"
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
 import { commandError } from "./command-error"
 import { CommunityStatusSchema, ExtraToolsSchema } from "./community-schemas"
+import { MailAgentSchema, WaitingSchema } from "./mail-agent-schemas"
 import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
 import {
   ForgotSchema,
@@ -282,6 +283,9 @@ function createTauri(): Platform {
     syncLast: (id, profile) => call(LastSyncSchema, "sync_last", { id, profile }),
     backgroundStatus: (id, profile) => call(BackgroundSchema, "background_status", { id, profile }),
     backgroundKeep: (id, profile) => call(BackgroundSchema, "background_keep", { id, profile }),
+    mailAgentStatus: (id) => call(MailAgentSchema, "mail_agent_status", { id }),
+    mailAgentSet: (id, on) => call(MailAgentSchema, "mail_agent_set", { id, on }),
+    mailAgentWaiting: (id) => call(WaitingSchema, "mail_agent_waiting", { id }),
     listRuns: (id, query, limit, page) => call(RunsPageSchema, "list_runs", { id, query, limit, page }),
     searchStore: (id, profile, query, limit, page) =>
       call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),
