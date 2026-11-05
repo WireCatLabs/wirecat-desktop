@@ -185,31 +185,31 @@ function Value(props: {
 
 export function ValueLabel({ field, value }: { field: string; value: string }) {
   const m = useMessages(logsMessages)
-  if (value === "") return <span className="truncate text-ink-dim italic">{m.none}</span>
+  if (value === "") return <span className="min-w-0 wrap-break-word text-ink-dim italic">{m.none}</span>
   if (field === "tool")
     return (
       <span className="flex min-w-0 items-center gap-[0.4rem]">
         <ToolIcon id={value} className="size-[0.95rem] shrink-0 text-ink-soft" />
-        <span className="truncate">{toolName(value)}</span>
+        <span className="min-w-0 wrap-break-word">{toolName(value)}</span>
       </span>
     )
   if (field === "status")
     return (
       <span className="flex min-w-0 items-center gap-[0.45rem]">
         <Lamp tone={statusTone(value)} size="sm" />
-        <span className="truncate">{value}</span>
+        <span className="min-w-0 wrap-break-word">{value}</span>
       </span>
     )
-  if (field === "agent") return <span className="truncate">{agentName(value, m.mcpApp)}</span>
-  if (field === "via") return <span className="truncate">{viaName(m, value)}</span>
-  if (field === "client") return <span className="truncate">{value}</span>
+  if (field === "agent") return <span className="min-w-0 wrap-break-word">{agentName(value, m.mcpApp)}</span>
+  if (field === "via") return <span className="min-w-0 wrap-break-word">{viaName(m, value)}</span>
+  if (field === "client") return <span className="min-w-0 wrap-break-word">{value}</span>
   if (field === "cli_command" && isBareCommand(value))
     return (
-      <span className="truncate font-mono text-[0.9rem]" title={m.bareHint}>
+      <span className="min-w-0 wrap-break-word font-mono text-[0.9rem]" title={m.bareHint}>
         {value} <span className="font-sans text-ink-dim">{m.noCommand}</span>
       </span>
     )
-  return <span className="truncate font-mono text-[0.9rem]">{value}</span>
+  return <span className="min-w-0 wrap-break-word font-mono text-[0.9rem]">{value}</span>
 }
 
 export const valueTitle = (m: LogsWords, field: string, value: string) =>
