@@ -9,13 +9,16 @@ mod catalog;
 mod chats;
 mod cloudflare;
 mod cloudflare_install;
+mod commands;
 mod community;
 mod compat;
 mod config_repair;
+mod error;
 mod funnel_helper;
 mod install;
 #[cfg(test)]
 mod install_e2e;
+mod log;
 mod mcp;
 mod mcp_server;
 mod memory;
@@ -54,998 +57,9 @@ mod terminal;
 mod terminal_path;
 mod tools;
 
-use install::{InstallEvent, Running};
-use std::collections::{BTreeMap, HashMap};
+use install::Running;
 use std::sync::Arc;
-use tauri::State;
-use tauri::ipc::Channel;
-
-async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> Result<T, String> {
-    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn run_agent(agent: String, prompt: String) -> Result<agent_run::AgentRun, String> {
-    blocking(move || agent_run::run(&agent, &prompt)).await?
-}
-
-/// The community tools Rust accepted at start, so the interface lists exactly the tools Rust will run.
-#[tauri::command]
-fn extra_tools() -> community::Extra {
-    catalog::catalog().extra.clone()
-}
-
-#[tauri::command]
-fn community_status() -> registry::Status {
-    registry::status()
-}
-
-/// Takes effect at the next start; turning it on fetches the list now, so that start has it.
-#[tauri::command]
-async fn set_community_shown(show: bool) -> Result<(), String> {
-    registry::set_shown(show)?;
-    if show {
-        std::thread::spawn(registry::check_now);
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn readiness() -> Result<system::Readiness, String> {
-    blocking(system::readiness).await
-}
-
-#[tauri::command]
-async fn node_offer() -> Result<node::Offer, String> {
-    blocking(node::offer).await?
-}
-
-#[tauri::command]
-async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node::NodeEvent>) -> Result<(), String> {
-    let running = Arc::clone(&running);
-    blocking(move || {
-        let send = |e: node::NodeEvent| {
-            let _ = on_event.send(e);
-        };
-        if !running.start(node::OPERATION) {
-            return send(node::NodeEvent::Failed {
-                reason: install::Reason::Failed,
-                message: "Node.js setup is already running.".into(),
-                hint: None,
-            });
-        }
-        let result = match node::root() {
-            Some(root) => node::setup(&root, &send, &|| !running.is_running(node::OPERATION)),
-            None => Err(node::Failure::no_home()),
-        };
-        running.finish(node::OPERATION);
-        // Tools installed with this Node.js are linked beside it; the user's PATH changes without an administrator,
-        // so a terminal and the AI apps find them with nothing more to do. A failure here never fails the setup.
-        if result.is_ok() {
-            send(node::NodeEvent::Step { step: node::Step::Path });
-        }
-        let path_fix = result.as_ref().ok().and_then(|done| terminal_path::after_node_setup(&node::bin_dir(&done.dir)));
-        paths::refresh(&[]);
-        send(match result {
-            Ok(done) => node::NodeEvent::Done {
-                version: done.version.to_string(),
-                path: paths::tilde(&done.dir.to_string_lossy()),
-                path_fix,
-            },
-            Err(f) => f.into(),
-        });
-    })
-    .await
-}
-
-#[tauri::command]
-fn cancel_node_setup(running: State<'_, Arc<Running>>) {
-    running.cancel(node::OPERATION);
-}
-
-#[tauri::command]
-async fn remove_node() -> Result<(), String> {
-    blocking(node::remove).await?
-}
-
-/// What "Add to PATH" would write and where, for the app's own Node.js.
-#[tauri::command]
-async fn node_path() -> Result<profile::PathPlan, String> {
-    blocking(|| {
-        let found = node::installed().ok_or("WireCat has not set up Node.js on this computer.")?;
-        Ok(profile::plan(&node::bin_dir(&found.dir)))
-    })
-    .await?
-}
-
-#[tauri::command]
-async fn set_node_path(add: bool) -> Result<profile::PathPlan, String> {
-    blocking(move || {
-        let found = node::installed().ok_or("WireCat has not set up Node.js on this computer.")?;
-        let bin = node::bin_dir(&found.dir);
-        if add { profile::add(&bin) } else { profile::remove(&bin) }
-    })
-    .await?
-}
-
-#[tauri::command]
-async fn detect_tools(fresh: bool) -> Result<Vec<tools::ToolState>, String> {
-    blocking(move || tools::detect_all(fresh)).await
-}
-
-#[tauri::command]
-async fn latest_versions(fresh: bool) -> Result<HashMap<String, Option<String>>, String> {
-    blocking(move || tools::latest_versions(fresh).into_iter().collect()).await
-}
-
-#[tauri::command]
-async fn list_profiles(id: String) -> Result<Option<Vec<tools::Profile>>, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || tools::profiles(tool)).await?
-}
-
-#[tauri::command]
-async fn diagnose(id: String, profile: Option<String>) -> Result<tools::Diagnosis, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || tools::diagnose(tool, profile.as_deref())).await?
-}
-
-#[tauri::command]
-async fn install_tool(
-    id: String,
-    running: State<'_, Arc<Running>>,
-    on_event: Channel<InstallEvent>,
-) -> Result<(), String> {
-    let tool = catalog::owner(catalog::tool(&id)?);
-    let running = Arc::clone(&running);
-    let done = blocking(move || install::install(tool, &running, &on_event)).await;
-    compat::forget();
-    done
-}
-
-#[tauri::command]
-async fn uninstall_tool(
-    id: String,
-    running: State<'_, Arc<Running>>,
-    on_event: Channel<InstallEvent>,
-) -> Result<(), String> {
-    let tool = catalog::owner(catalog::tool(&id)?);
-    let running = Arc::clone(&running);
-    let done = blocking(move || install::uninstall(tool, &running, &on_event)).await;
-    compat::forget();
-    done
-}
-
-#[tauri::command]
-async fn storage_report() -> Result<Vec<storage::Area>, String> {
-    blocking(storage::report).await
-}
-
-#[tauri::command]
-async fn clear_storage(id: String) -> Result<(), String> {
-    blocking(move || storage::clear(&id)).await?
-}
-
-/// One unused copy of a tool, named by the path the interface was given; see `install::remove_copy`.
-#[tauri::command]
-async fn remove_copy(
-    id: String,
-    path: String,
-    running: State<'_, Arc<Running>>,
-) -> Result<install::CopyRemoval, String> {
-    let tool = catalog::owner(catalog::tool(&id)?);
-    let running = Arc::clone(&running);
-    let done = blocking(move || install::remove_copy(tool, &path, &running)).await;
-    compat::forget();
-    done
-}
-
-#[tauri::command]
-async fn open_folder(id: String, kind: String, entry: Option<String>) -> Result<(), String> {
-    blocking(move || storage::open(&id, &kind, entry.as_deref())).await?
-}
-
-#[tauri::command]
-async fn store_info() -> Result<Option<archive::StoreInfo>, String> {
-    blocking(archive::info).await?
-}
-
-#[tauri::command]
-async fn store_compat() -> Result<compat::StoreCompat, String> {
-    blocking(compat::compat).await
-}
-
-#[tauri::command]
-async fn store_tables(sizes: bool) -> Result<Option<archive::TableList>, String> {
-    blocking(move || archive::tables(sizes)).await?
-}
-
-#[tauri::command]
-async fn store_check() -> Result<Option<archive::Check>, String> {
-    blocking(archive::check).await?
-}
-
-#[tauri::command]
-async fn store_backup(
-    running: State<'_, Arc<Running>>,
-    password: Option<String>,
-    on_event: Channel<backup::BackupEvent>,
-) -> Result<(), String> {
-    let running = Arc::clone(&running);
-    let password = password.map(backup::Password::new);
-    blocking(move || {
-        let send = |e: backup::BackupEvent| {
-            let _ = on_event.send(e);
-        };
-        if !running.start_unless(backup::BACKUP, |k| k == backup::RESET) {
-            return send(backup::BackupEvent::Failed { message: "A backup or a clear is already running.".into() });
-        }
-        backup::backup(password.as_ref(), &|| !running.is_running(backup::BACKUP), &send);
-        running.finish(backup::BACKUP);
-    })
-    .await
-}
-
-#[tauri::command]
-fn cancel_store_backup(running: State<'_, Arc<Running>>) {
-    running.cancel(backup::BACKUP);
-}
-
-#[tauri::command]
-async fn list_backups() -> Result<backup::Backups, String> {
-    blocking(backup::list).await?
-}
-
-#[tauri::command]
-async fn open_backups(name: Option<String>) -> Result<(), String> {
-    blocking(move || backup::open(name.as_deref())).await?
-}
-
-#[tauri::command]
-async fn store_reset_preview() -> Result<Option<backup::ResetPreview>, String> {
-    blocking(backup::reset_preview).await?
-}
-
-#[tauri::command]
-async fn store_reset(running: State<'_, Arc<Running>>) -> Result<Option<u64>, String> {
-    let running = Arc::clone(&running);
-    blocking(move || {
-        if !running.start_unless(backup::RESET, |k| k == backup::BACKUP) {
-            return Err("A backup or a clear is already running.".to_string());
-        }
-        let done = backup::reset();
-        running.finish(backup::RESET);
-        done
-    })
-    .await?
-}
-
-#[tauri::command]
-async fn detect_agents() -> Result<Vec<skills::Agent>, String> {
-    blocking(skills::agents).await
-}
-
-#[tauri::command]
-async fn skill_status(id: String) -> Result<skills::SkillReport, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || skills::status(tool)).await?
-}
-
-#[tauri::command]
-async fn skill_install(id: String, target: String) -> Result<Option<String>, String> {
-    let tool = catalog::tool(&id)?;
-    skills::validate_target(&target)?;
-    blocking(move || skills::install(tool, &target)).await?
-}
-
-#[tauri::command]
-async fn skill_show(id: String) -> Result<skills::SkillText, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || skills::show(tool)).await?
-}
-
-/// Which installed tools a terminal finds on its own PATH, by tool id. For Hermes it is the `bash -l` its gateway
-/// runs commands in, started from the gateway's own PATH; without a gateway service, a terminal's.
-#[tauri::command]
-async fn terminal_reach(agent: Option<String>) -> Result<HashMap<String, bool>, String> {
-    blocking(move || {
-        let gateway = if agent.as_deref() == Some("hermes") { chats::hermes_base_path() } else { None };
-        let gateway = gateway.and_then(|base| paths::bash_login_path(&base));
-        catalog::catalog()
-            .tools
-            .iter()
-            .filter(|t| t.part_of.is_none() && paths::find(&t.bin).is_some())
-            .map(|t| {
-                let found = match &gateway {
-                    Some(path) => paths::finds(&t.bin, path),
-                    None => paths::in_terminal(&t.bin),
-                };
-                (t.id.clone(), found)
-            })
-            .collect()
-    })
-    .await
-}
-
-/// Puts the folders of the listed installed tools on the user's PATH when a fresh terminal does not find them.
-#[tauri::command]
-async fn fix_terminal_path(ids: Vec<String>) -> Result<terminal_path::PathFix, String> {
-    blocking(move || terminal_path::fix(&ids)).await?
-}
-
-/// The shells `/etc/shells` lists that exist here, for "Which shell does your terminal run?".
-#[tauri::command]
-async fn terminal_shells() -> Result<terminal_path::ShellChoices, String> {
-    blocking(terminal_path::choices).await
-}
-
-/// Saves the shell the user picked (one of `terminal_shells`), then puts the listed tools on its PATH and checks again.
-#[tauri::command]
-async fn use_terminal_shell(shell: String, ids: Vec<String>) -> Result<terminal_path::PathFix, String> {
-    blocking(move || terminal_path::use_shell(&shell, &ids)).await?
-}
-
-#[tauri::command]
-async fn agent_chats(agent: String) -> Result<chats::Chats, String> {
-    blocking(move || chats::read(&agent)).await?
-}
-
-#[tauri::command]
-async fn mcp_registrations(agent: String) -> Result<mcp::Registrations, String> {
-    blocking(move || mcp::registrations(&agent)).await?
-}
-
-#[tauri::command]
-async fn mcp_check(id: String, profile: String) -> Result<mcp::Health, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp::check(tool, &profile)).await?
-}
-
-#[tauri::command]
-async fn mcp_add(id: String, profile: String, agent: String, allow_writes: bool) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp::add(tool, &profile, &agent, allow_writes)).await?
-}
-
-/// `profile: None` removes the bare `<bin>` entry a person may have added by hand.
-#[tauri::command]
-async fn mcp_remove(id: String, profile: Option<String>, agent: String) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp::remove(tool, profile.as_deref(), &agent)).await?
-}
-
-/// `profile` is `None` only for a tool without profiles (memo); the catalog's words say whether one is needed.
-#[tauri::command]
-async fn tailscale_status() -> Result<tailscale::Status, String> {
-    blocking(tailscale::status).await
-}
-
-#[tauri::command]
-async fn tailscale_download(
-    kind: String,
-    running: State<'_, Arc<Running>>,
-) -> Result<tailscale_install::Downloaded, String> {
-    let running = Arc::clone(&running);
-    blocking(move || {
-        let key = "tailscale-download";
-        if !running.start(key) {
-            return Err("The download is already running.".to_string());
-        }
-        let result = tailscale_install::download(&kind, &|| !running.is_running(key));
-        running.finish(key);
-        result
-    })
-    .await?
-}
-
-#[tauri::command]
-async fn tailscale_terminal(what: String) -> Result<(), String> {
-    blocking(move || terminal::open_line(&tailscale::terminal_line(&what)?)).await?
-}
-
-#[tauri::command]
-async fn tailscale_login(
-    running: State<'_, Arc<Running>>,
-    on_event: Channel<tailscale::PageEvent>,
-) -> Result<(), String> {
-    let running = Arc::clone(&running);
-    blocking(move || {
-        if !running.start(tailscale::LOGIN) {
-            return Err("The Tailscale login is already running.".to_string());
-        }
-        let result = tailscale::login(&|| !running.is_running(tailscale::LOGIN), &|e| {
-            let _ = on_event.send(e);
-        });
-        running.finish(tailscale::LOGIN);
-        result
-    })
-    .await?
-}
-
-/// Stops a waiting login or Funnel approval; whatever the person already did in the browser stays done.
-#[tauri::command]
-fn tailscale_stop(running: State<'_, Arc<Running>>) {
-    running.cancel(tailscale::LOGIN);
-    running.cancel(tailscale::FUNNEL);
-    running.cancel(funnel_helper::START);
-}
-
-#[tauri::command]
-async fn tailscale_funnel_open(
-    id: String,
-    port: u16,
-    running: State<'_, Arc<Running>>,
-    on_event: Channel<tailscale::PageEvent>,
-) -> Result<String, String> {
-    let running = Arc::clone(&running);
-    blocking(move || {
-        if !running.start(tailscale::FUNNEL) {
-            return Err("Tailscale Funnel is being set up for another server; wait for it to finish.".to_string());
-        }
-        let result = tailscale::funnel_open(&id, port, &|| !running.is_running(tailscale::FUNNEL), &|e| {
-            let _ = on_event.send(e);
-        });
-        running.finish(tailscale::FUNNEL);
-        result
-    })
-    .await?
-}
-
-/// Closes the tool's paths on both: the system's Tailscale and the app's own connection.
-#[tauri::command]
-async fn tailscale_funnel_close(id: String) -> Result<(), String> {
-    blocking(move || tailscale::funnel_close(&id).and(funnel_helper::close(&id))).await?
-}
-
-#[tauri::command]
-async fn tailscale_funnels() -> Result<Vec<tailscale::FunnelState>, String> {
-    blocking(|| {
-        let mut all = tailscale::funnels();
-        all.extend(funnel_helper::funnels());
-        all
-    })
-    .await
-}
-
-#[tauri::command]
-async fn funnel_helper_status() -> Result<funnel_helper::Status, String> {
-    blocking(funnel_helper::status).await
-}
-
-/// Starts the app's own Tailscale connection and waits for the owner in the browser; `tailscale_stop` ends the wait.
-#[tauri::command]
-async fn funnel_helper_start(
-    running: State<'_, Arc<Running>>,
-    on_event: Channel<tailscale::PageEvent>,
-) -> Result<funnel_helper::Status, String> {
-    let running = Arc::clone(&running);
-    blocking(move || {
-        if !running.start(funnel_helper::START) {
-            return Err("WireCat's Tailscale connection is already starting.".to_string());
-        }
-        let result = funnel_helper::start(&|| !running.is_running(funnel_helper::START), &|e| {
-            let _ = on_event.send(e);
-        });
-        running.finish(funnel_helper::START);
-        result
-    })
-    .await?
-}
-
-#[tauri::command]
-async fn funnel_helper_open(id: String, port: u16) -> Result<String, String> {
-    blocking(move || funnel_helper::open(&id, port)).await?
-}
-
-#[tauri::command]
-async fn cloudflare_status() -> Result<cloudflare::Status, String> {
-    blocking(cloudflare::status).await
-}
-
-/// Downloads cloudflared's own release into the app's folder; its version comes back.
-#[tauri::command]
-async fn cloudflare_install(running: State<'_, Arc<Running>>) -> Result<String, String> {
-    let running = Arc::clone(&running);
-    blocking(move || {
-        if !running.start(cloudflare::INSTALL) {
-            return Err("The download is already running.".to_string());
-        }
-        let result = cloudflare::install(&|| !running.is_running(cloudflare::INSTALL));
-        running.finish(cloudflare::INSTALL);
-        result
-    })
-    .await?
-}
-
-#[tauri::command]
-async fn cloudflare_login(
-    running: State<'_, Arc<Running>>,
-    on_event: Channel<cloudflare::PageEvent>,
-) -> Result<(), String> {
-    let running = Arc::clone(&running);
-    blocking(move || {
-        if !running.start(cloudflare::LOGIN) {
-            return Err("The Cloudflare login is already running.".to_string());
-        }
-        let result = cloudflare::login(&|| !running.is_running(cloudflare::LOGIN), &|e| {
-            let _ = on_event.send(e);
-        });
-        running.finish(cloudflare::LOGIN);
-        result
-    })
-    .await?
-}
-
-/// Stops a waiting login or download; whatever the person already did in the browser stays done.
-#[tauri::command]
-fn cloudflare_stop(running: State<'_, Arc<Running>>) {
-    running.cancel(cloudflare::LOGIN);
-    running.cancel(cloudflare::INSTALL);
-}
-
-#[tauri::command]
-async fn cloudflare_create(hostname: String) -> Result<String, String> {
-    blocking(move || cloudflare::create(&hostname)).await?
-}
-
-#[tauri::command]
-async fn cloudflare_tunnel_open(id: String, port: u16) -> Result<String, String> {
-    blocking(move || cloudflare::open(&id, port)).await?
-}
-
-#[tauri::command]
-async fn cloudflare_tunnel_close(id: String) -> Result<(), String> {
-    blocking(move || cloudflare::close(&id)).await?
-}
-
-#[tauri::command]
-async fn cloudflare_routes() -> Result<Vec<cloudflare::RouteState>, String> {
-    blocking(cloudflare::routes).await
-}
-
-#[tauri::command]
-async fn background_status(id: String, profile: String) -> Result<background::Background, String> {
-    let tool = catalog::tool(&id)?;
-    catalog::validate_profile(&profile)?;
-    blocking(move || background::status(tool, &profile)).await?
-}
-
-#[tauri::command]
-async fn background_keep(id: String, profile: String) -> Result<background::Background, String> {
-    let tool = catalog::tool(&id)?;
-    catalog::validate_profile(&profile)?;
-    blocking(move || background::keep(tool, &profile)).await?
-}
-
-#[tauri::command]
-async fn mcp_server_status(id: String) -> Result<mcp_server::ServerStatus, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp_server::status(tool)).await?
-}
-
-#[tauri::command]
-async fn mcp_server_start(id: String, port: u16, url: String) -> Result<mcp_server::ServerStatus, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp_server::start(tool, port, &url)).await?
-}
-
-#[tauri::command]
-async fn mcp_server_stop(id: String) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp_server::stop(tool)).await?
-}
-
-#[tauri::command]
-async fn mcp_server_revoke(id: String) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp_server::revoke(tool)).await?
-}
-
-#[tauri::command]
-async fn mcp_server_oauth(id: String) -> Result<mcp_server::OAuthSettings, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp_server::oauth(tool)).await?
-}
-
-#[tauri::command]
-async fn mcp_server_public(id: String) -> Result<public_address::PublicCheck, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp_server::public(tool)).await?
-}
-
-#[tauri::command]
-async fn mcp_server_config(id: String) -> Result<String, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp_server::config(tool)).await?
-}
-
-#[tauri::command]
-async fn task_claims(id: String, profile: String) -> Result<tasks::Claims, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || tasks::claims(tool, &profile)).await?
-}
-
-#[tauri::command]
-async fn task_release(id: String, profile: String, task: String) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || tasks::release(tool, &profile, &task)).await?
-}
-
-#[tauri::command]
-async fn memory_read() -> Result<memory::Read, String> {
-    blocking(memory::read).await?
-}
-
-#[tauri::command]
-async fn memory_sources(reference: String) -> Result<Vec<memory::Source>, String> {
-    blocking(move || memory::sources(&reference)).await?
-}
-
-#[tauri::command]
-async fn memory_confirm(reference: String, accept: Option<Vec<String>>) -> Result<memory::Entry, String> {
-    blocking(move || memory::confirm(&reference, accept.as_deref())).await?
-}
-
-#[tauri::command]
-async fn memory_discard(reference: String) -> Result<memory::Entry, String> {
-    blocking(move || memory::discard(&reference)).await?
-}
-
-#[tauri::command]
-async fn memory_correct(reference: String, text: String) -> Result<memory::Entry, String> {
-    blocking(move || memory::correct(&reference, &text)).await?
-}
-
-#[tauri::command]
-async fn memory_forget(reference: String) -> Result<memory::Forgot, String> {
-    blocking(move || memory::forget(&reference)).await?
-}
-
-#[tauri::command]
-async fn memory_source_context(reference: String) -> Result<memory::Context, String> {
-    blocking(move || memory::context(&reference)).await?
-}
-
-#[tauri::command]
-async fn memory_open_source(reference: String) -> Result<(), String> {
-    blocking(move || memory::open_source(&reference)).await?
-}
-
-#[tauri::command]
-async fn task_list(query: String) -> Result<task_board::Read, String> {
-    blocking(move || task_board::list(&query)).await?
-}
-
-#[tauri::command]
-async fn task_counts(query: String) -> Result<task_board::Counts, String> {
-    blocking(move || task_board::counts(&query)).await?
-}
-
-#[tauri::command]
-async fn task_show(key: String) -> Result<task_board::Task, String> {
-    blocking(move || task_board::show(&key)).await?
-}
-
-#[tauri::command]
-async fn task_history(key: String) -> Result<Vec<task_board::Event>, String> {
-    blocking(move || task_board::history(&key)).await?
-}
-
-#[tauri::command]
-async fn task_create(task: task_board::New) -> Result<task_board::Write, String> {
-    blocking(move || task_board::create(&task)).await?
-}
-
-#[tauri::command]
-async fn task_update(key: String, revision: u64, edit: task_board::Edit) -> Result<task_board::Write, String> {
-    blocking(move || task_board::update(&key, revision, &edit)).await?
-}
-
-#[tauri::command]
-async fn task_move(key: String, revision: u64, place: task_board::Place) -> Result<task_board::Write, String> {
-    blocking(move || task_board::move_task(&key, revision, &place)).await?
-}
-
-#[tauri::command]
-async fn task_assign(key: String, revision: u64, person: Option<String>) -> Result<task_board::Write, String> {
-    blocking(move || task_board::assign(&key, revision, person.as_deref())).await?
-}
-
-#[tauri::command]
-async fn task_comments(key: String) -> Result<Vec<task_board::Comment>, String> {
-    blocking(move || task_board::comments(&key)).await?
-}
-
-#[tauri::command]
-async fn task_comment_add(key: String, text: String) -> Result<task_board::Comment, String> {
-    blocking(move || task_board::comment_add(&key, &text)).await?
-}
-
-#[tauri::command]
-async fn people_list() -> Result<Vec<task_board::Person>, String> {
-    blocking(task_board::people).await?
-}
-
-#[tauri::command]
-async fn person_add(name: String) -> Result<task_board::Person, String> {
-    blocking(move || task_board::person_add(&name)).await?
-}
-
-#[tauri::command]
-async fn project_list() -> Result<Vec<task_board::Project>, String> {
-    blocking(task_board::projects).await?
-}
-
-#[tauri::command]
-async fn list_runs(id: String, query: Option<String>, limit: u32, page: u32) -> Result<serde_json::Value, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || runs::list(tool, query.as_deref(), limit, page)).await?
-}
-
-#[tauri::command]
-async fn search_store(
-    id: String,
-    profile: Option<String>,
-    query: String,
-    limit: u32,
-    page: u32,
-) -> Result<search::Answer, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || search::search(tool, profile.as_deref(), &query, limit, page)).await?
-}
-
-#[tauri::command]
-async fn message_stats(
-    id: String,
-    profile: String,
-    ask: analytics::Ask,
-    timezone: String,
-) -> Result<analytics::Counts, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || analytics::messages(tool, &profile, ask, &timezone)).await?
-}
-
-#[tauri::command]
-async fn analytics_aggregate(
-    id: String,
-    which: String,
-    profile: Option<String>,
-    period: analytics::Period,
-    timezone: String,
-) -> Result<analytics::Aggregate, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || analytics::aggregate(tool, &which, profile.as_deref(), period, &timezone)).await?
-}
-
-#[tauri::command]
-async fn search_context(id: String, profile: Option<String>, reference: String) -> Result<search::Context, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || search::context(tool, profile.as_deref(), &reference)).await?
-}
-
-#[tauri::command]
-async fn search_draft(id: String, request: String) -> Result<query_writer::Draft, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || query_writer::write(tool, &request)).await?
-}
-
-#[tauri::command]
-async fn search_values(id: String, profile: Option<String>, source: String) -> Result<Vec<search::ValueItem>, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || search::values(tool, profile.as_deref(), &source)).await?
-}
-
-#[tauri::command]
-async fn show_run(id: String, run: String) -> Result<serde_json::Value, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || runs::show(tool, &run)).await?
-}
-
-#[tauri::command]
-async fn settings_show(id: String, profile: Option<String>) -> Result<settings::Settings, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || settings::show(tool, profile.as_deref())).await?
-}
-
-/// `profile: None` with `defaults` changes what every profile gets.
-#[tauri::command]
-async fn settings_set(
-    id: String,
-    profile: Option<String>,
-    defaults: bool,
-    setting: String,
-    value: String,
-) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || settings::set(tool, profile.as_deref(), defaults, &setting, &value)).await?
-}
-
-#[tauri::command]
-async fn settings_unset(id: String, profile: Option<String>, defaults: bool, setting: String) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || settings::unset(tool, profile.as_deref(), defaults, &setting)).await?
-}
-
-/// Saving goes through `settings_set` / `settings_unset` with a `permissions.<key>` setting.
-#[tauri::command]
-async fn permissions_show(id: String, profile: Option<String>) -> Result<permissions::Permissions, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || permissions::show(tool, profile.as_deref())).await?
-}
-
-#[tauri::command]
-async fn report_context() -> Result<report::Context, String> {
-    blocking(report::context).await
-}
-
-#[tauri::command]
-async fn send_report(draft: report::Draft, context: report::Context) -> Result<report::Sent, String> {
-    blocking(move || report::send(draft, context)).await?
-}
-
-#[tauri::command]
-async fn notifications(app: tauri::AppHandle) -> Result<Vec<notifications::Notification>, String> {
-    let version = app.package_info().version.to_string();
-    blocking(move || notifications::fetch(&version)).await?
-}
-
-#[tauri::command]
-fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
-    // Only an install's own key: any other string would stop whatever runs under it, a sync or a backup.
-    if let Ok(tool) = catalog::tool(&id) {
-        running.cancel(&catalog::owner(tool).id);
-    }
-}
-
-#[tauri::command]
-async fn config_repair(id: String, profile: Option<String>) -> Result<config_repair::Repair, String> {
-    blocking(move || config_repair::repair(catalog::tool(&id)?, profile.as_deref())).await?
-}
-
-// Async: finding a terminal waits a moment for each one tried, and macOS waits for its Automation answer.
-#[tauri::command]
-async fn open_setup(id: String, profile: Option<String>) -> Result<(), String> {
-    blocking(move || {
-        let tool = catalog::tool(&id)?;
-        let args = tool.setup.as_ref().ok_or("this tool has no setup flow")?;
-        let args = catalog::with_profile(args, profile.as_deref())?;
-        let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
-        terminal::open(&bin, &args)
-    })
-    .await?
-}
-
-/// Signs a profile in inside the window with one of the catalog's `signIn.methods`.
-#[tauri::command]
-async fn sign_in(
-    id: String,
-    method: String,
-    profile: String,
-    inputs: Option<signin::Inputs>,
-    running: State<'_, Arc<Running>>,
-    on_event: Channel<signin::SignInEvent>,
-) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    let prepared = signin::args(tool, &method, &profile, inputs.unwrap_or_default())?;
-    let running = Arc::clone(&running);
-    blocking(move || {
-        let send = |e: signin::SignInEvent| {
-            let _ = on_event.send(e);
-        };
-        let key = signin::key(&tool.id);
-        if !running.start(&key) {
-            return send(signin::SignInEvent::Failed {
-                message: format!("A {} sign-in is still running or stopping. Try again in a few seconds.", tool.name),
-                code: None,
-            });
-        }
-        signin::run(tool, &prepared, &|| !running.is_running(&key), &send);
-        running.finish(&key);
-    })
-    .await
-}
-
-/// Connects a bot to the profile the owner named: the catalog's settings first (`WhatsApp`'s ids), then the token on
-/// the tool's stdin. The token is wiped once written and never comes back.
-#[tauri::command]
-async fn bot_sign_in(
-    id: String,
-    profile: String,
-    token: String,
-    fields: BTreeMap<String, String>,
-) -> Result<bots::BotResult, String> {
-    let token = bots::Token::new(token);
-    let tool = catalog::tool(&id)?;
-    blocking(move || bots::connect(tool, &profile, &token, &fields)).await?
-}
-
-/// Every bot name on this computer, from the tool's own `bot list`.
-#[tauri::command]
-async fn list_bots(id: String) -> Result<Vec<bots::BotProfile>, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || bots::list(tool)).await?
-}
-
-/// Hands the running sign-in the answer to its last `needs` step, on its stdin; the value is wiped after the write.
-#[tauri::command]
-fn sign_in_answer(id: String, value: String) -> Result<(), String> {
-    let value = signin::Answer::new(value);
-    signin::answer(&catalog::tool(&id)?.id, &value)
-}
-
-/// Asks the running sign-in to stop; `sign_in` answers `stopped`, or `done` when the tool kept what had come.
-#[tauri::command]
-fn sign_in_stop(id: String, running: State<'_, Arc<Running>>) -> Result<(), String> {
-    running.cancel(&signin::key(&catalog::tool(&id)?.id));
-    Ok(())
-}
-
-/// Runs the tool's own sync for the profile the owner chose; stages and the result arrive on the channel.
-#[tauri::command]
-async fn sync_run(
-    id: String,
-    profile: Option<String>,
-    running: State<'_, Arc<Running>>,
-    on_event: Channel<sync::SyncEvent>,
-) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    let args = sync::args(tool, profile.as_deref())?;
-    let running = Arc::clone(&running);
-    blocking(move || {
-        let send = |e: sync::SyncEvent| {
-            let _ = on_event.send(e);
-        };
-        let key = sync::key(tool, profile.as_deref());
-        let busy = running.busy(&catalog::owner(tool).id);
-        if busy || !running.start(&key) {
-            return send(sync::SyncEvent::Failed {
-                message: if busy {
-                    format!("{} is being installed or updated. Sync when it is done.", tool.name)
-                } else {
-                    "This sync is still running or stopping. Try again in a few seconds.".into()
-                },
-                code: None,
-                reason: Some("app.busy".into()),
-                run: None,
-                retry_after_ms: None,
-            });
-        }
-        sync::run(tool, &args, &|| !running.is_running(&key), &send);
-        running.finish(&key);
-    })
-    .await
-}
-
-/// Asks that profile's running sync to stop: SIGTERM to its process, then its group after a few seconds.
-#[tauri::command]
-fn sync_stop(id: String, profile: Option<String>, running: State<'_, Arc<Running>>) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    if let Some(p) = &profile {
-        catalog::validate_profile(p)?;
-    }
-    running.cancel(&sync::key(tool, profile.as_deref()));
-    Ok(())
-}
-
-#[tauri::command]
-async fn sync_last(id: String, profile: Option<String>) -> Result<sync::LastSync, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || sync::last(tool, profile.as_deref())).await?
-}
-
-#[tauri::command]
-fn update_kind() -> package_update::Kind {
-    package_update::current()
-}
-
-#[tauri::command]
-async fn update_download_package(
-    app: tauri::AppHandle,
-    version: String,
-    on_event: Channel<package_update::Progress>,
-) -> Result<package_update::Outcome, package_update::Failure> {
-    package_update::download(&app, &version, &on_event).await
-}
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
@@ -1065,130 +79,137 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(Arc::new(Running::default()))
+        .setup(|app| {
+            // Without a log the app still works; it says why on stderr.
+            if let Err(e) = app.path().app_log_dir().map_err(|e| e.to_string()).and_then(|dir| log::init(&dir)) {
+                eprintln!("[wirecat] no log file: {e}");
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
-            extra_tools,
-            community_status,
-            set_community_shown,
-            update_kind,
-            update_download_package,
-            readiness,
-            run_agent,
-            node_offer,
-            setup_node,
-            cancel_node_setup,
-            remove_node,
-            node_path,
-            set_node_path,
-            detect_tools,
-            latest_versions,
-            list_profiles,
-            diagnose,
-            install_tool,
-            uninstall_tool,
-            remove_copy,
-            cancel_install,
-            storage_report,
-            clear_storage,
-            open_folder,
-            store_info,
-            store_compat,
-            store_tables,
-            store_check,
-            store_backup,
-            cancel_store_backup,
-            list_backups,
-            open_backups,
-            store_reset_preview,
-            store_reset,
-            detect_agents,
-            skill_status,
-            skill_install,
-            skill_show,
-            terminal_reach,
-            fix_terminal_path,
-            terminal_shells,
-            use_terminal_shell,
-            agent_chats,
-            mcp_registrations,
-            mcp_check,
-            mcp_add,
-            mcp_remove,
-            background_status,
-            background_keep,
-            mcp_server_status,
-            mcp_server_start,
-            mcp_server_stop,
-            mcp_server_revoke,
-            mcp_server_config,
-            mcp_server_oauth,
-            mcp_server_public,
-            tailscale_status,
-            tailscale_download,
-            tailscale_terminal,
-            tailscale_login,
-            tailscale_stop,
-            tailscale_funnel_open,
-            tailscale_funnel_close,
-            tailscale_funnels,
-            funnel_helper_status,
-            funnel_helper_start,
-            funnel_helper_open,
-            cloudflare_status,
-            cloudflare_install,
-            cloudflare_login,
-            cloudflare_stop,
-            cloudflare_create,
-            cloudflare_tunnel_open,
-            cloudflare_tunnel_close,
-            cloudflare_routes,
-            task_claims,
-            task_release,
-            memory_read,
-            memory_sources,
-            memory_confirm,
-            memory_discard,
-            memory_correct,
-            memory_forget,
-            memory_source_context,
-            memory_open_source,
-            task_list,
-            task_counts,
-            task_show,
-            task_history,
-            task_create,
-            task_update,
-            task_move,
-            task_assign,
-            task_comments,
-            task_comment_add,
-            people_list,
-            person_add,
-            project_list,
-            report_context,
-            send_report,
-            notifications,
-            list_runs,
-            show_run,
-            search_store,
-            message_stats,
-            analytics_aggregate,
-            search_values,
-            search_context,
-            search_draft,
-            settings_show,
-            settings_set,
-            settings_unset,
-            permissions_show,
-            open_setup,
-            config_repair,
-            sign_in,
-            bot_sign_in,
-            list_bots,
-            sign_in_answer,
-            sign_in_stop,
-            sync_run,
-            sync_stop,
-            sync_last
+            commands::community::extra_tools,
+            commands::community::community_status,
+            commands::community::set_community_shown,
+            commands::app::readiness,
+            commands::app::report_context,
+            commands::app::send_report,
+            commands::app::notifications,
+            commands::app::update_kind,
+            commands::app::update_download_package,
+            commands::node::node_offer,
+            commands::node::setup_node,
+            commands::node::cancel_node_setup,
+            commands::node::remove_node,
+            commands::node::node_path,
+            commands::node::set_node_path,
+            commands::tools::detect_tools,
+            commands::tools::latest_versions,
+            commands::tools::list_profiles,
+            commands::tools::diagnose,
+            commands::tools::install_tool,
+            commands::tools::uninstall_tool,
+            commands::tools::remove_copy,
+            commands::tools::background_status,
+            commands::tools::background_keep,
+            commands::tools::cancel_install,
+            commands::tools::config_repair,
+            commands::tools::open_setup,
+            commands::storage::storage_report,
+            commands::storage::clear_storage,
+            commands::storage::open_folder,
+            commands::store::store_info,
+            commands::store::store_compat,
+            commands::store::store_tables,
+            commands::store::store_check,
+            commands::store::store_backup,
+            commands::store::cancel_store_backup,
+            commands::store::list_backups,
+            commands::store::open_backups,
+            commands::store::store_reset_preview,
+            commands::store::store_reset,
+            commands::agents::run_agent,
+            commands::agents::detect_agents,
+            commands::agents::skill_status,
+            commands::agents::skill_install,
+            commands::agents::skill_show,
+            commands::agents::terminal_reach,
+            commands::agents::fix_terminal_path,
+            commands::agents::terminal_shells,
+            commands::agents::use_terminal_shell,
+            commands::agents::agent_chats,
+            commands::agents::mcp_registrations,
+            commands::agents::mcp_check,
+            commands::agents::mcp_add,
+            commands::agents::mcp_remove,
+            commands::tailscale::tailscale_status,
+            commands::tailscale::tailscale_download,
+            commands::tailscale::tailscale_terminal,
+            commands::tailscale::tailscale_login,
+            commands::tailscale::tailscale_stop,
+            commands::tailscale::tailscale_funnel_open,
+            commands::tailscale::tailscale_funnel_close,
+            commands::tailscale::tailscale_funnels,
+            commands::tailscale::funnel_helper_status,
+            commands::tailscale::funnel_helper_start,
+            commands::tailscale::funnel_helper_open,
+            commands::cloudflare::cloudflare_status,
+            commands::cloudflare::cloudflare_install,
+            commands::cloudflare::cloudflare_login,
+            commands::cloudflare::cloudflare_stop,
+            commands::cloudflare::cloudflare_create,
+            commands::cloudflare::cloudflare_tunnel_open,
+            commands::cloudflare::cloudflare_tunnel_close,
+            commands::cloudflare::cloudflare_routes,
+            commands::mcp_server::mcp_server_status,
+            commands::mcp_server::mcp_server_start,
+            commands::mcp_server::mcp_server_stop,
+            commands::mcp_server::mcp_server_revoke,
+            commands::mcp_server::mcp_server_oauth,
+            commands::mcp_server::mcp_server_public,
+            commands::mcp_server::mcp_server_config,
+            commands::tasks::task_claims,
+            commands::tasks::task_release,
+            commands::tasks::task_list,
+            commands::tasks::task_counts,
+            commands::tasks::task_show,
+            commands::tasks::task_history,
+            commands::tasks::task_create,
+            commands::tasks::task_update,
+            commands::tasks::task_move,
+            commands::tasks::task_assign,
+            commands::tasks::task_comments,
+            commands::tasks::task_comment_add,
+            commands::tasks::people_list,
+            commands::tasks::person_add,
+            commands::tasks::project_list,
+            commands::memory::memory_read,
+            commands::memory::memory_sources,
+            commands::memory::memory_confirm,
+            commands::memory::memory_discard,
+            commands::memory::memory_correct,
+            commands::memory::memory_forget,
+            commands::memory::memory_source_context,
+            commands::memory::memory_open_source,
+            commands::search::list_runs,
+            commands::search::search_store,
+            commands::search::message_stats,
+            commands::search::analytics_aggregate,
+            commands::search::search_context,
+            commands::search::search_draft,
+            commands::search::search_values,
+            commands::search::show_run,
+            commands::settings::settings_show,
+            commands::settings::settings_set,
+            commands::settings::settings_unset,
+            commands::settings::permissions_show,
+            commands::signin::sign_in,
+            commands::signin::bot_sign_in,
+            commands::signin::list_bots,
+            commands::signin::sign_in_answer,
+            commands::signin::sign_in_stop,
+            commands::sync::sync_run,
+            commands::sync::sync_stop,
+            commands::sync::sync_last
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

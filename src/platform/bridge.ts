@@ -1,4 +1,4 @@
-import { Channel, invoke } from "@tauri-apps/api/core"
+import { Channel, type InvokeArgs, invoke as tauriInvoke } from "@tauri-apps/api/core"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { relaunch } from "@tauri-apps/plugin-process"
@@ -23,6 +23,7 @@ import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema }
 import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
 import { BotProfilesSchema, BotResultSchema } from "./bot-schemas"
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
+import { commandError } from "./command-error"
 import { CommunityStatusSchema, ExtraToolsSchema } from "./community-schemas"
 import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
 import {
@@ -83,6 +84,14 @@ function pages(onPage: (url: string) => void) {
     if (parsed.success) onPage(parsed.output.url)
   }
   return channel
+}
+
+async function invoke<T>(cmd: string, args?: InvokeArgs): Promise<T> {
+  try {
+    return await tauriInvoke<T>(cmd, args)
+  } catch (e) {
+    throw commandError(e)
+  }
 }
 
 const call = async <S extends v.GenericSchema>(schema: S, cmd: string, args?: Record<string, unknown>) =>

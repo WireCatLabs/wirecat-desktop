@@ -181,9 +181,11 @@ pub fn run(
 /// `run`, for a `command()` the caller adjusted first.
 pub fn run_command(cmd: Command, timeout: Duration) -> Result<Output, RunError> {
     let started = Instant::now();
-    let name = Path::new(cmd.get_program()).file_name().unwrap_or_default().to_string_lossy().into_owned();
+    let program = cmd.get_program().to_owned();
+    let name = Path::new(&program).file_name().unwrap_or_default().to_string_lossy().into_owned();
     let args = cmd.get_args().len();
     let result = run_inner(cmd, timeout);
+    crate::log::program(&program, started, &outcome(result.as_ref().map(|o| o.code)));
     if timing() {
         eprintln!("[wirecat timing] {name} ({args} args) {} ms", started.elapsed().as_millis());
     }
@@ -259,6 +261,33 @@ enum Stdin<'a> {
 }
 
 fn stream_inner(
+    cmd: Command,
+    input: Stdin<'_>,
+    timeout: Duration,
+    cancelled: impl Fn() -> bool,
+    grace: Option<Duration>,
+    on_line: impl FnMut(Line),
+) -> Result<Option<i32>, RunError> {
+    let started = Instant::now();
+    let program = cmd.get_program().to_owned();
+    let result = stream_lines(cmd, input, timeout, cancelled, grace, on_line);
+    crate::log::program(&program, started, &outcome(result.as_ref().copied()));
+    result
+}
+
+fn outcome(result: Result<Option<i32>, &RunError>) -> String {
+    match result {
+        Ok(Some(code)) => format!("exit:{code}"),
+        Ok(None) => "signal".into(),
+        Err(RunError::TimedOut) => "timeout".into(),
+        Err(RunError::Cancelled) => "cancelled".into(),
+        Err(RunError::NotFound) => "not_found".into(),
+        Err(RunError::Permission) => "permission".into(),
+        Err(RunError::Other(_)) => "failed".into(),
+    }
+}
+
+fn stream_lines(
     mut cmd: Command,
     input: Stdin<'_>,
     timeout: Duration,
