@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
 import { useMessages } from "@/i18n"
 import { ReportThis } from "@/shared/ReportThis"
+import { useSystem } from "@/shared/system-store"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { systemMessages } from "./messages"
 import { useNode } from "./node-store"
-import { useSystem } from "./store"
 
 /** The PATH offer for the Node.js WireCat set up, and, outside the banner, removing it. */
 export function ManagedNode({ compact = false }: { compact?: boolean }) {

@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it } from "vitest"
 import { findTool } from "@/domain/catalog"
 import type { InstallSession } from "@/domain/status"
+import { useAgents } from "@/shared/agents-store"
 import { useNav } from "@/shared/nav"
-import { useAgents } from "../agents/store"
-import { useTools } from "./store"
+import { useTools } from "@/shared/tools-store"
 import { ToolRow } from "./ToolRow"
 
 const done = (version: string): InstallSession => ({

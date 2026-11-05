@@ -1,11 +1,11 @@
 import { findTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
+import { useCompat } from "@/shared/compat-store"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
-import { useCompat } from "./compat-store"
 import { toolsMessages } from "./messages"
 import { namesOf, useUpdatable } from "./StorageFit"
-import { useTools } from "./store"
 
 /** After an install that will move storage past what other installed tools read, before that tool next runs. */
 export function UpgradeWarning() {

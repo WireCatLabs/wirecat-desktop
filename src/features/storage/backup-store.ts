@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import type { BackupFile, Backups, ResetPreview } from "@/platform/backup-schemas"
 import { platform } from "@/platform/bridge"
-import { useStorage } from "./store"
+import { useStorage } from "@/shared/storage-store"
 
 export type Progress = { step: "starting" | "copying" | "compressing" | "encrypting"; done: number; total: number }
 /** A failed clear: the backup before it did not finish, or what the tool answered. */

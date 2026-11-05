@@ -1,9 +1,9 @@
 import { BookOpenText, CircleHelp, Compass, Cpu, ExternalLink, Info, ShieldCheck, Sparkles } from "lucide-react"
 import { type KeyboardEvent, useCallback, useEffect, useId, useRef } from "react"
 import { create } from "zustand"
-import { ComputerFacts, ManagedNodeDialog, useComputerTrouble } from "@/features/system/ComputerFacts"
-import { useSystem } from "@/features/system/store"
+import { ComputerFacts, ManagedNodeDialog, useComputerTrouble } from "@/features/system"
 import { useMessages } from "@/i18n"
+import { useSystem } from "@/shared/system-store"
 import { cx } from "@/ui/cx"
 import { onboardingMessages } from "./messages"
 

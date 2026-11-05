@@ -5,9 +5,9 @@ import { App } from "@/app/App"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { InstallEvent } from "@/platform/schemas"
-import { useSystem } from "../system/store"
-import { useTools } from "../tools/store"
-import { useOnboarding } from "./store"
+import { useOnboarding } from "@/shared/onboarding-store"
+import { useSystem } from "@/shared/system-store"
+import { useTools } from "@/shared/tools-store"
 
 const absent = { path: null, version: null, ok: false, problem: "not found" }
 const noNode = {

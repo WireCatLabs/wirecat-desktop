@@ -14,16 +14,16 @@ import {
 import { type CatalogTool, findTool } from "@/domain/catalog"
 import { agentName } from "@/domain/runs"
 import { cellAction, type SkillCell, type SkillTarget } from "@/domain/skills"
+import { useLogs } from "@/features/logs"
 import { useMessages } from "@/i18n"
 import type { Agent } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
-import { useLogs } from "../logs/store"
-import { useTools } from "../tools/store"
+import { useAgents } from "@/shared/agents-store"
+import { useTools } from "@/shared/tools-store"
 import type { AgentClaim } from "./ClaimRow"
 import { useConnect } from "./connect"
 import { type AgentsMessages, agentsMessages } from "./messages"
 import { useSkillMatrix } from "./skill-matrix"
-import { useAgents } from "./store"
 
 // An agent is served by its best copy across the folders it reads.
 const PREFER: SkillCell["kind"][] = [

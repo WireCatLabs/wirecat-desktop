@@ -2,10 +2,10 @@ import { X } from "lucide-react"
 import { useState } from "react"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
+import { useOnboarding } from "@/shared/onboarding-store"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
-import { useOnboarding } from "../onboarding/store"
 import { toolsMessages } from "./messages"
-import { useTools } from "./store"
 
 const KEY = "wirecat.tools.intro"
 

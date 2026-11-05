@@ -3,8 +3,8 @@ import { useEffect } from "react"
 import { useMessages } from "@/i18n"
 import type { Agent, AgentRun } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
+import { useAgents } from "@/shared/agents-store"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { useAgents } from "../agents/store"
 import { fixMessages } from "./messages"
 
 /** The agents `run_agent` can start with a prompt, and the program each runs; Rust holds the same list. */

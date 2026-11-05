@@ -3,7 +3,7 @@ import { findTool, ownerId, runTool, tools } from "@/domain/catalog"
 import { cliCommand, NO_COMMAND_HIDDEN, type RangeId, type Run } from "@/domain/runs"
 import { platform } from "@/platform/bridge"
 import type { RunDetail, RunItem } from "@/platform/runs-schemas"
-import { useTools } from "../tools/store"
+import { useTools } from "@/shared/tools-store"
 
 /** Runs fetched per tool and page: about a month of a busy tool's failures. */
 export const PAGE = 500

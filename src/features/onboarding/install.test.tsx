@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { useTools } from "@/shared/tools-store"
 import {
   agent,
   currentStep,
@@ -18,7 +19,6 @@ import {
 } from "@/testing/onboarding"
 import { MOTION } from "@/ui/motion"
 import { failureWordsEn } from "../tools/failure-words"
-import { useTools } from "../tools/store"
 import { InstallTips } from "./InstallWait"
 
 vi.mock("@/platform/mock-delay", () => ({ delay: () => new Promise((r) => setTimeout(r, 0)) }))

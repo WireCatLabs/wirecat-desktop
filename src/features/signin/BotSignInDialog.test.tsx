@@ -3,9 +3,9 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
+import { useBotSignIn } from "@/shared/bot-signin-store"
 import { BotList } from "../tools/BotList"
 import { BotSignInDialog } from "./BotSignInDialog"
-import { useBotSignIn } from "./bot-store"
 
 const TOKEN = "12345:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw"
 

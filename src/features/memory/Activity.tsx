@@ -1,10 +1,10 @@
 import { termText } from "@/domain/runs"
+import { useLogs } from "@/features/logs"
 import { useLang, useMessages } from "@/i18n"
 import type { AgentCall } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
-import { useLogs } from "../logs/store"
 import { dayLabel, timeOf } from "./labels"
 import { memoryMessages } from "./messages"
 

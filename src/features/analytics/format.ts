@@ -1,8 +1,8 @@
 import type { Grain } from "@/domain/analytics"
 import { providerName } from "@/domain/archive"
 import { findTool } from "@/domain/catalog"
+import { storageMessages } from "@/features/storage"
 import { formatDate, useMessages } from "@/i18n"
-import { storageMessages } from "../storage/messages"
 
 /** Each source keeps its hue whatever is filtered or missing, so a reader who learned "Telegram is blue" stays right. */
 const COLORS: Record<string, string> = {

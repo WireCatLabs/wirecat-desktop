@@ -13,18 +13,16 @@ import {
 import { type ComponentType, type LazyExoticComponent, lazy, type SVGProps } from "react"
 
 // Each page is its own chunk: the first screen does not pay for the other nine.
-const AgentsPage = lazy(() => import("@/features/agents/AgentsPage").then((m) => ({ default: m.AgentsPage })))
-const AnalyticsPage = lazy(() =>
-  import("@/features/analytics/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })),
-)
-const ConfigPage = lazy(() => import("@/features/config/ConfigPage").then((m) => ({ default: m.ConfigPage })))
-const GuidesPage = lazy(() => import("@/features/guides/GuidesPage").then((m) => ({ default: m.GuidesPage })))
-const LogsPage = lazy(() => import("@/features/logs/LogsPage").then((m) => ({ default: m.LogsPage })))
-const MemoryPage = lazy(() => import("@/features/memory/MemoryPage").then((m) => ({ default: m.MemoryPage })))
-const SearchPage = lazy(() => import("@/features/search/SearchPage").then((m) => ({ default: m.SearchPage })))
-const StoragePage = lazy(() => import("@/features/storage/StoragePage").then((m) => ({ default: m.StoragePage })))
-const TasksPage = lazy(() => import("@/features/tasks/TasksPage").then((m) => ({ default: m.TasksPage })))
-const ToolsPage = lazy(() => import("@/features/tools/ToolsPage").then((m) => ({ default: m.ToolsPage })))
+const AgentsPage = lazy(() => import("@/features/agents/page").then((m) => ({ default: m.AgentsPage })))
+const AnalyticsPage = lazy(() => import("@/features/analytics/page").then((m) => ({ default: m.AnalyticsPage })))
+const ConfigPage = lazy(() => import("@/features/config/page").then((m) => ({ default: m.ConfigPage })))
+const GuidesPage = lazy(() => import("@/features/guides/page").then((m) => ({ default: m.GuidesPage })))
+const LogsPage = lazy(() => import("@/features/logs/page").then((m) => ({ default: m.LogsPage })))
+const MemoryPage = lazy(() => import("@/features/memory/page").then((m) => ({ default: m.MemoryPage })))
+const SearchPage = lazy(() => import("@/features/search/page").then((m) => ({ default: m.SearchPage })))
+const StoragePage = lazy(() => import("@/features/storage/page").then((m) => ({ default: m.StoragePage })))
+const TasksPage = lazy(() => import("@/features/tasks/page").then((m) => ({ default: m.TasksPage })))
+const ToolsPage = lazy(() => import("@/features/tools/page").then((m) => ({ default: m.ToolsPage })))
 
 export type Section = {
   id: string

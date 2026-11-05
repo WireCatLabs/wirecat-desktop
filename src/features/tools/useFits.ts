@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { type Fit, fits, storeFile } from "@/domain/compat"
-import { installedOf, useCompat } from "./compat-store"
-import { useTools } from "./store"
+import { installedOf, useCompat } from "@/shared/compat-store"
+import { useTools } from "@/shared/tools-store"
 
 /** Keyed by package owner: Email's fit is Memo's. `undefined` until the tools have answered. */
 export function useFits(): { all: Record<string, Fit>; schema: number | null } | undefined {

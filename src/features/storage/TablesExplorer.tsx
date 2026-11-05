@@ -7,6 +7,8 @@ import { groupOf, TABLE_GROUPS, type TableGroup } from "@/domain/table-groups"
 import { formatNumber, useMessages } from "@/i18n"
 import type { Table } from "@/platform/archive-schemas"
 import { ReportThis } from "@/shared/ReportThis"
+import { useStorage } from "@/shared/storage-store"
+import { useElapsed } from "@/shared/use-elapsed"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -15,8 +17,6 @@ import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { storageMessages } from "./messages"
-import { useStorage } from "./store"
-import { useElapsed } from "./useElapsed"
 
 const COLUMNS: { key: TableSort["key"]; numeric: boolean }[] = [
   { key: "name", numeric: false },

@@ -3,12 +3,12 @@ import { FUNNEL_HELPER } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { FunnelHelperStatus } from "@/platform/tailscale-schemas"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { InstallProgress } from "./InstallProgress"
 import { helperMessages } from "./messages-helper"
-import { useTools } from "./store"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 

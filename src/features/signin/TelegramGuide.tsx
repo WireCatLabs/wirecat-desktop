@@ -7,6 +7,7 @@ import type { KeyringFallback } from "@/domain/signin-notes"
 import { isTelegramAppsUrl, type KeyHint, MY_TELEGRAM, type TelegramFailure, waitParts } from "@/domain/telegram-signin"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import type { OpenUrl } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
@@ -16,7 +17,6 @@ import { Disclosure } from "@/ui/Disclosure"
 import { Segmented } from "@/ui/Segmented"
 import { signinMessages } from "./messages"
 import { type PhoneOs, telegramMessages } from "./messages-telegram"
-import type { OpenUrl } from "./store"
 
 export { MY_TELEGRAM }
 

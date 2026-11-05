@@ -11,7 +11,13 @@ import {
   skipTarget,
   stepIndex,
 } from "@/domain/onboarding-flow"
+import { AgentsMatrix, useSkillMatrix } from "@/features/agents"
+import { useNode } from "@/features/system"
+import { StillInstalling, useUnfinishedInstalls } from "@/features/tools"
 import { useMessages } from "@/i18n"
+import { STEPS, type StepId, useOnboarding } from "@/shared/onboarding-store"
+import { useSystem } from "@/shared/system-store"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
@@ -19,15 +25,8 @@ import { Logo } from "@/ui/Logo"
 import { uiMessages } from "@/ui/messages"
 import { leaveBehind, reducedMotion, useLastChildren } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
-import { AgentsMatrix } from "../agents/AgentsMatrix"
-import { useSkillMatrix } from "../agents/skill-matrix"
-import { useNode } from "../system/node-store"
-import { useSystem } from "../system/store"
-import { StillInstalling, useUnfinishedInstalls } from "../tools/InstallProgress"
-import { useTools } from "../tools/store"
 import { type OnboardingText, onboardingMessages } from "./messages"
 import { Agents, Choose, Computer, Done, Install, installChosen, leave, SignIn, Welcome } from "./steps"
-import { STEPS, type StepId, useOnboarding } from "./store"
 
 const bodies: Record<StepId, ComponentType> = {
   welcome: Welcome,

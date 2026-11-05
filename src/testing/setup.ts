@@ -23,7 +23,7 @@ vi.mock("zustand", async (importOriginal) => {
 // A fresh store resumes the setup from the computer's state; a test that wants that asks for it (`resumeOnboarding`).
 beforeEach(async () => {
   resetStores()
-  const { useOnboarding } = await import("@/features/onboarding/store")
+  const { useOnboarding } = await import("@/shared/onboarding-store")
   useOnboarding.setState({ resuming: false })
 })
 

@@ -5,12 +5,12 @@ import { formatBytes } from "@/domain/format"
 import { formatDate, formatNumber, useMessages } from "@/i18n"
 import type { StoreInfo } from "@/platform/archive-schemas"
 import { ReportThis } from "@/shared/ReportThis"
+import { useStorage } from "@/shared/storage-store"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { DatabaseFacts, DatabaseFactsSkeleton } from "./DatabaseFacts"
 import { storageMessages } from "./messages"
-import { useStorage } from "./store"
 import { TablesExplorer, TablesSkeleton } from "./TablesExplorer"
 
 export function ArchiveSummary() {

@@ -1,6 +1,6 @@
 import { useNav } from "@/shared/nav"
+import { useTools } from "@/shared/tools-store"
 import { keep } from "./kept"
-import { useTools } from "./store"
 
 /** Takes the owner to a tool's Manage panel on the Tools page, wherever they are. */
 export function openTool(id: string) {

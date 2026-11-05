@@ -1,6 +1,6 @@
 import { useEffect } from "react"
-import { useOnboarding } from "@/features/onboarding/store"
-import { useSystem } from "@/features/system/store"
+import { useOnboarding } from "@/shared/onboarding-store"
+import { useSystem } from "@/shared/system-store"
 import { reducedMotion } from "@/ui/motion"
 
 /** A slow or hung first check must not hold the window on the boot screen; the pages have their own skeletons. */

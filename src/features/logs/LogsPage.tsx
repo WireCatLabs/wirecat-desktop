@@ -22,6 +22,7 @@ import {
   withConversations,
   withZeros,
 } from "@/domain/runs"
+import { QueryBar } from "@/features/query"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
@@ -32,7 +33,6 @@ import { Lamp } from "@/ui/Lamp"
 import { reducedMotion } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { Skeleton, StableText } from "@/ui/Skeleton"
-import { QueryBar } from "../query/QueryBar"
 import { Facets } from "./Facets"
 import { Groups } from "./Groups"
 import { LogSettings, settingsTone } from "./LogSettings"

@@ -1,6 +1,6 @@
 import { RotateCcw } from "lucide-react"
 import { Component, type ErrorInfo, type ReactNode } from "react"
-import { ReportDialog } from "@/features/report/ReportDialog"
+import { ReportDialog } from "@/features/report"
 import { messagesOf } from "@/i18n"
 import { recordError } from "@/shared/errors"
 import { ReportThis } from "@/shared/ReportThis"

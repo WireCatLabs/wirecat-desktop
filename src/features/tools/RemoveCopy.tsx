@@ -4,13 +4,13 @@ import { type CatalogTool, removeCommand } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CopyRemoval, ToolState } from "@/platform/schemas"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { copiesMessages } from "./messages-copies"
-import { useTools } from "./store"
 
 export type Copy = ToolState["installs"][number]
 

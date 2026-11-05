@@ -6,6 +6,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Readiness } from "@/platform/schemas"
 import { ReportThis } from "@/shared/ReportThis"
+import { useSystem } from "@/shared/system-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
@@ -16,7 +17,6 @@ import { Stepper, type StepState } from "@/ui/Stepper"
 import { ManagedNode } from "./ManagedNode"
 import { systemMessages } from "./messages"
 import { type NodeStep, useNode } from "./node-store"
-import { useSystem } from "./store"
 
 const STEPS: readonly NodeStep[] = ["check", "download", "verify", "unpack", "path"]
 

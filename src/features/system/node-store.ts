@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
 import type { NodeEvent, NodeOffer, NodePath } from "@/platform/schemas"
-import { useSystem } from "./store"
+import { useSystem } from "@/shared/system-store"
 
 export type NodeStep = Extract<NodeEvent, { event: "step" }>["step"]
 type Failure = Extract<NodeEvent, { event: "failed" }>

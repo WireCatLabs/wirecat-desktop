@@ -1,11 +1,11 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { useAgents } from "@/features/agents/store"
-import { useOnboarding } from "@/features/onboarding/store"
-import { useTools } from "@/features/tools/store"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useAgents } from "@/shared/agents-store"
+import { useOnboarding } from "@/shared/onboarding-store"
+import { useTools } from "@/shared/tools-store"
 import { App } from "./App"
 
 const stored = () => JSON.parse(localStorage.getItem("wirecat.onboarding") ?? "{}").state?.status

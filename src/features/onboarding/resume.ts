@@ -1,13 +1,13 @@
 import { tools } from "@/domain/catalog"
 import { accountReady, computerGate, type Progress, resumeAt, skillInPlace } from "@/domain/onboarding-flow"
 import { skillCell, skillColumns } from "@/domain/skills"
+import { useNode } from "@/features/system"
 import { platform } from "@/platform/bridge"
+import { useAgents } from "@/shared/agents-store"
 import { HOME_SECTION, useNav } from "@/shared/nav"
-import { useAgents } from "../agents/store"
-import { useNode } from "../system/node-store"
-import { useSystem } from "../system/store"
-import { useTools } from "../tools/store"
-import { useOnboarding } from "./store"
+import { useOnboarding } from "@/shared/onboarding-store"
+import { useSystem } from "@/shared/system-store"
+import { useTools } from "@/shared/tools-store"
 
 const signsIn = (t: (typeof tools)[number]) => Boolean(t.setup || t.signIn?.command)
 

@@ -12,12 +12,33 @@ import {
 } from "@/domain/catalog"
 import { accountReady, afterSignIn } from "@/domain/onboarding-flow"
 import { type InstallSession, toolStatus } from "@/domain/status"
+import { FixButton, FixPanel } from "@/features/fix"
+import { NodeNotice } from "@/features/system"
+import {
+  failureWords,
+  failureWordsEn,
+  InstallLine,
+  InstallProgress,
+  ManualSetup,
+  NewProfile,
+  openConnect,
+  TerminalStatus,
+  toolsMessages,
+  toolText,
+  useFailureMessages,
+  useProfiles,
+  useTerminal,
+} from "@/features/tools"
 import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import { useNav } from "@/shared/nav"
+import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
+import { useSignIn } from "@/shared/signin-store"
+import { useSystem } from "@/shared/system-store"
 import { ToolIcon } from "@/shared/ToolIcon"
+import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
@@ -30,21 +51,8 @@ import { Lamp, type LampTone } from "@/ui/Lamp"
 import { MOTION, useLinger, usePaced } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton, StableText } from "@/ui/Skeleton"
-import { FixButton, FixPanel } from "../fix/AgentFix"
-import { useSignIn } from "../signin/store"
-import { NodeNotice } from "../system/NodeNotice"
-import { useSystem } from "../system/store"
-import { failureWords, failureWordsEn, useFailureMessages } from "../tools/failure-words"
-import { openConnect } from "../tools/go"
-import { ManualSetup, NewProfile, TerminalStatus, useProfiles } from "../tools/Health"
-import { InstallLine, InstallProgress } from "../tools/InstallProgress"
-import { toolsMessages } from "../tools/messages"
-import { useTools } from "../tools/store"
-import { useTerminal } from "../tools/terminal-store"
-import { toolText } from "../tools/tool-text"
 import { InstallOverview, InstallTips } from "./InstallWait"
 import { onboardingMessages } from "./messages"
-import { useOnboarding } from "./store"
 
 const rack = "overflow-hidden rounded-[0.2rem] border border-line-strong bg-app"
 const row = "flex items-center gap-[0.9rem] border-line border-b px-[1.3rem] py-[0.9rem] last:border-b-0"
