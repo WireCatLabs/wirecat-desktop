@@ -72,7 +72,14 @@ describe("WireCat's own Tailscale connection in the connect guide", () => {
     const status = vi.spyOn(platform, "funnelHelperStatus").mockResolvedValue(helper({ installed: false }))
     const install = vi.spyOn(platform, "install").mockImplementation(async (_id, onEvent) => {
       status.mockResolvedValue(helper({}))
-      onEvent({ event: "done", version: "0.1.1", path: "/bin/wirecat-funnel", shadowedBy: null })
+      onEvent({
+        event: "done",
+        version: "0.1.1",
+        path: "/bin/wirecat-funnel",
+        shadowedBy: null,
+        skills: { refreshed: [], failed: null },
+        pathFix: null,
+      })
     })
     const start = vi
       .spyOn(platform, "funnelHelperStart")

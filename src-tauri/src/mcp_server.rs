@@ -9,9 +9,10 @@ use std::time::Duration;
 /// and `mcp revoke` (`mcp --revoke` before cli-core 0.463), with `--profiles all` (memo has no profiles), so one server
 /// serves every profile and each call names one (TASK-26). The login code, the address and the apps' names leave Rust
 /// unmasked, as the sign-in QR does: the owner needs them as they are. None of it is logged or put in a report.
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 #[expect(clippy::struct_excessive_bools, reason = "the tool's own answer, field for field")]
+#[serde(rename = "McpServerStatus")]
 pub struct ServerStatus {
     /// False for a tool from before `mcp server`: the row says it arrives with the next update.
     pub available: bool,
@@ -28,15 +29,16 @@ pub struct ServerStatus {
     pub clients: Vec<Client>,
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LoginCode {
     pub code: String,
     pub expires_at: String,
 }
 
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "McpClient")]
 pub struct Client {
     /// What the app called itself when it registered. Anyone may register, so the interface says "calls itself".
     pub claimed_name: Option<String>,
@@ -51,7 +53,7 @@ pub struct Client {
 }
 
 /// The issuer's metadata, for typing into a browser app that cannot find it itself (BUG-15).
-#[derive(Serialize, Debug, PartialEq, Eq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct OAuthSettings {
     pub issuer: String,

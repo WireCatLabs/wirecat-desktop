@@ -101,6 +101,7 @@ describe("syncing a profile from the Manage panel", () => {
       code: "provider_error",
       reason: null,
       run: "20261027T121457Z-messages-sync-db4f0a",
+      retryAfterMs: null,
     })
     finish()
     expect(await screen.findByText("The sync failed")).toBeInTheDocument()

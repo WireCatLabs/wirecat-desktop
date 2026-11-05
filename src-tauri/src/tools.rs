@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Install {
     pub path: String,
@@ -18,7 +18,7 @@ pub struct Install {
     pub problem: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ToolState {
     pub id: String,
@@ -223,7 +223,7 @@ pub fn latest_versions(fresh: bool) -> Vec<(String, Option<String>)> {
         .collect()
 }
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Profile {
     pub name: String,
@@ -267,13 +267,14 @@ fn parse_profiles(v: &Value, shape: &str) -> Vec<Profile> {
         .collect()
 }
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Diagnosis {
     pub command: String,
     pub exit_code: Option<i32>,
     pub duration_ms: u128,
     /// The tool's own JSON with identifiers masked; None when it printed none.
+    #[specta(type = Option<specta_typescript::Unknown>)]
     pub report: Option<Value>,
     pub stderr: String,
 }

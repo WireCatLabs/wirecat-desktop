@@ -270,7 +270,7 @@ pub fn install(tool: &Tool, target: &str) -> Result<Option<String>, String> {
 }
 
 /// What an update did to the copies of its SKILL.md that an older version wrote.
-#[derive(Serialize, Clone, Debug, Default, PartialEq)]
+#[derive(specta::Type, Serialize, Clone, Debug, Default, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct SkillRefresh {
     pub refreshed: Vec<String>,

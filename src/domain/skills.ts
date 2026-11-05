@@ -99,7 +99,7 @@ export function skillColumns<A extends FoundAgent>(
  * for its own folder and `others` for the shared one.
  */
 export function agentsReading(
-  targets: readonly SkillTarget[],
+  targets: readonly string[],
   agents: readonly { name: string; foundBy: string | null; reads: readonly SkillTarget[] }[] | null,
   others: string,
 ): string[] {

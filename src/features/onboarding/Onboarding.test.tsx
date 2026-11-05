@@ -35,7 +35,14 @@ function holdInstall() {
     await new Promise<void>((resolve) => {
       finish = resolve
     })
-    onEvent({ event: "done", version: "1.0.0", path: "~/.local/bin/drive", shadowedBy: null })
+    onEvent({
+      event: "done",
+      version: "1.0.0",
+      path: "~/.local/bin/drive",
+      shadowedBy: null,
+      skills: { refreshed: [], failed: null },
+      pathFix: null,
+    })
   })
   return () => act(() => finish())
 }

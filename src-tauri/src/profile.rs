@@ -9,7 +9,7 @@ const TOOLS_START: &str = "# Added by WireCat Desktop: folders of WireCat tools.
 const TOOLS_END: &str = "# End of WireCat Desktop tools block";
 
 /// What "Add to PATH" would do, shown in full before anything is written.
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PathPlan {
     /// `bash`, `zsh`, `fish`, `windows`, or the shell's own name when we do not edit its files.

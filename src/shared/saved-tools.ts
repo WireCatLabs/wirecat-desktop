@@ -1,5 +1,5 @@
 import * as v from "valibot"
-import { LatestVersionsSchema, ToolStatesSchema } from "@/platform/schemas"
+import type { ToolState } from "@/platform/schemas"
 
 /**
  * The Tools page's last answer, kept for the next app start so the page opens with it while the tools are asked
@@ -7,7 +7,25 @@ import { LatestVersionsSchema, ToolStatesSchema } from "@/platform/schemas"
  */
 const KEY = "wirecat.tools.last"
 
-const SavedSchema = v.object({ tools: ToolStatesSchema, latest: v.nullable(LatestVersionsSchema) })
+// An older app version may have written another shape, so what comes back from storage is checked.
+const ToolStatesSchema = v.array(
+  v.object({
+    id: v.string(),
+    installs: v.array(
+      v.object({
+        path: v.string(),
+        version: v.nullable(v.string()),
+        manager: v.string(),
+        problem: v.nullable(v.string()),
+      }),
+    ),
+  }),
+) satisfies v.GenericSchema<unknown, ToolState[]>
+
+const SavedSchema = v.object({
+  tools: ToolStatesSchema,
+  latest: v.nullable(v.record(v.string(), v.nullable(v.string()))),
+})
 export type Saved = v.InferOutput<typeof SavedSchema>
 
 export function readSaved(storage: Pick<Storage, "getItem"> | undefined = globalThis.localStorage): Saved | null {

@@ -3,6 +3,8 @@ mod analytics;
 mod archive;
 mod background;
 mod backup;
+#[cfg(test)]
+mod bindings;
 mod bots;
 mod cache;
 mod catalog;

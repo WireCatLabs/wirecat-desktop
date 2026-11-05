@@ -144,7 +144,14 @@ export function fakeInstaller(installed: Record<string, string> = {}) {
     async finish(id: string, version = "1.0.0", manual: string | null = null) {
       versions.set(id, version)
       const pathFix = manual ? { added: [], unreachable: [], file: null, manual, restart: true, shells: [] } : null
-      await end(id, { event: "done", version, path: `~/.local/bin/${id}`, shadowedBy: null, pathFix })
+      await end(id, {
+        event: "done",
+        version,
+        path: `~/.local/bin/${id}`,
+        shadowedBy: null,
+        skills: { refreshed: [], failed: null },
+        pathFix,
+      })
     },
     fail: (id: string, reason: string, message = "npm failed", hint: string | null = null) =>
       end(id, { event: "failed", reason, message, hint } as InstallEvent),
@@ -183,7 +190,7 @@ export function fakeNodeSetup(computer: { current: Readiness | null }) {
       }),
     async finish() {
       computer.current = { ...readyComputer, managed: { version: "24.22.1", dir: "~/.local/share/node", active: true } }
-      await end({ event: "done", version: "24.22.1", path: "~/.local/share/node" })
+      await end({ event: "done", version: "24.22.1", path: "~/.local/share/node", pathFix: null })
     },
     fail: (message: string, hint: string | null = null) => end({ event: "failed", reason: "verify", message, hint }),
   }

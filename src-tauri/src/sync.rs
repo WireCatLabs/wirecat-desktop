@@ -32,8 +32,9 @@ pub enum LastShape {
 }
 
 /// Counts only: titles, chat keys and account names in the tool's answer stay in Rust.
-#[derive(Debug, Serialize, Clone, PartialEq, Eq, Default)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "SyncSummary")]
 pub struct Summary {
     /// New messages, files, meetings, emails or changed notes.
     pub new: u64,
@@ -45,7 +46,7 @@ pub struct Summary {
     pub complete: bool,
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(tag = "event", rename_all = "camelCase")]
 pub enum SyncEvent {
     /// A stage from a fixed list, read from the tool's notes; never the note itself.
@@ -77,7 +78,7 @@ pub enum SyncEvent {
     },
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct LastSync {
     /// When the newest successful sync ended, as the tool printed it.

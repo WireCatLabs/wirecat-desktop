@@ -193,6 +193,16 @@ change no behaviour.
 | 8 | Split the largest components (ConnectGuide, memory Row, onboarding steps) into parts and `domain/` functions | Domain unit tests for every rule pulled out of a component, before the move |
 | 9 | Rust (separate PR): `lib.rs` split into `commands/<feature>.rs`, `thiserror` error enum, `tracing` log file | Rust tests per error kind (an unknown id gives `unknown_tool`), and a test that a logged line is masked |
 
+**Step 5, first PR (2026-11-05).** `specta` 2.0.0-rc.26 with `specta-typescript` 0.0.13, the versions
+`tauri-specta` 2.0.0-rc.26 pins, so command bindings can follow without a version change. Only types for now:
+command bindings need every one of the 113 commands annotated at once, because `tauri-specta` replaces the single
+`generate_handler!` list. Moved: readiness, Node.js setup, tool detection and install events, storage, community
+list, app update, Cloudflare tunnel, MCP server and public address, sync and background, backups and reset, bots,
+config repair. Left on valibot: agents and skills, Tailscale and the funnel helper (their URL checks stay), memory,
+tasks, search, analytics, archive and compat, settings, permissions, notifications (link check), sign-in events
+(URL check), runs (tool JSON) and the bug report context (tool JSON). Integers above 2^53 do not occur in these
+answers, so every 64-bit integer is exported as `number` (`dangerous_bigints_as_number` in `bindings.rs`).
+
 ## Further improvements
 
 Recommended:
