@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest"
-import { telegramFailure, waitParts } from "./telegram-signin"
+import {
+  checkKey,
+  cleanKey,
+  keyHints,
+  keysStillGood,
+  telegramFailure,
+  telegramNote,
+  waitParts,
+} from "./telegram-signin"
 
 describe("telegramFailure", () => {
   it.each([
@@ -55,5 +63,77 @@ describe("waitParts", () => {
   it("splits a wait into hours, minutes and seconds", () => {
     expect(waitParts(3725)).toEqual({ hours: 1, minutes: 2, seconds: 5 })
     expect(waitParts(-3)).toEqual({ hours: 0, minutes: 0, seconds: 0 })
+  })
+})
+
+const HASH = "0123456789abcdef0123456789abcdef"
+
+describe("checkKey", () => {
+  it.each([
+    ["  12345678 ", "12345678"],
+    ["App api_id: 12345678", "12345678"],
+    ["api_id=12345678", "12345678"],
+    ["1234 5678", "12345678"],
+    ['"12345678",', "12345678"],
+  ])("takes %j as the api_id %s", (typed, value) => {
+    expect(checkKey("api_id", typed)).toEqual({ value, problem: null })
+  })
+
+  it("takes a hash with its label and quotes, in either case", () => {
+    expect(checkKey("api_hash", `App api_hash: ${HASH}`)).toEqual({ value: HASH, problem: null })
+    expect(checkKey("api_hash", `"api_hash": "${HASH}"`)).toEqual({ value: HASH, problem: null })
+    expect(checkKey("api_hash", HASH.toUpperCase()).problem).toBeNull()
+  })
+
+  it.each([
+    ["api_id", "   ", { problem: "empty" }],
+    ["api_id", "12a45678", { problem: "idNotDigits" }],
+    ["api_id", "1234567890123", { problem: "idTooLong", length: 13 }],
+    ["api_id", HASH, { problem: "idIsHash" }],
+    ["api_hash", HASH.slice(1), { problem: "hashLength", length: 31 }],
+    ["api_hash", `${HASH}0`, { problem: "hashLength", length: 33 }],
+    ["api_hash", `${HASH.slice(1)}g`, { problem: "hashNotHex" }],
+    ["api_hash", "12345678", { problem: "hashIsId" }],
+  ] as const)("refuses %s %j", (field, typed, problem) => {
+    expect(checkKey(field, typed)).toMatchObject(problem)
+  })
+
+  it("never keeps the label it dropped", () => {
+    expect(cleanKey("App api_hash (not shown): abc")).not.toMatch(/api/i)
+  })
+})
+
+describe("keyHints", () => {
+  it("is empty for keys that look like my.telegram.org's", () => {
+    expect(keyHints("12345678", HASH)).toEqual([])
+  })
+
+  it("says what still looks off after Telegram refused them", () => {
+    expect(keyHints("1234", HASH)).toEqual(["idShort"])
+    expect(keyHints("12345678901", HASH.toUpperCase())).toEqual(["idLong", "hashCapitals"])
+  })
+})
+
+describe("keysStillGood", () => {
+  it("sends the keys again only after a refusal that was not about them", () => {
+    expect(keysStillGood(telegramFailure("Telegram refused: PHONE_CODE_EXPIRED", "provider_error"))).toBe(true)
+    expect(keysStillGood(telegramFailure("Telegram refused: API_ID_INVALID", "provider_error"))).toBe(false)
+    expect(keysStillGood(telegramFailure("api_id is a number from my.telegram.org/apps", "validation_error"))).toBe(
+      false,
+    )
+  })
+})
+
+describe("telegramNote", () => {
+  it("reads where tg says the code went, and a refused code or password", () => {
+    expect(telegramNote("Telegram sent a login code (app)")).toEqual({ kind: "codeSent", via: "app" })
+    expect(telegramNote("Telegram sent a login code (sms)")).toEqual({ kind: "codeSent", via: "sms" })
+    expect(telegramNote("Telegram sent a login code (fragment)")).toEqual({ kind: "codeSent", via: "other" })
+    expect(telegramNote("that code was not accepted — try again")).toEqual({ kind: "notAccepted", what: "code" })
+    expect(telegramNote("that password was not accepted — try again")).toEqual({
+      kind: "notAccepted",
+      what: "password",
+    })
+    expect(telegramNote("registered a new app on my.telegram.org")).toBeNull()
   })
 })

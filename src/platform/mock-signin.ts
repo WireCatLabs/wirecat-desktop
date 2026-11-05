@@ -7,11 +7,16 @@ import type { Platform } from "./types"
 // refuse after the first code, as when another wa holds the profile; `?signin-fail=zm` is Zoom without its own app's
 // Public Client ID, until one is saved. Telegram: `?signin-fail=tg-apiid` refuses the app keys once (the next try signs
 // in), `tg-flood` asks to wait seven minutes, `tg-code` says the login code expired; `?signin-keyring=file` is tg with
-// no system keyring, saving to a file instead.
+// no system keyring, saving to a file instead. `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and
+// tg says nothing for 12 s, as after a real scan (Telegram moves the login to the account's data centre);
+// `&signin-scanned=1` adds the progress line tg-cli could print at the scan.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
 const keyringFile = query.get("signin-keyring") === "file"
+const scanDelay = query.has("signin-scan-delay") ? Number(query.get("signin-scan-delay")) || 12 : null
+const scanSays = query.get("signin-scanned") === "1"
+const TG_SCAN = "scan in Telegram → Settings → Devices → Link Desktop Device"
 
 const KEYRING_NOTE =
   "could not reach the OS keyring — it may be locked, or no keyring service is running (Platform failure: DBus " +
@@ -102,7 +107,13 @@ const scripts: Record<string, (s: Script, method: string) => Promise<SignInEvent
     if (method === "phone") {
       if ((await s.ask("phone", "phone number, international format", false)) === null) return STOPPED
       if ((await s.ask("code", "login code", false)) === null) return STOPPED
-    } else if (await qrs(s, "scan in Telegram → Settings → Devices → Link Desktop Device", 2, true)) return STOPPED
+    } else if (scanDelay !== null) {
+      const expiresAt = new Date(Date.now() + RENEWS_MS).toISOString()
+      s.emit({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt, scan: TG_SCAN })
+      if (await s.wait(2000)) return STOPPED
+      if (scanSays) s.emit({ event: "progress", step: "scanned", message: "scan accepted, finishing sign-in" })
+      if (await s.wait(scanDelay * 1000)) return STOPPED
+    } else if (await qrs(s, TG_SCAN, 2, true)) return STOPPED
     if (fails === "tg-flood")
       return { event: "failed", code: "rate_limited", message: "Telegram asks to wait 420 s before the next request" }
     if (fails === "tg-code")
