@@ -33,6 +33,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { ReportThis } from "../report/ReportThis"
 import { useSignIn } from "../signin/store"
 import { BackgroundLine } from "./Background"
+import { BotList } from "./BotList"
 import { ConfigRepair, offersRepair, type Repaired } from "./ConfigRepair"
 import { type ToolsText, toolsMessages } from "./messages"
 import { SyncControl } from "./Sync"
@@ -198,6 +199,7 @@ function ProfileList(props: {
         </p>
       )}
       {tool.setup && <NewProfile tool={tool} onCheck={onReload} />}
+      {tool.bot && <BotList tool={tool} />}
       {tool.setup && <TerminalStatus tool={tool} profiles={profiles} onCheck={onReload} checking={reloading} />}
       {!tool.setup && <ManualSetup tool={tool} onCheck={onReload} checking={reloading} />}
     </div>

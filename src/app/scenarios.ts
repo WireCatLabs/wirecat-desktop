@@ -4,6 +4,7 @@ import { useNav } from "@/features/nav"
 import { useNotifications } from "@/features/notifications/store"
 import { STEPS, useOnboarding } from "@/features/onboarding/store"
 import { useSearch } from "@/features/search/store"
+import { useBotSignIn } from "@/features/signin/bot-store"
 import { useSignIn } from "@/features/signin/store"
 import { useTasks } from "@/features/tasks/store"
 import { useTools } from "@/features/tools/store"
@@ -17,6 +18,7 @@ import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 // `?onboarding=<step>` opens it at that step. `?section=<id>` opens that page without a click, so a layout-shift
 // measurement is not hidden by the browser's 500 ms grace period after input. `?crash=<section>` opens that section
 // and breaks its render. `?signin=<tool>` starts that tool's in-window sign-in for a profile named personal; `?signin-plan=<tool>` opens it on its plan.
+// `?bot=<tool>` opens that tool's details and its bot dialog; `?bot-step=token` with a name, sales (`mock-bot.ts`).
 // `?mcp=<tool>` and `?mcp-fail=<tool>` open that tool's details, where its MCP server section starts open.
 // `?connect=<state>` opens tg's details at that step of the guide (`src/features/tools/connect-scenario.ts`).
 // `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`); `?task=<key>`
@@ -59,6 +61,15 @@ export async function runMockScenario() {
   }
   const plan = params.get("signin-plan")
   if (plan) useSignIn.getState().start(plan, "personal")
+  const bot = params.get("bot") ?? params.get("bot-fail")
+  if (bot) {
+    const id = findTool(bot) ? bot : "tg"
+    useNav.getState().go("tools")
+    await useTools.getState().refresh()
+    useTools.getState().toggle(id)
+    useBotSignIn.getState().open(id)
+    if (params.get("bot-step") === "token") useBotSignIn.getState().toToken("sales")
+  }
   const mcp =
     params.get("mcp") ??
     params.get("mcp-fail") ??

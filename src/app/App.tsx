@@ -13,6 +13,7 @@ import { PrivacyDialog } from "@/features/privacy/PrivacyDialog"
 import { ReportDialog } from "@/features/report/ReportDialog"
 import { useReport } from "@/features/report/store"
 import { useApplyScale, useScaleKeys } from "@/features/settings/scale"
+import { BotSignInDialog } from "@/features/signin/BotSignInDialog"
 import { SignInDialog } from "@/features/signin/SignInDialog"
 import { useSystem } from "@/features/system/store"
 import { ClearDataOffer } from "@/features/tools/ClearDataOffer"
@@ -111,6 +112,7 @@ export function App() {
         <AboutDialog open={about} onClose={() => setAbout(false)} />
         <PrivacyDialog open={privacy} onClose={() => setPrivacy(false)} />
         <SignInDialog />
+        <BotSignInDialog />
         <ReportDialog />
         <UpdateDialog />
       </div>
