@@ -188,6 +188,11 @@ The shape of whatsapp-cli's engine release, no Node build in between:
 - **Release** (`release.yml`, `workflow_dispatch` only, environment `npm`, `id-token: write`): build the six
   packages, pack, publish the six platform packages, then `@wirecat/funnel`, each `--provenance --access public`,
   then tag `v<version>`. Desktop's `provenance.rs` then sees every package built by `funnel-cli`'s `release.yml`.
+- npm sign-in is trusted publishing (GitHub's OIDC token, no npm token), as in whatsapp-cli. npm lets a trusted
+  publisher be set up for a name that does not exist yet, and "a newly created trusted publisher configuration must
+  complete its first successful publish within 2 days" ([npm: trusted publishers](https://docs.npmjs.com/trusted-publishers)).
+  So all seven names get their configuration just before the first release. Provenance is generated only from a public
+  repository (same page), so funnel-cli goes public first. Written, not run, and the sign-in is unverified.
 - Nothing is released in this task.
 - Each Tailscale security release means a helper release **(risk, research section 5)**. A monthly job that opens a
   PR bumping `tailscale.com` is a later addition.
