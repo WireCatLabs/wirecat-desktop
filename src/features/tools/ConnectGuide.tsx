@@ -32,11 +32,13 @@ import {
   type TestState,
   testState,
 } from "./connect-steps"
+import { FunnelHelperGuide, type Helper, helperReady, useFunnelHelper } from "./FunnelHelperGuide"
 import { openConnect } from "./go"
 import { useKept } from "./kept"
 import { LoginCode } from "./LoginCode"
 import { formProblem } from "./McpServerDialogs"
 import { connectMessages } from "./messages-connect"
+import { helperMessages } from "./messages-helper"
 import { tunnelMessages } from "./messages-tunnel"
 import { useTools } from "./store"
 import { TailscaleGuide, useTailscale } from "./TailscaleGuide"
@@ -52,7 +54,8 @@ const RECHECK_MS = 15_000
 /** How long the test waits before it suggests what may be wrong. */
 const QUIET_MS = 60_000
 
-type Tunnel = "tailscale" | "cloudflare" | "own"
+/** `wirecat`: the Tailscale choice through WireCat's own connection, for a computer without the Tailscale app. */
+type Tunnel = "tailscale" | "wirecat" | "cloudflare" | "own"
 type Phase = "idle" | "tunnel" | "server" | "failed"
 type Failure = { at: "tunnel" | "server"; message: string }
 
@@ -98,7 +101,14 @@ export function ConnectGuide(props: {
   const progress = { app, addressReady: confirmed, server, reached, added }
   const current = currentStep(progress)
   const test = testState(server, since)
-  const tailscale = useTailscale(current === "address" && tunnel === "tailscale")
+  const tailscale = useTailscale(current === "address" && (tunnel === "tailscale" || tunnel === "wirecat"))
+  const helper = useFunnelHelper(current === "address" && (tunnel === "tailscale" || tunnel === "wirecat"))
+  const [declined, setDeclined] = useKept(kept, "declined", false)
+
+  // No Tailscale app here: WireCat's own connection needs no password, so the Tailscale choice opens on it.
+  useEffect(() => {
+    if (tunnel === "tailscale" && !declined && tailscale.status && !tailscale.status.installed) setTunnel("wirecat")
+  }, [tunnel, declined, tailscale.status, setTunnel])
   const cloudflare = useCloudflare(current === "address" && tunnel === "cloudflare")
 
   // A tool that used the Cloudflare tunnel before starts on it again; the record arrives after the first render.
@@ -126,13 +136,15 @@ export function ConnectGuide(props: {
     setApproval(null)
     let at: Failure["at"] = "server"
     try {
-      if (tunnel === "tailscale" || tunnel === "cloudflare") {
+      if (tunnel !== "own") {
         setPhase("tunnel")
         at = "tunnel"
         const address =
           tunnel === "tailscale"
             ? await platform.tailscaleFunnelOpen(tool.id, Number(port), setApproval)
-            : await platform.cloudflareTunnelOpen(tool.id, Number(port))
+            : tunnel === "wirecat"
+              ? await platform.funnelHelperOpen(tool.id, Number(port))
+              : await platform.cloudflareTunnelOpen(tool.id, Number(port))
         setPhase("server")
         at = "server"
         try {
@@ -140,7 +152,7 @@ export function ConnectGuide(props: {
         } catch (e) {
           // Left on, the address would publish whatever takes the port next. Closing can cost the public name for a
           // few minutes (BUG-15); a retry waits for it rather than leave the port open.
-          await (tunnel === "tailscale"
+          await (tunnel === "tailscale" || tunnel === "wirecat"
             ? platform.tailscaleFunnelClose(tool.id)
             : platform.cloudflareTunnelClose(tool.id)
           ).catch(() => {})
@@ -195,7 +207,8 @@ export function ConnectGuide(props: {
     focusInPlace(heading.current)
   }, [current])
 
-  const funnelOff = tunnel === "tailscale" && serving(server) && funnel !== null && !funnel.live
+  const funnelOff =
+    (tunnel === "tailscale" || tunnel === "wirecat") && serving(server) && funnel !== null && !funnel.live
   const tunnelOff = serving(server) && route !== null && !route.live && server.connectorUrl.startsWith(route.url)
   const name = app && app !== "other" ? m.apps[app].name : m.theApp
 
@@ -236,6 +249,11 @@ export function ConnectGuide(props: {
               tunnel={tunnel}
               setTunnel={setTunnel}
               tailscale={tailscale}
+              helper={helper}
+              onUseApp={() => {
+                setDeclined(true)
+                setTunnel("tailscale")
+              }}
               cloudflare={cloudflare}
               ownUrl={ownUrl}
               setOwnUrl={setOwnUrl}
@@ -266,7 +284,13 @@ export function ConnectGuide(props: {
             />
           )}
           {funnelOff && (current === "reach" || current === "connect" || current === "test") && (
-            <FunnelOff tool={tool} port={server?.port ?? Number(port)} name={name} reload={reload} />
+            <FunnelOff
+              tool={tool}
+              port={server?.port ?? Number(port)}
+              name={name}
+              reload={reload}
+              helper={funnel?.via === "wirecat"}
+            />
           )}
           {tunnelOff && (current === "reach" || current === "connect" || current === "test") && (
             <TunnelOff tool={tool} port={route.port} name={name} reload={reload} />
@@ -430,6 +454,8 @@ function AddressStep(props: {
   tunnel: Tunnel
   setTunnel(t: Tunnel): void
   tailscale: ReturnType<typeof useTailscale>
+  helper: Helper
+  onUseApp(): void
   cloudflare: ReturnType<typeof useCloudflare>
   ownUrl: string
   setOwnUrl(u: string): void
@@ -437,8 +463,11 @@ function AddressStep(props: {
   setPort(p: string): void
   onConfirm(): void
 }) {
-  const { tool, appName, tunnel, setTunnel, tailscale, cloudflare, ownUrl, setOwnUrl, port, setPort, onConfirm } = props
+  const { tool, appName, tunnel, setTunnel, tailscale, helper, onUseApp, cloudflare } = props
+  const { ownUrl, setOwnUrl, port, setPort, onConfirm } = props
   const m = useMessages(connectMessages).address
+  const hm = useMessages(helperMessages)
+  const helperUrl = helper.status?.url && `${helper.status.url}/${tool.id}/mcp`
   const tm = useMessages(tunnelMessages).tailscale
   const id = useId()
   const [problem, setProblem] = useState<"url" | "port" | null>(null)
@@ -481,7 +510,30 @@ function AddressStep(props: {
             </div>
           )}
         </Collapse>
+        <Collapse open={tunnel === "wirecat"} className="flex flex-col gap-3.5">
+          <FunnelHelperGuide helper={helper} onUseApp={onUseApp} />
+          {helperReady(helper.status) && (
+            <div className="flex flex-col gap-2.5 rounded-[0.45rem] bg-app-2 px-4 py-3">
+              <p className="text-[0.92rem] text-ink">
+                {m.willBe(<span className="selectable font-mono">{helperUrl}</span>)}
+              </p>
+              <Note>{hm.next(tool.bin)}</Note>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="primary" onClick={submit}>
+                  {m.start}
+                </Button>
+              </div>
+            </div>
+          )}
+        </Collapse>
         <Collapse open={tunnel === "tailscale"} className="flex flex-col gap-3.5">
+          {status && !status.installed && (
+            <div>
+              <Button size="sm" onClick={() => setTunnel("wirecat")}>
+                {hm.offer}
+              </Button>
+            </div>
+          )}
           <TailscaleGuide tailscale={tailscale} />
           {full?.missing && <p className="text-[0.88rem] text-warn-ink">{tm.missing[full.missing]}</p>}
           {ready && (
@@ -551,7 +603,9 @@ function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunn
           htmlFor={`${name}-${o.id}`}
           className={cx(
             "flex cursor-pointer flex-col gap-1 rounded-[0.45rem] border px-3.5 py-3 transition-colors duration-(--motion-fast) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand motion-reduce:transition-none",
-            tunnel === o.id ? "border-brand bg-brand-soft/40" : "border-line-strong hover:border-brand",
+            (tunnel === "wirecat" ? "tailscale" : tunnel) === o.id
+              ? "border-brand bg-brand-soft/40"
+              : "border-line-strong hover:border-brand",
           )}
         >
           <span className="flex items-center gap-2">
@@ -561,7 +615,7 @@ function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunn
               value={o.id}
               aria-labelledby={`${name}-${o.id}-title`}
               aria-describedby={`${name}-${o.id}-hint`}
-              checked={tunnel === o.id}
+              checked={(tunnel === "wirecat" ? "tailscale" : tunnel) === o.id}
               onChange={() => setTunnel(o.id)}
               ring={false}
             />
@@ -617,6 +671,7 @@ function StartStep(props: {
 }) {
   const { tool, tunnel, phase, failure, approval, onRetry, onBack } = props
   const m = useMessages(connectMessages).start
+  const hm = useMessages(helperMessages)
   const failedAt = phase === "failed" ? failure?.at : undefined
   const open = phase === "tunnel" ? "busy" : failedAt === "tunnel" ? "failed" : phase === "idle" ? "todo" : "done"
   const server = phase === "server" ? "busy" : failedAt === "server" ? "failed" : "todo"
@@ -624,6 +679,7 @@ function StartStep(props: {
     <>
       <ul className="flex flex-col gap-2">
         {tunnel === "tailscale" && <Progress state={open}>{m.funnel(tool.bin)}</Progress>}
+        {tunnel === "wirecat" && <Progress state={open}>{hm.startStep(tool.bin)}</Progress>}
         {tunnel === "cloudflare" && <Progress state={open}>{m.tunnel(tool.bin)}</Progress>}
         <Progress state={server}>{m.server(tool.bin)}</Progress>
       </ul>
@@ -913,16 +969,23 @@ function DiscoveryHelp({ tool, app }: { tool: CatalogTool; app: AppId }) {
   )
 }
 
-function FunnelOff(props: { tool: CatalogTool; port: number; name: string; reload(): Promise<void> }) {
-  const { tool, port, name, reload } = props
+/** `helper`: the server's address is on WireCat's own Tailscale connection, which stopped with the computer. */
+function FunnelOff(props: { tool: CatalogTool; port: number; name: string; reload(): Promise<void>; helper: boolean }) {
+  const { tool, port, name, reload, helper } = props
   const m = useMessages(connectMessages).off
+  const hm = useMessages(helperMessages)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const turnOn = async () => {
     setBusy(true)
     setError(null)
     try {
-      await platform.tailscaleFunnelOpen(tool.id, port, () => {})
+      if (helper) {
+        await platform.funnelHelperStart(() => {})
+        await platform.funnelHelperOpen(tool.id, port)
+      } else {
+        await platform.tailscaleFunnelOpen(tool.id, port, () => {})
+      }
       await reload()
     } catch (e) {
       setError(message(e))
@@ -931,11 +994,11 @@ function FunnelOff(props: { tool: CatalogTool; port: number; name: string; reloa
   }
   return (
     <div className="flex flex-col gap-2 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3.5 py-2.5">
-      <p className="text-[0.9rem] text-warn-ink">{m.funnel(name)}</p>
+      <p className="text-[0.9rem] text-warn-ink">{helper ? hm.off(name) : m.funnel(name)}</p>
       {error && <ErrorNotice inline>{error}</ErrorNotice>}
       <div>
         <Button size="sm" onClick={turnOn} disabled={busy}>
-          {busy ? m.turningOn : m.turnOn}
+          {busy ? (helper ? hm.turningOn : m.turningOn) : helper ? hm.turnOn : m.turnOn}
         </Button>
       </div>
     </div>

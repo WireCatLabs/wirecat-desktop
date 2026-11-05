@@ -61,6 +61,7 @@ const LATEST: Record<string, string> = {
   memo: "0.95.0",
   email: "0.14.0",
   gcal: "0.19.0",
+  funnel: "0.1.1",
 }
 if (params.get("compat") === "upgrade") LATEST.max = "0.75.0"
 const PACKAGES: Record<string, string> = {
@@ -72,6 +73,7 @@ const PACKAGES: Record<string, string> = {
   memo: "@wirecat/cli-memo",
   email: "@wirecat/mail-cli",
   gcal: "@wirecat/gcal-cli",
+  funnel: "@wirecat/funnel",
 }
 
 // Doctor's configuration checks: Telegram's personal profile has every warning kind, work has a broken file, and MAX
@@ -606,7 +608,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...botMock(),
     ...syncMock(),
     ...mcpServerMock(),
-    ...tailscaleMock(),
+    ...tailscaleMock(installed),
     ...cloudflareMock(),
     ...reportMock,
     ...notificationsMock,

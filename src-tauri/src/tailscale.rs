@@ -214,7 +214,7 @@ fn used_ports(serve: &Value) -> BTreeSet<u16> {
 
 /// The paths a tool takes on the shared address: its own, and the two places RFC 8414 and RFC 9728 put the login
 /// metadata of an issuer under a path. Each goes to the same path on the server, which knows them all.
-fn mounts(tool: &str) -> [String; 3] {
+pub(crate) fn mounts(tool: &str) -> [String; 3] {
     [
         format!("/{tool}"),
         format!("/.well-known/oauth-authorization-server/{tool}"),
@@ -305,7 +305,7 @@ fn choose(records: &[Owned], tool: &str, shared: &BTreeSet<u16>, used: &BTreeSet
 }
 
 /// A page to open from the CLI's output: https on Tailscale's own login hosts, nothing else.
-fn page_url(line: &str) -> Option<String> {
+pub(crate) fn page_url(line: &str) -> Option<String> {
     line.split_whitespace().find_map(|word| {
         let rest = word.strip_prefix("https://")?;
         let host = rest.split(['/', '?']).next()?;
@@ -399,7 +399,7 @@ pub enum PageEvent {
     Opened { url: String },
 }
 
-fn open_page(url: &str, send: &dyn Fn(PageEvent)) {
+pub(crate) fn open_page(url: &str, send: &dyn Fn(PageEvent)) {
     let _ = tauri_plugin_opener::open_url(url, None::<&str>);
     send(PageEvent::Opened { url: url.to_string() });
 }
@@ -561,6 +561,8 @@ pub struct FunnelState {
     pub port: u16,
     pub live: bool,
     pub shared: bool,
+    /// `tailscale`: the system's Tailscale; `wirecat`: the app's own connection (`funnel_helper.rs`).
+    pub via: &'static str,
 }
 
 /// The funnels the app set up, each with whether it is still on.
@@ -576,6 +578,7 @@ pub fn funnels() -> Vec<FunnelState> {
             shared: r.shared,
             tool: r.tool,
             profile: r.profile,
+            via: "tailscale",
         })
         .collect()
 }

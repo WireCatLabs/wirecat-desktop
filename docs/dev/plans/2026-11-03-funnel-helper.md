@@ -9,7 +9,9 @@ Owner's answers (2026-11-03):
   folder, no system daemon.
 - **NEED-75 = A.** Its own npm package with prebuilt binaries per platform; Desktop installs it from the catalog.
 - **NEED-76 = A.** Tailscale's log upload is off, and the site's terms and privacy pages and Desktop say so.
-- **NEED-74 = A.** One login with an ephemeral test node, run by the owner (section 8).
+- **NEED-74 = A.** One login with an ephemeral test node, run by the owner (section 8). Passed on 2026-11-05.
+- **NEED-268 = A.** funnel-cli goes public and `@wirecat/funnel` is released once the Desktop integration is ready.
+- **NEED-269 = B.** It ships in WireCat Desktop 0.4.0.
 
 Decisions I made myself are marked **(mine)**.
 
@@ -230,7 +232,9 @@ helper ships.
    Tailscale 30–60 min later ([kb/1111](https://tailscale.com/kb/1111/ephemeral-nodes)); on failure the script says
    where to remove it by hand.
 
-Unknown until it runs: whether a tsnet `Ephemeral` node accepts an interactive login (research section 3).
+**Result (2026-11-05, the owner's run):** PASS through public DNS, 0 lookups of `log.tailscale.com`, and the ephemeral
+node took the browser login. The first three calls failed on TLS and a timeout while the certificate was issued, then
+the call went through. Details: cli-testing `performance/funnel/live-check`.
 
 ## 9. What gets checked here, without a login
 
@@ -243,7 +247,7 @@ Unknown until it runs: whether a tsnet `Ephemeral` node accepts an interactive l
 
 ## Risks
 
-- **RISK-96 · A tsnet ephemeral node may not take an interactive login.** Then the live check needs an ephemeral
+- **RISK-96 · A tsnet ephemeral node may not take an interactive login.** Closed 2026-11-05: it did. Then the live check needs an ephemeral
   auth key, which the owner makes in the admin console, and the script takes it from a file of mode 600.
 - Key expiry after 180 days and Tailscale updates (research section 5) stay as they are.
 
@@ -253,3 +257,17 @@ Repository https://github.com/WireCatLabs/funnel-cli (private), PR #1. The owner
 `/home/leemour/Projects/AI/funnel-cli/bin/live-check`. Measured on this Linux machine, no login: the binary reaches
 `needs-login` in 1.3 s, the only name it looks up in 30 s is `controlplane.tailscale.com`, its log buffers stay at 0
 bytes; linux-x64 binary 22.4 MB (8.9 MB packed).
+
+## Desktop integration (2026-11-05)
+
+As section 5, with these choices of mine:
+
+- The catalog entry carries `"helper": true`; `src/domain/catalog.ts` leaves helpers out of `tools`, so no page lists it,
+  while `findTool` and the install queue still know it. Rust needs no field: serde ignores it.
+- `funnel_helper.rs` records each tool's address in `wirecat-funnel-routes.json` in the app's data folder, because the
+  helper reports no address while it is stopped. Its funnels join `tailscale_funnels` with `via: "wirecat"`, and
+  `tailscale_funnel_close` closes both kinds, so the server row and its Stop work unchanged.
+- The guide keeps one "Tailscale Funnel" choice. With no Tailscale app on the computer it opens on WireCat's own
+  connection; "Install the Tailscale app instead" goes back, and the app path offers the helper again.
+- The first call after a start can fail while the certificate is issued (the live check's first three tries). The
+  address check of the Reach step already retries, so nothing new is needed there.

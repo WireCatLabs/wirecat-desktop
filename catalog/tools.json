@@ -1925,6 +1925,41 @@
           "minVersion": "0.15.0"
         }
       }
+    },
+    {
+      "id": "funnel",
+      "name": "WireCat's Tailscale connection",
+      "helper": true,
+      "tagline": "A public address for your MCP servers, no password",
+      "bin": "wirecat-funnel",
+      "package": "@wirecat/funnel",
+      "summary": "Joins your Tailscale network as its own device and publishes the MCP servers on this computer through Tailscale Funnel, with no Tailscale app and no administrator password. Tailscale's log upload is off.",
+      "docs": "https://wirecat.dev/en/docs/desktop/tailscale-funnel",
+      "repo": "https://github.com/WireCatLabs/funnel-cli",
+      "profiles": null,
+      "doctor": [],
+      "runs": null,
+      "search": null,
+      "setup": null,
+      "skill": null,
+      "mcp": null,
+      "mcpServer": null,
+      "tasks": null,
+      "sync": null,
+      "storeInfo": null,
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "wirecat-funnel",
+        "env": "WIRECAT_FUNNEL"
+      },
+      "settings": null,
+      "signIn": null
     }
   ],
   "sharedStorage": {

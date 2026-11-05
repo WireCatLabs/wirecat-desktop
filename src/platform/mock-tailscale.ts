@@ -1,5 +1,5 @@
 import { delay } from "./mock-delay"
-import type { FunnelState, TailscaleLinux, TailscaleStatus } from "./tailscale-schemas"
+import type { FunnelHelperStatus, FunnelState, TailscaleLinux, TailscaleStatus } from "./tailscale-schemas"
 import type { Platform } from "./types"
 
 // `?tailscale=<state>` opens tg's "MCP server (or connect web)" guide at its address step, with Tailscale at that
@@ -13,6 +13,10 @@ import type { Platform } from "./types"
 // `?tailscale=leftover` with `?mcp=<tool>`: the server is off but the funnel the app set up still points at it.
 // `?funnel-old=<tool>`: a whole-port funnel from before the shared address, for profile personal, is still on.
 // `?connect=funnel-off`: tg's server runs, but its Funnel is off. `?tailscale-fail=funnel` makes turning Funnel on fail. Logging in finishes by itself after a few seconds.
+// WireCat's own Tailscale connection (`wirecat-funnel`), offered when Tailscale is missing: `?helper=installed` (installed,
+// stopped), `login` (its start waits for a sign-in, then runs), `approval` (then the device's approval), `funnel` (then
+// allowing Funnel), `ready` (running), `fail` (its start fails), `off` with `?mcp=<tool>` (the server runs on its address,
+// the helper is stopped). Without `?helper`, it is not installed until the guide installs it.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const HOST = "laptop.tail4a2c.ts.net"
@@ -197,7 +201,18 @@ function initial(): TailscaleStatus {
   }
 }
 
-export function tailscaleMock(): Pick<
+const HELPER_HOST = "wirecat.tail4a2c.ts.net"
+
+function helperInitial(): FunnelHelperStatus {
+  const h = params.get("helper")
+  const base = { installed: h !== null, state: "stopped" as const, url: null, actionUrl: null, error: null }
+  if (h === "ready") return { ...base, state: "running", url: `https://${HELPER_HOST}` }
+  return base
+}
+
+export function tailscaleMock(
+  installed: Map<string, string>,
+): Pick<
   Platform,
   | "tailscaleStatus"
   | "tailscaleDownload"
@@ -207,13 +222,26 @@ export function tailscaleMock(): Pick<
   | "tailscaleFunnelOpen"
   | "tailscaleFunnelClose"
   | "tailscaleFunnels"
+  | "funnelHelperStatus"
+  | "funnelHelperStart"
+  | "funnelHelperOpen"
 > {
+  let helper = helperInitial()
+  const helperInstalled = () => helper.installed || installed.has("funnel")
   let state = initial()
   let stopped = false
   const funnels: FunnelState[] = []
   const shown = params.get("mcp")
   if (shown)
-    funnels.push({ tool: shown, profile: null, url: `https://${HOST}/${shown}`, port: 8765, live: true, shared: true })
+    funnels.push({
+      tool: shown,
+      profile: null,
+      url: `https://${HOST}/${shown}`,
+      port: 8765,
+      live: true,
+      shared: true,
+      via: "tailscale",
+    })
   const connect = params.get("connect") ?? ""
   const RUNNING = ["instructions", "waiting", "connected", "called", "oldcli", "unreached", "funnel-off", "live"]
   const served = shown ?? params.get("activity") ?? (RUNNING.includes(connect) ? "tg" : null)
@@ -225,10 +253,29 @@ export function tailscaleMock(): Pick<
       port: 8765,
       live: connect !== "funnel-off",
       shared: true,
+      via: "tailscale",
+    })
+  if (shown && params.get("helper") === "off")
+    funnels.splice(0, funnels.length, {
+      tool: shown,
+      profile: null,
+      url: `https://${HELPER_HOST}/${shown}`,
+      port: 8765,
+      live: false,
+      shared: true,
+      via: "wirecat",
     })
   const old = params.get("funnel-old")
   if (old)
-    funnels.push({ tool: old, profile: "personal", url: `https://${HOST}:8443`, port: 8770, live: true, shared: false })
+    funnels.push({
+      tool: old,
+      profile: "personal",
+      url: `https://${HOST}:8443`,
+      port: 8770,
+      live: true,
+      shared: false,
+      via: "tailscale",
+    })
 
   return {
     async tailscaleStatus() {
@@ -270,12 +317,72 @@ export function tailscaleMock(): Pick<
         throw new Error("Tailscale Funnel allows 3 public addresses per computer, and all are in use.")
       const url = `${https === 443 ? `https://${HOST}` : `https://${HOST}:${https}`}/${id}`
       const others = funnels.filter((f) => f.tool !== id)
-      funnels.splice(0, funnels.length, ...others, { tool: id, profile: null, url, port, live: true, shared: true })
+      funnels.splice(0, funnels.length, ...others, {
+        tool: id,
+        profile: null,
+        url,
+        port,
+        live: true,
+        shared: true,
+        via: "tailscale",
+      })
       return url
     },
     async tailscaleFunnelClose(id) {
       await delay(400)
       for (const f of funnels) if (f.tool === id) f.live = false
+      if (funnels.every((f) => f.via !== "wirecat" || !f.live)) helper = { ...helper, state: "stopped", url: null }
+    },
+    async funnelHelperStatus() {
+      await delay(300)
+      return { ...helper, installed: helperInstalled() }
+    },
+    async funnelHelperStart(onPage) {
+      stopped = false
+      await delay(900)
+      if (params.get("helper") === "fail")
+        throw new Error("the helper stopped at once; see ~/.local/share/wirecat-funnel/run.log")
+      const asks = {
+        login: ["needs-login"],
+        approval: ["needs-login", "needs-approval"],
+        funnel: ["needs-login", "needs-funnel"],
+      }[params.get("helper") ?? "login"] ?? ["needs-login"]
+      const pages = {
+        "needs-login": "https://login.tailscale.com/a/5e6f7a8b9c",
+        "needs-approval": "https://login.tailscale.com/admin/machines",
+        "needs-funnel": "https://login.tailscale.com/f/funnel?node=nWireCat",
+      } as const
+      const signedIn = helper.state !== "stopped" || funnels.some((f) => f.via === "wirecat")
+      for (const ask of signedIn ? [] : (asks as (keyof typeof pages)[])) {
+        helper = { ...helper, state: ask, actionUrl: pages[ask] }
+        onPage(pages[ask])
+        for (let i = 0; i < 8; i++) {
+          await delay(500)
+          if (stopped) {
+            helper = { ...helper, state: "stopped", actionUrl: null }
+            throw new Error("Stopped.")
+          }
+        }
+      }
+      helper = { ...helper, state: "running", url: `https://${HELPER_HOST}`, actionUrl: null }
+      return { ...helper, installed: true }
+    },
+    async funnelHelperOpen(id, port) {
+      await delay(700)
+      if (helper.state !== "running")
+        throw new Error("WireCat's Tailscale connection is not on. Finish the steps above first.")
+      const url = `https://${HELPER_HOST}/${id}`
+      const others = funnels.filter((f) => f.tool !== id)
+      funnels.splice(0, funnels.length, ...others, {
+        tool: id,
+        profile: null,
+        url,
+        port,
+        live: true,
+        shared: true,
+        via: "wirecat",
+      })
+      return url
     },
     async tailscaleFunnels() {
       await delay(300)

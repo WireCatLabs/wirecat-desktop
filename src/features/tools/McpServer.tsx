@@ -159,7 +159,8 @@ export function McpServer({ tool }: { tool: CatalogTool }) {
     if (ready && guiding === null) setGuiding(!connected)
   }, [ready, guiding, connected, setGuiding])
   const showGuide = data?.available === true && (guiding ?? !connected)
-  const funnel = funnels.find((f) => f.shared) ?? null
+  // A tool can have both: the system Tailscale's record and one on WireCat's own connection. The live one counts.
+  const funnel = funnels.find((f) => f.shared && f.live) ?? funnels.find((f) => f.shared) ?? null
   const summary = summaryOf(row, m, lang)
 
   return (
