@@ -23,6 +23,8 @@ const stamp = gitStamp()
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   define: {
+    // Tauri sets TAURI_ENV_PLATFORM for its own build; the bundle has no use for the browser mock.
+    __WITH_MOCK__: JSON.stringify(!process.env.TAURI_ENV_PLATFORM),
     __APP_VERSION__: JSON.stringify(pkg.version),
     __BUILD_COMMIT__: JSON.stringify(stamp.commit),
     __BUILD_DATE__: JSON.stringify(stamp.date),

@@ -2,7 +2,6 @@ import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { App } from "./app/App"
 import { ErrorBoundary } from "./app/ErrorBoundary"
-import { runMockScenario } from "./app/scenarios"
 import { captureErrors } from "./features/report/errors"
 import "./styles/index.css"
 import { trackInputMode } from "./ui/input-mode"
@@ -31,5 +30,5 @@ Promise.race([fonts, cap])
         </ErrorBoundary>
       </StrictMode>,
     )
-    runMockScenario()
+    if (__WITH_MOCK__) void import("./app/scenarios").then((m) => m.runMockScenario())
   })

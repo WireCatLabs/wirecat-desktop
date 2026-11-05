@@ -40,6 +40,8 @@ await page.addInitScript(
   lang,
 )
 await page.goto(`http://localhost:${port}/${query}`)
+// The lazy page chunk arrives after the first paint; idle first, or the skeleton check passes before any exists.
+await page.waitForLoadState("networkidle")
 await page.waitForFunction(() => !document.querySelector('[role="status"].skeleton, .skeleton'), null, {
   timeout: 15000,
 })

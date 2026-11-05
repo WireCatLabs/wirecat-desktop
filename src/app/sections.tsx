@@ -10,23 +10,27 @@ import {
   Settings,
   Wrench,
 } from "lucide-react"
-import type { ComponentType, SVGProps } from "react"
-import { AgentsPage } from "@/features/agents/AgentsPage"
-import { AnalyticsPage } from "@/features/analytics/AnalyticsPage"
-import { ConfigPage } from "@/features/config/ConfigPage"
-import { GuidesPage } from "@/features/guides/GuidesPage"
-import { LogsPage } from "@/features/logs/LogsPage"
-import { MemoryPage } from "@/features/memory/MemoryPage"
-import { SearchPage } from "@/features/search/SearchPage"
-import { StoragePage } from "@/features/storage/StoragePage"
-import { TasksPage } from "@/features/tasks/TasksPage"
-import { ToolsPage } from "@/features/tools/ToolsPage"
+import { type ComponentType, type LazyExoticComponent, lazy, type SVGProps } from "react"
+
+// Each page is its own chunk: the first screen does not pay for the other nine.
+const AgentsPage = lazy(() => import("@/features/agents/AgentsPage").then((m) => ({ default: m.AgentsPage })))
+const AnalyticsPage = lazy(() =>
+  import("@/features/analytics/AnalyticsPage").then((m) => ({ default: m.AnalyticsPage })),
+)
+const ConfigPage = lazy(() => import("@/features/config/ConfigPage").then((m) => ({ default: m.ConfigPage })))
+const GuidesPage = lazy(() => import("@/features/guides/GuidesPage").then((m) => ({ default: m.GuidesPage })))
+const LogsPage = lazy(() => import("@/features/logs/LogsPage").then((m) => ({ default: m.LogsPage })))
+const MemoryPage = lazy(() => import("@/features/memory/MemoryPage").then((m) => ({ default: m.MemoryPage })))
+const SearchPage = lazy(() => import("@/features/search/SearchPage").then((m) => ({ default: m.SearchPage })))
+const StoragePage = lazy(() => import("@/features/storage/StoragePage").then((m) => ({ default: m.StoragePage })))
+const TasksPage = lazy(() => import("@/features/tasks/TasksPage").then((m) => ({ default: m.TasksPage })))
+const ToolsPage = lazy(() => import("@/features/tools/ToolsPage").then((m) => ({ default: m.ToolsPage })))
 
 export type Section = {
   id: string
   icon: ComponentType<SVGProps<SVGSVGElement>>
   /** Absent while the section is announced but not built yet. */
-  page?: ComponentType
+  page?: ComponentType | LazyExoticComponent<ComponentType>
   /** `system` sections sit at the bottom of the sidebar, apart from the everyday ones. */
   group?: "system"
 }

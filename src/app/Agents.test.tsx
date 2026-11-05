@@ -37,7 +37,7 @@ describe("Agents", () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Агенты/ }))
-    expect(screen.getByRole("heading", { name: "Агенты" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Агенты" })).toBeInTheDocument()
     expect(await foundTab(/^Claude Code.*Настроить: 2/)).toBeInTheDocument()
     expect(
       await within(pane()).findByText(
@@ -50,7 +50,7 @@ describe("Agents", () => {
 
   it("lists every known agent, dims the ones not found and opens on the first one with skills to set up", async () => {
     await openAgents()
-    const list = screen.getByRole("tablist", { name: "Agents" })
+    const list = await screen.findByRole("tablist", { name: "Agents" })
     const claude = await foundTab(/^Claude Code.*to set up/)
     expect(claude).toHaveAttribute("aria-selected", "true")
     for (const name of ["Codex", "Cursor", "Gemini CLI", "OpenCode"])

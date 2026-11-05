@@ -32,7 +32,6 @@ import {
   MemorySourceSchema,
   SourceContextSchema,
 } from "./memory-schemas"
-import { createMock } from "./mock"
 import { NotificationsSchema } from "./notifications-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
 import { RepairSchema } from "./repair-schemas"
@@ -332,4 +331,11 @@ const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
 
 export type { Platform, WindowAction } from "./types"
 
-export const platform: Platform = inTauri ? createTauri() : createMock(detectOs())
+export let platform: Platform
+
+/** Must settle before anything reads `platform`. The mock is a dynamic import so a Tauri build never carries it. */
+export async function initPlatform() {
+  if (inTauri) platform = createTauri()
+  else if (__WITH_MOCK__) platform = (await import("./mock")).createMock(detectOs())
+  else throw new Error("The browser mock is not part of this build")
+}
