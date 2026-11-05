@@ -23,7 +23,7 @@ const SEALED: &str = ".db.sealed";
 /// Wiped from memory when dropped.
 pub type Password = zeroize::Zeroizing<String>;
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct BackupFile {
     pub name: String,
@@ -34,7 +34,7 @@ pub struct BackupFile {
     pub encrypted: bool,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Backups {
     pub folder: String,
@@ -42,7 +42,7 @@ pub struct Backups {
     pub files: Vec<BackupFile>,
 }
 
-#[derive(Serialize, Clone, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "event")]
 pub enum BackupEvent {
     Copying {
@@ -449,14 +449,14 @@ fn compress(
     Ok(())
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct TableRows {
     pub name: String,
     pub rows: u64,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct ResetPreview {
     pub answered_by: String,

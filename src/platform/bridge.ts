@@ -20,8 +20,7 @@ import {
 } from "./agents-schemas"
 import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
-import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
-import { BotProfilesSchema, BotResultSchema } from "./bot-schemas"
+import type { BackupEvent } from "./backup-schemas"
 import { commandError } from "./command-error"
 import {
   ForgotSchema,
@@ -32,14 +31,13 @@ import {
 } from "./memory-schemas"
 import { NotificationsSchema } from "./notifications-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
-import { RepairSchema } from "./repair-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
 import type { InstallEvent, NodeEvent } from "./schemas"
 import { QueryDraftSchema, SearchAnswerSchema, SearchContextSchema, ValueItemSchema } from "./search-schemas"
 import { SettingsSchema } from "./settings-schemas"
 import { SignInEventSchema } from "./signin-schemas"
-import { BackgroundSchema, LastSyncSchema, SyncEventSchema } from "./sync-schemas"
+import type { SyncEvent } from "./sync-schemas"
 import {
   FunnelHelperStatusSchema,
   FunnelStateSchema,
@@ -126,28 +124,21 @@ function createTauri(): Platform {
     storage: () => invoke("storage_report"),
     clearStorage: (id) => invoke("clear_storage", { id }),
     openFolder: (id, kind, entry) => invoke("open_folder", { id, kind, entry: entry ?? null }),
-    configRepair: (id, profile) => call(RepairSchema, "config_repair", { id, profile }),
+    configRepair: (id, profile) => invoke("config_repair", { id, profile }),
     storeInfo: () => call(StoreInfoSchema, "store_info"),
     storeCompat: () => call(StoreCompatSchema, "store_compat"),
     storeTables: (sizes) => call(TableListSchema, "store_tables", { sizes }),
     storeCheck: () => call(StoreCheckSchema, "store_check"),
     storeBackup: (onEvent, password) => {
-      const channel = new Channel<unknown>()
-      channel.onmessage = (raw) => {
-        const parsed = v.safeParse(BackupEventSchema, raw)
-        onEvent(
-          parsed.success
-            ? parsed.output
-            : { event: "failed", message: "The app could not read the backup's progress." },
-        )
-      }
+      const channel = new Channel<BackupEvent>()
+      channel.onmessage = onEvent
       return invoke("store_backup", { password: password ?? null, onEvent: channel })
     },
     cancelStoreBackup: () => invoke("cancel_store_backup"),
-    listBackups: () => call(BackupsSchema, "list_backups"),
+    listBackups: () => invoke("list_backups"),
     openBackups: (name) => invoke("open_backups", { name }),
-    storeResetPreview: () => call(ResetPreviewSchema, "store_reset_preview"),
-    storeReset: () => call(ResetDoneSchema, "store_reset"),
+    storeResetPreview: () => invoke("store_reset_preview"),
+    storeReset: () => invoke("store_reset"),
     detectAgents: () => call(AgentsSchema, "detect_agents"),
     skillStatus: (id) => call(SkillReportSchema, "skill_status", { id }),
     skillInstall: (id, target) => call(SkillWrittenSchema, "skill_install", { id, target }),
@@ -230,30 +221,17 @@ function createTauri(): Platform {
     },
     signInAnswer: (id, value) => invoke("sign_in_answer", { id, value }),
     signInStop: (id) => invoke("sign_in_stop", { id }),
-    botSignIn: (id, profile, token, fields) => call(BotResultSchema, "bot_sign_in", { id, profile, token, fields }),
-    listBots: (id) => call(BotProfilesSchema, "list_bots", { id }),
+    botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
+    listBots: (id) => invoke("list_bots", { id }),
     syncRun: (id, profile, onEvent) => {
-      const channel = new Channel<unknown>()
-      channel.onmessage = (raw) => {
-        const parsed = v.safeParse(SyncEventSchema, raw)
-        onEvent(
-          parsed.success
-            ? parsed.output
-            : {
-                event: "failed",
-                message: "The app could not read the sync's answer.",
-                code: null,
-                reason: null,
-                run: null,
-              },
-        )
-      }
+      const channel = new Channel<SyncEvent>()
+      channel.onmessage = onEvent
       return invoke("sync_run", { id, profile, onEvent: channel })
     },
     syncStop: (id, profile) => invoke("sync_stop", { id, profile }),
-    syncLast: (id, profile) => call(LastSyncSchema, "sync_last", { id, profile }),
-    backgroundStatus: (id, profile) => call(BackgroundSchema, "background_status", { id, profile }),
-    backgroundKeep: (id, profile) => call(BackgroundSchema, "background_keep", { id, profile }),
+    syncLast: (id, profile) => invoke("sync_last", { id, profile }),
+    backgroundStatus: (id, profile) => invoke("background_status", { id, profile }),
+    backgroundKeep: (id, profile) => invoke("background_keep", { id, profile }),
     listRuns: (id, query, limit, page) => call(RunsPageSchema, "list_runs", { id, query, limit, page }),
     searchStore: (id, profile, query, limit, page) =>
       call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),

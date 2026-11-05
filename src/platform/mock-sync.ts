@@ -93,6 +93,7 @@ export function syncMock(): Pick<
           code,
           reason: "profile.locked",
           run: recordFailedSync(ownerId(id), { profile, command, code, message }),
+          retryAfterMs: null,
         })
       }
       if (params.get("sync-limited") === id) {
@@ -114,6 +115,7 @@ export function syncMock(): Pick<
           code: "timeout",
           reason: "command.timed-out",
           run: null,
+          retryAfterMs: null,
         })
       }
       finished[key] = Date.now()

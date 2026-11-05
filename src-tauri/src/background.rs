@@ -16,7 +16,7 @@ pub struct BackgroundSource {
     pub start: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Clone, PartialEq, Eq)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", tag = "state")]
 pub enum Background {
     Running,

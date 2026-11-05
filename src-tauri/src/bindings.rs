@@ -28,6 +28,15 @@ fn types() -> Types {
         .register::<crate::mcp_server::ServerStatus>()
         .register::<crate::mcp_server::OAuthSettings>()
         .register::<crate::public_address::PublicCheck>()
+        .register::<crate::sync::SyncEvent>()
+        .register::<crate::sync::LastSync>()
+        .register::<crate::background::Background>()
+        .register::<crate::backup::Backups>()
+        .register::<crate::backup::BackupEvent>()
+        .register::<crate::backup::ResetPreview>()
+        .register::<crate::bots::BotResult>()
+        .register::<crate::bots::BotProfile>()
+        .register::<crate::config_repair::Repair>()
 }
 
 fn render() -> String {

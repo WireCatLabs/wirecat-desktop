@@ -9,6 +9,41 @@ export type Area = {
 	usedBy: string[],
 };
 
+export type Background = { state: "running" } | 
+/**  `unit`: whether a systemd unit or launchd agent is written; `None` where the tool reports none. */
+{ state: "stopped"; unit: boolean | null } | 
+/**  A tool too old to have `server`, or an answer in another shape: the page says nothing. */
+{ state: "unknown" };
+
+export type BackupEvent = { event: "copying"; done: number; total: number } | { event: "compressing"; done: number; total: number } | 
+/**  The tool copies beside the store and seals in one run, printing nothing; there is no progress to show. */
+{ event: "encrypting" } | { event: "done"; file: BackupFile; folder: string; storeBytes: number; millis: number } | { event: "cancelled" } | { event: "failed"; message: string };
+
+export type BackupFile = {
+	name: string,
+	bytes: number,
+	/**  Milliseconds since the Unix epoch. */
+	modified: number,
+	/**  Sealed with a password by the tool's `store backup --encrypt`, rather than zipped by the app. */
+	encrypted: boolean,
+};
+
+export type Backups = {
+	folder: string,
+	/**  Newest first. */
+	files: BackupFile[],
+};
+
+export type BotProfile = {
+	name: string,
+	/**  Where the token comes from: `keyring`, `file` or `env`. */
+	source: string | null,
+};
+
+export type BotResult = 
+/**  The bot's own public name and username, as the messenger reported them; never the token. */
+{ outcome: "connected"; name: string | null; username: string | null } | { outcome: "failed"; message: string; code: string | null; reason: string | null };
+
 export type CloudflareStatus = {
 	os: Os,
 	/**  cloudflared publishes a build for this computer. */
@@ -124,6 +159,14 @@ export type InstallEvent = { event: "step"; step: InstallStep } |
 export type InstallStep = "check" | "install" | "remove" | "verify";
 
 export type Kind = "config" | "state" | "cache";
+
+export type LastSync = {
+	/**  When the newest successful sync ended, as the tool printed it. */
+	at: string | null,
+	left: number | null,
+	/**  False when the tool cannot say (too old for `runs list`, or its answer did not parse). */
+	known: boolean,
+};
 
 export type LoginCode = {
 	code: string,
@@ -282,6 +325,33 @@ export type Readiness = {
 	managed: Managed | null,
 };
 
+export type Repair = { state: "repaired"; file: string | null; backup: string | null; changes: RepairChange[] } | 
+/**  `nothing to repair` or `no settings file`: the file was already valid, or is gone. */
+{ state: "unchanged"; reason: string } | 
+/**  `config.unrepairable`: no fix was certain, so nothing changed. Where the tool gave up. */
+{ state: "refused"; message: string | null; file: string | null; line: number | null; column: number | null };
+
+/**  One mend, by line and kind (`trailing_comma`, `missing_comma`…); cli-core never prints a value. */
+export type RepairChange = {
+	line: number | null,
+	kind: string,
+};
+
+export type ResetPreview = {
+	answeredBy: string,
+	bin: string,
+	/**  False while the installed tool is older than `store reset --dry-run`; nothing else is filled then. */
+	supported: boolean,
+	exists: boolean,
+	/**  The store's files, `~` for the home folder. */
+	files: string[],
+	bytes: number,
+	schema: number | null,
+	tables: TableRows[],
+	/**  Whether a sync, an import or a server has the file open now; `None` when the system cannot say. */
+	inUse: boolean | null,
+};
+
 export type ShellReach = {
 	name: string,
 	/**  The program, as `/etc/shells` or the account lists it. */
@@ -299,6 +369,37 @@ export type SkillRefresh = {
 	refreshed: string[],
 	/**  Masked, like every failure here; the update itself still succeeded. */
 	failed: string | null,
+};
+
+export type SyncEvent = 
+/**  A stage from a fixed list, read from the tool's notes; never the note itself. */
+{ event: "stage"; stage: string } | 
+/**  cli-core's `progress` line, from the release that prints one: counts only, never a chat. */
+{ event: "progress"; chats: number | null; chatsDone: number | null; fetched: number } | { event: "done"; summary: SyncSummary } | { event: "stopped" } | 
+/**
+ *  `code` and `reason` are the tool's own (`timeout`, `profile.locked`…); the interface says what to do.
+ *  `message` is always the app's own words: a tool's message can name a chat (RISK-44), so only its `code`,
+ *  `reason` and the id of its failed run leave Rust, and the window links that run on the Logs page.
+ */
+{ event: "failed"; message: string; code: string | null; reason: string | null; run: string | null; 
+/**  How long the service asked to wait before the next try, when the tool says (`retry.after_ms`). */
+retryAfterMs: number | null };
+
+/**  Counts only: titles, chat keys and account names in the tool's answer stay in Rust. */
+export type SyncSummary = {
+	/**  New messages, files, meetings, emails or changed notes. */
+	new: number,
+	/**  How many chats, accounts or folders brought something new. */
+	places: number,
+	failed: number,
+	/**  Files the tool will fetch on the next run. */
+	left: number,
+	complete: boolean,
+};
+
+export type TableRows = {
+	name: string,
+	rows: number,
 };
 
 export type ToolState = {
