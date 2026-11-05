@@ -302,8 +302,9 @@ export function createMock(os: Platform["os"]): Platform {
         await delay(150)
       }
       onEvent({ event: "step", step: "path" })
-      await delay(500)
+      await delay(params.get("node") === "slow" ? 3000 : 900)
       managed = true
+      pathAdded = true
       onEvent({ event: "done", version: NODE.version, path: NODE.dir })
     },
     async cancelNodeSetup() {

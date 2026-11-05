@@ -1,5 +1,5 @@
 import { Download, ExternalLink } from "lucide-react"
-import { useEffect, useId } from "react"
+import { type ReactNode, useEffect, useId } from "react"
 import { requirements } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { useMessages } from "@/i18n"
@@ -9,6 +9,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { ProgressBar } from "@/ui/ProgressBar"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { ReportThis } from "../report/ReportThis"
 import { ManagedNode } from "./ManagedNode"
@@ -31,22 +32,23 @@ export function NodeNotice() {
     if (managedActive) useNode.getState().loadPath()
   }, [managedActive])
 
-  if (!r) return null
-  if (managedActive) {
+  // Folded in and out rather than mounted, so the notice never vanishes the moment Node.js is ready.
+  let notice: ReactNode = null
+  if (r && managedActive) {
     // Once it is on PATH there is nothing left to ask; the readiness strip still opens it.
-    if (!path || path.added) return null
-    return (
-      <section aria-label={m.nodeForTools} className="rounded-[0.2rem] border border-line-strong bg-app px-5 py-4">
-        <p className="font-semibold">{m.managedTitle(r.managed?.version ?? "")}</p>
-        <p className="mt-0.5 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.managedBody}</p>
-        <div className="mt-4">
-          <ManagedNode compact />
-        </div>
-      </section>
-    )
-  }
-  if (r.node.ok && r.npmPrefixWritable !== false) return null
-  return <NeedsNode r={r} />
+    if (path && !path.added) {
+      notice = (
+        <section aria-label={m.nodeForTools} className="rounded-[0.2rem] border border-line-strong bg-app px-5 py-4">
+          <p className="font-semibold">{m.managedTitle(r.managed?.version ?? "")}</p>
+          <p className="mt-0.5 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.managedBody}</p>
+          <div className="mt-4">
+            <ManagedNode compact />
+          </div>
+        </section>
+      )
+    }
+  } else if (r && !(r.node.ok && r.npmPrefixWritable !== false)) notice = <NeedsNode r={r} />
+  return <Collapse open={notice !== null}>{notice}</Collapse>
 }
 
 function NeedsNode({ r }: { r: Readiness }) {
@@ -132,45 +134,35 @@ function Progress() {
     return { label: m.steps[id], state }
   })
   const pct = total ? Math.min(100, Math.round((received / total) * 100)) : null
+  const counted = (step === "download" || step === "unpack") && !failure
+  const barLabel = step === "download" ? m.downloading : step === "unpack" ? m.unpacking : step ? m.steps[step] : ""
 
   return (
     <div className="flex flex-col gap-4 rounded-[0.45rem] border border-line bg-app px-5 py-4">
       <Stepper steps={steps} />
-      {(step === "download" || step === "unpack") && !failure && (
+      {/* One bar for the whole setup, so the box keeps its height from step to step; checks and PATH say no share. */}
+      {running && !failure && (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-4">
-            <div
-              role="progressbar"
-              aria-label={step === "download" ? m.downloading : m.unpacking}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={pct ?? undefined}
-              className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-3"
-            >
-              <div
-                className="h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-150 motion-safe:ease-out-quart"
-                style={{ width: `${pct ?? 0}%` }}
-              />
-            </div>
-            <span className="shrink-0 font-mono text-[0.875rem] tabular-nums text-ink-soft">
-              {step === "unpack" && pct !== null
-                ? m.ofArchive(pct)
-                : total
-                  ? m.ofTotal(formatBytes(received), formatBytes(total))
-                  : formatBytes(received)}
-            </span>
+          <div className="flex min-h-[1.4rem] items-center gap-4">
+            <ProgressBar label={barLabel} value={counted ? (pct ?? 0) : null} className="flex-1" />
+            {counted && (
+              <span className="shrink-0 font-mono text-[0.875rem] tabular-nums text-ink-soft">
+                {step === "unpack" && pct !== null
+                  ? m.ofArchive(pct)
+                  : total
+                    ? m.ofTotal(formatBytes(received), formatBytes(total))
+                    : formatBytes(received)}
+              </span>
+            )}
           </div>
-          {step === "unpack" && (
-            <p className="text-[0.95rem] text-ink-soft">{offer?.dir ? m.unpackInto(offer.dir) : m.unpackHome}</p>
-          )}
+          <p aria-live="polite" className="text-[0.95rem] text-ink-soft">
+            {step === "check" && m.asking(NODEJS_ORG)}
+            {step === "download" && m.downloading}
+            {step === "verify" && m.verifying(NODEJS_ORG)}
+            {step === "unpack" && (offer?.dir ? m.unpackInto(offer.dir) : m.unpackHome)}
+            {step === "path" && m.pathing}
+          </p>
         </div>
-      )}
-      {running && (step === "check" || step === "verify" || step === "path") && (
-        <p aria-live="polite" className="text-[0.95rem] text-ink-soft">
-          {step === "check" && m.asking(NODEJS_ORG)}
-          {step === "verify" && m.verifying(NODEJS_ORG)}
-          {step === "path" && m.pathing}
-        </p>
       )}
       {failure && (
         <ErrorNotice
@@ -186,7 +178,8 @@ function Progress() {
       )}
       <div className="flex justify-end gap-2">
         {running ? (
-          <Button size="sm" onClick={() => useNode.getState().cancel()}>
+          // Node.js is in place by the PATH step, and the setup only waits for the computer to be checked again.
+          <Button size="sm" disabled={step === "path"} onClick={() => useNode.getState().cancel()}>
             {m.cancel}
           </Button>
         ) : (
