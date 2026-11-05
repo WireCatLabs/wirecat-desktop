@@ -9,6 +9,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useCreep } from "@/ui/motion"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { ReportThis } from "../report/ReportThis"
@@ -20,6 +21,7 @@ import { useSystem } from "./store"
 const STEPS: readonly NodeStep[] = ["check", "download", "verify", "unpack", "path"]
 
 const NODEJS_ORG = "nodejs.org"
+const PATH_PARTS = 2
 
 /** Asks for Node.js when the tools cannot be installed, and offers to set it up in the user's own folder. */
 export function NodeNotice() {
@@ -124,7 +126,16 @@ function Progress() {
   const received = useNode((s) => s.received)
   const total = useNode((s) => s.total)
   const offer = useNode((s) => s.offer)
+  const pathPart = useNode((s) => s.pathPart)
+  const pathFile = useNode((s) => s.pathFile)
   const m = useMessages(systemMessages)
+
+  // Two real signals split the PATH step: Rust has written the line, then the computer is checked again. Neither
+  // reports a share, so the bar eases through each part and the next signal moves it on.
+  const part = step === "path" && running && !failure ? (pathPart ?? "write") : null
+  const partAt = part === "check" ? 1 : 0
+  const crept = useCreep(part, part === "check" ? 2500 : 800)
+  const pathPct = part ? ((partAt + crept) / PATH_PARTS) * 100 : null
 
   const current = step ? STEPS.indexOf(step) : -1
   const steps = STEPS.map((id, i) => {
@@ -144,7 +155,18 @@ function Progress() {
       {running && !failure && (
         <div className="flex flex-col gap-2">
           <div className="flex min-h-[1.4rem] items-center gap-4">
-            <ProgressBar label={barLabel} value={counted ? (pct ?? 0) : null} className="flex-1" />
+            <ProgressBar
+              label={barLabel}
+              value={counted ? (pct ?? 0) : pathPct}
+              valueText={part ? m.pathStep(partAt + 1, PATH_PARTS) : undefined}
+              busy={part !== null}
+              className="flex-1"
+            />
+            {part && (
+              <span className="shrink-0 font-mono text-[0.875rem] tabular-nums text-ink-soft">
+                {m.pathStep(partAt + 1, PATH_PARTS)}
+              </span>
+            )}
             {counted && (
               <span className="shrink-0 font-mono text-[0.875rem] tabular-nums text-ink-soft">
                 {step === "unpack" && pct !== null
@@ -160,7 +182,8 @@ function Progress() {
             {step === "download" && m.downloading}
             {step === "verify" && m.verifying(NODEJS_ORG)}
             {step === "unpack" && (offer?.dir ? m.unpackInto(offer.dir) : m.unpackHome)}
-            {step === "path" && m.pathing}
+            {part === "write" && m.pathing}
+            {part === "check" && m.pathChecking(pathFile)}
           </p>
         </div>
       )}

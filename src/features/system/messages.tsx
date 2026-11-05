@@ -72,6 +72,9 @@ const en = {
   unpacking: "Unpacking Node.js",
   ofArchive: (pct: number) => `${pct}% of the archive`,
   pathing: "Adding Node.js to your PATH, so terminals and AI apps find it…",
+  pathChecking: (file: string | null) =>
+    file ? `Added to ${file}. Checking Node.js and npm again…` : "Checking Node.js and npm again…",
+  pathStep: (n: number, of: number) => `Step ${n} of ${of}`,
   ofTotal: (received: string, total: string) => `${received} of ${total}`,
   verifying: (site: string) => `Comparing the download with the checksum ${site} publishes…`,
   unpackInto: (dir: string) => `Unpacking into ${dir}…`,
@@ -163,6 +166,9 @@ const ru: typeof en = {
   unpacking: "Распаковка Node.js",
   ofArchive: (pct) => `${pct}% архива`,
   pathing: "Добавляем Node.js в PATH, чтобы его находили терминалы и ИИ-приложения…",
+  pathChecking: (file) =>
+    file ? `Добавлено в ${file}. Снова проверяем Node.js и npm…` : "Снова проверяем Node.js и npm…",
+  pathStep: (n, of) => `Шаг ${n} из ${of}`,
   ofTotal: (received, total) => `${received} из ${total}`,
   verifying: (site) => `Сверяем загрузку с контрольной суммой, которую публикует ${site}…`,
   unpackInto: (dir) => `Распаковываем в ${dir}…`,
@@ -259,6 +265,9 @@ const es: typeof en = {
   unpacking: "Descomprimiendo Node.js",
   ofArchive: (pct) => `${pct} % del archivo`,
   pathing: "Añadiendo Node.js al PATH, para que lo encuentren los terminales y las apps de IA…",
+  pathChecking: (file) =>
+    file ? `Añadido a ${file}. Comprobando de nuevo Node.js y npm…` : "Comprobando de nuevo Node.js y npm…",
+  pathStep: (n, of) => `Paso ${n} de ${of}`,
   ofTotal: (received, total) => `${received} de ${total}`,
   verifying: (site) => `Comparando la descarga con la suma de verificación que publica ${site}…`,
   unpackInto: (dir) => `Descomprimiendo en ${dir}…`,
