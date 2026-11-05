@@ -147,9 +147,10 @@ describe("syncing a profile from the Manage panel", () => {
     expect(screen.getByRole("button", { name: "Open the run on Logs" })).toBeInTheDocument()
   })
 
-  it("syncs memo and Email under one lock, without a profile", () => {
+  it("syncs mail per profile, apart from memo's one lock", () => {
     useSync.getState().start("memo", null)
-    useSync.getState().start("email", null)
-    expect(platform.syncRun).toHaveBeenCalledTimes(1)
+    useSync.getState().start("email", "personal")
+    useSync.getState().start("email", "work")
+    expect(platform.syncRun).toHaveBeenCalledTimes(3)
   })
 })

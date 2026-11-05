@@ -78,7 +78,8 @@ function Actions() {
   const pm = useMessages(planMessages)
   const { stop, close, start, tool, profile, onFinish, phase, stopping, method } = s
   const entry = tool ? findTool(tool) : undefined
-  const others = entry ? signInMethods(entry).filter((m) => m.id !== method) : []
+  // A provider is chosen in the plan itself, never switched to in the middle of a sign-in.
+  const others = entry && !entry.signIn?.pick ? signInMethods(entry).filter((m) => m.id !== method) : []
   if (phase === "plan") {
     return (
       <>
@@ -139,7 +140,12 @@ function Actions() {
             {m.openTerminal}
           </Button>
         )}
-        <Button variant="secondary" onClick={s.again} data-autofocus>
+        {/* With a provider to pick, the address or password may be what was wrong: back to the plan to change them. */}
+        <Button
+          variant="secondary"
+          onClick={entry?.signIn?.pick ? () => useSignIn.setState({ phase: "plan", failure: null }) : s.again}
+          data-autofocus
+        >
           {m.tryAgain}
         </Button>
       </>

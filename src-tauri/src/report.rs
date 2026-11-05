@@ -651,12 +651,12 @@ mod tests {
     }
 
     #[test]
-    fn files_a_report_about_email_under_memo_and_says_so() {
+    fn files_a_report_about_email_under_its_own_package() {
         let mut d = draft("Mail import stops", "It stops after the first folder.");
         d.tool = Some("email".into());
         let body = body(d, &mut context()).unwrap();
-        assert_eq!(body["report"]["tool"], "memo");
-        assert!(body["report"]["details"].as_str().unwrap().starts_with("About: Email"));
+        assert_eq!(body["report"]["tool"], "email");
+        assert!(body["report"]["details"].as_str().unwrap().starts_with("It stops"));
     }
 
     #[test]

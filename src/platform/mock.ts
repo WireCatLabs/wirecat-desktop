@@ -57,6 +57,8 @@ const LATEST: Record<string, string> = {
   zm: "0.42.0",
   drive: "0.30.0",
   memo: "0.95.0",
+  email: "0.14.0",
+  gcal: "0.19.0",
 }
 if (params.get("compat") === "upgrade") LATEST.max = "0.75.0"
 const PACKAGES: Record<string, string> = {
@@ -66,6 +68,8 @@ const PACKAGES: Record<string, string> = {
   zm: "@wirecat/zoom-cli",
   drive: "@wirecat/drive-cli",
   memo: "@wirecat/cli-memo",
+  email: "@wirecat/mail-cli",
+  gcal: "@wirecat/gcal-cli",
 }
 
 // Doctor's configuration checks: Telegram's personal profile has every warning kind, work has a broken file, and MAX
@@ -370,10 +374,10 @@ export function createMock(os: Platform["os"]): Platform {
       const command = `${id} ${profile ? `${profile} ` : ""}doctor --record --json`
       if (id === "email") {
         return {
-          command: `memo mail check ${profile ?? ""} --json`,
+          command: `mail ${profile ?? ""} session status --record --json`,
           exitCode: 0,
           durationMs: 240,
-          report: { item: { name: "•••", address: "[email]" } },
+          report: { item: { profile: profile ?? "", state: "signed_in", auth: "oauth", address: "[email]" } },
           stderr: "",
         }
       }

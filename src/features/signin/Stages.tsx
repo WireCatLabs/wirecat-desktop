@@ -13,10 +13,12 @@ import { ReportThis } from "../report/ReportThis"
 import { openConnect, openTool } from "../tools/go"
 import { AnswerForm } from "./AnswerForm"
 import { signinMessages } from "./messages"
+import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import {
   ENDED,
   keptAnswer,
+  methodOf,
   NEEDS_UPDATE,
   type OpenUrl,
   type Pairing,
@@ -34,6 +36,7 @@ export function Stage({ name }: { name: string }) {
   const s = useSignIn()
   const m = useMessages(signinMessages)
   const tm = useMessages(telegramMessages)
+  const pm = useMessages(planMessages)
   if (s.phase === "starting") {
     return (
       <div className={STAGE}>
@@ -110,12 +113,30 @@ export function Stage({ name }: { name: string }) {
   }
   if (s.phase === "failed" && s.failure) {
     const needsClientId = s.tool === "zm" && s.failure.message.includes("zoom.client_id")
+    // A tool from before WireCat's Google app (gcal 0.19) refuses to start without the owner's own.
+    const needsOwnApp =
+      Boolean(s.tool && methodOf(s.tool, s.method)?.clientFile) &&
+      /no Google OAuth client|own Google app/.test(s.failure.message)
     const telegram = s.tool === "tg" ? telegramFailure(s.failure.message, s.failure.code) : null
     const fix = telegram && isFixLabel(telegram.fix) ? telegram.fix : null
     return (
       <div className="flex min-h-[19rem] flex-col justify-center gap-4">
         {needsClientId ? (
           <ClientIdForm />
+        ) : needsOwnApp ? (
+          <ErrorNotice
+            action={
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => useSignIn.setState({ phase: "plan", failure: null, planError: pm.noWireCatApp(name) })}
+              >
+                {pm.ownApp}
+              </Button>
+            }
+          >
+            {pm.noWireCatApp(name)}
+          </ErrorNotice>
         ) : (
           <ErrorNotice
             action={

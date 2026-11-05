@@ -1,4 +1,4 @@
-import { Mail, MessageCircle, MessagesSquare, NotebookText, Send, Video } from "lucide-react"
+import { CalendarDays, Mail, MessageCircle, MessagesSquare, NotebookText, Send, Video } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
 
 function DriveIcon(props: SVGProps<SVGSVGElement>) {
@@ -25,6 +25,7 @@ const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   wa: MessageCircle,
   zm: Video,
   drive: DriveIcon,
+  gcal: CalendarDays,
   memo: NotebookText,
   email: Mail,
 }

@@ -483,8 +483,9 @@ const ru: OnboardingText = {
       wa: "Агент сможет читать ваши чаты в WhatsApp, искать в них и отправлять сообщения, когда вы попросите.",
       zm: "Агент сможет находить ваши встречи в Zoom и читать их расшифровки и итоги.",
       drive: "Агент сможет находить и читать ваши файлы на Google Drive. Изменять их он не сможет.",
+      gcal: "Агент сможет находить и читать события вашего Google Календаря. Изменять календарь он не сможет.",
       email:
-        "Агент сможет искать в вашей почте вместе с заметками и сообщениями. Memo читает почтовый ящик, ничего в нём не меняя, и никогда не отправляет писем.",
+        "Агент сможет искать и читать вашу почту на этом компьютере. Синхронизация копирует почту сюда и никогда не меняет ваш ящик.",
     },
     asks: {
       tg: "В первый раз — номер телефона и код, который пришлёт Telegram: так регистрируется ваше собственное приложение Telegram. Затем QR-код, который нужно отсканировать в Telegram: «Настройки → Устройства → Подключить устройство».",
@@ -492,8 +493,9 @@ const ru: OnboardingText = {
       wa: "QR-код, который нужно отсканировать в WhatsApp: «Настройки → Связанные устройства → Привязка устройства».",
       zm: "Браузер откроет Zoom, чтобы вы разрешили доступ. Сначала Zoom нужно ваше собственное приложение, которое один раз создаётся в Zoom App Marketplace.",
       drive: "Браузер откроет Google: выберите аккаунт и разрешите доступ к Drive только на чтение.",
+      gcal: "Браузер откроет Google: выберите аккаунт и разрешите доступ к Календарю только на чтение.",
       email:
-        "Сначала аккаунт настраивается в Himalaya, почтовой программе для терминала; для Gmail — с паролем приложения. Затем имя аккаунта Himalaya и его адрес передаются в Memo.",
+        "Ваш адрес почты, затем вход Microsoft в браузере или пароль приложения — отдельный пароль только для этой программы.",
     },
   },
   done: {
@@ -750,8 +752,9 @@ const es: OnboardingText = {
       wa: "Tu agente podrá leer y buscar en tus chats de WhatsApp, y enviar mensajes cuando se lo pidas.",
       zm: "Tu agente podrá encontrar tus reuniones de Zoom y leer sus transcripciones y resúmenes.",
       drive: "Tu agente podrá encontrar y leer tus archivos de Google Drive. No puede cambiarlos.",
+      gcal: "Tu agente podrá encontrar y leer los eventos de tu Google Calendar. No puede cambiar tu calendario.",
       email:
-        "Tu agente podrá buscar en tu correo junto con tus notas y mensajes. Memo lee el buzón sin cambiarlo y nunca envía correo.",
+        "Tu agente podrá buscar y leer tu correo en este equipo. La sincronización copia el correo aquí y nunca cambia tu buzón.",
     },
     asks: {
       tg: "La primera vez, tu número de teléfono y el código que envía Telegram, para registrar tu propia app de Telegram. Después, un código QR que escaneas en Telegram: Ajustes → Dispositivos → Vincular dispositivo.",
@@ -759,8 +762,9 @@ const es: OnboardingText = {
       wa: "Un código QR que escaneas en WhatsApp: Ajustes → Dispositivos vinculados → Vincular un dispositivo.",
       zm: "Tu navegador abre Zoom para que apruebes el acceso. Antes, Zoom necesita una app tuya, que se crea una sola vez en el Zoom App Marketplace.",
       drive: "Tu navegador abre Google: elige la cuenta y permite el acceso de solo lectura a Drive.",
+      gcal: "Tu navegador abre Google: elige la cuenta y permite el acceso de solo lectura a Calendar.",
       email:
-        "Primero, la cuenta configurada en Himalaya, un programa de correo para la terminal; para Gmail, con una contraseña de aplicación. Después, el nombre de la cuenta de Himalaya y su dirección de correo, que se pasan a Memo.",
+        "Tu dirección de correo, y después el inicio de sesión de Microsoft en el navegador o una contraseña de aplicación: una contraseña solo para este programa.",
     },
   },
   done: {

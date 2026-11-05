@@ -44,9 +44,9 @@ authentication. Everything stays on the user's computer.
 
 - Tools (catalog, 2026-10-25): Telegram `tg` (@wirecat/tg-cli), MAX `max` (@wirecat/max-cli), WhatsApp `wa`
   (@wirecat/whatsapp-cli), Zoom `zm` (@wirecat/zoom-cli), Google Drive `drive` (@wirecat/drive-cli), Memo
-  `memo` (@wirecat/cli-memo). All six shown equally (owner, 2026-10-25). Email is a seventh row over memo's package
-  and `memo mail` commands, with its own accounts, checks and logs; installing either installs both (owner, NEED-13
-  answer B, 2026-10-25).
+  `memo` (@wirecat/cli-memo). All six shown equally (owner, 2026-10-25). Email is mail-cli `mail`
+  (@wirecat/mail-cli), its own package since `memo mail` moved there (owner, 2026-11-05; it was a row over memo's
+  package, NEED-13 answer B, 2026-10-25). Google Calendar is `gcal` (@wirecat/gcal-cli).
 - Requirements: Node `^22.16.0 || >=24` with npm. The app itself must start without Node.
 - Account commands take an explicit profile (`tg personal doctor`); no profile is ever assumed. memo has no
   profiles. Setup flows are interactive and run in a terminal.

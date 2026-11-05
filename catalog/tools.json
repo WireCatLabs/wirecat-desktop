@@ -1433,7 +1433,63 @@
           {
             "id": "browser",
             "label": "Browser",
-            "words": ["{profile}", "session", "start", "--json"]
+            "words": ["{profile}", "session", "start", "--json"],
+            "clientFile": "--client-file"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gcal",
+      "name": "Google Calendar",
+      "tagline": "Google Calendar events, searchable on your computer",
+      "bin": "gcal",
+      "package": "@wirecat/gcal-cli",
+      "summary": "Copy your Google Calendar events to this computer, search them offline and give your agent the context of each meeting.",
+      "docs": "https://wirecat.dev/en/docs/gcal",
+      "repo": "https://github.com/WireCatLabs/gcal-cli",
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "doctor": ["{profile}", "session", "status", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "setup": ["{profile}", "session", "start"],
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "mcp": null,
+      "mcpServer": null,
+      "tasks": null,
+      "sync": null,
+      "storeInfo": null,
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "gcal-cli",
+        "env": "GCAL"
+      },
+      "settings": null,
+      "signIn": {
+        "gives": "Lets your agent find your calendar events and read them. It cannot change your calendar.",
+        "asks": "Your browser opens Google: choose the account and allow read-only access to Calendar.",
+        "methods": [
+          {
+            "id": "browser",
+            "label": "Browser",
+            "words": ["{profile}", "session", "start", "--json"],
+            "clientFile": "--client-file"
           }
         ]
       }
@@ -1444,7 +1500,7 @@
       "tagline": "Notes, people and memories in one place for your agent",
       "bin": "memo",
       "package": "@wirecat/cli-memo",
-      "summary": "Your notes and messages in one place for your AI agent: search, tags, people and memories, on your computer. Mail comes in through Email, which is part of Memo.",
+      "summary": "Your notes and messages in one place for your AI agent: search, tags, people and memories, on your computer.",
       "docs": "https://wirecat.dev/en/docs/memo",
       "repo": "https://github.com/WireCatLabs/cli-memo",
       "profiles": null,
@@ -1549,9 +1605,13 @@
         "revoke": ["mcp", "revoke", "--json"],
         "config": null
       },
-      "memory": { "minVersion": "0.131.14" },
+      "memory": {
+        "minVersion": "0.131.14"
+      },
       "tasks": null,
-      "taskBoard": { "minVersion": "0.131.14" },
+      "taskBoard": {
+        "minVersion": "0.131.14"
+      },
       "sync": {
         "run": ["sync", "--record", "--json"],
         "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
@@ -1577,28 +1637,33 @@
     {
       "id": "email",
       "name": "Email",
-      "partOf": "memo",
-      "commandPrefix": "mail",
-      "tagline": "Your mail, searchable with your notes and messages",
-      "bin": "memo",
-      "package": "@wirecat/cli-memo",
-      "summary": "Gmail and other IMAP mail in Memo's local store, read through Himalaya: search it with your notes and messages and see how far each import is. Importing never changes your mailbox, and Memo never sends mail.",
-      "docs": "https://wirecat.dev/en/docs/email",
-      "repo": "https://github.com/WireCatLabs/cli-memo",
+      "tagline": "Your mail, searchable on your computer",
+      "bin": "mail",
+      "package": "@wirecat/mail-cli",
+      "summary": "Gmail, Outlook and other IMAP mail copied to your computer: search it offline, read whole threads, and see how far each sync got. Syncing never changes your mailbox.",
+      "docs": "https://wirecat.dev/en/docs/mail",
+      "repo": "https://github.com/WireCatLabs/mail-cli",
       "profiles": {
-        "args": ["doctor", "--no-record", "--json"],
-        "shape": "item.mail.accounts"
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
       },
-      "doctor": ["mail", "check", "{profile}", "--record", "--json"],
-      "runs": null,
+      "doctor": ["{profile}", "session", "status", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
       "search": {
         "args": [
+          "{profile}",
           "search",
-          "mail",
-          "--source",
-          "email:{profile}",
+          "messages",
+          "--offline",
+          "--backend",
+          "archive",
           "--limit",
           "{limit}",
+          "--page",
+          "{page}",
           "--no-record",
           "--json",
           "--",
@@ -1624,7 +1689,7 @@
           {
             "name": "mailbox",
             "group": "where",
-            "example": "mailbox:important",
+            "example": "mailbox:INBOX",
             "top": true,
             "values": null
           },
@@ -1643,23 +1708,16 @@
             "values": null
           },
           {
+            "name": "subject",
+            "group": "what",
+            "example": "subject:invoice",
+            "top": false,
+            "values": null
+          },
+          {
             "name": "to",
             "group": "who",
             "example": "to:\"ana@example.com\"",
-            "top": false,
-            "values": null
-          },
-          {
-            "name": "email",
-            "group": "who",
-            "example": "email:\"ana@example.com\"",
-            "top": false,
-            "values": null
-          },
-          {
-            "name": "text",
-            "group": "what",
-            "example": "text:invoice",
             "top": false,
             "values": null
           },
@@ -1669,34 +1727,36 @@
             "example": "content:invoice",
             "top": false,
             "values": null
-          },
-          {
-            "name": "url",
-            "group": "files",
-            "example": "url:\"github.com/wirecat\"",
-            "top": false,
-            "values": null
-          },
-          {
-            "name": "domain",
-            "group": "files",
-            "example": "domain:github.com",
-            "top": false,
-            "values": null
           }
         ],
         "values": {},
         "context": {
-          "args": ["messages", "show", "{ref}", "--before-n", "5", "--after-n", "5", "--no-record", "--json"]
+          "args": [
+            "{profile}",
+            "messages",
+            "show",
+            "{ref}",
+            "--before-n",
+            "5",
+            "--after-n",
+            "5",
+            "--offline",
+            "--no-record",
+            "--json"
+          ]
         }
       },
-      "setup": null,
-      "skill": null,
+      "setup": ["{profile}", "session", "start"],
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
       "mcp": null,
       "mcpServer": null,
       "tasks": null,
       "sync": {
-        "run": ["sync", "--only", "mail", "--record", "--json"],
+        "run": ["{profile}", "sync", "--record", "--json"],
         "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],
         "lastShape": "runs",
         "what": "mail",
@@ -1711,15 +1771,49 @@
       "storeResetPreview": null,
       "storeReset": null,
       "storage": {
-        "app": "cli-memo",
-        "env": "MEMO"
+        "app": "mail-cli",
+        "env": "MAIL"
       },
-      "settings": null,
+      "settings": {
+        "show": ["{profile}", "config", "show", "--no-record", "--json"],
+        "set": ["{profile}", "config", "set", "--json"],
+        "unset": ["{profile}", "config", "unset", "--json"],
+        "shape": "rows",
+        "perProfile": true,
+        "defaults": true,
+        "jsonValues": false,
+        "keys": null,
+        "readOnly": []
+      },
       "signIn": {
-        "gives": "Lets your agent search your mail together with your notes and messages. Memo reads the mailbox without changing it and never sends mail.",
-        "asks": "The account set up first in Himalaya, a mail program for the terminal; for Gmail, with an app password. Then the Himalaya account's name and its email address, given to Memo.",
-        "guide": "https://wirecat.dev/en/docs/email",
-        "command": "memo mail add <name> <address>"
+        "gives": "Lets your agent search and read your mail on this computer. Syncing copies mail here and never changes your mailbox.",
+        "asks": "Your mail address, then Microsoft's sign-in in the browser, or an app password: a password made only for this program.",
+        "guide": "https://wirecat.dev/en/docs/mail/providers",
+        "pick": true,
+        "methods": [
+          {
+            "id": "microsoft",
+            "label": "Microsoft",
+            "words": ["{profile}", "session", "start", "--json", "--quiet"],
+            "address": "--address",
+            "clientId": "microsoft_client_id"
+          },
+          {
+            "id": "gmail",
+            "label": "Gmail",
+            "words": ["{profile}", "session", "start", "--json", "--quiet"],
+            "address": "--address",
+            "password": "MAIL_PASSWORD",
+            "clientFile": "--client-file"
+          },
+          {
+            "id": "imap",
+            "label": "Another mail server",
+            "words": ["{profile}", "session", "start", "--json", "--quiet"],
+            "address": "--address",
+            "password": "MAIL_PASSWORD"
+          }
+        ]
       }
     }
   ],

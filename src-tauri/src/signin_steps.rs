@@ -97,6 +97,11 @@ impl Parser {
         {
             return None;
         }
+        // mail prints its sign-in link only as text, and opens the browser itself.
+        if let Some(url) = plain_link(line).filter(|_| self.url.is_none()) {
+            self.url = Some(url.clone());
+            return Some(SignInEvent::OpenUrl { url, purpose: None });
+        }
         if line.starts_with("receiving history from the phone") {
             return Some(progress("history"));
         }
@@ -140,6 +145,12 @@ impl Parser {
             _ => None,
         }
     }
+}
+
+/// `Open Microsoft sign-in: https://…`, cli-core's line for a person when there are no `open_url` steps.
+fn plain_link(line: &str) -> Option<String> {
+    let (_, url) = line.strip_prefix("Open ")?.split_once(" sign-in: ")?;
+    (url.starts_with("https://") && !url.contains(char::is_whitespace)).then(|| url.to_string())
 }
 
 fn progress(step: &str) -> SignInEvent {
@@ -287,6 +298,15 @@ mod tests {
         ]);
         assert_eq!(steps.len(), 1, "{steps:?}");
         assert!(matches!(&steps[0], SignInEvent::OpenUrl { url: u, .. } if u == url));
+    }
+
+    /// `mail x session start --address me@outlook.com --json --quiet`, as mail 0.14 prints it.
+    #[test]
+    fn a_link_printed_only_as_text_is_a_step() {
+        let url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=1&state=abc";
+        let steps = err(&[&format!("Open Microsoft sign-in: {url}"), ""]);
+        assert_eq!(steps, vec![SignInEvent::OpenUrl { url: url.into(), purpose: None }]);
+        assert!(matches!(&err(&["Open Google sign-in: http://example.com"])[0], SignInEvent::Note { .. }));
     }
 
     #[test]

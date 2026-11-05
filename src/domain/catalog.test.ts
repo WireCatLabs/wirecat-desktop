@@ -14,16 +14,15 @@ import {
 
 describe("catalog", () => {
   it("lists the tools with unique ids, and a binary of their own unless part of another", () => {
-    expect(tools.map((t) => t.id)).toEqual(["tg", "max", "wa", "zm", "drive", "memo", "email"])
+    expect(tools.map((t) => t.id)).toEqual(["tg", "max", "wa", "zm", "drive", "gcal", "memo", "email"])
     const owners = tools.filter((t) => !t.partOf)
     expect(new Set(owners.map((t) => t.bin)).size).toBe(owners.length)
   })
 
   it("installs a part through the tool that owns its package", () => {
-    expect(ownerId("email")).toBe("memo")
-    expect(ownerId("memo")).toBe("memo")
+    expect(ownerId("email")).toBe("email")
     expect(ownerId("tg")).toBe("tg")
-    expect(samePackage("email").map((t) => t.id)).toEqual(["memo", "email"])
+    expect(samePackage("email").map((t) => t.id)).toEqual(["email"])
     expect(samePackage("tg").map((t) => t.id)).toEqual(["tg"])
     for (const part of tools.filter((t) => t.partOf)) {
       const owner = findTool(ownerId(part.id))
@@ -32,12 +31,9 @@ describe("catalog", () => {
     }
   })
 
-  it("files memo's mail runs under Email and the rest under Memo", () => {
-    expect(runTool("memo", "mail inspect")).toBe("email")
-    expect(runTool("memo", "sync")).toBe("memo")
-    expect(runTool("memo", "mailbox")).toBe("memo")
-    expect(runTool("memo", "mcp mail inspect")).toBe("email")
-    expect(runTool("memo", "mcp")).toBe("memo")
+  it("files each run under the tool that made it", () => {
+    expect(runTool("memo", "mail inspect")).toBe("memo")
+    expect(runTool("email", "sync")).toBe("email")
     expect(runTool("tg", "mail x")).toBe("tg")
   })
 

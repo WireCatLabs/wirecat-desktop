@@ -43,7 +43,6 @@ const TOOL_TIPS: Partial<Record<string, Tip>> = {
   zm: "zm",
   drive: "drive",
   memo: "memo",
-  email: "memo",
 }
 const ROTATE_MS = 9000
 
