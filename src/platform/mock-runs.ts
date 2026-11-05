@@ -1,3 +1,4 @@
+import { findTool } from "@/domain/catalog"
 import { delay } from "./mock-delay"
 import { recordOn } from "./mock-settings"
 import type { RunDetail, RunEvent, RunItem } from "./runs-schemas"
@@ -565,7 +566,9 @@ export function recordFailedSync(
 export const runsMock: Pick<Platform, "listRuns" | "showRun"> = {
   async listRuns(id, _query, limit, page) {
     await delay(PLAN[id]?.wait ?? 300)
-    if (!PLAN[id]) throw new Error("This tool does not keep run logs yet.")
+    // As Rust (runs.rs): only a tool the catalog gives no runs source fails; one with nothing recorded answers empty.
+    if (!findTool(id)?.runs) throw new Error("This tool does not keep run logs yet.")
+    if (!PLAN[id]) return { items: [], page: { has_more: false } }
     if (scenario === "fail" && id === "max") throw new Error("max runs list: the program did not finish in time")
     if (scenario === "old" && OLD[id]) throw new Error(OLD[id])
     // A tool keeps a successful run only when its profile records every run.

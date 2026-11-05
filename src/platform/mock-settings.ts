@@ -1,3 +1,4 @@
+import { findTool } from "@/domain/catalog"
 import { delay } from "./mock-delay"
 import { saveMockClientId } from "./mock-signin"
 import type { Origin, SettingRow, Settings } from "./settings-schemas"
@@ -206,7 +207,9 @@ export const settingsMock: Pick<Platform, "settingsShow" | "settingsSet" | "sett
       }
     }
     if (id === "drive") return { rows: driveRows(profile), configFile: null, notice: null }
-    if (!(id in messengers)) throw new Error("This tool has no settings command.")
+    // As Rust (settings.rs): only a tool the catalog gives no settings command fails.
+    if (!findTool(id)?.settings) throw new Error("This tool has no settings command.")
+    if (!(id in messengers)) return { rows: [], configFile: null, notice: null }
     return { rows: messengerRows(id, profile), configFile: `~/.config/${id}-cli/config.json`, notice: null }
   },
 

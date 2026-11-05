@@ -36,7 +36,8 @@ export type Detail = { state: "loading" | "ready" | "error"; item: RunDetail["it
  */
 export type Keeping =
   | { state: "loading" }
-  /** `error` null: the tool reports no `record` setting at all. */
+  /** The tool reports no `record` setting: it has no choice to offer, which is not a failure. */
+  | { state: "none" }
   | { state: "error"; error: string | null }
   | {
       state: "ready"
@@ -236,7 +237,7 @@ export const useLogs = create<LogsState>((set, get) => {
       const days = rows.find((r) => r.key === "keep_runs_for_days")?.value
       const success = rows.find((r) => r.key === "keep_successful_runs_for_days")
       if (!record) {
-        keep(id, { state: "error", error: null })
+        keep(id, { state: "none" })
         return
       }
       keep(id, {
