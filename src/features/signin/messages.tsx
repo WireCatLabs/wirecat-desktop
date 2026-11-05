@@ -12,6 +12,12 @@ const en = {
   ),
   starting: "Starting the sign-in",
   asking: (name: string) => `Asking ${name} how to sign in…`,
+  scanAccepted: (name: string) => `${name} accepted the scan. Finishing the sign-in…`,
+  finishing: "Nothing more to do on the phone. If the account has a two-step password, it is asked for next.",
+  waitingFor: (name: string) => `Waiting for ${name}…`,
+  waitingWhy: (name: string) =>
+    `If you scanned the code, ${name} is finishing the sign-in; this can take up to a minute. If not, a new code appears here.`,
+  elapsed: (seconds: number) => `${seconds} s`,
   waitingBrowser: "Waiting for you to finish in the browser…",
   historySlow: "Still waiting for the phone's history.",
   historyLinked: "Linked. Receiving your chat history from the phone.",
@@ -48,6 +54,7 @@ const en = {
   announce: {
     stopping: "Stopping the sign-in.",
     qrReady: "The QR code is ready to scan.",
+    scanned: "Code scanned. Finishing the sign-in.",
     pairReady: "A code to type on the phone is ready.",
     browser: "Continue in the browser.",
     asks: (prompt: string) => `The sign-in asks for the ${prompt}.`,
@@ -88,6 +95,13 @@ const ru: typeof en = {
   ),
   starting: "Начинаем вход",
   asking: (name) => `Спрашиваем у ${name}, как войти…`,
+  scanAccepted: (name) => `${name} принял код. Завершаем вход…`,
+  finishing:
+    "На телефоне больше ничего делать не нужно. Если у аккаунта есть облачный пароль, он понадобится следующим.",
+  waitingFor: (name) => `Ждём ответа ${name}…`,
+  waitingWhy: (name) =>
+    `Если вы отсканировали код, ${name} завершает вход — это может занять до минуты. Если нет, здесь появится новый код.`,
+  elapsed: (seconds) => `${seconds} с`,
   waitingBrowser: "Ждём, пока вы закончите в браузере…",
   historySlow: "Всё ещё ждём историю с телефона.",
   historyLinked: "Устройство привязано. Получаем историю чатов с телефона.",
@@ -126,6 +140,7 @@ const ru: typeof en = {
   announce: {
     stopping: "Останавливаем вход.",
     qrReady: "QR-код готов к сканированию.",
+    scanned: "Код отсканирован. Завершаем вход.",
     pairReady: "Код для ввода на телефоне готов.",
     browser: "Продолжите в браузере.",
     asks: (prompt) => `Для входа нужно ввести: ${prompt}.`,
@@ -166,6 +181,13 @@ const es: typeof en = {
   ),
   starting: "Iniciando la sesión",
   asking: (name) => `Preguntando a ${name} cómo iniciar sesión…`,
+  scanAccepted: (name) => `${name} aceptó el código. Terminando el inicio de sesión…`,
+  finishing:
+    "No hay que hacer nada más en el teléfono. Si la cuenta tiene contraseña en dos pasos, se pide a continuación.",
+  waitingFor: (name) => `Esperando a ${name}…`,
+  waitingWhy: (name) =>
+    `Si escaneaste el código, ${name} está terminando el inicio de sesión; puede tardar hasta un minuto. Si no, aquí aparece un código nuevo.`,
+  elapsed: (seconds) => `${seconds} s`,
   waitingBrowser: "Esperando a que termines en el navegador…",
   historySlow: "Seguimos esperando el historial del teléfono.",
   historyLinked: "Vinculado. Recibiendo tu historial de chats desde el teléfono.",
@@ -208,6 +230,7 @@ const es: typeof en = {
   announce: {
     stopping: "Deteniendo el inicio de sesión.",
     qrReady: "El código QR está listo para escanear.",
+    scanned: "Código escaneado. Terminando el inicio de sesión.",
     pairReady: "Ya está listo el código para escribir en el teléfono.",
     browser: "Continúa en el navegador.",
     asks: (prompt) => `El inicio de sesión pide: ${prompt}.`,

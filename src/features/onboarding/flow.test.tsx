@@ -1,8 +1,14 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { act, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { App } from "@/app/App"
 import { appMessages } from "@/app/messages"
 import { runMockScenario } from "@/app/scenarios"
+import { guidesMessages } from "@/features/guides/messages"
+import { useNav } from "@/features/nav"
+import { signinMessages } from "@/features/signin/messages"
+import { planMessages } from "@/features/signin/messages-plan"
+import { platform } from "@/platform/bridge"
+import type { SignInEvent } from "@/platform/signin-schemas"
 import {
   currentStep,
   endInstalls,
@@ -184,7 +190,7 @@ describe("the Node.js gate on Your computer", () => {
 
     node.send({ event: "step", step: "verify" })
     expect(active()).toBe(sm.steps.verify)
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
+    expect(screen.getByRole("progressbar", { name: sm.steps.verify })).not.toHaveAttribute("aria-valuenow")
 
     node.send({ event: "step", step: "unpack" }, { event: "progress", received: 3, total: 4 })
     expect(progressOf(screen.getByRole("progressbar", { name: sm.unpacking }))).toBe(75)
@@ -192,12 +198,30 @@ describe("the Node.js gate on Your computer", () => {
 
     node.send({ event: "step", step: "path" })
     expect(active()).toBe(sm.steps.path)
+    expect(screen.getByRole("progressbar", { name: sm.steps.path })).toBeInTheDocument()
     expect(continueButton()).toHaveAttribute("aria-disabled", "true")
 
     await node.finish()
     await waitFor(() => expect(continueButton()).not.toHaveAttribute("aria-disabled"))
     await user.click(continueButton())
     expect(screen.getByRole("navigation", { name: m.flow.stepsNav })).toBeInTheDocument()
+  })
+
+  it("keeps the setup on screen until the computer is checked again, so the offer never flashes back", async () => {
+    const { user, node } = startOnboarding({ step: "computer", computer: noNodeComputer })
+    await user.click(screen.getByRole("button", { name: sm.setUp }))
+    node.send({ event: "step", step: "path" })
+    let answer: (r: typeof readyComputer) => void = () => undefined
+    vi.spyOn(platform, "readiness").mockImplementation(() => new Promise((r) => (answer = r)))
+
+    await node.finish()
+    expect(screen.queryByRole("button", { name: sm.setUp })).not.toBeInTheDocument()
+    expect(screen.getByRole("progressbar", { name: sm.steps.path })).toBeInTheDocument()
+    expect(continueButton()).toHaveAccessibleDescription(m.flow.blockedSettingUp)
+
+    await act(async () => answer({ ...readyComputer, managed: { version: "24.22.1", dir: "~/x", active: true } }))
+    await waitFor(() => expect(continueButton()).not.toHaveAttribute("aria-disabled"))
+    expect(screen.queryByRole("button", { name: sm.setUp })).not.toBeInTheDocument()
   })
 
   it("shows a failed setup with its reason and tries again", async () => {
@@ -278,6 +302,67 @@ describe("choosing tools", () => {
   })
 })
 
+describe("the Sign in step", () => {
+  it("goes on to Done once a sign-in in the window has signed in every tool and its dialog is closed", async () => {
+    const accounts = { wa: [{ name: "personal", signedIn: false }] }
+    const { user } = startOnboarding({ step: "signin", installed: { wa: "1.0.0" }, profiles: accounts })
+    let send: (e: SignInEvent) => void = () => undefined
+    vi.spyOn(platform, "signIn").mockImplementation((_id, _method, _profile, onEvent) => {
+      send = (e) => act(() => onEvent(e))
+      return new Promise(() => undefined)
+    })
+    vi.spyOn(platform, "signInStop").mockResolvedValue()
+
+    await user.click(await within(screen.getByRole("main")).findByRole("button", { name: m.signIn.signIn }))
+    const dialog = await screen.findByRole("dialog")
+    await user.click(within(dialog).getByRole("button", { name: planMessages.en.start }))
+    await waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    accounts.wa = [{ name: "personal", signedIn: true }]
+    send({ event: "done", alreadyLinked: false, received: null })
+    expect(currentStep()).toBe("signin")
+
+    await user.click(within(dialog).getByRole("button", { name: signinMessages.en.done }))
+    await waitFor(() => expect(currentStep()).toBe("done"))
+    expect(heading()).toHaveTextContent(m.pages.done.title)
+    await user.click(screen.getByRole("button", { name: m.flow.back }))
+    expect(currentStep()).toBe("signin")
+  })
+
+  it("stays on Sign in while another tool still has no account", async () => {
+    const accounts = { wa: [{ name: "personal", signedIn: false }], max: [{ name: "work", signedIn: false }] }
+    const { user } = startOnboarding({ step: "signin", installed: { wa: "1.0.0", max: "1.0.0" }, profiles: accounts })
+    let send: (e: SignInEvent) => void = () => undefined
+    vi.spyOn(platform, "signIn").mockImplementation((_id, _method, _profile, onEvent) => {
+      send = (e) => act(() => onEvent(e))
+      return new Promise(() => undefined)
+    })
+    vi.spyOn(platform, "signInStop").mockResolvedValue()
+
+    const rows = await within(screen.getByRole("main")).findAllByRole("button", { name: m.signIn.signIn })
+    await user.click(rows[0] as HTMLElement)
+    const dialog = await screen.findByRole("dialog")
+    await user.click(within(dialog).getByRole("button", { name: planMessages.en.start }))
+    await waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    accounts.wa = [{ name: "personal", signedIn: true }]
+    send({ event: "done", alreadyLinked: false, received: null })
+    await user.click(within(dialog).getByRole("button", { name: signinMessages.en.done }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+    expect(currentStep()).toBe("signin")
+  })
+})
+
+describe("the setup's step list", () => {
+  it("marks the current step and checks off the ones passed", () => {
+    startOnboarding({ step: "install" })
+    expect(sidebarStep("install")).toHaveAttribute("aria-current", "step")
+    for (const done of ["welcome", "computer", "choose"] as const) {
+      expect(sidebarStep(done)).toHaveAccessibleName(`${m.steps[done]}${ui.stepDone}`)
+    }
+    expect(sidebarStep("agents")).not.toHaveAttribute("aria-current")
+    expect(sidebarStep("agents").textContent).not.toContain(ui.stepDone)
+  })
+})
+
 describe("finishing the setup", () => {
   it("lands on Tools, remembers it, and does not open again on the next start", async () => {
     const { user, view } = startOnboarding({ step: "done" })
@@ -292,11 +377,62 @@ describe("finishing the setup", () => {
     expect(screen.queryByRole("navigation", { name: m.flow.stepsNav })).not.toBeInTheDocument()
   })
 
-  it("opens the guides from Done, and finishes the setup", async () => {
-    const { user } = startOnboarding({ step: "done" })
-    await user.click(primaryButton(m.done.guides))
+  it("leads from Done into the tour, which finishes the setup and cannot jump to the guides", async () => {
+    const { user } = startOnboarding({ step: "done", chosen: ["tg"], installed: { tg: "0.88.0" } })
+    expect(await screen.findByRole("button", { name: m.done.connect("Telegram") })).not.toHaveAttribute(
+      "data-variant",
+      "primary",
+    )
+    await user.click(primaryButton(m.flow.tour))
     expect(stored()).toBe("done")
     expect(screen.queryByRole("navigation", { name: m.flow.stepsNav })).not.toBeInTheDocument()
+
+    const first = await screen.findByRole("dialog", { name: m.tour.tools.title })
+    expect(within(first).getByRole("button", { name: ui.next })).toHaveFocus()
+    expect(within(first).queryByRole("button", { name: m.tourEnd.tryGuide })).not.toBeInTheDocument()
+    expect(useNav.getState().active).toBe("tools")
+
+    await user.click(within(first).getByRole("button", { name: ui.next }))
+    const order = [
+      "lamps",
+      "action",
+      "agents",
+      "how",
+      "search",
+      "searchAsk",
+      "searchHit",
+      "tasks",
+      "tasksView",
+      "tasksRow",
+      "memory",
+      "memoryReview",
+      "memorySources",
+      "system",
+      "help",
+    ] as const
+    for (const stop of order) {
+      const dialog = await screen.findByRole("dialog", { name: m.tour[stop].title })
+      expect(useNav.getState().active, stop).not.toBe("guides")
+      await user.click(within(dialog).getByRole("button", { name: ui.next }))
+    }
+
+    const last = await screen.findByRole("dialog", { name: m.tour.guide.title })
+    expect(useNav.getState().active).toBe("guides")
+    expect(within(last).getByRole("button", { name: m.tourEnd.tryGuide })).toHaveFocus()
+    expect(within(last).getByRole("button", { name: m.tourEnd.tryGuide })).not.toHaveAttribute(
+      "data-variant",
+      "primary",
+    )
+    expect(within(last).getByRole("button", { name: m.tourEnd.openTools })).toBeInTheDocument()
+
+    const start = screen.getByRole("region", { name: guidesMessages.en.welcomeTitle })
+    const before = within(start).getByRole("article").getAttribute("aria-label")
+    await user.click(within(last).getByRole("button", { name: m.tourEnd.nextGuide }))
+    await waitFor(() => expect(within(start).getByRole("article")).not.toHaveAttribute("aria-label", before ?? ""))
+
+    await user.click(within(last).getByRole("button", { name: m.tourEnd.tryGuide }))
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    expect(within(start).getByRole("article")).toContainElement(document.activeElement as HTMLElement)
   })
 
   it("is put off by Set up later and stays closed on the next start, with a way back in", async () => {

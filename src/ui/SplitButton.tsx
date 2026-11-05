@@ -77,7 +77,7 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
 
   const hasMenu = items.length > 0
   const part =
-    "inline-flex h-[2.4rem] items-center justify-center border border-line-strong bg-app text-ink transition-colors duration-150 hover:bg-app-2 disabled:pointer-events-none disabled:opacity-45"
+    "inline-flex h-[2.4rem] items-center justify-center border border-line-strong bg-app text-ink transition-colors duration-(--motion-fast) hover:bg-app-2 disabled:pointer-events-none disabled:opacity-45"
 
   if (!main && !hasMenu) return null
 

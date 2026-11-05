@@ -20,6 +20,16 @@ const en = {
     </>
   ),
   tool: "Tool",
+  advanced: "Advanced",
+  community: "Show community tools",
+  communityHelp:
+    "Tools made outside WireCat, from a list WireCat reviews and signs. The review checks how a tool is built and " +
+    "released, not everything it does: installing one runs its code on this computer, as any npm package does. " +
+    "Install only the ones whose makers you trust.",
+  communityNoKey: "This copy of WireCat cannot read the list yet.",
+  communityOnNext: "Community tools appear the next time WireCat starts.",
+  communityOffNext: "Community tools disappear the next time WireCat starts. Installed ones stay installed.",
+  restart: "Restart now",
 }
 
 const ru: typeof en = {
@@ -40,6 +50,16 @@ const ru: typeof en = {
     </>
   ),
   tool: "Инструмент",
+  advanced: "Дополнительно",
+  community: "Показывать инструменты сообщества",
+  communityHelp:
+    "Инструменты, сделанные не в WireCat, из списка, который WireCat проверяет и подписывает. Проверка смотрит, как " +
+    "инструмент собран и выпущен, а не всё, что он делает: установка запускает его код на этом компьютере, как у " +
+    "любого пакета npm. Устанавливайте только те, чьим авторам доверяете.",
+  communityNoKey: "Эта копия WireCat пока не может прочитать список.",
+  communityOnNext: "Инструменты сообщества появятся при следующем запуске WireCat.",
+  communityOffNext: "Инструменты сообщества исчезнут при следующем запуске WireCat. Установленные останутся.",
+  restart: "Перезапустить",
 }
 
 const es: typeof en = {
@@ -61,6 +81,17 @@ const es: typeof en = {
     </>
   ),
   tool: "Herramienta",
+  advanced: "Avanzado",
+  community: "Mostrar herramientas de la comunidad",
+  communityHelp:
+    "Herramientas hechas fuera de WireCat, de una lista que WireCat revisa y firma. La revisión comprueba cómo se " +
+    "construye y publica una herramienta, no todo lo que hace: instalarla ejecuta su código en este ordenador, como " +
+    "cualquier paquete de npm. Instala solo las de autores en quienes confíes.",
+  communityNoKey: "Esta copia de WireCat aún no puede leer la lista.",
+  communityOnNext: "Las herramientas de la comunidad aparecerán la próxima vez que se inicie WireCat.",
+  communityOffNext:
+    "Las herramientas de la comunidad desaparecerán la próxima vez que se inicie WireCat. Las instaladas se quedan.",
+  restart: "Reiniciar ahora",
 }
 
 export const settingsMessages: Messages<typeof en> = { en, ru, es }

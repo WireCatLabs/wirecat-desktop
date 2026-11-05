@@ -47,7 +47,7 @@ const en = {
     },
     done: {
       title: "You are set up",
-      lead: "The tools below are installed on this computer. Help, the question mark at the top, has a short tour of the window.",
+      lead: "The tools below are installed on this computer. A short tour shows you the window and ends on your first guide.",
     },
   } as Record<StepId, Page>,
   flow: {
@@ -64,7 +64,7 @@ const en = {
     blockedNode: "Set up Node.js, or choose “I'll install it myself”, to continue.",
     back: "Back",
     skip: "Skip",
-    tour: "Take the tour",
+    tour: "Show me around",
   },
   welcome: {
     list: "What WireCat does",
@@ -218,10 +218,10 @@ const en = {
     next: "What next",
     connect: (tool: string) => `Let ChatGPT or Claude use ${tool}`,
     agents: "See which agents use them",
-    guides: "Try your first guide",
   },
   help: {
     help: "Help",
+    docs: "WireCat documentation",
     tour: "Take the tour",
     welcome: "Show the welcome again",
     privacy: "Privacy",
@@ -230,6 +230,10 @@ const en = {
     trouble: "Help. Node.js or npm needs attention",
   },
   tour: {
+    tools: {
+      title: "Tools",
+      text: "Every WireCat tool in one list: install, update, sign in and check each one. When something does not work, start here.",
+    },
     lamps: {
       title: "Status lamps",
       text: "Green: installed and current. Amber: an update is ready. Red: installed, but it does not start. A hollow ring: not installed.",
@@ -238,23 +242,91 @@ const en = {
       title: "One action per tool",
       text: "Install or Update puts the latest version on this computer. Manage opens the tool's profiles, sign-in and health check.",
     },
-    again: {
-      title: "Check again",
-      text: "Installed or removed something in a terminal? Check again looks at this computer and npm once more.",
+    agents: {
+      title: "Agents",
+      text: "Which AI agents on this computer have each tool's skill, with a button to add the ones missing.",
     },
-    storage: {
-      title: "Storage",
-      text: "How much space each tool's data takes, and a way to delete it once nothing uses it.",
+    how: {
+      title: "How it works with your agent",
+      text: "You ask your agent in your own words. Its skill tells it which WireCat command to run. WireCat keeps the tools installed, signed in and synced, so the answer comes from your own messages and files.",
     },
-    logs: {
-      title: "Logs",
-      text: "What each tool did, run by run: the command, how long it took and what went wrong.",
+    search: {
+      title: "Search",
+      text: "Find a message, a mail or a meeting in what one tool keeps on this computer, for one profile. The results here are examples.",
+    },
+    searchAsk: {
+      title: "Ask in your own words",
+      text: "Describe what you want. Your agent writes it as the query in the box below; nothing is searched until you press Search.",
+    },
+    searchHit: {
+      title: "Open a result",
+      text: "Open a result to read the messages around it. Point at a sender or a chat for buttons that search again with only them, or without them.",
+    },
+    tasks: {
+      title: "Tasks",
+      text: "Tasks for your projects, from you and your agents. An agent can turn a request in your messages into a task once you approve it in Memory. The rows here are examples.",
+    },
+    tasksView: {
+      title: "Table or board",
+      text: "Sort the tasks in a table, or see a board with a column per status and drag a task to move it.",
+    },
+    tasksRow: {
+      title: "Who, how urgent, by when",
+      text: "Each row shows the status, who does it, the priority, the due date and what it waits for. Open a task to change them or add a comment.",
+    },
+    memory: {
+      title: "Memory",
+      text: "What your agents saved from your chats, mail and notes: facts, preferences, promises and decisions. Nothing counts until you approve it. The rows here are examples.",
+    },
+    memoryReview: {
+      title: "Approve or correct",
+      text: "Approve what is right, Reject what is wrong. More holds Edit, to correct the text, and Erase, to forget it for good.",
+    },
+    memorySources: {
+      title: "Where it came from",
+      text: "Each memory lists the messages and mail it rests on. Click one to read it among the messages around it.",
+    },
+    system: {
+      title: "Storage, Logs and Settings",
+      text: "How much space each tool's data takes, what each run did and what went wrong, and each tool's settings.",
     },
     help: {
       title: "Help is here",
-      text: "Start this tour again, go back to the setup steps, or see whether Node.js and npm are ready, from this button. The version number at the bottom left opens it too.",
+      text: "Open the WireCat documentation, start this tour again, go back to the setup steps, or see whether Node.js and npm are ready, from this button. The version number at the bottom left opens it too.",
     },
-  } as Record<"lamps" | "action" | "again" | "storage" | "logs" | "help", Stop>,
+    guide: {
+      title: "Your first guide",
+      text: "A guide is a request you copy into your agent, with the steps it will run. Try this one, or look at the next.",
+    },
+  } as Record<
+    | "tools"
+    | "lamps"
+    | "action"
+    | "agents"
+    | "how"
+    | "search"
+    | "searchAsk"
+    | "searchHit"
+    | "tasks"
+    | "tasksView"
+    | "tasksRow"
+    | "memory"
+    | "memoryReview"
+    | "memorySources"
+    | "system"
+    | "help"
+    | "guide",
+    Stop
+  >,
+  demo: {
+    label: "Example",
+    text: "Rows for the tour, not your data. They go away when the tour ends.",
+  },
+  tourEnd: {
+    tryGuide: "Try this guide",
+    nextGuide: "Next guide",
+    openTools: "Open Tools",
+  },
 }
 
 export type OnboardingText = typeof en
@@ -297,7 +369,7 @@ const ru: OnboardingText = {
     },
     done: {
       title: "Всё готово",
-      lead: "Инструменты ниже установлены на этом компьютере. В «Помощи» (знак вопроса вверху) есть короткая экскурсия по окну.",
+      lead: "Инструменты ниже установлены на этом компьютере. Короткая экскурсия покажет окно и закончится на первом рецепте.",
     },
   },
   flow: {
@@ -320,7 +392,7 @@ const ru: OnboardingText = {
     blockedNode: "Чтобы продолжить, установите Node.js или выберите «Установлю самостоятельно».",
     back: "Назад",
     skip: "Пропустить",
-    tour: "Пройти экскурсию",
+    tour: "Показать, что где",
   },
   welcome: {
     list: "Что делает WireCat",
@@ -505,10 +577,10 @@ const ru: OnboardingText = {
     next: "Что дальше",
     connect: (tool) => `Дать ChatGPT или Claude доступ к ${tool}`,
     agents: "Посмотреть, какие агенты их используют",
-    guides: "Попробовать первый рецепт",
   },
   help: {
     help: "Помощь",
+    docs: "Документация WireCat",
     tour: "Пройти экскурсию",
     welcome: "Снова показать приветствие",
     privacy: "Конфиденциальность",
@@ -517,6 +589,10 @@ const ru: OnboardingText = {
     trouble: "Помощь. Node.js или npm требует внимания",
   },
   tour: {
+    tools: {
+      title: "Инструменты",
+      text: "Все инструменты WireCat в одном списке: установка, обновление, вход и проверка каждого. Если что-то не работает, начните отсюда.",
+    },
     lamps: {
       title: "Лампы состояния",
       text: "Зелёная: установлен, последняя версия. Жёлтая: есть обновление. Красная: установлен, но не запускается. Пустое кольцо: не установлен.",
@@ -525,22 +601,71 @@ const ru: OnboardingText = {
       title: "Одно действие на инструмент",
       text: "«Установить» или «Обновить» ставит на компьютер последнюю версию. «Управление» открывает профили инструмента, вход и проверку состояния.",
     },
-    again: {
-      title: "Проверить снова",
-      text: "Установили или удалили что-то в терминале? «Проверить снова» ещё раз посмотрит на этот компьютер и в npm.",
+    agents: {
+      title: "Агенты",
+      text: "Какие ИИ-агенты на этом компьютере уже знают навык каждого инструмента, и кнопка, чтобы добавить недостающие.",
     },
-    storage: {
-      title: "Хранилище",
-      text: "Сколько места занимают данные каждого инструмента, и как удалить их, когда они больше не нужны.",
+    how: {
+      title: "Как это работает с агентом",
+      text: "Вы просите агента своими словами. Навык подсказывает ему, какую команду WireCat выполнить. WireCat следит, чтобы инструменты были установлены, вошли в аккаунт и синхронизировались, поэтому ответ приходит из ваших собственных сообщений и файлов.",
     },
-    logs: {
-      title: "Журнал",
-      text: "Что делал каждый инструмент, запуск за запуском: команда, сколько она шла и что пошло не так.",
+    search: {
+      title: "Поиск",
+      text: "Найти сообщение, письмо или встречу в том, что один инструмент хранит на этом компьютере, для одного профиля. Здесь показаны примеры.",
+    },
+    searchAsk: {
+      title: "Спросите своими словами",
+      text: "Опишите, что ищете. Агент запишет это запросом в поле ниже; поиск начнётся, только когда вы нажмёте «Искать».",
+    },
+    searchHit: {
+      title: "Откройте результат",
+      text: "Откройте результат, чтобы прочитать сообщения вокруг него. Наведите на отправителя или чат: появятся кнопки, чтобы искать снова только по ним или без них.",
+    },
+    tasks: {
+      title: "Задачи",
+      text: "Задачи ваших проектов, от вас и ваших агентов. Просьбу из ваших сообщений агент может превратить в задачу, когда вы одобрите её в Памяти. Здесь показаны примеры.",
+    },
+    tasksView: {
+      title: "Таблица или доска",
+      text: "Сортируйте задачи в таблице или смотрите доску со столбцом на каждый статус и перетаскивайте задачу между ними.",
+    },
+    tasksRow: {
+      title: "Кто, насколько срочно, к какому сроку",
+      text: "В строке видно статус, исполнителя, приоритет, срок и чего задача ждёт. Откройте задачу, чтобы что-то изменить или оставить комментарий.",
+    },
+    memory: {
+      title: "Память",
+      text: "Что агенты сохранили из ваших чатов, почты и заметок: факты, предпочтения, обещания и решения. Ничего не считается, пока вы не одобрите. Здесь показаны примеры.",
+    },
+    memoryReview: {
+      title: "Одобрить или исправить",
+      text: "Одобрите верное, отклоните неверное. В «Ещё» есть «Изменить», чтобы исправить текст, и «Стереть», чтобы забыть запись навсегда.",
+    },
+    memorySources: {
+      title: "Откуда это",
+      text: "У каждой записи видны сообщения и письма, на которых она основана. Нажмите на одно, чтобы прочитать его среди соседних.",
+    },
+    system: {
+      title: "Хранилище, журнал и настройки",
+      text: "Сколько места занимают данные каждого инструмента, что делал каждый запуск и что пошло не так, и настройки инструментов.",
     },
     help: {
       title: "Помощь здесь",
-      text: "Этой кнопкой можно снова начать экскурсию, вернуться к шагам настройки или посмотреть, готовы ли Node.js и npm. Номер версии внизу слева открывает то же меню.",
+      text: "Этой кнопкой можно открыть документацию WireCat, снова начать экскурсию, вернуться к шагам настройки или посмотреть, готовы ли Node.js и npm. Номер версии внизу слева открывает то же меню.",
     },
+    guide: {
+      title: "Ваш первый рецепт",
+      text: "Рецепт: просьба, которую вы копируете агенту, и шаги, которые он выполнит. Попробуйте этот или посмотрите следующий.",
+    },
+  },
+  demo: {
+    label: "Пример",
+    text: "Строки для экскурсии, а не ваши данные. Они исчезнут, когда экскурсия закончится.",
+  },
+  tourEnd: {
+    tryGuide: "Попробовать рецепт",
+    nextGuide: "Следующий рецепт",
+    openTools: "Открыть инструменты",
   },
 }
 
@@ -581,7 +706,7 @@ const es: OnboardingText = {
     },
     done: {
       title: "Todo listo",
-      lead: "Las herramientas de abajo están instaladas en este ordenador. En Ayuda, el signo de interrogación de arriba, hay un breve recorrido por la ventana.",
+      lead: "Las herramientas de abajo están instaladas en este ordenador. Un breve recorrido te enseña la ventana y termina en tu primera guía.",
     },
   },
   flow: {
@@ -598,7 +723,7 @@ const es: OnboardingText = {
     blockedNode: "Para continuar, prepara Node.js o elige «Lo instalo yo».",
     back: "Atrás",
     skip: "Omitir",
-    tour: "Hacer el recorrido",
+    tour: "Enséñame la ventana",
   },
   welcome: {
     list: "Qué hace WireCat",
@@ -774,10 +899,10 @@ const es: OnboardingText = {
     next: "Qué sigue",
     connect: (tool) => `Deja que ChatGPT o Claude usen ${tool}`,
     agents: "Ver qué agentes las usan",
-    guides: "Probar tu primera guía",
   },
   help: {
     help: "Ayuda",
+    docs: "Documentación de WireCat",
     tour: "Hacer el recorrido",
     welcome: "Ver de nuevo la bienvenida",
     privacy: "Privacidad",
@@ -786,6 +911,10 @@ const es: OnboardingText = {
     trouble: "Ayuda. Node.js o npm necesita atención",
   },
   tour: {
+    tools: {
+      title: "Herramientas",
+      text: "Todas las herramientas de WireCat en una lista: instala, actualiza, inicia sesión y revisa cada una. Si algo no funciona, empieza aquí.",
+    },
     lamps: {
       title: "Luces de estado",
       text: "Verde: instalada y al día. Ámbar: hay una actualización. Roja: instalada, pero no arranca. Un anillo vacío: sin instalar.",
@@ -794,22 +923,71 @@ const es: OnboardingText = {
       title: "Una acción por herramienta",
       text: "Instalar o Actualizar pone la última versión en este ordenador. Gestionar abre los perfiles de la herramienta, el inicio de sesión y la revisión de estado.",
     },
-    again: {
-      title: "Volver a comprobar",
-      text: "¿Has instalado o quitado algo en una terminal? Volver a comprobar revisa de nuevo este ordenador y npm.",
+    agents: {
+      title: "Agentes",
+      text: "Qué agentes de IA de este ordenador tienen la skill de cada herramienta, con un botón para añadir las que faltan.",
     },
-    storage: {
-      title: "Almacenamiento",
-      text: "Cuánto espacio ocupan los datos de cada herramienta, y una forma de borrarlos cuando nada los usa.",
+    how: {
+      title: "Cómo funciona con tu agente",
+      text: "Le pides algo a tu agente con tus palabras. Su skill le dice qué comando de WireCat ejecutar. WireCat mantiene las herramientas instaladas, con la sesión iniciada y sincronizadas, así que la respuesta sale de tus propios mensajes y archivos.",
     },
-    logs: {
-      title: "Registros",
-      text: "Qué hizo cada herramienta, ejecución a ejecución: el comando, cuánto tardó y qué falló.",
+    search: {
+      title: "Buscar",
+      text: "Encuentra un mensaje, un correo o una reunión en lo que una herramienta guarda en este ordenador, para un perfil. Los resultados de aquí son ejemplos.",
+    },
+    searchAsk: {
+      title: "Pregunta con tus palabras",
+      text: "Describe lo que buscas. Tu agente lo escribe como consulta en el cuadro de abajo; no se busca nada hasta que pulsas Buscar.",
+    },
+    searchHit: {
+      title: "Abre un resultado",
+      text: "Abre un resultado para leer los mensajes de alrededor. Señala un remitente o un chat para ver botones que buscan de nuevo solo con ellos, o sin ellos.",
+    },
+    tasks: {
+      title: "Tareas",
+      text: "Las tareas de tus proyectos, tuyas y de tus agentes. Un agente puede convertir una petición de tus mensajes en tarea cuando la apruebas en Memoria. Las filas de aquí son ejemplos.",
+    },
+    tasksView: {
+      title: "Tabla o tablero",
+      text: "Ordena las tareas en una tabla, o mira un tablero con una columna por estado y arrastra una tarea para moverla.",
+    },
+    tasksRow: {
+      title: "Quién, qué urgencia, para cuándo",
+      text: "Cada fila muestra el estado, quién la hace, la prioridad, la fecha límite y lo que espera. Abre una tarea para cambiarlos o comentar.",
+    },
+    memory: {
+      title: "Memoria",
+      text: "Lo que tus agentes guardaron de tus chats, correo y notas: datos, preferencias, promesas y decisiones. Nada cuenta hasta que lo apruebas. Las filas de aquí son ejemplos.",
+    },
+    memoryReview: {
+      title: "Aprueba o corrige",
+      text: "Aprueba lo correcto, rechaza lo que no lo es. En Más están Editar, para corregir el texto, y Borrar, para olvidarlo del todo.",
+    },
+    memorySources: {
+      title: "De dónde viene",
+      text: "Cada recuerdo muestra los mensajes y correos en los que se basa. Pulsa uno para leerlo entre los mensajes de alrededor.",
+    },
+    system: {
+      title: "Almacenamiento, Registros y Ajustes",
+      text: "Cuánto ocupan los datos de cada herramienta, qué hizo cada ejecución y qué falló, y los ajustes de cada herramienta.",
     },
     help: {
       title: "La ayuda está aquí",
-      text: "Desde este botón puedes empezar de nuevo este recorrido, volver a los pasos de configuración o ver si Node.js y npm están listos. El número de versión abajo a la izquierda también lo abre.",
+      text: "Desde este botón puedes abrir la documentación de WireCat, empezar de nuevo este recorrido, volver a los pasos de configuración o ver si Node.js y npm están listos. El número de versión abajo a la izquierda también lo abre.",
     },
+    guide: {
+      title: "Tu primera guía",
+      text: "Una guía es una petición que copias en tu agente, con los pasos que ejecutará. Prueba esta o mira la siguiente.",
+    },
+  },
+  demo: {
+    label: "Ejemplo",
+    text: "Filas para el recorrido, no son tus datos. Desaparecen cuando termina el recorrido.",
+  },
+  tourEnd: {
+    tryGuide: "Probar esta guía",
+    nextGuide: "Siguiente guía",
+    openTools: "Abrir Herramientas",
   },
 }
 

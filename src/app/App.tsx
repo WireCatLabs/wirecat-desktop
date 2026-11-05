@@ -1,6 +1,6 @@
 import { Bug } from "lucide-react"
-import { useEffect, useState } from "react"
-import { AboutDialog } from "@/features/about/AboutDialog"
+import { useEffect, useRef, useState } from "react"
+import { AboutDialog, docsPage } from "@/features/about/AboutDialog"
 import { HOME_SECTION, useNav } from "@/features/nav"
 import { Bell } from "@/features/notifications/Bell"
 import { CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/features/notifications/store"
@@ -13,15 +13,18 @@ import { PrivacyDialog } from "@/features/privacy/PrivacyDialog"
 import { ReportDialog } from "@/features/report/ReportDialog"
 import { useReport } from "@/features/report/store"
 import { useApplyScale, useScaleKeys } from "@/features/settings/scale"
+import { BotSignInDialog } from "@/features/signin/BotSignInDialog"
 import { SignInDialog } from "@/features/signin/SignInDialog"
 import { useSystem } from "@/features/system/store"
 import { ClearDataOffer } from "@/features/tools/ClearDataOffer"
 import { CHECK_EVERY_MS, useUpdate } from "@/features/update/store"
 import { UpdateButton, UpdateDialog } from "@/features/update/UpdateDialog"
-import { useApplyLang, useMessages } from "@/i18n"
+import { currentLang, useApplyLang, useMessages } from "@/i18n"
+import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
+import { useFinishBoot } from "./boot"
 import { ErrorBoundary } from "./ErrorBoundary"
-import { useSectionHistory } from "./history"
+import { useSectionHistory, useSectionSwitch } from "./history"
 import { appMessages } from "./messages"
 import { Sidebar } from "./Sidebar"
 import { CrashScenario } from "./scenarios"
@@ -35,21 +38,21 @@ export function App() {
   const m = useMessages(appMessages)
   useApplyScale()
   useScaleKeys()
+  useFinishBoot()
   const active = useNav((s) => s.active)
   const setActive = useNav((s) => s.go)
   const onboarding = useOnboarding((s) => s.open)
   useSectionHistory(!onboarding)
   const Page = sections.find((s) => s.id === active)?.page
+  const main = useRef<HTMLElement>(null)
+  useSectionSwitch(main, onboarding ? null : active)
 
-  // The tour points at the Tools page, so it opens there.
-  const startTour = () => {
-    setActive("tools")
-    useTour.getState().start()
-  }
+  const startTour = () => useTour.getState().start()
   const toHome = () => setActive(HOME_SECTION)
   const [about, setAbout] = useState(false)
   const [privacy, setPrivacy] = useState(false)
   const help: HelpActions = {
+    onDocs: () => void platform.openUrl(docsPage(currentLang())),
     onTour: startTour,
     onWelcome: () => useOnboarding.getState().reopen("welcome"),
     onPrivacy: () => setPrivacy(true),
@@ -74,7 +77,12 @@ export function App() {
 
   return (
     <div className="flex h-full">
-      {onboarding ? <SetupSteps onExit={toHome} /> : <Sidebar active={active} onSelect={setActive} help={help} />}
+      {/* Setup and the app swap their side column and page; each arrives with a fade, never a cut. */}
+      {onboarding ? (
+        <SetupSteps key="setup" onExit={toHome} />
+      ) : (
+        <Sidebar key="app" active={active} onSelect={setActive} help={help} />
+      )}
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar>
           {!onboarding && (
@@ -97,10 +105,10 @@ export function App() {
         </TopBar>
         {onboarding ? (
           <ErrorBoundary scope="page">
-            <Onboarding onExit={toHome} onTour={startTour} />
+            <Onboarding onExit={toHome} onTour={() => useTour.getState().start("setup")} />
           </ErrorBoundary>
         ) : (
-          <main className="min-h-0 flex-1 overflow-y-auto">
+          <main ref={main} className="relative min-h-0 flex-1 overflow-y-auto">
             <ErrorBoundary key={active} scope="page">
               <CrashScenario section={active} />
               {Page && <Page />}
@@ -111,6 +119,7 @@ export function App() {
         <AboutDialog open={about} onClose={() => setAbout(false)} />
         <PrivacyDialog open={privacy} onClose={() => setPrivacy(false)} />
         <SignInDialog />
+        <BotSignInDialog />
         <ReportDialog />
         <UpdateDialog />
       </div>

@@ -8,6 +8,9 @@ const CATALOG_JSON: &str = include_str!("../../catalog/tools.json");
 pub struct Catalog {
     pub tools: Vec<Tool>,
     pub shared_storage: Storage,
+    /// Community tools added from `community.rs`, as written, and the entries it left out.
+    #[serde(skip)]
+    pub extra: crate::community::Extra,
 }
 
 #[derive(Debug, Deserialize)]
@@ -32,6 +35,9 @@ pub struct Tool {
     pub aggregates: std::collections::BTreeMap<String, AggregateSource>,
     pub setup: Option<Vec<String>>,
     pub sign_in: Option<SignInSource>,
+    /// A bot of the messenger's own Bot API beside the personal account, connected with its token (`bots.rs`).
+    #[serde(default)]
+    pub bot: Option<crate::bots::BotSource>,
     pub storage: Storage,
     pub settings: Option<SettingsSource>,
     /// Only for tools whose `config show` reports `permissions` levels.
@@ -281,7 +287,14 @@ pub struct ProfileSource {
 
 pub fn catalog() -> &'static Catalog {
     static CATALOG: OnceLock<Catalog> = OnceLock::new();
-    CATALOG.get_or_init(|| serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid"))
+    CATALOG.get_or_init(|| {
+        let mut catalog: Catalog = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
+        if let Some((tools, extra)) = crate::community::load(&catalog) {
+            catalog.tools.extend(tools);
+            catalog.extra = extra;
+        }
+        catalog
+    })
 }
 
 pub fn tool(id: &str) -> Result<&'static Tool, String> {

@@ -212,7 +212,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
                       "selectable mt-[0.25rem] text-[1rem] leading-snug font-medium",
                       open ? "block whitespace-pre-line" : "line-clamp-1 group-hover:text-brand",
                       editable &&
-                        "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-150 hover:bg-app-3",
+                        "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
                     )}
                   >
                     {textOf(entry, m)}
@@ -227,7 +227,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
                   title={m.correct}
                   disabled={!!busy}
                   onClick={() => startCorrect(entry.ref)}
-                  className="reveal mt-[1.55rem] grid size-8 shrink-0 cursor-pointer place-items-center rounded-[0.35rem] text-ink-dim transition-colors duration-150 hover:bg-app-3 hover:text-ink disabled:opacity-45"
+                  className="reveal mt-[1.55rem] grid size-8 shrink-0 cursor-pointer place-items-center rounded-[0.35rem] text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink disabled:opacity-45"
                 >
                   <Pencil className="size-4" aria-hidden />
                 </button>
@@ -235,7 +235,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
             </div>
           )}
         </AutoHeight>
-        <span className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]">
+        <span data-tour="memory-actions" className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]">
           {allowed.confirm ? (
             <>
               <Button
@@ -421,12 +421,12 @@ function SourceItem({ source: s }: { source: MemorySource }) {
           if (!open) useMemory.getState().loadContext(ref)
           setOpen(!open)
         }}
-        className="group flex cursor-pointer gap-[0.8rem] px-[0.9rem] py-[0.7rem] transition-colors duration-150 hover:bg-app-2"
+        className="group flex cursor-pointer gap-[0.8rem] px-[0.9rem] py-[0.7rem] transition-colors duration-(--motion-fast) hover:bg-app-2"
       >
         {head}
         <ChevronDown
           className={cx(
-            "mt-[0.2rem] size-4 shrink-0 text-ink-dim transition-transform duration-150",
+            "mt-[0.2rem] size-4 shrink-0 text-ink-dim transition-transform duration-(--motion-fast)",
             open && "rotate-180",
           )}
           aria-hidden
@@ -532,7 +532,7 @@ function Sources({ entry }: { entry: MemoryEntry }) {
       </ErrorNotice>
     )
   return (
-    <div className="reveal flex min-w-0 flex-col gap-[0.6rem]">
+    <div data-tour="memory-sources" className="reveal flex min-w-0 flex-col gap-[0.6rem]">
       <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.restsOn(sources.sources.length)}</h3>
       {sources.sources.length === 0 ? (
         <p className="text-[0.95rem] text-ink-soft">{m.noSources}</p>
@@ -556,7 +556,7 @@ function CitedRef({ reference, shown, onToggle }: { reference: string; shown: bo
       aria-label={m.showContext(reference)}
       onClick={onToggle}
       className={cx(
-        "inline-flex cursor-pointer items-center gap-[0.3rem] rounded-[0.25rem] font-mono transition-colors duration-150 hover:text-brand",
+        "inline-flex cursor-pointer items-center gap-[0.3rem] rounded-[0.25rem] font-mono transition-colors duration-(--motion-fast) hover:text-brand",
         shown && "text-brand",
       )}
     >
@@ -624,7 +624,12 @@ export function Findings({ entry }: { entry: MemoryEntry }) {
                   />
                 </span>
               )}
-              <span className={cx("min-w-0 flex-1 transition-opacity duration-150", open && !on && "opacity-55")}>
+              <span
+                className={cx(
+                  "min-w-0 flex-1 transition-opacity duration-(--motion-fast)",
+                  open && !on && "opacity-55",
+                )}
+              >
                 <span className="flex items-baseline gap-x-[0.5rem]">
                   <Pill tone={f.kind === "task" ? "brand" : "neutral"}>{m.findingKinds[f.kind] ?? f.kind}</Pill>
                   <span className="selectable min-w-0 text-[0.95rem] text-ink">{f.text}</span>
@@ -732,7 +737,7 @@ function FilterLink({ label, onClick, mono }: { label: string; onClick: () => vo
       title={m.filterBy(label)}
       aria-label={m.filterBy(label)}
       className={cx(
-        "cursor-pointer rounded-[0.2rem] text-left text-ink underline decoration-ink-dim/50 decoration-dotted underline-offset-[0.2em] transition-colors duration-150 hover:text-brand hover:decoration-brand",
+        "cursor-pointer rounded-[0.2rem] text-left text-ink underline decoration-ink-dim/50 decoration-dotted underline-offset-[0.2em] transition-colors duration-(--motion-fast) hover:text-brand hover:decoration-brand",
         mono && "font-mono text-[0.9rem]",
       )}
     >

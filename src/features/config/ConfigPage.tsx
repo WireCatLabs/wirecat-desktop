@@ -335,7 +335,7 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
               aria-controls={`${tabsId}-${t.id}-panel`}
               onClick={() => st.setTab(t.id)}
               className={cx(
-                "relative h-[2.9rem] text-[0.95rem] transition-colors duration-150",
+                "relative h-[2.9rem] text-[0.95rem] transition-colors duration-(--motion-fast)",
                 st.tab === t.id ? "font-semibold text-ink" : "text-ink-soft hover:text-ink",
               )}
             >
@@ -348,7 +348,7 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
               <span
                 aria-hidden
                 className={cx(
-                  "absolute inset-x-0 bottom-0 h-[2px] rounded-t-full bg-brand transition-transform duration-150",
+                  "absolute inset-x-0 bottom-0 h-[2px] rounded-t-full bg-brand transition-transform duration-(--motion-fast)",
                   st.tab === t.id ? "scale-x-100" : "scale-x-0",
                 )}
               />

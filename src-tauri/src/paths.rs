@@ -120,7 +120,7 @@ pub fn shell_path(_shell: &Path) -> Option<OsString> {
 /// read their interactive file in a login shell too. Any other shell (dash, ksh) gets no file from the app, so the
 /// check asks what a login shell reads: `~/.profile`.
 #[cfg(unix)]
-fn terminal_flags(shell: &Path, linux: bool) -> &'static str {
+pub(crate) fn terminal_flags(shell: &Path, linux: bool) -> &'static str {
     match shell.file_name().and_then(|n| n.to_str()) {
         Some("bash") if linux => "-ic",
         Some("bash" | "zsh" | "fish") => "-lic",

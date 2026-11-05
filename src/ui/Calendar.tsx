@@ -204,8 +204,8 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
         <tbody
           key={focus.slice(0, 7)}
           className={cx(
-            direction === 1 && "motion-safe:animate-[month-next_200ms_var(--ease-out-quart)]",
-            direction === -1 && "motion-safe:animate-[month-prev_200ms_var(--ease-out-quart)]",
+            direction === 1 && "motion-safe:animate-[month-next_var(--motion-normal)_var(--ease-out-quart)]",
+            direction === -1 && "motion-safe:animate-[month-prev_var(--motion-normal)_var(--ease-out-quart)]",
           )}
         >
           {weeks.map((week) => (
@@ -228,7 +228,7 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
                         onPick(day)
                       }}
                       className={cx(
-                        "relative grid h-[2.2rem] w-full cursor-pointer place-items-center font-mono text-[0.9rem] tabular-nums transition-colors duration-150",
+                        "relative grid h-[2.2rem] w-full cursor-pointer place-items-center font-mono text-[0.9rem] tabular-nums transition-colors duration-(--motion-fast)",
                         end
                           ? "rounded-[0.35rem] bg-brand font-semibold text-brand-ink hover:bg-brand-hover active:bg-brand-hover"
                           : between

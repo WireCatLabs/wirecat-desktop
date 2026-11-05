@@ -15,26 +15,26 @@ export function Stepper({ steps }: { steps: readonly { label: string; state: Ste
             <span
               aria-hidden
               className={cx(
-                "absolute top-[0.8rem] right-1/2 h-[2px] w-full -translate-y-1/2 transition-colors duration-500",
+                "absolute top-[0.8rem] right-1/2 h-[2px] w-full -translate-y-1/2 transition-colors duration-(--motion-progress)",
                 s.state === "todo" ? "bg-line-strong" : s.state === "failed" ? "bg-bad/60" : "bg-brand",
               )}
             />
           )}
           <span
             className={cx(
-              "relative z-10 grid size-[1.6rem] place-items-center rounded-full transition-colors duration-300",
+              "relative z-10 grid size-[1.6rem] place-items-center rounded-full transition-colors duration-(--motion-slow)",
               s.state === "done" && "bg-ok text-on-status",
               s.state === "active" && "step-pulse bg-brand",
               s.state === "failed" && "bg-bad text-on-status",
               s.state === "todo" && "scale-[0.62] bg-idle",
             )}
           >
-            {s.state === "done" && <Check className="size-4" strokeWidth={3} aria-hidden />}
+            {s.state === "done" && <Check className="check-in size-4" strokeWidth={3} aria-hidden />}
             {s.state === "failed" && <X className="size-4" strokeWidth={3} aria-hidden />}
           </span>
           <span
             className={cx(
-              "text-[0.95rem]",
+              "text-body",
               s.state === "active" ? "font-semibold text-ink" : "text-ink-soft",
               s.state === "failed" && "font-semibold text-bad",
             )}

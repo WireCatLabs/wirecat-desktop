@@ -1,8 +1,10 @@
-import type { TelegramFailureKind } from "@/domain/telegram-signin"
+import type { PhoneProblem } from "@/domain/phone"
+import type { KeyHint, KeyProblem, TelegramFailureKind } from "@/domain/telegram-signin"
 import type { Messages } from "@/i18n"
 
 type Parts = { hours: number; minutes: number; seconds: number }
 type Explained = { cause: string; fix: string }
+export type PhoneOs = "android" | "iphone"
 
 /**
  * Telegram's own sign-in, in WireCat's words. The app steps follow tg's `session start` with `--app browser`, the
@@ -40,6 +42,87 @@ const en = {
   },
   password:
     "WireCat does not keep this password, and neither does the tool. It is used once to sign in: Telegram receives only a proof made from it, never the password itself.",
+  next: {
+    qr: "After the keys: a QR code to scan with Telegram on your phone.",
+    phone: "After the keys: your phone number, then the code Telegram sends.",
+  } as Record<string, string>,
+  method: {
+    qr: "Sign in with a QR code",
+    phone: "Sign in with your phone number",
+  } as Record<string, string>,
+  path: {
+    qr: ["Scan the QR code", "Two-step password, if set"],
+    phone: ["Phone number", "Code from Telegram", "Two-step password, if set"],
+  } as Record<string, string[]>,
+  switching: {
+    qr: "Switching to QR code sign-in…",
+    phone: "Switching to phone sign-in…",
+  } as Record<string, string>,
+  switchingWhy: "Telegram's sign-in starts again the new way. This takes a few seconds.",
+  switchFailed: {
+    qr: "Could not switch to QR code sign-in.",
+    phone: "Could not switch to phone sign-in.",
+  } as Record<string, string>,
+  phoneHint: "With + and the country code, for example +34 612 345 678. Spaces and dashes are removed.",
+  phonePreview: (phone: string) => `Telegram gets ${phone}.`,
+  phoneProblem: (p: PhoneProblem): string => {
+    switch (p.problem) {
+      case "empty":
+        return "Type your phone number first, with + and the country code."
+      case "noCountry":
+        return "Start with + and the country code, for example +34 for Spain or +7 for Russia."
+      case "zeroCountry":
+        return "A country code never starts with 0. Type + and then the country code."
+      case "short":
+        return `This has ${p.digits} digits. A number with its country code has at least 8.`
+      case "long":
+        return `This has ${p.digits} digits. A number with its country code has at most 15.`
+    }
+  },
+  keyProblem: (p: KeyProblem): string => {
+    switch (p.problem) {
+      case "empty":
+        return "Paste the value from my.telegram.org first."
+      case "idNotDigits":
+        return "The api_id is a number: digits only, with no letters."
+      case "idTooLong":
+        return `This has ${p.length} digits; an api_id has at most 12. Check that only the api_id was copied.`
+      case "idIsHash":
+        return "This looks like the api_hash. The api_id is the short number above it."
+      case "hashLength":
+        return `This has ${p.length} characters; an api_hash has 32. Copy it again in full.`
+      case "hashNotHex":
+        return "An api_hash has only digits and the letters a to f. Copy it again from my.telegram.org."
+      case "hashIsId":
+        return "This looks like the api_id. The api_hash is the long value below it."
+    }
+  },
+  keyHintsLead: "Also check:",
+  keyHints: {
+    idShort: "The api_id has fewer than 5 digits; most have 8, so a digit may be missing.",
+    idLong: "The api_id has more than 10 digits; it may have another number stuck to it.",
+    hashCapitals: "The api_hash has capital letters; my.telegram.org shows it in small letters.",
+  } as Record<KeyHint, string>,
+  scanPhone: "Your phone",
+  scanSteps: {
+    android: ["Open Telegram, then Settings → Devices.", "Press Add Device.", "Point the phone at this code."],
+    iphone: ["Open Telegram, then Settings → Devices.", "Press Link Desktop Device.", "Point the phone at this code."],
+  } as Record<PhoneOs, string[]>,
+  scanShot: {
+    alt: "Telegram for Android, the Devices screen, with the blue Add Device button.",
+    caption: "Devices in Telegram for Android",
+  },
+  notCamera: "Scan with Telegram itself, not with the camera app.",
+  codeSent: {
+    app: "Telegram sent the code as a message in your Telegram app.",
+    sms: "Telegram sent the code by SMS.",
+    call: "Telegram calls you and says the code.",
+    other: "Telegram sent the code.",
+  } as Record<"app" | "sms" | "call" | "other", string>,
+  notAccepted: {
+    code: "Telegram did not accept that code. Check it and type it again.",
+    password: "Telegram did not accept that password. Type it again.",
+  } as Record<"code" | "password", string>,
   telegramSaid: "Telegram's error:",
   fix: {
     keys: "Enter the keys again",
@@ -134,6 +217,95 @@ const ru: typeof en = {
   },
   password:
     "Ни WireCat, ни инструмент не сохраняют этот пароль. Он нужен один раз для входа: Telegram получает только доказательство, вычисленное из него, а не сам пароль.",
+  next: {
+    qr: "После ключей — QR-код, который нужно отсканировать в Telegram на телефоне.",
+    phone: "После ключей — номер телефона, затем код от Telegram.",
+  },
+  method: {
+    qr: "Вход по QR-коду",
+    phone: "Вход по номеру телефона",
+  },
+  path: {
+    qr: ["Сканирование QR-кода", "Облачный пароль, если есть"],
+    phone: ["Номер телефона", "Код от Telegram", "Облачный пароль, если есть"],
+  },
+  switching: {
+    qr: "Переключаемся на вход по QR-коду…",
+    phone: "Переключаемся на вход по номеру телефона…",
+  },
+  switchingWhy: "Вход в Telegram начинается заново, новым способом. Это займёт несколько секунд.",
+  switchFailed: {
+    qr: "Не удалось переключиться на вход по QR-коду.",
+    phone: "Не удалось переключиться на вход по номеру телефона.",
+  },
+  phoneHint: "С + и кодом страны, например +7 912 345 6789. Пробелы и дефисы убираются.",
+  phonePreview: (phone) => `Telegram получит ${phone}.`,
+  phoneProblem: (p) => {
+    switch (p.problem) {
+      case "empty":
+        return "Сначала введите номер телефона с + и кодом страны."
+      case "noCountry":
+        return "Начните с + и кода страны, например +7 для России или +34 для Испании."
+      case "zeroCountry":
+        return "Код страны не начинается с 0. Введите + и затем код страны."
+      case "short":
+        return `Здесь ${p.digits} цифр. В номере с кодом страны их не меньше 8.`
+      case "long":
+        return `Здесь ${p.digits} цифр. В номере с кодом страны их не больше 15.`
+    }
+  },
+  keyProblem: (p) => {
+    switch (p.problem) {
+      case "empty":
+        return "Сначала вставьте значение с my.telegram.org."
+      case "idNotDigits":
+        return "api_id — это число: только цифры, без букв."
+      case "idTooLong":
+        return `Здесь ${p.length} цифр, а в api_id их не больше 12. Проверьте, что скопирован только api_id.`
+      case "idIsHash":
+        return "Похоже на api_hash. api_id — короткое число над ним."
+      case "hashLength":
+        return `Здесь ${p.length} символов, а в api_hash их 32. Скопируйте его заново целиком.`
+      case "hashNotHex":
+        return "В api_hash только цифры и латинские буквы от a до f. Скопируйте его заново с my.telegram.org."
+      case "hashIsId":
+        return "Похоже на api_id. api_hash — длинное значение под ним."
+    }
+  },
+  keyHintsLead: "Проверьте также:",
+  keyHints: {
+    idShort: "В api_id меньше 5 цифр; обычно их 8, возможно, одна потерялась.",
+    idLong: "В api_id больше 10 цифр; возможно, к нему приклеилось другое число.",
+    hashCapitals: "В api_hash есть заглавные буквы, а my.telegram.org показывает его строчными.",
+  },
+  scanPhone: "Ваш телефон",
+  scanSteps: {
+    android: [
+      "Откройте Telegram, затем Настройки → Устройства.",
+      "Нажмите «Подключить устройство» (Add Device).",
+      "Наведите телефон на этот код.",
+    ],
+    iphone: [
+      "Откройте Telegram, затем Настройки → Устройства.",
+      "Нажмите «Подключить устройство» (Link Desktop Device).",
+      "Наведите телефон на этот код.",
+    ],
+  },
+  scanShot: {
+    alt: "Telegram для Android, экран «Устройства» с синей кнопкой Add Device.",
+    caption: "«Устройства» в Telegram для Android",
+  },
+  notCamera: "Сканируйте самим Telegram, а не приложением камеры.",
+  codeSent: {
+    app: "Telegram прислал код сообщением в приложение Telegram.",
+    sms: "Telegram прислал код по SMS.",
+    call: "Telegram позвонит и продиктует код.",
+    other: "Telegram прислал код.",
+  },
+  notAccepted: {
+    code: "Telegram не принял этот код. Проверьте его и введите снова.",
+    password: "Telegram не принял этот пароль. Введите его снова.",
+  },
   telegramSaid: "Ошибка Telegram:",
   fix: {
     keys: "Ввести ключи заново",
@@ -228,6 +400,95 @@ const es: typeof en = {
   },
   password:
     "Ni WireCat ni la herramienta guardan esta contraseña. Se usa una vez para iniciar sesión: Telegram recibe solo una prueba calculada a partir de ella, nunca la contraseña.",
+  next: {
+    qr: "Después de las claves: un código QR para escanear con Telegram en el teléfono.",
+    phone: "Después de las claves: tu número de teléfono y el código que envía Telegram.",
+  },
+  method: {
+    qr: "Iniciar sesión con un código QR",
+    phone: "Iniciar sesión con tu número de teléfono",
+  },
+  path: {
+    qr: ["Escanear el código QR", "Contraseña de dos pasos, si la hay"],
+    phone: ["Número de teléfono", "Código de Telegram", "Contraseña de dos pasos, si la hay"],
+  },
+  switching: {
+    qr: "Cambiando al inicio de sesión con código QR…",
+    phone: "Cambiando al inicio de sesión con el teléfono…",
+  },
+  switchingWhy: "El inicio de sesión de Telegram empieza de nuevo de la otra forma. Tarda unos segundos.",
+  switchFailed: {
+    qr: "No se pudo cambiar al inicio de sesión con código QR.",
+    phone: "No se pudo cambiar al inicio de sesión con el teléfono.",
+  },
+  phoneHint: "Con + y el prefijo del país, por ejemplo +34 612 345 678. Se quitan los espacios y guiones.",
+  phonePreview: (phone) => `Telegram recibe ${phone}.`,
+  phoneProblem: (p) => {
+    switch (p.problem) {
+      case "empty":
+        return "Primero escribe tu número con + y el prefijo del país."
+      case "noCountry":
+        return "Empieza con + y el prefijo del país, por ejemplo +34 para España o +52 para México."
+      case "zeroCountry":
+        return "Un prefijo de país nunca empieza por 0. Escribe + y después el prefijo."
+      case "short":
+        return `Tiene ${p.digits} dígitos. Un número con su prefijo tiene al menos 8.`
+      case "long":
+        return `Tiene ${p.digits} dígitos. Un número con su prefijo tiene como máximo 15.`
+    }
+  },
+  keyProblem: (p) => {
+    switch (p.problem) {
+      case "empty":
+        return "Pega primero el valor de my.telegram.org."
+      case "idNotDigits":
+        return "El api_id es un número: solo cifras, sin letras."
+      case "idTooLong":
+        return `Tiene ${p.length} cifras; un api_id tiene como mucho 12. Comprueba que copiaste solo el api_id.`
+      case "idIsHash":
+        return "Parece el api_hash. El api_id es el número corto que está encima."
+      case "hashLength":
+        return `Tiene ${p.length} caracteres; un api_hash tiene 32. Cópialo de nuevo entero.`
+      case "hashNotHex":
+        return "Un api_hash solo tiene cifras y las letras de la a a la f. Cópialo de nuevo desde my.telegram.org."
+      case "hashIsId":
+        return "Parece el api_id. El api_hash es el valor largo que está debajo."
+    }
+  },
+  keyHintsLead: "Revisa también:",
+  keyHints: {
+    idShort: "El api_id tiene menos de 5 cifras; casi todos tienen 8, quizá falte una.",
+    idLong: "El api_id tiene más de 10 cifras; quizá lleva otro número pegado.",
+    hashCapitals: "El api_hash tiene mayúsculas; my.telegram.org lo muestra en minúsculas.",
+  },
+  scanPhone: "Tu teléfono",
+  scanSteps: {
+    android: [
+      "Abre Telegram y ve a Ajustes → Dispositivos.",
+      "Pulsa Añadir dispositivo (Add Device).",
+      "Apunta el teléfono a este código.",
+    ],
+    iphone: [
+      "Abre Telegram y ve a Ajustes → Dispositivos.",
+      "Pulsa Vincular dispositivo (Link Desktop Device).",
+      "Apunta el teléfono a este código.",
+    ],
+  },
+  scanShot: {
+    alt: "Telegram para Android, la pantalla Dispositivos con el botón azul Add Device.",
+    caption: "Dispositivos en Telegram para Android",
+  },
+  notCamera: "Escanea con Telegram, no con la app de la cámara.",
+  codeSent: {
+    app: "Telegram envió el código como mensaje en tu app de Telegram.",
+    sms: "Telegram envió el código por SMS.",
+    call: "Telegram te llama y te dice el código.",
+    other: "Telegram envió el código.",
+  },
+  notAccepted: {
+    code: "Telegram no aceptó ese código. Revísalo y escríbelo de nuevo.",
+    password: "Telegram no aceptó esa contraseña. Escríbela de nuevo.",
+  },
   telegramSaid: "Error de Telegram:",
   fix: {
     keys: "Volver a escribir las claves",

@@ -11,6 +11,12 @@ type NodeState = {
   offerError: string | null
   running: boolean
   step: NodeStep | null
+  /**
+   * The two parts of the PATH step, as the interface sees them: Rust writes the line (`write`), then Node.js, npm and
+   * the tools are looked up again (`check`). `pathFile` is the startup file Rust wrote, once it says.
+   */
+  pathPart: "write" | "check" | null
+  pathFile: string | null
   received: number
   total: number | null
   failure: Failure | null
@@ -35,6 +41,8 @@ export const useNode = create<NodeState>((set, get) => ({
   offerError: null,
   running: false,
   step: null,
+  pathPart: null,
+  pathFile: null,
   received: 0,
   total: null,
   failure: null,
@@ -53,16 +61,19 @@ export const useNode = create<NodeState>((set, get) => ({
   },
   async setup() {
     if (get().running) return
-    set({ running: true, step: "check", received: 0, total: null, failure: null })
+    set({ running: true, step: "check", received: 0, total: null, failure: null, pathPart: null, pathFile: null })
     await platform.setupNode((e) => {
       // Each step counts its own bytes: the download, then the archive read back while unpacking.
-      if (e.event === "step") set({ step: e.step, received: 0, total: null })
+      if (e.event === "step")
+        set({ step: e.step, received: 0, total: null, pathPart: e.step === "path" ? "write" : null })
       else if (e.event === "progress") set({ received: e.received, total: e.total })
       else if (e.event === "failed") set({ failure: e, running: false })
-      else set({ running: false, step: null })
+      else if (e.event === "done") set({ pathPart: "check", pathFile: e.pathFix?.file ?? null })
     })
-    // The search path changed, so Node, npm and every tool are looked up again.
+    // The search path changed, so Node, npm and every tool are looked up again. The setup counts as running until
+    // that answer is in: in between, the old answer (no Node.js) would bring back the offer to set it up.
     if (!get().failure) await useSystem.getState().refresh()
+    set({ running: false, step: get().failure ? get().step : null, pathPart: null })
   },
   async cancel() {
     await platform.cancelNodeSetup()

@@ -26,6 +26,8 @@ export type Sources =
   | { state: "failed"; error: string }
 
 type MemoryState = {
+  /** The tour's example rows are on screen (onboarding/demo.ts): a read waits until they go. */
+  demo: boolean
   /** null until the first read answers. */
   read: MemoryRead | null
   entries: MemoryEntry[]
@@ -112,6 +114,7 @@ export const useMemory = create<MemoryState>((set, get) => {
     }))
 
   return {
+    demo: false,
     read: null,
     entries: [],
     error: null,
@@ -149,11 +152,12 @@ export const useMemory = create<MemoryState>((set, get) => {
     },
 
     async load() {
+      if (get().demo) return
       const call = ++seq
       set({ reading: true, error: null })
       try {
         const read = await platform.memoryRead()
-        if (call !== seq) return
+        if (call !== seq || get().demo) return
         const entries = read.kind === "ready" ? read.entries : []
         const tab = get().tabChosen
           ? get().tab
@@ -162,7 +166,7 @@ export const useMemory = create<MemoryState>((set, get) => {
             : "inuse"
         set({ read, entries, tab, reading: false, held: [], arriving: [], sources: {}, failed: {}, skipped: {} })
       } catch (e) {
-        if (call !== seq) return
+        if (call !== seq || get().demo) return
         set({ error: message(e), reading: false })
       }
     },

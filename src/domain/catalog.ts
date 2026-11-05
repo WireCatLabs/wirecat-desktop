@@ -10,7 +10,9 @@ const ToolSchema = v.object({
   commandPrefix: v.optional(v.string()),
   tagline: v.pipe(v.string(), v.maxLength(55)),
   bin: v.string(),
-  package: v.pipe(v.string(), v.startsWith("@wirecat/")),
+  package: v.string(),
+  /** Made outside WireCatLabs and added at start from Rust's `extra_tools`; never set in tools.json. */
+  community: v.optional(v.literal(true)),
   summary: v.string(),
   docs: v.pipe(v.string(), v.url()),
   repo: v.pipe(v.string(), v.url()),
@@ -70,6 +72,23 @@ const ToolSchema = v.object({
         ),
       ),
     }),
+  ),
+  /**
+   * A bot of the messenger's own Bot API beside the personal account: `set` reads the token on stdin, `fields` are the
+   * settings it needs first (WhatsApp's ids), `create` is where the owner makes the bot.
+   */
+  bot: v.optional(
+    v.nullable(
+      v.object({
+        set: v.array(v.string()),
+        list: v.array(v.string()),
+        token: v.picklist(["telegram", "opaque"]),
+        create: v.pipe(v.string(), v.url()),
+        docs: v.pipe(v.string(), v.url()),
+        fields: v.array(v.object({ key: v.pipe(v.string(), v.regex(/^[a-z_]+$/)), words: v.array(v.string()) })),
+      }),
+    ),
+    null,
   ),
   skill: v.nullable(
     v.object({
@@ -146,9 +165,23 @@ const ToolSchema = v.object({
   ),
 })
 
+const BuiltInSchema = v.pipe(
+  ToolSchema,
+  v.check((t) => !t.community && t.package.startsWith("@wirecat/"), "a built-in tool is a @wirecat package"),
+)
+
+/** Rust already refused anything unsafe (`community.rs`); this only keeps the interface's own types honest. */
+const CommunitySchema = v.pipe(
+  ToolSchema,
+  v.check(
+    (t) => t.community === true && !t.package.startsWith("@wirecat/") && !t.partOf,
+    "a community tool has its own npm scope and is no part of ours",
+  ),
+)
+
 const CatalogSchema = v.object({
   requirements: v.object({ nodeLabel: v.string(), nodeDownload: v.pipe(v.string(), v.url()) }),
-  tools: v.array(ToolSchema),
+  tools: v.array(BuiltInSchema),
   sharedStorage: v.object({ app: v.string(), env: v.string(), label: v.string() }),
 })
 
@@ -157,9 +190,37 @@ export type SearchField = NonNullable<CatalogTool["search"]>["fields"][number]
 
 const catalog = v.parse(CatalogSchema, raw)
 
-export const tools: readonly CatalogTool[] = catalog.tools
+const all: CatalogTool[] = [...catalog.tools]
+export const tools: readonly CatalogTool[] = all
 export const requirements = catalog.requirements
 export const sharedStorage = catalog.sharedStorage
+
+export const isCommunity = (t: CatalogTool) => t.community === true
+
+/**
+ * Appends the community tools Rust accepted; returns a sentence for each entry left out. Called once before the
+ * interface loads, because pages build their lists (Storage areas, Search sources) when their module loads.
+ */
+export function addCommunityTools(entries: readonly unknown[]): string[] {
+  const rejected: string[] = []
+  for (const entry of entries) {
+    const parsed = v.safeParse(CommunitySchema, entry)
+    if (!parsed.success) {
+      rejected.push(`${describe(entry)}: ${v.summarize(parsed.issues)}`)
+    } else if (findTool(parsed.output.id)) {
+      rejected.push(`${parsed.output.id}: the id is taken`)
+    } else {
+      all.push(parsed.output)
+    }
+  }
+  return rejected
+}
+
+const describe = (entry: unknown) =>
+  typeof entry === "object" && entry !== null && "id" in entry ? String(entry.id) : "an entry"
+
+/** The GitHub owner a community tool's npm release must be built by, shown in its trust note. */
+export const maker = (t: CatalogTool) => t.repo.replace(/^https:\/\/github\.com\//, "").split("/")[0] ?? t.repo
 
 export function findTool(id: string): CatalogTool | undefined {
   return tools.find((t) => t.id === id)
@@ -209,6 +270,8 @@ export const syncsHere = (t: CatalogTool) => (t.sync?.run?.length ?? 0) > 0
 export const syncNeedsProfile = (t: CatalogTool) => t.sync?.run?.includes("{profile}") ?? false
 
 export const signInMethods = (t: CatalogTool) => t.signIn?.methods ?? []
+
+export type BotSource = NonNullable<CatalogTool["bot"]>
 
 export function setupCommand(t: CatalogTool, profile: string | null): string | null {
   if (!t.setup) return null

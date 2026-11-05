@@ -76,7 +76,11 @@ const en = {
     },
     "tg:phone": {
       appKeys: true,
-      steps: ["The login code Telegram sends.", "If your account has two-step verification: its password."],
+      steps: [
+        "Type your phone number, with + and the country code.",
+        "Type the code Telegram sends as a message to your Telegram app.",
+        "If your account has two-step verification: its password.",
+      ],
       time: "Allow about five minutes.",
       kept: [
         "Your phone number and the codes go only to Telegram.",
@@ -230,7 +234,11 @@ const ru: PlanText = {
     "tg:qr": TG_RU,
     "tg:phone": {
       ...TG_RU,
-      steps: ["Код входа, который пришлёт Telegram.", TG_RU.steps[1] ?? ""],
+      steps: [
+        "Введите номер телефона с + и кодом страны.",
+        "Введите код, который Telegram пришлёт сообщением в приложение Telegram.",
+        TG_RU.steps[1] ?? "",
+      ],
     },
     wa: {
       steps: [
@@ -377,7 +385,11 @@ const es: PlanText = {
     "tg:qr": TG_ES,
     "tg:phone": {
       ...TG_ES,
-      steps: ["El código de inicio de sesión que envía Telegram.", TG_ES.steps[1] ?? ""],
+      steps: [
+        "Escribe tu número de teléfono con + y el prefijo del país.",
+        "Escribe el código que Telegram envía como mensaje a tu app de Telegram.",
+        TG_ES.steps[1] ?? "",
+      ],
     },
     wa: {
       steps: [

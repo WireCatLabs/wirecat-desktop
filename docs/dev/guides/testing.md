@@ -10,7 +10,7 @@ for Rust.
 2. **Component and flow tests by role.** Render a part or the whole `App` with the mock platform, click like a user,
    assert what a user sees. Copy [RemoveCopy.test.tsx](../../../src/features/tools/RemoveCopy.test.tsx) for a part,
    [Storage.test.tsx](../../../src/app/Storage.test.tsx) for a flow.
-3. **Few end to end tests.** **Today:** none, and `bin/install-e2e` checks a real npm install in CI.
+3. **Few end to end tests.** **Today:** none, and `bin/install-e2e` checks a real npm install in CI. A fresh first start by hand: the skill [`try-fresh-install`](../../../.claude/skills/try-fresh-install/SKILL.md).
    **Target:** a Playwright smoke run on the mock build ([the report](../architecture-report.md#further-improvements)).
 4. **Rust unit tests** in each module under `#[cfg(test)]`.
 

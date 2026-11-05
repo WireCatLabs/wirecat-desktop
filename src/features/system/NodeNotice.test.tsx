@@ -48,7 +48,7 @@ describe("a computer without Node.js, in Russian", () => {
 })
 
 describe("setting Node.js up", () => {
-  it("shows how far through the archive unpacking is, then the PATH step", async () => {
+  it("shows how far through the archive unpacking is, then the PATH step's two parts", async () => {
     let send: (e: NodeEvent) => void = () => {}
     vi.spyOn(platform, "setupNode").mockImplementation(async (onEvent) => {
       send = onEvent
@@ -67,7 +67,14 @@ describe("setting Node.js up", () => {
     expect(screen.getByText("50% of the archive")).toBeInTheDocument()
 
     act(() => send({ event: "step", step: "path" }))
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
+    const path = screen.getByRole("progressbar", { name: "Add to PATH" })
+    expect(path).toHaveAttribute("aria-valuetext", "Step 1 of 2")
+    expect(Number(path.getAttribute("aria-valuenow"))).toBeLessThan(50)
     expect(screen.getByText(/Adding Node.js to your PATH/)).toBeInTheDocument()
+
+    const pathFix = { added: ["~/x/bin"], unreachable: [], file: "~/.zshrc", manual: null, restart: true, shells: [] }
+    act(() => send({ event: "done", version: "24.11.0", path: "~/x", pathFix }))
+    expect(screen.getByRole("progressbar", { name: "Add to PATH" })).toHaveAttribute("aria-valuetext", "Step 2 of 2")
+    expect(screen.getByText("Added to ~/.zshrc. Checking Node.js and npm again…")).toBeInTheDocument()
   })
 })

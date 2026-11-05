@@ -4,6 +4,7 @@ import { ENDONYMS, LANGS, type LangChoice, systemLang, useLanguage, useMessages 
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { Select } from "@/ui/Select"
+import { CommunitySetting } from "./CommunitySetting"
 import { settingsMessages } from "./messages"
 import { DEFAULT_SCALE, MAX_SCALE, MIN_SCALE, SCALE_STEP, useScale } from "./scale"
 
@@ -18,6 +19,9 @@ export function AppPreferences() {
       <div className="grid gap-x-10 gap-y-6 @2xl:grid-cols-2">
         <LanguageSetting />
         <ScaleSetting />
+      </div>
+      <div className="mt-6">
+        <CommunitySetting />
       </div>
     </section>
   )

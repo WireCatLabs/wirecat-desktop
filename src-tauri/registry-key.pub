@@ -1,0 +1,4 @@
+# The public key of the community tools list (src/registry.rs). Its secret half signs the list in cli-docs' deploy;
+# it is never the updater's key. Replace the line below with the key `bin/registry-key` in cli-docs prints.
+# While the line is this placeholder, the app never fetches the list.
+RWTmbLoUWFfNBa2+PMtBlkh6dizi3Oifk3tICRCpbTh5sB4ZcHxV8D97

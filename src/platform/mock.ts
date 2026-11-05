@@ -3,7 +3,9 @@ import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { analyticsMock } from "./mock-analytics"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
+import { botMock } from "./mock-bot"
 import { cloudflareMock } from "./mock-cloudflare"
+import { communityMock, extraToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock } from "./mock-compat"
 import { delay } from "./mock-delay"
 import { npmLines } from "./mock-install"
@@ -232,6 +234,10 @@ export function createMock(os: Platform["os"]): Platform {
   const stock: Omit<Platform, "messageStats" | "analyticsPreview" | "analyticsAggregate"> = {
     kind: "mock",
     os,
+    async extraTools() {
+      return extraToolsMock(params.get("community"))
+    },
+    ...communityMock(params),
     async readiness(): Promise<Readiness> {
       await delay(450)
       const managedInfo = managed ? { version: NODE.version, dir: NODE.dir, active: true } : null
@@ -306,9 +312,11 @@ export function createMock(os: Platform["os"]): Platform {
         await delay(150)
       }
       onEvent({ event: "step", step: "path" })
-      await delay(500)
+      await delay(params.get("node") === "slow" ? 3000 : 900)
       managed = true
-      onEvent({ event: "done", version: NODE.version, path: NODE.dir })
+      pathAdded = true
+      const pathFix = { added: [`${NODE.dir}/bin`], unreachable: [], file: "~/.bashrc", manual: null, restart: true }
+      onEvent({ event: "done", version: NODE.version, path: NODE.dir, pathFix: { ...pathFix, shells: [] } })
     },
     async cancelNodeSetup() {
       nodeCancelled = true
@@ -472,9 +480,13 @@ export function createMock(os: Platform["os"]): Platform {
         })
       }
       onEvent({ event: "step", step: "verify" })
-      await delay(800)
+      onEvent({ event: "check", what: "path" })
+      await delay(400)
+      onEvent({ event: "check", what: "start" })
+      await delay(400)
       const update = installed.has(id)
       installed.set(id, version)
+      if (update) onEvent({ event: "check", what: "skills" })
       const skills = update ? await refreshSkillsMock(agents, id, version) : undefined
       const path = `~/.nvm/versions/node/v24.19.0/bin/${id}`
       onEvent({ event: "done", version, path, shadowedBy: null, ...(skills ? { skills } : {}) })
@@ -591,6 +603,7 @@ export function createMock(os: Platform["os"]): Platform {
         throw new Error(`Could not open a terminal. Run this yourself: ${id} ${profile ?? ""} setup`)
     },
     ...signInMock(),
+    ...botMock(),
     ...syncMock(),
     ...mcpServerMock(),
     ...tailscaleMock(),

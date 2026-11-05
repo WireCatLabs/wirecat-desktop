@@ -20,12 +20,22 @@ src-tauri/src/
   lib.rs        Tauri commands: the whole native surface, one function each.
                 `update_kind`: whether this copy replaces itself (`self`) or is a Linux `deb` or `rpm`.
   catalog.rs    the same tools.json, compiled in; profile validation.
+  community.rs  community tools (made outside WireCatLabs) added to that catalog at start, from the signed list's
+                cached copy while "Show community tools" is on (`registry.rs`), or from
+                `<app data>/extra-tools.json` while `WIRECAT_EXTRA_TOOLS=1` is set; every word plain, no name or data
+                folder of ours, no `@wirecat` package. `extra_tools` hands the accepted entries to the interface, which
+                loads them before any page module (`src/main.tsx` imports `src/start.tsx` after). See
+                [cli-registry.md](cli-registry.md).
+  registry.rs   the signed community list: fetched from wirecat.dev at start and at most daily, kept only when
+                minisign verifies it against `registry-key.pub`, it has not expired and is not older than the copy kept.
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
   npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
                 real install and uninstall against a test package; CI runs it on all three systems.
   tools.rs      finding executables, versions, profiles, doctor runs.
-  install.rs    install, update and uninstall with progress events, verification, failure reasons.
+  install.rs    install, update and uninstall with progress events, verification, failure reasons. The verify step
+                says what it does (`check` events: `path`, `start`, `skills`), so the row names it instead of one long
+                "Verifying"; `domain/install-batch.ts` turns npm's counts and these into each row's bar.
   provenance.rs before an install, `npm audit signatures` on a stub project plus the Sigstore certificate's
                 workflow: the release must be built by its catalog `repo`'s release.yml, or nothing is installed.
   runs.rs       run logs, read through each tool's own `runs list` / `runs show`; shown unmasked, an exception
@@ -72,11 +82,15 @@ src-tauri/src/
   redact.rs     masking tokens, numbers, addresses and names in tool output.
   names.rs      the chat titles and contact names the messengers keep, read per profile with their own offline
                 `chats list` / `contacts list`, held in memory only, so doctor output and reports mask them.
-  terminal.rs   opening a tool's interactive setup in the user's terminal.
+  terminal.rs   opening a tool's interactive setup in the user's terminal: the line runs in the user's own shell
+                (`paths::user_shell`) as a new window starts it, quoted for POSIX or fish, then `exec`s that shell so
+                the window stays open; a shell the app does not know runs the line in `/bin/sh` first.
   agent_run.rs  `run_agent`: Claude Code, Codex or Gemini CLI opened in a terminal with a prompt saved to a private file
                 (Fix › under an error, Open in on a guide); only those three programs, found on PATH.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
+  bots.rs       a bot beside the personal account: the catalog's `bot.fields` through `config set --bot`, then the
+                token on the tool's stdin to its own `bot auth set`; `bot list` for the names. See "Connecting a bot".
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced
                 (for tg and max, only a run whose argv has `--all`).
   background.rs whether a messenger's own `serve` keeps a profile current (`server status`), and starting it through
@@ -374,6 +388,26 @@ Telegram accepts them. `src/domain/telegram-signin.ts` reads tg's failure line i
 keyring warning into a calm notice with the file's path. Mock scenarios: `?signin-fail=tg-apiid|tg-flood|tg-code`,
 `?signin-keyring=file`.
 
+## Connecting a bot
+
+tg, max and wa each run a bot of the messenger's own Bot API beside the personal account (cli-core's `bot` group). Their
+catalog entry has a `bot` block: `set` is `<profile> bot auth set --record --json`, `list` is `bot list`, `token` is
+the shape the interface checks (`telegram` is `<digits>:<key>`; MAX and Meta document none, so `opaque` is one line
+without spaces), `create` and `docs` are links, and `fields` are settings `auth set` needs first: WhatsApp's
+`phone_number_id` and `waba_id`, digits that `config set --bot` takes as a JSON string. "Add a bot" under a tool's
+accounts opens `BotSignInDialog`: a name the owner types (never a default), where to get the token, the fields and
+the token, then the bot's name as the tool reported it. `bot_sign_in(id, profile, token, fields)` sets the fields,
+then writes the token to the tool's stdin and closes it (`run::stream_with_input`); off a terminal `auth set` reads
+stdin to its end, so no `--answer-stdin` is needed. The tool asks the messenger whose token it is before keeping it, so
+a refused token never replaces a working one. The token is never an argument, never in the store (the form clears it
+when it is sent), and masked in any message before `redact.rs` reads it; it is wiped in Rust once written. The bot's
+name and username leave Rust unmasked: they are the bot's public identity, shown as "Bot @name is connected".
+
+`bot list` names every bot on this computer but still wants a first word, so the catalog passes a fixed `wirecat`;
+it acts on no profile. A bot-only name is not in `account list`, so the Tools page lists bots on their own with a
+Bot badge. A WhatsApp bot's settings make `account list` show its name as a personal profile that is not signed in.
+Mock scenarios: `?bot=<tool>`, `?bot-step=token`, `?bot-fail=<tool>|old|ids`, `?bots=none`.
+
 ## The MCP server for browser apps
 
 ChatGPT and Claude in the browser reach a tool through its HTTP MCP server behind the owner's tunnel (step 3 of
@@ -564,7 +598,7 @@ the page down. Only the user's own click may change the layout.
 - **Numbers** use `tabular-nums` (or the mono font), so a count changing from 9 to 10 does not move its neighbours.
 - **`.reveal`** fades content in where its placeholder was. Under reduced motion it is instant.
 - **Global:** `main` reserves the scrollbar's gutter, so a page growing past the window does not narrow and re-wrap,
-  and `src/main.tsx` renders after the bundled fonts load, so the first frame is not laid out in a fallback font.
+  and `src/start.tsx` renders after the bundled fonts load, so the first frame is not laid out in a fallback font.
 
 **How to check.** On the browser build:
 

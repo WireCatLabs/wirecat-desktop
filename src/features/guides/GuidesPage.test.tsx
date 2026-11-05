@@ -1,5 +1,4 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -142,17 +141,19 @@ describe("Open in an agent", () => {
     { id: "claude", name: "Claude Code", foundBy: "program" as const, reads: ["claude" as const] },
     { id: "codex", name: "Codex", foundBy: null, reads: ["agents" as const] },
   ]
-  beforeEach(() => {
-    useAgents.setState(useAgents.getInitialState(), true)
+  beforeEach(async () => {
     vi.spyOn(platform, "detectAgents").mockResolvedValue(found)
+    useAgents.setState(useAgents.getInitialState(), true)
+    // A detection an earlier guide test started may still be pending; let it land before the list is set.
+    await useAgents.getState().detect()
+    useAgents.setState({ agents: found })
   })
   afterEach(() => {
     vi.restoreAllMocks()
     localStorage.clear()
   })
 
-  it("starts the chosen agent with the prompt as edited, and offers it only for an agent it can start", async () => {
-    localStorage.setItem("wirecat.guides.agent", "claude")
+  it("offers Open for each agent it can start, with no agent to pick, and runs the prompt as edited", async () => {
     const run = vi
       .spyOn(platform, "runAgent")
       .mockResolvedValue({ started: true, agent: "claude", file: "~/x.md", reason: null, message: null })
@@ -164,16 +165,12 @@ describe("Open in an agent", () => {
     fireEvent.click(open)
     expect(await within(box).findByText(/Claude Code opened in a terminal with this request/)).toBeInTheDocument()
     expect(run).toHaveBeenCalledWith("claude", "Use tg CLI. Catch me up on Anna.")
-
-    const user = userEvent.setup()
-    await user.click(within(box).getByRole("combobox", { name: "Your agent" }))
-    await user.click(screen.getByRole("option", { name: "Codex" }))
-    expect(within(box).getByRole("combobox", { name: "Your agent" })).toHaveTextContent("Codex")
-    expect(within(box).queryByRole("button", { name: /^Open in/ })).not.toBeInTheDocument()
+    // Codex is known but not found as a program, so it gets no Open; the guide has nothing to choose.
+    expect(within(box).queryByRole("button", { name: "Open in Codex" })).not.toBeInTheDocument()
+    expect(within(box).queryByText("Your agent")).not.toBeInTheDocument()
   })
 
   it("says why the agent did not start and keeps Copy prompt", async () => {
-    localStorage.setItem("wirecat.guides.agent", "claude")
     vi.spyOn(platform, "runAgent").mockResolvedValue({
       started: false,
       agent: "claude",

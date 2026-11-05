@@ -5,6 +5,7 @@ import { formatBytes } from "@/domain/format"
 import { agentsReading } from "@/domain/skills"
 import { type DataDeletion, type InstallOutcome, type InstallSession, type SkillRefresh, STEPS } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -64,103 +65,106 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
         </div>
       </Collapse>
 
-      <div className="mt-[1.45rem] flex flex-wrap items-center gap-x-4 gap-y-3" aria-live="polite">
-        {session.step === "queued" && !outcome && <p className="text-[0.95rem] text-ink-soft">{m.waiting}</p>}
-        {outcome?.event === "done" && (
-          <p className="flex items-center gap-2 text-[0.95rem]">
-            <CheckCircle2 className="size-5 text-ok" aria-hidden />
-            <span>{m.installed(names, outcome.version, shared)}</span>
-          </p>
-        )}
-        {outcome?.event === "removed" && (
-          <p className="flex items-center gap-2 text-[0.95rem]">
-            <CheckCircle2 className="size-5 text-ok" aria-hidden />
-            <span>
-              {m.removed(names, shared)} {session.data ? <DataResult data={session.data} m={m} /> : m.dataKept}
-            </span>
-          </p>
-        )}
-        {outcome?.event === "removed" && session.data?.state === "failed" && (
-          <ErrorNotice
-            inline
-            className="w-full"
-            action={<ReportThis what={`Deleting ${tool.name}'s data`} tool={tool.id} error={session.data.message} />}
+      {/* The result arrives in place of the progress: the height follows and each new line fades in. */}
+      <AutoHeight swap={outcome?.event ?? session.step}>
+        <div className="mt-[1.45rem] flex flex-wrap items-center gap-x-4 gap-y-3" aria-live="polite">
+          {session.step === "queued" && !outcome && <p className="text-[0.95rem] text-ink-soft">{m.waiting}</p>}
+          {outcome?.event === "done" && (
+            <p className="reveal flex items-center gap-2 text-[0.95rem]">
+              <CheckCircle2 className="size-5 text-ok" aria-hidden />
+              <span>{m.installed(names, outcome.version, shared)}</span>
+            </p>
+          )}
+          {outcome?.event === "removed" && (
+            <p className="reveal flex items-center gap-2 text-[0.95rem]">
+              <CheckCircle2 className="size-5 text-ok" aria-hidden />
+              <span>
+                {m.removed(names, shared)} {session.data ? <DataResult data={session.data} m={m} /> : m.dataKept}
+              </span>
+            </p>
+          )}
+          {outcome?.event === "removed" && session.data?.state === "failed" && (
+            <ErrorNotice
+              inline
+              className="w-full"
+              action={<ReportThis what={`Deleting ${tool.name}'s data`} tool={tool.id} error={session.data.message} />}
+            >
+              {session.data.message}
+            </ErrorNotice>
+          )}
+          {outcome?.event === "failed" && (
+            <div className="reveal flex min-w-0 items-start gap-2 text-[0.95rem]">
+              <AlertTriangle className="mt-0.5 size-5 shrink-0 text-bad" aria-hidden />
+              <FailureText outcome={outcome} operation={session.operation} untouched={Boolean(session.data)} m={m} />
+            </div>
+          )}
+          {outcome?.event === "done" && outcome.skills && <SkillsResult skills={outcome.skills} m={m} />}
+          {offersSkill && <SkillOffer tool={tool} />}
+          {outcome?.event === "done" && outcome.shadowedBy && (
+            <p className="w-full text-[0.9rem] text-warn-ink">
+              {m.shadowed(<code className="font-mono">{outcome.shadowedBy}</code>)}
+            </p>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setShowLog((v) => !v)}
+            aria-expanded={showLog}
+            className="inline-flex items-center gap-1 text-[1.05rem] font-medium text-brand hover:text-brand-hover"
           >
-            {session.data.message}
-          </ErrorNotice>
-        )}
-        {outcome?.event === "failed" && (
-          <div className="flex min-w-0 items-start gap-2 text-[0.95rem]">
-            <AlertTriangle className="mt-0.5 size-5 shrink-0 text-bad" aria-hidden />
-            <FailureText outcome={outcome} operation={session.operation} untouched={Boolean(session.data)} m={m} />
+            {showLog ? m.hideLog : m.showLog}
+            <ExpandChevron open={showLog} className="text-current" />
+          </button>
+
+          <div key={outcome?.event ?? "running"} className="reveal ml-auto flex gap-2">
+            {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
+              <ReportThis
+                what={`${session.operation === "install" ? "Installing" : "Uninstalling"} ${tool.name}`}
+                tool={tool.id}
+                error={[outcome.message, outcome.hint].filter(Boolean).join(" ")}
+                log={session.log.slice(-200)}
+              />
+            )}
+            {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
+              <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
+            )}
+            {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
+              <Button
+                size="sm"
+                variant="secondary"
+                icon={<RotateCcw className="size-4" aria-hidden />}
+                onClick={() =>
+                  session.operation === "install" ? install(tool.id) : uninstall(tool.id, session.data?.bytes)
+                }
+              >
+                {m.tryAgain}
+              </Button>
+            )}
+            {outcome?.event === "done" && session.operation === "install" && tool.profiles && (
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  dismiss(tool.id)
+                  useTools.setState({ expanded: tool.id })
+                }}
+              >
+                {m.addAccount}
+              </Button>
+            )}
+            {outcome && (
+              <Button
+                size="sm"
+                // The skill offer's button is the next thing to do; Done steps back beside it.
+                variant={outcome.event === "failed" ? "ghost" : offersSkill ? "secondary" : "primary"}
+                onClick={() => dismiss(tool.id)}
+              >
+                {outcome.event === "failed" ? m.close : m.done}
+              </Button>
+            )}
           </div>
-        )}
-        {outcome?.event === "done" && outcome.skills && <SkillsResult skills={outcome.skills} m={m} />}
-        {offersSkill && <SkillOffer tool={tool} />}
-        {outcome?.event === "done" && outcome.shadowedBy && (
-          <p className="w-full text-[0.9rem] text-warn-ink">
-            {m.shadowed(<code className="font-mono">{outcome.shadowedBy}</code>)}
-          </p>
-        )}
-
-        <button
-          type="button"
-          onClick={() => setShowLog((v) => !v)}
-          aria-expanded={showLog}
-          className="inline-flex items-center gap-1 text-[1.05rem] font-medium text-brand hover:text-brand-hover"
-        >
-          {showLog ? m.hideLog : m.showLog}
-          <ExpandChevron open={showLog} className="text-current" />
-        </button>
-
-        <div className="ml-auto flex gap-2">
-          {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
-            <ReportThis
-              what={`${session.operation === "install" ? "Installing" : "Uninstalling"} ${tool.name}`}
-              tool={tool.id}
-              error={[outcome.message, outcome.hint].filter(Boolean).join(" ")}
-              log={session.log.slice(-200)}
-            />
-          )}
-          {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
-            <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
-          )}
-          {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<RotateCcw className="size-4" aria-hidden />}
-              onClick={() =>
-                session.operation === "install" ? install(tool.id) : uninstall(tool.id, session.data?.bytes)
-              }
-            >
-              {m.tryAgain}
-            </Button>
-          )}
-          {outcome?.event === "done" && session.operation === "install" && tool.profiles && (
-            <Button
-              size="sm"
-              variant="secondary"
-              onClick={() => {
-                dismiss(tool.id)
-                useTools.setState({ expanded: tool.id })
-              }}
-            >
-              {m.addAccount}
-            </Button>
-          )}
-          {outcome && (
-            <Button
-              size="sm"
-              // The skill offer's button is the next thing to do; Done steps back beside it.
-              variant={outcome.event === "failed" ? "ghost" : offersSkill ? "secondary" : "primary"}
-              onClick={() => dismiss(tool.id)}
-            >
-              {outcome.event === "failed" ? m.close : m.done}
-            </Button>
-          )}
         </div>
-      </div>
+      </AutoHeight>
 
       {outcome?.event === "failed" && (
         <FixPanel

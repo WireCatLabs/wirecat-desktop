@@ -26,6 +26,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
+import { DemoNote } from "../onboarding/DemoNote"
 import { QueryBar } from "../query/QueryBar"
 import { ReportThis } from "../report/ReportThis"
 import { useTools } from "../tools/store"
@@ -56,7 +57,8 @@ export function SearchPage() {
     if (!checked && !refreshing) useTools.getState().refresh()
   }, [checked, refreshing])
 
-  const installed = searchable.filter((t) => (installs[t.id]?.length ?? 0) > 0)
+  // The tour's example tool is offered even when it is not installed, so its example results read whole.
+  const installed = searchable.filter((t) => (installs[t.id]?.length ?? 0) > 0 || (s.demo && t.id === s.tool))
   const tool = s.tool ? findTool(s.tool) : undefined
   const version = s.tool ? (installs[s.tool]?.[0]?.version ?? null) : null
   const what = tool?.search?.what ?? "messages"
@@ -113,10 +115,11 @@ export function SearchPage() {
         </p>
       </div>
 
+      {s.demo && <DemoNote />}
       {checked && installed.length === 0 ? (
         <Empty>{m.noTools}</Empty>
       ) : (
-        <>
+        <div inert={s.demo || undefined} className="contents">
           <div className="flex flex-wrap items-start gap-[0.7rem]">
             <Picker id={ids.tool} label={m.tool}>
               {(id) => (
@@ -169,58 +172,61 @@ export function SearchPage() {
             </ErrorNotice>
           </Collapse>
 
-          <QueryDraft
-            tool={s.tool}
-            onNeedTool={() => {
-              setTried(true)
-              focusInPlace(document.getElementById(ids.tool))
-            }}
-            onWritten={(query) => {
-              s.setQuery(query)
-              focusInPlace(document.getElementById(ids.query))
-            }}
-          />
-
-          <div className="flex flex-wrap items-start gap-[0.7rem]">
-            <QueryBar
-              inputId={ids.query}
-              query={s.query}
-              parsed={parsed}
-              problems={span ? [span] : ambiguous ? [ambiguous.term] : []}
-              problem={
-                queryError
-                  ? problemText(m, queryError)
-                  : ambiguous
-                    ? m.pickOne(ambiguous.field)
-                    : gap === "query"
-                      ? m.needQuery
-                      : null
-              }
-              suggest={suggest}
-              named={named}
-              words={{
-                label: m.searchLabel[what],
-                placeholder: m.placeholder[what],
-                hint: s.tool === "zm" ? m.wordsOnlyHint : m.hint,
+          <div data-tour="search-ask" className="flex flex-col gap-[1.5rem]">
+            <QueryDraft
+              tool={s.tool}
+              example={s.demo ? s.demoAsk : null}
+              onNeedTool={() => {
+                setTried(true)
+                focusInPlace(document.getElementById(ids.tool))
               }}
-              docs={queryDocs(lang)}
-              onChange={s.setQuery}
-              onSubmit={submit}
+              onWritten={(query) => {
+                s.setQuery(query)
+                focusInPlace(document.getElementById(ids.query))
+              }}
             />
-            <Button
-              variant="primary"
-              size="lg"
-              className="h-[2.8rem]"
-              aria-busy={s.loading}
-              onClick={submit}
-              icon={<Search className="size-4" aria-hidden />}
-            >
-              <StableText value={s.loading ? m.searching : m.search} variants={[m.searching, m.search]} />
-            </Button>
+
+            <div className="flex flex-wrap items-start gap-[0.7rem]">
+              <QueryBar
+                inputId={ids.query}
+                query={s.query}
+                parsed={parsed}
+                problems={span ? [span] : ambiguous ? [ambiguous.term] : []}
+                problem={
+                  queryError
+                    ? problemText(m, queryError)
+                    : ambiguous
+                      ? m.pickOne(ambiguous.field)
+                      : gap === "query"
+                        ? m.needQuery
+                        : null
+                }
+                suggest={suggest}
+                named={named}
+                words={{
+                  label: m.searchLabel[what],
+                  placeholder: m.placeholder[what],
+                  hint: s.tool === "zm" ? m.wordsOnlyHint : m.hint,
+                }}
+                docs={queryDocs(lang)}
+                onChange={s.setQuery}
+                onSubmit={submit}
+              />
+              <Button
+                variant="primary"
+                size="lg"
+                className="h-[2.8rem]"
+                aria-busy={s.loading}
+                onClick={submit}
+                icon={<Search className="size-4" aria-hidden />}
+              >
+                <StableText value={s.loading ? m.searching : m.search} variants={[m.searching, m.search]} />
+              </Button>
+            </div>
           </div>
 
           <Results m={m} version={version} toolName={tool?.name ?? s.tool ?? ""} />
-        </>
+        </div>
       )}
     </div>
   )
@@ -478,7 +484,7 @@ function Table(props: { hits: SearchHit[]; placeholders?: number; now: Date; bus
     <div
       aria-busy={busy}
       className={cx(
-        "overflow-hidden rounded-[0.2rem] border border-line-strong bg-app transition-opacity duration-200",
+        "overflow-hidden rounded-[0.2rem] border border-line-strong bg-app transition-opacity duration-(--motion-normal)",
         busy && hits.length > 0 && "opacity-60",
       )}
     >
@@ -588,7 +594,7 @@ function Empty({ children, busy = false }: { children: ReactNode; busy?: boolean
     <p
       aria-busy={busy}
       className={cx(
-        "rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft transition-opacity duration-200",
+        "rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft transition-opacity duration-(--motion-normal)",
         busy && "opacity-60",
       )}
     >

@@ -229,7 +229,7 @@ export function TaskBoard() {
               data-column={s}
               aria-label={m.column(m.states[s], keys.length)}
               className={cx(
-                "flex min-h-[22rem] min-w-0 flex-col rounded-[0.2rem] border bg-app transition-colors duration-150",
+                "flex min-h-[22rem] min-w-0 flex-col rounded-[0.2rem] border bg-app transition-colors duration-(--motion-fast)",
                 drag?.to === s ? "border-brand/60" : "border-line-strong",
               )}
             >
@@ -325,7 +325,7 @@ function Card(props: {
         props.onOpen()
       }}
       className={cx(
-        "group relative cursor-grab touch-none border-line border-b select-none [-webkit-user-select:none] transition-[background-color,box-shadow] duration-150 last:border-b-0 hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
+        "group relative cursor-grab touch-none border-line border-b select-none [-webkit-user-select:none] transition-[background-color,box-shadow] duration-(--motion-fast) last:border-b-0 hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
         ghost && "bg-app-3 outline-1 outline-line-strong outline-dashed -outline-offset-4 [&>*]:invisible",
         held && "z-10 bg-app shadow-panel outline-2 outline-brand",
       )}

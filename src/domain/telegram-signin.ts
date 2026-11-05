@@ -81,3 +81,90 @@ export function waitParts(seconds: number) {
   const s = Math.max(0, Math.round(seconds))
   return { hours: Math.floor(s / 3600), minutes: Math.floor((s % 3600) / 60), seconds: s % 60 }
 }
+
+/**
+ * Whether a retry may send the app keys typed before without asking: Telegram did not refuse them. A failure this
+ * file cannot read may be about the keys, so it asks again.
+ */
+export const MY_TELEGRAM = "my.telegram.org"
+
+/** tg's page for the app keys, which it opens before asking for them. */
+export const isTelegramAppsUrl = (url: string) => {
+  try {
+    return new URL(url).host === MY_TELEGRAM
+  } catch {
+    return false
+  }
+}
+
+export const keysStillGood = (failure: TelegramFailure | null) => failure !== null && failure.fix !== "keys"
+
+export type KeyField = "api_id" | "api_hash"
+
+/** Before sending: what is plainly not an app key. tg accepts 1 to 12 digits as api_id (`parseApiId`). */
+export type KeyProblem =
+  | { problem: "empty" }
+  | { problem: "idNotDigits" }
+  | { problem: "idTooLong"; length: number }
+  | { problem: "idIsHash" }
+  | { problem: "hashLength"; length: number }
+  | { problem: "hashNotHex" }
+  | { problem: "hashIsId" }
+
+export type KeyCheck = { value: string; problem: null } | ({ value: string } & KeyProblem)
+
+/** A value copied with its label from my.telegram.org or a note ("App api_id: 123"), or in quotes. */
+const LABEL = /^["'`«“]*(?:app)?api[_-]?(?:id|hash)["'`»”]*[:=]?/i
+const QUOTES = /^["'`«“]+|["'`»”,;]+$/g
+
+/** Spaces anywhere, a label in front and quotes around are dropped: neither key ever contains them. */
+export const cleanKey = (typed: string) => typed.replace(/\s+/g, "").replace(LABEL, "").replace(QUOTES, "")
+
+const HASH = /^[0-9a-f]{32}$/i
+
+export function checkKey(field: KeyField, typed: string): KeyCheck {
+  const value = cleanKey(typed)
+  const no = (p: KeyProblem): KeyCheck => ({ value, ...p })
+  if (value === "") return no({ problem: "empty" })
+  if (field === "api_id") {
+    if (HASH.test(value) && !/^\d+$/.test(value)) return no({ problem: "idIsHash" })
+    if (!/^\d+$/.test(value)) return no({ problem: "idNotDigits" })
+    if (value.length > 12) return no({ problem: "idTooLong", length: value.length })
+    return { value, problem: null }
+  }
+  if (/^\d{1,12}$/.test(value)) return no({ problem: "hashIsId" })
+  if (!/^[0-9a-f]+$/i.test(value)) return no({ problem: "hashNotHex" })
+  if (value.length !== 32) return no({ problem: "hashLength", length: value.length })
+  return { value, problem: null }
+}
+
+/**
+ * After Telegram refused the keys: what about them still looks off, though it passed `checkKey`. App ids made today
+ * have 8 digits and few have fewer than 5 or more than 10; my.telegram.org shows the hash in small letters. Empty when nothing does.
+ */
+export type KeyHint = "idShort" | "idLong" | "hashCapitals"
+
+export function keyHints(id: string, hash: string): KeyHint[] {
+  const hints: KeyHint[] = []
+  if (id !== "" && id.length < 5) hints.push("idShort")
+  if (id.length > 10) hints.push("idLong")
+  if (/[A-F]/.test(hash)) hints.push("hashCapitals")
+  return hints
+}
+
+/** tg's lines during a phone login (tg-cli `src/telegram/login.ts`): where the code went, or that Telegram refused it. */
+export type TelegramNote =
+  | { kind: "codeSent"; via: "app" | "sms" | "call" | "other" }
+  | { kind: "notAccepted"; what: "code" | "password" }
+
+export function telegramNote(text: string): TelegramNote | null {
+  const sent = /^Telegram sent a login code \(([a-z_]+)\)/i.exec(text)
+  if (sent) {
+    const type = sent[1]?.toLowerCase()
+    const via = type === "app" || type === "sms" || type === "call" ? type : "other"
+    return { kind: "codeSent", via }
+  }
+  const refused = /^that (code|password) was not accepted/i.exec(text)
+  if (refused) return { kind: "notAccepted", what: refused[1]?.toLowerCase() === "password" ? "password" : "code" }
+  return null
+}

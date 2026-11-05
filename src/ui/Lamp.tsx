@@ -16,7 +16,7 @@ const tones: Record<LampTone, string> = {
 
 export function Lamp({ tone, size = "md", label }: { tone: LampTone; size?: "sm" | "md"; label?: string }) {
   const className = cx(
-    "inline-block shrink-0 rounded-full transition-colors duration-300",
+    "inline-block shrink-0 rounded-full transition-colors duration-(--motion-slow)",
     size === "md" ? "size-[1.4rem]" : "size-[0.85rem]",
     tones[tone],
   )

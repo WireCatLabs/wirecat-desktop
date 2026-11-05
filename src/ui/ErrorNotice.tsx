@@ -17,7 +17,8 @@ export function ErrorNotice({ children, detail, action, inline = false, classNam
     <div
       role="alert"
       className={cx(
-        "flex flex-wrap items-center gap-x-3 gap-y-1.5",
+        // An error that appears fades in where it happened, so it reads as the answer to the click, not a glitch.
+        "reveal flex flex-wrap items-center gap-x-3 gap-y-1.5",
         inline ? "text-[0.875rem]" : "rounded-[0.2rem] border border-bad/40 bg-bad/10 py-2 pr-2 pl-4 text-[0.95rem]",
         className,
       )}

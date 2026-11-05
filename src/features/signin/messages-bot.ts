@@ -1,0 +1,288 @@
+import type { Messages } from "@/i18n"
+
+type Tool = "tg" | "max" | "wa"
+
+const en = {
+  title: (name: string) => `Add a ${name} bot`,
+  intro: (name: string, bin: string) =>
+    `A bot is a separate ${name} account that your agent runs. ${bin} keeps its token; your own account stays as it is.`,
+  steps: { name: "Name", token: "Token", done: "Connected" },
+  nameLabel: "Bot name on this computer",
+  nameExample: "sales",
+  nameHint: (command: string) => `One word you choose, such as sales. Commands for the bot then start with ${command}.`,
+  nameEmpty: "Type a name for the bot first.",
+  nameInvalid: "Use letters, digits, dots, dashes or underscores, without spaces.",
+  replaces: (profile: string, name: string) =>
+    `${profile} already has a bot. Connecting replaces its token, but only after ${name} accepts the new one.`,
+  next: "Next",
+  back: "Back",
+  cancel: "Cancel",
+  close: "Close",
+  done: "Done",
+  howTo: "Where to get the token",
+  create: {
+    tg: "Open @BotFather",
+    max: "Open MAX for business",
+    wa: "Open Meta for Developers",
+  } satisfies Record<Tool, string>,
+  howSteps: {
+    tg: [
+      "In Telegram, open @BotFather and send /newbot.",
+      "Give the bot a name, then a username that ends in bot.",
+      "BotFather answers with the token. Copy it and paste it below.",
+    ],
+    max: [
+      "Sign in at business.max.ru. MAX gives bots only to verified organisations, sole traders and the self-employed.",
+      "Create the bot under Chat bots. MAX checks each new bot before it works.",
+      "Open Chat bots → ⋮ → Settings, copy the token and paste it below.",
+    ],
+    wa: [
+      "On Meta for Developers, create an app for “Connect with customers through WhatsApp”. Meta adds a test number.",
+      "In Business Settings, make a system user with a token that does not expire, allowed to manage and message on WhatsApp.",
+      "In WhatsApp → API Setup, copy the Phone number ID and the WhatsApp Business Account ID into the fields below.",
+    ],
+  } satisfies Record<Tool, string[]>,
+  waWarning:
+    "Never register your own phone number, or any number whose WhatsApp you still use: registering a number on the Cloud API deletes its WhatsApp account. Use Meta’s test number.",
+  fields: {
+    phone_number_id: "Phone number ID",
+    waba_id: "WhatsApp Business Account ID",
+  } as Record<string, string>,
+  fieldEmpty: (label: string) => `Paste the ${label} first.`,
+  fieldDigits: (label: string) => `The ${label} is digits only.`,
+  tokenLabel: "Bot token",
+  showToken: "Show the bot token",
+  hideToken: "Hide",
+  tokenPrivate: (bin: string) =>
+    `Goes straight to ${bin}, which checks it and keeps it in the system keyring. WireCat keeps no copy.`,
+  tokenEmpty: "Paste the bot token first.",
+  tokenSpaces: "Paste the token alone: one line, without spaces.",
+  tokenShape: {
+    tg: "A Telegram token looks like 123456789:AAH… — digits, a colon, then letters and digits.",
+    max: "This looks too short for a MAX token. Copy it again from the bot’s settings.",
+    wa: "This looks too short for a Meta access token. Copy it again.",
+  } satisfies Record<Tool, string>,
+  connect: "Connect bot",
+  checking: (name: string) => `Checking the token with ${name}…`,
+  causes: {
+    refused: (name: string) => `${name} did not accept this token. Copy it again and paste it here.`,
+    settings: "Meta does not know these ids. Check them in WhatsApp → API Setup.",
+    update: (bin: string) => `This ${bin} cannot connect a bot from the app yet. Update it on the Tools page.`,
+    timeout: (name: string) => `${name} did not answer in time. Check the connection and try again.`,
+    other: "The bot was not connected.",
+  },
+  connected: (handle: string) => `Bot ${handle} is connected.`,
+  connectedAs: (profile: string) => `Your agent can now send as this bot. Its name on this computer is ${profile}.`,
+  nextSteps: "Next",
+  after: {
+    tg: "A Telegram bot cannot start a chat: ask people to write to it first, or add it to a group.",
+    max: "Add the bot to a chat or a channel, or ask people to write to it first.",
+    wa: "Send the hello_world template to a number you added in API Setup. Receiving messages needs a webhook; the bot guide explains it.",
+  } satisfies Record<Tool, string>,
+  tryIt: "Check which bot it is:",
+  copyCommand: "Copy the command",
+  guide: "Read the bot guide",
+  bots: "Bots",
+  noBots: "No bot yet.",
+  botsFailed: "Could not read the bots on this computer.",
+  addBot: "Add a bot",
+  bot: "Bot",
+  tokenInFile: "token in a file",
+  tokenInEnv: "token from the environment",
+  announce: {
+    checking: "Checking the token.",
+    connected: "The bot is connected. Press Done to close.",
+  },
+}
+
+const ru: typeof en = {
+  title: (name) => `Добавить бота ${name}`,
+  intro: (name, bin) =>
+    `Бот — отдельный аккаунт ${name}, которым управляет ваш агент. ${bin} хранит его токен, а ваш личный аккаунт не меняется.`,
+  steps: { name: "Имя", token: "Токен", done: "Подключён" },
+  nameLabel: "Имя бота на этом компьютере",
+  nameExample: "sales",
+  nameHint: (command) => `Одно слово на ваш выбор, например sales. Команды для бота начнутся с ${command}.`,
+  nameEmpty: "Сначала введите имя бота.",
+  nameInvalid: "Только буквы, цифры, точки, дефисы и подчёркивания, без пробелов.",
+  replaces: (profile, name) =>
+    `У ${profile} уже есть бот. Подключение заменит его токен, но только когда ${name} примет новый.`,
+  next: "Далее",
+  back: "Назад",
+  cancel: "Отмена",
+  close: "Закрыть",
+  done: "Готово",
+  howTo: "Где взять токен",
+  create: {
+    tg: "Открыть @BotFather",
+    max: "Открыть MAX для бизнеса",
+    wa: "Открыть Meta for Developers",
+  },
+  howSteps: {
+    tg: [
+      "В Telegram откройте @BotFather и отправьте /newbot.",
+      "Дайте боту имя, затем username, который заканчивается на bot.",
+      "BotFather пришлёт токен. Скопируйте его и вставьте ниже.",
+    ],
+    max: [
+      "Войдите на business.max.ru. MAX выдаёт ботов только подтверждённым организациям, ИП и самозанятым.",
+      "Создайте бота в разделе «Чат-боты». MAX проверяет каждого нового бота, прежде чем он заработает.",
+      "Откройте «Чат-боты» → ⋮ → «Настройки», скопируйте токен и вставьте его ниже.",
+    ],
+    wa: [
+      "На Meta for Developers создайте приложение для «Connect with customers through WhatsApp». Meta добавит тестовый номер.",
+      "В Business Settings создайте системного пользователя с бессрочным токеном и правом управлять WhatsApp и писать в нём.",
+      "В WhatsApp → API Setup скопируйте Phone number ID и WhatsApp Business Account ID в поля ниже.",
+    ],
+  },
+  waWarning:
+    "Никогда не регистрируйте свой номер или номер, чей WhatsApp вы ещё используете: регистрация номера в Cloud API удаляет его аккаунт WhatsApp. Берите тестовый номер Meta.",
+  fields: {
+    phone_number_id: "Phone number ID",
+    waba_id: "WhatsApp Business Account ID",
+  },
+  fieldEmpty: (label) => `Сначала вставьте ${label}.`,
+  fieldDigits: (label) => `${label} — только цифры.`,
+  tokenLabel: "Токен бота",
+  showToken: "Показать токен бота",
+  hideToken: "Скрыть",
+  tokenPrivate: (bin) =>
+    `Уходит прямо в ${bin}: он проверяет токен и хранит его в системном хранилище паролей. WireCat копию не хранит.`,
+  tokenEmpty: "Сначала вставьте токен бота.",
+  tokenSpaces: "Вставьте только токен: одна строка, без пробелов.",
+  tokenShape: {
+    tg: "Токен Telegram выглядит как 123456789:AAH… — цифры, двоеточие, затем буквы и цифры.",
+    max: "Слишком коротко для токена MAX. Скопируйте его ещё раз из настроек бота.",
+    wa: "Слишком коротко для токена доступа Meta. Скопируйте его ещё раз.",
+  },
+  connect: "Подключить бота",
+  checking: (name) => `Проверяем токен в ${name}…`,
+  causes: {
+    refused: (name) => `${name} не принял этот токен. Скопируйте его ещё раз и вставьте сюда.`,
+    settings: "Meta не знает эти номера. Проверьте их в WhatsApp → API Setup.",
+    update: (bin) => `Эта версия ${bin} пока не подключает ботов из приложения. Обновите её на странице «Инструменты».`,
+    timeout: (name) => `${name} не ответил вовремя. Проверьте соединение и попробуйте ещё раз.`,
+    other: "Бот не подключён.",
+  },
+  connected: (handle) => `Бот ${handle} подключён.`,
+  connectedAs: (profile) =>
+    `Теперь ваш агент может писать от имени этого бота. Его имя на этом компьютере — ${profile}.`,
+  nextSteps: "Дальше",
+  after: {
+    tg: "Бот Telegram не может начать разговор сам: попросите людей написать ему или добавьте его в группу.",
+    max: "Добавьте бота в чат или канал или попросите людей написать ему.",
+    wa: "Отправьте шаблон hello_world на номер, добавленный в API Setup. Чтобы получать сообщения, нужен вебхук — об этом в руководстве по боту.",
+  },
+  tryIt: "Проверьте, какой это бот:",
+  copyCommand: "Скопировать команду",
+  guide: "Руководство по боту",
+  bots: "Боты",
+  noBots: "Ботов пока нет.",
+  botsFailed: "Не удалось прочитать ботов на этом компьютере.",
+  addBot: "Добавить бота",
+  bot: "Бот",
+  tokenInFile: "токен в файле",
+  tokenInEnv: "токен из переменной окружения",
+  announce: {
+    checking: "Проверяем токен.",
+    connected: "Бот подключён. Нажмите «Готово», чтобы закрыть.",
+  },
+}
+
+const es: typeof en = {
+  title: (name) => `Añadir un bot de ${name}`,
+  intro: (name, bin) =>
+    `Un bot es una cuenta aparte de ${name} que maneja tu agente. ${bin} guarda su token; tu propia cuenta no cambia.`,
+  steps: { name: "Nombre", token: "Token", done: "Conectado" },
+  nameLabel: "Nombre del bot en este ordenador",
+  nameExample: "ventas",
+  nameHint: (command) => `Una palabra que eliges, como ventas. Los comandos del bot empiezan entonces por ${command}.`,
+  nameEmpty: "Primero escribe un nombre para el bot.",
+  nameInvalid: "Usa letras, cifras, puntos, guiones o guiones bajos, sin espacios.",
+  replaces: (profile, name) =>
+    `${profile} ya tiene un bot. Conectar sustituye su token, pero solo cuando ${name} acepte el nuevo.`,
+  next: "Siguiente",
+  back: "Atrás",
+  cancel: "Cancelar",
+  close: "Cerrar",
+  done: "Listo",
+  howTo: "Dónde conseguir el token",
+  create: {
+    tg: "Abrir @BotFather",
+    max: "Abrir MAX para empresas",
+    wa: "Abrir Meta for Developers",
+  },
+  howSteps: {
+    tg: [
+      "En Telegram, abre @BotFather y envía /newbot.",
+      "Ponle un nombre al bot y luego un usuario que termine en bot.",
+      "BotFather responde con el token. Cópialo y pégalo abajo.",
+    ],
+    max: [
+      "Entra en business.max.ru. MAX solo da bots a organizaciones verificadas, empresarios individuales y autónomos.",
+      "Crea el bot en Chat bots. MAX revisa cada bot nuevo antes de que funcione.",
+      "Abre Chat bots → ⋮ → Ajustes, copia el token y pégalo abajo.",
+    ],
+    wa: [
+      "En Meta for Developers, crea una app para «Connect with customers through WhatsApp». Meta añade un número de prueba.",
+      "En Business Settings, crea un usuario del sistema con un token que no caduque, con permiso para gestionar y escribir en WhatsApp.",
+      "En WhatsApp → API Setup, copia el Phone number ID y el WhatsApp Business Account ID en los campos de abajo.",
+    ],
+  },
+  waWarning:
+    "Nunca registres tu propio número ni uno cuyo WhatsApp sigas usando: registrar un número en la Cloud API borra su cuenta de WhatsApp. Usa el número de prueba de Meta.",
+  fields: {
+    phone_number_id: "Phone number ID",
+    waba_id: "WhatsApp Business Account ID",
+  },
+  fieldEmpty: (label) => `Primero pega el ${label}.`,
+  fieldDigits: (label) => `El ${label} son solo cifras.`,
+  tokenLabel: "Token del bot",
+  showToken: "Mostrar el token del bot",
+  hideToken: "Ocultar",
+  tokenPrivate: (bin) =>
+    `Va directo a ${bin}, que lo comprueba y lo guarda en el llavero del sistema. WireCat no guarda ninguna copia.`,
+  tokenEmpty: "Primero pega el token del bot.",
+  tokenSpaces: "Pega solo el token: una línea, sin espacios.",
+  tokenShape: {
+    tg: "Un token de Telegram es como 123456789:AAH…: cifras, dos puntos y luego letras y cifras.",
+    max: "Es demasiado corto para un token de MAX. Cópialo otra vez de los ajustes del bot.",
+    wa: "Es demasiado corto para un token de acceso de Meta. Cópialo otra vez.",
+  },
+  connect: "Conectar el bot",
+  checking: (name) => `Comprobando el token con ${name}…`,
+  causes: {
+    refused: (name) => `${name} no aceptó este token. Cópialo otra vez y pégalo aquí.`,
+    settings: "Meta no conoce estos ids. Revísalos en WhatsApp → API Setup.",
+    update: (bin) => `Esta versión de ${bin} aún no conecta bots desde la app. Actualízala en la página Herramientas.`,
+    timeout: (name) => `${name} no respondió a tiempo. Revisa la conexión y vuelve a intentarlo.`,
+    other: "El bot no se conectó.",
+  },
+  connected: (handle) => `El bot ${handle} está conectado.`,
+  connectedAs: (profile) => `Tu agente ya puede escribir como este bot. Su nombre en este ordenador es ${profile}.`,
+  nextSteps: "Después",
+  after: {
+    tg: "Un bot de Telegram no puede iniciar un chat: pide a la gente que le escriba primero o añádelo a un grupo.",
+    max: "Añade el bot a un chat o un canal, o pide a la gente que le escriba primero.",
+    wa: "Envía la plantilla hello_world a un número que añadiste en API Setup. Para recibir mensajes hace falta un webhook; lo explica la guía del bot.",
+  },
+  tryIt: "Comprueba qué bot es:",
+  copyCommand: "Copiar el comando",
+  guide: "Leer la guía del bot",
+  bots: "Bots",
+  noBots: "Aún no hay ningún bot.",
+  botsFailed: "No se pudieron leer los bots de este ordenador.",
+  addBot: "Añadir un bot",
+  bot: "Bot",
+  tokenInFile: "token en un archivo",
+  tokenInEnv: "token del entorno",
+  announce: {
+    checking: "Comprobando el token.",
+    connected: "El bot está conectado. Pulsa Listo para cerrar.",
+  },
+}
+
+export type BotMessages = typeof en
+export type BotTool = Tool
+
+export const botMessages: Messages<typeof en> = { en, ru, es }

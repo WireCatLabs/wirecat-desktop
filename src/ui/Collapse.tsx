@@ -58,7 +58,7 @@ export function Collapse({ open, children, id, className, frameClassName }: Prop
       aria-hidden={!open || undefined}
       data-state={open ? "open" : "closed"}
       className={cx(
-        "grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows] duration-300 ease-out-quart motion-reduce:transition-none",
+        "grid grid-cols-[minmax(0,1fr)] transition-[grid-template-rows] duration-(--motion-slow) ease-out-quart motion-reduce:transition-none",
         open && rows ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
         frameClassName,
       )}

@@ -30,7 +30,7 @@ export function Disclosure({
         className="inline-flex items-center gap-1 rounded text-left text-[0.875rem] font-medium text-brand hover:text-brand-hover"
       >
         <ChevronRight
-          className={cx("size-4 shrink-0 transition-transform duration-150", open && "rotate-90")}
+          className={cx("size-4 shrink-0 transition-transform duration-(--motion-fast)", open && "rotate-90")}
           aria-hidden
         />
         {summary}

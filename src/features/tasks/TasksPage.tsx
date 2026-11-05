@@ -8,6 +8,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Skeleton, StableText } from "@/ui/Skeleton"
+import { DemoNote } from "../onboarding/DemoNote"
 import { openTool } from "../tools/go"
 import { useTools } from "../tools/store"
 import { Filters } from "./Filters"
@@ -30,10 +31,11 @@ export function TasksPage() {
   const error = useTasks((s) => s.error)
   const view = useTasks((s) => s.view)
   const creating = useTasks((s) => s.creating)
+  const demo = useTasks((s) => s.demo)
 
   useEffect(() => {
-    void useTasks.getState().load()
-  }, [])
+    if (!demo) void useTasks.getState().load()
+  }, [demo])
 
   const usable = loaded && !unusable && !error
   return (
@@ -53,7 +55,11 @@ export function TasksPage() {
             </button>
           </p>
         </div>
-        <div className={cx("flex items-center gap-2", !usable && "invisible")} aria-hidden={!usable || undefined}>
+        <div
+          className={cx("flex items-center gap-2", !usable && "invisible")}
+          aria-hidden={!usable || undefined}
+          inert={demo || undefined}
+        >
           <Button
             variant="ghost"
             size="sm"
@@ -76,8 +82,11 @@ export function TasksPage() {
           </Button>
         </div>
       </div>
-      <Body />
-      <Note />
+      {demo && <DemoNote />}
+      <div inert={demo || undefined} className="contents">
+        <Body />
+        <Note />
+      </div>
     </div>
   )
 }
@@ -241,7 +250,10 @@ function ViewSwitch({ value, onChange }: { value: View; onChange: (v: View) => v
     ["board", m.board, <Columns3 key="b" className="size-4" aria-hidden />],
   ] as const
   return (
-    <fieldset className="inline-flex h-8 items-center rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
+    <fieldset
+      data-tour="tasks-view"
+      className="inline-flex h-8 items-center rounded-[0.45rem] border-0 bg-app-3 p-[3px]"
+    >
       <legend className="sr-only">{m.view}</legend>
       {items.map(([id, label, icon]) => (
         <label key={id} className="relative h-full">
@@ -252,7 +264,7 @@ function ViewSwitch({ value, onChange }: { value: View; onChange: (v: View) => v
             onChange={() => onChange(id)}
             className="peer sr-only"
           />
-          <span className="flex h-full cursor-pointer items-center gap-[0.4rem] rounded-[0.35rem] px-[0.65rem] text-[0.875rem] text-ink-soft transition-colors duration-150 peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand hover:text-ink">
+          <span className="flex h-full cursor-pointer items-center gap-[0.4rem] rounded-[0.35rem] px-[0.65rem] text-[0.875rem] text-ink-soft transition-colors duration-(--motion-fast) peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand hover:text-ink">
             {icon}
             {label}
           </span>

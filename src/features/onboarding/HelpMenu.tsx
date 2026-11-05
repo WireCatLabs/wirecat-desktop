@@ -1,4 +1,4 @@
-import { CircleHelp, Compass, Cpu, Info, ShieldCheck, Sparkles } from "lucide-react"
+import { BookOpenText, CircleHelp, Compass, Cpu, ExternalLink, Info, ShieldCheck, Sparkles } from "lucide-react"
 import { type KeyboardEvent, useCallback, useEffect, useId, useRef } from "react"
 import { create } from "zustand"
 import { ComputerFacts, ManagedNodeDialog, useComputerTrouble } from "@/features/system/ComputerFacts"
@@ -7,7 +7,13 @@ import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
 import { onboardingMessages } from "./messages"
 
-export type HelpActions = { onTour: () => void; onWelcome: () => void; onPrivacy: () => void; onAbout: () => void }
+export type HelpActions = {
+  onDocs: () => void
+  onTour: () => void
+  onWelcome: () => void
+  onPrivacy: () => void
+  onAbout: () => void
+}
 
 /** The two places the same menu opens from: the Help button in the top bar, and the version number in the sidebar. */
 export type HelpPlace = "help" | "version"
@@ -74,7 +80,7 @@ export function HelpMenu(actions: HelpActions) {
         <span
           aria-hidden
           className={cx(
-            "absolute top-[0.35rem] right-[0.35rem] size-[0.5rem] rounded-full bg-bad ring-2 ring-wall transition-[opacity,scale] duration-300",
+            "absolute top-[0.35rem] right-[0.35rem] size-[0.5rem] rounded-full bg-bad ring-2 ring-wall transition-[opacity,scale] duration-(--motion-slow)",
             trouble ? "scale-100 opacity-100" : "scale-0 opacity-0",
           )}
         />
@@ -96,6 +102,7 @@ const PLACES: Record<HelpPlace, string> = {
 export function HelpPanel({
   place,
   listId,
+  onDocs,
   onTour,
   onWelcome,
   onPrivacy,
@@ -176,6 +183,11 @@ export function HelpPanel({
             <hr className="mx-[0.4rem] my-[0.3rem] border-line" />
           </>
         )}
+        <button type="button" role="menuitem" className={item} onClick={pick(onDocs)}>
+          <BookOpenText className={icon} strokeWidth={1.8} aria-hidden />
+          {m.docs}
+          <ExternalLink className="ml-auto size-[0.85rem] text-ink-dim" aria-hidden />
+        </button>
         <button type="button" role="menuitem" className={item} onClick={pick(onTour)}>
           <Compass className={icon} strokeWidth={1.8} aria-hidden />
           {m.tour}

@@ -28,7 +28,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
   const versionMenu = useId()
   return (
     <aside
-      className="flex w-[12rem] shrink-0 xl:w-[13.5rem] flex-col border-line border-r bg-wall"
+      className="reveal flex w-[12rem] shrink-0 xl:w-[13.5rem] flex-col border-line border-r bg-wall"
       data-tauri-drag-region
     >
       <div className="flex h-[7rem] items-center px-[1.5rem] pb-[0.6rem]" data-tauri-drag-region>
@@ -41,7 +41,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
             <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
           ))}
       </nav>
-      <nav aria-label={m.systemNav} className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
+      <nav aria-label={m.systemNav} data-tour="nav-system" className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
         {sections
           .filter((s) => s.group === "system")
           .map((s) => (
@@ -70,7 +70,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
             title={m.version(__APP_VERSION__)}
             onClick={(e) => useHelpMenu.getState().toggle("version", e.currentTarget)}
             className={cx(
-              "-mx-[0.4rem] rounded-[0.35rem] px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-150 hover:bg-app-3 hover:text-ink",
+              "-mx-[0.4rem] rounded-[0.35rem] px-[0.4rem] py-[0.15rem] font-mono text-[0.95rem] text-ink-dim tabular-nums transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink",
               versionOpen && "bg-app-3 text-ink",
             )}
           >
@@ -114,7 +114,7 @@ function NavItem({
       <span
         aria-hidden
         className={cx(
-          "absolute inset-y-0 left-0 w-[4px] rounded-r-full bg-brand transition-transform duration-200",
+          "absolute inset-y-0 left-0 w-[4px] rounded-r-full bg-brand transition-transform duration-(--motion-normal)",
           current ? "scale-y-100" : "scale-y-0",
         )}
       />
@@ -129,7 +129,7 @@ function NavItem({
         <span
           aria-hidden
           className={cx(
-            "size-[0.5rem] shrink-0 rounded-full bg-brand transition-[opacity,scale] duration-300",
+            "size-[0.5rem] shrink-0 rounded-full bg-brand transition-[opacity,scale] duration-(--motion-slow)",
             badge ? "scale-100 opacity-100" : "scale-0 opacity-0",
           )}
         />

@@ -209,7 +209,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
             inert={(!changed && !busy) || undefined}
             aria-hidden={(!changed && !busy) || undefined}
             className={cx(
-              "flex gap-2 transition-opacity duration-150",
+              "flex gap-2 transition-opacity duration-(--motion-fast)",
               !changed && !busy && "pointer-events-none opacity-0",
             )}
           >

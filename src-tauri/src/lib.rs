@@ -3,11 +3,13 @@ mod analytics;
 mod archive;
 mod background;
 mod backup;
+mod bots;
 mod cache;
 mod catalog;
 mod chats;
 mod cloudflare;
 mod cloudflare_install;
+mod community;
 mod compat;
 mod config_repair;
 mod install;
@@ -30,6 +32,7 @@ mod provenance;
 mod public_address;
 mod query_writer;
 mod redact;
+mod registry;
 mod report;
 mod run;
 mod runs;
@@ -51,7 +54,7 @@ mod terminal_path;
 mod tools;
 
 use install::{InstallEvent, Running};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
@@ -63,6 +66,27 @@ async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> 
 #[tauri::command]
 async fn run_agent(agent: String, prompt: String) -> Result<agent_run::AgentRun, String> {
     blocking(move || agent_run::run(&agent, &prompt)).await?
+}
+
+/// The community tools Rust accepted at start, so the interface lists exactly the tools Rust will run.
+#[tauri::command]
+fn extra_tools() -> community::Extra {
+    catalog::catalog().extra.clone()
+}
+
+#[tauri::command]
+fn community_status() -> registry::Status {
+    registry::status()
+}
+
+/// Takes effect at the next start; turning it on fetches the list now, so that start has it.
+#[tauri::command]
+async fn set_community_shown(show: bool) -> Result<(), String> {
+    registry::set_shown(show)?;
+    if show {
+        std::thread::spawn(registry::check_now);
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -883,6 +907,27 @@ async fn sign_in(
     .await
 }
 
+/// Connects a bot to the profile the owner named: the catalog's settings first (`WhatsApp`'s ids), then the token on
+/// the tool's stdin. The token is wiped once written and never comes back.
+#[tauri::command]
+async fn bot_sign_in(
+    id: String,
+    profile: String,
+    token: String,
+    fields: BTreeMap<String, String>,
+) -> Result<bots::BotResult, String> {
+    let token = bots::Token::new(token);
+    let tool = catalog::tool(&id)?;
+    blocking(move || bots::connect(tool, &profile, &token, &fields)).await?
+}
+
+/// Every bot name on this computer, from the tool's own `bot list`.
+#[tauri::command]
+async fn list_bots(id: String) -> Result<Vec<bots::BotProfile>, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || bots::list(tool)).await?
+}
+
 /// Hands the running sign-in the answer to its last `needs` step, on its stdin; the value is wiped after the write.
 #[tauri::command]
 fn sign_in_answer(id: String, value: String) -> Result<(), String> {
@@ -976,12 +1021,16 @@ pub fn run() {
         node::make_app_data_private();
         cloudflare::remove_left_scratch();
     });
+    std::thread::spawn(registry::keep_fresh);
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(Arc::new(Running::default()))
         .invoke_handler(tauri::generate_handler![
+            extra_tools,
+            community_status,
+            set_community_shown,
             update_kind,
             update_download_package,
             readiness,
@@ -1092,6 +1141,8 @@ pub fn run() {
             open_setup,
             config_repair,
             sign_in,
+            bot_sign_in,
+            list_bots,
             sign_in_answer,
             sign_in_stop,
             sync_run,

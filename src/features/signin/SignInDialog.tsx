@@ -1,31 +1,42 @@
 import { Terminal } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { keyringFallback } from "@/domain/signin-notes"
+import { telegramNote } from "@/domain/telegram-signin"
 import { useMessages } from "@/i18n"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
+import { Crossfade } from "@/ui/Crossfade"
 import { Dialog } from "@/ui/Dialog"
+import { MOTION } from "@/ui/motion"
 import { useTerminal } from "../tools/terminal-store"
 import { type SigninMessages, signinMessages } from "./messages"
 import { planMessages } from "./messages-plan"
+import { telegramMessages } from "./messages-telegram"
 import { Plan } from "./Plan"
-import { Stage } from "./Stages"
+import { type SignInView, Stage, stageKey } from "./Stages"
 import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "./store"
 import { KeyringNotice } from "./TelegramGuide"
+import { TelegramPath } from "./TelegramPath"
 
 /**
  * Signs a profile in with the tool's own sign-in, drawn in the window: a QR code, a code for the phone, a page to
  * open, the questions the tool asks, then its progress.
  */
 export function SignInDialog() {
-  const s = useSignIn()
+  const live = useSignIn()
+  const s = useHeldSwitch(live)
   const m = useMessages(signinMessages)
+  const tm = useMessages(telegramMessages)
   const tool = s.tool ? findTool(s.tool) : undefined
   const name = tool?.name ?? s.tool ?? ""
   const body = useRef<HTMLDivElement>(null)
   const ended = !running(s.phase)
   const keyring = s.notes.map(keyringFallback).find((k) => k !== null) ?? null
-  const notes = s.notes.filter((n) => keyringFallback(n) === null)
+  // tg's words about the login code are said beside the code's field instead.
+  const notes = s.notes.filter((n) => keyringFallback(n) === null && (s.tool !== "tg" || telegramNote(n) === null))
+  const key = stageKey(s)
 
   // The button that had focus goes away when the sign-in ends; its replacement takes focus instead of the page.
   useEffect(() => {
@@ -33,25 +44,60 @@ export function SignInDialog() {
   }, [ended])
 
   return (
-    <Dialog open={s.tool !== null} wide scroll title={m.title(name)} onClose={s.close} actions={<Actions />}>
-      <div ref={body} className="flex flex-col gap-3">
+    <Dialog open={live.tool !== null} wide="xl" scroll title={m.title(name)} onClose={live.close} actions={<Actions />}>
+      <div ref={body} className="flex flex-col gap-3 text-[1.1rem]">
         <p>{m.intro(<code className="font-mono text-ink">{s.profile}</code>, name)}</p>
-        {notes.length > 0 && (
-          <p className="selectable rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-[0.9rem] leading-snug text-ink">
+        <Collapse open={notes.length > 0}>
+          <p className="selectable rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-body leading-snug text-ink">
             {notes.join(" ")}
           </p>
-        )}
-        {keyring && <KeyringNotice fallback={keyring} />}
-        {/* The plan slides away to the live sign-in in the same place (rule 9). */}
-        <div key={s.phase === "plan" ? "plan" : "run"} className="step-in">
-          {s.phase === "plan" ? <Plan /> : <Stage name={name} />}
-        </div>
+        </Collapse>
+        <Collapse open={keyring !== null}>{keyring && <KeyringNotice fallback={keyring} />}</Collapse>
+        {/* The plan lists the same path in full; once tg runs, this says which way in it is and where. */}
+        <Collapse open={s.tool === "tg" && s.phase !== "plan"}>
+          <TelegramPath s={s} />
+        </Collapse>
+        {/* One step fades into the next in the same place, and the box follows its height (rule 9). */}
+        <AutoHeight swap={key}>
+          <Crossfade swap={key} ms={MOTION.swap}>
+            {s.phase === "plan" ? <Plan /> : <Stage name={name} s={s} />}
+          </Crossfade>
+        </AutoHeight>
         <p role="status" className="sr-only">
-          {announcement(m.announce, s.phase, s.codes, s.progress?.step === "waiting", s.stopping, s.need?.prompt)}
+          {s.phase === "starting" && s.switchingTo
+            ? tm.switching[s.switchingTo]
+            : s.phase === "scan" && s.scannedAt !== null
+              ? m.announce.scanned
+              : announcement(m.announce, s.phase, s.codes, s.progress?.step === "waiting", s.stopping, s.need?.prompt)}
         </p>
       </div>
     </Dialog>
   )
+}
+
+/**
+ * A switch of method says "Switching to…" long enough to read, even when the tool answers at once: until `hold` has
+ * passed, the dialog keeps drawing the switching moment. Only the picture waits; the tool's next step is already in the
+ * store, and a failure or a close is shown at once.
+ */
+function useHeldSwitch(s: SignInView): SignInView {
+  const held = useRef<{ view: SignInView; until: number } | null>(null)
+  const [, redraw] = useState(0)
+  // On the keys step the switch keeps the keys on screen and says nothing, so there is nothing to read.
+  if (s.phase === "starting" && s.switchingTo && stageKey(s) === "starting") {
+    if (held.current?.view.run !== s.run) held.current = { view: s, until: Date.now() + MOTION.hold }
+    else held.current.view = s
+  }
+  const h = held.current
+  const wait = h && h.view.run === s.run && s.tool !== null && running(s.phase) ? h.until - Date.now() : 0
+  const holding = wait > 0
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one timer per held switch, not one per redraw
+  useEffect(() => {
+    if (!holding) return
+    const t = setTimeout(() => redraw((n) => n + 1), wait)
+    return () => clearTimeout(t)
+  }, [holding])
+  return holding && h ? h.view : s
 }
 
 function announcement(
@@ -85,8 +131,8 @@ function Actions() {
       <>
         {others.map((other) =>
           tool && profile ? (
-            <Button key={other.id} variant="ghost" onClick={() => useSignIn.setState({ method: other.id })}>
-              {m.switchTo(other.id, other.label)}
+            <Button key="switch" variant="ghost" onClick={() => useSignIn.setState({ method: other.id })}>
+              <SwitchLabel id={other.id} label={other.label} />
             </Button>
           ) : null,
         )}
@@ -105,16 +151,20 @@ function Actions() {
         {others.map((method) =>
           tool && profile && phase !== "progress" ? (
             <Button
-              key={method.id}
+              key="switch"
               variant="ghost"
-              onClick={() => start(tool, profile, onFinish ?? undefined, method.id)}
+              onClick={() => start(tool, profile, onFinish ?? undefined, method.id, true)}
             >
-              {m.switchTo(method.id, method.label)}
+              <SwitchLabel id={method.id} label={method.label} />
             </Button>
           ) : null,
         )}
-        <Button variant="secondary" onClick={stop} disabled={stopping}>
-          {stopping ? m.stopping : receivingHistory(s) ? m.stopKeep : m.cancel}
+        {/* Cancel closes at once; only "Stop and keep" waits, to say what the phone sent before the stop. */}
+        <Button variant="secondary" onClick={receivingHistory(s) ? stop : close} disabled={stopping}>
+          <Steady
+            shown={stopping ? m.stopping : receivingHistory(s) ? m.stopKeep : m.cancel}
+            others={[m.cancel, m.stopping]}
+          />
         </Button>
       </>
     )
@@ -155,5 +205,29 @@ function Actions() {
     <Button variant="primary" onClick={close} data-autofocus>
       {m.done}
     </Button>
+  )
+}
+
+/** The other way in; after a switch the label fades to the way back, in the button's place. */
+function SwitchLabel({ id, label }: { id: string; label: string }) {
+  const m = useMessages(signinMessages)
+  return (
+    <Crossfade swap={id} className="inline-grid">
+      {m.switchTo(id, label)}
+    </Crossfade>
+  )
+}
+
+/** A label that changes in place ("Cancel", then "Stopping…") at the width of the widest, so the button keeps its size. */
+function Steady({ shown, others }: { shown: ReactNode; others: string[] }) {
+  return (
+    <span className="inline-grid">
+      <span className="[grid-area:1/1]">{shown}</span>
+      {others.map((o) => (
+        <span key={o} aria-hidden className="invisible [grid-area:1/1]">
+          {o}
+        </span>
+      ))}
+    </span>
   )
 }

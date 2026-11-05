@@ -357,7 +357,7 @@ export function People() {
               aria-pressed={by === b}
               onClick={() => setBy(b)}
               className={cx(
-                "cursor-pointer rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-150",
+                "cursor-pointer rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-(--motion-fast)",
                 by === b ? "bg-app-3 font-medium text-ink" : "text-ink-soft hover:bg-app-2 hover:text-ink",
               )}
             >
@@ -435,7 +435,7 @@ export function Projects() {
       ) : (
         <div
           className={cx(
-            "reveal min-h-[15rem] overflow-x-auto transition-opacity duration-300",
+            "reveal min-h-[15rem] overflow-x-auto transition-opacity duration-(--motion-slow)",
             refreshing && "opacity-55",
           )}
         >

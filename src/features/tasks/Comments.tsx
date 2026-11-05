@@ -96,7 +96,7 @@ export function Comments({ taskKey }: { taskKey: string }) {
           inert={(!ready && !busy) || undefined}
           aria-hidden={(!ready && !busy) || undefined}
           className={cx(
-            "flex gap-2 transition-opacity duration-150",
+            "flex gap-2 transition-opacity duration-(--motion-fast)",
             !ready && !busy && "pointer-events-none opacity-0",
           )}
         >
