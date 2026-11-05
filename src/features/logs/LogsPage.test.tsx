@@ -136,6 +136,18 @@ describe("Logs", () => {
     expect(within(sources).getByText(/did not finish in time/)).toHaveClass("text-bad")
   }, 15000)
 
+  it("shows a tool without a keep setting as a plain fact, not a failure", async () => {
+    const user = userEvent.setup()
+    render(<LogsPage />)
+    await loaded()
+
+    expect(screen.queryByRole("img", { name: /could not be read/ })).not.toBeInTheDocument()
+    const email = runsOf(await openSettings(user), "Email")
+    expect(await within(email).findByText("Has no setting for which runs to keep")).toHaveClass("text-ink-dim")
+    expect(within(email).queryByRole("combobox")).not.toBeInTheDocument()
+    expect(within(email).queryByRole("button", { name: /Report/ })).not.toBeInTheDocument()
+  }, 15000)
+
   it("groups by a field from a facet header", async () => {
     const user = userEvent.setup()
     render(<LogsPage />)

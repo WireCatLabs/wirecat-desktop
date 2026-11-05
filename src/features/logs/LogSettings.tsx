@@ -120,6 +120,9 @@ export function sourceWords(m: LogsWords, s: Source): string {
   return s.state === "loading" ? (n ? m.readingOlder(runs) : m.readingShort) : runs
 }
 
+// A tool with no runs to show is a fact about the tool, not a fault: it reads as quietly as an empty row.
+const quiet = (s: Source) => s.state === "none" || s.state === "missing" || s.state === "update"
+
 /** "successful runs for 7 days, failed runs for 30 days"; older tools keep every run for one period. */
 const periods = (m: LogsWords, k: Ready) =>
   k.successDays === null ? m.periodsEvery(k.days) : m.periodsSplit(k.successDays, k.days)
@@ -158,7 +161,10 @@ function Row(props: {
         {source && (
           <span className="flex min-w-0 flex-wrap items-baseline gap-x-[0.7rem]">
             <span
-              className={cx("tabular-nums", source.state === "error" ? "text-bad" : "text-ink")}
+              className={cx(
+                "tabular-nums first-letter:uppercase",
+                quiet(source) ? "text-ink-dim" : source.state === "error" ? "text-bad" : "text-ink",
+              )}
               title={source.error ?? undefined}
             >
               {sourceWords(m, source)}
@@ -180,6 +186,7 @@ function Row(props: {
         {k?.state === "loading" && (
           <Skeleton className="h-[1.1rem] w-[16rem] max-w-full" {...(first && { label: m.readingKeeping })} />
         )}
+        {k?.state === "none" && <span className="text-[0.85rem] text-ink-dim">{m.keepsNoChoice}</span>}
         {k?.state === "error" && (
           <span className="text-[0.85rem] text-bad">{m.keepError(k.error ?? m.noRecordSetting)}</span>
         )}

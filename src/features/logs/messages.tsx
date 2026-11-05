@@ -264,6 +264,7 @@ const en = {
   periodsEvery: (days: number | null) => `every run${days === null ? "" : ` for ${enDays(days)}`}`,
   periodsSplit: (success: number | null, failed: number | null) =>
     `successful runs${success === null ? "" : ` for ${enDays(success)}`}, failed runs${failed === null ? "" : ` for ${enDays(failed)}`}`,
+  keepsNoChoice: "Has no setting for which runs to keep",
   keepError: (error: string) => `Could not say whether it keeps successful runs: ${error}`,
   keeps: (periods: string) => `Keeps ${periods}`,
   keepsFailedOnly: (days: number | null) => `Keeps failed runs only${days === null ? "" : ` for ${enDays(days)}`}`,
@@ -555,6 +556,7 @@ const ru: typeof en = {
   periodsEvery: (days) => `каждый запуск${days === null ? "" : ` ${ruDays(days)}`}`,
   periodsSplit: (success, failed) =>
     `успешные запуски${success === null ? "" : ` ${ruDays(success)}`}, неудачные${failed === null ? "" : ` ${ruDays(failed)}`}`,
+  keepsNoChoice: "Нет настройки, какие запуски хранить",
   keepError: (error) => `Не смог сказать, хранит ли успешные запуски: ${error}`,
   keeps: (periods) => `Хранит ${periods}`,
   keepsFailedOnly: (days) => `Хранит только неудачные запуски${days === null ? "" : ` ${ruDays(days)}`}`,
@@ -827,6 +829,7 @@ const es: typeof en = {
   periodsEvery: (days) => `todas las ejecuciones${days === null ? "" : ` durante ${esDays(days)}`}`,
   periodsSplit: (success, failed) =>
     `las correctas${success === null ? "" : ` durante ${esDays(success)}`} y las fallidas${failed === null ? "" : ` durante ${esDays(failed)}`}`,
+  keepsNoChoice: "No tiene un ajuste de qué ejecuciones guardar",
   keepError: (error) => `No pudo decir si guarda las ejecuciones correctas: ${error}`,
   keeps: (periods) => `Guarda ${periods}`,
   keepsFailedOnly: (days) => `Guarda solo las ejecuciones fallidas${days === null ? "" : ` durante ${esDays(days)}`}`,
