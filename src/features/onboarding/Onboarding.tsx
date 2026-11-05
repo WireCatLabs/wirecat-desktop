@@ -52,7 +52,7 @@ function AgentsStep() {
 function SkillWhy() {
   const m = useMessages(onboardingMessages).agents.why
   return (
-    <section aria-label={m.label} className="flex max-w-[62ch] flex-col gap-[0.8rem] text-[1rem] leading-relaxed">
+    <section aria-label={m.label} className="flex max-w-[62ch] flex-col gap-[0.8rem] text-body leading-relaxed">
       <p>
         {m.ask} <q className="font-medium text-ink">{m.example}</q>
       </p>
@@ -96,7 +96,7 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
   const gate = useComputerGate()
   return (
     <aside
-      className="flex w-[12rem] shrink-0 flex-col border-line border-r bg-wall xl:w-[13.5rem]"
+      className="reveal flex w-[12rem] shrink-0 flex-col border-line border-r bg-wall xl:w-[13.5rem]"
       data-tauri-drag-region
     >
       <div className="flex h-[7rem] items-center px-[1.5rem] pb-[0.6rem]" data-tauri-drag-region>
@@ -321,7 +321,7 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
               className="min-w-0 flex-1 px-2"
             >
               {blocked ? (
-                <p className="text-right text-[0.9rem] leading-snug text-ink-soft">{blocked}</p>
+                <p className="text-right text-[0.95rem] leading-snug text-ink-soft">{blocked}</p>
               ) : (
                 stillInstalling && <StillInstalling />
               )}

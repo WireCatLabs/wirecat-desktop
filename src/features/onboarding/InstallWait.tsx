@@ -20,6 +20,7 @@ import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { reducedMotion } from "@/ui/motion"
+import { ProgressBar } from "@/ui/ProgressBar"
 import { useTools } from "../tools/store"
 import { type OnboardingText, onboardingMessages } from "./messages"
 
@@ -120,16 +121,17 @@ export function InstallOverview({ chosen }: { chosen: readonly string[] }) {
         {items.map((item, i) => {
           const failed = item.session?.outcome?.event === "failed"
           const f = failed ? 1 : toolFraction(item)
+          const running = Boolean(item.session && !item.session.outcome && item.session.step !== "queued")
           return (
-            <div key={chosen[i]} className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-3">
-              <div
-                className={cx(
-                  "h-full rounded-full motion-safe:transition-[width,background-color] motion-safe:duration-500 motion-safe:ease-out-quart",
-                  failed ? "bg-bad" : f >= 1 ? "bg-ok" : "bg-brand",
-                )}
-                style={{ width: `${f * 100}%` }}
-              />
-            </div>
+            <ProgressBar
+              key={chosen[i]}
+              decorative
+              label={w.label}
+              value={f * 100}
+              tone={failed ? "bad" : f >= 1 ? "ok" : "brand"}
+              busy={running}
+              className="flex-1"
+            />
           )
         })}
       </div>
@@ -182,7 +184,7 @@ export function InstallTips({ chosen }: { chosen: readonly string[] }) {
           {/* Reserves the tallest tip's room, so turning a page never moves the line below. */}
           <Crossfade swap={tip} className="min-h-[4.9rem] min-w-0 flex-1">
             <p className="font-semibold text-ink">{text.title}</p>
-            <p className="max-w-[64ch] text-[0.95rem] leading-relaxed text-ink-soft">{text.text}</p>
+            <p className="max-w-[64ch] text-body leading-relaxed text-ink-soft">{text.text}</p>
           </Crossfade>
         </div>
         <div className="flex items-center justify-between gap-3 pl-9">

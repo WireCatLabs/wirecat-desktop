@@ -25,7 +25,9 @@ src-tauri/src/
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
                 real install and uninstall against a test package; CI runs it on all three systems.
   tools.rs      finding executables, versions, profiles, doctor runs.
-  install.rs    install, update and uninstall with progress events, verification, failure reasons.
+  install.rs    install, update and uninstall with progress events, verification, failure reasons. The verify step
+                says what it does (`check` events: `path`, `start`, `skills`), so the row names it instead of one long
+                "Verifying"; `domain/install-batch.ts` turns npm's counts and these into each row's bar.
   provenance.rs before an install, `npm audit signatures` on a stub project plus the Sigstore certificate's
                 workflow: the release must be built by its catalog `repo`'s release.yml, or nothing is installed.
   runs.rs       run logs, read through each tool's own `runs list` / `runs show`; shown unmasked, an exception

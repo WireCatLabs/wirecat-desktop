@@ -64,7 +64,11 @@ export type InstallSession = {
   began?: Partial<Record<InstallStep, number>>
   /** When the outcome arrived, in ms since the epoch. */
   ended?: number
+  /** What the verify step does now (`install.rs`): put the tool on the PATH, run it once, refresh its skills. */
+  verifying?: VerifyCheck
 }
+
+export type VerifyCheck = "path" | "start" | "skills"
 
 export type ToolStatus =
   | { kind: "checking" }

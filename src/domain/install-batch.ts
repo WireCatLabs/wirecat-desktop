@@ -1,4 +1,4 @@
-import type { InstallSession } from "./status"
+import type { InstallSession, VerifyCheck } from "./status"
 
 /**
  * How long one tool install takes before this batch has timed one of its own. Replaced by the batch's own average
@@ -8,6 +8,20 @@ export const TYPICAL_INSTALL_MS = 60_000
 
 /** npm prints about this many package lookups before its first download (`install-progress.ts`). */
 const LOOKUPS = 300
+/** About as many packages as a warm cache unpacks for one tool, which prints no total. */
+const PACKAGES = 150
+
+/**
+ * How far `n` is through a count that usually ends near `usual`: straight up to 80% at `usual`, then ever slower,
+ * never reaching 100%. A tool that needs more than usual keeps its bar moving with each real line instead of
+ * stopping at the end of its share, and nothing claims the phase is over before the tool says so.
+ */
+export function share(n: number, usual: number): number {
+  if (n <= usual) return 0.8 * (Math.max(0, n) / usual)
+  return 1 - 0.2 * Math.exp(-(n - usual) / usual)
+}
+
+const VERIFY: Record<VerifyCheck, number> = { path: 0.92, start: 0.95, skills: 0.97 }
 
 export type BatchItem = { session: InstallSession | undefined; installed: boolean }
 
@@ -34,37 +48,37 @@ export type ToolStage =
   | { kind: "setup" }
   /** A manager that reports nothing (pnpm, bun): it runs, and that is all that is known. */
   | { kind: "quiet" }
-  | { kind: "verify" }
+  | { kind: "verify"; check: VerifyCheck | null }
   | { kind: "done" }
   | { kind: "failed" }
 
-export type ToolProgress = { stage: ToolStage; fraction: number }
+/** `known` is false when no count stands behind the fraction (pnpm and bun say nothing): the row shows no percent. */
+export type ToolProgress = { stage: ToolStage; fraction: number; known: boolean }
 
 /**
  * One tool's share of its own install, weighted so the bar keeps moving through npm's long lookup phase. The
  * overview and every row read this one mapping, so a row's bar and its slice of the overview never disagree.
  */
 export function toolProgress({ session, installed }: BatchItem): ToolProgress {
-  if (!session) return installed ? { stage: { kind: "done" }, fraction: 1 } : { stage: { kind: "idle" }, fraction: 0 }
+  const at = (stage: ToolStage, fraction: number, known = true): ToolProgress => ({ stage, fraction, known })
+  if (!session) return installed ? at({ kind: "done" }, 1) : at({ kind: "idle" }, 0)
   // A failed tool is not part of what got done, so a batch that failed is not shown as 100%.
-  if (session.outcome)
-    return session.outcome.event === "failed"
-      ? { stage: { kind: "failed" }, fraction: 0 }
-      : { stage: { kind: "done" }, fraction: 1 }
-  if (session.step === "queued") return { stage: { kind: "waiting" }, fraction: 0 }
-  if (session.step === "check") return { stage: { kind: "check" }, fraction: 0.05 }
-  if (session.step === "verify") return { stage: { kind: "verify" }, fraction: 0.95 }
-  if (session.step !== "install") return { stage: { kind: "check" }, fraction: 0 }
+  if (session.outcome) return session.outcome.event === "failed" ? at({ kind: "failed" }, 0) : at({ kind: "done" }, 1)
+  if (session.step === "queued") return at({ kind: "waiting" }, 0)
+  if (session.step === "check") return at({ kind: "check" }, 0.05)
+  if (session.step === "verify") {
+    const check = session.verifying ?? null
+    return at({ kind: "verify", check }, check ? VERIFY[check] : 0.92)
+  }
+  if (session.step !== "install") return at({ kind: "check" }, 0)
   const p = session.progress
-  if (!p || p.phase === null) return { stage: { kind: "quiet" }, fraction: 0.1 }
-  if (p.phase === "resolve")
-    return { stage: { kind: "resolve", looked: p.looked }, fraction: 0.1 + 0.25 * Math.min(1, p.looked / LOOKUPS) }
-  if (p.phase === "fetch")
-    return {
-      stage: { kind: "fetch", done: p.done, total: p.total },
-      fraction: 0.35 + 0.55 * (p.total ? Math.min(1, p.done / p.total) : 0),
-    }
-  return { stage: { kind: "setup" }, fraction: 0.9 }
+  if (!p || p.phase === null) return at({ kind: "quiet" }, 0.1, false)
+  if (p.phase === "resolve") return at({ kind: "resolve", looked: p.looked }, 0.1 + 0.25 * share(p.looked, LOOKUPS))
+  if (p.phase === "fetch") {
+    const part = p.total ? Math.min(1, p.done / p.total) : share(p.done, PACKAGES)
+    return at({ kind: "fetch", done: p.done, total: p.total }, 0.35 + 0.55 * part)
+  }
+  return at({ kind: "setup" }, 0.9)
 }
 
 export const toolFraction = (item: BatchItem): number => toolProgress(item).fraction

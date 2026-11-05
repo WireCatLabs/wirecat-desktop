@@ -6,6 +6,7 @@ import { clock } from "@/domain/sync"
 import { formatList, useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
+import { ProgressBar } from "@/ui/ProgressBar"
 import { type ProgressText, progressMessages } from "./messages-progress"
 import { useTools } from "./store"
 
@@ -29,8 +30,11 @@ const phaseOf = (stage: ToolStage): Phase => {
     case "resolve":
     case "fetch":
     case "setup":
-    case "verify":
       return stage.kind
+    case "verify":
+      return stage.check === "path" ? "path" : stage.check === "skills" ? "skills" : "verify"
+    case "done":
+      return "done"
     default:
       return "quiet"
   }
@@ -50,7 +54,9 @@ export function stageLine(stage: ToolStage, m: ProgressText): string {
     case "setup":
       return m.setup
     case "verify":
-      return m.verifying
+      return stage.check === "path" ? m.pathing : stage.check === "skills" ? m.skills : m.verifying
+    case "done":
+      return m.installed
     default:
       return m.quiet
   }
@@ -65,10 +71,12 @@ const progressOf = (session: InstallSession) => toolProgress({ session, installe
 export function InstallProgress({ session, compact = false }: { session: InstallSession; compact?: boolean }) {
   const m = useMessages(progressMessages)
   const now = useNow(!session.outcome)
-  const { stage, fraction } = progressOf(session)
+  const { stage, fraction, known } = progressOf(session)
   const since = session.began?.check ?? now
+  const end = session.ended ?? now
   const line = stageLine(stage, m)
   const pct = Math.round(fraction * 100)
+  const done = stage.kind === "done"
   return (
     <section aria-label={m.label} className="flex items-start gap-5">
       <div className="flex w-[5.5rem] shrink-0 flex-col items-start gap-1">
@@ -78,17 +86,25 @@ export function InstallProgress({ session, compact = false }: { session: Install
             compact ? "text-[1.35rem]" : "text-[1.8rem]",
           )}
         >
-          {clock(Math.max(0, now - since))}
+          {clock(Math.max(0, end - since))}
         </span>
         <span className="text-[0.8rem] text-ink-dim">{m.elapsed}</span>
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <p className="flex items-center gap-2 text-[0.95rem] leading-snug">
-          <Lamp size="sm" tone={stage.kind === "waiting" ? "idle" : "busy"} />
+          <Lamp size="sm" tone={done ? "ok" : stage.kind === "waiting" ? "idle" : "busy"} />
           <span className="min-w-0 flex-1 truncate font-medium text-ink tabular-nums">{line}</span>
-          <span className="shrink-0 font-mono text-[0.9rem] text-ink-soft tabular-nums">{m.percent(pct)}</span>
+          {known && (
+            <span className="shrink-0 font-mono text-[0.9rem] text-ink-soft tabular-nums">{m.percent(pct)}</span>
+          )}
         </p>
-        <Bar value={fraction} label={m.label} text={`${line}, ${m.percent(pct)}`} />
+        <ProgressBar
+          label={m.label}
+          value={known ? fraction * 100 : null}
+          valueText={known ? `${line}, ${m.percent(pct)}` : line}
+          tone={done ? "ok" : "brand"}
+          busy={!done && stage.kind !== "waiting"}
+        />
         <p aria-live="polite" className="max-w-[62ch] text-[0.9rem] leading-snug text-ink-soft">
           {m.now[phaseOf(stage)]}
         </p>
@@ -97,38 +113,25 @@ export function InstallProgress({ session, compact = false }: { session: Install
   )
 }
 
-function Bar({ value, label, text, thin }: { value: number; label: string; text: string; thin?: boolean }) {
-  return (
-    <div
-      role="progressbar"
-      aria-label={label}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      aria-valuenow={Math.round(value * 100)}
-      aria-valuetext={text}
-      className={cx("overflow-hidden rounded-full bg-app-3", thin ? "h-1" : "h-1.5")}
-    >
-      <div
-        className="h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-out-quart"
-        style={{ width: `${value * 100}%` }}
-      />
-    </div>
-  )
-}
-
 /** One line for a row: what the install is doing, its percent, and a thin bar under it. */
 export function InstallLine({ session, name }: { session: InstallSession; name: string }) {
   const m = useMessages(progressMessages)
-  const { stage, fraction } = progressOf(session)
+  const { stage, fraction, known } = progressOf(session)
   const line = stageLine(stage, m)
   const pct = m.percent(Math.round(fraction * 100))
   return (
     <div className="flex w-full min-w-0 flex-col gap-1">
       <div className="flex min-w-0 items-baseline gap-2 text-[0.95rem] text-ink-soft">
         <span className="min-w-0 flex-1 truncate tabular-nums">{line}</span>
-        <span className="shrink-0 font-mono text-[0.85rem] tabular-nums">{pct}</span>
+        {known && <span className="shrink-0 font-mono text-[0.85rem] tabular-nums">{pct}</span>}
       </div>
-      <Bar thin value={fraction} label={m.labelFor(name)} text={`${line}, ${pct}`} />
+      <ProgressBar
+        size="thin"
+        value={known ? fraction * 100 : null}
+        label={m.labelFor(name)}
+        valueText={known ? `${line}, ${pct}` : line}
+        busy={stage.kind !== "waiting"}
+      />
     </div>
   )
 }
@@ -162,14 +165,7 @@ export function StillInstalling({ className }: { className?: string }) {
     <div role="status" className={cx("flex min-w-0 items-center gap-3 text-[0.9rem] text-ink-soft", className)}>
       <Lamp size="sm" tone="busy" />
       <span className="min-w-0 truncate tabular-nums">{text}</span>
-      <span className="w-[4.5rem] shrink-0" aria-hidden>
-        <span className="block h-1 overflow-hidden rounded-full bg-app-3">
-          <span
-            className="block h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-500 motion-safe:ease-out-quart"
-            style={{ width: `${pct}%` }}
-          />
-        </span>
-      </span>
+      <ProgressBar decorative size="thin" label={text} value={pct} className="w-[4.5rem] shrink-0" />
     </div>
   )
 }

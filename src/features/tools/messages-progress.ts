@@ -1,6 +1,6 @@
 import { type Messages, plural } from "@/i18n"
 
-type Phase = "waiting" | "check" | "resolve" | "fetch" | "setup" | "quiet" | "verify"
+type Phase = "waiting" | "check" | "resolve" | "fetch" | "setup" | "quiet" | "verify" | "path" | "skills" | "done"
 
 const en = {
   label: "Install progress",
@@ -14,6 +14,9 @@ const en = {
   waiting: "Waiting for its turn",
   checking: "Checking the package",
   verifying: "Checking that it starts",
+  pathing: "Adding it to your PATH",
+  skills: "Updating its skills",
+  installed: "Installed",
   percent: (n: number) => `${n}%`,
   labelFor: (name: string) => `Installing ${name}`,
   still: (name: string, pct: string, more: number) =>
@@ -27,6 +30,9 @@ const en = {
     setup: "Everything is downloaded. npm is putting the tool in place and reports nothing until it is done.",
     quiet: "The package manager reports nothing until it finishes.",
     verify: "The tool is in place. WireCat runs it once to check that it starts.",
+    path: "The tool is in place. WireCat adds its folder to your PATH, so terminals and AI apps find it.",
+    skills: "It runs. WireCat updates the copies of its skill your agents read.",
+    done: "Installed and checked: it starts.",
   } as Record<Phase, string>,
 }
 
@@ -44,6 +50,9 @@ const ru: ProgressText = {
   waiting: "Ждёт своей очереди",
   checking: "Проверяем пакет",
   verifying: "Проверяем, что запускается",
+  pathing: "Добавляем в PATH",
+  skills: "Обновляем его навыки",
+  installed: "Установлен",
   percent: (n) => `${n}%`,
   labelFor: (name) => `Установка ${name}`,
   still: (name, pct, more) => `Ещё устанавливается: ${name} ${pct}${more ? `, в очереди ${more}` : ""}`,
@@ -55,6 +64,9 @@ const ru: ProgressText = {
     setup: "Всё скачано. npm устанавливает инструмент и ничего не сообщает, пока не закончит.",
     quiet: "Менеджер пакетов ничего не сообщает, пока не закончит.",
     verify: "Инструмент на месте. WireCat запускает его один раз, чтобы проверить.",
+    path: "Инструмент на месте. WireCat добавляет его папку в PATH, чтобы его находили терминалы и ИИ-приложения.",
+    skills: "Запускается. WireCat обновляет копии его навыка, которые читают ваши агенты.",
+    done: "Установлен и проверен: запускается.",
   },
 }
 
@@ -69,6 +81,9 @@ const es: ProgressText = {
   waiting: "Esperando su turno",
   checking: "Comprobando el paquete",
   verifying: "Comprobando que arranca",
+  pathing: "Añadiéndola a tu PATH",
+  skills: "Actualizando sus habilidades",
+  installed: "Instalada",
   percent: (n) => `${n} %`,
   labelFor: (name) => `Instalando ${name}`,
   still: (name, pct, more) => `Aún se instala: ${name} ${pct}${more ? `, ${more} más en espera` : ""}`,
@@ -80,6 +95,9 @@ const es: ProgressText = {
     setup: "Ya está todo descargado. npm está instalando la herramienta y no informa de nada hasta terminar.",
     quiet: "El gestor de paquetes no informa de nada hasta que termina.",
     verify: "La herramienta ya está en su sitio. WireCat la ejecuta una vez para comprobar que arranca.",
+    path: "La herramienta ya está en su sitio. WireCat añade su carpeta a tu PATH para que la encuentren las terminales y las apps de IA.",
+    skills: "Ya arranca. WireCat actualiza las copias de su habilidad que leen tus agentes.",
+    done: "Instalada y comprobada: arranca.",
   },
 }
 
