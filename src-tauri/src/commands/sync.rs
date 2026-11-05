@@ -1,4 +1,5 @@
-use super::blocking;
+use super::{attempt, blocking, known_tool, valid_profile};
+use crate::error::AppError;
 use crate::install::Running;
 use crate::{catalog, sync};
 use std::sync::Arc;
@@ -12,8 +13,8 @@ pub async fn sync_run(
     profile: Option<String>,
     running: State<'_, Arc<Running>>,
     on_event: Channel<sync::SyncEvent>,
-) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
+) -> Result<(), AppError> {
+    let tool = known_tool(&id)?;
     let args = sync::args(tool, profile.as_deref())?;
     let running = Arc::clone(&running);
     blocking(move || {
@@ -43,17 +44,17 @@ pub async fn sync_run(
 
 /// Asks that profile's running sync to stop: SIGTERM to its process, then its group after a few seconds.
 #[tauri::command]
-pub fn sync_stop(id: String, profile: Option<String>, running: State<'_, Arc<Running>>) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
+pub fn sync_stop(id: String, profile: Option<String>, running: State<'_, Arc<Running>>) -> Result<(), AppError> {
+    let tool = known_tool(&id)?;
     if let Some(p) = &profile {
-        catalog::validate_profile(p)?;
+        valid_profile(p)?;
     }
     running.cancel(&sync::key(tool, profile.as_deref()));
     Ok(())
 }
 
 #[tauri::command]
-pub async fn sync_last(id: String, profile: Option<String>) -> Result<sync::LastSync, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || sync::last(tool, profile.as_deref())).await?
+pub async fn sync_last(id: String, profile: Option<String>) -> Result<sync::LastSync, AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || sync::last(tool, profile.as_deref())).await
 }

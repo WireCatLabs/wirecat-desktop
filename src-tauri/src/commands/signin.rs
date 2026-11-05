@@ -1,6 +1,7 @@
-use super::blocking;
+use super::{attempt, blocking, known_tool};
+use crate::error::AppError;
 use crate::install::Running;
-use crate::{bots, catalog, signin};
+use crate::{bots, signin};
 use std::collections::BTreeMap;
 use std::sync::Arc;
 use tauri::State;
@@ -15,8 +16,8 @@ pub async fn sign_in(
     inputs: Option<signin::Inputs>,
     running: State<'_, Arc<Running>>,
     on_event: Channel<signin::SignInEvent>,
-) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
+) -> Result<(), AppError> {
+    let tool = known_tool(&id)?;
     let prepared = signin::args(tool, &method, &profile, inputs.unwrap_or_default())?;
     let running = Arc::clone(&running);
     blocking(move || {
@@ -44,29 +45,29 @@ pub async fn bot_sign_in(
     profile: String,
     token: String,
     fields: BTreeMap<String, String>,
-) -> Result<bots::BotResult, String> {
+) -> Result<bots::BotResult, AppError> {
     let token = bots::Token::new(token);
-    let tool = catalog::tool(&id)?;
-    blocking(move || bots::connect(tool, &profile, &token, &fields)).await?
+    let tool = known_tool(&id)?;
+    attempt(move || bots::connect(tool, &profile, &token, &fields)).await
 }
 
 /// Every bot name on this computer, from the tool's own `bot list`.
 #[tauri::command]
-pub async fn list_bots(id: String) -> Result<Vec<bots::BotProfile>, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || bots::list(tool)).await?
+pub async fn list_bots(id: String) -> Result<Vec<bots::BotProfile>, AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || bots::list(tool)).await
 }
 
 /// Hands the running sign-in the answer to its last `needs` step, on its stdin; the value is wiped after the write.
 #[tauri::command]
-pub fn sign_in_answer(id: String, value: String) -> Result<(), String> {
+pub fn sign_in_answer(id: String, value: String) -> Result<(), AppError> {
     let value = signin::Answer::new(value);
-    signin::answer(&catalog::tool(&id)?.id, &value)
+    Ok(signin::answer(&known_tool(&id)?.id, &value)?)
 }
 
 /// Asks the running sign-in to stop; `sign_in` answers `stopped`, or `done` when the tool kept what had come.
 #[tauri::command]
-pub fn sign_in_stop(id: String, running: State<'_, Arc<Running>>) -> Result<(), String> {
-    running.cancel(&signin::key(&catalog::tool(&id)?.id));
+pub fn sign_in_stop(id: String, running: State<'_, Arc<Running>>) -> Result<(), AppError> {
+    running.cancel(&signin::key(&known_tool(&id)?.id));
     Ok(())
 }

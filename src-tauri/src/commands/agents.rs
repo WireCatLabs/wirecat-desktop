@@ -1,40 +1,41 @@
-use super::blocking;
+use super::{attempt, blocking, known_tool};
+use crate::error::AppError;
 use crate::{agent_run, catalog, chats, mcp, paths, skills, terminal_path};
 use std::collections::HashMap;
 
 #[tauri::command]
-pub async fn run_agent(agent: String, prompt: String) -> Result<agent_run::AgentRun, String> {
-    blocking(move || agent_run::run(&agent, &prompt)).await?
+pub async fn run_agent(agent: String, prompt: String) -> Result<agent_run::AgentRun, AppError> {
+    attempt(move || agent_run::run(&agent, &prompt)).await
 }
 
 #[tauri::command]
-pub async fn detect_agents() -> Result<Vec<skills::Agent>, String> {
+pub async fn detect_agents() -> Result<Vec<skills::Agent>, AppError> {
     blocking(skills::agents).await
 }
 
 #[tauri::command]
-pub async fn skill_status(id: String) -> Result<skills::SkillReport, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || skills::status(tool)).await?
+pub async fn skill_status(id: String) -> Result<skills::SkillReport, AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || skills::status(tool)).await
 }
 
 #[tauri::command]
-pub async fn skill_install(id: String, target: String) -> Result<Option<String>, String> {
-    let tool = catalog::tool(&id)?;
+pub async fn skill_install(id: String, target: String) -> Result<Option<String>, AppError> {
+    let tool = known_tool(&id)?;
     skills::validate_target(&target)?;
-    blocking(move || skills::install(tool, &target)).await?
+    attempt(move || skills::install(tool, &target)).await
 }
 
 #[tauri::command]
-pub async fn skill_show(id: String) -> Result<skills::SkillText, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || skills::show(tool)).await?
+pub async fn skill_show(id: String) -> Result<skills::SkillText, AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || skills::show(tool)).await
 }
 
 /// Which installed tools a terminal finds on its own PATH, by tool id. For Hermes it is the `bash -l` its gateway
 /// runs commands in, started from the gateway's own PATH; without a gateway service, a terminal's.
 #[tauri::command]
-pub async fn terminal_reach(agent: Option<String>) -> Result<HashMap<String, bool>, String> {
+pub async fn terminal_reach(agent: Option<String>) -> Result<HashMap<String, bool>, AppError> {
     blocking(move || {
         let gateway = if agent.as_deref() == Some("hermes") { chats::hermes_base_path() } else { None };
         let gateway = gateway.and_then(|base| paths::bash_login_path(&base));
@@ -56,47 +57,47 @@ pub async fn terminal_reach(agent: Option<String>) -> Result<HashMap<String, boo
 
 /// Puts the folders of the listed installed tools on the user's PATH when a fresh terminal does not find them.
 #[tauri::command]
-pub async fn fix_terminal_path(ids: Vec<String>) -> Result<terminal_path::PathFix, String> {
-    blocking(move || terminal_path::fix(&ids)).await?
+pub async fn fix_terminal_path(ids: Vec<String>) -> Result<terminal_path::PathFix, AppError> {
+    attempt(move || terminal_path::fix(&ids)).await
 }
 
 /// The shells `/etc/shells` lists that exist here, for "Which shell does your terminal run?".
 #[tauri::command]
-pub async fn terminal_shells() -> Result<terminal_path::ShellChoices, String> {
+pub async fn terminal_shells() -> Result<terminal_path::ShellChoices, AppError> {
     blocking(terminal_path::choices).await
 }
 
 /// Saves the shell the user picked (one of `terminal_shells`), then puts the listed tools on its PATH and checks again.
 #[tauri::command]
-pub async fn use_terminal_shell(shell: String, ids: Vec<String>) -> Result<terminal_path::PathFix, String> {
-    blocking(move || terminal_path::use_shell(&shell, &ids)).await?
+pub async fn use_terminal_shell(shell: String, ids: Vec<String>) -> Result<terminal_path::PathFix, AppError> {
+    attempt(move || terminal_path::use_shell(&shell, &ids)).await
 }
 
 #[tauri::command]
-pub async fn agent_chats(agent: String) -> Result<chats::Chats, String> {
-    blocking(move || chats::read(&agent)).await?
+pub async fn agent_chats(agent: String) -> Result<chats::Chats, AppError> {
+    attempt(move || chats::read(&agent)).await
 }
 
 #[tauri::command]
-pub async fn mcp_registrations(agent: String) -> Result<mcp::Registrations, String> {
-    blocking(move || mcp::registrations(&agent)).await?
+pub async fn mcp_registrations(agent: String) -> Result<mcp::Registrations, AppError> {
+    attempt(move || mcp::registrations(&agent)).await
 }
 
 #[tauri::command]
-pub async fn mcp_check(id: String, profile: String) -> Result<mcp::Health, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp::check(tool, &profile)).await?
+pub async fn mcp_check(id: String, profile: String) -> Result<mcp::Health, AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || mcp::check(tool, &profile)).await
 }
 
 #[tauri::command]
-pub async fn mcp_add(id: String, profile: String, agent: String, allow_writes: bool) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp::add(tool, &profile, &agent, allow_writes)).await?
+pub async fn mcp_add(id: String, profile: String, agent: String, allow_writes: bool) -> Result<(), AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || mcp::add(tool, &profile, &agent, allow_writes)).await
 }
 
 /// `profile: None` removes the bare `<bin>` entry a person may have added by hand.
 #[tauri::command]
-pub async fn mcp_remove(id: String, profile: Option<String>, agent: String) -> Result<(), String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || mcp::remove(tool, profile.as_deref(), &agent)).await?
+pub async fn mcp_remove(id: String, profile: Option<String>, agent: String) -> Result<(), AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || mcp::remove(tool, profile.as_deref(), &agent)).await
 }

@@ -13,6 +13,7 @@ mod commands;
 mod community;
 mod compat;
 mod config_repair;
+mod error;
 mod funnel_helper;
 mod install;
 #[cfg(test)]

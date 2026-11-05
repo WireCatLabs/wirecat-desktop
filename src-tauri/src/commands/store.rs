@@ -1,4 +1,5 @@
-use super::blocking;
+use super::{attempt, blocking};
+use crate::error::AppError;
 use crate::install::Running;
 use crate::{archive, backup, compat};
 use std::sync::Arc;
@@ -6,23 +7,23 @@ use tauri::State;
 use tauri::ipc::Channel;
 
 #[tauri::command]
-pub async fn store_info() -> Result<Option<archive::StoreInfo>, String> {
-    blocking(archive::info).await?
+pub async fn store_info() -> Result<Option<archive::StoreInfo>, AppError> {
+    attempt(archive::info).await
 }
 
 #[tauri::command]
-pub async fn store_compat() -> Result<compat::StoreCompat, String> {
+pub async fn store_compat() -> Result<compat::StoreCompat, AppError> {
     blocking(compat::compat).await
 }
 
 #[tauri::command]
-pub async fn store_tables(sizes: bool) -> Result<Option<archive::TableList>, String> {
-    blocking(move || archive::tables(sizes)).await?
+pub async fn store_tables(sizes: bool) -> Result<Option<archive::TableList>, AppError> {
+    attempt(move || archive::tables(sizes)).await
 }
 
 #[tauri::command]
-pub async fn store_check() -> Result<Option<archive::Check>, String> {
-    blocking(archive::check).await?
+pub async fn store_check() -> Result<Option<archive::Check>, AppError> {
+    attempt(archive::check).await
 }
 
 #[tauri::command]
@@ -30,7 +31,7 @@ pub async fn store_backup(
     running: State<'_, Arc<Running>>,
     password: Option<String>,
     on_event: Channel<backup::BackupEvent>,
-) -> Result<(), String> {
+) -> Result<(), AppError> {
     let running = Arc::clone(&running);
     let password = password.map(backup::Password::new);
     blocking(move || {
@@ -52,30 +53,30 @@ pub fn cancel_store_backup(running: State<'_, Arc<Running>>) {
 }
 
 #[tauri::command]
-pub async fn list_backups() -> Result<backup::Backups, String> {
-    blocking(backup::list).await?
+pub async fn list_backups() -> Result<backup::Backups, AppError> {
+    attempt(backup::list).await
 }
 
 #[tauri::command]
-pub async fn open_backups(name: Option<String>) -> Result<(), String> {
-    blocking(move || backup::open(name.as_deref())).await?
+pub async fn open_backups(name: Option<String>) -> Result<(), AppError> {
+    attempt(move || backup::open(name.as_deref())).await
 }
 
 #[tauri::command]
-pub async fn store_reset_preview() -> Result<Option<backup::ResetPreview>, String> {
-    blocking(backup::reset_preview).await?
+pub async fn store_reset_preview() -> Result<Option<backup::ResetPreview>, AppError> {
+    attempt(backup::reset_preview).await
 }
 
 #[tauri::command]
-pub async fn store_reset(running: State<'_, Arc<Running>>) -> Result<Option<u64>, String> {
+pub async fn store_reset(running: State<'_, Arc<Running>>) -> Result<Option<u64>, AppError> {
     let running = Arc::clone(&running);
-    blocking(move || {
+    attempt(move || {
         if !running.start_unless(backup::RESET, |k| k == backup::BACKUP) {
-            return Err("A backup or a clear is already running.".to_string());
+            return Err(AppError::Busy("A backup or a clear is already running.".into()));
         }
         let done = backup::reset();
         running.finish(backup::RESET);
-        done
+        Ok(done?)
     })
-    .await?
+    .await
 }

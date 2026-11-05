@@ -1,4 +1,5 @@
-use super::blocking;
+use super::{attempt, blocking, known_tool, valid_profile};
+use crate::error::AppError;
 use crate::install::InstallEvent;
 use crate::install::Running;
 use crate::{background, catalog, compat, config_repair, install, terminal, tools};
@@ -8,25 +9,25 @@ use tauri::State;
 use tauri::ipc::Channel;
 
 #[tauri::command]
-pub async fn detect_tools(fresh: bool) -> Result<Vec<tools::ToolState>, String> {
+pub async fn detect_tools(fresh: bool) -> Result<Vec<tools::ToolState>, AppError> {
     blocking(move || tools::detect_all(fresh)).await
 }
 
 #[tauri::command]
-pub async fn latest_versions(fresh: bool) -> Result<HashMap<String, Option<String>>, String> {
+pub async fn latest_versions(fresh: bool) -> Result<HashMap<String, Option<String>>, AppError> {
     blocking(move || tools::latest_versions(fresh).into_iter().collect()).await
 }
 
 #[tauri::command]
-pub async fn list_profiles(id: String) -> Result<Option<Vec<tools::Profile>>, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || tools::profiles(tool)).await?
+pub async fn list_profiles(id: String) -> Result<Option<Vec<tools::Profile>>, AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || tools::profiles(tool)).await
 }
 
 #[tauri::command]
-pub async fn diagnose(id: String, profile: Option<String>) -> Result<tools::Diagnosis, String> {
-    let tool = catalog::tool(&id)?;
-    blocking(move || tools::diagnose(tool, profile.as_deref())).await?
+pub async fn diagnose(id: String, profile: Option<String>) -> Result<tools::Diagnosis, AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || tools::diagnose(tool, profile.as_deref())).await
 }
 
 #[tauri::command]
@@ -34,8 +35,8 @@ pub async fn install_tool(
     id: String,
     running: State<'_, Arc<Running>>,
     on_event: Channel<InstallEvent>,
-) -> Result<(), String> {
-    let tool = catalog::owner(catalog::tool(&id)?);
+) -> Result<(), AppError> {
+    let tool = catalog::owner(known_tool(&id)?);
     let running = Arc::clone(&running);
     let done = blocking(move || install::install(tool, &running, &on_event)).await;
     compat::forget();
@@ -47,8 +48,8 @@ pub async fn uninstall_tool(
     id: String,
     running: State<'_, Arc<Running>>,
     on_event: Channel<InstallEvent>,
-) -> Result<(), String> {
-    let tool = catalog::owner(catalog::tool(&id)?);
+) -> Result<(), AppError> {
+    let tool = catalog::owner(known_tool(&id)?);
     let running = Arc::clone(&running);
     let done = blocking(move || install::uninstall(tool, &running, &on_event)).await;
     compat::forget();
@@ -61,8 +62,8 @@ pub async fn remove_copy(
     id: String,
     path: String,
     running: State<'_, Arc<Running>>,
-) -> Result<install::CopyRemoval, String> {
-    let tool = catalog::owner(catalog::tool(&id)?);
+) -> Result<install::CopyRemoval, AppError> {
+    let tool = catalog::owner(known_tool(&id)?);
     let running = Arc::clone(&running);
     let done = blocking(move || install::remove_copy(tool, &path, &running)).await;
     compat::forget();
@@ -70,17 +71,17 @@ pub async fn remove_copy(
 }
 
 #[tauri::command]
-pub async fn background_status(id: String, profile: String) -> Result<background::Background, String> {
-    let tool = catalog::tool(&id)?;
-    catalog::validate_profile(&profile)?;
-    blocking(move || background::status(tool, &profile)).await?
+pub async fn background_status(id: String, profile: String) -> Result<background::Background, AppError> {
+    let tool = known_tool(&id)?;
+    valid_profile(&profile)?;
+    attempt(move || background::status(tool, &profile)).await
 }
 
 #[tauri::command]
-pub async fn background_keep(id: String, profile: String) -> Result<background::Background, String> {
-    let tool = catalog::tool(&id)?;
-    catalog::validate_profile(&profile)?;
-    blocking(move || background::keep(tool, &profile)).await?
+pub async fn background_keep(id: String, profile: String) -> Result<background::Background, AppError> {
+    let tool = known_tool(&id)?;
+    valid_profile(&profile)?;
+    attempt(move || background::keep(tool, &profile)).await
 }
 
 #[tauri::command]
@@ -92,19 +93,21 @@ pub fn cancel_install(id: String, running: State<'_, Arc<Running>>) {
 }
 
 #[tauri::command]
-pub async fn config_repair(id: String, profile: Option<String>) -> Result<config_repair::Repair, String> {
-    blocking(move || config_repair::repair(catalog::tool(&id)?, profile.as_deref())).await?
+pub async fn config_repair(id: String, profile: Option<String>) -> Result<config_repair::Repair, AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || config_repair::repair(tool, profile.as_deref())).await
 }
 
 // Async: finding a terminal waits a moment for each one tried, and macOS waits for its Automation answer.
 #[tauri::command]
-pub async fn open_setup(id: String, profile: Option<String>) -> Result<(), String> {
-    blocking(move || {
-        let tool = catalog::tool(&id)?;
+pub async fn open_setup(id: String, profile: Option<String>) -> Result<(), AppError> {
+    let tool = known_tool(&id)?;
+    attempt(move || {
         let args = tool.setup.as_ref().ok_or("this tool has no setup flow")?;
         let args = catalog::with_profile(args, profile.as_deref())?;
-        let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
-        terminal::open(&bin, &args)
+        let bin = crate::tools::program(&tool.bin)
+            .ok_or_else(|| AppError::NotInstalled("the tool is not installed".into()))?;
+        Ok::<_, AppError>(terminal::open(&bin, &args)?)
     })
-    .await?
+    .await
 }

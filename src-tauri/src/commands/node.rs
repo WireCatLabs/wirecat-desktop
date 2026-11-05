@@ -1,4 +1,5 @@
-use super::blocking;
+use super::{attempt, blocking};
+use crate::error::AppError;
 use crate::install::Running;
 use crate::{install, node, paths, profile, terminal_path};
 use std::sync::Arc;
@@ -6,12 +7,12 @@ use tauri::State;
 use tauri::ipc::Channel;
 
 #[tauri::command]
-pub async fn node_offer() -> Result<node::Offer, String> {
-    blocking(node::offer).await?
+pub async fn node_offer() -> Result<node::Offer, AppError> {
+    attempt(node::offer).await
 }
 
 #[tauri::command]
-pub async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node::NodeEvent>) -> Result<(), String> {
+pub async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node::NodeEvent>) -> Result<(), AppError> {
     let running = Arc::clone(&running);
     blocking(move || {
         let send = |e: node::NodeEvent| {
@@ -54,26 +55,28 @@ pub fn cancel_node_setup(running: State<'_, Arc<Running>>) {
 }
 
 #[tauri::command]
-pub async fn remove_node() -> Result<(), String> {
-    blocking(node::remove).await?
+pub async fn remove_node() -> Result<(), AppError> {
+    attempt(node::remove).await
 }
 
 /// What "Add to PATH" would write and where, for the app's own Node.js.
 #[tauri::command]
-pub async fn node_path() -> Result<profile::PathPlan, String> {
-    blocking(|| {
-        let found = node::installed().ok_or("WireCat has not set up Node.js on this computer.")?;
-        Ok(profile::plan(&node::bin_dir(&found.dir)))
+pub async fn node_path() -> Result<profile::PathPlan, AppError> {
+    attempt(|| {
+        let found = node::installed()
+            .ok_or_else(|| AppError::NotInstalled("WireCat has not set up Node.js on this computer.".into()))?;
+        Ok::<_, AppError>(profile::plan(&node::bin_dir(&found.dir)))
     })
-    .await?
+    .await
 }
 
 #[tauri::command]
-pub async fn set_node_path(add: bool) -> Result<profile::PathPlan, String> {
-    blocking(move || {
-        let found = node::installed().ok_or("WireCat has not set up Node.js on this computer.")?;
+pub async fn set_node_path(add: bool) -> Result<profile::PathPlan, AppError> {
+    attempt(move || {
+        let found = node::installed()
+            .ok_or_else(|| AppError::NotInstalled("WireCat has not set up Node.js on this computer.".into()))?;
         let bin = node::bin_dir(&found.dir);
-        if add { profile::add(&bin) } else { profile::remove(&bin) }
+        Ok::<_, AppError>(if add { profile::add(&bin) } else { profile::remove(&bin) }?)
     })
-    .await?
+    .await
 }

@@ -1,3 +1,4 @@
+use crate::error::AppError;
 use crate::{catalog, community, registry};
 
 /// The community tools Rust accepted at start, so the interface lists exactly the tools Rust will run.
@@ -13,7 +14,7 @@ pub fn community_status() -> registry::Status {
 
 /// Takes effect at the next start; turning it on fetches the list now, so that start has it.
 #[tauri::command]
-pub async fn set_community_shown(show: bool) -> Result<(), String> {
+pub async fn set_community_shown(show: bool) -> Result<(), AppError> {
     registry::set_shown(show)?;
     if show {
         std::thread::spawn(registry::check_now);

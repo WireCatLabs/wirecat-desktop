@@ -1,26 +1,27 @@
-use super::blocking;
+use super::{attempt, blocking};
+use crate::error::AppError;
 use crate::{notifications, package_update, report, system};
 use tauri::ipc::Channel;
 
 #[tauri::command]
-pub async fn readiness() -> Result<system::Readiness, String> {
+pub async fn readiness() -> Result<system::Readiness, AppError> {
     blocking(system::readiness).await
 }
 
 #[tauri::command]
-pub async fn report_context() -> Result<report::Context, String> {
+pub async fn report_context() -> Result<report::Context, AppError> {
     blocking(report::context).await
 }
 
 #[tauri::command]
-pub async fn send_report(draft: report::Draft, context: report::Context) -> Result<report::Sent, String> {
-    blocking(move || report::send(draft, context)).await?
+pub async fn send_report(draft: report::Draft, context: report::Context) -> Result<report::Sent, AppError> {
+    attempt(move || report::send(draft, context)).await
 }
 
 #[tauri::command]
-pub async fn notifications(app: tauri::AppHandle) -> Result<Vec<notifications::Notification>, String> {
+pub async fn notifications(app: tauri::AppHandle) -> Result<Vec<notifications::Notification>, AppError> {
     let version = app.package_info().version.to_string();
-    blocking(move || notifications::fetch(&version)).await?
+    attempt(move || notifications::fetch(&version)).await
 }
 
 #[tauri::command]
