@@ -19,7 +19,10 @@ export function Plan() {
     <div className="flex min-h-[19rem] flex-col gap-5 text-left">
       {plan && (
         <section className="flex flex-col gap-2.5">
-          <h3 className="text-[1rem] font-semibold text-ink">{m.what}</h3>
+          {/* Telegram has two ways in: the heading names the one these steps are for, and changes with it. */}
+          <h3 className="text-[1rem] font-semibold text-ink">
+            {(tool === "tg" && method && tm.method[method]) || m.what}
+          </h3>
           <ol className="flex flex-col gap-2">
             {steps.map((step, i) => (
               <li key={step.text} className="flex items-start gap-3">

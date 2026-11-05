@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { findTool, signInMethods } from "@/domain/catalog"
-import { keysStillGood, telegramFailure } from "@/domain/telegram-signin"
+import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent } from "@/platform/signin-schemas"
 
@@ -51,6 +51,11 @@ type SignInState = {
   reuse: boolean
   /** When the tool said anything after its last QR code: someone scanned it, and it is finishing. */
   scannedAt: number | null
+  /**
+   * The method this run switched to, until its first step is on screen: the dialog says it is switching, and a failure
+   * before that step says the switch failed.
+   */
+  switchingTo: string | null
   run: number
   onFinish: (() => void) | null
   /** Without `method` it opens on the plan, and `begin` runs it; with one (a switch, a retry) it runs at once. */
@@ -59,8 +64,9 @@ type SignInState = {
   /** Starts the same sign-in again, after a failure. */
   again(): void
   answer(value: string): Promise<void>
+  /** Stops the tool and waits for what it kept: `wa`'s history. The dialog stays open to say what came. */
   stop(): void
-  /** While the tool runs, closing stops it first; the dialog closes when the tool has stopped. */
+  /** Closes at once; a tool still running is stopped in the background, and `onFinish` runs once it has ended. */
   close(): void
 }
 
@@ -83,6 +89,7 @@ const closed = {
   expect: null as "keys" | null,
   reuse: false,
   scannedAt: null as number | null,
+  switchingTo: null as string | null,
   onFinish: null,
 }
 
@@ -102,10 +109,24 @@ const KEPT = new Set(["api_id", "api_hash"])
 export const keptAnswer = (field: string) => keys.get(field) ?? ""
 export const APP_KEYS = KEPT
 
-/** The run in flight, so a new one waits for it to end. */
+/** The run in flight, so a new one waits for it to end: the tool runs one sign-in at a time. */
 let ending: Promise<unknown> = Promise.resolve()
 
+/**
+ * Rust's stop: the tool's grace after SIGTERM (`signin.rs` GRACE, 5 s), then a kill and the pipes drained. A run that
+ * has not ended by then is stuck; the next one starts anyway, and Rust says so if the tool is still busy.
+ */
+const STOP_MS = 8000
+const previousEnded = () => Promise.race([ending, new Promise((done) => setTimeout(done, STOP_MS))])
+
+const bothKeys = () => [...KEPT].every((k) => keys.has(k))
+
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
+/** Nobody waits for this stop: the run's end is ignored, and the next run waits for it through `ending`. */
+const stopInBackground = (tool: string) => {
+  platform.signInStop(tool).catch(() => {})
+}
 
 export const useSignIn = create<SignInState>()((set, get) => {
   const apply = (e: SignInEvent) => {
@@ -118,10 +139,12 @@ export const useSignIn = create<SignInState>()((set, get) => {
           ...(s.phase === "scan" && s.scannedAt === null ? { scannedAt: Date.now() } : {}),
         }))
       case "qr":
-        return set((s) => ({ ...next, phase: "scan", qr: e, codes: s.codes + 1, scannedAt: null }))
+        return set((s) => ({ ...next, phase: "scan", qr: e, codes: s.codes + 1, scannedAt: null, switchingTo: null }))
       case "pairingCode":
-        return set({ ...next, phase: "pair", pairing: e, qr: null })
+        return set({ ...next, phase: "pair", pairing: e, qr: null, switchingTo: null })
       case "openUrl":
+        // Keys this run sends again by itself: drawing their page would look like a step back.
+        if (get().reuse && bothKeys() && isTelegramAppsUrl(e.url)) return
         return set({ ...next, phase: "browser", url: e, qr: null })
       case "needs": {
         const typed = keys.get(e.field)
@@ -132,7 +155,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
             .catch((err) => apply({ event: "failed", message: message(err), code: null }))
           return
         }
-        return set({ phase: "answer", need: e, sent: false, qr: null, expect: null })
+        return set({ phase: "answer", need: e, sent: false, qr: null, expect: null, switchingTo: null })
       }
       case "progress": {
         const s = get()
@@ -147,7 +170,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       }
       case "done":
         keys.clear()
-        set({ ...next, phase: "done", done: e, qr: null, url: null, stopping: false })
+        set({ ...next, phase: "done", done: e, qr: null, url: null, stopping: false, switchingTo: null })
         return get().onFinish?.()
       case "failed":
         return set({ ...next, phase: "failed", failure: e, qr: null, url: null, stopping: false })
@@ -167,7 +190,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       // Switching methods: the tool runs one sign-in at a time, so the last run ends before the next starts.
       if (previous.tool !== tool || previous.profile !== profile) keys.clear()
       const switching = previous.tool !== null && running(previous.phase)
-      if (switching && previous.tool) platform.signInStop(previous.tool).catch(() => {})
+      if (switching && previous.tool) stopInBackground(previous.tool)
       const run = previous.run + 1
       if (method === undefined && !switching) {
         set({ ...closed, tool, profile, method: chosen, run, phase: "plan", onFinish: onFinish ?? null })
@@ -176,7 +199,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const reusing = (reuse || switching) && keys.size > 0
       // Keys typed but not both sent again by themselves, or a switch away from the keys step: tg asks them first.
       const onKeys = previous.phase === "answer" && previous.need !== null && KEPT.has(previous.need.field)
-      const keysFirst = !(reusing && [...KEPT].every((k) => keys.has(k))) && (keys.size > 0 || onKeys)
+      const keysFirst = !(reusing && bothKeys()) && (keys.size > 0 || onKeys)
       set({
         ...closed,
         tool,
@@ -186,12 +209,27 @@ export const useSignIn = create<SignInState>()((set, get) => {
         onFinish: onFinish ?? null,
         reuse: reusing,
         expect: keysFirst ? "keys" : null,
+        switchingTo: switching ? chosen : null,
       })
       const mine = () => get().run === run && get().tool !== null
-      const started = (switching ? ending : Promise.resolve()).then(() =>
-        mine() ? platform.signIn(tool, chosen, profile, (e) => mine() && apply(e)) : undefined,
-      )
-      ending = started.catch(() => {})
+      // A stop sent before Rust registered the run is lost, so a word from a run nobody watches stops it again. Rust
+      // sends the last word after the tool exited: from then on the next run may start, and a late word is ignored.
+      let ended = false
+      let over = () => {}
+      const last = new Promise<void>((done) => {
+        over = done
+      })
+      const onEvent = (e: SignInEvent) => {
+        const final = e.event === "stopped" || e.event === "done" || e.event === "failed"
+        if (mine()) apply(e)
+        else if (!ended && !final) stopInBackground(tool)
+        if (final) over()
+      }
+      // A run closed a moment ago may still be stopping, even when nothing runs on screen.
+      const started = previousEnded().then(() => (mine() ? platform.signIn(tool, chosen, profile, onEvent) : undefined))
+      ending = Promise.race([started.catch(() => {}), last]).then(() => {
+        ended = true
+      })
       started.then(
         () => {
           if (mine() && running(get().phase))
@@ -229,11 +267,13 @@ export const useSignIn = create<SignInState>()((set, get) => {
       platform.signInStop(tool).catch((e) => apply({ event: "failed", message: message(e), code: null }))
     },
     close() {
-      if (running(get().phase) && get().tool) get().stop()
-      else {
-        keys.clear()
-        set({ ...closed })
-      }
+      const { tool, phase, onFinish } = get()
+      keys.clear()
+      set({ ...closed })
+      if (!tool || !running(phase)) return
+      stopInBackground(tool)
+      // `wa` keeps the history that came before the stop; the accounts list shows it once the run has ended.
+      ending.then(() => onFinish?.())
     },
   }
 })

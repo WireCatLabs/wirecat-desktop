@@ -4,7 +4,7 @@ import addDevice from "@/assets/signin/telegram-android-add-device.webp"
 import createApp from "@/assets/signin/telegram-create-app.webp"
 import credentials from "@/assets/signin/telegram-credentials.webp"
 import type { KeyringFallback } from "@/domain/signin-notes"
-import { type KeyHint, type TelegramFailure, waitParts } from "@/domain/telegram-signin"
+import { isTelegramAppsUrl, type KeyHint, MY_TELEGRAM, type TelegramFailure, waitParts } from "@/domain/telegram-signin"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -18,9 +18,9 @@ import { signinMessages } from "./messages"
 import { type PhoneOs, telegramMessages } from "./messages-telegram"
 import type { OpenUrl } from "./store"
 
-export const MY_TELEGRAM = "my.telegram.org"
+export { MY_TELEGRAM }
 
-export const isTelegramApps = (url: OpenUrl) => new URL(url.url).host === MY_TELEGRAM
+export const isTelegramApps = (url: OpenUrl) => isTelegramAppsUrl(url.url)
 
 /**
  * Opens the page; `copy` adds its link for a browser the system did not choose. Only for a plain page: a sign-in link

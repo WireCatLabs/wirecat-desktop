@@ -1,6 +1,7 @@
 import { CheckCircle2, ExternalLink, LoaderCircle } from "lucide-react"
 import { type FormEvent, type ReactNode, useEffect, useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
+import { checkPhone, formatPhone, phoneTyped } from "@/domain/phone"
 import { qrModules, qrPath } from "@/domain/qr"
 import {
   checkKey,
@@ -66,6 +67,7 @@ const isKeys = (s: SignInView) =>
  * put while the question under it changes; every other question is a stage of its own.
  */
 export function stageKey(s: SignInView) {
+  if (s.phase === "plan") return `plan:${s.method}`
   if (isKeys(s)) return "keys"
   if (s.phase === "answer" && s.need) return `answer:${s.need.field}`
   return s.phase
@@ -76,10 +78,12 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
   const tm = useMessages(telegramMessages)
   if (isKeys(s)) return <KeysStage name={name} s={s} />
   if (s.phase === "starting") {
+    const switching = s.switchingTo ? tm.switching[s.switchingTo] : undefined
     return (
       <div className={STAGE}>
         <LoaderCircle className="size-8 text-brand motion-safe:animate-spin" aria-hidden />
-        <p className="text-ink">{m.asking(name)}</p>
+        <p className={switching ? "font-medium text-ink" : "text-ink"}>{switching ?? m.asking(name)}</p>
+        {switching && <p className="max-w-[28rem] text-ink-soft">{tm.switchingWhy}</p>}
       </div>
     )
   }
@@ -91,6 +95,17 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     const sent = said.findLast((n) => n?.kind === "codeSent")
     const last = said.at(-1)
     const refused = last?.kind === "notAccepted" && s.need.field === last.what ? tm.notAccepted[last.what] : undefined
+    const phone = tg && s.need.field === "phone"
+    const checkNumber: Check = (typed) => {
+      const result = checkPhone(typed)
+      return result.problem === null
+        ? { value: result.value, error: null }
+        : { value: result.value, error: tm.phoneProblem(result) }
+    }
+    const readBack = (typed: string) => {
+      const result = checkPhone(typed)
+      return result.problem === null ? tm.phonePreview(formatPhone(result.value)) : null
+    }
     return (
       <div className="flex min-h-[19rem] flex-col items-center justify-center gap-4 text-[1rem]">
         {s.url && !isTelegramApps(s.url) && <BrowserLink url={s.url} compact />}
@@ -100,8 +115,15 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
           onAnswer={s.answer}
           initial={keptAnswer(s.need.field)}
           note={tg && isPassword(s.need) ? tm.password : undefined}
-          hint={s.need.field === "code" && sent?.kind === "codeSent" ? tm.codeSent[sent.via] : undefined}
+          hint={
+            s.need.field === "code" && sent?.kind === "codeSent"
+              ? tm.codeSent[sent.via]
+              : phone
+                ? tm.phoneHint
+                : undefined
+          }
           problem={refused}
+          {...(phone ? { check: checkNumber, filter: phoneTyped, preview: readBack } : {})}
         />
       </div>
     )
@@ -154,8 +176,10 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     const telegram = s.tool === "tg" ? telegramFailure(s.failure.message, s.failure.code) : null
     const fix = telegram && isFixLabel(telegram.fix) ? telegram.fix : null
     const hints = telegram?.fix === "keys" ? keyHints(keptAnswer("api_id"), keptAnswer("api_hash")) : []
+    const switchFailed = s.switchingTo ? tm.switchFailed[s.switchingTo] : undefined
     return (
       <div className="flex min-h-[19rem] flex-col justify-center gap-4 text-[1rem]">
+        {switchFailed && <p className="font-medium text-ink">{switchFailed}</p>}
         {needsClientId ? (
           <ClientIdForm />
         ) : (
@@ -194,7 +218,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
 }
 
 /** tg asks with field `password`; the prompt is checked too, so a reworded question still gets the note. */
-const isPassword = (need: Need) => need.field === "password" || /password|2fa|two-step/i.test(need.prompt)
+export const isPassword = (need: Need) => need.field === "password" || /password|2fa|two-step/i.test(need.prompt)
 
 /**
  * The guide, then the question for the keys; the method line says what comes after them. While tg starts, the same
@@ -221,7 +245,7 @@ function KeysStage({ name, s }: { name: string; s: SignInView }) {
         <AnswerForm
           need={need}
           sent={!asked || s.sent}
-          status={asked ? undefined : m.asking(name)}
+          status={asked ? undefined : ((s.switchingTo && tm.switching[s.switchingTo]) ?? m.asking(name))}
           onAnswer={s.answer}
           initial={keptAnswer(need.field)}
           check={check}
