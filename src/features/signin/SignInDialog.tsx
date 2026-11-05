@@ -1,15 +1,19 @@
 import { Terminal } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { type ReactNode, useEffect, useRef } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { keyringFallback } from "@/domain/signin-notes"
+import { telegramNote } from "@/domain/telegram-signin"
 import { useMessages } from "@/i18n"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
+import { Crossfade } from "@/ui/Crossfade"
 import { Dialog } from "@/ui/Dialog"
 import { useTerminal } from "../tools/terminal-store"
 import { type SigninMessages, signinMessages } from "./messages"
 import { planMessages } from "./messages-plan"
 import { Plan } from "./Plan"
-import { Stage } from "./Stages"
+import { Stage, stageKey } from "./Stages"
 import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "./store"
 import { KeyringNotice } from "./TelegramGuide"
 
@@ -25,7 +29,9 @@ export function SignInDialog() {
   const body = useRef<HTMLDivElement>(null)
   const ended = !running(s.phase)
   const keyring = s.notes.map(keyringFallback).find((k) => k !== null) ?? null
-  const notes = s.notes.filter((n) => keyringFallback(n) === null)
+  // tg's words about the login code are said beside the code's field instead.
+  const notes = s.notes.filter((n) => keyringFallback(n) === null && (s.tool !== "tg" || telegramNote(n) === null))
+  const key = stageKey(s)
 
   // The button that had focus goes away when the sign-in ends; its replacement takes focus instead of the page.
   useEffect(() => {
@@ -33,21 +39,23 @@ export function SignInDialog() {
   }, [ended])
 
   return (
-    <Dialog open={s.tool !== null} wide scroll title={m.title(name)} onClose={s.close} actions={<Actions />}>
-      <div ref={body} className="flex flex-col gap-3">
+    <Dialog open={s.tool !== null} wide="xl" scroll title={m.title(name)} onClose={s.close} actions={<Actions />}>
+      <div ref={body} className="flex flex-col gap-3 text-[1rem]">
         <p>{m.intro(<code className="font-mono text-ink">{s.profile}</code>, name)}</p>
-        {notes.length > 0 && (
-          <p className="selectable rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-[0.9rem] leading-snug text-ink">
+        <Collapse open={notes.length > 0}>
+          <p className="selectable rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-[0.95rem] leading-snug text-ink">
             {notes.join(" ")}
           </p>
-        )}
-        {keyring && <KeyringNotice fallback={keyring} />}
-        {/* The plan slides away to the live sign-in in the same place (rule 9). */}
-        <div key={s.phase === "plan" ? "plan" : "run"} className="step-in">
-          {s.phase === "plan" ? <Plan /> : <Stage name={name} />}
-        </div>
+        </Collapse>
+        <Collapse open={keyring !== null}>{keyring && <KeyringNotice fallback={keyring} />}</Collapse>
+        {/* One step fades into the next in the same place, and the box follows its height (rule 9). */}
+        <AutoHeight swap={key}>
+          <Crossfade swap={key}>{s.phase === "plan" ? <Plan /> : <Stage name={name} s={s} />}</Crossfade>
+        </AutoHeight>
         <p role="status" className="sr-only">
-          {announcement(m.announce, s.phase, s.codes, s.progress?.step === "waiting", s.stopping, s.need?.prompt)}
+          {s.phase === "scan" && s.scannedAt !== null
+            ? m.announce.scanned
+            : announcement(m.announce, s.phase, s.codes, s.progress?.step === "waiting", s.stopping, s.need?.prompt)}
         </p>
       </div>
     </Dialog>
@@ -106,14 +114,17 @@ function Actions() {
             <Button
               key={method.id}
               variant="ghost"
-              onClick={() => start(tool, profile, onFinish ?? undefined, method.id)}
+              onClick={() => start(tool, profile, onFinish ?? undefined, method.id, true)}
             >
               {m.switchTo(method.id, method.label)}
             </Button>
           ) : null,
         )}
         <Button variant="secondary" onClick={stop} disabled={stopping}>
-          {stopping ? m.stopping : receivingHistory(s) ? m.stopKeep : m.cancel}
+          <Steady
+            shown={stopping ? m.stopping : receivingHistory(s) ? m.stopKeep : m.cancel}
+            others={[m.cancel, m.stopping]}
+          />
         </Button>
       </>
     )
@@ -149,5 +160,19 @@ function Actions() {
     <Button variant="primary" onClick={close} data-autofocus>
       {m.done}
     </Button>
+  )
+}
+
+/** A label that changes in place ("Cancel", then "Stopping…") at the width of the widest, so the button keeps its size. */
+function Steady({ shown, others }: { shown: ReactNode; others: string[] }) {
+  return (
+    <span className="inline-grid">
+      <span className="[grid-area:1/1]">{shown}</span>
+      {others.map((o) => (
+        <span key={o} aria-hidden className="invisible [grid-area:1/1]">
+          {o}
+        </span>
+      ))}
+    </span>
   )
 }
