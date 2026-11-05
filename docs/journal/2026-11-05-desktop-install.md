@@ -39,7 +39,10 @@ Done; Done → «Show me around», тур из 10 остановок до пер
 проверка телефона до отправки (только цифры, вставка с очисткой; посмотреть, что есть в cli-core). Подагент, feat/tg-signin-3.
 
 **TASK-111 · Тур: Agents не переключает экран (BUG-76); остановки Memory и Tasks с демо-данными, удалить после тура;
-первый пункт Help ведёт на документацию tg (BUG-77).** Подагент, feat/tour-demo.
+первый пункт Help ведёт на документацию tg (BUG-77).** **Влито** (fb15736). BUG-76: остановка меняла страницу, только
+если её называла; теперь каждая. Демо — только в памяти страниц (src/features/onboarding/demo.ts), подпись Example, уходит
+по концу тура и Escape. BUG-77 не воспроизведён: в Help не было ссылки на документацию вовсе, вероятно Слава видел ссылку
+«Full guide» последнего гайда на страницу tg; Help теперь начинается с «WireCat documentation».
 
 **TASK-112 · Чужие CLI регистрируются и подхватываются приложением; терминал открывает sh вместо zsh** — Слава: «make sure
 others can register their CLIs and they are picked up by desktop too», «Open the terminal starts sh although I use zsh -
