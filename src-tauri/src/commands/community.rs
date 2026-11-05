@@ -15,9 +15,12 @@ pub fn community_status() -> registry::Status {
 /// Takes effect at the next start; turning it on fetches the list now, so that start has it.
 #[tauri::command]
 pub async fn set_community_shown(show: bool) -> Result<(), AppError> {
-    registry::set_shown(show)?;
-    if show {
-        std::thread::spawn(registry::check_now);
-    }
-    Ok(())
+    crate::log::command("set_community_shown", async move {
+        registry::set_shown(show)?;
+        if show {
+            std::thread::spawn(registry::check_now);
+        }
+        Ok(())
+    })
+    .await
 }

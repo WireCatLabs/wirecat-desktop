@@ -4,15 +4,19 @@ use crate::storage;
 
 #[tauri::command]
 pub async fn storage_report() -> Result<Vec<storage::Area>, AppError> {
-    blocking(storage::report).await
+    crate::log::command("storage_report", async move { blocking(storage::report).await }).await
 }
 
 #[tauri::command]
 pub async fn clear_storage(id: String) -> Result<(), AppError> {
-    attempt(move || storage::clear(&id)).await
+    crate::log::command("clear_storage", async move { attempt(move || storage::clear(&id)).await }).await
 }
 
 #[tauri::command]
 pub async fn open_folder(id: String, kind: String, entry: Option<String>) -> Result<(), AppError> {
-    attempt(move || storage::open(&id, &kind, entry.as_deref())).await
+    crate::log::command(
+        "open_folder",
+        async move { attempt(move || storage::open(&id, &kind, entry.as_deref())).await },
+    )
+    .await
 }

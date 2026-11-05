@@ -8,20 +8,23 @@ use tauri::ipc::Channel;
 
 #[tauri::command]
 pub async fn cloudflare_status() -> Result<cloudflare::Status, AppError> {
-    blocking(cloudflare::status).await
+    crate::log::command("cloudflare_status", async move { blocking(cloudflare::status).await }).await
 }
 
 /// Downloads cloudflared's own release into the app's folder; its version comes back.
 #[tauri::command]
 pub async fn cloudflare_install(running: State<'_, Arc<Running>>) -> Result<String, AppError> {
-    let running = Arc::clone(&running);
-    attempt(move || {
-        if !running.start(cloudflare::INSTALL) {
-            return Err(AppError::Busy("The download is already running.".into()));
-        }
-        let result = cloudflare::install(&|| !running.is_running(cloudflare::INSTALL));
-        running.finish(cloudflare::INSTALL);
-        Ok(result?)
+    crate::log::command("cloudflare_install", async move {
+        let running = Arc::clone(&running);
+        attempt(move || {
+            if !running.start(cloudflare::INSTALL) {
+                return Err(AppError::Busy("The download is already running.".into()));
+            }
+            let result = cloudflare::install(&|| !running.is_running(cloudflare::INSTALL));
+            running.finish(cloudflare::INSTALL);
+            Ok(result?)
+        })
+        .await
     })
     .await
 }
@@ -31,16 +34,19 @@ pub async fn cloudflare_login(
     running: State<'_, Arc<Running>>,
     on_event: Channel<cloudflare::PageEvent>,
 ) -> Result<(), AppError> {
-    let running = Arc::clone(&running);
-    attempt(move || {
-        if !running.start(cloudflare::LOGIN) {
-            return Err(AppError::Busy("The Cloudflare login is already running.".into()));
-        }
-        let result = cloudflare::login(&|| !running.is_running(cloudflare::LOGIN), &|e| {
-            let _ = on_event.send(e);
-        });
-        running.finish(cloudflare::LOGIN);
-        Ok(result?)
+    crate::log::command("cloudflare_login", async move {
+        let running = Arc::clone(&running);
+        attempt(move || {
+            if !running.start(cloudflare::LOGIN) {
+                return Err(AppError::Busy("The Cloudflare login is already running.".into()));
+            }
+            let result = cloudflare::login(&|| !running.is_running(cloudflare::LOGIN), &|e| {
+                let _ = on_event.send(e);
+            });
+            running.finish(cloudflare::LOGIN);
+            Ok(result?)
+        })
+        .await
     })
     .await
 }
@@ -48,26 +54,29 @@ pub async fn cloudflare_login(
 /// Stops a waiting login or download; whatever the person already did in the browser stays done.
 #[tauri::command]
 pub fn cloudflare_stop(running: State<'_, Arc<Running>>) {
-    running.cancel(cloudflare::LOGIN);
-    running.cancel(cloudflare::INSTALL);
+    crate::log::command_now("cloudflare_stop", || {
+        running.cancel(cloudflare::LOGIN);
+        running.cancel(cloudflare::INSTALL);
+    });
 }
 
 #[tauri::command]
 pub async fn cloudflare_create(hostname: String) -> Result<String, AppError> {
-    attempt(move || cloudflare::create(&hostname)).await
+    crate::log::command("cloudflare_create", async move { attempt(move || cloudflare::create(&hostname)).await }).await
 }
 
 #[tauri::command]
 pub async fn cloudflare_tunnel_open(id: String, port: u16) -> Result<String, AppError> {
-    attempt(move || cloudflare::open(&id, port)).await
+    crate::log::command("cloudflare_tunnel_open", async move { attempt(move || cloudflare::open(&id, port)).await })
+        .await
 }
 
 #[tauri::command]
 pub async fn cloudflare_tunnel_close(id: String) -> Result<(), AppError> {
-    attempt(move || cloudflare::close(&id)).await
+    crate::log::command("cloudflare_tunnel_close", async move { attempt(move || cloudflare::close(&id)).await }).await
 }
 
 #[tauri::command]
 pub async fn cloudflare_routes() -> Result<Vec<cloudflare::RouteState>, AppError> {
-    blocking(cloudflare::routes).await
+    crate::log::command("cloudflare_routes", async move { blocking(cloudflare::routes).await }).await
 }

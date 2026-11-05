@@ -9,8 +9,11 @@ pub async fn list_runs(
     limit: u32,
     page: u32,
 ) -> Result<serde_json::Value, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || runs::list(tool, query.as_deref(), limit, page)).await
+    crate::log::command("list_runs", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || runs::list(tool, query.as_deref(), limit, page)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -21,8 +24,11 @@ pub async fn search_store(
     limit: u32,
     page: u32,
 ) -> Result<search::Answer, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || search::search(tool, profile.as_deref(), &query, limit, page)).await
+    crate::log::command("search_store", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || search::search(tool, profile.as_deref(), &query, limit, page)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -32,8 +38,11 @@ pub async fn message_stats(
     ask: analytics::Ask,
     timezone: String,
 ) -> Result<analytics::Counts, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || analytics::messages(tool, &profile, ask, &timezone)).await
+    crate::log::command("message_stats", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || analytics::messages(tool, &profile, ask, &timezone)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -44,8 +53,11 @@ pub async fn analytics_aggregate(
     period: analytics::Period,
     timezone: String,
 ) -> Result<analytics::Aggregate, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || analytics::aggregate(tool, &which, profile.as_deref(), period, &timezone)).await
+    crate::log::command("analytics_aggregate", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || analytics::aggregate(tool, &which, profile.as_deref(), period, &timezone)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -54,14 +66,20 @@ pub async fn search_context(
     profile: Option<String>,
     reference: String,
 ) -> Result<search::Context, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || search::context(tool, profile.as_deref(), &reference)).await
+    crate::log::command("search_context", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || search::context(tool, profile.as_deref(), &reference)).await
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn search_draft(id: String, request: String) -> Result<query_writer::Draft, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || query_writer::write(tool, &request)).await
+    crate::log::command("search_draft", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || query_writer::write(tool, &request)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -70,12 +88,18 @@ pub async fn search_values(
     profile: Option<String>,
     source: String,
 ) -> Result<Vec<search::ValueItem>, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || search::values(tool, profile.as_deref(), &source)).await
+    crate::log::command("search_values", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || search::values(tool, profile.as_deref(), &source)).await
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn show_run(id: String, run: String) -> Result<serde_json::Value, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || runs::show(tool, &run)).await
+    crate::log::command("show_run", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || runs::show(tool, &run)).await
+    })
+    .await
 }

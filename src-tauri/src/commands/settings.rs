@@ -4,8 +4,11 @@ use crate::{permissions, settings};
 
 #[tauri::command]
 pub async fn settings_show(id: String, profile: Option<String>) -> Result<settings::Settings, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || settings::show(tool, profile.as_deref())).await
+    crate::log::command("settings_show", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || settings::show(tool, profile.as_deref())).await
+    })
+    .await
 }
 
 /// `profile: None` with `defaults` changes what every profile gets.
@@ -17,8 +20,11 @@ pub async fn settings_set(
     setting: String,
     value: String,
 ) -> Result<(), AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || settings::set(tool, profile.as_deref(), defaults, &setting, &value)).await
+    crate::log::command("settings_set", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || settings::set(tool, profile.as_deref(), defaults, &setting, &value)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -28,13 +34,19 @@ pub async fn settings_unset(
     defaults: bool,
     setting: String,
 ) -> Result<(), AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || settings::unset(tool, profile.as_deref(), defaults, &setting)).await
+    crate::log::command("settings_unset", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || settings::unset(tool, profile.as_deref(), defaults, &setting)).await
+    })
+    .await
 }
 
 /// Saving goes through `settings_set` / `settings_unset` with a `permissions.<key>` setting.
 #[tauri::command]
 pub async fn permissions_show(id: String, profile: Option<String>) -> Result<permissions::Permissions, AppError> {
-    let tool = known_tool(&id)?;
-    attempt(move || permissions::show(tool, profile.as_deref())).await
+    crate::log::command("permissions_show", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || permissions::show(tool, profile.as_deref())).await
+    })
+    .await
 }

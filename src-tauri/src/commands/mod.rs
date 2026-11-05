@@ -19,7 +19,8 @@ use crate::catalog::{self, Tool};
 use crate::error::AppError;
 
 async fn blocking<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> Result<T, AppError> {
-    tauri::async_runtime::spawn_blocking(f).await.map_err(|e| AppError::Internal(e.to_string()))
+    let span = tracing::Span::current();
+    tauri::async_runtime::spawn_blocking(move || span.in_scope(f)).await.map_err(|e| AppError::Internal(e.to_string()))
 }
 
 async fn attempt<T: Send + 'static, E: Into<AppError> + Send + 'static>(

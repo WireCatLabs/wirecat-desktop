@@ -18,6 +18,7 @@ mod funnel_helper;
 mod install;
 #[cfg(test)]
 mod install_e2e;
+mod log;
 mod mcp;
 mod mcp_server;
 mod memory;
@@ -58,6 +59,7 @@ mod tools;
 
 use install::Running;
 use std::sync::Arc;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
@@ -77,6 +79,13 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(Arc::new(Running::default()))
+        .setup(|app| {
+            // Without a log the app still works; it says why on stderr.
+            if let Err(e) = app.path().app_log_dir().map_err(|e| e.to_string()).and_then(|dir| log::init(&dir)) {
+                eprintln!("[wirecat] no log file: {e}");
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::community::extra_tools,
             commands::community::community_status,

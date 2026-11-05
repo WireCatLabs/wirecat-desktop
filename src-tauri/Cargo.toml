@@ -44,6 +44,9 @@ x509-parser = "0.18"
 # Already in the build through tauri-plugin-updater; checks the community list's signature (registry.rs).
 minisign-verify = "0.3"
 thiserror = "2"
+tracing = "0.1"
+tracing-appender = "0.2"
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std", "registry"] }
 
 [dev-dependencies]
 # Makes a throwaway key pair and signs test lists; never in the app.

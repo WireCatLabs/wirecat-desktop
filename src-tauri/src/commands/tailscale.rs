@@ -9,7 +9,7 @@ use tauri::ipc::Channel;
 /// `profile` is `None` only for a tool without profiles (memo); the catalog's words say whether one is needed.
 #[tauri::command]
 pub async fn tailscale_status() -> Result<tailscale::Status, AppError> {
-    blocking(tailscale::status).await
+    crate::log::command("tailscale_status", async move { blocking(tailscale::status).await }).await
 }
 
 #[tauri::command]
@@ -17,22 +17,28 @@ pub async fn tailscale_download(
     kind: String,
     running: State<'_, Arc<Running>>,
 ) -> Result<tailscale_install::Downloaded, AppError> {
-    let running = Arc::clone(&running);
-    attempt(move || {
-        let key = "tailscale-download";
-        if !running.start(key) {
-            return Err(AppError::Busy("The download is already running.".into()));
-        }
-        let result = tailscale_install::download(&kind, &|| !running.is_running(key));
-        running.finish(key);
-        Ok(result?)
+    crate::log::command("tailscale_download", async move {
+        let running = Arc::clone(&running);
+        attempt(move || {
+            let key = "tailscale-download";
+            if !running.start(key) {
+                return Err(AppError::Busy("The download is already running.".into()));
+            }
+            let result = tailscale_install::download(&kind, &|| !running.is_running(key));
+            running.finish(key);
+            Ok(result?)
+        })
+        .await
     })
     .await
 }
 
 #[tauri::command]
 pub async fn tailscale_terminal(what: String) -> Result<(), AppError> {
-    attempt(move || terminal::open_line(&tailscale::terminal_line(&what)?)).await
+    crate::log::command("tailscale_terminal", async move {
+        attempt(move || terminal::open_line(&tailscale::terminal_line(&what)?)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -40,16 +46,19 @@ pub async fn tailscale_login(
     running: State<'_, Arc<Running>>,
     on_event: Channel<tailscale::PageEvent>,
 ) -> Result<(), AppError> {
-    let running = Arc::clone(&running);
-    attempt(move || {
-        if !running.start(tailscale::LOGIN) {
-            return Err(AppError::Busy("The Tailscale login is already running.".into()));
-        }
-        let result = tailscale::login(&|| !running.is_running(tailscale::LOGIN), &|e| {
-            let _ = on_event.send(e);
-        });
-        running.finish(tailscale::LOGIN);
-        Ok(result?)
+    crate::log::command("tailscale_login", async move {
+        let running = Arc::clone(&running);
+        attempt(move || {
+            if !running.start(tailscale::LOGIN) {
+                return Err(AppError::Busy("The Tailscale login is already running.".into()));
+            }
+            let result = tailscale::login(&|| !running.is_running(tailscale::LOGIN), &|e| {
+                let _ = on_event.send(e);
+            });
+            running.finish(tailscale::LOGIN);
+            Ok(result?)
+        })
+        .await
     })
     .await
 }
@@ -57,9 +66,11 @@ pub async fn tailscale_login(
 /// Stops a waiting login or Funnel approval; whatever the person already did in the browser stays done.
 #[tauri::command]
 pub fn tailscale_stop(running: State<'_, Arc<Running>>) {
-    running.cancel(tailscale::LOGIN);
-    running.cancel(tailscale::FUNNEL);
-    running.cancel(funnel_helper::START);
+    crate::log::command_now("tailscale_stop", || {
+        running.cancel(tailscale::LOGIN);
+        running.cancel(tailscale::FUNNEL);
+        running.cancel(funnel_helper::START);
+    });
 }
 
 #[tauri::command]
@@ -69,18 +80,21 @@ pub async fn tailscale_funnel_open(
     running: State<'_, Arc<Running>>,
     on_event: Channel<tailscale::PageEvent>,
 ) -> Result<String, AppError> {
-    let running = Arc::clone(&running);
-    attempt(move || {
-        if !running.start(tailscale::FUNNEL) {
-            return Err(AppError::Busy(
-                "Tailscale Funnel is being set up for another server; wait for it to finish.".into(),
-            ));
-        }
-        let result = tailscale::funnel_open(&id, port, &|| !running.is_running(tailscale::FUNNEL), &|e| {
-            let _ = on_event.send(e);
-        });
-        running.finish(tailscale::FUNNEL);
-        Ok(result?)
+    crate::log::command("tailscale_funnel_open", async move {
+        let running = Arc::clone(&running);
+        attempt(move || {
+            if !running.start(tailscale::FUNNEL) {
+                return Err(AppError::Busy(
+                    "Tailscale Funnel is being set up for another server; wait for it to finish.".into(),
+                ));
+            }
+            let result = tailscale::funnel_open(&id, port, &|| !running.is_running(tailscale::FUNNEL), &|e| {
+                let _ = on_event.send(e);
+            });
+            running.finish(tailscale::FUNNEL);
+            Ok(result?)
+        })
+        .await
     })
     .await
 }
@@ -88,22 +102,28 @@ pub async fn tailscale_funnel_open(
 /// Closes the tool's paths on both: the system's Tailscale and the app's own connection.
 #[tauri::command]
 pub async fn tailscale_funnel_close(id: String) -> Result<(), AppError> {
-    attempt(move || tailscale::funnel_close(&id).and(funnel_helper::close(&id))).await
+    crate::log::command("tailscale_funnel_close", async move {
+        attempt(move || tailscale::funnel_close(&id).and(funnel_helper::close(&id))).await
+    })
+    .await
 }
 
 #[tauri::command]
 pub async fn tailscale_funnels() -> Result<Vec<tailscale::FunnelState>, AppError> {
-    blocking(|| {
-        let mut all = tailscale::funnels();
-        all.extend(funnel_helper::funnels());
-        all
+    crate::log::command("tailscale_funnels", async move {
+        blocking(|| {
+            let mut all = tailscale::funnels();
+            all.extend(funnel_helper::funnels());
+            all
+        })
+        .await
     })
     .await
 }
 
 #[tauri::command]
 pub async fn funnel_helper_status() -> Result<funnel_helper::Status, AppError> {
-    blocking(funnel_helper::status).await
+    crate::log::command("funnel_helper_status", async move { blocking(funnel_helper::status).await }).await
 }
 
 /// Starts the app's own Tailscale connection and waits for the owner in the browser; `tailscale_stop` ends the wait.
@@ -112,21 +132,25 @@ pub async fn funnel_helper_start(
     running: State<'_, Arc<Running>>,
     on_event: Channel<tailscale::PageEvent>,
 ) -> Result<funnel_helper::Status, AppError> {
-    let running = Arc::clone(&running);
-    attempt(move || {
-        if !running.start(funnel_helper::START) {
-            return Err(AppError::Busy("WireCat's Tailscale connection is already starting.".into()));
-        }
-        let result = funnel_helper::start(&|| !running.is_running(funnel_helper::START), &|e| {
-            let _ = on_event.send(e);
-        });
-        running.finish(funnel_helper::START);
-        Ok(result?)
+    crate::log::command("funnel_helper_start", async move {
+        let running = Arc::clone(&running);
+        attempt(move || {
+            if !running.start(funnel_helper::START) {
+                return Err(AppError::Busy("WireCat's Tailscale connection is already starting.".into()));
+            }
+            let result = funnel_helper::start(&|| !running.is_running(funnel_helper::START), &|e| {
+                let _ = on_event.send(e);
+            });
+            running.finish(funnel_helper::START);
+            Ok(result?)
+        })
+        .await
     })
     .await
 }
 
 #[tauri::command]
 pub async fn funnel_helper_open(id: String, port: u16) -> Result<String, AppError> {
-    attempt(move || funnel_helper::open(&id, port)).await
+    crate::log::command("funnel_helper_open", async move { attempt(move || funnel_helper::open(&id, port)).await })
+        .await
 }

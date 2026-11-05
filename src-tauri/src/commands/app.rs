@@ -5,23 +5,26 @@ use tauri::ipc::Channel;
 
 #[tauri::command]
 pub async fn readiness() -> Result<system::Readiness, AppError> {
-    blocking(system::readiness).await
+    crate::log::command("readiness", async move { blocking(system::readiness).await }).await
 }
 
 #[tauri::command]
 pub async fn report_context() -> Result<report::Context, AppError> {
-    blocking(report::context).await
+    crate::log::command("report_context", async move { blocking(report::context).await }).await
 }
 
 #[tauri::command]
 pub async fn send_report(draft: report::Draft, context: report::Context) -> Result<report::Sent, AppError> {
-    attempt(move || report::send(draft, context)).await
+    crate::log::command("send_report", async move { attempt(move || report::send(draft, context)).await }).await
 }
 
 #[tauri::command]
 pub async fn notifications(app: tauri::AppHandle) -> Result<Vec<notifications::Notification>, AppError> {
-    let version = app.package_info().version.to_string();
-    attempt(move || notifications::fetch(&version)).await
+    crate::log::command("notifications", async move {
+        let version = app.package_info().version.to_string();
+        attempt(move || notifications::fetch(&version)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -35,5 +38,9 @@ pub async fn update_download_package(
     version: String,
     on_event: Channel<package_update::Progress>,
 ) -> Result<package_update::Outcome, package_update::Failure> {
-    package_update::download(&app, &version, &on_event).await
+    crate::log::command(
+        "update_download_package",
+        async move { package_update::download(&app, &version, &on_event).await },
+    )
+    .await
 }
