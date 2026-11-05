@@ -81,7 +81,7 @@ export function RunDetail({ run, detail, onFilter, onGroup }: Props) {
       )}
       <div className="flex flex-wrap items-center gap-x-[1.2rem] gap-y-2">
         <div className="min-w-[16rem] flex-1">
-          <CopyField value={run.run_id} label={m.copyRunId} />
+          <CopyField value={run.run_id} label={m.copyRunId} wrap />
         </div>
         <Facts run={run} />
       </div>
@@ -139,7 +139,7 @@ function CommandLine({ run, line, onFilter }: { run: Run; line: string; onFilter
   return (
     <section aria-label={m.commandLine} className="flex flex-col gap-[0.4rem]">
       <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.commandLine}</h4>
-      <CopyField value={line} label={m.copyCommandLine} />
+      <CopyField value={line} label={m.copyCommandLine} wrap />
       <p className="text-[0.9rem] text-ink-dim">
         {agent && (
           <>

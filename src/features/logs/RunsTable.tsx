@@ -51,7 +51,7 @@ function CommandCell({ value, unknown }: { value: string; unknown: string | null
   const typed = unknown && unknown !== "[redacted]" ? unknown : null
   return (
     <td
-      className="truncate font-mono text-[0.95rem] font-medium group-hover:text-brand"
+      className="wrap-break-word font-mono text-[0.95rem] font-medium group-hover:text-brand"
       title={bare ? [typed && m.didNotKnow(typed), m.bareHint].filter(Boolean).join(" ") : value}
     >
       {value}
@@ -81,9 +81,9 @@ function AgentCell({ run, onFilter }: { run: Run; onFilter: Props["onFilter"] })
           onFilter(field, value, false)
         }}
         title={agent.session ? m.onlySession(agent.session) : m.onlyStartedBy(shown)}
-        className="flex max-w-full min-w-0 items-baseline gap-[0.4rem] rounded-[0.3rem] text-left hover:text-brand"
+        className="flex max-w-full min-w-0 flex-wrap items-baseline gap-x-[0.4rem] rounded-[0.3rem] text-left hover:text-brand"
       >
-        <span className="truncate">{shown}</span>
+        <span className="min-w-0 wrap-break-word">{shown}</span>
         {agent.session && (
           <span className="shrink-0 font-mono text-[0.85rem] text-ink-dim tabular-nums">
             {shortSession(agent.session)}
@@ -92,6 +92,21 @@ function AgentCell({ run, onFilter }: { run: Run; onFilter: Props["onFilter"] })
       </TextButton>
     </td>
   )
+}
+
+/** `validation_error` breaks after its underscore in a narrow column, not inside a word. */
+function BreakAfterUnderscores({ code }: { code: string }) {
+  return code.split("_").map((part, i, all) => (
+    // biome-ignore lint/suspicious/noArrayIndexKey: the parts never reorder
+    <Fragment key={i}>
+      {part}
+      {i < all.length - 1 && (
+        <>
+          _<wbr />
+        </>
+      )}
+    </Fragment>
+  ))
 }
 
 const FULL: Intl.DateTimeFormatOptions = { dateStyle: "full", timeStyle: "long" }
@@ -131,11 +146,11 @@ function ConversationRow({ conversation: c, now }: { conversation: Conversation;
   ].filter(Boolean)
   return (
     <tr className="h-[2.6rem] border-line-strong border-b bg-app-2/70">
-      <td colSpan={9} className="pl-[0.8rem]">
+      <td colSpan={9} className="py-[0.35rem] pl-[0.8rem]">
         <span className="flex min-w-0 items-center gap-[0.55rem] text-[0.9rem]">
           {c.key ? <WhoIcon c={c} /> : <span className="size-[1rem] shrink-0" />}
-          <span className="truncate font-medium">{conversationTitle(m, c)}</span>
-          {details.length > 0 && <span className="truncate text-ink-dim">{details.join(" · ")}</span>}
+          <span className="min-w-0 wrap-break-word font-medium">{conversationTitle(m, c)}</span>
+          {details.length > 0 && <span className="min-w-0 wrap-break-word text-ink-dim">{details.join(" · ")}</span>}
           <span className="ml-auto flex shrink-0 items-baseline gap-[1.1rem] text-[0.9rem] text-ink-soft">
             {c.key && (
               <span className="font-mono tabular-nums" title={formatDate(c.first, FULL, lang)}>
@@ -179,7 +194,7 @@ export function RunsTable({
             if (!selectsTextIn(e.currentTarget)) onToggle(key, run)
           }}
           className={cx(
-            "group h-[2.6rem] cursor-pointer border-line border-b transition-colors duration-(--motion-fast) hover:bg-app-2",
+            "group h-[2.6rem] cursor-pointer [&>td]:py-[0.35rem] border-line border-b transition-colors duration-(--motion-fast) hover:bg-app-2",
             open && "bg-app-2",
             fresh?.has(key) && "reveal",
           )}
@@ -193,10 +208,10 @@ export function RunsTable({
           <td>
             <span className="flex min-w-0 items-center gap-[0.4rem]">
               <ToolIcon id={run.tool} className="size-[1rem] shrink-0 text-ink-soft" />
-              <span className="truncate">{toolName(run.tool)}</span>
+              <span className="min-w-0 wrap-break-word">{toolName(run.tool)}</span>
             </span>
           </td>
-          <td className="truncate font-mono text-[0.9rem] text-ink-soft">{run.profile ?? "—"}</td>
+          <td className="wrap-break-word font-mono text-[0.9rem] text-ink-soft">{run.profile ?? "—"}</td>
           <CommandCell
             value={commandOf(run)}
             unknown={typeof run.unknown_command === "string" ? run.unknown_command : null}
@@ -213,8 +228,8 @@ export function RunsTable({
           <td className="pr-[1rem] text-right font-mono text-[0.9rem] text-ink-soft tabular-nums">
             {formatDuration(run.duration_ms)}
           </td>
-          <td className="truncate font-mono text-[0.9rem]">
-            {run.error_code ?? <span className="text-ink-dim">—</span>}
+          <td className="wrap-break-word font-mono text-[0.9rem]">
+            {run.error_code ? <BreakAfterUnderscores code={run.error_code} /> : <span className="text-ink-dim">—</span>}
           </td>
           <td className="pr-[0.55rem]">
             <button
