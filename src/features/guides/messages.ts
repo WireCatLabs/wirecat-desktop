@@ -15,6 +15,7 @@ const en = {
   jumpTo: "Go to a group",
   welcomeTitle: "Your tools are ready. Start with this one.",
   startHere: "Start here",
+  nextGuide: "Next guide",
   goals: {
     "catch-up": { name: "Catch up", line: "What happened while you were away." },
     prepare: { name: "Prepare", line: "The context you need before a call or a meeting." },
@@ -69,6 +70,7 @@ const ru: typeof en = {
   jumpTo: "Перейти к разделу",
   welcomeTitle: "Инструменты готовы. Начните с этого рецепта.",
   startHere: "Начните отсюда",
+  nextGuide: "Следующий рецепт",
   goals: {
     "catch-up": { name: "Наверстать", line: "Что произошло, пока вас не было." },
     prepare: { name: "Подготовиться", line: "Контекст, который нужен перед звонком или встречей." },
@@ -123,6 +125,7 @@ const es: typeof en = {
   jumpTo: "Ir a un grupo",
   welcomeTitle: "Tus herramientas están listas. Empieza por esta.",
   startHere: "Empieza aquí",
+  nextGuide: "Siguiente guía",
   goals: {
     "catch-up": { name: "Ponerte al día", line: "Lo que pasó mientras no estabas." },
     prepare: { name: "Prepararte", line: "El contexto que necesitas antes de una llamada o reunión." },

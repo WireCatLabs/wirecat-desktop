@@ -59,10 +59,11 @@ export const useNode = create<NodeState>((set, get) => ({
       if (e.event === "step") set({ step: e.step, received: 0, total: null })
       else if (e.event === "progress") set({ received: e.received, total: e.total })
       else if (e.event === "failed") set({ failure: e, running: false })
-      else set({ running: false, step: null })
     })
-    // The search path changed, so Node, npm and every tool are looked up again.
+    // The search path changed, so Node, npm and every tool are looked up again. The setup counts as running until
+    // that answer is in: in between, the old answer (no Node.js) would bring back the offer to set it up.
     if (!get().failure) await useSystem.getState().refresh()
+    set({ running: false, step: get().failure ? get().step : null })
   },
   async cancel() {
     await platform.cancelNodeSetup()

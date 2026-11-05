@@ -16,11 +16,11 @@ import { Button } from "@/ui/Button"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
+import { uiMessages } from "@/ui/messages"
 import { reducedMotion } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
 import { AgentsMatrix } from "../agents/AgentsMatrix"
 import { useSkillMatrix } from "../agents/skill-matrix"
-import { arriveFromSetup } from "../guides/GuidesPage"
 import { useNode } from "../system/node-store"
 import { useSystem } from "../system/store"
 import { StillInstalling, useUnfinishedInstalls } from "../tools/InstallProgress"
@@ -90,6 +90,7 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
   const step = useOnboarding((s) => s.step)
   const resuming = useOnboarding((s) => s.resuming)
   const m = useMessages(onboardingMessages)
+  const ui = useMessages(uiMessages)
   const current = resuming ? -1 : stepIndex(step)
   // The sidebar must not jump past the Node.js gate that holds Continue on Your computer.
   const gate = useComputerGate()
@@ -105,9 +106,20 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
         <ol className="flex flex-col gap-[0.15rem]">
           {STEPS.map((s, i) => {
             const here = i === current
+            const done = i < current
             const shut = !canOpen(s, gate)
             return (
-              <li key={s}>
+              <li key={s} className="relative">
+                {/* The track between two dots fills as the setup passes it, so the list reads as progress. */}
+                {i < STEPS.length - 1 && (
+                  <span
+                    aria-hidden
+                    className={cx(
+                      "absolute top-[calc(50%+0.6rem)] left-[2.1rem] h-[1.25rem] w-[2px] -translate-x-1/2 transition-colors duration-300",
+                      done ? "bg-brand" : "bg-line-strong",
+                    )}
+                  />
+                )}
                 <button
                   type="button"
                   aria-current={here ? "step" : undefined}
@@ -134,16 +146,18 @@ export function SetupSteps({ onExit }: { onExit: () => void }) {
                     aria-hidden
                     className={cx(
                       "grid size-[1.2rem] shrink-0 place-items-center rounded-full font-mono text-[0.85rem] tabular-nums",
+                      "transition-colors duration-300",
                       here
                         ? "bg-brand text-brand-ink"
-                        : i < current
-                          ? "bg-app-3 text-ink-soft"
-                          : "ring-1 ring-idle ring-inset",
+                        : done
+                          ? "bg-brand-soft text-brand"
+                          : "bg-wall ring-1 ring-idle ring-inset",
                     )}
                   >
-                    {i < current ? <Check className="size-3" strokeWidth={3} /> : i + 1}
+                    {done ? <Check className="size-3" strokeWidth={3} /> : i + 1}
                   </span>
                   {m.steps[s]}
+                  {done && <span className="sr-only">{ui.stepDone}</span>}
                 </button>
               </li>
             )
@@ -244,16 +258,9 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
               go(nextStep(step, chosen.length))
             },
           }
-        : kind === "guides"
-          ? // The owner's NEED-C answer B: the guides are where work starts, so they lead; Tools stays one click away.
-            {
-              label: m.done.guides,
-              run: () => {
-                leave()
-                finish()
-                arriveFromSetup()
-              },
-            }
+        : kind === "tour"
+          ? // Done leads into the window itself; the tour ends on the first guide, so the guides wait until then.
+            { label: m.flow.tour, run: () => close(true) }
           : { label: m.flow.continue, run: () => go(nextStep(step, chosen.length)) }
 
   // Tools cannot install without Node.js, so the computer step holds until it is ready or the owner takes it on.
@@ -324,8 +331,11 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
                 {m.flow.skip}
               </Button>
             )}
-            {step === "done" && <Button onClick={() => close(true)}>{m.flow.tour}</Button>}
-            {step === "done" && <Button onClick={() => close(false)}>{m.flow.openTools}</Button>}
+            {step === "done" && (
+              <Button variant="ghost" onClick={() => close(false)}>
+                {m.flow.openTools}
+              </Button>
+            )}
             <Button
               variant={quietContinue ? "secondary" : "primary"}
               size="lg"

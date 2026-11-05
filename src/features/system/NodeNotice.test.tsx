@@ -48,7 +48,7 @@ describe("a computer without Node.js, in Russian", () => {
 })
 
 describe("setting Node.js up", () => {
-  it("shows how far through the archive unpacking is, then the PATH step", async () => {
+  it("shows how far through the archive unpacking is, then the PATH step with a bar that has no share", async () => {
     let send: (e: NodeEvent) => void = () => {}
     vi.spyOn(platform, "setupNode").mockImplementation(async (onEvent) => {
       send = onEvent
@@ -67,7 +67,7 @@ describe("setting Node.js up", () => {
     expect(screen.getByText("50% of the archive")).toBeInTheDocument()
 
     act(() => send({ event: "step", step: "path" }))
-    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
+    expect(screen.getByRole("progressbar", { name: "Add to PATH" })).not.toHaveAttribute("aria-valuenow")
     expect(screen.getByText(/Adding Node.js to your PATH/)).toBeInTheDocument()
   })
 })

@@ -15,6 +15,8 @@ type Props = {
   onBack: () => void
   onNext: () => void
   onClose: () => void
+  /** The last step's way out, in place of Done: what the owner can do next from where the tour ends. */
+  finish?: ReactNode
 }
 
 type Box = { top: number; left: number; width: number; height: number }
@@ -49,7 +51,8 @@ function place(target: Box | null, size: { w: number; h: number }, side: "bottom
  * One step of a guided tour: a ring around a real element, the rest of the window dimmed, and a small panel
  * beside it. It does not trap focus or block the page, so the owner can still click what it points at.
  */
-export function Callout({ anchor, side = "bottom", title, children, index, count, onBack, onNext, onClose }: Props) {
+export function Callout(props: Props) {
+  const { anchor, side = "bottom", title, children, index, count, onBack, onNext, onClose, finish } = props
   const m = useMessages(uiMessages)
   const titleId = useId()
   const panel = useRef<HTMLDivElement>(null)
@@ -147,10 +150,13 @@ export function Callout({ anchor, side = "bottom", title, children, index, count
               {m.back}
             </Button>
           )}
-          <Button data-primary size="sm" variant="primary" onClick={last ? onClose : onNext}>
-            {last ? m.done : m.next}
-          </Button>
+          {!(last && finish) && (
+            <Button data-primary size="sm" variant="primary" onClick={last ? onClose : onNext}>
+              {last ? m.done : m.next}
+            </Button>
+          )}
         </div>
+        {last && finish && <div className="flex flex-wrap items-center gap-2">{finish}</div>}
       </div>
     </>
   )

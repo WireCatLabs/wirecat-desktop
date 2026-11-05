@@ -45,12 +45,15 @@ export function computerGate(facts: Facts | null, settingUp: boolean, myself: bo
 /** A step the sidebar may open: any step up to Your computer, and the ones after it once the gate is open. */
 export const canOpen = (step: StepId, gate: Gate) => gate === null || stepIndex(step) <= stepIndex("computer")
 
-export type Primary = "start" | "install" | "guides" | "continue"
+export type Primary = "start" | "install" | "tour" | "continue"
 
-/** What the main button does: install the chosen tools only when there are some to install and Node.js can do it. */
+/**
+ * What the main button does: install the chosen tools only when there are some to install and Node.js can do it. Done
+ * leads into the tour of the window, which ends on the first guide (owner, 2026-11-05: show the app before the guides).
+ */
 export function primaryAction(step: StepId, toInstall: number, nodeReady: boolean): Primary {
   if (step === "welcome") return "start"
-  if (step === "done") return "guides"
+  if (step === "done") return "tour"
   if (step === "choose" && toInstall > 0 && nodeReady) return "install"
   return "continue"
 }
@@ -102,3 +105,13 @@ export function accountReady(
 
 /** A skill is in place for an agent when its copy is there, current or older. */
 export const skillInPlace = (kinds: readonly string[]) => kinds.some((k) => k === "current" || k === "stale")
+
+/**
+ * Where the Sign in step goes once a sign-in in the window has ended and its dialog closed: on to Done when every tool
+ * there has an account (`accountReady`), or it stays for the ones left. `undefined` is a tool still reading its
+ * accounts, which the answer waits for.
+ */
+export function afterSignIn(ready: readonly (boolean | undefined)[]): "done" | "stay" | "wait" {
+  if (ready.some((r) => r === undefined)) return "wait"
+  return ready.length > 0 && ready.every(Boolean) ? "done" : "stay"
+}
