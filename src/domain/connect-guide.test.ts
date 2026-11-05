@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   choiceOf,
   errorMessage,
-  funnelOff,
+  funnelStopped,
   isFunnelHost,
   isLocalAddress,
   otherServerTools,
@@ -11,7 +11,7 @@ import {
   quietDelay,
   reachLamp,
   startProgress,
-  tunnelOff,
+  tunnelStopped,
   viaTailscale,
   wasStopped,
 } from "./connect-guide"
@@ -55,21 +55,21 @@ describe("an address that went off", () => {
   })
 
   it("flags a stopped Funnel only for a Tailscale choice with a running server", () => {
-    expect(funnelOff("tailscale", true, { live: false })).toBe(true)
-    expect(funnelOff("wirecat", true, { live: false })).toBe(true)
-    expect(funnelOff("tailscale", true, { live: true })).toBe(false)
-    expect(funnelOff("tailscale", true, null)).toBe(false)
-    expect(funnelOff("tailscale", false, { live: false })).toBe(false)
-    expect(funnelOff("cloudflare", true, { live: false })).toBe(false)
+    expect(funnelStopped("tailscale", true, { live: false })).toBe(true)
+    expect(funnelStopped("wirecat", true, { live: false })).toBe(true)
+    expect(funnelStopped("tailscale", true, { live: true })).toBe(false)
+    expect(funnelStopped("tailscale", true, null)).toBe(false)
+    expect(funnelStopped("tailscale", false, { live: false })).toBe(false)
+    expect(funnelStopped("cloudflare", true, { live: false })).toBe(false)
   })
 
   it("flags a stopped tunnel only when the server's address is on its route", () => {
     const route = { live: false, url: "https://wc.example.com/tg" }
-    expect(tunnelOff({ connectorUrl: "https://wc.example.com/tg/mcp" }, true, route)).toBe(true)
-    expect(tunnelOff({ connectorUrl: "https://other.example.com/tg/mcp" }, true, route)).toBe(false)
-    expect(tunnelOff({ connectorUrl: "https://wc.example.com/tg/mcp" }, true, { ...route, live: true })).toBe(false)
-    expect(tunnelOff({ connectorUrl: "https://wc.example.com/tg/mcp" }, false, route)).toBe(false)
-    expect(tunnelOff({ connectorUrl: "https://wc.example.com/tg/mcp" }, true, null)).toBe(false)
+    expect(tunnelStopped({ connectorUrl: "https://wc.example.com/tg/mcp" }, true, route)).toBe(true)
+    expect(tunnelStopped({ connectorUrl: "https://other.example.com/tg/mcp" }, true, route)).toBe(false)
+    expect(tunnelStopped({ connectorUrl: "https://wc.example.com/tg/mcp" }, true, { ...route, live: true })).toBe(false)
+    expect(tunnelStopped({ connectorUrl: "https://wc.example.com/tg/mcp" }, false, route)).toBe(false)
+    expect(tunnelStopped({ connectorUrl: "https://wc.example.com/tg/mcp" }, true, null)).toBe(false)
   })
 })
 

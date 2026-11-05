@@ -20,11 +20,11 @@ export const choiceOf = (t: Tunnel): Exclude<Tunnel, "wirecat"> => (t === "wirec
 export const isLocalAddress = (server: Serving | null) => server?.connectorUrl?.startsWith("http://") ?? false
 
 /** The Funnel the server's address rides on has stopped, for a server that is up. */
-export const funnelOff = (tunnel: Tunnel, running: boolean, funnel: { live: boolean } | null) =>
+export const funnelStopped = (tunnel: Tunnel, running: boolean, funnel: { live: boolean } | null) =>
   viaTailscale(tunnel) && running && funnel !== null && !funnel.live
 
 /** The Cloudflare tunnel has stopped while the server's address is on it. */
-export const tunnelOff = (server: Serving | null, running: boolean, route: { live: boolean; url: string } | null) =>
+export const tunnelStopped = (server: Serving | null, running: boolean, route: { live: boolean; url: string } | null) =>
   running && route !== null && !route.live && (server?.connectorUrl?.startsWith(route.url) ?? false)
 
 /** Which dots the Start step shows: opening the address, then starting the server. */
