@@ -141,6 +141,12 @@ impl Versions {
     }
 }
 
+/// A version that cannot be read counts as older: the command it lacks would only fail.
+pub fn older(version: Option<&str>, min: &str) -> bool {
+    let Ok(min) = semver::Version::parse(min) else { return false };
+    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < min)
+}
+
 /// The version a program answers, from the same cache as the Tools page.
 pub fn version_of(path: &Path) -> Option<String> {
     VERSIONS.inspect(path, false).version
@@ -305,6 +311,14 @@ mod tests {
     use crate::cache::tests::TempProgram;
     use serde_json::json;
     use std::cell::Cell;
+
+    #[test]
+    fn a_version_below_the_minimum_or_unreadable_counts_as_older() {
+        assert!(older(Some("0.115.0"), "0.116.0"));
+        assert!(!older(Some("0.116.0"), "0.116.0"));
+        assert!(older(None, "0.116.0"));
+        assert!(!older(Some("0.1.0"), "not a version"));
+    }
 
     const PATH: &str = "/usr/bin";
 
