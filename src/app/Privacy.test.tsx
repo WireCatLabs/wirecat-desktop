@@ -1,10 +1,10 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { useOnboarding } from "@/features/onboarding/store"
-import { useSystem } from "@/features/system/store"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useOnboarding } from "@/shared/onboarding-store"
+import { useSystem } from "@/shared/system-store"
 import { App } from "./App"
 
 describe("Privacy", () => {

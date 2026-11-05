@@ -16,12 +16,12 @@ import { type ReactNode, useEffect, useState } from "react"
 import { findTool, ownerId } from "@/domain/catalog"
 import { type BatchItem, batch, roughly, toolFraction } from "@/domain/install-batch"
 import { useMessages } from "@/i18n"
+import { useTools } from "@/shared/tools-store"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { reducedMotion } from "@/ui/motion"
 import { ProgressBar } from "@/ui/ProgressBar"
-import { useTools } from "../tools/store"
 import { type OnboardingText, onboardingMessages } from "./messages"
 
 type Tip = keyof OnboardingText["wait"]["tips"]

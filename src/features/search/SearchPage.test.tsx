@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
-import { useTools } from "../tools/store"
+import { useTools } from "@/shared/tools-store"
 import { SearchPage } from "./SearchPage"
 import { useSearch } from "./store"
 

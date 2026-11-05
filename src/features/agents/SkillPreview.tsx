@@ -4,13 +4,13 @@ import { findTool } from "@/domain/catalog"
 import { SKILL_TARGETS, TARGET_FOLDER } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useAgents } from "@/shared/agents-store"
 import { ReportThis } from "@/shared/ReportThis"
+import { useTools } from "@/shared/tools-store"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
-import { useTools } from "../tools/store"
 import { agentsMessages } from "./messages"
-import { useAgents } from "./store"
 
 export const useSkillPreview = create<{ tool: string | null; open(tool: string): void; close(): void }>((set) => ({
   tool: null,

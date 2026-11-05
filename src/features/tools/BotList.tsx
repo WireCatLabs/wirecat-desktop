@@ -2,11 +2,11 @@ import { Bot } from "lucide-react"
 import { useEffect } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
+import { useBotSignIn } from "@/shared/bot-signin-store"
+import { botMessages } from "@/shared/messages-bot"
 import { Button } from "@/ui/Button"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
-import { useBotSignIn } from "../signin/bot-store"
-import { botMessages } from "../signin/messages-bot"
 
 /** The tool's bots beside its accounts: each name with a token on this computer, and the way to add one. */
 export function BotList({ tool }: { tool: CatalogTool }) {

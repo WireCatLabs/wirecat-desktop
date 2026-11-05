@@ -9,6 +9,7 @@ import { planMessages } from "@/features/signin/messages-plan"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent } from "@/platform/signin-schemas"
 import { useNav } from "@/shared/nav"
+import { useOnboarding } from "@/shared/onboarding-store"
 import {
   currentStep,
   endInstalls,
@@ -22,7 +23,6 @@ import {
   startOnboarding,
 } from "@/testing/onboarding"
 import { uiMessages } from "@/ui/messages"
-import { useOnboarding } from "./store"
 
 // Every answer the mock gives comes at once; the tests wait only for what they drive.
 vi.mock("@/platform/mock-delay", () => ({ delay: () => new Promise((r) => setTimeout(r, 0)) }))

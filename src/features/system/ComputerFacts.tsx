@@ -1,11 +1,11 @@
 import { useMessages } from "@/i18n"
 import type { ProgramState } from "@/platform/schemas"
+import { useSystem } from "@/shared/system-store"
 import { Dialog } from "@/ui/Dialog"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
 import { ManagedNode } from "./ManagedNode"
 import { systemMessages } from "./messages"
-import { useSystem } from "./store"
 
 // "24.19.0": the usual length, so the line does not move when real versions replace the placeholders.
 const VERSION_CHARS = 7

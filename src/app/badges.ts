@@ -1,8 +1,8 @@
 import { useEffect } from "react"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
-import { useTools } from "@/features/tools/store"
 import { safeStorage } from "@/shared/safe-storage"
+import { useTools } from "@/shared/tools-store"
 
 type Seen = { seen: string[]; see(section: string): void }
 

@@ -2,11 +2,11 @@ import { create } from "zustand"
 import { type SkillTarget, TARGET_FOLDER } from "@/domain/skills"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useAgents } from "@/shared/agents-store"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { Dialog } from "@/ui/Dialog"
 import { agentsMessages } from "./messages"
-import { useAgents } from "./store"
 import type { AgentView } from "./view"
 
 export const useDisconnect = create<{ agent: string | null; open(agent: string): void; close(): void }>((set) => ({

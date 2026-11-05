@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { type CatalogTool, tools } from "@/domain/catalog"
 import { type Messages, plural } from "@/i18n"
-import type { StepId } from "./store"
+import type { StepId } from "@/shared/onboarding-store"
 
 type Page = { title: string; lead: string }
 type Stop = { title: string; text: string }
@@ -318,10 +318,6 @@ const en = {
     | "guide",
     Stop
   >,
-  demo: {
-    label: "Example",
-    text: "Rows for the tour, not your data. They go away when the tour ends.",
-  },
   tourEnd: {
     tryGuide: "Try this guide",
     nextGuide: "Next guide",
@@ -658,10 +654,6 @@ const ru: OnboardingText = {
       text: "Рецепт: просьба, которую вы копируете агенту, и шаги, которые он выполнит. Попробуйте этот или посмотрите следующий.",
     },
   },
-  demo: {
-    label: "Пример",
-    text: "Строки для экскурсии, а не ваши данные. Они исчезнут, когда экскурсия закончится.",
-  },
   tourEnd: {
     tryGuide: "Попробовать рецепт",
     nextGuide: "Следующий рецепт",
@@ -979,10 +971,6 @@ const es: OnboardingText = {
       title: "Tu primera guía",
       text: "Una guía es una petición que copias en tu agente, con los pasos que ejecutará. Prueba esta o mira la siguiente.",
     },
-  },
-  demo: {
-    label: "Ejemplo",
-    text: "Filas para el recorrido, no son tus datos. Desaparecen cuando termina el recorrido.",
   },
   tourEnd: {
     tryGuide: "Probar esta guía",

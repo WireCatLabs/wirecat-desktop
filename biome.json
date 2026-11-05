@@ -25,7 +25,9 @@
       "a11y": {
         "noLabelWithoutControl": {
           "level": "error",
-          "options": { "inputComponents": ["Checkbox", "Radio"] }
+          "options": {
+            "inputComponents": ["Checkbox", "Radio"]
+          }
         }
       }
     }
@@ -187,6 +189,10 @@
                   {
                     "group": ["@tauri-apps/*", "@/app/*", "**/app/**", "../app/*", "../../app/*"],
                     "message": "features reach Rust only through @/platform and never import the app shell (docs/dev/ARCHITECTURE.md)"
+                  },
+                  {
+                    "group": ["@/features/*/*", "**/features/*/*", "../*", "../*/*"],
+                    "message": "a feature's index.ts is its only public surface: import @/features/<name>, never a file inside it (docs/dev/ARCHITECTURE.md)"
                   }
                 ]
               }
@@ -207,6 +213,30 @@
                   {
                     "group": ["**/tools/**", "../tools/*", "@/features/tools/*"],
                     "message": "system is the base feature: tools may read it, it never reads tools"
+                  },
+                  {
+                    "group": ["@/features/*/*", "**/features/*/*", "../*", "../*/*"],
+                    "message": "a feature's index.ts is its only public surface: import @/features/<name>, never a file inside it (docs/dev/ARCHITECTURE.md)"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/app/**", "src/start.tsx", "!**/*.test.*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": ["@/features/*/*", "!@/features/*/page"],
+                    "message": "a feature's index.ts is its only public surface: import @/features/<name>, never a file inside it (docs/dev/ARCHITECTURE.md)"
                   }
                 ]
               }

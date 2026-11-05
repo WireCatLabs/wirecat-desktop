@@ -3,9 +3,9 @@ import { beforeEach, expect, it } from "vitest"
 import { App } from "@/app/App"
 import { findTool } from "@/domain/catalog"
 import type { InstallSession } from "@/domain/status"
-import { useOnboarding } from "@/features/onboarding/store"
 import { useLanguage } from "@/i18n"
-import { useTools } from "./store"
+import { useOnboarding } from "@/shared/onboarding-store"
+import { useTools } from "@/shared/tools-store"
 import { ToolRow } from "./ToolRow"
 
 const tg = findTool("tg") as NonNullable<ReturnType<typeof findTool>>

@@ -4,11 +4,11 @@ import { isProgressLine, readNpmLine, startProgress } from "@/domain/install-pro
 import type { DataDeletion, InstallSession, Operation } from "@/domain/status"
 import { platform } from "@/platform/bridge"
 import type { ToolState } from "@/platform/schemas"
-import { useAgents } from "../agents/store"
-import { useStorage } from "../storage/store"
-import { useSystem } from "../system/store"
-import { installedOf, useCompat } from "./compat-store"
-import { readSaved, save } from "./saved"
+import { useAgents } from "@/shared/agents-store"
+import { installedOf, useCompat } from "@/shared/compat-store"
+import { readSaved, save } from "@/shared/saved-tools"
+import { useStorage } from "@/shared/storage-store"
+import { useSystem } from "@/shared/system-store"
 
 type LoadError = { message: string } | null
 

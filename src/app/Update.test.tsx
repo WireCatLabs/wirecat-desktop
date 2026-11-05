@@ -1,11 +1,11 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { useOnboarding } from "@/features/onboarding/store"
-import { useSystem } from "@/features/system/store"
 import { CHECK_EVERY_MS, useUpdate } from "@/features/update/store"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useOnboarding } from "@/shared/onboarding-store"
+import { useSystem } from "@/shared/system-store"
 import { App } from "./App"
 
 const offer = { version: "0.2.0", notes: "Faster Storage page.", kind: "self" as const }

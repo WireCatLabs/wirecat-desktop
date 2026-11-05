@@ -1,9 +1,9 @@
 import { create } from "zustand"
 import type { PathFix, ShellChoices } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
-import { useTools } from "../tools/store"
+import { useAgents } from "@/shared/agents-store"
+import { useTools } from "@/shared/tools-store"
 import { useConnect } from "./connect"
-import { useAgents } from "./store"
 
 export type PathFixState =
   | { state: "idle" }

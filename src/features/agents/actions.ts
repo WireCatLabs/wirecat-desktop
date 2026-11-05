@@ -3,9 +3,9 @@ import { serverName } from "@/domain/agents"
 import { catalogCommand, findTool } from "@/domain/catalog"
 import { type SkillTarget, TARGET_FOLDER } from "@/domain/skills"
 import type { Claim } from "@/platform/agents-schemas"
+import { cellKey, useAgents } from "@/shared/agents-store"
 import { useConfirm } from "./Confirm"
 import { pairKey, useConnect } from "./connect"
-import { cellKey, useAgents } from "./store"
 import { type AgentView, todoInstalls } from "./view"
 
 /** What the agent's own CLI runs to remove a server; Rust holds the same fixed words (`mcp.rs`). */

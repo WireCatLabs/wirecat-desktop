@@ -1,11 +1,11 @@
 import { useEffect } from "react"
 import { formatBytes } from "@/domain/format"
 import { useMessages } from "@/i18n"
+import { areaBytes, useStorage } from "@/shared/storage-store"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
-import { areaBytes, useStorage } from "../storage/store"
 import { toolsMessages } from "./messages"
-import { useTools } from "./store"
 
 // Shown once, after the last WireCat tool is uninstalled: the one moment deleting everything is both safe and likely wanted.
 export function ClearDataOffer() {

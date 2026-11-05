@@ -3,12 +3,12 @@ import { useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { methodOf, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { type PlanText, planFor, planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
-import { methodOf, setClientFile, setPassword, useSignIn } from "./store"
 
 const FIELD =
   "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"

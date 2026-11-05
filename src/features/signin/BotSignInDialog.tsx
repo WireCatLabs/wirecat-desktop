@@ -1,11 +1,11 @@
 import { findTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
+import { type BotStep, useBotSignIn } from "@/shared/bot-signin-store"
+import { botMessages } from "@/shared/messages-bot"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { DoneStep, NAME_FORM, NameStep, TOKEN_FORM, TokenStep } from "./BotSteps"
-import { type BotStep, useBotSignIn } from "./bot-store"
-import { botMessages } from "./messages-bot"
 
 const ORDER: BotStep[] = ["name", "token", "done"]
 

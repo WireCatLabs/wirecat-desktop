@@ -1,10 +1,10 @@
 import { useMessages } from "@/i18n"
+import { sharedMessages } from "@/shared/messages"
 import { Pill } from "@/ui/Pill"
-import { onboardingMessages } from "./messages"
 
 /** Marks the tour's example rows as not the owner's; on the right, clear of the tour's panel. */
 export function DemoNote() {
-  const m = useMessages(onboardingMessages).demo
+  const m = useMessages(sharedMessages).demo
   return (
     <p
       role="note"

@@ -2,7 +2,7 @@ import { afterEach, expect, it, vi } from "vitest"
 import type { StoreInfo, TableList } from "@/platform/archive-schemas"
 import { platform } from "@/platform/bridge"
 import type { StorageArea } from "@/platform/schemas"
-import { useStorage } from "./store"
+import { useStorage } from "@/shared/storage-store"
 
 afterEach(() => vi.restoreAllMocks())
 

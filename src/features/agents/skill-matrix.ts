@@ -1,8 +1,8 @@
 import { tools } from "@/domain/catalog"
 import { needsUpdate, type SkillTarget, skillCell, skillColumns } from "@/domain/skills"
 import { isNewer } from "@/domain/status"
-import { useTools } from "../tools/store"
-import { cellKey, useAgents } from "./store"
+import { cellKey, useAgents } from "@/shared/agents-store"
+import { useTools } from "@/shared/tools-store"
 
 // A part of another tool's package (Email in memo) has no skill of its own; its owner's skill covers it.
 export const catalogTools = tools.filter((t) => t.skill !== null)

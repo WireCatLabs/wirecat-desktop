@@ -2,8 +2,8 @@ import { fireEvent, render, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { useAgents } from "../agents/store"
-import { useTools } from "../tools/store"
+import { useAgents } from "@/shared/agents-store"
+import { useTools } from "@/shared/tools-store"
 import { GuidesPage } from "./GuidesPage"
 
 const copy = { path: "~/bin/x", version: "1.0.0", manager: "npm", problem: null }

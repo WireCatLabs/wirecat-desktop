@@ -4,11 +4,11 @@ import { type ToolStage, toolProgress } from "@/domain/install-batch"
 import type { InstallSession } from "@/domain/status"
 import { clock } from "@/domain/sync"
 import { formatList, useMessages } from "@/i18n"
+import { useTools } from "@/shared/tools-store"
 import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { type ProgressText, progressMessages } from "./messages-progress"
-import { useTools } from "./store"
 
 function useNow(active: boolean) {
   const [now, setNow] = useState(() => Date.now())

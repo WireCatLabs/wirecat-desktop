@@ -11,20 +11,11 @@ import {
   telegramFailure,
   telegramNote,
 } from "@/domain/telegram-signin"
+import { openConnect, openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
-import { AutoHeight } from "@/ui/AutoHeight"
-import { Button } from "@/ui/Button"
-import { Crossfade } from "@/ui/Crossfade"
-import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
-import { useOnboarding } from "../onboarding/store"
-import { openConnect, openTool } from "../tools/go"
-import { AnswerForm, type Check } from "./AnswerForm"
-import { signinMessages } from "./messages"
-import { planMessages } from "./messages-plan"
-import { telegramMessages } from "./messages-telegram"
 import {
   APP_KEYS,
   ENDED,
@@ -37,7 +28,16 @@ import {
   type Qr,
   receivingHistory,
   useSignIn,
-} from "./store"
+} from "@/shared/signin-store"
+import { AutoHeight } from "@/ui/AutoHeight"
+import { Button } from "@/ui/Button"
+import { Crossfade } from "@/ui/Crossfade"
+import { cx } from "@/ui/cx"
+import { ErrorNotice } from "@/ui/ErrorNotice"
+import { AnswerForm, type Check } from "./AnswerForm"
+import { signinMessages } from "./messages"
+import { planMessages } from "./messages-plan"
+import { telegramMessages } from "./messages-telegram"
 import {
   isTelegramApps,
   MY_TELEGRAM,

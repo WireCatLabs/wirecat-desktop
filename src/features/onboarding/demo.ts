@@ -1,11 +1,12 @@
 // cspell:words hermes Kai Moreno Ruiz Ortiz
+
+import { useMemory } from "@/features/memory"
+import { useSearch } from "@/features/search"
+import { useTasks } from "@/features/tasks"
 import type { Lang } from "@/i18n"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
 import type { SearchAnswer } from "@/platform/search-schemas"
 import type { Person, Task } from "@/platform/task-schemas"
-import { useMemory } from "../memory/store"
-import { useSearch } from "../search/store"
-import { useTasks } from "../tasks/store"
 
 // The tour's example rows live only in the pages' stores, and the pages are inert while they show: memo's store
 // belongs to the tools (rules 1 and 5). Rust refuses refs like `memory:example-1`, so a stray write could not land.

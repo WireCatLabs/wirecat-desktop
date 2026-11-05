@@ -3,7 +3,7 @@ import { findTool, usesProfiles } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import type { SearchAnswer, ValueItem } from "@/platform/search-schemas"
-import { useTools } from "../tools/store"
+import { useTools } from "@/shared/tools-store"
 
 export const LIMIT = 50
 

@@ -1,10 +1,10 @@
 import { Eye, EyeOff, LoaderCircle, ShieldCheck } from "lucide-react"
 import { type FormEvent, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
+import type { Need } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { signinMessages } from "./messages"
-import type { Need } from "./store"
 
 const FIELD =
   "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 pr-12 font-mono text-[1.1rem] text-ink"

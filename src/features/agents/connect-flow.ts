@@ -3,8 +3,8 @@ import { CHAT_AGENTS, type CheckTool } from "@/domain/agents"
 import type { SkillTarget } from "@/domain/skills"
 import type { Chats } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
+import { cellKey, useAgents } from "@/shared/agents-store"
 import { type Loaded, useConnect } from "./connect"
-import { cellKey, useAgents } from "./store"
 
 export type StepState = "waiting" | "running" | "ok" | "warn" | "failed"
 

@@ -3,10 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { NodeEvent } from "@/platform/schemas"
+import { useSystem } from "@/shared/system-store"
 import { ComputerFacts } from "./ComputerFacts"
 import { NodeNotice } from "./NodeNotice"
 import { useNode } from "./node-store"
-import { useSystem } from "./store"
 
 const absent = { path: null, version: null, ok: false, problem: "not found" }
 

@@ -2,10 +2,10 @@ import { findTool, ownerId } from "@/domain/catalog"
 import { type Fit, fitSeverity, summarize } from "@/domain/compat"
 import { isNewer } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Lamp } from "@/ui/Lamp"
 import { type ToolsText, toolsMessages } from "./messages"
-import { useTools } from "./store"
 import { useFits } from "./useFits"
 
 const nameOf = (id: string) => findTool(id)?.name ?? id

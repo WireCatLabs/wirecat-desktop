@@ -6,14 +6,14 @@ import { formatBytes } from "@/domain/format"
 import { formatDate, useMessages } from "@/i18n"
 import type { StoreInfo } from "@/platform/archive-schemas"
 import { ReportThis } from "@/shared/ReportThis"
+import { useStorage } from "@/shared/storage-store"
+import { useElapsed } from "@/shared/use-elapsed"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
 import { storageMessages } from "./messages"
-import { useStorage } from "./store"
-import { useElapsed } from "./useElapsed"
 
 const DAY_AND_TIME: Intl.DateTimeFormatOptions = {
   day: "numeric",

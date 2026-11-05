@@ -5,8 +5,8 @@ import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelHelperStatus, TailscaleStatus } from "@/platform/tailscale-schemas"
+import { useTools } from "@/shared/tools-store"
 import { McpServer } from "./McpServer"
-import { useTools } from "./store"
 
 const tg = findTool("tg")
 if (!tg) throw new Error("tg is in the catalog")

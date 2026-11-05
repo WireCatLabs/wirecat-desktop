@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react"
 import { create } from "zustand"
 import { closedRanges, closedTerm, type Period, sumRows, todayIn } from "@/domain/analytics"
 import type { Run } from "@/domain/runs"
+import { useLogs } from "@/features/logs"
 import type {
   Aggregate,
   AnalyticsPreview,
@@ -16,8 +17,7 @@ import type { StoreInfo, TableList } from "@/platform/archive-schemas"
 import { platform } from "@/platform/bridge"
 import type { MemoryRead } from "@/platform/memory-schemas"
 import type { Project, TaskCounts } from "@/platform/task-schemas"
-import { useLogs } from "../logs/store"
-import { useTools } from "../tools/store"
+import { useTools } from "@/shared/tools-store"
 
 /** The messengers that count their own messages, and the source each writes into storage. */
 export const MESSENGERS = [

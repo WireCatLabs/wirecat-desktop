@@ -1,7 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest"
 import type { SkillReport } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
-import { useAgents } from "./store"
+import { useAgents } from "@/shared/agents-store"
 
 const report = (installed: string): SkillReport => ({
   source: "status",

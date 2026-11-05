@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { useTools } from "./store"
+import { useTools } from "@/shared/tools-store"
 import { ToolDetails } from "./ToolDetails"
 
 const zm = findTool("zm") as NonNullable<ReturnType<typeof findTool>>
