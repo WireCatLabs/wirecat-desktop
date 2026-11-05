@@ -11,6 +11,7 @@ New here? Read [the architecture report](architecture-report.md) first. Rules pe
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
   features/     one folder per area (tools/, agents/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
+  shared/       parts two or more features use: ToolIcon, ReportThis, JsonTree, nav, the report store, safeStorage. Imports no feature (Biome rule).
   ui/           presentational parts: Button, Lamp, Stepper… Props in, events out.
   platform/     the only door to Rust. Validates every answer with valibot. Has a browser mock.
   domain/       plain TypeScript: catalog, tool status, doctor summaries. No React, no Tauri.

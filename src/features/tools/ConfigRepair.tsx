@@ -5,8 +5,8 @@ import type { Finding } from "@/domain/doctor"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Repair } from "@/platform/repair-schemas"
+import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
-import { ReportThis } from "../report/ReportThis"
 import { toolsMessages } from "./messages"
 
 export type Repaired = Extract<Repair, { state: "repaired" | "unchanged" }>

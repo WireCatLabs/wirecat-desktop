@@ -1,6 +1,8 @@
 import { create } from "zustand"
-import { createJSONStorage, persist, type StateStorage } from "zustand/middleware"
+import { createJSONStorage, persist } from "zustand/middleware"
 import { furthest, STEPS, type StepId } from "@/domain/onboarding-flow"
+import { nameCoveringSurface } from "@/shared/nav"
+import { safeStorage } from "@/shared/safe-storage"
 
 export { STEPS, type StepId }
 
@@ -22,27 +24,6 @@ type OnboardingState = {
   finish(): void
   reopen(step?: StepId): void
   hide(): void
-}
-
-// Private windows, previews and some webviews refuse storage outright; the flow must still work for this session.
-export const safeStorage: StateStorage = {
-  getItem: (name) => {
-    try {
-      return window.localStorage.getItem(name)
-    } catch {
-      return null
-    }
-  },
-  setItem: (name, value) => {
-    try {
-      window.localStorage.setItem(name, value)
-    } catch {}
-  },
-  removeItem: (name) => {
-    try {
-      window.localStorage.removeItem(name)
-    } catch {}
-  },
 }
 
 export const useOnboarding = create<OnboardingState>()(
@@ -82,3 +63,5 @@ export const useOnboarding = create<OnboardingState>()(
     },
   ),
 )
+
+nameCoveringSurface(() => (useOnboarding.getState().open ? "the first-run setup" : null))

@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { type ReportFields, reportDetails, reportTool } from "@/domain/report"
 import { platform } from "@/platform/bridge"
 import type { ReportContext, ReportSent } from "@/platform/report-schemas"
-import type { AppError } from "./errors"
+import type { AppError } from "@/shared/errors"
 
 /**
  * What the place that opened the report already knows: the tool, a first line, the steps, a masked log if any, and

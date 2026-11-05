@@ -4,11 +4,11 @@ import { App } from "@/app/App"
 import { appMessages } from "@/app/messages"
 import { runMockScenario } from "@/app/scenarios"
 import { guidesMessages } from "@/features/guides/messages"
-import { useNav } from "@/features/nav"
 import { signinMessages } from "@/features/signin/messages"
 import { planMessages } from "@/features/signin/messages-plan"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent } from "@/platform/signin-schemas"
+import { useNav } from "@/shared/nav"
 import {
   currentStep,
   endInstalls,

@@ -2,11 +2,11 @@ import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useAgentChoice } from "@/features/agents/AgentList"
-import { useNav } from "@/features/nav"
 import { useOnboarding } from "@/features/onboarding/store"
 import { useTools } from "@/features/tools/store"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useNav } from "@/shared/nav"
 import { App } from "./App"
 
 const wait = { timeout: 8000 }

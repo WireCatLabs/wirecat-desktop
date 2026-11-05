@@ -64,7 +64,6 @@ const en = {
   openIssue: "Open the issue on GitHub",
   queued: (id: string) =>
     `GitHub did not answer in time, so the issue will be opened shortly. Your report id is ${id}.`,
-  reportThis: "Report this",
   reportThisTitle: "Open a report about this, filled in. You can read and change it before sending.",
 }
 
@@ -138,7 +137,6 @@ const ru: typeof en = {
   thanksSaved: "Спасибо. Отчёт сохранён.",
   openIssue: "Открыть обсуждение на GitHub",
   queued: (id) => `GitHub не ответил вовремя, поэтому обсуждение откроется чуть позже. Номер вашего отчёта: ${id}.`,
-  reportThis: "Сообщить",
   reportThisTitle: "Открыть заполненный отчёт об этом. Перед отправкой его можно прочитать и изменить.",
 }
 
@@ -208,7 +206,6 @@ const es: typeof en = {
   openIssue: "Abrir la incidencia en GitHub",
   queued: (id) =>
     `GitHub no ha respondido a tiempo, así que la incidencia se abrirá en breve. El identificador de tu informe es ${id}.`,
-  reportThis: "Informar",
   reportThisTitle: "Abrir un informe sobre esto ya rellenado. Puedes leerlo y cambiarlo antes de enviarlo.",
 }
 

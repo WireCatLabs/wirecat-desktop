@@ -1,6 +1,5 @@
 import { useSeen } from "@/app/badges"
 import { findTool, syncNeedsProfile } from "@/domain/catalog"
-import { useNav } from "@/features/nav"
 import { useNotifications } from "@/features/notifications/store"
 import { STEPS, useOnboarding } from "@/features/onboarding/store"
 import { useSearch } from "@/features/search/store"
@@ -12,6 +11,7 @@ import { useSync } from "@/features/tools/sync-store"
 import { platform } from "@/platform/bridge"
 import { showcase, showcaseQuery } from "@/platform/mock-showcase"
 import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
+import { useNav } from "@/shared/nav"
 
 // Browser-only: starts the install named in `?install=<tool>` so a review can capture the progress state.
 // `?onboarding=off` hides the first-run setup for this load, so captures of other screens stay as they were;

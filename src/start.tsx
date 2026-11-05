@@ -1,8 +1,8 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
+import { captureErrors } from "@/shared/errors"
 import { App } from "./app/App"
 import { ErrorBoundary } from "./app/ErrorBoundary"
-import { captureErrors } from "./features/report/errors"
 import "./styles/index.css"
 import { trackInputMode } from "./ui/input-mode"
 

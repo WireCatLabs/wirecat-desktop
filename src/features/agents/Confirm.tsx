@@ -1,12 +1,12 @@
 import { type ReactNode, useState } from "react"
 import { create } from "zustand"
 import { useMessages } from "@/i18n"
+import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { StableText } from "@/ui/Skeleton"
-import { ReportThis } from "../report/ReportThis"
 import { type AgentsMessages, agentsMessages } from "./messages"
 
 /** A change to the owner's agents or tasks, shown with the exact command before it runs. */

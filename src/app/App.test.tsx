@@ -1,9 +1,9 @@
 import { fireEvent, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { useNav } from "@/features/nav"
 import { useOnboarding } from "@/features/onboarding/store"
 import { useTools } from "@/features/tools/store"
+import { useNav } from "@/shared/nav"
 import { App } from "./App"
 
 // The browser mock stands in for Rust: Drive is the one tool not installed.

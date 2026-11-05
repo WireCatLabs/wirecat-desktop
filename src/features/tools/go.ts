@@ -1,4 +1,4 @@
-import { useNav } from "../nav"
+import { useNav } from "@/shared/nav"
 import { keep } from "./kept"
 import { useTools } from "./store"
 

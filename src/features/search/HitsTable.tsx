@@ -5,13 +5,13 @@ import { type HitFile, type HitRow, hitRow } from "@/domain/search"
 import { hitLink } from "@/domain/search-context"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import type { SearchHit } from "@/platform/search-schemas"
+import { CopyValue, type FieldOf, JsonTree } from "@/shared/JsonTree"
+import { sharedMessages } from "@/shared/messages"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Skeleton } from "@/ui/Skeleton"
 import { selectsTextIn } from "@/ui/selection"
-import { CopyValue, type FieldOf, JsonTree } from "../logs/JsonTree"
-import { logsMessages } from "../logs/messages"
 import { searchMessages } from "./messages"
 
 type Props = {
@@ -214,7 +214,7 @@ function HitFields({ hit, row, fieldOf, onFilter, onGroup }: FieldsProps) {
 type FieldButtonsProps = { field: string; value: string } & Pick<FieldsProps, "onFilter" | "onGroup">
 
 function FieldButtons({ field, value, onFilter, onGroup }: FieldButtonsProps) {
-  const m = useMessages(logsMessages)
+  const m = useMessages(sharedMessages)
   const term = `${field}:${value}`
   return (
     <>

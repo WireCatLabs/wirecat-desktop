@@ -147,6 +147,35 @@
       }
     },
     {
+      "includes": ["src/shared/**", "!**/*.test.*"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "patterns": [
+                  {
+                    "group": [
+                      "@/features/*",
+                      "**/features/**",
+                      "../features/*",
+                      "../../features/*",
+                      "@/app/*",
+                      "**/app/**",
+                      "../app/*",
+                      "../../app/*"
+                    ],
+                    "message": "shared holds what two or more features use: it imports no feature and not the app shell (docs/dev/ARCHITECTURE.md)"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "includes": ["src/features/**", "!**/*.test.*"],
       "linter": {
         "rules": {

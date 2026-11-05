@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 import { platform } from "@/platform/bridge"
 import type { Notification } from "@/platform/notifications-schemas"
-import { safeStorage } from "../onboarding/store"
+import { safeStorage } from "@/shared/safe-storage"
 
 export const CHECK_EVERY_MS = 60 * 60 * 1000
 

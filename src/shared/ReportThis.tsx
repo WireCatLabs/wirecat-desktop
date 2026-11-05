@@ -1,12 +1,11 @@
 import { Bug } from "lucide-react"
 import { type Failure, failureReport } from "@/domain/report"
 import { useMessages } from "@/i18n"
+import { recentErrors } from "@/shared/errors"
+import { sharedMessages } from "@/shared/messages"
+import { currentPageName } from "@/shared/nav"
+import { useReport } from "@/shared/report-store"
 import { Button } from "@/ui/Button"
-import { useNav } from "../nav"
-import { useOnboarding } from "../onboarding/store"
-import { recentErrors } from "./errors"
-import { reportMessages } from "./messages"
-import { useReport } from "./store"
 
 type Props = Omit<Failure, "message" | "page"> & {
   error: unknown
@@ -18,15 +17,13 @@ type Props = Omit<Failure, "message" | "page"> & {
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
-function currentPage() {
-  if (useOnboarding.getState().open) return "the first-run setup"
-  const id = useNav.getState().active
-  return id.charAt(0).toUpperCase() + id.slice(1)
-}
-
 /** Opens the report form filled in from a failure. Nothing is sent until the owner presses Send there. */
 export function reportFailure({ error, log, page, ...failure }: Omit<Props, "onOpen">) {
-  const f = failureReport({ ...failure, message: messageOf(error), page: page === undefined ? currentPage() : page })
+  const f = failureReport({
+    ...failure,
+    message: messageOf(error),
+    page: page === undefined ? currentPageName() : page,
+  })
   useReport.getState().start({
     tool: f.about,
     summary: f.summary,
@@ -38,7 +35,7 @@ export function reportFailure({ error, log, page, ...failure }: Omit<Props, "onO
 }
 
 export function ReportThis({ onOpen, ...props }: Props) {
-  const m = useMessages(reportMessages)
+  const m = useMessages(sharedMessages)
   return (
     <Button
       size="sm"

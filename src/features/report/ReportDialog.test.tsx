@@ -4,8 +4,8 @@ import { afterEach, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { ReportContext } from "@/platform/report-schemas"
+import { useReport } from "@/shared/report-store"
 import { ReportDialog } from "./ReportDialog"
-import { useReport } from "./store"
 
 afterEach(() => {
   act(() => useReport.getState().close())
