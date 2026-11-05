@@ -34,3 +34,18 @@ it("after the tool is updated, forgets what this session wrote for it and asks i
   expect(useAgents.getState().written).toEqual({ "wa:claude": "0.7.0" })
   expect(useAgents.getState().skills.tg?.report).toEqual(report("0.112.0"))
 })
+
+it("keeps a failed install across a re-check, and clears it when that cell is retried", async () => {
+  vi.spyOn(platform, "detectAgents").mockResolvedValue([])
+  vi.spyOn(platform, "skillStatus").mockResolvedValue(report("1.0.0"))
+  const install = vi.spyOn(platform, "skillInstall").mockRejectedValueOnce(new Error("EACCES: permission denied"))
+  await useAgents.getState().install("tg", "agents")
+  expect(useAgents.getState().failures["tg:agents"]).toBe("EACCES: permission denied")
+
+  await useAgents.getState().load(["tg"])
+  expect(useAgents.getState().failures["tg:agents"]).toBe("EACCES: permission denied")
+
+  install.mockResolvedValueOnce("1.0.0")
+  await useAgents.getState().install("tg", "agents")
+  expect(useAgents.getState().failures["tg:agents"]).toBeUndefined()
+})

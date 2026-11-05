@@ -5,7 +5,7 @@ import { platform } from "@/platform/bridge"
 import { useAgents } from "@/shared/agents-store"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
-import { render, screen, waitFor, within } from "@/testing/render"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
 const stored = () => JSON.parse(localStorage.getItem("wirecat.onboarding") ?? "{}").state?.status
@@ -224,8 +224,7 @@ describe("Connect agents step", () => {
     expect(screen.getByRole("region", { name: "How a skill helps" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("data-variant", "secondary")
 
-    // Cells stay "checking" until the skill check ends, and the check clears failures when it starts: acting before
-    // then asserts on a half-drawn table or loses the failure asserted below.
+    // Cells stay "checking" until the skill check ends: acting before then asserts on a half-drawn table.
     await waitFor(() => expect(useAgents.getState().answered).toBe(true), { timeout: 4000 })
     const all = await screen.findByRole(
       "button",
@@ -243,6 +242,8 @@ describe("Connect agents step", () => {
     await user.click(within(dialog).getByRole("button", { name: "Install all" }))
 
     expect(await screen.findByText("EACCES: permission denied", {}, { timeout: 4000 })).toBeInTheDocument()
+    await act(() => useAgents.getState().load(["tg"]))
+    expect(screen.getByText("EACCES: permission denied")).toBeInTheDocument()
     expect(screen.getByRole("img", { name: "Telegram skill for Claude Code: Current" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Install the Telegram skill for Claude Code and Codex" })).toBeEnabled()
     expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("data-variant", "primary")

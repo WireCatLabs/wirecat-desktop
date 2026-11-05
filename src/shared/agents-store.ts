@@ -76,7 +76,8 @@ export const useAgents = create<AgentsState>((set, get) => ({
   },
 
   async load(installed) {
-    set({ refreshing: true, failures: {} })
+    // A failed install stays until that cell is retried: asking again must not erase what the user has not acted on.
+    set({ refreshing: true })
     const agents = platform
       .detectAgents()
       .then((agents) => set({ agents, agentsError: null }))
