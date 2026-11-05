@@ -250,7 +250,10 @@ function ViewSwitch({ value, onChange }: { value: View; onChange: (v: View) => v
     ["board", m.board, <Columns3 key="b" className="size-4" aria-hidden />],
   ] as const
   return (
-    <fieldset className="inline-flex h-8 items-center rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
+    <fieldset
+      data-tour="tasks-view"
+      className="inline-flex h-8 items-center rounded-[0.45rem] border-0 bg-app-3 p-[3px]"
+    >
       <legend className="sr-only">{m.view}</legend>
       {items.map(([id, label, icon]) => (
         <label key={id} className="relative h-full">

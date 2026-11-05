@@ -7,7 +7,7 @@ import { focusInPlace, reducedMotion } from "@/ui/motion"
 import { greetOnArrival } from "../guides/GuidesPage"
 import { useGuideStart } from "../guides/start-store"
 import { HOME_SECTION, useNav } from "../nav"
-import { type DemoPage, hideDemo, showDemo } from "./demo"
+import { type DemoPage, type DemoScene, hideDemo, showDemo, stageDemo } from "./demo"
 import { onboardingMessages, type TourStop } from "./messages"
 
 /**
@@ -21,6 +21,7 @@ type Stop = {
   side?: "bottom" | "right"
   section?: string
   demo?: DemoPage
+  scene?: DemoScene
 }
 
 // Anchors are data-tour attributes on the real elements, so the tour follows the interface instead of a copy of it.
@@ -31,9 +32,26 @@ export const STOPS: readonly Stop[] = [
   { key: "action", anchor: '[data-tour="tool-action"]', section: "tools" },
   { key: "agents", anchor: '[data-tour="nav-agents"]', side: "right", section: "agents" },
   { key: "how", anchor: null, section: "agents" },
-  { key: "search", anchor: '[data-tour="nav-search"]', side: "right", section: "search" },
+  { key: "search", anchor: '[data-tour="nav-search"]', side: "right", section: "search", demo: "search" },
+  { key: "searchAsk", anchor: '[data-tour="search-ask"]', section: "search", demo: "search" },
+  { key: "searchHit", anchor: '[data-tour="search-hit"]', section: "search", demo: "search", scene: "hit" },
   { key: "tasks", anchor: '[data-tour="nav-tasks"]', side: "right", section: "tasks", demo: "tasks" },
+  { key: "tasksView", anchor: '[data-tour="tasks-view"]', section: "tasks", demo: "tasks" },
+  { key: "tasksRow", anchor: '[data-row="EX-3"]', section: "tasks", demo: "tasks" },
   { key: "memory", anchor: '[data-tour="nav-memory"]', side: "right", section: "memory", demo: "memory" },
+  {
+    key: "memoryReview",
+    anchor: '[data-ref="memory:example-1"] [data-tour="memory-actions"]',
+    section: "memory",
+    demo: "memory",
+  },
+  {
+    key: "memorySources",
+    anchor: '[data-ref="memory:example-1"] [data-tour="memory-sources"]',
+    section: "memory",
+    demo: "memory",
+    scene: "sources",
+  },
   { key: "system", anchor: '[data-tour="nav-system"]', side: "right", section: "storage" },
   { key: "help", anchor: '[data-tour="help"]' },
   // With no guide the tools can run yet there is no "Start here"; the page's own heading stands in.
@@ -83,6 +101,7 @@ function TourSteps() {
   const m = all.tour
   const stop = STOPS[index]
   const demo = stop?.demo
+  const scene = stop?.scene ?? null
 
   // Before the page opens, so it never reads the owner's records for a stop that shows examples. Leaving the stop,
   // closing the tour or Escape takes them away; a restart never had them, they are kept in memory only.
@@ -91,6 +110,12 @@ function TourSteps() {
     showDemo(demo, lang)
     return () => hideDemo(demo)
   }, [demo, lang])
+
+  // Stops on one page share its examples; each opens only what it points at, and closes it on the way on.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new language puts the examples back closed, so it opens again
+  useLayoutEffect(() => {
+    if (demo) stageDemo(demo, scene)
+  }, [demo, scene, lang])
 
   useLayoutEffect(() => {
     if (!stop) return

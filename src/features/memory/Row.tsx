@@ -235,7 +235,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
             </div>
           )}
         </AutoHeight>
-        <span className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]">
+        <span data-tour="memory-actions" className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]">
           {allowed.confirm ? (
             <>
               <Button
@@ -532,7 +532,7 @@ function Sources({ entry }: { entry: MemoryEntry }) {
       </ErrorNotice>
     )
   return (
-    <div className="reveal flex min-w-0 flex-col gap-[0.6rem]">
+    <div data-tour="memory-sources" className="reveal flex min-w-0 flex-col gap-[0.6rem]">
       <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.restsOn(sources.sources.length)}</h3>
       {sources.sources.length === 0 ? (
         <p className="text-[0.95rem] text-ink-soft">{m.noSources}</p>

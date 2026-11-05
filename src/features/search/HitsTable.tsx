@@ -111,7 +111,7 @@ export function HitsTable(props: Props) {
                 <tr className={cx(open && "border-line border-b")}>
                   <td colSpan={5} className="p-0">
                     <Collapse open={open}>
-                      <div className="bg-app-2/60 px-[1.3rem] py-[0.9rem]">
+                      <div data-tour={open ? "search-hit" : undefined} className="bg-app-2/60 px-[1.3rem] py-[0.9rem]">
                         {open && props.actions?.(hit)}
                         <HitFields hit={hit} row={row} fieldOf={fieldOf} onFilter={onFilter} onGroup={onGroup} />
                         <RawData hit={hit} fieldOf={fieldOf} onFilter={onFilter} onGroup={onGroup} />

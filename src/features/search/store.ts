@@ -41,6 +41,10 @@ type SearchState = {
   setQuery(query: string): void
   search(page?: number): Promise<void>
   toggle(key: string): void
+  /** The tour's example results are on screen (onboarding/demo.ts): no search runs and no answer lands meanwhile. */
+  demo: boolean
+  /** The tour's example request, shown in "Describe what you're looking for" while `demo` holds. */
+  demoAsk: string
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -81,6 +85,7 @@ export const useSearch = create<SearchState>((set, get) => {
     named: {},
     remember: (field, id, label) => set((st) => ({ named: { ...st.named, [`${field}:${id}`]: label } })),
     loadLists() {
+      if (get().demo) return
       const { tool, profile, profiles } = get()
       const search = tool ? findTool(tool)?.search : null
       if (!tool || !search || (profiles !== null && !profile)) return
@@ -113,9 +118,11 @@ export const useSearch = create<SearchState>((set, get) => {
         groupBy: null,
       })
       if (!t || !usesProfiles(t)) return
+      // An answer that comes while the tour's examples show is dropped; hideDemo asks again.
+      const mine = () => call === profilesSeq && !get().demo
       platform.listProfiles(id).then(
-        (profiles) => call === profilesSeq && set({ profiles: profiles ?? [] }),
-        (e) => call === profilesSeq && set({ profiles: [], profilesError: message(e) }),
+        (profiles) => mine() && set({ profiles: profiles ?? [] }),
+        (e) => mine() && set({ profiles: [], profilesError: message(e) }),
       )
     },
     chooseProfile(name) {
@@ -126,23 +133,25 @@ export const useSearch = create<SearchState>((set, get) => {
     setQuery: (query) => set({ query }),
     async search(page = 1) {
       const s = get()
-      if (missing(s) || s.tool === null) return
+      if (s.demo || missing(s) || s.tool === null) return
       const asked: Asked = { tool: s.tool, profile: s.profiles === null ? null : s.profile, query: s.query, page }
       const call = ++seq
       set({ loading: true, error: null })
       try {
         const answer = await platform.searchStore(asked.tool, asked.profile, asked.query, LIMIT, page)
-        if (call !== seq) return
+        if (call !== seq || get().demo) return
         set({ answer, asked, loading: false, expanded: null })
         if (answer.kind === "old") {
           const version = useTools.getState().installs[asked.tool]?.[0]?.version ?? null
           set((st) => ({ old: { ...st.old, [asked.tool]: version } }))
         }
       } catch (e) {
-        if (call !== seq) return
+        if (call !== seq || get().demo) return
         set({ error: message(e), asked, answer: null, loading: false })
       }
     },
     toggle: (key) => set((s) => ({ expanded: s.expanded === key ? null : key })),
+    demo: false,
+    demoAsk: "",
   }
 })

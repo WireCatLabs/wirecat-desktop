@@ -15,6 +15,8 @@ type State = { kind: "idle" } | { kind: "empty" } | { kind: "writing" } | { kind
 
 type Props = {
   tool: string | null
+  /** The tour's example request, shown as already written into the query; nothing is sent. */
+  example?: string | null
   /** Says what is missing on the page, as the Search button does, when no tool is chosen yet. */
   onNeedTool: () => void
   /** The query goes into the bar for the owner to check; it is never searched by itself. */
@@ -22,11 +24,13 @@ type Props = {
 }
 
 /** "Describe what you're looking for": the owner's words as the tool's query, written by an agent he set up. */
-export function QueryDraft({ tool, onNeedTool, onWritten }: Props) {
+export function QueryDraft({ tool, example = null, onNeedTool, onWritten }: Props) {
   const m = useMessages(searchMessages)
   const id = useId()
-  const [request, setRequest] = useState("")
-  const [state, setState] = useState<State>({ kind: "idle" })
+  const [typed, setRequest] = useState("")
+  const [real, setState] = useState<State>({ kind: "idle" })
+  const request = example ?? typed
+  const state: State = example === null ? real : { kind: "query", query: "", by: "claude-code" }
   const writing = state.kind === "writing"
 
   const write = async () => {
