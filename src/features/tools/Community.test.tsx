@@ -1,9 +1,9 @@
-import { render, screen, within } from "@testing-library/react"
 import type { FC } from "react"
 import { beforeAll, beforeEach, expect, it } from "vitest"
 import { addCommunityTools } from "@/domain/catalog"
 import { ACME } from "@/platform/mock-community"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { render, screen, within } from "@/testing/render"
 
 let App: FC
 

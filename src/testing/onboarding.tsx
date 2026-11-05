@@ -1,4 +1,3 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { expect, vi } from "vitest"
 import { App } from "@/app/App"
@@ -16,6 +15,7 @@ import { useAgents } from "@/shared/agents-store"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 
 /** The English catalogs, so a test names a button the way the interface does and survives a copy change. */
 export const m = onboardingMessages.en

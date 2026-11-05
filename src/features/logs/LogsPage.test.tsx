@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { LogsPage } from "./LogsPage"
 import { timing } from "./store"
 

@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { findTool, usesProfiles } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
-import type { SearchAnswer, ValueItem } from "@/platform/search-schemas"
+import type { SearchAnswer } from "@/platform/search-schemas"
 import { useTools } from "@/shared/tools-store"
 
 export const LIMIT = 50
@@ -28,9 +28,6 @@ type SearchState = {
   /** A query field the shown hits are grouped by, on this page only; null shows them one by one. */
   groupBy: string | null
   setGroupBy(field: string | null): void
-  /** The tool's own lists of values, by `tool|profile|version|list`, read once each. */
-  lists: Record<string, ValueItem[]>
-  loadLists(): void
   /** Names of ids the owner picked from a refusal's choices, by `field:id`, so the query box can show the name. */
   named: Record<string, string>
   remember(field: string, id: string, label: string): void
@@ -48,9 +45,6 @@ type SearchState = {
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
-export const listKey = (tool: string, profile: string | null, version: string | null, list: string) =>
-  `${tool}|${profile ?? ""}|${version ?? ""}|${list}`
 
 /** What still stops a search, in the order the page asks for it; "profiles" when the tool has none to choose. */
 export type Missing = "tool" | "profiles" | "profile" | "query"
@@ -81,25 +75,8 @@ export const useSearch = create<SearchState>((set, get) => {
     groupBy: null,
     setGroupBy: (groupBy) => set({ groupBy }),
     old: {},
-    lists: {},
     named: {},
     remember: (field, id, label) => set((st) => ({ named: { ...st.named, [`${field}:${id}`]: label } })),
-    loadLists() {
-      if (get().demo) return
-      const { tool, profile, profiles } = get()
-      const search = tool ? findTool(tool)?.search : null
-      if (!tool || !search || (profiles !== null && !profile)) return
-      const version = useTools.getState().installs[tool]?.[0]?.version ?? null
-      for (const name of Object.keys(search.values)) {
-        const key = listKey(tool, profile, version, name)
-        if (get().lists[key]) continue
-        set((st) => ({ lists: { ...st.lists, [key]: [] } }))
-        platform.searchValues(tool, profiles === null ? null : profile, name).then(
-          (values) => set((st) => ({ lists: { ...st.lists, [key]: values } })),
-          () => {},
-        )
-      }
-    },
     chooseTool(id) {
       if (id === get().tool) return
       const t = findTool(id)

@@ -1,8 +1,8 @@
-import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
+import { render, screen } from "@/testing/render"
 import { BackgroundLine } from "./Background"
 
 afterEach(() => vi.restoreAllMocks())
@@ -38,7 +38,7 @@ describe("a messenger kept up to date in the background", () => {
     expect(screen.queryByText("Not kept up to date in the background")).not.toBeInTheDocument()
     unmount()
     status.mockResolvedValue({ state: "unknown" })
-    render(<BackgroundLine tool={tg} profile="personal" />)
+    render(<BackgroundLine tool={tg} profile="work" />)
     await vi.waitFor(() => expect(status).toHaveBeenCalledTimes(2))
     expect(screen.queryByText("Not kept up to date in the background")).not.toBeInTheDocument()
   })

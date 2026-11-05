@@ -8,7 +8,7 @@ import {
   Terminal,
   XCircle,
 } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
+import { type ReactNode, useCallback, useState } from "react"
 import {
   type CatalogTool,
   doctorNeedsProfile,
@@ -32,6 +32,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
+import { useProfiles } from "./api"
 import { BackgroundLine } from "./Background"
 import { BotList } from "./BotList"
 import { ConfigRepair, offersRepair, type Repaired } from "./ConfigRepair"
@@ -204,39 +205,6 @@ function ProfileList(props: {
       {!tool.setup && <ManualSetup tool={tool} onCheck={onReload} checking={reloading} />}
     </div>
   )
-}
-
-/** Re-reading is how the app learns that a sign-in finished: the terminal reports nothing back. */
-export function useProfiles(id: string) {
-  const [profiles, setProfiles] = useState<Profile[] | null | undefined>(undefined)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const latest = useRef(0)
-
-  const reload = useCallback(() => {
-    const call = ++latest.current
-    setLoading(true)
-    platform
-      .listProfiles(id)
-      .then(
-        (p) => {
-          if (call !== latest.current) return
-          setProfiles(p)
-          setError(null)
-        },
-        (e) => call === latest.current && setError(String(e)),
-      )
-      .finally(() => call === latest.current && setLoading(false))
-  }, [id])
-
-  useEffect(() => {
-    reload()
-    return () => {
-      latest.current++
-    }
-  }, [reload])
-
-  return { profiles, error, loading, reload }
 }
 
 /** What became of the last sign-in handed to a terminal for this tool: opened, the browser preview, or no terminal. */

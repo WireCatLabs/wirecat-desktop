@@ -1,0 +1,27 @@
+import { QueryClient, queryOptions } from "@tanstack/react-query"
+import { platform } from "@/platform/bridge"
+
+// A failed call is a tool's own answer (not installed, refused), not a dropped packet: asking again at once gives the
+// same answer later. Focus and reconnect would start tool processes the owner did not ask for.
+const create = () =>
+  new QueryClient({
+    defaultOptions: {
+      queries: { retry: false, refetchOnWindowFocus: false, refetchOnReconnect: false },
+      mutations: { retry: false },
+    },
+  })
+
+let client = create()
+
+/** The one client: the provider in `app/` hands it to hooks, and stores outside React read and refresh it. */
+export const queryClient = () => client
+
+/** A new, empty client; the test setup calls it before each test so no answer leaks into the next one. */
+export function resetQueryClient() {
+  client.clear()
+  client = create()
+}
+
+/** A tool's profiles. Several features list them, so they share one key and one answer. */
+export const profilesQuery = (id: string) =>
+  queryOptions({ queryKey: ["tool", id, "profiles"], queryFn: () => platform.listProfiles(id) })

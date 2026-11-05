@@ -1,4 +1,3 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useTools } from "@/shared/tools-store"
@@ -17,6 +16,7 @@ import {
   rowBar,
   startOnboarding,
 } from "@/testing/onboarding"
+import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { MOTION } from "@/ui/motion"
 import { failureWordsEn } from "../tools/failure-words"
 import { InstallTips } from "./InstallWait"

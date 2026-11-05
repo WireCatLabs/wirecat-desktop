@@ -1,8 +1,8 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { ResetPreview } from "@/platform/backup-schemas"
 import { platform } from "@/platform/bridge"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { BackupPanel } from "./BackupPanel"
 import { useBackups } from "./backup-store"
 

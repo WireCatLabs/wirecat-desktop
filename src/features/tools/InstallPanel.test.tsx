@@ -1,4 +1,3 @@
-import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it } from "vitest"
 import { findTool } from "@/domain/catalog"
@@ -6,6 +5,7 @@ import type { InstallSession } from "@/domain/status"
 import { useAgents } from "@/shared/agents-store"
 import { useNav } from "@/shared/nav"
 import { useTools } from "@/shared/tools-store"
+import { render, screen, within } from "@/testing/render"
 import { ToolRow } from "./ToolRow"
 
 const done = (version: string): InstallSession => ({

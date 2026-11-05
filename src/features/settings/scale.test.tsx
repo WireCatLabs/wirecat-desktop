@@ -1,6 +1,6 @@
-import { fireEvent, render, renderHook, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it } from "vitest"
+import { fireEvent, render, renderHook, screen, waitFor } from "@/testing/render"
 import { AppPreferences } from "./AppPreferences"
 import { clampScale, scaleKey, useApplyScale, useScale, useScaleKeys } from "./scale"
 

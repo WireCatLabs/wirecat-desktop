@@ -31,11 +31,12 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
+import { useSearchValues } from "./api"
 import { HitContext } from "./HitContext"
 import { HitsTable } from "./HitsTable"
 import { searchMessages } from "./messages"
 import { QueryDraft } from "./QueryDraft"
-import { LIMIT, listKey, missing, useSearch } from "./store"
+import { LIMIT, missing, useSearch } from "./store"
 
 /** The site's guide to searching, and its page on the query language every tool shares (cli-core). */
 const searchGuide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/search`
@@ -240,13 +241,11 @@ function useSuggest(m: Words, version: string | null) {
   const profile = useSearch((s) => s.profile)
   const profiles = useSearch((s) => s.profiles)
   const answer = useSearch((s) => s.answer)
-  const lists = useSearch((s) => s.lists)
+  const demo = useSearch((s) => s.demo)
+  const lists = useSearchValues({ tool, profile, profiles, version, demo })
   const search = tool ? findTool(tool)?.search : null
   const fields = search?.fields ?? NO_FIELDS
   const what = search?.what ?? "messages"
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: a new tool, profile or version asks for its lists
-  useEffect(() => useSearch.getState().loadLists(), [tool, profile, profiles, version])
 
   const values = useMemo(() => {
     const seen = valuesInHits(answer?.kind === "hits" ? answer.hits : [])
@@ -256,8 +255,7 @@ function useSuggest(m: Words, version: string | null) {
         out[f.name] = f.values.map((value) => ({ value }))
         continue
       }
-      const listed =
-        typeof f.values === "string" && tool ? (lists[listKey(tool, profile, version, f.values)] ?? []) : []
+      const listed = typeof f.values === "string" ? (lists[f.values] ?? []) : []
       const inResults = new Set(seen[f.name] ?? [])
       // Without a list the tool can give (wa's contacts are not the people its search knows), the names the results
       // show; a name two people share comes back as a choice of both.
@@ -271,7 +269,7 @@ function useSuggest(m: Words, version: string | null) {
       ]
     }
     return out
-  }, [fields, answer, lists, tool, profile, version])
+  }, [fields, answer, lists])
 
   const picked = useSearch((s) => s.named)
   const named = useCallback(

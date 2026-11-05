@@ -1,4 +1,3 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
@@ -6,6 +5,7 @@ import type { ToolState } from "@/platform/schemas"
 import { readSaved, save } from "@/shared/saved-tools"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { ToolsPage } from "./ToolsPage"
 
 const copy = (version: string) => [{ path: "~/bin/tg", version, manager: "pnpm" as const, problem: null }]

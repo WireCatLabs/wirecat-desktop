@@ -1,9 +1,9 @@
-import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import { useBotSignIn } from "@/shared/bot-signin-store"
+import { render, screen, within } from "@/testing/render"
 import { BotList } from "../tools/BotList"
 import { BotSignInDialog } from "./BotSignInDialog"
 

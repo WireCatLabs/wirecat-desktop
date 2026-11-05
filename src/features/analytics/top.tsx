@@ -1,11 +1,11 @@
 import { ArrowDown, ArrowUp } from "lucide-react"
-import { type ReactNode, useEffect, useState } from "react"
+import type { ReactNode } from "react"
 import * as v from "valibot"
 import { addDays, meetingStats, weekOf } from "@/domain/analytics"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import { MailSchema, MeetingsListSchema } from "@/platform/analytics-schemas"
-import { platform } from "@/platform/bridge"
 import { Skeleton } from "@/ui/Skeleton"
+import { useClosedWeeks } from "./api"
 import { analyticsMessages } from "./messages"
 import { useAggregate, useAnalytics, useExtra } from "./store"
 
@@ -41,22 +41,6 @@ function ready<T>(state: ReturnType<typeof useAggregate>, schema: v.GenericSchem
     if (parsed.success) bodies.push(parsed.output)
   }
   return { bodies, old, loading: false }
-}
-
-/** Closed tasks this week and on the same days last week, from memo's own counts. */
-function useClosedWeeks(today: string) {
-  const [closed, setClosed] = useState<{ now: number; last: number } | null>(null)
-  useEffect(() => {
-    const monday = weekOf(today)
-    const range = (from: string, to: string) => `state:(done OR dismissed) closed:[${from} TO ${to}]`
-    void Promise.all([
-      platform.taskCounts(range(monday, today)),
-      platform.taskCounts(range(addDays(monday, -7), addDays(today, -7))),
-    ])
-      .then(([a, b]) => setClosed({ now: a.total, last: b.total }))
-      .catch(() => setClosed(null))
-  }, [today])
-  return closed
 }
 
 function Tile({

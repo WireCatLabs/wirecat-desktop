@@ -1,10 +1,10 @@
-import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import type { ReactElement } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { render, screen } from "@/testing/render"
 import { NewProfile, TerminalStatus } from "./Health"
 
 const tg = findTool("tg") as NonNullable<ReturnType<typeof findTool>>

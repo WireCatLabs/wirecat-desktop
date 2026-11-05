@@ -1,4 +1,3 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { App } from "@/app/App"
@@ -8,6 +7,7 @@ import type { InstallEvent } from "@/platform/schemas"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 
 const absent = { path: null, version: null, ok: false, problem: "not found" }
 const noNode = {

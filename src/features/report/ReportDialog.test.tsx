@@ -1,10 +1,10 @@
-import { act, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, expect, it, vi } from "vitest"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { ReportContext } from "@/platform/report-schemas"
 import { useReport } from "@/shared/report-store"
+import { act, render, screen, within } from "@/testing/render"
 import { ReportDialog } from "./ReportDialog"
 
 afterEach(() => {

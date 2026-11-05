@@ -1,7 +1,7 @@
-import { act, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { act, render, screen, waitFor } from "@/testing/render"
 import { MemoryPage } from "./MemoryPage"
 import { useMemory } from "./store"
 

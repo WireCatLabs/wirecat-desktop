@@ -203,6 +203,14 @@ tasks, search, analytics, archive and compat, settings, permissions, notificatio
 (URL check), runs (tool JSON) and the bug report context (tool JSON). Integers above 2^53 do not occur in these
 answers, so every 64-bit integer is exported as `number` (`dangerous_bigints_as_number` in `bindings.rs`).
 
+**Step 6, first PR (2026-11-05).** `@tanstack/react-query` with one client in `shared/query.ts`. Moved: tools
+(profiles, shared by every feature that lists them; permissions; background serve), search (the tool's value lists),
+analytics (extra counts, aggregates, closed tasks per week). Left: the tools store's detection and installs (read by
+twelve features outside React), MCP server, sync, tunnels and the guides in tools; search's own search and profiles
+(the tour writes them); analytics' page load; agents, config, logs, memory, tasks, storage, system, update,
+notifications. Removed 3 of the 21 `useExhaustiveDependencies` ignores; most of the rest are focus and layout effects,
+not data loading.
+
 ## Further improvements
 
 Recommended:
