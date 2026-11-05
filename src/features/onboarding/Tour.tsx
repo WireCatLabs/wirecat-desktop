@@ -1,29 +1,51 @@
 import { useCallback, useLayoutEffect, useState } from "react"
 import { create } from "zustand"
 import { useMessages } from "@/i18n"
+import { Button } from "@/ui/Button"
 import { Callout } from "@/ui/Callout"
-import { reducedMotion } from "@/ui/motion"
+import { focusInPlace, reducedMotion } from "@/ui/motion"
+import { greetOnArrival } from "../guides/GuidesPage"
+import { useGuideStart } from "../guides/start-store"
+import { HOME_SECTION, useNav } from "../nav"
 import { onboardingMessages, type TourStop } from "./messages"
 
-type Stop = { anchor: string; side?: "bottom" | "right"; key: TourStop }
+/** `anchor` null is a stop about no one element (how WireCat works with an agent): the panel sits in the middle. */
+type Stop = { key: TourStop; anchor: string | null; fallback?: string; side?: "bottom" | "right"; section?: string }
 
 // Anchors are data-tour attributes on the real elements, so the tour follows the interface instead of a copy of it.
-const stops: readonly Stop[] = [
-  { anchor: '[data-tour="tool"] [role="img"]', key: "lamps" },
-  { anchor: '[data-tour="tool-action"]', key: "action" },
-  { anchor: '[data-tour="check-again"]', key: "again" },
-  { anchor: '[data-tour="nav-storage"]', side: "right", key: "storage" },
-  { anchor: '[data-tour="nav-logs"]', side: "right", key: "logs" },
-  { anchor: '[data-tour="help"]', key: "help" },
+// It walks the sidebar top to bottom and ends on the first guide, where the work starts (owner, 2026-11-05).
+export const STOPS: readonly Stop[] = [
+  { key: "tools", anchor: '[data-tour="nav-tools"]', side: "right", section: "tools" },
+  { key: "lamps", anchor: '[data-tour="tool"] [role="img"]', section: "tools" },
+  { key: "action", anchor: '[data-tour="tool-action"]', section: "tools" },
+  { key: "agents", anchor: '[data-tour="nav-agents"]', side: "right" },
+  { key: "how", anchor: null },
+  { key: "search", anchor: '[data-tour="nav-search"]', side: "right" },
+  { key: "memory", anchor: '[data-tour="nav-memory"]', side: "right" },
+  { key: "system", anchor: '[data-tour="nav-system"]', side: "right" },
+  { key: "help", anchor: '[data-tour="help"]' },
+  // With no guide the tools can run yet there is no "Start here"; the page's own heading stands in.
+  { key: "guide", anchor: '[data-tour="guide-start"]', fallback: '[data-tour="guides"]', section: "guides" },
 ]
 
-type TourState = { open: boolean; returnTo: HTMLElement | null; start(): void; close(): void }
+// A page draws its rows a few frames after it opens; a stop whose element never shows is passed over.
+const FRAMES = 30
+
+type TourState = {
+  open: boolean
+  returnTo: HTMLElement | null
+  start(from?: "setup"): void
+  close(): void
+}
 
 export const useTour = create<TourState>((set, get) => ({
   open: false,
   returnTo: null,
-  start: () =>
-    set({ open: true, returnTo: document.activeElement instanceof HTMLElement ? document.activeElement : null }),
+  start: (from) => {
+    if (from === "setup") greetOnArrival()
+    useNav.getState().go(STOPS[0]?.section ?? HOME_SECTION)
+    set({ open: true, returnTo: document.activeElement instanceof HTMLElement ? document.activeElement : null })
+  },
   close: () => {
     // Started from the setup's last step, the button that opened it is gone by now.
     const back = get().returnTo
@@ -40,44 +62,102 @@ export function Tour() {
 
 function TourSteps() {
   const close = useTour((s) => s.close)
-  const [found, setFound] = useState<{ stop: Stop; el: Element }[] | null>(null)
+  const active = useNav((s) => s.active)
   const [index, setIndex] = useState(0)
-  const m = useMessages(onboardingMessages).tour
-
-  // Measured after the Tools page has rendered; a stop whose element is not on screen is left out.
-  useLayoutEffect(() => {
-    setFound(
-      stops.flatMap((stop) => {
-        const el = document.querySelector(stop.anchor)
-        return el ? [{ stop, el }] : []
-      }),
-    )
-  }, [])
-
-  const current = found?.[index]
-  useLayoutEffect(() => {
-    current?.el.scrollIntoView?.({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" })
-  }, [current])
+  const [dir, setDir] = useState<1 | -1>(1)
+  const [shown, setShown] = useState<{ index: number; el: Element | null } | null>(null)
+  const all = useMessages(onboardingMessages)
+  const m = all.tour
+  const stop = STOPS[index]
 
   useLayoutEffect(() => {
-    if (found?.length === 0) close()
-  }, [found, close])
+    if (!stop) return
+    if (stop.section && active !== stop.section) {
+      useNav.getState().go(stop.section)
+      return
+    }
+    const { anchor, fallback } = stop
+    if (anchor === null) {
+      setShown({ index, el: null })
+      return
+    }
+    let frame = 0
+    let tries = 0
+    const find = () => {
+      const el = document.querySelector(anchor)
+      if (el) {
+        el.scrollIntoView?.({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" })
+        setShown({ index, el })
+        return
+      }
+      if (++tries < FRAMES) {
+        frame = requestAnimationFrame(find)
+        return
+      }
+      const stand = fallback ? document.querySelector(fallback) : null
+      if (stand) setShown({ index, el: stand })
+      else if (STOPS[index + dir]) setIndex(index + dir)
+      else close()
+    }
+    find()
+    return () => cancelAnimationFrame(frame)
+  }, [stop, index, active, dir, close])
 
   const onClose = useCallback(() => close(), [close])
-  if (!found || !current) return null
+  const step = (by: 1 | -1) => {
+    setDir(by)
+    setIndex((i) => Math.min(STOPS.length - 1, Math.max(0, i + by)))
+  }
+  // The last stop holds until its own element is found, so the panel never points at the page left behind.
+  const current = shown && STOPS[shown.index]
+  if (!shown || !current) return null
+
+  const starter = shown.el?.matches('[data-tour="guide-start"]') ?? false
+  const tryGuide = () => {
+    const start = document.querySelector('[data-tour="guide-start"]')
+    close()
+    // A guide just swapped out by Next guide is still fading, inert, ahead of the new one.
+    const buttons = [...(start?.querySelectorAll<HTMLElement>("article button") ?? [])]
+    focusInPlace(buttons.find((b) => !b.closest("[inert]")) ?? null)
+  }
 
   return (
     <Callout
-      anchor={current.el}
-      side={current.stop.side}
-      title={m[current.stop.key].title}
-      index={index}
-      count={found.length}
-      onBack={() => setIndex((i) => Math.max(0, i - 1))}
-      onNext={() => setIndex((i) => Math.min(found.length - 1, i + 1))}
+      anchor={shown.el}
+      side={current.side}
+      title={m[current.key].title}
+      index={shown.index}
+      count={STOPS.length}
+      onBack={() => step(-1)}
+      onNext={() => step(1)}
       onClose={onClose}
+      finish={
+        <>
+          {starter && (
+            <>
+              <Button data-primary size="sm" variant="primary" onClick={tryGuide}>
+                {all.tourEnd.tryGuide}
+              </Button>
+              <Button size="sm" onClick={() => useGuideStart.getState().next()}>
+                {all.tourEnd.nextGuide}
+              </Button>
+            </>
+          )}
+          <Button
+            {...(starter ? {} : { "data-primary": "" })}
+            size="sm"
+            variant={starter ? "ghost" : "primary"}
+            onClick={() => {
+              close()
+              useNav.getState().go(HOME_SECTION)
+            }}
+          >
+            {all.tourEnd.openTools}
+          </Button>
+        </>
+      }
     >
-      {m[current.stop.key].text}
+      {m[current.key].text}
     </Callout>
   )
 }

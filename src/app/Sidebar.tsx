@@ -41,7 +41,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
             <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
           ))}
       </nav>
-      <nav aria-label={m.systemNav} className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
+      <nav aria-label={m.systemNav} data-tour="nav-system" className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
         {sections
           .filter((s) => s.group === "system")
           .map((s) => (

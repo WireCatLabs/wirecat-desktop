@@ -1,6 +1,7 @@
 import { Bot, CheckCircle2, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
-import { type ReactNode, useEffect, useId, useRef, useState } from "react"
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
 import { type CatalogTool, findTool, ownerId, samePackage, signsInHere, tools } from "@/domain/catalog"
+import { accountReady, afterSignIn } from "@/domain/onboarding-flow"
 import { toolStatus } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -493,13 +494,24 @@ function PendingSignInRow({ tool }: { tool: CatalogTool }) {
   )
 }
 
-function SignInRow({ tool }: { tool: CatalogTool }) {
+function SignInRow({
+  tool,
+  onReady,
+}: {
+  tool: CatalogTool
+  onReady: (id: string, ready: boolean | undefined) => void
+}) {
   const { profiles, error, loading, reload } = useProfiles(tool.id)
   const [adding, setAdding] = useState(false)
   const m = useMessages(onboardingMessages).signIn
   const manual = !tool.setup
   const count = profiles?.length ?? 0
   const seen = useRef(count)
+  const ready = loading ? undefined : accountReady(profiles, manual)
+
+  useEffect(() => {
+    onReady(tool.id, ready)
+  }, [onReady, tool.id, ready])
 
   // The form opens only on a click, so it closes by itself once the account it was for shows up.
   useEffect(() => {
@@ -601,6 +613,25 @@ export function SignIn() {
   const ready = list.filter((t) => signsIn(t) && installs[t.id]?.length)
   const waiting = list.filter((t) => signsIn(t) && !installs[t.id]?.length)
   const noSignIn = list.filter((t) => !signsIn(t))
+  const [readyById, setReadyById] = useState<Record<string, boolean | undefined>>({})
+  const onReady = useCallback(
+    (id: string, ready: boolean | undefined) =>
+      setReadyById((all) => (all[id] === ready && id in all ? all : { ...all, [id]: ready })),
+    [],
+  )
+  // A sign-in that ended well in the window leads on once its dialog is closed: the step behind it has nothing left
+  // to do when every tool has an account, and "You are set up" says so (owner, 2026-11-05).
+  const succeeded = useSignIn((s) => s.phase === "done")
+  const dialogOpen = useSignIn((s) => s.tool !== null)
+  const [signedIn, setSignedIn] = useState(false)
+  useEffect(() => {
+    if (succeeded) setSignedIn(true)
+  }, [succeeded])
+  const next = signedIn && !dialogOpen ? afterSignIn(ready.map((t) => readyById[t.id])) : "wait"
+  useEffect(() => {
+    if (next === "done") useOnboarding.getState().go("done")
+    if (next !== "wait") setSignedIn(false)
+  }, [next])
 
   // Until the tools are found, the chosen ones stand in: they are the ones just installed.
   if (!detected && !failed) {
@@ -620,7 +651,7 @@ export function SignIn() {
       {ready.length > 0 ? (
         <ul aria-label={m.list} className={rack}>
           {ready.map((t) => (
-            <SignInRow key={t.id} tool={t} />
+            <SignInRow key={t.id} tool={t} onReady={onReady} />
           ))}
         </ul>
       ) : (
@@ -690,11 +721,14 @@ export function Done() {
       <p className="max-w-[65ch] text-[0.95rem] text-ink-soft">{m.moreLater}</p>
       <section aria-label={m.next} className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-semibold">{m.next}</h2>
-        <div className="flex flex-wrap gap-2">
+        {/* Quiet on purpose: the tour at the foot leads, and these stay one click away (owner, 2026-11-05). */}
+        <div className="-ml-3 flex flex-wrap gap-2">
           {browserReady && (
-            <Button onClick={() => go(() => openConnect(browserReady.id))}>{m.connect(browserReady.name)}</Button>
+            <Button variant="ghost" size="sm" onClick={() => go(() => openConnect(browserReady.id))}>
+              {m.connect(browserReady.name)}
+            </Button>
           )}
-          <Button variant="ghost" onClick={() => go(() => useNav.getState().go("agents"))}>
+          <Button variant="ghost" size="sm" onClick={() => go(() => useNav.getState().go("agents"))}>
             {m.agents}
           </Button>
         </div>

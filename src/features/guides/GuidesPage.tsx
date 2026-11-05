@@ -35,15 +35,21 @@ import {
   variesByMessenger,
 } from "./guides"
 import { guidesMessages, type Text } from "./messages"
+import { useGuideStart } from "./start-store"
 
 const params = new URLSearchParams(window.location.search)
 const scenario = params.get("guides")
 let firstVisit = scenario === "first"
 
-/** Called by the setup's last step on the review branch, so the page greets the owner once. */
-export function arriveFromSetup() {
+/** The tour started from the setup ends here, so the page greets the owner once when it opens. */
+export function greetOnArrival() {
   firstVisit = true
-  useNav.getState().go("guides")
+}
+
+/** The guides "Start here" offers in turn: the ready ones in START_ORDER, then the other ready ones. */
+export function startOrder(fits: Map<string, Fit>): string[] {
+  const ready = (id: string) => fits.get(id)?.ready
+  return [...new Set([...START_ORDER.filter(ready), ...GUIDES.map((g) => g.id).filter(ready)])]
 }
 
 // The first guide here that the owner's tools can run is the one the page offers first.
@@ -131,11 +137,12 @@ export function GuidesPage() {
       // Without storage the choice lasts until the page closes.
     }
   }
-  const start = useRef<string | null>(null)
-  if (known && !start.current)
-    start.current =
-      START_ORDER.find((id) => fits.get(id)?.ready) ?? GUIDES.find((g) => fits.get(g.id)?.ready)?.id ?? null
-  const startId = start.current ?? (known ? null : "catch-up")
+  // Fixed once the tools are known, so installing one later does not swap the guide the owner is reading.
+  const order = useRef<string[] | null>(null)
+  if (known && !order.current) order.current = startOrder(fits)
+  const ids = order.current ?? (known ? [] : ["catch-up"])
+  const shift = useGuideStart((s) => s.shift)
+  const startId = ids.length > 0 ? ids[shift % ids.length] : null
   const starter = GUIDES.find((g) => g.id === startId)
   const words = fold(query).split(/\s+/).filter(Boolean)
   const searching = words.length > 0
@@ -158,7 +165,7 @@ export function GuidesPage() {
 
   return (
     <div className="@container flex flex-col gap-[1.8rem] px-[2.1rem] pt-[1.6rem] pb-[3rem]">
-      <header className="flex flex-col gap-[1rem]">
+      <header data-tour="guides" className="flex flex-col gap-[1rem]">
         <div className="flex items-end justify-between gap-4">
           <div className="flex min-w-0 items-baseline gap-[1.2rem]">
             <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
@@ -218,10 +225,17 @@ export function GuidesPage() {
 
       {starter && (
         <Collapse open={!searching}>
-          <section aria-labelledby="guides-start" className="flex flex-col gap-[0.8rem]">
-            <h2 id="guides-start" className="text-[0.95rem] font-medium text-ink-dim">
-              {welcome ? m.welcomeTitle : m.startHere}
-            </h2>
+          <section data-tour="guide-start" aria-labelledby="guides-start" className="flex flex-col gap-[0.8rem]">
+            <div className="flex min-h-[2rem] items-center justify-between gap-3">
+              <h2 id="guides-start" className="text-[0.95rem] font-medium text-ink-dim">
+                {welcome ? m.welcomeTitle : m.startHere}
+              </h2>
+              {ids.length > 1 && (
+                <Button variant="ghost" size="sm" onClick={() => useGuideStart.getState().next()}>
+                  {m.nextGuide}
+                </Button>
+              )}
+            </div>
             <AutoHeight swap={starter.id}>
               <Crossfade swap={starter.id}>
                 <GuideBody

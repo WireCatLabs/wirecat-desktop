@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   accountReady,
+  afterSignIn,
   canOpen,
   computerGate,
   type Facts,
@@ -86,9 +87,9 @@ describe("the main button", () => {
     expect(primaryAction("choose", 0, true)).toBe("continue")
   })
 
-  it("starts on Welcome and leads to the guides on Done", () => {
+  it("starts on Welcome and leads into the tour on Done", () => {
     expect(primaryAction("welcome", 0, false)).toBe("start")
-    expect(primaryAction("done", 0, true)).toBe("guides")
+    expect(primaryAction("done", 0, true)).toBe("tour")
     expect(primaryAction("install", 3, true)).toBe("continue")
   })
 })
@@ -188,5 +189,20 @@ describe("whether a tool has an account to work with", () => {
     expect(skillInPlace(["missing", "stale"])).toBe(true)
     expect(skillInPlace(["current"])).toBe(true)
     expect(skillInPlace(["missing", "unknown", "checking"])).toBe(false)
+  })
+})
+
+describe("after a sign-in in the window", () => {
+  it("goes on to Done once every tool on the step has an account", () => {
+    expect(afterSignIn([true, true])).toBe("done")
+  })
+
+  it("stays while a tool still has no account", () => {
+    expect(afterSignIn([true, false])).toBe("stay")
+    expect(afterSignIn([])).toBe("stay")
+  })
+
+  it("waits for a tool that is still reading its accounts", () => {
+    expect(afterSignIn([true, undefined])).toBe("wait")
   })
 })

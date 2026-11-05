@@ -20,6 +20,7 @@ import { CHECK_EVERY_MS, useUpdate } from "@/features/update/store"
 import { UpdateButton, UpdateDialog } from "@/features/update/UpdateDialog"
 import { useApplyLang, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { useFinishBoot } from "./boot"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { useSectionHistory } from "./history"
 import { appMessages } from "./messages"
@@ -35,17 +36,14 @@ export function App() {
   const m = useMessages(appMessages)
   useApplyScale()
   useScaleKeys()
+  useFinishBoot()
   const active = useNav((s) => s.active)
   const setActive = useNav((s) => s.go)
   const onboarding = useOnboarding((s) => s.open)
   useSectionHistory(!onboarding)
   const Page = sections.find((s) => s.id === active)?.page
 
-  // The tour points at the Tools page, so it opens there.
-  const startTour = () => {
-    setActive("tools")
-    useTour.getState().start()
-  }
+  const startTour = () => useTour.getState().start()
   const toHome = () => setActive(HOME_SECTION)
   const [about, setAbout] = useState(false)
   const [privacy, setPrivacy] = useState(false)
@@ -97,7 +95,7 @@ export function App() {
         </TopBar>
         {onboarding ? (
           <ErrorBoundary scope="page">
-            <Onboarding onExit={toHome} onTour={startTour} />
+            <Onboarding onExit={toHome} onTour={() => useTour.getState().start("setup")} />
           </ErrorBoundary>
         ) : (
           <main className="min-h-0 flex-1 overflow-y-auto">
