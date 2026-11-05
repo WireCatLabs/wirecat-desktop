@@ -224,6 +224,9 @@ describe("Connect agents step", () => {
     expect(screen.getByRole("region", { name: "How a skill helps" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Continue" })).toHaveAttribute("data-variant", "secondary")
 
+    // Cells stay "checking" until the skill check ends, and the check clears failures when it starts: acting before
+    // then asserts on a half-drawn table or loses the failure asserted below.
+    await waitFor(() => expect(useAgents.getState().answered).toBe(true), { timeout: 4000 })
     const all = await screen.findByRole(
       "button",
       { name: "Install the Telegram skill for Claude Code and Codex" },

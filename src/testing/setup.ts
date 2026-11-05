@@ -1,10 +1,13 @@
 import "@testing-library/jest-dom/vitest"
-import { cleanup } from "@testing-library/react"
+import { cleanup, configure } from "@testing-library/react"
 import { afterEach, beforeEach, vi } from "vitest"
 import { initPlatform } from "@/platform/bridge"
 import { resetStores } from "./stores"
 
 await initPlatform()
+
+// Pages are lazy chunks; on a busy CI machine the first one takes longer than the default 1 s to appear.
+configure({ asyncUtilTimeout: 3000 })
 
 // Every store the app creates is recorded, so `resetStores` can put each one back without a list to keep in step.
 vi.mock("zustand", async (importOriginal) => {
