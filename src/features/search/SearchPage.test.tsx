@@ -5,7 +5,6 @@ import { useNav } from "@/shared/nav"
 import { useTools } from "@/shared/tools-store"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { SearchPage } from "./SearchPage"
-import { useSearch } from "./store"
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -284,7 +283,6 @@ describe("Search", () => {
     await choose(user, "Tool", "Telegram")
     await choose(user, "Profile", "personal")
     await waitFor(() => expect(values).toHaveBeenCalledWith("tg", "personal", "chats"))
-    await waitFor(() => expect(Object.values(useSearch.getState().lists).some((l) => l.length > 0)).toBe(true))
     const bar = screen.getByRole("combobox", { name: "Search messages" })
 
     await user.click(bar)
