@@ -129,13 +129,6 @@ async function searchScenario(params: URLSearchParams) {
   await search.search(1)
 }
 
-export function CrashScenario({ section }: { section: string }): null {
-  if (platform.kind === "mock" && new URLSearchParams(window.location.search).get("crash") === section) {
-    throw new TypeError("Cannot read properties of undefined (reading 'length')")
-  }
-  return null
-}
-
 // `?notifications=open` opens the bell's panel once the first check has answered.
 function openBell() {
   const show = () => useNotifications.getState().show()

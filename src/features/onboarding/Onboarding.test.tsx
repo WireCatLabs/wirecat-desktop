@@ -109,7 +109,7 @@ describe("an install that is still running", () => {
     expect(await screen.findByText("Still installing: Google Drive 49%")).toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Set up later" }))
-    expect(screen.getByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument()
     const bar = await screen.findByRole("progressbar", { name: "Installing Google Drive" })
     expect(bar).toHaveAttribute("aria-valuenow", "49")
 

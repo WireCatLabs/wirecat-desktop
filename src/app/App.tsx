@@ -1,5 +1,5 @@
 import { Bug } from "lucide-react"
-import { useEffect, useRef, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { AboutDialog, docsPage } from "@/features/about/AboutDialog"
 import { HOME_SECTION, useNav } from "@/features/nav"
 import { Bell } from "@/features/notifications/Bell"
@@ -23,11 +23,12 @@ import { currentLang, useApplyLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { useFinishBoot } from "./boot"
+import { CrashScenario } from "./CrashScenario"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { useSectionHistory, useSectionSwitch } from "./history"
 import { appMessages } from "./messages"
+import { PageSkeleton } from "./PageSkeleton"
 import { Sidebar } from "./Sidebar"
-import { CrashScenario } from "./scenarios"
 import { sections } from "./sections"
 import { TopBar } from "./TopBar"
 import { useApplyTheme } from "./theme"
@@ -111,7 +112,11 @@ export function App() {
           <main ref={main} className="relative min-h-0 flex-1 overflow-y-auto">
             <ErrorBoundary key={active} scope="page">
               <CrashScenario section={active} />
-              {Page && <Page />}
+              {Page && (
+                <Suspense fallback={<PageSkeleton />}>
+                  <Page />
+                </Suspense>
+              )}
             </ErrorBoundary>
           </main>
         )}

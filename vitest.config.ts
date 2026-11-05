@@ -5,6 +5,7 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
   plugins: [react()],
   define: {
+    __WITH_MOCK__: true,
     __APP_VERSION__: JSON.stringify("0.0.0-test"),
     __BUILD_COMMIT__: JSON.stringify("abc1234"),
     __BUILD_DATE__: JSON.stringify("2026-10-26"),

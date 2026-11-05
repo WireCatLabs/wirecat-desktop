@@ -99,7 +99,7 @@ describe("First start", () => {
     await user.click(screen.getByRole("button", { name: "Continue" }))
     await user.click(screen.getByRole("button", { name: "Open Tools" }))
 
-    expect(screen.getByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument()
     expect(stored()).toBe("done")
     expect(screen.queryByRole("button", { name: "Finish setup" })).not.toBeInTheDocument()
   }, 15000)
@@ -117,7 +117,7 @@ describe("First start", () => {
     render(<App />)
 
     await user.click(screen.getByRole("button", { name: "Set up later" }))
-    expect(screen.getByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { level: 1, name: "Tools" })).toBeInTheDocument()
     expect(stored()).toBe("later")
 
     await user.click(screen.getByRole("button", { name: "Finish setup" }))
