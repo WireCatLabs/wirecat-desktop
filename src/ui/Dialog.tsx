@@ -3,9 +3,9 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { cx } from "./cx"
 import { uiMessages } from "./messages"
-import { reducedMotion } from "./motion"
+import { MOTION, reducedMotion } from "./motion"
 
-const CLOSE_MS = 150
+const CLOSE_MS = MOTION.fast
 
 type Props = {
   open: boolean
