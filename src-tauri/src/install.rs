@@ -11,7 +11,7 @@ use tauri::ipc::Channel;
 const PNPM_WIRECAT_NOW: &str = "--config.minimum-release-age-exclude=@wirecat/*";
 const INSTALL_TIMEOUT: Duration = Duration::from_mins(15);
 
-#[derive(Serialize, Clone)]
+#[derive(specta::Type, Serialize, Clone)]
 // `rename_all` renames only the variants; the fields need `rename_all_fields` to reach the interface as camelCase.
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "event")]
 pub enum InstallEvent {
@@ -41,8 +41,9 @@ pub enum InstallEvent {
     },
 }
 
-#[derive(Serialize, Clone, Copy)]
+#[derive(specta::Type, Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "InstallCheck")]
 pub enum Check {
     /// Putting the tool's folder on the PATH and asking the shells whether they find it.
     Path,
@@ -52,8 +53,9 @@ pub enum Check {
     Skills,
 }
 
-#[derive(Serialize, Clone, Copy)]
+#[derive(specta::Type, Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "InstallStep")]
 pub enum Step {
     Check,
     Install,
@@ -61,8 +63,9 @@ pub enum Step {
     Verify,
 }
 
-#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "FailReason")]
 pub enum Reason {
     Requirements,
     Permission,
@@ -366,7 +369,7 @@ fn uninstall_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent
     Ok(InstallEvent::Removed)
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct CopyRemoval {
     pub removed: bool,
@@ -440,7 +443,7 @@ pub fn remove_copy(tool: &Tool, shown: &str, running: &Running) -> CopyRemoval {
     }
 }
 
-#[derive(Serialize, Debug, PartialEq, Clone, Copy)]
+#[derive(specta::Type, Serialize, Debug, PartialEq, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum CopyRefusal {
     /// No longer one of the copies on PATH.

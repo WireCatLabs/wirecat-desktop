@@ -22,8 +22,10 @@ const FORBIDDEN: [&str; 8] =
 
 /// What the file added: the accepted entries as written (the interface reads their text fields), and a sentence per
 /// entry left out.
-#[derive(Debug, Default, Serialize, Clone)]
+#[derive(specta::Type, Debug, Default, Serialize, Clone)]
+#[serde(rename = "ExtraTools")]
 pub struct Extra {
+    #[specta(type = Vec<specta_typescript::Unknown>)]
     pub tools: Vec<Value>,
     pub rejected: Vec<String>,
 }

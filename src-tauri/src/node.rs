@@ -234,7 +234,7 @@ fn target(agent: &ureq::Agent) -> Result<Target, Failure> {
     Ok(Target { version, asset })
 }
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Offer {
     pub version: String,
@@ -256,7 +256,7 @@ pub fn offer() -> Result<Offer, String> {
     Ok(Offer { version: target.version.to_string(), bytes, dir: paths::tilde(&dir.to_string_lossy()) })
 }
 
-#[derive(Serialize, Clone)]
+#[derive(specta::Type, Serialize, Clone)]
 #[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "event")]
 pub enum NodeEvent {
     Step {
@@ -279,8 +279,9 @@ pub enum NodeEvent {
     },
 }
 
-#[derive(Serialize, Clone, Copy, Debug, PartialEq)]
+#[derive(specta::Type, Serialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
+#[serde(rename = "NodeStep")]
 pub enum Step {
     Check,
     Download,

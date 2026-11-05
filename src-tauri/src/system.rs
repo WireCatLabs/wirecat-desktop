@@ -4,7 +4,29 @@ use std::ffi::OsStr;
 use std::path::PathBuf;
 use std::time::Duration;
 
-#[derive(Serialize)]
+/// The interface's three platforms; every other Unix is treated as Linux.
+#[derive(specta::Type, Serialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum Os {
+    #[default]
+    Linux,
+    Macos,
+    Windows,
+}
+
+impl Os {
+    pub fn current() -> Self {
+        if cfg!(target_os = "macos") {
+            Os::Macos
+        } else if cfg!(windows) {
+            Os::Windows
+        } else {
+            Os::Linux
+        }
+    }
+}
+
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Readiness {
     pub os: String,
@@ -20,7 +42,7 @@ pub struct Readiness {
     pub managed: Option<Managed>,
 }
 
-#[derive(Serialize)]
+#[derive(specta::Type, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Managed {
     pub version: String,
@@ -28,7 +50,7 @@ pub struct Managed {
     pub active: bool,
 }
 
-#[derive(Serialize, Default)]
+#[derive(specta::Type, Serialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Program {
     pub path: Option<String>,
