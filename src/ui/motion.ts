@@ -7,19 +7,19 @@ import { type RefObject, useEffect, useLayoutEffect, useRef, useState } from "re
  */
 export const MOTION = {
   /** Hover, press, a label that changes. */
-  fast: 150,
+  fast: 180,
   /** Something leaving: a dialog closing, the old screen fading out under the new one. */
-  exit: 200,
+  exit: 260,
   /** One view replacing another, a page arriving, a dialog opening. */
-  normal: 280,
+  normal: 380,
   /** A panel opening or closing, a height following its content. */
-  slow: 300,
+  slow: 400,
   /** A whole view trading places with another in a dialog (one sign-in method for the other). */
-  swap: 450,
+  swap: 600,
   /** A setup step arriving: a longer travel than a page, since the whole step is new. */
-  step: 560,
+  step: 760,
   /** A progress bar moving to its new value. */
-  progress: 600,
+  progress: 700,
   /** The least time a finished state stays on screen before the next one replaces it. Pacing, not animation. */
   hold: 1200,
 } as const

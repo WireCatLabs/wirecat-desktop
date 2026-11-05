@@ -59,13 +59,13 @@
 
 /* Motion durations: the same values as MOTION in src/ui/motion.ts (motion.test.tsx keeps them equal). */
 :root {
-  --motion-fast: 150ms;
-  --motion-exit: 200ms;
-  --motion-normal: 280ms;
-  --motion-slow: 300ms;
-  --motion-swap: 450ms;
-  --motion-step: 560ms;
-  --motion-progress: 600ms;
+  --motion-fast: 180ms;
+  --motion-exit: 260ms;
+  --motion-normal: 380ms;
+  --motion-slow: 400ms;
+  --motion-swap: 600ms;
+  --motion-step: 760ms;
+  --motion-progress: 700ms;
 }
 
 @theme inline {

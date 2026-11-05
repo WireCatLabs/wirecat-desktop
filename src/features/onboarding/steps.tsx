@@ -15,6 +15,7 @@ import { type InstallSession, toolStatus } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
@@ -611,47 +612,51 @@ function SignInRow({
           </ul>
         )}
         <TerminalStatus tool={tool} profiles={profiles} onCheck={reload} checking={loading} />
-        {adding ? (
-          <>
-            {tool.signIn && (
-              <p className="max-w-[65ch] text-body leading-relaxed text-ink-soft">
-                <span className="font-medium text-ink">{manual ? m.needs : m.willAsk}</span>
-                {m.asks[tool.id] ?? tool.signIn.asks}
-                {tool.signIn.guide && !manual && (
-                  <>
-                    {" "}
-                    <a
-                      href={tool.signIn.guide}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        if (tool.signIn?.guide) platform.openUrl(tool.signIn.guide)
-                      }}
-                      className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-                    >
-                      {m.guide}
-                    </a>
-                  </>
+        <AutoHeight swap={adding}>
+          <Crossfade swap={adding ? "adding" : "list"} ms={MOTION.normal}>
+            {adding ? (
+              <>
+                {tool.signIn && (
+                  <p className="max-w-[65ch] text-body leading-relaxed text-ink-soft">
+                    <span className="font-medium text-ink">{manual ? m.needs : m.willAsk}</span>
+                    {m.asks[tool.id] ?? tool.signIn.asks}
+                    {tool.signIn.guide && !manual && (
+                      <>
+                        {" "}
+                        <a
+                          href={tool.signIn.guide}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            if (tool.signIn?.guide) platform.openUrl(tool.signIn.guide)
+                          }}
+                          className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
+                        >
+                          {m.guide}
+                        </a>
+                      </>
+                    )}
+                  </p>
                 )}
-              </p>
+                {manual ? (
+                  <ManualSetup tool={tool} onCheck={reload} checking={loading} />
+                ) : (
+                  <NewProfile tool={tool} label={count ? m.addAnother : m.add} onCheck={reload} />
+                )}
+              </>
+            ) : profiles === undefined && !error ? null : (
+              <div>
+                <Button
+                  size="sm"
+                  variant={count ? "ghost" : "primary"}
+                  className={count ? "-ml-3" : undefined}
+                  onClick={() => setAdding(true)}
+                >
+                  {count ? m.addAnother : m.add}
+                </Button>
+              </div>
             )}
-            {manual ? (
-              <ManualSetup tool={tool} onCheck={reload} checking={loading} />
-            ) : (
-              <NewProfile tool={tool} label={count ? m.addAnother : m.add} onCheck={reload} />
-            )}
-          </>
-        ) : profiles === undefined && !error ? null : (
-          <div>
-            <Button
-              size="sm"
-              variant={count ? "ghost" : "primary"}
-              className={count ? "-ml-3" : undefined}
-              onClick={() => setAdding(true)}
-            >
-              {count ? m.addAnother : m.add}
-            </Button>
-          </div>
-        )}
+          </Crossfade>
+        </AutoHeight>
       </div>
     </li>
   )
