@@ -1820,3 +1820,7 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - Десктоп (не правился): `task_board.rs` — ветка `HasSubtasks` станет мёртвой, `Saved` должен показать `moved_subtasks`; stale по `details.reason` продолжает работать; `src/domain/sync.ts` не знает `conflict`.
 - NEED-223 · cli-core#2473 смёрджен (2026-11-05), после регистрации причины `mail.attachments-unread`. cli-core 0.563.0 уже на npm с #2462 и #2464 (выпущен не этой сессией); #2473 ещё не выпущен — mail-cli#73 ждёт следующего выпуска, cli-memo#600 можно поднимать до 0.563.0.
 - Блог: POST-136 «лимит вложений бережёт индекс, а не трафик» добавлен в cli-private BLOG_IDEAS.md.
+
+- **NEED-263 · Выпустить 0.4.0 сейчас или ждать всё вместе?** A сейчас · B вместе. **Ответ 2026-11-05: B**, "but merge all you can if ready".
+- **NEED-25 · ответ 2026-11-05: A** — `level` и `permission` для всех команд в `commands --json`.
+- **NEED-201 · ответ 2026-11-05: свой вариант.** Слава: "I'd add a flag but remove file by default, I'd only rely on db, let's put it down as a rule". Записано правилом 6 в PRODUCT.md (Product Principles): файл не хранится, только извлечённое в базу; копия — по флагу.
