@@ -252,15 +252,39 @@ const en = {
     },
     search: {
       title: "Search",
-      text: "Find a message, a mail or a meeting across every tool, in what is stored on this computer.",
+      text: "Find a message, a mail or a meeting in what one tool keeps on this computer, for one profile. The results here are examples.",
+    },
+    searchAsk: {
+      title: "Ask in your own words",
+      text: "Describe what you want. Your agent writes it as the query in the box below; nothing is searched until you press Search.",
+    },
+    searchHit: {
+      title: "Open a result",
+      text: "Open a result to read the messages around it. Point at a sender or a chat for buttons that search again with only them, or without them.",
     },
     tasks: {
       title: "Tasks",
-      text: "Tasks for your projects, from you and your agents. An agent can turn a request it finds in your messages into a task once you approve it. Each task has an assignee, you or someone else, a priority and a due date. The rows here are examples.",
+      text: "Tasks for your projects, from you and your agents. An agent can turn a request in your messages into a task once you approve it in Memory. The rows here are examples.",
+    },
+    tasksView: {
+      title: "Table or board",
+      text: "Sort the tasks in a table, or see a board with a column per status and drag a task to move it.",
+    },
+    tasksRow: {
+      title: "Who, how urgent, by when",
+      text: "Each row shows the status, who does it, the priority, the due date and what it waits for. Open a task to change them or add a comment.",
     },
     memory: {
       title: "Memory",
-      text: "What your agents saved from your chats, mail and notes: facts about people and projects, preferences, promises and decisions. Approve, correct or forget each one; nothing counts until you approve it. The rows here are examples.",
+      text: "What your agents saved from your chats, mail and notes: facts, preferences, promises and decisions. Nothing counts until you approve it. The rows here are examples.",
+    },
+    memoryReview: {
+      title: "Approve or correct",
+      text: "Approve what is right, Reject what is wrong. More holds Edit, to correct the text, and Erase, to forget it for good.",
+    },
+    memorySources: {
+      title: "Where it came from",
+      text: "Each memory lists the messages and mail it rests on. Click one to read it among the messages around it.",
     },
     system: {
       title: "Storage, Logs and Settings",
@@ -275,7 +299,23 @@ const en = {
       text: "A guide is a request you copy into your agent, with the steps it will run. Try this one, or look at the next.",
     },
   } as Record<
-    "tools" | "lamps" | "action" | "agents" | "how" | "search" | "tasks" | "memory" | "system" | "help" | "guide",
+    | "tools"
+    | "lamps"
+    | "action"
+    | "agents"
+    | "how"
+    | "search"
+    | "searchAsk"
+    | "searchHit"
+    | "tasks"
+    | "tasksView"
+    | "tasksRow"
+    | "memory"
+    | "memoryReview"
+    | "memorySources"
+    | "system"
+    | "help"
+    | "guide",
     Stop
   >,
   demo: {
@@ -569,15 +609,39 @@ const ru: OnboardingText = {
     },
     search: {
       title: "Поиск",
-      text: "Найти сообщение, письмо или встречу во всех инструментах, среди того, что хранится на этом компьютере.",
+      text: "Найти сообщение, письмо или встречу в том, что один инструмент хранит на этом компьютере, для одного профиля. Здесь показаны примеры.",
+    },
+    searchAsk: {
+      title: "Спросите своими словами",
+      text: "Опишите, что ищете. Агент запишет это запросом в поле ниже; поиск начнётся, только когда вы нажмёте «Искать».",
+    },
+    searchHit: {
+      title: "Откройте результат",
+      text: "Откройте результат, чтобы прочитать сообщения вокруг него. Наведите на отправителя или чат: появятся кнопки, чтобы искать снова только по ним или без них.",
     },
     tasks: {
       title: "Задачи",
-      text: "Задачи ваших проектов, от вас и ваших агентов. Просьбу, найденную в ваших сообщениях, агент может превратить в задачу, когда вы её одобрите. У каждой задачи есть исполнитель (вы или кто-то другой), приоритет и срок. Здесь показаны примеры.",
+      text: "Задачи ваших проектов, от вас и ваших агентов. Просьбу из ваших сообщений агент может превратить в задачу, когда вы одобрите её в Памяти. Здесь показаны примеры.",
+    },
+    tasksView: {
+      title: "Таблица или доска",
+      text: "Сортируйте задачи в таблице или смотрите доску со столбцом на каждый статус и перетаскивайте задачу между ними.",
+    },
+    tasksRow: {
+      title: "Кто, насколько срочно, к какому сроку",
+      text: "В строке видно статус, исполнителя, приоритет, срок и чего задача ждёт. Откройте задачу, чтобы что-то изменить или оставить комментарий.",
     },
     memory: {
       title: "Память",
-      text: "Что агенты сохранили из ваших чатов, почты и заметок: факты о людях и проектах, предпочтения, обещания и решения. Каждую запись можно одобрить, исправить или забыть; ничего не считается, пока вы не одобрите. Здесь показаны примеры.",
+      text: "Что агенты сохранили из ваших чатов, почты и заметок: факты, предпочтения, обещания и решения. Ничего не считается, пока вы не одобрите. Здесь показаны примеры.",
+    },
+    memoryReview: {
+      title: "Одобрить или исправить",
+      text: "Одобрите верное, отклоните неверное. В «Ещё» есть «Изменить», чтобы исправить текст, и «Стереть», чтобы забыть запись навсегда.",
+    },
+    memorySources: {
+      title: "Откуда это",
+      text: "У каждой записи видны сообщения и письма, на которых она основана. Нажмите на одно, чтобы прочитать его среди соседних.",
     },
     system: {
       title: "Хранилище, журнал и настройки",
@@ -865,15 +929,39 @@ const es: OnboardingText = {
     },
     search: {
       title: "Buscar",
-      text: "Encuentra un mensaje, un correo o una reunión en todas las herramientas, en lo que está guardado en este ordenador.",
+      text: "Encuentra un mensaje, un correo o una reunión en lo que una herramienta guarda en este ordenador, para un perfil. Los resultados de aquí son ejemplos.",
+    },
+    searchAsk: {
+      title: "Pregunta con tus palabras",
+      text: "Describe lo que buscas. Tu agente lo escribe como consulta en el cuadro de abajo; no se busca nada hasta que pulsas Buscar.",
+    },
+    searchHit: {
+      title: "Abre un resultado",
+      text: "Abre un resultado para leer los mensajes de alrededor. Señala un remitente o un chat para ver botones que buscan de nuevo solo con ellos, o sin ellos.",
     },
     tasks: {
       title: "Tareas",
-      text: "Las tareas de tus proyectos, tuyas y de tus agentes. Un agente puede convertir en tarea una petición que encuentra en tus mensajes, cuando la apruebas. Cada tarea tiene un responsable, tú u otra persona, una prioridad y una fecha límite. Las filas de aquí son ejemplos.",
+      text: "Las tareas de tus proyectos, tuyas y de tus agentes. Un agente puede convertir una petición de tus mensajes en tarea cuando la apruebas en Memoria. Las filas de aquí son ejemplos.",
+    },
+    tasksView: {
+      title: "Tabla o tablero",
+      text: "Ordena las tareas en una tabla, o mira un tablero con una columna por estado y arrastra una tarea para moverla.",
+    },
+    tasksRow: {
+      title: "Quién, qué urgencia, para cuándo",
+      text: "Cada fila muestra el estado, quién la hace, la prioridad, la fecha límite y lo que espera. Abre una tarea para cambiarlos o comentar.",
     },
     memory: {
       title: "Memoria",
-      text: "Lo que tus agentes guardaron de tus chats, correo y notas: datos sobre personas y proyectos, preferencias, promesas y decisiones. Aprueba, corrige u olvida cada uno; nada cuenta hasta que lo apruebas. Las filas de aquí son ejemplos.",
+      text: "Lo que tus agentes guardaron de tus chats, correo y notas: datos, preferencias, promesas y decisiones. Nada cuenta hasta que lo apruebas. Las filas de aquí son ejemplos.",
+    },
+    memoryReview: {
+      title: "Aprueba o corrige",
+      text: "Aprueba lo correcto, rechaza lo que no lo es. En Más están Editar, para corregir el texto, y Borrar, para olvidarlo del todo.",
+    },
+    memorySources: {
+      title: "De dónde viene",
+      text: "Cada recuerdo muestra los mensajes y correos en los que se basa. Pulsa uno para leerlo entre los mensajes de alrededor.",
     },
     system: {
       title: "Almacenamiento, Registros y Ajustes",

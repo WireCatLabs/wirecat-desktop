@@ -1,14 +1,18 @@
 // cspell:words hermes Kai Moreno Ruiz Ortiz
 import type { Lang } from "@/i18n"
-import type { MemoryEntry } from "@/platform/memory-schemas"
+import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
+import type { SearchAnswer } from "@/platform/search-schemas"
 import type { Person, Task } from "@/platform/task-schemas"
 import { useMemory } from "../memory/store"
+import { useSearch } from "../search/store"
 import { useTasks } from "../tasks/store"
 
 // The tour's example rows live only in the pages' stores, and the pages are inert while they show: memo's store
 // belongs to the tools (rules 1 and 5). Rust refuses refs like `memory:example-1`, so a stray write could not land.
 
-export type DemoPage = "memory" | "tasks"
+export type DemoPage = "memory" | "tasks" | "search"
+/** What one stop opens among a page's examples: a search result, a memory's sources. */
+export type DemoScene = "hit" | "sources"
 
 const HOUR = 3_600_000
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString()
@@ -167,6 +171,129 @@ export function demoMemory(lang: Lang): MemoryEntry[] {
   ]
 }
 
+type SourceText = { friday: string; agenda: string; call: string; chat: string; subject: string }
+
+const SOURCE_TEXT: Record<Lang, SourceText> = {
+  en: {
+    friday: "Fridays after lunch work best for me, mornings are packed.",
+    agenda: "Could you send the agenda the evening before? I like to read it first.",
+    call: "Friday 15:00 again? Agenda tonight, please.",
+    chat: "Harbour team",
+    subject: "Re: Friday call",
+  },
+  ru: {
+    friday: "Мне удобнее всего по пятницам после обеда, утро занято.",
+    agenda: "Можете прислать повестку накануне вечером? Хочу прочитать заранее.",
+    call: "Снова в пятницу в 15:00? Повестку вечером, пожалуйста.",
+    chat: "Команда Harbour",
+    subject: "Re: пятничный созвон",
+  },
+  es: {
+    friday: "Los viernes después de comer me van mejor, las mañanas las tengo llenas.",
+    agenda: "¿Puedes enviar el orden del día la víspera? Me gusta leerlo antes.",
+    call: "¿Otra vez el viernes a las 15:00? El orden del día esta noche, por favor.",
+    chat: "Equipo Harbour",
+    subject: "Re: llamada del viernes",
+  },
+}
+
+export const DEMO_MEMORY = "memory:example-1"
+
+export function demoSources(lang: Lang): MemorySource[] {
+  const t = SOURCE_TEXT[lang]
+  const kai = NAMES[lang].kai
+  const source = { tool: null, missing: false }
+  return [
+    {
+      ...source,
+      ref: "tg:example-1",
+      kind: "message",
+      sender: kai,
+      title: null,
+      at: ago(9 * 24 * HOUR),
+      excerpt: t.friday,
+    },
+    {
+      ...source,
+      ref: "email:example-2",
+      kind: "mail",
+      sender: kai,
+      title: t.subject,
+      at: ago(6 * 24 * HOUR),
+      excerpt: t.agenda,
+    },
+    {
+      ...source,
+      ref: "tg:example-3",
+      kind: "message",
+      sender: kai,
+      title: t.chat,
+      at: ago(28 * HOUR),
+      excerpt: t.call,
+    },
+  ]
+}
+
+type SearchText = { ask: string; query: string; chat: string; hits: [string, string, string] }
+
+const SEARCH_TEXT: Record<Lang, SearchText> = {
+  en: {
+    ask: "what Ana said about the contract this month",
+    query: 'contract from:"Ana Ruiz" date>=30d',
+    chat: "Harbour team",
+    hits: [
+      "I'll send the signed contract by Thursday, the clinic annex is in it too.",
+      "The contract is with our lawyer, two small changes on page 3.",
+      "Do you want the contract in Spanish as well, or English only?",
+    ],
+  },
+  ru: {
+    ask: "что Ана писала про договор в этом месяце",
+    query: 'договор from:"Ана Руис" date>=30d',
+    chat: "Команда Harbour",
+    hits: [
+      "Пришлю подписанный договор до четверга, приложение для клиник тоже в нём.",
+      "Договор у нашего юриста, две небольшие правки на странице 3.",
+      "Договор нужен и на испанском, или только на английском?",
+    ],
+  },
+  es: {
+    ask: "qué dijo Ana del contrato este mes",
+    query: 'contrato from:"Ana Ruiz" date>=30d',
+    chat: "Equipo Harbour",
+    hits: [
+      "Enviaré el contrato firmado antes del jueves, el anexo de las clínicas también va.",
+      "El contrato lo tiene nuestra abogada, dos cambios pequeños en la página 3.",
+      "¿Quieres el contrato también en español, o solo en inglés?",
+    ],
+  },
+}
+
+const SEARCH_TOOL = "tg"
+const SEARCH_PROFILE = "personal"
+
+export function demoSearch(lang: Lang): Extract<SearchAnswer, { kind: "hits" }> {
+  const t = SEARCH_TEXT[lang]
+  const ana = NAMES[lang].ana
+  const chats = [ana, t.chat, ana]
+  const hours = [5, 50, 240]
+  return {
+    kind: "hits",
+    hits: t.hits.map((text, i) => ({
+      ref: `tg:example-${i + 1}`,
+      timestamp: ago((hours[i] ?? 1) * HOUR),
+      chat_title: chats[i],
+      sender_name: ana,
+      sender_is_me: false,
+      text,
+    })),
+    hasMore: false,
+    paged: false,
+    notes: [],
+    total: null,
+  }
+}
+
 type TaskText = { pricing: string; clinics: string; announce: string; contract: string; agenda: string }
 
 const TASK_TEXT: Record<Lang, TaskText> = {
@@ -295,6 +422,7 @@ const MEMORY_KEYS = [
   "held",
   "leaving",
   "arriving",
+  "sources",
 ] as const
 const TASK_KEYS = [
   "query",
@@ -311,6 +439,20 @@ const TASK_KEYS = [
   "assigned",
   "open",
   "creating",
+  "view",
+] as const
+const SEARCH_KEYS = [
+  "tool",
+  "profile",
+  "profiles",
+  "profilesError",
+  "query",
+  "answer",
+  "asked",
+  "loading",
+  "error",
+  "expanded",
+  "groupBy",
 ] as const
 
 const pick = <T extends object, K extends keyof T>(state: T, keys: readonly K[]) =>
@@ -318,6 +460,7 @@ const pick = <T extends object, K extends keyof T>(state: T, keys: readonly K[])
 
 let memoryBefore: Pick<ReturnType<typeof useMemory.getState>, (typeof MEMORY_KEYS)[number]> | null = null
 let tasksBefore: Pick<ReturnType<typeof useTasks.getState>, (typeof TASK_KEYS)[number]> | null = null
+let searchBefore: Pick<ReturnType<typeof useSearch.getState>, (typeof SEARCH_KEYS)[number]> | null = null
 
 /** Puts the example rows on one page; what the page held before comes back with `hideDemo`. */
 export function showDemo(page: DemoPage, lang: Lang) {
@@ -337,6 +480,28 @@ export function showDemo(page: DemoPage, lang: Lang) {
       held: [],
       leaving: [],
       arriving: [],
+      sources: { [DEMO_MEMORY]: { state: "ready", sources: demoSources(lang) } },
+    })
+    return
+  }
+  if (page === "search") {
+    if (useSearch.getState().demo) return
+    searchBefore = pick(useSearch.getState(), SEARCH_KEYS)
+    const t = SEARCH_TEXT[lang]
+    useSearch.setState({
+      demo: true,
+      demoAsk: t.ask,
+      tool: SEARCH_TOOL,
+      profile: SEARCH_PROFILE,
+      profiles: [{ name: SEARCH_PROFILE, signedIn: true }],
+      profilesError: null,
+      query: t.query,
+      answer: demoSearch(lang),
+      asked: { tool: SEARCH_TOOL, profile: SEARCH_PROFILE, query: t.query, page: 1 },
+      loading: false,
+      error: null,
+      expanded: null,
+      groupBy: null,
     })
     return
   }
@@ -359,7 +524,19 @@ export function showDemo(page: DemoPage, lang: Lang) {
     assigned: [...new Set(tasks.flatMap((t) => t.assignees))],
     open: null,
     creating: false,
+    view: "table",
   })
+}
+
+/** Opens what one stop points at among the examples; a stop with no scene shows them all closed. */
+export function stageDemo(page: DemoPage, scene: DemoScene | null) {
+  if (page === "memory" && useMemory.getState().demo)
+    useMemory.setState({ open: scene === "sources" ? DEMO_MEMORY : null })
+  if (page === "search" && useSearch.getState().demo) {
+    const first = useSearch.getState().answer
+    const ref = first?.kind === "hits" ? first.hits[0]?.ref : null
+    useSearch.setState({ expanded: scene === "hit" && typeof ref === "string" ? `0:${ref}` : null })
+  }
 }
 
 export function hideDemo(page: DemoPage) {
@@ -367,6 +544,18 @@ export function hideDemo(page: DemoPage) {
     if (!useMemory.getState().demo) return
     useMemory.setState({ ...memoryBefore, reading: false, demo: false })
     memoryBefore = null
+    return
+  }
+  if (page === "search") {
+    if (!useSearch.getState().demo) return
+    const before = searchBefore
+    useSearch.setState({ ...before, loading: false, demo: false, demoAsk: "" })
+    searchBefore = null
+    // A profile list that arrived while the examples showed was dropped: ask for it again.
+    if (before?.tool && before.profiles === undefined) {
+      useSearch.setState({ tool: null })
+      useSearch.getState().chooseTool(before.tool)
+    }
     return
   }
   if (!useTasks.getState().demo) return
