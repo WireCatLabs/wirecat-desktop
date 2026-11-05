@@ -108,7 +108,7 @@ export function App() {
             <Onboarding onExit={toHome} onTour={() => useTour.getState().start("setup")} />
           </ErrorBoundary>
         ) : (
-          <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
+          <main ref={main} className="relative min-h-0 flex-1 overflow-y-auto">
             <ErrorBoundary key={active} scope="page">
               <CrashScenario section={active} />
               {Page && <Page />}

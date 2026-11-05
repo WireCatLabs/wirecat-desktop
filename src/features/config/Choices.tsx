@@ -34,7 +34,7 @@ export function Choice(props: {
       />
       <span
         className={cx(
-          "inline-flex h-8 cursor-pointer items-center gap-2 rounded-[0.35rem] border px-3 text-[0.95rem] transition-colors duration-150",
+          "inline-flex h-8 cursor-pointer items-center gap-2 rounded-[0.35rem] border px-3 text-[0.95rem] transition-colors duration-(--motion-fast)",
           "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand",
           checked
             ? "border-brand bg-brand-soft font-medium text-ink"

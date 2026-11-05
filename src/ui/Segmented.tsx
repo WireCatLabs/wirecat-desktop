@@ -38,7 +38,7 @@ export function Segmented<T extends string>({
           <span
             aria-hidden
             className={cx(
-              "flex h-7 min-w-7 cursor-pointer items-center justify-center gap-[0.4rem] rounded-[0.35rem] text-ink-dim transition-colors duration-150 hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand",
+              "flex h-7 min-w-7 cursor-pointer items-center justify-center gap-[0.4rem] rounded-[0.35rem] text-ink-dim transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand",
               labelClass !== undefined && "px-[0.45rem]",
             )}
           >

@@ -105,7 +105,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
       <span
         ref={chip}
         className={cx(
-          "inline-flex h-8 max-w-[20rem] min-w-0 items-stretch rounded-[0.35rem] border text-[0.875rem] transition-colors duration-150",
+          "inline-flex h-8 max-w-[20rem] min-w-0 items-stretch rounded-[0.35rem] border text-[0.875rem] transition-colors duration-(--motion-fast)",
           on ? "border-brand/50 bg-brand-soft" : "border-line-strong bg-app",
         )}
       >
@@ -123,7 +123,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
             }
           }}
           className={cx(
-            "flex min-w-0 cursor-pointer items-center gap-[0.35rem] rounded-[0.3rem] pr-[0.4rem] pl-[0.6rem] transition-colors duration-150",
+            "flex min-w-0 cursor-pointer items-center gap-[0.35rem] rounded-[0.3rem] pr-[0.4rem] pl-[0.6rem] transition-colors duration-(--motion-fast)",
             on
               ? "text-ink-soft hover:bg-brand/10 active:bg-brand/15"
               : "text-ink-soft hover:bg-app-2 hover:text-ink active:bg-app-3",
@@ -147,7 +147,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
               onChange([])
               button.current?.focus()
             }}
-            className="grid w-[1.9rem] shrink-0 cursor-pointer place-items-center rounded-r-[0.3rem] border-brand/30 border-l text-ink-dim transition-colors duration-150 hover:bg-brand/10 hover:text-ink active:bg-brand/15"
+            className="grid w-[1.9rem] shrink-0 cursor-pointer place-items-center rounded-r-[0.3rem] border-brand/30 border-l text-ink-dim transition-colors duration-(--motion-fast) hover:bg-brand/10 hover:text-ink active:bg-brand/15"
           >
             <X className="size-[0.9rem]" aria-hidden />
           </button>

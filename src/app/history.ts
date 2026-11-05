@@ -1,7 +1,7 @@
 import { type RefObject, useEffect, useLayoutEffect, useRef } from "react"
 import { useNav } from "@/features/nav"
 import { platform } from "@/platform/bridge"
-import { arrive } from "@/ui/motion"
+import { arrive, leaveBehind, useLastChildren } from "@/ui/motion"
 
 const BACK = 3
 const FORWARD = 4
@@ -14,12 +14,13 @@ const dialogOpen = () => document.querySelector("dialog[open]") !== null
 const scrolled = new Map<string, number>()
 
 /**
- * A new section arrives with a short rise instead of a cut, and each section keeps where the owner left it: back on
+ * A new section arrives with a short rise while the old one fades out over it, instead of a cut, and each section keeps where the owner left it: back on
  * Tools, the list is where it was; a section not seen yet opens at its top. One scroller serves every page, so
  * without this a page would open at the last page's offset.
  */
 export function useSectionSwitch(scroller: RefObject<HTMLElement | null>, active: string | null) {
   const shown = useRef(active)
+  const last = useLastChildren(scroller)
   useLayoutEffect(() => {
     const el = scroller.current
     if (!el || active === null) return
@@ -27,15 +28,20 @@ export function useSectionSwitch(scroller: RefObject<HTMLElement | null>, active
     el.addEventListener("scroll", save, { passive: true })
     return () => el.removeEventListener("scroll", save)
   }, [scroller, active])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a ref from useLastChildren, read when the switch happens
   useLayoutEffect(() => {
     const el = scroller.current
     if (shown.current === active) return
+    const left = shown.current
     shown.current = active
     // null while the setup holds the window; leaving it brings the page back like any other switch.
     if (!el || active === null) return
     const top = scrolled.get(active) ?? 0
     el.scrollTop = top
     for (const page of el.children) arrive(page)
+    const gone = last.current.filter((page) => !page.isConnected)
+    const box = { top: el.scrollTop, left: 0, width: el.clientWidth, height: el.clientHeight }
+    if (left !== null) leaveBehind(gone, el, box, scrolled.get(left) ?? 0)
     if (top === 0) return
     // Rows that load a frame later make the page short at first, which clamps the offset; set it again once they are in.
     const frame = requestAnimationFrame(() => {

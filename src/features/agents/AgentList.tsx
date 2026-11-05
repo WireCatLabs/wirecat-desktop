@@ -68,7 +68,7 @@ export function AgentList({ entries, selected }: { entries: readonly AgentEntry[
             onClick={() => choose(e.id)}
             onKeyDown={(ev) => onKey(ev, i)}
             className={cx(
-              "relative flex min-h-[3.9rem] items-center gap-3 rounded-[0.45rem] border px-4 py-2 text-left transition-colors duration-150",
+              "relative flex min-h-[3.9rem] items-center gap-3 rounded-[0.45rem] border px-4 py-2 text-left transition-colors duration-(--motion-fast)",
               "@min-[52rem]:-mr-px @min-[52rem]:rounded-r-none @min-[52rem]:border-r-0",
               on ? "z-10 border-line-strong bg-app" : "border-transparent hover:bg-app-3/60",
             )}

@@ -323,7 +323,7 @@ function Rail(props: {
             <span
               aria-hidden
               className={cx(
-                "absolute top-7 bottom-0 left-[0.7rem] w-[2px] -translate-x-1/2 transition-colors duration-500",
+                "absolute top-7 bottom-0 left-[0.7rem] w-[2px] -translate-x-1/2 transition-colors duration-(--motion-progress)",
                 step.state === "done" ? "bg-ok/60" : "bg-line-strong",
               )}
             />
@@ -331,7 +331,7 @@ function Rail(props: {
           <span
             aria-hidden
             className={cx(
-              "relative z-10 grid size-[1.4rem] shrink-0 place-items-center rounded-full text-[0.85rem] font-semibold tabular-nums transition-colors duration-300",
+              "relative z-10 grid size-[1.4rem] shrink-0 place-items-center rounded-full text-[0.85rem] font-semibold tabular-nums transition-colors duration-(--motion-slow)",
               step.state === "done" && "bg-ok text-on-status",
               step.state === "current" && "bg-brand text-brand-ink",
               step.state === "todo" && "bg-app-3 text-ink-dim",
@@ -408,7 +408,7 @@ function ChooseStep({ tool, onChoose }: { tool: CatalogTool; onChoose(app: AppId
             key={id}
             type="button"
             onClick={() => onChoose(id)}
-            className="flex flex-col items-start gap-0.5 rounded-[0.45rem] border border-line-strong bg-app px-3.5 py-3 text-left transition-colors duration-150 hover:border-brand hover:bg-brand-soft/40"
+            className="flex flex-col items-start gap-0.5 rounded-[0.45rem] border border-line-strong bg-app px-3.5 py-3 text-left transition-colors duration-(--motion-fast) hover:border-brand hover:bg-brand-soft/40"
           >
             <span className="text-[0.98rem] font-semibold text-ink">{m.apps[id].name}</span>
             <span className="text-[0.9rem] text-ink-soft">{m.apps[id].hint}</span>
@@ -550,7 +550,7 @@ function TunnelChoice({ tunnel, setTunnel }: { tunnel: Tunnel; setTunnel(t: Tunn
           key={o.id}
           htmlFor={`${name}-${o.id}`}
           className={cx(
-            "flex cursor-pointer flex-col gap-1 rounded-[0.45rem] border px-3.5 py-3 transition-colors duration-150 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand motion-reduce:transition-none",
+            "flex cursor-pointer flex-col gap-1 rounded-[0.45rem] border px-3.5 py-3 transition-colors duration-(--motion-fast) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-brand motion-reduce:transition-none",
             tunnel === o.id ? "border-brand bg-brand-soft/40" : "border-line-strong hover:border-brand",
           )}
         >

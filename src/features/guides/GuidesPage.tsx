@@ -207,7 +207,7 @@ export function GuidesPage() {
                 key={goal}
                 type="button"
                 onClick={() => jump(goal)}
-                className="flex h-[2rem] items-center gap-[0.4rem] rounded-[0.35rem] px-[0.6rem] text-[0.92rem] font-medium text-ink-soft transition-[color,background-color,opacity] duration-150 hover:bg-app-3 hover:text-ink"
+                className="flex h-[2rem] items-center gap-[0.4rem] rounded-[0.35rem] px-[0.6rem] text-[0.92rem] font-medium text-ink-soft transition-[color,background-color,opacity] duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
               >
                 {m.goals[goal].name}
                 <span className="font-mono text-[0.85rem] text-ink-dim tabular-nums">{count}</span>
@@ -333,14 +333,14 @@ function Entry({ guide: g, ctx, open, onToggle }: { guide: Guide; ctx: Ctx; open
         }}
         className={cx(
           "group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-[0.8rem] rounded-[0.4rem] px-[0.75rem] py-[0.55rem] text-left",
-          "transition-colors duration-150 ease-out-quart",
+          "transition-colors duration-(--motion-fast) ease-out-quart",
           open ? "bg-app" : "hover:bg-app-3/70",
         )}
       >
         <span className="min-w-0">
           <span
             className={cx(
-              "block text-[1.02rem] font-semibold leading-snug transition-colors duration-150",
+              "block text-[1.02rem] font-semibold leading-snug transition-colors duration-(--motion-fast)",
               open ? "text-brand" : "text-ink group-hover:text-brand",
             )}
           >
@@ -353,7 +353,10 @@ function Entry({ guide: g, ctx, open, onToggle }: { guide: Guide; ctx: Ctx; open
         {/* The shared ExpandChevron's look; PR #47 does not have that component, so the prototype draws its own. */}
         <ChevronDown
           aria-hidden
-          className={cx("size-4 shrink-0 text-ink-dim transition-transform duration-200", open && "rotate-180")}
+          className={cx(
+            "size-4 shrink-0 text-ink-dim transition-transform duration-(--motion-normal)",
+            open && "rotate-180",
+          )}
         />
       </button>
       <Collapse id={panelId} open={open}>

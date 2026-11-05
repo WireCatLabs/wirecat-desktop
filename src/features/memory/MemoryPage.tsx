@@ -259,7 +259,7 @@ function SubjectRack({
                 </span>
                 <ChevronDown
                   className={cx(
-                    "ml-auto size-4 text-ink-dim transition-transform duration-150 group-hover:text-ink",
+                    "ml-auto size-4 text-ink-dim transition-transform duration-(--motion-fast) group-hover:text-ink",
                     !open && "-rotate-90",
                   )}
                   aria-hidden
@@ -301,7 +301,7 @@ function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => vo
       {TABS.map((t) => (
         <label key={t} className="relative flex">
           <input type="radio" name={name} checked={t === value} onChange={() => onChange(t)} className="peer sr-only" />
-          <span className="flex h-[calc(2.8rem-6px)] cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-150 hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+          <span className="flex h-[calc(2.8rem-6px)] cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
             {t === "review" && count("review") > 0 && <Lamp tone="warn" size="sm" />}
             {m.tabs[t]}
             <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{count(t)}</span>

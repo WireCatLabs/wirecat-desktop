@@ -72,7 +72,7 @@ function Facet(
         >
           <ChevronRight
             aria-hidden
-            className={cx("size-[0.95rem] transition-transform duration-150", open && "rotate-90")}
+            className={cx("size-[0.95rem] transition-transform duration-(--motion-fast)", open && "rotate-90")}
           />
           {label}
           <span className="ml-auto font-normal tabular-nums">{counts.length || ""}</span>

@@ -45,7 +45,7 @@ export function WhenYouTalk() {
   const off = offHours(grid)
   const pct = (n: number) => (off.total ? Math.round((n / off.total) * 100) : 0)
   return (
-    <div className={cx("flex flex-col gap-3 transition-opacity duration-300", hours.stale && "opacity-55")}>
+    <div className={cx("flex flex-col gap-3 transition-opacity duration-(--motion-slow)", hours.stale && "opacity-55")}>
       <dl className="m-0 grid grid-cols-2 gap-x-[1.2rem]">
         <Stat label={m.offEvenings} value={`${pct(off.evenings)}%`} note={m.messagesN(off.evenings)} />
         <Stat label={m.offWeekends} value={`${pct(off.weekends)}%`} note={m.messagesN(off.weekends)} />
@@ -134,7 +134,7 @@ export function WhatChanged() {
   const chats = changes(byProvider(chatsNow.bySource), byProvider(chatsBefore.bySource))
   const name = (c: Change) => (c.name === null ? m.unnamed : hide ? initials(c.name) : c.name)
   return (
-    <div className={cx("flex flex-col gap-3 transition-opacity duration-300", stale && "opacity-55")}>
+    <div className={cx("flex flex-col gap-3 transition-opacity duration-(--motion-slow)", stale && "opacity-55")}>
       <div className="grid grid-cols-1 gap-[1.5rem] md:grid-cols-2">
         <ChangeList title={m.quieter} rows={people.quieter} name={name} />
         <ChangeList title={m.busier} rows={chats.busier} name={name} />

@@ -60,10 +60,12 @@
 /* Motion durations: the same values as MOTION in src/ui/motion.ts (motion.test.tsx keeps them equal). */
 :root {
   --motion-fast: 150ms;
-  --motion-normal: 200ms;
+  --motion-exit: 200ms;
+  --motion-normal: 280ms;
   --motion-slow: 300ms;
-  --motion-step: 360ms;
-  --motion-progress: 500ms;
+  --motion-swap: 450ms;
+  --motion-step: 560ms;
+  --motion-progress: 600ms;
 }
 
 @theme inline {
@@ -430,17 +432,18 @@ main {
   }
 }
 
-/* Dialogs rise in and fade out (src/ui/Dialog.tsx), so the owner sees where they came from and went. */
+/* Dialogs grow in from just below full size and fade out a little quicker (src/ui/Dialog.tsx), so the owner sees where
+   they came from and went. The backdrop dims over the same time, so the page does not darken before the dialog shows. */
 @keyframes dialog-in {
   from {
     opacity: 0;
-    transform: translateY(0.5rem) scale(0.985);
+    transform: translateY(0.4rem) scale(0.97);
   }
 }
 @keyframes dialog-out {
   to {
     opacity: 0;
-    transform: translateY(0.25rem) scale(0.99);
+    transform: translateY(0.2rem) scale(0.98);
   }
 }
 @keyframes backdrop-in {
@@ -460,10 +463,10 @@ dialog[open]::backdrop {
   animation: backdrop-in var(--motion-normal) var(--ease-out-quart);
 }
 dialog[data-closing] {
-  animation: dialog-out var(--motion-fast) var(--ease-out-quart) forwards;
+  animation: dialog-out var(--motion-exit) var(--ease-out-quart) forwards;
 }
 dialog[data-closing]::backdrop {
-  animation: backdrop-out var(--motion-fast) var(--ease-out-quart) forwards;
+  animation: backdrop-out var(--motion-exit) var(--ease-out-quart) forwards;
 }
 
 /* Crossfade: the old view fades out over the new one, so the area is never empty between them. */
@@ -474,11 +477,33 @@ dialog[data-closing]::backdrop {
 }
 
 .fade-out {
-  animation: fade-out var(--motion-normal) var(--ease-out-quart) forwards;
+  animation: fade-out var(--fade, var(--motion-exit)) var(--ease-out-quart) forwards;
 }
 
 .fade-in {
-  animation: reveal var(--motion-normal) var(--ease-out-quart);
+  animation: reveal var(--fade, var(--motion-normal)) var(--ease-out-quart);
+}
+
+/* A finished row's check: it grows in and its stroke draws from the short arm to the long one. 23 is the length of
+   lucide's Check path in its 24-unit box. */
+@keyframes check-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+}
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 23;
+  }
+}
+.check-in {
+  animation: check-pop var(--motion-slow) var(--ease-out-quart);
+}
+.check-in path,
+.check-in polyline {
+  stroke-dasharray: 23;
+  animation: check-draw var(--motion-step) var(--ease-out-quart);
 }
 
 /* Rings are for keyboard users. After a click the browser can still match :focus-visible (a button clicked once a key

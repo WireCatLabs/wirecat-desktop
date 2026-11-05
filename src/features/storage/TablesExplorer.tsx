@@ -214,7 +214,7 @@ function GroupFilter(props: {
           aria-pressed={value === g}
           onClick={() => onChange(g)}
           className={cx(
-            "inline-flex items-baseline gap-1.5 rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-150",
+            "inline-flex items-baseline gap-1.5 rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-(--motion-fast)",
             value === g ? "bg-app-3 font-medium text-ink" : "text-ink-soft hover:bg-app-2 hover:text-ink",
           )}
         >

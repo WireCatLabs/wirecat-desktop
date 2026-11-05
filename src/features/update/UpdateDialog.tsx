@@ -59,7 +59,7 @@ function Progress() {
         className="h-[0.3rem] w-full overflow-hidden rounded-full bg-app-3"
       >
         <span
-          className="block h-full rounded-full bg-brand transition-[width] duration-300 ease-out-quart"
+          className="block h-full rounded-full bg-brand transition-[width] duration-(--motion-slow) ease-out-quart"
           style={{ width: `${Math.max(4, (share ?? 0) * 100)}%` }}
         />
       </span>

@@ -21,7 +21,10 @@ export function FixButton({ open, onClick, controls }: { open: boolean; onClick:
       {m.fix}
       <ChevronRight
         aria-hidden
-        className={cx("size-4 motion-safe:transition-transform motion-safe:duration-200", open && "rotate-90")}
+        className={cx(
+          "size-4 motion-safe:transition-transform motion-safe:duration-(--motion-normal)",
+          open && "rotate-90",
+        )}
       />
     </Button>
   )

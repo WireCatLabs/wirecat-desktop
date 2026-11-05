@@ -442,7 +442,7 @@ function Loading(props: { reading: string[]; total: number; facetsOpen: boolean;
             className="h-[0.3rem] w-[8rem] overflow-hidden rounded-full bg-app-3"
           >
             <span
-              className="block h-full rounded-full bg-brand transition-[width] duration-500 ease-out-quart"
+              className="block h-full rounded-full bg-brand transition-[width] duration-(--motion-progress) ease-out-quart"
               style={{ width: `${Math.max(8, (done / Math.max(total, 1)) * 100)}%` }}
             />
           </span>
@@ -556,7 +556,7 @@ function Range({ value, onChange }: { value: RangeId; onChange: (r: RangeId) => 
             onChange={() => onChange(r.id)}
             className="peer sr-only"
           />
-          <span className="grid h-full min-w-[3rem] cursor-pointer place-items-center rounded-[0.35rem] px-[0.7rem] font-mono text-[0.9rem] text-ink-soft transition-colors duration-150 hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+          <span className="grid h-full min-w-[3rem] cursor-pointer place-items-center rounded-[0.35rem] px-[0.7rem] font-mono text-[0.9rem] text-ink-soft transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
             {m.ranges[r.id]}
           </span>
         </label>
