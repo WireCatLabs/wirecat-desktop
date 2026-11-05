@@ -1,5 +1,6 @@
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { ProgressBar } from "@/ui/ProgressBar"
 import { type Progress, percent } from "./backup-store"
 import { backupMessages } from "./messages-backup"
 
@@ -11,23 +12,13 @@ export function BackupProgress({ progress, onCancel }: { progress: Progress; onC
   return (
     <div className="flex items-center gap-4">
       <span className="min-w-[10.5rem] shrink-0 text-[0.9rem] text-ink-soft">{m.step[progress.step]}…</span>
-      <div
-        role="progressbar"
-        aria-label={m.step[progress.step]}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        aria-valuenow={unknown ? undefined : pct}
-        className="h-1.5 flex-1 overflow-hidden rounded-full bg-app-3"
-      >
-        <div
-          className={
-            unknown
-              ? "h-full w-full rounded-full bg-brand/60 motion-safe:animate-pulse"
-              : "h-full rounded-full bg-brand motion-safe:transition-[width] motion-safe:duration-(--motion-fast)"
-          }
-          style={unknown ? undefined : { width: `${pct}%` }}
-        />
-      </div>
+      <ProgressBar
+        label={m.step[progress.step]}
+        value={unknown ? null : pct}
+        unknown="pulse"
+        pace="fast"
+        className="flex-1"
+      />
       <span className="w-[3rem] shrink-0 text-right font-mono text-[0.875rem] tabular-nums text-ink-soft">
         {unknown ? "" : `${pct}%`}
       </span>

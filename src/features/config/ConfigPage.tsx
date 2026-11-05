@@ -1,5 +1,5 @@
 import { Search } from "lucide-react"
-import { type ReactNode, useEffect, useId, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { AppPreferences, settingsMessages } from "@/features/settings"
 import { useMessages } from "@/i18n"
@@ -13,6 +13,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Monogram } from "@/ui/Logo"
 import { Skeleton } from "@/ui/Skeleton"
+import { Tab as TabButton, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 import { CategoriesEditor, CategoriesPlaceholder } from "./CategoriesEditor"
 import { Choice, Choices } from "./Choices"
 import { JsonActions, JsonTab } from "./JsonTab"
@@ -280,7 +281,6 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
   const m = useMessages(configMessages)
   const st = useConfig()
   const src = sourceOf(st.tool)
-  const tabsId = useId()
   const shared = st.view === "shared"
   const all = st.settings?.rows ?? []
   const categories = shared ? all.filter(isCategory) : []
@@ -322,91 +322,94 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
 
   return (
     <section aria-label={label} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-[1.3rem]">
-        <div role="tablist" aria-label={m.tabs} className="flex gap-5">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              id={`${tabsId}-${t.id}`}
-              type="button"
-              role="tab"
-              aria-selected={st.tab === t.id}
-              aria-controls={`${tabsId}-${t.id}-panel`}
-              onClick={() => st.setTab(t.id)}
-              className={cx(
-                "relative h-[2.9rem] text-[0.95rem] transition-colors duration-(--motion-fast)",
-                st.tab === t.id ? "font-semibold text-ink" : "text-ink-soft hover:text-ink",
-              )}
-            >
-              {t.label}
-              {t.id === "json" && dirty && (
-                <span className="ml-1.5 text-brand">
-                  ●<span className="sr-only"> {m.unsaved}</span>
-                </span>
-              )}
-              <span
-                aria-hidden
-                className={cx(
-                  "absolute inset-x-0 bottom-0 h-[2px] rounded-t-full bg-brand transition-transform duration-(--motion-fast)",
-                  st.tab === t.id ? "scale-x-100" : "scale-x-0",
+      <Tabs selectedKey={st.tab} onSelectionChange={(k) => st.setTab(k as Tab)}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-line border-b px-[1.3rem]">
+          <TabList aria-label={m.tabs} className="flex gap-5">
+            {tabs.map((t) => (
+              <TabButton
+                key={t.id}
+                id={t.id}
+                className={({ isSelected }) =>
+                  cx(
+                    "relative flex h-[2.9rem] items-center text-[0.95rem] transition-colors duration-(--motion-fast)",
+                    isSelected ? "font-semibold text-ink" : "text-ink-soft hover:text-ink",
+                  )
+                }
+              >
+                {({ isSelected }) => (
+                  <>
+                    {t.label}
+                    {t.id === "json" && dirty && (
+                      <span className="ml-1.5 text-brand">
+                        ●<span className="sr-only"> {m.unsaved}</span>
+                      </span>
+                    )}
+                    <span
+                      aria-hidden
+                      className={cx(
+                        "absolute inset-x-0 bottom-0 h-[2px] rounded-t-full bg-brand transition-transform duration-(--motion-fast)",
+                        isSelected ? "scale-x-100" : "scale-x-0",
+                      )}
+                    />
+                  </>
                 )}
+              </TabButton>
+            ))}
+          </TabList>
+          {st.tab === "settings" ? (
+            <label className="relative flex items-center py-2">
+              <span className="sr-only">{m.search}</span>
+              <Search className="pointer-events-none absolute left-2.5 size-3.5 text-ink-dim" aria-hidden />
+              <input
+                type="search"
+                value={st.query}
+                onChange={(e) => st.setQuery(e.target.value)}
+                placeholder={m.search}
+                className="h-8 w-[15rem] rounded-[0.35rem] border border-line-strong bg-app pr-2.5 pl-8 text-[0.95rem] text-ink placeholder:text-ink-dim focus-visible:border-brand"
               />
-            </button>
-          ))}
+            </label>
+          ) : (
+            <JsonActions dirty={dirty} />
+          )}
         </div>
-        {st.tab === "settings" ? (
-          <label className="relative flex items-center py-2">
-            <span className="sr-only">{m.search}</span>
-            <Search className="pointer-events-none absolute left-2.5 size-3.5 text-ink-dim" aria-hidden />
-            <input
-              type="search"
-              value={st.query}
-              onChange={(e) => st.setQuery(e.target.value)}
-              placeholder={m.search}
-              className="h-8 w-[15rem] rounded-[0.35rem] border border-line-strong bg-app pr-2.5 pl-8 text-[0.95rem] text-ink placeholder:text-ink-dim focus-visible:border-brand"
-            />
-          </label>
-        ) : (
-          <JsonActions dirty={dirty} />
-        )}
-      </div>
 
-      <div id={`${tabsId}-${st.tab}-panel`} role="tabpanel" aria-labelledby={`${tabsId}-${st.tab}`}>
-        {st.settings === null && st.tab === "settings" ? (
-          shared ? (
+        <TabPanel id={st.tab}>
+          {st.settings === null && st.tab === "settings" ? (
+            shared ? (
+              <>
+                <CategoriesPlaceholder count={shape.categories} />
+                {shape.rows > 0 && <OthersHeading />}
+                <SettingsPlaceholder count={shape.rows} />
+              </>
+            ) : (
+              <SettingsPlaceholder count={shape.rows} label={m.reading} />
+            )
+          ) : st.tab === "settings" ? (
             <>
-              <CategoriesPlaceholder count={shape.categories} />
-              {shape.rows > 0 && <OthersHeading />}
-              <SettingsPlaceholder count={shape.rows} />
+              {dirty && (
+                <p className="border-line border-b bg-warn/10 px-[1.3rem] py-2.5 text-[0.95rem]">{m.jsonDirty}</p>
+              )}
+              {shared && (
+                <CategoriesEditor
+                  rows={categories}
+                  unreadable={all.find((r) => r.key === "task_categories")?.from ?? null}
+                  query={st.query}
+                  disabled={dirty}
+                />
+              )}
+              {shared && rows.length > 0 && <OthersHeading />}
+              {(!shared || rows.length > 0) && <SettingsList rows={rows} disabled={dirty} />}
             </>
           ) : (
-            <SettingsPlaceholder count={shape.rows} label={m.reading} />
-          )
-        ) : st.tab === "settings" ? (
-          <>
-            {dirty && (
-              <p className="border-line border-b bg-warn/10 px-[1.3rem] py-2.5 text-[0.95rem]">{m.jsonDirty}</p>
-            )}
-            {shared && (
-              <CategoriesEditor
-                rows={categories}
-                unreadable={all.find((r) => r.key === "task_categories")?.from ?? null}
-                query={st.query}
-                disabled={dirty}
-              />
-            )}
-            {shared && rows.length > 0 && <OthersHeading />}
-            {(!shared || rows.length > 0) && <SettingsList rows={rows} disabled={dirty} />}
-          </>
-        ) : (
-          <JsonTab />
+            <JsonTab />
+          )}
+        </TabPanel>
+        {(st.settings ? st.settings.configFile : shape.file) && (
+          <p className="border-line border-t px-[1.3rem] py-2.5 text-[0.9rem] text-ink-dim">
+            {m.file(<span className="selectable font-mono">{st.settings?.configFile ?? <Skeleton chars={28} />}</span>)}
+          </p>
         )}
-      </div>
-      {(st.settings ? st.settings.configFile : shape.file) && (
-        <p className="border-line border-t px-[1.3rem] py-2.5 text-[0.9rem] text-ink-dim">
-          {m.file(<span className="selectable font-mono">{st.settings?.configFile ?? <Skeleton chars={28} />}</span>)}
-        </p>
-      )}
+      </Tabs>
     </section>
   )
 }
