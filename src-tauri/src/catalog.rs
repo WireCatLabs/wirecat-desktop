@@ -90,10 +90,21 @@ pub struct SignInSource {
     pub methods: Vec<SignInMethod>,
 }
 
+/// What the owner types before the run starts goes in as the flag or variable named here, never through a shell.
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SignInMethod {
     pub id: String,
     pub words: Vec<String>,
+    /// The flag that takes the mail address of a new profile (mail's `--address`).
+    #[serde(default)]
+    pub address: Option<String>,
+    /// The variable the tool reads an app password from; a flag would show it in the process list.
+    #[serde(default)]
+    pub password: Option<String>,
+    /// The flag that takes the owner's own OAuth client JSON (WC-SECR-25), written to a private file for the run.
+    #[serde(default)]
+    pub client_file: Option<String>,
 }
 
 /// `commands` lists every command with its effects and, from cli-core 0.408, whether the profile may run it.
@@ -309,7 +320,7 @@ mod tests {
 
     #[test]
     fn every_catalog_entry_parses() {
-        assert_eq!(catalog().tools.len(), 7);
+        assert_eq!(catalog().tools.len(), 8);
     }
 
     #[test]
@@ -322,15 +333,12 @@ mod tests {
 
     #[test]
     fn a_part_shares_its_owners_package() {
-        let parts: Vec<_> = catalog().tools.iter().filter(|t| t.part_of.is_some()).collect();
-        assert!(!parts.is_empty());
-        for part in parts {
+        for part in catalog().tools.iter().filter(|t| t.part_of.is_some()) {
             let owner = owner(part);
             assert_ne!(owner.id, part.id, "{} names an unknown owner", part.id);
             assert!(owner.part_of.is_none(), "{} is part of a part", part.id);
             assert_eq!((&owner.bin, &owner.package, &owner.storage), (&part.bin, &part.package, &part.storage));
         }
-        assert_eq!(owner(tool("email").unwrap()).id, "memo");
         assert_eq!(owner(tool("tg").unwrap()).id, "tg");
     }
 

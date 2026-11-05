@@ -34,3 +34,14 @@ export const SignInEventSchema = v.variant("event", [
 ])
 
 export type SignInEvent = v.InferOutput<typeof SignInEventSchema>
+
+/**
+ * What the owner typed before the sign-in starts. Rust passes each only where the catalog's method names its flag;
+ * the password goes in the variable the tool reads, never on the command line.
+ */
+export type SignInInputs = {
+  address?: string
+  password?: string
+  /** The text of the owner's own OAuth client JSON, written to a private file for the one run. */
+  clientFile?: string
+}

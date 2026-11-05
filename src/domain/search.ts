@@ -143,7 +143,7 @@ export type ExampleId =
   | "links30"
   | "voice30"
   | "mailWeek"
-  | "important30"
+  | "attachments30"
   | "invoice30"
   | "changed30"
   | "titled"
@@ -162,7 +162,7 @@ export function examples(what: string, now: Date): { query: string; id: ExampleI
   if (what === "mail")
     return [
       { query: "date>=7d", id: "mailWeek" },
-      { query: "mailbox:important date>=30d", id: "important30" },
+      { query: "has:attachment date>=30d", id: "attachments30" },
       { query: "invoice date>=30d", id: "invoice30" },
     ]
   if (what === "notes" || what === "documents")

@@ -49,8 +49,26 @@ const ToolSchema = v.object({
       guide: v.optional(v.pipe(v.string(), v.url())),
       /** Shown for the owner to run when the tool has no interactive `setup`; the app never runs it. */
       command: v.optional(v.string()),
-      /** Sign-ins the app runs in its own window instead of a terminal, the first one by default. */
-      methods: v.optional(v.array(v.object({ id: v.string(), label: v.string(), words: v.array(v.string()) }))),
+      /** The methods are the owner's first choice, such as the mail provider, rather than another way to sign in. */
+      pick: v.optional(v.boolean()),
+      /**
+       * Sign-ins the app runs in its own window instead of a terminal, the first one by default. `address`, `password`
+       * and `clientFile` name where Rust passes what the owner typed; `clientId` is the setting that names the owner's
+       * own app, saved before the run (WC-SECR-25).
+       */
+      methods: v.optional(
+        v.array(
+          v.object({
+            id: v.string(),
+            label: v.string(),
+            words: v.array(v.string()),
+            address: v.optional(v.string()),
+            password: v.optional(v.string()),
+            clientFile: v.optional(v.string()),
+            clientId: v.optional(v.string()),
+          }),
+        ),
+      ),
     }),
   ),
   skill: v.nullable(

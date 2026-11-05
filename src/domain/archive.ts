@@ -40,8 +40,9 @@ const COLLECTED_BY: Record<string, string> = {
   telegram: "tg",
   whatsapp: "wa",
   max: "max",
-  email: "memo mail",
+  email: "mail",
   "google-drive": "drive",
+  "google-calendar": "gcal",
   zoom: "zm",
   notes: "memo",
   // A notes folder memo reads: an Obsidian vault, or plain Markdown files ("local").
