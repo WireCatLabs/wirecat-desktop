@@ -35,3 +35,9 @@
   (это покажет `bin/live-check`).
 - DNS-over-HTTPS к 1.1.1.1:443 отсюда не проходит (соединение отклонено), обычный DNS к 1.1.1.1 отвечает:
   `bin/live-check` берёт адрес через `dig @1.1.1.1` и `curl --resolve`.
+- PR: план https://github.com/WireCatLabs/wirecat-desktop/pull/90 · CLI https://github.com/WireCatLabs/funnel-cli/pull/1 ·
+  черновики о приватности https://github.com/WireCatLabs/cli-docs/pull/552 и
+  https://github.com/WireCatLabs/wirecat-desktop/pull/99 (не сливать до выпуска помощника) · замер
+  https://github.com/WireCatLabs/cli-testing/pull/295 · идея поста POST-139 в cli-private (5d0eb753).
+- Живая проверка NEED-74 для владельца: `/home/leemour/Projects/AI/funnel-cli/bin/live-check`. Прогон до ссылки
+  входа (без входа) проверен: сборка, заглушка MCP, маршрут, ссылка, остановка и уборка за собой.
