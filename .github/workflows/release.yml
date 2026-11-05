@@ -149,14 +149,22 @@ jobs:
         shell: bash
         env:
           HAS_CERTUM: ${{ secrets.CERTUM_EMAIL != '' && secrets.CERTUM_OTP != '' }}
+          WINDOWS_SIGNER_SHA1: ${{ vars.WINDOWS_SIGNER_SHA1 }}
         run: |
           if [ "$HAS_CERTUM" != true ]; then
             echo "::notice::CERTUM_EMAIL or CERTUM_OTP is not set in the release environment: Windows is not signed."
             exit 0
           fi
+          # Checked before signing, so a missing value never costs a Certum login.
+          if [ -z "$WINDOWS_SIGNER_SHA1" ]; then
+            command="gh variable set WINDOWS_SIGNER_SHA1 --env release --repo WireCatLabs/wirecat-desktop"
+            echo "::error::WINDOWS_SIGNER_SHA1 is not set. Run: $command --body <SHA-1 thumbprint of the certificate>"
+            exit 1
+          fi
           echo "config=--config src-tauri/tauri.windows-sign.conf.json" >> "$GITHUB_OUTPUT"
+      # Our fork of ssign, reviewed at this commit (v0.1.9): docs/dev/research/2026-11-05-ssign-review.md.
       - if: steps.windows-sign.outputs.config
-        run: cargo install --locked --git https://github.com/Le-Syl21/ssign --rev f7ba7b2360a3e40bb8aa062d244d95c62a743b90 ssign
+        run: cargo install --locked --git https://github.com/WireCatLabs/ssign --rev 222cb903731d385ab75e37e88564bcf4cb100458 ssign
       - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -170,16 +178,39 @@ jobs:
           # Updater files only here: without the private key (a local or CI build) the build would fail on them.
           args: ${{ matrix.args }} --config src-tauri/tauri.release.conf.json ${{ steps.windows-sign.outputs.config }}
           updaterJsonPreferNsis: true
+      # Tauri restores the unsigned app exe in target/release after bundling, so the signed copy is checked inside the
+      # installer. Every exe there must carry our certificate: no Microsoft-signed exe is embedded today
+      # (webviewInstallMode is the default download bootstrapper).
       - if: steps.windows-sign.outputs.config
         shell: pwsh
+        env:
+          WINDOWS_SIGNER_SHA1: ${{ vars.WINDOWS_SIGNER_SHA1 }}
         run: |
-          $files = Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe
-          if (-not $files) { throw "No NSIS installer found." }
-          foreach ($file in $files) {
-            $sig = Get-AuthenticodeSignature $file.FullName
-            if ($sig.Status -ne 'Valid') { throw "$($file.Name): signature $($sig.Status). $($sig.StatusMessage)" }
-            Write-Output "$($file.Name): signed by $($sig.SignerCertificate.Subject)"
+          $expected = ($env:WINDOWS_SIGNER_SHA1 -replace '[^0-9A-Fa-f]', '').ToUpper()
+          $installers = @(Get-ChildItem src-tauri/target/release/bundle/nsis/*-setup.exe)
+          if (-not $installers) { throw "No NSIS installer found." }
+          $failed = $false
+          foreach ($installer in $installers) {
+            $dir = Join-Path $env:RUNNER_TEMP "signed-$($installer.BaseName)"
+            7z x $installer.FullName "-o$dir" -y | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "7z could not unpack $($installer.Name)." }
+            $inner = @(Get-ChildItem $dir -Recurse -File -Filter *.exe)
+            if (-not ($inner | Where-Object { $_.Name -notlike 'uninstall*' })) {
+              throw "$($installer.Name) holds no app exe."
+            }
+            foreach ($file in @($installer) + $inner) {
+              $sig = Get-AuthenticodeSignature $file.FullName
+              $thumb = "$($sig.SignerCertificate.Thumbprint)"
+              $problems = @()
+              if ($sig.Status -ne 'Valid') { $problems += "signature $($sig.Status): $($sig.StatusMessage)" }
+              if ($thumb -ne $expected) { $problems += "signer thumbprint $thumb, expected $expected" }
+              if (-not $sig.TimeStamperCertificate) { $problems += "no timestamp" }
+              Write-Output "$($file.Name): $($sig.Status), signer $($sig.SignerCertificate.Subject), thumbprint $thumb"
+              Write-Output "  timestamp by $($sig.TimeStamperCertificate.Subject)"
+              foreach ($problem in $problems) { Write-Output "::error::$($file.Name): $problem"; $failed = $true }
+            }
           }
+          if ($failed) { exit 1 }
 
   # The builds each rewrite latest.json in turn, so two finishing at once can drop an entry; this catches it before the
   # release goes public, since a published release is what every installed copy updates to.

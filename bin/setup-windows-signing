@@ -1,23 +1,106 @@
 #!/usr/bin/env bash
-# One-off (TASK-39): hands the release workflow what it needs to sign the Windows installer with Certum SimplySign.
-#   bin/setup-windows-signing
-# Asks for the SimplySign login (an e-mail) and the TOTP seed: the otpauth:// link inside the SimplySign activation QR
-# code, or its base32 secret. Where to get it: docs/dev/plans/2026-10-29-first-release.md, "Windows (Certum)".
-# Creates the GitHub environment "release", open only to v* tags, and stores CERTUM_EMAIL and CERTUM_OTP there.
-# Nothing secret is printed. The next release tag is signed without a workflow change.
+# Hands the release workflow what it needs to sign the Windows installer with Certum SimplySign (TASK-39).
+# Owner's steps: /home/leemour/Projects/AI/visage/docs/dev/plans/2026-11-05-windows-signing-setup.md
 set -euo pipefail
 
 repo="WireCatLabs/wirecat-desktop"
 env_name="release"
+self="/home/leemour/Projects/AI/visage/bin/setup-windows-signing"
+
+usage() {
+  cat <<EOF
+Usage:
+  $self [--qr /dev/shm/simplysign-qr.png] [--thumbprint-from /path/to/cert.pem]
+
+  --qr <image>               Read the TOTP seed from the SimplySign activation QR code (needs zbarimg, from the
+                             Ubuntu package zbar-tools). Without it, the script asks you to paste the seed.
+  --thumbprint-from <pem>    Compute the certificate's SHA-1 thumbprint and store it as the variable
+                             WINDOWS_SIGNER_SHA1. Alone, it does only this (after a certificate reissue).
+
+Stores CERTUM_EMAIL and CERTUM_OTP in the GitHub environment "$env_name" of $repo, open only to v* tags.
+The seed is never printed.
+EOF
+}
+
+qr=""
+pem=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --qr) qr="${2:?--qr needs an image path}"; shift 2 ;;
+    --thumbprint-from) pem="${2:?--thumbprint-from needs a PEM file}"; shift 2 ;;
+    -h | --help) usage; exit 0 ;;
+    *) usage >&2; exit 1 ;;
+  esac
+done
 
 for program in gh jq python3; do
   command -v "$program" >/dev/null || { echo "$program is missing." >&2; exit 1; }
 done
+[ -z "$qr" ] || command -v zbarimg >/dev/null || { echo "zbarimg is missing: sudo apt install zbar-tools" >&2; exit 1; }
+[ -z "$pem" ] || command -v openssl >/dev/null || { echo "openssl is missing." >&2; exit 1; }
 gh auth status >/dev/null 2>&1 || { echo "Log in first: gh auth login" >&2; exit 1; }
 
+# The environment admits only v* tags, so a branch or a pull request can never read the seed. Once it is restricted
+# there is no PUT at all: the PUT has no field for "Allow administrators to bypass", so a re-run must not risk
+# resetting that or the reviewers someone added in Settings.
+ensure_environment() {
+  local current error
+  if current="$(gh api "repos/$repo/environments/$env_name" 2>/dev/null)"; then
+    :
+  elif error="$(gh api "repos/$repo/environments/$env_name" 2>&1 >/dev/null)"; [[ "$error" == *"HTTP 404"* ]]; then
+    current="{}"
+  else
+    echo "Could not read the \"$env_name\" environment: $error" >&2
+    exit 1
+  fi
+  if [ "$(jq -r '.deployment_branch_policy.custom_branch_policies // false' <<<"$current")" != true ]; then
+    jq '{
+      wait_timer: ([.protection_rules[]? | select(.type == "wait_timer") | .wait_timer][0] // 0),
+      prevent_self_review: ([.protection_rules[]? | select(.type == "required_reviewers") | .prevent_self_review][0]
+        // false),
+      reviewers: ([.protection_rules[]? | select(.type == "required_reviewers") | .reviewers[]?
+        | {type, id: .reviewer.id}] | if length == 0 then null else . end),
+      deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}
+    }' <<<"$current" | gh api -X PUT "repos/$repo/environments/$env_name" --input - >/dev/null
+  fi
+  if ! gh api "repos/$repo/environments/$env_name/deployment-branch-policies" \
+    --jq '.branch_policies[] | select(.type == "tag" and .name == "v*")' | grep -q .; then
+    gh api -X POST "repos/$repo/environments/$env_name/deployment-branch-policies" \
+      -f name='v*' -f type=tag >/dev/null
+  fi
+}
+
+set_thumbprint() {
+  local fingerprint thumbprint
+  if ! fingerprint="$(openssl x509 -in "$pem" -noout -fingerprint -sha1)"; then
+    echo "$pem is not a PEM certificate." >&2
+    exit 1
+  fi
+  # OpenSSL prints "sha1 Fingerprint=AA:BB:…"; Windows reports the same hash as upper-case hex without colons.
+  thumbprint="$(cut -d= -f2 <<<"$fingerprint" | tr -d ':' | tr 'a-f' 'A-F')"
+  [[ "$thumbprint" =~ ^[0-9A-F]{40}$ ]] || { echo "Unexpected fingerprint from openssl: $fingerprint" >&2; exit 1; }
+  openssl x509 -in "$pem" -noout -subject -enddate
+  gh variable set WINDOWS_SIGNER_SHA1 --repo "$repo" --env "$env_name" --body "$thumbprint" >/dev/null
+  echo "Set WINDOWS_SIGNER_SHA1=$thumbprint in the \"$env_name\" environment."
+}
+
+if [ -n "$pem" ] && [ -z "$qr" ]; then
+  ensure_environment
+  set_thumbprint
+  exit 0
+fi
+
 read -rp "SimplySign login (e-mail): " email
-read -rsp "TOTP seed (otpauth:// link or base32 secret): " CERTUM_OTP
-echo
+if [ -n "$qr" ]; then
+  [ -r "$qr" ] || { echo "Cannot read $qr." >&2; exit 1; }
+  decoded="$(zbarimg --raw -q "$qr" 2>/dev/null)" || { echo "No QR code found in $qr." >&2; exit 1; }
+  CERTUM_OTP="$(grep -m1 '^otpauth://' <<<"$decoded" | tr -d '\r\n')" || true
+  unset decoded
+  [ -n "$CERTUM_OTP" ] || { echo "The QR code in $qr holds no otpauth:// link." >&2; exit 1; }
+else
+  read -rsp "TOTP seed (otpauth:// link or base32 secret): " CERTUM_OTP
+  echo
+fi
 if [ -z "$email" ] || [ -z "$CERTUM_OTP" ]; then
   echo "Both the login and the seed are needed." >&2
   exit 1
@@ -63,18 +146,15 @@ then
 fi
 echo "The seed matches the app."
 
-# The environment admits only v* tags, so a branch or a pull request can never read the seed.
-jq -n '{deployment_branch_policy: {protected_branches: false, custom_branch_policies: true}}' |
-  gh api -X PUT "repos/$repo/environments/$env_name" --input - >/dev/null
-if ! gh api "repos/$repo/environments/$env_name/deployment-branch-policies" \
-  --jq '.branch_policies[] | select(.type == "tag" and .name == "v*")' | grep -q .; then
-  gh api -X POST "repos/$repo/environments/$env_name/deployment-branch-policies" \
-    -f name='v*' -f type=tag >/dev/null
-fi
-
+ensure_environment
 printf '%s' "$email" | gh secret set CERTUM_EMAIL --repo "$repo" --env "$env_name" >/dev/null
 printf '%s' "$CERTUM_OTP" | gh secret set CERTUM_OTP --repo "$repo" --env "$env_name" >/dev/null
 unset CERTUM_OTP CODE
-
 echo "Set CERTUM_EMAIL and CERTUM_OTP in the \"$env_name\" environment of $repo, open only to v* tags."
-echo "The next release build signs the Windows installer."
+
+if [ -n "$pem" ]; then
+  set_thumbprint
+else
+  echo "Signing also needs WINDOWS_SIGNER_SHA1: $self --thumbprint-from /path/to/cert.pem"
+fi
+[ -z "$qr" ] || echo "Now delete the QR image: shred -u $qr"

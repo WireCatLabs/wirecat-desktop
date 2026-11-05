@@ -84,6 +84,8 @@ password manager: GitHub secrets cannot be read back.
 Owner, 2026-10-29: the certificate is Certum's open-source code signing in the cloud (SimplySign, NEED-128 A), and
 Windows is signed in GitHub Actions with an unofficial tool (NEED-129: path C below).
 
+Owner's setup steps (seed, thumbprint, checks, leaks): [Windows signing setup](2026-11-05-windows-signing-setup.md).
+
 What Certum documents (the
 [signtool manual](https://www.files.certum.eu/documents/manual_en/Signing_with_the_use_of_jarsigner_tool_and_signtool.pdf),
 [software page](https://support.certum.eu/en/cert-offer-software-and-libraries/)): the key stays in Certum's cloud,
@@ -96,7 +98,9 @@ a headless login or an API.
 | B. Self-hosted runner | The same PC as a GitHub runner. | A phone code per session; fork pull requests on a public repository. |
 | **C. ssign in Actions (chosen)** | The TOTP seed in a GitHub secret; ssign computes the code. | Not endorsed by Certum; see "The seed" below. |
 
-**The tool: [ssign](https://github.com/Le-Syl21/ssign)**, pinned to `f7ba7b2` (v0.1.8, 2026-10-16, MIT, Rust). It was
+**The tool: [ssign](https://github.com/Le-Syl21/ssign)**, built from our fork
+[WireCatLabs/ssign](https://github.com/WireCatLabs/ssign) at `222cb90` (v0.1.9; until 2026-11-05 upstream `f7ba7b2`,
+v0.1.8; [review](../research/2026-11-05-ssign-review.md)). MIT, Rust. It was
 the most used of the options found on 2026-10-29: 19 stars, 6 forks, 550 crates.io downloads, a release every 2 to 4
 weeks since July. The others had 0 to 2 stars: [super-simply-sign](https://github.com/IvanHanloth/super-simply-sign)
 and [windows-certum-signin](https://github.com/Rumia-Channel/windows-certum-signin) drive the SimplySign Desktop
@@ -130,8 +134,10 @@ What it does with the secret, read in its source at that commit:
    (`crates/tauri-cli/src/bundle.rs:230-232`), so the update signature covers the signed file.
 4. The two secrets reach only the tauri-action step, and only on Windows. Every build script inside that step can
    still read them, the same exposure as the updater key.
-5. A last step fails the build unless Windows reports the installer's signature as `Valid`
-   (`Get-AuthenticodeSignature`).
+5. A last step unpacks the installer with 7-Zip and fails the build unless the installer and every `.exe` in it are
+   `Valid`, timestamped, and signed by the certificate whose thumbprint is the `WINDOWS_SIGNER_SHA1` variable
+   (`Get-AuthenticodeSignature`). The app `.exe` in `target/release` is unsigned again by then: Tauri restores it after
+   bundling.
 
 **The seed.** Once it is stored in GitHub, the phone is no longer a second factor for signing: anyone with the seed
 and the login can sign as WireCat, from anywhere, until Certum resets the seed. That is why it lives in the tag-only

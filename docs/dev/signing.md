@@ -21,11 +21,11 @@ You do each part once. After that, every release tag is signed in GitHub without
 | 1 | Apple certificate file `developer-id.p12` | **Yes**: it can sign apps as you | **Yes**, in your password manager |
 | 2 | Password of that `.p12` | **Yes** | **Yes**, in the same entry |
 | 3 | Apple app-specific password | Yes | No: you can make a new one at any time |
-| 4 | Certum SimplySign seed (the `otpauth://` link) | **Yes**: it can sign Windows apps as you | **Yes**, in your password manager |
+| 4 | Certum SimplySign seed (the `otpauth://` link) | **Yes**: it can sign Windows apps as you | No: it goes from the QR image straight to GitHub; Certum's help line resets it |
 | 5 | Certum login e-mail | No | It is your e-mail |
 | 6 | Updater private key and its password | **Yes** | **Yes**: already in the keyring, not yet in your password manager |
 
-Make one password-manager entry called **"WireCat signing"** and put items 1, 2, 4 and 6 in it. GitHub keeps copies
+Make one password-manager entry called **"WireCat signing"** and put items 1, 2 and 6 in it. GitHub keeps copies
 too, but nobody can read a GitHub secret back, so GitHub is not your backup.
 
 ## Before you start
@@ -107,6 +107,9 @@ What it does:
 After that, you can leave the `.p12` on disk or delete it. It is safe in the password manager and in GitHub.
 
 ## Windows: the Certum SimplySign seed
+
+**Current steps: [Windows signing setup](plans/2026-11-05-windows-signing-setup.md).** It replaces Steps 1 and 2
+below: the seed goes from the QR image straight into GitHub, with no screenshot and no copy.
 
 The certificate itself stays in Certum's cloud; there is no file to download. To sign, GitHub logs in to Certum with
 your e-mail and the 6-digit code that the SimplySign phone app shows. The code comes from a **seed**, a secret inside
