@@ -134,3 +134,4 @@
 - `.claude/worktrees/analytics` (branch feat/analytics) — the Analytics page, once its PR is merged or closed; also the preview on port 1439 it started (2026-11-02)
 - `.claude/worktrees/chevrons` (branch fix/chevrons-right) — chevrons at the right edge in Logs and Memory, once its PR is merged; also its preview on port 1440 (2026-11-03)
 /home/leemour/Projects/AI/cli-core-wt-leaked-test-account — worktree of merged cli-core #2443 — 2026-11-02
+- `.claude/worktrees/journal-1105` (branch docs/journal-1105b) — journal worktree, once its PR is merged (2026-11-05)
