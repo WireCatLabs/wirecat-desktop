@@ -21,8 +21,12 @@ pub type Token = zeroize::Zeroizing<String>;
 pub struct BotSource {
     /// `<profile> bot auth set`: it reads the token from stdin to its end when stdin is not a terminal.
     pub set: Vec<String>,
-    /// `bot list` names every bot on this computer, but the CLI still wants a first word; the catalog's is fixed.
+    /// `bot list` names every bot on this computer.
     pub list: Vec<String>,
+    /// The tool's first version whose `bot list` takes no profile word; an older one is asked to update. Without it
+    /// the list still starts with a fixed placeholder profile, which that tool ignores.
+    #[serde(default)]
+    pub list_min_version: Option<String>,
     pub token: TokenShape,
     /// Settings `auth set` needs before it can check the token (`WhatsApp`'s `phone_number_id`), set with the tool's
     /// own `config set --bot`.
@@ -221,6 +225,11 @@ fn failed(message: String, code: Option<String>, reason: Option<String>) -> BotR
 pub fn list(tool: &Tool) -> Result<Vec<BotProfile>, String> {
     let bot = source(tool)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
+    if let Some(min) = &bot.list_min_version
+        && crate::tools::older(crate::tools::version_of(&bin).as_deref(), min)
+    {
+        return Err(format!("needs {} {min} or newer", tool.bin));
+    }
     let refs: Vec<&str> = bot.list.iter().map(String::as_str).collect();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), SETTING_TIMEOUT).map_err(|e| e.to_string())?;
     parse_list(&out)
@@ -278,11 +287,14 @@ mod tests {
 
     #[test]
     fn the_bot_list_reads_without_recording_and_names_no_profile_of_the_owner() {
-        for id in ["tg", "max", "wa"] {
-            let list = &catalog::tool(id).unwrap().bot.as_ref().unwrap().list;
-            assert!(!list.iter().any(|w| w == "{profile}"), "{id}");
-            assert!(list.iter().any(|w| w == "--no-record"), "{id}");
+        for id in ["tg", "wa"] {
+            let bot = catalog::tool(id).unwrap().bot.as_ref().unwrap();
+            assert_eq!(bot.list, ["bot", "list", "--no-record", "--json"], "{id}");
+            assert!(bot.list_min_version.is_some(), "{id}");
         }
+        // max 0.101.0 is on a cli-core whose `bot list` still wants a first word.
+        let max = catalog::tool("max").unwrap().bot.as_ref().unwrap();
+        assert_eq!(max.list, ["wirecat", "bot", "list", "--no-record", "--json"]);
     }
 
     #[test]

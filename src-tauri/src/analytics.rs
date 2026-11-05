@@ -287,7 +287,7 @@ pub fn aggregate(
     let args = aggregate_args(src, profile, period, timezone)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     if let Some(min) = &src.min_version
-        && older(crate::tools::version_of(&bin).as_deref(), min)
+        && crate::tools::older(crate::tools::version_of(&bin).as_deref(), min)
     {
         return Ok(Aggregate::Old { message: format!("needs {} {min} or newer", tool.bin) });
     }
@@ -305,12 +305,6 @@ pub fn aggregate(
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
     Ok(if too_old(&message) { Aggregate::Old { message } } else { Aggregate::Failed { message } })
-}
-
-/// A version that cannot be read counts as older: the command it lacks would only fail.
-fn older(version: Option<&str>, min: &str) -> bool {
-    let Ok(min) = semver::Version::parse(min) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < min)
 }
 
 /// The answer sits under `item`; an older envelope put it first in `items`.
@@ -499,14 +493,6 @@ mod tests {
         let tg = catalog::tool("tg").unwrap();
         let c = aggregate_args(&tg.aggregates["coverage"], Some("personal"), Period::All, "UTC").unwrap();
         assert_eq!(&c[..4], ["personal", "store", "chats", "status"]);
-    }
-
-    #[test]
-    fn a_version_too_old_for_a_count_is_said_before_anything_runs() {
-        assert!(older(Some("0.115.0"), "0.116.0"));
-        assert!(!older(Some("0.116.0"), "0.116.0"));
-        assert!(older(None, "0.116.0"));
-        assert!(!older(Some("0.1.0"), "not a version"));
     }
 
     #[test]

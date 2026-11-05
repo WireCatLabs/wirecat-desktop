@@ -22,7 +22,7 @@ Status: **done** · **running** (a worker is on it now) · **open** (not started
 | A8 | Step indicator "as circles at the top" | **partly** | Built into the sidebar's numbered circles (line, checks, "done") instead of a second row at the top. Say if you still want it at the top. |
 | A9 | Two purple buttons on the last tour stop ("Try this guide" and "Copy prompt") | **open** | Breaks the one-primary-button rule. Small fix. |
 | A10 | Community CLIs "picked up by desktop" | **partly** | App side merged into #96 (signed list, off by default). cli-docs #546 merged; its first signed deploy is running. Then check `https://wirecat.dev/registry/v1/desktop-tools.json`. No community tool is listed yet. |
-| A11 | `bot list` without the dummy word | **partly** | Released in cli-core 0.567.0, wa 0.29.0 and tg 0.116.0. Waits for a max-cli bump (PR with the timer fix, NEED-2211 A) before the app drops the word. |
+| A11 | `bot list` without the dummy word | **partly** | Done for tg (0.116.0+) and wa (0.29.0+): the catalog sends `bot list` alone, and an older tool is asked to update. max 0.101.0 still asks for a profile (BUG-79), so max keeps the word until max-cli is fixed. |
 | A12 | "Two CLI versions installed" on Windows (FIND-198) | **open** | Never reproduced. Needs a Windows test run; the Tools panel shows both paths. |
 | A13 | Skill errors "path is not there" text (NEED-2185) | **open** | You couldn't recall it. Replaced by one grouped notice with Fix; check on the next Windows run. |
 
