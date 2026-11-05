@@ -44,6 +44,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
   const chip = useRef<HTMLSpanElement>(null)
   const button = useRef<HTMLButtonElement>(null)
   const list = useRef<HTMLDivElement>(null)
+  const listbox = useRef<HTMLDivElement>(null)
   const field = useRef<HTMLInputElement>(null)
   const base = useId()
   const searchable = options.length >= SEARCH_FROM
@@ -65,7 +66,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
     if (!open) return
     setActive(0)
     if (searchable) field.current?.focus({ preventScroll: true })
-    else list.current?.focus({ preventScroll: true })
+    else listbox.current?.focus({ preventScroll: true })
   }, [open, searchable])
   useEffect(() => {
     if (open) document.getElementById(`${base}-${active}`)?.scrollIntoView?.({ block: "nearest" })
@@ -179,6 +180,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
           />
         )}
         <div
+          ref={listbox}
           id={listId}
           role="listbox"
           aria-label={label}

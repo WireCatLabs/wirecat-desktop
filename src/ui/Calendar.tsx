@@ -98,8 +98,7 @@ export function Calendar({ selected, onPick, today = dayOf(new Date()), autoFocu
   // biome-ignore lint/correctness/useExhaustiveDependencies: once, on mount
   useEffect(() => {
     if (!autoFocus) return
-    // The popover turns visible only after its own layout pass, and under reduced motion the global 0.01ms
-    // transition still holds `visibility: hidden` for a frame, so focus is tried each frame until it lands.
+    // The popover is placed only after its own layout pass, so focus is tried each frame until it lands.
     let frame = 0
     let tries = 0
     const attempt = () => {

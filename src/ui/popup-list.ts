@@ -3,6 +3,9 @@ import { type CSSProperties, type RefObject, useEffect, useLayoutEffect, useStat
 const GAP = 4
 const EDGE = 8
 const MAX_HEIGHT = 288
+// Not `visibility: hidden`: the opener's effect that focuses the first item runs before the list is placed, and a
+// hidden element refuses focus, so the keyboard stayed on the trigger.
+const UNPLACED: CSSProperties = { opacity: 0, pointerEvents: "none" }
 
 /**
  * Where a fixed list opens beside its anchor: below it, or above when there is more room there, kept inside the
@@ -16,7 +19,7 @@ export function useListPlacement(
   /** A calendar is taller than a list; it scrolls inside itself only when the window has no room for it. */
   maxHeight = MAX_HEIGHT,
 ): CSSProperties {
-  const [place, setPlace] = useState<CSSProperties>({ visibility: "hidden" })
+  const [place, setPlace] = useState<CSSProperties>(UNPLACED)
   useLayoutEffect(() => {
     if (!open) return
     const position = () => {
@@ -42,7 +45,7 @@ export function useListPlacement(
     return () => {
       window.removeEventListener("resize", position)
       window.removeEventListener("scroll", position, true)
-      setPlace({ visibility: "hidden" })
+      setPlace(UNPLACED)
     }
   }, [open, anchor, list, maxHeight])
   return place
