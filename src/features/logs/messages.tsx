@@ -248,8 +248,8 @@ const en = {
   notANumber: (op: string, value: string) => `${op} compares numbers; "${value}" is not one.`,
   unknownField: (field: string) => `No run has a field named ${field}.`,
 
-  keepingRegion: "Which runs each tool keeps",
-  keepingHeading: "Runs each tool keeps",
+  settings: "Log settings",
+  settingsTrouble: "A tool's runs could not be read; open Log settings to see which",
   readingKeeping: "Reading which runs each tool keeps",
   whichRuns: (tool: string) => `Which ${tool} runs to keep`,
   refused: (tool: string, error: string) => `${tool} refused the change: ${error}`,
@@ -264,12 +264,10 @@ const en = {
   periodsEvery: (days: number | null) => `every run${days === null ? "" : ` for ${enDays(days)}`}`,
   periodsSplit: (success: number | null, failed: number | null) =>
     `successful runs${success === null ? "" : ` for ${enDays(success)}`}, failed runs${failed === null ? "" : ` for ${enDays(failed)}`}`,
-  chipReading: (tool: string) => `${tool} is reading its settings`,
-  chipError: (tool: string, error: string) => `${tool} could not say whether it keeps successful runs: ${error}`,
-  chipKeeps: (tool: string, periods: string) => `${tool} keeps ${periods}`,
-  chipFailedOnly: (tool: string, days: number | null) =>
-    `${tool} keeps failed runs only${days === null ? "" : ` for ${enDays(days)}`}`,
-  chipRefused: (error: string) => `The tool refused the change: ${error}`,
+  keepError: (error: string) => `Could not say whether it keeps successful runs: ${error}`,
+  keeps: (periods: string) => `Keeps ${periods}`,
+  keepsFailedOnly: (days: number | null) => `Keeps failed runs only${days === null ? "" : ` for ${enDays(days)}`}`,
+  keepRefused: (error: string) => `The tool refused the change: ${error}`,
   noRecordSetting: "The tool does not report a record setting.",
   howUnset: (command: ReactNode): ReactNode => (
     <>This runs {command}, which puts the setting back to the tool's default.</>
@@ -542,8 +540,8 @@ const ru: typeof en = {
   notANumber: (op, value) => `${op} сравнивает числа, а «${value}» — не число.`,
   unknownField: (field) => `Ни у одного запуска нет поля ${field}.`,
 
-  keepingRegion: "Какие запуски хранит каждый инструмент",
-  keepingHeading: "Какие запуски хранятся",
+  settings: "Настройки журнала",
+  settingsTrouble: "Запуски одного из инструментов не прочитаны; какого — видно в настройках журнала",
   readingKeeping: "Читаем, какие запуски хранит каждый инструмент",
   whichRuns: (tool) => `Какие запуски ${tool} хранить`,
   refused: (tool, error) => `${tool} не принял изменение: ${error}`,
@@ -557,11 +555,10 @@ const ru: typeof en = {
   periodsEvery: (days) => `каждый запуск${days === null ? "" : ` ${ruDays(days)}`}`,
   periodsSplit: (success, failed) =>
     `успешные запуски${success === null ? "" : ` ${ruDays(success)}`}, неудачные${failed === null ? "" : ` ${ruDays(failed)}`}`,
-  chipReading: (tool) => `${tool} читает свои настройки`,
-  chipError: (tool, error) => `${tool} не смог сказать, хранит ли он успешные запуски: ${error}`,
-  chipKeeps: (tool, periods) => `${tool} хранит ${periods}`,
-  chipFailedOnly: (tool, days) => `${tool} хранит только неудачные запуски${days === null ? "" : ` ${ruDays(days)}`}`,
-  chipRefused: (error) => `Инструмент не принял изменение: ${error}`,
+  keepError: (error) => `Не смог сказать, хранит ли успешные запуски: ${error}`,
+  keeps: (periods) => `Хранит ${periods}`,
+  keepsFailedOnly: (days) => `Хранит только неудачные запуски${days === null ? "" : ` ${ruDays(days)}`}`,
+  keepRefused: (error) => `Инструмент не принял изменение: ${error}`,
   noRecordSetting: "Инструмент не сообщает настройку record.",
   howUnset: (command) => <>Будет выполнена команда {command}, она вернёт настройке значение по умолчанию.</>,
   howSet: (command, tool) => (
@@ -815,8 +812,8 @@ const es: typeof en = {
   notANumber: (op, value) => `${op} compara números; «${value}» no lo es.`,
   unknownField: (field) => `Ninguna ejecución tiene un campo llamado ${field}.`,
 
-  keepingRegion: "Qué ejecuciones guarda cada herramienta",
-  keepingHeading: "Ejecuciones que guarda cada herramienta",
+  settings: "Ajustes de registros",
+  settingsTrouble: "No se pudieron leer las ejecuciones de una herramienta; abre Ajustes de registros para ver cuál",
   readingKeeping: "Leyendo qué ejecuciones guarda cada herramienta",
   whichRuns: (tool) => `Qué ejecuciones de ${tool} guardar`,
   refused: (tool, error) => `${tool} rechazó el cambio: ${error}`,
@@ -830,12 +827,10 @@ const es: typeof en = {
   periodsEvery: (days) => `todas las ejecuciones${days === null ? "" : ` durante ${esDays(days)}`}`,
   periodsSplit: (success, failed) =>
     `las correctas${success === null ? "" : ` durante ${esDays(success)}`} y las fallidas${failed === null ? "" : ` durante ${esDays(failed)}`}`,
-  chipReading: (tool) => `${tool} está leyendo sus ajustes`,
-  chipError: (tool, error) => `${tool} no pudo decir si guarda las ejecuciones correctas: ${error}`,
-  chipKeeps: (tool, periods) => `${tool} guarda ${periods}`,
-  chipFailedOnly: (tool, days) =>
-    `${tool} guarda solo las ejecuciones fallidas${days === null ? "" : ` durante ${esDays(days)}`}`,
-  chipRefused: (error) => `La herramienta rechazó el cambio: ${error}`,
+  keepError: (error) => `No pudo decir si guarda las ejecuciones correctas: ${error}`,
+  keeps: (periods) => `Guarda ${periods}`,
+  keepsFailedOnly: (days) => `Guarda solo las ejecuciones fallidas${days === null ? "" : ` durante ${esDays(days)}`}`,
+  keepRefused: (error) => `La herramienta rechazó el cambio: ${error}`,
   noRecordSetting: "La herramienta no informa del ajuste record.",
   howUnset: (command) => <>Se ejecuta {command}, que devuelve el ajuste al valor por defecto de la herramienta.</>,
   howSet: (command, tool) => (

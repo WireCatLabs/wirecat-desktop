@@ -1,4 +1,4 @@
-import { ArrowUp, ExternalLink, RefreshCw, SlidersHorizontal } from "lucide-react"
+import { ArrowUp, ExternalLink, RefreshCw, Settings2, SlidersHorizontal } from "lucide-react"
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react"
 import { tools } from "@/domain/catalog"
 import {
@@ -25,21 +25,22 @@ import {
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { reducedMotion } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { QueryBar } from "../query/QueryBar"
-import { ReportThis } from "../report/ReportThis"
 import { Facets } from "./Facets"
 import { Groups } from "./Groups"
-import { KeepRuns } from "./KeepRuns"
+import { LogSettings, settingsTone } from "./LogSettings"
 import { useLive } from "./live"
 import { logsMessages } from "./messages"
-import { fieldLabel, LOGS_DOCS, type LogsWords, problemText, toolName } from "./names"
+import { fieldLabel, LOGS_DOCS, problemText, toolName } from "./names"
 import { RunsTable } from "./RunsTable"
-import { runKey, type Source, timing, useLogs, useShownLogs } from "./store"
+import { runKey, type Source, useLogs, useShownLogs } from "./store"
 
 const STEP = 100
 const FIELDS = [
@@ -62,10 +63,13 @@ export function LogsPage() {
   const m = useMessages(logsMessages)
   const { loadedAt, liveRound, reading, asked, live, query, range, groupBy, expanded, details } = useLogs()
   const sources = useShownLogs((s) => s.sources)
-  const { load, loadMore, setQuery, setRange, setGroupBy, toggle, setLive } = useLogs.getState()
+  const keeping = useShownLogs((s) => s.keeping)
+  const { load, setQuery, setRange, setGroupBy, toggle, setLive } = useLogs.getState()
   const [newest, setNewest] = useState(true)
   const [shown, setShown] = useState(STEP)
   const [facetsOpen, setFacetsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsId = useId()
   const deferred = useDeferredValue(query)
   useLive(live)
 
@@ -164,55 +168,69 @@ export function LogsPage() {
   const onFilter = (field: string, value: string, negate: boolean) => setQuery(toggleTerm(query, field, value, negate))
   const failed = all.filter((r) => r.status === "failed").length
   const oldest = all.reduce((min, r) => (r.started_at < min ? r.started_at : min), all[0]?.started_at ?? "")
+  const trouble = settingsTone(sources, keeping)
 
   return (
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
-          <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
-            {m.intro}{" "}
-            <button
-              type="button"
-              onClick={() => platform.openUrl(LOGS_DOCS)}
-              className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
+      {/* One box for the header and the panel under it, so the page's gap does not appear at once as it opens. */}
+      <div>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
+            <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
+              {m.intro}{" "}
+              <button
+                type="button"
+                onClick={() => platform.openUrl(LOGS_DOCS)}
+                className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
+              >
+                {m.howToSearch}
+                <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
+              </button>
+            </p>
+          </div>
+          <div className="flex items-center gap-[0.7rem]">
+            <Freshness at={loadedAt} reading={reading.length} asked={asked} />
+            <Button
+              aria-expanded={settingsOpen}
+              aria-controls={settingsId}
+              onClick={() => setSettingsOpen(!settingsOpen)}
+              icon={<Settings2 className="size-4" aria-hidden />}
             >
-              {m.howToSearch}
-              <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
-            </button>
-          </p>
+              {m.settings}
+              {trouble && <Lamp tone={trouble} size="sm" label={m.settingsTrouble} />}
+              <ExpandChevron open={settingsOpen} className="-mr-1" />
+            </Button>
+            <Button
+              aria-pressed={live}
+              onClick={() => setLive(!live)}
+              title={live ? m.liveStop : m.liveStart}
+              icon={
+                <span
+                  aria-hidden
+                  className={cx(
+                    "size-[0.6rem] rounded-full",
+                    live ? "animate-[lamp-pulse_1.4s_ease-in-out_infinite] bg-ok" : "ring-[1.5px] ring-idle ring-inset",
+                  )}
+                />
+              }
+            >
+              {m.live}
+            </Button>
+            <Button
+              onClick={() => load()}
+              disabled={reading.length > 0}
+              icon={<RefreshCw className={cx("size-4", reading.length > 0 && "animate-spin")} aria-hidden />}
+            >
+              <StableText value={reading.length > 0 ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-[0.7rem]">
-          <Freshness at={loadedAt} reading={reading.length} asked={asked} />
-          <Button
-            aria-pressed={live}
-            onClick={() => setLive(!live)}
-            title={live ? m.liveStop : m.liveStart}
-            icon={
-              <span
-                aria-hidden
-                className={cx(
-                  "size-[0.6rem] rounded-full",
-                  live ? "animate-[lamp-pulse_1.4s_ease-in-out_infinite] bg-ok" : "ring-[1.5px] ring-idle ring-inset",
-                )}
-              />
-            }
-          >
-            {m.live}
-          </Button>
-          <Button
-            onClick={() => load()}
-            disabled={reading.length > 0}
-            icon={<RefreshCw className={cx("size-4", reading.length > 0 && "animate-spin")} aria-hidden />}
-          >
-            <StableText value={reading.length > 0 ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
-          </Button>
-        </div>
+
+        <Collapse open={settingsOpen} className="pt-[1.2rem]">
+          <LogSettings id={settingsId} />
+        </Collapse>
       </div>
-
-      <KeepRuns />
-
-      <Sources list={list} onMore={loadMore} />
 
       {withLogs.length === 0 && list.length > 0 ? (
         <Empty>{m.noLogs}</Empty>
@@ -359,61 +377,6 @@ export function LogsPage() {
       )}
     </div>
   )
-}
-
-function Sources({ list, onMore }: { list: Source[]; onMore: (id: string) => void }) {
-  const m = useMessages(logsMessages)
-  return (
-    <ul aria-label={m.sources} className="flex flex-wrap gap-x-[1.4rem] gap-y-[0.45rem] text-[0.9rem]">
-      {list.map((s) => (
-        <li key={s.id} className="flex min-w-0 items-center gap-[0.45rem]">
-          <Lamp tone={sourceTone(s)} size="sm" label={sourceWords(m, s)} />
-          <span className="font-medium">{toolName(s.id)}</span>
-          {/* As wide as "reading…" from the start, so a count arriving never unwraps the row and moves the tools after it. */}
-          <span
-            className={cx("min-w-[3.8rem] truncate", s.state === "error" ? "text-bad" : "text-ink-dim")}
-            title={s.error ?? undefined}
-          >
-            {sourceWords(m, s)}
-          </span>
-          {s.state === "error" && (
-            <ReportThis what={`Reading ${toolName(s.id)} runs`} tool={s.id} error={s.error ?? "could not be read"} />
-          )}
-          {s.hasMore && s.state === "ready" && (
-            <button
-              type="button"
-              onClick={() => onMore(s.id)}
-              className="font-medium text-brand hover:text-brand-hover"
-            >
-              {m.loadOlder}
-            </button>
-          )}
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-const sourceTone = (s: Source) =>
-  s.state === "loading"
-    ? "busy"
-    : s.state === "error"
-      ? "bad"
-      : s.state === "late"
-        ? "warn"
-        : s.state === "ready"
-          ? "ok"
-          : "idle"
-
-function sourceWords(m: LogsWords, s: Source): string {
-  if (s.state === "late") return m.late(timing.answer / 1000, s.runs.length > 0)
-  if (s.state === "none") return m.keepsNoLogs
-  if (s.state === "missing") return m.notInstalled
-  if (s.state === "update") return m.withNextUpdate(toolName(s.id))
-  if (s.state === "error") return s.error ?? m.couldNotBeRead
-  const n = s.runs.length
-  const runs = m.runCount(n, s.hasMore)
-  return s.state === "loading" ? (n ? m.readingOlder(runs) : m.readingShort) : runs
 }
 
 // The table's own header and rows at their real height, so the first tool's runs land where the placeholders were.

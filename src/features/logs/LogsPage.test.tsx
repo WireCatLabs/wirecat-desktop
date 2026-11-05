@@ -12,6 +12,13 @@ afterEach(() => vi.restoreAllMocks())
 const loaded = () =>
   waitFor(() => expect(screen.getByRole("button", { name: "Read again" })).toBeEnabled(), { timeout: 4000 })
 
+const openSettings = async (user: ReturnType<typeof userEvent.setup>, name = "Log settings") => {
+  await user.click(screen.getByRole("button", { name: new RegExp(`^${name}`) }))
+  return screen.getByRole("list", { name: /Where the runs come from|Откуда взяты запуски/ })
+}
+
+const runsOf = (list: HTMLElement, tool: string) => within(list).getByText(tool).closest("li") as HTMLElement
+
 describe("Logs", () => {
   it("reads every tool's runs, filters by a facet and opens a run's record", async () => {
     const user = userEvent.setup()
@@ -57,10 +64,10 @@ describe("Logs", () => {
     render(<LogsPage />)
     await loaded()
 
-    const keeping = screen.getByRole("region", { name: "Which runs each tool keeps" })
+    const keeping = await openSettings(user)
     const telegram = await within(keeping).findByRole("combobox", { name: "Which Telegram runs to keep" })
-    const every = /keeps successful runs for 7 days, failed runs for 30 days$/
-    expect(within(keeping).getAllByRole("img", { name: every })).toHaveLength(3)
+    const every = "Keeps successful runs for 7 days, failed runs for 30 days"
+    expect(within(keeping).getAllByText(every)).toHaveLength(3)
     expect(telegram).toHaveTextContent("Every run")
 
     await user.click(telegram)
@@ -71,9 +78,7 @@ describe("Logs", () => {
 
     await user.click(within(dialog).getByRole("button", { name: "Keep failed runs only" }))
     expect(set).toHaveBeenCalledWith("tg", null, true, "record", "false")
-    expect(
-      await within(keeping).findByRole("img", { name: "Telegram keeps failed runs only for 30 days" }),
-    ).toBeVisible()
+    expect(await within(runsOf(keeping, "Telegram")).findByText("Keeps failed runs only for 30 days")).toBeVisible()
     expect(telegram).toHaveTextContent("Failed runs only")
 
     await user.click(telegram)
@@ -82,7 +87,7 @@ describe("Logs", () => {
     expect(back).toHaveTextContent(/successful runs for 7 days, failed runs for 30 days/)
     await user.click(within(back).getByRole("button", { name: "Keep every run" }))
     expect(unset).toHaveBeenCalledWith("tg", null, true, "record")
-    await waitFor(() => expect(within(keeping).getAllByRole("img", { name: every })).toHaveLength(3))
+    await waitFor(() => expect(within(keeping).getAllByText(every)).toHaveLength(3))
   }, 15000)
 
   it("on a tool from before every run was kept, turns it on with record true and off by removing it", async () => {
@@ -99,7 +104,7 @@ describe("Logs", () => {
     render(<LogsPage />)
     await loaded()
 
-    const keeping = screen.getByRole("region", { name: "Which runs each tool keeps" })
+    const keeping = await openSettings(user)
     const max = await within(keeping).findByRole("combobox", { name: "Which MAX runs to keep" })
     expect(max).toHaveTextContent("Failed runs only")
     await user.click(max)
@@ -125,7 +130,7 @@ describe("Logs", () => {
     render(<LogsPage />)
     await loaded()
 
-    const sources = screen.getByRole("list", { name: "Where the runs come from" })
+    const sources = await openSettings(userEvent.setup())
     expect(within(sources).getByText("arrives with the next update of Zoom")).toBeInTheDocument()
     expect(within(sources).getByText("arrives with the next update of Memo")).toBeInTheDocument()
     expect(within(sources).getByText(/did not finish in time/)).toHaveClass("text-bad")
@@ -198,9 +203,9 @@ describe("Logs", () => {
     })
 
     expect(screen.getByRole("heading", { name: "Журнал" })).toBeInTheDocument()
-    const keeping = screen.getByRole("region", { name: "Какие запуски хранит каждый инструмент" })
+    const keeping = await openSettings(user, "Настройки журнала")
     expect(
-      await within(keeping).findByRole("img", { name: "Telegram хранит успешные запуски 7 дней, неудачные 30 дней" }),
+      await within(runsOf(keeping, "Telegram")).findByText("Хранит успешные запуски 7 дней, неудачные 30 дней"),
     ).toBeInTheDocument()
 
     await user.click(screen.getByRole("combobox", { name: "Группировка" }))
@@ -319,8 +324,8 @@ describe("Logs snapshot", () => {
     release()
     await loaded()
     expect(rows().length).toBeGreaterThan(0)
-    const sources = screen.getByRole("list", { name: "Where the runs come from" })
-    expect(within(sources).getByText("Telegram").nextSibling).toHaveTextContent(/^\d+\+? runs$/)
+    const sources = await openSettings(userEvent.setup())
+    expect(within(runsOf(sources, "Telegram")).getByText(/^\d+\+? runs$/)).toBeInTheDocument()
   }, 15000)
 
   it("stops waiting for a slow tool, says so, and takes its answer in the next round without asking twice", async () => {
@@ -339,13 +344,14 @@ describe("Logs snapshot", () => {
     await loaded()
 
     expect(rows().length).toBeGreaterThan(0)
-    const sources = screen.getByRole("list", { name: "Where the runs come from" })
+    expect(screen.getByRole("img", { name: /could not be read; open Log settings/ })).toBeInTheDocument()
+    const sources = await openSettings(user)
     expect(within(sources).getByText("did not answer in 2 s")).toBeInTheDocument()
 
     answerTg()
     await user.click(screen.getByRole("button", { name: "Read again" }))
     await loaded()
-    expect(within(sources).getByText("Telegram").nextSibling).toHaveTextContent(/^\d+\+? runs$/)
+    expect(within(runsOf(sources, "Telegram")).getByText(/^\d+\+? runs$/)).toBeInTheDocument()
     expect(spy.mock.calls.filter(([id]) => id === "tg")).toHaveLength(1)
   }, 15000)
 })
