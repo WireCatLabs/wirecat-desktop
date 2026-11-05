@@ -56,13 +56,13 @@ import type {
   TaskRead,
   TaskWrite,
 } from "./task-schemas"
-import type { PackageOutcome, UpdateKind, UpdateProgress } from "./update-schemas"
+import type { PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress } from "./update-schemas"
 
 export type WindowAction = "minimize" | "toggleMaximize" | "close"
 
 /** A newer WireCat release, and how this copy takes it. */
 export type AppUpdate = { version: string; notes: string | null; kind: UpdateKind }
-export type { PackageOutcome, UpdateKind, UpdateProgress }
+export type { PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress }
 
 /** Everything the interface may ask of the machine. Each call names a known operation, never a command line. */
 export type Platform = {

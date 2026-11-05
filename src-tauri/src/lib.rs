@@ -1043,7 +1043,7 @@ async fn update_download_package(
     app: tauri::AppHandle,
     version: String,
     on_event: Channel<package_update::Progress>,
-) -> Result<package_update::Outcome, String> {
+) -> Result<package_update::Outcome, package_update::Failure> {
     package_update::download(&app, &version, &on_event).await
 }
 

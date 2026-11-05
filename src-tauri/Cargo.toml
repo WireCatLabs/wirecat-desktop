@@ -47,6 +47,9 @@ minisign-verify = "0.3"
 [dev-dependencies]
 # Makes a throwaway key pair and signs test lists; never in the app.
 minisign = "0.10"
+# Make a real refused connection for the update error test; both already in the build through tauri-plugin-updater.
+reqwest = { version = "0.13", default-features = false }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
