@@ -60,7 +60,9 @@ iPhone, см. TASK-97 вчера). Делаем вкладки с миниатю
 
 **FIND-200 · tg ничего не печатает между сканом QR и концом входа** — mtcute после скана переносит вход на сервер
 аккаунта и грузит его, несколько секунд. Предложение для tg-cli: в src/telegram/login.ts звать `signInQr` с
-`onQrScanned` и печатать `steps.progress("scanned", …)`; WireCat уже это читает.
+`onQrScanned` и печатать `steps.progress("scanned", …)`; WireCat уже это читает. **PR tg-cli#823** (2026-11-05):
+`{"event":"progress","step":"scanned","message":"scan accepted, finishing sign-in"}` в stderr при --json; настоящим
+входом не проверено.
 
 **BUG-72 · WhatsApp-бот виден ещё и как личный аккаунт «не вошёл»** — `wa account list` показывает настройки бота как
 профиль. Нужно исправить в whatsapp-cli (или cli-core).
