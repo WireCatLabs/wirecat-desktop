@@ -77,6 +77,8 @@ src-tauri/src/
                 (Fix › under an error, Open in on a guide); only those three programs, found on PATH.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
+  bots.rs       a bot beside the personal account: the catalog's `bot.fields` through `config set --bot`, then the
+                token on the tool's stdin to its own `bot auth set`; `bot list` for the names. See "Connecting a bot".
   sync.rs       the tool's own sync per profile, stopped by its PID; counts and stages out, when it last synced
                 (for tg and max, only a run whose argv has `--all`).
   background.rs whether a messenger's own `serve` keeps a profile current (`server status`), and starting it through
@@ -360,6 +362,26 @@ Telegram accepts them. `src/domain/telegram-signin.ts` reads tg's failure line i
 (enter the keys, the number, a new code or the password again, or wait); `src/domain/signin-notes.ts` turns cli-base's
 keyring warning into a calm notice with the file's path. Mock scenarios: `?signin-fail=tg-apiid|tg-flood|tg-code`,
 `?signin-keyring=file`.
+
+## Connecting a bot
+
+tg, max and wa each run a bot of the messenger's own Bot API beside the personal account (cli-core's `bot` group). Their
+catalog entry has a `bot` block: `set` is `<profile> bot auth set --record --json`, `list` is `bot list`, `token` is
+the shape the interface checks (`telegram` is `<digits>:<key>`; MAX and Meta document none, so `opaque` is one line
+without spaces), `create` and `docs` are links, and `fields` are settings `auth set` needs first: WhatsApp's
+`phone_number_id` and `waba_id`, digits that `config set --bot` takes as a JSON string. "Add a bot" under a tool's
+accounts opens `BotSignInDialog`: a name the owner types (never a default), where to get the token, the fields and
+the token, then the bot's name as the tool reported it. `bot_sign_in(id, profile, token, fields)` sets the fields,
+then writes the token to the tool's stdin and closes it (`run::stream_with_input`); off a terminal `auth set` reads
+stdin to its end, so no `--answer-stdin` is needed. The tool asks the messenger whose token it is before keeping it, so
+a refused token never replaces a working one. The token is never an argument, never in the store (the form clears it
+when it is sent), and masked in any message before `redact.rs` reads it; it is wiped in Rust once written. The bot's
+name and username leave Rust unmasked: they are the bot's public identity, shown as "Bot @name is connected".
+
+`bot list` names every bot on this computer but still wants a first word, so the catalog passes a fixed `wirecat`;
+it acts on no profile. A bot-only name is not in `account list`, so the Tools page lists bots on their own with a
+Bot badge. A WhatsApp bot's settings make `account list` show its name as a personal profile that is not signed in.
+Mock scenarios: `?bot=<tool>`, `?bot-step=token`, `?bot-fail=<tool>|old|ids`, `?bots=none`.
 
 ## The MCP server for browser apps
 

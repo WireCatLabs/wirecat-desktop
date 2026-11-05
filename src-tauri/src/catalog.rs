@@ -32,6 +32,9 @@ pub struct Tool {
     pub aggregates: std::collections::BTreeMap<String, AggregateSource>,
     pub setup: Option<Vec<String>>,
     pub sign_in: Option<SignInSource>,
+    /// A bot of the messenger's own Bot API beside the personal account, connected with its token (`bots.rs`).
+    #[serde(default)]
+    pub bot: Option<crate::bots::BotSource>,
     pub storage: Storage,
     pub settings: Option<SettingsSource>,
     /// Only for tools whose `config show` reports `permissions` levels.

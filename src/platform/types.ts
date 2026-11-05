@@ -15,6 +15,7 @@ import type {
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
+import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
 import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
@@ -241,6 +242,13 @@ export type Platform = {
   signInAnswer(id: string, value: string): Promise<void>
   /** Asks the tool to stop, then ends it after a few seconds; `signIn` then answers `stopped`, or `done` with what came. */
   signInStop(id: string): Promise<void>
+  /**
+   * Connects a bot to the profile the owner named with the tool's own `bot auth set`: `fields` first (WhatsApp's ids,
+   * `bot.fields` in the catalog), then the token on its stdin. The token is never logged, kept or sent back.
+   */
+  botSignIn(id: string, profile: string, token: string, fields: Record<string, string>): Promise<BotResult>
+  /** Every bot name on this computer with a token, from the tool's own `bot list`. */
+  listBots(id: string): Promise<BotProfile[]>
   /**
    * Runs the tool's own sync (`sync.run` in the catalog) for the profile the owner chose, or none for a tool without
    * profiles. Stages and the result arrive as events; only counts, never chat or account names.

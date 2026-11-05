@@ -3,6 +3,7 @@ mod analytics;
 mod archive;
 mod background;
 mod backup;
+mod bots;
 mod cache;
 mod catalog;
 mod chats;
@@ -51,7 +52,7 @@ mod terminal_path;
 mod tools;
 
 use install::{InstallEvent, Running};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
@@ -882,6 +883,27 @@ async fn sign_in(
     .await
 }
 
+/// Connects a bot to the profile the owner named: the catalog's settings first (`WhatsApp`'s ids), then the token on
+/// the tool's stdin. The token is wiped once written and never comes back.
+#[tauri::command]
+async fn bot_sign_in(
+    id: String,
+    profile: String,
+    token: String,
+    fields: BTreeMap<String, String>,
+) -> Result<bots::BotResult, String> {
+    let token = bots::Token::new(token);
+    let tool = catalog::tool(&id)?;
+    blocking(move || bots::connect(tool, &profile, &token, &fields)).await?
+}
+
+/// Every bot name on this computer, from the tool's own `bot list`.
+#[tauri::command]
+async fn list_bots(id: String) -> Result<Vec<bots::BotProfile>, String> {
+    let tool = catalog::tool(&id)?;
+    blocking(move || bots::list(tool)).await?
+}
+
 /// Hands the running sign-in the answer to its last `needs` step, on its stdin; the value is wiped after the write.
 #[tauri::command]
 fn sign_in_answer(id: String, value: String) -> Result<(), String> {
@@ -1091,6 +1113,8 @@ pub fn run() {
             open_setup,
             config_repair,
             sign_in,
+            bot_sign_in,
+            list_bots,
             sign_in_answer,
             sign_in_stop,
             sync_run,

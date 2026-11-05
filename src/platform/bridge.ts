@@ -21,6 +21,7 @@ import {
 import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
 import { BackupEventSchema, BackupsSchema, ResetDoneSchema, ResetPreviewSchema } from "./backup-schemas"
+import { BotProfilesSchema, BotResultSchema } from "./bot-schemas"
 import { CloudflareStatusSchema, TunnelRouteSchema } from "./cloudflare-schemas"
 import { McpServerStatusSchema, OAuthSettingsSchema, PublicCheckSchema } from "./mcp-server-schemas"
 import {
@@ -235,6 +236,8 @@ function createTauri(): Platform {
     },
     signInAnswer: (id, value) => invoke("sign_in_answer", { id, value }),
     signInStop: (id) => invoke("sign_in_stop", { id }),
+    botSignIn: (id, profile, token, fields) => call(BotResultSchema, "bot_sign_in", { id, profile, token, fields }),
+    listBots: (id) => call(BotProfilesSchema, "list_bots", { id }),
     syncRun: (id, profile, onEvent) => {
       const channel = new Channel<unknown>()
       channel.onmessage = (raw) => {

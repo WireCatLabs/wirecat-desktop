@@ -53,6 +53,23 @@ const ToolSchema = v.object({
       methods: v.optional(v.array(v.object({ id: v.string(), label: v.string(), words: v.array(v.string()) }))),
     }),
   ),
+  /**
+   * A bot of the messenger's own Bot API beside the personal account: `set` reads the token on stdin, `fields` are the
+   * settings it needs first (WhatsApp's ids), `create` is where the owner makes the bot.
+   */
+  bot: v.optional(
+    v.nullable(
+      v.object({
+        set: v.array(v.string()),
+        list: v.array(v.string()),
+        token: v.picklist(["telegram", "opaque"]),
+        create: v.pipe(v.string(), v.url()),
+        docs: v.pipe(v.string(), v.url()),
+        fields: v.array(v.object({ key: v.pipe(v.string(), v.regex(/^[a-z_]+$/)), words: v.array(v.string()) })),
+      }),
+    ),
+    null,
+  ),
   skill: v.nullable(
     v.object({
       status: v.array(v.string()),
@@ -191,6 +208,8 @@ export const syncsHere = (t: CatalogTool) => (t.sync?.run?.length ?? 0) > 0
 export const syncNeedsProfile = (t: CatalogTool) => t.sync?.run?.includes("{profile}") ?? false
 
 export const signInMethods = (t: CatalogTool) => t.signIn?.methods ?? []
+
+export type BotSource = NonNullable<CatalogTool["bot"]>
 
 export function setupCommand(t: CatalogTool, profile: string | null): string | null {
   if (!t.setup) return null
