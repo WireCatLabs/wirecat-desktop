@@ -219,6 +219,37 @@ describe("Memory", () => {
     await waitFor(() => expect(within(promise).getByRole("img", { name: "To review" })).toBeInTheDocument())
   })
 
+  it("approves, then undoes the approval through the More menu, by keyboard only", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    const scores = row(/Scores below 0.72 on the retrieval suite/)
+    within(scores).getByRole("button", { name: "Approve" }).focus()
+    await user.keyboard("{Enter}")
+    await waitFor(() => expect(within(scores).getByRole("button", { name: "Edit" })).toHaveFocus())
+
+    await user.tab()
+    expect(within(scores).getByRole("button", { name: "More actions" })).toHaveFocus()
+    await user.keyboard("{Enter}")
+    expect(screen.getByRole("menuitem", { name: "Undo approval" })).toHaveFocus()
+    await user.keyboard("{Enter}")
+    await waitFor(() => expect(within(scores).getByRole("img", { name: "Rejected" })).toBeInTheDocument())
+    await waitFor(() => expect(scores.contains(document.activeElement)).toBe(true))
+  })
+
+  it("opens a filter list with the keyboard, and Escape gives focus back to its button", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    const kind = screen.getByRole("button", { name: "Kind" })
+    kind.focus()
+    await user.keyboard("{Enter}")
+    expect(screen.getByRole("listbox", { name: "Kind" })).toHaveFocus()
+    await user.keyboard("{Escape}")
+    expect(kind).toHaveFocus()
+    expect(kind).toHaveAttribute("aria-expanded", "false")
+  })
+
   it("never shows a menu button that opens an empty menu", async () => {
     const user = userEvent.setup()
     render(<MemoryPage />)

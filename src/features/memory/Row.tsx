@@ -121,6 +121,43 @@ export function Row({ entry }: { entry: MemoryEntry }) {
     if (row.current) holdInPlace(row.current)
     toggle(entry.ref)
   }
+
+  // Approve, Reject or Undo approval disables the button that ran it and then swaps it for another set, so focus
+  // would fall to the page; it stays on this row, on its actions when any are left.
+  const actions = useRef<HTMLSpanElement>(null)
+  const actionsHeldFocus = useRef(false)
+  useEffect(() => {
+    const box = actions.current
+    if (!box) return
+    const hold = () => {
+      actionsHeldFocus.current = true
+    }
+    // A button removed or disabled under focus blurs with nowhere to go; only a move elsewhere or a click lets go.
+    const leave = (e: FocusEvent) => {
+      if (e.relatedTarget && !box.contains(e.relatedTarget as Node)) actionsHeldFocus.current = false
+    }
+    const click = (e: PointerEvent) => {
+      if (!box.contains(e.target as Node)) actionsHeldFocus.current = false
+    }
+    box.addEventListener("focusin", hold)
+    box.addEventListener("focusout", leave)
+    document.addEventListener("pointerdown", click, true)
+    return () => {
+      box.removeEventListener("focusin", hold)
+      box.removeEventListener("focusout", leave)
+      document.removeEventListener("pointerdown", click, true)
+    }
+  }, [])
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs when the action ends or the record changes state
+  useEffect(() => {
+    if (!actionsHeldFocus.current) return
+    const active = document.activeElement
+    if (active && active !== document.body && active.isConnected) return
+    const next =
+      actions.current?.querySelector<HTMLButtonElement>("button:not(:disabled)") ??
+      row.current?.querySelector<HTMLElement>(`[aria-controls="${panel}"]`)
+    next?.focus({ preventScroll: true })
+  }, [busy, entry.status])
   // Opened, a click on the text corrects it; a drag over it only selects (TextButton).
   const onHead = (e: MouseEvent<HTMLElement> | ReactKeyboardEvent<HTMLElement>) => {
     if (editable && e.type === "click" && (e.target as Element).closest("[data-text]")) startCorrect(entry.ref)
@@ -237,7 +274,11 @@ export function Row({ entry }: { entry: MemoryEntry }) {
             </div>
           )}
         </AutoHeight>
-        <span data-tour="memory-actions" className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]">
+        <span
+          ref={actions}
+          data-tour="memory-actions"
+          className="flex min-w-[11.5rem] items-center justify-end gap-[0.4rem]"
+        >
           {allowed.confirm ? (
             <>
               <Button
