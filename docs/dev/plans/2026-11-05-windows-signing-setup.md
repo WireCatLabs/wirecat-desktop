@@ -42,11 +42,12 @@ not kept anywhere else. If it is ever needed again, Certum's help line resets it
 
 Run them in one sitting: the QR page must stay open from step 3 to step 7.
 
-**Step 0. Update the main checkout**, so the script is the new one:
+**Step 0. Use the setup copy of the repository.** The shared checkout at `/home/leemour/Projects/AI/visage` may be on
+an old branch, and other sessions use it, so do not switch it. A separate copy on `main` is at
+`/home/leemour/Projects/AI/visage/.claude/worktrees/signing-setup`. If it is missing, create it:
 
 ```sh
-git -C /home/leemour/Projects/AI/visage switch main
-git -C /home/leemour/Projects/AI/visage pull --ff-only
+git -C /home/leemour/Projects/AI/visage worktree add --detach .claude/worktrees/signing-setup origin/main
 ```
 
 **Step 1. Install the QR reader** (Ubuntu package `zbar-tools`):
@@ -84,7 +85,7 @@ script in step 5 asks for the code the app shows, so the app must already work.
 **Step 5. Give the seed and the thumbprint to GitHub:**
 
 ```sh
-/home/leemour/Projects/AI/visage/bin/setup-windows-signing --qr /dev/shm/simplysign-qr.png --thumbprint-from /home/leemour/Downloads/wirecat-certum.pem
+/home/leemour/Projects/AI/visage/.claude/worktrees/signing-setup/bin/setup-windows-signing --qr /dev/shm/simplysign-qr.png --thumbprint-from /home/leemour/Downloads/wirecat-certum.pem
 ```
 
 - It asks for your SimplySign login e-mail and the 6-digit code the phone shows now.
