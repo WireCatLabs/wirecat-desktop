@@ -310,7 +310,8 @@ export function createMock(os: Platform["os"]): Platform {
       await delay(params.get("node") === "slow" ? 3000 : 900)
       managed = true
       pathAdded = true
-      onEvent({ event: "done", version: NODE.version, path: NODE.dir })
+      const pathFix = { added: [`${NODE.dir}/bin`], unreachable: [], file: "~/.bashrc", manual: null, restart: true }
+      onEvent({ event: "done", version: NODE.version, path: NODE.dir, pathFix: { ...pathFix, shells: [] } })
     },
     async cancelNodeSetup() {
       nodeCancelled = true
@@ -474,9 +475,13 @@ export function createMock(os: Platform["os"]): Platform {
         })
       }
       onEvent({ event: "step", step: "verify" })
-      await delay(800)
+      onEvent({ event: "check", what: "path" })
+      await delay(400)
+      onEvent({ event: "check", what: "start" })
+      await delay(400)
       const update = installed.has(id)
       installed.set(id, version)
+      if (update) onEvent({ event: "check", what: "skills" })
       const skills = update ? await refreshSkillsMock(agents, id, version) : undefined
       const path = `~/.nvm/versions/node/v24.19.0/bin/${id}`
       onEvent({ event: "done", version, path, shadowedBy: null, ...(skills ? { skills } : {}) })

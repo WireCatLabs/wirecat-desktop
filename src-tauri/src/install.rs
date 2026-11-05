@@ -18,6 +18,10 @@ pub enum InstallEvent {
     Step {
         step: Step,
     },
+    /// What the verify step does now, so the interface says it instead of one long "Verifying".
+    Check {
+        what: Check,
+    },
     Log {
         line: String,
         stderr: bool,
@@ -35,6 +39,17 @@ pub enum InstallEvent {
         message: String,
         hint: Option<String>,
     },
+}
+
+#[derive(Serialize, Clone, Copy)]
+#[serde(rename_all = "camelCase")]
+pub enum Check {
+    /// Putting the tool's folder on the PATH and asking the shells whether they find it.
+    Path,
+    /// Running the tool once for its version.
+    Start,
+    /// Refreshing the copies of its skill, after an update.
+    Skills,
 }
 
 #[derive(Serialize, Clone, Copy)]
@@ -208,9 +223,11 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     })?;
 
     send(InstallEvent::Step { step: Step::Verify });
+    send(InstallEvent::Check { what: Check::Path });
     let path_fix = prefix.as_deref().and_then(|p| npm_prefix::reachable_from_terminal(p, &tool.id, &tool.bin));
     let extra: Vec<_> = prefix.or_else(system::npm_prefix).map(|p| npm_prefix::bin_dir(&p)).into_iter().collect();
     paths::refresh(&extra);
+    send(InstallEvent::Check { what: Check::Start });
     let state = tools::detect(tool, true);
     let first = state.installs.first().ok_or_else(|| {
         Failure(
@@ -242,6 +259,7 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     let shadowed_by = (ours.path != first.path).then(|| first.path.clone());
     // Only an update: copies left by an uninstalled version are the owner's to refresh, and a first install stays fast.
     let skills = if existing.is_some() {
+        send(InstallEvent::Check { what: Check::Skills });
         skills::refresh(tool, &version, |line| send(InstallEvent::Log { line, stderr: false }))
     } else {
         skills::SkillRefresh::default()

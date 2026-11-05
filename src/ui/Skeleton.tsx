@@ -46,7 +46,10 @@ export function StableText({
 }) {
   return (
     <span className={cx("stable-text", className)}>
-      <span>{value}</span>
+      {/* Keyed, so a new label ("Checking…") fades in where the old one was instead of snapping. */}
+      <span key={value} className="reveal">
+        {value}
+      </span>
       {variants
         .filter((v) => v !== value)
         .map((v) => (

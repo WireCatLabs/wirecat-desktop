@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { batch, roughly, TYPICAL_INSTALL_MS, toolFraction, toolProgress } from "./install-batch"
+import { batch, roughly, share, TYPICAL_INSTALL_MS, toolFraction, toolProgress } from "./install-batch"
 import { startProgress } from "./install-progress"
 import type { InstallSession } from "./status"
 
@@ -24,9 +24,46 @@ describe("one tool's share of its install", () => {
     expect(toolFraction({ session: undefined, installed: true })).toBe(1)
     expect(toolFraction({ session: session({}), installed: false })).toBe(0)
     const looking = session({ step: "install", progress: { ...startProgress(), phase: "resolve", looked: 150 } })
-    expect(toolFraction({ session: looking, installed: false })).toBeCloseTo(0.225)
+    expect(toolFraction({ session: looking, installed: false })).toBeCloseTo(0.2)
     const half = session({ step: "install", progress: { ...startProgress(), phase: "fetch", total: 60, done: 30 } })
     expect(toolFraction({ session: half, installed: false })).toBeCloseTo(0.625)
+  })
+})
+
+describe("a share of a count with no known end", () => {
+  it("rises straight to 80% at the usual count, then keeps rising with each line without reaching 100%", () => {
+    expect(share(0, 300)).toBe(0)
+    expect(share(150, 300)).toBeCloseTo(0.4)
+    expect(share(300, 300)).toBeCloseTo(0.8)
+    expect(share(450, 300)).toBeGreaterThan(share(300, 300))
+    expect(share(10_000, 300)).toBeLessThan(1)
+  })
+
+  it("keeps a warm cache's bar moving as packages unpack, with no total", () => {
+    const warm = (done: number) =>
+      toolFraction({
+        session: session({ step: "install", progress: { ...startProgress(), phase: "fetch", total: null, done } }),
+        installed: false,
+      })
+    expect(warm(40)).toBeGreaterThan(warm(10))
+    expect(warm(400)).toBeGreaterThan(warm(200))
+    expect(warm(5000)).toBeLessThan(0.9)
+  })
+
+  it("leaves a quiet manager without a percent", () => {
+    expect(toolProgress({ session: session({ step: "install" }), installed: false }).known).toBe(false)
+  })
+})
+
+describe("the verify step", () => {
+  it("says what it checks, in the order the tool does it", () => {
+    const at = (verifying?: "path" | "start" | "skills") =>
+      toolProgress({ session: session({ step: "verify", ...(verifying ? { verifying } : {}) }), installed: false })
+    expect(at("path").stage).toEqual({ kind: "verify", check: "path" })
+    expect(at().stage).toEqual({ kind: "verify", check: null })
+    expect(at("path").fraction).toBeLessThan(at("start").fraction)
+    expect(at("start").fraction).toBeLessThan(at("skills").fraction)
+    expect(at("skills").fraction).toBeLessThan(1)
   })
 })
 
@@ -47,7 +84,7 @@ describe("what one tool's install is doing now", () => {
     expect(at(session({ step: "verify" })).stage.kind).toBe("verify")
     expect(at(done(1000)).stage.kind).toBe("done")
     const failed = session({ outcome: { event: "failed", reason: "failed", message: "x", hint: null } })
-    expect(at(failed)).toEqual({ stage: { kind: "failed" }, fraction: 0 })
+    expect(at(failed)).toEqual({ stage: { kind: "failed" }, fraction: 0, known: true })
   })
 
   it("never moves backwards from step to step", () => {

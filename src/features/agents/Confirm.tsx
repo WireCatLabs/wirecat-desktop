@@ -2,8 +2,10 @@ import { type ReactNode, useState } from "react"
 import { create } from "zustand"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { StableText } from "@/ui/Skeleton"
 import { ReportThis } from "../report/ReportThis"
 import { type AgentsMessages, agentsMessages } from "./messages"
 
@@ -64,10 +66,13 @@ export function ConfirmCommand() {
       actions={
         <>
           <Button variant="secondary" data-autofocus disabled={running} onClick={done}>
-            {error ? m.close : m.cancel}
+            <StableText value={error ? m.close : m.cancel} variants={[m.close, m.cancel]} />
           </Button>
           <Button variant={pending?.danger ? "danger" : "secondary"} disabled={running} onClick={run}>
-            {running ? m.running : error ? m.tryAgain : text?.action}
+            <StableText
+              value={running ? m.running : error ? m.tryAgain : (text?.action ?? "")}
+              variants={[m.running, m.tryAgain, text?.action ?? ""]}
+            />
           </Button>
         </>
       }
@@ -80,22 +85,24 @@ export function ConfirmCommand() {
             {pending?.command}
           </code>
         </div>
-        {error && pending && (
-          <ErrorNotice
-            inline
-            action={
-              <ReportThis
-                what={pending.text(agentsMessages.en).title.replace(/\?$/, "")}
-                tool={pending.tool ?? null}
-                command={pending.command}
-                error={error}
-                onOpen={done}
-              />
-            }
-          >
-            {error}
-          </ErrorNotice>
-        )}
+        <Collapse open={Boolean(error && pending)}>
+          {error && pending && (
+            <ErrorNotice
+              inline
+              action={
+                <ReportThis
+                  what={pending.text(agentsMessages.en).title.replace(/\?$/, "")}
+                  tool={pending.tool ?? null}
+                  command={pending.command}
+                  error={error}
+                  onOpen={done}
+                />
+              }
+            >
+              {error}
+            </ErrorNotice>
+          )}
+        </Collapse>
       </div>
     </Dialog>
   )

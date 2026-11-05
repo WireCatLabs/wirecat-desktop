@@ -69,6 +69,7 @@ export const useTools = create<ToolsState>((set, get) => {
       await platform[operation](id, (e) => {
         if (e.event === "step")
           patchSession(id, (s) => ({ ...s, step: e.step, began: { ...s.began, [e.step]: Date.now() } }))
+        else if (e.event === "check") patchSession(id, (s) => ({ ...s, verifying: e.what }))
         else if (e.event === "log")
           patchSession(id, (s) => {
             const progress = readNpmLine(s.progress ?? startProgress(), e.line)

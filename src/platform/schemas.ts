@@ -77,6 +77,7 @@ const FailReason = v.picklist([
 
 export const InstallEventSchema = v.variant("event", [
   v.object({ event: v.literal("step"), step: v.picklist(["check", "install", "remove", "verify"]) }),
+  v.object({ event: v.literal("check"), what: v.picklist(["path", "start", "skills"]) }),
   v.object({ event: v.literal("log"), line: v.string(), stderr: v.boolean() }),
   v.object({
     event: v.literal("done"),

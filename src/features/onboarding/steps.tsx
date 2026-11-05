@@ -11,7 +11,7 @@ import {
   tools,
 } from "@/domain/catalog"
 import { accountReady, afterSignIn } from "@/domain/onboarding-flow"
-import { toolStatus } from "@/domain/status"
+import { type InstallSession, toolStatus } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
@@ -19,9 +19,11 @@ import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
+import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
+import { usePaced } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { FixButton, FixPanel } from "../fix/AgentFix"
@@ -52,7 +54,7 @@ function Fact({ icon, title, children }: { icon: ReactNode; title: string; child
       <span className="mt-[0.1rem] text-brand">{icon}</span>
       <div className="min-w-0">
         <h3 className="text-[1.08rem] font-semibold leading-tight">{title}</h3>
-        <p className="mt-1 text-[0.95rem] leading-relaxed text-ink-soft">{children}</p>
+        <p className="mt-1 text-body leading-relaxed text-ink-soft">{children}</p>
       </div>
     </li>
   )
@@ -74,7 +76,7 @@ export function Welcome() {
           {m.agent}
         </Fact>
       </ul>
-      <p className="text-[0.95rem] text-ink-soft">{m.time}</p>
+      <p className="text-body text-ink-soft">{m.time}</p>
     </>
   )
 }
@@ -116,7 +118,7 @@ export function Computer() {
       </ul>
       <NodeNotice />
       <div className="flex flex-wrap items-center gap-4">
-        <p aria-live="polite" className="flex-1 text-[0.95rem] text-ink-soft">
+        <p aria-live="polite" className="flex-1 text-body text-ink-soft">
           {!r ? m.checkingComputer : ready ? m.ready : null}
         </p>
         <Button
@@ -162,11 +164,9 @@ export function Choose() {
                   {isCommunity(t) && <Pill>{tm.row.community}</Pill>}
                   {installed && <Pill tone="brand">{m.installed}</Pill>}
                 </span>
-                <span className="mt-0.5 block text-[0.9rem] leading-snug text-ink-soft">{toolText(tm, t).tagline}</span>
+                <span className="mt-0.5 block text-body leading-snug text-ink-soft">{toolText(tm, t).tagline}</span>
                 {isCommunity(t) && !installed && (
-                  <span className="mt-0.5 block text-[0.85rem] leading-snug text-ink-soft">
-                    {tm.row.trust(maker(t))}
-                  </span>
+                  <span className="mt-0.5 block text-body leading-snug text-ink-soft">{tm.row.trust(maker(t))}</span>
                 )}
               </span>
             </>
@@ -205,7 +205,25 @@ export function installChosen() {
   }
 }
 
-function Progress({ tool }: { tool: CatalogTool }) {
+type RowPhase = "idle" | "wait" | "run" | "done" | "fail"
+
+const phaseOf = (session: InstallSession | undefined): RowPhase =>
+  !session
+    ? "idle"
+    : session.outcome
+      ? session.outcome.event === "failed"
+        ? "fail"
+        : "done"
+      : session.step === "queued"
+        ? "wait"
+        : "run"
+
+/**
+ * One tool's row. `shown` is its state as paced for the eye (`usePaced`): a tool that finished keeps its bar, full and
+ * green, for a moment, and the next one waits that moment before its bar opens. The words and a failure follow the
+ * real state at once.
+ */
+function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
   const installs = useTools((s) => s.installs[tool.id])
   const session = useTools((s) => s.sessions[ownerId(tool.id)])
   const status = toolStatus(installs, undefined, session)
@@ -221,6 +239,7 @@ function Progress({ tool }: { tool: CatalogTool }) {
   let text: ReactNode = m.notInstalled
   let detail: ReactNode = null
   if (status.kind === "checking") text = m.checking
+  else if (session && shown === "wait") text = m.queued
   else if (session && !outcome) {
     tone = session.step === "queued" ? "idle" : "busy"
     text = session.step === "queued" ? m.queued : m.step(tm.steps.install[session.step] ?? m.installing)
@@ -242,13 +261,14 @@ function Progress({ tool }: { tool: CatalogTool }) {
     text = m.already(version(status.version))
   }
 
-  const installing = Boolean(session && !outcome && session.step !== "queued")
+  // A failure is told at once; only a success holds its full bar for a moment.
+  const installing = Boolean(session) && shown === "run" && outcome?.event !== "failed"
   return (
     <li className={cx(row, "flex-wrap gap-y-0")}>
       <Lamp tone={tone} {...(typeof text === "string" ? { label: text } : {})} />
       <ToolIcon id={tool.id} className="size-[1.5rem] shrink-0 text-ink" />
       <span className="w-[9rem] shrink-0 font-semibold">{tool.name}</span>
-      <span aria-live="polite" className="min-w-0 flex-1 text-[0.95rem] text-ink-soft">
+      <span aria-live="polite" className="min-w-0 flex-1 text-body text-ink-soft">
         {text}
       </span>
       {outcome?.event === "failed" && outcome.reason !== "cancelled" && session && (
@@ -277,7 +297,7 @@ function Progress({ tool }: { tool: CatalogTool }) {
           )}
         </Collapse>
         <Collapse open={detail !== null}>
-          <p className="selectable max-w-[70ch] pt-[0.4rem] pb-[0.2rem] text-[0.9rem] sm:pl-[3.8rem]">{detail}</p>
+          <p className="selectable max-w-[70ch] pt-[0.4rem] pb-[0.2rem] text-body sm:pl-[3.8rem]">{detail}</p>
         </Collapse>
         {outcome?.event === "failed" && session && (
           <div className="sm:pl-[3.8rem]">
@@ -315,11 +335,15 @@ export function Install() {
   )
   const list = tools.filter((t) => chosen.includes(t.id))
   const m = useMessages(onboardingMessages).install
+  // Joined, so the store hands back one string that changes only when a row's state does.
+  const phases = useTools((s) => list.map((t) => phaseOf(s.sessions[ownerId(t.id)])).join(" "))
+  const shown = usePaced(phases ? phases.split(" ") : []) as readonly RowPhase[]
+  const settled = !shown.some((p) => p === "run" || p === "wait")
 
   if (list.length === 0) {
     return (
       <div className="flex flex-wrap items-center gap-4">
-        <p className="flex-1 text-[0.95rem] text-ink-soft">{m.none}</p>
+        <p className="flex-1 text-body text-ink-soft">{m.none}</p>
         <Button size="sm" onClick={() => useOnboarding.getState().go("choose")}>
           {m.choose}
         </Button>
@@ -332,8 +356,8 @@ export function Install() {
       <NodeNotice />
       <InstallOverview chosen={list.map((t) => t.id)} />
       <ul aria-label={m.list} className={rack}>
-        {list.map((t) => (
-          <Progress key={t.id} tool={t} />
+        {list.map((t, i) => (
+          <Progress key={t.id} tool={t} shown={shown[i] ?? "idle"} />
         ))}
       </ul>
       {pending && nodeReady && (
@@ -343,19 +367,23 @@ export function Install() {
           </Button>
         </div>
       )}
-      <p aria-live="polite" className="flex min-h-[1.6rem] items-center gap-2 text-[0.95rem]">
-        {allDone ? (
-          <>
-            <CheckCircle2 className="size-5 shrink-0 text-ok" aria-hidden />
-            <span className="text-ink">
-              {m.allDone} {m.moreLater}
-            </span>
-          </>
-        ) : (
-          <span className="text-ink-soft">{m.note}</span>
-        )}
-      </p>
-      <Collapse open={settledWithOne}>
+      <div aria-live="polite">
+        <Crossfade swap={allDone && settled ? "done" : "note"}>
+          <p className="flex min-h-[1.6rem] items-center gap-2 text-body">
+            {allDone && settled ? (
+              <>
+                <CheckCircle2 className="size-5 shrink-0 text-ok" aria-hidden />
+                <span className="text-ink">
+                  {m.allDone} {m.moreLater}
+                </span>
+              </>
+            ) : (
+              <span className="text-ink-soft">{m.note}</span>
+            )}
+          </p>
+        </Crossfade>
+      </div>
+      <Collapse open={settledWithOne && settled}>
         <RestartNote chosen={list.map((t) => t.id)} />
       </Collapse>
       <InstallTips chosen={list.map((t) => t.id)} />
@@ -374,7 +402,7 @@ function RestartNote({ chosen }: { chosen: readonly string[] }) {
     return null
   })
   return (
-    <div className="flex flex-col gap-2 text-[0.95rem] text-ink-soft">
+    <div className="flex flex-col gap-2 text-body text-ink-soft">
       <p className="flex items-start gap-2">
         <RefreshCw aria-hidden className="mt-[0.2rem] size-4 shrink-0" />
         {w.restart}
@@ -409,11 +437,11 @@ export function Agents({ matrix }: { matrix?: ReactNode }) {
       <Bot className="mt-[0.1rem] size-[1.5rem] shrink-0 text-brand" strokeWidth={1.6} aria-hidden />
       <div className="flex min-w-0 flex-col gap-[0.7rem]">
         <h3 className="text-[1.08rem] font-semibold leading-tight">{m.title}</h3>
-        <p className="max-w-[65ch] text-[0.95rem] leading-relaxed text-ink-soft">{m.text}</p>
+        <p className="max-w-[65ch] text-body leading-relaxed text-ink-soft">{m.text}</p>
         {list.length > 0 && (
           <ul aria-label={m.list} className="flex flex-col gap-1">
             {list.map((t) => (
-              <li key={t.id} className="flex items-baseline gap-3 text-[0.95rem]">
+              <li key={t.id} className="flex items-baseline gap-3 text-body">
                 <span className="min-w-[7.5rem] shrink-0 text-ink-soft">{t.name}</span>
                 <code className="selectable font-mono text-[0.9rem] text-ink">{t.bin} skill install</code>
               </li>
@@ -441,14 +469,14 @@ function ProfileState({
     return (
       <li className="flex min-h-8 items-center gap-x-[0.6rem]">
         <Lamp size="sm" tone="ok" />
-        <span className="min-w-0 flex-1 text-[0.95rem] text-ink-soft">{m.added(name)}</span>
+        <span className="min-w-0 flex-1 text-body text-ink-soft">{m.added(name)}</span>
       </li>
     )
   }
   return (
     <li className="flex min-h-8 flex-wrap items-center gap-x-[0.6rem] gap-y-1">
       <Lamp size="sm" tone={profile.signedIn ? "ok" : "idle"} />
-      <span className="min-w-0 flex-1 text-[0.95rem] text-ink-soft">
+      <span className="min-w-0 flex-1 text-body text-ink-soft">
         {profile.signedIn === true
           ? m.signedIn(name)
           : profile.signedIn === false
@@ -480,7 +508,7 @@ function SignInHeader({ tool }: { tool: CatalogTool }) {
       <div className="min-w-0">
         <h3 className="text-[1.08rem] font-semibold leading-tight">{tool.name}</h3>
         {tool.signIn && (
-          <p className="mt-1 text-[0.95rem] leading-relaxed text-ink-soft">{m.gives[tool.id] ?? tool.signIn.gives}</p>
+          <p className="mt-1 text-body leading-relaxed text-ink-soft">{m.gives[tool.id] ?? tool.signIn.gives}</p>
         )}
       </div>
     </div>
@@ -566,7 +594,7 @@ function SignInRow({
             ) : (
               <li className="flex min-h-8 items-center gap-x-[0.6rem]">
                 <Lamp size="sm" tone="idle" />
-                <span className="text-[0.95rem] font-medium text-ink">{m.noAccount(tool.name)}</span>
+                <span className="text-body font-medium text-ink">{m.noAccount(tool.name)}</span>
               </li>
             )}
           </ul>
@@ -575,7 +603,7 @@ function SignInRow({
         {adding ? (
           <>
             {tool.signIn && (
-              <p className="max-w-[65ch] text-[0.9rem] leading-relaxed text-ink-soft">
+              <p className="max-w-[65ch] text-body leading-relaxed text-ink-soft">
                 <span className="font-medium text-ink">{manual ? m.needs : m.willAsk}</span>
                 {m.asks[tool.id] ?? tool.signIn.asks}
                 {tool.signIn.guide && !manual && (
@@ -670,15 +698,13 @@ export function SignIn() {
           ))}
         </ul>
       ) : (
-        <p className="text-[0.95rem] text-ink-soft">{m.noneNeeded}</p>
+        <p className="text-body text-ink-soft">{m.noneNeeded}</p>
       )}
       {waiting.length > 0 && (
-        <p className="text-[0.95rem] text-ink-soft">
-          {m.later(waiting.length, formatList(waiting.map((t) => t.name)))}
-        </p>
+        <p className="text-body text-ink-soft">{m.later(waiting.length, formatList(waiting.map((t) => t.name)))}</p>
       )}
       {noSignIn.length > 0 && (
-        <p className="text-[0.95rem] text-ink-soft">
+        <p className="text-body text-ink-soft">
           {m.noSignIn(noSignIn.length, formatList(noSignIn.map((t) => t.name)))}
         </p>
       )}
@@ -733,7 +759,7 @@ export function Done() {
           })}
         </ul>
       )}
-      <p className="max-w-[65ch] text-[0.95rem] text-ink-soft">{m.moreLater}</p>
+      <p className="max-w-[65ch] text-body text-ink-soft">{m.moreLater}</p>
       <section aria-label={m.next} className="flex flex-col gap-2">
         <h2 className="text-[1.05rem] font-semibold">{m.next}</h2>
         {/* Quiet on purpose: the tour at the foot leads, and these stay one click away (owner, 2026-11-05). */}

@@ -7,6 +7,7 @@ import { useMessages } from "@/i18n"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp, type LampTone } from "@/ui/Lamp"
@@ -85,6 +86,17 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
   const sync = useRowSync(tool, installed)
   // The same live progress the setup shows, so an install started there is visible here with the panel shut.
   const installing = session && !session.outcome && session.operation === "install" ? session : null
+  const lineKind = installing
+    ? "install"
+    : storageLine
+      ? "storage"
+      : sync && (sync.run || !app)
+        ? "sync"
+        : app
+          ? "app"
+          : isCommunity(tool) && !installs?.length
+            ? "trust"
+            : "tagline"
 
   return (
     <li data-tour="tool" className="border-line border-b last:border-b-0">
@@ -112,55 +124,64 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             {(installs?.length ?? 0) > 1 && <Pill tone="warn">{m.copies(installs?.length ?? 0)}</Pill>}
             <ExpandChevron open={open} className="self-center group-hover:text-brand" />
           </h3>
-          {installing ? (
-            <div className="mt-1 max-w-[28rem]">
-              <InstallLine session={installing} name={tool.name} />
-            </div>
-          ) : storageLine ? (
-            <p
-              title={storageLine}
-              className={cx("mt-1 truncate text-[0.95rem]", severity === "bad" ? "text-bad" : "text-warn-ink")}
-            >
-              {storageLine}
-            </p>
-          ) : sync && (sync.run || !app) ? (
-            <p className="mt-1 flex text-[0.95rem] text-ink-soft">
-              <RowSyncLine entry={tool} info={sync} />
-            </p>
-          ) : app ? (
-            <p className="mt-1 flex items-center gap-2 text-[0.95rem] text-ink-soft tabular-nums">
-              <span aria-hidden className="size-[0.45rem] shrink-0 rounded-full bg-ok" />
-              <span className="truncate">
-                {app.claimedName ?? m.browserApp} · {activityOf(app)}
-              </span>
-            </p>
-          ) : isCommunity(tool) && !installs?.length ? (
-            <p className="mt-1 line-clamp-2 text-[0.95rem] text-ink-soft">{m.trust(maker(tool))}</p>
-          ) : (
-            <p className="mt-1 truncate text-[0.95rem] text-ink-soft">{toolText(t, tool).tagline}</p>
-          )}
+          {/* The line under the name changes with what the tool does; each new line fades in over the last. */}
+          <Crossfade swap={lineKind}>
+            {installing ? (
+              <div className="mt-1 max-w-[28rem]">
+                <InstallLine session={installing} name={tool.name} />
+              </div>
+            ) : storageLine ? (
+              <p
+                title={storageLine}
+                className={cx("mt-1 truncate text-[0.95rem]", severity === "bad" ? "text-bad" : "text-warn-ink")}
+              >
+                {storageLine}
+              </p>
+            ) : sync && (sync.run || !app) ? (
+              <p className="mt-1 flex text-[0.95rem] text-ink-soft">
+                <RowSyncLine entry={tool} info={sync} />
+              </p>
+            ) : app ? (
+              <p className="mt-1 flex items-center gap-2 text-[0.95rem] text-ink-soft tabular-nums">
+                <span aria-hidden className="size-[0.45rem] shrink-0 rounded-full bg-ok" />
+                <span className="truncate">
+                  {app.claimedName ?? m.browserApp} · {activityOf(app)}
+                </span>
+              </p>
+            ) : isCommunity(tool) && !installs?.length ? (
+              <p className="mt-1 line-clamp-2 text-body text-ink-soft">{m.trust(maker(tool))}</p>
+            ) : (
+              <p className="mt-1 truncate text-body text-ink-soft">{toolText(t, tool).tagline}</p>
+            )}
+          </Crossfade>
         </TextButton>
         {sync ? <RowSyncButton entry={tool} info={sync} /> : <span />}
         <Version status={status} installed={installs?.[0]?.version ?? null} m={m} />
         <div data-tour="tool-action" className="flex justify-end">
-          <Action
-            status={status}
-            expanded={open}
-            needsNode={!nodeReady}
-            nodeFirst={m.nodeFirst}
-            controls={panelId}
-            onInstall={() =>
-              nodeReady ? install(tool.id) : focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
-            }
-            onToggle={() => toggle(tool.id)}
-            onCancel={() => cancel(tool.id)}
-            m={m}
-          />
+          {/* Install → Cancel → Manage: one button fades into the next, and keyboard focus moves with it. */}
+          <Crossfade swap={status.kind === "checking" ? "checking" : actionKind(status)} align="end" className="w-full">
+            <Action
+              status={status}
+              expanded={open}
+              needsNode={!nodeReady}
+              nodeFirst={m.nodeFirst}
+              controls={panelId}
+              onInstall={() =>
+                nodeReady ? install(tool.id) : focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
+              }
+              onToggle={() => toggle(tool.id)}
+              onCancel={() => cancel(tool.id)}
+              m={m}
+            />
+          </Crossfade>
         </div>
       </div>
       <Collapse id={panelId} open={open}>
+        {/* An install that ends becomes the tool's details: the height follows, and the two views cross-fade. */}
         <AutoHeight swap={showInstallPanel}>
-          {showInstallPanel ? <InstallPanel tool={tool} /> : <ToolDetails tool={tool} />}
+          <Crossfade swap={showInstallPanel ? "install" : "details"}>
+            {showInstallPanel ? <InstallPanel tool={tool} /> : <ToolDetails tool={tool} />}
+          </Crossfade>
         </AutoHeight>
       </Collapse>
     </li>
@@ -189,6 +210,16 @@ function Version(props: { status: ToolStatus; installed: string | null; m: Tools
     </span>
   )
 }
+
+/** Which button the row shows; a new kind is a new button, which fades in over the old one. */
+const actionKind = (status: ToolStatus) =>
+  status.kind === "working"
+    ? "cancel"
+    : status.kind === "missing" || status.kind === "outdated"
+      ? status.kind
+      : status.kind === "broken"
+        ? "fix"
+        : "manage"
 
 type ActionProps = {
   status: ToolStatus

@@ -1,5 +1,5 @@
 import { Bug } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { AboutDialog, docsPage } from "@/features/about/AboutDialog"
 import { HOME_SECTION, useNav } from "@/features/nav"
 import { Bell } from "@/features/notifications/Bell"
@@ -24,7 +24,7 @@ import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { useFinishBoot } from "./boot"
 import { ErrorBoundary } from "./ErrorBoundary"
-import { useSectionHistory } from "./history"
+import { useSectionHistory, useSectionSwitch } from "./history"
 import { appMessages } from "./messages"
 import { Sidebar } from "./Sidebar"
 import { CrashScenario } from "./scenarios"
@@ -44,6 +44,8 @@ export function App() {
   const onboarding = useOnboarding((s) => s.open)
   useSectionHistory(!onboarding)
   const Page = sections.find((s) => s.id === active)?.page
+  const main = useRef<HTMLElement>(null)
+  useSectionSwitch(main, onboarding ? null : active)
 
   const startTour = () => useTour.getState().start()
   const toHome = () => setActive(HOME_SECTION)
@@ -75,7 +77,12 @@ export function App() {
 
   return (
     <div className="flex h-full">
-      {onboarding ? <SetupSteps onExit={toHome} /> : <Sidebar active={active} onSelect={setActive} help={help} />}
+      {/* Setup and the app swap their side column and page; each arrives with a fade, never a cut. */}
+      {onboarding ? (
+        <SetupSteps key="setup" onExit={toHome} />
+      ) : (
+        <Sidebar key="app" active={active} onSelect={setActive} help={help} />
+      )}
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar>
           {!onboarding && (
@@ -101,7 +108,7 @@ export function App() {
             <Onboarding onExit={toHome} onTour={() => useTour.getState().start("setup")} />
           </ErrorBoundary>
         ) : (
-          <main className="min-h-0 flex-1 overflow-y-auto">
+          <main ref={main} className="min-h-0 flex-1 overflow-y-auto">
             <ErrorBoundary key={active} scope="page">
               <CrashScenario section={active} />
               {Page && <Page />}
