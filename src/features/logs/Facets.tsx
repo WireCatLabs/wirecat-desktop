@@ -54,7 +54,10 @@ export function visibleValues(counts: Count[], picked: (c: Count) => boolean, li
 function Facet(
   props: { field: string; counts: Count[]; grouped: boolean } & Pick<Props, "terms" | "onToggle" | "onGroup">,
 ) {
-  const { field, counts, terms, grouped, onToggle, onGroup } = props
+  const { field, terms, grouped, onToggle, onGroup } = props
+  // Runs without the field can't be picked: `-field:*` is a negated term, so it would AND with the ticked values
+  // instead of widening them like every other checkbox. The Groups table still shows them, so totals add up.
+  const counts = props.counts.filter((c) => c.value !== "")
   const m = useMessages(logsMessages)
   const [open, setOpen] = useState(true)
   const [all, setAll] = useState(false)
@@ -133,21 +136,17 @@ function Value(props: {
 }) {
   const { field, count, state, onToggle } = props
   const m = useMessages(logsMessages)
-  const none = count.value === ""
   const click = (e: MouseEvent) => onToggle(field, count.value, e.altKey || e.shiftKey)
   return (
     <li className="group/value relative flex items-center">
       <button
         type="button"
-        disabled={none}
         onClick={click}
         aria-pressed={state === "include"}
-        title={
-          none ? m.withoutField : (state === "include" ? m.stopKeeping : m.keepOnly)(valueTitle(m, field, count.value))
-        }
+        title={(state === "include" ? m.stopKeeping : m.keepOnly)(valueTitle(m, field, count.value))}
         className={cx(
           "flex min-h-[1.9rem] w-full min-w-0 items-center gap-[0.45rem] rounded-[0.3rem] pr-[0.4rem] pl-[0.15rem] text-left text-[0.95rem]",
-          "hover:bg-app-3 disabled:pointer-events-none",
+          "hover:bg-app-3",
           state === "exclude" && "text-ink-dim line-through decoration-ink-dim",
         )}
       >
@@ -168,17 +167,15 @@ function Value(props: {
           {count.count}
         </span>
       </button>
-      {!none && (
-        <button
-          type="button"
-          onClick={() => onToggle(field, count.value, true)}
-          aria-label={state === "exclude" ? m.showAgainValue(count.value) : m.hideValue(count.value)}
-          title={state === "exclude" ? m.showAgain : m.hideThese}
-          className="absolute right-[0.2rem] grid size-[1.4rem] place-items-center rounded-[0.3rem] text-ink-dim opacity-0 hover:bg-app hover:text-bad focus-visible:opacity-100 group-hover/value:opacity-100"
-        >
-          <Minus className="size-[0.8rem]" aria-hidden />
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => onToggle(field, count.value, true)}
+        aria-label={state === "exclude" ? m.showAgainValue(count.value) : m.hideValue(count.value)}
+        title={state === "exclude" ? m.showAgain : m.hideThese}
+        className="absolute right-[0.2rem] grid size-[1.4rem] place-items-center rounded-[0.3rem] text-ink-dim opacity-0 hover:bg-app hover:text-bad focus-visible:opacity-100 group-hover/value:opacity-100"
+      >
+        <Minus className="size-[0.8rem]" aria-hidden />
+      </button>
     </li>
   )
 }

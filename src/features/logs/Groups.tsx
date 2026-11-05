@@ -34,15 +34,20 @@ export function Groups({ field, groups, now, onPick }: Props) {
         {groups.map((g) => (
           <tr key={g.value} className="h-[2.6rem] border-line border-b last:border-b-0">
             <td className="pl-[0.8rem]">
-              <button
-                type="button"
-                disabled={g.value === ""}
-                onClick={() => onPick(g.value)}
-                title={g.value === "" ? m.withoutField : m.showOnly(valueTitle(m, field, g.value))}
-                className="flex w-full min-w-0 items-center rounded-[0.3rem] px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3 disabled:pointer-events-none"
-              >
-                <ValueLabel field={field} value={g.value} />
-              </button>
+              {g.value === "" ? (
+                <span title={m.withoutField} className="flex min-w-0 items-center px-[0.5rem] py-[0.3rem]">
+                  <ValueLabel field={field} value={g.value} />
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onPick(g.value)}
+                  title={m.showOnly(valueTitle(m, field, g.value))}
+                  className="flex w-full min-w-0 items-center rounded-[0.3rem] px-[0.5rem] py-[0.3rem] text-left hover:bg-app-3"
+                >
+                  <ValueLabel field={field} value={g.value} />
+                </button>
+              )}
             </td>
             <td aria-hidden>
               <span className="block h-[0.45rem] rounded-full bg-app-3">
