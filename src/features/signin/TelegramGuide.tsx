@@ -68,13 +68,13 @@ export function TelegramAppGuide({ url }: { url: OpenUrl }) {
             <li key={step} className="flex items-start gap-3">
               <span
                 aria-hidden
-                className="mt-[0.1rem] grid size-[1.3rem] shrink-0 place-items-center rounded-full bg-brand-soft font-mono text-[0.8rem] text-brand tabular-nums"
+                className="mt-[0.15rem] grid size-[1.45rem] shrink-0 place-items-center rounded-full bg-brand-soft font-mono text-[0.85rem] text-brand tabular-nums"
               >
                 {i + 1}
               </span>
               <div className="flex min-w-0 flex-1 flex-wrap items-start gap-x-4 gap-y-2">
                 <div className="flex min-w-[16rem] flex-1 flex-col gap-2">
-                  <p className="text-[1rem] leading-snug text-ink">{step}</p>
+                  <p className="text-[1.1rem] leading-snug text-ink">{step}</p>
                   {i === 0 && <OpenLink url={url.url} copy />}
                 </div>
                 {shot && <ShotButton shot={shot} />}
@@ -104,9 +104,9 @@ function ShotButton({ shot }: { shot: Shot }) {
           alt={shot.alt}
           width={shot.width}
           height={shot.height}
-          className="h-auto max-h-[8.5rem] w-full rounded-[0.3rem] border border-line object-cover object-top transition-[border-color] duration-150 group-hover:border-line-strong"
+          className="h-auto max-h-[8.5rem] w-full rounded-[0.3rem] border border-line object-cover object-top transition-[border-color] duration-(--motion-fast) group-hover:border-line-strong"
         />
-        <span className="text-[0.8rem] leading-tight text-ink-dim group-hover:text-ink-soft">{shot.caption}</span>
+        <span className="text-[0.85rem] leading-tight text-ink-dim group-hover:text-ink-soft">{shot.caption}</span>
       </button>
       <Dialog open={open} wide="xl" title={shot.caption} onClose={() => setOpen(false)}>
         <img
@@ -162,7 +162,7 @@ export function TelegramScanSteps() {
       <AutoHeight swap={os}>
         <Crossfade swap={os}>
           <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
-            <ol className="flex min-w-[13rem] flex-1 list-decimal flex-col gap-1.5 pl-5 text-[1rem] leading-snug text-ink marker:text-ink-dim">
+            <ol className="flex min-w-[13rem] flex-1 list-decimal flex-col gap-1.5 pl-5 text-[1.1rem] leading-snug text-ink marker:text-ink-dim">
               {tm.scanSteps[os].map((step) => (
                 <li key={step}>{step}</li>
               ))}
@@ -171,7 +171,7 @@ export function TelegramScanSteps() {
           </div>
         </Crossfade>
       </AutoHeight>
-      <p className="text-[0.95rem] text-ink-soft">{tm.notCamera}</p>
+      <p className="text-body text-ink-soft">{tm.notCamera}</p>
     </div>
   )
 }
@@ -180,19 +180,19 @@ export function TelegramScanSteps() {
 export function KeyringNotice({ fallback }: { fallback: KeyringFallback }) {
   const tm = useMessages(telegramMessages)
   return (
-    <div role="note" className="flex gap-3 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5 text-[0.95rem]">
+    <div role="note" className="flex gap-3 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5 text-body">
       <Info className="mt-[0.15rem] size-[1.1rem] shrink-0 text-brand" aria-hidden />
       <div className="flex min-w-0 flex-col gap-1.5">
         <p className="font-medium text-ink">{tm.keyring.title}</p>
         <p className="leading-snug text-ink-soft">{tm.keyring.body}</p>
         <p className="text-ink-soft">
           {tm.keyring.file}:{" "}
-          <code className="selectable font-mono text-[0.85rem] text-ink break-all">{fallback.path}</code>
+          <code className="selectable font-mono text-[0.9rem] text-ink break-all">{fallback.path}</code>
         </p>
         {fallback.detail && (
           <Disclosure summary={tm.keyring.details}>
-            <p className="text-[0.85rem] text-ink-soft">{tm.keyring.said}</p>
-            <p className="selectable font-mono text-[0.8rem] text-ink-soft break-words">{fallback.detail}</p>
+            <p className="text-[0.9rem] text-ink-soft">{tm.keyring.said}</p>
+            <p className="selectable font-mono text-[0.85rem] text-ink-soft break-words">{fallback.detail}</p>
           </Disclosure>
         )}
       </div>
@@ -213,9 +213,9 @@ export function TelegramFailureText({ failure, hints = [] }: { failure: Telegram
   return (
     <>
       <span className="block font-medium text-ink">{cause}</span>
-      <span className="mt-1 block text-[0.95rem] text-ink-soft">{fix}</span>
+      <span className="mt-1 block text-body text-ink-soft">{fix}</span>
       {hints.length > 0 && (
-        <span className="mt-1 block text-[0.95rem] text-ink-soft">
+        <span className="mt-1 block text-body text-ink-soft">
           {tm.keyHintsLead}
           <span className="block">
             {hints.map((h) => (
@@ -227,7 +227,7 @@ export function TelegramFailureText({ failure, hints = [] }: { failure: Telegram
         </span>
       )}
       {failure.error && (
-        <span className="mt-1 block text-[0.8rem] text-ink-dim">
+        <span className="mt-1 block text-[0.85rem] text-ink-dim">
           {tm.telegramSaid} <code className="font-mono">{failure.error}</code>
         </span>
       )}

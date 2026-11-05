@@ -7,7 +7,7 @@ import { signinMessages } from "./messages"
 import type { Need } from "./store"
 
 const FIELD =
-  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 pr-12 font-mono text-[1rem] text-ink"
+  "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 pr-12 font-mono text-[1.1rem] text-ink"
 
 const INPUT: Record<string, { mode?: "tel" | "numeric"; complete: string }> = {
   phone: { mode: "tel", complete: "tel" },
@@ -111,7 +111,7 @@ export function AnswerForm({
 
   return (
     <form onSubmit={submit} className="flex w-full max-w-[32rem] flex-col gap-2 text-left">
-      <label htmlFor={id} className="text-[1rem] font-medium text-ink">
+      <label htmlFor={id} className="text-[1.1rem] font-medium text-ink">
         {label}
       </label>
       <div className="flex items-start gap-2">
@@ -151,11 +151,11 @@ export function AnswerForm({
         </Button>
       </div>
       {/* Two lines kept, so a longer error or a shorter "Sent" never moves what is below. */}
-      <p id={`${id}-hint`} className="min-h-[2.75em] text-[0.95rem] leading-snug text-ink-soft">
+      <p id={`${id}-hint`} className="min-h-[2.75em] text-body leading-snug text-ink-soft">
         {line}
       </p>
       {note && (
-        <p className="flex items-start gap-2.5 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5 text-[0.95rem] leading-snug text-ink">
+        <p className="flex items-start gap-2.5 rounded-[0.3rem] border border-line bg-app-2 px-3 py-2.5 text-body leading-snug text-ink">
           <ShieldCheck className="mt-[0.1rem] size-[1.1rem] shrink-0 text-ok" aria-hidden />
           <span>{note}</span>
         </p>
