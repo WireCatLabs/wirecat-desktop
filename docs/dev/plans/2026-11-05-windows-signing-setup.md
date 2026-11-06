@@ -7,12 +7,12 @@ in [the first-release plan](2026-10-29-first-release.md#windows-certum) and
 
 **Order (decisions D1 and D3).** The seed goes in only after two things have landed: the split of build and signing
 (done, see section 1) and all six hardening patches in our ssign fork, with the `--rev` in `release.yml` moved to the
-patched commit (not done yet). Until then, do only step A below.
+patched commit (done: `527ac07`). Both are in place once this lands on `main`.
 
 ## 1. Already done
 
 - **Our fork of ssign**: [WireCatLabs/ssign](https://github.com/WireCatLabs/ssign), at
-  `222cb903731d385ab75e37e88564bcf4cb100458` (upstream v0.1.9, the commit the review read).
+  `527ac07ae31236a560041978024f8c0ea8f8ac07`: upstream v0.1.9 (`222cb90`, the commit the review read) plus our patches P1-P6 and `FORK.md`.
   - Actions are disabled, so none of upstream's CI jobs (crates.io publish, Certum signing) can run there.
   - [Ruleset 26654540](https://github.com/WireCatLabs/ssign/settings/rules/26654540) protects `main`: no deletion, no
     force push, changes only through a pull request with squash merge.
@@ -68,7 +68,7 @@ secret, so the script reads each value again:
   no, run it later with `--delete-only`.
 - After this, the `macOS signing check` workflow cannot read the Apple secrets any more; it is listed in `CLEANUP.md`.
 
-Steps 0 to 8 store the seed: wait for the ssign patches (see the order at the top). Run them in one sitting: the QR
+Steps 0 to 8 store the seed: run them only after the split is on `main` (see the order at the top). Run them in one sitting: the QR
 page must stay open from step 3 to step 7.
 
 **Step 0. Use the setup copy of the repository.** The shared checkout at `/home/leemour/Projects/AI/visage` may be on
@@ -198,6 +198,11 @@ What can fail the first time, and what it means:
   account has only one certificate.
 - A failure inside the `tauri bundle` step on an NSIS plugin DLL: ssign refuses a file that is already signed (review
   RISK-3). This needs a small patch in our fork.
+- A login failure that names another host: Certum redirected the login away from its own servers, and the patched
+  ssign (P2) refuses that. Do not work around it; find out why Certum redirects first.
+- A signing failure about the key type or size: the patched ssign (P5) refuses a key that is not RSA or is smaller
+  than 2048 bits.
+  Ask Certum which key the certificate has.
 - A login failure at Certum: do not re-run many times in a row; repeated bad codes can lock the account. Check the
   e-mail and run the script again.
 
@@ -239,10 +244,8 @@ Details and evidence: [ssign review](../research/2026-11-05-ssign-review.md).
 
 ## 8. Follow-ups
 
-- **Hardening patches P1-P6 in our fork** (review, "Patches for our fork"): HTTPS-only and host checks on Certum's
-  links, a timestamp nonce, a local check of the cloud signature, no seed in `--help`, wiping the seed from memory.
-  All six land before the seed (D1 B). Each lands as a squash-merged pull request in the fork, then the `--rev` in
-  `release.yml` moves to that commit.
+- **Hardening patches P1-P6 in our fork**: done (D1 B), pinned at `527ac07`. A later fork change lands as a
+  squash-merged pull request there, then the `--rev` in `release.yml` moves to that commit.
 - **Monthly check of upstream ssign** ([Le-Syl21/ssign](https://github.com/Le-Syl21/ssign)): read new commits and
   advisories (`cargo audit` on its lockfile), and move the fork only after reading the diff.
 - **Certificate end date**: put a reminder a month before the date the script printed in step 5.
