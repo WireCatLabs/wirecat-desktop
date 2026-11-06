@@ -1,10 +1,28 @@
 # Community CLIs in the desktop app
 
-Status: **built, not live**. The app fetches and checks the signed list; cli-docs builds and signs it on deploy
-(`scripts/desktop-registry.ts`, `.github/workflows/deploy.yml`). It goes live when the owner has run cli-docs'
-`bin/registry-key` and pasted the public key it prints into [`src-tauri/registry-key.pub`](../../src-tauri/registry-key.pub).
-Until then the app fetches nothing. Decided 2026-11-05: the list lives in cli-docs `tools.json` (NEED-2204 A) and is
-signed in CI with a key the owner holds (NEED-2205 A).
+Status: **built, not live**. cli-docs builds and signs the list on every deploy and serves it at
+`https://wirecat.dev/registry/v1/desktop-tools.json` (its public key is in cli-docs `registry/minisign.pub` since
+2026-11-05). The app fetches and checks it, but only once that same key is pasted into
+[`src-tauri/registry-key.pub`](../../src-tauri/registry-key.pub), which still holds the placeholder. Until then the app
+fetches nothing. Decided 2026-11-05: the list lives in cli-docs `tools.json` (NEED-2204 A) and is signed in CI with a
+key the owner holds (NEED-2205 A). Your own tools, added from the app without a review, are a design, not built
+([below](#your-own-tools-not-checked)).
+
+## Process at a glance
+
+1. **The maker builds the tool** from cli-template, or to the
+   [New CLI standard](https://github.com/WireCatLabs/cli-base/blob/main/docs/standards/new-cli.md#done-when), and
+   publishes it with npm trusted publishing from its own `release.yml` on `main`.
+2. **The maker opens a pull request** to cli-docs `tools.json` with `"community": true` and a `desktop` object. The
+   public guide is [List your tool in WireCat](https://wirecat.dev/en/docs/build-list-tool).
+3. **We review it** against
+   [REVIEWING.md, "Community tools"](https://github.com/WireCatLabs/cli-docs/blob/main/docs/REVIEWING.md#community-tools).
+   cli-docs' tests run the same entry rules as `community.rs`.
+4. **The merge registers it.** The site lists it, and the next deploy signs a list that includes it.
+5. **The app offers it** to an owner who turned on "Enable community tools", with a **Community** badge, and checks
+   each release's npm provenance before install.
+6. **Before any review**, a maker or owner can add a tool on their own computer: today with the developer file, later
+   from Settings ([Your own tools](#your-own-tools-not-checked)).
 
 ## What exists today (2026-11-05)
 
@@ -26,8 +44,8 @@ signed in CI with a key the owner holds (NEED-2205 A).
 
 `src-tauri/src/community.rs` adds community tools to the compiled catalog once, at start, from one of two sources:
 
-- **The signed list**, while Settings → Advanced → "Show community tools" is on (`<app data>/community-tools.json`,
-  off by default). `registry.rs` reads the copy kept in `<app data>/registry/`, checks its signature and expiry again,
+- **The signed list**, while "Enable community tools" in Settings is on (`<app data>/community-tools.json`, off by
+  default). `registry.rs` reads the copy kept in `<app data>/registry/`, checks its signature and expiry again,
   and hands its entries over. Without a good copy the app has its built-in tools only.
 - **A local file**, for development: `<app data>/extra-tools.json` while the environment has `WIRECAT_EXTRA_TOOLS=1`,
   shaped `{ "version": 1, "tools": [...] }`. The flag wins over the setting.
@@ -98,9 +116,86 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
    SVG path (`d`), checked in Rust to contain only path commands and numbers, at most 2 KB, drawn in the app's own
    colour on a 24 x 24 box.
 
+## Your own tools (not checked)
+
+Status: **planned**. Owner's ruling 2026-11-06: "let anyone add any custom tool locally, but with a warning that it is
+not checked yet". Today only the developer path exists: `WIRECAT_EXTRA_TOOLS=1` and a hand-written
+`<app data>/extra-tools.json` (above). This design gives the same file a page in Settings.
+
+**What the owner does.** In Settings, under "Enable community tools", **Add your own tool** takes an npm package name.
+A local program is a later step (see the open decisions).
+
+**What the app does, in this order.** Nothing of the tool runs before the owner confirms.
+
+1. **Reads npm only.** The package's metadata from the registry (version, `repository`, `bin`) and its attestations.
+   No install, no script. `provenance.rs` already reads both without installing.
+2. **Shows what it found, and the warning.** Package, version, the repository the package claims, and where npm built
+   it: "Built by `<repo>`'s release workflow on `main`", the workflow the Sigstore certificate names when it is
+   another one, or "No record of where npm built it". Then: "WireCat has not checked this tool. It runs with your
+   permissions." Buttons: Install, Cancel. A missing or foreign provenance is shown, never a refusal: the owner chose
+   this package by name.
+3. **Installs** with the usual install path (`install.rs`). npm runs the package's install scripts, which is why the
+   confirm comes first. `confirm_release` reports instead of refusing for an entry from this file.
+4. **Asks the tool to describe itself.** This is the tool's first run, so it gets the second confirm, with the same
+   warning. See "Where the entry comes from" below.
+5. **Checks the entry** with every `community.rs` rule: plain words, an id of 2 to 16 lowercase letters, no id,
+   program, package or data folder of ours or of an earlier entry, `https` links, none of the keys only WireCat's tools
+   set, the size cap. One exception to rule 3: the repository may be missing or not on GitHub, and then the app shows
+   that no provenance can be checked. A refused entry is not saved. The app shows the refusal sentences and offers
+   Uninstall, since the package is already on the computer.
+6. **Saves the entry** to `<app data>/extra-tools.json`, the same `{ "version": 1, "tools": [...] }` file, written by
+   the app. It survives restarts and updates. It is never sent anywhere: no request, log upload or report carries
+   it.
+7. **Takes effect at the next start**, like the switch, with Restart now. Pages build some lists when their module
+   loads.
+
+**Where the entry comes from.** The app needs a whole catalog entry: the keys the `desktop` object of a cli-docs
+`tools.json` entry has, plus `id`, `name`, `package`, `repo`, `summary` and `docs`.
+
+- npm gives `package`, and `repo` from the package's `repository` field.
+- `--wcat-describe` (cli-base `src/wcat/describe.ts`) gives `name`, `version`, `description` and `docs_url` today.
+  That fills `id`, `name`, `summary` and `docs`.
+- `commands --json` (cli-base `@wirecat/cli-base/commands`) gives the command tree. It says which commands exist, but
+  not the words the app runs, the data folder (`storage`), the sign-in texts (`signIn`), `tagline` or the shape of
+  the profile list.
+- **So a self-description is needed.** It belongs in cli-base's `--wcat-describe`, as format 2 (`DESCRIBE_FORMAT`
+  already promises that a later format adds keys and keeps the old ones). Its new key holds the same object as the
+  cli-docs `desktop` object, nothing more. `wcatStart` takes it, and cli-template fills it, so a tool built from the
+  template describes itself to the app without a hand-written entry. The cli-docs review can then compare the
+  submitted `desktop` object with the tool's own answer.
+- Until a tool answers format 2, the page asks the owner to paste that `desktop` object, the same one the cli-docs
+  guide shows, and checks it the same way.
+
+**How it looks.** A tool from this file carries the badge **Not checked** instead of **Community**, on the Tools page
+and on Choose tools, with the warning above as its note. The badge comes from the source, the file, not from a key in
+the entry, so a signed-list entry can neither claim it nor drop it. The tool's row has **Remove from WireCat**, which
+deletes the entry and offers Uninstall.
+
+**The signed list and the file together.** Today the flag wins and the two sources never mix. With this design the app
+reads the signed list first (while the switch is on) and then the file. An own entry whose id, package or data folder
+a listed entry already uses is refused as "an earlier entry", with the sentence "This tool is now listed. Remove your
+own entry to use the listed one." The `WIRECAT_EXTRA_TOOLS` flag is then not needed: the file is read whenever it
+has entries.
+
+**What this does not change.** No `community.rs` rule is relaxed for the signed list, `provenance.rs` still refuses
+for listed tools, and nothing the owner adds reaches another computer.
+
 ## Open decisions
 
 - Whether a signed list needs a second maintainer's approval (today: the pull request review and the `production`
   environment's rules).
 - Whether community tools may use the store commands (backup, reset), `bot` or the Memory and Tasks pages later.
 - Removal (point 4) and icons (point 5) are not built yet.
+- **One switch?** Yes. "Enable community tools" stays the only switch, and it covers the signed list alone. Adding
+  your own tool is its own opt-in, guarded by the two confirms. The "More tools" block for WireCat's own extras (CRM,
+  telephony) needs no switch, since those are reviewed first-party tools.
+- **A local program**, not from npm: no package, repository or provenance, and the app neither installs nor updates
+  it. It needs the program on PATH and a self-description. Whether the first version supports it at all.
+- **Unscoped npm names.** `community.rs` takes only `@scope/name`. Whether an own tool may be an unscoped package.
+- **Updates of an own tool.** Whether the app offers updates for it like any tool (each one shown with its provenance,
+  never refused) or leaves updates to the owner.
+- **Settings' "How to make your own"** opens `build-create-cli`. It could open
+  [List your tool in WireCat](https://wirecat.dev/en/docs/build-list-tool) instead (a one-line change in
+  `CommunitySetting.tsx`).
+- The `WIRECAT_EXTRA_TOOLS` comments in `registry.rs`, `community.rs` and `src/platform/types.ts` still say "Show
+  community tools" and describe the flag. They change with the code.
