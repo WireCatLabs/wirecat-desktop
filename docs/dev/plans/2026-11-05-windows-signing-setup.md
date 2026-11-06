@@ -1,13 +1,18 @@
 # Windows signing: the owner's setup
 
 What is left before a release tag signs the Windows installer with Certum SimplySign. The design and its reasons are
-in [the first-release plan](2026-10-29-first-release.md#windows-certum); the security review of the signing tool is
+in [the first-release plan](2026-10-29-first-release.md#windows-certum) and
+[the signing flow and decisions](2026-11-06-windows-signing-flow.md); the security review of the signing tool is
 [ssign review](../research/2026-11-05-ssign-review.md).
+
+**Order (decisions D1 and D3).** The seed goes in only after two things have landed: the split of build and signing
+(done, see section 1) and all six hardening patches in our ssign fork, with the `--rev` in `release.yml` moved to the
+patched commit (`c7a3b2a`). Both are on `main` since 2026-11-06.
 
 ## 1. Already done
 
 - **Our fork of ssign**: [WireCatLabs/ssign](https://github.com/WireCatLabs/ssign), at
-  `222cb903731d385ab75e37e88564bcf4cb100458` (upstream v0.1.9, the commit the review read).
+  `c7a3b2afe272636628535912b48312d9b4606094`: upstream v0.1.9 (`222cb90`, the commit the review read) plus our patches P1-P6 and `FORK.md`.
   - Actions are disabled, so none of upstream's CI jobs (crates.io publish, Certum signing) can run there.
   - [Ruleset 26654540](https://github.com/WireCatLabs/ssign/settings/rules/26654540) protects `main`: no deletion, no
     force push, changes only through a pull request with squash merge.
@@ -17,13 +22,18 @@ in [the first-release plan](2026-10-29-first-release.md#windows-certum); the sec
 - **The `release` environment** of wirecat-desktop ([Settings → Environments](https://github.com/WireCatLabs/wirecat-desktop/settings/environments))
   admits only `v*` tags (deployment policy 65676080). A branch or a pull request cannot read its secrets. It has no
   required reviewers yet, and administrators can bypass it.
-- **The workflow** ([`release.yml`](../../../.github/workflows/release.yml)), changed in
-  [#131](https://github.com/WireCatLabs/wirecat-desktop/pull/131):
-  - builds ssign from our fork at the full commit hash, with `cargo install --locked`;
-  - stops before signing when the secrets exist but `WINDOWS_SIGNER_SHA1` does not;
-  - after the build, unpacks the installer and checks the installer and every `.exe` inside it: the signature is
-    `Valid`, it has a timestamp, and the signer's certificate thumbprint equals `WINDOWS_SIGNER_SHA1`.
-  - Without the two Certum secrets, Windows still ships unsigned, with a notice in the log.
+- **The workflow** ([`release.yml`](../../../.github/workflows/release.yml)):
+  - The `build` job compiles the app with no secret and no environment. Every npm and Rust build script runs there.
+  - The `sign` job, the only one in the `release` environment, takes that compiled app and runs `tauri bundle`. It
+    installs only the Tauri CLI and, on Windows, ssign; it never runs `pnpm install` or our dependencies' scripts.
+  - ssign is built from our fork at the full commit hash, with `cargo install --locked`.
+  - After signing, it unpacks the installer and checks the installer and every `.exe` inside it: the signature is
+    `Valid`, it has a timestamp, and the signer's certificate thumbprint equals `WINDOWS_SIGNER_SHA1` (#131).
+  - The `updater` job checks every updater `.sig` against the public key in `src-tauri/tauri.conf.json` with
+    minisign before it writes `latest.json`.
+  - **Fail closed (D4), automatic:** while none of `CERTUM_EMAIL`, `CERTUM_OTP` and `WINDOWS_SIGNER_SHA1` exists,
+    Windows ships unsigned with a notice. Once any of them exists (step 5 sets all three), a missing one or any
+    signing or check failure stops the release, and it stays a private draft.
 - **The setup script** [`bin/setup-windows-signing`](../../../bin/setup-windows-signing) reads the seed straight from
   the QR image (`--qr`) and sets the thumbprint variable (`--thumbprint-from`). It never prints the seed.
 - **Not done:** no `CERTUM_*` secret and no `WINDOWS_SIGNER_SHA1` variable exist yet. Nothing has been signed.
@@ -40,7 +50,7 @@ not kept anywhere else. If it is ever needed again, Certum's help line resets it
 
 ## 3. Your steps
 
-Run them in one sitting: the QR page must stay open from step 3 to step 7.
+Steps 1 to 8 store the seed, after step A. Run them in one sitting: the QR page must stay open from step 3 to step 7.
 
 **Step 0. Use the setup copy of the repository.** The shared checkout at `/home/leemour/Projects/AI/visage` may be on
 an old branch, and other sessions use it, so do not switch it. A separate copy on `main` is at
@@ -49,6 +59,30 @@ an old branch, and other sessions use it, so do not switch it. A separate copy o
 ```sh
 git -C /home/leemour/Projects/AI/visage worktree add --detach .claude/worktrees/signing-setup origin/main
 ```
+
+If it exists, bring it up to date with `main` (it may predate the scripts below):
+
+```sh
+git -C /home/leemour/Projects/AI/visage/.claude/worktrees/signing-setup pull -q --ff-only origin main
+```
+
+**Step A. Move the signing secrets into the `release` environment** (any time; it does not need the seed). The updater
+key and the five Apple secrets are repository secrets today, which any branch's workflow can read. GitHub cannot copy a
+secret, so the script reads each value again:
+
+```sh
+/home/leemour/Projects/AI/visage/.claude/worktrees/signing-setup/bin/move-signing-secrets
+```
+
+- The updater key and its password come from your keyring; the `.p12` from
+  `/home/leemour/.config/wirecat-signing/developer-id.p12` and its password from the keyring. `--help` lists the
+  options for other files.
+- It asks for your Apple ID and the app-specific password. Apple never shows that password again: if you do not have
+  it, make a new one at [account.apple.com](https://account.apple.com) → Sign-In and Security → App-Specific
+  Passwords first.
+- Then it lists the secrets the environment now holds and asks before it deletes their repository copies. If you say
+  no, run it later with `--delete-only`.
+- After this, the `macOS signing check` workflow cannot read the Apple secrets any more; it is listed in `CLEANUP.md`.
 
 **Step 1. Install the QR reader** (Ubuntu package `zbar-tools`):
 
@@ -109,8 +143,8 @@ shred -u /dev/shm/simplysign-qr.png
 untick "Allow administrators to bypass configured protection rules", then save. The script never sends this setting,
 so a re-run does not tick it again.
 
-**Step 9 (optional, NEED-2221).** On the same page, add yourself as a required reviewer. Then each release waits for
-your click before the Windows build can read the seed. A re-run of the script keeps reviewers: once the environment
+**Step 9 (not now, D2 B).** You chose no manual approval for now. If you change your mind: on the same page, add
+yourself as a required reviewer. Then each release waits for your click before the `sign` jobs can read the seed. A re-run of the script keeps reviewers: once the environment
 is limited to tags, the script does not change its settings at all.
 
 ## 4. How to check each step
@@ -121,7 +155,14 @@ Each command prints names or public values only. GitHub never shows a secret's v
 gh secret list --env release --repo WireCatLabs/wirecat-desktop
 ```
 
-Shows `CERTUM_EMAIL` and `CERTUM_OTP` with today's date.
+After step A: `TAURI_SIGNING_PRIVATE_KEY`, `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` and the five `APPLE_*` names. After
+step 5, also `CERTUM_EMAIL` and `CERTUM_OTP` with today's date.
+
+```sh
+gh secret list --repo WireCatLabs/wirecat-desktop
+```
+
+After step A, with the deletion confirmed: none of those names.
 
 ```sh
 gh variable list --env release --repo WireCatLabs/wirecat-desktop
@@ -144,10 +185,10 @@ Prints only `tag v*`.
 ## 5. The first signed release
 
 Release as usual with `bin/tag-release`. In [Actions](https://github.com/WireCatLabs/wirecat-desktop/actions), open the
-Release run, then the `windows-latest` build job:
+Release run, then the `sign (windows-latest, …)` job (the `build` job before it has no secret):
 
-1. The `cargo install … https://github.com/WireCatLabs/ssign --rev 222cb903…` step builds ssign (a few minutes).
-2. The `tauri-action` step logs "Signing NSIS plugins" and then the installer. Each file is one Certum signature.
+1. The `cargo install … https://github.com/WireCatLabs/ssign --rev <commit>` step builds ssign (a few minutes).
+2. The `tauri bundle` step logs "Signing NSIS plugins" and then the installer. Each file is one Certum signature.
 3. The last step prints one line per file, for the installer and each `.exe` inside it:
    `<file>: Valid, signer CN=…WireCat…, thumbprint <the same 40 characters>`, then
    `timestamp by CN=…Certum…`. Any `::error::` line there fails the build and the release stays a draft.
@@ -156,12 +197,17 @@ Then the **Install check** run should show `Signature: Valid` on Windows.
 
 What can fail the first time, and what it means:
 
-- "WINDOWS_SIGNER_SHA1 is not set": step 5 ran without `--thumbprint-from`. Run the script with only
-  `--thumbprint-from <pem>`.
+- "Not set in the release environment: WINDOWS_SIGNER_SHA1": step 5 ran without `--thumbprint-from`. Run the script
+  with only `--thumbprint-from <pem>`.
 - "signer thumbprint X, expected Y": the PEM was not the certificate Certum's cloud signs with. Check that the
   account has only one certificate.
-- A failure inside the `tauri-action` step on an NSIS plugin DLL: ssign refuses a file that is already signed (review
+- A failure inside the `tauri bundle` step on an NSIS plugin DLL: ssign refuses a file that is already signed (review
   RISK-3). This needs a small patch in our fork.
+- A login failure that names another host: Certum redirected the login away from its own servers, and the patched
+  ssign (P2) refuses that. Do not work around it; find out why Certum redirects first.
+- A signing failure about the key type or size: the patched ssign (P5) refuses a key that is not RSA or is smaller
+  than 2048 bits.
+  Ask Certum which key the certificate has.
 - A login failure at Certum: do not re-run many times in a row; repeated bad codes can lock the account. Check the
   e-mail and run the script again.
 
@@ -172,8 +218,9 @@ fails").
 
 **The seed leaked** (a screenshot, a chat, a log, a lost laptop with the image on disk):
 
-1. Stop CI from using it: `gh secret delete CERTUM_OTP --env release --repo WireCatLabs/wirecat-desktop`. Windows
-   releases then ship unsigned.
+1. Stop CI from using it: `gh secret delete CERTUM_OTP --env release --repo WireCatLabs/wirecat-desktop`. The next
+   release then stops at the Windows `sign` job instead of shipping unsigned (fail closed, D4), until a new seed is
+   stored.
 2. Call Certum's help line and reset SimplySign. Until then, anyone with the seed and your e-mail can sign as WireCat.
 3. If you think someone signed something with it, ask Certum to revoke the certificate and issue a new one.
 4. Do section 3 again from step 2, case B.
@@ -190,24 +237,20 @@ variable; the seed stays:
 
 Details and evidence: [ssign review](../research/2026-11-05-ssign-review.md).
 
-- **The whole Windows app build can read the seed** (review SEC-1). Every npm script and Rust build script in the
-  `tauri-action` step sees `CERTUM_OTP`. This is the largest exposure, and it is ours, not ssign's.
+- **Closed: the app build no longer sees the seed** (review SEC-1). The `build` job has no secret. The code that sees
+  `CERTUM_OTP` is the Tauri CLI, the NSIS tools it downloads, ssign and its crates. A poisoned dependency can still put
+  code into the app that we then sign; only lockfiles and dependency review stop that.
 - **ssign trusts Certum's replies more than it should** (SEC-2, SEC-3, SEC-5, SEC-6): it follows any link Certum's
   server names and does not check the timestamp reply or the cloud signature. Only someone controlling Certum's API
   responses can use this. The CI check catches a bad signature or a missing timestamp before release.
-- **ssign is unofficial.** Certum can change its cloud API and break it. The build then fails at signing; deleting
-  the two secrets ships Windows unsigned again.
+- **ssign is unofficial.** Certum can change its cloud API and break it. The release then stops at the Windows
+  `sign` job until ssign is fixed.
 - **The seed is a single factor.** Once it is in GitHub, the phone no longer protects signing.
 
 ## 8. Follow-ups
 
-- **Hardening patches P1-P6 in our fork** (review, "Patches for our fork"): HTTPS-only and host checks on Certum's
-  links, a timestamp nonce, a local check of the cloud signature, no seed in `--help`, wiping the seed from memory.
-  Waiting for your decision. Each lands as a squash-merged pull request in the fork, then the `--rev` in
-  `release.yml` moves to that commit.
-- **Build without the seed, then sign (NEED-2222).** Split the Windows build into `tauri build --no-bundle` without
-  secrets and `tauri bundle` with them, so no compiler or npm script sees the seed. Not checked yet: whether
-  tauri-action supports it, and how it affects the updater `.sig`.
+- **Hardening patches P1-P6 in our fork**: done (D1 B), pinned at `c7a3b2a`. A later fork change lands as a
+  squash-merged pull request there, then the `--rev` in `release.yml` moves to that commit.
 - **Monthly check of upstream ssign** ([Le-Syl21/ssign](https://github.com/Le-Syl21/ssign)): read new commits and
   advisories (`cargo audit` on its lockfile), and move the fork only after reading the diff.
 - **Certificate end date**: put a reminder a month before the date the script printed in step 5.

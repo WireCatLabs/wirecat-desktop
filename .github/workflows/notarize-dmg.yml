@@ -9,13 +9,8 @@ on:
       tag:
         type: string
         required: true
-    secrets:
-      APPLE_ID:
-        required: false
-      APPLE_PASSWORD:
-        required: false
-      APPLE_TEAM_ID:
-        required: false
+  # Run it on the tag itself (gh workflow run notarize-dmg.yml --ref v0.5.0 -f tag=v0.5.0): the release environment
+  # admits only v* tags.
   workflow_dispatch:
     inputs:
       tag:
@@ -28,6 +23,7 @@ permissions:
 jobs:
   notarize:
     runs-on: macos-latest
+    environment: release
     steps:
       - env:
           GH_TOKEN: ${{ github.token }}

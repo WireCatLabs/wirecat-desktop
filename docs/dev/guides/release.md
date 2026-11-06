@@ -13,8 +13,11 @@ in [signing.md](../signing.md).
    has changes, `main` differs from `origin/main`, the two versions differ, the updater key is missing, or the tag
    exists. Then it pushes the tag.
 4. [release.yml](../../../.github/workflows/release.yml) runs: `security`, `draft` (refuses a tag that differs from
-   `package.json`), `build` on Linux, macOS and Windows into the draft, `notarize-dmg`, then `publish`. `publish`
-   checks that `latest.json` has all four platforms and makes the release public and latest.
+   `package.json`), `build` (compiles on Linux, macOS and Windows with no secret), `sign` (bundles and signs that
+   build in the `release` environment and uploads it to the draft), `updater` (checks every updater signature against
+   the public key and writes `latest.json`), `notarize-dmg`, then `publish`. `publish` checks that `latest.json` has
+   all four platforms and makes the release public and latest. To try a change to this workflow, run it on your
+   branch with nothing published: `gh workflow run release.yml --ref <branch> -f dry_run=true`.
 5. [install-check.yml](../../../.github/workflows/install-check.yml) then installs the published release on a clean
    runner of each OS and checks that the app starts. Look at its result.
 

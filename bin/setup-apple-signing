@@ -3,8 +3,9 @@
 #   bin/setup-apple-signing ~/Downloads/developer-id.p12
 # The .p12 is the "Developer ID Application" certificate with its private key, exported from Keychain Access.
 # The app-specific password is made at https://account.apple.com → Sign-In and Security → App-Specific Passwords.
-# Sets the repository secrets APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD and
-# APPLE_TEAM_ID; nothing secret is printed. The next release tag is signed without a workflow change.
+# Sets the secrets APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID in the
+# "release" environment, which only v* tags can open; nothing secret is printed. The next release tag is signed
+# without a workflow change.
 set -euo pipefail
 
 repo="WireCatLabs/wirecat-desktop"
@@ -61,12 +62,13 @@ if [ -z "$apple_id" ] || [ -z "$app_password" ]; then
   exit 1
 fi
 
-base64 -w 0 <"$p12" | gh secret set APPLE_CERTIFICATE --repo "$repo" >/dev/null
-printf '%s' "$P12_PASSWORD" | gh secret set APPLE_CERTIFICATE_PASSWORD --repo "$repo" >/dev/null
-printf '%s' "$apple_id" | gh secret set APPLE_ID --repo "$repo" >/dev/null
-printf '%s' "$app_password" | gh secret set APPLE_PASSWORD --repo "$repo" >/dev/null
-printf '%s' "$team" | gh secret set APPLE_TEAM_ID --repo "$repo" >/dev/null
+base64 -w 0 <"$p12" | gh secret set APPLE_CERTIFICATE --repo "$repo" --env release >/dev/null
+printf '%s' "$P12_PASSWORD" | gh secret set APPLE_CERTIFICATE_PASSWORD --repo "$repo" --env release >/dev/null
+printf '%s' "$apple_id" | gh secret set APPLE_ID --repo "$repo" --env release >/dev/null
+printf '%s' "$app_password" | gh secret set APPLE_PASSWORD --repo "$repo" --env release >/dev/null
+printf '%s' "$team" | gh secret set APPLE_TEAM_ID --repo "$repo" --env release >/dev/null
 unset P12_PASSWORD app_password
 
-echo "Set APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID ($team) on $repo."
+echo "Set APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD, APPLE_ID, APPLE_PASSWORD and APPLE_TEAM_ID ($team)"
+echo "in the release environment of $repo."
 echo "The next release build signs and notarizes the macOS app."
