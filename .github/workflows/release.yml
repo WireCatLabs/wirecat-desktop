@@ -11,7 +11,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Run on a branch: build and bundle with no signing secret and a throwaway updater key, publish nothing"
+        description: "Run on a branch: build and bundle with no secret and a throwaway updater key, publish nothing"
         type: boolean
         default: false
 
@@ -145,6 +145,8 @@ jobs:
           path: src-tauri/${{ matrix.out }}/${{ matrix.exe }}
           if-no-files-found: error
           retention-days: 3
+          # A re-run of a failed job uploads under the same name.
+          overwrite: true
 
   # Bundles, signs and uploads the compiled app. No pnpm install and no app build script runs here: the code that sees
   # the keys is the Tauri CLI, the NSIS tools it downloads, ssign, and Apple's tools.
@@ -191,7 +193,7 @@ jobs:
           path: src-tauri/${{ matrix.out }}
       # The same CLI version the build used, without its dependencies' install scripts.
       - run: |
-          chmod +x src-tauri/${{ matrix.out }}/wirecat-desktop* || true
+          chmod +x src-tauri/${{ matrix.out }}/wirecat-desktop*
           version="$(sed -n "s|^  '@tauri-apps/cli@\([0-9.]*\)':$|\1|p" pnpm-lock.yaml | head -n 1)"
           [ -n "$version" ] || { echo "::error::No @tauri-apps/cli version in pnpm-lock.yaml."; exit 1; }
           npm install --global --ignore-scripts "@tauri-apps/cli@$version"
@@ -248,7 +250,12 @@ jobs:
       - if: ${{ inputs.dry_run }}
         run: |
           tauri signer generate --ci -w "$RUNNER_TEMP/dry-run.key" -p dry-run >/dev/null
-          { echo "TAURI_SIGNING_PRIVATE_KEY<<END_KEY"; cat "$RUNNER_TEMP/dry-run.key"; echo; echo "END_KEY"; } >> "$GITHUB_ENV"
+          {
+            echo "TAURI_SIGNING_PRIVATE_KEY<<END_KEY"
+            cat "$RUNNER_TEMP/dry-run.key"
+            echo
+            echo "END_KEY"
+          } >> "$GITHUB_ENV"
           echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=dry-run" >> "$GITHUB_ENV"
           # Apple Silicon runs only signed apps, so the dry run signs ad hoc.
           [ "$RUNNER_OS" != macOS ] || echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
@@ -304,7 +311,8 @@ jobs:
           mkdir release-files
           case "$RUNNER_OS" in
             Linux)
-              cp "$BUNDLE"/appimage/*.AppImage{,.sig} "$BUNDLE"/deb/*.deb{,.sig} "$BUNDLE"/rpm/*.rpm{,.sig} release-files/
+              cp "$BUNDLE"/appimage/*.AppImage{,.sig} "$BUNDLE"/deb/*.deb{,.sig} "$BUNDLE"/rpm/*.rpm{,.sig} \
+                release-files/
               ;;
             macOS)
               # The name tauri-action gave it in earlier releases.
@@ -325,6 +333,8 @@ jobs:
           path: release-files/
           if-no-files-found: error
           retention-days: 3
+          # A re-run of a failed job uploads under the same name.
+          overwrite: true
       - if: ${{ !inputs.dry_run }}
         env:
           GH_TOKEN: ${{ github.token }}

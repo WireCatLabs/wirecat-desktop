@@ -45,7 +45,8 @@ add() {
     read -r url digest <<<"$(gh api "repos/$GITHUB_REPOSITORY/releases/$RELEASE_ID/assets" --paginate \
       --jq ".[] | select(.name == \"$name\") | \"\(.url) \(.digest)\"")" || true
     if [ "${digest:-}" != "sha256:$(sha256sum "$file" | cut -d' ' -f1)" ]; then
-      echo "::error::$name on the draft release is missing or differs from the file that was verified."
+      echo "::error::$name on the draft is missing or differs from the verified file. Re-run this job;" \
+      "if it fails again, re-run the sign job of that system."
       failed=1
       return
     fi
