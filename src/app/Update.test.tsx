@@ -105,10 +105,7 @@ describe("App update", () => {
     await user.click(within(dialog).getByRole("button", { name: "Download and install" }))
 
     expect(await within(dialog).findByText(/The system installer opened wirecat_0\.2\.0_amd64\.deb/)).toBeVisible()
-    expect(
-      within(dialog).getByText(/close the installer, nothing is installed\. The package stays at ~\/Downloads\//),
-    ).toBeVisible()
-    expect(within(dialog).getByText(/first copies the package into apt's own folder/)).toBeVisible()
+    expect(within(dialog).getByText("Or install from a terminal:")).toBeVisible()
     expect(
       within(dialog).getByText(
         "sudo install -m 644 /home/u/Downloads/wirecat_0.2.0_amd64.deb /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/wirecat_0.2.0_amd64.deb",
@@ -142,14 +139,14 @@ describe("App update", () => {
     expect(await within(dialog).findByText(command)).toBeVisible()
 
     await user.click(within(dialog).getByRole("button", { name: "Open in terminal" }))
-    expect(await within(dialog).findByText(/Type your password there\. When the install finishes/)).toBeVisible()
+    expect(
+      await within(dialog).findByText(/Enter your password there, and restart WireCat when the install ends/),
+    ).toBeVisible()
     expect(terminal).toHaveBeenCalledWith()
     expect(screen.getByRole("dialog", { name: "WireCat 0.2.0 is available" })).toBe(dialog)
 
     await user.click(within(dialog).getByRole("button", { name: "Open in terminal" }))
-    expect(
-      await within(dialog).findByText(/could not open a terminal on this computer\. Copy the command/),
-    ).toBeVisible()
+    expect(await within(dialog).findByText(/No terminal found\. Copy the command/)).toBeVisible()
     expect(within(dialog).getByRole("button", { name: "Copy the command" })).toBeVisible()
   })
 

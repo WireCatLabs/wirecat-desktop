@@ -28,15 +28,11 @@ const en = {
     `The system installer opened ${file}. Enter your password there to install it, then open WireCat again.`,
   revealed: (file: string) =>
     `${file} is in your Downloads folder. Double-click it to open the installer, enter your password, then open WireCat again.`,
-  terminal: {
-    deb: "Or install it from a terminal. The command first copies the package into apt's own folder, because apt cannot read files in your home folder and would print a notice about it. Then it asks for your password, installs WireCat and prints the next steps.",
-    rpm: "Or install it from a terminal. It asks for your password, installs WireCat and prints the next steps.",
-  } satisfies Record<Package, string>,
+  terminal: "Or install from a terminal:",
   copyCommand: "Copy the command",
   openTerminal: "Open in terminal",
-  terminalOpened:
-    "Your terminal is open with this command. Type your password there. When the install finishes, close WireCat and open it again to use the new version.",
-  terminalMissing: "WireCat could not open a terminal on this computer. Copy the command and run it in your terminal.",
+  terminalOpened: "Terminal opened. Enter your password there, and restart WireCat when the install ends.",
+  terminalMissing: "No terminal found. Copy the command and run it yourself.",
   whatsNew: (version: string) => `What's new in ${version}`,
   allReleases: "All releases on GitHub",
   restarting: "Installed. WireCat is restarting…",
@@ -55,8 +51,6 @@ const en = {
   newer: (version: string) => `WireCat ${version} is out now.`,
   newerNext: "Close this window and open the update again.",
   details: (text: string) => `Details: ${text}`,
-  keep: (path: string) =>
-    `If you cancel the password prompt or close the installer, nothing is installed. The package stays at ${path}: open it again later, or use the command below.`,
 }
 
 const ru: typeof en = {
@@ -85,16 +79,11 @@ const ru: typeof en = {
     `Файл ${file} открыт в установщике программ. Введите там пароль, а после установки снова откройте WireCat.`,
   revealed: (file) =>
     `${file} лежит в папке «Загрузки». Откройте его двойным щелчком, введите пароль, а после установки снова откройте WireCat.`,
-  terminal: {
-    deb: "Или установите из терминала. Команда сначала копирует пакет в собственную папку apt: apt не может читать файлы из вашей домашней папки и написал бы об этом предупреждение. Потом она спросит пароль, установит WireCat и покажет, что делать дальше.",
-    rpm: "Или установите из терминала. Команда спросит пароль, установит WireCat и покажет, что делать дальше.",
-  },
+  terminal: "Или установите из терминала:",
   copyCommand: "Скопировать команду",
   openTerminal: "Открыть в терминале",
-  terminalOpened:
-    "Терминал открыт с этой командой. Введите там пароль. Когда установка закончится, закройте WireCat и откройте снова, чтобы запустить новую версию.",
-  terminalMissing:
-    "WireCat не смог открыть терминал на этом компьютере. Скопируйте команду и выполните её в своём терминале.",
+  terminalOpened: "Терминал открыт. Введите там пароль и перезапустите WireCat после установки.",
+  terminalMissing: "Терминал не найден. Скопируйте команду и выполните её сами.",
   whatsNew: (version) => `Что нового в ${version}`,
   allReleases: "Все выпуски на GitHub",
   restarting: "Установлено. WireCat перезапускается…",
@@ -113,8 +102,6 @@ const ru: typeof en = {
   newer: (version) => `Уже вышел WireCat ${version}.`,
   newerNext: "Закройте это окно и откройте обновление снова.",
   details: (text) => `Подробности: ${text}`,
-  keep: (path) =>
-    `Если вы отмените ввод пароля или закроете установщик, ничего не установится. Пакет останется в ${path}: откройте его позже или используйте команду ниже.`,
 }
 
 const es: typeof en = {
@@ -143,16 +130,11 @@ const es: typeof en = {
     `El instalador del sistema ha abierto ${file}. Escribe ahí tu contraseña para instalarlo y luego vuelve a abrir WireCat.`,
   revealed: (file) =>
     `${file} está en tu carpeta Descargas. Ábrelo con doble clic, escribe tu contraseña y luego vuelve a abrir WireCat.`,
-  terminal: {
-    deb: "O instálalo desde una terminal. El comando primero copia el paquete a la carpeta propia de apt, porque apt no puede leer archivos de tu carpeta personal y mostraría un aviso. Después te pide la contraseña, instala WireCat y muestra los siguientes pasos.",
-    rpm: "O instálalo desde una terminal. Te pide la contraseña, instala WireCat y muestra los siguientes pasos.",
-  },
+  terminal: "O instálalo desde una terminal:",
   copyCommand: "Copiar el comando",
   openTerminal: "Abrir en la terminal",
-  terminalOpened:
-    "Tu terminal está abierta con este comando. Escribe ahí tu contraseña. Cuando termine la instalación, cierra WireCat y vuelve a abrirlo para usar la versión nueva.",
-  terminalMissing:
-    "WireCat no ha podido abrir una terminal en este equipo. Copia el comando y ejecútalo en tu terminal.",
+  terminalOpened: "Terminal abierta. Escribe ahí tu contraseña y reinicia WireCat cuando termine la instalación.",
+  terminalMissing: "No se encontró una terminal. Copia el comando y ejecútalo tú.",
   whatsNew: (version) => `Novedades de la versión ${version}`,
   allReleases: "Todas las versiones en GitHub",
   restarting: "Instalada. WireCat se está reiniciando…",
@@ -171,8 +153,6 @@ const es: typeof en = {
   newer: (version) => `Ya ha salido WireCat ${version}.`,
   newerNext: "Cierra esta ventana y vuelve a abrir la actualización.",
   details: (text) => `Detalles: ${text}`,
-  keep: (path) =>
-    `Si cancelas la contraseña o cierras el instalador, no se instala nada. El paquete se queda en ${path}: ábrelo más tarde o usa el comando de abajo.`,
 }
 
 export type UpdateMessages = typeof en
