@@ -551,8 +551,8 @@ fn classify(log: &str, program: &str) -> Failure {
 }
 
 /// The `npm view` step has no program name in its text: Network unless the words say otherwise.
-/// The store check (`preflight.rs`) reads the registry directly; installing the older version `npm view` may still show
-/// minutes after a publish would leave a tool it promised to update unable to read the store.
+/// The store check (`preflight.rs`) reads the registry directly; installing an older version that `npm view` can still
+/// show right after a publish would leave a tool it promised to update unable to read the store.
 fn newer_of(viewed: semver::Version, fresh: Option<String>) -> semver::Version {
     fresh.and_then(|v| semver::Version::parse(&v).ok()).filter(|v| *v > viewed).unwrap_or(viewed)
 }

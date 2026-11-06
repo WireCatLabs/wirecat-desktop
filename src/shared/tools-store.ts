@@ -95,6 +95,9 @@ export const useTools = create<ToolsState>((set, get) => {
     if (operation === "uninstall") await deleteData(id)
     if (operation === "install" && get().sessions[id]?.outcome?.event === "done") {
       void useAgents.getState().recheck(id)
+      // Only after the tool itself is updated: before, an update alongside would lock out the old version still here.
+      const asked = get().sessions[id]
+      if (asked?.preflight && !asked.alongside) alongside(asked.preflight)
       // The owner was already told before the install; the check after it is for versions that could not say.
       if (!get().sessions[id]?.preflight?.known)
         await useCompat.getState().checkAfterInstall(id, () => installedOf(get().installs))
@@ -144,7 +147,6 @@ export const useTools = create<ToolsState>((set, get) => {
       ...(preflight ? { preflight } : {}),
       step: preflightWarns(preflight) ? "preflight" : "queued",
     }))
-    if (preflight && !preflightWarns(preflight)) alongside(preflight)
     await drain()
   }
 
@@ -219,9 +221,7 @@ export const useTools = create<ToolsState>((set, get) => {
     async proceed(given) {
       const id = ownerId(given)
       if (get().sessions[id]?.step !== "preflight") return
-      const preflight = get().sessions[id]?.preflight
       patchSession(id, (s) => ({ ...s, step: "queued" }))
-      if (preflight) alongside(preflight)
       await drain()
     },
     uninstall: (id, deleteBytes) =>

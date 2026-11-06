@@ -144,8 +144,8 @@ fn published(agent: &ureq::Agent, package: &str) -> Option<Published> {
     Some(Published { version, store })
 }
 
-/// The registry's `latest` as the check above read it. `npm view` reads the full document, which the registry's cache
-/// keeps for five minutes and which lags the version's own document further right after a publish.
+/// The registry's `latest` as the check above read it; the registry's cache does not hold this path. `npm view` reads
+/// the package document, which the cache keeps up to five minutes and which the release workflow saw lag for minutes.
 pub fn newest_version(package: &str) -> Option<String> {
     get(&agent(), &format!("{package}/latest"), false)?["version"].as_str().map(str::to_string)
 }

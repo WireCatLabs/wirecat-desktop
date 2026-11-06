@@ -113,14 +113,25 @@ export function InstallProgress({ session, compact = false }: { session: Install
   )
 }
 
-/** One line for a row: what the install is doing, its percent, and a thin bar under it. */
-export function InstallLine({ session, name }: { session: InstallSession; name: string }) {
+/**
+ * One line for a row: what the install is doing, its percent, and a thin bar under it. `flat` hangs the bar below the
+ * text without taking height, so a row that starts an install never pushes the rows under it down.
+ */
+export function InstallLine({
+  session,
+  name,
+  flat = false,
+}: {
+  session: InstallSession
+  name: string
+  flat?: boolean
+}) {
   const m = useMessages(progressMessages)
   const { stage, fraction, known } = progressOf(session)
   const line = stageLine(stage, m)
   const pct = m.percent(Math.round(fraction * 100))
   return (
-    <div className="flex w-full min-w-0 flex-col gap-1">
+    <div className={cx("flex w-full min-w-0 flex-col gap-1", flat && "relative")}>
       <div className="flex min-w-0 items-baseline gap-2 text-[0.95rem] text-ink-soft">
         <span className="min-w-0 flex-1 truncate tabular-nums">{line}</span>
         {known && <span className="shrink-0 font-mono text-[0.85rem] tabular-nums">{pct}</span>}
@@ -131,6 +142,7 @@ export function InstallLine({ session, name }: { session: InstallSession; name: 
         label={m.labelFor(name)}
         valueText={known ? `${line}, ${pct}` : line}
         busy={stage.kind !== "waiting"}
+        className={cx(flat && "absolute inset-x-0 top-full mt-[0.2rem]")}
       />
     </div>
   )

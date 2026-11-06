@@ -129,7 +129,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
           <Crossfade swap={lineKind}>
             {installing ? (
               <div className="mt-1 max-w-[28rem]">
-                <InstallLine session={installing} name={tool.name} />
+                <InstallLine session={installing} name={tool.name} flat />
               </div>
             ) : storageLine ? (
               <p

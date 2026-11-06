@@ -139,6 +139,22 @@ it("opens the panel of a tool updated alongside when its update fails", async ()
   expect(within(tgRow).getByRole("button", { name: /^Telegram/ })).toHaveAttribute("aria-expanded", "true")
 })
 
+it("updates nothing alongside when the tool's own update fails", async () => {
+  vi.spyOn(platform, "storePreflight").mockResolvedValue({
+    version: "0.7.0",
+    known: true,
+    cannotOpen: null,
+    alsoUpdate: [{ id: "tg", version: "0.89.0" }],
+    stops: [],
+  })
+  const install = vi.spyOn(platform, "install").mockRejectedValue(new Error("npm error code ECONNRESET"))
+  render(<App />)
+  fireEvent.click(await within(await rowOf(/^WhatsApp/)).findByRole("button", { name: /^Update to/ }))
+  await waitFor(() => expect(useTools.getState().sessions.wa?.outcome?.event).toBe("failed"))
+  expect(install.mock.calls.map(([id]) => id)).toEqual(["wa"])
+  expect(useTools.getState().sessions.tg).toBeUndefined()
+})
+
 it("warns only about the tools with no version that reads the new format, and still updates the others", async () => {
   vi.spyOn(platform, "storePreflight").mockResolvedValue({
     version: "0.7.0",
