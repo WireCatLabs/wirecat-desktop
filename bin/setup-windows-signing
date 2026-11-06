@@ -154,7 +154,7 @@ echo "Set CERTUM_EMAIL and CERTUM_OTP in the \"$env_name\" environment of $repo,
 
 if [ -n "$pem" ]; then
   set_thumbprint
-else
+elif ! gh variable get WINDOWS_SIGNER_SHA1 --repo "$repo" --env "$env_name" >/dev/null 2>&1; then
   echo "Signing also needs WINDOWS_SIGNER_SHA1: $self --thumbprint-from /path/to/cert.pem"
 fi
 [ -z "$qr" ] || echo "Now delete the QR image: shred -u $qr"

@@ -268,7 +268,7 @@ jobs:
       # Our fork of ssign: v0.1.9, reviewed in docs/dev/research/2026-11-05-ssign-review.md, plus patches P1-P6.
       # A dry run builds it too, so a pin that no longer builds on Windows shows up before a tag.
       - if: steps.secrets.outputs.config || (inputs.dry_run && runner.os == 'Windows')
-        run: cargo install --locked --git https://github.com/WireCatLabs/ssign --rev c7a3b2afe272636628535912b48312d9b4606094 ssign
+        run: cargo install --locked --git https://github.com/WireCatLabs/ssign --rev b5bfd4a13dcf81927d0864308b015d030d9b9dde ssign
       # The app exe is signed before NSIS packs it, and the installer before its updater .sig is made.
       - env:
           WINDOWS_SIGN_CONFIG: ${{ steps.secrets.outputs.config }}
