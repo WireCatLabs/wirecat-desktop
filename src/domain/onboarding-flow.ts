@@ -1,3 +1,6 @@
+import { ownerId } from "./catalog"
+import type { InstallSession } from "./status"
+
 /** The first-run setup, in the order the owner walks it. */
 export const STEPS = ["welcome", "computer", "choose", "install", "agents", "signin", "done"] as const
 
@@ -114,4 +117,97 @@ export const skillInPlace = (kinds: readonly string[]) => kinds.some((k) => k ==
 export function afterSignIn(ready: readonly (boolean | undefined)[]): "done" | "stay" | "wait" {
   if (ready.some((r) => r === undefined)) return "wait"
   return ready.length > 0 && ready.every(Boolean) ? "done" : "stay"
+}
+
+export type RowPhase = "idle" | "wait" | "run" | "done" | "fail"
+
+/** Where one tool stands in the Install step. */
+export const installPhase = (session: InstallSession | undefined): RowPhase =>
+  !session
+    ? "idle"
+    : session.outcome
+      ? session.outcome.event === "failed"
+        ? "fail"
+        : "done"
+      : session.step === "queued"
+        ? "wait"
+        : "run"
+
+type Installs = Record<string, readonly { version: string | null }[] | undefined>
+type Sessions = Record<string, InstallSession | undefined>
+
+/** The chosen tools to queue now: not on the computer with a working copy, and not already installing. */
+export const toQueue = (ids: readonly string[], installs: Installs, sessions: Sessions) =>
+  ids.filter((id) => !installs[id]?.[0]?.version && !sessions[ownerId(id)])
+
+const settled = (id: string, sessions: Sessions) => !sessions[ownerId(id)] || !!sessions[ownerId(id)]?.outcome
+
+/** What the Install step's controls and closing note read from the chosen tools. */
+export function installOverview(chosen: readonly string[], installs: Installs, sessions: Sessions) {
+  return {
+    pending: chosen.some((id) => !installs[id]?.length && !sessions[ownerId(id)]),
+    allDone:
+      chosen.length > 0 && chosen.every((id) => installs[id]?.length) && chosen.every((id) => settled(id, sessions)),
+    settledWithOne:
+      chosen.some((id) => sessions[ownerId(id)]?.outcome?.event === "done") &&
+      chosen.every((id) => settled(id, sessions)),
+  }
+}
+
+/** The command an installed tool leaves for the owner when its folder could not be put on the PATH. */
+export function restartCommand(chosen: readonly string[], sessions: Sessions): string | null {
+  for (const id of chosen) {
+    const outcome = sessions[ownerId(id)]?.outcome
+    if (outcome?.event === "done" && outcome.pathFix?.manual) return outcome.pathFix.manual
+  }
+  return null
+}
+
+/** The tools this setup is about: the ones chosen in this flow and the ones already on the computer. */
+export const setupTools = <T extends { id: string }>(
+  all: readonly T[],
+  chosen: readonly string[],
+  installs: Installs,
+) => all.filter((t) => chosen.includes(t.id) || installs[t.id]?.length)
+
+type Signing = { setup?: unknown; signIn?: { command?: unknown } | null | undefined }
+
+/** A tool the Sign in step has something to do for. */
+export const signsIn = (t: Signing) => Boolean(t.setup || t.signIn?.command)
+
+/** The Sign in step's three lists: tools to sign in now, installed later, and tools with no sign-in at all. */
+export function signInGroups<T extends Signing & { id: string }>(list: readonly T[], installs: Installs) {
+  return {
+    ready: list.filter((t) => signsIn(t) && installs[t.id]?.length),
+    waiting: list.filter((t) => signsIn(t) && !installs[t.id]?.length),
+    noSignIn: list.filter((t) => !signsIn(t)),
+  }
+}
+
+type Program = { ok: boolean; version: string | null; problem: string | null }
+
+export type ComputerCheck = {
+  program: "node" | "npm"
+  found: boolean
+  version: string | null
+  tone: "ok" | "bad"
+  note: string | null
+}
+
+/** One line of the Your computer step, for Node.js or npm; null until the check has run. */
+export const computerLine = (program: "node" | "npm", p: Program | undefined): ComputerCheck | null =>
+  p
+    ? {
+        program,
+        found: p.version !== null,
+        version: p.version,
+        tone: p.ok ? "ok" : "bad",
+        note: p.version ? p.problem : null,
+      }
+    : null
+
+/** The version a Done row shows and what runs beside it: an install of this flow still in progress. */
+export function doneRow(version: string | null | undefined, session: InstallSession | undefined) {
+  const running = session && !session.outcome && session.operation === "install" ? session : null
+  return { running, tone: version ? "ok" : running ? "busy" : "idle" } as const
 }

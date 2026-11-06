@@ -25,8 +25,10 @@ import { Logo } from "@/ui/Logo"
 import { uiMessages } from "@/ui/messages"
 import { leaveBehind, reducedMotion, useLastChildren } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
+import { Install, installChosen } from "./InstallStep"
 import { type OnboardingText, onboardingMessages } from "./messages"
-import { Agents, Choose, Computer, Done, Install, installChosen, leave, SignIn, Welcome } from "./steps"
+import { SignIn } from "./SignInStep"
+import { Agents, Choose, Computer, Done, leave, Welcome } from "./steps"
 
 const bodies: Record<StepId, ComponentType> = {
   welcome: Welcome,

@@ -1,61 +1,24 @@
-import { Bot, Check, CheckCircle2, HardDrive, LogIn, RefreshCw, Terminal } from "lucide-react"
-import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from "react"
-import {
-  type CatalogTool,
-  findTool,
-  isCommunity,
-  maker,
-  ownerId,
-  samePackage,
-  signsInHere,
-  tools,
-} from "@/domain/catalog"
-import { accountReady, afterSignIn } from "@/domain/onboarding-flow"
-import { type InstallSession, toolStatus } from "@/domain/status"
-import { FixButton, FixPanel } from "@/features/fix"
+import { Bot, HardDrive, RefreshCw, Terminal } from "lucide-react"
+import type { ReactNode } from "react"
+import { findTool, isCommunity, maker, ownerId, samePackage, tools } from "@/domain/catalog"
+import { computerLine, doneRow } from "@/domain/onboarding-flow"
 import { NodeNotice } from "@/features/system"
-import {
-  failureWords,
-  failureWordsEn,
-  InstallLine,
-  InstallProgress,
-  ManualSetup,
-  NewProfile,
-  openConnect,
-  TerminalStatus,
-  toolsMessages,
-  toolText,
-  useFailureMessages,
-  useProfiles,
-  useTerminal,
-} from "@/features/tools"
-import { formatList, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import type { Profile } from "@/platform/schemas"
+import { InstallLine, openConnect, toolsMessages, toolText } from "@/features/tools"
+import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
-import { ReportThis } from "@/shared/ReportThis"
-import { useSignIn } from "@/shared/signin-store"
 import { useSystem } from "@/shared/system-store"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
-import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
-import { Collapse } from "@/ui/Collapse"
-import { CopyField } from "@/ui/CopyField"
-import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
-import { MOTION, useLinger, usePaced } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
-import { Skeleton, StableText } from "@/ui/Skeleton"
-import { InstallOverview, InstallTips } from "./InstallWait"
+import { StableText } from "@/ui/Skeleton"
 import { onboardingMessages } from "./messages"
-
-const rack = "overflow-hidden rounded-[0.2rem] border border-line-strong bg-app"
-const row = "flex items-center gap-[0.9rem] border-line border-b px-[1.3rem] py-[0.9rem] last:border-b-0"
+import { useSetupTools } from "./setup-tools"
+import { rack, row } from "./step-styles"
 
 function Fact({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
@@ -94,22 +57,23 @@ export function Computer() {
   const r = useSystem((s) => s.readiness)
   const refreshing = useTools((s) => s.refreshing)
   const m = useMessages(onboardingMessages).computer
+  const program = (
+    key: "node" | "npm",
+    label: string,
+  ): { key: string; label: string; value: string; tone: LampTone; note: string | null } => {
+    const line = computerLine(key, r?.[key])
+    return {
+      key,
+      label,
+      value: line ? (line.version ?? m.notFound) : "…",
+      tone: line?.tone ?? "idle",
+      note: line?.note ?? null,
+    }
+  }
   const items: { key: string; label: string; value: string; tone: LampTone; note?: string | null | undefined }[] = [
     { key: "system", label: m.system, value: r ? r.os : "…", tone: r ? "ok" : "idle" },
-    {
-      key: "node",
-      label: "Node.js",
-      value: !r ? "…" : (r.node.version ?? m.notFound),
-      tone: !r ? "idle" : r.node.ok ? "ok" : "bad",
-      note: r?.node.version ? r.node.problem : null,
-    },
-    {
-      key: "npm",
-      label: "npm",
-      value: !r ? "…" : (r.npm.version ?? m.notFound),
-      tone: !r ? "idle" : r.npm.ok ? "ok" : "bad",
-      note: r?.npm.version ? r.npm.problem : null,
-    },
+    program("node", "Node.js"),
+    program("npm", "npm"),
   ]
   const ready = r?.node.ok && r.npm.ok && r.npmPrefixWritable !== false
 
@@ -143,8 +107,6 @@ export function Computer() {
     </>
   )
 }
-
-const installedVersion = (id: string) => useTools.getState().installs[id]?.[0]?.version ?? null
 
 export function Choose() {
   const chosen = useOnboarding((s) => s.chosen)
@@ -203,248 +165,6 @@ export function Choose() {
 }
 
 /**
- * Queues the chosen tools that are not on the computer yet; the store runs them one by one. In the order the Install
- * step lists them, not the order they were ticked, so "1 of 3" is the tool at the top.
- */
-export function installChosen() {
-  const { chosen } = useOnboarding.getState()
-  const st = useTools.getState()
-  for (const { id } of tools.filter((t) => chosen.includes(t.id))) {
-    if (!installedVersion(id) && !st.sessions[ownerId(id)]) st.install(id)
-  }
-}
-
-type RowPhase = "idle" | "wait" | "run" | "done" | "fail"
-
-const phaseOf = (session: InstallSession | undefined): RowPhase =>
-  !session
-    ? "idle"
-    : session.outcome
-      ? session.outcome.event === "failed"
-        ? "fail"
-        : "done"
-      : session.step === "queued"
-        ? "wait"
-        : "run"
-
-/**
- * One tool's row. `shown` is its state as paced for the eye (`usePaced`): a tool that finished keeps its bar, full and
- * green, for a moment, and the next one waits that moment before its bar opens. The words and a failure follow the
- * real state at once.
- */
-function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
-  const installs = useTools((s) => s.installs[tool.id])
-  const session = useTools((s) => s.sessions[ownerId(tool.id)])
-  const status = toolStatus(installs, undefined, session)
-  const outcome = session?.outcome
-  const m = useMessages(onboardingMessages).install
-  const tm = useMessages(toolsMessages).install
-  const fm = useFailureMessages()
-  const [fixOpen, setFixOpen] = useState(false)
-  const fixId = useId()
-  const version = (v: string) => <span className="font-mono tabular-nums">{v}</span>
-
-  let tone: LampTone = "idle"
-  let text: ReactNode = m.notInstalled
-  let detail: ReactNode = null
-  if (status.kind === "checking") text = m.checking
-  else if (session && shown === "wait") text = m.queued
-  else if (session && !outcome) {
-    tone = session.step === "queued" ? "idle" : "busy"
-    text = session.step === "queued" ? m.queued : m.step(tm.steps.install[session.step] ?? m.installing)
-  } else if (outcome?.event === "failed" && session) {
-    tone = "bad"
-    const [message, next] = failureWords(outcome, session.operation, fm)
-    text = <span className="text-bad">{m.notInstalledFailed}</span>
-    detail = (
-      <>
-        <span className="block text-bad">{message}</span>
-        {next && <span className="block text-ink-soft">{next}</span>}
-      </>
-    )
-  } else if (outcome?.event === "done") {
-    tone = "ok"
-    text = m.installed(version(outcome.version))
-  } else if (status.kind === "ready" || status.kind === "outdated") {
-    tone = "ok"
-    text = m.already(version(status.version))
-  }
-
-  // A failure is told at once; only a success holds its full bar for a moment, while the next row's bar opens.
-  const running = Boolean(session) && shown === "run" && outcome?.event !== "failed"
-  const installing = useLinger(running) && outcome?.event !== "failed"
-  return (
-    <li className={cx(row, "flex-wrap gap-y-0")}>
-      <span className="relative grid shrink-0 place-items-center">
-        <Lamp tone={tone} {...(typeof text === "string" ? { label: text } : {})} />
-        {/* Only a tool installed in this flow: one that was already here has nothing to celebrate. */}
-        {outcome?.event === "done" && (
-          <Check
-            aria-hidden
-            strokeWidth={3.2}
-            className="check-in pointer-events-none absolute size-[0.85rem] text-on-status"
-          />
-        )}
-      </span>
-      <ToolIcon id={tool.id} className="size-[1.5rem] shrink-0 text-ink" />
-      <span className="w-[9rem] shrink-0 font-semibold">{tool.name}</span>
-      <span aria-live="polite" className="min-w-0 flex-1 text-body text-ink-soft">
-        {text}
-      </span>
-      {outcome?.event === "failed" && outcome.reason !== "cancelled" && session && (
-        <ReportThis
-          what={`Installing ${tool.name}`}
-          tool={tool.id}
-          error={[outcome.message, outcome.hint].filter(Boolean).join(" ")}
-          log={session.log.slice(-200)}
-        />
-      )}
-      {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
-        <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
-      )}
-      {outcome?.event === "failed" && (
-        <Button size="sm" onClick={() => useTools.getState().install(tool.id)}>
-          {m.tryAgain}
-        </Button>
-      )}
-      {/* Collapse sizes to its content, so the full-width line is this wrapper's. */}
-      <div className="basis-full">
-        <Collapse open={installing}>
-          {session && (
-            <div className={cx("pt-[0.8rem] pb-[0.2rem] sm:pl-[3.8rem]", installing && "step-in")}>
-              <InstallProgress session={session} compact />
-            </div>
-          )}
-        </Collapse>
-        <Collapse open={detail !== null}>
-          <p className="selectable max-w-[70ch] pt-[0.4rem] pb-[0.2rem] text-body sm:pl-[3.8rem]">{detail}</p>
-        </Collapse>
-        {outcome?.event === "failed" && session && (
-          <div className="sm:pl-[3.8rem]">
-            <FixPanel
-              id={fixId}
-              open={fixOpen}
-              problem={{
-                what: `Installing ${tool.name} (${tool.package})`,
-                error: failureWordsEn(outcome, session.operation)[0],
-                hint: failureWordsEn(outcome, session.operation)[1],
-                log: session.log,
-              }}
-            />
-          </div>
-        )}
-      </div>
-    </li>
-  )
-}
-
-export function Install() {
-  const chosen = useOnboarding((s) => s.chosen)
-  const nodeReady = useSystem((s) => s.readiness?.node.ok ?? false)
-  const pending = useTools((s) => chosen.some((id) => !s.installs[id]?.length && !s.sessions[ownerId(id)]))
-  const allDone = useTools(
-    (s) =>
-      chosen.length > 0 &&
-      chosen.every((id) => s.installs[id]?.length) &&
-      chosen.every((id) => !s.sessions[ownerId(id)] || s.sessions[ownerId(id)]?.outcome),
-  )
-  const settledWithOne = useTools(
-    (s) =>
-      chosen.some((id) => s.sessions[ownerId(id)]?.outcome?.event === "done") &&
-      chosen.every((id) => !s.sessions[ownerId(id)] || s.sessions[ownerId(id)]?.outcome),
-  )
-  const list = tools.filter((t) => chosen.includes(t.id))
-  const m = useMessages(onboardingMessages).install
-  // Joined, so the store hands back one string that changes only when a row's state does.
-  const phases = useTools((s) => list.map((t) => phaseOf(s.sessions[ownerId(t.id)])).join(" "))
-  const shown = usePaced(phases ? phases.split(" ") : []) as readonly RowPhase[]
-  const settled = !shown.some((p) => p === "run" || p === "wait")
-
-  if (list.length === 0) {
-    return (
-      <div className="flex flex-wrap items-center gap-4">
-        <p className="flex-1 text-body text-ink-soft">{m.none}</p>
-        <Button size="sm" onClick={() => useOnboarding.getState().go("choose")}>
-          {m.choose}
-        </Button>
-      </div>
-    )
-  }
-
-  return (
-    <>
-      <NodeNotice />
-      <InstallOverview chosen={list.map((t) => t.id)} />
-      <ul aria-label={m.list} className={rack}>
-        {list.map((t, i) => (
-          <Progress key={t.id} tool={t} shown={shown[i] ?? "idle"} />
-        ))}
-      </ul>
-      {pending && nodeReady && (
-        <div>
-          <Button size="sm" onClick={installChosen}>
-            {m.rest}
-          </Button>
-        </div>
-      )}
-      <div aria-live="polite">
-        <Crossfade swap={allDone && settled ? "done" : "note"} ms={MOTION.step}>
-          <p className="flex min-h-[1.6rem] items-center gap-2 text-body">
-            {allDone && settled ? (
-              <>
-                <CheckCircle2 className="check-in size-5 shrink-0 text-ok" aria-hidden />
-                <span className="text-ink">
-                  {m.allDone} {m.moreLater}
-                </span>
-              </>
-            ) : (
-              <span className="text-ink-soft">{m.note}</span>
-            )}
-          </p>
-        </Crossfade>
-      </div>
-      <Collapse open={settledWithOne && settled}>
-        <RestartNote chosen={list.map((t) => t.id)} />
-      </Collapse>
-      <InstallTips chosen={list.map((t) => t.id)} />
-    </>
-  )
-}
-
-/** Open apps keep the PATH they started with, which is why Codex can miss a tool that is installed and on PATH. */
-function RestartNote({ chosen }: { chosen: readonly string[] }) {
-  const w = useMessages(onboardingMessages).wait
-  const manual = useTools((s) => {
-    for (const id of chosen) {
-      const outcome = s.sessions[ownerId(id)]?.outcome
-      if (outcome?.event === "done" && outcome.pathFix?.manual) return outcome.pathFix.manual
-    }
-    return null
-  })
-  return (
-    <div className="flex flex-col gap-2 text-body text-ink-soft">
-      <p className="flex items-start gap-2">
-        <RefreshCw aria-hidden className="mt-[0.2rem] size-4 shrink-0" />
-        {w.restart}
-      </p>
-      {manual && (
-        <>
-          <p>{w.manual}</p>
-          <CopyField value={manual} label={w.manual} />
-        </>
-      )}
-    </div>
-  )
-}
-
-/** The tools this setup is about: the ones chosen in this flow and the ones already on the computer. */
-function useSetupTools() {
-  const installs = useTools((s) => s.installs)
-  const chosen = useOnboarding((s) => s.chosen)
-  return tools.filter((t) => chosen.includes(t.id) || installs[t.id]?.length)
-}
-
-/**
  * `matrix` is the slot for the Agents feature's compact agents-by-skills matrix; until it is passed, the step says
  * how a skill gets added today.
  */
@@ -470,269 +190,6 @@ export function Agents({ matrix }: { matrix?: ReactNode }) {
         )}
       </div>
     </div>
-  )
-}
-
-/** Without `onSignIn` the tool has no sign-in of its own: a listed account is simply there. */
-function ProfileState({
-  profile,
-  onSignIn,
-  here,
-}: {
-  profile: Profile
-  onSignIn: (() => void) | undefined
-  here: boolean
-}) {
-  const m = useMessages(onboardingMessages).signIn
-  const name = <span className="font-mono font-medium text-ink">{profile.name}</span>
-  if (!onSignIn) {
-    return (
-      <li className="flex min-h-8 items-center gap-x-[0.6rem]">
-        <Lamp size="sm" tone="ok" />
-        <span className="min-w-0 flex-1 text-body text-ink-soft">{m.added(name)}</span>
-      </li>
-    )
-  }
-  return (
-    <li className="flex min-h-8 flex-wrap items-center gap-x-[0.6rem] gap-y-1">
-      <Lamp size="sm" tone={profile.signedIn ? "ok" : "idle"} />
-      <span className="min-w-0 flex-1 text-body text-ink-soft">
-        {profile.signedIn === true
-          ? m.signedIn(name)
-          : profile.signedIn === false
-            ? m.signedOut(name)
-            : m.unknown(name)}
-      </span>
-      {profile.signedIn !== true && (
-        <Button
-          size="sm"
-          variant={profile.signedIn === false ? "primary" : "ghost"}
-          onClick={onSignIn}
-          icon={here ? <LogIn className="size-4" aria-hidden /> : <Terminal className="size-4" aria-hidden />}
-        >
-          {here ? m.signIn : m.inTerminal}
-        </Button>
-      )}
-    </li>
-  )
-}
-
-const signInBlock = "flex flex-col gap-[0.9rem] border-line border-b px-[1.3rem] py-[1.1rem] last:border-b-0"
-const accountsArea = "flex flex-col gap-[0.9rem] sm:pl-[2.4rem]"
-
-function SignInHeader({ tool }: { tool: CatalogTool }) {
-  const m = useMessages(onboardingMessages).signIn
-  return (
-    <div className="flex items-start gap-[0.9rem]">
-      <ToolIcon id={tool.id} className="mt-[0.05rem] size-[1.5rem] shrink-0 text-ink" />
-      <div className="min-w-0">
-        <h3 className="text-[1.08rem] font-semibold leading-tight">{tool.name}</h3>
-        {tool.signIn && (
-          <p className="mt-1 text-body leading-relaxed text-ink-soft">{m.gives[tool.id] ?? tool.signIn.gives}</p>
-        )}
-      </div>
-    </div>
-  )
-}
-
-/** One account line and the "Add another account" line: the usual shape once the accounts are read. */
-function AccountsSkeleton({ tool }: { tool: CatalogTool }) {
-  const m = useMessages(onboardingMessages).signIn
-  return (
-    <>
-      <Skeleton className="h-8 w-full" label={m.reading(tool.name)} />
-      <Skeleton className="h-8 w-[10.5rem]" />
-    </>
-  )
-}
-
-function PendingSignInRow({ tool }: { tool: CatalogTool }) {
-  return (
-    <li className={signInBlock}>
-      <SignInHeader tool={tool} />
-      <div className={accountsArea}>
-        <AccountsSkeleton tool={tool} />
-      </div>
-    </li>
-  )
-}
-
-function SignInRow({
-  tool,
-  onReady,
-}: {
-  tool: CatalogTool
-  onReady: (id: string, ready: boolean | undefined) => void
-}) {
-  const { profiles, error, loading, reload } = useProfiles(tool.id)
-  const [adding, setAdding] = useState(false)
-  const m = useMessages(onboardingMessages).signIn
-  const manual = !tool.setup
-  const count = profiles?.length ?? 0
-  const seen = useRef(count)
-  const ready = loading ? undefined : accountReady(profiles, manual)
-
-  useEffect(() => {
-    onReady(tool.id, ready)
-  }, [onReady, tool.id, ready])
-
-  // The form opens only on a click, so it closes by itself once the account it was for shows up.
-  useEffect(() => {
-    if (count > seen.current) setAdding(false)
-    seen.current = count
-  }, [count])
-
-  const signInAgain = async (profile: string) => {
-    if (signsInHere(tool)) return useSignIn.getState().start(tool.id, profile, reload)
-    await useTerminal.getState().open(tool.id, profile)
-  }
-
-  return (
-    <li className={signInBlock}>
-      <SignInHeader tool={tool} />
-      <div className={accountsArea}>
-        {error ? (
-          <ErrorNotice
-            inline
-            action={<ReportThis what={`Listing ${tool.name} accounts`} tool={tool.id} error={error} />}
-          >
-            {m.listFailed(error)}
-          </ErrorNotice>
-        ) : profiles === undefined ? (
-          <AccountsSkeleton tool={tool} />
-        ) : (
-          <ul aria-label={m.accounts(tool.name)} className="flex flex-col gap-1">
-            {count > 0 ? (
-              profiles?.map((p) => (
-                <ProfileState
-                  key={p.name}
-                  profile={p}
-                  here={signsInHere(tool)}
-                  onSignIn={manual ? undefined : () => signInAgain(p.name)}
-                />
-              ))
-            ) : (
-              <li className="flex min-h-8 items-center gap-x-[0.6rem]">
-                <Lamp size="sm" tone="idle" />
-                <span className="text-body font-medium text-ink">{m.noAccount(tool.name)}</span>
-              </li>
-            )}
-          </ul>
-        )}
-        <TerminalStatus tool={tool} profiles={profiles} onCheck={reload} checking={loading} />
-        <AutoHeight swap={adding}>
-          <Crossfade swap={adding ? "adding" : "list"} ms={MOTION.normal}>
-            {adding ? (
-              <>
-                {tool.signIn && (
-                  <p className="max-w-[65ch] text-body leading-relaxed text-ink-soft">
-                    <span className="font-medium text-ink">{manual ? m.needs : m.willAsk}</span>
-                    {m.asks[tool.id] ?? tool.signIn.asks}
-                    {tool.signIn.guide && !manual && (
-                      <>
-                        {" "}
-                        <a
-                          href={tool.signIn.guide}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            if (tool.signIn?.guide) platform.openUrl(tool.signIn.guide)
-                          }}
-                          className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-                        >
-                          {m.guide}
-                        </a>
-                      </>
-                    )}
-                  </p>
-                )}
-                {manual ? (
-                  <ManualSetup tool={tool} onCheck={reload} checking={loading} />
-                ) : (
-                  <NewProfile tool={tool} label={count ? m.addAnother : m.add} onCheck={reload} />
-                )}
-              </>
-            ) : profiles === undefined && !error ? null : (
-              <div>
-                <Button
-                  size="sm"
-                  variant={count ? "ghost" : "primary"}
-                  className={count ? "-ml-3" : undefined}
-                  onClick={() => setAdding(true)}
-                >
-                  {count ? m.addAnother : m.add}
-                </Button>
-              </div>
-            )}
-          </Crossfade>
-        </AutoHeight>
-      </div>
-    </li>
-  )
-}
-
-export function SignIn() {
-  const installs = useTools((s) => s.installs)
-  const failed = useTools((s) => s.error !== null)
-  const m = useMessages(onboardingMessages).signIn
-  const list = useSetupTools()
-  const detected = Object.keys(installs).length > 0
-  const signsIn = (t: CatalogTool) => Boolean(t.setup || t.signIn?.command)
-  const ready = list.filter((t) => signsIn(t) && installs[t.id]?.length)
-  const waiting = list.filter((t) => signsIn(t) && !installs[t.id]?.length)
-  const noSignIn = list.filter((t) => !signsIn(t))
-  const [readyById, setReadyById] = useState<Record<string, boolean | undefined>>({})
-  const onReady = useCallback(
-    (id: string, ready: boolean | undefined) =>
-      setReadyById((all) => (all[id] === ready && id in all ? all : { ...all, [id]: ready })),
-    [],
-  )
-  // A sign-in that ended well in the window leads on once its dialog is closed: the step behind it has nothing left
-  // to do when every tool has an account, and "You are set up" says so (owner, 2026-11-05).
-  const succeeded = useSignIn((s) => s.phase === "done")
-  const dialogOpen = useSignIn((s) => s.tool !== null)
-  const [signedIn, setSignedIn] = useState(false)
-  useEffect(() => {
-    if (succeeded) setSignedIn(true)
-  }, [succeeded])
-  const next = signedIn && !dialogOpen ? afterSignIn(ready.map((t) => readyById[t.id])) : "wait"
-  useEffect(() => {
-    if (next === "done") useOnboarding.getState().go("done")
-    if (next !== "wait") setSignedIn(false)
-  }, [next])
-
-  // Until the tools are found, the chosen ones stand in: they are the ones just installed.
-  if (!detected && !failed) {
-    const chosen = list.filter(signsIn)
-    if (chosen.length === 0) return <Skeleton className="h-24 w-full" label={m.looking} />
-    return (
-      <ul aria-label={m.list} className={rack}>
-        {chosen.map((t) => (
-          <PendingSignInRow key={t.id} tool={t} />
-        ))}
-      </ul>
-    )
-  }
-
-  return (
-    <>
-      {ready.length > 0 ? (
-        <ul aria-label={m.list} className={rack}>
-          {ready.map((t) => (
-            <SignInRow key={t.id} tool={t} onReady={onReady} />
-          ))}
-        </ul>
-      ) : (
-        <p className="text-body text-ink-soft">{m.noneNeeded}</p>
-      )}
-      {waiting.length > 0 && (
-        <p className="text-body text-ink-soft">{m.later(waiting.length, formatList(waiting.map((t) => t.name)))}</p>
-      )}
-      {noSignIn.length > 0 && (
-        <p className="text-body text-ink-soft">
-          {m.noSignIn(noSignIn.length, formatList(noSignIn.map((t) => t.name)))}
-        </p>
-      )}
-    </>
   )
 }
 
@@ -763,10 +220,10 @@ export function Done() {
           {list.map((t) => {
             const version = installs[t.id]?.[0]?.version
             const session = sessions[ownerId(t.id)]
-            const running = session && !session.outcome && session.operation === "install" ? session : null
+            const { running, tone } = doneRow(version, session)
             return (
               <li key={t.id} className={row}>
-                <Lamp tone={version ? "ok" : running ? "busy" : "idle"} />
+                <Lamp tone={tone} />
                 <ToolIcon id={t.id} className="size-[1.5rem] shrink-0 text-ink" />
                 <span className="flex-1 font-semibold">{t.name}</span>
                 {running ? (

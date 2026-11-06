@@ -4,17 +4,27 @@ import {
   afterSignIn,
   canOpen,
   computerGate,
+  computerLine,
+  doneRow,
   type Facts,
   furthest,
+  installOverview,
+  installPhase,
   nextStep,
   type Progress,
   previousStep,
   primaryAction,
+  restartCommand,
   resumeAt,
   STEPS,
+  setupTools,
+  signInGroups,
+  signsIn,
   skillInPlace,
   skipTarget,
+  toQueue,
 } from "./onboarding-flow"
+import type { InstallSession } from "./status"
 
 const ready: Facts = { node: { ok: true }, npm: { ok: true }, npmPrefixWritable: true }
 const noNode: Facts = { node: { ok: false }, npm: { ok: false }, npmPrefixWritable: null }
@@ -204,5 +214,107 @@ describe("after a sign-in in the window", () => {
 
   it("waits for a tool that is still reading its accounts", () => {
     expect(afterSignIn([true, undefined])).toBe("wait")
+  })
+})
+
+const session = (over: Partial<InstallSession> = {}): InstallSession => ({
+  operation: "install",
+  step: "install",
+  log: [],
+  outcome: null,
+  ...over,
+})
+const done = session({ outcome: { event: "done", version: "1.0.0", path: "/p", shadowedBy: null } })
+const failed = session({ outcome: { event: "failed", reason: "network", message: "no", hint: null } })
+
+describe("the Install step", () => {
+  it("reads a row's phase from its session", () => {
+    expect(installPhase(undefined)).toBe("idle")
+    expect(installPhase(session({ step: "queued" }))).toBe("wait")
+    expect(installPhase(session())).toBe("run")
+    expect(installPhase(done)).toBe("done")
+    expect(installPhase(failed)).toBe("fail")
+  })
+
+  it("queues only tools without a working copy or a session", () => {
+    const installs = { tg: [{ version: "1.0.0" }], max: [{ version: null }], wa: undefined, zm: undefined }
+    expect(toQueue(["tg", "max", "wa", "zm"], installs, { zm: session() })).toEqual(["max", "wa"])
+  })
+
+  it("tells pending, all done and settled with one", () => {
+    const installs = { tg: [{ version: "1.0.0" }], wa: [] }
+    expect(installOverview(["tg", "wa"], installs, {})).toEqual({
+      pending: true,
+      allDone: false,
+      settledWithOne: false,
+    })
+    expect(installOverview(["tg"], installs, {})).toEqual({ pending: false, allDone: true, settledWithOne: false })
+    expect(installOverview(["tg"], installs, { tg: session() }).allDone).toBe(false)
+    expect(installOverview(["tg"], installs, { tg: done })).toEqual({
+      pending: false,
+      allDone: true,
+      settledWithOne: true,
+    })
+    expect(installOverview(["tg", "wa"], installs, { tg: done, wa: failed }).settledWithOne).toBe(true)
+    expect(installOverview([], {}, {}).allDone).toBe(false)
+  })
+
+  it("hands over the manual PATH command of the first install that has one", () => {
+    const withFix = session({
+      outcome: {
+        event: "done",
+        version: "1",
+        path: "/p",
+        shadowedBy: null,
+        pathFix: { added: [], unreachable: [], file: null, manual: "export PATH=x", restart: true },
+      },
+    })
+    expect(restartCommand(["tg", "wa"], { tg: done, wa: withFix })).toBe("export PATH=x")
+    expect(restartCommand(["tg"], { tg: done })).toBeNull()
+  })
+})
+
+describe("the tools a setup is about", () => {
+  const all = [{ id: "tg" }, { id: "wa" }, { id: "zm" }]
+
+  it("are the chosen ones and the ones already installed", () => {
+    expect(setupTools(all, ["tg"], { wa: [{ version: "1" }], zm: [] }).map((t) => t.id)).toEqual(["tg", "wa"])
+  })
+
+  it("split by what the Sign in step can do", () => {
+    const list = [{ id: "a", setup: {} }, { id: "b", signIn: { command: "x" } }, { id: "c", signIn: {} }, { id: "d" }]
+    expect(list.map(signsIn)).toEqual([true, true, false, false])
+    const g = signInGroups(list, { a: [{ version: "1" }] })
+    expect(g.ready.map((t) => t.id)).toEqual(["a"])
+    expect(g.waiting.map((t) => t.id)).toEqual(["b"])
+    expect(g.noSignIn.map((t) => t.id)).toEqual(["c", "d"])
+  })
+})
+
+describe("the Your computer and Done rows", () => {
+  it("shows nothing before the check, then version, tone and note", () => {
+    expect(computerLine("node", undefined)).toBeNull()
+    expect(computerLine("node", { ok: true, version: "22.1.0", problem: null })).toEqual({
+      program: "node",
+      found: true,
+      version: "22.1.0",
+      tone: "ok",
+      note: null,
+    })
+    expect(computerLine("npm", { ok: false, version: "9.0.0", problem: "old" })).toMatchObject({
+      tone: "bad",
+      note: "old",
+    })
+    expect(computerLine("npm", { ok: false, version: null, problem: "missing" })).toMatchObject({
+      found: false,
+      note: null,
+    })
+  })
+
+  it("lights a Done row by version, then by a running install", () => {
+    expect(doneRow("1.0.0", undefined).tone).toBe("ok")
+    expect(doneRow(undefined, session()).tone).toBe("busy")
+    expect(doneRow(undefined, session({ operation: "remove" as never })).tone).toBe("idle")
+    expect(doneRow(undefined, done)).toEqual({ running: null, tone: "idle" })
   })
 })
