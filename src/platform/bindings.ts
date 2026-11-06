@@ -164,9 +164,11 @@ export type Kind = "config" | "state" | "cache";
 export type LastRun = {
 	at: string,
 	exitCode: number,
-	/**  memo's words for a run it did not start, such as the day's cost cap. */
+	/**  Why a failed run failed: an error code and reason id, never the message. */
 	reason: string | null,
 	failures: number | null,
+	/**  The last time memo did not start a run, after this one. */
+	skipped: Skipped | null,
 };
 
 export type LastSync = {
@@ -185,8 +187,11 @@ export type LoginCode = {
 export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
 /**  `harness`: whether the agent program is on PATH, so turning it on can work. */
 { state: "off"; harness: boolean } | 
-/**  `spent_today_usd` is `None` where memo does not report it. */
-{ state: "on"; when: string; last: LastRun | null; spentTodayUsd: number | null };
+/**
+ *  `spent_today_usd` is `None` where memo does not report it; the caps are `None` from a memo built on cli-core older than 0.584, and
+ *  `max_cost_per_day_usd` is 0 when there is no daily cap.
+ */
+{ state: "on"; when: string; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null };
 
 export type Managed = {
 	version: string,
@@ -384,6 +389,12 @@ export type SkillRefresh = {
 	refreshed: string[],
 	/**  Masked, like every failure here; the update itself still succeeded. */
 	failed: string | null,
+};
+
+/**  `why` is memo's English sentence; memo gives no reason code to translate it by. */
+export type Skipped = {
+	at: string,
+	why: string,
 };
 
 export type SyncEvent = 

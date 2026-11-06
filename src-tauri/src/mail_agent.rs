@@ -38,12 +38,15 @@ pub enum MailAgent {
     Off {
         harness: bool,
     },
-    /// `spent_today_usd` is `None` where memo does not report it.
+    /// `spent_today_usd` is `None` where memo does not report it; the caps are `None` from a memo built on cli-core older than 0.584, and
+    /// `max_cost_per_day_usd` is 0 when there is no daily cap.
     #[serde(rename_all = "camelCase")]
     On {
         when: String,
         last: Option<LastRun>,
         spent_today_usd: Option<f64>,
+        max_cost_usd: Option<f64>,
+        max_cost_per_day_usd: Option<f64>,
     },
 }
 
@@ -53,9 +56,18 @@ pub enum MailAgent {
 pub struct LastRun {
     pub at: String,
     pub exit_code: i64,
-    /// memo's words for a run it did not start, such as the day's cost cap.
+    /// Why a failed run failed: an error code and reason id, never the message.
     pub reason: Option<String>,
     pub failures: Option<u64>,
+    /// The last time memo did not start a run, after this one.
+    pub skipped: Option<Skipped>,
+}
+
+/// `why` is memo's English sentence; memo gives no reason code to translate it by.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
+pub struct Skipped {
+    pub at: String,
+    pub why: String,
 }
 
 fn source(tool: &Tool) -> Result<&MailAgentSource, String> {
@@ -98,6 +110,8 @@ fn read(src: &MailAgentSource, v: &Value) -> MailAgent {
         when: item["when"].as_str().unwrap_or_default().to_string(),
         last: last_run(&item["last"]),
         spent_today_usd: item["spent_today_usd"].as_f64(),
+        max_cost_usd: item["max_cost_usd"].as_f64(),
+        max_cost_per_day_usd: item["max_cost_per_day_usd"].as_f64(),
     }
 }
 
@@ -107,7 +121,12 @@ fn last_run(v: &Value) -> Option<LastRun> {
         exit_code: v["exit_code"].as_i64()?,
         reason: v["reason"].as_str().map(redact::text),
         failures: v["failures"].as_u64(),
+        skipped: skipped(&v["skipped"]),
     })
+}
+
+fn skipped(v: &Value) -> Option<Skipped> {
+    Some(Skipped { at: v["at"].as_str()?.to_string(), why: redact::text(v["why"].as_str()?) })
 }
 
 /// Turns the schedule on or off with memo's own command; memo's words come back when it refuses, masked.
@@ -185,22 +204,45 @@ mod tests {
             read(src(), &v),
             MailAgent::On {
                 when: "every 5m".into(),
-                last: Some(LastRun { at: "2026-11-05T21:54:36Z".into(), exit_code: 0, reason: None, failures: None }),
+                last: Some(LastRun {
+                    at: "2026-11-05T21:54:36Z".into(),
+                    exit_code: 0,
+                    reason: None,
+                    failures: None,
+                    skipped: None
+                }),
                 spent_today_usd: Some(0.42),
+                max_cost_usd: None,
+                max_cost_per_day_usd: None,
             }
         );
     }
 
     #[test]
-    fn a_missing_schedule_is_off_and_a_skipped_run_keeps_memos_reason() {
+    fn a_missing_schedule_is_off_and_a_failed_run_keeps_its_streak() {
         assert!(matches!(read(src(), &json!({"items": []})), MailAgent::Off { .. }));
         let v = json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 5m", "last": {
-            "at": "2026-11-05T21:54:36Z", "exit_code": 1, "output": "", "reason": "today's runs cost $5.00",
+            "at": "2026-11-05T21:54:36Z", "exit_code": 1, "output": "", "reason": "provider_error (claude.exit)",
             "failures": 2}}]});
         let MailAgent::On { last: Some(last), spent_today_usd, .. } = read(src(), &v) else { panic!("on") };
-        assert_eq!(last.reason.as_deref(), Some("today's runs cost $5.00"));
+        assert_eq!(last.reason.as_deref(), Some("provider_error (claude.exit)"));
         assert_eq!(last.failures, Some(2));
+        assert_eq!(last.skipped, None);
         assert_eq!(spent_today_usd, None);
+    }
+
+    #[test]
+    fn reads_the_caps_and_the_skip_at_the_days_cap() {
+        let why = "today's runs cost $5.02, the $5.00 a day allowed; it runs again tomorrow";
+        let v = json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 5m",
+            "spent_today_usd": 5.02, "max_cost_usd": 1, "max_cost_per_day_usd": 5, "last": {
+            "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "", "cost_usd": 0.9,
+            "skipped": {"at": "2026-11-05T22:04:36Z", "why": why}}}]});
+        let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, .. } = read(src(), &v) else {
+            panic!("on")
+        };
+        assert_eq!(last.skipped, Some(Skipped { at: "2026-11-05T22:04:36Z".into(), why: why.into() }));
+        assert_eq!((max_cost_usd, max_cost_per_day_usd), (Some(1.0), Some(5.0)));
     }
 
     #[test]
@@ -212,10 +254,17 @@ mod tests {
 
     #[test]
     fn the_answer_has_the_shape_the_interface_reads() {
-        let on = MailAgent::On { when: "every 5m".into(), last: None, spent_today_usd: Some(1.5) };
+        let on = MailAgent::On {
+            when: "every 5m".into(),
+            last: None,
+            spent_today_usd: Some(1.5),
+            max_cost_usd: Some(1.0),
+            max_cost_per_day_usd: Some(0.0),
+        };
         assert_eq!(
             serde_json::to_value(on).unwrap(),
-            json!({"state": "on", "when": "every 5m", "last": null, "spentTodayUsd": 1.5})
+            json!({"state": "on", "when": "every 5m", "last": null, "spentTodayUsd": 1.5, "maxCostUsd": 1.0,
+                "maxCostPerDayUsd": 0.0})
         );
         assert_eq!(serde_json::to_value(MailAgent::NoMemo).unwrap(), json!({"state": "noMemo"}));
         assert_eq!(
