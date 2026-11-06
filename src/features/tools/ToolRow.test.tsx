@@ -4,6 +4,7 @@ import { findTool } from "@/domain/catalog"
 import type { InstallSession } from "@/domain/status"
 import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useCompat } from "@/shared/compat-store"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
 import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
@@ -86,7 +87,11 @@ it("asks before an update that stops other tools, and updates the one that can f
       { id: "max", fixedIn: null },
     ],
   })
-  const install = vi.spyOn(platform, "install").mockResolvedValue()
+  const install = vi.spyOn(platform, "install").mockImplementation(async (_id, onEvent) => {
+    const skills = { refreshed: [], failed: null }
+    onEvent({ event: "done", version: "0.7.0", path: "", shadowedBy: null, skills, pathFix: null })
+  })
+  const afterInstall = vi.spyOn(useCompat.getState(), "checkAfterInstall")
   render(<App />)
   const list = await screen.findByRole("list", { name: "WireCat tools" })
   const row = within(list)
@@ -104,6 +109,8 @@ it("asks before an update that stops other tools, and updates the one that can f
 
   fireEvent.click(both)
   await waitFor(() => expect(install.mock.calls.map(([id]) => id)).toEqual(["wa", "tg"]))
+  await waitFor(() => expect(useTools.getState().sessions.tg?.outcome?.event).toBe("done"))
+  expect(afterInstall).not.toHaveBeenCalled()
 })
 
 it("installs without asking when the check finds nothing", async () => {

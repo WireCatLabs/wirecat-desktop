@@ -28,6 +28,12 @@ export function PreflightNotice({ tool, preflight }: { tool: CatalogTool; prefli
   }, [warns])
   if (!warns) return <p className="text-[0.95rem] text-ink-soft">{m.checking}</p>
 
+  // The notice leaves with the click; focus goes back to the row's own button (Update, or Cancel once it runs).
+  const answer = (go: () => void) => {
+    const action = box.current?.closest("li")?.querySelector('[data-tour="tool-action"]')
+    go()
+    requestAnimationFrame(() => focusInPlace(action?.querySelector<HTMLElement>(":not([inert]) > button") ?? null))
+  }
   const name = nameOf(owner)
   const fixes = preflight.stops.flatMap((s) => (s.fixedIn ? [s.id] : []))
   return (
@@ -57,15 +63,15 @@ export function PreflightNotice({ tool, preflight }: { tool: CatalogTool; prefli
           size="sm"
           variant={fixes.length > 0 ? "ghost" : "secondary"}
           data-recommended={fixes.length > 0 ? undefined : true}
-          onClick={() => cancel(owner)}
+          onClick={() => answer(() => cancel(owner))}
         >
           {m.notNow}
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => proceed(owner)}>
+        <Button size="sm" variant="secondary" onClick={() => answer(() => proceed(owner))}>
           {m.anyway(op)}
         </Button>
         {fixes.length > 0 && (
-          <Button size="sm" variant="primary" data-recommended onClick={() => proceed(owner, fixes)}>
+          <Button size="sm" variant="primary" data-recommended onClick={() => answer(() => proceed(owner, fixes))}>
             {m.both(op, name, namesOf(fixes))}
           </Button>
         )}

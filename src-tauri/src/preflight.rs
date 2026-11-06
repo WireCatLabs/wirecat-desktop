@@ -271,5 +271,7 @@ mod tests {
     fn reads_a_published_tool_from_npm() {
         let tg = published(&agent(), "@wirecat/tg-cli").expect("npm answered");
         assert!(semver::Version::parse(&tg.version).is_ok(), "{tg:?}");
+        let core = get(&agent(), &format!("{CORE}/0.567.0"), false).expect("cli-core 0.567.0");
+        assert_eq!(core["version"], "0.567.0");
     }
 }

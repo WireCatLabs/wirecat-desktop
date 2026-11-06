@@ -198,8 +198,11 @@ export const useTools = create<ToolsState>((set, get) => {
     async proceed(given, alsoUpdate = []) {
       const id = ownerId(given)
       if (get().sessions[id]?.step !== "preflight") return
+      const preflight = get().sessions[id]?.preflight
       patchSession(id, (s) => ({ ...s, step: "queued" }))
       for (const other of alsoUpdate) void enqueue(ownerId(other), "install")
+      // The owner chose these updates in the same warning; the check after each install would only repeat it.
+      if (preflight) for (const other of alsoUpdate) patchSession(ownerId(other), (s) => ({ ...s, preflight }))
       await drain()
     },
     uninstall: (id, deleteBytes) =>

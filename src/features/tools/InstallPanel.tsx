@@ -70,7 +70,9 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
       </Collapse>
 
       {/* The result arrives in place of the progress: the height follows and each new line fades in. */}
-      <AutoHeight swap={outcome?.event ?? session.step}>
+      <AutoHeight
+        swap={outcome?.event ?? (session.step === "preflight" && session.preflight ? "warned" : session.step)}
+      >
         <div className="mt-[1.45rem] flex flex-wrap items-center gap-x-4 gap-y-3" aria-live="polite">
           {session.step === "preflight" && <PreflightNotice tool={tool} preflight={session.preflight} />}
           {session.step === "queued" && !outcome && <p className="text-[0.95rem] text-ink-soft">{m.waiting}</p>}

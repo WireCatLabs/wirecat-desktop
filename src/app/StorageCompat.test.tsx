@@ -32,6 +32,12 @@ describe("Tools and the shared storage", () => {
   it("**warns before an updated tool's next run strands others, and queues their updates**", async () => {
     const latest = await platform.latestVersions()
     vi.spyOn(platform, "latestVersions").mockResolvedValue({ ...latest, max: "0.75.0" })
+    vi.spyOn(platform, "storePreflight").mockResolvedValue({
+      version: "0.7.0",
+      known: false,
+      cannotOpen: null,
+      stops: [],
+    })
     const user = userEvent.setup()
     render(<App />)
 

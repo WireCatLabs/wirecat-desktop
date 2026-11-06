@@ -122,7 +122,7 @@ export function StorageSummary() {
         <Button
           size="sm"
           onClick={() => {
-            for (const id of updatable) useTools.getState().install(id)
+            for (const id of updatable) useTools.getState().install(id, { check: true })
           }}
         >
           {updatable.length === 1 ? m.updateOne(nameOf(updatable[0] ?? "")) : m.updateThem}
