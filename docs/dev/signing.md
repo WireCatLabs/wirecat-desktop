@@ -94,8 +94,9 @@ What it does:
 3. Saves that password in your keyring (service `wirecat`, account `apple-p12-password`).
 4. Deletes the bare key and the other temporary files. From now on the key exists only inside the `.p12`.
 5. Asks for your Apple ID and the app-specific password from step 3.
-6. Saves five GitHub secrets: `APPLE_CERTIFICATE` (the `.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`,
-   `APPLE_PASSWORD` (the app-specific one) and `APPLE_TEAM_ID` (taken from the certificate).
+6. Saves five GitHub secrets in the `release` environment, which only release tags can open: `APPLE_CERTIFICATE`
+   (the `.p12`), `APPLE_CERTIFICATE_PASSWORD`, `APPLE_ID`, `APPLE_PASSWORD` (the app-specific one) and
+   `APPLE_TEAM_ID` (taken from the certificate).
 
 ### Step 5. Back up the .p12 and its password
 

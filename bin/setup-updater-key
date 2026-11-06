@@ -2,8 +2,9 @@
 # One-off, before the first release tag (TASK-39): the key pair that signs WireCat's updates.
 # Every installed copy trusts only the public key it was built with, so a release built before this ran can never
 # update itself, and losing the private key means no copy already out there can be updated again.
-# The private key and its password go to the OS keyring and to the repository secrets the release workflow reads;
-# neither is ever printed. The public key goes into src-tauri/tauri.conf.json, committed and pushed on this branch.
+# The private key and its password go to the OS keyring and to the secrets of the "release" environment, which only
+# v* tags can open; neither is ever printed. The public key goes into src-tauri/tauri.conf.json, committed and pushed
+# on this branch.
 set -euo pipefail
 
 repo="WireCatLabs/wirecat-desktop"
@@ -38,8 +39,8 @@ fi
 
 secret-tool store --label "WireCat updater private key" service "$service" account updater-key <"$dir/updater.key"
 printf '%s' "$password" | secret-tool store --label "WireCat updater key password" service "$service" account updater-key-password
-gh secret set TAURI_SIGNING_PRIVATE_KEY --repo "$repo" <"$dir/updater.key" >/dev/null
-printf '%s' "$password" | gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo "$repo" >/dev/null
+gh secret set TAURI_SIGNING_PRIVATE_KEY --repo "$repo" --env release <"$dir/updater.key" >/dev/null
+printf '%s' "$password" | gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD --repo "$repo" --env release >/dev/null
 unset password
 
 jq --arg key "$(cat "$dir/updater.key.pub")" '.plugins.updater.pubkey = $key' "$conf" >"$dir/conf.json"
@@ -47,7 +48,8 @@ cp "$dir/conf.json" "$conf"
 (cd "$root" && pnpm -s biome format --write src-tauri/tauri.conf.json >/dev/null 2>&1) || true
 
 echo "Saved the updater private key and its password to the keyring (service $service, accounts updater-key and"
-echo "updater-key-password) and to the $repo secrets TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD."
+echo "updater-key-password) and to the secrets TAURI_SIGNING_PRIVATE_KEY and TAURI_SIGNING_PRIVATE_KEY_PASSWORD of the"
+echo "release environment of $repo."
 if git -C "$root" commit -q -m "chore: updater public key" -- src-tauri/tauri.conf.json >/dev/null &&
   git -C "$root" push -q >/dev/null 2>&1; then
   echo "Committed and pushed the public key in src-tauri/tauri.conf.json."
