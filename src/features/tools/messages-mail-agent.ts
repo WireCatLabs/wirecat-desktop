@@ -17,6 +17,12 @@ const en = {
   ok: "finished",
   failed: (times: number | null) => (times && times > 1 ? `failed ${times} times in a row` : "failed"),
   skipped: (ago: string, why: string) => `Last start skipped ${ago}: ${why}`,
+  // Keyed by the reason id memo sends with a skip; an id missing here shows memo's own English sentence.
+  skipReasons: {
+    "cost.day-cap": "the daily cost limit is reached; it runs again tomorrow",
+    "mail.none-new": "no new mail since the last check",
+    "mail.below-threshold": "some mail is waiting, but not enough of it yet to start a run",
+  } as Record<string, string>,
   noRunYet: "No run yet. It starts once new mail arrives.",
   spentToday: (usd: string, cap: string | null) => `Spent today: ${usd}${cap ? ` of ${cap}` : ""}`,
   waiting: (n: number) => plural("en", n, { one: "# proposal waits for you", other: "# proposals wait for you" }),
@@ -53,6 +59,11 @@ const ru: typeof en = {
         })
       : "не удался",
   skipped: (ago, why) => `Запуск пропущен ${ago}: ${why}`,
+  skipReasons: {
+    "cost.day-cap": "дневной лимит расходов исчерпан; завтра запуск продолжится",
+    "mail.none-new": "с прошлой проверки новой почты нет",
+    "mail.below-threshold": "почта ждёт, но её пока слишком мало для запуска",
+  },
   noRunYet: "Запусков ещё не было. Агент начнёт, когда придёт новая почта.",
   spentToday: (usd, cap) => `Потрачено сегодня: ${usd}${cap ? ` из ${cap}` : ""}`,
   waiting: (n) =>
@@ -88,6 +99,11 @@ const es: typeof en = {
   ok: "terminó bien",
   failed: (times) => (times && times > 1 ? `falló ${times} veces seguidas` : "falló"),
   skipped: (ago, why) => `Ejecución omitida ${ago}: ${why}`,
+  skipReasons: {
+    "cost.day-cap": "se alcanzó el límite diario de gasto; mañana se ejecuta de nuevo",
+    "mail.none-new": "no hay correo nuevo desde la última revisión",
+    "mail.below-threshold": "hay correo esperando, pero aún es poco para iniciar una ejecución",
+  },
   noRunYet: "Aún no se ha ejecutado. Empieza cuando llegue correo nuevo.",
   spentToday: (usd, cap) => `Gastado hoy: ${usd}${cap ? ` de ${cap}` : ""}`,
   waiting: (n) => plural("es", n, { one: "# propuesta espera tu decisión", other: "# propuestas esperan tu decisión" }),

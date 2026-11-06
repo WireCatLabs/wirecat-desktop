@@ -93,12 +93,30 @@ it("says when a run was skipped at the day's cost cap, in memo's words", async (
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({
     ...on,
     spentTodayUsd: 5.02,
-    last: { ...ran, skipped: { at: new Date().toISOString(), why } },
+    last: { ...ran, skipped: { at: new Date().toISOString(), why, reason: null } },
   })
   render(<MailAgent tool={email} />)
 
   expect(await screen.findByText(`Last start skipped just now: ${why}`)).toBeInTheDocument()
   expect(screen.getByText("Spent today: $5.02 of $5.00")).toBeInTheDocument()
+})
+
+it("translates a skip by its reason id and shows memo's sentence for an id it does not know", async () => {
+  const skipped = (reason: string) => ({ at: new Date().toISOString(), why: "memo's english", reason })
+  const status = vi.spyOn(platform, "mailAgentStatus")
+  status.mockResolvedValue({ ...on, last: { ...ran, skipped: skipped("mail.none-new") } })
+  const { unmount } = render(<MailAgent tool={email} />)
+  expect(await screen.findByText("Last start skipped just now: no new mail since the last check")).toBeInTheDocument()
+  unmount()
+
+  status.mockResolvedValue({ ...on, last: { ...ran, skipped: skipped("mail.below-threshold") } })
+  const second = render(<MailAgent tool={email} />)
+  expect(await screen.findByText(/some mail is waiting, but not enough/)).toBeInTheDocument()
+  second.unmount()
+
+  status.mockResolvedValue({ ...on, last: { ...ran, skipped: skipped("schedule.unheard-of") } })
+  render(<MailAgent tool={email} />)
+  expect(await screen.findByText("Last start skipped just now: memo's english")).toBeInTheDocument()
 })
 
 it("leaves the cap out when there is none or memo is too old to report it", async () => {
