@@ -34,10 +34,9 @@ pub struct CannotOpen {
 
 #[derive(specta::Type, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
-pub struct Stops {
+pub struct Update {
     pub id: String,
-    /// The published version of this tool that reads the store afterwards; None when none is out yet.
-    pub fixed_in: Option<String>,
+    pub version: String,
 }
 
 /// What installing the newest version of a tool does to the other installed tools. Empty when it is safe or unknown.
@@ -49,7 +48,10 @@ pub struct Preflight {
     /// False when the new version's store metadata is missing: nothing was checked.
     pub known: bool,
     pub cannot_open: Option<CannotOpen>,
-    pub stops: Vec<Stops>,
+    /// Installed tools whose newest version reads the store afterwards: updated in the same step, without a question.
+    pub also_update: Vec<Update>,
+    /// Installed tools that cannot read the store afterwards until a newer version of theirs is published.
+    pub stops: Vec<String>,
 }
 
 /// An installed tool that opens the store now, with the schema it reads.
@@ -77,19 +79,23 @@ pub(crate) fn decide(
         answer.cannot_open = Some(CannotOpen { speaks: store.speaks, needs });
         return answer;
     }
-    let after = store.min_compatible.max(file_min.unwrap_or(0));
-    answer.stops = readers
-        .iter()
-        .filter(|r| r.speaks < after)
-        .map(|r| Stops {
-            id: r.id.clone(),
-            fixed_in: latest
-                .get(&r.id)
-                .filter(|p| p.store.is_some_and(|s| s.speaks >= after))
-                .map(|p| p.version.clone()),
-        })
-        .collect();
-    answer
+    let mut after = store.min_compatible.max(file_min.unwrap_or(0));
+    // A tool updated alongside runs its own migrations too, so its minimum can strand a third tool.
+    loop {
+        let (fixed, stuck): (Vec<_>, Vec<_>) = readers
+            .iter()
+            .filter(|r| r.speaks < after)
+            .partition(|r| latest.get(&r.id).and_then(|p| p.store).is_some_and(|s| s.speaks >= after));
+        let raised = fixed.iter().filter_map(|r| latest[&r.id].store).map(|s| s.min_compatible).fold(after, u64::max);
+        if raised > after {
+            after = raised;
+            continue;
+        }
+        answer.also_update =
+            fixed.iter().map(|r| Update { id: r.id.clone(), version: latest[&r.id].version.clone() }).collect();
+        answer.stops = stuck.iter().map(|r| r.id.clone()).collect();
+        return answer;
+    }
 }
 
 /// npm reads a bare version as that exact version, where `semver::VersionReq` would read it as `^`; ranges with `||`
@@ -136,6 +142,12 @@ fn published(agent: &ureq::Agent, package: &str) -> Option<Published> {
         store_of(&get(agent, &format!("{CORE}/{core}"), false)?)
     });
     Some(Published { version, store })
+}
+
+/// The registry's `latest` as the check above read it; the registry's cache does not hold this path. `npm view` reads
+/// the package document, which the cache keeps up to five minutes and which the release workflow saw lag for minutes.
+pub fn newest_version(package: &str) -> Option<String> {
+    get(&agent(), &format!("{package}/latest"), false)?["version"].as_str().map(str::to_string)
 }
 
 fn file_min(answers: &compat::Answers) -> Option<u64> {
@@ -200,11 +212,15 @@ mod tests {
         let next = version("0.117.0", Some(meta(31, 31)));
         let answer = decide(Some(32), Some(&next), &[reader("wa", 30)], &HashMap::new());
         assert_eq!(answer.cannot_open, Some(CannotOpen { speaks: 31, needs: 32 }));
-        assert_eq!(answer.stops, Vec::new());
+        assert_eq!(answer.stops, Vec::<String>::new());
+    }
+
+    fn update(id: &str, version: &str) -> Update {
+        Update { id: id.into(), version: version.into() }
     }
 
     #[test]
-    fn a_tool_below_the_new_minimum_stops_and_its_newer_version_fixes_it() {
+    fn a_tool_whose_newest_version_reads_the_new_format_is_updated_and_only_the_rest_stop() {
         let next = version("0.7.0", Some(meta(34, 34)));
         let latest = HashMap::from([
             ("memo".into(), version("0.95.0", Some(meta(34, 33)))),
@@ -213,13 +229,8 @@ mod tests {
         let readers = [reader("memo", 33), reader("max", 33), reader("drive", 34)];
         let answer = decide(Some(32), Some(&next), &readers, &latest);
         assert!(answer.known);
-        assert_eq!(
-            answer.stops,
-            vec![
-                Stops { id: "memo".into(), fixed_in: Some("0.95.0".into()) },
-                Stops { id: "max".into(), fixed_in: None },
-            ]
-        );
+        assert_eq!(answer.also_update, vec![update("memo", "0.95.0")]);
+        assert_eq!(answer.stops, vec!["max".to_string()]);
     }
 
     #[test]
@@ -227,14 +238,27 @@ mod tests {
         let next = version("0.7.0", Some(meta(34, 34)));
         let latest = HashMap::from([("tg".into(), version("0.89.0", None))]);
         let answer = decide(Some(32), Some(&next), &[reader("tg", 33)], &latest);
-        assert_eq!(answer.stops, vec![Stops { id: "tg".into(), fixed_in: None }]);
+        assert_eq!((answer.also_update, answer.stops), (Vec::new(), vec!["tg".to_string()]));
+    }
+
+    #[test]
+    fn a_tool_updated_alongside_can_raise_the_minimum_for_a_third() {
+        let next = version("0.7.0", Some(meta(34, 34)));
+        let latest = HashMap::from([
+            ("tg".into(), version("0.89.0", Some(meta(35, 35)))),
+            ("max".into(), version("0.75.0", Some(meta(34, 34)))),
+        ]);
+        let readers = [reader("tg", 33), reader("max", 33), reader("drive", 34)];
+        let answer = decide(Some(32), Some(&next), &readers, &latest);
+        assert_eq!(answer.also_update, vec![update("tg", "0.89.0")]);
+        assert_eq!(answer.stops, vec!["max".to_string(), "drive".to_string()]);
     }
 
     #[test]
     fn the_file_minimum_counts_when_it_is_higher_than_the_new_version_s() {
         let next = version("0.7.0", Some(meta(34, 30)));
         let answer = decide(Some(33), Some(&next), &[reader("tg", 33)], &HashMap::new());
-        assert_eq!(answer.stops, Vec::new());
+        assert_eq!(answer.stops, Vec::<String>::new());
         let none_yet = decide(None, Some(&next), &[reader("tg", 29)], &HashMap::new());
         assert_eq!(none_yet.stops.len(), 1);
     }

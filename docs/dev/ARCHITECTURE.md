@@ -76,9 +76,11 @@ src-tauri/src/
   compat.rs     every installed tool's own `store info`, at once: which schema each reads and what its next run does.
   preflight.rs  before an install or update from the Tools page: what the newest version does to the shared store, from
                 npm (the version's `@wirecat/cli-core` and that one's `wirecat.store` in package.json), against `compat.rs`'s
-                answers. A version that cannot open the store, or tools its run locks out (and whether their newest
-                version reads it), are shown in the install panel before anything runs. Offline or an older cli-core: no
-                warning, and the check after the install (`checkAfterInstall`) stays the fallback.
+                answers. Tools its run locks out whose newest version reads the store are updated in the same queue
+                without a question; a version that cannot open the store, or tools with no such version yet, are shown
+                in the install panel before anything runs. Offline or an older cli-core: no warning, and the check after
+                the install (`checkAfterInstall`) stays the fallback. It reads `/<package>/latest`, which the registry's
+                cache does not hold, and the install takes that version when `npm view` still shows an older one.
   skills.rs     agents found on this computer; each tool's skill through its own `skill status` / `install` / `show`.
   chats.rs      which chat apps drive Hermes and OpenClaw, by name only; the PATH Hermes's gateway starts from.
   mcp.rs        which WireCat MCP servers each agent has registered, and removing one.

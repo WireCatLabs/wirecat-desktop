@@ -19,7 +19,7 @@ import { Stepper, type StepState } from "@/ui/Stepper"
 import { failureWords, failureWordsEn, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
-import { PreflightNotice } from "./PreflightNotice"
+import { AlongsideLine, PreflightNotice } from "./PreflightNotice"
 import { SkillOffer } from "./SkillOffer"
 
 type Words = ToolsText["install"]
@@ -66,6 +66,7 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
       >
         <div className="mx-auto mt-[1.6rem] max-w-[62rem]">
           <InstallProgress session={session} />
+          {!session.alongside && <AlongsideLine preflight={session.preflight} />}
         </div>
       </Collapse>
 

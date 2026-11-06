@@ -67,6 +67,8 @@ export type InstallSession = {
   ended?: number
   /** `store_preflight`'s answer; while `step` is "preflight" and this is set, the owner is asked before anything runs. */
   preflight?: Preflight
+  /** Queued by another tool's store check: its panel starts shut and opens only if the update fails. */
+  alongside?: boolean
   /** What the verify step does now (`install.rs`): put the tool on the PATH, run it once, refresh its skills. */
   verifying?: VerifyCheck
 }

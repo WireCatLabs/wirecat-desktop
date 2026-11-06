@@ -36,6 +36,7 @@ describe("Tools and the shared storage", () => {
       version: "0.7.0",
       known: false,
       cannotOpen: null,
+      alsoUpdate: [],
       stops: [],
     })
     const user = userEvent.setup()

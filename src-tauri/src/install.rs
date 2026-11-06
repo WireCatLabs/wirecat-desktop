@@ -191,7 +191,8 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     // releases back then fails loudly instead of quietly installing an older one.
     let wanted = retry_on_network(&|| !running.is_running(&tool.id), &send, "npm view", || {
         let latest = tools::latest_version_checked(&tool.package).map_err(|log| classify_registry(&log))?;
-        semver::Version::parse(&latest).map(|_| latest).map_err(|_| classify_registry("network: unreadable version"))
+        let viewed = semver::Version::parse(&latest).map_err(|_| classify_registry("network: unreadable version"))?;
+        Ok(newer_of(viewed, crate::preflight::newest_version(&tool.package)).to_string())
     })?;
     let spec = format!("{}@{wanted}", tool.package);
     let (program, args): (&str, Vec<&str>) = match manager {
@@ -550,6 +551,12 @@ fn classify(log: &str, program: &str) -> Failure {
 }
 
 /// The `npm view` step has no program name in its text: Network unless the words say otherwise.
+/// The store check (`preflight.rs`) reads the registry directly; installing an older version that `npm view` can still
+/// show right after a publish would leave a tool it promised to update unable to read the store.
+fn newer_of(viewed: semver::Version, fresh: Option<String>) -> semver::Version {
+    fresh.and_then(|v| semver::Version::parse(&v).ok()).filter(|v| *v > viewed).unwrap_or(viewed)
+}
+
 fn classify_registry(log: &str) -> Failure {
     specific(log, cfg!(windows)).unwrap_or_else(|| {
         Failure(
@@ -681,6 +688,15 @@ fn path_hint(extra: &[std::path::PathBuf]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn installs_the_registry_s_fresher_version_never_an_older_one() {
+        let v = |s: &str| semver::Version::parse(s).unwrap();
+        assert_eq!(newer_of(v("0.88.0"), Some("0.89.0".into())), v("0.89.0"));
+        assert_eq!(newer_of(v("0.89.0"), Some("0.88.0".into())), v("0.89.0"));
+        assert_eq!(newer_of(v("0.89.0"), Some("garbage".into())), v("0.89.0"));
+        assert_eq!(newer_of(v("0.89.0"), None), v("0.89.0"));
+    }
 
     #[test]
     fn a_stopped_run_keeps_its_slot_until_it_finishes() {

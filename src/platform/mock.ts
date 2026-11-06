@@ -49,7 +49,7 @@ import type { Platform } from "./types"
 // `?mcp=<tool>` opens that tool's MCP server, running; `?mcp-fail=<tool>` makes its Start fail (`mock-mcp.ts`).
 // `?memory=<state>` and `?memory-fail=read|write` set up the Memory page (`mock-memory.ts`).
 // `?tasks=<state>` and `?view=table|board` set up the Tasks page (`mock-tasks.ts`).
-// `?store-check=cannot-open|update-too|wait` makes Install and Update ask first (`storePreflightMock`).
+// `?store-check=cannot-open|also-update|wait` runs the store check before Install and Update (`storePreflightMock`).
 // `?showcase` is the healthy machine for the website's screenshots (`mock-showcase.ts`).
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
@@ -66,7 +66,9 @@ const LATEST: Record<string, string> = {
   funnel: "0.1.1",
 }
 if (params.get("compat") === "upgrade") LATEST.max = "0.75.0"
-if (params.get("store-check") === "update-too") LATEST.tg = "0.89.0"
+const storeCheck = params.get("store-check")
+if (storeCheck === "also-update" || storeCheck === "wait") LATEST.tg = "0.89.0"
+if (storeCheck === "also-update") LATEST.max = "0.75.0"
 const PACKAGES: Record<string, string> = {
   tg: "@wirecat/tg-cli",
   max: "@wirecat/max-cli",
@@ -572,7 +574,7 @@ export function createMock(os: Platform["os"]): Platform {
     },
     storeInfo: async () => backups.afterClear(await storeInfoMock(newestReader(installed) ?? asksArchive())),
     storeCompat: () => storeCompatMock(installed),
-    storePreflight: (id) => storePreflightMock(id, installed, LATEST, params.get("store-check")),
+    storePreflight: (id) => storePreflightMock(id, installed, LATEST, storeCheck),
     storeTables: (sizes) => storeTablesMock(asksArchive(), sizes),
     storeCheck: () => storeCheckMock(asksArchive()),
     ...backups.api,
