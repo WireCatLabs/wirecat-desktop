@@ -63,11 +63,12 @@ pub struct LastRun {
     pub skipped: Option<Skipped>,
 }
 
-/// `why` is memo's English sentence; memo gives no reason code to translate it by.
+/// `why` is memo's English sentence. `reason` is its dotted id, absent in an older memo, and the screen translates by it.
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
 pub struct Skipped {
     pub at: String,
     pub why: String,
+    pub reason: Option<String>,
 }
 
 fn source(tool: &Tool) -> Result<&MailAgentSource, String> {
@@ -126,7 +127,11 @@ fn last_run(v: &Value) -> Option<LastRun> {
 }
 
 fn skipped(v: &Value) -> Option<Skipped> {
-    Some(Skipped { at: v["at"].as_str()?.to_string(), why: redact::text(v["why"].as_str()?) })
+    Some(Skipped {
+        at: v["at"].as_str()?.to_string(),
+        why: redact::text(v["why"].as_str()?),
+        reason: v["reason"].as_str().map(redact::text),
+    })
 }
 
 /// Turns the schedule on or off with memo's own command; memo's words come back when it refuses, masked.
@@ -237,11 +242,18 @@ mod tests {
         let v = json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 5m",
             "spent_today_usd": 5.02, "max_cost_usd": 1, "max_cost_per_day_usd": 5, "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "", "cost_usd": 0.9,
-            "skipped": {"at": "2026-11-05T22:04:36Z", "why": why}}}]});
+            "skipped": {"at": "2026-11-05T22:04:36Z", "why": why, "reason": "schedule.daily-cap"}}}]});
         let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, .. } = read(src(), &v) else {
             panic!("on")
         };
-        assert_eq!(last.skipped, Some(Skipped { at: "2026-11-05T22:04:36Z".into(), why: why.into() }));
+        assert_eq!(
+            last.skipped,
+            Some(Skipped {
+                at: "2026-11-05T22:04:36Z".into(),
+                why: why.into(),
+                reason: Some("schedule.daily-cap".into()),
+            })
+        );
         assert_eq!((max_cost_usd, max_cost_per_day_usd), (Some(1.0), Some(5.0)));
     }
 

@@ -23,6 +23,7 @@ permissions:
 jobs:
   notarize:
     runs-on: macos-latest
+    timeout-minutes: 150
     environment: release
     steps:
       - env:

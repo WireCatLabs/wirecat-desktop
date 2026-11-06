@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { dailyCap, formatUsd, type RunOutcome, runOutcome } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
-import type { MailAgent as State } from "@/platform/bindings"
+import type { Skipped, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -20,6 +20,9 @@ const TONE: Record<RunOutcome, LampTone> = { ok: "ok", skipped: "warn", failed: 
 
 type Pending = { on: boolean } | null
 type Failure = { on: boolean | null; message: string } | null
+
+const skipWhy = (m: MailAgentText, { reason, why }: Skipped) =>
+  (reason && Object.hasOwn(m.skipReasons, reason) ? m.skipReasons[reason] : undefined) ?? why
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -157,7 +160,7 @@ function Status({ state, m }: { state: Extract<State, { state: "on" }>; m: MailA
           <Lamp tone={TONE[outcome]} size="sm" />
           <span>
             {last.skipped
-              ? m.skipped(ago(last.skipped.at), last.skipped.why)
+              ? m.skipped(ago(last.skipped.at), skipWhy(m, last.skipped))
               : `${m.lastRun(ago(last.at))} · ${outcome === "ok" ? m.ok : m.failed(last.failures)}`}
           </span>
         </p>

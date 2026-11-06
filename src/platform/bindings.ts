@@ -391,10 +391,11 @@ export type SkillRefresh = {
 	failed: string | null,
 };
 
-/**  `why` is memo's English sentence; memo gives no reason code to translate it by. */
+/**  `why` is memo's English sentence. `reason` is its dotted id, absent in an older memo, and the screen translates by it. */
 export type Skipped = {
 	at: string,
 	why: string,
+	reason: string | null,
 };
 
 export type SyncEvent = 
