@@ -8,7 +8,7 @@
 ## 1. Задачи
 
 **TASK-118 · «Spent today: $0.84 of $5.00» и локализованная причина пропуска**
-Статус: сделано. Rust читает `max_cost_usd`, `max_cost_per_day_usd` и `last.skipped` из `memo schedule list --json`
+Статус: сделано, PR 139 влит (69d9bea). Rust читает `max_cost_usd`, `max_cost_per_day_usd` и `last.skipped` из `memo schedule list --json`
 (cli-core 0.584.0, PR 2533); раздел пишет «Spent today: $0.84 of $5.00» на en/ru/es, без «of», когда лимит 0 или
 поля нет. Установленный memo 0.131.39 (npm latest на 2026-11-06) собран на cli-core 0.582.0 и полей лимитов ещё не
 отдаёт: тогда строка остаётся «Spent today: $0.84». Причина пропуска показывается словами memo (см. FIND-213).
@@ -37,6 +37,11 @@ again tomorrow»), кода вроде `daily-cap` нет. Сейчас `recordS
 **FIND-214 · FIND-209 и FIND-210 закрыты в cli-core 0.584.0 (PR 2533); memo получит их в следующем выпуске**
 Схема `schedule list` теперь описывает `spent_today_usd`, `last.cost_usd`, `last.skipped`, а item даёт
 `max_cost_usd` и `max_cost_per_day_usd`. FIND-211 (`review status`) не тронут.
+
+**RISK-105 · У задачи `rust` в ci.yml нет `timeout-minutes`, и `apt-get update` завис на 20+ минут**
+В PR 139 задача `rust` стояла на шаге `sudo apt-get update` с 01:08 до 01:28 UTC; без лимита она ждала бы 6 часов.
+Отменил прогон и перезапустил упавшие задачи; со второго раза прошла. Стоит дать `timeout-minutes` задачам ci.yml и
+`-o Acquire::Retries=3` для apt.
 
 ## 4. Вопросы к Славе
 
