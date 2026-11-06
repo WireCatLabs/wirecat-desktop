@@ -145,7 +145,8 @@ sequenceDiagram
   lines with tests. The others protect less and can follow. (I said C earlier; the cost is small enough to do it now.)
 - If you don't answer: A.
 
-Answer:
+Answer: **B**, all six patches before the seed. They land in WireCatLabs/ssign first; then the `--rev` in
+`release.yml` moves to the patched commit.
 
 ### D2 · Approve each signing by hand? (NEED-2221, against NEED-134)
 
@@ -154,7 +155,8 @@ Answer:
 - I'd pick **A**: one click per release, and it is the only thing between a stolen GitHub login and a signed release.
 - If you don't answer: B, as NEED-134 says.
 
-Answer:
+Answer: **B**, no approval for now; revisit later. The `release` environment stays as it is: only `v*` tags, no
+reviewers.
 
 ### D3 · Split build and signing before the seed goes in? (NEED-2222)
 
@@ -164,7 +166,7 @@ Answer:
   already happened. A dry run without the seed tests most of it.
 - If you don't answer: A, and the setup guide says to wait.
 
-Answer:
+Answer: **A**, split first, then store the seed.
 
 ### D4 · Fail the release when Windows is not signed?
 
@@ -173,7 +175,9 @@ Answer:
 - I'd pick **A**, switched on in the same PR that stores the seed. Until then every release would fail, so not earlier.
 - If you don't answer: A, after setup.
 
-Answer:
+Answer: **A**, fail closed. It switches on by itself: once any of `CERTUM_EMAIL`, `CERTUM_OTP` or
+`WINDOWS_SIGNER_SHA1` exists, a missing one or any failure stops the release. Before the setup, none exists and
+Windows ships unsigned with a notice.
 
 ### D5 · Timestamp: how much checking?
 
@@ -183,7 +187,7 @@ Answer:
   a fork we want to keep small.
 - If you don't answer: A.
 
-Answer:
+Answer: **A**.
 
 ### D6 · Verify the updater signature in CI before publishing?
 
@@ -193,7 +197,7 @@ Answer:
   to use (minisign-compatible check) to be confirmed in the work.
 - If you don't answer: A.
 
-Answer:
+Answer: **A**, for every platform's updater file, since one check in one job covers them all.
 
 ### D7 · Skip the outside review's items 8, 11, 13?
 
@@ -202,7 +206,14 @@ Answer:
 - I'd pick **A**, reasons in section 3.
 - If you don't answer: A.
 
-Answer:
+Answer: **A**, skip them.
+
+### Apple: does macOS need the same change?
+
+Answer: yes. The five `APPLE_*` secrets and the updater key are repository secrets, which any branch can read, and the
+macOS build had them in the same step as every build script. macOS gets the same split as Windows: compile with no
+secret, then bundle, sign and notarize in a job in the `release` environment, and the owner moves the secrets there
+with `bin/move-signing-secrets`.
 
 ## 6. Order of work if you take my picks
 
