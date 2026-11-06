@@ -44,3 +44,10 @@ pub async fn update_download_package(
     )
     .await
 }
+
+/// Opens the user's terminal with the install line for the package `update_download_package` saved; the user types
+/// their password there (rule 6).
+#[tauri::command]
+pub async fn update_package_terminal() -> Result<(), AppError> {
+    crate::log::command("update_package_terminal", async move { attempt(package_update::open_terminal).await }).await
+}

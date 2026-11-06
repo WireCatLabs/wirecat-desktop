@@ -18,7 +18,7 @@ const en = {
   auto: "WireCat downloads the update, installs it and opens again. Your accounts and data will not be deleted.",
   package: {
     deb: "This copy was installed from a .deb package (Ubuntu, Debian, Linux Mint). WireCat downloads the new package and opens your system's installer, which asks for your password. Your accounts and data will not be deleted.",
-    rpm: "This copy was installed from an .rpm package (Fedora). WireCat downloads the new package and opens your system's installer, which asks for your password. Your accounts and data will not be deleted.",
+    rpm: "This copy was installed from an .rpm package (Fedora, openSUSE). WireCat downloads the new package and opens your system's installer, which asks for your password. Your accounts and data will not be deleted.",
   } satisfies Record<Package, string>,
   other:
     "WireCat cannot tell how this copy was installed, so it cannot update it. Get the new version from the download page and install it the way you installed this one. Your accounts and data will not be deleted.",
@@ -33,6 +33,10 @@ const en = {
     rpm: "Or install it from a terminal. It asks for your password, installs WireCat and prints the next steps.",
   } satisfies Record<Package, string>,
   copyCommand: "Copy the command",
+  openTerminal: "Open in terminal",
+  terminalOpened:
+    "Your terminal is open with this command. Type your password there. When the install finishes, close WireCat and open it again to use the new version.",
+  terminalMissing: "WireCat could not open a terminal on this computer. Copy the command and run it in your terminal.",
   whatsNew: (version: string) => `What's new in ${version}`,
   allReleases: "All releases on GitHub",
   restarting: "Installed. WireCat is restarting…",
@@ -71,7 +75,7 @@ const ru: typeof en = {
   auto: "WireCat скачает обновление, установит его и откроется снова. Ваши аккаунты и данные не удалятся.",
   package: {
     deb: "WireCat установлен из пакета .deb (Ubuntu, Debian, Linux Mint). Он скачает новый пакет и откроет установщик программ вашей системы — там нужно будет ввести пароль. Ваши аккаунты и данные не удалятся.",
-    rpm: "WireCat установлен из пакета .rpm (Fedora). Он скачает новый пакет и откроет установщик программ вашей системы — там нужно будет ввести пароль. Ваши аккаунты и данные не удалятся.",
+    rpm: "WireCat установлен из пакета .rpm (Fedora, openSUSE). Он скачает новый пакет и откроет установщик программ вашей системы — там нужно будет ввести пароль. Ваши аккаунты и данные не удалятся.",
   },
   other:
     "WireCat не знает, как была установлена эта копия, поэтому не может её обновить. Скачайте новую версию на странице загрузки и установите её так же, как эту. Ваши аккаунты и данные не удалятся.",
@@ -86,6 +90,11 @@ const ru: typeof en = {
     rpm: "Или установите из терминала. Команда спросит пароль, установит WireCat и покажет, что делать дальше.",
   },
   copyCommand: "Скопировать команду",
+  openTerminal: "Открыть в терминале",
+  terminalOpened:
+    "Терминал открыт с этой командой. Введите там пароль. Когда установка закончится, закройте WireCat и откройте снова, чтобы запустить новую версию.",
+  terminalMissing:
+    "WireCat не смог открыть терминал на этом компьютере. Скопируйте команду и выполните её в своём терминале.",
   whatsNew: (version) => `Что нового в ${version}`,
   allReleases: "Все выпуски на GitHub",
   restarting: "Установлено. WireCat перезапускается…",
@@ -124,7 +133,7 @@ const es: typeof en = {
   auto: "WireCat descarga la actualización, la instala y se vuelve a abrir. Tus cuentas y tus datos no se borran.",
   package: {
     deb: "Esta copia se instaló con un paquete .deb (Ubuntu, Debian, Linux Mint). WireCat descarga el paquete nuevo y abre el instalador de tu sistema, que te pedirá la contraseña. Tus cuentas y tus datos no se borran.",
-    rpm: "Esta copia se instaló con un paquete .rpm (Fedora). WireCat descarga el paquete nuevo y abre el instalador de tu sistema, que te pedirá la contraseña. Tus cuentas y tus datos no se borran.",
+    rpm: "Esta copia se instaló con un paquete .rpm (Fedora, openSUSE). WireCat descarga el paquete nuevo y abre el instalador de tu sistema, que te pedirá la contraseña. Tus cuentas y tus datos no se borran.",
   },
   other:
     "WireCat no sabe cómo se instaló esta copia, así que no puede actualizarla. Descarga la versión nueva en la página de descargas e instálala como instalaste esta. Tus cuentas y tus datos no se borran.",
@@ -139,6 +148,11 @@ const es: typeof en = {
     rpm: "O instálalo desde una terminal. Te pide la contraseña, instala WireCat y muestra los siguientes pasos.",
   },
   copyCommand: "Copiar el comando",
+  openTerminal: "Abrir en la terminal",
+  terminalOpened:
+    "Tu terminal está abierta con este comando. Escribe ahí tu contraseña. Cuando termine la instalación, cierra WireCat y vuelve a abrirlo para usar la versión nueva.",
+  terminalMissing:
+    "WireCat no ha podido abrir una terminal en este equipo. Copia el comando y ejecútalo en tu terminal.",
   whatsNew: (version) => `Novedades de la versión ${version}`,
   allReleases: "Todas las versiones en GitHub",
   restarting: "Instalada. WireCat se está reiniciando…",

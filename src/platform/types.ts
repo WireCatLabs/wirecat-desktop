@@ -341,6 +341,8 @@ export type Platform = {
   installUpdate(onProgress: (p: UpdateProgress) => void): Promise<void>
   /** A .deb or .rpm copy: downloads that version's package, signature checked, into Downloads and opens it. */
   downloadPackageUpdate(version: string, onProgress: (p: UpdateProgress) => void): Promise<PackageOutcome>
+  /** Opens the user's terminal with the install command for the package just saved; they type their password there. */
+  openPackageTerminal(): Promise<void>
   restart(): Promise<void>
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>

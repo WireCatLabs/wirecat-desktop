@@ -161,24 +161,46 @@ fn shell_word(s: &str) -> String {
     }
 }
 
-/// The line to paste in a terminal. `~/` stays outside the quotes, or the shell would not expand it. apt reads a local
-/// package as its unprivileged `_apt` user, which cannot enter a home folder that is `drwxr-x---`, and then prints
-/// "Download is performed unsandboxed as root". The copy goes to apt's own archive folder, which only root can write and
-/// `_apt` can read: a copy in `/tmp` under the release's public name could be a file another user made beforehand and
-/// still writes to, so their package would be installed as root. dnf has no such user. `file` is plain (checked by
-/// `file_name`), so it needs no quoting.
+/// The program that installs a local package here. An .rpm copy may run on Fedora (dnf) or openSUSE (zypper); the
+/// program on PATH decides, as for `tailscale_linux`'s curl line, because os-release names many rpm systems.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Manager {
+    Apt,
+    Dnf,
+    Zypper,
+}
+
+fn manager(kind: Kind, has: impl Fn(&str) -> bool) -> Manager {
+    match kind {
+        Kind::Rpm if has("zypper") => Manager::Zypper,
+        Kind::Rpm => Manager::Dnf,
+        _ => Manager::Apt,
+    }
+}
+
+/// The line the user runs in their terminal, where `sudo` asks for their password; the app itself never runs it. apt
+/// reads a local package as its unprivileged `_apt` user, which cannot enter a home folder that is `drwxr-x---`, and
+/// then prints "Download is performed unsandboxed as root". The copy goes to apt's own archive folder, which only root
+/// can write and `_apt` can read: a copy in `/tmp` under the release's public name could be a file another user made
+/// beforehand and still writes to, so their package would be installed as root. dnf and zypper have no such user.
+/// `path` is the file Rust saved; `file` is plain (checked by `file_name`), so it needs no quoting.
 const APT_ARCHIVES: &str = "/var/cache/apt/archives";
 
-pub fn install_line(kind: Kind, path: &str, file: &str) -> String {
-    let arg = match path.strip_prefix("~/") {
-        Some(rest) => format!("~/{}", shell_word(rest)),
-        None => shell_word(path),
-    };
-    if kind == Kind::Rpm {
-        format!("sudo dnf install {arg}")
-    } else {
-        format!("sudo install -m 644 {arg} {APT_ARCHIVES}/ && sudo apt install {APT_ARCHIVES}/{file}")
+fn install_line(manager: Manager, path: &str, file: &str) -> String {
+    let arg = shell_word(path);
+    match manager {
+        Manager::Apt => format!("sudo install -m 644 {arg} {APT_ARCHIVES}/ && sudo apt install {APT_ARCHIVES}/{file}"),
+        Manager::Dnf => format!("sudo dnf install {arg}"),
+        Manager::Zypper => format!("sudo zypper install {arg}"),
     }
+}
+
+/// The line for the package this run saved last. The interface only asks to open it; it never sends a path.
+static SAVED_LINE: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+pub fn open_terminal() -> Result<(), String> {
+    let line = SAVED_LINE.lock().unwrap().clone().ok_or("No update package was downloaded in this session.")?;
+    crate::terminal::open_line(&line)
 }
 
 fn bad_signature(e: &Error) -> bool {
@@ -240,8 +262,9 @@ fn save(kind: Kind, file: String, bytes: &[u8]) -> Result<Outcome, Failure> {
     let dir = paths::downloads().ok_or_else(|| Failure::Other { detail: "No home folder to download into.".into() })?;
     let to = write_package(&dir, &file, bytes)?;
     let opened = hand_over(kind, &to);
+    let command = install_line(manager(kind, |bin| paths::find(bin).is_some()), &to.to_string_lossy(), &file);
+    *SAVED_LINE.lock().unwrap() = Some(command.clone());
     let path = paths::tilde(&to.to_string_lossy());
-    let command = install_line(kind, &path, &file);
     Ok(Outcome::Saved { file, path, opened, command })
 }
 
@@ -376,28 +399,47 @@ mod tests {
     }
 
     #[test]
-    fn builds_the_terminal_line() {
+    fn builds_the_apt_line_from_the_absolute_path() {
         let deb = "wirecat_0.1.2_amd64.deb";
         assert_eq!(
-            install_line(Kind::Deb, &format!("~/Downloads/{deb}"), deb),
+            install_line(Manager::Apt, &format!("/home/u/Downloads/{deb}"), deb),
             format!(
-                "sudo install -m 644 ~/Downloads/{deb} /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/{deb}"
+                "sudo install -m 644 /home/u/Downloads/{deb} /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/{deb}"
+            )
+        );
+    }
+
+    #[test]
+    fn an_rpm_goes_to_zypper_where_it_exists_and_to_dnf_otherwise() {
+        let rpm = "wirecat-0.1.2-1.x86_64.rpm";
+        let path = format!("/home/u/Downloads/{rpm}");
+        let fedora = manager(Kind::Rpm, |bin| bin == "dnf");
+        let opensuse = manager(Kind::Rpm, |bin| bin == "zypper");
+        assert_eq!(install_line(fedora, &path, rpm), format!("sudo dnf install {path}"));
+        assert_eq!(install_line(opensuse, &path, rpm), format!("sudo zypper install {path}"));
+        assert_eq!(manager(Kind::Rpm, |_| false), Manager::Dnf);
+        assert_eq!(manager(Kind::Deb, |_| true), Manager::Apt);
+    }
+
+    #[test]
+    fn quotes_a_path_with_spaces_or_quotes() {
+        let deb = "wirecat_0.1.2_amd64.deb";
+        assert_eq!(
+            install_line(Manager::Apt, &format!("/home/u/My Downloads/{deb}"), deb),
+            format!(
+                "sudo install -m 644 '/home/u/My Downloads/{deb}' /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/{deb}"
             )
         );
         assert_eq!(
-            install_line(Kind::Rpm, "~/Downloads/wirecat-0.1.2-1.x86_64.rpm", "wirecat-0.1.2-1.x86_64.rpm"),
-            "sudo dnf install ~/Downloads/wirecat-0.1.2-1.x86_64.rpm"
+            install_line(Manager::Dnf, "/mnt/it's/$(w).rpm", "w.rpm"),
+            r"sudo dnf install '/mnt/it'\''s/$(w).rpm'"
         );
-        assert_eq!(
-            install_line(Kind::Deb, &format!("~/My Downloads/{deb}"), deb),
-            format!(
-                "sudo install -m 644 ~/'My Downloads/{deb}' /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/{deb}"
-            )
-        );
-        assert_eq!(
-            install_line(Kind::Deb, "/mnt/it's/w.deb", "w.deb"),
-            r"sudo install -m 644 '/mnt/it'\''s/w.deb' /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/w.deb"
-        );
+    }
+
+    #[test]
+    fn opens_no_terminal_before_a_package_was_saved() {
+        *SAVED_LINE.lock().unwrap() = None;
+        assert!(open_terminal().is_err());
     }
 
     #[test]

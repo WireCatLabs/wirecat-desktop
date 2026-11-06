@@ -279,6 +279,7 @@ function createTauri(): Platform {
       channel.onmessage = onProgress
       return invoke("update_download_package", { version, onEvent: channel })
     },
+    openPackageTerminal: () => invoke("update_package_terminal"),
     restart: () => relaunch(),
     openUrl: (url) => openUrl(url),
     window: async (action) => {
