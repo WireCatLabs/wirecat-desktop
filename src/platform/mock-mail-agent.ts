@@ -33,7 +33,7 @@ export function mailAgentMock(
           skipped: {
             at: ago(4),
             why: "today's runs cost $5.02, the $5.00 a day allowed; it runs again tomorrow",
-            reason: "schedule.daily-cap",
+            reason: "cost.day-cap",
           },
         },
         spentTodayUsd: 5.02,

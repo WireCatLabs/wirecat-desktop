@@ -242,17 +242,13 @@ mod tests {
         let v = json!({"items": [{"name": "mail-triage", "kind": "agent", "when": "every 5m",
             "spent_today_usd": 5.02, "max_cost_usd": 1, "max_cost_per_day_usd": 5, "last": {
             "at": "2026-11-05T21:54:36Z", "exit_code": 0, "output": "", "cost_usd": 0.9,
-            "skipped": {"at": "2026-11-05T22:04:36Z", "why": why, "reason": "schedule.daily-cap"}}}]});
+            "skipped": {"at": "2026-11-05T22:04:36Z", "why": why, "reason": "cost.day-cap"}}}]});
         let MailAgent::On { last: Some(last), max_cost_usd, max_cost_per_day_usd, .. } = read(src(), &v) else {
             panic!("on")
         };
         assert_eq!(
             last.skipped,
-            Some(Skipped {
-                at: "2026-11-05T22:04:36Z".into(),
-                why: why.into(),
-                reason: Some("schedule.daily-cap".into()),
-            })
+            Some(Skipped { at: "2026-11-05T22:04:36Z".into(), why: why.into(), reason: Some("cost.day-cap".into()) })
         );
         assert_eq!((max_cost_usd, max_cost_per_day_usd), (Some(1.0), Some(5.0)));
     }

@@ -19,8 +19,9 @@ const en = {
   skipped: (ago: string, why: string) => `Last start skipped ${ago}: ${why}`,
   // Keyed by the reason id memo sends with a skip; an id missing here shows memo's own English sentence.
   skipReasons: {
-    "schedule.daily-cap": "the daily cost limit is reached; it runs again tomorrow",
-    "schedule.no-new-mail": "no new mail since the last run",
+    "cost.day-cap": "the daily cost limit is reached; it runs again tomorrow",
+    "mail.none-new": "no new mail since the last check",
+    "mail.below-threshold": "some mail is waiting, but not enough of it yet to start a run",
   } as Record<string, string>,
   noRunYet: "No run yet. It starts once new mail arrives.",
   spentToday: (usd: string, cap: string | null) => `Spent today: ${usd}${cap ? ` of ${cap}` : ""}`,
@@ -59,8 +60,9 @@ const ru: typeof en = {
       : "не удался",
   skipped: (ago, why) => `Запуск пропущен ${ago}: ${why}`,
   skipReasons: {
-    "schedule.daily-cap": "дневной лимит расходов исчерпан; завтра запуск продолжится",
-    "schedule.no-new-mail": "с прошлого запуска новой почты нет",
+    "cost.day-cap": "дневной лимит расходов исчерпан; завтра запуск продолжится",
+    "mail.none-new": "с прошлой проверки новой почты нет",
+    "mail.below-threshold": "почта ждёт, но её пока слишком мало для запуска",
   },
   noRunYet: "Запусков ещё не было. Агент начнёт, когда придёт новая почта.",
   spentToday: (usd, cap) => `Потрачено сегодня: ${usd}${cap ? ` из ${cap}` : ""}`,
@@ -98,8 +100,9 @@ const es: typeof en = {
   failed: (times) => (times && times > 1 ? `falló ${times} veces seguidas` : "falló"),
   skipped: (ago, why) => `Ejecución omitida ${ago}: ${why}`,
   skipReasons: {
-    "schedule.daily-cap": "se alcanzó el límite diario de gasto; mañana se ejecuta de nuevo",
-    "schedule.no-new-mail": "no hay correo nuevo desde la última ejecución",
+    "cost.day-cap": "se alcanzó el límite diario de gasto; mañana se ejecuta de nuevo",
+    "mail.none-new": "no hay correo nuevo desde la última revisión",
+    "mail.below-threshold": "hay correo esperando, pero aún es poco para iniciar una ejecución",
   },
   noRunYet: "Aún no se ha ejecutado. Empieza cuando llegue correo nuevo.",
   spentToday: (usd, cap) => `Gastado hoy: ${usd}${cap ? ` de ${cap}` : ""}`,
