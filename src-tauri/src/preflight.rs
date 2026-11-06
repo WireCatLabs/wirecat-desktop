@@ -200,7 +200,7 @@ mod tests {
         let next = version("0.117.0", Some(meta(31, 31)));
         let answer = decide(Some(32), Some(&next), &[reader("wa", 30)], &HashMap::new());
         assert_eq!(answer.cannot_open, Some(CannotOpen { speaks: 31, needs: 32 }));
-        assert!(answer.stops.is_empty());
+        assert_eq!(answer.stops, Vec::new());
     }
 
     #[test]
@@ -234,7 +234,7 @@ mod tests {
     fn the_file_minimum_counts_when_it_is_higher_than_the_new_version_s() {
         let next = version("0.7.0", Some(meta(34, 30)));
         let answer = decide(Some(33), Some(&next), &[reader("tg", 33)], &HashMap::new());
-        assert!(answer.stops.is_empty());
+        assert_eq!(answer.stops, Vec::new());
         let none_yet = decide(None, Some(&next), &[reader("tg", 29)], &HashMap::new());
         assert_eq!(none_yet.stops.len(), 1);
     }
