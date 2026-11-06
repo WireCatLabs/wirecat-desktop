@@ -1,11 +1,10 @@
 # Community CLIs in the desktop app
 
-Status: **built, not live**. cli-docs builds and signs the list on every deploy and serves it at
-`https://wirecat.dev/registry/v1/desktop-tools.json` (its public key is in cli-docs `registry/minisign.pub` since
-2026-11-05). The app fetches and checks it, but only once that same key is pasted into
-[`src-tauri/registry-key.pub`](../../src-tauri/registry-key.pub), which still holds the placeholder. Until then the app
-fetches nothing. Decided 2026-11-05: the list lives in cli-docs `tools.json` (NEED-2204 A) and is signed in CI with a
-key the owner holds (NEED-2205 A). Your own tools, added from the app without a review, are a design, not built
+Status: **built, keyed**. cli-docs builds and signs the list on every deploy and serves it at
+`https://wirecat.dev/registry/v1/desktop-tools.json`. The same public key is in cli-docs `registry/minisign.pub` and in
+[`src-tauri/registry-key.pub`](../../src-tauri/registry-key.pub), so a build fetches and checks the list while the
+switch is on. No community tool is listed yet. Decided 2026-11-05: the list lives in cli-docs `tools.json`
+(NEED-2204 A) and is signed in CI with a key the owner holds (NEED-2205 A). Your own tools, added from the app without a review, are a design, not built
 ([below](#your-own-tools-not-checked)).
 
 ## Process at a glance
