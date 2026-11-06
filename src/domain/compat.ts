@@ -19,8 +19,10 @@ export type Preflight = {
   /** False when the new version does not say what it does to the store: nothing was checked. */
   known: boolean
   cannotOpen: { speaks: number; needs: number } | null
-  /** `fixedIn` is the newest version of that tool, when it reads the store afterwards. */
-  stops: { id: string; fixedIn: string | null }[]
+  /** Installed tools whose newest version reads the store afterwards: updated in the same step, without a question. */
+  alsoUpdate: { id: string; version: string }[]
+  /** Installed tools that cannot read the store afterwards until a newer version of theirs is out. */
+  stops: string[]
 }
 
 export const preflightWarns = (p: Preflight | undefined): p is Preflight =>

@@ -35,7 +35,6 @@ export function PreflightNotice({ tool, preflight }: { tool: CatalogTool; prefli
     requestAnimationFrame(() => focusInPlace(action?.querySelector<HTMLElement>(":not([inert]) > button") ?? null))
   }
   const name = nameOf(owner)
-  const fixes = preflight.stops.flatMap((s) => (s.fixedIn ? [s.id] : []))
   return (
     <div
       ref={box}
@@ -52,30 +51,30 @@ export function PreflightNotice({ tool, preflight }: { tool: CatalogTool; prefli
         <>
           <p className="mt-1.5 max-w-[70ch] text-ink-soft">{m.moves(op, name)}</p>
           <ul className="mt-1.5 list-disc space-y-1 pl-5 text-ink-soft">
-            {preflight.stops.map((s) => (
-              <li key={s.id}>{s.fixedIn ? m.fixed(nameOf(s.id), s.fixedIn) : m.waits(nameOf(s.id), ours(s.id))}</li>
+            {preflight.stops.map((id) => (
+              <li key={id}>{m.waits(nameOf(id), ours(id))}</li>
             ))}
           </ul>
         </>
       )}
       <div className="mt-3 flex flex-wrap justify-end gap-2">
-        <Button
-          size="sm"
-          variant={fixes.length > 0 ? "ghost" : "secondary"}
-          data-recommended={fixes.length > 0 ? undefined : true}
-          onClick={() => answer(() => cancel(owner))}
-        >
+        <Button size="sm" variant="secondary" data-recommended onClick={() => answer(() => cancel(owner))}>
           {m.notNow}
         </Button>
         <Button size="sm" variant="secondary" onClick={() => answer(() => proceed(owner))}>
           {m.anyway(op)}
         </Button>
-        {fixes.length > 0 && (
-          <Button size="sm" variant="primary" data-recommended onClick={() => answer(() => proceed(owner, fixes))}>
-            {m.both(op, name, namesOf(fixes))}
-          </Button>
-        )}
       </div>
     </div>
+  )
+}
+
+/** Under the progress of the install that asked: the tools updated after it, in the same queue. */
+export function AlongsideLine({ preflight }: { preflight: Preflight | undefined }) {
+  const m = useMessages(preflightMessages)
+  const ids = preflight?.alsoUpdate.map((u) => u.id) ?? []
+  if (ids.length === 0) return null
+  return (
+    <p className="reveal mt-3 pl-[6.75rem] text-[0.9rem] text-ink-soft">{m.alongside(namesOf(ids), ids.length > 1)}</p>
   )
 }

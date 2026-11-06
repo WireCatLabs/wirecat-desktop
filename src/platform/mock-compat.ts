@@ -70,8 +70,9 @@ export function newestReader(installed: ReadonlyMap<string, string>): string | n
 }
 
 /**
- * `?store-check=cannot-open`: the newest version of the tool cannot open the store. `update-too`: every other installed
- * tool that reads the store stops, and those with a newer version (Telegram 0.89) read it after. `wait`: they all stop.
+ * `?store-check=cannot-open`: the newest version of the tool cannot open the store. `also-update`: every other tool that
+ * reads the store has a newer version that reads it after (Telegram 0.89, MAX 0.75), so nothing is asked. `wait`: only
+ * Telegram has one; MAX stops until its new version is out.
  */
 export async function storePreflightMock(
   id: string,
@@ -81,15 +82,25 @@ export async function storePreflightMock(
 ): Promise<Preflight> {
   await new Promise((r) => setTimeout(r, 300))
   const version = latest[id] ?? null
-  const none = { version, known: scenario !== null, cannotOpen: null, stops: [] }
+  const none = { version, known: scenario !== null, cannotOpen: null, alsoUpdate: [], stops: [] }
   if (scenario === "cannot-open") return { ...none, cannotOpen: { speaks: 31, needs: FILE.minCompatible } }
-  if (scenario !== "update-too" && scenario !== "wait") return none
-  const stops = [...installed]
-    .filter(([other, v]) => other !== id && SUPPORT[`${other}@${v}`])
-    .map(([other, v]) => {
-      const newest = latest[other]
-      const fixed = scenario === "update-too" && newest && isNewer(newest, v) && SUPPORT[`${other}@${newest}`]
-      return { id: other, fixedIn: fixed ? newest : null }
-    })
-  return { ...none, stops }
+  if (scenario !== "also-update" && scenario !== "wait") return none
+  const stranded = [...installed].filter(([other, v]) => {
+    const speaks = SUPPORT[`${other}@${v}`]?.speaks ?? 0
+    return other !== id && speaks >= FILE.minCompatible && speaks < MOVES.minCompatible
+  })
+  const fixed = (other: string, v: string) => {
+    const newest = latest[other]
+    return newest && isNewer(newest, v) && (SUPPORT[`${other}@${newest}`]?.speaks ?? 0) >= MOVES.minCompatible
+      ? newest
+      : null
+  }
+  return {
+    ...none,
+    alsoUpdate: stranded.flatMap(([other, v]) => {
+      const newest = fixed(other, v)
+      return newest ? [{ id: other, version: newest }] : []
+    }),
+    stops: stranded.flatMap(([other, v]) => (fixed(other, v) ? [] : [other])),
+  }
 }

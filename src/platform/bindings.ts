@@ -309,7 +309,10 @@ export type Preflight = {
 	/**  False when the new version's store metadata is missing: nothing was checked. */
 	known: boolean,
 	cannotOpen: CannotOpen | null,
-	stops: Stops[],
+	/**  Installed tools whose newest version reads the store afterwards: updated in the same step, without a question. */
+	alsoUpdate: Update[],
+	/**  Installed tools that cannot read the store afterwards until a newer version of theirs is published. */
+	stops: string[],
 };
 
 export type Profile = {
@@ -415,12 +418,6 @@ export type Skipped = {
 	reason: string | null,
 };
 
-export type Stops = {
-	id: string,
-	/**  The published version of this tool that reads the store afterwards; None when none is out yet. */
-	fixedIn: string | null,
-};
-
 export type SyncEvent = 
 /**  A stage from a fixed list, read from the tool's notes; never the note itself. */
 { event: "stage"; stage: string } | 
@@ -464,6 +461,11 @@ export type TunnelRoute = {
 	port: number,
 	/**  cloudflared runs and holds a connection to Cloudflare. */
 	live: boolean,
+};
+
+export type Update = {
+	id: string,
+	version: string,
 };
 
 /**

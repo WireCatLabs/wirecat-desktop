@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { ownerId, samePackage } from "@/domain/catalog"
-import { preflightWarns } from "@/domain/compat"
+import { type Preflight, preflightWarns } from "@/domain/compat"
 import { isProgressLine, readNpmLine, startProgress } from "@/domain/install-progress"
 import type { DataDeletion, InstallSession, Operation } from "@/domain/status"
 import { platform } from "@/platform/bridge"
@@ -32,8 +32,8 @@ type ToolsState = {
   offerClear: boolean
   /** `check` asks first whether the newest version keeps the shared store usable for the other installed tools. */
   install(id: string, options?: { check?: boolean }): Promise<void>
-  /** After the store warning: go ahead, and update `alsoUpdate` in the same queue. */
-  proceed(id: string, alsoUpdate?: readonly string[]): Promise<void>
+  /** After the store warning: go ahead, with the tools the check updates alongside. */
+  proceed(id: string): Promise<void>
   /** `deleteBytes` asks to delete the package's own folders too, and only once the uninstall succeeded. */
   uninstall(id: string, deleteBytes?: number): Promise<void>
   cancel(id: string): Promise<void>
@@ -90,6 +90,7 @@ export const useTools = create<ToolsState>((set, get) => {
         ended: Date.now(),
       }))
     }
+    patchSession(id, (s) => (s.alongside && s.outcome?.event === "failed" ? { ...s, closed: [] } : s))
     await redetect(true).catch(() => undefined)
     if (operation === "uninstall") await deleteData(id)
     if (operation === "install" && get().sessions[id]?.outcome?.event === "done") {
@@ -143,7 +144,27 @@ export const useTools = create<ToolsState>((set, get) => {
       ...(preflight ? { preflight } : {}),
       step: preflightWarns(preflight) ? "preflight" : "queued",
     }))
+    if (preflight && !preflightWarns(preflight)) alongside(preflight)
     await drain()
+  }
+
+  // The check already covered these, so the check after each install would only repeat it. Their panels start shut:
+  // opening them would push the row the owner clicked down the page, and each row's own line shows its progress.
+  const alongside = (preflight: Preflight) => {
+    for (const other of preflight.alsoUpdate) {
+      const id = ownerId(other.id)
+      if (get().sessions[id] && !get().sessions[id]?.outcome) continue
+      const session: InstallSession = {
+        operation: "install",
+        step: "queued",
+        log: [],
+        outcome: null,
+        preflight,
+        alongside: true,
+        closed: samePackage(id).map((t) => t.id),
+      }
+      set((st) => ({ sessions: { ...st.sessions, [id]: session } }))
+    }
   }
 
   // Only the real app keeps an answer across starts; the browser build's mock scenarios must each start clean.
@@ -195,14 +216,12 @@ export const useTools = create<ToolsState>((set, get) => {
     },
 
     install: (id, options) => (options?.check ? checkFirst(ownerId(id)) : enqueue(ownerId(id), "install")),
-    async proceed(given, alsoUpdate = []) {
+    async proceed(given) {
       const id = ownerId(given)
       if (get().sessions[id]?.step !== "preflight") return
       const preflight = get().sessions[id]?.preflight
       patchSession(id, (s) => ({ ...s, step: "queued" }))
-      for (const other of alsoUpdate) void enqueue(ownerId(other), "install")
-      // The owner chose these updates in the same warning; the check after each install would only repeat it.
-      if (preflight) for (const other of alsoUpdate) patchSession(ownerId(other), (s) => ({ ...s, preflight }))
+      if (preflight) alongside(preflight)
       await drain()
     },
     uninstall: (id, deleteBytes) =>

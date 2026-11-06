@@ -77,40 +77,107 @@ it("closes a finished update's panel from Manage, its chevron and the name (the 
   expect(useTools.getState().sessions.tg).toBeUndefined()
 })
 
-it("asks before an update that stops other tools, and updates the one that can follow in the same step", async () => {
-  const preflight = vi.spyOn(platform, "storePreflight").mockResolvedValue({
+const doneInstall = () =>
+  vi.spyOn(platform, "install").mockImplementation(async (_id, onEvent) => {
+    const skills = { refreshed: [], failed: null }
+    onEvent({ event: "done", version: "0.7.0", path: "", shadowedBy: null, skills, pathFix: null })
+  })
+
+const rowOf = async (name: RegExp) => {
+  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  return within(list).getByRole("button", { name }).closest("li") as HTMLElement
+}
+
+it("updates a tool whose newest version reads the new format in the same step, without asking", async () => {
+  vi.spyOn(platform, "storePreflight").mockResolvedValue({
     version: "0.7.0",
     known: true,
     cannotOpen: null,
-    stops: [
-      { id: "tg", fixedIn: "0.89.0" },
-      { id: "max", fixedIn: null },
-    ],
+    alsoUpdate: [{ id: "tg", version: "0.89.0" }],
+    stops: [],
   })
-  const install = vi.spyOn(platform, "install").mockImplementation(async (_id, onEvent) => {
+  let finish = () => {}
+  const install = vi.spyOn(platform, "install").mockImplementation(async (id, onEvent) => {
+    if (id === "wa") await new Promise<void>((r) => (finish = r))
     const skills = { refreshed: [], failed: null }
     onEvent({ event: "done", version: "0.7.0", path: "", shadowedBy: null, skills, pathFix: null })
   })
   const afterInstall = vi.spyOn(useCompat.getState(), "checkAfterInstall")
   render(<App />)
-  const list = await screen.findByRole("list", { name: "WireCat tools" })
-  const row = within(list)
-    .getByRole("button", { name: /^WhatsApp/ })
-    .closest("li") as HTMLElement
+  const row = await rowOf(/^WhatsApp/)
   fireEvent.click(await within(row).findByRole("button", { name: /^Update to/ }))
 
-  const alert = await within(row).findByRole("alert")
-  expect(preflight).toHaveBeenCalledWith("wa")
-  expect(install).not.toHaveBeenCalled()
-  expect(alert).toHaveTextContent("Telegram 0.89.0 reads it")
-  expect(alert).toHaveTextContent("MAX can't use them until its new version comes out, usually within a day.")
-  const both = within(alert).getByRole("button", { name: "Update WhatsApp and Telegram" })
-  expect(both).toHaveFocus()
-
-  fireEvent.click(both)
+  expect(
+    await within(row).findByText("Also updating Telegram so it keeps reading your saved messages and notes."),
+  ).toBeInTheDocument()
+  expect(within(row).queryByRole("alert")).toBeNull()
+  finish()
   await waitFor(() => expect(install.mock.calls.map(([id]) => id)).toEqual(["wa", "tg"]))
   await waitFor(() => expect(useTools.getState().sessions.tg?.outcome?.event).toBe("done"))
   expect(afterInstall).not.toHaveBeenCalled()
+  const tgRow = await rowOf(/^Telegram/)
+  expect(within(tgRow).getByRole("button", { name: /^Telegram/ })).toHaveAttribute("aria-expanded", "false")
+})
+
+it("opens the panel of a tool updated alongside when its update fails", async () => {
+  vi.spyOn(platform, "storePreflight").mockResolvedValue({
+    version: "0.7.0",
+    known: true,
+    cannotOpen: null,
+    alsoUpdate: [{ id: "tg", version: "0.89.0" }],
+    stops: [],
+  })
+  vi.spyOn(platform, "install").mockImplementation(async (id, onEvent) => {
+    if (id === "tg") throw new Error("npm error code E404")
+    const skills = { refreshed: [], failed: null }
+    onEvent({ event: "done", version: "0.7.0", path: "", shadowedBy: null, skills, pathFix: null })
+  })
+  render(<App />)
+  fireEvent.click(await within(await rowOf(/^WhatsApp/)).findByRole("button", { name: /^Update to/ }))
+  await waitFor(() => expect(useTools.getState().sessions.tg?.outcome?.event).toBe("failed"))
+  const tgRow = await rowOf(/^Telegram/)
+  expect(within(tgRow).getByRole("button", { name: /^Telegram/ })).toHaveAttribute("aria-expanded", "true")
+})
+
+it("warns only about the tools with no version that reads the new format, and still updates the others", async () => {
+  vi.spyOn(platform, "storePreflight").mockResolvedValue({
+    version: "0.7.0",
+    known: true,
+    cannotOpen: null,
+    alsoUpdate: [{ id: "tg", version: "0.89.0" }],
+    stops: ["max"],
+  })
+  const install = doneInstall()
+  render(<App />)
+  const row = await rowOf(/^WhatsApp/)
+  fireEvent.click(await within(row).findByRole("button", { name: /^Update to/ }))
+
+  const alert = await within(row).findByRole("alert")
+  expect(install).not.toHaveBeenCalled()
+  expect(alert).toHaveTextContent("MAX can't use them until its new version comes out, usually within a day.")
+  expect(alert).not.toHaveTextContent("Telegram")
+  expect(within(alert).getByRole("button", { name: "Not now" })).toHaveFocus()
+
+  fireEvent.click(within(alert).getByRole("button", { name: "Update anyway" }))
+  await waitFor(() => expect(install.mock.calls.map(([id]) => id)).toEqual(["wa", "tg"]))
+})
+
+it("updates nothing when the owner answers Not now", async () => {
+  vi.spyOn(platform, "storePreflight").mockResolvedValue({
+    version: "0.7.0",
+    known: true,
+    cannotOpen: null,
+    alsoUpdate: [{ id: "tg", version: "0.89.0" }],
+    stops: ["max"],
+  })
+  const install = doneInstall()
+  render(<App />)
+  const row = await rowOf(/^WhatsApp/)
+  fireEvent.click(await within(row).findByRole("button", { name: /^Update to/ }))
+  fireEvent.click(within(await within(row).findByRole("alert")).getByRole("button", { name: "Not now" }))
+  await waitFor(() => expect(within(row).queryByRole("alert")).toBeNull())
+  expect(install).not.toHaveBeenCalled()
+  expect(useTools.getState().sessions.tg).toBeUndefined()
 })
 
 it("installs without asking when the check finds nothing", async () => {
@@ -118,6 +185,7 @@ it("installs without asking when the check finds nothing", async () => {
     version: "0.30.0",
     known: true,
     cannotOpen: null,
+    alsoUpdate: [],
     stops: [],
   })
   const install = vi.spyOn(platform, "install").mockResolvedValue()
