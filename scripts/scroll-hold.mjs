@@ -44,12 +44,29 @@ const rowTop = (i) =>
     i,
   )
 const scrollBy = (dy) => page.evaluate((dy) => (document.querySelector("main").scrollTop += dy), dy)
+// A panel that just opened keeps its row in place for a moment (holdInPlace in src/ui/motion.ts) and would undo a
+// scroll made in that window. So the row is put at `y` until it has stayed there for 10 frames in a row.
 const scrollRowTo = (i, y) =>
   page.evaluate(
-    ([i, y]) => {
-      const li = document.querySelectorAll('ul[aria-label="WireCat tools"] > li')[i]
-      document.querySelector("main").scrollTop += li.getBoundingClientRect().top - y
-    },
+    ([i, y]) =>
+      new Promise((done, fail) => {
+        const li = document.querySelectorAll('ul[aria-label="WireCat tools"] > li')[i]
+        const main = document.querySelector("main")
+        const give = performance.now() + 5000
+        let steady = 0
+        const tick = () => {
+          const off = li.getBoundingClientRect().top - y
+          if (Math.abs(off) < 1) steady++
+          else {
+            steady = 0
+            main.scrollTop += off
+          }
+          if (steady >= 10) return done()
+          if (performance.now() > give) return fail(new Error(`row ${i} would not stay at ${y}px`))
+          requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      }),
     [i, y],
   )
 
@@ -85,7 +102,6 @@ cases.push(["close a panel after scrolling into it", await watch(last)])
 
 await page.evaluate(() => (document.querySelector("main").scrollTop = 0))
 await press(first)
-await page.waitForTimeout(500)
 await scrollRowTo(last, height / 2)
 cases.push(["open a tool below an open one", await watch(last)])
 
