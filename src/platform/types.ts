@@ -1,4 +1,4 @@
-import type { StoreCompat } from "@/domain/compat"
+import type { Preflight, StoreCompat } from "@/domain/compat"
 import type {
   Agent,
   AgentRun,
@@ -108,6 +108,7 @@ export type Platform = {
   storeInfo(): Promise<StoreInfo | null>
   /** Every installed tool's own `store info`: whether it reads the shared store, and what its next run does to it. */
   storeCompat(): Promise<StoreCompat>
+  storePreflight(id: string): Promise<Preflight>
   /** Every table with its kind and rows; `sizes` reads the whole file, from seconds to minutes. */
   storeTables(sizes: boolean): Promise<TableList | null>
   /** The archive's integrity and health checks; a minute or more on a large archive. */

@@ -1,6 +1,7 @@
+import type { Preflight } from "./compat"
 import type { NpmProgress } from "./install-progress"
 
-export type InstallStep = "queued" | "check" | "install" | "remove" | "verify"
+export type InstallStep = "preflight" | "queued" | "check" | "install" | "remove" | "verify"
 
 export type Operation = "install" | "uninstall"
 
@@ -64,6 +65,8 @@ export type InstallSession = {
   began?: Partial<Record<InstallStep, number>>
   /** When the outcome arrived, in ms since the epoch. */
   ended?: number
+  /** `store_preflight`'s answer; while `step` is "preflight" and this is set, the owner is asked before anything runs. */
+  preflight?: Preflight
   /** What the verify step does now (`install.rs`): put the tool on the PATH, run it once, refresh its skills. */
   verifying?: VerifyCheck
 }

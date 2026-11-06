@@ -101,7 +101,7 @@ fn clients(answer: &Value) -> Vec<Client> {
 }
 
 /// Every installed package once, a part (Email) through its owner.
-fn installed() -> Vec<&'static Tool> {
+pub(crate) fn installed() -> Vec<&'static Tool> {
     catalog::catalog()
         .tools
         .iter()

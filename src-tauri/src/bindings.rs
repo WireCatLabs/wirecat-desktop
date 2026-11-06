@@ -38,6 +38,7 @@ fn types() -> Types {
         .register::<crate::bots::BotResult>()
         .register::<crate::bots::BotProfile>()
         .register::<crate::config_repair::Repair>()
+        .register::<crate::preflight::Preflight>()
 }
 
 fn render() -> String {

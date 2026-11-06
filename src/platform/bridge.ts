@@ -127,6 +127,7 @@ function createTauri(): Platform {
     configRepair: (id, profile) => invoke("config_repair", { id, profile }),
     storeInfo: () => call(StoreInfoSchema, "store_info"),
     storeCompat: () => call(StoreCompatSchema, "store_compat"),
+    storePreflight: (id) => invoke("store_preflight", { id }),
     storeTables: (sizes) => call(TableListSchema, "store_tables", { sizes }),
     storeCheck: () => call(StoreCheckSchema, "store_check"),
     storeBackup: (onEvent, password) => {

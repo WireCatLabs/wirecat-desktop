@@ -1,7 +1,7 @@
-use super::{attempt, blocking};
+use super::{attempt, blocking, known_tool};
 use crate::error::AppError;
 use crate::install::Running;
-use crate::{archive, backup, compat};
+use crate::{archive, backup, catalog, compat, preflight};
 use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
@@ -14,6 +14,16 @@ pub async fn store_info() -> Result<Option<archive::StoreInfo>, AppError> {
 #[tauri::command]
 pub async fn store_compat() -> Result<compat::StoreCompat, AppError> {
     crate::log::command("store_compat", async move { blocking(compat::compat).await }).await
+}
+
+/// Before an install or update: whether the newest version still opens the shared store, and whom its run locks out.
+#[tauri::command]
+pub async fn store_preflight(id: String) -> Result<preflight::Preflight, AppError> {
+    crate::log::command("store_preflight", async move {
+        let tool = catalog::owner(known_tool(&id)?);
+        blocking(move || preflight::preflight(tool)).await
+    })
+    .await
 }
 
 #[tauri::command]

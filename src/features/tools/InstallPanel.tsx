@@ -19,6 +19,7 @@ import { Stepper, type StepState } from "@/ui/Stepper"
 import { failureWords, failureWordsEn, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
+import { PreflightNotice } from "./PreflightNotice"
 import { SkillOffer } from "./SkillOffer"
 
 type Words = ToolsText["install"]
@@ -31,6 +32,7 @@ function stepStates(session: InstallSession, m: Words): { label: string; state: 
   const steps = STEPS[session.operation].map((s) => ({ step: s.step, label: labels[s.step] ?? s.step }))
   const failed = session.outcome?.event === "failed"
   if (session.step === "queued" && !session.outcome) return steps.map((s) => ({ label: s.label, state: "todo" }))
+  if (session.step === "preflight") return steps.map((s, i) => ({ label: s.label, state: i === 0 ? "active" : "todo" }))
   const finished = session.outcome?.event === "done" || session.outcome?.event === "removed"
   const current = finished ? steps.length : steps.findIndex((s) => s.step === session.step)
   return steps.map((s, i) => ({
@@ -59,15 +61,20 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
         <Stepper steps={stepStates(session, m)} />
       </div>
 
-      <Collapse open={session.operation === "install" && session.step !== "queued" && !outcome}>
+      <Collapse
+        open={session.operation === "install" && session.step !== "queued" && session.step !== "preflight" && !outcome}
+      >
         <div className="mx-auto mt-[1.6rem] max-w-[62rem]">
           <InstallProgress session={session} />
         </div>
       </Collapse>
 
       {/* The result arrives in place of the progress: the height follows and each new line fades in. */}
-      <AutoHeight swap={outcome?.event ?? session.step}>
+      <AutoHeight
+        swap={outcome?.event ?? (session.step === "preflight" && session.preflight ? "warned" : session.step)}
+      >
         <div className="mt-[1.45rem] flex flex-wrap items-center gap-x-4 gap-y-3" aria-live="polite">
+          {session.step === "preflight" && <PreflightNotice tool={tool} preflight={session.preflight} />}
           {session.step === "queued" && !outcome && <p className="text-[0.95rem] text-ink-soft">{m.waiting}</p>}
           {outcome?.event === "done" && (
             <p className="reveal flex items-center gap-2 text-[0.95rem]">
@@ -106,15 +113,17 @@ export function InstallPanel({ tool }: { tool: CatalogTool }) {
             </p>
           )}
 
-          <button
-            type="button"
-            onClick={() => setShowLog((v) => !v)}
-            aria-expanded={showLog}
-            className="inline-flex items-center gap-1 text-[1.05rem] font-medium text-brand hover:text-brand-hover"
-          >
-            {showLog ? m.hideLog : m.showLog}
-            <ExpandChevron open={showLog} className="text-current" />
-          </button>
+          {session.step !== "preflight" && (
+            <button
+              type="button"
+              onClick={() => setShowLog((v) => !v)}
+              aria-expanded={showLog}
+              className="inline-flex items-center gap-1 text-[1.05rem] font-medium text-brand hover:text-brand-hover"
+            >
+              {showLog ? m.hideLog : m.showLog}
+              <ExpandChevron open={showLog} className="text-current" />
+            </button>
+          )}
 
           <div key={outcome?.event ?? "running"} className="reveal ml-auto flex gap-2">
             {outcome?.event === "failed" && outcome.reason !== "cancelled" && (
