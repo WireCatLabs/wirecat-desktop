@@ -35,7 +35,7 @@ src-tauri/src/
                 `redact.rs` first.
   catalog.rs    the same tools.json, compiled in; profile validation.
   community.rs  community tools (made outside WireCatLabs) added to that catalog at start, from the signed list's
-                cached copy while "Show community tools" is on (`registry.rs`), or from
+                cached copy while "Enable community tools" is on (`registry.rs`), or from
                 `<app data>/extra-tools.json` while `WIRECAT_EXTRA_TOOLS=1` is set; every word plain, no name or data
                 folder of ours, no `@wirecat` package. `extra_tools` hands the accepted entries to the interface, which
                 loads them before any page module (`src/main.tsx` imports `src/start.tsx` after). See
