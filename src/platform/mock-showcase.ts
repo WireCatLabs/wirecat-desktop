@@ -211,10 +211,6 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
       const canAdd = agent === "claude" || agent === "codex"
       return { source: "~/.claude.json", names: SERVERS[agent] ?? [], canAdd, canRemove: canAdd, unread: null }
     },
-    async mcpCheck(id) {
-      await delay(600)
-      return { healthy: true, signedIn: true, tools: id === "tg" ? 41 : 23, potentialWrites: id === "tg" ? 9 : 4 }
-    },
     async taskClaims(id) {
       await delay(400)
       const items =

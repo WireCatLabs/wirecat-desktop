@@ -279,10 +279,6 @@
         "install": ["skill", "install", "--for", "{target}", "--json"],
         "show": ["skill", "show", "--no-record", "--json"]
       },
-      "mcp": {
-        "check": ["{profile}", "mcp", "check", "--no-record", "--json"],
-        "add": ["{profile}", "mcp", "add", "{client}", "--json"]
-      },
       "mcpServer": {
         "port": 8765,
         "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
@@ -683,10 +679,6 @@
         "install": ["skill", "install", "--for", "{target}", "--json"],
         "show": ["skill", "show", "--no-record", "--json"]
       },
-      "mcp": {
-        "check": ["{profile}", "mcp", "check", "--no-record", "--json"],
-        "add": ["{profile}", "mcp", "add", "{client}", "--json"]
-      },
       "mcpServer": {
         "port": 8766,
         "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
@@ -1086,10 +1078,6 @@
         "install": ["skill", "install", "--for", "{target}", "--json"],
         "show": ["skill", "show", "--no-record", "--json"]
       },
-      "mcp": {
-        "check": ["{profile}", "mcp", "check", "--no-record", "--json"],
-        "add": ["{profile}", "mcp", "add", "{client}", "--json"]
-      },
       "mcpServer": {
         "port": 8768,
         "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
@@ -1325,7 +1313,6 @@
         "install": ["skill", "install", "--for", "{target}", "--json"],
         "show": ["skill", "show", "--no-record", "--json"]
       },
-      "mcp": null,
       "mcpServer": null,
       "tasks": null,
       "sync": {
@@ -1465,7 +1452,6 @@
         "install": ["skill", "install", "--for", "{target}", "--json"],
         "show": ["skill", "show", "--no-record", "--json"]
       },
-      "mcp": null,
       "mcpServer": {
         "port": 8769,
         "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
@@ -1543,7 +1529,6 @@
         "install": ["skill", "install", "--for", "{target}", "--json"],
         "show": ["skill", "show", "--no-record", "--json"]
       },
-      "mcp": null,
       "mcpServer": null,
       "tasks": null,
       "sync": null,
@@ -1689,7 +1674,6 @@
         "show": ["skill", "show", "--no-record"],
         "doctorSkills": ["doctor", "--no-record", "--json"]
       },
-      "mcp": null,
       "mcpServer": {
         "port": 8767,
         "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--json"],
@@ -1846,7 +1830,6 @@
         "install": ["skill", "install", "--for", "{target}", "--json"],
         "show": ["skill", "show", "--no-record", "--json"]
       },
-      "mcp": null,
       "mcpServer": null,
       "tasks": null,
       "sync": {
@@ -1971,7 +1954,6 @@
       "search": null,
       "setup": null,
       "skill": null,
-      "mcp": null,
       "mcpServer": null,
       "tasks": null,
       "sync": null,

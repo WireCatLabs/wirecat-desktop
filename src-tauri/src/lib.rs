@@ -146,8 +146,6 @@ pub fn run() {
             commands::agents::use_terminal_shell,
             commands::agents::agent_chats,
             commands::agents::mcp_registrations,
-            commands::agents::mcp_check,
-            commands::agents::mcp_add,
             commands::agents::mcp_remove,
             commands::tailscale::tailscale_status,
             commands::tailscale::tailscale_download,

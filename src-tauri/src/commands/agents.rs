@@ -99,24 +99,6 @@ pub async fn mcp_registrations(agent: String) -> Result<mcp::Registrations, AppE
     crate::log::command("mcp_registrations", async move { attempt(move || mcp::registrations(&agent)).await }).await
 }
 
-#[tauri::command]
-pub async fn mcp_check(id: String, profile: String) -> Result<mcp::Health, AppError> {
-    crate::log::command("mcp_check", async move {
-        let tool = known_tool(&id)?;
-        attempt(move || mcp::check(tool, &profile)).await
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn mcp_add(id: String, profile: String, agent: String, allow_writes: bool) -> Result<(), AppError> {
-    crate::log::command("mcp_add", async move {
-        let tool = known_tool(&id)?;
-        attempt(move || mcp::add(tool, &profile, &agent, allow_writes)).await
-    })
-    .await
-}
-
 /// `profile: None` removes the bare `<bin>` entry a person may have added by hand.
 #[tauri::command]
 pub async fn mcp_remove(id: String, profile: Option<String>, agent: String) -> Result<(), AppError> {

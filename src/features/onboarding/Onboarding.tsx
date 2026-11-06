@@ -45,7 +45,7 @@ function AgentsStep() {
   return (
     <>
       <SkillWhy />
-      <Agents matrix={<AgentsMatrix compact expected={chosen} />} />
+      <Agents matrix={<AgentsMatrix expected={chosen} />} />
     </>
   )
 }

@@ -100,8 +100,6 @@ const ToolSchema = v.object({
       show: v.array(v.string()),
     }),
   ),
-  /** The tool's own `mcp check` and `mcp add`; only the messenger CLIs register themselves with an agent. */
-  mcp: v.nullable(v.object({ check: v.array(v.string()), add: v.array(v.string()) })),
   /** The HTTP MCP server for browser apps, run in the background by the tool; `{port}` and `{url}` are filled in Rust. */
   mcpServer: v.nullable(
     v.object({
