@@ -152,7 +152,11 @@ mod tests {
     fn logged(f: impl FnOnce()) -> String {
         let lines = Lines::default();
         let subscriber = tracing_subscriber::registry().with(layer(Masked(lines.clone())));
-        tracing::subscriber::with_default(subscriber, f);
+        // Another test thread can register a callsite while no subscriber is set and cache it as never wanted.
+        tracing::subscriber::with_default(subscriber, || {
+            tracing::callsite::rebuild_interest_cache();
+            f();
+        });
         String::from_utf8(lines.0.lock().unwrap().clone()).unwrap()
     }
 
