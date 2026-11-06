@@ -5,7 +5,7 @@
   Certum SimplySign.
 - Commits: the pinned commit `f7ba7b2360a3e40bb8aa062d244d95c62a743b90` (v0.1.8) and current HEAD
   `222cb903731d385ab75e37e88564bcf4cb100458` (v0.1.9).
-- Since 2026-11-06 `release.yml` pins our fork at `527ac07ae31236a560041978024f8c0ea8f8ac07`: 222cb90 plus patches
+- Since 2026-11-06 `release.yml` pins our fork at `c7a3b2afe272636628535912b48312d9b4606094`: 222cb90 plus patches
   P1-P6. This review read 222cb90, not the patches.
 - Read in a local scratch clone of upstream, not kept. File and line references below are to ssign at 222cb90 unless
   they name another repository.

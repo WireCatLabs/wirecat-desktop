@@ -7,12 +7,12 @@ in [the first-release plan](2026-10-29-first-release.md#windows-certum) and
 
 **Order (decisions D1 and D3).** The seed goes in only after two things have landed: the split of build and signing
 (done, see section 1) and all six hardening patches in our ssign fork, with the `--rev` in `release.yml` moved to the
-patched commit (done: `527ac07`). Both are in place once this lands on `main`.
+patched commit (done: `c7a3b2a`). Both are in place once this lands on `main`.
 
 ## 1. Already done
 
 - **Our fork of ssign**: [WireCatLabs/ssign](https://github.com/WireCatLabs/ssign), at
-  `527ac07ae31236a560041978024f8c0ea8f8ac07`: upstream v0.1.9 (`222cb90`, the commit the review read) plus our patches P1-P6 and `FORK.md`.
+  `c7a3b2afe272636628535912b48312d9b4606094`: upstream v0.1.9 (`222cb90`, the commit the review read) plus our patches P1-P6 and `FORK.md`.
   - Actions are disabled, so none of upstream's CI jobs (crates.io publish, Certum signing) can run there.
   - [Ruleset 26654540](https://github.com/WireCatLabs/ssign/settings/rules/26654540) protects `main`: no deletion, no
     force push, changes only through a pull request with squash merge.
@@ -244,7 +244,7 @@ Details and evidence: [ssign review](../research/2026-11-05-ssign-review.md).
 
 ## 8. Follow-ups
 
-- **Hardening patches P1-P6 in our fork**: done (D1 B), pinned at `527ac07`. A later fork change lands as a
+- **Hardening patches P1-P6 in our fork**: done (D1 B), pinned at `c7a3b2a`. A later fork change lands as a
   squash-merged pull request there, then the `--rev` in `release.yml` moves to that commit.
 - **Monthly check of upstream ssign** ([Le-Syl21/ssign](https://github.com/Le-Syl21/ssign)): read new commits and
   advisories (`cargo audit` on its lockfile), and move the fork only after reading the diff.

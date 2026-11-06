@@ -99,7 +99,7 @@ a headless login or an API.
 | **C. ssign in Actions (chosen)** | The TOTP seed in a GitHub secret; ssign computes the code. | Not endorsed by Certum; see "The seed" below. |
 
 **The tool: [ssign](https://github.com/Le-Syl21/ssign)**, built from our fork
-[WireCatLabs/ssign](https://github.com/WireCatLabs/ssign) at `527ac07` (v0.1.9 plus patches P1-P6, since 2026-11-06;
+[WireCatLabs/ssign](https://github.com/WireCatLabs/ssign) at `c7a3b2a` (v0.1.9 plus patches P1-P6, since 2026-11-06;
 before that `222cb90`, and until 2026-11-05 upstream `f7ba7b2`, v0.1.8; [review](../research/2026-11-05-ssign-review.md)). MIT, Rust. It was
 the most used of the options found on 2026-10-29: 19 stars, 6 forks, 550 crates.io downloads, a release every 2 to 4
 weeks since July. The others had 0 to 2 stars: [super-simply-sign](https://github.com/IvanHanloth/super-simply-sign)
