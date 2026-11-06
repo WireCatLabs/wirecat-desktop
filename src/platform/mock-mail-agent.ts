@@ -3,7 +3,8 @@ import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
 // Email's mail agent: off at first. `?mail-agent=on` starts on with a run 12 minutes ago, `?mail-agent=capped` on
-// with the day's cost cap reached, `?mail-agent=failed` on with two failed runs, `?mail-agent=noclaude` off with
+// with the day's cost cap reached, `?mail-agent=failed` on with two failed runs,
+// `?mail-agent=nocap` on from a memo that does not report its caps, `?mail-agent=noclaude` off with
 // Claude Code missing, `?mail-agent=nomemo` without memo, `?mail-agent=old` with a memo too old;
 // `?mail-agent-fail=1` makes turning it on fail with memo's words.
 export function mailAgentMock(
@@ -14,8 +15,10 @@ export function mailAgentMock(
   const on = (over: Partial<Extract<MailAgent, { state: "on" }>> = {}): MailAgent => ({
     state: "on",
     when: "every 5m",
-    last: { at: ago(12), exitCode: 0, reason: null, failures: null },
+    last: { at: ago(12), exitCode: 0, reason: null, failures: null, skipped: null },
     spentTodayUsd: 0.84,
+    maxCostUsd: 1,
+    maxCostPerDayUsd: 5,
     ...over,
   })
   const start = (): MailAgent => {
@@ -23,15 +26,20 @@ export function mailAgentMock(
     if (scenario === "capped")
       return on({
         last: {
-          at: ago(4),
-          exitCode: 1,
-          reason: "today's runs cost $5.02, the $5.00 a day allowed; it runs again tomorrow",
+          at: ago(9),
+          exitCode: 0,
+          reason: null,
           failures: null,
+          skipped: { at: ago(4), why: "today's runs cost $5.02, the $5.00 a day allowed; it runs again tomorrow" },
         },
         spentTodayUsd: 5.02,
       })
     if (scenario === "failed")
-      return on({ last: { at: ago(3), exitCode: 1, reason: null, failures: 2 }, spentTodayUsd: 0.31 })
+      return on({
+        last: { at: ago(3), exitCode: 1, reason: "provider_error (claude.exit)", failures: 2, skipped: null },
+        spentTodayUsd: 0.31,
+      })
+    if (scenario === "nocap") return on({ maxCostUsd: null, maxCostPerDayUsd: null })
     if (scenario === "nomemo") return { state: "noMemo" }
     if (scenario === "old") return { state: "old", version: "0.131.20", need: "0.131.26" }
     return { state: "off", harness: scenario !== "noclaude" }

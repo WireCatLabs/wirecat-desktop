@@ -1,7 +1,7 @@
 import { ExternalLink } from "lucide-react"
 import { useCallback, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
-import { formatUsd, type RunOutcome, runOutcome } from "@/domain/mail-agent"
+import { dailyCap, formatUsd, type RunOutcome, runOutcome } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
 import type { MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
@@ -149,27 +149,26 @@ function Status({ state, m }: { state: Extract<State, { state: "on" }>; m: MailA
   const lang = useLang()
   const { last, spentTodayUsd } = state
   const outcome = last ? runOutcome(last) : null
-  const word =
-    last && outcome
-      ? outcome === "ok"
-        ? m.ok
-        : outcome === "skipped"
-          ? m.skipped(last.reason ?? "")
-          : m.failed(last.failures)
-      : null
+  const cap = dailyCap(state.maxCostPerDayUsd)
   return (
     <div className="flex flex-col gap-1 text-[0.9rem] text-ink-soft" aria-live="polite">
       {last && outcome ? (
         <p className="flex items-center gap-2">
           <Lamp tone={TONE[outcome]} size="sm" />
           <span>
-            {m.lastRun(ago(last.at))} · {word}
+            {last.skipped
+              ? m.skipped(ago(last.skipped.at), last.skipped.why)
+              : `${m.lastRun(ago(last.at))} · ${outcome === "ok" ? m.ok : m.failed(last.failures)}`}
           </span>
         </p>
       ) : (
         <p>{m.noRunYet}</p>
       )}
-      {spentTodayUsd !== null && <p className="tabular-nums">{m.spentToday(formatUsd(spentTodayUsd, lang))}</p>}
+      {spentTodayUsd !== null && (
+        <p className="tabular-nums">
+          {m.spentToday(formatUsd(spentTodayUsd, lang), cap === null ? null : formatUsd(cap, lang))}
+        </p>
+      )}
     </div>
   )
 }

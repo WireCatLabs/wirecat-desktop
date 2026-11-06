@@ -1,16 +1,25 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
-import type { MailAgent as State } from "@/platform/bindings"
+import type { LastRun, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { MailAgent } from "./MailAgent"
 
 const email = findTool("email") as NonNullable<ReturnType<typeof findTool>>
-const on: State = {
+const ran: LastRun = {
+  at: new Date(Date.now() - 12 * 60_000).toISOString(),
+  exitCode: 0,
+  reason: null,
+  failures: null,
+  skipped: null,
+}
+const on: Extract<State, { state: "on" }> = {
   state: "on",
   when: "every 5m",
-  last: { at: new Date(Date.now() - 12 * 60_000).toISOString(), exitCode: 0, reason: null, failures: null },
+  last: ran,
   spentTodayUsd: 0.84,
+  maxCostUsd: 1,
+  maxCostPerDayUsd: 5,
 }
 
 beforeEach(() => {
@@ -34,7 +43,7 @@ it("turns the schedule on through memo and then shows its status and the day's s
 
   expect(set).toHaveBeenCalledWith("email", true)
   expect(await screen.findByText(/Last run .* · finished/)).toBeInTheDocument()
-  expect(screen.getByText("Spent today: $0.84")).toBeInTheDocument()
+  expect(screen.getByText("Spent today: $0.84 of $5.00")).toBeInTheDocument()
   expect(screen.getByRole("switch", { name: "Run on a schedule" })).toHaveAttribute("aria-checked", "true")
   expect(screen.getByText("17 proposals wait for you")).toBeInTheDocument()
 })
@@ -79,12 +88,26 @@ it("offers Memo instead of a switch when memo is not installed", async () => {
   expect(screen.queryByRole("switch")).not.toBeInTheDocument()
 })
 
-it("says when a run was skipped at the day's cost cap", async () => {
+it("says when a run was skipped at the day's cost cap, in memo's words", async () => {
+  const why = "today's runs cost $5.02, the $5.00 a day allowed; it runs again tomorrow"
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({
     ...on,
-    last: { at: new Date().toISOString(), exitCode: 1, reason: "today's runs cost $5.02", failures: null },
+    spentTodayUsd: 5.02,
+    last: { ...ran, skipped: { at: new Date().toISOString(), why } },
   })
   render(<MailAgent tool={email} />)
 
-  expect(await screen.findByText(/skipped: today's runs cost \$5\.02/)).toBeInTheDocument()
+  expect(await screen.findByText(`Last start skipped just now: ${why}`)).toBeInTheDocument()
+  expect(screen.getByText("Spent today: $5.02 of $5.00")).toBeInTheDocument()
+})
+
+it("leaves the cap out when there is none or memo is too old to report it", async () => {
+  vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ ...on, maxCostPerDayUsd: 0 })
+  const { unmount } = render(<MailAgent tool={email} />)
+  expect(await screen.findByText("Spent today: $0.84")).toBeInTheDocument()
+  unmount()
+
+  vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ ...on, maxCostUsd: null, maxCostPerDayUsd: null })
+  render(<MailAgent tool={email} />)
+  expect(await screen.findByText("Spent today: $0.84")).toBeInTheDocument()
 })
