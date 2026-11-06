@@ -11,6 +11,8 @@ export const CHECK_EVERY_MS = 6 * 60 * 60 * 1000
 /** `saved`: a .deb or .rpm is in Downloads and handed to the system; `rejected`: it failed the signature check. */
 type Phase = "available" | "downloading" | "restarting" | "saved" | "rejected" | "failed"
 type Saved = Extract<PackageOutcome, { result: "saved" }>
+/** The install command in the user's own terminal: `missing` when none opened, so they copy it instead. */
+type Terminal = "idle" | "opening" | "opened" | "missing"
 
 type UpdateState = {
   update: AppUpdate | null
@@ -19,10 +21,12 @@ type UpdateState = {
   progress: UpdateProgress | null
   saved: Saved | null
   failure: UpdateFailure | null
+  terminal: Terminal
   check(): Promise<void>
   show(): void
   close(): void
   install(): Promise<void>
+  openTerminal(): Promise<void>
 }
 
 let checking = false
@@ -34,6 +38,7 @@ export const useUpdate = create<UpdateState>((set, get) => ({
   progress: null,
   saved: null,
   failure: null,
+  terminal: "idle",
 
   async check() {
     // While the dialog is open or an install runs, a newer offer would change what the user is looking at.
@@ -55,7 +60,7 @@ export const useUpdate = create<UpdateState>((set, get) => ({
   async install() {
     const { update, phase } = get()
     if (!update || update.kind === "other" || phase === "downloading" || phase === "restarting") return
-    set({ phase: "downloading", progress: null, failure: null })
+    set({ phase: "downloading", progress: null, failure: null, terminal: "idle" })
     const onProgress = (progress: UpdateProgress) => set({ progress })
     if (update.kind !== "self") {
       try {
@@ -75,5 +80,16 @@ export const useUpdate = create<UpdateState>((set, get) => ({
     // The user pressed "Install and restart", so this restart is the one they asked for.
     set({ phase: "restarting" })
     await platform.restart().catch((e) => set({ phase: "failed", failure: failureOf(e) }))
+  },
+
+  async openTerminal() {
+    if (get().phase !== "saved" || get().terminal === "opening") return
+    set({ terminal: "opening" })
+    try {
+      await platform.openPackageTerminal()
+      set({ terminal: "opened" })
+    } catch {
+      set({ terminal: "missing" })
+    }
   },
 }))

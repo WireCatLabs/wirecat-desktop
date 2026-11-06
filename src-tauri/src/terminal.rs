@@ -53,8 +53,8 @@ fn app_node_path() -> Option<OsString> {
 const AUTOMATION: &str = "macOS did not let WireCat open Terminal. Allow it in System Settings, Privacy & Security, \
 Automation, under WireCat.";
 
-/// A fixed line from `tailscale::terminal_line`: Tailscale's own install command. It asks for the password itself;
-/// the app runs no `sudo`. It is written for `sh`, so a fish user's terminal gets it through `/bin/sh`.
+/// A fixed line from `tailscale::terminal_line` (Tailscale's own install command) or `package_update` (the update
+/// package Rust saved). It asks for the password itself; the app runs no `sudo`. It is written for `sh`, so a fish user's terminal gets it through `/bin/sh`.
 pub fn open_line(line: &str) -> Result<(), String> {
     launch(paths::user_shell().as_deref(), line, Syntax::Posix)
         .map_err(|_| format!("Could not open a terminal. Run this yourself: {line}"))
@@ -298,6 +298,20 @@ mod tests {
         assert_eq!(
             shell_argv(Path::new("/bin/bash"), "'/b/tg' personal setup", Syntax::Posix),
             words(&["/bin/bash", "-ic", "'/b/tg' personal setup; exec '/bin/bash'"])
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn an_update_install_line_runs_in_the_users_own_shell_and_leaves_it_open() {
+        let line = "sudo dnf install '/home/u/My Downloads/wirecat-0.2.0-1.x86_64.rpm'";
+        assert_eq!(
+            shell_argv(Path::new("/usr/bin/zsh"), line, Syntax::Posix),
+            words(&["/usr/bin/zsh", "-lic", &format!("{line}; exec '/usr/bin/zsh' -l")])
+        );
+        assert_eq!(
+            shell_argv(Path::new("/usr/bin/bash"), line, Syntax::Posix),
+            words(&["/usr/bin/bash", "-ic", &format!("{line}; exec '/usr/bin/bash'")])
         );
     }
 

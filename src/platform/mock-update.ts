@@ -6,6 +6,7 @@ import type { Platform, UpdateFailure, UpdateKind } from "./types"
 // the file manager instead (no known installer opens it); `signature` is a .deb whose download fails the signature
 // check; `other` is a Linux build that does not know how it was installed. No parameter: no update.
 // `?update-fail=offline|server|disk|readonly|newer` (with `deb` or `rpm`): the package download fails for that reason.
+// `?update-terminal=none` (with `deb` or `rpm`): no terminal opens for the install command.
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const mode = params.get("update")
 
@@ -39,7 +40,10 @@ async function download(onProgress: (p: { downloaded: number; total: number | nu
   }
 }
 
-export const updateMock: Pick<Platform, "checkUpdate" | "installUpdate" | "downloadPackageUpdate" | "restart"> = {
+export const updateMock: Pick<
+  Platform,
+  "checkUpdate" | "installUpdate" | "downloadPackageUpdate" | "openPackageTerminal" | "restart"
+> = {
   async checkUpdate() {
     await delay(400)
     if (!mode) return null
@@ -59,12 +63,16 @@ export const updateMock: Pick<Platform, "checkUpdate" | "installUpdate" | "downl
     if (failure) throw failure
     if (mode === "signature") return { result: "badSignature" }
     const file = mode === "rpm" ? `wirecat-${version}-1.x86_64.rpm` : `wirecat_${version}_amd64.deb`
-    const path = `~/Downloads/${file}`
+    const absolute = `/home/you/Downloads/${file}`
     const command =
       mode === "rpm"
-        ? `sudo dnf install ${path}`
-        : `sudo install -m 644 ${path} /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/${file}`
-    return { result: "saved", file, path, opened: mode !== "reveal", command }
+        ? `sudo dnf install ${absolute}`
+        : `sudo install -m 644 ${absolute} /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/${file}`
+    return { result: "saved", file, path: `~/Downloads/${file}`, opened: mode !== "reveal", command }
+  },
+  async openPackageTerminal() {
+    await delay(300)
+    if (params.get("update-terminal") === "none") throw new Error("Could not open a terminal.")
   },
   async restart() {
     window.location.reload()

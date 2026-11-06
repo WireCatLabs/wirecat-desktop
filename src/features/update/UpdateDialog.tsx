@@ -1,4 +1,4 @@
-import { Download, ExternalLink } from "lucide-react"
+import { Download, ExternalLink, SquareTerminal } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
 import { formatBytes } from "@/domain/format"
 import { useLang, useMessages } from "@/i18n"
@@ -70,14 +70,32 @@ function Progress() {
 function Saved() {
   const m = useMessages(updateMessages)
   const saved = useUpdate((s) => s.saved)
-  const kind = useUpdate((s) => s.update?.kind)
+  const terminal = useUpdate((s) => s.terminal)
   if (!saved) return null
   return (
     <div className="flex flex-col gap-3">
       <p className="text-ink">{saved.opened ? m.opened(saved.file) : m.revealed(saved.file)}</p>
-      <p className="text-[0.9rem] text-ink-soft">{m.keep(saved.path)}</p>
-      <p className="text-[0.9rem] text-ink-soft">{m.terminal[kind === "rpm" ? "rpm" : "deb"]}</p>
+      <p className="text-[0.9rem] text-ink-soft">{m.terminal}</p>
       <CopyField value={saved.command} label={m.copyCommand} wrap />
+      <div>
+        <Button
+          variant="secondary"
+          size="sm"
+          icon={<SquareTerminal className="size-4" aria-hidden />}
+          disabled={terminal === "opening"}
+          onClick={() => useUpdate.getState().openTerminal()}
+        >
+          {m.openTerminal}
+        </Button>
+      </div>
+      <div role="status">
+        <AutoHeight swap={terminal}>
+          <div key={terminal} className="step-in">
+            {terminal === "opened" && <p className="text-[0.9rem] text-ink">{m.terminalOpened}</p>}
+            {terminal === "missing" && <p className="text-[0.9rem] text-ink">{m.terminalMissing}</p>}
+          </div>
+        </AutoHeight>
+      </div>
     </div>
   )
 }

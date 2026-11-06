@@ -13,7 +13,15 @@ const offer = { version: "0.2.0", notes: "Faster Storage page.", kind: "self" as
 describe("App update", () => {
   beforeEach(() => {
     useOnboarding.setState({ status: "done", open: false })
-    useUpdate.setState({ update: null, open: false, phase: "available", progress: null, saved: null, failure: null })
+    useUpdate.setState({
+      update: null,
+      open: false,
+      phase: "available",
+      progress: null,
+      saved: null,
+      failure: null,
+      terminal: "idle",
+    })
   })
   afterEach(() => vi.restoreAllMocks())
 
@@ -85,7 +93,7 @@ describe("App update", () => {
       path: "~/Downloads/wirecat_0.2.0_amd64.deb",
       opened: true,
       command:
-        "sudo install -m 644 ~/Downloads/wirecat_0.2.0_amd64.deb /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/wirecat_0.2.0_amd64.deb",
+        "sudo install -m 644 /home/u/Downloads/wirecat_0.2.0_amd64.deb /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/wirecat_0.2.0_amd64.deb",
     })
     const user = userEvent.setup()
     render(<App />)
@@ -97,18 +105,49 @@ describe("App update", () => {
     await user.click(within(dialog).getByRole("button", { name: "Download and install" }))
 
     expect(await within(dialog).findByText(/The system installer opened wirecat_0\.2\.0_amd64\.deb/)).toBeVisible()
-    expect(
-      within(dialog).getByText(/close the installer, nothing is installed\. The package stays at ~\/Downloads\//),
-    ).toBeVisible()
-    expect(within(dialog).getByText(/first copies the package into apt's own folder/)).toBeVisible()
+    expect(within(dialog).getByText("Or install from a terminal:")).toBeVisible()
     expect(
       within(dialog).getByText(
-        "sudo install -m 644 ~/Downloads/wirecat_0.2.0_amd64.deb /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/wirecat_0.2.0_amd64.deb",
+        "sudo install -m 644 /home/u/Downloads/wirecat_0.2.0_amd64.deb /var/cache/apt/archives/ && sudo apt install /var/cache/apt/archives/wirecat_0.2.0_amd64.deb",
       ),
     ).toBeVisible()
     expect(within(dialog).getAllByRole("button", { name: "Close" })[0]).toHaveFocus()
     expect(download).toHaveBeenCalledWith("0.2.0", expect.any(Function))
     expect(install).not.toHaveBeenCalled()
+  })
+
+  it("opens the install command in the user's terminal, says what comes next, and stays open", async () => {
+    const command = "sudo dnf install /home/u/Downloads/wirecat-0.2.0-1.x86_64.rpm"
+    vi.spyOn(platform, "checkUpdate").mockResolvedValue({ ...offer, kind: "rpm" })
+    vi.spyOn(platform, "downloadPackageUpdate").mockResolvedValue({
+      result: "saved",
+      file: "wirecat-0.2.0-1.x86_64.rpm",
+      path: "~/Downloads/wirecat-0.2.0-1.x86_64.rpm",
+      opened: false,
+      command,
+    })
+    const terminal = vi
+      .spyOn(platform, "openPackageTerminal")
+      .mockResolvedValueOnce()
+      .mockRejectedValueOnce(new Error("Could not open a terminal."))
+    const user = userEvent.setup()
+    render(<App />)
+
+    await user.click(await screen.findByRole("button", { name: "Update to 0.2.0" }))
+    const dialog = await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })
+    await user.click(within(dialog).getByRole("button", { name: "Download and install" }))
+    expect(await within(dialog).findByText(command)).toBeVisible()
+
+    await user.click(within(dialog).getByRole("button", { name: "Open in terminal" }))
+    expect(
+      await within(dialog).findByText(/Enter your password there, and restart WireCat when the install ends/),
+    ).toBeVisible()
+    expect(terminal).toHaveBeenCalledWith()
+    expect(screen.getByRole("dialog", { name: "WireCat 0.2.0 is available" })).toBe(dialog)
+
+    await user.click(within(dialog).getByRole("button", { name: "Open in terminal" }))
+    expect(await within(dialog).findByText(/No terminal found\. Copy the command/)).toBeVisible()
+    expect(within(dialog).getByRole("button", { name: "Copy the command" })).toBeVisible()
   })
 
   it.each([
@@ -161,7 +200,7 @@ describe("App update", () => {
 
     await user.click(await screen.findByRole("button", { name: "Update to 0.2.0" }))
     const dialog = await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })
-    expect(within(dialog).getByText(/\.rpm package \(Fedora\)/)).toBeVisible()
+    expect(within(dialog).getByText(/\.rpm package \(Fedora, openSUSE\)/)).toBeVisible()
     await user.click(within(dialog).getByRole("button", { name: "Download and install" }))
     expect(await within(dialog).findByRole("alert")).toHaveTextContent(
       "The download did not match WireCat's signature, so it was not opened.",

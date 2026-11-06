@@ -95,7 +95,8 @@ src-tauri/src/
   cloudflare_install.rs cloudflared's own release from GitHub into the app's folder, checked against GitHub's checksum.
   package_update.rs a .deb or .rpm copy's update: the updater plugin downloads it and checks its signature, it is
                 saved in Downloads under the release's file name and opened by the system's installer when the
-                default handler is a known one (otherwise shown in the file manager), with the `apt`/`dnf` line to copy.
+                default handler is a known one (otherwise shown in the file manager), with the `apt`/`dnf`/`zypper` line
+                to copy or to open in the user's terminal (`terminal::open_line`), where they type the password.
                 Never the plugin's own install, which asks for the password itself (rule 6).
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
   memory.rs     the Memory page: memo's memories, facts, proposed actions and agents' calls; confirm, discard,

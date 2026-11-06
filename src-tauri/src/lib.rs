@@ -100,6 +100,7 @@ pub fn run() {
             commands::app::notifications,
             commands::app::update_kind,
             commands::app::update_download_package,
+            commands::app::update_package_terminal,
             commands::node::node_offer,
             commands::node::setup_node,
             commands::node::cancel_node_setup,
