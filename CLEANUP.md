@@ -1,139 +1,18 @@
 # Cleanup
 
-- Vite dev server, PID 438598 on port 1420 — started for design review; stop with `kill 438598` (2026-10-25)  — **сделано 2026-10-25**: остановлен по PID, чтобы `pnpm app` занял порт 1420.
-- /var/tmp/claude/…/scratchpad/wirecat-desktop — scaffold copy, already merged into the repo (2026-10-25)
-- `bin/update-memo` — one-off script to bring memo to 0.103.0 (FIND-9); remove once memo is updated (2026-10-25)
-- `/home/leemour/Projects/AI/cli-testing-wt-store-sizes` — worktree for cli-testing#227; remove after it merges (2026-10-25)
-- 2026-10-25 · /home/leemour/Projects/AI/visage/.claude/worktrees/agent-ae52be57d7e821be1 and branches feat/config-shared-scope, worktree-agent-ae52be57d7e821be1 — merged into feat/desktop-mvp (016457f)
-- 2026-10-25 · bin/setup-mcp-registry-key — one-off; remove after the MCP Registry key is set up and CI publishes
-- 2026-10-25 · .claude/worktrees/agent-a24b178491f765965 and branch worktree-agent-a24b178491f765965 — merged (437b5e8)
-- 2026-10-25 · bin/free-build-space — one-off disk cleanup helper; remove once worktrees are cleaned up
-- 2026-10-25 · .claude/worktrees/agent-a317c0ca880693474 and its branch — merged
-- 2026-10-25 · .claude/worktrees/store-compat and branch feat/store-compat — merged
-- 2026-10-25 · .claude/worktrees/agent-adf351362a7126c0b, agent-a449a71a65950a620 and their branches — merged
-- 2026-10-25 · .claude/worktrees/agent-a866c6643add56fda (feat/logs-layout-shift), agent-aa7c442677aa6c3e0, agent-a71e4c2e153fd3c7b (fix/onboarding-layout-shift) — merged
-- 2026-10-25 · .claude/worktrees/agent-aa4df2faabe3b5073 (fix/storage-layout-shift) — merged
-- 2026-10-25 · .claude/worktrees/agent-a5dd59ec5b8499746 and its branch — merged
-- 2026-10-25 · .claude/worktrees/storage-backup and branch feat/storage-backup — remove once merged into feat/desktop-mvp
-- 2026-10-25 · .claude/worktrees/storage-backup and branch feat/storage-backup — merged
-- 2026-10-25 · .claude/worktrees/agent-a75bee52e81cce72e and its branch — merged
-- 2026-10-25 · .claude/worktrees/agent-a5fdb59e7bd4ccaa0 and its branch — merged
-- 2026-10-25 · .claude/worktrees/agent-afaa9f5333cf5427c and its branch — merged
-- 2026-10-25 · .claude/worktrees/agent-a1a188123edfab293 and its branch — merged
-- 2026-10-25 · mcp_add / mcp_check (src-tauri/src/mcp.rs, lib.rs), platform.mcpAdd / mcpCheck, their mocks and McpHealthSchema — the interface no longer adds or probes MCP servers (Agents shows existing ones only)
-- 2026-10-25 · .claude/worktrees/agent-a5ff77e288a15ff48 and its branch — merged
-- 2026-10-25 · src/features/agents/AgentsMatrix.tsx non-compact mode (folder paths, "Not installed: …" line, the `compact` prop) — only onboarding uses the matrix now, always compact
-- 2026-10-25 · .claude/worktrees/agent-a359c23afa0cf771c and its branch (Agents variants A/B/C) — C is now the real page
-- 2026-10-25 · .claude/worktrees/agent-a88adf3d162585486 and its branch — merged (Agents design C)
-- 2026-10-25 · .claude/worktrees/agent-ae31f5f9d4ea1e16a and its branch — merged
-- 2026-10-26 · .claude/worktrees/agent-a86e884c94ca5e4f8 (feat/agents-w2-hermes-openclaw, has its own node_modules) — merged
-- 2026-10-26 · bin/fix-hermes-path — one-off for this machine; remove after it ran
-- 2026-10-26 · .claude/worktrees/agent-a9cbc5398d4cbbb17 and its branch — merged (About)
-- `/home/leemour/Projects/AI/zoom-cli/.worktrees/skill-mcp-note` — worktree for zoom-cli #276 (MCP note), remove after merge. 2026-10-26
-- `/home/leemour/Projects/AI/tg-cli-wt-skill-mcp-note` (branch docs/skill-mcp-note) — worktree for tg-cli #738 (MCP note), remove after merge. 2026-10-26
-- `/home/leemour/Projects/AI/drive-cli-wt-skill-mcp` (branch docs/skill-mcp-note) — worktree for drive-cli #247 (MCP note), remove after merge. 2026-10-26
-- `/home/leemour/Projects/AI/max-cli-wt-skill-no-npx` (branch docs/skill-doctor-no-npx) — worktree for max-cli #832 (merged), remove. 2026-10-26
-- 2026-10-26 · .claude/worktrees/agent-a3e0be70b1c9194fa and its branch worktree-agent-a3e0be70b1c9194fa — WhatsApp QR sign-in (TASK-19), remove once merged into feat/desktop-mvp
-- `.claude/worktrees/mcp-server` — Desktop worktree for TASK-20 (MCP server panel), merged into feat/desktop-mvp. 2026-10-26
-- `/home/leemour/Projects/AI/cli-core-wt-mcp-http-server` — cli-core worktree for PR #2044, remove after merge and release. 2026-10-26
-- `/home/leemour/Projects/AI/tg-cli-wt-mcp-e2e` — tg-cli worktree with a packed branch cli-core, used for the live check of `mcp server`. 2026-10-26
-- 2026-10-26 · .claude/worktrees/signin-steps and its branch feat/signin-steps — sign-in step 2 (TASK-21), remove once merged into feat/desktop-mvp
-- `/home/leemour/Projects/AI/cli-memo-wt-mcp-server` — cli-memo worktree for PR #462 (merged, released 0.111.0). 2026-10-26
-- `/home/leemour/Projects/AI/drive-cli-wt-mcp-server` — drive-cli worktree for PRs #253 (merged) and #254 (release, waiting). 2026-10-26
-- Scratchpad sandboxes `tg-e2e`, `memo-e2e`, `drive-e2e` and packed `wirecat-cli-core-*.tgz` in this session's scratchpad — live checks of `mcp server`. 2026-10-26
-- 2026-10-26 · .claude/worktrees/tailscale-funnel and its branch feat/tailscale-funnel — Tailscale Funnel step 4 (TASK-22), remove once merged into feat/desktop-mvp
-- /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/funnel-test — sandbox HOME for the NEED-68 Funnel test (npx cache, memo store), 2026-10-26
-- /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/cli-docs — copy of cli-docs built for the skill index (PR #419); its 8 orphaned Next.js workers ran 4h43m at ~92% CPU and ~14 GB RAM until stopped by PID, 2026-10-26
-- 2026-10-27 · /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/ts-userspace — tailscaled 1.104.2 tarball and its test state/logs (TASK-25)
-- 2026-10-27 · /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/ts-src — tailscale v1.104.2 source clone (TASK-25)
-- 2026-10-27 · .claude/worktrees/tailscale-distros and its branch feat/tailscale-distros — TASK-24, remove once fast-forwarded into feat/desktop-mvp
-- 2026-10-27 · /home/leemour/Projects/AI/cli-docs-wt-tailscale-funnel and its branch docs/desktop-tailscale-funnel — TASK-24 website page, remove once its PR is merged
-- 2026-10-27 · Docker images pulled to test Tailscale's Linux commands (TASK-24): ubuntu:24.04, ubuntu:22.04, debian:12, debian:13, fedora:40, fedora:42, rockylinux:9, almalinux:10, opensuse/tumbleweed, opensuse/leap:15.6, archlinux, amazonlinux:2023
-- 2026-10-27 · .claude/worktrees/ux8-permission-levels and its branch feat/ux8-permission-levels — UX-8, remove once fast-forwarded into feat/desktop-mvp
-- 2026-10-27 · /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/himalaya-2.2.1 — Himalaya v2.2.1 config.sample.toml, config.rs, spec, read for BUG-12
-- 2026-10-27 · /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/ux8 (screenshots, open.js, trap.mjs) and /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/ux8-vite.log — UX-8 review material; remove after the owner has seen the screenshots
-- .claude/worktrees/one-mcp-entry (branch feat/one-mcp-entry) — TASK-26 Desktop one MCP row per tool; remove after merge — 2026-10-27
-- `/home/leemour/Projects/AI/cli-core-wt-mcp-activity` — worktree of cli-core #2091 (merged, released 0.454.0). 2026-10-27
-- `/home/leemour/Projects/AI/tg-cli-wt-core-0454` — worktree of tg-cli #765; remove after it merges. 2026-10-27
-- `.claude/worktrees/connect-ai` (branch `feat/connect-ai-app`) — TASK-28 worktree, fast-forwarded into feat/desktop-mvp. 2026-10-27
-- /home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/monetization — cli-private worktree for POST-108 and MONETIZATION.md, 2026-10-27
-- ~/.local/share/tg-cli/accounts/default.json and tgtest.json — tg profiles with no session, leftovers; owner said remove (NEED-103 A), 2026-10-27
-- `.claude/worktrees/cloudflare-fallback` (branch `feat/cloudflare-fallback`) — TASK-30 Cloudflare tunnel fallback, fast-forwarded into feat/desktop-mvp; remove the worktree and branch. 2026-10-27
-- `/var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/cf` — TASK-30 cloudflared downloads, source clone and test configs. 2026-10-27
-- `.claude/worktrees/cloudflare-live` (branch `test/cloudflare-live`, not pushed) — TASK-32 live-run harness (ignored tests in `cloudflare.rs`); keep only if the macOS/Windows run will reuse it. 2026-10-27
-- `~/.local/share/dev.wirecat.desktop/cloudflared/{tunnel.json,config.yml,cloudflared.log,login-home,no-browser}` — TASK-32 leftovers of the deleted test tunnel `wirecat-mcp-test-wirecat-dev` (no secrets; the binary itself is Desktop's normal install and can stay). 2026-10-27
-- `/var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/scripts/cf_dns_delete.py` and `scratchpad/cf/{harness,login.log,login.pid,login-start.txt}` — TASK-32 run files (certificate copy already removed). 2026-10-27
-- `.claude/worktrees/record-every-run` (branch `feat/record-every-run`) — TASK-31 Desktop phase 4, fast-forwarded into feat/desktop-mvp; remove the worktree and branch. 2026-10-27
-- `.claude/worktrees/ux11-motion` (ветка fix/ux11-motion) — worktree UX-11, всё влито в feat/desktop-mvp. 2026-10-27
-- `.claude/worktrees/desktop-sync` (ветка feat/desktop-sync) — worktree TASK-33, всё в feat/desktop-mvp. Также scratchpad `rec/` (пустые папки проверки --record). 2026-10-27
-- `/home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/blog-sync-stop` (ветка docs/blog-sync-stop в cli-private) — POST-109 уже в main cli-private (`fde60611`); удалить worktree и ветку. 2026-10-27
-- /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/pack — TASK-31 scratch package builds, 2026-10-27
-- `.claude/worktrees/fix-agents-flash-focus` (ветка fix/agents-flash-focus) — worktree TASK-36, всё в feat/desktop-mvp. 2026-10-27
-- `.claude/worktrees/sel-flicker` (ветка fix/select-flicker) — worktree BUG-23 и UX-16, всё в feat/desktop-mvp (fast-forward); своего Rust target нет. 2026-10-29
-- `.claude/worktrees/first-release/src-tauri/target` (1.3 GB) — сборка clippy TASK-39; не нужна, следующая сборка идёт в общий `src-tauri/target`. 2026-10-29
-- `.claude/worktrees/first-release` (ветка chore/first-release) — worktree TASK-39, всё в feat/desktop-mvp. 2026-10-29
-- `.claude/worktrees/bug24` (ветка fix/bug-24-tool-row-loop) — worktree BUG-24, всё в feat/desktop-mvp; свой node_modules, Rust target общий. 2026-10-29
-- /var/tmp/claude/claude-1000/-home-leemour-Projects-AI-visage/46ea6dc8-e640-4df6-9eff-d9bea5b95964/scratchpad/{ssign,tauri,actionlint} — TASK-39: исходники ssign и tauri для чтения, бинарь actionlint. 2026-10-29
-- `.claude/worktrees/i18n-agents` and branch `i18n-agents`: TASK-37 part 3 translation worktree; its commit is on feat/desktop-mvp (cherry-picked). 2026-10-29
-- `.claude/worktrees/i18n-connect` and branch `i18n-connect`: TASK-37 part 3 translation worktree; its commit is on feat/desktop-mvp (cherry-picked). 2026-10-29
-- `.claude/worktrees/i18n-tools` and branch `i18n-tools`: TASK-37 part 3 translation worktree; its commit is on feat/desktop-mvp (cherry-picked). 2026-10-29
-- `.claude/worktrees/i18n-logs` and branch `i18n-logs`: TASK-37 part 3 translation worktree; its commit is on feat/desktop-mvp (cherry-picked). 2026-10-29
-- `.claude/worktrees/i18n-storage` and branch `i18n-storage`: TASK-37 part 3 translation worktree; its commit is on feat/desktop-mvp (cherry-picked). 2026-10-29
-- `.claude/worktrees/i18n-config` and branch `i18n-config`: TASK-37 part 3 translation worktree; its commit is on feat/desktop-mvp (cherry-picked). 2026-10-29
-- `.claude/worktrees/i18n-onboarding` and branch `i18n-onboarding`: TASK-37 part 3 translation worktree; its commit is on feat/desktop-mvp (cherry-picked). 2026-10-29
-- `.claude/worktrees/i18n-signin` and branch `i18n-signin`: TASK-37 part 3 translation worktree; its commit is on feat/desktop-mvp (cherry-picked). 2026-10-29
-- `.claude/worktrees/release-main` (main checked out to run bin/tag-release for v0.1.0) — no longer needed after the release; 2026-10-29
-- `~/.local/share/pnpm/store` — test packages `wcat-fixture-*` probably written by the step 0 agent's local pnpm runs; `pnpm store prune` (2026-10-30)
-- worktrees `.claude/worktrees/{linux-pkg,rpm-obsoletes,apple-cert,signing-kind,signing-4b,mac-sign-check,release-012,release-013,notarize-dmg,journal-linux,journal-wcat,journal-step0,linux-package-update}` — merged work (2026-10-30)
-- `/home/leemour/Projects/AI/cli-base-wt-wcat-plan`, `/home/leemour/Projects/AI/cli-testing-wt-wcat-shared-bin`, `/home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/blog-wcat-bin`, `/home/leemour/Projects/AI/cli-docs-wt-desktop-download` — merged work (2026-10-30)
-- scratchpad `npm-clash/`, `signlog.txt` — test leftovers (2026-10-30)
-- `/home/leemour/Projects/AI/cli-base-wt-wcat-step1`, `/home/leemour/Projects/AI/cli-testing-wt-wcat-cross-os`, `.claude/worktrees/journal-search` — merged work (2026-10-31)
-- `.claude/worktrees/memory-plan` (with its `node_modules`) and the Vite cache it left in `.claude/worktrees/search-page/node_modules/.vite` — Memory plan worktree, remove after PR #35 merges (2026-10-31)
-- `/home/leemour/tmp/memo-0128` — memo 0.128.0 installed into its own folder with a throwaway HOME and store, to check the Memory page's commands; also its screenshots (`shots/`) and the Vite log. Remove after PR for feat/memory-page merges (2026-10-31)
-- `.claude/worktrees/memory-page` (branch `feat/memory-page`, its own `node_modules`) — Memory page build; remove after it merges (2026-10-31)
-- Vite dev server for the Memory page review, PID 3922675 on port 1433 (parent pnpm 3922629), started 2026-10-31 in `.claude/worktrees/memory-page`; stop with `kill 3922675`
-- `/home/leemour/memo-probe-Vihc` — throwaway memo 0.130.0 store (with `before.db`, `before-confirm.db`) used to check what a findings batch carries; remove after the memory-page PR merges (2026-11-01)
-- `/home/leemour/tmp/vite-1434.log`, `/home/leemour/tmp/probe.mjs`, `/home/leemour/tmp/{probe,probe2,t1}.png`, `/home/leemour/tmp/about-focus-*-crop.png`, `/home/leemour/tmp/check-memory.log`, `/home/leemour/tmp/check-rust.log`, `/home/leemour/tmp/pr37-body.md` — scratch from the Memory versions round (2026-11-01)
-- Vite dev server for the Memory versions review, PID 737557 on port 1434 (parent pnpm 737515), started 2026-11-01 in `.claude/worktrees/memory-page`; stop with `kill 737557` (2026-11-01)
-- `/home/leemour/Projects/AI/cli-memo-wt-tasks-verify` (detached worktree of cli-memo, with its `.tmp-store/` throwaway store) — memo 0.131.2 built to check the Tasks page contract (2026-11-01)
-- `.claude/worktrees/review-all` (branch `review/all`, its own `node_modules`) — review branch with all open PRs combined; remove once the owner has reviewed it (2026-11-01)
-- `/home/leemour/tmp-review` — merge helper scripts, `pnpm check` log, Vite log and screenshots for `review/all` (2026-11-01)
-- Vite dev server for `review/all`, PID 392703 on port 1437 (parent pnpm 392636), started 2026-11-01 in `.claude/worktrees/review-all`; stop with `kill 392703` (2026-11-01)
-- `/home/leemour/Projects/AI/wirecat-api/.claude/worktrees/notifications`, its branch `feat/notifications`, local and on origin (squash-merged as WireCatLabs/wirecat-api#5; the wording fix branch `fix/notifications-privacy-wording` too) and its local databases `wirecat_api_development_notifications`, `wirecat_api_test_notifications`; the `.claude/` line it added to wirecat-api's `.git/info/exclude` — merged work (2026-11-01)
-- `/home/leemour/tmp-notif` — release and check logs, notification screenshots, `welcome.json` (the production test notification's source; `bin/notify delete welcome-notifications-2026-11` removes the notification itself) (2026-11-01)
-- `.claude/worktrees/notifications` — once the notifications PR is merged (2026-11-01)
-- worktree `.claude/worktrees/guides-plan` (branch `docs/guides-plan`) — Guides plan and prototype, remove once PR is merged or closed (2026-11-01)
-- Vite dev server on port 1441 for the Guides prototype: pnpm wrapper PID 818180, node PID 818194; stop by those PIDs only (2026-11-01)
-- `/home/leemour/wc-guides-tmp` — downloaded wirecat.dev command pages used to check guide commands (2026-11-01)
-- `.claude/worktrees/guides-plan/.impeccable/mocks/guides/vite.log`, `vite.pid` — untracked server output (2026-11-01)
-- `/home/leemour/Projects/AI/cli-docs/.worktrees/privacy-desktop-app`, `/home/leemour/Projects/AI/cli-docs/.worktrees/privacy-no-proxy-log` (with its node_modules), merged remote branches fix/caddy-skip-notifications (wirecat-api), docs/privacy-no-proxy-log, docs/privacy-desktop-app, docs/privacy-desktop-corrections, docs/privacy-nodejs-offer (cli-docs), fix/notifications-no-ip (wirecat-api) — privacy round, all merged (2026-11-01)
-- `/home/leemour/Projects/AI/cli-core-wt-search-files` (branch feat/search-hit-files, merged as cli-core #2330, ~800 MB node_modules) and `/home/leemour/tmp-search-files/cli-core-release` — Search gaps 1–3 in cli-core 0.532.0 (2026-11-01)
-- `/home/leemour/Projects/AI/zoom-cli-wt-search-place`, `/home/leemour/Projects/AI/drive-cli-wt-search-place`, `/home/leemour/Projects/AI/cli-core-wt-search-place` (branch feat/search-hit-place, merged: zoom-cli #326, drive-cli #313, cli-core #2329) and remote branches feat/search-hit-place in those repos; `/home/leemour/tmp-search-place/` — Search gaps 4 and 6 (2026-11-01)
-- `.claude/worktrees/release-020` (branch release/0.2.0, merged as #49), `.claude/worktrees/review-all` (review/all, closed #42) and the Vite on port 1437 (PID 392703), branches of closed PRs #34–#48 — landed in 0.2.0 (2026-11-01)
-- `.claude/worktrees/linux-install` (feat/linux-install-messages, PR #51), `/home/leemour/Projects/AI/cli-docs-wt-linux-install` (with node_modules, cli-docs #488), `/tmp/wirecat_0.2.0_amd64.deb` (kept for the _apt notice test), scratchpad apt-src clone — Linux install messages (2026-11-01)
-- `.claude/worktrees/memo-0131-14` (merged as #52), `.claude/worktrees/journal-020`, `/home/leemour/tmp-memo14`, `/home/leemour/tmp-memo11` — memo adoption (2026-11-01)
-/home/leemour/Projects/AI/visage/.claude/worktrees/search-real-data — worktree of merged PR #53 — 2026-11-02
-/home/leemour/Projects/AI/cli-core-wt-skill-refresh — worktree of cli-core #2364, remove after merge — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/skill-refresh — worktree of desktop #54, remove after merge — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/shots — throwaway worktree for desktop screenshots — 2026-11-02
-/home/leemour/Projects/AI/cli-docs-wt-shell-fix — worktree of merged cli-docs #494 — 2026-11-02
-/home/leemour/Projects/AI/cli-docs-wt-landing-hero — worktree of merged cli-docs #490 — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/query-tokens — worktree of merged #68 — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/query-writer — worktree of merged #63 — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/guides-per-tool — worktree of merged #60 — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/showcase — worktree of merged #58/#62 — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/unified-filters — worktree of merged #56 — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/polish-03 — worktree of merged #71/#75 (branches fix/polish-0.3, fix/background-server) — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/tag-main — worktree on main used for bin/tag-release — 2026-11-02
-/home/leemour/Projects/AI/visage/.claude/worktrees/release-030 — worktree of merged #78 — 2026-11-02
-/home/leemour/Projects/AI/cli-docs-wt-deb-sec — worktree of merged cli-docs #503 — 2026-11-02
-- `.impeccable/mocks/guides/prototype/` (`GuidesPage.tsx`, `guides.ts`, `guides-more.ts`, `messages.ts`) — the Guides page and its data now live in `src/features/guides/`; nothing in `src/` imports the prototype any more (2026-11-02)
-- Branch `feat/mcp-profiles-all` (local and origin) — its one commit 7f99a48 was never merged; it is picked into fix/small-0.3-b (2026-11-02)
-- `.claude/worktrees/small-03b` (branch fix/small-0.3-b) — small fixes for 0.3.0, batch b, once its PR is merged (2026-11-02)
-- `.claude/worktrees/redact-names` (branch fix/redact-names) — masking known names in doctor output and bug reports, once its PR is merged (2026-11-02)
-- `.claude/worktrees/analytics` (branch feat/analytics) — the Analytics page, once its PR is merged or closed; also the preview on port 1439 it started (2026-11-02)
-- `.claude/worktrees/chevrons` (branch fix/chevrons-right) — chevrons at the right edge in Logs and Memory, once its PR is merged; also its preview on port 1440 (2026-11-03)
-/home/leemour/Projects/AI/cli-core-wt-leaked-test-account — worktree of merged cli-core #2443 — 2026-11-02
-- `.claude/worktrees/journal-1105` (branch docs/journal-1105b) — journal worktree, once its PR is merged (2026-11-05)
-- `.claude/worktrees/analytics-cli` (branch feat/analytics-cli) — Analytics on the released CLI counts, once its PR is merged; also its preview on port 1441 (2026-11-05)
-- `.claude/worktrees/facts-revoke` (branch feat/facts-revoke) — take back an agent fact for 0.4.0, once its PR is merged; also its preview on port 1442 (2026-11-05)
+- `bin/update-memo` — one-off to bring memo to 0.103.0 (FIND-9); memo is at 0.131.41 now, remove. 2026-10-25
+- `bin/setup-mcp-registry-key` — one-off; remove once the MCP Registry key is set and CI publishes. 2026-10-25
+- `bin/free-build-space` — one-off disk cleanup helper; remove now that old worktrees are gone. 2026-10-25
+- `bin/fix-hermes-path` — one-off for this machine; remove after it ran. 2026-10-26
+- `mcp_add` / `mcp_check` (`src-tauri/src/mcp.rs`, `lib.rs`), `platform.mcpAdd` / `mcpCheck`, their mocks and `McpHealthSchema` — still in the code; the interface no longer adds or probes MCP servers. Code change, not a deletion pass. 2026-10-25
+- `src/features/agents/AgentsMatrix.tsx` non-compact mode (folder paths, "Not installed: …" line, the `compact` prop) — only onboarding uses the matrix, always compact. Code change. 2026-10-25
+- `/home/leemour/Projects/AI/visage/.claude/worktrees/agent-a359c23afa0cf771c` (branch `worktree-agent-a359c23afa0cf771c`, Agents variants A/B/C) — variant C is the real page, but its commit is not in main and has no PR; owner to confirm it can go. 2026-10-25
+- `/home/leemour/Projects/AI/visage/.claude/worktrees/{i18n-signin,i18n-tools}` and their branches — said to be cherry-picked into feat/desktop-mvp, but 3 and 1 commits are not in main by patch and there is no PR; owner to confirm. 2026-10-29
+- `/home/leemour/Projects/AI/visage/.claude/worktrees/cloudflare-live` (branch `test/cloudflare-live`, not pushed) — TASK-32 live-run harness, has an uncommitted edit in `src-tauri/src/cloudflare.rs`; keep only if the macOS/Windows run will reuse it. 2026-10-27
+- `/home/leemour/Projects/AI/visage/.claude/worktrees/apple-cert` (branch `feat/apple-cert-linux`, PR #17 merged) — uncommitted edit in `docs/dev/signing-macos-by-hand.md`; check it, then remove. 2026-11-04
+- `.claude/worktrees/{onboarding-polish,tg-signin-polish,bot-signin}` and branches `feat/onboarding-polish`, `feat/tg-signin-polish`, `feat/bot-signin` — polish PR #96 merged, but these commits are not in main by SHA, were never pushed and have no PR; owner to confirm they went into #96. 2026-11-05
+- `~/.cache/wirecat-fresh-install` — throwaway home of `bin/try-fresh-install` (PR #93); touched 2026-11-05 04:12, remove after that. 2026-11-04
+- pnpm store: `pnpm store prune` fails with "Permission denied" on `/home/leemour/Projects/AI/arendamed/directus/data/database` (Docker-owned); fix the folder owner, then prune to drop the `wcat-fixture-*` test packages. 2026-10-30
+- `/home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/wa-0.29-report` (branch `docs/wa-0.29-report`) — cli-private PR #555 is still open; remove after it merges. 2026-11-05
+- `/home/leemour/Projects/AI/cli-core-release-memo36` and `/home/leemour/Projects/AI/cli-memo-release-core0564` — release clones on main, files changed within the last 3 hours (another session may use them); remove after the releases. 2026-11-05
+- Release clones `cli-core-release`, `tg-release`, `wa-release` in `/var/tmp/claude/claude-1000/-home-leemour-Projects-AI-wirecat-desktop/1843f46d-831c-4149-8277-335fa93ea262/scratchpad/` — clean and pushed; remove after the whatsapp release and cli-private#555. 2026-11-05
