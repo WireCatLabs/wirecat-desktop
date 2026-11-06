@@ -1,11 +1,6 @@
 # Cleanup
 
-- `bin/update-memo` — one-off to bring memo to 0.103.0 (FIND-9); memo is at 0.131.41 now, remove. 2026-10-25
 - `bin/setup-mcp-registry-key` — one-off; remove once the MCP Registry key is set and CI publishes. 2026-10-25
-- `bin/free-build-space` — one-off disk cleanup helper; remove now that old worktrees are gone. 2026-10-25
-- `bin/fix-hermes-path` — one-off for this machine; remove after it ran. 2026-10-26
-- `mcp_add` / `mcp_check` (`src-tauri/src/mcp.rs`, `lib.rs`), `platform.mcpAdd` / `mcpCheck`, their mocks and `McpHealthSchema` — still in the code; the interface no longer adds or probes MCP servers. Code change, not a deletion pass. 2026-10-25
-- `src/features/agents/AgentsMatrix.tsx` non-compact mode (folder paths, "Not installed: …" line, the `compact` prop) — only onboarding uses the matrix, always compact. Code change. 2026-10-25
 - `~/.cache/wirecat-fresh-install` — throwaway home of `bin/try-fresh-install` (PR #93); touched 2026-11-05 04:12, remove after that. 2026-11-04
 - pnpm store: `pnpm store prune` fails with "Permission denied" on `/home/leemour/Projects/AI/arendamed/directus/data/database` (Docker-owned); fix the folder owner, then prune to drop the `wcat-fixture-*` test packages. 2026-10-30
 - `/home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/wa-0.29-report` (branch `docs/wa-0.29-report`) — cli-private PR #555 is still open; remove after it merges. 2026-11-05

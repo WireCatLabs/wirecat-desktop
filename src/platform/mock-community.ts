@@ -19,7 +19,6 @@ export const ACME = {
   setup: ["{profile}", "setup"],
   signIn: { gives: "your Acme notes", asks: "an Acme API token" },
   skill: null,
-  mcp: null,
   mcpServer: null,
   tasks: null,
   sync: null,

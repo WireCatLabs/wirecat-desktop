@@ -133,7 +133,6 @@ describe("Agents", () => {
   }, 20000)
 
   it("lists what else stops the agent, with a signed-out profile from the tool's own status", async () => {
-    const check = vi.spyOn(platform, "mcpCheck")
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
     const fixes = await within(pane()).findByRole("list", { name: "Other things to fix for Claude Code" }, wait)
@@ -147,7 +146,6 @@ describe("Agents", () => {
     await user.click(within(fixes).getByRole("button", { name: "Sign in to Telegram (work)" }))
     expect(useNav.getState().active).toBe("tools")
     expect(useTools.getState().expanded).toBe("tg")
-    expect(check).not.toHaveBeenCalled()
   }, 20000)
 
   it("puts the tools a terminal misses on PATH with one Fix, and says to restart the agent", async () => {
@@ -172,8 +170,6 @@ describe("Agents", () => {
   }, 20000)
 
   it("keeps MCP out of the main flow, shows leftover servers to remove, and no section without them", async () => {
-    const add = vi.spyOn(platform, "mcpAdd")
-    const check = vi.spyOn(platform, "mcpCheck")
     const remove = vi.spyOn(platform, "mcpRemove")
     const user = await openAgents()
     await foundTab(/^Claude Code.*to set up/)
@@ -185,7 +181,6 @@ describe("Agents", () => {
     expect(connect).toHaveTextContent("MCP is not part of this")
     expect(connect).not.toHaveTextContent(/mcp add/)
     await user.click(within(connect).getByRole("button", { name: "Cancel" }))
-    expect(check).not.toHaveBeenCalled()
 
     const section = await within(pane()).findByRole("region", { name: "WireCat MCP servers" }, wait)
     expect(within(section).getByText(/It does not need them/)).toBeInTheDocument()
@@ -206,7 +201,6 @@ describe("Agents", () => {
     await user.click(await foundTab(/^Codex/))
     await within(pane()).findByRole("heading", { name: "Codex" }, wait)
     expect(within(pane()).queryByRole("region", { name: "WireCat MCP servers" })).toBeNull()
-    expect(add).not.toHaveBeenCalled()
   }, 20000)
 
   it("connects Hermes only with tools that can write its skill, warns about its gateway and checks its own PATH", async () => {

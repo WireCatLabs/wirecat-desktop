@@ -93,14 +93,6 @@ export const ChatsSchema = v.object({
   channels: v.array(v.string()),
 })
 
-/** A profile's MCP server, started once by the tool's own `mcp check`. */
-export const McpHealthSchema = v.object({
-  healthy: v.boolean(),
-  signedIn: v.boolean(),
-  tools: v.number(),
-  potentialWrites: v.number(),
-})
-
 /** Claimed open tasks of one profile: ids, keys and holders only, never a title. */
 export const ClaimsSchema = v.object({
   items: v.array(
@@ -114,6 +106,5 @@ export const ClaimsSchema = v.object({
 export type SkillText = v.InferOutput<typeof SkillTextSchema>
 export type Registrations = v.InferOutput<typeof RegistrationsSchema>
 export type Chats = v.InferOutput<typeof ChatsSchema>
-export type McpHealth = v.InferOutput<typeof McpHealthSchema>
 export type Claims = v.InferOutput<typeof ClaimsSchema>
 export type Claim = Claims["items"][number]

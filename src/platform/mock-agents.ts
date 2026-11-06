@@ -183,8 +183,6 @@ export function agentsMock(versionOf: (id: string) => string | undefined, os: Pl
     | "runAgent"
     | "agentChats"
     | "mcpRegistrations"
-    | "mcpCheck"
-    | "mcpAdd"
     | "mcpRemove"
     | "taskClaims"
     | "taskRelease"
@@ -294,19 +292,6 @@ export function agentsMock(versionOf: (id: string) => string | undefined, os: Pl
       const unread = UNREAD[agent] ?? null
       const source = unread ?? SOURCE[agent] ?? agent
       return { source, names, canAdd: CAN_ADD.has(agent), canRemove: CAN_ADD.has(agent), unread }
-    },
-    async mcpCheck(id, profile) {
-      await delay(1100)
-      if (id === "wa") throw new Error("This version of WhatsApp cannot do this yet. Update it on the Tools page.")
-      const signedIn = !(id === "tg" && profile === "work")
-      return { healthy: signedIn, signedIn, tools: id === "tg" ? 41 : 23, potentialWrites: id === "tg" ? 9 : 4 }
-    },
-    async mcpAdd(id, profile, agent, allowWrites) {
-      await delay(1200)
-      if (params.get("fail") === `mcp-${id}`) throw new Error("claude could not add tg-personal")
-      if (!allowWrites)
-        throw new Error("this profile offers 9 tools that may write; review its permissions, then pass --allow-writes")
-      servers[agent]?.add(`${bin(id)}-${profile}`)
     },
     async mcpRemove(id, profile, agent) {
       await delay(700)

@@ -4,7 +4,6 @@ import type {
   AgentRun,
   Chats,
   Claims,
-  McpHealth,
   PathFix,
   Registrations,
   ShellChoices,
@@ -148,9 +147,7 @@ export type Platform = {
   /** WireCat servers an agent has registered; rejects when the agent's list cannot be read. */
   mcpRegistrations(agent: string): Promise<Registrations>
   /** The tool's own `mcp check` for one profile; starts the server once, writes nothing. */
-  mcpCheck(id: string, profile: string): Promise<McpHealth>
   /** The tool's own `mcp add`; `allowWrites` passes `--allow-writes`, which the owner confirmed. */
-  mcpAdd(id: string, profile: string, agent: string, allowWrites: boolean): Promise<void>
   /** The agent's own `mcp remove` of `<bin>-<profile>`, or of `<bin>` when `profile` is null. */
   mcpRemove(id: string, profile: string | null, agent: string): Promise<void>
   /** The tool's HTTP MCP server for browser apps: one per tool, serving every profile (each call names one). */

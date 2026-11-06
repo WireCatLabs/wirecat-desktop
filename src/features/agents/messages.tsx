@@ -169,14 +169,11 @@ const en = {
   matrixLabel: "Skills for agents",
   tool: "Tool",
   checkingSkills: "Checking skills",
-  notInstalledNote: (tools: readonly string[]) => `Not installed: ${enList(tools)}. A skill comes with its tool.`,
   silent: (tools: readonly string[]) =>
     tools.length === 1
       ? `The installed ${enList(tools)} cannot report its skill, so it shows as Unknown.`
       : `The installed ${enList(tools)} cannot report their skills, so they show as Unknown.`,
   fixOnTools: "Updating on the Tools page fixes that.",
-  fixOnToolsTo: (updates: readonly string[]) => `Updating on the Tools page fixes that: ${enList(updates)}.`,
-  toVersion: (tool: string, version: string) => `${tool} to ${version}`,
   comingRelease: "A coming release will.",
 
   foundProgram: "Program on PATH",
@@ -495,14 +492,11 @@ const ru: typeof en = {
   matrixLabel: "Навыки для агентов",
   tool: "Инструмент",
   checkingSkills: "Проверяем навыки",
-  notInstalledNote: (tools) => `Не установлены: ${ruList(tools)}. Навык поставляется вместе с инструментом.`,
   silent: (tools) =>
     tools.length === 1
       ? `Установленный ${ruList(tools)} не может сообщить о своём навыке, поэтому он показан как «Неизвестно».`
       : `Установленные ${ruList(tools)} не могут сообщить о своих навыках, поэтому они показаны как «Неизвестно».`,
   fixOnTools: "Это исправит обновление на странице «Инструменты».",
-  fixOnToolsTo: (updates) => `Это исправит обновление на странице «Инструменты»: ${ruList(updates)}.`,
-  toVersion: (tool, version) => `${tool} до ${version}`,
   comingRelease: "Это исправит один из следующих выпусков.",
 
   foundProgram: "Программа есть в PATH",
@@ -812,14 +806,11 @@ const es: typeof en = {
   matrixLabel: "Skills para agentes",
   tool: "Herramienta",
   checkingSkills: "Comprobando skills",
-  notInstalledNote: (tools) => `Sin instalar: ${esList(tools)}. La skill viene con su herramienta.`,
   silent: (tools) =>
     tools.length === 1
       ? `La versión instalada de ${esList(tools)} no puede informar de su skill, así que aparece como Desconocida.`
       : `Las versiones instaladas de ${esList(tools)} no pueden informar de sus skills, así que aparecen como Desconocida.`,
   fixOnTools: "Se arregla actualizando en la página Herramientas.",
-  fixOnToolsTo: (updates) => `Se arregla actualizando en la página Herramientas: ${esList(updates)}.`,
-  toVersion: (tool, version) => `${tool} a ${version}`,
   comingRelease: "Lo arreglará una próxima versión.",
 
   foundProgram: "Programa en el PATH",

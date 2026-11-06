@@ -43,8 +43,6 @@ pub struct Tool {
     /// Only for tools whose `config show` reports `permissions` levels.
     pub permissions: Option<PermissionsSource>,
     pub skill: Option<SkillSource>,
-    /// Only the messenger CLIs register their own MCP server with an agent; every tool can serve one.
-    pub mcp: Option<McpSource>,
     /// The HTTP MCP server for browser apps, run in the background by the tool itself; zoom serves none.
     pub mcp_server: Option<McpServerSource>,
     /// Only memo: the version its Memory page commands (`memory.rs`) need.
@@ -132,13 +130,6 @@ pub struct SkillSource {
     pub doctor_skills: Option<Vec<String>>,
     /// The SKILL.md this version ships, as `{name, content}`.
     pub show: Vec<String>,
-}
-
-/// `{client}` is `codex` or `claude-code`, the only agents the tools register themselves with.
-#[derive(Debug, Deserialize)]
-pub struct McpSource {
-    pub check: Vec<String>,
-    pub add: Vec<String>,
 }
 
 /// `{port}` and `{url}` are filled only after `mcp_server.rs` validated them.
@@ -393,7 +384,6 @@ mod tests {
             reads.extend(t.runs.as_ref().into_iter().flat_map(|r| [&r.list, &r.show]));
             reads.extend(t.skill.as_ref().into_iter().flat_map(|s| [&s.status, &s.show]));
             reads.extend(t.skill.as_ref().and_then(|s| s.doctor_skills.as_ref()));
-            reads.extend(t.mcp.as_ref().map(|m| &m.check));
             reads.extend(t.mcp_server.as_ref().map(|m| &m.status));
             reads.extend(t.mcp_server.as_ref().and_then(|m| m.config.as_ref()));
             reads.extend(t.tasks.as_ref().map(|s| &s.list));

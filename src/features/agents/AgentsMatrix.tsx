@@ -32,13 +32,12 @@ const names = (agents: readonly Agent[], lang?: Lang) =>
 
 /**
  * Tools down, the two places a skill is written across, headed by the agents found that read each.
- * `compact` drops the folder paths and the list of agents, for embedding in onboarding.
  * `expected` names the tools to draw as rows while the installed ones are still being found.
  */
-export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boolean; expected?: readonly string[] }) {
+export function AgentsMatrix({ expected = [] }: { expected?: readonly string[] }) {
   const matrix = useSkillMatrix()
   const m = useMessages(agentsMessages)
-  const { detected, agents, found, notInstalled } = matrix
+  const { detected, agents, found } = matrix
   // Hermes has its own target that no released tool writes yet; its pane on the Agents page says so. A column of
   // "needs a newer version" would only push the matrix past the onboarding step's width.
   const targets = matrix.targets.filter((t) => t !== "hermes")
@@ -58,7 +57,7 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
 
   const readers = (target: SkillTarget) => matrix.columns.find((c) => c.target === target)?.readers ?? []
   const columnName = (target: SkillTarget, lang?: Lang) => names(readers(target), lang) || TARGET_FOLDER[target]
-  const pad = compact ? "px-[1rem] py-[0.7rem]" : "px-[1.3rem] py-[0.9rem]"
+  const pad = "px-[1rem] py-[0.7rem]"
   const pending = catalogTools.filter((t) => expected.includes(t.id))
   const silent = rows.filter((r) => r.source === "none")
   const firstChecking = rows
@@ -88,7 +87,7 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
 
   return (
     <div className="flex flex-col gap-3">
-      {compact && found !== null && found.length === 0 && (
+      {found !== null && found.length === 0 && (
         <p className="rounded-[0.2rem] border border-warn/40 bg-warn/10 px-4 py-3 text-body">{m.noAgent}</p>
       )}
       <Collapse open={grouped}>
@@ -132,16 +131,11 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
                 {m.tool}
               </th>
               {targets.map((t) => (
-                <th key={t} scope="col" className={cx(pad, "w-[34%] align-bottom font-normal", compact && "w-[38%]")}>
+                <th key={t} scope="col" className={cx(pad, "w-[38%] align-bottom font-normal")}>
                   {agents === null ? (
                     <Skeleton className="h-5 w-32" label={m.lookingForAgents} />
                   ) : (
                     <span className="block text-[0.95rem] font-semibold text-ink">{columnName(t)}</span>
-                  )}
-                  {!compact && (
-                    <span className="selectable mt-0.5 block font-mono text-[0.85rem] text-ink-dim">
-                      {TARGET_FOLDER[t]}
-                    </span>
                   )}
                 </th>
               ))}
@@ -198,7 +192,6 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
                             busy={c.busy}
                             failure={c.failure}
                             grouped={grouped}
-                            primary={compact}
                             tool={r.tool.id}
                             toolName={r.tool.name}
                             column={columnName(c.target)}
@@ -212,9 +205,6 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
           </tbody>
         </table>
       </div>
-      {detected && notInstalled.length > 0 && !compact && (
-        <p className="text-body text-ink-soft">{m.notInstalledNote(notInstalled.map((t) => t.name))}</p>
-      )}
       {silent.length === 0 && firstChecking && (
         // Old tools are the usual case, so their note's line is kept until every skill has answered.
         <p className="text-body leading-snug">
@@ -224,15 +214,10 @@ export function AgentsMatrix({ compact = false, expected = [] }: { compact?: boo
       {silent.length > 0 && (
         // Last under the table, as it arrives last: inside a row it would push every row under it down.
         <p className="text-body leading-snug text-ink-soft">
-          {m.silent(silent.map((r) => r.tool.name))}{" "}
-          {silent.some((r) => r.newer)
-            ? compact
-              ? m.fixOnTools
-              : m.fixOnToolsTo(silent.flatMap((r) => (r.newer ? [m.toVersion(r.tool.name, r.newer)] : [])))
-            : m.comingRelease}
+          {m.silent(silent.map((r) => r.tool.name))} {silent.some((r) => r.newer) ? m.fixOnTools : m.comingRelease}
         </p>
       )}
-      {compact && <ConfirmCommand />}
+      <ConfirmCommand />
     </div>
   )
 }
@@ -312,8 +297,6 @@ function Cell(props: {
   failure: string | null
   /** The table's own notice already says why this cell failed. */
   grouped: boolean
-  /** In onboarding an install is the step's whole point, so it is the button that stands out. */
-  primary: boolean
   tool: string
   toolName: string
   column: string
@@ -321,7 +304,7 @@ function Cell(props: {
   report: string
   onInstall: (action: "Install" | "Update") => void
 }) {
-  const { first, cell, busy, failure, grouped, primary, tool, toolName, column, report, onInstall } = props
+  const { first, cell, busy, failure, grouped, tool, toolName, column, report, onInstall } = props
   const m = useMessages(agentsMessages)
   if (cell.kind === "checking" && !busy)
     return (
@@ -352,7 +335,7 @@ function Cell(props: {
           {action && (
             <Button
               size="sm"
-              variant={primary && action === "Install" ? "primary" : "secondary"}
+              variant={action === "Install" ? "primary" : "secondary"}
               disabled={busy}
               onClick={() => onInstall(action)}
               aria-label={action === "Install" ? m.installSkill(toolName, column) : m.updateSkill(toolName, column)}

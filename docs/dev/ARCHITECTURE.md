@@ -81,7 +81,7 @@ src-tauri/src/
                 warning, and the check after the install (`checkAfterInstall`) stays the fallback.
   skills.rs     agents found on this computer; each tool's skill through its own `skill status` / `install` / `show`.
   chats.rs      which chat apps drive Hermes and OpenClaw, by name only; the PATH Hermes's gateway starts from.
-  mcp.rs        which WireCat MCP servers each agent has registered; adding through the tool's own `mcp add`.
+  mcp.rs        which WireCat MCP servers each agent has registered, and removing one.
   mcp_server.rs each tool's HTTP MCP server for browser apps: its own `mcp server start|stop|status` and `mcp --revoke`.
   tailscale.rs  Tailscale Funnel for an MCP server: its state, `tailscale login`, and Funnel on and off for ports the app set up.
   funnel_helper.rs WireCat's own Tailscale connection, `wirecat-funnel` (catalog entry `funnel`, a helper the pages do
@@ -269,10 +269,8 @@ and `CLAUDECODE`, which `run::command` removes, so the app always writes as the 
 The Agents page has one row per agent found. Each opens to what to fix, the tools (skill and MCP per profile), the
 agent's recent sessions and the tasks it holds.
 
-- **MCP.** The messenger CLIs register a profile's server as `<bin>-<profile>` with their own
-  `<bin> <profile> mcp add codex|claude-code` (cli-core), after the owner confirms; `mcp check` runs first so the
-  dialog says how many of the server's commands can write, and `--allow-writes` is passed only then. No tool removes
-  its server yet, so Disconnect runs the agent's own `claude mcp remove <name> --scope user` or `codex mcp remove
+- **MCP.** The app no longer adds MCP servers; it lists the `<bin>-<profile>` ones an agent already has. No tool
+  removes its server yet, so Disconnect runs the agent's own `claude mcp remove <name> --scope user` or `codex mcp remove
   <name>`, for a name `mcp.rs` builds from the catalog and a validated profile. What is registered is read from
   `codex mcp list --json`, and from the agents' settings files where no command lists without starting every server:
   `~/.claude.json` (`mcpServers`, user scope), `~/.cursor/mcp.json`, `~/.gemini/settings.json`,
@@ -291,7 +289,7 @@ agent's recent sessions and the tasks it holds.
   Release runs `tasks release <task> --holder owner`, because the app may itself run inside an agent's terminal.
 - **Check** joins these with `paths::in_terminal` (is the tool on the PATH a terminal has, without the folders the
   app adds; one item for every tool it misses, whose Fix runs `fix_terminal_path` and then asks the tools and their
-  skills again), runs `mcp check` for every connected profile and counts the commands each profile's permissions block
+  skills again) and counts the commands each profile's permissions block
   (the Permissions block's `permissions_show`).
 - **Skill preview** shows `skill show --json`, the SKILL.md the installed version ships, beside the installed copies'
   versions. The app does not read an installed SKILL.md, so what an update changes waits for a CLI that prints it.

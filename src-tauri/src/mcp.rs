@@ -1,5 +1,5 @@
-use crate::catalog::{self, McpSource, Tool};
-use crate::skills::{body, call, failure};
+use crate::catalog::{self, Tool};
+use crate::skills::failure;
 use crate::{paths, redact, run};
 use serde::Serialize;
 use serde_json::Value;
@@ -149,76 +149,6 @@ fn keys_in(file: &PathBuf, key: &str) -> Result<Vec<String>, String> {
     Ok(v[key].as_object().map(|m| m.keys().cloned().collect()).unwrap_or_default())
 }
 
-fn source(tool: &Tool) -> Result<&McpSource, String> {
-    tool.mcp.as_ref().ok_or_else(|| format!("{} cannot register its MCP server yet", tool.name))
-}
-
-/// Before `mcp add` and `mcp check` the commands were `setup` and `doctor`, and `mcp` took no subcommand at all.
-fn unsupported(json: Option<&Value>) -> bool {
-    json.and_then(|v| v["error"]["message"].as_str()).is_some_and(|m| {
-        m.starts_with("too many arguments for 'mcp'") || m.starts_with("unknown command 'add'") || m.contains("'check'")
-    })
-}
-
-fn too_old(tool: &Tool) -> String {
-    format!("This version of {} cannot do this yet. Update it on the Tools page.", tool.name)
-}
-
-#[derive(Serialize, Debug, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct Health {
-    pub healthy: bool,
-    pub signed_in: bool,
-    pub tools: u64,
-    /// MCP tools the server offers that may write (send, delete); `mcp add` asks for `--allow-writes` when above 0.
-    pub potential_writes: u64,
-}
-
-fn health(v: &Value) -> Option<Health> {
-    let item = body(v);
-    Some(Health {
-        healthy: item["healthy"].as_bool()?,
-        signed_in: item["signed_in"].as_bool().unwrap_or(false),
-        tools: item["tools"].as_u64().unwrap_or(0),
-        potential_writes: item["potential_writes"].as_u64().unwrap_or(0),
-    })
-}
-
-/// Starts the profile's server once and asks it for its tool list: the tool's own `mcp check`. Writes nothing.
-pub fn check(tool: &Tool, profile: &str) -> Result<Health, String> {
-    let args = catalog::with_profile(&source(tool)?.check, Some(profile))?;
-    let (out, json) = call(tool, &args, Duration::from_secs(40))?;
-    if unsupported(json.as_ref()) {
-        return Err(too_old(tool));
-    }
-    match json.as_ref().and_then(health) {
-        Some(h) if out.code == Some(0) => Ok(h),
-        _ => Err(failure(&out, json.as_ref())),
-    }
-}
-
-fn add_args(src: &McpSource, profile: &str, client: &str, allow_writes: bool) -> Result<Vec<String>, String> {
-    let mut args: Vec<String> = catalog::with_profile(&src.add, Some(profile))?
-        .into_iter()
-        .map(|a| if a == "{client}" { client.to_string() } else { a })
-        .collect();
-    if allow_writes {
-        args.push("--allow-writes".into());
-    }
-    Ok(args)
-}
-
-/// The tool's own `mcp add`, which registers `<bin>-<profile>` through the agent's CLI at user level.
-pub fn add(tool: &Tool, profile: &str, agent_id: &str, allow_writes: bool) -> Result<(), String> {
-    let client = agent(agent_id)?.client.ok_or("the tools cannot register with this agent themselves")?;
-    let args = add_args(source(tool)?, profile, client, allow_writes)?;
-    let (out, json) = call(tool, &args, Duration::from_mins(1))?;
-    if unsupported(json.as_ref()) {
-        return Err(too_old(tool));
-    }
-    if out.code == Some(0) { Ok(()) } else { Err(failure(&out, json.as_ref())) }
-}
-
 /// Only a name a `WireCat` tool registers, built here from the catalog and a validated profile.
 fn server_name(tool: &Tool, profile: Option<&str>) -> Result<String, String> {
     match profile {
@@ -260,17 +190,6 @@ mod tests {
     }
 
     #[test]
-    fn add_fills_profile_and_client_and_asks_for_writes_only_when_told() {
-        let src = source(tg()).unwrap();
-        assert_eq!(add_args(src, "personal", "codex", false).unwrap(), ["personal", "mcp", "add", "codex", "--json"]);
-        assert_eq!(
-            add_args(src, "work", "claude-code", true).unwrap(),
-            ["work", "mcp", "add", "claude-code", "--json", "--allow-writes"]
-        );
-        assert!(add_args(src, "--help", "codex", false).is_err());
-    }
-
-    #[test]
     fn removes_only_a_name_built_from_the_catalog() {
         assert_eq!(server_name(tg(), Some("personal")).unwrap(), "tg-personal");
         assert_eq!(server_name(tg(), None).unwrap(), "tg");
@@ -279,20 +198,6 @@ mod tests {
         assert_eq!(remove_args(spec, "tg-personal"), ["mcp", "remove", "tg-personal", "--scope", "user"]);
         assert!(agent("cursor").unwrap().remove.is_none());
         assert!(agent("vim").is_err());
-    }
-
-    #[test]
-    fn an_old_cli_says_update() {
-        let old = serde_json::json!({"error": {"message": "too many arguments for 'mcp'. Expected 0 arguments but got 1: check."}});
-        assert!(unsupported(Some(&old)));
-        assert!(!unsupported(Some(&serde_json::json!({"error": {"message": "tg-personal is already configured"}}))));
-    }
-
-    #[test]
-    fn health_reads_the_check_answer() {
-        let v = serde_json::json!({"item": {"healthy": false, "profile": "p", "signed_in": false, "tools": 3, "potential_writes": 1}});
-        assert_eq!(health(&v), Some(Health { healthy: false, signed_in: false, tools: 3, potential_writes: 1 }));
-        assert_eq!(health(&serde_json::json!({"item": {}})), None);
     }
 
     #[test]
