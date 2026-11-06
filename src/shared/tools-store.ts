@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { ownerId, samePackage } from "@/domain/catalog"
+import { preflightWarns } from "@/domain/compat"
 import { isProgressLine, readNpmLine, startProgress } from "@/domain/install-progress"
 import type { DataDeletion, InstallSession, Operation } from "@/domain/status"
 import { platform } from "@/platform/bridge"
@@ -29,7 +30,10 @@ type ToolsState = {
   refresh(fresh?: boolean): Promise<void>
   /** Set when the last installed tool was just removed, so the app can offer to delete the data left behind. */
   offerClear: boolean
-  install(id: string): Promise<void>
+  /** `check` asks first whether the newest version keeps the shared store usable for the other installed tools. */
+  install(id: string, options?: { check?: boolean }): Promise<void>
+  /** After the store warning: go ahead, and update `alsoUpdate` in the same queue. */
+  proceed(id: string, alsoUpdate?: readonly string[]): Promise<void>
   /** `deleteBytes` asks to delete the package's own folders too, and only once the uninstall succeeded. */
   uninstall(id: string, deleteBytes?: number): Promise<void>
   cancel(id: string): Promise<void>
@@ -90,7 +94,9 @@ export const useTools = create<ToolsState>((set, get) => {
     if (operation === "uninstall") await deleteData(id)
     if (operation === "install" && get().sessions[id]?.outcome?.event === "done") {
       void useAgents.getState().recheck(id)
-      await useCompat.getState().checkAfterInstall(id, () => installedOf(get().installs))
+      // The owner was already told before the install; the check after it is for versions that could not say.
+      if (!get().sessions[id]?.preflight?.known)
+        await useCompat.getState().checkAfterInstall(id, () => installedOf(get().installs))
     }
     const st = get()
     const nothingLeft = Object.values(st.installs).every((copies) => copies.length === 0)
@@ -122,6 +128,22 @@ export const useTools = create<ToolsState>((set, get) => {
     const session: InstallSession = { operation, step: "queued", log: [], outcome: null, ...(data ? { data } : {}) }
     set((st) => ({ sessions: { ...st.sessions, [id]: session } }))
     return drain()
+  }
+
+  const checkFirst = async (id: string) => {
+    const current = get().sessions[id]
+    if (current && !current.outcome) return
+    set((st) => ({
+      sessions: { ...st.sessions, [id]: { operation: "install", step: "preflight", log: [], outcome: null } },
+    }))
+    const preflight = await platform.storePreflight(id).catch(() => undefined)
+    if (get().sessions[id]?.step !== "preflight") return
+    patchSession(id, (s) => ({
+      ...s,
+      ...(preflight ? { preflight } : {}),
+      step: preflightWarns(preflight) ? "preflight" : "queued",
+    }))
+    await drain()
   }
 
   // Only the real app keeps an answer across starts; the browser build's mock scenarios must each start clean.
@@ -172,7 +194,14 @@ export const useTools = create<ToolsState>((set, get) => {
       }
     },
 
-    install: (id) => enqueue(ownerId(id), "install"),
+    install: (id, options) => (options?.check ? checkFirst(ownerId(id)) : enqueue(ownerId(id), "install")),
+    async proceed(given, alsoUpdate = []) {
+      const id = ownerId(given)
+      if (get().sessions[id]?.step !== "preflight") return
+      patchSession(id, (s) => ({ ...s, step: "queued" }))
+      for (const other of alsoUpdate) void enqueue(ownerId(other), "install")
+      await drain()
+    },
     uninstall: (id, deleteBytes) =>
       enqueue(
         ownerId(id),
@@ -183,6 +212,13 @@ export const useTools = create<ToolsState>((set, get) => {
 
     async cancel(given) {
       const id = ownerId(given)
+      if (get().sessions[id]?.step === "preflight") {
+        set((st) => {
+          const { [id]: _, ...rest } = st.sessions
+          return { sessions: rest }
+        })
+        return
+      }
       if (get().sessions[id]?.step === "queued") {
         patchSession(id, (s) => ({
           ...s,

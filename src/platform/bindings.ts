@@ -44,6 +44,13 @@ export type BotResult =
 /**  The bot's own public name and username, as the messenger reported them; never the token. */
 { outcome: "connected"; name: string | null; username: string | null } | { outcome: "failed"; message: string; code: string | null; reason: string | null };
 
+export type CannotOpen = {
+	/**  The schema the new version reads. */
+	speaks: number,
+	/**  The oldest schema the store file still lets a tool open. */
+	needs: number,
+};
+
 export type CloudflareStatus = {
 	os: Os,
 	/**  cloudflared publishes a build for this computer. */
@@ -295,6 +302,16 @@ export type PathPlan = {
 	automatic: boolean,
 };
 
+/**  What installing the newest version of a tool does to the other installed tools. Empty when it is safe or unknown. */
+export type Preflight = {
+	/**  The version npm installs; None when the registry did not answer. */
+	version: string | null,
+	/**  False when the new version's store metadata is missing: nothing was checked. */
+	known: boolean,
+	cannotOpen: CannotOpen | null,
+	stops: Stops[],
+};
+
 export type Profile = {
 	name: string,
 	/**  What the tool remembers locally; None when the tool does not say. */
@@ -396,6 +413,12 @@ export type Skipped = {
 	at: string,
 	why: string,
 	reason: string | null,
+};
+
+export type Stops = {
+	id: string,
+	/**  The published version of this tool that reads the store afterwards; None when none is out yet. */
+	fixedIn: string | null,
 };
 
 export type SyncEvent = 

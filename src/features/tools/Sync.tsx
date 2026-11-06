@@ -210,7 +210,7 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
             </Button>
           )}
           {a.update && outdated && (
-            <Button size="sm" onClick={() => useTools.getState().install(entry.id)}>
+            <Button size="sm" onClick={() => useTools.getState().install(entry.id, { check: true })}>
               {m.update(entry.name)}
             </Button>
           )}

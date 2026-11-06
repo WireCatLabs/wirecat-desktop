@@ -13,6 +13,19 @@ export type ToolView = {
   problem: string | null
 }
 
+/** What installing a tool's newest version does to the store, as Rust's `store_preflight` worked it out. */
+export type Preflight = {
+  version: string | null
+  /** False when the new version does not say what it does to the store: nothing was checked. */
+  known: boolean
+  cannotOpen: { speaks: number; needs: number } | null
+  /** `fixedIn` is the newest version of that tool, when it reads the store afterwards. */
+  stops: { id: string; fixedIn: string | null }[]
+}
+
+export const preflightWarns = (p: Preflight | undefined): p is Preflight =>
+  Boolean(p && (p.cannotOpen || p.stops.length > 0))
+
 export type Client = { command: string; version: string; speaks: number }
 
 export type StoreCompat = { tools: ToolView[]; clients: Client[] }

@@ -34,6 +34,7 @@ mod package_update;
 mod page_loads;
 mod paths;
 mod permissions;
+mod preflight;
 mod profile;
 mod provenance;
 mod public_address;
@@ -125,6 +126,7 @@ pub fn run() {
             commands::storage::open_folder,
             commands::store::store_info,
             commands::store::store_compat,
+            commands::store::store_preflight,
             commands::store::store_tables,
             commands::store::store_check,
             commands::store::store_backup,

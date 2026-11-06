@@ -85,7 +85,8 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
   const app = useMcpActivity(tool, installed, expanded)
   const sync = useRowSync(tool, installed)
   // The same live progress the setup shows, so an install started there is visible here with the panel shut.
-  const installing = session && !session.outcome && session.operation === "install" ? session : null
+  const installing =
+    session && !session.outcome && session.operation === "install" && session.step !== "preflight" ? session : null
   const lineKind = installing
     ? "install"
     : storageLine
@@ -167,7 +168,9 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               nodeFirst={m.nodeFirst}
               controls={panelId}
               onInstall={() =>
-                nodeReady ? install(tool.id) : focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
+                nodeReady
+                  ? install(tool.id, { check: true })
+                  : focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
               }
               onToggle={() => toggle(tool.id)}
               onCancel={() => cancel(tool.id)}

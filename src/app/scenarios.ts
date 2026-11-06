@@ -98,7 +98,7 @@ export async function runMockScenario() {
   // So `?onboarding=install&install=<tool>[,<tool>…]` shows the same installs on the setup's Install step.
   useOnboarding.setState((s) => ({ chosen: [...new Set([...s.chosen, ...ids])] }))
   await useTools.getState().refresh()
-  for (const id of ids) useTools.getState().install(id)
+  for (const id of ids) useTools.getState().install(id, { check: params.has("store-check") })
 }
 
 // `?search=<tool>` opens Search on that tool's hits, `?search=empty` on a query nothing matches, `?search-fail=query`
