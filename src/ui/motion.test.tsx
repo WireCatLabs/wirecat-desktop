@@ -3,7 +3,7 @@ import { act, render, renderHook, screen } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { AutoHeight } from "./AutoHeight"
 import { Collapse } from "./Collapse"
-import { creep, focusInPlace, MOTION, PANEL_MS, paceStep, usePaced } from "./motion"
+import { creep, focusInPlace, keepBelow, MOTION, PANEL_MS, paceStep, usePaced } from "./motion"
 
 const reduce = (on: boolean) => {
   vi.spyOn(window, "matchMedia").mockImplementation(
@@ -119,6 +119,52 @@ describe("AutoHeight", () => {
     expect(box.style.height).toBe("90px")
     expect(box.style.transition).toBe("")
     vi.restoreAllMocks()
+  })
+})
+
+describe("keepBelow", () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  const page = (scrollTop: number) => {
+    const scroller = document.createElement("main")
+    scroller.style.overflowY = "auto"
+    const line = document.createElement("div")
+    line.textContent = "2 tools need an update"
+    scroller.append(line)
+    document.body.append(scroller)
+    scroller.scrollTop = scrollTop
+    return { scroller, line }
+  }
+  const sized = (line: HTMLElement, size: { height: number }) =>
+    vi.spyOn(line, "offsetHeight", "get").mockImplementation(() => size.height)
+  const settle = () => new Promise((r) => setTimeout(r, 0))
+
+  it("scrolls by what the line above lost or gained, so the content below stays on screen where it was", async () => {
+    const { scroller, line } = page(120)
+    const size = { height: 55 }
+    sized(line, size)
+    const stop = keepBelow(line)
+    size.height = 44
+    line.textContent = "1 tool needs an update"
+    await settle()
+    expect(scroller.scrollTop).toBe(109)
+    size.height = 70
+    line.textContent = "3 tools need an update, and two of them have no newer version yet"
+    await settle()
+    expect(scroller.scrollTop).toBe(135)
+    stop?.()
+  })
+
+  it("leaves the page alone at its top, where there is nothing to give back", async () => {
+    const { scroller, line } = page(0)
+    const size = { height: 55 }
+    sized(line, size)
+    const stop = keepBelow(line)
+    size.height = 44
+    line.textContent = "1 tool needs an update"
+    await settle()
+    expect(scroller.scrollTop).toBe(0)
+    stop?.()
   })
 })
 

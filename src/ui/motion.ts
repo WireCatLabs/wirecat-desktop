@@ -255,3 +255,27 @@ export function useCreep(key: string | null, typicalMs: number): number {
   }, [key])
   return key === null ? 0 : creep(now - began.current.at, typicalMs)
 }
+
+/**
+ * A ref that keeps what is below its element where it is on screen when the element changes height, by scrolling the
+ * same amount: a line above the list that loses a name must not move the row the owner just clicked. Done by hand
+ * because the scroll anchoring some browsers do is missing in others, and anchors on the element itself while it is in
+ * sight. At the top of the page there is nothing to give back, so a line that shrinks there still pulls the page up.
+ */
+export function keepBelow(el: HTMLElement | null) {
+  if (!el || typeof MutationObserver === "undefined") return
+  let { offsetHeight: height, offsetWidth: width } = el
+  // A mutation observer runs right after React's commit, before the frame; a resize observer would leave one frame
+  // drawn with the row moved.
+  const observer = new MutationObserver(() => {
+    const grew = el.offsetHeight - height
+    const resized = el.offsetWidth !== width
+    height = el.offsetHeight
+    width = el.offsetWidth
+    const scroller = scrollerOf(el)
+    if (resized || grew === 0 || !scroller || scroller.scrollTop <= 0) return
+    scroller.scrollTop += grew
+  })
+  observer.observe(el, { childList: true, subtree: true, characterData: true, attributes: true })
+  return () => observer.disconnect()
+}

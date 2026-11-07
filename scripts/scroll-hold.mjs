@@ -211,6 +211,43 @@ cases.push([
   { before: 0, after: edit.moved, jump: Math.max(edit.jump, edit.scrolled), atTop: false },
 ])
 
+// An update that changes the storage line above the list: WhatsApp 0.7 reads the store, so the line loses a name and
+// a line of text. The clicked row stays put until a second after the line changed; the change comes seconds later.
+for (const [name, query] of [
+  ["update a tool that shortens the storage line", ""],
+  ["update a tool that updates another alongside", "&store-check=also-update"],
+]) {
+  await page.goto(`http://localhost:${port}/?onboarding=off&section=tools${query}`)
+  await page.waitForSelector('ul[aria-label="WireCat tools"] button:text-is("Update to 0.7.0")')
+  await page.waitForTimeout(800)
+  const r = await page.evaluate(
+    (y) =>
+      new Promise((done) => {
+        const list = document.querySelector('ul[aria-label="WireCat tools"]')
+        const li = [...list.children].find((row) => row.querySelector("h3")?.textContent.startsWith("WhatsApp"))
+        const main = document.querySelector("main")
+        main.scrollTop += li.getBoundingClientRect().top - y
+        const slot = list.previousElementSibling
+        const text = slot.textContent
+        const before = li.getBoundingClientRect().top
+        ;[...li.querySelectorAll("button")].find((b) => b.textContent.trim() === "Update to 0.7.0").click()
+        const seen = [before]
+        const give = performance.now() + 20000
+        let end = give
+        const tick = () => {
+          seen.push(li.getBoundingClientRect().top)
+          if (end === give && slot.textContent !== text) end = performance.now() + 1000
+          if (performance.now() < end) return requestAnimationFrame(tick)
+          const jump = Math.max(0, ...seen.slice(1).map((t, k) => Math.abs(t - seen[k])))
+          done({ before, after: Math.max(...seen.map((t) => Math.abs(t - before))) + before, jump, atTop: false })
+        }
+        requestAnimationFrame(tick)
+      }),
+    height / 2,
+  )
+  cases.push([name, r])
+}
+
 await browser.close()
 const guideOk = guide.visible && glide <= 80
 console.log(
