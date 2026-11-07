@@ -16,3 +16,5 @@
 - `/home/leemour/Projects/AI/ssign/.claude/worktrees/sync-0111` (branch `sync/upstream-0.1.11`, also on origin): fork alignment with upstream v0.1.11, merged as WireCatLabs/ssign#12; remove worktree and both branches. 2026-11-07
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-registry-notice` (branch `feat/registry-stale-notice`, 3.4 GB `src-tauri/target`; /home was at 100% during its build): NEED-2285 notice; remove the worktree once its PR is merged. 2026-11-08
 - `src-tauri/src/signin.rs` Inputs.password and catalog `signIn.methods[].password`: no method sets it since mail asks the password on stdin (DEBT-32, TASK-132). 2026-11-07
+- `.claude/worktrees/setup-cli-events` (branch `feat/setup-cli-events`): TASK-132 worktree; remove once its PR is merged. 2026-11-07
+- `.claude/worktrees/memo-setup-progress` (branch `feat/memo-setup-progress`): memo part of TASK-132, already cherry-picked into `feat/setup-cli-events`; remove now. 2026-11-07
