@@ -33,8 +33,8 @@ const en = {
   own: "Allow tools WireCat has not checked",
   ownInfo: "About tools WireCat has not checked",
   ownHelp:
-    "Adds Add your own tool to the Tools page: any tool built for WireCat, added by its npm name. WireCat does not " +
-    "review these tools.",
+    "Shows Add your own tool on the Tools page. With it you add a tool built for WireCat by its npm name. WireCat " +
+    "has not checked these tools.",
   ownWarnTitle: "Allow tools WireCat has not checked?",
   ownWarn: [
     "A tool you add this way gets access to all your personal data that WireCat holds: your messages, mail, notes and files.",
@@ -46,6 +46,7 @@ const en = {
   ownOnNext: "Add your own tool is now on the Tools page. Tools you added appear the next time WireCat starts.",
   ownOffNext: "Your own tools disappear the next time WireCat starts. Installed ones stay installed.",
   ownFlag: "WIRECAT_EXTRA_TOOLS=1 is set, so your own tools are read whatever this switch says.",
+  ownDocs: "How it works",
   leftOut: "Left out when WireCat started:",
   restart: "Restart now",
 }
@@ -81,8 +82,8 @@ const ru: typeof en = {
   own: "Разрешить инструменты, которые WireCat не проверял",
   ownInfo: "Об инструментах, которые WireCat не проверял",
   ownHelp:
-    "Добавляет на страницу «Инструменты» кнопку «Добавить свой инструмент»: любой инструмент для WireCat по его " +
-    "имени в npm. WireCat такие инструменты не проверяет.",
+    "Показывает кнопку «Добавить свой инструмент» на странице «Инструменты». Через неё можно добавить инструмент " +
+    "для WireCat по его имени в npm. WireCat такие инструменты не проверял.",
   ownWarnTitle: "Разрешить инструменты, которые WireCat не проверял?",
   ownWarn: [
     "Инструмент, добавленный так, получает доступ ко всем вашим личным данным в WireCat: сообщениям, почте, заметкам и файлам.",
@@ -95,6 +96,7 @@ const ru: typeof en = {
     "Кнопка «Добавить свой инструмент» уже на странице «Инструменты». Добавленные инструменты появятся при следующем запуске WireCat.",
   ownOffNext: "Ваши инструменты исчезнут при следующем запуске WireCat. Установленные останутся.",
   ownFlag: "Задано WIRECAT_EXTRA_TOOLS=1, поэтому ваши инструменты читаются при любом положении переключателя.",
+  ownDocs: "Как это работает",
   leftOut: "Не добавлены при запуске WireCat:",
   restart: "Перезапустить",
 }
@@ -132,8 +134,8 @@ const es: typeof en = {
   own: "Permitir herramientas que WireCat no ha revisado",
   ownInfo: "Sobre las herramientas que WireCat no ha revisado",
   ownHelp:
-    "Añade el botón Añadir tu propia herramienta a la página Herramientas: cualquier herramienta hecha para WireCat, " +
-    "por su nombre en npm. WireCat no revisa estas herramientas.",
+    "Muestra Añadir tu propia herramienta en la página Herramientas. Con él añades una herramienta hecha para " +
+    "WireCat por su nombre en npm. WireCat no ha revisado estas herramientas.",
   ownWarnTitle: "¿Permitir herramientas que WireCat no ha revisado?",
   ownWarn: [
     "Una herramienta añadida así obtiene acceso a todos tus datos personales en WireCat: tus mensajes, correo, notas y archivos.",
@@ -146,6 +148,7 @@ const es: typeof en = {
     "Añadir tu propia herramienta ya está en la página Herramientas. Las herramientas añadidas aparecerán la próxima vez que se inicie WireCat.",
   ownOffNext: "Tus herramientas desaparecerán la próxima vez que se inicie WireCat. Las instaladas se quedan.",
   ownFlag: "WIRECAT_EXTRA_TOOLS=1 está definido, así que tus herramientas se leen sea cual sea este interruptor.",
+  ownDocs: "Cómo funciona",
   leftOut: "Excluidas al iniciar WireCat:",
   restart: "Reiniciar ahora",
 }

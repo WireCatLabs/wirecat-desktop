@@ -19,6 +19,9 @@ import { ToolRow } from "./ToolRow"
 import { ToolsIntro } from "./ToolsIntro"
 import { UpgradeWarning } from "./UpgradeWarning"
 
+const headerAction =
+  "inline-flex items-center gap-1.5 rounded-[0.35rem] px-2 py-1 text-[0.875rem] text-ink-dim transition-colors hover:bg-app-3 hover:text-ink disabled:opacity-60"
+
 export function ToolsPage() {
   const m = useMessages(toolsMessages).page
   const refreshing = useTools((s) => s.refreshing)
@@ -51,16 +54,19 @@ export function ToolsPage() {
             )}
           </p>
         </div>
-        <button
-          type="button"
-          data-tour="check-again"
-          onClick={() => useTools.getState().refresh(true)}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 rounded-[0.35rem] px-2 py-1 text-[0.875rem] text-ink-dim transition-colors hover:bg-app-3 hover:text-ink disabled:opacity-60"
-        >
-          <RefreshCw className={cx("size-4", refreshing && "animate-spin")} aria-hidden />
-          <StableText value={refreshing ? m.checking : m.checkAgain} variants={[m.checkAgain, m.checking]} />
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <AddOwnTool className={headerAction} />
+          <button
+            type="button"
+            data-tour="check-again"
+            onClick={() => useTools.getState().refresh(true)}
+            disabled={refreshing}
+            className={headerAction}
+          >
+            <RefreshCw className={cx("size-4", refreshing && "animate-spin")} aria-hidden />
+            <StableText value={refreshing ? m.checking : m.checkAgain} variants={[m.checkAgain, m.checking]} />
+          </button>
+        </div>
       </div>
 
       <ToolsIntro />
@@ -94,7 +100,6 @@ export function ToolsPage() {
         ))}
       </ul>
 
-      <AddOwnTool />
       <OwnToolDialog />
 
       <UpgradeWarning />

@@ -23,7 +23,6 @@ import { InstallPanel } from "./InstallPanel"
 import { InstallLine } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
 import { ownMessages } from "./messages-own"
-import { useOwnDialog } from "./own-store"
 import { fitLabel, fitLine, useLatestKnown } from "./StorageFit"
 import { RowSyncButton, RowSyncLine, useRowSync } from "./Sync"
 import { ToolDetails } from "./ToolDetails"
@@ -175,9 +174,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               onInstall={() =>
                 !nodeReady
                   ? focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
-                  : isOwn(tool)
-                    ? useOwnDialog.getState().show({ pkg: tool.package, name: tool.name })
-                    : install(tool.id, { check: true })
+                  : install(tool.id, { check: true })
               }
               onToggle={() => toggle(tool.id)}
               onCancel={() => cancel(tool.id)}

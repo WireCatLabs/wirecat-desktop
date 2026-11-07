@@ -24,3 +24,11 @@ it("turns on only after its warning is confirmed", async () => {
   expect(save).toHaveBeenCalledWith(true)
   expect(box).toBeChecked()
 })
+
+it("opens the docs section on adding your own tool", async () => {
+  vi.spyOn(platform, "ownToolsStatus").mockResolvedValue({ allowed: false, flag: false, added: 0 })
+  const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+  render(<OwnToolsSetting />)
+  await userEvent.click(await screen.findByRole("button", { name: "How it works" }))
+  expect(open).toHaveBeenCalledWith("https://wirecat.dev/en/docs/desktop#add-your-own-tool")
+})
