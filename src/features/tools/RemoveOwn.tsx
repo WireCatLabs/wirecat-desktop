@@ -3,6 +3,7 @@ import { useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
@@ -30,7 +31,10 @@ export function RemoveOwn({
     setAsking(false)
     setError(null)
     platform.ownToolRemove(tool.id).then(
-      () => setRemoved(true),
+      () => {
+        setRemoved(true)
+        void useTools.getState().refresh(true)
+      },
       (e) => setError(String(e)),
     )
   }

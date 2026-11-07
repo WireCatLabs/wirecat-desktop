@@ -142,7 +142,7 @@ const ToolSchema = v.object({
       run: v.nullable(v.array(v.string())),
       last: v.nullable(v.array(v.string())),
       lastShape: v.picklist(["runs", "driveStatus"]),
-      what: v.picklist(["messages", "files", "meetings", "notes and mail", "mail"]),
+      what: v.picklist(["messages", "files", "meetings", "notes and mail", "mail", "records"]),
       note: v.nullable(v.string()),
     }),
   ),

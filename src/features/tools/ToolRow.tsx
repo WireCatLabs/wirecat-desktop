@@ -175,8 +175,10 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               onInstall={() =>
                 !nodeReady
                   ? focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
-                  : isOwn(tool) && status.kind === "outdated"
-                    ? useOwnDialog.getState().show({ pkg: tool.package, name: tool.name })
+                  : isOwn(tool)
+                    ? useOwnDialog
+                        .getState()
+                        .show({ pkg: tool.package, name: tool.name, installed: status.kind === "outdated" })
                     : install(tool.id, { check: true })
               }
               onToggle={() => toggle(tool.id)}

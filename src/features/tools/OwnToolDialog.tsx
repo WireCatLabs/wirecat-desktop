@@ -6,6 +6,7 @@ import type { InstallSession } from "@/domain/status"
 import { useMessages } from "@/i18n"
 import type { OwnRefusal, OwnReview } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
@@ -55,7 +56,7 @@ export function OwnToolDialog() {
       const problem = entryProblem(found.review.entry)
       if (problem) return setStep({ kind: "refused", pkg: name, refusal: { kind: "entry", problem } })
       // An update that asks for nothing new needs no second look; a new repository or new writes does.
-      if (found.review.update && !found.review.update.confirm) return install(found.review)
+      if (update?.installed && found.review.update && !found.review.update.confirm) return install(found.review)
       setStep({ kind: "review", review: found.review })
     } catch (e) {
       setStep({ kind: "refused", pkg: name, refusal: { kind: "offline", detail: String(e) } })
@@ -68,6 +69,7 @@ export function OwnToolDialog() {
       setStep((s) => (s.kind === "installing" ? { ...s, session: f(s.session) } : s))
     platform
       .ownToolAdd(review.token, (e) => apply((s) => applyInstallEvent(s, e)))
+      .then(() => useTools.getState().refresh(true))
       .catch((e) =>
         apply((s) => ({ ...s, outcome: { event: "failed", reason: "failed", message: String(e), hint: null } })),
       )
