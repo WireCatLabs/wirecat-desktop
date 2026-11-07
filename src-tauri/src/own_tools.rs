@@ -65,7 +65,10 @@ pub struct Manifest {
     #[serde(rename = "wcat_manifest")]
     pub format: u32,
     pub name: String,
-    pub version: String,
+    /// Dropped from the manifest in cli-base#514: npm's version is the one checked. An older manifest that still names
+    /// one must name npm's.
+    #[serde(default)]
+    pub version: Option<String>,
     #[serde(default)]
     pub description: String,
     #[serde(default)]
@@ -391,8 +394,12 @@ pub fn review(
     {
         return Err(bad("bin", format!("the package installs no program named {}.", manifest.bin)));
     }
-    let entry = entry_of(&manifest, &view, repo.as_deref())?;
+    let mut entry = entry_of(&manifest, &view, repo.as_deref())?;
     let previous = previous_entry(saved, package);
+    if entry["mcpServer"].is_object() {
+        let kept = previous.as_ref().and_then(|old| old["mcpServer"]["port"].as_u64());
+        entry["mcpServer"]["port"] = json!(port_for(catalog, saved, package, kept)?);
+    }
     let mut taken = Taken::of(catalog, Some(package));
     for other in community::file_entries(saved).unwrap_or_default() {
         if other["package"] != package
@@ -405,7 +412,6 @@ pub fn review(
 
     let access =
         if sha.is_some() { access_of(&manifest.commands) } else { Access { unknown: true, ..Access::default() } };
-    let mut entry = entry;
     entry["own"] = json!({
         "version": version,
         "changes": access.changes,
@@ -435,6 +441,24 @@ pub fn review(
         entry: entry.clone(),
     };
     Ok(Reviewed { tool, entry, version, manifest_sha256: sha, review })
+}
+
+const FIRST_PORT: u64 = 8770;
+const LAST_PORT: u64 = 8999;
+
+/// The manifest names no port: two tools' servers on one port would collide, so Desktop picks one no catalog tool and
+/// no other entry uses, and an update keeps the one it had.
+fn port_for(catalog: &Catalog, saved: &str, package: &str, kept: Option<u64>) -> Result<u64, Refusal> {
+    let official: Value = serde_json::from_str(include_str!("../../catalog/tools.json")).unwrap_or_default();
+    let mut entries: Vec<Value> = official["tools"].as_array().cloned().unwrap_or_default();
+    entries.extend(catalog.extra.tools.iter().map(|t| t.entry.clone()));
+    entries.extend(community::file_entries(saved).unwrap_or_default());
+    let used: Vec<u64> =
+        entries.iter().filter(|e| e["package"] != package).filter_map(|e| e["mcpServer"]["port"].as_u64()).collect();
+    kept.into_iter()
+        .chain(FIRST_PORT..=LAST_PORT)
+        .find(|p| !used.contains(p))
+        .ok_or_else(|| bad("mcpServer", "no free port is left for its MCP server."))
 }
 
 fn token(package: &str) -> String {
@@ -518,8 +542,8 @@ pub fn parse_manifest(raw: &[u8], package: &str, version: &str) -> Result<Manife
     if m.package != package {
         return Err(bad("package", format!("the manifest is for {}, not {package}.", m.package)));
     }
-    if m.version != version {
-        return Err(bad("version", format!("the manifest is for version {}, not {version}.", m.version)));
+    if let Some(named) = m.version.as_deref().filter(|named| *named != version) {
+        return Err(bad("version", format!("the manifest is for version {named}, not {version}.")));
     }
     for c in &m.commands {
         if c.path.is_empty() || !c.path.iter().all(|w| community::plain_word(w)) {
@@ -543,7 +567,7 @@ fn pasted_manifest(text: &str, package: &str, version: &str, view: &Value) -> Re
     Ok(Manifest {
         format: 2,
         name: desktop["name"].as_str().map_or_else(|| package.rsplit('/').next().unwrap_or(package).into(), Into::into),
-        version: version.into(),
+        version: Some(version.into()),
         description: view["description"].as_str().unwrap_or_default().into(),
         docs_url: None,
         package: package.into(),
@@ -578,9 +602,6 @@ fn entry_of(m: &Manifest, view: &Value, repo: Option<&str>) -> Result<Value, Ref
     }
     if !entry["storage"].is_object() {
         return Err(bad("storage", "the data folder name and variable prefix are missing."));
-    }
-    if !entry["mcpServer"].is_null() && !entry["mcpServer"]["port"].is_u64() {
-        return Err(bad("mcpServer", "the MCP server needs a port."));
     }
     let id: String = m.name.chars().filter(char::is_ascii_alphabetic).map(|c| c.to_ascii_lowercase()).collect();
     if !(2..=16).contains(&id.len()) {
@@ -745,7 +766,6 @@ mod tests {
         json!({
             "wcat_manifest": 2,
             "name": "acme-crm",
-            "version": "0.3.0",
             "description": "Contacts and deals from Acme CRM.",
             "docs_url": "https://example.com/acme-crm",
             "package": "@example/acme-crm-cli",
@@ -980,6 +1000,27 @@ mod tests {
         let change = wider.review.update.unwrap();
         assert_eq!(change.new_writes, ["contacts delete"]);
         assert!(change.confirm);
+    }
+
+    #[test]
+    fn an_mcp_server_gets_a_port_no_other_tool_uses_and_keeps_it_on_update() {
+        let words = json!(["mcp", "server", "start", "--port", "{port}", "--json"]);
+        let with_server = with_desktop(
+            "mcpServer",
+            json!({ "start": words, "stop": ["mcp", "server", "stop"], "status": ["mcp", "server", "status"],
+                "revoke": ["mcp", "revoke"], "config": null }),
+        );
+        let first = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), "").unwrap();
+        assert_eq!(first.entry["mcpServer"]["port"], FIRST_PORT, "8765-8769 are the catalog's");
+        let other = json!({ "package": "@example/other", "mcpServer": { "port": FIRST_PORT } });
+        let saved = json!({ "version": 1, "tools": [other] }).to_string();
+        let second = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), &saved);
+        assert_eq!(second.unwrap().entry["mcpServer"]["port"], FIRST_PORT + 1);
+        let mut kept = first.entry.clone();
+        kept["mcpServer"]["port"] = json!(8900);
+        let saved = json!({ "version": 1, "tools": [kept] }).to_string();
+        let update = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), &saved);
+        assert_eq!(update.unwrap().entry["mcpServer"]["port"], 8900);
     }
 
     #[test]
