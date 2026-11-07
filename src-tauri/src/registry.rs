@@ -344,6 +344,46 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "fetches the live list from wirecat.dev"]
+    fn registry_live() {
+        let key = key().expect("this build has the real registry key, not the placeholder");
+        let dir = temp_dir("live");
+        let version = refresh(&dir, &key, Utc::now(), fetch).expect("the live list passes");
+        let kept = read_cache(&dir, &key).unwrap();
+        let days = (kept.expires_at - Utc::now()).num_days();
+        println!(
+            "live list: version {version}, expires {} ({days} days left), {} tools",
+            kept.expires_at,
+            kept.tools.len()
+        );
+        assert!(days >= 1, "the live list expires within a day");
+        assert_eq!(cached(&dir, &key, Utc::now()).unwrap().len(), kept.tools.len());
+
+        let offline = |_: &str, _: usize| -> Result<Vec<u8>, String> { Err("offline".into()) };
+        assert!(refresh(&dir, &key, Utc::now(), offline).is_err());
+        assert_eq!(cached(&dir, &key, Utc::now()).unwrap().len(), kept.tools.len(), "the kept copy works offline");
+
+        let list = std::fs::read(dir.join(LIST)).unwrap();
+        let sig = std::fs::read_to_string(dir.join(SIG)).unwrap();
+        let mut changed = list.clone();
+        changed[list.len() / 2] ^= 1;
+        let fresh = temp_dir("live-changed");
+        let err = refresh(&fresh, &key, Utc::now(), served(changed, sig.clone())).unwrap_err();
+        assert!(err.contains("does not match"), "{err}");
+        assert!(!fresh.exists(), "nothing is kept from a changed list");
+
+        let after = kept.expires_at + chrono::Duration::seconds(1);
+        let fresh = temp_dir("live-expired");
+        assert!(refresh(&fresh, &key, after, served(list.clone(), sig.clone())).unwrap_err().contains("expired"));
+        assert!(cached(&dir, &key, after).unwrap_err().contains("expired"));
+
+        // No newer list signed with the real key exists, so the kept floor is raised instead.
+        let err = accept(open(&list, &sig, &key).unwrap(), Utc::now(), version + 1).unwrap_err();
+        assert!(err.contains("older"), "{err}");
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
     fn checks_at_most_once_a_day() {
         let dir = temp_dir("due");
         assert!(due(&dir, now()));
