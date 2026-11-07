@@ -4,7 +4,6 @@ import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import { act, fireEvent, render, renderHook, screen, waitFor } from "@/testing/render"
 import { useProfiles } from "./api"
-import { BackgroundLine } from "./Background"
 import { Health } from "./Health"
 import { Permissions } from "./Permissions"
 
@@ -83,15 +82,5 @@ describe("a tool's permissions", () => {
     expect(await screen.findByRole("list", { name: "Telegram permissions" })).toBeInTheDocument()
     expect(screen.queryByText(/Could not read permissions/)).not.toBeInTheDocument()
     expect(show).toHaveBeenCalledTimes(2)
-  })
-})
-
-describe("a messenger's background line", () => {
-  it("stays hidden while the tool answers and when the check fails", async () => {
-    const status = vi.spyOn(platform, "backgroundStatus").mockRejectedValue(new Error("no systemd"))
-    render(<BackgroundLine tool={tg} profile="personal" />)
-    expect(screen.queryByText("Not kept up to date in the background")).not.toBeInTheDocument()
-    await waitFor(() => expect(status).toHaveBeenCalled())
-    expect(screen.queryByText("Not kept up to date in the background")).not.toBeInTheDocument()
   })
 })

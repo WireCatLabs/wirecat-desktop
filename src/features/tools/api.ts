@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { platform } from "@/platform/bridge"
-import type { Background } from "@/platform/sync-schemas"
+import type { Background, BackgroundAction } from "@/platform/sync-schemas"
 import { profilesQuery } from "@/shared/query"
 
 export const toolKeys = {
@@ -20,20 +20,30 @@ export function useProfiles(id: string) {
   }
 }
 
-/** Whether the tool's own `serve` runs for a profile; a failed check reads as "cannot say". */
+/**
+ * Whether the tool's own `serve` runs for a profile; a failed check reads as "cannot say". It asks again when the window
+ * regains focus, and every 5 s only while the server runs but has not reached the messenger yet.
+ */
 export function useBackground(id: string, profile: string) {
   const q = useQuery({
     queryKey: toolKeys.background(id, profile),
     queryFn: () => platform.backgroundStatus(id, profile),
+    refetchInterval: (query) => {
+      const s = query.state.data
+      return s?.state === "running" && s.connected === false ? 5000 : false
+    },
   })
-  return q.isError ? ({ state: "unknown" } satisfies Background) : (q.data ?? null)
+  return {
+    state: q.isError ? ({ state: "unknown" } satisfies Background) : (q.data ?? null),
+    recheck: () => void q.refetch(),
+  }
 }
 
-export function useKeepBackground(id: string, profile: string) {
+export function useRunBackground(id: string, profile: string) {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: () => platform.backgroundKeep(id, profile),
-    onSuccess: (state) => client.setQueryData(toolKeys.background(id, profile), state),
+    mutationFn: (action: BackgroundAction) => platform.backgroundRun(id, profile, action),
+    onSuccess: (outcome) => client.setQueryData(toolKeys.background(id, profile), outcome.state),
   })
 }
 

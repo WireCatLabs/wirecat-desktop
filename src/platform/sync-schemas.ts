@@ -1,1 +1,10 @@
-export type { Background, LastSync, SyncEvent, SyncSummary } from "./bindings"
+export type {
+  Background,
+  BackgroundAction,
+  BackgroundFault,
+  BackgroundFaultKind,
+  BackgroundOutcome,
+  LastSync,
+  SyncEvent,
+  SyncSummary,
+} from "./bindings"

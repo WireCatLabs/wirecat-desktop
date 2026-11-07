@@ -9,11 +9,44 @@ export type Area = {
 	usedBy: string[],
 };
 
-export type Background = { state: "running" } | 
-/**  `unit`: whether a systemd unit or launchd agent is written; `None` where the tool reports none. */
-{ state: "stopped"; unit: boolean | null } | 
+export type Background = 
+/**  `connected`: whether serve has reached the messenger yet, `None` where the tool does not say. */
+{ state: "running"; connected: boolean | null; startsAtLogin: boolean | null } | 
+/**
+ *  `unit`: whether a systemd unit or launchd agent is written; `stopped_for`: the tool's reason id when it gave up
+ *  and will not restart by itself (`authentication_error`).
+ */
+{ state: "stopped"; unit: boolean | null; startsAtLogin: boolean | null; stoppedFor: string | null } | 
 /**  A tool too old to have `server`, or an answer in another shape: the page says nothing. */
 { state: "unknown" };
+
+/**  What the interface may ask. Each maps to words in the catalog; nothing else reaches a shell. */
+export type BackgroundAction = 
+/**  Writes the unit when there is none (or it does not start at login), then starts. */
+"keep" | "start" | "stop" | 
+/**  Stops first when it runs, then removes the unit. */
+"uninstall";
+
+export type BackgroundFault = {
+	kind: BackgroundFaultKind,
+	/**  The tool's own words, masked. */
+	message: string,
+};
+
+export type BackgroundFaultKind = 
+/**  `systemctl --user` or `launchctl` did not answer. */
+"managerMissing" | 
+/**  Another process holds the account's one connection. */
+"loginInUse" | 
+/**  The login is gone or was never made. */
+"notSignedIn" | 
+/**  The tool has no `server` command yet. */
+"tooOld" | "permission" | "other";
+
+export type BackgroundOutcome = {
+	state: Background,
+	fault: BackgroundFault | null,
+};
 
 export type BackupEvent = { event: "copying"; done: number; total: number } | { event: "compressing"; done: number; total: number } | 
 /**  The tool copies beside the store and seals in one run, printing nothing; there is no progress to show. */

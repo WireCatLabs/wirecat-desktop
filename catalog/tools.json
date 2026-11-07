@@ -303,7 +303,9 @@
       "background": {
         "status": ["{profile}", "server", "status", "--no-record", "--json"],
         "install": ["{profile}", "server", "install", "--json"],
-        "start": ["{profile}", "server", "start", "--json"]
+        "start": ["{profile}", "server", "start", "--json"],
+        "stop": ["{profile}", "server", "stop", "--json"],
+        "uninstall": ["{profile}", "server", "uninstall", "--json"]
       },
       "sync": {
         "run": ["{profile}", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"],
@@ -703,7 +705,9 @@
       "background": {
         "status": ["{profile}", "server", "status", "--no-record", "--json"],
         "install": ["{profile}", "server", "install", "--json"],
-        "start": ["{profile}", "server", "start", "--json"]
+        "start": ["{profile}", "server", "start", "--json"],
+        "stop": ["{profile}", "server", "stop", "--json"],
+        "uninstall": ["{profile}", "server", "uninstall", "--json"]
       },
       "sync": {
         "run": ["{profile}", "messages", "sync", "--all", "--timeout", "120m", "--record", "--json"],
@@ -1102,14 +1106,16 @@
       "background": {
         "status": ["{profile}", "server", "status", "--no-record", "--json"],
         "install": ["{profile}", "server", "install", "--json"],
-        "start": ["{profile}", "server", "start", "--json"]
+        "start": ["{profile}", "server", "start", "--json"],
+        "stop": ["{profile}", "server", "stop", "--json"],
+        "uninstall": ["{profile}", "server", "uninstall", "--json"]
       },
       "sync": {
         "run": null,
         "last": null,
         "lastShape": "runs",
         "what": "messages",
-        "note": "WhatsApp sends new messages while `wa {profile} serve` runs; there is no sync to start."
+        "note": "WhatsApp has no sync to start. New messages arrive while its background service runs: see Background service below."
       },
       "names": [
         ["{profile}", "chats", "list", "--offline", "--all", "--no-record", "--json"],

@@ -229,7 +229,7 @@ function createTauri(): Platform {
     syncStop: (id, profile) => invoke("sync_stop", { id, profile }),
     syncLast: (id, profile) => invoke("sync_last", { id, profile }),
     backgroundStatus: (id, profile) => invoke("background_status", { id, profile }),
-    backgroundKeep: (id, profile) => invoke("background_keep", { id, profile }),
+    backgroundRun: (id, profile, action) => invoke("background_run", { id, profile, action }),
     mailAgentStatus: (id) => invoke("mail_agent_status", { id }),
     mailAgentSet: (id, on) => invoke("mail_agent_set", { id, on }),
     mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
