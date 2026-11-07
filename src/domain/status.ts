@@ -1,4 +1,4 @@
-import type { Preflight } from "./compat"
+import { type Preflight, preflightWarns } from "./compat"
 import type { NpmProgress } from "./install-progress"
 
 export type InstallStep = "preflight" | "queued" | "check" | "install" | "remove" | "verify"
@@ -74,6 +74,9 @@ export type InstallSession = {
 }
 
 export type VerifyCheck = "path" | "start" | "skills"
+
+/** Held by the store check's warning: nothing runs until the owner answers, so it is neither installing nor queued. */
+export const asksOwner = (s: InstallSession) => s.step === "preflight" && preflightWarns(s.preflight)
 
 export type ToolStatus =
   | { kind: "checking" }

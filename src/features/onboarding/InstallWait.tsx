@@ -65,7 +65,7 @@ function useTick(active: boolean) {
 
 /** The whole batch at a glance: one figure, one bar split per tool, and a rough time left. */
 export function InstallOverview({ chosen }: { chosen: readonly string[] }) {
-  const w = useMessages(onboardingMessages).wait
+  const { wait: w, install: im } = useMessages(onboardingMessages)
   const items = useBatchItems(chosen)
   const started = items.some((i) => i.session)
   const b = batch(items, useTick(started))
@@ -80,7 +80,9 @@ export function InstallOverview({ chosen }: { chosen: readonly string[] }) {
       ? `${w.installing(name)} · ${w.of(b.current, b.total)}`
       : left
         ? w.waiting
-        : w.finished(b.finished - b.failed)
+        : b.asking > 0
+          ? im.asked
+          : w.finished(b.finished - b.failed)
   const sub = !left
     ? b.failed > 0
       ? w.failed(b.failed)

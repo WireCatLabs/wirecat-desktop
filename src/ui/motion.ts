@@ -274,6 +274,8 @@ export function keepBelow(el: HTMLElement | null) {
     width = el.offsetWidth
     const scroller = scrollerOf(el)
     if (resized || grew === 0 || !scroller || scroller.scrollTop <= 0) return
+    // Below the visible part, the line moves nothing on screen; scrolling would move what the owner is reading.
+    if (el.getBoundingClientRect().top >= scroller.getBoundingClientRect().bottom) return
     scroller.scrollTop += grew
   })
   observer.observe(el, { childList: true, subtree: true, characterData: true, attributes: true })

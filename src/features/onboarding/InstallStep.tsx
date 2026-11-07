@@ -1,9 +1,8 @@
 import { Check, CheckCircle2, RefreshCw } from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { type CatalogTool, ownerId, tools } from "@/domain/catalog"
-import { preflightWarns } from "@/domain/compat"
 import { installOverview, installPhase, type RowPhase, restartCommand, toQueue } from "@/domain/onboarding-flow"
-import { toolStatus } from "@/domain/status"
+import { asksOwner, toolStatus } from "@/domain/status"
 import { FixButton, FixPanel } from "@/features/fix"
 import { NodeNotice } from "@/features/system"
 import {
@@ -64,7 +63,7 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
   let tone: LampTone = "idle"
   let text: ReactNode = m.notInstalled
   let detail: ReactNode = null
-  const asks = session?.step === "preflight" && preflightWarns(session.preflight)
+  const asks = Boolean(session && asksOwner(session))
   if (status.kind === "checking") text = m.checking
   else if (session?.step === "preflight") {
     tone = asks ? "warn" : "idle"

@@ -133,6 +133,8 @@ describe("keepBelow", () => {
     scroller.append(line)
     document.body.append(scroller)
     scroller.scrollTop = scrollTop
+    scroller.getBoundingClientRect = () => ({ top: 0, bottom: 600 }) as DOMRect
+    line.getBoundingClientRect = () => ({ top: 100, bottom: 155 }) as DOMRect
     return { scroller, line }
   }
   const sized = (line: HTMLElement, size: { height: number }) =>
@@ -152,6 +154,19 @@ describe("keepBelow", () => {
     line.textContent = "3 tools need an update, and two of them have no newer version yet"
     await settle()
     expect(scroller.scrollTop).toBe(135)
+    stop?.()
+  })
+
+  it("leaves the page alone when the line is below the visible part", async () => {
+    const { scroller, line } = page(120)
+    line.getBoundingClientRect = () => ({ top: 700, bottom: 755 }) as DOMRect
+    const size = { height: 55 }
+    sized(line, size)
+    const stop = keepBelow(line)
+    size.height = 44
+    line.textContent = "1 tool needs an update"
+    await settle()
+    expect(scroller.scrollTop).toBe(120)
     stop?.()
   })
 

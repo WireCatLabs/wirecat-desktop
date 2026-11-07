@@ -216,12 +216,21 @@ describe("the store check before installing", () => {
     const alert = await within(installRow(DRIVE)).findByRole("alert")
     expect(alert).toHaveTextContent(sm.title("install", `${DRIVE} 0.30.0`))
     expect(within(installRow(DRIVE)).getByText(m.install.asked)).toBeInTheDocument()
+    expect(overviewBar().getAttribute("aria-valuetext")).toBe(m.install.asked)
     expect(within(alert).getByRole("button", { name: sm.notNow })).toHaveFocus()
     expect(npm.started).toEqual([])
 
     await user.click(within(alert).getByRole("button", { name: sm.anyway("install") }))
     await npm.whenStarted("drive")
     await waitFor(() => expect(primaryButton(m.flow.continue)).toHaveFocus())
+  })
+
+  it("does not tell later steps that a tool waiting for the answer is still installing", async () => {
+    const { user } = await installFromChoose(["drive"], { preflight: cannotOpen })
+    await within(installRow(DRIVE)).findByRole("alert")
+    await user.click(primaryButton(m.flow.continue))
+    expect(currentStep()).toBe("agents")
+    expect(screen.queryByText(new RegExp(pm.still(DRIVE, "", 0)))).not.toBeInTheDocument()
   })
 
   it("leaves the tool out on Not now and asks again on Install the rest", async () => {

@@ -1,4 +1,4 @@
-import type { InstallSession, VerifyCheck } from "./status"
+import { asksOwner, type InstallSession, type VerifyCheck } from "./status"
 
 /**
  * How long one tool install takes before this batch has timed one of its own. Replaced by the batch's own average
@@ -36,6 +36,8 @@ export type Batch = {
   /** null while nothing runs or waits. */
   remainingMs: number | null
   failed: number
+  /** Tools held until the owner answers the store check's warning. */
+  asking: number
 }
 
 /** What one tool's install is doing now, with npm's own counts where it reports them. */
@@ -95,7 +97,9 @@ export function batch(items: readonly BatchItem[], now: number): Batch {
   const finished = items.filter((i) => i.session?.outcome || (!i.session && i.installed)).length
   const failed = items.filter((i) => i.session?.outcome?.event === "failed").length
   const runningAt = items.findIndex((i) => i.session && !i.session.outcome && !waits(i.session))
-  const waiting = items.filter((i) => i.session && !i.session.outcome && waits(i.session)).length
+  const open = items.flatMap((i) => (i.session && !i.session.outcome ? [i.session] : []))
+  const asking = open.filter(asksOwner).length
+  const waiting = open.filter((s) => waits(s) && !asksOwner(s)).length
 
   const timed = items.flatMap((i) => (i.session?.outcome?.event === "done" ? [tookMs(i.session)] : []))
   const known = timed.filter((ms): ms is number => ms !== null)
@@ -114,7 +118,7 @@ export function batch(items: readonly BatchItem[], now: number): Batch {
     remainingMs = Math.max(0, current + waiting * perTool)
   }
 
-  return { fraction, total, finished, current: runningAt >= 0 ? runningAt + 1 : null, remainingMs, failed }
+  return { fraction, total, finished, current: runningAt >= 0 ? runningAt + 1 : null, remainingMs, failed, asking }
 }
 
 export type Remaining = { kind: "almost" } | { kind: "underMinute" } | { kind: "minutes"; n: number }
