@@ -87,8 +87,17 @@ export function McpServer({ tool }: { tool: CatalogTool }) {
   const [route, setRoute] = useState<TunnelRoute | null>(null)
 
   // Only funnels and tunnel routes the app set up; a missing Tailscale or cloudflared simply has none.
+  const gone = useRef(false)
+  useEffect(() => {
+    gone.current = false
+    return () => {
+      gone.current = true
+      calls.current++
+    }
+  }, [])
   const loadFunnels = useCallback(async () => {
     const [f, r] = await Promise.allSettled([platform.tailscaleFunnels(), platform.cloudflareRoutes()])
+    if (gone.current) return
     setFunnels(f.status === "fulfilled" ? f.value.filter((x) => x.tool === tool.id) : [])
     setRoute(r.status === "fulfilled" ? (r.value.find((x) => x.tool === tool.id) ?? null) : null)
   }, [tool.id])

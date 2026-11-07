@@ -9,3 +9,4 @@
 - `.claude/worktrees/store-check-gaps` (branch `fix/store-check-gaps`): worktree for the setup store check and the storage-line row shift; remove once its PR is merged. 2026-11-07
 - `/home/leemour/Projects/AI/ssign/.claude/worktrees/upstream-held` (branch `upstream/windows-held-file`): source of Le-Syl21/ssign#21; remove after it merges or closes. 2026-11-07
 - `.claude/worktrees/journal-2276` (branch `docs/journal-need-2276`): journal PR; remove once merged. 2026-11-07
+- `.claude/worktrees/mcp-teardown` (branch `fix/mcpserver-teardown`): FIND-219 fix; remove once merged. 2026-11-07
