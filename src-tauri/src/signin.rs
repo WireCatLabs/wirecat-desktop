@@ -16,6 +16,8 @@ pub const GRACE: Duration = Duration::from_secs(5);
 /// The code renews until someone scans it, then the phone's history can take minutes on a large account; a code sent
 /// by Telegram or a page approved in the browser fits inside it too.
 const TIMEOUT: Duration = Duration::from_mins(15);
+/// The code a run past `TIMEOUT` fails with; not `timeout`, which the tools use for a QR code nobody scanned.
+pub const TOOK_TOO_LONG: &str = "took_too_long";
 
 pub type Answer = zeroize::Zeroizing<String>;
 
@@ -211,15 +213,17 @@ fn finish(
             Some(code) => format!("{name} stopped with exit code {code} and said nothing about the sign-in."),
             None => format!("{name} was stopped by the system before the sign-in finished."),
         }),
-        (Err(RunError::TimedOut), _) => {
-            failed(format!("The sign-in took longer than {} minutes.", TIMEOUT.as_secs() / 60))
-        }
+        (Err(RunError::TimedOut), _) => SignInEvent::Failed {
+            message: format!("The sign-in took longer than {} minutes.", TIMEOUT.as_secs() / 60),
+            code: Some(TOOK_TOO_LONG.into()),
+            reason: None,
+        },
         (Err(e), _) => failed(format!("Could not run {name}: {e}.")),
     }
 }
 
 fn failed(message: String) -> SignInEvent {
-    SignInEvent::Failed { message, code: None }
+    SignInEvent::Failed { message, code: None, reason: None }
 }
 
 #[cfg(test)]
@@ -244,7 +248,10 @@ mod tests {
         assert_eq!(finish("wa", Err(RunError::Cancelled), None, true), SignInEvent::Stopped);
         assert_eq!(finish("wa", Ok(Some(2)), Some(refused.clone()), false), refused);
         assert!(matches!(finish("wa", Ok(Some(1)), None, false), SignInEvent::Failed { .. }));
-        assert!(matches!(finish("wa", Err(RunError::TimedOut), None, false), SignInEvent::Failed { .. }));
+        assert!(matches!(
+            finish("wa", Err(RunError::TimedOut), None, false),
+            SignInEvent::Failed { code: Some(c), .. } if c == TOOK_TOO_LONG
+        ));
     }
 
     fn words(tool: &str, method: &str, profile: &str) -> Result<Vec<String>, String> {

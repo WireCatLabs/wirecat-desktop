@@ -12,13 +12,15 @@ import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { Dialog } from "@/ui/Dialog"
 import { MOTION } from "@/ui/motion"
+import { explainView } from "./Failure"
 import { type SigninMessages, signinMessages } from "./messages"
 import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
+import { wizardMessages } from "./messages-wizard"
 import { Plan } from "./Plan"
+import { SignInPath } from "./SignInPath"
 import { type SignInView, Stage, stageKey } from "./Stages"
 import { KeyringNotice } from "./TelegramGuide"
-import { TelegramPath } from "./TelegramPath"
 
 /**
  * Signs a profile in with the tool's own sign-in, drawn in the window: a QR code, a code for the phone, a page to
@@ -53,10 +55,8 @@ export function SignInDialog() {
           </p>
         </Collapse>
         <Collapse open={keyring !== null}>{keyring && <KeyringNotice fallback={keyring} />}</Collapse>
-        {/* The plan lists the same path in full; once tg runs, this says which way in it is and where. */}
-        <Collapse open={s.tool === "tg" && s.phase !== "plan"}>
-          <TelegramPath s={s} />
-        </Collapse>
+        {/* Every tool's whole way in, from what to have at hand to the end, with the step it is on lit. */}
+        <SignInPath s={s} />
         {/* One step fades into the next in the same place, and the box follows its height (rule 9). */}
         <AutoHeight swap={key}>
           <Crossfade swap={key} ms={MOTION.swap}>
@@ -122,6 +122,7 @@ function Actions() {
   const s = useSignIn()
   const m = useMessages(signinMessages)
   const pm = useMessages(planMessages)
+  const wm = useMessages(wizardMessages)
   const { stop, close, start, tool, profile, onFinish, phase, stopping, method } = s
   const entry = tool ? findTool(tool) : undefined
   // A provider is chosen in the plan itself, never switched to in the middle of a sign-in.
@@ -170,6 +171,7 @@ function Actions() {
     )
   }
   if (phase === "failed") {
+    const explained = explainView(s)
     // A tool too old to sign in here still signs in at a terminal.
     const terminal = s.failure?.code === NEEDS_UPDATE && tool && profile && entry?.setup
     return (
@@ -191,13 +193,16 @@ function Actions() {
           </Button>
         )}
         {/* With a provider to pick, the address or password may be what was wrong: back to the plan to change them. */}
-        <Button
-          variant="secondary"
-          onClick={entry?.signIn?.pick ? () => useSignIn.setState({ phase: "plan", failure: null }) : s.again}
-          data-autofocus
-        >
-          {m.tryAgain}
-        </Button>
+        {/* Zoom's missing app has its own Save and sign in; a bare retry would fail the same way. */}
+        {explained?.reason !== "clientIdMissing" && (
+          <Button
+            variant="secondary"
+            onClick={entry?.signIn?.pick ? () => useSignIn.setState({ phase: "plan", failure: null }) : s.again}
+            data-autofocus
+          >
+            {explained?.reason === "qrExpired" ? wm.actions.newCode : m.tryAgain}
+          </Button>
+        )}
       </>
     )
   }

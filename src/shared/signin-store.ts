@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { findTool, signInMethods } from "@/domain/catalog"
+import type { FailedAt } from "@/domain/signin-failure"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
@@ -40,6 +41,8 @@ type SignInState = {
   notes: string[]
   done: Done | null
   failure: Failed | null
+  /** The step on screen when the tool gave up: a QR code nobody scanned reads differently from a page never finished. */
+  failedAt: FailedAt
   stopping: boolean
   /**
    * What the next step will be while the tool starts, when the dialog knows it: tg asks the app keys again after a
@@ -95,6 +98,7 @@ const closed = {
   notes: [],
   done: null,
   failure: null,
+  failedAt: null as FailedAt,
   stopping: false,
   expect: null as "keys" | null,
   reuse: false,
@@ -222,7 +226,15 @@ export const useSignIn = create<SignInState>()((set, get) => {
         set({ ...next, phase: "done", done: e, qr: null, url: null, stopping: false, switchingTo: null })
         return get().onFinish?.()
       case "failed":
-        return set({ ...next, phase: "failed", failure: e, qr: null, url: null, stopping: false })
+        return set((s) => ({
+          ...next,
+          phase: "failed",
+          failure: e,
+          failedAt: running(s.phase) ? (s.phase as FailedAt) : null,
+          qr: null,
+          url: null,
+          stopping: false,
+        }))
       case "stopped":
         forget()
         return set({ ...closed })

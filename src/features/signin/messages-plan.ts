@@ -96,6 +96,18 @@ const en = {
       ],
       kept: ["Nothing to type: the phone and WhatsApp confirm it is you."],
     },
+    "max:token": {
+      steps: [
+        "Open web.max.ru in a browser on this computer and sign in there.",
+        "Copy the value of __oneme_auth from the browser's developer tools. The next step shows where.",
+        "Paste it here. Only the token in it goes to max.",
+      ],
+      time: "Allow about three minutes.",
+      kept: [
+        "The token goes straight to max on this computer and is saved in your system's password store, or in the tool's own folder when there is none.",
+        "Use this when the QR code does not work for you: a token copied from web.max.ru is the same login as that tab.",
+      ],
+    },
     max: {
       steps: ["Scan a QR code with the MAX app on your phone."],
       time: "The code waits up to two minutes for the scan.",
@@ -247,6 +259,18 @@ const ru: PlanText = {
       ],
       kept: ["Вводить ничего не нужно: телефон и WhatsApp сами подтверждают, что это вы."],
     },
+    "max:token": {
+      steps: [
+        "Откройте web.max.ru в браузере на этом компьютере и войдите там.",
+        "Скопируйте значение __oneme_auth из инструментов разработчика браузера. Где оно, покажет следующий шаг.",
+        "Вставьте его сюда. В max уйдёт только токен из него.",
+      ],
+      time: "Заложите около трёх минут.",
+      kept: [
+        "Токен уходит прямо в max на этом компьютере и сохраняется в системном хранилище паролей, а если его нет — в папке самого инструмента.",
+        "Этот способ — на случай, если QR-код не подходит: токен из web.max.ru — тот же вход, что и в этой вкладке.",
+      ],
+    },
     max: {
       steps: ["Отсканируйте QR-код приложением MAX на телефоне."],
       time: "Код ждёт сканирования до двух минут.",
@@ -397,6 +421,18 @@ const es: PlanText = {
         "Después WhatsApp envía tus chats recientes a este equipo. Mantenlo abierto en el teléfono hasta que termine.",
       ],
       kept: ["No hay que escribir nada: el teléfono y WhatsApp confirman que eres tú."],
+    },
+    "max:token": {
+      steps: [
+        "Abre web.max.ru en un navegador de este equipo e inicia sesión allí.",
+        "Copia el valor de __oneme_auth desde las herramientas de desarrollo del navegador. El siguiente paso muestra dónde.",
+        "Pégalo aquí. Solo el token que contiene va a max.",
+      ],
+      time: "Calcula unos tres minutos.",
+      kept: [
+        "El token va directo a max en este equipo y se guarda en el almacén de contraseñas del sistema, o en la carpeta de la propia herramienta si no hay ninguno.",
+        "Úsalo cuando el código QR no te sirva: un token copiado de web.max.ru es la misma sesión que esa pestaña.",
+      ],
     },
     max: {
       steps: ["Escanea un código QR con la app MAX en el teléfono."],

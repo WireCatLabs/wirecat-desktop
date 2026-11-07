@@ -10,12 +10,16 @@ import type { Platform } from "./types"
 // after the first, as when the last one has not stopped yet (a switch of method fails at once);
 // `?signin-keyring=file` is tg with no system keyring, saving to a file instead. `?signin-fail=email` is a mail server
 // refusing the app password; gcal refuses until the owner picks a client file of their own.
+// `?signin-fail=<tool>:<reason>` fails any tool with one of the failures the window explains (`signin-failure.ts`):
+// old, qr-expired, in-use, client-id, browser, denied, timeout, network, cancelled, ended. `?signin=max:token`
+// opens MAX's token sign-in.
 // `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and tg says nothing for 12 s, as after a real scan
 // (Telegram moves the login to the account's data centre); `&signin-scanned=1` adds the progress line tg-cli could print
 // at the scan.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const fails = query.get("signin-fail")
+const [failTool, failReason] = fails?.includes(":") ? fails.split(":") : [null, null]
 const keyringFile = query.get("signin-keyring") === "file"
 const scanDelay = query.has("signin-scan-delay") ? Number(query.get("signin-scan-delay")) || 12 : null
 const scanSays = query.get("signin-scanned") === "1"
@@ -134,7 +138,11 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
     if ((await s.ask("password", "2FA password (not shown)", true, "the usual one")) === null) return STOPPED
     return signedIn
   },
-  async max(s) {
+  async max(s, method) {
+    if (method === "token") {
+      if ((await s.ask("token", "MAX token", true)) === null) return STOPPED
+      return signedIn
+    }
     if (await qrs(s, "scan in the MAX app on your phone", 2, true)) return STOPPED
     if ((await s.ask("password", "MAX password", true, "the cat")) === null) return STOPPED
     s.emit({
@@ -208,6 +216,44 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
 
 const WA_SCAN = "scan in WhatsApp → Settings → Linked devices → Link a device"
 
+const FAILURES: Record<
+  string,
+  { first?: "qr" | "browser"; code: string | null; message: (profile: string) => string }
+> = {
+  old: { code: "needs_update", message: () => "This version cannot sign in here yet." },
+  "qr-expired": {
+    first: "qr",
+    code: "timeout",
+    message: () => "the QR code expired before it was scanned — run the command again",
+  },
+  "in-use": {
+    first: "qr",
+    code: "provider_unavailable",
+    message: (p) => `this WhatsApp login is in use by wa ${p} serve; WhatsApp allows one connection per linked device`,
+  },
+  "client-id": {
+    code: "configuration_error",
+    message: () => "run zm config set zoom.client_id <Public Client ID> first, or set ZM_ZOOM_CLIENT_ID",
+  },
+  browser: { first: "browser", code: "took_too_long", message: () => "The sign-in took longer than 15 minutes." },
+  denied: { first: "browser", code: "authentication_error", message: () => "access_denied: the user declined access" },
+  timeout: { code: "took_too_long", message: () => "The sign-in took longer than 15 minutes." },
+  network: { code: "network_error", message: () => "getaddrinfo ENOTFOUND api.example.com" },
+  cancelled: { code: "cancelled", message: () => "the input closed before the answer came" },
+  ended: { code: "ended", message: () => "The sign-in ended without saying how." },
+}
+
+/** One of the failures the window explains, after the step it happens on. */
+async function failing(s: Script, reason: string): Promise<SignInEvent> {
+  const f = FAILURES[reason] ?? FAILURES.ended
+  if (!f) return STOPPED
+  if (f.first === "qr") s.emit({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: null })
+  if (f.first === "browser")
+    s.emit({ event: "openUrl", url: "https://accounts.example.com/authorize?client_id=mock", purpose: null })
+  if (f.first && (await s.wait(2500))) return STOPPED
+  return { event: "failed", code: f.code, message: f.message(s.profile) }
+}
+
 export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signInStop"> {
   let stop: (() => void) | null = null
   let reply: ((value: string) => void) | null = null
@@ -237,7 +283,7 @@ export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signIn
         return answer
       }
       await delay(500)
-      const script = scripts[id]
+      const script = failTool === id && failReason ? (s: Script) => failing(s, failReason) : scripts[id]
       const end = script
         ? await script({ emit: onEvent, wait, ask, profile, id }, method, inputs)
         : ({ event: "failed", message: "This tool cannot sign in here.", code: null } as SignInEvent)

@@ -371,7 +371,7 @@ check, backup, reset) passes `--record`, so the Logs page shows it whether it wo
 ## Signing in inside the window
 
 Each tool with `signIn.methods` in the catalog signs in without a terminal (step 2 of
-`docs/dev/plans/2026-10-26-mcp-full-commands.md`): tg (QR or phone), max (QR), wa (QR), zm, drive and gcal (the
+`docs/dev/plans/2026-10-26-mcp-full-commands.md`): tg (QR or phone), max (QR or a token from web.max.ru), wa (QR), zm, drive and gcal (the
 browser), and Email (Microsoft in the browser, Gmail or another server with an app password). "Sign in here" opens a
 dialog, and `sign_in(id, method, profile, inputs)` runs that method's words for the profile the owner named. With `--json` the tool prints each step as a JSON line on stderr, from cli-core's `signInSteps` (0.443) and
 `loginQr`: `qr`, `pairing_code`, `open_url`, `needs` and `progress`. `signin_steps.rs` reads them, the tool's notes and
@@ -387,8 +387,15 @@ on the Channel only, and the plain copies the tool prints beside them (the code'
 note) are dropped. The account's id and name stay in Rust (max's "logged in as" line is dropped too). No step is logged
 or put in a report, and an answer is never kept in the store or repeated in an error. The QR comes as a half-block
 drawing, so `src/domain/qr.ts` turns it back into modules and the dialog draws an SVG, dark on white in both themes.
-Zoom without its own app's Public Client ID fails, and the dialog asks for it and saves it with zm's own `config set`
-before starting again. Cancel, Escape and Stop call `sign_in_stop`: SIGTERM to the tool alone, five seconds for it to
+Zoom without its own app's Public Client ID fails, and the dialog shows a checklist for making the app (values to copy
+from `wizard.ts`), saves the ID with zm's own `config set` and starts again; transcript files (`source files`) are the
+way without an app.
+
+Every sign-in is one wizard: `SignInPath.tsx` draws the method's steps from `wizard.ts` (before you start, the tool's
+own steps, done) and lights the one on screen. A failure is read by `src/domain/signin-failure.ts` into a known reason
+(too old, QR expired, login in use, Zoom app missing, browser never came back, declined, timeout, network, cancelled,
+ended), a plain message and cause (`messages-wizard.ts`), one action and a fallback, the tool's own words under Details.
+The order of work on setup flows, desktop first and the CLI changes after, is in [setup-flows.md](setup-flows.md). Cancel, Escape and Stop call `sign_in_stop`: SIGTERM to the tool alone, five seconds for it to
 answer with what it kept (WhatsApp's history), then the whole group is killed. Switching method (tg's QR or phone)
 stops the running sign-in first.
 

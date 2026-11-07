@@ -159,8 +159,14 @@ describe("signing in to WhatsApp inside the window", () => {
       code: "provider_unavailable",
     })
 
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("in use by wa personal serve")
-    expect(within(dialog).getByRole("button", { name: "Try again" })).toHaveFocus()
+    const alert = within(dialog).getByRole("alert")
+    expect(alert).toHaveTextContent("WhatsApp is busy receiving messages in the background.")
+    expect(alert).toHaveTextContent("Stop the background service on WhatsApp's page")
+    expect(within(alert).getByRole("button", { name: "Open WhatsApp" })).toBeInTheDocument()
+    expect(within(alert).getByRole("button", { name: "Copy the stop command" })).toBeInTheDocument()
+    await userEvent.click(within(alert).getByRole("button", { name: "Details" }))
+    expect(alert).toHaveTextContent("in use by wa personal serve")
+    expect(within(dialog).getByRole("button", { name: "Try again" })).toBeInTheDocument()
     await userEvent.click(within(dialog).getByRole("button", { name: /Report this/ }))
 
     expect(screen.queryByRole("dialog", { name: "Sign in to WhatsApp" })).toBeNull()
@@ -261,7 +267,7 @@ describe("answering what the tool asks", () => {
     send({ event: "failed", code: null, message: "A Telegram sign-in is still running or stopping." })
 
     expect(within(dialog).getByText("Could not switch to phone sign-in.")).toBeInTheDocument()
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("still running or stopping")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Telegram could not finish the sign-in.")
     expect(within(dialog).queryByRole("img", { name: /QR code/ })).toBeNull()
     expect(within(dialog).getByRole("button", { name: "Try again" })).toHaveFocus()
   })
@@ -325,7 +331,8 @@ describe("answering what the tool asks", () => {
   it("says an older tool must be updated, and offers no field", async () => {
     const dialog = await open("max")
     send({ event: "failed", code: "needs_update", message: "This version cannot sign in here yet." })
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("cannot sign in here yet")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("This version of MAX cannot sign in inside WireCat.")
+    expect(within(dialog).getByRole("button", { name: "Open MAX to update" })).toBeInTheDocument()
     expect(within(dialog).queryByRole("textbox")).toBeNull()
     const openSetup = vi.spyOn(platform, "openSetup").mockResolvedValue()
     await userEvent.click(within(dialog).getByRole("button", { name: "Open terminal" }))
@@ -608,6 +615,93 @@ describe("in Russian", () => {
     const dialog = await screen.findByRole("dialog")
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
     send({ event: "failed", code: "needs_update", message: "This version cannot sign in here yet." })
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("Эта версия пока не умеет входить здесь.")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Эта версия MAX не умеет входить внутри WireCat.")
+  })
+})
+
+describe("the setup wizard every tool shares", () => {
+  const step = (dialog: HTMLElement, label: string) =>
+    within(dialog)
+      .getAllByRole("listitem")
+      .map((li) => li.textContent ?? "")
+      .find((text) => text.startsWith(label)) ?? ""
+
+  async function plan(tool: string) {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start(tool, "personal"))
+    return screen.getByRole("dialog")
+  }
+
+  it("QR code: says what to have at hand, lights each step, and offers the first sync at the end", async () => {
+    const syncRun = vi.spyOn(platform, "syncRun").mockResolvedValue()
+    const dialog = await plan("max")
+    expect(within(dialog).getByText("Have at hand")).toBeInTheDocument()
+    expect(within(dialog).getByText("Your phone with the MAX app on it.")).toBeInTheDocument()
+    expect(step(dialog, "Before you start")).toContain("in progress")
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    send({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: "scan in the MAX app" })
+    expect(step(dialog, "Before you start")).toContain("done")
+    expect(step(dialog, "Scan the QR code")).toContain("in progress")
+    send({ event: "needs", field: "password", secret: true, prompt: "MAX password", hint: null })
+    expect(step(dialog, "Two-step password, if set")).toContain("in progress")
+    send({ event: "done", alreadyLinked: false, received: null })
+    expect(step(dialog, "Done")).toContain("done")
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sync now" }))
+    expect(syncRun).toHaveBeenCalledWith("max", "personal", expect.any(Function))
+    expect(screen.queryByRole("dialog")).toBeNull()
+  })
+
+  it("token: switches to MAX's token, shows where web.max.ru keeps it, and sends only the token", async () => {
+    const dialog = await plan("max")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Use token instead" }))
+    expect(within(dialog).getAllByText("Sign in with a token")[0]).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("max", "token", "personal", expect.any(Function), {}),
+    )
+    send({ event: "needs", field: "token", secret: true, prompt: "MAX token", hint: null })
+    expect(step(dialog, "Paste the token")).toContain("in progress")
+    expect(within(dialog).getByText(/Find the key __oneme_auth/)).toBeInTheDocument()
+    fireEvent.change(within(dialog).getByLabelText("MAX token"), {
+      target: { value: '{"token":"t0k3n","viewerId":1}' },
+    })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
+    expect(platform.signInAnswer).toHaveBeenCalledWith("max", "t0k3n")
+  })
+
+  it("browser: lights the browser step, and explains a declined page with the step it failed on", async () => {
+    const dialog = await plan("drive")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    send({ event: "openUrl", url: "https://accounts.google.com/o/oauth2/v2/auth?x=1", purpose: null })
+    expect(step(dialog, "Approve in the browser")).toContain("in progress")
+    send({ event: "failed", code: "authentication_error", message: "access_denied" })
+    expect(step(dialog, "Approve in the browser")).toContain("failed")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Access was not allowed.")
+    expect(within(dialog).getByRole("button", { name: "Try again" })).toHaveFocus()
+  })
+
+  it("Zoom app: a checklist with each value to copy, the Public Client ID, and transcript files as the way without an app", async () => {
+    const set = vi.spyOn(platform, "settingsSet").mockResolvedValue()
+    const dialog = await plan("zm")
+    expect(within(dialog).getByText("Your Zoom app, the first time")).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    send({ event: "failed", code: "configuration_error", message: "run zm config set zoom.client_id <id> first" })
+    expect(step(dialog, "Your Zoom app, the first time")).toContain("in progress")
+    expect(within(dialog).getByText("https://wirecat.dev/zoom-callback")).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Copy meeting:read:summary" })).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByLabelText(/Name it, for example/))
+    expect(within(dialog).getByText("1 of 7 done")).toBeInTheDocument()
+
+    await userEvent.click(within(dialog).getByRole("button", { name: /No Zoom app\?/ }))
+    await userEvent.type(within(dialog).getByLabelText("Folder with the .vtt files"), "/home/me/Zoom")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Use these files" }))
+    expect(set).toHaveBeenCalledWith("zm", null, false, "files.folder", "/home/me/Zoom")
+    expect(set).toHaveBeenCalledWith("zm", null, false, "source", "files")
+    expect(await within(dialog).findByText(/Zoom now reads transcripts from \/home\/me\/Zoom/)).toBeInTheDocument()
   })
 })

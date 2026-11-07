@@ -1,8 +1,9 @@
 import { CheckCircle2, ExternalLink, LoaderCircle } from "lucide-react"
-import { type FormEvent, type ReactNode, useEffect, useId, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { checkPhone, formatPhone, phoneTyped } from "@/domain/phone"
 import { qrModules, qrPath } from "@/domain/qr"
+import { zoomNeedsClientId } from "@/domain/signin-failure"
 import {
   checkKey,
   type KeyField,
@@ -18,10 +19,8 @@ import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
 import {
   APP_KEYS,
-  ENDED,
   keptAnswer,
   methodOf,
-  NEEDS_UPDATE,
   type Need,
   type OpenUrl,
   type Pairing,
@@ -35,9 +34,11 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { AnswerForm, type Check } from "./AnswerForm"
+import { explainView, FailureCard } from "./Failure"
 import { signinMessages } from "./messages"
 import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
+import { wizardMessages } from "./messages-wizard"
 import {
   isTelegramApps,
   MY_TELEGRAM,
@@ -46,6 +47,8 @@ import {
   TelegramFailureText,
   TelegramScanSteps,
 } from "./TelegramGuide"
+import { maxTokenIn } from "./wizard"
+import { SyncNow, ZoomAppSetup } from "./ZoomApp"
 
 const STAGE = "flex min-h-[19rem] flex-col items-center justify-center gap-3 text-center text-[1.1rem]"
 
@@ -58,7 +61,7 @@ export type SignInView = ReturnType<typeof useSignIn.getState>
 const APPS: OpenUrl = { event: "openUrl", url: `https://${MY_TELEGRAM}/apps`, purpose: null }
 const FIRST_KEY: Need = { event: "needs", field: "api_id", secret: false, prompt: "App api_id", hint: null }
 
-const isKeys = (s: SignInView) =>
+export const isKeys = (s: SignInView) =>
   (s.phase === "starting" && s.expect === "keys") ||
   // tg opens my.telegram.org and asks the keys in the same breath; the page is the keys step, not a wait.
   (s.phase === "browser" && s.tool === "tg" && s.url !== null && isTelegramApps(s.url)) ||
@@ -99,6 +102,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     const last = said.at(-1)
     const refused = last?.kind === "notAccepted" && s.need.field === last.what ? tm.notAccepted[last.what] : undefined
     const phone = tg && s.need.field === "phone"
+    if (s.need.field === "token") return <TokenStage need={s.need} s={s} />
     const checkNumber: Check = (typed) => {
       const result = checkPhone(typed)
       return result.problem === null
@@ -175,7 +179,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     )
   }
   if (s.phase === "failed" && s.failure) {
-    const needsClientId = s.tool === "zm" && s.failure.message.includes("zoom.client_id")
+    const needsClientId = zoomNeedsClientId(s.tool ?? "", s.failure.message)
     // A tool from before WireCat's Google app (gcal 0.19) refuses to start without the owner's own.
     const needsOwnApp =
       Boolean(s.tool && methodOf(s.tool, s.method)?.clientFile) &&
@@ -184,11 +188,12 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     const fix = telegram && isFixLabel(telegram.fix) ? telegram.fix : null
     const hints = telegram?.fix === "keys" ? keyHints(keptAnswer("api_id"), keptAnswer("api_hash")) : []
     const switchFailed = s.switchingTo ? tm.switchFailed[s.switchingTo] : undefined
+    const explained = explainView(s)
     return (
       <div className="flex min-h-[19rem] flex-col justify-center gap-4 text-[1.1rem]">
         {switchFailed && <p className="font-medium text-ink">{switchFailed}</p>}
         {needsClientId ? (
-          <ClientIdForm />
+          <ZoomAppSetup />
         ) : needsOwnApp ? (
           <ErrorNotice
             action={
@@ -203,7 +208,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
           >
             {pm.noWireCatApp(name)}
           </ErrorNotice>
-        ) : (
+        ) : telegram ? (
           <ErrorNotice
             action={
               <>
@@ -221,16 +226,10 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
               </>
             }
           >
-            {telegram ? (
-              <TelegramFailureText failure={telegram} hints={hints} />
-            ) : s.failure.code === NEEDS_UPDATE ? (
-              m.needsUpdate
-            ) : s.failure.code === ENDED ? (
-              m.ended
-            ) : (
-              s.failure.message
-            )}
+            <TelegramFailureText failure={telegram} hints={hints} />
           </ErrorNotice>
+        ) : (
+          explained && <FailureCard s={s} explained={explained} />
         )}
       </div>
     )
@@ -442,73 +441,44 @@ function ExpiresIn({ at }: { at: string }) {
   return <p className="text-body text-ink-dim tabular-nums">{seconds > 0 ? m.expiresIn(seconds) : m.expired}</p>
 }
 
-/** Zoom signs in with an app of the owner's own; its Public Client ID is saved with zm's own `config set`. */
-function ClientIdForm() {
-  const id = useId()
-  const m = useMessages(signinMessages)
-  const { tool, profile, start, onFinish, method } = useSignIn()
-  const guide = tool ? findTool(tool)?.signIn?.guide : undefined
-  const [value, setValue] = useState("")
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const submit = async (e: FormEvent) => {
-    e.preventDefault()
-    if (!tool || !profile) return
-    if (!value.trim()) {
-      setError(m.clientIdEmpty)
-      document.getElementById(id)?.focus()
-      return
-    }
-    setSaving(true)
-    setError(null)
-    try {
-      await platform.settingsSet(tool, null, false, "zoom.client_id", value.trim())
-      start(tool, profile, onFinish ?? undefined, method ?? undefined)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
-      setSaving(false)
-    }
+/** MAX's token: where web.max.ru keeps it, step by step, and the field that takes the whole stored value. */
+function TokenStage({ need, s }: { need: Need; s: SignInView }) {
+  const wm = useMessages(wizardMessages)
+  const check: Check = (typed) => {
+    const value = maxTokenIn(typed)
+    return { value, error: value ? null : wm.token.empty }
   }
-
   return (
-    <form onSubmit={submit} className="mx-auto flex w-full max-w-[26rem] flex-col gap-2">
-      <p className="text-ink">{m.clientIdIntro}</p>
-      {guide && (
+    <div className="flex min-h-[19rem] flex-col gap-4 text-left text-[1.1rem]">
+      <section className="flex flex-col gap-2.5">
+        <h3 className="text-[1.15rem] font-semibold text-ink">{wm.token.title}</h3>
+        <ol className="flex flex-col gap-2">
+          {wm.token.steps.map((text, i) => (
+            <li key={text} className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="mt-[0.15rem] grid size-[1.45rem] shrink-0 place-items-center rounded-full bg-brand-soft font-mono text-[0.85rem] text-brand tabular-nums"
+              >
+                {i + 1}
+              </span>
+              <span className="text-body leading-snug text-ink">{text}</span>
+            </li>
+          ))}
+        </ol>
         <Button
-          variant="ghost"
           size="sm"
+          variant="secondary"
           className="self-start"
           icon={<ExternalLink className="size-4" aria-hidden />}
-          onClick={() => platform.openUrl(guide)}
+          onClick={() => platform.openUrl("https://web.max.ru/")}
         >
-          {m.howToMakeApp}
+          {wm.token.open}
         </Button>
-      )}
-      <label htmlFor={id} className="mt-1 text-[1.1rem] font-medium text-ink">
-        {m.clientId}
-      </label>
-      <input
-        id={id}
-        spellCheck={false}
-        autoComplete="off"
-        value={value}
-        disabled={saving}
-        onChange={(e) => {
-          setValue(e.target.value)
-          setError(null)
-        }}
-        aria-invalid={error !== null}
-        aria-describedby={`${id}-error`}
-        className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1.1rem] text-ink aria-[invalid=true]:border-bad"
-      />
-      <p id={`${id}-error`} role={error ? "alert" : undefined} className="min-h-[1.3rem] text-body text-bad">
-        {error}
-      </p>
-      <Button type="submit" variant="primary" disabled={saving} className="self-start">
-        {saving ? m.saving : m.saveAndSignIn}
-      </Button>
-    </form>
+      </section>
+      <div className="pl-[2.05rem]">
+        <AnswerForm need={need} sent={s.sent} onAnswer={s.answer} check={check} />
+      </div>
+    </div>
   )
 }
 
@@ -516,13 +486,17 @@ function ClientIdForm() {
 function NextAfterSignIn() {
   const tool = useSignIn((s) => (s.tool ? findTool(s.tool) : undefined))
   const close = useSignIn((s) => s.close)
+  const profile = useSignIn((s) => s.profile)
   const onboarding = useOnboarding((s) => s.open)
   const m = useMessages(signinMessages)
+  const wm = useMessages(wizardMessages)
   if (!tool || onboarding) return null
   return (
     <div className="mt-2 flex flex-col items-center gap-2">
+      {tool.sync?.run && profile && <p className="max-w-[30rem]">{wm.next.syncLead(tool.name)}</p>}
       {tool.mcpServer && <p>{m.nextConnect}</p>}
       <div className="flex flex-wrap justify-center gap-2">
+        {profile && <SyncNow tool={tool.id} profile={profile} primary />}
         {tool.mcpServer && (
           <Button
             size="sm"

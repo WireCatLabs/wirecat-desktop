@@ -1,3 +1,5 @@
+import { NETWORK } from "./signin-failure"
+
 /**
  * Why a Telegram sign-in failed, read from tg's own error line, and the way back. tg says Telegram's refusals as
  * "Telegram refused: API_ID_INVALID" (tg-cli `src/telegram/errors.ts`), a wait as "Telegram asks to wait 34 s before
@@ -52,9 +54,6 @@ const BY_WORDS: [RegExp, string][] = [
   [/two-step verification password was wrong|Provided password was invalid/i, "PASSWORD_HASH_INVALID"],
   [/Telegram ended this login/i, "AUTH_KEY_UNREGISTERED"],
 ]
-
-const NETWORK =
-  /did not answer in time|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ENETUNREACH|socket hang up|fetch failed|network|could not connect|connection (?:closed|lost|refused)/i
 
 export function telegramFailure(message: string, code: string | null): TelegramFailure | null {
   const wait = /wait (\d+) ?s\b|FLOOD_WAIT_(\d+)|FLOOD_PREMIUM_WAIT_(\d+)/i.exec(message)
