@@ -136,7 +136,7 @@ tool is listed yet.
 For a tool that is not on the list: your own, a colleague's, or one from a private repository.
 
 1. In Settings, turn on **Allow tools WireCat has not checked**. A warning opens. Confirm it with **Allow**.
-2. On the Tools page, click **Add your own tool**, below the list. Type the npm name, such as `@scope/name`, and click
+2. On the Tools page, click **Add your own tool**, at the top next to **Check again**. Type the npm name, such as `@scope/name`, and click
    **Check package**. WireCat only reads npm. Nothing is installed, and no code of the package runs.
 3. Read the review screen (below), then click **Add**.
 4. A second question asks: "Install and run `@scope/name`? Its install scripts and first run use your permissions."

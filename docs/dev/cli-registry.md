@@ -161,7 +161,7 @@ off hides the own tools at the next start, and installed ones stay installed, li
 works" link opens the Desktop docs, section "Add your own tool".
 
 **2. A button on the Tools page.** While the switch is on (or the flag is set), the Tools page shows **Add your own
-tool** below the list. It opens a dialog that takes a scoped npm name and warns again, in plain words:
+tool** at the top, next to Check again. It opens a dialog that takes a scoped npm name and warns again, in plain words:
 
 - "This tool gets access to all your personal data that WireCat holds: your messages, mail, notes and files."
 - "Add it only if you trust its authors completely."
