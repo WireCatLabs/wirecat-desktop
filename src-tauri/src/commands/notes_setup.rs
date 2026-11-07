@@ -36,6 +36,21 @@ pub async fn notes_folder_add(id: String, path: String) -> Result<notes_setup::N
     .await
 }
 
+/// memo's `folders remove <id>`; with `delete_notes` it also deletes that folder's notes from memo's store, which the
+/// interface asks only behind a dialog that says so. The id is checked in `notes_setup` before memo sees it.
+#[tauri::command]
+pub async fn notes_folder_remove(
+    id: String,
+    folder: String,
+    delete_notes: bool,
+) -> Result<notes_setup::NotesFolderRemoved, AppError> {
+    crate::log::command("notes_folder_remove", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || notes_setup::remove_folder(tool, &folder, delete_notes)).await
+    })
+    .await
+}
+
 /// memo's `sync --only notes`. It shares memo's one sync key, so the Tools page's Sync and `sync_stop` see it too.
 #[tauri::command]
 pub async fn notes_sync(

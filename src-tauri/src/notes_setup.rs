@@ -4,6 +4,7 @@
 
 use crate::catalog::Tool;
 use crate::run::{self, Line, RunError};
+use crate::sync::{CountUnit, counted_of, is_label};
 use crate::{paths, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -22,6 +23,10 @@ pub struct NotesSetupSource {
     pub folders: Vec<String>,
     /// `{path}` is filled only with a folder `checked_folder` accepted.
     pub add: Vec<String>,
+    /// `{id}` is filled only with an id `checked_folder_id` accepted. Keeps the folder's notes searchable.
+    pub remove: Vec<String>,
+    /// Like `remove`, and deletes that folder's notes from memo's store (never files on disk).
+    pub remove_delete: Vec<String>,
     pub sync: Vec<String>,
     pub models: Vec<String>,
     /// The search model's id in `models list`.
@@ -88,11 +93,32 @@ pub enum NotesFolderAdded {
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "result")]
+pub enum NotesFolderRemoved {
+    #[serde(rename_all = "camelCase")]
+    Removed {
+        notes_deleted: Option<u64>,
+    },
+    Failed {
+        problem: NotesProblem,
+    },
+}
+
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", tag = "event")]
 pub enum NotesModelEvent {
+    /// How far the download is, in bytes. `label` is the model's id.
+    Counted {
+        done: u64,
+        total: u64,
+        unit: CountUnit,
+        label: Option<String>,
+    },
     Done,
     Stopped,
-    Failed { problem: NotesProblem },
+    Failed {
+        problem: NotesProblem,
+    },
 }
 
 fn source(tool: &Tool) -> Result<&NotesSetupSource, String> {
@@ -111,6 +137,11 @@ pub fn checked_folder(path: &str) -> Result<String, NotesProblem> {
         return Err(NotesProblem::FolderUnreadable);
     }
     real.to_str().map(str::to_string).ok_or(NotesProblem::FolderUnreadable)
+}
+
+/// A folder id memo printed: letters, digits and `_.-`, never starting with `-`, so memo cannot read it as an option.
+pub fn checked_folder_id(id: &str) -> Result<&str, NotesProblem> {
+    if is_label(id) && !id.contains(':') { Ok(id) } else { Err(NotesProblem::Other) }
 }
 
 fn with(words: &[String], key: &str, value: &str) -> Vec<String> {
@@ -215,6 +246,22 @@ pub fn add_folder(tool: &Tool, path: &str) -> Result<NotesFolderAdded, String> {
     Ok(NotesFolderAdded::Failed { problem: problem_of(&out, json.as_ref()) })
 }
 
+pub fn remove_folder(tool: &Tool, id: &str, delete_notes: bool) -> Result<NotesFolderRemoved, String> {
+    let src = source(tool)?;
+    let id = match checked_folder_id(id) {
+        Ok(id) => id,
+        Err(problem) => return Ok(NotesFolderRemoved::Failed { problem }),
+    };
+    let words = if delete_notes { &src.remove_delete } else { &src.remove };
+    let (out, json) = crate::skills::call(tool, &with(words, "{id}", id), CALL)?;
+    if out.code == Some(0)
+        && let Some(item) = json.as_ref().map(crate::skills::body).filter(|i| i["removed"].as_bool() == Some(true))
+    {
+        return Ok(NotesFolderRemoved::Removed { notes_deleted: item["notes_deleted"].as_u64() });
+    }
+    Ok(NotesFolderRemoved::Failed { problem: problem_of(&out, json.as_ref()) })
+}
+
 pub fn download_args(tool: &Tool) -> Result<Vec<String>, String> {
     let src = source(tool)?;
     Ok(with(&src.download, "{model}", &src.model))
@@ -224,7 +271,7 @@ pub fn sync_args(tool: &Tool) -> Result<Vec<String>, String> {
     Ok(source(tool)?.sync.clone())
 }
 
-/// Downloads the one catalog model. memo prints no progress, so the window shows a bar with no end; a stop kills it.
+/// Downloads the one catalog model. A memo that prints no progress lines leaves the bar without an end; a stop kills it.
 pub fn download(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: &dyn Fn(NotesModelEvent)) {
     let Some(bin) = tools::program(&tool.bin) else {
         return send(NotesModelEvent::Failed { problem: NotesProblem::Other });
@@ -234,7 +281,10 @@ pub fn download(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: 
     let (mut out, mut err) = (String::new(), String::new());
     let result = run::stream_stoppable(cmd, DOWNLOAD_LIMIT, stopped, GRACE, drop, |line| match line {
         Line::Out(l) => out = format!("{out}{l}\n"),
-        Line::Err(l) => err = format!("{err}{l}\n"),
+        Line::Err(l) => match counted_of(&l, "download") {
+            Some(c) => send(NotesModelEvent::Counted { done: c.done, total: c.total, unit: c.unit, label: c.label }),
+            None => err = format!("{err}{l}\n"),
+        },
     });
     let output = run::Output { code: None, stdout: out, stderr: err };
     let json = output.json().or_else(|| serde_json::from_str(output.stderr.lines().last().unwrap_or_default()).ok());
@@ -267,6 +317,17 @@ mod tests {
         std::fs::write(&file, "x").unwrap();
         assert_eq!(checked_folder(file.to_str().unwrap()), Err(NotesProblem::FolderUnreadable));
         std::fs::remove_file(file).unwrap();
+    }
+
+    #[test]
+    fn a_folder_id_is_a_plain_word_that_is_never_an_option() {
+        for good in ["3", "26", "a_b-c.d"] {
+            assert_eq!(checked_folder_id(good), Ok(good));
+        }
+        let long = "1".repeat(65);
+        for bad in ["", "-1", "--yes", "../x", "/a", "a b", "a;b", "google-drive:1", "1\n2", long.as_str()] {
+            assert_eq!(checked_folder_id(bad), Err(NotesProblem::Other), "{bad}");
+        }
     }
 
     #[test]

@@ -14,8 +14,19 @@ const en = {
   foldersLabel: "Folders Memo reads",
   noFolder: "No folder yet.",
   folderAdded: (name: string) => `Added ${name}. The next step reads it.`,
-  noRemove:
-    "Memo has no command to remove a folder yet. To stop reading one, ask your agent or remove it in a terminal.",
+  removeKeep: "Remove",
+  removeKeepFor: (name: string) => `Remove ${name} and keep its notes searchable`,
+  removeDelete: "Remove and delete notes…",
+  removeDeleteFor: (name: string) => `Remove ${name} and delete its notes`,
+  removing: "Removing the folder…",
+  removedKept: (name: string) => `Memo stopped reading ${name}. Its notes stay searchable.`,
+  removedDeleted: (name: string, notes: number | null) =>
+    `Memo stopped reading ${name} and deleted ${notes === null ? "its notes" : plural("en", notes, { one: "# note", other: "# notes" })} from its store.`,
+  confirmTitle: (name: string) => `Remove ${name} and delete its notes?`,
+  confirmWhat: (path: string) =>
+    `Memo deletes every note it read from ${path} from its own store, so search no longer finds them. Your files on disk are not touched, and notes from your other folders stay.`,
+  confirmDelete: "Remove and delete notes",
+  confirmCancel: "Cancel",
   syncTitle: "Read your notes",
   syncWhat:
     "Memo reads every note in these folders once. A few hundred notes take under a minute. Later runs read only what changed.",
@@ -24,6 +35,8 @@ const en = {
   syncAgain: "Read again",
   syncRunning: "Reading your notes…",
   syncLabel: "Reading your notes",
+  syncCount: (done: number, total: number, folder: string | null) =>
+    `${folder ? `${folder}: ` : ""}${done} of ${plural("en", total, { one: "# file", other: "# files" })}`,
   syncDone: (changed: number, failed: number) => {
     const head =
       changed === 0
@@ -41,6 +54,7 @@ const en = {
   modelRunning: (mb: number) => `Downloading ${mb} MB… Memo does not report how far it is. It can take a few minutes.`,
   modelPreparing: "Done. Preparing your notes for search by meaning…",
   modelLabel: "Downloading the search model",
+  modelCount: (done: number, total: number) => `${done} of ${total} MB`,
   modelCancel: "Cancel",
   modelStopped: "Download cancelled. Nothing was kept, so you can start again any time.",
   modelDone: "Search by meaning is on. Results now say whether they matched by words, by meaning or both.",
@@ -75,8 +89,23 @@ const ru: typeof en = {
   foldersLabel: "Папки, которые читает Memo",
   noFolder: "Папок пока нет.",
   folderAdded: (name: string) => `Папка ${name} добавлена. Следующий шаг её прочитает.`,
-  noRemove:
-    "В Memo пока нет команды, которая убирает папку. Чтобы перестать читать папку, попросите своего агента или уберите её в терминале.",
+  removeKeep: "Убрать",
+  removeKeepFor: (name: string) => `Убрать ${name}, заметки останутся в поиске`,
+  removeDelete: "Убрать и удалить заметки…",
+  removeDeleteFor: (name: string) => `Убрать ${name} и удалить её заметки`,
+  removing: "Убираем папку…",
+  removedKept: (name: string) => `Memo перестал читать ${name}. Её заметки остаются в поиске.`,
+  removedDeleted: (name: string, notes: number | null) =>
+    `Memo перестал читать ${name} и удалил ${
+      notes === null
+        ? "её заметки"
+        : plural("ru", notes, { one: "# заметку", few: "# заметки", many: "# заметок", other: "# заметки" })
+    } из своего хранилища.`,
+  confirmTitle: (name: string) => `Убрать ${name} и удалить её заметки?`,
+  confirmWhat: (path: string) =>
+    `Memo удалит из своего хранилища все заметки, прочитанные из ${path}, и поиск их больше не найдёт. Ваши файлы на диске не тронут, заметки из других папок останутся.`,
+  confirmDelete: "Убрать и удалить заметки",
+  confirmCancel: "Отменить",
   syncTitle: "Прочитайте заметки",
   syncWhat:
     "Memo один раз читает все заметки в этих папках. Несколько сотен заметок занимают меньше минуты. Дальше он читает только то, что изменилось.",
@@ -85,6 +114,8 @@ const ru: typeof en = {
   syncAgain: "Прочитать снова",
   syncRunning: "Читаем заметки…",
   syncLabel: "Чтение заметок",
+  syncCount: (done: number, total: number, folder: string | null) =>
+    `${folder ? `${folder}: ` : ""}${done} из ${total} ${plural("ru", total, { one: "файла", few: "файлов", many: "файлов", other: "файлов" })}`,
   syncDone: (changed: number, failed: number) => {
     const head =
       changed === 0
@@ -113,6 +144,7 @@ const ru: typeof en = {
     `Скачиваем ${mb} МБ… Memo не сообщает, сколько уже скачано. Это может занять несколько минут.`,
   modelPreparing: "Готово. Готовим заметки к поиску по смыслу…",
   modelLabel: "Загрузка модели поиска",
+  modelCount: (done: number, total: number) => `${done} из ${total} МБ`,
   modelCancel: "Отменить",
   modelStopped: "Загрузка отменена. Ничего не сохранилось, можно начать снова в любой момент.",
   modelDone:
@@ -148,8 +180,19 @@ const es: typeof en = {
   foldersLabel: "Carpetas que lee Memo",
   noFolder: "Aún no hay ninguna carpeta.",
   folderAdded: (name: string) => `Se añadió ${name}. El paso siguiente la lee.`,
-  noRemove:
-    "Memo aún no tiene un comando para quitar una carpeta. Para dejar de leer una, pídeselo a tu agente o quítala en una terminal.",
+  removeKeep: "Quitar",
+  removeKeepFor: (name: string) => `Quitar ${name} y dejar sus notas en la búsqueda`,
+  removeDelete: "Quitar y borrar notas…",
+  removeDeleteFor: (name: string) => `Quitar ${name} y borrar sus notas`,
+  removing: "Quitando la carpeta…",
+  removedKept: (name: string) => `Memo dejó de leer ${name}. Sus notas siguen en la búsqueda.`,
+  removedDeleted: (name: string, notes: number | null) =>
+    `Memo dejó de leer ${name} y borró ${notes === null ? "sus notas" : plural("es", notes, { one: "# nota", other: "# notas" })} de su almacén.`,
+  confirmTitle: (name: string) => `¿Quitar ${name} y borrar sus notas?`,
+  confirmWhat: (path: string) =>
+    `Memo borra de su propio almacén todas las notas que leyó de ${path}, y la búsqueda ya no las encuentra. Tus archivos en el disco no se tocan y las notas de tus otras carpetas se quedan.`,
+  confirmDelete: "Quitar y borrar notas",
+  confirmCancel: "Cancelar",
   syncTitle: "Lee tus notas",
   syncWhat:
     "Memo lee una vez todas las notas de estas carpetas. Unos cientos de notas tardan menos de un minuto. Después solo lee lo que cambió.",
@@ -158,6 +201,8 @@ const es: typeof en = {
   syncAgain: "Leer de nuevo",
   syncRunning: "Leyendo tus notas…",
   syncLabel: "Leyendo tus notas",
+  syncCount: (done: number, total: number, folder: string | null) =>
+    `${folder ? `${folder}: ` : ""}${done} de ${plural("es", total, { one: "# archivo", other: "# archivos" })}`,
   syncDone: (changed: number, failed: number) => {
     const head =
       changed === 0
@@ -175,6 +220,7 @@ const es: typeof en = {
   modelRunning: (mb: number) => `Descargando ${mb} MB… Memo no indica cuánto lleva. Puede tardar unos minutos.`,
   modelPreparing: "Listo. Preparando tus notas para la búsqueda por significado…",
   modelLabel: "Descargando el modelo de búsqueda",
+  modelCount: (done: number, total: number) => `${done} de ${total} MB`,
   modelCancel: "Cancelar",
   modelStopped: "Descarga cancelada. No se guardó nada, así que puedes empezar de nuevo cuando quieras.",
   modelDone:

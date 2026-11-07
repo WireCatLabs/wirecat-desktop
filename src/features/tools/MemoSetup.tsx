@@ -7,6 +7,7 @@ import type { NotesFolder, NotesModel, NotesProblem, NotesSetup } from "@/platfo
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Skeleton } from "@/ui/Skeleton"
@@ -14,8 +15,17 @@ import { type NotesSetupText, notesSetupMessages } from "./messages-notes-setup"
 import { megabytes, syncProblem } from "./notes-setup"
 
 type FolderStep = { phase: "idle" } | { phase: "picking" | "adding" } | { phase: "added"; name: string } | Failed
-type SyncStep = { phase: "idle" | "running" } | { phase: "done"; summary: SyncSummary } | Failed
-type ModelStep = { phase: "idle" | "downloading" | "preparing" | "stopped" | "done" } | Failed
+type Count = { done: number; total: number; label: string | null }
+type RemoveStep =
+  | { phase: "idle" | "removing" }
+  | { phase: "removed"; name: string; deleted: boolean; notes: number | null }
+  | Failed
+type SyncStep =
+  | { phase: "idle" }
+  | { phase: "running"; count?: Count }
+  | { phase: "done"; summary: SyncSummary }
+  | Failed
+type ModelStep = { phase: "idle" | "preparing" | "stopped" | "done" } | { phase: "downloading"; count?: Count } | Failed
 type Failed = { phase: "failed"; problem: NotesProblem }
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -32,6 +42,8 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
   const [folderStep, setFolderStep] = useState<FolderStep>({ phase: "idle" })
   const [syncStep, setSyncStep] = useState<SyncStep>({ phase: "idle" })
   const [modelStep, setModelStep] = useState<ModelStep>({ phase: "idle" })
+  const [removeStep, setRemoveStep] = useState<RemoveStep>({ phase: "idle" })
+  const [confirming, setConfirming] = useState<NotesFolder | null>(null)
 
   const load = useCallback(() => {
     platform.notesSetupStatus(tool.id).then(setSetup, (e) => setLoadError(messageOf(e)))
@@ -54,6 +66,19 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
     }
   }
 
+  const removeFolder = async (folder: NotesFolder, deleteNotes: boolean) => {
+    setRemoveStep({ phase: "removing" })
+    try {
+      const answer = await platform.notesFolderRemove(tool.id, folder.id, deleteNotes)
+      if (answer.result === "failed") return setRemoveStep({ phase: "failed", problem: answer.problem })
+      setRemoveStep({ phase: "removed", name: folder.name, deleted: deleteNotes, notes: answer.notesDeleted })
+      setSyncStep({ phase: "idle" })
+      load()
+    } catch {
+      setRemoveStep({ phase: "failed", problem: "other" })
+    }
+  }
+
   const readNotes = (): Promise<boolean> => {
     setSyncStep({ phase: "running" })
     return new Promise((resolve) => {
@@ -68,6 +93,7 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
           if (e.event === "done") end({ phase: "done", summary: e.summary })
           else if (e.event === "failed") end({ phase: "failed", problem: syncProblem(e) })
           else if (e.event === "stopped") end({ phase: "idle" })
+          else if (e.event === "counted" && !ended) setSyncStep({ phase: "running", count: e })
         })
         .catch(() => !ended && end({ phase: "failed", problem: "other" }))
     })
@@ -77,6 +103,7 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
     setModelStep({ phase: "downloading" })
     platform
       .notesModelDownload(tool.id, (e) => {
+        if (e.event === "counted") return setModelStep({ phase: "downloading", count: e })
         if (e.event === "stopped") return setModelStep({ phase: "stopped" })
         if (e.event === "failed") return setModelStep({ phase: "failed", problem: e.problem })
         setModelStep({ phase: "preparing" })
@@ -114,14 +141,17 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
             m={m}
             folders={folders}
             step={folderStep}
+            removal={removeStep}
             disabled={working || downloading}
             onPick={pickFolder}
+            onRemove={(f) => removeFolder(f, false)}
+            onRemoveDelete={setConfirming}
           />
           <Step n={2} m={m} title={m.syncTitle} done={syncStep.phase === "done"} what={m.syncWhat}>
             <SyncStepView
               m={m}
               step={syncStep}
-              hasFolder={folders.length > 0}
+              folders={folders}
               disabled={working || downloading}
               onStart={readNotes}
               onPick={pickFolder}
@@ -147,6 +177,29 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
           )}
         </ol>
       )}
+      <Dialog
+        open={confirming !== null}
+        title={confirming ? m.confirmTitle(confirming.name) : ""}
+        onClose={() => setConfirming(null)}
+        actions={
+          <>
+            <Button variant="secondary" data-autofocus onClick={() => setConfirming(null)}>
+              {m.confirmCancel}
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                if (confirming) removeFolder(confirming, true)
+                setConfirming(null)
+              }}
+            >
+              {m.confirmDelete}
+            </Button>
+          </>
+        }
+      >
+        <p>{confirming ? m.confirmWhat(confirming.path ?? confirming.name) : ""}</p>
+      </Dialog>
     </section>
   )
 }
@@ -191,18 +244,41 @@ function FolderStepView(props: {
   m: NotesSetupText
   folders: NotesFolder[]
   step: FolderStep
+  removal: RemoveStep
   disabled: boolean
   onPick: () => void
+  onRemove: (folder: NotesFolder) => void
+  onRemoveDelete: (folder: NotesFolder) => void
 }) {
-  const { m, folders, step, disabled, onPick } = props
+  const { m, folders, step, removal, disabled, onPick, onRemove, onRemoveDelete } = props
   const busy = step.phase === "picking" || step.phase === "adding"
   return (
     <Step n={1} m={m} title={m.folderTitle} done={folders.length > 0} what={m.folderWhat}>
       <ul aria-label={m.foldersLabel} className="flex flex-col gap-1 text-[0.9rem]">
         {folders.length === 0 && <li className="text-ink-dim">{m.noFolder}</li>}
         {folders.map((f) => (
-          <li key={f.id} className="selectable font-mono text-ink">
-            {f.path}
+          <li key={f.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <span className="selectable min-w-0 break-all font-mono text-ink">{f.path}</span>
+            <span className="flex gap-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={m.removeKeepFor(f.name)}
+                disabled={disabled || removal.phase === "removing"}
+                onClick={() => onRemove(f)}
+              >
+                {m.removeKeep}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                aria-label={m.removeDeleteFor(f.name)}
+                disabled={disabled || removal.phase === "removing"}
+                onClick={() => onRemoveDelete(f)}
+              >
+                {m.removeDelete}
+              </Button>
+            </span>
           </li>
         ))}
       </ul>
@@ -230,7 +306,16 @@ function FolderStepView(props: {
           </Button>
         }
       />
-      <p className="text-[0.85rem] text-ink-dim">{m.noRemove}</p>
+      <Collapse open={removal.phase === "removing" || removal.phase === "removed"}>
+        <p className="text-[0.9rem] text-ink-soft" aria-live="polite">
+          {removal.phase === "removed"
+            ? removal.deleted
+              ? m.removedDeleted(removal.name, removal.notes)
+              : m.removedKept(removal.name)
+            : m.removing}
+        </p>
+      </Collapse>
+      <Problem m={m} problem={removal.phase === "failed" ? removal.problem : null} action={null} />
     </Step>
   )
 }
@@ -238,12 +323,16 @@ function FolderStepView(props: {
 function SyncStepView(props: {
   m: NotesSetupText
   step: SyncStep
-  hasFolder: boolean
+  folders: NotesFolder[]
   disabled: boolean
   onStart: () => void
   onPick: () => void
 }) {
-  const { m, step, hasFolder, disabled, onStart, onPick } = props
+  const { m, step, folders, disabled, onStart, onPick } = props
+  const hasFolder = folders.length > 0
+  const count = step.phase === "running" ? step.count : undefined
+  const folder = folders.find((f) => f.id === count?.label)?.name ?? null
+  const text = count && count.total > 0 ? m.syncCount(count.done, count.total, folder) : m.syncRunning
   return (
     <>
       <div className="flex flex-wrap items-center gap-3">
@@ -259,8 +348,14 @@ function SyncStepView(props: {
       </div>
       <Collapse open={step.phase === "running"}>
         <div className="flex max-w-[28rem] flex-col gap-1.5" aria-live="polite">
-          <ProgressBar label={m.syncLabel} value={null} size="thin" />
-          <span className="text-[0.875rem] text-ink-dim">{m.syncRunning}</span>
+          <ProgressBar
+            label={m.syncLabel}
+            value={count && count.total > 0 ? count.done : null}
+            max={count?.total ?? 100}
+            valueText={text}
+            size="thin"
+          />
+          <span className="text-[0.875rem] text-ink-dim">{text}</span>
         </div>
       </Collapse>
       <Collapse open={step.phase === "done"}>
@@ -301,6 +396,12 @@ function ModelStepView(props: {
   const mb = megabytes(model.sizeBytes)
   const downloading = step.phase === "downloading"
   const preparing = step.phase === "preparing"
+  const count = step.phase === "downloading" && step.count?.total ? step.count : undefined
+  const text = preparing
+    ? m.modelPreparing
+    : count
+      ? m.modelCount(megabytes(count.done), megabytes(count.total))
+      : m.modelRunning(mb)
   return (
     <>
       {!model.downloaded && !preparing && (
@@ -317,8 +418,14 @@ function ModelStepView(props: {
       )}
       <Collapse open={downloading || preparing}>
         <div className="flex max-w-[28rem] flex-col gap-1.5" aria-live="polite">
-          <ProgressBar label={m.modelLabel} value={null} size="thin" />
-          <span className="text-[0.875rem] text-ink-dim">{preparing ? m.modelPreparing : m.modelRunning(mb)}</span>
+          <ProgressBar
+            label={m.modelLabel}
+            value={count ? count.done : null}
+            max={count?.total ?? 100}
+            valueText={text}
+            size="thin"
+          />
+          <span className="text-[0.875rem] text-ink-dim">{text}</span>
         </div>
       </Collapse>
       <Collapse open={step.phase === "stopped"}>
