@@ -21,6 +21,8 @@ describe("App update", () => {
       saved: null,
       failure: null,
       terminal: "idle",
+      asked: "idle",
+      checkFailure: null,
     })
   })
   afterEach(() => vi.restoreAllMocks())
@@ -274,5 +276,67 @@ describe("App update", () => {
     await user.click(await screen.findByRole("button", { name: "Обновить до 0.2.0" }))
     const dialog = await screen.findByRole("dialog", { name: "Вышел WireCat 0.2.0" })
     expect(within(dialog).getByRole("button", { name: "Установить и перезапустить" })).toBeEnabled()
+  })
+  describe("from the Help menu", () => {
+    const openHelp = async (user: ReturnType<typeof userEvent.setup>) => {
+      await waitFor(() => expect(useSystem.getState().readiness).not.toBeNull())
+      await user.click(screen.getByRole("button", { name: "Help" }))
+    }
+
+    it("checks and says this is the latest version, until the user closes it", async () => {
+      let answer = (_: null) => {}
+      const check = vi.spyOn(platform, "checkUpdate").mockResolvedValueOnce(null)
+      check.mockReturnValueOnce(
+        new Promise((resolve) => {
+          answer = resolve
+        }),
+      )
+      const user = userEvent.setup()
+      render(<App />)
+      await openHelp(user)
+      await user.click(screen.getByRole("menuitem", { name: "Check for updates" }))
+
+      const dialog = await screen.findByRole("dialog", { name: "Checking for updates…" })
+      expect(within(dialog).getByRole("progressbar", { name: "Checking for updates…" })).toBeInTheDocument()
+      answer(null)
+      expect(await screen.findByRole("dialog", { name: "WireCat is up to date" })).toHaveTextContent(
+        "You have the latest version, 0.0.0-test.",
+      )
+      const [close] = within(dialog).getAllByRole("button", { name: "Close" })
+      await user.click(close as HTMLElement)
+      await waitFor(() => expect(useUpdate.getState().open).toBe(false))
+    })
+
+    it("says why the check failed, and a second try offers the update in the same window", async () => {
+      vi.spyOn(platform, "checkUpdate")
+        .mockResolvedValueOnce(null)
+        .mockRejectedValueOnce(new Error("error sending request for url (https://github.com/latest.json)"))
+        .mockResolvedValue(offer)
+      const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+      const user = userEvent.setup()
+      render(<App />)
+      await openHelp(user)
+      await user.click(screen.getByRole("menuitem", { name: "Check for updates" }))
+
+      const dialog = await screen.findByRole("dialog", { name: "Could not check for updates" })
+      expect(within(dialog).getByRole("alert")).toHaveTextContent("WireCat could not reach the update server.")
+      await user.click(within(dialog).getByRole("button", { name: "Open the download page" }))
+      expect(open).toHaveBeenCalledWith("https://wirecat.dev/en/download")
+
+      await user.click(within(dialog).getByRole("button", { name: "Try again" }))
+      expect(await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })).toBe(dialog)
+      expect(within(dialog).getByRole("button", { name: "Install and restart" })).toBeEnabled()
+    })
+
+    it("names a known update and opens it without checking again", async () => {
+      const check = vi.spyOn(platform, "checkUpdate").mockResolvedValue(offer)
+      const user = userEvent.setup()
+      render(<App />)
+      await screen.findByRole("button", { name: "Update to 0.2.0" })
+      await openHelp(user)
+      await user.click(screen.getByRole("menuitem", { name: "Update to 0.2.0" }))
+      expect(await screen.findByRole("dialog", { name: "WireCat 0.2.0 is available" })).toBeInTheDocument()
+      expect(check).toHaveBeenCalledOnce()
+    })
   })
 })

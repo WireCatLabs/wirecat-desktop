@@ -1,7 +1,19 @@
-import { BookOpenText, CircleHelp, Compass, Cpu, ExternalLink, Info, ShieldCheck, Sparkles } from "lucide-react"
+import {
+  BookOpenText,
+  CircleHelp,
+  Compass,
+  Cpu,
+  Download,
+  ExternalLink,
+  Info,
+  RefreshCw,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react"
 import { type KeyboardEvent, useCallback, useEffect, useId, useRef } from "react"
 import { create } from "zustand"
 import { ComputerFacts, ManagedNodeDialog, useComputerTrouble } from "@/features/system"
+import { updateMessages, useUpdate } from "@/features/update"
 import { useMessages } from "@/i18n"
 import { useSystem } from "@/shared/system-store"
 import { cx } from "@/ui/cx"
@@ -113,6 +125,8 @@ export function HelpPanel({
   const root = useRef<HTMLDivElement>(null)
   const factsId = useId()
   const m = useMessages(onboardingMessages).help
+  const um = useMessages(updateMessages)
+  const known = useUpdate((s) => s.update?.version ?? null)
 
   const backToOpener = useCallback(() => useHelpMenu.getState().opener?.focus(), [])
   const items = () => [...(root.current?.querySelectorAll<HTMLButtonElement>("[role=menuitem]") ?? [])]
@@ -200,6 +214,14 @@ export function HelpPanel({
         <button type="button" role="menuitem" className={item} onClick={pick(onPrivacy)}>
           <ShieldCheck className={icon} strokeWidth={1.8} aria-hidden />
           {m.privacy}
+        </button>
+        <button type="button" role="menuitem" className={item} onClick={pick(() => useUpdate.getState().checkNow())}>
+          {known ? (
+            <Download className="size-[1.1rem] text-brand" strokeWidth={1.8} aria-hidden />
+          ) : (
+            <RefreshCw className={icon} strokeWidth={1.8} aria-hidden />
+          )}
+          {known ? um.updateTo(known) : um.checkForUpdates}
         </button>
         <button type="button" role="menuitem" className={item} onClick={pick(onAbout)}>
           <Info className={icon} strokeWidth={1.8} aria-hidden />

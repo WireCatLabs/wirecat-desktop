@@ -3,6 +3,13 @@ import type { Messages } from "@/i18n"
 type Package = "deb" | "rpm"
 
 const en = {
+  checkForUpdates: "Check for updates",
+  checking: "Checking for updates…",
+  checkingDetail: "WireCat is asking GitHub for the latest version. This takes a few seconds.",
+  latestTitle: "WireCat is up to date",
+  latest: (version: string) => `You have the latest version, ${version}.`,
+  checkFailedTitle: "Could not check for updates",
+  checkFailed: "WireCat could not find out whether a new version is out.",
   updating: "Updating…",
   updateTo: (version: string) => `Update to ${version}`,
   downloadingLabel: "Downloading the update",
@@ -54,6 +61,13 @@ const en = {
 }
 
 const ru: typeof en = {
+  checkForUpdates: "Проверить обновления",
+  checking: "Проверяем обновления…",
+  checkingDetail: "WireCat узнаёт у GitHub, какая версия последняя. Это займёт несколько секунд.",
+  latestTitle: "Обновлений нет",
+  latest: (version) => `У вас последняя версия, ${version}.`,
+  checkFailedTitle: "Не удалось проверить обновления",
+  checkFailed: "WireCat не смог узнать, вышла ли новая версия.",
   updating: "Обновление…",
   updateTo: (version) => `Обновить до ${version}`,
   downloadingLabel: "Загрузка обновления",
@@ -105,6 +119,13 @@ const ru: typeof en = {
 }
 
 const es: typeof en = {
+  checkForUpdates: "Buscar actualizaciones",
+  checking: "Buscando actualizaciones…",
+  checkingDetail: "WireCat pregunta a GitHub cuál es la última versión. Tarda unos segundos.",
+  latestTitle: "WireCat está al día",
+  latest: (version) => `Tienes la última versión, ${version}.`,
+  checkFailedTitle: "No se han podido buscar actualizaciones",
+  checkFailed: "WireCat no ha podido saber si hay una versión nueva.",
   updating: "Actualizando…",
   updateTo: (version) => `Actualizar a ${version}`,
   downloadingLabel: "Descargando la actualización",

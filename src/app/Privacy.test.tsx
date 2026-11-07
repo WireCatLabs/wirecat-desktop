@@ -21,7 +21,7 @@ describe("Privacy", () => {
 
     const help = screen.getByRole("button", { name: "Help" })
     help.focus()
-    await user.keyboard("{ArrowDown}{End}{ArrowUp}{Enter}")
+    await user.keyboard("{ArrowDown}{End}{ArrowUp}{ArrowUp}{Enter}")
 
     const dialog = await screen.findByRole("dialog", { name: "Privacy" })
     expect(within(dialog).getByRole("button", { name: "Close" })).toHaveFocus()
