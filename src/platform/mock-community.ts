@@ -48,7 +48,7 @@ export const OWN = {
   docs: "https://example.com/acme-crm",
   repo: "https://github.com/example/acme-crm-cli",
   signIn: { gives: "your contacts and deals", asks: "an Acme API token" },
-  storage: { app: "acme-crm-cli", env: "ACME_CRM" },
+  storage: { app: "acme-crm-cli", env: "ACME_CRM_CLI" },
 }
 
 export function extraToolsMock(params: URLSearchParams): ExtraTools {
@@ -116,6 +116,7 @@ export const UNCHANGED: OwnUpdate = {
   newCommands: [],
   newWrites: [],
   newParts: [],
+  changedParts: [],
   confirm: false,
 }
 

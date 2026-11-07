@@ -414,6 +414,11 @@ export type OwnUpdate = {
 	newWrites: string[],
 	/**  `signIn`, `mcpServer`, `skill` or `sync`, when the version before had none. */
 	newParts: string[],
+	/**
+	 *  Parts the version before had, with other texts or command words now: `signIn`, `doctor`, `setup`, `sync`,
+	 *  `mcpServer`, `skill`, `runs`, `profiles` or `storage`.
+	 */
+	changedParts: string[],
 	/**  Anything above changed, or the access is unknown: the owner confirms these changes explicitly. */
 	confirm: boolean,
 };

@@ -238,7 +238,7 @@ mod tests {
 
     #[test]
     fn an_own_tools_folders_never_reach_the_shared_store() {
-        let own = Storage { app: "acme-crm-cli".into(), env: "ACME_CRM".into() };
+        let own = Storage { app: "acme-crm-cli".into(), env: "ACME_CRM_CLI".into() };
         let mine: Vec<PathBuf> = folders(&own).into_iter().map(|(_, p)| p).collect();
         for path in &mine {
             assert!(ensure_ours(path, &own.app).is_ok(), "{}", path.display());

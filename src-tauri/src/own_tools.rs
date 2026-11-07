@@ -223,6 +223,9 @@ pub struct UpdateChange {
     pub new_writes: Vec<String>,
     /// `signIn`, `mcpServer`, `skill` or `sync`, when the version before had none.
     pub new_parts: Vec<String>,
+    /// Parts the version before had, with other texts or command words now: `signIn`, `doctor`, `setup`, `sync`,
+    /// `mcpServer`, `skill`, `runs`, `profiles` or `storage`.
+    pub changed_parts: Vec<String>,
     /// Anything above changed, or the access is unknown: the owner confirms these changes explicitly.
     pub confirm: bool,
 }
@@ -747,6 +750,12 @@ fn change_of(old: &Value, entry: &Value, now: Now) -> UpdateChange {
         .filter(|k| old[*k].is_null() && !entry[*k].is_null())
         .map(str::to_string)
         .collect();
+    let changed_parts: Vec<String> =
+        ["signIn", "doctor", "setup", "sync", "mcpServer", "skill", "runs", "profiles", "storage"]
+            .into_iter()
+            .filter(|k| !old[*k].is_null() && old[*k] != entry[*k])
+            .map(str::to_string)
+            .collect();
     let from_repo = old["repo"].as_str().map(str::to_string);
     let repo_changed = !from_repo.as_deref().unwrap_or_default().eq_ignore_ascii_case(now.repo.unwrap_or_default());
     let from_built = serde_json::from_value::<Option<BuiltBy>>(own["built"].clone()).unwrap_or(None);
@@ -771,6 +780,7 @@ fn change_of(old: &Value, entry: &Value, now: Now) -> UpdateChange {
         || !new_commands.is_empty()
         || !new_writes.is_empty()
         || !new_parts.is_empty()
+        || !changed_parts.is_empty()
         || now.access.unknown;
     UpdateChange {
         from_version: own["version"].as_str().unwrap_or_default().into(),
@@ -783,6 +793,7 @@ fn change_of(old: &Value, entry: &Value, now: Now) -> UpdateChange {
         new_commands,
         new_writes,
         new_parts,
+        changed_parts,
         confirm,
     }
 }
@@ -800,7 +811,7 @@ fn publishers(maintainers: &Value) -> Vec<String> {
 /// entry; the tool appears at the next start.
 pub fn add(token: &str, reviewed: Arc<Reviewed>, running: &Running, events: &Channel<InstallEvent>) {
     let pin = install::Pin { version: &reviewed.version, integrity: &reviewed.integrity };
-    install::install_reviewed(&reviewed.tool, &pin, running, events, &|| {
+    let done = install::install_reviewed(&reviewed.tool, &pin, running, events, &|| {
         if let Some(sha) = &reviewed.manifest_sha256 {
             let program = tools::program(&reviewed.tool.bin)
                 .ok_or_else(|| format!("`{}` is not on your PATH after the install.", reviewed.tool.bin))?;
@@ -811,7 +822,9 @@ pub fn add(token: &str, reviewed: Arc<Reviewed>, running: &Running, events: &Cha
         }
         save(&tools_file()?, &reviewed.entry)
     });
-    ADDED.lock().unwrap().insert(token.to_string(), reviewed);
+    if !done {
+        ADDED.lock().unwrap().insert(token.to_string(), reviewed);
+    }
 }
 
 pub fn uninstall(reviewed: &Reviewed, running: &Running, events: &Channel<InstallEvent>) {
@@ -903,7 +916,7 @@ mod tests {
                 "setup": ["{profile}", "setup"],
                 "signIn": { "gives": "your contacts and deals", "asks": "an API token" },
                 "sync": null,
-                "storage": { "app": "acme-crm-cli", "env": "ACME_CRM" }
+                "storage": { "app": "acme-crm-cli", "env": "ACME_CRM_CLI" }
             }
         })
     }
@@ -996,7 +1009,7 @@ mod tests {
         for (name, kind) in [("acme-crm", Refusal::NotScoped), ("@wirecat/acme", Refusal::WirecatScope)] {
             assert_eq!(review(name, None, &fake, catalog(), "").err(), Some(kind));
         }
-        assert!(fake.asked.borrow().is_empty());
+        assert_eq!(*fake.asked.borrow(), Vec::<String>::new());
     }
 
     #[test]
@@ -1066,7 +1079,7 @@ mod tests {
     #[test]
     fn a_name_of_an_official_or_listed_tool_is_a_collision_that_names_it() {
         let tg = catalog().tools.iter().find(|t| t.id == "tg").unwrap();
-        let taken = with_desktop("storage", json!({ "app": tg.storage.app, "env": "ACME_CRM" }));
+        let taken = with_desktop("storage", json!({ "app": tg.storage.app, "env": "ACME_CRM_CLI" }));
         assert_eq!(refused(&Fake::with(&taken)), Refusal::Collision { with: "Telegram".into(), listed: false });
 
         let listed: Catalog = serde_json::from_value(json!({
@@ -1169,9 +1182,18 @@ mod tests {
     }
 
     #[test]
+    fn a_manifest_that_names_itself_after_another_program_cannot_take_its_folder() {
+        for name in ["gh", "keyrings", "nvim"] {
+            let mut m = with_desktop("storage", json!({ "app": name, "env": name.to_uppercase() }));
+            m["name"] = json!(name);
+            assert!(matches!(refused(&Fake::with(&m)), Refusal::BadManifest { key, .. } if key == "storage"), "{name}");
+        }
+    }
+
+    #[test]
     fn a_data_folder_not_named_after_the_tool_is_refused() {
         for app in ["gh", "keyrings"] {
-            let m = with_desktop("storage", json!({ "app": app, "env": "ACME_CRM" }));
+            let m = with_desktop("storage", json!({ "app": app, "env": "ACME_CRM_CLI" }));
             assert!(matches!(refused(&Fake::with(&m)), Refusal::BadManifest { key, .. } if key == "storage"), "{app}");
         }
     }
@@ -1179,11 +1201,11 @@ mod tests {
     #[test]
     fn an_update_keeps_its_id_and_flags_new_publishers_provenance_parts_and_commands() {
         let first = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), "").unwrap();
+        let first_entry = first.entry.clone();
         let saved = json!({ "version": 1, "tools": [first.entry] }).to_string();
 
         let mut renamed = manifest();
         renamed["name"] = json!("acme-sales");
-        renamed["desktop"]["storage"]["env"] = json!("ACME_SALES");
         renamed["desktop"]["skill"] = json!({ "status": ["skill", "status"], "install": ["skill", "install"],
             "show": ["skill", "show"] });
         renamed["commands"].as_array_mut().unwrap().push(json!({ "path": ["deals", "list"],
@@ -1199,13 +1221,22 @@ mod tests {
         assert_eq!(change.from_publishers, ["example"]);
         assert_eq!(change.new_parts, ["skill"]);
         assert_eq!(change.new_commands, ["deals list"]);
-        assert!(change.new_writes.is_empty());
+        assert_eq!(change.new_writes, Vec::<String>::new());
 
         let mut old = r.entry.clone();
         old["own"]["built"] = json!({ "repo": "https://github.com/example/acme-crm-cli", "workflow": "x" });
         let saved = json!({ "version": 1, "tools": [old] }).to_string();
         let gone = review("@example/acme-crm-cli", None, &fake, catalog(), &saved).unwrap();
         assert!(gone.review.update.unwrap().provenance_changed, "provenance that disappears asks again");
+
+        let mut words = manifest();
+        words["desktop"]["doctor"] = json!(["{profile}", "doctor", "--json", "--record", "--fix"]);
+        words["desktop"]["signIn"]["asks"] = json!("your password");
+        let saved = json!({ "version": 1, "tools": [first_entry] }).to_string();
+        let r = review("@example/acme-crm-cli", None, &Fake::with(&words), catalog(), &saved).unwrap();
+        let change = r.review.update.unwrap();
+        assert_eq!(change.changed_parts, ["signIn", "doctor"]);
+        assert!(change.confirm);
     }
 
     #[test]
@@ -1265,7 +1296,7 @@ mod tests {
         assert_eq!(entries[0]["own"]["version"], "0.4.0");
         assert!(!file.with_extension("json.partial").exists());
         remove(&file, "acmecrm").unwrap();
-        assert!(read_entries(&file).unwrap().is_empty());
+        assert_eq!(read_entries(&file).unwrap(), Vec::<Value>::new());
         assert!(remove(&file, "acmecrm").is_err());
         std::fs::write(&file, "{").unwrap();
         assert!(save(&file, &entry).is_err(), "a broken file is never overwritten");
