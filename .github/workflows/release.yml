@@ -202,6 +202,12 @@ jobs:
           version="$(sed -n "s|^  '@tauri-apps/cli@\([0-9.]*\)':$|\1|p" pnpm-lock.yaml | head -n 1)"
           [ -n "$version" ] || { echo "::error::No @tauri-apps/cli version in pnpm-lock.yaml."; exit 1; }
           npm install --global --ignore-scripts "@tauri-apps/cli@$version"
+      # ssign signs over Certum's cloud API with the SimplySign TOTP seed: docs/dev/plans/2026-10-29-first-release.md.
+      # Our fork, equal to upstream v0.1.11 (reviewed in docs/dev/research/2026-11-05-ssign-review.md). It is built
+      # before the secrets step because its crates' build scripts run here and must not see the seed (NEED-2222).
+      # A dry run builds it too, so a pin that no longer builds on Windows shows up before a tag.
+      - if: runner.os == 'Windows'
+        run: cargo install --locked --git https://github.com/WireCatLabs/ssign --rev 95dc245dee437cf82de1f30d166ec5407ba1ffd5 ssign
       # Tauri treats a variable that is set but empty as a certificate to import, so each value is exported only when
       # it is needed, and only the steps after this one see it.
       - id: secrets
@@ -264,11 +270,6 @@ jobs:
           echo "TAURI_SIGNING_PRIVATE_KEY_PASSWORD=dry-run" >> "$GITHUB_ENV"
           # Apple Silicon runs only signed apps, so the dry run signs ad hoc.
           [ "$RUNNER_OS" != macOS ] || echo "APPLE_SIGNING_IDENTITY=-" >> "$GITHUB_ENV"
-      # ssign signs over Certum's cloud API with the SimplySign TOTP seed: docs/dev/plans/2026-10-29-first-release.md.
-      # Our fork of ssign: v0.1.9, reviewed in docs/dev/research/2026-11-05-ssign-review.md, plus patches P1-P6.
-      # A dry run builds it too, so a pin that no longer builds on Windows shows up before a tag.
-      - if: steps.secrets.outputs.config || (inputs.dry_run && runner.os == 'Windows')
-        run: cargo install --locked --git https://github.com/WireCatLabs/ssign --rev fe7fa2e3e52ddf032cd9cb7de4d13e0005b3b270 ssign
       # The app exe is signed before NSIS packs it, and the installer before its updater .sig is made.
       - env:
           WINDOWS_SIGN_CONFIG: ${{ steps.secrets.outputs.config }}

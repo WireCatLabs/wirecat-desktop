@@ -5,8 +5,10 @@
   Certum SimplySign.
 - Commits: the pinned commit `f7ba7b2360a3e40bb8aa062d244d95c62a743b90` (v0.1.8) and current HEAD
   `222cb903731d385ab75e37e88564bcf4cb100458` (v0.1.9).
-- Since 2026-11-07 `release.yml` pins our fork at `b5bfd4a13dcf81927d0864308b015d030d9b9dde`: upstream v0.1.10 (`44335a7`), which merged patches
-  P1-P6 (Le-Syl21/ssign#20) and moved to the digest 0.11 crates. This review read 222cb90, not the patches.
+- Since 2026-11-07 `release.yml` pins our fork at `95dc245dee437cf82de1f30d166ec5407ba1ffd5`: upstream v0.1.11 (`367bf7d`). v0.1.10 merged
+  patches P1-P6 (Le-Syl21/ssign#20) and moved to the digest 0.11 crates. v0.1.11 merged our in-place overwrite of an
+  exe Windows holds open (Le-Syl21/ssign#21) and changed only `src/main.rs` and the version: no new crate, host or
+  build script. This review read 222cb90, not the patches.
 - Read in a local scratch clone of upstream, not kept. File and line references below are to ssign at 222cb90 unless
   they name another repository.
 - The ids below are local to this report. The journal has not allocated them.
