@@ -55,6 +55,8 @@ const ToolSchema = v.object({
       command: v.optional(v.string()),
       /** The methods are the owner's first choice, such as the mail provider, rather than another way to sign in. */
       pick: v.optional(v.boolean()),
+      /** zm's `app --json`: what to enter when making the Zoom app, read by `zoom_app_setup` (zoom-cli PR #337). */
+      appSetup: v.optional(v.array(v.string())),
       /**
        * Sign-ins the app runs in its own window instead of a terminal, the first one by default. `address`, `password`
        * and `clientFile` name where Rust passes what the owner typed; `clientId` is the setting that names the owner's
@@ -120,6 +122,8 @@ const ToolSchema = v.object({
   taskBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
   /** Only memo: the first-run card's folder, notes sync and search model; Rust runs the commands. */
   notesSetup: v.optional(v.nullable(v.object({ minVersion: v.string(), model: v.string() })), null),
+  /** Only drive: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and `drive_folder_add`. */
+  folderPicker: v.optional(v.nullable(v.object({ parent: v.string() })), null),
   /** The messengers' own `serve` in the background, per profile: `server status`, `install`, `start`, `stop` and `uninstall`. */
   background: v.optional(
     v.nullable(

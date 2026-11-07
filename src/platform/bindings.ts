@@ -143,6 +143,19 @@ export type Dns =
 /**  Neither resolver answered. */
 "unknown";
 
+export type DriveFolder = {
+	id: string,
+	name: string,
+	/**  `my_drive`, `shared_with_me`, `shared_drive` or `folder`. */
+	kind: string,
+	parent: string | null,
+	location: string | null,
+	driveId: string | null,
+	/**  `None` when drive did not count them. */
+	childFolders: number | null,
+	added: boolean,
+};
+
 /**  Names and sizes only: nothing inside is opened, so sign-in sessions stay unread. */
 export type Entry = {
 	name: string,
@@ -176,6 +189,12 @@ export type Folder = {
 	/**  The folder's own entries, largest first, so the interface can say what each one is. */
 	entries: Entry[],
 };
+
+export type FolderAdded = { result: "added" } | { result: "failed"; message: string; code: string | null; reason: string | null };
+
+export type FolderLevel = 
+/**  `partial` is true when Google searched only some drives, so folders may be missing. */
+{ result: "listed"; folders: DriveFolder[]; partial: boolean } | { result: "failed"; message: string; code: string | null; reason: string | null };
 
 export type Install = {
 	path: string,
@@ -557,4 +576,26 @@ export type UpdateKind = "self" | "deb" | "rpm" |
 export type UpdateProgress = {
 	downloaded: number,
 	total: number | null,
+};
+
+export type ZoomAppAnswer = { state: "ready"; setup: ZoomAppSetup } | 
+/**  The installed zm has no `app` command; the window uses its built-in list. */
+{ state: "old" } | { state: "failed"; message: string };
+
+export type ZoomAppSetup = {
+	marketplaceUrl: string,
+	guideUrl: string,
+	appType: string,
+	management: string,
+	oauth: string,
+	redirectUrl: string,
+	allowList: string[],
+	scopes: ZoomScope[],
+	configKey: string,
+};
+
+export type ZoomScope = {
+	scope: string,
+	required: boolean,
+	purpose: string,
 };

@@ -54,6 +54,9 @@ pub struct Tool {
     /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
     #[serde(default)]
     pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,
+    /// Only drive: the tool's own listing of Google Drive folders, to choose the ones it imports (`drive_folders.rs`).
+    #[serde(default)]
+    pub folder_picker: Option<crate::drive_folders::FolderPickerSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
     /// The messengers' `serve` in the background, which keeps the archive current between syncs.
@@ -94,6 +97,9 @@ pub struct Tool {
 /// The rest of `signIn` is text for the interface.
 #[derive(Debug, Deserialize)]
 pub struct SignInSource {
+    /// Only zm: the tool's own description of the Zoom app the owner makes first (`zoom_app.rs`); no profile.
+    #[serde(default, rename = "appSetup")]
+    pub app_setup: Option<Vec<String>>,
     /// Sign-ins the app runs in its own window: off a terminal the tool prints each step as a JSON line on stderr
     /// (`qr`, `open_url`, `pairing_code`, `needs`, `progress`) and, with `--answer-stdin`, reads each answer on stdin.
     #[serde(default)]

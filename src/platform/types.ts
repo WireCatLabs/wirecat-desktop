@@ -14,7 +14,15 @@ import type {
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
-import type { MailAgent, NotesFolderAdded, NotesModelEvent, NotesSetup } from "./bindings"
+import type {
+  FolderAdded,
+  FolderLevel,
+  MailAgent,
+  NotesFolderAdded,
+  NotesModelEvent,
+  NotesSetup,
+  ZoomAppAnswer,
+} from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
@@ -262,6 +270,12 @@ export type Platform = {
   signInAnswer(id: string, value: string): Promise<void>
   /** Asks the tool to stop, then ends it after a few seconds; `signIn` then answers `stopped`, or `done` with what came. */
   signInStop(id: string): Promise<void>
+  /** zm's own `app --json`: what to enter when making the Zoom app; `old` from a zm before it, which has the list built in. */
+  zoomAppSetup(id: string): Promise<ZoomAppAnswer>
+  /** One level of the profile's Drive folders; no `parent` lists My Drive, Shared with me and the shared drives. */
+  driveFoldersBrowse(id: string, profile: string, parent: string | null): Promise<FolderLevel>
+  /** Adds one folder, by its id, to what the profile's sync imports. */
+  driveFolderAdd(id: string, profile: string, folder: string): Promise<FolderAdded>
   /**
    * Connects a bot to the profile the owner named with the tool's own `bot auth set`: `fields` first (WhatsApp's ids,
    * `bot.fields` in the catalog), then the token on its stdin. The token is never logged, kept or sent back.

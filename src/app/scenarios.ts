@@ -66,6 +66,10 @@ export async function runMockScenario() {
     useSignIn.getState().start(failing[0], "personal")
     useSignIn.getState().begin()
   }
+  if (params.has("drive-folders") && !signIn) {
+    useSignIn.getState().start("drive", "personal")
+    useSignIn.getState().begin()
+  }
   const plan = params.get("signin-plan")
   if (plan) useSignIn.getState().start(plan, "personal")
   const bot = params.get("bot") ?? params.get("bot-fail")

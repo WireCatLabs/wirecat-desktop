@@ -76,4 +76,40 @@ describe("explaining a failed sign-in", () => {
     expect(explain({ message: "something new" })).toEqual({ reason: "unknown", primary: "retry", fallback: "report" })
     expect(explain({ message: "something new", otherMethod: true }).fallback).toBe("otherMethod")
   })
+
+  it("reads Zoom's missing app from its reason, and from the text of an older zm", () => {
+    const missing = { tool: "zm", reason: "zoom.client-id-missing", message: "no app" }
+    expect(explain(missing).reason).toBe("clientIdMissing")
+    expect(explain({ tool: "zm", message: "run zm config set zoom.client_id <id> first" }).reason).toBe(
+      "clientIdMissing",
+    )
+  })
+
+  it("explains mail's refusals by reason, with the page that fixes them", () => {
+    expect(explain({ tool: "email", reason: "mail.app-password-required", message: "x" })).toEqual({
+      reason: "mailAppPassword",
+      primary: "openPage",
+      fallback: "retry",
+      page: "https://myaccount.google.com/apppasswords",
+    })
+    const yandex = "https://yandex.ru/support/id/ru/authorization/app-passwords"
+    expect(explain({ tool: "email", reason: "mail.app-password-required", message: "x", page: yandex }).page).toBe(
+      yandex,
+    )
+    expect(explain({ tool: "email", reason: "mail.imap-disabled", message: "x" }).reason).toBe("mailImapOff")
+    expect(explain({ tool: "email", reason: "mail.login-refused", message: "x" })).toEqual({
+      reason: "mailRefused",
+      primary: "retry",
+      fallback: null,
+    })
+    expect(
+      explain({ tool: "email", reason: "mail.host-unreachable", code: "network_error", message: "x" }).reason,
+    ).toBe("mailUnreachable")
+  })
+
+  it("explains Drive's signed-out, expired and rate-limited answers", () => {
+    expect(explain({ tool: "drive", reason: "oauth.missing", message: "x" }).reason).toBe("signedOut")
+    expect(explain({ tool: "drive", reason: "oauth.expired", message: "x" }).reason).toBe("signInExpired")
+    expect(explain({ tool: "drive", reason: "provider.rate-limited", message: "x" }).reason).toBe("rateLimited")
+  })
 })

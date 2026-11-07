@@ -387,9 +387,27 @@ on the Channel only, and the plain copies the tool prints beside them (the code'
 note) are dropped. The account's id and name stay in Rust (max's "logged in as" line is dropped too). No step is logged
 or put in a report, and an answer is never kept in the store or repeated in an error. The QR comes as a half-block
 drawing, so `src/domain/qr.ts` turns it back into modules and the dialog draws an SVG, dark on white in both themes.
-Zoom without its own app's Public Client ID fails, and the dialog shows a checklist for making the app (values to copy
-from `wizard.ts`), saves the ID with zm's own `config set` and starts again; transcript files (`source files`) are the
-way without an app.
+Zoom without its own app's Public Client ID asks for it as a `needs` step (`client_id`, zoom-cli PR #337), answered in
+the window beside a checklist for making the app; zm keeps the ID only once the sign-in works. The checklist's values
+come from `zm app --json` (`zoom_app_setup`, catalog `signIn.appSetup`), or from `wizard.ts` for an older zm. An older
+zm fails instead (reason `zoom.client-id-missing`, or only the words `zoom.client_id`): the dialog then saves the ID with
+zm's own `config set` and starts again. Transcript files (`source files`) are the way without an app.
+
+From the open CLI PRs of TASK-132: wa links by number too (method `phone` with `--answer-stdin`, whatsapp-cli PR #346):
+the number is a `needs` step, the code to type on the phone a `pairing_code`, the history wait `progress` events, and
+QR codes carry `expires_at`, so the window counts down. The QR method passes no `--answer-stdin`, so a released wa
+still signs in, and the text of its history wait is still read. Email runs `mail <profile> session start --json
+--answer-stdin` (mail-cli PR #128): the server is asked only when discovery finds none, the app password is a secret
+question whose hint names the provider's page, OAuth is `open_url` with a pasted `redirect` fallback. A wrong answer
+ends the run; Try again goes back to the plan with the address kept, and non-secret answers (a server, a phone number)
+refill their field, while a password, a token or a login code never does. mail's reasons (`mail.login-refused`,
+`mail.app-password-required`, `mail.imap-disabled`, `mail.host-unreachable`) and drive's (`oauth.missing`,
+`oauth.expired`, `provider.rate-limited`) have their own words and action in `signin-failure.ts`. After Drive signs in,
+the done step shows a folder picker (`DriveFolders.tsx`): `drive_folders_browse(id, profile, parent)` runs `folders
+browse [--parent <id>]` one level at a time, and `drive_folder_add` runs `folders add <id>` for each ticked folder
+(catalog `folderPicker`; ids are checked in `drive_folders.rs`; Shared with me is a list, not a folder, and cannot be
+added). A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
+it", with the terminal as the fallback.
 
 Every sign-in is one wizard: `SignInPath.tsx` draws the method's steps from `wizard.ts` (before you start, the tool's
 own steps, done) and lights the one on screen. A failure is read by `src/domain/signin-failure.ts` into a known reason
@@ -403,14 +421,15 @@ The dialog opens on the plan (`Plan.tsx`, text in `messages-plan.ts`): the steps
 tool gets and what stays on this computer, each claim checked in the tool's source. Email's methods are its providers
 (`signIn.pick`): the plan starts with that choice, and a failed try goes back to it. What the plan asks before the run
 reaches the tool only where the method names it, checked in `signin.rs`: the address after the method's `address`
-flag (mail's `--address`; mail finds the server itself), the app password in the variable its `password` names
-(`MAIL_PASSWORD`, never a word on the command line), and the owner's own Google client JSON as text, written for that
+flag (mail's `--address`; mail finds the server itself, and asks the address in the window when the plan leaves it
+empty), an app password in the variable a method's `password` names (no method uses it since mail asks the password on
+stdin), and the owner's own Google client JSON as text, written for that
 run to a 0600 file in a 0700 folder and passed with the method's `clientFile` flag (`--client-file`); the folder goes
-when the run ends, as the tools keep the client with their sign-in. The password and the JSON stay outside the store,
-beside Telegram's keys. "Use my own app" is WC-SECR-25's override from the window: a client file for Google (drive,
+when the run ends, as the tools keep the client with their sign-in. The JSON stays outside the store, beside
+Telegram's keys. "Use my own app" is WC-SECR-25's override from the window: a client file for Google (drive,
 gcal, Gmail), or for Microsoft the Application ID saved first as the method's `clientId` setting
-(`microsoft_client_id`, for that profile). mail 0.14 has no `signInSteps`, so the app passes `--quiet` and reads its
-one remaining line, `Open Microsoft sign-in: <url>`, as the page to open. gcal before WireCat's Google app refuses
+(`microsoft_client_id`, for that profile). A mail without `--answer-stdin` (0.14) answers "unknown option" and is
+sent to its update, with the terminal meanwhile; the parser still reads its `Open Microsoft sign-in: <url>` line. gcal before WireCat's Google app refuses
 with "no Google OAuth client"; the dialog then goes back to the plan with the own-app choice open. Mock scenarios:
 `?signin=email`, `?signin=gcal`, `?signin-fail=email`.
 
