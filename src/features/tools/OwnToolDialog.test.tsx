@@ -107,8 +107,18 @@ describe("Add your own tool", () => {
     expect(await screen.findByText("The package is uninstalled.")).toBeInTheDocument()
   })
 
+  it("reviews a saved own tool that is not installed, even when nothing changed", async () => {
+    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM", installed: false } })
+    const same = { fromVersion: "0.3.0", repoChanged: false, fromRepo: null, newWrites: [], confirm: false }
+    vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview({ update: same }) })
+    const add = vi.spyOn(platform, "ownToolAdd")
+    render(<OwnToolDialog />)
+    expect(await screen.findByRole("button", { name: "Add" })).toBeInTheDocument()
+    expect(add).not.toHaveBeenCalled()
+  })
+
   it("updates at once when nothing new is asked, and asks again for a new repository", async () => {
-    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM" } })
+    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM", installed: true } })
     const same = { fromVersion: "0.2.0", repoChanged: false, fromRepo: null, newWrites: [], confirm: false }
     vi.spyOn(platform, "ownToolDiscover").mockResolvedValueOnce({
       outcome: "review",
@@ -127,7 +137,7 @@ describe("Add your own tool", () => {
     })
     useOwnDialog.setState({ open: false })
     render(<OwnToolDialog />)
-    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM" } })
+    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM", installed: true } })
     expect(
       await screen.findByText(/The repository changed from https:\/\/github.com\/example\/old/),
     ).toBeInTheDocument()

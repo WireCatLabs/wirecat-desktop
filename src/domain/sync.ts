@@ -1,5 +1,6 @@
 /** What a sync brings in and where, in the words the result uses. */
-export type SyncWhat = "messages" | "files" | "meetings" | "notes and mail" | "mail"
+/** `records` is any own tool's data: its manifest names it in free text, which has no plural forms to count with. */
+export type SyncWhat = "messages" | "files" | "meetings" | "notes and mail" | "mail" | "records"
 
 export type SyncSummary = { new: number; places: number; failed: number; left: number; complete: boolean }
 
