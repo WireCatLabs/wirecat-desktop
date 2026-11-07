@@ -184,12 +184,12 @@ instructions for AI agents or an MCP server, the **Agents** page gives them to y
 
 The tool's **Update to** button opens the review again for the new version. It also lists what changed since the
 version you confirmed: the repository, where npm built it, the publishers, new commands, new write access, and new or
-changed parts. When anything changed, tick **I accept these changes** before you can go on. The second question
-follows, as for a new tool.
+changed parts. When anything changed, or the tool does not describe what it asks for, tick **I accept these
+changes** before you can go on. The second question follows, as for a new tool.
 
 #### Remove it
 
-- **Remove from WireCat** (under **Manage**) deletes the tool's entry. It disappears at the next start. The program
+- **Remove from WireCat**, in the tool's details (click its name), deletes the tool's entry. It disappears at the next start. The program
   stays installed, and the app offers **Uninstall it too**.
 - **Uninstall** removes the program. It can also delete the tool's own data folders: only the folders named after
   its package (`@scope/name` → `scope-name`). It never deletes the store your other tools share. A folder with that
@@ -211,6 +211,7 @@ The dialog says what went wrong and what to do.
 | npm says it was built by …, but the package names … | Do not add it. Tell the tool's author. |
 | WireCat could not reach npm | Check your internet connection or proxy, then try again. |
 | … is larger than WireCat reads | Ask the author to make the package smaller. |
+| WireCat could not show this tool: … | Ask the author to fix it and publish a new version. |
 | The package is installed, but WireCat did not add it | The program does not match the review. Click **Uninstall it**. |
 
 | | |
