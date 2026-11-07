@@ -200,7 +200,7 @@ fn fetch(src: &Source, to: &Path, cancelled: &dyn Fn() -> bool) -> Result<(), St
             file.write_all(&buf[..n]).map_err(|e| format!("Could not write to Downloads: {e}"))?;
         }
         file.flush().map_err(|e| e.to_string())?;
-        if format!("{:x}", hasher.finalize()) != src.sha256 {
+        if crate::cloudflare_install::hex(&hasher.finalize()) != src.sha256 {
             return Err("The download does not match Tailscale's checksum. Try again, or use the download page.".into());
         }
         std::fs::rename(&partial, to).map_err(|e| e.to_string())
