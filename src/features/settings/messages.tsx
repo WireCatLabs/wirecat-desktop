@@ -46,6 +46,7 @@ const en = {
   ownOnNext: "Add your own tool is now on the Tools page. Tools you added appear the next time WireCat starts.",
   ownOffNext: "Your own tools disappear the next time WireCat starts. Installed ones stay installed.",
   ownFlag: "WIRECAT_EXTRA_TOOLS=1 is set, so your own tools are read whatever this switch says.",
+  ownDocs: "How it works",
   leftOut: "Left out when WireCat started:",
   restart: "Restart now",
 }
@@ -95,6 +96,7 @@ const ru: typeof en = {
     "Кнопка «Добавить свой инструмент» уже на странице «Инструменты». Добавленные инструменты появятся при следующем запуске WireCat.",
   ownOffNext: "Ваши инструменты исчезнут при следующем запуске WireCat. Установленные останутся.",
   ownFlag: "Задано WIRECAT_EXTRA_TOOLS=1, поэтому ваши инструменты читаются при любом положении переключателя.",
+  ownDocs: "Как это работает",
   leftOut: "Не добавлены при запуске WireCat:",
   restart: "Перезапустить",
 }
@@ -146,6 +148,7 @@ const es: typeof en = {
     "Añadir tu propia herramienta ya está en la página Herramientas. Las herramientas añadidas aparecerán la próxima vez que se inicie WireCat.",
   ownOffNext: "Tus herramientas desaparecerán la próxima vez que se inicie WireCat. Las instaladas se quedan.",
   ownFlag: "WIRECAT_EXTRA_TOOLS=1 está definido, así que tus herramientas se leen sea cual sea este interruptor.",
+  ownDocs: "Cómo funciona",
   leftOut: "Excluidas al iniciar WireCat:",
   restart: "Reiniciar ahora",
 }

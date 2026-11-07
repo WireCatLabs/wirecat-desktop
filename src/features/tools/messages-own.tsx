@@ -26,6 +26,10 @@ const en = {
   provenance: "Where npm built it",
   builtBy: (repo: string) => `Built by ${repo} on GitHub Actions`,
   notBuilt: "No record of where npm built it",
+  provenanceInfo: "About where npm built it",
+  provenanceHelp:
+    "npm records which repository and workflow built this package. That shows where the code came from, not that it is safe. What it asks for is what the tool says about itself; WireCat cannot prove that it does only that.",
+  docs: "How adding your own tool works",
   asksFor: "What it asks for",
   reads: "Reads your service",
   changes: "Changes your service",
@@ -146,6 +150,10 @@ const ru: typeof en = {
   provenance: "Где npm его собрал",
   builtBy: (repo) => `Собран из ${repo} в GitHub Actions`,
   notBuilt: "Нет записи о том, где npm его собрал",
+  provenanceInfo: "О том, где npm его собрал",
+  provenanceHelp:
+    "npm записывает, какой репозиторий и какой процесс сборки создали этот пакет. Это показывает, откуда взят код, но не то, что он безопасен. «Что он запрашивает» — это то, что инструмент сообщает о себе сам; WireCat не может доказать, что он делает только это.",
+  docs: "Как работает добавление своего инструмента",
   asksFor: "Что он запрашивает",
   reads: "Читает данные сервиса",
   changes: "Меняет данные сервиса",
@@ -262,6 +270,10 @@ const es: typeof en = {
   provenance: "Dónde lo compiló npm",
   builtBy: (repo) => `Compilado desde ${repo} en GitHub Actions`,
   notBuilt: "No hay registro de dónde lo compiló npm",
+  provenanceInfo: "Sobre dónde lo compiló npm",
+  provenanceHelp:
+    "npm registra qué repositorio y qué flujo de trabajo compilaron este paquete. Eso muestra de dónde viene el código, no que sea seguro. Lo que pide es lo que la herramienta dice de sí misma; WireCat no puede demostrar que haga solo eso.",
+  docs: "Cómo funciona añadir tu propia herramienta",
   asksFor: "Qué pide",
   reads: "Lee tu servicio",
   changes: "Cambia tu servicio",

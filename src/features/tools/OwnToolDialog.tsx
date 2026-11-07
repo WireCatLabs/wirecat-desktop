@@ -3,15 +3,17 @@ import { type ReactNode, useEffect, useId, useState } from "react"
 import { entryProblem } from "@/domain/catalog"
 import { applyInstallEvent } from "@/domain/install-progress"
 import type { InstallSession } from "@/domain/status"
-import { useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
 import type { OwnRefusal, OwnReview, OwnUpdate } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { InfoTip } from "@/ui/InfoTip"
 import { failureWords, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
 import { type OwnText, ownMessages } from "./messages-own"
@@ -324,6 +326,7 @@ function WarnBox({ children }: { children: ReactNode }) {
 }
 
 function Warning({ m }: { m: OwnText }) {
+  const lang = useLang()
   return (
     <WarnBox>
       <ul className="flex flex-col gap-1">
@@ -331,6 +334,13 @@ function Warning({ m }: { m: OwnText }) {
           <li key={line}>{line}</li>
         ))}
       </ul>
+      <button
+        type="button"
+        className="mt-1 self-start text-brand underline hover:text-brand-hover"
+        onClick={() => platform.openUrl(ownToolsDocs(lang))}
+      >
+        {m.docs}
+      </button>
     </WarnBox>
   )
 }
@@ -460,6 +470,9 @@ function ReviewStep({ review, m, accepted, accept }: ReviewProps) {
           <span className={review.built ? "" : "text-warn-ink"}>
             {review.built ? m.builtBy(review.built.repo) : m.notBuilt}
           </span>
+          <InfoTip label={m.provenanceInfo} className="ml-1 align-middle">
+            {m.provenanceHelp}
+          </InfoTip>
         </Row>
       </dl>
       <section aria-label={m.asksFor}>

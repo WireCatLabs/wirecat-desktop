@@ -1,8 +1,9 @@
 import { RotateCw } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import { useMessages } from "@/i18n"
+import { useLang, useMessages } from "@/i18n"
 import type { OwnStatus } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
@@ -15,6 +16,7 @@ import { settingsMessages } from "./messages"
 /** Off by default, and turned on only through its warning: these tools get every piece of data WireCat holds. */
 export function OwnToolsSetting() {
   const m = useMessages(settingsMessages)
+  const lang = useLang()
   const [status, setStatus] = useState<OwnStatus | null>(null)
   const [atStart, setAtStart] = useState<boolean | null>(null)
   const [asking, setAsking] = useState(false)
@@ -57,6 +59,13 @@ export function OwnToolsSetting() {
         <InfoTip label={m.ownInfo} className="-ml-1.5">
           {m.ownHelp}
         </InfoTip>
+        <button
+          type="button"
+          className="text-brand underline hover:text-brand-hover"
+          onClick={() => platform.openUrl(ownToolsDocs(lang))}
+        >
+          {m.ownDocs}
+        </button>
       </div>
       {status?.flag && <p className="text-[0.9rem] text-ink-soft">{m.ownFlag}</p>}
       <Collapse open={changed} className="flex flex-wrap items-center gap-3">
