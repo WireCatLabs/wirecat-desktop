@@ -1696,6 +1696,15 @@
       "taskBoard": {
         "minVersion": "0.131.14"
       },
+      "notesSetup": {
+        "minVersion": "0.131.14",
+        "folders": ["folders", "list", "--no-record", "--json"],
+        "add": ["folders", "add", "{path}", "--no-record", "--json"],
+        "sync": ["sync", "--only", "notes", "--record", "--json"],
+        "models": ["models", "list", "--no-record", "--json"],
+        "model": "e5-small",
+        "download": ["models", "download", "{model}", "--json"]
+      },
       "sync": {
         "run": ["sync", "--record", "--json"],
         "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],

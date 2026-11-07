@@ -14,7 +14,7 @@ import type {
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
-import type { MailAgent } from "./bindings"
+import type { MailAgent, NotesFolderAdded, NotesModelEvent, NotesSetup } from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
@@ -288,6 +288,17 @@ export type Platform = {
   mailAgentSet(id: string, on: boolean): Promise<MailAgent>
   /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */
   mailAgentWaiting(id: string): Promise<number | null>
+  /** memo's first run (`notesSetup` in the catalog): its notes folders on this computer and the search model. */
+  notesSetupStatus(id: string): Promise<NotesSetup>
+  /** The system's own folder window; the chosen path, or null when the owner closes it. */
+  notesPickFolder(): Promise<string | null>
+  /** memo's `folders add` for a path the window returned; Rust checks it first. Failures come as a closed problem. */
+  notesFolderAdd(id: string, path: string): Promise<NotesFolderAdded>
+  /** memo's `sync --only notes`; the same events as `syncRun`, stopped with `syncStop(id, null)`. */
+  notesSync(id: string, onEvent: (e: SyncEvent) => void): Promise<void>
+  /** Downloads the catalog's search model; memo prints no progress, so only the end arrives. */
+  notesModelDownload(id: string, onEvent: (e: NotesModelEvent) => void): Promise<void>
+  notesModelStop(id: string): Promise<void>
   /** What a bug report carries about this computer, masked, including recent failed runs (private). */
   reportContext(): Promise<ReportContext>
   sendReport(draft: ReportDraft, context: ReportContext): Promise<ReportSent>

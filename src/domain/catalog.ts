@@ -118,6 +118,8 @@ const ToolSchema = v.object({
   tasks: v.nullable(v.object({ list: v.array(v.string()), release: v.array(v.string()) })),
   /** The Tasks page's lowest version of the tool; only memo keeps project tasks. */
   taskBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
+  /** Only memo: the first-run card's folder, notes sync and search model; Rust runs the commands. */
+  notesSetup: v.optional(v.nullable(v.object({ minVersion: v.string(), model: v.string() })), null),
   /** The messengers' own `serve` in the background, per profile: `server status`, `install`, `start`, `stop` and `uninstall`. */
   background: v.optional(
     v.nullable(

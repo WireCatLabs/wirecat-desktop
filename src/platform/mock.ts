@@ -12,6 +12,7 @@ import { npmLines } from "./mock-install"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
 import { memoryMock } from "./mock-memory"
+import { notesSetupMock } from "./mock-notes-setup"
 import { notificationsMock } from "./mock-notifications"
 import { permissionsMock } from "./mock-permissions"
 import { reportMock } from "./mock-report"
@@ -619,6 +620,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...botMock(),
     ...syncMock(),
     ...mailAgentMock(params),
+    ...notesSetupMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
     ...cloudflareMock(),

@@ -573,6 +573,19 @@ chat); the window's words are the app's own, and "Open the run on Logs" opens th
 one for a tool without profiles; the Tools row shows the running sync, its result, or the last sync of its only
 profile, with a Sync or Stop button beside the name. A result stays until dismissed and says what to do next.
 
+## memo's first run
+
+`notes_setup.rs`, card `src/features/tools/MemoSetup.tsx` on memo's details, catalog key `notesSetup`. Three steps, each
+one of memo's own commands: `folders add <path>` (listed with `folders list`), `sync --only notes`, and
+`models download e5-small` (about 135 MB; after it the card runs the notes sync again, since memo embeds notes only
+then). The folder comes from the system's window: `notes_pick_folder` opens it from Rust through tauri-plugin-dialog,
+which has no capability for the webview, so the interface can only ask Rust "choose a folder" and send back what it
+returned. `notes_folder_add` checks that path again (absolute, a real readable folder, never an option) before memo
+sees it. Failures reach the interface as a closed list (`NotesProblem`: unreadable folder, disk full, offline, too old,
+busy, other), never memo's message, which can name a folder. memo prints no download progress, so that bar has no end and
+Stop kills the run. Folders show with `~` for the home folder; folders another computer or Drive keeps are left out.
+memo has no `folders remove`, so the card cannot remove one.
+
 ## The Tasks page
 
 Plan: `docs/dev/plans/2026-10-31-tasks-page.md`. memo's project tasks only (`project:*`); tasks made from messages stay

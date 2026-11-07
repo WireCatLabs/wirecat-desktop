@@ -17,30 +17,40 @@ pub async fn sync_run(
     crate::log::command("sync_run", async move {
         let tool = known_tool(&id)?;
         let args = sync::args(tool, profile.as_deref())?;
-        let running = Arc::clone(&running);
-        blocking(move || {
-            let send = |e: sync::SyncEvent| {
-                let _ = on_event.send(e);
-            };
-            let key = sync::key(tool, profile.as_deref());
-            let busy = running.busy(&catalog::owner(tool).id);
-            if busy || !running.start(&key) {
-                return send(sync::SyncEvent::Failed {
-                    message: if busy {
-                        format!("{} is being installed or updated. Sync when it is done.", tool.name)
-                    } else {
-                        "This sync is still running or stopping. Try again in a few seconds.".into()
-                    },
-                    code: None,
-                    reason: Some("app.busy".into()),
-                    run: None,
-                    retry_after_ms: None,
-                });
-            }
-            sync::run(tool, &args, &|| !running.is_running(&key), &send);
-            running.finish(&key);
-        })
-        .await
+        run_guarded(tool, profile, args, Arc::clone(&running), on_event).await
+    })
+    .await
+}
+
+/// One sync per package and profile, none while the package installs; `args` are the catalog's words for this run.
+pub(super) async fn run_guarded(
+    tool: &'static catalog::Tool,
+    profile: Option<String>,
+    args: Vec<String>,
+    running: Arc<Running>,
+    on_event: Channel<sync::SyncEvent>,
+) -> Result<(), AppError> {
+    blocking(move || {
+        let send = |e: sync::SyncEvent| {
+            let _ = on_event.send(e);
+        };
+        let key = sync::key(tool, profile.as_deref());
+        let busy = running.busy(&catalog::owner(tool).id);
+        if busy || !running.start(&key) {
+            return send(sync::SyncEvent::Failed {
+                message: if busy {
+                    format!("{} is being installed or updated. Sync when it is done.", tool.name)
+                } else {
+                    "This sync is still running or stopping. Try again in a few seconds.".into()
+                },
+                code: None,
+                reason: Some("app.busy".into()),
+                run: None,
+                retry_after_ms: None,
+            });
+        }
+        sync::run(tool, &args, &|| !running.is_running(&key), &send);
+        running.finish(&key);
     })
     .await
 }

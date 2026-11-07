@@ -51,6 +51,9 @@ pub struct Tool {
     /// The Tasks page's lowest memo: below it the page offers the update instead of a read.
     #[serde(default)]
     pub task_board: Option<TaskBoardSource>,
+    /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
+    #[serde(default)]
+    pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,
     /// The tool's own sync and where it says when the last one ended; `run` is `None` when it has none to start.
     pub sync: Option<crate::sync::SyncSource>,
     /// The messengers' `serve` in the background, which keeps the archive current between syncs.

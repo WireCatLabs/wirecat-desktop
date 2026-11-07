@@ -27,6 +27,7 @@ mod mcp_server;
 mod memory;
 mod names;
 mod node;
+mod notes_setup;
 mod notifications;
 mod npm_prefix;
 mod package_update;
@@ -82,6 +83,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(Arc::new(Running::default()))
         .setup(|app| {
             // Without a log the app still works; it says why on stderr.
@@ -120,6 +122,12 @@ pub fn run() {
             commands::tools::mail_agent_set,
             commands::tools::mail_agent_waiting,
             commands::tools::cancel_install,
+            commands::notes_setup::notes_setup_status,
+            commands::notes_setup::notes_pick_folder,
+            commands::notes_setup::notes_folder_add,
+            commands::notes_setup::notes_sync,
+            commands::notes_setup::notes_model_download,
+            commands::notes_setup::notes_model_stop,
             commands::tools::config_repair,
             commands::tools::open_setup,
             commands::storage::storage_report,
