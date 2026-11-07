@@ -4,11 +4,12 @@ import { entryProblem } from "@/domain/catalog"
 import { applyInstallEvent } from "@/domain/install-progress"
 import type { InstallSession } from "@/domain/status"
 import { useMessages } from "@/i18n"
-import type { OwnRefusal, OwnReview } from "@/platform/bindings"
+import type { OwnRefusal, OwnReview, OwnUpdate } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { Checkbox } from "@/ui/Checkbox"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { failureWords, useFailureMessages } from "./failure-words"
@@ -21,7 +22,7 @@ type Step =
   | { kind: "name" }
   | { kind: "reading"; pkg: string }
   | { kind: "refused"; pkg: string; refusal: OwnRefusal | { kind: "entry"; problem: string } }
-  | { kind: "review"; review: OwnReview }
+  | { kind: "review"; review: OwnReview; accepted: boolean }
   | { kind: "confirm"; review: OwnReview }
   | { kind: "installing"; review: OwnReview; session: InstallSession }
   | { kind: "uninstalling"; review: OwnReview; done: boolean }
@@ -55,9 +56,7 @@ export function OwnToolDialog() {
       if (found.outcome === "refused") return setStep({ kind: "refused", pkg: name, refusal: found.refusal })
       const problem = entryProblem(found.review.entry)
       if (problem) return setStep({ kind: "refused", pkg: name, refusal: { kind: "entry", problem } })
-      // An update that asks for nothing new needs no second look; a new repository or new writes does.
-      if (update?.installed && found.review.update && !found.review.update.confirm) return install(found.review)
-      setStep({ kind: "review", review: found.review })
+      setStep({ kind: "review", review: found.review, accepted: false })
     } catch (e) {
       setStep({ kind: "refused", pkg: name, refusal: { kind: "offline", detail: String(e) } })
     }
@@ -126,7 +125,14 @@ export function OwnToolDialog() {
           </p>
         )}
         {step.kind === "refused" && <Refused step={step} m={m} pasted={pasted} setPasted={setPasted} />}
-        {step.kind === "review" && <ReviewStep review={step.review} m={m} />}
+        {step.kind === "review" && (
+          <ReviewStep
+            review={step.review}
+            m={m}
+            accepted={step.accepted}
+            accept={(accepted) => setStep({ ...step, accepted })}
+          />
+        )}
         {step.kind === "confirm" && <p className="text-[0.95rem]">{m.confirmBody}</p>}
         {step.kind === "installing" && <Installing step={step} m={m} />}
         {step.kind === "uninstalling" &&
@@ -199,7 +205,11 @@ function Actions({
       return (
         <>
           {cancel}
-          <Button variant="primary" onClick={() => on.setStep({ kind: "confirm", review: step.review })}>
+          <Button
+            variant="primary"
+            disabled={step.review.update?.confirm === true && !step.accepted}
+            onClick={() => on.setStep({ kind: "confirm", review: step.review })}
+          >
             {m.add}
           </Button>
         </>
@@ -207,7 +217,7 @@ function Actions({
     case "confirm":
       return (
         <>
-          <Button variant="ghost" onClick={() => on.setStep({ kind: "review", review: step.review })}>
+          <Button variant="ghost" onClick={() => on.setStep({ kind: "review", review: step.review, accepted: true })}>
             {m.back}
           </Button>
           <Button variant="danger" onClick={() => on.install(step.review)}>
@@ -379,24 +389,50 @@ function Commands({ label, list, m }: { label: string; list: string[]; m: OwnTex
   )
 }
 
-function ReviewStep({ review, m }: { review: OwnReview; m: OwnText }) {
-  const agent = [review.skill && m.skill, review.mcp && m.mcp].filter(Boolean).join(" · ") || m.noAgent
+function Changes({ review, m, accepted, accept }: ReviewProps & { review: OwnReview & { update: OwnUpdate } }) {
   const change = review.update
+  const id = useId()
+  const built = (b: OwnReview["built"]) => (b ? m.builtBy(b.repo) : m.notBuilt)
+  const list = (label: string, items: string[]) =>
+    items.length > 0 && (
+      <p>
+        {label} <span className="font-mono">{items.join(", ")}</span>
+      </p>
+    )
+  if (!change.confirm) return <p className="text-ink-soft">{m.nothingNew(change.fromVersion)}</p>
+  return (
+    <WarnBox>
+      {change.repoChanged && <p>{m.repoChanged(change.fromRepo ?? m.noRepository, review.repo ?? m.noRepository)}</p>}
+      {change.provenanceChanged && <p>{m.provenanceChanged(built(change.fromBuilt), built(review.built))}</p>}
+      {change.publishersChanged && (
+        <p>{m.publishersChanged(change.fromPublishers.join(", "), review.publishers.join(", "))}</p>
+      )}
+      {list(m.newCommands, change.newCommands)}
+      {list(m.newWrites, change.newWrites)}
+      {change.newParts.length > 0 && (
+        <p>
+          {m.newParts} {change.newParts.map((p) => m.parts[p as keyof OwnText["parts"]] ?? p).join(", ")}
+        </p>
+      )}
+      {review.access.unknown && <p>{m.unknownAccess}</p>}
+      <div className="mt-1 flex items-center gap-2">
+        <Checkbox checked={accepted} onChange={accept} aria-labelledby={id} />
+        <span id={id} className="font-medium">
+          {m.acceptChanges}
+        </span>
+      </div>
+    </WarnBox>
+  )
+}
+
+type ReviewProps = { review: OwnReview; m: OwnText; accepted: boolean; accept(accepted: boolean): void }
+
+function ReviewStep({ review, m, accepted, accept }: ReviewProps) {
+  const agent = [review.skill && m.skill, review.mcp && m.mcp].filter(Boolean).join(" · ") || m.noAgent
+  const update = review.update
   return (
     <div className="flex flex-col gap-4 text-[0.95rem]">
-      {change?.confirm && (
-        <WarnBox>
-          {change.repoChanged && (
-            <p>{m.repoChanged(change.fromRepo ?? m.noRepository, review.repo ?? m.noRepository)}</p>
-          )}
-          {change.newWrites.length > 0 && (
-            <p>
-              {m.newWrites} <span className="font-mono">{change.newWrites.join(", ")}</span>
-            </p>
-          )}
-          <p>{m.confirmChanges}</p>
-        </WarnBox>
-      )}
+      {update && <Changes review={{ ...review, update }} m={m} accepted={accepted} accept={accept} />}
       <div>
         <p className="font-semibold text-[1.05rem]">
           {review.name} <span className="font-mono font-normal text-ink-soft">{review.package}</span>
