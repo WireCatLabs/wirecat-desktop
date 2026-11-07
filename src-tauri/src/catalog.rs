@@ -19,8 +19,13 @@ pub struct Tool {
     pub id: String,
     pub bin: String,
     pub package: String,
-    /// The GitHub repository whose release workflow must have built the npm package (`provenance.rs`).
+    /// The GitHub repository whose release workflow must have built the npm package (`provenance.rs`); empty only for
+    /// an own tool whose repository is private or outside GitHub.
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub repo: String,
+    /// Compiled in, the signed list, or the owner's own file; set by `community.rs`, never read from an entry.
+    #[serde(skip)]
+    pub source: crate::community::Source,
     pub profiles: Option<ProfileSource>,
     pub doctor: Vec<String>,
     pub runs: Option<RunsSource>,
@@ -138,6 +143,9 @@ pub struct SkillSource {
 /// `{port}` and `{url}` are filled only after `mcp_server.rs` validated them.
 #[derive(Debug, Deserialize)]
 pub struct McpServerSource {
+    /// The port the guide offers; one per tool, so two servers never collide (`community.rs` checks it).
+    #[serde(default)]
+    pub port: Option<u64>,
     pub start: Vec<String>,
     pub stop: Vec<String>,
     pub status: Vec<String>,
@@ -283,6 +291,11 @@ pub struct Storage {
 pub struct ProfileSource {
     pub args: Vec<String>,
     pub shape: String,
+}
+
+/// An own entry writes `"repo": null` (the interface needs every key); Rust reads it as no repository.
+fn null_as_empty<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    Ok(Option::<String>::deserialize(d)?.unwrap_or_default())
 }
 
 pub fn catalog() -> &'static Catalog {

@@ -104,6 +104,12 @@ function createTauri(): Platform {
     extraTools: () => invoke("extra_tools"),
     communityStatus: () => invoke("community_status"),
     setCommunityShown: (show) => invoke("set_community_shown", { show }),
+    ownToolsStatus: () => invoke("own_tools_status"),
+    setOwnToolsAllowed: (allow) => invoke("set_own_tools_allowed", { allow }),
+    ownToolDiscover: (pkg, desktop) => invoke("own_tool_discover", { package: pkg, desktop }),
+    ownToolAdd: (token, onEvent) => invoke("own_tool_add", { token, onEvent: events(onEvent) }),
+    ownToolUninstall: (token, onEvent) => invoke("own_tool_uninstall", { token, onEvent: events(onEvent) }),
+    ownToolRemove: (id) => invoke("own_tool_remove", { id }),
     nodeOffer: () => invoke("node_offer"),
     setupNode: (onEvent) => {
       const channel = new Channel<NodeEvent>()

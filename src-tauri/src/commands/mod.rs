@@ -6,6 +6,7 @@ pub mod mcp_server;
 pub mod memory;
 pub mod node;
 pub mod notes_setup;
+pub mod own_tools;
 pub mod search;
 pub mod settings;
 pub mod signin;

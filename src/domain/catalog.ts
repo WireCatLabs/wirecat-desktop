@@ -17,7 +17,8 @@ const ToolSchema = v.object({
   community: v.optional(v.literal(true)),
   summary: v.string(),
   docs: v.pipe(v.string(), v.url()),
-  repo: v.pipe(v.string(), v.url()),
+  /** Null only for an own tool whose repository is private or outside GitHub. */
+  repo: v.nullable(v.pipe(v.string(), v.url())),
   profiles: v.nullable(v.object({ args: v.array(v.string()), shape: v.string() })),
   doctor: v.array(v.string()),
   runs: v.nullable(v.object({ list: v.array(v.string()), show: v.array(v.string()) })),
@@ -141,7 +142,7 @@ const ToolSchema = v.object({
       run: v.nullable(v.array(v.string())),
       last: v.nullable(v.array(v.string())),
       lastShape: v.picklist(["runs", "driveStatus"]),
-      what: v.picklist(["messages", "files", "meetings", "notes and mail", "mail"]),
+      what: v.picklist(["messages", "files", "meetings", "notes and mail", "mail", "records"]),
       note: v.nullable(v.string()),
     }),
   ),
@@ -197,7 +198,9 @@ const CatalogSchema = v.object({
   sharedStorage: v.object({ app: v.string(), env: v.string(), label: v.string() }),
 })
 
-export type CatalogTool = v.InferOutput<typeof ToolSchema>
+/** Where a tool came from: compiled in, the signed list, or the owner's own file. Rust sets it, never the entry. */
+export type ToolSource = "official" | "community" | "own"
+export type CatalogTool = v.InferOutput<typeof ToolSchema> & { source?: ToolSource }
 export type SearchField = NonNullable<CatalogTool["search"]>["fields"][number]
 
 const catalog = v.parse(CatalogSchema, raw)
@@ -210,31 +213,44 @@ export const requirements = catalog.requirements
 export const sharedStorage = catalog.sharedStorage
 
 export const isCommunity = (t: CatalogTool) => t.community === true
+/** Added by the owner without WireCat's review: the **Not checked** badge. */
+export const isOwn = (t: CatalogTool) => t.source === "own"
+
+type Rejection = { source: ToolSource; text: string }
 
 /**
  * Appends the community tools Rust accepted; returns a sentence for each entry left out. Called once before the
  * interface loads, because pages build their lists (Storage areas, Search sources) when their module loads.
  */
-export function addCommunityTools(entries: readonly unknown[]): string[] {
-  const rejected: string[] = []
-  for (const entry of entries) {
+export function addCommunityTools(entries: readonly { source: ToolSource; entry: unknown }[]): Rejection[] {
+  const rejected: Rejection[] = []
+  for (const { source, entry } of entries) {
     const parsed = v.safeParse(CommunitySchema, entry)
     if (!parsed.success) {
-      rejected.push(`${describe(entry)}: ${v.summarize(parsed.issues)}`)
+      rejected.push({ source, text: `${describe(entry)}: ${v.summarize(parsed.issues)}` })
     } else if (findTool(parsed.output.id)) {
-      rejected.push(`${parsed.output.id}: the id is taken`)
+      rejected.push({ source, text: `${parsed.output.id}: the id is taken` })
     } else {
-      all.push(parsed.output)
+      all.push({ ...parsed.output, source })
     }
   }
   return rejected
+}
+
+/** The interface's own check of an entry Rust built for review, so a tool it would not show is never added. */
+export function entryProblem(entry: unknown): string | null {
+  const parsed = v.safeParse(CommunitySchema, entry)
+  return parsed.success ? null : v.summarize(parsed.issues)
 }
 
 const describe = (entry: unknown) =>
   typeof entry === "object" && entry !== null && "id" in entry ? String(entry.id) : "an entry"
 
 /** The GitHub owner a community tool's npm release must be built by, shown in its trust note. */
-export const maker = (t: CatalogTool) => t.repo.replace(/^https:\/\/github\.com\//, "").split("/")[0] ?? t.repo
+export const maker = (t: CatalogTool) =>
+  t.repo
+    ? (t.repo.replace(/^https:\/\/github\.com\//, "").split("/")[0] ?? t.repo)
+    : (t.package.split("/")[0] ?? t.package)
 
 export function findTool(id: string): CatalogTool | undefined {
   return all.find((t) => t.id === id) ?? helpers.find((t) => t.id === id)

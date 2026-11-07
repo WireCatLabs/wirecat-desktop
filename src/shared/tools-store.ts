@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { ownerId, samePackage } from "@/domain/catalog"
 import { type Preflight, preflightWarns } from "@/domain/compat"
-import { isProgressLine, readNpmLine, startProgress } from "@/domain/install-progress"
+import { applyInstallEvent } from "@/domain/install-progress"
 import type { DataDeletion, InstallSession, Operation } from "@/domain/status"
 import { platform } from "@/platform/bridge"
 import type { ToolState } from "@/platform/schemas"
@@ -73,19 +73,7 @@ export const useTools = create<ToolsState>((set, get) => {
     const operation = get().sessions[id]?.operation ?? "install"
     patchSession(id, (s) => ({ ...s, step: "check", began: { check: Date.now() } }))
     try {
-      await platform[operation](id, (e) => {
-        if (e.event === "step")
-          patchSession(id, (s) => ({ ...s, step: e.step, began: { ...s.began, [e.step]: Date.now() } }))
-        else if (e.event === "check") patchSession(id, (s) => ({ ...s, verifying: e.what }))
-        else if (e.event === "log")
-          patchSession(id, (s) => {
-            const progress = readNpmLine(s.progress ?? startProgress(), e.line)
-            // Hundreds of "fetched a package" lines would push the lines that explain a failure out of the log.
-            if (isProgressLine(e.line)) return { ...s, progress }
-            return { ...s, progress, log: [...s.log.slice(-499), e.line] }
-          })
-        else patchSession(id, (s) => ({ ...s, outcome: e, ended: Date.now() }))
-      })
+      await platform[operation](id, (e) => patchSession(id, (s) => applyInstallEvent(s, e)))
     } catch (e) {
       patchSession(id, (s) => ({
         ...s,

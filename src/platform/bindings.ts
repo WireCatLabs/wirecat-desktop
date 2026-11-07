@@ -77,6 +77,11 @@ export type BotResult =
 /**  The bot's own public name and username, as the messenger reported them; never the token. */
 { outcome: "connected"; name: string | null; username: string | null } | { outcome: "failed"; message: string; code: string | null; reason: string | null };
 
+export type BuiltBy = {
+	repo: string,
+	workflow: string,
+};
+
 export type CannotOpen = {
 	/**  The schema the new version reads. */
 	speaks: number,
@@ -150,13 +155,18 @@ export type Entry = {
 	bytes: number,
 };
 
+export type ExtraTool = {
+	source: ToolSource,
+	entry: unknown,
+};
+
 /**
- *  What the file added: the accepted entries as written (the interface reads their text fields), and a sentence per
- *  entry left out.
+ *  What the sources added: the accepted entries as written (the interface reads their text fields) with their source,
+ *  and a sentence per entry left out.
  */
 export type ExtraTools = {
-	tools: unknown[],
-	rejected: string[],
+	tools: ExtraTool[],
+	rejected: Rejected[],
 };
 
 export type FailReason = "requirements" | "permission" | "network" | "timeout" | 
@@ -336,6 +346,78 @@ export type Offer = {
 /**  The interface's three platforms; every other Unix is treated as Linux. */
 export type Os = "linux" | "macos" | "windows";
 
+/**  The commands the manifest declares, grouped by what they ask to touch; each is its words joined by spaces. */
+export type OwnAccess = {
+	reads: string[],
+	changes: string[],
+	writes: string[],
+	/**  No manifest: what the tool asks for is not known. */
+	unknown: boolean,
+};
+
+export type OwnDiscovery = { outcome: "review"; review: OwnReview } | { outcome: "refused"; refusal: OwnRefusal };
+
+/**  Why a package cannot be added, for the dialog to say in the owner's language. */
+export type OwnRefusal = { kind: "not_found" } | { kind: "not_scoped" } | { kind: "wirecat_scope" } | { kind: "no_manifest" } | { kind: "bad_manifest"; key: string; rule: string } | 
+/**  `with` is the tool that already uses the name; `listed` when it is on the signed list. */
+{ kind: "collision"; with: string; listed: boolean } | { kind: "provenance_mismatch"; claimed: string; built: string } | { kind: "offline"; detail: string } | { kind: "too_large"; what: string };
+
+/**  What the review screen shows. Everything it shows is kept in Rust under `token`; Add takes only the token. */
+export type OwnReview = {
+	token: string,
+	id: string,
+	name: string,
+	package: string,
+	version: string,
+	summary: string,
+	/**  npm's maintainers, names only. */
+	publishers: string[],
+	repo: string | null,
+	built: BuiltBy | null,
+	access: OwnAccess,
+	signIn: OwnSignIn | null,
+	syncs: boolean,
+	skill: boolean,
+	mcp: boolean,
+	/**  False when the owner pasted the `desktop` object: no manifest, so no command list and no hash to check. */
+	described: boolean,
+	update: OwnUpdate | null,
+	/**  The catalog entry as it will be saved, for the interface to check with its own schema. */
+	entry: unknown,
+};
+
+export type OwnSignIn = {
+	gives: string,
+	asks: string,
+};
+
+export type OwnStatus = {
+	allowed: boolean,
+	/**  `WIRECAT_EXTRA_TOOLS=1`: the file is read whatever the switch says. */
+	flag: boolean,
+	added: number,
+};
+
+/**  An update of an own tool: what changed since the review the owner confirmed. */
+export type OwnUpdate = {
+	fromVersion: string,
+	repoChanged: boolean,
+	fromRepo: string | null,
+	/**  Where npm built it changed, appeared or disappeared. */
+	provenanceChanged: boolean,
+	fromBuilt: BuiltBy | null,
+	publishersChanged: boolean,
+	fromPublishers: string[],
+	/**  Commands the version before did not have. */
+	newCommands: string[],
+	/**  Commands that change the service or write on this computer and did not before. */
+	newWrites: string[],
+	/**  `signIn`, `mcpServer`, `skill` or `sync`, when the version before had none. */
+	newParts: string[],
+	/**  Anything above changed, or the access is unknown: the owner confirms these changes explicitly. */
+	confirm: boolean,
+};
+
 export type PackageOutcome = { result: "saved"; file: string; 
 /**  `~`-shortened, for the sentence that says where it is. */
 path: string; 
@@ -434,6 +516,11 @@ export type Readiness = {
 	managed: Managed | null,
 };
 
+export type Rejected = {
+	source: ToolSource,
+	text: string,
+};
+
 export type Repair = { state: "repaired"; file: string | null; backup: string | null; changes: RepairChange[] } | 
 /**  `nothing to repair` or `no settings file`: the file was already valid, or is gone. */
 { state: "unchanged"; reason: string } | 
@@ -517,6 +604,12 @@ export type TableRows = {
 	name: string,
 	rows: number,
 };
+
+/**
+ *  Where a tool came from. The badge follows it, never a key in the entry, so a listed entry can neither claim nor
+ *  drop "Not checked".
+ */
+export type ToolSource = "official" | "community" | "own";
 
 export type ToolState = {
 	id: string,

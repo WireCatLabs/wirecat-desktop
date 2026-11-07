@@ -30,6 +30,7 @@ mod node;
 mod notes_setup;
 mod notifications;
 mod npm_prefix;
+mod own_tools;
 mod package_update;
 #[cfg(test)]
 mod page_loads;
@@ -96,6 +97,12 @@ pub fn run() {
             commands::community::extra_tools,
             commands::community::community_status,
             commands::community::set_community_shown,
+            commands::own_tools::own_tools_status,
+            commands::own_tools::set_own_tools_allowed,
+            commands::own_tools::own_tool_discover,
+            commands::own_tools::own_tool_add,
+            commands::own_tools::own_tool_uninstall,
+            commands::own_tools::own_tool_remove,
             commands::app::readiness,
             commands::app::report_context,
             commands::app::send_report,

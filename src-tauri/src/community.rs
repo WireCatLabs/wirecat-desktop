@@ -1,172 +1,337 @@
-//! Community tools: CLIs made outside `WireCatLabs`, added to the compiled catalog at start. They come from the signed
-//! list (`registry.rs`) while the owner has "Show community tools" on, or, for development, from
-//! `<app data>/extra-tools.json` while `WIRECAT_EXTRA_TOOLS=1` is set. An entry passes only when every command word is
-//! plain (no shell syntax), its package and repository are outside `@wirecat` and `WireCatLabs`, and it claims no name
-//! or folder of ours. Installing it still needs npm provenance from its own repository's `release.yml`
-//! (`provenance.rs`).
+//! Community tools: CLIs made outside `WireCatLabs`, added to the compiled catalog at start. Two sources, read in
+//! this order: the signed list (`registry.rs`) while "Enable community tools" is on, then the owner's own tools in
+//! `<app data>/extra-tools.json` while the own-tools switch is on (`own_tools.rs`), or for development
+//! while `WIRECAT_EXTRA_TOOLS=1` is set. An entry passes only when every command word is plain (no shell syntax), its
+//! package and repository are outside `@wirecat` and `WireCatLabs`, and it claims no name or folder of ours or of an
+//! entry read before it. A listed tool's install still needs npm provenance from its own repository's `release.yml`
+//! (`provenance.rs`); an own tool's provenance is shown, not required.
 
 use crate::catalog::{Catalog, Tool};
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashSet;
+use std::collections::HashMap;
+use std::fmt;
 
 pub const FLAG: &str = "WIRECAT_EXTRA_TOOLS";
-const FILE: &str = "extra-tools.json";
+pub const FILE: &str = "extra-tools.json";
 pub const MAX_BYTES: usize = 512 * 1024;
 const MAX_TOOLS: usize = 32;
 
 /// Fields a community tool may not set: parts of our packages, memo's own pages, a bot token on stdin, and emptying
 /// the store every tool shares.
-const FORBIDDEN: [&str; 8] =
+pub const FORBIDDEN: [&str; 8] =
     ["partOf", "commandPrefix", "memory", "taskBoard", "bot", "storeReset", "storeResetPreview", "configRepair"];
 
-/// What the file added: the accepted entries as written (the interface reads their text fields), and a sentence per
-/// entry left out.
+/// Where a tool came from. The badge follows it, never a key in the entry, so a listed entry can neither claim nor
+/// drop "Not checked".
+#[derive(specta::Type, Serialize, Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[serde(rename = "ToolSource")]
+pub enum Source {
+    #[default]
+    Official,
+    Community,
+    Own,
+}
+
+/// What the sources added: the accepted entries as written (the interface reads their text fields) with their source,
+/// and a sentence per entry left out.
 #[derive(specta::Type, Debug, Default, Serialize, Clone)]
 #[serde(rename = "ExtraTools")]
 pub struct Extra {
-    #[specta(type = Vec<specta_typescript::Unknown>)]
-    pub tools: Vec<Value>,
-    pub rejected: Vec<String>,
+    pub tools: Vec<ExtraTool>,
+    pub rejected: Vec<Rejected>,
 }
 
-/// The community tools to add at start: the development file while the flag is on, else the signed list's cached copy
-/// while the owner has them shown; `None` when neither applies.
-pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
-    if std::env::var(FLAG).ok().as_deref() == Some("1") {
-        let text = std::fs::read_to_string(crate::node::app_data()?.join(FILE)).ok()?;
-        return Some(parse(&text, builtin));
+#[derive(specta::Type, Debug, Serialize, Clone)]
+pub struct ExtraTool {
+    pub source: Source,
+    #[specta(type = specta_typescript::Unknown)]
+    pub entry: Value,
+}
+
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
+pub struct Rejected {
+    pub source: Source,
+    pub text: String,
+}
+
+impl Extra {
+    fn reject(&mut self, source: Source, text: String) {
+        self.rejected.push(Rejected { source, text });
     }
-    if !crate::registry::shown() {
+
+    pub fn count(&self, source: Source) -> usize {
+        self.tools.iter().filter(|t| t.source == source).count()
+    }
+}
+
+/// Why an entry was left out. `Display` is the sentence the log and Settings show; own tools map each kind to a
+/// refusal the dialog explains (`own_tools.rs`).
+#[derive(Debug, PartialEq)]
+pub enum Problem {
+    Rule {
+        key: String,
+        rule: String,
+    },
+    /// The `@wirecat` scope or a `WireCatLabs` repository.
+    Ours {
+        key: String,
+    },
+    /// An id, program, package or data folder of a tool read before it; `listed` when that tool is from the signed list.
+    Taken {
+        key: String,
+        value: String,
+        with: String,
+        listed: bool,
+    },
+}
+
+impl fmt::Display for Problem {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Problem::Rule { rule, .. } => f.write_str(rule),
+            Problem::Ours { key } if key == "package" => f.write_str("the @wirecat npm scope is WireCat's own."),
+            Problem::Ours { .. } => f.write_str("a WireCatLabs repository is one of WireCat's own tools."),
+            Problem::Taken { key, value, with, listed } => {
+                write!(f, "the {key} {value} is taken by {with}.")?;
+                if *listed {
+                    f.write_str(" This tool is now listed. Remove your own entry to use the listed one.")
+                } else {
+                    Ok(())
+                }
+            }
+        }
+    }
+}
+
+fn rule(key: &str, rule: String) -> Problem {
+    Problem::Rule { key: key.into(), rule }
+}
+
+/// The community tools to add at start, `None` when neither source is on.
+pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
+    let listed = crate::registry::shown().then(crate::registry::at_start);
+    let own = (std::env::var(FLAG).ok().as_deref() == Some("1") || crate::own_tools::allowed())
+        .then(|| crate::node::app_data().and_then(|d| std::fs::read_to_string(d.join(FILE)).ok()))
+        .flatten();
+    if listed.is_none() && own.is_none() {
         return None;
     }
-    Some(match crate::registry::at_start() {
-        Ok(entries) => entries_of("The community list", entries, builtin),
-        Err(why) => (Vec::new(), Extra { tools: Vec::new(), rejected: vec![why] }),
-    })
+    let mut out = Accepted::new(builtin);
+    match listed {
+        Some(Ok(entries)) => out.entries(Source::Community, "The community list", entries),
+        Some(Err(why)) => out.extra.reject(Source::Community, why),
+        None => {}
+    }
+    if let Some(text) = own {
+        out.file(&text);
+    }
+    Some((out.tools, out.extra))
 }
 
-/// The entries of `text` that may join `builtin`, each parsed as a catalog tool.
+/// The entries of an own-tools file that may join `builtin`, each parsed as a catalog tool.
+#[cfg(test)]
 pub fn parse(text: &str, builtin: &Catalog) -> (Vec<Tool>, Extra) {
-    let mut extra = Extra::default();
+    let mut out = Accepted::new(builtin);
+    out.file(text);
+    (out.tools, out.extra)
+}
+
+/// The entries of an own-tools file as written, or why the file cannot be read.
+pub fn file_entries(text: &str) -> Result<Vec<Value>, String> {
     if text.len() > MAX_BYTES {
-        extra.rejected.push(format!("{FILE} is larger than {} KB.", MAX_BYTES / 1024));
-        return (Vec::new(), extra);
+        return Err(format!("{FILE} is larger than {} KB.", MAX_BYTES / 1024));
     }
-    let entries = match serde_json::from_str::<Value>(text) {
-        Ok(v) if v["version"] == 1 => v["tools"].as_array().cloned().unwrap_or_default(),
-        Ok(_) => {
-            extra.rejected.push(format!("{FILE} needs \"version\": 1 and a \"tools\" list."));
-            return (Vec::new(), extra);
-        }
-        Err(e) => {
-            extra.rejected.push(format!("{FILE} is not valid JSON: {e}"));
-            return (Vec::new(), extra);
-        }
-    };
-    entries_of(FILE, entries, builtin)
+    match serde_json::from_str::<Value>(text) {
+        Ok(v) if v["version"] == 1 => Ok(v["tools"].as_array().cloned().unwrap_or_default()),
+        Ok(_) => Err(format!("{FILE} needs \"version\": 1 and a \"tools\" list.")),
+        Err(e) => Err(format!("{FILE} is not valid JSON: {e}")),
+    }
 }
 
-/// The same checks for every source: the first `MAX_TOOLS` entries, each against ours and the ones before it.
-pub fn entries_of(source: &str, entries: Vec<Value>, builtin: &Catalog) -> (Vec<Tool>, Extra) {
-    let mut extra = Extra::default();
-    let mut taken = Taken::of(builtin);
-    let mut tools = Vec::new();
-    for (i, entry) in entries.into_iter().enumerate() {
-        if tools.len() == MAX_TOOLS {
-            extra.rejected.push(format!("{source}: only the first {MAX_TOOLS} tools are read."));
-            break;
+/// One pass over every source: each entry is checked against ours and every entry accepted before it.
+struct Accepted {
+    taken: Taken,
+    tools: Vec<Tool>,
+    extra: Extra,
+}
+
+impl Accepted {
+    fn new(builtin: &Catalog) -> Self {
+        Accepted { taken: Taken::of(builtin, None), tools: Vec::new(), extra: Extra::default() }
+    }
+
+    fn file(&mut self, text: &str) {
+        match file_entries(text) {
+            Ok(entries) => self.entries(Source::Own, FILE, entries),
+            Err(why) => self.extra.reject(Source::Own, why),
         }
-        let label = entry["id"].as_str().map_or_else(|| format!("entry {}", i + 1), str::to_string);
-        match check(&entry, &taken) {
-            Ok(tool) => {
-                taken.add(&tool);
-                tools.push(tool);
-                extra.tools.push(entry);
+    }
+
+    fn entries(&mut self, source: Source, label: &str, entries: Vec<Value>) {
+        for (i, entry) in entries.into_iter().enumerate() {
+            if self.extra.count(source) == MAX_TOOLS {
+                self.extra.reject(source, format!("{label}: only the first {MAX_TOOLS} tools are read."));
+                break;
             }
-            Err(why) => extra.rejected.push(format!("{label}: {why}")),
+            let name = entry["id"].as_str().map_or_else(|| format!("entry {}", i + 1), str::to_string);
+            match check(&entry, &self.taken, source) {
+                Ok(tool) => {
+                    self.taken.add(&tool);
+                    self.tools.push(tool);
+                    self.extra.tools.push(ExtraTool { source, entry });
+                }
+                Err(why) => self.extra.reject(source, format!("{name}: {why}")),
+            }
         }
     }
-    (tools, extra)
 }
 
-/// Names, programs, packages and data folders already used: by our tools, the shared store, or an earlier entry.
-struct Taken {
-    ids: HashSet<String>,
-    bins: HashSet<String>,
-    packages: HashSet<String>,
-    folders: HashSet<String>,
+struct Owner {
+    name: String,
+    listed: bool,
+}
+
+/// Names, programs, packages and data folders already used, each with the tool that uses it: ours, the shared store,
+/// or an earlier entry.
+pub struct Taken {
+    ids: HashMap<String, Owner>,
+    bins: HashMap<String, Owner>,
+    packages: HashMap<String, Owner>,
+    folders: HashMap<String, Owner>,
+    ports: HashMap<String, Owner>,
 }
 
 impl Taken {
-    fn of(c: &Catalog) -> Self {
-        let mut t =
-            Taken { ids: HashSet::new(), bins: HashSet::new(), packages: HashSet::new(), folders: HashSet::new() };
-        t.folders.insert(c.shared_storage.app.to_lowercase());
-        t.folders.insert(c.shared_storage.env.to_lowercase());
-        for tool in &c.tools {
+    /// Every tool of `c` except the own tool with package `except`, which its update replaces. A listed or official
+    /// tool with that package stays: adding it as an own tool is a collision.
+    pub fn of(c: &Catalog, except: Option<&str>) -> Self {
+        let mut t = Taken {
+            ids: HashMap::new(),
+            bins: HashMap::new(),
+            packages: HashMap::new(),
+            folders: HashMap::new(),
+            ports: HashMap::new(),
+        };
+        for key in [&c.shared_storage.app, &c.shared_storage.env] {
+            t.folders.insert(key.to_lowercase(), Owner { name: "the shared WireCat store".into(), listed: false });
+        }
+        for tool in c.tools.iter().filter(|tool| tool.source != Source::Own || Some(tool.package.as_str()) != except) {
             t.add(tool);
         }
         t
     }
 
-    fn add(&mut self, tool: &Tool) {
-        self.ids.insert(tool.id.clone());
-        self.bins.insert(tool.bin.clone());
-        self.packages.insert(tool.package.clone());
-        self.folders.insert(tool.storage.app.to_lowercase());
-        self.folders.insert(tool.storage.env.to_lowercase());
+    pub fn add(&mut self, tool: &Tool) {
+        let owner = || Owner { name: tool.name.clone(), listed: tool.source == Source::Community };
+        self.ids.insert(tool.id.clone(), owner());
+        self.bins.insert(tool.bin.clone(), owner());
+        self.packages.insert(tool.package.clone(), owner());
+        self.folders.insert(tool.storage.app.to_lowercase(), owner());
+        self.folders.insert(tool.storage.env.to_lowercase(), owner());
+        if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
+            self.ports.insert(port.to_string(), owner());
+        }
+    }
+
+    pub fn port_free(&self, port: u64) -> bool {
+        !self.ports.contains_key(&port.to_string())
+    }
+
+    fn free(map: &HashMap<String, Owner>, key: &str, value: &str, lookup: &str) -> Result<(), Problem> {
+        map.get(lookup).map_or(Ok(()), |o| {
+            Err(Problem::Taken { key: key.into(), value: value.into(), with: o.name.clone(), listed: o.listed })
+        })
     }
 }
 
-fn check(entry: &Value, taken: &Taken) -> Result<Tool, String> {
+/// Every rule an entry of `source` must pass. An own tool's repository may be missing, since a private or non-GitHub
+/// repository can still be added on the owner's own computer; then no provenance can be checked.
+pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Problem> {
     if entry["community"] != true {
-        return Err("\"community\": true is missing.".into());
+        return Err(rule("community", "\"community\": true is missing.".into()));
     }
     if let Some(field) = FORBIDDEN.iter().find(|f| !entry[**f].is_null()) {
-        return Err(format!("a community tool cannot set \"{field}\"."));
+        return Err(rule(field, format!("a community tool cannot set \"{field}\".")));
     }
     if !entry["signIn"]["command"].is_null() {
-        return Err("a community tool cannot show a command to copy (\"signIn.command\").".into());
+        return Err(rule("signIn", "a community tool cannot show a command to copy (\"signIn.command\").".into()));
     }
     words(entry)?;
     https_links(entry)?;
-    let tool: Tool = serde_json::from_value(entry.clone()).map_err(|e| format!("not a catalog entry: {e}"))?;
+    let mut tool: Tool =
+        serde_json::from_value(entry.clone()).map_err(|e| rule("entry", format!("not a catalog entry: {e}")))?;
+    tool.source = source;
     if !(2..=16).contains(&tool.id.len()) || !tool.id.chars().all(|c| c.is_ascii_lowercase()) {
-        return Err(format!("the id {:?} is not 2 to 16 lowercase letters.", tool.id));
+        return Err(rule("id", format!("the id {:?} is not 2 to 16 lowercase letters.", tool.id)));
     }
-    if taken.ids.contains(&tool.id) {
-        return Err(format!("the id {} is taken.", tool.id));
+    Taken::free(&taken.ids, "id", &tool.id, &tool.id)?;
+    if !plain_name(&tool.bin, 32) {
+        return Err(rule("bin", format!("the program name {:?} is not allowed.", tool.bin)));
     }
-    if !plain_name(&tool.bin, 32) || taken.bins.contains(&tool.bin) {
-        return Err(format!("the program name {:?} is not allowed or is taken.", tool.bin));
-    }
+    Taken::free(&taken.bins, "program", &tool.bin, &tool.bin)?;
     package(&tool.package)?;
-    if taken.packages.contains(&tool.package) {
-        return Err(format!("the package {} is taken.", tool.package));
+    Taken::free(&taken.packages, "package", &tool.package, &tool.package)?;
+    if !(source == Source::Own && entry["repo"].is_null()) {
+        repo(&tool.repo)?;
     }
-    repo(&tool.repo)?;
     storage(&tool, taken)?;
+    if source == Source::Own {
+        own_storage(&tool, entry["own"]["name"].as_str())?;
+    }
+    if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
+        Taken::free(&taken.ports, "port", &port.to_string(), &port.to_string())?;
+    }
     Ok(tool)
+}
+
+/// An own tool's data folders are deleted by these names, so they must be its own: named after its package or its
+/// manifest name, never another program's (`gh`, `keyrings`).
+fn own_storage(tool: &Tool, manifest_name: Option<&str>) -> Result<(), Problem> {
+    let package = tool.package.rsplit('/').next().unwrap_or_default();
+    let names: Vec<&str> = [Some(package), manifest_name].into_iter().flatten().filter(|n| !n.is_empty()).collect();
+    let starts = |value: &str, name: &str, seps: &str| {
+        value == name || value.strip_prefix(name).is_some_and(|rest| rest.starts_with(|c| seps.contains(c)))
+    };
+    let app = tool.storage.app.to_lowercase();
+    let app_ok = names.iter().any(|n| starts(&app, &n.to_lowercase(), "-._"));
+    let env_ok = names.iter().any(|n| starts(&tool.storage.env, &n.to_uppercase().replace(['-', '.'], "_"), "_"));
+    if app_ok && env_ok {
+        return Ok(());
+    }
+    Err(rule(
+        "storage",
+        format!(
+            "the data folder {} and prefix {} must be named after the tool ({}).",
+            tool.storage.app,
+            tool.storage.env,
+            names.join(" or ")
+        ),
+    ))
 }
 
 /// Every string listed in an array is a command word (or a key or value the tool reads), run without a shell except
 /// `setup`, which `terminal.rs` joins into one shell line. So none may hold shell syntax: no spaces, quotes, `$`, `;`,
 /// `|`, `&`, backticks, globs, `~` or newlines. Text the interface shows is never in an array.
-fn words(v: &Value) -> Result<(), String> {
+fn words(v: &Value) -> Result<(), Problem> {
+    words_in("entry", v)
+}
+
+fn words_in(key: &str, v: &Value) -> Result<(), Problem> {
     match v {
         Value::Array(items) => items.iter().try_for_each(|item| match item {
             Value::String(w) if plain_word(w) => Ok(()),
-            Value::String(w) => Err(format!("the command word {w:?} is not allowed.")),
-            other => words(other),
+            Value::String(w) => Err(rule(key, format!("the command word {w:?} is not allowed."))),
+            other => words_in(key, other),
         }),
-        Value::Object(map) => map.values().try_for_each(words),
+        Value::Object(map) => map.iter().try_for_each(|(k, v)| words_in(if key == "entry" { k } else { key }, v)),
         _ => Ok(()),
     }
 }
 
 /// A flag or word of letters, digits and `._:=,/+@-`, with `{name}` slots the app fills from validated values.
-fn plain_word(w: &str) -> bool {
+pub fn plain_word(w: &str) -> bool {
     if w == "--" {
         return true;
     }
@@ -195,19 +360,23 @@ fn plain_name(s: &str, max: usize) -> bool {
 }
 
 /// Every link the interface may open goes to an `https` page.
-fn https_links(entry: &Value) -> Result<(), String> {
-    for link in [&entry["docs"], &entry["repo"], &entry["signIn"]["guide"]] {
+fn https_links(entry: &Value) -> Result<(), Problem> {
+    for (key, link) in [("docs", &entry["docs"]), ("repo", &entry["repo"]), ("signIn", &entry["signIn"]["guide"])] {
         if let Some(url) = link.as_str()
             && (!url.starts_with("https://") || url.chars().any(|c| c.is_whitespace() || c.is_control()))
         {
-            return Err(format!("the link {url:?} is not an https address."));
+            return Err(rule(key, format!("the link {url:?} is not an https address.")));
         }
     }
     Ok(())
 }
 
-/// A scoped npm package under its own scope: `@wirecat` is ours (cli-docs' rule for community tools too).
-fn package(name: &str) -> Result<(), String> {
+/// A scoped npm package under its own scope: `@wirecat` is ours (cli-docs' rule for community tools too). Checked
+/// before the shape, so a `@wirecat/` name is told as ours, not as a bad name.
+pub fn package(name: &str) -> Result<(), Problem> {
+    if name.starts_with("@wirecat/") {
+        return Err(Problem::Ours { key: "package".into() });
+    }
     let ok = name.strip_prefix('@').and_then(|s| s.split_once('/')).is_some_and(|(scope, pkg)| {
         [scope, pkg].iter().all(|p| {
             (1..=64).contains(&p.len())
@@ -216,16 +385,13 @@ fn package(name: &str) -> Result<(), String> {
         })
     });
     if !ok {
-        return Err(format!("the package {name:?} is not a scoped npm name (@scope/name)."));
-    }
-    if name.starts_with("@wirecat/") {
-        return Err("the @wirecat npm scope is WireCat's own.".into());
+        return Err(rule("package", format!("the package {name:?} is not a scoped npm name (@scope/name).")));
     }
     Ok(())
 }
 
 /// `provenance.rs` asks for a release built by this repository's `release.yml`, so it is the identity checked.
-fn repo(url: &str) -> Result<(), String> {
+pub fn repo(url: &str) -> Result<(), Problem> {
     let parts: Vec<&str> = url.strip_prefix("https://github.com/").map(|r| r.split('/').collect()).unwrap_or_default();
     let ok = parts.len() == 2
         && parts.iter().all(|p| {
@@ -235,27 +401,25 @@ fn repo(url: &str) -> Result<(), String> {
                 && p.chars().all(|c| c.is_ascii_alphanumeric() || "._-".contains(c))
         });
     if !ok {
-        return Err(format!("the repository {url:?} is not https://github.com/<owner>/<name>."));
+        return Err(rule("repo", format!("the repository {url:?} is not https://github.com/<owner>/<name>.")));
     }
     if parts[0].eq_ignore_ascii_case("WireCatLabs") {
-        return Err("a WireCatLabs repository is one of WireCat's own tools.".into());
+        return Err(Problem::Ours { key: "repo".into() });
     }
     Ok(())
 }
 
 /// `storage.rs` deletes a tool's folders by these names, so they must be its own: never ours or another tool's.
-fn storage(tool: &Tool, taken: &Taken) -> Result<(), String> {
+fn storage(tool: &Tool, taken: &Taken) -> Result<(), Problem> {
     let s = &tool.storage;
     let env_ok = (2..=32).contains(&s.env.len())
         && s.env.starts_with(|c: char| c.is_ascii_uppercase())
         && s.env.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_');
     if !plain_name(&s.app, 32) || s.app.len() < 2 || !env_ok {
-        return Err("storage needs a lowercase folder name and an uppercase variable prefix.".into());
+        return Err(rule("storage", "storage needs a lowercase folder name and an uppercase variable prefix.".into()));
     }
-    if taken.folders.contains(&s.app.to_lowercase()) || taken.folders.contains(&s.env.to_lowercase()) {
-        return Err(format!("the data folder {} or prefix {} is already used.", s.app, s.env));
-    }
-    Ok(())
+    Taken::free(&taken.folders, "data folder", &s.app, &s.app.to_lowercase())?;
+    Taken::free(&taken.folders, "data prefix", &s.env, &s.env.to_lowercase())
 }
 
 #[cfg(test)]
@@ -294,7 +458,7 @@ mod tests {
             "storeBackupEncrypted": null,
             "storeResetPreview": null,
             "storeReset": null,
-            "storage": { "app": "acme-cli", "env": "ACME" },
+            "storage": { "app": "acme-cli", "env": "ACME_CLI" },
             "settings": null
         })
     }
@@ -306,7 +470,11 @@ mod tests {
     fn rejected(entry: &Value) -> String {
         let (tools, extra) = parse(&file(std::slice::from_ref(entry)), catalog());
         assert!(tools.is_empty(), "accepted {entry}");
-        extra.rejected.join(" ")
+        texts(&extra)
+    }
+
+    fn texts(extra: &Extra) -> String {
+        extra.rejected.iter().map(|r| r.text.as_str()).collect::<Vec<_>>().join(" ")
     }
 
     fn with(key: &str, value: Value) -> Value {
@@ -320,8 +488,9 @@ mod tests {
         let (tools, extra) = parse(&file(&[sample()]), catalog());
         assert_eq!(tools.len(), 1);
         assert_eq!(tools[0].package, "@example/acme-cli");
-        assert_eq!(extra.tools[0]["tagline"], "Acme notes in your archive");
+        assert_eq!(extra.tools[0].entry["tagline"], "Acme notes in your archive");
         assert!(extra.rejected.is_empty(), "{:?}", extra.rejected);
+        assert_eq!((extra.tools[0].source, tools[0].source), (Source::Own, Source::Own));
     }
 
     #[test]
@@ -378,13 +547,33 @@ mod tests {
     }
 
     #[test]
+    fn an_own_tools_data_folder_is_named_after_it() {
+        for (app, env) in [("gh", "ACME_CLI"), ("keyrings", "ACME_CLI"), ("acme-cli", "GH"), ("acmecli", "ACME_CLI")] {
+            let refused = rejected(&with("storage", json!({ "app": app, "env": env })));
+            assert!(refused.contains("named after the tool"), "{app} {env}: {refused}");
+        }
+        let mut named = with("storage", json!({ "app": "acme-crm-data", "env": "ACME_CRM" }));
+        named["own"] = json!({ "name": "acme-crm" });
+        assert!(parse(&file(&[named]), catalog()).1.rejected.is_empty());
+    }
+
+    #[test]
+    fn a_port_of_another_tool_is_refused_at_start() {
+        let tg = catalog().tools.iter().find(|t| t.id == "tg").unwrap();
+        let port = tg.mcp_server.as_ref().and_then(|m| m.port).expect("tg's port");
+        let server = json!({ "port": port, "start": ["mcp", "server", "start"], "stop": ["mcp", "server", "stop"],
+            "status": ["mcp", "server", "status"], "revoke": ["mcp", "revoke"], "config": null });
+        assert!(rejected(&with("mcpServer", server)).contains("port"));
+    }
+
+    #[test]
     fn a_broken_file_adds_nothing_and_says_why() {
         let (tools, extra) = parse("{", catalog());
-        assert!(tools.is_empty() && extra.rejected[0].contains("not valid JSON"));
+        assert!(tools.is_empty() && extra.rejected[0].text.contains("not valid JSON"));
         let (tools, extra) = parse(&json!({ "tools": [sample()] }).to_string(), catalog());
-        assert!(tools.is_empty() && extra.rejected[0].contains("version"));
+        assert!(tools.is_empty() && extra.rejected[0].text.contains("version"));
         let (tools, extra) = parse(&"x".repeat(MAX_BYTES + 1), catalog());
-        assert!(tools.is_empty() && extra.rejected[0].contains("larger"));
+        assert!(tools.is_empty() && extra.rejected[0].text.contains("larger"));
     }
 
     #[test]
@@ -395,7 +584,7 @@ mod tests {
         other["storage"] = json!({ "app": "acme2", "env": "ACMETWO" });
         let (tools, extra) = parse(&file(&[sample(), other]), catalog());
         assert_eq!(tools.len(), 1);
-        assert!(extra.rejected[0].contains("taken"));
+        assert!(extra.rejected[0].text.contains("taken"));
     }
 
     #[test]
