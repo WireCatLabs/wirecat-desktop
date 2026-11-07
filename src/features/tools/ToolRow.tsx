@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react"
 import { useRef } from "react"
-import { type CatalogTool, findTool, isCommunity, maker, ownerId } from "@/domain/catalog"
+import { type CatalogTool, findTool, isCommunity, isOwn, maker, ownerId } from "@/domain/catalog"
 import { fitSeverity } from "@/domain/compat"
 import { type ToolStatus, toolStatus } from "@/domain/status"
 import { useMessages } from "@/i18n"
@@ -22,6 +22,8 @@ import { activityOf } from "./connect-steps"
 import { InstallPanel } from "./InstallPanel"
 import { InstallLine } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
+import { ownMessages } from "./messages-own"
+import { useOwnDialog } from "./own-store"
 import { fitLabel, fitLine, useLatestKnown } from "./StorageFit"
 import { RowSyncButton, RowSyncLine, useRowSync } from "./Sync"
 import { ToolDetails } from "./ToolDetails"
@@ -57,6 +59,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
   const fit = useFits()?.all[ownerId(tool.id)]
   const { install, cancel } = useTools.getState()
   const t = useMessages(toolsMessages)
+  const om = useMessages(ownMessages)
   const m = t.row
   const header = useRef<HTMLDivElement>(null)
   const showInstallPanel = Boolean(session) && !session?.closed?.includes(tool.id)
@@ -121,7 +124,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             {tool.name}
             <span className="font-mono text-[0.95rem] font-normal text-ink-soft">{tool.bin}</span>
             {tool.partOf && <Pill>{m.partOf(findTool(tool.partOf)?.name ?? tool.partOf)}</Pill>}
-            {isCommunity(tool) && <Pill>{m.community}</Pill>}
+            {isCommunity(tool) && <Pill>{isOwn(tool) ? om.notChecked : m.community}</Pill>}
             {(installs?.length ?? 0) > 1 && <Pill tone="warn">{m.copies(installs?.length ?? 0)}</Pill>}
             <ExpandChevron open={open} className="self-center group-hover:text-brand" />
           </h3>
@@ -150,7 +153,9 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
                 </span>
               </p>
             ) : isCommunity(tool) && !installs?.length ? (
-              <p className="mt-1 line-clamp-2 text-body text-ink-soft">{m.trust(maker(tool))}</p>
+              <p className="mt-1 line-clamp-2 text-body text-ink-soft">
+                {isOwn(tool) ? om.trust(maker(tool)) : m.trust(maker(tool))}
+              </p>
             ) : (
               <p className="mt-1 truncate text-body text-ink-soft">{toolText(t, tool).tagline}</p>
             )}
@@ -168,9 +173,11 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               nodeFirst={m.nodeFirst}
               controls={panelId}
               onInstall={() =>
-                nodeReady
-                  ? install(tool.id, { check: true })
-                  : focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
+                !nodeReady
+                  ? focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
+                  : isOwn(tool)
+                    ? useOwnDialog.getState().show({ pkg: tool.package, name: tool.name })
+                    : install(tool.id, { check: true })
               }
               onToggle={() => toggle(tool.id)}
               onCancel={() => cancel(tool.id)}

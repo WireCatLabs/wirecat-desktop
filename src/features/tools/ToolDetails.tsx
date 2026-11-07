@@ -1,10 +1,11 @@
 import { AlertTriangle, ExternalLink, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { type CatalogTool, installCommand, ownerId, removeCommand, samePackage } from "@/domain/catalog"
+import { type CatalogTool, installCommand, isOwn, ownerId, removeCommand, samePackage } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { StorageFolder } from "@/platform/schemas"
+import { KeptFolders } from "@/shared/KeptFolders"
 import { useStorage } from "@/shared/storage-store"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
@@ -24,6 +25,7 @@ import { type ToolsText, toolsMessages } from "./messages"
 import { copiesMessages } from "./messages-copies"
 import { Permissions } from "./Permissions"
 import { type Copy, RemoveCopyDialog, removable } from "./RemoveCopy"
+import { RemoveOwn } from "./RemoveOwn"
 import { Service } from "./Service"
 import { FitDetails } from "./StorageFit"
 import { toolText } from "./tool-text"
@@ -73,7 +75,7 @@ function ConfirmUninstall({ tool, open, onClose }: { tool: CatalogTool; open: bo
   )
 }
 
-type OwnData = { folders: StorageFolder[] | null; error: string | null; sharedInUse: boolean }
+type OwnData = { folders: StorageFolder[] | null; kept: string[]; error: string | null; sharedInUse: boolean }
 
 /** The package's own folders as storage.rs computes them, and whether another installed tool keeps the shared store. */
 function useOwnData(tool: CatalogTool, open: boolean): OwnData {
@@ -87,7 +89,12 @@ function useOwnData(tool: CatalogTool, open: boolean): OwnData {
   const mine = areas?.find((a) => a.id === owner)
   // From installs, known on the first frame, so the note never appears after the dialog has opened.
   const others = Object.entries(installs).some(([id, copies]) => copies.length > 0 && ownerId(id) !== owner)
-  return { folders: mine ? mine.folders : null, error: mine ? null : error, sharedInUse: others }
+  return {
+    folders: mine ? mine.folders : null,
+    kept: mine?.kept ?? [],
+    error: mine ? null : error,
+    sharedInUse: others,
+  }
 }
 
 function DeleteDataChoice(props: {
@@ -140,6 +147,7 @@ function DeleteDataChoice(props: {
             </ul>
           )
         )}
+        <KeptFolders paths={data.kept} />
       </div>
     </div>
   )
@@ -166,7 +174,7 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
         <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-ink-soft">{toolText(t, tool).summary}</p>
         <div className="flex gap-5">
           <ExternalLinkButton href={tool.docs}>{m.docs}</ExternalLinkButton>
-          <ExternalLinkButton href={tool.repo}>{m.github}</ExternalLinkButton>
+          {tool.repo && <ExternalLinkButton href={tool.repo}>{m.github}</ExternalLinkButton>}
         </div>
         <div>
           <h4 className="mb-2 text-[0.9rem] font-medium text-ink-dim">{m.installFromTerminal}</h4>
@@ -200,6 +208,9 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
               {m.uninstall}
             </Button>
           </div>
+        )}
+        {isOwn(tool) && (
+          <RemoveOwn tool={tool} installed={installs.length > 0} onUninstall={() => setConfirming(true)} />
         )}
       </section>
       <ConfirmUninstall tool={tool} open={confirming} onClose={() => setConfirming(false)} />

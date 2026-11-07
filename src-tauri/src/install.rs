@@ -1,4 +1,5 @@
 use crate::catalog::Tool;
+use crate::community::Source;
 use crate::provenance::{self, Refusal};
 use crate::{node, npm_prefix, paths, redact, run, skills, system, tools};
 use serde::Serialize;
@@ -140,17 +141,41 @@ struct Failure(Reason, String, Option<String>);
 /// Installs a new tool with npm, or updates an existing one with the manager that owns it,
 /// so an update never leaves a second copy that shadows the first.
 pub fn install(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) {
-    guarded(tool, running, events, install_steps);
+    guarded(tool, running, events, &|t, r, e| install_steps(t, r, e, None));
+}
+
+/// The release the owner reviewed: its version, and its `dist.integrity`, which install checks the registry still
+/// gives before anything runs.
+pub struct Pin<'a> {
+    pub version: &'a str,
+    pub integrity: &'a str,
+}
+
+/// Installs exactly `version`, the one the owner reviewed, then runs `verify` on what was installed before the install
+/// counts as done; an own tool's first run is checked against its review this way (`own_tools.rs`).
+/// Whether the install ended done; `verify` failing counts as not.
+pub fn install_reviewed(
+    tool: &Tool,
+    pin: &Pin,
+    running: &Running,
+    events: &Channel<InstallEvent>,
+    verify: &dyn Fn() -> Result<(), String>,
+) -> bool {
+    guarded(tool, running, events, &|t, r, e| {
+        let done = install_steps(t, r, e, Some(pin))?;
+        verify().map_err(|why| Failure(Reason::Verify, why, None))?;
+        Ok(done)
+    })
 }
 
 /// Removes every copy of the tool, each with the manager that installed it. Data stays; see `storage.rs`.
 pub fn uninstall(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) {
-    guarded(tool, running, events, uninstall_steps);
+    guarded(tool, running, events, &uninstall_steps);
 }
 
-type Steps = fn(&Tool, &Running, &Channel<InstallEvent>) -> Result<InstallEvent, Failure>;
+type Steps<'a> = &'a dyn Fn(&Tool, &Running, &Channel<InstallEvent>) -> Result<InstallEvent, Failure>;
 
-fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps: Steps) {
+fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps: Steps) -> bool {
     // npm replaces the program under a running sync, which then fails halfway.
     let syncs = crate::sync::package_prefix(&tool.id);
     if !running.start_unless(&tool.id, |k| k.starts_with(&syncs)) {
@@ -159,17 +184,24 @@ fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps
             message: "Another operation on this tool is running, such as a sync. Stop it first.".into(),
             hint: None,
         });
-        return;
+        return false;
     }
     let result = steps(tool, running, events);
     running.finish(&tool.id);
+    let ok = result.is_ok();
     let _ = events.send(match result {
         Ok(done) => done,
         Err(Failure(reason, message, hint)) => InstallEvent::Failed { reason, message, hint },
     });
+    ok
 }
 
-fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) -> Result<InstallEvent, Failure> {
+fn install_steps(
+    tool: &Tool,
+    running: &Running,
+    events: &Channel<InstallEvent>,
+    pinned: Option<&Pin>,
+) -> Result<InstallEvent, Failure> {
     let send = |e| {
         let _ = events.send(e);
     };
@@ -189,20 +221,20 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     let manager = existing.as_ref().map_or("npm", |i| i.manager);
     // The exact version, not `@latest`: it is the one whose provenance is checked, and a manager that still holds new
     // releases back then fails loudly instead of quietly installing an older one.
-    let wanted = retry_on_network(&|| !running.is_running(&tool.id), &send, "npm view", || {
-        let latest = tools::latest_version_checked(&tool.package).map_err(|log| classify_registry(&log))?;
-        let viewed = semver::Version::parse(&latest).map_err(|_| classify_registry("network: unreadable version"))?;
-        Ok(newer_of(viewed, crate::preflight::newest_version(&tool.package)).to_string())
-    })?;
-    let spec = format!("{}@{wanted}", tool.package);
-    let (program, args): (&str, Vec<&str>) = match manager {
-        // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
-        "pnpm" => ("pnpm", vec!["add", "--global", &spec, PNPM_WIRECAT_NOW]),
-        "bun" => ("bun", vec!["add", "--global", &spec]),
-        // `http` prints a line per package looked up and per package fetched: the only progress npm reports while it
-        // downloads; at its default level it is silent until the end (`install-progress.ts` reads these lines).
-        _ => ("npm", vec!["install", "--global", &spec, "--no-fund", "--no-audit", "--loglevel", "http"]),
+    let wanted = match pinned {
+        Some(pin) => pin.version.to_string(),
+        None => retry_on_network(&|| !running.is_running(&tool.id), &send, "npm view", || {
+            let latest = tools::latest_version_checked(&tool.package).map_err(|log| classify_registry(&log))?;
+            let viewed =
+                semver::Version::parse(&latest).map_err(|_| classify_registry("network: unreadable version"))?;
+            Ok(newer_of(viewed, crate::preflight::newest_version(&tool.package)).to_string())
+        })?,
     };
+    let spec = format!("{}@{wanted}", tool.package);
+    let scope = (tool.source == Source::Own).then(|| tool.package.split('/').next().unwrap_or_default());
+    let (program, args) =
+        install_command(manager, &spec, scope).map_err(|why| Failure(Reason::Requirements, why, None))?;
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let program_path = paths::find(program).ok_or_else(|| {
         Failure(
             Reason::Requirements,
@@ -218,7 +250,7 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
         ));
     }
 
-    confirm_release(tool, &wanted, &send)?;
+    confirm_release(tool, &wanted, pinned.map(|p| p.integrity), &send)?;
     let prefix = (program == "npm").then(|| install_prefix(existing.as_ref())).flatten();
 
     send(InstallEvent::Step { step: Step::Install });
@@ -271,15 +303,58 @@ fn install_steps(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
     Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills, path_fix })
 }
 
+/// The manager's install line. An own tool installs from the public registry, the one its review read, for its own
+/// scope too, since a scoped registry in `.npmrc` wins over `--registry`: npm takes `--@<scope>:registry=<url>` and
+/// pnpm `--config.@<scope>:registry=<url>` (both checked against a scoped `.npmrc`, npm 11 and pnpm 12). bun's
+/// `--registry` loses to a scope in `bunfig.toml` and it has no scoped flag, so an own tool is not installed with bun.
+fn install_command(manager: &str, spec: &str, own_scope: Option<&str>) -> Result<(&'static str, Vec<String>), String> {
+    let (program, words): (&str, Vec<&str>) = match manager {
+        // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
+        "pnpm" => ("pnpm", vec!["add", "--global", spec, PNPM_WIRECAT_NOW]),
+        "bun" => ("bun", vec!["add", "--global", spec]),
+        // `http` prints a line per package looked up and per package fetched: the only progress npm reports while it
+        // downloads; at its default level it is silent until the end (`install-progress.ts` reads these lines).
+        _ => ("npm", vec!["install", "--global", spec, "--no-fund", "--no-audit", "--loglevel", "http"]),
+    };
+    let mut args: Vec<String> = words.into_iter().map(str::to_string).collect();
+    if let Some(scope) = own_scope {
+        let scoped = match program {
+            "npm" => format!("--{scope}:registry={OWN_REGISTRY}"),
+            "pnpm" => format!("--config.{scope}:registry={OWN_REGISTRY}"),
+            _ => {
+                return Err(
+                    "bun installed this tool, and bun cannot be told which registry your own tools come from. \
+                    Uninstall it, then add it again: WireCat installs it with npm."
+                        .into(),
+                );
+            }
+        };
+        args.push(format!("--registry={OWN_REGISTRY}"));
+        args.push(scoped);
+    }
+    Ok((program, args))
+}
+
+const OWN_REGISTRY: &str = "https://registry.npmjs.org/";
+
 /// Checked with npm whichever manager installs: npm comes with every Node.js.
-fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> Result<(), Failure> {
+fn confirm_release(
+    tool: &Tool,
+    version: &str,
+    integrity: Option<&str>,
+    send: &impl Fn(InstallEvent),
+) -> Result<(), Failure> {
     // The end-to-end test's package comes from a registry inside the test, which signs nothing.
     #[cfg(test)]
     if tool.package == crate::install_e2e::PACKAGE {
         return Ok(());
     }
     send(InstallEvent::Log {
-        line: format!("Checking that {} {version} was built by {}…", tool.package, tool.repo),
+        line: if tool.repo.is_empty() {
+            format!("Checking the registry's signatures of {} {version}…", tool.package)
+        } else {
+            format!("Checking that {} {version} was built by {}…", tool.package, tool.repo)
+        },
         stderr: false,
     });
     let npm = paths::find("npm").ok_or_else(|| {
@@ -289,7 +364,20 @@ fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> 
             Some("Let WireCat set up Node.js for you, or install Node.js again.".into()),
         )
     })?;
-    provenance::confirm(&npm, &tool.package, version, &tool.repo).map_err(|refusal| match refusal {
+    let checked = if tool.source == Source::Own {
+        let integrity = integrity
+            .ok_or_else(|| Failure(Reason::Unconfirmed, "An own tool installs only from its review.".into(), None))?;
+        provenance::confirm_own(&npm, &tool.package, version, &tool.repo, integrity).map(|built| {
+            let line = match built {
+                provenance::Built::By { repo, workflow } => format!("Built by {repo} ({workflow}) on GitHub Actions."),
+                provenance::Built::Unknown(why) => format!("No record of where npm built it ({why})."),
+            };
+            send(InstallEvent::Log { line, stderr: false });
+        })
+    } else {
+        provenance::confirm(&npm, &tool.package, version, &tool.repo)
+    };
+    checked.map_err(|refusal| match refusal {
         Refusal::Unreachable(detail) => {
             send(InstallEvent::Log { line: redact::text(&detail), stderr: true });
             specific(&detail, cfg!(windows)).unwrap_or_else(|| {
@@ -309,8 +397,9 @@ fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> 
             Failure(
                 Reason::Unconfirmed,
                 format!(
-                    "{} {version} could not be confirmed as built by WireCat, so it was not installed.",
-                    tool.package
+                    "{} {version} could not be confirmed as built by {}, so it was not installed.",
+                    tool.package,
+                    if tool.repo.is_empty() { "the repository it was reviewed with" } else { &tool.repo }
                 ),
                 Some("Try again later. If it keeps happening, tell WireCat with Report a problem.".into()),
             )
@@ -688,6 +777,22 @@ fn path_hint(extra: &[std::path::PathBuf]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_own_tool_installs_from_the_registry_its_review_read_for_its_scope_too() {
+        let (_, npm) = install_command("npm", "@example/acme-crm-cli@0.3.0", Some("@example")).unwrap();
+        assert!(npm.ends_with(&[
+            "--registry=https://registry.npmjs.org/".to_string(),
+            "--@example:registry=https://registry.npmjs.org/".to_string()
+        ]));
+        let (_, pnpm) = install_command("pnpm", "@example/acme-crm-cli@0.3.0", Some("@example")).unwrap();
+        assert_eq!(pnpm.last().unwrap(), "--config.@example:registry=https://registry.npmjs.org/");
+        assert!(install_command("bun", "@example/acme-crm-cli@0.3.0", Some("@example")).is_err());
+        for manager in ["npm", "pnpm", "bun"] {
+            let (_, ours) = install_command(manager, "@wirecat/tg-cli@1.0.0", None).unwrap();
+            assert!(!ours.iter().any(|a| a.contains("registry")), "{manager}");
+        }
+    }
 
     #[test]
     fn installs_the_registry_s_fresher_version_never_an_older_one() {

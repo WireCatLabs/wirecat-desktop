@@ -4,8 +4,8 @@ Status: **built, keyed**. cli-docs builds and signs the list on every deploy and
 `https://wirecat.dev/registry/v1/desktop-tools.json`. The same public key is in cli-docs `registry/minisign.pub` and in
 [`src-tauri/registry-key.pub`](../../src-tauri/registry-key.pub), so a build fetches and checks the list while the
 switch is on. No community tool is listed yet. Decided 2026-11-05: the list lives in cli-docs `tools.json`
-(NEED-2204 A) and is signed in CI with a key the owner holds (NEED-2205 A). Your own tools, added from the app without a review, are a design, not built
-([below](#your-own-tools-not-checked)).
+(NEED-2204 A) and is signed in CI with a key the owner holds (NEED-2205 A). Your own tools, added from the app by their
+npm name without a review, are built ([below](#your-own-tools-not-checked); [plan](plans/2026-11-07-own-tools.md)).
 
 ## Process at a glance
 
@@ -29,8 +29,8 @@ human approves each one last. What is built and what is planned is marked.
 6. **The merge registers it.** The site lists it, and the next deploy signs a list that includes it.
 7. **The app offers it** to an owner who turned on "Enable community tools", with a **Community** badge, and checks
    each release's npm provenance before install.
-8. **Outside the list**, an owner can add any tool on their own computer, unchecked: today only with the developer
-   path, later from the app ([Your own tools](#your-own-tools-not-checked)).
+8. **Outside the list**, an owner can add any tool on their own computer, unchecked, from the Tools page
+   ([Your own tools](#your-own-tools-not-checked)).
 
 ## What exists today (2026-11-05)
 
@@ -50,13 +50,18 @@ human approves each one last. What is built and what is planned is marked.
 
 ## What the app does now
 
-`src-tauri/src/community.rs` adds community tools to the compiled catalog once, at start, from one of two sources:
+`src-tauri/src/community.rs` adds community tools to the compiled catalog once, at start, from two sources, in this
+order and through one set of taken names:
 
 - **The signed list**, while "Enable community tools" in Settings is on (`<app data>/community-tools.json`, off by
   default). `registry.rs` reads the copy kept in `<app data>/registry/`, checks its signature and expiry again,
   and hands its entries over. Without a good copy the app has its built-in tools only.
-- **A local file**, for development: `<app data>/extra-tools.json` while the environment has `WIRECAT_EXTRA_TOOLS=1`,
-  shaped `{ "version": 1, "tools": [...] }`. The flag wins over the setting.
+- **The owner's own tools**: `<app data>/extra-tools.json`, shaped `{ "version": 1, "tools": [...] }`, while "Allow
+  tools WireCat has not checked" is on (`<app data>/own-tools.json`, off by default) or the environment has
+  `WIRECAT_EXTRA_TOOLS=1` (for developers). The app writes the file (`own_tools.rs`); the flag no longer hides the
+  signed list.
+
+Each tool carries its source (official, community, own) to the interface, and the badge follows the source.
 
 The switch is off by default because no community tool has been reviewed yet, and turning it on is the owner's own
 choice to trust a review that checks how a tool is built and released, not what it does. A change takes effect at the
@@ -81,7 +86,7 @@ Rust accepts an entry only when:
    `configRepair` or `signIn.command` (a command line shown for the owner to copy).
 5. The file is at most 512 KB and the first 32 entries are read.
 
-Each refusal is a sentence the interface writes to its console. The interface parses the accepted entries again
+Each refusal is a sentence the interface writes to its console and Settings lists under the switch of its source. The interface parses the accepted entries again
 (`addCommunityTools` in `src/domain/catalog.ts`) before any page module loads, because pages build some lists when
 their module loads. A community tool shows a **Community** badge on the Tools page and on Choose tools, and, until it
 is installed, the note "Made by `<owner>`, not by WireCat. The app checks where npm built it, not what it does."
@@ -126,12 +131,29 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
 
 ## Your own tools (not checked)
 
-Status: **planned**. Owner's ruling 2026-11-06: anyone may add any tool on their own computer, behind a clear warning
-that WireCat has not checked it. A private repository's tool, which can never be listed, can only be added this way.
+Status: **built** (2026-11-07): `src-tauri/src/own_tools.rs` and `src/features/tools/OwnToolDialog.tsx`; the current
+flow, refusal kinds and checks are in [the plan](plans/2026-11-07-own-tools.md). Owner's ruling 2026-11-06: anyone may
+add any tool on their own computer, behind a clear warning that WireCat has not checked it. A private repository's
+tool, which can never be listed, can only be added this way. The button is on the Tools page (NEED-2281 A); only scoped
+npm packages (NEED-2280).
 
-**Today, developers only.** Start the app with the environment variable `WIRECAT_EXTRA_TOOLS=1` and write entries into
-`<app data>/extra-tools.json` (`{ "version": 1, "tools": [...] }`, above). This stays a developer path. The interface
-below writes the same file.
+**Data folder of an own tool.** Deleting a tool's data removes only folders whose last part is its `storage.app`
+(`storage.rs`, `ensure_ours`); `storage.env` only names variables that can move those folders, and a moved folder
+must still end in `storage.app`. So the folder name is what must belong to the tool. For an own tool from
+`@<scope>/<name>`, `storage.app` lower-cased must be `<scope>-<name>` or start with `<scope>-<name>-`, with every
+`.` and `_` of the package name turned into `-` (`@leemour/acme-crm-cli` → `leemour-acme-crm-cli`, `@x/a_b` →
+`x-a-b`), at most 64 characters. An own tool's folders are always its default locations: a `<PREFIX>_CONFIG_DIR`
+override does not move what Delete data removes. A folder that already existed when the owner added the tool is
+recorded in its entry (`own.preexisting`, kept by updates); Delete data lists it with why it stays and never removes
+it, because a free scope can still match another program's folder (`@google/chrome` → `google-chrome`). Only the scope's owner can publish under
+a scope, so that folder name is theirs; the unscoped name alone (`@evil/gh` → `gh`) and the manifest's own `name`
+prove nothing. `storage.env` has no naming rule, but it may not be one an official tool or the shared store uses. A
+manifest that breaks the rule is refused as `bad_manifest(storage)`, at review and at every start.
+
+The entry comes from the tool's manifest `contracts/wirecat.json` (format 2), read out of the npm tarball before
+anything is installed; `--wcat-describe` only confirms after install that the program names the same manifest. The
+points below are the design that led there. Developers can still write entries into `<app data>/extra-tools.json` by
+hand and start the app with `WIRECAT_EXTRA_TOOLS=1`.
 
 **1. A switch in Settings.** "Allow tools WireCat has not checked", off by default, next to "Enable community tools".
 Turning it on opens a warning that the owner must confirm before the switch turns on. Cancel leaves it off. Turning it
@@ -201,9 +223,6 @@ for listed tools, and nothing the owner adds reaches another computer.
 - **Two switches.** "Enable community tools" covers the signed list. "Allow tools WireCat has not checked" covers own
   tools, behind its own warning. The "More tools" block for WireCat's own extras (CRM, telephony) needs no switch,
   since those are reviewed first-party tools.
-- **Agents or Tools page?** The owner named the Agents page for the button. Tools are installed and listed on the
-  Tools page (`src/features/tools`), so the button may fit better there. Agents as ruled until the owner says
-  otherwise.
 - **Who may publish.** Listing is for approved publishers only, by application or invitation. The admission rule
   (who decides, what a publisher shows, how one loses it) is open.
 - **Provenance through our reusable workflow.** If a listed tool's publish step moves into a pinned WireCatLabs
@@ -214,11 +233,8 @@ for listed tools, and nothing the owner adds reaches another computer.
   against the pinned workflow and the config against the repository is a code change, not done.
 - **A local program**, not from npm: no package, repository or provenance, and the app neither installs nor updates
   it. It needs the program on PATH and a self-description. Whether the first version supports it at all.
-- **Unscoped npm names.** `community.rs` takes only `@scope/name`. Whether an own tool may be an unscoped package.
-- **Updates of an own tool.** Whether the app offers updates for it like any tool (each one shown with its provenance,
-  never refused) or leaves updates to the owner.
+- **Updates of an own tool** are offered like any tool's; each repeats discovery, and a changed repository or new
+  write access asks again.
 - **Settings' "How to make your own"** opens `build-create-cli`. It could open
   [List your tool in WireCat](https://wirecat.dev/en/docs/build-list-tool) instead (a one-line change in
   `CommunitySetting.tsx`).
-- The `WIRECAT_EXTRA_TOOLS` comments in `registry.rs`, `community.rs` and `src/platform/types.ts` still say "Show
-  community tools" and describe the flag. They change with the code.

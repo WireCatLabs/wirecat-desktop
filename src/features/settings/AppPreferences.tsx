@@ -6,6 +6,7 @@ import { Button } from "@/ui/Button"
 import { Select } from "@/ui/Select"
 import { CommunitySetting } from "./CommunitySetting"
 import { settingsMessages } from "./messages"
+import { OwnToolsSetting } from "./OwnToolsSetting"
 import { DEFAULT_SCALE, MAX_SCALE, MIN_SCALE, SCALE_STEP, useScale } from "./scale"
 
 /** WireCat's own preferences, above the tools' settings on the Settings page. */
@@ -20,8 +21,9 @@ export function AppPreferences() {
         <LanguageSetting />
         <ScaleSetting />
       </div>
-      <div className="mt-6">
+      <div className="mt-6 flex flex-col gap-6">
         <CommunitySetting />
+        <OwnToolsSetting />
       </div>
     </section>
   )

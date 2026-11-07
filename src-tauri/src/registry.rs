@@ -167,12 +167,12 @@ fn setting_file() -> Option<PathBuf> {
     crate::node::app_data().map(|d| d.join(SETTING))
 }
 
-/// "Show community tools", off until the owner turns it on.
+/// "Enable community tools", off until the owner turns it on.
 pub fn shown() -> bool {
     setting_file().is_some_and(|f| read_shown(&f))
 }
 
-fn read_shown(file: &Path) -> bool {
+pub fn read_shown(file: &Path) -> bool {
     std::fs::read_to_string(file)
         .ok()
         .and_then(|t| serde_json::from_str::<Value>(&t).ok())
@@ -184,7 +184,7 @@ pub fn set_shown(show: bool) -> Result<(), String> {
     write_shown(&file, show)
 }
 
-fn write_shown(file: &Path, show: bool) -> Result<(), String> {
+pub fn write_shown(file: &Path, show: bool) -> Result<(), String> {
     if let Some(dir) = file.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("Could not save the setting: {e}"))?;
     }
@@ -204,7 +204,11 @@ pub struct Status {
 }
 
 pub fn status() -> Status {
-    Status { show: shown(), available: key().is_ok(), listed: crate::catalog::catalog().extra.tools.len() }
+    Status {
+        show: shown(),
+        available: key().is_ok(),
+        listed: crate::catalog::catalog().extra.count(crate::community::Source::Community),
+    }
 }
 
 #[cfg(test)]

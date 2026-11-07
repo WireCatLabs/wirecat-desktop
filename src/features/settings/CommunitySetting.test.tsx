@@ -1,6 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { keepLeftOut } from "@/shared/left-out"
 import { render, screen } from "@/testing/render"
 import { CommunitySetting } from "./CommunitySetting"
 
@@ -42,5 +43,17 @@ describe("Enable community tools", () => {
     await userEvent.click(box)
     expect(await screen.findByText(/disk full/)).toBeInTheDocument()
     expect(box).toBeChecked()
+  })
+
+  it("shows why a listed tool was left out, beside the switch that read it", async () => {
+    keepLeftOut([
+      { source: "community", text: 'shady: the command word "setup;rm" is not allowed.' },
+      { source: "own", text: "mine: the id tg is taken by Telegram." },
+    ])
+    vi.spyOn(platform, "communityStatus").mockResolvedValue({ show: true, available: true, listed: 0 })
+    render(<CommunitySetting />)
+    expect(await screen.findByText(/shady: the command word/)).toBeInTheDocument()
+    expect(screen.queryByText(/mine: the id tg/)).not.toBeInTheDocument()
+    keepLeftOut([])
   })
 })

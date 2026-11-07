@@ -14,7 +14,7 @@ import type {
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
-import type { MailAgent, NotesFolderAdded, NotesModelEvent, NotesSetup } from "./bindings"
+import type { MailAgent, NotesFolderAdded, NotesModelEvent, NotesSetup, OwnDiscovery, OwnStatus } from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
@@ -70,13 +70,25 @@ export type Platform = {
   os: "linux" | "macos" | "windows"
   readiness(): Promise<Readiness>
   /**
-   * The community tools Rust added at start: from the signed list while "Show community tools" is on, or from
-   * `<app data>/extra-tools.json` while `WIRECAT_EXTRA_TOOLS=1` is set.
+   * The community tools Rust added at start, each with its source: the signed list while "Enable community tools" is
+   * on, then `<app data>/extra-tools.json` while "Allow tools WireCat has not checked" is on or
+   * `WIRECAT_EXTRA_TOOLS=1` is set.
    */
   extraTools(): Promise<ExtraTools>
   communityStatus(): Promise<CommunityStatus>
   /** Takes effect at the next start; turning it on fetches the list in the background. */
   setCommunityShown(show: boolean): Promise<void>
+  ownToolsStatus(): Promise<OwnStatus>
+  /** "Allow tools WireCat has not checked"; takes effect at the next start. */
+  setOwnToolsAllowed(allow: boolean): Promise<void>
+  /** Reads npm only, nothing of the package runs; `desktop` is the object pasted for a tool without a manifest. */
+  ownToolDiscover(pkg: string, desktop: string | null): Promise<OwnDiscovery>
+  /** Installs the reviewed version, checks it against the review and saves it for the next start. */
+  ownToolAdd(token: string, onEvent: (e: InstallEvent) => void): Promise<void>
+  /** Uninstalls a package Add installed but refused, which no catalog names. */
+  ownToolUninstall(token: string, onEvent: (e: InstallEvent) => void): Promise<void>
+  /** Deletes the saved entry; the program stays installed. */
+  ownToolRemove(id: string): Promise<void>
   /** The Node.js build "Set up Node.js for me" would download from nodejs.org. */
   nodeOffer(): Promise<NodeOffer>
   setupNode(onEvent: (e: NodeEvent) => void): Promise<void>

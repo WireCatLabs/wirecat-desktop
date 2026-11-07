@@ -53,12 +53,20 @@ pub struct Area {
     pub folders: Vec<Folder>,
     /// Installed tools that still use this data; deleting is refused while any are listed.
     pub used_by: Vec<String>,
+    /// An own tool's folders that existed before the app added it: shown with why they stay, never in `folders`.
+    pub kept: Vec<String>,
 }
 
 /// Mirrors cli-base's `resolvePaths` (src/paths.ts): `<PREFIX>_{CONFIG,STATE,CACHE}_DIR` win, then the XDG
 /// layout on Linux and macOS, then `%APPDATA%`/`%LOCALAPPDATA%` on Windows. Keep the two in step.
 fn folders(s: &Storage) -> Vec<(Kind, PathBuf)> {
     let over = |kind: &str| std::env::var_os(format!("{}_{kind}_DIR", s.env)).map(PathBuf::from);
+    defaults(s).into_iter().map(|(kind, p)| (kind, over(&kind.name().to_uppercase()).unwrap_or(p))).collect()
+}
+
+/// The locations with no override. An own tool's prefix comes from a manifest nobody reviewed, so a variable that
+/// happens to match it must not point its deletion elsewhere: it is cleared only here.
+pub fn defaults(s: &Storage) -> Vec<(Kind, PathBuf)> {
     let home = paths::home().unwrap_or_default();
     let base: [(Kind, PathBuf); 3] = if cfg!(windows) {
         let roaming = std::env::var_os("APPDATA").map_or_else(|| home.join("AppData/Roaming"), PathBuf::from);
@@ -76,7 +84,33 @@ fn folders(s: &Storage) -> Vec<(Kind, PathBuf)> {
             (Kind::Cache, xdg("XDG_CACHE_HOME", ".cache").join(&s.app)),
         ]
     };
-    base.into_iter().map(|(kind, p)| (kind, over(&kind.name().to_uppercase()).unwrap_or(p))).collect()
+    base.into()
+}
+
+/// A tool's folders the app may list and delete: an own tool's default locations, without those that existed before
+/// it was added (another program may own them), and every other tool's folders as cli-base resolves them.
+fn tool_folders(t: &catalog::Tool) -> Vec<(Kind, PathBuf)> {
+    if t.source != crate::community::Source::Own {
+        return folders(&t.storage);
+    }
+    let preexisting = t.own.as_ref().map(|o| &o.preexisting);
+    deletable(defaults(&t.storage), preexisting)
+}
+
+fn deletable(
+    folders: Vec<(Kind, PathBuf)>,
+    preexisting: Option<&std::collections::BTreeMap<String, bool>>,
+) -> Vec<(Kind, PathBuf)> {
+    folders
+        .into_iter()
+        .filter(|(_, p)| preexisting.is_none_or(|kept| !kept.contains_key(&*p.to_string_lossy())))
+        .collect()
+}
+
+/// An own tool's folders that existed before the app added it, and still exist: listed, never deleted.
+fn kept(t: &catalog::Tool) -> Vec<String> {
+    let Some(own) = t.own.as_ref().filter(|_| t.source == crate::community::Source::Own) else { return Vec::new() };
+    own.preexisting.keys().filter(|p| Path::new(p).is_dir()).map(|p| paths::tilde(p)).collect()
 }
 
 pub fn report() -> Vec<Area> {
@@ -84,16 +118,18 @@ pub fn report() -> Vec<Area> {
     let mut areas: Vec<Area> = tools::owners()
         .map(|t| Area {
             id: t.id.clone(),
-            folders: existing(&t.storage),
+            folders: existing(tool_folders(t)),
             used_by: installed.iter().filter(|i| **i == t.id).cloned().collect(),
+            kept: kept(t),
         })
         .collect();
-    areas.push(Area { id: SHARED.into(), folders: existing(&catalog::catalog().shared_storage), used_by: installed });
+    let shared = existing(folders(&catalog::catalog().shared_storage));
+    areas.push(Area { id: SHARED.into(), folders: shared, used_by: installed, kept: Vec::new() });
     areas
 }
 
-fn existing(s: &Storage) -> Vec<Folder> {
-    folders(s)
+fn existing(folders: Vec<(Kind, PathBuf)>) -> Vec<Folder> {
+    folders
         .into_iter()
         .filter(|(_, p)| p.is_dir())
         .map(|(kind, p)| {
@@ -164,28 +200,32 @@ fn child_of(folder: &Path, name: &str) -> Result<PathBuf, String> {
 /// Deletes a tool's folders, or the shared archive, once nothing installed uses them.
 pub fn clear(id: &str) -> Result<(), String> {
     let installed: Vec<String> = tools::owners().filter(|t| tools::installed(t)).map(|t| t.id.clone()).collect();
-    let storage = if id == SHARED {
+    if id == SHARED {
         if !installed.is_empty() {
             return Err(format!("Still installed: {}. Uninstall them first.", installed.join(", ")));
         }
-        &catalog::catalog().shared_storage
-    } else {
-        let tool = area(id)?;
-        if installed.iter().any(|i| i == id) {
-            return Err("Uninstall the tool before deleting its data.".into());
-        }
-        let mine: Vec<PathBuf> = folders(&tool.storage).into_iter().map(|(_, p)| p).collect();
-        if let Some(user) = shared_with(&mine, &in_use(&installed)) {
-            return Err(format!("{user} still uses this data, so it stays."));
-        }
-        &tool.storage
-    };
-    for (_, path) in folders(storage) {
+        let shared = &catalog::catalog().shared_storage;
+        return remove_all(&folders(shared), &shared.app);
+    }
+    let tool = area(id)?;
+    if installed.iter().any(|i| i == id) {
+        return Err("Uninstall the tool before deleting its data.".into());
+    }
+    let mine = tool_folders(tool);
+    let paths: Vec<PathBuf> = mine.iter().map(|(_, p)| p.clone()).collect();
+    if let Some(user) = shared_with(&paths, &in_use(&installed)) {
+        return Err(format!("{user} still uses this data, so it stays."));
+    }
+    remove_all(&mine, &tool.storage.app)
+}
+
+fn remove_all(folders: &[(Kind, PathBuf)], app: &str) -> Result<(), String> {
+    for (_, path) in folders {
         if !path.exists() {
             continue;
         }
-        ensure_ours(&path, &storage.app)?;
-        std::fs::remove_dir_all(&path)
+        ensure_ours(path, app)?;
+        std::fs::remove_dir_all(path)
             .map_err(|e| format!("Could not delete {}: {e}", paths::tilde(&path.to_string_lossy())))?;
         // Windows keeps Config/Data/Cache under one folder per app; drop it once it is empty.
         if cfg!(windows)
@@ -201,7 +241,7 @@ pub fn clear(id: &str) -> Result<(), String> {
 fn in_use(installed: &[String]) -> Vec<(String, PathBuf)> {
     let own = tools::owners()
         .filter(|t| installed.contains(&t.id))
-        .flat_map(|t| folders(&t.storage).into_iter().map(|(_, p)| (t.name.clone(), p)));
+        .flat_map(|t| tool_folders(t).into_iter().map(|(_, p)| (t.name.clone(), p)));
     let store = if installed.is_empty() { Vec::new() } else { folders(&catalog::catalog().shared_storage) };
     own.chain(store.into_iter().map(|(_, p)| ("The shared storage".to_string(), p))).collect()
 }
@@ -235,6 +275,38 @@ fn ensure_ours(path: &Path, app: &str) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn delete_data_leaves_a_folder_that_existed_before_the_add_and_deletes_one_made_after() {
+        let root = std::env::temp_dir().join(format!("wirecat-kept-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        let app = "example-acme-crm-cli";
+        let before = root.join(".config").join(app);
+        let after = root.join(".local/share").join(app);
+        std::fs::create_dir_all(&before).unwrap();
+        std::fs::create_dir_all(&after).unwrap();
+        let record = std::collections::BTreeMap::from([(before.to_string_lossy().into_owned(), true)]);
+        let mine = deletable(vec![(Kind::Config, before.clone()), (Kind::State, after.clone())], Some(&record));
+        remove_all(&mine, app).unwrap();
+        assert!(before.is_dir(), "the folder another program may own stays");
+        assert!(!after.exists(), "the folder made after the add is deleted");
+        std::fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn an_own_tools_folders_never_reach_the_shared_store() {
+        let own = Storage { app: "example-acme-crm-cli".into(), env: "ACME_CRM".into() };
+        let mine: Vec<PathBuf> = folders(&own).into_iter().map(|(_, p)| p).collect();
+        for path in &mine {
+            assert!(ensure_ours(path, &own.app).is_ok(), "{}", path.display());
+        }
+        let shared: Vec<(String, PathBuf)> = folders(&catalog::catalog().shared_storage)
+            .into_iter()
+            .map(|(_, p)| ("The shared storage".to_string(), p))
+            .collect();
+        assert_eq!(shared_with(&mine, &shared), None);
+        assert!(shared.iter().all(|(_, p)| ensure_ours(p, &own.app).is_err()));
+    }
 
     #[test]
     fn opens_only_a_plain_entry_of_the_folder() {

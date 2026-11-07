@@ -19,6 +19,8 @@ fn types() -> Types {
         .register::<crate::storage::Area>()
         .register::<crate::registry::Status>()
         .register::<crate::community::Extra>()
+        .register::<crate::own_tools::Discovery>()
+        .register::<crate::own_tools::Status>()
         .register::<crate::package_update::Kind>()
         .register::<crate::package_update::Progress>()
         .register::<crate::package_update::Outcome>()
