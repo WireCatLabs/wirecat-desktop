@@ -614,6 +614,28 @@ mod tests {
     }
 
     #[test]
+    fn takes_an_entry_exactly_as_cli_docs_desktop_registry_builds_it() {
+        // Output of cli-docs `buildRegistry` for a sample `@leemour/acme-crm-cli` entry (2026-11-08): no "mcp" key.
+        let built = json!({
+            "id": "acmecrm", "community": true, "name": "Acme CRM", "package": "@leemour/acme-crm-cli",
+            "repo": "https://github.com/leemour/acme-crm-cli", "summary": "Acme CRM contacts and deals, searchable offline.",
+            "docs": "https://wirecat.dev/docs/acmecrm", "tagline": "Acme CRM contacts in your archive", "bin": "acmecrm",
+            "profiles": { "args": ["profile", "list", "--json", "--no-record"], "shape": "items" },
+            "doctor": ["{profile}", "doctor", "--json", "--record"], "runs": null, "search": null,
+            "setup": ["{profile}", "setup"],
+            "signIn": { "gives": "your contacts", "asks": "an API token", "guide": "https://example.com/acme/token" },
+            "skill": null, "mcpServer": null, "tasks": null, "sync": null, "storeInfo": null, "storeTables": null,
+            "storeTableSizes": null, "storeCheck": null, "storeBackup": null, "storeBackupEncrypted": null,
+            "storage": { "app": "leemour-acme-crm-cli", "env": "ACMECRM" }, "settings": null,
+            "storeResetPreview": null, "storeReset": null
+        });
+        let mut out = Accepted::new(catalog());
+        out.entries(Source::Community, "The community list", vec![built]);
+        assert_eq!(texts(&out.extra), "");
+        assert_eq!(out.tools[0].package, "@leemour/acme-crm-cli");
+    }
+
+    #[test]
     fn the_built_in_catalog_is_the_fallback_without_the_flag_or_the_setting() {
         assert!(std::env::var(FLAG).is_err());
         assert!(catalog().extra.tools.is_empty(), "community tools read while off");

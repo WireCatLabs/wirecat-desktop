@@ -123,6 +123,8 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
    copy kept (no rollback to an older list, even after that copy expired) and it has not expired. A copy that fails
    leaves the kept one; no good copy leaves the built-in catalog. The same `community.rs` rules then apply to every
    entry. A new list takes effect at the next start, so a page never changes under the owner.
+   `bin/registry-live` checks the live list with this build's key through the same code, in a temp folder:
+   it passes, and a changed byte, an expired copy and a lower version than the kept one are each refused.
 4. **Removal.** A tool pulled from the list stops being offered. An installed copy stays installed and is listed as
    "No longer listed", with Uninstall; the app never removes it on its own.
 5. **Icons.** No code from the registry. Either the generic package icon (today), or an optional `icon` holding one

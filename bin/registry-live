@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Fetches the live community list from wirecat.dev and checks it with this build's key and the app's own code, in a
+# temp folder; the app's data folder is never touched.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+[ -f dist/index.html ] || { mkdir -p dist && echo '<!doctype html>' > dist/index.html; }
+cargo test --manifest-path src-tauri/Cargo.toml --lib -- --exact registry::tests::registry_live --ignored --nocapture
