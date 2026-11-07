@@ -151,65 +151,54 @@ prove nothing. `storage.env` has no naming rule, but it may not be one an offici
 manifest that breaks the rule is refused as `bad_manifest(storage)`, at review and at every start.
 
 The entry comes from the tool's manifest `contracts/wirecat.json` (format 2), read out of the npm tarball before
-anything is installed; `--wcat-describe` only confirms after install that the program names the same manifest. The
-points below are the design that led there. Developers can still write entries into `<app data>/extra-tools.json` by
-hand and start the app with `WIRECAT_EXTRA_TOOLS=1`.
+anything is installed; `--wcat-describe` only confirms after install that the program names the same manifest.
+Developers can still write entries into `<app data>/extra-tools.json` by hand and start the app with
+`WIRECAT_EXTRA_TOOLS=1`.
 
-**1. A switch in Settings.** "Allow tools WireCat has not checked", off by default, next to "Enable community tools".
+**1. A switch in Settings.** "Allow tools WireCat has not checked", off by default, under "Enable community tools".
 Turning it on opens a warning that the owner must confirm before the switch turns on. Cancel leaves it off. Turning it
-off hides the own tools at the next start, and installed ones stay installed, like the community switch.
+off hides the own tools at the next start, and installed ones stay installed, like the community switch. Its "How it
+works" link opens the Desktop docs, section "Add your own tool".
 
-**2. A button on the Agents page.** While the switch is on, the Agents page (`src/features/agents`, title "Agents")
-shows **Add your own tool**. It opens a dialog that takes an npm package name and warns again, in plain words:
+**2. A button on the Tools page.** While the switch is on (or the flag is set), the Tools page shows **Add your own
+tool** below the list. It opens a dialog that takes a scoped npm name and warns again, in plain words:
 
 - "This tool gets access to all your personal data that WireCat holds: your messages, mail, notes and files."
 - "Add it only if you trust its authors completely."
 - "WireCat has not checked this tool and takes no responsibility for what it does."
 
-Before anything is installed, the dialog reads npm only (no install, no script): the version, the repository the
-package claims, and its provenance, which `provenance.rs` already reads without installing. It shows where npm built
-the package, or "No record of where npm built it". Neither blocks.
+**3. Discovery and review, before anything is installed.** The app reads npm only (`own_tools.rs`): its npm metadata, the
+provenance as `provenance.rs` reads it, and the manifest out of the tarball, checked against `dist.integrity`. The
+manifest becomes a catalog entry that every `community.rs` rule checks, plus the folder-name rule above. The review
+shows publishers, repository, version, where npm built it (or "No record of where npm built it"; neither blocks),
+what the tool asks for, sign-in, sync and agent connection. A refusal is a kind with a sentence and what to do
+([plan, Failures](plans/2026-11-07-own-tools.md#failures-the-user-can-act-on)).
 
-**3. A second confirmation.** Pressing Add opens one more dialog, "Install `<package>`? It runs with your permissions.",
-with Install and Cancel. Only Install installs.
+**4. Two confirmations.** **Add** opens "Install and run `<package>`? Its install scripts and first run use your
+permissions.", with Back and **Install and run**. Only that button installs.
 
-**4. Then the app:**
+**5. Then the app:**
 
-1. Installs with the usual install path (`install.rs`). npm runs the package's install scripts, which is why both
-   confirmations come first. `confirm_release` reports the provenance instead of refusing for an entry from this file.
-2. Builds the catalog entry (below) and checks it with every `community.rs` rule: plain words, an id of 2 to 16
-   lowercase letters, no id, program, package or data folder of ours or of an earlier entry, `https` links, none of the
-   keys only WireCat's tools set, the size cap. One exception to rule 3: the repository may be missing or private, and
-   then the app says that no provenance can be checked. A refused entry is not saved. The app shows the refusal
-   sentences and offers Uninstall, since the package is already installed.
-3. Saves the entry to `<app data>/extra-tools.json`. It survives restarts and updates and is never sent anywhere.
+1. Installs exactly the reviewed version with the usual install path (`install.rs`). `confirm_release` reports the
+   provenance for an own tool, and refuses only a build from another repository than the review showed.
+2. Runs `--wcat-describe` and refuses the tool when it names another manifest than the one reviewed. The package is
+   installed by then, so the dialog offers **Uninstall it**.
+3. Saves the entry to `<app data>/extra-tools.json`, with the data folders that already existed (`own.preexisting`).
+   It survives restarts and updates and is never sent anywhere.
 4. Takes effect at the next start, with Restart now, because pages build some lists when their module loads.
 
 **How it looks.** A tool from this file carries the badge **Not checked** instead of **Community**, on the Tools page
 and on Choose tools. The badge comes from the source, the file, not from a key in the entry, so a signed-list entry can
-neither claim it nor drop it. Its row has **Remove from WireCat**, which deletes the entry and offers Uninstall.
+neither claim it nor drop it. Its details have **Remove from WireCat**, which deletes the entry and offers Uninstall.
 
-**Where the entry comes from.** The app needs a whole catalog entry: the keys the `desktop` object of a cli-docs
-`tools.json` entry has, plus `id`, `name`, `package`, `repo`, `summary` and `docs`.
+**Updates.** Install and Update of an own tool open the same dialog, which reads npm again. The review then lists what
+changed since the entry the owner confirmed: repository, provenance, publishers, new commands, new write access, new
+or changed parts. Any change, or access the tool does not describe, needs "I accept these changes" before Add.
 
-- npm gives `package`, and `repo` from the package's `repository` field.
-- `--wcat-describe` (cli-base `src/wcat/describe.ts`) gives `name`, `version`, `description` and `docs_url` today.
-  That fills `id`, `name`, `summary` and `docs`.
-- `commands --json` (cli-base `@wirecat/cli-base/commands`) gives the command tree. It says which commands exist, but
-  not the words the app runs, the data folder (`storage`), the sign-in texts (`signIn`), `tagline` or the shape of the
-  profile list.
-- **So a self-description is needed.** It belongs in cli-base's `--wcat-describe`, as format 2 (`DESCRIBE_FORMAT`
-  already promises that a later format adds keys and keeps the old ones). Its new key holds the same object as the
-  cli-docs `desktop` object, nothing more. `wcatStart` takes it and cli-template fills it. Running it is the tool's
-  first run, after both confirmations.
-- Until a tool answers format 2, the dialog asks the owner to paste that `desktop` object, the same one the cli-docs
-  guide shows, and checks it the same way.
-
-**The signed list and the file together.** Today the flag wins and the two sources never mix. With this design the app
-reads the signed list first (while "Enable community tools" is on) and then the file (while "Allow tools WireCat has
-not checked" is on, or the flag is set). An own entry whose id, package or data folder a listed entry already uses is
-refused as "an earlier entry", with the sentence "This tool is now listed. Remove your own entry to use the listed
-one."
+**The signed list and the file together.** The app reads the signed list first (while "Enable community tools" is on)
+and then the file (while "Allow tools WireCat has not checked" is on, or the flag is set). An own entry whose id,
+package or data folder a listed entry already uses is refused, with the sentence "This tool is now listed. Remove your
+own entry to use the listed one."
 
 **What this does not change.** No `community.rs` rule is relaxed for the signed list, `provenance.rs` still refuses
 for listed tools, and nothing the owner adds reaches another computer.
@@ -219,10 +208,9 @@ for listed tools, and nothing the owner adds reaches another computer.
 - Whether a signed list needs a second maintainer's approval (today: the pull request review and the `production`
   environment's rules).
 - Whether community tools may use the store commands (backup, reset), `bot` or the Memory and Tasks pages later.
-- Removal (point 4) and icons (point 5) are not built yet.
-- **Two switches.** "Enable community tools" covers the signed list. "Allow tools WireCat has not checked" covers own
-  tools, behind its own warning. The "More tools" block for WireCat's own extras (CRM, telephony) needs no switch,
-  since those are reviewed first-party tools.
+- Registry removal (point 4) and icons (point 5) are not built yet.
+- **More tools.** The block for WireCat's own extras (CRM, telephony) needs no switch, since those are reviewed
+  first-party tools.
 - **Who may publish.** Listing is for approved publishers only, by application or invitation. The admission rule
   (who decides, what a publisher shows, how one loses it) is open.
 - **Provenance through our reusable workflow.** If a listed tool's publish step moves into a pinned WireCatLabs
@@ -231,10 +219,6 @@ for listed tools, and nothing the owner adds reaches another computer.
   1.3.6.1.4.1.57264.1.18, from `workflow_ref`) ([Fulcio OID list](https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md)).
   `provenance.rs` reads only the subject today, so it would refuse such a release. Changing it to check the signer
   against the pinned workflow and the config against the repository is a code change, not done.
-- **A local program**, not from npm: no package, repository or provenance, and the app neither installs nor updates
-  it. It needs the program on PATH and a self-description. Whether the first version supports it at all.
-- **Updates of an own tool** are offered like any tool's; each repeats discovery, and a changed repository or new
-  write access asks again.
 - **Settings' "How to make your own"** opens `build-create-cli`. It could open
   [List your tool in WireCat](https://wirecat.dev/en/docs/build-list-tool) instead (a one-line change in
   `CommunitySetting.tsx`).
