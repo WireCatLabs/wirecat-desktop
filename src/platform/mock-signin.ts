@@ -17,9 +17,9 @@ import type { Platform } from "./types"
 // `?signin=wa:phone` links WhatsApp by number: the number is asked, then a pairing code to type on the phone. Zoom:
 // `?zm-client-id=ask` asks the Public Client ID in the window (zoom-cli PR #337), `?zoom-app=old` is a zm with no
 // `zm app`, so the window uses its own list. Email (mail-cli PR #128): the address is asked when the plan leaves it
-// empty, `?mail-server=manual` asks the server when discovery finds none, `?signin=email:microsoft` signs in by browser;
-// `?signin-fail=email:app-password|imap-off|refused|unreachable` fail with mail's reasons after the password, and
-// `?signin-fail=drive:expired|signed-out|rate-limited` with Drive's.
+// empty, `?mail-server=manual` asks the server when discovery finds none, `?signin=email:microsoft` signs in by
+// browser; `?signin=email:gmail&signin-fail=email:app-password|imap-off|refused|unreachable` fail with mail's reasons
+// after the password, and `?signin-fail=drive:expired|signed-out|rate-limited` with Drive's.
 // `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and tg says nothing for 12 s, as after a real scan
 // (Telegram moves the login to the account's data centre); `&signin-scanned=1` adds the progress line tg-cli could print
 // at the scan.

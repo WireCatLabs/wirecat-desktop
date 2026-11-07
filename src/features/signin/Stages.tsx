@@ -334,7 +334,15 @@ function PairStage({ pairing }: { pairing: Pairing }) {
   const m = useMessages(signinMessages)
   return (
     <div className={STAGE}>
-      <p>{pairing.place ? m.typeCodeAt(pairing.place) : m.typeCode}</p>
+      {/* wa's place is a whole instruction of its own ("WhatsApp on the phone: tap …"), not a place to name after "on". */}
+      {pairing.place?.includes(":") ? (
+        <div className="flex max-w-[30rem] flex-col gap-1">
+          <p className="font-medium text-ink">{m.typeCode}</p>
+          <p className="text-body text-ink-soft">{sentence(pairing.place)}</p>
+        </div>
+      ) : (
+        <p>{pairing.place ? m.typeCodeAt(pairing.place) : m.typeCode}</p>
+      )}
       <p className="selectable font-mono text-[2.2rem] font-semibold tracking-[0.18em] text-ink tabular-nums">
         {pairing.code}
       </p>
