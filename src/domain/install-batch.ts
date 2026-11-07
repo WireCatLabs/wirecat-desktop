@@ -64,7 +64,7 @@ export function toolProgress({ session, installed }: BatchItem): ToolProgress {
   if (!session) return installed ? at({ kind: "done" }, 1) : at({ kind: "idle" }, 0)
   // A failed tool is not part of what got done, so a batch that failed is not shown as 100%.
   if (session.outcome) return session.outcome.event === "failed" ? at({ kind: "failed" }, 0) : at({ kind: "done" }, 1)
-  if (session.step === "queued") return at({ kind: "waiting" }, 0)
+  if (waits(session)) return at({ kind: "waiting" }, 0)
   if (session.step === "check") return at({ kind: "check" }, 0.05)
   if (session.step === "verify") {
     const check = session.verifying ?? null
@@ -83,6 +83,9 @@ export function toolProgress({ session, installed }: BatchItem): ToolProgress {
 
 export const toolFraction = (item: BatchItem): number => toolProgress(item).fraction
 
+/** Not running yet: in the queue, or held by the store check until it answers or the owner does. */
+export const waits = (s: InstallSession) => s.step === "queued" || s.step === "preflight"
+
 const tookMs = (s: InstallSession) => (s.ended && s.began?.check ? s.ended - s.began.check : null)
 
 export function batch(items: readonly BatchItem[], now: number): Batch {
@@ -91,8 +94,8 @@ export function batch(items: readonly BatchItem[], now: number): Batch {
   const fraction = total === 0 ? 0 : fractions.reduce((a, b) => a + b, 0) / total
   const finished = items.filter((i) => i.session?.outcome || (!i.session && i.installed)).length
   const failed = items.filter((i) => i.session?.outcome?.event === "failed").length
-  const runningAt = items.findIndex((i) => i.session && !i.session.outcome && i.session.step !== "queued")
-  const waiting = items.filter((i) => i.session && !i.session.outcome && i.session.step === "queued").length
+  const runningAt = items.findIndex((i) => i.session && !i.session.outcome && !waits(i.session))
+  const waiting = items.filter((i) => i.session && !i.session.outcome && waits(i.session)).length
 
   const timed = items.flatMap((i) => (i.session?.outcome?.event === "done" ? [tookMs(i.session)] : []))
   const known = timed.filter((ms): ms is number => ms !== null)

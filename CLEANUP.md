@@ -6,3 +6,4 @@
 - `/home/leemour/Projects/AI/max-cli/docs_ai/.worktrees/wa-0.29-report` (branch `docs/wa-0.29-report`) — cli-private PR #555 is still open; remove after it merges. 2026-11-05
 - `/home/leemour/Projects/AI/cli-core-release-memo36` and `/home/leemour/Projects/AI/cli-memo-release-core0564` — release clones on main, files changed within the last 3 hours (another session may use them); remove after the releases. 2026-11-05
 - Release clones `cli-core-release`, `tg-release`, `wa-release` in `/var/tmp/claude/claude-1000/-home-leemour-Projects-AI-wirecat-desktop/1843f46d-831c-4149-8277-335fa93ea262/scratchpad/` — clean and pushed; remove after the whatsapp release and cli-private#555. 2026-11-05
+- `.claude/worktrees/store-check-gaps` (branch `fix/store-check-gaps`): worktree for the setup store check and the storage-line row shift; remove once its PR is merged. 2026-11-07

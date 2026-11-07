@@ -129,7 +129,7 @@ export const installPhase = (session: InstallSession | undefined): RowPhase =>
       ? session.outcome.event === "failed"
         ? "fail"
         : "done"
-      : session.step === "queued"
+      : session.step === "queued" || session.step === "preflight"
         ? "wait"
         : "run"
 

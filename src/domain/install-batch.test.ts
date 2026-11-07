@@ -140,6 +140,14 @@ describe("the batch", () => {
     expect(b.current).toBeNull()
   })
 
+  it("counts a tool held by the store check as waiting, not as the one installing", () => {
+    const asked = session({ step: "preflight" })
+    expect(toolProgress({ session: asked, installed: false }).stage).toEqual({ kind: "waiting" })
+    const b = batch([{ session: asked, installed: false }], T0)
+    expect(b.current).toBeNull()
+    expect(b.remainingMs).toBe(TYPICAL_INSTALL_MS)
+  })
+
   it("has no estimate once nothing runs or waits", () => {
     expect(batch([{ session: done(1000), installed: true }], T0).remainingMs).toBeNull()
   })

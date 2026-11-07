@@ -74,11 +74,11 @@ src-tauri/src/
   archive.rs    what the shared archive holds, from a tool's `store info`; the database is never opened.
   backup.rs     backing the shared store up into a zip, and clearing it, through the tool's own `store backup` / `store reset`.
   compat.rs     every installed tool's own `store info`, at once: which schema each reads and what its next run does.
-  preflight.rs  before an install or update from the Tools page: what the newest version does to the shared store, from
-                npm (the version's `@wirecat/cli-core` and that one's `wirecat.store` in package.json), against `compat.rs`'s
-                answers. Tools its run locks out whose newest version reads the store are updated in the same queue
+  preflight.rs  before an install or update (Tools page and the setup's Install step): what the newest version does to
+                the shared store, from npm (the version's `@wirecat/cli-core` and that one's `wirecat.store` in
+                package.json), against `compat.rs`'s answers. Tools its run locks out whose newest version reads the store are updated in the same queue
                 without a question; a version that cannot open the store, or tools with no such version yet, are shown
-                in the install panel before anything runs. Offline or an older cli-core: no warning, and the check after
+                in the install panel (or the setup's row) before anything runs. Offline or an older cli-core: no warning, and the check after
                 the install (`checkAfterInstall`) stays the fallback. It reads `/<package>/latest`, which the registry's
                 cache does not hold, and the install takes that version when `npm view` still shows an older one.
   skills.rs     agents found on this computer; each tool's skill through its own `skill status` / `install` / `show`.
@@ -133,8 +133,9 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
 
 1. `ToolRow` calls `useTools().install("drive")` (`src/features/tools/store.ts`). Installs queue; one runs at a time,
    because two global npm installs at once can corrupt each other.
-   From the row, the install first asks `store_preflight` (`preflight.rs`); a warning holds the session at step
-   `preflight` in the panel until the owner goes ahead, and the queue moves on without it.
+   From the row, and from the setup's Install step, the install first asks `store_preflight` (`preflight.rs`); a
+   warning holds the session at step `preflight` in the row's panel (or its setup row) until the owner goes ahead, and
+   the queue moves on without it.
 2. `platform.install` opens a Tauri `Channel` and invokes `install_tool` with the tool **id** only.
 3. Rust looks the id up in the compiled catalog, checks Node.js, picks a global folder it may write to without
    administrator rights (`npm_prefix.rs`), then runs `npm install --global <package>@<latest version>` there — or `pnpm add --global` when pnpm owns the copy that is already

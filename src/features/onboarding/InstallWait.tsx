@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { findTool, ownerId } from "@/domain/catalog"
-import { type BatchItem, batch, roughly, toolFraction } from "@/domain/install-batch"
+import { type BatchItem, batch, roughly, toolFraction, waits } from "@/domain/install-batch"
 import { useMessages } from "@/i18n"
 import { useTools } from "@/shared/tools-store"
 import { Collapse } from "@/ui/Collapse"
@@ -120,7 +120,7 @@ export function InstallOverview({ chosen }: { chosen: readonly string[] }) {
         {items.map((item, i) => {
           const failed = item.session?.outcome?.event === "failed"
           const f = failed ? 1 : toolFraction(item)
-          const running = Boolean(item.session && !item.session.outcome && item.session.step !== "queued")
+          const running = Boolean(item.session && !item.session.outcome && !waits(item.session))
           return (
             <ProgressBar
               key={chosen[i]}
