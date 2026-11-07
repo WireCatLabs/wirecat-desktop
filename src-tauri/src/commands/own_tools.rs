@@ -6,6 +6,16 @@ use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
 
+/// The switch may have been turned off since the dialog opened.
+fn allowed() -> Result<(), AppError> {
+    let status = own_tools::status();
+    if status.allowed || status.flag {
+        Ok(())
+    } else {
+        Err(AppError::Failed("Allow tools WireCat has not checked in Settings first.".into()))
+    }
+}
+
 #[tauri::command]
 pub fn own_tools_status() -> own_tools::Status {
     own_tools::status()
@@ -22,9 +32,7 @@ pub async fn set_own_tools_allowed(allow: bool) -> Result<(), AppError> {
 #[tauri::command]
 pub async fn own_tool_discover(package: String, desktop: Option<String>) -> Result<own_tools::Discovery, AppError> {
     crate::log::command("own_tool_discover", async move {
-        if !own_tools::status().allowed && !own_tools::status().flag {
-            return Err(AppError::Failed("Allow tools WireCat has not checked in Settings first.".into()));
-        }
+        allowed()?;
         blocking(move || own_tools::discover(package.trim(), desktop.as_deref())).await
     })
     .await
@@ -38,9 +46,10 @@ pub async fn own_tool_add(
     on_event: Channel<InstallEvent>,
 ) -> Result<(), AppError> {
     crate::log::command("own_tool_add", async move {
-        let reviewed = own_tools::reviewed(&token).map_err(AppError::Failed)?;
+        allowed()?;
+        let reviewed = own_tools::take_review(&token).map_err(AppError::Failed)?;
         let running = Arc::clone(&running);
-        blocking(move || own_tools::add(&reviewed, &running, &on_event)).await
+        blocking(move || own_tools::add(&token, reviewed, &running, &on_event)).await
     })
     .await
 }
@@ -53,7 +62,7 @@ pub async fn own_tool_uninstall(
     on_event: Channel<InstallEvent>,
 ) -> Result<(), AppError> {
     crate::log::command("own_tool_uninstall", async move {
-        let reviewed = own_tools::reviewed(&token).map_err(AppError::Failed)?;
+        let reviewed = own_tools::take_added(&token).map_err(AppError::Failed)?;
         let running = Arc::clone(&running);
         blocking(move || own_tools::uninstall(&reviewed, &running, &on_event)).await
     })

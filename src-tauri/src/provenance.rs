@@ -175,22 +175,45 @@ pub fn built(attestations: &Value, package: &str, version: &str, integrity: &str
 
 /// The registry's attestations of one release; a release with none answers 404, read here as an empty list.
 pub fn attestations(package: &str, version: &str) -> Result<Value, Refusal> {
+    let agent = agent();
+    attestations_with(&|url| get_json(&agent, url), package, version)
+}
+
+fn attestations_with(
+    get: &dyn Fn(&str) -> Result<Value, Refusal>,
+    package: &str,
+    version: &str,
+) -> Result<Value, Refusal> {
     let name = package.replacen('/', "%2f", 1);
-    match get_json(&agent(), &format!("{REGISTRY}/-/npm/v1/attestations/{name}@{version}")) {
+    match get(&format!("{REGISTRY}/-/npm/v1/attestations/{name}@{version}")) {
         Err(Refusal::Unconfirmed(_)) => Ok(serde_json::json!({ "attestations": [] })),
         other => other,
     }
 }
 
 /// An own tool's release: the registry's signatures must still verify, but provenance is reported, not required. It
-/// refuses only a release built by another repository than the one the owner was shown (`repo`, empty for none).
-pub fn confirm_own(npm: &Path, package: &str, version: &str, repo: &str) -> Result<Built, Refusal> {
+/// refuses a release whose tarball is not the one reviewed (`integrity`), or one built by another repository than the
+/// one the owner was shown (`repo`, empty for none).
+pub fn confirm_own(npm: &Path, package: &str, version: &str, repo: &str, integrity: &str) -> Result<Built, Refusal> {
     audit(npm, package, version)?;
     let agent = agent();
+    own_verdict(&|url| get_json(&agent, url), package, version, repo, integrity)
+}
+
+fn own_verdict(
+    get: &dyn Fn(&str) -> Result<Value, Refusal>,
+    package: &str,
+    version: &str,
+    repo: &str,
+    reviewed: &str,
+) -> Result<Built, Refusal> {
     let name = package.replacen('/', "%2f", 1);
-    let release = get_json(&agent, &format!("{REGISTRY}/{name}/{version}"))?;
+    let release = get(&format!("{REGISTRY}/{name}/{version}"))?;
     let integrity = release["dist"]["integrity"].as_str().unwrap_or_default();
-    let found = built(&attestations(package, version)?, package, version, integrity);
+    if integrity != reviewed {
+        return Err(Refusal::Unconfirmed("the release is not the package file that was reviewed".into()));
+    }
+    let found = built(&attestations_with(get, package, version)?, package, version, integrity);
     match &found {
         Built::By { repo: by, .. } if !by.eq_ignore_ascii_case(repo) => {
             let shown = if repo.is_empty() { "no repository" } else { repo };
@@ -357,6 +380,35 @@ mod tests {
         assert!(matches!(built(&serde_json::json!({}), "@wirecat/tg-cli", "0.113.0", TG_INTEGRITY), Built::Unknown(_)));
         let other = "sha512-AAAAc/osDNPolJRmvoN6Eb63S08Zg5r3B5zSCQSlE8dS1aD1IxFVd9zeLDGxT6XD91MnRe+6iTkgotS++OGIFA==";
         assert!(matches!(built(&tg(), "@wirecat/tg-cli", "0.113.0", other), Built::Unknown(_)), "another tarball");
+    }
+
+    #[test]
+    fn an_own_tool_from_another_repository_or_another_tarball_is_refused_and_offline_is_told_apart() {
+        let answer = |release: Value, attestations: Value| {
+            move |url: &str| -> Result<Value, Refusal> {
+                Ok(if url.contains("/attestations/") { attestations.clone() } else { release.clone() })
+            }
+        };
+        let release = serde_json::json!({ "dist": { "integrity": TG_INTEGRITY } });
+        let get = answer(release.clone(), tg());
+        let ok = own_verdict(&get, "@wirecat/tg-cli", "0.113.0", TG_REPO, TG_INTEGRITY);
+        assert!(matches!(ok, Ok(Built::By { .. })));
+        let other = own_verdict(&get, "@wirecat/tg-cli", "0.113.0", "https://github.com/example/fork", TG_INTEGRITY);
+        assert!(matches!(other, Err(Refusal::Unconfirmed(why)) if why.contains("review showed")));
+        let none = own_verdict(&get, "@wirecat/tg-cli", "0.113.0", "", TG_INTEGRITY);
+        assert!(matches!(none, Err(Refusal::Unconfirmed(_))), "an attested build the review did not show");
+        let changed = own_verdict(&get, "@wirecat/tg-cli", "0.113.0", TG_REPO, "sha512-other");
+        assert!(matches!(changed, Err(Refusal::Unconfirmed(why)) if why.contains("reviewed")));
+        let unsigned = answer(release, serde_json::json!({ "attestations": [] }));
+        assert!(matches!(
+            own_verdict(&unsigned, "@wirecat/tg-cli", "0.113.0", "", TG_INTEGRITY),
+            Ok(Built::Unknown(_))
+        ));
+        let offline = |_: &str| -> Result<Value, Refusal> { Err(Refusal::Unreachable("ENOTFOUND".into())) };
+        assert!(matches!(
+            own_verdict(&offline, "@wirecat/tg-cli", "0.113.0", TG_REPO, TG_INTEGRITY),
+            Err(Refusal::Unreachable(_))
+        ));
     }
 
     #[test]

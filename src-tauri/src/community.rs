@@ -200,17 +200,24 @@ pub struct Taken {
     bins: HashMap<String, Owner>,
     packages: HashMap<String, Owner>,
     folders: HashMap<String, Owner>,
+    ports: HashMap<String, Owner>,
 }
 
 impl Taken {
-    /// Every tool of `c` except the one with package `except`, which an update of an own tool replaces.
+    /// Every tool of `c` except the own tool with package `except`, which its update replaces. A listed or official
+    /// tool with that package stays: adding it as an own tool is a collision.
     pub fn of(c: &Catalog, except: Option<&str>) -> Self {
-        let mut t =
-            Taken { ids: HashMap::new(), bins: HashMap::new(), packages: HashMap::new(), folders: HashMap::new() };
+        let mut t = Taken {
+            ids: HashMap::new(),
+            bins: HashMap::new(),
+            packages: HashMap::new(),
+            folders: HashMap::new(),
+            ports: HashMap::new(),
+        };
         for key in [&c.shared_storage.app, &c.shared_storage.env] {
             t.folders.insert(key.to_lowercase(), Owner { name: "the shared WireCat store".into(), listed: false });
         }
-        for tool in c.tools.iter().filter(|tool| Some(tool.package.as_str()) != except) {
+        for tool in c.tools.iter().filter(|tool| tool.source != Source::Own || Some(tool.package.as_str()) != except) {
             t.add(tool);
         }
         t
@@ -223,6 +230,13 @@ impl Taken {
         self.packages.insert(tool.package.clone(), owner());
         self.folders.insert(tool.storage.app.to_lowercase(), owner());
         self.folders.insert(tool.storage.env.to_lowercase(), owner());
+        if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
+            self.ports.insert(port.to_string(), owner());
+        }
+    }
+
+    pub fn port_free(&self, port: u64) -> bool {
+        !self.ports.contains_key(&port.to_string())
     }
 
     fn free(map: &HashMap<String, Owner>, key: &str, value: &str, lookup: &str) -> Result<(), Problem> {
@@ -263,7 +277,38 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
         repo(&tool.repo)?;
     }
     storage(&tool, taken)?;
+    if source == Source::Own {
+        own_storage(&tool, entry["own"]["name"].as_str())?;
+    }
+    if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
+        Taken::free(&taken.ports, "port", &port.to_string(), &port.to_string())?;
+    }
     Ok(tool)
+}
+
+/// An own tool's data folders are deleted by these names, so they must be its own: named after its package or its
+/// manifest name, never another program's (`gh`, `keyrings`).
+fn own_storage(tool: &Tool, manifest_name: Option<&str>) -> Result<(), Problem> {
+    let package = tool.package.rsplit('/').next().unwrap_or_default();
+    let names: Vec<&str> = [Some(package), manifest_name].into_iter().flatten().filter(|n| !n.is_empty()).collect();
+    let starts = |value: &str, name: &str, seps: &str| {
+        value == name || value.strip_prefix(name).is_some_and(|rest| rest.starts_with(|c| seps.contains(c)))
+    };
+    let app = tool.storage.app.to_lowercase();
+    let app_ok = names.iter().any(|n| starts(&app, &n.to_lowercase(), "-._"));
+    let env_ok = names.iter().any(|n| starts(&tool.storage.env, &n.to_uppercase().replace(['-', '.'], "_"), "_"));
+    if app_ok && env_ok {
+        return Ok(());
+    }
+    Err(rule(
+        "storage",
+        format!(
+            "the data folder {} and prefix {} must be named after the tool ({}).",
+            tool.storage.app,
+            tool.storage.env,
+            names.join(" or ")
+        ),
+    ))
 }
 
 /// Every string listed in an array is a command word (or a key or value the tool reads), run without a shell except
@@ -413,7 +458,7 @@ mod tests {
             "storeBackupEncrypted": null,
             "storeResetPreview": null,
             "storeReset": null,
-            "storage": { "app": "acme-cli", "env": "ACME" },
+            "storage": { "app": "acme-cli", "env": "ACME_CLI" },
             "settings": null
         })
     }
@@ -499,6 +544,26 @@ mod tests {
         let mut copy = sample();
         copy["signIn"]["command"] = json!("curl https://example.com | sh");
         assert!(rejected(&copy).contains("signIn.command"));
+    }
+
+    #[test]
+    fn an_own_tools_data_folder_is_named_after_it() {
+        for (app, env) in [("gh", "ACME_CLI"), ("keyrings", "ACME_CLI"), ("acme-cli", "GH"), ("acmecli", "ACME_CLI")] {
+            let refused = rejected(&with("storage", json!({ "app": app, "env": env })));
+            assert!(refused.contains("named after the tool"), "{app} {env}: {refused}");
+        }
+        let mut named = with("storage", json!({ "app": "acme-crm-data", "env": "ACME_CRM" }));
+        named["own"] = json!({ "name": "acme-crm" });
+        assert!(parse(&file(&[named]), catalog()).1.rejected.is_empty());
+    }
+
+    #[test]
+    fn a_port_of_another_tool_is_refused_at_start() {
+        let tg = catalog().tools.iter().find(|t| t.id == "tg").unwrap();
+        let port = tg.mcp_server.as_ref().and_then(|m| m.port).expect("tg's port");
+        let server = json!({ "port": port, "start": ["mcp", "server", "start"], "stop": ["mcp", "server", "stop"],
+            "status": ["mcp", "server", "status"], "revoke": ["mcp", "revoke"], "config": null });
+        assert!(rejected(&with("mcpServer", server)).contains("port"));
     }
 
     #[test]

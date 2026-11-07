@@ -237,6 +237,21 @@ mod tests {
     use super::*;
 
     #[test]
+    fn an_own_tools_folders_never_reach_the_shared_store() {
+        let own = Storage { app: "acme-crm-cli".into(), env: "ACME_CRM".into() };
+        let mine: Vec<PathBuf> = folders(&own).into_iter().map(|(_, p)| p).collect();
+        for path in &mine {
+            assert!(ensure_ours(path, &own.app).is_ok(), "{}", path.display());
+        }
+        let shared: Vec<(String, PathBuf)> = folders(&catalog::catalog().shared_storage)
+            .into_iter()
+            .map(|(_, p)| ("The shared storage".to_string(), p))
+            .collect();
+        assert_eq!(shared_with(&mine, &shared), None);
+        assert!(shared.iter().all(|(_, p)| ensure_ours(p, &own.app).is_err()));
+    }
+
+    #[test]
     fn opens_only_a_plain_entry_of_the_folder() {
         let folder = Path::new("/home/u/.local/share/tg-cli");
         assert_eq!(child_of(folder, "sessions").unwrap(), folder.join("sessions"));

@@ -178,13 +178,29 @@ pub fn run(
     run_command(command(program, args, path_env), timeout)
 }
 
+/// `run` for a program not trusted to keep its answer small: stdout is held only up to `cap` + 1 bytes while
+/// it is read, and the rest is drained unread. A caller tells an overlong answer by `stdout.len() > cap`.
+pub fn run_capped(
+    program: &Path,
+    args: &[&str],
+    path_env: Option<&std::ffi::OsStr>,
+    timeout: Duration,
+    cap: usize,
+) -> Result<Output, RunError> {
+    timed(command(program, args, path_env), timeout, Some(cap))
+}
+
 /// `run`, for a `command()` the caller adjusted first.
 pub fn run_command(cmd: Command, timeout: Duration) -> Result<Output, RunError> {
+    timed(cmd, timeout, None)
+}
+
+fn timed(cmd: Command, timeout: Duration, cap: Option<usize>) -> Result<Output, RunError> {
     let started = Instant::now();
     let program = cmd.get_program().to_owned();
     let name = Path::new(&program).file_name().unwrap_or_default().to_string_lossy().into_owned();
     let args = cmd.get_args().len();
-    let result = run_inner(cmd, timeout);
+    let result = run_inner(cmd, timeout, cap);
     crate::log::program(&program, started, &outcome(result.as_ref().map(|o| o.code)));
     if timing() {
         eprintln!("[wirecat timing] {name} ({args} args) {} ms", started.elapsed().as_millis());
@@ -192,17 +208,25 @@ pub fn run_command(cmd: Command, timeout: Duration) -> Result<Output, RunError> 
     result
 }
 
-fn run_inner(cmd: Command, timeout: Duration) -> Result<Output, RunError> {
+fn read_capped(mut r: impl Read, cap: Option<usize>) -> String {
+    let Some(cap) = cap else {
+        let mut s = String::new();
+        let _ = r.read_to_string(&mut s);
+        return s;
+    };
+    let mut bytes = Vec::new();
+    let _ = r.by_ref().take(cap as u64 + 1).read_to_end(&mut bytes);
+    let _ = std::io::copy(&mut r, &mut std::io::sink());
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
+fn run_inner(cmd: Command, timeout: Duration, cap: Option<usize>) -> Result<Output, RunError> {
     let _slot = Slot::take();
     STARTED.fetch_add(1, Ordering::Relaxed);
     let mut child = spawn(cmd)?;
     let mut out = child.stdout.take().unwrap();
     let mut err = child.stderr.take().unwrap();
-    let out_t = thread::spawn(move || {
-        let mut s = String::new();
-        let _ = out.read_to_string(&mut s);
-        s
-    });
+    let out_t = thread::spawn(move || read_capped(&mut out, cap));
     let err_t = thread::spawn(move || {
         let mut s = String::new();
         let _ = err.read_to_string(&mut s);
@@ -428,6 +452,13 @@ fn kill(child: &mut Child) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_capped_read_keeps_the_cap_and_drains_the_rest() {
+        let long = vec![b'x'; 10_000];
+        assert_eq!(read_capped(&long[..], Some(100)).len(), 101);
+        assert_eq!(read_capped(&long[..], None).len(), 10_000);
+    }
 
     #[test]
     fn never_hands_a_tool_a_profile_from_the_environment() {
