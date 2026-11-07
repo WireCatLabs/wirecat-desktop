@@ -125,7 +125,7 @@ pub fn download(to: &Path, cancelled: &dyn Fn() -> bool) -> Result<String, Strin
     Ok(src.version)
 }
 
-fn hex(bytes: &[u8]) -> String {
+pub(crate) fn hex(bytes: &[u8]) -> String {
     use std::fmt::Write;
     bytes.iter().fold(String::with_capacity(64), |mut s, b| {
         let _ = write!(s, "{b:02x}");

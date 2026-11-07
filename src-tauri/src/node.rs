@@ -434,7 +434,7 @@ fn download(
     }
     file.flush().map_err(|e| disk("write", to, &e))?;
     emit(NodeEvent::Progress { received, total });
-    Ok(format!("{:x}", hasher.finalize()))
+    Ok(crate::cloudflare_install::hex(&hasher.finalize()))
 }
 
 /// Counts the archive's bytes as the unpacker reads them, so unpacking reports how far through the archive it is.
