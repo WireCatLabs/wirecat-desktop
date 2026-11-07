@@ -354,4 +354,47 @@ mod tests {
         let tg = r#"{"item":{"profile":"p","account":{"id":"1","name":"Owner"},"already_logged_in":true}}"#;
         assert_eq!(parser.read(Line::Out(tg.into())), Some(SignInEvent::Done { already_linked: true, received: None }));
     }
+
+    /// `wa x session start phone --json --answer-stdin` and the QR step, as whatsapp-cli prints them.
+    #[test]
+    fn reads_whatsapps_json_lines_for_qr_phone_and_the_history_wait() {
+        let qr = serde_json::json!({
+            "event": "qr", "qr": { "text": DRAWING, "expires_at": "2026-11-07T12:01:00.000Z", "scan": SCAN }
+        });
+        let steps = err(&[
+            &qr.to_string(),
+            r#"{"event":"needs","field":"phone","secret":false,"prompt":"Phone number","hint":null}"#,
+            r#"{"event":"pairing_code","code":"ABCD-EFGH","where":"WhatsApp → Linked devices","expires_at":null}"#,
+            r#"{"event":"progress","step":"history","message":"receiving history from the phone"}"#,
+            r#"{"event":"progress","step":"waiting","message":"still waiting for the phone's history"}"#,
+        ]);
+        assert!(matches!(
+            &steps[0],
+            SignInEvent::Qr { expires_at: Some(at), .. } if at == "2026-11-07T12:01:00.000Z"
+        ));
+        assert!(matches!(&steps[1], SignInEvent::Needs { field, secret: false, .. } if field == "phone"));
+        assert!(matches!(&steps[2], SignInEvent::PairingCode { place: Some(_), expires_at: None, .. }));
+        assert_eq!(
+            steps[3..],
+            [
+                SignInEvent::Progress {
+                    step: "history".into(),
+                    message: Some("receiving history from the phone".into())
+                },
+                SignInEvent::Progress {
+                    step: "waiting".into(),
+                    message: Some("still waiting for the phone's history".into())
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn a_failure_keeps_the_reason_the_window_has_words_for() {
+        for reason in ["zoom.client-id-missing", "mail.app-password-required"] {
+            let line = serde_json::json!({ "error": { "code": "validation_error", "reason": reason, "message": "x" } });
+            let steps = err(&[&line.to_string()]);
+            assert!(matches!(&steps[0], SignInEvent::Failed { reason: Some(r), .. } if r == reason), "{reason}");
+        }
+    }
 }

@@ -17,6 +17,9 @@ const en = {
     browser: () => "Approve in the browser",
     history: () => "Receive recent chats",
     check: () => "Check the password",
+    pair: () => "Type the code on the phone",
+    appPassword: () => "Your app password",
+    server: () => "Mail server, if not found",
     done: () => "Done",
   } as Record<WizardStep, (name: string) => string>,
   method: {
@@ -32,6 +35,10 @@ const en = {
     "max:qr": ["Your phone with the MAX app on it.", "Your MAX cloud password, if you set one."],
     "max:token": ["A browser on this computer, signed in to web.max.ru."],
     wa: ["Your phone with WhatsApp on it, unlocked and online until the chats arrive."],
+    "wa:phone": [
+      "Your phone with WhatsApp on it, unlocked and online until the chats arrive.",
+      "Its number, with + and the country code.",
+    ],
     zm: [
       "Your Zoom login.",
       "The first time: about ten minutes to make your Zoom app. The steps are shown here, with buttons to copy each value.",
@@ -55,6 +62,38 @@ const en = {
       title: (name) => `${name} is busy receiving messages in the background.`,
       cause: (name) =>
         `${name} lets one connection use a linked device at a time. Stop the background service on ${name}'s page, then sign in again.`,
+    },
+    mailRefused: {
+      title: () => "The mail server refused the login.",
+      cause: () =>
+        "Most often this is the account password instead of an app password, or a typing mistake. Make a new app password and try again; the address stays filled in.",
+    },
+    mailAppPassword: {
+      title: () => "Gmail asks for an app password.",
+      cause: () =>
+        "Google does not let mail programs in with the account password. Make an app password (it needs 2-Step Verification on), then try again and paste it.",
+    },
+    mailImapOff: {
+      title: () => "IMAP is off for this mailbox.",
+      cause: () => "Mail programs read mail over IMAP. Turn it on in the mail settings, then try again.",
+    },
+    mailUnreachable: {
+      title: () => "The mail server did not answer.",
+      cause: () =>
+        "This computer looks offline, or a firewall or VPN blocks the mail port. Check it and try again; if you typed the server yourself, check its name and port.",
+    },
+    signedOut: {
+      title: (name) => `${name} is not signed in for this profile.`,
+      cause: () => "Sign in again to choose what to import.",
+    },
+    signInExpired: {
+      title: (name) => `The sign-in to ${name} has expired.`,
+      cause: () =>
+        "Google ends a sign-in after a while or when access is removed. Sign in again; nothing stored is lost.",
+    },
+    rateLimited: {
+      title: (name) => `${name}'s service asks to slow down.`,
+      cause: () => "Too many requests in a short time. Wait a minute, then try again.",
     },
     clientIdMissing: {
       title: () => "Zoom needs an app of your own first.",
@@ -97,6 +136,12 @@ const en = {
     update: (name: string) => `Open ${name} to update`,
     toolPage: (name: string) => `Open ${name}`,
     copy: "Copy the stop command",
+    openPage: {
+      mailAppPassword: "Make an app password",
+      mailRefused: "Make an app password",
+      mailImapOff: "How to turn on IMAP",
+    } as Partial<Record<FailureReason, string>>,
+    openPageOther: "Open the help page",
   },
   details: "Details",
   token: {
@@ -126,7 +171,6 @@ const en = {
     openMarketplace: "Open the Marketplace",
     copyRedirect: "Copy the redirect address",
     copyScope: (scope: string) => `Copy ${scope}`,
-    copyScopes: "Copy all five",
     guide: "The guide with pictures",
   },
   noApp: {
@@ -163,6 +207,9 @@ const ru: WizardText = {
     browser: () => "Подтверждение в браузере",
     history: () => "Получение недавних чатов",
     check: () => "Проверка пароля",
+    pair: () => "Код на телефоне",
+    appPassword: () => "Пароль приложения",
+    server: () => "Почтовый сервер, если не найден",
     done: () => "Готово",
   },
   method: {
@@ -178,6 +225,10 @@ const ru: WizardText = {
     "max:qr": ["Телефон с приложением MAX.", "Облачный пароль MAX, если вы его задавали."],
     "max:token": ["Браузер на этом компьютере, где выполнен вход в web.max.ru."],
     wa: ["Телефон с WhatsApp: разблокированный и в сети, пока не придут чаты."],
+    "wa:phone": [
+      "Телефон с WhatsApp: разблокированный и в сети, пока не придут чаты.",
+      "Его номер, с + и кодом страны.",
+    ],
     zm: [
       "Логин и пароль Zoom.",
       "В первый раз — около десяти минут на своё приложение Zoom. Шаги показаны здесь, с кнопками для копирования каждого значения.",
@@ -205,6 +256,38 @@ const ru: WizardText = {
       title: (name) => `${name} занят: принимает сообщения в фоне.`,
       cause: (name) =>
         `${name} позволяет только одно подключение к привязанному устройству. Остановите фоновую службу на странице ${name} и войдите снова.`,
+    },
+    mailRefused: {
+      title: () => "Почтовый сервер не принял вход.",
+      cause: () =>
+        "Чаще всего введён пароль от аккаунта вместо пароля приложения или есть опечатка. Создайте новый пароль приложения и попробуйте снова; адрес останется заполненным.",
+    },
+    mailAppPassword: {
+      title: () => "Gmail просит пароль приложения.",
+      cause: () =>
+        "Google не пускает почтовые программы с паролем от аккаунта. Создайте пароль приложения (нужна двухэтапная аутентификация), затем попробуйте снова и вставьте его.",
+    },
+    mailImapOff: {
+      title: () => "Для этого ящика выключен IMAP.",
+      cause: () => "Почтовые программы читают почту по IMAP. Включите его в настройках почты и попробуйте снова.",
+    },
+    mailUnreachable: {
+      title: () => "Почтовый сервер не ответил.",
+      cause: () =>
+        "Похоже, компьютер не в сети, или файрвол либо VPN закрывает почтовый порт. Проверьте и попробуйте снова; если сервер вы вводили сами, проверьте имя и порт.",
+    },
+    signedOut: {
+      title: (name) => `Для этого профиля не выполнен вход в ${name}.`,
+      cause: () => "Войдите снова, чтобы выбрать, что импортировать.",
+    },
+    signInExpired: {
+      title: (name) => `Вход в ${name} истёк.`,
+      cause: () =>
+        "Google завершает вход через какое-то время или когда доступ отозван. Войдите снова; сохранённое не пропадёт.",
+    },
+    rateLimited: {
+      title: (name) => `Сервис ${name} просит не торопиться.`,
+      cause: () => "Слишком много запросов за короткое время. Подождите минуту и попробуйте снова.",
     },
     clientIdMissing: {
       title: () => "Сначала Zoom нужно своё приложение.",
@@ -249,6 +332,12 @@ const ru: WizardText = {
     update: (name) => `Открыть ${name} для обновления`,
     toolPage: (name) => `Открыть ${name}`,
     copy: "Скопировать команду остановки",
+    openPage: {
+      mailAppPassword: "Создать пароль приложения",
+      mailRefused: "Создать пароль приложения",
+      mailImapOff: "Как включить IMAP",
+    },
+    openPageOther: "Открыть справку",
   },
   details: "Подробности",
   token: {
@@ -278,7 +367,6 @@ const ru: WizardText = {
     openMarketplace: "Открыть Marketplace",
     copyRedirect: "Скопировать адрес перенаправления",
     copyScope: (scope) => `Скопировать ${scope}`,
-    copyScopes: "Скопировать все пять",
     guide: "Инструкция с картинками",
   },
   noApp: {
@@ -313,6 +401,9 @@ const es: WizardText = {
     browser: () => "Aprobar en el navegador",
     history: () => "Recibir los chats recientes",
     check: () => "Comprobar la contraseña",
+    pair: () => "Escribe el código en el teléfono",
+    appPassword: () => "Tu contraseña de aplicación",
+    server: () => "Servidor de correo, si no se encuentra",
     done: () => "Listo",
   },
   method: {
@@ -328,6 +419,10 @@ const es: WizardText = {
     "max:qr": ["Tu teléfono con la app de MAX.", "Tu contraseña en la nube de MAX, si la configuraste."],
     "max:token": ["Un navegador en este equipo con la sesión iniciada en web.max.ru."],
     wa: ["Tu teléfono con WhatsApp, desbloqueado y conectado hasta que lleguen los chats."],
+    "wa:phone": [
+      "Tu teléfono con WhatsApp, desbloqueado y conectado hasta que lleguen los chats.",
+      "Su número, con + y el prefijo del país.",
+    ],
     zm: [
       "Tu usuario de Zoom.",
       "La primera vez: unos diez minutos para crear tu app de Zoom. Los pasos se muestran aquí, con botones para copiar cada valor.",
@@ -356,6 +451,39 @@ const es: WizardText = {
       title: (name) => `${name} está ocupado recibiendo mensajes en segundo plano.`,
       cause: (name) =>
         `${name} permite una sola conexión por dispositivo vinculado. Detén el servicio en segundo plano en la página de ${name} y vuelve a iniciar sesión.`,
+    },
+    mailRefused: {
+      title: () => "El servidor de correo rechazó el inicio de sesión.",
+      cause: () =>
+        "Casi siempre es la contraseña de la cuenta en lugar de una contraseña de aplicación, o un error al escribir. Crea una nueva contraseña de aplicación y vuelve a intentarlo; la dirección se mantiene.",
+    },
+    mailAppPassword: {
+      title: () => "Gmail pide una contraseña de aplicación.",
+      cause: () =>
+        "Google no deja entrar a los programas de correo con la contraseña de la cuenta. Crea una contraseña de aplicación (requiere la verificación en dos pasos), vuelve a intentarlo y pégala.",
+    },
+    mailImapOff: {
+      title: () => "IMAP está desactivado en este buzón.",
+      cause: () =>
+        "Los programas de correo leen el correo por IMAP. Actívalo en los ajustes del correo y vuelve a intentarlo.",
+    },
+    mailUnreachable: {
+      title: () => "El servidor de correo no respondió.",
+      cause: () =>
+        "Parece que este equipo no tiene conexión, o un cortafuegos o una VPN bloquea el puerto del correo. Revísalo y vuelve a intentarlo; si escribiste el servidor tú, revisa su nombre y puerto.",
+    },
+    signedOut: {
+      title: (name) => `${name} no tiene sesión iniciada en este perfil.`,
+      cause: () => "Inicia sesión de nuevo para elegir qué importar.",
+    },
+    signInExpired: {
+      title: (name) => `La sesión de ${name} caducó.`,
+      cause: () =>
+        "Google cierra una sesión pasado un tiempo o cuando se retira el acceso. Inicia sesión de nuevo; no se pierde nada guardado.",
+    },
+    rateLimited: {
+      title: (name) => `El servicio de ${name} pide ir más despacio.`,
+      cause: () => "Demasiadas solicitudes en poco tiempo. Espera un minuto y vuelve a intentarlo.",
     },
     clientIdMissing: {
       title: () => "Zoom necesita primero una app tuya.",
@@ -400,6 +528,12 @@ const es: WizardText = {
     update: (name) => `Abrir ${name} para actualizar`,
     toolPage: (name) => `Abrir ${name}`,
     copy: "Copiar el comando para detenerlo",
+    openPage: {
+      mailAppPassword: "Crear una contraseña de aplicación",
+      mailRefused: "Crear una contraseña de aplicación",
+      mailImapOff: "Cómo activar IMAP",
+    },
+    openPageOther: "Abrir la ayuda",
   },
   details: "Detalles",
   token: {
@@ -429,7 +563,6 @@ const es: WizardText = {
     openMarketplace: "Abrir el Marketplace",
     copyRedirect: "Copiar la dirección de redirección",
     copyScope: (scope) => `Copiar ${scope}`,
-    copyScopes: "Copiar los cinco",
     guide: "La guía con imágenes",
   },
   noApp: {

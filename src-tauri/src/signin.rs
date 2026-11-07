@@ -268,7 +268,10 @@ mod tests {
         for bad in ["", "--help", "a;rm -rf ~", "../x y"] {
             assert!(words("wa", "qr", bad).is_err(), "{bad}");
         }
-        assert!(words("wa", "phone", "personal").is_err());
+        assert_eq!(
+            words("wa", "phone", "personal").unwrap(),
+            ["personal", "session", "start", "phone", "--json", "--answer-stdin"]
+        );
         assert!(words("memo", "qr", "personal").is_err());
         assert!(catalog::tool("nope").is_err());
     }
@@ -281,22 +284,16 @@ mod tests {
             password: password.map(str::to_string),
             client_file: None,
         };
-        let imap = args(email, "imap", "work", typed(" me@example.com ", Some("app pass"))).unwrap();
-        assert_eq!(imap.args, ["work", "session", "start", "--json", "--quiet", "--address", "me@example.com"]);
-        assert_eq!(
-            imap.env.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect::<Vec<_>>(),
-            [("MAIL_PASSWORD", "app pass")]
-        );
-        assert!(!imap.args.iter().any(|a| a.contains("app pass")), "the password is never a word");
+        let imap = args(email, "imap", "work", typed(" me@example.com ", None)).unwrap();
+        assert_eq!(imap.args, ["work", "session", "start", "--json", "--answer-stdin", "--address", "me@example.com"]);
         for bad in ["--help@x.com", "me", "me@localhost", "a b@x.com", "me\n@x.com", "@x.com"] {
             assert!(args(email, "imap", "work", typed(bad, None)).is_err(), "{bad}");
         }
-        assert!(
-            args(email, "microsoft", "work", typed("me@outlook.com", Some("x"))).is_err(),
-            "Microsoft takes no password"
-        );
+        for method in ["microsoft", "gmail", "imap"] {
+            let refused = args(email, method, "work", typed("me@example.com", Some("x")));
+            assert!(refused.is_err(), "{method}: the tool asks the password on stdin");
+        }
         assert!(args(catalog::tool("tg").unwrap(), "qr", "work", typed("me@x.com", None)).is_err());
-        assert!(args(email, "imap", "work", typed("me@x.com", Some("a\nb"))).is_err());
     }
 
     #[test]

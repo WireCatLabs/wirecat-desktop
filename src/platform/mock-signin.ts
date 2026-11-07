@@ -1,3 +1,4 @@
+import type { ZoomAppAnswer } from "./bindings"
 import { delay } from "./mock-delay"
 import { MOCK_CODES } from "./mock-qr"
 import type { SignInEvent, SignInInputs } from "./signin-schemas"
@@ -13,6 +14,12 @@ import type { Platform } from "./types"
 // `?signin-fail=<tool>:<reason>` fails any tool with one of the failures the window explains (`signin-failure.ts`):
 // old, qr-expired, in-use, client-id, browser, denied, timeout, network, cancelled, ended. `?signin=max:token`
 // opens MAX's token sign-in.
+// `?signin=wa:phone` links WhatsApp by number: the number is asked, then a pairing code to type on the phone. Zoom:
+// `?zm-client-id=ask` asks the Public Client ID in the window (zoom-cli PR #337), `?zoom-app=old` is a zm with no
+// `zm app`, so the window uses its own list. Email (mail-cli PR #128): the address is asked when the plan leaves it
+// empty, `?mail-server=manual` asks the server when discovery finds none, `?signin=email:microsoft` signs in by browser;
+// `?signin-fail=email:app-password|imap-off|refused|unreachable` fail with mail's reasons after the password, and
+// `?signin-fail=drive:expired|signed-out|rate-limited` with Drive's.
 // `?signin-scan-delay=12`: tg's code is scanned 2 s after it shows, and tg says nothing for 12 s, as after a real scan
 // (Telegram moves the login to the account's data centre); `&signin-scanned=1` adds the progress line tg-cli could print
 // at the scan.
@@ -63,6 +70,13 @@ const qrs = async ({ emit, wait }: Script, scan: string, count: number, expires 
   return false
 }
 
+const WA_PAIR =
+  "WhatsApp on the phone: tap its notification, or Settings → Linked devices → Link a device → Link with phone number instead"
+const zmAsks = query.get("zm-client-id") === "ask"
+const zoomAppOld = query.get("zoom-app") === "old"
+const manualServer = query.get("mail-server") === "manual"
+const quick = query.has("drive-folders")
+
 const kept = (messages: number): SignInEvent => ({
   event: "done",
   alreadyLinked: false,
@@ -79,9 +93,26 @@ export const saveMockClientId = () => {
 const GOOGLE_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=mock"
 
 const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) => Promise<SignInEvent>> = {
-  async wa(s) {
+  async wa(s, method) {
     for (const text of WARNING) s.emit({ event: "note", text })
-    s.emit({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: WA_SCAN })
+    if (method === "phone") {
+      const asked = await s.ask(
+        "phone",
+        "phone number, international format",
+        false,
+        "with + and the country code, such as +34",
+      )
+      if (asked === null) return STOPPED
+      s.emit({ event: "pairingCode", code: "WCAT-2026", place: WA_PAIR, expiresAt: null })
+      if (await s.wait(6000)) return STOPPED
+      return history(s)
+    }
+    s.emit({
+      event: "qr",
+      text: MOCK_CODES[0] ?? "",
+      expiresAt: new Date(Date.now() + RENEWS_MS).toISOString(),
+      scan: WA_SCAN,
+    })
     if (fails === "wa") {
       await delay(1500)
       return {
@@ -91,12 +122,8 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
       }
     }
     if (await s.wait(RENEWS_MS)) return STOPPED
-    if (await qrs(s, WA_SCAN, 2)) return STOPPED
-    s.emit({ event: "progress", step: "history", message: null })
-    if (await s.wait(3000)) return kept(120)
-    s.emit({ event: "progress", step: "waiting", message: null })
-    if (await s.wait(2500)) return kept(900)
-    return kept(18_400)
+    if (await qrs(s, WA_SCAN, 2, true)) return STOPPED
+    return history(s)
   },
   async tg(s, method) {
     tgRuns += 1
@@ -152,11 +179,22 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
     return signedIn
   },
   async zm(s) {
+    if (zmAsks && !clientIdSaved) {
+      const id = await s.ask(
+        "client_id",
+        "Public Client ID of your Zoom app",
+        false,
+        "Build a General app (User-managed, Public Client OAuth) at https://marketplace.zoom.us/develop/create; zm app lists what to enter.",
+      )
+      if (id === null) return STOPPED
+      clientIdSaved = true
+    }
     if (fails === "zm" && !clientIdSaved)
       return {
         event: "failed",
         code: "configuration_error",
         message: "run zm config set zoom.client_id <Public Client ID> first",
+        reason: "zoom.client-id-missing",
       }
     s.emit({
       event: "openUrl",
@@ -176,7 +214,7 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
       url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=mock",
       purpose: "Choose the Google account and allow access to Drive",
     })
-    return (await s.wait(6000)) ? STOPPED : signedIn
+    return (await s.wait(quick ? 1500 : 6000)) ? STOPPED : signedIn
   },
   // gcal 0.19 has no WireCat app yet: without the owner's own, it refuses as the real one does.
   async gcal(s, _method, inputs) {
@@ -195,30 +233,71 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
     return (await s.wait(5000)) ? STOPPED : signedIn
   },
   async email(s, method, inputs) {
+    const address = inputs.address ?? (await s.ask("address", "Mail address", false))
+    if (address === null) return STOPPED
+    const domain = address.split("@")[1] ?? "example.com"
+    s.emit({ event: "progress", step: "discover", message: `finding the mail server for ${domain}` })
+    if (await s.wait(1200)) return STOPPED
+    let host = method === "gmail" ? "imap.gmail.com" : `imap.${domain}`
+    if (manualServer) {
+      const imap = await s.ask("imap_host", "IMAP server", false)
+      if (imap === null) return STOPPED
+      host = imap || host
+      for (const [field, prompt] of [
+        ["imap_port", "IMAP port"],
+        ["smtp_host", "SMTP server"],
+        ["smtp_port", "SMTP port"],
+      ] as const)
+        if ((await s.ask(field, prompt, false)) === null) return STOPPED
+    }
+    if (method === "microsoft" || inputs.clientFile) {
+      const page =
+        method === "microsoft" ? "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" : GOOGLE_URL
+      s.emit({ event: "openUrl", url: `${page}?client_id=mock`, purpose: "Sign in to Microsoft and allow access" })
+      if (await s.wait(5000)) return STOPPED
+      s.emit({ event: "progress", step: "login", message: `checking the sign-in with ${host}` })
+      return (await s.wait(1200)) ? STOPPED : signedIn
+    }
+    const hint =
+      method === "gmail"
+        ? "Gmail takes an app password, not your account password. How to make one: https://myaccount.google.com/apppasswords"
+        : "Yandex takes an app password, not your account password. How to make one: https://yandex.ru/support/id/ru/authorization/app-passwords"
+    if ((await s.ask("password", `App password for ${address}`, true, hint)) === null) return STOPPED
+    s.emit({ event: "progress", step: "login", message: `checking the password with ${host}` })
+    if (await s.wait(1500)) return STOPPED
     if (fails === "email")
       return {
         event: "failed",
         code: "authentication_error",
+        reason: "mail.login-refused",
         message: "the server refused the login: the password may be the account password instead of an app password",
       }
-    if (method === "microsoft" || inputs.clientFile) {
-      const host =
-        method === "microsoft" ? "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" : GOOGLE_URL
-      s.emit({ event: "openUrl", url: `${host}?client_id=mock`, purpose: null })
-      if (await s.wait(5000)) return STOPPED
-    } else {
-      s.emit({ event: "progress", step: "check", message: "checking the password with the server" })
-      if (await s.wait(2000)) return STOPPED
-    }
     return signedIn
   },
 }
 
 const WA_SCAN = "scan in WhatsApp → Settings → Linked devices → Link a device"
 
+async function history(s: Script) {
+  s.emit({
+    event: "progress",
+    step: "history",
+    message: "receiving history from the phone; keep WhatsApp open on it. Ctrl+C stops — `serve` picks up the rest.",
+  })
+  if (await s.wait(3000)) return kept(120)
+  s.emit({ event: "progress", step: "waiting", message: null })
+  if (await s.wait(2500)) return kept(900)
+  return kept(18_400)
+}
+
 const FAILURES: Record<
   string,
-  { first?: "qr" | "browser"; code: string | null; message: (profile: string) => string }
+  {
+    first?: "qr" | "browser" | "password"
+    code: string | null
+    reason?: string
+    message: (profile: string) => string
+  }
 > = {
   old: { code: "needs_update", message: () => "This version cannot sign in here yet." },
   "qr-expired": {
@@ -233,6 +312,7 @@ const FAILURES: Record<
   },
   "client-id": {
     code: "configuration_error",
+    reason: "zoom.client-id-missing",
     message: () => "run zm config set zoom.client_id <Public Client ID> first, or set ZM_ZOOM_CLIENT_ID",
   },
   browser: { first: "browser", code: "took_too_long", message: () => "The sign-in took longer than 15 minutes." },
@@ -241,6 +321,37 @@ const FAILURES: Record<
   network: { code: "network_error", message: () => "getaddrinfo ENOTFOUND api.example.com" },
   cancelled: { code: "cancelled", message: () => "the input closed before the answer came" },
   ended: { code: "ended", message: () => "The sign-in ended without saying how." },
+  "app-password": {
+    first: "password",
+    code: "authentication_error",
+    reason: "mail.app-password-required",
+    message: () => "the server asks for an app password",
+  },
+  "imap-off": {
+    first: "password",
+    code: "authentication_error",
+    reason: "mail.imap-disabled",
+    message: () => "IMAP is turned off for this mailbox",
+  },
+  refused: {
+    first: "password",
+    code: "authentication_error",
+    reason: "mail.login-refused",
+    message: () => "the server refused the login",
+  },
+  unreachable: {
+    code: "network_error",
+    reason: "mail.host-unreachable",
+    message: () => "could not reach imap.example.com:993",
+  },
+  expired: {
+    first: "browser",
+    code: "authentication_error",
+    reason: "oauth.expired",
+    message: () => "the sign-in expired",
+  },
+  "signed-out": { code: "authentication_error", reason: "oauth.missing", message: () => "no saved sign-in" },
+  "rate-limited": { code: "rate_limited", reason: "provider.rate-limited", message: () => "Google asks to slow down" },
 }
 
 /** One of the failures the window explains, after the step it happens on. */
@@ -250,11 +361,46 @@ async function failing(s: Script, reason: string): Promise<SignInEvent> {
   if (f.first === "qr") s.emit({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: null })
   if (f.first === "browser")
     s.emit({ event: "openUrl", url: "https://accounts.example.com/authorize?client_id=mock", purpose: null })
-  if (f.first && (await s.wait(2500))) return STOPPED
-  return { event: "failed", code: f.code, message: f.message(s.profile) }
+  if (f.first === "password") {
+    const hint =
+      "Gmail takes an app password, not your account password. How to make one: https://myaccount.google.com/apppasswords"
+    if ((await s.ask("password", "App password for me@gmail.com", true, hint)) === null) return STOPPED
+  } else if (f.first && (await s.wait(2500))) return STOPPED
+  return { event: "failed", code: f.code, reason: f.reason ?? null, message: f.message(s.profile) }
 }
 
-export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signInStop"> {
+const ZOOM_SCOPES = [
+  ["meeting:read:list_meetings", true, "find your meetings and scheduled series"],
+  ["meeting:read:list_past_instances", true, "find each meeting that ran"],
+  ["cloud_recording:read:meeting_transcript", true, "read meeting transcripts"],
+  ["meeting:read:list_past_participants", true, "read who joined and when"],
+  ["meeting:read:summary", true, "read Zoom AI summaries"],
+  ["cloud_recording:read:list_user_recordings", false, "find your cloud recordings"],
+  ["user:read:user", false, "session status --check"],
+  ["meeting:write:meeting", false, "create a meeting"],
+] as const
+
+/** zm's `app --json` as zoom-cli PR #337 prints it; `?zoom-app=old` is a zm from before it. */
+async function zoomAppSetup(): Promise<ZoomAppAnswer> {
+  await delay(400)
+  if (zoomAppOld) return { state: "old" }
+  return {
+    state: "ready",
+    setup: {
+      marketplaceUrl: "https://marketplace.zoom.us/develop/create",
+      guideUrl: "https://wirecat.dev/en/docs/zm/zoom-app",
+      appType: "General app",
+      management: "User-managed",
+      oauth: "Public Client OAuth",
+      redirectUrl: "https://wirecat.dev/zoom-callback",
+      allowList: ["https://wirecat.dev/zoom-callback"],
+      scopes: ZOOM_SCOPES.map(([scope, required, purpose]) => ({ scope, required, purpose })),
+      configKey: "zoom.client_id",
+    },
+  }
+}
+
+export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signInStop" | "zoomAppSetup"> {
   let stop: (() => void) | null = null
   let reply: ((value: string) => void) | null = null
 
@@ -298,5 +444,6 @@ export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signIn
     async signInStop() {
       stop?.()
     },
+    zoomAppSetup,
   }
 }

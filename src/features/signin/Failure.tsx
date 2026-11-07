@@ -1,9 +1,10 @@
-import { Copy } from "lucide-react"
+import { Copy, ExternalLink } from "lucide-react"
 import { useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type ExplainedFailure, explainFailure } from "@/domain/signin-failure"
 import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
+import { platform } from "@/platform/bridge"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -28,6 +29,7 @@ export function explainView(s: SignInView): ExplainedFailure | null {
     at: s.failedAt,
     otherMethod: others.length > 0,
     terminal: Boolean(entry?.setup),
+    page: s.hintPage ?? undefined,
   })
 }
 
@@ -92,6 +94,20 @@ export function FailureCard({ s, explained }: { s: SignInView; explained: Explai
               )
             }
             if (action === "copy" && explained.copy) return <CopyCommand key={action} value={explained.copy} />
+            if (action === "openPage" && explained.page) {
+              const page = explained.page
+              return (
+                <Button
+                  key={action}
+                  size="sm"
+                  variant="secondary"
+                  icon={<ExternalLink className="size-4" aria-hidden />}
+                  onClick={() => platform.openUrl(page)}
+                >
+                  {wm.actions.openPage[explained.reason] ?? wm.actions.openPageOther}
+                </Button>
+              )
+            }
             return null
           })}
           <ReportThis

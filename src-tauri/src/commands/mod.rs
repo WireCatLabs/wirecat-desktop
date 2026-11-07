@@ -9,6 +9,7 @@ pub mod notes_setup;
 pub mod own_tools;
 pub mod search;
 pub mod settings;
+pub mod setup_extras;
 pub mod signin;
 pub mod storage;
 pub mod store;

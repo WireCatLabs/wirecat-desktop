@@ -8,6 +8,7 @@ import { cloudflareMock } from "./mock-cloudflare"
 import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
 import { delay } from "./mock-delay"
+import { driveFoldersMock } from "./mock-drive-folders"
 import { npmLines } from "./mock-install"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
@@ -629,6 +630,7 @@ export function createMock(os: Platform["os"]): Platform {
         throw new Error(`Could not open a terminal. Run this yourself: ${id} ${profile ?? ""} setup`)
     },
     ...signInMock(),
+    ...driveFoldersMock(),
     ...botMock(),
     ...syncMock(),
     ...mailAgentMock(params),
