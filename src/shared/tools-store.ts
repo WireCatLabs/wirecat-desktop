@@ -57,7 +57,9 @@ export const useTools = create<ToolsState>((set, get) => {
     draining = true
     try {
       for (;;) {
-        const next = Object.entries(get().sessions).find(([, s]) => s.step === "queued" && !s.outcome)?.[0]
+        const queued = Object.entries(get().sessions).filter(([, s]) => s.step === "queued" && !s.outcome)
+        // A tool's updates alongside come before the rest of a batch, whose checks must see the store they leave.
+        const next = (queued.find(([, s]) => s.alongside) ?? queued[0])?.[0]
         if (!next) break
         await run(next)
       }
@@ -67,6 +69,7 @@ export const useTools = create<ToolsState>((set, get) => {
   }
 
   const run = async (id: string) => {
+    if (get().sessions[id]?.check && !(await storeAllows(id))) return
     const operation = get().sessions[id]?.operation ?? "install"
     patchSession(id, (s) => ({ ...s, step: "check", began: { check: Date.now() } }))
     try {
@@ -126,28 +129,22 @@ export const useTools = create<ToolsState>((set, get) => {
   }
 
   // npm and pnpm do not like two global operations at once, so they queue and run one by one.
-  const enqueue = (id: string, operation: Operation, data?: DataDeletion) => {
+  const enqueue = (id: string, operation: Operation, extra: Partial<InstallSession> = {}) => {
     const current = get().sessions[id]
     if (current && !current.outcome) return Promise.resolve()
-    const session: InstallSession = { operation, step: "queued", log: [], outcome: null, ...(data ? { data } : {}) }
+    const session: InstallSession = { operation, step: "queued", log: [], outcome: null, ...extra }
     set((st) => ({ sessions: { ...st.sessions, [id]: session } }))
     return drain()
   }
 
-  const checkFirst = async (id: string) => {
-    const current = get().sessions[id]
-    if (current && !current.outcome) return
-    set((st) => ({
-      sessions: { ...st.sessions, [id]: { operation: "install", step: "preflight", log: [], outcome: null } },
-    }))
+  // Asked on the tool's turn, not when it was queued, so it sees what the tools before it in a batch installed.
+  // A warning holds the tool at "preflight" and the queue moves on to the others.
+  const storeAllows = async (id: string) => {
+    patchSession(id, (s) => ({ ...s, step: "preflight", check: false }))
     const preflight = await platform.storePreflight(id).catch(() => undefined)
-    if (get().sessions[id]?.step !== "preflight") return
-    patchSession(id, (s) => ({
-      ...s,
-      ...(preflight ? { preflight } : {}),
-      step: preflightWarns(preflight) ? "preflight" : "queued",
-    }))
-    await drain()
+    if (get().sessions[id]?.step !== "preflight") return false
+    if (preflight) patchSession(id, (s) => ({ ...s, preflight }))
+    return !preflightWarns(preflight)
   }
 
   // The check already covered these, so the check after each install would only repeat it. Their panels start shut:
@@ -217,7 +214,7 @@ export const useTools = create<ToolsState>((set, get) => {
       }
     },
 
-    install: (id, options) => (options?.check ? checkFirst(ownerId(id)) : enqueue(ownerId(id), "install")),
+    install: (id, options) => enqueue(ownerId(id), "install", options?.check ? { check: true } : {}),
     async proceed(given) {
       const id = ownerId(given)
       if (get().sessions[id]?.step !== "preflight") return
@@ -228,7 +225,7 @@ export const useTools = create<ToolsState>((set, get) => {
       enqueue(
         ownerId(id),
         "uninstall",
-        deleteBytes === undefined ? undefined : { state: "waiting", bytes: deleteBytes },
+        deleteBytes === undefined ? {} : { data: { state: "waiting", bytes: deleteBytes } },
       ),
     closeOffer: () => set({ offerClear: false }),
 

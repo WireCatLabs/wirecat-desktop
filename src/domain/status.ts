@@ -65,6 +65,8 @@ export type InstallSession = {
   began?: Partial<Record<InstallStep, number>>
   /** When the outcome arrived, in ms since the epoch. */
   ended?: number
+  /** Ask `store_preflight` when the tool's turn in the queue comes; cleared once asked. */
+  check?: boolean
   /** `store_preflight`'s answer; while `step` is "preflight" and this is set, the owner is asked before anything runs. */
   preflight?: Preflight
   /** Queued by another tool's store check: its panel starts shut and opens only if the update fails. */
