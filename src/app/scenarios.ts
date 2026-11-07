@@ -24,6 +24,7 @@ import { useTools } from "@/shared/tools-store"
 // `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`); `?task=<key>`
 // opens that task's dialog there.
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
+// `?memo=<state>` and `?memo-fail=<kind>` open memo's details at its first-run card (`src/platform/mock-notes-setup.ts`).
 // `?showcase` hides the setup and the Agents dot.
 // `?tailscale=<state>` opens tg's, with the "MCP server (or connect web)" guide's Tailscale steps at that state (`src/platform/mock-tailscale.ts`); `?cloudflare=<state>` the same with the Cloudflare tunnel (`mock-cloudflare.ts`).
 export async function runMockScenario() {
@@ -83,6 +84,11 @@ export async function runMockScenario() {
     useNav.getState().go("tools")
     await useTools.getState().refresh()
     useTools.getState().toggle(mcp)
+  }
+  if (params.has("memo") || params.has("memo-fail")) {
+    useNav.getState().go("tools")
+    await useTools.getState().refresh()
+    useTools.getState().toggle("memo")
   }
   const sync = ["sync", "sync-hold", "sync-fail", "sync-timeout", "sync-limited"]
     .map((k) => params.get(k))

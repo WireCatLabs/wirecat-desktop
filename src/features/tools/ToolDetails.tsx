@@ -19,6 +19,7 @@ import { Health } from "./Health"
 import { packageNamesOf } from "./InstallPanel"
 import { MailAgent } from "./MailAgent"
 import { McpServer } from "./McpServer"
+import { MemoSetup } from "./MemoSetup"
 import { type ToolsText, toolsMessages } from "./messages"
 import { copiesMessages } from "./messages-copies"
 import { Permissions } from "./Permissions"
@@ -204,6 +205,7 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
       <ConfirmUninstall tool={tool} open={confirming} onClose={() => setConfirming(false)} />
       <RemoveCopyDialog tool={tool} copy={removing} onClose={() => setRemoving(null)} />
       {installs.length > 0 && tool.permissions && <Permissions tool={tool} />}
+      {installs.length > 0 && tool.notesSetup && <MemoSetup tool={tool} />}
       {installs.length > 0 && tool.background && <Service tool={tool} />}
       {installs.length > 0 && tool.mailAgent && <MailAgent tool={tool} />}
       {installs.length > 0 && tool.mcpServer && <McpServer tool={tool} />}

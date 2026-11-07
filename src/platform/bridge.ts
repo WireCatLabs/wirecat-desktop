@@ -20,6 +20,7 @@ import {
 import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
 import type { BackupEvent } from "./backup-schemas"
+import type { NotesModelEvent } from "./bindings"
 import { commandError } from "./command-error"
 import {
   ForgotSchema,
@@ -233,6 +234,20 @@ function createTauri(): Platform {
     mailAgentStatus: (id) => invoke("mail_agent_status", { id }),
     mailAgentSet: (id, on) => invoke("mail_agent_set", { id, on }),
     mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
+    notesSetupStatus: (id) => invoke("notes_setup_status", { id }),
+    notesPickFolder: () => invoke("notes_pick_folder"),
+    notesFolderAdd: (id, path) => invoke("notes_folder_add", { id, path }),
+    notesSync: (id, onEvent) => {
+      const channel = new Channel<SyncEvent>()
+      channel.onmessage = onEvent
+      return invoke("notes_sync", { id, onEvent: channel })
+    },
+    notesModelDownload: (id, onEvent) => {
+      const channel = new Channel<NotesModelEvent>()
+      channel.onmessage = onEvent
+      return invoke("notes_model_download", { id, onEvent: channel })
+    },
+    notesModelStop: (id) => invoke("notes_model_stop", { id }),
     listRuns: (id, query, limit, page) => call(RunsPageSchema, "list_runs", { id, query, limit, page }),
     searchStore: (id, profile, query, limit, page) =>
       call(SearchAnswerSchema, "search_store", { id, profile, query, limit, page }),

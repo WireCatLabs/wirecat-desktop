@@ -282,6 +282,42 @@ export type NodeStep = "check" | "download" | "verify" | "unpack" |
 /**  Putting Node.js's folder on the user's PATH (`terminal_path::after_node_setup`, run by the command). */
 "path";
 
+export type NotesFolder = {
+	id: string,
+	/**  Its last path part; the owner's own words for it. */
+	name: string,
+	/**  On this computer, with the home folder as `~`. `None` for a folder another computer or Drive keeps. */
+	path: string | null,
+	format: string,
+};
+
+export type NotesFolderAdded = { result: "added"; folder: NotesFolder } | { result: "failed"; problem: NotesProblem };
+
+export type NotesModel = {
+	id: string,
+	title: string,
+	sizeBytes: number,
+	downloaded: boolean,
+};
+
+export type NotesModelEvent = { event: "done" } | { event: "stopped" } | { event: "failed"; problem: NotesProblem };
+
+/**
+ *  What went wrong, in a closed list: the interface has words and an action for each, and memo's own message (which can
+ *  name a folder) never leaves Rust.
+ */
+export type NotesProblem = 
+/**  The folder is gone, is a file, or this app may not read it. */
+"folderUnreadable" | "diskFull" | "offline" | 
+/**  The installed memo does not know the command. */
+"tooOld" | 
+/**  Another memo run (a sync, an import) holds the store. */
+"busy" | "other";
+
+export type NotesSetup = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
+/**  `model` is `None` when memo's list does not name the search model. */
+{ state: "ready"; folders: NotesFolder[]; model: NotesModel | null };
+
 /**  The issuer's metadata, for typing into a browser app that cannot find it itself (BUG-15). */
 export type OAuthSettings = {
 	issuer: string,
