@@ -17,6 +17,8 @@ pub const MAX_TEXT: usize = 2000;
 const READ: Duration = Duration::from_mins(1);
 const WRITE: Duration = Duration::from_secs(30);
 const QUIET: [&str; 2] = ["--json", "--no-record"];
+/// The app starts memo with no terminal, which memo takes as nobody's run; this says the owner decided here.
+const FROM_APP: &str = "--from-app";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Kind {
@@ -366,6 +368,10 @@ fn words(parts: &[&str]) -> Vec<String> {
     parts.iter().chain(QUIET.iter()).map(|s| (*s).to_string()).collect()
 }
 
+fn decision(parts: &[&str]) -> Vec<String> {
+    parts.iter().chain(std::iter::once(&FROM_APP)).chain(QUIET.iter()).map(|s| (*s).to_string()).collect()
+}
+
 fn body(v: &Value) -> &Value {
     v.get("item").unwrap_or(v)
 }
@@ -520,7 +526,7 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     let mut args: Vec<String> = vec!["actions".into(), if accept.is_empty() { "reject" } else { "confirm" }.into()];
     args.push(r.memo());
     args.extend(accept);
-    args.extend(["--fingerprint".into(), fingerprint]);
+    args.extend(["--fingerprint".into(), fingerprint, FROM_APP.into()]);
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
     parse_entry(r, &call(&args)?).map(Some)
 }
@@ -529,7 +535,7 @@ fn confirm_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Entry
     if let Some(e) = review_with(call, r, accept)? {
         return Ok(e);
     }
-    parse_entry(r, &call(&words(&[r.noun(), "confirm", &r.memo()]))?)
+    parse_entry(r, &call(&decision(&[r.noun(), "confirm", &r.memo()]))?)
 }
 
 /// Approving an action makes it a task in the account that would act; Memo sends nothing. Approving findings creates
@@ -563,7 +569,7 @@ fn discard_with(call: &Call, r: &Ref, revoke: bool) -> Result<Entry, String> {
             }
         }
     };
-    parse_entry(r, &call(&words(&[r.noun(), verb, &r.memo()]))?)
+    parse_entry(r, &call(&decision(&[r.noun(), verb, &r.memo()]))?)
 }
 
 pub fn discard(reference: &str) -> Result<Entry, String> {
@@ -610,7 +616,7 @@ fn correct_args(r: &Ref, old: &Value, text: &str) -> Result<Vec<String>, String>
     if let Some(subject) = field("subject") {
         args.extend(["--subject".into(), subject]);
     }
-    args.extend(["--supersedes".into(), r.memo()]);
+    args.extend(["--supersedes".into(), r.memo(), FROM_APP.into()]);
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
     let mut evidence: Vec<String> = item["evidence"]
         .as_array()
@@ -654,7 +660,7 @@ fn forget_with(call: &Call, r: &Ref) -> Result<Forgot, String> {
     if r.kind == Kind::Action {
         return Err("An action cannot be forgotten; discard it instead.".into());
     }
-    let v = call(&words(&[r.noun(), "remove", &r.memo()]))?;
+    let v = call(&decision(&[r.noun(), "remove", &r.memo()]))?;
     let item = body(&v);
     if item["removed"].as_bool() != Some(true) {
         return Err("Memo did not say the record was erased".into());
@@ -1019,7 +1025,10 @@ mod tests {
         let e = confirm_with(&|a: &[String]| fake.call(a), &Ref::parse("action:1").unwrap(), None).unwrap();
         assert_eq!(e.status, "approved");
         assert_eq!(e.task.as_deref(), Some("task:5bc8"), "the page opens the task it became");
-        assert_eq!(fake.seen().last().unwrap(), &strs(&["actions", "confirm", "1", "--json", "--no-record"]));
+        assert_eq!(
+            fake.seen().last().unwrap(),
+            &strs(&["actions", "confirm", "1", "--from-app", "--json", "--no-record"])
+        );
     }
 
     #[test]
@@ -1161,9 +1170,12 @@ mod tests {
         let seen = fake.seen();
         assert_eq!(
             seen[1],
-            strs(&["actions", "confirm", "9", "f2", "--fingerprint", "5adf3e", "--json", "--no-record"])
+            strs(&["actions", "confirm", "9", "f2", "--fingerprint", "5adf3e", "--from-app", "--json", "--no-record"])
         );
-        assert_eq!(seen[3], strs(&["actions", "reject", "9", "--fingerprint", "5adf3e", "--json", "--no-record"]));
+        assert_eq!(
+            seen[3],
+            strs(&["actions", "reject", "9", "--fingerprint", "5adf3e", "--from-app", "--json", "--no-record"])
+        );
         assert_eq!(seen.len(), 4, "the decision's answer is the batch as it now is");
         assert!(confirm_with(&call, &r, Some(&strs(&["--all"]))).is_err());
         assert!(confirm_with(&call, &r, None).is_err(), "a batch is never approved without naming its findings");
@@ -1175,6 +1187,36 @@ mod tests {
         let s = sources_with(&|a: &[String]| fake.call(a), &Ref::parse("action:9").unwrap()).unwrap();
         assert_eq!(s[0].title.as_deref(), Some("Eval plan"));
         assert_eq!(fake.seen()[0], strs(&["actions", "show", "9", "--json", "--no-record"]));
+    }
+
+    #[test]
+    fn every_decision_says_the_owner_made_it_in_the_app_and_no_read_does() {
+        let fake = Fake::new(|a| {
+            Ok(match (a[0].as_str(), a[1].as_str()) {
+                (_, "remove") => json!({"item":{"removed":true,"links":0}}),
+                ("memories", _) => json!({"item": agent_memory()}),
+                ("facts", _) => json!({"item": decision("proposed")}),
+                _ => json!({"item": proposal("approved")}),
+            })
+        });
+        let call = |a: &[String]| fake.call(a);
+        for reference in ["memory:3", "fact:1", "action:1"] {
+            let r = Ref::parse(reference).unwrap();
+            confirm_with(&call, &r, None).unwrap();
+            discard_with(&call, &r, true).unwrap();
+            if r.kind != Kind::Action {
+                correct_with(&call, &r, "Kai prefers mornings").unwrap();
+                forget_with(&call, &r).unwrap();
+            }
+        }
+        let seen = fake.seen();
+        for verb in ["confirm", "invalidate", "reject", "add", "remove"] {
+            assert!(seen.iter().any(|a| a[1] == verb), "{verb} was not called");
+        }
+        for args in seen {
+            let reads = args[1] == "show" || args[1] == "list";
+            assert_eq!(args.contains(&FROM_APP.to_string()), !reads, "{args:?}");
+        }
     }
 
     #[test]
@@ -1235,6 +1277,7 @@ mod tests {
                 "person:7",
                 "--supersedes",
                 "memory:3",
+                "--from-app",
                 "--json",
                 "--no-record",
                 "--evidence",
@@ -1271,7 +1314,7 @@ mod tests {
         let fake = Fake::new(|_| Ok(json!({"item":{"ref":"memory:3","removed":true,"links":2}})));
         let call = |a: &[String]| fake.call(a);
         assert_eq!(forget_with(&call, &Ref::parse("memory:3").unwrap()).unwrap().links, 2);
-        assert_eq!(fake.seen()[0], strs(&["memories", "remove", "memory:3", "--json", "--no-record"]));
+        assert_eq!(fake.seen()[0], strs(&["memories", "remove", "memory:3", "--from-app", "--json", "--no-record"]));
         assert!(forget_with(&call, &Ref::parse("action:1").unwrap()).is_err());
     }
 

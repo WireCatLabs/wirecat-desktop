@@ -247,7 +247,7 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.14 or newer (`memory.minVersion` in the catalog); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.51 or newer (`memory.minVersion` in the catalog); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
 (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
 shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
@@ -266,8 +266,10 @@ number) and runs a fixed command:
 - **Forget**: `memories remove` / `facts remove` erase the record, its links and its search entry. Actions have none.
 
 The text is the owner's own, shown unmasked like the Search page's hits, and it never goes into a log or a report:
-`--no-record` keeps a failed correction's text out of memo's run log. memo decides who wrote a record from `AI_AGENT`
-and `CLAUDECODE`, which `run::command` removes, so the app always writes as the owner.
+`--no-record` keeps a failed correction's text out of memo's run log. The app starts memo with no terminal, which memo
+takes as nobody's run and refuses to let decide, so every confirm, discard, correct and forget also passes
+`--from-app`: memo records it as the owner's. Reads (`list`, `show`) never pass it. It is the app's word that the owner
+clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `CLAUDECODE`, so no run is an agent's.
 
 ## What agents do with the tools
 
