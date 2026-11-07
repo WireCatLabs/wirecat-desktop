@@ -144,17 +144,24 @@ pub fn install(tool: &Tool, running: &Running, events: &Channel<InstallEvent>) {
     guarded(tool, running, events, &|t, r, e| install_steps(t, r, e, None));
 }
 
+/// The release the owner reviewed: its version, and its `dist.integrity`, which install checks the registry still
+/// gives before anything runs.
+pub struct Pin<'a> {
+    pub version: &'a str,
+    pub integrity: &'a str,
+}
+
 /// Installs exactly `version`, the one the owner reviewed, then runs `verify` on what was installed before the install
 /// counts as done; an own tool's first run is checked against its review this way (`own_tools.rs`).
 pub fn install_reviewed(
     tool: &Tool,
-    version: &str,
+    pin: &Pin,
     running: &Running,
     events: &Channel<InstallEvent>,
     verify: &dyn Fn() -> Result<(), String>,
 ) {
     guarded(tool, running, events, &|t, r, e| {
-        let done = install_steps(t, r, e, Some(version))?;
+        let done = install_steps(t, r, e, Some(pin))?;
         verify().map_err(|why| Failure(Reason::Verify, why, None))?;
         Ok(done)
     });
@@ -190,7 +197,7 @@ fn install_steps(
     tool: &Tool,
     running: &Running,
     events: &Channel<InstallEvent>,
-    pinned: Option<&str>,
+    pinned: Option<&Pin>,
 ) -> Result<InstallEvent, Failure> {
     let send = |e| {
         let _ = events.send(e);
@@ -212,7 +219,7 @@ fn install_steps(
     // The exact version, not `@latest`: it is the one whose provenance is checked, and a manager that still holds new
     // releases back then fails loudly instead of quietly installing an older one.
     let wanted = match pinned {
-        Some(version) => version.to_string(),
+        Some(pin) => pin.version.to_string(),
         None => retry_on_network(&|| !running.is_running(&tool.id), &send, "npm view", || {
             let latest = tools::latest_version_checked(&tool.package).map_err(|log| classify_registry(&log))?;
             let viewed =
@@ -244,7 +251,7 @@ fn install_steps(
         ));
     }
 
-    confirm_release(tool, &wanted, &send)?;
+    confirm_release(tool, &wanted, pinned.map(|p| p.integrity), &send)?;
     let prefix = (program == "npm").then(|| install_prefix(existing.as_ref())).flatten();
 
     send(InstallEvent::Step { step: Step::Install });
@@ -298,7 +305,12 @@ fn install_steps(
 }
 
 /// Checked with npm whichever manager installs: npm comes with every Node.js.
-fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> Result<(), Failure> {
+fn confirm_release(
+    tool: &Tool,
+    version: &str,
+    integrity: Option<&str>,
+    send: &impl Fn(InstallEvent),
+) -> Result<(), Failure> {
     // The end-to-end test's package comes from a registry inside the test, which signs nothing.
     #[cfg(test)]
     if tool.package == crate::install_e2e::PACKAGE {
@@ -320,7 +332,9 @@ fn confirm_release(tool: &Tool, version: &str, send: &impl Fn(InstallEvent)) -> 
         )
     })?;
     let checked = if tool.source == Source::Own {
-        provenance::confirm_own(&npm, &tool.package, version, &tool.repo).map(|built| {
+        let integrity = integrity
+            .ok_or_else(|| Failure(Reason::Unconfirmed, "An own tool installs only from its review.".into(), None))?;
+        provenance::confirm_own(&npm, &tool.package, version, &tool.repo, integrity).map(|built| {
             let line = match built {
                 provenance::Built::By { repo, workflow } => format!("Built by {repo} ({workflow}) on GitHub Actions."),
                 provenance::Built::Unknown(why) => format!("No record of where npm built it ({why})."),

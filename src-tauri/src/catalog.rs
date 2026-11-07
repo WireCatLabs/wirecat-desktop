@@ -143,6 +143,9 @@ pub struct SkillSource {
 /// `{port}` and `{url}` are filled only after `mcp_server.rs` validated them.
 #[derive(Debug, Deserialize)]
 pub struct McpServerSource {
+    /// The port the guide offers; one per tool, so two servers never collide (`community.rs` checks it).
+    #[serde(default)]
+    pub port: Option<u64>,
     pub start: Vec<String>,
     pub stop: Vec<String>,
     pub status: Vec<String>,

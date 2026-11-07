@@ -403,9 +403,18 @@ export type OwnUpdate = {
 	fromVersion: string,
 	repoChanged: boolean,
 	fromRepo: string | null,
+	/**  Where npm built it changed, appeared or disappeared. */
+	provenanceChanged: boolean,
+	fromBuilt: BuiltBy | null,
+	publishersChanged: boolean,
+	fromPublishers: string[],
+	/**  Commands the version before did not have. */
+	newCommands: string[],
 	/**  Commands that change the service or write on this computer and did not before. */
 	newWrites: string[],
-	/**  A changed repository or new write access: the owner confirms again. */
+	/**  `signIn`, `mcpServer`, `skill` or `sync`, when the version before had none. */
+	newParts: string[],
+	/**  Anything above changed, or the access is unknown: the owner confirms these changes explicitly. */
 	confirm: boolean,
 };
 

@@ -29,7 +29,9 @@ const MAX_MANIFEST: u64 = 256 * 1024;
 /// A 10 MB tarball may unpack to far more; reading stops here so a crafted archive cannot fill the memory.
 const MAX_UNPACKED: u64 = 64 * 1024 * 1024;
 const MAX_DESCRIBE: usize = 64 * 1024;
-const DESCRIBE_TIMEOUT: Duration = Duration::from_secs(2);
+/// The first start after an install is the slowest: Node.js loads the package cold, and an antivirus scans it first.
+const DESCRIBE_TIMEOUT: Duration = Duration::from_secs(15);
+const REGISTRY: &str = "--registry=https://registry.npmjs.org/";
 const TIMEOUT: Duration = Duration::from_secs(20);
 
 /// The catalog keys a manifest's `desktop` object may hold; every one the interface needs is written, `null` when
@@ -175,7 +177,7 @@ pub struct Review {
     pub entry: Value,
 }
 
-#[derive(specta::Type, Serialize, Debug, Clone, PartialEq)]
+#[derive(specta::Type, Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct BuiltBy {
     pub repo: String,
@@ -205,13 +207,23 @@ pub struct SignInText {
 #[derive(specta::Type, Serialize, Debug, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 #[serde(rename = "OwnUpdate")]
+#[expect(clippy::struct_excessive_bools, reason = "each is its own line on the update's review")]
 pub struct UpdateChange {
     pub from_version: String,
     pub repo_changed: bool,
     pub from_repo: Option<String>,
+    /// Where npm built it changed, appeared or disappeared.
+    pub provenance_changed: bool,
+    pub from_built: Option<BuiltBy>,
+    pub publishers_changed: bool,
+    pub from_publishers: Vec<String>,
+    /// Commands the version before did not have.
+    pub new_commands: Vec<String>,
     /// Commands that change the service or write on this computer and did not before.
     pub new_writes: Vec<String>,
-    /// A changed repository or new write access: the owner confirms again.
+    /// `signIn`, `mcpServer`, `skill` or `sync`, when the version before had none.
+    pub new_parts: Vec<String>,
+    /// Anything above changed, or the access is unknown: the owner confirms these changes explicitly.
     pub confirm: bool,
 }
 
@@ -238,6 +250,8 @@ pub struct Reviewed {
     pub tool: Tool,
     pub entry: Value,
     pub version: String,
+    /// The tarball's sha512 (`dist.integrity`): install refuses a release that is not this file.
+    pub integrity: String,
     pub manifest_sha256: Option<String>,
     pub review: Review,
 }
@@ -256,7 +270,9 @@ const NETWORK: [&str; 6] = ["ENOTFOUND", "ETIMEDOUT", "ECONNRESET", "ECONNREFUSE
 impl Registry for Npm {
     fn view(&self, package: &str) -> Result<Value, Refusal> {
         let npm = paths::find("npm").ok_or_else(|| Refusal::Offline { detail: "npm was not found".into() })?;
-        let out = run::run(&npm, &["view", package, "--json"], Some(&paths::search_path()), TIMEOUT)
+        // The public registry, as `provenance.rs` asks: the checksum and the provenance then come from one place.
+        let args = ["view", package, "--json", REGISTRY];
+        let out = run::run_capped(&npm, &args, Some(&paths::search_path()), TIMEOUT, MAX_PACKUMENT)
             .map_err(|e| Refusal::Offline { detail: e.to_string() })?;
         view_answer(out.code, &out.stdout)
     }
@@ -338,10 +354,21 @@ pub fn discover(package: &str, desktop: Option<&str>) -> Discovery {
     }
 }
 
-static REVIEWS: LazyLock<Mutex<HashMap<String, Arc<Reviewed>>>> = LazyLock::new(|| Mutex::new(HashMap::new()));
+type Kept = LazyLock<Mutex<HashMap<String, Arc<Reviewed>>>>;
 
-pub fn reviewed(token: &str) -> Result<Arc<Reviewed>, String> {
-    REVIEWS.lock().unwrap().get(token).cloned().ok_or_else(|| "This review is no longer open. Start again.".into())
+/// Reviews shown and not yet added; Add takes its review out, so a token installs once.
+static REVIEWS: Kept = LazyLock::new(|| Mutex::new(HashMap::new()));
+/// Reviews Add used, kept only for the Uninstall a refused add offers.
+static ADDED: Kept = LazyLock::new(|| Mutex::new(HashMap::new()));
+
+const GONE: &str = "This review is no longer open. Start again.";
+
+pub fn take_review(token: &str) -> Result<Arc<Reviewed>, String> {
+    REVIEWS.lock().unwrap().remove(token).ok_or_else(|| GONE.into())
+}
+
+pub fn take_added(token: &str) -> Result<Arc<Reviewed>, String> {
+    ADDED.lock().unwrap().remove(token).ok_or_else(|| GONE.into())
 }
 
 /// The name rules come before any network call, so a bad name never reaches npm.
@@ -396,32 +423,47 @@ pub fn review(
     }
     let mut entry = entry_of(&manifest, &view, repo.as_deref())?;
     let previous = previous_entry(saved, package);
+    // The id names the tool's runs, sign-ins and settings in the app: an update keeps it whatever the new name says.
+    if let Some(id) = previous.as_ref().map(|old| old["id"].clone()).filter(Value::is_string) {
+        entry["id"] = id;
+    }
+    let taken = taken_by_others(catalog, saved, package);
     if entry["mcpServer"].is_object() {
         let kept = previous.as_ref().and_then(|old| old["mcpServer"]["port"].as_u64());
-        entry["mcpServer"]["port"] = json!(port_for(catalog, saved, package, kept)?);
+        entry["mcpServer"]["port"] = json!(port_for(&taken, kept)?);
     }
-    let mut taken = Taken::of(catalog, Some(package));
-    for other in community::file_entries(saved).unwrap_or_default() {
-        if other["package"] != package
-            && let Ok(tool) = serde_json::from_value::<Tool>(other)
-        {
-            taken.add(&tool);
-        }
-    }
-    let tool = community::check(&entry, &taken, Source::Own)?;
 
     let access =
         if sha.is_some() { access_of(&manifest.commands) } else { Access { unknown: true, ..Access::default() } };
+    let commands: Vec<String> = manifest.commands.iter().map(|c| c.path.join(" ")).collect();
+    let publishers = publishers(&view["maintainers"]);
     // Kept as word lists: `community.rs` checks every string in an array as a command word at each start.
     let words = |list: &[String]| -> Vec<Vec<String>> {
         list.iter().map(|c| c.split(' ').map(str::to_string).collect()).collect()
     };
     entry["own"] = json!({
         "version": version,
+        "name": manifest.name,
+        "built": built,
+        "publishers": publishers.join(", "),
+        "commands": words(&commands),
         "changes": words(&access.changes),
         "writes": words(&access.writes),
     });
-    let update = previous.map(|old| change_of(&old, repo.as_deref(), &access));
+    let tool = community::check(&entry, &taken, Source::Own)?;
+    let update = previous.map(|old| {
+        change_of(
+            &old,
+            &entry,
+            Now {
+                repo: repo.as_deref(),
+                built: built.as_ref(),
+                publishers: &publishers,
+                commands: &commands,
+                access: &access,
+            },
+        )
+    });
     let review = Review {
         token: token(package),
         id: tool.id.clone(),
@@ -429,7 +471,7 @@ pub fn review(
         package: package.into(),
         version: version.clone(),
         summary: entry["summary"].as_str().unwrap_or_default().into(),
-        publishers: publishers(&view["maintainers"]),
+        publishers,
         repo,
         built,
         access,
@@ -444,7 +486,21 @@ pub fn review(
         update,
         entry: entry.clone(),
     };
-    Ok(Reviewed { tool, entry, version, manifest_sha256: sha, review })
+    Ok(Reviewed { tool, entry, version, integrity: integrity.to_string(), manifest_sha256: sha, review })
+}
+
+/// Every name, folder and port in use, except by the own tool this review would replace; entries saved since the app
+/// started count too.
+fn taken_by_others(catalog: &Catalog, saved: &str, package: &str) -> Taken {
+    let mut taken = Taken::of(catalog, Some(package));
+    for other in community::file_entries(saved).unwrap_or_default() {
+        if other["package"] != package
+            && let Ok(tool) = serde_json::from_value::<Tool>(other)
+        {
+            taken.add(&tool);
+        }
+    }
+    taken
 }
 
 const SYNC_WHAT: [&str; 6] = ["messages", "files", "meetings", "notes and mail", "mail", "records"];
@@ -453,17 +509,11 @@ const FIRST_PORT: u64 = 8770;
 const LAST_PORT: u64 = 8999;
 
 /// The manifest names no port: two tools' servers on one port would collide, so Desktop picks one no catalog tool and
-/// no other entry uses, and an update keeps the one it had.
-fn port_for(catalog: &Catalog, saved: &str, package: &str, kept: Option<u64>) -> Result<u64, Refusal> {
-    let official: Value = serde_json::from_str(include_str!("../../catalog/tools.json")).unwrap_or_default();
-    let mut entries: Vec<Value> = official["tools"].as_array().cloned().unwrap_or_default();
-    entries.extend(catalog.extra.tools.iter().map(|t| t.entry.clone()));
-    entries.extend(community::file_entries(saved).unwrap_or_default());
-    let used: Vec<u64> =
-        entries.iter().filter(|e| e["package"] != package).filter_map(|e| e["mcpServer"]["port"].as_u64()).collect();
+/// no other entry uses, and an update keeps the one it had. `community.rs` checks it again at every start.
+fn port_for(taken: &Taken, kept: Option<u64>) -> Result<u64, Refusal> {
     kept.into_iter()
         .chain(FIRST_PORT..=LAST_PORT)
-        .find(|p| !used.contains(p))
+        .find(|p| taken.port_free(*p))
         .ok_or_else(|| bad("mcpServer", "no free port is left for its MCP server."))
 }
 
@@ -518,14 +568,22 @@ fn verify_integrity(bytes: &[u8], integrity: &str) -> Result<(), Refusal> {
 pub fn manifest_in(tgz: &[u8]) -> Result<Option<Vec<u8>>, Refusal> {
     let unreadable = || bad("tarball", "the package file cannot be read.");
     let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(tgz).take(MAX_UNPACKED));
+    let mut found = None;
     for entry in archive.entries().map_err(|_| unreadable())? {
         let mut entry = entry.map_err(|_| unreadable())?;
         let path = entry.path().map_err(|_| unreadable())?.into_owned();
         // npm packs everything under one top folder, `package/` for an `npm pack`.
         let mut parts = path.components();
         parts.next();
-        if parts.as_path() != Path::new(MANIFEST) || !entry.header().entry_type().is_file() {
+        if parts.as_path() != Path::new(MANIFEST) {
             continue;
+        }
+        // The review reads one entry and npm extracts the last of several, so a second or linked one is refused.
+        if found.is_some() {
+            return Err(bad("tarball", format!("the package file holds {MANIFEST} more than once.")));
+        }
+        if !entry.header().entry_type().is_file() {
+            return Err(bad("tarball", format!("{MANIFEST} in the package file is a link, not a file.")));
         }
         if entry.header().size().map_err(|_| unreadable())? > MAX_MANIFEST {
             return Err(Refusal::TooLarge { what: MANIFEST.into() });
@@ -535,9 +593,9 @@ pub fn manifest_in(tgz: &[u8]) -> Result<Option<Vec<u8>>, Refusal> {
         if raw.len() as u64 > MAX_MANIFEST {
             return Err(Refusal::TooLarge { what: MANIFEST.into() });
         }
-        return Ok(Some(raw));
+        found = Some(raw);
     }
-    Ok(None)
+    Ok(found)
 }
 
 pub fn parse_manifest(raw: &[u8], package: &str, version: &str) -> Result<Manifest, Refusal> {
@@ -661,24 +719,70 @@ fn previous_entry(saved: &str, package: &str) -> Option<Value> {
     community::file_entries(saved).ok()?.into_iter().find(|e| e["package"] == package)
 }
 
-fn change_of(old: &Value, repo: Option<&str>, access: &Access) -> UpdateChange {
-    let before: Vec<String> = ["changes", "writes"]
-        .iter()
-        .flat_map(|k| old["own"][*k].as_array().into_iter().flatten())
-        .filter_map(|c| c.as_array().map(|w| w.iter().filter_map(Value::as_str).collect::<Vec<_>>().join(" ")))
-        .collect();
+/// What a new version of an own tool says, against the entry saved when the owner last confirmed it.
+struct Now<'a> {
+    repo: Option<&'a str>,
+    built: Option<&'a BuiltBy>,
+    publishers: &'a [String],
+    commands: &'a [String],
+    access: &'a Access,
+}
+
+fn joined(list: &Value) -> Vec<String> {
+    let words = |c: &Value| c.as_array().map(|w| w.iter().filter_map(Value::as_str).collect::<Vec<_>>().join(" "));
+    list.as_array().into_iter().flatten().filter_map(words).collect()
+}
+
+fn change_of(old: &Value, entry: &Value, now: Now) -> UpdateChange {
+    let own = &old["own"];
+    let before_writes = [joined(&own["changes"]), joined(&own["writes"])].concat();
     let mut new_writes: Vec<String> =
-        access.changes.iter().chain(&access.writes).filter(|w| !before.contains(w)).cloned().collect();
+        now.access.changes.iter().chain(&now.access.writes).filter(|w| !before_writes.contains(w)).cloned().collect();
+    new_writes.sort();
     new_writes.dedup();
+    let before_commands = joined(&own["commands"]);
+    let new_commands: Vec<String> = now.commands.iter().filter(|c| !before_commands.contains(c)).cloned().collect();
+    let new_parts: Vec<String> = ["signIn", "mcpServer", "skill", "sync"]
+        .into_iter()
+        .filter(|k| old[*k].is_null() && !entry[*k].is_null())
+        .map(str::to_string)
+        .collect();
     let from_repo = old["repo"].as_str().map(str::to_string);
-    let repo_changed = !from_repo.as_deref().unwrap_or_default().eq_ignore_ascii_case(repo.unwrap_or_default());
+    let repo_changed = !from_repo.as_deref().unwrap_or_default().eq_ignore_ascii_case(now.repo.unwrap_or_default());
+    let from_built = serde_json::from_value::<Option<BuiltBy>>(own["built"].clone()).unwrap_or(None);
+    let provenance_changed = from_built.as_ref() != now.built;
+    let from_publishers: Vec<String> = own["publishers"]
+        .as_str()
+        .unwrap_or_default()
+        .split(", ")
+        .filter(|p| !p.is_empty())
+        .map(str::to_string)
+        .collect();
+    let sorted = |list: &[String]| {
+        let mut l = list.to_vec();
+        l.sort();
+        l
+    };
+    let publishers_changed = sorted(&from_publishers) != sorted(now.publishers);
     // Without a manifest the access is unknown, and unknown is not the same as unchanged.
-    let confirm = repo_changed || !new_writes.is_empty() || access.unknown;
+    let confirm = repo_changed
+        || provenance_changed
+        || publishers_changed
+        || !new_commands.is_empty()
+        || !new_writes.is_empty()
+        || !new_parts.is_empty()
+        || now.access.unknown;
     UpdateChange {
-        from_version: old["own"]["version"].as_str().unwrap_or_default().into(),
+        from_version: own["version"].as_str().unwrap_or_default().into(),
         repo_changed,
         from_repo,
+        provenance_changed,
+        from_built,
+        publishers_changed,
+        from_publishers,
+        new_commands,
         new_writes,
+        new_parts,
         confirm,
     }
 }
@@ -694,25 +798,29 @@ fn publishers(maintainers: &Value) -> Vec<String> {
 
 /// Installs the reviewed version, checks that the installed program names the manifest that was shown, and saves the
 /// entry; the tool appears at the next start.
-pub fn add(reviewed: &Reviewed, running: &Running, events: &Channel<InstallEvent>) {
-    install::install_reviewed(&reviewed.tool, &reviewed.version, running, events, &|| {
+pub fn add(token: &str, reviewed: Arc<Reviewed>, running: &Running, events: &Channel<InstallEvent>) {
+    let pin = install::Pin { version: &reviewed.version, integrity: &reviewed.integrity };
+    install::install_reviewed(&reviewed.tool, &pin, running, events, &|| {
         if let Some(sha) = &reviewed.manifest_sha256 {
             let program = tools::program(&reviewed.tool.bin)
                 .ok_or_else(|| format!("`{}` is not on your PATH after the install.", reviewed.tool.bin))?;
-            let out = run::run(&program, &["--wcat-describe"], Some(&paths::search_path()), DESCRIBE_TIMEOUT)
+            let path = paths::search_path();
+            let out = run::run_capped(&program, &["--wcat-describe"], Some(&path), DESCRIBE_TIMEOUT, MAX_DESCRIBE)
                 .map_err(|e| format!("`{} --wcat-describe` did not answer: {e}", reviewed.tool.bin))?;
             describe_matches(&out.stdout, sha)?;
         }
         save(&tools_file()?, &reviewed.entry)
     });
+    ADDED.lock().unwrap().insert(token.to_string(), reviewed);
 }
 
 pub fn uninstall(reviewed: &Reviewed, running: &Running, events: &Channel<InstallEvent>) {
     install::uninstall(&reviewed.tool, running, events);
 }
 
-/// The installed program must describe itself with the manifest the owner reviewed: the tarball's file is what was
-/// shown, and `--wcat-describe` reads the same file, so a different hash means a different program.
+/// The installed program must name the manifest the owner reviewed. This catches a package whose installed files
+/// differ from the tarball that was read, such as a manifest npm extracted from somewhere else; it proves nothing
+/// against a hostile package, whose program can print any hash it likes.
 fn describe_matches(stdout: &str, sha: &str) -> Result<(), String> {
     const REFUSED: &str =
         "The installed tool describes itself differently from the package WireCat showed you, so it was not added.";
@@ -927,7 +1035,9 @@ mod tests {
     fn a_package_without_a_manifest_asks_for_the_desktop_object() {
         let fake = Fake::of(tgz(&[("package/package.json", b"{}")]));
         assert_eq!(refused(&fake), Refusal::NoManifest);
-        let pasted = manifest()["desktop"].to_string();
+        let mut desktop = manifest()["desktop"].clone();
+        desktop["name"] = json!("acme-crm");
+        let pasted = desktop.to_string();
         let r = review("@example/acme-crm-cli", Some(&pasted), &fake, catalog(), "").unwrap();
         assert!(!r.review.described && r.review.access.unknown && r.manifest_sha256.is_none());
         assert_eq!(r.tool.bin, "wcat-acme-crm", "the one program npm installs");
@@ -974,7 +1084,6 @@ mod tests {
             .unwrap(),
         )
         .unwrap();
-        acme.package = "@listed/acme".into();
         acme.name = "Acme Listed".into();
         acme.source = Source::Community;
         listed.tools.push(acme);
@@ -1025,7 +1134,12 @@ mod tests {
         );
         let first = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), "").unwrap();
         assert_eq!(first.entry["mcpServer"]["port"], FIRST_PORT, "8765-8769 are the catalog's");
-        let other = json!({ "package": "@example/other", "mcpServer": { "port": FIRST_PORT } });
+        let mut other = first.entry.clone();
+        other["id"] = json!("other");
+        other["bin"] = json!("wcat-other");
+        other["package"] = json!("@example/other");
+        other["storage"] = json!({ "app": "other", "env": "OTHER" });
+        other["own"]["name"] = json!("other");
         let saved = json!({ "version": 1, "tools": [other] }).to_string();
         let second = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), &saved);
         assert_eq!(second.unwrap().entry["mcpServer"]["port"], FIRST_PORT + 1);
@@ -1034,6 +1148,74 @@ mod tests {
         let saved = json!({ "version": 1, "tools": [kept] }).to_string();
         let update = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), &saved);
         assert_eq!(update.unwrap().entry["mcpServer"]["port"], 8900);
+    }
+
+    #[test]
+    fn a_second_or_linked_manifest_in_the_tarball_is_refused() {
+        let raw = manifest().to_string();
+        let twice =
+            tgz(&[("package/contracts/wirecat.json", raw.as_bytes()), ("package/contracts/wirecat.json", b"{}")]);
+        assert!(
+            matches!(manifest_in(&twice), Err(Refusal::BadManifest { rule, .. }) if rule.contains("more than once"))
+        );
+
+        let mut builder = tar::Builder::new(flate2::write::GzEncoder::new(Vec::new(), flate2::Compression::fast()));
+        let mut header = tar::Header::new_gnu();
+        header.set_entry_type(tar::EntryType::Symlink);
+        header.set_size(0);
+        builder.append_link(&mut header, "package/contracts/wirecat.json", "/etc/passwd").unwrap();
+        let linked = builder.into_inner().unwrap().finish().unwrap();
+        assert!(matches!(manifest_in(&linked), Err(Refusal::BadManifest { rule, .. }) if rule.contains("link")));
+    }
+
+    #[test]
+    fn a_data_folder_not_named_after_the_tool_is_refused() {
+        for app in ["gh", "keyrings"] {
+            let m = with_desktop("storage", json!({ "app": app, "env": "ACME_CRM" }));
+            assert!(matches!(refused(&Fake::with(&m)), Refusal::BadManifest { key, .. } if key == "storage"), "{app}");
+        }
+    }
+
+    #[test]
+    fn an_update_keeps_its_id_and_flags_new_publishers_provenance_parts_and_commands() {
+        let first = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), "").unwrap();
+        let saved = json!({ "version": 1, "tools": [first.entry] }).to_string();
+
+        let mut renamed = manifest();
+        renamed["name"] = json!("acme-sales");
+        renamed["desktop"]["storage"]["env"] = json!("ACME_SALES");
+        renamed["desktop"]["skill"] = json!({ "status": ["skill", "status"], "install": ["skill", "install"],
+            "show": ["skill", "show"] });
+        renamed["commands"].as_array_mut().unwrap().push(json!({ "path": ["deals", "list"],
+            "effects": { "remote": "read", "local": "none" } }));
+        let mut fake = Fake::with(&renamed);
+        let mut view = fake.view.clone().unwrap();
+        view["maintainers"] = json!(["someone-else <x@example.com>"]);
+        fake.view = Ok(view);
+        let r = review("@example/acme-crm-cli", None, &fake, catalog(), &saved).unwrap();
+        assert_eq!(r.tool.id, "acmecrm", "the saved id stays");
+        let change = r.review.update.unwrap();
+        assert!(change.confirm && change.publishers_changed && !change.provenance_changed);
+        assert_eq!(change.from_publishers, ["example"]);
+        assert_eq!(change.new_parts, ["skill"]);
+        assert_eq!(change.new_commands, ["deals list"]);
+        assert!(change.new_writes.is_empty());
+
+        let mut old = r.entry.clone();
+        old["own"]["built"] = json!({ "repo": "https://github.com/example/acme-crm-cli", "workflow": "x" });
+        let saved = json!({ "version": 1, "tools": [old] }).to_string();
+        let gone = review("@example/acme-crm-cli", None, &fake, catalog(), &saved).unwrap();
+        assert!(gone.review.update.unwrap().provenance_changed, "provenance that disappears asks again");
+    }
+
+    #[test]
+    fn a_review_token_installs_once() {
+        let r = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), "").unwrap();
+        let token = r.review.token.clone();
+        REVIEWS.lock().unwrap().insert(token.clone(), Arc::new(r));
+        assert!(take_review(&token).is_ok());
+        assert!(take_review(&token).is_err());
+        assert!(take_added(&token).is_err(), "Uninstall is only for a review Add used");
     }
 
     #[test]

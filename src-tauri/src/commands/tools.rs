@@ -47,19 +47,24 @@ pub async fn install_tool(
 ) -> Result<(), AppError> {
     crate::log::command("install_tool", async move {
         let tool = catalog::owner(known_tool(&id)?);
-        // An own tool's install runs its scripts, so it goes through its review and second confirmation.
-        if tool.source == crate::community::Source::Own {
-            return Err(AppError::Failed(format!(
-                "{} is one of your own tools: install or update it from Add your own tool on the Tools page.",
-                tool.name
-            )));
-        }
+        not_own(tool)?;
         let running = Arc::clone(&running);
         let done = blocking(move || install::install(tool, &running, &on_event)).await;
         compat::forget();
         done
     })
     .await
+}
+
+/// An own tool's install runs its scripts, so it goes through its review and second confirmation.
+fn not_own(tool: &catalog::Tool) -> Result<(), AppError> {
+    if tool.source == crate::community::Source::Own {
+        return Err(AppError::Failed(format!(
+            "{} is one of your own tools: install or update it from Add your own tool on the Tools page.",
+            tool.name
+        )));
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -180,4 +185,23 @@ pub async fn open_setup(id: String, profile: Option<String>) -> Result<(), AppEr
         .await
     })
     .await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::not_own;
+    use crate::catalog::Tool;
+    use crate::community::Source;
+
+    #[test]
+    fn install_tool_refuses_an_own_tool_and_passes_the_others() {
+        let mut tool: Tool = serde_json::from_value(serde_json::json!({
+            "id": "acmecrm", "name": "Acme CRM", "bin": "wcat-acme-crm", "package": "@example/acme-crm-cli",
+            "doctor": ["doctor"], "storage": { "app": "acme-crm-cli", "env": "ACME_CRM" }
+        }))
+        .unwrap();
+        assert!(not_own(&tool).is_ok());
+        tool.source = Source::Own;
+        assert!(not_own(&tool).unwrap_err().to_string().contains("Add your own tool"));
+    }
 }
