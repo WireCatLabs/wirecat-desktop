@@ -7,6 +7,7 @@ import { StorageSummary } from "@/features/tools"
 import { formatList, useMessages } from "@/i18n"
 import type { StorageArea } from "@/platform/schemas"
 import { useCompat } from "@/shared/compat-store"
+import { KeptFolders } from "@/shared/KeptFolders"
 import { ReportThis } from "@/shared/ReportThis"
 import { areaBytes, useStorage } from "@/shared/storage-store"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -142,6 +143,7 @@ function Row({ area, busy, onDelete }: { area: StorageArea; busy: boolean; onDel
             ))}
           </ul>
         )}
+        <KeptFolders paths={area.kept} />
       </div>
       <span className="font-mono text-[1rem] tabular-nums">{empty ? "—" : formatBytes(areaBytes(area))}</span>
       <div className="flex justify-end">

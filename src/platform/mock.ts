@@ -552,6 +552,7 @@ export function createMock(os: Platform["os"]): Platform {
               ]
             : [],
           usedBy: id === "shared" ? used : used.filter((u) => u === id),
+          kept: [],
         }
       })
     },

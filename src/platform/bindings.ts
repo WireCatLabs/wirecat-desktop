@@ -7,6 +7,8 @@ export type Area = {
 	folders: Folder[],
 	/**  Installed tools that still use this data; deleting is refused while any are listed. */
 	usedBy: string[],
+	/**  An own tool's folders that existed before the app added it: shown with why they stay, never in `folders`. */
+	kept: string[],
 };
 
 export type Background = 

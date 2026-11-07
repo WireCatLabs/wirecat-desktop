@@ -7,7 +7,7 @@ import { useStorage } from "@/shared/storage-store"
 afterEach(() => vi.restoreAllMocks())
 
 it("keeps the last folders, facts and tables on screen while it asks again", async () => {
-  const areas: StorageArea[] = [{ id: "tg", folders: [], usedBy: ["tg"] }]
+  const areas: StorageArea[] = [{ id: "tg", folders: [], usedBy: ["tg"], kept: [] }]
   const info = { answeredBy: "tg" } as StoreInfo
   const tables = { answeredBy: "tg", available: true, measured: false, tables: [] } as TableList
   useStorage.setState({ areas, info, tables })
@@ -19,7 +19,7 @@ it("keeps the last folders, facts and tables on screen while it asks again", asy
   void useStorage.getState().refresh()
   expect(useStorage.getState()).toMatchObject({ revalidating: true, areas, info, tables })
 
-  const fresh: StorageArea[] = [{ id: "tg", folders: [], usedBy: [] }]
+  const fresh: StorageArea[] = [{ id: "tg", folders: [], usedBy: [], kept: [] }]
   answer(fresh)
   await vi.waitFor(() => expect(useStorage.getState().areas).toEqual(fresh))
   expect(useStorage.getState().info).toBe(info)

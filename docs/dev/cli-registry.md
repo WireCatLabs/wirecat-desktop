@@ -140,8 +140,12 @@ npm packages (NEED-2280).
 **Data folder of an own tool.** Deleting a tool's data removes only folders whose last part is its `storage.app`
 (`storage.rs`, `ensure_ours`); `storage.env` only names variables that can move those folders, and a moved folder
 must still end in `storage.app`. So the folder name is what must belong to the tool. For an own tool from
-`@<scope>/<name>`, `storage.app` lower-cased must be `<scope>-<name>` or start with `<scope>-<name>-`
-(`@leemour/acme-crm-cli` → `leemour-acme-crm-cli`), at most 64 characters. Only the scope's owner can publish under
+`@<scope>/<name>`, `storage.app` lower-cased must be `<scope>-<name>` or start with `<scope>-<name>-`, with every
+`.` and `_` of the package name turned into `-` (`@leemour/acme-crm-cli` → `leemour-acme-crm-cli`, `@x/a_b` →
+`x-a-b`), at most 64 characters. An own tool's folders are always its default locations: a `<PREFIX>_CONFIG_DIR`
+override does not move what Delete data removes. A folder that already existed when the owner added the tool is
+recorded in its entry (`own.preexisting`, kept by updates); Delete data lists it with why it stays and never removes
+it, because a free scope can still match another program's folder (`@google/chrome` → `google-chrome`). Only the scope's owner can publish under
 a scope, so that folder name is theirs; the unscoped name alone (`@evil/gh` → `gh`) and the manifest's own `name`
 prove nothing. `storage.env` has no naming rule, but it may not be one an official tool or the shared store uses. A
 manifest that breaks the rule is refused as `bad_manifest(storage)`, at review and at every start.

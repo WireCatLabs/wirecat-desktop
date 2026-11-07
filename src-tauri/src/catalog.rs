@@ -23,6 +23,9 @@ pub struct Tool {
     /// an own tool whose repository is private or outside GitHub.
     #[serde(default, deserialize_with = "null_as_empty")]
     pub repo: String,
+    /// An own tool's record from its review and first add (`own_tools.rs`).
+    #[serde(default)]
+    pub own: Option<OwnRecord>,
     /// Compiled in, the signed list, or the owner's own file; set by `community.rs`, never read from an entry.
     #[serde(skip)]
     pub source: crate::community::Source,
@@ -94,6 +97,14 @@ pub struct Tool {
     /// refuses. Offered only where `doctor` names it as the fix, which it does only when the repair would succeed.
     #[serde(default)]
     pub config_repair: Option<Vec<String>>,
+}
+
+/// Only `preexisting` is read here: the data folders that existed before the app added the tool, keyed by path, which
+/// Delete data never touches (`storage.rs`).
+#[derive(Debug, Deserialize, Default)]
+pub struct OwnRecord {
+    #[serde(default)]
+    pub preexisting: std::collections::BTreeMap<String, bool>,
 }
 
 /// The rest of `signIn` is text for the interface.

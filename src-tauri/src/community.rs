@@ -291,7 +291,8 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
 /// npm package `@<scope>/<name>`, or that and `-` and more. Only the scope's owner can publish under a scope; the
 /// unscoped name alone proves nothing (`@evil/gh`), nor does the manifest's own name.
 fn own_storage(tool: &Tool) -> Result<(), Problem> {
-    let folder = tool.package.trim_start_matches('@').replacen('/', "-", 1).to_lowercase();
+    // A folder name holds no `.` or `_` (`plain_name`), so those of the package name become `-` too.
+    let folder = tool.package.trim_start_matches('@').replace(['/', '.', '_'], "-").to_lowercase();
     let app = tool.storage.app.to_lowercase();
     if app == folder || app.strip_prefix(&folder).is_some_and(|rest| rest.starts_with('-')) {
         return Ok(());
@@ -545,6 +546,9 @@ mod tests {
             evil["own"] = json!({ "name": app });
             assert!(rejected(&evil).contains("must be evil-"), "{app}");
         }
+        let mut dotted = with("package", json!("@x/a_b.c"));
+        dotted["storage"] = json!({ "app": "x-a-b-c", "env": "ABC" });
+        assert_eq!(parse(&file(&[dotted]), catalog()).0.len(), 1, "@x/a_b.c keeps its data in x-a-b-c");
         let mut mine = with("package", json!("@leemour/acme-crm-cli"));
         for (app, ok) in [("leemour-acme-crm-cli", true), ("leemour-acme-crm-cli-data", true), ("acme-crm-cli", false)]
         {

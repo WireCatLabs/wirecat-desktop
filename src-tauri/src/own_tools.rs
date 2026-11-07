@@ -453,6 +453,10 @@ pub fn review(
         "changes": words(&access.changes),
         "writes": words(&access.writes),
     });
+    // An update keeps the record of its first add: the folders that existed then are still another program's.
+    if let Some(record) = previous.as_ref().map(|old| old["own"]["preexisting"].clone()).filter(Value::is_object) {
+        entry["own"]["preexisting"] = record;
+    }
     let tool = community::check(&entry, &taken, Source::Own)?;
     let update = previous.map(|old| {
         change_of(
@@ -810,6 +814,7 @@ fn publishers(maintainers: &Value) -> Vec<String> {
 /// Installs the reviewed version, checks that the installed program names the manifest that was shown, and saves the
 /// entry; the tool appears at the next start.
 pub fn add(token: &str, reviewed: Arc<Reviewed>, running: &Running, events: &Channel<InstallEvent>) {
+    let entry = with_preexisting(&reviewed.entry, &reviewed.tool);
     let pin = install::Pin { version: &reviewed.version, integrity: &reviewed.integrity };
     let done = install::install_reviewed(&reviewed.tool, &pin, running, events, &|| {
         if let Some(sha) = &reviewed.manifest_sha256 {
@@ -820,11 +825,27 @@ pub fn add(token: &str, reviewed: Arc<Reviewed>, running: &Running, events: &Cha
                 .map_err(|e| format!("`{} --wcat-describe` did not answer: {e}", reviewed.tool.bin))?;
             describe_matches(&out.stdout, sha)?;
         }
-        save(&tools_file()?, &reviewed.entry)
+        save(&tools_file()?, &entry)
     });
     if !done {
         ADDED.lock().unwrap().insert(token.to_string(), reviewed);
     }
+}
+
+/// Recorded before the install, so a folder the install or its first run creates is the tool's own. The first add
+/// records it; an update's entry already carries it.
+fn with_preexisting(entry: &Value, tool: &Tool) -> Value {
+    let mut entry = entry.clone();
+    if entry["own"]["preexisting"].is_object() {
+        return entry;
+    }
+    let found: serde_json::Map<String, Value> = crate::storage::defaults(&tool.storage)
+        .into_iter()
+        .filter(|(_, p)| p.is_dir())
+        .map(|(_, p)| (p.to_string_lossy().into_owned(), Value::Bool(true)))
+        .collect();
+    entry["own"]["preexisting"] = Value::Object(found);
+    entry
 }
 
 pub fn uninstall(reviewed: &Reviewed, running: &Running, events: &Channel<InstallEvent>) {
@@ -1237,6 +1258,18 @@ mod tests {
         let change = r.review.update.unwrap();
         assert_eq!(change.changed_parts, ["signIn", "doctor"]);
         assert!(change.confirm);
+    }
+
+    #[test]
+    fn an_update_keeps_the_folders_recorded_at_the_first_add() {
+        let first = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), "").unwrap();
+        assert!(first.entry["own"]["preexisting"].is_null(), "recorded at add, before the install");
+        let mut saved = first.entry.clone();
+        saved["own"]["preexisting"] = json!({ "/home/u/.config/example-acme-crm-cli": true });
+        let file = json!({ "version": 1, "tools": [saved.clone()] }).to_string();
+        let update = review("@example/acme-crm-cli", None, &Fake::with(&manifest()), catalog(), &file).unwrap();
+        assert_eq!(update.entry["own"]["preexisting"], saved["own"]["preexisting"]);
+        assert_eq!(with_preexisting(&update.entry, &update.tool)["own"]["preexisting"], saved["own"]["preexisting"]);
     }
 
     #[test]
