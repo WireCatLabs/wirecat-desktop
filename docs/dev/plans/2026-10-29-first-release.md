@@ -99,8 +99,8 @@ a headless login or an API.
 | **C. ssign in Actions (chosen)** | The TOTP seed in a GitHub secret; ssign computes the code. | Not endorsed by Certum; see "The seed" below. |
 
 **The tool: [ssign](https://github.com/Le-Syl21/ssign)**, built from our fork
-[WireCatLabs/ssign](https://github.com/WireCatLabs/ssign) at `b5bfd4a` (upstream v0.1.10, which merged our patches P1-P6, since 2026-11-07;
-before that `c7a3b2a`, v0.1.9 plus the patches, then `222cb90`, and until 2026-11-05 upstream `f7ba7b2`, v0.1.8; [review](../research/2026-11-05-ssign-review.md)). MIT, Rust. It was
+[WireCatLabs/ssign](https://github.com/WireCatLabs/ssign) at `95dc245` (upstream v0.1.11, which merged our patches P1-P6 and the in-place
+overwrite of a held exe, since 2026-11-07; before that `fe7fa2e` and `b5bfd4a`, v0.1.10, then `c7a3b2a`, v0.1.9 plus the patches, then `222cb90`, and until 2026-11-05 upstream `f7ba7b2`, v0.1.8; [review](../research/2026-11-05-ssign-review.md)). MIT, Rust. It was
 the most used of the options found on 2026-10-29: 19 stars, 6 forks, 550 crates.io downloads, a release every 2 to 4
 weeks since July. The others had 0 to 2 stars: [super-simply-sign](https://github.com/IvanHanloth/super-simply-sign)
 and [windows-certum-signin](https://github.com/Rumia-Channel/windows-certum-signin) drive the SimplySign Desktop
@@ -121,19 +121,21 @@ What it does with the secret, read in its source at that commit:
 
 **How the workflow uses it** (`release.yml`, Windows build):
 
-1. The `build` job declares `environment: release`. Only jobs that declare an environment can read its secrets
+1. The `build` job compiles the app (`tauri build --no-bundle`) with no environment and no secret. Only the `sign`
+   job declares `environment: release`. Only jobs that declare an environment can read its secrets
    ([GitHub: environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)),
    and `bin/setup-windows-signing` limits that environment to tags `v*`. A branch, and so a pull request, cannot read
-   the seed. Because of this the whole workflow runs only on a tag; by hand too, the tag must be chosen.
-2. When both `CERTUM_EMAIL` and `CERTUM_OTP` exist, the runner builds ssign from the pinned commit
-   (`cargo install --locked --git … --rev`) and adds `--config src-tauri/tauri.windows-sign.conf.json`. Otherwise
-   Windows is built unsigned, as before.
+   the seed. Because of this a real release runs only on a tag; a `dry_run` on a branch runs with no secret.
+2. On Windows the `sign` job first builds ssign from the pinned commit (`cargo install --locked --git … --rev`),
+   before any step reads a secret. When `CERTUM_EMAIL`, `CERTUM_OTP` and `WINDOWS_SIGNER_SHA1` exist, `tauri bundle`
+   gets `--config src-tauri/tauri.windows-sign.conf.json`. When none exists, Windows is bundled unsigned; when only
+   some exist, the release stops.
 3. That file sets Tauri's `bundle.windows.signCommand`. Tauri 2.12.4 runs it for the app `.exe`
    (`crates/tauri-bundler/src/bundle.rs:169`), the NSIS plugin DLLs, the uninstaller and the installer
    (`bundle/windows/nsis/mod.rs:695`, `:734`, `:814`), and makes the updater `.sig` afterwards
    (`crates/tauri-cli/src/bundle.rs:230-232`), so the update signature covers the signed file.
-4. The two secrets reach only the tauri-action step, and only on Windows. Every build script inside that step can
-   still read them, the same exposure as the updater key.
+4. The two secrets reach only the `sign` job on Windows, from the step that checks them onward: `tauri bundle`, the
+   signature check, the copy and the upload. No `pnpm install`, app build script or ssign build script runs there.
 5. A last step unpacks the installer with 7-Zip and fails the build unless the installer and every `.exe` in it are
    `Valid`, timestamped, and signed by the certificate whose thumbprint is the `WINDOWS_SIGNER_SHA1` variable
    (`Get-AuthenticodeSignature`). The app `.exe` in `target/release` is unsigned again by then: Tauri restores it after

@@ -12,3 +12,5 @@
 - `.claude/worktrees/mcp-teardown` (branch `fix/mcpserver-teardown`): FIND-219 fix; remove once merged. 2026-11-07
 - `.claude/worktrees/risk-110` (branch `fix/risk-110-batch-preflight`): worktree for RISK-110, the store check on each queued tool's turn; remove once its PR is merged. 2026-11-07
 - `.claude/worktrees/journal-night` (branch `docs/journal-night-1107`): journal PR; remove once merged. 2026-11-07
+- `/home/leemour/Projects/AI/visage/.claude/worktrees/ssign-0111` (branch `ci/ssign-0111-split-signing`): ssign v0.1.11 pin and NEED-2222 follow-up; remove once its PR is merged. 2026-11-07
+- `/home/leemour/Projects/AI/ssign/.claude/worktrees/sync-0111` (branch `sync/upstream-0.1.11`, also on origin): fork alignment with upstream v0.1.11, merged as WireCatLabs/ssign#12; remove worktree and both branches. 2026-11-07

@@ -13,8 +13,9 @@ The Certum login and a real signature were checked on 2026-11-07 with `bin/test-
 ## 1. Already done
 
 - **Our fork of ssign**: [WireCatLabs/ssign](https://github.com/WireCatLabs/ssign), at
-  `b5bfd4a13dcf81927d0864308b015d030d9b9dde`: upstream v0.1.10 (`44335a7`), which carries our patches P1-P6 since
-  [Le-Syl21/ssign#20](https://github.com/Le-Syl21/ssign/pull/20), plus `FORK.md` and `deny.toml`.
+  `95dc245dee437cf82de1f30d166ec5407ba1ffd5`: upstream v0.1.11 (`367bf7d`), which carries our patches P1-P6 since
+  [Le-Syl21/ssign#20](https://github.com/Le-Syl21/ssign/pull/20) and the in-place overwrite of an exe Tauri holds open
+  since [Le-Syl21/ssign#21](https://github.com/Le-Syl21/ssign/pull/21), plus `FORK.md` and `deny.toml`.
   - Actions are disabled, so none of upstream's CI jobs (crates.io publish, Certum signing) can run there.
   - [Ruleset 26654540](https://github.com/WireCatLabs/ssign/settings/rules/26654540) protects `main`: no deletion, no
     force push, changes only through a pull request with squash merge.
@@ -28,6 +29,7 @@ The Certum login and a real signature were checked on 2026-11-07 with `bin/test-
   - The `build` job compiles the app with no secret and no environment. Every npm and Rust build script runs there.
   - The `sign` job, the only one in the `release` environment, takes that compiled app and runs `tauri bundle`. It
     installs only the Tauri CLI and, on Windows, ssign; it never runs `pnpm install` or our dependencies' scripts.
+    ssign is built before the step that reads the secrets, so its crates' build scripts never see the seed.
   - ssign is built from our fork at the full commit hash, with `cargo install --locked`.
   - After signing, it unpacks the installer and checks the installer and every `.exe` inside it: the signature is
     `Valid`, it has a timestamp, and the signer's certificate thumbprint equals `WINDOWS_SIGNER_SHA1` (#131).
@@ -251,7 +253,8 @@ Details and evidence: [ssign review](../research/2026-11-05-ssign-review.md).
 
 ## 8. Follow-ups
 
-- **Hardening patches P1-P6 in our fork**: done (D1 B), pinned at `c7a3b2a`, then at `b5bfd4a` (upstream v0.1.10 with the patches merged, 2026-11-07). A later fork change lands as a
+- **Hardening patches P1-P6 in our fork**: done (D1 B), pinned at `c7a3b2a`, then at `b5bfd4a` (upstream v0.1.10 with the patches merged, 2026-11-07), then `fe7fa2e`
+  (v0.1.10 plus our in-place overwrite), now `95dc245` (upstream v0.1.11, which merged that overwrite, 2026-11-07). A later fork change lands as a
   squash-merged pull request there, then the `--rev` in `release.yml` moves to that commit.
 - **Monthly check of upstream ssign** ([Le-Syl21/ssign](https://github.com/Le-Syl21/ssign)): read new commits and
   advisories (`cargo audit` on its lockfile), and move the fork only after reading the diff.
