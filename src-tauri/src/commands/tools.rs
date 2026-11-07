@@ -47,6 +47,13 @@ pub async fn install_tool(
 ) -> Result<(), AppError> {
     crate::log::command("install_tool", async move {
         let tool = catalog::owner(known_tool(&id)?);
+        // An own tool's install runs its scripts, so it goes through its review and second confirmation.
+        if tool.source == crate::community::Source::Own {
+            return Err(AppError::Failed(format!(
+                "{} is one of your own tools: install or update it from Add your own tool on the Tools page.",
+                tool.name
+            )));
+        }
         let running = Arc::clone(&running);
         let done = blocking(move || install::install(tool, &running, &on_event)).await;
         compat::forget();

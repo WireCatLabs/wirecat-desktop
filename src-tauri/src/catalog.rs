@@ -21,7 +21,7 @@ pub struct Tool {
     pub package: String,
     /// The GitHub repository whose release workflow must have built the npm package (`provenance.rs`); empty only for
     /// an own tool whose repository is private or outside GitHub.
-    #[serde(default)]
+    #[serde(default, deserialize_with = "null_as_empty")]
     pub repo: String,
     /// Compiled in, the signed list, or the owner's own file; set by `community.rs`, never read from an entry.
     #[serde(skip)]
@@ -288,6 +288,11 @@ pub struct Storage {
 pub struct ProfileSource {
     pub args: Vec<String>,
     pub shape: String,
+}
+
+/// An own entry writes `"repo": null` (the interface needs every key); Rust reads it as no repository.
+fn null_as_empty<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    Ok(Option::<String>::deserialize(d)?.unwrap_or_default())
 }
 
 pub fn catalog() -> &'static Catalog {

@@ -412,10 +412,14 @@ pub fn review(
 
     let access =
         if sha.is_some() { access_of(&manifest.commands) } else { Access { unknown: true, ..Access::default() } };
+    // Kept as word lists: `community.rs` checks every string in an array as a command word at each start.
+    let words = |list: &[String]| -> Vec<Vec<String>> {
+        list.iter().map(|c| c.split(' ').map(str::to_string).collect()).collect()
+    };
     entry["own"] = json!({
         "version": version,
-        "changes": access.changes,
-        "writes": access.writes,
+        "changes": words(&access.changes),
+        "writes": words(&access.writes),
     });
     let update = previous.map(|old| change_of(&old, repo.as_deref(), &access));
     let review = Review {
@@ -442,6 +446,8 @@ pub fn review(
     };
     Ok(Reviewed { tool, entry, version, manifest_sha256: sha, review })
 }
+
+const SYNC_WHAT: [&str; 6] = ["messages", "files", "meetings", "notes and mail", "mail", "records"];
 
 const FIRST_PORT: u64 = 8770;
 const LAST_PORT: u64 = 8999;
@@ -593,6 +599,13 @@ fn entry_of(m: &Manifest, view: &Value, repo: Option<&str>) -> Result<Value, Ref
         }
         entry.insert(key.clone(), value.clone());
     }
+    // The manifest names what a sync copies in free text; Desktop counts with plural forms of a closed list, so an own
+    // tool's sync counts "records" rather than a noun guessed from that text.
+    if let Some(sync) = entry.get_mut("sync").and_then(Value::as_object_mut)
+        && !sync.get("what").and_then(Value::as_str).is_some_and(|w| SYNC_WHAT.contains(&w))
+    {
+        sync.insert("what".into(), json!("records"));
+    }
     let tagline = entry["tagline"].as_str().unwrap_or_default();
     if tagline.is_empty() || tagline.chars().count() > 55 {
         return Err(bad("tagline", "a tagline of 1 to 55 characters is needed."));
@@ -649,13 +662,13 @@ fn previous_entry(saved: &str, package: &str) -> Option<Value> {
 }
 
 fn change_of(old: &Value, repo: Option<&str>, access: &Access) -> UpdateChange {
-    let before: Vec<&str> = ["changes", "writes"]
+    let before: Vec<String> = ["changes", "writes"]
         .iter()
         .flat_map(|k| old["own"][*k].as_array().into_iter().flatten())
-        .filter_map(Value::as_str)
+        .filter_map(|c| c.as_array().map(|w| w.iter().filter_map(Value::as_str).collect::<Vec<_>>().join(" ")))
         .collect();
     let mut new_writes: Vec<String> =
-        access.changes.iter().chain(&access.writes).filter(|w| !before.contains(&w.as_str())).cloned().collect();
+        access.changes.iter().chain(&access.writes).filter(|w| !before.contains(w)).cloned().collect();
     new_writes.dedup();
     let from_repo = old["repo"].as_str().map(str::to_string);
     let repo_changed = !from_repo.as_deref().unwrap_or_default().eq_ignore_ascii_case(repo.unwrap_or_default());
@@ -1021,6 +1034,30 @@ mod tests {
         let saved = json!({ "version": 1, "tools": [kept] }).to_string();
         let update = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), &saved);
         assert_eq!(update.unwrap().entry["mcpServer"]["port"], 8900);
+    }
+
+    #[test]
+    fn a_saved_entry_without_a_repository_passes_every_rule_at_the_next_start() {
+        let mut m = manifest();
+        m["desktop"]["sync"] = json!({ "run": ["{profile}", "sync", "--record", "--json"], "last": null,
+            "lastShape": "runs", "what": "contacts and deals", "note": null });
+        let mut fake = Fake::with(&m);
+        let mut view = fake.view.clone().unwrap();
+        view["repository"] = json!({ "url": "https://gitlab.com/example/acme-crm-cli" });
+        view["homepage"] = json!("https://example.com/acme-crm");
+        fake.view = Ok(view);
+        let r = review("@example/acme-crm-cli", None, &fake, catalog(), "").unwrap();
+        assert!(r.review.repo.is_none() && r.entry["repo"].is_null());
+        assert_eq!(r.entry["sync"]["what"], "records");
+
+        let dir = std::env::temp_dir().join(format!("wirecat-own-start-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let file = dir.join(community::FILE);
+        save(&file, &r.entry).unwrap();
+        let (tools, extra) = community::parse(&std::fs::read_to_string(&file).unwrap(), catalog());
+        assert!(extra.rejected.is_empty(), "{:?}", extra.rejected);
+        assert_eq!((tools.len(), tools[0].source, tools[0].repo.as_str()), (1, Source::Own, ""));
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]
