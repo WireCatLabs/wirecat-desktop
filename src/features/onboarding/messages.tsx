@@ -43,7 +43,7 @@ const en = {
     },
     signin: {
       title: "Sign in",
-      lead: "Signing in connects a tool to your account, so your agent can reach it. Each tool runs its own sign-in in a terminal window; you come back here when it is done.",
+      lead: "Signing in connects a tool to your account, so your agent can reach it. Each sign-in runs here, in this window, step by step: QR codes, codes and passwords included. A tool too old for that still signs in in a terminal.",
     },
     done: {
       title: "You are set up",
@@ -362,7 +362,7 @@ const ru: OnboardingText = {
     },
     signin: {
       title: "Вход",
-      lead: "Вход связывает инструмент с вашим аккаунтом, и агент получает к нему доступ. Каждый инструмент проводит вход сам, в окне терминала; когда закончите, возвращайтесь сюда.",
+      lead: "Вход связывает инструмент с вашим аккаунтом, и агент получает к нему доступ. Вход идёт здесь, в этом окне, шаг за шагом: QR-коды, коды и пароли тоже. Только слишком старая версия инструмента входит в терминале.",
     },
     done: {
       title: "Всё готово",
@@ -696,7 +696,7 @@ const es: OnboardingText = {
     },
     signin: {
       title: "Inicia sesión",
-      lead: "Al iniciar sesión, la herramienta se conecta a tu cuenta y tu agente puede llegar a ella. Cada herramienta hace su propio inicio de sesión en una ventana de terminal; vuelve aquí cuando termines.",
+      lead: "Al iniciar sesión, la herramienta se conecta a tu cuenta y tu agente puede llegar a ella. El inicio de sesión se hace aquí, en esta ventana, paso a paso: códigos QR, códigos y contraseñas incluidos. Solo una versión demasiado antigua de una herramienta lo hace en una terminal.",
     },
     done: {
       title: "Todo listo",

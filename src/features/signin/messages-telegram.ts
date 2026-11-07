@@ -50,10 +50,6 @@ const en = {
     qr: "Sign in with a QR code",
     phone: "Sign in with your phone number",
   } as Record<string, string>,
-  path: {
-    qr: ["Scan the QR code", "Two-step password, if set"],
-    phone: ["Phone number", "Code from Telegram", "Two-step password, if set"],
-  } as Record<string, string[]>,
   switching: {
     qr: "Switching to QR code sign-in…",
     phone: "Switching to phone sign-in…",
@@ -224,10 +220,6 @@ const ru: typeof en = {
   method: {
     qr: "Вход по QR-коду",
     phone: "Вход по номеру телефона",
-  },
-  path: {
-    qr: ["Сканирование QR-кода", "Облачный пароль, если есть"],
-    phone: ["Номер телефона", "Код от Telegram", "Облачный пароль, если есть"],
   },
   switching: {
     qr: "Переключаемся на вход по QR-коду…",
@@ -407,10 +399,6 @@ const es: typeof en = {
   method: {
     qr: "Iniciar sesión con un código QR",
     phone: "Iniciar sesión con tu número de teléfono",
-  },
-  path: {
-    qr: ["Escanear el código QR", "Contraseña de dos pasos, si la hay"],
-    phone: ["Número de teléfono", "Código de Telegram", "Contraseña de dos pasos, si la hay"],
   },
   switching: {
     qr: "Cambiando al inicio de sesión con código QR…",

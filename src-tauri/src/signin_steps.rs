@@ -48,9 +48,11 @@ pub enum SignInEvent {
         already_linked: bool,
         received: Option<Received>,
     },
+    /// `reason` is cli-base's finer name for the failure (`device.in-use`, `command.timed-out`), when the tool sent one.
     Failed {
         message: String,
         code: Option<String>,
+        reason: Option<String>,
     },
     Stopped,
 }
@@ -185,9 +187,11 @@ fn error(value: &Value) -> Option<SignInEvent> {
         return Some(SignInEvent::Failed {
             message: "This version cannot sign in here yet. Update it on the Tools page, or use Open terminal.".into(),
             code: Some(NEEDS_UPDATE.into()),
+            reason: None,
         });
     }
-    Some(SignInEvent::Failed { message: redact::text(message), code: error["code"].as_str().map(str::to_string) })
+    let word = |k: &str| error[k].as_str().map(str::to_string);
+    Some(SignInEvent::Failed { message: redact::text(message), code: word("code"), reason: word("reason") })
 }
 
 #[cfg(test)]
@@ -335,7 +339,8 @@ mod tests {
             err(&[refusal]),
             vec![SignInEvent::Failed {
                 message: "wa x session start asks questions — run it in a terminal".into(),
-                code: Some("validation_error".into())
+                code: Some("validation_error".into()),
+                reason: Some("input.required".into()),
             }]
         );
         let old = r#"{"error":{"code":"validation_error","message":"unknown option '--answer-stdin'"}}"#;

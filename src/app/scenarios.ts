@@ -55,9 +55,15 @@ export async function runMockScenario() {
     void useTasks.getState().openTask(task)
   }
   if (params.get("notifications") === "open") openBell()
-  const signIn = params.get("signin")
+  const [signIn, signInMethod] = (params.get("signin") ?? "").split(":")
   if (signIn) {
     useSignIn.getState().start(signIn, "personal")
+    if (signInMethod) useSignIn.setState({ method: signInMethod })
+    useSignIn.getState().begin()
+  }
+  const failing = params.get("signin-fail")?.split(":")
+  if (failing?.length === 2 && failing[0] && !signIn) {
+    useSignIn.getState().start(failing[0], "personal")
     useSignIn.getState().begin()
   }
   const plan = params.get("signin-plan")

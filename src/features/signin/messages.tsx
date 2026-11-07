@@ -31,8 +31,6 @@ const en = {
       one: "# message",
       other: "# messages",
     })} and ${plural("en", people, { one: "# person", other: "# people" })} from the phone.`,
-  needsUpdate: "This version cannot sign in here yet. Update it on the Tools page, or use Open terminal.",
-  ended: "The sign-in ended without saying how.",
   continueOn: (host: string) => `Continue on ${host}.`,
   openHost: (host: string) => `Open ${host}`,
   typeCode: "Type this code on the phone.",
@@ -116,9 +114,6 @@ const ru: typeof en = {
       messages,
       { one: "# сообщение", few: "# сообщения", many: "# сообщений", other: "# сообщения" },
     )} и ${plural("ru", people, { one: "# человек", few: "# человека", many: "# человек", other: "# человека" })}.`,
-  needsUpdate:
-    "Эта версия пока не умеет входить здесь. Обновите её на странице «Инструменты» или нажмите «Открыть терминал».",
-  ended: "Вход завершился без объяснения причины.",
   continueOn: (host) => `Продолжите на ${host}.`,
   openHost: (host) => `Открыть ${host}`,
   typeCode: "Введите этот код на телефоне.",
@@ -206,9 +201,6 @@ const es: typeof en = {
         other: "# mensajes",
       },
     )} y ${plural("es", people, { one: "# persona", other: "# personas" })}.`,
-  needsUpdate:
-    "Esta versión todavía no puede iniciar sesión aquí. Actualízala en la página Herramientas o usa Abrir terminal.",
-  ended: "El inicio de sesión terminó sin decir por qué.",
   continueOn: (host) => `Continúa en ${host}.`,
   openHost: (host) => `Abrir ${host}`,
   typeCode: "Escribe este código en el teléfono.",

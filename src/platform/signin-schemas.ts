@@ -29,7 +29,12 @@ export const SignInEventSchema = v.variant("event", [
     alreadyLinked: v.boolean(),
     received: v.nullable(v.object({ chats: v.number(), messages: v.number(), people: v.number() })),
   }),
-  v.object({ event: v.literal("failed"), message: v.string(), code: v.nullable(v.string()) }),
+  v.object({
+    event: v.literal("failed"),
+    message: v.string(),
+    code: v.nullable(v.string()),
+    reason: v.optional(v.nullable(v.string())),
+  }),
   v.object({ event: v.literal("stopped") }),
 ])
 

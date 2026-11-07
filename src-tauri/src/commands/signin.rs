@@ -33,6 +33,7 @@ pub async fn sign_in(
                         tool.name
                     ),
                     code: None,
+                    reason: None,
                 });
             }
             signin::run(tool, &prepared, &|| !running.is_running(&key), &send);

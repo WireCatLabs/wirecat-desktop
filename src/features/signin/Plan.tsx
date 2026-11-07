@@ -1,4 +1,4 @@
-import { Clock, ExternalLink, FileJson, ShieldCheck } from "lucide-react"
+import { CircleCheck, Clock, ExternalLink, FileJson, ShieldCheck } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
@@ -9,6 +9,7 @@ import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { type PlanText, planFor, planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
+import { needFor, wizardMessages } from "./messages-wizard"
 
 const FIELD =
   "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
@@ -18,7 +19,9 @@ export function Plan() {
   const { tool, method, planMissing } = useSignIn()
   const m = useMessages(planMessages)
   const tm = useMessages(telegramMessages)
+  const wm = useMessages(wizardMessages)
   const plan = tool ? planFor(m, tool, method) : undefined
+  const need = tool ? needFor(wm, tool, method) : []
   const entry = tool ? findTool(tool) : undefined
   const chosen = tool ? methodOf(tool, method) : undefined
   const steps = [
@@ -26,16 +29,30 @@ export function Plan() {
     ...(plan?.steps ?? []).map((text) => ({ text, once: false })),
   ]
   const kept = [...(plan?.kept ?? []), m.wirecat]
+  const ways = entry && !entry.signIn?.pick ? signInMethods(entry).length : 0
   return (
     <div className="flex min-h-[19rem] flex-col gap-5 text-left">
       {entry?.signIn?.pick && <Providers />}
       {/* A new provider slides its own steps in (rule 9). */}
       <div key={method ?? ""} className="step-in flex flex-col gap-5">
+        {need.length > 0 && (
+          <section className="flex flex-col gap-2">
+            <h3 className="text-[1.15rem] font-semibold text-ink">{wm.needHeading}</h3>
+            <ul className="flex flex-col gap-1.5">
+              {need.map((line) => (
+                <li key={line} className="flex items-start gap-3 text-body leading-snug text-ink">
+                  <CircleCheck className="mt-[0.15rem] size-[1.1rem] shrink-0 text-brand" aria-hidden />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         {plan && (
           <section className="flex flex-col gap-2.5">
-            {/* Telegram has two ways in: the heading names the one these steps are for, and changes with it. */}
+            {/* With two ways in, the heading names the one these steps are for, and changes with it. */}
             <h3 className="text-[1.15rem] font-semibold text-ink">
-              {(tool === "tg" && method && tm.method[method]) || m.what}
+              {(ways > 1 && method && wm.method[method]) || m.what}
             </h3>
             <ol className="flex flex-col gap-2">
               {steps.map((step, i) => (
