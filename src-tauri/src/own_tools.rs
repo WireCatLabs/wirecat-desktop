@@ -916,7 +916,7 @@ mod tests {
                 "setup": ["{profile}", "setup"],
                 "signIn": { "gives": "your contacts and deals", "asks": "an API token" },
                 "sync": null,
-                "storage": { "app": "acme-crm-cli", "env": "ACME_CRM_CLI" }
+                "storage": { "app": "example-acme-crm-cli", "env": "ACME_CRM" }
             }
         })
     }
@@ -1079,7 +1079,7 @@ mod tests {
     #[test]
     fn a_name_of_an_official_or_listed_tool_is_a_collision_that_names_it() {
         let tg = catalog().tools.iter().find(|t| t.id == "tg").unwrap();
-        let taken = with_desktop("storage", json!({ "app": tg.storage.app, "env": "ACME_CRM_CLI" }));
+        let taken = with_desktop("storage", json!({ "app": tg.storage.app, "env": "ACME_CRM" }));
         assert_eq!(refused(&Fake::with(&taken)), Refusal::Collision { with: "Telegram".into(), listed: false });
 
         let listed: Catalog = serde_json::from_value(json!({
@@ -1151,7 +1151,7 @@ mod tests {
         other["id"] = json!("other");
         other["bin"] = json!("wcat-other");
         other["package"] = json!("@example/other");
-        other["storage"] = json!({ "app": "other", "env": "OTHER" });
+        other["storage"] = json!({ "app": "example-other", "env": "OTHER" });
         other["own"]["name"] = json!("other");
         let saved = json!({ "version": 1, "tools": [other] }).to_string();
         let second = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), &saved);
@@ -1193,7 +1193,7 @@ mod tests {
     #[test]
     fn a_data_folder_not_named_after_the_tool_is_refused() {
         for app in ["gh", "keyrings"] {
-            let m = with_desktop("storage", json!({ "app": app, "env": "ACME_CRM_CLI" }));
+            let m = with_desktop("storage", json!({ "app": app, "env": "ACME_CRM" }));
             assert!(matches!(refused(&Fake::with(&m)), Refusal::BadManifest { key, .. } if key == "storage"), "{app}");
         }
     }

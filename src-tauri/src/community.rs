@@ -276,7 +276,8 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
     if !(source == Source::Own && entry["repo"].is_null()) {
         repo(&tool.repo)?;
     }
-    storage(&tool, taken)?;
+    // `<scope>-<name>` of an own tool's package is often longer than a listed tool's folder.
+    storage(&tool, taken, if source == Source::Own { 64 } else { 32 })?;
     if source == Source::Own {
         own_storage(&tool)?;
     }
@@ -286,28 +287,18 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
     Ok(tool)
 }
 
-/// An own tool's data folders are deleted by these names, so they must be its own, named after its npm package without
-/// the scope (`P`), which npm guarantees no one else owns: `storage.app` lower-cased is `P` or starts with `P` and one
-/// of `-._`; `storage.env` is `P` upper-cased with `-` and `.` as `_`, alone or followed by `_`. Never the manifest's
-/// own name, which anyone can set to `gh` or `nvim`.
+/// `storage.rs` deletes an own tool's folders by `storage.app`, so it must be the tool's own: `<scope>-<name>` of its
+/// npm package `@<scope>/<name>`, or that and `-` and more. Only the scope's owner can publish under a scope; the
+/// unscoped name alone proves nothing (`@evil/gh`), nor does the manifest's own name.
 fn own_storage(tool: &Tool) -> Result<(), Problem> {
-    let package = tool.package.rsplit('/').next().unwrap_or_default().to_lowercase();
-    let env = package.to_uppercase().replace(['-', '.'], "_");
-    let named = |value: &str, name: &str, seps: &str| {
-        value == name || value.strip_prefix(name).is_some_and(|rest| rest.starts_with(|c| seps.contains(c)))
-    };
-    if !package.is_empty()
-        && named(&tool.storage.app.to_lowercase(), &package, "-._")
-        && named(&tool.storage.env, &env, "_")
-    {
+    let folder = tool.package.trim_start_matches('@').replacen('/', "-", 1).to_lowercase();
+    let app = tool.storage.app.to_lowercase();
+    if app == folder || app.strip_prefix(&folder).is_some_and(|rest| rest.starts_with('-')) {
         return Ok(());
     }
     Err(rule(
         "storage",
-        format!(
-            "the data folder {} and prefix {} must be named after the package: {package} and {env}.",
-            tool.storage.app, tool.storage.env
-        ),
+        format!("the data folder {} must be {folder}, or start with {folder}-, after the package.", tool.storage.app),
     ))
 }
 
@@ -410,12 +401,12 @@ pub fn repo(url: &str) -> Result<(), Problem> {
 }
 
 /// `storage.rs` deletes a tool's folders by these names, so they must be its own: never ours or another tool's.
-fn storage(tool: &Tool, taken: &Taken) -> Result<(), Problem> {
+fn storage(tool: &Tool, taken: &Taken, max_folder: usize) -> Result<(), Problem> {
     let s = &tool.storage;
     let env_ok = (2..=32).contains(&s.env.len())
         && s.env.starts_with(|c: char| c.is_ascii_uppercase())
         && s.env.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_');
-    if !plain_name(&s.app, 32) || s.app.len() < 2 || !env_ok {
+    if !plain_name(&s.app, max_folder) || s.app.len() < 2 || !env_ok {
         return Err(rule("storage", "storage needs a lowercase folder name and an uppercase variable prefix.".into()));
     }
     Taken::free(&taken.folders, "data folder", &s.app, &s.app.to_lowercase())?;
@@ -458,7 +449,7 @@ mod tests {
             "storeBackupEncrypted": null,
             "storeResetPreview": null,
             "storeReset": null,
-            "storage": { "app": "acme-cli", "env": "ACME_CLI" },
+            "storage": { "app": "example-acme-cli", "env": "ACME" },
             "settings": null
         })
     }
@@ -547,17 +538,18 @@ mod tests {
     }
 
     #[test]
-    fn an_own_tools_data_folder_is_named_after_it() {
-        for (app, env) in [("gh", "ACME_CLI"), ("keyrings", "ACME_CLI"), ("acme-cli", "GH"), ("acmecli", "ACME_CLI")] {
-            let refused = rejected(&with("storage", json!({ "app": app, "env": env })));
-            assert!(refused.contains("named after the package"), "{app} {env}: {refused}");
+    fn an_own_tools_data_folder_is_named_after_its_scope_and_name() {
+        for app in ["gh", "keyrings", "nvim", "google-chrome"] {
+            let mut evil = with("storage", json!({ "app": app, "env": "ACME" }));
+            evil["package"] = json!(format!("@evil/{app}"));
+            evil["own"] = json!({ "name": app });
+            assert!(rejected(&evil).contains("must be evil-"), "{app}");
         }
-        let named = with("storage", json!({ "app": "acme-cli-data", "env": "ACME_CLI_DATA" }));
-        assert_eq!(parse(&file(&[named]), catalog()).1.rejected, []);
-        for name in ["gh", "keyrings", "nvim"] {
-            let mut claimed = with("storage", json!({ "app": name, "env": name.to_uppercase() }));
-            claimed["own"] = json!({ "name": name });
-            assert!(rejected(&claimed).contains("named after the package"), "{name}");
+        let mut mine = with("package", json!("@leemour/acme-crm-cli"));
+        for (app, ok) in [("leemour-acme-crm-cli", true), ("leemour-acme-crm-cli-data", true), ("acme-crm-cli", false)]
+        {
+            mine["storage"] = json!({ "app": app, "env": "ACME_CRM" });
+            assert_eq!(parse(&file(std::slice::from_ref(&mine)), catalog()).0.len(), usize::from(ok), "{app}");
         }
     }
 

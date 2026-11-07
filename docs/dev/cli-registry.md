@@ -137,11 +137,13 @@ add any tool on their own computer, behind a clear warning that WireCat has not 
 tool, which can never be listed, can only be added this way. The button is on the Tools page (NEED-2281 A); only scoped
 npm packages (NEED-2280).
 
-**Data folder of an own tool.** `storage.rs` deletes a tool's folders by `storage.app` and `storage.env`, so an own
-tool's must be named after its npm package without the scope, `P` (for `@leemour/acme-crm-cli`, `P` is
-`acme-crm-cli`), which npm guarantees no one else owns. `storage.app` lower-cased is `P` or starts with `P` followed
-by `-`, `.` or `_`; `storage.env` is `P` upper-cased with `-` and `.` turned into `_` (`ACME_CRM_CLI`), alone or
-followed by `_`. The manifest's `name` and a pasted `name` do not count: anyone can set them to `gh` or `nvim`. A
+**Data folder of an own tool.** Deleting a tool's data removes only folders whose last part is its `storage.app`
+(`storage.rs`, `ensure_ours`); `storage.env` only names variables that can move those folders, and a moved folder
+must still end in `storage.app`. So the folder name is what must belong to the tool. For an own tool from
+`@<scope>/<name>`, `storage.app` lower-cased must be `<scope>-<name>` or start with `<scope>-<name>-`
+(`@leemour/acme-crm-cli` → `leemour-acme-crm-cli`), at most 64 characters. Only the scope's owner can publish under
+a scope, so that folder name is theirs; the unscoped name alone (`@evil/gh` → `gh`) and the manifest's own `name`
+prove nothing. `storage.env` has no naming rule, but it may not be one an official tool or the shared store uses. A
 manifest that breaks the rule is refused as `bad_manifest(storage)`, at review and at every start.
 
 The entry comes from the tool's manifest `contracts/wirecat.json` (format 2), read out of the npm tarball before

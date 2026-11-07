@@ -231,7 +231,9 @@ fn install_steps(
         })?,
     };
     let spec = format!("{}@{wanted}", tool.package);
-    let (program, args) = install_command(manager, &spec, tool.source == Source::Own);
+    let scope = (tool.source == Source::Own).then(|| tool.package.split('/').next().unwrap_or_default());
+    let (program, args) =
+        install_command(manager, &spec, scope).map_err(|why| Failure(Reason::Requirements, why, None))?;
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let program_path = paths::find(program).ok_or_else(|| {
         Failure(
@@ -301,9 +303,11 @@ fn install_steps(
     Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills, path_fix })
 }
 
-/// The manager's install line. An own tool installs from the public registry, the one its review read: npm, pnpm
-/// (`--registry=<url>`, npm's config flag) and bun (`--registry=<url>`, from `bun add --help`) each take the flag.
-fn install_command(manager: &str, spec: &str, own: bool) -> (&'static str, Vec<String>) {
+/// The manager's install line. An own tool installs from the public registry, the one its review read, for its own
+/// scope too, since a scoped registry in `.npmrc` wins over `--registry`: npm takes `--@<scope>:registry=<url>` and
+/// pnpm `--config.@<scope>:registry=<url>` (both checked against a scoped `.npmrc`, npm 11 and pnpm 12). bun's
+/// `--registry` loses to a scope in `bunfig.toml` and it has no scoped flag, so an own tool is not installed with bun.
+fn install_command(manager: &str, spec: &str, own_scope: Option<&str>) -> Result<(&'static str, Vec<String>), String> {
     let (program, words): (&str, Vec<&str>) = match manager {
         // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
         "pnpm" => ("pnpm", vec!["add", "--global", spec, PNPM_WIRECAT_NOW]),
@@ -313,13 +317,25 @@ fn install_command(manager: &str, spec: &str, own: bool) -> (&'static str, Vec<S
         _ => ("npm", vec!["install", "--global", spec, "--no-fund", "--no-audit", "--loglevel", "http"]),
     };
     let mut args: Vec<String> = words.into_iter().map(str::to_string).collect();
-    if own {
-        args.push(OWN_REGISTRY.into());
+    if let Some(scope) = own_scope {
+        let scoped = match program {
+            "npm" => format!("--{scope}:registry={OWN_REGISTRY}"),
+            "pnpm" => format!("--config.{scope}:registry={OWN_REGISTRY}"),
+            _ => {
+                return Err(
+                    "bun installed this tool, and bun cannot be told which registry your own tools come from. \
+                    Uninstall it, then add it again: WireCat installs it with npm."
+                        .into(),
+                );
+            }
+        };
+        args.push(format!("--registry={OWN_REGISTRY}"));
+        args.push(scoped);
     }
-    (program, args)
+    Ok((program, args))
 }
 
-const OWN_REGISTRY: &str = "--registry=https://registry.npmjs.org/";
+const OWN_REGISTRY: &str = "https://registry.npmjs.org/";
 
 /// Checked with npm whichever manager installs: npm comes with every Node.js.
 fn confirm_release(
@@ -763,15 +779,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn an_own_tool_installs_from_the_registry_its_review_read_with_every_manager() {
+    fn an_own_tool_installs_from_the_registry_its_review_read_for_its_scope_too() {
+        let (_, npm) = install_command("npm", "@example/acme-crm-cli@0.3.0", Some("@example")).unwrap();
+        assert!(npm.ends_with(&[
+            "--registry=https://registry.npmjs.org/".to_string(),
+            "--@example:registry=https://registry.npmjs.org/".to_string()
+        ]));
+        let (_, pnpm) = install_command("pnpm", "@example/acme-crm-cli@0.3.0", Some("@example")).unwrap();
+        assert_eq!(pnpm.last().unwrap(), "--config.@example:registry=https://registry.npmjs.org/");
+        assert!(install_command("bun", "@example/acme-crm-cli@0.3.0", Some("@example")).is_err());
         for manager in ["npm", "pnpm", "bun"] {
-            let (_, own) = install_command(manager, "@example/acme-crm-cli@0.3.0", true);
-            assert_eq!(own.last().map(String::as_str), Some(OWN_REGISTRY), "{manager}");
-            assert!(own.contains(&"@example/acme-crm-cli@0.3.0".to_string()));
-            let (_, ours) = install_command(manager, "@wirecat/tg-cli@1.0.0", false);
-            assert!(!ours.iter().any(|a| a.starts_with("--registry")), "{manager}");
+            let (_, ours) = install_command(manager, "@wirecat/tg-cli@1.0.0", None).unwrap();
+            assert!(!ours.iter().any(|a| a.contains("registry")), "{manager}");
         }
-        assert_eq!(install_command("bun", "x@1", true).0, "bun");
     }
 
     #[test]
