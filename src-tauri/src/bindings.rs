@@ -38,6 +38,7 @@ fn types() -> Types {
         .register::<crate::mail_agent::MailAgent>()
         .register::<crate::notes_setup::NotesSetup>()
         .register::<crate::notes_setup::NotesFolderAdded>()
+        .register::<crate::notes_setup::NotesFolderRemoved>()
         .register::<crate::notes_setup::NotesModelEvent>()
         .register::<crate::notes_setup::NotesProblem>()
         .register::<crate::zoom_app::ZoomAppAnswer>()

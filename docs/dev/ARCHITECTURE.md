@@ -611,9 +611,15 @@ then). The folder comes from the system's window: `notes_pick_folder` opens it f
 which has no capability for the webview, so the interface can only ask Rust "choose a folder" and send back what it
 returned. `notes_folder_add` checks that path again (absolute, a real readable folder, never an option) before memo
 sees it. Failures reach the interface as a closed list (`NotesProblem`: unreadable folder, disk full, offline, too old,
-busy, other), never memo's message, which can name a folder. memo prints no download progress, so that bar has no end and
-Stop kills the run. Folders show with `~` for the home folder; folders another computer or Drive keeps are left out.
-memo has no `folders remove`, so the card cannot remove one.
+busy, other), never memo's message, which can name a folder. A memo that prints progress lines with `--json`
+(`{"event":"progress","step":"notes"|"download","done","total","unit":"files"|"bytes","label"}`, redrawn with `\r`;
+`counted_of` in `sync.rs` takes the last piece) gets determinate bars, as a `counted` event of the sync or the download;
+an older memo prints none and the bars have no end. A label is kept only when it is a plain id, never a path. Stop kills
+the download. Folders show with `~` for the home folder; folders another computer or Drive keeps are left out.
+Removing a folder is `notes_folder_remove(id, folder, deleteNotes)`: `folders remove <id>` keeps that folder's notes
+searchable; with the owner's confirmation in a dialog it adds `--allow-delete --yes` and deletes that folder's notes from
+memo's store (never files on disk). The id is checked first (`checked_folder_id`); a memo without the command answers
+"unknown command" and the card says it is too old.
 
 ## The Tasks page
 

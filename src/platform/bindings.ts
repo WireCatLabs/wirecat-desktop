@@ -141,6 +141,8 @@ export type CopyRemoval = {
 	hint: string | null,
 };
 
+export type CountUnit = "files" | "bytes";
+
 export type Diagnosis = {
 	command: string,
 	exitCode: number | null,
@@ -336,6 +338,8 @@ export type NotesFolder = {
 
 export type NotesFolderAdded = { result: "added"; folder: NotesFolder } | { result: "failed"; problem: NotesProblem };
 
+export type NotesFolderRemoved = { result: "removed"; notesDeleted: number | null } | { result: "failed"; problem: NotesProblem };
+
 export type NotesModel = {
 	id: string,
 	title: string,
@@ -343,7 +347,9 @@ export type NotesModel = {
 	downloaded: boolean,
 };
 
-export type NotesModelEvent = { event: "done" } | { event: "stopped" } | { event: "failed"; problem: NotesProblem };
+export type NotesModelEvent = 
+/**  How far the download is, in bytes. `label` is the model's id. */
+{ event: "counted"; done: number; total: number; unit: CountUnit; label: string | null } | { event: "done" } | { event: "stopped" } | { event: "failed"; problem: NotesProblem };
 
 /**
  *  What went wrong, in a closed list: the interface has words and an action for each, and memo's own message (which can
@@ -616,7 +622,9 @@ export type SyncEvent =
 /**  A stage from a fixed list, read from the tool's notes; never the note itself. */
 { event: "stage"; stage: string } | 
 /**  cli-core's `progress` line, from the release that prints one: counts only, never a chat. */
-{ event: "progress"; chats: number | null; chatsDone: number | null; fetched: number } | { event: "done"; summary: SyncSummary } | { event: "stopped" } | 
+{ event: "progress"; chats: number | null; chatsDone: number | null; fetched: number } | 
+/**  How far `sync --only notes` is, in files; never what it reads. `label` is a folder id. */
+{ event: "counted"; done: number; total: number; unit: CountUnit; label: string | null } | { event: "done"; summary: SyncSummary } | { event: "stopped" } | 
 /**
  *  `code` and `reason` are the tool's own (`timeout`, `profile.locked`…); the interface says what to do.
  *  `message` is always the app's own words: a tool's message can name a chat (RISK-44), so only its `code`,
