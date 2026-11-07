@@ -1,18 +1,19 @@
 import type { FC } from "react"
-import { beforeAll, beforeEach, expect, it } from "vitest"
+import { beforeAll, expect, it } from "vitest"
 import { addCommunityTools } from "@/domain/catalog"
-import { ACME } from "@/platform/mock-community"
+import { ACME, OWN } from "@/platform/mock-community"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { render, screen, within } from "@/testing/render"
 
 let App: FC
 
 beforeAll(async () => {
-  addCommunityTools([ACME])
+  addCommunityTools([
+    { source: "community", entry: ACME },
+    { source: "own", entry: OWN },
+  ])
   ;({ App } = await import("@/app/App"))
 })
-
-beforeEach(() => {})
 
 it("lists a registered tool on the Tools page with its badge and trust note", async () => {
   useOnboarding.setState({ status: "done", open: false })
@@ -23,6 +24,17 @@ it("lists a registered tool on the Tools page with its badge and trust note", as
     .closest("li") as HTMLElement
   expect(within(row).getByText("Community")).toBeInTheDocument()
   expect(await within(row).findByText(/Made by example, not by WireCat/)).toBeInTheDocument()
+})
+
+it("marks an own tool Not checked, never Community", async () => {
+  useOnboarding.setState({ status: "done", open: false })
+  render(<App />)
+  const list = await screen.findByRole("list", { name: "WireCat tools" })
+  const row = within(list)
+    .getByRole("button", { name: /^Acme CRM/ })
+    .closest("li") as HTMLElement
+  expect(within(row).getByText("Not checked")).toBeInTheDocument()
+  expect(within(row).queryByText("Community")).not.toBeInTheDocument()
 })
 
 it("offers a registered tool on Choose tools with its badge", async () => {
