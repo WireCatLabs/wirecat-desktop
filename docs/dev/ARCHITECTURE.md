@@ -133,9 +133,10 @@ knows no UI, `ui` knows no data, and only `platform` imports `@tauri-apps/*`.
 
 1. `ToolRow` calls `useTools().install("drive")` (`src/features/tools/store.ts`). Installs queue; one runs at a time,
    because two global npm installs at once can corrupt each other.
-   From the row, and from the setup's Install step, the install first asks `store_preflight` (`preflight.rs`); a
-   warning holds the session at step `preflight` in the row's panel (or its setup row) until the owner goes ahead, and
-   the queue moves on without it.
+   From the row, and from the setup's Install step, the install first asks `store_preflight` (`preflight.rs`) when its
+   turn in the queue comes, so a batch's later tools are checked against the ones installed before them; a warning
+   holds the session at step `preflight` in the row's panel (or its setup row) until the owner goes ahead, and the
+   queue moves on without it.
 2. `platform.install` opens a Tauri `Channel` and invokes `install_tool` with the tool **id** only.
 3. Rust looks the id up in the compiled catalog, checks Node.js, picks a global folder it may write to without
    administrator rights (`npm_prefix.rs`), then runs `npm install --global <package>@<latest version>` there — or `pnpm add --global` when pnpm owns the copy that is already

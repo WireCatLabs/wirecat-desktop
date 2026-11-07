@@ -258,6 +258,34 @@ describe("the store check before installing", () => {
     await npm.finish("drive")
     await npm.whenStarted("tg")
   })
+
+  it("asks a tool's check on its turn, after the tool before it installed", async () => {
+    const { npm } = await installFromChoose(["tg", "max"])
+    const asked = vi.mocked(platform.storePreflight)
+    const installsWhenAsked: Record<string, string | null | undefined> = {}
+    const answer = asked.getMockImplementation()
+    asked.mockImplementation(async (id) => {
+      installsWhenAsked[id] = useTools.getState().installs.tg?.[0]?.version
+      return answer ? answer(id) : Promise.reject(new Error("no answer"))
+    })
+    await npm.whenStarted("tg")
+    expect(asked.mock.calls.map(([id]) => id)).toEqual(["tg"])
+
+    await npm.finish("tg", "0.89.0")
+    await npm.whenStarted("max")
+    expect(asked.mock.calls.map(([id]) => id)).toEqual(["tg", "max"])
+    expect(installsWhenAsked.max).toBe("0.89.0")
+  })
+
+  it("holds a tool whose check warns and installs the next one meanwhile", async () => {
+    const { npm } = await installFromChoose(["tg", "max", "drive"], {
+      preflight: { max: { version: "0.75.0", known: true, cannotOpen: { speaks: 31, needs: 32 } } },
+    })
+    await npm.finish("tg")
+    expect(await within(installRow("MAX")).findByRole("alert")).toBeInTheDocument()
+    await npm.whenStarted("drive")
+    expect(npm.started).toEqual(["tg", "drive"])
+  })
 })
 
 describe("the Fix panel under a failed install", () => {
