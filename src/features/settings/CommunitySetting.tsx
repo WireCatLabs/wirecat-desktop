@@ -8,6 +8,7 @@ import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Switch } from "@/ui/Switch"
+import { LeftOut } from "./LeftOut"
 import { settingsMessages } from "./messages"
 
 /**
@@ -74,6 +75,7 @@ export function CommunitySetting() {
           {m.restart}
         </Button>
       </Collapse>
+      <LeftOut source="community" />
       <Collapse open={error !== null}>
         <ErrorNotice inline>{error}</ErrorNotice>
       </Collapse>
