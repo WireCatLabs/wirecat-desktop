@@ -11,3 +11,4 @@
 - `.claude/worktrees/journal-2276` (branch `docs/journal-need-2276`): journal PR; remove once merged. 2026-11-07
 - `.claude/worktrees/mcp-teardown` (branch `fix/mcpserver-teardown`): FIND-219 fix; remove once merged. 2026-11-07
 - `.claude/worktrees/risk-110` (branch `fix/risk-110-batch-preflight`): worktree for RISK-110, the store check on each queued tool's turn; remove once its PR is merged. 2026-11-07
+- `.claude/worktrees/journal-night` (branch `docs/journal-night-1107`): journal PR; remove once merged. 2026-11-07
