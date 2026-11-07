@@ -30,6 +30,23 @@ const en = {
   communityNoKey: "This copy of WireCat cannot read the list yet.",
   communityOnNext: "Community tools appear the next time WireCat starts.",
   communityOffNext: "Community tools disappear the next time WireCat starts. Installed ones stay installed.",
+  own: "Allow tools WireCat has not checked",
+  ownInfo: "About tools WireCat has not checked",
+  ownHelp:
+    "Adds Add your own tool to the Tools page: any tool built for WireCat, added by its npm name. WireCat does not " +
+    "review these tools.",
+  ownWarnTitle: "Allow tools WireCat has not checked?",
+  ownWarn: [
+    "A tool you add this way gets access to all your personal data that WireCat holds: your messages, mail, notes and files.",
+    "Add only tools whose authors you trust completely.",
+    "WireCat has not checked these tools and takes no responsibility for what they do.",
+  ],
+  ownAllow: "Allow",
+  cancel: "Cancel",
+  ownOnNext: "Add your own tool is now on the Tools page. Tools you added appear the next time WireCat starts.",
+  ownOffNext: "Your own tools disappear the next time WireCat starts. Installed ones stay installed.",
+  ownFlag: "WIRECAT_EXTRA_TOOLS=1 is set, so your own tools are read whatever this switch says.",
+  leftOut: "Left out when WireCat started:",
   restart: "Restart now",
 }
 
@@ -61,6 +78,24 @@ const ru: typeof en = {
   communityNoKey: "Эта копия WireCat пока не может прочитать список.",
   communityOnNext: "Инструменты сообщества появятся при следующем запуске WireCat.",
   communityOffNext: "Инструменты сообщества исчезнут при следующем запуске WireCat. Установленные останутся.",
+  own: "Разрешить инструменты, которые WireCat не проверял",
+  ownInfo: "Об инструментах, которые WireCat не проверял",
+  ownHelp:
+    "Добавляет на страницу «Инструменты» кнопку «Добавить свой инструмент»: любой инструмент для WireCat по его " +
+    "имени в npm. WireCat такие инструменты не проверяет.",
+  ownWarnTitle: "Разрешить инструменты, которые WireCat не проверял?",
+  ownWarn: [
+    "Инструмент, добавленный так, получает доступ ко всем вашим личным данным в WireCat: сообщениям, почте, заметкам и файлам.",
+    "Добавляйте только инструменты авторов, которым полностью доверяете.",
+    "WireCat не проверял эти инструменты и не отвечает за то, что они делают.",
+  ],
+  ownAllow: "Разрешить",
+  cancel: "Отмена",
+  ownOnNext:
+    "Кнопка «Добавить свой инструмент» уже на странице «Инструменты». Добавленные инструменты появятся при следующем запуске WireCat.",
+  ownOffNext: "Ваши инструменты исчезнут при следующем запуске WireCat. Установленные останутся.",
+  ownFlag: "Задано WIRECAT_EXTRA_TOOLS=1, поэтому ваши инструменты читаются при любом положении переключателя.",
+  leftOut: "Не добавлены при запуске WireCat:",
   restart: "Перезапустить",
 }
 
@@ -94,6 +129,24 @@ const es: typeof en = {
   communityOnNext: "Las herramientas de la comunidad aparecerán la próxima vez que se inicie WireCat.",
   communityOffNext:
     "Las herramientas de la comunidad desaparecerán la próxima vez que se inicie WireCat. Las instaladas se quedan.",
+  own: "Permitir herramientas que WireCat no ha revisado",
+  ownInfo: "Sobre las herramientas que WireCat no ha revisado",
+  ownHelp:
+    "Añade el botón Añadir tu propia herramienta a la página Herramientas: cualquier herramienta hecha para WireCat, " +
+    "por su nombre en npm. WireCat no revisa estas herramientas.",
+  ownWarnTitle: "¿Permitir herramientas que WireCat no ha revisado?",
+  ownWarn: [
+    "Una herramienta añadida así obtiene acceso a todos tus datos personales en WireCat: tus mensajes, correo, notas y archivos.",
+    "Añade solo herramientas de autores en quienes confíes por completo.",
+    "WireCat no ha revisado estas herramientas y no se hace responsable de lo que hagan.",
+  ],
+  ownAllow: "Permitir",
+  cancel: "Cancelar",
+  ownOnNext:
+    "Añadir tu propia herramienta ya está en la página Herramientas. Las herramientas añadidas aparecerán la próxima vez que se inicie WireCat.",
+  ownOffNext: "Tus herramientas desaparecerán la próxima vez que se inicie WireCat. Las instaladas se quedan.",
+  ownFlag: "WIRECAT_EXTRA_TOOLS=1 está definido, así que tus herramientas se leen sea cual sea este interruptor.",
+  leftOut: "Excluidas al iniciar WireCat:",
   restart: "Reiniciar ahora",
 }
 
