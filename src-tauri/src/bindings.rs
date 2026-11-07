@@ -31,6 +31,8 @@ fn types() -> Types {
         .register::<crate::sync::SyncEvent>()
         .register::<crate::sync::LastSync>()
         .register::<crate::background::Background>()
+        .register::<crate::background::BackgroundAction>()
+        .register::<crate::background::BackgroundOutcome>()
         .register::<crate::mail_agent::MailAgent>()
         .register::<crate::backup::Backups>()
         .register::<crate::backup::BackupEvent>()

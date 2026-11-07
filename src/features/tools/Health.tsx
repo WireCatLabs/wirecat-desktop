@@ -33,7 +33,6 @@ import { focusInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { useProfiles } from "./api"
-import { BackgroundLine } from "./Background"
 import { BotList } from "./BotList"
 import { ConfigRepair, offersRepair, type Repaired } from "./ConfigRepair"
 import { type ToolsText, toolsMessages } from "./messages"
@@ -190,7 +189,6 @@ function ProfileList(props: {
                 )}
               </div>
               {syncNeedsProfile(tool) && p.signedIn !== false && <SyncControl tool={tool} profile={p.name} />}
-              {tool.background && p.signedIn !== false && <BackgroundLine tool={tool} profile={p.name} />}
             </li>
           ))}
         </ul>

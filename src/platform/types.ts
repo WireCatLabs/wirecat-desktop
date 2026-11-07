@@ -41,7 +41,7 @@ import type {
 import type { QueryDraft, SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
 import type { Settings } from "./settings-schemas"
 import type { SignInEvent, SignInInputs } from "./signin-schemas"
-import type { Background, LastSync, SyncEvent } from "./sync-schemas"
+import type { Background, BackgroundAction, BackgroundOutcome, LastSync, SyncEvent } from "./sync-schemas"
 import type { FunnelHelperStatus, FunnelState, TailscaleDownload, TailscaleStatus } from "./tailscale-schemas"
 import type {
   NewTask,
@@ -280,8 +280,8 @@ export type Platform = {
   syncLast(id: string, profile: string | null): Promise<LastSync>
   /** Whether the tool's own `server status` says its `serve` keeps the profile current (`background` in the catalog). */
   backgroundStatus(id: string, profile: string): Promise<Background>
-  /** The tool's own `server install` when it has no unit yet, then `server start`; rejects with its words, masked. */
-  backgroundKeep(id: string, profile: string): Promise<Background>
+  /** One of the tool's own `server` commands for one profile; a failure comes back as `fault`, sorted for the page. */
+  backgroundRun(id: string, profile: string, action: BackgroundAction): Promise<BackgroundOutcome>
   /** memo's mail agent schedule (`mailAgent` in the catalog): on or off, its last run and the day's spend. */
   mailAgentStatus(id: string): Promise<MailAgent>
   /** memo's own `schedule agent` or `schedule remove`; rejects with memo's words, masked. */

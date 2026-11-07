@@ -355,7 +355,7 @@ const RU_SUMMARY: Record<string, string> = {
     "Gmail, Outlook и другая почта IMAP, скопированная на ваш компьютер: ищите по ней без сети, читайте переписку целиком и смотрите, докуда дошла каждая синхронизация. Синхронизация никогда не меняет ваш ящик.",
 }
 const RU_NOTE: Record<string, string> = {
-  wa: "WhatsApp присылает новые сообщения, пока работает `wa serve`; синхронизацию запускать не нужно.",
+  wa: "В WhatsApp нет синхронизации, которую можно запустить. Новые сообщения приходят, пока работает его фоновая служба: смотрите «Фоновая служба» ниже.",
 }
 
 const RU_GROUP: Record<string, string> = {
@@ -723,7 +723,7 @@ const ES_SUMMARY: Record<string, string> = {
     "Gmail, Outlook y otro correo IMAP copiado a tu equipo: búscalo sin conexión, lee hilos enteros y mira hasta dónde llegó cada sincronización. La sincronización nunca cambia tu buzón.",
 }
 const ES_NOTE: Record<string, string> = {
-  wa: "WhatsApp envía los mensajes nuevos mientras se ejecuta `wa serve`; no hay sincronización que iniciar.",
+  wa: "WhatsApp no tiene una sincronización que iniciar. Los mensajes nuevos llegan mientras funciona su servicio en segundo plano: mira «Servicio en segundo plano» más abajo.",
 }
 
 const ES_GROUP: Record<string, string> = {

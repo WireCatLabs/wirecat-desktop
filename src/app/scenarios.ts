@@ -76,6 +76,8 @@ export async function runMockScenario() {
     params.get("mcp-old") ??
     params.get("funnel-old") ??
     params.get("code-used") ??
+    params.get("service")?.split(":")[0] ??
+    params.get("service")?.split(":")[0] ??
     (params.has("tailscale") || params.has("connect") || params.has("cloudflare") ? "tg" : null)
   if (mcp) {
     useNav.getState().go("tools")

@@ -99,11 +99,15 @@ pub async fn background_status(id: String, profile: String) -> Result<background
 }
 
 #[tauri::command]
-pub async fn background_keep(id: String, profile: String) -> Result<background::Background, AppError> {
-    crate::log::command("background_keep", async move {
+pub async fn background_run(
+    id: String,
+    profile: String,
+    action: background::BackgroundAction,
+) -> Result<background::BackgroundOutcome, AppError> {
+    crate::log::command("background_run", async move {
         let tool = known_tool(&id)?;
         valid_profile(&profile)?;
-        attempt(move || background::keep(tool, &profile)).await
+        attempt(move || background::run_action(tool, &profile, action)).await
     })
     .await
 }

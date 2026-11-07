@@ -375,7 +375,12 @@ export function createMock(os: Platform["os"]): Platform {
       await delay(350)
       if (id === "memo") return null
       if (id === "email") return scenario === "mixed" ? [{ name: "personal", signedIn: null }] : []
-      if (id === "wa") return linkedProfiles.map((name) => ({ name, signedIn: true }))
+      if (id === "wa") {
+        // `?service=wa` shows the service of two linked accounts without a sign-in first.
+        const names =
+          linkedProfiles.length === 0 && params.get("service")?.startsWith("wa") ? ["personal", "work"] : linkedProfiles
+        return names.map((name) => ({ name, signedIn: true }))
+      }
       if (id === "tg") {
         return [
           { name: "personal", signedIn: true },

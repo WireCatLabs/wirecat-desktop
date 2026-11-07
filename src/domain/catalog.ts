@@ -118,9 +118,17 @@ const ToolSchema = v.object({
   tasks: v.nullable(v.object({ list: v.array(v.string()), release: v.array(v.string()) })),
   /** The Tasks page's lowest version of the tool; only memo keeps project tasks. */
   taskBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
-  /** The messengers' own `serve` in the background, per profile: `server status`, `server install`, `server start`. */
+  /** The messengers' own `serve` in the background, per profile: `server status`, `install`, `start`, `stop` and `uninstall`. */
   background: v.optional(
-    v.nullable(v.object({ status: v.array(v.string()), install: v.array(v.string()), start: v.array(v.string()) })),
+    v.nullable(
+      v.object({
+        status: v.array(v.string()),
+        install: v.array(v.string()),
+        start: v.array(v.string()),
+        stop: v.array(v.string()),
+        uninstall: v.array(v.string()),
+      }),
+    ),
     null,
   ),
   /** Only email: memo's scheduled agent that reads new mail and proposes; Rust runs its commands. */

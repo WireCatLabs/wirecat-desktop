@@ -115,7 +115,7 @@ pub fn run() {
             commands::tools::uninstall_tool,
             commands::tools::remove_copy,
             commands::tools::background_status,
-            commands::tools::background_keep,
+            commands::tools::background_run,
             commands::tools::mail_agent_status,
             commands::tools::mail_agent_set,
             commands::tools::mail_agent_waiting,
