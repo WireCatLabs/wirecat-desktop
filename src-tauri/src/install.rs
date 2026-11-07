@@ -153,18 +153,19 @@ pub struct Pin<'a> {
 
 /// Installs exactly `version`, the one the owner reviewed, then runs `verify` on what was installed before the install
 /// counts as done; an own tool's first run is checked against its review this way (`own_tools.rs`).
+/// Whether the install ended done; `verify` failing counts as not.
 pub fn install_reviewed(
     tool: &Tool,
     pin: &Pin,
     running: &Running,
     events: &Channel<InstallEvent>,
     verify: &dyn Fn() -> Result<(), String>,
-) {
+) -> bool {
     guarded(tool, running, events, &|t, r, e| {
         let done = install_steps(t, r, e, Some(pin))?;
         verify().map_err(|why| Failure(Reason::Verify, why, None))?;
         Ok(done)
-    });
+    })
 }
 
 /// Removes every copy of the tool, each with the manager that installed it. Data stays; see `storage.rs`.
@@ -174,7 +175,7 @@ pub fn uninstall(tool: &Tool, running: &Running, events: &Channel<InstallEvent>)
 
 type Steps<'a> = &'a dyn Fn(&Tool, &Running, &Channel<InstallEvent>) -> Result<InstallEvent, Failure>;
 
-fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps: Steps) {
+fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps: Steps) -> bool {
     // npm replaces the program under a running sync, which then fails halfway.
     let syncs = crate::sync::package_prefix(&tool.id);
     if !running.start_unless(&tool.id, |k| k.starts_with(&syncs)) {
@@ -183,14 +184,16 @@ fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps
             message: "Another operation on this tool is running, such as a sync. Stop it first.".into(),
             hint: None,
         });
-        return;
+        return false;
     }
     let result = steps(tool, running, events);
     running.finish(&tool.id);
+    let ok = result.is_ok();
     let _ = events.send(match result {
         Ok(done) => done,
         Err(Failure(reason, message, hint)) => InstallEvent::Failed { reason, message, hint },
     });
+    ok
 }
 
 fn install_steps(
@@ -228,14 +231,8 @@ fn install_steps(
         })?,
     };
     let spec = format!("{}@{wanted}", tool.package);
-    let (program, args): (&str, Vec<&str>) = match manager {
-        // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
-        "pnpm" => ("pnpm", vec!["add", "--global", &spec, PNPM_WIRECAT_NOW]),
-        "bun" => ("bun", vec!["add", "--global", &spec]),
-        // `http` prints a line per package looked up and per package fetched: the only progress npm reports while it
-        // downloads; at its default level it is silent until the end (`install-progress.ts` reads these lines).
-        _ => ("npm", vec!["install", "--global", &spec, "--no-fund", "--no-audit", "--loglevel", "http"]),
-    };
+    let (program, args) = install_command(manager, &spec, tool.source == Source::Own);
+    let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let program_path = paths::find(program).ok_or_else(|| {
         Failure(
             Reason::Requirements,
@@ -303,6 +300,26 @@ fn install_steps(
     };
     Ok(InstallEvent::Done { version, path: ours.path.clone(), shadowed_by, skills, path_fix })
 }
+
+/// The manager's install line. An own tool installs from the public registry, the one its review read: npm, pnpm
+/// (`--registry=<url>`, npm's config flag) and bun (`--registry=<url>`, from `bun add --help`) each take the flag.
+fn install_command(manager: &str, spec: &str, own: bool) -> (&'static str, Vec<String>) {
+    let (program, words): (&str, Vec<&str>) = match manager {
+        // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
+        "pnpm" => ("pnpm", vec!["add", "--global", spec, PNPM_WIRECAT_NOW]),
+        "bun" => ("bun", vec!["add", "--global", spec]),
+        // `http` prints a line per package looked up and per package fetched: the only progress npm reports while it
+        // downloads; at its default level it is silent until the end (`install-progress.ts` reads these lines).
+        _ => ("npm", vec!["install", "--global", spec, "--no-fund", "--no-audit", "--loglevel", "http"]),
+    };
+    let mut args: Vec<String> = words.into_iter().map(str::to_string).collect();
+    if own {
+        args.push(OWN_REGISTRY.into());
+    }
+    (program, args)
+}
+
+const OWN_REGISTRY: &str = "--registry=https://registry.npmjs.org/";
 
 /// Checked with npm whichever manager installs: npm comes with every Node.js.
 fn confirm_release(
@@ -744,6 +761,18 @@ fn path_hint(extra: &[std::path::PathBuf]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_own_tool_installs_from_the_registry_its_review_read_with_every_manager() {
+        for manager in ["npm", "pnpm", "bun"] {
+            let (_, own) = install_command(manager, "@example/acme-crm-cli@0.3.0", true);
+            assert_eq!(own.last().map(String::as_str), Some(OWN_REGISTRY), "{manager}");
+            assert!(own.contains(&"@example/acme-crm-cli@0.3.0".to_string()));
+            let (_, ours) = install_command(manager, "@wirecat/tg-cli@1.0.0", false);
+            assert!(!ours.iter().any(|a| a.starts_with("--registry")), "{manager}");
+        }
+        assert_eq!(install_command("bun", "x@1", true).0, "bun");
+    }
 
     #[test]
     fn installs_the_registry_s_fresher_version_never_an_older_one() {

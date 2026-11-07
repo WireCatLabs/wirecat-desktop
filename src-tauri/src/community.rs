@@ -278,7 +278,7 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
     }
     storage(&tool, taken)?;
     if source == Source::Own {
-        own_storage(&tool, entry["own"]["name"].as_str())?;
+        own_storage(&tool)?;
     }
     if let Some(port) = tool.mcp_server.as_ref().and_then(|m| m.port) {
         Taken::free(&taken.ports, "port", &port.to_string(), &port.to_string())?;
@@ -286,27 +286,27 @@ pub fn check(entry: &Value, taken: &Taken, source: Source) -> Result<Tool, Probl
     Ok(tool)
 }
 
-/// An own tool's data folders are deleted by these names, so they must be its own: named after its package or its
-/// manifest name, never another program's (`gh`, `keyrings`).
-fn own_storage(tool: &Tool, manifest_name: Option<&str>) -> Result<(), Problem> {
-    let package = tool.package.rsplit('/').next().unwrap_or_default();
-    let names: Vec<&str> = [Some(package), manifest_name].into_iter().flatten().filter(|n| !n.is_empty()).collect();
-    let starts = |value: &str, name: &str, seps: &str| {
+/// An own tool's data folders are deleted by these names, so they must be its own, named after its npm package without
+/// the scope (`P`), which npm guarantees no one else owns: `storage.app` lower-cased is `P` or starts with `P` and one
+/// of `-._`; `storage.env` is `P` upper-cased with `-` and `.` as `_`, alone or followed by `_`. Never the manifest's
+/// own name, which anyone can set to `gh` or `nvim`.
+fn own_storage(tool: &Tool) -> Result<(), Problem> {
+    let package = tool.package.rsplit('/').next().unwrap_or_default().to_lowercase();
+    let env = package.to_uppercase().replace(['-', '.'], "_");
+    let named = |value: &str, name: &str, seps: &str| {
         value == name || value.strip_prefix(name).is_some_and(|rest| rest.starts_with(|c| seps.contains(c)))
     };
-    let app = tool.storage.app.to_lowercase();
-    let app_ok = names.iter().any(|n| starts(&app, &n.to_lowercase(), "-._"));
-    let env_ok = names.iter().any(|n| starts(&tool.storage.env, &n.to_uppercase().replace(['-', '.'], "_"), "_"));
-    if app_ok && env_ok {
+    if !package.is_empty()
+        && named(&tool.storage.app.to_lowercase(), &package, "-._")
+        && named(&tool.storage.env, &env, "_")
+    {
         return Ok(());
     }
     Err(rule(
         "storage",
         format!(
-            "the data folder {} and prefix {} must be named after the tool ({}).",
-            tool.storage.app,
-            tool.storage.env,
-            names.join(" or ")
+            "the data folder {} and prefix {} must be named after the package: {package} and {env}.",
+            tool.storage.app, tool.storage.env
         ),
     ))
 }
@@ -550,11 +550,15 @@ mod tests {
     fn an_own_tools_data_folder_is_named_after_it() {
         for (app, env) in [("gh", "ACME_CLI"), ("keyrings", "ACME_CLI"), ("acme-cli", "GH"), ("acmecli", "ACME_CLI")] {
             let refused = rejected(&with("storage", json!({ "app": app, "env": env })));
-            assert!(refused.contains("named after the tool"), "{app} {env}: {refused}");
+            assert!(refused.contains("named after the package"), "{app} {env}: {refused}");
         }
-        let mut named = with("storage", json!({ "app": "acme-crm-data", "env": "ACME_CRM" }));
-        named["own"] = json!({ "name": "acme-crm" });
-        assert!(parse(&file(&[named]), catalog()).1.rejected.is_empty());
+        let named = with("storage", json!({ "app": "acme-cli-data", "env": "ACME_CLI_DATA" }));
+        assert_eq!(parse(&file(&[named]), catalog()).1.rejected, []);
+        for name in ["gh", "keyrings", "nvim"] {
+            let mut claimed = with("storage", json!({ "app": name, "env": name.to_uppercase() }));
+            claimed["own"] = json!({ "name": name });
+            assert!(rejected(&claimed).contains("named after the package"), "{name}");
+        }
     }
 
     #[test]
@@ -564,6 +568,32 @@ mod tests {
         let server = json!({ "port": port, "start": ["mcp", "server", "start"], "stop": ["mcp", "server", "stop"],
             "status": ["mcp", "server", "status"], "revoke": ["mcp", "revoke"], "config": null });
         assert!(rejected(&with("mcpServer", server)).contains("port"));
+    }
+
+    #[test]
+    fn official_ports_are_distinct_and_a_listed_port_clash_is_left_out_with_a_sentence() {
+        let mut ports: Vec<u64> = catalog()
+            .tools
+            .iter()
+            .filter(|t| t.part_of.is_none())
+            .filter_map(|t| t.mcp_server.as_ref().and_then(|m| m.port))
+            .collect();
+        let count = ports.len();
+        ports.sort_unstable();
+        ports.dedup();
+        assert_eq!(ports.len(), count, "two official tools share a port");
+
+        let tg = catalog().tools.iter().find(|t| t.id == "tg").unwrap();
+        let port = tg.mcp_server.as_ref().and_then(|m| m.port).unwrap();
+        let mut listed = sample();
+        listed["mcpServer"] = json!({ "port": port, "start": ["mcp", "server", "start"], "stop": ["mcp", "server", "stop"],
+            "status": ["mcp", "server", "status"], "revoke": ["mcp", "revoke"], "config": null });
+        let mut out = Accepted::new(catalog());
+        out.entries(Source::Community, "The community list", vec![listed]);
+        assert_eq!(out.tools.len(), 0, "left out");
+        let left = &out.extra.rejected[0];
+        assert_eq!(left.source, Source::Community, "Settings lists it under Enable community tools");
+        assert_eq!(left.text, format!("acme: the port {port} is taken by Telegram."));
     }
 
     #[test]
