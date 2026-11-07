@@ -248,9 +248,14 @@ function Actions({
           <Button variant="ghost" onClick={on.close}>
             {m.close}
           </Button>
-          {installedBefore(step.session) && (
+          {installedBefore(step.session) ? (
             <Button variant="danger" onClick={() => on.uninstall(step.review)}>
               {m.uninstall}
+            </Button>
+          ) : (
+            // The review was used up by this add; a new one reads npm again rather than reusing what it showed.
+            <Button variant="secondary" onClick={() => on.read(step.review.package, null)}>
+              {m.tryAgain}
             </Button>
           )}
         </>
@@ -393,6 +398,7 @@ function Changes({ review, m, accepted, accept }: ReviewProps & { review: OwnRev
   const change = review.update
   const id = useId()
   const built = (b: OwnReview["built"]) => (b ? m.builtBy(b.repo) : m.notBuilt)
+  const names = (parts: string[]) => parts.map((p) => m.parts[p as keyof OwnText["parts"]] ?? p).join(", ")
   const list = (label: string, items: string[]) =>
     items.length > 0 && (
       <p>
@@ -411,7 +417,12 @@ function Changes({ review, m, accepted, accept }: ReviewProps & { review: OwnRev
       {list(m.newWrites, change.newWrites)}
       {change.newParts.length > 0 && (
         <p>
-          {m.newParts} {change.newParts.map((p) => m.parts[p as keyof OwnText["parts"]] ?? p).join(", ")}
+          {m.newParts} {names(change.newParts)}
+        </p>
+      )}
+      {change.changedParts.length > 0 && (
+        <p>
+          {m.changedParts} {names(change.changedParts)}
         </p>
       )}
       {review.access.unknown && <p>{m.unknownAccess}</p>}

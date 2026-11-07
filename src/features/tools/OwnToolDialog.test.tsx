@@ -84,6 +84,20 @@ describe("Add your own tool", () => {
     expect(await screen.findByText("Acme CRM")).toBeInTheDocument()
   })
 
+  it("reads npm again for a fresh review after an install that failed before anything was installed", async () => {
+    const discover = vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview() })
+    vi.spyOn(platform, "ownToolAdd").mockImplementation(async (_token, onEvent) => {
+      onEvent({ event: "failed", reason: "network", message: "Could not reach the npm registry.", hint: null })
+    })
+    await check()
+    await userEvent.click(await screen.findByRole("button", { name: "Add" }))
+    await userEvent.click(screen.getByRole("button", { name: "Install and run" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Try again" }))
+    expect(discover).toHaveBeenCalledTimes(2)
+    expect(await screen.findByRole("button", { name: "Add" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Uninstall it" })).not.toBeInTheDocument()
+  })
+
   it("offers Uninstall when the installed tool describes another manifest", async () => {
     vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview() })
     vi.spyOn(platform, "ownToolAdd").mockImplementation(async (_token, onEvent) => {
@@ -131,6 +145,7 @@ describe("Add your own tool", () => {
       publishersChanged: true,
       fromPublishers: ["old-maintainer"],
       newParts: ["mcpServer"],
+      changedParts: ["signIn", "doctor"],
       confirm: true,
     }
     vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview({ update }) })
@@ -140,6 +155,7 @@ describe("Add your own tool", () => {
     ).toBeInTheDocument()
     expect(screen.getByText(/publishers changed from old-maintainer to example/)).toBeInTheDocument()
     expect(screen.getByText(/an MCP server/)).toBeInTheDocument()
+    expect(screen.getByText(/a sign-in, its check \(doctor\)/)).toBeInTheDocument()
     const add = screen.getByRole("button", { name: "Add" })
     expect(add).toBeDisabled()
     await userEvent.click(screen.getByRole("checkbox", { name: "I accept these changes" }))
