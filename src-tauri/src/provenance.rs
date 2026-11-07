@@ -107,6 +107,19 @@ fn provenance_verdict(
     integrity: &str,
     repo: &str,
 ) -> Result<(), String> {
+    let Signer { issuer, workflow } = attested(attestations, package, version, integrity)?;
+    if issuer != GITHUB_ACTIONS {
+        return Err(format!("signed with an identity from {issuer}, not from GitHub Actions"));
+    }
+    let expected = release_workflow(repo);
+    if workflow != expected {
+        return Err(format!("built by {workflow}, not by {expected}"));
+    }
+    Ok(())
+}
+
+/// The signer of the provenance tied to this exact tarball: its subject names the release and its sha512.
+fn attested(attestations: &Value, package: &str, version: &str, integrity: &str) -> Result<Signer, String> {
     let bundle = attestations["attestations"]
         .as_array()
         .and_then(|list| list.iter().find(|a| a["predicateType"] == SLSA_V1))
@@ -133,15 +146,58 @@ fn provenance_verdict(
     if subject["digest"]["sha512"] != digest.as_str() {
         return Err("the provenance is for another tarball".into());
     }
-    let Signer { issuer, workflow } = signer(bundle).ok_or("the provenance has no readable signing certificate")?;
-    if issuer != GITHUB_ACTIONS {
-        return Err(format!("signed with an identity from {issuer}, not from GitHub Actions"));
+    signer(bundle).ok_or_else(|| "the provenance has no readable signing certificate".into())
+}
+
+/// Where npm says an own tool's release was built: shown to the owner, never required.
+#[derive(Debug, PartialEq, Clone)]
+pub enum Built {
+    /// A GitHub Actions run of `repo` (`https://github.com/<owner>/<name>`) with `workflow` (path and ref).
+    By { repo: String, workflow: String },
+    /// No provenance, or none that names a GitHub repository; the reason is for the log.
+    Unknown(String),
+}
+
+pub fn built(attestations: &Value, package: &str, version: &str, integrity: &str) -> Built {
+    match attested(attestations, package, version, integrity) {
+        Ok(Signer { issuer, workflow }) if issuer == GITHUB_ACTIONS => {
+            match workflow.split_once("/.github/workflows/") {
+                Some((repo, rest)) if repo.starts_with("https://github.com/") => {
+                    Built::By { repo: repo.to_string(), workflow: format!(".github/workflows/{rest}") }
+                }
+                _ => Built::Unknown(format!("built by {workflow}")),
+            }
+        }
+        Ok(Signer { issuer, .. }) => Built::Unknown(format!("signed with an identity from {issuer}")),
+        Err(why) => Built::Unknown(why),
     }
-    let expected = release_workflow(repo);
-    if workflow != expected {
-        return Err(format!("built by {workflow}, not by {expected}"));
+}
+
+/// The registry's attestations of one release; a release with none answers 404, read here as an empty list.
+pub fn attestations(package: &str, version: &str) -> Result<Value, Refusal> {
+    let name = package.replacen('/', "%2f", 1);
+    match get_json(&agent(), &format!("{REGISTRY}/-/npm/v1/attestations/{name}@{version}")) {
+        Err(Refusal::Unconfirmed(_)) => Ok(serde_json::json!({ "attestations": [] })),
+        other => other,
     }
-    Ok(())
+}
+
+/// An own tool's release: the registry's signatures must still verify, but provenance is reported, not required. It
+/// refuses only a release built by another repository than the one the owner was shown (`repo`, empty for none).
+pub fn confirm_own(npm: &Path, package: &str, version: &str, repo: &str) -> Result<Built, Refusal> {
+    audit(npm, package, version)?;
+    let agent = agent();
+    let name = package.replacen('/', "%2f", 1);
+    let release = get_json(&agent, &format!("{REGISTRY}/{name}/{version}"))?;
+    let integrity = release["dist"]["integrity"].as_str().unwrap_or_default();
+    let found = built(&attestations(package, version)?, package, version, integrity);
+    match &found {
+        Built::By { repo: by, .. } if !by.eq_ignore_ascii_case(repo) => {
+            let shown = if repo.is_empty() { "no repository" } else { repo };
+            Err(Refusal::Unconfirmed(format!("built by {by}, but the review showed {shown}")))
+        }
+        _ => Ok(found),
+    }
 }
 
 /// Only `main`: anyone who can push a side branch could otherwise publish a release from it (owner, NEED-2170).
@@ -291,6 +347,16 @@ mod tests {
         let version = crate::tools::latest_version("@wirecat/tg-cli").unwrap();
         assert!(matches!(confirm(&npm, "@wirecat/tg-cli", &version, other), Err(Refusal::Unconfirmed(_))));
         assert!(matches!(confirm(&npm, "is-number", "7.0.0", other), Err(Refusal::Unconfirmed(_))));
+    }
+
+    #[test]
+    fn an_own_tools_build_is_read_without_refusing() {
+        let by = built(&tg(), "@wirecat/tg-cli", "0.113.0", TG_INTEGRITY);
+        let workflow = ".github/workflows/release.yml@refs/heads/main".to_string();
+        assert_eq!(by, Built::By { repo: TG_REPO.into(), workflow });
+        assert!(matches!(built(&serde_json::json!({}), "@wirecat/tg-cli", "0.113.0", TG_INTEGRITY), Built::Unknown(_)));
+        let other = "sha512-AAAAc/osDNPolJRmvoN6Eb63S08Zg5r3B5zSCQSlE8dS1aD1IxFVd9zeLDGxT6XD91MnRe+6iTkgotS++OGIFA==";
+        assert!(matches!(built(&tg(), "@wirecat/tg-cli", "0.113.0", other), Built::Unknown(_)), "another tarball");
     }
 
     #[test]
