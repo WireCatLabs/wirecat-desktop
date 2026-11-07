@@ -13,6 +13,8 @@ const en = {
   longPath: "A file path got longer than Windows allows.",
   longPathHint:
     "Turn on long paths in Windows: Settings, System, For developers, Enable long paths. Then restart WireCat and try again.",
+  ownToolBun: "bun installed this tool, and bun cannot be told which registry your own tools come from.",
+  ownToolBunHint: "Uninstall it, then add it again with Check package and Add: WireCat installs it with npm.",
 }
 
 const ru: typeof en = {
@@ -24,6 +26,8 @@ const ru: typeof en = {
   longPath: "Путь к файлу вышел длиннее, чем разрешает Windows.",
   longPathHint:
     "Включите длинные пути в Windows: Параметры, Система, Для разработчиков, «Включить длинные пути». Затем перезапустите WireCat и попробуйте снова.",
+  ownToolBun: "Этот инструмент установлен через bun, а bun нельзя указать, из какого реестра брать ваши инструменты.",
+  ownToolBunHint: "Удалите его и добавьте снова через «Проверить пакет» и «Добавить»: WireCat установит его через npm.",
 }
 
 const es: typeof en = {
@@ -35,6 +39,9 @@ const es: typeof en = {
   longPath: "Una ruta de archivo superó la longitud que permite Windows.",
   longPathHint:
     "Activa las rutas largas en Windows: Configuración, Sistema, Para programadores, Habilitar rutas largas. Luego reinicia WireCat y vuelve a intentarlo.",
+  ownToolBun:
+    "Esta herramienta se instaló con bun, y a bun no se le puede indicar de qué registro vienen tus herramientas.",
+  ownToolBunHint: "Desinstálala y vuelve a añadirla con «Comprobar paquete» y «Añadir»: WireCat la instala con npm.",
 }
 
 const failureMessages: Messages<typeof en> = { en, ru, es }
@@ -66,6 +73,8 @@ export function failureWords(
       return [m.proxy, m.proxyHint]
     case "longPath":
       return [m.longPath, m.longPathHint]
+    case "ownToolBun":
+      return [m.ownToolBun, m.ownToolBunHint]
     default:
       return [outcome.message, outcome.hint]
   }
