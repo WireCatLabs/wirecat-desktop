@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { findTool, ownerId } from "@/domain/catalog"
-import { type BatchItem, batch, roughly, toolFraction } from "@/domain/install-batch"
+import { type BatchItem, batch, roughly, toolFraction, waits } from "@/domain/install-batch"
 import { useMessages } from "@/i18n"
 import { useTools } from "@/shared/tools-store"
 import { Collapse } from "@/ui/Collapse"
@@ -65,7 +65,7 @@ function useTick(active: boolean) {
 
 /** The whole batch at a glance: one figure, one bar split per tool, and a rough time left. */
 export function InstallOverview({ chosen }: { chosen: readonly string[] }) {
-  const w = useMessages(onboardingMessages).wait
+  const { wait: w, install: im } = useMessages(onboardingMessages)
   const items = useBatchItems(chosen)
   const started = items.some((i) => i.session)
   const b = batch(items, useTick(started))
@@ -80,7 +80,9 @@ export function InstallOverview({ chosen }: { chosen: readonly string[] }) {
       ? `${w.installing(name)} · ${w.of(b.current, b.total)}`
       : left
         ? w.waiting
-        : w.finished(b.finished - b.failed)
+        : b.asking > 0
+          ? im.asked
+          : w.finished(b.finished - b.failed)
   const sub = !left
     ? b.failed > 0
       ? w.failed(b.failed)
@@ -120,7 +122,7 @@ export function InstallOverview({ chosen }: { chosen: readonly string[] }) {
         {items.map((item, i) => {
           const failed = item.session?.outcome?.event === "failed"
           const f = failed ? 1 : toolFraction(item)
-          const running = Boolean(item.session && !item.session.outcome && item.session.step !== "queued")
+          const running = Boolean(item.session && !item.session.outcome && !waits(item.session))
           return (
             <ProgressBar
               key={chosen[i]}

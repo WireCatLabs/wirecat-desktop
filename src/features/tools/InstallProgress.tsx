@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { findTool, ownerId, samePackage } from "@/domain/catalog"
 import { type ToolStage, toolProgress } from "@/domain/install-batch"
-import type { InstallSession } from "@/domain/status"
+import { asksOwner, type InstallSession } from "@/domain/status"
 import { clock } from "@/domain/sync"
 import { formatList, useMessages } from "@/i18n"
 import { useTools } from "@/shared/tools-store"
@@ -152,7 +152,7 @@ export function InstallLine({
 export function useUnfinishedInstalls() {
   const sessions = useTools((s) => s.sessions)
   return Object.entries(sessions)
-    .filter(([, s]) => s.operation === "install" && !s.outcome)
+    .filter(([, s]) => s.operation === "install" && !s.outcome && !asksOwner(s))
     .sort(([, a], [, b]) => Number(a.step === "queued") - Number(b.step === "queued"))
     .map(([id, session]) => ({ id, session }))
 }

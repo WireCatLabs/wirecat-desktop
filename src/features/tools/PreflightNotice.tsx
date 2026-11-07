@@ -5,6 +5,7 @@ import { type Preflight, preflightWarns } from "@/domain/compat"
 import { useMessages } from "@/i18n"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { focusInPlace } from "@/ui/motion"
 import { preflightMessages } from "./messages-preflight"
 import { namesOf } from "./StorageFit"
@@ -15,8 +16,17 @@ const ours = (id: string) => {
   return Boolean(tool && !isCommunity(tool))
 }
 
-/** Asked before an install or update that would leave a tool unable to open the shared store. */
-export function PreflightNotice({ tool, preflight }: { tool: CatalogTool; preflight: Preflight | undefined }) {
+/**
+ * Asked before an install or update that would leave a tool unable to open the shared store. The notice leaves with the
+ * answer; `focusAfter` finds where keyboard focus goes then, by default the row's own button (Update, or Cancel once it
+ * runs).
+ */
+export function PreflightNotice(props: {
+  tool: CatalogTool
+  preflight: Preflight | undefined
+  focusAfter?: () => HTMLElement | null
+}) {
+  const { tool, preflight, focusAfter } = props
   const owner = ownerId(tool.id)
   const op = useTools((s) => ((s.installs[owner]?.length ?? 0) > 0 ? "update" : "install"))
   const { proceed, cancel } = useTools.getState()
@@ -28,11 +38,12 @@ export function PreflightNotice({ tool, preflight }: { tool: CatalogTool; prefli
   }, [warns])
   if (!warns) return <p className="text-[0.95rem] text-ink-soft">{m.checking}</p>
 
-  // The notice leaves with the click; focus goes back to the row's own button (Update, or Cancel once it runs).
   const answer = (go: () => void) => {
     const action = box.current?.closest("li")?.querySelector('[data-tour="tool-action"]')
     go()
-    requestAnimationFrame(() => focusInPlace(action?.querySelector<HTMLElement>(":not([inert]) > button") ?? null))
+    requestAnimationFrame(() =>
+      focusInPlace(focusAfter ? focusAfter() : (action?.querySelector<HTMLElement>(":not([inert]) > button") ?? null)),
+    )
   }
   const name = nameOf(owner)
   return (
@@ -70,11 +81,14 @@ export function PreflightNotice({ tool, preflight }: { tool: CatalogTool; prefli
 }
 
 /** Under the progress of the install that asked: the tools updated after it, in the same queue. */
-export function AlongsideLine({ preflight }: { preflight: Preflight | undefined }) {
+export function AlongsideLine(props: { preflight: Preflight | undefined; className?: string }) {
+  const { preflight, className = "pl-[6.75rem]" } = props
   const m = useMessages(preflightMessages)
   const ids = preflight?.alsoUpdate.map((u) => u.id) ?? []
   if (ids.length === 0) return null
   return (
-    <p className="reveal mt-3 pl-[6.75rem] text-[0.9rem] text-ink-soft">{m.alongside(namesOf(ids), ids.length > 1)}</p>
+    <p className={cx("reveal mt-3 text-[0.9rem] text-ink-soft", className)}>
+      {m.alongside(namesOf(ids), ids.length > 1)}
+    </p>
   )
 }

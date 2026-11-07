@@ -19,6 +19,7 @@ import {
 import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { MOTION } from "@/ui/motion"
 import { failureWordsEn } from "../tools/failure-words"
+import { preflightMessages } from "../tools/messages-preflight"
 import { InstallTips } from "./InstallWait"
 
 vi.mock("@/platform/mock-delay", () => ({ delay: () => new Promise((r) => setTimeout(r, 0)) }))
@@ -30,6 +31,7 @@ afterEach(async () => {
 })
 
 const DRIVE = "Google Drive"
+const sm = preflightMessages.en
 
 /** Opens Choose with these tools ticked and presses Install, as the owner does. */
 async function installFromChoose(chosen: string[], opts: Parameters<typeof startOnboarding>[0] = {}) {
@@ -203,6 +205,58 @@ describe("a tool that fails to install", () => {
     await npm.finish("drive", "0.30.0")
     await waitFor(() => expect(progressOf(overviewBar())).toBe(100))
     expect(within(installRow(DRIVE)).getByText(/0\.30\.0/)).toBeInTheDocument()
+  })
+})
+
+describe("the store check before installing", () => {
+  const cannotOpen = { drive: { version: "0.30.0", known: true, cannotOpen: { speaks: 31, needs: 32 } } }
+
+  it("warns inside the Install step when the tool cannot open the store, and installs on Install anyway", async () => {
+    const { user, npm } = await installFromChoose(["drive"], { preflight: cannotOpen })
+    const alert = await within(installRow(DRIVE)).findByRole("alert")
+    expect(alert).toHaveTextContent(sm.title("install", `${DRIVE} 0.30.0`))
+    expect(within(installRow(DRIVE)).getByText(m.install.asked)).toBeInTheDocument()
+    expect(overviewBar().getAttribute("aria-valuetext")).toBe(m.install.asked)
+    expect(within(alert).getByRole("button", { name: sm.notNow })).toHaveFocus()
+    expect(npm.started).toEqual([])
+
+    await user.click(within(alert).getByRole("button", { name: sm.anyway("install") }))
+    await npm.whenStarted("drive")
+    await waitFor(() => expect(primaryButton(m.flow.continue)).toHaveFocus())
+  })
+
+  it("does not tell later steps that a tool waiting for the answer is still installing", async () => {
+    const { user } = await installFromChoose(["drive"], { preflight: cannotOpen })
+    await within(installRow(DRIVE)).findByRole("alert")
+    await user.click(primaryButton(m.flow.continue))
+    expect(currentStep()).toBe("agents")
+    expect(screen.queryByText(new RegExp(pm.still(DRIVE, "", 0)))).not.toBeInTheDocument()
+  })
+
+  it("leaves the tool out on Not now and asks again on Install the rest", async () => {
+    const { user, npm } = await installFromChoose(["drive"], { preflight: cannotOpen })
+    const alert = await within(installRow(DRIVE)).findByRole("alert")
+    await user.click(within(alert).getByRole("button", { name: sm.notNow }))
+    await waitFor(() => expect(within(installRow(DRIVE)).getByText(m.install.notInstalled)).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole("button", { name: m.install.rest })).toHaveFocus())
+    expect(npm.started).toEqual([])
+
+    await user.click(screen.getByRole("button", { name: m.install.rest }))
+    expect(await within(installRow(DRIVE)).findByRole("alert")).toBeInTheDocument()
+  })
+
+  it("updates an installed tool alongside without asking, and says so under the progress", async () => {
+    const { npm } = await installFromChoose(["drive"], {
+      installed: { tg: "0.88.0" },
+      preflight: { drive: { known: true, alsoUpdate: [{ id: "tg", version: "0.89.0" }] } },
+    })
+    await npm.whenStarted("drive")
+    expect(within(installRow(DRIVE)).queryByRole("alert")).not.toBeInTheDocument()
+    expect(await within(installRow(DRIVE)).findByText(sm.alongside("Telegram", false))).toBeInTheDocument()
+    expect(npm.isRunning("tg")).toBe(false)
+
+    await npm.finish("drive")
+    await npm.whenStarted("tg")
   })
 })
 

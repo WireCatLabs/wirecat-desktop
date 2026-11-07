@@ -2,6 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { expect, vi } from "vitest"
 import { App } from "@/app/App"
 import { ownerId, tools } from "@/domain/catalog"
+import type { Preflight } from "@/domain/compat"
 import { STEPS, type StepId } from "@/domain/onboarding-flow"
 import { fixMessages } from "@/features/fix"
 import { onboardingMessages } from "@/features/onboarding"
@@ -231,6 +232,8 @@ type Start = {
   profiles?: Record<string, Profile[] | null>
   /** Each tool's skill report; tools not named have no skill in any place. Only spied on when given. */
   skills?: Record<string, SkillReport>
+  /** The store check's answer for each tool; tools not named move nothing and are not asked about. */
+  preflight?: Record<string, Partial<Preflight>>
 }
 
 /**
@@ -247,6 +250,7 @@ export function startOnboarding({
   reached = step,
   profiles,
   skills,
+  preflight = {},
 }: Start = {}) {
   localStorage.clear()
   useLanguage.setState({ choice: "en" })
@@ -268,6 +272,14 @@ export function startOnboarding({
   vi.spyOn(platform, "nodeOffer").mockResolvedValue({ version: "24.22.1", bytes: 58_290_700, dir: "~/.local/share/x" })
   vi.spyOn(platform, "detectAgents").mockResolvedValue(agents)
   if (profiles) vi.spyOn(platform, "listProfiles").mockImplementation(async (id) => profiles[id] ?? [])
+  vi.spyOn(platform, "storePreflight").mockImplementation(async (id) => ({
+    version: null,
+    known: false,
+    cannotOpen: null,
+    alsoUpdate: [],
+    stops: [],
+    ...preflight[id],
+  }))
   if (skills) vi.spyOn(platform, "skillStatus").mockImplementation(async (id) => skills[id] ?? skillIn("missing"))
   const npm = fakeInstaller(installed)
   const node = fakeNodeSetup(facts)

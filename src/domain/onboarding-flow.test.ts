@@ -231,6 +231,7 @@ describe("the Install step", () => {
   it("reads a row's phase from its session", () => {
     expect(installPhase(undefined)).toBe("idle")
     expect(installPhase(session({ step: "queued" }))).toBe("wait")
+    expect(installPhase(session({ step: "preflight" }))).toBe("wait")
     expect(installPhase(session())).toBe("run")
     expect(installPhase(done)).toBe("done")
     expect(installPhase(failed)).toBe("fail")

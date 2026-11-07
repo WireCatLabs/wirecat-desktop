@@ -354,6 +354,7 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
               </Button>
             )}
             <Button
+              data-setup-next
               variant={quietContinue ? "secondary" : "primary"}
               size="lg"
               aria-disabled={blocked ? true : undefined}

@@ -2,10 +2,18 @@ import { Check, CheckCircle2, RefreshCw } from "lucide-react"
 import { type ReactNode, useId, useState } from "react"
 import { type CatalogTool, ownerId, tools } from "@/domain/catalog"
 import { installOverview, installPhase, type RowPhase, restartCommand, toQueue } from "@/domain/onboarding-flow"
-import { toolStatus } from "@/domain/status"
+import { asksOwner, toolStatus } from "@/domain/status"
 import { FixButton, FixPanel } from "@/features/fix"
 import { NodeNotice } from "@/features/system"
-import { failureWords, failureWordsEn, InstallProgress, toolsMessages, useFailureMessages } from "@/features/tools"
+import {
+  AlongsideLine,
+  failureWords,
+  failureWordsEn,
+  InstallProgress,
+  PreflightNotice,
+  toolsMessages,
+  useFailureMessages,
+} from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
@@ -25,13 +33,14 @@ import { rack, row } from "./step-styles"
 
 /**
  * Queues the chosen tools that are not on the computer yet; the store runs them one by one. In the order the Install
- * step lists them, not the order they were ticked, so "1 of 3" is the tool at the top.
+ * step lists them, not the order they were ticked, so "1 of 3" is the tool at the top. Each asks the store check first,
+ * as on the Tools page.
  */
 export function installChosen() {
   const { chosen } = useOnboarding.getState()
   const st = useTools.getState()
   const ids = tools.filter((t) => chosen.includes(t.id)).map((t) => t.id)
-  for (const id of toQueue(ids, st.installs, st.sessions)) st.install(id)
+  for (const id of toQueue(ids, st.installs, st.sessions)) st.install(id, { check: true })
 }
 
 /**
@@ -54,8 +63,12 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
   let tone: LampTone = "idle"
   let text: ReactNode = m.notInstalled
   let detail: ReactNode = null
+  const asks = Boolean(session && asksOwner(session))
   if (status.kind === "checking") text = m.checking
-  else if (session && shown === "wait") text = m.queued
+  else if (session?.step === "preflight") {
+    tone = asks ? "warn" : "idle"
+    text = asks ? m.asked : m.checking
+  } else if (session && shown === "wait") text = m.queued
   else if (session && !outcome) {
     tone = session.step === "queued" ? "idle" : "busy"
     text = session.step === "queued" ? m.queued : m.step(tm.steps.install[session.step] ?? m.installing)
@@ -110,7 +123,7 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
         <FixButton open={fixOpen} controls={fixId} onClick={() => setFixOpen((o) => !o)} />
       )}
       {outcome?.event === "failed" && (
-        <Button size="sm" onClick={() => useTools.getState().install(tool.id)}>
+        <Button size="sm" onClick={() => useTools.getState().install(tool.id, { check: true })}>
           {m.tryAgain}
         </Button>
       )}
@@ -120,6 +133,14 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
           {session && (
             <div className={cx("pt-[0.8rem] pb-[0.2rem] sm:pl-[3.8rem]", installing && "step-in")}>
               <InstallProgress session={session} compact />
+              {!session.alongside && <AlongsideLine preflight={session.preflight} className="" />}
+            </div>
+          )}
+        </Collapse>
+        <Collapse open={asks}>
+          {session && (
+            <div className="pt-[0.8rem] pb-[0.2rem] sm:pl-[3.8rem]">
+              <PreflightNotice tool={tool} preflight={session.preflight} focusAfter={nextControl} />
             </div>
           )}
         </Collapse>
@@ -144,6 +165,10 @@ function Progress({ tool, shown }: { tool: CatalogTool; shown: RowPhase }) {
     </li>
   )
 }
+
+// Once the warning is answered, the row has no button of its own: "Install the rest" after Not now, else Continue.
+const nextControl = () =>
+  document.querySelector<HTMLElement>("[data-install-rest]") ?? document.querySelector<HTMLElement>("[data-setup-next]")
 
 export function Install() {
   const chosen = useOnboarding((s) => s.chosen)
@@ -180,7 +205,7 @@ export function Install() {
       </ul>
       {pending && nodeReady && (
         <div>
-          <Button size="sm" onClick={installChosen}>
+          <Button size="sm" data-install-rest onClick={installChosen}>
             {m.rest}
           </Button>
         </div>

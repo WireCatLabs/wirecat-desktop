@@ -140,6 +140,29 @@ describe("the batch", () => {
     expect(b.current).toBeNull()
   })
 
+  it("counts a tool still being checked as waiting, and one held by the warning as asking, not as installing", () => {
+    const checking = session({ step: "preflight" })
+    expect(toolProgress({ session: checking, installed: false }).stage).toEqual({ kind: "waiting" })
+    expect(batch([{ session: checking, installed: false }], T0)).toMatchObject({
+      current: null,
+      remainingMs: TYPICAL_INSTALL_MS,
+      asking: 0,
+    })
+    const preflight = {
+      version: "1.0.0",
+      known: true,
+      cannotOpen: { speaks: 31, needs: 32 },
+      alsoUpdate: [],
+      stops: [],
+    }
+    const asked = session({ step: "preflight", preflight })
+    expect(batch([{ session: asked, installed: false }], T0)).toMatchObject({
+      current: null,
+      remainingMs: null,
+      asking: 1,
+    })
+  })
+
   it("has no estimate once nothing runs or waits", () => {
     expect(batch([{ session: done(1000), installed: true }], T0).remainingMs).toBeNull()
   })

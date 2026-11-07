@@ -9,6 +9,7 @@ import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { keepBelow } from "@/ui/motion"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { toolsMessages } from "./messages"
 import { StorageSummary } from "./StorageFit"
@@ -74,7 +75,7 @@ export function ToolsPage() {
       )}
 
       {storageSlot ? (
-        <div className="flex min-h-[3.4rem] flex-col justify-center">
+        <div ref={keepBelow} className="flex min-h-[3.4rem] flex-col justify-center">
           {compat === undefined ? (
             <Skeleton className="h-[3.4rem] w-full rounded-[0.2rem]" label={m.checkingStorage} />
           ) : (
