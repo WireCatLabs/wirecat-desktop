@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Signs a copy of the last unsigned Windows installer on this computer with the code your SimplySign app shows now,
+# then checks the signature, its timestamp and that the signer is the certificate in WINDOWS_SIGNER_SHA1.
+# The seed is not used: the code comes from the phone, so nothing long-lived is read or stored.
+set -euo pipefail
+
+repo="WireCatLabs/wirecat-desktop"
+tag="v0.4.2"
+ssign="$HOME/.cargo/bin/ssign"
+work="/dev/shm/wirecat-sign-test"
+
+[ -x "$ssign" ] || { echo "ssign is missing at $ssign." >&2; exit 1; }
+command -v osslsigncode >/dev/null || { echo "osslsigncode is missing: sudo apt install osslsigncode" >&2; exit 1; }
+expected="$(gh variable get WINDOWS_SIGNER_SHA1 --env release --repo "$repo" | tr -d ' :\r\n' | tr 'a-f' 'A-F')"
+[ -n "$expected" ] || { echo "WINDOWS_SIGNER_SHA1 is not set in the release environment." >&2; exit 1; }
+
+rm -rf "$work"
+mkdir -m 700 "$work"
+trap 'rm -rf "$work"' EXIT
+gh release download "$tag" --repo "$repo" --pattern "*_x64-setup.exe" --dir "$work"
+file="$(ls "$work"/*_x64-setup.exe)"
+
+read -rp "SimplySign login (e-mail): " email
+read -rsp "The 6-digit code your SimplySign app shows now: " code
+echo
+CERTUM_EMAIL="$email" CERTUM_TOKEN="$code" "$ssign" "$file"
+unset code
+
+osslsigncode verify -in "$file" >"$work/verify.txt" 2>&1 || { cat "$work/verify.txt"; echo "The signature does not verify." >&2; exit 1; }
+grep -q "Timestamp" "$work/verify.txt" || { cat "$work/verify.txt"; echo "The signature has no timestamp." >&2; exit 1; }
+
+osslsigncode extract-signature -in "$file" -out "$work/sig.p7" >/dev/null
+openssl pkcs7 -inform DER -in "$work/sig.p7" -print_certs -out "$work/certs.pem"
+found=""
+while read -r line; do
+  print="$(tr -d ':' <<<"${line#*=}")"
+  [ "$print" = "$expected" ] && found=yes
+done < <(awk '/BEGIN CERT/{f=1; c=""} f{c=c $0 "\n"} /END CERT/{f=0; printf "%s", c | "openssl x509 -noout -fingerprint -sha1"; close("openssl x509 -noout -fingerprint -sha1")}' "$work/certs.pem")
+[ -n "$found" ] || { echo "The file is signed, but not by the certificate in WINDOWS_SIGNER_SHA1." >&2; exit 1; }
+
+grep -E "Signer's certificate|Subject:|Timestamp" "$work/verify.txt" | head -6
+echo "Signing works: valid signature, timestamped, signed by WINDOWS_SIGNER_SHA1."
