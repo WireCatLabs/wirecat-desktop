@@ -2,7 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { InstallEvent, OwnRefusal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import { ownReview } from "@/platform/mock-community"
+import { ownReview, UNCHANGED } from "@/platform/mock-community"
 import { render, screen } from "@/testing/render"
 import { OwnToolDialog } from "./OwnToolDialog"
 import { useOwnDialog } from "./own-store"
@@ -107,40 +107,42 @@ describe("Add your own tool", () => {
     expect(await screen.findByText("The package is uninstalled.")).toBeInTheDocument()
   })
 
-  it("reviews a saved own tool that is not installed, even when nothing changed", async () => {
-    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM", installed: false } })
-    const same = { fromVersion: "0.3.0", repoChanged: false, fromRepo: null, newWrites: [], confirm: false }
-    vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview({ update: same }) })
-    const add = vi.spyOn(platform, "ownToolAdd")
-    render(<OwnToolDialog />)
-    expect(await screen.findByRole("button", { name: "Add" })).toBeInTheDocument()
-    expect(add).not.toHaveBeenCalled()
-  })
-
-  it("updates at once when nothing new is asked, and asks again for a new repository", async () => {
-    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM", installed: true } })
-    const same = { fromVersion: "0.2.0", repoChanged: false, fromRepo: null, newWrites: [], confirm: false }
-    vi.spyOn(platform, "ownToolDiscover").mockResolvedValueOnce({
+  it("shows the review of every update, and installs only after Install and run", async () => {
+    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM" } })
+    vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({
       outcome: "review",
-      review: ownReview({ update: same }),
+      review: ownReview({ update: UNCHANGED }),
     })
     const add = vi.spyOn(platform, "ownToolAdd").mockImplementation(async (_token, onEvent) => onEvent(done))
-    const { unmount } = render(<OwnToolDialog />)
-    expect(await screen.findByText(/Acme CRM is added/)).toBeInTheDocument()
-    expect(add).toHaveBeenCalledTimes(1)
-    unmount()
-
-    const moved = { ...same, repoChanged: true, fromRepo: "https://github.com/example/old", confirm: true }
-    vi.spyOn(platform, "ownToolDiscover").mockResolvedValueOnce({
-      outcome: "review",
-      review: ownReview({ update: moved }),
-    })
-    useOwnDialog.setState({ open: false })
     render(<OwnToolDialog />)
-    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM", installed: true } })
+    expect(await screen.findByText(/this version asks for nothing new/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Add" }))
+    expect(add).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole("button", { name: "Install and run" }))
+    expect(add).toHaveBeenCalledTimes(1)
+  })
+
+  it("asks the owner to accept a changed repository, publishers or new access before Add", async () => {
+    useOwnDialog.setState({ open: true, update: { pkg: PKG, name: "Acme CRM" } })
+    const update = {
+      ...UNCHANGED,
+      repoChanged: true,
+      fromRepo: "https://github.com/example/old",
+      publishersChanged: true,
+      fromPublishers: ["old-maintainer"],
+      newParts: ["mcpServer"],
+      confirm: true,
+    }
+    vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview({ update }) })
+    render(<OwnToolDialog />)
     expect(
       await screen.findByText(/The repository changed from https:\/\/github.com\/example\/old/),
     ).toBeInTheDocument()
-    expect(add).toHaveBeenCalledTimes(1)
+    expect(screen.getByText(/publishers changed from old-maintainer to example/)).toBeInTheDocument()
+    expect(screen.getByText(/an MCP server/)).toBeInTheDocument()
+    const add = screen.getByRole("button", { name: "Add" })
+    expect(add).toBeDisabled()
+    await userEvent.click(screen.getByRole("checkbox", { name: "I accept these changes" }))
+    expect(add).toBeEnabled()
   })
 })

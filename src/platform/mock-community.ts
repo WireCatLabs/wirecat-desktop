@@ -1,4 +1,4 @@
-import type { InstallEvent, OwnDiscovery, OwnRefusal, OwnReview, OwnStatus } from "./bindings"
+import type { InstallEvent, OwnDiscovery, OwnRefusal, OwnReview, OwnStatus, OwnUpdate } from "./bindings"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
 import { delay } from "./mock-delay"
 
@@ -104,6 +104,21 @@ export function ownReview(overrides: Partial<OwnReview> = {}): OwnReview {
   }
 }
 
+/** An update of Acme CRM that asks for nothing new since 0.2.0. */
+export const UNCHANGED: OwnUpdate = {
+  fromVersion: "0.2.0",
+  repoChanged: false,
+  fromRepo: OWN.repo,
+  provenanceChanged: false,
+  fromBuilt: { repo: OWN.repo, workflow: ".github/workflows/release.yml@refs/heads/main" },
+  publishersChanged: false,
+  fromPublishers: ["example"],
+  newCommands: [],
+  newWrites: [],
+  newParts: [],
+  confirm: false,
+}
+
 const REFUSALS: Record<string, OwnRefusal> = {
   not_found: { kind: "not_found" },
   not_scoped: { kind: "not_scoped" },
@@ -154,10 +169,13 @@ export function ownToolsMock(params: URLSearchParams) {
         return { outcome: "review", review: ownReview({ package: pkg, repo: null, built: null }) }
       if (discovered === "update") {
         const update = {
-          fromVersion: "0.2.0",
+          ...UNCHANGED,
           repoChanged: true,
           fromRepo: "https://github.com/example/old-crm",
+          publishersChanged: true,
+          fromPublishers: ["old-maintainer"],
           newWrites: ["deals update"],
+          newParts: ["mcpServer"],
           confirm: true,
         }
         return { outcome: "review", review: ownReview({ package: pkg, update }) }

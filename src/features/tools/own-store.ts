@@ -1,10 +1,7 @@
 import { create } from "zustand"
 
-/**
- * `update` names an own tool already added: the dialog reads npm for its new version straight away. Only an installed
- * one may skip the review, when the new version asks for nothing new.
- */
-type OwnDialog = { open: boolean; update: { pkg: string; name: string; installed: boolean } | null }
+/** `update` names an own tool already added: the dialog reads npm for its new version straight away. */
+type OwnDialog = { open: boolean; update: { pkg: string; name: string } | null }
 
 export const useOwnDialog = create<OwnDialog & { show(update?: OwnDialog["update"]): void; close(): void }>((set) => ({
   open: false,
