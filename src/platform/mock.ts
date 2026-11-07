@@ -5,7 +5,7 @@ import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
 import { botMock } from "./mock-bot"
 import { cloudflareMock } from "./mock-cloudflare"
-import { communityMock, extraToolsMock } from "./mock-community"
+import { communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
 import { delay } from "./mock-delay"
 import { npmLines } from "./mock-install"
@@ -243,9 +243,10 @@ export function createMock(os: Platform["os"]): Platform {
     kind: "mock",
     os,
     async extraTools() {
-      return extraToolsMock(params.get("community"))
+      return extraToolsMock(params)
     },
     ...communityMock(params),
+    ...ownToolsMock(params),
     async readiness(): Promise<Readiness> {
       await delay(450)
       const managedInfo = managed ? { version: NODE.version, dir: NODE.dir, active: true } : null
@@ -467,7 +468,7 @@ export function createMock(os: Platform["os"]): Platform {
         return onEvent({
           event: "failed",
           reason: "unconfirmed",
-          message: `${pkg} ${version} could not be confirmed as built by WireCat, so it was not installed.`,
+          message: `${pkg} ${version} could not be confirmed as built by ${repo}, so it was not installed.`,
           hint: "Try again later. If it keeps happening, tell WireCat with Report a problem.",
         })
       }

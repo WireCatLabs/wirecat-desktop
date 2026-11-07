@@ -11,7 +11,9 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { keepBelow } from "@/ui/motion"
 import { Skeleton, StableText } from "@/ui/Skeleton"
+import { AddOwnTool } from "./AddOwnTool"
 import { toolsMessages } from "./messages"
+import { OwnToolDialog } from "./OwnToolDialog"
 import { StorageSummary } from "./StorageFit"
 import { ToolRow } from "./ToolRow"
 import { ToolsIntro } from "./ToolsIntro"
@@ -91,6 +93,9 @@ export function ToolsPage() {
           <ToolRow key={t.id} tool={t} />
         ))}
       </ul>
+
+      <AddOwnTool />
+      <OwnToolDialog />
 
       <UpgradeWarning />
 

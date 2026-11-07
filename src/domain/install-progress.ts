@@ -4,6 +4,7 @@
  * package to unpack, then, on a cold cache, one `http fetch GET 200 … .tgz` line as each download lands. A warm cache
  * prints only the `cache` lines, one as each package is unpacked, so no total is known.
  */
+import type { InstallOutcome, InstallSession, InstallStep, VerifyCheck } from "./status"
 export type NpmPhase = "resolve" | "fetch" | "setup"
 
 export type NpmProgress = {
@@ -64,4 +65,23 @@ export function fraction(p: NpmProgress): number | null {
   if (p.phase === "setup") return 1
   if (p.phase !== "fetch" || !p.total) return 0
   return Math.min(1, p.done / p.total)
+}
+
+type SessionEvent =
+  | { event: "step"; step: InstallStep }
+  | { event: "check"; what: VerifyCheck }
+  | { event: "log"; line: string }
+  | InstallOutcome
+
+/** One event of `install.rs` applied to a session: the Tools page's store and the own-tool dialog read the same. */
+export function applyInstallEvent(s: InstallSession, e: SessionEvent, now = Date.now()): InstallSession {
+  if (e.event === "step") return { ...s, step: e.step, began: { ...s.began, [e.step]: now } }
+  if (e.event === "check") return { ...s, verifying: e.what }
+  if (e.event === "log") {
+    const progress = readNpmLine(s.progress ?? startProgress(), e.line)
+    // Hundreds of "fetched a package" lines would push the lines that explain a failure out of the log.
+    if (isProgressLine(e.line)) return { ...s, progress }
+    return { ...s, progress, log: [...s.log.slice(-499), e.line] }
+  }
+  return { ...s, outcome: e, ended: now }
 }

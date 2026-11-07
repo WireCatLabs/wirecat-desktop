@@ -1,6 +1,6 @@
 import { AlertTriangle, ExternalLink, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
-import { type CatalogTool, installCommand, ownerId, removeCommand, samePackage } from "@/domain/catalog"
+import { type CatalogTool, installCommand, isOwn, ownerId, removeCommand, samePackage } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -24,6 +24,7 @@ import { type ToolsText, toolsMessages } from "./messages"
 import { copiesMessages } from "./messages-copies"
 import { Permissions } from "./Permissions"
 import { type Copy, RemoveCopyDialog, removable } from "./RemoveCopy"
+import { RemoveOwn } from "./RemoveOwn"
 import { Service } from "./Service"
 import { FitDetails } from "./StorageFit"
 import { toolText } from "./tool-text"
@@ -166,7 +167,7 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
         <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-ink-soft">{toolText(t, tool).summary}</p>
         <div className="flex gap-5">
           <ExternalLinkButton href={tool.docs}>{m.docs}</ExternalLinkButton>
-          <ExternalLinkButton href={tool.repo}>{m.github}</ExternalLinkButton>
+          {tool.repo && <ExternalLinkButton href={tool.repo}>{m.github}</ExternalLinkButton>}
         </div>
         <div>
           <h4 className="mb-2 text-[0.9rem] font-medium text-ink-dim">{m.installFromTerminal}</h4>
@@ -200,6 +201,9 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
               {m.uninstall}
             </Button>
           </div>
+        )}
+        {isOwn(tool) && (
+          <RemoveOwn tool={tool} installed={installs.length > 0} onUninstall={() => setConfirming(true)} />
         )}
       </section>
       <ConfirmUninstall tool={tool} open={confirming} onClose={() => setConfirming(false)} />

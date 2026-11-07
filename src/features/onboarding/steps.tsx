@@ -1,9 +1,9 @@
 import { Bot, HardDrive, RefreshCw, Terminal } from "lucide-react"
 import type { ReactNode } from "react"
-import { findTool, isCommunity, maker, ownerId, samePackage, tools } from "@/domain/catalog"
+import { findTool, isCommunity, isOwn, maker, ownerId, samePackage, tools } from "@/domain/catalog"
 import { computerLine, doneRow } from "@/domain/onboarding-flow"
 import { NodeNotice } from "@/features/system"
-import { InstallLine, openConnect, toolsMessages, toolText } from "@/features/tools"
+import { InstallLine, openConnect, ownMessages, toolsMessages, toolText } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -113,6 +113,7 @@ export function Choose() {
   const installs = useTools((s) => s.installs)
   const toggle = useOnboarding((s) => s.toggle)
   const tm = useMessages(toolsMessages)
+  const om = useMessages(ownMessages)
   const m = useMessages(onboardingMessages).choose
 
   return (
@@ -132,12 +133,14 @@ export function Choose() {
                   <span className="text-[1.02rem] font-semibold">{t.name}</span>
                   <span className="font-mono text-[0.9rem] text-ink-soft">{t.bin}</span>
                   {t.partOf && <Pill>{m.partOf(findTool(t.partOf)?.name ?? t.partOf)}</Pill>}
-                  {isCommunity(t) && <Pill>{tm.row.community}</Pill>}
+                  {isCommunity(t) && <Pill>{isOwn(t) ? om.notChecked : tm.row.community}</Pill>}
                   {installed && <Pill tone="brand">{m.installed}</Pill>}
                 </span>
                 <span className="mt-0.5 block text-body leading-snug text-ink-soft">{toolText(tm, t).tagline}</span>
                 {isCommunity(t) && !installed && (
-                  <span className="mt-0.5 block text-body leading-snug text-ink-soft">{tm.row.trust(maker(t))}</span>
+                  <span className="mt-0.5 block text-body leading-snug text-ink-soft">
+                    {isOwn(t) ? om.trust(maker(t)) : tm.row.trust(maker(t))}
+                  </span>
                 )}
               </span>
             </>
