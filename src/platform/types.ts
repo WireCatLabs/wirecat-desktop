@@ -19,6 +19,7 @@ import type {
   FolderLevel,
   MailAgent,
   NotesFolderAdded,
+  NotesFolderRemoved,
   NotesModelEvent,
   NotesSetup,
   ZoomAppAnswer,
@@ -308,9 +309,11 @@ export type Platform = {
   notesPickFolder(): Promise<string | null>
   /** memo's `folders add` for a path the window returned; Rust checks it first. Failures come as a closed problem. */
   notesFolderAdd(id: string, path: string): Promise<NotesFolderAdded>
+  /** memo's `folders remove`; with `deleteNotes` also that folder's notes in memo's store (never files on disk). */
+  notesFolderRemove(id: string, folder: string, deleteNotes: boolean): Promise<NotesFolderRemoved>
   /** memo's `sync --only notes`; the same events as `syncRun`, stopped with `syncStop(id, null)`. */
   notesSync(id: string, onEvent: (e: SyncEvent) => void): Promise<void>
-  /** Downloads the catalog's search model; memo prints no progress, so only the end arrives. */
+  /** Downloads the catalog's search model; a memo that prints no progress lines sends only the end. */
   notesModelDownload(id: string, onEvent: (e: NotesModelEvent) => void): Promise<void>
   notesModelStop(id: string): Promise<void>
   /** What a bug report carries about this computer, masked, including recent failed runs (private). */

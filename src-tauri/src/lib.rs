@@ -127,6 +127,7 @@ pub fn run() {
             commands::notes_setup::notes_setup_status,
             commands::notes_setup::notes_pick_folder,
             commands::notes_setup::notes_folder_add,
+            commands::notes_setup::notes_folder_remove,
             commands::notes_setup::notes_sync,
             commands::notes_setup::notes_model_download,
             commands::notes_setup::notes_model_stop,

@@ -240,6 +240,7 @@ function createTauri(): Platform {
     notesSetupStatus: (id) => invoke("notes_setup_status", { id }),
     notesPickFolder: () => invoke("notes_pick_folder"),
     notesFolderAdd: (id, path) => invoke("notes_folder_add", { id, path }),
+    notesFolderRemove: (id, folder, deleteNotes) => invoke("notes_folder_remove", { id, folder, deleteNotes }),
     notesSync: (id, onEvent) => {
       const channel = new Channel<SyncEvent>()
       channel.onmessage = onEvent

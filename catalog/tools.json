@@ -1716,6 +1716,8 @@
         "minVersion": "0.131.14",
         "folders": ["folders", "list", "--no-record", "--json"],
         "add": ["folders", "add", "{path}", "--no-record", "--json"],
+        "remove": ["folders", "remove", "{id}", "--record", "--json"],
+        "removeDelete": ["folders", "remove", "{id}", "--allow-delete", "--yes", "--record", "--json"],
         "sync": ["sync", "--only", "notes", "--record", "--json"],
         "models": ["models", "list", "--no-record", "--json"],
         "model": "e5-small",
