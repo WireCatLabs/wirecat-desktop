@@ -19,8 +19,13 @@ pub struct Tool {
     pub id: String,
     pub bin: String,
     pub package: String,
-    /// The GitHub repository whose release workflow must have built the npm package (`provenance.rs`).
+    /// The GitHub repository whose release workflow must have built the npm package (`provenance.rs`); empty only for
+    /// an own tool whose repository is private or outside GitHub.
+    #[serde(default)]
     pub repo: String,
+    /// Compiled in, the signed list, or the owner's own file; set by `community.rs`, never read from an entry.
+    #[serde(skip)]
+    pub source: crate::community::Source,
     pub profiles: Option<ProfileSource>,
     pub doctor: Vec<String>,
     pub runs: Option<RunsSource>,
