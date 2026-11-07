@@ -9,8 +9,11 @@ import { signinMessages } from "./messages"
 const FIELD =
   "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 pr-12 font-mono text-[1.1rem] text-ink"
 
-const INPUT: Record<string, { mode?: "tel" | "numeric"; complete: string }> = {
+const INPUT: Record<string, { mode?: "tel" | "numeric" | "email"; complete: string }> = {
   phone: { mode: "tel", complete: "tel" },
+  address: { mode: "email", complete: "email" },
+  imap_port: { mode: "numeric", complete: "off" },
+  smtp_port: { mode: "numeric", complete: "off" },
   code: { mode: "numeric", complete: "one-time-code" },
   api_id: { mode: "numeric", complete: "off" },
   password: { complete: "current-password" },

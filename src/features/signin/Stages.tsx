@@ -20,6 +20,7 @@ import { ReportThis } from "@/shared/ReportThis"
 import {
   APP_KEYS,
   keptAnswer,
+  linkIn,
   methodOf,
   type Need,
   type OpenUrl,
@@ -34,9 +35,11 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { AnswerForm, type Check } from "./AnswerForm"
+import { DriveFolders } from "./DriveFolders"
 import { explainView, FailureCard } from "./Failure"
 import { signinMessages } from "./messages"
 import { planMessages } from "./messages-plan"
+import { setupMessages } from "./messages-setup"
 import { telegramMessages } from "./messages-telegram"
 import { wizardMessages } from "./messages-wizard"
 import {
@@ -47,7 +50,7 @@ import {
   TelegramFailureText,
   TelegramScanSteps,
 } from "./TelegramGuide"
-import { maxTokenIn } from "./wizard"
+import { MAIL_SERVER_FIELDS, maxTokenIn } from "./wizard"
 import { SyncNow, ZoomAppSetup } from "./ZoomApp"
 
 const STAGE = "flex min-h-[19rem] flex-col items-center justify-center gap-3 text-center text-[1.1rem]"
@@ -82,6 +85,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
   const m = useMessages(signinMessages)
   const tm = useMessages(telegramMessages)
   const pm = useMessages(planMessages)
+  const sm = useMessages(setupMessages)
   if (isKeys(s)) return <KeysStage name={name} s={s} />
   if (s.phase === "starting") {
     const switching = s.switchingTo ? tm.switching[s.switchingTo] : undefined
@@ -101,8 +105,12 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     const sent = said.findLast((n) => n?.kind === "codeSent")
     const last = said.at(-1)
     const refused = last?.kind === "notAccepted" && s.need.field === last.what ? tm.notAccepted[last.what] : undefined
-    const phone = tg && s.need.field === "phone"
+    const phone = s.need.field === "phone"
     if (s.need.field === "token") return <TokenStage need={s.need} s={s} />
+    if (s.need.field === "client_id") return <ZoomAppSetup need={s.need} />
+    if (MAIL_SERVER_FIELDS.has(s.need.field)) return <ServerStage need={s.need} s={s} />
+    const link = linkIn(s.need.hint)
+    const prepare = s.tool === "email" && isPassword(s.need) ? s.notes : []
     const checkNumber: Check = (typed) => {
       const result = checkPhone(typed)
       return result.problem === null
@@ -111,11 +119,22 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     }
     const readBack = (typed: string) => {
       const result = checkPhone(typed)
-      return result.problem === null ? tm.phonePreview(formatPhone(result.value)) : null
+      if (result.problem !== null) return null
+      return tg ? tm.phonePreview(formatPhone(result.value)) : sm.wa.phonePreview(formatPhone(result.value))
     }
     return (
       <div className="flex min-h-[19rem] flex-col items-center justify-center gap-4 text-[1.1rem]">
         {s.url && !isTelegramApps(s.url) && <BrowserLink url={s.url} compact />}
+        {prepare.length > 0 && (
+          <section className="flex w-full max-w-[32rem] flex-col gap-1.5 text-left">
+            <h3 className="text-body font-semibold text-ink">{sm.mail.prepare}</h3>
+            <ul className="flex list-disc flex-col gap-1 pl-5 text-body leading-snug text-ink-soft">
+              {prepare.map((note) => (
+                <li key={note}>{sentence(note)}</li>
+              ))}
+            </ul>
+          </section>
+        )}
         <AnswerForm
           need={s.need}
           sent={s.sent}
@@ -126,12 +145,19 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
             s.need.field === "code" && sent?.kind === "codeSent"
               ? tm.codeSent[sent.via]
               : phone
-                ? tm.phoneHint
+                ? tg
+                  ? tm.phoneHint
+                  : sm.wa.phoneHint
                 : undefined
           }
           problem={refused}
           {...(phone ? { check: checkNumber, filter: phoneTyped, preview: readBack } : {})}
         />
+        {link && (
+          <div className="w-full max-w-[32rem]">
+            <OpenLink url={link} />
+          </div>
+        )}
       </div>
     )
   }
@@ -174,12 +200,16 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
           {alreadyLinked ? m.alreadySignedIn(name, s.profile ?? "") : m.signedIn(name, s.profile ?? "")}
         </p>
         {received && <p className="tabular-nums">{m.received(received)}</p>}
-        <NextAfterSignIn />
+        {s.tool && s.profile && findTool(s.tool)?.folderPicker ? (
+          <DriveFolders tool={s.tool} profile={s.profile} name={name} />
+        ) : (
+          <NextAfterSignIn />
+        )}
       </div>
     )
   }
   if (s.phase === "failed" && s.failure) {
-    const needsClientId = zoomNeedsClientId(s.tool ?? "", s.failure.message)
+    const needsClientId = zoomNeedsClientId(s.tool ?? "", s.failure.message, s.failure.reason)
     // A tool from before WireCat's Google app (gcal 0.19) refuses to start without the owner's own.
     const needsOwnApp =
       Boolean(s.tool && methodOf(s.tool, s.method)?.clientFile) &&
@@ -304,7 +334,15 @@ function PairStage({ pairing }: { pairing: Pairing }) {
   const m = useMessages(signinMessages)
   return (
     <div className={STAGE}>
-      <p>{pairing.place ? m.typeCodeAt(pairing.place) : m.typeCode}</p>
+      {/* wa's place is a whole instruction of its own ("WhatsApp on the phone: tap …"), not a place to name after "on". */}
+      {pairing.place?.includes(":") ? (
+        <div className="flex max-w-[30rem] flex-col gap-1">
+          <p className="font-medium text-ink">{m.typeCode}</p>
+          <p className="text-body text-ink-soft">{sentence(pairing.place)}</p>
+        </div>
+      ) : (
+        <p>{pairing.place ? m.typeCodeAt(pairing.place) : m.typeCode}</p>
+      )}
       <p className="selectable font-mono text-[2.2rem] font-semibold tracking-[0.18em] text-ink tabular-nums">
         {pairing.code}
       </p>
@@ -439,6 +477,34 @@ function ExpiresIn({ at }: { at: string }) {
     return () => clearInterval(timer)
   }, [at])
   return <p className="text-body text-ink-dim tabular-nums">{seconds > 0 ? m.expiresIn(seconds) : m.expired}</p>
+}
+
+/**
+ * mail-cli asks the server only when discovery found none (mail-cli PR #128). The host is required; a port or the SMTP
+ * server may be left empty for the tool's default, so an empty answer is sent as it is.
+ */
+function ServerStage({ need, s }: { need: Need; s: SignInView }) {
+  const sm = useMessages(setupMessages)
+  const port = need.field.endsWith("_port")
+  const check: Check = (typed) => {
+    const value = typed.trim()
+    if (need.field === "imap_host" && !value) return { value, error: sm.mail.serverEmpty }
+    if (port && value && !(Number(value) >= 1 && Number(value) <= 65535)) return { value, error: sm.mail.portWrong }
+    return { value, error: null }
+  }
+  return (
+    <div className="flex min-h-[19rem] flex-col items-center justify-center gap-4 text-[1.1rem]">
+      <AnswerForm
+        need={need}
+        sent={s.sent}
+        onAnswer={s.answer}
+        initial={keptAnswer(need.field)}
+        hint={sm.mail.serverHint[need.field]}
+        check={check}
+        {...(port ? { filter: (typed: string) => typed.replace(/\D/g, "").slice(0, 5) } : {})}
+      />
+    </div>
+  )
 }
 
 /** MAX's token: where web.max.ru keeps it, step by step, and the field that takes the whole stored value. */

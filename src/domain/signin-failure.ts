@@ -8,6 +8,13 @@ export type FailureReason =
   | "qrExpired"
   | "loginInUse"
   | "clientIdMissing"
+  | "mailRefused"
+  | "mailAppPassword"
+  | "mailImapOff"
+  | "mailUnreachable"
+  | "signedOut"
+  | "signInExpired"
+  | "rateLimited"
   | "browserNoReturn"
   | "denied"
   | "timeout"
@@ -21,7 +28,15 @@ export type FailureReason =
  * tool's page, where it updates; `terminal` the tool's own setup in a terminal; `toolPage` the tool's page;
  * `copy` puts `copy` on the clipboard; `report` sends a bug report.
  */
-export type FailureAction = "retry" | "otherMethod" | "update" | "terminal" | "toolPage" | "copy" | "report"
+export type FailureAction =
+  | "retry"
+  | "otherMethod"
+  | "update"
+  | "terminal"
+  | "toolPage"
+  | "copy"
+  | "openPage"
+  | "report"
 
 export type ExplainedFailure = {
   reason: FailureReason
@@ -29,6 +44,8 @@ export type ExplainedFailure = {
   fallback: FailureAction | null
   /** The text `copy` puts on the clipboard. */
   copy?: string
+  /** The page `openPage` opens: where the provider makes an app password, for example. */
+  page?: string
 }
 
 /** The step the window showed when the tool gave up; it tells a QR code nobody scanned from a page never finished. */
@@ -46,16 +63,22 @@ export type FailureInput = {
   otherMethod: boolean
   /** The tool has a setup command a terminal can run. */
   terminal: boolean
+  /** A page the tool named in its last question's hint, such as the provider's app password page. */
+  page?: string | undefined
 }
 
 export const NETWORK =
   /did not answer in time|ECONNREFUSED|ECONNRESET|ENOTFOUND|EAI_AGAIN|ETIMEDOUT|ENETUNREACH|socket hang up|fetch failed|network|could not connect|connection (?:closed|lost|refused)|offline/i
 
 /**
- * zoom-cli says a missing Public Client ID only in words ("run zm config set zoom.client_id …"); once it sends a
- * `needs` step or a reason for it, that replaces this match.
+ * zoom-cli from PR #337 sends the reason; an older zm says it only in words ("run zm config set zoom.client_id …").
  */
-export const zoomNeedsClientId = (tool: string, message: string) => tool === "zm" && message.includes("zoom.client_id")
+export const zoomNeedsClientId = (tool: string, message: string, reason?: string | null) =>
+  tool === "zm" && (reason === "zoom.client-id-missing" || message.includes("zoom.client_id"))
+
+/** Google's pages for Gmail's two refusals; mail-cli names the reason, not the page. */
+export const GMAIL_APP_PASSWORDS = "https://myaccount.google.com/apppasswords"
+export const GMAIL_IMAP_HELP = "https://support.google.com/mail/answer/7126229"
 
 /**
  * Texts and codes checked in the tools' source (2026-11-07): whatsapp-cli `engine/cmd/wa-engine/device.go` ("this
@@ -84,7 +107,27 @@ export function explainFailure(f: FailureInput): ExplainedFailure {
   })
   if (f.code === NEEDS_UPDATE || /unknown option/i.test(f.message))
     return { reason: "needsUpdate", primary: "update", fallback: f.terminal ? "terminal" : null }
-  if (zoomNeedsClientId(f.tool, f.message)) return { reason: "clientIdMissing", primary: "retry", fallback: null }
+  if (zoomNeedsClientId(f.tool, f.message, f.reason))
+    return { reason: "clientIdMissing", primary: "retry", fallback: null }
+  // mail-cli PR #128 and drive-cli PR #335: stable reasons, so their server's wording never has to be read.
+  switch (f.reason) {
+    case "mail.app-password-required":
+      return { reason: "mailAppPassword", primary: "openPage", fallback: "retry", page: f.page ?? GMAIL_APP_PASSWORDS }
+    case "mail.imap-disabled":
+      return { reason: "mailImapOff", primary: "openPage", fallback: "retry", page: GMAIL_IMAP_HELP }
+    case "mail.login-refused":
+      return f.page
+        ? { reason: "mailRefused", primary: "retry", fallback: "openPage", page: f.page }
+        : { reason: "mailRefused", primary: "retry", fallback: null }
+    case "mail.host-unreachable":
+      return retry("mailUnreachable", null)
+    case "oauth.missing":
+      return retry("signedOut", null)
+    case "oauth.expired":
+      return retry("signInExpired", null)
+    case "provider.rate-limited":
+      return retry("rateLimited", null)
+  }
   if (f.reason === "device.in-use" || (f.tool === "wa" && IN_USE.test(f.message)))
     return { reason: "loginInUse", primary: "toolPage", fallback: "copy", copy: `wa ${f.profile} server stop` }
   if (f.code === "cancelled") return retry("cancelled")

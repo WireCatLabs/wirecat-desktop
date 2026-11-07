@@ -15,6 +15,7 @@ mod commands;
 mod community;
 mod compat;
 mod config_repair;
+mod drive_folders;
 mod error;
 mod funnel_helper;
 mod install;
@@ -61,6 +62,7 @@ mod tasks;
 mod terminal;
 mod terminal_path;
 mod tools;
+mod zoom_app;
 
 use install::Running;
 use std::sync::Arc;
@@ -125,6 +127,7 @@ pub fn run() {
             commands::notes_setup::notes_setup_status,
             commands::notes_setup::notes_pick_folder,
             commands::notes_setup::notes_folder_add,
+            commands::notes_setup::notes_folder_remove,
             commands::notes_setup::notes_sync,
             commands::notes_setup::notes_model_download,
             commands::notes_setup::notes_model_stop,
@@ -222,6 +225,9 @@ pub fn run() {
             commands::signin::list_bots,
             commands::signin::sign_in_answer,
             commands::signin::sign_in_stop,
+            commands::setup_extras::zoom_app_setup,
+            commands::setup_extras::drive_folders_browse,
+            commands::setup_extras::drive_folder_add,
             commands::sync::sync_run,
             commands::sync::sync_stop,
             commands::sync::sync_last

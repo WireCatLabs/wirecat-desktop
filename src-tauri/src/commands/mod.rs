@@ -8,6 +8,7 @@ pub mod node;
 pub mod notes_setup;
 pub mod search;
 pub mod settings;
+pub mod setup_extras;
 pub mod signin;
 pub mod storage;
 pub mod store;

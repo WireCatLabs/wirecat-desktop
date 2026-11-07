@@ -126,6 +126,8 @@ export type CopyRemoval = {
 	hint: string | null,
 };
 
+export type CountUnit = "files" | "bytes";
+
 export type Diagnosis = {
 	command: string,
 	exitCode: number | null,
@@ -142,6 +144,19 @@ export type Dns =
 "missing" | 
 /**  Neither resolver answered. */
 "unknown";
+
+export type DriveFolder = {
+	id: string,
+	name: string,
+	/**  `my_drive`, `shared_with_me`, `shared_drive` or `folder`. */
+	kind: string,
+	parent: string | null,
+	location: string | null,
+	driveId: string | null,
+	/**  `None` when drive did not count them. */
+	childFolders: number | null,
+	added: boolean,
+};
 
 /**  Names and sizes only: nothing inside is opened, so sign-in sessions stay unread. */
 export type Entry = {
@@ -176,6 +191,12 @@ export type Folder = {
 	/**  The folder's own entries, largest first, so the interface can say what each one is. */
 	entries: Entry[],
 };
+
+export type FolderAdded = { result: "added" } | { result: "failed"; message: string; code: string | null; reason: string | null };
+
+export type FolderLevel = 
+/**  `partial` is true when Google searched only some drives, so folders may be missing. */
+{ result: "listed"; folders: DriveFolder[]; partial: boolean } | { result: "failed"; message: string; code: string | null; reason: string | null };
 
 export type Install = {
 	path: string,
@@ -293,6 +314,8 @@ export type NotesFolder = {
 
 export type NotesFolderAdded = { result: "added"; folder: NotesFolder } | { result: "failed"; problem: NotesProblem };
 
+export type NotesFolderRemoved = { result: "removed"; notesDeleted: number | null } | { result: "failed"; problem: NotesProblem };
+
 export type NotesModel = {
 	id: string,
 	title: string,
@@ -300,7 +323,9 @@ export type NotesModel = {
 	downloaded: boolean,
 };
 
-export type NotesModelEvent = { event: "done" } | { event: "stopped" } | { event: "failed"; problem: NotesProblem };
+export type NotesModelEvent = 
+/**  How far the download is, in bytes. `label` is the model's id. */
+{ event: "counted"; done: number; total: number; unit: CountUnit; label: string | null } | { event: "done" } | { event: "stopped" } | { event: "failed"; problem: NotesProblem };
 
 /**
  *  What went wrong, in a closed list: the interface has words and an action for each, and memo's own message (which can
@@ -491,7 +516,9 @@ export type SyncEvent =
 /**  A stage from a fixed list, read from the tool's notes; never the note itself. */
 { event: "stage"; stage: string } | 
 /**  cli-core's `progress` line, from the release that prints one: counts only, never a chat. */
-{ event: "progress"; chats: number | null; chatsDone: number | null; fetched: number } | { event: "done"; summary: SyncSummary } | { event: "stopped" } | 
+{ event: "progress"; chats: number | null; chatsDone: number | null; fetched: number } | 
+/**  How far `sync --only notes` is, in files; never what it reads. `label` is a folder id. */
+{ event: "counted"; done: number; total: number; unit: CountUnit; label: string | null } | { event: "done"; summary: SyncSummary } | { event: "stopped" } | 
 /**
  *  `code` and `reason` are the tool's own (`timeout`, `profile.locked`…); the interface says what to do.
  *  `message` is always the app's own words: a tool's message can name a chat (RISK-44), so only its `code`,
@@ -557,4 +584,26 @@ export type UpdateKind = "self" | "deb" | "rpm" |
 export type UpdateProgress = {
 	downloaded: number,
 	total: number | null,
+};
+
+export type ZoomAppAnswer = { state: "ready"; setup: ZoomAppSetup } | 
+/**  The installed zm has no `app` command; the window uses its built-in list. */
+{ state: "old" } | { state: "failed"; message: string };
+
+export type ZoomAppSetup = {
+	marketplaceUrl: string,
+	guideUrl: string,
+	appType: string,
+	management: string,
+	oauth: string,
+	redirectUrl: string,
+	allowList: string[],
+	scopes: ZoomScope[],
+	configKey: string,
+};
+
+export type ZoomScope = {
+	scope: string,
+	required: boolean,
+	purpose: string,
 };

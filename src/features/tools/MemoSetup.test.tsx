@@ -89,3 +89,47 @@ it("sorts a sync's failure into the card's closed list", () => {
   expect(syncProblem(fail("permission_error"))).toBe("folderUnreadable")
   expect(syncProblem(fail("internal_error"))).toBe("other")
 })
+
+it("shows how far the first read and the download are, in files and megabytes", async () => {
+  let finish: () => void = () => {}
+  vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([notes]))
+  vi.spyOn(platform, "notesSync").mockImplementation(async (_id, onEvent) => {
+    onEvent({ event: "counted", done: 4, total: 12, unit: "files", label: "3" })
+    await new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    onEvent({ event: "done", summary: { new: 12, places: 1, failed: 0, left: 0, complete: true } })
+  })
+  vi.spyOn(platform, "notesModelDownload").mockImplementation(async (_id, onEvent) => {
+    onEvent({ event: "counted", done: 67_000_000, total: 135_000_000, unit: "bytes", label: "e5-small" })
+    await new Promise(() => {})
+  })
+  render(<MemoSetup tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Read my notes" }))
+  expect(await screen.findByText("Notes: 4 of 12 files")).toBeInTheDocument()
+  expect(screen.getByRole("progressbar", { name: "Reading your notes" })).toHaveAttribute("aria-valuenow", "4")
+  finish()
+
+  fireEvent.click(await screen.findByRole("button", { name: "Download 135 MB" }))
+  expect(await screen.findByText("67 of 135 MB")).toBeInTheDocument()
+})
+
+it("removes a folder only after the dialog that says its notes are deleted", async () => {
+  vi.spyOn(platform, "notesSetupStatus").mockResolvedValue(ready([notes]))
+  const remove = vi
+    .spyOn(platform, "notesFolderRemove")
+    .mockResolvedValueOnce({ result: "failed", problem: "tooOld" })
+    .mockResolvedValueOnce({ result: "removed", notesDeleted: 38 })
+  render(<MemoSetup tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Remove Notes and keep its notes searchable" }))
+  expect(await screen.findByText(/does not have that command/)).toBeInTheDocument()
+  expect(remove).toHaveBeenCalledWith("memo", "3", false)
+
+  fireEvent.click(screen.getByRole("button", { name: "Remove Notes and delete its notes" }))
+  expect(remove).toHaveBeenCalledTimes(1)
+  fireEvent.click(await screen.findByRole("button", { name: "Remove and delete notes" }))
+  expect(await screen.findByText(/deleted 38 notes/)).toBeInTheDocument()
+  expect(remove).toHaveBeenLastCalledWith("memo", "3", true)
+})

@@ -14,7 +14,16 @@ import type {
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
-import type { MailAgent, NotesFolderAdded, NotesModelEvent, NotesSetup } from "./bindings"
+import type {
+  FolderAdded,
+  FolderLevel,
+  MailAgent,
+  NotesFolderAdded,
+  NotesFolderRemoved,
+  NotesModelEvent,
+  NotesSetup,
+  ZoomAppAnswer,
+} from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
@@ -262,6 +271,12 @@ export type Platform = {
   signInAnswer(id: string, value: string): Promise<void>
   /** Asks the tool to stop, then ends it after a few seconds; `signIn` then answers `stopped`, or `done` with what came. */
   signInStop(id: string): Promise<void>
+  /** zm's own `app --json`: what to enter when making the Zoom app; `old` from a zm before it, which has the list built in. */
+  zoomAppSetup(id: string): Promise<ZoomAppAnswer>
+  /** One level of the profile's Drive folders; no `parent` lists My Drive, Shared with me and the shared drives. */
+  driveFoldersBrowse(id: string, profile: string, parent: string | null): Promise<FolderLevel>
+  /** Adds one folder, by its id, to what the profile's sync imports. */
+  driveFolderAdd(id: string, profile: string, folder: string): Promise<FolderAdded>
   /**
    * Connects a bot to the profile the owner named with the tool's own `bot auth set`: `fields` first (WhatsApp's ids,
    * `bot.fields` in the catalog), then the token on its stdin. The token is never logged, kept or sent back.
@@ -294,9 +309,11 @@ export type Platform = {
   notesPickFolder(): Promise<string | null>
   /** memo's `folders add` for a path the window returned; Rust checks it first. Failures come as a closed problem. */
   notesFolderAdd(id: string, path: string): Promise<NotesFolderAdded>
+  /** memo's `folders remove`; with `deleteNotes` also that folder's notes in memo's store (never files on disk). */
+  notesFolderRemove(id: string, folder: string, deleteNotes: boolean): Promise<NotesFolderRemoved>
   /** memo's `sync --only notes`; the same events as `syncRun`, stopped with `syncStop(id, null)`. */
   notesSync(id: string, onEvent: (e: SyncEvent) => void): Promise<void>
-  /** Downloads the catalog's search model; memo prints no progress, so only the end arrives. */
+  /** Downloads the catalog's search model; a memo that prints no progress lines sends only the end. */
   notesModelDownload(id: string, onEvent: (e: NotesModelEvent) => void): Promise<void>
   notesModelStop(id: string): Promise<void>
   /** What a bug report carries about this computer, masked, including recent failed runs (private). */

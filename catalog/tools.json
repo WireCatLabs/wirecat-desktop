@@ -1204,12 +1204,17 @@
       },
       "signIn": {
         "gives": "Lets your agent read and search your WhatsApp chats, and send messages when you ask.",
-        "asks": "A QR code to scan in WhatsApp: Settings → Linked devices → Link a device.",
+        "asks": "A QR code to scan in WhatsApp: Settings → Linked devices → Link a device. Or your phone number, and a code you type on the phone.",
         "methods": [
           {
             "id": "qr",
             "label": "QR code",
             "words": ["{profile}", "session", "start", "qr", "--json"]
+          },
+          {
+            "id": "phone",
+            "label": "Phone number",
+            "words": ["{profile}", "session", "start", "phone", "--json", "--answer-stdin"]
           }
         ]
       }
@@ -1365,6 +1370,7 @@
         "gives": "Lets your agent find your Zoom meetings and read their transcripts and summaries.",
         "asks": "Your browser opens Zoom to approve access. Zoom first needs an app of your own, made once in the Zoom App Marketplace.",
         "guide": "https://wirecat.dev/en/docs/zm/zoom-app",
+        "appSetup": ["app", "--json"],
         "methods": [
           {
             "id": "browser",
@@ -1513,6 +1519,11 @@
             "clientFile": "--client-file"
           }
         ]
+      },
+      "folderPicker": {
+        "browse": ["{profile}", "folders", "browse", "--no-record", "--json"],
+        "parent": "--parent",
+        "add": ["{profile}", "folders", "add", "{folder}", "--record", "--json"]
       }
     },
     {
@@ -1705,6 +1716,8 @@
         "minVersion": "0.131.14",
         "folders": ["folders", "list", "--no-record", "--json"],
         "add": ["folders", "add", "{path}", "--no-record", "--json"],
+        "remove": ["folders", "remove", "{id}", "--record", "--json"],
+        "removeDelete": ["folders", "remove", "{id}", "--allow-delete", "--yes", "--record", "--json"],
         "sync": ["sync", "--only", "notes", "--record", "--json"],
         "models": ["models", "list", "--no-record", "--json"],
         "model": "e5-small",
@@ -1907,31 +1920,29 @@
       },
       "signIn": {
         "gives": "Lets your agent search and read your mail on this computer. Syncing copies mail here and never changes your mailbox.",
-        "asks": "Your mail address, then Microsoft's sign-in in the browser, or an app password: a password made only for this program.",
+        "asks": "Your mail address, then Microsoft's or Google's sign-in in the browser, or an app password: a password made only for this program, asked in this window.",
         "guide": "https://wirecat.dev/en/docs/mail/providers",
         "pick": true,
         "methods": [
           {
             "id": "microsoft",
             "label": "Microsoft",
-            "words": ["{profile}", "session", "start", "--json", "--quiet"],
+            "words": ["{profile}", "session", "start", "--json", "--answer-stdin"],
             "address": "--address",
             "clientId": "microsoft_client_id"
           },
           {
             "id": "gmail",
             "label": "Gmail",
-            "words": ["{profile}", "session", "start", "--json", "--quiet"],
+            "words": ["{profile}", "session", "start", "--json", "--answer-stdin"],
             "address": "--address",
-            "password": "MAIL_PASSWORD",
             "clientFile": "--client-file"
           },
           {
             "id": "imap",
             "label": "Another mail server",
-            "words": ["{profile}", "session", "start", "--json", "--quiet"],
-            "address": "--address",
-            "password": "MAIL_PASSWORD"
+            "words": ["{profile}", "session", "start", "--json", "--answer-stdin"],
+            "address": "--address"
           }
         ]
       },

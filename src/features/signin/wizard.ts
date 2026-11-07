@@ -9,7 +9,10 @@ export type WizardStep =
   | "scan"
   | "phone"
   | "code"
+  | "pair"
   | "password"
+  | "appPassword"
+  | "server"
   | "token"
   | "browser"
   | "history"
@@ -22,9 +25,10 @@ const PATHS: Record<string, WizardStep[]> = {
   "max:qr": ["intro", "scan", "password", "done"],
   "max:token": ["intro", "token", "done"],
   "wa:qr": ["intro", "scan", "history", "done"],
+  "wa:phone": ["intro", "phone", "pair", "history", "done"],
   "zm:browser": ["intro", "app", "browser", "done"],
-  "email:gmail": ["intro", "check", "done"],
-  "email:imap": ["intro", "check", "done"],
+  "email:gmail": ["intro", "appPassword", "check", "done"],
+  "email:imap": ["intro", "server", "appPassword", "check", "done"],
 }
 
 const BY_KIND: Record<string, WizardStep[]> = {
@@ -36,7 +40,13 @@ const BY_KIND: Record<string, WizardStep[]> = {
 export const wizardPath = (tool: string, method: string | null): WizardStep[] =>
   PATHS[`${tool}:${method}`] ?? BY_KIND[method ?? ""] ?? ["intro", "browser", "done"]
 
-/** Zoom's own app, as zoom-cli `docs/zoom-app.md` and `src/login.ts` describe it (zoom-cli 0.67). */
+/** mail-cli asks these only when discovery finds no server; each may be left empty for its default. */
+export const MAIL_SERVER_FIELDS = new Set(["imap_host", "imap_port", "smtp_host", "smtp_port"])
+
+/**
+ * Zoom's own app, as zoom-cli `docs/zoom-app.md` and `src/login.ts` describe it (zoom-cli 0.67). zm from PR #337 says
+ * the same with `zm app --json`, which wins when it answers.
+ */
 export const ZOOM_APP = {
   marketplace: "https://marketplace.zoom.us/",
   redirect: "https://wirecat.dev/zoom-callback",
