@@ -64,6 +64,7 @@ const en = {
   nothingNew: (from: string) => `Compared with ${from}, this version asks for nothing new.`,
   acceptChanges: "I accept these changes",
   add: "Add",
+  update: "Update",
   back: "Back",
   cancel: "Cancel",
   close: "Close",
@@ -112,6 +113,10 @@ const en = {
     too_large: (what: string): Words => [
       `The ${what} is larger than WireCat reads.`,
       "Ask the tool's author to make the package smaller.",
+    ],
+    unexpected: (detail: string): Words => [
+      `Something went wrong reading npm: ${detail}`,
+      "Try again. If it happens again, report a problem.",
     ],
     entry: (problem: string): Words => [
       `WireCat could not show this tool: ${problem}`,
@@ -188,6 +193,7 @@ const ru: typeof en = {
   nothingNew: (from) => `По сравнению с ${from} эта версия не просит ничего нового.`,
   acceptChanges: "Я принимаю эти изменения",
   add: "Добавить",
+  update: "Обновить",
   back: "Назад",
   cancel: "Отмена",
   close: "Закрыть",
@@ -234,6 +240,10 @@ const ru: typeof en = {
     ],
     offline: ["WireCat не смог связаться с npm.", "Проверьте интернет или прокси и попробуйте снова."],
     too_large: (what) => [`Объект «${what}» больше, чем читает WireCat.`, "Попросите автора уменьшить пакет."],
+    unexpected: (detail) => [
+      `Не удалось прочитать npm: ${detail}`,
+      "Попробуйте снова. Если повторится, сообщите о проблеме.",
+    ],
     entry: (problem) => [
       `WireCat не может показать этот инструмент: ${problem}`,
       "Попросите автора исправить это и выпустить новую версию.",
@@ -308,6 +318,7 @@ const es: typeof en = {
   nothingNew: (from) => `Frente a ${from}, esta versión no pide nada nuevo.`,
   acceptChanges: "Acepto estos cambios",
   add: "Añadir",
+  update: "Actualizar",
   back: "Atrás",
   cancel: "Cancelar",
   close: "Cerrar",
@@ -359,6 +370,10 @@ const es: typeof en = {
     too_large: (what) => [
       `«${what}» es más grande de lo que WireCat lee.`,
       "Pide al autor que haga el paquete más pequeño.",
+    ],
+    unexpected: (detail) => [
+      `Algo falló al leer npm: ${detail}`,
+      "Vuelve a intentarlo. Si se repite, informa del problema.",
     ],
     entry: (problem) => [
       `WireCat no puede mostrar esta herramienta: ${problem}`,

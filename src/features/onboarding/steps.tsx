@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import { findTool, isCommunity, isOwn, maker, ownerId, samePackage, tools } from "@/domain/catalog"
 import { computerLine, doneRow } from "@/domain/onboarding-flow"
 import { NodeNotice } from "@/features/system"
-import { InstallLine, openConnect, ownMessages, toolsMessages, toolText } from "@/features/tools"
+import { InstallLine, openConnect, toolsMessages, toolText } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -113,55 +113,55 @@ export function Choose() {
   const installs = useTools((s) => s.installs)
   const toggle = useOnboarding((s) => s.toggle)
   const tm = useMessages(toolsMessages)
-  const om = useMessages(ownMessages)
   const m = useMessages(onboardingMessages).choose
 
   return (
     <fieldset className="min-w-0">
       <legend className="sr-only">{m.legend}</legend>
       <ul className={cx(rack, "grid sm:grid-cols-2")}>
-        {tools.map((t) => {
-          const copies = installs[t.id]
-          const installed = Boolean(copies?.length)
-          const checked = chosen.includes(t.id)
-          const cell = "flex h-full items-start gap-[0.8rem] px-[1.1rem] py-[1rem]"
-          const body = (
-            <>
-              <ToolIcon id={t.id} className="size-[1.5rem] shrink-0 text-ink" />
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-baseline gap-x-[0.5rem]">
-                  <span className="text-[1.02rem] font-semibold">{t.name}</span>
-                  <span className="font-mono text-[0.9rem] text-ink-soft">{t.bin}</span>
-                  {t.partOf && <Pill>{m.partOf(findTool(t.partOf)?.name ?? t.partOf)}</Pill>}
-                  {isCommunity(t) && <Pill>{isOwn(t) ? om.notChecked : tm.row.community}</Pill>}
-                  {installed && <Pill tone="brand">{m.installed}</Pill>}
-                </span>
-                <span className="mt-0.5 block text-body leading-snug text-ink-soft">{toolText(tm, t).tagline}</span>
-                {isCommunity(t) && !installed && (
-                  <span className="mt-0.5 block text-body leading-snug text-ink-soft">
-                    {isOwn(t) ? om.trust(maker(t)) : tm.row.trust(maker(t))}
+        {/* An own tool installs only from its review on the Tools page, never in a batch. */}
+        {tools
+          .filter((t) => !isOwn(t))
+          .map((t) => {
+            const copies = installs[t.id]
+            const installed = Boolean(copies?.length)
+            const checked = chosen.includes(t.id)
+            const cell = "flex h-full items-start gap-[0.8rem] px-[1.1rem] py-[1rem]"
+            const body = (
+              <>
+                <ToolIcon id={t.id} className="size-[1.5rem] shrink-0 text-ink" />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-baseline gap-x-[0.5rem]">
+                    <span className="text-[1.02rem] font-semibold">{t.name}</span>
+                    <span className="font-mono text-[0.9rem] text-ink-soft">{t.bin}</span>
+                    {t.partOf && <Pill>{m.partOf(findTool(t.partOf)?.name ?? t.partOf)}</Pill>}
+                    {isCommunity(t) && <Pill>{tm.row.community}</Pill>}
+                    {installed && <Pill tone="brand">{m.installed}</Pill>}
                   </span>
+                  <span className="mt-0.5 block text-body leading-snug text-ink-soft">{toolText(tm, t).tagline}</span>
+                  {isCommunity(t) && !installed && (
+                    <span className="mt-0.5 block text-body leading-snug text-ink-soft">{tm.row.trust(maker(t))}</span>
+                  )}
+                </span>
+              </>
+            )
+            // An installed tool gets no checkbox: a ticked, greyed box would read as a choice made for the owner.
+            return (
+              <li key={t.id} className="-mr-px -mb-px border-line border-r border-b">
+                {installed ? (
+                  <div className={cell}>
+                    <span aria-hidden className="size-[1.05rem] shrink-0" />
+                    {body}
+                  </div>
+                ) : (
+                  <label className={cx(cell, checked ? "bg-brand-soft/50 hover:bg-brand-soft/70" : "hover:bg-app-2")}>
+                    <Checkbox checked={checked} onChange={() => toggle(t.id)} className="mt-[0.2rem]" />
+                    {body}
+                  </label>
                 )}
-              </span>
-            </>
-          )
-          // An installed tool gets no checkbox: a ticked, greyed box would read as a choice made for the owner.
-          return (
-            <li key={t.id} className="-mr-px -mb-px border-line border-r border-b">
-              {installed ? (
-                <div className={cell}>
-                  <span aria-hidden className="size-[1.05rem] shrink-0" />
-                  {body}
-                </div>
-              ) : (
-                <label className={cx(cell, checked ? "bg-brand-soft/50 hover:bg-brand-soft/70" : "hover:bg-app-2")}>
-                  <Checkbox checked={checked} onChange={() => toggle(t.id)} className="mt-[0.2rem]" />
-                  {body}
-                </label>
-              )}
-            </li>
-          )
-        })}
+              </li>
+            )
+          })}
       </ul>
     </fieldset>
   )

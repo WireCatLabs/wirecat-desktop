@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { InstallEvent, OwnRefusal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { ownReview, UNCHANGED } from "@/platform/mock-community"
+import { useOwnDialog } from "@/shared/own-dialog-store"
 import { render, screen } from "@/testing/render"
 import { OwnToolDialog } from "./OwnToolDialog"
-import { useOwnDialog } from "./own-store"
 
 const PKG = "@example/acme-crm-cli"
 
@@ -130,7 +130,7 @@ describe("Add your own tool", () => {
     const add = vi.spyOn(platform, "ownToolAdd").mockImplementation(async (_token, onEvent) => onEvent(done))
     render(<OwnToolDialog />)
     expect(await screen.findByText(/this version asks for nothing new/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole("button", { name: "Add" }))
+    await userEvent.click(screen.getByRole("button", { name: "Update" }))
     expect(add).not.toHaveBeenCalled()
     await userEvent.click(screen.getByRole("button", { name: "Install and run" }))
     expect(add).toHaveBeenCalledTimes(1)
@@ -156,9 +156,16 @@ describe("Add your own tool", () => {
     expect(screen.getByText(/publishers changed from old-maintainer to example/)).toBeInTheDocument()
     expect(screen.getByText(/an MCP server/)).toBeInTheDocument()
     expect(screen.getByText(/a sign-in, its check \(doctor\)/)).toBeInTheDocument()
-    const add = screen.getByRole("button", { name: "Add" })
+    const add = screen.getByRole("button", { name: "Update" })
     expect(add).toBeDisabled()
     await userEvent.click(screen.getByRole("checkbox", { name: "I accept these changes" }))
     expect(add).toBeEnabled()
+  })
+
+  it("names a thrown discovery error instead of blaming the network", async () => {
+    vi.spyOn(platform, "ownToolDiscover").mockRejectedValue(new Error("the review store is locked"))
+    await check()
+    expect(await screen.findByText(/Something went wrong reading npm: the review store is locked/)).toBeInTheDocument()
+    expect(screen.queryByText(/could not reach npm/)).not.toBeInTheDocument()
   })
 })

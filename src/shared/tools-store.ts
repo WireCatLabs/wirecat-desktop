@@ -1,5 +1,5 @@
 import { create } from "zustand"
-import { ownerId, samePackage } from "@/domain/catalog"
+import { findTool, isOwn, ownerId, samePackage } from "@/domain/catalog"
 import { type Preflight, preflightWarns } from "@/domain/compat"
 import { applyInstallEvent } from "@/domain/install-progress"
 import type { DataDeletion, InstallSession, Operation } from "@/domain/status"
@@ -7,6 +7,8 @@ import { platform } from "@/platform/bridge"
 import type { ToolState } from "@/platform/schemas"
 import { useAgents } from "@/shared/agents-store"
 import { installedOf, useCompat } from "@/shared/compat-store"
+import { useNav } from "@/shared/nav"
+import { useOwnDialog } from "@/shared/own-dialog-store"
 import { readSaved, save } from "@/shared/saved-tools"
 import { useStorage } from "@/shared/storage-store"
 import { useSystem } from "@/shared/system-store"
@@ -202,7 +204,16 @@ export const useTools = create<ToolsState>((set, get) => {
       }
     },
 
-    install: (id, options) => enqueue(ownerId(id), "install", options?.check ? { check: true } : {}),
+    install: (id, options) => {
+      const tool = findTool(ownerId(id))
+      // An own tool installs only the version its review showed, so every Install or Update opens that review.
+      if (tool && isOwn(tool)) {
+        useNav.getState().go("tools")
+        useOwnDialog.getState().show({ pkg: tool.package, name: tool.name })
+        return Promise.resolve()
+      }
+      return enqueue(ownerId(id), "install", options?.check ? { check: true } : {})
+    },
     async proceed(given) {
       const id = ownerId(given)
       if (get().sessions[id]?.step !== "preflight") return

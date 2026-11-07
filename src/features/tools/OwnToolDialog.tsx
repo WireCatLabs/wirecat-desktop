@@ -6,6 +6,7 @@ import type { InstallSession } from "@/domain/status"
 import { useLang, useMessages } from "@/i18n"
 import type { OwnRefusal, OwnReview, OwnUpdate } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { useOwnDialog } from "@/shared/own-dialog-store"
 import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -18,12 +19,15 @@ import { failureWords, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
 import { type OwnText, ownMessages } from "./messages-own"
 import { refusalWords } from "./own-refusal"
-import { useOwnDialog } from "./own-store"
 
 type Step =
   | { kind: "name" }
   | { kind: "reading"; pkg: string }
-  | { kind: "refused"; pkg: string; refusal: OwnRefusal | { kind: "entry"; problem: string } }
+  | {
+      kind: "refused"
+      pkg: string
+      refusal: OwnRefusal | { kind: "entry"; problem: string } | { kind: "unexpected"; detail: string }
+    }
   | { kind: "review"; review: OwnReview; accepted: boolean }
   | { kind: "confirm"; review: OwnReview }
   | { kind: "installing"; review: OwnReview; session: InstallSession }
@@ -31,6 +35,8 @@ type Step =
 
 const field =
   "h-9 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.95rem] text-ink placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand"
+
+const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 const startSession = (): InstallSession => ({
   operation: "install",
@@ -60,7 +66,8 @@ export function OwnToolDialog() {
       if (problem) return setStep({ kind: "refused", pkg: name, refusal: { kind: "entry", problem } })
       setStep({ kind: "review", review: found.review, accepted: false })
     } catch (e) {
-      setStep({ kind: "refused", pkg: name, refusal: { kind: "offline", detail: String(e) } })
+      // Rust reports an unreachable npm as an `offline` refusal; a thrown error is something else.
+      setStep({ kind: "refused", pkg: name, refusal: { kind: "unexpected", detail: message(e) } })
     }
   }
 
@@ -212,7 +219,7 @@ function Actions({
             disabled={step.review.update?.confirm === true && !step.accepted}
             onClick={() => on.setStep({ kind: "confirm", review: step.review })}
           >
-            {m.add}
+            {step.review.update ? m.update : m.add}
           </Button>
         </>
       )
@@ -358,7 +365,12 @@ function Refused({
 }) {
   const id = useId()
   const r = step.refusal
-  const [what, todo] = r.kind === "entry" ? m.refusal.entry(r.problem) : refusalWords(r, m.refusal)
+  const [what, todo] =
+    r.kind === "entry"
+      ? m.refusal.entry(r.problem)
+      : r.kind === "unexpected"
+        ? m.refusal.unexpected(r.detail)
+        : refusalWords(r, m.refusal)
   return (
     <div className="flex flex-col gap-4">
       <ErrorNotice>
