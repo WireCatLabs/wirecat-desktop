@@ -1,11 +1,10 @@
-// cspell:words Clientes Сделки Лиды Ofertas
+// cspell:words Clientes Сделки Лиды Negociaciones Prospectos
 import type { Kind } from "@/domain/clients"
 import { type Messages, plural } from "@/i18n"
 
 type Words = {
   title: string
   intro: string
-  guide: string
   readAgain: string
   reading: string
   kind: string
@@ -43,6 +42,7 @@ type Words = {
   scope: string
   scopes: { mine: string; all: string }
   scopeHint: string
+  applied: (mode: "mine" | "all") => string
   scopeSaving: string
   scopeFailed: (reason: string) => string
   amount: string
@@ -61,7 +61,6 @@ const en: Words = {
   title: "Clients",
   intro:
     "Deals and leads from your CRMs and your own pipelines, by stage. Memo keeps the copy; every account it holds is shown.",
-  guide: "How pipelines work",
   readAgain: "Read again",
   reading: "Reading…",
   kind: "Show",
@@ -103,7 +102,9 @@ const en: Words = {
   notMoved: (reason) => `Not moved: ${reason}`,
   scope: "Sync",
   scopes: { mine: "Mine", all: "Everyone's" },
-  scopeHint: "Mine syncs the deals and leads assigned to you or to nobody. Everyone's syncs the whole account.",
+  scopeHint:
+    "Changes what WireCat downloads from this CRM. Mine keeps only what is assigned to you or to nobody, and removes the rest from this computer.",
+  applied: (mode) => `Last sync downloaded: ${mode === "all" ? "everyone's" : "mine"}.`,
   scopeSaving: "Saving and syncing…",
   scopeFailed: (reason) => `The sync scope did not change: ${reason}`,
   amount: "Amount",
@@ -122,7 +123,6 @@ const ru: Words = {
   title: "Клиенты",
   intro:
     "Сделки и лиды из ваших CRM и ваших собственных воронок, по стадиям. Копию хранит Memo; показаны все аккаунты, что в ней есть.",
-  guide: "Как устроены воронки",
   readAgain: "Прочитать заново",
   reading: "Читаю…",
   kind: "Показать",
@@ -166,7 +166,9 @@ const ru: Words = {
   notMoved: (reason) => `Не перенесено: ${reason}`,
   scope: "Синхронизировать",
   scopes: { mine: "Мои", all: "Все" },
-  scopeHint: "«Мои» — сделки и лиды, назначенные на вас или ни на кого. «Все» — весь аккаунт.",
+  scopeHint:
+    "Меняет, что WireCat скачивает из этой CRM. «Мои» оставляет только назначенное на вас или ни на кого, остальное удаляется с этого компьютера.",
+  applied: (mode) => `Последняя синхронизация скачала: ${mode === "all" ? "все" : "мои"}.`,
   scopeSaving: "Сохраняю и синхронизирую…",
   scopeFailed: (reason) => `Охват синхронизации не изменился: ${reason}`,
   amount: "Сумма",
@@ -184,12 +186,11 @@ const ru: Words = {
 const es: Words = {
   title: "Clientes",
   intro:
-    "Ofertas y contactos de tus CRM y de tus propios embudos, por etapa. Memo guarda la copia; se muestra cada cuenta que tiene.",
-  guide: "Cómo funcionan los embudos",
+    "Negociaciones y prospectos de tus CRM y de tus propios embudos, por etapa. Memo guarda la copia; se muestra cada cuenta que tiene.",
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
   kind: "Mostrar",
-  kinds: { deal: "Ofertas", lead: "Contactos" },
+  kinds: { deal: "Negociaciones", lead: "Prospectos" },
   pipeline: "Embudo",
   ownAccount: "El tuyo",
   allAccounts: "Todas las cuentas",
@@ -198,12 +199,12 @@ const es: Words = {
     `La página Clientes necesita Memo ${need} o posterior${version ? `; este ordenador tiene ${version}` : ""}.`,
   goTools: "Abrir Herramientas",
   update: "Actualizar Memo",
-  readFailed: "Memo no pudo leer las ofertas.",
+  readFailed: "Memo no pudo leer las negociaciones.",
   tryAgain: "Reintentar",
-  none: { deal: "Aún no hay ofertas", lead: "Aún no hay contactos" },
+  none: { deal: "Aún no hay negociaciones", lead: "Aún no hay prospectos" },
   noneBody: {
-    deal: "Sincroniza un CRM o pide a un agente que registre una oferta con memo deals add. Aparecen aquí por etapa.",
-    lead: "Sincroniza un CRM o pide a un agente que registre un contacto con memo leads add. Aparecen aquí por etapa.",
+    deal: "Sincroniza un CRM o pide a un agente que registre una negociación con memo deals add. Aparecen aquí por etapa.",
+    lead: "Sincroniza un CRM o pide a un agente que registre un prospecto con memo leads add. Aparecen aquí por etapa.",
   },
   noMatch: "Nada del tablero coincide.",
   clear: "Borrar",
@@ -228,7 +229,9 @@ const es: Words = {
   notMoved: (reason) => `No se movió: ${reason}`,
   scope: "Sincronizar",
   scopes: { mine: "Mías", all: "De todos" },
-  scopeHint: "Mías sincroniza lo asignado a ti o a nadie. De todos sincroniza la cuenta entera.",
+  scopeHint:
+    "Cambia lo que WireCat descarga de este CRM. Mías guarda solo lo asignado a ti o a nadie y borra el resto de este ordenador.",
+  applied: (mode) => `La última sincronización descargó: ${mode === "all" ? "de todos" : "mías"}.`,
   scopeSaving: "Guardando y sincronizando…",
   scopeFailed: (reason) => `El alcance de la sincronización no cambió: ${reason}`,
   amount: "Importe",

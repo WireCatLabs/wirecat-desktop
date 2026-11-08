@@ -97,7 +97,10 @@ function ScopeSwitch({ account }: { account: CrmAccount }) {
           ]}
         />
       </fieldset>
-      <span className="max-w-[70ch]">{set.isPending ? m.scopeSaving : m.scopeHint}</span>
+      <span className="max-w-[70ch]">
+        {set.isPending ? m.scopeSaving : m.scopeHint}
+        {!set.isPending && answer?.applied && ` ${m.applied(answer.applied.mode)}`}
+      </span>
       {set.error && <ErrorNotice inline>{m.scopeFailed(set.error.message)}</ErrorNotice>}
     </div>
   )

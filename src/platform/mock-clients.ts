@@ -1,6 +1,6 @@
 import type { CrmAccount, CrmCard, CrmKind, CrmRead, CrmStage } from "./bindings"
 import { delay } from "./mock-delay"
-import type { CrmScope, Platform } from "./types"
+import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 
 // The Clients page's stand-in for memo, with made-up companies and people only (Acme, Northstar). The owner's own
 // Sales pipeline moves; the Northstar portal's is a CRM copy, read-only as in the real app until its CLI is in the
@@ -195,6 +195,7 @@ type ClientsApi = Pick<Platform, "clientsRead" | "clientsMove" | "clientsScope" 
 export function clientsMock(): ClientsApi {
   let cards = scenario === "none" ? [] : seeds()
   const scopes = new Map<string, "mine" | "all">()
+  const applied = new Map<string, CrmAppliedScope>()
   const writable = (pipe: Pipe | undefined) => pipe?.account === null || scenario === "crm-write"
   return {
     async clientsRead(kind, pipeline) {
@@ -230,12 +231,17 @@ export function clientsMock(): ClientsApi {
     },
     async clientsScope(account): Promise<CrmScope> {
       await delay(200)
-      const scope = scopes.get(`${account.provider}:${account.account}`) ?? "mine"
-      return scenario === "crm-write" ? { kind: "settable", scope } : { kind: "unavailable", scope, why: "crmCli" }
+      const key = `${account.provider}:${account.account}`
+      const scope = scopes.get(key) ?? "mine"
+      return scenario === "crm-write"
+        ? { kind: "settable", scope, applied: applied.get(key) ?? { mode: "mine", also: [] } }
+        : { kind: "unavailable", scope, applied: null, why: "crmCli" }
     },
     async clientsScopeSet(account, scope) {
       await delay(900)
-      scopes.set(`${account.provider}:${account.account}`, scope)
+      const key = `${account.provider}:${account.account}`
+      scopes.set(key, scope)
+      applied.set(key, scope === "all" ? { mode: "all" } : { mode: "mine", also: [] })
     },
   }
 }

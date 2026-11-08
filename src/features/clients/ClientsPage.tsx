@@ -122,20 +122,28 @@ function Loaded({ read, kind }: { read: Ready; kind: Kind }) {
   )
 }
 
+/** The filters and the columns at their final size, so nothing below moves when memo answers. */
 function Loading() {
   const m = useMessages(clientMessages)
   return (
-    <div className="grid grid-cols-[repeat(5,minmax(12rem,1fr))] gap-[0.75rem] overflow-hidden xl:gap-[1rem]">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="flex min-h-[22rem] flex-col gap-[0.8rem] rounded-[0.2rem] border border-line-strong bg-app p-[0.9rem]"
-        >
-          <Skeleton className="h-[1rem] w-[60%]" {...(i === 0 ? { label: m.reading } : {})} />
-          <Skeleton className="h-[3.4rem] w-full" />
-          <Skeleton className="h-[3.4rem] w-full" />
-        </div>
-      ))}
-    </div>
+    <>
+      <div className="flex flex-col gap-[0.7rem]">
+        <Skeleton className="h-[2.8rem] w-full" label={m.reading} />
+        <Skeleton className="h-[1.9rem] w-[22rem]" />
+      </div>
+      <div className="grid grid-cols-[repeat(5,minmax(12rem,1fr))] gap-[0.75rem] overflow-hidden xl:gap-[1rem]">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex min-h-[22rem] flex-col rounded-[0.2rem] border border-line-strong bg-app">
+            <div className="flex min-h-[3rem] items-center border-line border-b px-[0.9rem]">
+              <Skeleton className="h-[1rem] w-[60%]" />
+            </div>
+            <div className="flex flex-col gap-[0.8rem] p-[0.9rem]">
+              <Skeleton className="h-[3.4rem] w-full" />
+              <Skeleton className="h-[3.4rem] w-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   )
 }

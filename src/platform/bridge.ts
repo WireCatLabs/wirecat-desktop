@@ -210,7 +210,7 @@ function createTauri(): Platform {
     clientsRead: (kind, pipeline) => invoke("clients_read", { kind, pipeline }),
     clientsMove: (kind, ref, stage) => invoke("clients_move", { kind, reference: ref, stage }),
     // The CRM's own CLI is not in the catalog yet, so nothing can read or save its sync scope from here.
-    clientsScope: async () => ({ kind: "unavailable", scope: null, why: "crmCli" }),
+    clientsScope: async () => ({ kind: "unavailable", scope: null, applied: null, why: "crmCli" }),
     clientsScopeSet: async () => {
       throw new Error("WireCat cannot run the CRM's own tool yet")
     },

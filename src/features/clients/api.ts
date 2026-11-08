@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 import { type Kind, withMove } from "@/domain/clients"
 import type { CrmAccount, CrmRead } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
@@ -16,7 +16,12 @@ export const clientKeys = {
 }
 
 export const useBoard = (kind: Kind, pipeline: string | null) =>
-  useQuery({ queryKey: clientKeys.board(kind, pipeline), queryFn: () => platform.clientsRead(kind, pipeline) })
+  // Another pipeline or kind keeps the board on screen until its own answer comes, never a skeleton of other columns.
+  useQuery({
+    queryKey: clientKeys.board(kind, pipeline),
+    queryFn: () => platform.clientsRead(kind, pipeline),
+    placeholderData: keepPreviousData,
+  })
 
 /** Every board the page read, so a move or a new scope is read again from memo. */
 export const readAgain = () => queryClient().invalidateQueries({ queryKey: clientKeys.all })
@@ -55,6 +60,7 @@ export function useScopeSet(account: CrmAccount | null) {
   return useMutation({
     mutationFn: (scope: "mine" | "all") =>
       account ? platform.clientsScopeSet(account, scope) : Promise.reject(new Error("no CRM account")),
+    // The saved scope and the sync it starts change what memo holds: the board and the applied scope are read again.
     onSettled: () => readAgain(),
   })
 }

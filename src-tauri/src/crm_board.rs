@@ -14,6 +14,8 @@ use specta::Type;
 use std::time::Duration;
 
 const LIMIT: &str = "500";
+/// The newest won and the newest lost: the board is for work in play, not the archive.
+const CLOSED: &str = "20";
 const READ: Duration = Duration::from_mins(1);
 const WRITE: Duration = Duration::from_secs(30);
 const MAX_STAGE: usize = 200;
@@ -129,7 +131,7 @@ pub enum CrmRead {
         pipeline: Option<String>,
         stages: Vec<CrmStage>,
         cards: Vec<CrmCard>,
-        /// More match than one read holds; the counts above the columns still hold them all.
+        /// More open ones match than one read holds; the counts above the columns still hold them all.
         more: bool,
         movable: CrmMovable,
     },
@@ -239,13 +241,21 @@ fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead,
     };
     let shown = call(&words(&["pipelines", "show", &chosen.reference]))?;
     let stages = body(&shown)["stages"].as_array().map(|a| a.iter().filter_map(stage).collect()).unwrap_or_default();
-    let list =
-        call(&with_query(&[kind.plural(), "list", "--limit", LIMIT], &format!("pipeline:\"{}\"", chosen.reference)))?;
-    let cards = list["items"].as_array().map(|a| a.iter().filter_map(card).collect()).unwrap_or_default();
+    // memo answers the newest of any status first, so a portal's years of closed deals would push the open ones out.
+    let mut more = false;
+    let mut cards = Vec::new();
+    for (status, limit) in [("open", LIMIT), ("won", CLOSED), ("lost", CLOSED)] {
+        let list = call(&with_query(
+            &[kind.plural(), "list", "--limit", limit],
+            &format!("pipeline:\"{}\" status:{status}", chosen.reference),
+        ))?;
+        more |= status == "open" && list["page"]["has_more"].as_bool().unwrap_or(false);
+        cards.extend(list["items"].as_array().into_iter().flatten().filter_map(card));
+    }
     Ok(CrmRead::Ready {
         pipeline: Some(chosen.reference.clone()),
         movable: movable(Some(chosen)),
-        more: list["page"]["has_more"].as_bool().unwrap_or(false),
+        more,
         stages,
         cards,
         pipelines,
@@ -329,7 +339,10 @@ mod tests {
         match (args[0].as_str(), args[1].as_str()) {
             ("pipelines", "list") => Ok(pipelines()),
             ("pipelines", "show") => Ok(shown()),
-            ("deals", "list") => Ok(json!({"items":[deal()],"page":{"limit":500,"has_more":true}})),
+            ("deals", "list") if args.last().is_some_and(|q| q.ends_with("status:open")) => {
+                Ok(json!({"items":[deal()],"page":{"limit":500,"has_more":true}}))
+            }
+            ("deals", "list") => Ok(json!({"items":[],"page":{"limit":20,"has_more":true}})),
             ("deals", "move") => Ok(json!({"item": deal()})),
             _ => Err(invalid("unexpected".into())),
         }
@@ -352,8 +365,10 @@ mod tests {
         assert_eq!(seen[1], ["pipelines", "show", "pipeline:2", "--json", "--no-record"]);
         assert_eq!(
             seen[2],
-            ["deals", "list", "--limit", "500", "--json", "--no-record", "--", "pipeline:\"pipeline:2\""]
+            ["deals", "list", "--limit", "500", "--json", "--no-record", "--", "pipeline:\"pipeline:2\" status:open"]
         );
+        assert_eq!(seen[3][3], "20");
+        assert_eq!(seen[4].last().map(String::as_str), Some("pipeline:\"pipeline:2\" status:lost"));
     }
 
     #[test]

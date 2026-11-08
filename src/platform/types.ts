@@ -466,6 +466,10 @@ export type Platform = {
   window(action: WindowAction): Promise<void>
 }
 
+/** What the last sync applied (`item.scope` of a CRM sync, cli-core #2695); a CRM that cannot limit reports `all`. */
+export type CrmAppliedScope = { mode: "mine"; also: string[] } | { mode: "all" }
+
+/** `scope` is the setting `crm.<provider>:<account>.scope`: what the next sync copies, not what the board shows. */
 export type CrmScope =
-  | { kind: "settable"; scope: "mine" | "all" }
-  | { kind: "unavailable"; scope: "mine" | "all" | null; why: "crmCli" }
+  | { kind: "settable"; scope: "mine" | "all"; applied: CrmAppliedScope | null }
+  | { kind: "unavailable"; scope: "mine" | "all" | null; applied: null; why: "crmCli" }
