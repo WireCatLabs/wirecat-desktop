@@ -28,3 +28,9 @@ it("names hidden calls in plain words and where a repository moved", () => {
   )
   expect(signalWords({ kind: "repoMoved", to: "acme/crm-next" }, m)[0]).toBe("Its repository moved to acme/crm-next")
 })
+
+it("says a file that is not JavaScript is loaded as code", () => {
+  expect(signalWords({ kind: "loadsNonJs", paths: ["dist/logo.png"] }, m)[0]).toBe(
+    "It loads a file that isn't JavaScript as code: dist/logo.png",
+  )
+})

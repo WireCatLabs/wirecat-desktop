@@ -101,6 +101,10 @@ const en = {
       `It bundles ${pkg.replace("@wirecat/", "")} (version unknown)`,
       "Its package copies WireCat's library in without saying which version, so WireCat cannot tell whether it reads it.",
     ],
+    loadsNonJs: (paths: string): Words => [
+      `It loads a file that isn't JavaScript as code: ${paths}`,
+      "Node.js runs any file it is asked to load. Code kept in a file named like data hides from a reader.",
+    ],
     hiddenCalls: (ways: string[]): Words => [
       `Its code hides calls: ${ways.map((w) => ({ "escaped name": "a name written with escapes", "computed global": "a global looked up by a computed name", "process binding": "Node.js's internal bindings" })[w] ?? w).join(", ")}`,
       "Found in the code, not proved. Plain code has no reason to hide what it calls.",
@@ -294,6 +298,10 @@ const ru: typeof en = {
       `Встраивает ${pkg.replace("@wirecat/", "")} (версия неизвестна)`,
       "Пакет копирует библиотеку WireCat в себя, не называя версию, поэтому WireCat не может сказать, читает ли он её.",
     ],
+    loadsNonJs: (paths) => [
+      `Загружает как код файл, который не является JavaScript: ${paths}`,
+      "Node.js выполняет любой файл, который его просят загрузить. Код в файле, названном как данные, прячется от читателя.",
+    ],
     hiddenCalls: (ways) => [
       `Его код прячет вызовы: ${ways.map((w) => ({ "escaped name": "имя, записанное экранированием", "computed global": "глобальный объект по вычисленному имени", "process binding": "внутренние привязки Node.js" })[w] ?? w).join(", ")}`,
       "Найдено в коде, не доказано. Обычному коду незачем прятать, что он вызывает.",
@@ -486,6 +494,10 @@ const es: typeof en = {
     bundledUnknown: (pkg) => [
       `Incluye ${pkg.replace("@wirecat/", "")} (versión desconocida)`,
       "El paquete copia la biblioteca de WireCat sin decir qué versión, así que WireCat no puede saber si la lee.",
+    ],
+    loadsNonJs: (paths) => [
+      `Carga como código un archivo que no es JavaScript: ${paths}`,
+      "Node.js ejecuta cualquier archivo que se le pida cargar. El código en un archivo con nombre de datos se oculta al lector.",
     ],
     hiddenCalls: (ways) => [
       `Su código oculta llamadas: ${ways.map((w) => ({ "escaped name": "un nombre escrito con escapes", "computed global": "un global buscado por un nombre calculado", "process binding": "los enlaces internos de Node.js" })[w] ?? w).join(", ")}`,

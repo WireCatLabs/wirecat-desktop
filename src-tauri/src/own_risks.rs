@@ -62,6 +62,10 @@ pub enum Signal {
     NativeCode {
         files: Vec<String>,
     },
+    /// Files that are not JavaScript by their name, which the code loads as code all the same.
+    LoadsNonJs {
+        paths: Vec<String>,
+    },
     /// Calls written so a reader does not see them: `escaped name`, `computed global`, `process binding`.
     HiddenCalls {
         ways: Vec<String>,
@@ -221,6 +225,9 @@ pub fn network(code: &Code, declared: Option<&[String]>, known: &[String]) -> Ve
     }
     if code.programs {
         out.push(Signal::StartsPrograms);
+    }
+    if !code.foreign.is_empty() {
+        out.push(Signal::LoadsNonJs { paths: code.foreign.iter().take(MAX_SHOWN).cloned().collect() });
     }
     if !code.hidden.is_empty() {
         out.push(Signal::HiddenCalls { ways: code.hidden.iter().cloned().collect() });

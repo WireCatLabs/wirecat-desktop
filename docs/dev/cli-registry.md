@@ -208,8 +208,9 @@ workflow run and the transparency-log entry, the last three from the Fulcio cert
   publisher, no provenance), the `@wirecat/cli-base` and `@wirecat/cli-core` versions in `dependencies` (cli-base
   0.81.0+, the format-2 manifest; cli-core 0.603.0+, undeclared effects count as writes; both < 1.0.0), the code
   (`own_scan.rs`: network modules, `fetch`, `WebSocket`, `child_process` and URL hosts in the tool's own JavaScript,
-  which is every text file (valid UTF-8, no NUL in its first 8 KB) except `package.json`, the manifest, images and
-  fonts, since Node.js runs any file a `require` names; declared hosts are left out as they are found, so they cannot
+  which is every file but `package.json` and the manifest, decoded as Node.js decodes it, since Node.js runs any file a
+  `require` names; hosts come only from scripts and from files a script loads, and a loaded file that is not
+  JavaScript by its name is flagged; declared hosts are left out as they are found, so they cannot
   fill the bound; escaped names, computed globals and `process.binding` are flagged as hidden calls; comments are
   read like code; sections a bundler marks as `node_modules/` are skipped, but a bundled cli-base or cli-core counts
   as one, with the version pnpm's folder names; `.node` and `.wasm` files are flagged as unreadable; only the

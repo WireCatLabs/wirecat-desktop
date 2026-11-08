@@ -16,6 +16,8 @@ export function signalWords(s: OwnSignal, m: OwnReviewText["signals"]): [string,
       return m.networkCode(s.modules.join(", "))
     case "undeclaredHosts":
       return m.undeclaredHosts(s.hosts.join(", "), s.more)
+    case "loadsNonJs":
+      return m.loadsNonJs(s.paths.join(", "))
     case "hiddenCalls":
       return m.hiddenCalls(s.ways)
     case "repoMoved":

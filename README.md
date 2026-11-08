@@ -178,7 +178,7 @@ Only some packages work. The package must have a scope (`@scope/name`, not `@wir
   - its WireCat libraries: not built on cli-base 0.81.0 or later and cli-core 0.603.0 or later (before 1.0);
   - its code: network modules, `fetch` or `WebSocket` in its own code, servers its code names but does not declare,
     programs it can start, calls written so a reader does not see them, and native `.node` or `.wasm` files it cannot
-    read. Every text file of the package is read, not only `.js` files. These are "found in the code", not
+    read. Every file of the package is read for code, not only `.js` files, and a file loaded as code that is not JavaScript by its name is flagged. These are "found in the code", not
     proved: the libraries the package bundles are skipped. Only the repository's address counts as the tool's own page;
     a homepage named in its code is a server like any other;
   - its manifest does not say which servers it contacts;

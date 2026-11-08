@@ -490,6 +490,8 @@ export type OwnSignal = { kind: "newPackage"; days: number } | { kind: "fewVersi
 { kind: "undeclaredHosts"; hosts: string[]; more: number } | 
 /**  `.node` or `.wasm` files: native code the scan cannot read. */
 { kind: "nativeCode"; files: string[] } | 
+/**  Files that are not JavaScript by their name, which the code loads as code all the same. */
+{ kind: "loadsNonJs"; paths: string[] } | 
 /**  Calls written so a reader does not see them: `escaped name`, `computed global`, `process binding`. */
 { kind: "hiddenCalls"; ways: string[] } | 
 /**  The repository npm names answers with a redirect: it was renamed or moved, to `to` when GitHub says where. */

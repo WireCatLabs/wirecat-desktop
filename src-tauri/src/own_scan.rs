@@ -64,6 +64,28 @@ pub struct Code {
     pub hidden: BTreeSet<String>,
     /// Declared hosts and the repository's, as cli-base writes them (`*.x` for the names under x).
     allowed: Vec<String>,
+    /// The last part of every path the code imports or requires (`./notes.md` → `notes.md`).
+    named: BTreeSet<String>,
+    /// Files the code loads that are not JavaScript by their name: Node.js runs them as code all the same.
+    pub foreign: BTreeSet<String>,
+}
+
+/// What Node.js loads as a module by its extension; a `require` of anything else still runs it as JavaScript.
+pub fn is_module(path: &str) -> bool {
+    [".js", ".mjs", ".cjs", ".json", ".node"].iter().any(|ext| path.ends_with(ext))
+}
+
+pub fn is_script(path: &str) -> bool {
+    [".js", ".mjs", ".cjs"].iter().any(|ext| path.ends_with(ext))
+}
+
+const MAX_NAMED: usize = 10_000;
+
+impl Code {
+    /// Whether scanned code imports or requires a file with this path's name.
+    pub fn names(&self, path: &str) -> bool {
+        self.named.contains(path.rsplit('/').next().unwrap_or(path))
+    }
 }
 
 /// As cli-base's `hostCovered`: `*.x` covers the names under x, not x itself.
@@ -151,8 +173,22 @@ pub fn scan(text: &str, code: &mut Code) {
     }
 }
 
+/// A file no script loads: every code signal, but no hosts, which there are links in a licence or bytes in an image.
+pub fn scan_doc(text: &str, code: &mut Code) {
+    scan_with(text, code, false);
+}
+
 fn scan_section(text: &str, code: &mut Code) {
+    scan_with(text, code, true);
+}
+
+fn scan_with(text: &str, code: &mut Code, hosts: bool) {
     for m in SPECIFIER.captures_iter(text) {
+        if code.named.len() < MAX_NAMED
+            && let Some(last) = m[1].rsplit('/').next()
+        {
+            code.named.insert(last.to_string());
+        }
         let root = root(&m[1]);
         if NETWORK.contains(&root) {
             code.modules.insert(root.to_string());
@@ -171,6 +207,9 @@ fn scan_section(text: &str, code: &mut Code) {
     }
     code.fetch |= FETCH.is_match(text);
     code.websocket |= WEBSOCKET.is_match(text);
+    if !hosts {
+        return;
+    }
     for m in URL_HOST.captures_iter(text) {
         if let Some(host) = server(&m[1])
             && !covered(&host, &code.allowed)
