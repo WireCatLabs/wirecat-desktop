@@ -30,6 +30,8 @@ mod mail_agent;
 mod mcp;
 mod mcp_server;
 mod memory;
+mod memory_add;
+mod memory_review;
 mod names;
 mod node;
 mod notes_setup;
@@ -269,6 +271,16 @@ pub fn run() {
             commands::memory::memory_forget,
             commands::memory::memory_source_context,
             commands::memory::memory_open_source,
+            commands::memory::memory_review_show,
+            commands::memory::memory_review_decide,
+            commands::memory::memory_pick_file,
+            commands::memory::memory_source_add,
+            commands::memory::memory_source_show,
+            commands::memory::memory_mentions,
+            commands::memory::memory_source_suggest,
+            commands::memory::memory_readers,
+            commands::memory::memory_reader_choose,
+            commands::memory::memory_reader_key,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,

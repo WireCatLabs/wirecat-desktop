@@ -21,7 +21,7 @@ const QUIET: [&str; 2] = ["--json", "--no-record"];
 const FROM_APP: &str = "--from-app";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Kind {
+pub(crate) enum Kind {
     Memory,
     Fact,
     Action,
@@ -31,7 +31,7 @@ enum Kind {
 /// ref says what it is.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Ref {
-    kind: Kind,
+    pub(crate) kind: Kind,
     id: u64,
 }
 
@@ -52,7 +52,7 @@ impl Ref {
     }
 
     /// The word Memo takes: `memory:12`, `fact:3`, or `5` for an action.
-    fn memo(&self) -> String {
+    pub(crate) fn memo(&self) -> String {
         match self.kind {
             Kind::Memory => format!("memory:{}", self.id),
             Kind::Fact => format!("fact:{}", self.id),
@@ -60,7 +60,7 @@ impl Ref {
         }
     }
 
-    fn noun(&self) -> &'static str {
+    pub(crate) fn noun(&self) -> &'static str {
         match self.kind {
             Kind::Memory => "memories",
             Kind::Fact => "facts",
@@ -132,11 +132,34 @@ pub struct Entry {
     pub role: Option<String>,
     /// A relationship's standing: `proposed`, `confirmed`, `reported` (a CRM says so) or `ended`.
     pub standing: Option<String>,
+    /// The open review memo raised because a source changed, went or was contradicted; status itself never changes.
+    pub source_review: Option<SourceReviewMarker>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct SourceReviewMarker {
+    pub id: String,
+    /// `changed`, `outdated`, `deleted` or `contradicted`; a newer memo may add one.
+    pub cause: String,
+}
+
+/// memo before source reviews has no `source_review` field: such a record simply has none.
+fn marker(v: &Value) -> Option<SourceReviewMarker> {
+    let id = match &v["id"] {
+        Value::String(s) => s.clone(),
+        Value::Number(n) => n.to_string(),
+        _ => return None,
+    };
+    plain(&id)?;
+    Some(SourceReviewMarker { id, cause: text(v, "cause")? })
 }
 
 /// Memo stages an agent's cited facts and follow-ups as an action of this kind, decided with the fingerprint
 /// `actions show` gives.
 const FINDINGS: &str = "evidence_findings";
+/// A source review is shown as a marker on the memory or fact it is about, and decided there, never as an action:
+/// memo refuses `actions confirm` on it.
+const SOURCE_REVIEW: &str = "memory_source_review";
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Counts {
@@ -190,7 +213,7 @@ fn findings_of(v: &Value) -> Vec<Finding> {
         .unwrap_or_default()
 }
 
-fn text(v: &Value, key: &str) -> Option<String> {
+pub(crate) fn text(v: &Value, key: &str) -> Option<String> {
     v.get(key).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string)
 }
 
@@ -230,6 +253,7 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         confidence: v["confidence"].as_f64(),
         role: None,
         standing: None,
+        source_review: marker(&v["source_review"]),
     })
 }
 
@@ -241,9 +265,9 @@ fn fact(v: &Value) -> Option<Entry> {
     record(v, "fact")
 }
 
-fn action(v: &Value) -> Option<Entry> {
+pub(crate) fn action(v: &Value) -> Option<Entry> {
     let account = &v["account"];
-    let kind = text(v, "kind")?;
+    let kind = text(v, "kind").filter(|k| k != SOURCE_REVIEW)?;
     let batch = kind == FINDINGS;
     Some(Entry {
         reference: format!("action:{}", text(v, "id")?),
@@ -278,6 +302,7 @@ fn action(v: &Value) -> Option<Entry> {
         standing: None,
         findings: batch.then(|| findings_of(v)),
         task: text_field(&v["result"], "task").map(|id| format!("task:{id}")),
+        source_review: None,
         kind,
     })
 }
@@ -493,31 +518,42 @@ pub struct Forgot {
 }
 
 /// One Memo command: its JSON on success, Memo's own reason otherwise.
-type Call<'a> = dyn Fn(&[String]) -> Result<Value, String> + Sync + 'a;
+pub(crate) type Call<'a> = dyn Fn(&[String]) -> Result<Value, String> + Sync + 'a;
 
-fn words(parts: &[&str]) -> Vec<String> {
+pub(crate) fn words(parts: &[&str]) -> Vec<String> {
     parts.iter().chain(QUIET.iter()).map(|s| (*s).to_string()).collect()
 }
 
-fn decision(parts: &[&str]) -> Vec<String> {
+pub(crate) fn decision(parts: &[&str]) -> Vec<String> {
     parts.iter().chain(std::iter::once(&FROM_APP)).chain(QUIET.iter()).map(|s| (*s).to_string()).collect()
 }
 
 fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
+    answer(&out)
+}
+
+/// memo's refusals of a source or a reader, which the page words in the owner's language.
+const WORDED_PREFIXES: [&str; 2] = ["source.", "reader."];
+
+pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
     let json = out.json();
+    let reason = json.as_ref().and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
         // A meeting's findings can still change after the agent read them; memo's own words name its command.
-        Some(v) if v["error"]["reason"].as_str() == Some("evidence-findings.stale") => {
+        Some(_) if reason == "evidence-findings.stale" => {
             Err("These findings changed since the agent proposed them.".into())
         }
         // The page words these in the owner's language, so the reason goes back as it is.
-        Some(v) if v["error"]["reason"].as_str().is_some_and(|r| REVOKE_REFUSALS.contains(&r)) => {
-            Err(v["error"]["reason"].as_str().unwrap_or_default().to_string())
+        Some(_)
+            if REVOKE_REFUSALS.contains(&reason)
+                || (plain(reason).is_some() && WORDED_PREFIXES.iter().any(|p| reason.starts_with(p))) =>
+        {
+            Err(reason.to_string())
         }
-        j => Err(failure(&out, j.as_ref())),
+        j => Err(failure(out, j.as_ref())),
     }
 }
 
@@ -529,7 +565,7 @@ fn can_revoke(tool: &Tool, version: Option<&str>) -> bool {
     tool.memory.as_ref().and_then(|m| m.revoke_min_version.as_deref()).is_some_and(|min| !too_old(version, min))
 }
 
-fn memo() -> Result<&'static Tool, String> {
+pub(crate) fn memo() -> Result<&'static Tool, String> {
     catalog::tool("memo")
 }
 
@@ -599,13 +635,13 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
     Ok(Read::Ready { entries, more, activity, activity_error, revoke, roles })
 }
 
-fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
+pub(crate) fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
     let tool = memo()?;
     let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     f(&|args: &[String]| call_at(&bin, args, WRITE))
 }
 
-fn parse_entry(r: &Ref, v: &Value) -> Result<Entry, String> {
+pub(crate) fn parse_entry(r: &Ref, v: &Value) -> Result<Entry, String> {
     let item = body(v);
     let parsed = match r.kind {
         Kind::Memory => memory(item),
@@ -753,7 +789,7 @@ fn decide_relationship(call: &Call, id: &str, confirm: bool) -> Result<Entry, St
 }
 
 /// A word Memo gave back goes into a command line again, so it must not read as an option.
-fn plain(word: &str) -> Option<&str> {
+pub(crate) fn plain(word: &str) -> Option<&str> {
     (!word.is_empty() && !word.starts_with('-') && !word.chars().any(char::is_whitespace)).then_some(word)
 }
 
@@ -1328,6 +1364,27 @@ mod tests {
             _ => Ok(json!({"items":[]})),
         });
         assert_eq!(read_with(&|a: &[String]| busy.call(a), false), Err("the store is busy".into()));
+    }
+
+    #[test]
+    fn a_record_carries_its_open_source_review_and_an_older_memo_none() {
+        let mut marked = agent_memory();
+        marked["source_review"] = json!({"id":"17090","cause":"deleted"});
+        let e = memory(&marked).unwrap();
+        assert_eq!(e.source_review, Some(SourceReviewMarker { id: "17090".into(), cause: "deleted".into() }));
+        assert_eq!(memory(&agent_memory()).unwrap().source_review, None, "memo before source reviews");
+        let mut cleared = decision("accepted");
+        cleared["source_review"] = Value::Null;
+        assert_eq!(fact(&cleared).unwrap().source_review, None);
+        marked["source_review"] = json!({"id":"--all","cause":"changed"});
+        assert_eq!(memory(&marked).unwrap().source_review, None, "an id that reads as an option is dropped");
+    }
+
+    #[test]
+    fn a_source_review_is_never_listed_as_an_action_to_approve() {
+        let mut review = proposal("proposed");
+        review["kind"] = json!("memory_source_review");
+        assert_eq!(action(&review), None);
     }
 
     #[test]
