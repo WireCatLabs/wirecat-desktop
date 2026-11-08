@@ -7,6 +7,7 @@ import type { Profile } from "@/platform/schemas"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
+import { cx } from "@/ui/cx"
 import { Pill } from "@/ui/Pill"
 import { type MenuItem, SplitButton } from "@/ui/SplitButton"
 import { CheckPanel, useCheck } from "./CheckResult"
@@ -27,8 +28,11 @@ export function AccountRow(props: {
   onReload: () => void
   /** Off on the setup's sign-in step, which leads to the sync itself. */
   sync?: boolean | undefined
+  /** The tool forgot this account: the row folds away before the list reloads. */
+  leaving?: boolean
+  onForgotten?: () => void
 }) {
-  const { tool, profile: p, onReload } = props
+  const { tool, profile: p, onReload, leaving = false, onForgotten = onReload } = props
   const m = useMessages(accountsMessages).row
   const check = useCheck(tool)
   const [folders, setFolders] = useState(false)
@@ -53,13 +57,18 @@ export function AccountRow(props: {
   ]
 
   return (
-    <li className="flex flex-col gap-1.5 px-3 py-2" aria-label={m.region(tool.name, p.name)}>
-      <RowLine tool={tool} profile={p} syncs={syncs} items={items} onSignIn={signIn} />
-      <Collapse open={check.shown}>
-        <CheckPanel tool={tool} c={check} onClose={check.clear} />
-      </Collapse>
-      <Collapse open={folders}>
-        <DriveFoldersSettings tool={tool} profile={p.name} onClose={() => setFolders(false)} />
+    <li
+      className={cx("transition-colors duration-(--motion-slow)", leaving && "border-transparent")}
+      aria-label={m.region(tool.name, p.name)}
+    >
+      <Collapse open={!leaving} className="flex flex-col gap-1.5 px-3 py-2">
+        <RowLine tool={tool} profile={p} syncs={syncs} items={items} onSignIn={signIn} />
+        <Collapse open={check.shown}>
+          <CheckPanel tool={tool} c={check} onClose={check.clear} />
+        </Collapse>
+        <Collapse open={folders}>
+          <DriveFoldersSettings tool={tool} profile={p.name} onClose={() => setFolders(false)} />
+        </Collapse>
       </Collapse>
       <RemoveAccountDialog
         tool={tool}
@@ -70,6 +79,11 @@ export function AccountRow(props: {
           check.clear()
           setFolders(false)
           onReload()
+        }}
+        onForgotten={() => {
+          check.clear()
+          setFolders(false)
+          onForgotten()
         }}
         onSignIn={signIn}
       />

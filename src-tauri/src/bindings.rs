@@ -47,6 +47,7 @@ fn types() -> Types {
         .register::<crate::drive_folders::FolderRemoved>()
         .register::<crate::drive_folders::ChosenFolders>()
         .register::<crate::account::AccountRemoved>()
+        .register::<crate::account::AccountRemoval>()
         .register::<crate::backup::Backups>()
         .register::<crate::backup::BackupEvent>()
         .register::<crate::backup::ResetPreview>()

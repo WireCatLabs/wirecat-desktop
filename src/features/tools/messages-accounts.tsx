@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import type { ACCOUNT_KEEPS, ACCOUNT_REMOVES } from "@/domain/catalog"
 import type { Messages } from "@/i18n"
+import type { RemovalHolder, RemovalKind } from "@/platform/bindings"
 
 type Removes = (typeof ACCOUNT_REMOVES)[number]
 type Keeps = (typeof ACCOUNT_KEEPS)[number]
@@ -71,6 +72,58 @@ const en = {
     close: "Close",
     finish: "Done",
     signInAgain: "Sign in again",
+    checking: (tool: string) => `Checking what ${tool} can remove…`,
+    keepChoice: "Remove, keep its data (search still finds it)",
+    keepChoiceNote: (what: string) =>
+      `WireCat signs it out and forgets it here. The ${what} already copied stay, and you and your agent can still search them.`,
+    deleteChoice: "Remove and delete its data",
+    deleteChoiceNote: (what: string) => `WireCat signs it out, forgets it here and deletes the ${what} copied from it.`,
+    planning: "Listing what this removes…",
+    kinds: {
+      signIn: () => "Sign-in",
+      keyring: () => "Saved keys in the system keyring",
+      config: () => "Settings",
+      file: () => "Files",
+      store: (what: string) => `Its ${what} in the shared store`,
+      unit: () => "Background service",
+      schedule: () => "Scheduled jobs",
+    } satisfies Record<RemovalKind, (what: string) => string>,
+    short: {
+      signIn: () => "the sign-in",
+      keyring: () => "saved keys",
+      config: () => "settings",
+      file: () => "files",
+      store: (what: string) => `its ${what}`,
+      unit: () => "the background service",
+      schedule: () => "scheduled jobs",
+    } satisfies Record<RemovalKind, (what: string) => string>,
+    storeStays: "Kept as you chose: search still finds them",
+    keptByChoice: "Kept as you chose",
+    configIn: "in",
+    confirmKeep: (profile: string) => `Remove ${profile}, keep its data`,
+    confirmDelete: (profile: string) => `Remove ${profile} and delete its data`,
+    removing: "Removing…",
+    doneKeep: (profile: string, tool: string, what: string) =>
+      `${profile} is removed from ${tool}. Its ${what} stay on this computer, and search still finds them.`,
+    doneDelete: (profile: string, tool: string, what: string) =>
+      `${profile} is removed from ${tool}, and its ${what} are deleted from this computer.`,
+    doneList: (list: string) => `Removed: ${list}.`,
+    revoked: (tool: string) => `${tool} also ended the sign-in on its side.`,
+    busyHead: "Nothing was removed: something is using this account right now.",
+    holders: {
+      sync: (profile: string) =>
+        `A sync of ${profile} is running. Stop it beside its Sync button, or wait for it to finish, then try again.`,
+      install: (_: string, tool: string) =>
+        `${tool} is being installed or updated. Wait until it finishes, then try again.`,
+      signIn: (_: string, tool: string) => `A sign-in to ${tool} is open. Finish or close it, then try again.`,
+    } satisfies Record<RemovalHolder, (profile: string, tool: string) => string>,
+    busyTool: "Stop it, then try again. The tool says:",
+    refusedHead: (tool: string) => `${tool} removed nothing.`,
+    unknownProfile: (tool: string, profile: string) =>
+      `${tool} has no account named ${profile} on this computer. Close this to refresh the list.`,
+    outside: (tool: string) =>
+      `${tool} named a folder outside its own, so it stopped before removing anything. This is a bug in ${tool}: please report it.`,
+    update: (tool: string) => `Update ${tool} to remove the account fully.`,
   },
 }
 
@@ -142,6 +195,57 @@ const ru: AccountsText = {
     close: "Закрыть",
     finish: "Готово",
     signInAgain: "Войти заново",
+    checking: (tool) => `Проверяем, что ${tool} может удалить…`,
+    keepChoice: "Удалить, данные оставить (поиск их найдёт)",
+    keepChoiceNote: (what) =>
+      `WireCat выйдет из аккаунта и забудет его здесь. Уже скопированные ${what} останутся, и вы с агентом сможете по ним искать.`,
+    deleteChoice: "Удалить вместе с данными",
+    deleteChoiceNote: (what) => `WireCat выйдет из аккаунта, забудет его здесь и удалит скопированные из него ${what}.`,
+    planning: "Составляем список того, что удалится…",
+    kinds: {
+      signIn: () => "Вход",
+      keyring: () => "Сохранённые ключи в системном хранилище",
+      config: () => "Настройки",
+      file: () => "Файлы",
+      store: (what) => `Его ${what} в общем хранилище`,
+      unit: () => "Фоновая служба",
+      schedule: () => "Задания по расписанию",
+    },
+    short: {
+      signIn: () => "вход",
+      keyring: () => "сохранённые ключи",
+      config: () => "настройки",
+      file: () => "файлы",
+      store: (what) => `${what} в хранилище`,
+      unit: () => "фоновая служба",
+      schedule: () => "задания по расписанию",
+    },
+    storeStays: "Останутся, как вы выбрали: поиск их найдёт",
+    keptByChoice: "Останутся, как вы выбрали",
+    configIn: "в",
+    confirmKeep: (profile) => `Удалить ${profile}, данные оставить`,
+    confirmDelete: (profile) => `Удалить ${profile} вместе с данными`,
+    removing: "Удаляем…",
+    doneKeep: (profile, tool, what) =>
+      `Аккаунт ${profile} удалён из ${tool}. Его ${what} остались на этом компьютере, и поиск их найдёт.`,
+    doneDelete: (profile, tool, what) =>
+      `Аккаунт ${profile} удалён из ${tool}, его ${what} удалены с этого компьютера.`,
+    doneList: (list) => `Удалено: ${list}.`,
+    revoked: (tool) => `${tool} также отозвал вход на своей стороне.`,
+    busyHead: "Ничего не удалено: этим аккаунтом сейчас что-то пользуется.",
+    holders: {
+      sync: (profile) =>
+        `Идёт синхронизация ${profile}. Остановите её рядом с кнопкой синхронизации или дождитесь конца, затем попробуйте ещё раз.`,
+      install: (_, tool) => `${tool} сейчас устанавливается или обновляется. Дождитесь окончания и попробуйте ещё раз.`,
+      signIn: (_, tool) => `Открыт вход в ${tool}. Завершите или закройте его, затем попробуйте ещё раз.`,
+    },
+    busyTool: "Остановите его и попробуйте ещё раз. Сообщение программы:",
+    refusedHead: (tool) => `${tool} ничего не удалил.`,
+    unknownProfile: (tool, profile) =>
+      `У ${tool} нет аккаунта ${profile} на этом компьютере. Закройте окно, чтобы обновить список.`,
+    outside: (tool) =>
+      `${tool} указал папку вне своих, поэтому остановился, ничего не удалив. Это ошибка в ${tool}: пожалуйста, сообщите о ней.`,
+    update: (tool) => `Обновите ${tool}, чтобы удалять аккаунт полностью.`,
   },
 }
 
@@ -211,6 +315,57 @@ const es: AccountsText = {
     close: "Cerrar",
     finish: "Listo",
     signInAgain: "Volver a iniciar sesión",
+    checking: (tool) => `Comprobando qué puede quitar ${tool}…`,
+    keepChoice: "Quitar y conservar sus datos (la búsqueda los sigue encontrando)",
+    keepChoiceNote: (what) =>
+      `WireCat cierra su sesión y la olvida aquí. Lo ya copiado (${what}) se queda, y tú y tu agente podéis seguir buscando en ello.`,
+    deleteChoice: "Quitar y borrar sus datos",
+    deleteChoiceNote: (what) => `WireCat cierra su sesión, la olvida aquí y borra lo que se copió de ella (${what}).`,
+    planning: "Preparando la lista de lo que se quita…",
+    kinds: {
+      signIn: () => "Inicio de sesión",
+      keyring: () => "Claves guardadas en el llavero del sistema",
+      config: () => "Ajustes",
+      file: () => "Archivos",
+      store: (what) => `Sus ${what} en el almacén compartido`,
+      unit: () => "Servicio en segundo plano",
+      schedule: () => "Tareas programadas",
+    },
+    short: {
+      signIn: () => "el inicio de sesión",
+      keyring: () => "las claves guardadas",
+      config: () => "los ajustes",
+      file: () => "los archivos",
+      store: (what) => `sus ${what}`,
+      unit: () => "el servicio en segundo plano",
+      schedule: () => "las tareas programadas",
+    },
+    storeStays: "Se quedan, como elegiste: la búsqueda los sigue encontrando",
+    keptByChoice: "Se quedan, como elegiste",
+    configIn: "en",
+    confirmKeep: (profile) => `Quitar ${profile} y conservar sus datos`,
+    confirmDelete: (profile) => `Quitar ${profile} y borrar sus datos`,
+    removing: "Quitando…",
+    doneKeep: (profile, tool, what) =>
+      `${profile} ya no está en ${tool}. Sus ${what} siguen en este ordenador y siguen apareciendo en la búsqueda.`,
+    doneDelete: (profile, tool, what) =>
+      `${profile} ya no está en ${tool}, y sus ${what} se han borrado de este ordenador.`,
+    doneList: (list) => `Se quitó: ${list}.`,
+    revoked: (tool) => `${tool} también retiró el inicio de sesión por su parte.`,
+    busyHead: "No se quitó nada: algo está usando esta cuenta ahora.",
+    holders: {
+      sync: (profile) =>
+        `Se está sincronizando ${profile}. Detén la sincronización junto a su botón o espera a que termine, y vuelve a intentarlo.`,
+      install: (_, tool) => `${tool} se está instalando o actualizando. Espera a que termine y vuelve a intentarlo.`,
+      signIn: (_, tool) => `Hay un inicio de sesión de ${tool} abierto. Termínalo o ciérralo, y vuelve a intentarlo.`,
+    },
+    busyTool: "Detenlo y vuelve a intentarlo. La herramienta dice:",
+    refusedHead: (tool) => `${tool} no quitó nada.`,
+    unknownProfile: (tool, profile) =>
+      `${tool} no tiene ninguna cuenta llamada ${profile} en este ordenador. Cierra esto para actualizar la lista.`,
+    outside: (tool) =>
+      `${tool} indicó una carpeta fuera de las suyas, así que se detuvo sin quitar nada. Es un error de ${tool}: por favor, infórmalo.`,
+    update: (tool) => `Actualiza ${tool} para quitar la cuenta por completo.`,
   },
 }
 

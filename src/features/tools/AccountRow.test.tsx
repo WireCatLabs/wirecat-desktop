@@ -1,6 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
+import type { Removal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { AccountList } from "./Health"
@@ -70,44 +71,145 @@ describe("an account row", () => {
   })
 })
 
+const plan = (data: "kept" | "deleted", dryRun: boolean): Removal => ({
+  data,
+  dryRun,
+  revoked: null,
+  configFile: "~/.config/tg-cli/config.json",
+  removed: [
+    { kind: "signIn", target: "the Telegram session", reason: null, chosen: false },
+    { kind: "keyring", target: "app-keys:work", reason: null, chosen: false },
+    { kind: "config", target: "profiles.work", reason: null, chosen: false },
+    { kind: "file", target: "~/.local/state/tg-cli/accounts/work.json", reason: null, chosen: false },
+    ...(data === "deleted" ? [{ kind: "store" as const, target: "telegram", reason: null, chosen: false }] : []),
+  ],
+  kept: [
+    {
+      kind: "file",
+      target: "~/.local/state/tg-cli/sends/work.jsonl",
+      reason: "the record of what was sent",
+      chosen: false,
+    },
+    ...(data === "kept" ? [{ kind: "store" as const, target: "telegram", reason: null, chosen: true }] : []),
+  ],
+})
+
+const openRemove = async (profile = "work") => {
+  await userEvent.click(within(await openMenu(profile)).getByRole("menuitem", { name: "Remove account…" }))
+  return screen.getByRole("dialog", { name: `Remove ${profile}?` })
+}
+
 describe("removing an account", () => {
-  it("lists what the sign-out removes and keeps, offers no data deletion, and signs out", async () => {
-    const remove = vi.spyOn(platform, "accountRemove").mockResolvedValue({ result: "signedOut", wasSignedIn: true })
+  beforeEach(() => vi.spyOn(platform, "accountRemoveSupported").mockResolvedValue(true))
+
+  it("shows the tool's dry run for the choice, removes on confirm, and the row leaves", async () => {
+    const dry = vi
+      .spyOn(platform, "accountRemovePlan")
+      .mockResolvedValue({ result: "answered", removal: plan("kept", true) })
+    const remove = vi
+      .spyOn(platform, "accountRemove")
+      .mockResolvedValue({ result: "answered", removal: plan("kept", false) })
     const reload = vi.fn()
     render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={reload} />)
-    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Remove account…" }))
-    const dialog = screen.getByRole("dialog", { name: "Remove work?" })
+    const dialog = await openRemove()
+    await userEvent.click(
+      await within(dialog).findByRole("button", { name: /Remove, keep its data \(search still finds it\)/ }),
+    )
+    expect(dry).toHaveBeenCalledWith("tg", "work", false)
+    expect(await within(dialog).findByText("Saved keys in the system keyring")).toBeInTheDocument()
+    expect(within(dialog).getAllByText("~/.local/state/tg-cli")).toHaveLength(2)
+    expect(within(dialog).getByText("accounts/work.json")).toBeInTheDocument()
+    expect(within(dialog).getByText("Kept as you chose: search still finds them")).toBeInTheDocument()
+    expect(within(dialog).getByText("tg work account remove --keep-data --record --json --yes")).toBeInTheDocument()
+    expect(remove).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Remove work, keep its data" }))
+    expect(remove).toHaveBeenCalledWith("tg", "work", false)
+    expect(await within(dialog).findByText(/work is removed from Telegram\. Its messages stay/)).toBeInTheDocument()
+    expect(within(dialog).getByText("Removed: the sign-in, saved keys, settings, files.")).toBeInTheDocument()
+    expect(reload).not.toHaveBeenCalled()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Done" }))
+    const row = screen.getByRole("listitem", { name: "Telegram account work" })
+    expect(row.firstElementChild).toHaveAttribute("data-state", "closed")
+    await waitFor(() => expect(reload).toHaveBeenCalled())
+  })
+
+  it("lists the store under what goes when the data is deleted, and goes back to the choice", async () => {
+    vi.spyOn(platform, "accountRemovePlan").mockResolvedValue({ result: "answered", removal: plan("deleted", true) })
+    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
+    const dialog = await openRemove()
+    await userEvent.click(await within(dialog).findByRole("button", { name: /Remove and delete its data/ }))
+    expect(await within(dialog).findByText("Its messages in the shared store")).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Remove work and delete its data" })).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Back" }))
+    expect(await within(dialog).findByRole("button", { name: /Remove and delete its data/ })).toBeInTheDocument()
+  })
+
+  it("says what holds a busy account and how to stop it, and removes nothing", async () => {
+    vi.spyOn(platform, "accountRemovePlan").mockResolvedValue({
+      result: "refused",
+      reason: "busy",
+      holder: null,
+      message: "`tg serve` is running for work — stop it first (`tg work server stop`)",
+    })
+    const remove = vi.spyOn(platform, "accountRemove")
+    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
+    const dialog = await openRemove()
+    await userEvent.click(await within(dialog).findByRole("button", { name: /Remove, keep its data/ }))
+    expect(await within(dialog).findByText(/something is using this account right now/)).toBeInTheDocument()
+    expect(within(dialog).getByText(/tg work server stop/)).toBeInTheDocument()
+    expect(within(dialog).getByRole("button", { name: "Try again" })).toBeInTheDocument()
+    expect(remove).not.toHaveBeenCalled()
+  })
+
+  it("names the app's own sync when it holds the account", async () => {
+    vi.spyOn(platform, "accountRemovePlan").mockResolvedValue({
+      result: "refused",
+      reason: "busy",
+      holder: "sync",
+      message: "Something else runs for this account",
+    })
+    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
+    const dialog = await openRemove()
+    await userEvent.click(await within(dialog).findByRole("button", { name: /Remove, keep its data/ }))
+    expect(await within(dialog).findByText(/A sync of work is running/)).toBeInTheDocument()
+  })
+
+  it("signs out only, with the update that removes it fully, when the tool is too old", async () => {
+    vi.spyOn(platform, "accountRemoveSupported").mockResolvedValue(false)
+    const signOut = vi.spyOn(platform, "accountSignOut").mockResolvedValue({ result: "signedOut", wasSignedIn: true })
+    const reload = vi.fn()
+    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={reload} />)
+    const dialog = await openRemove()
+    expect(await within(dialog).findByText("Update Telegram to remove the account fully.")).toBeInTheDocument()
     expect(within(dialog).getByText("The sign-in on this computer")).toBeInTheDocument()
-    expect(within(dialog).getByText(/The messages already copied here/)).toBeInTheDocument()
     expect(within(dialog).getByText("tg work session end --record --json")).toBeInTheDocument()
     expect(within(dialog).getByRole("group", { name: "Sign out and delete its data" })).toBeDisabled()
-    expect(within(dialog).getByText(/cannot delete one account's data yet/)).toBeInTheDocument()
     await userEvent.click(within(dialog).getByRole("button", { name: "Sign out" }))
-    expect(remove).toHaveBeenCalledWith("tg", "work", false)
+    expect(signOut).toHaveBeenCalledWith("tg", "work")
     expect(await within(dialog).findByText(/work is signed out of Telegram/)).toBeInTheDocument()
     expect(reload).toHaveBeenCalled()
   })
 
-  it("says the tool's own reason when the sign-out fails, and keeps the dialog open to try again", async () => {
-    vi.spyOn(platform, "accountRemove").mockResolvedValue({ result: "failed", message: "tg serve is running" })
+  it("keeps the dialog open to try the sign-out again when it fails", async () => {
+    vi.spyOn(platform, "accountRemoveSupported").mockResolvedValue(false)
+    vi.spyOn(platform, "accountSignOut").mockResolvedValue({ result: "failed", message: "tg serve is running" })
     render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
-    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: "Remove account…" }))
-    const dialog = screen.getByRole("dialog", { name: "Remove work?" })
-    await userEvent.click(within(dialog).getByRole("button", { name: "Sign out" }))
+    const dialog = await openRemove()
+    await userEvent.click(await within(dialog).findByRole("button", { name: "Sign out" }))
     expect(await within(dialog).findByText("tg serve is running")).toBeInTheDocument()
     expect(within(dialog).getByRole("button", { name: "Try again" })).toBeInTheDocument()
   })
 
-  it("explains that Zoom cannot sign out, with nothing to run", async () => {
-    const remove = vi.spyOn(platform, "accountRemove")
+  it("explains that an old Zoom cannot sign out, with nothing to run", async () => {
+    vi.spyOn(platform, "accountRemoveSupported").mockResolvedValue(false)
+    const signOut = vi.spyOn(platform, "accountSignOut")
     render(
       <AccountList tool={tool("zm")} profiles={[{ name: "personal", signedIn: null }]} onReload={() => undefined} />,
     )
-    await userEvent.click(within(await openMenu("personal")).getByRole("menuitem", { name: "Remove account…" }))
-    const dialog = screen.getByRole("dialog", { name: "Remove personal?" })
-    expect(within(dialog).getByText(/Zoom cannot sign an account out yet/)).toBeInTheDocument()
+    const dialog = await openRemove("personal")
+    expect(await within(dialog).findByText(/Zoom cannot sign an account out yet/)).toBeInTheDocument()
     expect(within(dialog).queryByRole("button", { name: "Sign out" })).not.toBeInTheDocument()
-    expect(remove).not.toHaveBeenCalled()
+    expect(signOut).not.toHaveBeenCalled()
   })
 })
 

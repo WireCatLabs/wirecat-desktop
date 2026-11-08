@@ -1,6 +1,7 @@
 import { ownerId, tools } from "@/domain/catalog"
 import { parseLink } from "@/domain/links"
 import type { AccountRemoved } from "./bindings"
+import { accountRemoveMock } from "./mock-account-remove"
 import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { analyticsMock } from "./mock-analytics"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
@@ -188,6 +189,8 @@ const STATE_ENTRIES: Record<string, [string, boolean, number][]> = {
 
 // Profiles a sign-out in this window ended; they stay listed, signed out, as the CLIs' own lists keep them.
 const signedOut = new Set<string>()
+// Profiles `account remove` forgot: the tools no longer list them.
+const forgotten = new Set<string>()
 
 function mockProfiles(id: string): Profile[] | null {
   if (id === "memo") return null
@@ -462,11 +465,14 @@ export function createMock(os: Platform["os"]): Platform {
     },
     async listProfiles(id): Promise<Profile[] | null> {
       await delay(350)
-      return mockProfiles(id)?.map((p) => (signedOut.has(`${id}/${p.name}`) ? { ...p, signedIn: false } : p)) ?? null
+      return (
+        mockProfiles(id)
+          ?.filter((p) => !forgotten.has(`${id}/${p.name}`))
+          .map((p) => (signedOut.has(`${id}/${p.name}`) ? { ...p, signedIn: false } : p)) ?? null
+      )
     },
-    async accountRemove(id, profile, deleteData): Promise<AccountRemoved> {
+    async accountSignOut(id, profile): Promise<AccountRemoved> {
       await delay(900)
-      if (deleteData) throw new Error("This tool cannot delete an account's data.")
       if (params.get("remove-fail") === id)
         return {
           result: "failed",
@@ -676,6 +682,7 @@ export function createMock(os: Platform["os"]): Platform {
     },
     ...signInMock(),
     ...driveFoldersMock(),
+    ...accountRemoveMock(params, (id, profile) => forgotten.add(`${id}/${profile}`)),
     ...botMock(),
     ...syncMock(),
     ...mailAgentMock(params),

@@ -75,9 +75,9 @@ src-tauri/src/
                 date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or
                 signed out, Codex (`codex exec`, read-only, in an empty folder). One checked line comes back into the
                 query box; nothing is searched until he presses Search. Never a message or a hit.
-  account.rs    removing one account: the tool's own `session end` (`accountRemove.signOut` in the catalog), refused while
-                that profile syncs or signs in. No CLI deletes one account's data yet, so `deleteData` is null for every
-                tool and the dialog says so; zm has no sign-out at all (`accountRemove: null`).
+  account.rs    removing one account: cli-core's `account remove` (`accountRemove.remove`), dry run first, keeping or
+                deleting its data; before a tool's version has it, its own `session end` (`accountRemove.signOut`).
+                Refused while that profile syncs, its package installs or a sign-in runs. zm has no sign-out.
   settings.rs   tool settings: `config show`, and saving only through `config set` / `config unset`.
   storage.rs    each tool's data folders, their sizes and entries (names only); deleting them once unused.
   archive.rs    what the shared archive holds, from a tool's `store info`; the database is never opened.
@@ -201,9 +201,17 @@ Every list of a tool's accounts (the Manage panel, the setup's Sign in step) is 
 (`src/features/tools/`): the name, signed in or not, when it last synced, Sync where the tool syncs per profile, and
 "⋯" (`ui/SplitButton`, `compact`) with Check, Choose folders (drive), Settings (tools with per-profile settings: the
 Settings page opens on that profile), Sign in again, and Remove account. A check opens under its own row
-(`CheckResult.tsx`), folds away with its ×, and shows doctor output as `redact.rs` left it. Remove account runs
-`account_remove` (`account.rs`); the dialog lists what the tool's sign-out removes and what stays, from the catalog's
-`accountRemove.removes` and `keeps`, which were read from each CLI's own source.
+(`CheckResult.tsx`), folds away with its ×, and shows doctor output as `redact.rs` left it.
+
+Remove account (`RemoveAccount.tsx`, `account.rs`) uses cli-core's shared `<profile> account remove` once the installed
+version has it (`accountRemove.remove.minVersion` in the catalog; null means not released yet and counts as missing).
+The owner chooses to keep or delete the account's data, `account_remove_plan` runs the `--dry-run` and the dialog
+lists what goes and what stays, grouped by kind with paths under their folder; only the confirm runs `account_remove`
+with `--yes`. Rust masks every target and message, drops the account id from the store entry, and maps cli-core's
+`account-remove.*` reasons to `RemovalRefusal`; the app's own guard (a sync, an install or a sign-in for that account)
+answers `busy` with the `RemovalHolder`. After it succeeds the row folds away and the list reloads. A tool without the
+command falls back to `account_sign_out` (`session end`), whose dialog lists the catalog's `removes` and `keeps`, read
+from each CLI's source, and says to update the tool.
 
 ## Uninstalling and storage
 
