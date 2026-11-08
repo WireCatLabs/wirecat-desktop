@@ -31,6 +31,7 @@ import { dayLabel, kindOf, textOf, timeOf } from "./labels"
 import { memoryMessages } from "./messages"
 import { InlineCorrect } from "./RowCorrect"
 import { Details } from "./RowDetails"
+import { ReviewMarker } from "./RowReview"
 import { canRevoke, ownerRoles, useMemory } from "./store"
 
 const ICONS = { memory: Brain, fact: MessageSquareQuote, action: ListChecks, relationship: Link2 }
@@ -140,6 +141,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
       </span>
       {entry.scope === "personal" && <Pill>{m.personal}</Pill>}
       {standing && <StandingPill standing={standing} />}
+      {entry.sourceReview && <ReviewMarker cause={entry.sourceReview.cause} />}
     </span>
   )
 

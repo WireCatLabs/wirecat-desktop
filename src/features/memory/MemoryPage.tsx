@@ -1,6 +1,6 @@
 import { Check, ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
-import { can, inTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
+import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -37,8 +37,8 @@ export function MemoryPage() {
   const ready = s.read?.kind === "ready" ? s.read : null
   const filter = memoryFilter(s.query)
   const filtered = s.entries.filter((e) => matchesFilter(e, filter))
-  const shown = filtered.filter((e) => inTab(s.tab, e.status) || s.held.includes(e.ref))
-  const count = (tab: Tab) => filtered.filter((e) => inTab(tab, e.status)).length
+  const shown = filtered.filter((e) => entryInTab(s.tab, e) || s.held.includes(e.ref))
+  const count = (tab: Tab) => filtered.filter((e) => entryInTab(tab, e)).length
   const forgetting = s.entries.find((e) => e.ref === s.forgetting) ?? null
   const filtering = s.query.trim() !== ""
   // On screen: this tab, these filters, a group that is not folded. Facts and memories only: a task, an agent's
