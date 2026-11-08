@@ -379,6 +379,7 @@ fn relationship(v: &Value, pending: bool) -> Option<Entry> {
         confidence: None,
         role: text(v, "role"),
         standing: Some(standing),
+        source_review: None,
     })
 }
 
