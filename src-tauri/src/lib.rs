@@ -135,6 +135,7 @@ pub fn run() {
                 eprintln!("[wirecat] no log file: {e}");
             }
             listen_for_links(app.handle());
+            digests::mark_running();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -292,6 +293,11 @@ pub fn run() {
             commands::sync::sync_stop,
             commands::sync::sync_last
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_, event| {
+            if let tauri::RunEvent::Exit = event {
+                digests::unmark_running();
+            }
+        });
 }

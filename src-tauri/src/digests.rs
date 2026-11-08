@@ -139,6 +139,48 @@ pub fn show(date: &str) -> Result<Digest, String> {
     show_in(&runs_dir()?, date)
 }
 
+/// `<memo state>/schedules/desktop.json`: while it names a live pid, cli-core's timer leaves its own desktop notice
+/// out for the schedules listed, since this app announces them; one notice per digest, not two.
+fn marker() -> Result<PathBuf, String> {
+    let memo = catalog::tool("memo")?;
+    Ok(storage::state_folder(&memo.storage).join("schedules").join("desktop.json"))
+}
+
+fn write_marker(path: &Path, pid: u32) {
+    let Some(schedules) = path.parent() else { return };
+    // Only beside a memo that already keeps state here: the app makes no memo folder of its own.
+    if !schedules.parent().is_some_and(Path::exists) || std::fs::create_dir_all(schedules).is_err() {
+        return;
+    }
+    let body = serde_json::json!({ "pid": pid, "announces": [SCHEDULE] });
+    if let Err(e) = std::fs::write(path, body.to_string()) {
+        eprintln!("[wirecat] no digest marker: {e}");
+    }
+}
+
+/// A restart's new instance may have written its own marker before this one exits; that one stays.
+fn remove_marker(path: &Path, pid: u32) {
+    let ours = read_small(path)
+        .and_then(|body| serde_json::from_str::<Value>(&body).ok())
+        .and_then(|v| v.get("pid").and_then(Value::as_u64))
+        == Some(u64::from(pid));
+    if ours {
+        let _ = std::fs::remove_file(path);
+    }
+}
+
+pub fn mark_running() {
+    if let Ok(path) = marker() {
+        write_marker(&path, std::process::id());
+    }
+}
+
+pub fn unmark_running() {
+    if let Ok(path) = marker() {
+        remove_marker(&path, std::process::id());
+    }
+}
+
 fn one_line(s: &str, limit: usize) -> String {
     s.chars().filter(|c| !c.is_control()).take(limit).collect()
 }
@@ -174,6 +216,26 @@ pub fn notify(app: &tauri::AppHandle, date: &str, title: &str, body: &str, open:
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn marks_the_running_app_beside_memo_state_and_removes_only_its_own_marker() {
+        let state = std::env::temp_dir().join(format!("wirecat-digest-marker-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&state);
+        let path = state.join("schedules").join("desktop.json");
+        write_marker(&path, 41);
+        assert!(!path.exists(), "no memo state, no marker");
+
+        std::fs::create_dir_all(&state).unwrap();
+        write_marker(&path, 41);
+        let body: Value = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(body, serde_json::json!({ "pid": 41, "announces": ["morning-digest"] }));
+
+        remove_marker(&path, 42);
+        assert!(path.exists(), "another instance's marker stays");
+        remove_marker(&path, 41);
+        assert!(!path.exists());
+        std::fs::remove_dir_all(&state).unwrap();
+    }
 
     fn write(dir: &Path, name: &str, body: &str) {
         std::fs::write(dir.join(name), body).unwrap();
