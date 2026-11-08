@@ -32,6 +32,7 @@ import {
   SourceContextSchema,
 } from "./memory-schemas"
 import { NotificationsSchema } from "./notifications-schemas"
+import { PeopleReadSchema, PersonDetailSchema, UnlinkedSchema } from "./people-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
@@ -202,6 +203,12 @@ function createTauri(): Platform {
     memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
     memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
+    peopleRead: () => call(PeopleReadSchema, "people_read"),
+    peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
+    peopleDecide: (ref, id, answer, reason) =>
+      call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
+    peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
+    peopleUnmerge: (ref, merge) => call(PersonDetailSchema, "people_unmerge", { reference: ref, merge }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
     taskShow: (key) => call(TaskSchema, "task_show", { key }),

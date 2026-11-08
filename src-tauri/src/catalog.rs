@@ -59,6 +59,9 @@ pub struct Tool {
     /// The Tasks page's lowest memo: below it the page offers the update instead of a read.
     #[serde(default)]
     pub task_board: Option<TaskBoardSource>,
+    /// Only memo: the People page's lowest memo (`people.rs`); below it the page offers the update instead of a read.
+    #[serde(default)]
+    pub people: Option<PeopleSource>,
     /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
     #[serde(default)]
     pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,
@@ -196,6 +199,12 @@ pub struct TasksSource {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskBoardSource {
+    pub min_version: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PeopleSource {
     pub min_version: String,
 }
 

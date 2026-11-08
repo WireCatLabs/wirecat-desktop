@@ -1790,6 +1790,9 @@
       "taskBoard": {
         "minVersion": "0.131.14"
       },
+      "people": {
+        "minVersion": "0.132.0"
+      },
       "notesSetup": {
         "minVersion": "0.131.14",
         "folders": ["folders", "list", "--no-record", "--json"],

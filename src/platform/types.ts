@@ -42,6 +42,7 @@ import type { Digest, DigestDay } from "./digest-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
 import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
+import type { MatchAnswer, PeopleRead, PersonDetail, Unlinked } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
@@ -264,6 +265,16 @@ export type Platform = {
   conversationRead(place: ChatPlace, ask: ChatPage): Promise<Conversation>
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
+  /** Everyone memo knows (merged-away people left out) and the matches waiting; "old" below the catalog's minimum. */
+  peopleRead(): Promise<PeopleRead>
+  /** One person: identities by source with the accounts that saw each, merges and open matches. */
+  peopleShow(ref: string): Promise<PersonDetail>
+  /** The owner's answer to a match about this person; answers the person read again. */
+  peopleDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
+  /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */
+  peopleUnlink(ref: string, identities: string[]): Promise<Unlinked>
+  /** Gives a merge's accounts back to the person they came from. */
+  peopleUnmerge(ref: string, merge: string): Promise<PersonDetail>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
   taskList(query: string): Promise<TaskRead>
   /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */
