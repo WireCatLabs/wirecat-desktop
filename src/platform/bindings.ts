@@ -264,7 +264,7 @@ export type CrmPipeline = {
 export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 
 /**  `pipeline` is the one asked for, or the first Memo lists; `None` when there is none of this kind. */
 { kind: "ready"; pipelines: CrmPipeline[]; pipeline: string | null; stages: CrmStage[]; cards: CrmCard[]; 
-/**  More match than one read holds; the counts above the columns still hold them all. */
+/**  More open ones match than one read holds; the counts above the columns still hold them all. */
 more: boolean; movable: CrmMovable };
 
 export type CrmStage = {

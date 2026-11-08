@@ -25,11 +25,7 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
   const columns = columnsOf(read.stages, cards)
   const names = read.stages.map((s) => s.name)
   const board = useRef<HTMLDivElement>(null)
-  useSlide(
-    board,
-    cards.map((c) => c.ref),
-    cards.map((c) => c.stage).join(),
-  )
+  useSlide(board, cards.map((c) => `${c.ref}:${c.stage}`).join())
   const { drag, held, said, shown, onPointerDown, onClick, onKeyDown } = useBoardDrag<string>({
     columns: names,
     cardsIn: (stage) => columns.get(stage) ?? [],
