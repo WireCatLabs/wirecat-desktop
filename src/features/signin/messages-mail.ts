@@ -7,25 +7,27 @@ import type { Messages } from "@/i18n"
  */
 type Step = { text: string; open?: { url: string; label: string } }
 type Guide = { name: string; title: string; notYours: string; steps: Step[]; notes: string[]; time: string }
-type Way = { name: string; badge?: string; detail: string; needs: string; time: string }
+type Way = { name: string; badge?: string; detail: string; needs: string; note?: string; time: string }
 
 const en = {
   ways: {
     legend: "How do you want to sign in?",
-    appPassword: {
-      name: "App password",
-      badge: "Recommended",
-      detail: "Works today with any personal Gmail.",
-      needs: "Needs 2-Step Verification on your Google Account.",
-      time: "About 2 minutes.",
-    },
+    others: "Other ways",
     browser: {
       name: "Sign in with Google",
+      badge: "Recommended",
       detail: "Approve on Google's own page in the browser.",
       needs: "Needs a Google client of your own: a Desktop app made in Google Cloud Console.",
       time: "About 15 minutes the first time.",
     },
-  } as { legend: string } & Record<"appPassword" | "browser", Way>,
+    appPassword: {
+      name: "App password",
+      detail: "Works today with any personal Gmail.",
+      needs: "Needs 2-Step Verification on your Google Account. A Google Workspace admin can turn app passwords off.",
+      note: "Until Google verifies WireCat's app, this is the fastest way in.",
+      time: "About 2 minutes.",
+    },
+  } as { legend: string; others: string } & Record<"appPassword" | "browser", Way>,
   guides: {
     gmail: {
       name: "Gmail",
@@ -136,18 +138,21 @@ export type MailText = typeof en
 const ru: MailText = {
   ways: {
     legend: "Как вы хотите войти?",
-    appPassword: {
-      name: "Пароль приложения",
-      badge: "Рекомендуем",
-      detail: "Работает уже сейчас с любым личным Gmail.",
-      needs: "Нужна включённая двухэтапная аутентификация в аккаунте Google.",
-      time: "Около 2 минут.",
-    },
+    others: "Другие способы",
     browser: {
       name: "Войти через Google",
+      badge: "Рекомендуем",
       detail: "Подтвердить на странице Google в браузере.",
       needs: "Нужен свой клиент Google: приложение типа Desktop app в Google Cloud Console.",
       time: "Около 15 минут в первый раз.",
+    },
+    appPassword: {
+      name: "Пароль приложения",
+      detail: "Работает уже сейчас с любым личным Gmail.",
+      needs:
+        "Нужна включённая двухэтапная аутентификация в аккаунте Google. Администратор Google Workspace может отключить пароли приложений.",
+      note: "Пока Google не проверил приложение WireCat, это самый быстрый способ войти.",
+      time: "Около 2 минут.",
     },
   },
   guides: {
@@ -260,18 +265,21 @@ const ru: MailText = {
 const es: MailText = {
   ways: {
     legend: "¿Cómo quieres entrar?",
-    appPassword: {
-      name: "Contraseña de aplicación",
-      badge: "Recomendado",
-      detail: "Funciona hoy con cualquier Gmail personal.",
-      needs: "Necesita la verificación en dos pasos activada en tu cuenta de Google.",
-      time: "Unos 2 minutos.",
-    },
+    others: "Otras formas",
     browser: {
       name: "Entrar con Google",
+      badge: "Recomendado",
       detail: "Apruebas en la propia página de Google, en el navegador.",
       needs: "Necesita un cliente de Google propio: una Desktop app creada en Google Cloud Console.",
       time: "Unos 15 minutos la primera vez.",
+    },
+    appPassword: {
+      name: "Contraseña de aplicación",
+      detail: "Funciona hoy con cualquier Gmail personal.",
+      needs:
+        "Necesita la verificación en dos pasos activada en tu cuenta de Google. El administrador de Google Workspace puede desactivar las contraseñas de aplicación.",
+      note: "Mientras Google no verifique la app de WireCat, es la forma más rápida de entrar.",
+      time: "Unos 2 minutos.",
     },
   },
   guides: {

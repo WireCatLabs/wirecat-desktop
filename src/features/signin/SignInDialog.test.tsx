@@ -701,6 +701,23 @@ describe("signing in to mail", () => {
     expect(within(dialog).getByLabelText("Mail address")).toHaveValue("me@example.com")
   })
 
+  it("offers Gmail's Google sign-in first and chosen, and the app password under other ways", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    const dialog = screen.getByRole("dialog")
+    await userEvent.click(within(dialog).getByRole("radio", { name: /^Gmail/ }))
+    await settled()
+    const ways = within(within(dialog).getByRole("group", { name: "How do you want to sign in?" })).getAllByRole(
+      "radio",
+    )
+    expect(ways.map((way) => (way as HTMLInputElement).value)).toEqual(["browser", "appPassword"])
+    expect(within(dialog).getByRole("radio", { name: /Sign in with Google.*Recommended/ })).toBeChecked()
+    const others = within(dialog).getByRole("group", { name: "Other ways" })
+    expect(within(others).getByRole("radio", { name: /App password/ })).not.toBeChecked()
+    expect(within(others).queryByText("Recommended")).toBeNull()
+    expect(within(others).getByText(/Until Google verifies WireCat's app/)).toBeVisible()
+  })
+
   it("walks Gmail's app password on one step, answers the tool from it, and comes back there when Gmail refuses", async () => {
     const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
     render(<SignInDialog />)
@@ -708,8 +725,7 @@ describe("signing in to mail", () => {
     const dialog = screen.getByRole("dialog")
     await userEvent.click(within(dialog).getByRole("radio", { name: /^Gmail/ }))
     await settled()
-    expect(within(dialog).getByRole("radio", { name: /App password.*Recommended/ })).toBeChecked()
-    expect(within(dialog).getByRole("radio", { name: /Sign in with Google/ })).not.toBeChecked()
+    await userEvent.click(within(dialog).getByRole("radio", { name: /App password/ }))
     await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@gmail.com")
     await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
     await settled()

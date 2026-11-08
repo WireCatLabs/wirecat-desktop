@@ -121,7 +121,7 @@ const closed = {
   ownId: "",
   planError: null,
   planMissing: null as SignInState["planMissing"],
-  way: "appPassword" as MailWay,
+  way: "browser" as MailWay,
   planStep: "choose" as SignInState["planStep"],
   passwordProblem: null as SignInState["passwordProblem"],
   hintPage: null as string | null,

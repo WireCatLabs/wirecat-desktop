@@ -1,6 +1,7 @@
 import { CircleCheck, Clock, ExternalLink, ShieldCheck } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
+import type { MailWay } from "@/domain/mail-signin"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { guidedProvider, methodOf, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
@@ -246,54 +247,59 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
 
 /** WC-SECR-25: WireCat's app unless the owner names one; a Google client file, or a Microsoft app id saved first. */
 /**
- * Gmail's two ways in, side by side before anything else is asked: what each needs and how long it takes. The app
- * password comes first, as the way that works without a Google client of the owner's own.
+ * Gmail's ways in, before anything else is asked: Google's own page first, as the owner chose (2026-11-08), and the
+ * app password under "Other ways", since 2-Step Verification or a Workspace admin can rule it out.
  */
 function Ways() {
-  const { way } = useSignIn()
   const m = useMessages(mailMessages)
   const name = useId()
   return (
     <fieldset className="flex flex-col gap-2 border-0 p-0">
       <legend className="mb-2 text-[1rem] font-semibold text-ink">{m.ways.legend}</legend>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {(["appPassword", "browser"] as const).map((option) => {
-          const text = m.ways[option]
-          return (
-            <label key={option} className="relative cursor-pointer">
-              <input
-                type="radio"
-                name={name}
-                value={option}
-                checked={option === way}
-                onChange={() => {
-                  // A client chosen for the browser is not sent with an app password.
-                  if (option === "appPassword") setClientFile(null)
-                  useSignIn.setState({ way: option, planMissing: null })
-                }}
-                className="peer sr-only"
-              />
-              <span className="flex h-full flex-col gap-1 rounded-[0.35rem] border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-[0.95rem] font-medium text-ink">{text.name}</span>
-                  {text.badge && (
-                    <span className="rounded-[0.2rem] bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
-                      {text.badge}
-                    </span>
-                  )}
-                </span>
-                <span className="text-[0.85rem] leading-snug text-ink">{text.detail}</span>
-                <span className="text-[0.85rem] leading-snug text-ink-soft">{text.needs}</span>
-                <span className="mt-auto flex items-center gap-1.5 pt-1 text-[0.8rem] text-ink-dim">
-                  <Clock className="size-3.5 shrink-0" aria-hidden />
-                  {text.time}
-                </span>
-              </span>
-            </label>
-          )
-        })}
-      </div>
+      <WayOption option="browser" name={name} />
+      <fieldset className="flex flex-col gap-1.5 border-0 p-0 pt-1">
+        <legend className="mb-1.5 text-[0.85rem] font-medium text-ink-soft">{m.ways.others}</legend>
+        <WayOption option="appPassword" name={name} />
+      </fieldset>
     </fieldset>
+  )
+}
+
+function WayOption({ option, name }: { option: MailWay; name: string }) {
+  const { way } = useSignIn()
+  const text = useMessages(mailMessages).ways[option]
+  return (
+    <label className="relative cursor-pointer">
+      <input
+        type="radio"
+        name={name}
+        value={option}
+        checked={option === way}
+        onChange={() => {
+          // A client chosen for the browser is not sent with an app password.
+          if (option === "appPassword") setClientFile(null)
+          useSignIn.setState({ way: option, planMissing: null })
+        }}
+        className="peer sr-only"
+      />
+      <span className="flex h-full flex-col gap-1 rounded-[0.35rem] border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-[0.95rem] font-medium text-ink">{text.name}</span>
+          {text.badge && (
+            <span className="rounded-[0.2rem] bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
+              {text.badge}
+            </span>
+          )}
+        </span>
+        <span className="text-[0.85rem] leading-snug text-ink">{text.detail}</span>
+        <span className="text-[0.85rem] leading-snug text-ink-soft">{text.needs}</span>
+        {text.note && <span className="text-[0.85rem] leading-snug text-ink-soft">{text.note}</span>}
+        <span className="mt-auto flex items-center gap-1.5 pt-1 text-[0.8rem] text-ink-dim">
+          <Clock className="size-3.5 shrink-0" aria-hidden />
+          {text.time}
+        </span>
+      </span>
+    </label>
   )
 }
 
