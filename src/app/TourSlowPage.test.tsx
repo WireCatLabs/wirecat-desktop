@@ -2,6 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, expect, it, vi } from "vitest"
 import { useTour } from "@/features/onboarding/Tour"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { hideRowSync } from "@/testing/onboarding"
 import { render, screen, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -16,6 +17,7 @@ vi.mock("@/features/search/page", async (original) => {
 beforeEach(() => {
   localStorage.clear()
   useOnboarding.setState({ status: "done", open: false })
+  hideRowSync()
 })
 afterEach(() => useTour.getState().close())
 

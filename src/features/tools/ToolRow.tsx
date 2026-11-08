@@ -171,7 +171,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             )}
           </Crossfade>
         </TextButton>
-        <div className="flex items-center justify-end">
+        <div data-tour={sync ? "tool-sync" : undefined} className="flex items-center justify-end">
           {installed && tool.bot && <AddBotButton tool={tool} />}
           {sync && <RowSyncButton entry={tool} info={sync} />}
         </div>

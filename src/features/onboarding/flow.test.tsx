@@ -12,6 +12,7 @@ import { useOnboarding } from "@/shared/onboarding-store"
 import {
   currentStep,
   endInstalls,
+  hideRowSync,
   m,
   noNodeComputer,
   primaryButton,
@@ -23,6 +24,7 @@ import {
 } from "@/testing/onboarding"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { uiMessages } from "@/ui/messages"
+import { nextMessages } from "./messages-next"
 
 // Every answer the mock gives comes at once; the tests wait only for what they drive.
 vi.mock("@/platform/mock-delay", () => ({ delay: () => new Promise((r) => setTimeout(r, 0)) }))
@@ -390,11 +392,9 @@ describe("finishing the setup", () => {
   })
 
   it("leads from Done into the tour, which finishes the setup and cannot jump to the guides", async () => {
+    hideRowSync()
     const { user } = startOnboarding({ step: "done", chosen: ["tg"], installed: { tg: "0.88.0" } })
-    expect(await screen.findByRole("button", { name: m.done.connect("Telegram") })).not.toHaveAttribute(
-      "data-variant",
-      "primary",
-    )
+    expect(await screen.findByRole("list", { name: nextMessages.en.can("Telegram") })).toBeInTheDocument()
     await user.click(primaryButton(m.flow.tour))
     expect(stored()).toBe("done")
     expect(screen.queryByRole("navigation", { name: m.flow.stepsNav })).not.toBeInTheDocument()

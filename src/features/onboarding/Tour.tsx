@@ -29,6 +29,8 @@ export const STOPS: readonly Stop[] = [
   { key: "tools", anchor: '[data-tour="nav-tools"]', side: "right", section: "tools" },
   { key: "lamps", anchor: '[data-tour="tool"] [role="img"]', section: "tools" },
   { key: "action", anchor: '[data-tour="tool-action"]', section: "tools" },
+  // Passed over when no installed tool syncs from here.
+  { key: "sync", anchor: '[data-tour="tool-sync"]', section: "tools" },
   { key: "agents", anchor: '[data-tour="nav-agents"]', side: "right", section: "agents" },
   { key: "how", anchor: null, section: "agents" },
   { key: "search", anchor: '[data-tour="nav-search"]', side: "right", section: "search", demo: "search" },

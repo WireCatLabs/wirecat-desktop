@@ -61,7 +61,7 @@ export function SyncControl({ tool, profile }: { tool: CatalogTool; profile: str
   const label = m.region(profile ? `${tool.name} ${profile}` : tool.name)
 
   return (
-    <section className="flex flex-col gap-1.5" aria-label={label}>
+    <section className="flex flex-col gap-1.5" aria-label={label} data-place={`sync:${tool.id}`}>
       <div className="flex min-h-[2.25rem] items-center gap-3">
         <div className="min-w-0 flex-1" aria-live="polite">
           {running ? (
