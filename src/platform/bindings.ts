@@ -394,7 +394,32 @@ export type OwnAccess = {
 	unknown: boolean,
 };
 
+export type OwnCommand = {
+	words: string,
+	remote: OwnLevel,
+	local: OwnLevel,
+	summary: string | null,
+	entity: string | null,
+};
+
 export type OwnDiscovery = { outcome: "review"; review: OwnReview } | { outcome: "refused"; refusal: OwnRefusal };
+
+export type OwnLevel = "none" | "read" | "write";
+
+export type OwnLink = {
+	label: string,
+	url: string,
+};
+
+/**  Where the owner can check each fact the review shows, all https. */
+export type OwnLinks = {
+	npm: string,
+	publishers: OwnLink[],
+	repo: string | null,
+	commit: string | null,
+	run: string | null,
+	log: string | null,
+};
 
 /**  Why a package cannot be added, for the dialog to say in the owner's language. */
 export type OwnRefusal = { kind: "not_found" } | { kind: "not_scoped" } | { kind: "wirecat_scope" } | { kind: "no_manifest" } | { kind: "bad_manifest"; key: string; rule: string } | 
@@ -421,6 +446,26 @@ export type OwnReview = {
 	/**  False when the owner pasted the `desktop` object: no manifest, so no command list and no hash to check. */
 	described: boolean,
 	update: OwnUpdate | null,
+	/**  Every declared command with its effects, for the plain-language access list and the exact commands under it. */
+	commands: OwnCommand[],
+	/**  What a sync copies, in the manifest's own words ("contacts, deals and invoices"). */
+	syncWhat: string | null,
+	/**  Built on `@wirecat/cli-core`, so it opens the shared store itself. */
+	usesCore: boolean,
+	/**  The servers the manifest declares; `None` when it does not say, empty when it contacts none. */
+	hosts: string[] | null,
+	/**  A server the owner chooses, in the tool's words. */
+	userHosts: string | null,
+	/**  The fields of each entity the tool lists, by entity name. */
+	entities: { [key in string]: string[] },
+	/**  Things to check from npm, the dependencies and the code; GitHub's come from `own_tool_risks`. */
+	signals: OwnSignal[],
+	links: OwnLinks,
+	/**  The exact package file reviewed, for an agent to download and check against `integrity` (sha512). */
+	tarball: string,
+	integrity: string,
+	/**  The release commit npm's provenance names, for an agent to compare the package with. */
+	commit: string | null,
 	/**  The catalog entry as it will be saved, for the interface to check with its own schema. */
 	entry: unknown,
 };
@@ -429,6 +474,16 @@ export type OwnSignIn = {
 	gives: string,
 	asks: string,
 };
+
+export type OwnSignal = { kind: "newPackage"; days: number } | { kind: "fewVersions"; count: number } | { kind: "onePublisher" } | { kind: "noProvenance" } | { kind: "noRepository" } | 
+/**  `found` is the version spec in `dependencies`; `None` when the tool does not depend on it. */
+{ kind: "baseOutOfRange"; found: string | null; min: string } | { kind: "coreOutOfRange"; found: string | null; min: string } | { kind: "noHosts" } | 
+/**  Network modules, `fetch` or `WebSocket` in the tool's own code. */
+{ kind: "networkCode"; modules: string[] } | 
+/**  Hosts its code names that the manifest does not declare. */
+{ kind: "undeclaredHosts"; hosts: string[] } | { kind: "startsPrograms" } | { kind: "repoNew"; days: number } | { kind: "repoStale"; days: number } | { kind: "repoArchived" } | { kind: "fewStars"; stars: number } | 
+/**  cli-base's shared workflows its workflows at the release commit do not call. */
+{ kind: "noStandardChecks"; missing: string[] } | { kind: "githubUnchecked"; detail: string };
 
 export type OwnStatus = {
 	allowed: boolean,

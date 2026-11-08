@@ -31,6 +31,8 @@ mod node;
 mod notes_setup;
 mod notifications;
 mod npm_prefix;
+mod own_risks;
+mod own_scan;
 #[cfg(test)]
 mod own_tool_e2e;
 mod own_tools;
@@ -113,6 +115,7 @@ pub fn run() {
             commands::own_tools::own_tools_status,
             commands::own_tools::set_own_tools_allowed,
             commands::own_tools::own_tool_discover,
+            commands::own_tools::own_tool_risks,
             commands::own_tools::own_tool_add,
             commands::own_tools::own_tool_uninstall,
             commands::own_tools::own_tool_remove,

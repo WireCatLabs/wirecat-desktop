@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 const CATALOG_JSON: &str = include_str!("../../catalog/tools.json");
 
@@ -315,16 +315,28 @@ fn null_as_empty<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Er
     Ok(Option::<String>::deserialize(d)?.unwrap_or_default())
 }
 
+/// Each load is leaked rather than replaced in place: a `&'static Tool` handed out before a reload (a running install,
+/// a sync) must stay valid, and a reload happens only when the owner adds or removes a tool.
+static CATALOG: OnceLock<RwLock<&'static Catalog>> = OnceLock::new();
+
+fn load() -> &'static Catalog {
+    let mut catalog: Catalog = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
+    if let Some((tools, extra)) = crate::community::load(&catalog) {
+        catalog.tools.extend(tools);
+        catalog.extra = extra;
+    }
+    Box::leak(Box::new(catalog))
+}
+
 pub fn catalog() -> &'static Catalog {
-    static CATALOG: OnceLock<Catalog> = OnceLock::new();
-    CATALOG.get_or_init(|| {
-        let mut catalog: Catalog = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
-        if let Some((tools, extra)) = crate::community::load(&catalog) {
-            catalog.tools.extend(tools);
-            catalog.extra = extra;
-        }
-        catalog
-    })
+    *CATALOG.get_or_init(|| RwLock::new(load())).read().unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+/// Reads the community and own tools again, so a tool the owner added or removed is there without a restart.
+pub fn reload() {
+    let fresh = load();
+    let lock = CATALOG.get_or_init(|| RwLock::new(fresh));
+    *lock.write().unwrap_or_else(std::sync::PoisonError::into_inner) = fresh;
 }
 
 pub fn tool(id: &str) -> Result<&'static Tool, String> {
