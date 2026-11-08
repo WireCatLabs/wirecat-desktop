@@ -5,7 +5,7 @@
 use crate::own_scan::Code;
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
 
@@ -53,9 +53,18 @@ pub enum Signal {
     NetworkCode {
         modules: Vec<String>,
     },
-    /// Hosts its code names that the manifest does not declare.
+    /// Hosts its code names that the manifest does not declare: the first `MAX_SHOWN`, and how many more.
     UndeclaredHosts {
         hosts: Vec<String>,
+        more: u32,
+    },
+    /// `.node` or `.wasm` files: native code the scan cannot read.
+    NativeCode {
+        files: Vec<String>,
+    },
+    /// A bundler copied cli-base or cli-core in without naming its version.
+    BundledUnknown {
+        package: String,
     },
     StartsPrograms,
     RepoNew {
@@ -113,7 +122,13 @@ fn days(n: i64) -> u32 {
 
 /// What npm's answer says: how new the package is, how many versions and publishers it has, whether npm knows where
 /// it was built, and whether it is built on a cli-base and cli-core this Desktop reads.
-pub fn npm(view: &Value, publishers: usize, built: bool, now: chrono::DateTime<chrono::Utc>) -> Vec<Signal> {
+pub fn npm(
+    view: &Value,
+    bundled: &BTreeMap<String, Option<String>>,
+    publishers: usize,
+    built: bool,
+    now: chrono::DateTime<chrono::Utc>,
+) -> Vec<Signal> {
     let mut out = Vec::new();
     if let Some(age) = view["time"]["created"].as_str().and_then(|t| days_since(t, now))
         && age < NEW_DAYS
@@ -130,18 +145,31 @@ pub fn npm(view: &Value, publishers: usize, built: bool, now: chrono::DateTime<c
     if !built {
         out.push(Signal::NoProvenance);
     }
-    let deps = &view["dependencies"];
-    if let Some(found) = out_of_range(deps[BASE].as_str(), MIN_BASE) {
-        out.push(Signal::BaseOutOfRange { found, min: MIN_BASE.into() });
-    }
-    if let Some(found) = out_of_range(deps[CORE].as_str(), MIN_CORE) {
-        out.push(Signal::CoreOutOfRange { found, min: MIN_CORE.into() });
+    for (package, min) in [(BASE, MIN_BASE), (CORE, MIN_CORE)] {
+        let found = match (view["dependencies"][package].as_str(), bundled.get(package)) {
+            (Some(spec), _) => Some(spec),
+            (None, Some(Some(version))) => Some(version.as_str()),
+            (None, Some(None)) => {
+                out.push(Signal::BundledUnknown { package: package.into() });
+                continue;
+            }
+            (None, None) => None,
+        };
+        if let Some(found) = out_of_range(found, min) {
+            let min = min.to_string();
+            out.push(if package == BASE {
+                Signal::BaseOutOfRange { found, min }
+            } else {
+                Signal::CoreOutOfRange { found, min }
+            });
+        }
     }
     out
 }
 
-pub fn uses_core(view: &Value) -> bool {
-    view["dependencies"][CORE].is_string()
+/// A dependency, or a copy a bundler made: either way its code opens the shared store.
+pub fn uses_core(view: &Value, bundled: &BTreeMap<String, Option<String>>) -> bool {
+    view["dependencies"][CORE].is_string() || bundled.contains_key(CORE)
 }
 
 /// `Some(spec)` when the dependency is missing (`Some(None)`) or its lowest version is outside `min`..1.0.0. A spec
@@ -157,8 +185,10 @@ fn out_of_range(spec: Option<&str>, min: &str) -> Option<Option<String>> {
     (!ok).then(|| Some(spec.to_string()))
 }
 
-/// What the code scan found, against the hosts the manifest declares (`None`: it declares none). Hosts of the tool's
-/// own pages (`known`) are links the review already shows, not servers.
+const MAX_SHOWN: usize = 20;
+
+/// What the code scan found, against the hosts the manifest declares (`None`: it declares none). `known` is the host
+/// of the repository the review links to; a homepage or docs page is the author's to choose, so it counts as a server.
 pub fn network(code: &Code, declared: Option<&[String]>, known: &[String]) -> Vec<Signal> {
     let mut out = Vec::new();
     if declared.is_none() {
@@ -184,10 +214,14 @@ pub fn network(code: &Code, declared: Option<&[String]>, known: &[String]) -> Ve
     };
     let hosts: Vec<String> = code.hosts.iter().filter(|h| !covered(h)).cloned().collect();
     if !hosts.is_empty() {
-        out.push(Signal::UndeclaredHosts { hosts });
+        let more = u32::try_from(hosts.len().saturating_sub(MAX_SHOWN)).unwrap_or(u32::MAX);
+        out.push(Signal::UndeclaredHosts { hosts: hosts.into_iter().take(MAX_SHOWN).collect(), more });
     }
     if code.programs {
         out.push(Signal::StartsPrograms);
+    }
+    if !code.native.is_empty() {
+        out.push(Signal::NativeCode { files: code.native.iter().cloned().collect() });
     }
     out
 }
@@ -198,20 +232,27 @@ pub trait GitHub {
     fn text(&self, url: &str) -> Result<String, String>;
 }
 
-pub struct Rest;
+/// One agent for every call, with no redirects, and a time budget for all calls of a review together.
+pub struct Rest {
+    deadline: Instant,
+}
+
+/// A slow GitHub must not keep "Checking its GitHub repository…" on screen; what is left says "Couldn't check".
+const BUDGET: Duration = Duration::from_secs(15);
+const OUT_OF_TIME: &str = "out of time";
+
+static AGENT: LazyLock<ureq::Agent> = LazyLock::new(|| {
+    ureq::Agent::config_builder()
+        .https_only(true)
+        .max_redirects(0)
+        .user_agent(concat!("WireCatDesktop/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .into()
+});
 
 const API: &str = "https://api.github.com/repos/";
 const MAX_ANSWER: u64 = 256 * 1024;
 const MAX_WORKFLOWS: usize = 12;
-
-fn agent() -> ureq::Agent {
-    ureq::Agent::config_builder()
-        .timeout_global(Some(Duration::from_secs(10)))
-        .https_only(true)
-        .user_agent(concat!("WireCatDesktop/", env!("CARGO_PKG_VERSION")))
-        .build()
-        .into()
-}
 
 impl GitHub for Rest {
     fn json(&self, url: &str) -> Result<Value, String> {
@@ -219,12 +260,16 @@ impl GitHub for Rest {
     }
 
     fn text(&self, url: &str) -> Result<String, String> {
-        let mut answer =
-            agent().get(url).header("Accept", "application/vnd.github+json").call().map_err(|e| match e {
-                ureq::Error::StatusCode(404) => NOT_FOUND.to_string(),
-                ureq::Error::StatusCode(403 | 429) => LIMIT.to_string(),
-                e => e.to_string(),
-            })?;
+        let left = self.deadline.saturating_duration_since(Instant::now());
+        if left.is_zero() {
+            return Err(OUT_OF_TIME.into());
+        }
+        let request = AGENT.get(url).header("Accept", "application/vnd.github+json");
+        let mut answer = request.config().timeout_global(Some(left)).build().call().map_err(|e| match e {
+            ureq::Error::StatusCode(404) => NOT_FOUND.to_string(),
+            ureq::Error::StatusCode(403 | 429) => LIMIT.to_string(),
+            e => e.to_string(),
+        })?;
         answer.body_mut().with_config().limit(MAX_ANSWER).read_to_string().map_err(|e| e.to_string())
     }
 }
@@ -242,7 +287,8 @@ pub fn github(repo: &str, commit: Option<&str>) -> Vec<Signal> {
     {
         return signals.clone();
     }
-    let (signals, complete) = github_with(&Rest, repo, commit, chrono::Utc::now());
+    let gh = Rest { deadline: Instant::now() + BUDGET };
+    let (signals, complete) = github_with(&gh, repo, commit, chrono::Utc::now());
     if complete {
         CACHE.lock().unwrap().insert(key, (Instant::now(), signals.clone()));
     }
@@ -320,11 +366,19 @@ fn standard_checks(gh: &impl GitHub, path: &str, commit: Option<&str>) -> Result
             called.push('\n');
         }
     }
-    Ok(STANDARD_WORKFLOWS
-        .iter()
-        .filter(|w| !called.contains(&format!("{SHARED}{w}@")))
-        .map(|w| (*w).to_string())
-        .collect())
+    let used = uses_of(&called);
+    Ok(STANDARD_WORKFLOWS.iter().filter(|w| !used.contains(**w)).map(|w| (*w).to_string()).collect())
+}
+
+/// The cli-base shared workflows the files call: a `uses:` key pinned with `@`, not a comment or a line that only
+/// mentions one.
+fn uses_of(yaml: &str) -> std::collections::BTreeSet<String> {
+    static USES: LazyLock<regex::Regex> = LazyLock::new(|| {
+        let shared = regex::escape(SHARED);
+        regex::Regex::new(&format!(r#"(?m)^\s*(?:-\s+)?uses:\s*["']?{shared}([A-Za-z0-9._-]+)@[0-9A-Za-z._-]+"#))
+            .expect("a valid pattern")
+    });
+    USES.captures_iter(yaml).map(|m| m[1].to_string()).collect()
 }
 
 #[cfg(test)]
@@ -345,7 +399,7 @@ mod tests {
             "dependencies": { "@wirecat/cli-base": "0.82.0", "@wirecat/cli-core": "^0.605.0" }
         });
         assert_eq!(
-            npm(&view, 1, false, now()),
+            npm(&view, &BTreeMap::new(), 1, false, now()),
             [
                 Signal::NewPackage { days: 0 },
                 Signal::FewVersions { count: 1 },
@@ -355,13 +409,13 @@ mod tests {
         );
         let settled = json!({ "time": { "created": "2025-01-01T00:00:00Z" }, "versions": ["1", "2", "3"],
             "dependencies": { "@wirecat/cli-base": "0.82.0", "@wirecat/cli-core": "0.605.0" } });
-        assert_eq!(npm(&settled, 2, true, now()), []);
+        assert_eq!(npm(&settled, &BTreeMap::new(), 2, true, now()), []);
     }
 
     #[test]
     fn cli_base_and_cli_core_outside_what_desktop_reads_are_flagged() {
         let view = |base: Value, core: Value| json!({ "versions": ["1", "2", "3"], "dependencies": { "@wirecat/cli-base": base, "@wirecat/cli-core": core } });
-        let flags = |v: &Value| npm(v, 2, true, now());
+        let flags = |v: &Value| npm(v, &BTreeMap::new(), 2, true, now());
         assert_eq!(
             flags(&view(json!("0.64.0"), json!("latest"))),
             [
@@ -375,7 +429,7 @@ mod tests {
         );
         let none = json!({ "versions": ["1", "2", "3"] });
         assert!(flags(&none).contains(&Signal::BaseOutOfRange { found: None, min: MIN_BASE.into() }));
-        assert!(!uses_core(&none));
+        assert!(!uses_core(&none, &BTreeMap::new()));
     }
 
     #[test]
@@ -392,10 +446,35 @@ mod tests {
             network(&code, Some(&["*.acme.io".to_string()]), &known),
             [
                 Signal::NetworkCode { modules: vec!["fetch".into()] },
-                Signal::UndeclaredHosts { hosts: vec!["acme.io".into(), "evil.example.net".into()] }
+                Signal::UndeclaredHosts { hosts: vec!["acme.io".into(), "evil.example.net".into()], more: 0 }
             ]
         );
         assert_eq!(network(&Code::default(), None, &known), [Signal::NoHosts]);
+    }
+
+    #[test]
+    fn a_bundled_cli_core_without_a_version_says_so_and_twenty_shown_hosts_report_the_rest() {
+        let view = json!({ "versions": ["1", "2", "3"], "dependencies": { "@wirecat/cli-base": "0.82.0" } });
+        let bundled = BTreeMap::from([("@wirecat/cli-core".to_string(), None)]);
+        assert_eq!(
+            npm(&view, &bundled, 2, true, now()),
+            [Signal::BundledUnknown { package: "@wirecat/cli-core".into() }]
+        );
+        assert!(uses_core(&view, &bundled));
+        let mut code = Code::default();
+        code.hosts.extend((0..25).map(|i| format!("h{i}.evil.io")));
+        let found = network(&code, Some(&[]), &[]);
+        assert!(matches!(&found[0], Signal::UndeclaredHosts { hosts, more: 5 } if hosts.len() == 20));
+    }
+
+    #[test]
+    fn only_a_uses_key_counts_as_calling_a_shared_workflow() {
+        let yaml = "# uses: WireCatLabs/cli-base/.github/workflows/release-checks.yml@abc\n\
+            run: echo WireCatLabs/cli-base/.github/workflows/release-checks.yml@abc\n\
+            jobs:\n  ci:\n    uses: WireCatLabs/cli-base/.github/workflows/node-ci.yml@08d954b # v0.61.2\n\
+            steps:\n  - uses: 'WireCatLabs/cli-base/.github/workflows/changelog-guard.yml@abc'\n";
+        let used: Vec<String> = uses_of(yaml).into_iter().collect();
+        assert_eq!(used, ["changelog-guard.yml", "node-ci.yml"]);
     }
 
     struct Fake {

@@ -72,12 +72,14 @@ export function registryMock(params: URLSearchParams): Pick<CommunityStatus, "st
 
 /** Set once the mock adds or removes Acme CRM, so the catalog reloads with it as the real app's does. */
 let ownAdded: boolean | null = null
+/** The switch as Settings last set it; the list follows it at once, as the real app's reload does. */
+let ownShown: boolean | null = null
 
 export function extraToolsMock(params: URLSearchParams): ExtraTools {
   const community = params.get("community")
   const listed = community === "1" || community === "bad" || params.has("registry") ? [ACME] : []
   if (community === "bad") listed.push({ ...ACME, id: "evil", package: "@wirecat/evil" })
-  const own = (ownAdded ?? params.get("own") === "1") ? [OWN] : []
+  const own = (ownShown ?? true) && (ownAdded ?? params.get("own") === "1") ? [OWN] : []
   const rejected: ExtraTools["rejected"] =
     community === "bad" ? [{ source: "community", text: 'shady: the command word "setup;rm" is not allowed.' }] : []
   return {
@@ -190,7 +192,7 @@ export function riskyReview(pkg: string): OwnReview {
       { kind: "coreOutOfRange", found: null, min: "0.603.0" },
       { kind: "noHosts" },
       { kind: "networkCode", modules: ["https", "fetch"] },
-      { kind: "undeclaredHosts", hosts: ["collector.acme-metrics.io"] },
+      { kind: "undeclaredHosts", hosts: ["collector.acme-metrics.io"], more: 0 },
       { kind: "startsPrograms" },
     ],
   })
@@ -259,6 +261,7 @@ export function ownToolsMock(params: URLSearchParams) {
     },
     async setOwnToolsAllowed(next: boolean) {
       allowed = next
+      ownShown = next
     },
     async ownToolDiscover(pkg: string, desktop: string | null): Promise<OwnDiscovery> {
       await delay(900)

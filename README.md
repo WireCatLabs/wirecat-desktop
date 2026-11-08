@@ -116,8 +116,9 @@ The Tools page can list three kinds of tool:
 | Community | A list that WireCat reviews and signs | **Community** |
 | Not verified | Added by you, by its npm name | **Not verified** |
 
-The second and third kinds are off by default. Settings has one switch for each. A change takes effect at the next
-start, and the page offers **Restart now**.
+The second and third kinds are off by default. Settings has one switch for each. **Enable community tools** takes
+effect at the next start, and the page offers **Restart now**. **Allow tools WireCat has not checked** takes effect at
+once.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/own-settings-dark.webp">
@@ -176,7 +177,9 @@ Only some packages work. The package must have a scope (`@scope/name`, not `@wir
     built it;
   - its WireCat libraries: not built on cli-base 0.81.0 or later and cli-core 0.603.0 or later (before 1.0);
   - its code: network modules, `fetch` or `WebSocket` in its own code, servers its code names but does not declare,
-    and programs it can start. These are "found in the code", not proved: the libraries the package bundles are skipped;
+    programs it can start, and native `.node` or `.wasm` files it cannot read. These are "found in the code", not
+    proved: the libraries the package bundles are skipped. Only the repository's address counts as the tool's own page;
+    a homepage named in its code is a server like any other;
   - its manifest does not say which servers it contacts;
   - from GitHub: a repository created less than 30 days ago, no change for more than 180 days, archived, fewer than 10
     stars, or workflows at the release commit that do not run cli-base's standard checks (`node-ci.yml`,
@@ -211,7 +214,7 @@ changes** before you can go on. The second question follows, as for a new tool.
 
 - **Remove from WireCat**, in the tool's details (click its name), deletes the tool's entry, and the tool leaves the
   list at once. When it is installed, the question offers **Uninstall it first**: the program stays installed
-  otherwise.
+  otherwise. The Tools page then says it was removed and what stays on the computer.
 - **Uninstall** removes the program. It can also delete the tool's own data folders: only the folders named after
   its package (`@scope/name` → `scope-name`). It never deletes the store your other tools share. A folder with that
   name that already existed before you added the tool is listed as kept and never deleted.

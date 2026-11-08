@@ -44,7 +44,9 @@ look, and offers an AI check before anything installs. A tool added or removed s
      in-memory pass that reads the manifest: imports and requires of `node:http(s)`, `net`, `tls`, `dgram`, `undici`,
      `axios`, `got`, `node-fetch`, `ws`, plus global `fetch(` and `new WebSocket(`, and URL hosts in string literals.
      Sections the bundler marks as copied libraries (`// node_modules/...` comments: cli-base, cli-core and the SDKs
-     they bring) and comment lines are skipped, since on the real acme-crm-cli 0.2.0 they named 20 documentation hosts; that marker is the author's own text, so the wording is "found in the code", never "proved". Reserved
+     they bring) are skipped, since on the real acme-crm-cli 0.2.0 they named 20 documentation hosts. Comments are
+     read like code (after review: a line filter hid `/*! MIT */ fetch(...)`, and a comment remover can be fooled by
+     strings); extensionless `bin` targets and `#!` files are read, `.node` and `.wasm` flagged; that marker is the author's own text, so the wording is "found in the code", never "proved". Reserved
      hosts (`example.*`, `*.example`, `*.test`, `*.invalid`, `localhost`) and XML namespace hosts are ignored.
 6. **Add → AI check.** Add opens an offer: **Check it with your AI agent** (primary) or **Skip and install**. The
    check opens each startable agent with `run_agent` (the guides' Open in), or copies the prompt when none is found.
@@ -63,7 +65,7 @@ look, and offers an AI check before anything installs. A tool added or removed s
 
 ## Not in this change
 
-- Turning the Settings switch on or off still takes effect at the next start (another session works on Settings).
+- The community switch still takes effect at the next start; the own-tools switch now applies at once.
 - Per-field data wording ("emails, phones") needs cli-base to add it to the manifest.
 - `npm` page links for a package outside the public registry: own tools come only from it.
 

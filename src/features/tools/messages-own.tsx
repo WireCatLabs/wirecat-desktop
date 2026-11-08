@@ -129,6 +129,11 @@ const en = {
     "WireCat stops listing it now. Its program stays installed: uninstall it first to remove the program and, if you choose, its own data folders. The store your other tools share is never touched.",
   removeBodyGone: "WireCat stops listing it now. Its program is not installed.",
   uninstallFirst: "Uninstall it first",
+  removedInstalled: (name: string, pkg: string) =>
+    `${name} is removed from WireCat. Its program and its data folders stay on this computer: run npm uninstall -g ${pkg} to remove the program.`,
+  removedGone: (name: string) =>
+    `${name} is removed from WireCat. Its data folders, if it made any, stay on this computer.`,
+  dismiss: "Dismiss",
 }
 
 const ru: typeof en = {
@@ -255,6 +260,10 @@ const ru: typeof en = {
     "WireCat сразу перестанет его показывать. Программа останется установленной: сначала удалите её, чтобы убрать программу и, если захотите, его собственные папки данных. Общее хранилище других инструментов не затрагивается.",
   removeBodyGone: "WireCat сразу перестанет его показывать. Его программа не установлена.",
   uninstallFirst: "Сначала удалить программу",
+  removedInstalled: (name, pkg) =>
+    `${name} убран из WireCat. Программа и её папки данных остались на компьютере: чтобы удалить программу, выполните npm uninstall -g ${pkg}.`,
+  removedGone: (name) => `${name} убран из WireCat. Его папки данных, если он их создал, остались на компьютере.`,
+  dismiss: "Скрыть",
 }
 
 const es: typeof en = {
@@ -386,6 +395,10 @@ const es: typeof en = {
     "WireCat deja de mostrarla ahora. Su programa sigue instalado: desinstálalo antes para quitar el programa y, si quieres, sus propias carpetas de datos. El almacén que comparten tus otras herramientas no se toca.",
   removeBodyGone: "WireCat deja de mostrarla ahora. Su programa no está instalado.",
   uninstallFirst: "Desinstalarla antes",
+  removedInstalled: (name, pkg) =>
+    `${name} se quitó de WireCat. Su programa y sus carpetas de datos siguen en este equipo: ejecuta npm uninstall -g ${pkg} para quitar el programa.`,
+  removedGone: (name) => `${name} se quitó de WireCat. Sus carpetas de datos, si creó alguna, siguen en este equipo.`,
+  dismiss: "Cerrar",
 }
 
 export const ownMessages: Messages<typeof en> = { en, ru, es }

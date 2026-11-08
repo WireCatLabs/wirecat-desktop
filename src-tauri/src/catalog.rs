@@ -333,10 +333,11 @@ pub fn catalog() -> &'static Catalog {
 }
 
 /// Reads the community and own tools again, so a tool the owner added or removed is there without a restart.
+/// The write lock is taken before the files are read, so two reloads cannot finish in the wrong order.
 pub fn reload() {
-    let fresh = load();
-    let lock = CATALOG.get_or_init(|| RwLock::new(fresh));
-    *lock.write().unwrap_or_else(std::sync::PoisonError::into_inner) = fresh;
+    let lock = CATALOG.get_or_init(|| RwLock::new(load()));
+    let mut current = lock.write().unwrap_or_else(std::sync::PoisonError::into_inner);
+    *current = load();
 }
 
 pub fn tool(id: &str) -> Result<&'static Tool, String> {

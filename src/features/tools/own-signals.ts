@@ -15,7 +15,11 @@ export function signalWords(s: OwnSignal, m: OwnReviewText["signals"]): [string,
     case "networkCode":
       return m.networkCode(s.modules.join(", "))
     case "undeclaredHosts":
-      return m.undeclaredHosts(s.hosts.join(", "))
+      return m.undeclaredHosts(s.hosts.join(", "), s.more)
+    case "nativeCode":
+      return m.nativeCode(s.files.join(", "))
+    case "bundledUnknown":
+      return m.bundledUnknown(s.package)
     case "repoNew":
       return m.repoNew(s.days)
     case "repoStale":

@@ -2,8 +2,9 @@
 //! connections, global `fetch` and `WebSocket`, and the hosts its URLs name. Nothing runs. A bundler copies
 //! cli-base, cli-core and their libraries into the package and marks each copied module with a `// node_modules/...`
 //! comment; only the tool's own code is read, because those libraries name hundreds of documentation hosts and use
-//! `fetch` for their own reasons. The marker is the author's text, so a finding means "found in the code", and no
-//! finding proves nothing.
+//! `fetch` for their own reasons. Comments are read like code: a comment remover can be fooled by a string or a regular
+//! expression into hiding a real call, and the tool's own code names few documentation pages. The marker is the
+//! author's text, so a finding means "found in the code", and no finding proves nothing.
 
 use regex::Regex;
 use std::collections::BTreeSet;
@@ -26,7 +27,9 @@ const NETWORK: [&str; 15] = [
     "request",
     "ws",
 ];
-const MAX_HOSTS: usize = 20;
+/// A bound on memory only: the review caps what it shows after leaving out the declared hosts.
+const MAX_HOSTS: usize = 2000;
+const MAX_NATIVE: usize = 20;
 
 /// Hosts that cannot be a server the tool talks to: reserved names (RFC 2606, RFC 6761) and XML or schema
 /// namespaces, which libraries write as URLs without ever opening them.
@@ -53,6 +56,10 @@ pub struct Code {
     pub websocket: bool,
     /// `child_process`: it can start other programs, which can reach the network themselves.
     pub programs: bool,
+    /// `.node` and `.wasm` files: native code this scan cannot read.
+    pub native: BTreeSet<String>,
+    /// The `@wirecat` packages a bundler copied in, with the version its path names when it names one.
+    pub bundled: std::collections::BTreeMap<String, Option<String>>,
 }
 
 impl Code {
@@ -76,6 +83,33 @@ pub fn is_code(path: &str) -> bool {
     [".js", ".mjs", ".cjs"].iter().any(|ext| path.ends_with(ext))
 }
 
+pub fn is_native(path: &str) -> bool {
+    [".node", ".wasm"].iter().any(|ext| path.ends_with(ext))
+}
+
+impl Code {
+    pub fn add_native(&mut self, path: &str) {
+        if self.native.len() < MAX_NATIVE {
+            self.native.insert(path.to_string());
+        }
+    }
+}
+
+static BUNDLED: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"node_modules/@wirecat/(cli-base|cli-core)/").expect("a valid pattern"));
+/// pnpm's folder names the version: `.pnpm/@wirecat+cli-core@0.605.0_…/node_modules/@wirecat/cli-core/`.
+static PNPM_VERSION: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"@wirecat\+(cli-base|cli-core)@(\d+\.\d+\.\d+)").expect("a valid pattern"));
+
+fn note_bundled(path: &str, code: &mut Code) {
+    let Some(m) = BUNDLED.captures(path) else { return };
+    let version = PNPM_VERSION.captures_iter(path).find(|v| v[1] == m[1]).map(|v| v[2].to_string());
+    let known = code.bundled.entry(format!("@wirecat/{}", &m[1])).or_insert(None);
+    if known.is_none() {
+        *known = version;
+    }
+}
+
 /// Adds what one file says to `code`, leaving out the sections the bundler marks as copied libraries.
 pub fn scan(text: &str, code: &mut Code) {
     let mut start = 0;
@@ -86,6 +120,7 @@ pub fn scan(text: &str, code: &mut Code) {
             scan_section(&text[start..whole.start()], code);
         }
         ours = marker[1].contains("node_modules/");
+        note_bundled(&marker[1], code);
         start = whole.end();
     }
     if !ours {
@@ -94,16 +129,6 @@ pub fn scan(text: &str, code: &mut Code) {
 }
 
 fn scan_section(text: &str, code: &mut Code) {
-    // Comment lines name documentation pages, not servers; code after a comment on the same line is still read.
-    let text: String = text
-        .lines()
-        .filter(|l| {
-            let t = l.trim_start();
-            !(t.starts_with("//") || t.starts_with("/*") || t.starts_with('*'))
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    let text = text.as_str();
     for m in SPECIFIER.captures_iter(text) {
         let root = root(&m[1]);
         if NETWORK.contains(&root) {
@@ -197,15 +222,38 @@ await fetch(url);
     }
 
     #[test]
-    fn comments_method_calls_named_fetch_and_reserved_or_namespace_hosts_are_not_reported() {
+    fn method_calls_named_fetch_and_reserved_or_namespace_hosts_are_not_reported() {
         let code = of(r#"client.fetch(x); this.fetch(y); const ns = "http://www.w3.org/2000/svg";
 const a = "https://example.com/x"; const b = "http://localhost:8080"; const c = "https://api.test";
-const d = "http://127.0.0.1:9"; const e = "https://203.0.113.9/up";
-/** See https://developer.mozilla.org/docs for the fetch( API.
- * https://docs.example.org */
-// https://github.com/acme/crm"#);
+const d = "http://127.0.0.1:9"; const e = "https://203.0.113.9/up";"#);
         assert!(!code.fetch);
         assert_eq!(code.hosts.iter().map(String::as_str).collect::<Vec<_>>(), ["203.0.113.9"]);
+    }
+
+    #[test]
+    fn a_call_after_a_comment_on_the_same_line_is_found() {
+        let code = of(r#"/*! MIT */ fetch("https://evil.io/x")"#);
+        assert!(code.fetch);
+        assert_eq!(code.hosts.iter().map(String::as_str).collect::<Vec<_>>(), ["evil.io"]);
+        let code = of("// a comment\n * a doc line */ new WebSocket(\"wss://ws.evil.io\")");
+        assert!(code.websocket && code.hosts.contains("ws.evil.io"));
+    }
+
+    #[test]
+    fn hosts_are_kept_well_past_what_the_review_shows() {
+        let mut text: String = (0..25).map(|i| format!("\"https://h{i}.acme.io\"; ")).collect::<Vec<_>>().concat();
+        text.push_str("\"https://collector.evil.io\"");
+        assert!(of(&text).hosts.contains("collector.evil.io"));
+    }
+
+    #[test]
+    fn bundled_cli_core_and_its_version_are_noted() {
+        let code = of(
+            "// node_modules/.pnpm/@wirecat+cli-core@0.605.0_@wirecat+cli-base@0.82.0_x/node_modules/@wirecat/cli-core/dist/a.js\nx\n",
+        );
+        assert_eq!(code.bundled.get("@wirecat/cli-core"), Some(&Some("0.605.0".to_string())));
+        let code = of("// node_modules/@wirecat/cli-core/dist/a.js\nx\n");
+        assert_eq!(code.bundled.get("@wirecat/cli-core"), Some(&None));
     }
 
     #[test]

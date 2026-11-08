@@ -3,12 +3,13 @@ import { useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { reloadAddedTools } from "@/shared/added-tools"
+import { useOwnDialog } from "@/shared/own-dialog-store"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { reloadAddedTools } from "./community"
 import { ownMessages } from "./messages-own"
 
 /**
@@ -32,6 +33,7 @@ export function RemoveOwn({
     setError(null)
     platform.ownToolRemove(tool.id).then(
       async () => {
+        useOwnDialog.getState().removedOne({ name: tool.name, pkg: tool.package, installed })
         await reloadAddedTools()
         void useTools.getState().refresh(true)
       },

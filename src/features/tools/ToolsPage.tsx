@@ -14,6 +14,7 @@ import { keepBelow } from "@/ui/motion"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { AddOwnTool } from "./AddOwnTool"
 import { toolsMessages } from "./messages"
+import { OwnRemoved } from "./OwnRemoved"
 import { OwnToolDialog } from "./OwnToolDialog"
 import { StorageSummary } from "./StorageFit"
 import { ToolRow } from "./ToolRow"
@@ -97,6 +98,7 @@ export function ToolsPage() {
         <StorageSummary />
       )}
 
+      <OwnRemoved />
       <ul aria-label={m.list} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
         {tools.map((t) => (
           <ToolRow key={t.id} tool={t} />

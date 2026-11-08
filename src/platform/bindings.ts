@@ -486,8 +486,12 @@ export type OwnSignal = { kind: "newPackage"; days: number } | { kind: "fewVersi
 { kind: "baseOutOfRange"; found: string | null; min: string } | { kind: "coreOutOfRange"; found: string | null; min: string } | { kind: "noHosts" } | 
 /**  Network modules, `fetch` or `WebSocket` in the tool's own code. */
 { kind: "networkCode"; modules: string[] } | 
-/**  Hosts its code names that the manifest does not declare. */
-{ kind: "undeclaredHosts"; hosts: string[] } | { kind: "startsPrograms" } | { kind: "repoNew"; days: number } | { kind: "repoStale"; days: number } | { kind: "repoArchived" } | { kind: "fewStars"; stars: number } | 
+/**  Hosts its code names that the manifest does not declare: the first `MAX_SHOWN`, and how many more. */
+{ kind: "undeclaredHosts"; hosts: string[]; more: number } | 
+/**  `.node` or `.wasm` files: native code the scan cannot read. */
+{ kind: "nativeCode"; files: string[] } | 
+/**  A bundler copied cli-base or cli-core in without naming its version. */
+{ kind: "bundledUnknown"; package: string } | { kind: "startsPrograms" } | { kind: "repoNew"; days: number } | { kind: "repoStale"; days: number } | { kind: "repoArchived" } | { kind: "fewStars"; stars: number } | 
 /**  cli-base's shared workflows its workflows at the release commit do not call. */
 { kind: "noStandardChecks"; missing: string[] } | { kind: "githubUnchecked"; reason: OwnGithubUnchecked };
 

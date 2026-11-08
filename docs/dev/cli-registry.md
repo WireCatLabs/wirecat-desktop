@@ -180,7 +180,8 @@ Developers can still write entries into `<app data>/extra-tools.json` by hand an
 
 **1. A switch in Settings.** "Allow tools WireCat has not checked", off by default, under "Enable community tools".
 Turning it on opens a warning that the owner must confirm before the switch turns on. Cancel leaves it off. Turning it
-off hides the own tools at the next start, and installed ones stay installed, like the community switch. Its "How it
+off hides the own tools at once (`set_allowed` reloads the catalog), and installed ones stay installed. The community
+switch still takes effect at the next start. Its "How it
 works" link opens the Desktop docs, section "Add your own tool".
 
 **2. A button on the Tools page.** While the switch is on (or the flag is set), the Tools page shows **Add your own
@@ -207,10 +208,16 @@ workflow run and the transparency-log entry, the last three from the Fulcio cert
   publisher, no provenance), the `@wirecat/cli-base` and `@wirecat/cli-core` versions in `dependencies` (cli-base
   0.81.0+, the format-2 manifest; cli-core 0.603.0+, undeclared effects count as writes; both < 1.0.0), the code
   (`own_scan.rs`: network modules, `fetch`, `WebSocket`, `child_process` and URL hosts in the tool's own JavaScript,
-  skipping sections a bundler marks as `node_modules/`), a manifest without `network`, and GitHub
+  which is every `.js`, `.mjs` and `.cjs` file, the files `bin` names and any file starting with `#!`; comments are
+  read like code; sections a bundler marks as `node_modules/` are skipped, but a bundled cli-base or cli-core counts
+  as one, with the version pnpm's folder names; `.node` and `.wasm` files are flagged as unreadable; only the
+  repository's host counts as the tool's own, and the review shows 20 undeclared hosts and how many more), a manifest
+  without `network`, and GitHub
   (`own_tool_risks`, unauthenticated REST, cached an hour by `repo@commit`: created < 30 days, no push > 180 days,
-  archived, < 10 stars, workflows at the release commit that do not call cli-base's `node-ci.yml` and
-  `release-checks.yml`; a failure is "Couldn't check").
+  archived, < 10 stars, workflows at the release commit whose `uses:` keys do not call cli-base's `node-ci.yml` and
+  `release-checks.yml`; one agent, no redirects, 15 s for all calls together; a failure is "Couldn't check" with its
+  reason). `network.hosts` follows cli-base's `HOST_PATTERN` exactly (`*.` only before two labels), with no count cap.
+  The package file must come from `https://registry.npmjs.org/`.
 - **Servers it contacts**: the manifest's `network.hosts` and `user_hosts` (cli-base#529).
 - **What it says it does**: commands grouped by `entity` (else their first word) with the most they ask for with the
   service and on this computer, the entity's `fields`, the sync's own words, cli-base's standard roots in plain words,
@@ -234,7 +241,7 @@ permissions.", with Back and **Install and run**. Only that button installs.
 3. Saves the entry to `<app data>/extra-tools.json`, with the data folders that already existed (`own.preexisting`).
    It survives restarts and updates and is never sent anywhere.
 4. Reloads the catalog (`catalog::reload`, which leaks the old one so every `&'static Tool` handed out stays valid;
-   the signed list keeps the copy read at start), and the interface reads its tools again (`reloadAddedTools`), so
+   the signed list keeps the copy read at start), and the interface reads its tools again (`reloadAddedTools`, `src/shared/added-tools.ts`), so
    the tool is listed at once. Remove from WireCat does the same.
 
 **How it looks.** A tool from this file carries the badge **Not verified** instead of **Community**, on the Tools page

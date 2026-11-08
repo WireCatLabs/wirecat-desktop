@@ -21,7 +21,7 @@ pub fn own_tools_status() -> own_tools::Status {
     own_tools::status()
 }
 
-/// Takes effect at the next start, like the community switch.
+/// Takes effect at once; the interface reads its tools again after it.
 #[tauri::command]
 pub async fn set_own_tools_allowed(allow: bool) -> Result<(), AppError> {
     crate::log::command("set_own_tools_allowed", async move { attempt(move || own_tools::set_allowed(allow)).await })
