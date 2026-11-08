@@ -27,6 +27,15 @@ describe("removal words", () => {
     expect(signInLine("zm", "Zoom", null, ru)).toBeNull()
   })
 
+  it("does not promise mail a revoke unless the plan shows Google OAuth", () => {
+    const key = (target: string) => [{ kind: "keyring" as const, target }]
+    expect(signInLine("mail", "Mail", null, ru, key("oauth:google:work"))).toBe(ru.signInRevokes)
+    expect(signInLine("mail", "Mail", null, ru, key("oauth:microsoft:work"))).toBe(ru.signInLocal)
+    expect(signInLine("mail", "Mail", null, ru, key("work"))).toBe(ru.signInAppPassword)
+    expect(signInLine("mail", "Mail", true, ru)).toBe(ru.signInGoogleRevoked)
+    expect(signInLine("mail", "Mail", false, ru)).toBe(ru.signInProviderKept)
+  })
+
   it("names what holds the account from the tool's busy message", () => {
     expect(busyHolder("`tg serve` is running for personal — stop it first")).toBe("tg serve")
     expect(busyHolder("tg-serve-personal.service is running for personal — stop it")).toBe("tg-serve-personal.service")

@@ -1,3 +1,4 @@
+import type { RemovalEntry } from "@/platform/bindings"
 import type { AccountsText } from "./messages-accounts"
 
 type Remove = AccountsText["remove"]
@@ -12,7 +13,7 @@ const KNOWN_REASONS: Record<string, keyof Remove["reasons"]> = {
 
 /** The tools whose sign-in is a session the service ends on its side, and those whose access the provider takes back. */
 const SESSION_TOOLS = new Set(["tg", "max", "wa"])
-const PROVIDER_TOOLS = new Set(["drive", "gcal", "mail"])
+const PROVIDER_TOOLS = new Set(["drive", "gcal"])
 
 export type Words = { text: string; fromTool: boolean }
 
@@ -23,12 +24,31 @@ export const keptReason = (reason: string, m: Remove): Words => {
 }
 
 /** What the service does with the sign-in, by tool and the `revoked` flag (`null` while only planned). */
-export const signInLine = (toolId: string, toolName: string, revoked: boolean | null, m: Remove): string | null => {
+export const signInLine = (
+  toolId: string,
+  toolName: string,
+  revoked: boolean | null,
+  m: Remove,
+  entries: Pick<RemovalEntry, "kind" | "target">[] = [],
+): string | null => {
   if (SESSION_TOOLS.has(toolId)) return m.signInSession(toolName)
+  if (toolId === "mail") return mailLine(revoked, m, entries)
   if (!PROVIDER_TOOLS.has(toolId)) return null
   if (revoked === true) return m.signInRevoked
   if (revoked === false) return m.signInKept
   return m.signInRevokes
+}
+
+/**
+ * Only a Google OAuth grant is ever revoked, and not when another profile has the same address. Microsoft OAuth and
+ * app passwords stay where they are, so the plan must not promise a revoke unless the keyring shows Google.
+ */
+const mailLine = (revoked: boolean | null, m: Remove, entries: Pick<RemovalEntry, "kind" | "target">[]): string => {
+  if (revoked === true) return m.signInGoogleRevoked
+  if (revoked === false) return m.signInProviderKept
+  const keys = entries.filter((e) => e.kind === "keyring").map((e) => e.target)
+  if (keys.some((k) => k.startsWith("oauth:google:"))) return m.signInRevokes
+  return keys.some((k) => k.startsWith("oauth:microsoft:")) ? m.signInLocal : m.signInAppPassword
 }
 
 /** The tool's busy message names what holds the account first: "`tg serve` is running for personal — stop it…". */

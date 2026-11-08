@@ -103,6 +103,11 @@ const en = {
     signInSession: (service: string) => `${service} also ends this session on its servers.`,
     signInRevokes: "The service is asked to take its access back.",
     signInRevoked: "The service took its access back.",
+    signInLocal: "Signs out on this computer. The provider keeps its access.",
+    signInAppPassword:
+      "Signs out on this computer. If you signed in with an app password, delete it in your mail account's settings too.",
+    signInGoogleRevoked: "Google access was revoked.",
+    signInProviderKept: "Access at the provider was kept.",
     signInKept: "The service could not take its access back. Remove it in your account's security settings.",
     reasons: {
       sends: "The record of what was sent for this account",
@@ -240,6 +245,11 @@ const ru: AccountsText = {
     signInSession: (service) => `${service} также завершает этот сеанс на своих серверах.`,
     signInRevokes: "Сервис попросят забрать выданный доступ.",
     signInRevoked: "Сервис забрал выданный доступ.",
+    signInLocal: "Выход на этом компьютере. Доступ у провайдера остаётся.",
+    signInAppPassword:
+      "Выход на этом компьютере. Если вы входили по паролю приложения, удалите его и в настройках почтового аккаунта.",
+    signInGoogleRevoked: "Доступ Google отозван.",
+    signInProviderKept: "Доступ у провайдера сохранён.",
     signInKept: "Сервис не смог забрать доступ. Уберите его в настройках безопасности аккаунта.",
     reasons: {
       sends: "Журнал того, что было отправлено с этого аккаунта",
@@ -374,6 +384,11 @@ const es: AccountsText = {
     signInSession: (service) => `${service} también cierra esta sesión en sus servidores.`,
     signInRevokes: "Se pide al servicio que retire su acceso.",
     signInRevoked: "El servicio retiró su acceso.",
+    signInLocal: "Cierra la sesión en este equipo. El proveedor conserva su acceso.",
+    signInAppPassword:
+      "Cierra la sesión en este equipo. Si entraste con una contraseña de aplicación, bórrala también en los ajustes de tu cuenta de correo.",
+    signInGoogleRevoked: "Se retiró el acceso de Google.",
+    signInProviderKept: "Se conservó el acceso en el proveedor.",
     signInKept: "El servicio no pudo retirar su acceso. Quítalo en los ajustes de seguridad de tu cuenta.",
     reasons: {
       sends: "El registro de lo enviado desde esta cuenta",

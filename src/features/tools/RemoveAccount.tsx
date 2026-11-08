@@ -431,7 +431,7 @@ function Entries(props: {
               </span>
             )}
             {kind === "signIn" ? (
-              <SignIn list={list} tool={tool} revoked={removal.revoked} m={m} />
+              <SignIn list={list} tool={tool} removal={removal} m={m} />
             ) : kind === "file" || kind === "unit" ? (
               <Paths list={list} kept={kept} tool={tool} m={m} />
             ) : (
@@ -451,15 +451,19 @@ function Entries(props: {
   )
 }
 
-function SignIn(props: {
-  list: RemovalEntry[]
-  tool: CatalogTool
-  revoked: boolean | null
-  m: AccountsText["remove"]
-}) {
-  const { list, tool, revoked, m } = props
-  const line = signInLine(tool.id, tool.name, revoked, m)
-  if (line) return <span className="block text-ink-soft">{line}</span>
+function SignIn(props: { list: RemovalEntry[]; tool: CatalogTool; removal: Removal; m: AccountsText["remove"] }) {
+  const { list, tool, removal, m } = props
+  const line = signInLine(tool.id, tool.name, removal.revoked, m, [...removal.removed, ...removal.kept])
+  if (line) {
+    const why =
+      tool.id === "mail" ? list.map((e) => /\((Google access kept:[^)]*)\)/.exec(e.target)?.[1]).find(Boolean) : null
+    return (
+      <span className="block text-ink-soft">
+        {line}
+        {why && <FromToolText text={why} tool={tool} m={m} />}
+      </span>
+    )
+  }
   return (
     <ul className="mt-0.5 flex flex-col gap-0.5">
       {list.map((e) => (
@@ -469,6 +473,16 @@ function SignIn(props: {
         </li>
       ))}
     </ul>
+  )
+}
+
+function FromToolText(props: { text: string; tool: CatalogTool; m: AccountsText["remove"] }) {
+  const { text, tool, m } = props
+  return (
+    <span className="block text-[0.85rem] text-ink-dim">
+      {text}
+      <span className="block text-[0.75rem]">{m.fromTool(tool.name)}</span>
+    </span>
   )
 }
 
