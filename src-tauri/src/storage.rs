@@ -64,6 +64,11 @@ fn folders(s: &Storage) -> Vec<(Kind, PathBuf)> {
     defaults(s).into_iter().map(|(kind, p)| (kind, over(&kind.name().to_uppercase()).unwrap_or(p))).collect()
 }
 
+/// Where a tool keeps its state (`~/.local/share/<app>`), as cli-base resolves it.
+pub fn state_folder(s: &Storage) -> PathBuf {
+    folders(s).into_iter().find(|(kind, _)| *kind == Kind::State).map(|(_, p)| p).unwrap_or_default()
+}
+
 /// The locations with no override. An own tool's prefix comes from a manifest nobody reviewed, so a variable that
 /// happens to match it must not point its deletion elsewhere: it is cleared only here.
 pub fn defaults(s: &Storage) -> Vec<(Kind, PathBuf)> {

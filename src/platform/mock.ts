@@ -10,6 +10,7 @@ import { cloudflareMock } from "./mock-cloudflare"
 import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
 import { delay } from "./mock-delay"
+import { digestsMock } from "./mock-digests"
 import { driveFoldersMock } from "./mock-drive-folders"
 import { npmLines } from "./mock-install"
 import { mailAgentMock } from "./mock-mail-agent"
@@ -678,6 +679,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...botMock(),
     ...syncMock(),
     ...mailAgentMock(params),
+    ...digestsMock(params),
     ...notesSetupMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),

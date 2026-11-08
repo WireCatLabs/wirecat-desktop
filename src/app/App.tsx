@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { Bug } from "lucide-react"
 import { Suspense, useEffect, useRef, useState } from "react"
 import { AboutDialog, docsPage } from "@/features/about"
+import { useDigestWatch } from "@/features/digests"
 import { useDeepLinks } from "@/features/links"
 import { Bell, CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/features/notifications"
 import { type HelpActions, HelpMenu, Onboarding, resumeSetup, SetupSteps, Tour, useTour } from "@/features/onboarding"
@@ -51,6 +52,7 @@ function Shell() {
   const onboarding = useOnboarding((s) => s.open)
   useSectionHistory(!onboarding)
   useDeepLinks(!onboarding)
+  useDigestWatch(!onboarding)
   const Page = sections.find((s) => s.id === active)?.page
   // A page saved by an older version may be gone or not built yet.
   useEffect(() => {
