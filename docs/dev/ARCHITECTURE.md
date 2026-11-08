@@ -147,8 +147,8 @@ src-tauri/src/
                 `src/domain/links-v1.fixture.json`; anything else reaches the interface as a refused link, its text
                 dropped. One `Channel` (`deep_link_listen`) carries them, the link that started the app first. A link
                 only opens a page (`src/features/links/open.ts`): a task, the task list on a filter, a proposal's row
-                on Memory, a tool's sync, a day on Digests; chat and message have no page yet and say so, with the
-                reference to copy.
+                on Memory, a tool's sync, a day on Digests, a chat or message on Conversation; person and project
+                (`person/<id>`, `project/<key>`) have no page yet and say so, with the reference to copy.
   digests.rs    the Digests page: memo's morning digest runs, read from the files its schedule keeps
                 (`<memo state>/schedules/morning-digest/runs/`; memo has no command that lists a schedule's runs), one
                 day per date, its newest run: `<stamp>.report.json` (cli-core's checked `wirecat.report/1`) or, for an
@@ -157,6 +157,18 @@ src-tauri/src/
                 (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls
                 `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and announces a run newer than
                 the last one it announced.
+  digest_schedule.rs the Digests page's schedule card: memo's own `schedule list` (the morning digest's time, routes,
+                last run with its cost and deliveries, the day's spend and caps; memo's other schedules read only),
+                `schedule agent morning-digest` to make it or change its time (memo replaces a schedule of the same
+                name), `schedule remove` for off (memo has no pause; the page remembers the time and routes to turn it
+                back on), `schedule run` for Run now (its price, the last run's cost, is shown first), and `digest
+                backfill --from --to --json`, first without `--yes` for the price, then with it. Routes are checked to
+                the two shapes `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and
+                the page says it needs an update.
+  sync_schedule.rs an account's sync on a timer: the tool's own `<bin> <profile> schedule command <bin>-<profile>
+                --every <d> -- <catalog sync.schedule.args>`, `schedule list` and `schedule remove`. The tool writes the
+                timer. Its latest run (and `failing_since`) shows under the account, and a failed sync from this window
+                clears once a later run succeeded, timed or listed by `syncLast`.
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```
 

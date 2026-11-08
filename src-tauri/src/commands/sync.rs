@@ -1,7 +1,7 @@
 use super::{attempt, blocking, known_tool, valid_profile};
 use crate::error::AppError;
 use crate::install::Running;
-use crate::{catalog, sync};
+use crate::{catalog, sync, sync_schedule};
 use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
@@ -73,6 +73,31 @@ pub async fn sync_last(id: String, profile: Option<String>) -> Result<sync::Last
     crate::log::command("sync_last", async move {
         let tool = known_tool(&id)?;
         attempt(move || sync::last(tool, profile.as_deref())).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn sync_schedule_status(id: String, profile: String) -> Result<sync_schedule::SyncSchedule, AppError> {
+    crate::log::command("sync_schedule_status", async move {
+        let tool = known_tool(&id)?;
+        valid_profile(&profile)?;
+        attempt(move || sync_schedule::status(tool, &profile)).await
+    })
+    .await
+}
+
+/// `every` makes or replaces the account's sync schedule at that interval; none removes it.
+#[tauri::command]
+pub async fn sync_schedule_set(
+    id: String,
+    profile: String,
+    every: Option<String>,
+) -> Result<sync_schedule::SyncSchedule, AppError> {
+    crate::log::command("sync_schedule_set", async move {
+        let tool = known_tool(&id)?;
+        valid_profile(&profile)?;
+        attempt(move || sync_schedule::set(tool, &profile, every.as_deref())).await
     })
     .await
 }

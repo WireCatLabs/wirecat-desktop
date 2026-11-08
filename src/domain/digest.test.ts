@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest"
-import { emojiOf, isOverdue, orderedSections, staleHealth, targetOfRefs, taskGroups, windowOf } from "./digest"
+import {
+  emojiOf,
+  entityOf,
+  isOverdue,
+  orderedSections,
+  staleHealth,
+  targetOfRefs,
+  targetsOfRefs,
+  taskGroups,
+  windowOf,
+} from "./digest"
 
 const now = Date.parse("2026-11-08T09:00:00")
 const item = (over: Partial<Parameters<typeof emojiOf>[0]> = {}) =>
@@ -42,6 +52,20 @@ describe("a digest laid out as cli-core's renderer lays it out", () => {
   it("opens an item by the first ref a link can name", () => {
     expect(targetOfRefs(["person:7", "task:80"])).toEqual({ type: "task", id: "80" })
     expect(targetOfRefs(["account:max/1"])).toBeNull()
+    expect(targetOfRefs(["project:north-wind"])).toBeNull()
+  })
+
+  it("links an item's person and project only when its refs name exactly one", () => {
+    expect(entityOf(["msg:max/1/2/3", "person:77"], "person")).toEqual({ type: "person", id: "77" })
+    expect(entityOf(["person:77", "person:78"], "person")).toBeNull()
+    expect(entityOf(["project:north-wind", "project:north-wind"], "project")).toEqual({
+      type: "project",
+      key: "north-wind",
+    })
+    expect(targetsOfRefs(["task:80", "plain", "task:80", "proposal:17070"])).toEqual([
+      { type: "task", id: "80" },
+      { type: "proposal", id: "17070" },
+    ])
   })
 
   it("names a day's window in hours and longer ones in days, and keeps only sync lines worth saying", () => {

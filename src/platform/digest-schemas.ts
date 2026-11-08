@@ -9,6 +9,8 @@ export const DigestDaySchema = v.object({
   stamp: v.string(),
   summary: v.nullable(v.string()),
   report: v.boolean(),
+  /** Built later by `digest backfill` for a past day; never delivered. */
+  backfill: v.optional(v.boolean(), false),
 })
 
 const text = v.nullish(v.string(), null)

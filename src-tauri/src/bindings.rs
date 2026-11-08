@@ -58,6 +58,9 @@ fn types() -> Types {
         .register::<crate::conversation::ChatPage>()
         .register::<crate::conversation::ChatPlace>()
         .register::<crate::conversation::Conversation>()
+        .register::<crate::digest_schedule::DigestSchedules>()
+        .register::<crate::digest_schedule::Backfill>()
+        .register::<crate::sync_schedule::SyncSchedule>()
 }
 
 fn render() -> String {

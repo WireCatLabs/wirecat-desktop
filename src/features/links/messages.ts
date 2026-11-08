@@ -23,6 +23,8 @@ const en = {
     tasks: "this task list",
     proposal: "this proposal",
     digest: "this digest",
+    person: "this person",
+    project: "this project",
     sync: "this tool's sync",
   } satisfies Record<Kind, string>,
 }
@@ -47,6 +49,8 @@ const ru: typeof en = {
     tasks: "этот список задач",
     proposal: "это предложение",
     digest: "эту сводку",
+    person: "этого человека",
+    project: "этот проект",
     sync: "синхронизацию этого инструмента",
   },
 }
@@ -71,6 +75,8 @@ const es: typeof en = {
     tasks: "esta lista de tareas",
     proposal: "esta propuesta",
     digest: "este resumen",
+    person: "esta persona",
+    project: "este proyecto",
     sync: "la sincronización de esta herramienta",
   },
 }

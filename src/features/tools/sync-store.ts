@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import { findTool, ownerId, syncNeedsProfile, syncsHere } from "@/domain/catalog"
-import type { SyncFailure, SyncSummary } from "@/domain/sync"
+import { failureSuperseded, type SyncFailure, type SyncSummary } from "@/domain/sync"
+import type { SyncSchedule } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { LastSync, SyncEvent } from "@/platform/sync-schemas"
 
@@ -21,12 +22,17 @@ type State = {
   runs: Record<string, SyncRun>
   /** By `syncKey`; missing while it is read. */
   last: Record<string, LastSync>
+  /** By `syncKey`: the account's sync on a timer; missing while it is read, `null` when it could not be read. */
+  schedules: Record<string, SyncSchedule | null>
   /** Profile names per tool, read for the Tools row's compact line; null when the tool has none. */
   profiles: Record<string, string[] | null>
   start(tool: string, profile: string | null): void
   stop(tool: string, profile: string | null): void
   dismiss(tool: string, profile: string | null): void
   loadLast(tool: string, profile: string | null): Promise<void>
+  loadSchedule(tool: string, profile: string): Promise<void>
+  /** `every` turns the timer on at that interval or changes it; null turns it off. Rejects with the tool's words. */
+  setSchedule(tool: string, profile: string, every: string | null): Promise<void>
   /** Once per tool: its profiles, and the last sync when there is only one to show. */
   loadRow(tool: string): void
 }
@@ -62,6 +68,18 @@ export const useSync = create<State>()((set, get) => {
       return run ? { runs: { ...s.runs, [key]: { ...run, ...change } } } : {}
     })
 
+  // A failure from this window stays until a later run succeeds, here or on the account's timer.
+  const settle = (key: string) =>
+    set((s) => {
+      const run = s.runs[key]
+      if (run?.phase !== "failed") return {}
+      const scheduled = s.schedules[key]
+      const last = scheduled?.state === "on" ? scheduled.last : null
+      if (!failureSuperseded(run.endedAt, s.last[key]?.at ?? null, last)) return {}
+      const { [key]: _, ...runs } = s.runs
+      return { runs }
+    })
+
   const apply = (tool: string, profile: string | null, e: SyncEvent) => {
     const key = syncKey(tool, profile)
     const ended = { endedAt: Date.now(), stopping: false, stage: null }
@@ -93,6 +111,7 @@ export const useSync = create<State>()((set, get) => {
   return {
     runs: {},
     last: {},
+    schedules: {},
     profiles: {},
     start(tool, profile) {
       if (blockedBy(get().runs, tool, profile)) return
@@ -157,9 +176,24 @@ export const useSync = create<State>()((set, get) => {
       try {
         const last = await queued(() => platform.syncLast(tool, profile))
         set((s) => ({ last: { ...s.last, [key]: last } }))
+        settle(key)
       } catch {
         set((s) => ({ last: { ...s.last, [key]: { at: null, left: null, known: false } } }))
       }
+    },
+    async loadSchedule(tool, profile) {
+      const key = syncKey(tool, profile)
+      try {
+        const schedule = await queued(() => platform.syncScheduleStatus(tool, profile))
+        set((s) => ({ schedules: { ...s.schedules, [key]: schedule } }))
+        settle(key)
+      } catch {
+        set((s) => ({ schedules: { ...s.schedules, [key]: null } }))
+      }
+    },
+    async setSchedule(tool, profile, every) {
+      const schedule = await platform.syncScheduleSet(tool, profile, every)
+      set((s) => ({ schedules: { ...s.schedules, [syncKey(tool, profile)]: schedule } }))
     },
     loadRow(tool) {
       const entry = findTool(tool)

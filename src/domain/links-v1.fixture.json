@@ -157,6 +157,36 @@
       }
     },
     {
+      "ref": "person:77",
+      "path": "/v1/person/77",
+      "web": "https://wirecat.dev/o#/v1/person/77",
+      "app": "wirecat://open/v1/person/77",
+      "target": {
+        "type": "person",
+        "id": "77"
+      }
+    },
+    {
+      "ref": "project:north-wind",
+      "path": "/v1/project/north-wind",
+      "web": "https://wirecat.dev/o#/v1/project/north-wind",
+      "app": "wirecat://open/v1/project/north-wind",
+      "target": {
+        "type": "project",
+        "key": "north-wind"
+      }
+    },
+    {
+      "ref": "project:%D0%BE%D1%84%D0%B8%D1%81",
+      "path": "/v1/project/%D0%BE%D1%84%D0%B8%D1%81",
+      "web": "https://wirecat.dev/o#/v1/project/%D0%BE%D1%84%D0%B8%D1%81",
+      "app": "wirecat://open/v1/project/%D0%BE%D1%84%D0%B8%D1%81",
+      "target": {
+        "type": "project",
+        "key": "офис"
+      }
+    },
+    {
       "ref": "sync:telegram",
       "path": "/v1/sync/telegram",
       "web": "https://wirecat.dev/o#/v1/sync/telegram",
@@ -184,16 +214,20 @@
       "why": "undated takes no value"
     },
     {
+      "path": "/v1/person/77/notes",
+      "why": "person takes one id"
+    },
+    {
+      "path": "/v1/project",
+      "why": "project needs a key"
+    },
+    {
       "path": "/v2/chat/telegram/1001/4004",
       "why": "another version"
     },
     {
       "path": "/v1/unknown/1",
       "why": "unknown kind"
-    },
-    {
-      "path": "/v1/person/77",
-      "why": "a kind not in this slice yet"
     },
     {
       "path": "/v1/chat/telegram/1001/4004/9",

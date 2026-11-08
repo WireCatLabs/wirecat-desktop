@@ -20,6 +20,9 @@ pub struct SyncSource {
     pub last: Option<Vec<String>>,
     pub last_shape: LastShape,
     pub what: String,
+    /// The sync on a timer, for a tool whose own `schedule command` runs it per account.
+    #[serde(default)]
+    pub schedule: Option<crate::sync_schedule::ScheduleSource>,
 }
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]

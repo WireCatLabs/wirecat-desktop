@@ -8,12 +8,16 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
+import { FillHistory } from "./FillHistory"
 import { digestMessages } from "./messages"
+import { scheduleMessages } from "./messages-schedule"
 import { ReportView } from "./ReportView"
+import { ScheduleCard } from "./ScheduleCard"
 import { useDigests } from "./store"
 
 export function DigestsPage() {
   const m = useMessages(digestMessages)
+  const later = useMessages(scheduleMessages).history.builtLater
   const lang = useLang()
   const { days, error, reading, load } = useDigests()
   const chosen = useDigestDay((s) => s.date)
@@ -36,22 +40,27 @@ export function DigestsPage() {
           <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.page}</h1>
           <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={reading}
-          onClick={() => void load()}
-          icon={
-            reading ? (
-              <LoaderCircle className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <RefreshCw className="size-4" aria-hidden />
-            )
-          }
-        >
-          {reading && days ? m.reading : m.readAgain}
-        </Button>
+        <div className="flex flex-wrap items-start gap-2">
+          <FillHistory />
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={reading}
+            onClick={() => void load()}
+            icon={
+              reading ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <RefreshCw className="size-4" aria-hidden />
+              )
+            }
+          >
+            {reading && days ? m.reading : m.readAgain}
+          </Button>
+        </div>
       </div>
+
+      <ScheduleCard />
 
       {error ? (
         <ErrorNotice action={<ReportThis what="Reading digests" error={error} />}>
@@ -79,6 +88,7 @@ export function DigestsPage() {
                 )}
               >
                 <span className="block font-medium text-ink first-letter:uppercase">{dayTitle(d.date, lang)}</span>
+                {d.backfill && <span className="mt-[0.1rem] block text-[0.8rem] text-ink-dim italic">{later}</span>}
                 {d.summary && (
                   <span className="mt-[0.1rem] line-clamp-2 block text-[0.85rem] text-ink-dim">{d.summary}</span>
                 )}

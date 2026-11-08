@@ -16,6 +16,7 @@ import { toolsMessages } from "./messages"
 import { accountsMessages } from "./messages-accounts"
 import { RemoveAccountDialog } from "./RemoveAccount"
 import { SyncButton, SyncFollowUp, SyncStatus, useSyncControl } from "./Sync"
+import { SyncSchedule } from "./SyncSchedule"
 import { useTerminal } from "./terminal-store"
 
 /**
@@ -159,6 +160,7 @@ function SyncingLine(props: {
         {menu}
       </div>
       <SyncFollowUp c={c} />
+      <SyncSchedule tool={tool} profile={profile} />
     </section>
   )
 }

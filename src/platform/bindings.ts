@@ -22,6 +22,13 @@ export type Area = {
 	kept: string[],
 };
 
+/**  `digest backfill`: the price first (no `--yes`), then what it built. */
+export type Backfill = 
+/**  This memo has no `digest backfill` yet. */
+{ state: "unsupported" } | 
+/**  `days`: the days it would build; `skipped`: those that already have a digest. */
+{ state: "estimate"; days: number; skipped: number; estimateUsd: number | null } | { state: "done"; built: number; skipped: number; costUsd: number | null };
+
 export type Background = 
 /**  `connected`: whether serve has reached the messenger yet, `None` where the tool does not say. */
 { state: "running"; connected: boolean | null; startsAtLogin: boolean | null } | 
@@ -210,6 +217,12 @@ export type CopyRemoval = {
 
 export type CountUnit = "files" | "bytes";
 
+export type Delivery = {
+	kind: RouteKind | null,
+	ok: boolean,
+	reason: string | null,
+};
+
 export type Diagnosis = {
 	command: string,
 	exitCode: number | null,
@@ -218,6 +231,27 @@ export type Diagnosis = {
 	report: unknown | null,
 	stderr: string,
 };
+
+export type DigestSchedule = {
+	/**  memo's words, `daily at 08:30`. */
+	when: string,
+	/**  `08:30`, for a schedule that runs daily at a time. */
+	time: string | null,
+	routes: Route[],
+	notify: string | null,
+	last: ScheduleRun | null,
+	spentTodayUsd: number | null,
+	maxCostUsd: number | null,
+	/**  0 is no daily cap. */
+	maxCostPerDayUsd: number | null,
+};
+
+export type DigestSchedules = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
+/**
+ *  `digest`: the morning digest's schedule, `None` when there is none. `harness`: Claude Code is on PATH, so a
+ *  schedule can be made.
+ */
+{ state: "ready"; digest: DigestSchedule | null; others: OtherSchedule[]; harness: boolean };
 
 export type Dns = 
 /**  Public DNS has an address for the name. */
@@ -453,6 +487,17 @@ export type Offer = {
 
 /**  The interface's three platforms; every other Unix is treated as Linux. */
 export type Os = "linux" | "macos" | "windows";
+
+export type OtherSchedule = {
+	name: string,
+	/**  `agent` or `command`. */
+	kind: string,
+	when: string,
+	last: ScheduleRun | null,
+	spentTodayUsd: number | null,
+	maxCostUsd: number | null,
+	maxCostPerDayUsd: number | null,
+};
 
 /**  The commands the manifest declares, grouped by what they ask to touch; each is its words joined by spaces. */
 export type OwnAccess = {
@@ -764,6 +809,30 @@ export type ResetPreview = {
 	inUse: boolean | null,
 };
 
+/**  One `--deliver-to`: `telegram-bot:<profile>/<chat>` or `email:<profile>/<address>`. */
+export type Route = {
+	/**  The whole route, as memo takes it back. */
+	value: string,
+	kind: RouteKind,
+	profile: string,
+	to: string,
+};
+
+export type RouteKind = "telegramBot" | "email";
+
+/**  A schedule's last run, without its output: an agent's answer quotes messages. */
+export type ScheduleRun = {
+	at: string,
+	exitCode: number,
+	/**  Why a failed run failed: an error code and reason id, never the message. */
+	reason: string | null,
+	failures: number | null,
+	failingSince: string | null,
+	costUsd: number | null,
+	skipped: Skipped | null,
+	deliveries: Delivery[],
+};
+
 export type ShellReach = {
 	name: string,
 	/**  The program, as `/etc/shells` or the account lists it. */
@@ -805,6 +874,10 @@ export type SyncEvent =
 { event: "failed"; message: string; code: string | null; reason: string | null; run: string | null; 
 /**  How long the service asked to wait before the next try, when the tool says (`retry.after_ms`). */
 retryAfterMs: number | null };
+
+export type SyncSchedule = { state: "off" } | 
+/**  `every`: `5m` when memo's words name one of the catalog's intervals, else `None` and `when` says it. */
+{ state: "on"; when: string; every: string | null; last: ScheduleRun | null };
 
 /**  Counts only: titles, chat keys and account names in the tool's answer stay in Rust. */
 export type SyncSummary = {

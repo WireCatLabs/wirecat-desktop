@@ -27,6 +27,8 @@ pub struct Day {
     pub summary: Option<String>,
     /// The run kept a `wirecat.report/1` document; an older one has only its text.
     pub report: bool,
+    /// memo's `digest backfill` built it later for a past day; it was never delivered.
+    pub backfill: bool,
 }
 
 #[derive(Debug, Serialize, Clone, PartialEq)]
@@ -94,12 +96,13 @@ fn day_of(dir: &Path, stamp: &str) -> Option<Day> {
     if let Some(doc) = document(dir, stamp) {
         let date = doc.get("date").and_then(Value::as_str).filter(|d| deep_link::is_date(d))?.to_string();
         let summary = doc.get("summary").and_then(Value::as_str).map(short);
-        return Some(Day { date, stamp: stamp.to_string(), summary, report: true });
+        let backfill = doc.get("backfill").and_then(Value::as_bool) == Some(true);
+        return Some(Day { date, stamp: stamp.to_string(), summary, report: true, backfill });
     }
     let text = text(dir, stamp)?;
     // An old run's text has no summary field; its first line is the nearest thing (cli-core's notice does the same).
     let summary = text.lines().find(|l| !l.trim().is_empty()).map(short);
-    Some(Day { date: local_day(stamp)?, stamp: stamp.to_string(), summary, report: false })
+    Some(Day { date: local_day(stamp)?, stamp: stamp.to_string(), summary, report: false, backfill: false })
 }
 
 fn days_in(dir: &Path) -> Vec<Day> {
@@ -261,6 +264,11 @@ mod tests {
         write(&dir, "2026-11-08T13-51-48Z.jsonl", "");
         write(&dir, "latest.md", "not a run");
         write(&dir, "2026-11-09T07-30-00Z.md", "   ");
+        write(
+            &dir,
+            "2026-11-05T09-00-00Z.report.json",
+            &report("2026-11-05", "Built later.").replace('{', r#"{"backfill":true,"#),
+        );
 
         let days = days_in(&dir);
         let shown: Vec<(&str, &str, Option<&str>)> =
@@ -270,8 +278,10 @@ mod tests {
             [
                 ("2026-11-08", "2026-11-08T13-51-48Z", Some("Later run.")),
                 ("2026-11-07", "2026-11-07T07-30-00Z", Some("Two replies wait.")),
+                ("2026-11-05", "2026-11-05T09-00-00Z", Some("Built later.")),
             ]
         );
+        assert_eq!(days.iter().map(|d| d.backfill).collect::<Vec<_>>(), [false, false, true]);
         let digest = show_in(&dir, "2026-11-08").unwrap();
         assert_eq!(digest.document.unwrap()["summary"], "Later run.");
         assert!(digest.text.is_none());

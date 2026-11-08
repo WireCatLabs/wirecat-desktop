@@ -18,6 +18,7 @@ mod compat;
 mod config_repair;
 mod conversation;
 mod deep_link;
+mod digest_schedule;
 mod digests;
 mod drive_folders;
 mod error;
@@ -63,6 +64,7 @@ mod signin_steps;
 mod skills;
 mod storage;
 mod sync;
+mod sync_schedule;
 mod system;
 mod tailscale;
 mod tailscale_install;
@@ -154,6 +156,11 @@ pub fn run() {
             commands::app::digest_list,
             commands::app::digest_show,
             commands::app::digest_notify,
+            commands::app::digest_schedule,
+            commands::app::digest_schedule_save,
+            commands::app::digest_schedule_remove,
+            commands::app::digest_schedule_run,
+            commands::app::digest_backfill,
             commands::app::readiness,
             commands::app::report_context,
             commands::app::send_report,
@@ -293,7 +300,9 @@ pub fn run() {
             commands::setup_extras::drive_folder_remove,
             commands::sync::sync_run,
             commands::sync::sync_stop,
-            commands::sync::sync_last
+            commands::sync::sync_last,
+            commands::sync::sync_schedule_status,
+            commands::sync::sync_schedule_set
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

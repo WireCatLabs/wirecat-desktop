@@ -129,12 +129,17 @@ export async function runMockScenario() {
     await useTools.getState().refresh()
     useTools.getState().toggle(accounts)
   }
+  if (params.has("sync-schedule")) {
+    useNav.getState().go("tools")
+    await useTools.getState().refresh()
+    useTools.getState().toggle("email")
+  }
   if (params.has("memo") || params.has("memo-fail")) {
     useNav.getState().go("tools")
     await useTools.getState().refresh()
     useTools.getState().toggle("memo")
   }
-  const sync = ["sync", "sync-hold", "sync-fail", "sync-timeout", "sync-limited"]
+  const sync = ["sync", "sync-hold", "sync-fail", "sync-timeout", "sync-limited", "sync-recovered"]
     .map((k) => params.get(k))
     .find((v) => v && v !== "never")
   const syncing = sync ? findTool(sync) : undefined
