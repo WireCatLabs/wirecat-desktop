@@ -19,6 +19,7 @@ pub enum TaskFilter {
     Overdue,
     Today,
     Tomorrow,
+    Undated,
     New,
 }
 
@@ -157,6 +158,7 @@ fn target_of(parts: Vec<String>) -> Option<Target> {
                 "overdue" => TaskFilter::Overdue,
                 "today" => TaskFilter::Today,
                 "tomorrow" => TaskFilter::Tomorrow,
+                "undated" => TaskFilter::Undated,
                 _ => return None,
             };
             Target::Tasks { filter, since: None }

@@ -39,6 +39,8 @@ describe("wirecat:// links", () => {
     expect(useTasks.getState().query).toBe("when:overdue")
     link({ type: "tasks", filter: "new", since: "2026-11-07T08:00:00+03:00" })
     expect(useTasks.getState().query).toBe('created:>="2026-11-07T08:00:00+03:00"')
+    link({ type: "tasks", filter: "undated" })
+    expect(useTasks.getState().query).toBe("when:none")
   })
 
   it("open a proposal's row on the Memory page and press nothing", async () => {

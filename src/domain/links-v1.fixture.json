@@ -106,6 +106,16 @@
       }
     },
     {
+      "ref": "tasks:undated",
+      "path": "/v1/tasks/undated",
+      "web": "https://wirecat.dev/o#/v1/tasks/undated",
+      "app": "wirecat://open/v1/tasks/undated",
+      "target": {
+        "type": "tasks",
+        "filter": "undated"
+      }
+    },
+    {
       "ref": "tasks:new/2026-11-07T08%3A00%3A00%2B03%3A00",
       "path": "/v1/tasks/new/2026-11-07T08%3A00%3A00%2B03%3A00",
       "web": "https://wirecat.dev/o#/v1/tasks/new/2026-11-07T08%3A00%3A00%2B03%3A00",
@@ -169,6 +179,10 @@
     }
   ],
   "refused": [
+    {
+      "path": "/v1/tasks/undated/x",
+      "why": "undated takes no value"
+    },
     {
       "path": "/v2/chat/telegram/1001/4004",
       "why": "another version"
