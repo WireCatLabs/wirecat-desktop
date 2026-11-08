@@ -4,7 +4,7 @@
 //! and a failed correction would keep the owner's text in Memo's run log.
 
 use crate::catalog::{self, Tool};
-use crate::skills::failure;
+use crate::skills::{body, failure, too_old};
 use crate::{paths, redact, run, tools};
 use serde::Serialize;
 use serde_json::Value;
@@ -372,10 +372,6 @@ fn decision(parts: &[&str]) -> Vec<String> {
     parts.iter().chain(std::iter::once(&FROM_APP)).chain(QUIET.iter()).map(|s| (*s).to_string()).collect()
 }
 
-fn body(v: &Value) -> &Value {
-    v.get("item").unwrap_or(v)
-}
-
 fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
@@ -404,11 +400,6 @@ fn can_revoke(tool: &Tool, version: Option<&str>) -> bool {
 
 fn memo() -> Result<&'static Tool, String> {
     catalog::tool("memo")
-}
-
-fn too_old(version: Option<&str>, need: &str) -> bool {
-    let Ok(need) = semver::Version::parse(need) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
 }
 
 pub fn read() -> Result<Read, String> {

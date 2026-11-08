@@ -3,7 +3,7 @@
 //! Nothing here writes a timer.
 
 use crate::catalog::{self, Tool};
-use crate::skills::{body, call, failure};
+use crate::skills::{body, call, failure, too_old};
 use crate::{paths, redact, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -73,11 +73,6 @@ pub struct Skipped {
 
 fn source(tool: &Tool) -> Result<&MailAgentSource, String> {
     tool.mail_agent.as_ref().ok_or_else(|| format!("{} has no mail agent", tool.name))
-}
-
-fn too_old(version: Option<&str>, need: &str) -> bool {
-    let Ok(need) = semver::Version::parse(need) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
 }
 
 /// memo, or what the section shows instead of a switch.

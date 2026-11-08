@@ -154,6 +154,12 @@ pub(crate) fn body(v: &Value) -> &Value {
     v.get("item").unwrap_or(v)
 }
 
+/// Whether an installed version is below `need`; an unknown version counts as too old, an unreadable `need` as met.
+pub(crate) fn too_old(version: Option<&str>, need: &str) -> bool {
+    let Ok(need) = semver::Version::parse(need) else { return false };
+    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
+}
+
 pub(crate) fn failure(out: &run::Output, json: Option<&Value>) -> String {
     if let Some(m) = json.and_then(|v| v["error"]["message"].as_str()) {
         return redact::text(m);

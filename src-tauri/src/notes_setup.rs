@@ -4,6 +4,7 @@
 
 use crate::catalog::Tool;
 use crate::run::{self, Line, RunError};
+use crate::skills::too_old;
 use crate::sync::{CountUnit, counted_of, is_label};
 use crate::{paths, tools};
 use serde::{Deserialize, Serialize};
@@ -146,11 +147,6 @@ pub fn checked_folder_id(id: &str) -> Result<&str, NotesProblem> {
 
 fn with(words: &[String], key: &str, value: &str) -> Vec<String> {
     words.iter().map(|w| if w == key { value.to_string() } else { w.clone() }).collect()
-}
-
-fn too_old(version: Option<&str>, need: &str) -> bool {
-    let Ok(need) = semver::Version::parse(need) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
 }
 
 /// The problem a memo failure means, from its error envelope. Text is read here and dropped.
