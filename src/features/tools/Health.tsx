@@ -1,14 +1,5 @@
-import {
-  AlertTriangle,
-  CheckCircle2,
-  FolderOpen,
-  QrCode,
-  RefreshCw,
-  Stethoscope,
-  Terminal,
-  XCircle,
-} from "lucide-react"
-import { type ReactNode, useCallback, useState } from "react"
+import { CheckCircle2, QrCode, RefreshCw, Stethoscope, Terminal } from "lucide-react"
+import { type ReactNode, useState } from "react"
 import {
   type CatalogTool,
   doctorNeedsProfile,
@@ -18,57 +9,36 @@ import {
   syncNeedsProfile,
   usesProfiles,
 } from "@/domain/catalog"
-import { type ConfigPlace, type Finding, summarize } from "@/domain/doctor"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { Diagnosis, Profile } from "@/platform/schemas"
+import type { Profile } from "@/platform/schemas"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
-import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace } from "@/ui/motion"
-import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
+import { AccountRow } from "./AccountRow"
 import { useProfiles } from "./api"
 import { BotList } from "./BotList"
-import { ConfigRepair, offersRepair, type Repaired } from "./ConfigRepair"
-import { type ToolsText, toolsMessages } from "./messages"
+import { CheckPanel, useCheck } from "./CheckResult"
+import { toolsMessages } from "./messages"
+import { accountsMessages } from "./messages-accounts"
 import { SyncControl } from "./Sync"
 import { useTerminal } from "./terminal-store"
 import { toolText } from "./tool-text"
 
-type Words = ToolsText["health"]
-
-type Check = { profile: string | null; state: "running" } | { profile: string | null; state: "done"; result: Diagnosis }
-
 export function Health({ tool }: { tool: CatalogTool }) {
   const { profiles, error: profilesError, loading: reloading, reload } = useProfiles(tool.id)
-  const [check, setCheck] = useState<Check | null>(null)
-  const [checkError, setCheckError] = useState<string | null>(null)
-  const [repaired, setRepaired] = useState<Repaired | null>(null)
-
-  const run = useCallback(
-    async (profile: string | null, keepRepaired = false) => {
-      if (!keepRepaired) setRepaired(null)
-      setCheck({ profile, state: "running" })
-      setCheckError(null)
-      try {
-        setCheck({ profile, state: "done", result: await platform.diagnose(tool.id, profile) })
-      } catch (e) {
-        setCheck(null)
-        setCheckError(String(e))
-      }
-    },
-    [tool.id],
-  )
-
-  const running = check?.state === "running"
+  // The tool's own check, for a tool whose doctor takes no profile; a profile's check opens under its row.
+  const check = useCheck(tool)
   const t = useMessages(toolsMessages)
   const m = t.health
   const note = toolText(t, tool).syncNote
+  const toolWide = !usesProfiles(tool) || !doctorNeedsProfile(tool)
 
   return (
     <section
@@ -78,52 +48,30 @@ export function Health({ tool }: { tool: CatalogTool }) {
     >
       <h4 className="text-[1.02rem] font-semibold text-ink">{usesProfiles(tool) ? m.accounts : m.health}</h4>
 
-      {!usesProfiles(tool) || !doctorNeedsProfile(tool) ? (
-        <div>
-          <Button
-            size="sm"
-            onClick={() => run(null)}
-            disabled={running}
-            icon={<Stethoscope className="size-4" aria-hidden />}
-          >
-            {running ? m.checking : m.checkHealth}
-          </Button>
+      {toolWide && (
+        <div className="flex flex-col gap-2">
+          <div>
+            <Button
+              size="sm"
+              onClick={() => check.run(null)}
+              disabled={check.running}
+              icon={<Stethoscope className="size-4" aria-hidden />}
+            >
+              {check.running ? m.checking : m.checkHealth}
+            </Button>
+          </div>
+          <Collapse open={check.shown}>
+            <CheckPanel tool={tool} c={check} onClose={check.clear} />
+          </Collapse>
         </div>
-      ) : null}
+      )}
 
       {usesProfiles(tool) && (
-        <ProfileList
-          tool={tool}
-          profiles={profiles}
-          error={profilesError}
-          busy={running}
-          activeProfile={check?.profile ?? null}
-          onCheck={doctorNeedsProfile(tool) ? run : undefined}
-          onReload={reload}
-          reloading={reloading}
-        />
+        <ProfileList tool={tool} profiles={profiles} error={profilesError} onReload={reload} reloading={reloading} />
       )}
 
       {tool.sync && !syncNeedsProfile(tool) && tool.sync.run && <SyncControl tool={tool} profile={null} />}
       {note && <p className="text-[0.875rem] text-ink-soft">{withCode(note)}</p>}
-
-      {checkError && (
-        <ErrorNotice inline action={<ReportThis what={`Checking ${tool.name}`} tool={tool.id} error={checkError} />}>
-          {checkError}
-        </ErrorNotice>
-      )}
-      {repaired && <RepairedNote repaired={repaired} m={m} />}
-      {check && (
-        <Result
-          check={check}
-          tool={tool}
-          m={m}
-          onRepaired={(r) => {
-            setRepaired(r)
-            run(check.profile, true)
-          }}
-        />
-      )}
     </section>
   )
 }
@@ -132,13 +80,10 @@ function ProfileList(props: {
   tool: CatalogTool
   profiles: Profile[] | null | undefined
   error: string | null
-  busy: boolean
-  activeProfile: string | null
-  onCheck: ((profile: string) => void) | undefined
   onReload: () => void
   reloading: boolean
 }) {
-  const { tool, profiles, error, busy, activeProfile, onCheck, onReload, reloading } = props
+  const { tool, profiles, error, onReload, reloading } = props
   const m = useMessages(toolsMessages).health
   if (error) {
     return (
@@ -156,8 +101,8 @@ function ProfileList(props: {
             <li
               key={n}
               className={cx(
-                "flex box-content flex-col justify-center gap-[1.4rem] px-3 py-2",
-                syncNeedsProfile(tool) ? "h-[4.625rem]" : "h-8",
+                "flex box-content flex-col justify-center gap-[0.4rem] px-3 py-2",
+                syncNeedsProfile(tool) ? "h-[3.4rem]" : "h-8",
               )}
             >
               <Skeleton className="h-4 w-28" label={n === 0 ? m.loadingProfiles : ""} />
@@ -166,36 +111,7 @@ function ProfileList(props: {
           ))}
         </ul>
       ) : profiles && profiles.length > 0 ? (
-        <ul className="divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app">
-          {profiles.map((p) => (
-            <li key={p.name} className="flex flex-col gap-1.5 px-3 py-2">
-              <div className="flex items-center gap-3">
-                <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
-                {p.signedIn === true && <Pill tone="brand">{m.signedIn}</Pill>}
-                {p.signedIn === false && <Pill>{m.notSignedIn}</Pill>}
-                {onCheck && (
-                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => onCheck(p.name)}>
-                    {busy && activeProfile === p.name ? m.checking : m.check}
-                  </Button>
-                )}
-                {tool.setup && p.signedIn !== true && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() =>
-                      signsInHere(tool)
-                        ? useSignIn.getState().start(tool.id, p.name, onReload)
-                        : useTerminal.getState().open(tool.id, p.name)
-                    }
-                  >
-                    {p.signedIn === false ? m.signIn : m.setUp}
-                  </Button>
-                )}
-              </div>
-              {syncNeedsProfile(tool) && p.signedIn !== false && <SyncControl tool={tool} profile={p.name} />}
-            </li>
-          ))}
-        </ul>
+        <AccountList tool={tool} profiles={profiles} onReload={onReload} />
       ) : (
         <p className="text-[0.95rem] font-medium text-ink">
           {tool.setup ? (signsInHere(tool) ? m.noAccountHere(tool.name) : m.noAccountTerminal(tool.name)) : m.noAccount}
@@ -206,6 +122,19 @@ function ProfileList(props: {
       {tool.setup && <TerminalStatus tool={tool} profiles={profiles} onCheck={onReload} checking={reloading} />}
       {!tool.setup && <ManualSetup tool={tool} onCheck={onReload} checking={reloading} />}
     </div>
+  )
+}
+
+/** Every profile of a tool, each as the same row; the setup's sign-in step lists them the same way. */
+export function AccountList(props: { tool: CatalogTool; profiles: Profile[]; onReload: () => void; sync?: boolean }) {
+  const { tool, profiles, onReload, sync } = props
+  const m = useMessages(accountsMessages).row
+  return (
+    <ul aria-label={m.list(tool.name)} className="divide-y divide-line rounded-[0.45rem] border border-line bg-app">
+      {profiles.map((p) => (
+        <AccountRow key={p.name} tool={tool} profile={p} onReload={onReload} sync={sync} />
+      ))}
+    </ul>
   )
 }
 
@@ -382,160 +311,6 @@ export function NewProfile(props: { tool: CatalogTool; onCheck: () => void; labe
         </p>
       )}
     </form>
-  )
-}
-
-const findingIcon = (f: Finding) =>
-  f.tone === "ok" ? (
-    <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />
-  ) : f.tone === "warn" ? (
-    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
-  ) : (
-    <XCircle className="mt-0.5 size-4 shrink-0 text-bad" aria-hidden />
-  )
-
-const findingKey = (f: Finding) =>
-  [f.text ?? f.note, f.config?.file, f.config?.profile, f.config?.key, f.config?.line].filter(Boolean).join("|")
-
-/** The tool's own words as it said them; the app's notes in the reader's language. */
-function said(f: Finding, m: Words): string {
-  if (f.text !== undefined) return f.text
-  const code = f.exitCode === null || f.exitCode === undefined ? m.unknownCode : String(f.exitCode)
-  if (f.note === "unreadable") return m.unreadable(code)
-  if (f.note === "stopped") return m.stopped(code)
-  return f.note ? m.note[f.note] : ""
-}
-
-function where({ file, profile, key, line, column }: ConfigPlace) {
-  const at = file && line !== undefined ? `${file}:${line}${column !== undefined ? `:${column}` : ""}` : file
-  return [at, profile && `profile ${profile}`, key && `key ${key}`].filter(Boolean).join(" · ")
-}
-
-function ConfigProblems(props: {
-  findings: Finding[]
-  tool: CatalogTool
-  profile: string | null
-  m: Words
-  onRepaired: (r: Repaired) => void
-}) {
-  const { findings, tool, profile, m, onRepaired } = props
-  const toolId = tool.id
-  const [openError, setOpenError] = useState<string | null>(null)
-  const open = async () => {
-    try {
-      await platform.openFolder(toolId, "config")
-      setOpenError(null)
-    } catch (e) {
-      setOpenError(String(e))
-    }
-  }
-  return (
-    <section aria-label={m.configProblems} className="flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-3">
-        <h5 className="text-[0.9rem] font-medium text-ink-dim">{m.configProblems}</h5>
-        <Button size="sm" variant="ghost" onClick={open} icon={<FolderOpen className="size-4" aria-hidden />}>
-          {m.openSettingsFolder}
-        </Button>
-      </div>
-      {openError && (
-        <ErrorNotice inline action={<ReportThis what="Opening the settings folder" tool={toolId} error={openError} />}>
-          {openError}
-        </ErrorNotice>
-      )}
-      <ul className="flex flex-col gap-3">
-        {findings.map((f) => {
-          const at = f.config ? where(f.config) : ""
-          return (
-            <li key={findingKey(f)} className="flex items-start gap-2 text-[0.9rem]">
-              {findingIcon(f)}
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <span>{said(f, m)}</span>
-                {at && <code className="selectable font-mono text-[0.85rem] break-all text-ink-soft">{at}</code>}
-                {f.fix && !offersRepair(tool, f) && <CopyField value={f.fix} label={m.copyFix} />}
-                <ConfigRepair tool={tool} finding={f} profile={profile} onRepaired={onRepaired} />
-              </div>
-            </li>
-          )
-        })}
-      </ul>
-    </section>
-  )
-}
-
-/** What the tool's repair changed, kept above the fresh check so the owner sees why the problem is gone. */
-function RepairedNote({ repaired, m }: { repaired: Repaired; m: Words }) {
-  if (repaired.state === "unchanged")
-    return (
-      <p role="status" className="reveal flex items-center gap-2 text-[0.9rem] text-ink-soft">
-        <CheckCircle2 className="size-4 shrink-0 text-ok" aria-hidden />
-        {repaired.reason === "no settings file" ? m.repairNoFile : m.repairNothing}
-      </p>
-    )
-  const said = (kind: string) => m.repairKind[kind as keyof Words["repairKind"]] ?? kind.replaceAll("_", " ")
-  const what = repaired.changes
-    .map((c) => (c.line === null ? said(c.kind) : `${said(c.kind)} (${m.atLine(c.line)})`))
-    .join("; ")
-  return (
-    <div role="status" className="reveal flex items-start gap-2 rounded-[0.35rem] bg-ok/10 px-3 py-2 text-[0.9rem]">
-      <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-ok" aria-hidden />
-      <div className="flex min-w-0 flex-col gap-1">
-        <span>{what ? m.repaired(what) : m.repairedNothingListed}</span>
-        {repaired.backup && (
-          <span className="text-ink-soft">
-            {m.backupAt} <code className="selectable font-mono text-[0.85rem] break-all">{repaired.backup}</code>
-          </span>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function Result(props: { check: Check; tool: CatalogTool; m: Words; onRepaired: (r: Repaired) => void }) {
-  const { check, tool, m, onRepaired } = props
-  if (check.state === "running") return <Skeleton className="h-16 w-full" label={m.running} />
-  const { result } = check
-  const findings = summarize(result.report, result.exitCode)
-  const config = findings.filter((f) => f.config)
-  const other = findings.filter((f) => !f.config)
-  return (
-    <div className="flex flex-col gap-2 rounded-[0.45rem] border border-line bg-app p-3" aria-live="polite">
-      {config.length > 0 && (
-        <ConfigProblems findings={config} tool={tool} profile={check.profile} m={m} onRepaired={onRepaired} />
-      )}
-      {other.length > 0 && (
-        <ul className={cx("flex flex-col gap-1.5", config.length > 0 && "border-line border-t pt-2.5")}>
-          {other.map((f) => (
-            <li key={findingKey(f)} className="flex items-start gap-2 text-[0.9rem]">
-              {findingIcon(f)}
-              <span>
-                {said(f, m)}
-                {f.fix && (
-                  <>
-                    {" "}
-                    <span className="text-ink-dim">{m.fix}</span>{" "}
-                    <code className="selectable font-mono text-[0.9rem]">{f.fix}</code>
-                  </>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
-      <Disclosure summary={m.technical}>
-        <dl className="mb-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[0.85rem] text-ink-soft">
-          <dt>{m.command}</dt>
-          <dd className="selectable font-mono text-ink">{result.command}</dd>
-          <dt>{m.exitCode}</dt>
-          <dd className="font-mono text-ink">{result.exitCode ?? m.none}</dd>
-          <dt>{m.took}</dt>
-          <dd className="font-mono text-ink">{(result.durationMs / 1000).toFixed(1)} s</dd>
-        </dl>
-        <pre className="selectable max-h-56 overflow-auto rounded-[0.35rem] bg-app-2 p-2.5 font-mono text-[0.85rem] leading-relaxed text-ink-soft">
-          {JSON.stringify(result.report, null, 2) ?? result.stderr}
-        </pre>
-        <p className="mt-1.5 text-[0.85rem] text-ink-dim">{m.hidden}</p>
-      </Disclosure>
-    </div>
   )
 }
 

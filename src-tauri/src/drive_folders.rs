@@ -20,6 +20,27 @@ pub struct FolderPickerSource {
     pub parent: String,
     /// `{profile}` and `{folder}`, a validated Google id.
     pub add: Vec<String>,
+    /// The folder ids the profile's sync imports, without names.
+    pub list: Vec<String>,
+    /// `{folder}`: stop importing it; drive's next sync drops what it copied from there.
+    pub remove: Vec<String>,
+    /// `{folder}`: the copied folder's name, offline; a folder not synced yet has none.
+    pub name: Vec<String>,
+}
+
+/// A folder the profile imports; `name` is `None` until a sync has copied it.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ChosenFolder {
+    pub id: String,
+    pub name: Option<String>,
+}
+
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "result")]
+pub enum ChosenFolders {
+    Listed { folders: Vec<ChosenFolder> },
+    Failed { message: String, code: Option<String>, reason: Option<String> },
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
@@ -56,6 +77,13 @@ pub enum FolderLevel {
 #[serde(rename_all = "camelCase", tag = "result")]
 pub enum FolderAdded {
     Added,
+    Failed { message: String, code: Option<String>, reason: Option<String> },
+}
+
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "result")]
+pub enum FolderRemoved {
+    Removed,
     Failed { message: String, code: Option<String>, reason: Option<String> },
 }
 
@@ -106,6 +134,56 @@ pub fn add(tool: &Tool, profile: &str, folder: &str) -> Result<FolderAdded, Stri
     }
     let (message, code, reason) = failure(&out, json.as_ref());
     Ok(FolderAdded::Failed { message, code, reason })
+}
+
+/// The folders the profile imports, each with its name when a sync has copied it.
+pub fn chosen(tool: &Tool, profile: &str) -> Result<ChosenFolders, String> {
+    let src = source(tool)?;
+    let (out, json) = skills::call(tool, &catalog::with_profile(&src.list, Some(profile))?, BROWSE)?;
+    let Some(json) = json.as_ref().filter(|_| out.code == Some(0)) else {
+        let (message, code, reason) = failure(&out, json.as_ref());
+        return Ok(ChosenFolders::Failed { message, code, reason });
+    };
+    let folders = chosen_ids(json)
+        .into_iter()
+        .map(|id| {
+            let name = name_of(tool, src, profile, &id);
+            ChosenFolder { id, name }
+        })
+        .collect();
+    Ok(ChosenFolders::Listed { folders })
+}
+
+fn chosen_ids(json: &Value) -> Vec<String> {
+    let body = skills::body(json);
+    let items = json["items"].as_array().or_else(|| body["items"].as_array());
+    items.into_iter().flatten().filter_map(|v| v["id"].as_str().filter(|id| valid_id(id)).map(str::to_string)).collect()
+}
+
+fn name_of(tool: &Tool, src: &FolderPickerSource, profile: &str, folder: &str) -> Option<String> {
+    let args = with_folder(catalog::with_profile(&src.name, Some(profile)).ok()?, folder);
+    let (out, json) = skills::call(tool, &args, BROWSE).ok()?;
+    if out.code != Some(0) {
+        return None;
+    }
+    skills::body(json.as_ref()?)["name"].as_str().map(str::to_string)
+}
+
+fn with_folder(args: Vec<String>, folder: &str) -> Vec<String> {
+    args.into_iter().map(|a| if a == "{folder}" { folder.to_string() } else { a }).collect()
+}
+
+/// Stops importing one folder; its files in Drive are not touched.
+pub fn remove(tool: &Tool, profile: &str, folder: &str) -> Result<FolderRemoved, String> {
+    let src = source(tool)?;
+    checked(folder)?;
+    let args = with_folder(catalog::with_profile(&src.remove, Some(profile))?, folder);
+    let (out, json) = skills::call(tool, &args, BROWSE)?;
+    if out.code == Some(0) {
+        return Ok(FolderRemoved::Removed);
+    }
+    let (message, code, reason) = failure(&out, json.as_ref());
+    Ok(FolderRemoved::Failed { message, code, reason })
 }
 
 fn failure(out: &crate::run::Output, json: Option<&Value>) -> (String, Option<String>, Option<String>) {
@@ -181,5 +259,15 @@ mod tests {
         assert!(add(drive, "--help", "abc").is_err());
         assert!(browse(drive, "personal", Some("-x")).is_err());
         assert!(browse(catalog::tool("tg").unwrap(), "personal", None).is_err());
+        assert!(remove(drive, "personal", "--all").is_err());
+        assert!(remove(drive, "a;b", "abc").is_err());
+    }
+
+    #[test]
+    fn reads_the_chosen_ids_and_drops_anything_that_is_not_one() {
+        let json =
+            serde_json::json!({ "items": [{ "id": "1AbC" }, { "id": "-x" }, { "name": "no id" }], "has_more": false });
+        assert_eq!(chosen_ids(&json), vec!["1AbC".to_string()]);
+        assert_eq!(chosen_ids(&serde_json::json!({ "items": [] })), Vec::<String>::new());
     }
 }

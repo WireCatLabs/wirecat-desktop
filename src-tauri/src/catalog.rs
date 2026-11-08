@@ -100,6 +100,9 @@ pub struct Tool {
     /// refuses. Offered only where `doctor` names it as the fix, which it does only when the repair would succeed.
     #[serde(default)]
     pub config_repair: Option<Vec<String>>,
+    /// Removing one account with the tool's own commands (`account.rs`); none for a tool that has no sign-out.
+    #[serde(default)]
+    pub account_remove: Option<crate::account::AccountRemoveSource>,
 }
 
 /// Only `preexisting` is read here: the data folders that existed before the app added the tool, keyed by path, which

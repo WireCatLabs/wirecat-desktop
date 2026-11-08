@@ -1,10 +1,11 @@
-import type { DriveFolder, FolderAdded, FolderLevel } from "./bindings"
+import type { ChosenFolders, DriveFolder, FolderAdded, FolderLevel, FolderRemoved } from "./bindings"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
 // drive-cli PR #335's `folders browse` and `folders add`. `?drive-folders=open` signs Drive in quickly, so the picker
 // shows; `fail` refuses the first level (expired sign-in), `old` is a drive before `folders browse`, `partial` says
-// Google searched only some drives, `add-fail` refuses one folder on Add (rate limited).
+// Google searched only some drives, `add-fail` refuses one folder on Add (rate limited). The profile starts with Meeting
+// notes chosen and synced; a folder added here has no name until a sync copies it, as drive answers.
 
 const query = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = query.get("drive-folders")
@@ -72,9 +73,15 @@ const LEVELS: Record<string, DriveFolder[]> = {
 }
 
 const added = new Set<string>()
+const removed = new Set<string>()
 let refused = false
 
-export function driveFoldersMock(): Pick<Platform, "driveFoldersBrowse" | "driveFolderAdd"> {
+const chosenNow = () => [...new Set(["1Notes", ...added])].filter((id) => !removed.has(id))
+
+export function driveFoldersMock(): Pick<
+  Platform,
+  "driveFoldersBrowse" | "driveFolderAdd" | "driveFoldersChosen" | "driveFolderRemove"
+> {
   return {
     async driveFoldersBrowse(_id, _profile, parent): Promise<FolderLevel> {
       await delay(500)
@@ -87,7 +94,8 @@ export function driveFoldersMock(): Pick<Platform, "driveFoldersBrowse" | "drive
           reason: "oauth.expired",
           message: "the Google sign-in expired or was revoked",
         }
-      const folders = (LEVELS[parent ?? ""] ?? []).map((f) => ({ ...f, added: f.added || added.has(f.id) }))
+      const chosen = chosenNow()
+      const folders = (LEVELS[parent ?? ""] ?? []).map((f) => ({ ...f, added: chosen.includes(f.id) }))
       return { result: "listed", folders, partial: scenario === "partial" && parent === null }
     },
     async driveFolderAdd(_id, _profile, id): Promise<FolderAdded> {
@@ -102,7 +110,21 @@ export function driveFoldersMock(): Pick<Platform, "driveFoldersBrowse" | "drive
         }
       }
       added.add(id)
+      removed.delete(id)
       return { result: "added" }
+    },
+    async driveFoldersChosen(): Promise<ChosenFolders> {
+      await delay(450)
+      return {
+        result: "listed",
+        folders: chosenNow().map((id) => ({ id, name: id === "1Notes" ? "Meeting notes" : null })),
+      }
+    },
+    async driveFolderRemove(_id, _profile, id): Promise<FolderRemoved> {
+      await delay(600)
+      removed.add(id)
+      added.delete(id)
+      return { result: "removed" }
     },
   }
 }
