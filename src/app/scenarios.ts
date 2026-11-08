@@ -129,10 +129,10 @@ export async function runMockScenario() {
     await useTools.getState().refresh()
     useTools.getState().toggle(accounts)
   }
-  if (params.has("memo") || params.has("memo-fail") || params.has("model")) {
+  if (params.has("memo") || params.has("memo-fail") || params.has("enrich") || params.has("model")) {
     useNav.getState().go("tools")
     await useTools.getState().refresh()
-    useTools.getState().toggle("memo")
+    useTools.setState({ expanded: "memo" })
   }
   const sync = ["sync", "sync-hold", "sync-fail", "sync-timeout", "sync-limited"]
     .map((k) => params.get(k))
@@ -141,7 +141,7 @@ export async function runMockScenario() {
   if (syncing) {
     useNav.getState().go("tools")
     await useTools.getState().refresh()
-    useTools.getState().toggle(syncing.id)
+    useTools.setState({ expanded: syncing.id })
     useSync.getState().start(syncing.id, syncNeedsProfile(syncing) ? "personal" : null)
   }
   await searchScenario(params)

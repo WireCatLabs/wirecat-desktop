@@ -59,7 +59,7 @@ describe("syncing a profile from the Manage panel", () => {
     send({ event: "progress", chats: 40, chatsDone: 3, fetched: 1240 })
     expect(screen.getByRole("progressbar", { name: "Syncing" })).toHaveAttribute("aria-valuenow", "8")
     expect(screen.getByText("Chat 4 of 40 · 1,240 new messages")).toBeInTheDocument()
-    send({ event: "done", summary: { new: 1240, places: 3, failed: 0, left: 0, complete: true } })
+    send({ event: "done", summary: { new: 1240, places: 3, failed: 0, left: 0, complete: true, enrichment: null } })
     finish()
     expect(await screen.findByText("Synced 1,240 new messages in 3 chats")).toBeInTheDocument()
     expect(screen.getByText("Your agents can search them now.")).toBeInTheDocument()

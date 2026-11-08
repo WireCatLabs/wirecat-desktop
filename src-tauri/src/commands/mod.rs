@@ -2,6 +2,7 @@ pub mod agents;
 pub mod app;
 pub mod cloudflare;
 pub mod community;
+pub mod enrichment;
 pub mod mcp_server;
 pub mod memory;
 pub mod node;

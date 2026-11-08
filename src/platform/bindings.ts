@@ -240,6 +240,71 @@ export type DriveFolder = {
 	added: boolean,
 };
 
+export type Enrichment = 
+/**  memo answers "unknown command": its release has no `models consents` yet. */
+{ state: "old"; version: string | null } | { state: "ready"; status: EnrichmentStatus };
+
+export type EnrichmentEstimate = {
+	records: number,
+	inputTokens: number,
+	outputTokens: number,
+	/**  `None` for a model or endpoint memo has no price for. */
+	usd: number | null,
+};
+
+/**  Whether memo finds the provider's key, and where; never the key. */
+export type EnrichmentKey = {
+	present: boolean,
+	/**  `keyring`, `file` or `env`. */
+	source: string | null,
+	/**  The variable memo reads, such as `OPENAI_API_KEY`. */
+	envVar: string | null,
+};
+
+/**  memo's benchmark, off against on: found in the top ten for a reworded question, first for the record's own words. */
+export type EnrichmentMeasured = {
+	rewordedOff: number | null,
+	rewordedOn: number | null,
+	ownWordsFirstOff: number | null,
+	ownWordsFirstOn: number | null,
+};
+
+export type EnrichmentOffer = {
+	provider: string,
+	model: string,
+	default: boolean,
+	usdPerMillionInput: number | null,
+	usdPerMillionOutput: number | null,
+};
+
+/**  Counts, the provider's address and whether a key exists; never a record or a key. */
+export type EnrichmentStatus = {
+	on: boolean,
+	consentedAt: string | null,
+	target: EnrichmentTarget | null,
+	records: number,
+	enriched: number,
+	pending: number,
+	estimate: EnrichmentEstimate,
+	perSync: number | null,
+	syncsNeeded: number | null,
+	offered: EnrichmentOffer[],
+	measured: EnrichmentMeasured | null,
+	/**  Whether this memo stores a provider key itself (`models keys`); without it the window names the variable. */
+	keys: boolean,
+	/**  Only after revoke: how many records' model text memo deleted. */
+	deleted: number | null,
+};
+
+/**  What the estimate and the consent are about: the setting in force, what `set` proposes, or memo's default offer. */
+export type EnrichmentTarget = {
+	provider: string,
+	model: string,
+	endpointHost: string,
+	key: EnrichmentKey,
+	priceKnown: boolean,
+};
+
 /**  Names and sizes only: nothing inside is opened, so sign-in sessions stay unread. */
 export type Entry = {
 	name: string,
@@ -804,6 +869,21 @@ export type Skipped = {
 	reason: string | null,
 };
 
+/**  What a memo sync did with the waiting records (`item.enrichment` of `memo sync --json`, only while it is on). */
+export type SyncEnrichment = {
+	/**  `done`, `stopped` or `failed`. */
+	status: string,
+	sent: number,
+	enriched: number,
+	failed: number,
+	left: number,
+	costUsd: number | null,
+	/**  memo's English sentence, masked; the window shows it only for a `reason_id` it has no words for. */
+	reason: string | null,
+	/**  `enrichment.no-key`, `.key-rejected`, `.unreachable`, `.rate-limited`, `.bad-replies`, `.cancelled`, `.error`. */
+	reasonId: string | null,
+};
+
 export type SyncEvent = 
 /**  A stage from a fixed list, read from the tool's notes; never the note itself. */
 { event: "stage"; stage: string } | 
@@ -830,6 +910,8 @@ export type SyncSummary = {
 	/**  Files the tool will fetch on the next run. */
 	left: number,
 	complete: boolean,
+	/**  Only memo, while search rewriting is on: what this sync sent to the hosted model. */
+	enrichment: SyncEnrichment | null,
 };
 
 export type TableRows = {

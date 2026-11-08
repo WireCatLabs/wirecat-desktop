@@ -2,7 +2,26 @@
 /** `records` is any own tool's data: its manifest names it in free text, which has no plural forms to count with. */
 export type SyncWhat = "messages" | "files" | "meetings" | "notes and mail" | "mail" | "records"
 
-export type SyncSummary = { new: number; places: number; failed: number; left: number; complete: boolean }
+/** What a memo sync sent to the hosted model while search rewriting is on; `reason` is memo's English, masked. */
+export type SyncEnrichment = {
+  status: string
+  sent: number
+  enriched: number
+  failed: number
+  left: number
+  costUsd: number | null
+  reason: string | null
+  reasonId: string | null
+}
+
+export type SyncSummary = {
+  new: number
+  places: number
+  failed: number
+  left: number
+  complete: boolean
+  enrichment?: SyncEnrichment | null
+}
 
 export type SyncFailure = {
   message: string

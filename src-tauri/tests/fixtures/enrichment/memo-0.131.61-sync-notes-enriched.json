@@ -1,0 +1,44 @@
+{
+  "item": {
+    "notes": [
+      {
+        "folder": "/home/owner/Notes",
+        "folder_id": "1",
+        "notes": 3,
+        "changed": 0,
+        "renamed": 0,
+        "deleted": 0
+      }
+    ],
+    "failed": [],
+    "notes_embedded": {
+      "chunks": 0,
+      "left": true,
+      "not_embedded": "the e5-small model is not downloaded \u2014 memo models download e5-small",
+      "enrichment": {
+        "status": "done",
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "sent": 3,
+        "enriched": 3,
+        "failed": 0,
+        "left": 0,
+        "input_tokens": 120,
+        "output_tokens": 60,
+        "cost_usd": null
+      }
+    },
+    "enrichment": {
+      "status": "done",
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "sent": 3,
+      "enriched": 3,
+      "failed": 0,
+      "left": 0,
+      "input_tokens": 120,
+      "output_tokens": 60,
+      "cost_usd": null
+    }
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "item": {
+    "on": false,
+    "provider": null,
+    "model": null,
+    "endpoint": null,
+    "consented_at": null,
+    "target": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "endpoint": "https://api.openai.com/v1",
+      "endpoint_host": "api.openai.com",
+      "key": {
+        "present": false,
+        "source": null,
+        "env_var": "OPENAI_API_KEY"
+      },
+      "price_known": true
+    },
+    "records": 3,
+    "enriched": 0,
+    "pending": 3,
+    "estimate": {
+      "records": 3,
+      "input_tokens": 183,
+      "output_tokens": 210,
+      "usd": 0.000153
+    },
+    "per_sync": 600,
+    "syncs_needed": 1,
+    "sends_new_records": true,
+    "offered": [
+      {
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "default": true,
+        "usd_per_million": {
+          "input": 0.15,
+          "output": 0.6
+        }
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-haiku-5-5",
+        "default": false,
+        "usd_per_million": {
+          "input": 0.1,
+          "output": 0.5
+        }
+      }
+    ],
+    "measured": {
+      "reworded_at_10": {
+        "off": 0.62,
+        "on": 0.79
+      },
+      "own_words_first": {
+        "off": 0.54,
+        "on": 0.48
+      },
+      "source": "https://github.com/WireCatLabs/cli-testing/pull/322"
+    },
+    "changed": false,
+    "consent": "Enrichment sends the text of every note, document and email in this store to openai (api.openai.com), model gpt-4o-mini: 3 records now, and every record added or changed later, at each sync. The model writes facts and questions about each record; they are kept in the store, and search finds the record by them. A question in other words finds its record more often in the top 5 and 10, but a question in the record's own words gets that record first a little less often (measured on synthetic data: 0.54 to 0.48). Enriching what is here now costs about $0.000153 (183 input and 210 output tokens). `memo models consents revoke` turns it off and deletes what the model wrote.",
+    "off_command": "memo models consents revoke"
+  }
+}

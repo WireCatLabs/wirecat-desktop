@@ -139,6 +139,8 @@ const ToolSchema = v.object({
   taskBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
   /** Only memo: the first-run card's folder, notes sync and search model; Rust runs the commands. */
   notesSetup: v.optional(v.nullable(v.object({ minVersion: v.string(), recommended: v.string() })), null),
+  /** Only memo: a hosted model rewrites records for search once the owner agrees; memo lists what it offers. */
+  enrichment: v.optional(v.nullable(v.object({ show: v.array(v.string()) })), null),
   /** Only drive: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and `drive_folder_add`. */
   folderPicker: v.optional(v.nullable(v.object({ parent: v.string() })), null),
   /**

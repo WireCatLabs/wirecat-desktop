@@ -1,7 +1,7 @@
 import { findTool, ownerId, syncCommand } from "@/domain/catalog"
 import { delay } from "./mock-delay"
 import { recordFailedSync } from "./mock-runs"
-import type { Background, BackgroundAction, BackgroundOutcome, LastSync, SyncEvent } from "./sync-schemas"
+import type { Background, BackgroundAction, BackgroundOutcome, LastSync, SyncEvent, SyncSummary } from "./sync-schemas"
 import type { Platform } from "./types"
 
 // Each tool's sync as Rust reports it: stages read from its notes, then the counts. `?sync=<tool>` starts that tool's
@@ -37,13 +37,44 @@ const STAGES: Record<string, string[]> = {
   email: ["Reading mail"],
 }
 
+/** What memo 0.131.61 reports beside a sync while search rewriting is on (`?enrich=on|nokey`). */
+function memoEnrichment(): SyncSummary["enrichment"] {
+  const scenario = params.get("enrich")
+  if (scenario === "on")
+    return {
+      status: "done",
+      sent: 284,
+      enriched: 284,
+      failed: 0,
+      left: 0,
+      costUsd: 0.0141,
+      reason: null,
+      reasonId: null,
+    }
+  if (scenario === "nokey")
+    return {
+      status: "stopped",
+      sent: 0,
+      enriched: 0,
+      failed: 0,
+      left: 284,
+      costUsd: 0,
+      reason: "no openai key: set OPENAI_API_KEY, or the tool's own key; nothing was sent",
+      reasonId: "enrichment.no-key",
+    }
+  return null
+}
+
 const DONE: Record<string, SyncEvent> = {
-  tg: { event: "done", summary: { new: 1240, places: 3, failed: 0, left: 0, complete: true } },
-  max: { event: "done", summary: { new: 86, places: 2, failed: 1, left: 0, complete: false } },
-  zm: { event: "done", summary: { new: 2, places: 0, failed: 0, left: 0, complete: true } },
-  drive: { event: "done", summary: { new: 200, places: 0, failed: 0, left: 140, complete: false } },
-  memo: { event: "done", summary: { new: 37, places: 2, failed: 0, left: 0, complete: true } },
-  email: { event: "done", summary: { new: 0, places: 0, failed: 0, left: 0, complete: true } },
+  tg: { event: "done", summary: { new: 1240, places: 3, failed: 0, left: 0, complete: true, enrichment: null } },
+  max: { event: "done", summary: { new: 86, places: 2, failed: 1, left: 0, complete: false, enrichment: null } },
+  zm: { event: "done", summary: { new: 2, places: 0, failed: 0, left: 0, complete: true, enrichment: null } },
+  drive: { event: "done", summary: { new: 200, places: 0, failed: 0, left: 140, complete: false, enrichment: null } },
+  memo: {
+    event: "done",
+    summary: { new: 37, places: 2, failed: 0, left: 0, complete: true, enrichment: memoEnrichment() },
+  },
+  email: { event: "done", summary: { new: 0, places: 0, failed: 0, left: 0, complete: true, enrichment: null } },
 }
 
 const asService = (id: string) => serviceTool === id
@@ -154,7 +185,12 @@ export function syncMock(): Pick<Platform, "syncRun" | "syncStop" | "syncLast" |
         })
       }
       finished[key] = Date.now()
-      onEvent(DONE[id] ?? { event: "done", summary: { new: 0, places: 0, failed: 0, left: 0, complete: true } })
+      onEvent(
+        DONE[id] ?? {
+          event: "done",
+          summary: { new: 0, places: 0, failed: 0, left: 0, complete: true, enrichment: null },
+        },
+      )
     },
     async syncStop(id, profile) {
       stops.get(keyOf(id, profile))?.()

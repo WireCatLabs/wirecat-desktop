@@ -22,6 +22,8 @@ import type {
   ChatPlace,
   ChosenFolders,
   Conversation,
+  Enrichment,
+  EnrichmentStatus,
   FolderAdded,
   FolderLevel,
   FolderRemoved,
@@ -344,6 +346,21 @@ export type Platform = {
   mailAgentSet(id: string, on: boolean): Promise<MailAgent>
   /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */
   mailAgentWaiting(id: string): Promise<number | null>
+  /** memo's `models consents show` (`enrichment` in the catalog): whether a hosted model rewrites records for search. */
+  enrichmentStatus(id: string): Promise<Enrichment>
+  /** What turning it on with one of memo's offers sends and costs (`consents set` without `--yes`); changes nothing. */
+  enrichmentPreview(id: string, provider: string, model: string): Promise<EnrichmentStatus>
+  /** Turns it on with that offer; only after the owner agreed in the consent step. Rust refuses a pair memo does not offer. */
+  enrichmentOn(id: string, provider: string, model: string): Promise<EnrichmentStatus>
+  /**
+   * memo's `models keys set`: Rust hands the key to memo on stdin, and memo keeps it in the system keyring (a private file
+   * when none answers). The app never stores it; the answer says only whether a key is found and where.
+   */
+  enrichmentKeySet(id: string, provider: string, key: string): Promise<EnrichmentStatus>
+  /** memo's `models keys remove`; a key in an environment variable stays. */
+  enrichmentKeyRemove(id: string, provider: string): Promise<EnrichmentStatus>
+  /** Turns it off; memo deletes what the model wrote. */
+  enrichmentOff(id: string): Promise<EnrichmentStatus>
   /** memo's first run (`notesSetup` in the catalog): its notes folders on this computer and the search model. */
   notesSetupStatus(id: string): Promise<NotesSetup>
   /** The system's own folder window; the chosen path, or null when the owner closes it. */

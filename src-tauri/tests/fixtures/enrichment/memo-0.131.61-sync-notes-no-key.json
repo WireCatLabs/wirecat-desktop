@@ -1,0 +1,46 @@
+{
+  "item": {
+    "notes": [
+      {
+        "folder": "/home/owner/Notes",
+        "folder_id": "1",
+        "notes": 3,
+        "changed": 0,
+        "renamed": 0,
+        "deleted": 0
+      }
+    ],
+    "failed": [],
+    "notes_embedded": {
+      "chunks": 0,
+      "left": true,
+      "not_embedded": "the e5-small model is not downloaded \u2014 memo models download e5-small",
+      "enrichment": {
+        "status": "stopped",
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "sent": 0,
+        "enriched": 0,
+        "failed": 0,
+        "left": 3,
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cost_usd": 0,
+        "reason": "no openai key: set OPENAI_API_KEY, or the tool's own key; nothing was sent"
+      }
+    },
+    "enrichment": {
+      "status": "stopped",
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "sent": 0,
+      "enriched": 0,
+      "failed": 0,
+      "left": 3,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cost_usd": 0,
+      "reason": "no openai key: set OPENAI_API_KEY, or the tool's own key; nothing was sent"
+    }
+  }
+}
