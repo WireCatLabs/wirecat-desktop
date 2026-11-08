@@ -87,6 +87,25 @@ export function withMove<C extends CrmCard, R extends Board<C>>(read: R, ref: st
   return { ...read, cards: read.cards.map((c) => (c.ref === ref ? { ...c, stage: to, status: outcome } : c)) }
 }
 
+/** A column's sums over the cards a filter left, one per currency, added in cents so nothing is lost to floats. */
+export function amountsOf(cards: readonly { amount: string | null; currency?: string | null }[]) {
+  const sums = new Map<string, bigint>()
+  for (const c of cards) {
+    const cents = c.amount === null || !c.currency ? null : centsOf(c.amount)
+    if (cents === null || !c.currency) continue
+    sums.set(c.currency, (sums.get(c.currency) ?? 0n) + cents)
+  }
+  return [...sums].map(([currency, cents]) => ({
+    amount: `${cents / 100n}.${String(cents % 100n).padStart(2, "0")}`,
+    currency,
+  }))
+}
+
+function centsOf(amount: string): bigint | null {
+  const m = /^(\d+)(?:\.(\d{1,2})\d*)?$/.exec(amount)
+  return m ? BigInt(m[1] ?? "0") * 100n + BigInt((m[2] ?? "").padEnd(2, "0")) : null
+}
+
 /** Every person responsible for a card on the board, for the filter's choices. */
 export const ownersOf = (cards: readonly CrmCard[]) =>
   [...new Set(cards.map((c) => ownerOf(c) ?? NOBODY))].sort((a, b) =>
@@ -94,8 +113,8 @@ export const ownersOf = (cards: readonly CrmCard[]) =>
   )
 
 /** One sum per currency, never converted: "500 000 ₽ · 1 200 €". */
-export const sumsOf = (stage: CrmStage, lang: string) =>
-  stage.amounts.map((a) => moneyOf(a.amount, a.currency, lang)).join(" · ")
+export const sumsOf = (amounts: CrmStage["amounts"], lang: string) =>
+  amounts.map((a) => moneyOf(a.amount, a.currency, lang)).join(" · ")
 
 export function moneyOf(amount: string, currency: string, lang: string): string {
   const n = Number(amount)

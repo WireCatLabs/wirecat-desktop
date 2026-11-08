@@ -72,6 +72,9 @@ describe("Clients", () => {
     await user.click(screen.getByRole("option", { name: /Alice Moreno/ }))
     await waitFor(() => expect(screen.queryByRole("button", { name: "Northstar: 40 office chairs" })).toBeNull())
     expect(screen.getByRole("button", { name: "Acme: meeting room" })).toBeInTheDocument()
+    expect(screen.getByRole("region", { name: "New, 1 of 2 shown" })).toHaveTextContent("1 of 2")
+    expect(screen.getByRole("button", { name: "Clear responsible" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Clear pipeline" })).toBeNull()
   })
 
   it("offers Memo's install when it is missing", async () => {

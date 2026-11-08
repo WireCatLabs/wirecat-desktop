@@ -1,5 +1,5 @@
 import { type KeyboardEvent, type PointerEvent, useRef } from "react"
-import { canDrop, columnsOf, type Kind, moneyOf, ownerOf, sumsOf } from "@/domain/clients"
+import { amountsOf, canDrop, columnsOf, type Kind, moneyOf, ownerOf, sumsOf } from "@/domain/clients"
 import { useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
 import { Board, BoardColumn, cardClass, DragCopy, DropLine, useBoardDrag, useSlide } from "@/ui/Board"
@@ -18,6 +18,7 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
   const m = useMessages(clientMessages)
   const lang = useLang()
   const asked = useClients((s) => s.pipeline[kind] ?? null)
+  const filtered = useClients((s) => s.query.trim() !== "")
   const move = useMove(kind, asked)
   const movable = read.movable.kind === "yes"
   const byRef = new Map(cards.map((c) => [c.ref, c]))
@@ -47,15 +48,18 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
       <Board columns={read.stages.length} boardRef={board}>
         {read.stages.map((s) => {
           const refs = shown(s.name)
+          // While a filter hides cards, the header speaks for the cards shown; memo's count stays as "of".
+          const here = filtered ? (columns.get(s.name) ?? []).flatMap((r) => byRef.get(r) ?? []) : []
+          const amounts = filtered ? amountsOf(here) : s.amounts
           return (
             <BoardColumn
               key={s.name}
               id={s.name}
-              label={m.column(s.name, s.items)}
+              label={filtered ? m.columnOf(s.name, here.length, s.items) : m.column(s.name, s.items)}
               lamp={<OutcomeLamp outcome={s.outcome} />}
               name={s.name}
-              count={s.items}
-              aside={s.amounts.length ? sumsOf(s, lang) : undefined}
+              count={filtered ? m.of(here.length, s.items) : s.items}
+              aside={amounts.length ? sumsOf(amounts, lang) : undefined}
               target={drag?.to === s.name}
               empty={refs.length === 0 && !drag ? m.emptyColumn : undefined}
             >

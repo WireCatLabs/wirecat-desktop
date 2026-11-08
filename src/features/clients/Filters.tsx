@@ -31,6 +31,7 @@ export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
           <FilterMenu
             label={m.account}
             single
+            required
             options={accounts.map(([key, a]) => ({
               value: key,
               label: name(a, m.ownAccount),
@@ -47,6 +48,7 @@ export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
           <FilterMenu
             label={m.pipeline}
             single
+            required
             options={read.pipelines.map((p) => ({
               value: p.ref,
               label: p.name,

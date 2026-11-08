@@ -30,6 +30,8 @@ type Words = {
   stage: string
   account: string
   column: (name: string, n: number) => string
+  columnOf: (name: string, shown: number, all: number) => string
+  of: (shown: number, all: number) => string
   emptyColumn: string
   readOnly: string
   draggable: string
@@ -90,6 +92,8 @@ const en: Words = {
   stage: "Stage",
   account: "Account",
   column: (name, n) => plural("en", n, { one: `${name}, # card`, other: `${name}, # cards` }),
+  columnOf: (name, shown, all) => `${name}, ${shown} of ${all} shown`,
+  of: (shown, all) => `${shown} of ${all}`,
   emptyColumn: "Nothing here",
   readOnly:
     "Read only: WireCat cannot run this CRM's own tool yet, so a change would stay on this computer. Change stages in the CRM, then sync.",
@@ -154,6 +158,8 @@ const ru: Words = {
   account: "Аккаунт",
   column: (name, n) =>
     plural("ru", n, { one: `${name}, # карточка`, few: `${name}, # карточки`, other: `${name}, # карточек` }),
+  columnOf: (name, shown, all) => `${name}, показано ${shown} из ${all}`,
+  of: (shown, all) => `${shown} из ${all}`,
   emptyColumn: "Пусто",
   readOnly:
     "Только чтение: WireCat пока не умеет запускать инструмент этой CRM, и изменение осталось бы только на этом компьютере. Меняйте стадии в CRM, затем синхронизируйте.",
@@ -217,6 +223,8 @@ const es: Words = {
   stage: "Etapa",
   account: "Cuenta",
   column: (name, n) => plural("es", n, { one: `${name}, # tarjeta`, other: `${name}, # tarjetas` }),
+  columnOf: (name, shown, all) => `${name}, se muestran ${shown} de ${all}`,
+  of: (shown, all) => `${shown} de ${all}`,
   emptyColumn: "Nada aquí",
   readOnly:
     "Solo lectura: WireCat aún no puede ejecutar la herramienta de este CRM, así que un cambio se quedaría en este ordenador. Cambia las etapas en el CRM y sincroniza.",

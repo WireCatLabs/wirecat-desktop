@@ -24,6 +24,8 @@ type Props = {
   onChange: (values: string[]) => void
   /** One choice at a time, as the Due filter. */
   single?: boolean
+  /** With `single`: something is always chosen, as a board's pipeline, so there is nothing to clear. */
+  required?: boolean
   /** What the chip says once something is chosen, when the option's own label is too long for it. */
   shown?: string
 }
@@ -35,7 +37,15 @@ const SEARCH_FROM = 7
  * gets a field to narrow it. The list floats over the page (`popup-list`), so opening it moves nothing. Once something
  * is chosen the chip says what ("Priority: high") and grows a cross that clears it.
  */
-export function FilterMenu({ label, options, selected, onChange, single = false, shown: chipText }: Props) {
+export function FilterMenu({
+  label,
+  options,
+  selected,
+  onChange,
+  single = false,
+  required = false,
+  shown: chipText,
+}: Props) {
   const m = useMessages(uiMessages)
   const lang = useLang()
   const [open, setOpen] = useState(false)
@@ -75,7 +85,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
   const toggle = (value: string) => {
     if (single) {
       const opens = options.find((o) => o.value === value)?.opens
-      onChange(selected.includes(value) && !opens ? [] : [value])
+      onChange(selected.includes(value) && !opens && !required ? [] : [value])
       close(true)
       return
     }
@@ -139,7 +149,7 @@ export function FilterMenu({ label, options, selected, onChange, single = false,
           )}
           <ExpandChevron open={open} className="ml-[0.1rem]" />
         </button>
-        {on && (
+        {on && !required && (
           <button
             type="button"
             aria-label={m.clearFilter(label)}
