@@ -21,7 +21,7 @@ export function AppPreferences() {
         <LanguageSetting />
         <ScaleSetting />
       </div>
-      <div className="mt-6 flex flex-col gap-6">
+      <div className="mt-6 grid gap-x-10 gap-y-6 @2xl:grid-cols-2">
         <CommunitySetting />
         <OwnToolsSetting />
       </div>
