@@ -17,6 +17,7 @@ import type { TunnelRoute } from "@/platform/cloudflare-schemas"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import type { FunnelState } from "@/platform/tailscale-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
+import { BackButton } from "@/ui/BackButton"
 import { focusInPlace } from "@/ui/motion"
 import { useCloudflare } from "./CloudflareGuide"
 import { AddressStep, DEFAULT_PORT } from "./ConnectAddress"
@@ -184,6 +185,15 @@ export function ConnectGuide(props: {
     focusInPlace(heading.current)
   }, [current])
 
+  const starting = phase === "tunnel" || phase === "server"
+  const backReason =
+    current === "start"
+      ? starting
+        ? m.backWhy.starting
+        : undefined
+      : current === "address"
+        ? undefined
+        : m.backWhy.running
   const funnelOff = funnelStopped(tunnel, serving(server), funnel)
   const tunnelOff = tunnelStopped(server, serving(server), route)
   const name = app && app !== "other" ? m.apps[app].name : m.theApp
@@ -246,7 +256,6 @@ export function ConnectGuide(props: {
               failure={failure}
               approval={approval}
               onRetry={retry}
-              onBack={back}
             />
           )}
           {current === "reach" && serving(server) && (
@@ -296,6 +305,11 @@ export function ConnectGuide(props: {
               onDone={onDone}
               onAgain={onAgain}
             />
+          )}
+          {current !== "choose" && current !== "test" && (
+            <div className="flex border-line border-t pt-3">
+              <BackButton size="sm" reason={backReason} onClick={current === "address" ? () => setApp(null) : back} />
+            </div>
           )}
         </div>
       </AutoHeight>

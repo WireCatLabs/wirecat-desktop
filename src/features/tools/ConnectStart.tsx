@@ -15,9 +15,8 @@ export function StartStep(props: {
   failure: Failure | null
   approval: string | null
   onRetry(): void
-  onBack(): void
 }) {
-  const { tool, tunnel, phase, failure, approval, onRetry, onBack } = props
+  const { tool, tunnel, phase, failure, approval, onRetry } = props
   const m = useMessages(connectMessages).start
   const hm = useMessages(helperMessages)
   const { open, server } = startProgress(phase, failure)
@@ -46,9 +45,6 @@ export function StartStep(props: {
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={onRetry}>
               {m.tryAgain}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={onBack}>
-              {m.back}
             </Button>
           </div>
         </>

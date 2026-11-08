@@ -2,6 +2,7 @@ import { findTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { type BotStep, useBotSignIn } from "@/shared/bot-signin-store"
 import { botMessages } from "@/shared/messages-bot"
+import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { Stepper, type StepState } from "@/ui/Stepper"
@@ -72,9 +73,7 @@ function Actions() {
     )
   return (
     <>
-      <Button variant="ghost" onClick={s.back} disabled={s.checking}>
-        {m.back}
-      </Button>
+      <BackButton onClick={s.back} reason={s.checking ? m.backChecking : undefined} />
       <Button variant="secondary" onClick={s.close}>
         {s.failure ? m.close : m.cancel}
       </Button>

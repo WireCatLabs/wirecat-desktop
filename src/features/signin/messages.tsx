@@ -67,6 +67,11 @@ const en = {
     return `Use ${label.toLowerCase()} instead`
   },
   stopping: "Stopping…",
+  back: {
+    stops: "Going back stops this sign-in. What you typed stays.",
+    history: "Your chat history is arriving. Use “Stop and keep what came” to leave.",
+    busy: "Wait a moment: the tool is finishing this step.",
+  },
   stopKeep: "Stop and keep what came",
   cancel: "Cancel",
   close: "Close",
@@ -150,6 +155,11 @@ const ru: typeof en = {
     return `Другой способ: ${label}`
   },
   stopping: "Останавливаем…",
+  back: {
+    stops: "Возврат остановит этот вход. Введённое останется.",
+    history: "Приходит история чатов. Чтобы выйти, нажмите «Остановить и сохранить полученное».",
+    busy: "Подождите: программа заканчивает этот шаг.",
+  },
   stopKeep: "Остановить и сохранить полученное",
   cancel: "Отмена",
   close: "Закрыть",
@@ -237,6 +247,11 @@ const es: typeof en = {
     return `Usar otro método: ${label}`
   },
   stopping: "Deteniendo…",
+  back: {
+    stops: "Volver detiene este inicio de sesión. Lo que escribiste se conserva.",
+    history: "Está llegando tu historial de chats. Usa «Detener y conservar lo recibido» para salir.",
+    busy: "Espera un momento: la herramienta está terminando este paso.",
+  },
   stopKeep: "Detener y conservar lo recibido",
   cancel: "Cancelar",
   close: "Cerrar",

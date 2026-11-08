@@ -10,6 +10,7 @@ import { useBotSignIn } from "@/shared/bot-signin-store"
 import { botMessages } from "@/shared/messages-bot"
 import { guidedProvider, NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
+import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
@@ -144,9 +145,7 @@ function Actions() {
     if (guided && s.planStep === "password")
       return (
         <>
-          <Button variant="ghost" onClick={() => useSignIn.setState({ planStep: "choose", planMissing: null })}>
-            {mm.back}
-          </Button>
+          <BackButton onClick={() => useSignIn.setState({ planStep: "choose", planMissing: null })} />
           <Button variant="secondary" onClick={close}>
             {m.cancel}
           </Button>
@@ -186,8 +185,10 @@ function Actions() {
     )
   }
   if (running(phase)) {
+    const reason = receivingHistory(s) ? m.back.history : phase === "progress" || stopping ? m.back.busy : undefined
     return (
       <>
+        <BackButton onClick={s.toPlan} reason={reason} stops={m.back.stops} />
         {others.map((method) =>
           tool && profile && phase !== "progress" ? (
             <Button
@@ -215,6 +216,7 @@ function Actions() {
     const terminal = s.failure?.code === NEEDS_UPDATE && tool && profile && entry?.setup
     return (
       <>
+        <BackButton onClick={s.toPlan} />
         <Button variant="ghost" onClick={close}>
           {m.close}
         </Button>
