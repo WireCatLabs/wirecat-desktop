@@ -57,9 +57,9 @@ export const STOPS: readonly Stop[] = [
   { key: "guide", anchor: '[data-tour="guide-start"]', fallback: '[data-tour="guides"]', section: "guides" },
 ]
 
-// On a busy computer a page can take over a second to draw its rows, so the wait is a time, not a count of frames.
-// A stop whose element never shows is passed over.
-const WAIT_MS = 3000
+// A page draws its rows a few frames after it opens; a stop whose element never shows is passed over. Frames count
+// only once the lazy page has loaded, since how long that takes depends on the machine.
+const FRAMES = 30
 
 type TourState = {
   open: boolean
@@ -129,7 +129,7 @@ function TourSteps() {
       return
     }
     let frame = 0
-    const since = performance.now()
+    let tries = 0
     const find = () => {
       const el = document.querySelector(anchor)
       if (el) {
@@ -137,7 +137,7 @@ function TourSteps() {
         setShown({ index, el })
         return
       }
-      if (performance.now() - since < WAIT_MS) {
+      if (document.querySelector("[data-page-loading]") || ++tries < FRAMES) {
         frame = requestAnimationFrame(find)
         return
       }
