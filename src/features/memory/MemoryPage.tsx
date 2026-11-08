@@ -41,10 +41,14 @@ export function MemoryPage() {
   const count = (tab: Tab) => filtered.filter((e) => inTab(tab, e.status)).length
   const forgetting = s.entries.find((e) => e.ref === s.forgetting) ?? null
   const filtering = s.query.trim() !== ""
-  // On screen: this tab, these filters, a group that is not folded. Facts and memories only: a task and an agent's
-  // findings batch are approved in their own row.
+  // On screen: this tab, these filters, a group that is not folded. Facts and memories only: a task, an agent's
+  // findings batch and a relationship are approved in their own row.
   const approvable = shown.filter(
-    (e) => e.type !== "action" && !e.findings && can(e).confirm && !s.closedGroups.includes(subjectOf(e)?.key ?? ""),
+    (e) =>
+      (e.type === "memory" || e.type === "fact") &&
+      !e.findings &&
+      can(e).confirm &&
+      !s.closedGroups.includes(subjectOf(e)?.key ?? ""),
   )
 
   return (

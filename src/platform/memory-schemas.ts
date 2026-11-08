@@ -19,7 +19,7 @@ export const FindingSchema = v.object({
 
 export const MemoryEntrySchema = v.object({
   ref: v.string(),
-  type: v.picklist(["memory", "fact", "action"]),
+  type: v.picklist(["memory", "fact", "action", "relationship"]),
   kind: v.string(),
   /** An action's whole text: what it would send, or the task it would make. */
   text,
@@ -49,7 +49,14 @@ export const MemoryEntrySchema = v.object({
   task: text,
   model: text,
   confidence: v.nullable(v.number()),
+  /** A relationship's role id from the owner's role lists; null on every other record. */
+  role: v.optional(text),
+  /** A relationship's standing: proposed, confirmed, reported or ended. */
+  standing: v.optional(text),
 })
+
+/** One role of the owner's role lists (`memo relationships roles list`): built in, or the owner's own with a label. */
+export const RoleSchema = v.object({ list: v.string(), id: v.string(), label: text, builtIn: v.boolean() })
 
 export const AgentCallSchema = v.object({
   id: v.string(),
@@ -72,6 +79,7 @@ export const MemoryReadSchema = v.variant("kind", [
     activityError: text,
     /** The installed memo takes back an agent's accepted fact (`facts revoke`, memo 0.131.28). */
     revoke: v.optional(v.boolean(), false),
+    roles: v.optional(v.array(RoleSchema)),
   }),
 ])
 
@@ -99,6 +107,7 @@ export const SourceContextSchema = v.variant("kind", [
 
 export type SourceContext = v.InferOutput<typeof SourceContextSchema>
 export type MemoryEntry = v.InferOutput<typeof MemoryEntrySchema>
+export type Role = v.InferOutput<typeof RoleSchema>
 export type AgentCall = v.InferOutput<typeof AgentCallSchema>
 export type MemoryRead = v.InferOutput<typeof MemoryReadSchema>
 export type MemorySource = v.InferOutput<typeof MemorySourceSchema>
