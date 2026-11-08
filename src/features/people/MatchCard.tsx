@@ -30,6 +30,9 @@ export function MatchCard({ match, from }: { match: Match; from: string }) {
     if (asking) input.current?.focus({ preventScroll: true })
   }, [asking])
   const [a = "", b = ""] = match.persons
+  const moving = match.joins === "identity" && match.identity
+  const by = match.proposer
+  const proposed = !by ? null : by.kind === "rule" ? m.foundBy : by.name ? m.suggestedBy(by.name) : m.suggestedByPerson
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   return (
@@ -39,24 +42,24 @@ export function MatchCard({ match, from }: { match: Match; from: string }) {
     >
       <div>
         <h3 id={head} className="font-medium">
-          {m.matchHeading(name(a), name(b))}
+          {moving ? m.moveHeading(match.identity ?? "", name(b)) : m.joinHeading(name(a), name(b))}
         </h3>
         <p className="font-mono text-[0.85rem] text-ink-dim">
-          {a} · {b}
+          {match.identity && match.with ? `${match.identity} · ${match.with}` : `${a} · ${b}`}
         </p>
       </div>
-      {match.reason && (
-        <p className="text-[0.95rem]">
-          <span className="text-ink-dim">{m.matchWhy}: </span>
-          <span className="selectable">{match.reason}</span>
-        </p>
+      {moving && <p className="text-[0.9rem] text-ink-soft">{m.moveHelp}</p>}
+      {match.signal && m.signals[match.signal] && <p className="text-[0.95rem]">{m.signals[match.signal]}</p>}
+      {match.candidates.length > 2 && (
+        <p className="text-[0.9rem] text-ink-soft">{m.candidates(match.candidates.length)}</p>
       )}
+      {match.reason && <p className="selectable text-[0.95rem]">{match.reason}</p>}
       {match.evidence.length > 0 && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.evidence} <span className="selectable font-mono">{match.evidence.join(", ")}</span>
         </p>
       )}
-      {match.proposedBy && <p className="text-[0.85rem] text-ink-dim">{m.proposedBy(match.proposedBy)}</p>}
+      {proposed && <p className="text-[0.85rem] text-ink-dim">{proposed}</p>}
       <AutoHeight swap={decided ? "done" : String(asking)}>
         {decided ? (
           <p role="status" className="reveal flex items-center gap-2 text-[0.95rem] text-ink-soft">

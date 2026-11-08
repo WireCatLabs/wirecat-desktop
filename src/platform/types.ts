@@ -273,6 +273,8 @@ export type Platform = {
   peopleDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
   /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */
   peopleUnlink(ref: string, identities: string[]): Promise<Unlinked>
+  /** The person who has exactly this account (`<messenger>:<id>`, a username or an email address); `null` if no one. */
+  peopleFind(account: string): Promise<PersonDetail | null>
   /** Gives a merge's accounts back to the person they came from. */
   peopleUnmerge(ref: string, merge: string): Promise<PersonDetail>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */

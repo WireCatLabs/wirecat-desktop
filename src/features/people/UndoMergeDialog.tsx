@@ -42,8 +42,8 @@ export function UndoMergeDialog() {
           <p className="text-[0.95rem] text-ink-soft">{m.undoBody(name(merge.from))}</p>
           <ul className="mt-3 flex flex-col gap-1">
             {merge.identities.map((i) => (
-              <li key={i.identity} className="font-mono text-[0.9rem]">
-                {i.identity}
+              <li key={i} className="font-mono text-[0.9rem]">
+                {i}
               </li>
             ))}
           </ul>

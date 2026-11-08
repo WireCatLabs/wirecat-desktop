@@ -1,6 +1,6 @@
 import { ExternalLink, LoaderCircle, RefreshCw, Search } from "lucide-react"
 import { useEffect, useId } from "react"
-import { matchesFilter } from "@/domain/people"
+import { looksLikeAccount, matchesFilter } from "@/domain/people"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -9,6 +9,7 @@ import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
+import { usePersonName } from "./labels"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
 import { PersonRow } from "./PersonRow"
@@ -97,6 +98,7 @@ export function PeoplePage() {
 function Waiting() {
   const m = useMessages(peopleMessages)
   const matches = usePeople((s) => s.matches)
+  const more = usePeople((s) => s.matchesMore)
   const head = useId()
   if (matches.length === 0) return null
   return (
@@ -113,6 +115,7 @@ function Waiting() {
           <MatchCard key={match.id} match={match} from={match.persons[0] ?? ""} />
         ))}
       </div>
+      {more && <p className="text-[0.9rem] text-ink-dim">{m.matchesMore}</p>}
     </section>
   )
 }
@@ -120,10 +123,21 @@ function Waiting() {
 function Everyone() {
   const m = useMessages(peopleMessages)
   const people = usePeople((s) => s.people)
+  const more = usePeople((s) => s.peopleMore)
   const query = usePeople((s) => s.query)
   const search = useId()
+  const hint = useId()
+  const account = looksLikeAccount(query)
+  const open = usePeople((s) => s.open)
+  const openDetail = usePeople((s) => (s.open ? s.details[s.open] : undefined))
   const found = people.filter((p) => matchesFilter(p, query))
   const shown = found.slice(0, SHOWN)
+  // A person opened from a match or an account search keeps a row, even past the first rows or beyond what was read.
+  if (open && !shown.some((p) => p.ref === open)) {
+    const known = people.find((p) => p.ref === open)
+    const name = openDetail?.state === "ready" ? openDetail.person.name : null
+    shown.unshift(known ?? { ref: open, name, owner: false })
+  }
   if (people.length === 0)
     return (
       <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
@@ -145,12 +159,23 @@ function Everyone() {
             type="search"
             placeholder={m.search}
             value={query}
+            aria-describedby={hint}
             onChange={(e) => usePeople.getState().setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && account && void usePeople.getState().findAccount()}
             className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app pr-3 pl-9 text-[1rem]"
           />
         </label>
-        <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{m.everyone(found.length)}</span>
+        {account && (
+          <Button size="sm" onClick={() => void usePeople.getState().findAccount()}>
+            {m.findAccount}
+          </Button>
+        )}
+        <span className="ml-auto font-mono text-[0.85rem] tabular-nums text-ink-dim">{m.everyone(found.length)}</span>
       </div>
+      <p id={hint} className="-mt-[0.4rem] text-[0.85rem] text-ink-dim">
+        {m.findAccountHint}
+      </p>
+      <AccountResult account={query.trim()} />
       {found.length === 0 ? (
         <p className="text-[0.95rem] text-ink-soft">{m.noMatch}</p>
       ) : (
@@ -161,7 +186,36 @@ function Everyone() {
         </div>
       )}
       {found.length > SHOWN && <p className="text-[0.9rem] text-ink-dim">{m.shownOf(SHOWN, found.length)}</p>}
+      {more && <p className="text-[0.9rem] text-ink-dim">{m.peopleMore}</p>}
     </section>
+  )
+}
+
+/** Who has the account the search named, as memo found it exactly; opening it opens that person's row. */
+function AccountResult({ account }: { account: string }) {
+  const m = useMessages(peopleMessages)
+  const name = usePersonName()
+  const found = usePeople((s) => s.found)
+  if (!found) return null
+  return (
+    <div role="status" className="text-[0.95rem]">
+      {found.state === "looking" ? (
+        <span className="text-ink-soft">{m.lookingAccount}</span>
+      ) : found.state === "none" ? (
+        <span className="text-ink-soft">{m.noAccount(account)}</span>
+      ) : found.state === "failed" ? (
+        <ErrorNotice inline>
+          {m.readFailed} {found.error}
+        </ErrorNotice>
+      ) : (
+        <span className="flex flex-wrap items-center gap-x-3">
+          {m.accountOf(account, name(found.ref))}
+          <Button size="sm" variant="ghost" onClick={() => usePeople.getState().reveal(found.ref)}>
+            {m.openPerson(name(found.ref))}
+          </Button>
+        </span>
+      )}
+    </div>
   )
 }
 

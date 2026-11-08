@@ -16,16 +16,22 @@ export function scopesOf(seenIn: readonly Seen[]): ("personal" | "work")[] {
   return (["personal", "work"] as const).filter((s) => found.has(s))
 }
 
-/** A split moves some of a person's accounts to a new person; moving all of them would only rename the person. */
-export const canSplit = (chosen: readonly string[], all: readonly IdentityLike[]) =>
-  chosen.length > 0 && chosen.length < all.length && chosen.every((c) => all.some((i) => i.identity === c))
+/**
+ * A split moves some of a person's accounts to a new person; moving all of them would only rename the person, and an
+ * account memo cannot be handed back safely is never moved.
+ */
+export const canSplit = (chosen: readonly string[], all: readonly (IdentityLike & { movable: boolean })[]) =>
+  chosen.length > 0 && chosen.length < all.length && chosen.every((c) => all.some((i) => i.identity === c && i.movable))
 
-/** The two people a match is about, the one the owner opened first. */
-export const otherOf = (persons: readonly string[], ref: string) => persons.find((p) => p !== ref) ?? null
-
-/** Names to show for a ref: the person's name, or memo's ref when memo knows no name. */
+/** The person's name as the list read it; `null` when memo knows no name, or the list does not hold them. */
 export const nameOf = (people: readonly { ref: string; name: string | null }[], ref: string) =>
   people.find((p) => p.ref === ref)?.name ?? null
+
+/** A search that names an account rather than a person: `telegram:4411`, `@kai_m` with a messenger, or an address. */
+export const looksLikeAccount = (query: string) => /^[a-z][a-z0-9-]*:\S+$|^\S+@\S+\.\S+$/.test(query.trim())
+
+/** Every person a write touched: their cached details are read again. */
+export const touched = (...refs: (string | null | undefined)[]) => [...new Set(refs.filter((r): r is string => !!r))]
 
 export const matchesFilter = (person: { name: string | null; ref: string }, query: string) => {
   const q = query.trim().toLocaleLowerCase()
@@ -33,7 +39,12 @@ export const matchesFilter = (person: { name: string | null; ref: string }, quer
 }
 
 /** memo's refusals the page words itself. */
-export const PEOPLE_REASONS = ["identity.stale", "identity.owner-only", "person.not-found"] as const
+export const PEOPLE_REASONS = [
+  "identity.stale",
+  "identity.owner-only",
+  "person.not-found",
+  "proposal.wrong-state",
+] as const
 export type PeopleReason = (typeof PEOPLE_REASONS)[number]
 export const reasonOf = (error: string): PeopleReason | null =>
   (PEOPLE_REASONS as readonly string[]).includes(error) ? (error as PeopleReason) : null

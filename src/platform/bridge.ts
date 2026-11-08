@@ -208,6 +208,7 @@ function createTauri(): Platform {
     peopleDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
     peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
+    peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),
     peopleUnmerge: (ref, merge) => call(PersonDetailSchema, "people_unmerge", { reference: ref, merge }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),

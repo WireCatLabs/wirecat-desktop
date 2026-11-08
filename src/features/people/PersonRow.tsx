@@ -67,13 +67,14 @@ function Details({ reference }: { reference: string }) {
     )
   return (
     <div className={`${box} grid gap-[1.4rem] lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]`}>
+      {detail.person.mergedInto && <NowPartOf into={detail.person.mergedInto} />}
       <div className="flex min-w-0 flex-col gap-[0.8rem]">
         <div>
           <h3 className="font-medium">{m.accounts}</h3>
           <p className="text-[0.9rem] text-ink-soft">{m.accountsHelp}</p>
         </div>
         <IdentityList identities={detail.person.identities} />
-        {detail.person.identities.length > 1 && (
+        {detail.person.identities.filter((i) => i.movable).length > 0 && detail.person.identities.length > 1 && (
           <span>
             <Button
               size="sm"
@@ -117,9 +118,7 @@ function Merges({ person }: { person: PersonDetail }) {
                   {new Date(merge.at).toLocaleDateString(lang, { dateStyle: "medium" })}
                 </span>
               )}
-              <span className="block font-mono text-[0.85rem] text-ink-dim">
-                {merge.identities.map((i) => i.identity).join(", ")}
-              </span>
+              <span className="block font-mono text-[0.85rem] text-ink-dim">{merge.identities.join(", ")}</span>
             </span>
             <Button
               size="sm"
@@ -133,6 +132,20 @@ function Merges({ person }: { person: PersonDetail }) {
         ))}
       </ul>
     </section>
+  )
+}
+
+/** memo answered with the person this one was merged into; the page says so and opens that one on request. */
+function NowPartOf({ into }: { into: string }) {
+  const m = useMessages(peopleMessages)
+  const name = usePersonName()
+  return (
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem] lg:col-span-2">
+      {m.nowPartOf(name(into))}
+      <Button size="sm" variant="ghost" onClick={() => usePeople.getState().reveal(into)}>
+        {m.openPerson(name(into))}
+      </Button>
+    </p>
   )
 }
 

@@ -20,5 +20,6 @@ shot reject "$Q" 'btn("Not the same").click();await wait(300)'
 shot split "$Q" 'await openP("person:7");btn("Move accounts").click();await wait(400)'
 shot undo "$Q" 'await openP("person:7");btn("Undo").click();await wait(400)'
 shot stale "$Q&people-fail=stale" 'btn("Same person").click();await wait(900)'
+shot more "?section=people&onboarding=off&people=more" 'await wait(10)'
 shot old "?section=people&onboarding=off&people=old" 'await wait(10)'
 shot person-ru "$Q" 'await openP("person:7");document.querySelector("[data-person=\"person:7\"]").scrollIntoView({block:"start"})' 960 ru

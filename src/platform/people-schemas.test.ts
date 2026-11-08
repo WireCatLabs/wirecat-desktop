@@ -20,29 +20,31 @@ describe("People schemas", () => {
             { account: "3", scope: "personal" },
           ],
           method: "same-email",
-          linkedBy: "memo",
           linkedAt: "2026-10-02T10:00:00.000Z",
+          movable: true,
         },
       ],
       merges: [
         {
           id: "merge:7-12",
           from: "person:12",
-          identities: [{ identity: "email:lena@example.org", name: "Lena Ortiz" }],
+          identities: ["email:lena@example.org"],
           method: "same-email",
-          by: "memo",
           at: null,
         },
       ],
       matches: [
         {
           id: "17100",
-          persons: ["person:7", "person:9"],
-          summary: null,
-          reason: "the same phone",
-          evidence: ["telegram:4411"],
-          proposedBy: "memo",
-          createdAt: null,
+          persons: ["person:9", "person:7"],
+          identity: "max:9020",
+          with: "telegram:4411",
+          joins: "person",
+          signal: "phone",
+          candidates: [],
+          reason: null,
+          evidence: [],
+          proposer: { kind: "rule", name: "rule" },
         },
       ],
     }
@@ -53,7 +55,13 @@ describe("People schemas", () => {
     for (const read of [
       { kind: "missing" },
       { kind: "old", version: null, need: "0.132.0" },
-      { kind: "ready", people: [{ ref: "person:1", name: null, owner: true, tasks: 0 }], matches: [] },
+      {
+        kind: "ready",
+        people: [{ ref: "person:1", name: null, owner: true }],
+        peopleMore: true,
+        matches: [],
+        matchesMore: false,
+      },
     ])
       expect(v.parse(PeopleReadSchema, read)).toEqual(read)
   })

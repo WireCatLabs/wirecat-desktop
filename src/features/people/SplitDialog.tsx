@@ -49,6 +49,7 @@ export function SplitDialog() {
             <label className="flex cursor-pointer items-start gap-2">
               <Checkbox
                 className="mt-[0.15rem]"
+                disabled={!i.movable}
                 checked={chosen.includes(i.identity)}
                 onChange={(on) => setChosen(on ? [...chosen, i.identity] : chosen.filter((c) => c !== i.identity))}
               />
