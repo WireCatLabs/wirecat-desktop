@@ -20,6 +20,18 @@ describe("Clients", () => {
     expect(await column(/^contacted, 1 card/)).toHaveTextContent("Referral from Acme")
   })
 
+  it("opens the pipeline with the most open deals, then the one last chosen while it is still listed", async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<ClientsPage />)
+    expect(await screen.findByRole("button", { name: /^Pipeline/ }, { timeout: 4000 })).toHaveTextContent("Sales")
+    await user.click(screen.getByRole("button", { name: /^Pipeline/ }))
+    await user.click(screen.getByRole("option", { name: /Partners/ }))
+    await waitFor(() => expect(screen.getByRole("button", { name: /^Pipeline/ })).toHaveTextContent("Partners"))
+    unmount()
+    render(<ClientsPage />)
+    expect(await screen.findByRole("region", { name: /^Intro, 0 cards/ }, { timeout: 4000 })).toBeInTheDocument()
+  })
+
   it("opens a card's details on a click", async () => {
     const user = userEvent.setup()
     render(<ClientsPage />)

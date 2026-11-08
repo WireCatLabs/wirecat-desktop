@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { amountRange, canDrop, columnsOf, matches, ownersOf, withMove } from "./clients"
+import { amountRange, busiestOf, canDrop, columnsOf, matches, ownersOf, withMove } from "./clients"
 
 const card = (ref: string, stage: string, more = {}) => ({
   ref,
@@ -48,6 +48,23 @@ describe("the Clients board's rules", () => {
     expect(canDrop(c, "pipeline:7", stages, "Won")).toBe(false)
     expect(canDrop(c, "pipeline:2", stages, "Deal won")).toBe(false)
     expect(canDrop(undefined, "pipeline:2", stages, "Won")).toBe(false)
+  })
+
+  it("picks the pipeline with the most open cards, the first on a tie", () => {
+    expect(
+      busiestOf([
+        { ref: "a", open: 0 },
+        { ref: "b", open: 3 },
+        { ref: "c", open: 3 },
+      ])?.ref,
+    ).toBe("b")
+    expect(
+      busiestOf([
+        { ref: "a", open: 0 },
+        { ref: "b", open: 0 },
+      ])?.ref,
+    ).toBe("a")
+    expect(busiestOf([])).toBeUndefined()
   })
 
   it("moves a card to a won stage as won, leaving the others as they were", () => {

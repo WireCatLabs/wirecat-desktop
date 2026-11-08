@@ -1,3 +1,4 @@
+import { busiestOf } from "@/domain/clients"
 import type { CrmAccount, CrmCard, CrmKind, CrmRead, CrmStage } from "./bindings"
 import { delay } from "./mock-delay"
 import type { CrmAppliedScope, CrmScope, Platform } from "./types"
@@ -17,6 +18,18 @@ export const NORTHSTAR: CrmAccount = { provider: "bitrix24", account: "northstar
 type Pipe = { ref: string; name: string; kind: CrmKind; account: CrmAccount | null; stages: [string, string][] }
 
 const PIPES: Pipe[] = [
+  // Listed first and empty, as memo listed them for a real account: the board must not open on it.
+  {
+    ref: "pipeline:3",
+    name: "Partners",
+    kind: "deal",
+    account: null,
+    stages: [
+      ["Intro", "open"],
+      ["Signed", "won"],
+      ["Dropped", "lost"],
+    ],
+  },
   {
     ref: "pipeline:2",
     name: "Sales",
@@ -126,6 +139,9 @@ function seeds(): CrmCard[] {
       projectName: "Northstar site",
     }),
     own("Call", "Support contract", { ...money("1200.00", "EUR"), organization: "Acme Corp" }),
+    ...["Kiosk", "Newsletter", "Shop front", "Signage"].map((what) =>
+      own("Contract", `Acme: ${what.toLowerCase()}`, { ...money("2500.00", "EUR"), organization: "Acme Corp" }),
+    ),
     own("Won", "Logo refresh", { ...money("800.00", "EUR"), organization: "Acme Corp", closedDate: "2026-10-20" }),
     portal("New", "Northstar: 40 office chairs", {
       ...money("9600.00", "EUR"),
@@ -205,10 +221,16 @@ export function clientsMock(): ClientsApi {
       if (scenario === "old") return { kind: "old", version: "0.131.54", need: "0.131.56" }
       if (scenario === "fail") throw new Error(BUSY)
       const pipes = PIPES.filter((p) => p.kind === kind)
-      const chosen = pipes.find((p) => p.ref === pipeline) ?? pipes[0]
+      const open = (ref: string) => cards.filter((c) => c.pipeline === ref && c.status === "open").length
+      const chosen = pipes.find((p) => p.ref === pipeline) ?? busiestOf(pipes.map((p) => ({ ...p, open: open(p.ref) })))
       const read: CrmRead = {
         kind: "ready",
-        pipelines: pipes.map(({ ref, name, account }) => ({ ref, name, account })),
+        pipelines: pipes.map(({ ref, name, account }) => ({
+          ref,
+          name,
+          account,
+          open: open(ref),
+        })),
         pipeline: chosen?.ref ?? null,
         stages: chosen ? stagesOf(chosen, cards) : [],
         cards: cards.filter((c) => c.pipeline === chosen?.ref).slice(0, 500),

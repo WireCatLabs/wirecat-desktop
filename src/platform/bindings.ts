@@ -259,6 +259,8 @@ export type CrmPipeline = {
 	name: string,
 	/**  The CRM account it was copied from; `None` for the owner's own. */
 	account: CrmAccount | null,
+	/**  Open deals or leads in all its stages, as memo counts them. */
+	open: number,
 };
 
 export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 

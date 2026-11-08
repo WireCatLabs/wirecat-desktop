@@ -1,5 +1,5 @@
 import { Building2, User, Users } from "lucide-react"
-import { accountKey, type Kind, NOBODY, OWN, ownersOf } from "@/domain/clients"
+import { accountKey, busiestOf, type Kind, NOBODY, OWN, ownersOf } from "@/domain/clients"
 import { setField, valuesOf } from "@/domain/query-terms"
 import { useMessages } from "@/i18n"
 import type { CrmAccount } from "@/platform/bindings"
@@ -39,8 +39,8 @@ export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
             }))}
             selected={current ? [accountKey(current.account)] : []}
             onChange={([key]) => {
-              const first = read.pipelines.find((p) => accountKey(p.account) === (key ?? OWN))
-              if (first) choose(kind, first.ref)
+              const busiest = busiestOf(read.pipelines.filter((p) => accountKey(p.account) === (key ?? OWN)))
+              if (busiest) choose(kind, busiest.ref)
             }}
           />
         )}

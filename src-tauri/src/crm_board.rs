@@ -73,6 +73,8 @@ pub struct CrmPipeline {
     pub name: String,
     /// The CRM account it was copied from; `None` for the owner's own.
     pub account: Option<CrmAccount>,
+    /// Open deals or leads in all its stages, as memo counts them.
+    pub open: u32,
 }
 
 #[derive(Serialize, Type, Debug, PartialEq)]
@@ -179,7 +181,8 @@ fn account(v: &Value) -> Option<CrmAccount> {
 }
 
 fn pipeline(v: &Value) -> Option<CrmPipeline> {
-    Some(CrmPipeline { reference: text(v, "ref")?, name: text(v, "name")?, account: account(v) })
+    let open = v["stages"].as_array().map_or(0, |a| a.iter().map(|st| count(st, "open")).sum());
+    Some(CrmPipeline { reference: text(v, "ref")?, name: text(v, "name")?, account: account(v), open })
 }
 
 fn stage(v: &Value) -> Option<CrmStage> {
@@ -224,11 +227,17 @@ fn movable(chosen: Option<&CrmPipeline>) -> CrmMovable {
     }
 }
 
+/// The pipeline with the most open cards, the first in memo's order on a tie: memo lists an empty one first as often
+/// as not, and an empty board reads as "nothing synced".
+fn busiest(pipelines: &[CrmPipeline]) -> Option<&CrmPipeline> {
+    pipelines.iter().rev().max_by_key(|p| p.open)
+}
+
 fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead, Failure> {
     let listed = call(&with_query(&["pipelines", "list"], &format!("kind:{}", kind.noun())))?;
     let pipelines: Vec<CrmPipeline> =
         listed["items"].as_array().map(|a| a.iter().filter_map(pipeline).collect()).unwrap_or_default();
-    let chosen = asked.and_then(|r| pipelines.iter().find(|p| p.reference == r)).or_else(|| pipelines.first());
+    let chosen = asked.and_then(|r| pipelines.iter().find(|p| p.reference == r)).or_else(|| busiest(&pipelines));
     let Some(chosen) = chosen else {
         return Ok(CrmRead::Ready {
             pipelines,
@@ -369,6 +378,29 @@ mod tests {
         );
         assert_eq!(seen[3][3], "20");
         assert_eq!(seen[4].last().map(String::as_str), Some("pipeline:\"pipeline:2\" status:lost"));
+    }
+
+    #[test]
+    fn opens_the_pipeline_with_the_most_open_cards_unless_one_still_listed_was_chosen() {
+        let listed = |stages: [u32; 3]| -> Vec<CrmPipeline> {
+            stages
+                .iter()
+                .enumerate()
+                .filter_map(|(i, open)| {
+                    pipeline(&json!({"ref": format!("pipeline:{i}"), "name": "P", "account": null,
+                        "stages": [{"name": "A", "open": open}, {"name": "B", "open": 1}]}))
+                })
+                .collect()
+        };
+        let three = listed([0, 5, 5]);
+        assert_eq!(three[1].open, 6);
+        assert_eq!(busiest(&three).map(|p| p.reference.as_str()), Some("pipeline:1"));
+        assert_eq!(busiest(&listed([0, 0, 0])).map(|p| p.reference.as_str()), Some("pipeline:0"));
+
+        let seen = Mutex::new(vec![]);
+        let gone = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, Some("pipeline:99")).unwrap();
+        let CrmRead::Ready { pipeline, .. } = gone else { panic!("not ready") };
+        assert_eq!(pipeline.as_deref(), Some("pipeline:2"));
     }
 
     #[test]

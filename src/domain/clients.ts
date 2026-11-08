@@ -106,6 +106,10 @@ function centsOf(amount: string): bigint | null {
   return m ? BigInt(m[1] ?? "0") * 100n + BigInt((m[2] ?? "").padEnd(2, "0")) : null
 }
 
+/** The pipeline with the most open cards, the first on a tie; memo often lists an empty one first. */
+export const busiestOf = <P extends { open: number }>(pipelines: readonly P[]): P | undefined =>
+  pipelines.reduce<P | undefined>((best, p) => (best && best.open >= p.open ? best : p), undefined)
+
 /** Every person responsible for a card on the board, for the filter's choices. */
 export const ownersOf = (cards: readonly CrmCard[]) =>
   [...new Set(cards.map((c) => ownerOf(c) ?? NOBODY))].sort((a, b) =>
