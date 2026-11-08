@@ -13,6 +13,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { useEnrichment, useEnrichmentPreview, useSetEnrichment } from "./api"
 import { type EnrichmentText, enrichmentMessages } from "./messages-enrichment"
+import { syncKey, useSync } from "./sync-store"
 
 type Offer = NonNullable<CatalogTool["enrichment"]>
 type Done = { on: true } | { on: false; deleted: number } | null
@@ -57,6 +58,13 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
   useEffect(() => {
     if (consenting) ask()
   }, [consenting, ask])
+
+  // A sync is when memo rewrites the waiting records, so the counts are read again after each one.
+  const syncEnded = useSync((s) => s.runs[syncKey(tool.id, null)]?.endedAt ?? null)
+  const { refetch } = state
+  useEffect(() => {
+    if (syncEnded !== null) refetch()
+  }, [syncEnded, refetch])
 
   if (!offer) return null
   const answer = state.data
