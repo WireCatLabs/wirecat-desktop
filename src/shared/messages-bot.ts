@@ -11,7 +11,7 @@ const en = {
   nameExample: "sales",
   nameHint: (command: string) => `One word you choose, such as sales. Commands for the bot then start with ${command}.`,
   nameEmpty: "Type a name for the bot first.",
-  nameInvalid: "Use letters, digits, dots, dashes or underscores, without spaces.",
+  nameInvalid: "Use Latin letters, digits, dots, dashes or underscores, without spaces.",
   replaces: (profile: string, name: string) =>
     `${profile} already has a bot. Connecting replaces its token, but only after ${name} accepts the new one.`,
   next: "Next",
@@ -105,7 +105,7 @@ const ru: typeof en = {
   nameExample: "sales",
   nameHint: (command) => `Одно слово на ваш выбор, например sales. Команды для бота начнутся с ${command}.`,
   nameEmpty: "Сначала введите имя бота.",
-  nameInvalid: "Только буквы, цифры, точки, дефисы и подчёркивания, без пробелов.",
+  nameInvalid: "Только латинские буквы, цифры, точки, дефисы и подчёркивания, без пробелов.",
   replaces: (profile, name) =>
     `У ${profile} уже есть бот. Подключение заменит его токен, но только когда ${name} примет новый.`,
   next: "Далее",
@@ -200,7 +200,7 @@ const es: typeof en = {
   nameExample: "ventas",
   nameHint: (command) => `Una palabra que eliges, como ventas. Los comandos del bot empiezan entonces por ${command}.`,
   nameEmpty: "Primero escribe un nombre para el bot.",
-  nameInvalid: "Usa letras, cifras, puntos, guiones o guiones bajos, sin espacios.",
+  nameInvalid: "Usa letras latinas, cifras, puntos, guiones o guiones bajos, sin espacios.",
   replaces: (profile, name) =>
     `${profile} ya tiene un bot. Conectar sustituye su token, pero solo cuando ${name} acepte el nuevo.`,
   next: "Siguiente",
