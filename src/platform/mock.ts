@@ -1,4 +1,5 @@
 import { ownerId, tools } from "@/domain/catalog"
+import { parseLink } from "@/domain/links"
 import type { AccountRemoved } from "./bindings"
 import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { analyticsMock } from "./mock-analytics"
@@ -688,6 +689,11 @@ export function createMock(os: Platform["os"]): Platform {
     ...searchMock,
     ...settingsMock,
     ...permissionsMock(settingsMock),
+    async listenLinks(onLink) {
+      // `?link=/v1/task/80` (or a whole wirecat:// link) is the link the app started from; a refused one opens as null.
+      const link = params.get("link")
+      if (link) onLink(parseLink(link.startsWith("/") ? `wirecat://open${link}` : link))
+    },
     async openUrl(url) {
       if (isMockLogin(url)) return
       window.open(url, "_blank", "noopener")

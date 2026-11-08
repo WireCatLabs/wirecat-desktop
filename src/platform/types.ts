@@ -1,4 +1,5 @@
 import type { Preflight, StoreCompat } from "@/domain/compat"
+import type { DeepLinkTarget } from "@/domain/links"
 import type {
   Agent,
   AgentRun,
@@ -395,6 +396,11 @@ export type Platform = {
   /** Opens the user's terminal with the install command for the package just saved; they type their password there. */
   openPackageTerminal(): Promise<void>
   restart(): Promise<void>
+  /**
+   * wirecat:// links the system hands the app, the one that started it first; `null` for a link Rust refused, whose
+   * text never reaches the interface. One listener for the app's life.
+   */
+  listenLinks(onLink: (target: DeepLinkTarget | null) => void): Promise<void>
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>
 }

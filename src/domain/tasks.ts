@@ -86,6 +86,11 @@ export function dueOf(q: string, today = new Date()): DueChoice | null {
   return null
 }
 
+/** The search a `tasks/<filter>` link opens: the Due filter's own words, or the tasks opened since a moment. */
+export function taskQuery(link: { filter: "overdue" | "today" | "tomorrow" } | { filter: "new"; since: string }) {
+  return link.filter === "new" ? `created:>="${link.since}"` : dueTerm(link.filter)
+}
+
 export const setDue = (q: string, choice: DueChoice | null, today = new Date()) =>
   choice ? tidy(`${dropField(q, "due")} ${dueTerm(choice, today)}`) : dropField(q, "due")
 

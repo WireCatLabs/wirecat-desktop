@@ -3,6 +3,12 @@ use crate::error::AppError;
 use crate::{notifications, package_update, report, system};
 use tauri::ipc::Channel;
 
+/// The interface's one listener for wirecat:// links; a link that started the app arrives at once.
+#[tauri::command]
+pub fn deep_link_listen(links: tauri::State<'_, crate::deep_link::Links>, on_link: Channel<crate::deep_link::Opened>) {
+    links.listen(on_link);
+}
+
 #[tauri::command]
 pub async fn readiness() -> Result<system::Readiness, AppError> {
     crate::log::command("readiness", async move { blocking(system::readiness).await }).await
