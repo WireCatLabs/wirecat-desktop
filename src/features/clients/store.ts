@@ -1,13 +1,22 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 import type { Refusal } from "@/domain/base-stages"
-import type { Kind } from "@/domain/clients"
+import { accountKey, type Kind } from "@/domain/clients"
+import type { CrmAccount } from "@/platform/bindings"
 import { safeStorage } from "@/shared/safe-storage"
 
 export type View = "board" | "stages"
 
 /** A drop onto a base column that holds several stages of the card's pipeline: the owner picks one. */
 export type Picking = { ref: string; pipeline: string; base: string; stages: string[] }
+
+/** memo names no profile of the CRM's CLI for the account: the owner picks one, then the waiting move runs. */
+export type Asking = {
+  account: CrmAccount
+  profiles: string[]
+  why: string | null
+  move: { ref: string; stage: string } | null
+}
 
 type ClientsState = {
   kind: Kind
@@ -29,6 +38,11 @@ type ClientsState = {
   /** The stage last picked for a pipeline and base stage (`choiceKey`), for this session only. */
   chosen: Record<string, string>
   picking: Picking | null
+  /** The profile of a CRM's CLI the owner chose, by `accountKey`, for this session only. */
+  writers: Record<string, string>
+  asking: Asking | null
+  ask(asking: Asking | null): void
+  write(account: CrmAccount, profile: string): void
   setKind(kind: Kind): void
   setView(view: View): void
   setPipelines(pipelines: string[]): void
@@ -56,6 +70,10 @@ export const useClients = create<ClientsState>()(
       accounts: [],
       chosen: {},
       picking: null,
+      writers: {},
+      asking: null,
+      ask: (asking) => set({ asking }),
+      write: (account, profile) => set((s) => ({ writers: { ...s.writers, [accountKey(account)]: profile } })),
       setKind: (kind) => set({ kind, query: "", pipelines: [], accounts: [], refused: {} }),
       setView: (view) => set({ view }),
       setPipelines: (pipelines) => set({ pipelines }),

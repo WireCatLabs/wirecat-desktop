@@ -17,9 +17,9 @@ mod community;
 mod compat;
 mod config_repair;
 mod conversation;
+mod crm_board;
 mod deep_link;
 mod digests;
-mod crm_board;
 mod drive_folders;
 mod enrichment;
 mod error;
@@ -261,6 +261,8 @@ pub fn run() {
             commands::tasks::task_list,
             commands::clients::clients_read,
             commands::clients::clients_move,
+            commands::clients::clients_scope,
+            commands::clients::clients_scope_set,
             commands::clients::clients_map_set,
             commands::clients::clients_map_confirm,
             commands::clients::clients_base_edit,

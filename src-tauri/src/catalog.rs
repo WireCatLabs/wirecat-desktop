@@ -62,6 +62,9 @@ pub struct Tool {
     /// The Clients page's lowest memo, the first whose `pipelines show` sums each stage per currency.
     #[serde(default)]
     pub crm_board: Option<CrmBoardSource>,
+    /// A CRM's own CLI: the Clients board moves that CRM's cards and switches its sync scope through it.
+    #[serde(default)]
+    pub crm: Option<CrmSource>,
     /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
     #[serde(default)]
     pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,
@@ -213,6 +216,31 @@ pub struct CrmBoardSource {
     /// and below it the board shows one pipeline's own stages.
     #[serde(default)]
     pub base_stages_min_version: Option<String>,
+}
+
+/// `{profile}` is the one the owner chose, `{ref}` a validated `deal:<id>` or `lead:<id>`, `{stage}` a validated stage
+/// name of the card's own pipeline.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CrmSource {
+    /// The `provider` memo names on the CRM's accounts and on `writes_with`.
+    pub provider: String,
+    /// The first release that ships `contracts/wirecat.json`; below it the board keeps this CRM's cards read only.
+    pub min_version: String,
+    pub move_deal: Vec<String>,
+    pub move_lead: Vec<String>,
+    pub scope: CrmScopeSource,
+}
+
+/// `{setting}` is `crm.<provider>:<account>` and `.scope`, built from a validated account; `{value}` is `mine` or `all`.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CrmScopeSource {
+    /// The first release with the `scope` setting; absent until one is released, and the switch stays off.
+    #[serde(default)]
+    pub min_version: Option<String>,
+    pub show: Vec<String>,
+    pub set: Vec<String>,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.
@@ -401,7 +429,7 @@ mod tests {
 
     #[test]
     fn every_catalog_entry_parses() {
-        assert_eq!(catalog().tools.len(), 9);
+        assert_eq!(catalog().tools.len(), 10);
     }
 
     #[test]

@@ -25,6 +25,15 @@ export const OWN = "own"
 /** `bitrix24:northstar.example`, or `own` for the owner's own pipelines. */
 export const accountKey = (account: CrmAccount | null) => (account ? `${account.provider}:${account.account}` : OWN)
 
+type WritesWith = { profile: string | null; profiles: string[] }
+
+/**
+ * The profile of a CRM's CLI that writes an account's cards: the one memo names, else the one the owner chose this
+ * session while memo still lists it. Never the first of a list: with none, the owner is asked.
+ */
+export const writerProfile = (w: WritesWith | null, chosen: string | undefined): string | null =>
+  w?.profile ?? (chosen !== undefined && w?.profiles.includes(chosen) ? chosen : null)
+
 /** The base board's narrowing by pipeline and account; an empty choice keeps every one. */
 export const inScope = (
   card: { pipeline: string; account: CrmAccount | null },

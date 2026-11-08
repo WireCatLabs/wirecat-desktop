@@ -27,6 +27,7 @@ import type {
   CrmCard,
   CrmKind,
   CrmRead,
+  CrmVia,
   Enrichment,
   EnrichmentStatus,
   FolderAdded,
@@ -280,18 +281,20 @@ export type Platform = {
   conversationRead(place: ChatPlace, ask: ChatPage): Promise<Conversation>
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
-  /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
   /** memo's deals or leads of one pipeline (the first when none is asked), with each stage's count and sums. */
   clientsRead(kind: CrmKind, pipeline: string | null): Promise<CrmRead>
-  /** Moves the owner's own deal or lead to another stage of its pipeline; answers the card as memo now has it. */
-  clientsMove(kind: CrmKind, ref: string, stage: string): Promise<CrmCard>
   /**
-   * Whether a CRM account syncs only what is assigned to the owner (`mine`) or everything (`all`), and whether the app
-   * can change it. Changing it needs the CRM's own CLI, which the app cannot run yet: the real app answers so.
+   * Moves a deal or lead to another stage of its own pipeline. The owner's own goes through memo, which answers the
+   * card; a CRM's copy goes through that CRM's CLI as `via`'s profile, which answers none: the page reads it again.
    */
-  clientsScope(account: CrmAccount): Promise<CrmScope>
-  /** Saves the account's scope and syncs it again. */
-  clientsScopeSet(account: CrmAccount, scope: "mine" | "all"): Promise<void>
+  clientsMove(kind: CrmKind, ref: string, stage: string, via: CrmVia | null): Promise<CrmCard | null>
+  /**
+   * Whether a CRM account syncs only what is assigned to the owner (`mine`) or everything (`all`), read through its
+   * CRM's CLI as `profile`, and whether the app can change it (`why` says why not).
+   */
+  clientsScope(account: CrmAccount, profile: string | null): Promise<CrmScope>
+  /** Saves the account's scope through its CRM's CLI as `profile`; the page then starts that profile's sync. */
+  clientsScopeSet(account: CrmAccount, profile: string, scope: "mine" | "all"): Promise<void>
   /** Points a pipeline's stage (`stage:<id>`) at a base stage; memo takes it as confirmed. */
   clientsMapSet(stage: string, base: string): Promise<void>
   /** Confirms memo's suggested mappings of one pipeline, or with `null` of every pipeline of the kind. */
@@ -479,4 +482,10 @@ export type CrmAppliedScope = { mode: "mine"; also: string[] } | { mode: "all" }
 /** `scope` is the setting `crm.<provider>:<account>.scope`: what the next sync copies, not what the board shows. */
 export type CrmScope =
   | { kind: "settable"; scope: "mine" | "all"; applied: CrmAppliedScope | null }
-  | { kind: "unavailable"; scope: "mine" | "all" | null; applied: null; why: "crmCli" }
+  | {
+      kind: "unavailable"
+      scope: "mine" | "all" | null
+      applied: null
+      /** No CLI here writes this CRM or has the setting yet, it is not installed, too old, or no profile is chosen. */
+      why: "crmCli" | "crmCliMissing" | "crmCliOld" | "profile"
+    }

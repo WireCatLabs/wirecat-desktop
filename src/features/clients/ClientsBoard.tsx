@@ -1,25 +1,27 @@
-import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef } from "react"
+import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef, useState } from "react"
 import { amountsOf, canDrop, columnsOf, type Kind, moneyOf, ownerOf, sumsOf } from "@/domain/clients"
 import { useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
 import { Board, BoardColumn, cardClass, DragCopy, DropLine, useBoardDrag, useSlide } from "@/ui/Board"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
-import { type Ready, useMove } from "./api"
+import { type Ready, useCardMove } from "./api"
 import { clientMessages } from "./messages"
+import { ProfilePicker } from "./ProfilePicker"
 import { useClients } from "./store"
 
 const TONE: Record<string, LampTone> = { open: "idle", won: "ok", lost: "off" }
 
 export const OutcomeLamp = ({ outcome }: { outcome: string }) => <Lamp tone={TONE[outcome] ?? "idle"} size="sm" />
 
-/** One pipeline's stages as columns. Cards move only when the pipeline is the owner's own (or, later, its CRM's). */
+/** One pipeline's stages as columns. Cards move when the pipeline is the owner's own, or its CRM's CLI can write. */
 export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; cards: CrmCard[] }) {
   const m = useMessages(clientMessages)
   const lang = useLang()
   const asked = useClients((s) => s.pipeline[kind] ?? null)
   const filtered = useClients((s) => s.query.trim() !== "")
-  const move = useMove(kind, asked)
+  const move = useCardMove(kind, asked, read.pipelines)
+  const [note, setNote] = useState("")
   const movable = read.movable.kind === "yes"
   const byRef = new Map(cards.map((c) => [c.ref, c]))
   const columns = columnsOf(read.stages, cards)
@@ -32,7 +34,10 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
     columnOf: (ref) => byRef.get(ref)?.stage,
     canDrop: (ref, to) =>
       !movable ? m.readOnlyShort : canDrop(byRef.get(ref), read.pipeline, read.stages, to) || m.otherPipeline,
-    onDrop: ({ key, to }) => move.mutate({ ref: key, stage: to }),
+    onDrop: ({ key, to }) => {
+      const c = byRef.get(key)
+      if (c) move.run(c, to)
+    },
     onOpen: (ref) => useClients.getState().setOpen(ref),
     words: { picked: m.picked, place: m.place, dropped: m.dropped, putBack: m.putBack },
   })
@@ -94,8 +99,12 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
           <CardBody card={dragged} />
         </DragCopy>
       )}
+      <ProfilePicker onChoose={move.chosen} onCancel={(ref) => setNote(ref ? m.putBack(ref) : "")} />
       <p aria-live="assertive" className="sr-only">
         {said}
+      </p>
+      <p aria-live="polite" className="sr-only">
+        {note}
       </p>
     </>
   )

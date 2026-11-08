@@ -271,7 +271,10 @@ export type CrmCard = {
 export type CrmKind = "deal" | "lead";
 
 export type CrmMovable = { kind: "yes" } | 
-/**  `crmCli`: a CRM's copy, which only that CRM's own CLI may change. */
+/**
+ *  A CRM's copy, which only that CRM's own CLI may change: `crmCli` while memo names no CLI the catalog has for
+ *  it, `crmCliMissing` or `crmCliOld` while that CLI is not installed or older than the catalog's `crm.minVersion`.
+ */
 { kind: "no"; why: string };
 
 export type CrmPerson = {
@@ -289,6 +292,8 @@ export type CrmPipeline = {
 	open: number,
 	/**  Whether the app may move its cards: on a board of several pipelines each card asks its own. */
 	movable: CrmMovable,
+	/**  The CLI and profile that change a CRM's copy there, as memo names them; `None` for the owner's own. */
+	writesWith: CrmWritesWith | null,
 };
 
 export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 
@@ -324,6 +329,24 @@ export type CrmStageMap = {
 export type CrmUnsorted = {
 	open: number,
 	stages: number,
+};
+
+/**  The CRM account and the profile of its CLI that write a move; the owner chose the profile, or memo named the one. */
+export type CrmVia = {
+	account: CrmAccount,
+	profile: string,
+};
+
+/**
+ *  memo's `writes_with`: `profile` only when exactly one profile of `tool` is on the account; otherwise the owner
+ *  chooses among `profiles`, and `why` says so. Never filled in by the app.
+ */
+export type CrmWritesWith = {
+	tool: string,
+	account: CrmAccount,
+	profile: string | null,
+	profiles: string[],
+	why: string | null,
 };
 
 export type Diagnosis = {

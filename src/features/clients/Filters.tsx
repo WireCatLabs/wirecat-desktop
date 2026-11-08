@@ -1,17 +1,21 @@
 import { Building2, User, Users } from "lucide-react"
+import { useEffect } from "react"
+import { crmToolOf } from "@/domain/catalog"
 import { accountKey, busiestOf, type Kind, NOBODY, OWN, ownersOf } from "@/domain/clients"
 import { setField, valuesOf } from "@/domain/query-terms"
+import { syncKey, useSync } from "@/features/tools"
 import { useMessages } from "@/i18n"
-import type { CrmAccount, CrmCard } from "@/platform/bindings"
+import type { CrmAccount, CrmCard, CrmPipeline } from "@/platform/bindings"
+import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
-import { type Based, type Ready, useScope, useScopeSet } from "./api"
+import { type Based, type Ready, readAgain, useScope, useScopeSet, useWriter } from "./api"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
-const name = (a: CrmAccount | null, own: string) => (a ? `${a.provider} · ${a.account}` : own)
+const nameOf = (a: CrmAccount | null, own: string) => (a ? `${a.provider} · ${a.account}` : own)
 
 /** The search field over the chips Tasks uses: pipeline and account read memo again, the rest narrow this read. */
 export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
@@ -34,7 +38,7 @@ export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
             required
             options={accounts.map(([key, a]) => ({
               value: key,
-              label: name(a, m.ownAccount),
+              label: nameOf(a, m.ownAccount),
               icon: a ? <Building2 className="size-4" aria-hidden /> : <User className="size-4" aria-hidden />,
             }))}
             selected={current ? [accountKey(current.account)] : []}
@@ -69,23 +73,43 @@ export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
           {...field("stage")}
         />
       </FilterBar>
-      {current?.account && <ScopeSwitch account={current.account} />}
+      {current?.account && <ScopeSwitch account={current.account} pipelines={read.pipelines} />}
     </div>
   )
 }
 
-/** Manager mode: whether the account's sync brings only what is assigned to the owner or the whole account. */
-function ScopeSwitch({ account }: { account: CrmAccount }) {
+/**
+ * Manager mode: whether the account's sync brings only what is assigned to the owner or the whole account. The CRM's
+ * CLI saves it as the account's profile, then the Tools page's runner syncs that profile and the board reads again.
+ */
+function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: readonly CrmPipeline[] }) {
   const m = useMessages(clientMessages)
-  const scope = useScope(account)
-  const set = useScopeSet(account)
+  const { writesWith, profile } = useWriter(account, pipelines)
+  const scope = useScope(account, profile)
+  const set = useScopeSet(account, profile)
+  const tool = crmToolOf(account.provider)
+  const phase = useSync((s) => (tool && profile ? s.runs[syncKey(tool.id, profile)]?.phase : undefined))
+  useEffect(() => {
+    if (phase === "done") void readAgain()
+  }, [phase])
   const answer = scope.data
+  const busy = set.isPending || phase === "running"
   const value = set.isPending ? set.variables : (answer?.scope ?? "mine")
-  const settable = answer?.kind === "settable" && !set.isPending
+  const settable = answer?.kind === "settable" && !busy
+  const why = answer?.kind === "unavailable" ? answer.why : null
+  const name = tool?.name ?? account.provider
+  const hint =
+    why === "crmCliMissing"
+      ? m.scopeWhy.crmCliMissing(name)
+      : why === "crmCliOld"
+        ? m.scopeWhy.crmCliOld(name)
+        : why === "crmCli"
+          ? m.scopeWhy.crmCli
+          : null
   return (
     <div className="flex flex-wrap items-center gap-x-[0.8rem] gap-y-[0.4rem] text-[0.9rem] text-ink-soft">
       <span>
-        {m.scope} · {name(account, m.ownAccount)}
+        {m.scope} · {nameOf(account, m.ownAccount)}
       </span>
       <fieldset disabled={!settable} className="contents">
         <Segmented<"mine" | "all">
@@ -99,9 +123,22 @@ function ScopeSwitch({ account }: { account: CrmAccount }) {
           ]}
         />
       </fieldset>
+      {why === "profile" && writesWith && (
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() =>
+            useClients.getState().ask({ account, profiles: writesWith.profiles, why: writesWith.why, move: null })
+          }
+        >
+          {m.chooseProfile}
+        </Button>
+      )}
       <span className="max-w-[70ch]">
-        {set.isPending ? m.scopeSaving : m.scopeHint}
-        {!set.isPending && answer?.applied && ` ${m.applied(answer.applied.mode)}`}
+        {busy ? m.scopeSaving : m.scopeHint}
+        {!busy && profile && settable && ` ${m.scopeAs(profile)}`}
+        {!busy && hint && ` ${hint}`}
+        {!busy && answer?.applied && ` ${m.applied(answer.applied.mode)}`}
       </span>
       {set.error && <ErrorNotice inline>{m.scopeFailed(set.error.message)}</ErrorNotice>}
     </div>
@@ -135,7 +172,7 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
             label={m.account}
             options={listed.map(([key, a]) => ({
               value: key,
-              label: name(a, m.ownAccount),
+              label: nameOf(a, m.ownAccount),
               icon: a ? <Building2 className="size-4" aria-hidden /> : <User className="size-4" aria-hidden />,
             }))}
             selected={accounts}
@@ -167,7 +204,7 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
         />
       </FilterBar>
       {crms.map((a) => (
-        <ScopeSwitch key={accountKey(a)} account={a} />
+        <ScopeSwitch key={accountKey(a)} account={a} pipelines={read.pipelines} />
       ))}
     </div>
   )

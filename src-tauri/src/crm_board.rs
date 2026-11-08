@@ -3,14 +3,18 @@
 //! they are not masked (as on the Tasks page); they never go into a log or a report. Counts and sums per stage are
 //! Memo's (`pipelines show`), never counted from the cards the page holds.
 //!
-//! A move writes through `memo <kind>s move`, which changes only what Memo itself keeps: a CRM's copy is changed in
-//! the CRM by that CRM's own CLI, which the app cannot run yet, so such a pipeline answers `movable: no`.
+//! A move of the owner's own card writes through `memo <kind>s move`. A CRM's copy is changed in the CRM by that CRM's
+//! own CLI (`writer`, catalog `crm`), as the profile memo's `writes_with` names or the owner chose; its pipeline
+//! answers `movable: no` while memo names no CLI for it or that CLI is missing or too old.
 //!
 //! With a memo that has base stages (catalog `crmBoard.baseStagesMinVersion`), the board's columns are the owner's
 //! base set and the cards come from every pipeline; below it, one pipeline's own stages as before. `base` holds every
 //! argv and field name of the base-stage commands.
 
 mod base;
+mod writer;
+
+pub use writer::{CrmScope, CrmVia};
 
 use crate::memo_cli::{Call, Failure, with_memo};
 use crate::skills::body;
@@ -49,7 +53,7 @@ impl CrmKind {
     }
 }
 
-#[derive(Serialize, Type, Debug, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Type, Debug, Clone, PartialEq)]
 pub struct CrmAccount {
     pub provider: String,
     pub account: String,
@@ -74,6 +78,7 @@ pub struct CrmStage {
 }
 
 #[derive(Serialize, Type, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct CrmPipeline {
     #[serde(rename = "ref")]
     pub reference: String,
@@ -84,6 +89,19 @@ pub struct CrmPipeline {
     pub open: u32,
     /// Whether the app may move its cards: on a board of several pipelines each card asks its own.
     pub movable: CrmMovable,
+    /// The CLI and profile that change a CRM's copy there, as memo names them; `None` for the owner's own.
+    pub writes_with: Option<CrmWritesWith>,
+}
+
+/// memo's `writes_with`: `profile` only when exactly one profile of `tool` is on the account; otherwise the owner
+/// chooses among `profiles`, and `why` says so. Never filled in by the app.
+#[derive(Serialize, Type, Debug, Clone, PartialEq)]
+pub struct CrmWritesWith {
+    pub tool: String,
+    pub account: CrmAccount,
+    pub profile: Option<String>,
+    pub profiles: Vec<String>,
+    pub why: Option<String>,
 }
 
 /// A base stage as a card or a mapping names it.
@@ -187,11 +205,12 @@ pub struct CrmCard {
     pub updated_at: String,
 }
 
-#[derive(Serialize, Type, Debug, PartialEq)]
+#[derive(Serialize, Type, Debug, Clone, PartialEq)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum CrmMovable {
     Yes,
-    /// `crmCli`: a CRM's copy, which only that CRM's own CLI may change.
+    /// A CRM's copy, which only that CRM's own CLI may change: `crmCli` while memo names no CLI the catalog has for
+    /// it, `crmCliMissing` or `crmCliOld` while that CLI is not installed or older than the catalog's `crm.minVersion`.
     No {
         why: String,
     },
@@ -270,11 +289,13 @@ fn account(v: &Value) -> Option<CrmAccount> {
     Some(CrmAccount { provider: text(a, "provider")?, account: text(a, "account")? })
 }
 
+/// `movable` is the owner's own pipeline's until `pipelines_with` asks the CRM's CLI.
 fn pipeline(v: &Value) -> Option<CrmPipeline> {
     let open = v["stages"].as_array().map_or(0, |a| a.iter().map(|st| count(st, "open")).sum());
     let account = account(v);
     let movable = if account.is_some() { CrmMovable::No { why: "crmCli".into() } } else { CrmMovable::Yes };
-    Some(CrmPipeline { reference: text(v, "ref")?, name: text(v, "name")?, account, open, movable })
+    let writes_with = writer::writes_with(v);
+    Some(CrmPipeline { reference: text(v, "ref")?, name: text(v, "name")?, account, open, movable, writes_with })
 }
 
 fn stage(v: &Value) -> Option<CrmStage> {
@@ -313,22 +334,23 @@ fn card(v: &Value) -> Option<CrmCard> {
     })
 }
 
-fn movable(chosen: Option<&CrmPipeline>) -> CrmMovable {
-    match chosen {
-        Some(p) if p.account.is_some() => CrmMovable::No { why: "crmCli".into() },
-        _ => CrmMovable::Yes,
-    }
-}
-
 /// The pipeline with the most open cards, the first in memo's order on a tie: memo lists an empty one first as often
 /// as not, and an empty board reads as "nothing synced".
 fn busiest(pipelines: &[CrmPipeline]) -> Option<&CrmPipeline> {
     pipelines.iter().rev().max_by_key(|p| p.open)
 }
 
-fn pipelines_with(call: &Call, kind: CrmKind) -> Result<Vec<CrmPipeline>, Failure> {
+/// Whether a CRM's CLI can write, by provider; the real one asks once per provider and read.
+type Writers<'a> = dyn Fn(&str) -> writer::Writer + 'a;
+
+fn pipelines_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<Vec<CrmPipeline>, Failure> {
     let listed = call(&with_query(&["pipelines", "list"], &format!("kind:{}", kind.noun())))?;
-    Ok(listed["items"].as_array().map(|a| a.iter().filter_map(pipeline).collect()).unwrap_or_default())
+    let mut pipelines: Vec<CrmPipeline> =
+        listed["items"].as_array().map(|a| a.iter().filter_map(pipeline).collect()).unwrap_or_default();
+    for p in &mut pipelines {
+        p.movable = writer::movable(p, writers);
+    }
+    Ok(pipelines)
 }
 
 /// The open ones in full up to the limit, the newest closed ones capped; `scope` narrows memo's query, if any.
@@ -344,8 +366,8 @@ fn cards_with(call: &Call, kind: CrmKind, scope: &str) -> Result<(Vec<CrmCard>, 
     Ok((cards, more))
 }
 
-fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead, Failure> {
-    let pipelines = pipelines_with(call, kind)?;
+fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>, writers: &Writers) -> Result<CrmRead, Failure> {
+    let pipelines = pipelines_with(call, kind, writers)?;
     let chosen = asked.and_then(|r| pipelines.iter().find(|p| p.reference == r)).or_else(|| busiest(&pipelines));
     let Some(chosen) = chosen else {
         return Ok(CrmRead::Ready {
@@ -362,7 +384,7 @@ fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead,
     let (cards, more) = cards_with(call, kind, &format!("pipeline:\"{}\" ", chosen.reference))?;
     Ok(CrmRead::Ready {
         pipeline: Some(chosen.reference.clone()),
-        movable: movable(Some(chosen)),
+        movable: chosen.movable.clone(),
         more,
         stages,
         cards,
@@ -370,8 +392,8 @@ fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead,
     })
 }
 
-fn read_base_with(call: &Call, kind: CrmKind) -> Result<CrmRead, Failure> {
-    let pipelines = pipelines_with(call, kind)?;
+fn read_base_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<CrmRead, Failure> {
+    let pipelines = pipelines_with(call, kind, writers)?;
     let (base, unsorted) = base::columns(&call(&base::show_args(kind))?);
     let mapping = base::mapping(&call(&base::mapping_args(kind))?);
     let (cards, more) = cards_with(call, kind, "")?;
@@ -403,10 +425,13 @@ pub fn read(kind: CrmKind, pipeline: Option<&str>) -> Result<CrmRead, String> {
     if let Some(p) = pipeline {
         validate_pipeline(p)?;
     }
+    let known = std::cell::RefCell::new(std::collections::HashMap::new());
+    let writers =
+        |provider: &str| *known.borrow_mut().entry(provider.to_string()).or_insert_with(|| writer::writer(provider));
     match gate()? {
         Mode::Unusable(r) => Ok(r),
-        Mode::Pipeline => with_memo(READ, |call| read_with(call, kind, pipeline)),
-        Mode::Base => with_memo(READ, |call| read_base_with(call, kind)),
+        Mode::Pipeline => with_memo(READ, |call| read_with(call, kind, pipeline, &writers)),
+        Mode::Base => with_memo(READ, |call| read_base_with(call, kind, &writers)),
     }
 }
 
@@ -421,10 +446,22 @@ fn move_with(call: &Call, kind: CrmKind, reference: &str, stage: &str) -> Result
     card(body(&moved)).ok_or_else(|| invalid(format!("memo did not answer the moved {}", kind.noun())))
 }
 
-/// Moves the owner's own deal or lead; Memo refuses a CRM's copy itself ("change it there"). The stage is always the
-/// card's own pipeline's: the page resolves a base column to it from the mapping it read.
-pub fn move_card(kind: CrmKind, reference: &str, stage: &str) -> Result<CrmCard, String> {
-    with_memo(WRITE, |call| move_with(call, kind, reference, stage))
+/// Moves the owner's own deal or lead through memo, which answers the card; memo refuses a CRM's copy itself ("change
+/// it there"). With `via`, the CRM's own CLI moves a CRM's copy and answers no card: the page reads it again. The
+/// stage is always the card's own pipeline's: the page resolves a base column to it from the mapping it read.
+pub fn move_card(kind: CrmKind, reference: &str, stage: &str, via: Option<&CrmVia>) -> Result<Option<CrmCard>, String> {
+    match via {
+        None => with_memo(WRITE, |call| move_with(call, kind, reference, stage)).map(Some),
+        Some(via) => writer::move_card(kind, reference, stage, via).map(|()| None),
+    }
+}
+
+pub fn scope(account: &CrmAccount, profile: Option<&str>) -> Result<CrmScope, String> {
+    writer::scope(account, profile)
+}
+
+pub fn scope_set(account: &CrmAccount, profile: &str, scope: &str) -> Result<(), String> {
+    writer::scope_set(account, profile, scope)
 }
 
 fn map_with(call: &Call, stage: &str, to: &str) -> Result<(), Failure> {
@@ -514,6 +551,10 @@ mod tests {
             "created_at":"2026-11-08T12:30:04.960Z","updated_at":"2026-11-08T12:30:04.960Z"})
     }
 
+    fn none(_: &str) -> writer::Writer {
+        writer::Writer::None
+    }
+
     fn fake(seen: &Mutex<Vec<Vec<String>>>, args: &[String]) -> Result<Value, Failure> {
         seen.lock().unwrap().push(args.to_vec());
         match (args[0].as_str(), args[1].as_str()) {
@@ -531,7 +572,7 @@ mod tests {
     #[test]
     fn reads_the_first_pipeline_its_stage_sums_and_its_cards() {
         let seen = Mutex::new(vec![]);
-        let read = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, None).unwrap();
+        let read = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, None, &none).unwrap();
         let CrmRead::Ready { pipelines, pipeline, stages, cards, more, movable } = read else { panic!("not ready") };
         assert_eq!(pipelines.len(), 2);
         assert_eq!(pipeline.as_deref(), Some("pipeline:2"));
@@ -569,7 +610,7 @@ mod tests {
         assert_eq!(busiest(&listed([0, 0, 0])).map(|p| p.reference.as_str()), Some("pipeline:0"));
 
         let seen = Mutex::new(vec![]);
-        let gone = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, Some("pipeline:99")).unwrap();
+        let gone = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, Some("pipeline:99"), &none).unwrap();
         let CrmRead::Ready { pipeline, .. } = gone else { panic!("not ready") };
         assert_eq!(pipeline.as_deref(), Some("pipeline:2"));
     }
@@ -577,10 +618,26 @@ mod tests {
     #[test]
     fn a_crm_pipeline_is_read_but_not_moved_from_the_app() {
         let seen = Mutex::new(vec![]);
-        let read = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, Some("pipeline:7")).unwrap();
+        let read = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, Some("pipeline:7"), &none).unwrap();
         let CrmRead::Ready { pipeline, movable, .. } = read else { panic!("not ready") };
         assert_eq!(pipeline.as_deref(), Some("pipeline:7"));
         assert_eq!(movable, CrmMovable::No { why: "crmCli".into() });
+    }
+
+    #[test]
+    fn a_crm_pipeline_moves_once_memo_names_its_cli_and_that_cli_can_write() {
+        let portal = json!({"provider":"bitrix24","account":"northstar.example"});
+        let listed = json!({"items":[{"ref":"pipeline:7","name":"Northstar sales","kind":"deal","account":portal,
+            "stages":[],"writes_with":{"tool":"b24","account":portal,"profile":null,"profiles":["sales","work"],
+            "why":"two b24 profiles are on this account; the owner chooses one"}}]});
+        let seen = Mutex::new(vec![]);
+        let call = |a: &[String]| if a[..2] == ["pipelines", "list"] { Ok(listed.clone()) } else { fake(&seen, a) };
+        let b24 = crate::catalog::tool("bitrix").unwrap();
+        let read = read_with(&call, CrmKind::Deal, None, &|_| writer::Writer::Ready(b24)).unwrap();
+        let CrmRead::Ready { pipelines, movable, .. } = read else { panic!("not ready") };
+        assert_eq!(movable, CrmMovable::Yes);
+        let w = pipelines[0].writes_with.as_ref().unwrap();
+        assert_eq!((w.profile.as_deref(), w.profiles.len()), (None, 2));
     }
 
     #[test]
@@ -629,6 +686,7 @@ mod tests {
                 Ok(based(a))
             },
             CrmKind::Deal,
+            &none,
         )
         .unwrap();
         let CrmRead::Base { pipelines, base, unsorted, mapping, cards, more } = read else { panic!("not a base read") };

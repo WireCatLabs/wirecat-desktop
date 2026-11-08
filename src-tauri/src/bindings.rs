@@ -67,6 +67,8 @@ fn types() -> Types {
         .register::<crate::crm_board::CrmCard>()
         .register::<crate::crm_board::CrmKind>()
         .register::<crate::crm_board::CrmBaseEdit>()
+        .register::<crate::crm_board::CrmVia>()
+        .register::<crate::crm_board::CrmWritesWith>()
 }
 
 fn render() -> String {

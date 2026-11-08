@@ -60,6 +60,18 @@ type Words = {
   project: string
   statusOf: Record<string, string>
   close: string
+  cancel: string
+  readOnlyInstall: (tool: string) => string
+  readOnlyUpdate: (tool: string) => string
+  profileTitle: (tool: string, account: string) => string
+  profileBody: (tool: string) => string
+  profileNone: (tool: string) => string
+  profileWhy: (why: string) => string
+  profileMove: string
+  profileUse: string
+  chooseProfile: string
+  scopeAs: (profile: string) => string
+  scopeWhy: { crmCli: string; crmCliMissing: (tool: string) => string; crmCliOld: (tool: string) => string }
 }
 
 const en: Words = {
@@ -127,6 +139,24 @@ const en: Words = {
   project: "Project",
   statusOf: { open: "Open", won: "Won", lost: "Lost" },
   close: "Close",
+  cancel: "Cancel",
+  readOnlyInstall: (tool) => `Read only: install ${tool} on the Tools page to move this CRM's cards from here.`,
+  readOnlyUpdate: (tool) => `Read only: update ${tool} on the Tools page to move this CRM's cards from here.`,
+  profileTitle: (tool, account) => `Which ${tool} profile changes ${account}?`,
+  profileBody: (tool) =>
+    `More than one ${tool} profile is signed in to this account. The one you choose moves its cards and saves its sync setting until WireCat closes.`,
+  profileNone: (tool) =>
+    `No ${tool} profile has synced this account yet, so its cards stay read only. Sign in on the Tools page and sync, then try again.`,
+  profileWhy: (why) => `Memo says: ${why}`,
+  profileMove: "Use it and move",
+  profileUse: "Use this profile",
+  chooseProfile: "Choose profile",
+  scopeAs: (profile) => `Through profile ${profile}.`,
+  scopeWhy: {
+    crmCli: "WireCat cannot change this setting yet.",
+    crmCliMissing: (tool) => `Install ${tool} on the Tools page to change this.`,
+    crmCliOld: (tool) => `Update ${tool} on the Tools page to change this.`,
+  },
 }
 
 const ru: Words = {
@@ -196,6 +226,26 @@ const ru: Words = {
   project: "Проект",
   statusOf: { open: "Открыта", won: "Выиграна", lost: "Проиграна" },
   close: "Закрыть",
+  cancel: "Отмена",
+  readOnlyInstall: (tool) =>
+    `Только чтение: установите ${tool} на странице «Инструменты», чтобы переносить карточки этой CRM отсюда.`,
+  readOnlyUpdate: (tool) =>
+    `Только чтение: обновите ${tool} на странице «Инструменты», чтобы переносить карточки этой CRM отсюда.`,
+  profileTitle: (tool, account) => `Какой профиль ${tool} меняет ${account}?`,
+  profileBody: (tool) =>
+    `В этот аккаунт вошли несколько профилей ${tool}. Выбранный переносит его карточки и сохраняет настройку синхронизации, пока WireCat открыт.`,
+  profileNone: (tool) =>
+    `Ни один профиль ${tool} ещё не синхронизировал этот аккаунт, поэтому его карточки только для чтения. Войдите на странице «Инструменты», синхронизируйте и попробуйте снова.`,
+  profileWhy: (why) => `Memo сообщает: ${why}`,
+  profileMove: "Выбрать и перенести",
+  profileUse: "Выбрать профиль",
+  chooseProfile: "Выбрать профиль",
+  scopeAs: (profile) => `Через профиль ${profile}.`,
+  scopeWhy: {
+    crmCli: "WireCat пока не может менять эту настройку.",
+    crmCliMissing: (tool) => `Установите ${tool} на странице «Инструменты», чтобы это менять.`,
+    crmCliOld: (tool) => `Обновите ${tool} на странице «Инструменты», чтобы это менять.`,
+  },
 }
 
 const es: Words = {
@@ -264,6 +314,26 @@ const es: Words = {
   project: "Proyecto",
   statusOf: { open: "Abierta", won: "Ganada", lost: "Perdida" },
   close: "Cerrar",
+  cancel: "Cancelar",
+  readOnlyInstall: (tool) =>
+    `Solo lectura: instala ${tool} en la página Herramientas para mover desde aquí las tarjetas de este CRM.`,
+  readOnlyUpdate: (tool) =>
+    `Solo lectura: actualiza ${tool} en la página Herramientas para mover desde aquí las tarjetas de este CRM.`,
+  profileTitle: (tool, account) => `¿Qué perfil de ${tool} cambia ${account}?`,
+  profileBody: (tool) =>
+    `Hay más de un perfil de ${tool} conectado a esta cuenta. El que elijas mueve sus tarjetas y guarda su ajuste de sincronización hasta que cierres WireCat.`,
+  profileNone: (tool) =>
+    `Ningún perfil de ${tool} ha sincronizado aún esta cuenta, así que sus tarjetas son de solo lectura. Inicia sesión en la página Herramientas, sincroniza y vuelve a intentarlo.`,
+  profileWhy: (why) => `Memo dice: ${why}`,
+  profileMove: "Usarlo y mover",
+  profileUse: "Usar este perfil",
+  chooseProfile: "Elegir perfil",
+  scopeAs: (profile) => `Con el perfil ${profile}.`,
+  scopeWhy: {
+    crmCli: "WireCat aún no puede cambiar este ajuste.",
+    crmCliMissing: (tool) => `Instala ${tool} en la página Herramientas para cambiarlo.`,
+    crmCliOld: (tool) => `Actualiza ${tool} en la página Herramientas para cambiarlo.`,
+  },
 }
 
 export const clientMessages: Messages<Words> = { en, ru, es }

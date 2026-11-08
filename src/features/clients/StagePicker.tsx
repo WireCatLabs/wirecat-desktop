@@ -3,8 +3,8 @@ import { choiceKey, preferred } from "@/domain/base-stages"
 import { useMessages } from "@/i18n"
 import type { CrmBaseStage, CrmCard } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
-import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
+import { Choice } from "./Choice"
 import { stageMessages } from "./messages-stages"
 import { useClients } from "./store"
 
@@ -53,28 +53,16 @@ export function StagePicker(props: {
         <fieldset className="flex flex-col gap-[0.6rem] border-0 p-0">
           <legend className="mb-[0.6rem] text-[0.95rem] text-ink-soft">{s.pickBody(card?.title ?? picking.ref)}</legend>
           {picking.stages.map((name) => (
-            <label key={name} className="relative">
-              <input
-                type="radio"
-                name="clients-stage-pick"
-                checked={stage === name}
-                onChange={() => setChoice(name)}
-                data-autofocus={stage === name || undefined}
-                className="peer sr-only"
-              />
-              <span
-                className={cx(
-                  "flex cursor-pointer items-center justify-between gap-3 rounded-[0.35rem] border px-3 py-2 text-[0.95rem] transition-colors duration-(--motion-fast)",
-                  "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand",
-                  stage === name
-                    ? "border-brand bg-brand-soft font-medium text-ink"
-                    : "border-line-strong bg-app text-ink-soft hover:border-ink-dim/60 hover:text-ink",
-                )}
-              >
-                {name}
-                {name === remembered && <span className="text-[0.85rem] text-ink-dim">{s.lastPicked}</span>}
-              </span>
-            </label>
+            <Choice
+              key={name}
+              group="clients-stage-pick"
+              checked={stage === name}
+              onChange={() => setChoice(name)}
+              autoFocus={stage === name}
+            >
+              {name}
+              {name === remembered && <span className="text-[0.85rem] text-ink-dim">{s.lastPicked}</span>}
+            </Choice>
           ))}
         </fieldset>
       )}

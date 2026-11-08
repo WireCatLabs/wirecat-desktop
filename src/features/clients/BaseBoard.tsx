@@ -8,10 +8,11 @@ import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
-import { type Based, useMove } from "./api"
+import { type Based, useCardMove } from "./api"
 import { Card, CardBody, OutcomeLamp } from "./ClientsBoard"
 import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
+import { ProfilePicker } from "./ProfilePicker"
 import { StagePicker } from "./StagePicker"
 import { useClients } from "./store"
 
@@ -32,7 +33,7 @@ export function BaseBoard({
   const lang = useLang()
   const asked = useClients((st) => st.pipeline[kind] ?? null)
   const refused = useClients((st) => st.refused)
-  const move = useMove(kind, asked)
+  const move = useCardMove(kind, asked, read.pipelines)
   const [note, setNote] = useState("")
   const pipes = new Map(read.pipelines.map((p) => [p.ref, p]))
   const byRef = new Map(cards.map((c) => [c.ref, c]))
@@ -66,7 +67,7 @@ export function BaseBoard({
     onDrop: ({ key, to }) => {
       const d = verdict(key, to)
       const c = byRef.get(key)
-      if (d.kind === "move") move.mutate({ ref: key, stage: d.stage })
+      if (d.kind === "move" && c) move.run(c, d.stage)
       if (d.kind === "choose" && c)
         useClients.getState().pick({ ref: key, pipeline: c.pipeline, base: to, stages: d.stages })
     },
@@ -165,9 +166,13 @@ export function BaseBoard({
       <StagePicker
         base={read.base}
         cards={byRef}
-        onMove={(ref, stage) => move.mutate({ ref, stage })}
+        onMove={(ref, stage) => {
+          const c = byRef.get(ref)
+          if (c) move.run(c, stage)
+        }}
         onCancel={(ref) => setNote(m.putBack(ref))}
       />
+      <ProfilePicker onChoose={move.chosen} onCancel={(ref) => setNote(ref ? m.putBack(ref) : "")} />
       <p aria-live="assertive" className="sr-only">
         {said}
       </p>

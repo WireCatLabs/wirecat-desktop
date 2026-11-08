@@ -1,7 +1,9 @@
 import { Columns3, Handshake, LayoutGrid, RefreshCw, UserRoundPlus } from "lucide-react"
+import { crmToolOf } from "@/domain/catalog"
 import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
 import { ToolNeeded } from "@/features/tools"
 import { useMessages } from "@/i18n"
+import type { CrmPipeline } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -130,9 +132,9 @@ function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
     <>
       <BaseFilters read={read} shown={shown} />
       {read.more && <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">{m.more(read.cards.length)}</p>}
-      {shown.some((c) => read.pipelines.find((p) => p.ref === c.pipeline)?.movable.kind === "no") && (
-        <p className="-mt-[0.6rem] max-w-[80ch] text-[0.9rem] text-ink-soft">{m.readOnly}</p>
-      )}
+      <ReadOnly
+        pipeline={read.pipelines.find((p) => p.movable.kind === "no" && shown.some((c) => c.pipeline === p.ref))}
+      />
       {filtered && shown.length === 0 && (
         <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">
           {m.noMatch}{" "}
@@ -158,9 +160,7 @@ function Loaded({ read, kind }: { read: Ready; kind: Kind }) {
     <>
       <ClientsFilters read={read} kind={kind} />
       {read.more && <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">{m.more(read.cards.length)}</p>}
-      {read.movable.kind === "no" && (
-        <p className="-mt-[0.6rem] max-w-[80ch] text-[0.9rem] text-ink-soft">{m.readOnly}</p>
-      )}
+      <ReadOnly pipeline={read.pipelines.find((p) => p.ref === read.pipeline && p.movable.kind === "no")} />
       {query.trim() && shown.length === 0 && (
         <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">
           {m.noMatch}{" "}
@@ -172,6 +172,21 @@ function Loaded({ read, kind }: { read: Ready; kind: Kind }) {
       <ClientsBoard read={read} kind={kind} cards={shown} />
     </>
   )
+}
+
+/** Why a CRM's cards stay put: its CLI is missing or too old, or memo names none the app can run. */
+function ReadOnly({ pipeline }: { pipeline: CrmPipeline | undefined }) {
+  const m = useMessages(clientMessages)
+  if (pipeline?.movable.kind !== "no") return null
+  const why = pipeline.movable.why
+  const tool = pipeline.account ? crmToolOf(pipeline.account.provider)?.name : undefined
+  const text =
+    tool && why === "crmCliMissing"
+      ? m.readOnlyInstall(tool)
+      : tool && why === "crmCliOld"
+        ? m.readOnlyUpdate(tool)
+        : m.readOnly
+  return <p className="-mt-[0.6rem] max-w-[80ch] text-[0.9rem] text-ink-soft">{text}</p>
 }
 
 /** The filters and the columns at their final size, so nothing below moves when memo answers. */

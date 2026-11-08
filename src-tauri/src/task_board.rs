@@ -279,12 +279,17 @@ pub(crate) enum Unusable {
 
 /// `None` when the installed Memo is at least `need`.
 pub(crate) fn memo_unusable(need: &str) -> Result<Option<Unusable>, String> {
-    let state = tools::detect(memo()?, false);
-    let Some(first) = state.installs.first() else { return Ok(Some(Unusable::Missing)) };
+    Ok(unusable(memo()?, need))
+}
+
+/// Why the installed `tool` cannot do what needs `need`.
+pub(crate) fn unusable(tool: &Tool, need: &str) -> Option<Unusable> {
+    let state = tools::detect(tool, false);
+    let Some(first) = state.installs.first() else { return Some(Unusable::Missing) };
     if too_old(first.version.as_deref(), need) {
-        return Ok(Some(Unusable::Old { version: first.version.clone(), need: need.to_string() }));
+        return Some(Unusable::Old { version: first.version.clone(), need: need.to_string() });
     }
-    Ok(None)
+    None
 }
 
 /// `None` when Memo can serve the page; otherwise what the page shows instead.

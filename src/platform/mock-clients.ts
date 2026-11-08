@@ -1,19 +1,31 @@
 import { busiestOf } from "@/domain/clients"
-import type { CrmAccount, CrmBaseEdit, CrmCard, CrmKind, CrmRead, CrmStage, CrmStageMap } from "./bindings"
+import type {
+  CrmAccount,
+  CrmBaseEdit,
+  CrmCard,
+  CrmKind,
+  CrmRead,
+  CrmStage,
+  CrmStageMap,
+  CrmWritesWith,
+} from "./bindings"
 import { delay } from "./mock-delay"
 import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 
 // The Clients page's stand-in for memo, with made-up companies and people only (Acme, Northstar). The owner's own
-// Sales pipeline moves; the Northstar portal's is a CRM copy, read-only as in the real app until its CLI is in the
-// catalog. `?clients=` none (no deals or leads yet), missing (no memo), old (memo too old), fail (the read fails),
-// loading (it never ends), crm-write (the portal's copies move and its scope switches, as once b24 is in the
-// catalog), move-fail (every move is refused), many (300 deals); `?kind=lead` opens the leads.
+// Sales pipeline moves; the Northstar portal's is a CRM copy, read-only as in the released app until memo names b24
+// as the CLI that writes it (`writes_with`). `?clients=` none (no deals or leads yet), missing (no memo), old (memo
+// too old), fail (the read fails), loading (it never ends), crm-write (memo names b24 profile work: the portal's
+// copies move through it and its scope switches), crm-profiles (two b24 profiles on the portal and none named: a
+// drop asks which, and the choice holds for the session), move-fail (every move is refused), many (300 deals);
+// `?kind=lead` opens the leads.
 //
 // By default memo has base stages (cli-core #2720): the owner's only own pipeline of a kind is adopted as its base set
 // (Sales, Leads), the board's columns are its stages, and a CRM pipeline's card stands under the base stage its stage
 // is confirmed onto. Northstar sales maps onto it, with "Preparing documents" and "Invoice sent" both on Quote (a drop
 // there asks which), none on Contract (a drop there is refused) and "Waiting for payment" unmapped; Northstar partners
-// and the "In progress" lead stage are suggestions not confirmed yet. Drops of the portal's cards need crm-write.
+// and the "In progress" lead stage are suggestions not confirmed yet. Drops of the portal's cards need crm-write or
+// crm-profiles.
 // `?clients=no-base` is a memo without base stages: one pipeline's own stages, as before, with Partners.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
@@ -313,13 +325,31 @@ const sumsOf = (here: CrmCard[]) => {
   return [...sums].map(([currency, s]) => ({ amount: (s.units / 100).toFixed(2), currency, items: s.items }))
 }
 
-/** `based` false is a memo without base stages, as `?clients=no-base`; `crmWrite` as `?clients=crm-write`. */
-export function clientsMock(based = scenario !== "no-base", crmWrite = scenario === "crm-write"): ClientsApi {
+/** Whether memo names b24 for the portal: not at all (a memo before `writes_with`), one profile, or two to choose. */
+export type CrmWriter = "none" | "one" | "choose"
+
+const SCENARIO_WRITER: CrmWriter = scenario === "crm-write" ? "one" : scenario === "crm-profiles" ? "choose" : "none"
+
+const writesWithOf = (writer: CrmWriter, account: CrmAccount | null): CrmWritesWith | null =>
+  account === null || writer === "none"
+    ? null
+    : writer === "one"
+      ? { tool: "b24", account, profile: "work", profiles: ["work"], why: null }
+      : {
+          tool: "b24",
+          account,
+          profile: null,
+          profiles: ["sales", "work"],
+          why: "2 b24 profiles are on bitrix24:northstar.example; the owner chooses one",
+        }
+
+/** `based` false is a memo without base stages, as `?clients=no-base`; `writer` as `?clients=crm-write|crm-profiles`. */
+export function clientsMock(based = scenario !== "no-base", writer: CrmWriter = SCENARIO_WRITER): ClientsApi {
   const PIPES = ALL_PIPES.filter((p) => p.only !== (based ? "legacy" : "base"))
   let cards = scenario === "none" ? [] : seeds(based)
   const scopes = new Map<string, "mine" | "all">()
   const applied = new Map<string, CrmAppliedScope>()
-  const writable = (pipe: Pipe | undefined) => pipe?.account === null || crmWrite
+  const writable = (pipe: Pipe | undefined) => pipe?.account === null || writer !== "none"
   let { bases, mapping } = baseSeeds()
   const movable = (p: Pipe) => (writable(p) ? { kind: "yes" as const } : { kind: "no" as const, why: "crmCli" })
   // memo answers a row's base stage only once its stage is confirmed onto one; the base set's own rows stand in it.
@@ -347,6 +377,7 @@ export function clientsMock(based = scenario !== "no-base", crmWrite = scenario 
         account: p.account,
         open: openIn(ours.filter((c) => c.pipeline === p.ref)),
         movable: movable(p),
+        writesWith: writesWithOf(writer, p.account),
       })),
       base: bases[kind].map((b) => ({
         ...b,
@@ -384,6 +415,7 @@ export function clientsMock(based = scenario !== "no-base", crmWrite = scenario 
           account: p.account,
           open: open(p.ref),
           movable: movable(p),
+          writesWith: writesWithOf(writer, p.account),
         })),
         pipeline: chosen?.ref ?? null,
         stages: chosen ? stagesOf(chosen, cards) : [],
@@ -393,11 +425,15 @@ export function clientsMock(based = scenario !== "no-base", crmWrite = scenario 
       }
       return read
     },
-    async clientsMove(_kind, ref, stage) {
+    async clientsMove(_kind, ref, stage, via) {
       await delay(600)
       if (scenario === "move-fail") throw new Error("the portal refused the change: access denied (crm.permission)")
       const found = cards.find((c) => c.ref === ref)
       const pipe = PIPES.find((p) => p.ref === found?.pipeline)
+      if (pipe?.account && !via) throw new Error(`${ref} is a copy from bitrix24; change it there`)
+      if (via && !writesWithOf(writer, pipe?.account ?? null)?.profiles.includes(via.profile)) {
+        throw new Error(`${ref} is not a deal of this CRM account (not_found)`)
+      }
       const outcome = pipe?.base
         ? bases[pipe.kind].find((b) => b.name === stage)?.outcome
         : pipe?.stages.find(([s]) => s === stage)?.[1]
@@ -405,17 +441,17 @@ export function clientsMock(based = scenario !== "no-base", crmWrite = scenario 
       if (!writable(pipe)) throw new Error(`${ref} is a copy from bitrix24; change it there`)
       const moved = { ...found, stage, status: outcome, updatedAt: new Date().toISOString() }
       cards = cards.map((c) => (c.ref === ref ? moved : c))
-      return moved
+      return via ? null : moved
     },
-    async clientsScope(account): Promise<CrmScope> {
+    async clientsScope(account, profile): Promise<CrmScope> {
       await delay(200)
       const key = `${account.provider}:${account.account}`
       const scope = scopes.get(key) ?? "mine"
-      return scenario === "crm-write"
-        ? { kind: "settable", scope, applied: applied.get(key) ?? { mode: "mine", also: [] } }
-        : { kind: "unavailable", scope, applied: null, why: "crmCli" }
+      if (writer === "none") return { kind: "unavailable", scope, applied: null, why: "crmCli" }
+      if (profile === null) return { kind: "unavailable", scope, applied: null, why: "profile" }
+      return { kind: "settable", scope, applied: applied.get(key) ?? { mode: "mine", also: [] } }
     },
-    async clientsScopeSet(account, scope) {
+    async clientsScopeSet(account, _profile, scope) {
       await delay(900)
       const key = `${account.provider}:${account.account}`
       scopes.set(key, scope)

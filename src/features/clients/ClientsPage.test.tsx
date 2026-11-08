@@ -1,16 +1,18 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
-import { clientsMock } from "@/platform/mock-clients"
+import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { ClientsPage } from "./ClientsPage"
 import { useClients } from "./store"
 
 // A mock of its own per test: a write still under way from the last test must not move a card in this one.
-function freshMemo(based?: boolean, crmWrite = false) {
-  const memo = clientsMock(based, crmWrite)
+function freshMemo(based?: boolean, writer: CrmWriter = "none") {
+  const memo = clientsMock(based, writer)
   vi.spyOn(platform, "clientsRead").mockImplementation(memo.clientsRead)
   vi.spyOn(platform, "clientsMove").mockImplementation(memo.clientsMove)
+  vi.spyOn(platform, "clientsScope").mockImplementation(memo.clientsScope)
+  vi.spyOn(platform, "clientsScopeSet").mockImplementation(memo.clientsScopeSet)
   vi.spyOn(platform, "clientsMapSet").mockImplementation(memo.clientsMapSet)
   vi.spyOn(platform, "clientsMapConfirm").mockImplementation(memo.clientsMapConfirm)
   vi.spyOn(platform, "clientsBaseEdit").mockImplementation(memo.clientsBaseEdit)
@@ -63,7 +65,7 @@ describe("Clients with a memo without base stages", () => {
     const site = await card("Site for Northstar")
     site.focus()
     await user.keyboard(" {ArrowRight} ")
-    expect(move).toHaveBeenCalledWith("deal", "deal:1", "Contract")
+    expect(move).toHaveBeenCalledWith("deal", "deal:1", "Contract", null)
     await waitFor(async () =>
       expect(within(await column(/^Contract/)).getByRole("button", { name: "Site for Northstar" })).toBeInTheDocument(),
     )
@@ -137,7 +139,7 @@ describe("Clients on the base stages", () => {
     const site = await card("Site for Northstar")
     site.focus()
     await user.keyboard(" {ArrowLeft} ")
-    expect(move).toHaveBeenCalledWith("deal", "deal:1", "Call")
+    expect(move).toHaveBeenCalledWith("deal", "deal:1", "Call", null)
   })
 
   it("keeps a CRM's cards in place on a drop and says they change in the CRM", async () => {
@@ -153,8 +155,10 @@ describe("Clients on the base stages", () => {
   })
 })
 
-describe("Clients on the base stages, once a CRM's cards can move", () => {
-  beforeEach(() => freshMemo(true, true))
+const WORK = { account: NORTHSTAR, profile: "work" }
+
+describe("Clients on the base stages, once memo names b24 for the portal", () => {
+  beforeEach(() => freshMemo(true, "one"))
 
   it("asks which stage when the column holds several of the pipeline's, and offers the last pick first", async () => {
     const user = userEvent.setup()
@@ -165,13 +169,13 @@ describe("Clients on the base stages, once a CRM's cards can move", () => {
     const picker = await screen.findByRole("dialog", { name: "Which stage of Quote?" })
     await user.click(within(picker).getByRole("radio", { name: /Invoice sent/ }))
     await user.click(within(picker).getByRole("button", { name: "Move" }))
-    expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "Invoice sent")
+    expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "Invoice sent", WORK)
     await waitFor(async () =>
       expect(within(await column(/^Quote/)).getByRole("button", { name: "Northstar: 40 office chairs" })).toBeVisible(),
     )
     ;(await card("Northstar: 40 office chairs")).focus()
     await user.keyboard(" {ArrowLeft} ")
-    await waitFor(() => expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "New"))
+    await waitFor(() => expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "New", WORK))
     await waitFor(async () =>
       expect(within(await column(/^Call/)).getByRole("button", { name: "Northstar: 40 office chairs" })).toBeVisible(),
     )
@@ -192,6 +196,71 @@ describe("Clients on the base stages, once a CRM's cards can move", () => {
     expect(back).toHaveTextContent("Not moved: no stage of this card's pipeline belongs to this column yet")
     await user.click(within(back).getByRole("button", { name: "Map stages" }))
     expect(await column(/^Unmapped/)).toHaveTextContent("Waiting for payment")
+  })
+})
+
+describe("Clients moving a CRM's cards through b24", () => {
+  const toInvoiceSent = async (user: ReturnType<typeof userEvent.setup>) => {
+    ;(await card("Northstar: 40 office chairs")).focus()
+    await user.keyboard(" {ArrowRight} ")
+    const picker = await screen.findByRole("dialog", { name: "Which stage of Quote?" })
+    await user.click(within(picker).getByRole("radio", { name: /Invoice sent/ }))
+    await user.click(within(picker).getByRole("button", { name: "Move" }))
+  }
+
+  it("puts the card back with b24's own reason when it refuses the move", async () => {
+    freshMemo(true, "one")
+    vi.spyOn(platform, "clientsMove").mockRejectedValue(new Error("deal:3 is not a deal of this CRM account"))
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await toInvoiceSent(user)
+    await waitFor(async () =>
+      expect(
+        within(await column(/^Call/)).getByRole("button", { name: "Northstar: 40 office chairs" }),
+      ).toHaveTextContent("Not moved: deal:3 is not a deal of this CRM account"),
+    )
+  })
+
+  it("writes nothing while memo names no profile, asks which one, and keeps the choice for the next move", async () => {
+    freshMemo(true, "choose")
+    const move = vi.spyOn(platform, "clientsMove")
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await toInvoiceSent(user)
+    const ask = await screen.findByRole("dialog", { name: "Which Bitrix24 profile changes northstar.example?" })
+    expect(ask).toHaveTextContent("the owner chooses one")
+    expect(within(ask).getByRole("button", { name: "Use it and move" })).toBeDisabled()
+    await user.click(within(ask).getByRole("button", { name: "Cancel" }))
+    expect(move).not.toHaveBeenCalled()
+    expect(within(await column(/^Call/)).getByRole("button", { name: "Northstar: 40 office chairs" })).toBeVisible()
+
+    await toInvoiceSent(user)
+    const again = await screen.findByRole("dialog", { name: "Which Bitrix24 profile changes northstar.example?" })
+    await user.click(within(again).getByRole("radio", { name: "sales" }))
+    await user.click(within(again).getByRole("button", { name: "Use it and move" }))
+    const sales = { account: NORTHSTAR, profile: "sales" }
+    expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "Invoice sent", sales)
+    await waitFor(async () =>
+      expect(within(await column(/^Quote/)).getByRole("button", { name: "Northstar: 40 office chairs" })).toBeVisible(),
+    )
+    ;(await card("Northstar: 40 office chairs")).focus()
+    await user.keyboard(" {ArrowLeft} ")
+    await waitFor(() => expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "New", sales))
+    expect(screen.queryByRole("dialog", { name: /Bitrix24 profile/ })).toBeNull()
+  })
+
+  it("switches the portal's sync scope through b24 as memo's profile, then syncs that profile", async () => {
+    freshMemo(true, "one")
+    const set = vi.spyOn(platform, "clientsScopeSet")
+    const sync = vi.spyOn(platform, "syncRun").mockResolvedValue()
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await card("Northstar: 40 office chairs")
+    const everyone = await screen.findByRole("radio", { name: "Everyone's" })
+    await waitFor(() => expect(everyone).toBeEnabled())
+    await user.click(everyone)
+    expect(set).toHaveBeenCalledWith(NORTHSTAR, "work", "all")
+    await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "work", expect.any(Function)))
   })
 })
 

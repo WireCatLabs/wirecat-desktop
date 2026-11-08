@@ -1,0 +1,65 @@
+import { useState } from "react"
+import { crmToolOf } from "@/domain/catalog"
+import { useMessages } from "@/i18n"
+import { Button } from "@/ui/Button"
+import { Dialog } from "@/ui/Dialog"
+import { Choice } from "./Choice"
+import { clientMessages } from "./messages"
+import { useClients } from "./store"
+
+/**
+ * memo names no profile of the CRM's CLI for the account: memo's reason, and its profiles to choose from. Nothing is
+ * preselected, so the owner always picks; with none to pick the card stays read only.
+ */
+export function ProfilePicker(props: { onChoose: (profile: string) => void; onCancel: (ref: string | null) => void }) {
+  const m = useMessages(clientMessages)
+  const asking = useClients((s) => s.asking)
+  const [choice, setChoice] = useState<string | null>(null)
+  const tool = asking ? (crmToolOf(asking.account.provider)?.name ?? asking.account.provider) : ""
+  const picked = choice !== null && asking?.profiles.includes(choice) ? choice : null
+  const close = (chosen: boolean) => {
+    const ref = useClients.getState().asking?.move?.ref ?? null
+    setChoice(null)
+    if (chosen && picked) return props.onChoose(picked)
+    useClients.getState().ask(null)
+    props.onCancel(ref)
+  }
+  const none = asking !== null && asking.profiles.length === 0
+  return (
+    <Dialog
+      open={asking !== null}
+      title={asking ? m.profileTitle(tool, asking.account.account) : ""}
+      onClose={() => close(false)}
+      actions={
+        none ? (
+          <Button size="sm" variant="primary" onClick={() => close(false)}>
+            {m.close}
+          </Button>
+        ) : (
+          <>
+            <Button size="sm" variant="ghost" onClick={() => close(false)}>
+              {m.cancel}
+            </Button>
+            <Button size="sm" variant="primary" disabled={!picked} onClick={() => close(true)}>
+              {asking?.move ? m.profileMove : m.profileUse}
+            </Button>
+          </>
+        )
+      }
+    >
+      {asking && (
+        <fieldset className="flex flex-col gap-[0.6rem] border-0 p-0">
+          <legend className="mb-[0.6rem] flex flex-col gap-[0.4rem] text-[0.95rem] text-ink-soft">
+            <span>{none ? m.profileNone(tool) : m.profileBody(tool)}</span>
+            {asking.why && <span className="text-[0.9rem] text-ink-dim">{m.profileWhy(asking.why)}</span>}
+          </legend>
+          {asking.profiles.map((name) => (
+            <Choice key={name} group="clients-profile-pick" checked={picked === name} onChange={() => setChoice(name)}>
+              {name}
+            </Choice>
+          ))}
+        </fieldset>
+      )}
+    </Dialog>
+  )
+}
