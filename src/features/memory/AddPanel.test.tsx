@@ -121,6 +121,17 @@ describe("Add to memory", () => {
     expect(within(panel).getByText("Kept (0)")).toBeInTheDocument()
   })
 
+  it("tells the owner to update memo when it cannot list readers yet, and still saves", async () => {
+    vi.spyOn(platform, "memoryReaders").mockRejectedValue(new Error("error: unknown command 'readers'"))
+    vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
+    await user.click(within(panel).getByRole("button", { name: "Save" }))
+    expect(await within(panel).findByText(/cannot read sources for facts yet/)).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Suggest facts" })).toBeDisabled()
+  })
+
   it("words memo's refusal of a link and stays on the step", async () => {
     vi.spyOn(platform, "memorySourceAdd").mockRejectedValue(new Error("source.needs-sign-in"))
     const user = userEvent.setup()

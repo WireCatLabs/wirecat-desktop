@@ -61,7 +61,9 @@ const fresh = {
 }
 
 export const useAddSource = create<AddState>((set, get) => ({
-  open: new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("add") === "open",
+  open:
+    platform.kind === "mock" &&
+    new URLSearchParams(typeof window === "undefined" ? "" : window.location.search).get("add") === "open",
   ...fresh,
   openPanel: () => set({ open: true }),
   close: () => set({ open: false, ...(get().step === "done" ? fresh : {}) }),

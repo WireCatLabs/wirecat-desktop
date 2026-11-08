@@ -4,6 +4,7 @@ import { tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { Reader } from "@/platform/memory-add-schemas"
 import { useReaders } from "@/shared/readers-store"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Radio } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
@@ -21,6 +22,12 @@ type Provider = (typeof PROVIDERS)[number]
  * even when only one reader exists; a key goes to memo once and is never shown back.
  */
 export function ReadersSetting() {
+  const memo = useTools((s) => (s.installs.memo?.length ?? 0) > 0)
+  // Without memo there is nothing to choose, and asking would start a failing run on every visit.
+  return memo ? <Readers /> : null
+}
+
+function Readers() {
   const m = useMessages(readersMessages)
   const readers = useReaders((s) => s.readers)
   const error = useReaders((s) => s.error)

@@ -65,7 +65,7 @@ export function ReviewPanel({ entry }: { entry: MemoryEntry }) {
           <ReviewBody entry={entry} review={review.review} />
         )}
       </AutoHeight>
-      <Answers entry={entry} suggestion={review?.state === "ready" ? review.review.suggestions[0]?.body : undefined} />
+      <Answers entry={entry} />
     </section>
   )
 }
@@ -139,7 +139,7 @@ function Version({ label, text, empty }: { label: string; text: string | null; e
 }
 
 /** Still true, Dismiss (with the owner's reason), Edit and No longer true; Edit opens the record's own correction. */
-function Answers({ entry, suggestion }: { entry: MemoryEntry; suggestion: string | undefined }) {
+function Answers({ entry }: { entry: MemoryEntry }) {
   const m = useMessages(reviewMessages)
   const revoke = useMemory(canRevoke)
   const busy = useMemory((s) => s.busy[entry.ref])
@@ -155,7 +155,7 @@ function Answers({ entry, suggestion }: { entry: MemoryEntry; suggestion: string
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
   const choices = reviewChoices(entry, revoke)
   const act = (choice: ReviewChoice) => {
-    if (choice === "correct") startCorrect(entry.ref, suggestion)
+    if (choice === "correct") startCorrect(entry.ref)
     else if (choice === "dismiss") setAsking(true)
     else answerReview(entry.ref, choice)
   }

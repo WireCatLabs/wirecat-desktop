@@ -53,6 +53,10 @@ const en = {
   namedPartial: "Only the first organizations were checked.",
   readingNames: "Looking for names…",
   namesFailed: "Could not look for names in it:",
+  readerNames: { "claude-code": "Claude Code", codex: "Codex", ollama: "Ollama", key: "Your API key" } as Record<
+    string,
+    string
+  >,
   reads: (reader: string, model: string | null) => `${reader}${model ? ` (${model})` : ""} reads its text.`,
   leaves: "It leaves this computer.",
   stays: "It does not leave this computer.",
@@ -84,6 +88,7 @@ const en = {
   done: "Done",
   failed: "Could not do it:",
   tooOld: "Memo on this computer cannot add sources yet. Update it on the Tools page.",
+  tooOldReaders: "Memo on this computer cannot read sources for facts yet. Update it on the Tools page to get facts.",
   reasons: {
     "source.unsupported":
       "WireCat cannot read this kind of file or page. Save it as PDF, Word or plain text and add that.",
@@ -163,6 +168,7 @@ const ru: typeof en = {
   namedPartial: "Проверены только первые организации.",
   readingNames: "Ищем имена…",
   namesFailed: "Не удалось найти в нём имена:",
+  readerNames: { "claude-code": "Claude Code", codex: "Codex", ollama: "Ollama", key: "ваш ключ API" },
   reads: (reader: string, model: string | null) => `Текст читает ${reader}${model ? ` (${model})` : ""}.`,
   leaves: "Текст уходит с этого компьютера.",
   stays: "Текст не покидает этот компьютер.",
@@ -196,6 +202,8 @@ const ru: typeof en = {
   done: "Готово",
   failed: "Не получилось:",
   tooOld: "Memo на этом компьютере пока не умеет добавлять источники. Обновите его на странице Инструменты.",
+  tooOldReaders:
+    "Memo на этом компьютере пока не умеет искать факты в источниках. Обновите его на странице Инструменты.",
   reasons: {
     "source.unsupported":
       "WireCat не читает такой файл или страницу. Сохраните как PDF, Word или текст и добавьте его.",
@@ -276,6 +284,7 @@ const es: typeof en = {
   namedPartial: "Solo se revisaron las primeras organizaciones.",
   readingNames: "Buscando nombres…",
   namesFailed: "No se pudieron buscar nombres en él:",
+  readerNames: { "claude-code": "Claude Code", codex: "Codex", ollama: "Ollama", key: "Tu clave de API" },
   reads: (reader: string, model: string | null) => `${reader}${model ? ` (${model})` : ""} lee su texto.`,
   leaves: "Sale de este ordenador.",
   stays: "No sale de este ordenador.",
@@ -307,6 +316,8 @@ const es: typeof en = {
   done: "Listo",
   failed: "No se pudo hacer:",
   tooOld: "Memo en este ordenador aún no puede añadir fuentes. Actualízalo en la página Herramientas.",
+  tooOldReaders:
+    "Memo en este ordenador aún no puede sacar hechos de las fuentes. Actualízalo en la página Herramientas.",
   reasons: {
     "source.unsupported": "WireCat no lee este tipo de archivo o página. Guárdalo como PDF, Word o texto y añade ese.",
     "source.no-text": "No tiene texto. Añade un archivo con texto o pega el texto.",

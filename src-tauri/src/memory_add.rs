@@ -40,7 +40,22 @@ fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration) -> 
         },
     )
     .map_err(|e| e.to_string())?;
-    answer(&run::Output { code, stdout, stderr })
+    answer_hiding(&run::Output { code, stdout, stderr }, input)
+}
+
+/// memo's refusal can quote what it read on stdin: the owner's pasted text or the key. It is cut out of the raw output
+/// before `answer` redacts it, since redaction could split it so a later replace misses the pieces.
+fn answer_hiding(out: &run::Output, input: Option<&[u8]>) -> Result<Value, String> {
+    let secret = input.map(String::from_utf8_lossy);
+    let secret = secret.as_deref().map(str::trim).filter(|s| s.chars().count() >= 4);
+    match (answer(out), secret) {
+        (Err(_), Some(s)) if out.stdout.contains(s) || out.stderr.contains(s) => answer(&run::Output {
+            code: out.code,
+            stdout: out.stdout.replace(s, "…"),
+            stderr: out.stderr.replace(s, "…"),
+        }),
+        (result, _) => result,
+    }
 }
 
 fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Feed) -> Result<T, String>) -> Result<T, String> {
@@ -195,17 +210,9 @@ fn added(v: &Value) -> Option<Added> {
     })
 }
 
-/// memo's refusal can quote what it was given; the owner's pasted text is cut out of it before it leaves Rust.
-fn without_text(error: String, input: Option<&str>) -> String {
-    match input.map(str::trim).filter(|t| t.chars().count() >= 4) {
-        Some(t) if error.contains(t) => error.replace(t, "…"),
-        _ => error,
-    }
-}
-
 fn add_with(feed: &Feed, source: &AddSource) -> Result<Added, String> {
     let (args, input) = add_args(source)?;
-    let v = feed(&args, input.as_deref().map(str::as_bytes)).map_err(|e| without_text(e, input.as_deref()))?;
+    let v = feed(&args, input.as_deref().map(str::as_bytes))?;
     added(&v).ok_or_else(|| "Memo's answer did not describe the source".into())
 }
 
@@ -375,10 +382,6 @@ pub struct KeySaved {
     pub source: Option<String>,
 }
 
-fn mask(e: &str, key: &str) -> String {
-    if key.is_empty() { e.to_string() } else { e.replace(key, "…") }
-}
-
 fn key_with(feed: &Feed, provider: &str, key: &str) -> Result<KeySaved, String> {
     let key = key.trim();
     if key.is_empty() || key.len() > 400 || key.chars().any(|c| c.is_whitespace() || c.is_control()) {
@@ -387,7 +390,7 @@ fn key_with(feed: &Feed, provider: &str, key: &str) -> Result<KeySaved, String> 
     let provider = id_word("provider", provider)?;
     let mut args: Vec<&str> = KEY.to_vec();
     args.push(provider);
-    let v = feed(&words(&args), Some(key.as_bytes())).map_err(|e| mask(&e, key))?;
+    let v = feed(&words(&args), Some(key.as_bytes()))?;
     let item = body(&v);
     if item["stored"].as_bool() != Some(true) {
         return Err("Memo did not say the key was saved.".into());
@@ -444,7 +447,9 @@ fn suggest_with(
     let item = body(&v);
     let id = batch_id(item).ok_or("Memo did not name the suggested facts")?;
     let shown = feed(&words(&["actions", "show", &id]), None)?;
-    let batch = action(body(&shown)).ok_or("Memo's answer did not describe the suggested facts")?;
+    let batch = action(body(&shown))
+        .filter(|b| b.findings.is_some())
+        .ok_or("Memo's answer did not describe the suggested facts")?;
     Ok(Suggested { batch, reused: item["reused"].as_bool().unwrap_or(false) })
 }
 
@@ -544,11 +549,32 @@ mod tests {
     }
 
     #[test]
-    fn a_refusal_never_carries_the_pasted_text_back() {
-        let fake = Fake::new(|_, i| Err(format!("could not read: {}", i.unwrap_or_default())));
-        let err = add_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), &text_source("the secret plan for Q3"))
-            .unwrap_err();
-        assert!(!err.contains("secret plan"), "{err}");
+    fn a_refusal_never_carries_back_what_memo_read_on_stdin() {
+        let refusal = |message: &str| run::Output {
+            code: Some(1),
+            stdout: format!(r#"{{"error":{{"code":"validation_error","message":"{message}"}}}}"#),
+            stderr: format!("{message}\n"),
+        };
+        for secret in ["sk-proj-AbCdEf0123456789", "the secret plan for Q3"] {
+            let err = answer_hiding(&refusal(&format!("refused: {secret}")), Some(secret.as_bytes())).unwrap_err();
+            assert!(!err.contains(secret), "{err}");
+            assert!(err.contains("refused"), "{err}");
+        }
+        let ok = run::Output { code: Some(0), stdout: r#"{"item":{"stored":true}}"#.into(), stderr: String::new() };
+        assert!(answer_hiding(&ok, Some(b"stored")).is_ok(), "a successful answer is left as it is");
+    }
+
+    #[test]
+    fn reads_the_source_the_interface_sends() {
+        let s: AddSource = serde_json::from_value(
+            json!({"given":{"kind":"text","text":"notes"},"title":null,"subjects":["person:7"]}),
+        )
+        .unwrap();
+        assert!(matches!(s.given, Given::Text { ref text } if text == "notes"));
+        let l: AddSource =
+            serde_json::from_value(json!({"given":{"kind":"link","url":"https://x.org"},"title":"T","subjects":[]}))
+                .unwrap();
+        assert!(matches!(l.given, Given::Link { .. }));
     }
 
     #[test]
@@ -628,9 +654,8 @@ mod tests {
 
     #[test]
     fn the_key_goes_on_stdin_and_never_comes_back() {
-        let fake = Fake::new(|_, i| Err(format!("rejected key {}", i.unwrap_or_default())));
-        let err = key_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), "openai", " sk-test-123 ").unwrap_err();
-        assert!(!err.contains("sk-test-123"), "{err}");
+        let fake = Fake::new(|_, _| Err("the provider refused the key".into()));
+        assert!(key_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), "openai", " sk-test-123 ").is_err());
         let (args, input) = &fake.seen()[0];
         assert_eq!(args, &strs(&["models", "keys", "set", "openai", "--json", "--no-record"]));
         assert_eq!(input.as_deref(), Some("sk-test-123"));

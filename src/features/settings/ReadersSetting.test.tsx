@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import type { Reader } from "@/platform/memory-add-schemas"
 import { useReaders } from "@/shared/readers-store"
+import { useTools } from "@/shared/tools-store"
 import { render, screen, waitFor } from "@/testing/render"
 import { ReadersSetting } from "./ReadersSetting"
 
@@ -19,7 +20,12 @@ const reader = (id: string, over: Partial<Reader> = {}): Reader => ({
 })
 
 describe("Reading for facts", () => {
-  beforeEach(() => useReaders.setState(useReaders.getInitialState(), true))
+  beforeEach(() => {
+    useReaders.setState(useReaders.getInitialState(), true)
+    useTools.setState({
+      installs: { memo: [{ path: "/bin/memo", version: "0.132.0", manager: "npm", problem: null }] },
+    })
+  })
 
   it("starts with nothing chosen and saves the owner's pick", async () => {
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([
@@ -56,6 +62,14 @@ describe("Reading for facts", () => {
     expect(field).toHaveValue("")
     expect(await screen.findByRole("status")).toHaveTextContent("Saved in the system keyring.")
     expect(screen.queryByDisplayValue("sk-test-123")).not.toBeInTheDocument()
+  })
+
+  it("is not shown, and asks memo nothing, when memo is not installed", () => {
+    useTools.setState({ installs: {} })
+    const readers = vi.spyOn(platform, "memoryReaders")
+    render(<ReadersSetting />)
+    expect(screen.queryByRole("region", { name: "Reading for facts" })).not.toBeInTheDocument()
+    expect(readers).not.toHaveBeenCalled()
   })
 
   it("says an older memo cannot do it yet", async () => {

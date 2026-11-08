@@ -223,6 +223,13 @@ mod tests {
     }
 
     #[test]
+    fn reads_the_answers_the_interface_sends() {
+        let answers: Vec<Answer> = serde_json::from_value(json!(["stillTrue", "dismiss", "withdraw"])).unwrap();
+        assert_eq!(answers, [Answer::StillTrue, Answer::Dismiss, Answer::Withdraw]);
+        assert!(serde_json::from_value::<Answer>(json!("correct")).is_err(), "Edit is the record's own correction");
+    }
+
+    #[test]
     fn reads_each_source_as_cited_and_as_it_is_now() {
         let f = fake(Value::Null);
         let r = show_with(&|a: &[String]| f.call(a), "memory:3", "17090").unwrap();
