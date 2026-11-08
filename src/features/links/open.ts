@@ -1,7 +1,7 @@
 import { tools } from "@/domain/catalog"
 import { isConversation } from "@/domain/conversation"
 import { type DeepLinkTarget, toolOfProvider } from "@/domain/links"
-import { taskQuery } from "@/domain/tasks"
+import { projectNamed, projectQuery, taskQuery } from "@/domain/tasks"
 import { openConversation } from "@/features/conversation"
 import { useMemory } from "@/features/memory"
 import { useTasks } from "@/features/tasks"
@@ -41,6 +41,14 @@ async function openDigest(target: Extract<DeepLinkTarget, { type: "digest" }>) {
   useNav.getState().go("digests")
 }
 
+async function openProject(target: Extract<DeepLinkTarget, { type: "project" }>) {
+  const projects = await platform.projectList().catch(() => [])
+  const project = projectNamed(projects, target.key)
+  if (!project) return show({ kind: "unsupported", target })
+  useNav.getState().go("tasks")
+  useTasks.getState().setQuery(projectQuery(project.key))
+}
+
 async function openProposal(target: Extract<DeepLinkTarget, { type: "proposal" }>) {
   const ref = memoryRefOf(target.id)
   if (!ref) return show({ kind: "unsupported", target })
@@ -68,6 +76,8 @@ export async function openTarget(target: DeepLinkTarget | null) {
       return openProposal(target)
     case "digest":
       return openDigest(target)
+    case "project":
+      return openProject(target)
     case "sync": {
       const id = toolOfProvider(target.tool)
       if (!tools.some((t) => t.id === id)) return show({ kind: "unsupported", target })

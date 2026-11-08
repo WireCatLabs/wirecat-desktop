@@ -8,6 +8,8 @@ import {
   dueTone,
   labelOf,
   placeKey,
+  projectNamed,
+  projectQuery,
   setDue,
   setField,
   valuesOf,
@@ -90,5 +92,19 @@ describe("priority, dates and order", () => {
   it("moves a key in the page's order", () => {
     expect(placeKey(["A", "B", "C"], "C", "A")).toEqual(["C", "A", "B"])
     expect(placeKey(["A", "B", "C"], "A", null)).toEqual(["B", "C", "A"])
+  })
+})
+
+describe("a project link", () => {
+  const projects = [
+    { ref: "project:1", key: "HRB", name: "Harbour launch" },
+    { ref: null, key: "Офис 2", name: "Office" },
+  ]
+  it("finds the project by key in any case or by store reference, and searches Tasks on it", () => {
+    expect(projectNamed(projects, "hrb")?.key).toBe("HRB")
+    expect(projectNamed(projects, "1")?.key).toBe("HRB")
+    expect(projectNamed(projects, "north-wind")).toBeNull()
+    expect(projectQuery("HRB")).toBe("project:HRB")
+    expect(projectQuery("Офис 2")).toBe('project:"Офис 2"')
   })
 })

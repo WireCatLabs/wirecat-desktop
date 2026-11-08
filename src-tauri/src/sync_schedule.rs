@@ -44,8 +44,8 @@ fn name_of(tool: &Tool, profile: &str) -> Result<String, String> {
     Ok(format!("{}-{}", tool.bin, clean.trim_matches('-')))
 }
 
-/// memo's `every 5m`, `every 1h`, `every 90m`: the catalog's interval it is, if any.
-fn every_of(src: &ScheduleSource, when: &str) -> Option<String> {
+/// memo's `every 5m`, `every 1h`, `every 90m`: which of `choices` it is, if any.
+pub(crate) fn interval_of(choices: &[String], when: &str) -> Option<String> {
     let words = when.strip_prefix("every ")?;
     let minutes = |d: &str| -> Option<u64> {
         let (n, unit) = d.split_at(d.find(|c: char| !c.is_ascii_digit())?);
@@ -58,14 +58,14 @@ fn every_of(src: &ScheduleSource, when: &str) -> Option<String> {
         }
     };
     let have = minutes(words)?;
-    src.choices.iter().find(|c| minutes(c) == Some(have)).cloned()
+    choices.iter().find(|c| minutes(c) == Some(have)).cloned()
 }
 
 fn read(src: &ScheduleSource, name: &str, v: &Value) -> SyncSchedule {
     let found = v["items"].as_array().into_iter().flatten().find(|i| i["name"].as_str() == Some(name));
     let Some(item) = found else { return SyncSchedule::Off };
     let when = item["when"].as_str().unwrap_or_default().to_string();
-    SyncSchedule::On { every: every_of(src, &when), when, last: run_of(&item["last"]).map(Box::new) }
+    SyncSchedule::On { every: interval_of(&src.choices, &when), when, last: run_of(&item["last"]).map(Box::new) }
 }
 
 fn words(list: &[&str]) -> Vec<String> {
@@ -153,8 +153,8 @@ mod tests {
         assert_eq!(every.as_deref(), Some("5m"));
         assert_eq!(last.failing_since.as_deref(), Some("2026-11-08T08:00:00Z"));
         assert_eq!(read(src, "mail-ya", &v), SyncSchedule::Off);
-        assert_eq!(every_of(src, "every 60m").as_deref(), Some("1h"));
-        assert_eq!(every_of(src, "every 7m"), None);
-        assert_eq!(every_of(src, "daily at 04:30"), None);
+        assert_eq!(interval_of(&src.choices, "every 60m").as_deref(), Some("1h"));
+        assert_eq!(interval_of(&src.choices, "every 7m"), None);
+        assert_eq!(interval_of(&src.choices, "daily at 04:30"), None);
     }
 }

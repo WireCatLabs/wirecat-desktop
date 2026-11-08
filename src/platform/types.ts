@@ -347,8 +347,9 @@ export type Platform = {
   backgroundRun(id: string, profile: string, action: BackgroundAction): Promise<BackgroundOutcome>
   /** memo's mail agent schedule (`mailAgent` in the catalog): on or off, its last run and the day's spend. */
   mailAgentStatus(id: string): Promise<MailAgent>
-  /** memo's own `schedule agent` or `schedule remove`; rejects with memo's words, masked. */
-  mailAgentSet(id: string, on: boolean): Promise<MailAgent>
+  /** memo's own `schedule agent` at `every` (the catalog's default when left out) or `schedule remove`; rejects
+   * with memo's words, masked. On again with another interval replaces the schedule. */
+  mailAgentSet(id: string, on: boolean, every?: string): Promise<MailAgent>
   /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */
   mailAgentWaiting(id: string): Promise<number | null>
   /** memo's first run (`notesSetup` in the catalog): its notes folders on this computer and the search model. */

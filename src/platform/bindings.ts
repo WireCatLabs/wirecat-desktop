@@ -379,7 +379,9 @@ export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | 
  *  `spent_today_usd` is `None` where memo does not report it; the caps are `None` from a memo built on cli-core older than 0.584, and
  *  `max_cost_per_day_usd` is 0 when there is no daily cap.
  */
-{ state: "on"; when: string; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null };
+{ state: "on"; when: string; 
+/**  `30m` when memo's `when` is one of the catalog's intervals. */
+every: string | null; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null };
 
 export type Managed = {
 	version: string,

@@ -182,7 +182,17 @@ const ToolSchema = v.object({
     null,
   ),
   /** Only email: memo's scheduled agent that reads new mail and proposes; Rust runs its commands. */
-  mailAgent: v.optional(v.nullable(v.object({ via: v.string(), name: v.string() })), null),
+  mailAgent: v.optional(
+    v.nullable(
+      v.object({
+        via: v.string(),
+        name: v.string(),
+        every: v.optional(v.string(), "30m"),
+        choices: v.optional(v.array(v.string()), []),
+      }),
+    ),
+    null,
+  ),
   /** The tool's own sync; `run` is null when there is none to start and `note` says how it syncs instead. */
   sync: v.nullable(
     v.object({

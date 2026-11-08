@@ -10,16 +10,18 @@ import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
+import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { Switch } from "@/ui/Switch"
 import { ago } from "./connect-steps"
 import { openTool } from "./go"
 import { type MailAgentText, mailAgentMessages } from "./messages-mail-agent"
+import { syncScheduleMessages } from "./messages-sync-schedule"
 
 const TONE: Record<RunOutcome, LampTone> = { ok: "ok", skipped: "warn", failed: "bad" }
 
-type Pending = { on: boolean } | null
-type Failure = { on: boolean | null; message: string } | null
+type Pending = { on: boolean; every?: string } | null
+type Failure = { on: boolean | null; every?: string; message: string } | null
 
 const skipWhy = (m: MailAgentText, { reason, why }: Skipped) =>
   (reason && Object.hasOwn(m.skipReasons, reason) ? m.skipReasons[reason] : undefined) ?? why
@@ -32,9 +34,14 @@ const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
  */
 export function MailAgent({ tool }: { tool: CatalogTool }) {
   const m = useMessages(mailAgentMessages)
+  const duration = useMessages(syncScheduleMessages).duration
   const headingId = useId()
   const switchId = useId()
   const helpId = useId()
+  const everyId = useId()
+  const choices = tool.mailAgent?.choices ?? []
+  // The interval to turn on with: the schedule's own while it runs, else the last one seen here, else the catalog's.
+  const [every, setEvery] = useState(tool.mailAgent?.every ?? "30m")
   const [state, setState] = useState<State | null>(null)
   const [waiting, setWaiting] = useState<number | null>(null)
   const [pending, setPending] = useState<Pending>(null)
@@ -47,7 +54,11 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
   useEffect(() => {
     let live = true
     platform.mailAgentStatus(tool.id).then(
-      (s) => live && setState(s),
+      (s) => {
+        if (!live) return
+        setState(s)
+        if (s.state === "on" && s.every) setEvery(s.every)
+      },
       (e) => live && setFailure({ on: null, message: messageOf(e) }),
     )
     loadWaiting()
@@ -56,21 +67,29 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
     }
   }, [tool.id, loadWaiting])
 
-  const change = (on: boolean) => {
-    setPending({ on })
+  const change = (on: boolean, interval = every) => {
+    setPending(on && state?.state === "on" ? { on, every: interval } : { on })
     setFailure(null)
-    platform.mailAgentSet(tool.id, on).then(
+    platform.mailAgentSet(tool.id, on, on ? interval : undefined).then(
       (s) => {
         setState(s)
+        if (s.state === "on" && s.every) setEvery(s.every)
         setPending(null)
         loadWaiting()
       },
       (e) => {
         setPending(null)
-        setFailure({ on, message: messageOf(e) })
+        setFailure(
+          on && state?.state === "on" ? { on, every: interval, message: messageOf(e) } : { on, message: messageOf(e) },
+        )
       },
     )
   }
+  const pick = (next: string) => {
+    setEvery(next)
+    if (state?.state === "on" && next !== state.every) change(true, next)
+  }
+  const shownEvery = state?.state === "on" ? state.every : every
 
   const on = pending ? pending.on : state?.state === "on"
   const usable = state?.state === "on" || (state?.state === "off" && state.harness)
@@ -106,14 +125,30 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
             <label htmlFor={switchId} className="font-medium">
               {m.toggle}
             </label>
+            {choices.length > 0 && (
+              <>
+                <label htmlFor={everyId} className="ml-2 text-[0.9rem] text-ink-soft">
+                  {m.every}
+                </label>
+                <Select
+                  id={everyId}
+                  size="sm"
+                  value={shownEvery ?? ""}
+                  {...(state?.state === "on" ? { placeholder: state.when } : {})}
+                  disabled={pending !== null || !usable}
+                  onChange={pick}
+                  options={choices.map((c) => ({ value: c, label: duration(c) }))}
+                />
+              </>
+            )}
             {pending && (
               <span className="text-[0.9rem] text-ink-dim" aria-live="polite">
-                {pending.on ? m.turningOn : m.turningOff}
+                {pending.every ? m.changing : pending.on ? m.turningOn : m.turningOff}
               </span>
             )}
           </div>
           <p id={helpId} className="text-[0.875rem] text-ink-dim">
-            {m.toggleHelp}
+            {m.toggleHelp(shownEvery ? duration(shownEvery) : state?.state === "on" ? state.when : duration(every))}
           </p>
         </div>
       )}
@@ -136,9 +171,11 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
           {failure &&
             (failure.on === null
               ? m.readFailed(failure.message)
-              : failure.on
-                ? m.failedOn(failure.message)
-                : m.failedOff(failure.message))}
+              : failure.every
+                ? m.failedEvery(failure.message)
+                : failure.on
+                  ? m.failedOn(failure.message)
+                  : m.failedOff(failure.message))}
         </ErrorNotice>
       </Collapse>
       <Collapse open={waiting !== null}>

@@ -59,7 +59,7 @@ const full = (date: string, summary: string) => ({
           type: "task",
           topic: "Reconciliation for North Wind",
           due: iso(dayFrom(-2)),
-          refs: ["task:HRB-14", "project:north-wind"],
+          refs: ["task:HRB-14", "project:HRB"],
         },
         { type: "task", topic: "Office repair estimate", due: at(0, 23), who: "Marina Orlova", refs: ["task:HRB-15"] },
       ],

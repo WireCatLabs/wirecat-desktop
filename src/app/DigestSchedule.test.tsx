@@ -2,10 +2,11 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useDigests } from "@/features/digests"
 import { useDigestSchedule } from "@/features/digests/schedule-store"
+import { useTasks } from "@/features/tasks"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
-import { render, screen, waitFor, within } from "@/testing/render"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
 beforeEach(() => {
@@ -175,4 +176,18 @@ describe("a digest item", () => {
     expect(screen.getByText(/no page for this person yet/)).toBeInTheDocument()
     expect(useNav.getState().active).toBe("open")
   }, 15000)
+
+  it("opens a known project's tasks, and an unknown one on the calm not-yet page", async () => {
+    const { user } = await openDigests()
+    const today = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
+    await user.click(within(today).getByRole("button", { name: "Open: project HRB" }))
+    await waitFor(() => expect(useNav.getState().active).toBe("tasks"), { timeout: 4000 })
+    expect(useTasks.getState().query).toBe("project:HRB")
+
+    act(() => useNav.getState().go("digests"))
+    const again = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
+    await user.click(within(again).getByRole("button", { name: "Open: project khimki-warehouse" }))
+    expect(await screen.findByRole("heading", { name: "This can't open in WireCat yet" })).toBeInTheDocument()
+    expect(screen.getByText(/no page for this project yet/)).toBeInTheDocument()
+  }, 20000)
 })

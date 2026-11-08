@@ -253,7 +253,7 @@ function createTauri(): Platform {
     backgroundStatus: (id, profile) => invoke("background_status", { id, profile }),
     backgroundRun: (id, profile, action) => invoke("background_run", { id, profile, action }),
     mailAgentStatus: (id) => invoke("mail_agent_status", { id }),
-    mailAgentSet: (id, on) => invoke("mail_agent_set", { id, on }),
+    mailAgentSet: (id, on, every) => invoke("mail_agent_set", { id, on, every: every ?? null }),
     mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
     notesSetupStatus: (id) => invoke("notes_setup_status", { id }),
     notesPickFolder: () => invoke("notes_pick_folder"),
