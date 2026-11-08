@@ -114,7 +114,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
     <li data-tour="tool" className="border-line border-b last:border-b-0">
       <div
         ref={header}
-        className="grid min-h-[4.5rem] grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_4.5rem_6.6rem_8.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_4.5rem_7.8rem_9.6rem] xl:gap-x-[1.2rem] px-[1.3rem]"
+        className="grid min-h-[4.5rem] grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_4.5rem_6.6rem_10.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_4.5rem_7.8rem_11rem] xl:gap-x-[1.2rem] px-[1.3rem]"
       >
         <Lamp
           tone={severity ?? lampTone[status.kind]}

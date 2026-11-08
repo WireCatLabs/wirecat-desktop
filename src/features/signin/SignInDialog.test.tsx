@@ -188,7 +188,7 @@ describe("signing in to WhatsApp inside the window", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Type a name for this account first")
     expect(screen.getByLabelText(/Account name/)).toHaveFocus()
     await userEvent.type(screen.getByLabelText(/Account name/), "-bad{Enter}")
-    expect(screen.getByRole("alert")).toHaveTextContent("Use letters, digits")
+    expect(screen.getByRole("alert")).toHaveTextContent("Use Latin letters, digits")
     expect(platform.signIn).not.toHaveBeenCalled()
   })
 })
