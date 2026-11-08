@@ -1,5 +1,6 @@
 import { useSeen } from "@/app/badges"
 import { findTool, syncNeedsProfile } from "@/domain/catalog"
+import type { MailWay } from "@/domain/mail-signin"
 import { useNotifications } from "@/features/notifications"
 import { useSearch } from "@/features/search"
 import { useTasks } from "@/features/tasks"
@@ -10,7 +11,8 @@ import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 import { useBotSignIn } from "@/shared/bot-signin-store"
 import { useNav } from "@/shared/nav"
 import { STEPS, useOnboarding } from "@/shared/onboarding-store"
-import { useSignIn } from "@/shared/signin-store"
+import { useOwnDialog } from "@/shared/own-dialog-store"
+import { setPassword, useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 
 // Browser-only: starts the install named in `?install=<tool>` so a review can capture the progress state.
@@ -18,6 +20,7 @@ import { useTools } from "@/shared/tools-store"
 // `?onboarding=<step>` opens it at that step. `?section=<id>` opens that page without a click, so a layout-shift
 // measurement is not hidden by the browser's 500 ms grace period after input. `?crash=<section>` opens that section
 // and breaks its render. `?signin=<tool>` starts that tool's in-window sign-in for a profile named personal; `?signin-plan=<tool>` opens it on its plan.
+// Mail: `&signin-way=appPassword|browser` picks Gmail's way (the plan opens on the browser, a run on the app password), `&signin-address=<address>` fills the address.
 // `?bot=<tool>` opens that tool's details and its bot dialog; `?bot-step=token` with a name, sales (`mock-bot.ts`).
 // `?mcp=<tool>` and `?mcp-fail=<tool>` open that tool's details, where its MCP server section starts open.
 // `?connect=<state>` opens tg's details at that step of the guide (`src/features/tools/connect-scenario.ts`).
@@ -26,6 +29,7 @@ import { useTools } from "@/shared/tools-store"
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
 // `?memo=<state>` and `?memo-fail=<kind>` open memo's details at its first-run card (`src/platform/mock-notes-setup.ts`).
 // `?showcase` hides the setup and the Agents dot.
+// `?own-review=<package>` opens Add your own tool reading that name (`src/platform/mock-community.ts`).
 // `?tailscale=<state>` opens tg's, with the "MCP server (or connect web)" guide's Tailscale steps at that state (`src/platform/mock-tailscale.ts`); `?cloudflare=<state>` the same with the Cloudflare tunnel (`mock-cloudflare.ts`).
 export async function runMockScenario() {
   if (platform.kind !== "mock") return
@@ -55,13 +59,31 @@ export async function runMockScenario() {
     void useTasks.getState().openTask(task)
   }
   if (params.get("notifications") === "open") openBell()
+  const ownReview = params.get("own-review")
+  if (ownReview) {
+    useNav.getState().go("tools")
+    useOwnDialog.getState().show(null, ownReview)
+  }
   const [signIn, signInMethod] = (params.get("signin") ?? "").split(":")
+  const failing = params.get("signin-fail")?.split(":")
+  const mailPlan = (fallback?: MailWay) => {
+    const way = params.get("signin-way") ?? fallback
+    if (way === "browser" || way === "appPassword") useSignIn.setState({ way })
+    const address = params.get("signin-address")
+    if (address) useSignIn.setState({ address })
+  }
   if (signIn) {
     useSignIn.getState().start(signIn, "personal")
     if (signInMethod) useSignIn.setState({ method: signInMethod })
+    // A run started here has no Google client file to send, so Gmail's run is the app password's.
+    mailPlan("appPassword")
     useSignIn.getState().begin()
+    // A failure after the app password needs one typed on its step first.
+    if (failing && useSignIn.getState().planStep === "password") {
+      setPassword("abcd efgh ijkl mnop")
+      useSignIn.getState().begin()
+    }
   }
-  const failing = params.get("signin-fail")?.split(":")
   if (failing?.length === 2 && failing[0] && !signIn) {
     useSignIn.getState().start(failing[0], "personal")
     useSignIn.getState().begin()
@@ -70,8 +92,14 @@ export async function runMockScenario() {
     useSignIn.getState().start("drive", "personal")
     useSignIn.getState().begin()
   }
-  const plan = params.get("signin-plan")
-  if (plan) useSignIn.getState().start(plan, "personal")
+  const [plan, planMethod] = (params.get("signin-plan") ?? "").split(":")
+  if (plan) {
+    // The plan reads the installed version, as for a mail-cli too old for WireCat's Google app.
+    await useTools.getState().refresh()
+    useSignIn.getState().start(plan, "personal")
+    if (planMethod) useSignIn.setState({ method: planMethod })
+    mailPlan()
+  }
   const bot = params.get("bot") ?? params.get("bot-fail")
   if (bot) {
     const id = findTool(bot) ? bot : "tg"
@@ -94,6 +122,12 @@ export async function runMockScenario() {
     useNav.getState().go("tools")
     await useTools.getState().refresh()
     useTools.getState().toggle(mcp)
+  }
+  const accounts = params.get("accounts") ?? params.get("remove-fail")
+  if (accounts && findTool(accounts)) {
+    useNav.getState().go("tools")
+    await useTools.getState().refresh()
+    useTools.getState().toggle(accounts)
   }
   if (params.has("memo") || params.has("memo-fail") || params.has("enrich")) {
     useNav.getState().go("tools")

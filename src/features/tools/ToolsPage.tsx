@@ -3,6 +3,7 @@ import { useEffect } from "react"
 import { tools } from "@/domain/catalog"
 import { NodeNotice } from "@/features/system"
 import { useMessages } from "@/i18n"
+import { useCatalog } from "@/shared/catalog-store"
 import { useCompat } from "@/shared/compat-store"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSystem } from "@/shared/system-store"
@@ -13,6 +14,7 @@ import { keepBelow } from "@/ui/motion"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { AddOwnTool } from "./AddOwnTool"
 import { toolsMessages } from "./messages"
+import { OwnRemoved } from "./OwnRemoved"
 import { OwnToolDialog } from "./OwnToolDialog"
 import { StorageSummary } from "./StorageFit"
 import { ToolRow } from "./ToolRow"
@@ -24,6 +26,8 @@ const headerAction =
 
 export function ToolsPage() {
   const m = useMessages(toolsMessages).page
+  // `tools` is the live list; reading the version re-renders the page when an own tool is added or removed.
+  useCatalog((s) => s.version)
   const refreshing = useTools((s) => s.refreshing)
   const error = useTools((s) => s.error)
   const systemError = useSystem((s) => s.error)
@@ -94,6 +98,7 @@ export function ToolsPage() {
         <StorageSummary />
       )}
 
+      <OwnRemoved />
       <ul aria-label={m.list} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
         {tools.map((t) => (
           <ToolRow key={t.id} tool={t} />

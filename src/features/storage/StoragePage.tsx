@@ -25,7 +25,7 @@ type M = typeof storageMessages.en
 const areaName = (id: string, m: M) => (id === "shared" ? m.shared : (findTool(id)?.name ?? id))
 
 // The same areas, in the same order, as storage.rs reports: every tool that owns its data, then shared storage.
-const AREA_IDS = [...tools.filter((t) => !t.partOf).map((t) => t.id), "shared"]
+const areaIds = () => [...tools.filter((t) => !t.partOf).map((t) => t.id), "shared"]
 
 const toolNames = (ids: string[]) => formatList(ids.map((id) => findTool(id)?.name ?? id))
 
@@ -84,7 +84,7 @@ export function StoragePage() {
 
       <ul aria-label={m.areasLabel} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
         {areas === null
-          ? AREA_IDS.map((id, i) => <RowSkeleton key={id} id={id} first={i === 0} />)
+          ? areaIds().map((id, i) => <RowSkeleton key={id} id={id} first={i === 0} />)
           : areas.map((a) => <Row key={a.id} area={a} busy={clearing === a.id} onDelete={() => setConfirm(a)} />)}
       </ul>
 

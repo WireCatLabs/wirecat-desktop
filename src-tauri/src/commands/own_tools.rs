@@ -21,7 +21,7 @@ pub fn own_tools_status() -> own_tools::Status {
     own_tools::status()
 }
 
-/// Takes effect at the next start, like the community switch.
+/// Takes effect at once; the interface reads its tools again after it.
 #[tauri::command]
 pub async fn set_own_tools_allowed(allow: bool) -> Result<(), AppError> {
     crate::log::command("set_own_tools_allowed", async move { attempt(move || own_tools::set_allowed(allow)).await })
@@ -73,4 +73,10 @@ pub async fn own_tool_uninstall(
 #[tauri::command]
 pub async fn own_tool_remove(id: String) -> Result<(), AppError> {
     crate::log::command("own_tool_remove", async move { attempt(move || own_tools::remove_saved(&id)).await }).await
+}
+
+/// GitHub's facts about the reviewed repository, asked after the review shows; a failure is a signal, never an error.
+#[tauri::command]
+pub async fn own_tool_risks(token: String) -> Result<Vec<crate::own_risks::Signal>, AppError> {
+    crate::log::command("own_tool_risks", async move { attempt(move || own_tools::risks(&token)).await }).await
 }

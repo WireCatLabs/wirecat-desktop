@@ -47,6 +47,10 @@ fn types() -> Types {
         .register::<crate::zoom_app::ZoomAppAnswer>()
         .register::<crate::drive_folders::FolderLevel>()
         .register::<crate::drive_folders::FolderAdded>()
+        .register::<crate::drive_folders::FolderRemoved>()
+        .register::<crate::drive_folders::ChosenFolders>()
+        .register::<crate::account::AccountRemoved>()
+        .register::<crate::account::AccountRemoval>()
         .register::<crate::backup::Backups>()
         .register::<crate::backup::BackupEvent>()
         .register::<crate::backup::ResetPreview>()
@@ -54,6 +58,9 @@ fn types() -> Types {
         .register::<crate::bots::BotProfile>()
         .register::<crate::config_repair::Repair>()
         .register::<crate::preflight::Preflight>()
+        .register::<crate::conversation::ChatPage>()
+        .register::<crate::conversation::ChatPlace>()
+        .register::<crate::conversation::Conversation>()
 }
 
 fn render() -> String {

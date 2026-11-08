@@ -407,6 +407,18 @@
             "words": ["{profile}", "session", "start", "phone", "--json", "--answer-stdin"]
           }
         ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": ["signIn", "serverSession"],
+        "keeps": ["appKeys", "settings", "data", "listed"]
       }
     },
     {
@@ -805,6 +817,18 @@
             "words": ["{profile}", "session", "start", "token", "--json", "--answer-stdin"]
           }
         ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": ["signIn", "serverSession"],
+        "keeps": ["settings", "data", "listed"]
       }
     },
     {
@@ -1199,7 +1223,10 @@
             "key": "phone_number_id",
             "words": ["{profile}", "config", "set", "--bot", "phone_number_id", "{value}", "--json"]
           },
-          { "key": "waba_id", "words": ["{profile}", "config", "set", "--bot", "waba_id", "{value}", "--json"] }
+          {
+            "key": "waba_id",
+            "words": ["{profile}", "config", "set", "--bot", "waba_id", "{value}", "--json"]
+          }
         ]
       },
       "signIn": {
@@ -1217,6 +1244,18 @@
             "words": ["{profile}", "session", "start", "phone", "--json", "--answer-stdin"]
           }
         ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": ["deviceKeys", "linkedDevice"],
+        "keeps": ["settings", "data", "listed"]
       }
     },
     {
@@ -1378,6 +1417,18 @@
             "words": ["{profile}", "session", "start", "--json", "--answer-stdin"]
           }
         ]
+      },
+      "accountRemove": {
+        "signOut": null,
+        "remove": {
+          "minVersion": "0.70.0",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": [],
+        "keeps": []
       }
     },
     {
@@ -1523,7 +1574,22 @@
       "folderPicker": {
         "browse": ["{profile}", "folders", "browse", "--no-record", "--json"],
         "parent": "--parent",
-        "add": ["{profile}", "folders", "add", "{folder}", "--record", "--json"]
+        "add": ["{profile}", "folders", "add", "{folder}", "--record", "--json"],
+        "list": ["{profile}", "folders", "list", "--no-record", "--json"],
+        "remove": ["{profile}", "folders", "remove", "{folder}", "--record", "--json"],
+        "name": ["{profile}", "catalog", "show", "{folder}", "--offline", "--no-record", "--json"]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": {
+          "minVersion": "0.64.0",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": ["signIn"],
+        "keeps": ["folders", "data", "listed", "googleAccess"]
       }
     },
     {
@@ -1578,6 +1644,18 @@
             "clientFile": "--client-file"
           }
         ]
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": ["signIn"],
+        "keeps": ["settings", "data", "listed", "googleAccess"]
       }
     },
     {
@@ -1945,7 +2023,9 @@
             "label": "Gmail",
             "words": ["{profile}", "session", "start", "--json", "--answer-stdin"],
             "address": "--address",
-            "clientFile": "--client-file"
+            "clientFile": "--client-file",
+            "oauth": ["--method", "oauth"],
+            "oauthMinVersion": "0.22.0"
           },
           {
             "id": "imap",
@@ -1976,6 +2056,18 @@
           "date": "date",
           "minVersion": "0.15.0"
         }
+      },
+      "accountRemove": {
+        "signOut": ["{profile}", "session", "end", "--record", "--json"],
+        "remove": {
+          "minVersion": "0.23.0",
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": ["signIn"],
+        "keeps": ["settings", "mail", "listed", "providerAccess"]
       }
     },
     {

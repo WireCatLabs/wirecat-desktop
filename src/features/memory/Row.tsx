@@ -1,6 +1,8 @@
 import {
   Brain,
+  Building2,
   FolderKanban,
+  Link2,
   ListChecks,
   LoaderCircle,
   MessageSquareQuote,
@@ -10,8 +12,10 @@ import {
 } from "lucide-react"
 import { type MouseEvent, type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef } from "react"
 import { approveMode, can, type Subject, stateOf, tickedCount, toneOf, undoMenuKey, undoOf } from "@/domain/memory"
+import { standingOf } from "@/domain/relationships"
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
+import { StandingPill } from "@/shared/StandingPill"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -27,10 +31,10 @@ import { dayLabel, kindOf, textOf, timeOf } from "./labels"
 import { memoryMessages } from "./messages"
 import { InlineCorrect } from "./RowCorrect"
 import { Details } from "./RowDetails"
-import { canRevoke, useMemory } from "./store"
+import { canRevoke, ownerRoles, useMemory } from "./store"
 
-const ICONS = { memory: Brain, fact: MessageSquareQuote, action: ListChecks }
-const SUBJECT_ICONS = { project: FolderKanban, person: User, you: UserRound, other: User }
+const ICONS = { memory: Brain, fact: MessageSquareQuote, action: ListChecks, relationship: Link2 }
+const SUBJECT_ICONS = { project: FolderKanban, person: User, you: UserRound, organization: Building2, other: User }
 
 export function SubjectLabel({ subject, className }: { subject: Subject; className?: string }) {
   const m = useMessages(memoryMessages)
@@ -67,6 +71,8 @@ export function Row({ entry }: { entry: MemoryEntry }) {
   const state = stateOf(entry.status)
   const Icon = ICONS[entry.type]
   const revoke = useMemory(canRevoke)
+  const roles = useMemory(ownerRoles)
+  const standing = standingOf(entry.standing)
   const allowed = can(entry, revoke)
   const undo = undoOf(entry, revoke)
   const editable = open && allowed.correct
@@ -133,6 +139,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
         {dayLabel(entry.createdAt, m, lang)} {timeOf(entry.createdAt, lang)}
       </span>
       {entry.scope === "personal" && <Pill>{m.personal}</Pill>}
+      {standing && <StandingPill standing={standing} />}
     </span>
   )
 
@@ -213,7 +220,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
                         "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
                     )}
                   >
-                    {textOf(entry, m)}
+                    {textOf(entry, m, roles)}
                   </span>
                 </span>
                 <ExpandChevron open={open} className="mt-[0.2rem] group-hover:text-ink" />

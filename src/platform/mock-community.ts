@@ -1,4 +1,13 @@
-import type { InstallEvent, OwnDiscovery, OwnRefusal, OwnReview, OwnStatus, OwnUpdate } from "./bindings"
+import type {
+  InstallEvent,
+  OwnCommand,
+  OwnDiscovery,
+  OwnRefusal,
+  OwnReview,
+  OwnSignal,
+  OwnStatus,
+  OwnUpdate,
+} from "./bindings"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
 import { delay } from "./mock-delay"
 
@@ -36,7 +45,7 @@ export const ACME = {
   settings: null,
 }
 
-/** An own tool as Desktop saves it after a review: `?own=1` lists it with the Not checked badge. */
+/** An own tool as Desktop saves it after a review: `?own=1` lists it with the Not verified badge. */
 export const OWN = {
   ...ACME,
   id: "acmecrm",
@@ -61,11 +70,16 @@ export function registryMock(params: URLSearchParams): Pick<CommunityStatus, "st
   }
 }
 
+/** Set once the mock adds or removes Acme CRM, so the catalog reloads with it as the real app's does. */
+let ownAdded: boolean | null = null
+/** The switch as Settings last set it; the list follows it at once, as the real app's reload does. */
+let ownShown: boolean | null = null
+
 export function extraToolsMock(params: URLSearchParams): ExtraTools {
   const community = params.get("community")
   const listed = community === "1" || community === "bad" || params.has("registry") ? [ACME] : []
   if (community === "bad") listed.push({ ...ACME, id: "evil", package: "@wirecat/evil" })
-  const own = params.get("own") === "1" ? [OWN] : []
+  const own = (ownShown ?? true) && (ownAdded ?? params.get("own") === "1") ? [OWN] : []
   const rejected: ExtraTools["rejected"] =
     community === "bad" ? [{ source: "community", text: 'shady: the command word "setup;rm" is not allowed.' }] : []
   return {
@@ -92,6 +106,33 @@ export function communityMock(params: URLSearchParams) {
   }
 }
 
+const command = (
+  words: string,
+  remote: OwnCommand["remote"],
+  local: OwnCommand["local"],
+  summary: string | null = null,
+  entity: string | null = null,
+): OwnCommand => ({ words, remote, local, summary, entity })
+
+/** Acme CRM's commands as cli-base#529 writes them, with summaries and entities. */
+export const ACME_COMMANDS: OwnCommand[] = [
+  command("session start", "read", "write"),
+  command("session status", "read", "read"),
+  command("sync", "read", "write", "copy contacts, deals and invoices"),
+  command("contacts list", "read", "read", "list contacts", "contact"),
+  command("contacts show", "read", "read", "show one contact", "contact"),
+  command("deals list", "none", "read", "list deals", "deal"),
+  command("deals update", "write", "none", "change a deal's stage", "deal"),
+  command("invoices list", "none", "read", "list invoices", "invoice"),
+  command("doctor", "read", "read"),
+  command("skill install", "none", "write"),
+  command("mcp server start", "none", "write"),
+  command("runs list", "none", "read"),
+]
+
+/** What Rust answers today for Acme CRM 0.2.0: npm's facts only, before GitHub's arrive. */
+export const ACME_SIGNALS: OwnSignal[] = [{ kind: "newPackage", days: 1 }, { kind: "onePublisher" }]
+
 export function ownReview(overrides: Partial<OwnReview> = {}): OwnReview {
   return {
     token: "review-1",
@@ -110,9 +151,64 @@ export function ownReview(overrides: Partial<OwnReview> = {}): OwnReview {
     mcp: false,
     described: true,
     update: null,
+    commands: ACME_COMMANDS,
+    syncWhat: "contacts, deals and invoices",
+    usesCore: true,
+    hosts: ["api.acme-crm.example"],
+    userHosts: null,
+    entities: { contact: ["name", "email", "phone", "company"], deal: ["title", "stage", "amount"] },
+    signals: ACME_SIGNALS,
+    links: {
+      npm: "https://www.npmjs.com/package/@example/acme-crm-cli/v/0.3.0",
+      publishers: [{ label: "example", url: "https://www.npmjs.com/~example" }],
+      commit: `${OWN.repo}/commit/97acc2d215230a12c904c36273ea04db6c69fefe`,
+      run: `${OWN.repo}/actions/runs/42432235252/attempts/1`,
+      log: "https://search.sigstore.dev/?logIndex=3747723084",
+    },
+    tarball: "https://registry.npmjs.org/@example/acme-crm-cli/-/acme-crm-cli-0.3.0.tgz",
+    integrity: `sha512-${"A".repeat(86)}==`,
+    commit: "97acc2d215230a12c904c36273ea04db6c69fefe",
     entry: OWN,
     ...overrides,
   }
+}
+
+/** `?own-discover=risky`: a package with most things worth a second look. */
+export function riskyReview(pkg: string): OwnReview {
+  return ownReview({
+    package: pkg,
+    built: null,
+    commit: null,
+    usesCore: false,
+    hosts: null,
+    commands: ACME_COMMANDS.map((c) => ({ ...c, summary: null, entity: null })),
+    entities: {},
+    links: { ...ownReview().links, commit: null, run: null, log: null },
+    signals: [
+      { kind: "newPackage", days: 3 },
+      { kind: "fewVersions", count: 1 },
+      { kind: "onePublisher" },
+      { kind: "noProvenance" },
+      { kind: "coreOutOfRange", found: null, min: "0.603.0" },
+      { kind: "noHosts" },
+      { kind: "networkCode", modules: ["https", "fetch"] },
+      { kind: "undeclaredHosts", hosts: ["collector.acme-metrics.io"], more: 0 },
+      { kind: "startsPrograms" },
+    ],
+  })
+}
+
+/** GitHub's answer: `?own-github=risky` (young, quiet, no standard checks), `fail` (the hourly limit is used up). */
+function risksMock(params: URLSearchParams): OwnSignal[] {
+  const github = params.get("own-github") ?? (params.get("own-discover") === "risky" ? "risky" : null)
+  if (github === "fail") return [{ kind: "githubUnchecked", reason: "limit" }]
+  if (github === "risky")
+    return [
+      { kind: "repoNew", days: 4 },
+      { kind: "fewStars", stars: 0 },
+      { kind: "noStandardChecks", missing: ["node-ci.yml", "release-checks.yml"] },
+    ]
+  return [{ kind: "fewStars", stars: 3 }]
 }
 
 /** An update of Acme CRM that asks for nothing new since 0.2.0. */
@@ -151,8 +247,9 @@ const REFUSALS: Record<string, OwnRefusal> = {
 /**
  * "Allow tools WireCat has not checked" and the Add your own tool dialog. `?own=on` starts the switch on, `?own=1`
  * also lists Acme CRM as an own tool; `?own-discover=<kind>` makes discovery refuse with that kind (`listed` is a
- * collision with a listed tool), `noprov` finds no provenance and no repository, `update` reviews an update with a new
- * repository and new write access; a pasted `desktop` object passes a `no_manifest`. `?own-add=describe` refuses after
+ * collision with a listed tool), `noprov` finds no provenance and no repository, `risky` most things to check, `old`
+ * a manifest from before summaries, entities and hosts, `update` reviews an update with a new repository and new write
+ * access; `?own-github=risky|fail` is GitHub's answer; a pasted `desktop` object passes a `no_manifest`. `?own-add=describe` refuses after
  * the install (the tool names another manifest).
  */
 export function ownToolsMock(params: URLSearchParams) {
@@ -164,6 +261,7 @@ export function ownToolsMock(params: URLSearchParams) {
     },
     async setOwnToolsAllowed(next: boolean) {
       allowed = next
+      ownShown = next
     },
     async ownToolDiscover(pkg: string, desktop: string | null): Promise<OwnDiscovery> {
       await delay(900)
@@ -179,6 +277,11 @@ export function ownToolsMock(params: URLSearchParams) {
       if (refusal) return { outcome: "refused", refusal }
       if (discovered === "noprov")
         return { outcome: "review", review: ownReview({ package: pkg, repo: null, built: null }) }
+      if (discovered === "risky") return { outcome: "review", review: riskyReview(pkg) }
+      if (discovered === "old") {
+        const commands = ACME_COMMANDS.map((c) => ({ ...c, summary: null, entity: null }))
+        return { outcome: "review", review: ownReview({ package: pkg, commands, entities: {}, hosts: null }) }
+      }
       if (discovered === "update") {
         const update = {
           ...UNCHANGED,
@@ -193,6 +296,10 @@ export function ownToolsMock(params: URLSearchParams) {
         return { outcome: "review", review: ownReview({ package: pkg, update }) }
       }
       return { outcome: "review", review: ownReview({ package: pkg }) }
+    },
+    async ownToolRisks(_token: string): Promise<OwnSignal[]> {
+      await delay(1200)
+      return risksMock(params)
     },
     async ownToolAdd(_token: string, onEvent: (e: InstallEvent) => void) {
       onEvent({ event: "step", step: "check" })
@@ -217,6 +324,7 @@ export function ownToolsMock(params: URLSearchParams) {
           hint: null,
         })
       }
+      ownAdded = true
       onEvent({
         event: "done",
         version: "0.3.0",
@@ -233,6 +341,7 @@ export function ownToolsMock(params: URLSearchParams) {
     },
     async ownToolRemove(_id: string) {
       await delay(300)
+      ownAdded = false
     },
   }
 }

@@ -1,10 +1,9 @@
 import { Columns3, ExternalLink, Plus, RefreshCw, Rows3 } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
-import { openTool } from "@/features/tools"
+import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { DemoNote } from "@/shared/DemoNote"
-import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -96,33 +95,12 @@ function Body() {
   const unusable = useTasks((s) => s.unusable)
   const loaded = useTasks((s) => s.loaded)
   const error = useTasks((s) => s.error)
-  const install = useTools((s) => s.install)
 
-  if (unusable?.kind === "missing") {
+  if (unusable) {
     return (
-      <Notice>
-        <p className="max-w-[70ch]">{m.missing}</p>
-        <Button size="sm" onClick={() => openTool("memo")}>
-          {m.goTools}
-        </Button>
-      </Notice>
-    )
-  }
-  if (unusable?.kind === "old") {
-    return (
-      <Notice>
-        <p className="max-w-[70ch]">{m.old(unusable.version, unusable.need)}</p>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => {
-            install("memo")
-            openTool("memo")
-          }}
-        >
-          {m.update}
-        </Button>
-      </Notice>
+      <ToolNeeded id="memo" update={unusable.kind === "old"} label={unusable.kind === "old" ? m.update : m.goTools}>
+        {unusable.kind === "old" ? m.old(unusable.version, unusable.need) : m.missing}
+      </ToolNeeded>
     )
   }
   if (error) {
@@ -230,14 +208,6 @@ function Loading() {
 function Frame({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.2rem] text-[0.95rem]">
-      {children}
-    </div>
-  )
-}
-
-function Notice({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.1rem] text-[0.95rem] text-ink-soft">
       {children}
     </div>
   )

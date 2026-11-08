@@ -47,3 +47,15 @@ pub async fn memory_open_source(reference: String) -> Result<(), AppError> {
     crate::log::command("memory_open_source", async move { attempt(move || memory::open_source(&reference)).await })
         .await
 }
+
+#[tauri::command]
+pub async fn conversation_read(
+    place: crate::conversation::ChatPlace,
+    ask: crate::conversation::ChatPage,
+) -> Result<crate::conversation::Conversation, AppError> {
+    crate::log::command(
+        "conversation_read",
+        async move { attempt(move || crate::conversation::read(&place, &ask)).await },
+    )
+    .await
+}

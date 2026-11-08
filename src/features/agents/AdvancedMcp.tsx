@@ -13,7 +13,7 @@ import { useConnect } from "./connect"
 import { agentsMessages } from "./messages"
 
 // Email shares memo's program, so one entry per program keeps a server from being listed twice.
-const PROGRAMS = catalogTools.filter((t) => !t.partOf)
+const programs = () => catalogTools.filter((t) => !t.partOf)
 
 /**
  * Leftover WireCat MCP servers an agent here has registered, to remove: agents on this computer use the tools through
@@ -29,7 +29,9 @@ export function AdvancedMcp({ agent }: { agent: Agent }) {
   const data = last.current
   const rows =
     data && !data.unread
-      ? PROGRAMS.flatMap((tool) => connections(data.names, tool.bin, []).map((row) => ({ tool, profile: row.profile })))
+      ? programs().flatMap((tool) =>
+          connections(data.names, tool.bin, []).map((row) => ({ tool, profile: row.profile })),
+        )
       : []
   const seen = useRef(false)
   if (rows.length > 0) seen.current = true

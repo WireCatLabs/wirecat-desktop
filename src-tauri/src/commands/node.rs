@@ -1,7 +1,7 @@
 use super::{attempt, blocking};
 use crate::error::AppError;
 use crate::install::Running;
-use crate::{install, node, paths, profile, terminal_path};
+use crate::{node, profile};
 use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
@@ -16,36 +16,8 @@ pub async fn setup_node(running: State<'_, Arc<Running>>, on_event: Channel<node
     crate::log::command("setup_node", async move {
         let running = Arc::clone(&running);
         blocking(move || {
-            let send = |e: node::NodeEvent| {
+            node::set_up(&running, &|e| {
                 let _ = on_event.send(e);
-            };
-            if !running.start(node::OPERATION) {
-                return send(node::NodeEvent::Failed {
-                    reason: install::Reason::Failed,
-                    message: "Node.js setup is already running.".into(),
-                    hint: None,
-                });
-            }
-            let result = match node::root() {
-                Some(root) => node::setup(&root, &send, &|| !running.is_running(node::OPERATION)),
-                None => Err(node::Failure::no_home()),
-            };
-            running.finish(node::OPERATION);
-            // Tools installed with this Node.js are linked beside it; the user's PATH changes without an administrator,
-            // so a terminal and the AI apps find them with nothing more to do. A failure here never fails the setup.
-            if result.is_ok() {
-                send(node::NodeEvent::Step { step: node::Step::Path });
-            }
-            let path_fix =
-                result.as_ref().ok().and_then(|done| terminal_path::after_node_setup(&node::bin_dir(&done.dir)));
-            paths::refresh(&[]);
-            send(match result {
-                Ok(done) => node::NodeEvent::Done {
-                    version: done.version.to_string(),
-                    path: paths::tilde(&done.dir.to_string_lossy()),
-                    path_fix,
-                },
-                Err(f) => f.into(),
             });
         })
         .await

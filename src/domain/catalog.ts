@@ -1,6 +1,20 @@
 import * as v from "valibot"
 import raw from "../../catalog/tools.json"
 
+/** What a tool's sign-out takes away: its sign-in here, and the session the service keeps for this computer. */
+export const ACCOUNT_REMOVES = ["signIn", "serverSession", "deviceKeys", "linkedDevice"] as const
+/** What stays after it: the app keys, settings, chosen folders, the copied data, the name in the list, the access. */
+export const ACCOUNT_KEEPS = [
+  "appKeys",
+  "settings",
+  "folders",
+  "data",
+  "mail",
+  "listed",
+  "googleAccess",
+  "providerAccess",
+] as const
+
 const ToolSchema = v.object({
   id: v.pipe(v.string(), v.regex(/^[a-z]+$/)),
   name: v.string(),
@@ -61,7 +75,7 @@ const ToolSchema = v.object({
       /**
        * Sign-ins the app runs in its own window instead of a terminal, the first one by default. `address`, `password`
        * and `clientFile` name where Rust passes what the owner typed; `clientId` is the setting that names the owner's
-       * own app, saved before the run (WC-SECR-25).
+       * own app, saved before the run (WC-SECR-25). `oauth`: the words for the browser with the tool's own app, from `oauthMinVersion`.
        */
       methods: v.optional(
         v.array(
@@ -73,6 +87,8 @@ const ToolSchema = v.object({
             password: v.optional(v.string()),
             clientFile: v.optional(v.string()),
             clientId: v.optional(v.string()),
+            oauth: v.optional(v.array(v.string())),
+            oauthMinVersion: v.optional(v.string()),
           }),
         ),
       ),
@@ -127,6 +143,33 @@ const ToolSchema = v.object({
   enrichment: v.optional(v.nullable(v.object({ show: v.array(v.string()) })), null),
   /** Only drive: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and `drive_folder_add`. */
   folderPicker: v.optional(v.nullable(v.object({ parent: v.string() })), null),
+  /**
+   * Removing one account with the tool's own words. `remove` is cli-core's `account remove`, run by Rust from
+   * `minVersion` on (null: not released yet); before it, `signOut` is the fallback, and `removes` and `keeps` say what
+   * that sign-out takes away and what stays, read from each CLI's source.
+   */
+  accountRemove: v.optional(
+    v.nullable(
+      v.object({
+        signOut: v.nullable(v.array(v.string())),
+        remove: v.optional(
+          v.nullable(
+            v.object({
+              minVersion: v.nullable(v.string()),
+              keepData: v.array(v.string()),
+              deleteData: v.array(v.string()),
+              dryRun: v.string(),
+              confirm: v.string(),
+            }),
+          ),
+          null,
+        ),
+        removes: v.array(v.picklist(ACCOUNT_REMOVES)),
+        keeps: v.array(v.picklist(ACCOUNT_KEEPS)),
+      }),
+    ),
+    null,
+  ),
   /** The messengers' own `serve` in the background, per profile: `server status`, `install`, `start`, `stop` and `uninstall`. */
   background: v.optional(
     v.nullable(
@@ -219,7 +262,7 @@ export const requirements = catalog.requirements
 export const sharedStorage = catalog.sharedStorage
 
 export const isCommunity = (t: CatalogTool) => t.community === true
-/** Added by the owner without WireCat's review: the **Not checked** badge. */
+/** Added by the owner without WireCat's review: the **Not verified** badge. */
 export const isOwn = (t: CatalogTool) => t.source === "own"
 
 type Rejection = { source: ToolSource; text: string }
@@ -241,6 +284,15 @@ export function addCommunityTools(entries: readonly { source: ToolSource; entry:
     }
   }
   return rejected
+}
+
+/**
+ * The community and own tools again, after Rust reloaded its catalog: an own tool added or removed while the app runs.
+ * Pages that keep a list of tools ask for it when they render, so they see the new one.
+ */
+export function replaceAddedTools(entries: readonly { source: ToolSource; entry: unknown }[]): Rejection[] {
+  for (let i = all.length - 1; i >= 0; i--) if (isCommunity(all[i] as CatalogTool)) all.splice(i, 1)
+  return addCommunityTools(entries)
 }
 
 /** The interface's own check of an entry Rust built for review, so a tool it would not show is never added. */

@@ -38,3 +38,26 @@ pub async fn drive_folder_add(
     })
     .await
 }
+
+/// The folders the profile's sync imports, named when a sync has copied them.
+#[tauri::command]
+pub async fn drive_folders_chosen(id: String, profile: String) -> Result<drive_folders::ChosenFolders, AppError> {
+    crate::log::command("drive_folders_chosen", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || drive_folders::chosen(tool, &profile)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn drive_folder_remove(
+    id: String,
+    profile: String,
+    folder: String,
+) -> Result<drive_folders::FolderRemoved, AppError> {
+    crate::log::command("drive_folder_remove", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || drive_folders::remove(tool, &profile, &folder)).await
+    })
+    .await
+}

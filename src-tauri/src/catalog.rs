@@ -1,5 +1,5 @@
 use serde::Deserialize;
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 const CATALOG_JSON: &str = include_str!("../../catalog/tools.json");
 
@@ -103,6 +103,9 @@ pub struct Tool {
     /// refuses. Offered only where `doctor` names it as the fix, which it does only when the repair would succeed.
     #[serde(default)]
     pub config_repair: Option<Vec<String>>,
+    /// Removing one account with the tool's own commands (`account.rs`); none for a tool that has no sign-out.
+    #[serde(default)]
+    pub account_remove: Option<crate::account::AccountRemoveSource>,
 }
 
 /// Only `preexisting` is read here: the data folders that existed before the app added the tool, keyed by path, which
@@ -140,6 +143,9 @@ pub struct SignInMethod {
     /// The flag that takes the owner's own OAuth client JSON (WC-SECR-25), written to a private file for the run.
     #[serde(default)]
     pub client_file: Option<String>,
+    /// The words that make a new profile sign in by OAuth with the tool's own app (mail's `--method oauth`).
+    #[serde(default)]
+    pub oauth: Option<Vec<String>>,
 }
 
 /// `commands` lists every command with its effects and, from cli-core 0.408, whether the profile may run it.
@@ -318,16 +324,29 @@ fn null_as_empty<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Er
     Ok(Option::<String>::deserialize(d)?.unwrap_or_default())
 }
 
+/// Each load is leaked rather than replaced in place: a `&'static Tool` handed out before a reload (a running install,
+/// a sync) must stay valid, and a reload happens only when the owner adds or removes a tool.
+static CATALOG: OnceLock<RwLock<&'static Catalog>> = OnceLock::new();
+
+fn load() -> &'static Catalog {
+    let mut catalog: Catalog = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
+    if let Some((tools, extra)) = crate::community::load(&catalog) {
+        catalog.tools.extend(tools);
+        catalog.extra = extra;
+    }
+    Box::leak(Box::new(catalog))
+}
+
 pub fn catalog() -> &'static Catalog {
-    static CATALOG: OnceLock<Catalog> = OnceLock::new();
-    CATALOG.get_or_init(|| {
-        let mut catalog: Catalog = serde_json::from_str(CATALOG_JSON).expect("catalog/tools.json is valid");
-        if let Some((tools, extra)) = crate::community::load(&catalog) {
-            catalog.tools.extend(tools);
-            catalog.extra = extra;
-        }
-        catalog
-    })
+    *CATALOG.get_or_init(|| RwLock::new(load())).read().unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
+/// Reads the community and own tools again, so a tool the owner added or removed is there without a restart.
+/// The write lock is taken before the files are read, so two reloads cannot finish in the wrong order.
+pub fn reload() {
+    let lock = CATALOG.get_or_init(|| RwLock::new(load()));
+    let mut current = lock.write().unwrap_or_else(std::sync::PoisonError::into_inner);
+    *current = load();
 }
 
 pub fn tool(id: &str) -> Result<&'static Tool, String> {

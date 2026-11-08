@@ -9,6 +9,7 @@ import { recentErrors } from "@/shared/errors"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useReport } from "@/shared/report-store"
 import { useSignIn } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
 import { act, fireEvent, render, screen, within } from "@/testing/render"
 import { MOTION } from "@/ui/motion"
 import { NewProfile } from "../tools/Health"
@@ -25,6 +26,9 @@ const step = (dialog: HTMLElement, label: string) =>
 const STAGE_TEXT = "p:not([role=status])"
 
 const SCAN = "scan in WhatsApp → Settings → Linked devices → Link a device"
+
+/** The copy of a step fading out has gone. */
+const settled = () => act(() => new Promise((done) => setTimeout(done, MOTION.swap + 50)))
 
 let send: (e: SignInEvent) => void = () => undefined
 let finish: () => void = () => undefined
@@ -188,7 +192,7 @@ describe("signing in to WhatsApp inside the window", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Type a name for this account first")
     expect(screen.getByLabelText(/Account name/)).toHaveFocus()
     await userEvent.type(screen.getByLabelText(/Account name/), "-bad{Enter}")
-    expect(screen.getByRole("alert")).toHaveTextContent("Use letters, digits")
+    expect(screen.getByRole("alert")).toHaveTextContent("Use Latin letters, digits")
     expect(platform.signIn).not.toHaveBeenCalled()
   })
 })
@@ -652,7 +656,16 @@ describe("signing in to mail", () => {
         address: "me@example.com",
       }),
     )
-    send({ event: "note", text: "turn on IMAP in the mail settings" })
+    for (const text of [
+      "Server: imap.example.com:993 (tls), login [email]",
+      "Prepare the example.com mailbox first:",
+      "  1. Open https://mail.example.com/settings and turn on IMAP.",
+      "  2. Make an app password. The help page does not list the labels of that screen, so none are quoted here.",
+      "  Note: A new password works after a minute.",
+      "  Sources: https://help.example.com/imap",
+      "  All providers: https://github.com/WireCatLabs/mail-cli/blob/main/docs/providers.md",
+    ])
+      send({ event: "note", text })
     const page = "https://yandex.ru/support/id/ru/authorization/app-passwords"
     send({
       event: "needs",
@@ -661,7 +674,19 @@ describe("signing in to mail", () => {
       prompt: "App password for me@example.com",
       hint: `Yandex takes an app password, not your account password. How to make one: ${page}`,
     })
-    expect(within(dialog).getByText("Turn on IMAP in the mail settings.")).toBeVisible()
+    const prepare = within(dialog).getByRole("heading", { name: "Before the password" }).closest("section")
+    if (!prepare) throw new Error("the prepare steps are a section")
+    expect(
+      within(prepare)
+        .getAllByRole("listitem")
+        .map((li) => li.textContent),
+    ).toEqual([
+      expect.stringMatching(/^1Open mail\.example\.com\/settings.*and turn on IMAP\.$/),
+      "2Make an app password.",
+    ])
+    expect(within(prepare).getByText("A new password works after a minute.")).toBeVisible()
+    expect(dialog).not.toHaveTextContent(/Sources|All providers|Prepare the|imap\.example\.com:993/)
+    expect(within(dialog).getByText("Not your account password", { exact: false })).toBeVisible()
     const field = within(dialog).getByLabelText("App password for me@example.com")
     expect(field).toHaveAttribute("type", "password")
     await userEvent.type(field, "abcd efgh{Enter}")
@@ -675,6 +700,145 @@ describe("signing in to mail", () => {
     expect(JSON.stringify(useSignIn.getState())).not.toContain("abcd efgh")
     await userEvent.click(within(dialog).getByRole("button", { name: "Try again" }))
     expect(within(dialog).getByLabelText("Mail address")).toHaveValue("me@example.com")
+  })
+
+  it("offers Gmail's Google sign-in first and chosen, and the app password under other ways", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    const dialog = screen.getByRole("dialog")
+    await userEvent.click(within(dialog).getByRole("radio", { name: /^Gmail/ }))
+    await settled()
+    const ways = within(within(dialog).getByRole("group", { name: "How do you want to sign in?" })).getAllByRole(
+      "radio",
+    )
+    expect(ways.map((way) => (way as HTMLInputElement).value)).toEqual(["browser", "appPassword"])
+    expect(within(dialog).getByRole("radio", { name: /Sign in with Google.*Recommended/ })).toBeChecked()
+    const others = within(dialog).getByRole("group", { name: "Other ways" })
+    expect(within(others).getByRole("radio", { name: /App password/ })).not.toBeChecked()
+    expect(within(others).queryByText("Recommended")).toBeNull()
+    expect(within(others).getByText(/Until Google verifies WireCat's app/)).toBeVisible()
+  })
+
+  it("walks Gmail's app password on one step, answers the tool from it, and comes back there when Gmail refuses", async () => {
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    const dialog = screen.getByRole("dialog")
+    await userEvent.click(within(dialog).getByRole("radio", { name: /^Gmail/ }))
+    await settled()
+    await userEvent.click(within(dialog).getByRole("radio", { name: /App password/ }))
+    await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@gmail.com")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
+    await settled()
+    expect(platform.signIn).not.toHaveBeenCalled()
+
+    expect(await within(dialog).findByText(/Not your Google password/)).toBeVisible()
+    expect(step(dialog, "Your app password")).toContain("in progress")
+    const field = within(dialog).getByLabelText("App password", { selector: "input" })
+    expect(field).toHaveFocus()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Open Google app passwords" }))
+    expect(open).toHaveBeenCalledWith("https://myaccount.google.com/apppasswords")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Sign in" }))
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Paste the app password first.")
+
+    await userEvent.type(field, "abcd efgh ijkl mnop{Enter}")
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("email", "gmail", "work", expect.any(Function), {
+        address: "me@gmail.com",
+      }),
+    )
+    send({ event: "note", text: "Prepare the Gmail mailbox first:" })
+    send({ event: "needs", field: "password", secret: true, prompt: "App password for me@gmail.com", hint: null })
+    expect(platform.signInAnswer).toHaveBeenCalledWith("email", "abcdefghijklmnop")
+    expect(within(dialog).queryByLabelText("App password for me@gmail.com")).not.toBeInTheDocument()
+
+    send({
+      event: "failed",
+      code: "authentication_error",
+      reason: "mail.app-password-required",
+      message: "the server asks for an app password",
+    })
+    await settled()
+    await vi.waitFor(() =>
+      expect(within(dialog).getByRole("alert")).toHaveTextContent(
+        "Gmail did not take that password: it needs an app password.",
+      ),
+    )
+    const again = within(dialog).getByLabelText("App password", { selector: "input" })
+    expect(again).toHaveValue("")
+    expect(again).toHaveFocus()
+    expect(JSON.stringify(useSignIn.getState())).not.toContain("abcd")
+  })
+
+  it("signs Gmail in by Google with WireCat's app, asking for no client of the owner's", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    act(() => useSignIn.setState({ method: "gmail" }))
+    await settled()
+    const dialog = screen.getByRole("dialog")
+    expect(within(dialog).getByText(/"unverified app" screen first/)).toBeVisible()
+    await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@gmail.com")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("email", "gmail", "work", expect.any(Function), {
+        address: "me@gmail.com",
+        oauth: true,
+      }),
+    )
+  })
+
+  it("offers an update, and the owner's own app, when the installed mail-cli predates WireCat's Google app", async () => {
+    const mail = (version: string) => ({ path: "~/.local/bin/mail", version, manager: "npm", problem: null })
+    useTools.setState({ installs: { email: [mail("0.21.0")] } })
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    act(() => useSignIn.setState({ method: "gmail" }))
+    await settled()
+    const dialog = screen.getByRole("dialog")
+    expect(
+      within(dialog).getByText(/Email 0\.21\.0 cannot sign in with WireCat's app: it needs 0\.22\.0/),
+    ).toBeVisible()
+    expect(within(dialog).getByRole("button", { name: "Update Email to use this" })).toBeVisible()
+    expect(within(dialog).getByRole("button", { name: "Choose the client file" })).toBeVisible()
+    await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@gmail.com")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Choose the client file, or type the client ID and secret.",
+    )
+    expect(platform.signIn).not.toHaveBeenCalled()
+
+    act(() => useTools.setState({ installs: { email: [mail("0.22.0")] } }))
+    expect(within(dialog).queryByRole("button", { name: "Update Email to use this" })).toBeNull()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("email", "gmail", "work", expect.any(Function), {
+        address: "me@gmail.com",
+        oauth: true,
+      }),
+    )
+    useTools.setState({ installs: {} })
+  })
+
+  it("takes the owner's own Google client as typed ID and secret, sent as a client file", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work", undefined, undefined))
+    act(() => useSignIn.setState({ method: "gmail" }))
+    await settled()
+    const dialog = screen.getByRole("dialog")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Use my own app" }))
+    expect(within(dialog).getByRole("button", { name: "Choose the client file" })).toBeVisible()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Enter client ID and secret" }))
+    await userEvent.type(within(dialog).getByLabelText("Client ID"), "12-abc")
+    expect(within(dialog).getByText(/This is not a Google client ID/)).toBeVisible()
+    await userEvent.type(within(dialog).getByLabelText("Client ID"), ".apps.googleusercontent.com")
+    await userEvent.type(within(dialog).getByLabelText("Client secret", { selector: "input" }), "fake-secret")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    const inputs = vi.mocked(platform.signIn).mock.calls[0]?.[4]
+    expect(JSON.parse(inputs?.clientFile ?? "")).toEqual({
+      installed: { client_id: "12-abc.apps.googleusercontent.com", client_secret: "fake-secret" },
+    })
+    expect(JSON.stringify(useSignIn.getState())).not.toContain("fake-secret")
   })
 
   it("asks the server only when the tool found none, and lets a port stay empty", async () => {
@@ -811,5 +975,48 @@ describe("the setup wizard every tool shares", () => {
     expect(set).toHaveBeenCalledWith("zm", null, false, "files.folder", "/home/me/Zoom")
     expect(set).toHaveBeenCalledWith("zm", null, false, "source", "files")
     expect(await within(dialog).findByText(/Zoom now reads transcripts from \/home\/me\/Zoom/)).toBeInTheDocument()
+  })
+})
+
+describe("going back inside the dialog", () => {
+  it("email: the browser step has Back, which stops the run and keeps the typed address", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    useSignIn.setState({ address: "me@outlook.com" })
+    act(() => useSignIn.getState().start("email", "work", undefined, "microsoft"))
+    const dialog = screen.getByRole("dialog", { name: "Sign in to Email" })
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    send({ event: "openUrl", url: "https://login.microsoftonline.com/x", purpose: null })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Back" }))
+    expect(platform.signInStop).toHaveBeenCalledWith("email")
+    expect(useSignIn.getState().phase).toBe("plan")
+    await settled()
+    expect(within(dialog).getByLabelText("Mail address")).toHaveValue("me@outlook.com")
+    expect(within(dialog).queryByRole("button", { name: "Back" })).not.toBeInTheDocument()
+  })
+
+  it("Zoom: the app checklist has Back to the plan", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("zm", "personal"))
+    const dialog = screen.getByRole("dialog")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    send({ event: "failed", code: "configuration_error", message: "run zm config set zoom.client_id <id> first" })
+    await userEvent.click(within(dialog).getByRole("button", { name: "Back" }))
+    expect(useSignIn.getState().phase).toBe("plan")
+  })
+
+  it("WhatsApp: Back stays in place but is off while the history arrives, and says why", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("wa", "personal"))
+    const dialog = screen.getByRole("dialog")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    send({ event: "progress", step: "history", message: null })
+    const back = within(dialog).getByRole("button", { name: "Back" })
+    expect(back).toHaveAttribute("aria-disabled", "true")
+    expect(back).toHaveAccessibleDescription(/chat history is arriving/)
+    await userEvent.click(back)
+    expect(useSignIn.getState().phase).toBe("progress")
   })
 })

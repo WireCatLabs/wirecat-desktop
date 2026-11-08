@@ -3,6 +3,33 @@ use crate::error::AppError;
 use crate::{notifications, package_update, report, system};
 use tauri::ipc::Channel;
 
+/// The interface's one listener for wirecat:// links; a link that started the app arrives at once.
+#[tauri::command]
+pub fn deep_link_listen(links: tauri::State<'_, crate::deep_link::Links>, on_link: Channel<crate::deep_link::Opened>) {
+    links.listen(on_link);
+}
+
+#[tauri::command]
+pub async fn digest_list() -> Result<Vec<crate::digests::Day>, AppError> {
+    crate::log::command("digest_list", async move { attempt(crate::digests::list).await }).await
+}
+
+#[tauri::command]
+pub async fn digest_show(date: String) -> Result<crate::digests::Digest, AppError> {
+    crate::log::command("digest_show", async move { attempt(move || crate::digests::show(&date)).await }).await
+}
+
+#[tauri::command]
+pub fn digest_notify(
+    app: tauri::AppHandle,
+    date: String,
+    title: String,
+    body: String,
+    open: String,
+) -> Result<(), AppError> {
+    crate::digests::notify(&app, &date, &title, &body, &open).map_err(AppError::from)
+}
+
 #[tauri::command]
 pub async fn readiness() -> Result<system::Readiness, AppError> {
     crate::log::command("readiness", async move { blocking(system::readiness).await }).await

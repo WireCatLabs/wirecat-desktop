@@ -4,7 +4,10 @@ import {
   Brain,
   ChartColumnBig,
   HardDrive,
+  Link2,
   ListTodo,
+  MessagesSquare,
+  Newspaper,
   ScrollText,
   Search,
   Settings,
@@ -15,7 +18,12 @@ import { type ComponentType, type LazyExoticComponent, lazy, type SVGProps } fro
 // Each page is its own chunk: the first screen does not pay for the other nine.
 const AgentsPage = lazy(() => import("@/features/agents/page").then((m) => ({ default: m.AgentsPage })))
 const AnalyticsPage = lazy(() => import("@/features/analytics/page").then((m) => ({ default: m.AnalyticsPage })))
+const ConversationPage = lazy(() =>
+  import("@/features/conversation/page").then((m) => ({ default: m.ConversationPage })),
+)
 const ConfigPage = lazy(() => import("@/features/config/page").then((m) => ({ default: m.ConfigPage })))
+const LinkPage = lazy(() => import("@/features/links/page").then((m) => ({ default: m.LinkPage })))
+const DigestsPage = lazy(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
 const GuidesPage = lazy(() => import("@/features/guides/page").then((m) => ({ default: m.GuidesPage })))
 const LogsPage = lazy(() => import("@/features/logs/page").then((m) => ({ default: m.LogsPage })))
 const MemoryPage = lazy(() => import("@/features/memory/page").then((m) => ({ default: m.MemoryPage })))
@@ -31,6 +39,8 @@ export type Section = {
   page?: ComponentType | LazyExoticComponent<ComponentType>
   /** `system` sections sit at the bottom of the sidebar, apart from the everyday ones. */
   group?: "system"
+  /** Reached only from a link, never listed in the sidebar. */
+  hidden?: true
 }
 
 // A new area of the app (accounts, memory, people, projects…) is one entry here and one folder in features/.
@@ -39,10 +49,13 @@ export const sections: readonly Section[] = [
   { id: "agents", icon: Bot, page: AgentsPage },
   { id: "search", icon: Search, page: SearchPage },
   { id: "tasks", icon: ListTodo, page: TasksPage },
+  { id: "digests", icon: Newspaper, page: DigestsPage },
   { id: "guides", icon: BookOpenText, page: GuidesPage },
   { id: "memory", icon: Brain, page: MemoryPage },
   { id: "analytics", icon: ChartColumnBig, page: AnalyticsPage },
   { id: "storage", icon: HardDrive, page: StoragePage, group: "system" },
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },
   { id: "settings", icon: Settings, page: ConfigPage, group: "system" },
+  { id: "open", icon: Link2, page: LinkPage, hidden: true },
+  { id: "conversation", icon: MessagesSquare, page: ConversationPage, hidden: true },
 ]

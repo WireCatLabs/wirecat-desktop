@@ -1,4 +1,7 @@
 import { ownerId, tools } from "@/domain/catalog"
+import { parseLink } from "@/domain/links"
+import type { AccountRemoved } from "./bindings"
+import { accountRemoveMock } from "./mock-account-remove"
 import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { analyticsMock } from "./mock-analytics"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
@@ -7,7 +10,9 @@ import { botMock } from "./mock-bot"
 import { cloudflareMock } from "./mock-cloudflare"
 import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
+import { conversationMock } from "./mock-conversation"
 import { delay } from "./mock-delay"
+import { digestsMock } from "./mock-digests"
 import { driveFoldersMock } from "./mock-drive-folders"
 import { enrichmentMock } from "./mock-enrichment"
 import { npmLines } from "./mock-install"
@@ -48,7 +53,7 @@ import type { Platform } from "./types"
 // `?unconfirmed=<tool>` refuses its install: the release was not built by the tool's own release workflow.
 // `?state=noadmin` has an apt Node whose npm needs administrator rights. With `nonode` or `noadmin`, "Set up Node.js
 // for me" runs a fake download; `?node=fail` makes its checksum mismatch, `?node=ready` starts with it already set up.
-// `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
+// `?mail-cli=old` installs mail-cli 0.21, without WireCat's Google app (`--method oauth`). `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
 // WhatsApp's sign-in on the Tools page (`src/app/scenarios.ts`); `?signin-fail=wa` makes it fail (`mock-signin.ts`).
 // `?mcp=<tool>` opens that tool's MCP server, running; `?mcp-fail=<tool>` makes its Start fail (`mock-mcp.ts`).
 // `?memory=<state>` and `?memory-fail=read|write` set up the Memory page (`mock-memory.ts`).
@@ -65,7 +70,7 @@ const LATEST: Record<string, string> = {
   zm: "0.42.0",
   drive: "0.30.0",
   memo: "0.95.0",
-  email: "0.14.0",
+  email: "0.22.0",
   gcal: "0.19.0",
   funnel: "0.1.1",
 }
@@ -184,6 +189,87 @@ const STATE_ENTRIES: Record<string, [string, boolean, number][]> = {
   ],
 }
 
+// Profiles a sign-out in this window ended; they stay listed, signed out, as the CLIs' own lists keep them.
+const signedOut = new Set<string>()
+// Profiles `account remove` forgot: the tools no longer list them.
+const forgotten = new Set<string>()
+
+function mockProfiles(id: string): Profile[] | null {
+  if (id === "memo") return null
+  if (id === "email") return scenario === "mixed" ? [{ name: "personal", signedIn: null }] : []
+  if (id === "wa") {
+    // `?service=wa` shows the service of two linked accounts without a sign-in first.
+    const names =
+      linkedProfiles.length === 0 && params.get("service")?.startsWith("wa") ? ["personal", "work"] : linkedProfiles
+    return names.map((name) => ({ name, signedIn: true }))
+  }
+  if (id === "tg") {
+    return [
+      { name: "personal", signedIn: true },
+      { name: "work", signedIn: false },
+    ]
+  }
+  return [{ name: "personal", signedIn: id === "max" || id === "drive" ? true : null }]
+}
+
+function diagnosed(id: string, profile: string | null): Diagnosis {
+  const command = `${id} ${profile ? `${profile} ` : ""}doctor --record --json`
+  if (id === "email") {
+    return {
+      command: `mail ${profile ?? ""} session status --record --json`,
+      exitCode: 0,
+      durationMs: 240,
+      report: { item: { profile: profile ?? "", state: "signed_in", auth: "oauth", address: "[email]" } },
+      stderr: "",
+    }
+  }
+  if (id === "memo") {
+    return {
+      command,
+      exitCode: 1,
+      durationMs: 712,
+      report: {
+        item: {
+          memo: { version: "0.93.0", node: "24.19.0" },
+          mail: { accounts: [{ name: "•••", address: "•••", mode: "himalaya" }] },
+          problems: [
+            { what: "The search model is not downloaded yet.", fix: "memo search model download" },
+            { what: "The daily sync timer is not installed.", fix: "memo timer install" },
+          ],
+        },
+      },
+      stderr: "",
+    }
+  }
+  const key = `${id}/${profile ?? ""}`
+  const config = repaired && key === "tg/work" ? undefined : MOCK_CONFIG[key]
+  if (config) {
+    const broken = config.issues?.some((i) => i.kind === "invalid_json") || "error" in config
+    return {
+      command,
+      exitCode: broken ? 1 : 0,
+      durationMs: 884,
+      report: { item: { profile, config: { found: true, path: `~/.config/${id}-cli/config.json`, ...config } } },
+      stderr: "",
+    }
+  }
+  return {
+    command,
+    exitCode: 0,
+    durationMs: 1043,
+    report: {
+      item: {
+        profile,
+        config: { found: true, path: `~/.config/${id}/config.toml` },
+        store: { exists: true, writable: true, chats: 214, messages: 48210 },
+        login: { state: "not checked" },
+        files: { ok: true, problems: [] },
+      },
+    },
+    stderr: "",
+  }
+}
+
 export function createMock(os: Platform["os"]): Platform {
   const installed = new Map<string, string>(
     showcase
@@ -200,6 +286,10 @@ export function createMock(os: Platform["os"]): Platform {
           ? [["tg", "0.88.0"]]
           : [],
   )
+  if (params.get("mail-cli") === "old") installed.set("email", "0.21.0")
+  // `?accounts=<tool>` opens that tool's accounts, so it is installed even when the scenario leaves it out.
+  const accounts = params.get("accounts")
+  if (accounts && !installed.has(accounts)) installed.set(accounts, LATEST[ownerId(accounts)] ?? "1.0.0")
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
   const agents = agentsMock((id) => installed.get(id), os)
@@ -378,79 +468,42 @@ export function createMock(os: Platform["os"]): Platform {
     },
     async listProfiles(id): Promise<Profile[] | null> {
       await delay(350)
-      if (id === "memo") return null
-      if (id === "email") return scenario === "mixed" ? [{ name: "personal", signedIn: null }] : []
-      if (id === "wa") {
-        // `?service=wa` shows the service of two linked accounts without a sign-in first.
-        const names =
-          linkedProfiles.length === 0 && params.get("service")?.startsWith("wa") ? ["personal", "work"] : linkedProfiles
-        return names.map((name) => ({ name, signedIn: true }))
-      }
-      if (id === "tg") {
-        return [
-          { name: "personal", signedIn: true },
-          { name: "work", signedIn: false },
-        ]
-      }
-      return [{ name: "personal", signedIn: id === "max" ? true : null }]
+      return (
+        mockProfiles(id)
+          ?.filter((p) => !forgotten.has(`${id}/${p.name}`))
+          .map((p) => (signedOut.has(`${id}/${p.name}`) ? { ...p, signedIn: false } : p)) ?? null
+      )
+    },
+    async accountSignOut(id, profile): Promise<AccountRemoved> {
+      await delay(900)
+      if (params.get("remove-fail") === id)
+        return {
+          result: "failed",
+          message: `${id} serve is running for this profile. Stop it first: ${id} ${profile} server stop`,
+        }
+      const key = `${id}/${profile}`
+      const was = !signedOut.has(key)
+      signedOut.add(key)
+      return { result: "signedOut", wasSignedIn: was }
     },
     async diagnose(id, profile): Promise<Diagnosis> {
       await delay(1000)
-      const command = `${id} ${profile ? `${profile} ` : ""}doctor --record --json`
-      if (id === "email") {
+      if (signedOut.has(`${id}/${profile}`)) {
         return {
-          command: `mail ${profile ?? ""} session status --record --json`,
-          exitCode: 0,
-          durationMs: 240,
-          report: { item: { profile: profile ?? "", state: "signed_in", auth: "oauth", address: "[email]" } },
-          stderr: "",
-        }
-      }
-      if (id === "memo") {
-        return {
-          command,
+          command: `${id} ${profile} doctor --record --json`,
           exitCode: 1,
-          durationMs: 712,
+          durationMs: 610,
           report: {
             item: {
-              memo: { version: "0.93.0", node: "24.19.0" },
-              mail: { accounts: [{ name: "•••", address: "•••", mode: "himalaya" }] },
-              problems: [
-                { what: "The search model is not downloaded yet.", fix: "memo search model download" },
-                { what: "The daily sync timer is not installed.", fix: "memo timer install" },
-              ],
+              profile,
+              login: { state: "signed_out" },
+              problems: [{ what: "Not signed in.", fix: `${id} ${profile} session start` }],
             },
           },
           stderr: "",
         }
       }
-      const key = `${id}/${profile ?? ""}`
-      const config = repaired && key === "tg/work" ? undefined : MOCK_CONFIG[key]
-      if (config) {
-        const broken = config.issues?.some((i) => i.kind === "invalid_json") || "error" in config
-        return {
-          command,
-          exitCode: broken ? 1 : 0,
-          durationMs: 884,
-          report: { item: { profile, config: { found: true, path: `~/.config/${id}-cli/config.json`, ...config } } },
-          stderr: "",
-        }
-      }
-      return {
-        command,
-        exitCode: 0,
-        durationMs: 1043,
-        report: {
-          item: {
-            profile,
-            config: { found: true, path: `~/.config/${id}/config.toml` },
-            store: { exists: true, writable: true, chats: 214, messages: 48210 },
-            login: { state: "not checked" },
-            files: { ok: true, problems: [] },
-          },
-        },
-        stderr: "",
-      }
+      return diagnosed(id, profile)
     },
     async install(given, onEvent: (e: InstallEvent) => void) {
       const id = ownerId(given)
@@ -632,9 +685,12 @@ export function createMock(os: Platform["os"]): Platform {
     },
     ...signInMock(),
     ...driveFoldersMock(),
+    ...accountRemoveMock(params, (id, profile) => forgotten.add(`${id}/${profile}`)),
     ...botMock(),
     ...syncMock(),
     ...mailAgentMock(params),
+    ...digestsMock(params),
+    ...conversationMock(params),
     ...notesSetupMock(params),
     ...enrichmentMock(params),
     ...mcpServerMock(),
@@ -647,7 +703,13 @@ export function createMock(os: Platform["os"]): Platform {
     ...searchMock,
     ...settingsMock,
     ...permissionsMock(settingsMock),
+    async listenLinks(onLink) {
+      // `?link=/v1/task/80` (or a whole wirecat:// link) is the link the app started from; a refused one opens as null.
+      const link = params.get("link")
+      if (link) onLink(parseLink(link.startsWith("/") ? `wirecat://open${link}` : link))
+    },
     async openUrl(url) {
+      if (params.get("open") === "fail") throw new Error("No program is set to open https links.")
       if (isMockLogin(url)) return
       window.open(url, "_blank", "noopener")
     },

@@ -1,6 +1,7 @@
 import { CheckCircle2, ExternalLink, LoaderCircle } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { findTool } from "@/domain/catalog"
+import { MAIL_PROVIDERS_LIST, readMailNotes } from "@/domain/mail-signin"
 import { checkPhone, formatPhone, phoneTyped } from "@/domain/phone"
 import { qrModules, qrPath } from "@/domain/qr"
 import { zoomNeedsClientId } from "@/domain/signin-failure"
@@ -38,7 +39,9 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { AnswerForm, type Check } from "./AnswerForm"
 import { DriveFolders } from "./DriveFolders"
 import { explainView, FailureCard } from "./Failure"
+import { MailPrepare } from "./MailSteps"
 import { signinMessages } from "./messages"
+import { mailMessages } from "./messages-mail"
 import { planMessages } from "./messages-plan"
 import { setupMessages } from "./messages-setup"
 import { telegramMessages } from "./messages-telegram"
@@ -76,7 +79,7 @@ export const isKeys = (s: SignInView) =>
  * put while the question under it changes; every other question is a stage of its own.
  */
 export function stageKey(s: SignInView) {
-  if (s.phase === "plan") return `plan:${s.method}`
+  if (s.phase === "plan") return `plan:${s.method}:${s.planStep}`
   if (isKeys(s)) return "keys"
   if (s.phase === "answer" && s.need) return `answer:${s.need.field}`
   return s.phase
@@ -87,6 +90,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
   const tm = useMessages(telegramMessages)
   const pm = useMessages(planMessages)
   const sm = useMessages(setupMessages)
+  const mm = useMessages(mailMessages)
   if (isKeys(s)) return <KeysStage name={name} s={s} />
   if (s.phase === "starting") {
     const switching = s.switchingTo ? tm.switching[s.switchingTo] : undefined
@@ -111,8 +115,9 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     if (s.need.field === "redirect") return <RedirectStage need={s.need} s={s} />
     if (s.need.field === "client_id") return <ZoomAppSetup need={s.need} />
     if (MAIL_SERVER_FIELDS.has(s.need.field)) return <ServerStage need={s.need} s={s} />
-    const link = linkIn(s.need.hint)
-    const prepare = s.tool === "email" && isPassword(s.need) ? s.notes : []
+    const mailPassword = s.tool === "email" && isPassword(s.need)
+    // mail's list of every provider is for its maintainers; the window's own words say what an app password is.
+    const link = mailPassword && linkIn(s.need.hint)?.includes(MAIL_PROVIDERS_LIST) ? null : linkIn(s.need.hint)
     const checkNumber: Check = (typed) => {
       const result = checkPhone(typed)
       return result.problem === null
@@ -127,16 +132,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     return (
       <div className="flex min-h-[19rem] flex-col items-center justify-center gap-4 text-[1.1rem]">
         {s.url && !isTelegramApps(s.url) && <BrowserLink url={s.url} compact />}
-        {prepare.length > 0 && (
-          <section className="flex w-full max-w-[32rem] flex-col gap-1.5 text-left">
-            <h3 className="text-body font-semibold text-ink">{sm.mail.prepare}</h3>
-            <ul className="flex list-disc flex-col gap-1 pl-5 text-body leading-snug text-ink-soft">
-              {prepare.map((note) => (
-                <li key={note}>{sentence(note)}</li>
-              ))}
-            </ul>
-          </section>
-        )}
+        {mailPassword && <MailPrepare notes={readMailNotes(s.notes)} heading={sm.mail.prepare} />}
         <AnswerForm
           need={s.need}
           sent={s.sent}
@@ -150,7 +146,9 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
                 ? tg
                   ? tm.phoneHint
                   : sm.wa.phoneHint
-                : undefined
+                : mailPassword
+                  ? mm.runtime.notYours
+                  : undefined
           }
           problem={refused}
           {...(phone ? { check: checkNumber, filter: phoneTyped, preview: readBack } : {})}

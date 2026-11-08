@@ -1,1 +1,1 @@
-export { readLast, remember } from "./store"
+export { openSettingsAt, readLast, remember } from "./store"

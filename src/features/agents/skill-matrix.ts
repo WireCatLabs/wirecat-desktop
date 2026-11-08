@@ -5,7 +5,8 @@ import { cellKey, useAgents } from "@/shared/agents-store"
 import { useTools } from "@/shared/tools-store"
 
 // A part of another tool's package (Email in memo) has no skill of its own; its owner's skill covers it.
-export const catalogTools = tools.filter((t) => t.skill !== null)
+/** A function: an own tool added while the app runs joins the catalog after this module loaded. */
+export const catalogTools = () => tools.filter((t) => t.skill !== null)
 
 /** Each installed tool's skill in each folder agents read, for the Agents page and onboarding's matrix. */
 export function useSkillMatrix() {
@@ -17,7 +18,7 @@ export function useSkillMatrix() {
   }
   const { agents, skills, written, busy, failures } = useAgents()
   const detected = Object.keys(installs).length > 0
-  const installed = catalogTools.filter((t) => (installs[t.id]?.length ?? 0) > 0)
+  const installed = catalogTools().filter((t) => (installs[t.id]?.length ?? 0) > 0)
   const found = agents?.filter((a) => a.foundBy !== null) ?? null
   const columns = skillColumns(agents)
   const targets = columns.map((c) => c.target)
@@ -57,6 +58,6 @@ export function useSkillMatrix() {
     targets,
     rows,
     stale,
-    notInstalled: catalogTools.filter((t) => !installed.includes(t)),
+    notInstalled: catalogTools().filter((t) => !installed.includes(t)),
   }
 }

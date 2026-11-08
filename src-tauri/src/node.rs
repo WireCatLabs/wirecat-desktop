@@ -287,7 +287,7 @@ pub enum Step {
     Download,
     Verify,
     Unpack,
-    /// Putting Node.js's folder on the user's PATH (`terminal_path::after_node_setup`, run by the command).
+    /// Putting Node.js's folder on the user's PATH (`terminal_path::after_node_setup`, run by `set_up`).
     Path,
 }
 
@@ -337,6 +337,38 @@ impl Drop for Scratch {
     fn drop(&mut self) {
         let _ = std::fs::remove_dir_all(&self.0);
     }
+}
+
+/// "Set up Node.js for me": the setup, then its folder on the user's PATH, reported as events; the interface and
+/// `self_test.rs` both run this.
+pub fn set_up(running: &crate::install::Running, send: &dyn Fn(NodeEvent)) {
+    if !running.start(OPERATION) {
+        return send(NodeEvent::Failed {
+            reason: Reason::Failed,
+            message: "Node.js setup is already running.".into(),
+            hint: None,
+        });
+    }
+    let result = match root() {
+        Some(root) => setup(&root, send, &|| !running.is_running(OPERATION)),
+        None => Err(Failure::no_home()),
+    };
+    running.finish(OPERATION);
+    // Tools installed with this Node.js are linked beside it; the user's PATH changes without an administrator,
+    // so a terminal and the AI apps find them with nothing more to do. A failure here never fails the setup.
+    if result.is_ok() {
+        send(NodeEvent::Step { step: Step::Path });
+    }
+    let path_fix = result.as_ref().ok().and_then(|done| crate::terminal_path::after_node_setup(&bin_dir(&done.dir)));
+    paths::refresh(&[]);
+    send(match result {
+        Ok(done) => NodeEvent::Done {
+            version: done.version.to_string(),
+            path: paths::tilde(&done.dir.to_string_lossy()),
+            path_fix,
+        },
+        Err(f) => f.into(),
+    });
 }
 
 /// Downloads the newest usable LTS build from nodejs.org into `root`, checks it against the published SHA-256,

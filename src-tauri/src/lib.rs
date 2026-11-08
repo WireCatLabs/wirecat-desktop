@@ -1,3 +1,4 @@
+mod account;
 mod agent_run;
 mod analytics;
 mod archive;
@@ -15,6 +16,9 @@ mod commands;
 mod community;
 mod compat;
 mod config_repair;
+mod conversation;
+mod deep_link;
+mod digests;
 mod drive_folders;
 mod enrichment;
 mod error;
@@ -32,6 +36,8 @@ mod node;
 mod notes_setup;
 mod notifications;
 mod npm_prefix;
+mod own_risks;
+mod own_scan;
 #[cfg(test)]
 mod own_tool_e2e;
 mod own_tools;
@@ -51,6 +57,7 @@ mod report;
 mod run;
 mod runs;
 mod search;
+mod self_test;
 mod settings;
 mod signin;
 mod signin_steps;
@@ -78,6 +85,26 @@ fn window_state() -> tauri_plugin_window_state::StateFlags {
     StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED
 }
 
+fn listen_for_links(app: &tauri::AppHandle) {
+    use tauri_plugin_deep_link::DeepLinkExt;
+    // An AppImage, a moved copy and a dev build are not registered by an installer; macOS cannot register at runtime.
+    #[cfg(any(target_os = "linux", all(debug_assertions, windows)))]
+    if let Err(e) = app.deep_link().register_all() {
+        eprintln!("[wirecat] wirecat:// links not registered: {e}");
+    }
+    if let Ok(Some(urls)) = app.deep_link().get_current() {
+        deep_link::open(app, urls.iter().map(tauri::Url::as_str));
+    }
+    let handle = app.clone();
+    app.deep_link().on_open_url(move |event| deep_link::open(&handle, event.urls().iter().map(tauri::Url::as_str)));
+}
+
+/// The exit code when the command line asks for the install check's self-test (`self_test.rs`), before any window.
+#[must_use]
+pub fn self_test() -> Option<i32> {
+    self_test::from_command_line()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
 pub fn run() {
@@ -92,6 +119,9 @@ pub fn run() {
     });
     std::thread::spawn(registry::keep_fresh);
     tauri::Builder::default()
+        // First, as the plugin asks: a second launch for a wirecat:// link reaches this window through it.
+        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| deep_link::show_window(app)))
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -100,11 +130,14 @@ pub fn run() {
         // gone is ignored and the window opens centred.
         .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(window_state()).build())
         .manage(Arc::new(Running::default()))
+        .manage(deep_link::Links::default())
         .setup(|app| {
             // Without a log the app still works; it says why on stderr.
             if let Err(e) = app.path().app_log_dir().map_err(|e| e.to_string()).and_then(|dir| log::init(&dir)) {
                 eprintln!("[wirecat] no log file: {e}");
             }
+            listen_for_links(app.handle());
+            digests::mark_running();
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -114,9 +147,14 @@ pub fn run() {
             commands::own_tools::own_tools_status,
             commands::own_tools::set_own_tools_allowed,
             commands::own_tools::own_tool_discover,
+            commands::own_tools::own_tool_risks,
             commands::own_tools::own_tool_add,
             commands::own_tools::own_tool_uninstall,
             commands::own_tools::own_tool_remove,
+            commands::app::deep_link_listen,
+            commands::app::digest_list,
+            commands::app::digest_show,
+            commands::app::digest_notify,
             commands::app::readiness,
             commands::app::report_context,
             commands::app::send_report,
@@ -157,6 +195,10 @@ pub fn run() {
             commands::enrichment::enrichment_key_set,
             commands::enrichment::enrichment_key_remove,
             commands::tools::config_repair,
+            commands::tools::account_sign_out,
+            commands::tools::account_remove_supported,
+            commands::tools::account_remove_plan,
+            commands::tools::account_remove,
             commands::tools::open_setup,
             commands::storage::storage_report,
             commands::storage::clear_storage,
@@ -226,6 +268,7 @@ pub fn run() {
             commands::tasks::person_add,
             commands::tasks::project_list,
             commands::memory::memory_read,
+            commands::memory::conversation_read,
             commands::memory::memory_sources,
             commands::memory::memory_confirm,
             commands::memory::memory_discard,
@@ -253,10 +296,17 @@ pub fn run() {
             commands::setup_extras::zoom_app_setup,
             commands::setup_extras::drive_folders_browse,
             commands::setup_extras::drive_folder_add,
+            commands::setup_extras::drive_folders_chosen,
+            commands::setup_extras::drive_folder_remove,
             commands::sync::sync_run,
             commands::sync::sync_stop,
             commands::sync::sync_last
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|_, event| {
+            if let tauri::RunEvent::Exit = event {
+                digests::unmark_running();
+            }
+        });
 }

@@ -2,7 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
-import { render, screen, waitFor, within } from "@/testing/render"
+import { render, screen, waitFor } from "@/testing/render"
 import { Health } from "./Health"
 
 const tg = findTool("tg") as NonNullable<ReturnType<typeof findTool>>
@@ -37,8 +37,8 @@ afterEach(() => vi.restoreAllMocks())
 async function checkWork() {
   const user = userEvent.setup()
   render(<Health tool={tg} />)
-  const row = (await screen.findByText("work")).closest("li") as HTMLElement
-  await user.click(within(row).getByRole("button", { name: "Check" }))
+  await user.click(await screen.findByRole("button", { name: "More for work" }))
+  await user.click(screen.getByRole("menuitem", { name: "Check" }))
   await screen.findByText("The settings file is not valid JSON.", {}, { timeout: 3000 })
   return user
 }

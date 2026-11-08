@@ -4,7 +4,7 @@
 //! and a failed correction would keep the owner's text in Memo's run log.
 
 use crate::catalog::{self, Tool};
-use crate::skills::failure;
+use crate::skills::{body, failure, too_old};
 use crate::{paths, redact, run, tools};
 use serde::Serialize;
 use serde_json::Value;
@@ -128,6 +128,10 @@ pub struct Entry {
     pub model: Option<String>,
     /// How sure the agent said it was, 0 to 1; memo keeps it on memories only.
     pub confidence: Option<f64>,
+    /// A relationship's role id, from the owner's role lists (`employee`, `decision-maker`); other records have none.
+    pub role: Option<String>,
+    /// A relationship's standing: `proposed`, `confirmed`, `reported` (a CRM says so) or `ended`.
+    pub standing: Option<String>,
 }
 
 /// Memo stages an agent's cited facts and follow-ups as an action of this kind, decided with the fingerprint
@@ -224,6 +228,8 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         task: None,
         model: text(v, "model"),
         confidence: v["confidence"].as_f64(),
+        role: None,
+        standing: None,
     })
 }
 
@@ -268,10 +274,134 @@ fn action(v: &Value) -> Option<Entry> {
         updated_at: text(v, "decided_at"),
         model: text(&v["payload"], "agent_model"),
         confidence: None,
+        role: None,
+        standing: None,
         findings: batch.then(|| findings_of(v)),
         task: text_field(&v["result"], "task").map(|id| format!("task:{id}")),
         kind,
     })
+}
+
+/// An agent's relationship waits in Memo's review as `relationship:<id>`, the id `review confirm` takes. A link that
+/// holds is `link:<id>`, shown with its standing and never decided here.
+const PROPOSED_RELATIONSHIP: &str = "relationship:";
+
+/// `Person «Alice Sample»` → `Alice Sample`: Memo titles an end with its kind, which the page says in its own words.
+fn name_in(title: Option<String>) -> Option<String> {
+    let t = title?;
+    match (t.find('«'), t.rfind('»')) {
+        (Some(a), Some(b)) if a < b => Some(t[a + '«'.len_utf8()..b].to_string()),
+        _ => Some(t),
+    }
+}
+
+/// A row of `relationships list`: `pending` for the proposals (`confirmed:false`), else a link with its standing. A
+/// link that ended goes with what no longer holds; a CRM's `reported` link is in use, as Memo counts it. A memo that
+/// lists proposals beside the links has them in the pending list already, so they are left out of the other.
+fn relationship(v: &Value, pending: bool) -> Option<Entry> {
+    let standing = if pending {
+        "proposed".to_string()
+    } else {
+        text(v, "standing").unwrap_or_else(|| {
+            if v["confirmed"].as_bool() == Some(true) { "confirmed" } else { "reported" }.to_string()
+        })
+    };
+    if !pending && (standing == "proposed" || v.get("proposer").is_some()) {
+        return None;
+    }
+    let status = match standing.as_str() {
+        "proposed" => "proposed",
+        "ended" => "stale",
+        _ => "confirmed",
+    };
+    let id = text(v, "id")?;
+    Some(Entry {
+        reference: if pending { format!("{PROPOSED_RELATIONSHIP}{id}") } else { format!("link:{id}") },
+        record: "relationship",
+        kind: text(v, "kind")?,
+        text: None,
+        summary: None,
+        verb: None,
+        target_name: name_in(text(v, "to_title")),
+        chat_name: None,
+        counts: None,
+        status: status.into(),
+        subject: text(v, "from"),
+        subject_name: name_in(text(v, "from_title")),
+        subject_is_owner: false,
+        author: text(v, "proposer").map(|name| Author { kind: "bot".into(), name: Some(name) }),
+        scope: None,
+        project: None,
+        project_name: None,
+        supersedes: None,
+        links: 0,
+        reason: text(v, "evidence"),
+        account: text(v, "account_id"),
+        target: text(v, "to"),
+        created_at: text(v, "created_at")?,
+        updated_at: None,
+        findings: None,
+        task: None,
+        model: None,
+        confidence: None,
+        role: text(v, "role"),
+        standing: Some(standing),
+    })
+}
+
+/// One role of the owner's role lists, from `relationships roles list` (memo with cli-core's role lists).
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Role {
+    pub list: String,
+    pub id: String,
+    pub label: Option<String>,
+    pub built_in: bool,
+}
+
+fn role(v: &Value) -> Option<Role> {
+    Some(Role {
+        list: text(v, "list")?,
+        id: text(v, "id")?,
+        label: text(v, "label"),
+        built_in: v["built_in"].as_bool().unwrap_or(true),
+    })
+}
+
+/// A memo from before a list, or before one of its words, says so; anything else (a busy store) is a real failure.
+fn unsupported(e: &str) -> bool {
+    e.starts_with("unknown command") || e.contains("query.unknown-field")
+}
+
+fn rows(call: &Call, args: &[&str], pending: bool) -> Result<Vec<Entry>, String> {
+    let v = call(&words(args))?;
+    Ok(v["items"].as_array().map(|a| a.iter().filter_map(|r| relationship(r, pending)).collect()).unwrap_or_default())
+}
+
+/// Relationships are part of the page only where Memo has them; a memo without the list leaves the rest as it is.
+/// Links that ended are asked for with `include:ended`, which an older memo does not know and lists without.
+fn relationships(call: &Call, pending: bool) -> Result<Vec<Entry>, String> {
+    let found = if pending {
+        rows(call, &["relationships", "list", "confirmed:false"], true)
+    } else {
+        match rows(call, &["relationships", "list", "include:ended"], false) {
+            Err(e) if unsupported(&e) => rows(call, &["relationships", "list"], false),
+            r => r,
+        }
+    };
+    match found {
+        Err(e) if unsupported(&e) => Ok(Vec::new()),
+        r => r,
+    }
+}
+
+/// The owner's role lists, or none from a Memo before them: the page then shows a role by its id.
+fn roles(call: &Call) -> Result<Vec<Role>, String> {
+    match call(&words(&["relationships", "roles", "list"])) {
+        Ok(v) => Ok(v["items"].as_array().map(|a| a.iter().filter_map(role).collect()).unwrap_or_default()),
+        Err(e) if unsupported(&e) => Ok(Vec::new()),
+        Err(e) => Err(e),
+    }
 }
 
 /// One tool call by an agent, from `memo agents list`: never its arguments, which Memo does not keep.
@@ -324,6 +454,7 @@ pub enum Read {
         activity_error: Option<String>,
         /// The installed memo takes back the approval of an agent's fact (`facts revoke`).
         revoke: bool,
+        roles: Vec<Role>,
     },
 }
 
@@ -372,10 +503,6 @@ fn decision(parts: &[&str]) -> Vec<String> {
     parts.iter().chain(std::iter::once(&FROM_APP)).chain(QUIET.iter()).map(|s| (*s).to_string()).collect()
 }
 
-fn body(v: &Value) -> &Value {
-    v.get("item").unwrap_or(v)
-}
-
 fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out = run::run(bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
@@ -406,11 +533,6 @@ fn memo() -> Result<&'static Tool, String> {
     catalog::tool("memo")
 }
 
-fn too_old(version: Option<&str>, need: &str) -> bool {
-    let Ok(need) = semver::Version::parse(need) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
-}
-
 pub fn read() -> Result<Read, String> {
     let tool = memo()?;
     let need = tool.memory.as_ref().ok_or("Memo has no memory commands in the catalog")?.min_version.clone();
@@ -435,19 +557,27 @@ fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(
     Ok((items, v["page"]["has_more"].as_bool().unwrap_or(false)))
 }
 
-/// The four lists at once: each is its own Node.js start, so one after another would take four times as long.
+/// Every list at once: each is its own Node.js start, so one after another would take that many times as long.
 fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
-    let (memories, facts, actions, agents) = std::thread::scope(|s| {
-        let m = s.spawn(|| list(call, "memories", memory));
-        let f = s.spawn(|| list(call, "facts", fact));
-        let a = s.spawn(|| list(call, "actions", action));
-        let g = s.spawn(|| call(&words(&["agents", "list", "--limit", ACTIVITY_LIMIT])));
+    let (memories, facts, actions, agents, (proposed, held, roles)) = std::thread::scope(|s| {
+        let memories = s.spawn(|| list(call, "memories", memory));
+        let facts = s.spawn(|| list(call, "facts", fact));
+        let actions = s.spawn(|| list(call, "actions", action));
+        let agents = s.spawn(|| call(&words(&["agents", "list", "--limit", ACTIVITY_LIMIT])));
+        let proposed = s.spawn(|| relationships(call, true));
+        let held = s.spawn(|| relationships(call, false));
+        let roles = s.spawn(|| roles(call));
         let stopped = |_| Err("a read stopped".to_string());
         (
-            m.join().unwrap_or_else(stopped),
-            f.join().unwrap_or_else(stopped),
-            a.join().unwrap_or_else(stopped),
-            g.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+            memories.join().unwrap_or_else(stopped),
+            facts.join().unwrap_or_else(stopped),
+            actions.join().unwrap_or_else(stopped),
+            agents.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+            (
+                proposed.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+                held.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+                roles.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+            ),
         )
     });
     let (mut entries, mut more) = memories?;
@@ -455,6 +585,9 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
         entries.extend(items);
         more |= has_more;
     }
+    entries.extend(proposed?);
+    entries.extend(held?);
+    let roles = roles?;
     // ISO 8601 in UTC, so the text order is the time order.
     entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
     let (activity, activity_error) = match agents {
@@ -463,7 +596,7 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
         }
         Err(e) => (None, Some(e)),
     };
-    Ok(Read::Ready { entries, more, activity, activity_error, revoke })
+    Ok(Read::Ready { entries, more, activity, activity_error, revoke, roles })
 }
 
 fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
@@ -541,6 +674,9 @@ fn confirm_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Entry
 /// Approving an action makes it a task in the account that would act; Memo sends nothing. Approving findings creates
 /// the facts and tasks named in `accept`, which a findings batch must have.
 pub fn confirm(reference: &str, accept: Option<&[String]>) -> Result<Entry, String> {
+    if let Some(id) = proposal_id(reference) {
+        return with_memo(|call| decide_relationship(call, id, true));
+    }
     let r = Ref::parse(reference)?;
     with_memo(|call| confirm_with(call, &r, accept))
 }
@@ -573,11 +709,47 @@ fn discard_with(call: &Call, r: &Ref, revoke: bool) -> Result<Entry, String> {
 }
 
 pub fn discard(reference: &str) -> Result<Entry, String> {
+    if let Some(id) = proposal_id(reference) {
+        return with_memo(|call| decide_relationship(call, id, false));
+    }
     let r = Ref::parse(reference)?;
     let tool = memo()?;
     let revoke =
         crate::tools::program(&tool.bin).is_some_and(|bin| can_revoke(tool, crate::tools::version_of(&bin).as_deref()));
     with_memo(|call| discard_with(call, &r, revoke))
+}
+
+fn proposal_id(reference: &str) -> Option<&str> {
+    reference
+        .strip_prefix(PROPOSED_RELATIONSHIP)
+        .filter(|id| !id.is_empty() && id.len() <= 15 && id.bytes().all(|b| b.is_ascii_digit()))
+}
+
+/// Memo asks why a proposal is turned down; the page's Reject says only that the owner did it here.
+const REJECTED_HERE: &str = "rejected in WireCat Desktop";
+
+/// An agent's relationship is decided through Memo's review, as every other kind it holds. The row is read first, so
+/// the answer is the same row with Memo's decision, or Memo's reason when it refused.
+fn decide_relationship(call: &Call, id: &str, confirm: bool) -> Result<Entry, String> {
+    let row = relationships(call, true)?
+        .into_iter()
+        .find(|e| e.reference == format!("{PROPOSED_RELATIONSHIP}{id}"))
+        .ok_or("This relationship is no longer waiting for a decision.")?;
+    let args: Vec<&str> = if confirm {
+        vec!["review", "confirm", id, FROM_APP]
+    } else {
+        vec!["review", "reject", id, "--reason", REJECTED_HERE, FROM_APP]
+    };
+    let v = call(&words(&args))?;
+    let item = body(&v);
+    if let Some(refused) = item["refused"].as_array().and_then(|a| a.first()) {
+        return Err(text(refused, "reason")
+            .or_else(|| text(refused, "code"))
+            .unwrap_or_else(|| "Memo refused it".into()));
+    }
+    let status = item["decided"].as_array().and_then(|a| a.first()).and_then(|d| text(d, "status"));
+    let standing = if status.as_deref() == Some("confirmed") { "confirmed" } else { "rejected" };
+    Ok(Entry { status: status.unwrap_or_else(|| standing.into()), standing: Some(standing.into()), ..row })
 }
 
 /// A word Memo gave back goes into a command line again, so it must not read as an option.
@@ -959,6 +1131,145 @@ mod tests {
         assert!(validate_text(&"я".repeat(MAX_TEXT)).is_ok());
     }
 
+    // `relationships list confirmed:false` and `relationships list` from memo 0.131.54 on a throwaway store.
+    fn pending_relationship() -> Value {
+        json!({"id":"1","from":"person:2","to":"organization:1","kind":"member-of","role":"manager","purpose":null,
+            "evidence":"signs as procurement manager","confirmed":false,"status":"proposed","proposer":"claude-code",
+            "score":null,"created_at":"2026-11-08T12:45:30.880Z","from_title":"Person «Alice Sample»",
+            "to_title":"Organization «Acme Ltd»"})
+    }
+
+    fn held_relationship(standing: &str) -> Value {
+        json!({"id":"7","from":"person:2","to":"organization:1","kind":"member-of","role":"manager","purpose":null,
+            "evidence":null,"confirmed":standing == "confirmed","provenance":null,"standing":standing,"position":null,
+            "starts_at":null,"ends_at":null,"created_at":"2026-11-08T12:45:32.107Z","status":"confirmed",
+            "account_id":if standing == "reported" { json!("bitrix24:acme.example") } else { Value::Null },
+            "from_title":"Person «Alice Sample»","to_title":"Organization «Acme Ltd»"})
+    }
+
+    #[test]
+    fn reads_relationships_with_their_ends_role_and_standing_beside_the_records() {
+        let fake = Fake::new(|a| match (a[0].as_str(), a.get(2).map(String::as_str)) {
+            ("relationships", Some("confirmed:false")) => Ok(json!({"items":[pending_relationship()]})),
+            ("relationships", Some("list")) => Ok(
+                json!({"items":[{"list":"organization","id":"board-member","label":"Board member","built_in":false}]}),
+            ),
+            ("relationships", _) => {
+                let mut waiting = pending_relationship();
+                waiting["standing"] = json!("proposed");
+                Ok(json!({"items":[held_relationship("reported"), held_relationship("ended"), waiting]}))
+            }
+            ("agents", _) => Err("unknown command 'agents'".into()),
+            _ => Ok(json!({"items":[]})),
+        });
+        let Read::Ready { entries, roles, .. } = read_with(&|a: &[String]| fake.call(a), false).unwrap() else {
+            panic!("not ready")
+        };
+        let proposed = entries.iter().find(|e| e.reference == "relationship:1").unwrap();
+        assert_eq!(proposed.record, "relationship");
+        assert_eq!(
+            (proposed.subject_name.as_deref(), proposed.target_name.as_deref()),
+            (Some("Alice Sample"), Some("Acme Ltd"))
+        );
+        assert_eq!((proposed.role.as_deref(), proposed.standing.as_deref()), (Some("manager"), Some("proposed")));
+        assert_eq!(proposed.author.as_ref().and_then(|a| a.name.as_deref()), Some("claude-code"));
+        let held: Vec<_> = entries
+            .iter()
+            .filter(|e| e.reference == "link:7")
+            .map(|e| (e.status.as_str(), e.standing.as_deref()))
+            .collect();
+        assert_eq!(held, [("confirmed", Some("reported")), ("stale", Some("ended"))]);
+        assert_eq!(
+            entries.iter().find(|e| e.standing.as_deref() == Some("reported")).unwrap().account.as_deref(),
+            Some("bitrix24:acme.example")
+        );
+        assert_eq!(
+            roles,
+            [Role {
+                list: "organization".into(),
+                id: "board-member".into(),
+                label: Some("Board member".into()),
+                built_in: false
+            }]
+        );
+    }
+
+    #[test]
+    fn a_memo_without_relationships_or_roles_still_reads_the_rest() {
+        let fake = Fake::new(|a| match a[0].as_str() {
+            "relationships" => Err("unknown command 'roles'".into()),
+            "memories" => Ok(json!({"items":[agent_memory()]})),
+            _ => Ok(json!({"items":[]})),
+        });
+        let Read::Ready { entries, roles, .. } = read_with(&|a: &[String]| fake.call(a), false).unwrap() else {
+            panic!("not ready")
+        };
+        assert_eq!(entries.len(), 1);
+        assert_eq!(roles, []);
+        let busy = Fake::new(|a| match a[0].as_str() {
+            "relationships" => Err("another process holds the store".into()),
+            _ => Ok(json!({"items":[]})),
+        });
+        assert!(read_with(&|a: &[String]| busy.call(a), false).is_err(), "a busy store is not an older memo");
+    }
+
+    #[test]
+    fn asks_for_ended_links_and_lists_without_them_on_a_memo_that_does_not_know_the_word() {
+        let fake = Fake::new(|a| {
+            if a.iter().any(|w| w == "include:ended") {
+                Err("relationships list: query.unknown-field at position 1 — no field \"include\"".into())
+            } else {
+                Ok(json!({"items":[held_relationship("confirmed")]}))
+            }
+        });
+        let held = relationships(&|a: &[String]| fake.call(a), false).unwrap();
+        assert_eq!(held.len(), 1);
+        assert_eq!(fake.seen()[0][2], "include:ended");
+    }
+
+    #[test]
+    fn decides_a_relationship_through_memos_review_as_the_owner() {
+        let fake = Fake::new(|a| match a[0].as_str() {
+            "relationships" => Ok(json!({"items":[pending_relationship()]})),
+            _ if a[1] == "confirm" => Ok(
+                json!({"item":{"decided":[{"id":"1","kind":"relationship","status":"confirmed","made":["relationship:1"]}],"refused":[]}}),
+            ),
+            _ => {
+                Ok(json!({"item":{"decided":[],"refused":[{"id":"1","code":"conflict","reason":"proposal.decided"}]}}))
+            }
+        });
+        let call = |a: &[String]| fake.call(a);
+        let done = decide_relationship(&call, "1", true).unwrap();
+        assert_eq!((done.status.as_str(), done.standing.as_deref()), ("confirmed", Some("confirmed")));
+        assert_eq!(fake.seen()[1], strs(&["review", "confirm", "1", "--from-app", "--json", "--no-record"]));
+        assert_eq!(decide_relationship(&call, "1", false).unwrap_err(), "proposal.decided");
+        assert_eq!(
+            fake.seen()[3],
+            strs(&["review", "reject", "1", "--reason", REJECTED_HERE, "--from-app", "--json", "--no-record"])
+        );
+        assert!(decide_relationship(&call, "9", true).is_err(), "a proposal no longer waiting is not decided");
+        assert_eq!(proposal_id("relationship:12"), Some("12"));
+        for bad in ["relationship:", "relationship:1;x", "link:7", "relationship:-1"] {
+            assert_eq!(proposal_id(bad), None, "{bad}");
+        }
+    }
+
+    /// Against a real memo with a throwaway store that holds an agent's waiting relationship:
+    /// `MEMO_BIN=<memo> cargo test memory::tests::decides_relationships -- --ignored`. It confirms it, so never the
+    /// owner's store.
+    #[test]
+    #[ignore = "needs MEMO_BIN and a throwaway store with a proposed relationship"]
+    fn decides_relationships_through_a_real_memo() {
+        let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
+        let call = |a: &[String]| call_at(&bin, a, READ);
+        let Read::Ready { entries, .. } = read_with(&call, false).unwrap() else { panic!("not ready") };
+        let waiting = entries.iter().find(|e| e.reference.starts_with(PROPOSED_RELATIONSHIP)).expect("a proposal");
+        assert!(entries.iter().any(|e| e.reference.starts_with("link:") && e.standing.is_some()));
+        let id = proposal_id(&waiting.reference).unwrap();
+        let done = decide_relationship(&call, id, true).unwrap();
+        assert_eq!(done.standing.as_deref(), Some("confirmed"));
+    }
+
     #[test]
     fn reads_memories_facts_and_actions_into_one_newest_first_list() {
         let fake = Fake::new(|a| {
@@ -1338,8 +1649,10 @@ mod tests {
             activity: None,
             activity_error: None,
             revoke: true,
+            roles: vec![Role { list: "organization".into(), id: "employee".into(), label: None, built_in: true }],
         };
         let v = serde_json::to_value(read).unwrap();
+        assert_eq!(v["roles"][0]["builtIn"], true);
         assert_eq!(v["kind"], "ready");
         assert_eq!(v["revoke"], true);
         assert!(v.get("activityError").is_some());
@@ -1369,7 +1682,8 @@ mod tests {
         let raw =
             |noun: &str| call(&words(&[noun, "list", "--limit", LIMIT])).unwrap()["items"].as_array().unwrap().len();
         let Read::Ready { entries, activity, .. } = read_with(&call, false).unwrap() else { panic!("not ready") };
-        assert_eq!(entries.len(), raw("memories") + raw("facts") + raw("actions"), "an item did not parse");
+        let records = entries.iter().filter(|e| e.record != "relationship").count();
+        assert_eq!(records, raw("memories") + raw("facts") + raw("actions"), "an item did not parse");
         assert!(activity.is_some());
         assert!(
             entries.iter().filter(|e| e.record == "action").all(|e| e.summary.is_some() && e.verb.is_some()),

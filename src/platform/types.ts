@@ -1,4 +1,5 @@
 import type { Preflight, StoreCompat } from "@/domain/compat"
+import type { DeepLinkTarget } from "@/domain/links"
 import type {
   Agent,
   AgentRun,
@@ -15,22 +16,31 @@ import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } f
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type {
+  AccountRemoval,
+  AccountRemoved,
+  ChatPage,
+  ChatPlace,
+  ChosenFolders,
+  Conversation,
   Enrichment,
   EnrichmentStatus,
   FolderAdded,
   FolderLevel,
+  FolderRemoved,
   MailAgent,
   NotesFolderAdded,
   NotesFolderRemoved,
   NotesModelEvent,
   NotesSetup,
   OwnDiscovery,
+  OwnSignal,
   OwnStatus,
   ZoomAppAnswer,
 } from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
+import type { Digest, DigestDay } from "./digest-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
 import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
@@ -96,7 +106,9 @@ export type Platform = {
   setOwnToolsAllowed(allow: boolean): Promise<void>
   /** Reads npm only, nothing of the package runs; `desktop` is the object pasted for a tool without a manifest. */
   ownToolDiscover(pkg: string, desktop: string | null): Promise<OwnDiscovery>
-  /** Installs the reviewed version, checks it against the review and saves it for the next start. */
+  /** GitHub's things to check about the review's repository; a failure is a signal, never an error. */
+  ownToolRisks(token: string): Promise<OwnSignal[]>
+  /** Installs the reviewed version, checks it against the review and saves it; the tool is listed at once. */
   ownToolAdd(token: string, onEvent: (e: InstallEvent) => void): Promise<void>
   /** Uninstalls a package Add installed but refused, which no catalog names. */
   ownToolUninstall(token: string, onEvent: (e: InstallEvent) => void): Promise<void>
@@ -128,6 +140,14 @@ export type Platform = {
   openFolder(id: string, kind: StorageFolder["kind"], entry?: string): Promise<void>
   /** The tool's own `config repair` (`config_repair.rs`), offered where `doctor` names it as the fix. */
   configRepair(id: string, profile: string | null): Promise<Repair>
+  /** The tool's own `session end` for one profile: the fallback while the installed version has no `account remove`. */
+  accountSignOut(id: string, profile: string): Promise<AccountRemoved>
+  /** Whether the installed version has `account remove` (`accountRemove.remove.minVersion` in the catalog). */
+  accountRemoveSupported(id: string): Promise<boolean>
+  /** `account remove --dry-run`: what it would remove and keep. */
+  accountRemovePlan(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
+  /** `account remove --yes`: signs the profile out and forgets it, keeping or deleting its data. */
+  accountRemove(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
   /** What the shared archive holds, from the installed tool that reads the newest schema; null when none is installed. */
   storeInfo(): Promise<StoreInfo | null>
   /** Every installed tool's own `store info`: whether it reads the shared store, and what its next run does to it. */
@@ -242,6 +262,8 @@ export type Platform = {
   memoryForget(ref: string): Promise<Forgot>
   /** A cited source read back: a message with its neighbours, or a note's text. */
   memorySourceContext(ref: string): Promise<SourceContext>
+  /** A chat or mail thread a link names, read only through memo: the first view, or the page past one edge. */
+  conversationRead(place: ChatPlace, ask: ChatPage): Promise<Conversation>
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
@@ -293,6 +315,10 @@ export type Platform = {
   driveFoldersBrowse(id: string, profile: string, parent: string | null): Promise<FolderLevel>
   /** Adds one folder, by its id, to what the profile's sync imports. */
   driveFolderAdd(id: string, profile: string, folder: string): Promise<FolderAdded>
+  /** The folders the profile's sync imports, named once a sync has copied them. */
+  driveFoldersChosen(id: string, profile: string): Promise<ChosenFolders>
+  /** Stops importing one folder; drive's next sync drops what it copied from there. */
+  driveFolderRemove(id: string, profile: string, folder: string): Promise<FolderRemoved>
   /**
    * Connects a bot to the profile the owner named with the tool's own `bot auth set`: `fields` first (WhatsApp's ids,
    * `bot.fields` in the catalog), then the token on its stdin. The token is never logged, kept or sent back.
@@ -400,6 +426,16 @@ export type Platform = {
   /** Opens the user's terminal with the install command for the package just saved; they type their password there. */
   openPackageTerminal(): Promise<void>
   restart(): Promise<void>
+  /**
+   * wirecat:// links the system hands the app, the one that started it first; `null` for a link Rust refused, whose
+   * text never reaches the interface. One listener for the app's life.
+   */
+  listenLinks(onLink: (target: DeepLinkTarget | null) => void): Promise<void>
+  /** memo's morning digests, one per day, newest first, from the files its schedule keeps. */
+  digestList(): Promise<DigestDay[]>
+  digestShow(date: string): Promise<Digest>
+  /** A system notification for a new digest; on Linux a click opens that day (`digest/<date>`). */
+  digestNotify(date: string, title: string, body: string, open: string): Promise<void>
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>
 }

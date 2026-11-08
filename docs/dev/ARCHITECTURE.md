@@ -10,7 +10,7 @@ New here? Read [the architecture report](architecture-report.md) first. Rules pe
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
+  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
   shared/       parts and stores two or more features use: ToolIcon, ReportThis, JsonTree, nav, and the stores of tools, agents, storage, system, signin and onboarding. Imports no feature (Biome rule).
   features/<name>/index.ts   a feature's public surface. Other features and the app import `@/features/<name>`, never a file inside it (Biome rule). The one exception is `@/features/<name>/page`, the lazy entry of a page: `app/sections.tsx` loads it with `import()` so a page's code does not enter the first chunk through the index; `main.tsx` imports `tools/community` directly because it must run before any page module loads. Feature folders never import each other in a cycle (`src/features/no-cycles.test.ts`).
   features/<name>/api.ts     the feature's requests to Rust as TanStack Query hooks: `useQuery` for reads, `useMutation` for writes, keys per tool and profile (`["tool", id, "permissions", profile]`). Its store keeps UI and live-event state, not a copy of an answer a query holds. Moved so far: tools (profiles, permissions, background), search (value lists), analytics (extra counts, aggregates, closed weeks); the rest still call `platform` from stores and components (step 6 note in architecture-report.md).
@@ -26,6 +26,8 @@ catalog/
   tools.json    the tool list, read by both TypeScript and Rust.
 src-tauri/src/
   lib.rs        start-up and the `invoke_handler` list naming every command.
+  self_test.rs  `--self-test`, only with `WIRECAT_SELF_TEST=1`, before any window: install-check.yml's install of a
+                catalog tool through `install::install` (and `node::set_up` with `--own-node`), one JSON line.
   commands/     Tauri commands, one file per feature: the whole native surface, one function each. A command
                 fails with `error.rs`'s `{ kind, message }` (`unknown_tool`, `invalid_profile`, `not_installed`,
                 `busy`, `internal`, `failed`); `platform/command-error.ts` turns it into an `Error` with that message.
@@ -42,6 +44,12 @@ src-tauri/src/
                 [cli-registry.md](cli-registry.md).
   registry.rs   the signed community list: fetched from wirecat.dev at start and at most daily, kept only when
                 minisign verifies it against `registry-key.pub`, it has not expired and is not older than the copy kept.
+  own_tools.rs  "Add your own tool": reads npm and the tarball's manifest without running anything, builds the review,
+                installs after two confirmations, saves the entry and reloads the catalog (`catalog::reload`), so the
+                interface lists the tool at once (`src/shared/added-tools.ts`).
+  own_scan.rs   what the tool's own JavaScript in the tarball says about the network; bundled libraries are skipped.
+  own_risks.rs  the review's things to check: npm, the cli-base and cli-core versions, the scan, and GitHub
+                (`own_tool_risks`, unauthenticated, cached); a check that cannot run says so, none refuses.
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
   npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
@@ -69,6 +77,9 @@ src-tauri/src/
                 date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or
                 signed out, Codex (`codex exec`, read-only, in an empty folder). One checked line comes back into the
                 query box; nothing is searched until he presses Search. Never a message or a hit.
+  account.rs    removing one account: cli-core's `account remove` (`accountRemove.remove`), dry run first, keeping or
+                deleting its data; before a tool's version has it, its own `session end` (`accountRemove.signOut`).
+                Refused while that profile syncs, its package installs or a sign-in runs. zm has no sign-out.
   settings.rs   tool settings: `config show`, and saving only through `config set` / `config unset`.
   storage.rs    each tool's data folders, their sizes and entries (names only); deleting them once unused.
   archive.rs    what the shared archive holds, from a tool's `store info`; the database is never opened.
@@ -99,8 +110,13 @@ src-tauri/src/
                 to copy or to open in the user's terminal (`terminal::open_line`), where they type the password.
                 Never the plugin's own install, which asks for the password itself (rule 6).
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
-  memory.rs     the Memory page: memo's memories, facts, proposed actions and agents' calls; confirm, discard,
+  memory.rs     the Memory page: memo's memories, facts, proposed actions, relationships and agents' calls; confirm, discard,
                 correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").
+  conversation.rs a chat or mail thread a `chat/…` or `msg/…` link opens, read only: memo's `show` (title, where, the
+                profile signed in to the account, or that the account is not here), memo's `messages show` with
+                `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
+                messenger chat's newest messages the messenger's own `messages list --offline` with that profile. A mail
+                thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
@@ -112,6 +128,9 @@ src-tauri/src/
                 the window stays open; a shell the app does not know runs the line in `/bin/sh` first.
   agent_run.rs  `run_agent`: Claude Code, Codex or Gemini CLI opened in a terminal with a prompt saved to a private file
                 (Fix › under an error, Open in on a guide); only those three programs, found on PATH.
+  drive_folders.rs Drive's folders for one profile: `folders browse` and `add` (the picker), `folders list` with each
+                name from `catalog show --offline` (none until a sync copied it), and `folders remove`, after which drive's
+                next sync drops what it copied from there.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
   bots.rs       a bot beside the personal account: the catalog's `bot.fields` through `config set --bot`, then the
@@ -134,6 +153,21 @@ src-tauri/src/
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
+  deep_link.rs  `wirecat://open/v1/…` links (Tauri's deep-link plugin, with single-instance first so a click reaches the
+                running window): parsed to the v1 grammar of cli-core's `links.ts`, checked against its shared fixture
+                `src/domain/links-v1.fixture.json`; anything else reaches the interface as a refused link, its text
+                dropped. One `Channel` (`deep_link_listen`) carries them, the link that started the app first. A link
+                only opens a page (`src/features/links/open.ts`): a task, the task list on a filter, a proposal's row
+                on Memory, a tool's sync, a day on Digests; chat and message have no page yet and say so, with the
+                reference to copy.
+  digests.rs    the Digests page: memo's morning digest runs, read from the files its schedule keeps
+                (`<memo state>/schedules/morning-digest/runs/`; memo has no command that lists a schedule's runs), one
+                day per date, its newest run: `<stamp>.report.json` (cli-core's checked `wirecat.report/1`) or, for an
+                older run, its `.md` text. Shown unmasked, an exception to rule 4 like memory.rs, never logged.
+                `digest_notify` shows a system notification (notify-rust: Tauri's plugin has no click on desktop); a click
+                (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls
+                `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and announces a run newer than
+                the last one it announced.
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```
 
@@ -178,6 +212,24 @@ order cannot pick it: a launcher's bare PATH makes the login shell order its fol
 (a profile that adds pnpm only when it is missing puts it first there, after nvm in a terminal). Equal versions keep
 PATH order. Versions come from running the binary, never from `npm ls`, because a tool may be installed by npm, pnpm
 or both.
+
+## Account rows
+
+Every list of a tool's accounts (the Manage panel, the setup's Sign in step) is `AccountList` of `AccountRow`
+(`src/features/tools/`): the name, signed in or not, when it last synced, Sync where the tool syncs per profile, and
+"⋯" (`ui/SplitButton`, `compact`) with Check, Choose folders (drive), Settings (tools with per-profile settings: the
+Settings page opens on that profile), Sign in again, and Remove account. A check opens under its own row
+(`CheckResult.tsx`), folds away with its ×, and shows doctor output as `redact.rs` left it.
+
+Remove account (`RemoveAccount.tsx`, `account.rs`) uses cli-core's shared `<profile> account remove` once the installed
+version has it (`accountRemove.remove.minVersion` in the catalog; null means not released yet and counts as missing).
+The owner chooses to keep or delete the account's data, `account_remove_plan` runs the `--dry-run` and the dialog
+lists what goes and what stays, grouped by kind with paths under their folder; only the confirm runs `account_remove`
+with `--yes`. Rust masks every target and message, drops the account id from the store entry, and maps cli-core's
+`account-remove.*` reasons to `RemovalRefusal`; the app's own guard (a sync, an install or a sign-in for that account)
+answers `busy` with the `RemovalHolder`. After it succeeds the row folds away and the list reloads. A tool without the
+command falls back to `account_sign_out` (`session end`), whose dialog lists the catalog's `removes` and `keeps`, read
+from each CLI's source, and says to update the tool.
 
 ## Uninstalling and storage
 
@@ -281,6 +333,22 @@ The text is the owner's own, shown unmasked like the Search page's hits, and it 
 takes as nobody's run and refuses to let decide, so every confirm, discard, correct and forget also passes
 `--from-app`: memo records it as the owner's. Reads (`list`, `show`) never pass it. It is the app's word that the owner
 clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `CLAUDECODE`, so no run is an agent's.
+
+### Relationships
+
+Relationships between people, organizations and projects are rows of the same page (CRM relations plan, PR 11).
+`memory_read` also runs `relationships list confirmed:false` (an agent's proposals), `relationships list include:ended` (the links, each with
+its `standing`; a memo that does not know `include:` lists without it, so without ended ones) and `relationships roles
+list` (the owner's role lists, from the memo with cli-core's role lists). A memo without one of them leaves its part out
+and the rest of the page as it is; any other failure (a busy store) fails the read as a failed memories list does. A row sits under the end
+it starts from (a person, an organization or a project), says the other end and the role, and carries a standing chip:
+**Proposed** waits in Review, **Confirmed** (the owner's) and **Reported** (a source such as a CRM says so, nobody
+confirmed it) are In use, **Ended** is with what no longer holds. A proposal is `relationship:<id>`, decided through
+memo's own review as every other proposal kind: `review confirm <id> --from-app`, or `review reject <id> --reason
+"rejected in WireCat Desktop" --from-app` (memo needs a reason). A link that holds is `link:<id>` and is not changed
+here. Bulk approve leaves relationships out: each is approved in its row. A built-in role is worded by the app in the
+interface language; the owner's own role shows the label the owner gave it. The chip is `src/shared/StandingPill.tsx`,
+its rule `src/domain/relationships.ts`, for any page that shows a relationship.
 
 ## What agents do with the tools
 
@@ -416,10 +484,12 @@ ends the run; Try again goes back to the plan with the address kept, and non-sec
 refill their field, while a password, a token or a login code never does. mail's reasons (`mail.login-refused`,
 `mail.app-password-required`, `mail.imap-disabled`, `mail.host-unreachable`) and drive's (`oauth.missing`,
 `oauth.expired`, `provider.rate-limited`) have their own words and action in `signin-failure.ts`. After Drive signs in,
-the done step shows a folder picker (`DriveFolders.tsx`): `drive_folders_browse(id, profile, parent)` runs `folders
+the done step shows a folder picker (`tools/DriveFolderPicker.tsx`, wrapped by `signin/DriveFolders.tsx` with the
+sign-in's failure words): `drive_folders_browse(id, profile, parent)` runs `folders
 browse [--parent <id>]` one level at a time, and `drive_folder_add` runs `folders add <id>` for each ticked folder
 (catalog `folderPicker`; ids are checked in `drive_folders.rs`; Shared with me is a list, not a folder, and cannot be
-added). A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
+added). The same picker opens later from an account row's "Choose folders" (`DriveFoldersSettings.tsx`), beside the
+chosen folders with Remove each. A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
 it", with the terminal as the fallback.
 
 Every sign-in is one wizard: `SignInPath.tsx` draws the method's steps from `wizard.ts` (before you start, the tool's
@@ -445,6 +515,18 @@ gcal, Gmail), or for Microsoft the Application ID saved first as the method's `c
 sent to its update, with the terminal meanwhile; the parser still reads its `Open Microsoft sign-in: <url>` line. gcal before WireCat's Google app refuses
 with "no Google OAuth client"; the dialog then goes back to the plan with the own-app choice open. Mock scenarios:
 `?signin=email`, `?signin=gcal`, `?signin-fail=email`.
+
+Gmail opens on two ways side by side: an app password (the default) or Google in the browser with the owner's own
+client. That client is its JSON file or its ID and secret typed in the plan; typed, they become the same
+`{"installed": {client_id, client_secret}}` JSON and take the client file's path above (0600 file, `--client-file`),
+so the secret never reaches a command line. For providers whose steps the window knows (`src/domain/mail-signin.ts`:
+Gmail, and from the address Yandex, Mail.ru and iCloud, the domains mail-cli's table lists), the plan has a second step
+of its own: the provider's steps with buttons to its pages, and the password field. The password waits outside the
+store, like Telegram's keys, and answers mail's `needs` password question when it comes (spaces dropped for Gmail). A
+refusal of that password (`mail.app-password-required`, `mail.login-refused`) is a new run back on that step, the field
+empty and focused, the reason above it. For any other provider mail asks in its own words: its prepare text
+(`prepareText`, one note per line) is read back by `readMailNotes` into a numbered list with its links as buttons, the
+server under Details, and its lines for maintainers (`Sources`, `All providers`) left out.
 
 Telegram's first sign-in needs the owner's own app keys: tg opens my.telegram.org/apps and asks for App api_id and App
 api_hash (its default `--app browser`; the app never passes `--app auto`). Beside those two questions the dialog shows

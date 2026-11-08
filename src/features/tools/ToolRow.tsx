@@ -114,7 +114,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
     <li data-tour="tool" className="border-line border-b last:border-b-0">
       <div
         ref={header}
-        className="grid min-h-[4.5rem] grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_4.5rem_6.6rem_8.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_4.5rem_7.8rem_9.6rem] xl:gap-x-[1.2rem] px-[1.3rem]"
+        className="grid min-h-[4.5rem] max-[999px]:grid-cols-[1.2rem_1.8rem_minmax(0,1fr)] max-[999px]:gap-x-[0.9rem] min-[1000px]:grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_4.5rem_6.6rem_10.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_4.5rem_7.8rem_11rem] xl:gap-x-[1.2rem] px-[1.3rem]"
       >
         <Lamp
           tone={severity ?? lampTone[status.kind]}
@@ -147,7 +147,10 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             ) : storageLine ? (
               <p
                 title={storageLine}
-                className={cx("mt-1 truncate text-[0.95rem]", severity === "bad" ? "text-bad" : "text-warn-ink")}
+                className={cx(
+                  "mt-1 truncate text-[0.95rem] max-[999px]:whitespace-normal",
+                  severity === "bad" ? "text-bad" : "text-warn-ink",
+                )}
               >
                 {storageLine}
               </p>
@@ -158,7 +161,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             ) : app ? (
               <p className="mt-1 flex items-center gap-2 text-[0.95rem] text-ink-soft tabular-nums">
                 <span aria-hidden className="size-[0.45rem] shrink-0 rounded-full bg-ok" />
-                <span className="truncate">
+                <span className="truncate max-[999px]:whitespace-normal">
                   {app.claimedName ?? m.browserApp} · {activityOf(app)}
                 </span>
               </p>
@@ -167,34 +170,48 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
                 {isOwn(tool) ? om.trust(maker(tool)) : m.trust(maker(tool))}
               </p>
             ) : (
-              <p className="mt-1 truncate text-body text-ink-soft">{toolText(t, tool).tagline}</p>
+              <p className="mt-1 truncate text-body text-ink-soft max-[999px]:whitespace-normal">
+                {toolText(t, tool).tagline}
+              </p>
             )}
           </Crossfade>
         </TextButton>
-        <div data-tour={sync ? "tool-sync" : undefined} className="flex items-center justify-end">
-          {installed && tool.bot && <AddBotButton tool={tool} />}
-          {sync && <RowSyncButton entry={tool} info={sync} />}
-        </div>
-        <Version status={status} installed={installs?.[0]?.version ?? null} m={m} />
-        <div data-tour="tool-action" className="flex justify-end">
-          {/* Install → Cancel → Manage: one button fades into the next, and keyboard focus moves with it. */}
-          <Crossfade swap={status.kind === "checking" ? "checking" : actionKind(status)} align="end" className="w-full">
-            <Action
-              status={status}
-              expanded={open}
-              needsNode={!nodeReady}
-              nodeFirst={m.nodeFirst}
-              controls={panelId}
-              onInstall={() =>
-                !nodeReady
-                  ? focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
-                  : install(tool.id, { check: true })
-              }
-              onToggle={() => toggle(tool.id)}
-              onCancel={() => cancel(tool.id)}
-              m={m}
-            />
-          </Crossfade>
+        {/* Below 1000px the three cells share a second line under the text; `contents` keeps the wide grid as it was. */}
+        <div className="max-[999px]:col-start-3 max-[999px]:flex max-[999px]:items-center max-[999px]:gap-3 max-[999px]:pb-3 min-[1000px]:contents">
+          <div
+            data-tour={sync ? "tool-sync" : undefined}
+            className="flex items-center justify-end max-[999px]:order-last"
+          >
+            {installed && tool.bot && <AddBotButton tool={tool} />}
+            {sync && <RowSyncButton entry={tool} info={sync} />}
+          </div>
+          <div className="max-[999px]:order-1 max-[999px]:min-w-0 max-[999px]:flex-1">
+            <Version status={status} installed={installs?.[0]?.version ?? null} m={m} />
+          </div>
+          <div data-tour="tool-action" className="flex justify-end">
+            {/* Install → Cancel → Manage: one button fades into the next, and keyboard focus moves with it. */}
+            <Crossfade
+              swap={status.kind === "checking" ? "checking" : actionKind(status)}
+              align="end"
+              className="w-full"
+            >
+              <Action
+                status={status}
+                expanded={open}
+                needsNode={!nodeReady}
+                nodeFirst={m.nodeFirst}
+                controls={panelId}
+                onInstall={() =>
+                  !nodeReady
+                    ? focusInPlace(document.querySelector<HTMLElement>("[data-node-notice]"))
+                    : install(tool.id, { check: true })
+                }
+                onToggle={() => toggle(tool.id)}
+                onCancel={() => cancel(tool.id)}
+                m={m}
+              />
+            </Crossfade>
+          </div>
         </div>
       </div>
       <Collapse id={panelId} open={open}>
@@ -293,12 +310,17 @@ function AddBotButton({ tool }: { tool: CatalogTool }) {
   return (
     <button
       type="button"
-      className="inline-flex size-9 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+      className="group/bot relative inline-flex size-9 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
       aria-label={`${m.addBot}: ${tool.name}`}
-      title={m.addBot}
       onClick={() => useBotSignIn.getState().open(tool.id)}
     >
       <Bot className="size-[1.15rem]" aria-hidden />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute right-0 bottom-full z-20 mb-1 whitespace-nowrap rounded-[0.35rem] border border-line-strong bg-app-2 px-2 py-1 text-[0.85rem] font-normal text-ink opacity-0 shadow-lg transition-opacity duration-(--motion-fast) group-hover/bot:opacity-100 group-focus-visible/bot:opacity-100"
+      >
+        {m.addBot}
+      </span>
     </button>
   )
 }

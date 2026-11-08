@@ -154,7 +154,8 @@ Decided 2026-11-08 (NEED-2285): an expired list has a real effect, and the app s
 ## Your own tools (not checked)
 
 Status: **built** (2026-11-07): `src-tauri/src/own_tools.rs` and `src/features/tools/OwnToolDialog.tsx`; the current
-flow, refusal kinds and checks are in [the plan](plans/2026-11-07-own-tools.md). Owner's ruling 2026-11-06: anyone may
+flow, refusal kinds and checks are in [the plan](plans/2026-11-07-own-tools.md), and the review's second version
+(things to check, links, the AI check, no restart) in [its plan](plans/2026-11-08-own-tool-review-v2.md). Owner's ruling 2026-11-06: anyone may
 add any tool on their own computer, behind a clear warning that WireCat has not checked it. A private repository's
 tool, which can never be listed, can only be added this way. The button is on the Tools page (NEED-2281 A); only scoped
 npm packages (NEED-2280).
@@ -179,24 +180,60 @@ Developers can still write entries into `<app data>/extra-tools.json` by hand an
 
 **1. A switch in Settings.** "Allow tools WireCat has not checked", off by default, under "Enable community tools".
 Turning it on opens a warning that the owner must confirm before the switch turns on. Cancel leaves it off. Turning it
-off hides the own tools at the next start, and installed ones stay installed, like the community switch. Its "How it
+off hides the own tools at once (`set_allowed` reloads the catalog), and installed ones stay installed. The community
+switch still takes effect at the next start. Its "How it
 works" link opens the Desktop docs, section "Add your own tool".
 
 **2. A button on the Tools page.** While the switch is on (or the flag is set), the Tools page shows **Add your own
-tool** at the top, next to Check again. It opens a dialog that takes a scoped npm name and warns again, in plain words:
+tool** at the top, next to Check again. It opens a dialog that takes a scoped npm name and warns again, in a red block,
+in plain words:
 
-- "This tool gets access to all your personal data that WireCat holds: your messages, mail, notes and files."
+- "It runs as you on this computer, so it can read everything WireCat keeps: your messages, mail, notes and files."
+- On the review, for a tool whose `dependencies` include `@wirecat/cli-core`: "It is built on cli-core, WireCat's own
+  library, so it opens that data directly."
 - "Add it only if you trust its authors completely."
 - "WireCat has not checked this tool and takes no responsibility for what it does."
+
+A refusal opens with a headline ("Tool not found") above its sentence. **Try again** returns to the name, kept and
+selected, except after `offline`, `too_large` or an unexpected error, where it reads the same name again.
 
 **3. Discovery and review, before anything is installed.** The app reads npm only (`own_tools.rs`): its npm metadata, the
 provenance as `provenance.rs` reads it, and the manifest out of the tarball, checked against `dist.integrity`. The
 manifest becomes a catalog entry that every `community.rs` rule checks, plus the folder-name rule above. The review
-shows publishers, repository, version, where npm built it (or "No record of where npm built it"; neither blocks),
-what the tool asks for, sign-in, sync and agent connection. A refusal is a kind with a sentence and what to do
+shows a **Not verified** badge, publishers, repository, version, where npm built it (or "No record of where npm built
+it"; neither blocks), each as a link (npm profile, repository, the version's npm page, the release commit, the
+workflow run and the transparency-log entry, the last three from the Fulcio certificate), then:
+
+- **Things to check** (`own_risks.rs`), flagged and never blocking: npm (first published < 30 days, < 3 versions, one
+  publisher, no provenance), the `@wirecat/cli-base` and `@wirecat/cli-core` versions in `dependencies` (cli-base
+  0.81.0+, the format-2 manifest; cli-core 0.603.0+, undeclared effects count as writes; both < 1.0.0), the code
+  (`own_scan.rs`: network modules, `fetch`, `WebSocket`, `child_process` and URL hosts in the tool's own JavaScript,
+  which is every file but `package.json` and the manifest, decoded as Node.js decodes it, since Node.js runs any file a
+  `require` names; hosts come only from scripts and from files a script loads, and a loaded file that is not
+  JavaScript by its name is flagged; declared hosts are left out as they are found, so they cannot
+  fill the bound; escaped names, computed globals and `process.binding` are flagged as hidden calls; comments are
+  read like code; sections a bundler marks as `node_modules/` are skipped, but a bundled cli-base or cli-core counts
+  as one, with the version pnpm's folder names; `.node` and `.wasm` files are flagged as unreadable; only the
+  repository's host counts as the tool's own, and the review shows 20 undeclared hosts and how many more), a manifest
+  without `network`, and GitHub
+  (`own_tool_risks`, unauthenticated REST, cached an hour by `repo@commit`: created < 30 days, no push > 180 days,
+  archived, < 10 stars, workflows at the release commit whose `uses:` keys do not call cli-base's `node-ci.yml` and
+  `release-checks.yml`; one agent, no redirects (a renamed repository's 301 is flagged as moved, named by one more
+  read on api.github.com), 15 s for all calls together; a failure is "Couldn't check" with its
+  reason). `network.hosts` follows cli-base's `HOST_PATTERN` exactly (`*.` only before two labels), with no count cap.
+  The package file must come from `https://registry.npmjs.org/`.
+- **Servers it contacts**: the manifest's `network.hosts` and `user_hosts` (cli-base#529).
+- **What it says it does**: commands grouped by `entity` (else their first word) with the most they ask for with the
+  service and on this computer, the entity's `fields`, the sync's own words, cli-base's standard roots in plain words,
+  and the exact commands under **Commands**.
+
+A refusal is a kind with a sentence and what to do
 ([plan, Failures](plans/2026-11-07-own-tools.md#failures-the-user-can-act-on)).
 
-**4. Two confirmations.** **Add** opens "Install and run `<package>`? Its install scripts and first run use your
+**4. An AI check, then two confirmations.** **Add** first offers **Check it with `<agent>`** for each agent `run_agent`
+can start (or **Copy the check**), with a prompt that names the reviewed tarball and its sha512 and tells the agent to
+download, verify, unpack and read it, compare it with the repository at the release commit, and never install or run
+it; or **Skip and install**. Then "Install and run `<package>`? Its install scripts and first run use your
 permissions.", with Back and **Install and run**. Only that button installs.
 
 **5. Then the app:**
@@ -207,11 +244,14 @@ permissions.", with Back and **Install and run**. Only that button installs.
    installed by then, so the dialog offers **Uninstall it**.
 3. Saves the entry to `<app data>/extra-tools.json`, with the data folders that already existed (`own.preexisting`).
    It survives restarts and updates and is never sent anywhere.
-4. Takes effect at the next start, with Restart now, because pages build some lists when their module loads.
+4. Reloads the catalog (`catalog::reload`, which leaks the old one so every `&'static Tool` handed out stays valid;
+   the signed list keeps the copy read at start), and the interface reads its tools again (`reloadAddedTools`, `src/shared/added-tools.ts`), so
+   the tool is listed at once. Remove from WireCat does the same.
 
-**How it looks.** A tool from this file carries the badge **Not checked** instead of **Community**, on the Tools page
+**How it looks.** A tool from this file carries the badge **Not verified** instead of **Community**, on the Tools page
 and on Choose tools. The badge comes from the source, the file, not from a key in the entry, so a signed-list entry can
-neither claim it nor drop it. Its details have **Remove from WireCat**, which deletes the entry and offers Uninstall.
+neither claim it nor drop it. Its details have **Remove from WireCat**, which deletes the entry; when the tool is installed it offers **Uninstall it
+first**, so the uninstall runs while the tool is still in the catalog.
 
 **Updates.** Install and Update of an own tool open the same dialog, which reads npm again. The review then lists what
 changed since the entry the owner confirmed: repository, provenance, publishers, new commands, new write access, new

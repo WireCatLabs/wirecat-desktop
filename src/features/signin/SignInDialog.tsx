@@ -1,14 +1,16 @@
 import { Bot, Terminal } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
+import { readMailNotes } from "@/domain/mail-signin"
 import { keyringFallback } from "@/domain/signin-notes"
 import { telegramNote } from "@/domain/telegram-signin"
 import { useTerminal } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useBotSignIn } from "@/shared/bot-signin-store"
 import { botMessages } from "@/shared/messages-bot"
-import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "@/shared/signin-store"
+import { guidedProvider, NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
+import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
@@ -16,6 +18,7 @@ import { Dialog } from "@/ui/Dialog"
 import { MOTION } from "@/ui/motion"
 import { explainView } from "./Failure"
 import { type SigninMessages, signinMessages } from "./messages"
+import { mailMessages } from "./messages-mail"
 import { planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import { wizardMessages } from "./messages-wizard"
@@ -38,8 +41,10 @@ export function SignInDialog() {
   const body = useRef<HTMLDivElement>(null)
   const ended = !running(s.phase)
   const keyring = s.notes.map(keyringFallback).find((k) => k !== null) ?? null
-  // tg's words about the login code are said beside the code's field instead.
-  const notes = s.notes.filter((n) => keyringFallback(n) === null && (s.tool !== "tg" || telegramNote(n) === null))
+  // tg's words about the login code are said beside the code's field instead, and mail's steps for the mailbox beside
+  // the password.
+  const said = s.tool === "email" ? readMailNotes(s.notes).other : s.notes
+  const notes = said.filter((n) => keyringFallback(n) === null && (s.tool !== "tg" || telegramNote(n) === null))
   const key = stageKey(s)
 
   // The button that had focus goes away when the sign-in ends; its replacement takes focus instead of the page.
@@ -130,11 +135,25 @@ function Actions() {
   const pm = useMessages(planMessages)
   const wm = useMessages(wizardMessages)
   const bm = useMessages(botMessages)
+  const mm = useMessages(mailMessages)
   const { stop, close, start, tool, profile, onFinish, phase, stopping, method } = s
   const entry = tool ? findTool(tool) : undefined
   // A provider is chosen in the plan itself, never switched to in the middle of a sign-in.
   const others = entry && !entry.signIn?.pick ? signInMethods(entry).filter((m) => m.id !== method) : []
   if (phase === "plan") {
+    const guided = guidedProvider(s) !== null
+    if (guided && s.planStep === "password")
+      return (
+        <>
+          <BackButton onClick={() => useSignIn.setState({ planStep: "choose", planMissing: null })} />
+          <Button variant="secondary" onClick={close}>
+            {m.cancel}
+          </Button>
+          <Button variant="primary" onClick={s.begin}>
+            {mm.signIn}
+          </Button>
+        </>
+      )
     return (
       <>
         {others.map((other) =>
@@ -160,14 +179,16 @@ function Actions() {
           {m.cancel}
         </Button>
         <Button variant="primary" onClick={s.begin} data-autofocus>
-          {pm.start}
+          {guided ? mm.next : pm.start}
         </Button>
       </>
     )
   }
   if (running(phase)) {
+    const reason = receivingHistory(s) ? m.back.history : phase === "progress" || stopping ? m.back.busy : undefined
     return (
       <>
+        <BackButton onClick={s.toPlan} reason={reason} stops={m.back.stops} />
         {others.map((method) =>
           tool && profile && phase !== "progress" ? (
             <Button
@@ -195,6 +216,7 @@ function Actions() {
     const terminal = s.failure?.code === NEEDS_UPDATE && tool && profile && entry?.setup
     return (
       <>
+        <BackButton onClick={s.toPlan} />
         <Button variant="ghost" onClick={close}>
           {m.close}
         </Button>

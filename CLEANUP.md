@@ -18,3 +18,7 @@
 - `src-tauri/src/signin.rs` Inputs.password and catalog `signIn.methods[].password`: no method sets it since mail asks the password on stdin (DEBT-32, TASK-132). 2026-11-07
 - `.claude/worktrees/setup-cli-events` (branch `feat/setup-cli-events`): TASK-132 worktree; remove once its PR is merged. 2026-11-07
 - `.claude/worktrees/memo-setup-progress` (branch `feat/memo-setup-progress`): memo part of TASK-132, already cherry-picked into `feat/setup-cli-events`; remove now. 2026-11-07
+- `docs/images/own-review-noprov-{light,dark}.webp`, `docs/images/own-confirm-{light,dark}.webp`: no longer shown in the README after the review redesign (TASK-138); the risky review and the AI check replaced them. 2026-11-08
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-review-v2` (branch `feat/own-tool-review-v2`, its own `src-tauri/target`): TASK-138 worktree; remove once its PR is merged. 2026-11-08
+- `src/features/tools/messages-own.tsx` keys `syncs` and `noSync` (en, ru, es): unused since the review shows the sync under "What it says it does" (TASK-138). 2026-11-08
+- `~/.cache/wirecat-fresh-install` (the throwaway home of the old `bin/try-fresh-install`; it now uses `~/.cache/wirecat-sandbox/fresh`); remove once the owner no longer needs that run's state. Also the test sandboxes `probe`, `demo1`, `storecopy` and `fresh` under `~/.cache/wirecat-sandbox/` made while building `bin/sandbox` (about 300 MB each with tools). 2026-11-08

@@ -1,30 +1,42 @@
-import { CircleCheck, Clock, ExternalLink, FileJson, ShieldCheck } from "lucide-react"
-import { useEffect, useId, useRef, useState } from "react"
+import { CircleCheck, Clock, ExternalLink, ShieldCheck } from "lucide-react"
+import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
+import type { MailWay } from "@/domain/mail-signin"
+import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { methodOf, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
+import { guidedProvider, methodOf, oauthTooOld, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
-import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
+import { AppPasswordStep, GoogleClient } from "./MailSteps"
+import { mailMessages } from "./messages-mail"
 import { type PlanText, planFor, planMessages } from "./messages-plan"
 import { telegramMessages } from "./messages-telegram"
 import { needFor, wizardMessages } from "./messages-wizard"
+import { routeOf } from "./wizard"
 
 const FIELD =
   "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 font-mono text-[1rem] text-ink aria-[invalid=true]:border-bad"
 
 /** Before anything runs: the steps the sign-in will take, how long, and what happens to what the owner shares. */
 export function Plan() {
-  const { tool, method, planMissing } = useSignIn()
+  const s = useSignIn()
+  const { tool, method, planMissing, planStep, way } = s
   const m = useMessages(planMessages)
   const tm = useMessages(telegramMessages)
   const wm = useMessages(wizardMessages)
-  const plan = tool ? planFor(m, tool, method) : undefined
-  const need = tool ? needFor(wm, tool, method) : []
+  const provider = guidedProvider(s)
+  const route = routeOf(s)
+  const plan = tool ? planFor(m, tool, method, route) : undefined
+  const gmail = tool === "email" && method === "gmail"
+  // Gmail's two ways say what each needs on their own cards.
+  const need = tool && !gmail ? needFor(wm, tool, method) : []
   const entry = tool ? findTool(tool) : undefined
   const chosen = tool ? methodOf(tool, method) : undefined
+  // A refusal is a new run: the step starts again, its field empty.
+  if (planStep === "password" && provider) return <AppPasswordStep key={s.run} provider={provider} />
   const steps = [
     ...(plan?.appKeys ? tm.appSteps.map((text) => ({ text, once: true })) : []),
     ...(plan?.steps ?? []).map((text) => ({ text, once: false })),
@@ -34,8 +46,9 @@ export function Plan() {
   return (
     <div className="flex min-h-[19rem] flex-col gap-5 text-left">
       {entry?.signIn?.pick && <Providers />}
-      {/* A new provider slides its own steps in (rule 9). */}
-      <div key={method ?? ""} className="step-in flex flex-col gap-5">
+      {gmail && <Ways own={plan?.own} m={m} />}
+      {/* A new provider or way slides its own steps in (rule 9). */}
+      <div key={`${method ?? ""}:${gmail ? way : ""}`} className="step-in flex flex-col gap-5">
         {need.length > 0 && (
           <section className="flex flex-col gap-2">
             <h3 className="text-[1.15rem] font-semibold text-ink">{wm.needHeading}</h3>
@@ -87,8 +100,10 @@ export function Plan() {
             )}
           </section>
         )}
-        {chosen && (chosen.address || chosen.password) && <Typed missing={planMissing} />}
-        {plan?.own && chosen && (chosen.clientFile || chosen.clientId) && (
+        {chosen && (chosen.address || chosen.password) && (
+          <Typed missing={planMissing === "client" ? null : planMissing} />
+        )}
+        {!gmail && plan?.own && chosen && (chosen.clientFile || chosen.clientId) && (
           <OwnApp own={plan.own} kind={chosen.clientFile ? "file" : "id"} m={m} />
         )}
       </div>
@@ -165,10 +180,14 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
   const m = useMessages(planMessages)
   const id = useId()
   const [password, setTyped] = useState("")
-  // The field and what the run sends stay the same: a provider switched back starts both empty.
-  useEffect(() => setPassword(""), [])
   const chosen = tool ? methodOf(tool, method) : undefined
   const askPassword = Boolean(chosen?.password) && !ownFile
+  // The field and what the run sends stay the same: a provider switched back starts both empty. Only for a field of
+  // its own: the app password step keeps what it was given.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: once, when the field appears
+  useEffect(() => {
+    if (askPassword) setPassword("")
+  }, [])
   return (
     <section className="flex max-w-[26rem] flex-col gap-2">
       {chosen?.address && (
@@ -219,9 +238,89 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
 }
 
 /** WC-SECR-25: WireCat's app unless the owner names one; a Google client file, or a Microsoft app id saved first. */
-function OwnApp({ own, kind, m }: { own: { text: string; guide?: string }; kind: "file" | "id"; m: PlanText }) {
-  const { ownFile, ownId, planError } = useSignIn()
-  const id = useId()
+/**
+ * Gmail's ways in, before anything else is asked: Google's own page first, as the owner chose (2026-11-08), with the
+ * owner's own client folded inside it, and the app password under "Other ways".
+ */
+function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefined; m: PlanText }) {
+  const m = useMessages(mailMessages)
+  const { way, tool, method } = useSignIn()
+  const installs = useTools((s) => s.installs)
+  const old = oauthTooOld(tool, method, installs)
+  const name = useId()
+  return (
+    <fieldset className="flex flex-col gap-2 border-0 p-0">
+      <legend className="mb-2 text-[1rem] font-semibold text-ink">{m.ways.legend}</legend>
+      <WayOption option="browser" name={name}>
+        {old && (
+          <div className="flex flex-col items-start gap-2 pb-2">
+            <p className="text-[0.85rem] leading-snug text-ink">{m.ways.tooOld(old.version, old.need)}</p>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                useSignIn.getState().close()
+                if (tool) openTool(tool)
+              }}
+            >
+              {m.ways.update}
+            </Button>
+          </div>
+        )}
+        {way === "browser" && own && <OwnApp own={own} kind="file" m={pm} open={Boolean(old)} />}
+      </WayOption>
+      <fieldset className="flex flex-col gap-1.5 border-0 p-0 pt-1">
+        <legend className="mb-1.5 text-[0.85rem] font-medium text-ink-soft">{m.ways.others}</legend>
+        <WayOption option="appPassword" name={name} />
+      </fieldset>
+    </fieldset>
+  )
+}
+
+function WayOption({ option, name, children }: { option: MailWay; name: string; children?: ReactNode }) {
+  const { way } = useSignIn()
+  const text = useMessages(mailMessages).ways[option]
+  return (
+    <div className="rounded-[0.35rem] border border-line-strong transition-colors has-checked:border-brand has-checked:bg-brand-soft">
+      <label className="relative block cursor-pointer">
+        <input
+          type="radio"
+          name={name}
+          value={option}
+          checked={option === way}
+          onChange={() => {
+            // A client chosen for the browser is not sent with an app password.
+            if (option === "appPassword") setClientFile(null)
+            useSignIn.setState({ way: option, planMissing: null })
+          }}
+          className="peer sr-only"
+        />
+        <span className="flex h-full flex-col gap-1 rounded-[0.35rem] px-3 py-2.5 peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[0.95rem] font-medium text-ink">{text.name}</span>
+            {text.badge && (
+              <span className="rounded-[0.2rem] bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
+                {text.badge}
+              </span>
+            )}
+          </span>
+          <span className="text-[0.85rem] leading-snug text-ink">{text.detail}</span>
+          <span className="text-[0.85rem] leading-snug text-ink-soft">{text.needs}</span>
+          {text.note && <span className="text-[0.85rem] leading-snug text-ink-soft">{text.note}</span>}
+          <span className="mt-auto flex items-center gap-1.5 pt-1 text-[0.8rem] text-ink-dim">
+            <Clock className="size-3.5 shrink-0" aria-hidden />
+            {text.time}
+          </span>
+        </span>
+      </label>
+      {children && <div className="px-3 pb-2.5">{children}</div>}
+    </div>
+  )
+}
+
+/** The owner's Google client: a file picked here, or its ID and secret typed. */
+function ClientChoice({ m }: { m: PlanText }) {
+  const { ownFile, planError } = useSignIn()
   const picker = useRef<HTMLInputElement>(null)
   const [unreadable, setUnreadable] = useState(false)
   const pick = async (file: File | undefined) => {
@@ -237,41 +336,49 @@ function OwnApp({ own, kind, m }: { own: { text: string; guide?: string }; kind:
     }
   }
   return (
-    <Disclosure summary={m.ownApp} openWhen={ownFile !== null || ownId !== "" || planError !== null}>
+    <>
+      <input
+        ref={picker}
+        type="file"
+        accept=".json,application/json"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          pick(e.target.files?.[0])
+          e.target.value = ""
+        }}
+      />
+      <GoogleClient
+        fileLabel={ownFile ? m.clientFileOther : m.clientFile}
+        fileChosen={ownFile ? m.clientFileChosen(ownFile) : null}
+        unreadable={unreadable ? m.clientFileUnreadable : planError}
+        onPick={() => picker.current?.click()}
+      />
+    </>
+  )
+}
+
+function OwnApp({
+  own,
+  kind,
+  m,
+  open = false,
+}: {
+  own: { text: string; guide?: string }
+  kind: "file" | "id"
+  m: PlanText
+  open?: boolean
+}) {
+  const { ownFile, ownId, planError } = useSignIn()
+  const id = useId()
+  return (
+    <Disclosure summary={m.ownApp} openWhen={open || ownFile !== null || ownId !== "" || planError !== null}>
       <div className="flex max-w-[30rem] flex-col gap-2">
         <p className="text-[0.9rem] leading-snug text-ink-soft">{own.text}</p>
         {own.guide && <GuideLink url={own.guide} label={m.ownGuide} />}
         {kind === "file" ? (
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              ref={picker}
-              type="file"
-              accept=".json,application/json"
-              className="sr-only"
-              tabIndex={-1}
-              aria-hidden
-              onChange={(e) => {
-                pick(e.target.files?.[0])
-                e.target.value = ""
-              }}
-            />
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<FileJson className="size-4" aria-hidden />}
-              onClick={() => picker.current?.click()}
-            >
-              {ownFile ? m.clientFileOther : m.clientFile}
-            </Button>
-            {ownFile && (
-              <Button size="sm" variant="ghost" onClick={() => setClientFile(null)}>
-                {m.clientFileDrop}
-              </Button>
-            )}
-            <p role="status" className={cx("w-full text-[0.9rem]", unreadable ? "text-bad" : "text-ink-soft")}>
-              {unreadable ? m.clientFileUnreadable : ownFile ? m.clientFileChosen(ownFile) : planError}
-            </p>
-          </div>
+          <ClientChoice m={m} />
         ) : (
           <>
             <label htmlFor={id} className="mt-1 text-[0.9rem] font-medium text-ink">

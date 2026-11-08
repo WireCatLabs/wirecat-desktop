@@ -111,7 +111,9 @@ fn rule(key: &str, rule: String) -> Problem {
 
 /// The community tools to add at start, `None` when neither source is on.
 pub fn load(builtin: &Catalog) -> Option<(Vec<Tool>, Extra)> {
-    let listed = crate::registry::shown().then(crate::registry::at_start);
+    // The signed list read at start stays until the next start, so a reload for an own tool never changes it.
+    static LISTED: std::sync::OnceLock<Option<Result<Vec<Value>, String>>> = std::sync::OnceLock::new();
+    let listed = LISTED.get_or_init(|| crate::registry::shown().then(crate::registry::at_start)).clone();
     let own = (std::env::var(FLAG).ok().as_deref() == Some("1") || crate::own_tools::allowed())
         .then(|| crate::node::app_data().and_then(|d| std::fs::read_to_string(d.join(FILE)).ok()))
         .flatten();

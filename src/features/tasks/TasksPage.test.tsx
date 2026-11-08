@@ -315,6 +315,28 @@ describe("Tasks", () => {
     expect(await screen.findByRole("dialog")).toBeInTheDocument()
   })
 
+  it("writes nothing for a card put down where it was, with Ctrl held by pointer or keyboard", async () => {
+    const user = userEvent.setup()
+    useTasks.setState({ view: "board" })
+    const move = vi.spyOn(platform, "taskMove")
+    render(<TasksPage />)
+    const card = await screen.findByRole("button", { name: /^OPS-3 / }, { timeout: 4000 })
+    const column = card.closest<HTMLElement>("[data-column]")
+    document.elementsFromPoint = () => (column ? [column] : [])
+    await user.keyboard("{Control>}")
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: card, coords: { clientX: 20, clientY: 20 } },
+      { target: card, coords: { clientX: 60, clientY: 40 } },
+      { keys: "[/MouseLeft]", target: card },
+    ])
+    await user.keyboard("{/Control}")
+    expect(screen.getByText("OPS-3 put back.")).toBeInTheDocument()
+    card.focus()
+    await user.keyboard(" {Control>} {/Control}")
+    expect(screen.getByText("OPS-3 put back.")).toBeInTheDocument()
+    expect(move).not.toHaveBeenCalled()
+  })
+
   it("offers the update when memo is too old, and nothing else", async () => {
     vi.spyOn(platform, "taskList").mockResolvedValue({ kind: "old", version: "0.131.2", need: "0.131.4" })
     render(<TasksPage />)

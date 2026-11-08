@@ -50,8 +50,11 @@ export const useNav = create<Nav>((set) => ({
     }),
 }))
 
+// A page a link opened shows that one link; the next launch opens where the owner was before it.
+const PASSING = new Set(["open", "conversation"])
+
 useNav.subscribe((s, before) => {
-  if (s.active === before.active) return
+  if (s.active === before.active || PASSING.has(s.active)) return
   try {
     localStorage.setItem(PAGE_KEY, s.active)
   } catch {}

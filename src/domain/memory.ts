@@ -11,7 +11,11 @@ type Subjected = {
   projectName: string | null
 }
 
-export type Subject = { key: string; kind: "you" | "person" | "project" | "other"; name: string | null }
+export type Subject = {
+  key: string
+  kind: "you" | "person" | "project" | "organization" | "other"
+  name: string | null
+}
 
 /**
  * What a record is about, project first: a fact or a findings batch belongs to a project, a memory names a person or
@@ -21,7 +25,8 @@ export function subjectOf(e: Subjected): Subject | null {
   if (e.project) return { key: e.project, kind: "project", name: e.projectName }
   if (e.subjectIsOwner) return { key: "you", kind: "you", name: null }
   if (!e.subject) return null
-  const kind = e.subject.startsWith("project:") ? "project" : e.subject.startsWith("person:") ? "person" : "other"
+  const prefix = e.subject.slice(0, e.subject.indexOf(":"))
+  const kind = prefix === "project" || prefix === "person" || prefix === "organization" ? prefix : "other"
   return { key: e.subject, kind, name: e.subjectName }
 }
 
@@ -85,6 +90,7 @@ type Held = Entry & { findings?: unknown; supersedes?: string | null }
 export function undoOf(e: Held, revoke = false): Undo {
   const s = e.status
   if (s === "proposed") return "reject"
+  if (e.type === "relationship") return null
   if (e.type === "action") return s === "approved" ? (e.findings ? "created" : "task") : null
   if (e.type === "fact") {
     if (s !== "accepted") return null
@@ -101,7 +107,8 @@ export function undoOf(e: Held, revoke = false): Undo {
 export function can(e: Held, revoke = false): Can {
   const s = e.status
   const decision = e.kind === "decision" || undoOf(e, revoke) === "revoke"
-  if (e.type === "action")
+  // A relationship is decided in memo's review; one that holds is changed with memo's own relationships commands.
+  if (e.type === "action" || e.type === "relationship")
     return { confirm: s === "proposed", discard: s === "proposed", correct: false, forget: false }
   if (e.type === "fact")
     return {

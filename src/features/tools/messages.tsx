@@ -206,7 +206,7 @@ const en = {
     signInHere: "Sign in here",
     openTerminal: "Open terminal",
     openTerminalToSignIn: "Open terminal to sign in",
-    nameInvalid: "Use letters, digits, dots, dashes or underscores.",
+    nameInvalid: "Use Latin letters, digits, dots, dashes or underscores.",
     nameEmpty: "Type a name for this account first, such as personal.",
     nameHintHere: (command: ReactNode): ReactNode => (
       <>
@@ -565,7 +565,7 @@ const ru: typeof en = {
     signInHere: "Войти здесь",
     openTerminal: "Открыть терминал",
     openTerminalToSignIn: "Войти через терминал",
-    nameInvalid: "Используйте буквы, цифры, точки, дефисы или подчёркивания.",
+    nameInvalid: "Используйте латинские буквы, цифры, точки, дефисы или подчёркивания.",
     nameEmpty: "Сначала введите имя для этого аккаунта, например personal.",
     nameHintHere: (command) => (
       <>
@@ -929,7 +929,7 @@ const es: typeof en = {
     signInHere: "Iniciar sesión aquí",
     openTerminal: "Abrir terminal",
     openTerminalToSignIn: "Iniciar sesión en el terminal",
-    nameInvalid: "Usa letras, cifras, puntos, guiones o guiones bajos.",
+    nameInvalid: "Usa letras latinas, cifras, puntos, guiones o guiones bajos.",
     nameEmpty: "Primero escribe un nombre para esta cuenta, por ejemplo personal.",
     nameHintHere: (command) => (
       <>

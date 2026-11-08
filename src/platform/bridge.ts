@@ -22,6 +22,8 @@ import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema }
 import type { BackupEvent } from "./backup-schemas"
 import type { NotesModelEvent } from "./bindings"
 import { commandError } from "./command-error"
+import { DigestDaySchema, DigestSchema } from "./digest-schemas"
+import { OpenedSchema } from "./link-schemas"
 import {
   ForgotSchema,
   MemoryEntrySchema,
@@ -107,6 +109,7 @@ function createTauri(): Platform {
     ownToolsStatus: () => invoke("own_tools_status"),
     setOwnToolsAllowed: (allow) => invoke("set_own_tools_allowed", { allow }),
     ownToolDiscover: (pkg, desktop) => invoke("own_tool_discover", { package: pkg, desktop }),
+    ownToolRisks: (token) => invoke("own_tool_risks", { token }),
     ownToolAdd: (token, onEvent) => invoke("own_tool_add", { token, onEvent: events(onEvent) }),
     ownToolUninstall: (token, onEvent) => invoke("own_tool_uninstall", { token, onEvent: events(onEvent) }),
     ownToolRemove: (id) => invoke("own_tool_remove", { id }),
@@ -131,6 +134,10 @@ function createTauri(): Platform {
     clearStorage: (id) => invoke("clear_storage", { id }),
     openFolder: (id, kind, entry) => invoke("open_folder", { id, kind, entry: entry ?? null }),
     configRepair: (id, profile) => invoke("config_repair", { id, profile }),
+    accountSignOut: (id, profile) => invoke("account_sign_out", { id, profile }),
+    accountRemoveSupported: (id) => invoke("account_remove_supported", { id }),
+    accountRemovePlan: (id, profile, deleteData) => invoke("account_remove_plan", { id, profile, deleteData }),
+    accountRemove: (id, profile, deleteData) => invoke("account_remove", { id, profile, deleteData }),
     storeInfo: () => call(StoreInfoSchema, "store_info"),
     storeCompat: () => call(StoreCompatSchema, "store_compat"),
     storePreflight: (id) => invoke("store_preflight", { id }),
@@ -191,6 +198,7 @@ function createTauri(): Platform {
       call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),
     memoryDiscard: (ref) => call(MemoryEntrySchema, "memory_discard", { reference: ref }),
     memorySourceContext: (ref) => call(SourceContextSchema, "memory_source_context", { reference: ref }),
+    conversationRead: (place, ask) => invoke("conversation_read", { place, ask }),
     memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
     memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
@@ -229,6 +237,8 @@ function createTauri(): Platform {
     zoomAppSetup: (id) => invoke("zoom_app_setup", { id }),
     driveFoldersBrowse: (id, profile, parent) => invoke("drive_folders_browse", { id, profile, parent }),
     driveFolderAdd: (id, profile, folder) => invoke("drive_folder_add", { id, profile, folder }),
+    driveFoldersChosen: (id, profile) => invoke("drive_folders_chosen", { id, profile }),
+    driveFolderRemove: (id, profile, folder) => invoke("drive_folder_remove", { id, profile, folder }),
     botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
     listBots: (id) => invoke("list_bots", { id }),
     syncRun: (id, profile, onEvent) => {
@@ -309,6 +319,17 @@ function createTauri(): Platform {
     },
     openPackageTerminal: () => invoke("update_package_terminal"),
     restart: () => relaunch(),
+    listenLinks: async (onLink) => {
+      const channel = new Channel<unknown>()
+      channel.onmessage = (raw) => {
+        const parsed = v.safeParse(OpenedSchema, raw)
+        onLink(parsed.success ? parsed.output.target : null)
+      }
+      await invoke("deep_link_listen", { onLink: channel })
+    },
+    digestList: () => call(v.array(DigestDaySchema), "digest_list"),
+    digestShow: (date) => call(DigestSchema, "digest_show", { date }),
+    digestNotify: (date, title, body, open) => invoke("digest_notify", { date, title, body, open }),
     openUrl: (url) => openUrl(url),
     window: async (action) => {
       const w = getCurrentWindow()
@@ -325,9 +346,28 @@ export type { Platform, WindowAction } from "./types"
 
 export let platform: Platform
 
+export type OpenFailure = { url: string; error: string }
+
+let openFailed: (failure: OpenFailure) => void = () => undefined
+
+/** The app shows a link that did not open, with its address to copy; `platform/` imports nothing above it. */
+export const onOpenUrlFailure = (show: (failure: OpenFailure) => void) => {
+  openFailed = show
+  return () => {
+    if (openFailed === show) openFailed = () => undefined
+  }
+}
+
+/** Every caller fires and forgets `openUrl`, so a failure is caught here once instead of vanishing at each call. */
+export const withOpenFailure = (p: Platform): Platform => ({
+  ...p,
+  openUrl: (url) =>
+    p.openUrl(url).catch((e: unknown) => openFailed({ url, error: e instanceof Error ? e.message : String(e) })),
+})
+
 /** Must settle before anything reads `platform`. The mock is a dynamic import so a Tauri build never carries it. */
 export async function initPlatform() {
-  if (inTauri) platform = createTauri()
-  else if (__WITH_MOCK__) platform = (await import("./mock")).createMock(detectOs())
+  if (inTauri) platform = withOpenFailure(createTauri())
+  else if (__WITH_MOCK__) platform = withOpenFailure((await import("./mock")).createMock(detectOs()))
   else throw new Error("The browser mock is not part of this build")
 }

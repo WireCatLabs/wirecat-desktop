@@ -2,7 +2,7 @@ use super::{attempt, blocking, known_tool, valid_profile};
 use crate::error::AppError;
 use crate::install::InstallEvent;
 use crate::install::Running;
-use crate::{background, catalog, compat, config_repair, install, mail_agent, terminal, tools};
+use crate::{account, background, catalog, compat, config_repair, install, mail_agent, terminal, tools};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::State;
@@ -166,6 +166,95 @@ pub async fn config_repair(id: String, profile: Option<String>) -> Result<config
     crate::log::command("config_repair", async move {
         let tool = known_tool(&id)?;
         attempt(move || config_repair::repair(tool, profile.as_deref())).await
+    })
+    .await
+}
+
+/// What holds this account in the app now: its sync, an install or update of its package, or a sign-in.
+fn holder(tool: &'static catalog::Tool, profile: &str, running: &Running) -> Option<account::RemovalHolder> {
+    if running.busy(&crate::sync::key(tool, Some(profile))) {
+        Some(account::RemovalHolder::Sync)
+    } else if running.busy(&catalog::owner(tool).id) {
+        Some(account::RemovalHolder::Install)
+    } else if running.busy(&crate::signin::key(&tool.id)) {
+        Some(account::RemovalHolder::SignIn)
+    } else {
+        None
+    }
+}
+
+const HELD: &str = "Something else runs for this account, such as a sync. Stop it first.";
+
+fn held(holder: account::RemovalHolder) -> account::AccountRemoval {
+    account::AccountRemoval::Refused {
+        reason: account::RemovalRefusal::Busy,
+        holder: Some(holder),
+        message: HELD.into(),
+    }
+}
+
+/// The fallback for a tool too old for `account remove`; refused while its sync, an install or a sign-in runs.
+#[tauri::command]
+pub async fn account_sign_out(
+    id: String,
+    profile: String,
+    running: State<'_, Arc<Running>>,
+) -> Result<account::AccountRemoved, AppError> {
+    crate::log::command("account_sign_out", async move {
+        let tool = known_tool(&id)?;
+        valid_profile(&profile)?;
+        if holder(tool, &profile, &running).is_some() {
+            return Err(AppError::Busy(HELD.into()));
+        }
+        attempt(move || account::sign_out(tool, &profile)).await
+    })
+    .await
+}
+
+/// Whether the installed version has `account remove`; the dialog falls back to the sign-out when it has not.
+#[tauri::command]
+pub async fn account_remove_supported(id: String) -> Result<bool, AppError> {
+    crate::log::command("account_remove_supported", async move {
+        let tool = known_tool(&id)?;
+        blocking(move || account::supported(tool)).await
+    })
+    .await
+}
+
+/// The dry run: what `account remove` would remove and keep, with nothing changed.
+#[tauri::command]
+pub async fn account_remove_plan(
+    id: String,
+    profile: String,
+    delete_data: bool,
+    running: State<'_, Arc<Running>>,
+) -> Result<account::AccountRemoval, AppError> {
+    crate::log::command("account_remove_plan", async move {
+        let tool = known_tool(&id)?;
+        valid_profile(&profile)?;
+        if let Some(h) = holder(tool, &profile, &running) {
+            return Ok(held(h));
+        }
+        attempt(move || account::remove(tool, &profile, delete_data, true)).await
+    })
+    .await
+}
+
+/// Signs the profile out and forgets it with `--yes`, after the owner confirmed the plan.
+#[tauri::command]
+pub async fn account_remove(
+    id: String,
+    profile: String,
+    delete_data: bool,
+    running: State<'_, Arc<Running>>,
+) -> Result<account::AccountRemoval, AppError> {
+    crate::log::command("account_remove", async move {
+        let tool = known_tool(&id)?;
+        valid_profile(&profile)?;
+        if let Some(h) = holder(tool, &profile, &running) {
+            return Ok(held(h));
+        }
+        attempt(move || account::remove(tool, &profile, delete_data, false)).await
     })
     .await
 }
