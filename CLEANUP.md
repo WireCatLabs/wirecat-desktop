@@ -21,3 +21,5 @@
 - `docs/images/own-review-noprov-{light,dark}.webp`, `docs/images/own-confirm-{light,dark}.webp`: no longer shown in the README after the review redesign (TASK-138); the risky review and the AI check replaced them. 2026-11-08
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-review-v2` (branch `feat/own-tool-review-v2`, its own `src-tauri/target`): TASK-138 worktree; remove once its PR is merged. 2026-11-08
 - `src/features/tools/messages-own.tsx` keys `syncs` and `noSync` (en, ru, es): unused since the review shows the sync under "What it says it does" (TASK-138). 2026-11-08
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-people` (branch `feat/people-page`): People page worktree; its Rust builds used `/home/leemour/Projects/AI/wirecat-desktop-wt-memory-add/src-tauri/target`. Remove once its PR is merged. 2026-11-08
+- `src-tauri/src/people.rs` `call_at`, `words`, `decision`, `text`, `number`, `strings`, `decided`: copies of helpers that PR #219 makes shared in `memory.rs`; use those once both are merged. 2026-11-08

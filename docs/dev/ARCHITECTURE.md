@@ -117,6 +117,8 @@ src-tauri/src/
                 `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
                 messenger chat's newest messages the messenger's own `messages list --offline` with that profile. A mail
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
+  people.rs     the People page: memo's `people list|review|show|unlink|unmerge` and `review confirm|reject` for
+                `identity_link` matches; every decision with `--from-app` (see "The People page").
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
@@ -322,6 +324,27 @@ The text is the owner's own, shown unmasked like the Search page's hits, and it 
 takes as nobody's run and refuses to let decide, so every confirm, discard, correct and forget also passes
 `--from-app`: memo records it as the owner's. Reads (`list`, `show`) never pass it. It is the app's word that the owner
 clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `CLAUDECODE`, so no run is an agent's.
+
+## The People page
+
+Who is who across sources, from memo (`people.minVersion` in the catalog; 0.132.0 is a placeholder for the memo release
+with `memo people show|review|scan|link|unlink|unmerge`). `people_read` runs `people list --limit 5000` (memo leaves out
+people merged into others) and `people review` at once. Opening a person runs `people show person:<uid>`: each account
+grouped by source, with the scope (personal or work) of every account that saw it, the merges that joined others into
+this person (`merge:<to>-<from>`), and the matches about them. memo has no profiles here, so nothing is picked for the
+owner: every move names the person and the accounts he chose.
+
+- **Matches** (`identity_link` proposals) are decided with `review confirm|reject <id> --from-app`, a rejection with the
+  owner's reason (`--reason=`). Rust first checks with `review show` that the id is an open `identity_link` about that
+  person, and the answer must list the id under `decided`; memo's `identity.stale` (one of them changed since) is
+  worded on the page. A decided card stays in place until the next read.
+- **Move accounts to a new person** runs `people unlink <identities…> --from-app` with only identities the person's own
+  read listed, and never all of them: memo matches a name it does not know exactly to the nearest person.
+- **Undo a join** runs `people unmerge merge:<to>-<from> --from-app`, only for a merge the person shows, behind a dialog
+  that lists the accounts that go back.
+
+After each move Rust reads the person again, and the page reads the list again without closing anything. Names,
+addresses and account ids are the owner's own data, shown unmasked like the Memory page and never logged.
 
 ## What agents do with the tools
 
