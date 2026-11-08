@@ -31,6 +31,7 @@ import type {
   NotesFolderAdded,
   NotesFolderRemoved,
   NotesModelEvent,
+  NotesModelUsed,
   NotesSetup,
   OwnDiscovery,
   OwnSignal,
@@ -371,7 +372,9 @@ export type Platform = {
   /** memo's `sync --only notes`; the same events as `syncRun`, stopped with `syncStop(id, null)`. */
   notesSync(id: string, onEvent: (e: SyncEvent) => void): Promise<void>
   /** Downloads the catalog's search model; a memo that prints no progress lines sends only the end. */
-  notesModelDownload(id: string, onEvent: (e: NotesModelEvent) => void): Promise<void>
+  notesModelDownload(id: string, model: string, onEvent: (e: NotesModelEvent) => void): Promise<void>
+  /** memo's `models set` for a downloaded model the card shows; what memo will embed again, or a closed problem. */
+  notesModelUse(id: string, model: string): Promise<NotesModelUsed>
   notesModelStop(id: string): Promise<void>
   /** What a bug report carries about this computer, masked, including recent failed runs (private). */
   reportContext(): Promise<ReportContext>

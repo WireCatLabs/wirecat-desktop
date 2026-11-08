@@ -9,9 +9,11 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { Pill } from "@/ui/Pill"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Skeleton } from "@/ui/Skeleton"
 import { type NotesSetupText, notesSetupMessages } from "./messages-notes-setup"
+import { searchModelMessages } from "./messages-search-model"
 import { megabytes, syncProblem } from "./notes-setup"
 
 type FolderStep = { phase: "idle" } | { phase: "picking" | "adding" } | { phase: "added"; name: string } | Failed
@@ -25,7 +27,11 @@ type SyncStep =
   | { phase: "running"; count?: Count }
   | { phase: "done"; summary: SyncSummary }
   | Failed
-type ModelStep = { phase: "idle" | "preparing" | "stopped" | "done" } | { phase: "downloading"; count?: Count } | Failed
+type ModelStep =
+  | { phase: "idle" | "stopped" | "done" | "switching" }
+  | { phase: "downloading" | "preparing"; model: string; count?: Count }
+  | { phase: "switched"; minutes: number | null }
+  | (Failed & { model: string })
 type Failed = { phase: "failed"; problem: NotesProblem }
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -99,28 +105,60 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
     })
   }
 
-  const downloadModel = () => {
-    setModelStep({ phase: "downloading" })
-    platform
-      .notesModelDownload(tool.id, (e) => {
-        if (e.event === "counted") return setModelStep({ phase: "downloading", count: e })
-        if (e.event === "stopped") return setModelStep({ phase: "stopped" })
-        if (e.event === "failed") return setModelStep({ phase: "failed", problem: e.problem })
-        setModelStep({ phase: "preparing" })
-        // Memo reads notes into the model's vectors on the next notes sync, so the card runs it for the owner.
-        readNotes().then((ok) => {
-          setModelStep(ok ? { phase: "done" } : { phase: "idle" })
-          load()
+  const download = (model: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      setModelStep({ phase: "downloading", model })
+      platform
+        .notesModelDownload(tool.id, model, (e) => {
+          if (e.event === "counted") return setModelStep({ phase: "downloading", model, count: e })
+          if (e.event === "stopped") {
+            setModelStep({ phase: "stopped" })
+            return resolve(false)
+          }
+          if (e.event === "failed") {
+            setModelStep({ phase: "failed", model, problem: e.problem })
+            return resolve(false)
+          }
+          resolve(true)
         })
-      })
-      .catch(() => setModelStep({ phase: "failed", problem: "other" }))
+        .catch(() => {
+          setModelStep({ phase: "failed", model, problem: "other" })
+          resolve(false)
+        })
+    })
+
+  /** The model in use, not downloaded yet: after the download the card reads the notes into its vectors. */
+  const downloadInUse = async (model: NotesModel) => {
+    if (!(await download(model.id))) return
+    setModelStep({ phase: "preparing", model: model.id })
+    const ok = await readNotes()
+    setModelStep(ok ? { phase: "done" } : { phase: "idle" })
+    load()
+  }
+
+  /** Another model: downloaded first when needed, then memo's `models set`; the next syncs embed what it lacks. */
+  const switchTo = async (model: NotesModel) => {
+    if (!model.downloaded && !(await download(model.id))) return
+    setModelStep({ phase: "switching" })
+    try {
+      const used = await platform.notesModelUse(tool.id, model.id)
+      if (used.result === "failed") setModelStep({ phase: "failed", model: model.id, problem: used.problem })
+      else
+        setModelStep({
+          phase: "switched",
+          minutes: used.estimateSeconds === null ? null : Math.ceil(used.estimateSeconds / 60),
+        })
+    } catch {
+      setModelStep({ phase: "failed", model: model.id, problem: "other" })
+    }
+    load()
   }
 
   const ready = setup?.state === "ready" ? setup : null
   const folders = ready?.folders ?? []
-  const model = ready?.model ?? null
+  const models = ready?.models ?? []
   const working = folderStep.phase === "picking" || folderStep.phase === "adding" || syncStep.phase === "running"
-  const downloading = modelStep.phase === "downloading" || modelStep.phase === "preparing"
+  const downloading = ["downloading", "preparing", "switching"].includes(modelStep.phase)
 
   return (
     <section
@@ -157,20 +195,21 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
               onPick={pickFolder}
             />
           </Step>
-          {model && (
+          {models.length > 0 && (
             <Step
               n={3}
               m={m}
               title={m.modelTitle}
-              done={model.downloaded}
-              what={m.modelWhat(megabytes(model.sizeBytes))}
+              done={models.some((x) => x.inUse && x.downloaded)}
+              what={m.modelWhat}
             >
               <ModelStepView
                 m={m}
-                model={model}
+                models={models}
                 step={modelStep}
                 disabled={working}
-                onStart={downloadModel}
+                onDownload={downloadInUse}
+                onSwitch={switchTo}
                 onStop={() => platform.notesModelStop(tool.id)}
               />
             </Step>
@@ -384,39 +423,85 @@ function SyncStepView(props: {
   )
 }
 
+function ModelName({ model, m }: { model: NotesModel; m: NotesSetupText }) {
+  const s = useMessages(searchModelMessages)
+  if (model.role === "recommended") {
+    const word = model.terms ? (
+      <button
+        type="button"
+        title={model.terms}
+        onClick={() => model.terms && platform.openUrl(model.terms)}
+        className="font-semibold text-brand underline-offset-4 hover:text-brand-hover hover:underline"
+      >
+        {s.modelWord}
+      </button>
+    ) : (
+      s.modelWord
+    )
+    return <>{s.best(word)}</>
+  }
+  return <>{model.role === "alternative" ? m.modelLighter : model.title}</>
+}
+
 function ModelStepView(props: {
   m: NotesSetupText
-  model: NotesModel
+  models: NotesModel[]
   step: ModelStep
   disabled: boolean
-  onStart: () => void
+  onDownload: (model: NotesModel) => void
+  onSwitch: (model: NotesModel) => void
   onStop: () => void
 }) {
-  const { m, model, step, disabled, onStart, onStop } = props
-  const mb = megabytes(model.sizeBytes)
-  const downloading = step.phase === "downloading"
-  const preparing = step.phase === "preparing"
+  const { m, models, step, disabled, onDownload, onSwitch, onStop } = props
+  const busy = ["downloading", "preparing", "switching"].includes(step.phase)
+  const target = "model" in step ? models.find((x) => x.id === step.model) : undefined
+  const mb = target ? megabytes(target.sizeBytes) : 0
   const count = step.phase === "downloading" && step.count?.total ? step.count : undefined
-  const text = preparing
-    ? m.modelPreparing
-    : count
-      ? m.modelCount(megabytes(count.done), megabytes(count.total))
-      : m.modelRunning(mb)
+  const text =
+    step.phase === "preparing"
+      ? m.modelPreparing
+      : count
+        ? m.modelCount(megabytes(count.done), megabytes(count.total))
+        : m.modelRunning(mb)
+  const inUseReady = models.some((x) => x.inUse && x.downloaded)
+  const retry = target?.inUse ? () => onDownload(target) : target ? () => onSwitch(target) : undefined
   return (
     <>
-      {!model.downloaded && !preparing && (
-        <div className="flex flex-wrap items-center gap-3">
-          <Button size="sm" variant="secondary" disabled={disabled || downloading} onClick={onStart}>
-            {m.modelStart(mb)}
-          </Button>
-          {downloading && (
-            <Button size="sm" variant="ghost" onClick={onStop}>
-              {m.modelCancel}
-            </Button>
-          )}
-        </div>
-      )}
-      <Collapse open={downloading || preparing}>
+      <ul aria-label={m.modelsLabel} className="grid gap-2 sm:grid-cols-2">
+        {models.map((model) => (
+          <li
+            key={model.id}
+            className={`flex flex-col gap-2 rounded-[0.35rem] border px-3 py-2.5 transition-colors duration-(--motion-slow) ${model.inUse ? "border-brand bg-brand-soft" : "border-line-strong"}`}
+          >
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[0.95rem] font-medium text-ink">
+                <ModelName model={model} m={m} />
+              </span>
+              <span className="flex items-center gap-2 text-[0.8rem] text-ink-soft tabular-nums">
+                {m.modelSize(megabytes(model.sizeBytes))}
+                {model.inUse && <Pill tone="brand">{m.inUse}</Pill>}
+              </span>
+            </div>
+            {!(model.inUse && model.downloaded) && (
+              <div>
+                <Button
+                  size="sm"
+                  variant={model.role === "recommended" && !inUseReady ? "primary" : "secondary"}
+                  disabled={disabled || busy}
+                  onClick={() => (model.inUse ? onDownload(model) : onSwitch(model))}
+                >
+                  {model.inUse
+                    ? m.modelStart(megabytes(model.sizeBytes))
+                    : model.downloaded
+                      ? m.useModel
+                      : m.downloadAndUse(megabytes(model.sizeBytes))}
+                </Button>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+      <Collapse open={step.phase === "downloading" || step.phase === "preparing"}>
         <div className="flex max-w-[28rem] flex-col gap-1.5" aria-live="polite">
           <ProgressBar
             label={m.modelLabel}
@@ -425,13 +510,28 @@ function ModelStepView(props: {
             valueText={text}
             size="thin"
           />
-          <span className="text-[0.875rem] text-ink-dim">{text}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[0.875rem] text-ink-dim">{text}</span>
+            {step.phase === "downloading" && (
+              <Button size="sm" variant="ghost" onClick={onStop}>
+                {m.modelCancel}
+              </Button>
+            )}
+          </div>
         </div>
       </Collapse>
-      <Collapse open={step.phase === "stopped"}>
-        <p className="text-[0.9rem] text-ink-soft">{m.modelStopped}</p>
+      <Collapse open={step.phase === "switching" || step.phase === "switched" || step.phase === "stopped"}>
+        <p className="text-[0.9rem] text-ink-soft" aria-live="polite">
+          {step.phase === "switching"
+            ? m.switching
+            : step.phase === "switched"
+              ? m.switched(step.minutes)
+              : step.phase === "stopped"
+                ? m.modelStopped
+                : ""}
+        </p>
       </Collapse>
-      <Collapse open={model.downloaded}>
+      <Collapse open={step.phase === "done" || (inUseReady && step.phase === "idle")}>
         <p className="text-[0.9rem] text-ink-soft" aria-live="polite">
           {step.phase === "done" ? m.modelDone : m.modelReady}
         </p>
@@ -440,9 +540,11 @@ function ModelStepView(props: {
         m={m}
         problem={step.phase === "failed" ? step.problem : null}
         action={
-          <Button size="sm" variant="secondary" disabled={disabled} onClick={onStart}>
-            {m.tryAgain}
-          </Button>
+          retry && (
+            <Button size="sm" variant="secondary" disabled={disabled} onClick={retry}>
+              {m.tryAgain}
+            </Button>
+          )
         }
       />
     </>

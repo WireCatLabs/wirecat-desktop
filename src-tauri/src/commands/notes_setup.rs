@@ -69,12 +69,13 @@ pub async fn notes_sync(
 #[tauri::command]
 pub async fn notes_model_download(
     id: String,
+    model: String,
     running: State<'_, Arc<Running>>,
     on_event: Channel<notes_setup::NotesModelEvent>,
 ) -> Result<(), AppError> {
     crate::log::command("notes_model_download", async move {
         let tool = known_tool(&id)?;
-        let args = notes_setup::download_args(tool).map_err(AppError::Failed)?;
+        let args = notes_setup::download_args(tool, &model).map_err(AppError::Failed)?;
         let running = Arc::clone(&running);
         blocking(move || {
             let key = model_key(tool);
@@ -89,6 +90,16 @@ pub async fn notes_model_download(
             running.finish(&key);
         })
         .await
+    })
+    .await
+}
+
+/// memo's `models set` for a model the card shows; Rust checks the id against memo's own list first.
+#[tauri::command]
+pub async fn notes_model_use(id: String, model: String) -> Result<notes_setup::NotesModelUsed, AppError> {
+    crate::log::command("notes_model_use", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || notes_setup::use_model(tool, &model)).await
     })
     .await
 }

@@ -194,6 +194,7 @@ pub fn run() {
             commands::enrichment::enrichment_off,
             commands::enrichment::enrichment_key_set,
             commands::enrichment::enrichment_key_remove,
+            commands::notes_setup::notes_model_use,
             commands::tools::config_repair,
             commands::tools::account_sign_out,
             commands::tools::account_remove_supported,

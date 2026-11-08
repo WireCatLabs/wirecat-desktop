@@ -129,7 +129,7 @@ export async function runMockScenario() {
     await useTools.getState().refresh()
     useTools.getState().toggle(accounts)
   }
-  if (params.has("memo") || params.has("memo-fail") || params.has("enrich")) {
+  if (params.has("memo") || params.has("memo-fail") || params.has("enrich") || params.has("model")) {
     useNav.getState().go("tools")
     await useTools.getState().refresh()
     useTools.setState({ expanded: "memo" })

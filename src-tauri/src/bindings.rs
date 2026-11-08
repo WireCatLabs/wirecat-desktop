@@ -44,6 +44,8 @@ fn types() -> Types {
         .register::<crate::enrichment::Enrichment>()
         .register::<crate::enrichment::EnrichmentStatus>()
         .register::<crate::enrichment::SyncEnrichment>()
+        .register::<crate::notes_setup::NotesModelUsed>()
+        .register::<crate::notes_setup::NotesModelRole>()
         .register::<crate::zoom_app::ZoomAppAnswer>()
         .register::<crate::drive_folders::FolderLevel>()
         .register::<crate::drive_folders::FolderAdded>()
