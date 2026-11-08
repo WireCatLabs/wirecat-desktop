@@ -78,6 +78,19 @@ describe("the agent instructions an update refreshed", () => {
   })
 })
 
+describe("the install steps", () => {
+  it("are listed before the install starts, as plain text with nothing to go back to", () => {
+    useTools.setState({ sessions: { tg: { operation: "install", step: "queued", log: [], outcome: null } } })
+    rows(["tg"])
+
+    const steps = within(screen.getByText("Installing").closest("ol") as HTMLElement)
+    for (const label of ["Checking requirements", "Installing", "Verifying", "Done"]) {
+      expect(steps.getByText(label)).toBeTruthy()
+    }
+    expect(steps.queryAllByRole("button")).toHaveLength(0)
+  })
+})
+
 describe("the skill offer after a first install", () => {
   it("adds the skill for the agents found, in one click", async () => {
     useTools.setState({
