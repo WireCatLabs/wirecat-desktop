@@ -698,6 +698,7 @@ export function memoryMock(): Pick<
   | "memoryForget"
   | "memorySourceContext"
   | "memoryOpenSource"
+  | "memoryShow"
   | "memoryReviewShow"
   | "memoryReviewDecide"
   | keyof ReturnType<typeof memoryAddMock>
@@ -742,6 +743,10 @@ export function memoryMock(): Pick<
     ...memoryAddMock((batch) => {
       entries = [batch, ...entries]
     }),
+    async memoryShow(ref) {
+      await delay(200)
+      return find(ref)
+    },
     async memoryReviewShow(ref, id) {
       await delay(400)
       const review = REVIEWS[id]
@@ -826,7 +831,8 @@ export function memoryMock(): Pick<
     async memoryCorrect(ref, text) {
       await write()
       const old = find(ref)
-      update(ref, "superseded")
+      const replaced = { ...update(ref, "superseded"), sourceReview: null }
+      entries = entries.map((x) => (x.ref === ref ? replaced : x))
       const added: MemoryEntry = {
         ...old,
         ref: `${old.type}:${next++}`,

@@ -1,6 +1,6 @@
 import { Check, LoaderCircle, TriangleAlert } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
-import { causeOf, type ReviewChoice, reviewChoices } from "@/domain/memory"
+import { can, causeOf, type ReviewChoice, reviewChoices } from "@/domain/memory"
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry, SourceReview } from "@/platform/memory-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -73,6 +73,8 @@ export function ReviewPanel({ entry }: { entry: MemoryEntry }) {
 function ReviewBody({ entry, review }: { entry: MemoryEntry; review: SourceReview }) {
   const m = useMessages(reviewMessages)
   const lang = useLang()
+  const revoke = useMemory(canRevoke)
+  const correctable = can(entry, revoke).correct
   const { startCorrect } = useMemory.getState()
   const by = (who: string | null) => (!who || who === "owner" ? m.you : who)
   return (
@@ -114,9 +116,11 @@ function ReviewBody({ entry, review }: { entry: MemoryEntry; review: SourceRevie
         <div key={`${s.at}-${s.body}`} className="text-[0.95rem]">
           <p className="text-ink-soft">{m.suggests(by(s.author))}</p>
           <p className="selectable mt-[0.2rem]">{s.body}</p>
-          <Button size="sm" variant="ghost" className="mt-1 -ml-2" onClick={() => startCorrect(entry.ref, s.body)}>
-            {m.useWording}
-          </Button>
+          {correctable && (
+            <Button size="sm" variant="ghost" className="mt-1 -ml-2" onClick={() => startCorrect(entry.ref, s.body)}>
+              {m.useWording}
+            </Button>
+          )}
         </div>
       ))}
     </div>

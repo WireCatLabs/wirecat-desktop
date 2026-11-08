@@ -60,7 +60,7 @@ const en = {
   reads: (reader: string, model: string | null) => `${reader}${model ? ` (${model})` : ""} reads its text.`,
   leaves: "It leaves this computer.",
   stays: "It does not leave this computer.",
-  readsFiles: "Codex can also open files on this computer while it reads.",
+  readsFiles: (reader: string) => `${reader} can also open files on this computer while it reads.`,
   noReader: "To get facts from it, first choose in Settings what reads sources.",
   goSettings: "Open Settings",
   suggest: "Suggest facts",
@@ -75,6 +75,7 @@ const en = {
   reused: "It was read with this reader before, so these are the same suggestions.",
   readAgain: "Read it again",
   nothingFound: "The reader found nothing it could show in the source's own words. The source is saved.",
+  alreadyDecided: "These suggestions were already decided on the Memory page. The source is saved.",
   findingKinds: { fact: "Fact", task: "Task" } as Record<string, string>,
   keep: (n: number) => (n ? `Keep ${n}` : "Keep none"),
   keepNone: "Keep the source only",
@@ -90,6 +91,7 @@ const en = {
   tooOld: "Memo on this computer cannot add sources yet. Update it on the Tools page.",
   tooOldReaders: "Memo on this computer cannot read sources for facts yet. Update it on the Tools page to get facts.",
   reasons: {
+    "memo.refused": "Memo refused it and gave no reason WireCat can show. Try again, or add it from a file.",
     "source.unsupported":
       "WireCat cannot read this kind of file or page. Save it as PDF, Word or plain text and add that.",
     "source.no-text": "There is no text in it. Add a file that holds text, or paste the text.",
@@ -172,7 +174,7 @@ const ru: typeof en = {
   reads: (reader: string, model: string | null) => `Текст читает ${reader}${model ? ` (${model})` : ""}.`,
   leaves: "Текст уходит с этого компьютера.",
   stays: "Текст не покидает этот компьютер.",
-  readsFiles: "Пока Codex читает, он может открывать и файлы на этом компьютере.",
+  readsFiles: (reader: string) => `Пока ${reader} читает, он может открывать и файлы на этом компьютере.`,
   noReader: "Чтобы получить из него факты, сначала выберите в Настройках, что читает источники.",
   goSettings: "Открыть Настройки",
   suggest: "Предложить факты",
@@ -189,6 +191,7 @@ const ru: typeof en = {
   reused: "Этот читатель уже читал источник, поэтому предложения те же.",
   readAgain: "Прочитать заново",
   nothingFound: "Читатель не нашёл ничего, что можно показать словами самого источника. Источник сохранён.",
+  alreadyDecided: "По этим предложениям уже решили на странице Память. Источник сохранён.",
   findingKinds: { fact: "Факт", task: "Задача" },
   keep: (n: number) => (n ? `Оставить: ${n}` : "Ничего не оставлять"),
   keepNone: "Оставить только источник",
@@ -205,6 +208,8 @@ const ru: typeof en = {
   tooOldReaders:
     "Memo на этом компьютере пока не умеет искать факты в источниках. Обновите его на странице Инструменты.",
   reasons: {
+    "memo.refused":
+      "Memo отказал и не назвал причину, которую WireCat может показать. Попробуйте снова или добавьте файлом.",
     "source.unsupported":
       "WireCat не читает такой файл или страницу. Сохраните как PDF, Word или текст и добавьте его.",
     "source.no-text": "В нём нет текста. Добавьте файл с текстом или вставьте текст.",
@@ -288,7 +293,7 @@ const es: typeof en = {
   reads: (reader: string, model: string | null) => `${reader}${model ? ` (${model})` : ""} lee su texto.`,
   leaves: "Sale de este ordenador.",
   stays: "No sale de este ordenador.",
-  readsFiles: "Mientras lee, Codex también puede abrir archivos de este ordenador.",
+  readsFiles: (reader: string) => `Mientras lee, ${reader} también puede abrir archivos de este ordenador.`,
   noReader: "Para sacar hechos, elige antes en Ajustes qué lee las fuentes.",
   goSettings: "Abrir Ajustes",
   suggest: "Proponer hechos",
@@ -303,6 +308,7 @@ const es: typeof en = {
   reused: "Este lector ya lo leyó, así que son las mismas propuestas.",
   readAgain: "Leerlo de nuevo",
   nothingFound: "El lector no encontró nada que pueda mostrar con las palabras de la fuente. La fuente está guardada.",
+  alreadyDecided: "Estas propuestas ya se decidieron en la página Memoria. La fuente está guardada.",
   findingKinds: { fact: "Hecho", task: "Tarea" },
   keep: (n: number) => (n ? `Guardar ${n}` : "No guardar ninguno"),
   keepNone: "Guardar solo la fuente",
@@ -319,6 +325,8 @@ const es: typeof en = {
   tooOldReaders:
     "Memo en este ordenador aún no puede sacar hechos de las fuentes. Actualízalo en la página Herramientas.",
   reasons: {
+    "memo.refused":
+      "Memo lo rechazó sin una razón que WireCat pueda mostrar. Prueba de nuevo o añádelo desde un archivo.",
     "source.unsupported": "WireCat no lee este tipo de archivo o página. Guárdalo como PDF, Word o texto y añade ese.",
     "source.no-text": "No tiene texto. Añade un archivo con texto o pega el texto.",
     "source.unreadable": "No se pudo leer: puede estar dañado o bloqueado. Guárdalo de nuevo, o como PDF o texto.",

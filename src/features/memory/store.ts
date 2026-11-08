@@ -294,12 +294,9 @@ export const useMemory = create<MemoryState>((set, get) => {
     async correct(ref, text) {
       const added = await run(ref, "correct", () => platform.memoryCorrect(ref, text))
       if (!added) return false
+      const old = await platform.memoryShow(ref).catch(() => null)
       set((s) => ({
-        // memo marks the old record superseded and closes its source review; the page says so without reading again.
-        entries: [
-          added,
-          ...s.entries.map((e) => (e.ref === ref ? { ...e, status: "superseded", sourceReview: null } : e)),
-        ],
+        entries: [added, ...s.entries.map((e) => (e.ref !== ref ? e : (old ?? { ...e, status: "superseded" })))],
         reviews: without(s.reviews, ref),
         held: [...s.held, ref, added.ref],
         arriving: [...s.arriving, added.ref],

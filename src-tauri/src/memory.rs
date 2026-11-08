@@ -145,13 +145,21 @@ pub struct SourceReviewMarker {
 
 /// memo before source reviews has no `source_review` field: such a record simply has none.
 fn marker(v: &Value) -> Option<SourceReviewMarker> {
-    let id = match &v["id"] {
+    Some(SourceReviewMarker { id: id_of(&v["id"])?, cause: text(v, "cause")? })
+}
+
+/// memo names proposals by a number it prints as a string or a number; anything else is not one.
+pub(crate) fn id_of(v: &Value) -> Option<String> {
+    let id = match v {
         Value::String(s) => s.clone(),
         Value::Number(n) => n.to_string(),
         _ => return None,
     };
-    plain(&id)?;
-    Some(SourceReviewMarker { id, cause: text(v, "cause")? })
+    (!id.is_empty() && id.len() <= 15 && id.bytes().all(|b| b.is_ascii_digit())).then_some(id)
+}
+
+pub(crate) fn strings(v: &Value) -> Vec<String> {
+    v.as_array().map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default()
 }
 
 /// Memo stages an agent's cited facts and follow-ups as an action of this kind, decided with the fingerprint
@@ -159,7 +167,7 @@ fn marker(v: &Value) -> Option<SourceReviewMarker> {
 const FINDINGS: &str = "evidence_findings";
 /// A source review is shown as a marker on the memory or fact it is about, and decided there, never as an action:
 /// memo refuses `actions confirm` on it.
-const SOURCE_REVIEW: &str = "memory_source_review";
+pub(crate) const SOURCE_REVIEW: &str = "memory_source_review";
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Counts {
@@ -534,9 +542,6 @@ fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Stri
     answer(&out)
 }
 
-/// memo's refusals of a source or a reader, which the page words in the owner's language.
-const WORDED_PREFIXES: [&str; 2] = ["source.", "reader."];
-
 pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
     let json = out.json();
     let reason = json.as_ref().and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
@@ -547,12 +552,7 @@ pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
             Err("These findings changed since the agent proposed them.".into())
         }
         // The page words these in the owner's language, so the reason goes back as it is.
-        Some(_)
-            if REVOKE_REFUSALS.contains(&reason)
-                || (plain(reason).is_some() && WORDED_PREFIXES.iter().any(|p| reason.starts_with(p))) =>
-        {
-            Err(reason.to_string())
-        }
+        Some(_) if REVOKE_REFUSALS.contains(&reason) => Err(reason.to_string()),
         j => Err(failure(out, j.as_ref())),
     }
 }
@@ -635,10 +635,26 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
     Ok(Read::Ready { entries, more, activity, activity_error, revoke, roles })
 }
 
+pub(crate) fn memo_bin() -> Result<std::path::PathBuf, String> {
+    crate::tools::program(&memo()?.bin).ok_or_else(|| "Memo is not installed".into())
+}
+
 pub(crate) fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
-    let tool = memo()?;
-    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = memo_bin()?;
     f(&|args: &[String]| call_at(&bin, args, WRITE))
+}
+
+/// One memory or fact read back as memo now has it, after the owner answered something about it.
+pub(crate) fn show_with(call: &Call, r: &Ref) -> Result<Entry, String> {
+    if r.kind == Kind::Action {
+        return Err("An action is read back from the list.".into());
+    }
+    parse_entry(r, &call(&words(&[r.noun(), "show", &r.memo()]))?)
+}
+
+pub fn show(reference: &str) -> Result<Entry, String> {
+    let r = Ref::parse(reference)?;
+    with_memo(|call| show_with(call, &r))
 }
 
 pub(crate) fn parse_entry(r: &Ref, v: &Value) -> Result<Entry, String> {
@@ -720,7 +736,7 @@ pub fn confirm(reference: &str, accept: Option<&[String]>) -> Result<Entry, Stri
 /// Memo has one word per record for "this does not hold": a memory goes stale, a proposed fact is rejected, an
 /// accepted decision is reversed, an action is rejected. An agent's other accepted fact goes back to proposed with
 /// `facts revoke` (memo 0.131.28); before it, and for the owner's own fact or a correction, it can only be forgotten.
-fn discard_with(call: &Call, r: &Ref, revoke: bool) -> Result<Entry, String> {
+pub(crate) fn discard_with(call: &Call, r: &Ref, revoke: bool) -> Result<Entry, String> {
     if let Some(e) = review_with(call, r, Some(&[]))? {
         return Ok(e);
     }

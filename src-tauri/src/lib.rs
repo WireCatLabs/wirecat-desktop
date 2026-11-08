@@ -132,6 +132,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(window_state()).build())
         .manage(Arc::new(Running::default()))
         .manage(deep_link::Links::default())
+        .manage(memory_add::PickedFile::default())
         .setup(|app| {
             // Without a log the app still works; it says why on stderr.
             if let Err(e) = app.path().app_log_dir().map_err(|e| e.to_string()).and_then(|dir| log::init(&dir)) {
@@ -274,6 +275,7 @@ pub fn run() {
             commands::memory::memory_review_show,
             commands::memory::memory_review_decide,
             commands::memory::memory_pick_file,
+            commands::memory::memory_show,
             commands::memory::memory_source_add,
             commands::memory::memory_source_show,
             commands::memory::memory_mentions,

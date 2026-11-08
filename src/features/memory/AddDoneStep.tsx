@@ -10,12 +10,12 @@ export function DoneStep() {
   const added = useAddSource((s) => s.added)
   const batch = useAddSource((s) => s.batch)
   const kept = useAddSource((s) => s.kept)
-  const subjects = useAddSource((s) => s.subjects)
+  const linked = useAddSource((s) => s.linked)
   const mentions = useAddSource((s) => s.mentions)
   const { another, close } = useAddSource.getState()
   const keptFindings = (batch?.findings ?? []).filter((f) => kept.includes(f.id))
   const named = mentions?.state === "ready" ? mentions.mentions.items : []
-  const about = subjects.map((ref) => named.find((n) => n.ref === ref)?.name ?? ref)
+  const about = (linked ?? []).map((ref) => named.find((n) => n.ref === ref)?.name ?? ref)
 
   return (
     <div className="flex flex-col gap-[1rem]">

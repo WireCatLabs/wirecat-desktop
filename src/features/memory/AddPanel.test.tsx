@@ -132,6 +132,51 @@ describe("Add to memory", () => {
     expect(within(panel).getByRole("button", { name: "Suggest facts" })).toBeDisabled()
   })
 
+  it("reads again with the reader chosen now, says who reads it, and lists only what memo linked", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", true)])
+    vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
+    const decided = { ...BATCH, status: "approved", model: "codex/gpt-5" } as MemoryEntry
+    const suggest = vi.spyOn(platform, "memorySourceSuggest").mockResolvedValue({ batch: decided, reused: true })
+    const confirm = vi.spyOn(platform, "memoryConfirm")
+    vi.spyOn(platform, "memorySourceShow").mockResolvedValue({
+      ref: "document:42",
+      title: "Call with Lena",
+      kind: "text",
+      url: null,
+      fileName: null,
+      kept: "text",
+      chars: 120,
+      text: "notes",
+      textTruncated: false,
+      subjects: [{ ref: "organization:3", confirmed: true }],
+    })
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
+    await user.click(within(panel).getByRole("button", { name: "Save" }))
+    await user.click(await within(panel).findByRole("checkbox", { name: "Lena Ortiz" }, { timeout: 3000 }))
+    await user.click(within(panel).getByRole("button", { name: "Suggest facts" }))
+
+    expect(await within(panel).findByText(/already decided on the Memory page/)).toBeInTheDocument()
+    expect(within(panel).getByText(/Ollama \(llama3.2\) reads its text/)).toBeInTheDocument()
+    await user.click(within(panel).getByRole("button", { name: "Read it again" }))
+    expect(suggest).toHaveBeenLastCalledWith("document:42", "ollama", ["person:7"], true)
+    await user.click(within(panel).getByRole("button", { name: "Done" }))
+    expect(confirm).not.toHaveBeenCalled()
+    expect(await within(panel).findByText("Northbridge Bench")).toBeInTheDocument()
+    expect(within(panel).queryByText("Lena Ortiz")).not.toBeInTheDocument()
+  })
+
+  it("words a refusal of pasted text without memo's own message", async () => {
+    vi.spyOn(platform, "memorySourceAdd").mockRejectedValue(new Error("memo.refused"))
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
+    await user.click(within(panel).getByRole("button", { name: "Save" }))
+    expect(await within(panel).findByText(/gave no reason WireCat can show/)).toBeInTheDocument()
+    expect(within(panel).queryByRole("button", { name: /Report/ })).not.toBeInTheDocument()
+  })
+
   it("words memo's refusal of a link and stays on the step", async () => {
     vi.spyOn(platform, "memorySourceAdd").mockRejectedValue(new Error("source.needs-sign-in"))
     const user = userEvent.setup()

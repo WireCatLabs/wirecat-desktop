@@ -78,53 +78,68 @@ function Readers() {
   )
 }
 
+/** Arrow keys move through the radios, so a pick is only marked there; the button saves it. */
 function ReaderChoice({ readers, describedBy }: { readers: Reader[]; describedBy: string }) {
   const m = useMessages(readersMessages)
   const busy = useReaders((s) => s.busy)
   const name = useId()
+  const chosen = readers.find((r) => r.chosen)?.id ?? null
+  const [picked, setPicked] = useState<string | null>(null)
+  const marked = picked ?? chosen
   const state = (r: Reader) =>
     !r.available ? (r.id === "key" ? m.noKey : m.notFound) : r.signedIn === false ? m.notSignedIn : null
   return (
-    <fieldset
-      aria-describedby={describedBy}
-      className="flex max-w-[40rem] flex-col rounded-[0.45rem] border border-line"
-    >
-      <legend className="sr-only">{m.heading}</legend>
-      {readers.map((r) => {
-        const off = !r.available || r.signedIn === false
-        return (
-          <label
-            key={r.id}
-            className="flex cursor-pointer items-start gap-[0.8rem] border-line px-[0.9rem] py-[0.7rem] not-first:border-t has-disabled:cursor-default has-disabled:opacity-60"
-          >
-            <Radio
-              className="mt-[0.2rem]"
-              name={name}
-              value={r.id}
-              checked={r.chosen}
-              disabled={off || busy === "choose"}
-              onChange={() => void useReaders.getState().choose(r.id)}
-            />
-            <span className="min-w-0 flex-1">
-              <span className="flex flex-wrap items-baseline gap-x-2">
-                <span className="font-medium">{m.names[r.id] ?? r.id}</span>
-                {r.model && <span className="font-mono text-[0.85rem] text-ink-dim">{m.model(r.model)}</span>}
-                {busy === "choose" && r.chosen && <LoaderCircle className="size-4 animate-spin" aria-hidden />}
-              </span>
-              <span className="block text-[0.9rem] text-ink-soft">
-                {state(r) ?? (r.leavesComputer ? m.leaves : m.stays)}
-              </span>
-              {r.readsFiles && (
-                <span className="mt-[0.15rem] flex items-center gap-2 text-[0.9rem] text-warn-ink">
-                  <TriangleAlert className="size-4 shrink-0" aria-hidden />
-                  {m.readsFiles}
+    <div className="flex flex-col gap-3">
+      <fieldset
+        aria-describedby={describedBy}
+        className="flex max-w-[40rem] flex-col rounded-[0.45rem] border border-line"
+      >
+        <legend className="sr-only">{m.heading}</legend>
+        {readers.map((r) => {
+          const off = !r.available || r.signedIn === false
+          return (
+            <label
+              key={r.id}
+              className="flex cursor-pointer items-start gap-[0.8rem] border-line px-[0.9rem] py-[0.7rem] not-first:border-t has-disabled:cursor-default has-disabled:opacity-60"
+            >
+              <Radio
+                className="mt-[0.2rem]"
+                name={name}
+                value={r.id}
+                checked={marked === r.id}
+                disabled={off || busy === "choose"}
+                onChange={() => setPicked(r.id)}
+              />
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-medium">{m.names[r.id] ?? r.id}</span>
+                  {r.model && <span className="font-mono text-[0.85rem] text-ink-dim">{m.model(r.model)}</span>}
                 </span>
-              )}
-            </span>
-          </label>
-        )
-      })}
-    </fieldset>
+                <span className="block text-[0.9rem] text-ink-soft">
+                  {state(r) ?? (r.leavesComputer ? m.leaves : m.stays)}
+                </span>
+                {r.readsFiles && (
+                  <span className="mt-[0.15rem] flex items-center gap-2 text-[0.9rem] text-warn-ink">
+                    <TriangleAlert className="size-4 shrink-0" aria-hidden />
+                    {m.readsFiles(m.names[r.id] ?? r.id)}
+                  </span>
+                )}
+              </span>
+            </label>
+          )
+        })}
+      </fieldset>
+      <span>
+        <Button
+          size="sm"
+          disabled={marked === null || marked === chosen || busy !== null}
+          onClick={() => marked && void useReaders.getState().choose(marked)}
+          icon={busy === "choose" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+        >
+          {m.use}
+        </Button>
+      </span>
+    </div>
   )
 }
 

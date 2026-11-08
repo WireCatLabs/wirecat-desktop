@@ -128,6 +128,7 @@ export function memoryAddMock(
         chars: text.length,
         text,
         textTruncated: false,
+        subjects: [],
       })
       return added
     },

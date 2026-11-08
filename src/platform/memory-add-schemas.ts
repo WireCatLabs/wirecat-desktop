@@ -36,6 +36,7 @@ export const StoredSourceSchema = v.object({
   chars: v.number(),
   text: v.string(),
   textTruncated: v.boolean(),
+  subjects: v.array(v.object({ ref: v.string(), confirmed: v.boolean() })),
 })
 
 export const MentionsSchema = v.object({

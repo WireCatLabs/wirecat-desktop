@@ -1,7 +1,7 @@
 use super::{attempt, blocking};
 use crate::error::AppError;
 use crate::{memory, memory_add, memory_review};
-use tauri::AppHandle;
+use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
@@ -84,19 +84,37 @@ pub async fn memory_review_decide(
     .await
 }
 
-/// Opens the system's own file window; `memory_source_add` checks the path it returns again.
+/// Opens the system's own file window. The path is kept here, and `memory_source_add` takes no other file.
 #[tauri::command]
-pub async fn memory_pick_file(app: AppHandle) -> Result<Option<String>, AppError> {
+pub async fn memory_pick_file(
+    app: AppHandle,
+    kept: State<'_, memory_add::PickedFile>,
+) -> Result<Option<String>, AppError> {
     crate::log::command("memory_pick_file", async move {
         let picked = blocking(move || app.dialog().file().blocking_pick_file()).await?;
-        Ok(picked.and_then(|p| p.into_path().ok()).and_then(|p| p.to_str().map(str::to_string)))
+        let Some(path) = picked.and_then(|p| p.into_path().ok()) else { return Ok(None) };
+        let shown = memory_add::picked_path(path.clone())?;
+        *kept.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner) = Some(path);
+        Ok(Some(shown))
     })
     .await
 }
 
 #[tauri::command]
-pub async fn memory_source_add(source: memory_add::AddSource) -> Result<memory_add::Added, AppError> {
-    crate::log::command("memory_source_add", async move { attempt(move || memory_add::add(&source)).await }).await
+pub async fn memory_source_add(
+    source: memory_add::AddSource,
+    kept: State<'_, memory_add::PickedFile>,
+) -> Result<memory_add::Added, AppError> {
+    let picked = kept.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone();
+    crate::log::command("memory_source_add", async move {
+        attempt(move || memory_add::add(&source, picked.as_deref())).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn memory_show(reference: String) -> Result<memory::Entry, AppError> {
+    crate::log::command("memory_show", async move { attempt(move || memory::show(&reference)).await }).await
 }
 
 #[tauri::command]

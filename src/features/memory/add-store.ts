@@ -3,12 +3,11 @@ import { type Draft, emptyDraft, givenOf, untickedAtFirst, type Way } from "@/do
 import { platform } from "@/platform/bridge"
 import type { AddedSource, Mentions, StoredSource } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
+import { errorText as message } from "@/shared/errors"
 import { useMemory } from "./store"
 
 export type Step = "source" | "saved" | "facts" | "done"
 export const STEPS: Step[] = ["source", "saved", "facts", "done"]
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 type AddState = {
   open: boolean
@@ -21,6 +20,8 @@ type AddState = {
   mentions: { state: "loading" } | { state: "ready"; mentions: Mentions } | { state: "failed"; error: string } | null
   /** The text as memo stored it: the source opens here, not at a path that may be gone. */
   stored: { state: "loading" } | { state: "ready"; source: StoredSource } | { state: "failed"; error: string } | null
+  /** What memo says the source is linked to, read once the panel is done; the summary shows only these. */
+  linked: string[] | null
   /** Mentions the owner ticked: the suggested facts are about them. */
   subjects: string[]
   batch: MemoryEntry | null
@@ -53,6 +54,7 @@ const fresh = {
   added: null,
   mentions: null,
   stored: null,
+  linked: null,
   subjects: [],
   batch: null,
   reused: false,
@@ -127,12 +129,14 @@ export const useAddSource = create<AddState>((set, get) => ({
   async keep() {
     const { batch, skipped, busy } = get()
     if (!batch || busy) return
+    if (batch.status !== "proposed") return get().finish()
     const accept = (batch.findings ?? []).map((f) => f.id).filter((id) => !skipped.includes(id))
     set({ busy: "keep", error: null })
     try {
       // Ticking is confirming: the kept facts count at once. Nothing ticked turns the batch down, the source stays.
       await (accept.length ? platform.memoryConfirm(batch.ref, accept) : platform.memoryDiscard(batch.ref))
       set({ kept: accept, step: "done" })
+      void loadLinked()
       void useMemory.getState().load()
     } catch (e) {
       set({ error: message(e) })
@@ -142,10 +146,22 @@ export const useAddSource = create<AddState>((set, get) => ({
   },
   finish: () => {
     set({ step: "done", kept: [] })
+    void loadLinked()
     void useMemory.getState().load()
   },
   another: () => set({ ...fresh, draft: emptyDraft(get().draft.way) }),
 }))
+
+async function loadLinked() {
+  const ref = useAddSource.getState().added?.ref
+  if (!ref) return
+  try {
+    const shown = await platform.memorySourceShow(ref)
+    if (useAddSource.getState().added?.ref === ref) useAddSource.setState({ linked: shown.subjects.map((s) => s.ref) })
+  } catch {
+    if (useAddSource.getState().added?.ref === ref) useAddSource.setState({ linked: [] })
+  }
+}
 
 async function loadMentions(ref: string) {
   try {

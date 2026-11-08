@@ -66,11 +66,14 @@ export const READER_REASONS = [
   "reader.unusable",
 ] as const
 
-export type Reason = (typeof SOURCE_REASONS)[number] | (typeof READER_REASONS)[number]
+/** Rust's id for a refusal of a run fed on stdin whose reason the panel does not know: memo's words may quote it. */
+export const REFUSED = "memo.refused"
+
+export type Reason = (typeof SOURCE_REASONS)[number] | (typeof READER_REASONS)[number] | typeof REFUSED
 
 /** memo's refusal as one of the reasons the panel words itself; anything else is shown in memo's own words. */
 export const reasonOf = (error: string): Reason | null =>
-  ([...SOURCE_REASONS, ...READER_REASONS] as readonly string[]).includes(error) ? (error as Reason) : null
+  ([...SOURCE_REASONS, ...READER_REASONS, REFUSED] as readonly string[]).includes(error) ? (error as Reason) : null
 
 /** A memo from before `sources` answers as commander does for any word it does not know. */
 export const tooOldFor = (error: string) => /unknown (command|option)/.test(error)

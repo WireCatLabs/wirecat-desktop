@@ -3,12 +3,13 @@
 //! own; every answer here is the owner's, so each passes `--from-app`. The source text is the owner's own, shown
 //! unmasked like the rest of the Memory page, and never logged.
 
-use crate::memory::{self, Call, Entry, Kind, Ref, decision, parse_entry, text, validate_text, words};
+use crate::memory::{
+    self, Call, Entry, Kind, Ref, SOURCE_REVIEW, decision, discard_with, show_with as read_back, strings, text,
+    validate_text, words,
+};
 use crate::skills::body;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-const KIND: &str = "memory_source_review";
 
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -62,16 +63,11 @@ pub enum Answer {
     Withdraw,
 }
 
-/// memo names a source review by a bare number, as it names actions.
 fn review_id(id: &str) -> Result<&str, String> {
     if id.is_empty() || id.len() > 15 || !id.bytes().all(|b| b.is_ascii_digit()) {
         return Err(format!("not a source review: {id}"));
     }
     Ok(id)
-}
-
-fn strings(v: &Value) -> Vec<String> {
-    v.as_array().map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect()).unwrap_or_default()
 }
 
 fn review_source(v: &Value) -> Option<ReviewSource> {
@@ -115,7 +111,7 @@ fn parse_review(id: &str, v: &Value) -> Option<Review> {
 fn shown(call: &Call, target: &Ref, id: &str) -> Result<Value, String> {
     let v = call(&words(&["review", "show", review_id(id)?]))?;
     let item = body(&v);
-    if text(item, "kind").as_deref() != Some(KIND) || text(item, "subject") != Some(target.memo()) {
+    if text(item, "kind").as_deref() != Some(SOURCE_REVIEW) || text(item, "subject") != Some(target.memo()) {
         return Err("This review is not about this record any more. Read again.".into());
     }
     Ok(item.clone())
@@ -138,10 +134,20 @@ pub fn show(reference: &str, id: &str) -> Result<Review, String> {
     memory::with_memo(|call| show_with(call, reference, id))
 }
 
-/// `review confirm` and `reject` decide each id on its own and still exit 0 when memo refused one.
-fn refused(v: &Value) -> Option<String> {
-    let first = body(v)["refused"].as_array()?.first()?.clone();
-    Some(text(&first, "reason").or_else(|| text(&first, "message")).unwrap_or_else(|| "Memo refused it".into()))
+/// `review confirm` and `reject` decide each id on its own and exit 0 even when memo refused it, so the answer must
+/// name this id as decided.
+fn decided(v: &Value, id: &str) -> Result<(), String> {
+    let item = body(v);
+    let names = |key: &str| {
+        item[key].as_array().into_iter().flatten().filter(|d| memory::id_of(&d["id"]).as_deref() == Some(id))
+    };
+    if let Some(no) = names("refused").next() {
+        return Err(text(no, "reason").or_else(|| text(no, "message")).unwrap_or_else(|| "Memo refused it".into()));
+    }
+    if names("decided").next().is_none() {
+        return Err("Memo did not say it decided the review.".into());
+    }
+    Ok(())
 }
 
 fn decide_with(call: &Call, reference: &str, id: &str, answer: Answer, reason: Option<&str>) -> Result<Entry, String> {
@@ -150,8 +156,7 @@ fn decide_with(call: &Call, reference: &str, id: &str, answer: Answer, reason: O
     let review = |verb: &str, extra: Vec<String>| -> Result<(), String> {
         let mut args = decision(&["review", verb, id]);
         args.extend(extra);
-        let v = call(&args)?;
-        refused(&v).map_or(Ok(()), Err)
+        decided(&call(&args)?, id)
     };
     match answer {
         Answer::StillTrue => review("confirm", vec![])?,
@@ -161,12 +166,13 @@ fn decide_with(call: &Call, reference: &str, id: &str, answer: Answer, reason: O
             // One word, so a reason that starts with `-` is never read as an option.
             review("reject", vec![format!("--reason={why}")])?;
         }
+        // The page's own "no longer holds": a memory goes stale, an accepted decision is reversed. Never a revoke, which
+        // would put the fact back to proposed.
         Answer::Withdraw => {
-            let verb = if r.kind == Kind::Fact { "reverse" } else { "invalidate" };
-            return parse_entry(&r, &call(&decision(&[r.noun(), verb, &r.memo()]))?);
+            discard_with(call, &r, false)?;
         }
     }
-    parse_entry(&r, &call(&words(&[r.noun(), "show", &r.memo()]))?)
+    read_back(call, &r)
 }
 
 pub fn decide(reference: &str, id: &str, answer: Answer, reason: Option<&str>) -> Result<Entry, String> {
@@ -281,28 +287,49 @@ mod tests {
     }
 
     #[test]
-    fn withdraw_makes_a_memory_stale_and_reverses_a_fact() {
+    fn an_answer_that_names_the_review_neither_decided_nor_refused_is_a_failure() {
+        for answer in [json!({"item":{"decided":[],"refused":[]}}), json!({"item":{"decided":[{"id":"17091"}]}})] {
+            let f = fake(answer);
+            assert!(decide_with(&|a: &[String]| f.call(a), "memory:3", "17090", Answer::StillTrue, None).is_err());
+        }
+    }
+
+    #[test]
+    fn withdraw_uses_memos_own_verb_and_reads_the_record_back() {
         let f = Fake { seen: Mutex::new(Vec::new()), decided: Value::Null };
-        let call = |a: &[String]| f.call(a);
-        decide_with(&call, "memory:3", "17090", Answer::Withdraw, None).unwrap();
-        assert_eq!(
-            f.seen.lock().unwrap()[1],
-            strs(&["memories", "invalidate", "memory:3", "--from-app", "--json", "--no-record"])
-        );
-        let facts = |a: &[String]| -> Result<Value, String> {
-            f.seen.lock().unwrap().push(a.to_vec());
+        decide_with(&|a: &[String]| f.call(a), "memory:3", "17090", Answer::Withdraw, None).unwrap();
+        let seen = f.seen.lock().unwrap().clone();
+        assert_eq!(seen[1], strs(&["memories", "invalidate", "memory:3", "--from-app", "--json", "--no-record"]));
+        assert_eq!(seen[2], strs(&["memories", "show", "memory:3", "--json", "--no-record"]));
+
+        let fact = |kind: &str, status: &str| {
+            json!({"item":{"ref":"fact:4","kind":kind,"text":"Launch in spring","status":status,
+                "author":{"type":"bot","name":"hermes"},"created_at":"2026-11-01T10:00:00.000Z"}})
+        };
+        let seen: Mutex<Vec<Vec<String>>> = Mutex::new(Vec::new());
+        let decision = |a: &[String]| -> Result<Value, String> {
+            seen.lock().unwrap().push(a.to_vec());
+            let reversed = seen.lock().unwrap().iter().any(|a| a[1] == "reverse");
             Ok(if a[0] == "review" {
                 review("fact:4")
             } else {
-                json!({"item":{"ref":"fact:4","kind":"decision","text":"Launch in spring","status":"reversed",
-                    "created_at":"2026-11-01T10:00:00.000Z"}})
+                fact("decision", if reversed { "reversed" } else { "accepted" })
             })
         };
-        let e = decide_with(&facts, "fact:4", "17090", Answer::Withdraw, None).unwrap();
+        let e = decide_with(&decision, "fact:4", "17090", Answer::Withdraw, None).unwrap();
         assert_eq!(e.status, "reversed");
-        assert_eq!(
-            f.seen.lock().unwrap().last().unwrap(),
-            &strs(&["facts", "reverse", "fact:4", "--from-app", "--json", "--no-record"])
+        assert!(
+            seen.lock()
+                .unwrap()
+                .iter()
+                .any(|a| a == &strs(&["facts", "reverse", "fact:4", "--from-app", "--json", "--no-record"]))
+        );
+        let promise = |a: &[String]| -> Result<Value, String> {
+            Ok(if a[0] == "review" { review("fact:4") } else { fact("promise", "accepted") })
+        };
+        assert!(
+            decide_with(&promise, "fact:4", "17090", Answer::Withdraw, None).is_err(),
+            "memo has no withdraw for a fact that is not a decision, and it is never revoked instead"
         );
     }
 }

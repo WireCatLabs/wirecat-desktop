@@ -333,32 +333,40 @@ clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `
 well as under In use (`entryInTab` in `domain/memory.ts`). Opened, `memory_review_show` reads `review show <id>`, checked
 to be a `memory_source_review` of that record, and shows each source as it was cited and as it is now. The answers:
 Still true (`review confirm`), Dismiss (`review reject --reason=<the owner's words>`), Edit (the record's own
-correction, which can start from an agent's suggested wording; memo closes the review on supersede) and No longer true
-(`memories invalidate`, or `facts reverse` for a decision; memo has none for other facts). `review confirm` and
-`reject` exit 0 even when they refuse, so a non-empty `refused` is a failure. A source review is never listed as an
-action: memo refuses `actions confirm` on it.
+correction, which can start from an agent's suggested wording) and No longer true (the Discard mapping:
+`memories invalidate`, or `facts reverse` for a decision; memo has none for other facts, and it is never a revoke).
+After every answer the record is read back with `show` (`memory_show` after an Edit), so the page shows what memo
+now holds rather than what it expects. `review confirm` and `reject` exit 0 even when they refuse, so the answer must
+list the id under `decided`. A source review is never listed as an action: memo refuses `actions confirm` on it.
 
 ### Adding to memory
 
 The Memory page's Add to memory panel (plan `docs/dev/plans/2026-11-01-memory-add.md`), four steps on one surface:
 
 1. **Source**: pasted text (`memo sources add -`, the text on stdin), a link (`sources add <url>`, read once by memo
-   from this computer) or a file chosen in the system's file window (`memory_pick_file`; the path is checked again
-   in Rust). Every add passes `--from-app`, so its subjects are the owner's. Values go as one word (`--title=`).
+   from this computer) or a file chosen in the system's file window (`memory_pick_file`). Rust keeps the picked path
+   and `memory_source_add` takes no other; a name that is not UTF-8 is refused there. Every add passes `--from-app`,
+   so its subjects are the owner's. Values go as one word (`--title=`).
 2. **Saved**: what memo kept in its own words (`kept: text | copy`, `read: no-text`, `truncated`, `duplicate_of`), the
    stored text from `sources show`, and the people and organizations named in it from `sources mentions`. The ticked
    ones become `--subject` of the suggestion.
-3. **Facts**: `sources suggest <ref> --reader=<the owner's pick>`; Rust reads the batch back with `actions show`, so the
-   panel decides it like any findings batch: `actions confirm <id> <ticked> --fingerprint … --from-app`, or `reject`
-   when nothing is ticked. Ticking is confirming.
-4. **Done**: the source, what was kept, who it is about.
+3. **Facts**: `sources suggest <ref> --reader=<the owner's pick>` names the batch in `batch`; Rust reads it back with
+   `actions show` and uses it only if every finding cites this document and it is proposed (or already decided, when
+   memo says it reused an earlier reading; the panel then says so). The panel decides it like any findings batch:
+   `actions confirm <id> <ticked> --fingerprint … --from-app`, or `reject` when nothing is ticked. Ticking is
+   confirming.
+4. **Done**: the source and what was kept, and as "About" only the subjects `sources show` says the source is linked
+   to.
 
 The reader is never picked by the app. Settings → "Reading for facts" lists `sources readers` (available, signed in,
-model, whether the text leaves the computer, whether it reads files) and saves the owner's pick with
-`config set sources.reader <id>`. An API key goes to `models keys set <provider>` on stdin, is cut out of any error, and
-never comes back to the interface. `sources suggest`, `sources readers` and `config set sources.reader` are written
+model, whether the text leaves the computer, whether it reads files; an unknown answer counts as the riskier one) and
+saves the owner's pick with `config set sources.reader <id>` only when he presses Use this reader, so arrow keys
+through the radios save nothing. An API key goes to `models keys set <provider>` on stdin and never comes back to the
+interface. `sources suggest`, `sources readers` and `config set sources.reader` are written
 against the planned memo interface (not released when this was written); each command line is one constant in
-`memory_add.rs`. memo's `source.*` and `reader.*` refusals come back as ids and are worded in `messages-add.ts`.
+`memory_add.rs`. memo's `source.*` and `reader.*` refusals come back as ids and are worded in `messages-add.ts`. A run
+fed on stdin (pasted text, the key) never returns memo's message, which can quote the input escaped or cut: an unknown
+refusal comes back as `memo.refused`.
 
 ### Relationships
 

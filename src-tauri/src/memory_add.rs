@@ -3,12 +3,13 @@
 //! and the reader's key go on stdin, never on the command line, which other programs can read. Every call passes
 //! `--no-record`, so neither lands in memo's run log; the text never goes into a log or a report.
 
-use crate::memory::{self, Entry, action, answer, plain, text, words};
+use crate::memory::{self, Entry, action, answer, id_of, plain, strings, text, words};
 use crate::skills::body;
 use crate::{paths, run};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::time::Duration;
 
 const READ: Duration = Duration::from_mins(1);
@@ -16,13 +17,11 @@ const READ: Duration = Duration::from_mins(1);
 const ADD: Duration = Duration::from_mins(3);
 /// A model on this computer may take minutes over a long source.
 const SUGGEST: Duration = Duration::from_mins(10);
-/// memo keeps at most this much text of a source unless told otherwise.
 pub const MAX_TEXT: usize = 200_000;
 const MAX_TITLE: usize = 500;
 const MAX_URL: usize = 2048;
 const SUBJECTS: [&str; 5] = ["person", "organization", "project", "task", "meeting"];
 
-/// One memo command with what it reads on stdin: its JSON on success, memo's own reason otherwise.
 type Feed<'a> = dyn Fn(&[String], Option<&[u8]>) -> Result<Value, String> + Sync + 'a;
 
 fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration) -> Result<Value, String> {
@@ -40,31 +39,43 @@ fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration) -> 
         },
     )
     .map_err(|e| e.to_string())?;
-    answer_hiding(&run::Output { code, stdout, stderr }, input)
+    panel_answer(&run::Output { code, stdout, stderr }, input.is_some())
 }
 
-/// memo's refusal can quote what it read on stdin: the owner's pasted text or the key. It is cut out of the raw output
-/// before `answer` redacts it, since redaction could split it so a later replace misses the pieces.
-fn answer_hiding(out: &run::Output, input: Option<&[u8]>) -> Result<Value, String> {
-    let secret = input.map(String::from_utf8_lossy);
-    let secret = secret.as_deref().map(str::trim).filter(|s| s.chars().count() >= 4);
-    match (answer(out), secret) {
-        (Err(_), Some(s)) if out.stdout.contains(s) || out.stderr.contains(s) => answer(&run::Output {
-            code: out.code,
-            stdout: out.stdout.replace(s, "…"),
-            stderr: out.stderr.replace(s, "…"),
-        }),
-        (result, _) => result,
+/// memo's refusals of a source or a reader, which the panel words in the owner's language.
+const WORDED: [&str; 2] = ["source.", "reader."];
+pub const REFUSED: &str = "memo.refused";
+
+/// memo's message can quote what it read on stdin (the pasted text or the key), escaped or cut so that no replace
+/// finds it. A run fed on stdin therefore answers only with a reason the panel knows, never with memo's words.
+fn panel_answer(out: &run::Output, fed: bool) -> Result<Value, String> {
+    let reason = out.json().and_then(|v| text(&v["error"], "reason"));
+    let worded = reason.filter(|r| r.len() <= 60 && plain(r).is_some() && WORDED.iter().any(|p| r.starts_with(p)));
+    match (answer(out), worded) {
+        (Ok(v), _) => Ok(v),
+        (Err(_), Some(reason)) => Err(reason),
+        (Err(_), None) if fed => Err(REFUSED.into()),
+        (Err(e), None) => Err(e),
     }
 }
 
 fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Feed) -> Result<T, String>) -> Result<T, String> {
-    let tool = memory::memo()?;
-    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
+    let bin = memory::memo_bin()?;
     f(&|args: &[String], input: Option<&[u8]>| fed(&bin, args, input, timeout))
 }
 
-/// What the owner hands memo. A file's path comes from the file window; a link is read once by memo.
+/// The file the owner last chose in the system's file window. Only that path reaches `sources add`: the interface
+/// sends a path back, and could send any.
+#[derive(Default)]
+pub struct PickedFile(pub Mutex<Option<PathBuf>>);
+
+/// A path memo cannot be handed as one word is refused here rather than mangled.
+pub fn picked_path(path: PathBuf) -> Result<String, String> {
+    path.into_os_string()
+        .into_string()
+        .map_err(|_| "This file's name cannot be read. Rename it, then choose it again.".into())
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub enum Given {
@@ -116,7 +127,6 @@ fn one_line(what: &str, s: &str, most: usize) -> Result<String, String> {
     Ok(t.to_string())
 }
 
-/// A subject the page picked: a known person, organization, project, task or meeting, by memo's own ref.
 pub fn subject(s: &str) -> Result<&str, String> {
     let bad = || format!("not a subject: {s}");
     let (prefix, rest) = s.split_once(':').ok_or_else(bad)?;
@@ -131,7 +141,6 @@ pub fn subject(s: &str) -> Result<&str, String> {
     Ok(s)
 }
 
-/// `document:<id>`, the ref `sources add` answers.
 fn document(s: &str) -> Result<&str, String> {
     let id = s.strip_prefix("document:").unwrap_or_default();
     if id.is_empty() || id.len() > 15 || !id.bytes().all(|b| b.is_ascii_digit()) || id.starts_with('0') {
@@ -149,17 +158,15 @@ fn link(url: &str) -> Result<&str, String> {
     Ok(u)
 }
 
-/// Checked again here, though it came from the file window: the interface could send any string.
-fn file(path: &str) -> Result<&str, String> {
+fn file<'a>(path: &'a str, picked: Option<&Path>) -> Result<&'a str, String> {
     let p = Path::new(path);
-    if !p.is_absolute() || !p.is_file() {
-        return Err("Choose a file on this computer.".into());
+    if picked != Some(p) || !p.is_absolute() || !p.is_file() {
+        return Err("Choose the file again in the file window.".into());
     }
     Ok(path)
 }
 
-/// The argument memo reads and the text it gets on stdin.
-fn add_args(source: &AddSource) -> Result<(Vec<String>, Option<String>), String> {
+fn add_args(source: &AddSource, picked: Option<&Path>) -> Result<(Vec<String>, Option<String>), String> {
     let (what, input) = match &source.given {
         Given::Text { text } => {
             if text.trim().is_empty() || text.chars().count() > MAX_TEXT {
@@ -167,7 +174,7 @@ fn add_args(source: &AddSource) -> Result<(Vec<String>, Option<String>), String>
             }
             ("-".to_string(), Some(text.clone()))
         }
-        Given::File { path } => (file(path)?.to_string(), None),
+        Given::File { path } => (file(path, picked)?.to_string(), None),
         Given::Link { url } => (link(url)?.to_string(), None),
     };
     let mut args: Vec<String> = vec!["sources".into(), "add".into(), what];
@@ -210,23 +217,21 @@ fn added(v: &Value) -> Option<Added> {
     })
 }
 
-fn add_with(feed: &Feed, source: &AddSource) -> Result<Added, String> {
-    let (args, input) = add_args(source)?;
+fn add_with(feed: &Feed, source: &AddSource, picked: Option<&Path>) -> Result<Added, String> {
+    let (args, input) = add_args(source, picked)?;
     let v = feed(&args, input.as_deref().map(str::as_bytes))?;
     added(&v).ok_or_else(|| "Memo's answer did not describe the source".into())
 }
 
-pub fn add(source: &AddSource) -> Result<Added, String> {
-    with_memo(ADD, |feed| add_with(feed, source))
+pub fn add(source: &AddSource, picked: Option<&Path>) -> Result<Added, String> {
+    with_memo(ADD, |feed| add_with(feed, source, picked))
 }
 
-/// A person or organization memo knows whose name, address or number appears in the source.
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Mention {
     #[serde(rename = "ref")]
     pub reference: String,
-    /// `person` or `organization`.
     #[serde(rename = "type")]
     pub kind: String,
     pub name: Option<String>,
@@ -251,10 +256,7 @@ fn mentions_with(feed: &Feed, reference: &str) -> Result<Mentions, String> {
                     reference: text(m, "ref").filter(|r| subject(r).is_ok())?,
                     kind: text(m, "type")?,
                     name: text(m, "name"),
-                    found_as: m["found_as"]
-                        .as_array()
-                        .map(|a| a.iter().filter_map(Value::as_str).map(str::to_string).collect())
-                        .unwrap_or_default(),
+                    found_as: strings(&m["found_as"]),
                 })
             })
             .collect(),
@@ -280,6 +282,14 @@ pub struct Shown {
     pub chars: u64,
     pub text: String,
     pub text_truncated: bool,
+    pub subjects: Vec<Linked>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Linked {
+    #[serde(rename = "ref")]
+    pub reference: String,
+    pub confirmed: bool,
 }
 
 fn show_with(feed: &Feed, reference: &str) -> Result<Shown, String> {
@@ -295,6 +305,14 @@ fn show_with(feed: &Feed, reference: &str) -> Result<Shown, String> {
         chars: item["chars"].as_u64().unwrap_or(0),
         text: item["text"].as_str().unwrap_or_default().to_string(),
         text_truncated: item["text_truncated"].as_bool().unwrap_or(false),
+        subjects: item["subjects"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|l| {
+                Some(Linked { reference: text(l, "ref")?, confirmed: l["confirmed"].as_bool().unwrap_or(false) })
+            })
+            .collect(),
     })
 }
 
@@ -307,15 +325,13 @@ pub fn show(reference: &str) -> Result<Shown, String> {
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Reader {
-    /// `claude-code`, `codex`, `ollama` or `key`.
     pub id: String,
     pub available: bool,
     pub signed_in: Option<bool>,
     pub model: Option<String>,
     pub provider: Option<String>,
-    /// The text goes to a service on the internet.
     pub leaves_computer: bool,
-    /// The reader can open files on this computer (Codex), so the page warns before it is chosen.
+    /// The reader can open files on this computer, so the page warns before it is chosen.
     pub reads_files: bool,
     pub chosen: bool,
 }
@@ -340,9 +356,9 @@ fn reader(v: &Value) -> Option<Reader> {
         signed_in: v["signed_in"].as_bool(),
         model: text(v, "model"),
         provider: text(v, "provider"),
-        // Unknown counts as leaving: the page then says the text may leave this computer, never the opposite.
+        // Unknown counts as the riskier answer for both: the page then warns, never the opposite.
         leaves_computer: v["leaves_computer"].as_bool().unwrap_or(true),
-        reads_files: flag("reads_files"),
+        reads_files: v["reads_files"].as_bool().unwrap_or(true),
         chosen: flag("chosen"),
     })
 }
@@ -352,6 +368,7 @@ const READERS: [&str; 2] = ["sources", "readers"];
 const CHOOSE: [&str; 3] = ["config", "set", "sources.reader"];
 const KEY: [&str; 3] = ["models", "keys", "set"];
 const SUGGEST_CMD: [&str; 2] = ["sources", "suggest"];
+const BATCH: &str = "batch";
 
 fn readers_with(feed: &Feed) -> Result<Vec<Reader>, String> {
     let v = feed(&words(&READERS), None)?;
@@ -369,7 +386,6 @@ fn choose_with(feed: &Feed, id: &str) -> Result<Vec<Reader>, String> {
     readers_with(feed)
 }
 
-/// The owner's pick, saved in memo's settings; `readers` then answers it as `chosen`.
 pub fn choose(id: &str) -> Result<Vec<Reader>, String> {
     with_memo(READ, |feed| choose_with(feed, id))
 }
@@ -398,7 +414,6 @@ fn key_with(feed: &Feed, provider: &str, key: &str) -> Result<KeySaved, String> 
     Ok(KeySaved { provider: provider.into(), source: text(item, "source") })
 }
 
-/// The key goes to memo on stdin, and memo puts it in the system keyring.
 pub fn set_key(provider: &str, key: &str) -> Result<KeySaved, String> {
     with_memo(READ, |feed| key_with(feed, provider, key))
 }
@@ -411,18 +426,16 @@ pub struct Suggested {
     pub reused: bool,
 }
 
-/// The batch's id, from whichever field memo names it in.
-fn batch_id(item: &Value) -> Option<String> {
-    let id = |v: &Value| match v {
-        Value::String(s) => Some(s.clone()),
-        Value::Number(n) => Some(n.to_string()),
-        Value::Object(_) => text(v, "id"),
-        _ => None,
-    };
-    ["batch", "action", "proposal", "id"]
-        .iter()
-        .find_map(|k| id(&item[*k]))
-        .filter(|s| s.bytes().all(|b| b.is_ascii_digit()) && !s.is_empty())
+/// The batch read back is used only if it is the findings of this source: proposed, or already decided when memo says
+/// it reused an earlier reading, and every finding citing the document.
+fn batch_of(shown: &Value, reference: &str, reused: bool) -> Result<Entry, String> {
+    let wrong = || "Memo's answer did not describe this source's suggested facts".to_string();
+    let batch = action(body(shown)).filter(|b| b.findings.is_some()).ok_or_else(wrong)?;
+    let cites = batch.findings.iter().flatten().all(|f| f.evidence.iter().any(|e| e == reference));
+    if !cites || (batch.status != "proposed" && !reused) {
+        return Err(wrong());
+    }
+    Ok(batch)
 }
 
 fn suggest_with(
@@ -445,12 +458,10 @@ fn suggest_with(
     args.extend(words(&[]));
     let v = feed(&args, None)?;
     let item = body(&v);
-    let id = batch_id(item).ok_or("Memo did not name the suggested facts")?;
-    let shown = feed(&words(&["actions", "show", &id]), None)?;
-    let batch = action(body(&shown))
-        .filter(|b| b.findings.is_some())
-        .ok_or("Memo's answer did not describe the suggested facts")?;
-    Ok(Suggested { batch, reused: item["reused"].as_bool().unwrap_or(false) })
+    let id = id_of(&item[BATCH]).ok_or("Memo did not name the suggested facts")?;
+    let reused = item["reused"].as_bool().unwrap_or(false);
+    let batch = batch_of(&feed(&words(&["actions", "show", &id]), None)?, reference, reused)?;
+    Ok(Suggested { batch, reused })
 }
 
 pub fn suggest(reference: &str, reader: &str, subjects: &[String], again: bool) -> Result<Suggested, String> {
@@ -517,16 +528,19 @@ mod tests {
         assert_eq!(
             serde_json::to_value(&r).unwrap(),
             json!({"id":"ollama","available":true,"signedIn":null,"model":"llama3.2","provider":null,
-                "leavesComputer":false,"readsFiles":false,"chosen":false})
+                "leavesComputer":false,"readsFiles":true,"chosen":false})
         );
     }
 
     #[test]
     fn pasted_text_goes_on_stdin_never_on_the_command_line() {
         let fake = Fake::new(|_, _| Ok(added_answer()));
-        let a =
-            add_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), &text_source("we agreed delivery on the 28th"))
-                .unwrap();
+        let a = add_with(
+            &|a: &[String], i: Option<&[u8]>| fake.feed(a, i),
+            &text_source("we agreed delivery on the 28th"),
+            None,
+        )
+        .unwrap();
         assert_eq!(a.reference, "document:42");
         assert_eq!(a.kept.as_deref(), Some("text"));
         assert_eq!(a.subjects, ["person:7"]);
@@ -549,19 +563,21 @@ mod tests {
     }
 
     #[test]
-    fn a_refusal_never_carries_back_what_memo_read_on_stdin() {
-        let refusal = |message: &str| run::Output {
+    fn a_run_fed_on_stdin_answers_only_with_a_reason_never_memos_words() {
+        let pasted = "Lena said \"ship it\"\non the 28th, and the key is sk-test-123";
+        let quoted = serde_json::to_string(&format!("cannot read: {pasted}")).unwrap();
+        let refusal = |reason: &str| run::Output {
             code: Some(1),
-            stdout: format!(r#"{{"error":{{"code":"validation_error","message":"{message}"}}}}"#),
-            stderr: format!("{message}\n"),
+            stdout: format!(r#"{{"error":{{"code":"validation_error","message":{quoted}{reason}}}}}"#),
+            stderr: format!("cannot read: {pasted}\n"),
         };
-        for secret in ["sk-proj-AbCdEf0123456789", "the secret plan for Q3"] {
-            let err = answer_hiding(&refusal(&format!("refused: {secret}")), Some(secret.as_bytes())).unwrap_err();
-            assert!(!err.contains(secret), "{err}");
-            assert!(err.contains("refused"), "{err}");
-        }
+        assert_eq!(panel_answer(&refusal(""), true), Err(REFUSED.into()));
+        assert_eq!(panel_answer(&refusal(r#","reason":"source.no-text""#), true), Err("source.no-text".into()));
+        assert_eq!(panel_answer(&refusal(r#","reason":"store.busy""#), true), Err(REFUSED.into()));
+        let unfed = panel_answer(&refusal(""), false).unwrap_err();
+        assert!(unfed.contains("cannot read"), "a run with nothing on stdin keeps memo's words: {unfed}");
         let ok = run::Output { code: Some(0), stdout: r#"{"item":{"stored":true}}"#.into(), stderr: String::new() };
-        assert!(answer_hiding(&ok, Some(b"stored")).is_ok(), "a successful answer is left as it is");
+        assert!(panel_answer(&ok, true).is_ok());
     }
 
     #[test]
@@ -578,19 +594,27 @@ mod tests {
     }
 
     #[test]
-    fn a_link_must_be_http_and_a_file_must_exist() {
+    fn a_link_must_be_http_and_a_file_must_be_the_one_picked() {
         let fake = Fake::new(|_, _| Ok(added_answer()));
         let feed = |a: &[String], i: Option<&[u8]>| fake.feed(a, i);
         let src = |given| AddSource { given, title: None, subjects: vec![] };
         for bad in ["file:///etc/passwd", "javascript:alert(1)", "-https://x", "https://a b", "ftp://x"] {
-            assert!(add_with(&feed, &src(Given::Link { url: bad.into() })).is_err(), "{bad}");
+            assert!(add_with(&feed, &src(Given::Link { url: bad.into() }), None).is_err(), "{bad}");
         }
-        assert!(add_with(&feed, &src(Given::File { path: "relative.pdf".into() })).is_err());
-        assert!(add_with(&feed, &src(Given::File { path: "/no/such/file.pdf".into() })).is_err());
+        let dir = std::env::temp_dir().join(format!("wirecat-add-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let (picked, other) = (dir.join("notes.pdf"), dir.join("other.pdf"));
+        std::fs::write(&picked, "x").unwrap();
+        std::fs::write(&other, "x").unwrap();
+        let file = |p: &Path| src(Given::File { path: p.to_string_lossy().into() });
+        assert!(add_with(&feed, &file(&other), Some(&picked)).is_err(), "only the file the window gave");
+        assert!(add_with(&feed, &file(&picked), None).is_err(), "nothing picked yet");
         assert!(fake.seen().is_empty(), "nothing reached memo");
-        add_with(&feed, &src(Given::Link { url: " https://example.org/notes ".into() })).unwrap();
-        assert_eq!(fake.seen()[0].0[..3], strs(&["sources", "add", "https://example.org/notes"]));
-        assert_eq!(fake.seen()[0].1, None);
+        add_with(&feed, &file(&picked), Some(&picked)).unwrap();
+        std::fs::remove_dir_all(&dir).unwrap();
+        add_with(&feed, &src(Given::Link { url: " https://example.org/notes ".into() }), None).unwrap();
+        assert_eq!(fake.seen()[1].0[..3], strs(&["sources", "add", "https://example.org/notes"]));
+        assert_eq!(fake.seen()[1].1, None);
     }
 
     #[test]
@@ -604,7 +628,7 @@ mod tests {
     }
 
     #[test]
-    fn source_reasons_go_back_as_ids_for_the_page_to_word() {
+    fn source_reasons_go_back_as_ids_for_the_panel_only() {
         let out = run::Output {
             code: Some(1),
             stdout:
@@ -612,7 +636,8 @@ mod tests {
                     .into(),
             stderr: String::new(),
         };
-        assert_eq!(answer(&out), Err("source.url-refused".into()));
+        assert_eq!(panel_answer(&out, false), Err("source.url-refused".into()));
+        assert_eq!(answer(&out), Err("localhost refused".into()), "the Memory page's own calls keep memo's words");
     }
 
     #[test]
@@ -647,6 +672,8 @@ mod tests {
         assert!(r.iter().all(|r| !r.chosen));
         assert!(!r[1].leaves_computer);
         assert!(r[2].leaves_computer, "unknown counts as leaving");
+        assert!(r[1].reads_files, "unknown counts as reading files");
+        assert!(!r[0].reads_files);
         choose_with(&feed, "ollama").unwrap();
         assert_eq!(fake.seen()[1].0, strs(&["config", "set", "sources.reader", "ollama", "--json", "--no-record"]));
         assert!(choose_with(&feed, "--all").is_err());
@@ -665,17 +692,34 @@ mod tests {
         assert!(key_with(&|a: &[String], i: Option<&[u8]>| ok.feed(a, i), "openai", "two words").is_err());
     }
 
+    fn batch(status: &str, cites: &str) -> Value {
+        json!({"item":{"id":"9","kind":"evidence_findings","status":status,"created_at":"2026-11-07T10:00:00.000Z",
+            "proposed_by":{"type":"bot","name":"memo-reader"},"fingerprint":"5adf3e","payload":{"findings":[
+            {"id":"f1","kind":"fact","statement":"Delivery is on the 28th","evidence":[{"reference":cites}]}]}}})
+    }
+
+    fn suggesting(reused: bool, shown: Value) -> Fake {
+        Fake::new(move |a, _| {
+            Ok(if a[0] == "sources" { json!({"item":{"batch":"9","reused":reused}}) } else { shown.clone() })
+        })
+    }
+
+    #[test]
+    fn a_batch_that_is_not_this_sources_proposed_findings_is_refused() {
+        let run = |fake: &Fake| {
+            suggest_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), "document:42", "ollama", &[], false)
+        };
+        assert!(run(&suggesting(false, batch("proposed", "document:7"))).is_err(), "cites another source");
+        assert!(run(&suggesting(false, batch("approved", "document:42"))).is_err(), "decided, not reused");
+        let reused = run(&suggesting(true, batch("approved", "document:42"))).unwrap();
+        assert_eq!(reused.batch.status, "approved", "a reused reading may be decided already; the panel says so");
+        let no_id = Fake::new(|a, _| Ok(if a[0] == "sources" { json!({"item":{"id":"9"}}) } else { Value::Null }));
+        assert!(run(&no_id).is_err(), "only the documented field names the batch");
+    }
+
     #[test]
     fn suggestions_come_back_as_the_findings_batch_the_owner_ticks() {
-        let fake = Fake::new(|a, _| {
-            Ok(if a[0] == "sources" {
-                json!({"item":{"batch":"9","reused":true,"findings":2}})
-            } else {
-                json!({"item":{"id":"9","kind":"evidence_findings","status":"proposed","created_at":"2026-11-07T10:00:00.000Z",
-                    "proposed_by":{"type":"bot","name":"memo-reader"},"fingerprint":"5adf3e","payload":{"findings":[
-                    {"id":"f1","kind":"fact","statement":"Delivery is on the 28th","evidence":[{"reference":"document:42"}]}]}}})
-            })
-        });
+        let fake = suggesting(true, batch("proposed", "document:42"));
         let s = suggest_with(
             &|a: &[String], i: Option<&[u8]>| fake.feed(a, i),
             "document:42",

@@ -273,6 +273,8 @@ export type Platform = {
   conversationRead(place: ChatPlace, ask: ChatPage): Promise<Conversation>
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
+  /** One memory or fact as memo now has it. */
+  memoryShow(ref: string): Promise<MemoryEntry>
   /** The open source review of a memory or a fact: each source as the record cited it and as it is now. */
   memoryReviewShow(ref: string, id: string): Promise<SourceReview>
   /** The owner's answer to a source review; answers the record as it now is, with no open review. */

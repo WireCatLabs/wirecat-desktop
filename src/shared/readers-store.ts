@@ -1,8 +1,7 @@
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
 import type { Reader } from "@/platform/memory-add-schemas"
-
-const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
+import { errorText as message } from "./errors"
 
 type ReadersState = {
   /** null until memo answers. */

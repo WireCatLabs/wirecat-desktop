@@ -139,6 +139,14 @@ describe("A memory whose source changed", () => {
     await waitFor(() => expect(decide).toHaveBeenCalledWith("memory:3", "17090", "withdraw", undefined))
   })
 
+  it("offers an agent's wording only where the record can be edited", async () => {
+    read([entry({ status: "superseded" })])
+    const user = userEvent.setup()
+    const row = await opened(user)
+    await within(row).findByText("The pilot is in March.")
+    expect(within(row).queryByRole("button", { name: "Edit with this wording" })).not.toBeInTheDocument()
+  })
+
   it("offers no Withdraw for a fact memo cannot take back", async () => {
     read([entry({ ref: "fact:4", type: "fact", kind: "promise", status: "accepted" })])
     const user = userEvent.setup()

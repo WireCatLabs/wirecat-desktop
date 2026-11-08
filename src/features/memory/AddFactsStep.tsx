@@ -1,8 +1,11 @@
 import { LoaderCircle } from "lucide-react"
+import { chosenReader } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
+import { useReaders } from "@/shared/readers-store"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Pill } from "@/ui/Pill"
+import { ReaderLine } from "./AddReaderLine"
 import { Refusal } from "./AddRefusal"
 import { useAddSource } from "./add-store"
 import { addMessages } from "./messages-add"
@@ -18,12 +21,15 @@ export function FactsStep() {
   const findings = batch?.findings ?? []
   const ticked = findings.filter((f) => !skipped.includes(f.id)).length
   const facts = findings.filter((f) => f.kind === "fact").length
-  const reader = batch?.model?.split("/")[0]
+  const reader = useReaders((s) => chosenReader(s.readers ?? []))
+  const decided = batch !== null && batch.status !== "proposed"
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   return (
     <div className="flex flex-col gap-[1rem]">
-      {findings.length === 0 ? (
+      {decided ? (
+        <p className="text-[0.95rem] text-ink-soft">{m.alreadyDecided}</p>
+      ) : findings.length === 0 ? (
         <p className="text-[0.95rem] text-ink-soft">{m.nothingFound}</p>
       ) : (
         <>
@@ -55,7 +61,8 @@ export function FactsStep() {
           </ul>
         </>
       )}
-      {reused && <p className="text-[0.9rem] text-ink-soft">{m.reused}</p>}
+      {reused && !decided && <p className="text-[0.9rem] text-ink-soft">{m.reused}</p>}
+      <ReaderLine />
       <Refusal />
       <div className="flex flex-wrap gap-3">
         <Button
@@ -64,13 +71,13 @@ export function FactsStep() {
           onClick={() => void keep()}
           icon={busy === "keep" ? spin : undefined}
         >
-          {findings.length === 0 ? m.keepNone : m.keep(ticked)}
+          {decided ? m.done : findings.length === 0 ? m.keepNone : m.keep(ticked)}
         </Button>
         {reused && reader && (
           <Button
             variant="ghost"
             disabled={!!busy}
-            onClick={() => void suggest(reader, true)}
+            onClick={() => void suggest(reader.id, true)}
             icon={busy === "suggest" ? spin : undefined}
           >
             {m.readAgain}
