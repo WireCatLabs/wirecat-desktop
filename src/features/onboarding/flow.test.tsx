@@ -350,6 +350,19 @@ describe("the Sign in step", () => {
   })
 })
 
+describe("installing from the Sign in step", () => {
+  it("lists a tool that is not installed with Install and its steps, then shows its accounts once installed", async () => {
+    const { user, npm } = startOnboarding({ step: "signin", installed: { wa: "1.0.0" } })
+    const main = within(screen.getByRole("main"))
+    const maxRow = (await main.findByRole("heading", { name: "MAX" })).closest("li") as HTMLElement
+    await user.click(within(maxRow).getByRole("button", { name: "Install" }))
+    await npm.whenStarted("max")
+    expect(within(maxRow).getAllByRole("listitem").length).toBeGreaterThan(2)
+    await npm.finish("max", "1.0.0")
+    expect(await main.findByRole("list", { name: m.signIn.accounts("MAX") })).toBeInTheDocument()
+  })
+})
+
 describe("the setup's step list", () => {
   it("marks the current step and checks off the ones passed", () => {
     startOnboarding({ step: "install" })
