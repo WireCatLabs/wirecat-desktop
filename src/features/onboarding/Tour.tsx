@@ -57,8 +57,9 @@ export const STOPS: readonly Stop[] = [
   { key: "guide", anchor: '[data-tour="guide-start"]', fallback: '[data-tour="guides"]', section: "guides" },
 ]
 
-// A page draws its rows a few frames after it opens; a stop whose element never shows is passed over.
-const FRAMES = 30
+// On a busy computer a page can take over a second to draw its rows, so the wait is a time, not a count of frames.
+// A stop whose element never shows is passed over.
+const WAIT_MS = 3000
 
 type TourState = {
   open: boolean
@@ -128,7 +129,7 @@ function TourSteps() {
       return
     }
     let frame = 0
-    let tries = 0
+    const since = performance.now()
     const find = () => {
       const el = document.querySelector(anchor)
       if (el) {
@@ -136,7 +137,7 @@ function TourSteps() {
         setShown({ index, el })
         return
       }
-      if (++tries < FRAMES) {
+      if (performance.now() - since < WAIT_MS) {
         frame = requestAnimationFrame(find)
         return
       }
