@@ -78,6 +78,8 @@ pub enum Reason {
     Proxy,
     /// Windows refused a path that is too long.
     LongPath,
+    /// bun installed an own tool, and bun cannot be pointed at the registry its review read.
+    OwnToolBun,
     Cancelled,
     Verify,
     /// The release could not be confirmed as built by the tool's own release workflow (`provenance.rs`).
@@ -136,6 +138,7 @@ impl Running {
     }
 }
 
+#[derive(Debug)]
 struct Failure(Reason, String, Option<String>);
 
 /// Installs a new tool with npm, or updates an existing one with the manager that owns it,
@@ -232,8 +235,7 @@ fn install_steps(
     };
     let spec = format!("{}@{wanted}", tool.package);
     let scope = (tool.source == Source::Own).then(|| tool.package.split('/').next().unwrap_or_default());
-    let (program, args) =
-        install_command(manager, &spec, scope).map_err(|why| Failure(Reason::Requirements, why, None))?;
+    let (program, args) = install_command(manager, &spec, scope)?;
     let args: Vec<&str> = args.iter().map(String::as_str).collect();
     let program_path = paths::find(program).ok_or_else(|| {
         Failure(
@@ -307,7 +309,7 @@ fn install_steps(
 /// scope too, since a scoped registry in `.npmrc` wins over `--registry`: npm takes `--@<scope>:registry=<url>` and
 /// pnpm `--config.@<scope>:registry=<url>` (both checked against a scoped `.npmrc`, npm 11 and pnpm 12). bun's
 /// `--registry` loses to a scope in `bunfig.toml` and it has no scoped flag, so an own tool is not installed with bun.
-fn install_command(manager: &str, spec: &str, own_scope: Option<&str>) -> Result<(&'static str, Vec<String>), String> {
+fn install_command(manager: &str, spec: &str, own_scope: Option<&str>) -> Result<(&'static str, Vec<String>), Failure> {
     let (program, words): (&str, Vec<&str>) = match manager {
         // pnpm 11+ waits a day before installing a new release; WireCat's own packages are exempt (owner, NEED-26).
         "pnpm" => ("pnpm", vec!["add", "--global", spec, PNPM_WIRECAT_NOW]),
@@ -322,11 +324,14 @@ fn install_command(manager: &str, spec: &str, own_scope: Option<&str>) -> Result
             "npm" => format!("--{scope}:registry={OWN_REGISTRY}"),
             "pnpm" => format!("--config.{scope}:registry={OWN_REGISTRY}"),
             _ => {
-                return Err(
-                    "bun installed this tool, and bun cannot be told which registry your own tools come from. \
-                    Uninstall it, then add it again: WireCat installs it with npm."
-                        .into(),
-                );
+                return Err(Failure(
+                    Reason::OwnToolBun,
+                    "bun installed this tool, and bun cannot be told which registry your own tools come from.".into(),
+                    Some(
+                        "Uninstall it, then add it again with Check package and Add: WireCat installs it with npm."
+                            .into(),
+                    ),
+                ));
             }
         };
         args.push(format!("--registry={OWN_REGISTRY}"));
@@ -787,7 +792,8 @@ mod tests {
         ]));
         let (_, pnpm) = install_command("pnpm", "@example/acme-crm-cli@0.3.0", Some("@example")).unwrap();
         assert_eq!(pnpm.last().unwrap(), "--config.@example:registry=https://registry.npmjs.org/");
-        assert!(install_command("bun", "@example/acme-crm-cli@0.3.0", Some("@example")).is_err());
+        let refused = install_command("bun", "@example/acme-crm-cli@0.3.0", Some("@example"));
+        assert!(matches!(refused, Err(Failure(Reason::OwnToolBun, ..))));
         for manager in ["npm", "pnpm", "bun"] {
             let (_, ours) = install_command(manager, "@wirecat/tg-cli@1.0.0", None).unwrap();
             assert!(!ours.iter().any(|a| a.contains("registry")), "{manager}");
@@ -882,6 +888,7 @@ mod tests {
         assert_eq!(name(Reason::Disk), "disk");
         assert_eq!(name(Reason::Proxy), "proxy");
         assert_eq!(name(Reason::LongPath), "longPath");
+        assert_eq!(name(Reason::OwnToolBun), "ownToolBun");
     }
 
     #[test]

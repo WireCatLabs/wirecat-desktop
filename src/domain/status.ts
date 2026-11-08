@@ -16,6 +16,7 @@ export type FailReason =
   | "disk"
   | "proxy"
   | "longPath"
+  | "ownToolBun"
   | "failed"
 
 /** What `fix_terminal_path` and a finished install or Node.js setup changed on the user's PATH. */

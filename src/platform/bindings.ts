@@ -177,7 +177,9 @@ export type FailReason = "requirements" | "permission" | "network" | "timeout" |
 /**  A proxy or a company certificate sits between the computer and the registry. */
 "proxy" | 
 /**  Windows refused a path that is too long. */
-"longPath" | "cancelled" | "verify" | 
+"longPath" | 
+/**  bun installed an own tool, and bun cannot be pointed at the registry its review read. */
+"ownToolBun" | "cancelled" | "verify" | 
 /**  The release could not be confirmed as built by the tool's own release workflow (`provenance.rs`). */
 "unconfirmed" | "failed";
 

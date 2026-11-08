@@ -1,5 +1,6 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { useLanguage } from "@/i18n"
 import type { InstallEvent, OwnRefusal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { ownReview, UNCHANGED } from "@/platform/mock-community"
@@ -96,6 +97,21 @@ describe("Add your own tool", () => {
     expect(discover).toHaveBeenCalledTimes(2)
     expect(await screen.findByRole("button", { name: "Add" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Uninstall it" })).not.toBeInTheDocument()
+  })
+
+  it("tells in the interface's language that a tool bun installed must be added again", async () => {
+    vi.spyOn(platform, "ownToolDiscover").mockResolvedValue({ outcome: "review", review: ownReview() })
+    vi.spyOn(platform, "ownToolAdd").mockImplementation(async (_token, onEvent) => {
+      onEvent({ event: "failed", reason: "ownToolBun", message: "bun installed this tool.", hint: null })
+    })
+    await check()
+    await userEvent.click(await screen.findByRole("button", { name: "Add" }))
+    await userEvent.click(screen.getByRole("button", { name: "Install and run" }))
+    await screen.findByRole("alert")
+    useLanguage.setState({ choice: "ru" })
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Удалите его и добавьте снова через «Проверить пакет» и «Добавить»: WireCat установит его через npm.",
+    )
   })
 
   it("offers Uninstall when the installed tool describes another manifest", async () => {
