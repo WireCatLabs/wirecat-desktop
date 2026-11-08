@@ -21,7 +21,7 @@ import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
 import { settingsMock } from "./mock-settings"
 import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
-import { linkedProfiles, signInMock } from "./mock-signin"
+import { isMockLogin, linkedProfiles, signInMock } from "./mock-signin"
 import { syncMock } from "./mock-sync"
 import { tailscaleMock } from "./mock-tailscale"
 import { tasksMock } from "./mock-tasks"
@@ -646,6 +646,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...settingsMock,
     ...permissionsMock(settingsMock),
     async openUrl(url) {
+      if (isMockLogin(url)) return
       window.open(url, "_blank", "noopener")
     },
     async window() {},

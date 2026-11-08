@@ -48,6 +48,13 @@ const WARNING = [
 ]
 const RENEWS_MS = 4000
 
+/** Every login page the mock shows carries this; `isMockLogin` keeps the browser build from opening it. */
+const MOCK_CLIENT = "client_id=mock"
+export const isMockLogin = (url: string) => url.includes(MOCK_CLIENT)
+
+const SAMPLE = "Sample code, not scannable"
+const upper = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+
 /** Profiles a mock sign-in linked, so the account list shows them afterwards. */
 export const linkedProfiles: string[] = []
 
@@ -90,7 +97,8 @@ export const saveMockClientId = () => {
   clientIdSaved = true
 }
 
-const GOOGLE_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=mock"
+const GOOGLE_URL = `https://accounts.google.com/o/oauth2/v2/auth?${MOCK_CLIENT}`
+const ZOOM_REDIRECT = "https://wirecat.dev/zoom-callback"
 
 const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) => Promise<SignInEvent>> = {
   async wa(s, method) {
@@ -198,7 +206,7 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
       }
     s.emit({
       event: "openUrl",
-      url: "https://zoom.us/oauth/authorize?response_type=code&client_id=mock",
+      url: `https://zoom.us/oauth/authorize?response_type=code&${MOCK_CLIENT}&redirect_uri=${encodeURIComponent(ZOOM_REDIRECT)}`,
       purpose: "Approve access to Zoom in the browser",
     })
     const pasted = await s.ask(
@@ -211,7 +219,7 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
   async drive(s) {
     s.emit({
       event: "openUrl",
-      url: "https://accounts.google.com/o/oauth2/v2/auth?client_id=mock",
+      url: GOOGLE_URL,
       purpose: "Choose the Google account and allow access to Drive",
     })
     return (await s.wait(quick ? 1500 : 6000)) ? STOPPED : signedIn
@@ -253,7 +261,7 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
     if (method === "microsoft" || inputs.clientFile) {
       const page =
         method === "microsoft" ? "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" : GOOGLE_URL
-      s.emit({ event: "openUrl", url: `${page}?client_id=mock`, purpose: "Sign in to Microsoft and allow access" })
+      s.emit({ event: "openUrl", url: `${page}?${MOCK_CLIENT}`, purpose: "Sign in to Microsoft and allow access" })
       if (await s.wait(5000)) return STOPPED
       s.emit({ event: "progress", step: "login", message: `checking the sign-in with ${host}` })
       return (await s.wait(1200)) ? STOPPED : signedIn
@@ -360,7 +368,7 @@ async function failing(s: Script, reason: string): Promise<SignInEvent> {
   if (!f) return STOPPED
   if (f.first === "qr") s.emit({ event: "qr", text: MOCK_CODES[0] ?? "", expiresAt: null, scan: null })
   if (f.first === "browser")
-    s.emit({ event: "openUrl", url: "https://accounts.example.com/authorize?client_id=mock", purpose: null })
+    s.emit({ event: "openUrl", url: `https://accounts.example.com/authorize?${MOCK_CLIENT}`, purpose: null })
   if (f.first === "password") {
     const hint =
       "Gmail takes an app password, not your account password. How to make one: https://myaccount.google.com/apppasswords"
@@ -392,8 +400,8 @@ async function zoomAppSetup(): Promise<ZoomAppAnswer> {
       appType: "General app",
       management: "User-managed",
       oauth: "Public Client OAuth",
-      redirectUrl: "https://wirecat.dev/zoom-callback",
-      allowList: ["https://wirecat.dev/zoom-callback"],
+      redirectUrl: ZOOM_REDIRECT,
+      allowList: [ZOOM_REDIRECT],
       scopes: ZOOM_SCOPES.map(([scope, required, purpose]) => ({ scope, required, purpose })),
       configKey: "zoom.client_id",
     },
@@ -428,10 +436,12 @@ export function signInMock(): Pick<Platform, "signIn" | "signInAnswer" | "signIn
         await delay(700)
         return answer
       }
+      const emit = (e: SignInEvent) =>
+        onEvent(e.event === "qr" ? { ...e, scan: e.scan ? `${SAMPLE}. ${upper(e.scan)}` : `${SAMPLE}.` } : e)
       await delay(500)
       const script = failTool === id && failReason ? (s: Script) => failing(s, failReason) : scripts[id]
       const end = script
-        ? await script({ emit: onEvent, wait, ask, profile, id }, method, inputs)
+        ? await script({ emit, wait, ask, profile, id }, method, inputs)
         : ({ event: "failed", message: "This tool cannot sign in here.", code: null } as SignInEvent)
       await delay(400)
       if (end.event === "done" && !linkedProfiles.includes(profile)) linkedProfiles.push(profile)
