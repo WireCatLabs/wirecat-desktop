@@ -10,7 +10,7 @@ New here? Read [the architecture report](architecture-report.md) first. Rules pe
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, links/, digests/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
+  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
   shared/       parts and stores two or more features use: ToolIcon, ReportThis, JsonTree, nav, and the stores of tools, agents, storage, system, signin and onboarding. Imports no feature (Biome rule).
   features/<name>/index.ts   a feature's public surface. Other features and the app import `@/features/<name>`, never a file inside it (Biome rule). The one exception is `@/features/<name>/page`, the lazy entry of a page: `app/sections.tsx` loads it with `import()` so a page's code does not enter the first chunk through the index; `main.tsx` imports `tools/community` directly because it must run before any page module loads. Feature folders never import each other in a cycle (`src/features/no-cycles.test.ts`).
   features/<name>/api.ts     the feature's requests to Rust as TanStack Query hooks: `useQuery` for reads, `useMutation` for writes, keys per tool and profile (`["tool", id, "permissions", profile]`). Its store keeps UI and live-event state, not a copy of an answer a query holds. Moved so far: tools (profiles, permissions, background), search (value lists), analytics (extra counts, aggregates, closed weeks); the rest still call `platform` from stores and components (step 6 note in architecture-report.md).
@@ -112,6 +112,11 @@ src-tauri/src/
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
   memory.rs     the Memory page: memo's memories, facts, proposed actions and agents' calls; confirm, discard,
                 correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").
+  conversation.rs a chat or mail thread a `chat/…` or `msg/…` link opens, read only: memo's `show` (title, where, the
+                profile signed in to the account, or that the account is not here), memo's `messages show` with
+                `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
+                messenger chat's newest messages the messenger's own `messages list --offline` with that profile. A mail
+                thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.

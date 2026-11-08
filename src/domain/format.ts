@@ -10,3 +10,16 @@ export function formatBytes(bytes: number): string {
   }
   return `${value < 10 ? value.toFixed(1) : Math.round(value)} ${UNITS[unit]}`
 }
+
+/** A line cut into its text and the https links in it, so each link can be a button of its own. */
+export function linkParts(text: string): { text: string; url: boolean; at: number }[] {
+  let at = 0
+  return text
+    .split(/(https:\/\/[^\s<>"]*[^\s<>".,;:!?)])/)
+    .filter((part) => part !== "")
+    .map((part) => {
+      const piece = { text: part, url: part.startsWith("https://"), at }
+      at += part.length
+      return piece
+    })
+}

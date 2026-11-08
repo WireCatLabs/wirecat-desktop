@@ -55,6 +55,9 @@ fn types() -> Types {
         .register::<crate::bots::BotProfile>()
         .register::<crate::config_repair::Repair>()
         .register::<crate::preflight::Preflight>()
+        .register::<crate::conversation::ChatPage>()
+        .register::<crate::conversation::ChatPlace>()
+        .register::<crate::conversation::Conversation>()
 }
 
 fn render() -> String {

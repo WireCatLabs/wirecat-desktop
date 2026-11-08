@@ -102,6 +102,48 @@ export type CannotOpen = {
 	needs: number,
 };
 
+export type ChatHeader = {
+	title: string | null,
+	/**  memo's `in`: the messenger's name for a chat, the mailbox for a mail thread. */
+	place: string | null,
+	/**  The profile signed in to the link's account, as the account's label. */
+	profile: string | null,
+	email: boolean,
+};
+
+export type ChatMessage = {
+	ref: string,
+	id: string,
+	sender: string | null,
+	address: string | null,
+	fromMe: boolean,
+	at: string | null,
+	subject: string | null,
+	text: string | null,
+	/**  Attachment names only: their text and their bytes stay in the store. */
+	files: string[],
+	anchor: boolean,
+};
+
+export type ChatMissing = 
+/**  No profile on this computer is signed in to the link's account. */
+"account" | 
+/**  The chat or the message is not in the store: deleted, or not synced here. */
+"stored" | 
+/**  A mail thread memo holds but cannot list from its first email. */
+"thread";
+
+/**  What the page asks for: the first view, or the page before the oldest or after the newest message it shows. */
+export type ChatPage = { kind: "open" } | { kind: "older"; message: string } | { kind: "newer"; message: string };
+
+export type ChatPlace = {
+	provider: string,
+	account: string,
+	chat: string,
+	/**  The linked message, for a `msg/…` link. */
+	message: string | null,
+};
+
 /**  A folder the profile imports; `name` is `None` until a sync has copied it. */
 export type ChosenFolder = {
 	id: string,
@@ -140,6 +182,12 @@ export type CommunityStatus = {
 	/**  RFC 3339. */
 	expiresAt: string | null,
 };
+
+export type Conversation = { state: "noMemo" } | 
+/**  The installed memo has no `show` or `messages show` yet. */
+{ state: "old"; message: string } | { state: "found"; 
+/**  Only on the first view; a later page keeps the header it had. */
+chat: ChatHeader | null; messages: ChatMessage[]; older: boolean; newer: boolean } | { state: "missing"; what: ChatMissing } | { state: "failed"; message: string };
 
 export type CopyRefusal = 
 /**  No longer one of the copies on PATH. */
