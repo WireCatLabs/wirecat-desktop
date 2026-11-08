@@ -183,6 +183,7 @@ describe("Clients on the base stages", () => {
     const move = vi.spyOn(platform, "clientsMove")
     render(<ClientsPage />)
     expect(await screen.findByText(/Read only: WireCat cannot run this CRM's own tool yet/)).toBeInTheDocument()
+    expect(screen.getByText(/Sync · bitrix24 · northstar\.example/)).toBeInTheDocument()
     const chairs = await card("Northstar: 40 office chairs")
     chairs.focus()
     await user.keyboard(" {ArrowRight} ")

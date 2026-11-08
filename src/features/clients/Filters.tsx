@@ -2,7 +2,7 @@ import { Building2, User, Users } from "lucide-react"
 import { accountKey, busiestOf, type Kind, NOBODY, OWN, ownersOf } from "@/domain/clients"
 import { setField, valuesOf } from "@/domain/query-terms"
 import { useMessages } from "@/i18n"
-import type { CrmAccount } from "@/platform/bindings"
+import type { CrmAccount, CrmCard } from "@/platform/bindings"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
@@ -108,8 +108,11 @@ function ScopeSwitch({ account }: { account: CrmAccount }) {
   )
 }
 
-/** The base board's filters: account and pipeline narrow the cards of every pipeline, as owner and stage do. */
-export function BaseFilters({ read }: { read: Based }) {
+/**
+ * The base board's filters: account and pipeline narrow the cards of every pipeline, as owner and stage do. Each CRM
+ * account with cards on screen gets its own sync switch.
+ */
+export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmCard[] }) {
   const m = useMessages(clientMessages)
   const query = useClients((s) => s.query)
   const pipelines = useClients((s) => s.pipelines)
@@ -117,7 +120,9 @@ export function BaseFilters({ read }: { read: Based }) {
   const { setQuery, setPipelines, setAccounts } = useClients.getState()
   const listed = [...new Map(read.pipelines.map((p) => [accountKey(p.account), p.account])).entries()]
   const offered = read.pipelines.filter((p) => accounts.length === 0 || accounts.includes(accountKey(p.account)))
-  const one = accounts.length === 1 ? listed.find(([key]) => key === accounts[0])?.[1] : undefined
+  const crms = [
+    ...new Map(shown.flatMap((c) => (c.account ? [[accountKey(c.account), c.account] as const] : []))).values(),
+  ]
   const field = (f: "owner" | "stage") => ({
     selected: valuesOf(query, f),
     onChange: (values: string[]) => setQuery(setField(query, f, values)),
@@ -161,7 +166,9 @@ export function BaseFilters({ read }: { read: Based }) {
           {...field("stage")}
         />
       </FilterBar>
-      {one && <ScopeSwitch account={one} />}
+      {crms.map((a) => (
+        <ScopeSwitch key={accountKey(a)} account={a} />
+      ))}
     </div>
   )
 }

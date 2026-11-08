@@ -128,7 +128,7 @@ function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
   const filtered = query.trim() !== "" || pipelines.length > 0 || accounts.length > 0
   return (
     <>
-      <BaseFilters read={read} />
+      <BaseFilters read={read} shown={shown} />
       {read.more && <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">{m.more(read.cards.length)}</p>}
       {shown.some((c) => read.pipelines.find((p) => p.ref === c.pipeline)?.movable.kind === "no") && (
         <p className="-mt-[0.6rem] max-w-[80ch] text-[0.9rem] text-ink-soft">{m.readOnly}</p>
