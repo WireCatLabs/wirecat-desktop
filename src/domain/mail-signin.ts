@@ -76,16 +76,3 @@ export function readMailNotes(lines: readonly string[]): MailNotes {
   }
   return read
 }
-
-/** A line cut into its text and the https links in it, so each link can be a button of its own. */
-export function linkParts(text: string): { text: string; url: boolean; at: number }[] {
-  let at = 0
-  return text
-    .split(/(https:\/\/[^\s<>"]*[^\s<>".,;:!?)])/)
-    .filter((part) => part !== "")
-    .map((part) => {
-      const piece = { text: part, url: part.startsWith("https://"), at }
-      at += part.length
-      return piece
-    })
-}

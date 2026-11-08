@@ -18,7 +18,10 @@ import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type {
   AccountRemoval,
   AccountRemoved,
+  ChatPage,
+  ChatPlace,
   ChosenFolders,
+  Conversation,
   FolderAdded,
   FolderLevel,
   FolderRemoved,
@@ -258,6 +261,8 @@ export type Platform = {
   memoryForget(ref: string): Promise<Forgot>
   /** A cited source read back: a message with its neighbours, or a note's text. */
   memorySourceContext(ref: string): Promise<SourceContext>
+  /** A chat or mail thread a link names, read only through memo: the first view, or the page past one edge. */
+  conversationRead(place: ChatPlace, ask: ChatPage): Promise<Conversation>
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */

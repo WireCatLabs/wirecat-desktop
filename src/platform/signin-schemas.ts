@@ -49,4 +49,6 @@ export type SignInInputs = {
   password?: string
   /** The text of the owner's own OAuth client JSON, written to a private file for the one run. */
   clientFile?: string
+  /** The browser with the tool's own app, for a method whose new profile would otherwise ask a password. */
+  oauth?: boolean
 }

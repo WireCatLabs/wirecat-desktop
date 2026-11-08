@@ -21,6 +21,15 @@ const en = {
   close: "Close",
   done: "Done",
   howTo: "Where to get the token",
+  howTabs: "New or existing bot",
+  newBot: "New bot",
+  existingBot: "Existing bot",
+  existingSteps: [
+    "In Telegram, open your chat with @BotFather.",
+    "Search that chat in Telegram for “token” or “API”: BotFather’s message with the token turns up.",
+    "Or send /mybots, pick the bot and press API Token: BotFather shows the token again.",
+    "Copy the token and paste it below. Do not press Revoke current token: it makes a new token, and the old one stops working wherever it is used.",
+  ],
   create: {
     tg: "Open @BotFather",
     max: "Open MAX for business",
@@ -116,6 +125,15 @@ const ru: typeof en = {
   close: "Закрыть",
   done: "Готово",
   howTo: "Где взять токен",
+  howTabs: "Новый или существующий бот",
+  newBot: "Новый бот",
+  existingBot: "Существующий бот",
+  existingSteps: [
+    "В Telegram откройте чат с @BotFather.",
+    "Найдите в этом чате поиском Telegram слово «token» или «API»: найдётся сообщение BotFather с токеном.",
+    "Или отправьте /mybots, выберите бота и нажмите API Token: BotFather покажет токен ещё раз.",
+    "Скопируйте токен и вставьте его ниже. Не нажимайте Revoke current token: так появится новый токен, а старый перестанет работать везде, где он используется.",
+  ],
   create: {
     tg: "Открыть @BotFather",
     max: "Открыть MAX для бизнеса",
@@ -212,6 +230,15 @@ const es: typeof en = {
   close: "Cerrar",
   done: "Listo",
   howTo: "Dónde conseguir el token",
+  howTabs: "Bot nuevo o existente",
+  newBot: "Bot nuevo",
+  existingBot: "Bot existente",
+  existingSteps: [
+    "En Telegram, abre tu chat con @BotFather.",
+    "Busca «token» o «API» en ese chat con la búsqueda de Telegram: aparece el mensaje de BotFather con el token.",
+    "O envía /mybots, elige el bot y pulsa API Token: BotFather vuelve a mostrar el token.",
+    "Copia el token y pégalo abajo. No pulses Revoke current token: crea un token nuevo y el antiguo deja de funcionar allí donde se use.",
+  ],
   create: {
     tg: "Abrir @BotFather",
     max: "Abrir MAX para empresas",

@@ -195,24 +195,45 @@ pub fn choose_shell(shell: &Path) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
 fn account_shell() -> Option<PathBuf> {
     let user = ["USER", "LOGNAME"].iter().find_map(|v| std::env::var(v).ok()).filter(|u| valid_user(u))?;
-    let timeout = Duration::from_secs(3);
-    if cfg!(target_os = "macos") {
-        let out = crate::run::run(
-            Path::new("/usr/bin/dscl"),
-            &[".", "-read", &format!("/Users/{user}"), "UserShell"],
-            None,
-            timeout,
-        )
-        .ok()?;
-        return parse_dscl_shell(&out.stdout);
-    }
-    let getent = ["/usr/bin/getent", "/bin/getent"].into_iter().map(Path::new).find(|p| p.is_file())?;
-    let out = crate::run::run(getent, &["passwd", &user], None, timeout).ok()?;
-    parse_passwd_shell(&out.stdout, &user)
+    let out = crate::run::run(
+        Path::new("/usr/bin/dscl"),
+        &[".", "-read", &format!("/Users/{user}"), "UserShell"],
+        None,
+        Duration::from_secs(3),
+    )
+    .ok()?;
+    parse_dscl_shell(&out.stdout)
 }
 
+/// The shell in this process's own passwd entry, looked up by user id: `$USER` and `$SHELL` can be missing or name
+/// someone else when the app starts from a launcher, `sudo -u` or a cleared environment. getent asks the same NSS
+/// sources getpwuid does (LDAP and systemd-homed accounts included), without unsafe code here.
+#[cfg(all(unix, not(target_os = "macos")))]
+fn account_shell() -> Option<PathBuf> {
+    use std::os::unix::fs::MetadataExt;
+    let uid = std::fs::metadata("/proc/self").ok()?.uid().to_string();
+    let getent = ["/usr/bin/getent", "/bin/getent"].into_iter().map(Path::new).find(|p| p.is_file())?;
+    let out = crate::run::run(getent, &["passwd", &uid], None, Duration::from_secs(3)).ok()?;
+    parse_passwd_shell(&out.stdout, &uid)
+}
+
+/// The shell field (the last) of the passwd line whose user id (the third field) is `uid`.
+#[cfg(any(all(unix, not(target_os = "macos")), test))]
+fn parse_passwd_shell(passwd: &str, uid: &str) -> Option<PathBuf> {
+    let line = passwd.lines().find(|l| l.split(':').nth(2) == Some(uid))?;
+    let shell = line.split(':').nth(6)?.trim();
+    (!shell.is_empty()).then(|| PathBuf::from(shell))
+}
+
+#[cfg(windows)]
+fn account_shell() -> Option<PathBuf> {
+    None
+}
+
+#[cfg(any(target_os = "macos", test))]
 fn valid_user(user: &str) -> bool {
     !user.is_empty()
         && user.len() <= 64
@@ -220,14 +241,8 @@ fn valid_user(user: &str) -> bool {
         && user.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '-' | '.' | '$'))
 }
 
-/// The shell field (the last) of the passwd line for `user`.
-fn parse_passwd_shell(passwd: &str, user: &str) -> Option<PathBuf> {
-    let line = passwd.lines().find(|l| l.split(':').next() == Some(user))?;
-    let shell = line.split(':').nth(6)?.trim();
-    (!shell.is_empty()).then(|| PathBuf::from(shell))
-}
-
 /// `UserShell: /bin/zsh`, as `dscl . -read /Users/<user> UserShell` prints it.
+#[cfg(any(target_os = "macos", test))]
 fn parse_dscl_shell(out: &str) -> Option<PathBuf> {
     let shell = out.lines().find_map(|l| l.strip_prefix("UserShell:"))?.trim();
     (!shell.is_empty()).then(|| PathBuf::from(shell))
@@ -414,13 +429,19 @@ mod tests {
     }
 
     #[test]
-    fn reads_the_shell_from_a_passwd_line() {
+    fn reads_the_shell_from_the_passwd_line_of_a_user_id() {
         let passwd = "leemour:x:1000:1000:Slava,,,:/home/leemour:/usr/bin/zsh\n";
-        assert_eq!(parse_passwd_shell(passwd, "leemour"), Some(PathBuf::from("/usr/bin/zsh")));
-        assert_eq!(parse_passwd_shell(passwd, "lee"), None);
-        assert_eq!(parse_passwd_shell("leemour:x:1000:1000::/home/leemour:\n", "leemour"), None);
-        assert_eq!(parse_passwd_shell("leemour:x:1000", "leemour"), None);
-        assert_eq!(parse_passwd_shell("", "leemour"), None);
+        assert_eq!(parse_passwd_shell(passwd, "1000"), Some(PathBuf::from("/usr/bin/zsh")));
+        assert_eq!(parse_passwd_shell(passwd, "100"), None);
+        assert_eq!(parse_passwd_shell("leemour:x:1000:1000::/home/leemour:\n", "1000"), None);
+        assert_eq!(parse_passwd_shell("leemour:x:1000", "1000"), None);
+        assert_eq!(parse_passwd_shell("", "1000"), None);
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn finds_the_account_shell_by_user_id() {
+        assert!(account_shell().is_some_and(|s| s.is_absolute()));
     }
 
     #[test]

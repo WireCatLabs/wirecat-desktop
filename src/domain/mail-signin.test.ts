@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { appPasswordProvider, appPasswordValue, linkParts, readMailNotes } from "./mail-signin"
+import { appPasswordProvider, appPasswordValue, readMailNotes } from "./mail-signin"
 
 describe("mail sign-in", () => {
   it("knows the provider from the method, or from the address's domain for another server", () => {
@@ -36,13 +36,5 @@ describe("mail sign-in", () => {
       notes: ["App passwords are not offered with Advanced Protection on."],
       other: ["Gmail did not grant sending"],
     })
-  })
-
-  it("cuts a line at its links, leaving the closing stop to the text", () => {
-    expect(linkParts("Open https://a.example/x. Then go.").map((p) => [p.text, p.url])).toEqual([
-      ["Open ", false],
-      ["https://a.example/x", true],
-      [". Then go.", false],
-    ])
   })
 })

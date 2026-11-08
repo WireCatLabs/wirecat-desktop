@@ -13,7 +13,7 @@ import {
 import { useTasks } from "@/features/tasks"
 import { messagesOf } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { MemoryEntry, MemoryRead, MemorySource, SourceContext } from "@/platform/memory-schemas"
+import type { MemoryEntry, MemoryRead, MemorySource, Role, SourceContext } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
 import { memoryMessages } from "./messages"
 
@@ -96,6 +96,11 @@ const message = (e: unknown) => {
 
 /** The installed memo takes back an agent's accepted fact. */
 export const canRevoke = (s: { read: MemoryRead | null }) => s.read?.kind === "ready" && s.read.revoke
+
+const NO_ROLES: Role[] = []
+/** The owner's role lists, empty before a memo that has them. */
+export const ownerRoles = (s: { read: MemoryRead | null }) =>
+  (s.read?.kind === "ready" ? s.read.roles : undefined) ?? NO_ROLES
 const without = <T>(record: Record<string, T>, key: string) => {
   const { [key]: _, ...rest } = record
   return rest
@@ -204,7 +209,7 @@ export const useMemory = create<MemoryState>((set, get) => {
     async loadSources(ref) {
       const entry = get().entries.find((e) => e.ref === ref)
       // A plain action cites nothing; a findings batch's sources come with it from memo.
-      if (!entry || (entry.type === "action" && !entry.findings)) return
+      if (!entry || entry.type === "relationship" || (entry.type === "action" && !entry.findings)) return
       set((s) => ({ sources: { ...s.sources, [ref]: { state: "loading" } } }))
       try {
         const sources = await platform.memorySources(ref)

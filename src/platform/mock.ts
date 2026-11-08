@@ -10,6 +10,7 @@ import { botMock } from "./mock-bot"
 import { cloudflareMock } from "./mock-cloudflare"
 import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
+import { conversationMock } from "./mock-conversation"
 import { delay } from "./mock-delay"
 import { digestsMock } from "./mock-digests"
 import { driveFoldersMock } from "./mock-drive-folders"
@@ -51,7 +52,7 @@ import type { Platform } from "./types"
 // `?unconfirmed=<tool>` refuses its install: the release was not built by the tool's own release workflow.
 // `?state=noadmin` has an apt Node whose npm needs administrator rights. With `nonode` or `noadmin`, "Set up Node.js
 // for me" runs a fake download; `?node=fail` makes its checksum mismatch, `?node=ready` starts with it already set up.
-// `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
+// `?mail-cli=old` installs mail-cli 0.21, without WireCat's Google app (`--method oauth`). `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
 // WhatsApp's sign-in on the Tools page (`src/app/scenarios.ts`); `?signin-fail=wa` makes it fail (`mock-signin.ts`).
 // `?mcp=<tool>` opens that tool's MCP server, running; `?mcp-fail=<tool>` makes its Start fail (`mock-mcp.ts`).
 // `?memory=<state>` and `?memory-fail=read|write` set up the Memory page (`mock-memory.ts`).
@@ -68,7 +69,7 @@ const LATEST: Record<string, string> = {
   zm: "0.42.0",
   drive: "0.30.0",
   memo: "0.95.0",
-  email: "0.14.0",
+  email: "0.22.0",
   gcal: "0.19.0",
   funnel: "0.1.1",
 }
@@ -284,6 +285,7 @@ export function createMock(os: Platform["os"]): Platform {
           ? [["tg", "0.88.0"]]
           : [],
   )
+  if (params.get("mail-cli") === "old") installed.set("email", "0.21.0")
   // `?accounts=<tool>` opens that tool's accounts, so it is installed even when the scenario leaves it out.
   const accounts = params.get("accounts")
   if (accounts && !installed.has(accounts)) installed.set(accounts, LATEST[ownerId(accounts)] ?? "1.0.0")
@@ -687,6 +689,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...syncMock(),
     ...mailAgentMock(params),
     ...digestsMock(params),
+    ...conversationMock(params),
     ...notesSetupMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
@@ -704,6 +707,7 @@ export function createMock(os: Platform["os"]): Platform {
       if (link) onLink(parseLink(link.startsWith("/") ? `wirecat://open${link}` : link))
     },
     async openUrl(url) {
+      if (params.get("open") === "fail") throw new Error("No program is set to open https links.")
       if (isMockLogin(url)) return
       window.open(url, "_blank", "noopener")
     },

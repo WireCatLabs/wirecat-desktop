@@ -39,6 +39,8 @@ describe("wirecat:// links", () => {
     expect(useTasks.getState().query).toBe("when:overdue")
     link({ type: "tasks", filter: "new", since: "2026-11-07T08:00:00+03:00" })
     expect(useTasks.getState().query).toBe('created:>="2026-11-07T08:00:00+03:00"')
+    link({ type: "tasks", filter: "undated" })
+    expect(useTasks.getState().query).toBe("when:none")
   })
 
   it("open a proposal's row on the Memory page and press nothing", async () => {
@@ -57,13 +59,13 @@ describe("wirecat:// links", () => {
     expect(useNav.getState().active).toBe("tools")
   })
 
-  it("say a chat cannot open yet, with its reference to copy and the way back", async () => {
+  it("say a proposal kind with no page cannot open yet, with its reference to copy and the way back", async () => {
     const user = userEvent.setup()
     render(<App />)
     useNav.getState().go("logs")
-    link({ type: "chat", provider: "email", account: "owner@example.com", chat: "5005" })
+    link({ type: "proposal", id: "deal:7" })
     expect(await screen.findByRole("heading", { name: "This can't open in WireCat yet" })).toBeInTheDocument()
-    expect(screen.getByText("chat:email/owner%40example.com/5005")).toBeInTheDocument()
+    expect(screen.getByText("proposal:deal%3A7")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Back" }))
     expect(useNav.getState().active).toBe("logs")
   })

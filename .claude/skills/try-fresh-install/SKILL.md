@@ -5,21 +5,16 @@ description: Run WireCat Desktop as on a computer that has never seen it (empty 
 
 # Fresh-install test run
 
-`bin/try-fresh-install` starts the real app (debug build) with a throwaway home folder. The owner's own tools,
-settings, data and sign-ins are not read and not changed.
-
-## What it isolates, and what it does not
-
-| Separate | Shared with the real account |
-| --- | --- |
-| HOME: `${XDG_CACHE_HOME:-~/.cache}/wirecat-fresh-install/home` (app data, npm cache and prefix, shell files) | the Linux user and its file permissions |
-| PATH: `/usr/local/bin:/usr/bin:/bin` only, so no nvm Node.js and no agents from `~/bin` or `~/.local/bin` | the network and the npm registry |
-| keyring: blocked with `DBUS_SESSION_BUS_ADDRESS=disabled:` (unsetting it is not enough) | the display |
+`bin/try-fresh-install` is `bin/sandbox fresh`: the real app (debug build) in the sandbox named `fresh`. The owner's
+own tools, settings, data and sign-ins are not read and not changed. What is separate and what is shared, the other
+presets (`tools`, `demo`) and `bin/sandbox-check` are in [`docs/dev/guides/sandbox.md`](../../../docs/dev/guides/sandbox.md).
 
 Consequences to tell the owner up front:
 
 - Claude Code, Codex and other agents are not found, so the Agents step and Fix › show their "no agent" paths.
 - Sign-in cannot use the keyring: tools fall back to a file and say so. That notice is expected here.
+- Links open in his own browser and Open terminal in his own terminal, but the shell there reads the sandbox's rc
+  files, so its prompt looks plain.
 - Linux only. macOS and Windows go through the install-check CI workflow.
 
 ## Run it
@@ -27,16 +22,16 @@ Consequences to tell the owner up front:
 1. Build once per code change (from the checkout or worktree that holds the change):
    `pnpm tauri build --debug --no-bundle`. Check `free -g` and `df -h ~` first; the build needs several GB.
    Use `CARGO_INCREMENTAL=0` when disk is short.
-2. Start: `<repo>/bin/try-fresh-install`. Add `--reset` to empty the throwaway home and start from nothing.
+2. Start: `<repo>/bin/try-fresh-install`. Add `--reset` to empty the sandbox and start from nothing.
    Without `--reset` the same home is reused, which tests resuming setup after a restart.
 3. Close the window to end the run.
 
 Hand the owner the absolute path of the script in the tree that was built, e.g.
-`~/Projects/AI/wirecat-desktop/bin/try-fresh-install --reset`. The script uses the binary next to it
-(`src-tauri/target/debug/wirecat-desktop`), so a worktree's script runs that worktree's build.
+`~/Projects/AI/wirecat-desktop/bin/try-fresh-install --reset`.
 
-Inspect afterwards, read-only: `<sandbox>/home/.bashrc` (PATH blocks, one per file, no duplicate folder),
-`<sandbox>/home/.local/share/dev.wirecat.desktop/` (managed Node.js, prompts).
+Inspect afterwards, read-only: `~/.cache/wirecat-sandbox/fresh/home/.bashrc` (PATH blocks, one per file, no duplicate
+folder), `~/.cache/wirecat-sandbox/fresh/home/.local/share/dev.wirecat.desktop/` (managed Node.js, prompts), or run a
+command inside: `bin/sandbox fresh --exec <command>`.
 
 ## Checklist to hand the owner
 
@@ -64,4 +59,4 @@ Write it per change, in the order the owner meets the screens. The base list:
 
 - Never point the run at the owner's real home, and never remove `DBUS_SESSION_BUS_ADDRESS=disabled:`.
 - Never sign in with the owner's real account from an agent; the owner does that by hand if he wants.
-- The sandbox folder is listed in `CLEANUP.md`; remove it only when the owner says so.
+- `--reset` is the way to empty a sandbox; never delete another folder by hand.

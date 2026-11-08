@@ -200,3 +200,19 @@ describe("Config", () => {
     expect(screen.getByText("Строка 1")).toBeInTheDocument()
   }, 15000)
 })
+
+describe("Config with no tool installed", () => {
+  it("says to install a tool, links to Tools, and marks each chip Not installed", async () => {
+    const { useNav } = await import("@/shared/nav")
+    const none = { tg: [], max: [], wa: [], zm: [], drive: [], gcal: [], memo: [], email: [] }
+    useTools.setState({ installs: none })
+    useNav.setState({ active: "settings" })
+    const user = userEvent.setup()
+    render(<ConfigPage />)
+
+    expect(await screen.findByText("Install a tool to change its settings.")).toBeInTheDocument()
+    expect(screen.getByRole("radio", { name: "Telegram" }).closest("label")).toHaveAttribute("title", "Not installed")
+    await user.click(screen.getByRole("button", { name: "Open Tools" }))
+    expect(useNav.getState().active).toBe("tools")
+  })
+})

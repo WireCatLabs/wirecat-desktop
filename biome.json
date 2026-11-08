@@ -13,6 +13,7 @@
       "!other",
       "!.impeccable",
       "!.worktrees",
+      "!.claude",
       "!src/platform/bindings.ts"
     ]
   },

@@ -15,6 +15,7 @@ Each guide marks its rules:
 | Where a rule, a fetch or a state goes | [application-logic.md](application-logic.md) |
 | A new Rust operation | [rust-command.md](rust-command.md) |
 | Tests | [testing.md](testing.md) |
+| Run the real app isolated, with seeded data | [sandbox.md](sandbox.md) |
 | Text on screen | [i18n.md](i18n.md) |
 | A release | [release.md](release.md) |
 | Before you write anything new | [reuse.md](reuse.md) |

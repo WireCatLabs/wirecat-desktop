@@ -8,7 +8,7 @@ export const DeepLinkTargetSchema = v.union([
   v.object({ type: v.literal("message"), provider: part, account: part, chat: part, message: part }),
   v.object({ type: v.literal("chat"), provider: part, account: part, chat: part }),
   v.object({ type: v.literal("task"), id: part }),
-  v.object({ type: v.literal("tasks"), filter: v.picklist(["overdue", "today", "tomorrow"]) }),
+  v.object({ type: v.literal("tasks"), filter: v.picklist(["overdue", "today", "tomorrow", "undated"]) }),
   v.object({ type: v.literal("tasks"), filter: v.literal("new"), since: part }),
   v.object({ type: v.literal("proposal"), id: part }),
   v.object({ type: v.literal("digest"), date: part }),

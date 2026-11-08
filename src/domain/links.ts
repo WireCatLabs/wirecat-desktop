@@ -2,7 +2,7 @@
 // writes. The desktop cannot import cli-core, so `links-v1.fixture.json` is a copy of its shared test file and both this
 // parser and `src-tauri/src/deep_link.rs` must accept exactly what it lists. A link only opens a screen.
 
-export type TaskFilter = "overdue" | "today" | "tomorrow"
+export type TaskFilter = "overdue" | "today" | "tomorrow" | "undated"
 
 export type DeepLinkTarget =
   | { type: "message"; provider: string; account: string; chat: string; message: string }
@@ -15,11 +15,16 @@ export type DeepLinkTarget =
   | { type: "digest"; date: string }
   | { type: "sync"; tool: string; account?: string }
 
+// Links name a messenger as the store does (`telegram`); the catalog knows it by its tool id (`tg`).
+const TOOL_OF: Record<string, string> = { telegram: "tg", whatsapp: "wa", zoom: "zm", mail: "email", calendar: "gcal" }
+
+export const toolOfProvider = (provider: string): string => TOOL_OF[provider] ?? provider
+
 export const LINK_VERSION = "v1"
 export const APP_PREFIX = "wirecat://open"
 const MAX_PATH = 512
 const MAX_SEGMENTS = 6
-const TASK_FILTERS: readonly string[] = ["overdue", "today", "tomorrow"]
+const TASK_FILTERS: readonly string[] = ["overdue", "today", "tomorrow", "undated"]
 const DATE = /^\d{4}-\d{2}-\d{2}$/
 const DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/
 

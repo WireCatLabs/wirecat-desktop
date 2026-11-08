@@ -2,9 +2,11 @@ import { create } from "zustand"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type AppPasswordProvider, appPasswordProvider, appPasswordValue, type MailWay } from "@/domain/mail-signin"
 import type { FailedAt } from "@/domain/signin-failure"
+import { isNewer } from "@/domain/status"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
+import { useTools } from "@/shared/tools-store"
 
 type Of<K extends SignInEvent["event"]> = Extract<SignInEvent, { event: K }>
 export type Qr = Of<"qr">
@@ -69,7 +71,7 @@ type SignInState = {
   planError: string | null
   /** Start was pressed without what the method needs. */
   planMissing: "address" | "password" | "client" | null
-  /** Gmail's way in: an app password, or the browser with the owner's own Google client. */
+  /** Gmail's way in: the browser, with WireCat's Google app or the owner's own client, or an app password. */
   way: MailWay
   /** The plan's own second step: the app password, made with the window's steps and pasted before the run starts. */
   planStep: "choose" | "password"
@@ -121,7 +123,7 @@ const closed = {
   ownId: "",
   planError: null,
   planMissing: null as SignInState["planMissing"],
-  way: "appPassword" as MailWay,
+  way: "browser" as MailWay,
   planStep: "choose" as SignInState["planStep"],
   passwordProblem: null as SignInState["passwordProblem"],
   hintPage: null as string | null,
@@ -200,12 +202,20 @@ export const methodOf = (tool: string, method: string | null) => {
   return entry ? signInMethods(entry).find((m) => m.id === method) : undefined
 }
 
-function inputsFor(tool: string, method: string, address: string): SignInInputs {
+/** The installed version and the one needed, when it predates the method's sign-in with the tool's own app. */
+export const oauthTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) => {
+  const need = tool ? methodOf(tool, method)?.oauthMinVersion : undefined
+  const version = tool ? installs[tool]?.[0]?.version : null
+  return need && version && isNewer(need, version) ? { version, need } : null
+}
+
+function inputsFor(tool: string, method: string, address: string, way: MailWay): SignInInputs {
   const m = methodOf(tool, method)
   if (!m) return {}
   const inputs: SignInInputs = {}
   if (m.address && address.trim()) inputs.address = address.trim()
   if (m.clientFile && typed.clientFile) inputs.clientFile = typed.clientFile
+  else if (m.oauth && way === "browser") inputs.oauth = true
   else if (m.password && typed.password) inputs.password = typed.password
   return inputs
 }
@@ -357,7 +367,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
         // The step the run left from, so its copy fading out still shows it.
         planStep: same ? previous.planStep : "choose",
       })
-      const inputs = inputsFor(tool, chosen, get().address)
+      const inputs = inputsFor(tool, chosen, get().address, get().way)
       const mine = () => get().run === run && get().tool !== null
       // A stop sent before Rust registered the run is lost, so a word from a run nobody watches stops it again. Rust
       // sends the last word after the tool exited: from then on the next run may start, and a late word is ignored.
@@ -388,7 +398,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       )
     },
     begin() {
-      const { tool, profile, method, phase, onFinish, ownId, ownFile, planStep, way } = get()
+      const { tool, profile, method, phase, onFinish, ownId, ownFile, planStep } = get()
       if (phase !== "plan" || !tool || !profile || !method) return
       const chosen = methodOf(tool, method)
       if (guidedProvider(get())) {
@@ -397,7 +407,8 @@ export const useSignIn = create<SignInState>()((set, get) => {
           return set({ planStep: "password", planMissing: null, passwordProblem: null })
         }
         if (!typed.password?.trim()) return set({ planMissing: "password" })
-      } else if (tool === "email" && method === "gmail" && way === "browser" && !ownFile)
+      }
+      if (chosen?.oauth && get().way === "browser" && !ownFile && oauthTooOld(tool, method))
         return set({ planMissing: "client" })
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
       const setting = chosen?.clientId
