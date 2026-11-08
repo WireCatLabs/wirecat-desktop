@@ -36,3 +36,9 @@ pub async fn people_unmerge(reference: String, merge: String) -> Result<people::
     crate::log::command("people_unmerge", async move { attempt(move || people::unmerge(&reference, &merge)).await })
         .await
 }
+
+/// The person who has exactly this account, for the page's search; `None` when no one does.
+#[tauri::command]
+pub async fn people_find(account: String) -> Result<Option<people::Person>, AppError> {
+    crate::log::command("people_find", async move { attempt(move || people::find(&account)).await }).await
+}

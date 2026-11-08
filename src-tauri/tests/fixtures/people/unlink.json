@@ -1,0 +1,25 @@
+{
+  "item": {
+    "ref": "person:11",
+    "name": "Tom Becker",
+    "identities": [
+      {
+        "identity": "max:99",
+        "name": "Tom Becker",
+        "username": null,
+        "seen_in": [
+          {
+            "account": "2",
+            "scope": "personal"
+          }
+        ],
+        "method": "unlink",
+        "linked_by": "owner",
+        "linked_at": "2026-11-08T21:27:54.685Z"
+      }
+    ]
+  },
+  "meta": {
+    "complete": true
+  }
+}

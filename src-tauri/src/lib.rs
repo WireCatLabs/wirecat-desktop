@@ -275,6 +275,7 @@ pub fn run() {
             commands::people::people_decide,
             commands::people::people_unlink,
             commands::people::people_unmerge,
+            commands::people::people_find,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,

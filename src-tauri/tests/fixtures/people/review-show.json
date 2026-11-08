@@ -1,0 +1,31 @@
+{
+  "item": {
+    "id": "4",
+    "kind": "identity_link",
+    "status": "proposed",
+    "title": "Person «Kai Sample» → Person «Kai S.»",
+    "project": null,
+    "project_title": null,
+    "source": null,
+    "owner_only": true,
+    "subject": "person:7",
+    "object": "person:3",
+    "summary": "max:33 may be the same person as telegram:44 (agent)",
+    "proposer": "claude-code",
+    "proposed_by": {
+      "type": "bot",
+      "id": "3",
+      "name": "claude-code",
+      "kind": "agent"
+    },
+    "reason": "same face in both chats",
+    "score": null,
+    "signals": null,
+    "evidence": [],
+    "parts": null,
+    "created_at": "2026-11-08T21:27:29.861Z"
+  },
+  "meta": {
+    "complete": true
+  }
+}
