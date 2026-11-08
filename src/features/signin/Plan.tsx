@@ -1,9 +1,12 @@
 import { CircleCheck, Clock, ExternalLink, ShieldCheck } from "lucide-react"
-import { useEffect, useId, useRef, useState } from "react"
+import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
+import type { MailWay } from "@/domain/mail-signin"
+import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { guidedProvider, methodOf, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
+import { guidedProvider, methodOf, oauthTooOld, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
 import { Disclosure } from "@/ui/Disclosure"
@@ -43,7 +46,7 @@ export function Plan() {
   return (
     <div className="flex min-h-[19rem] flex-col gap-5 text-left">
       {entry?.signIn?.pick && <Providers />}
-      {gmail && <Ways />}
+      {gmail && <Ways own={plan?.own} m={m} />}
       {/* A new provider or way slides its own steps in (rule 9). */}
       <div key={`${method ?? ""}:${gmail ? way : ""}`} className="step-in flex flex-col gap-5">
         {need.length > 0 && (
@@ -100,19 +103,9 @@ export function Plan() {
         {chosen && (chosen.address || chosen.password) && (
           <Typed missing={planMissing === "client" ? null : planMissing} />
         )}
-        {gmail
-          ? way === "browser" &&
-            plan?.own && (
-              <section className="flex max-w-[30rem] flex-col gap-2">
-                <p className="text-[0.9rem] leading-snug text-ink-soft">{plan.own.text}</p>
-                <ClientChoice m={m} />
-              </section>
-            )
-          : plan?.own &&
-            chosen &&
-            (chosen.clientFile || chosen.clientId) && (
-              <OwnApp own={plan.own} kind={chosen.clientFile ? "file" : "id"} m={m} />
-            )}
+        {!gmail && plan?.own && chosen && (chosen.clientFile || chosen.clientId) && (
+          <OwnApp own={plan.own} kind={chosen.clientFile ? "file" : "id"} m={m} />
+        )}
       </div>
       <section className="flex flex-col gap-2 border-line border-t pt-4">
         <h3 className="text-[1.15rem] font-semibold text-ink">{m.kept}</h3>
@@ -246,54 +239,82 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
 
 /** WC-SECR-25: WireCat's app unless the owner names one; a Google client file, or a Microsoft app id saved first. */
 /**
- * Gmail's two ways in, side by side before anything else is asked: what each needs and how long it takes. The app
- * password comes first, as the way that works without a Google client of the owner's own.
+ * Gmail's ways in, before anything else is asked: Google's own page first, as the owner chose (2026-11-08), with the
+ * owner's own client folded inside it, and the app password under "Other ways".
  */
-function Ways() {
-  const { way } = useSignIn()
+function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefined; m: PlanText }) {
   const m = useMessages(mailMessages)
+  const { way, tool, method } = useSignIn()
+  const installs = useTools((s) => s.installs)
+  const old = oauthTooOld(tool, method, installs)
   const name = useId()
   return (
     <fieldset className="flex flex-col gap-2 border-0 p-0">
       <legend className="mb-2 text-[1rem] font-semibold text-ink">{m.ways.legend}</legend>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {(["appPassword", "browser"] as const).map((option) => {
-          const text = m.ways[option]
-          return (
-            <label key={option} className="relative cursor-pointer">
-              <input
-                type="radio"
-                name={name}
-                value={option}
-                checked={option === way}
-                onChange={() => {
-                  // A client chosen for the browser is not sent with an app password.
-                  if (option === "appPassword") setClientFile(null)
-                  useSignIn.setState({ way: option, planMissing: null })
-                }}
-                className="peer sr-only"
-              />
-              <span className="flex h-full flex-col gap-1 rounded-[0.35rem] border border-line-strong px-3 py-2.5 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-[0.95rem] font-medium text-ink">{text.name}</span>
-                  {text.badge && (
-                    <span className="rounded-[0.2rem] bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
-                      {text.badge}
-                    </span>
-                  )}
-                </span>
-                <span className="text-[0.85rem] leading-snug text-ink">{text.detail}</span>
-                <span className="text-[0.85rem] leading-snug text-ink-soft">{text.needs}</span>
-                <span className="mt-auto flex items-center gap-1.5 pt-1 text-[0.8rem] text-ink-dim">
-                  <Clock className="size-3.5 shrink-0" aria-hidden />
-                  {text.time}
-                </span>
-              </span>
-            </label>
-          )
-        })}
-      </div>
+      <WayOption option="browser" name={name}>
+        {old && (
+          <div className="flex flex-col items-start gap-2 pb-2">
+            <p className="text-[0.85rem] leading-snug text-ink">{m.ways.tooOld(old.version, old.need)}</p>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                useSignIn.getState().close()
+                if (tool) openTool(tool)
+              }}
+            >
+              {m.ways.update}
+            </Button>
+          </div>
+        )}
+        {way === "browser" && own && <OwnApp own={own} kind="file" m={pm} open={Boolean(old)} />}
+      </WayOption>
+      <fieldset className="flex flex-col gap-1.5 border-0 p-0 pt-1">
+        <legend className="mb-1.5 text-[0.85rem] font-medium text-ink-soft">{m.ways.others}</legend>
+        <WayOption option="appPassword" name={name} />
+      </fieldset>
     </fieldset>
+  )
+}
+
+function WayOption({ option, name, children }: { option: MailWay; name: string; children?: ReactNode }) {
+  const { way } = useSignIn()
+  const text = useMessages(mailMessages).ways[option]
+  return (
+    <div className="rounded-[0.35rem] border border-line-strong transition-colors has-checked:border-brand has-checked:bg-brand-soft">
+      <label className="relative block cursor-pointer">
+        <input
+          type="radio"
+          name={name}
+          value={option}
+          checked={option === way}
+          onChange={() => {
+            // A client chosen for the browser is not sent with an app password.
+            if (option === "appPassword") setClientFile(null)
+            useSignIn.setState({ way: option, planMissing: null })
+          }}
+          className="peer sr-only"
+        />
+        <span className="flex h-full flex-col gap-1 rounded-[0.35rem] px-3 py-2.5 peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+          <span className="flex flex-wrap items-center gap-2">
+            <span className="text-[0.95rem] font-medium text-ink">{text.name}</span>
+            {text.badge && (
+              <span className="rounded-[0.2rem] bg-ok/15 px-1.5 py-px text-[0.75rem] font-medium text-ok">
+                {text.badge}
+              </span>
+            )}
+          </span>
+          <span className="text-[0.85rem] leading-snug text-ink">{text.detail}</span>
+          <span className="text-[0.85rem] leading-snug text-ink-soft">{text.needs}</span>
+          {text.note && <span className="text-[0.85rem] leading-snug text-ink-soft">{text.note}</span>}
+          <span className="mt-auto flex items-center gap-1.5 pt-1 text-[0.8rem] text-ink-dim">
+            <Clock className="size-3.5 shrink-0" aria-hidden />
+            {text.time}
+          </span>
+        </span>
+      </label>
+      {children && <div className="px-3 pb-2.5">{children}</div>}
+    </div>
   )
 }
 
@@ -338,11 +359,21 @@ function ClientChoice({ m }: { m: PlanText }) {
   )
 }
 
-function OwnApp({ own, kind, m }: { own: { text: string; guide?: string }; kind: "file" | "id"; m: PlanText }) {
+function OwnApp({
+  own,
+  kind,
+  m,
+  open = false,
+}: {
+  own: { text: string; guide?: string }
+  kind: "file" | "id"
+  m: PlanText
+  open?: boolean
+}) {
   const { ownFile, ownId, planError } = useSignIn()
   const id = useId()
   return (
-    <Disclosure summary={m.ownApp} openWhen={ownFile !== null || ownId !== "" || planError !== null}>
+    <Disclosure summary={m.ownApp} openWhen={open || ownFile !== null || ownId !== "" || planError !== null}>
       <div className="flex max-w-[30rem] flex-col gap-2">
         <p className="text-[0.9rem] leading-snug text-ink-soft">{own.text}</p>
         {own.guide && <GuideLink url={own.guide} label={m.ownGuide} />}

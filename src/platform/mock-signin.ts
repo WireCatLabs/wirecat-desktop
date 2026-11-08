@@ -258,7 +258,7 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
       ] as const)
         if ((await s.ask(field, prompt, false)) === null) return STOPPED
     }
-    if (method === "microsoft" || inputs.clientFile) {
+    if (method === "microsoft" || inputs.clientFile || inputs.oauth) {
       const page =
         method === "microsoft" ? "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" : GOOGLE_URL
       s.emit({ event: "openUrl", url: `${page}?${MOCK_CLIENT}`, purpose: "Sign in to Microsoft and allow access" })

@@ -189,18 +189,17 @@ const en = {
     },
     "email:gmail:browser": {
       steps: [
-        "Once: in Google Cloud Console, make an OAuth client of the type Desktop app. Download its JSON file, or keep its page open for the client ID and secret.",
-        "Choose the file, or type the client ID and secret below.",
-        "Your browser opens Google. Sign in there and allow access.",
+        "Your browser opens Google: choose the account and allow access to Gmail, with WireCat's app.",
+        'Google may first show an "unverified app" screen: its review of WireCat\'s app is not finished. Use the link on that screen that goes on to the app.',
       ],
-      guide: { url: GOOGLE_APP_GUIDE, label: "How to make the Google client" },
       kept: [
         "Your Google password is typed only on Google's own page.",
         "Google asks to read, change and send your Gmail: it has no narrower access for mail programs. A sync only reads.",
-        "The client and the sign-in are saved in your system's password store, or in the tool's own folder when there is none. The file is not needed again.",
+        "The sign-in is saved in your system's password store, or in the tool's own folder when there is none.",
       ],
       own: {
-        text: "WireCat has no Google app for mail yet, so this way needs a client of your own.",
+        text: "Sign in with a Google app of your own instead of WireCat's: a Desktop app client from Google Cloud Console. Choose its JSON file, or type its client ID and secret. The tool keeps the client with the sign-in, so the file is not needed again.",
+        guide: GOOGLE_APP_GUIDE,
       },
     },
     "email:imap": {
@@ -375,18 +374,17 @@ const ru: PlanText = {
     },
     "email:gmail:browser": {
       steps: [
-        "Один раз: в Google Cloud Console создайте OAuth-клиент типа Desktop app. Скачайте его JSON-файл или держите открытой его страницу с Client ID и secret.",
-        "Выберите файл или введите Client ID и secret ниже.",
-        "Откроется браузер со страницей Google. Войдите и разрешите доступ.",
+        "Браузер откроет Google: выберите аккаунт и разрешите приложению WireCat доступ к Gmail.",
+        "Сначала Google может показать экран «Приложение не проверено»: проверка приложения WireCat ещё не закончена. Нажмите на этом экране ссылку, которая ведёт дальше к приложению.",
       ],
-      guide: { url: GOOGLE_APP_GUIDE, label: "Как создать клиент Google" },
       kept: [
         "Пароль от Google вводится только на странице самого Google.",
         "Google попросит разрешение читать, изменять и отправлять почту Gmail: более узкого доступа для почтовых программ у него нет. Синхронизация только читает.",
-        "Клиент и вход сохраняются в системном хранилище паролей, а если его нет — в папке самого инструмента. Файл больше не понадобится.",
+        "Вход сохраняется в системном хранилище паролей, а если его нет — в папке самого инструмента.",
       ],
       own: {
-        text: "Своего приложения Google для почты у WireCat пока нет, поэтому для этого способа нужен ваш собственный клиент.",
+        text: "Войдите через своё приложение Google вместо приложения WireCat: клиент типа Desktop app из Google Cloud Console. Выберите его JSON-файл или введите Client ID и secret. Инструмент хранит клиента вместе со входом, так что файл больше не понадобится.",
+        guide: GOOGLE_APP_GUIDE,
       },
     },
     "email:imap": {
@@ -559,18 +557,17 @@ const es: PlanText = {
     },
     "email:gmail:browser": {
       steps: [
-        "Una vez: en Google Cloud Console, crea un cliente OAuth del tipo Desktop app. Descarga su archivo JSON, o deja abierta su página con el client ID y el secret.",
-        "Elige el archivo, o escribe abajo el client ID y el secret.",
-        "El navegador abre Google. Inicia sesión allí y permite el acceso.",
+        "El navegador abre Google: elige la cuenta y permite el acceso a Gmail, con la app de WireCat.",
+        "Google puede mostrar antes una pantalla de «app no verificada»: su revisión de la app de WireCat no ha terminado. Usa el enlace de esa pantalla que lleva a la app.",
       ],
-      guide: { url: GOOGLE_APP_GUIDE, label: "Cómo crear el cliente de Google" },
       kept: [
         "Tu contraseña de Google se escribe solo en la propia página de Google.",
         "Google pide leer, cambiar y enviar tu Gmail: no ofrece un acceso más limitado para programas de correo. La sincronización solo lee.",
-        "El cliente y la sesión se guardan en el almacén de contraseñas del sistema, o en la carpeta de la propia herramienta si no hay ninguno. El archivo no vuelve a hacer falta.",
+        "La sesión se guarda en el almacén de contraseñas del sistema, o en la carpeta de la propia herramienta si no hay ninguno.",
       ],
       own: {
-        text: "WireCat aún no tiene app de Google para el correo, así que esta forma necesita un cliente propio.",
+        text: "Entra con una app de Google propia en lugar de la de WireCat: un cliente Desktop app de Google Cloud Console. Elige su archivo JSON, o escribe su client ID y su secret. La herramienta guarda el cliente con la sesión, así que el archivo no vuelve a hacer falta.",
+        guide: GOOGLE_APP_GUIDE,
       },
     },
     "email:imap": {

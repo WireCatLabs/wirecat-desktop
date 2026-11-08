@@ -140,6 +140,9 @@ pub struct SignInMethod {
     /// The flag that takes the owner's own OAuth client JSON (WC-SECR-25), written to a private file for the run.
     #[serde(default)]
     pub client_file: Option<String>,
+    /// The words that make a new profile sign in by OAuth with the tool's own app (mail's `--method oauth`).
+    #[serde(default)]
+    pub oauth: Option<Vec<String>>,
 }
 
 /// `commands` lists every command with its effects and, from cli-core 0.408, whether the profile may run it.

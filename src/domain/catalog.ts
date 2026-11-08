@@ -75,7 +75,7 @@ const ToolSchema = v.object({
       /**
        * Sign-ins the app runs in its own window instead of a terminal, the first one by default. `address`, `password`
        * and `clientFile` name where Rust passes what the owner typed; `clientId` is the setting that names the owner's
-       * own app, saved before the run (WC-SECR-25).
+       * own app, saved before the run (WC-SECR-25). `oauth`: the words for the browser with the tool's own app, from `oauthMinVersion`.
        */
       methods: v.optional(
         v.array(
@@ -87,6 +87,8 @@ const ToolSchema = v.object({
             password: v.optional(v.string()),
             clientFile: v.optional(v.string()),
             clientId: v.optional(v.string()),
+            oauth: v.optional(v.array(v.string())),
+            oauthMinVersion: v.optional(v.string()),
           }),
         ),
       ),

@@ -1,5 +1,6 @@
 import { useSeen } from "@/app/badges"
 import { findTool, syncNeedsProfile } from "@/domain/catalog"
+import type { MailWay } from "@/domain/mail-signin"
 import { useNotifications } from "@/features/notifications"
 import { useSearch } from "@/features/search"
 import { useTasks } from "@/features/tasks"
@@ -19,7 +20,7 @@ import { useTools } from "@/shared/tools-store"
 // `?onboarding=<step>` opens it at that step. `?section=<id>` opens that page without a click, so a layout-shift
 // measurement is not hidden by the browser's 500 ms grace period after input. `?crash=<section>` opens that section
 // and breaks its render. `?signin=<tool>` starts that tool's in-window sign-in for a profile named personal; `?signin-plan=<tool>` opens it on its plan.
-// Mail: `&signin-way=browser` picks Gmail's browser way, `&signin-address=<address>` fills the address.
+// Mail: `&signin-way=appPassword|browser` picks Gmail's way (the plan opens on the browser, a run on the app password), `&signin-address=<address>` fills the address.
 // `?bot=<tool>` opens that tool's details and its bot dialog; `?bot-step=token` with a name, sales (`mock-bot.ts`).
 // `?mcp=<tool>` and `?mcp-fail=<tool>` open that tool's details, where its MCP server section starts open.
 // `?connect=<state>` opens tg's details at that step of the guide (`src/features/tools/connect-scenario.ts`).
@@ -65,16 +66,17 @@ export async function runMockScenario() {
   }
   const [signIn, signInMethod] = (params.get("signin") ?? "").split(":")
   const failing = params.get("signin-fail")?.split(":")
-  const mailPlan = () => {
-    const way = params.get("signin-way")
-    if (way === "browser") useSignIn.setState({ way })
+  const mailPlan = (fallback?: MailWay) => {
+    const way = params.get("signin-way") ?? fallback
+    if (way === "browser" || way === "appPassword") useSignIn.setState({ way })
     const address = params.get("signin-address")
     if (address) useSignIn.setState({ address })
   }
   if (signIn) {
     useSignIn.getState().start(signIn, "personal")
     if (signInMethod) useSignIn.setState({ method: signInMethod })
-    mailPlan()
+    // A run started here has no Google client file to send, so Gmail's run is the app password's.
+    mailPlan("appPassword")
     useSignIn.getState().begin()
     // A failure after the app password needs one typed on its step first.
     if (failing && useSignIn.getState().planStep === "password") {
@@ -92,6 +94,8 @@ export async function runMockScenario() {
   }
   const [plan, planMethod] = (params.get("signin-plan") ?? "").split(":")
   if (plan) {
+    // The plan reads the installed version, as for a mail-cli too old for WireCat's Google app.
+    await useTools.getState().refresh()
     useSignIn.getState().start(plan, "personal")
     if (planMethod) useSignIn.setState({ method: planMethod })
     mailPlan()

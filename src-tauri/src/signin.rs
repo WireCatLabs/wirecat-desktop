@@ -40,6 +40,9 @@ pub struct Inputs {
     pub password: Option<String>,
     /// The text of the owner's own OAuth client JSON, not a path: the window has no file paths.
     pub client_file: Option<String>,
+    /// Sign in in the browser with the tool's own app, which a new mail profile for Gmail would not do by itself.
+    #[serde(default)]
+    pub oauth: bool,
 }
 
 /// A run ready to start: its words, the variables it reads, and the client file it may name, removed with this.
@@ -74,6 +77,8 @@ pub fn args(tool: &Tool, method: &str, profile: &str, inputs: Inputs) -> Result<
         let file = ClientFile::write(&json)?;
         args.extend([name.clone(), file.path().to_string_lossy().into_owned()]);
         client = Some(file);
+    } else if inputs.oauth {
+        args.extend(method.oauth.clone().ok_or_else(|| "This sign-in takes no browser choice.".to_string())?);
     }
     Ok(Prepared { args, env, _client: client })
 }
@@ -282,7 +287,7 @@ mod tests {
         let typed = |address: &str, password: Option<&str>| Inputs {
             address: Some(address.into()),
             password: password.map(str::to_string),
-            client_file: None,
+            ..Inputs::default()
         };
         let imap = args(email, "imap", "work", typed(" me@example.com ", None)).unwrap();
         assert_eq!(imap.args, ["work", "session", "start", "--json", "--answer-stdin", "--address", "me@example.com"]);
@@ -294,6 +299,19 @@ mod tests {
             assert!(refused.is_err(), "{method}: the tool asks the password on stdin");
         }
         assert!(args(catalog::tool("tg").unwrap(), "qr", "work", typed("me@x.com", None)).is_err());
+    }
+
+    #[test]
+    fn gmail_by_browser_asks_for_oauth_unless_an_own_client_file_already_does() {
+        let email = catalog::tool("email").unwrap();
+        let google = Inputs { oauth: true, ..Inputs::default() };
+        let words = args(email, "gmail", "work", google).unwrap().args;
+        assert_eq!(words, ["work", "session", "start", "--json", "--answer-stdin", "--method", "oauth"]);
+        let json = r#"{"installed":{"client_id":"1.apps.googleusercontent.com","client_secret":"s"}}"#;
+        let own = Inputs { oauth: true, client_file: Some(json.into()), ..Inputs::default() };
+        let prepared = args(email, "gmail", "work", own).unwrap();
+        assert!(!prepared.args.contains(&"--method".to_string()));
+        assert!(args(email, "imap", "work", Inputs { oauth: true, ..Inputs::default() }).is_err());
     }
 
     #[test]
