@@ -268,6 +268,6 @@ mod tests {
         let json =
             serde_json::json!({ "items": [{ "id": "1AbC" }, { "id": "-x" }, { "name": "no id" }], "has_more": false });
         assert_eq!(chosen_ids(&json), vec!["1AbC".to_string()]);
-        assert!(chosen_ids(&serde_json::json!({ "items": [] })).is_empty());
+        assert_eq!(chosen_ids(&serde_json::json!({ "items": [] })), Vec::<String>::new());
     }
 }
