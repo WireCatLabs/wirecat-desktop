@@ -1,4 +1,5 @@
 import { actionSentence, actionTargetOf, byOwner, dayKey, findingsCounts } from "@/domain/memory"
+import { type OwnerRole, roleLabel } from "@/domain/relationships"
 import { formatDate, type Lang } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import type { memoryMessages } from "./messages"
@@ -30,8 +31,18 @@ export const savedAt = (iso: string, lang: Lang) =>
     lang,
   )
 
-/** What the row's text says: the record's own text, or for a findings batch how many facts and tasks it holds. */
-export function textOf(e: MemoryEntry, m: M) {
+/** A relationship's other end and its role, under the heading of the end it starts from: "Acme Ltd · Manager". */
+export function relationLine(e: MemoryEntry, m: M, roles: readonly OwnerRole[]) {
+  const to = e.targetName ?? e.target ?? ""
+  return e.role ? `${to} · ${roleLabel(e.role, roles, m.roles)}` : to
+}
+
+/**
+ * What the row's text says: the record's own text, for a findings batch how many facts and tasks it holds, for a
+ * relationship its other end and role.
+ */
+export function textOf(e: MemoryEntry, m: M, roles: readonly OwnerRole[] = []) {
+  if (e.type === "relationship") return relationLine(e, m, roles)
   if (e.findings) {
     const c = findingsCounts(e.findings, e.status)
     return c.reviewed ? m.findingsReviewed(c.first, c.second) : m.findingsTitle(c.first, c.second)

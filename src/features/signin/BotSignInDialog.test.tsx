@@ -85,6 +85,22 @@ describe("the bot sign-in", () => {
     expect(connect).not.toHaveBeenCalled()
   })
 
+  it("explains a new and an existing Telegram bot in two tabs, and a switch keeps the pasted token", async () => {
+    const user = openFromTools()
+    await toToken(user)
+    const tabs = within(dialog()).getByRole("tablist", { name: "New or existing bot" })
+    expect(within(tabs).getByRole("tab", { name: "New bot" })).toHaveAttribute("aria-selected", "true")
+    expect(within(dialog()).getByRole("tabpanel")).toHaveTextContent("send /newbot")
+    await user.type(within(dialog()).getByLabelText("Bot token"), TOKEN)
+    await user.click(within(tabs).getByRole("tab", { name: "Existing bot" }))
+    const panel = within(dialog()).getByRole("tabpanel", { name: "Existing bot" })
+    expect(panel).toHaveTextContent("send /mybots, pick the bot and press API Token")
+    expect(panel).toHaveTextContent("Do not press Revoke current token")
+    expect(within(dialog()).getByLabelText("Bot token")).toHaveValue(TOKEN)
+    await user.click(within(tabs).getByRole("tab", { name: "New bot" }))
+    expect(within(dialog()).getByLabelText("Bot token")).toHaveValue(TOKEN)
+  })
+
   it("hands the token over once, empties the field and says which bot is connected", async () => {
     const connect = vi
       .spyOn(platform, "botSignIn")
@@ -125,6 +141,7 @@ describe("the bot sign-in", () => {
     vi.spyOn(platform, "listBots").mockResolvedValue([])
     const user = openFromTools("wa")
     await toToken(user, "shop")
+    expect(within(dialog()).queryByRole("tablist")).not.toBeInTheDocument()
     await user.type(within(dialog()).getByLabelText("Bot token"), "EAAGm0PX4ZCpsBAKZCZAZBZBk1fDm7")
     await user.click(within(dialog()).getByRole("button", { name: "Connect bot" }))
     expect(within(dialog()).getAllByRole("alert")[0]).toHaveTextContent("Paste the Phone number ID first.")

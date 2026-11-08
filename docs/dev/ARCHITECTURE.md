@@ -110,7 +110,7 @@ src-tauri/src/
                 to copy or to open in the user's terminal (`terminal::open_line`), where they type the password.
                 Never the plugin's own install, which asks for the password itself (rule 6).
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
-  memory.rs     the Memory page: memo's memories, facts, proposed actions and agents' calls; confirm, discard,
+  memory.rs     the Memory page: memo's memories, facts, proposed actions, relationships and agents' calls; confirm, discard,
                 correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").
   conversation.rs a chat or mail thread a `chat/…` or `msg/…` link opens, read only: memo's `show` (title, where, the
                 profile signed in to the account, or that the account is not here), memo's `messages show` with
@@ -334,6 +334,22 @@ The text is the owner's own, shown unmasked like the Search page's hits, and it 
 takes as nobody's run and refuses to let decide, so every confirm, discard, correct and forget also passes
 `--from-app`: memo records it as the owner's. Reads (`list`, `show`) never pass it. It is the app's word that the owner
 clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `CLAUDECODE`, so no run is an agent's.
+
+### Relationships
+
+Relationships between people, organizations and projects are rows of the same page (CRM relations plan, PR 11).
+`memory_read` also runs `relationships list confirmed:false` (an agent's proposals), `relationships list include:ended` (the links, each with
+its `standing`; a memo that does not know `include:` lists without it, so without ended ones) and `relationships roles
+list` (the owner's role lists, from the memo with cli-core's role lists). A memo without one of them leaves its part out
+and the rest of the page as it is; any other failure (a busy store) fails the read as a failed memories list does. A row sits under the end
+it starts from (a person, an organization or a project), says the other end and the role, and carries a standing chip:
+**Proposed** waits in Review, **Confirmed** (the owner's) and **Reported** (a source such as a CRM says so, nobody
+confirmed it) are In use, **Ended** is with what no longer holds. A proposal is `relationship:<id>`, decided through
+memo's own review as every other proposal kind: `review confirm <id> --from-app`, or `review reject <id> --reason
+"rejected in WireCat Desktop" --from-app` (memo needs a reason). A link that holds is `link:<id>` and is not changed
+here. Bulk approve leaves relationships out: each is approved in its row. A built-in role is worded by the app in the
+interface language; the owner's own role shows the label the owner gave it. The chip is `src/shared/StandingPill.tsx`,
+its rule `src/domain/relationships.ts`, for any page that shows a relationship.
 
 ## What agents do with the tools
 

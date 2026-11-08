@@ -1,7 +1,9 @@
 import type { ReactNode } from "react"
 import { byOwner, dayKey, stateLineOf, subjectOf, toneOf, undoOf } from "@/domain/memory"
+import { roleLabel, standingOf } from "@/domain/relationships"
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
+import { StandingPill } from "@/shared/StandingPill"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
@@ -9,7 +11,36 @@ import { aboutOf, actionLine, authorOf, kindOf, type M, savedAt } from "./labels
 import { memoryMessages } from "./messages"
 import { Findings } from "./RowFindings"
 import { Sources } from "./RowSources"
-import { canRevoke, useMemory } from "./store"
+import { canRevoke, ownerRoles, useMemory } from "./store"
+
+/** A relationship: both ends, its role from the owner's lists, how it stands, and what the agent gave as evidence. */
+function RelationFacts({ entry, m }: { entry: MemoryEntry; m: M }) {
+  const roles = useMemory(ownerRoles)
+  const standing = standingOf(entry.standing)
+  const row = (dt: string, dd: ReactNode) => (
+    <>
+      <dt className="text-ink-dim">{dt}</dt>
+      <dd className="selectable min-w-0">{dd}</dd>
+    </>
+  )
+  return (
+    <div className="flex min-w-0 flex-col gap-[0.8rem]">
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-[0.45rem] text-[0.95rem]">
+        {row(m.relationFrom, entry.subjectName ?? entry.subject)}
+        {row(kindOf(entry.kind, m), entry.targetName ?? entry.target)}
+        {entry.role && row(m.role, roleLabel(entry.role, roles, m.roles))}
+        {standing && row(m.standing, <StandingPill standing={standing} />)}
+        {entry.account && row(m.reportedBy, <span className="font-mono text-[0.9rem]">{entry.account}</span>)}
+      </dl>
+      {entry.reason && (
+        <>
+          <h3 className="text-[0.9rem] font-medium text-ink-dim">{m.why}</h3>
+          <p className="selectable text-[0.95rem] text-ink-soft">{entry.reason}</p>
+        </>
+      )}
+    </div>
+  )
+}
 
 function ActionFacts({ entry, m }: { entry: MemoryEntry; m: M }) {
   const what = entry.verb || entry.summary ? actionLine(entry, m, false) : null
@@ -100,6 +131,8 @@ export function Details({ entry }: { entry: MemoryEntry }) {
         </div>
       ) : entry.type === "action" ? (
         <ActionFacts entry={entry} m={m} />
+      ) : entry.type === "relationship" ? (
+        <RelationFacts entry={entry} m={m} />
       ) : (
         <Sources entry={entry} />
       )}
@@ -118,17 +151,18 @@ export function Details({ entry }: { entry: MemoryEntry }) {
             )}
           {row(m.kind, <FilterLink label={kindOf(entry.kind, m)} onClick={() => filterBy("kind", entry.kind)} />)}
           {entry.scope && row(m.scope, m.scopes[entry.scope] ?? entry.scope)}
-          {row(
-            m.writtenBy,
-            <>
-              <FilterLink
-                label={authorOf(entry, m)}
-                mono={!owner}
-                onClick={() => filterBy("by", owner ? "me" : authorOf(entry, m))}
-              />
-              {!owner && <span className="text-ink-soft"> ({m.agentNote})</span>}
-            </>,
-          )}
+          {(entry.type !== "relationship" || entry.author) &&
+            row(
+              m.writtenBy,
+              <>
+                <FilterLink
+                  label={authorOf(entry, m)}
+                  mono={!owner}
+                  onClick={() => filterBy("by", owner ? "me" : authorOf(entry, m))}
+                />
+                {!owner && <span className="text-ink-soft"> ({m.agentNote})</span>}
+              </>,
+            )}
           {entry.model && row(m.model, <span className="selectable font-mono text-[0.9rem]">{entry.model}</span>)}
           {entry.confidence !== null &&
             row(
@@ -150,11 +184,14 @@ export function Details({ entry }: { entry: MemoryEntry }) {
               <span className="font-mono text-[0.9rem] tabular-nums">{savedAt(entry.updatedAt, lang)}</span>,
             )}
           {entry.type !== "action" &&
+            entry.type !== "relationship" &&
             row(m.sourcesCount, <span className="font-mono text-[0.9rem] tabular-nums">{entry.links}</span>)}
           {entry.target &&
             !entry.findings &&
+            entry.type !== "relationship" &&
             row(m.actsOn, <span className="selectable font-mono text-[0.9rem] break-all">{entry.target}</span>)}
           {entry.account &&
+            entry.type !== "relationship" &&
             row(m.wouldAct, <span className="selectable font-mono text-[0.9rem]">{entry.account}</span>)}
           {entry.supersedes &&
             row(m.corrects, <span className="selectable font-mono text-[0.9rem]">{entry.supersedes}</span>)}
