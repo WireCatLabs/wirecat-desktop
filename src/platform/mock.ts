@@ -707,6 +707,7 @@ export function createMock(os: Platform["os"]): Platform {
       if (link) onLink(parseLink(link.startsWith("/") ? `wirecat://open${link}` : link))
     },
     async openUrl(url) {
+      if (params.get("open") === "fail") throw new Error("No program is set to open https links.")
       if (isMockLogin(url)) return
       window.open(url, "_blank", "noopener")
     },

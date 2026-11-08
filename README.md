@@ -323,6 +323,10 @@ once for the Tauri build libraries; other systems are in
 [Tauri's prerequisites](https://v2.tauri.app/start/prerequisites/). `pnpm build` builds the interface, and
 `pnpm tauri build` makes the installers.
 
+To try the real app without touching your own tools, settings and sign-ins, build it with
+`pnpm tauri build --debug --no-bundle` and start it in a sandbox: `bin/sandbox demo --seed demo` (Linux). The presets
+and what stays separate are in [the sandbox guide](docs/dev/guides/sandbox.md).
+
 `pnpm dev` takes scenarios in the address, such as `?state=fresh` for a machine with nothing installed; the list is in
 [CLAUDE.md](CLAUDE.md). Working rules for people and agents are in [CLAUDE.md](CLAUDE.md) and [AGENTS.md](AGENTS.md).
 

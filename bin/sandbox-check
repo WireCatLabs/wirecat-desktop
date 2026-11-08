@@ -1,0 +1,117 @@
+#!/usr/bin/env bash
+# Checks that a sandbox keeps away from your own setup: it seeds a throwaway sandbox (demo by default), asks every
+# tool in it where it reads and writes, and compares your own settings, tools and agent folders before and after.
+# Reads no secret and no store content: names, sizes and times of files only.
+#
+#   bin/sandbox-check [--seed tools|demo] [--app]   --app also starts the debug build for 15 s and checks its env
+set -euo pipefail
+
+root=$(cd "$(dirname "$0")/.." && pwd)
+seed=demo
+with_app=false
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --seed)
+      seed="$2"
+      shift
+      ;;
+    --app) with_app=true ;;
+    *)
+      echo "unknown option: $1" >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+name="check-$$"
+dir="${XDG_CACHE_HOME:-$HOME/.cache}/wirecat-sandbox/$name"
+failed=0
+fail() {
+  echo "FAIL: $*"
+  failed=1
+}
+
+# Settings, the app's own files, the tools installed for you and the agents' skill folders. The store is left out:
+# your background syncs write it all the time, so a changed time would prove nothing.
+fingerprint() {
+  local places=(
+    "$HOME/.config/tg-cli" "$HOME/.config/max-cli" "$HOME/.config/whatsapp-cli" "$HOME/.config/zm"
+    "$HOME/.config/drive-cli" "$HOME/.config/gcal-cli" "$HOME/.config/mail-cli" "$HOME/.config/WireCat"
+    "$HOME/.local/share/dev.wirecat.desktop" "$HOME/.local/bin"
+    "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.agents/skills"
+    "$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.profile" "$HOME/.npmrc"
+  )
+  local node
+  for node in "$HOME"/.nvm/versions/node/*/lib/node_modules/@wirecat; do places+=("$node"); done
+  for p in "${places[@]}"; do
+    [ -e "$p" ] || continue
+    find "$p" -maxdepth 3 \( -name logs -o -name runs -o -name '*.log' -o -name node \) -prune -o \
+      -printf '%p %s %T@\n' 2>/dev/null
+  done | sort
+}
+
+before=$(mktemp)
+after=$(mktemp)
+fingerprint > "$before"
+
+echo "Seeding sandbox $name with $seed"
+"$root/bin/sandbox" "$name" --seed "$seed" --no-start > /dev/null
+
+paths=$("$root/bin/sandbox" "$name" --exec sh -c '
+  npm prefix --global
+  echo "$MESSAGING_STORE"
+  for b in tg max wa zm drive gcal memo mail; do $b doctor --no-record --json 2>/dev/null; done
+' | grep -oE '"?/(home|root|Users)/[^" ,]*' | tr -d '"' | sort -u)
+outside=$(printf '%s\n' "$paths" | grep -v "^$dir" || true)
+if [ -n "$outside" ]; then
+  fail "the tools in the sandbox name paths outside it:"
+  printf '  %s\n' $outside
+else
+  echo "ok: npm, the store and all $(printf "%s\n" "$paths" | grep -c .) paths the tools report are inside $dir"
+fi
+
+bus=$("$root/bin/sandbox" "$name" --exec sh -c 'echo "$DBUS_SESSION_BUS_ADDRESS"')
+[ "$bus" = "disabled:" ] && echo "ok: no session bus, so no keyring" || fail "session bus is '$bus'"
+
+# Asks the session bus for its own name list: it answers in your shell, so a failure inside means no bus, not no match.
+probe=(dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames)
+if ! "${probe[@]}" > /dev/null 2>&1; then
+  fail "the session bus does not answer in your own shell, so the probe proves nothing"
+elif "$root/bin/sandbox" "$name" --exec "${probe[@]}" > /dev/null 2>&1; then
+  fail "the session bus, and so the keyring, answers inside the sandbox"
+else
+  echo "ok: the session bus, and so the keyring, does not answer inside the sandbox"
+fi
+
+if [ "$with_app" = true ]; then
+  app="$root/src-tauri/target/debug/wirecat-desktop"
+  if [ ! -x "$app" ]; then
+    fail "no debug build at $app"
+  else
+    "$root/bin/sandbox" "$name" > /dev/null 2>&1 &
+    pid=$!
+    sleep 15
+    if [ -r "/proc/$pid/environ" ] && [ "$(readlink "/proc/$pid/exe")" = "$(readlink -f "$app")" ]; then
+      env_of=$(tr '\0' '\n' < "/proc/$pid/environ")
+      grep -qx "DBUS_SESSION_BUS_ADDRESS=disabled:" <<< "$env_of" || fail "the app has a session bus"
+      grep -qx "HOME=$dir/home" <<< "$env_of" || fail "the app's HOME is not the sandbox's"
+      echo "ok: the app runs with the sandbox's HOME and no session bus"
+      kill "$pid"
+    else
+      fail "the app did not stay running"
+    fi
+  fi
+fi
+
+fingerprint > "$after"
+if diff -q "$before" "$after" > /dev/null; then
+  echo "ok: your own settings, tools and agent folders did not change"
+else
+  fail "your own files changed while the check ran (a background sync may explain some):"
+  diff "$before" "$after" | head -20
+fi
+rm -f "$before" "$after"
+
+rm -rf -- "$dir"
+exit "$failed"
