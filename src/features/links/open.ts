@@ -1,6 +1,8 @@
 import { tools } from "@/domain/catalog"
-import type { DeepLinkTarget } from "@/domain/links"
+import { isConversation } from "@/domain/conversation"
+import { type DeepLinkTarget, toolOfProvider } from "@/domain/links"
 import { taskQuery } from "@/domain/tasks"
+import { openConversation } from "@/features/conversation"
 import { useMemory } from "@/features/memory"
 import { useTasks } from "@/features/tasks"
 import { openToolAt } from "@/features/tools"
@@ -11,9 +13,6 @@ import { type Shown, useLinks } from "./store"
 
 /** The hidden section a link opens when it has no page of its own; it is never saved as the page to reopen. */
 export const LINK_SECTION = "open"
-
-// Links name a messenger as the store does (`telegram`); the catalog knows it by its tool id (`tg`).
-const TOOL_OF: Record<string, string> = { telegram: "tg", whatsapp: "wa", zoom: "zm", mail: "email", calendar: "gcal" }
 
 const show = (shown: Shown) => {
   useLinks.setState({ shown })
@@ -57,6 +56,7 @@ async function openProposal(target: Extract<DeepLinkTarget, { type: "proposal" }
  */
 export async function openTarget(target: DeepLinkTarget | null) {
   if (target === null) return show({ kind: "refused" })
+  if (isConversation(target)) return openConversation(target)
   switch (target.type) {
     case "task":
       return openTask(target)
@@ -69,7 +69,7 @@ export async function openTarget(target: DeepLinkTarget | null) {
     case "digest":
       return openDigest(target)
     case "sync": {
-      const id = TOOL_OF[target.tool] ?? target.tool
+      const id = toolOfProvider(target.tool)
       if (!tools.some((t) => t.id === id)) return show({ kind: "unsupported", target })
       return openToolAt(id, "sync")
     }

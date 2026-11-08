@@ -74,7 +74,7 @@ fn hex(b: u8) -> Option<u8> {
 }
 
 /// As JavaScript's `decodeURIComponent`: a `%` must start two hex digits and the bytes must be UTF-8.
-fn decode(part: &str) -> Option<String> {
+pub(crate) fn decode(part: &str) -> Option<String> {
     let bytes = part.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;

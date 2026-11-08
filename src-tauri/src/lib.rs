@@ -16,6 +16,7 @@ mod commands;
 mod community;
 mod compat;
 mod config_repair;
+mod conversation;
 mod deep_link;
 mod digests;
 mod drive_folders;
@@ -259,6 +260,7 @@ pub fn run() {
             commands::tasks::person_add,
             commands::tasks::project_list,
             commands::memory::memory_read,
+            commands::memory::conversation_read,
             commands::memory::memory_sources,
             commands::memory::memory_confirm,
             commands::memory::memory_discard,

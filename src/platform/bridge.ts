@@ -198,6 +198,7 @@ function createTauri(): Platform {
       call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),
     memoryDiscard: (ref) => call(MemoryEntrySchema, "memory_discard", { reference: ref }),
     memorySourceContext: (ref) => call(SourceContextSchema, "memory_source_context", { reference: ref }),
+    conversationRead: (place, ask) => invoke("conversation_read", { place, ask }),
     memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
     memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),

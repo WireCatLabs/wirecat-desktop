@@ -6,6 +6,7 @@ import {
   HardDrive,
   Link2,
   ListTodo,
+  MessagesSquare,
   Newspaper,
   ScrollText,
   Search,
@@ -17,6 +18,9 @@ import { type ComponentType, type LazyExoticComponent, lazy, type SVGProps } fro
 // Each page is its own chunk: the first screen does not pay for the other nine.
 const AgentsPage = lazy(() => import("@/features/agents/page").then((m) => ({ default: m.AgentsPage })))
 const AnalyticsPage = lazy(() => import("@/features/analytics/page").then((m) => ({ default: m.AnalyticsPage })))
+const ConversationPage = lazy(() =>
+  import("@/features/conversation/page").then((m) => ({ default: m.ConversationPage })),
+)
 const ConfigPage = lazy(() => import("@/features/config/page").then((m) => ({ default: m.ConfigPage })))
 const LinkPage = lazy(() => import("@/features/links/page").then((m) => ({ default: m.LinkPage })))
 const DigestsPage = lazy(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
@@ -53,4 +57,5 @@ export const sections: readonly Section[] = [
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },
   { id: "settings", icon: Settings, page: ConfigPage, group: "system" },
   { id: "open", icon: Link2, page: LinkPage, hidden: true },
+  { id: "conversation", icon: MessagesSquare, page: ConversationPage, hidden: true },
 ]

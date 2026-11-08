@@ -15,6 +15,11 @@ export type DeepLinkTarget =
   | { type: "digest"; date: string }
   | { type: "sync"; tool: string; account?: string }
 
+// Links name a messenger as the store does (`telegram`); the catalog knows it by its tool id (`tg`).
+const TOOL_OF: Record<string, string> = { telegram: "tg", whatsapp: "wa", zoom: "zm", mail: "email", calendar: "gcal" }
+
+export const toolOfProvider = (provider: string): string => TOOL_OF[provider] ?? provider
+
 export const LINK_VERSION = "v1"
 export const APP_PREFIX = "wirecat://open"
 const MAX_PATH = 512

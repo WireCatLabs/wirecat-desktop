@@ -1,6 +1,7 @@
 import { Clock, ExternalLink, Eye, EyeOff, FileJson, KeyRound } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
-import { type AppPasswordProvider, linkParts, type MailNotes } from "@/domain/mail-signin"
+import { linkParts } from "@/domain/format"
+import type { AppPasswordProvider, MailNotes } from "@/domain/mail-signin"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { setClientFile, setPassword, useSignIn } from "@/shared/signin-store"

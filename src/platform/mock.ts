@@ -10,6 +10,7 @@ import { botMock } from "./mock-bot"
 import { cloudflareMock } from "./mock-cloudflare"
 import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
+import { conversationMock } from "./mock-conversation"
 import { delay } from "./mock-delay"
 import { digestsMock } from "./mock-digests"
 import { driveFoldersMock } from "./mock-drive-folders"
@@ -687,6 +688,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...syncMock(),
     ...mailAgentMock(params),
     ...digestsMock(params),
+    ...conversationMock(params),
     ...notesSetupMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
