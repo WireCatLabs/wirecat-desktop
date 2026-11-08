@@ -21,3 +21,10 @@ it("says cli-core's checks cover only what an untrusted tool sends through them"
     /run only if the tool uses cli-core, and this one doesn't/,
   )
 })
+
+it("names hidden calls in plain words and where a repository moved", () => {
+  expect(signalWords({ kind: "hiddenCalls", ways: ["computed global"] }, m)[0]).toBe(
+    "Its code hides calls: a global looked up by a computed name",
+  )
+  expect(signalWords({ kind: "repoMoved", to: "acme/crm-next" }, m)[0]).toBe("Its repository moved to acme/crm-next")
+})

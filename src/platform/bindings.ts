@@ -490,6 +490,10 @@ export type OwnSignal = { kind: "newPackage"; days: number } | { kind: "fewVersi
 { kind: "undeclaredHosts"; hosts: string[]; more: number } | 
 /**  `.node` or `.wasm` files: native code the scan cannot read. */
 { kind: "nativeCode"; files: string[] } | 
+/**  Calls written so a reader does not see them: `escaped name`, `computed global`, `process binding`. */
+{ kind: "hiddenCalls"; ways: string[] } | 
+/**  The repository npm names answers with a redirect: it was renamed or moved, to `to` when GitHub says where. */
+{ kind: "repoMoved"; to: string | null } | 
 /**  A bundler copied cli-base or cli-core in without naming its version. */
 { kind: "bundledUnknown"; package: string } | { kind: "startsPrograms" } | { kind: "repoNew"; days: number } | { kind: "repoStale"; days: number } | { kind: "repoArchived" } | { kind: "fewStars"; stars: number } | 
 /**  cli-base's shared workflows its workflows at the release commit do not call. */

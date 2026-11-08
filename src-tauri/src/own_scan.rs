@@ -27,7 +27,7 @@ const NETWORK: [&str; 15] = [
     "request",
     "ws",
 ];
-/// A bound on memory only: the review caps what it shows after leaving out the declared hosts.
+/// A bound on memory for the undeclared hosts only: declared ones are left out as they are found, so they never use it.
 const MAX_HOSTS: usize = 2000;
 const MAX_NATIVE: usize = 20;
 
@@ -60,9 +60,25 @@ pub struct Code {
     pub native: BTreeSet<String>,
     /// The `@wirecat` packages a bundler copied in, with the version its path names when it names one.
     pub bundled: std::collections::BTreeMap<String, Option<String>>,
+    /// Ways of hiding a call from a reader: `escaped name`, `computed global`, `process binding`.
+    pub hidden: BTreeSet<String>,
+    /// Declared hosts and the repository's, as cli-base writes them (`*.x` for the names under x).
+    allowed: Vec<String>,
+}
+
+/// As cli-base's `hostCovered`: `*.x` covers the names under x, not x itself.
+pub fn covered(host: &str, allowed: &[String]) -> bool {
+    allowed.iter().any(|d| {
+        let d = d.to_ascii_lowercase();
+        d.strip_prefix('*').map_or(host == d, |suffix| host.ends_with(suffix))
+    })
 }
 
 impl Code {
+    pub fn allowing(allowed: &[String]) -> Self {
+        Self { allowed: allowed.to_vec(), ..Self::default() }
+    }
+
     pub fn touches_network(&self) -> bool {
         !self.modules.is_empty() || self.fetch || self.websocket
     }
@@ -76,12 +92,19 @@ static SPECIFIER: LazyLock<Regex> = LazyLock::new(|| {
 static FETCH: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:^|[^.\w$])fetch\s*\(|globalThis\.fetch\s*\(").expect("a valid pattern"));
 static WEBSOCKET: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\bnew\s+WebSocket\s*\(").expect("a valid pattern"));
+/// `f\u0065tch(`: an escape inside a name that is then called, which reads as nothing to a search for `fetch`.
+static ESCAPED_CALL: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"[A-Za-z_$]?\\u(?:[0-9A-Fa-f]{4}|\{[0-9A-Fa-f]{1,6}\})(?:[\w$]|\\u(?:[0-9A-Fa-f]{4}|\{[0-9A-Fa-f]{1,6}\}))*\s*\(")
+        .expect("a valid pattern")
+});
+static GLOBAL_KEY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b(?:globalThis|global|window|self)\s*\[([^\]]{0,200})\]").expect("a valid pattern"));
+static PLAIN_KEY: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"^\s*(?:"[\w$]*"|'[\w$]*')\s*$"#).expect("a valid pattern"));
+static BINDING: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\bprocess\s*\.\s*(?:binding|_linkedBinding)\s*\(").expect("a valid pattern"));
 static URL_HOST: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b(?:https?|wss?)://([A-Za-z0-9][A-Za-z0-9.-]{0,252})").expect("a valid pattern"));
-
-pub fn is_code(path: &str) -> bool {
-    [".js", ".mjs", ".cjs"].iter().any(|ext| path.ends_with(ext))
-}
 
 pub fn is_native(path: &str) -> bool {
     [".node", ".wasm"].iter().any(|ext| path.ends_with(ext))
@@ -137,13 +160,22 @@ fn scan_section(text: &str, code: &mut Code) {
             code.programs = true;
         }
     }
+    if ESCAPED_CALL.is_match(text) {
+        code.hidden.insert("escaped name".into());
+    }
+    if GLOBAL_KEY.captures_iter(text).any(|m| !PLAIN_KEY.is_match(&m[1])) {
+        code.hidden.insert("computed global".into());
+    }
+    if BINDING.is_match(text) {
+        code.hidden.insert("process binding".into());
+    }
     code.fetch |= FETCH.is_match(text);
     code.websocket |= WEBSOCKET.is_match(text);
     for m in URL_HOST.captures_iter(text) {
-        if code.hosts.len() >= MAX_HOSTS {
-            break;
-        }
-        if let Some(host) = server(&m[1]) {
+        if let Some(host) = server(&m[1])
+            && !covered(&host, &code.allowed)
+            && code.hosts.len() < MAX_HOSTS
+        {
             code.hosts.insert(host);
         }
     }
@@ -247,6 +279,27 @@ const d = "http://127.0.0.1:9"; const e = "https://203.0.113.9/up";"#);
     }
 
     #[test]
+    fn two_thousand_declared_hosts_cannot_hide_an_undeclared_one() {
+        let mut text: String = (0..2000).map(|i| format!("\"https://h{i}.acme.io\"; ")).collect::<Vec<_>>().concat();
+        text.push_str("\"https://collector.evil.io\"");
+        let mut code = Code::allowing(&["*.acme.io".to_string()]);
+        scan(&text, &mut code);
+        assert_eq!(code.hosts.iter().map(String::as_str).collect::<Vec<_>>(), ["collector.evil.io"]);
+    }
+
+    #[test]
+    fn escaped_names_computed_globals_and_process_bindings_are_found() {
+        assert_eq!(of(r#"f\u0065tch("x")"#).hidden.iter().map(String::as_str).collect::<Vec<_>>(), ["escaped name"]);
+        assert!(of(r"\u{66}etch(1)").hidden.contains("escaped name"));
+        assert!(of(r#"globalThis["fe"+"tch"]("x")"#).hidden.contains("computed global"));
+        assert!(of("window[k](1)").hidden.contains("computed global"));
+        assert!(of(r#"process.binding("tcp_wrap")"#).hidden.contains("process binding"));
+        assert!(of(r#"process._linkedBinding("x")"#).hidden.contains("process binding"));
+        let plain = of(r#"globalThis["fetch"]; const s = "caf\u00e9"; window['x'] = 1"#);
+        assert!(plain.hidden.is_empty(), "{:?}", plain.hidden);
+    }
+
+    #[test]
     fn bundled_cli_core_and_its_version_are_noted() {
         let code = of(
             "// node_modules/.pnpm/@wirecat+cli-core@0.605.0_@wirecat+cli-base@0.82.0_x/node_modules/@wirecat/cli-core/dist/a.js\nx\n",
@@ -254,11 +307,5 @@ const d = "http://127.0.0.1:9"; const e = "https://203.0.113.9/up";"#);
         assert_eq!(code.bundled.get("@wirecat/cli-core"), Some(&Some("0.605.0".to_string())));
         let code = of("// node_modules/@wirecat/cli-core/dist/a.js\nx\n");
         assert_eq!(code.bundled.get("@wirecat/cli-core"), Some(&None));
-    }
-
-    #[test]
-    fn only_javascript_files_are_read() {
-        assert!(is_code("package/dist/a.js") && is_code("package/x.mjs") && is_code("package/x.cjs"));
-        assert!(!is_code("package/dist/a.js.map") && !is_code("package/dist/a.d.ts"));
     }
 }

@@ -485,7 +485,7 @@ pub fn review(
 
     let bytes = registry.download(tarball)?;
     verify_integrity(&bytes, integrity)?;
-    let (found, code) = read_tarball(&bytes, &bin_targets(&view))?;
+    let found = read_manifest(&bytes)?;
     let (manifest, sha) = match (found, pasted) {
         (Some(raw), _) => (parse_manifest(&raw, package, &version)?, Some(hex(&Sha256::digest(&raw)))),
         (None, Some(text)) => (pasted_manifest(text, package, &version, &view)?, None),
@@ -514,6 +514,9 @@ pub fn review(
     let commands: Vec<String> = manifest.commands.iter().map(|c| c.path.join(" ")).collect();
     let publishers = publishers(&view["maintainers"]);
     let hosts = declared_hosts(&manifest)?;
+    // The declared hosts go into the scan, so no number of them can push an undeclared one past its bound.
+    let allowed: Vec<String> = hosts.iter().flatten().cloned().chain(repo.as_deref().and_then(host_of)).collect();
+    let code = scan_tarball(&bytes, &allowed)?;
     let links = links_of(package, &version, &publishers, built.as_ref(), &release);
     // Kept as word lists: `community.rs` checks every string in an array as a command word at each start.
     let words = |list: &[String]| -> Vec<Vec<String>> {
@@ -684,52 +687,37 @@ fn verify_integrity(bytes: &[u8], integrity: &str) -> Result<(), Refusal> {
 /// The manifest's bytes, read out of the gzipped tarball in memory: nothing is written to disk and nothing runs.
 #[cfg(test)]
 pub fn manifest_in(tgz: &[u8]) -> Result<Option<Vec<u8>>, Refusal> {
-    read_tarball(tgz, &[]).map(|(found, _)| found)
+    read_manifest(tgz)
 }
 
-/// The files `bin` names, relative to the package (`./dist/bin.js` → `dist/bin.js`): a program file often has no
-/// extension, and it is the one that runs.
-fn bin_targets(view: &Value) -> Vec<String> {
-    let targets: Vec<&str> = match &view["bin"] {
-        Value::String(one) => vec![one.as_str()],
-        Value::Object(all) => all.values().filter_map(Value::as_str).collect(),
-        _ => Vec::new(),
-    };
-    targets.into_iter().map(|t| t.trim_start_matches("./").to_string()).collect()
+fn unreadable() -> Refusal {
+    bad("tarball", "the package file cannot be read.")
 }
 
-/// The manifest, and what the package's JavaScript says about the network, in one pass over the tarball in memory.
-/// JavaScript is a `.js`, `.mjs` or `.cjs` file, a file `bins` names, or any file that starts with `#!`.
-pub fn read_tarball(tgz: &[u8], bins: &[String]) -> Result<(Option<Vec<u8>>, Code), Refusal> {
-    let unreadable = || bad("tarball", "the package file cannot be read.");
+/// Every entry of the gzipped tarball, read in memory and bounded: nothing is written to disk and nothing runs.
+fn each_entry(
+    tgz: &[u8],
+    mut on: impl FnMut(&str, &mut tar::Entry<'_, std::io::Take<flate2::read::GzDecoder<&[u8]>>>) -> Result<(), Refusal>,
+) -> Result<(), Refusal> {
     let mut archive = tar::Archive::new(flate2::read::GzDecoder::new(tgz).take(MAX_UNPACKED));
-    let mut found = None;
-    let mut code = Code::default();
     for entry in archive.entries().map_err(|_| unreadable())? {
         let mut entry = entry.map_err(|_| unreadable())?;
         let path = entry.path().map_err(|_| unreadable())?.into_owned();
         // npm packs everything under one top folder, `package/` for an `npm pack`.
         let mut parts = path.components();
         parts.next();
-        let inside = parts.as_path().to_string_lossy().into_owned();
-        if entry.header().entry_type().is_file() && own_scan::is_native(&inside) {
-            code.add_native(&inside);
-            continue;
-        }
-        if entry.header().entry_type().is_file() && inside != MANIFEST {
-            let mut text = Vec::new();
-            let named = own_scan::is_code(&inside) || bins.contains(&inside);
-            if !named {
-                entry.by_ref().take(2).read_to_end(&mut text).map_err(|_| unreadable())?;
-            }
-            if named || text.starts_with(b"#!") {
-                entry.read_to_end(&mut text).map_err(|_| unreadable())?;
-                own_scan::scan(&String::from_utf8_lossy(&text), &mut code);
-            }
-            continue;
-        }
-        if parts.as_path() != Path::new(MANIFEST) {
-            continue;
+        let inside = parts.as_path().to_string_lossy().replace('\\', "/");
+        on(&inside, &mut entry)?;
+    }
+    Ok(())
+}
+
+/// The manifest's bytes.
+pub fn read_manifest(tgz: &[u8]) -> Result<Option<Vec<u8>>, Refusal> {
+    let mut found = None;
+    each_entry(tgz, |inside, entry| {
+        if inside != MANIFEST {
+            return Ok(());
         }
         // The review reads one entry and npm extracts the last of several, so a second or linked one is refused.
         if found.is_some() {
@@ -747,8 +735,41 @@ pub fn read_tarball(tgz: &[u8], bins: &[String]) -> Result<(Option<Vec<u8>>, Cod
             return Err(Refusal::TooLarge { what: MANIFEST.into() });
         }
         found = Some(raw);
-    }
-    Ok((found, code))
+        Ok(())
+    })?;
+    Ok(found)
+}
+
+/// Files Node.js never runs as JavaScript, whatever `require` names: images and fonts.
+const NOT_CODE: [&str; 12] = ["png", "jpg", "jpeg", "gif", "webp", "ico", "bmp", "woff", "woff2", "ttf", "otf", "eot"];
+
+/// What the package's files say about the network. Node.js runs any text file a `require` names as JavaScript, so
+/// every text file is read (valid UTF-8, no NUL in its first 8 KB), except `package.json`, the manifest, images and
+/// fonts. `allowed` are the declared hosts and the repository's, left out as they are found.
+pub fn scan_tarball(tgz: &[u8], allowed: &[String]) -> Result<Code, Refusal> {
+    let mut code = Code::allowing(allowed);
+    each_entry(tgz, |inside, entry| {
+        if !entry.header().entry_type().is_file() || inside == MANIFEST || inside == "package.json" {
+            return Ok(());
+        }
+        if own_scan::is_native(inside) {
+            code.add_native(inside);
+            return Ok(());
+        }
+        let ext = Path::new(inside).extension().map(|e| e.to_string_lossy().to_ascii_lowercase());
+        if ext.is_some_and(|e| NOT_CODE.contains(&e.as_str())) {
+            return Ok(());
+        }
+        let mut raw = Vec::new();
+        entry.read_to_end(&mut raw).map_err(|_| unreadable())?;
+        if !raw[..raw.len().min(8192)].contains(&0)
+            && let Ok(text) = std::str::from_utf8(&raw)
+        {
+            own_scan::scan(text, &mut code);
+        }
+        Ok(())
+    })?;
+    Ok(code)
 }
 
 pub fn parse_manifest(raw: &[u8], package: &str, version: &str) -> Result<Manifest, Refusal> {
@@ -1405,7 +1426,7 @@ mod tests {
             r.signals
         );
 
-        let mut text: String = (0..20).map(|i| format!("\"https://h{i}.acme.io\"; ")).collect::<Vec<_>>().concat();
+        let mut text: String = (0..2000).map(|i| format!("\"https://h{i}.acme.io\"; ")).collect::<Vec<_>>().concat();
         text.push_str("\"https://collector.evil.io\"");
         let mut m = manifest();
         m["network"] = json!({ "hosts": ["*.acme.io"] });
@@ -1443,6 +1464,25 @@ mod tests {
                 .contains(&Signal::UndeclaredHosts { hosts: vec!["evil.io".into(), "ws.evil.io".into()], more: 0 })
         );
         assert!(r.signals.contains(&Signal::NativeCode { files: vec!["build/addon.node".into()] }));
+    }
+
+    #[test]
+    fn a_required_file_of_any_extension_is_read_but_images_and_package_json_are_not() {
+        let m = manifest().to_string();
+        let f = Fake::of(tgz(&[
+            ("package/dist/a.js", b"require(\"./payload.dat\")"),
+            ("package/payload.dat", b"fetch(\"https://drop.evil.io/x\")"),
+            ("package/logo.png", b"fetch(\"https://png.evil.io\")"),
+            ("package/blob.bin", b"\0\0fetch(\"https://nul.evil.io\")"),
+            ("package/package.json", b"{\"homepage\":\"https://pkg.example-site.io\"}"),
+            ("package/contracts/wirecat.json", m.as_bytes()),
+        ]));
+        let r = review("@example/acme-crm-cli", None, &f, catalog(), "").unwrap().review;
+        assert!(
+            r.signals.contains(&Signal::UndeclaredHosts { hosts: vec!["drop.evil.io".into()], more: 0 }),
+            "{:?}",
+            r.signals
+        );
     }
 
     #[test]

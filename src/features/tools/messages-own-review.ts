@@ -101,6 +101,14 @@ const en = {
       `It bundles ${pkg.replace("@wirecat/", "")} (version unknown)`,
       "Its package copies WireCat's library in without saying which version, so WireCat cannot tell whether it reads it.",
     ],
+    hiddenCalls: (ways: string[]): Words => [
+      `Its code hides calls: ${ways.map((w) => ({ "escaped name": "a name written with escapes", "computed global": "a global looked up by a computed name", "process binding": "Node.js's internal bindings" })[w] ?? w).join(", ")}`,
+      "Found in the code, not proved. Plain code has no reason to hide what it calls.",
+    ],
+    repoMoved: (to: string | null): Words => [
+      to ? `Its repository moved to ${to}` : "Its repository moved",
+      "The repository npm names now redirects somewhere else, so the review's links and checks may not be this tool's.",
+    ],
     nativeCode: (files: string): Words => [
       `It ships native code: ${files}`,
       "Compiled .node or .wasm files can do anything, and WireCat's scan cannot read them.",
@@ -286,6 +294,14 @@ const ru: typeof en = {
       `Встраивает ${pkg.replace("@wirecat/", "")} (версия неизвестна)`,
       "Пакет копирует библиотеку WireCat в себя, не называя версию, поэтому WireCat не может сказать, читает ли он её.",
     ],
+    hiddenCalls: (ways) => [
+      `Его код прячет вызовы: ${ways.map((w) => ({ "escaped name": "имя, записанное экранированием", "computed global": "глобальный объект по вычисленному имени", "process binding": "внутренние привязки Node.js" })[w] ?? w).join(", ")}`,
+      "Найдено в коде, не доказано. Обычному коду незачем прятать, что он вызывает.",
+    ],
+    repoMoved: (to) => [
+      to ? `Его репозиторий переехал в ${to}` : "Его репозиторий переехал",
+      "Репозиторий, который называет npm, теперь перенаправляет в другое место, поэтому ссылки и проверки могут относиться не к этому инструменту.",
+    ],
     nativeCode: (files) => [
       `Содержит машинный код: ${files}`,
       "Скомпилированные файлы .node и .wasm могут делать что угодно, а проверка WireCat их не читает.",
@@ -470,6 +486,14 @@ const es: typeof en = {
     bundledUnknown: (pkg) => [
       `Incluye ${pkg.replace("@wirecat/", "")} (versión desconocida)`,
       "El paquete copia la biblioteca de WireCat sin decir qué versión, así que WireCat no puede saber si la lee.",
+    ],
+    hiddenCalls: (ways) => [
+      `Su código oculta llamadas: ${ways.map((w) => ({ "escaped name": "un nombre escrito con escapes", "computed global": "un global buscado por un nombre calculado", "process binding": "los enlaces internos de Node.js" })[w] ?? w).join(", ")}`,
+      "Encontrado en el código, no demostrado. El código normal no tiene por qué ocultar lo que llama.",
+    ],
+    repoMoved: (to) => [
+      to ? `Su repositorio se movió a ${to}` : "Su repositorio se movió",
+      "El repositorio que indica npm ahora redirige a otro sitio, así que los enlaces y las comprobaciones pueden no ser de esta herramienta.",
     ],
     nativeCode: (files) => [
       `Incluye código nativo: ${files}`,

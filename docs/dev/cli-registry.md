@@ -208,14 +208,17 @@ workflow run and the transparency-log entry, the last three from the Fulcio cert
   publisher, no provenance), the `@wirecat/cli-base` and `@wirecat/cli-core` versions in `dependencies` (cli-base
   0.81.0+, the format-2 manifest; cli-core 0.603.0+, undeclared effects count as writes; both < 1.0.0), the code
   (`own_scan.rs`: network modules, `fetch`, `WebSocket`, `child_process` and URL hosts in the tool's own JavaScript,
-  which is every `.js`, `.mjs` and `.cjs` file, the files `bin` names and any file starting with `#!`; comments are
+  which is every text file (valid UTF-8, no NUL in its first 8 KB) except `package.json`, the manifest, images and
+  fonts, since Node.js runs any file a `require` names; declared hosts are left out as they are found, so they cannot
+  fill the bound; escaped names, computed globals and `process.binding` are flagged as hidden calls; comments are
   read like code; sections a bundler marks as `node_modules/` are skipped, but a bundled cli-base or cli-core counts
   as one, with the version pnpm's folder names; `.node` and `.wasm` files are flagged as unreadable; only the
   repository's host counts as the tool's own, and the review shows 20 undeclared hosts and how many more), a manifest
   without `network`, and GitHub
   (`own_tool_risks`, unauthenticated REST, cached an hour by `repo@commit`: created < 30 days, no push > 180 days,
   archived, < 10 stars, workflows at the release commit whose `uses:` keys do not call cli-base's `node-ci.yml` and
-  `release-checks.yml`; one agent, no redirects, 15 s for all calls together; a failure is "Couldn't check" with its
+  `release-checks.yml`; one agent, no redirects (a renamed repository's 301 is flagged as moved, named by one more
+  read on api.github.com), 15 s for all calls together; a failure is "Couldn't check" with its
   reason). `network.hosts` follows cli-base's `HOST_PATTERN` exactly (`*.` only before two labels), with no count cap.
   The package file must come from `https://registry.npmjs.org/`.
 - **Servers it contacts**: the manifest's `network.hosts` and `user_hosts` (cli-base#529).

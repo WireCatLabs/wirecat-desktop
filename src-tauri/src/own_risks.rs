@@ -62,6 +62,14 @@ pub enum Signal {
     NativeCode {
         files: Vec<String>,
     },
+    /// Calls written so a reader does not see them: `escaped name`, `computed global`, `process binding`.
+    HiddenCalls {
+        ways: Vec<String>,
+    },
+    /// The repository npm names answers with a redirect: it was renamed or moved, to `to` when GitHub says where.
+    RepoMoved {
+        to: Option<String>,
+    },
     /// A bundler copied cli-base or cli-core in without naming its version.
     BundledUnknown {
         package: String,
@@ -205,20 +213,17 @@ pub fn network(code: &Code, declared: Option<&[String]>, known: &[String]) -> Ve
         out.push(Signal::NetworkCode { modules });
     }
     let declared = declared.unwrap_or_default();
-    let covered = |host: &str| {
-        // As cli-base's `hostCovered`: `*.x` covers the names under x, not x itself.
-        declared.iter().chain(known).any(|d| {
-            let d = d.to_ascii_lowercase();
-            d.strip_prefix('*').map_or(host == d, |suffix| host.ends_with(suffix))
-        })
-    };
-    let hosts: Vec<String> = code.hosts.iter().filter(|h| !covered(h)).cloned().collect();
+    let allowed: Vec<String> = declared.iter().chain(known).cloned().collect();
+    let hosts: Vec<String> = code.hosts.iter().filter(|h| !crate::own_scan::covered(h, &allowed)).cloned().collect();
     if !hosts.is_empty() {
         let more = u32::try_from(hosts.len().saturating_sub(MAX_SHOWN)).unwrap_or(u32::MAX);
         out.push(Signal::UndeclaredHosts { hosts: hosts.into_iter().take(MAX_SHOWN).collect(), more });
     }
     if code.programs {
         out.push(Signal::StartsPrograms);
+    }
+    if !code.hidden.is_empty() {
+        out.push(Signal::HiddenCalls { ways: code.hidden.iter().cloned().collect() });
     }
     if !code.native.is_empty() {
         out.push(Signal::NativeCode { files: code.native.iter().cloned().collect() });
@@ -240,6 +245,8 @@ pub struct Rest {
 /// A slow GitHub must not keep "Checking its GitHub repository…" on screen; what is left says "Couldn't check".
 const BUDGET: Duration = Duration::from_secs(15);
 const OUT_OF_TIME: &str = "out of time";
+/// Redirects are not followed, so a renamed repository's 301 comes back as this and its `Location`.
+const MOVED: &str = "moved:";
 
 static AGENT: LazyLock<ureq::Agent> = LazyLock::new(|| {
     ureq::Agent::config_builder()
@@ -270,6 +277,10 @@ impl GitHub for Rest {
             ureq::Error::StatusCode(403 | 429) => LIMIT.to_string(),
             e => e.to_string(),
         })?;
+        if answer.status().is_redirection() {
+            let to = answer.headers().get("location").and_then(|l| l.to_str().ok()).unwrap_or_default();
+            return Err(format!("{MOVED}{to}"));
+        }
         answer.body_mut().with_config().limit(MAX_ANSWER).read_to_string().map_err(|e| e.to_string())
     }
 }
@@ -306,6 +317,7 @@ pub fn github_with(
     let mut out = Vec::new();
     let mut complete = true;
     match gh.json(&format!("{API}{path}")) {
+        Err(e) if e.starts_with(MOVED) => return (vec![moved(gh, &e[MOVED.len()..])], true),
         Ok(r) => {
             if let Some(age) = r["created_at"].as_str().and_then(|t| days_since(t, now))
                 && age < NEW_DAYS
@@ -342,6 +354,17 @@ pub fn github_with(
         }
     }
     (out, complete)
+}
+
+/// GitHub's answer for a renamed repository points at `/repositories/<id>`; that one same-host read names it now.
+fn moved(gh: &impl GitHub, location: &str) -> Signal {
+    let to = location
+        .starts_with("https://api.github.com/repositories/")
+        .then(|| gh.json(location).ok())
+        .flatten()
+        .and_then(|r| r["full_name"].as_str().map(str::to_string))
+        .filter(|n| n.split('/').count() == 2 && n.bytes().all(|b| b.is_ascii_alphanumeric() || b"-._/".contains(&b)));
+    Signal::RepoMoved { to }
 }
 
 /// The shared workflows none of the repository's workflow files call, at the release commit. A repository without a
@@ -434,7 +457,8 @@ mod tests {
 
     #[test]
     fn hosts_in_the_code_that_the_manifest_does_not_declare_are_flagged() {
-        let mut code = Code { fetch: true, ..Code::default() };
+        let mut code = Code::default();
+        code.fetch = true;
         code.hosts.extend([
             "api.acme.io".to_string(),
             "acme.io".into(),
@@ -552,6 +576,23 @@ mod tests {
         assert!(!complete);
         assert_eq!(signals[0], Signal::GithubUnchecked { reason: Unchecked::Limit });
         assert_eq!(github_with(&gh, "https://gitlab.com/acme/crm", None, now()).0, [Signal::NoRepository]);
+    }
+
+    #[test]
+    fn a_renamed_repository_says_where_it_moved_without_following_another_host() {
+        let gh = fake(&[
+            (REPO, Err(format!("{MOVED}https://api.github.com/repositories/42"))),
+            ("https://api.github.com/repositories/42", Ok(json!({ "full_name": "acme/crm-next" }).to_string())),
+        ]);
+        let (signals, complete) = github_with(&gh, "https://github.com/acme/crm", None, now());
+        assert!(complete);
+        assert_eq!(signals, [Signal::RepoMoved { to: Some("acme/crm-next".into()) }]);
+        let elsewhere = fake(&[(REPO, Err(format!("{MOVED}https://evil.example.net/x")))]);
+        assert_eq!(
+            github_with(&elsewhere, "https://github.com/acme/crm", None, now()).0,
+            [Signal::RepoMoved { to: None }]
+        );
+        assert!(!elsewhere.asked.borrow().iter().any(|u| u.contains("evil")));
     }
 
     #[test]
