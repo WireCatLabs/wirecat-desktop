@@ -187,13 +187,13 @@ function ProfilePicker(props: { toolName: string; defaults: boolean; onSelect: (
   if (profiles === undefined) {
     return (
       <Choices label={m.profile}>
-        <Skeleton className="h-8 w-[5.5rem] rounded-[0.35rem]" label={m.readingProfiles} />
-        <Skeleton className="h-8 w-[4.5rem] rounded-[0.35rem]" />
         {defaults && (
           <Choice group="profile" checked={false} disabled onSelect={() => undefined}>
             {m.defaults}
           </Choice>
         )}
+        <Skeleton className="h-8 w-[5.5rem] rounded-[0.35rem]" label={m.readingProfiles} />
+        <Skeleton className="h-8 w-[4.5rem] rounded-[0.35rem]" />
       </Choices>
     )
   }
@@ -208,6 +208,11 @@ function ProfilePicker(props: { toolName: string; defaults: boolean; onSelect: (
   return (
     <div className="flex flex-col gap-2">
       <Choices label={m.profile}>
+        {defaults && (
+          <Choice group="profile" checked={current === DEFAULTS} onSelect={() => onSelect({ profile: null })}>
+            {m.defaults}
+          </Choice>
+        )}
         {(profiles ?? []).map((p) => (
           <Choice
             key={p.name}
@@ -218,11 +223,6 @@ function ProfilePicker(props: { toolName: string; defaults: boolean; onSelect: (
             <span className="font-mono">{p.name}</span>
           </Choice>
         ))}
-        {defaults && (
-          <Choice group="profile" checked={current === DEFAULTS} onSelect={() => onSelect({ profile: null })}>
-            {m.defaults}
-          </Choice>
-        )}
       </Choices>
       {profiles?.length === 0 && <p className="text-[0.9rem] text-ink-dim">{error ?? m.noProfilesHint(toolName)}</p>}
       {current === null && <p className="text-[0.9rem] text-ink-dim">{m.chooseProfile}</p>}

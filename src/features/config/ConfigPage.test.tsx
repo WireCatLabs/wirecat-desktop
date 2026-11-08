@@ -33,6 +33,18 @@ describe("Config", () => {
     await waitFor(() => expect(screen.getByRole("radio", { name: "work" })).toBeChecked())
   })
 
+  it("lists the defaults before the profiles", async () => {
+    useTools.setState({ installs: installed })
+    render(<ConfigPage />)
+    await screen.findByRole("radio", { name: "work" })
+    const group = screen.getByRole("group", { name: "Profile" })
+    expect(
+      within(group)
+        .getAllByRole("radio")
+        .map((r) => r.closest("label")?.textContent),
+    ).toEqual(["Defaults (all profiles)", "personal", "work"])
+  })
+
   it("asks for the defaults without waiting for the profile list", async () => {
     vi.spyOn(platform, "listProfiles").mockReturnValue(new Promise(() => undefined))
     const show = vi.spyOn(platform, "settingsShow")
