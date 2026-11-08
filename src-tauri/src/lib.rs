@@ -154,6 +154,8 @@ pub fn run() {
             commands::enrichment::enrichment_preview,
             commands::enrichment::enrichment_on,
             commands::enrichment::enrichment_off,
+            commands::enrichment::enrichment_key_set,
+            commands::enrichment::enrichment_key_remove,
             commands::tools::config_repair,
             commands::tools::open_setup,
             commands::storage::storage_report,

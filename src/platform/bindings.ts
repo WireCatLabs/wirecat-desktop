@@ -223,6 +223,8 @@ export type EnrichmentStatus = {
 	syncsNeeded: number | null,
 	offered: EnrichmentOffer[],
 	measured: EnrichmentMeasured | null,
+	/**  Whether this memo stores a provider key itself (`models keys`); without it the window names the variable. */
+	keys: boolean,
 	/**  Only after revoke: how many records' model text memo deleted. */
 	deleted: number | null,
 };
@@ -690,8 +692,10 @@ export type SyncEnrichment = {
 	failed: number,
 	left: number,
 	costUsd: number | null,
-	/**  memo's English sentence, masked. */
+	/**  memo's English sentence, masked; the window shows it only for a `reason_id` it has no words for. */
 	reason: string | null,
+	/**  `enrichment.no-key`, `.key-rejected`, `.unreachable`, `.rate-limited`, `.bad-replies`, `.cancelled`, `.error`. */
+	reasonId: string | null,
 };
 
 export type SyncEvent = 

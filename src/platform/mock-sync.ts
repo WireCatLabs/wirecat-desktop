@@ -41,7 +41,16 @@ const STAGES: Record<string, string[]> = {
 function memoEnrichment(): SyncSummary["enrichment"] {
   const scenario = params.get("enrich")
   if (scenario === "on")
-    return { status: "done", sent: 284, enriched: 284, failed: 0, left: 0, costUsd: 0.0141, reason: null }
+    return {
+      status: "done",
+      sent: 284,
+      enriched: 284,
+      failed: 0,
+      left: 0,
+      costUsd: 0.0141,
+      reason: null,
+      reasonId: null,
+    }
   if (scenario === "nokey")
     return {
       status: "stopped",
@@ -51,6 +60,7 @@ function memoEnrichment(): SyncSummary["enrichment"] {
       left: 284,
       costUsd: 0,
       reason: "no openai key: set OPENAI_API_KEY, or the tool's own key; nothing was sent",
+      reasonId: "enrichment.no-key",
     }
   return null
 }

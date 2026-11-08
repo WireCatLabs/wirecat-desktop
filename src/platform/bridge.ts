@@ -247,6 +247,8 @@ function createTauri(): Platform {
     enrichmentPreview: (id, provider, model) => invoke("enrichment_preview", { id, provider, model }),
     enrichmentOn: (id, provider, model) => invoke("enrichment_on", { id, provider, model }),
     enrichmentOff: (id) => invoke("enrichment_off", { id }),
+    enrichmentKeySet: (id, provider, key) => invoke("enrichment_key_set", { id, provider, key }),
+    enrichmentKeyRemove: (id, provider) => invoke("enrichment_key_remove", { id, provider }),
     notesSetupStatus: (id) => invoke("notes_setup_status", { id }),
     notesPickFolder: () => invoke("notes_pick_folder"),
     notesFolderAdd: (id, path) => invoke("notes_folder_add", { id, path }),

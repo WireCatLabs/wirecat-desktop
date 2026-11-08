@@ -21,6 +21,11 @@ pub struct EnrichmentSource {
     pub preview: Vec<String>,
     pub on: Vec<String>,
     pub off: Vec<String>,
+    /// `models keys set --help`: a memo with the command prints its own usage; an older one prints `models`'s.
+    pub keys_probe: Vec<String>,
+    /// `models keys set {provider}`: the key goes on stdin, never as an argument.
+    pub key_set: Vec<String>,
+    pub key_remove: Vec<String>,
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
@@ -90,6 +95,8 @@ pub struct EnrichmentStatus {
     pub syncs_needed: Option<u64>,
     pub offered: Vec<EnrichmentOffer>,
     pub measured: Option<EnrichmentMeasured>,
+    /// Whether this memo stores a provider key itself (`models keys`); without it the window names the variable.
+    pub keys: bool,
     /// Only after revoke: how many records' model text memo deleted.
     pub deleted: Option<u64>,
 }
@@ -117,8 +124,10 @@ pub struct SyncEnrichment {
     pub failed: u64,
     pub left: u64,
     pub cost_usd: Option<f64>,
-    /// memo's English sentence, masked.
+    /// memo's English sentence, masked; the window shows it only for a `reason_id` it has no words for.
     pub reason: Option<String>,
+    /// `enrichment.no-key`, `.key-rejected`, `.unreachable`, `.rate-limited`, `.bad-replies`, `.cancelled`, `.error`.
+    pub reason_id: Option<String>,
 }
 
 pub fn sync_enrichment(item: &Value) -> Option<SyncEnrichment> {
@@ -131,6 +140,7 @@ pub fn sync_enrichment(item: &Value) -> Option<SyncEnrichment> {
         left: count(&e["left"]),
         cost_usd: e["cost_usd"].as_f64(),
         reason: e["reason"].as_str().map(redact::text),
+        reason_id: e["reason_id"].as_str().filter(|r| r.starts_with("enrichment.")).map(str::to_string),
     })
 }
 
@@ -205,6 +215,7 @@ fn status_of(v: &Value) -> Option<EnrichmentStatus> {
         syncs_needed: item["syncs_needed"].as_u64(),
         offered: item["offered"].as_array().into_iter().flatten().filter_map(offer_of).collect(),
         measured: measured_of(&item["measured"]),
+        keys: false,
         deleted: item["deleted"].as_u64(),
     })
 }
@@ -227,8 +238,7 @@ fn installed_version(tool: &Tool) -> Option<String> {
 }
 
 fn too_old(tool: &Tool) -> String {
-    let who = installed_version(tool).map_or("This memo".into(), |v| format!("memo {v}"));
-    format!("{who} is too old to rewrite records for search")
+    format!("{} is too old to rewrite records for search", too_old_name(tool))
 }
 
 fn with_choice(words: &[String], provider: &str, model: &str) -> Vec<String> {
@@ -252,10 +262,19 @@ fn offered(tool: &Tool, provider: &str, model: &str) -> Result<(), String> {
     }
 }
 
+fn with_keys(tool: &Tool, src: &EnrichmentSource, mut status: EnrichmentStatus) -> EnrichmentStatus {
+    status.keys = call(tool, &src.keys_probe, CALL).is_ok_and(|(out, _)| knows_keys(&out));
+    status
+}
+
+fn knows_keys(out: &run::Output) -> bool {
+    out.code == Some(0) && out.stdout.lines().any(|l| l.starts_with("Usage:") && l.contains("models keys set"))
+}
+
 pub fn status(tool: &Tool) -> Result<Enrichment, String> {
     let src = source(tool)?;
     Ok(match ask(tool, &src.show, CALL)? {
-        Ok(status) => Enrichment::Ready { status: Box::new(status) },
+        Ok(status) => Enrichment::Ready { status: Box::new(with_keys(tool, src, status)) },
         Err(()) => Enrichment::Old { version: installed_version(tool) },
     })
 }
@@ -263,18 +282,106 @@ pub fn status(tool: &Tool) -> Result<Enrichment, String> {
 /// What turning it on with this provider and model would send and cost. Changes nothing.
 pub fn preview(tool: &Tool, provider: &str, model: &str) -> Result<EnrichmentStatus, String> {
     offered(tool, provider, model)?;
-    ask(tool, &with_choice(&source(tool)?.preview, provider, model), CALL)?.map_err(|()| too_old(tool))
+    let src = source(tool)?;
+    let status = ask(tool, &with_choice(&src.preview, provider, model), CALL)?.map_err(|()| too_old(tool))?;
+    Ok(with_keys(tool, src, status))
 }
 
 /// The owner agreed in the window; memo records when.
 pub fn turn_on(tool: &Tool, provider: &str, model: &str) -> Result<EnrichmentStatus, String> {
     offered(tool, provider, model)?;
-    ask(tool, &with_choice(&source(tool)?.on, provider, model), CALL)?.map_err(|()| too_old(tool))
+    let src = source(tool)?;
+    let status = ask(tool, &with_choice(&src.on, provider, model), CALL)?.map_err(|()| too_old(tool))?;
+    Ok(with_keys(tool, src, status))
+}
+
+/// A provider memo offers, so nothing the interface sends becomes an option.
+fn offered_provider(tool: &Tool, src: &EnrichmentSource, provider: &str) -> Result<(), String> {
+    let status = ask(tool, &src.show, CALL)?.map_err(|()| too_old(tool))?;
+    if status.offered.iter().any(|o| o.provider == provider) {
+        Ok(())
+    } else {
+        Err(format!("memo offers no provider {provider}"))
+    }
+}
+
+/// A key as the owner pasted it: one line, no control characters, of a size an API key has.
+fn checked_key(key: &str) -> Result<&str, String> {
+    let key = key.trim();
+    if key.is_empty() {
+        return Err("Paste the key first.".into());
+    }
+    if key.len() > 4096 || key.chars().any(char::is_control) {
+        return Err("That does not look like an API key: paste it on one line.".into());
+    }
+    Ok(key)
+}
+
+fn masked(text: &str, key: &str) -> String {
+    redact::text(&if key.is_empty() { text.to_string() } else { text.replace(key, "•••") })
+}
+
+/// memo's `models keys set`: the key on stdin, closed after it, so it is never an argument, an environment variable or a
+/// log line. memo keeps it in the system keyring (a private file when none answers). Any refusal is masked first.
+pub fn set_key(tool: &Tool, provider: &str, key: &str) -> Result<EnrichmentStatus, String> {
+    let src = source(tool)?;
+    let key = checked_key(key)?;
+    offered_provider(tool, src, provider)?;
+    let bin = tools::program(&tool.bin).ok_or("the tool is not installed")?;
+    let args = with_choice(&src.key_set, provider, "");
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let cmd = run::command(&bin, &refs, Some(&crate::paths::search_path()));
+    let (mut stdout, mut stderr) = (String::new(), String::new());
+    let code = run::stream_with_input(
+        cmd,
+        Some(format!("{key}\n").as_bytes()),
+        CALL,
+        || false,
+        |line| match line {
+            run::Line::Out(l) => stdout.push_str(&(l + "\n")),
+            run::Line::Err(l) => stderr.push_str(&(l + "\n")),
+        },
+    )
+    .map_err(|e| format!("Could not run memo: {e}."))?;
+    let out = run::Output { code, stdout, stderr };
+    let json = out.json();
+    if code != Some(0) {
+        if unknown_command(&out, json.as_ref()) {
+            return Err(format!("{} cannot store a key yet. Update it on the Tools page.", too_old_name(tool)));
+        }
+        return Err(masked(&failure(&out, json.as_ref()), key));
+    }
+    if json.as_ref().map(body).and_then(|b| b["stored"].as_bool()) != Some(true) {
+        return Err("memo did not say it stored the key".into());
+    }
+    after_key(tool, src)
+}
+
+/// memo's `models keys remove`: a key in an environment variable stays, and memo says where it removed one from.
+pub fn remove_key(tool: &Tool, provider: &str) -> Result<EnrichmentStatus, String> {
+    let src = source(tool)?;
+    offered_provider(tool, src, provider)?;
+    let (out, json) = call(tool, &with_choice(&src.key_remove, provider, ""), CALL)?;
+    if out.code != Some(0) {
+        return Err(failure(&out, json.as_ref()));
+    }
+    after_key(tool, src)
+}
+
+fn after_key(tool: &Tool, src: &EnrichmentSource) -> Result<EnrichmentStatus, String> {
+    let status = ask(tool, &src.show, CALL)?.map_err(|()| too_old(tool))?;
+    Ok(with_keys(tool, src, status))
+}
+
+fn too_old_name(tool: &Tool) -> String {
+    installed_version(tool).map_or("This memo".into(), |v| format!("memo {v}"))
 }
 
 /// Turns it off and deletes what the model wrote.
 pub fn turn_off(tool: &Tool) -> Result<EnrichmentStatus, String> {
-    ask(tool, &source(tool)?.off, REVOKE)?.map_err(|()| too_old(tool))
+    let src = source(tool)?;
+    let status = ask(tool, &src.off, REVOKE)?.map_err(|()| too_old(tool))?;
+    Ok(with_keys(tool, src, status))
 }
 
 #[cfg(test)]
@@ -300,9 +407,13 @@ mod tests {
         run::Output { code: Some(code), stdout: stdout.into(), stderr: stderr.into() }
     }
 
+    fn memo_source() -> &'static EnrichmentSource {
+        source(catalog::tool("memo").unwrap()).unwrap()
+    }
+
     #[test]
     fn runs_memos_own_consent_commands_with_the_chosen_pair_in_place() {
-        let src = source(catalog::tool("memo").unwrap()).unwrap();
+        let src = memo_source();
         assert_eq!(src.show.join(" "), "models consents show --no-record --json");
         assert_eq!(
             with_choice(&src.preview, "openai", "gpt-4o-mini").join(" "),
@@ -367,6 +478,42 @@ mod tests {
         assert!(unknown_command(&output(2, "", ""), Some(&old)));
         assert!(unknown_command(&output(1, "", "error: unknown command 'consents'"), None));
         assert!(!unknown_command(&output(2, "", ""), Some(&parse(UNKNOWN_PROVIDER))));
+    }
+
+    #[test]
+    fn the_key_command_is_found_by_its_own_usage_line() {
+        let new = output(0, "Usage: memo models keys set [options] <provider>\n\nstore a key", "");
+        let old = output(0, "Usage: memo models [options] [command]\n\nmodels that run on this machine", "");
+        assert!(knows_keys(&new));
+        assert!(!knows_keys(&old));
+        assert!(!knows_keys(&output(1, "Usage: memo models keys set", "")));
+        let src = memo_source();
+        assert_eq!(with_choice(&src.key_set, "openai", "").join(" "), "models keys set openai --record --json");
+        assert!(!src.key_set.iter().any(|w| w.contains("key=") || w == "{key}"));
+        assert_eq!(
+            with_choice(&src.key_remove, "anthropic", "").join(" "),
+            "models keys remove anthropic --record --json"
+        );
+    }
+
+    #[test]
+    fn a_pasted_key_is_one_trimmed_line_and_never_echoed_back() {
+        assert_eq!(checked_key("  synthetic-test-key \n").unwrap(), "synthetic-test-key");
+        assert!(checked_key("   ").is_err());
+        assert!(checked_key("two\nlines").is_err());
+        let said = masked("the provider refused synthetic-test-key (HTTP 401)", "synthetic-test-key");
+        assert!(!said.contains("synthetic-test-key"));
+        assert!(said.contains("•••"));
+    }
+
+    #[test]
+    fn reads_the_reason_id_of_a_sync_that_sent_nothing() {
+        let item = json!({"enrichment": {"status": "failed", "sent": 3, "enriched": 0, "failed": 3, "left": 3,
+            "cost_usd": null, "reason": "openai refused the key", "reason_id": "enrichment.key-rejected"}});
+        let e = sync_enrichment(&item).unwrap();
+        assert_eq!((e.status.as_str(), e.reason_id.as_deref()), ("failed", Some("enrichment.key-rejected")));
+        let odd = json!({"enrichment": {"status": "stopped", "reason_id": "--yes"}});
+        assert_eq!(sync_enrichment(&odd).unwrap().reason_id, None);
     }
 
     #[test]

@@ -104,3 +104,18 @@ export function useSetEnrichment(id: string) {
       client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment),
   })
 }
+
+export type EnrichmentKeyChange = { provider: string; key: string } | { provider: string; remove: true }
+
+/** Saves or removes the provider key through memo; the key is in the request only, never kept here. */
+export function useEnrichmentKey(id: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (change: EnrichmentKeyChange) =>
+      "key" in change
+        ? platform.enrichmentKeySet(id, change.provider, change.key)
+        : platform.enrichmentKeyRemove(id, change.provider),
+    onSuccess: (status) =>
+      client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment),
+  })
+}

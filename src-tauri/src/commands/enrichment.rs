@@ -48,3 +48,27 @@ pub async fn enrichment_off(id: String) -> Result<enrichment::EnrichmentStatus, 
     })
     .await
 }
+
+/// The key travels from the window to memo's stdin and nowhere else: not an argument, not a log line (the command
+/// log names only the command), not an error message.
+#[tauri::command]
+pub async fn enrichment_key_set(
+    id: String,
+    provider: String,
+    key: String,
+) -> Result<enrichment::EnrichmentStatus, AppError> {
+    crate::log::command("enrichment_key_set", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || enrichment::set_key(tool, &provider, &key)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn enrichment_key_remove(id: String, provider: String) -> Result<enrichment::EnrichmentStatus, AppError> {
+    crate::log::command("enrichment_key_remove", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || enrichment::remove_key(tool, &provider)).await
+    })
+    .await
+}

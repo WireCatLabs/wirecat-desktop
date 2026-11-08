@@ -37,6 +37,7 @@ const off: EnrichmentStatus = {
     },
   ],
   measured: { rewordedOff: 0.62, rewordedOn: 0.79, ownWordsFirstOff: 0.54, ownWordsFirstOn: 0.48 },
+  keys: true,
   deleted: null,
 }
 const on: EnrichmentStatus = {
@@ -83,7 +84,8 @@ it("turns on only after the consent step shows what is sent, to whom, how many, 
     within(consent).getByText(/costs about \$0\.54 \(689,496 input and 731,080 output tokens\)/),
   ).toBeInTheDocument()
   expect(within(consent).getByText(/up to 600 records per sync: 18 syncs/)).toBeInTheDocument()
-  expect(within(consent).getByText(/No API key found\. Add it as OPENAI_API_KEY/)).toBeInTheDocument()
+  expect(within(consent).getByText(/No API key found\. Until you add one, nothing is sent/)).toBeInTheDocument()
+  expect(within(consent).getByLabelText("API key for OpenAI")).toBeInTheDocument()
   expect(turnOn).not.toHaveBeenCalled()
 
   fireEvent.click(within(consent).getByRole("button", { name: "Send 10,444 records to OpenAI and turn on" }))
@@ -135,7 +137,16 @@ it("while on, says how many syncs are left and what the last sync rewrote, read 
   expect(
     await screen.findByText(/284 records wait: they are rewritten at the next sync, for about \$0\.01/),
   ).toBeInTheDocument()
-  const enrichment = { status: "done", sent: 284, enriched: 284, failed: 0, left: 0, costUsd: 0.0141, reason: null }
+  const enrichment = {
+    status: "done",
+    sent: 284,
+    enriched: 284,
+    failed: 0,
+    left: 0,
+    costUsd: 0.0141,
+    reason: null,
+    reasonId: null,
+  }
   act(() =>
     useSync.setState({
       runs: {
@@ -165,7 +176,16 @@ it("says why a sync sent nothing, in memo's words", async () => {
   render(<Enrichment tool={memo} />)
   await screen.findByText(/No API key found/)
   const reason = "no openai key: set OPENAI_API_KEY, or the tool's own key; nothing was sent"
-  const enrichment = { status: "stopped", sent: 0, enriched: 0, failed: 0, left: 284, costUsd: 0, reason }
+  const enrichment = {
+    status: "stopped",
+    sent: 0,
+    enriched: 0,
+    failed: 0,
+    left: 284,
+    costUsd: 0,
+    reason,
+    reasonId: "enrichment.mystery",
+  }
   act(() =>
     useSync.setState({
       runs: {
@@ -223,4 +243,139 @@ it("says a memo without the command needs an update", async () => {
     await screen.findByText("Memo 0.131.50 cannot rewrite records yet. It comes with a Memo update."),
   ).toBeInTheDocument()
   expect(screen.queryByRole("button", { name: "Turn on…" })).toBeNull()
+})
+
+const synced = (enrichment: object) =>
+  act(() =>
+    useSync.setState({
+      runs: {
+        "memo:": {
+          phase: "done",
+          startedAt: 1,
+          endedAt: 2,
+          stage: null,
+          progress: null,
+          stopping: false,
+          failure: null,
+          summary: {
+            new: 0,
+            places: 0,
+            failed: 0,
+            left: 0,
+            complete: true,
+            enrichment: {
+              status: "stopped",
+              sent: 0,
+              enriched: 0,
+              failed: 0,
+              left: 284,
+              costUsd: 0,
+              reason: null,
+              reasonId: null,
+              ...enrichment,
+            },
+          },
+        },
+      },
+    }),
+  )
+const noKey = { ...on, target: target("openai", "gpt-4o-mini", "api.openai.com") }
+// Not a real key: the tests only follow it to the platform call and check it is cleared.
+const TYPED = "synthetic-test-key"
+
+it("saves a key through memo from a masked field, clears the field at once, then offers to remove it", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: noKey })
+  const save = vi.spyOn(platform, "enrichmentKeySet").mockResolvedValue(on)
+  render(<Enrichment tool={memo} />)
+
+  const field = await screen.findByLabelText("API key for OpenAI")
+  expect(field).toHaveAttribute("type", "password")
+  expect(screen.getByText(/never stores or shows it/)).toBeInTheDocument()
+  fireEvent.change(field, { target: { value: TYPED } })
+  fireEvent.click(screen.getByRole("button", { name: "Save key" }))
+
+  expect(field).toHaveValue("")
+  expect(await screen.findByText("Memo found your API key (in the system keyring).")).toBeInTheDocument()
+  expect(save).toHaveBeenCalledWith("memo", "openai", TYPED)
+  expect(screen.getByRole("button", { name: "Remove key" })).toBeInTheDocument()
+  expect(document.body.innerHTML).not.toContain(TYPED)
+})
+
+it("removes the key memo keeps, and the field comes back", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: on })
+  const remove = vi.spyOn(platform, "enrichmentKeyRemove").mockResolvedValue(noKey)
+  render(<Enrichment tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Remove key" }))
+
+  expect(await screen.findByText("Key removed. Nothing is sent until you add one again.")).toBeInTheDocument()
+  expect(screen.getByLabelText("API key for OpenAI")).toBeInTheDocument()
+  expect(remove).toHaveBeenCalledWith("memo", "openai")
+})
+
+it("says why a key was not saved and asks for it again", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: noKey })
+  vi.spyOn(platform, "enrichmentKeySet").mockRejectedValue(new Error("no keyring and no key file"))
+  render(<Enrichment tool={memo} />)
+
+  const field = await screen.findByLabelText("API key for OpenAI")
+  fireEvent.change(field, { target: { value: TYPED } })
+  fireEvent.click(screen.getByRole("button", { name: "Save key" }))
+
+  expect(await screen.findByText("Could not save the key: no keyring and no key file")).toBeInTheDocument()
+  expect(field).toHaveValue("")
+  expect(screen.getByRole("button", { name: "Save key" })).toBeDisabled()
+})
+
+it("names the variable instead of a field when memo cannot store a key, and keeps an environment key", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: { ...noKey, keys: false } })
+  const { unmount } = render(<Enrichment tool={memo} />)
+
+  expect(await screen.findByText(/Add it as OPENAI_API_KEY where Memo runs/)).toBeInTheDocument()
+  expect(screen.queryByLabelText("API key for OpenAI")).toBeNull()
+  unmount()
+
+  const env = {
+    ...on,
+    target: {
+      ...target("openai", "gpt-4o-mini", "api.openai.com", true),
+      key: { present: true, source: "env", envVar: "OPENAI_API_KEY" },
+    },
+  }
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: env })
+  render(<Enrichment tool={memo} />)
+  expect(await screen.findByText(/This key comes from OPENAI_API_KEY; remove it there/)).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Remove key" })).toBeNull()
+})
+
+it("saving a key in the consent step asks memo's preview again", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: off })
+  const preview = vi.spyOn(platform, "enrichmentPreview").mockResolvedValue(off)
+  vi.spyOn(platform, "enrichmentKeySet").mockResolvedValue(off)
+  render(<Enrichment tool={memo} />)
+
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on…" }))
+  fireEvent.change(await screen.findByLabelText("API key for OpenAI"), { target: { value: TYPED } })
+  fireEvent.click(screen.getByRole("button", { name: "Save key" }))
+
+  await vi.waitFor(() => expect(preview).toHaveBeenCalledTimes(2))
+})
+
+it("words a sync's reason by its id in the window's language", async () => {
+  vi.spyOn(platform, "enrichmentStatus").mockResolvedValue({ state: "ready", status: on })
+  render(<Enrichment tool={memo} />)
+  await screen.findByText(/Memo found your API key/)
+
+  synced({
+    status: "failed",
+    sent: 3,
+    failed: 3,
+    reason: "openai refused the key (HTTP 401)",
+    reasonId: "enrichment.key-rejected",
+  })
+
+  expect(
+    await screen.findByText("Last sync could not rewrite: the provider refused the API key; save a new one"),
+  ).toBeInTheDocument()
+  expect(screen.queryByText(/HTTP 401/)).toBeNull()
 })

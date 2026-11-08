@@ -12,8 +12,9 @@ import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { SecretField } from "@/ui/SecretField"
 import { Skeleton } from "@/ui/Skeleton"
-import { type EnrichmentChoice, useEnrichment, useEnrichmentPreview, useSetEnrichment } from "./api"
+import { type EnrichmentChoice, useEnrichment, useEnrichmentKey, useEnrichmentPreview, useSetEnrichment } from "./api"
 import { type EnrichmentText, enrichmentMessages } from "./messages-enrichment"
 import { syncKey, useSync } from "./sync-store"
 
@@ -128,6 +129,7 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
           {view === "consent" && status && chosen && (
             <Consent
               m={m}
+              toolId={tool.id}
               offered={status.offered}
               chosen={chosen}
               onChoose={setChoice}
@@ -147,6 +149,7 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
           {view === "on" && status && (
             <On
               m={m}
+              toolId={tool.id}
               status={status}
               justOn={done?.on === true}
               sync={lastSync?.phase === "done" ? (lastSync.summary?.enrichment ?? null) : null}
@@ -204,7 +207,7 @@ function Off(props: { m: EnrichmentText; status: EnrichmentStatus; deleted: numb
   )
 }
 
-function KeyLine({ m, target }: { m: EnrichmentText; target: EnrichmentTarget }) {
+function KeyLine({ m, target, keys }: { m: EnrichmentText; target: EnrichmentTarget; keys: boolean }) {
   if (target.key.present)
     return (
       <span className="text-ink-soft">
@@ -214,13 +217,116 @@ function KeyLine({ m, target }: { m: EnrichmentText; target: EnrichmentTarget })
   return (
     <span className="flex items-start gap-2 text-ink">
       <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
-      <span>{target.key.envVar ? m.keyMissing(target.key.envVar) : m.keyMissingGeneric}</span>
+      <span>{!keys && target.key.envVar ? m.keyMissing(target.key.envVar) : m.keyMissingGeneric}</span>
     </span>
+  )
+}
+
+/**
+ * The provider key, through memo's own `models keys`: a masked field and Save while none is found, Remove while memo
+ * keeps one. What is typed lives only in this field until Save hands it to Rust; the field and the request state are
+ * cleared at once, so a failed save asks for it again. A memo without `models keys` gets the variable's name instead.
+ */
+function KeyArea(props: {
+  m: EnrichmentText
+  toolId: string
+  target: EnrichmentTarget
+  keys: boolean
+  onChanged?: () => void
+}) {
+  const { m, toolId, target, keys, onChanged } = props
+  const change = useEnrichmentKey(toolId)
+  const [draft, setDraft] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [removed, setRemoved] = useState(false)
+  const fieldId = useId()
+  const helpId = useId()
+  const provider = providerName(target.provider)
+
+  const run = async (request: Parameters<typeof change.mutateAsync>[0], fail: (message: string) => string) => {
+    setError(null)
+    try {
+      await change.mutateAsync(request)
+      setRemoved(!("key" in request))
+      onChanged?.()
+    } catch (e) {
+      setError(fail(messageOf(e)))
+    } finally {
+      change.reset()
+    }
+  }
+
+  const failure = (
+    <Collapse open={error !== null}>
+      <ErrorNotice inline>{error}</ErrorNotice>
+    </Collapse>
+  )
+
+  if (target.key.present)
+    return (
+      <div className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <KeyLine m={m} target={target} keys={keys} />
+          {keys && target.key.source !== "env" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={change.isPending}
+              onClick={() => run({ provider: target.provider, remove: true }, m.keyRemoveFailed)}
+            >
+              {change.isPending ? m.keyRemoving : m.keyRemove}
+            </Button>
+          )}
+        </div>
+        {keys && target.key.source === "env" && target.key.envVar && (
+          <p className="text-[0.85rem] text-ink-dim">{m.keyEnvStays(target.key.envVar)}</p>
+        )}
+        {failure}
+      </div>
+    )
+  if (!keys) return <KeyLine m={m} target={target} keys={keys} />
+  return (
+    <form
+      className="flex flex-col gap-1.5"
+      onSubmit={(e) => {
+        e.preventDefault()
+        const key = draft
+        setDraft("")
+        run({ provider: target.provider, key }, m.keySaveFailed)
+      }}
+    >
+      <KeyLine m={m} target={target} keys={keys} />
+      {removed && <p className="text-[0.875rem] text-ink-soft">{m.keyRemoved}</p>}
+      <label htmlFor={fieldId} className="mt-1 text-[0.9rem] font-medium text-ink">
+        {m.keyLabel(provider)}
+      </label>
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="min-w-0 flex-1 basis-[18rem]">
+          <SecretField
+            id={fieldId}
+            value={draft}
+            onChange={setDraft}
+            showLabel={m.keyShow}
+            hideLabel={m.keyHide}
+            disabled={change.isPending}
+            describedBy={helpId}
+          />
+        </div>
+        <Button type="submit" variant="primary" disabled={!draft.trim() || change.isPending}>
+          {change.isPending ? m.keySaving : m.keySave}
+        </Button>
+      </div>
+      <p id={helpId} className="text-[0.8rem] text-ink-dim">
+        {m.keyWhere}
+      </p>
+      {failure}
+    </form>
   )
 }
 
 function Consent(props: {
   m: EnrichmentText
+  toolId: string
   offered: EnrichmentOffer[]
   chosen: EnrichmentChoice
   onChoose: (c: EnrichmentChoice) => void
@@ -231,7 +337,7 @@ function Consent(props: {
   onAgree: () => void
   onCancel: () => void
 }) {
-  const { m, offered, chosen, onChoose, preview, error, busy, onRetry, onAgree, onCancel } = props
+  const { m, toolId, offered, chosen, onChoose, preview, error, busy, onRetry, onAgree, onCancel } = props
   const lang = useLang()
   const titleId = useId()
   const groupName = useId()
@@ -302,8 +408,8 @@ function Consent(props: {
             <li>{m.pace(m.records(preview.perSync), m.syncs(preview.syncsNeeded))}</li>
           )}
           <li>{m.kept}</li>
-          <li className="list-none -ml-5">
-            <KeyLine m={m} target={target} />
+          <li className="-ml-5 list-none">
+            <KeyArea m={m} toolId={toolId} target={target} keys={preview.keys} onChanged={onRetry} />
           </li>
         </ul>
       )}
@@ -330,7 +436,10 @@ function SyncLine({ m, sync }: { m: EnrichmentText; sync: SyncEnrichment }) {
     const cost = sync.costUsd === null ? null : usdText(m, sync.costUsd, lang)
     return <p>{m.lastSyncDone(m.records(sync.sent), formatNumber(sync.enriched, lang), sync.failed, cost)}</p>
   }
-  const reason = sync.reason ?? ""
+  const reason =
+    (sync.reasonId && Object.hasOwn(m.reasons, sync.reasonId) ? m.reasons[sync.reasonId] : undefined) ??
+    sync.reason ??
+    ""
   return (
     <p className="flex items-start gap-2 text-ink">
       <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
@@ -341,13 +450,14 @@ function SyncLine({ m, sync }: { m: EnrichmentText; sync: SyncEnrichment }) {
 
 function On(props: {
   m: EnrichmentText
+  toolId: string
   status: EnrichmentStatus
   justOn: boolean
   sync: SyncEnrichment | null
   busy: boolean
   onOff: () => void
 }) {
-  const { m, status, justOn, sync, busy, onOff } = props
+  const { m, toolId, status, justOn, sync, busy, onOff } = props
   const lang = useLang()
   const target = status.target
   const provider = target ? providerName(target.provider) : ""
@@ -363,7 +473,7 @@ function On(props: {
         {m.progress(formatNumber(status.enriched, lang), m.records(status.records))}{" "}
         {status.pending > 0 ? m.waiting(m.records(status.pending), status.syncsNeeded ?? 1, usd) : m.allDone}
       </p>
-      {target && !target.key.present && <KeyLine m={m} target={target} />}
+      {target && <KeyArea m={m} toolId={toolId} target={target} keys={status.keys} />}
       {sync && <SyncLine m={m} sync={sync} />}
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="secondary" disabled={busy} onClick={onOff}>

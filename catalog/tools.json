@@ -1727,7 +1727,10 @@
         "show": ["models", "consents", "show", "--no-record", "--json"],
         "preview": ["models", "consents", "set", "{provider}", "--model", "{model}", "--no-record", "--json"],
         "on": ["models", "consents", "set", "{provider}", "--model", "{model}", "--yes", "--record", "--json"],
-        "off": ["models", "consents", "revoke", "--record", "--json"]
+        "off": ["models", "consents", "revoke", "--record", "--json"],
+        "keysProbe": ["models", "keys", "set", "--help"],
+        "keySet": ["models", "keys", "set", "{provider}", "--record", "--json"],
+        "keyRemove": ["models", "keys", "remove", "{provider}", "--record", "--json"]
       },
       "sync": {
         "run": ["sync", "--record", "--json"],

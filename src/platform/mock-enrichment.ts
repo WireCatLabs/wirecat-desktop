@@ -6,7 +6,9 @@ import type { Platform } from "./types"
 // `?enrich=on` on since this morning with 284 records waiting, `?enrich=consent` off with the consent step open,
 // `?enrich=nokey` on with no OpenAI key found, `?enrich=fail` makes turning it on fail with memo's words,
 // `?enrich=old` a memo without `models consents`. A memo sync after `?enrich=on` reports what it rewrote
-// (`src/platform/mock-sync.ts`).
+// (`src/platform/mock-sync.ts`). Keys: `?enrich-key=old` a memo without `models keys` (the window names the variable),
+// `?enrich-key=env` the key comes from an environment variable (nothing to remove), `?enrich-key-fail=1` saving fails.
+// The mock never keeps what is typed into the key field.
 const RECORDS = 10_444
 const PRICES: Record<string, { input: number; output: number }> = {
   "openai/gpt-4o-mini": { input: 0.15, output: 0.6 },
@@ -28,15 +30,25 @@ const offered: EnrichmentOffer[] = [
 
 export function enrichmentMock(
   params: URLSearchParams,
-): Pick<Platform, "enrichmentStatus" | "enrichmentPreview" | "enrichmentOn" | "enrichmentOff"> {
+): Pick<
+  Platform,
+  | "enrichmentStatus"
+  | "enrichmentPreview"
+  | "enrichmentOn"
+  | "enrichmentOff"
+  | "enrichmentKeySet"
+  | "enrichmentKeyRemove"
+> {
   const scenario = params.get("enrich")
-  const keyFound = scenario !== "nokey"
+  const keyScenario = params.get("enrich-key")
+  let keyFound = scenario !== "nokey"
+  const keySource = keyScenario === "env" ? "env" : "keyring"
   const target = (provider: string, model: string): EnrichmentTarget => ({
     provider,
     model,
     endpointHost: HOSTS[provider] ?? provider,
     key: keyFound
-      ? { present: true, source: "keyring", envVar: ENV[provider] ?? null }
+      ? { present: true, source: keySource, envVar: ENV[provider] ?? null }
       : { present: false, source: null, envVar: ENV[provider] ?? null },
     priceKnown: true,
   })
@@ -62,6 +74,7 @@ export function enrichmentMock(
       syncsNeeded: Math.ceil(pending / 600),
       offered,
       measured: { rewordedOff: 0.62, rewordedOn: 0.79, ownWordsFirstOff: 0.54, ownWordsFirstOn: 0.48 },
+      keys: keyScenario !== "old",
       deleted: null,
     }
   }
@@ -83,6 +96,19 @@ export function enrichmentMock(
       await delay(900)
       if (scenario === "fail") throw new Error("could not write ~/.config/WireCat/config.json: permission denied")
       current = status(true, provider, model, 0)
+      return current
+    },
+    async enrichmentKeySet() {
+      await delay(700)
+      if (params.get("enrich-key-fail")) throw new Error("could not reach the system keyring or write the key file")
+      keyFound = true
+      current = { ...current, target: current.target && target(current.target.provider, current.target.model) }
+      return current
+    },
+    async enrichmentKeyRemove() {
+      await delay(600)
+      keyFound = false
+      current = { ...current, target: current.target && target(current.target.provider, current.target.model) }
       return current
     },
     async enrichmentOff() {

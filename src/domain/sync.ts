@@ -11,6 +11,7 @@ export type SyncEnrichment = {
   left: number
   costUsd: number | null
   reason: string | null
+  reasonId: string | null
 }
 
 export type SyncSummary = {

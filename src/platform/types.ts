@@ -325,6 +325,13 @@ export type Platform = {
   enrichmentPreview(id: string, provider: string, model: string): Promise<EnrichmentStatus>
   /** Turns it on with that offer; only after the owner agreed in the consent step. Rust refuses a pair memo does not offer. */
   enrichmentOn(id: string, provider: string, model: string): Promise<EnrichmentStatus>
+  /**
+   * memo's `models keys set`: Rust hands the key to memo on stdin, and memo keeps it in the system keyring (a private file
+   * when none answers). The app never stores it; the answer says only whether a key is found and where.
+   */
+  enrichmentKeySet(id: string, provider: string, key: string): Promise<EnrichmentStatus>
+  /** memo's `models keys remove`; a key in an environment variable stays. */
+  enrichmentKeyRemove(id: string, provider: string): Promise<EnrichmentStatus>
   /** Turns it off; memo deletes what the model wrote. */
   enrichmentOff(id: string): Promise<EnrichmentStatus>
   /** memo's first run (`notesSetup` in the catalog): its notes folders on this computer and the search model. */

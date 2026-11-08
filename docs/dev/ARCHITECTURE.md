@@ -125,7 +125,11 @@ src-tauri/src/
                 nothing), `set --yes` and `revoke`. The interface sends a provider and model; Rust runs `set` only for a
                 pair memo's own `show` lists in `offered`. `--yes` runs only from the consent step, and turning it off
                 deletes what the model wrote. A memo sync's `enrichment` (sent, failed, cost, why) rides on its summary.
-                Counts, hosts and whether a key exists only; never a record or a key. `bin/enrichment-e2e` runs these
+                The provider key goes through memo's own `models keys set <provider>` on stdin (`run::stream_with_input`), never an
+                argument, environment variable or log line, and is masked out of any refusal; memo keeps it in the
+                system keyring or a private file. `models keys remove` forgets it. Whether this memo has the command is
+                read from its own `models keys set --help`. Counts, hosts and whether a key exists only; never a record
+                or a key. `bin/enrichment-e2e` runs these
                 functions against a real memo in a throwaway home.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
