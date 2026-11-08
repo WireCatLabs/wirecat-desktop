@@ -39,7 +39,9 @@ type Words = {
   picked: (ref: string) => string
   place: (column: string, at: number, of: number) => string
   dropped: (ref: string, column: string) => string
-  putBack: (ref: string) => string
+  putBack: (ref: string, reason?: string) => string
+  readOnlyShort: string
+  otherPipeline: string
   notMoved: (reason: string) => string
   scope: string
   scopes: { mine: string; all: string }
@@ -102,7 +104,9 @@ const en: Words = {
   picked: (ref) => `Picked up ${ref}.`,
   place: (column, at, of) => `${column}, place ${at} of ${of}.`,
   dropped: (ref, column) => `Dropped ${ref} in ${column}.`,
-  putBack: (ref) => `${ref} is back where it was.`,
+  putBack: (ref, reason) => (reason ? `${ref} is back where it was: ${reason}` : `${ref} is back where it was.`),
+  readOnlyShort: "this CRM's cards change in the CRM.",
+  otherPipeline: "a card moves only between the stages of its own pipeline.",
   notMoved: (reason) => `Not moved: ${reason}`,
   scope: "Sync",
   scopes: { mine: "Mine", all: "Everyone's" },
@@ -168,7 +172,9 @@ const ru: Words = {
   picked: (ref) => `${ref} взята.`,
   place: (column, at, of) => `${column}, место ${at} из ${of}.`,
   dropped: (ref, column) => `${ref} перенесена в «${column}».`,
-  putBack: (ref) => `${ref} вернулась на место.`,
+  putBack: (ref, reason) => (reason ? `${ref} вернулась на место: ${reason}` : `${ref} вернулась на место.`),
+  readOnlyShort: "карточки этой CRM меняются в самой CRM.",
+  otherPipeline: "карточка переходит только между стадиями своей воронки.",
   notMoved: (reason) => `Не перенесено: ${reason}`,
   scope: "Синхронизировать",
   scopes: { mine: "Мои", all: "Все" },
@@ -233,7 +239,9 @@ const es: Words = {
   picked: (ref) => `${ref} cogida.`,
   place: (column, at, of) => `${column}, puesto ${at} de ${of}.`,
   dropped: (ref, column) => `${ref} soltada en ${column}.`,
-  putBack: (ref) => `${ref} ha vuelto a su sitio.`,
+  putBack: (ref, reason) => (reason ? `${ref} ha vuelto a su sitio: ${reason}` : `${ref} ha vuelto a su sitio.`),
+  readOnlyShort: "las tarjetas de este CRM se cambian en el CRM.",
+  otherPipeline: "una tarjeta solo pasa entre las etapas de su propio embudo.",
   notMoved: (reason) => `No se movió: ${reason}`,
   scope: "Sincronizar",
   scopes: { mine: "Mías", all: "De todos" },

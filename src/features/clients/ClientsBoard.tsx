@@ -30,7 +30,8 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
     columns: names,
     cardsIn: (stage) => columns.get(stage) ?? [],
     columnOf: (ref) => byRef.get(ref)?.stage,
-    canDrop: (ref, to) => movable && canDrop(byRef.get(ref), read.pipeline, read.stages, to),
+    canDrop: (ref, to) =>
+      !movable ? m.readOnlyShort : canDrop(byRef.get(ref), read.pipeline, read.stages, to) || m.otherPipeline,
     onDrop: ({ key, to }) => move.mutate({ ref: key, stage: to }),
     onOpen: (ref) => useClients.getState().setOpen(ref),
     words: { picked: m.picked, place: m.place, dropped: m.dropped, putBack: m.putBack },
