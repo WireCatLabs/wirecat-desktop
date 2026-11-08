@@ -132,6 +132,7 @@ function createTauri(): Platform {
     clearStorage: (id) => invoke("clear_storage", { id }),
     openFolder: (id, kind, entry) => invoke("open_folder", { id, kind, entry: entry ?? null }),
     configRepair: (id, profile) => invoke("config_repair", { id, profile }),
+    accountRemove: (id, profile, deleteData) => invoke("account_remove", { id, profile, deleteData }),
     storeInfo: () => call(StoreInfoSchema, "store_info"),
     storeCompat: () => call(StoreCompatSchema, "store_compat"),
     storePreflight: (id) => invoke("store_preflight", { id }),
@@ -230,6 +231,8 @@ function createTauri(): Platform {
     zoomAppSetup: (id) => invoke("zoom_app_setup", { id }),
     driveFoldersBrowse: (id, profile, parent) => invoke("drive_folders_browse", { id, profile, parent }),
     driveFolderAdd: (id, profile, folder) => invoke("drive_folder_add", { id, profile, folder }),
+    driveFoldersChosen: (id, profile) => invoke("drive_folders_chosen", { id, profile }),
+    driveFolderRemove: (id, profile, folder) => invoke("drive_folder_remove", { id, profile, folder }),
     botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
     listBots: (id) => invoke("list_bots", { id }),
     syncRun: (id, profile, onEvent) => {

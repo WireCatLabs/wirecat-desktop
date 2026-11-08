@@ -15,8 +15,11 @@ import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } f
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type {
+  AccountRemoved,
+  ChosenFolders,
   FolderAdded,
   FolderLevel,
+  FolderRemoved,
   MailAgent,
   NotesFolderAdded,
   NotesFolderRemoved,
@@ -129,6 +132,8 @@ export type Platform = {
   openFolder(id: string, kind: StorageFolder["kind"], entry?: string): Promise<void>
   /** The tool's own `config repair` (`config_repair.rs`), offered where `doctor` names it as the fix. */
   configRepair(id: string, profile: string | null): Promise<Repair>
+  /** The tool's own sign-out of one profile (`accountRemove` in the catalog); `deleteData` only where it names a command. */
+  accountRemove(id: string, profile: string, deleteData: boolean): Promise<AccountRemoved>
   /** What the shared archive holds, from the installed tool that reads the newest schema; null when none is installed. */
   storeInfo(): Promise<StoreInfo | null>
   /** Every installed tool's own `store info`: whether it reads the shared store, and what its next run does to it. */
@@ -294,6 +299,10 @@ export type Platform = {
   driveFoldersBrowse(id: string, profile: string, parent: string | null): Promise<FolderLevel>
   /** Adds one folder, by its id, to what the profile's sync imports. */
   driveFolderAdd(id: string, profile: string, folder: string): Promise<FolderAdded>
+  /** The folders the profile's sync imports, named once a sync has copied them. */
+  driveFoldersChosen(id: string, profile: string): Promise<ChosenFolders>
+  /** Stops importing one folder; drive's next sync drops what it copied from there. */
+  driveFolderRemove(id: string, profile: string, folder: string): Promise<FolderRemoved>
   /**
    * Connects a bot to the profile the owner named with the tool's own `bot auth set`: `fields` first (WhatsApp's ids,
    * `bot.fields` in the catalog), then the token on its stdin. The token is never logged, kept or sent back.

@@ -2,7 +2,7 @@ use super::{attempt, blocking, known_tool, valid_profile};
 use crate::error::AppError;
 use crate::install::InstallEvent;
 use crate::install::Running;
-use crate::{background, catalog, compat, config_repair, install, mail_agent, terminal, tools};
+use crate::{account, background, catalog, compat, config_repair, install, mail_agent, terminal, tools};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::State;
@@ -166,6 +166,27 @@ pub async fn config_repair(id: String, profile: Option<String>) -> Result<config
     crate::log::command("config_repair", async move {
         let tool = known_tool(&id)?;
         attempt(move || config_repair::repair(tool, profile.as_deref())).await
+    })
+    .await
+}
+
+/// Signs one profile out with the tool's own words; refused while its sync, an install or a sign-in runs.
+#[tauri::command]
+pub async fn account_remove(
+    id: String,
+    profile: String,
+    delete_data: bool,
+    running: State<'_, Arc<Running>>,
+) -> Result<account::AccountRemoved, AppError> {
+    crate::log::command("account_remove", async move {
+        let tool = known_tool(&id)?;
+        valid_profile(&profile)?;
+        let owner = &catalog::owner(tool).id;
+        let busy = [crate::sync::key(tool, Some(&profile)), owner.clone(), crate::signin::key(&tool.id)];
+        if busy.iter().any(|k| running.busy(k)) {
+            return Err(AppError::Busy("Something else runs for this account, such as a sync. Stop it first.".into()));
+        }
+        attempt(move || account::remove(tool, &profile, delete_data)).await
     })
     .await
 }

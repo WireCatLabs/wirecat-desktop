@@ -1,4 +1,5 @@
 import { ownerId, tools } from "@/domain/catalog"
+import type { AccountRemoved } from "./bindings"
 import { agentsMock, refreshSkillsMock } from "./mock-agents"
 import { analyticsMock } from "./mock-analytics"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
@@ -183,6 +184,85 @@ const STATE_ENTRIES: Record<string, [string, boolean, number][]> = {
   ],
 }
 
+// Profiles a sign-out in this window ended; they stay listed, signed out, as the CLIs' own lists keep them.
+const signedOut = new Set<string>()
+
+function mockProfiles(id: string): Profile[] | null {
+  if (id === "memo") return null
+  if (id === "email") return scenario === "mixed" ? [{ name: "personal", signedIn: null }] : []
+  if (id === "wa") {
+    // `?service=wa` shows the service of two linked accounts without a sign-in first.
+    const names =
+      linkedProfiles.length === 0 && params.get("service")?.startsWith("wa") ? ["personal", "work"] : linkedProfiles
+    return names.map((name) => ({ name, signedIn: true }))
+  }
+  if (id === "tg") {
+    return [
+      { name: "personal", signedIn: true },
+      { name: "work", signedIn: false },
+    ]
+  }
+  return [{ name: "personal", signedIn: id === "max" || id === "drive" ? true : null }]
+}
+
+function diagnosed(id: string, profile: string | null): Diagnosis {
+  const command = `${id} ${profile ? `${profile} ` : ""}doctor --record --json`
+  if (id === "email") {
+    return {
+      command: `mail ${profile ?? ""} session status --record --json`,
+      exitCode: 0,
+      durationMs: 240,
+      report: { item: { profile: profile ?? "", state: "signed_in", auth: "oauth", address: "[email]" } },
+      stderr: "",
+    }
+  }
+  if (id === "memo") {
+    return {
+      command,
+      exitCode: 1,
+      durationMs: 712,
+      report: {
+        item: {
+          memo: { version: "0.93.0", node: "24.19.0" },
+          mail: { accounts: [{ name: "•••", address: "•••", mode: "himalaya" }] },
+          problems: [
+            { what: "The search model is not downloaded yet.", fix: "memo search model download" },
+            { what: "The daily sync timer is not installed.", fix: "memo timer install" },
+          ],
+        },
+      },
+      stderr: "",
+    }
+  }
+  const key = `${id}/${profile ?? ""}`
+  const config = repaired && key === "tg/work" ? undefined : MOCK_CONFIG[key]
+  if (config) {
+    const broken = config.issues?.some((i) => i.kind === "invalid_json") || "error" in config
+    return {
+      command,
+      exitCode: broken ? 1 : 0,
+      durationMs: 884,
+      report: { item: { profile, config: { found: true, path: `~/.config/${id}-cli/config.json`, ...config } } },
+      stderr: "",
+    }
+  }
+  return {
+    command,
+    exitCode: 0,
+    durationMs: 1043,
+    report: {
+      item: {
+        profile,
+        config: { found: true, path: `~/.config/${id}/config.toml` },
+        store: { exists: true, writable: true, chats: 214, messages: 48210 },
+        login: { state: "not checked" },
+        files: { ok: true, problems: [] },
+      },
+    },
+    stderr: "",
+  }
+}
+
 export function createMock(os: Platform["os"]): Platform {
   const installed = new Map<string, string>(
     showcase
@@ -199,6 +279,9 @@ export function createMock(os: Platform["os"]): Platform {
           ? [["tg", "0.88.0"]]
           : [],
   )
+  // `?accounts=<tool>` opens that tool's accounts, so it is installed even when the scenario leaves it out.
+  const accounts = params.get("accounts")
+  if (accounts && !installed.has(accounts)) installed.set(accounts, LATEST[ownerId(accounts)] ?? "1.0.0")
   const asksArchive = () => ["tg", "wa", "max"].find((id) => installed.has(id)) ?? null
   const backups = backupMock(asksArchive)
   const agents = agentsMock((id) => installed.get(id), os)
@@ -377,79 +460,39 @@ export function createMock(os: Platform["os"]): Platform {
     },
     async listProfiles(id): Promise<Profile[] | null> {
       await delay(350)
-      if (id === "memo") return null
-      if (id === "email") return scenario === "mixed" ? [{ name: "personal", signedIn: null }] : []
-      if (id === "wa") {
-        // `?service=wa` shows the service of two linked accounts without a sign-in first.
-        const names =
-          linkedProfiles.length === 0 && params.get("service")?.startsWith("wa") ? ["personal", "work"] : linkedProfiles
-        return names.map((name) => ({ name, signedIn: true }))
-      }
-      if (id === "tg") {
-        return [
-          { name: "personal", signedIn: true },
-          { name: "work", signedIn: false },
-        ]
-      }
-      return [{ name: "personal", signedIn: id === "max" ? true : null }]
+      return mockProfiles(id)?.map((p) => (signedOut.has(`${id}/${p.name}`) ? { ...p, signedIn: false } : p)) ?? null
+    },
+    async accountRemove(id, profile, deleteData): Promise<AccountRemoved> {
+      await delay(900)
+      if (deleteData) throw new Error("This tool cannot delete an account's data.")
+      if (params.get("remove-fail") === id)
+        return {
+          result: "failed",
+          message: `${id} serve is running for this profile. Stop it first: ${id} ${profile} server stop`,
+        }
+      const key = `${id}/${profile}`
+      const was = !signedOut.has(key)
+      signedOut.add(key)
+      return { result: "signedOut", wasSignedIn: was }
     },
     async diagnose(id, profile): Promise<Diagnosis> {
       await delay(1000)
-      const command = `${id} ${profile ? `${profile} ` : ""}doctor --record --json`
-      if (id === "email") {
+      if (signedOut.has(`${id}/${profile}`)) {
         return {
-          command: `mail ${profile ?? ""} session status --record --json`,
-          exitCode: 0,
-          durationMs: 240,
-          report: { item: { profile: profile ?? "", state: "signed_in", auth: "oauth", address: "[email]" } },
-          stderr: "",
-        }
-      }
-      if (id === "memo") {
-        return {
-          command,
+          command: `${id} ${profile} doctor --record --json`,
           exitCode: 1,
-          durationMs: 712,
+          durationMs: 610,
           report: {
             item: {
-              memo: { version: "0.93.0", node: "24.19.0" },
-              mail: { accounts: [{ name: "•••", address: "•••", mode: "himalaya" }] },
-              problems: [
-                { what: "The search model is not downloaded yet.", fix: "memo search model download" },
-                { what: "The daily sync timer is not installed.", fix: "memo timer install" },
-              ],
+              profile,
+              login: { state: "signed_out" },
+              problems: [{ what: "Not signed in.", fix: `${id} ${profile} session start` }],
             },
           },
           stderr: "",
         }
       }
-      const key = `${id}/${profile ?? ""}`
-      const config = repaired && key === "tg/work" ? undefined : MOCK_CONFIG[key]
-      if (config) {
-        const broken = config.issues?.some((i) => i.kind === "invalid_json") || "error" in config
-        return {
-          command,
-          exitCode: broken ? 1 : 0,
-          durationMs: 884,
-          report: { item: { profile, config: { found: true, path: `~/.config/${id}-cli/config.json`, ...config } } },
-          stderr: "",
-        }
-      }
-      return {
-        command,
-        exitCode: 0,
-        durationMs: 1043,
-        report: {
-          item: {
-            profile,
-            config: { found: true, path: `~/.config/${id}/config.toml` },
-            store: { exists: true, writable: true, chats: 214, messages: 48210 },
-            login: { state: "not checked" },
-            files: { ok: true, problems: [] },
-          },
-        },
-        stderr: "",
-      }
+      return diagnosed(id, profile)
     },
     async install(given, onEvent: (e: InstallEvent) => void) {
       const id = ownerId(given)

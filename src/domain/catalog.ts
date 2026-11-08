@@ -1,6 +1,20 @@
 import * as v from "valibot"
 import raw from "../../catalog/tools.json"
 
+/** What a tool's sign-out takes away: its sign-in here, and the session the service keeps for this computer. */
+export const ACCOUNT_REMOVES = ["signIn", "serverSession", "deviceKeys", "linkedDevice"] as const
+/** What stays after it: the app keys, settings, chosen folders, the copied data, the name in the list, the access. */
+export const ACCOUNT_KEEPS = [
+  "appKeys",
+  "settings",
+  "folders",
+  "data",
+  "mail",
+  "listed",
+  "googleAccess",
+  "providerAccess",
+] as const
+
 const ToolSchema = v.object({
   id: v.pipe(v.string(), v.regex(/^[a-z]+$/)),
   name: v.string(),
@@ -125,6 +139,21 @@ const ToolSchema = v.object({
   notesSetup: v.optional(v.nullable(v.object({ minVersion: v.string(), model: v.string() })), null),
   /** Only drive: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and `drive_folder_add`. */
   folderPicker: v.optional(v.nullable(v.object({ parent: v.string() })), null),
+  /**
+   * Removing one account with the tool's own words; Rust runs `signOut` or `deleteData`. `removes` and `keeps` say what
+   * the sign-out takes away and what stays, read from each CLI's source, for the confirm dialog.
+   */
+  accountRemove: v.optional(
+    v.nullable(
+      v.object({
+        signOut: v.nullable(v.array(v.string())),
+        deleteData: v.nullable(v.array(v.string())),
+        removes: v.array(v.picklist(ACCOUNT_REMOVES)),
+        keeps: v.array(v.picklist(ACCOUNT_KEEPS)),
+      }),
+    ),
+    null,
+  ),
   /** The messengers' own `serve` in the background, per profile: `server status`, `install`, `start`, `stop` and `uninstall`. */
   background: v.optional(
     v.nullable(

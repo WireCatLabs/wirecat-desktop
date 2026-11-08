@@ -1,3 +1,4 @@
+mod account;
 mod agent_run;
 mod analytics;
 mod archive;
@@ -153,6 +154,7 @@ pub fn run() {
             commands::notes_setup::notes_model_download,
             commands::notes_setup::notes_model_stop,
             commands::tools::config_repair,
+            commands::tools::account_remove,
             commands::tools::open_setup,
             commands::storage::storage_report,
             commands::storage::clear_storage,
@@ -249,6 +251,8 @@ pub fn run() {
             commands::setup_extras::zoom_app_setup,
             commands::setup_extras::drive_folders_browse,
             commands::setup_extras::drive_folder_add,
+            commands::setup_extras::drive_folders_chosen,
+            commands::setup_extras::drive_folder_remove,
             commands::sync::sync_run,
             commands::sync::sync_stop,
             commands::sync::sync_last
