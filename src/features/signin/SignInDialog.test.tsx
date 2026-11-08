@@ -769,18 +769,30 @@ describe("signing in to mail", () => {
     expect(JSON.stringify(useSignIn.getState())).not.toContain("abcd")
   })
 
+  it("signs Gmail in by Google with WireCat's app, asking for no client of the owner's", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    act(() => useSignIn.setState({ method: "gmail" }))
+    await settled()
+    const dialog = screen.getByRole("dialog")
+    expect(within(dialog).getByText(/"unverified app" screen first/)).toBeVisible()
+    await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@gmail.com")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("email", "gmail", "work", expect.any(Function), {
+        address: "me@gmail.com",
+        oauth: true,
+      }),
+    )
+  })
+
   it("takes the owner's own Google client as typed ID and secret, sent as a client file", async () => {
     render(<SignInDialog />)
     act(() => useSignIn.getState().start("email", "work", undefined, undefined))
     act(() => useSignIn.setState({ method: "gmail" }))
     await settled()
     const dialog = screen.getByRole("dialog")
-    await userEvent.click(within(dialog).getByRole("radio", { name: /Sign in with Google/ }))
-    await settled()
-    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
-    expect(within(dialog).getByRole("alert")).toHaveTextContent(
-      "Choose the client file, or type the client ID and secret.",
-    )
+    await userEvent.click(within(dialog).getByRole("button", { name: "Use my own app" }))
     expect(within(dialog).getByRole("button", { name: "Choose the client file" })).toBeVisible()
     await userEvent.click(within(dialog).getByRole("button", { name: "Enter client ID and secret" }))
     await userEvent.type(within(dialog).getByLabelText("Client ID"), "12-abc")

@@ -16,15 +16,15 @@ const en = {
     browser: {
       name: "Sign in with Google",
       badge: "Recommended",
-      detail: "Approve on Google's own page in the browser.",
-      needs: "Needs a Google client of your own: a Desktop app made in Google Cloud Console.",
-      time: "About 15 minutes the first time.",
+      detail: "Approve on Google's own page in the browser, with WireCat's app.",
+      needs: 'Google may show an "unverified app" screen first, and a Google Workspace admin can block the app.',
+      time: "About 2 minutes.",
     },
     appPassword: {
       name: "App password",
       detail: "Works today with any personal Gmail.",
       needs: "Needs 2-Step Verification on your Google Account. A Google Workspace admin can turn app passwords off.",
-      note: "Until Google verifies WireCat's app, this is the fastest way in.",
+      note: "Until Google verifies WireCat's app, this way skips its warning screen.",
       time: "About 2 minutes.",
     },
   } as { legend: string; others: string } & Record<"appPassword" | "browser", Way>,
@@ -142,16 +142,17 @@ const ru: MailText = {
     browser: {
       name: "Войти через Google",
       badge: "Рекомендуем",
-      detail: "Подтвердить на странице Google в браузере.",
-      needs: "Нужен свой клиент Google: приложение типа Desktop app в Google Cloud Console.",
-      time: "Около 15 минут в первый раз.",
+      detail: "Подтвердить на странице Google в браузере, через приложение WireCat.",
+      needs:
+        "Сначала Google может показать экран «Приложение не проверено», а администратор Google Workspace может заблокировать приложение.",
+      time: "Около 2 минут.",
     },
     appPassword: {
       name: "Пароль приложения",
       detail: "Работает уже сейчас с любым личным Gmail.",
       needs:
         "Нужна включённая двухэтапная аутентификация в аккаунте Google. Администратор Google Workspace может отключить пароли приложений.",
-      note: "Пока Google не проверил приложение WireCat, это самый быстрый способ войти.",
+      note: "Пока Google не проверил приложение WireCat, этот способ обходится без экрана с предупреждением.",
       time: "Около 2 минут.",
     },
   },
@@ -269,16 +270,17 @@ const es: MailText = {
     browser: {
       name: "Entrar con Google",
       badge: "Recomendado",
-      detail: "Apruebas en la propia página de Google, en el navegador.",
-      needs: "Necesita un cliente de Google propio: una Desktop app creada en Google Cloud Console.",
-      time: "Unos 15 minutos la primera vez.",
+      detail: "Apruebas en la propia página de Google, en el navegador, con la app de WireCat.",
+      needs:
+        "Google puede mostrar antes una pantalla de «app no verificada», y un administrador de Google Workspace puede bloquear la app.",
+      time: "Unos 2 minutos.",
     },
     appPassword: {
       name: "Contraseña de aplicación",
       detail: "Funciona hoy con cualquier Gmail personal.",
       needs:
         "Necesita la verificación en dos pasos activada en tu cuenta de Google. El administrador de Google Workspace puede desactivar las contraseñas de aplicación.",
-      note: "Mientras Google no verifique la app de WireCat, es la forma más rápida de entrar.",
+      note: "Mientras Google no verifique la app de WireCat, esta forma evita su pantalla de aviso.",
       time: "Unos 2 minutos.",
     },
   },
