@@ -331,6 +331,73 @@ function seed(): MemoryEntry[] {
   ]
 }
 
+// Relationships with each standing: an agent's proposal, the owner's, a CRM's report and one that ended.
+const relation = (
+  ref: string,
+  kind: string,
+  [subject, subjectName]: [string, string],
+  [target, targetName]: [string, string],
+  role: string | null,
+  standing: string,
+  createdAt: string,
+): MemoryEntry => ({
+  ...base,
+  ref,
+  type: "relationship",
+  kind,
+  text: null,
+  status: standing === "proposed" ? "proposed" : standing === "ended" ? "stale" : "confirmed",
+  scope: null,
+  subject,
+  subjectName,
+  target,
+  targetName,
+  role,
+  standing,
+  author: standing === "proposed" ? agent("claude-code") : null,
+  account: standing === "reported" ? "bitrix24:acme.example" : null,
+  links: 0,
+  createdAt,
+})
+
+const KAI: [string, string] = ["person:7", "Kai Moreno"]
+const NORTHSTAR: [string, string] = ["organization:2", "Northstar Consulting"]
+
+function relationships(): MemoryEntry[] {
+  return [
+    {
+      ...relation("relationship:5", "member-of", KAI, NORTHSTAR, "decision-maker", "proposed", ago(2 * HOUR)),
+      reason: "Signs every Northstar order in the thread with Ana.",
+    },
+    relation(
+      "link:9",
+      "member-of",
+      KAI,
+      ["organization:3", "Harbour Studio"],
+      "board-member",
+      "confirmed",
+      ago(9 * DAY),
+    ),
+    relation("link:10", "reports-to", ["person:8", "Ana Ruiz"], KAI, null, "reported", ago(4 * DAY)),
+    relation("link:11", "customer-of", NORTHSTAR, ["organization:1", "Your company"], null, "reported", ago(4 * DAY)),
+    relation(
+      "link:12",
+      "member-of",
+      ["person:8", "Ana Ruiz"],
+      ["organization:4", "Old Mill"],
+      "employee",
+      "ended",
+      ago(30 * DAY),
+    ),
+  ]
+}
+
+const ROLES = [
+  { list: "organization", id: "employee", label: null, builtIn: true },
+  { list: "organization", id: "board-member", label: "Board member", builtIn: false },
+  { list: "deal", id: "decision-maker", label: null, builtIn: true },
+]
+
 const PEOPLE = ["Kai Moreno", "Ana Ruiz", "Project Harbour", "Lena Ortiz", "Tom Becker"]
 const AGENTS = ["claude-code", "hermes", "openclaw", "codex-nbb-evaluation"]
 const STATUSES = ["proposed", "confirmed", "confirmed", "stale", "superseded"]
@@ -575,7 +642,7 @@ export function memoryMock(): Pick<
   | "memorySourceContext"
   | "memoryOpenSource"
 > {
-  let entries: MemoryEntry[] = scenario === "none" ? [] : scenario === "many" ? many() : seed()
+  let entries: MemoryEntry[] = scenario === "none" ? [] : scenario === "many" ? many() : [...seed(), ...relationships()]
   let next = 50
 
   const find = (ref: string) => {
@@ -587,8 +654,9 @@ export function memoryMock(): Pick<
     await delay(500)
     if (fail === "write") throw new Error(BUSY)
   }
-  const update = (ref: string, status: string) => {
-    const e = { ...find(ref), status, updatedAt: new Date().toISOString() }
+  const update = (ref: string, status: string, standing?: string) => {
+    const old = find(ref)
+    const e = { ...old, status, updatedAt: new Date().toISOString(), standing: standing ?? old.standing ?? null }
     entries = entries.map((x) => (x.ref === ref ? e : x))
     return e
   }
@@ -627,6 +695,7 @@ export function memoryMock(): Pick<
         activity: scenario === "none" ? [] : ACTIVITY,
         activityError: null,
         revoke: params.get("memory-revoke") !== "old",
+        roles: ROLES,
       }
     },
     async memorySources(ref) {
@@ -655,6 +724,7 @@ export function memoryMock(): Pick<
         entries = entries.map((x) => (x.ref === ref ? done : x))
         return done
       }
+      if (e.type === "relationship") return update(ref, "confirmed", "confirmed")
       return update(ref, e.type === "fact" ? "accepted" : "confirmed")
     },
     async memoryDiscard(ref) {
@@ -663,6 +733,7 @@ export function memoryMock(): Pick<
       if (e.findings) return review(ref, [])
       if (e.type === "memory") return update(ref, "stale")
       if (e.type === "action") return update(ref, "rejected")
+      if (e.type === "relationship") return update(ref, "rejected", "rejected")
       if (e.status === "proposed") return update(ref, "rejected")
       if (e.status === "accepted" && e.kind === "decision") return update(ref, "reversed")
       if (e.status === "accepted" && e.author?.type === "person") throw new Error("fact.owner-written")
