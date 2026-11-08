@@ -1,8 +1,10 @@
-import { useEffect, useId, useState } from "react"
+import { AlertTriangle } from "lucide-react"
+import { useEffect, useId, useMemo, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { formatUsd } from "@/domain/mail-agent"
-import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
-import type { EnrichmentStatus } from "@/platform/bindings"
+import type { SyncEnrichment } from "@/domain/sync"
+import { formatDate, formatNumber, type Lang, useLang, useMessages } from "@/i18n"
+import type { EnrichmentMeasured, EnrichmentOffer, EnrichmentStatus, EnrichmentTarget } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -11,32 +13,35 @@ import { Crossfade } from "@/ui/Crossfade"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
-import { useEnrichment, useEnrichmentPreview, useSetEnrichment } from "./api"
+import { type EnrichmentChoice, useEnrichment, useEnrichmentPreview, useSetEnrichment } from "./api"
 import { type EnrichmentText, enrichmentMessages } from "./messages-enrichment"
 import { syncKey, useSync } from "./sync-store"
 
-type Offer = NonNullable<CatalogTool["enrichment"]>
 type Done = { on: true } | { on: false; deleted: number } | null
 
 const PROVIDERS: Record<string, string> = { openai: "OpenAI", anthropic: "Anthropic" }
+const providerName = (id: string) => PROVIDERS[id] ?? id
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
-
-const hostOf = (endpoint: string | null) => {
-  if (!endpoint) return null
-  try {
-    return new URL(endpoint).host
-  } catch {
-    return null
-  }
+/** memo's four benchmark shares as whole percents, or nothing when one is missing. */
+function percents(m: EnrichmentMeasured | null | undefined): [number, number, number, number] | null {
+  const all = m ? [m.rewordedOff, m.rewordedOn, m.ownWordsFirstOff, m.ownWordsFirstOn] : []
+  if (all.length !== 4 || all.some((x) => x === null)) return null
+  const [a, b, c, d] = all.map((x) => Math.round((x ?? 0) * 100))
+  return [a ?? 0, b ?? 0, c ?? 0, d ?? 0]
 }
 
 /** Browser build only: `?enrich=consent` opens the consent step without a click, for review captures. */
 const consentByScenario = () =>
   platform.kind === "mock" && new URLSearchParams(window.location.search).get("enrich") === "consent"
 
-function usdText(m: EnrichmentText, usd: number, lang: string) {
+function usdText(m: EnrichmentText, usd: number, lang: Lang) {
   return usd > 0 && usd < 0.01 ? m.lessThanCent : formatUsd(usd, lang)
+}
+
+const defaultChoice = (offered: EnrichmentOffer[]): EnrichmentChoice | null => {
+  const offer = offered.find((o) => o.default) ?? offered[0]
+  return offer ? { provider: offer.provider, model: offer.model } : null
 }
 
 /**
@@ -44,43 +49,50 @@ function usdText(m: EnrichmentText, usd: number, lang: string) {
  * this section, exactly what goes where and what it costs (memo's own preview), and agrees.
  */
 export function Enrichment({ tool }: { tool: CatalogTool }) {
-  const offer = tool.enrichment
   const m = useMessages(enrichmentMessages)
   const headingId = useId()
   const state = useEnrichment(tool.id)
   const preview = useEnrichmentPreview(tool.id)
   const change = useSetEnrichment(tool.id)
   const [consenting, setConsenting] = useState(consentByScenario)
+  const [choice, setChoice] = useState<EnrichmentChoice | null>(null)
   const [confirmingOff, setConfirmingOff] = useState(false)
   const [done, setDone] = useState<Done>(null)
   const { mutate: ask } = preview
 
+  const answer = state.data
+  const status = answer?.state === "ready" ? answer.status : null
+  const offered = status?.offered
+  const chosen = useMemo(() => choice ?? (offered ? defaultChoice(offered) : null), [choice, offered])
+
   useEffect(() => {
-    if (consenting) ask()
-  }, [consenting, ask])
+    if (consenting && chosen) ask(chosen)
+  }, [consenting, chosen, ask])
 
   // A sync is when memo rewrites the waiting records, so the counts are read again after each one.
-  const syncEnded = useSync((s) => s.runs[syncKey(tool.id, null)]?.endedAt ?? null)
+  const lastSync = useSync((s) => s.runs[syncKey(tool.id, null)])
+  const syncEnded = lastSync?.endedAt ?? null
   const { refetch } = state
   useEffect(() => {
     if (syncEnded !== null) refetch()
   }, [syncEnded, refetch])
 
-  if (!offer) return null
-  const answer = state.data
-  const status = answer?.state === "ready" ? answer.status : null
+  if (!tool.enrichment) return null
   const view = !answer ? "loading" : answer.state === "old" ? "old" : status?.on ? "on" : consenting ? "consent" : "off"
+  const measured = percents(status?.measured)
 
-  const turnOn = () =>
-    change.mutate(true, {
+  const turnOn = () => {
+    if (!chosen) return
+    change.mutate(chosen, {
       onSuccess: () => {
         setConsenting(false)
         setDone({ on: true })
       },
     })
+  }
   const turnOff = () => {
     setConfirmingOff(false)
-    change.mutate(false, { onSuccess: (s) => setDone({ on: false, deleted: s.deleted ?? 0 }) })
+    change.mutate(null, { onSuccess: (s) => setDone({ on: false, deleted: s.deleted ?? 0 }) })
   }
 
   return (
@@ -92,7 +104,9 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
         {m.title}
       </h4>
       <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-ink-soft">{m.what}</p>
-      <p className="max-w-[70ch] text-[0.875rem] leading-relaxed text-ink-dim">{m.measured}</p>
+      {measured && (
+        <p className="max-w-[70ch] text-[0.875rem] leading-relaxed text-ink-dim">{m.measured(...measured)}</p>
+      )}
       <Collapse open={state.isError}>
         <ErrorNotice inline>{state.isError && m.readFailed(messageOf(state.error))}</ErrorNotice>
       </Collapse>
@@ -100,34 +114,31 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
         <Crossfade swap={view}>
           {view === "loading" && !state.isError && <Skeleton className="h-[2.25rem] w-full max-w-[28rem]" />}
           {answer?.state === "old" && <p className="text-[0.9rem] text-ink-soft">{m.old(answer.version)}</p>}
-          {view === "off" && (
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => {
-                  setDone(null)
-                  setConsenting(true)
-                }}
-              >
-                {m.turnOn}
-              </Button>
-              <span className="text-[0.9rem] text-ink-soft" aria-live="polite">
-                {done?.on === false ? m.turnedOff(m.records(done.deleted)) : m.off}
-              </span>
-            </div>
+          {view === "off" && status && (
+            <Off
+              m={m}
+              status={status}
+              deleted={done?.on === false ? done.deleted : null}
+              onTurnOn={() => {
+                setDone(null)
+                setConsenting(true)
+              }}
+            />
           )}
-          {view === "consent" && (
+          {view === "consent" && status && chosen && (
             <Consent
               m={m}
-              offer={offer}
-              preview={preview.data ?? null}
+              offered={status.offered}
+              chosen={chosen}
+              onChoose={setChoice}
+              preview={preview.isPending ? null : (preview.data ?? null)}
               error={preview.isError ? messageOf(preview.error) : null}
               busy={change.isPending}
-              onRetry={() => ask()}
+              onRetry={() => ask(chosen)}
               onAgree={turnOn}
               onCancel={() => {
                 setConsenting(false)
+                setChoice(null)
                 preview.reset()
                 change.reset()
               }}
@@ -136,9 +147,9 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
           {view === "on" && status && (
             <On
               m={m}
-              offer={offer}
               status={status}
               justOn={done?.on === true}
+              sync={lastSync?.phase === "done" ? (lastSync.summary?.enrichment ?? null) : null}
               busy={change.isPending}
               onOff={() => setConfirmingOff(true)}
             />
@@ -172,9 +183,47 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
   )
 }
 
+function Off(props: { m: EnrichmentText; status: EnrichmentStatus; deleted: number | null; onTurnOn: () => void }) {
+  const { m, status, deleted, onTurnOn } = props
+  const lang = useLang()
+  const { target, estimate } = status
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-[0.9rem] text-ink-soft" aria-live="polite">
+        {deleted !== null ? m.turnedOff(m.records(deleted)) : m.off}
+        {target && estimate.usd !== null && status.pending > 0 && (
+          <> {m.offCost(m.records(status.pending), providerName(target.provider), usdText(m, estimate.usd, lang))}</>
+        )}
+      </p>
+      <div>
+        <Button size="sm" variant="secondary" onClick={onTurnOn}>
+          {m.turnOn}
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+function KeyLine({ m, target }: { m: EnrichmentText; target: EnrichmentTarget }) {
+  if (target.key.present)
+    return (
+      <span className="text-ink-soft">
+        {m.keyFound(m.keySource[target.key.source ?? ""] ?? target.key.source ?? "")}
+      </span>
+    )
+  return (
+    <span className="flex items-start gap-2 text-ink">
+      <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
+      <span>{target.key.envVar ? m.keyMissing(target.key.envVar) : m.keyMissingGeneric}</span>
+    </span>
+  )
+}
+
 function Consent(props: {
   m: EnrichmentText
-  offer: Offer
+  offered: EnrichmentOffer[]
+  chosen: EnrichmentChoice
+  onChoose: (c: EnrichmentChoice) => void
   preview: EnrichmentStatus | null
   error: string | null
   busy: boolean
@@ -182,13 +231,15 @@ function Consent(props: {
   onAgree: () => void
   onCancel: () => void
 }) {
-  const { m, offer, preview, error, busy, onRetry, onAgree, onCancel } = props
+  const { m, offered, chosen, onChoose, preview, error, busy, onRetry, onAgree, onCancel } = props
   const lang = useLang()
   const titleId = useId()
+  const groupName = useId()
+  const target = preview?.target ?? null
   const records = preview ? m.records(preview.pending) : ""
-  const tokens = preview
-    ? [formatNumber(preview.estimate.inputTokens, lang), formatNumber(preview.estimate.outputTokens, lang)]
-    : ["", ""]
+  const input = preview ? formatNumber(preview.estimate.inputTokens, lang) : ""
+  const output = preview ? formatNumber(preview.estimate.outputTokens, lang) : ""
+  const price = (usd: number | null) => (usd === null ? "?" : formatUsd(usd, lang))
   return (
     <section
       aria-labelledby={titleId}
@@ -197,11 +248,35 @@ function Consent(props: {
       <h5 id={titleId} className="font-semibold text-ink">
         {m.consentTitle}
       </h5>
-      {!preview && !error && (
-        <div className="flex flex-col gap-2" aria-live="polite">
-          <Skeleton className="h-[5.5rem] w-full" label={m.counting} />
-        </div>
+      {offered.length > 1 && (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1.5 text-[0.9rem] font-medium text-ink-dim">{m.modelLabel}</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {offered.map((o) => (
+              <label key={`${o.provider}/${o.model}`} className="relative cursor-pointer">
+                <input
+                  type="radio"
+                  name={groupName}
+                  checked={o.provider === chosen.provider && o.model === chosen.model}
+                  disabled={busy}
+                  onChange={() => onChoose({ provider: o.provider, model: o.model })}
+                  className="peer sr-only"
+                />
+                <span className="flex h-full flex-col gap-0.5 rounded-[0.35rem] border border-line-strong px-3 py-2 transition-colors peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand peer-focus-visible:outline-offset-2">
+                  <span className="text-[0.9rem] font-medium text-ink">
+                    {m.offer(providerName(o.provider), o.model)}
+                    {o.default && <span className="font-normal text-ink-dim"> · {m.memoDefault}</span>}
+                  </span>
+                  <span className="text-[0.8rem] text-ink-soft tabular-nums">
+                    {m.offerPrice(price(o.usdPerMillionInput), price(o.usdPerMillionOutput))}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
       )}
+      {!preview && !error && <Skeleton className="h-[7.5rem] w-full" label={m.counting} />}
       {error && (
         <ErrorNotice
           inline
@@ -214,22 +289,27 @@ function Consent(props: {
           {m.previewFailed(error)}
         </ErrorNotice>
       )}
-      {preview && (
+      {preview && target && (
         <ul className="flex list-disc flex-col gap-1.5 pl-5 text-[0.9rem] leading-relaxed text-ink">
           <li>{m.sends(records)}</li>
-          <li>{m.to(offer.provider, offer.host, offer.model)}</li>
+          <li>{m.to(providerName(target.provider), target.endpointHost, target.model)}</li>
           <li>
             {preview.estimate.usd === null
-              ? m.costUnknown(tokens[0] ?? "", tokens[1] ?? "")
-              : m.cost(usdText(m, preview.estimate.usd, lang), tokens[0] ?? "", tokens[1] ?? "")}
+              ? m.costUnknown(input, output)
+              : m.cost(usdText(m, preview.estimate.usd, lang), input, output)}
           </li>
+          {preview.perSync !== null && preview.syncsNeeded !== null && preview.syncsNeeded > 0 && (
+            <li>{m.pace(m.records(preview.perSync), m.syncs(preview.syncsNeeded))}</li>
+          )}
           <li>{m.kept}</li>
-          <li className="text-ink-soft">{m.key(offer.keyVariable)}</li>
+          <li className="list-none -ml-5">
+            <KeyLine m={m} target={target} />
+          </li>
         </ul>
       )}
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="primary" disabled={!preview || busy} onClick={onAgree}>
-          {preview ? m.agree(records, offer.provider) : m.turnOn}
+          {preview && target ? m.agree(records, providerName(target.provider)) : m.turnOn}
         </Button>
         <Button size="sm" variant="ghost" disabled={busy} onClick={onCancel}>
           {m.cancel}
@@ -244,18 +324,33 @@ function Consent(props: {
   )
 }
 
+function SyncLine({ m, sync }: { m: EnrichmentText; sync: SyncEnrichment }) {
+  const lang = useLang()
+  if (sync.status === "done") {
+    const cost = sync.costUsd === null ? null : usdText(m, sync.costUsd, lang)
+    return <p>{m.lastSyncDone(m.records(sync.sent), formatNumber(sync.enriched, lang), sync.failed, cost)}</p>
+  }
+  const reason = sync.reason ?? ""
+  return (
+    <p className="flex items-start gap-2 text-ink">
+      <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
+      <span>{sync.status === "stopped" ? m.lastSyncStopped(reason) : m.lastSyncFailed(reason)}</span>
+    </p>
+  )
+}
+
 function On(props: {
   m: EnrichmentText
-  offer: Offer
   status: EnrichmentStatus
   justOn: boolean
+  sync: SyncEnrichment | null
   busy: boolean
   onOff: () => void
 }) {
-  const { m, offer, status, justOn, busy, onOff } = props
+  const { m, status, justOn, sync, busy, onOff } = props
   const lang = useLang()
-  const provider = (status.provider && PROVIDERS[status.provider]) ?? status.provider ?? offer.provider
-  const host = hostOf(status.endpoint) ?? offer.host
+  const target = status.target
+  const provider = target ? providerName(target.provider) : ""
   const when = status.consentedAt
     ? formatDate(status.consentedAt, { dateStyle: "medium", timeStyle: "short" }, lang)
     : ""
@@ -263,11 +358,13 @@ function On(props: {
   return (
     <div className="flex flex-col gap-2 text-[0.9rem] text-ink-soft" aria-live="polite">
       {justOn && <p className="font-medium text-ink">{m.turnedOn(provider)}</p>}
-      <p>{m.onSince(when, provider, status.model ?? offer.model, host)}</p>
+      {target && <p>{m.onSince(when, provider, target.model, target.endpointHost)}</p>}
       <p className="tabular-nums">
         {m.progress(formatNumber(status.enriched, lang), m.records(status.records))}{" "}
-        {status.pending > 0 ? m.waiting(m.records(status.pending), usd) : m.allDone}
+        {status.pending > 0 ? m.waiting(m.records(status.pending), status.syncsNeeded ?? 1, usd) : m.allDone}
       </p>
+      {target && !target.key.present && <KeyLine m={m} target={target} />}
+      {sync && <SyncLine m={m} sync={sync} />}
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="secondary" disabled={busy} onClick={onOff}>
           {m.turnOff}

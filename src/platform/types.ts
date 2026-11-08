@@ -321,10 +321,10 @@ export type Platform = {
   mailAgentWaiting(id: string): Promise<number | null>
   /** memo's `models consents show` (`enrichment` in the catalog): whether a hosted model rewrites records for search. */
   enrichmentStatus(id: string): Promise<Enrichment>
-  /** What turning it on sends and costs, from memo's `consents set` without `--yes`; changes nothing. */
-  enrichmentPreview(id: string): Promise<EnrichmentStatus>
-  /** Turns it on with the catalog's provider and model; only after the owner agreed in the consent step. */
-  enrichmentOn(id: string): Promise<EnrichmentStatus>
+  /** What turning it on with one of memo's offers sends and costs (`consents set` without `--yes`); changes nothing. */
+  enrichmentPreview(id: string, provider: string, model: string): Promise<EnrichmentStatus>
+  /** Turns it on with that offer; only after the owner agreed in the consent step. Rust refuses a pair memo does not offer. */
+  enrichmentOn(id: string, provider: string, model: string): Promise<EnrichmentStatus>
   /** Turns it off; memo deletes what the model wrote. */
   enrichmentOff(id: string): Promise<EnrichmentStatus>
   /** memo's first run (`notesSetup` in the catalog): its notes folders on this computer and the search model. */

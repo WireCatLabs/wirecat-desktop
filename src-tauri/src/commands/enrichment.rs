@@ -11,22 +11,31 @@ pub async fn enrichment_status(id: String) -> Result<enrichment::Enrichment, App
     .await
 }
 
-/// memo's `consents set` without `--yes`: what turning it on sends and costs, changing nothing.
+/// memo's `consents set` without `--yes`: what turning it on sends and costs, changing nothing. The pair must be one
+/// memo's `show` offers.
 #[tauri::command]
-pub async fn enrichment_preview(id: String) -> Result<enrichment::EnrichmentStatus, AppError> {
+pub async fn enrichment_preview(
+    id: String,
+    provider: String,
+    model: String,
+) -> Result<enrichment::EnrichmentStatus, AppError> {
     crate::log::command("enrichment_preview", async move {
         let tool = known_tool(&id)?;
-        attempt(move || enrichment::preview(tool)).await
+        attempt(move || enrichment::preview(tool, &provider, &model)).await
     })
     .await
 }
 
 /// Sent only from the consent step, after the owner pressed its button.
 #[tauri::command]
-pub async fn enrichment_on(id: String) -> Result<enrichment::EnrichmentStatus, AppError> {
+pub async fn enrichment_on(
+    id: String,
+    provider: String,
+    model: String,
+) -> Result<enrichment::EnrichmentStatus, AppError> {
     crate::log::command("enrichment_on", async move {
         let tool = known_tool(&id)?;
-        attempt(move || enrichment::turn_on(tool)).await
+        attempt(move || enrichment::turn_on(tool, &provider, &model)).await
     })
     .await
 }

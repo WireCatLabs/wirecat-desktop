@@ -1724,13 +1724,9 @@
         "download": ["models", "download", "{model}", "--json"]
       },
       "enrichment": {
-        "provider": "OpenAI",
-        "host": "api.openai.com",
-        "model": "gpt-4o-mini",
-        "keyVariable": "OPENAI_API_KEY",
         "show": ["models", "consents", "show", "--no-record", "--json"],
-        "preview": ["models", "consents", "set", "openai", "--model", "gpt-4o-mini", "--no-record", "--json"],
-        "on": ["models", "consents", "set", "openai", "--model", "gpt-4o-mini", "--yes", "--record", "--json"],
+        "preview": ["models", "consents", "set", "{provider}", "--model", "{model}", "--no-record", "--json"],
+        "on": ["models", "consents", "set", "{provider}", "--model", "{model}", "--yes", "--record", "--json"],
         "off": ["models", "consents", "revoke", "--record", "--json"]
       },
       "sync": {

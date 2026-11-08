@@ -87,15 +87,19 @@ export function useEnrichment(id: string) {
   return useQuery({ queryKey: toolKeys.enrichment(id), queryFn: () => platform.enrichmentStatus(id) })
 }
 
+export type EnrichmentChoice = { provider: string; model: string }
+
 /** What turning it on sends and costs. A mutation, not a query: it runs only when the owner opens the consent step. */
 export function useEnrichmentPreview(id: string) {
-  return useMutation({ mutationFn: () => platform.enrichmentPreview(id) })
+  return useMutation({ mutationFn: (c: EnrichmentChoice) => platform.enrichmentPreview(id, c.provider, c.model) })
 }
 
+/** `null` turns it off; a choice turns it on with that offer. */
 export function useSetEnrichment(id: string) {
   const client = useQueryClient()
   return useMutation({
-    mutationFn: (on: boolean) => (on ? platform.enrichmentOn(id) : platform.enrichmentOff(id)),
+    mutationFn: (c: EnrichmentChoice | null) =>
+      c ? platform.enrichmentOn(id, c.provider, c.model) : platform.enrichmentOff(id),
     onSuccess: (status) =>
       client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment),
   })
