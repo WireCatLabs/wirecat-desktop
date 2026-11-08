@@ -11,6 +11,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { type AccountsText, accountsMessages, type DataWhat } from "./messages-accounts"
+import { busyHolder, keptReason, signInLine } from "./removal-words"
 
 type Refused = Extract<AccountRemoval, { result: "refused" }>
 
@@ -377,9 +378,9 @@ function Plan(props: {
   return (
     <>
       <div className="grid gap-x-6 gap-y-3 text-[0.9rem] sm:grid-cols-2">
-        <Entries head={m.removesHead} entries={removal.removed} removal={removal} what={what} m={m} />
+        <Entries head={m.removesHead} entries={removal.removed} removal={removal} tool={tool} what={what} m={m} />
         {removal.kept.length > 0 && (
-          <Entries head={m.keepsHead} entries={removal.kept} removal={removal} what={what} m={m} kept />
+          <Entries head={m.keepsHead} entries={removal.kept} removal={removal} tool={tool} what={what} m={m} kept />
         )}
       </div>
       {command && (
@@ -410,36 +411,35 @@ function Entries(props: {
   head: string
   entries: RemovalEntry[]
   removal: Removal
+  tool: CatalogTool
   what: string
   m: AccountsText["remove"]
   kept?: boolean
 }) {
-  const { head, entries, removal, what, m, kept = false } = props
+  const { head, entries, removal, tool, what, m, kept = false } = props
   return (
     <section className="min-w-0">
       <h3 className="text-[0.85rem] font-medium text-ink-dim">{head}</h3>
       <ul className="mt-1 flex flex-col gap-2">
         {grouped(entries).map(([kind, list]) => (
           <li key={kind} className="min-w-0">
-            <span className="font-medium text-ink">{m.kinds[kind](what)}</span>
+            <span className="font-medium text-ink">{kind === "signIn" ? m.signInHere : m.kinds[kind](what)}</span>
             {kind === "config" && removal.configFile && (
               <span className="text-ink-soft">
                 {` ${m.configIn} `}
                 <code className={mono}>{removal.configFile}</code>
               </span>
             )}
-            {kind === "file" || kind === "unit" ? (
-              <Paths list={list} kept={kept} m={m} />
+            {kind === "signIn" ? (
+              <SignIn list={list} tool={tool} removal={removal} m={m} />
+            ) : kind === "file" || kind === "unit" ? (
+              <Paths list={list} kept={kept} tool={tool} m={m} />
             ) : (
               <ul className="mt-0.5 flex flex-col gap-0.5">
                 {list.map((e) => (
                   <li key={e.target} className="min-w-0 text-ink-soft">
-                    {kind === "signIn" ? (
-                      <span>{e.target}</span>
-                    ) : (
-                      kind !== "store" && <code className={mono}>{e.target}</code>
-                    )}
-                    {kept && <Reason entry={e} m={m} />}
+                    {kind !== "store" && <code className={mono}>{e.target}</code>}
+                    {kept && <Reason entry={e} tool={tool} m={m} />}
                   </li>
                 ))}
               </ul>
@@ -451,8 +451,43 @@ function Entries(props: {
   )
 }
 
-function Paths(props: { list: RemovalEntry[]; kept: boolean; m: AccountsText["remove"] }) {
-  const { list, kept, m } = props
+function SignIn(props: { list: RemovalEntry[]; tool: CatalogTool; removal: Removal; m: AccountsText["remove"] }) {
+  const { list, tool, removal, m } = props
+  const line = signInLine(tool.id, tool.name, removal.revoked, m, [...removal.removed, ...removal.kept])
+  if (line) {
+    const why =
+      tool.id === "mail" ? list.map((e) => /\((Google access kept:[^)]*)\)/.exec(e.target)?.[1]).find(Boolean) : null
+    return (
+      <span className="block text-ink-soft">
+        {line}
+        {why && <FromToolText text={why} tool={tool} m={m} />}
+      </span>
+    )
+  }
+  return (
+    <ul className="mt-0.5 flex flex-col gap-0.5">
+      {list.map((e) => (
+        <li key={e.target} className="min-w-0 text-ink-soft">
+          <span>{e.target}</span>
+          <span className="block text-[0.75rem] text-ink-dim">{m.fromTool(tool.name)}</span>
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function FromToolText(props: { text: string; tool: CatalogTool; m: AccountsText["remove"] }) {
+  const { text, tool, m } = props
+  return (
+    <span className="block text-[0.85rem] text-ink-dim">
+      {text}
+      <span className="block text-[0.75rem]">{m.fromTool(tool.name)}</span>
+    </span>
+  )
+}
+
+function Paths(props: { list: RemovalEntry[]; kept: boolean; tool: CatalogTool; m: AccountsText["remove"] }) {
+  const { list, kept, tool, m } = props
   return (
     <ul className="mt-0.5 flex flex-col gap-1">
       {byFolder(list).map(([folder, names]) => (
@@ -465,7 +500,7 @@ function Paths(props: { list: RemovalEntry[]; kept: boolean; m: AccountsText["re
             {names.map(({ name, entry }) => (
               <li key={name} className="min-w-0">
                 <code className={mono}>{name}</code>
-                {kept && <Reason entry={entry} m={m} />}
+                {kept && <Reason entry={entry} tool={tool} m={m} />}
               </li>
             ))}
           </ul>
@@ -475,11 +510,23 @@ function Paths(props: { list: RemovalEntry[]; kept: boolean; m: AccountsText["re
   )
 }
 
-function Reason(props: { entry: RemovalEntry; m: AccountsText["remove"] }) {
-  const { entry, m } = props
-  const reason = entry.chosen ? (entry.kind === "store" ? m.storeStays : m.keptByChoice) : entry.reason
-  if (!reason) return null
-  return <span className="block text-[0.85rem] text-ink-dim">{reason}</span>
+function Reason(props: { entry: RemovalEntry; tool: CatalogTool; m: AccountsText["remove"] }) {
+  const { entry, tool, m } = props
+  if (entry.chosen) {
+    return (
+      <span className="block text-[0.85rem] text-ink-dim">
+        {entry.kind === "store" ? m.storeStays : m.keptByChoice}
+      </span>
+    )
+  }
+  if (!entry.reason) return null
+  const words = keptReason(entry.reason, m)
+  return (
+    <span className="block text-[0.85rem] text-ink-dim">
+      {words.text}
+      {words.fromTool && <span className="block text-[0.75rem]">{m.fromTool(tool.name)}</span>}
+    </span>
+  )
 }
 
 function Removed(props: {
@@ -511,12 +558,14 @@ function Refusal(props: { tool: CatalogTool; profile: string; answer: Refused; m
   const { tool, profile, answer, m } = props
   const { reason, holder, message } = answer
   const head = reason === "busy" ? m.busyHead : m.refusedHead(tool.name)
+  const using = busyHolder(message)
   const detail =
     reason === "busy" && holder ? (
       <p>{m.holders[holder](profile, tool.name)}</p>
     ) : reason === "busy" ? (
       <>
-        <p>{m.busyTool}</p>
+        <p>{using ? `${m.busyUsing(using)} ${m.busyTool}` : m.busyTool}</p>
+        <p className="text-[0.75rem] text-ink-dim">{m.details}</p>
         <p className="selectable rounded-[0.35rem] bg-app-2 px-2.5 py-1.5 font-mono text-[0.82rem] break-words text-ink">
           {message}
         </p>
