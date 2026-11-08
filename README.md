@@ -131,6 +131,10 @@ badge. Install one with its **Install** button, like any tool. The app installs 
 the tool's own repository. The review checks how a tool is built and released, not everything it does. No community
 tool is listed yet.
 
+The signed list is valid for 30 days, and WireCat fetches a new one every day. When seven days or fewer are left, a
+notice at the top of the app says when the list runs out. After that, community tools cannot be installed or updated until a new list
+arrives; installed ones keep working. Your own tools do not use the list.
+
 ### Add your own tool
 
 For a tool that is not on the list: your own, a colleague's, or one from a private repository.

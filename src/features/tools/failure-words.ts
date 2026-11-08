@@ -15,6 +15,9 @@ const en = {
     "Turn on long paths in Windows: Settings, System, For developers, Enable long paths. Then restart WireCat and try again.",
   ownToolBun: "bun installed this tool, and bun cannot be told which registry your own tools come from.",
   ownToolBunHint: "Uninstall it, then add it again with Check package and Add: WireCat installs it with npm.",
+  listExpired: "The list of community tools is out of date, so this tool cannot be installed or updated.",
+  listExpiredHint:
+    "WireCat refreshes the list every day while it runs and is online. Installed community tools keep working.",
 }
 
 const ru: typeof en = {
@@ -28,6 +31,9 @@ const ru: typeof en = {
     "Включите длинные пути в Windows: Параметры, Система, Для разработчиков, «Включить длинные пути». Затем перезапустите WireCat и попробуйте снова.",
   ownToolBun: "Этот инструмент установлен через bun, а bun нельзя указать, из какого реестра брать ваши инструменты.",
   ownToolBunHint: "Удалите его и добавьте снова через «Проверить пакет» и «Добавить»: WireCat установит его через npm.",
+  listExpired: "Список инструментов сообщества устарел, поэтому этот инструмент нельзя установить или обновить.",
+  listExpiredHint:
+    "WireCat обновляет список каждый день, пока он запущен и есть интернет. Установленные инструменты сообщества продолжают работать.",
 }
 
 const es: typeof en = {
@@ -42,6 +48,10 @@ const es: typeof en = {
   ownToolBun:
     "Esta herramienta se instaló con bun, y a bun no se le puede indicar de qué registro vienen tus herramientas.",
   ownToolBunHint: "Desinstálala y vuelve a añadirla con «Comprobar paquete» y «Añadir»: WireCat la instala con npm.",
+  listExpired:
+    "La lista de herramientas de la comunidad está desactualizada, así que esta herramienta no se puede instalar ni actualizar.",
+  listExpiredHint:
+    "WireCat renueva la lista cada día mientras está abierto y con conexión. Las herramientas de la comunidad instaladas siguen funcionando.",
 }
 
 const failureMessages: Messages<typeof en> = { en, ru, es }
@@ -75,6 +85,8 @@ export function failureWords(
       return [m.longPath, m.longPathHint]
     case "ownToolBun":
       return [m.ownToolBun, m.ownToolBunHint]
+    case "listExpired":
+      return [m.listExpired, m.listExpiredHint]
     default:
       return [outcome.message, outcome.hint]
   }

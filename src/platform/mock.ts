@@ -5,7 +5,7 @@ import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
 import { botMock } from "./mock-bot"
 import { cloudflareMock } from "./mock-cloudflare"
-import { communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
+import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
 import { delay } from "./mock-delay"
 import { npmLines } from "./mock-install"
@@ -42,6 +42,7 @@ import type { Platform } from "./types"
 // `?state=fresh` shows a machine with nothing installed, `?state=nonode` one without Node.js,
 // `?state=one` only Telegram, `?fail=<tool>` makes that tool's install fail (`?fail=storage`: reading Storage), `?hold=<tool>` keeps it installing (three quarters through the download), `?install=<tool>` starts one,
 // `?npm=quiet` installs like pnpm, which reports no progress, `?copy-fail=zm` makes removing its unused copy fail.
+// `?registry=expired` refuses Acme Notes' install: the community list ran out.
 // `?unconfirmed=<tool>` refuses its install: the release was not built by the tool's own release workflow.
 // `?state=noadmin` has an apt Node whose npm needs administrator rights. With `nonode` or `noadmin`, "Set up Node.js
 // for me" runs a fake download; `?node=fail` makes its checksum mismatch, `?node=ready` starts with it already set up.
@@ -458,6 +459,15 @@ export function createMock(os: Platform["os"]): Platform {
       const repo = `https://github.com/WireCatLabs/${pkg.replace("@wirecat/", "")}`
       onEvent({ event: "log", line: `Checking that ${pkg} ${version} was built by ${repo}…`, stderr: false })
       await delay(700)
+      if (params.get("registry") === "expired" && id === ACME.id) {
+        return onEvent({
+          event: "failed",
+          reason: "listExpired",
+          message:
+            "The list of community tools is out of date, so community tools cannot be installed or updated. Installed ones keep working.",
+          hint: "WireCat refreshes the list every day while it runs and is online. Try again after it has.",
+        })
+      }
       if (params.get("unconfirmed") === id) {
         const signer = "https://github.com/someone-else/fork/.github/workflows/publish.yml@refs/heads/main"
         onEvent({

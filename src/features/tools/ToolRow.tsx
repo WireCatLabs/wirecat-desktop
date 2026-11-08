@@ -1,6 +1,7 @@
 import { LoaderCircle } from "lucide-react"
 import { useRef } from "react"
 import { type CatalogTool, findTool, isCommunity, isOwn, maker, ownerId } from "@/domain/catalog"
+import { listBlocksInstalls } from "@/domain/community-list"
 import { fitSeverity } from "@/domain/compat"
 import { type ToolStatus, toolStatus } from "@/domain/status"
 import { useMessages } from "@/i18n"
@@ -23,6 +24,8 @@ import { InstallPanel } from "./InstallPanel"
 import { InstallLine } from "./InstallProgress"
 import { type ToolsText, toolsMessages } from "./messages"
 import { ownMessages } from "./messages-own"
+import { registryMessages } from "./messages-registry"
+import { useRegistry } from "./registry-store"
 import { fitLabel, fitLine, useLatestKnown } from "./StorageFit"
 import { RowSyncButton, RowSyncLine, useRowSync } from "./Sync"
 import { ToolDetails } from "./ToolDetails"
@@ -59,6 +62,8 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
   const { install, cancel } = useTools.getState()
   const t = useMessages(toolsMessages)
   const om = useMessages(ownMessages)
+  const rm = useMessages(registryMessages)
+  const blocked = useRegistry((s) => isCommunity(tool) && !isOwn(tool) && listBlocksInstalls(s.status))
   const m = t.row
   const header = useRef<HTMLDivElement>(null)
   const showInstallPanel = Boolean(session) && !session?.closed?.includes(tool.id)
@@ -91,15 +96,17 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
     session && !session.outcome && session.operation === "install" && session.step !== "preflight" ? session : null
   const lineKind = installing
     ? "install"
-    : storageLine
-      ? "storage"
-      : sync && (sync.run || !app)
-        ? "sync"
-        : app
-          ? "app"
-          : isCommunity(tool) && !installs?.length
-            ? "trust"
-            : "tagline"
+    : blocked
+      ? "blocked"
+      : storageLine
+        ? "storage"
+        : sync && (sync.run || !app)
+          ? "sync"
+          : app
+            ? "app"
+            : isCommunity(tool) && !installs?.length
+              ? "trust"
+              : "tagline"
 
   return (
     <li data-tour="tool" className="border-line border-b last:border-b-0">
@@ -133,6 +140,8 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
               <div className="mt-1 max-w-[28rem]">
                 <InstallLine session={installing} name={tool.name} flat />
               </div>
+            ) : blocked ? (
+              <p className="mt-1 line-clamp-2 text-[0.95rem] text-warn-ink">{rm.row}</p>
             ) : storageLine ? (
               <p
                 title={storageLine}

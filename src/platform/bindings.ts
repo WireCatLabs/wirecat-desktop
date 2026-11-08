@@ -104,14 +104,22 @@ export type CloudflareStatus = {
 	running: boolean,
 };
 
+/**  How long the kept copy still lets community tools be installed and updated. */
+export type CommunityListState = "fresh" | 
+/**  Seven days or fewer left: the daily refresh has stopped working for a while. */
+"expiring" | "expired" | "neverFetched";
+
 /**
- *  What the Settings page shows: the owner's choice, whether this build can fetch the list at all, and how many tools
- *  the copy kept at start added.
+ *  What the Settings page shows: the owner's choice, whether this build can fetch the list at all, how many tools
+ *  the copy kept at start added, and when the kept copy stops letting them be installed.
  */
 export type CommunityStatus = {
 	show: boolean,
 	available: boolean,
 	listed: number,
+	state: CommunityListState,
+	/**  RFC 3339. */
+	expiresAt: string | null,
 };
 
 export type CopyRefusal = 
@@ -181,7 +189,9 @@ export type FailReason = "requirements" | "permission" | "network" | "timeout" |
 /**  bun installed an own tool, and bun cannot be pointed at the registry its review read. */
 "ownToolBun" | "cancelled" | "verify" | 
 /**  The release could not be confirmed as built by the tool's own release workflow (`provenance.rs`). */
-"unconfirmed" | "failed";
+"unconfirmed" | 
+/**  A community tool, while the signed list it comes from has expired or is gone (`registry.rs`). */
+"listExpired" | "failed";
 
 export type Folder = {
 	kind: Kind,
