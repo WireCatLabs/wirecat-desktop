@@ -1,7 +1,13 @@
 import type { ReactNode } from "react"
 import { cx } from "./cx"
 
-export function Pill({ children, tone = "neutral" }: { children: ReactNode; tone?: "neutral" | "brand" | "warn" }) {
+export function Pill({
+  children,
+  tone = "neutral",
+}: {
+  children: ReactNode
+  tone?: "neutral" | "brand" | "warn" | "bad"
+}) {
   return (
     <span
       className={cx(
@@ -9,6 +15,7 @@ export function Pill({ children, tone = "neutral" }: { children: ReactNode; tone
         tone === "neutral" && "bg-app-3 text-ink-soft",
         tone === "brand" && "bg-brand-soft text-brand",
         tone === "warn" && "bg-warn/15 text-warn-ink",
+        tone === "bad" && "bg-bad/15 text-bad",
       )}
     >
       {children}

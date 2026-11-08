@@ -217,7 +217,7 @@ export const requirements = catalog.requirements
 export const sharedStorage = catalog.sharedStorage
 
 export const isCommunity = (t: CatalogTool) => t.community === true
-/** Added by the owner without WireCat's review: the **Not checked** badge. */
+/** Added by the owner without WireCat's review: the **Not verified** badge. */
 export const isOwn = (t: CatalogTool) => t.source === "own"
 
 type Rejection = { source: ToolSource; text: string }
@@ -239,6 +239,15 @@ export function addCommunityTools(entries: readonly { source: ToolSource; entry:
     }
   }
   return rejected
+}
+
+/**
+ * The community and own tools again, after Rust reloaded its catalog: an own tool added or removed while the app runs.
+ * Pages that keep a list of tools ask for it when they render, so they see the new one.
+ */
+export function replaceAddedTools(entries: readonly { source: ToolSource; entry: unknown }[]): Rejection[] {
+  for (let i = all.length - 1; i >= 0; i--) if (isCommunity(all[i] as CatalogTool)) all.splice(i, 1)
+  return addCommunityTools(entries)
 }
 
 /** The interface's own check of an entry Rust built for review, so a tool it would not show is never added. */

@@ -415,7 +415,6 @@ export type OwnLink = {
 export type OwnLinks = {
 	npm: string,
 	publishers: OwnLink[],
-	repo: string | null,
 	commit: string | null,
 	run: string | null,
 	log: string | null,

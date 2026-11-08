@@ -4,12 +4,12 @@ type Words = [what: string, todo: string]
 
 const en = {
   open: "Add your own tool",
-  notChecked: "Not checked",
+  notChecked: "Not verified",
   trust: (maker: string) => `Added by you, made by ${maker}. WireCat has not checked it.`,
   title: "Add your own tool",
   updateTitle: (name: string) => `Update ${name}`,
   warn: [
-    "This tool gets access to all your personal data that WireCat holds: your messages, mail, notes and files.",
+    "It runs as you on this computer, so it can read everything WireCat keeps: your messages, mail, notes and files.",
     "Add it only if you trust its authors completely.",
     "WireCat has not checked this tool and takes no responsibility for what it does.",
   ],
@@ -72,8 +72,7 @@ const en = {
   confirmTitle: (pkg: string) => `Install and run ${pkg}?`,
   confirmBody: "Its install scripts and first run use your permissions.",
   install: "Install and run",
-  done: (name: string) => `${name} is added. It appears in your tools the next time WireCat starts.`,
-  restart: "Restart now",
+  done: (name: string) => `${name} is added. It is on your Tools page now.`,
   installedRefused: "The package is installed, but WireCat did not add it. Uninstall it to remove its program.",
   uninstall: "Uninstall it",
   uninstalled: "The package is uninstalled.",
@@ -127,9 +126,9 @@ const en = {
   remove: "Remove from WireCat",
   removeTitle: (name: string) => `Remove ${name} from WireCat?`,
   removeBody:
-    "WireCat stops listing it at the next start. The program stays installed until you uninstall it. Uninstall also offers to delete its own data folders, never the store your other tools share.",
-  removed: (name: string) => `${name} is removed from WireCat. It disappears the next time WireCat starts.`,
-  uninstallToo: "Uninstall it too",
+    "WireCat stops listing it now. Its program stays installed: uninstall it first to remove the program and, if you choose, its own data folders. The store your other tools share is never touched.",
+  removeBodyGone: "WireCat stops listing it now. Its program is not installed.",
+  uninstallFirst: "Uninstall it first",
 }
 
 const ru: typeof en = {
@@ -139,7 +138,7 @@ const ru: typeof en = {
   title: "Добавить свой инструмент",
   updateTitle: (name) => `Обновить ${name}`,
   warn: [
-    "Этот инструмент получает доступ ко всем вашим личным данным в WireCat: сообщениям, почте, заметкам и файлам.",
+    "Он работает от вашего имени на этом компьютере, поэтому может прочитать всё, что хранит WireCat: ваши сообщения, почту, заметки и файлы.",
     "Добавляйте его, только если полностью доверяете его авторам.",
     "WireCat не проверял этот инструмент и не отвечает за то, что он делает.",
   ],
@@ -202,8 +201,7 @@ const ru: typeof en = {
   confirmTitle: (pkg) => `Установить и запустить ${pkg}?`,
   confirmBody: "Его скрипты установки и первый запуск работают с вашими правами.",
   install: "Установить и запустить",
-  done: (name) => `${name} добавлен. Он появится в списке инструментов при следующем запуске WireCat.`,
-  restart: "Перезапустить",
+  done: (name) => `${name} добавлен. Он уже на странице «Инструменты».`,
   installedRefused: "Пакет установлен, но WireCat его не добавил. Удалите его, чтобы убрать программу.",
   uninstall: "Удалить пакет",
   uninstalled: "Пакет удалён.",
@@ -254,19 +252,19 @@ const ru: typeof en = {
   remove: "Убрать из WireCat",
   removeTitle: (name) => `Убрать ${name} из WireCat?`,
   removeBody:
-    "WireCat перестанет показывать его со следующего запуска. Программа останется установленной, пока вы её не удалите. При удалении можно стереть и его собственные папки данных, но никогда не общее хранилище других инструментов.",
-  removed: (name) => `${name} убран из WireCat. Он исчезнет при следующем запуске WireCat.`,
-  uninstallToo: "Удалить и программу",
+    "WireCat сразу перестанет его показывать. Программа останется установленной: сначала удалите её, чтобы убрать программу и, если захотите, его собственные папки данных. Общее хранилище других инструментов не затрагивается.",
+  removeBodyGone: "WireCat сразу перестанет его показывать. Его программа не установлена.",
+  uninstallFirst: "Сначала удалить программу",
 }
 
 const es: typeof en = {
   open: "Añadir tu propia herramienta",
-  notChecked: "Sin revisar",
+  notChecked: "Sin verificar",
   trust: (maker) => `Añadida por ti, hecha por ${maker}. WireCat no la ha revisado.`,
   title: "Añadir tu propia herramienta",
   updateTitle: (name) => `Actualizar ${name}`,
   warn: [
-    "Esta herramienta obtiene acceso a todos tus datos personales en WireCat: tus mensajes, correo, notas y archivos.",
+    "Se ejecuta como tú en este equipo, así que puede leer todo lo que guarda WireCat: tus mensajes, correo, notas y archivos.",
     "Añádela solo si confías por completo en sus autores.",
     "WireCat no ha revisado esta herramienta y no se hace responsable de lo que haga.",
   ],
@@ -328,8 +326,7 @@ const es: typeof en = {
   confirmTitle: (pkg) => `¿Instalar y ejecutar ${pkg}?`,
   confirmBody: "Sus scripts de instalación y su primera ejecución usan tus permisos.",
   install: "Instalar y ejecutar",
-  done: (name) => `${name} está añadida. Aparecerá en tus herramientas la próxima vez que se inicie WireCat.`,
-  restart: "Reiniciar ahora",
+  done: (name) => `${name} está añadida. Ya está en tu página Herramientas.`,
   installedRefused: "El paquete está instalado, pero WireCat no lo añadió. Desinstálalo para quitar su programa.",
   uninstall: "Desinstalarlo",
   uninstalled: "El paquete está desinstalado.",
@@ -386,9 +383,9 @@ const es: typeof en = {
   remove: "Quitar de WireCat",
   removeTitle: (name) => `¿Quitar ${name} de WireCat?`,
   removeBody:
-    "WireCat deja de mostrarla en el próximo inicio. El programa sigue instalado hasta que lo desinstales. Al desinstalar también puedes borrar sus propias carpetas de datos, nunca el almacén que comparten tus otras herramientas.",
-  removed: (name) => `${name} se quitó de WireCat. Desaparecerá la próxima vez que se inicie WireCat.`,
-  uninstallToo: "Desinstalarla también",
+    "WireCat deja de mostrarla ahora. Su programa sigue instalado: desinstálalo antes para quitar el programa y, si quieres, sus propias carpetas de datos. El almacén que comparten tus otras herramientas no se toca.",
+  removeBodyGone: "WireCat deja de mostrarla ahora. Su programa no está instalado.",
+  uninstallFirst: "Desinstalarla antes",
 }
 
 export const ownMessages: Messages<typeof en> = { en, ru, es }

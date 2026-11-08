@@ -242,7 +242,6 @@ pub struct Command {
 pub struct Links {
     pub npm: String,
     pub publishers: Vec<Link>,
-    pub repo: Option<String>,
     pub commit: Option<String>,
     pub run: Option<String>,
     pub log: Option<String>,
@@ -510,7 +509,7 @@ pub fn review(
     let commands: Vec<String> = manifest.commands.iter().map(|c| c.path.join(" ")).collect();
     let publishers = publishers(&view["maintainers"]);
     let hosts = declared_hosts(&manifest)?;
-    let links = links_of(package, &version, &publishers, repo.as_deref(), built.as_ref(), &release);
+    let links = links_of(package, &version, &publishers, built.as_ref(), &release);
     // Kept as word lists: `community.rs` checks every string in an array as a command word at each start.
     let words = |list: &[String]| -> Vec<Vec<String>> {
         list.iter().map(|c| c.split(' ').map(str::to_string).collect()).collect()
@@ -907,7 +906,6 @@ fn links_of(
     package: &str,
     version: &str,
     publishers: &[String],
-    repo: Option<&str>,
     built: Option<&BuiltBy>,
     release: &provenance::Release,
 ) -> Links {
@@ -924,7 +922,6 @@ fn links_of(
             .filter(|p| npm_user(p))
             .map(|p| Link { label: p.clone(), url: format!("https://www.npmjs.com/~{p}") })
             .collect(),
-        repo: repo.map(str::to_string),
         commit,
         run,
         log: release.log_index.map(|i| format!("https://search.sigstore.dev/?logIndex={i}")),
@@ -1277,7 +1274,6 @@ mod tests {
             r.links.publishers,
             [Link { label: "example".into(), url: "https://www.npmjs.com/~example".into() }]
         );
-        assert_eq!(r.links.repo.as_deref(), Some("https://github.com/example/acme-crm-cli"));
         assert!(r.links.commit.is_none() && r.links.run.is_none() && r.links.log.is_none(), "no provenance");
         assert_eq!(
             r.commands[1],
