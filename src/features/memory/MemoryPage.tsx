@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
+import { Check, ChevronDown, ExternalLink, LoaderCircle, Plus, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
 import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
 import { ToolNeeded } from "@/features/tools"
@@ -15,9 +15,12 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
 import { Activity } from "./Activity"
+import { AddPanel, PANEL_TITLE } from "./AddPanel"
+import { useAddSource } from "./add-store"
 import { Filters } from "./Filters"
 import { ForgetDialog } from "./ForgetDialog"
 import { memoryMessages } from "./messages"
+import { addMessages } from "./messages-add"
 import { Row, SubjectLabel } from "./Row"
 import { useMemory } from "./store"
 
@@ -72,21 +75,24 @@ export function MemoryPage() {
           </p>
         </div>
         {s.read?.kind !== "missing" && !demo && (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={s.reading}
-            onClick={() => load()}
-            icon={
-              s.reading ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <RefreshCw className="size-4" aria-hidden />
-              )
-            }
-          >
-            {s.reading && s.read ? m.reading : m.readAgain}
-          </Button>
+          <span className="flex flex-wrap items-center gap-2">
+            {s.read?.kind === "ready" && <AddButton />}
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={s.reading}
+              onClick={() => load()}
+              icon={
+                s.reading ? (
+                  <LoaderCircle className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <RefreshCw className="size-4" aria-hidden />
+                )
+              }
+            >
+              {s.reading && s.read ? m.reading : m.readAgain}
+            </Button>
+          </span>
         )}
       </div>
 
@@ -106,6 +112,7 @@ export function MemoryPage() {
           </ToolNeeded>
         ) : (
           <>
+            {ready && <AddPanel />}
             <div className="flex flex-col gap-[1rem]">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <Tabs value={s.tab} onChange={s.setTab} count={count} />
@@ -136,6 +143,26 @@ export function MemoryPage() {
 
       <ForgetDialog entry={forgetting} />
     </div>
+  )
+}
+
+/** The page's one purple action; while the panel is open it steps back and only brings focus to the panel. */
+function AddButton() {
+  const m = useMessages(addMessages)
+  const open = useAddSource((s) => s.open)
+  return (
+    <Button
+      variant={open ? "secondary" : "primary"}
+      size="sm"
+      icon={<Plus className="size-4" aria-hidden />}
+      aria-expanded={open}
+      onClick={() => {
+        if (!open) useAddSource.getState().openPanel()
+        requestAnimationFrame(() => document.getElementById(PANEL_TITLE)?.focus({ preventScroll: !open }))
+      }}
+    >
+      {m.open}
+    </Button>
   )
 }
 
