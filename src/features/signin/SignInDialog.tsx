@@ -57,14 +57,18 @@ export function SignInDialog() {
           </p>
         </Collapse>
         <Collapse open={keyring !== null}>{keyring && <KeyringNotice fallback={keyring} />}</Collapse>
-        {/* Every tool's whole way in, from what to have at hand to the end, with the step it is on lit. */}
-        <SignInPath s={s} />
-        {/* One step fades into the next in the same place, and the box follows its height (rule 9). */}
-        <AutoHeight swap={key}>
-          <Crossfade swap={key} ms={MOTION.swap}>
-            {s.phase === "plan" ? <Plan /> : <Stage name={name} s={s} />}
-          </Crossfade>
-        </AutoHeight>
+        {/* The whole way in with the current step lit: beside the step on wide windows, over it on narrow ones. */}
+        <div className="grid gap-5 md:grid-cols-[14rem_minmax(0,1fr)] md:gap-8">
+          <div className="md:self-start">
+            <SignInPath s={s} />
+          </div>
+          {/* One step fades into the next in the same place, and the box follows its height (rule 9). */}
+          <AutoHeight swap={key}>
+            <Crossfade swap={key} ms={MOTION.swap}>
+              {s.phase === "plan" ? <Plan /> : <Stage name={name} s={s} />}
+            </Crossfade>
+          </AutoHeight>
+        </div>
         <p role="status" className="sr-only">
           {s.phase === "starting" && s.switchingTo
             ? tm.switching[s.switchingTo]

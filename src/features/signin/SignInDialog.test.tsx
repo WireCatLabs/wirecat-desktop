@@ -309,7 +309,8 @@ describe("answering what the tool asks", () => {
     expect(platform.signInAnswer).not.toHaveBeenCalled()
   })
 
-  it("keeps Zoom's page beside the pasted-address fallback, and drops the question when the browser answers", async () => {
+  it("says in plain steps what to do when the browser does not come back, and keeps Zoom's page beside them", async () => {
+    const user = userEvent.setup()
     const dialog = await open("zm")
     send({
       event: "openUrl",
@@ -317,12 +318,47 @@ describe("answering what the tool asks", () => {
       purpose: "Approve access to Zoom in the browser",
     })
     expect(within(dialog).getByText(/Waiting for you to finish in the browser/)).toBeInTheDocument()
-    send({ event: "needs", field: "redirect", secret: true, prompt: "the address it ended on", hint: null })
+    send({
+      event: "needs",
+      field: "redirect",
+      secret: true,
+      prompt: "If the browser does not come back by itself, the address it ended on (code=…&state=…)",
+      hint: null,
+    })
+    expect(
+      within(dialog).getByText(/it should return to WireCat on its own\. Sometimes it does not/),
+    ).toBeInTheDocument()
+    expect(within(dialog).queryByText(/code=…&state=…/, { selector: STAGE_TEXT })).toBeNull()
     expect(within(dialog).getByRole("button", { name: "Open zoom.us" })).toBeInTheDocument()
-    expect(within(dialog).getByLabelText("The address it ended on")).toBeInTheDocument()
+    expect(within(dialog).getByLabelText("Address or code from the browser")).toBeInTheDocument()
+
+    await user.click(within(dialog).getByRole("button", { name: "Copy the link to zoom.us" }))
+    expect(await navigator.clipboard.readText()).toBe("https://zoom.us/oauth/authorize?x=1")
+    expect(within(dialog).getByRole("button", { name: "Copied" })).toBeInTheDocument()
+
+    await user.click(within(dialog).getAllByRole("button", { name: "Try again" })[0] as HTMLElement)
+    expect(platform.signInStop).toHaveBeenCalledWith("zm")
+    expect(useSignIn.getState().phase).toBe("starting")
+    finish()
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalledTimes(2))
 
     send({ event: "done", alreadyLinked: false, received: null })
-    expect(within(dialog).queryByRole("textbox", { name: "The address it ended on" })).toBeNull()
+    expect(within(dialog).queryByRole("textbox", { name: "Address or code from the browser" })).toBeNull()
+  })
+
+  it("lists the steps beside the content; the first goes back to the plan, a later one says why it cannot", async () => {
+    const user = userEvent.setup()
+    const dialog = await open("zm")
+    send({ event: "openUrl", url: "https://zoom.us/oauth/authorize?x=1", purpose: null })
+    const locked = within(dialog).getByRole("button", { name: /^Your Zoom app/ })
+    await user.click(locked)
+    expect(within(dialog).getByText(/already past this step/)).toBeInTheDocument()
+    expect(useSignIn.getState().phase).toBe("browser")
+
+    await user.click(within(dialog).getByRole("button", { name: /^Before you start/ }))
+    expect(useSignIn.getState().phase).toBe("plan")
+    expect(platform.signInStop).toHaveBeenCalledWith("zm")
+    expect(within(dialog).getByRole("button", { name: "Start sign-in" })).toBeInTheDocument()
   })
 
   it("asks for Zoom's Public Client ID when the tool has none, saves it with zm's own config set and starts again", async () => {

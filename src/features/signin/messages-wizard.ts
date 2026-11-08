@@ -5,6 +5,10 @@ import type { WizardStep } from "./wizard"
 type Failure = { title: (name: string) => string; cause: (name: string) => string }
 
 const en = {
+  rail: {
+    locked: (name: string) =>
+      `${name} is already past this step. To change it, go back to the first step, or cancel and start again.`,
+  },
   steps: {
     intro: () => "Before you start",
     keys: () => "Your app keys, the first time",
@@ -100,9 +104,9 @@ const en = {
       cause: () => "Make it once with the steps below.",
     },
     browserNoReturn: {
-      title: () => "The browser never came back to WireCat.",
+      title: () => "The browser did not return to WireCat.",
       cause: (name) =>
-        `The page may still be open, or blocked by a pop-up blocker. Start again; if the browser ends on an error page, copy its address and paste it in the field ${name} shows.`,
+        `After you approve in the browser, it should return to WireCat. Sometimes it does not. Finish in the browser, then try again. If the browser shows an address or a code, paste it in the field ${name} shows.`,
     },
     denied: {
       title: () => "Access was not allowed.",
@@ -144,6 +148,17 @@ const en = {
     openPageOther: "Open the help page",
   },
   details: "Details",
+  redirect: {
+    title: "Back to WireCat from the browser",
+    lead: "When you approve in the browser, it should return to WireCat on its own. Sometimes it does not.",
+    steps: [
+      "Finish in the browser, then come back to this window.",
+      "If the browser shows an address or a code, copy it and paste it below.",
+      "If nothing works, try again.",
+    ],
+    label: "Address or code from the browser",
+    hint: "Paste it as the browser shows it.",
+  },
   token: {
     title: "Copy your MAX token from the web version",
     steps: [
@@ -195,6 +210,10 @@ const en = {
 export type WizardText = typeof en
 
 const ru: WizardText = {
+  rail: {
+    locked: (name) =>
+      `${name} уже прошёл этот шаг. Чтобы изменить его, вернитесь к первому шагу или отмените и начните заново.`,
+  },
   steps: {
     intro: () => "Перед началом",
     keys: () => "Ключи приложения, в первый раз",
@@ -294,9 +313,9 @@ const ru: WizardText = {
       cause: () => "Создайте его один раз по шагам ниже.",
     },
     browserNoReturn: {
-      title: () => "Браузер так и не вернулся в WireCat.",
+      title: () => "Браузер не вернулся в WireCat.",
       cause: (name) =>
-        `Страница может быть ещё открыта или заблокирована блокировщиком всплывающих окон. Начните заново; если браузер остановится на странице с ошибкой, скопируйте её адрес и вставьте в поле, которое покажет ${name}.`,
+        `После подтверждения в браузере он должен вернуться в WireCat. Иногда этого не происходит. Завершите действия в браузере и попробуйте снова. Если браузер показал адрес или код, вставьте его в поле, которое покажет ${name}.`,
     },
     denied: {
       title: () => "Доступ не разрешён.",
@@ -340,6 +359,17 @@ const ru: WizardText = {
     openPageOther: "Открыть справку",
   },
   details: "Подробности",
+  redirect: {
+    title: "Возврат из браузера в WireCat",
+    lead: "Когда вы подтвердите доступ в браузере, он должен сам вернуться в WireCat. Иногда этого не происходит.",
+    steps: [
+      "Завершите действия в браузере и вернитесь в это окно.",
+      "Если браузер показал адрес или код, скопируйте его и вставьте ниже.",
+      "Если ничего не помогло, попробуйте снова.",
+    ],
+    label: "Адрес или код из браузера",
+    hint: "Вставьте так, как его показывает браузер.",
+  },
   token: {
     title: "Скопируйте токен MAX из веб-версии",
     steps: [
@@ -389,6 +419,9 @@ const ru: WizardText = {
 }
 
 const es: WizardText = {
+  rail: {
+    locked: (name) => `${name} ya pasó este paso. Para cambiarlo, vuelve al primer paso, o cancela y empieza de nuevo.`,
+  },
   steps: {
     intro: () => "Antes de empezar",
     keys: () => "Tus claves de app, la primera vez",
@@ -492,7 +525,7 @@ const es: WizardText = {
     browserNoReturn: {
       title: () => "El navegador no volvió a WireCat.",
       cause: (name) =>
-        `Puede que la página siga abierta o que la bloquee un bloqueador de ventanas emergentes. Empieza de nuevo; si el navegador acaba en una página de error, copia su dirección y pégala en el campo que muestra ${name}.`,
+        `Tras aprobar en el navegador, este debería volver a WireCat. A veces no lo hace. Termina en el navegador y vuelve a intentarlo. Si el navegador muestra una dirección o un código, pégalo en el campo que muestra ${name}.`,
     },
     denied: {
       title: () => "No se permitió el acceso.",
@@ -536,6 +569,17 @@ const es: WizardText = {
     openPageOther: "Abrir la ayuda",
   },
   details: "Detalles",
+  redirect: {
+    title: "Volver del navegador a WireCat",
+    lead: "Cuando apruebas en el navegador, este debería volver solo a WireCat. A veces no lo hace.",
+    steps: [
+      "Termina en el navegador y vuelve a esta ventana.",
+      "Si el navegador muestra una dirección o un código, cópialo y pégalo abajo.",
+      "Si nada funciona, inténtalo de nuevo.",
+    ],
+    label: "Dirección o código del navegador",
+    hint: "Pégalo tal como lo muestra el navegador.",
+  },
   token: {
     title: "Copia tu token de MAX desde la versión web",
     steps: [

@@ -31,6 +31,7 @@ import {
 } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { CopyButton } from "@/ui/CopyButton"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -107,6 +108,7 @@ export function Stage({ name, s }: { name: string; s: SignInView }) {
     const refused = last?.kind === "notAccepted" && s.need.field === last.what ? tm.notAccepted[last.what] : undefined
     const phone = s.need.field === "phone"
     if (s.need.field === "token") return <TokenStage need={s.need} s={s} />
+    if (s.need.field === "redirect") return <RedirectStage need={s.need} s={s} />
     if (s.need.field === "client_id") return <ZoomAppSetup need={s.need} />
     if (MAIL_SERVER_FIELDS.has(s.need.field)) return <ServerStage need={s.need} s={s} />
     const link = linkIn(s.need.hint)
@@ -507,9 +509,60 @@ function ServerStage({ need, s }: { need: Need; s: SignInView }) {
   )
 }
 
+/**
+ * Zoom and Drive wait for the browser to come back with the code. When it does not, the tool asks for the address
+ * the browser ended on; in the tool's own words that reads as a riddle, so the window says it in steps.
+ */
+function RedirectStage({ need, s }: { need: Need; s: SignInView }) {
+  const m = useMessages(signinMessages)
+  const wm = useMessages(wizardMessages)
+  const check: Check = (typed) => {
+    const value = typed.trim()
+    return { value, error: value ? null : m.answerEmpty }
+  }
+  return (
+    <div className="flex min-h-[19rem] flex-col gap-4 text-left text-[1.1rem]">
+      <section className="flex flex-col gap-2.5">
+        <h3 className="text-[1.15rem] font-semibold text-ink">{wm.redirect.title}</h3>
+        <p className="text-body leading-snug text-ink-soft">{wm.redirect.lead}</p>
+        <ol className="flex flex-col gap-2">
+          {wm.redirect.steps.map((text, i) => (
+            <li key={text} className="flex items-start gap-3">
+              <span
+                aria-hidden
+                className="mt-[0.15rem] grid size-[1.45rem] shrink-0 place-items-center rounded-full bg-brand-soft font-mono text-[0.85rem] text-brand tabular-nums"
+              >
+                {i + 1}
+              </span>
+              <span className="text-body leading-snug text-ink">{text}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="flex flex-wrap items-center gap-2">
+          {s.url && <OpenLink url={s.url.url} />}
+          <Button size="sm" variant="secondary" onClick={s.again}>
+            {m.tryAgain}
+          </Button>
+        </div>
+      </section>
+      <div>
+        <AnswerForm
+          need={need}
+          label={wm.redirect.label}
+          hint={wm.redirect.hint}
+          sent={s.sent}
+          onAnswer={s.answer}
+          check={check}
+        />
+      </div>
+    </div>
+  )
+}
+
 /** MAX's token: where web.max.ru keeps it, step by step, and the field that takes the whole stored value. */
 function TokenStage({ need, s }: { need: Need; s: SignInView }) {
   const wm = useMessages(wizardMessages)
+  const tm = useMessages(telegramMessages)
   const check: Check = (typed) => {
     const value = maxTokenIn(typed)
     return { value, error: value ? null : wm.token.empty }
@@ -531,15 +584,17 @@ function TokenStage({ need, s }: { need: Need; s: SignInView }) {
             </li>
           ))}
         </ol>
-        <Button
-          size="sm"
-          variant="secondary"
-          className="self-start"
-          icon={<ExternalLink className="size-4" aria-hidden />}
-          onClick={() => platform.openUrl("https://web.max.ru/")}
-        >
-          {wm.token.open}
-        </Button>
+        <div className="flex items-center gap-1 self-start">
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={<ExternalLink className="size-4" aria-hidden />}
+            onClick={() => platform.openUrl("https://web.max.ru/")}
+          >
+            {wm.token.open}
+          </Button>
+          <CopyButton value="https://web.max.ru/" label={tm.copyLink("web.max.ru")} />
+        </div>
       </section>
       <div className="pl-[2.05rem]">
         <AnswerForm need={need} sent={s.sent} onAnswer={s.answer} check={check} />
