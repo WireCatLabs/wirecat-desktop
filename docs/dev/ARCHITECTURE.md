@@ -764,7 +764,8 @@ owner's own page, an exception to rule 4 like the Tailscale name, needed to tell
 memo. It is shown only when no tool recorded a profile for the account, and never logged or put in a report.
 
 The board is `src/ui/Board.tsx` (`useBoardDrag`, `useSlide`, `Board`, `DragCopy`, `cardClass`), shared with the Tasks
-board: `canDrop` refuses `all` and the card's own column, and `copy` on the drop is Alt, Ctrl or ⌘.
+board: `canDrop` refuses the card's own column, and `all` with the reason the board then says; `copyable` makes Alt,
+Ctrl or ⌘ at the drop a copy. A change is said once memo made it, a refusal by the board's `putBack`.
 
 ## Growing the app
 

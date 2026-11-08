@@ -124,15 +124,26 @@ function GroupsBoard({ groups, unresolved }: { groups: Group[]; unresolved: stri
   const drop = (source: string, from: string, to: string, copy: boolean) =>
     void apply(changeOf(groups, source, from, to, copy))
 
-  const { drag, onPointerDown } = useBoardDrag({
+  const {
+    drag,
+    said: boardSaid,
+    onPointerDown,
+  } = useBoardDrag({
     columnOf: (key) => split(key).group,
+    copyable: true,
     // Nothing goes into `all`, and a card dropped where it is changes nothing.
-    canDrop: (key, to) => editable(to) && to !== split(key).group,
+    canDrop: (key, to) => (editable(to) ? to !== split(key).group : m.allHoldsEvery),
     onDrop: ({ key, to, copy }) => {
       const { group, source } = split(key)
       drop(source, group, to, copy)
     },
-    onCancel: (key) => setSaid(m.putBack(nameOf(split(key).source))),
+    // Only refusals and Escape: a change is said once memo has made it ("moved to …", "copied to …").
+    words: {
+      putBack: (key, why) => {
+        const who = nameOf(split(key).source)
+        return why ? m.putBackWhy(who, why) : m.putBack(who)
+      },
+    },
   })
   const lifted = drag ? split(drag.key) : null
   const liftedMember = lifted && all.find((x) => x.source === lifted.source)
@@ -220,6 +231,9 @@ function GroupsBoard({ groups, unresolved }: { groups: Group[]; unresolved: stri
       )}
       <p aria-live="assertive" className="sr-only">
         {said}
+      </p>
+      <p aria-live="assertive" className="sr-only">
+        {boardSaid}
       </p>
     </>
   )
