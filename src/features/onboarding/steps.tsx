@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import { findTool, isCommunity, isOwn, maker, ownerId, samePackage, tools } from "@/domain/catalog"
 import { computerLine, doneRow } from "@/domain/onboarding-flow"
 import { NodeNotice } from "@/features/system"
-import { InstallLine, openConnect, toolsMessages, toolText } from "@/features/tools"
+import { InstallLine, toolsMessages, toolText } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -19,6 +19,7 @@ import { StableText } from "@/ui/Skeleton"
 import { onboardingMessages } from "./messages"
 import { useSetupTools } from "./setup-tools"
 import { rack, row } from "./step-styles"
+import { ToolNext } from "./ToolNext"
 
 function Fact({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
   return (
@@ -204,11 +205,9 @@ export function leave() {
 }
 
 export function Done() {
-  const chosen = useOnboarding((s) => s.chosen)
   const installs = useTools((s) => s.installs)
   const sessions = useTools((s) => s.sessions)
-  const list = tools.filter((t) => chosen.includes(t.id))
-  const browserReady = list.find((t) => t.mcpServer && installs[t.id]?.[0]?.version)
+  const list = useSetupTools()
   const m = useMessages(onboardingMessages).done
   // Rule 9: after the goal, the next things worth doing, each one leaving the setup for the page that does it.
   const go = (then: () => void) => {
@@ -216,6 +215,7 @@ export function Done() {
     useOnboarding.getState().finish()
     then()
   }
+  const ready = list.filter((t) => installs[t.id]?.[0]?.version)
   return (
     <div className="flex flex-col gap-[1.5rem]">
       {list.length > 0 && (
@@ -224,8 +224,8 @@ export function Done() {
             const version = installs[t.id]?.[0]?.version
             const session = sessions[ownerId(t.id)]
             const { running, tone } = doneRow(version, session)
-            return (
-              <li key={t.id} className={row}>
+            const header = (
+              <>
                 <Lamp tone={tone} />
                 <ToolIcon id={t.id} className="size-[1.5rem] shrink-0 text-ink" />
                 <span className="flex-1 font-semibold">{t.name}</span>
@@ -238,6 +238,14 @@ export function Done() {
                     {version ?? m.notInstalled}
                   </span>
                 )}
+              </>
+            )
+            // Only an installed tool has anything to do next; one alone opens, so the step never hides its only card.
+            return version && !running ? (
+              <ToolNext key={t.id} tool={t} header={header} startOpen={ready.length === 1} leave={go} />
+            ) : (
+              <li key={t.id} className={row}>
+                {header}
               </li>
             )
           })}
@@ -248,11 +256,6 @@ export function Done() {
         <h2 className="text-[1.05rem] font-semibold">{m.next}</h2>
         {/* Quiet on purpose: the tour at the foot leads, and these stay one click away (owner, 2026-11-05). */}
         <div className="-ml-3 flex flex-wrap gap-2">
-          {browserReady && (
-            <Button variant="ghost" size="sm" onClick={() => go(() => openConnect(browserReady.id))}>
-              {m.connect(browserReady.name)}
-            </Button>
-          )}
           <Button variant="ghost" size="sm" onClick={() => go(() => useNav.getState().go("agents"))}>
             {m.agents}
           </Button>

@@ -71,7 +71,11 @@ export function Health({ tool }: { tool: CatalogTool }) {
   const note = toolText(t, tool).syncNote
 
   return (
-    <section aria-label={m.section(tool.name)} className="flex min-w-0 flex-col gap-3">
+    <section
+      aria-label={m.section(tool.name)}
+      data-place={`accounts:${tool.id}`}
+      className="flex min-w-0 flex-col gap-3"
+    >
       <h4 className="text-[1.02rem] font-semibold text-ink">{usesProfiles(tool) ? m.accounts : m.health}</h4>
 
       {!usesProfiles(tool) || !doctorNeedsProfile(tool) ? (

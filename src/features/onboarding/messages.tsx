@@ -213,7 +213,6 @@ const en = {
     notInstalled: "Not installed",
     moreLater: "You can install other tools later on the Tools page.",
     next: "What next",
-    connect: (tool: string) => `Let ChatGPT or Claude use ${tool}`,
     agents: "See which agents use them",
   },
   help: {
@@ -238,6 +237,10 @@ const en = {
     action: {
       title: "One action per tool",
       text: "Install or Update puts the latest version on this computer. Manage opens the tool's profiles, sign-in and health check.",
+    },
+    sync: {
+      title: "Sync",
+      text: "Brings new messages, mail or notes to this computer, so search and your agent see them. Manage shows each account's last sync.",
     },
     agents: {
       title: "Agents",
@@ -299,6 +302,7 @@ const en = {
     | "tools"
     | "lamps"
     | "action"
+    | "sync"
     | "agents"
     | "how"
     | "search"
@@ -565,7 +569,6 @@ const ru: OnboardingText = {
     notInstalled: "Не установлен",
     moreLater: "Другие инструменты можно установить позже на странице «Инструменты».",
     next: "Что дальше",
-    connect: (tool) => `Дать ChatGPT или Claude доступ к ${tool}`,
     agents: "Посмотреть, какие агенты их используют",
   },
   help: {
@@ -590,6 +593,10 @@ const ru: OnboardingText = {
     action: {
       title: "Одно действие на инструмент",
       text: "«Установить» или «Обновить» ставит на компьютер последнюю версию. «Управление» открывает профили инструмента, вход и проверку состояния.",
+    },
+    sync: {
+      title: "Синхронизация",
+      text: "Загружает новые сообщения, письма или заметки на этот компьютер, чтобы их видели поиск и агент. В «Управлении» видно, когда каждый аккаунт синхронизировался последний раз.",
     },
     agents: {
       title: "Агенты",
@@ -880,7 +887,6 @@ const es: OnboardingText = {
     notInstalled: "Sin instalar",
     moreLater: "Puedes instalar otras herramientas más tarde en la página Herramientas.",
     next: "Qué sigue",
-    connect: (tool) => `Deja que ChatGPT o Claude usen ${tool}`,
     agents: "Ver qué agentes las usan",
   },
   help: {
@@ -905,6 +911,10 @@ const es: OnboardingText = {
     action: {
       title: "Una acción por herramienta",
       text: "Instalar o Actualizar pone la última versión en este ordenador. Gestionar abre los perfiles de la herramienta, el inicio de sesión y la revisión de estado.",
+    },
+    sync: {
+      title: "Sincronizar",
+      text: "Trae mensajes, correos o notas nuevos a este ordenador, para que los vean la búsqueda y tu agente. Gestionar muestra la última sincronización de cada cuenta.",
     },
     agents: {
       title: "Agentes",
