@@ -50,6 +50,10 @@ function Shell() {
   const onboarding = useOnboarding((s) => s.open)
   useSectionHistory(!onboarding)
   const Page = sections.find((s) => s.id === active)?.page
+  // A page saved by an older version may be gone or not built yet.
+  useEffect(() => {
+    if (!Page) useNav.setState({ active: HOME_SECTION })
+  }, [Page])
   const main = useRef<HTMLElement>(null)
   useSectionSwitch(main, onboarding ? null : active)
 

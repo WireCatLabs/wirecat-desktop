@@ -71,6 +71,12 @@ use install::Running;
 use std::sync::Arc;
 use tauri::Manager;
 
+fn window_state() -> tauri_plugin_window_state::StateFlags {
+    use tauri_plugin_window_state::StateFlags;
+    // Not VISIBLE: a window saved while hidden would never show again. Not DECORATIONS: the app draws its own frame.
+    StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 #[expect(clippy::too_many_lines, reason = "the handler list names every command, one per line")]
 pub fn run() {
@@ -89,6 +95,9 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        // Every launch, a restart included, opens where the owner left the window. A saved spot on a monitor that is
+        // gone is ignored and the window opens centred.
+        .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(window_state()).build())
         .manage(Arc::new(Running::default()))
         .setup(|app| {
             // Without a log the app still works; it says why on stderr.

@@ -15,9 +15,26 @@ type Nav = {
 
 // An in-memory stack, not window.history: the webview may map mouse buttons to its own history, and the mock's
 // `?state=` query must stay as loaded.
+const PAGE_KEY = "wirecat.page"
+
+// A restart or the next launch opens the page the owner was on. Storage can be missing (a private window), so every
+// read and write may fail and the app opens Tools.
+const savedPage = () => {
+  try {
+    return localStorage.getItem(PAGE_KEY)
+  } catch {
+    return null
+  }
+}
+
+const firstPage = () => {
+  if (typeof window === "undefined") return HOME_SECTION
+  if (new URLSearchParams(window.location.search).has("add")) return "memory"
+  return savedPage() ?? HOME_SECTION
+}
+
 export const useNav = create<Nav>((set) => ({
-  active:
-    typeof window !== "undefined" && new URLSearchParams(window.location.search).has("add") ? "memory" : HOME_SECTION,
+  active: firstPage(),
   past: [],
   next: [],
   go: (section) => set((s) => (section === s.active ? s : { active: section, past: [...s.past, s.active], next: [] })),
@@ -32,6 +49,13 @@ export const useNav = create<Nav>((set) => ({
       return to === undefined ? s : { active: to, past: [...s.past, s.active], next: rest }
     }),
 }))
+
+useNav.subscribe((s, before) => {
+  if (s.active === before.active) return
+  try {
+    localStorage.setItem(PAGE_KEY, s.active)
+  } catch {}
+})
 
 let surfaceName: () => string | null = () => null
 
