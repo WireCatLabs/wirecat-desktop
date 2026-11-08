@@ -303,6 +303,7 @@ export function ReviewStep({ review, m, accepted, accept }: ReviewProps) {
       <Danger lines={dangerLines(r, review.usesCore)} m={m} />
       {update && <Changes review={{ ...review, update }} m={m} accepted={accepted} accept={accept} />}
       <Details review={review} m={m} r={r} />
+      <Signals review={review} r={r} />
       <section aria-label={r.access.title}>
         <h3 className="mb-1 font-medium">{r.access.title}</h3>
         <AccessList review={review} m={m} r={r} />
@@ -312,7 +313,6 @@ export function ReviewStep({ review, m, accepted, accept }: ReviewProps) {
         </ul>
       </section>
       <Servers review={review} r={r} />
-      <Signals review={review} r={r} />
     </div>
   )
 }

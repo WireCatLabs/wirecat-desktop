@@ -70,7 +70,9 @@ const en = {
     checkingGithub: "Checking its GitHub repository…",
     nothing: "Nothing stood out. That does not make it safe.",
     newPackage: (days: number): Words => [
-      days === 0 ? "First published on npm today" : `First published on npm ${days} days ago`,
+      days === 0
+        ? "First published on npm today"
+        : `First published on npm ${days === 1 ? "a day" : `${days} days`} ago`,
       "A new package has no track record, and a look-alike of a known name usually is new.",
     ],
     fewVersions: (count: number): Words => [
@@ -116,7 +118,7 @@ const en = {
       "Found in the code. Nothing WireCat checks covers a program it starts.",
     ] as Words,
     repoNew: (days: number): Words => [
-      `Its repository was created ${days} days ago`,
+      `Its repository was created ${days === 1 ? "a day" : `${days} days`} ago`,
       "A new repository has little history to judge it by.",
     ],
     repoStale: (days: number): Words => [
@@ -408,7 +410,9 @@ const es: typeof en = {
     checkingGithub: "Revisando su repositorio de GitHub…",
     nothing: "Nada llamó la atención. Eso no la hace segura.",
     newPackage: (days) => [
-      days === 0 ? "Publicada en npm por primera vez hoy" : `Publicada en npm por primera vez hace ${days} días`,
+      days === 0
+        ? "Publicada en npm por primera vez hoy"
+        : `Publicada en npm por primera vez hace ${days === 1 ? "un día" : `${days} días`}`,
       "Un paquete nuevo no tiene historial, y una imitación de un nombre conocido suele ser nueva.",
     ],
     fewVersions: (count) => [
@@ -454,7 +458,7 @@ const es: typeof en = {
       "Encontrado en el código. Nada de lo que revisa WireCat cubre un programa que ella inicie.",
     ],
     repoNew: (days) => [
-      `Su repositorio se creó hace ${days} días`,
+      `Su repositorio se creó hace ${days === 1 ? "un día" : `${days} días`}`,
       "Un repositorio nuevo tiene poco historial para juzgarlo.",
     ],
     repoStale: (days) => [

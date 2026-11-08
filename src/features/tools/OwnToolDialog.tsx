@@ -341,7 +341,7 @@ function NameStep({
   }, [select])
   return (
     <div className="flex flex-col gap-4">
-      <Danger lines={dangerLines(r, true)} m={m} />
+      <Danger lines={dangerLines(r, false)} m={m} />
       <div className="flex flex-col gap-1.5">
         <label htmlFor={id} className="font-medium">
           {m.name}
