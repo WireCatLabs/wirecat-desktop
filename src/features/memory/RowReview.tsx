@@ -81,7 +81,7 @@ function ReviewBody({ entry, review }: { entry: MemoryEntry; review: SourceRevie
         {review.sources.map((s, i) => (
           <li key={s.ref ?? `gone-${i}`} className="flex flex-col gap-[0.45rem]">
             <p className="text-[0.9rem] font-medium">
-              <span className="selectable font-mono">{s.ref ?? m.erased}</span>
+              {s.ref ? <span className="selectable font-mono">{s.ref}</span> : m.erased}
               {s.replacement && <span className="font-normal text-ink-soft"> · {m.replacedBy(s.replacement)}</span>}
             </p>
             {s.quote && (
