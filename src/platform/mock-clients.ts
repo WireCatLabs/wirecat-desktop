@@ -292,16 +292,35 @@ function baseSeeds() {
       const [to, confirmed] = MAPS[p.ref]?.[name] ?? [null, false]
       const b = bases[p.kind].find((x) => x.name === to)
       const base = b ? { ref: b.ref, name: b.name } : null
-      mapping.push({ ref: `stage:${n}`, name, outcome, pipeline: p.ref, open: 0, base, confirmed })
+      mapping.push({
+        ref: `stage:${n}`,
+        name,
+        externalId: externalIdOf(p, name),
+        outcome,
+        pipeline: p.ref,
+        open: 0,
+        base,
+        confirmed,
+      })
     }
   }
   return { bases, mapping }
 }
 
+/** The portal's own ids of some stages, as Bitrix24 names them; "New" has none, so a move to it names the stage. */
+const STAGE_IDS: Record<string, string> = {
+  "Preparing documents": "C7:PREPARATION",
+  "Invoice sent": "C7:EXECUTING",
+  "Deal won": "C7:WON",
+  "Deal lost": "C7:LOSE",
+}
+
+const externalIdOf = (pipe: Pipe, name: string) => (pipe.account ? (STAGE_IDS[name] ?? null) : null)
+
 const stagesOf = (pipe: Pipe, cards: CrmCard[]): CrmStage[] =>
   pipe.stages.map(([name, outcome]) => {
     const here = cards.filter((c) => c.pipeline === pipe.ref && c.stage === name)
-    return { name, outcome, items: here.length, amounts: sumsOf(here) }
+    return { name, externalId: externalIdOf(pipe, name), outcome, items: here.length, amounts: sumsOf(here) }
   })
 
 type ClientsApi = Pick<
@@ -425,7 +444,7 @@ export function clientsMock(based = scenario !== "no-base", writer: CrmWriter = 
       }
       return read
     },
-    async clientsMove(_kind, ref, stage, via) {
+    async clientsMove(_kind, ref, given, via) {
       await delay(600)
       if (scenario === "move-fail") throw new Error("the portal refused the change: access denied (crm.permission)")
       const found = cards.find((c) => c.ref === ref)
@@ -434,6 +453,8 @@ export function clientsMock(based = scenario !== "no-base", writer: CrmWriter = 
       if (via && !writesWithOf(writer, pipe?.account ?? null)?.profiles.includes(via.profile)) {
         throw new Error(`${ref} is not a deal of this CRM account (not_found)`)
       }
+      // As b24 does: the CRM's own stage id first, then a name.
+      const stage = pipe?.stages.find(([name]) => externalIdOf(pipe, name) === given)?.[0] ?? given
       const outcome = pipe?.base
         ? bases[pipe.kind].find((b) => b.name === stage)?.outcome
         : pipe?.stages.find(([s]) => s === stage)?.[1]

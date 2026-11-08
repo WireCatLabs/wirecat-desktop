@@ -160,7 +160,7 @@ const WORK = { account: NORTHSTAR, profile: "work" }
 describe("Clients on the base stages, once memo names b24 for the portal", () => {
   beforeEach(() => freshMemo(true, "one"))
 
-  it("asks which stage when the column holds several of the pipeline's, and offers the last pick first", async () => {
+  it("asks which stage when several fit, offers the last pick first, and sends b24 the CRM's stage id, else its name", async () => {
     const user = userEvent.setup()
     const move = vi.spyOn(platform, "clientsMove")
     render(<ClientsPage />)
@@ -169,7 +169,7 @@ describe("Clients on the base stages, once memo names b24 for the portal", () =>
     const picker = await screen.findByRole("dialog", { name: "Which stage of Quote?" })
     await user.click(within(picker).getByRole("radio", { name: /Invoice sent/ }))
     await user.click(within(picker).getByRole("button", { name: "Move" }))
-    expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "Invoice sent", WORK)
+    expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "C7:EXECUTING", WORK)
     await waitFor(async () =>
       expect(within(await column(/^Quote/)).getByRole("button", { name: "Northstar: 40 office chairs" })).toBeVisible(),
     )
@@ -239,7 +239,7 @@ describe("Clients moving a CRM's cards through b24", () => {
     await user.click(within(again).getByRole("radio", { name: "sales" }))
     await user.click(within(again).getByRole("button", { name: "Use it and move" }))
     const sales = { account: NORTHSTAR, profile: "sales" }
-    expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "Invoice sent", sales)
+    expect(move).toHaveBeenLastCalledWith("deal", expect.stringMatching(/^deal:/), "C7:EXECUTING", sales)
     await waitFor(async () =>
       expect(within(await column(/^Quote/)).getByRole("button", { name: "Northstar: 40 office chairs" })).toBeVisible(),
     )

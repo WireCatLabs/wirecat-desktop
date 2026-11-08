@@ -306,6 +306,8 @@ more: boolean; movable: CrmMovable } |
 
 export type CrmStage = {
 	name: string,
+	/**  The CRM's own id of the stage (`C2:NEW`); `None` for an own pipeline's. */
+	externalId: string | null,
 	/**  `open`, `won` or `lost`. */
 	outcome: string,
 	/**  Every deal or lead standing in it now, as Memo counts them. */
@@ -317,6 +319,8 @@ export type CrmStage = {
 export type CrmStageMap = {
 	ref: string,
 	name: string,
+	/**  The CRM's own id of the stage, when memo lists it: a move names it, since names may repeat in a pipeline. */
+	externalId: string | null,
 	outcome: string,
 	pipeline: string,
 	/**  Open deals or leads standing in it now. */

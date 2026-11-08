@@ -33,7 +33,12 @@ export function BaseBoard({
   const lang = useLang()
   const asked = useClients((st) => st.pipeline[kind] ?? null)
   const refused = useClients((st) => st.refused)
-  const move = useCardMove(kind, asked, read.pipelines)
+  const move = useCardMove(
+    kind,
+    asked,
+    read.pipelines,
+    (pipeline, stage) => read.mapping.find((x) => x.pipeline === pipeline && x.name === stage)?.externalId ?? null,
+  )
   const [note, setNote] = useState("")
   const pipes = new Map(read.pipelines.map((p) => [p.ref, p]))
   const byRef = new Map(cards.map((c) => [c.ref, c]))

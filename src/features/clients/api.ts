@@ -38,8 +38,9 @@ export const readAgain = () => queryClient().invalidateQueries({ queryKey: clien
 export function useMove(kind: Kind, pipeline: string | null) {
   const key = clientKeys.board(kind, pipeline)
   return useMutation({
-    mutationFn: ({ ref, stage, via }: { ref: string; stage: string; via: CrmVia | null }) =>
-      platform.clientsMove(kind, ref, stage, via),
+    // `stage` is the name the board shows; a CRM's CLI gets the stage's own id when memo lists it (`sent`).
+    mutationFn: ({ ref, stage, sent, via }: { ref: string; stage: string; sent?: string | null; via: CrmVia | null }) =>
+      platform.clientsMove(kind, ref, via ? (sent ?? stage) : stage, via),
     onMutate: async ({ ref, stage }) => {
       useClients.getState().fail(ref, null)
       useClients.getState().refuse(ref, null)
@@ -67,21 +68,28 @@ export function useWriter(account: CrmAccount | null, pipelines: readonly CrmPip
 
 /**
  * What a drop asks for: memo moves the owner's own card; a CRM's goes through its CLI as the profile memo names or
- * the owner chose. With neither, nothing is written: the card stays and the owner is asked which profile.
+ * the owner chose. With neither, nothing is written: the card stays and the owner is asked which profile. `idOf`
+ * gives a stage's CRM id, which the CLI matches before any name: names may repeat within a pipeline.
  */
-export function useCardMove(kind: Kind, pipeline: string | null, pipelines: readonly CrmPipeline[]) {
+export function useCardMove(
+  kind: Kind,
+  pipeline: string | null,
+  pipelines: readonly CrmPipeline[],
+  idOf: (pipeline: string, stage: string) => string | null,
+) {
   const move = useMove(kind, pipeline)
   const run = (card: CrmCard, stage: string) => {
     const account = pipelines.find((p) => p.ref === card.pipeline)?.account ?? null
     if (!account) return move.mutate({ ref: card.ref, stage, via: null })
     const writesWith = pipelines.find((p) => p.ref === card.pipeline)?.writesWith ?? null
     const profile = writerProfile(writesWith, useClients.getState().writers[accountKey(account)])
-    if (profile) return move.mutate({ ref: card.ref, stage, via: { account, profile } })
+    const sent = idOf(card.pipeline, stage)
+    if (profile) return move.mutate({ ref: card.ref, stage, sent, via: { account, profile } })
     useClients.getState().ask({
       account,
       profiles: writesWith?.profiles ?? [],
       why: writesWith?.why ?? null,
-      move: { ref: card.ref, stage },
+      move: { ref: card.ref, stage, sent },
     })
   }
   /** The owner picked a profile: it is remembered for the account, and the move that waited for it runs. */

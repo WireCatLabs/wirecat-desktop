@@ -15,7 +15,8 @@ export type Asking = {
   account: CrmAccount
   profiles: string[]
   why: string | null
-  move: { ref: string; stage: string } | null
+  /** `sent` is the stage's CRM id when memo lists it. */
+  move: { ref: string; stage: string; sent: string | null } | null
 }
 
 type ClientsState = {

@@ -20,7 +20,12 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
   const lang = useLang()
   const asked = useClients((s) => s.pipeline[kind] ?? null)
   const filtered = useClients((s) => s.query.trim() !== "")
-  const move = useCardMove(kind, asked, read.pipelines)
+  const move = useCardMove(
+    kind,
+    asked,
+    read.pipelines,
+    (_, stage) => read.stages.find((x) => x.name === stage)?.externalId ?? null,
+  )
   const [note, setNote] = useState("")
   const movable = read.movable.kind === "yes"
   const byRef = new Map(cards.map((c) => [c.ref, c]))

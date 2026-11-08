@@ -68,8 +68,11 @@ pub struct CrmAmount {
 }
 
 #[derive(Serialize, Type, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct CrmStage {
     pub name: String,
+    /// The CRM's own id of the stage (`C2:NEW`); `None` for an own pipeline's.
+    pub external_id: Option<String>,
     /// `open`, `won` or `lost`.
     pub outcome: String,
     /// Every deal or lead standing in it now, as Memo counts them.
@@ -136,10 +139,13 @@ pub struct CrmUnsorted {
 
 /// A CRM pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion.
 #[derive(Serialize, Type, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct CrmStageMap {
     #[serde(rename = "ref")]
     pub reference: String,
     pub name: String,
+    /// The CRM's own id of the stage, when memo lists it: a move names it, since names may repeat in a pipeline.
+    pub external_id: Option<String>,
     pub outcome: String,
     pub pipeline: String,
     /// Open deals or leads standing in it now.
@@ -306,7 +312,13 @@ fn stage(v: &Value) -> Option<CrmStage> {
             })
             .collect()
     });
-    Some(CrmStage { name: text(v, "name")?, outcome: text(v, "outcome")?, items: count(v, "items"), amounts })
+    Some(CrmStage {
+        name: text(v, "name")?,
+        external_id: text(v, "external_id"),
+        outcome: text(v, "outcome")?,
+        items: count(v, "items"),
+        amounts,
+    })
 }
 
 fn card(v: &Value) -> Option<CrmCard> {
@@ -533,7 +545,7 @@ mod tests {
         json!({"item":{"id":"2","ref":"pipeline:2","name":"Sales","kind":"deal","account":null,"stages":[
             {"name":"Call","position":1,"outcome":"open","external_id":null,"open":0,"reached":2,"conversion":1,
              "items":0,"amounts":[]},
-            {"name":"Quote","position":2,"outcome":"open","external_id":null,"open":1,"reached":2,"conversion":0.5,
+            {"name":"Quote","position":2,"outcome":"open","external_id":"C2:QUOTE","open":1,"reached":2,"conversion":0.5,
              "items":1,"amounts":[{"amount":"500000.00","currency":"RUB","items":1}]},
             {"name":"won","position":4,"outcome":"won","external_id":null,"open":0,"reached":1,"conversion":null,
              "items":1,"amounts":[{"amount":"1200.00","currency":"EUR","items":1}]}],
@@ -576,6 +588,7 @@ mod tests {
         let CrmRead::Ready { pipelines, pipeline, stages, cards, more, movable } = read else { panic!("not ready") };
         assert_eq!(pipelines.len(), 2);
         assert_eq!(pipeline.as_deref(), Some("pipeline:2"));
+        assert_eq!((stages[0].external_id.as_deref(), stages[1].external_id.as_deref()), (None, Some("C2:QUOTE")));
         assert_eq!(stages[1].amounts, vec![CrmAmount { amount: "500000.00".into(), currency: "RUB".into(), items: 1 }]);
         assert_eq!(cards[0].organization.as_deref(), Some("Northstar Labs"));
         assert_eq!(cards[0].people[0].role, "decision-maker");
@@ -656,7 +669,7 @@ mod tests {
                 {"ref":"stage:3","name":"Quote","position":2,"outcome":"open","open":1,"mapped":2}],
                 "unsorted":{"open":1,"stages":1}}}),
             ("stages", "list") => json!({"items":[
-                {"ref":"stage:41","name":"Invoice sent","position":3,"outcome":"open","kind":"deal",
+                {"ref":"stage:41","name":"Invoice sent","external_id":"C7:INVOICE","position":3,"outcome":"open","kind":"deal",
                  "pipeline":"pipeline:7","pipeline_name":"Northstar sales",
                  "account":{"provider":"bitrix24","account":"northstar.example"},
                  "base_stage":{"ref":"stage:3","name":"Quote"},"confirmed":true,"open":3,
@@ -695,6 +708,7 @@ mod tests {
         assert_eq!(unsorted, CrmUnsorted { open: 1, stages: 1 });
         assert_eq!(mapping.iter().map(|m| m.reference.as_str()).collect::<Vec<_>>(), ["stage:41", "stage:42"]);
         assert!(mapping[0].confirmed && mapping[0].open == 3 && mapping[1].base.is_none());
+        assert_eq!((mapping[0].external_id.as_deref(), mapping[1].external_id.as_deref()), (Some("C7:INVOICE"), None));
         assert_eq!(cards[0].base_stage, Some(CrmBaseRef { reference: "stage:3".into(), name: "Quote".into() }));
         assert!(!more);
         let seen = seen.lock().unwrap();

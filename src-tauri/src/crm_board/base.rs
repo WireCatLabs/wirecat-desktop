@@ -93,6 +93,7 @@ fn entry(v: &Value) -> Option<CrmStageMap> {
     Some(CrmStageMap {
         reference: text(v, "ref")?,
         name: text(v, "name")?,
+        external_id: text(v, "external_id"),
         outcome: text(v, "outcome")?,
         pipeline: text(v, "pipeline")?,
         open: count(v, "open"),
