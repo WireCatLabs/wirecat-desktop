@@ -1,3 +1,5 @@
+import { guidedProvider } from "@/shared/signin-store"
+
 /**
  * The steps of each tool's sign-in, as the window lists them above the step on screen. A tool or method missing here
  * gets the steps its method kind implies. Their words are in `messages-wizard.ts`.
@@ -28,7 +30,9 @@ const PATHS: Record<string, WizardStep[]> = {
   "wa:phone": ["intro", "phone", "pair", "history", "done"],
   "zm:browser": ["intro", "app", "browser", "done"],
   "email:gmail": ["intro", "appPassword", "check", "done"],
+  "email:gmail:browser": ["intro", "browser", "done"],
   "email:imap": ["intro", "server", "appPassword", "check", "done"],
+  "email:imap:guided": ["intro", "appPassword", "check", "done"],
 }
 
 const BY_KIND: Record<string, WizardStep[]> = {
@@ -37,8 +41,19 @@ const BY_KIND: Record<string, WizardStep[]> = {
   token: ["intro", "token", "done"],
 }
 
-export const wizardPath = (tool: string, method: string | null): WizardStep[] =>
-  PATHS[`${tool}:${method}`] ?? BY_KIND[method ?? ""] ?? ["intro", "browser", "done"]
+export const wizardPath = (tool: string, method: string | null, route: Route = null): WizardStep[] =>
+  (route ? PATHS[`${tool}:${method}:${route}`] : undefined) ??
+  PATHS[`${tool}:${method}`] ??
+  BY_KIND[method ?? ""] ?? ["intro", "browser", "done"]
+
+/**
+ * A second way within one method: `guided` when the window asks the app password on its own step (a provider it knows
+ * the steps of), `browser` for Gmail with the owner's own Google client.
+ */
+export type Route = "guided" | "browser" | null
+
+export const routeOf = (s: Parameters<typeof guidedProvider>[0]): Route =>
+  guidedProvider(s) ? "guided" : s.tool === "email" && s.method === "gmail" && s.way === "browser" ? "browser" : null
 
 /** mail-cli asks these only when discovery finds no server; each may be left empty for its default. */
 export const MAIL_SERVER_FIELDS = new Set(["imap_host", "imap_port", "smtp_host", "smtp_port"])

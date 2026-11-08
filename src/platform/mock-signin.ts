@@ -266,10 +266,15 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
       s.emit({ event: "progress", step: "login", message: `checking the sign-in with ${host}` })
       return (await s.wait(1200)) ? STOPPED : signedIn
     }
-    const hint =
-      method === "gmail"
-        ? "Gmail takes an app password, not your account password. How to make one: https://myaccount.google.com/apppasswords"
-        : "Yandex takes an app password, not your account password. How to make one: https://yandex.ru/support/id/ru/authorization/app-passwords"
+    const gmail = method === "gmail" || domain === "gmail.com"
+    for (const text of [
+      `Server: ${host}:993 (tls), login [email]`,
+      ...(gmail ? GMAIL_PREPARE : genericPrepare(domain)),
+    ])
+      s.emit({ event: "note", text })
+    const hint = gmail
+      ? "Gmail takes an app password, not your account password. How to make one: https://support.google.com/accounts/answer/185833"
+      : `If your mail provider offers app passwords, use one: the account password is often refused. Providers: ${MAIL_PROVIDERS}`
     if ((await s.ask("password", `App password for ${address}`, true, hint)) === null) return STOPPED
     s.emit({ event: "progress", step: "login", message: `checking the password with ${host}` })
     if (await s.wait(1500)) return STOPPED
@@ -283,6 +288,24 @@ const scripts: Record<string, (s: Script, method: string, inputs: SignInInputs) 
     return signedIn
   },
 }
+
+/** mail-cli 0.20's `prepareText`, line by line as `signin_steps.rs` reads it off stderr. */
+const MAIL_PROVIDERS = "https://github.com/WireCatLabs/mail-cli/blob/main/docs/providers.md"
+const GMAIL_PREPARE = [
+  "Prepare the Gmail mailbox first:",
+  '  1. Personal Google Account: IMAP is always on, nothing to switch. Google Workspace: the administrator controls it, and the "Forwarding and POP/IMAP" tab in Gmail Settings, "See all settings", may be missing.',
+  "  2. Turn on 2-Step Verification for the Google Account.",
+  "  3. Open https://myaccount.google.com/apppasswords and create an app password. Google's help page does not list the labels of that screen, so none are quoted here.",
+  "  4. Copy the 16 digit password and use it instead of the account password.",
+  "  Note: App passwords are not offered if 2-Step Verification is set up only for security keys, on a work or school account, or with Advanced Protection on.",
+  "  Sources: https://support.google.com/mail/answer/7126229 https://support.google.com/accounts/answer/185833",
+  `  All providers: ${MAIL_PROVIDERS}`,
+]
+const genericPrepare = (domain: string) => [
+  `About the ${domain} mailbox:`,
+  "  Note: Make sure IMAP is on for the mailbox and, if the provider offers app passwords, make one: a normal password is often refused.",
+  `  All providers: ${MAIL_PROVIDERS}`,
+]
 
 const WA_SCAN = "scan in WhatsApp → Settings → Linked devices → Link a device"
 
@@ -370,9 +393,13 @@ async function failing(s: Script, reason: string): Promise<SignInEvent> {
   if (f.first === "browser")
     s.emit({ event: "openUrl", url: `https://accounts.example.com/authorize?${MOCK_CLIENT}`, purpose: null })
   if (f.first === "password") {
+    for (const text of ["Server: imap.gmail.com:993 (tls), login [email]", ...GMAIL_PREPARE])
+      s.emit({ event: "note", text })
     const hint =
-      "Gmail takes an app password, not your account password. How to make one: https://myaccount.google.com/apppasswords"
+      "Gmail takes an app password, not your account password. How to make one: https://support.google.com/accounts/answer/185833"
     if ((await s.ask("password", "App password for me@gmail.com", true, hint)) === null) return STOPPED
+    s.emit({ event: "progress", step: "login", message: "checking the password with imap.gmail.com" })
+    if (await s.wait(1200)) return STOPPED
   } else if (f.first && (await s.wait(2500))) return STOPPED
   return { event: "failed", code: f.code, reason: f.reason ?? null, message: f.message(s.profile) }
 }
