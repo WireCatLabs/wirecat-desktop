@@ -75,6 +75,10 @@ case "$seed" in
   "" | fresh | tools | demo) ;;
   *) die "--seed is fresh, tools or demo, not '$seed'" ;;
 esac
+# demo writes its synthetic data into the store, so a copied store would have to replace it.
+if [ -n "$from_store" ] && [ "$seed" = demo ]; then
+  die "--from-store goes with --seed fresh or tools: demo makes a store of its own"
+fi
 
 dir="$base/$name"
 home="$dir/home"
@@ -131,11 +135,16 @@ node_dir() {
   ls -d "$home/.local/share/dev.wirecat.desktop/node"/v*/ 2>/dev/null | sort -V | tail -1 | sed 's:/$::'
 }
 
+# fresh keeps the PATH a new user has, even after the app set up its own Node.js: Add to PATH, a new terminal that
+# misses the tools and resuming setup are what that preset tests. tools and demo start as if that was done.
 sandbox_path() {
-  local p="$dir/bin:$home/.local/bin:/usr/local/bin:/usr/bin:/bin"
-  local node
-  node=$(node_dir)
-  if [ -n "$node" ]; then p="$node/bin:$p"; fi
+  local p="$dir/bin:/usr/local/bin:/usr/bin:/bin"
+  local preset="${seed:-$had}"
+  if [ "$preset" = tools ] || [ "$preset" = demo ]; then
+    local node
+    node=$(node_dir)
+    if [ -n "$node" ]; then p="$node/bin:$p"; fi
+  fi
   printf '%s' "$p"
 }
 
@@ -277,8 +286,8 @@ copy_store() {
   # The store is live SQLite in WAL mode, often open in a background sync: the backup API copies a consistent
   # snapshot, where cp could copy half a write. The source is opened read-only.
   python3 -I - "$src" "$dst" <<'PY'
-import sqlite3, sys
-src = sqlite3.connect(f"file:{sys.argv[1]}?mode=ro", uri=True)
+import pathlib, sqlite3, sys
+src = sqlite3.connect(pathlib.Path(sys.argv[1]).resolve().as_uri() + "?mode=ro", uri=True)
 dst = sqlite3.connect(sys.argv[2])
 src.backup(dst)
 dst.close()

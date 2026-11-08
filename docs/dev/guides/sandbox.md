@@ -30,8 +30,8 @@ A sandbox is seeded once, on its first start. `--reset` empties it first; a diff
 No preset seeds messages: no tool takes messages from a file yet, and the store is never written with SQL from here.
 
 `--from-store <path>` copies a store you name into the sandbox, for a bug that needs real data. It is a copy made with
-SQLite's backup (the source is opened read-only and may stay open in a sync), never a link, and it works with any
-preset. The copy is your private data on disk under `~/.cache/wirecat-sandbox/<name>`: `--reset` deletes it.
+SQLite's backup (the source is opened read-only and may stay open in a sync), never a link. It goes with `fresh` or
+`tools`; `demo` makes a store of its own. The copy is your private data on disk under `~/.cache/wirecat-sandbox/<name>`: `--reset` deletes it.
 
 ```sh
 bin/sandbox bug-123 --seed tools --from-store ~/.local/share/WireCat/wirecat.db
@@ -45,7 +45,7 @@ Everything lives in `${XDG_CACHE_HOME:-~/.cache}/wirecat-sandbox/<name>/`.
 | --- | --- |
 | `HOME` and every `XDG_*_HOME` under `<name>/home`: app data, tool settings, credentials files, shell files | the Linux user, the network, the npm registry |
 | `MESSAGING_STORE`: `<name>/home/.local/share/WireCat/wirecat.db` | the display |
-| `PATH`: `<name>/bin`, the sandbox's own Node.js, `/usr/local/bin:/usr/bin:/bin`; no nvm, no `~/.local/bin` | your browser and your terminal (below) |
+| `PATH`: `<name>/bin`, `/usr/local/bin:/usr/bin:/bin`, and the sandbox's own Node.js for `tools` and `demo`; no nvm, no `~/.local/bin` | your browser and your terminal (below) |
 | npm's global folder: inside the sandbox's Node.js (`bin/sandbox-check` checks it) | |
 | keyring: off (`DBUS_SESSION_BUS_ADDRESS=disabled:`); tools say so and save sign-ins to a file in the sandbox | |
 

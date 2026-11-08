@@ -74,11 +74,14 @@ fi
 bus=$("$root/bin/sandbox" "$name" --exec sh -c 'echo "$DBUS_SESSION_BUS_ADDRESS"')
 [ "$bus" = "disabled:" ] && echo "ok: no session bus, so no keyring" || fail "session bus is '$bus'"
 
-if "$root/bin/sandbox" "$name" --exec sh -c 'command -v secret-tool > /dev/null && secret-tool search --all x y' \
-  > /dev/null 2>&1; then
-  fail "the keyring answered inside the sandbox"
+# Asks the session bus for its own name list: it answers in your shell, so a failure inside means no bus, not no match.
+probe=(dbus-send --session --print-reply --dest=org.freedesktop.DBus /org/freedesktop/DBus org.freedesktop.DBus.ListNames)
+if ! "${probe[@]}" > /dev/null 2>&1; then
+  fail "the session bus does not answer in your own shell, so the probe proves nothing"
+elif "$root/bin/sandbox" "$name" --exec "${probe[@]}" > /dev/null 2>&1; then
+  fail "the session bus, and so the keyring, answers inside the sandbox"
 else
-  echo "ok: the keyring does not answer inside the sandbox"
+  echo "ok: the session bus, and so the keyring, does not answer inside the sandbox"
 fi
 
 if [ "$with_app" = true ]; then
