@@ -404,6 +404,13 @@ export type OwnCommand = {
 
 export type OwnDiscovery = { outcome: "review"; review: OwnReview } | { outcome: "refused"; refusal: OwnRefusal };
 
+/**  Why GitHub could not be asked, for the interface to say in the owner's language. */
+export type OwnGithubUnchecked = 
+/**  GitHub's 60 unsigned requests an hour are used up. */
+"limit" | 
+/**  The repository is private, renamed or gone. */
+"notFound" | "unreachable";
+
 export type OwnLevel = "none" | "read" | "write";
 
 export type OwnLink = {
@@ -482,7 +489,7 @@ export type OwnSignal = { kind: "newPackage"; days: number } | { kind: "fewVersi
 /**  Hosts its code names that the manifest does not declare. */
 { kind: "undeclaredHosts"; hosts: string[] } | { kind: "startsPrograms" } | { kind: "repoNew"; days: number } | { kind: "repoStale"; days: number } | { kind: "repoArchived" } | { kind: "fewStars"; stars: number } | 
 /**  cli-base's shared workflows its workflows at the release commit do not call. */
-{ kind: "noStandardChecks"; missing: string[] } | { kind: "githubUnchecked"; detail: string };
+{ kind: "noStandardChecks"; missing: string[] } | { kind: "githubUnchecked"; reason: OwnGithubUnchecked };
 
 export type OwnStatus = {
 	allowed: boolean,

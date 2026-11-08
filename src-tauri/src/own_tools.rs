@@ -1328,16 +1328,23 @@ mod tests {
                 .contains(&Signal::UndeclaredHosts { hosts: vec!["api.acme.io".into(), "collector.evil.io".into()] })
         );
 
+        let mut cli_base = manifest();
+        cli_base["network"] = json!({ "hosts": ["api.acme.example", "*.cdn.acme.example"],
+            "user_hosts": "the mail server you sign in to" });
+        let r = review("@example/acme-crm-cli", None, &fake(&cli_base), catalog(), "").unwrap().review;
+        assert_eq!(r.hosts.unwrap(), ["api.acme.example", "*.cdn.acme.example"], "cli-base#529's own example passes");
+
         let mut url = manifest();
         url["network"] = json!({ "hosts": ["https://api.acme.io/v1"] });
         assert!(matches!(refused(&fake(&url)), Refusal::BadManifest { key, .. } if key == "network.hosts"));
     }
 
     #[test]
-    fn a_reload_lists_a_saved_own_tool_without_a_restart() {
-        let before = catalog().tools.len();
+    fn a_reload_keeps_the_built_in_tools_and_every_tool_handed_out_before_it() {
+        let tg = crate::catalog::tool("tg").unwrap();
         crate::catalog::reload();
-        assert_eq!(catalog().tools.len(), before, "nothing new saved: the same tools");
+        assert_eq!(tg.id, "tg", "a tool handed out before the reload is still readable");
+        assert!(crate::catalog::tool("tg").is_ok());
     }
 
     #[test]

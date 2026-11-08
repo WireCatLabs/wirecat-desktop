@@ -25,7 +25,7 @@ export function signalWords(s: OwnSignal, m: OwnReviewText["signals"]): [string,
     case "noStandardChecks":
       return m.noStandardChecks(s.missing.join(", "))
     case "githubUnchecked":
-      return m.githubUnchecked(s.detail)
+      return m.githubUnchecked(s.reason)
     default:
       return m[s.kind]
   }

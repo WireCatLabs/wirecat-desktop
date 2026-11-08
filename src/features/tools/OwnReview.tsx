@@ -5,6 +5,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { OwnReview, OwnSignal, OwnUpdate } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { ownToolsDocs } from "@/shared/own-tools-docs"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Checkbox } from "@/ui/Checkbox"
 import { Disclosure } from "@/ui/Disclosure"
 import { InfoTip } from "@/ui/InfoTip"
@@ -250,7 +251,10 @@ function Signals({ review, r }: { review: OwnReview; r: OwnReviewText }) {
     let live = true
     platform.ownToolRisks(review.token).then(
       (s) => live && setGithub(s),
-      (e) => live && setGithub([{ kind: "githubUnchecked", detail: String(e) }]),
+      (e) => {
+        console.error("Could not ask GitHub about the reviewed repository.", e)
+        if (live) setGithub([{ kind: "githubUnchecked", reason: "unreachable" }])
+      },
     )
     return () => {
       live = false
@@ -260,27 +264,30 @@ function Signals({ review, r }: { review: OwnReview; r: OwnReviewText }) {
   return (
     <section aria-label={r.signals.title}>
       <h3 className="mb-1 font-medium">{r.signals.title}</h3>
-      <ul className="flex flex-col gap-2">
-        {all.map((s) => {
-          const [what, why] = signalWords(s, r.signals)
-          return (
-            <li key={what} className="flex gap-2">
-              <TriangleAlert className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
-              <span>
-                <span className="font-medium">{what}</span>
-                <span className="block text-[0.9rem] text-ink-soft">{why}</span>
-              </span>
+      {/* GitHub's answer arrives after the review shows; the list grows into place instead of pushing the page. */}
+      <AutoHeight swap={github === null ? "waiting" : "answered"}>
+        <ul className="flex flex-col gap-2">
+          {all.map((s) => {
+            const [what, why] = signalWords(s, r.signals)
+            return (
+              <li key={what} className="flex gap-2">
+                <TriangleAlert className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
+                <span>
+                  <span className="font-medium">{what}</span>
+                  <span className="block text-[0.9rem] text-ink-soft">{why}</span>
+                </span>
+              </li>
+            )
+          })}
+          {github === null && (
+            <li role="status" className="flex items-center gap-2 text-ink-soft">
+              <LoaderCircle className="size-4 animate-spin text-brand" aria-hidden />
+              {r.signals.checkingGithub}
             </li>
-          )
-        })}
-        {github === null && (
-          <li role="status" className="flex items-center gap-2 text-ink-soft">
-            <LoaderCircle className="size-4 animate-spin text-brand" aria-hidden />
-            {r.signals.checkingGithub}
-          </li>
-        )}
-        {github !== null && all.length === 0 && <li className="text-ink-soft">{r.signals.nothing}</li>}
-      </ul>
+          )}
+          {github !== null && all.length === 0 && <li className="text-ink-soft">{r.signals.nothing}</li>}
+        </ul>
+      </AutoHeight>
     </section>
   )
 }

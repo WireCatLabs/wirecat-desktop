@@ -199,8 +199,7 @@ export function riskyReview(pkg: string): OwnReview {
 /** GitHub's answer: `?own-github=risky` (young, quiet, no standard checks), `fail` (the hourly limit is used up). */
 function risksMock(params: URLSearchParams): OwnSignal[] {
   const github = params.get("own-github") ?? (params.get("own-discover") === "risky" ? "risky" : null)
-  if (github === "fail")
-    return [{ kind: "githubUnchecked", detail: "GitHub's hourly limit for unsigned requests is used up" }]
+  if (github === "fail") return [{ kind: "githubUnchecked", reason: "limit" }]
   if (github === "risky")
     return [
       { kind: "repoNew", days: 4 },

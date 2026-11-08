@@ -73,8 +73,33 @@ pub enum Signal {
         missing: Vec<String>,
     },
     GithubUnchecked {
-        detail: String,
+        reason: Unchecked,
     },
+}
+
+/// Why GitHub could not be asked, for the interface to say in the owner's language.
+#[derive(specta::Type, Serialize, Debug, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[serde(rename = "OwnGithubUnchecked")]
+pub enum Unchecked {
+    /// GitHub's 60 unsigned requests an hour are used up.
+    Limit,
+    /// The repository is private, renamed or gone.
+    NotFound,
+    Unreachable,
+}
+
+const NOT_FOUND: &str = "not found";
+const LIMIT: &str = "rate limited";
+
+fn unchecked(detail: &str) -> Signal {
+    tracing::warn!("own tool risks: GitHub could not be asked: {detail}");
+    let reason = match detail {
+        NOT_FOUND => Unchecked::NotFound,
+        LIMIT => Unchecked::Limit,
+        _ => Unchecked::Unreachable,
+    };
+    Signal::GithubUnchecked { reason }
 }
 
 fn days_since(iso: &str, now: chrono::DateTime<chrono::Utc>) -> Option<i64> {
@@ -151,9 +176,10 @@ pub fn network(code: &Code, declared: Option<&[String]>, known: &[String]) -> Ve
     }
     let declared = declared.unwrap_or_default();
     let covered = |host: &str| {
+        // As cli-base's `hostCovered`: `*.x` covers the names under x, not x itself.
         declared.iter().chain(known).any(|d| {
-            let d = d.trim_start_matches("*.").to_ascii_lowercase();
-            host == d || host.ends_with(&format!(".{d}"))
+            let d = d.to_ascii_lowercase();
+            d.strip_prefix('*').map_or(host == d, |suffix| host.ends_with(suffix))
         })
     };
     let hosts: Vec<String> = code.hosts.iter().filter(|h| !covered(h)).cloned().collect();
@@ -195,10 +221,8 @@ impl GitHub for Rest {
     fn text(&self, url: &str) -> Result<String, String> {
         let mut answer =
             agent().get(url).header("Accept", "application/vnd.github+json").call().map_err(|e| match e {
-                ureq::Error::StatusCode(404) => "not found".to_string(),
-                ureq::Error::StatusCode(403 | 429) => {
-                    "GitHub's hourly limit for unsigned requests is used up".to_string()
-                }
+                ureq::Error::StatusCode(404) => NOT_FOUND.to_string(),
+                ureq::Error::StatusCode(403 | 429) => LIMIT.to_string(),
                 e => e.to_string(),
             })?;
         answer.body_mut().with_config().limit(MAX_ANSWER).read_to_string().map_err(|e| e.to_string())
@@ -258,7 +282,7 @@ pub fn github_with(
         }
         Err(detail) => {
             complete = false;
-            out.push(Signal::GithubUnchecked { detail });
+            out.push(unchecked(&detail));
         }
     }
     match standard_checks(gh, path, commit) {
@@ -267,7 +291,7 @@ pub fn github_with(
         Err(detail) => {
             complete = false;
             if !out.iter().any(|s| matches!(s, Signal::GithubUnchecked { .. })) {
-                out.push(Signal::GithubUnchecked { detail });
+                out.push(unchecked(&detail));
             }
         }
     }
@@ -280,7 +304,7 @@ fn standard_checks(gh: &impl GitHub, path: &str, commit: Option<&str>) -> Result
     let at = commit.map(|c| format!("?ref={c}")).unwrap_or_default();
     let listing = match gh.json(&format!("{API}{path}/contents/.github/workflows{at}")) {
         Ok(listing) => listing,
-        Err(e) if e == "not found" => Value::Array(Vec::new()),
+        Err(e) if e == NOT_FOUND => Value::Array(Vec::new()),
         Err(e) => return Err(e),
     };
     let mut called = String::new();
@@ -357,13 +381,18 @@ mod tests {
     #[test]
     fn hosts_in_the_code_that_the_manifest_does_not_declare_are_flagged() {
         let mut code = Code { fetch: true, ..Code::default() };
-        code.hosts.extend(["api.acme.io".to_string(), "evil.example.net".into(), "github.com".into()]);
+        code.hosts.extend([
+            "api.acme.io".to_string(),
+            "acme.io".into(),
+            "evil.example.net".into(),
+            "github.com".into(),
+        ]);
         let known = ["github.com".to_string()];
         assert_eq!(
             network(&code, Some(&["*.acme.io".to_string()]), &known),
             [
                 Signal::NetworkCode { modules: vec!["fetch".into()] },
-                Signal::UndeclaredHosts { hosts: vec!["evil.example.net".into()] }
+                Signal::UndeclaredHosts { hosts: vec!["acme.io".into(), "evil.example.net".into()] }
             ]
         );
         assert_eq!(network(&Code::default(), None, &known), [Signal::NoHosts]);
@@ -380,7 +409,7 @@ mod tests {
         }
         fn text(&self, url: &str) -> Result<String, String> {
             self.asked.borrow_mut().push(url.into());
-            self.answers.get(url).cloned().unwrap_or_else(|| Err("not found".into()))
+            self.answers.get(url).cloned().unwrap_or_else(|| Err(NOT_FOUND.into()))
         }
     }
 
@@ -439,10 +468,10 @@ mod tests {
 
     #[test]
     fn github_out_of_reach_says_it_could_not_check_and_is_not_cached() {
-        let gh = fake(&[(REPO, Err("GitHub's hourly limit for unsigned requests is used up".into()))]);
+        let gh = fake(&[(REPO, Err(LIMIT.into()))]);
         let (signals, complete) = github_with(&gh, "https://github.com/acme/crm", None, now());
         assert!(!complete);
-        assert!(matches!(&signals[0], Signal::GithubUnchecked { detail } if detail.contains("hourly limit")));
+        assert_eq!(signals[0], Signal::GithubUnchecked { reason: Unchecked::Limit });
         assert_eq!(github_with(&gh, "https://gitlab.com/acme/crm", None, now()).0, [Signal::NoRepository]);
     }
 

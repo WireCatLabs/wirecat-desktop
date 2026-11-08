@@ -1,6 +1,6 @@
 import type { StandardRoot } from "@/domain/own-access"
 import type { Messages } from "@/i18n"
-import type { OwnLevel } from "@/platform/bindings"
+import type { OwnGithubUnchecked, OwnLevel } from "@/platform/bindings"
 
 type Words = [what: string, why: string]
 
@@ -118,7 +118,9 @@ const en = {
       "Found in the code. Nothing WireCat checks covers a program it starts.",
     ] as Words,
     repoNew: (days: number): Words => [
-      `Its repository was created ${days === 1 ? "a day" : `${days} days`} ago`,
+      days === 0
+        ? "Its repository was created today"
+        : `Its repository was created ${days === 1 ? "a day" : `${days} days`} ago`,
       "A new repository has little history to judge it by.",
     ],
     repoStale: (days: number): Words => [
@@ -134,9 +136,15 @@ const en = {
       `Its workflows do not run WireCat's standard checks: ${missing}`,
       "WireCat's own tools run these checks from cli-base on every change and every release.",
     ],
-    githubUnchecked: (detail: string): Words => [
+    githubUnchecked: (reason: OwnGithubUnchecked): Words => [
       "Couldn't check its GitHub repository",
-      `${detail}. The other checks still apply.`,
+      `${
+        {
+          limit: "GitHub allows 60 checks an hour without an account, and they are used up. Try again in an hour.",
+          notFound: "GitHub has no public repository at that address: it is private, renamed or gone.",
+          unreachable: "GitHub did not answer.",
+        }[reason]
+      } The other checks still apply.`,
     ],
   },
   check: {
@@ -287,7 +295,7 @@ const ru: typeof en = {
       "Найдено в коде. То, что запускает такая программа, WireCat не проверяет.",
     ],
     repoNew: (days) => [
-      `Репозиторий создан ${days} дн. назад`,
+      days === 0 ? "Репозиторий создан сегодня" : `Репозиторий создан ${days} дн. назад`,
       "У нового репозитория мало истории, чтобы о нём судить.",
     ],
     repoStale: (days) => [
@@ -300,9 +308,15 @@ const ru: typeof en = {
       `Его процессы сборки не запускают стандартные проверки WireCat: ${missing}`,
       "Собственные инструменты WireCat запускают эти проверки из cli-base при каждом изменении и выпуске.",
     ],
-    githubUnchecked: (detail) => [
+    githubUnchecked: (reason) => [
       "Не удалось проверить его репозиторий на GitHub",
-      `${detail}. Остальные проверки в силе.`,
+      `${
+        {
+          limit: "GitHub разрешает 60 проверок в час без аккаунта, и они закончились. Попробуйте через час.",
+          notFound: "На GitHub нет открытого репозитория по этому адресу: он закрыт, переименован или удалён.",
+          unreachable: "GitHub не ответил.",
+        }[reason]
+      } Остальные проверки в силе.`,
     ],
   },
   check: {
@@ -458,7 +472,9 @@ const es: typeof en = {
       "Encontrado en el código. Nada de lo que revisa WireCat cubre un programa que ella inicie.",
     ],
     repoNew: (days) => [
-      `Su repositorio se creó hace ${days === 1 ? "un día" : `${days} días`}`,
+      days === 0
+        ? "Su repositorio se creó hoy"
+        : `Su repositorio se creó hace ${days === 1 ? "un día" : `${days} días`}`,
       "Un repositorio nuevo tiene poco historial para juzgarlo.",
     ],
     repoStale: (days) => [
@@ -474,9 +490,16 @@ const es: typeof en = {
       `Sus flujos de trabajo no ejecutan las comprobaciones estándar de WireCat: ${missing}`,
       "Las herramientas propias de WireCat ejecutan estas comprobaciones de cli-base en cada cambio y cada versión.",
     ],
-    githubUnchecked: (detail) => [
+    githubUnchecked: (reason) => [
       "No se pudo revisar su repositorio de GitHub",
-      `${detail}. Las demás comprobaciones siguen valiendo.`,
+      `${
+        {
+          limit: "GitHub permite 60 consultas por hora sin cuenta y ya se usaron. Vuelve a intentarlo en una hora.",
+          notFound:
+            "GitHub no tiene un repositorio público en esa dirección: es privado, cambió de nombre o ya no existe.",
+          unreachable: "GitHub no respondió.",
+        }[reason]
+      } Las demás comprobaciones siguen valiendo.`,
     ],
   },
   check: {
