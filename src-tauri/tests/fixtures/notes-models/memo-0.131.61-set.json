@@ -1,0 +1,19 @@
+{
+  "item": {
+    "id": "e5-small",
+    "kind": "text",
+    "title": "multilingual-e5-small, 8-bit",
+    "languages": "about 100 languages, Russian and English among them",
+    "licence": "MIT",
+    "size": "small",
+    "dims": 384,
+    "chunks_per_second": 31,
+    "size_bytes": 135391358,
+    "downloaded": true,
+    "default": true,
+    "path": "/home/owner/.local/state/WireCat/models/text/e5-small",
+    "previous": "e5-small",
+    "to_embed": 0,
+    "estimate_seconds": 0
+  }
+}

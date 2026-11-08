@@ -185,6 +185,7 @@ pub fn run() {
             commands::notes_setup::notes_sync,
             commands::notes_setup::notes_model_download,
             commands::notes_setup::notes_model_stop,
+            commands::notes_setup::notes_model_use,
             commands::tools::config_repair,
             commands::tools::account_sign_out,
             commands::tools::account_remove_supported,

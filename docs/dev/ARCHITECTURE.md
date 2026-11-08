@@ -667,8 +667,13 @@ profile, with a Sync or Stop button beside the name. A result stays until dismis
 
 `notes_setup.rs`, card `src/features/tools/MemoSetup.tsx` on memo's details, catalog key `notesSetup`. Three steps, each
 one of memo's own commands: `folders add <path>` (listed with `folders list`), `sync --only notes`, and
-`models download e5-small` (about 135 MB; after it the card runs the notes sync again, since memo embeds notes only
-then). The folder comes from the system's window: `notes_pick_folder` opens it from Rust through tauri-plugin-dialog,
+a search model. The model step lists the catalog's `choices` (EmbeddingGemma, shown only as the best local model, its
+word "model" linking to the `terms` memo gives; e5-small as the lighter one) as memo's `models list` reports them, plus
+the model in use when it is neither. The model in use, not downloaded yet, gets `models download <id>` (with
+`--accept-terms` for a model that has terms, until memo stops asking), and the card then runs the notes sync, since
+memo embeds notes only then. Another model is downloaded if needed, then `models set <id>` (`notes_model_use`); memo
+returns what it will embed again and an estimate, and the next syncs do it while search keeps working. Rust takes a
+model id only when memo's own list shows it on the card. The folder comes from the system's window: `notes_pick_folder` opens it from Rust through tauri-plugin-dialog,
 which has no capability for the webview, so the interface can only ask Rust "choose a folder" and send back what it
 returned. `notes_folder_add` checks that path again (absolute, a real readable folder, never an option) before memo
 sees it. Failures reach the interface as a closed list (`NotesProblem`: unreadable folder, disk full, offline, too old,

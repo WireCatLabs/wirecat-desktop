@@ -48,8 +48,21 @@ const en = {
   },
   searchNow: "You can search them now with words. Step 3 adds search by meaning.",
   modelTitle: "Search by meaning (optional)",
-  modelWhat: (mb: number) =>
-    `With a small model on this computer, a search for "holiday" also finds a note about a vacation. The download is about ${mb} MB, once. The model runs on your computer and sends nothing out. Without it, search uses words only.`,
+  modelWhat:
+    'With a model on this computer, a search for "holiday" also finds a note about a vacation. It is downloaded once, runs on your computer and sends nothing out. Without it, search uses words only.',
+  modelLighter: "Lighter, faster model",
+  modelSize: (mb: number) => `${mb} MB`,
+  inUse: "In use",
+  useModel: "Use this model",
+  downloadAndUse: (mb: number) => `Download ${mb} MB and use`,
+  switching: "Switching…",
+  switched: (minutes: number | null) =>
+    minutes === null
+      ? "Switched. Memo re-indexes your notes and mail at the next syncs; search keeps working meanwhile."
+      : minutes === 0
+        ? "Switched. Search already has everything it needs."
+        : `Switched. Re-indexing takes about ${minutes} min at the next syncs; search keeps working meanwhile.`,
+  modelsLabel: "Search models",
   modelStart: (mb: number) => `Download ${mb} MB`,
   modelRunning: (mb: number) => `Downloading ${mb} MB… Memo does not report how far it is. It can take a few minutes.`,
   modelPreparing: "Done. Preparing your notes for search by meaning…",
@@ -137,8 +150,21 @@ const ru: typeof en = {
   },
   searchNow: "Теперь по ним можно искать по словам. Шаг 3 добавит поиск по смыслу.",
   modelTitle: "Поиск по смыслу (необязательно)",
-  modelWhat: (mb: number) =>
-    `С небольшой моделью на этом компьютере запрос «отпуск» найдёт и заметку про каникулы. Загрузка занимает около ${mb} МБ, один раз. Модель работает на вашем компьютере и ничего никуда не отправляет. Без неё поиск идёт только по словам.`,
+  modelWhat:
+    "С моделью на этом компьютере запрос «отпуск» найдёт и заметку про каникулы. Она скачивается один раз, работает на вашем компьютере и ничего никуда не отправляет. Без неё поиск идёт только по словам.",
+  modelLighter: "Лёгкая быстрая модель",
+  modelSize: (mb) => `${mb} МБ`,
+  inUse: "Используется",
+  useModel: "Использовать эту модель",
+  downloadAndUse: (mb) => `Скачать ${mb} МБ и использовать`,
+  switching: "Переключаю…",
+  switched: (minutes) =>
+    minutes === null
+      ? "Переключено. Memo переиндексирует заметки и почту при следующих синхронизациях; поиск всё это время работает."
+      : minutes === 0
+        ? "Переключено. Для поиска уже всё готово."
+        : `Переключено. Переиндексация займёт около ${minutes} мин при следующих синхронизациях; поиск всё это время работает.`,
+  modelsLabel: "Модели поиска",
   modelStart: (mb: number) => `Скачать ${mb} МБ`,
   modelRunning: (mb: number) =>
     `Скачиваем ${mb} МБ… Memo не сообщает, сколько уже скачано. Это может занять несколько минут.`,
@@ -214,8 +240,21 @@ const es: typeof en = {
   },
   searchNow: "Ya puedes buscar en ellas por palabras. El paso 3 añade la búsqueda por significado.",
   modelTitle: "Búsqueda por significado (opcional)",
-  modelWhat: (mb: number) =>
-    `Con un modelo pequeño en este equipo, buscar «vacaciones» también encuentra una nota sobre un viaje de descanso. La descarga pesa unos ${mb} MB, una sola vez. El modelo funciona en tu equipo y no envía nada fuera. Sin él, la búsqueda usa solo palabras.`,
+  modelWhat:
+    "Con un modelo en este equipo, buscar «vacaciones» también encuentra una nota sobre un viaje de descanso. Se descarga una sola vez, funciona en tu equipo y no envía nada fuera. Sin él, la búsqueda usa solo palabras.",
+  modelLighter: "Modelo ligero y rápido",
+  modelSize: (mb) => `${mb} MB`,
+  inUse: "En uso",
+  useModel: "Usar este modelo",
+  downloadAndUse: (mb) => `Descargar ${mb} MB y usar`,
+  switching: "Cambiando…",
+  switched: (minutes) =>
+    minutes === null
+      ? "Cambiado. Memo vuelve a indexar notas y correo en las próximas sincronizaciones; la búsqueda sigue funcionando mientras tanto."
+      : minutes === 0
+        ? "Cambiado. La búsqueda ya tiene todo lo que necesita."
+        : `Cambiado. Volver a indexar lleva unos ${minutes} min en las próximas sincronizaciones; la búsqueda sigue funcionando mientras tanto.`,
+  modelsLabel: "Modelos de búsqueda",
   modelStart: (mb: number) => `Descargar ${mb} MB`,
   modelRunning: (mb: number) => `Descargando ${mb} MB… Memo no indica cuánto lleva. Puede tardar unos minutos.`,
   modelPreparing: "Listo. Preparando tus notas para la búsqueda por significado…",
