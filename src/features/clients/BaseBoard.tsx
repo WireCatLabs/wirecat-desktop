@@ -178,11 +178,12 @@ export function BaseBoard({
 }
 
 function Refused({ why }: { why: Refusal }) {
+  const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
   const mappable = why === "unmapped" || why === "unconfirmed"
   return (
     <ErrorNotice inline>
-      {s.refusal[why]}
+      {m.notMoved(s.refusal[why])}
       {mappable && (
         <Button
           size="sm"

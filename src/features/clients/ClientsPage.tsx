@@ -130,6 +130,9 @@ function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
     <>
       <BaseFilters read={read} />
       {read.more && <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">{m.more(read.cards.length)}</p>}
+      {shown.some((c) => read.pipelines.find((p) => p.ref === c.pipeline)?.movable.kind === "no") && (
+        <p className="-mt-[0.6rem] max-w-[80ch] text-[0.9rem] text-ink-soft">{m.readOnly}</p>
+      )}
       {filtered && shown.length === 0 && (
         <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">
           {m.noMatch}{" "}

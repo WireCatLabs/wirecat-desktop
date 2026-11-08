@@ -173,15 +173,16 @@ describe("Clients on the base stages", () => {
     await user.keyboard(" {ArrowRight}{ArrowRight} ")
     expect(move).not.toHaveBeenCalled()
     const back = within(await column(/^Qualification/)).getByRole("button", { name: "Support contract" })
-    expect(back).toHaveTextContent("no stage of this card's pipeline belongs to this column yet")
+    expect(back).toHaveTextContent("Not moved: no stage of this card's pipeline belongs to this column yet")
     await user.click(within(back).getByRole("button", { name: "Map stages" }))
     expect(await column(/^Unmapped/)).toHaveTextContent("Waiting for payment")
   })
 
-  it("keeps a CRM's cards in place on a drop: they change in the CRM", async () => {
+  it("keeps a CRM's cards in place on a drop and says they change in the CRM", async () => {
     const user = userEvent.setup()
     const move = vi.spyOn(platform, "clientsMove")
     render(<ClientsPage />)
+    expect(await screen.findByText(/Read only: WireCat cannot run this CRM's own tool yet/)).toBeInTheDocument()
     const chairs = await card("Northstar: 40 office chairs")
     chairs.focus()
     await user.keyboard(" {ArrowRight} ")
