@@ -119,6 +119,12 @@ export async function runMockScenario() {
     await useTools.getState().refresh()
     useTools.getState().toggle(mcp)
   }
+  const accounts = params.get("accounts") ?? params.get("remove-fail")
+  if (accounts && findTool(accounts)) {
+    useNav.getState().go("tools")
+    await useTools.getState().refresh()
+    useTools.getState().toggle(accounts)
+  }
   if (params.has("memo") || params.has("memo-fail")) {
     useNav.getState().go("tools")
     await useTools.getState().refresh()

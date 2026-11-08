@@ -3,6 +3,7 @@ import { findTool, type SettingsSource } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import type { SettingRow, Settings } from "@/platform/settings-schemas"
+import { useNav } from "@/shared/nav"
 import { change, format, type Op, type Problem, parse, plan, toDocument } from "./diff"
 import { type Reason, told } from "./reason"
 import { rowsFor, sharedDocument, sharedPlan, type View } from "./scope"
@@ -319,3 +320,11 @@ export const useConfig = create<ConfigState>((set, get) => {
     applyOp: (op) => runRow(op.key, op),
   }
 })
+
+/** The Settings page on one profile of a tool, as if the owner had picked it there. */
+export function openSettingsAt(id: string, profile: string) {
+  remember((l) => ({ ...l, view: "tool", tool: id, targets: { ...l.targets, [id]: profile } }))
+  // A page opened before keeps its tool; one not opened yet starts from what was just remembered.
+  if (useConfig.getState().tool !== null) void useConfig.getState().chooseTool(id)
+  useNav.getState().go("settings")
+}

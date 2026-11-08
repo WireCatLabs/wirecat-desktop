@@ -22,6 +22,8 @@ type Props = {
   moreLabel: string
   disabled?: boolean
   className?: string
+  /** Only "⋯", the size of a small button, for a row of a list; `menuLabel` names it. */
+  compact?: boolean
 }
 
 const enabled = (menu: HTMLElement | null) => [
@@ -39,7 +41,7 @@ const MOVES: Record<string, (at: number, count: number) => number> = {
  * A button with its other actions behind an arrow on its right (WAI-ARIA menu button). The menu floats in a fixed
  * layer, so opening it never moves the row it belongs to.
  */
-export function SplitButton({ main, items, menuLabel, moreLabel, disabled, className }: Props) {
+export function SplitButton({ main, items, menuLabel, moreLabel, disabled, className, compact }: Props) {
   const [open, setOpen] = useState<false | "first" | "last">(false)
   const box = useRef<HTMLDivElement>(null)
   const trigger = useRef<HTMLButtonElement>(null)
@@ -118,13 +120,17 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
           }}
           className={cx(
             part,
-            main
-              ? "w-[2.2rem] rounded-r-[0.4rem] text-ink-soft hover:text-ink"
-              : "gap-[0.45rem] rounded-[0.4rem] px-[0.85rem] text-[0.95rem] font-medium whitespace-nowrap",
+            compact
+              ? "h-8 w-8 rounded-[0.35rem] border-transparent bg-transparent text-ink-soft hover:bg-app-3 hover:text-ink"
+              : main
+                ? "w-[2.2rem] rounded-r-[0.4rem] text-ink-soft hover:text-ink"
+                : "gap-[0.45rem] rounded-[0.4rem] px-[0.85rem] text-[0.95rem] font-medium whitespace-nowrap",
             open && "bg-app-3 text-ink",
           )}
         >
-          {main ? (
+          {compact ? (
+            <Ellipsis className="size-4" aria-hidden />
+          ) : main ? (
             <ChevronDown className="size-4" aria-hidden />
           ) : (
             <>

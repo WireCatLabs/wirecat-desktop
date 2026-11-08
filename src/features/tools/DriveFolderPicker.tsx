@@ -1,24 +1,20 @@
 import { ChevronRight, FolderClosed, HardDrive, LoaderCircle, Users } from "lucide-react"
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
-import { explainFailure } from "@/domain/signin-failure"
+import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import type { DriveFolder, FolderLevel } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import { useSignIn } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
-import { setupMessages } from "./messages-setup"
-import { wizardMessages } from "./messages-wizard"
-import { SyncNow } from "./ZoomApp"
+import { driveMessages } from "./messages-drive"
 
 /** "Shared with me" is a list, not a folder: drive-cli refuses to add it, only what is under it. */
 const SHARED_WITH_ME = "shared_with_me"
 
 type Crumb = { id: string | null; name: string }
+export type FailedLevel = Extract<FolderLevel, { result: "failed" }>
 type Level = { state: "loading" } | { state: "ready"; level: FolderLevel }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -28,10 +24,21 @@ const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
  * added with `folders add`. A drive before that command fails the first level with `needs_update`, and the picker
  * says to update.
  */
-export function DriveFolders({ tool, profile, name }: { tool: string; profile: string; name: string }) {
-  const sm = useMessages(setupMessages)
+export function DriveFolderPicker(props: {
+  tool: string
+  profile: string
+  /** What a level that could not be read says, with a way to read it again. */
+  failed: (level: FailedLevel, retry: () => void) => ReactNode
+  /** The next step once a folder is added, such as Sync now. */
+  after?: ReactNode
+  onAdded?: () => void
+  /** Off where the surface around it already has the title. */
+  titled?: boolean
+}) {
+  const { tool, profile, failed, after, onAdded, titled = true } = props
+  const sm = useMessages(driveMessages)
   const heading = useId()
-  const [trail, setTrail] = useState<Crumb[]>([{ id: null, name: sm.drive.root }])
+  const [trail, setTrail] = useState<Crumb[]>([{ id: null, name: sm.picker.root }])
   const [levels, setLevels] = useState<Record<string, Level>>({})
   const [chosen, setChosen] = useState<Map<string, string>>(new Map())
   const [adding, setAdding] = useState(false)
@@ -84,6 +91,7 @@ export function DriveFolders({ tool, profile, name }: { tool: string; profile: s
     setNotAdded(failed)
     setChosen((c) => new Map([...c].filter(([id]) => !done.includes(id))))
     setAdding(false)
+    if (done.length > 0) onAdded?.()
   }
 
   // Up and down move between rows, right opens a folder, left goes back up: a tree's keys on a one-level list.
@@ -104,13 +112,19 @@ export function DriveFolders({ tool, profile, name }: { tool: string; profile: s
   const level = levels[key]
   return (
     <section aria-labelledby={heading} className="flex w-full max-w-[34rem] flex-col gap-3 text-left">
-      <div className="flex flex-col gap-1">
-        <h3 id={heading} className="text-[1.15rem] font-semibold text-ink">
-          {sm.drive.title}
+      {titled ? (
+        <div className="flex flex-col gap-1">
+          <h3 id={heading} className="text-[1.15rem] font-semibold text-ink">
+            {sm.picker.title}
+          </h3>
+          <p className="text-body leading-snug text-ink-soft">{sm.picker.lead}</p>
+        </div>
+      ) : (
+        <h3 id={heading} className="sr-only">
+          {sm.picker.title}
         </h3>
-        <p className="text-body leading-snug text-ink-soft">{sm.drive.lead}</p>
-      </div>
-      <nav aria-label={sm.drive.trail}>
+      )}
+      <nav aria-label={sm.picker.trail}>
         <ol className="flex flex-wrap items-center gap-1 text-[0.95rem]">
           {trail.map((crumb, i) => (
             <li key={crumb.id ?? "root"} className="flex items-center gap-1">
@@ -137,15 +151,15 @@ export function DriveFolders({ tool, profile, name }: { tool: string; profile: s
           {!level || level.state === "loading" ? (
             <p className="flex items-center gap-2 py-3 text-ink-soft">
               <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
-              {sm.drive.loading}
+              {sm.picker.loading}
             </p>
           ) : level.level.result === "failed" ? (
-            <LevelFailed level={level.level} name={name} profile={profile} onRetry={() => load(here)} />
+            failed(level.level, () => load(here))
           ) : (
             <div className="flex flex-col gap-2">
-              {level.level.partial && <p className="text-[0.9rem] text-ink-soft">{sm.drive.partial}</p>}
+              {level.level.partial && <p className="text-[0.9rem] text-ink-soft">{sm.picker.partial}</p>}
               {level.level.folders.length === 0 ? (
-                <p className="py-3 text-ink-soft">{sm.drive.empty}</p>
+                <p className="py-3 text-ink-soft">{sm.picker.empty}</p>
               ) : (
                 <ul
                   ref={list}
@@ -170,17 +184,17 @@ export function DriveFolders({ tool, profile, name }: { tool: string; profile: s
       </AutoHeight>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button size="sm" variant="primary" disabled={chosen.size === 0 || adding} onClick={add}>
-          {adding ? sm.drive.adding : sm.drive.add(chosen.size)}
+          {adding ? sm.picker.adding : sm.picker.add(chosen.size)}
         </Button>
-        {added.length > 0 && <SyncNow tool={tool} profile={profile} />}
+        {added.length > 0 && after}
       </div>
       <p role="status" className="min-h-[1.3rem] text-[0.95rem] text-ink-soft">
         {notAdded.length > 0 ? (
-          <span className="text-bad">{sm.drive.notAdded(notAdded.join(", "))}</span>
+          <span className="text-bad">{sm.picker.notAdded(notAdded.join(", "))}</span>
         ) : added.length > 0 ? (
-          sm.drive.done(added.length)
+          sm.picker.done(added.length)
         ) : chosen.size > 0 ? (
-          sm.drive.chosen(chosen.size)
+          sm.picker.chosen(chosen.size)
         ) : null}
       </p>
     </section>
@@ -200,15 +214,15 @@ function Row({
   onToggle: (on: boolean) => void
   onOpen: () => void
 }) {
-  const sm = useMessages(setupMessages)
+  const sm = useMessages(driveMessages)
   const id = useId()
   const addable = folder.kind !== SHARED_WITH_ME
   const opens = folder.childFolders !== 0
   const Icon = folder.kind === "shared_drive" ? HardDrive : folder.kind === SHARED_WITH_ME ? Users : FolderClosed
   const detail =
     folder.kind === SHARED_WITH_ME
-      ? sm.drive.sharedWithMe
-      : [sm.drive.kind[folder.kind], added ? sm.drive.added : sm.drive.subfolders(folder.childFolders)]
+      ? sm.picker.sharedWithMe
+      : [sm.picker.kind[folder.kind], added ? sm.picker.added : sm.picker.subfolders(folder.childFolders)]
           .filter(Boolean)
           .join(" · ")
   return (
@@ -242,57 +256,12 @@ function Row({
           size="sm"
           variant="ghost"
           data-open
-          aria-label={sm.drive.open(folder.name)}
-          title={sm.drive.open(folder.name)}
+          aria-label={sm.picker.open(folder.name)}
+          title={sm.picker.open(folder.name)}
           onClick={onOpen}
           icon={<ChevronRight className="size-4" aria-hidden />}
         />
       )}
     </li>
-  )
-}
-
-function LevelFailed({
-  level,
-  name,
-  profile,
-  onRetry,
-}: {
-  level: Extract<FolderLevel, { result: "failed" }>
-  name: string
-  profile: string
-  onRetry: () => void
-}) {
-  const wm = useMessages(wizardMessages)
-  const sm = useMessages(setupMessages)
-  const explained = explainFailure({
-    tool: "drive",
-    profile,
-    message: level.message,
-    code: level.code,
-    reason: level.reason,
-    at: null,
-    otherMethod: false,
-    terminal: false,
-  })
-  const text = wm.failure[explained.reason]
-  const signInAgain = explained.reason === "signedOut" || explained.reason === "signInExpired"
-  return (
-    <ErrorNotice
-      detail={<p>{text.cause(name)}</p>}
-      action={
-        explained.reason === "needsUpdate" ? undefined : signInAgain ? (
-          <Button size="sm" variant="secondary" onClick={() => useSignIn.getState().again()}>
-            {wm.actions.retry}
-          </Button>
-        ) : (
-          <Button size="sm" variant="secondary" onClick={onRetry}>
-            {sm.drive.retry}
-          </Button>
-        )
-      }
-    >
-      <span className="font-medium">{text.title(name)}</span>
-    </ErrorNotice>
   )
 }

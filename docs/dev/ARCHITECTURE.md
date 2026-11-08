@@ -75,6 +75,9 @@ src-tauri/src/
                 date go to his own Claude Code (`claude -p`, no tools, no settings, no session) or, when it is missing or
                 signed out, Codex (`codex exec`, read-only, in an empty folder). One checked line comes back into the
                 query box; nothing is searched until he presses Search. Never a message or a hit.
+  account.rs    removing one account: the tool's own `session end` (`accountRemove.signOut` in the catalog), refused while
+                that profile syncs or signs in. No CLI deletes one account's data yet, so `deleteData` is null for every
+                tool and the dialog says so; zm has no sign-out at all (`accountRemove: null`).
   settings.rs   tool settings: `config show`, and saving only through `config set` / `config unset`.
   storage.rs    each tool's data folders, their sizes and entries (names only); deleting them once unused.
   archive.rs    what the shared archive holds, from a tool's `store info`; the database is never opened.
@@ -118,6 +121,9 @@ src-tauri/src/
                 the window stays open; a shell the app does not know runs the line in `/bin/sh` first.
   agent_run.rs  `run_agent`: Claude Code, Codex or Gemini CLI opened in a terminal with a prompt saved to a private file
                 (Fix › under an error, Open in on a guide); only those three programs, found on PATH.
+  drive_folders.rs Drive's folders for one profile: `folders browse` and `add` (the picker), `folders list` with each
+                name from `catalog show --offline` (none until a sync copied it), and `folders remove`, after which drive's
+                next sync drops what it copied from there.
   signin.rs     signing in inside the window: the tool's own `session start`, its stdin open for the answers.
   signin_steps.rs the tool's sign-in lines read into steps: QR code, pairing code, page to open, question, progress.
   bots.rs       a bot beside the personal account: the catalog's `bot.fields` through `config set --bot`, then the
@@ -173,6 +179,16 @@ order cannot pick it: a launcher's bare PATH makes the login shell order its fol
 (a profile that adds pnpm only when it is missing puts it first there, after nvm in a terminal). Equal versions keep
 PATH order. Versions come from running the binary, never from `npm ls`, because a tool may be installed by npm, pnpm
 or both.
+
+## Account rows
+
+Every list of a tool's accounts (the Manage panel, the setup's Sign in step) is `AccountList` of `AccountRow`
+(`src/features/tools/`): the name, signed in or not, when it last synced, Sync where the tool syncs per profile, and
+"⋯" (`ui/SplitButton`, `compact`) with Check, Choose folders (drive), Settings (tools with per-profile settings: the
+Settings page opens on that profile), Sign in again, and Remove account. A check opens under its own row
+(`CheckResult.tsx`), folds away with its ×, and shows doctor output as `redact.rs` left it. Remove account runs
+`account_remove` (`account.rs`); the dialog lists what the tool's sign-out removes and what stays, from the catalog's
+`accountRemove.removes` and `keeps`, which were read from each CLI's own source.
 
 ## Uninstalling and storage
 
@@ -411,10 +427,12 @@ ends the run; Try again goes back to the plan with the address kept, and non-sec
 refill their field, while a password, a token or a login code never does. mail's reasons (`mail.login-refused`,
 `mail.app-password-required`, `mail.imap-disabled`, `mail.host-unreachable`) and drive's (`oauth.missing`,
 `oauth.expired`, `provider.rate-limited`) have their own words and action in `signin-failure.ts`. After Drive signs in,
-the done step shows a folder picker (`DriveFolders.tsx`): `drive_folders_browse(id, profile, parent)` runs `folders
+the done step shows a folder picker (`tools/DriveFolderPicker.tsx`, wrapped by `signin/DriveFolders.tsx` with the
+sign-in's failure words): `drive_folders_browse(id, profile, parent)` runs `folders
 browse [--parent <id>]` one level at a time, and `drive_folder_add` runs `folders add <id>` for each ticked folder
 (catalog `folderPicker`; ids are checked in `drive_folders.rs`; Shared with me is a list, not a folder, and cannot be
-added). A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
+added). The same picker opens later from an account row's "Choose folders" (`DriveFoldersSettings.tsx`), beside the
+chosen folders with Remove each. A CLI too old for any of this answers "unknown option" or "unknown command", which the window reads as "update
 it", with the terminal as the fallback.
 
 Every sign-in is one wizard: `SignInPath.tsx` draws the method's steps from `wizard.ts` (before you start, the tool's

@@ -38,16 +38,12 @@ export function lastLine(last: LastSync, what: SyncWhat, m: Words): string {
   return left ? m.notFinished(left) : m.noneRecorded
 }
 
-/** One profile's sync in the Manage panel: the button, when it last ran, its progress and its result. */
-export function SyncControl({ tool, profile }: { tool: CatalogTool; profile: string | null }) {
+/** One profile's sync: what the button, the status line and the follow-up under them share. */
+export function useSyncControl(tool: CatalogTool, profile: string | null) {
   const key = syncKey(tool.id, profile)
   const run = useSync((s) => s.runs[key])
   const last = useSync((s) => s.last[key])
   const blocked = useSync((s) => run?.phase !== "running" && blockedBy(s.runs, tool.id, profile))
-  const { start, stop } = useSync.getState()
-  const what: SyncWhat = tool.sync?.what ?? "messages"
-  const running = run?.phase === "running"
-  const m = useMessages(syncMessages).sync
   const [refused, setRefused] = useState(false)
   useEffect(() => {
     if (!blocked) setRefused(false)
@@ -57,51 +53,95 @@ export function SyncControl({ tool, profile }: { tool: CatalogTool; profile: str
     void useSync.getState().loadLast(tool.id, profile)
   }, [tool.id, profile])
 
+  const what: SyncWhat = tool.sync?.what ?? "messages"
+  return { tool, profile, run, last, blocked, refused, refuse: () => setRefused(true), what }
+}
+
+type Control = ReturnType<typeof useSyncControl>
+
+/** When it last synced, the running sync's progress, or how the last one ended. */
+export function SyncStatus({ c }: { c: Control }) {
+  const m = useMessages(syncMessages).sync
+  const { run, last, what } = c
+  return (
+    <div className="min-w-0 flex-1" aria-live="polite">
+      {run?.phase === "running" ? (
+        <Progress run={run} m={m} />
+      ) : run ? (
+        <Outcome run={run} what={what} m={m} />
+      ) : last ? (
+        <p className="truncate text-[0.875rem] text-ink-soft tabular-nums">{lastLine(last, what, m)}</p>
+      ) : (
+        <Skeleton chars={22} label={m.readingLast} />
+      )}
+    </div>
+  )
+}
+
+/** Sync, or Stop while it runs. `name` goes into its accessible name where several rows each have one. */
+export function SyncButton({ c, name }: { c: Control; name?: string }) {
+  const m = useMessages(syncMessages).sync
+  const { start, stop } = useSync.getState()
+  const { tool, profile, run, blocked } = c
+  if (run?.phase === "running") {
+    return (
+      <Button
+        size="sm"
+        variant="secondary"
+        onClick={() => stop(tool.id, profile)}
+        disabled={run.stopping}
+        aria-label={name ? m.stopSyncing(name) : undefined}
+        icon={<CircleStop className="size-4" aria-hidden />}
+      >
+        <StableText value={run.stopping ? m.stopping : m.stop} variants={[m.stop, m.stopping]} />
+      </Button>
+    )
+  }
+  return (
+    <Button
+      size="sm"
+      variant={run ? "secondary" : "primary"}
+      onClick={() => (blocked ? c.refuse() : start(tool.id, profile))}
+      title={blocked ? m.anotherRunning : undefined}
+      aria-label={name ? m.syncNamed(name) : undefined}
+      icon={<RefreshCw className="size-4" aria-hidden />}
+    >
+      <StableText value={run ? m.syncAgain : m.syncNow} variants={[m.syncNow, m.syncAgain]} />
+    </Button>
+  )
+}
+
+/** Why a sync was refused, and what to do after one ended. */
+export function SyncFollowUp({ c }: { c: Control }) {
+  const m = useMessages(syncMessages).sync
+  const { run } = c
+  const running = run?.phase === "running"
+  return (
+    <>
+      <Collapse open={c.refused && c.blocked}>
+        <ErrorNotice inline>{m.anotherRunning}</ErrorNotice>
+      </Collapse>
+      <AutoHeight swap={running ? "running" : (run?.phase ?? "idle")}>
+        {run && !running ? <Next run={run} tool={c.tool} profile={c.profile} what={c.what} m={m} /> : null}
+      </AutoHeight>
+    </>
+  )
+}
+
+/** A tool's sync with no profile in the Manage panel: the button, when it last ran, its progress and its result. */
+export function SyncControl({ tool, profile }: { tool: CatalogTool; profile: string | null }) {
+  const c = useSyncControl(tool, profile)
+  const m = useMessages(syncMessages).sync
   if (!syncsHere(tool)) return null
   const label = m.region(profile ? `${tool.name} ${profile}` : tool.name)
 
   return (
     <section className="flex flex-col gap-1.5" aria-label={label} data-place={`sync:${tool.id}`}>
       <div className="flex min-h-[2.25rem] items-center gap-3">
-        <div className="min-w-0 flex-1" aria-live="polite">
-          {running ? (
-            <Progress run={run} m={m} />
-          ) : run ? (
-            <Outcome run={run} what={what} m={m} />
-          ) : last ? (
-            <p className="truncate text-[0.875rem] text-ink-soft tabular-nums">{lastLine(last, what, m)}</p>
-          ) : (
-            <Skeleton chars={22} label={m.readingLast} />
-          )}
-        </div>
-        {running ? (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => stop(tool.id, profile)}
-            disabled={run.stopping}
-            icon={<CircleStop className="size-4" aria-hidden />}
-          >
-            <StableText value={run.stopping ? m.stopping : m.stop} variants={[m.stop, m.stopping]} />
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            variant={run ? "secondary" : "primary"}
-            onClick={() => (blocked ? setRefused(true) : start(tool.id, profile))}
-            title={blocked ? m.anotherRunning : undefined}
-            icon={<RefreshCw className="size-4" aria-hidden />}
-          >
-            <StableText value={run ? m.syncAgain : m.syncNow} variants={[m.syncNow, m.syncAgain]} />
-          </Button>
-        )}
+        <SyncStatus c={c} />
+        <SyncButton c={c} />
       </div>
-      <Collapse open={refused && blocked}>
-        <ErrorNotice inline>{m.anotherRunning}</ErrorNotice>
-      </Collapse>
-      <AutoHeight swap={running ? "running" : (run?.phase ?? "idle")}>
-        {run && !running ? <Next run={run} tool={tool} profile={profile} what={what} m={m} /> : null}
-      </AutoHeight>
+      <SyncFollowUp c={c} />
     </section>
   )
 }

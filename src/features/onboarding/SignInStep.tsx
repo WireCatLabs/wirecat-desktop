@@ -1,19 +1,18 @@
-import { Bot, LogIn, Terminal } from "lucide-react"
+import { Bot } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { type CatalogTool, isCommunity, ownerId, signsInHere, tools } from "@/domain/catalog"
+import { type CatalogTool, isCommunity, ownerId, tools } from "@/domain/catalog"
 import { accountReady, afterSignIn, signInGroups, signsIn } from "@/domain/onboarding-flow"
 import {
+  AccountList,
   InstallPanel,
   ManualSetup,
   NewProfile,
   TerminalStatus,
   toolsMessages,
   useProfiles,
-  useTerminal,
 } from "@/features/tools"
 import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { Profile } from "@/platform/schemas"
 import { useBotSignIn } from "@/shared/bot-signin-store"
 import { botMessages } from "@/shared/messages-bot"
 import { useOnboarding } from "@/shared/onboarding-store"
@@ -32,50 +31,6 @@ import { Skeleton } from "@/ui/Skeleton"
 import { onboardingMessages } from "./messages"
 import { useSetupTools } from "./setup-tools"
 import { rack } from "./step-styles"
-
-/** Without `onSignIn` the tool has no sign-in of its own: a listed account is simply there. */
-function ProfileState({
-  profile,
-  onSignIn,
-  here,
-}: {
-  profile: Profile
-  onSignIn: (() => void) | undefined
-  here: boolean
-}) {
-  const m = useMessages(onboardingMessages).signIn
-  const name = <span className="font-mono font-medium text-ink">{profile.name}</span>
-  if (!onSignIn) {
-    return (
-      <li className="flex min-h-8 items-center gap-x-[0.6rem]">
-        <Lamp size="sm" tone="ok" />
-        <span className="min-w-0 flex-1 text-body text-ink-soft">{m.added(name)}</span>
-      </li>
-    )
-  }
-  return (
-    <li className="flex min-h-8 flex-wrap items-center gap-x-[0.6rem] gap-y-1">
-      <Lamp size="sm" tone={profile.signedIn ? "ok" : "idle"} />
-      <span className="min-w-0 flex-1 text-body text-ink-soft">
-        {profile.signedIn === true
-          ? m.signedIn(name)
-          : profile.signedIn === false
-            ? m.signedOut(name)
-            : m.unknown(name)}
-      </span>
-      {profile.signedIn !== true && (
-        <Button
-          size="sm"
-          variant={profile.signedIn === false ? "primary" : "ghost"}
-          onClick={onSignIn}
-          icon={here ? <LogIn className="size-4" aria-hidden /> : <Terminal className="size-4" aria-hidden />}
-        >
-          {here ? m.signIn : m.inTerminal}
-        </Button>
-      )}
-    </li>
-  )
-}
 
 const signInBlock = "flex flex-col gap-[0.9rem] border-line border-b px-[1.3rem] py-[1.1rem] last:border-b-0"
 const accountsArea = "flex flex-col gap-[0.9rem] sm:pl-[2.4rem]"
@@ -180,11 +135,6 @@ function SignInRow({
     seen.current = count
   }, [count])
 
-  const signInAgain = async (profile: string) => {
-    if (signsInHere(tool)) return useSignIn.getState().start(tool.id, profile, reload)
-    await useTerminal.getState().open(tool.id, profile)
-  }
-
   return (
     <li className={signInBlock}>
       <SignInHeader tool={tool} />
@@ -198,23 +148,14 @@ function SignInRow({
           </ErrorNotice>
         ) : profiles === undefined ? (
           <AccountsSkeleton tool={tool} />
+        ) : profiles && count > 0 ? (
+          <AccountList tool={tool} profiles={profiles} onReload={reload} sync={false} />
         ) : (
           <ul aria-label={m.accounts(tool.name)} className="flex flex-col gap-1">
-            {count > 0 ? (
-              profiles?.map((p) => (
-                <ProfileState
-                  key={p.name}
-                  profile={p}
-                  here={signsInHere(tool)}
-                  onSignIn={manual ? undefined : () => signInAgain(p.name)}
-                />
-              ))
-            ) : (
-              <li className="flex min-h-8 items-center gap-x-[0.6rem]">
-                <Lamp size="sm" tone="idle" />
-                <span className="text-body font-medium text-ink">{m.noAccount(tool.name)}</span>
-              </li>
-            )}
+            <li className="flex min-h-8 items-center gap-x-[0.6rem]">
+              <Lamp size="sm" tone="idle" />
+              <span className="text-body font-medium text-ink">{m.noAccount(tool.name)}</span>
+            </li>
           </ul>
         )}
         <TerminalStatus tool={tool} profiles={profiles} onCheck={reload} checking={loading} />
