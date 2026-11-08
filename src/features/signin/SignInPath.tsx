@@ -1,8 +1,9 @@
-import { useId, useRef } from "react"
+import { useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { zoomNeedsClientId } from "@/domain/signin-failure"
 import { useMessages } from "@/i18n"
 import { APP_KEYS } from "@/shared/signin-store"
+import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { MOTION } from "@/ui/motion"
 import { Stepper, type StepState } from "@/ui/Stepper"
@@ -64,6 +65,16 @@ function Path({ s }: { s: SignInView }) {
   last.current.at = s.phase === "plan" ? 0 : Math.max(last.current.at, now ? path.indexOf(now) : -1, 1)
   const at = last.current.at
   const done = s.phase === "done"
+  const [locked, setLocked] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the note belongs to the step on screen
+  useEffect(() => setLocked(false), [at, s.run])
+  // The plan is the one step that can be undone: what is typed there stays, and the run is stopped. Past the tool's
+  // own questions there is no way back, so a click says why.
+  const canGoBack = s.phase !== "done" && s.phase !== "progress" && !s.stopping
+  const select = (i: number) => {
+    if (i >= at || s.phase === "done") return undefined
+    return i === 0 && canGoBack ? s.toPlan : () => setLocked(true)
+  }
   const state = (i: number): StepState =>
     done || i < at ? "done" : i > at ? "todo" : s.phase === "failed" && now !== "app" ? "failed" : "active"
   // A method is named only where there is another to switch to; the plan names it in its own heading.
@@ -75,7 +86,18 @@ function Path({ s }: { s: SignInView }) {
           {m.method[s.method ?? ""]}
         </h3>
       )}
-      <Stepper steps={path.map((step, i) => ({ label: m.steps[step](name), state: state(i) }))} />
+      <Stepper
+        rail
+        steps={path.map((step, i) => {
+          const onSelect = select(i)
+          return { label: m.steps[step](name), state: state(i), ...(onSelect ? { onSelect } : {}) }
+        })}
+      />
+      <Collapse open={locked}>
+        <p role="status" className="mt-3 text-body leading-snug text-ink-soft">
+          {m.rail.locked(name)}
+        </p>
+      </Collapse>
     </section>
   )
 }

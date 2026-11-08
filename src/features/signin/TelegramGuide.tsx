@@ -22,11 +22,8 @@ export { MY_TELEGRAM }
 
 export const isTelegramApps = (url: OpenUrl) => isTelegramAppsUrl(url.url)
 
-/**
- * Opens the page; `copy` adds its link for a browser the system did not choose. Only for a plain page: a sign-in link
- * carries a login token, and the clipboard is not where it belongs.
- */
-export function OpenLink({ url, primary = false, copy = false }: { url: string; primary?: boolean; copy?: boolean }) {
+/** Opens the page, and copies its link for a browser the system did not choose. */
+export function OpenLink({ url, primary = false }: { url: string; primary?: boolean }) {
   const m = useMessages(signinMessages)
   const tm = useMessages(telegramMessages)
   const host = new URL(url).host
@@ -40,7 +37,7 @@ export function OpenLink({ url, primary = false, copy = false }: { url: string; 
       >
         {m.openHost(host)}
       </Button>
-      {copy && <CopyButton value={url} label={tm.copyLink(host)} />}
+      <CopyButton value={url} label={tm.copyLink(host)} />
     </div>
   )
 }
@@ -75,7 +72,7 @@ export function TelegramAppGuide({ url }: { url: OpenUrl }) {
               <div className="flex min-w-0 flex-1 flex-wrap items-start gap-x-4 gap-y-2">
                 <div className="flex min-w-[16rem] flex-1 flex-col gap-2">
                   <p className="text-[1.1rem] leading-snug text-ink">{step}</p>
-                  {i === 0 && <OpenLink url={url.url} copy />}
+                  {i === 0 && <OpenLink url={url.url} />}
                 </div>
                 {shot && <ShotButton shot={shot} />}
               </div>

@@ -26,6 +26,8 @@ export type Check = (typed: string) => { value: string; error: null } | { value:
 
 type Props = {
   need: Need
+  /** In place of the tool's own words for the question. */
+  label?: string | undefined
   /** The answer is on its way, or the tool has not asked yet: the field waits, with `status` under it. */
   sent: boolean
   onAnswer: (value: string) => Promise<void>
@@ -53,6 +55,7 @@ type Props = {
  */
 export function AnswerForm({
   need,
+  label: given,
   sent,
   onAnswer,
   initial = "",
@@ -70,7 +73,7 @@ export function AnswerForm({
   const [value, setValue] = useState("")
   const [shown, setShown] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const label = sentence(need.prompt.replace(/\s*\(not shown\)\s*$/, ""))
+  const label = given ?? sentence(need.prompt.replace(/\s*\(not shown\)\s*$/, ""))
   const kind = INPUT[need.field] ?? { complete: "off" }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: each new question starts from what was typed before, if anything, and takes focus

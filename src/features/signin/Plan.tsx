@@ -5,6 +5,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { methodOf, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
+import { CopyButton } from "@/ui/CopyButton"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { type PlanText, planFor, planMessages } from "./messages-plan"
@@ -107,16 +108,19 @@ export function Plan() {
 }
 
 function GuideLink({ url, label }: { url: string; label: string }) {
+  const tm = useMessages(telegramMessages)
   return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="self-start"
-      icon={<ExternalLink className="size-4" aria-hidden />}
-      onClick={() => platform.openUrl(url)}
-    >
-      {label}
-    </Button>
+    <div className="flex items-center gap-1 self-start">
+      <Button
+        variant="ghost"
+        size="sm"
+        icon={<ExternalLink className="size-4" aria-hidden />}
+        onClick={() => platform.openUrl(url)}
+      >
+        {label}
+      </Button>
+      <CopyButton value={url} label={tm.copyLink(new URL(url).host)} />
+    </div>
   )
 }
 

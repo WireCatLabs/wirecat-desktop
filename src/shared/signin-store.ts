@@ -78,6 +78,8 @@ type SignInState = {
   begin(): void
   /** Starts the same sign-in again, after a failure. */
   again(): void
+  /** Back to the plan: a run in progress is stopped; the address and the own app typed there stay. */
+  toPlan(): void
   answer(value: string): Promise<void>
   /** Stops the tool and waits for what it kept: `wa`'s history. The dialog stays open to say what came. */
   stop(): void
@@ -343,6 +345,12 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const { tool, profile, onFinish, method, failure } = get()
       const good = tool === "tg" && failure !== null && keysStillGood(telegramFailure(failure.message, failure.code))
       if (tool && profile) get().start(tool, profile, onFinish ?? undefined, method ?? undefined, good)
+    },
+    toPlan() {
+      const { tool, profile, method, phase, onFinish, address, ownFile, ownId, run } = get()
+      if (!tool || !profile) return
+      if (running(phase)) stopInBackground(tool)
+      set({ ...closed, address, ownFile, ownId, tool, profile, method, run: run + 1, phase: "plan", onFinish })
     },
     async answer(value) {
       const { tool, need, sent } = get()
