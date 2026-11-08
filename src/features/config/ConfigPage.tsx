@@ -1,6 +1,7 @@
 import { Search } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
+import { GroupsSetting } from "@/features/groups"
 import { AppPreferences, settingsMessages } from "@/features/settings"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
@@ -87,6 +88,8 @@ export function ConfigPage() {
       </div>
 
       <AppPreferences />
+
+      <GroupsSetting />
 
       <div className="flex flex-col gap-4 border-t border-line pt-[1.5rem]">
         <div>
