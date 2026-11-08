@@ -326,9 +326,10 @@ clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `
 ### Relationships
 
 Relationships between people, organizations and projects are rows of the same page (CRM relations plan, PR 11).
-`memory_read` also runs `relationships list confirmed:false` (an agent's proposals), `relationships list` (the links
-that hold, each with its `standing`) and `relationships roles list` (the owner's role lists, from the memo with cli-core's
-role lists); a memo without one of them leaves its part out and the rest of the page as it is. A row sits under the end
+`memory_read` also runs `relationships list confirmed:false` (an agent's proposals), `relationships list include:ended` (the links, each with
+its `standing`; a memo that does not know `include:` lists without it, so without ended ones) and `relationships roles
+list` (the owner's role lists, from the memo with cli-core's role lists). A memo without one of them leaves its part out
+and the rest of the page as it is; any other failure (a busy store) fails the read as a failed memories list does. A row sits under the end
 it starts from (a person, an organization or a project), says the other end and the role, and carries a standing chip:
 **Proposed** waits in Review, **Confirmed** (the owner's) and **Reported** (a source such as a CRM says so, nobody
 confirmed it) are In use, **Ended** is with what no longer holds. A proposal is `relationship:<id>`, decided through

@@ -368,23 +368,40 @@ fn role(v: &Value) -> Option<Role> {
     })
 }
 
-/// Relationships are part of the page only where Memo has them: a Memo without the list, or a list it refuses, leaves
-/// the memories, facts and actions as they are.
-fn relationships(call: &Call, pending: bool) -> Vec<Entry> {
-    let args: &[&str] =
-        if pending { &["relationships", "list", "confirmed:false"] } else { &["relationships", "list"] };
-    call(&words(args))
-        .ok()
-        .and_then(|v| v["items"].as_array().map(|a| a.iter().filter_map(|r| relationship(r, pending)).collect()))
-        .unwrap_or_default()
+/// A memo from before a list, or before one of its words, says so; anything else (a busy store) is a real failure.
+fn unsupported(e: &str) -> bool {
+    e.starts_with("unknown command") || e.contains("query.unknown-field")
+}
+
+fn rows(call: &Call, args: &[&str], pending: bool) -> Result<Vec<Entry>, String> {
+    let v = call(&words(args))?;
+    Ok(v["items"].as_array().map(|a| a.iter().filter_map(|r| relationship(r, pending)).collect()).unwrap_or_default())
+}
+
+/// Relationships are part of the page only where Memo has them; a memo without the list leaves the rest as it is.
+/// Links that ended are asked for with `include:ended`, which an older memo does not know and lists without.
+fn relationships(call: &Call, pending: bool) -> Result<Vec<Entry>, String> {
+    let found = if pending {
+        rows(call, &["relationships", "list", "confirmed:false"], true)
+    } else {
+        match rows(call, &["relationships", "list", "include:ended"], false) {
+            Err(e) if unsupported(&e) => rows(call, &["relationships", "list"], false),
+            r => r,
+        }
+    };
+    match found {
+        Err(e) if unsupported(&e) => Ok(Vec::new()),
+        r => r,
+    }
 }
 
 /// The owner's role lists, or none from a Memo before them: the page then shows a role by its id.
-fn roles(call: &Call) -> Vec<Role> {
-    call(&words(&["relationships", "roles", "list"]))
-        .ok()
-        .and_then(|v| v["items"].as_array().map(|a| a.iter().filter_map(role).collect()))
-        .unwrap_or_default()
+fn roles(call: &Call) -> Result<Vec<Role>, String> {
+    match call(&words(&["relationships", "roles", "list"])) {
+        Ok(v) => Ok(v["items"].as_array().map(|a| a.iter().filter_map(role).collect()).unwrap_or_default()),
+        Err(e) if unsupported(&e) => Ok(Vec::new()),
+        Err(e) => Err(e),
+    }
 }
 
 /// One tool call by an agent, from `memo agents list`: never its arguments, which Memo does not keep.
@@ -556,7 +573,11 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
             facts.join().unwrap_or_else(stopped),
             actions.join().unwrap_or_else(stopped),
             agents.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
-            (proposed.join().unwrap_or_default(), held.join().unwrap_or_default(), roles.join().unwrap_or_default()),
+            (
+                proposed.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+                held.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+                roles.join().unwrap_or_else(|_| Err("a read stopped".to_string())),
+            ),
         )
     });
     let (mut entries, mut more) = memories?;
@@ -564,8 +585,9 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
         entries.extend(items);
         more |= has_more;
     }
-    entries.extend(proposed);
-    entries.extend(held);
+    entries.extend(proposed?);
+    entries.extend(held?);
+    let roles = roles?;
     // ISO 8601 in UTC, so the text order is the time order.
     entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
     let (activity, activity_error) = match agents {
@@ -709,7 +731,7 @@ const REJECTED_HERE: &str = "rejected in WireCat Desktop";
 /// An agent's relationship is decided through Memo's review, as every other kind it holds. The row is read first, so
 /// the answer is the same row with Memo's decision, or Memo's reason when it refused.
 fn decide_relationship(call: &Call, id: &str, confirm: bool) -> Result<Entry, String> {
-    let row = relationships(call, true)
+    let row = relationships(call, true)?
         .into_iter()
         .find(|e| e.reference == format!("{PROPOSED_RELATIONSHIP}{id}"))
         .ok_or("This relationship is no longer waiting for a decision.")?;
@@ -1184,6 +1206,25 @@ mod tests {
         };
         assert_eq!(entries.len(), 1);
         assert!(roles.is_empty());
+        let busy = Fake::new(|a| match a[0].as_str() {
+            "relationships" => Err("another process holds the store".into()),
+            _ => Ok(json!({"items":[]})),
+        });
+        assert!(read_with(&|a: &[String]| busy.call(a), false).is_err(), "a busy store is not an older memo");
+    }
+
+    #[test]
+    fn asks_for_ended_links_and_lists_without_them_on_a_memo_that_does_not_know_the_word() {
+        let fake = Fake::new(|a| {
+            if a.iter().any(|w| w == "include:ended") {
+                Err("relationships list: query.unknown-field at position 1 — no field \"include\"".into())
+            } else {
+                Ok(json!({"items":[held_relationship("confirmed")]}))
+            }
+        });
+        let held = relationships(&|a: &[String]| fake.call(a), false).unwrap();
+        assert_eq!(held.len(), 1);
+        assert_eq!(fake.seen()[0][2], "include:ended");
     }
 
     #[test]
