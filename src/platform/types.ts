@@ -34,6 +34,7 @@ import type {
 import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
+import type { Digest, DigestDay } from "./digest-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
 import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
@@ -401,6 +402,11 @@ export type Platform = {
    * text never reaches the interface. One listener for the app's life.
    */
   listenLinks(onLink: (target: DeepLinkTarget | null) => void): Promise<void>
+  /** memo's morning digests, one per day, newest first, from the files its schedule keeps. */
+  digestList(): Promise<DigestDay[]>
+  digestShow(date: string): Promise<Digest>
+  /** A system notification for a new digest; on Linux a click opens that day (`digest/<date>`). */
+  digestNotify(date: string, title: string, body: string, open: string): Promise<void>
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>
 }

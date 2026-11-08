@@ -97,7 +97,7 @@ fn digits(s: &str, len: usize) -> Option<u32> {
 }
 
 /// `2026-11-08`, with the ranges JavaScript's `Date.parse` takes: a day 1 to 31 in any month, as the TypeScript side reads it.
-fn is_date(s: &str) -> bool {
+pub fn is_date(s: &str) -> bool {
     let mut it = s.split('-');
     let (Some(y), Some(m), Some(d), None) = (it.next(), it.next(), it.next(), it.next()) else { return false };
     digits(y, 4).is_some()
@@ -231,6 +231,12 @@ pub fn show_window(app: &tauri::AppHandle) {
 pub fn open<'a>(app: &tauri::AppHandle, urls: impl IntoIterator<Item = &'a str>) {
     let Some(first) = urls.into_iter().next() else { return };
     app.state::<Links>().deliver(Opened { target: parse(first) });
+    show_window(app);
+}
+
+/// Opens a target the app itself chose, such as the day of a digest notification the owner clicked.
+pub fn open_target(app: &tauri::AppHandle, target: Target) {
+    app.state::<Links>().deliver(Opened { target: Some(target) });
     show_window(app);
 }
 

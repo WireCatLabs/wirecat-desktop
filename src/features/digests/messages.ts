@@ -1,0 +1,223 @@
+import type { SectionKind } from "@/domain/digest"
+import { type Messages, plural } from "@/i18n"
+
+type Channel = "telegram" | "max" | "whatsapp" | "mail" | "meeting" | "task"
+type Group = "overdue" | "today" | "tomorrow" | "new"
+type Count = "chats" | "mail" | "tasks" | "meetings"
+
+const en = {
+  page: "Digests",
+  intro:
+    "Memo's morning digest, one per day, newest first. Each line opens what it is about here in WireCat: the task, the task list, the proposal, the tool to fix.",
+  readAgain: "Read again",
+  reading: "Reading…",
+  readFailed: "Couldn't read the digests.",
+  dayFailed: "Couldn't read this digest.",
+  days: "Days",
+  emptyTitle: "No digest yet",
+  emptyBody:
+    "Memo writes a morning digest when its morning-digest schedule runs on this computer. Once it has run, each day appears here.",
+  title: (day: string) => `Digest for ${day}`,
+  textRun: "This digest was written before WireCat could lay digests out as a page, so here is its text as it was.",
+  quiet: "A quiet morning: nothing urgent.",
+  quietStale: "Nothing new, but sync needs attention.",
+  sections: {
+    today: "Today",
+    decisions: "Waiting for your decision",
+    money: "Money",
+    meetings: "Meetings",
+    projects: "Projects in motion",
+    mail: "New mail",
+  } satisfies Record<SectionKind, string>,
+  health: "Sync",
+  asks: "asks:",
+  dueToday: "due today",
+  dueTomorrow: "due tomorrow",
+  dueOn: (date: string) => `due ${date}`,
+  overdueBy: (span: string) => `overdue by ${span}`,
+  waiting: (span: string) => `waiting ${span}`,
+  yesterday: "Yesterday",
+  tomorrow: "Tomorrow",
+  channels: {
+    telegram: "Telegram",
+    max: "MAX",
+    whatsapp: "WhatsApp",
+    mail: "mail",
+    meeting: "meeting",
+    task: "task",
+  } satisfies Record<Channel, string>,
+  more: (n: number) => `${n} more`,
+  groups: {
+    overdue: "All overdue",
+    today: "Due today",
+    tomorrow: "Due tomorrow",
+    new: "New",
+  } satisfies Record<Group, string>,
+  syncFailed: (since: string | null) => (since ? `sync fails since ${since}` : "sync fails"),
+  noSchedule: "no sync schedule",
+  quietSince: (since: string) => `nothing new since ${since}`,
+  quietFor: (span: string) => `nothing new for ${span}`,
+  stale: (span: string) => `not updated for ${span}`,
+  open: "Open",
+  fix: "Fix",
+  openWhat: (what: string) => `Open: ${what}`,
+  viewed: (window: string) => `Viewed over ${window}`,
+  sourceAccounts: (channel: Channel, n: number) =>
+    channel === "mail"
+      ? plural("en", n, { one: "# inbox", other: "# inboxes" })
+      : plural("en", n, { one: "# account", other: "# accounts" }),
+  counts: (kind: Count, n: number) =>
+    ({
+      chats: plural("en", n, { one: "# chat", other: "# chats" }),
+      mail: plural("en", n, { one: "# email", other: "# emails" }),
+      tasks: plural("en", n, { one: "# task", other: "# tasks" }),
+      meetings: plural("en", n, { one: "# meeting", other: "# meetings" }),
+    })[kind],
+  notifyBody: "Your morning digest is ready.",
+}
+
+const ru: typeof en = {
+  page: "Сводки",
+  intro:
+    "Утренняя сводка Memo, по одной на день, новые сверху. Каждая строка открывает здесь, в WireCat, то, о чём она: задачу, список задач, предложение, инструмент, который надо починить.",
+  readAgain: "Прочитать заново",
+  reading: "Читаю…",
+  readFailed: "Не удалось прочитать сводки.",
+  dayFailed: "Не удалось прочитать эту сводку.",
+  days: "Дни",
+  emptyTitle: "Сводок пока нет",
+  emptyBody:
+    "Memo пишет утреннюю сводку, когда на этом компьютере срабатывает его расписание morning-digest. После первого запуска здесь появится каждый день.",
+  title: (day) => `Сводка: ${day}`,
+  textRun:
+    "Эта сводка написана до того, как WireCat научился показывать сводки страницей, поэтому здесь её текст как есть.",
+  quiet: "Тихое утро: ничего срочного.",
+  quietStale: "Новых дел нет, но синхронизация требует внимания.",
+  sections: {
+    today: "Сегодня",
+    decisions: "Ждут вашего решения",
+    money: "Деньги",
+    meetings: "Встречи",
+    projects: "Проекты в движении",
+    mail: "Новая почта",
+  },
+  health: "Синхронизация",
+  asks: "спрашивает:",
+  dueToday: "срок сегодня",
+  dueTomorrow: "срок завтра",
+  dueOn: (date) => `срок ${date}`,
+  overdueBy: (span) => `просрочено на ${span}`,
+  waiting: (span) => `ждёт ${span}`,
+  yesterday: "Вчера",
+  tomorrow: "Завтра",
+  channels: {
+    telegram: "Telegram",
+    max: "MAX",
+    whatsapp: "WhatsApp",
+    mail: "почта",
+    meeting: "встреча",
+    task: "задача",
+  },
+  more: (n) => `ещё ${n}`,
+  groups: {
+    overdue: "Все просроченные",
+    today: "На сегодня",
+    tomorrow: "На завтра",
+    new: "Новые",
+  },
+  syncFailed: (since) => (since ? `синхронизация падает с ${since}` : "синхронизация падает"),
+  noSchedule: "нет расписания синхронизации",
+  quietSince: (since) => `ничего нового с ${since}`,
+  quietFor: (span) => `ничего нового ${span}`,
+  stale: (span) => `не обновлялся ${span}`,
+  open: "Открыть",
+  fix: "Исправить",
+  openWhat: (what) => `Открыть: ${what}`,
+  viewed: (window) => `Просмотрено за ${window}`,
+  sourceAccounts: (channel, n) =>
+    channel === "mail"
+      ? plural("ru", n, { one: "# ящик", few: "# ящика", many: "# ящиков", other: "# ящика" })
+      : plural("ru", n, { one: "# аккаунт", few: "# аккаунта", many: "# аккаунтов", other: "# аккаунта" }),
+  counts: (kind, n) =>
+    ({
+      chats: plural("ru", n, { one: "# чат", few: "# чата", many: "# чатов", other: "# чата" }),
+      mail: plural("ru", n, { one: "# письмо", few: "# письма", many: "# писем", other: "# письма" }),
+      tasks: plural("ru", n, { one: "# задача", few: "# задачи", many: "# задач", other: "# задачи" }),
+      meetings: plural("ru", n, { one: "# встреча", few: "# встречи", many: "# встреч", other: "# встречи" }),
+    })[kind],
+  notifyBody: "Утренняя сводка готова.",
+}
+
+const es: typeof en = {
+  page: "Resúmenes",
+  intro:
+    "El resumen matutino de Memo, uno por día, el más reciente arriba. Cada línea abre aquí, en WireCat, aquello de lo que trata: la tarea, la lista de tareas, la propuesta, la herramienta que hay que arreglar.",
+  readAgain: "Leer de nuevo",
+  reading: "Leyendo…",
+  readFailed: "No se pudieron leer los resúmenes.",
+  dayFailed: "No se pudo leer este resumen.",
+  days: "Días",
+  emptyTitle: "Aún no hay resúmenes",
+  emptyBody:
+    "Memo escribe un resumen matutino cuando su programación morning-digest se ejecuta en este ordenador. Después de la primera vez, cada día aparece aquí.",
+  title: (day) => `Resumen del ${day}`,
+  textRun:
+    "Este resumen se escribió antes de que WireCat pudiera mostrar los resúmenes como una página, así que aquí está su texto tal cual.",
+  quiet: "Mañana tranquila: nada urgente.",
+  quietStale: "Nada nuevo, pero la sincronización necesita atención.",
+  sections: {
+    today: "Hoy",
+    decisions: "Esperan tu decisión",
+    money: "Dinero",
+    meetings: "Reuniones",
+    projects: "Proyectos en marcha",
+    mail: "Correo nuevo",
+  },
+  health: "Sincronización",
+  asks: "pregunta:",
+  dueToday: "vence hoy",
+  dueTomorrow: "vence mañana",
+  dueOn: (date) => `vence el ${date}`,
+  overdueBy: (span) => `vencido hace ${span}`,
+  waiting: (span) => `espera desde hace ${span}`,
+  yesterday: "Ayer",
+  tomorrow: "Mañana",
+  channels: {
+    telegram: "Telegram",
+    max: "MAX",
+    whatsapp: "WhatsApp",
+    mail: "correo",
+    meeting: "reunión",
+    task: "tarea",
+  },
+  more: (n) => `${n} más`,
+  groups: {
+    overdue: "Todas las vencidas",
+    today: "Para hoy",
+    tomorrow: "Para mañana",
+    new: "Nuevas",
+  },
+  syncFailed: (since) => (since ? `la sincronización falla desde el ${since}` : "la sincronización falla"),
+  noSchedule: "sin programación de sincronización",
+  quietSince: (since) => `nada nuevo desde el ${since}`,
+  quietFor: (span) => `nada nuevo en ${span}`,
+  stale: (span) => `sin actualizar desde hace ${span}`,
+  open: "Abrir",
+  fix: "Arreglar",
+  openWhat: (what) => `Abrir: ${what}`,
+  viewed: (window) => `Revisado en ${window}`,
+  sourceAccounts: (channel, n) =>
+    channel === "mail"
+      ? plural("es", n, { one: "# buzón", other: "# buzones" })
+      : plural("es", n, { one: "# cuenta", other: "# cuentas" }),
+  counts: (kind, n) =>
+    ({
+      chats: plural("es", n, { one: "# chat", other: "# chats" }),
+      mail: plural("es", n, { one: "# correo", other: "# correos" }),
+      tasks: plural("es", n, { one: "# tarea", other: "# tareas" }),
+      meetings: plural("es", n, { one: "# reunión", other: "# reuniones" }),
+    })[kind],
+  notifyBody: "Tu resumen matutino está listo.",
+}
+
+export const digestMessages: Messages<typeof en> = { en, ru, es }
