@@ -1,206 +1,43 @@
 import { GripVertical } from "lucide-react"
-import {
-  type KeyboardEvent,
-  type PointerEvent as ReactPointerEvent,
-  type RefObject,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from "react"
+import { type KeyboardEvent, type PointerEvent as ReactPointerEvent, useRef } from "react"
 import { anchorOf, closed, STATES, type State } from "@/domain/tasks"
 import { useMessages } from "@/i18n"
 import type { Task } from "@/platform/task-schemas"
+import { Board, BoardColumn, cardClass, DragCopy, DropLine, useBoardDrag, useSlide } from "@/ui/Board"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { reducedMotion } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { taskMessages } from "./messages"
 import { StaleLine } from "./Note"
 import { DueText, Markers, PriorityMark, personName, priorityLabel, StateLamp } from "./parts"
 import { useTasks } from "./store"
 
-type Drag = { key: string; x: number; y: number; dx: number; dy: number; w: number; to: State; before: string | null }
-type Held = { key: string; to: State; index: number }
-
-const DRAG_PX = 6
-const MOVE_MS = 220
-
-/**
- * Cards that changed place slide from where they were, so a drop or a refusal is seen, never a jump. Places are kept
- * relative to the board, so scrolling the page between two changes is not mistaken for a move.
- */
-function useSlide(board: RefObject<HTMLDivElement | null>, order: readonly string[], states: string) {
-  const last = useRef(new Map<string, { x: number; y: number }>())
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the cards are read from the page after each change of order or column
-  useLayoutEffect(() => {
-    const grid = board.current
-    if (!grid) return
-    const g = grid.getBoundingClientRect()
-    const cards = grid.querySelectorAll<HTMLElement>("[data-card]")
-    const next = new Map<string, { x: number; y: number }>()
-    for (const el of cards) {
-      const r = el.getBoundingClientRect()
-      next.set(el.dataset.card ?? "", { x: r.left - g.left + grid.scrollLeft, y: r.top - g.top })
-    }
-    if (!reducedMotion()) {
-      for (const el of cards) {
-        const before = last.current.get(el.dataset.card ?? "")
-        const now = next.get(el.dataset.card ?? "")
-        if (!before || !now) continue
-        const dx = before.x - now.x
-        const dy = before.y - now.y
-        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue
-        el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
-          duration: MOVE_MS,
-          easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-        })
-      }
-    }
-    last.current = next
-  }, [order, states])
-}
-
 export function TaskBoard() {
   const m = useMessages(taskMessages)
   const tasks = useTasks((s) => s.tasks)
   const order = useTasks((s) => s.order)
   const query = useTasks((s) => s.query)
-  const [drag, setDrag] = useState<Drag | null>(null)
-  const [held, setHeld] = useState<Held | null>(null)
-  const [said, setSaid] = useState("")
-  const press = useRef<{ key: string; x: number; y: number; el: HTMLElement } | null>(null)
-  // A drop back where the card started ends on the card itself, so the browser follows it with a click.
-  const dropped = useRef(false)
   const byKey = new Map(tasks.map((t) => [t.key, t]))
   const column = (s: State) => order.filter((k) => byKey.get(k)?.state === s)
   const board = useRef<HTMLDivElement>(null)
-  useSlide(board, order, tasks.map((t) => t.state).join())
-
-  useEffect(() => {
-    if (held) document.querySelector<HTMLElement>(`[data-card="${held.key}"]`)?.focus({ preventScroll: true })
-  }, [held])
-
-  const drop = (key: string, to: State, before: string | null) => {
-    const keys = column(to).filter((k) => k !== key)
-    const index = before ? keys.indexOf(before) : keys.length
-    const t = byKey.get(key)
-    if (!t) return
-    const current = column(t.state)
-    const unchanged = t.state === to && current.filter((k) => k !== key)[current.indexOf(key)] === (before ?? undefined)
-    if (unchanged) return
-    void useTasks.getState().move(key, to, anchorOf(keys, key, index < 0 ? keys.length : index), before)
-  }
-
-  const target = (x: number, y: number, key: string): Pick<Drag, "to" | "before"> | null => {
-    const col = document
-      .elementsFromPoint(x, y)
-      .find((el): el is HTMLElement => el instanceof HTMLElement && Boolean(el.dataset.column))
-    if (!col) return null
-    const cards = [...col.querySelectorAll<HTMLElement>("[data-card]")].filter((c) => c.dataset.card !== key)
-    const next = cards.find((c) => {
-      const r = c.getBoundingClientRect()
-      return y < r.top + r.height / 2
-    })
-    return { to: col.dataset.column as State, before: next?.dataset.card ?? null }
-  }
-
-  const onPointerDown = (e: ReactPointerEvent<HTMLElement>, key: string) => {
-    if (e.button !== 0 || held || (e.target as HTMLElement).closest("button,a,input,[role=combobox]")) return
-    dropped.current = false
-    press.current = { key, x: e.clientX, y: e.clientY, el: e.currentTarget }
-  }
-
-  const onCardClick = (key: string) => {
-    if (dropped.current) {
-      dropped.current = false
-      return
-    }
-    void useTasks.getState().openTask(key)
-  }
-
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      const p = press.current
-      if (!p) return
-      // A short movement is a click or a text selection, not a drag.
-      if (!drag && Math.hypot(e.clientX - p.x, e.clientY - p.y) < DRAG_PX) return
-      const r = p.el.getBoundingClientRect()
-      const t = target(e.clientX, e.clientY, p.key)
-      window.getSelection()?.removeAllRanges()
-      setDrag((d) => ({
-        key: p.key,
-        x: e.clientX,
-        y: e.clientY,
-        dx: d?.dx ?? p.x - r.left,
-        dy: d?.dy ?? p.y - r.top,
-        w: d?.w ?? r.width,
-        to: t?.to ?? d?.to ?? (byKey.get(p.key)?.state as State),
-        before: t ? t.before : (d?.before ?? null),
-      }))
-    }
-    const onUp = () => {
-      if (drag) {
-        dropped.current = true
-        drop(drag.key, drag.to, drag.before)
-        setSaid(m.dropped(drag.key, m.states[drag.to]))
-      }
-      press.current = null
-      setDrag(null)
-    }
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === "Escape" && drag) {
-        press.current = null
-        dropped.current = true
-        setDrag(null)
-        setSaid(m.putBack(drag.key))
-      }
-    }
-    window.addEventListener("pointermove", onMove)
-    window.addEventListener("pointerup", onUp)
-    window.addEventListener("keydown", onKey)
-    return () => {
-      window.removeEventListener("pointermove", onMove)
-      window.removeEventListener("pointerup", onUp)
-      window.removeEventListener("keydown", onKey)
-    }
+  useSlide(board, `${order.join()}|${tasks.map((t) => t.state).join()}`)
+  const { drag, held, said, shown, onPointerDown, onClick, onKeyDown } = useBoardDrag<State>({
+    columns: STATES,
+    cardsIn: column,
+    columnOf: (key) => byKey.get(key)?.state,
+    onDrop: ({ key, to, before }) => {
+      const keys = column(to).filter((k) => k !== key)
+      const index = before ? keys.indexOf(before) : keys.length
+      void useTasks.getState().move(key, to, anchorOf(keys, key, index < 0 ? keys.length : index), before)
+    },
+    onOpen: (key) => void useTasks.getState().openTask(key),
+    words: {
+      picked: m.picked,
+      place: (s, at, of) => m.place(m.states[s], at, of),
+      dropped: (key, s) => m.dropped(key, m.states[s]),
+      putBack: m.putBack,
+    },
   })
-
-  const onCardKey = (e: KeyboardEvent<HTMLElement>, t: Task) => {
-    if (e.target !== e.currentTarget) return
-    if (!held) {
-      if (e.key === " ") {
-        e.preventDefault()
-        setHeld({ key: t.key, to: t.state, index: column(t.state).indexOf(t.key) })
-        setSaid(m.picked(t.key))
-      } else if (e.key === "Enter") {
-        e.preventDefault()
-        void useTasks.getState().openTask(t.key)
-      }
-      return
-    }
-    if (held.key !== t.key) return
-    e.preventDefault()
-    const others = (s: State) => column(s).filter((k) => k !== t.key)
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-      const i = STATES.indexOf(held.to) + (e.key === "ArrowRight" ? 1 : -1)
-      const to = STATES[Math.max(0, Math.min(STATES.length - 1, i))] ?? held.to
-      const index = Math.min(held.index, others(to).length)
-      setHeld({ ...held, to, index })
-      setSaid(m.place(m.states[to], index + 1, others(to).length + 1))
-    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-      const index = Math.max(0, Math.min(others(held.to).length, held.index + (e.key === "ArrowDown" ? 1 : -1)))
-      setHeld({ ...held, index })
-      setSaid(m.place(m.states[held.to], index + 1, others(held.to).length + 1))
-    } else if (e.key === " " || e.key === "Enter") {
-      drop(t.key, held.to, others(held.to)[held.index] ?? null)
-      setHeld(null)
-      setSaid(m.dropped(t.key, m.states[held.to]))
-    } else if (e.key === "Escape") {
-      setHeld(null)
-      setSaid(m.putBack(t.key))
-    }
-  }
 
   const dragged = drag ? byKey.get(drag.key) : undefined
   const showsClosedDefault = !/(^|[\s(-])(state|closed):/.test(query)
@@ -209,90 +46,57 @@ export function TaskBoard() {
       <p className="sr-only" id="tasks-drag-hint">
         {m.dragHint}
       </p>
-      <div
-        ref={board}
-        className="grid grid-cols-[repeat(5,minmax(12rem,1fr))] gap-[0.75rem] overflow-x-auto pb-[0.4rem] xl:gap-[1rem]"
-      >
+      <Board columns={STATES.length} boardRef={board}>
         {STATES.map((s) => {
           const keys = column(s)
-          const shown =
-            held && held.to === s
-              ? [
-                  ...keys.filter((k) => k !== held.key).slice(0, held.index),
-                  held.key,
-                  ...keys.filter((k) => k !== held.key).slice(held.index),
-                ]
-              : keys.filter((k) => k !== held?.key)
           return (
-            <section
+            <BoardColumn
               key={s}
-              data-column={s}
-              aria-label={m.column(m.states[s], keys.length)}
-              className={cx(
-                "flex min-h-[22rem] min-w-0 flex-col rounded-[0.2rem] border bg-app transition-colors duration-(--motion-fast)",
-                drag?.to === s ? "border-brand/60" : "border-line-strong",
-              )}
+              id={s}
+              label={m.column(m.states[s], keys.length)}
+              lamp={<StateLamp state={s} />}
+              name={m.states[s]}
+              count={keys.length}
+              target={drag?.to === s}
+              empty={keys.length === 0 && !drag && !(held && held.to === s) ? m.emptyColumn : undefined}
+              footer={closed(s) && showsClosedDefault ? m.last14 : undefined}
             >
-              <h2 className="flex h-[3rem] items-center gap-[0.55rem] border-line border-b px-[0.9rem]">
-                <StateLamp state={s} />
-                <span className="truncate text-[1rem] font-semibold">{m.states[s]}</span>
-                <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{keys.length}</span>
-              </h2>
-              <ul className="flex flex-1 flex-col">
-                {shown.map((k) => {
-                  const t = byKey.get(k)
-                  if (!t) return null
-                  return (
-                    <li key={k} className="contents">
-                      {drag && drag.to === s && drag.before === k && <DropLine />}
-                      <Card
-                        task={t}
-                        ghost={drag?.key === k}
-                        held={held?.key === k}
-                        onPointerDown={(e) => onPointerDown(e, k)}
-                        onKeyDown={(e) => onCardKey(e, t)}
-                        onOpen={() => onCardClick(k)}
-                      />
-                    </li>
-                  )
-                })}
-                {drag && drag.to === s && drag.before === null && (
-                  <li aria-hidden className="contents">
-                    <DropLine />
+              {shown(s).map((k) => {
+                const t = byKey.get(k)
+                if (!t) return null
+                return (
+                  <li key={k} className="contents">
+                    {drag && drag.to === s && drag.before === k && <DropLine />}
+                    <Card
+                      task={t}
+                      ghost={drag?.key === k}
+                      held={held?.key === k}
+                      onPointerDown={(e) => onPointerDown(e, k)}
+                      onKeyDown={(e) => onKeyDown(e, k)}
+                      onOpen={() => onClick(k)}
+                    />
                   </li>
-                )}
-                {keys.length === 0 && !drag && !(held && held.to === s) && (
-                  <li className="px-[0.9rem] py-[1rem] text-[0.9rem] text-ink-dim">{m.emptyColumn}</li>
-                )}
-              </ul>
-              {closed(s) && showsClosedDefault && (
-                <p className="border-line border-t px-[0.9rem] py-[0.5rem] text-[0.85rem] text-ink-dim">{m.last14}</p>
+                )
+              })}
+              {drag && drag.to === s && drag.before === null && (
+                <li aria-hidden className="contents">
+                  <DropLine />
+                </li>
               )}
-            </section>
+            </BoardColumn>
           )
         })}
-      </div>
+      </Board>
       {drag && dragged && (
-        <div
-          aria-hidden
-          className={cx(
-            "pointer-events-none fixed z-50 rounded-[0.35rem] border border-brand/50 bg-app shadow-panel",
-            !reducedMotion() && "rotate-[1.2deg]",
-          )}
-          style={{ left: drag.x - drag.dx, top: drag.y - drag.dy, width: drag.w }}
-        >
+        <DragCopy drag={drag}>
           <CardBody task={dragged} />
-        </div>
+        </DragCopy>
       )}
       <p aria-live="assertive" className="sr-only">
         {said}
       </p>
     </>
   )
-}
-
-function DropLine() {
-  return <div aria-hidden className="mx-[0.6rem] my-[-1px] h-[2px] rounded-full bg-brand" />
 }
 
 function Card(props: {
@@ -324,11 +128,7 @@ function Card(props: {
         if ((e.target as HTMLElement).closest("button,[role=combobox],[role=listbox]")) return
         props.onOpen()
       }}
-      className={cx(
-        "group relative cursor-grab touch-none border-line border-b select-none [-webkit-user-select:none] transition-[background-color,box-shadow] duration-(--motion-fast) last:border-b-0 hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
-        ghost && "bg-app-3 outline-1 outline-line-strong outline-dashed -outline-offset-4 [&>*]:invisible",
-        held && "z-10 bg-app shadow-panel outline-2 outline-brand",
-      )}
+      className={cardClass(ghost, held)}
     >
       <CardBody task={task} />
       {failed && (
