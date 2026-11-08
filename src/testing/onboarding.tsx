@@ -328,3 +328,10 @@ export function installRow(name: string): HTMLElement {
 
 /** The bar inside a tool's row while it installs, or null once the row has folded it away. */
 export const rowBar = (name: string) => within(installRow(name)).queryByRole("progressbar")
+
+/**
+ * Keeps the Tools rows' sync buttons away, so a test that walks the tour sees the same stops on a slow runner: the
+ * tour points at a sync button only if the row has read its last sync by then.
+ */
+export const hideRowSync = () =>
+  vi.spyOn(platform, "syncLast").mockResolvedValue(null as unknown as Awaited<ReturnType<typeof platform.syncLast>>)

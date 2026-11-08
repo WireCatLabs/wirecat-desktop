@@ -6,6 +6,7 @@ import { useSearch } from "@/features/search/store"
 import { useTasks } from "@/features/tasks/store"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { hideRowSync } from "@/testing/onboarding"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -49,6 +50,7 @@ describe("Tour", () => {
   beforeEach(() => {
     localStorage.clear()
     useOnboarding.setState({ status: "done", open: false })
+    hideRowSync()
   })
   afterEach(() => {
     useTour.getState().close()
@@ -208,6 +210,7 @@ describe("Help menu", () => {
   beforeEach(() => {
     localStorage.clear()
     useOnboarding.setState({ status: "done", open: false })
+    hideRowSync()
   })
   afterEach(() => vi.restoreAllMocks())
 

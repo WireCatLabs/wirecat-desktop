@@ -12,6 +12,7 @@ import { useOnboarding } from "@/shared/onboarding-store"
 import {
   currentStep,
   endInstalls,
+  hideRowSync,
   m,
   noNodeComputer,
   primaryButton,
@@ -391,6 +392,7 @@ describe("finishing the setup", () => {
   })
 
   it("leads from Done into the tour, which finishes the setup and cannot jump to the guides", async () => {
+    hideRowSync()
     const { user } = startOnboarding({ step: "done", chosen: ["tg"], installed: { tg: "0.88.0" } })
     expect(await screen.findByRole("list", { name: nextMessages.en.can("Telegram") })).toBeInTheDocument()
     await user.click(primaryButton(m.flow.tour))
