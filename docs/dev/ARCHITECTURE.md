@@ -42,6 +42,12 @@ src-tauri/src/
                 [cli-registry.md](cli-registry.md).
   registry.rs   the signed community list: fetched from wirecat.dev at start and at most daily, kept only when
                 minisign verifies it against `registry-key.pub`, it has not expired and is not older than the copy kept.
+  own_tools.rs  "Add your own tool": reads npm and the tarball's manifest without running anything, builds the review,
+                installs after two confirmations, saves the entry and reloads the catalog (`catalog::reload`), so the
+                interface lists the tool at once (`src/shared/added-tools.ts`).
+  own_scan.rs   what the tool's own JavaScript in the tarball says about the network; bundled libraries are skipped.
+  own_risks.rs  the review's things to check: npm, the cli-base and cli-core versions, the scan, and GitHub
+                (`own_tool_risks`, unauthenticated, cached); a check that cannot run says so, none refuses.
   system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
   npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the

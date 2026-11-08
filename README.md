@@ -114,10 +114,11 @@ The Tools page can list three kinds of tool:
 | --- | --- | --- |
 | WireCat's own | Built into the app | none |
 | Community | A list that WireCat reviews and signs | **Community** |
-| Not checked | Added by you, by its npm name | **Not checked** |
+| Not verified | Added by you, by its npm name | **Not verified** |
 
-The second and third kinds are off by default. Settings has one switch for each. A change takes effect at the next
-start, and the page offers **Restart now**.
+The second and third kinds are off by default. Settings has one switch for each. **Enable community tools** takes
+effect at the next start, and the page offers **Restart now**. **Allow tools WireCat has not checked** takes effect at
+once.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/own-settings-dark.webp">
@@ -143,10 +144,15 @@ For a tool that is not on the list: your own, a colleague's, or one from a priva
 2. On the Tools page, click **Add your own tool**, at the top next to **Check again**. Type the npm name, such as `@scope/name`, and click
    **Check package**. WireCat only reads npm. Nothing is installed, and no code of the package runs.
 3. Read the review screen (below), then click **Add**.
-4. A second question asks: "Install and run `@scope/name`? Its install scripts and first run use your permissions."
+4. WireCat offers **Check it with your AI agent** first. Your agent (Claude Code, Codex or Gemini, when one is
+   installed) opens in a terminal with a prepared request: download exactly the reviewed package file, check its
+   sha512, read the code, compare it with the repository at the release commit, and report what it contacts, what it
+   reads and writes, and anything suspicious. It never installs or runs the package. With no agent found, **Copy the
+   check** and paste it into yours. Or click **Skip and install**.
+5. A second question asks: "Install and run `@scope/name`? Its install scripts and first run use your permissions."
    Only **Install and run** installs the package.
-5. After the install, WireCat checks that the program describes itself as the review showed. Click **Restart now**. The
-   tool then appears on the Tools page with the **Not checked** badge.
+6. After the install, WireCat checks that the program describes itself as the review showed. The tool is on the Tools
+   page at once, with the **Not verified** badge. No restart is needed.
 
 Only some packages work. The package must have a scope (`@scope/name`, not `@wirecat/`), be written in TypeScript on
 [cli-base](https://github.com/WireCatLabs/cli-base) (for example made with cli-template), and ship its manifest
@@ -154,30 +160,44 @@ Only some packages work. The package must have a scope (`@scope/name`, not `@wir
 
 | | |
 | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-name-dark.webp"><img src="docs/images/own-name-light.webp" width="480" alt="Add your own tool: the warning and the npm package name"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-review-dark.webp"><img src="docs/images/own-review-light.webp" width="480" alt="The review screen: publisher, repository, version, where npm built it, and what the tool asks for"></picture> |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-name-dark.webp"><img src="docs/images/own-name-light.webp" width="480" alt="Add your own tool: the red warning and the npm package name"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-review-dark.webp"><img src="docs/images/own-review-light.webp" width="480" alt="The review screen: Not verified, the red warning, linked package details, things to check and what the tool says it does"></picture> |
 | **The name.** WireCat reads npm only. | **The review.** Nothing is installed yet. |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-review-noprov-dark.webp"><img src="docs/images/own-review-noprov-light.webp" width="480" alt="A review with no public repository and no record of where npm built the package"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-confirm-dark.webp"><img src="docs/images/own-confirm-light.webp" width="480" alt="The second question: Install and run @leemour/acme-crm-cli?"></picture> |
-| **No record** of where npm built it. | **The second question.** Only this button installs. |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-review-risky-dark.webp"><img src="docs/images/own-review-risky-light.webp" width="480" alt="A review with many things to check: new package, one publisher, no provenance, undeclared servers in its code"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-check-dark.webp"><img src="docs/images/own-check-light.webp" width="480" alt="After Add: Check it with your AI agent, or Skip and install"></picture> |
+| **Things to check**, each with a reason. | **The AI check**, offered before the install. |
 
 #### The review screen
 
-- **Published by**: the package's maintainers on npm.
-- **Repository**: the GitHub repository the package names, or "No public GitHub repository".
-- **Version**: the version that will be installed.
-- **Where npm built it**: "Built by `<repository>` on GitHub Actions", or "No record of where npm built it".
-- **What it asks for**: the tool's commands, grouped as *reads your service*, *changes your service* and *writes on
-  this computer*. Then its sign-in, whether it syncs into WireCat's store, and how it connects to AI agents.
-- **The warning**: the tool gets access to all your personal data that WireCat holds, WireCat has not checked it,
-  and you should add it only if you trust its authors completely.
+- **Not verified**, beside the name, and a red warning that holds for every tool: it runs as you, so it can read
+  everything WireCat keeps. A tool built on cli-core, WireCat's own library, opens that data directly.
+- **Published by**, **Repository**, **Version** and **Where npm built it**, each a link: the publisher's npm profile,
+  the repository, the version's npm page, and, when npm recorded where it built the package, the release commit, the
+  release workflow run and the entry in the public transparency log.
+- **Things to check**, each with one sentence why. None of them blocks the tool:
+  - from npm: first published less than 30 days ago, fewer than 3 versions, one publisher, no record of where npm
+    built it;
+  - its WireCat libraries: not built on cli-base 0.81.0 or later and cli-core 0.603.0 or later (before 1.0);
+  - its code: network modules, `fetch` or `WebSocket` in its own code, servers its code names but does not declare,
+    programs it can start, calls written so a reader does not see them, and native `.node` or `.wasm` files it cannot
+    read. Every file of the package is read for code, not only `.js` files, and a file loaded as code that is not JavaScript by its name is flagged. These are "found in the code", not
+    proved: the libraries the package bundles are skipped. Only the repository's address counts as the tool's own page;
+    a homepage named in its code is a server like any other;
+  - its manifest does not say which servers it contacts;
+  - from GitHub: a repository created less than 30 days ago, no change for more than 180 days, archived, fewer than 10
+    stars, or workflows at the release commit that do not run cli-base's standard checks (`node-ci.yml`,
+    `release-checks.yml`). When GitHub cannot be reached it says "Couldn't check".
+- **Servers it contacts**: the hosts the manifest declares, "contacts no servers", or "does not say", and a server you
+  choose, such as your mail server.
+- **What it says it does**: the data it touches (contacts, deals…) with its fields, and whether it reads or changes
+  it with its service and on this computer. Then what its sync copies into WireCat's store, its standard commands
+  (sign-in, check, agent instructions, MCP server…) in plain words, and the exact commands under **Commands**.
 
 What the warning means:
 
 - **"Where npm built it" is not a safety check.** It shows which repository npm built the package from. It does not
   show that the code is safe. "No record" means you cannot tell where the code came from.
-- **"Asks for" is what the tool says about itself.** WireCat cannot prove that a tool does only that. So the app says
-  "asks for", never "can only".
+- **"What it says it does" is what the tool says about itself.** WireCat cannot prove that a tool does only that.
 - **Installing runs its code.** npm runs the package's install scripts with your permissions. That is why there are
-  two confirmations.
+  two confirmations, and the AI check before them.
 
 #### Use it with your AI agent
 
@@ -193,19 +213,22 @@ changes** before you can go on. The second question follows, as for a new tool.
 
 #### Remove it
 
-- **Remove from WireCat**, in the tool's details (click its name), deletes the tool's entry. It disappears at the next start. The program
-  stays installed, and the app offers **Uninstall it too**.
+- **Remove from WireCat**, in the tool's details (click its name), deletes the tool's entry, and the tool leaves the
+  list at once. When it is installed, the question offers **Uninstall it first**: the program stays installed
+  otherwise. The Tools page then says it was removed and what stays on the computer.
 - **Uninstall** removes the program. It can also delete the tool's own data folders: only the folders named after
   its package (`@scope/name` → `scope-name`). It never deletes the store your other tools share. A folder with that
   name that already existed before you added the tool is listed as kept and never deleted.
 
 #### When WireCat refuses a tool
 
-The dialog says what went wrong and what to do.
+The dialog names the problem in a headline, such as **Tool not found**, then says what went wrong and what to do.
+**Try again** goes back to the name, kept and selected, so you can fix it; when npm could not be reached, it reads
+the same name again.
 
 | The dialog says | What to do |
 | --- | --- |
-| npm has no package with this name | Check the spelling, including the scope: `@scope/name`. |
+| Tool not found: npm has no package named … | Check the spelling, including the scope: `@scope/name`. |
 | Only scoped package names work here | Ask the tool's author for its full npm name. |
 | This name belongs to WireCat's own tools | Install it from the Tools page as a WireCat tool. |
 | This tool does not describe itself to WireCat | Paste its `desktop` object from the tool's documentation into the dialog, or ask the author to publish a version with a manifest. |
@@ -220,8 +243,8 @@ The dialog says what went wrong and what to do.
 
 | | |
 | --- | --- |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-refused-dark.webp"><img src="docs/images/own-refused-light.webp" width="480" alt="A refusal: Telegram already uses this tool's name, program or data folder"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-tools-list-dark.webp"><img src="docs/images/own-tools-list-light.webp" width="480" alt="The Tools page with Acme CRM, added by you, marked Not checked"></picture> |
-| **A refusal** names the reason and what to do. | **An added tool** on the Tools page, marked **Not checked**. |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-refused-dark.webp"><img src="docs/images/own-refused-light.webp" width="480" alt="A refusal: Tool not found, npm has no package named @leemour/acme-crm-clis"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/own-tools-list-dark.webp"><img src="docs/images/own-tools-list-light.webp" width="480" alt="The Tools page with Acme CRM, added by you, marked Not verified"></picture> |
+| **A refusal** names the reason and what to do. | **An added tool** on the Tools page, marked **Not verified**. |
 
 The full guide is on [wirecat.dev](https://wirecat.dev/en/docs/desktop#add-your-own-tool).
 

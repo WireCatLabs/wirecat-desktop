@@ -23,6 +23,10 @@ const WORKFLOW: &str = ".github/workflows/release.yml";
 const GITHUB_ACTIONS: &str = "https://token.actions.githubusercontent.com";
 /// Fulcio's "Issuer (V2)" extension, a DER `UTF8String`; the V1 one at `.1.1` holds raw bytes.
 const OIDC_ISSUER: &str = "1.3.6.1.4.1.57264.1.8";
+/// Fulcio's "Source Repository Digest" and "Run Invocation URI", also `UTF8String`s
+/// (<https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md>).
+const SOURCE_DIGEST: &str = "1.3.6.1.4.1.57264.1.13";
+const RUN_URI: &str = "1.3.6.1.4.1.57264.1.21";
 
 #[derive(Debug, PartialEq)]
 pub enum Refusal {
@@ -120,6 +124,16 @@ fn provenance_verdict(
 
 /// The signer of the provenance tied to this exact tarball: its subject names the release and its sha512.
 fn attested(attestations: &Value, package: &str, version: &str, integrity: &str) -> Result<Signer, String> {
+    let bundle = attested_bundle(attestations, package, version, integrity)?;
+    signer(bundle).ok_or_else(|| "the provenance has no readable signing certificate".into())
+}
+
+fn attested_bundle<'a>(
+    attestations: &'a Value,
+    package: &str,
+    version: &str,
+    integrity: &str,
+) -> Result<&'a Value, String> {
     let bundle = attestations["attestations"]
         .as_array()
         .and_then(|list| list.iter().find(|a| a["predicateType"] == SLSA_V1))
@@ -146,7 +160,34 @@ fn attested(attestations: &Value, package: &str, version: &str, integrity: &str)
     if subject["digest"]["sha512"] != digest.as_str() {
         return Err("the provenance is for another tarball".into());
     }
-    signer(bundle).ok_or_else(|| "the provenance has no readable signing certificate".into())
+    Ok(bundle)
+}
+
+/// Where the owner can look at the build that made this tarball: the commit and the workflow run, read from the
+/// signing certificate like the signer (the statement's own copies are written by the publisher's runner), and the
+/// transparency-log entry that recorded it.
+#[derive(Debug, PartialEq, Clone, Default)]
+pub struct Release {
+    pub commit: Option<String>,
+    pub run: Option<String>,
+    pub log_index: Option<u64>,
+}
+
+pub fn release(attestations: &Value, package: &str, version: &str, integrity: &str) -> Option<Release> {
+    let bundle = attested_bundle(attestations, package, version, integrity).ok()?;
+    let cert = certificate(bundle)?;
+    let (_, cert) = X509Certificate::from_der(&cert).ok()?;
+    let text = |oid: &str| {
+        let ext = cert.extensions().iter().find(|e| e.oid.to_id_string() == oid)?;
+        Some(parse_der(ext.value).ok()?.1.as_str().ok()?.to_string())
+    };
+    let commit = text(SOURCE_DIGEST).filter(|c| c.len() == 40 && c.bytes().all(|b| b.is_ascii_hexdigit()));
+    let run = text(RUN_URI).filter(|u| u.starts_with("https://github.com/") && u.contains("/actions/runs/"));
+    let log_index = bundle["verificationMaterial"]["tlogEntries"][0]["logIndex"]
+        .as_str()
+        .and_then(|i| i.parse().ok())
+        .or_else(|| bundle["verificationMaterial"]["tlogEntries"][0]["logIndex"].as_u64());
+    Some(Release { commit, run, log_index })
 }
 
 /// Where npm says an own tool's release was built: shown to the owner, never required.
@@ -236,11 +277,7 @@ struct Signer {
 
 /// Who the Fulcio certificate was issued to: the OIDC issuer extension and the URI subject alternative name.
 fn signer(bundle: &Value) -> Option<Signer> {
-    let material = &bundle["verificationMaterial"];
-    let raw = material["certificate"]["rawBytes"]
-        .as_str()
-        .or_else(|| material["x509CertificateChain"]["certificates"][0]["rawBytes"].as_str())?;
-    let der = STANDARD.decode(raw).ok()?;
+    let der = certificate(bundle)?;
     let (_, cert) = X509Certificate::from_der(&der).ok()?;
     let issuer = cert.extensions().iter().find(|e| e.oid.to_id_string() == OIDC_ISSUER)?;
     let issuer = parse_der(issuer.value).ok()?.1.as_str().ok()?.to_string();
@@ -250,6 +287,14 @@ fn signer(bundle: &Value) -> Option<Signer> {
         _ => None,
     })?;
     Some(Signer { issuer, workflow })
+}
+
+fn certificate(bundle: &Value) -> Option<Vec<u8>> {
+    let material = &bundle["verificationMaterial"];
+    let raw = material["certificate"]["rawBytes"]
+        .as_str()
+        .or_else(|| material["x509CertificateChain"]["certificates"][0]["rawBytes"].as_str())?;
+    STANDARD.decode(raw).ok()
 }
 
 fn purl(package: &str, version: &str) -> String {
@@ -380,6 +425,18 @@ mod tests {
         assert!(matches!(built(&serde_json::json!({}), "@wirecat/tg-cli", "0.113.0", TG_INTEGRITY), Built::Unknown(_)));
         let other = "sha512-AAAAc/osDNPolJRmvoN6Eb63S08Zg5r3B5zSCQSlE8dS1aD1IxFVd9zeLDGxT6XD91MnRe+6iTkgotS++OGIFA==";
         assert!(matches!(built(&tg(), "@wirecat/tg-cli", "0.113.0", other), Built::Unknown(_)), "another tarball");
+    }
+
+    #[test]
+    fn the_release_commit_and_run_come_from_the_certificate() {
+        let found = release(&tg(), "@wirecat/tg-cli", "0.113.0", TG_INTEGRITY).unwrap();
+        assert_eq!(found.commit.as_deref(), Some("d2f457578a88f67fce5cdb5da2eb572d85403633"));
+        assert_eq!(
+            found.run.as_deref(),
+            Some("https://github.com/WireCatLabs/tg-cli/actions/runs/41391131685/attempts/1")
+        );
+        assert_eq!(found.log_index, Some(3_637_711_518));
+        assert_eq!(release(&serde_json::json!({}), "@wirecat/tg-cli", "0.113.0", TG_INTEGRITY), None);
     }
 
     #[test]

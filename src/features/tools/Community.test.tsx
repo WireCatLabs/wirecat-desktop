@@ -30,14 +30,14 @@ it("lists a registered tool on the Tools page with its badge and trust note", as
   expect(await within(row).findByText(/Made by example, not by WireCat/)).toBeInTheDocument()
 })
 
-it("marks an own tool Not checked, never Community", async () => {
+it("marks an own tool Not verified, never Community", async () => {
   useOnboarding.setState({ status: "done", open: false })
   render(<App />)
   const list = await screen.findByRole("list", { name: "WireCat tools" })
   const row = within(list)
     .getByRole("button", { name: /^Acme CRM/ })
     .closest("li") as HTMLElement
-  expect(within(row).getByText("Not checked")).toBeInTheDocument()
+  expect(within(row).getByText("Not verified")).toBeInTheDocument()
   expect(within(row).queryByText("Community")).not.toBeInTheDocument()
 })
 

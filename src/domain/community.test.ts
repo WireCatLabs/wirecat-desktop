@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { ACME } from "@/platform/mock-community"
-import { addCommunityTools, findTool, isCommunity, isOwn, maker, tools } from "./catalog"
+import { ACME, OWN } from "@/platform/mock-community"
+import { addCommunityTools, findTool, isCommunity, isOwn, maker, replaceAddedTools, tools } from "./catalog"
 
 describe("community tools", () => {
   it("joins the catalog after the built-in tools, marked as community", () => {
@@ -36,5 +36,14 @@ describe("community tools", () => {
     expect(mine && isOwn(mine)).toBe(true)
     expect(mine && maker(mine)).toBe("example")
     expect(maker({ ...(mine as NonNullable<typeof mine>), repo: null })).toBe("@me")
+  })
+
+  it("replaces the added tools when the catalog reloads, leaving the built-in ones", () => {
+    const builtIn = tools.filter((t) => !isCommunity(t)).length
+    expect(replaceAddedTools([{ source: "own", entry: OWN }])).toEqual([])
+    expect(findTool("acmecrm")).toBeDefined()
+    expect(replaceAddedTools([])).toEqual([])
+    expect(findTool("acmecrm")).toBeUndefined()
+    expect(tools).toHaveLength(builtIn)
   })
 })

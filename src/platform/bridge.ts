@@ -107,6 +107,7 @@ function createTauri(): Platform {
     ownToolsStatus: () => invoke("own_tools_status"),
     setOwnToolsAllowed: (allow) => invoke("set_own_tools_allowed", { allow }),
     ownToolDiscover: (pkg, desktop) => invoke("own_tool_discover", { package: pkg, desktop }),
+    ownToolRisks: (token) => invoke("own_tool_risks", { token }),
     ownToolAdd: (token, onEvent) => invoke("own_tool_add", { token, onEvent: events(onEvent) }),
     ownToolUninstall: (token, onEvent) => invoke("own_tool_uninstall", { token, onEvent: events(onEvent) }),
     ownToolRemove: (id) => invoke("own_tool_remove", { id }),

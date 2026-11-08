@@ -23,6 +23,7 @@ import type {
   NotesModelEvent,
   NotesSetup,
   OwnDiscovery,
+  OwnSignal,
   OwnStatus,
   ZoomAppAnswer,
 } from "./bindings"
@@ -94,7 +95,9 @@ export type Platform = {
   setOwnToolsAllowed(allow: boolean): Promise<void>
   /** Reads npm only, nothing of the package runs; `desktop` is the object pasted for a tool without a manifest. */
   ownToolDiscover(pkg: string, desktop: string | null): Promise<OwnDiscovery>
-  /** Installs the reviewed version, checks it against the review and saves it for the next start. */
+  /** GitHub's things to check about the review's repository; a failure is a signal, never an error. */
+  ownToolRisks(token: string): Promise<OwnSignal[]>
+  /** Installs the reviewed version, checks it against the review and saves it; the tool is listed at once. */
   ownToolAdd(token: string, onEvent: (e: InstallEvent) => void): Promise<void>
   /** Uninstalls a package Add installed but refused, which no catalog names. */
   ownToolUninstall(token: string, onEvent: (e: InstallEvent) => void): Promise<void>

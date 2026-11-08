@@ -32,3 +32,16 @@ it("opens the docs section on adding your own tool", async () => {
   await userEvent.click(await screen.findByRole("button", { name: "How it works" }))
   expect(open).toHaveBeenCalledWith("https://wirecat.dev/en/docs/desktop#add-your-own-tool")
 })
+
+it("applies at once: turning it off reads the tool list again and needs no restart", async () => {
+  vi.spyOn(platform, "ownToolsStatus").mockResolvedValue({ allowed: true, flag: false, added: 1 })
+  vi.spyOn(platform, "setOwnToolsAllowed").mockResolvedValue()
+  const extra = vi.spyOn(platform, "extraTools").mockResolvedValue({ tools: [], rejected: [] })
+  render(<OwnToolsSetting />)
+  const box = await screen.findByRole("switch", { name: "Allow tools WireCat has not checked" })
+  await vi.waitFor(() => expect(box).toBeEnabled())
+  await userEvent.click(box)
+  await vi.waitFor(() => expect(extra).toHaveBeenCalled())
+  expect(await screen.findByText(/Your own tools are hidden now/)).toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Restart now" })).not.toBeInTheDocument()
+})

@@ -58,7 +58,7 @@ export function AgentsMatrix({ expected = [] }: { expected?: readonly string[] }
   const readers = (target: SkillTarget) => matrix.columns.find((c) => c.target === target)?.readers ?? []
   const columnName = (target: SkillTarget, lang?: Lang) => names(readers(target), lang) || TARGET_FOLDER[target]
   const pad = "px-[1rem] py-[0.7rem]"
-  const pending = catalogTools.filter((t) => expected.includes(t.id))
+  const pending = catalogTools().filter((t) => expected.includes(t.id))
   const silent = rows.filter((r) => r.source === "none")
   const firstChecking = rows
     .flatMap((r) => r.cells.map((c) => ({ tool: r.tool.id, target: c.target, kind: c.cell.kind })))

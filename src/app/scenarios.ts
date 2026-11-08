@@ -10,6 +10,7 @@ import { MOCK_NOMATCH_QUERY } from "@/platform/mock-tasks"
 import { useBotSignIn } from "@/shared/bot-signin-store"
 import { useNav } from "@/shared/nav"
 import { STEPS, useOnboarding } from "@/shared/onboarding-store"
+import { useOwnDialog } from "@/shared/own-dialog-store"
 import { setPassword, useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 
@@ -27,6 +28,7 @@ import { useTools } from "@/shared/tools-store"
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
 // `?memo=<state>` and `?memo-fail=<kind>` open memo's details at its first-run card (`src/platform/mock-notes-setup.ts`).
 // `?showcase` hides the setup and the Agents dot.
+// `?own-review=<package>` opens Add your own tool reading that name (`src/platform/mock-community.ts`).
 // `?tailscale=<state>` opens tg's, with the "MCP server (or connect web)" guide's Tailscale steps at that state (`src/platform/mock-tailscale.ts`); `?cloudflare=<state>` the same with the Cloudflare tunnel (`mock-cloudflare.ts`).
 export async function runMockScenario() {
   if (platform.kind !== "mock") return
@@ -56,6 +58,11 @@ export async function runMockScenario() {
     void useTasks.getState().openTask(task)
   }
   if (params.get("notifications") === "open") openBell()
+  const ownReview = params.get("own-review")
+  if (ownReview) {
+    useNav.getState().go("tools")
+    useOwnDialog.getState().show(null, ownReview)
+  }
   const [signIn, signInMethod] = (params.get("signin") ?? "").split(":")
   const failing = params.get("signin-fail")?.split(":")
   const mailPlan = () => {

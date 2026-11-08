@@ -1,8 +1,8 @@
-import { RotateCw } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { useLang, useMessages } from "@/i18n"
 import type { OwnStatus } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { reloadAddedTools } from "@/shared/added-tools"
 import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -37,7 +37,7 @@ export function OwnToolsSetting() {
     if (!status) return
     setError(null)
     setStatus({ ...status, allowed })
-    platform.setOwnToolsAllowed(allowed).catch((e) => {
+    platform.setOwnToolsAllowed(allowed).then(reloadAddedTools, (e) => {
       setStatus({ ...status, allowed: !allowed })
       setError(String(e))
     })
@@ -68,15 +68,10 @@ export function OwnToolsSetting() {
         </button>
       </div>
       {status?.flag && <p className="text-[0.9rem] text-ink-soft">{m.ownFlag}</p>}
-      <Collapse open={changed} className="flex flex-wrap items-center gap-3">
-        <p className="text-[0.9rem] text-ink-soft">{status?.allowed ? m.ownOnNext : m.ownOffNext}</p>
-        <Button
-          size="sm"
-          icon={<RotateCw className="size-4" strokeWidth={1.8} aria-hidden />}
-          onClick={() => platform.restart()}
-        >
-          {m.restart}
-        </Button>
+      <Collapse open={changed}>
+        <p role="status" className="text-[0.9rem] text-ink-soft">
+          {status?.allowed ? m.ownOnNow : m.ownOffNow}
+        </p>
       </Collapse>
       <LeftOut source="own" />
       <Collapse open={error !== null}>
