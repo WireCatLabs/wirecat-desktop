@@ -30,6 +30,8 @@ mod node;
 mod notes_setup;
 mod notifications;
 mod npm_prefix;
+#[cfg(test)]
+mod own_tool_e2e;
 mod own_tools;
 mod package_update;
 #[cfg(test)]
