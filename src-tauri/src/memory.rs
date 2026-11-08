@@ -547,6 +547,8 @@ pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
     let reason = json.as_ref().and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        // `review confirm|reject` exits 2 when it refuses and prints its whole answer: the caller reads `refused`.
+        Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
         // A meeting's findings can still change after the agent read them; memo's own words name its command.
         Some(_) if reason == "evidence-findings.stale" => {
             Err("These findings changed since the agent proposed them.".into())

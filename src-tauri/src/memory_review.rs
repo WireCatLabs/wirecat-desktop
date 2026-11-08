@@ -182,50 +182,77 @@ pub fn decide(reference: &str, id: &str, answer: Answer, reason: Option<&str>) -
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::run;
     use serde_json::json;
     use std::sync::Mutex;
+
+    // Real answers of cli-memo #710 on a throwaway store; see tests/fixtures/memory-review/README.md. Review 2 is a
+    // changed source of memory:1, review 1 a deleted source of fact:1, review 3 an agent's challenge of memory:2.
+    fn fixture(name: &str) -> Value {
+        serde_json::from_str(match name {
+            "review-changed" => include_str!("../tests/fixtures/memory-review/review-changed.json"),
+            "review-deleted" => include_str!("../tests/fixtures/memory-review/review-deleted.json"),
+            "review-contradicted" => include_str!("../tests/fixtures/memory-review/review-contradicted.json"),
+            "confirm" => include_str!("../tests/fixtures/memory-review/confirm.json"),
+            "reject" => include_str!("../tests/fixtures/memory-review/reject.json"),
+            "refused" => include_str!("../tests/fixtures/memory-review/refused.json"),
+            "mshow1" => include_str!("../tests/fixtures/memory-review/mshow1.json"),
+            "invalidate" => include_str!("../tests/fixtures/memory-review/invalidate.json"),
+            "fshow1" => include_str!("../tests/fixtures/memory-review/fshow1.json"),
+            _ => panic!("no fixture {name}"),
+        })
+        .unwrap()
+    }
 
     fn strs(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| (*s).to_string()).collect()
     }
 
-    // The shape memo's `review show --json` gives a source review (cli-memo #710, `sourceReviewDetail`, snake_cased).
-    fn review(subject: &str) -> Value {
-        json!({"item":{"id":"17090","kind":"memory_source_review","status":"proposed","subject":subject,
-            "source_review":{"cause":"changed","raised_at":"2026-11-07T10:00:00.000Z",
-                "sources":[{"ref":"msg:telegram/1/77/42","kind":"message","cause":"changed","replacement":null,
-                    "quote":"delivery on the 28th","cited":"we agreed delivery on the 28th","now":"we agreed delivery on the 30th"},
-                    {"ref":null,"kind":"note","cause":"deleted","replacement":null,"quote":null,"cited":"[source erased]","now":null}],
-                "challenges":[{"evidence":["note:15"],"reason":"the later note moves it","by":"claude-code","at":"2026-11-07T10:01:00.000Z"}],
-                "suggestions":[{"author":"claude-code","body":"Delivery is on the 30th","evidence":["note:15"],"at":"2026-11-07T10:01:00.000Z"}],
-                "decide":{"stillTrue":"memo review confirm 17090"},"untrusted":["sources.now"]}}})
-    }
-
-    fn memory(marker: &Value) -> Value {
-        json!({"item":{"ref":"memory:3","kind":"summary","text":"Delivery is on the 28th","status":"confirmed",
-            "scope":"work","author":{"type":"person"},"evidence":["msg:telegram/1/77/42"],
-            "created_at":"2026-11-01T10:00:00.000Z","source_review":marker}})
-    }
-
     struct Fake {
         seen: Mutex<Vec<Vec<String>>>,
-        decided: Value,
+        decided: &'static str,
     }
 
     impl Fake {
         #[expect(clippy::unnecessary_wraps, reason = "it stands in for a call to memo, which can fail")]
         fn call(&self, a: &[String]) -> Result<Value, String> {
             self.seen.lock().unwrap().push(a.to_vec());
-            Ok(match (a[0].as_str(), a[1].as_str()) {
-                ("review", "show") => review("memory:3"),
-                ("review", _) => self.decided.clone(),
-                _ => memory(&Value::Null),
+            let reversed = self.seen.lock().unwrap().iter().any(|a| a[1] == "reverse");
+            Ok(match (a[0].as_str(), a[1].as_str(), a[2].as_str()) {
+                ("review", "show", "1") => fixture("review-deleted"),
+                ("review", "show", "3") => fixture("review-contradicted"),
+                ("review", "show", _) => fixture("review-changed"),
+                ("review", _, _) => fixture(self.decided),
+                ("memories", "invalidate", _) | ("memories", "show", "memory:2") => fixture("invalidate"),
+                ("memories", _, _) => fixture("mshow1"),
+                ("facts", _, _) => {
+                    let mut f = fixture("fshow1");
+                    if reversed {
+                        f["item"]["status"] = json!("reversed");
+                    }
+                    f
+                }
+                _ => Value::Null,
             })
+        }
+        fn seen(&self) -> Vec<Vec<String>> {
+            self.seen.lock().unwrap().clone()
         }
     }
 
-    fn fake(decided: Value) -> Fake {
+    fn fake(decided: &'static str) -> Fake {
         Fake { seen: Mutex::new(Vec::new()), decided }
+    }
+
+    #[test]
+    fn memos_lists_carry_the_marker_the_page_shows() {
+        let list = |text: &str| -> Value { serde_json::from_str(text).unwrap() };
+        let memories = list(include_str!("../tests/fixtures/memory-review/mlist.json"));
+        let facts = list(include_str!("../tests/fixtures/memory-review/flist.json"));
+        let m = memory::parse_entry(&Ref::parse("memory:1").unwrap(), &json!({"item": memories["items"][0]})).unwrap();
+        let f = memory::parse_entry(&Ref::parse("fact:1").unwrap(), &json!({"item": facts["items"][0]})).unwrap();
+        assert_eq!(serde_json::to_value(m.source_review).unwrap(), json!({"id":"2","cause":"changed"}));
+        assert_eq!(serde_json::to_value(f.source_review).unwrap(), json!({"id":"1","cause":"deleted"}));
     }
 
     #[test]
@@ -237,99 +264,79 @@ mod tests {
 
     #[test]
     fn reads_each_source_as_cited_and_as_it_is_now() {
-        let f = fake(Value::Null);
-        let r = show_with(&|a: &[String]| f.call(a), "memory:3", "17090").unwrap();
-        assert_eq!(r.cause, "changed");
-        assert_eq!(r.sources[0].cited.as_deref(), Some("we agreed delivery on the 28th"));
-        assert_eq!(r.sources[0].now.as_deref(), Some("we agreed delivery on the 30th"));
-        assert_eq!(r.sources[1].reference, None, "an erased source has no ref");
-        assert_eq!(r.challenges[0].evidence, ["note:15"]);
-        assert_eq!(r.suggestions[0].body, "Delivery is on the 30th");
-        assert_eq!(f.seen.lock().unwrap()[0], strs(&["review", "show", "17090", "--json", "--no-record"]));
+        let f = fake("confirm");
+        let call = |a: &[String]| f.call(a);
+        let changed = show_with(&call, "memory:1", "2").unwrap();
+        assert_eq!(changed.cause, "changed");
+        assert_eq!(changed.sources[0].quote.as_deref(), Some("delivery on the 28th"));
+        assert_eq!(changed.sources[0].cited.as_deref(), Some("We agreed delivery on the 28th with Lena."));
+        assert_eq!(changed.sources[0].now.as_deref(), Some("We agreed delivery on the 30th with Lena."));
+        let deleted = show_with(&call, "fact:1", "1").unwrap();
+        assert_eq!((deleted.sources[0].reference.as_deref(), deleted.sources[0].kind.as_deref()), (None, Some("note")));
+        assert_eq!(deleted.sources[0].cited, None, "memo keeps no text of a removed note");
+        let contradicted = show_with(&call, "memory:2", "3").unwrap();
+        assert_eq!(contradicted.challenges[0].by.as_deref(), Some("claude-code"));
+        assert_eq!(contradicted.suggestions[0].body, "Kai prefers Friday afternoon calls");
+        assert_eq!(f.seen()[0], strs(&["review", "show", "2", "--json", "--no-record"]));
     }
 
     #[test]
     fn a_review_of_another_record_or_a_bad_id_is_refused_before_any_decision() {
-        let f = fake(json!({"item":{"decided":[{"id":"17090"}],"refused":[]}}));
+        let f = fake("confirm");
         let call = |a: &[String]| f.call(a);
-        assert!(decide_with(&call, "memory:4", "17090", Answer::StillTrue, None).is_err());
-        for bad in ["17090 ", "-1", "fact:2", ""] {
-            assert!(show_with(&call, "memory:3", bad).is_err(), "{bad}");
+        assert!(decide_with(&call, "memory:2", "2", Answer::StillTrue, None).is_err());
+        for bad in ["2 ", "-1", "fact:2", ""] {
+            assert!(show_with(&call, "memory:1", bad).is_err(), "{bad}");
         }
-        assert!(show_with(&call, "action:3", "17090").is_err());
-        assert!(f.seen.lock().unwrap().iter().all(|a| a[1] == "show"), "nothing was decided");
+        assert!(show_with(&call, "action:3", "2").is_err());
+        assert!(f.seen().iter().all(|a| a[1] == "show"), "nothing was decided");
     }
 
     #[test]
-    fn still_true_and_dismiss_are_the_owners_review_decisions() {
-        let f = fake(json!({"item":{"decided":[{"id":"17090"}],"refused":[]}}));
-        let call = |a: &[String]| f.call(a);
-        let e = decide_with(&call, "memory:3", "17090", Answer::StillTrue, None).unwrap();
-        assert_eq!(e.source_review, None, "the record read back has no open review");
-        decide_with(&call, "memory:3", "17090", Answer::Dismiss, Some("-a typo fix")).unwrap();
-        let seen = f.seen.lock().unwrap().clone();
-        assert_eq!(seen[1], strs(&["review", "confirm", "17090", "--from-app", "--json", "--no-record"]));
-        assert_eq!(seen[2], strs(&["memories", "show", "memory:3", "--json", "--no-record"]));
+    fn still_true_and_dismiss_are_the_owners_and_read_the_record_back() {
+        let f = fake("confirm");
+        let e = decide_with(&|a: &[String]| f.call(a), "memory:1", "2", Answer::StillTrue, None).unwrap();
+        assert_eq!(e.source_review, None);
+        let seen = f.seen();
+        assert_eq!(seen[1], strs(&["review", "confirm", "2", "--from-app", "--json", "--no-record"]));
+        assert_eq!(seen[2], strs(&["memories", "show", "memory:1", "--json", "--no-record"]));
+        let r = fake("reject");
+        decide_with(&|a: &[String]| r.call(a), "fact:1", "1", Answer::Dismiss, Some("-moved to the drive")).unwrap();
         assert_eq!(
-            seen[4],
-            strs(&["review", "reject", "17090", "--from-app", "--json", "--no-record", "--reason=-a typo fix"])
+            r.seen()[1],
+            strs(&["review", "reject", "1", "--from-app", "--json", "--no-record", "--reason=-moved to the drive"])
         );
-        assert!(decide_with(&call, "memory:3", "17090", Answer::Dismiss, Some("  ")).is_err());
+        assert!(decide_with(&|a: &[String]| r.call(a), "fact:1", "1", Answer::Dismiss, Some("  ")).is_err());
     }
 
     #[test]
-    fn a_refusal_inside_a_zero_exit_answer_is_a_failure() {
-        let f = fake(
-            json!({"item":{"decided":[],"refused":[{"id":"17090","code":"permission_error","reason":"proposal.owner-only"}]}}),
-        );
-        let err = decide_with(&|a: &[String]| f.call(a), "memory:3", "17090", Answer::StillTrue, None).unwrap_err();
-        assert_eq!(err, "proposal.owner-only");
+    fn a_refusal_memo_exits_2_with_is_its_reason() {
+        let out = run::Output { code: Some(2), stdout: fixture("refused").to_string(), stderr: String::new() };
+        let v = memory::answer(&out).unwrap();
+        assert_eq!(decided(&v, "2"), Err("proposal.wrong-state".into()));
+        let f = fake("refused");
+        let err = decide_with(&|a: &[String]| f.call(a), "memory:1", "2", Answer::StillTrue, None).unwrap_err();
+        assert_eq!(err, "proposal.wrong-state");
     }
 
     #[test]
     fn an_answer_that_names_the_review_neither_decided_nor_refused_is_a_failure() {
-        for answer in [json!({"item":{"decided":[],"refused":[]}}), json!({"item":{"decided":[{"id":"17091"}]}})] {
-            let f = fake(answer);
-            assert!(decide_with(&|a: &[String]| f.call(a), "memory:3", "17090", Answer::StillTrue, None).is_err());
-        }
+        let f = fake("confirm");
+        assert!(decided(&fixture("confirm"), "3").is_err(), "the answer decided 2, not 3");
+        assert!(decide_with(&|a: &[String]| f.call(a), "memory:2", "3", Answer::StillTrue, None).is_err());
     }
 
     #[test]
     fn withdraw_uses_memos_own_verb_and_reads_the_record_back() {
-        let f = Fake { seen: Mutex::new(Vec::new()), decided: Value::Null };
-        decide_with(&|a: &[String]| f.call(a), "memory:3", "17090", Answer::Withdraw, None).unwrap();
-        let seen = f.seen.lock().unwrap().clone();
-        assert_eq!(seen[1], strs(&["memories", "invalidate", "memory:3", "--from-app", "--json", "--no-record"]));
-        assert_eq!(seen[2], strs(&["memories", "show", "memory:3", "--json", "--no-record"]));
-
-        let fact = |kind: &str, status: &str| {
-            json!({"item":{"ref":"fact:4","kind":kind,"text":"Launch in spring","status":status,
-                "author":{"type":"bot","name":"hermes"},"created_at":"2026-11-01T10:00:00.000Z"}})
-        };
-        let seen: Mutex<Vec<Vec<String>>> = Mutex::new(Vec::new());
-        let decision = |a: &[String]| -> Result<Value, String> {
-            seen.lock().unwrap().push(a.to_vec());
-            let reversed = seen.lock().unwrap().iter().any(|a| a[1] == "reverse");
-            Ok(if a[0] == "review" {
-                review("fact:4")
-            } else {
-                fact("decision", if reversed { "reversed" } else { "accepted" })
-            })
-        };
-        let e = decide_with(&decision, "fact:4", "17090", Answer::Withdraw, None).unwrap();
+        let f = fake("confirm");
+        let e = decide_with(&|a: &[String]| f.call(a), "memory:2", "3", Answer::Withdraw, None).unwrap();
+        assert_eq!((e.status.as_str(), e.source_review.as_ref()), ("stale", None));
+        let seen = f.seen();
+        assert_eq!(seen[1], strs(&["memories", "invalidate", "memory:2", "--from-app", "--json", "--no-record"]));
+        assert_eq!(seen[2], strs(&["memories", "show", "memory:2", "--json", "--no-record"]));
+        let d = fake("confirm");
+        let e = decide_with(&|a: &[String]| d.call(a), "fact:1", "1", Answer::Withdraw, None).unwrap();
         assert_eq!(e.status, "reversed");
-        assert!(
-            seen.lock()
-                .unwrap()
-                .iter()
-                .any(|a| a == &strs(&["facts", "reverse", "fact:4", "--from-app", "--json", "--no-record"]))
-        );
-        let promise = |a: &[String]| -> Result<Value, String> {
-            Ok(if a[0] == "review" { review("fact:4") } else { fact("promise", "accepted") })
-        };
-        assert!(
-            decide_with(&promise, "fact:4", "17090", Answer::Withdraw, None).is_err(),
-            "memo has no withdraw for a fact that is not a decision, and it is never revoked instead"
-        );
+        assert!(d.seen().contains(&strs(&["facts", "reverse", "fact:1", "--from-app", "--json", "--no-record"])));
     }
 }

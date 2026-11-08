@@ -46,6 +46,10 @@ const en = {
   whyHint: "A few words, such as “a typo fix”.",
   dismissNow: "Dismiss",
   cancel: "Cancel",
+  refused: {
+    "proposal.wrong-state": "This review was already decided. Read again.",
+    "proposal.owner-only": "Only you can decide this, from WireCat or at a terminal.",
+  } as Record<string, string>,
   done: {
     stillTrue: "Kept as still true. Its sources are checked again from now on.",
     dismiss: "Dismissed. This change will not come back.",
@@ -97,6 +101,10 @@ const ru: typeof en = {
   whyHint: "Пара слов, например «исправили опечатку».",
   dismissNow: "Отклонить",
   cancel: "Отмена",
+  refused: {
+    "proposal.wrong-state": "По этой проверке уже решили. Прочитайте заново.",
+    "proposal.owner-only": "Решить это можете только вы, из WireCat или в терминале.",
+  },
   done: {
     stillTrue: "Оставлено как верное. Источники проверяются заново с этого момента.",
     dismiss: "Отклонено. Это изменение больше не всплывёт.",
@@ -148,6 +156,10 @@ const es: typeof en = {
   whyHint: "Unas palabras, como «se corrigió una errata».",
   dismissNow: "Descartar",
   cancel: "Cancelar",
+  refused: {
+    "proposal.wrong-state": "Esta revisión ya se decidió. Lee de nuevo.",
+    "proposal.owner-only": "Solo tú puedes decidirlo, desde WireCat o en una terminal.",
+  },
   done: {
     stillTrue: "Se mantiene como cierto. Sus fuentes se comprueban de nuevo desde ahora.",
     dismiss: "Descartado. Este cambio no volverá.",

@@ -500,11 +500,28 @@ mod tests {
         v.iter().map(|s| (*s).to_string()).collect()
     }
 
-    // `memo sources add --json` from cli-memo #711, snake_cased by memo's itemAnswer.
+    // Real answers of cli-memo #711 on a throwaway store; see tests/fixtures/memory-add/README.md.
+    fn fixture(name: &str) -> Value {
+        serde_json::from_str(match name {
+            "add-subject" => include_str!("../tests/fixtures/memory-add/add-subject.json"),
+            "add-copy" => include_str!("../tests/fixtures/memory-add/add-copy.json"),
+            "show" => include_str!("../tests/fixtures/memory-add/show.json"),
+            "mentions" => include_str!("../tests/fixtures/memory-add/mentions.json"),
+            "url-refused" => include_str!("../tests/fixtures/memory-add/url-refused.json"),
+            "no-text" => include_str!("../tests/fixtures/memory-add/no-text.json"),
+            "unsupported" => include_str!("../tests/fixtures/memory-add/unsupported.json"),
+            _ => panic!("no fixture {name}"),
+        })
+        .unwrap()
+    }
+
     fn added_answer() -> Value {
-        json!({"item":{"ref":"document:42","created":true,"duplicate_of":null,"title":"Call with Lena","kind":"text",
-            "mime":null,"bytes":812,"chars":800,"truncated":false,"extractor":"text","read":"extracted","url":null,
-            "kept":"text","searchable":{"words":true,"meaning":false},"subjects":["person:7"]}})
+        fixture("add-subject")
+    }
+
+    /// memo's refusal as it prints it: JSON on stderr, exit code 2, nothing on stdout.
+    fn refusal(name: &str) -> run::Output {
+        run::Output { code: Some(2), stdout: String::new(), stderr: fixture(name).to_string() }
     }
 
     fn text_source(text: &str) -> AddSource {
@@ -520,9 +537,9 @@ mod tests {
         let a = added(&added_answer()).unwrap();
         assert_eq!(
             serde_json::to_value(&a).unwrap(),
-            json!({"ref":"document:42","created":true,"duplicateOf":null,"title":"Call with Lena","kind":"text",
-                "mime":null,"bytes":812,"chars":800,"truncated":false,"read":"extracted","url":null,"kept":"text",
-                "searchableWords":true,"searchableMeaning":false,"subjects":["person:7"]})
+            json!({"ref":"document:3","created":true,"duplicateOf":null,"title":"Lena moves the review to Friday.",
+                "kind":"text","mime":"text/plain","bytes":33,"chars":32,"truncated":false,"read":"extracted","url":null,
+                "kept":"text","searchableWords":true,"searchableMeaning":false,"subjects":["person:2"]})
         );
         let r = reader(&json!({"id":"ollama","available":true,"model":"llama3.2","leaves_computer":false})).unwrap();
         assert_eq!(
@@ -541,9 +558,9 @@ mod tests {
             None,
         )
         .unwrap();
-        assert_eq!(a.reference, "document:42");
+        assert_eq!(a.reference, "document:3");
         assert_eq!(a.kept.as_deref(), Some("text"));
-        assert_eq!(a.subjects, ["person:7"]);
+        assert_eq!(a.subjects, ["person:2"]);
         let (args, input) = &fake.seen()[0];
         assert_eq!(
             args,
@@ -629,27 +646,42 @@ mod tests {
 
     #[test]
     fn source_reasons_go_back_as_ids_for_the_panel_only() {
-        let out = run::Output {
-            code: Some(1),
-            stdout:
-                r#"{"error":{"code":"validation_error","message":"localhost refused","reason":"source.url-refused"}}"#
-                    .into(),
-            stderr: String::new(),
-        };
-        assert_eq!(panel_answer(&out, false), Err("source.url-refused".into()));
-        assert_eq!(answer(&out), Err("localhost refused".into()), "the Memory page's own calls keep memo's words");
+        for (name, reason, fed) in [
+            ("url-refused", "source.url-refused", false),
+            ("no-text", "source.no-text", true),
+            ("unsupported", "source.unsupported", false),
+        ] {
+            assert_eq!(panel_answer(&refusal(name), fed), Err(reason.into()), "{name}");
+        }
+        let words = answer(&refusal("url-refused")).unwrap_err();
+        assert!(words.starts_with("127.0.0.1 is not on the public internet"), "the Memory page keeps memo's words");
+    }
+
+    #[test]
+    fn a_kept_copy_and_the_stored_text_read_as_memo_answers_them() {
+        assert_eq!(added(&fixture("add-copy")).unwrap().kept.as_deref(), Some("copy"));
+        let fake = Fake::new(|_, _| Ok(fixture("show")));
+        let shown = show_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), "document:2").unwrap();
+        assert_eq!((shown.file_name.as_deref(), shown.kept.as_deref()), (Some("notes.txt"), Some("copy")));
+        assert!(shown.text.starts_with("Call with Lena Ortiz."));
+        assert!(shown.subjects.is_empty());
     }
 
     #[test]
     fn mentions_keep_only_refs_that_can_become_subjects() {
+        let real = Fake::new(|_, _| Ok(fixture("mentions")));
+        let m = mentions_with(&|a: &[String], i: Option<&[u8]>| real.feed(a, i), "document:2").unwrap();
+        assert_eq!(m.items.iter().map(|i| i.reference.as_str()).collect::<Vec<_>>(), ["person:2", "person:4"]);
+        assert_eq!(m.items[1].found_as, ["lena@example.org"]);
+        assert!(!m.partial);
         let fake = Fake::new(|_, _| {
-            Ok(json!({"items":[{"ref":"person:7","type":"person","name":"Lena Ortiz","found_as":["Lena"]},
-                {"ref":"organization:3","type":"organization","name":"Northbridge","found_as":["Northbridge"]},
-                {"ref":"--all","type":"person","name":null,"found_as":[]}],
-                "missing":[{"field":"organizations","why":"only the first 500"}]}))
+            let mut v = fixture("mentions");
+            v["items"].as_array_mut().unwrap().push(json!({"ref":"--all","type":"person","name":null,"found_as":[]}));
+            v["missing"] = json!([{"field":"organizations","why":"only the first 500"}]);
+            Ok(v)
         });
         let m = mentions_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), "document:42").unwrap();
-        assert_eq!(m.items.iter().map(|i| i.reference.as_str()).collect::<Vec<_>>(), ["person:7", "organization:3"]);
+        assert_eq!(m.items.len(), 2, "a ref that reads as an option is dropped");
         assert!(m.partial);
         assert_eq!(fake.seen()[0].0, strs(&["sources", "mentions", "document:42", "--json", "--no-record"]));
         assert!(mentions_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), "note:3").is_err());

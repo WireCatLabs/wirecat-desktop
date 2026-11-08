@@ -1,0 +1,32 @@
+{
+  "item": {
+    "ref": "memory:1",
+    "id": "1",
+    "kind": "summary",
+    "text": "Delivery is on the 28th",
+    "subject": null,
+    "subject_name": null,
+    "subject_is_owner": false,
+    "project": null,
+    "project_name": null,
+    "author": {
+      "type": "person",
+      "id": "1",
+      "name": null,
+      "kind": null
+    },
+    "model": null,
+    "confidence": null,
+    "status": "confirmed",
+    "scope": "work",
+    "supersedes": null,
+    "evidence": ["note:1"],
+    "last_verified_at": "2026-11-08T22:48:42.669Z",
+    "source_review": null,
+    "created_at": "2026-11-08T22:47:47.225Z",
+    "updated_at": "2026-11-08T22:48:42.669Z"
+  },
+  "meta": {
+    "complete": true
+  }
+}

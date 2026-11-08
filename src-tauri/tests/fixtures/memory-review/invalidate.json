@@ -1,0 +1,32 @@
+{
+  "item": {
+    "ref": "memory:2",
+    "id": "2",
+    "kind": "preference",
+    "text": "Kai prefers Monday calls",
+    "subject": null,
+    "subject_name": null,
+    "subject_is_owner": false,
+    "project": null,
+    "project_name": null,
+    "author": {
+      "type": "person",
+      "id": "1",
+      "name": null,
+      "kind": null
+    },
+    "model": null,
+    "confidence": null,
+    "status": "stale",
+    "scope": "work",
+    "supersedes": null,
+    "evidence": ["note:2"],
+    "last_verified_at": "2026-11-08T22:48:33.997Z",
+    "source_review": null,
+    "created_at": "2026-11-08T22:48:33.997Z",
+    "updated_at": "2026-11-08T22:48:55.116Z"
+  },
+  "meta": {
+    "complete": true
+  }
+}

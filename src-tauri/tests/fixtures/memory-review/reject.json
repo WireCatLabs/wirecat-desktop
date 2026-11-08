@@ -1,0 +1,16 @@
+{
+  "item": {
+    "decided": [
+      {
+        "id": "1",
+        "kind": "memory_source_review",
+        "status": "rejected",
+        "made": []
+      }
+    ],
+    "refused": []
+  },
+  "meta": {
+    "complete": true
+  }
+}

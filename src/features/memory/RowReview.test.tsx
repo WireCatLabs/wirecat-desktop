@@ -147,6 +147,15 @@ describe("A memory whose source changed", () => {
     expect(within(row).queryByRole("button", { name: "Edit with this wording" })).not.toBeInTheDocument()
   })
 
+  it("words memo's refusal of a review already decided", async () => {
+    read([entry({})])
+    vi.spyOn(platform, "memoryReviewDecide").mockRejectedValue(new Error("proposal.wrong-state"))
+    const user = userEvent.setup()
+    const row = await opened(user)
+    await user.click(await within(row).findByRole("button", { name: "Still true" }))
+    expect(await within(row).findByText(/This review was already decided/)).toBeInTheDocument()
+  })
+
   it("offers no Withdraw for a fact memo cannot take back", async () => {
     read([entry({ ref: "fact:4", type: "fact", kind: "promise", status: "accepted" })])
     const user = userEvent.setup()

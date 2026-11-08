@@ -1,0 +1,25 @@
+{
+  "item": {
+    "ref": "document:2",
+    "title": "notes",
+    "added": true,
+    "kind": "file",
+    "url": null,
+    "file_name": "notes.txt",
+    "mime": "text/plain",
+    "bytes": 114,
+    "kept": "copy",
+    "chars": 113,
+    "text": "Call with Lena Ortiz.\nWe agreed delivery on the 28th. Kai Sample sends the query list; lena@example.org confirms.",
+    "text_truncated": false,
+    "created_at": "2026-11-08T22:46:45.484Z",
+    "updated_at": "2026-11-08T22:46:45.934Z",
+    "subjects": [],
+    "facts": [],
+    "memories": [],
+    "batches": []
+  },
+  "meta": {
+    "complete": true
+  }
+}

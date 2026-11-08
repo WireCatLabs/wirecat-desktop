@@ -25,6 +25,7 @@ import type {
 } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
 import { memoryMessages } from "./messages"
+import { reviewMessages } from "./messages-review"
 
 export type Context =
   | { state: "loading" }
@@ -109,11 +110,13 @@ type MemoryState = {
 
 const REFUSALS = ["fact.not-accepted", "fact.owner-written", "fact.revoke-correction"] as const
 
-/** memo's reasons for refusing `facts revoke` arrive as they are and are worded here in the owner's language. */
+/** memo's reasons for refusing `facts revoke` or a review decision arrive as they are and are worded here. */
 const message = (e: unknown) => {
   const text = e instanceof Error ? e.message : String(e)
   const reason = REFUSALS.find((r) => r === text)
-  return (reason && messagesOf(memoryMessages).revokeRefused[reason]) || text
+  return (
+    (reason && messagesOf(memoryMessages).revokeRefused[reason]) || messagesOf(reviewMessages).refused[text] || text
+  )
 }
 
 /** The installed memo takes back an agent's accepted fact. */

@@ -336,8 +336,9 @@ Still true (`review confirm`), Dismiss (`review reject --reason=<the owner's wor
 correction, which can start from an agent's suggested wording) and No longer true (the Discard mapping:
 `memories invalidate`, or `facts reverse` for a decision; memo has none for other facts, and it is never a revoke).
 After every answer the record is read back with `show` (`memory_show` after an Edit), so the page shows what memo
-now holds rather than what it expects. `review confirm` and `reject` exit 0 even when they refuse, so the answer must
-list the id under `decided`. A source review is never listed as an action: memo refuses `actions confirm` on it.
+now holds rather than what it expects. `review confirm` and `reject` refuse with exit code 2 and their whole answer on
+stdout; Rust reads it, so the page words memo's reason (`proposal.wrong-state`), and a success must list the id under
+`decided`. Rust's tests use memo's real answers (`src-tauri/tests/fixtures/memory-review/` and `memory-add/`). A source review is never listed as an action: memo refuses `actions confirm` on it.
 
 ### Adding to memory
 
