@@ -30,9 +30,16 @@ pub struct NotesSetupSource {
     pub remove_delete: Vec<String>,
     pub sync: Vec<String>,
     pub models: Vec<String>,
-    /// The search model's id in `models list`.
-    pub model: String,
+    /// The text models the card offers, best first; memo's list says which exist, which is downloaded and in use.
+    pub choices: Vec<String>,
+    /// The one shown as the best local model.
+    pub recommended: String,
     pub download: Vec<String>,
+    /// For a model with its own terms, until memo stops asking for `--accept-terms`.
+    pub download_with_terms: Vec<String>,
+    /// `models set {model}`: every embed and search by meaning uses it from now on.
+    #[serde(rename = "use")]
+    pub use_model: Vec<String>,
 }
 
 /// What went wrong, in a closed list: the interface has words and an action for each, and memo's own message (which can
@@ -69,6 +76,36 @@ pub struct NotesModel {
     pub title: String,
     pub size_bytes: u64,
     pub downloaded: bool,
+    /// The one memo uses now for every embed and search by meaning.
+    pub in_use: bool,
+    pub role: NotesModelRole,
+    /// The model's own terms of use, an https page; `None` for a model under a plain licence.
+    pub terms: Option<String>,
+}
+
+/// How the card names a model: the recommended one only as the best local model, the catalog's other choice as the
+/// lighter one, and a model in use chosen elsewhere by memo's own title.
+#[derive(specta::Type, Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum NotesModelRole {
+    Recommended,
+    Alternative,
+    Other,
+}
+
+/// After `models set`: what memo now reads again. The counts are `None` from a memo that does not report them.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[serde(rename_all = "camelCase", tag = "result")]
+pub enum NotesModelUsed {
+    #[serde(rename_all = "camelCase")]
+    Used {
+        previous: Option<String>,
+        to_embed: Option<u64>,
+        estimate_seconds: Option<u64>,
+    },
+    Failed {
+        problem: NotesProblem,
+    },
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
@@ -79,10 +116,10 @@ pub enum NotesSetup {
         version: Option<String>,
         need: String,
     },
-    /// `model` is `None` when memo's list does not name the search model.
+    /// `models` is empty when memo's list names none of the catalog's choices.
     Ready {
         folders: Vec<NotesFolder>,
-        model: Option<NotesModel>,
+        models: Vec<NotesModel>,
     },
 }
 
@@ -198,14 +235,58 @@ fn folders_of(v: &Value) -> Vec<NotesFolder> {
     v["items"].as_array().into_iter().flatten().filter(|i| i["path"].is_string()).filter_map(folder_of).collect()
 }
 
-fn model_of(v: &Value, id: &str) -> Option<NotesModel> {
-    let m = v["items"].as_array()?.iter().find(|m| m["id"].as_str() == Some(id))?;
+fn model_of(m: &Value, src: &NotesSetupSource) -> Option<NotesModel> {
+    let id = m["id"].as_str()?;
     Some(NotesModel {
         id: id.to_string(),
         title: m["title"].as_str()?.to_string(),
         size_bytes: m["size_bytes"].as_u64()?,
         downloaded: m["downloaded"].as_bool()?,
+        in_use: m["default"].as_bool().unwrap_or(false),
+        role: if id == src.recommended {
+            NotesModelRole::Recommended
+        } else if src.choices.iter().any(|c| c == id) {
+            NotesModelRole::Alternative
+        } else {
+            NotesModelRole::Other
+        },
+        terms: m["terms"].as_str().filter(|u| u.starts_with("https://")).map(str::to_string),
     })
+}
+
+/// The catalog's choices in its order, then the text model in use when it is none of them (chosen in a terminal), so
+/// the card never hides what search runs on.
+fn models_of(v: &Value, src: &NotesSetupSource) -> Vec<NotesModel> {
+    let text: Vec<&Value> = v["items"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter(|m| m["kind"].as_str().is_none_or(|k| k == "text"))
+        .collect();
+    let find = |id: &str| text.iter().find(|m| m["id"].as_str() == Some(id)).and_then(|m| model_of(m, src));
+    let mut models: Vec<NotesModel> = src.choices.iter().filter_map(|id| find(id)).collect();
+    if let Some(other) = text
+        .iter()
+        .filter(|m| m["default"].as_bool() == Some(true))
+        .filter_map(|m| model_of(m, src))
+        .find(|m| !src.choices.contains(&m.id))
+    {
+        models.push(other);
+    }
+    models
+}
+
+fn list_models(tool: &Tool, src: &NotesSetupSource) -> Result<Vec<NotesModel>, String> {
+    let (out, json) = crate::skills::call(tool, &src.models, CALL)?;
+    match json {
+        Some(v) if out.code == Some(0) => Ok(models_of(&v, src)),
+        j => Err(crate::skills::failure(&out, j.as_ref())),
+    }
+}
+
+/// A model the card shows, as memo lists it now: the only ids that reach `models download` and `models set`.
+fn shown_model(tool: &Tool, src: &NotesSetupSource, id: &str) -> Result<NotesModel, String> {
+    list_models(tool, src)?.into_iter().find(|m| m.id == id).ok_or_else(|| format!("memo offers no search model {id}"))
 }
 
 pub fn status(tool: &Tool) -> Result<NotesSetup, String> {
@@ -220,11 +301,8 @@ pub fn status(tool: &Tool) -> Result<NotesSetup, String> {
         return Err(crate::skills::failure(&out, out.json().as_ref()));
     };
     // Without the model list the card still works for folders; the search step then stays hidden.
-    let model = crate::skills::call(tool, &src.models, CALL)
-        .ok()
-        .and_then(|(o, j)| j.filter(|_| o.code == Some(0)))
-        .and_then(|v| model_of(&v, &src.model));
-    Ok(NotesSetup::Ready { folders: folders_of(&list), model })
+    let models = list_models(tool, src).unwrap_or_default();
+    Ok(NotesSetup::Ready { folders: folders_of(&list), models })
 }
 
 pub fn add_folder(tool: &Tool, path: &str) -> Result<NotesFolderAdded, String> {
@@ -258,16 +336,42 @@ pub fn remove_folder(tool: &Tool, id: &str, delete_notes: bool) -> Result<NotesF
     Ok(NotesFolderRemoved::Failed { problem: problem_of(&out, json.as_ref()) })
 }
 
-pub fn download_args(tool: &Tool) -> Result<Vec<String>, String> {
+pub fn download_args(tool: &Tool, model: &str) -> Result<Vec<String>, String> {
     let src = source(tool)?;
-    Ok(with(&src.download, "{model}", &src.model))
+    Ok(download_words(src, &shown_model(tool, src, model)?))
+}
+
+fn download_words(src: &NotesSetupSource, model: &NotesModel) -> Vec<String> {
+    let words = if model.terms.is_some() { &src.download_with_terms } else { &src.download };
+    with(words, "{model}", &model.id)
+}
+
+/// memo's `models set`: the model must be downloaded; memo then embeds what it lacks at the next syncs.
+pub fn use_model(tool: &Tool, model: &str) -> Result<NotesModelUsed, String> {
+    let src = source(tool)?;
+    let model = shown_model(tool, src, model)?;
+    let (out, json) = crate::skills::call(tool, &with(&src.use_model, "{model}", &model.id), CALL)?;
+    if out.code != Some(0) {
+        return Ok(NotesModelUsed::Failed { problem: problem_of(&out, json.as_ref()) });
+    }
+    Ok(used_of(json.as_ref().map(crate::skills::body)))
+}
+
+fn used_of(item: Option<&Value>) -> NotesModelUsed {
+    let item = item.unwrap_or(&Value::Null);
+    let previous = item["previous"].as_str().or_else(|| item["previous"]["id"].as_str()).map(str::to_string);
+    NotesModelUsed::Used {
+        previous,
+        to_embed: item["to_embed"].as_u64(),
+        estimate_seconds: item["estimate_seconds"].as_u64(),
+    }
 }
 
 pub fn sync_args(tool: &Tool) -> Result<Vec<String>, String> {
     Ok(source(tool)?.sync.clone())
 }
 
-/// Downloads the one catalog model. A memo that prints no progress lines leaves the bar without an end; a stop kills it.
+/// Downloads one of the card's models. A memo that prints no progress lines leaves the bar without an end; a stop kills it.
 pub fn download(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: &dyn Fn(NotesModelEvent)) {
     let Some(bin) = tools::program(&tool.bin) else {
         return send(NotesModelEvent::Failed { problem: NotesProblem::Other });
@@ -297,6 +401,61 @@ pub fn download(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // memo 0.131.61's own answers, recorded in a throwaway home.
+    const MODELS: &str = include_str!("../tests/fixtures/notes-models/memo-0.131.61-models-list.json");
+    const SET: &str = include_str!("../tests/fixtures/notes-models/memo-0.131.61-set.json");
+    const NOT_DOWNLOADED: &str = include_str!("../tests/fixtures/notes-models/memo-0.131.61-set-not-downloaded.json");
+
+    fn memo_src() -> &'static NotesSetupSource {
+        source(crate::catalog::tool("memo").unwrap()).unwrap()
+    }
+
+    #[test]
+    fn shows_the_catalogs_choices_best_first_with_the_terms_link() {
+        let models = models_of(&serde_json::from_str(MODELS).unwrap(), memo_src());
+        let ids: Vec<&str> = models.iter().map(|m| m.id.as_str()).collect();
+        assert_eq!(ids, ["embeddinggemma", "e5-small"]);
+        assert_eq!(models[0].role, NotesModelRole::Recommended);
+        assert!(!models[0].in_use);
+        assert_eq!(models[1].role, NotesModelRole::Alternative);
+        assert_eq!(models[0].terms.as_deref(), Some("https://ai.google.dev/gemma/terms"));
+        assert!(models[1].in_use && models[1].terms.is_none());
+        assert_eq!(models[1].size_bytes, 135_391_358);
+    }
+
+    #[test]
+    fn a_model_in_use_that_is_no_choice_is_still_shown() {
+        let mut v: Value = serde_json::from_str(MODELS).unwrap();
+        for m in v["items"].as_array_mut().unwrap() {
+            m["default"] = Value::Bool(m["id"] == "e5-large");
+        }
+        let ids: Vec<String> = models_of(&v, memo_src()).into_iter().map(|m| m.id).collect();
+        assert_eq!(ids, ["embeddinggemma", "e5-small", "e5-large"]);
+    }
+
+    #[test]
+    fn a_model_with_terms_is_downloaded_accepting_them_and_set_by_id() {
+        let models = models_of(&serde_json::from_str(MODELS).unwrap(), memo_src());
+        assert_eq!(
+            download_words(memo_src(), &models[0]).join(" "),
+            "models download embeddinggemma --accept-terms --json"
+        );
+        assert_eq!(download_words(memo_src(), &models[1]).join(" "), "models download e5-small --json");
+        assert_eq!(with(&memo_src().use_model, "{model}", "e5-small").join(" "), "models set e5-small --json");
+    }
+
+    #[test]
+    fn reads_what_switching_will_embed() {
+        let v: Value = serde_json::from_str(SET).unwrap();
+        assert_eq!(
+            used_of(Some(crate::skills::body(&v))),
+            NotesModelUsed::Used { previous: Some("e5-small".into()), to_embed: Some(0), estimate_seconds: Some(0) }
+        );
+        assert_eq!(used_of(None), NotesModelUsed::Used { previous: None, to_embed: None, estimate_seconds: None });
+        let refused: Value = serde_json::from_str(NOT_DOWNLOADED).unwrap();
+        assert_eq!(refused["error"]["reason"], "model.not-downloaded");
+    }
 
     #[test]
     fn a_folder_must_be_an_absolute_existing_directory() {

@@ -1,0 +1,52 @@
+{
+  "items": [
+    {
+      "id": "e5-small",
+      "kind": "text",
+      "title": "multilingual-e5-small, 8-bit",
+      "languages": "about 100 languages, Russian and English among them",
+      "licence": "MIT",
+      "size": "small",
+      "dims": 384,
+      "chunks_per_second": 31,
+      "size_bytes": 135391358,
+      "downloaded": false,
+      "default": true,
+      "path": "/home/owner/.local/state/WireCat/models/text/e5-small"
+    },
+    {
+      "id": "embeddinggemma",
+      "kind": "text",
+      "title": "EmbeddingGemma 300M, 4-bit",
+      "languages": "over 100 languages \u2014 the best of the two on chat, about seven times slower",
+      "licence": "Gemma Terms of Use",
+      "terms": "https://ai.google.dev/gemma/terms",
+      "size": "medium",
+      "dims": 768,
+      "chunks_per_second": 2,
+      "size_bytes": 218725224,
+      "downloaded": false,
+      "default": false,
+      "path": "/home/owner/.local/state/WireCat/models/text/embeddinggemma"
+    },
+    {
+      "id": "e5-large",
+      "kind": "text",
+      "title": "multilingual-e5-large, 8-bit",
+      "languages": "about 100 languages, Russian and English among them \u2014 reads better than e5-small, several times slower",
+      "licence": "MIT",
+      "size": "large",
+      "dims": 1024,
+      "chunks_per_second": 4,
+      "size_bytes": 578851840,
+      "downloaded": false,
+      "default": false,
+      "path": "/home/owner/.local/state/WireCat/models/text/e5-large"
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 3,
+    "has_more": false
+  }
+}

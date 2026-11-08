@@ -1,0 +1,9 @@
+{
+  "error": {
+    "code": "not_found",
+    "reason": "model.not-downloaded",
+    "message": "embeddinggemma is not downloaded — `memo models download embeddinggemma --accept-terms` first",
+    "details": { "model": "embeddinggemma" },
+    "retry": { "safe": false }
+  }
+}
