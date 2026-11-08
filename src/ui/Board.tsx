@@ -13,8 +13,8 @@ import { reducedMotion } from "./motion"
 
 /**
  * A card being carried. The board marks each column `data-column="<id>"` and each card `data-card="<key>"`; `before`
- * is the card it would land above, `null` at the column's end. `copy` is true while Alt, Ctrl or ⌘ is held: a board
- * that copies reads it, the others ignore it.
+ * is the card it would land above, `null` at the column's end. `copy` is true while Alt, Ctrl or ⌘ is held on a
+ * board that asked for `copyable`; on any other board it stays false.
  */
 export type BoardDrag<C extends string = string> = {
   key: string
@@ -32,18 +32,19 @@ export type BoardDrag<C extends string = string> = {
 export type BoardDrop<C extends string = string> = { key: string; to: C; before: string | null; copy: boolean }
 type Held<C extends string> = { key: string; to: C; index: number }
 
-/** What the live region says at each step, in the page's own words. */
+/** What the live region says at each step, in the page's own words; a step left out is not said. */
 export type DragWords<C extends string> = {
-  picked: (key: string) => string
-  place: (column: C, at: number, of: number) => string
-  dropped: (key: string, column: C) => string
-  putBack: (key: string) => string
+  picked?: (key: string) => string
+  place?: (column: C, at: number, of: number) => string
+  dropped?: (key: string, column: C) => string
+  /** `reason` is what `canDrop` gave when it refused the drop. */
+  putBack?: (key: string, reason?: string) => string
 }
 
 const DRAG_PX = 6
 const MOVE_MS = 220
 
-const copying = (e: { altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => e.altKey || e.ctrlKey || e.metaKey
+const modifier = (e: { altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => e.altKey || e.ctrlKey || e.metaKey
 
 /**
  * Cards that changed place slide from where they were, so a drop or a refusal is seen, never a jump. Places are kept
@@ -95,20 +96,24 @@ export function useBoardDrag<C extends string = string>(o: {
   onOpen?: (key: string) => void
   /** Escape put the card back. */
   onCancel?: (key: string) => void
-  canDrop?: (key: string, to: C) => boolean
+  /** `false`, or the reason as text, refuses the column: the card goes back and `putBack` says why. */
+  canDrop?: (key: string, to: C) => boolean | string
   /** With `cardsIn`, Space lifts a card and the arrow keys carry it; without them only the pointer moves cards. */
   columns?: readonly C[]
   cardsIn?: (column: C) => string[]
   /** The live region's words; without them the board says nothing itself. */
   words?: DragWords<C>
+  /** Alt, Ctrl or ⌘ held copies the card instead of moving it; off, `copy` is always false. */
+  copyable?: boolean
 }) {
+  const copying = (e: { altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => o.copyable === true && modifier(e)
   const [drag, setDrag] = useState<BoardDrag<C> | null>(null)
   const [held, setHeld] = useState<Held<C> | null>(null)
   const [said, setSaid] = useState("")
   const press = useRef<{ key: string; x: number; y: number; el: HTMLElement } | null>(null)
   // A drop back where the card started ends on the card itself, so the browser follows it with a click.
   const dropped = useRef(false)
-  const allowed = (key: string, to: C) => o.canDrop?.(key, to) ?? true
+  const verdict = (key: string, to: C) => o.canDrop?.(key, to) ?? true
 
   useEffect(() => {
     if (held) document.querySelector<HTMLElement>(`[data-card="${held.key}"]`)?.focus({ preventScroll: true })
@@ -120,18 +125,20 @@ export function useBoardDrag<C extends string = string>(o: {
   const drop = (key: string, to: C, before: string | null, copy: boolean) => {
     const from = o.columnOf(key)
     if (from === undefined) return
-    if (!allowed(key, to)) {
-      say(o.words?.putBack(key))
+    const current = cardsIn(from)
+    // Without an order to compare, any drop in the card's own column is no change; a copy there is none either.
+    const unchanged =
+      from === to &&
+      (copy ||
+        o.cardsIn === undefined ||
+        current.filter((k) => k !== key)[current.indexOf(key)] === (before ?? undefined))
+    const answer = unchanged ? true : verdict(key, to)
+    if (unchanged || answer !== true) {
+      say(o.words?.putBack?.(key, typeof answer === "string" ? answer : undefined))
       return
     }
-    const current = cardsIn(from)
-    const unchanged =
-      !copy &&
-      o.cardsIn !== undefined &&
-      from === to &&
-      current.filter((k) => k !== key)[current.indexOf(key)] === (before ?? undefined)
-    say(o.words?.dropped(key, to))
-    if (!unchanged) o.onDrop({ key, to, before, copy })
+    say(o.words?.dropped?.(key, to))
+    o.onDrop({ key, to, before, copy })
   }
 
   const target = (x: number, y: number, key: string): Pick<BoardDrag<C>, "to" | "before"> | null => {
@@ -181,7 +188,7 @@ export function useBoardDrag<C extends string = string>(o: {
         press.current = null
         dropped.current = true
         setDrag(null)
-        say(o.words?.putBack(drag.key))
+        say(o.words?.putBack?.(drag.key))
         o.onCancel?.(drag.key)
       } else if (copying(e) !== drag.copy) setDrag({ ...drag, copy: copying(e) })
     }
@@ -225,7 +232,7 @@ export function useBoardDrag<C extends string = string>(o: {
       if (e.key === " " && o.columns && o.cardsIn) {
         e.preventDefault()
         setHeld({ key, to: from, index: cardsIn(from).indexOf(key) })
-        say(o.words?.picked(key))
+        say(o.words?.picked?.(key))
       } else if (e.key === "Enter" && o.onOpen) {
         e.preventDefault()
         o.onOpen(key)
@@ -241,17 +248,17 @@ export function useBoardDrag<C extends string = string>(o: {
       const to = columns[Math.max(0, Math.min(columns.length - 1, i))] ?? held.to
       const index = Math.min(held.index, others(to).length)
       setHeld({ ...held, to, index })
-      say(o.words?.place(to, index + 1, others(to).length + 1))
+      say(o.words?.place?.(to, index + 1, others(to).length + 1))
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       const index = Math.max(0, Math.min(others(held.to).length, held.index + (e.key === "ArrowDown" ? 1 : -1)))
       setHeld({ ...held, index })
-      say(o.words?.place(held.to, index + 1, others(held.to).length + 1))
+      say(o.words?.place?.(held.to, index + 1, others(held.to).length + 1))
     } else if (e.key === " " || e.key === "Enter") {
       drop(key, held.to, others(held.to)[held.index] ?? null, copying(e))
       setHeld(null)
     } else if (e.key === "Escape") {
       setHeld(null)
-      say(o.words?.putBack(key))
+      say(o.words?.putBack?.(key))
       o.onCancel?.(key)
     }
   }
