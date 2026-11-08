@@ -13,6 +13,10 @@ const en = {
     connect: "Add it in the app",
     test: "Test it",
   },
+  backWhy: {
+    starting: "Starting: wait until it ends, or press Stop.",
+    running: "The server is running. Stop it in Server details to change the address.",
+  },
   rail: {
     label: "Steps",
     step: (n: number) => `Step ${n}: `,
@@ -127,7 +131,6 @@ const en = {
     portInUse: "Another program uses this port. Go back, open “Use another port”, choose another port and start again.",
     nothingLeft: "Nothing was left running. Try again, or go back and change the address or port.",
     tryAgain: "Try again",
-    back: "Back to the address",
   },
 
   copy: {
@@ -278,6 +281,10 @@ const ru: typeof en = {
     connect: "Добавьте в приложение",
     test: "Проверка связи",
   },
+  backWhy: {
+    starting: "Идёт запуск: дождитесь конца или нажмите «Остановить».",
+    running: "Сервер работает. Чтобы сменить адрес, остановите его в сведениях о сервере.",
+  },
   rail: {
     label: "Шаги",
     step: (n) => `Шаг ${n}: `,
@@ -394,7 +401,6 @@ const ru: typeof en = {
       "Этот порт занят другой программой. Вернитесь назад, откройте «Другой порт», выберите другой порт и запустите снова.",
     nothingLeft: "Ничего не осталось запущенным. Попробуйте ещё раз или вернитесь и измените адрес или порт.",
     tryAgain: "Попробовать снова",
-    back: "Назад к адресу",
   },
 
   copy: {
@@ -544,6 +550,10 @@ const es: typeof en = {
     connect: "Añádelo en la app",
     test: "Pruébalo",
   },
+  backWhy: {
+    starting: "Se está iniciando: espera a que termine o pulsa Detener.",
+    running: "El servidor está en marcha. Deténlo en los detalles del servidor para cambiar la dirección.",
+  },
   rail: {
     label: "Pasos",
     step: (n) => `Paso ${n}: `,
@@ -664,7 +674,6 @@ const es: typeof en = {
       "Otro programa usa este puerto. Vuelve atrás, abre «Usar otro puerto», elige otro puerto y vuelve a empezar.",
     nothingLeft: "No ha quedado nada en marcha. Inténtalo de nuevo o vuelve atrás y cambia la dirección o el puerto.",
     tryAgain: "Reintentar",
-    back: "Volver a la dirección",
   },
 
   copy: {

@@ -416,7 +416,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const { tool, profile, method, phase, onFinish, run } = s
       if (!tool || !profile) return
       if (running(phase)) stopInBackground(tool)
-      set({ ...closed, ...kept(s), tool, profile, method, run: run + 1, phase: "plan", onFinish })
+      set({ ...closed, ...kept(s), tool, profile, method, run: run + 1, phase: "plan", onFinish, planStep: s.planStep })
     },
     async answer(value) {
       const { tool, need, sent } = get()

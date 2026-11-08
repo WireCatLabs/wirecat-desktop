@@ -10,6 +10,7 @@ import { useOwnDialog } from "@/shared/own-dialog-store"
 import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
+import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Dialog } from "@/ui/Dialog"
@@ -196,9 +197,7 @@ function Actions({
     case "refused":
       return (
         <>
-          <Button variant="ghost" onClick={() => on.setStep({ kind: "name" })}>
-            {m.back}
-          </Button>
+          <BackButton onClick={() => on.setStep({ kind: "name" })} />
           {step.refusal.kind === "no_manifest" ? (
             <Button variant="primary" disabled={!pasted.trim()} onClick={() => on.read(step.pkg, pasted)}>
               {m.checkPasted}
@@ -213,6 +212,7 @@ function Actions({
     case "review":
       return (
         <>
+          <BackButton onClick={() => on.setStep({ kind: "name" })} />
           {cancel}
           <Button
             variant="primary"
@@ -226,9 +226,7 @@ function Actions({
     case "confirm":
       return (
         <>
-          <Button variant="ghost" onClick={() => on.setStep({ kind: "review", review: step.review, accepted: true })}>
-            {m.back}
-          </Button>
+          <BackButton onClick={() => on.setStep({ kind: "review", review: step.review, accepted: true })} />
           <Button variant="danger" onClick={() => on.install(step.review)}>
             {m.install}
           </Button>
@@ -236,7 +234,7 @@ function Actions({
       )
     case "installing": {
       const outcome = step.session.outcome
-      if (!outcome) return null
+      if (!outcome) return <BackButton onClick={on.close} reason={m.backInstalling} />
       if (done)
         return (
           <>
