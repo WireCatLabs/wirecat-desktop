@@ -1205,7 +1205,7 @@ mod tests {
             panic!("not ready")
         };
         assert_eq!(entries.len(), 1);
-        assert!(roles.is_empty());
+        assert_eq!(roles, []);
         let busy = Fake::new(|a| match a[0].as_str() {
             "relationships" => Err("another process holds the store".into()),
             _ => Ok(json!({"items":[]})),
