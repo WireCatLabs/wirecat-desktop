@@ -17,6 +17,7 @@ mod community;
 mod compat;
 mod config_repair;
 mod deep_link;
+mod digests;
 mod drive_folders;
 mod error;
 mod funnel_helper;
@@ -141,6 +142,9 @@ pub fn run() {
             commands::own_tools::own_tool_uninstall,
             commands::own_tools::own_tool_remove,
             commands::app::deep_link_listen,
+            commands::app::digest_list,
+            commands::app::digest_show,
+            commands::app::digest_notify,
             commands::app::readiness,
             commands::app::report_context,
             commands::app::send_report,

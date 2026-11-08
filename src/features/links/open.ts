@@ -5,6 +5,7 @@ import { useMemory } from "@/features/memory"
 import { useTasks } from "@/features/tasks"
 import { openToolAt } from "@/features/tools"
 import { platform } from "@/platform/bridge"
+import { useDigestDay } from "@/shared/digest-day"
 import { useNav } from "@/shared/nav"
 import { type Shown, useLinks } from "./store"
 
@@ -34,6 +35,13 @@ async function openTask(target: Extract<DeepLinkTarget, { type: "task" }>) {
   void useTasks.getState().openTask(key)
 }
 
+async function openDigest(target: Extract<DeepLinkTarget, { type: "digest" }>) {
+  const days = await platform.digestList().catch(() => [])
+  if (!days.some((d) => d.date === target.date)) return show({ kind: "missing", target })
+  useDigestDay.setState({ date: target.date })
+  useNav.getState().go("digests")
+}
+
 async function openProposal(target: Extract<DeepLinkTarget, { type: "proposal" }>) {
   const ref = memoryRefOf(target.id)
   if (!ref) return show({ kind: "unsupported", target })
@@ -58,6 +66,8 @@ export async function openTarget(target: DeepLinkTarget | null) {
       return
     case "proposal":
       return openProposal(target)
+    case "digest":
+      return openDigest(target)
     case "sync": {
       const id = TOOL_OF[target.tool] ?? target.tool
       if (!tools.some((t) => t.id === id)) return show({ kind: "unsupported", target })

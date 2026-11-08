@@ -10,7 +10,7 @@ New here? Read [the architecture report](architecture-report.md) first. Rules pe
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, links/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
+  features/     one folder per area (tools/, agents/, links/, digests/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
   shared/       parts and stores two or more features use: ToolIcon, ReportThis, JsonTree, nav, and the stores of tools, agents, storage, system, signin and onboarding. Imports no feature (Biome rule).
   features/<name>/index.ts   a feature's public surface. Other features and the app import `@/features/<name>`, never a file inside it (Biome rule). The one exception is `@/features/<name>/page`, the lazy entry of a page: `app/sections.tsx` loads it with `import()` so a page's code does not enter the first chunk through the index; `main.tsx` imports `tools/community` directly because it must run before any page module loads. Feature folders never import each other in a cycle (`src/features/no-cycles.test.ts`).
   features/<name>/api.ts     the feature's requests to Rust as TanStack Query hooks: `useQuery` for reads, `useMutation` for writes, keys per tool and profile (`["tool", id, "permissions", profile]`). Its store keeps UI and live-event state, not a copy of an answer a query holds. Moved so far: tools (profiles, permissions, background), search (value lists), analytics (extra counts, aggregates, closed weeks); the rest still call `platform` from stores and components (step 6 note in architecture-report.md).
@@ -140,7 +140,16 @@ src-tauri/src/
                 `src/domain/links-v1.fixture.json`; anything else reaches the interface as a refused link, its text
                 dropped. One `Channel` (`deep_link_listen`) carries them, the link that started the app first. A link
                 only opens a page (`src/features/links/open.ts`): a task, the task list on a filter, a proposal's row
-                on Memory, a tool's sync; chat and message have no page yet and say so, with the reference to copy.
+                on Memory, a tool's sync, a day on Digests; chat and message have no page yet and say so, with the
+                reference to copy.
+  digests.rs    the Digests page: memo's morning digest runs, read from the files its schedule keeps
+                (`<memo state>/schedules/morning-digest/runs/`; memo has no command that lists a schedule's runs), one
+                day per date, its newest run: `<stamp>.report.json` (cli-core's checked `wirecat.report/1`) or, for an
+                older run, its `.md` text. Shown unmasked, an exception to rule 4 like memory.rs, never logged.
+                `digest_notify` shows a system notification (notify-rust: Tauri's plugin has no click on desktop); a click
+                (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls
+                `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and announces a run newer than
+                the last one it announced.
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```
 

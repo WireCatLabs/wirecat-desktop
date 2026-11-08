@@ -22,6 +22,7 @@ import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema }
 import type { BackupEvent } from "./backup-schemas"
 import type { NotesModelEvent } from "./bindings"
 import { commandError } from "./command-error"
+import { DigestDaySchema, DigestSchema } from "./digest-schemas"
 import { OpenedSchema } from "./link-schemas"
 import {
   ForgotSchema,
@@ -316,6 +317,9 @@ function createTauri(): Platform {
       }
       await invoke("deep_link_listen", { onLink: channel })
     },
+    digestList: () => call(v.array(DigestDaySchema), "digest_list"),
+    digestShow: (date) => call(DigestSchema, "digest_show", { date }),
+    digestNotify: (date, title, body, open) => invoke("digest_notify", { date, title, body, open }),
     openUrl: (url) => openUrl(url),
     window: async (action) => {
       const w = getCurrentWindow()
