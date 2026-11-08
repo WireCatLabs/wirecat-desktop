@@ -1,5 +1,5 @@
 import { Bot, LoaderCircle } from "lucide-react"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { type CatalogTool, findTool, isCommunity, isOwn, maker, ownerId } from "@/domain/catalog"
 import { listBlocksInstalls } from "@/domain/community-list"
 import { fitSeverity } from "@/domain/compat"
@@ -19,6 +19,7 @@ import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
+import { useListPlacement } from "@/ui/popup-list"
 import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
 import { activityOf } from "./connect-steps"
@@ -307,17 +308,30 @@ function Action(props: ActionProps) {
 
 function AddBotButton({ tool }: { tool: CatalogTool }) {
   const m = useMessages(botMessages)
+  const button = useRef<HTMLButtonElement>(null)
+  const tip = useRef<HTMLSpanElement>(null)
+  const [hover, setHover] = useState(false)
+  const [focus, setFocus] = useState(false)
+  // Fixed, not absolute: the Tools list clips its overflow.
+  const place = useListPlacement(hover || focus, button, tip)
   return (
     <button
+      ref={button}
       type="button"
       className="group/bot relative inline-flex size-9 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
       aria-label={`${m.addBot}: ${tool.name}`}
       onClick={() => useBotSignIn.getState().open(tool.id)}
+      onPointerEnter={() => setHover(true)}
+      onPointerLeave={() => setHover(false)}
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
     >
       <Bot className="size-[1.15rem]" aria-hidden />
       <span
+        ref={tip}
         aria-hidden
-        className="pointer-events-none absolute right-0 bottom-full z-20 mb-1 whitespace-nowrap rounded-[0.35rem] border border-line-strong bg-app-2 px-2 py-1 text-[0.85rem] font-normal text-ink opacity-0 shadow-lg transition-opacity duration-(--motion-fast) group-hover/bot:opacity-100 group-focus-visible/bot:opacity-100"
+        style={place}
+        className="pointer-events-none fixed z-50 whitespace-nowrap rounded-[0.35rem] border border-line-strong bg-app-2 px-2 py-1 text-[0.85rem] font-normal text-ink opacity-0 shadow-lg transition-opacity duration-(--motion-fast) group-hover/bot:opacity-100 group-focus-visible/bot:opacity-100"
       >
         {m.addBot}
       </span>

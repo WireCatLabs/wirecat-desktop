@@ -186,4 +186,20 @@ describe("finding the bot sign-in from elsewhere", () => {
     await userEvent.click(screen.getByRole("button", { name: "Add a bot: Telegram" }))
     expect(useBotSignIn.getState().tool).toBe("tg")
   })
+
+  it("places the Add a bot tip against the window, so the list's clipped edge cannot cut it", async () => {
+    useTools.setState({ installs: { tg: [{ path: "~/a/tg", version: "0.89.0", manager: "npm", problem: null }] } })
+    render(
+      <ul>
+        <ToolRow tool={tool("tg")} />
+      </ul>,
+    )
+    const button = screen.getByRole("button", { name: "Add a bot: Telegram" })
+    const tip = within(button).getByText("Add a bot")
+    expect(tip).toHaveClass("fixed")
+    await userEvent.hover(button)
+    expect(tip.style.top || tip.style.bottom).not.toBe("")
+    await userEvent.unhover(button)
+    expect(tip.style.opacity).toBe("0")
+  })
 })
