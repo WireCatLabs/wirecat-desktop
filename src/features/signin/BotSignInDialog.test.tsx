@@ -3,9 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import { useBotSignIn } from "@/shared/bot-signin-store"
-import { render, screen, within } from "@/testing/render"
+import { useSignIn } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
+import { act, render, screen, within } from "@/testing/render"
 import { BotList } from "../tools/BotList"
+import { ToolRow } from "../tools/ToolRow"
 import { BotSignInDialog } from "./BotSignInDialog"
+import { SignInDialog } from "./SignInDialog"
 
 const TOKEN = "12345:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsaw"
 
@@ -133,5 +137,36 @@ describe("the bot sign-in", () => {
       waba_id: "200000000000002",
     })
     expect(await within(dialog()).findByText("Bot Test Number is connected.")).toBeInTheDocument()
+  })
+})
+
+describe("finding the bot sign-in from elsewhere", () => {
+  it("offers a bot on the sign-in plan, and swaps to the bot dialog", async () => {
+    render(
+      <>
+        <SignInDialog />
+        <BotSignInDialog />
+      </>,
+    )
+    const user = userEvent.setup()
+    act(() => useSignIn.getState().start("tg", "personal"))
+    const plan = await screen.findByRole("dialog")
+    await user.click(within(plan).getByRole("button", { name: "Add a bot instead" }))
+    expect(await screen.findByRole("textbox", { name: "Bot name on this computer" })).toBeInTheDocument()
+    expect(useSignIn.getState().tool).toBeNull()
+  })
+
+  it("puts an Add a bot button on the Tools page row of an installed tool", async () => {
+    useTools.setState({ installs: { tg: [{ path: "~/a/tg", version: "0.89.0", manager: "npm", problem: null }] } })
+    render(
+      <>
+        <ul>
+          <ToolRow tool={tool("tg")} />
+        </ul>
+        <BotSignInDialog />
+      </>,
+    )
+    await userEvent.click(screen.getByRole("button", { name: "Add a bot: Telegram" }))
+    expect(useBotSignIn.getState().tool).toBe("tg")
   })
 })

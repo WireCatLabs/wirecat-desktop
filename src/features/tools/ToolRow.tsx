@@ -1,10 +1,12 @@
-import { LoaderCircle } from "lucide-react"
+import { Bot, LoaderCircle } from "lucide-react"
 import { useRef } from "react"
 import { type CatalogTool, findTool, isCommunity, isOwn, maker, ownerId } from "@/domain/catalog"
 import { listBlocksInstalls } from "@/domain/community-list"
 import { fitSeverity } from "@/domain/compat"
 import { type ToolStatus, toolStatus } from "@/domain/status"
 import { useMessages } from "@/i18n"
+import { useBotSignIn } from "@/shared/bot-signin-store"
+import { botMessages } from "@/shared/messages-bot"
 import { useSystem } from "@/shared/system-store"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
@@ -112,7 +114,7 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
     <li data-tour="tool" className="border-line border-b last:border-b-0">
       <div
         ref={header}
-        className="grid min-h-[4.5rem] grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_2.25rem_6.6rem_8.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_2.25rem_7.8rem_9.6rem] xl:gap-x-[1.2rem] px-[1.3rem]"
+        className="grid min-h-[4.5rem] grid-cols-[1.2rem_1.8rem_minmax(0,1fr)_4.5rem_6.6rem_8.6rem] items-center gap-x-[0.9rem] xl:grid-cols-[1.6rem_2.2rem_minmax(0,1fr)_4.5rem_7.8rem_9.6rem] xl:gap-x-[1.2rem] px-[1.3rem]"
       >
         <Lamp
           tone={severity ?? lampTone[status.kind]}
@@ -169,7 +171,10 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
             )}
           </Crossfade>
         </TextButton>
-        {sync ? <RowSyncButton entry={tool} info={sync} /> : <span />}
+        <div className="flex items-center justify-end">
+          {installed && tool.bot && <AddBotButton tool={tool} />}
+          {sync && <RowSyncButton entry={tool} info={sync} />}
+        </div>
         <Version status={status} installed={installs?.[0]?.version ?? null} m={m} />
         <div data-tour="tool-action" className="flex justify-end">
           {/* Install → Cancel → Manage: one button fades into the next, and keyboard focus moves with it. */}
@@ -280,5 +285,20 @@ function Action(props: ActionProps) {
       {status.kind === "broken" ? m.fix : m.manage}
       <ExpandChevron open={expanded} className="text-current opacity-70" />
     </Button>
+  )
+}
+
+function AddBotButton({ tool }: { tool: CatalogTool }) {
+  const m = useMessages(botMessages)
+  return (
+    <button
+      type="button"
+      className="inline-flex size-9 items-center justify-center rounded-[0.35rem] text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink"
+      aria-label={`${m.addBot}: ${tool.name}`}
+      title={m.addBot}
+      onClick={() => useBotSignIn.getState().open(tool.id)}
+    >
+      <Bot className="size-[1.15rem]" aria-hidden />
+    </button>
   )
 }

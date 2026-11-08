@@ -1,4 +1,4 @@
-import { LogIn, Terminal } from "lucide-react"
+import { Bot, LogIn, Terminal } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { type CatalogTool, signsInHere } from "@/domain/catalog"
 import { accountReady, afterSignIn, signInGroups, signsIn } from "@/domain/onboarding-flow"
@@ -6,6 +6,8 @@ import { ManualSetup, NewProfile, TerminalStatus, useProfiles, useTerminal } fro
 import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { useBotSignIn } from "@/shared/bot-signin-store"
+import { botMessages } from "@/shared/messages-bot"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
@@ -116,6 +118,7 @@ function SignInRow({
   const { profiles, error, loading, reload } = useProfiles(tool.id)
   const [adding, setAdding] = useState(false)
   const m = useMessages(onboardingMessages).signIn
+  const bm = useMessages(botMessages)
   const manual = !tool.setup
   const count = profiles?.length ?? 0
   const seen = useRef(count)
@@ -201,7 +204,7 @@ function SignInRow({
                 )}
               </>
             ) : profiles === undefined && !error ? null : (
-              <div>
+              <div className="flex flex-wrap items-center gap-x-2">
                 <Button
                   size="sm"
                   variant={count ? "ghost" : "primary"}
@@ -210,6 +213,16 @@ function SignInRow({
                 >
                   {count ? m.addAnother : m.add}
                 </Button>
+                {tool.bot && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    icon={<Bot className="size-4" aria-hidden />}
+                    onClick={() => useBotSignIn.getState().open(tool.id)}
+                  >
+                    {bm.addBot}
+                  </Button>
+                )}
               </div>
             )}
           </Crossfade>

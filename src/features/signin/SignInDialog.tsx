@@ -1,10 +1,12 @@
-import { Terminal } from "lucide-react"
+import { Bot, Terminal } from "lucide-react"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { keyringFallback } from "@/domain/signin-notes"
 import { telegramNote } from "@/domain/telegram-signin"
 import { useTerminal } from "@/features/tools"
 import { useMessages } from "@/i18n"
+import { useBotSignIn } from "@/shared/bot-signin-store"
+import { botMessages } from "@/shared/messages-bot"
 import { NEEDS_UPDATE, type Phase, receivingHistory, running, useSignIn } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
@@ -123,6 +125,7 @@ function Actions() {
   const m = useMessages(signinMessages)
   const pm = useMessages(planMessages)
   const wm = useMessages(wizardMessages)
+  const bm = useMessages(botMessages)
   const { stop, close, start, tool, profile, onFinish, phase, stopping, method } = s
   const entry = tool ? findTool(tool) : undefined
   // A provider is chosen in the plan itself, never switched to in the middle of a sign-in.
@@ -136,6 +139,18 @@ function Actions() {
               <SwitchLabel id={other.id} label={other.label} />
             </Button>
           ) : null,
+        )}
+        {entry?.bot && tool && (
+          <Button
+            variant="ghost"
+            icon={<Bot className="size-4" aria-hidden />}
+            onClick={() => {
+              close()
+              useBotSignIn.getState().open(tool)
+            }}
+          >
+            {bm.botInstead}
+          </Button>
         )}
         <Button variant="secondary" onClick={close}>
           {m.cancel}
