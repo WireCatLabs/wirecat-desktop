@@ -339,9 +339,28 @@ export type { Platform, WindowAction } from "./types"
 
 export let platform: Platform
 
+export type OpenFailure = { url: string; error: string }
+
+let openFailed: (failure: OpenFailure) => void = () => undefined
+
+/** The app shows a link that did not open, with its address to copy; `platform/` imports nothing above it. */
+export const onOpenUrlFailure = (show: (failure: OpenFailure) => void) => {
+  openFailed = show
+  return () => {
+    if (openFailed === show) openFailed = () => undefined
+  }
+}
+
+/** Every caller fires and forgets `openUrl`, so a failure is caught here once instead of vanishing at each call. */
+export const withOpenFailure = (p: Platform): Platform => ({
+  ...p,
+  openUrl: (url) =>
+    p.openUrl(url).catch((e: unknown) => openFailed({ url, error: e instanceof Error ? e.message : String(e) })),
+})
+
 /** Must settle before anything reads `platform`. The mock is a dynamic import so a Tauri build never carries it. */
 export async function initPlatform() {
-  if (inTauri) platform = createTauri()
-  else if (__WITH_MOCK__) platform = (await import("./mock")).createMock(detectOs())
+  if (inTauri) platform = withOpenFailure(createTauri())
+  else if (__WITH_MOCK__) platform = withOpenFailure((await import("./mock")).createMock(detectOs()))
   else throw new Error("The browser mock is not part of this build")
 }

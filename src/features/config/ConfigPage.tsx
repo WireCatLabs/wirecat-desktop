@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { AppPreferences, settingsMessages } from "@/features/settings"
 import { useMessages } from "@/i18n"
+import { useNav } from "@/shared/nav"
 import { ReportThis } from "@/shared/ReportThis"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
@@ -56,6 +57,7 @@ export function ConfigPage() {
   const candidates = sharedCandidates(installs, latest)
 
   const detected = Object.keys(installs).length > 0
+  const noneInstalled = detected && configurable.every((t) => (installs[t.id]?.length ?? 0) === 0)
   useEffect(() => {
     if (!detected) return
     const { installs: all, latest: newest } = useTools.getState()
@@ -112,7 +114,7 @@ export function ConfigPage() {
                 key={t.id}
                 group="tool"
                 checked={!shared && st.tool === t.id}
-                unavailable={missing ? m.notInstalled(t.name) : undefined}
+                unavailable={missing ? m.notInstalled : undefined}
                 onUnavailable={setWhy}
                 onSelect={() => request({ kind: "tool", id: t.id })}
               >
@@ -122,7 +124,15 @@ export function ConfigPage() {
             )
           })}
         </Choices>
-        <Collapse open={why !== null}>
+        <Collapse open={noneInstalled}>
+          <p className="flex flex-wrap items-center gap-3 text-[0.95rem] text-ink-soft">
+            {m.noneInstalled}
+            <Button variant="secondary" size="sm" onClick={() => useNav.getState().go("tools")}>
+              {m.openTools}
+            </Button>
+          </p>
+        </Collapse>
+        <Collapse open={why !== null && !noneInstalled}>
           <ErrorNotice inline>{why}</ErrorNotice>
         </Collapse>
 

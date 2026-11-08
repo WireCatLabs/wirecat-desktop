@@ -36,6 +36,13 @@ const en = {
   appBrokeText: "The window hit an error it could not recover from. Reload to try again.",
   reload: "Reload",
   hideNotice: "Hide this notice",
+  linkFailed: {
+    title: "The link did not open",
+    body: "WireCat asked this computer to open the link, and it could not. Copy the address into your browser.",
+    copy: "Copy the address",
+    reason: (error: string) => `The system said: ${error}`,
+    close: "Close",
+  },
 }
 
 const ru: typeof en = {
@@ -75,6 +82,13 @@ const ru: typeof en = {
     "В окне произошла ошибка, после которой оно не может продолжить работу. Перезагрузите, чтобы попробовать снова.",
   reload: "Перезагрузить",
   hideNotice: "Скрыть это уведомление",
+  linkFailed: {
+    title: "Ссылка не открылась",
+    body: "WireCat попросил компьютер открыть ссылку, и это не получилось. Скопируйте адрес в браузер.",
+    copy: "Скопировать адрес",
+    reason: (error) => `Система ответила: ${error}`,
+    close: "Закрыть",
+  },
 }
 
 const es: typeof en = {
@@ -113,6 +127,13 @@ const es: typeof en = {
   appBrokeText: "La ventana ha tenido un error del que no se puede recuperar. Recarga para volver a intentarlo.",
   reload: "Recargar",
   hideNotice: "Ocultar este aviso",
+  linkFailed: {
+    title: "El enlace no se abrió",
+    body: "WireCat pidió a este ordenador que abriera el enlace y no pudo. Copia la dirección en tu navegador.",
+    copy: "Copiar la dirección",
+    reason: (error) => `El sistema dijo: ${error}`,
+    close: "Cerrar",
+  },
 }
 
 export const appMessages: Messages<typeof en> = { en, ru, es }

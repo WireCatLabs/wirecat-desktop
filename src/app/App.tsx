@@ -24,6 +24,7 @@ import { useFinishBoot } from "./boot"
 import { CrashScenario } from "./CrashScenario"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { useSectionHistory, useSectionSwitch } from "./history"
+import { LinkFailure } from "./LinkFailure"
 import { appMessages } from "./messages"
 import { PageSkeleton } from "./PageSkeleton"
 import { Sidebar } from "./Sidebar"
@@ -121,6 +122,7 @@ function Shell() {
           )}
         </TopBar>
         <TopNotices />
+        <LinkFailure />
         {onboarding ? (
           <ErrorBoundary scope="page">
             <Onboarding onExit={toHome} onTour={() => useTour.getState().start("setup")} />

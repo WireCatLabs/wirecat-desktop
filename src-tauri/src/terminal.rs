@@ -144,25 +144,7 @@ fn terminal_app_script(shell: Option<&Path>, line: &str, syntax: Syntax) -> Stri
 fn launch(shell: Option<&Path>, line: &str, syntax: Syntax) -> std::io::Result<()> {
     let argv = shell_argv(shell.unwrap_or(Path::new("/bin/sh")), line, syntax);
     let path = paths::search_path();
-    let mut candidates: Vec<(String, Vec<&str>)> = Vec::new();
-    if let Ok(t) = std::env::var("TERMINAL") {
-        candidates.push((t, vec!["-e"]));
-    }
-    for (term, flag) in [
-        ("x-terminal-emulator", vec!["-e"]),
-        ("gnome-terminal", vec!["--"]),
-        ("ptyxis", vec!["--"]),
-        ("konsole", vec!["-e"]),
-        ("xfce4-terminal", vec!["-x"]),
-        ("kitty", vec![]),
-        ("alacritty", vec!["-e"]),
-        ("wezterm", vec!["start", "--"]),
-        ("foot", vec![]),
-        ("xterm", vec!["-e"]),
-    ] {
-        candidates.push((term.to_string(), flag));
-    }
-    for (term, flag) in candidates {
+    for (term, flag) in terminals(std::env::var("TERMINAL").ok()) {
         let Some(exe) = paths::find(&term) else { continue };
         let spawned = Command::new(exe)
             .args(flag)
@@ -181,6 +163,31 @@ fn launch(shell: Option<&Path>, line: &str, syntax: Syntax) -> std::io::Result<(
         }
     }
     Err(std::io::Error::other("no terminal found"))
+}
+
+/// The owner's own choice first: `$TERMINAL`, then `xdg-terminal-exec`, the freedesktop default-terminal launcher
+/// that GNOME's own default-terminal setting points to on Ubuntu, then Debian's `x-terminal-emulator`, which is the
+/// system's pick, not the owner's; then the terminals people install most.
+#[cfg(any(target_os = "linux", test))]
+fn terminals(own: Option<String>) -> Vec<(String, Vec<&'static str>)> {
+    let known = [
+        ("xdg-terminal-exec", vec!["--"]),
+        ("x-terminal-emulator", vec!["-e"]),
+        ("gnome-terminal", vec!["--"]),
+        ("ptyxis", vec!["--"]),
+        ("konsole", vec!["-e"]),
+        ("xfce4-terminal", vec!["-x"]),
+        ("kitty", vec![]),
+        ("alacritty", vec!["-e"]),
+        ("wezterm", vec!["start", "--"]),
+        ("foot", vec![]),
+        ("xterm", vec!["-e"]),
+    ];
+    own.filter(|t| !t.trim().is_empty())
+        .map(|t| (t, vec!["-e"]))
+        .into_iter()
+        .chain(known.into_iter().map(|(t, f)| (t.to_string(), f)))
+        .collect()
 }
 
 #[cfg(target_os = "linux")]
@@ -341,6 +348,17 @@ mod tests {
             shell_argv(Path::new("/usr/bin/nu"), "'/b/tg' setup", Syntax::Posix),
             words(&["/bin/sh", "-c", "'/b/tg' setup; exec '/usr/bin/nu'"])
         );
+    }
+
+    #[test]
+    fn the_owners_terminal_comes_before_the_systems_pick() {
+        let names = |own: Option<&str>| -> Vec<String> {
+            terminals(own.map(String::from)).into_iter().take(3).map(|(t, _)| t).collect()
+        };
+        assert_eq!(names(Some("kitty")), ["kitty", "xdg-terminal-exec", "x-terminal-emulator"]);
+        assert_eq!(names(None), ["xdg-terminal-exec", "x-terminal-emulator", "gnome-terminal"]);
+        assert_eq!(names(Some(" ")), ["xdg-terminal-exec", "x-terminal-emulator", "gnome-terminal"]);
+        assert_eq!(terminals(None)[0].1, ["--"]);
     }
 
     #[cfg(unix)]

@@ -1,0 +1,312 @@
+#!/usr/bin/env bash
+# Starts the debug build in a named sandbox: its own home, app data, Node.js, npm prefix, store and settings, and no
+# keyring. Your own tools, settings, data, agents and sign-ins are not read and not changed.
+# Guide: docs/dev/guides/sandbox.md
+#
+#   bin/sandbox <name> [--reset] [--seed fresh|tools|demo] [--from-store <path>]   start the app
+#   bin/sandbox <name> --exec <command> [args...]                                 run a command inside it
+#   bin/sandbox <name> --seed tools --no-start                                    prepare it without a window
+#   bin/sandbox --list                                                            list the sandboxes
+#
+# Needs the debug build for a window: pnpm tauri build --debug --no-bundle
+set -euo pipefail
+
+root=$(cd "$(dirname "$0")/.." && pwd)
+app="$root/src-tauri/target/debug/wirecat-desktop"
+base="${XDG_CACHE_HOME:-$HOME/.cache}/wirecat-sandbox"
+
+die() {
+  echo "sandbox: $*" >&2
+  exit 1
+}
+
+usage() {
+  sed -n '5,10p' "$0" | sed 's/^# \{0,1\}//' >&2
+  exit 2
+}
+
+if [ -n "${WIRECAT_SANDBOX:-}" ]; then
+  die "already inside sandbox '$WIRECAT_SANDBOX'; run this from your own shell"
+fi
+
+if [ "${1:-}" = "--list" ]; then
+  [ -d "$base" ] || exit 0
+  for d in "$base"/*/; do
+    [ -d "$d" ] || continue
+    printf '%-20s %s\n' "$(basename "$d")" "$(cat "$d/seed" 2>/dev/null || echo fresh)"
+  done
+  exit 0
+fi
+
+name="${1:-}"
+[ -n "$name" ] || usage
+shift
+# The name becomes a folder that --reset deletes, so it may not climb out of the sandbox folder.
+[[ "$name" =~ ^[a-z0-9][a-z0-9-]{0,39}$ ]] || die "a sandbox name is lowercase letters, digits and dashes: '$name'"
+
+reset=false
+seed=""
+from_store=""
+start=true
+exec_cmd=()
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --reset) reset=true ;;
+    --seed)
+      seed="${2:-}"
+      shift
+      ;;
+    --from-store)
+      from_store="${2:-}"
+      shift
+      ;;
+    --no-start) start=false ;;
+    --exec)
+      shift
+      exec_cmd=("$@")
+      break
+      ;;
+    -h | --help) usage ;;
+    *) die "unknown option: $1" ;;
+  esac
+  shift
+done
+case "$seed" in
+  "" | fresh | tools | demo) ;;
+  *) die "--seed is fresh, tools or demo, not '$seed'" ;;
+esac
+
+dir="$base/$name"
+home="$dir/home"
+if [ "$reset" = true ] && [ -d "$dir" ]; then
+  rm -rf -- "$dir"
+fi
+mkdir -p "$home" "$dir/bin"
+chmod 700 "$dir"
+
+had=$(cat "$dir/seed" 2>/dev/null || true)
+if [ -n "$seed" ] && [ -n "$had" ] && [ "$seed" != "$had" ]; then
+  die "'$name' was seeded with '$had'; add --reset to seed it with '$seed'"
+fi
+
+real_home="$HOME"
+real_dbus="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bus}"
+real_data_dirs="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+real_path="$PATH"
+login_shell=$(getent passwd "$(id -u)" | cut -d: -f7)
+login_shell="${login_shell:-/bin/sh}"
+
+# The wrappers hand a link or a terminal window to your own desktop session (your browser, your terminal with your
+# profile), which needs your real home and session bus. What runs inside the terminal still gets the sandbox's env.
+host_env() {
+  printf 'host=(env -i HOME=%q USER=%q LOGNAME=%q PATH=%q DBUS_SESSION_BUS_ADDRESS=%q XDG_DATA_DIRS=%q)\n' \
+    "$real_home" "$USER" "${LOGNAME:-$USER}" "$real_path" "$real_dbus" "$real_data_dirs"
+  printf '%s\n' 'for v in DISPLAY WAYLAND_DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_SESSION_TYPE XDG_CURRENT_DESKTOP LANG; do'
+  printf '%s\n' '  if [ -n "${!v:-}" ]; then host+=("$v=${!v}"); fi'
+  printf '%s\n' 'done'
+}
+
+{
+  echo '#!/usr/bin/env bash'
+  echo '# Written by bin/sandbox: opens links and files in your own browser and file manager.'
+  echo 'set -euo pipefail'
+  host_env
+  echo 'exec "${host[@]}" /usr/bin/xdg-open "$@"'
+} > "$dir/bin/xdg-open"
+
+{
+  echo '#!/usr/bin/env bash'
+  echo '# Written by bin/sandbox: WireCat calls $TERMINAL -e <command>. The window is your default terminal'
+  echo '# (xdg-terminal-exec); the command inside it runs with the sandbox env, keyring still off.'
+  echo 'set -euo pipefail'
+  echo 'if [ "${1:-}" = "-e" ]; then shift; fi'
+  echo 'inner=()'
+  echo "while IFS= read -r -d '' kv; do inner+=(\"\$kv\"); done < <(env -0)"
+  host_env
+  echo 'exec "${host[@]}" xdg-terminal-exec -- env -i "${inner[@]}" "$@"'
+} > "$dir/bin/terminal"
+chmod 700 "$dir/bin/xdg-open" "$dir/bin/terminal"
+
+node_dir() {
+  ls -d "$home/.local/share/dev.wirecat.desktop/node"/v*/ 2>/dev/null | sort -V | tail -1 | sed 's:/$::'
+}
+
+sandbox_path() {
+  local p="$dir/bin:$home/.local/bin:/usr/local/bin:/usr/bin:/bin"
+  local node
+  node=$(node_dir)
+  if [ -n "$node" ]; then p="$node/bin:$p"; fi
+  printf '%s' "$p"
+}
+
+envs() {
+  local pass=()
+  for var in DISPLAY WAYLAND_DISPLAY XAUTHORITY XDG_RUNTIME_DIR XDG_SESSION_TYPE XDG_CURRENT_DESKTOP LANG \
+    WEBKIT_DISABLE_DMABUF_RENDERER WEBKIT_DISABLE_COMPOSITING_MODE GDK_BACKEND; do
+    if [ -n "${!var:-}" ]; then pass+=("$var=${!var}"); fi
+  done
+  # DBUS_SESSION_BUS_ADDRESS=disabled: keeps the keyring out of reach. Unsetting it is not enough: D-Bus then falls
+  # back to $XDG_RUNTIME_DIR/bus, which the window needs, and reaches the keyring anyway.
+  sandbox_env=(
+    "${pass[@]}"
+    WIRECAT_SANDBOX="$name"
+    HOME="$home" USER="$USER" LOGNAME="${LOGNAME:-$USER}" SHELL="$login_shell"
+    XDG_CONFIG_HOME="$home/.config" XDG_DATA_HOME="$home/.local/share" XDG_CACHE_HOME="$home/.cache"
+    XDG_STATE_HOME="$home/.local/state"
+    MESSAGING_STORE="$home/.local/share/WireCat/wirecat.db"
+    PATH="$(sandbox_path)"
+    TERMINAL="$dir/bin/terminal"
+    DBUS_SESSION_BUS_ADDRESS=disabled:
+  )
+}
+
+in_sandbox() {
+  envs
+  env -i "${sandbox_env[@]}" "$@"
+}
+
+install_node() {
+  [ -n "$(node_dir)" ] && return 0
+  local arch
+  case "$(uname -m)" in
+    x86_64) arch=x64 ;;
+    aarch64 | arm64) arch=arm64 ;;
+    *) die "no Node.js build for $(uname -m)" ;;
+  esac
+  local cache="$base/.downloads"
+  mkdir -p "$cache"
+  local version
+  version=$(curl -fsSL https://nodejs.org/dist/index.json |
+    python3 -I -c 'import json,sys; print(next(r["version"] for r in json.load(sys.stdin) if r["lts"]))')
+  local file="node-$version-linux-$arch.tar.xz"
+  if [ ! -f "$cache/$file" ]; then
+    echo "Downloading Node.js $version"
+    curl -fsSL -o "$cache/$file.part" "https://nodejs.org/dist/$version/$file"
+    curl -fsSL "https://nodejs.org/dist/$version/SHASUMS256.txt" | grep " $file\$" |
+      sed "s| $file\$| $cache/$file.part|" | sha256sum -c --quiet - || die "Node.js download failed its checksum"
+    mv "$cache/$file.part" "$cache/$file"
+  fi
+  # Where WireCat keeps the Node.js it sets up itself, so the app sees it as its own.
+  local target="$home/.local/share/dev.wirecat.desktop/node"
+  mkdir -p "$target/.unpack"
+  tar -xJf "$cache/$file" -C "$target/.unpack"
+  mv "$target/.unpack/node-$version-linux-$arch" "$target/$version"
+  rmdir "$target/.unpack"
+}
+
+catalog_packages() {
+  python3 -I -c '
+import json, sys
+for t in json.load(open(sys.argv[1]))["tools"]:
+    if not t.get("helper"):
+        print(t["id"], t["package"], t["bin"])
+' "$root/catalog/tools.json"
+}
+
+seed_tools() {
+  install_node
+  local packages=()
+  while read -r _ pkg _; do packages+=("$pkg"); done < <(catalog_packages)
+  echo "Installing ${packages[*]}"
+  in_sandbox npm install --global --no-fund --no-audit --loglevel=error "${packages[@]}"
+  local prefix
+  prefix=$(in_sandbox npm prefix --global)
+  case "$prefix" in
+    "$dir"/*) ;;
+    *) die "npm installs into $prefix, outside the sandbox" ;;
+  esac
+  seed_profiles
+}
+
+# Profiles personal and work, made with each tool's own `config set`, so Settings and the tool pages list them.
+# Drive makes a profile only at sign-in; Zoom and Memo have none to make.
+seed_profiles() {
+  local bin profile
+  for bin in tg max wa mail gcal; do
+    for profile in personal work; do
+      in_sandbox "$bin" "$profile" config set limit 20 --json > /dev/null 2>&1 ||
+        echo "  $bin: could not make profile $profile" >&2
+    done
+  done
+  echo "Profiles personal and work for tg, max, wa, mail and gcal"
+}
+
+# Synthetic people, a project with tasks and a folder of notes, through memo's own commands. Every name is made up.
+# Messages cannot be seeded: no tool takes messages from a file yet.
+seed_demo() {
+  seed_tools
+  local notes="$home/Notes"
+  mkdir -p "$notes"
+  cat > "$notes/harbour-kickoff.md" <<'MD'
+# Harbour kickoff
+
+With Lena Example and Marco Sample. Harbour wants the booking page live before the spring season.
+
+- Lena sends the room photos by Friday.
+- Marco checks the payment provider's test keys.
+- Next call on Tuesday.
+MD
+  cat > "$notes/reading-list.md" <<'MD'
+# Reading list
+
+- A book about small teams that Marco Sample recommended.
+- The SQLite WAL documentation, for the backup question.
+MD
+  cat > "$notes/ideas.md" <<'MD'
+# Ideas
+
+A weekly digest of open tasks for Harbour, sent on Monday morning. Ask Lena Example whether Monday suits her team.
+MD
+  in_sandbox memo people add Lena Example > /dev/null
+  in_sandbox memo people add Marco Sample > /dev/null
+  in_sandbox memo projects add Harbour --key HRB --type client > /dev/null
+  in_sandbox memo tasks add --project HRB --title "Send the booking page draft to Lena" --priority high > /dev/null
+  in_sandbox memo tasks add --project HRB --title "Check the payment provider's test keys" --status in_progress > /dev/null
+  in_sandbox memo tasks add --project HRB --title "Plan the weekly digest" > /dev/null
+  in_sandbox memo folders add "$notes" > /dev/null
+  in_sandbox memo sync --only notes --no-embed > /dev/null
+  echo "Demo data: 2 people, project Harbour with 3 tasks, 3 notes in $notes"
+}
+
+copy_store() {
+  local src="$1"
+  [ -f "$src" ] || die "no store at $src"
+  local dst="$home/.local/share/WireCat/wirecat.db"
+  [ -e "$dst" ] && die "the sandbox already has a store; add --reset to replace it with a copy"
+  mkdir -p "$(dirname "$dst")"
+  # The store is live SQLite in WAL mode, often open in a background sync: the backup API copies a consistent
+  # snapshot, where cp could copy half a write. The source is opened read-only.
+  python3 -I - "$src" "$dst" <<'PY'
+import sqlite3, sys
+src = sqlite3.connect(f"file:{sys.argv[1]}?mode=ro", uri=True)
+dst = sqlite3.connect(sys.argv[2])
+src.backup(dst)
+dst.close()
+src.close()
+PY
+  chmod 600 "$dst"
+  echo "Copied the store from $src (a copy: the sandbox never writes the original)"
+}
+
+if [ -n "$seed" ] && [ -z "$had" ]; then
+  case "$seed" in
+    fresh) ;;
+    tools) seed_tools ;;
+    demo) seed_demo ;;
+  esac
+  echo "$seed" > "$dir/seed"
+elif [ -z "$had" ]; then
+  echo fresh > "$dir/seed"
+fi
+if [ -n "$from_store" ]; then copy_store "$from_store"; fi
+
+if [ ${#exec_cmd[@]} -gt 0 ]; then
+  envs
+  exec env -i "${sandbox_env[@]}" "${exec_cmd[@]}"
+fi
+[ "$start" = true ] || exit 0
+
+[ -x "$app" ] || die "no build yet. Run: pnpm tauri build --debug --no-bundle"
+echo "Sandbox '$name' ($(cat "$dir/seed")): $dir"
+envs
+exec env -i "${sandbox_env[@]}" "$app"
