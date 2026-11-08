@@ -47,17 +47,13 @@ const card = (ref: string, pipeline: string, stage: string, baseStage: string | 
 const read = { base, mapping }
 
 describe("the base board's columns", () => {
-  it("puts a card under its stage's confirmed base stage, and the unmapped and unconfirmed in Unsorted first", () => {
-    const columns = baseColumnsOf(
-      base,
-      [
-        card("deal:1", "pipeline:7", "Invoice sent", "stage:3"),
-        card("deal:2", "pipeline:7", "Waiting for payment"),
-        card("deal:3", "pipeline:3", "Intro", "stage:1"),
-        card("deal:4", "pipeline:20", "Proposal", "stage:3"),
-      ],
-      mapping,
-    )
+  it("puts a card under the base stage memo names for it, and one with none (unmapped or unconfirmed) in Unsorted first", () => {
+    const columns = baseColumnsOf(base, [
+      card("deal:1", "pipeline:7", "Invoice sent", "stage:3"),
+      card("deal:2", "pipeline:7", "Waiting for payment"),
+      card("deal:3", "pipeline:3", "Intro"),
+      card("deal:4", "pipeline:20", "Proposal", "stage:3"),
+    ])
     expect([...columns.keys()][0]).toBe(UNSORTED)
     expect(columns.get(UNSORTED)).toEqual(["deal:2", "deal:3"])
     expect(columns.get("stage:3")).toEqual(["deal:1", "deal:4"])

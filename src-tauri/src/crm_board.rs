@@ -18,7 +18,6 @@ use crate::task_board::{self, Unusable, with_query, words};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
-use std::collections::HashSet;
 use std::time::Duration;
 
 const LIMIT: &str = "500";
@@ -95,19 +94,29 @@ pub struct CrmBaseRef {
     pub name: String,
 }
 
-/// One column of the base set, with memo's count and sums across every pipeline and account.
+/// One column of the base set; memo counts across every pipeline and account, confirmed mappings only.
 #[derive(Serialize, Type, Debug, PartialEq)]
 pub struct CrmBaseStage {
+    /// `stage:<id>`, or the stage's name while the set does not exist yet (memo takes either in a write).
     #[serde(rename = "ref")]
     pub reference: String,
     pub name: String,
     /// `open`, `won` or `lost`.
     pub outcome: String,
-    pub items: u32,
-    pub amounts: Vec<CrmAmount>,
+    /// Open deals or leads standing in it.
+    pub open: u32,
+    /// CRM stages confirmed onto it.
+    pub mapped: u32,
 }
 
-/// A pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion.
+/// What no column holds yet: open rows whose stage is unmapped or only suggested, and those stages.
+#[derive(Serialize, Type, Debug, PartialEq)]
+pub struct CrmUnsorted {
+    pub open: u32,
+    pub stages: u32,
+}
+
+/// A CRM pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion.
 #[derive(Serialize, Type, Debug, PartialEq)]
 pub struct CrmStageMap {
     #[serde(rename = "ref")]
@@ -115,8 +124,8 @@ pub struct CrmStageMap {
     pub name: String,
     pub outcome: String,
     pub pipeline: String,
-    /// Deals or leads standing in it now.
-    pub items: u32,
+    /// Open deals or leads standing in it now.
+    pub open: u32,
     pub base: Option<CrmBaseRef>,
     pub confirmed: bool,
 }
@@ -172,7 +181,7 @@ pub struct CrmCard {
     pub closed_reason: Option<String>,
     pub project_name: Option<String>,
     pub account: Option<CrmAccount>,
-    /// The base stage its stage points to; `None` on a board of one pipeline's stages or while unmapped.
+    /// The base stage its stage points to once confirmed; `None` on a board of one pipeline's stages, or unsorted.
     pub base_stage: Option<CrmBaseRef>,
     pub created_at: String,
     pub updated_at: String,
@@ -208,11 +217,12 @@ pub enum CrmRead {
         more: bool,
         movable: CrmMovable,
     },
-    /// Base stages as columns, cards of every pipeline of the kind; `mapping` is every other pipeline's stages.
+    /// Base stages as columns, cards of every pipeline of the kind; `mapping` is every CRM pipeline's stages.
     #[serde(rename_all = "camelCase")]
     Base {
         pipelines: Vec<CrmPipeline>,
         base: Vec<CrmBaseStage>,
+        unsorted: CrmUnsorted,
         mapping: Vec<CrmStageMap>,
         cards: Vec<CrmCard>,
         more: bool,
@@ -362,14 +372,10 @@ fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead,
 
 fn read_base_with(call: &Call, kind: CrmKind) -> Result<CrmRead, Failure> {
     let pipelines = pipelines_with(call, kind)?;
-    let base = base::columns(&call(&base::columns_args(kind))?);
-    let ours: HashSet<&str> = pipelines.iter().map(|p| p.reference.as_str()).collect();
-    let mapping = base::mapping(&call(&base::mapping_args())?)
-        .into_iter()
-        .filter(|m| ours.contains(m.pipeline.as_str()))
-        .collect();
+    let (base, unsorted) = base::columns(&call(&base::show_args(kind))?);
+    let mapping = base::mapping(&call(&base::mapping_args(kind))?);
     let (cards, more) = cards_with(call, kind, "")?;
-    Ok(CrmRead::Base { pipelines, base, mapping, cards, more })
+    Ok(CrmRead::Base { pipelines, base, unsorted, mapping, cards, more })
 }
 
 enum Mode {
@@ -407,6 +413,10 @@ pub fn read(kind: CrmKind, pipeline: Option<&str>) -> Result<CrmRead, String> {
 fn move_with(call: &Call, kind: CrmKind, reference: &str, stage: &str) -> Result<CrmCard, Failure> {
     validate_card(kind, reference).map_err(invalid)?;
     validate_stage(stage).map_err(invalid)?;
+    // memo reads `stage:<id>` as a base stage and may answer `stage.choice-required`; the page names the stage itself.
+    if base::validate_stage_ref(stage).is_ok() {
+        return Err(invalid(format!("a move names the card's own stage, not {stage}")));
+    }
     let moved = call(&words(&[kind.plural(), "move", reference, stage]))?;
     card(body(&moved)).ok_or_else(|| invalid(format!("memo did not answer the moved {}", kind.noun())))
 }
@@ -419,7 +429,7 @@ pub fn move_card(kind: CrmKind, reference: &str, stage: &str) -> Result<CrmCard,
 
 fn map_with(call: &Call, stage: &str, to: &str) -> Result<(), Failure> {
     base::validate_stage_ref(stage).map_err(invalid)?;
-    base::validate_stage_ref(to).map_err(invalid)?;
+    base::validate_base(to).map_err(invalid)?;
     call(&base::set_args(stage, to)).map(drop)
 }
 
@@ -428,19 +438,16 @@ pub fn map_stage(stage: &str, to: &str) -> Result<(), String> {
     with_memo(WRITE, |call| map_with(call, stage, to))
 }
 
-fn confirm_with(call: &Call, pipelines: &[String]) -> Result<(), Failure> {
-    for p in pipelines {
+/// Confirms one pipeline's suggestions, or, with none named, every suggestion of the kind.
+fn confirm_with(call: &Call, kind: CrmKind, pipeline: Option<&str>) -> Result<(), Failure> {
+    if let Some(p) = pipeline {
         validate_pipeline(p).map_err(invalid)?;
     }
-    // One call per pipeline: memo's `--all` spans both kinds, and the page confirms only the kind it shows.
-    for p in pipelines {
-        call(&base::confirm_args(p))?;
-    }
-    Ok(())
+    call(&base::confirm_args(kind, pipeline)).map(drop)
 }
 
-pub fn confirm(pipelines: &[String]) -> Result<(), String> {
-    with_memo(WRITE, |call| confirm_with(call, pipelines))
+pub fn confirm(kind: CrmKind, pipeline: Option<&str>) -> Result<(), String> {
+    with_memo(WRITE, |call| confirm_with(call, kind, pipeline))
 }
 
 fn edit_with(call: &Call, kind: CrmKind, edit: &CrmBaseEdit) -> Result<(), Failure> {
@@ -452,18 +459,16 @@ fn edit_with(call: &Call, kind: CrmKind, edit: &CrmBaseEdit) -> Result<(), Failu
         ),
         CrmBaseEdit::Rename { reference, name } => base::rename_args(
             kind,
-            base::validate_stage_ref(reference).map_err(invalid)?,
+            base::validate_base(reference).map_err(invalid)?,
             validate_stage(name).map_err(invalid)?,
         ),
         CrmBaseEdit::Move { reference, position } => {
             if *position == 0 {
                 return Err(invalid("a position counts from 1".into()));
             }
-            base::move_args(kind, base::validate_stage_ref(reference).map_err(invalid)?, &position.to_string())
+            base::move_args(kind, base::validate_base(reference).map_err(invalid)?, &position.to_string())
         }
-        CrmBaseEdit::Remove { reference } => {
-            base::remove_args(kind, base::validate_stage_ref(reference).map_err(invalid)?)
-        }
+        CrmBaseEdit::Remove { reference } => base::remove_args(kind, base::validate_base(reference).map_err(invalid)?),
     };
     call(&args).map(drop)
 }
@@ -586,26 +591,31 @@ mod tests {
         assert_eq!(seen.lock().unwrap()[0], ["deals", "move", "deal:2", "Quote", "--json", "--no-record"]);
     }
 
-    // The design's shapes (TASK-947); cli-core's are not released yet, so these follow base-stages.md.
+    // The shapes of cli-core #2720 (store version 60), as its `stages` commands and `deals list` answer them.
     fn based(args: &[String]) -> Value {
-        match (args[0].as_str(), args[1].as_str(), args[2].as_str()) {
-            ("pipelines", "list", "--base") => json!({"items":[
-                {"ref":"stage:1","name":"New","outcome":"open","position":1,"items":2,"amounts":[]},
-                {"ref":"stage:3","name":"Proposal","outcome":"open","position":3,"items":1,
-                 "amounts":[{"amount":"500000.00","currency":"RUB","items":1}]}]}),
-            ("stages", "map", "list") => json!({"items":[
-                {"ref":"stage:41","name":"Invoice sent","outcome":"open","pipeline":"pipeline:7","items":3,
-                 "base_stage":{"ref":"stage:3","name":"Proposal"},"base_confirmed":true},
-                {"ref":"stage:42","name":"Unknown","outcome":"open","pipeline":"pipeline:7","base_stage":null,
-                 "base_confirmed":false},
-                {"ref":"stage:90","name":"Good lead","outcome":"won","pipeline":"pipeline:8",
-                 "base_stage":{"ref":"stage:20","name":"Converted"},"base_confirmed":true}]}),
-            ("deals", "list", _) => {
+        match (args[0].as_str(), args[1].as_str()) {
+            ("stages", "show") => json!({"item":{"kind":"deal","pipeline":"pipeline:2","stages":[
+                {"ref":"stage:1","name":"Call","position":1,"outcome":"open","open":2,"mapped":1},
+                {"ref":"stage:3","name":"Quote","position":2,"outcome":"open","open":1,"mapped":2}],
+                "unsorted":{"open":1,"stages":1}}}),
+            ("stages", "list") => json!({"items":[
+                {"ref":"stage:41","name":"Invoice sent","position":3,"outcome":"open","kind":"deal",
+                 "pipeline":"pipeline:7","pipeline_name":"Northstar sales",
+                 "account":{"provider":"bitrix24","account":"northstar.example"},
+                 "base_stage":{"ref":"stage:3","name":"Quote"},"confirmed":true,"open":3,
+                 "untrusted":["name","pipeline_name"]},
+                {"ref":"stage:42","name":"Waiting for payment","position":4,"outcome":"open","kind":"deal",
+                 "pipeline":"pipeline:7","pipeline_name":"Northstar sales",
+                 "account":{"provider":"bitrix24","account":"northstar.example"},"base_stage":null,
+                 "confirmed":false,"open":1,"untrusted":["name","pipeline_name"]}],
+                "page":{"limit":2,"page":1,"has_more":false}}),
+            ("deals", "list") => {
                 let mut d = deal();
-                d["base_stage"] = json!({"ref":"stage:3","name":"Proposal"});
+                d["base_stage"] = json!({"ref":"stage:3","name":"Quote"});
                 json!({"items":[d],"page":{"has_more":false}})
             }
-            ("pipelines", "list", _) => pipelines(),
+            ("pipelines", "list") => pipelines(),
+            ("stages", "confirm") => json!({"item":{"confirmed":2}}),
             _ => json!({"item":{}}),
         }
     }
@@ -621,28 +631,53 @@ mod tests {
             CrmKind::Deal,
         )
         .unwrap();
-        let CrmRead::Base { pipelines, base, mapping, cards, more } = read else { panic!("not a base read") };
+        let CrmRead::Base { pipelines, base, unsorted, mapping, cards, more } = read else { panic!("not a base read") };
         assert_eq!(pipelines[1].movable, CrmMovable::No { why: "crmCli".into() });
-        assert_eq!(base[1].amounts[0].currency, "RUB");
+        assert_eq!((base[1].open, base[1].mapped), (1, 2));
+        assert_eq!(unsorted, CrmUnsorted { open: 1, stages: 1 });
         assert_eq!(mapping.iter().map(|m| m.reference.as_str()).collect::<Vec<_>>(), ["stage:41", "stage:42"]);
-        assert!(mapping[0].confirmed && mapping[1].base.is_none());
-        assert_eq!(cards[0].base_stage, Some(CrmBaseRef { reference: "stage:3".into(), name: "Proposal".into() }));
+        assert!(mapping[0].confirmed && mapping[0].open == 3 && mapping[1].base.is_none());
+        assert_eq!(cards[0].base_stage, Some(CrmBaseRef { reference: "stage:3".into(), name: "Quote".into() }));
         assert!(!more);
         let seen = seen.lock().unwrap();
-        assert_eq!(seen[1], ["pipelines", "list", "--base", "--json", "--no-record", "--", "kind:deal"]);
-        assert_eq!(seen[2], ["stages", "map", "list", "--json", "--no-record"]);
+        assert_eq!(seen[1], ["stages", "show", "deal", "--json", "--no-record"]);
+        assert_eq!(seen[2], ["stages", "list", "--json", "--no-record", "--", "kind:deal"]);
         assert_eq!(seen[3], ["deals", "list", "--limit", "500", "--json", "--no-record", "--", "status:open"]);
     }
 
     #[test]
-    fn base_writes_name_stages_by_ref_and_confirm_one_pipeline_at_a_time() {
+    fn before_the_base_set_exists_its_columns_are_named_and_an_edit_names_the_stage() {
+        let shown = json!({"item":{"kind":"deal","pipeline":null,"stages":[
+            {"ref":null,"name":"New","position":1,"outcome":"open","open":0,"mapped":0},
+            {"ref":null,"name":"Won","position":5,"outcome":"won","open":0,"mapped":0}],
+            "unsorted":{"open":4,"stages":6}}});
+        let (base, unsorted) = base::columns(&shown);
+        assert_eq!(base.iter().map(|b| b.reference.as_str()).collect::<Vec<_>>(), ["New", "Won"]);
+        assert_eq!(unsorted.open, 4);
+        let seen = Mutex::new(vec![]);
+        let call = |a: &[String]| {
+            seen.lock().unwrap().push(a.join(" "));
+            Ok(based(a))
+        };
+        edit_with(&call, CrmKind::Deal, &CrmBaseEdit::Rename { reference: "New".into(), name: "Fresh".into() })
+            .unwrap();
+        map_with(&call, "stage:6", "Won").unwrap();
+        assert_eq!(
+            *seen.lock().unwrap(),
+            ["stages rename deal New Fresh --json --no-record", "stages set stage:6 Won --json --no-record"]
+        );
+    }
+
+    #[test]
+    fn base_writes_name_stages_by_ref_and_confirm_a_pipeline_or_the_whole_kind() {
         let seen = Mutex::new(vec![]);
         let call = |a: &[String]| {
             seen.lock().unwrap().push(a.to_vec());
             Ok(based(a))
         };
         map_with(&call, "stage:42", "stage:3").unwrap();
-        confirm_with(&call, &["pipeline:7".into(), "pipeline:2".into()]).unwrap();
+        confirm_with(&call, CrmKind::Deal, Some("pipeline:7")).unwrap();
+        confirm_with(&call, CrmKind::Lead, None).unwrap();
         let edits = [
             CrmBaseEdit::Add { name: "Demo".into(), outcome: "open".into() },
             CrmBaseEdit::Rename { reference: "stage:3".into(), name: "Offer".into() },
@@ -656,13 +691,13 @@ mod tests {
         assert_eq!(
             seen,
             [
-                "stages map set stage:42 stage:3 --json --no-record",
-                "stages map confirm --pipeline pipeline:7 --json --no-record",
-                "stages map confirm --pipeline pipeline:2 --json --no-record",
-                "stages base add lead Demo --outcome open --json --no-record",
-                "stages base rename lead stage:3 Offer --json --no-record",
-                "stages base move lead stage:3 2 --json --no-record",
-                "stages base remove lead stage:3 --json --no-record",
+                "stages set stage:42 stage:3 --json --no-record",
+                "stages confirm --pipeline pipeline:7 --json --no-record",
+                "stages confirm --all --kind lead --json --no-record",
+                "stages create lead Demo open --json --no-record",
+                "stages rename lead stage:3 Offer --json --no-record",
+                "stages move lead stage:3 2 --json --no-record",
+                "stages remove lead stage:3 --json --no-record",
             ]
         );
     }
@@ -675,7 +710,8 @@ mod tests {
             Ok(based(a))
         };
         assert!(map_with(&call, "pipeline:7", "stage:3").is_err());
-        assert!(confirm_with(&call, &["pipeline:7".into(), "stage:1".into()]).is_err());
+        assert!(map_with(&call, "stage:6", "--all").is_err());
+        assert!(confirm_with(&call, CrmKind::Deal, Some("stage:1")).is_err());
         assert!(
             edit_with(&call, CrmKind::Deal, &CrmBaseEdit::Add { name: "--all".into(), outcome: "open".into() })
                 .is_err()
@@ -686,6 +722,7 @@ mod tests {
         assert!(
             edit_with(&call, CrmKind::Deal, &CrmBaseEdit::Move { reference: "stage:3".into(), position: 0 }).is_err()
         );
+        assert!(move_with(&call, CrmKind::Deal, "deal:2", "stage:3").is_err());
         assert_eq!(*seen.lock().unwrap(), 0);
     }
 

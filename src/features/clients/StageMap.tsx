@@ -66,7 +66,7 @@ export function StageMap({ read, kind }: { read: Based; kind: Kind }) {
               size="sm"
               disabled={busy}
               icon={<Check className="size-4" aria-hidden />}
-              onClick={() => confirm.mutate([p.pipeline])}
+              onClick={() => confirm.mutate(p.pipeline)}
             >
               {s.confirmPipeline(pipes.get(p.pipeline)?.name ?? p.pipeline, p.count)}
             </Button>
@@ -77,7 +77,7 @@ export function StageMap({ read, kind }: { read: Based; kind: Kind }) {
               variant="primary"
               disabled={busy}
               icon={<CheckCheck className="size-4" aria-hidden />}
-              onClick={() => confirm.mutate(pending.map((p) => p.pipeline))}
+              onClick={() => confirm.mutate(null)}
             >
               {s.confirmAll(total)}
             </Button>
@@ -198,7 +198,7 @@ function StageCard({
         <span className="min-w-0 truncate">{stage.name}</span>
       </p>
       <div className="flex min-w-0 flex-wrap items-center gap-[0.4rem] text-[0.85rem] text-ink-soft">
-        <span>{s.items(kind, stage.items)}</span>
+        <span>{s.items(kind, stage.open)}</span>
         {!stage.confirmed && stage.base && <Pill tone="warn">{s.suggestedShort}</Pill>}
         {!stage.confirmed && stage.base && onConfirm && (
           <Button

@@ -294,8 +294,8 @@ export type Platform = {
   clientsScopeSet(account: CrmAccount, scope: "mine" | "all"): Promise<void>
   /** Points a pipeline's stage (`stage:<id>`) at a base stage; memo takes it as confirmed. */
   clientsMapSet(stage: string, base: string): Promise<void>
-  /** Confirms memo's suggested mapping of every stage of these pipelines that points to a base stage. */
-  clientsMapConfirm(pipelines: string[]): Promise<void>
+  /** Confirms memo's suggested mappings of one pipeline, or with `null` of every pipeline of the kind. */
+  clientsMapConfirm(kind: CrmKind, pipeline: string | null): Promise<void>
   /** Adds, renames, moves or removes a stage of the kind's base set. */
   clientsBaseEdit(kind: CrmKind, edit: CrmBaseEdit): Promise<void>
   taskList(query: string): Promise<TaskRead>

@@ -1,8 +1,8 @@
-//! The one place that knows memo's base-stage commands and their JSON (cli-core TASK-947, not released yet): the argv
-//! of `pipelines list --base`, `stages map list|set|confirm` and `stages base add|rename|move|remove`, and the field
-//! names of their answers. The shapes follow the design; when cli-core's are final, only this file changes.
+//! The one place that knows memo's base-stage commands and their JSON (cli-core #2720, store version 60): the argv of
+//! `stages show|list|set|confirm|create|rename|move|remove` and the field names of their answers.
 
-use super::{CrmAmount, CrmBaseRef, CrmBaseStage, CrmKind, CrmStageMap, count, text};
+use super::{CrmBaseRef, CrmBaseStage, CrmKind, CrmStageMap, CrmUnsorted, count, text};
+use crate::skills::body;
 use crate::task_board::{with_query, words};
 use serde_json::Value;
 
@@ -17,40 +17,49 @@ pub fn validate_stage_ref(reference: &str) -> Result<&str, String> {
     if ok { Ok(reference) } else { Err(format!("not a stage: {reference}")) }
 }
 
+/// A base stage as memo takes it in a write: its `stage:<id>`, or its name while the set does not exist yet.
+pub fn validate_base(stage: &str) -> Result<&str, String> {
+    validate_stage_ref(stage).or_else(|_| super::validate_stage(stage))
+}
+
 pub fn validate_outcome(outcome: &str) -> Result<&str, String> {
     if OUTCOMES.contains(&outcome) { Ok(outcome) } else { Err(format!("not an outcome: {outcome}")) }
 }
 
-pub fn columns_args(kind: CrmKind) -> Vec<String> {
-    with_query(&["pipelines", "list", "--base"], &format!("kind:{}", kind.noun()))
+pub fn show_args(kind: CrmKind) -> Vec<String> {
+    words(&["stages", "show", kind.noun()])
 }
 
-pub fn mapping_args() -> Vec<String> {
-    words(&["stages", "map", "list"])
+pub fn mapping_args(kind: CrmKind) -> Vec<String> {
+    with_query(&["stages", "list"], &format!("kind:{}", kind.noun()))
 }
 
 pub fn set_args(stage: &str, base: &str) -> Vec<String> {
-    words(&["stages", "map", "set", stage, base])
+    words(&["stages", "set", stage, base])
 }
 
-pub fn confirm_args(pipeline: &str) -> Vec<String> {
-    words(&["stages", "map", "confirm", "--pipeline", pipeline])
+/// One pipeline's suggestions, or every one of the kind (`--all` alone would confirm both kinds).
+pub fn confirm_args(kind: CrmKind, pipeline: Option<&str>) -> Vec<String> {
+    match pipeline {
+        Some(p) => words(&["stages", "confirm", "--pipeline", p]),
+        None => words(&["stages", "confirm", "--all", "--kind", kind.noun()]),
+    }
 }
 
 pub fn add_args(kind: CrmKind, name: &str, outcome: &str) -> Vec<String> {
-    words(&["stages", "base", "add", kind.noun(), name, "--outcome", outcome])
+    words(&["stages", "create", kind.noun(), name, outcome])
 }
 
 pub fn rename_args(kind: CrmKind, stage: &str, name: &str) -> Vec<String> {
-    words(&["stages", "base", "rename", kind.noun(), stage, name])
+    words(&["stages", "rename", kind.noun(), stage, name])
 }
 
 pub fn move_args(kind: CrmKind, stage: &str, position: &str) -> Vec<String> {
-    words(&["stages", "base", "move", kind.noun(), stage, position])
+    words(&["stages", "move", kind.noun(), stage, position])
 }
 
 pub fn remove_args(kind: CrmKind, stage: &str) -> Vec<String> {
-    words(&["stages", "base", "remove", kind.noun(), stage])
+    words(&["stages", "remove", kind.noun(), stage])
 }
 
 pub fn base_ref(v: &Value) -> Option<CrmBaseRef> {
@@ -59,25 +68,25 @@ pub fn base_ref(v: &Value) -> Option<CrmBaseRef> {
 }
 
 fn column(v: &Value) -> Option<CrmBaseStage> {
-    let amounts = v["amounts"].as_array().map_or_else(Vec::new, |a| {
-        a.iter()
-            .filter_map(|x| {
-                Some(CrmAmount { amount: text(x, "amount")?, currency: text(x, "currency")?, items: count(x, "items") })
-            })
-            .collect()
-    });
+    let name = text(v, "name")?;
     Some(CrmBaseStage {
-        reference: text(v, "ref")?,
-        name: text(v, "name")?,
+        // Before the set exists memo answers it from memory with no refs; it takes a base stage by name as well, and
+        // the first edit creates the set.
+        reference: text(v, "ref").unwrap_or_else(|| name.clone()),
+        name,
         outcome: text(v, "outcome")?,
-        items: count(v, "items"),
-        amounts,
+        open: count(v, "open"),
+        mapped: count(v, "mapped"),
     })
 }
 
-/// The base set in its own order, each with its count and sums across every pipeline and account.
-pub fn columns(v: &Value) -> Vec<CrmBaseStage> {
-    v["items"].as_array().map(|a| a.iter().filter_map(column).collect()).unwrap_or_default()
+/// `stages show`: the base set in its own order, each with its open rows across every pipeline and account in scope
+/// (confirmed mappings only), and what no column holds yet.
+pub fn columns(v: &Value) -> (Vec<CrmBaseStage>, CrmUnsorted) {
+    let item = body(v);
+    let stages = item["stages"].as_array().map(|a| a.iter().filter_map(column).collect()).unwrap_or_default();
+    let unsorted = &item["unsorted"];
+    (stages, CrmUnsorted { open: count(unsorted, "open"), stages: count(unsorted, "stages") })
 }
 
 fn entry(v: &Value) -> Option<CrmStageMap> {
@@ -86,13 +95,13 @@ fn entry(v: &Value) -> Option<CrmStageMap> {
         name: text(v, "name")?,
         outcome: text(v, "outcome")?,
         pipeline: text(v, "pipeline")?,
-        items: count(v, "items"),
+        open: count(v, "open"),
         base: base_ref(v),
-        confirmed: v["base_confirmed"].as_bool().unwrap_or(false),
+        confirmed: v["confirmed"].as_bool().unwrap_or(false),
     })
 }
 
-/// Every CRM stage with the base stage it points to, `None` while it points to none.
+/// `stages list`: every CRM pipeline's stage with the base stage it points to, `None` while it points to none.
 pub fn mapping(v: &Value) -> Vec<CrmStageMap> {
     v["items"].as_array().map(|a| a.iter().filter_map(entry).collect()).unwrap_or_default()
 }

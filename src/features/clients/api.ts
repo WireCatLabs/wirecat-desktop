@@ -92,7 +92,7 @@ export function useMapSet(kind: Kind, pipeline: string | null) {
 
 export function useConfirm(kind: Kind, pipeline: string | null) {
   return useMutation({
-    mutationFn: (pipelines: string[]) => platform.clientsMapConfirm(pipelines),
+    mutationFn: (pipeline: string | null) => platform.clientsMapConfirm(kind, pipeline),
     onSettled: () => queryClient().invalidateQueries({ queryKey: clientKeys.board(kind, pipeline) }),
   })
 }

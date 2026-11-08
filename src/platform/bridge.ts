@@ -215,7 +215,7 @@ function createTauri(): Platform {
       throw new Error("WireCat cannot run the CRM's own tool yet")
     },
     clientsMapSet: (stage, base) => invoke("clients_map_set", { stage, base }),
-    clientsMapConfirm: (pipelines) => invoke("clients_map_confirm", { pipelines }),
+    clientsMapConfirm: (kind, pipeline) => invoke("clients_map_confirm", { kind, pipeline }),
     clientsBaseEdit: (kind, edit) => invoke("clients_base_edit", { kind, edit }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),

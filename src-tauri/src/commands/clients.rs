@@ -27,9 +27,11 @@ pub async fn clients_map_set(stage: String, base: String) -> Result<(), AppError
 }
 
 #[tauri::command]
-pub async fn clients_map_confirm(pipelines: Vec<String>) -> Result<(), AppError> {
-    crate::log::command("clients_map_confirm", async move { attempt(move || crm_board::confirm(&pipelines)).await })
-        .await
+pub async fn clients_map_confirm(kind: CrmKind, pipeline: Option<String>) -> Result<(), AppError> {
+    crate::log::command("clients_map_confirm", async move {
+        attempt(move || crm_board::confirm(kind, pipeline.as_deref())).await
+    })
+    .await
 }
 
 #[tauri::command]

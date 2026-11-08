@@ -233,14 +233,17 @@ export type CrmBaseRef = {
 	name: string,
 };
 
-/**  One column of the base set, with memo's count and sums across every pipeline and account. */
+/**  One column of the base set; memo counts across every pipeline and account, confirmed mappings only. */
 export type CrmBaseStage = {
+	/**  `stage:<id>`, or the stage's name while the set does not exist yet (memo takes either in a write). */
 	ref: string,
 	name: string,
 	/**  `open`, `won` or `lost`. */
 	outcome: string,
-	items: number,
-	amounts: CrmAmount[],
+	/**  Open deals or leads standing in it. */
+	open: number,
+	/**  CRM stages confirmed onto it. */
+	mapped: number,
 };
 
 export type CrmCard = {
@@ -259,7 +262,7 @@ export type CrmCard = {
 	closedReason: string | null,
 	projectName: string | null,
 	account: CrmAccount | null,
-	/**  The base stage its stage points to; `None` on a board of one pipeline's stages or while unmapped. */
+	/**  The base stage its stage points to once confirmed; `None` on a board of one pipeline's stages, or unsorted. */
 	baseStage: CrmBaseRef | null,
 	createdAt: string,
 	updatedAt: string,
@@ -293,8 +296,8 @@ export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | nul
 { kind: "ready"; pipelines: CrmPipeline[]; pipeline: string | null; stages: CrmStage[]; cards: CrmCard[]; 
 /**  More open ones match than one read holds; the counts above the columns still hold them all. */
 more: boolean; movable: CrmMovable } | 
-/**  Base stages as columns, cards of every pipeline of the kind; `mapping` is every other pipeline's stages. */
-{ kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean };
+/**  Base stages as columns, cards of every pipeline of the kind; `mapping` is every CRM pipeline's stages. */
+{ kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; unsorted: CrmUnsorted; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean };
 
 export type CrmStage = {
 	name: string,
@@ -305,16 +308,22 @@ export type CrmStage = {
 	amounts: CrmAmount[],
 };
 
-/**  A pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion. */
+/**  A CRM pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion. */
 export type CrmStageMap = {
 	ref: string,
 	name: string,
 	outcome: string,
 	pipeline: string,
-	/**  Deals or leads standing in it now. */
-	items: number,
+	/**  Open deals or leads standing in it now. */
+	open: number,
 	base: CrmBaseRef | null,
 	confirmed: boolean,
+};
+
+/**  What no column holds yet: open rows whose stage is unmapped or only suggested, and those stages. */
+export type CrmUnsorted = {
+	open: number,
+	stages: number,
 };
 
 export type Diagnosis = {

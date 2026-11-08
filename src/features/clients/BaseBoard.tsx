@@ -36,7 +36,7 @@ export function BaseBoard({
   const [note, setNote] = useState("")
   const pipes = new Map(read.pipelines.map((p) => [p.ref, p]))
   const byRef = new Map(cards.map((c) => [c.ref, c]))
-  const columns = baseColumnsOf(read.base, cards, read.mapping)
+  const columns = baseColumnsOf(read.base, cards)
   const ids = [UNSORTED, ...read.base.map((b) => b.ref)]
   const nameOf = (id: string) => (id === UNSORTED ? s.unsorted : (read.base.find((b) => b.ref === id)?.name ?? id))
   const several = new Set(cards.map((c) => c.pipeline)).size > 1
@@ -53,7 +53,7 @@ export function BaseBoard({
     cardsIn: (id) => columns.get(id) ?? [],
     columnOf: (ref) => {
       const c = byRef.get(ref)
-      return c ? columnOf(c, read.mapping) : undefined
+      return c ? columnOf(c) : undefined
     },
     canDrop: (ref, to) => {
       const d = verdict(ref, to)
@@ -99,10 +99,11 @@ export function BaseBoard({
           const refs = shown(id)
           const b = read.base.find((x) => x.ref === id)
           const here = (columns.get(id) ?? []).flatMap((r) => byRef.get(r) ?? [])
-          // memo counts a base column across every pipeline; a filter, and Unsorted, count what the page shows.
-          const counted = b && !filtered
-          const amounts = counted ? b.amounts : amountsOf(here)
-          const items = counted ? b.items : here.length
+          // memo counts an open column's open rows across every pipeline; a filter, closed columns (capped to the
+          // newest) and Unsorted count what the page shows. Sums are always the shown cards'.
+          const counted = b && b.outcome === "open" && !filtered
+          const amounts = amountsOf(here)
+          const items = counted ? b.open : here.length
           return (
             <BoardColumn
               key={id}

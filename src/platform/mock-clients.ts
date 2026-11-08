@@ -9,11 +9,12 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // loading (it never ends), crm-write (the portal's copies move and its scope switches, as once b24 is in the
 // catalog), move-fail (every move is refused), many (300 deals); `?kind=lead` opens the leads.
 //
-// By default memo has base stages: the board's columns are the base set and every pipeline's cards stand under the
-// base stage their stage points to. Sales and Northstar sales map onto it: Sales' Quote and Contract both onto
-// Proposal (a drop there asks which) and none onto New or Negotiation (a drop there is refused), Northstar's "Waiting
-// for payment" onto nothing; Partners and Northstar's "In progress" lead stage are suggestions not confirmed yet. `?clients=no-base` is a memo without
-// base stages: one pipeline's own stages, as before.
+// By default memo has base stages (cli-core #2720): the owner's only own pipeline of a kind is adopted as its base set
+// (Sales, Leads), the board's columns are its stages, and a CRM pipeline's card stands under the base stage its stage
+// is confirmed onto. Northstar sales maps onto it, with "Preparing documents" and "Invoice sent" both on Quote (a drop
+// there asks which), none on Contract (a drop there is refused) and "Waiting for payment" unmapped; Northstar partners
+// and the "In progress" lead stage are suggestions not confirmed yet. Drops of the portal's cards need crm-write.
+// `?clients=no-base` is a memo without base stages: one pipeline's own stages, as before, with Partners.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("clients") ?? "default"
@@ -27,46 +28,21 @@ type Pipe = {
   kind: CrmKind
   account: CrmAccount | null
   stages: [string, string][]
-  /** The base set's own pipeline: listed only when memo has base stages. */
+  /** The pipeline adopted as its kind's base set. */
   base?: true
+  /** Listed only with base stages, or only without. */
+  only?: "base" | "legacy"
 }
 
 const ALL_PIPES: Pipe[] = [
-  {
-    ref: "pipeline:20",
-    name: "Deal stages",
-    kind: "deal",
-    account: null,
-    base: true,
-    stages: [
-      ["New", "open"],
-      ["Qualification", "open"],
-      ["Proposal", "open"],
-      ["Negotiation", "open"],
-      ["Won", "won"],
-      ["Lost", "lost"],
-    ],
-  },
-  {
-    ref: "pipeline:21",
-    name: "Lead stages",
-    kind: "lead",
-    account: null,
-    base: true,
-    stages: [
-      ["New", "open"],
-      ["Contacted", "open"],
-      ["Qualified", "open"],
-      ["Converted", "won"],
-      ["Rejected", "lost"],
-    ],
-  },
   // Listed first and empty, as memo listed them for a real account: the board must not open on it.
   {
     ref: "pipeline:3",
     name: "Partners",
     kind: "deal",
     account: null,
+    // A second own pipeline would stop memo adopting Sales as the base set.
+    only: "legacy",
     stages: [
       ["Intro", "open"],
       ["Signed", "won"],
@@ -78,6 +54,7 @@ const ALL_PIPES: Pipe[] = [
     name: "Sales",
     kind: "deal",
     account: null,
+    base: true,
     stages: [
       ["Call", "open"],
       ["Quote", "open"],
@@ -105,12 +82,26 @@ const ALL_PIPES: Pipe[] = [
     name: "Leads",
     kind: "lead",
     account: null,
+    base: true,
     stages: [
       ["new", "open"],
       ["contacted", "open"],
       ["qualified", "open"],
       ["won", "won"],
       ["lost", "lost"],
+    ],
+  },
+  {
+    ref: "pipeline:9",
+    name: "Northstar partners",
+    kind: "deal",
+    account: NORTHSTAR,
+    only: "base",
+    stages: [
+      ["Lead in", "open"],
+      ["Offer", "open"],
+      ["Signed", "won"],
+      ["Rejected", "lost"],
     ],
   },
   {
@@ -237,10 +228,10 @@ function seeds(based: boolean): CrmCard[] {
             organization: "Northstar Labs",
             people: [person("Bob Lee", "owner")],
           }),
-          card("deal", "pipeline:3", "Intro", "Acme: reseller agreement", { organization: "Acme Corp" }),
-          card("deal", "pipeline:20", "Negotiation", "Acme: yearly audit", {
+          card("deal", "pipeline:9", "Offer", "Acme: showroom partnership", {
             ...money("4200.00", "EUR"),
             organization: "Acme Corp",
+            people: [person("Alice Moreno", "owner")],
           }),
         ]
       : []),
@@ -250,35 +241,26 @@ function seeds(based: boolean): CrmCard[] {
 
 type Base = { ref: string; name: string; outcome: string }
 
-// Each pipeline's stage → the base stage's name and whether the owner confirmed it; a stage left out is unmapped.
+// Each CRM pipeline's stage → the base stage's name and whether the owner confirmed it; a stage left out is unmapped.
 const MAPS: Record<string, Record<string, [string, boolean]>> = {
-  "pipeline:2": {
-    Call: ["Qualification", true],
-    Quote: ["Proposal", true],
-    Contract: ["Proposal", true],
-    Won: ["Won", true],
-    Lost: ["Lost", true],
-  },
   "pipeline:7": {
-    New: ["New", true],
-    "Preparing documents": ["Qualification", true],
-    "Invoice sent": ["Negotiation", true],
+    New: ["Call", true],
+    "Preparing documents": ["Quote", true],
+    "Invoice sent": ["Quote", true],
     "Deal won": ["Won", true],
     "Deal lost": ["Lost", true],
   },
-  "pipeline:3": { Intro: ["New", false], Signed: ["Won", false], Dropped: ["Lost", false] },
-  "pipeline:1": {
-    new: ["New", true],
-    contacted: ["Contacted", true],
-    qualified: ["Qualified", true],
-    won: ["Converted", true],
-    lost: ["Rejected", true],
+  "pipeline:9": {
+    "Lead in": ["Call", false],
+    Offer: ["Contract", false],
+    Signed: ["Won", false],
+    Rejected: ["Lost", false],
   },
   "pipeline:8": {
-    "Not processed": ["New", true],
-    "In progress": ["Contacted", false],
-    "Good lead": ["Converted", true],
-    "Junk lead": ["Rejected", true],
+    "Not processed": ["new", true],
+    "In progress": ["contacted", false],
+    "Good lead": ["won", true],
+    "Junk lead": ["lost", true],
   },
 }
 
@@ -292,13 +274,13 @@ function baseSeeds() {
     })
   }
   const mapping: CrmStageMap[] = []
-  for (const p of ALL_PIPES.filter((x) => !x.base)) {
+  for (const p of ALL_PIPES.filter((x) => x.account !== null)) {
     for (const [name, outcome] of p.stages) {
       n += 1
       const [to, confirmed] = MAPS[p.ref]?.[name] ?? [null, false]
       const b = bases[p.kind].find((x) => x.name === to)
       const base = b ? { ref: b.ref, name: b.name } : null
-      mapping.push({ ref: `stage:${n}`, name, outcome, pipeline: p.ref, items: 0, base, confirmed })
+      mapping.push({ ref: `stage:${n}`, name, outcome, pipeline: p.ref, open: 0, base, confirmed })
     }
   }
   return { bases, mapping }
@@ -331,48 +313,54 @@ const sumsOf = (here: CrmCard[]) => {
   return [...sums].map(([currency, s]) => ({ amount: (s.units / 100).toFixed(2), currency, items: s.items }))
 }
 
-/** `based` false is a memo without base stages, as `?clients=no-base`. */
-export function clientsMock(based = scenario !== "no-base"): ClientsApi {
-  const PIPES = ALL_PIPES.filter((p) => based || !p.base)
+/** `based` false is a memo without base stages, as `?clients=no-base`; `crmWrite` as `?clients=crm-write`. */
+export function clientsMock(based = scenario !== "no-base", crmWrite = scenario === "crm-write"): ClientsApi {
+  const PIPES = ALL_PIPES.filter((p) => p.only !== (based ? "legacy" : "base"))
   let cards = scenario === "none" ? [] : seeds(based)
   const scopes = new Map<string, "mine" | "all">()
   const applied = new Map<string, CrmAppliedScope>()
-  const writable = (pipe: Pipe | undefined) => pipe?.account === null || scenario === "crm-write"
+  const writable = (pipe: Pipe | undefined) => pipe?.account === null || crmWrite
   let { bases, mapping } = baseSeeds()
   const movable = (p: Pipe) => (writable(p) ? { kind: "yes" as const } : { kind: "no" as const, why: "crmCli" })
+  // memo answers a row's base stage only once its stage is confirmed onto one; the base set's own rows stand in it.
   const baseOf = (c: CrmCard) => {
     const pipe = PIPES.find((p) => p.ref === c.pipeline)
     if (pipe?.base) {
       const b = bases[pipe.kind].find((x) => x.name === c.stage)
       return b ? { ref: b.ref, name: b.name } : null
     }
-    return mapping.find((m) => m.pipeline === c.pipeline && m.name === c.stage)?.base ?? null
+    const m = mapping.find((x) => x.pipeline === c.pipeline && x.name === c.stage)
+    return m?.confirmed ? m.base : null
   }
-  const confirmedIn = (c: CrmCard) =>
-    PIPES.find((p) => p.ref === c.pipeline)?.base === true ||
-    mapping.some((m) => m.pipeline === c.pipeline && m.name === c.stage && m.confirmed)
   const baseRead = (kind: CrmKind): CrmRead => {
     const pipes = PIPES.filter((p) => p.kind === kind)
     const ours = cards
       .filter((c) => pipes.some((p) => p.ref === c.pipeline))
       .map((c) => ({ ...c, baseStage: baseOf(c) }))
-    const open = (ref: string) => ours.filter((c) => c.pipeline === ref && c.status === "open").length
+    const openIn = (here: CrmCard[]) => here.filter((c) => c.status === "open").length
+    const listed = mapping.filter((m) => pipes.some((p) => p.ref === m.pipeline))
     return {
       kind: "base",
       pipelines: pipes.map((p) => ({
         ref: p.ref,
         name: p.name,
         account: p.account,
-        open: open(p.ref),
+        open: openIn(ours.filter((c) => c.pipeline === p.ref)),
         movable: movable(p),
       })),
-      base: bases[kind].map((b) => {
-        const here = ours.filter((c) => c.baseStage?.ref === b.ref && confirmedIn(c))
-        return { ...b, items: here.length, amounts: sumsOf(here) }
-      }),
-      mapping: mapping
-        .filter((m) => pipes.some((p) => p.ref === m.pipeline))
-        .map((m) => ({ ...m, items: ours.filter((c) => c.pipeline === m.pipeline && c.stage === m.name).length })),
+      base: bases[kind].map((b) => ({
+        ...b,
+        open: openIn(ours.filter((c) => c.baseStage?.ref === b.ref)),
+        mapped: listed.filter((m) => m.confirmed && m.base?.ref === b.ref).length,
+      })),
+      unsorted: {
+        open: openIn(ours.filter((c) => c.baseStage === null)),
+        stages: listed.filter((m) => !m.confirmed || m.base === null).length,
+      },
+      mapping: listed.map((m) => ({
+        ...m,
+        open: openIn(ours.filter((c) => c.pipeline === m.pipeline && c.stage === m.name)),
+      })),
       cards: ours.slice(0, 500),
       more: ours.length > 500,
     }
@@ -441,9 +429,11 @@ export function clientsMock(based = scenario !== "no-base"): ClientsApi {
         m.ref === stage ? { ...m, base: { ref: to.ref, name: to.name }, confirmed: true } : m,
       )
     },
-    async clientsMapConfirm(pipelines) {
+    async clientsMapConfirm(kind, pipeline) {
       await delay(500)
-      mapping = mapping.map((m) => (pipelines.includes(m.pipeline) && m.base ? { ...m, confirmed: true } : m))
+      const ours = (m: CrmStageMap) =>
+        pipeline === null ? ALL_PIPES.find((p) => p.ref === m.pipeline)?.kind === kind : m.pipeline === pipeline
+      mapping = mapping.map((m) => (ours(m) && m.base ? { ...m, confirmed: true } : m))
     },
     async clientsBaseEdit(kind, edit) {
       await delay(400)
@@ -470,14 +460,14 @@ function editBase(set: Base[], edit: CrmBaseEdit, cards: CrmCard[], kind: CrmKin
     set.some((b) => b.ref !== except && b.name.toLowerCase() === name.trim().toLowerCase())
   switch (edit.op) {
     case "add": {
-      if (taken(edit.name)) throw new Error(`a base stage named ${edit.name} exists (stage.name-taken)`)
+      if (taken(edit.name)) throw new Error(`a base stage named ${edit.name} exists (stage.base-field)`)
       added += 1
       const stage = { ref: `stage:${added}`, name: edit.name.trim(), outcome: edit.outcome }
       const at = edit.outcome === "open" ? set.findIndex((b) => b.outcome !== "open") : -1
       return at < 0 ? [...set, stage] : [...set.slice(0, at), stage, ...set.slice(at)]
     }
     case "rename": {
-      if (taken(edit.name, edit.ref)) throw new Error(`a base stage named ${edit.name} exists (stage.name-taken)`)
+      if (taken(edit.name, edit.ref)) throw new Error(`a base stage named ${edit.name} exists (stage.base-field)`)
       const old = set.find((b) => b.ref === edit.ref)
       if (old && own)
         for (const c of cards) if (c.pipeline === own.ref && c.stage === old.name) c.stage = edit.name.trim()
@@ -493,10 +483,10 @@ function editBase(set: Base[], edit: CrmBaseEdit, cards: CrmCard[], kind: CrmKin
       const stage = set.find((b) => b.ref === edit.ref)
       if (!stage) return set
       if (set.filter((b) => b.outcome === stage.outcome).length < 2) {
-        throw new Error(`the base set keeps one ${stage.outcome} stage (stage.last-of-outcome)`)
+        throw new Error(`the base set keeps one ${stage.outcome} stage (stage.base-outcome)`)
       }
       if (own && cards.some((c) => c.pipeline === own.ref && c.stage === stage.name)) {
-        throw new Error(`${stage.name} still holds cards of ${own.name}; move them first (stage.in-use)`)
+        throw new Error(`${stage.name} still holds cards of ${own.name}; move them first (stage.base-in-use)`)
       }
       return set.filter((b) => b.ref !== edit.ref)
     }

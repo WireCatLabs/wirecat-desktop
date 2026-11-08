@@ -20,20 +20,13 @@ export const UNSORTED = "unsorted"
 /** The mapping screen's column of stages that point to no base stage. */
 export const UNMAPPED = "unmapped"
 
-const entryOf = (mapping: readonly StageMap[], card: Card) =>
-  mapping.find((m) => m.pipeline === card.pipeline && m.name === card.stage)
-
-/** The base set's own pipeline is not in the mapping: its cards stand in their own stage. */
-export function columnOf(card: Card, mapping: readonly StageMap[]): string {
-  const entry = entryOf(mapping, card)
-  if (entry) return entry.base && entry.confirmed ? entry.base.ref : UNSORTED
-  return card.baseStage?.ref ?? UNSORTED
-}
+/** memo names a row's base stage only once its stage is confirmed onto one; until then it is unsorted. */
+export const columnOf = (card: Card): string => card.baseStage?.ref ?? UNSORTED
 
 /** Unsorted first, then the base set in its order; each column's cards in memo's order. */
-export function baseColumnsOf(base: readonly BaseStage[], cards: readonly Card[], mapping: readonly StageMap[]) {
+export function baseColumnsOf(base: readonly BaseStage[], cards: readonly Card[]) {
   const columns = new Map<string, string[]>([[UNSORTED, []], ...base.map((b) => [b.ref, [] as string[]] as const)])
-  for (const c of cards) (columns.get(columnOf(c, mapping)) ?? columns.get(UNSORTED))?.push(c.ref)
+  for (const c of cards) (columns.get(columnOf(c)) ?? columns.get(UNSORTED))?.push(c.ref)
   return columns
 }
 
@@ -88,7 +81,8 @@ export function withBaseMove<C extends Card & { status: string }, R extends { ca
   if (!card) return read
   const entry = read.mapping.find((m) => m.pipeline === card.pipeline && m.name === stage)
   const own = read.base.find((b) => b.name === stage && card.baseStage !== null && !entry)
-  const baseStage = entry?.base ?? (own ? { ref: own.ref, name: own.name } : card.baseStage)
+  const confirmed = entry?.confirmed ? entry.base : null
+  const baseStage = entry ? confirmed : own ? { ref: own.ref, name: own.name } : card.baseStage
   const status = entry?.outcome ?? own?.outcome ?? card.status
   return { ...read, cards: read.cards.map((c) => (c.ref === ref ? { ...c, stage, baseStage, status } : c)) }
 }

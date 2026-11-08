@@ -84,8 +84,8 @@ const en: Words = {
   stageCard: (stage, pipeline) => `${stage}, ${pipeline}`,
   items: (kind, n) =>
     kind === "deal"
-      ? plural("en", n, { one: "# deal", other: "# deals" })
-      : plural("en", n, { one: "# lead", other: "# leads" }),
+      ? plural("en", n, { one: "# open deal", other: "# open deals" })
+      : plural("en", n, { one: "# open lead", other: "# open leads" }),
   addStage: "Add a stage",
   add: "Add",
   save: "Save",
@@ -148,8 +148,8 @@ const ru: Words = {
   stageCard: (stage, pipeline) => `${stage}, ${pipeline}`,
   items: (kind, n) =>
     kind === "deal"
-      ? plural("ru", n, { one: "# сделка", few: "# сделки", other: "# сделок" })
-      : plural("ru", n, { one: "# лид", few: "# лида", other: "# лидов" }),
+      ? plural("ru", n, { one: "# открытая сделка", few: "# открытые сделки", other: "# открытых сделок" })
+      : plural("ru", n, { one: "# открытый лид", few: "# открытых лида", other: "# открытых лидов" }),
   addStage: "Добавить стадию",
   add: "Добавить",
   save: "Сохранить",
@@ -205,8 +205,8 @@ const es: Words = {
   stageCard: (stage, pipeline) => `${stage}, ${pipeline}`,
   items: (kind, n) =>
     kind === "deal"
-      ? plural("es", n, { one: "# negociación", other: "# negociaciones" })
-      : plural("es", n, { one: "# prospecto", other: "# prospectos" }),
+      ? plural("es", n, { one: "# negociación abierta", other: "# negociaciones abiertas" })
+      : plural("es", n, { one: "# prospecto abierto", other: "# prospectos abiertos" }),
   addStage: "Añadir una etapa",
   add: "Añadir",
   save: "Guardar",
