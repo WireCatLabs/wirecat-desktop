@@ -8,7 +8,7 @@ import { PrivacyDialog } from "@/features/privacy"
 import { ReportDialog } from "@/features/report"
 import { useApplyScale, useScaleKeys } from "@/features/settings"
 import { BotSignInDialog, SignInDialog } from "@/features/signin"
-import { ClearDataOffer } from "@/features/tools"
+import { ClearDataOffer, useRegistry } from "@/features/tools"
 import { CHECK_EVERY_MS, UpdateButton, UpdateDialog, useUpdate } from "@/features/update"
 import { currentLang, useApplyLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -27,6 +27,7 @@ import { PageSkeleton } from "./PageSkeleton"
 import { Sidebar } from "./Sidebar"
 import { sections } from "./sections"
 import { TopBar } from "./TopBar"
+import { TopNotices } from "./TopNotices"
 import { useApplyTheme } from "./theme"
 
 export function App() {
@@ -74,7 +75,10 @@ function Shell() {
     return () => clearInterval(timer)
   }, [])
   useEffect(() => {
-    const check = () => useNotifications.getState().check()
+    const check = () => {
+      void useNotifications.getState().check()
+      void useRegistry.getState().check()
+    }
     check()
     const timer = setInterval(check, NEWS_EVERY_MS)
     return () => clearInterval(timer)
@@ -108,6 +112,7 @@ function Shell() {
             </>
           )}
         </TopBar>
+        <TopNotices />
         {onboarding ? (
           <ErrorBoundary scope="page">
             <Onboarding onExit={toHome} onTour={() => useTour.getState().start("setup")} />

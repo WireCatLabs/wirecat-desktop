@@ -2,7 +2,8 @@
 //! `tools.json` and signs it with minisign; the app keeps a copy only when the signature verifies against the key
 //! compiled in from `registry-key.pub` (never the updater's key), it has not expired, and its version is not lower
 //! than the copy already kept. A list fetched now takes effect at the next start, so no page changes under the owner.
-//! Without a good copy the app has its built-in tools only.
+//! Without a good copy the app has its built-in tools only. A kept copy that expired still lists its tools, so the
+//! installed ones keep running, but none of them can be installed or updated until a fresh list arrives.
 
 use chrono::{DateTime, Utc};
 use minisign_verify::{PublicKey, Signature};
@@ -19,6 +20,7 @@ const CHECKED: &str = "checked";
 const SETTING: &str = "community-tools.json";
 const MAX_SIG: usize = 4096;
 const DAY: i64 = 24 * 60 * 60;
+const EXPIRING_DAYS: i64 = 7;
 
 /// The registry key, or why this build fetches no list.
 pub fn key() -> Result<PublicKey, String> {
@@ -80,15 +82,42 @@ fn read_cache(dir: &Path, key: &PublicKey) -> Result<List, String> {
     open(&list, &sig, key)
 }
 
-/// The entries of the kept copy, checked again as if it had just arrived.
+/// The entries of the kept copy, its signature checked again; an expired copy is read too (see the module note).
 pub fn at_start() -> Result<Vec<Value>, String> {
     let key = key()?;
     let dir = dir().ok_or("The app's data folder is unknown.")?;
-    cached(&dir, &key, Utc::now())
+    Ok(read_cache(&dir, &key)?.tools)
 }
 
-fn cached(dir: &Path, key: &PublicKey, now: DateTime<Utc>) -> Result<Vec<Value>, String> {
-    Ok(accept(read_cache(dir, key)?, now, 0)?.tools)
+/// How long the kept copy still lets community tools be installed and updated.
+#[derive(specta::Type, serde::Serialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+#[serde(rename = "CommunityListState")]
+pub enum ListState {
+    Fresh,
+    /// Seven days or fewer left: the daily refresh has stopped working for a while.
+    Expiring,
+    Expired,
+    NeverFetched,
+}
+
+pub fn state(expires_at: Option<DateTime<Utc>>, now: DateTime<Utc>) -> ListState {
+    match expires_at {
+        None => ListState::NeverFetched,
+        Some(at) if at <= now => ListState::Expired,
+        Some(at) if at - now <= chrono::Duration::days(EXPIRING_DAYS) => ListState::Expiring,
+        Some(_) => ListState::Fresh,
+    }
+}
+
+/// The expiry of the copy kept now, which a refresh may have replaced since the start.
+fn kept_expiry() -> Option<DateTime<Utc>> {
+    let key = key().ok()?;
+    read_cache(&dir()?, &key).ok().map(|l| l.expires_at)
+}
+
+pub fn list_state() -> ListState {
+    state(kept_expiry(), Utc::now())
 }
 
 /// Keeps a newly fetched list when it passes; a list that fails leaves the kept copy as it was.
@@ -192,8 +221,8 @@ pub fn write_shown(file: &Path, show: bool) -> Result<(), String> {
         .map_err(|e| format!("Could not save the setting: {e}"))
 }
 
-/// What the Settings page shows: the owner's choice, whether this build can fetch the list at all, and how many tools
-/// the copy kept at start added.
+/// What the Settings page shows: the owner's choice, whether this build can fetch the list at all, how many tools
+/// the copy kept at start added, and when the kept copy stops letting them be installed.
 #[derive(specta::Type, serde::Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[serde(rename = "CommunityStatus")]
@@ -201,13 +230,19 @@ pub struct Status {
     pub show: bool,
     pub available: bool,
     pub listed: usize,
+    pub state: ListState,
+    /// RFC 3339.
+    pub expires_at: Option<String>,
 }
 
 pub fn status() -> Status {
+    let expires_at = kept_expiry();
     Status {
         show: shown(),
         available: key().is_ok(),
         listed: crate::catalog::catalog().extra.count(crate::community::Source::Community),
+        state: state(expires_at, Utc::now()),
+        expires_at: expires_at.map(|at| at.to_rfc3339_opts(chrono::SecondsFormat::Secs, true)),
     }
 }
 
@@ -264,7 +299,7 @@ mod tests {
         let body = list(7, "2026-12-05T00:00:00Z");
         let dir = temp_dir("ok");
         assert_eq!(refresh(&dir, &s.key(), now(), served(body.clone(), s.sign(&body))), Ok(7));
-        assert_eq!(cached(&dir, &s.key(), now()).unwrap()[0]["id"], "acme");
+        assert_eq!(read_cache(&dir, &s.key()).unwrap().tools[0]["id"], "acme");
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -283,7 +318,7 @@ mod tests {
     }
 
     #[test]
-    fn an_expired_list_is_refused_and_an_expired_copy_is_not_used() {
+    fn an_expired_list_is_refused_but_an_expired_copy_still_lists_its_tools() {
         let s = Signer::new();
         let body = list(1, "2026-11-01T00:00:00Z");
         let err = accept(open(&body, &s.sign(&body), &s.key()).unwrap(), now(), 0).unwrap_err();
@@ -292,8 +327,21 @@ mod tests {
         let fresh = list(1, "2026-11-06T00:00:00Z");
         refresh(&dir, &s.key(), now(), served(fresh.clone(), s.sign(&fresh))).unwrap();
         let later = DateTime::parse_from_rfc3339("2026-11-07T00:00:00Z").unwrap().with_timezone(&Utc);
-        assert!(cached(&dir, &s.key(), later).unwrap_err().contains("expired"));
+        let kept = read_cache(&dir, &s.key()).unwrap();
+        assert_eq!(kept.tools.len(), 1, "installed tools keep running");
+        assert_eq!(state(Some(kept.expires_at), later), ListState::Expired);
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn the_state_follows_the_days_left() {
+        let at = |s: &str| Some(DateTime::parse_from_rfc3339(s).unwrap().with_timezone(&Utc));
+        assert_eq!(state(None, now()), ListState::NeverFetched);
+        assert_eq!(state(at("2026-12-05T00:00:00Z"), now()), ListState::Fresh);
+        assert_eq!(state(at("2026-11-12T12:00:01Z"), now()), ListState::Fresh);
+        assert_eq!(state(at("2026-11-12T12:00:00Z"), now()), ListState::Expiring);
+        assert_eq!(state(at("2026-11-05T12:00:01Z"), now()), ListState::Expiring);
+        assert_eq!(state(at("2026-11-05T12:00:00Z"), now()), ListState::Expired);
     }
 
     #[test]
@@ -314,12 +362,12 @@ mod tests {
     fn a_failed_fetch_keeps_the_copy_and_no_copy_means_built_in_only() {
         let s = Signer::new();
         let dir = temp_dir("fallback");
-        assert!(cached(&dir, &s.key(), now()).unwrap_err().contains("No community list"));
+        assert!(read_cache(&dir, &s.key()).unwrap_err().contains("No community list"));
         let body = list(3, "2026-12-05T00:00:00Z");
         refresh(&dir, &s.key(), now(), served(body.clone(), s.sign(&body))).unwrap();
         let offline = |_: &str, _: usize| -> Result<Vec<u8>, String> { Err("offline".into()) };
         assert!(refresh(&dir, &s.key(), now(), offline).is_err());
-        assert_eq!(cached(&dir, &s.key(), now()).unwrap().len(), 1);
+        assert_eq!(read_cache(&dir, &s.key()).unwrap().tools.len(), 1);
         std::fs::remove_dir_all(&dir).unwrap();
     }
 
@@ -357,11 +405,11 @@ mod tests {
             kept.tools.len()
         );
         assert!(days >= 1, "the live list expires within a day");
-        assert_eq!(cached(&dir, &key, Utc::now()).unwrap().len(), kept.tools.len());
+        assert_eq!(state(Some(kept.expires_at), Utc::now()), ListState::Fresh);
 
         let offline = |_: &str, _: usize| -> Result<Vec<u8>, String> { Err("offline".into()) };
         assert!(refresh(&dir, &key, Utc::now(), offline).is_err());
-        assert_eq!(cached(&dir, &key, Utc::now()).unwrap().len(), kept.tools.len(), "the kept copy works offline");
+        assert_eq!(read_cache(&dir, &key).unwrap().tools.len(), kept.tools.len(), "the kept copy works offline");
 
         let list = std::fs::read(dir.join(LIST)).unwrap();
         let sig = std::fs::read_to_string(dir.join(SIG)).unwrap();
@@ -375,7 +423,7 @@ mod tests {
         let after = kept.expires_at + chrono::Duration::seconds(1);
         let fresh = temp_dir("live-expired");
         assert!(refresh(&fresh, &key, after, served(list.clone(), sig.clone())).unwrap_err().contains("expired"));
-        assert!(cached(&dir, &key, after).unwrap_err().contains("expired"));
+        assert_eq!(state(Some(kept.expires_at), after), ListState::Expired);
 
         // No newer list signed with the real key exists, so the kept floor is raised instead.
         let err = accept(open(&list, &sig, &key).unwrap(), Utc::now(), version + 1).unwrap_err();

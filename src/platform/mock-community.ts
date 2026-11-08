@@ -51,9 +51,19 @@ export const OWN = {
   storage: { app: "example-acme-crm-cli", env: "ACME_CRM" },
 }
 
+/** A list kept 24 days more; `?registry=expiring` leaves it three days, `expired` ran out two days ago. */
+export function registryMock(params: URLSearchParams): Pick<CommunityStatus, "state" | "expiresAt"> {
+  const registry = params.get("registry")
+  const days = registry === "expiring" ? 3 : registry === "expired" ? -2 : 24
+  return {
+    state: registry === "expiring" || registry === "expired" ? registry : "fresh",
+    expiresAt: new Date(Date.now() + days * 86_400_000).toISOString(),
+  }
+}
+
 export function extraToolsMock(params: URLSearchParams): ExtraTools {
   const community = params.get("community")
-  const listed = community === "1" || community === "bad" ? [ACME] : []
+  const listed = community === "1" || community === "bad" || params.has("registry") ? [ACME] : []
   if (community === "bad") listed.push({ ...ACME, id: "evil", package: "@wirecat/evil" })
   const own = params.get("own") === "1" ? [OWN] : []
   const rejected: ExtraTools["rejected"] =
@@ -67,13 +77,14 @@ export function extraToolsMock(params: URLSearchParams): ExtraTools {
   }
 }
 
-/** The Settings switch; `?community=1` or `bad` starts it on, as the list could only have been read then. */
+/** The Settings switch; `?community=1`, `bad` or `?registry=` starts it on, as the list could only have been read then. */
 export function communityMock(params: URLSearchParams) {
-  let show = params.has("community")
+  let show = params.has("community") || params.has("registry")
   const available = params.get("community-key") !== "none"
   return {
     async communityStatus(): Promise<CommunityStatus> {
-      return { show, available, listed: extraToolsMock(params).tools.filter((t) => t.source === "community").length }
+      const listed = extraToolsMock(params).tools.filter((t) => t.source === "community").length
+      return { show, available, listed, ...registryMock(params) }
     },
     async setCommunityShown(next: boolean) {
       show = next

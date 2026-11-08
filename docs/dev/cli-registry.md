@@ -54,8 +54,9 @@ human approves each one last. What is built and what is planned is marked.
 order and through one set of taken names:
 
 - **The signed list**, while "Enable community tools" in Settings is on (`<app data>/community-tools.json`, off by
-  default). `registry.rs` reads the copy kept in `<app data>/registry/`, checks its signature and expiry again,
-  and hands its entries over. Without a good copy the app has its built-in tools only.
+  default). `registry.rs` reads the copy kept in `<app data>/registry/`, checks its signature again, and hands its
+  entries over, expired or not ([expiry](#when-the-list-expires)). Without a copy that verifies the app has its
+  built-in tools only.
 - **The owner's own tools**: `<app data>/extra-tools.json`, shaped `{ "version": 1, "tools": [...] }`, while "Allow
   tools WireCat has not checked" is on (`<app data>/own-tools.json`, off by default) or the environment has
   `WIRECAT_EXTRA_TOOLS=1` (for developers). The app writes the file (`own_tools.rs`); the flag no longer hides the
@@ -122,7 +123,8 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
    verifies against `registry-key.pub` (a key of its own, never the updater's), the version is not lower than the
    copy kept (no rollback to an older list, even after that copy expired) and it has not expired. A copy that fails
    leaves the kept one; no good copy leaves the built-in catalog. The same `community.rs` rules then apply to every
-   entry. A new list takes effect at the next start, so a page never changes under the owner.
+   entry. A new list takes effect at the next start, so a page never changes under the owner. An expired kept copy
+   still lists its tools, but blocks their installs and updates ([below](#when-the-list-expires)).
    `bin/registry-live` checks the live list with this build's key through the same code, in a temp folder:
    it passes, and a changed byte, an expired copy and a lower version than the kept one are each refused.
 4. **Removal.** A tool pulled from the list stops being offered. An installed copy stays installed and is listed as
@@ -130,6 +132,24 @@ own repository's `release.yml` on `main`. So a community tool must publish with 
 5. **Icons.** No code from the registry. Either the generic package icon (today), or an optional `icon` holding one
    SVG path (`d`), checked in Rust to contain only path commands and numbers, at most 2 KB, drawn in the app's own
    colour on a 24 x 24 box.
+
+## When the list expires
+
+Decided 2026-11-08 (NEED-2285): an expired list has a real effect, and the app says so at the top of every page.
+
+- **State.** `registry::status()` reports the kept copy's `expiresAt` and a `state`: `fresh`, `expiring` (seven days
+  or fewer left), `expired`, or `neverFetched`. It reads the copy on disk each time, so a refresh while the app runs
+  clears it, and an app left open past the expiry sees it.
+- **Effect.** The tools of an expired copy stay in the catalog, so installed ones keep running, signing in and syncing.
+  Install and Update of a listed tool are refused with `FailReason::listExpired` (`listed_release_allowed` in
+  `install.rs`) while the copy is expired or gone: nothing vouches for a newer release, or for a tool the list has
+  dropped since. Uninstall works. Own tools do not use the list and are not affected. The tool's row on the Tools page
+  says why.
+- **Notice.** While "Enable community tools" is on and the state is `expiring` or `expired`, a notice across the top
+  of the app (`src/shared/notices-store.ts`, shown by `src/app/TopNotices.tsx`) says how many days are left or that
+  installs and updates have stopped, with a link to the desktop docs. Dismissing it holds until the state or the
+  expiry date changes. The interface reads the status at start and on the bell's hourly timer
+  (`src/features/tools/registry-store.ts`).
 
 ## Your own tools (not checked)
 

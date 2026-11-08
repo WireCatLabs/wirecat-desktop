@@ -84,6 +84,8 @@ pub enum Reason {
     Verify,
     /// The release could not be confirmed as built by the tool's own release workflow (`provenance.rs`).
     Unconfirmed,
+    /// A community tool, while the signed list it comes from has expired or is gone (`registry.rs`).
+    ListExpired,
     Failed,
 }
 
@@ -209,6 +211,7 @@ fn install_steps(
         let _ = events.send(e);
     };
     send(InstallEvent::Step { step: Step::Check });
+    listed_release_allowed(tool.source, crate::registry::list_state())?;
     let ready = system::readiness();
     if !ready.node.ok {
         return Err(Failure(
@@ -338,6 +341,19 @@ fn install_command(manager: &str, spec: &str, own_scope: Option<&str>) -> Result
         args.push(scoped);
     }
     Ok((program, args))
+}
+
+/// Without a current list nothing vouches for a listed tool's newer release, or for a tool the list has dropped since.
+fn listed_release_allowed(source: Source, list: crate::registry::ListState) -> Result<(), Failure> {
+    use crate::registry::ListState;
+    if source != Source::Community || matches!(list, ListState::Fresh | ListState::Expiring) {
+        return Ok(());
+    }
+    Err(Failure(
+        Reason::ListExpired,
+        "The list of community tools is out of date, so community tools cannot be installed or updated. Installed ones keep working.".into(),
+        Some("WireCat refreshes the list every day while it runs and is online. Try again after it has.".into()),
+    ))
 }
 
 const OWN_REGISTRY: &str = "https://registry.npmjs.org/";
@@ -797,6 +813,19 @@ mod tests {
         for manager in ["npm", "pnpm", "bun"] {
             let (_, ours) = install_command(manager, "@wirecat/tg-cli@1.0.0", None).unwrap();
             assert!(!ours.iter().any(|a| a.contains("registry")), "{manager}");
+        }
+    }
+
+    #[test]
+    fn a_community_tool_is_neither_installed_nor_updated_without_a_current_list() {
+        use crate::registry::ListState;
+        for state in [ListState::Expired, ListState::NeverFetched] {
+            assert!(matches!(listed_release_allowed(Source::Community, state), Err(Failure(Reason::ListExpired, ..))));
+            assert!(listed_release_allowed(Source::Own, state).is_ok(), "own tools do not use the list");
+            assert!(listed_release_allowed(Source::Official, state).is_ok());
+        }
+        for state in [ListState::Fresh, ListState::Expiring] {
+            assert!(listed_release_allowed(Source::Community, state).is_ok());
         }
     }
 

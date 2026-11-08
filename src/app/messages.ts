@@ -34,6 +34,7 @@ const en = {
     "This page hit an error it could not recover from. The rest of WireCat still works. Reload to try again.",
   appBrokeText: "The window hit an error it could not recover from. Reload to try again.",
   reload: "Reload",
+  hideNotice: "Hide this notice",
 }
 
 const ru: typeof en = {
@@ -71,6 +72,7 @@ const ru: typeof en = {
   appBrokeText:
     "В окне произошла ошибка, после которой оно не может продолжить работу. Перезагрузите, чтобы попробовать снова.",
   reload: "Перезагрузить",
+  hideNotice: "Скрыть это уведомление",
 }
 
 const es: typeof en = {
@@ -107,6 +109,7 @@ const es: typeof en = {
     "Esta página ha tenido un error del que no se puede recuperar. El resto de WireCat sigue funcionando. Recarga para volver a intentarlo.",
   appBrokeText: "La ventana ha tenido un error del que no se puede recuperar. Recarga para volver a intentarlo.",
   reload: "Recargar",
+  hideNotice: "Ocultar este aviso",
 }
 
 export const appMessages: Messages<typeof en> = { en, ru, es }
