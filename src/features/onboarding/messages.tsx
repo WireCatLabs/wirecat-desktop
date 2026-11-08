@@ -204,10 +204,6 @@ const en = {
     addAnother: "Add another account",
     add: "Add an account",
     noneNeeded: "No installed tool needs a sign-in yet.",
-    later: (n: number, names: string) =>
-      n === 1
-        ? `${names} can sign in once installed: open it on the Tools page and choose Manage.`
-        : `${names} can sign in once installed: open each on the Tools page and choose Manage.`,
     noSignIn: (n: number, names: string) => (n === 1 ? `${names} needs no sign-in.` : `${names} need no sign-in.`),
     gives: byId((t) => t.signIn?.gives) as ById,
     asks: byId((t) => t.signIn?.asks) as ById,
@@ -542,10 +538,6 @@ const ru: OnboardingText = {
     addAnother: "Добавить ещё аккаунт",
     add: "Добавить аккаунт",
     noneNeeded: "Пока ни одному установленному инструменту не нужен вход.",
-    later: (n, names) =>
-      n === 1
-        ? `В ${names} можно будет войти после установки: откройте его на странице «Инструменты» и нажмите «Управление».`
-        : `В ${names} можно будет войти после установки: откройте каждый на странице «Инструменты» и нажмите «Управление».`,
     noSignIn: (_n, names) => `Для ${names} вход не нужен.`,
     gives: {
       tg: "Агент сможет читать ваши чаты в Telegram, искать в них и отправлять сообщения, когда вы попросите.",
@@ -860,10 +852,6 @@ const es: OnboardingText = {
     addAnother: "Añadir otra cuenta",
     add: "Añadir una cuenta",
     noneNeeded: "Ninguna herramienta instalada necesita iniciar sesión por ahora.",
-    later: (n, names) =>
-      n === 1
-        ? `Podrás iniciar sesión en ${names} cuando esté instalada: ábrela en la página Herramientas y elige Gestionar.`
-        : `Podrás iniciar sesión en ${names} cuando estén instaladas: abre cada una en la página Herramientas y elige Gestionar.`,
     noSignIn: (n, names) =>
       n === 1 ? `${names} no necesita iniciar sesión.` : `${names} no necesitan iniciar sesión.`,
     gives: {

@@ -1,14 +1,23 @@
 import { LogIn, Terminal } from "lucide-react"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { type CatalogTool, signsInHere } from "@/domain/catalog"
+import { type CatalogTool, isCommunity, ownerId, signsInHere, tools } from "@/domain/catalog"
 import { accountReady, afterSignIn, signInGroups, signsIn } from "@/domain/onboarding-flow"
-import { ManualSetup, NewProfile, TerminalStatus, useProfiles, useTerminal } from "@/features/tools"
+import {
+  InstallPanel,
+  ManualSetup,
+  NewProfile,
+  TerminalStatus,
+  toolsMessages,
+  useProfiles,
+  useTerminal,
+} from "@/features/tools"
 import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
+import { useSystem } from "@/shared/system-store"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -106,15 +115,52 @@ function PendingSignInRow({ tool }: { tool: CatalogTool }) {
   )
 }
 
+/** A tool that is not on the computer yet: Install runs the usual install, then its row turns into a sign-in row. */
+function InstallRow({ tool, onInstall }: { tool: CatalogTool; onInstall: (id: string) => void }) {
+  const session = useTools((s) => s.sessions[ownerId(tool.id)])
+  const nodeReady = useSystem((s) => s.readiness?.node.ok ?? false)
+  const m = useMessages(onboardingMessages).install
+  const tm = useMessages(toolsMessages).row
+  const showPanel = Boolean(session) && !session?.closed?.includes(tool.id)
+  return (
+    <li className="border-line border-b last:border-b-0">
+      <div className="flex flex-col gap-[0.9rem] px-[1.3rem] py-[1.1rem]">
+        <SignInHeader tool={tool} />
+        {!showPanel && (
+          <div className={`${accountsArea} sm:flex-row sm:items-center`}>
+            <Lamp size="sm" tone="idle" />
+            <span className="min-w-0 flex-1 text-body text-ink-soft">{m.notInstalled}</span>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={!nodeReady}
+              title={nodeReady ? undefined : tm.nodeFirst}
+              onClick={() => {
+                onInstall(tool.id)
+                useTools.getState().install(tool.id, { check: true })
+              }}
+            >
+              {tm.install}
+            </Button>
+          </div>
+        )}
+      </div>
+      {showPanel && <InstallPanel tool={tool} />}
+    </li>
+  )
+}
+
 function SignInRow({
   tool,
   onReady,
+  startAdding,
 }: {
   tool: CatalogTool
   onReady: (id: string, ready: boolean | undefined) => void
+  startAdding: boolean
 }) {
   const { profiles, error, loading, reload } = useProfiles(tool.id)
-  const [adding, setAdding] = useState(false)
+  const [adding, setAdding] = useState(startAdding)
   const m = useMessages(onboardingMessages).signIn
   const manual = !tool.setup
   const count = profiles?.length ?? 0
@@ -225,7 +271,13 @@ export function SignIn() {
   const m = useMessages(onboardingMessages).signIn
   const list = useSetupTools()
   const detected = Object.keys(installs).length > 0
-  const { ready, waiting, noSignIn } = signInGroups(list, installs)
+  const { noSignIn } = signInGroups(list, installs)
+  const { ready, waiting } = signInGroups(
+    tools.filter((t) => !isCommunity(t)),
+    installs,
+  )
+  const [fresh, setFresh] = useState<readonly string[]>([])
+  const onInstall = useCallback((id: string) => setFresh((all) => [...all, id]), [])
   const [readyById, setReadyById] = useState<Record<string, boolean | undefined>>({})
   const onReady = useCallback(
     (id: string, ready: boolean | undefined) =>
@@ -261,17 +313,17 @@ export function SignIn() {
 
   return (
     <>
-      {ready.length > 0 ? (
+      {ready.length + waiting.length > 0 ? (
         <ul aria-label={m.list} className={rack}>
           {ready.map((t) => (
-            <SignInRow key={t.id} tool={t} onReady={onReady} />
+            <SignInRow key={t.id} tool={t} onReady={onReady} startAdding={fresh.includes(t.id)} />
+          ))}
+          {waiting.map((t) => (
+            <InstallRow key={t.id} tool={t} onInstall={onInstall} />
           ))}
         </ul>
       ) : (
         <p className="text-body text-ink-soft">{m.noneNeeded}</p>
-      )}
-      {waiting.length > 0 && (
-        <p className="text-body text-ink-soft">{m.later(waiting.length, formatList(waiting.map((t) => t.name)))}</p>
       )}
       {noSignIn.length > 0 && (
         <p className="text-body text-ink-soft">
