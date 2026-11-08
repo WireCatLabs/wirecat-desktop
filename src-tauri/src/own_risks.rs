@@ -150,7 +150,7 @@ pub fn uses_core(view: &Value) -> bool {
 fn out_of_range(spec: Option<&str>, min: &str) -> Option<Option<String>> {
     let Some(spec) = spec else { return Some(None) };
     let lowest = spec.trim().trim_start_matches(['^', '~', '=', '>', 'v', ' ']);
-    let ok = semver::Version::parse(lowest).ok().is_some_and(|v| {
+    let ok = semver::Version::parse(lowest).is_ok_and(|v| {
         let min = semver::Version::parse(min).expect("a valid minimum");
         v >= min && v.major < 1
     });
