@@ -25,6 +25,15 @@ export const OWN = "own"
 /** `bitrix24:northstar.example`, or `own` for the owner's own pipelines. */
 export const accountKey = (account: CrmAccount | null) => (account ? `${account.provider}:${account.account}` : OWN)
 
+/** The base board's narrowing by pipeline and account; an empty choice keeps every one. */
+export const inScope = (
+  card: { pipeline: string; account: CrmAccount | null },
+  pipelines: readonly string[],
+  accounts: readonly string[],
+) =>
+  (pipelines.length === 0 || pipelines.includes(card.pipeline)) &&
+  (accounts.length === 0 || accounts.includes(accountKey(card.account)))
+
 /** Who is responsible: the CRM's assignee is a person on the card with the role `owner`. */
 export const ownerOf = (card: CrmCard) => card.people.find((p) => p.role === "owner")?.name ?? null
 

@@ -1,11 +1,13 @@
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
+import { withBaseMove, withMapping } from "@/domain/base-stages"
 import { type Kind, withMove } from "@/domain/clients"
-import type { CrmAccount, CrmRead } from "@/platform/bindings"
+import type { CrmAccount, CrmBaseEdit, CrmBaseRef, CrmRead } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { queryClient } from "@/shared/query"
 import { useClients } from "./store"
 
 export type Ready = Extract<CrmRead, { kind: "ready" }>
+export type Based = Extract<CrmRead, { kind: "base" }>
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -36,9 +38,11 @@ export function useMove(kind: Kind, pipeline: string | null) {
     mutationFn: ({ ref, stage }: { ref: string; stage: string }) => platform.clientsMove(kind, ref, stage),
     onMutate: async ({ ref, stage }) => {
       useClients.getState().fail(ref, null)
+      useClients.getState().refuse(ref, null)
       await queryClient().cancelQueries({ queryKey: key })
       const before = queryClient().getQueryData<CrmRead>(key)
       if (before?.kind === "ready") queryClient().setQueryData<Ready>(key, withMove(before, ref, stage))
+      if (before?.kind === "base") queryClient().setQueryData<Based>(key, withBaseMove(before, ref, stage))
       return { before }
     },
     onError: (e, { ref }, context) => {
@@ -62,5 +66,40 @@ export function useScopeSet(account: CrmAccount | null) {
       account ? platform.clientsScopeSet(account, scope) : Promise.reject(new Error("no CRM account")),
     // The saved scope and the sync it starts change what memo holds: the board and the applied scope are read again.
     onSettled: () => readAgain(),
+  })
+}
+
+/** A pipeline's stage onto a base stage; it moves at once and goes back if memo refuses. */
+export function useMapSet(kind: Kind, pipeline: string | null) {
+  const key = clientKeys.board(kind, pipeline)
+  return useMutation({
+    mutationFn: ({ stage, base }: { stage: string; base: CrmBaseRef }) => platform.clientsMapSet(stage, base.ref),
+    onMutate: async ({ stage, base }) => {
+      await queryClient().cancelQueries({ queryKey: key })
+      const before = queryClient().getQueryData<CrmRead>(key)
+      if (before?.kind === "base") {
+        queryClient().setQueryData<Based>(key, { ...before, mapping: withMapping(before.mapping, stage, base) })
+      }
+      return { before }
+    },
+    onError: (_e, _v, context) => {
+      if (context?.before) queryClient().setQueryData(key, context.before)
+    },
+    // Counts per base column change with the mapping: memo counts them again.
+    onSettled: () => queryClient().invalidateQueries({ queryKey: key }),
+  })
+}
+
+export function useConfirm(kind: Kind, pipeline: string | null) {
+  return useMutation({
+    mutationFn: (pipelines: string[]) => platform.clientsMapConfirm(pipelines),
+    onSettled: () => queryClient().invalidateQueries({ queryKey: clientKeys.board(kind, pipeline) }),
+  })
+}
+
+export function useBaseEdit(kind: Kind, pipeline: string | null) {
+  return useMutation({
+    mutationFn: (edit: CrmBaseEdit) => platform.clientsBaseEdit(kind, edit),
+    onSettled: () => queryClient().invalidateQueries({ queryKey: clientKeys.board(kind, pipeline) }),
   })
 }

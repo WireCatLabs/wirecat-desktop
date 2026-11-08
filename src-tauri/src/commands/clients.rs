@@ -19,3 +19,21 @@ pub async fn clients_move(kind: CrmKind, reference: String, stage: String) -> Re
     )
     .await
 }
+
+#[tauri::command]
+pub async fn clients_map_set(stage: String, base: String) -> Result<(), AppError> {
+    crate::log::command("clients_map_set", async move { attempt(move || crm_board::map_stage(&stage, &base)).await })
+        .await
+}
+
+#[tauri::command]
+pub async fn clients_map_confirm(pipelines: Vec<String>) -> Result<(), AppError> {
+    crate::log::command("clients_map_confirm", async move { attempt(move || crm_board::confirm(&pipelines)).await })
+        .await
+}
+
+#[tauri::command]
+pub async fn clients_base_edit(kind: CrmKind, edit: crm_board::CrmBaseEdit) -> Result<(), AppError> {
+    crate::log::command("clients_base_edit", async move { attempt(move || crm_board::edit_base(kind, &edit)).await })
+        .await
+}

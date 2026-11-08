@@ -16,7 +16,7 @@ export function CardDialog() {
   const pipeline = useClients((s) => s.pipeline[kind] ?? null)
   const open = useClients((s) => s.open)
   const { data } = useBoard(kind, pipeline)
-  const card = data?.kind === "ready" ? data.cards.find((c) => c.ref === open) : undefined
+  const card = data?.kind === "ready" || data?.kind === "base" ? data.cards.find((c) => c.ref === open) : undefined
   const close = () => useClients.getState().setOpen(null)
   const day = (iso: string | null) =>
     iso ? formatDate(`${iso.slice(0, 10)}T00:00:00`, { day: "numeric", month: "long", year: "numeric" }, lang) : null
@@ -39,6 +39,7 @@ export function CardDialog() {
               {card.stage} · {m.statusOf[card.status] ?? card.status}
             </span>
           </Row>
+          <Row label={m.baseStage}>{card.baseStage?.name}</Row>
           <Row label={m.amount}>{card.amount && card.currency ? moneyOf(card.amount, card.currency, lang) : null}</Row>
           <Row label={m.organization}>{card.organization}</Row>
           <Row label={m.people}>

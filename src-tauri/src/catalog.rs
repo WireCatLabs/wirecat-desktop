@@ -61,7 +61,7 @@ pub struct Tool {
     pub task_board: Option<TaskBoardSource>,
     /// The Clients page's lowest memo, the first whose `pipelines show` sums each stage per currency.
     #[serde(default)]
-    pub crm_board: Option<TaskBoardSource>,
+    pub crm_board: Option<CrmBoardSource>,
     /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
     #[serde(default)]
     pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,
@@ -203,6 +203,16 @@ pub struct TasksSource {
 #[serde(rename_all = "camelCase")]
 pub struct TaskBoardSource {
     pub min_version: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CrmBoardSource {
+    pub min_version: String,
+    /// The first memo with base stages (`stages base|map`, `pipelines list --base`); absent until one is released,
+    /// and below it the board shows one pipeline's own stages.
+    #[serde(default)]
+    pub base_stages_min_version: Option<String>,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.

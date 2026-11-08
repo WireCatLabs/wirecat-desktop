@@ -7,7 +7,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
-import { type Ready, useScope, useScopeSet } from "./api"
+import { type Based, type Ready, useScope, useScopeSet } from "./api"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
@@ -104,6 +104,64 @@ function ScopeSwitch({ account }: { account: CrmAccount }) {
         {!set.isPending && answer?.applied && ` ${m.applied(answer.applied.mode)}`}
       </span>
       {set.error && <ErrorNotice inline>{m.scopeFailed(set.error.message)}</ErrorNotice>}
+    </div>
+  )
+}
+
+/** The base board's filters: account and pipeline narrow the cards of every pipeline, as owner and stage do. */
+export function BaseFilters({ read }: { read: Based }) {
+  const m = useMessages(clientMessages)
+  const query = useClients((s) => s.query)
+  const pipelines = useClients((s) => s.pipelines)
+  const accounts = useClients((s) => s.accounts)
+  const { setQuery, setPipelines, setAccounts } = useClients.getState()
+  const listed = [...new Map(read.pipelines.map((p) => [accountKey(p.account), p.account])).entries()]
+  const offered = read.pipelines.filter((p) => accounts.length === 0 || accounts.includes(accountKey(p.account)))
+  const one = accounts.length === 1 ? listed.find(([key]) => key === accounts[0])?.[1] : undefined
+  const field = (f: "owner" | "stage") => ({
+    selected: valuesOf(query, f),
+    onChange: (values: string[]) => setQuery(setField(query, f, values)),
+  })
+  return (
+    <div className="flex flex-col gap-[0.7rem]">
+      <FilterBar query={query} onQuery={setQuery} label={m.search} placeholder={m.searchHint}>
+        {listed.length > 1 && (
+          <FilterMenu
+            label={m.account}
+            options={listed.map(([key, a]) => ({
+              value: key,
+              label: name(a, m.ownAccount),
+              icon: a ? <Building2 className="size-4" aria-hidden /> : <User className="size-4" aria-hidden />,
+            }))}
+            selected={accounts}
+            onChange={(keys) => {
+              setAccounts(keys)
+              const kept = (ref: string) =>
+                read.pipelines.some((p) => p.ref === ref && keys.includes(accountKey(p.account)))
+              setPipelines(keys.length === 0 ? pipelines : pipelines.filter(kept))
+            }}
+          />
+        )}
+        {offered.length > 1 && (
+          <FilterMenu
+            label={m.pipeline}
+            options={offered.map((p) => ({ value: p.ref, label: p.name, hint: p.account?.provider ?? m.ownAccount }))}
+            selected={pipelines}
+            onChange={setPipelines}
+          />
+        )}
+        <FilterMenu
+          label={m.owner}
+          options={ownersOf(read.cards).map((o) => ({ value: o, label: o === NOBODY ? m.nobody : o }))}
+          {...field("owner")}
+        />
+        <FilterMenu
+          label={m.stage}
+          options={[...new Set(read.cards.map((c) => c.stage))].map((st) => ({ value: st, label: st }))}
+          {...field("stage")}
+        />
+      </FilterBar>
+      {one && <ScopeSwitch account={one} />}
     </div>
   )
 }

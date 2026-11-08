@@ -98,6 +98,8 @@ export function useBoardDrag<C extends string = string>(o: {
   onCancel?: (key: string) => void
   /** `false`, or the reason as text, refuses the column: the card goes back and `putBack` says why. */
   canDrop?: (key: string, to: C) => boolean | string
+  /** `canDrop` refused this drop, for a board that also shows the reason on screen. */
+  onRefuse?: (key: string, to: C, reason?: string) => void
   /** With `cardsIn`, Space lifts a card and the arrow keys carry it; without them only the pointer moves cards. */
   columns?: readonly C[]
   cardsIn?: (column: C) => string[]
@@ -134,7 +136,9 @@ export function useBoardDrag<C extends string = string>(o: {
         current.filter((k) => k !== key)[current.indexOf(key)] === (before ?? undefined))
     const answer = unchanged ? true : verdict(key, to)
     if (unchanged || answer !== true) {
-      say(o.words?.putBack?.(key, typeof answer === "string" ? answer : undefined))
+      const reason = typeof answer === "string" ? answer : undefined
+      say(o.words?.putBack?.(key, reason))
+      if (!unchanged) o.onRefuse?.(key, to, reason)
       return
     }
     say(o.words?.dropped?.(key, to))

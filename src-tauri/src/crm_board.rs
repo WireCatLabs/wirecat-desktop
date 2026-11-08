@@ -5,6 +5,12 @@
 //!
 //! A move writes through `memo <kind>s move`, which changes only what Memo itself keeps: a CRM's copy is changed in
 //! the CRM by that CRM's own CLI, which the app cannot run yet, so such a pipeline answers `movable: no`.
+//!
+//! With a memo that has base stages (catalog `crmBoard.baseStagesMinVersion`), the board's columns are the owner's
+//! base set and the cards come from every pipeline; below it, one pipeline's own stages as before. `base` holds every
+//! argv and field name of the base-stage commands.
+
+mod base;
 
 use crate::memo_cli::{Call, Failure, with_memo};
 use crate::skills::body;
@@ -12,6 +18,7 @@ use crate::task_board::{self, Unusable, with_query, words};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
+use std::collections::HashSet;
 use std::time::Duration;
 
 const LIMIT: &str = "500";
@@ -76,6 +83,67 @@ pub struct CrmPipeline {
     pub account: Option<CrmAccount>,
     /// Open deals or leads in all its stages, as memo counts them.
     pub open: u32,
+    /// Whether the app may move its cards: on a board of several pipelines each card asks its own.
+    pub movable: CrmMovable,
+}
+
+/// A base stage as a card or a mapping names it.
+#[derive(Serialize, Type, Debug, Clone, PartialEq)]
+pub struct CrmBaseRef {
+    #[serde(rename = "ref")]
+    pub reference: String,
+    pub name: String,
+}
+
+/// One column of the base set, with memo's count and sums across every pipeline and account.
+#[derive(Serialize, Type, Debug, PartialEq)]
+pub struct CrmBaseStage {
+    #[serde(rename = "ref")]
+    pub reference: String,
+    pub name: String,
+    /// `open`, `won` or `lost`.
+    pub outcome: String,
+    pub items: u32,
+    pub amounts: Vec<CrmAmount>,
+}
+
+/// A pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion.
+#[derive(Serialize, Type, Debug, PartialEq)]
+pub struct CrmStageMap {
+    #[serde(rename = "ref")]
+    pub reference: String,
+    pub name: String,
+    pub outcome: String,
+    pub pipeline: String,
+    /// Deals or leads standing in it now.
+    pub items: u32,
+    pub base: Option<CrmBaseRef>,
+    pub confirmed: bool,
+}
+
+/// A change to the base set; memo keeps at least one stage per outcome and refuses what would break it.
+#[derive(Deserialize, Type, Debug)]
+#[serde(tag = "op", rename_all = "camelCase")]
+pub enum CrmBaseEdit {
+    Add {
+        name: String,
+        outcome: String,
+    },
+    Rename {
+        #[serde(rename = "ref")]
+        reference: String,
+        name: String,
+    },
+    /// `position` counts from 1, in the set's order.
+    Move {
+        #[serde(rename = "ref")]
+        reference: String,
+        position: u32,
+    },
+    Remove {
+        #[serde(rename = "ref")]
+        reference: String,
+    },
 }
 
 #[derive(Serialize, Type, Debug, PartialEq)]
@@ -104,6 +172,8 @@ pub struct CrmCard {
     pub closed_reason: Option<String>,
     pub project_name: Option<String>,
     pub account: Option<CrmAccount>,
+    /// The base stage its stage points to; `None` on a board of one pipeline's stages or while unmapped.
+    pub base_stage: Option<CrmBaseRef>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -137,6 +207,15 @@ pub enum CrmRead {
         /// More open ones match than one read holds; the counts above the columns still hold them all.
         more: bool,
         movable: CrmMovable,
+    },
+    /// Base stages as columns, cards of every pipeline of the kind; `mapping` is every other pipeline's stages.
+    #[serde(rename_all = "camelCase")]
+    Base {
+        pipelines: Vec<CrmPipeline>,
+        base: Vec<CrmBaseStage>,
+        mapping: Vec<CrmStageMap>,
+        cards: Vec<CrmCard>,
+        more: bool,
     },
 }
 
@@ -183,7 +262,9 @@ fn account(v: &Value) -> Option<CrmAccount> {
 
 fn pipeline(v: &Value) -> Option<CrmPipeline> {
     let open = v["stages"].as_array().map_or(0, |a| a.iter().map(|st| count(st, "open")).sum());
-    Some(CrmPipeline { reference: text(v, "ref")?, name: text(v, "name")?, account: account(v), open })
+    let account = account(v);
+    let movable = if account.is_some() { CrmMovable::No { why: "crmCli".into() } } else { CrmMovable::Yes };
+    Some(CrmPipeline { reference: text(v, "ref")?, name: text(v, "name")?, account, open, movable })
 }
 
 fn stage(v: &Value) -> Option<CrmStage> {
@@ -216,6 +297,7 @@ fn card(v: &Value) -> Option<CrmCard> {
         closed_reason: text(v, "closed_reason"),
         project_name: text(v, "project_name"),
         account: account(v),
+        base_stage: base::base_ref(v),
         created_at: text(v, "created_at").unwrap_or_default(),
         updated_at: text(v, "updated_at").unwrap_or_default(),
     })
@@ -234,10 +316,26 @@ fn busiest(pipelines: &[CrmPipeline]) -> Option<&CrmPipeline> {
     pipelines.iter().rev().max_by_key(|p| p.open)
 }
 
-fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead, Failure> {
+fn pipelines_with(call: &Call, kind: CrmKind) -> Result<Vec<CrmPipeline>, Failure> {
     let listed = call(&with_query(&["pipelines", "list"], &format!("kind:{}", kind.noun())))?;
-    let pipelines: Vec<CrmPipeline> =
-        listed["items"].as_array().map(|a| a.iter().filter_map(pipeline).collect()).unwrap_or_default();
+    Ok(listed["items"].as_array().map(|a| a.iter().filter_map(pipeline).collect()).unwrap_or_default())
+}
+
+/// The open ones in full up to the limit, the newest closed ones capped; `scope` narrows memo's query, if any.
+fn cards_with(call: &Call, kind: CrmKind, scope: &str) -> Result<(Vec<CrmCard>, bool), Failure> {
+    // memo answers the newest of any status first, so a portal's years of closed deals would push the open ones out.
+    let mut more = false;
+    let mut cards = Vec::new();
+    for (status, limit) in [("open", LIMIT), ("won", CLOSED), ("lost", CLOSED)] {
+        let list = call(&with_query(&[kind.plural(), "list", "--limit", limit], &format!("{scope}status:{status}")))?;
+        more |= status == "open" && list["page"]["has_more"].as_bool().unwrap_or(false);
+        cards.extend(list["items"].as_array().into_iter().flatten().filter_map(card));
+    }
+    Ok((cards, more))
+}
+
+fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead, Failure> {
+    let pipelines = pipelines_with(call, kind)?;
     let chosen = asked.and_then(|r| pipelines.iter().find(|p| p.reference == r)).or_else(|| busiest(&pipelines));
     let Some(chosen) = chosen else {
         return Ok(CrmRead::Ready {
@@ -251,17 +349,7 @@ fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead,
     };
     let shown = call(&words(&["pipelines", "show", &chosen.reference]))?;
     let stages = body(&shown)["stages"].as_array().map(|a| a.iter().filter_map(stage).collect()).unwrap_or_default();
-    // memo answers the newest of any status first, so a portal's years of closed deals would push the open ones out.
-    let mut more = false;
-    let mut cards = Vec::new();
-    for (status, limit) in [("open", LIMIT), ("won", CLOSED), ("lost", CLOSED)] {
-        let list = call(&with_query(
-            &[kind.plural(), "list", "--limit", limit],
-            &format!("pipeline:\"{}\" status:{status}", chosen.reference),
-        ))?;
-        more |= status == "open" && list["page"]["has_more"].as_bool().unwrap_or(false);
-        cards.extend(list["items"].as_array().into_iter().flatten().filter_map(card));
-    }
+    let (cards, more) = cards_with(call, kind, &format!("pipeline:\"{}\" ", chosen.reference))?;
     Ok(CrmRead::Ready {
         pipeline: Some(chosen.reference.clone()),
         movable: movable(Some(chosen)),
@@ -272,27 +360,48 @@ fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>) -> Result<CrmRead,
     })
 }
 
-fn gate() -> Result<Option<CrmRead>, String> {
-    let need = crate::catalog::tool("memo")?
-        .crm_board
-        .as_ref()
-        .ok_or("Memo has no Clients page in the catalog")?
-        .min_version
-        .clone();
-    Ok(task_board::memo_unusable(&need)?.map(|u| match u {
-        Unusable::Missing => CrmRead::Missing,
-        Unusable::Old { version, need } => CrmRead::Old { version, need },
-    }))
+fn read_base_with(call: &Call, kind: CrmKind) -> Result<CrmRead, Failure> {
+    let pipelines = pipelines_with(call, kind)?;
+    let base = base::columns(&call(&base::columns_args(kind))?);
+    let ours: HashSet<&str> = pipelines.iter().map(|p| p.reference.as_str()).collect();
+    let mapping = base::mapping(&call(&base::mapping_args())?)
+        .into_iter()
+        .filter(|m| ours.contains(m.pipeline.as_str()))
+        .collect();
+    let (cards, more) = cards_with(call, kind, "")?;
+    Ok(CrmRead::Base { pipelines, base, mapping, cards, more })
 }
 
+enum Mode {
+    Unusable(CrmRead),
+    Pipeline,
+    Base,
+}
+
+fn gate() -> Result<Mode, String> {
+    let source = crate::catalog::tool("memo")?.crm_board.as_ref().ok_or("Memo has no Clients page in the catalog")?;
+    if let Some(u) = task_board::memo_unusable(&source.min_version)? {
+        return Ok(Mode::Unusable(match u {
+            Unusable::Missing => CrmRead::Missing,
+            Unusable::Old { version, need } => CrmRead::Old { version, need },
+        }));
+    }
+    Ok(match source.base_stages_min_version.as_deref() {
+        Some(need) if task_board::memo_unusable(need)?.is_none() => Mode::Base,
+        _ => Mode::Pipeline,
+    })
+}
+
+/// `pipeline` chooses the board of one pipeline's stages; the base board holds every pipeline and ignores it.
 pub fn read(kind: CrmKind, pipeline: Option<&str>) -> Result<CrmRead, String> {
     if let Some(p) = pipeline {
         validate_pipeline(p)?;
     }
-    if let Some(r) = gate()? {
-        return Ok(r);
+    match gate()? {
+        Mode::Unusable(r) => Ok(r),
+        Mode::Pipeline => with_memo(READ, |call| read_with(call, kind, pipeline)),
+        Mode::Base => with_memo(READ, |call| read_base_with(call, kind)),
     }
-    with_memo(READ, |call| read_with(call, kind, pipeline))
 }
 
 fn move_with(call: &Call, kind: CrmKind, reference: &str, stage: &str) -> Result<CrmCard, Failure> {
@@ -302,9 +411,65 @@ fn move_with(call: &Call, kind: CrmKind, reference: &str, stage: &str) -> Result
     card(body(&moved)).ok_or_else(|| invalid(format!("memo did not answer the moved {}", kind.noun())))
 }
 
-/// Moves the owner's own deal or lead; Memo refuses a CRM's copy itself ("change it there").
+/// Moves the owner's own deal or lead; Memo refuses a CRM's copy itself ("change it there"). The stage is always the
+/// card's own pipeline's: the page resolves a base column to it from the mapping it read.
 pub fn move_card(kind: CrmKind, reference: &str, stage: &str) -> Result<CrmCard, String> {
     with_memo(WRITE, |call| move_with(call, kind, reference, stage))
+}
+
+fn map_with(call: &Call, stage: &str, to: &str) -> Result<(), Failure> {
+    base::validate_stage_ref(stage).map_err(invalid)?;
+    base::validate_stage_ref(to).map_err(invalid)?;
+    call(&base::set_args(stage, to)).map(drop)
+}
+
+/// Points a pipeline's stage at a base stage, which also confirms it.
+pub fn map_stage(stage: &str, to: &str) -> Result<(), String> {
+    with_memo(WRITE, |call| map_with(call, stage, to))
+}
+
+fn confirm_with(call: &Call, pipelines: &[String]) -> Result<(), Failure> {
+    for p in pipelines {
+        validate_pipeline(p).map_err(invalid)?;
+    }
+    // One call per pipeline: memo's `--all` spans both kinds, and the page confirms only the kind it shows.
+    for p in pipelines {
+        call(&base::confirm_args(p))?;
+    }
+    Ok(())
+}
+
+pub fn confirm(pipelines: &[String]) -> Result<(), String> {
+    with_memo(WRITE, |call| confirm_with(call, pipelines))
+}
+
+fn edit_with(call: &Call, kind: CrmKind, edit: &CrmBaseEdit) -> Result<(), Failure> {
+    let args = match edit {
+        CrmBaseEdit::Add { name, outcome } => base::add_args(
+            kind,
+            validate_stage(name).map_err(invalid)?,
+            base::validate_outcome(outcome).map_err(invalid)?,
+        ),
+        CrmBaseEdit::Rename { reference, name } => base::rename_args(
+            kind,
+            base::validate_stage_ref(reference).map_err(invalid)?,
+            validate_stage(name).map_err(invalid)?,
+        ),
+        CrmBaseEdit::Move { reference, position } => {
+            if *position == 0 {
+                return Err(invalid("a position counts from 1".into()));
+            }
+            base::move_args(kind, base::validate_stage_ref(reference).map_err(invalid)?, &position.to_string())
+        }
+        CrmBaseEdit::Remove { reference } => {
+            base::remove_args(kind, base::validate_stage_ref(reference).map_err(invalid)?)
+        }
+    };
+    call(&args).map(drop)
+}
+
+pub fn edit_base(kind: CrmKind, edit: &CrmBaseEdit) -> Result<(), String> {
+    with_memo(WRITE, |call| edit_with(call, kind, edit))
 }
 
 #[cfg(test)]
@@ -419,6 +584,109 @@ mod tests {
         let moved = move_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, "deal:2", "Quote").unwrap();
         assert_eq!(moved.stage, "Quote");
         assert_eq!(seen.lock().unwrap()[0], ["deals", "move", "deal:2", "Quote", "--json", "--no-record"]);
+    }
+
+    // The design's shapes (TASK-947); cli-core's are not released yet, so these follow base-stages.md.
+    fn based(args: &[String]) -> Value {
+        match (args[0].as_str(), args[1].as_str(), args[2].as_str()) {
+            ("pipelines", "list", "--base") => json!({"items":[
+                {"ref":"stage:1","name":"New","outcome":"open","position":1,"items":2,"amounts":[]},
+                {"ref":"stage:3","name":"Proposal","outcome":"open","position":3,"items":1,
+                 "amounts":[{"amount":"500000.00","currency":"RUB","items":1}]}]}),
+            ("stages", "map", "list") => json!({"items":[
+                {"ref":"stage:41","name":"Invoice sent","outcome":"open","pipeline":"pipeline:7","items":3,
+                 "base_stage":{"ref":"stage:3","name":"Proposal"},"base_confirmed":true},
+                {"ref":"stage:42","name":"Unknown","outcome":"open","pipeline":"pipeline:7","base_stage":null,
+                 "base_confirmed":false},
+                {"ref":"stage:90","name":"Good lead","outcome":"won","pipeline":"pipeline:8",
+                 "base_stage":{"ref":"stage:20","name":"Converted"},"base_confirmed":true}]}),
+            ("deals", "list", _) => {
+                let mut d = deal();
+                d["base_stage"] = json!({"ref":"stage:3","name":"Proposal"});
+                json!({"items":[d],"page":{"has_more":false}})
+            }
+            ("pipelines", "list", _) => pipelines(),
+            _ => json!({"item":{}}),
+        }
+    }
+
+    #[test]
+    fn a_base_read_holds_the_base_columns_every_pipelines_cards_and_this_kinds_mapping() {
+        let seen = Mutex::new(vec![]);
+        let read = read_base_with(
+            &|a: &[String]| {
+                seen.lock().unwrap().push(a.to_vec());
+                Ok(based(a))
+            },
+            CrmKind::Deal,
+        )
+        .unwrap();
+        let CrmRead::Base { pipelines, base, mapping, cards, more } = read else { panic!("not a base read") };
+        assert_eq!(pipelines[1].movable, CrmMovable::No { why: "crmCli".into() });
+        assert_eq!(base[1].amounts[0].currency, "RUB");
+        assert_eq!(mapping.iter().map(|m| m.reference.as_str()).collect::<Vec<_>>(), ["stage:41", "stage:42"]);
+        assert!(mapping[0].confirmed && mapping[1].base.is_none());
+        assert_eq!(cards[0].base_stage, Some(CrmBaseRef { reference: "stage:3".into(), name: "Proposal".into() }));
+        assert!(!more);
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen[1], ["pipelines", "list", "--base", "--json", "--no-record", "--", "kind:deal"]);
+        assert_eq!(seen[2], ["stages", "map", "list", "--json", "--no-record"]);
+        assert_eq!(seen[3], ["deals", "list", "--limit", "500", "--json", "--no-record", "--", "status:open"]);
+    }
+
+    #[test]
+    fn base_writes_name_stages_by_ref_and_confirm_one_pipeline_at_a_time() {
+        let seen = Mutex::new(vec![]);
+        let call = |a: &[String]| {
+            seen.lock().unwrap().push(a.to_vec());
+            Ok(based(a))
+        };
+        map_with(&call, "stage:42", "stage:3").unwrap();
+        confirm_with(&call, &["pipeline:7".into(), "pipeline:2".into()]).unwrap();
+        let edits = [
+            CrmBaseEdit::Add { name: "Demo".into(), outcome: "open".into() },
+            CrmBaseEdit::Rename { reference: "stage:3".into(), name: "Offer".into() },
+            CrmBaseEdit::Move { reference: "stage:3".into(), position: 2 },
+            CrmBaseEdit::Remove { reference: "stage:3".into() },
+        ];
+        for e in &edits {
+            edit_with(&call, CrmKind::Lead, e).unwrap();
+        }
+        let seen: Vec<String> = seen.lock().unwrap().iter().map(|a| a.join(" ")).collect();
+        assert_eq!(
+            seen,
+            [
+                "stages map set stage:42 stage:3 --json --no-record",
+                "stages map confirm --pipeline pipeline:7 --json --no-record",
+                "stages map confirm --pipeline pipeline:2 --json --no-record",
+                "stages base add lead Demo --outcome open --json --no-record",
+                "stages base rename lead stage:3 Offer --json --no-record",
+                "stages base move lead stage:3 2 --json --no-record",
+                "stages base remove lead stage:3 --json --no-record",
+            ]
+        );
+    }
+
+    #[test]
+    fn base_writes_refuse_a_bad_ref_name_outcome_or_position_before_memo_runs() {
+        let seen = Mutex::new(0);
+        let call = |a: &[String]| {
+            *seen.lock().unwrap() += 1;
+            Ok(based(a))
+        };
+        assert!(map_with(&call, "pipeline:7", "stage:3").is_err());
+        assert!(confirm_with(&call, &["pipeline:7".into(), "stage:1".into()]).is_err());
+        assert!(
+            edit_with(&call, CrmKind::Deal, &CrmBaseEdit::Add { name: "--all".into(), outcome: "open".into() })
+                .is_err()
+        );
+        assert!(
+            edit_with(&call, CrmKind::Deal, &CrmBaseEdit::Add { name: "X".into(), outcome: "maybe".into() }).is_err()
+        );
+        assert!(
+            edit_with(&call, CrmKind::Deal, &CrmBaseEdit::Move { reference: "stage:3".into(), position: 0 }).is_err()
+        );
+        assert_eq!(*seen.lock().unwrap(), 0);
     }
 
     #[test]

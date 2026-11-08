@@ -23,6 +23,7 @@ import type {
   ChosenFolders,
   Conversation,
   CrmAccount,
+  CrmBaseEdit,
   CrmCard,
   CrmKind,
   CrmRead,
@@ -291,6 +292,12 @@ export type Platform = {
   clientsScope(account: CrmAccount): Promise<CrmScope>
   /** Saves the account's scope and syncs it again. */
   clientsScopeSet(account: CrmAccount, scope: "mine" | "all"): Promise<void>
+  /** Points a pipeline's stage (`stage:<id>`) at a base stage; memo takes it as confirmed. */
+  clientsMapSet(stage: string, base: string): Promise<void>
+  /** Confirms memo's suggested mapping of every stage of these pipelines that points to a base stage. */
+  clientsMapConfirm(pipelines: string[]): Promise<void>
+  /** Adds, renames, moves or removes a stage of the kind's base set. */
+  clientsBaseEdit(kind: CrmKind, edit: CrmBaseEdit): Promise<void>
   taskList(query: string): Promise<TaskRead>
   /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */
   taskCounts(query: string): Promise<TaskCounts>

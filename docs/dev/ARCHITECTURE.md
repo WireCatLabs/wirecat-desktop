@@ -122,7 +122,9 @@ src-tauri/src/
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   crm_board.rs  the Clients page: memo's deals and leads of one pipeline by stage, each stage's count and sums per
                 currency from `pipelines show`, and moving the owner's own through `<kind>s move`. A CRM's copy is read
-                only: its own CLI changes it, and the catalog has none yet.
+                only: its own CLI changes it, and the catalog has none yet. With a memo at the catalog's
+                `crmBoard.baseStagesMinVersion`, the columns are the owner's base set and the cards come from every
+                pipeline; `crm_board/base.rs` alone knows the base-stage commands' argv and JSON.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
   redact.rs     masking tokens, numbers, addresses and names in tool output.

@@ -222,6 +222,27 @@ export type CrmAmount = {
 	items: number,
 };
 
+/**  A change to the base set; memo keeps at least one stage per outcome and refuses what would break it. */
+export type CrmBaseEdit = { op: "add"; name: string; outcome: string } | { op: "rename"; ref: string; name: string } | 
+/**  `position` counts from 1, in the set's order. */
+{ op: "move"; ref: string; position: number } | { op: "remove"; ref: string };
+
+/**  A base stage as a card or a mapping names it. */
+export type CrmBaseRef = {
+	ref: string,
+	name: string,
+};
+
+/**  One column of the base set, with memo's count and sums across every pipeline and account. */
+export type CrmBaseStage = {
+	ref: string,
+	name: string,
+	/**  `open`, `won` or `lost`. */
+	outcome: string,
+	items: number,
+	amounts: CrmAmount[],
+};
+
 export type CrmCard = {
 	ref: string,
 	title: string,
@@ -238,6 +259,8 @@ export type CrmCard = {
 	closedReason: string | null,
 	projectName: string | null,
 	account: CrmAccount | null,
+	/**  The base stage its stage points to; `None` on a board of one pipeline's stages or while unmapped. */
+	baseStage: CrmBaseRef | null,
 	createdAt: string,
 	updatedAt: string,
 };
@@ -261,13 +284,17 @@ export type CrmPipeline = {
 	account: CrmAccount | null,
 	/**  Open deals or leads in all its stages, as memo counts them. */
 	open: number,
+	/**  Whether the app may move its cards: on a board of several pipelines each card asks its own. */
+	movable: CrmMovable,
 };
 
 export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 
 /**  `pipeline` is the one asked for, or the first Memo lists; `None` when there is none of this kind. */
 { kind: "ready"; pipelines: CrmPipeline[]; pipeline: string | null; stages: CrmStage[]; cards: CrmCard[]; 
 /**  More open ones match than one read holds; the counts above the columns still hold them all. */
-more: boolean; movable: CrmMovable };
+more: boolean; movable: CrmMovable } | 
+/**  Base stages as columns, cards of every pipeline of the kind; `mapping` is every other pipeline's stages. */
+{ kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean };
 
 export type CrmStage = {
 	name: string,
@@ -276,6 +303,18 @@ export type CrmStage = {
 	/**  Every deal or lead standing in it now, as Memo counts them. */
 	items: number,
 	amounts: CrmAmount[],
+};
+
+/**  A pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion. */
+export type CrmStageMap = {
+	ref: string,
+	name: string,
+	outcome: string,
+	pipeline: string,
+	/**  Deals or leads standing in it now. */
+	items: number,
+	base: CrmBaseRef | null,
+	confirmed: boolean,
 };
 
 export type Diagnosis = {

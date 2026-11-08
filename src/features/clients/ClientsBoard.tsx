@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type PointerEvent, useRef } from "react"
+import { type KeyboardEvent, type PointerEvent, type ReactNode, useRef } from "react"
 import { amountsOf, canDrop, columnsOf, type Kind, moneyOf, ownerOf, sumsOf } from "@/domain/clients"
 import { useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
@@ -101,9 +101,13 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
   )
 }
 
-function Card(props: {
+export function Card(props: {
   card: CrmCard
   movable: boolean
+  /** The card's real stage, on a board whose columns are base stages. */
+  badge?: ReactNode
+  /** Why a drop was refused, with what to do about it. */
+  notice?: ReactNode
   ghost: boolean
   held: boolean
   onPointerDown: ((e: PointerEvent<HTMLElement>) => void) | undefined
@@ -129,23 +133,25 @@ function Card(props: {
       onClick={props.onOpen}
       className={cardClass(props.ghost, props.held, movable)}
     >
-      <CardBody card={card} />
+      <CardBody card={card} badge={props.badge} />
       {failed && (
         <div className="px-[0.9rem] pb-[0.6rem]">
           <ErrorNotice inline>{m.notMoved(failed)}</ErrorNotice>
         </div>
       )}
+      {props.notice && <div className="px-[0.9rem] pb-[0.6rem]">{props.notice}</div>}
     </div>
   )
 }
 
-function CardBody({ card }: { card: CrmCard }) {
+export function CardBody({ card, badge }: { card: CrmCard; badge?: ReactNode | undefined }) {
   const m = useMessages(clientMessages)
   const lang = useLang()
   const owner = ownerOf(card)
   return (
     <div className="flex flex-col gap-[0.35rem] px-[0.9rem] py-[0.7rem]">
       <p className="line-clamp-3 text-[0.95rem] leading-snug font-medium">{card.title}</p>
+      {badge}
       {card.organization && <p className="truncate text-[0.9rem] text-ink-soft">{card.organization}</p>}
       <div className="flex min-w-0 items-center gap-[0.5rem] text-[0.9rem] text-ink-soft">
         <span className="min-w-0 truncate">{owner ?? m.nobody}</span>

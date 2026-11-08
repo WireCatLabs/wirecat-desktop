@@ -1,15 +1,30 @@
 import userEvent from "@testing-library/user-event"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { clientsMock } from "@/platform/mock-clients"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { ClientsPage } from "./ClientsPage"
+import { useClients } from "./store"
 
+// A mock of its own per test: a write still under way from the last test must not move a card in this one.
+function freshMemo(based?: boolean) {
+  const memo = clientsMock(based)
+  vi.spyOn(platform, "clientsRead").mockImplementation(memo.clientsRead)
+  vi.spyOn(platform, "clientsMove").mockImplementation(memo.clientsMove)
+  vi.spyOn(platform, "clientsMapSet").mockImplementation(memo.clientsMapSet)
+  vi.spyOn(platform, "clientsMapConfirm").mockImplementation(memo.clientsMapConfirm)
+  vi.spyOn(platform, "clientsBaseEdit").mockImplementation(memo.clientsBaseEdit)
+}
+
+beforeEach(() => useClients.setState(useClients.getInitialState(), true))
 afterEach(() => vi.restoreAllMocks())
 
 const column = (name: RegExp) => screen.findByRole("region", { name }, { timeout: 4000 })
 const card = (title: string) => screen.findByRole("button", { name: title }, { timeout: 4000 })
 
-describe("Clients", () => {
+describe("Clients with a memo without base stages", () => {
+  beforeEach(() => freshMemo(false))
+
   it("shows the deals by stage with memo's count and sum per column, and switches to the leads", async () => {
     const user = userEvent.setup()
     render(<ClientsPage />)
@@ -93,5 +108,144 @@ describe("Clients", () => {
     vi.spyOn(platform, "clientsRead").mockResolvedValue({ kind: "missing" })
     render(<ClientsPage />)
     expect(await screen.findByRole("button", { name: "Open Tools" })).toBeInTheDocument()
+  })
+})
+
+describe("Clients on the base stages", () => {
+  beforeEach(() => freshMemo())
+
+  it("shows every pipeline's cards under the base stages, each with its real stage, and Unsorted first", async () => {
+    render(<ClientsPage />)
+    const proposal = await column(/^Proposal/)
+    expect(within(proposal).getByRole("button", { name: "Site for Northstar" })).toHaveTextContent("Quote · Sales")
+    expect(within(await column(/^Negotiation/)).getByRole("button", { name: "Acme: yearly audit" })).toBeInTheDocument()
+    const unsorted = await column(/^Unsorted/)
+    expect(within(unsorted).getByRole("button", { name: "Northstar: printer lease" })).toHaveTextContent(
+      "Waiting for payment · Northstar sales",
+    )
+    expect(within(unsorted).getByRole("button", { name: "Acme: reseller agreement" })).toHaveTextContent(
+      "Suggested: New",
+    )
+  })
+
+  it("moves at once to the one stage of the card's pipeline that belongs to the column", async () => {
+    const user = userEvent.setup()
+    const move = vi.spyOn(platform, "clientsMove")
+    render(<ClientsPage />)
+    const site = await card("Site for Northstar")
+    site.focus()
+    await user.keyboard(" {ArrowLeft} ")
+    expect(move).toHaveBeenCalledWith("deal", "deal:1", "Call")
+  })
+
+  it("asks which stage when the column holds several of the pipeline's, and offers the last pick first", async () => {
+    const user = userEvent.setup()
+    const move = vi.spyOn(platform, "clientsMove")
+    render(<ClientsPage />)
+    const support = await card("Support contract")
+    support.focus()
+    await user.keyboard(" {ArrowRight} ")
+    const picker = await screen.findByRole("dialog", { name: "Which stage of Proposal?" })
+    await user.click(within(picker).getByRole("radio", { name: /Contract/ }))
+    await user.click(within(picker).getByRole("button", { name: "Move" }))
+    expect(move).toHaveBeenLastCalledWith("deal", "deal:2", "Contract")
+    await waitFor(async () =>
+      expect(within(await column(/^Proposal/)).getByRole("button", { name: "Support contract" })).toBeInTheDocument(),
+    )
+    ;(await card("Support contract")).focus()
+    await user.keyboard(" {ArrowLeft} ")
+    await waitFor(() => expect(move).toHaveBeenLastCalledWith("deal", "deal:2", "Call"))
+    await waitFor(async () =>
+      expect(within(await column(/^Qualification/)).getByRole("button", { name: "Support contract" })).toBeVisible(),
+    )
+    ;(await card("Support contract")).focus()
+    await user.keyboard(" {ArrowRight} ")
+    const again = await screen.findByRole("dialog", { name: "Which stage of Proposal?" })
+    expect(within(again).getByRole("radio", { name: /Contract/ })).toBeChecked()
+  })
+
+  it("puts the card back when no stage of its pipeline belongs to the column, with a link to map one", async () => {
+    const user = userEvent.setup()
+    const move = vi.spyOn(platform, "clientsMove")
+    render(<ClientsPage />)
+    const support = await card("Support contract")
+    support.focus()
+    await user.keyboard(" {ArrowRight}{ArrowRight} ")
+    expect(move).not.toHaveBeenCalled()
+    const back = within(await column(/^Qualification/)).getByRole("button", { name: "Support contract" })
+    expect(back).toHaveTextContent("no stage of this card's pipeline belongs to this column yet")
+    await user.click(within(back).getByRole("button", { name: "Map stages" }))
+    expect(await column(/^Unmapped/)).toHaveTextContent("Waiting for payment")
+  })
+
+  it("keeps a CRM's cards in place on a drop: they change in the CRM", async () => {
+    const user = userEvent.setup()
+    const move = vi.spyOn(platform, "clientsMove")
+    render(<ClientsPage />)
+    const chairs = await card("Northstar: 40 office chairs")
+    chairs.focus()
+    await user.keyboard(" {ArrowRight} ")
+    expect(move).not.toHaveBeenCalled()
+  })
+})
+
+describe("Mapping stages onto the base set", () => {
+  beforeEach(() => freshMemo())
+
+  const openMap = async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await card("Site for Northstar")
+    await user.click(screen.getByRole("radio", { name: "Stages" }))
+    await column(/^Unmapped/)
+    return user
+  }
+
+  it("confirms every suggestion of the kind at once", async () => {
+    const confirm = vi.spyOn(platform, "clientsMapConfirm")
+    const user = await openMap()
+    await user.click(screen.getByRole("button", { name: /^Confirm all/ }))
+    expect(confirm).toHaveBeenCalledWith(["pipeline:3"])
+    expect(await screen.findByText("Every suggestion is confirmed.", {}, { timeout: 4000 })).toBeInTheDocument()
+  })
+
+  it("maps an unmapped stage by carrying it onto a base stage", async () => {
+    const set = vi.spyOn(platform, "clientsMapSet")
+    const user = await openMap()
+    const waiting = within(await column(/^Unmapped/)).getByRole("button", {
+      name: "Waiting for payment, Northstar sales",
+    })
+    waiting.focus()
+    await user.keyboard(" {ArrowLeft} ")
+    expect(set).toHaveBeenCalledWith(expect.stringMatching(/^stage:/), expect.stringMatching(/^stage:/))
+    await waitFor(async () => expect(await column(/^Lost/)).toHaveTextContent("Waiting for payment"))
+  })
+
+  it("renames a base stage in place, and will not remove the last stage of an outcome", async () => {
+    const edit = vi.spyOn(platform, "clientsBaseEdit")
+    const user = await openMap()
+    await user.click(screen.getByRole("button", { name: "Rename Proposal" }))
+    const field = screen.getByRole("textbox", { name: "New name for Proposal" })
+    await user.clear(field)
+    await user.type(field, "Offer{Enter}")
+    expect(edit).toHaveBeenCalledWith("deal", { op: "rename", ref: expect.stringMatching(/^stage:/), name: "Offer" })
+    expect(await column(/^Offer/)).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Remove Won" }))
+    expect(await screen.findByText(/This is the last "Won" stage/)).toBeInTheDocument()
+    expect(edit).toHaveBeenCalledTimes(1)
+  })
+
+  it("adds a won stage and refuses a name another stage has", async () => {
+    const edit = vi.spyOn(platform, "clientsBaseEdit")
+    const user = await openMap()
+    await user.click(screen.getByRole("button", { name: "Add a stage" }))
+    await user.type(screen.getByRole("textbox", { name: "Name of the new stage" }), "proposal{Enter}")
+    expect(await screen.findByText("Another stage has this name.")).toBeInTheDocument()
+    await user.click(screen.getByRole("radio", { name: "Won" }))
+    const field = screen.getByRole("textbox", { name: "Name of the new stage" })
+    await user.clear(field)
+    await user.type(field, "Paid{Enter}")
+    expect(edit).toHaveBeenCalledWith("deal", { op: "add", name: "Paid", outcome: "won" })
+    expect(await column(/^Paid/)).toBeInTheDocument()
   })
 })

@@ -28,6 +28,7 @@ type Words = {
   owner: string
   nobody: string
   stage: string
+  baseStage: string
   account: string
   column: (name: string, n: number) => string
   columnOf: (name: string, shown: number, all: number) => string
@@ -92,6 +93,7 @@ const en: Words = {
   owner: "Responsible",
   nobody: "Nobody",
   stage: "Stage",
+  baseStage: "Base stage",
   account: "Account",
   column: (name, n) => plural("en", n, { one: `${name}, # card`, other: `${name}, # cards` }),
   columnOf: (name, shown, all) => `${name}, ${shown} of ${all} shown`,
@@ -159,6 +161,7 @@ const ru: Words = {
   owner: "Ответственный",
   nobody: "Никто",
   stage: "Стадия",
+  baseStage: "Базовая стадия",
   account: "Аккаунт",
   column: (name, n) =>
     plural("ru", n, { one: `${name}, # карточка`, few: `${name}, # карточки`, other: `${name}, # карточек` }),
@@ -227,6 +230,7 @@ const es: Words = {
   owner: "Responsable",
   nobody: "Nadie",
   stage: "Etapa",
+  baseStage: "Etapa base",
   account: "Cuenta",
   column: (name, n) => plural("es", n, { one: `${name}, # tarjeta`, other: `${name}, # tarjetas` }),
   columnOf: (name, shown, all) => `${name}, se muestran ${shown} de ${all}`,

@@ -1,5 +1,5 @@
-import { Handshake, RefreshCw, UserRoundPlus } from "lucide-react"
-import { KINDS, type Kind, matches } from "@/domain/clients"
+import { Columns3, Handshake, LayoutGrid, RefreshCw, UserRoundPlus } from "lucide-react"
+import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
 import { ToolNeeded } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
@@ -7,21 +7,27 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton, StableText } from "@/ui/Skeleton"
-import { type Ready, readAgain, useBoard } from "./api"
+import { type Based, type Ready, readAgain, useBoard } from "./api"
+import { BaseBoard } from "./BaseBoard"
 import { CardDialog } from "./CardDialog"
 import { ClientsBoard } from "./ClientsBoard"
-import { ClientsFilters } from "./Filters"
+import { BaseFilters, ClientsFilters } from "./Filters"
 import { clientMessages } from "./messages"
-import { useClients } from "./store"
+import { stageMessages } from "./messages-stages"
+import { StageMap } from "./StageMap"
+import { useClients, type View } from "./store"
 
 const ICONS: Record<Kind, typeof Handshake> = { deal: Handshake, lead: UserRoundPlus }
+const VIEWS: Record<View, typeof Handshake> = { board: LayoutGrid, stages: Columns3 }
 
 export function ClientsPage() {
   const m = useMessages(clientMessages)
   const kind = useClients((s) => s.kind)
   const pipeline = useClients((s) => s.pipeline[kind] ?? null)
   const board = useBoard(kind, pipeline)
-  const usable = board.data?.kind === "ready"
+  const usable = board.data?.kind === "ready" || board.data?.kind === "base"
+  const view = useClients((s) => s.view)
+  const sm = useMessages(stageMessages)
   return (
     <div className="flex min-w-0 flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -40,6 +46,18 @@ export function ClientsPage() {
           >
             <StableText value={board.isFetching ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
           </Button>
+          {board.data?.kind === "base" && (
+            <Segmented<View>
+              label={sm.view}
+              value={view}
+              onChange={(v) => useClients.getState().setView(v)}
+              labelClass=""
+              options={(["board", "stages"] as const).map((v) => {
+                const Icon = VIEWS[v]
+                return { value: v, label: sm.views[v], icon: <Icon className="size-4" aria-hidden /> }
+              })}
+            />
+          )}
           <Segmented<Kind>
             label={m.kind}
             value={kind}
@@ -79,7 +97,7 @@ function Body() {
     )
   }
   if (isPending || !data) return <Loading />
-  if (data.kind !== "ready") {
+  if (data.kind === "missing" || data.kind === "old") {
     const old = data.kind === "old"
     return (
       <ToolNeeded id="memo" update={old} label={old ? m.update : m.goTools}>
@@ -95,7 +113,38 @@ function Body() {
       </div>
     )
   }
+  if (data.kind === "base") return <BaseLoaded read={data} kind={kind} />
   return <Loaded read={data} kind={kind} />
+}
+
+function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
+  const m = useMessages(clientMessages)
+  const view = useClients((s) => s.view)
+  const query = useClients((s) => s.query)
+  const pipelines = useClients((s) => s.pipelines)
+  const accounts = useClients((s) => s.accounts)
+  if (view === "stages") return <StageMap read={read} kind={kind} />
+  const shown = read.cards.filter((c) => inScope(c, pipelines, accounts) && matches(c, query))
+  const filtered = query.trim() !== "" || pipelines.length > 0 || accounts.length > 0
+  return (
+    <>
+      <BaseFilters read={read} />
+      {read.more && <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">{m.more(read.cards.length)}</p>}
+      {filtered && shown.length === 0 && (
+        <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">
+          {m.noMatch}{" "}
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => useClients.setState({ query: "", pipelines: [], accounts: [] })}
+          >
+            {m.clear}
+          </Button>
+        </p>
+      )}
+      <BaseBoard read={read} kind={kind} cards={shown} filtered={filtered} />
+    </>
+  )
 }
 
 function Loaded({ read, kind }: { read: Ready; kind: Kind }) {
