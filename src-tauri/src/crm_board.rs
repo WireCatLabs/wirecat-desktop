@@ -7,7 +7,8 @@
 //! the CRM by that CRM's own CLI, which the app cannot run yet, so such a pipeline answers `movable: no`.
 
 use crate::memo_cli::{Call, Failure, with_memo};
-use crate::task_board::{self, Unusable, body, with_query, words};
+use crate::skills::body;
+use crate::task_board::{self, Unusable, with_query, words};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;

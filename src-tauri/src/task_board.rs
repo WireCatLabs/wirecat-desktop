@@ -6,6 +6,7 @@
 
 use crate::memo_cli::{Call, Failure, memo, too_old, with_memo};
 use crate::tools;
+use crate::skills::body;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
@@ -233,10 +234,6 @@ fn task(v: &Value) -> Option<Task> {
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
     })
-}
-
-pub(crate) fn body(v: &Value) -> &Value {
-    v.get("item").unwrap_or(v)
 }
 
 pub(crate) fn words(parts: &[&str]) -> Vec<String> {
