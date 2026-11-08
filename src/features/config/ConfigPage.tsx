@@ -89,8 +89,6 @@ export function ConfigPage() {
 
       <AppPreferences />
 
-      <GroupsSetting />
-
       <div className="flex flex-col gap-4 border-t border-line pt-[1.5rem]">
         <div>
           <h2 className="text-[1.05rem] font-semibold">{sm.tools}</h2>
@@ -159,6 +157,9 @@ export function ConfigPage() {
       {(tool || shared) && (st.target || st.profiles === undefined) && !st.error && (
         <Panel toolName={tool?.name ?? ""} dirty={dirty} />
       )}
+
+      {/* Last: it loads after the rest, and growing at the bottom moves nothing above it. */}
+      <GroupsSetting />
 
       <Dialog
         open={pending !== null}
