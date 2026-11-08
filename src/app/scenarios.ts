@@ -1,6 +1,7 @@
 import { useSeen } from "@/app/badges"
 import { findTool, syncNeedsProfile } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
+import { useClients } from "@/features/clients"
 import { useNotifications } from "@/features/notifications"
 import { useSearch } from "@/features/search"
 import { useTasks } from "@/features/tasks"
@@ -25,7 +26,7 @@ import { useTools } from "@/shared/tools-store"
 // `?mcp=<tool>` and `?mcp-fail=<tool>` open that tool's details, where its MCP server section starts open.
 // `?connect=<state>` opens tg's details at that step of the guide (`src/features/tools/connect-scenario.ts`).
 // `?tasks=<state>` and `?view=table|board` open the Tasks page in that state (`src/platform/mock-tasks.ts`); `?task=<key>`
-// opens that task's dialog there.
+// opens that task's dialog there. `?clients=<state>` and `?kind=lead` open the Clients page (`src/platform/mock-clients.ts`).
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
 // `?memo=<state>` and `?memo-fail=<kind>` open memo's details at its first-run card (`src/platform/mock-notes-setup.ts`).
 // `?showcase` hides the setup and the Agents dot.
@@ -52,6 +53,11 @@ export async function runMockScenario() {
     if (view === "board" || view === "table") useTasks.setState({ view })
     if (tasks === "nomatch") useTasks.setState({ query: MOCK_NOMATCH_QUERY })
     useNav.getState().go("tasks")
+  }
+  const clients = params.get("clients")
+  if (clients || params.get("kind") === "lead") {
+    if (params.get("kind") === "lead") useClients.setState({ kind: "lead" })
+    useNav.getState().go("clients")
   }
   const task = params.get("task")
   if (task) {

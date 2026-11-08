@@ -19,6 +19,7 @@ mod config_repair;
 mod conversation;
 mod deep_link;
 mod digests;
+mod crm_board;
 mod drive_folders;
 mod enrichment;
 mod error;
@@ -258,6 +259,8 @@ pub fn run() {
             commands::tasks::task_claims,
             commands::tasks::task_release,
             commands::tasks::task_list,
+            commands::clients::clients_read,
+            commands::clients::clients_move,
             commands::tasks::task_counts,
             commands::tasks::task_show,
             commands::tasks::task_history,

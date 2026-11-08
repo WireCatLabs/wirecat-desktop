@@ -210,6 +210,72 @@ export type CopyRemoval = {
 
 export type CountUnit = "files" | "bytes";
 
+export type CrmAccount = {
+	provider: string,
+	account: string,
+};
+
+export type CrmAmount = {
+	/**  A decimal string, as Memo keeps it; never added across currencies. */
+	amount: string,
+	currency: string,
+	items: number,
+};
+
+export type CrmCard = {
+	ref: string,
+	title: string,
+	pipeline: string,
+	stage: string,
+	/**  `open`, `won` or `lost`. */
+	status: string,
+	amount: string | null,
+	currency: string | null,
+	organization: string | null,
+	people: CrmPerson[],
+	closeDate: string | null,
+	closedDate: string | null,
+	closedReason: string | null,
+	projectName: string | null,
+	account: CrmAccount | null,
+	createdAt: string,
+	updatedAt: string,
+};
+
+export type CrmKind = "deal" | "lead";
+
+export type CrmMovable = { kind: "yes" } | 
+/**  `crmCli`: a CRM's copy, which only that CRM's own CLI may change. */
+{ kind: "no"; why: string };
+
+export type CrmPerson = {
+	name: string | null,
+	/**  `owner` (who is responsible), `contact`, `decision-maker` or `influencer`. */
+	role: string,
+};
+
+export type CrmPipeline = {
+	ref: string,
+	name: string,
+	/**  The CRM account it was copied from; `None` for the owner's own. */
+	account: CrmAccount | null,
+};
+
+export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 
+/**  `pipeline` is the one asked for, or the first Memo lists; `None` when there is none of this kind. */
+{ kind: "ready"; pipelines: CrmPipeline[]; pipeline: string | null; stages: CrmStage[]; cards: CrmCard[]; 
+/**  More match than one read holds; the counts above the columns still hold them all. */
+more: boolean; movable: CrmMovable };
+
+export type CrmStage = {
+	name: string,
+	/**  `open`, `won` or `lost`. */
+	outcome: string,
+	/**  Every deal or lead standing in it now, as Memo counts them. */
+	items: number,
+	amounts: CrmAmount[],
+};
+
 export type Diagnosis = {
 	command: string,
 	exitCode: number | null,

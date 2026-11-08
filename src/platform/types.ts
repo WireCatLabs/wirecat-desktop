@@ -22,6 +22,10 @@ import type {
   ChatPlace,
   ChosenFolders,
   Conversation,
+  CrmAccount,
+  CrmCard,
+  CrmKind,
+  CrmRead,
   Enrichment,
   EnrichmentStatus,
   FolderAdded,
@@ -276,6 +280,17 @@ export type Platform = {
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
+  /** memo's deals or leads of one pipeline (the first when none is asked), with each stage's count and sums. */
+  clientsRead(kind: CrmKind, pipeline: string | null): Promise<CrmRead>
+  /** Moves the owner's own deal or lead to another stage of its pipeline; answers the card as memo now has it. */
+  clientsMove(kind: CrmKind, ref: string, stage: string): Promise<CrmCard>
+  /**
+   * Whether a CRM account syncs only what is assigned to the owner (`mine`) or everything (`all`), and whether the app
+   * can change it. Changing it needs the CRM's own CLI, which the app cannot run yet: the real app answers so.
+   */
+  clientsScope(account: CrmAccount): Promise<CrmScope>
+  /** Saves the account's scope and syncs it again. */
+  clientsScopeSet(account: CrmAccount, scope: "mine" | "all"): Promise<void>
   taskList(query: string): Promise<TaskRead>
   /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */
   taskCounts(query: string): Promise<TaskCounts>
@@ -450,3 +465,7 @@ export type Platform = {
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>
 }
+
+export type CrmScope =
+  | { kind: "settable"; scope: "mine" | "all" }
+  | { kind: "unavailable"; scope: "mine" | "all" | null; why: "crmCli" }

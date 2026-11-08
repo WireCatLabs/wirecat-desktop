@@ -207,6 +207,13 @@ function createTauri(): Platform {
     memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
     memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
+    clientsRead: (kind, pipeline) => invoke("clients_read", { kind, pipeline }),
+    clientsMove: (kind, ref, stage) => invoke("clients_move", { kind, reference: ref, stage }),
+    // The CRM's own CLI is not in the catalog yet, so nothing can read or save its sync scope from here.
+    clientsScope: async () => ({ kind: "unavailable", scope: null, why: "crmCli" }),
+    clientsScopeSet: async () => {
+      throw new Error("WireCat cannot run the CRM's own tool yet")
+    },
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
     taskShow: (key) => call(TaskSchema, "task_show", { key }),

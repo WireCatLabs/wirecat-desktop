@@ -235,16 +235,16 @@ fn task(v: &Value) -> Option<Task> {
     })
 }
 
-fn body(v: &Value) -> &Value {
+pub(crate) fn body(v: &Value) -> &Value {
     v.get("item").unwrap_or(v)
 }
 
-fn words(parts: &[&str]) -> Vec<String> {
+pub(crate) fn words(parts: &[&str]) -> Vec<String> {
     parts.iter().chain(QUIET.iter()).map(|s| (*s).to_string()).collect()
 }
 
 /// Everything after `--` is the query, options included, so the query comes last.
-fn with_query(parts: &[&str], query: &str) -> Vec<String> {
+pub(crate) fn with_query(parts: &[&str], query: &str) -> Vec<String> {
     let mut args = words(parts);
     args.extend(["--".to_string(), query.to_string()]);
     args
@@ -274,16 +274,29 @@ pub enum Read {
     },
 }
 
-/// `None` when Memo can serve the page; otherwise what the page shows instead.
-fn gate() -> Result<Option<Read>, String> {
-    let tool = memo()?;
-    let need = tool.task_board.as_ref().ok_or("Memo has no task board in the catalog")?.min_version.clone();
-    let state = tools::detect(tool, false);
-    let Some(first) = state.installs.first() else { return Ok(Some(Read::Missing)) };
-    if too_old(first.version.as_deref(), &need) {
-        return Ok(Some(Read::Old { version: first.version.clone(), need }));
+/// Why the installed Memo cannot serve a page that needs `need`.
+pub(crate) enum Unusable {
+    Missing,
+    Old { version: Option<String>, need: String },
+}
+
+/// `None` when the installed Memo is at least `need`.
+pub(crate) fn memo_unusable(need: &str) -> Result<Option<Unusable>, String> {
+    let state = tools::detect(memo()?, false);
+    let Some(first) = state.installs.first() else { return Ok(Some(Unusable::Missing)) };
+    if too_old(first.version.as_deref(), need) {
+        return Ok(Some(Unusable::Old { version: first.version.clone(), need: need.to_string() }));
     }
     Ok(None)
+}
+
+/// `None` when Memo can serve the page; otherwise what the page shows instead.
+fn gate() -> Result<Option<Read>, String> {
+    let need = memo()?.task_board.as_ref().ok_or("Memo has no task board in the catalog")?.min_version.clone();
+    Ok(memo_unusable(&need)?.map(|u| match u {
+        Unusable::Missing => Read::Missing,
+        Unusable::Old { version, need } => Read::Old { version, need },
+    }))
 }
 
 fn list_with(call: &Call, query: &str) -> Result<Read, Failure> {

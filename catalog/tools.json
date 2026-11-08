@@ -1790,6 +1790,9 @@
       "taskBoard": {
         "minVersion": "0.131.14"
       },
+      "crmBoard": {
+        "minVersion": "0.131.56"
+      },
       "notesSetup": {
         "minVersion": "0.131.14",
         "folders": ["folders", "list", "--no-record", "--json"],

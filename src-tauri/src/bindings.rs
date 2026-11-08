@@ -63,6 +63,9 @@ fn types() -> Types {
         .register::<crate::conversation::ChatPage>()
         .register::<crate::conversation::ChatPlace>()
         .register::<crate::conversation::Conversation>()
+        .register::<crate::crm_board::CrmRead>()
+        .register::<crate::crm_board::CrmCard>()
+        .register::<crate::crm_board::CrmKind>()
 }
 
 fn render() -> String {
