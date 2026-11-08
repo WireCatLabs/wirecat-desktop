@@ -7,6 +7,8 @@ import type { Platform, UpdateFailure, UpdateKind } from "./types"
 // check; `other` is a Linux build that does not know how it was installed. No parameter: no update.
 // `?update-fail=offline|server|disk|readonly|newer` (with `deb` or `rpm`): the package download fails for that reason.
 // `?update-terminal=none` (with `deb` or `rpm`): no terminal opens for the install command.
+// `?update-check=offline|server|hold`: every check fails for that reason, or never answers. Help, "Check for updates"
+// shows it; without `?update` that check says WireCat is up to date.
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const mode = params.get("update")
 
@@ -22,6 +24,12 @@ const failures: Record<string, UpdateFailure> = {
   newer: { reason: "newer", version: "0.2.1" },
 }
 const failure = failures[params.get("update-fail") ?? ""]
+const checkMode = params.get("update-check")
+const checkErrors: Record<string, string> = {
+  offline:
+    "error sending request for url (https://github.com/WireCatLabs/wirecat-desktop/releases/latest/download/latest.json)",
+  server: "Could not fetch a valid release JSON from the remote",
+}
 
 const TOTAL = 18_400_000
 
@@ -46,6 +54,9 @@ export const updateMock: Pick<
 > = {
   async checkUpdate() {
     await delay(400)
+    if (checkMode === "hold") await new Promise(() => {})
+    const error = checkErrors[checkMode ?? ""]
+    if (error) throw new Error(error)
     if (!mode) return null
     return {
       version: "0.2.0",

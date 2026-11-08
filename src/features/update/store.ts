@@ -13,6 +13,8 @@ type Phase = "available" | "downloading" | "restarting" | "saved" | "rejected" |
 type Saved = Extract<PackageOutcome, { result: "saved" }>
 /** The install command in the user's own terminal: `missing` when none opened, so they copy it instead. */
 type Terminal = "idle" | "opening" | "opened" | "missing"
+/** A check the user asked for from the Help menu, shown in the dialog; the background check never sets it. */
+export type Asked = "idle" | "checking" | "latest" | "failed"
 
 type UpdateState = {
   update: AppUpdate | null
@@ -22,7 +24,10 @@ type UpdateState = {
   saved: Saved | null
   failure: UpdateFailure | null
   terminal: Terminal
+  asked: Asked
+  checkFailure: UpdateFailure | null
   check(): Promise<void>
+  checkNow(): Promise<void>
   show(): void
   close(): void
   install(): Promise<void>
@@ -39,6 +44,8 @@ export const useUpdate = create<UpdateState>((set, get) => ({
   saved: null,
   failure: null,
   terminal: "idle",
+  asked: "idle",
+  checkFailure: null,
 
   async check() {
     // While the dialog is open or an install runs, a newer offer would change what the user is looking at.
@@ -54,8 +61,21 @@ export const useUpdate = create<UpdateState>((set, get) => ({
     }
   },
 
+  // Ignores the background check's lock: a silent check that never answers must not block the one the user asked for.
+  async checkNow() {
+    if (get().update) return set({ open: true })
+    if (get().asked === "checking") return
+    set({ open: true, asked: "checking", checkFailure: null })
+    try {
+      const update = await platform.checkUpdate()
+      set(update ? { update, asked: "idle" } : { asked: "latest" })
+    } catch (e) {
+      set({ asked: "failed", checkFailure: failureOf(e) })
+    }
+  },
+
   show: () => set({ open: true }),
-  close: () => set({ open: false }),
+  close: () => set({ open: false, asked: "idle" }),
 
   async install() {
     const { update, phase } = get()

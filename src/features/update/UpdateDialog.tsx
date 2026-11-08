@@ -1,7 +1,7 @@
 import { Download, ExternalLink, SquareTerminal } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
 import { formatBytes } from "@/domain/format"
-import { useLang, useMessages } from "@/i18n"
+import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { UpdateFailure } from "@/platform/types"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -11,7 +11,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { type UpdateMessages, updateMessages } from "./messages"
-import { downloadPage, updatesSection, useUpdate } from "./store"
+import { type Asked, downloadPage, updatesSection, useUpdate } from "./store"
 
 const RELEASES = "https://github.com/WireCatLabs/wirecat-desktop/releases"
 
@@ -104,6 +104,7 @@ function Saved() {
 function explain(
   m: UpdateMessages,
   f: UpdateFailure | null,
+  fallback = m.failed,
 ): { message: string; next: string; detail?: string | undefined } {
   switch (f?.reason) {
     case "offline":
@@ -117,14 +118,14 @@ function explain(
     case "newer":
       return { message: m.newer(f.version), next: m.newerNext }
     default:
-      return { message: m.failed, next: m.failedDetail, detail: f?.detail }
+      return { message: fallback, next: m.failedDetail, detail: f?.detail }
   }
 }
 
-function Failed({ action }: { action: ReactNode }) {
+function Failed({ action, check = false }: { action: ReactNode; check?: boolean }) {
   const m = useMessages(updateMessages)
-  const failure = useUpdate((s) => s.failure)
-  const { message, next, detail } = explain(m, failure)
+  const failure = useUpdate((s) => (check ? s.checkFailure : s.failure))
+  const { message, next, detail } = explain(m, failure, check ? m.checkFailed : m.failed)
   return (
     <ErrorNotice
       action={action}
@@ -140,16 +141,71 @@ function Failed({ action }: { action: ReactNode }) {
   )
 }
 
+function releaseLinks(m: UpdateMessages, version: string) {
+  return (
+    <p className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-[0.8rem]">
+      <Link quiet href={`${RELEASES}/tag/v${version}`}>
+        {m.whatsNew(version)}
+      </Link>
+      <Link quiet href={RELEASES}>
+        {m.allReleases}
+      </Link>
+    </p>
+  )
+}
+
+/** The Help menu's check before there is an update to offer: checking, up to date, or why it could not tell. */
+function checkStep(m: UpdateMessages, asked: Asked, lang: Lang, pageButton: ReactNode) {
+  const { close, checkNow } = useUpdate.getState()
+  const title = asked === "latest" ? m.latestTitle : asked === "failed" ? m.checkFailedTitle : m.checking
+  const actions =
+    asked === "failed" ? (
+      <>
+        <Button variant="secondary" onClick={close}>
+          {m.close}
+        </Button>
+        <Button variant="primary" data-autofocus data-update-next onClick={() => checkNow()}>
+          {m.tryAgain}
+        </Button>
+      </>
+    ) : (
+      <Button variant={asked === "latest" ? "primary" : "secondary"} data-autofocus data-update-next onClick={close}>
+        {m.close}
+      </Button>
+    )
+  const body = (
+    <>
+      {asked === "checking" && (
+        <>
+          <ProgressBar label={m.checking} value={null} size="line" className="w-full" />
+          <p className="text-[0.9rem] text-ink-soft">{m.checkingDetail}</p>
+        </>
+      )}
+      {asked === "latest" && (
+        <p className="text-ink-soft">
+          {m.latest(__APP_VERSION__)} <Link href={updatesSection(lang)}>{m.howUpdates}</Link>
+        </p>
+      )}
+      {asked === "failed" && <Failed check action={pageButton} />}
+    </>
+  )
+  return { title, actions, body, footer: asked === "latest" ? releaseLinks(m, __APP_VERSION__) : undefined }
+}
+
+/** One surface for the whole flow: a check from the Help menu turns into the offer in place when it finds one. */
 export function UpdateDialog() {
   const m = useMessages(updateMessages)
   const lang = useLang()
-  const { update, open, phase } = useUpdate()
+  const { update, open, phase, asked } = useUpdate()
   // The pressed button went away with the download; the step's own button takes the focus, not the page behind.
   useEffect(() => {
     if (phase === "saved") document.querySelector<HTMLElement>("[data-update-done]")?.focus()
   }, [phase])
-  if (!update) return null
-  const busy = phase === "downloading" || phase === "restarting"
+  const step = update ? "offer" : asked
+  // The check's answer replaces the buttons, and with them the one that had the focus.
+  useEffect(() => {
+    if (step !== "idle") document.querySelector<HTMLElement>("[data-update-next]")?.focus()
+  }, [step])
   const close = () => useUpdate.getState().close()
   const toDownloadPage = () => platform.openUrl(downloadPage(lang))
   const pageButton = (
@@ -158,6 +214,20 @@ export function UpdateDialog() {
     </Button>
   )
 
+  if (!update) {
+    const { title, actions, body, footer } = checkStep(m, asked, lang, pageButton)
+    return (
+      <Dialog open={open && asked !== "idle"} title={title} onClose={close} actions={actions} footer={footer}>
+        <AutoHeight swap={step}>
+          <div key={step} className="step-in flex flex-col gap-4">
+            {body}
+          </div>
+        </AutoHeight>
+      </Dialog>
+    )
+  }
+
+  const busy = phase === "downloading" || phase === "restarting"
   const intro = update.kind === "self" ? m.auto : update.kind === "other" ? m.other : m.package[update.kind]
 
   let actions: ReactNode
@@ -170,6 +240,7 @@ export function UpdateDialog() {
         <Button
           variant="primary"
           data-autofocus
+          data-update-next
           icon={<ExternalLink className="size-4" aria-hidden />}
           onClick={toDownloadPage}
         >
@@ -190,49 +261,52 @@ export function UpdateDialog() {
         <Button variant="secondary" onClick={close}>
           {busy ? m.hide : m.later}
         </Button>
-        <Button variant="primary" data-autofocus disabled={busy} onClick={() => useUpdate.getState().install()}>
+        <Button
+          variant="primary"
+          data-autofocus
+          data-update-next
+          disabled={busy}
+          onClick={() => useUpdate.getState().install()}
+        >
           {phase === "failed" || phase === "rejected" ? m.tryAgain : label}
         </Button>
       </>
     )
   }
 
-  const footer = (
-    <p className="flex flex-wrap justify-end gap-x-4 gap-y-1 text-[0.8rem]">
-      <Link quiet href={`${RELEASES}/tag/v${update.version}`}>
-        {m.whatsNew(update.version)}
-      </Link>
-      <Link quiet href={RELEASES}>
-        {m.allReleases}
-      </Link>
-    </p>
-  )
-
   return (
-    <Dialog open={open} title={m.available(update.version)} onClose={close} actions={actions} footer={footer}>
-      <div className="flex flex-col gap-4">
-        <p className="text-ink-soft">
-          {intro} <Link href={updatesSection(lang)}>{m.howUpdates}</Link>
-        </p>
-        {update.notes && (
-          <div className="selectable max-h-[12rem] overflow-y-auto whitespace-pre-line rounded-[0.2rem] border border-line bg-app-2 px-4 py-3 text-[0.9rem]">
-            {update.notes}
-          </div>
-        )}
-        <AutoHeight swap={phase}>
-          <div key={phase} className={phase === "available" ? undefined : "step-in"}>
-            {phase === "downloading" && <Progress />}
-            {phase === "restarting" && <p className="text-[0.9rem] text-ink-soft">{m.restarting}</p>}
-            {phase === "saved" && <Saved />}
-            {phase === "rejected" && (
-              <ErrorNotice detail={m.rejectedDetail} action={pageButton}>
-                {m.rejected}
-              </ErrorNotice>
-            )}
-            {phase === "failed" && <Failed action={pageButton} />}
-          </div>
-        </AutoHeight>
-      </div>
+    <Dialog
+      open={open}
+      title={m.available(update.version)}
+      onClose={close}
+      actions={actions}
+      footer={releaseLinks(m, update.version)}
+    >
+      <AutoHeight swap={step}>
+        <div key={step} className="step-in flex flex-col gap-4">
+          <p className="text-ink-soft">
+            {intro} <Link href={updatesSection(lang)}>{m.howUpdates}</Link>
+          </p>
+          {update.notes && (
+            <div className="selectable max-h-[12rem] overflow-y-auto whitespace-pre-line rounded-[0.2rem] border border-line bg-app-2 px-4 py-3 text-[0.9rem]">
+              {update.notes}
+            </div>
+          )}
+          <AutoHeight swap={phase}>
+            <div key={phase} className={phase === "available" ? undefined : "step-in"}>
+              {phase === "downloading" && <Progress />}
+              {phase === "restarting" && <p className="text-[0.9rem] text-ink-soft">{m.restarting}</p>}
+              {phase === "saved" && <Saved />}
+              {phase === "rejected" && (
+                <ErrorNotice detail={m.rejectedDetail} action={pageButton}>
+                  {m.rejected}
+                </ErrorNotice>
+              )}
+              {phase === "failed" && <Failed action={pageButton} />}
+            </div>
+          </AutoHeight>
+        </div>
+      </AutoHeight>
     </Dialog>
   )
 }

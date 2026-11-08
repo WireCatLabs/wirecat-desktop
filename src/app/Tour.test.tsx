@@ -223,6 +223,7 @@ describe("Help menu", () => {
       "Take the tour",
       "Show the welcome again",
       "Privacy",
+      "Check for updates",
       "About WireCat",
     ])
     await user.click(items[0] as HTMLElement)
