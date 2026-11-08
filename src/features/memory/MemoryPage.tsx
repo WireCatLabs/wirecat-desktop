@@ -1,14 +1,13 @@
 import { Check, ChevronDown, ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
 import { can, inTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
-import { openTool } from "@/features/tools"
+import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { DemoNote } from "@/shared/DemoNote"
 import { useNav } from "@/shared/nav"
 import { ReportThis } from "@/shared/ReportThis"
-import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -94,14 +93,13 @@ export function MemoryPage() {
             {m.readFailed} {s.error}
           </ErrorNotice>
         ) : s.read?.kind === "missing" ? (
-          <Notice>
-            <p>{m.missing}</p>
-            <Button size="sm" onClick={() => openTool("memo")}>
-              {m.goTools}
-            </Button>
-          </Notice>
+          <ToolNeeded id="memo" update={false} label={m.goTools}>
+            {m.missing}
+          </ToolNeeded>
         ) : s.read?.kind === "old" ? (
-          <OldNotice version={s.read.version} need={s.read.need} />
+          <ToolNeeded id="memo" update label={m.update}>
+            {m.old(s.read.version, s.read.need)}
+          </ToolNeeded>
         ) : (
           <>
             <div className="flex flex-col gap-[1rem]">
@@ -323,33 +321,5 @@ function RackSkeleton() {
         </div>
       ))}
     </div>
-  )
-}
-
-function Notice({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.1rem] text-[0.95rem] text-ink-soft">
-      {children}
-    </div>
-  )
-}
-
-function OldNotice({ version, need }: { version: string | null; need: string }) {
-  const m = useMessages(memoryMessages)
-  const install = useTools((s) => s.install)
-  return (
-    <Notice>
-      <p className="max-w-[70ch]">{m.old(version, need)}</p>
-      <Button
-        variant="primary"
-        size="sm"
-        onClick={() => {
-          install("memo")
-          openTool("memo")
-        }}
-      >
-        {m.update}
-      </Button>
-    </Notice>
   )
 }
