@@ -40,7 +40,16 @@ import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
 import type { Digest, DigestDay } from "./digest-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
-import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
+import type { AddedSource, AddSource, KeySaved, Mentions, Reader, StoredSource, Suggested } from "./memory-add-schemas"
+import type {
+  Forgot,
+  MemoryEntry,
+  MemoryRead,
+  MemorySource,
+  ReviewAnswer,
+  SourceContext,
+  SourceReview,
+} from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { Repair } from "./repair-schemas"
@@ -264,6 +273,26 @@ export type Platform = {
   conversationRead(place: ChatPlace, ask: ChatPage): Promise<Conversation>
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
+  /** The open source review of a memory or a fact: each source as the record cited it and as it is now. */
+  memoryReviewShow(ref: string, id: string): Promise<SourceReview>
+  /** The owner's answer to a source review; answers the record as it now is, with no open review. */
+  memoryReviewDecide(ref: string, id: string, answer: ReviewAnswer, reason?: string): Promise<MemoryEntry>
+  /** The system's file window; `null` when the owner closes it. */
+  memoryPickFile(): Promise<string | null>
+  /** Keeps a file, a web page or pasted text as a source of its own; only its text unless memo says `copy`. */
+  memorySourceAdd(source: AddSource): Promise<AddedSource>
+  /** A source's stored text, what it is and what is kept. */
+  memorySourceShow(ref: string): Promise<StoredSource>
+  /** People and organizations memo knows whose names appear in a source, found on this computer. */
+  memoryMentions(ref: string): Promise<Mentions>
+  /** Facts suggested from a source by the reader the owner chose, as a findings batch to tick. */
+  memorySourceSuggest(ref: string, reader: string, subjects: string[], again: boolean): Promise<Suggested>
+  /** The ways to read a source for facts that memo found on this computer; memo never chooses one. */
+  memoryReaders(): Promise<Reader[]>
+  /** The owner's pick of a reader; answers the readers again. */
+  memoryReaderChoose(id: string): Promise<Reader[]>
+  /** Hands the provider's key to memo, which keeps it in the system keyring; it never comes back. */
+  memoryReaderKey(provider: string, key: string): Promise<KeySaved>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
   taskList(query: string): Promise<TaskRead>
   /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */

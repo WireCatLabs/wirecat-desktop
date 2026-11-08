@@ -500,6 +500,23 @@ mod tests {
     }
 
     #[test]
+    fn answers_serialize_as_the_interface_reads_them() {
+        let a = added(&added_answer()).unwrap();
+        assert_eq!(
+            serde_json::to_value(&a).unwrap(),
+            json!({"ref":"document:42","created":true,"duplicateOf":null,"title":"Call with Lena","kind":"text",
+                "mime":null,"bytes":812,"chars":800,"truncated":false,"read":"extracted","url":null,"kept":"text",
+                "searchableWords":true,"searchableMeaning":false,"subjects":["person:7"]})
+        );
+        let r = reader(&json!({"id":"ollama","available":true,"model":"llama3.2","leaves_computer":false})).unwrap();
+        assert_eq!(
+            serde_json::to_value(&r).unwrap(),
+            json!({"id":"ollama","available":true,"signedIn":null,"model":"llama3.2","provider":null,
+                "leavesComputer":false,"readsFiles":false,"chosen":false})
+        );
+    }
+
+    #[test]
     fn pasted_text_goes_on_stdin_never_on_the_command_line() {
         let fake = Fake::new(|_, _| Ok(added_answer()));
         let a =

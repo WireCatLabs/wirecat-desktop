@@ -89,6 +89,7 @@ const blank = {
   task: null,
   model: null,
   confidence: null,
+  sourceReview: null,
 } as const
 
 const bot = (name: string) => ({ type: "bot", name })
