@@ -35,7 +35,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
       </div>
       <nav aria-label={m.sectionsNav} className="flex flex-col gap-[0.3rem]">
         {sections
-          .filter((s) => !s.group)
+          .filter((s) => !s.group && !s.hidden)
           .map((s) => (
             <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
           ))}

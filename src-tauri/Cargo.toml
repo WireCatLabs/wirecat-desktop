@@ -21,6 +21,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+tauri-plugin-deep-link = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
 tauri-plugin-process = "2"
@@ -68,6 +69,10 @@ lto = true
 opt-level = 3
 panic = "abort"
 strip = true
+
+[target."cfg(any(target_os = \"macos\", windows, target_os = \"linux\"))".dependencies]
+# A second launch, such as the system opening a wirecat:// link, hands its link to the running window instead.
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
 [target."cfg(unix)".dependencies]
 libc = "0.2"

@@ -1,0 +1,246 @@
+{
+  "version": "v1",
+  "web_base": "https://wirecat.dev/o",
+  "app_prefix": "wirecat://open",
+  "max_path": 512,
+  "max_segments": 6,
+  "valid": [
+    {
+      "ref": "msg:max/1001/-2002/3003",
+      "path": "/v1/msg/max/1001/-2002/3003",
+      "web": "https://wirecat.dev/o#/v1/msg/max/1001/-2002/3003",
+      "app": "wirecat://open/v1/msg/max/1001/-2002/3003",
+      "target": {
+        "type": "message",
+        "provider": "max",
+        "account": "1001",
+        "chat": "-2002",
+        "message": "3003"
+      }
+    },
+    {
+      "ref": "chat:telegram/1001/4004",
+      "path": "/v1/chat/telegram/1001/4004",
+      "web": "https://wirecat.dev/o#/v1/chat/telegram/1001/4004",
+      "app": "wirecat://open/v1/chat/telegram/1001/4004",
+      "target": {
+        "type": "chat",
+        "provider": "telegram",
+        "account": "1001",
+        "chat": "4004"
+      }
+    },
+    {
+      "ref": "chat:email/owner%40example.com/5005",
+      "path": "/v1/chat/email/owner%40example.com/5005",
+      "web": "https://wirecat.dev/o#/v1/chat/email/owner%40example.com/5005",
+      "app": "wirecat://open/v1/chat/email/owner%40example.com/5005",
+      "target": {
+        "type": "chat",
+        "provider": "email",
+        "account": "owner@example.com",
+        "chat": "5005"
+      }
+    },
+    {
+      "ref": "msg:email/owner%40example.com/thread%20one%2Fa/%3Cid%40mail.example%3E",
+      "path": "/v1/msg/email/owner%40example.com/thread%20one%2Fa/%3Cid%40mail.example%3E",
+      "web": "https://wirecat.dev/o#/v1/msg/email/owner%40example.com/thread%20one%2Fa/%3Cid%40mail.example%3E",
+      "app": "wirecat://open/v1/msg/email/owner%40example.com/thread%20one%2Fa/%3Cid%40mail.example%3E",
+      "target": {
+        "type": "message",
+        "provider": "email",
+        "account": "owner@example.com",
+        "chat": "thread one/a",
+        "message": "<id@mail.example>"
+      }
+    },
+    {
+      "ref": "task:80",
+      "path": "/v1/task/80",
+      "web": "https://wirecat.dev/o#/v1/task/80",
+      "app": "wirecat://open/v1/task/80",
+      "target": {
+        "type": "task",
+        "id": "80"
+      }
+    },
+    {
+      "ref": "task:T-1:2 b",
+      "path": "/v1/task/T-1%3A2%20b",
+      "web": "https://wirecat.dev/o#/v1/task/T-1%3A2%20b",
+      "app": "wirecat://open/v1/task/T-1%3A2%20b",
+      "target": {
+        "type": "task",
+        "id": "T-1:2 b"
+      }
+    },
+    {
+      "ref": "tasks:overdue",
+      "path": "/v1/tasks/overdue",
+      "web": "https://wirecat.dev/o#/v1/tasks/overdue",
+      "app": "wirecat://open/v1/tasks/overdue",
+      "target": {
+        "type": "tasks",
+        "filter": "overdue"
+      }
+    },
+    {
+      "ref": "tasks:today",
+      "path": "/v1/tasks/today",
+      "web": "https://wirecat.dev/o#/v1/tasks/today",
+      "app": "wirecat://open/v1/tasks/today",
+      "target": {
+        "type": "tasks",
+        "filter": "today"
+      }
+    },
+    {
+      "ref": "tasks:tomorrow",
+      "path": "/v1/tasks/tomorrow",
+      "web": "https://wirecat.dev/o#/v1/tasks/tomorrow",
+      "app": "wirecat://open/v1/tasks/tomorrow",
+      "target": {
+        "type": "tasks",
+        "filter": "tomorrow"
+      }
+    },
+    {
+      "ref": "tasks:new/2026-11-07T08%3A00%3A00%2B03%3A00",
+      "path": "/v1/tasks/new/2026-11-07T08%3A00%3A00%2B03%3A00",
+      "web": "https://wirecat.dev/o#/v1/tasks/new/2026-11-07T08%3A00%3A00%2B03%3A00",
+      "app": "wirecat://open/v1/tasks/new/2026-11-07T08%3A00%3A00%2B03%3A00",
+      "target": {
+        "type": "tasks",
+        "filter": "new",
+        "since": "2026-11-07T08:00:00+03:00"
+      }
+    },
+    {
+      "ref": "proposal:fact%3A512",
+      "path": "/v1/proposal/fact%3A512",
+      "web": "https://wirecat.dev/o#/v1/proposal/fact%3A512",
+      "app": "wirecat://open/v1/proposal/fact%3A512",
+      "target": {
+        "type": "proposal",
+        "id": "fact:512"
+      }
+    },
+    {
+      "ref": "proposal:17070",
+      "path": "/v1/proposal/17070",
+      "web": "https://wirecat.dev/o#/v1/proposal/17070",
+      "app": "wirecat://open/v1/proposal/17070",
+      "target": {
+        "type": "proposal",
+        "id": "17070"
+      }
+    },
+    {
+      "ref": "digest:2026-11-08",
+      "path": "/v1/digest/2026-11-08",
+      "web": "https://wirecat.dev/o#/v1/digest/2026-11-08",
+      "app": "wirecat://open/v1/digest/2026-11-08",
+      "target": {
+        "type": "digest",
+        "date": "2026-11-08"
+      }
+    },
+    {
+      "ref": "sync:telegram",
+      "path": "/v1/sync/telegram",
+      "web": "https://wirecat.dev/o#/v1/sync/telegram",
+      "app": "wirecat://open/v1/sync/telegram",
+      "target": {
+        "type": "sync",
+        "tool": "telegram"
+      }
+    },
+    {
+      "ref": "sync:telegram/1001",
+      "path": "/v1/sync/telegram/1001",
+      "web": "https://wirecat.dev/o#/v1/sync/telegram/1001",
+      "app": "wirecat://open/v1/sync/telegram/1001",
+      "target": {
+        "type": "sync",
+        "tool": "telegram",
+        "account": "1001"
+      }
+    }
+  ],
+  "refused": [
+    {
+      "path": "/v2/chat/telegram/1001/4004",
+      "why": "another version"
+    },
+    {
+      "path": "/v1/unknown/1",
+      "why": "unknown kind"
+    },
+    {
+      "path": "/v1/person/77",
+      "why": "a kind not in this slice yet"
+    },
+    {
+      "path": "/v1/chat/telegram/1001/4004/9",
+      "why": "a part too many"
+    },
+    {
+      "path": "/v1/chat/telegram/1001",
+      "why": "a part too few"
+    },
+    {
+      "path": "/v1/chat/telegram//4004",
+      "why": "an empty part"
+    },
+    {
+      "path": "/v1/task/80/",
+      "why": "a trailing empty part"
+    },
+    {
+      "path": "/v1/msg/max/1001/-2002/3003/1",
+      "why": "more than 6 segments"
+    },
+    {
+      "path": "/v1/task/111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+      "why": "a path over 512 characters"
+    },
+    {
+      "path": "/v1/tasks/someday",
+      "why": "an unknown task filter"
+    },
+    {
+      "path": "/v1/tasks/new/yesterday",
+      "why": "new without an ISO time"
+    },
+    {
+      "path": "/v1/digest/2026-13-40",
+      "why": "not a calendar date"
+    },
+    {
+      "path": "/v1/chat/telegram/%E0%A4%A/1",
+      "why": "a part that does not decode"
+    },
+    {
+      "path": "v1/task/80",
+      "why": "no leading slash"
+    },
+    {
+      "path": "wirecat://evil/v1/task/80",
+      "why": "another app host"
+    },
+    {
+      "path": "javascript:alert(1)",
+      "why": "not a WireCat link"
+    }
+  ],
+  "ignored_query": [
+    {
+      "path": "/v1/task/80?focus=x",
+      "target": {
+        "type": "task",
+        "id": "80"
+      }
+    }
+  ]
+}

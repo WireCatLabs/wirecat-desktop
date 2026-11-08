@@ -22,6 +22,7 @@ import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema }
 import type { BackupEvent } from "./backup-schemas"
 import type { NotesModelEvent } from "./bindings"
 import { commandError } from "./command-error"
+import { OpenedSchema } from "./link-schemas"
 import {
   ForgotSchema,
   MemoryEntrySchema,
@@ -307,6 +308,14 @@ function createTauri(): Platform {
     },
     openPackageTerminal: () => invoke("update_package_terminal"),
     restart: () => relaunch(),
+    listenLinks: async (onLink) => {
+      const channel = new Channel<unknown>()
+      channel.onmessage = (raw) => {
+        const parsed = v.safeParse(OpenedSchema, raw)
+        onLink(parsed.success ? parsed.output.target : null)
+      }
+      await invoke("deep_link_listen", { onLink: channel })
+    },
     openUrl: (url) => openUrl(url),
     window: async (action) => {
       const w = getCurrentWindow()
