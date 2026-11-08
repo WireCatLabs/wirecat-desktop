@@ -2130,5 +2130,5 @@ NEED-88 → **A** (2026-10-27): проверять curl и добавлять с
 - **NEED-2284** итог: cli-core #2635 слит (6a2b347), #2636 закрыт (метка проверена: gcal сломан, `downstream` с
   `breaks-downstream` прошел). `validation / parity / downstream` добавлен в обязательные проверки правил `main`
   (ruleset 24189868). Агент cli-core замолчал после #2636, слияние и правила доделаны вручную.
-- **FIND-228** Тест `src/features/onboarding/flow.test.tsx` «leads from Done into the tour…» упал в CI журнального PR #183
+- **FIND-233** Тест `src/features/onboarding/flow.test.tsx` «leads from Done into the tour…» упал в CI журнального PR #183
   (не найден диалог «Status lamps», run 42430374633), при повторе прошел, на main зеленый. Нестабильный тест.
