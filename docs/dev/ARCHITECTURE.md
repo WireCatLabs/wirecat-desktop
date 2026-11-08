@@ -435,6 +435,18 @@ sent to its update, with the terminal meanwhile; the parser still reads its `Ope
 with "no Google OAuth client"; the dialog then goes back to the plan with the own-app choice open. Mock scenarios:
 `?signin=email`, `?signin=gcal`, `?signin-fail=email`.
 
+Gmail opens on two ways side by side: an app password (the default) or Google in the browser with the owner's own
+client. That client is its JSON file or its ID and secret typed in the plan; typed, they become the same
+`{"installed": {client_id, client_secret}}` JSON and take the client file's path above (0600 file, `--client-file`),
+so the secret never reaches a command line. For providers whose steps the window knows (`src/domain/mail-signin.ts`:
+Gmail, and from the address Yandex, Mail.ru and iCloud, the domains mail-cli's table lists), the plan has a second step
+of its own: the provider's steps with buttons to its pages, and the password field. The password waits outside the
+store, like Telegram's keys, and answers mail's `needs` password question when it comes (spaces dropped for Gmail). A
+refusal of that password (`mail.app-password-required`, `mail.login-refused`) is a new run back on that step, the field
+empty and focused, the reason above it. For any other provider mail asks in its own words: its prepare text
+(`prepareText`, one note per line) is read back by `readMailNotes` into a numbered list with its links as buttons, the
+server under Details, and its lines for maintainers (`Sources`, `All providers`) left out.
+
 Telegram's first sign-in needs the owner's own app keys: tg opens my.telegram.org/apps and asks for App api_id and App
 api_hash (its default `--app browser`; the app never passes `--app auto`). Beside those two questions the dialog shows
 the steps on that site with two pictures of it (`src/assets/signin/`, the owner's screens with the app name, date and

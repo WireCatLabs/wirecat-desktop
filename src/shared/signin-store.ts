@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { findTool, signInMethods } from "@/domain/catalog"
+import { type AppPasswordProvider, appPasswordProvider, appPasswordValue, type MailWay } from "@/domain/mail-signin"
 import type { FailedAt } from "@/domain/signin-failure"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
@@ -67,7 +68,13 @@ type SignInState = {
   /** The own app id could not be saved, so the plan stays open with the tool's reason. */
   planError: string | null
   /** Start was pressed without what the method needs. */
-  planMissing: "address" | "password" | null
+  planMissing: "address" | "password" | "client" | null
+  /** Gmail's way in: an app password, or the browser with the owner's own Google client. */
+  way: MailWay
+  /** The plan's own second step: the app password, made with the window's steps and pasted before the run starts. */
+  planStep: "choose" | "password"
+  /** The provider refused the app password typed on that step; the step opens again, saying why. */
+  passwordProblem: { reason: string; message: string } | null
   /** The last page a question's hint named, such as the provider's app password page; a failure offers it again. */
   hintPage: string | null
   run: number
@@ -113,7 +120,10 @@ const closed = {
   ownFile: null,
   ownId: "",
   planError: null,
-  planMissing: null,
+  planMissing: null as SignInState["planMissing"],
+  way: "appPassword" as MailWay,
+  planStep: "choose" as SignInState["planStep"],
+  passwordProblem: null as SignInState["passwordProblem"],
   hintPage: null as string | null,
 }
 
@@ -144,15 +154,17 @@ export const keptAnswer = (field: string) => keys.get(field) ?? refill.get(field
 export const APP_KEYS = KEPT
 
 /** The app password and the client file's text, kept beside the app keys and forgotten with them. */
-const typed: { password: string | undefined; clientFile: string | undefined } = {
+const typed: { password: string | undefined; clientFile: string | undefined; sentIn: number | null } = {
   password: undefined,
   clientFile: undefined,
+  sentIn: null,
 }
 const forget = () => {
   keys.clear()
   refill.clear()
   typed.password = undefined
   typed.clientFile = undefined
+  typed.sentIn = null
 }
 export const setPassword = (value: string) => {
   typed.password = value
@@ -161,6 +173,26 @@ export const setClientFile = (name: string | null, text?: string) => {
   typed.clientFile = name ? text : undefined
   useSignIn.setState({ ownFile: name })
 }
+
+/**
+ * The provider whose app password the plan asks on its own step before the run, so the tool's question is answered
+ * from it; null when the tool asks it in its own words, or the sign-in is in the browser.
+ */
+export const guidedProvider = (
+  s: Pick<SignInState, "tool" | "method" | "address" | "way">,
+): AppPasswordProvider | null =>
+  s.tool === "email" && !(s.method === "gmail" && s.way === "browser") ? appPasswordProvider(s.method, s.address) : null
+
+/** The refusals that mean the pasted password was not the app password: its step opens again. */
+const WRONG_PASSWORD = new Set(["mail.app-password-required", "mail.login-refused"])
+
+/** What the plan keeps across a run, a new try and a way back to it. */
+const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way">) => ({
+  address: s.address,
+  ownFile: s.ownFile,
+  ownId: s.ownId,
+  way: s.way,
+})
 
 /** Only what the method takes, and the owner's own app before an app password: with it, Gmail signs in by browser. */
 export const methodOf = (tool: string, method: string | null) => {
@@ -216,11 +248,19 @@ export const useSignIn = create<SignInState>()((set, get) => {
         if (get().reuse && bothKeys() && isTelegramAppsUrl(e.url)) return
         return set({ ...next, phase: "browser", url: e, qr: null })
       case "needs": {
-        const typed = keys.get(e.field)
+        const key = keys.get(e.field)
         const { tool, reuse } = get()
-        if (reuse && tool && typed !== undefined && KEPT.has(e.field)) {
+        if (reuse && tool && key !== undefined && KEPT.has(e.field)) {
+          platform.signInAnswer(tool, key).catch((err) => apply({ event: "failed", message: message(err), code: null }))
+          return
+        }
+        const provider = guidedProvider(get())
+        if (tool && provider && e.secret && e.field === "password" && typed.password) {
+          const value = appPasswordValue(provider, typed.password)
+          typed.password = undefined
+          typed.sentIn = get().run
           platform
-            .signInAnswer(tool, typed)
+            .signInAnswer(tool, value)
             .catch((err) => apply({ event: "failed", message: message(err), code: null }))
           return
         }
@@ -250,8 +290,22 @@ export const useSignIn = create<SignInState>()((set, get) => {
         forget()
         set({ ...next, phase: "done", done: e, qr: null, url: null, stopping: false, switchingTo: null })
         return get().onFinish?.()
-      case "failed":
-        return set((s) => ({
+      case "failed": {
+        const s = get()
+        if (typed.sentIn === s.run && e.reason && WRONG_PASSWORD.has(e.reason))
+          return set({
+            ...closed,
+            ...kept(s),
+            tool: s.tool,
+            profile: s.profile,
+            method: s.method,
+            onFinish: s.onFinish,
+            run: s.run + 1,
+            phase: "plan",
+            planStep: "password",
+            passwordProblem: { reason: e.reason, message: e.message },
+          })
+        return set({
           ...next,
           phase: "failed",
           failure: e,
@@ -259,7 +313,8 @@ export const useSignIn = create<SignInState>()((set, get) => {
           qr: null,
           url: null,
           stopping: false,
-        }))
+        })
+      }
       case "stopped":
         forget()
         return set({ ...closed })
@@ -276,12 +331,12 @@ export const useSignIn = create<SignInState>()((set, get) => {
       // Switching methods: the tool runs one sign-in at a time, so the last run ends before the next starts.
       const same = previous.tool === tool && previous.profile === profile
       if (!same) forget()
-      const kept = same ? { address: previous.address, ownFile: previous.ownFile, ownId: previous.ownId } : {}
+      const keep = same ? kept(previous) : {}
       const switching = previous.tool !== null && running(previous.phase)
       if (switching && previous.tool) stopInBackground(previous.tool)
       const run = previous.run + 1
       if (method === undefined && !switching) {
-        set({ ...closed, ...kept, tool, profile, method: chosen, run, phase: "plan", onFinish: onFinish ?? null })
+        set({ ...closed, ...keep, tool, profile, method: chosen, run, phase: "plan", onFinish: onFinish ?? null })
         return
       }
       const reusing = (reuse || switching) && keys.size > 0
@@ -290,7 +345,7 @@ export const useSignIn = create<SignInState>()((set, get) => {
       const keysFirst = !(reusing && bothKeys()) && (keys.size > 0 || onKeys)
       set({
         ...closed,
-        ...kept,
+        ...keep,
         tool,
         profile,
         method: chosen,
@@ -299,6 +354,8 @@ export const useSignIn = create<SignInState>()((set, get) => {
         reuse: reusing,
         expect: keysFirst ? "keys" : null,
         switchingTo: switching ? chosen : null,
+        // The step the run left from, so its copy fading out still shows it.
+        planStep: same ? previous.planStep : "choose",
       })
       const inputs = inputsFor(tool, chosen, get().address)
       const mine = () => get().run === run && get().tool !== null
@@ -331,9 +388,17 @@ export const useSignIn = create<SignInState>()((set, get) => {
       )
     },
     begin() {
-      const { tool, profile, method, phase, onFinish, ownId, ownFile } = get()
+      const { tool, profile, method, phase, onFinish, ownId, ownFile, planStep, way } = get()
       if (phase !== "plan" || !tool || !profile || !method) return
       const chosen = methodOf(tool, method)
+      if (guidedProvider(get())) {
+        if (planStep === "choose") {
+          typed.password = undefined
+          return set({ planStep: "password", planMissing: null, passwordProblem: null })
+        }
+        if (!typed.password?.trim()) return set({ planMissing: "password" })
+      } else if (tool === "email" && method === "gmail" && way === "browser" && !ownFile)
+        return set({ planMissing: "client" })
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
       const setting = chosen?.clientId
       const run = () => get().start(tool, profile, onFinish ?? undefined, method)
@@ -347,10 +412,11 @@ export const useSignIn = create<SignInState>()((set, get) => {
       if (tool && profile) get().start(tool, profile, onFinish ?? undefined, method ?? undefined, good)
     },
     toPlan() {
-      const { tool, profile, method, phase, onFinish, address, ownFile, ownId, run } = get()
+      const s = get()
+      const { tool, profile, method, phase, onFinish, run } = s
       if (!tool || !profile) return
       if (running(phase)) stopInBackground(tool)
-      set({ ...closed, address, ownFile, ownId, tool, profile, method, run: run + 1, phase: "plan", onFinish })
+      set({ ...closed, ...kept(s), tool, profile, method, run: run + 1, phase: "plan", onFinish })
     },
     async answer(value) {
       const { tool, need, sent } = get()

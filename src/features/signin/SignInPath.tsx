@@ -9,11 +9,11 @@ import { MOTION } from "@/ui/motion"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { wizardMessages } from "./messages-wizard"
 import { isKeys, isPassword, type SignInView } from "./Stages"
-import { MAIL_SERVER_FIELDS, type WizardStep, wizardPath } from "./wizard"
+import { MAIL_SERVER_FIELDS, routeOf, type WizardStep, wizardPath } from "./wizard"
 
 /** The step the window shows; null while the tool says nothing that places it (starting, checking an answer). */
 function stepOf(s: SignInView, path: WizardStep[]): WizardStep | null {
-  if (s.phase === "plan") return "intro"
+  if (s.phase === "plan") return s.planStep === "password" && path.includes("appPassword") ? "appPassword" : "intro"
   if (isKeys(s)) return "keys"
   if (s.phase === "failed" && s.tool && s.failure && zoomNeedsClientId(s.tool, s.failure.message, s.failure.reason))
     return "app"
@@ -43,7 +43,7 @@ function stepOf(s: SignInView, path: WizardStep[]): WizardStep | null {
  * fades one path into the other, so the change is plain to see, not only the button's label.
  */
 export function SignInPath({ s }: { s: SignInView }) {
-  const method = s.method ?? ""
+  const method = `${s.method ?? ""}:${routeOf(s) ?? ""}`
   return (
     <Crossfade swap={method} ms={MOTION.swap}>
       <Path s={s} />
@@ -56,13 +56,14 @@ function Path({ s }: { s: SignInView }) {
   const id = useId()
   const tool = s.tool ? findTool(s.tool) : undefined
   const name = tool?.name ?? s.tool ?? ""
-  const path = wizardPath(s.tool ?? "", s.method)
+  const path = wizardPath(s.tool ?? "", s.method, routeOf(s))
   // Between the tool's steps (an answer being checked, a stop) the last step it was on stays lit; once it runs, the
   // intro is behind it.
   const last = useRef({ run: s.run, at: 0 })
   if (last.current.run !== s.run) last.current = { run: s.run, at: 0 }
   const now = stepOf(s, path)
-  last.current.at = s.phase === "plan" ? 0 : Math.max(last.current.at, now ? path.indexOf(now) : -1, 1)
+  last.current.at =
+    s.phase === "plan" ? (now ? path.indexOf(now) : 0) : Math.max(last.current.at, now ? path.indexOf(now) : -1, 1)
   const at = last.current.at
   const done = s.phase === "done"
   const [locked, setLocked] = useState(false)

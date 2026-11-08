@@ -29,7 +29,6 @@ type Plan = {
 const PROVIDERS_GUIDE = "https://wirecat.dev/en/docs/mail/providers"
 const MICROSOFT_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-microsoft"
 const GOOGLE_APP_GUIDE = "https://wirecat.dev/en/docs/mail/oauth-google"
-const GOOGLE_PASSWORDS = "https://myaccount.google.com/apppasswords"
 const ZOOM_APP_GUIDE = "https://wirecat.dev/en/docs/zm/zoom-app"
 
 const en = {
@@ -54,7 +53,6 @@ const en = {
   clientFileOther: "Choose another file",
   clientFileChosen: (name: string) => `Chosen: ${name}. It is read once, when you sign in.`,
   clientFileUnreadable: "This file could not be read. Choose the JSON file you downloaded.",
-  clientFileDrop: "Remove",
   clientId: "Application (client) ID",
   clientIdHint: "Leave it empty to sign in with WireCat's app.",
   noWireCatApp: (name: string) =>
@@ -180,18 +178,29 @@ const en = {
     "email:gmail": {
       steps: [
         "Type your Gmail address.",
-        "Make an app password: a password made only for this program. Turn on 2-Step Verification in your Google Account, then open myaccount.google.com/apppasswords and create one.",
-        "Paste the 16-character app password here. It is checked with Gmail before anything is saved.",
+        "Next, make an app password with the steps shown and paste it there.",
+        "Gmail checks the password before anything is saved.",
       ],
-      guide: { url: GOOGLE_PASSWORDS, label: "Open Google app passwords" },
       kept: [
         "Your Google password stays with you: the program never sees it. You can delete the app password in your Google Account at any time, and the program then loses access.",
         "Your mail is copied to this computer only. A sync never changes your mailbox.",
         "The app password is saved in your system's password store, or in the tool's own folder when there is none.",
       ],
+    },
+    "email:gmail:browser": {
+      steps: [
+        "Once: in Google Cloud Console, make an OAuth client of the type Desktop app. Download its JSON file, or keep its page open for the client ID and secret.",
+        "Choose the file, or type the client ID and secret below.",
+        "Your browser opens Google. Sign in there and allow access.",
+      ],
+      guide: { url: GOOGLE_APP_GUIDE, label: "How to make the Google client" },
+      kept: [
+        "Your Google password is typed only on Google's own page.",
+        "Google asks to read, change and send your Gmail: it has no narrower access for mail programs. A sync only reads.",
+        "The client and the sign-in are saved in your system's password store, or in the tool's own folder when there is none. The file is not needed again.",
+      ],
       own: {
-        text: "To sign in with Google in the browser instead of an app password, choose the JSON file of a Desktop app client of your own from Google Cloud Console. WireCat has no Google app for mail yet. Google then asks to read, change and send your Gmail: it has no narrower access for mail programs.",
-        guide: GOOGLE_APP_GUIDE,
+        text: "WireCat has no Google app for mail yet, so this way needs a client of your own.",
       },
     },
     "email:imap": {
@@ -248,7 +257,6 @@ const ru: PlanText = {
   clientFileOther: "Выбрать другой файл",
   clientFileChosen: (name) => `Выбран: ${name}. Он читается один раз, при входе.`,
   clientFileUnreadable: "Не удалось прочитать файл. Выберите скачанный JSON-файл.",
-  clientFileDrop: "Убрать",
   clientId: "Application (client) ID",
   clientIdHint: "Оставьте пустым, чтобы войти через приложение WireCat.",
   noWireCatApp: (name) =>
@@ -356,18 +364,29 @@ const ru: PlanText = {
     "email:gmail": {
       steps: [
         "Введите адрес Gmail.",
-        "Создайте пароль приложения — отдельный пароль только для этой программы. Включите двухэтапную аутентификацию в аккаунте Google, затем откройте myaccount.google.com/apppasswords и создайте пароль.",
-        "Вставьте сюда пароль приложения из 16 символов. Он проверяется в Gmail до того, как что-то сохранится.",
+        "Дальше создайте пароль приложения по показанным шагам и вставьте его там же.",
+        "Gmail проверит пароль до того, как что-то сохранится.",
       ],
-      guide: { url: GOOGLE_PASSWORDS, label: "Открыть пароли приложений Google" },
       kept: [
         "Пароль от Google остаётся у вас: программа его не видит. Пароль приложения можно удалить в аккаунте Google в любой момент — тогда программа потеряет доступ.",
         "Почта копируется только на этот компьютер. Синхронизация никогда не меняет ваш ящик.",
         "Пароль приложения сохраняется в системном хранилище паролей, а если его нет — в папке самого инструмента.",
       ],
+    },
+    "email:gmail:browser": {
+      steps: [
+        "Один раз: в Google Cloud Console создайте OAuth-клиент типа Desktop app. Скачайте его JSON-файл или держите открытой его страницу с Client ID и secret.",
+        "Выберите файл или введите Client ID и secret ниже.",
+        "Откроется браузер со страницей Google. Войдите и разрешите доступ.",
+      ],
+      guide: { url: GOOGLE_APP_GUIDE, label: "Как создать клиент Google" },
+      kept: [
+        "Пароль от Google вводится только на странице самого Google.",
+        "Google попросит разрешение читать, изменять и отправлять почту Gmail: более узкого доступа для почтовых программ у него нет. Синхронизация только читает.",
+        "Клиент и вход сохраняются в системном хранилище паролей, а если его нет — в папке самого инструмента. Файл больше не понадобится.",
+      ],
       own: {
-        text: "Чтобы входить через Google в браузере, а не по паролю приложения, выберите JSON-файл своего клиента типа Desktop app из Google Cloud Console. Своего приложения Google для почты у WireCat пока нет. Google попросит разрешение читать, изменять и отправлять почту Gmail: более узкого доступа для почтовых программ у него нет.",
-        guide: GOOGLE_APP_GUIDE,
+        text: "Своего приложения Google для почты у WireCat пока нет, поэтому для этого способа нужен ваш собственный клиент.",
       },
     },
     "email:imap": {
@@ -422,7 +441,6 @@ const es: PlanText = {
   clientFileOther: "Elegir otro archivo",
   clientFileChosen: (name) => `Elegido: ${name}. Se lee una vez, al iniciar sesión.`,
   clientFileUnreadable: "No se pudo leer el archivo. Elige el JSON que descargaste.",
-  clientFileDrop: "Quitar",
   clientId: "Application (client) ID",
   clientIdHint: "Déjalo vacío para entrar con la app de WireCat.",
   noWireCatApp: (name) =>
@@ -530,18 +548,29 @@ const es: PlanText = {
     "email:gmail": {
       steps: [
         "Escribe tu dirección de Gmail.",
-        "Crea una contraseña de aplicación: una contraseña solo para este programa. Activa la verificación en dos pasos en tu cuenta de Google, abre myaccount.google.com/apppasswords y crea una.",
-        "Pega aquí la contraseña de aplicación de 16 caracteres. Se comprueba con Gmail antes de guardar nada.",
+        "Después, crea una contraseña de aplicación con los pasos que se muestran y pégala allí.",
+        "Gmail comprueba la contraseña antes de guardar nada.",
       ],
-      guide: { url: GOOGLE_PASSWORDS, label: "Abrir las contraseñas de aplicación de Google" },
       kept: [
         "Tu contraseña de Google se queda contigo: el programa no la ve. Puedes borrar la contraseña de aplicación en tu cuenta de Google cuando quieras, y el programa pierde el acceso.",
         "Tu correo se copia solo a este equipo. La sincronización nunca cambia tu buzón.",
         "La contraseña de aplicación se guarda en el almacén de contraseñas del sistema, o en la carpeta de la propia herramienta si no hay ninguno.",
       ],
+    },
+    "email:gmail:browser": {
+      steps: [
+        "Una vez: en Google Cloud Console, crea un cliente OAuth del tipo Desktop app. Descarga su archivo JSON, o deja abierta su página con el client ID y el secret.",
+        "Elige el archivo, o escribe abajo el client ID y el secret.",
+        "El navegador abre Google. Inicia sesión allí y permite el acceso.",
+      ],
+      guide: { url: GOOGLE_APP_GUIDE, label: "Cómo crear el cliente de Google" },
+      kept: [
+        "Tu contraseña de Google se escribe solo en la propia página de Google.",
+        "Google pide leer, cambiar y enviar tu Gmail: no ofrece un acceso más limitado para programas de correo. La sincronización solo lee.",
+        "El cliente y la sesión se guardan en el almacén de contraseñas del sistema, o en la carpeta de la propia herramienta si no hay ninguno. El archivo no vuelve a hacer falta.",
+      ],
       own: {
-        text: "Para entrar con Google en el navegador en lugar de con una contraseña de aplicación, elige el archivo JSON de un cliente Desktop app propio de Google Cloud Console. WireCat aún no tiene app de Google para el correo. Google pedirá leer, cambiar y enviar tu Gmail: no ofrece un acceso más limitado para programas de correo.",
-        guide: GOOGLE_APP_GUIDE,
+        text: "WireCat aún no tiene app de Google para el correo, así que esta forma necesita un cliente propio.",
       },
     },
     "email:imap": {
@@ -561,5 +590,6 @@ const es: PlanText = {
 
 export const planMessages: Messages<PlanText> = { en, ru, es }
 
-export const planFor = (m: PlanText, tool: string, method: string | null): Plan | undefined =>
-  m.plans[`${tool}:${method}`] ?? m.plans[tool]
+/** `route` names a second way within the method, such as Gmail in the browser. */
+export const planFor = (m: PlanText, tool: string, method: string | null, route?: string | null): Plan | undefined =>
+  (route ? m.plans[`${tool}:${method}:${route}`] : undefined) ?? m.plans[`${tool}:${method}`] ?? m.plans[tool]
