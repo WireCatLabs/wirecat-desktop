@@ -1808,8 +1808,11 @@
         "removeDelete": ["folders", "remove", "{id}", "--allow-delete", "--yes", "--record", "--json"],
         "sync": ["sync", "--only", "notes", "--record", "--json"],
         "models": ["models", "list", "--no-record", "--json"],
-        "model": "e5-small",
-        "download": ["models", "download", "{model}", "--json"]
+        "choices": ["embeddinggemma", "e5-small"],
+        "recommended": "embeddinggemma",
+        "download": ["models", "download", "{model}", "--json"],
+        "downloadWithTerms": ["models", "download", "{model}", "--accept-terms", "--json"],
+        "use": ["models", "set", "{model}", "--json"]
       },
       "sync": {
         "run": ["sync", "--record", "--json"],

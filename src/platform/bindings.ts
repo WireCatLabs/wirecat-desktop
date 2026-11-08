@@ -448,11 +448,25 @@ export type NotesModel = {
 	title: string,
 	sizeBytes: number,
 	downloaded: boolean,
+	/**  The one memo uses now for every embed and search by meaning. */
+	inUse: boolean,
+	role: NotesModelRole,
+	/**  The model's own terms of use, an https page; `None` for a model under a plain licence. */
+	terms: string | null,
 };
 
 export type NotesModelEvent = 
 /**  How far the download is, in bytes. `label` is the model's id. */
 { event: "counted"; done: number; total: number; unit: CountUnit; label: string | null } | { event: "done" } | { event: "stopped" } | { event: "failed"; problem: NotesProblem };
+
+/**
+ *  How the card names a model: the recommended one only as the best local model, the catalog's other choice as the
+ *  lighter one, and a model in use chosen elsewhere by memo's own title.
+ */
+export type NotesModelRole = "recommended" | "alternative" | "other";
+
+/**  After `models set`: what memo now reads again. The counts are `None` from a memo that does not report them. */
+export type NotesModelUsed = { result: "used"; previous: string | null; toEmbed: number | null; estimateSeconds: number | null } | { result: "failed"; problem: NotesProblem };
 
 /**
  *  What went wrong, in a closed list: the interface has words and an action for each, and memo's own message (which can
@@ -467,8 +481,8 @@ export type NotesProblem =
 "busy" | "other";
 
 export type NotesSetup = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
-/**  `model` is `None` when memo's list does not name the search model. */
-{ state: "ready"; folders: NotesFolder[]; model: NotesModel | null };
+/**  `models` is empty when memo's list names none of the catalog's choices. */
+{ state: "ready"; folders: NotesFolder[]; models: NotesModel[] };
 
 /**  The issuer's metadata, for typing into a browser app that cannot find it itself (BUG-15). */
 export type OAuthSettings = {

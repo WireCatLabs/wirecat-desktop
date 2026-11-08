@@ -2,14 +2,31 @@ import type { NotesFolder, NotesProblem, NotesSetup } from "./bindings"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
-// memo's first run. `?memo=fresh` has no folder and no search model, `?memo=ready` a folder and the model, `?memo=old`
-// a memo too old for the card; no value is one folder with the model still to download. `?memo-pick=cancel` closes the
+// memo's first run. `?memo=fresh` has no folder and no search model, `?memo=ready` a folder and the model in use
+// downloaded, `?memo=old` a memo too old for the card; no value is one folder with the model still to download.
+// Search models, as memo 0.131.61 lists them: `?model=gemma` EmbeddingGemma in use and downloaded, `?model=e5` e5-small
+// in use and downloaded (EmbeddingGemma offered), `?model=none` EmbeddingGemma in use and not downloaded yet,
+// `?model=both` both downloaded with e5-small in use (switching needs no download), `?model-fail=use` makes switching
+// fail as another run holding the store. `?memo-pick=cancel` closes the
 // folder window without a choice. `?memo-fail=folder` (the folder cannot be read), `?memo-fail=sync` (another run holds
 // the store), `?memo-fail=download` (no network), `?memo-fail=disk` (no space left), `?memo-fail=old` (the download
 // command is unknown to this memo), `?memo-fail=remove` (a sync holds the store), `?memo-fail=remove-old` (this memo has
 // no `folders remove`). Progress lines: counts for the sync and the download by default, `?notes-progress=old` for a
 // memo that prints none (the bars have no end).
-const MODEL = { id: "e5-small", title: "multilingual-e5-small, 8-bit", sizeBytes: 135_391_358 }
+const GEMMA = {
+  id: "embeddinggemma",
+  title: "EmbeddingGemma 300M, 4-bit",
+  sizeBytes: 218_725_224,
+  role: "recommended" as const,
+  terms: "https://ai.google.dev/gemma/terms",
+}
+const E5 = {
+  id: "e5-small",
+  title: "multilingual-e5-small, 8-bit",
+  sizeBytes: 135_391_358,
+  role: "alternative" as const,
+  terms: null,
+}
 const PICKED = "/home/slava/Notes/Work"
 
 export function notesSetupMock(
@@ -23,13 +40,27 @@ export function notesSetupMock(
   | "notesSync"
   | "notesModelDownload"
   | "notesModelStop"
+  | "notesModelUse"
 > {
   const scenario = params.get("memo")
   const fail = params.get("memo-fail")
   const counts = params.get("notes-progress") !== "old"
   const folders: NotesFolder[] =
     scenario === "fresh" ? [] : [{ id: "3", name: "Notes", path: "~/Documents/Notes", format: "obsidian" }]
-  let downloaded = scenario === "ready"
+  const modelScenario = params.get("model")
+  const downloaded = new Set<string>(
+    modelScenario === "gemma"
+      ? ["embeddinggemma"]
+      : modelScenario === "e5"
+        ? ["e5-small"]
+        : modelScenario === "both"
+          ? ["embeddinggemma", "e5-small"]
+          : scenario === "ready"
+            ? ["embeddinggemma"]
+            : [],
+  )
+  let inUse = modelScenario === "e5" || modelScenario === "both" ? "e5-small" : "embeddinggemma"
+  const models = () => [GEMMA, E5].map((m) => ({ ...m, downloaded: downloaded.has(m.id), inUse: m.id === inUse }))
   let stopped = false
   const problem = (): NotesProblem =>
     fail === "disk" ? "diskFull" : fail === "old" ? "tooOld" : fail === "sync" ? "busy" : "offline"
@@ -37,7 +68,7 @@ export function notesSetupMock(
     async notesSetupStatus(): Promise<NotesSetup> {
       await delay(400)
       if (scenario === "old") return { state: "old", version: "0.131.2", need: "0.131.14" }
-      return { state: "ready", folders: [...folders], model: { ...MODEL, downloaded } }
+      return { state: "ready", folders: [...folders], models: models() }
     },
     async notesPickFolder() {
       await delay(500)
@@ -83,7 +114,8 @@ export function notesSetupMock(
         })
       onEvent({ event: "done", summary: { new: 214, places: folders.length, failed: 0, left: 0, complete: true } })
     },
-    async notesModelDownload(_id, onEvent) {
+    async notesModelDownload(_id, model, onEvent) {
+      const size = (model === E5.id ? E5 : GEMMA).sizeBytes
       stopped = false
       const until = Date.now() + 6000
       while (!stopped && Date.now() < until) {
@@ -91,17 +123,24 @@ export function notesSetupMock(
         if (counts)
           onEvent({
             event: "counted",
-            done: Math.round(MODEL.sizeBytes * Math.min(1, 1 - (until - Date.now()) / 6000)),
-            total: MODEL.sizeBytes,
+            done: Math.round(size * Math.min(1, 1 - (until - Date.now()) / 6000)),
+            total: size,
             unit: "bytes",
-            label: MODEL.id,
+            label: model,
           })
       }
       if (stopped) return onEvent({ event: "stopped" })
       if (fail === "download" || fail === "disk" || fail === "old")
         return onEvent({ event: "failed", problem: problem() })
-      downloaded = true
+      downloaded.add(model)
       onEvent({ event: "done" })
+    },
+    async notesModelUse(_id, model) {
+      await delay(800)
+      if (params.get("model-fail") === "use") return { result: "failed", problem: "busy" }
+      const previous = inUse
+      inUse = model
+      return { result: "used", previous, toEmbed: 1840, estimateSeconds: model === GEMMA.id ? 920 : 60 }
     },
     async notesModelStop() {
       stopped = true

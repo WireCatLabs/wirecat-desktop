@@ -134,7 +134,7 @@ export async function runMockScenario() {
     await useTools.getState().refresh()
     useTools.getState().toggle("email")
   }
-  if (params.has("memo") || params.has("memo-fail")) {
+  if (params.has("memo") || params.has("memo-fail") || params.has("model")) {
     useNav.getState().go("tools")
     await useTools.getState().refresh()
     useTools.getState().toggle("memo")

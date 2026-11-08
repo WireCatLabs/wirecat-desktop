@@ -264,11 +264,12 @@ function createTauri(): Platform {
       channel.onmessage = onEvent
       return invoke("notes_sync", { id, onEvent: channel })
     },
-    notesModelDownload: (id, onEvent) => {
+    notesModelDownload: (id, model, onEvent) => {
       const channel = new Channel<NotesModelEvent>()
       channel.onmessage = onEvent
-      return invoke("notes_model_download", { id, onEvent: channel })
+      return invoke("notes_model_download", { id, model, onEvent: channel })
     },
+    notesModelUse: (id, model) => invoke("notes_model_use", { id, model }),
     notesModelStop: (id) => invoke("notes_model_stop", { id }),
     listRuns: (id, query, limit, page) => call(RunsPageSchema, "list_runs", { id, query, limit, page }),
     searchStore: (id, profile, query, limit, page) =>
