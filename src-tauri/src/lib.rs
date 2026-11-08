@@ -16,6 +16,7 @@ mod community;
 mod compat;
 mod config_repair;
 mod drive_folders;
+mod enrichment;
 mod error;
 mod funnel_helper;
 mod install;
@@ -149,6 +150,10 @@ pub fn run() {
             commands::notes_setup::notes_sync,
             commands::notes_setup::notes_model_download,
             commands::notes_setup::notes_model_stop,
+            commands::enrichment::enrichment_status,
+            commands::enrichment::enrichment_preview,
+            commands::enrichment::enrichment_on,
+            commands::enrichment::enrichment_off,
             commands::tools::config_repair,
             commands::tools::open_setup,
             commands::storage::storage_report,

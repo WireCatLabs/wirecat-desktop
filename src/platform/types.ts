@@ -15,6 +15,8 @@ import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } f
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type {
+  Enrichment,
+  EnrichmentStatus,
   FolderAdded,
   FolderLevel,
   MailAgent,
@@ -317,6 +319,14 @@ export type Platform = {
   mailAgentSet(id: string, on: boolean): Promise<MailAgent>
   /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */
   mailAgentWaiting(id: string): Promise<number | null>
+  /** memo's `models consents show` (`enrichment` in the catalog): whether a hosted model rewrites records for search. */
+  enrichmentStatus(id: string): Promise<Enrichment>
+  /** What turning it on sends and costs, from memo's `consents set` without `--yes`; changes nothing. */
+  enrichmentPreview(id: string): Promise<EnrichmentStatus>
+  /** Turns it on with the catalog's provider and model; only after the owner agreed in the consent step. */
+  enrichmentOn(id: string): Promise<EnrichmentStatus>
+  /** Turns it off; memo deletes what the model wrote. */
+  enrichmentOff(id: string): Promise<EnrichmentStatus>
   /** memo's first run (`notesSetup` in the catalog): its notes folders on this computer and the search model. */
   notesSetupStatus(id: string): Promise<NotesSetup>
   /** The system's own folder window; the chosen path, or null when the owner closes it. */

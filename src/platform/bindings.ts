@@ -173,6 +173,36 @@ export type DriveFolder = {
 	added: boolean,
 };
 
+export type Enrichment = 
+/**  memo answers "unknown command": its release has no `models consents` yet. */
+{ state: "old"; version: string | null } | { state: "ready"; status: EnrichmentStatus };
+
+export type EnrichmentEstimate = {
+	records: number,
+	inputTokens: number,
+	outputTokens: number,
+	/**  `None` for a model memo has no price for, and in `show` while enrichment is off. */
+	usd: number | null,
+};
+
+/**
+ *  Counts and the provider's address, never a record. `provider`, `model` and `endpoint` are the setting in force,
+ *  so a preview of a change still shows them empty while it is off.
+ */
+export type EnrichmentStatus = {
+	on: boolean,
+	provider: string | null,
+	model: string | null,
+	endpoint: string | null,
+	consentedAt: string | null,
+	records: number,
+	enriched: number,
+	pending: number,
+	estimate: EnrichmentEstimate,
+	/**  Only after revoke: how many records' model text memo deleted. */
+	deleted: number | null,
+};
+
 /**  Names and sizes only: nothing inside is opened, so sign-in sessions stay unread. */
 export type Entry = {
 	name: string,

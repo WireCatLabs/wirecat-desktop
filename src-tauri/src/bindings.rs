@@ -41,6 +41,8 @@ fn types() -> Types {
         .register::<crate::notes_setup::NotesFolderRemoved>()
         .register::<crate::notes_setup::NotesModelEvent>()
         .register::<crate::notes_setup::NotesProblem>()
+        .register::<crate::enrichment::Enrichment>()
+        .register::<crate::enrichment::EnrichmentStatus>()
         .register::<crate::zoom_app::ZoomAppAnswer>()
         .register::<crate::drive_folders::FolderLevel>()
         .register::<crate::drive_folders::FolderAdded>()

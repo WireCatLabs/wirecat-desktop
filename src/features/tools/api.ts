@@ -1,9 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { Enrichment } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { Background, BackgroundAction } from "@/platform/sync-schemas"
 import { profilesQuery } from "@/shared/query"
 
 export const toolKeys = {
+  enrichment: (id: string) => ["tool", id, "enrichment"] as const,
   background: (id: string, profile: string) => ["tool", id, "background", profile] as const,
   permissions: (id: string, profile: string | null) => ["tool", id, "permissions", profile] as const,
 }
@@ -77,5 +79,24 @@ export function useSetPermission(id: string, profile: string | null) {
     },
     // The defaults show through in every profile, so each permissions answer of the tool is read again.
     onSettled: () => client.invalidateQueries({ queryKey: ["tool", id, "permissions"] }),
+  })
+}
+
+/** Whether memo has a hosted model rewrite records for search, and how far it got. */
+export function useEnrichment(id: string) {
+  return useQuery({ queryKey: toolKeys.enrichment(id), queryFn: () => platform.enrichmentStatus(id) })
+}
+
+/** What turning it on sends and costs. A mutation, not a query: it runs only when the owner opens the consent step. */
+export function useEnrichmentPreview(id: string) {
+  return useMutation({ mutationFn: () => platform.enrichmentPreview(id) })
+}
+
+export function useSetEnrichment(id: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (on: boolean) => (on ? platform.enrichmentOn(id) : platform.enrichmentOff(id)),
+    onSuccess: (status) =>
+      client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment),
   })
 }

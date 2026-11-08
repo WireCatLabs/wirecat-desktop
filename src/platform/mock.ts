@@ -9,6 +9,7 @@ import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-commun
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
 import { delay } from "./mock-delay"
 import { driveFoldersMock } from "./mock-drive-folders"
+import { enrichmentMock } from "./mock-enrichment"
 import { npmLines } from "./mock-install"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
@@ -635,6 +636,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...syncMock(),
     ...mailAgentMock(params),
     ...notesSetupMock(params),
+    ...enrichmentMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
     ...cloudflareMock(),

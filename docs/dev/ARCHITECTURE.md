@@ -120,6 +120,10 @@ src-tauri/src/
                 (for tg and max, only a run whose argv has `--all`).
   background.rs whether a messenger's own `serve` keeps a profile current (`server status`), and starting it through
                 its own `server install` (only when it has no unit) and `server start`. Never systemctl itself.
+  enrichment.rs memo's search rewriting: its own `models consents show`, `set` without `--yes` (what would be sent, to
+                whom, how many records, the cost; changes nothing), `set --yes` and `revoke`. Provider and model are fixed
+                in the catalog (`enrichment`), so the interface sends only the tool id; `--yes` runs only from the consent
+                step, and turning it off deletes what the model wrote. Counts and addresses only, never a record.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
