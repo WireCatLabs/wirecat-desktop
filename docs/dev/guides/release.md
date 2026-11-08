@@ -19,7 +19,16 @@ in [signing.md](../signing.md).
    all four platforms and makes the release public and latest. To try a change to this workflow, run it on your
    branch with nothing published: `gh workflow run release.yml --ref <branch> -f dry_run=true`.
 5. [install-check.yml](../../../.github/workflows/install-check.yml) then installs the published release on a clean
-   runner of each OS and checks that the app starts. Look at its result.
+   runner of each OS and checks that the app starts. On Windows the installer and the installed app must be signed
+   validly by our certificate ([signing.md](../signing.md#after-setup)). Then the installed app installs the
+   WhatsApp tool with its own install code, the path the Tools page takes, and runs `wa --version` and
+   `wa --wcat-describe`: first with Node.js hidden, so the app sets up its own, then with the runner's Node.js
+   (Fedora has none, so only the first). The command, with no window:
+   `WIRECAT_SELF_TEST=1 <app> --self-test install-tool whatsapp [--own-node]`
+   ([self_test.rs](../../../src-tauri/src/self_test.rs), [bin/install-check-self-test](../../../bin/install-check-self-test)).
+   It prints one JSON line (`ok`, `node.source` `own` or `system`, `tool`, `steps`, `failure`), kept as the run's
+   `self-test-<os>` artifact. A release made before the self-test existed gets a notice for that part instead.
+   Look at its result.
 
 Installed copies update only after `publish`: the updater reads `latest.json` of the latest public release.
 

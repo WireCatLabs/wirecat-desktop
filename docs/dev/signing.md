@@ -165,7 +165,10 @@ The next release tag is signed with no other change. To check:
 
 - The **Install check** run after the release (GitHub → Actions → Install check) shows the result.
   - On macOS: an `Authority=Developer ID Application: …` line, and Gatekeeper reports the app as accepted.
-  - On Windows: `Signature: Valid`.
+  - On Windows: `Signature: Valid, signer CN=Open Source Developer Viacheslav Ptsarev, O=Open Source Developer,
+    S=Valencia, C=ES` for the installer and for the installed app. Any other status or signer fails the check. That
+    subject is the Certum certificate's (as the v0.5.0 release run printed it), kept in `WINDOWS_SIGNER` at the top
+    of the workflow's Windows job; a new certificate with another subject needs that line changed too.
 - On a Mac, the downloaded app opens with a double-click and no warning.
 
 ## If something is lost or leaked

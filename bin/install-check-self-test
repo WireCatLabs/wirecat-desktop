@@ -1,0 +1,66 @@
+#!/usr/bin/env bash
+# The installed app's self-test (src-tauri/src/self_test.rs) for install-check.yml on Linux and macOS. First with no
+# Node.js anywhere WireCat looks, so the app sets up its own, then with this computer's Node.js when it has one. Each
+# run gets a new home folder, so neither sees what the other installed. It hides `node` by renaming it, so run it only
+# on a machine that is thrown away afterwards. Writes <out>/own-node.json and <out>/system-node.json.
+# Usage: bin/install-check-self-test <app binary> <out dir> [tool]
+set -euo pipefail
+app="$1"
+out="$2"
+tool="${3:-whatsapp}"
+mkdir -p "$out"
+work="$(mktemp -d)"
+sudo=""
+[ "$(id -u)" = 0 ] || sudo="sudo"
+hidden=()
+failed=0
+
+restore() {
+  for f in ${hidden[@]+"${hidden[@]}"}; do $sudo mv "$f.hidden" "$f"; done
+  hidden=()
+}
+trap restore EXIT
+
+# PATH and the folders paths.rs adds on its own; a fresh home has no nvm, Volta or pnpm.
+hide_node() {
+  local dir
+  for dir in $(printf '%s' "$PATH" | tr ':' ' ') /opt/homebrew/bin /usr/local/bin /usr/bin; do
+    if [ -e "$dir/node" ] || [ -L "$dir/node" ]; then
+      echo "Hiding $dir/node"
+      $sudo mv "$dir/node" "$dir/node.hidden"
+      hidden+=("$dir/node")
+    fi
+  done
+}
+
+# <name> <expected node source> [--own-node]
+self_test() {
+  local name="$1" source="$2"
+  shift 2
+  mkdir -p "$work/$name"
+  local code=0
+  env -u XDG_DATA_HOME -u XDG_CONFIG_HOME -u XDG_CACHE_HOME -u npm_config_prefix -u NPM_CONFIG_PREFIX \
+    HOME="$work/$name" WIRECAT_SELF_TEST=1 "$app" --self-test install-tool "$tool" "$@" \
+    >"$out/$name.json" 2>"$out/$name.log" || code=$?
+  echo "$name (exit $code):"
+  cat "$out/$name.json"
+  if ! jq -e --arg source "$source" '.ok == true and .node.source == $source' "$out/$name.json" >/dev/null 2>&1; then
+    local why
+    why="$(jq -r '.failure | "\(.step): \(.message) \(.hint // "")"' "$out/$name.json" 2>/dev/null ||
+      echo "no JSON line")"
+    echo "::error::Self-test $name (Node.js expected from $source): $why"
+    tail -n 40 "$out/$name.log" || true
+    failed=1
+  fi
+}
+
+hide_node
+self_test own-node own --own-node
+restore
+
+if command -v node >/dev/null; then
+  self_test system-node system
+else
+  echo "::notice::No Node.js on this machine, so the self-test ran only with WireCat's own."
+fi
+exit "$failed"

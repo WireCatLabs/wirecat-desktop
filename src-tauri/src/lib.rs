@@ -54,6 +54,7 @@ mod report;
 mod run;
 mod runs;
 mod search;
+mod self_test;
 mod settings;
 mod signin;
 mod signin_steps;
@@ -93,6 +94,12 @@ fn listen_for_links(app: &tauri::AppHandle) {
     }
     let handle = app.clone();
     app.deep_link().on_open_url(move |event| deep_link::open(&handle, event.urls().iter().map(tauri::Url::as_str)));
+}
+
+/// The exit code when the command line asks for the install check's self-test (`self_test.rs`), before any window.
+#[must_use]
+pub fn self_test() -> Option<i32> {
+    self_test::from_command_line()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
