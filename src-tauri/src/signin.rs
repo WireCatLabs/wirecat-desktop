@@ -40,7 +40,7 @@ pub struct Inputs {
     pub password: Option<String>,
     /// The text of the owner's own OAuth client JSON, not a path: the window has no file paths.
     pub client_file: Option<String>,
-    /// Sign in by OAuth with WireCat's app, as a new profile would not by itself (mail's Gmail defaults to a password).
+    /// Sign in in the browser with the tool's own app, which a new mail profile for Gmail would not do by itself.
     #[serde(default)]
     pub oauth: bool,
 }
