@@ -5,11 +5,15 @@ import { type CatalogTool, isValidProfile } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { type BotFailure, useBotSignIn } from "@/shared/bot-signin-store"
 import { type BotMessages, type BotTool, botMessages } from "@/shared/messages-bot"
+import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
+import { Crossfade } from "@/ui/Crossfade"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace } from "@/ui/motion"
 import { SecretField } from "@/ui/SecretField"
+import { Tab, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 
 export const NAME_FORM = "bot-name-form"
 export const TOKEN_FORM = "bot-token-form"
@@ -116,11 +120,7 @@ export function TokenStep({ tool }: { tool: CatalogTool }) {
         <h3 id={`${id}-how`} className="text-[0.95rem] font-semibold text-ink">
           {m.howTo}
         </h3>
-        <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-[0.93rem] leading-snug text-ink marker:text-ink-dim">
-          {m.howSteps[key].map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
+        {key === "tg" ? <TelegramHow m={m} /> : <Steps steps={m.howSteps[key]} />}
         <div>
           <Button
             size="sm"
@@ -205,6 +205,65 @@ export function TokenStep({ tool }: { tool: CatalogTool }) {
         </div>
       </form>
     </div>
+  )
+}
+
+function Steps({ steps }: { steps: readonly string[] }) {
+  return (
+    <ol className="flex list-decimal flex-col gap-1.5 pl-5 text-[0.93rem] leading-snug text-ink marker:text-ink-dim">
+      {steps.map((step) => (
+        <li key={step}>{step}</li>
+      ))}
+    </ol>
+  )
+}
+
+type HowTab = "new" | "existing"
+
+// The panel holds only the instructions: the token field sits outside it, so a switch never clears what was pasted.
+function TelegramHow({ m }: { m: BotMessages }) {
+  const [tab, setTab] = useState<HowTab>("new")
+  const tabs: { id: HowTab; label: string }[] = [
+    { id: "new", label: m.newBot },
+    { id: "existing", label: m.existingBot },
+  ]
+  return (
+    <Tabs selectedKey={tab} onSelectionChange={(k) => setTab(k as HowTab)} className="flex flex-col gap-2">
+      <TabList aria-label={m.howTabs} className="flex gap-5 border-line border-b">
+        {tabs.map((t) => (
+          <Tab
+            key={t.id}
+            id={t.id}
+            className={({ isSelected }) =>
+              cx(
+                "relative flex h-[2.4rem] cursor-pointer items-center text-[0.93rem] transition-colors duration-(--motion-fast)",
+                isSelected ? "font-semibold text-ink" : "text-ink-soft hover:text-ink",
+              )
+            }
+          >
+            {({ isSelected }) => (
+              <>
+                {t.label}
+                <span
+                  aria-hidden
+                  className={cx(
+                    "absolute inset-x-0 bottom-0 h-[2px] rounded-t-full bg-brand transition-transform duration-(--motion-fast)",
+                    isSelected ? "scale-x-100" : "scale-x-0",
+                  )}
+                />
+              </>
+            )}
+          </Tab>
+        ))}
+      </TabList>
+      <TabPanel id={tab}>
+        <AutoHeight swap={tab}>
+          <Crossfade swap={tab}>
+            <Steps steps={tab === "new" ? m.howSteps.tg : m.existingSteps} />
+          </Crossfade>
+        </AutoHeight>
+      </TabPanel>
+    </Tabs>
   )
 }
 
