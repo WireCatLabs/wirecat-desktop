@@ -259,6 +259,7 @@ function Actions({
     case "check":
       return (
         <>
+          <BackButton onClick={() => on.setStep({ kind: "review", review: step.review, accepted: true })} />
           {cancel}
           <Button
             variant={step.checked ? "primary" : "secondary"}
