@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Adds the real @leemour/acme-crm-cli from npm through the app's own-tool code, then signs in, syncs, connects an agent,
+# goes offline and removes it. Two runs of the test binary, as two starts of the app. Everything it writes (home, app
+# data, npm's global folder and cache, the shared store) stays in one temp folder, removed at the end.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+[ -f dist/index.html ] || { mkdir -p dist && echo '<!doctype html>' > dist/index.html; }
+root=$(mktemp -d "${TMPDIR:-/tmp}/wirecat-own-e2e.XXXXXX")
+trap 'chmod -R u+w "$root" 2>/dev/null; rm -rf "$root"' EXIT
+export WIRECAT_OWN_E2E_ROOT="$root"
+for phase in phase_add phase_use; do
+  cargo test --manifest-path src-tauri/Cargo.toml --lib -- --exact "own_tool_e2e::$phase" --ignored --nocapture
+done

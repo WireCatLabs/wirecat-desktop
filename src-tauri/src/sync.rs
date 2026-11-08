@@ -278,6 +278,7 @@ fn summary_of(what: &str, item: &Value) -> Summary {
             let failed = list(item, "warnings").len() as u64;
             Summary { new: count(item, "meetings"), places: 0, failed, left: 0, complete: failed == 0 }
         }
+        "records" => records_summary(item),
         _ => {
             let mail = list(item, "mail");
             let notes = list(item, "notes");
@@ -292,6 +293,25 @@ fn summary_of(what: &str, item: &Value) -> Summary {
                 complete: mail.iter().all(|m| flag(m, "complete").unwrap_or(true)),
             }
         }
+    }
+}
+
+/// An own tool's sync answer has no shape `WireCat` defines (`own_tools.rs` names every own sync "records"), so this
+/// reads the two cli-core gives it: a count per kind the CRM port saved (`"deals": 15`), and the records envelope's
+/// receipt (`"invoices": {"created": 8, "updated": 0, "refused": 0}`), each kind one place.
+fn records_summary(item: &Value) -> Summary {
+    let fields = item.as_object().into_iter().flatten();
+    let per_kind: Vec<u64> = fields
+        .clone()
+        .filter_map(|(_, v)| v.as_u64().or_else(|| v.is_object().then(|| count(v, "created") + count(v, "updated"))))
+        .collect();
+    let refused: u64 = fields.filter(|(_, v)| v.is_object()).map(|(_, v)| count(v, "refused")).sum();
+    Summary {
+        new: per_kind.iter().sum(),
+        places: per_kind.iter().filter(|n| **n > 0).count() as u64,
+        failed: refused + list(item, "issues").len() as u64,
+        left: 0,
+        complete: item.get("state").and_then(Value::as_str) != Some("partial"),
     }
 }
 
@@ -400,6 +420,19 @@ mod tests {
         assert_eq!(summary_of("mail", &mail), Summary { new: 40, places: 0, failed: 1, left: 120, complete: false });
         let zm = json!({"meetings": 3, "warnings": []});
         assert_eq!(summary_of("meetings", &zm), Summary { new: 3, places: 0, failed: 0, left: 0, complete: true });
+    }
+
+    #[test]
+    fn an_own_tools_records_sync_counts_each_kind_it_saved() {
+        let first = json!({"provider": "acme-crm", "account": "acme-demo", "state": "complete",
+            "organizations": 10, "people": 25, "deals": 15,
+            "invoices": {"created": 8, "updated": 0, "unchanged": 0, "refused": 0, "proposed": ["a"], "waiting": 0},
+            "issues": []});
+        assert_eq!(summary_of("records", &first), Summary { new: 58, places: 4, failed: 0, left: 0, complete: true });
+        let again = json!({"state": "partial", "organizations": 0, "people": 0, "deals": 0,
+            "invoices": {"created": 0, "updated": 0, "unchanged": 8, "refused": 1},
+            "issues": [{"kind": "deal", "reason": "sync.partial", "message": "m"}]});
+        assert_eq!(summary_of("records", &again), Summary { new: 0, places: 0, failed: 2, left: 0, complete: false });
     }
 
     #[test]
