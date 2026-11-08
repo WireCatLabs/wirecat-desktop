@@ -140,14 +140,26 @@ const ToolSchema = v.object({
   /** Only drive: `folders browse` and `folders add` after sign-in, run by `drive_folders_browse` and `drive_folder_add`. */
   folderPicker: v.optional(v.nullable(v.object({ parent: v.string() })), null),
   /**
-   * Removing one account with the tool's own words; Rust runs `signOut` or `deleteData`. `removes` and `keeps` say what
-   * the sign-out takes away and what stays, read from each CLI's source, for the confirm dialog.
+   * Removing one account with the tool's own words. `remove` is cli-core's `account remove`, run by Rust from
+   * `minVersion` on (null: not released yet); before it, `signOut` is the fallback, and `removes` and `keeps` say what
+   * that sign-out takes away and what stays, read from each CLI's source.
    */
   accountRemove: v.optional(
     v.nullable(
       v.object({
         signOut: v.nullable(v.array(v.string())),
-        deleteData: v.nullable(v.array(v.string())),
+        remove: v.optional(
+          v.nullable(
+            v.object({
+              minVersion: v.nullable(v.string()),
+              keepData: v.array(v.string()),
+              deleteData: v.array(v.string()),
+              dryRun: v.string(),
+              confirm: v.string(),
+            }),
+          ),
+          null,
+        ),
         removes: v.array(v.picklist(ACCOUNT_REMOVES)),
         keeps: v.array(v.picklist(ACCOUNT_KEEPS)),
       }),

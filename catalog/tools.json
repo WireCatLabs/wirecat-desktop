@@ -410,7 +410,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "deleteData": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["signIn", "serverSession"],
         "keeps": ["appKeys", "settings", "data", "listed"]
       }
@@ -814,7 +820,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "deleteData": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["signIn", "serverSession"],
         "keeps": ["settings", "data", "listed"]
       }
@@ -1235,7 +1247,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "deleteData": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["deviceKeys", "linkedDevice"],
         "keeps": ["settings", "data", "listed"]
       }
@@ -1400,7 +1418,18 @@
           }
         ]
       },
-      "accountRemove": null
+      "accountRemove": {
+        "signOut": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
+        "removes": [],
+        "keeps": []
+      }
     },
     {
       "id": "drive",
@@ -1552,7 +1581,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "deleteData": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["signIn"],
         "keeps": ["folders", "data", "listed", "googleAccess"]
       }
@@ -1612,7 +1647,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "deleteData": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["signIn"],
         "keeps": ["settings", "data", "listed", "googleAccess"]
       }
@@ -2007,7 +2048,13 @@
       },
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
-        "deleteData": null,
+        "remove": {
+          "minVersion": null,
+          "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
+          "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
+          "dryRun": "--dry-run",
+          "confirm": "--yes"
+        },
         "removes": ["signIn"],
         "keeps": ["settings", "mail", "listed", "providerAccess"]
       }

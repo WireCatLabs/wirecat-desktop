@@ -15,6 +15,7 @@ import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } f
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type {
+  AccountRemoval,
   AccountRemoved,
   ChosenFolders,
   FolderAdded,
@@ -132,8 +133,14 @@ export type Platform = {
   openFolder(id: string, kind: StorageFolder["kind"], entry?: string): Promise<void>
   /** The tool's own `config repair` (`config_repair.rs`), offered where `doctor` names it as the fix. */
   configRepair(id: string, profile: string | null): Promise<Repair>
-  /** The tool's own sign-out of one profile (`accountRemove` in the catalog); `deleteData` only where it names a command. */
-  accountRemove(id: string, profile: string, deleteData: boolean): Promise<AccountRemoved>
+  /** The tool's own `session end` for one profile: the fallback while the installed version has no `account remove`. */
+  accountSignOut(id: string, profile: string): Promise<AccountRemoved>
+  /** Whether the installed version has `account remove` (`accountRemove.remove.minVersion` in the catalog). */
+  accountRemoveSupported(id: string): Promise<boolean>
+  /** `account remove --dry-run`: what it would remove and keep. */
+  accountRemovePlan(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
+  /** `account remove --yes`: signs the profile out and forgets it, keeping or deleting its data. */
+  accountRemove(id: string, profile: string, deleteData: boolean): Promise<AccountRemoval>
   /** What the shared archive holds, from the installed tool that reads the newest schema; null when none is installed. */
   storeInfo(): Promise<StoreInfo | null>
   /** Every installed tool's own `store info`: whether it reads the shared store, and what its next run does to it. */

@@ -1,5 +1,5 @@
 import { CheckCircle2, QrCode, RefreshCw, Stethoscope, Terminal } from "lucide-react"
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useRef, useState } from "react"
 import {
   type CatalogTool,
   doctorNeedsProfile,
@@ -19,7 +19,7 @@ import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { focusInPlace } from "@/ui/motion"
+import { focusInPlace, MOTION, PANEL_MS, reducedMotion } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
 import { AccountRow } from "./AccountRow"
 import { useProfiles } from "./api"
@@ -129,10 +129,38 @@ function ProfileList(props: {
 export function AccountList(props: { tool: CatalogTool; profiles: Profile[]; onReload: () => void; sync?: boolean }) {
   const { tool, profiles, onReload, sync } = props
   const m = useMessages(accountsMessages).row
+  const list = useRef<HTMLUListElement>(null)
+  // Names the tool forgot, until the reload brings a new list: a name it still lists then opens again.
+  const [leaving, setLeaving] = useState<{ names: string[]; from: Profile[] }>({ names: [], from: profiles })
+  const gone = leaving.from === profiles ? leaving.names : []
+  const forget = (name: string) => {
+    setLeaving({ names: [...gone, name], from: profiles })
+    // After the dialog has closed: while it is open, nothing outside it takes focus.
+    setTimeout(
+      () => {
+        list.current?.focus({ preventScroll: true })
+        onReload()
+      },
+      reducedMotion() ? MOTION.exit : PANEL_MS,
+    )
+  }
   return (
-    <ul aria-label={m.list(tool.name)} className="divide-y divide-line rounded-[0.45rem] border border-line bg-app">
+    <ul
+      ref={list}
+      tabIndex={-1}
+      aria-label={m.list(tool.name)}
+      className="divide-y divide-line rounded-[0.45rem] border border-line bg-app outline-none"
+    >
       {profiles.map((p) => (
-        <AccountRow key={p.name} tool={tool} profile={p} onReload={onReload} sync={sync} />
+        <AccountRow
+          key={p.name}
+          tool={tool}
+          profile={p}
+          onReload={onReload}
+          sync={sync}
+          leaving={gone.includes(p.name)}
+          onForgotten={() => forget(p.name)}
+        />
       ))}
     </ul>
   )
