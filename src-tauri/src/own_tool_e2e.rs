@@ -235,7 +235,7 @@ fn phase_use() {
     let mine: Vec<PathBuf> =
         storage::defaults(&tool.storage).into_iter().map(|(_, p)| p).filter(|p| p.exists()).collect();
     println!("   the tool's folders: {mine:?}");
-    assert!(!mine.is_empty());
+    assert_ne!(mine.len(), 0, "the install made no folder of the tool");
     own_tools::remove_saved(ID).unwrap();
     assert!(!std::fs::read_to_string(app_data().join("extra-tools.json")).unwrap().contains(PACKAGE));
     let events = installing(|r, ch| install::uninstall(tool, r, ch));
