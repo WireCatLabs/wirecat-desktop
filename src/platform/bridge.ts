@@ -226,6 +226,9 @@ function createTauri(): Platform {
     },
     signInAnswer: (id, value) => invoke("sign_in_answer", { id, value }),
     signInStop: (id) => invoke("sign_in_stop", { id }),
+    zoomAppSetup: (id) => invoke("zoom_app_setup", { id }),
+    driveFoldersBrowse: (id, profile, parent) => invoke("drive_folders_browse", { id, profile, parent }),
+    driveFolderAdd: (id, profile, folder) => invoke("drive_folder_add", { id, profile, folder }),
     botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
     listBots: (id) => invoke("list_bots", { id }),
     syncRun: (id, profile, onEvent) => {
@@ -243,6 +246,7 @@ function createTauri(): Platform {
     notesSetupStatus: (id) => invoke("notes_setup_status", { id }),
     notesPickFolder: () => invoke("notes_pick_folder"),
     notesFolderAdd: (id, path) => invoke("notes_folder_add", { id, path }),
+    notesFolderRemove: (id, folder, deleteNotes) => invoke("notes_folder_remove", { id, folder, deleteNotes }),
     notesSync: (id, onEvent) => {
       const channel = new Channel<SyncEvent>()
       channel.onmessage = onEvent

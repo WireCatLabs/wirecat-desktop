@@ -68,6 +68,8 @@ type SignInState = {
   planError: string | null
   /** Start was pressed without what the method needs. */
   planMissing: "address" | "password" | null
+  /** The last page a question's hint named, such as the provider's app password page; a failure offers it again. */
+  hintPage: string | null
   run: number
   onFinish: (() => void) | null
   /** Without `method` it opens on the plan, and `begin` runs it; with one (a switch, a retry) it runs at once. */
@@ -110,7 +112,12 @@ const closed = {
   ownId: "",
   planError: null,
   planMissing: null,
+  hintPage: null as string | null,
 }
+
+/** The first https link in a tool's hint, without the sentence's closing punctuation. */
+export const linkIn = (hint: string | null | undefined) =>
+  hint?.match(/https:\/\/[^\s<>"]*[^\s<>".,;:!?)]/)?.[0] ?? null
 
 /** A sign-in process runs, or is about to: the plan has started nothing yet. */
 export const running = (phase: Phase) => phase !== "done" && phase !== "failed" && phase !== "plan"
@@ -125,7 +132,13 @@ export const receivingHistory = (s: Pick<SignInState, "phase" | "progress">) =>
  */
 const keys = new Map<string, string>()
 const KEPT = new Set(["api_id", "api_hash"])
-export const keptAnswer = (field: string) => keys.get(field) ?? ""
+/**
+ * Other answers a new try starts with: what is not secret (a mail server, a phone number). Never a login code, which
+ * is spent once sent, and never a password.
+ */
+const refill = new Map<string, string>()
+const SPENT = new Set(["code"])
+export const keptAnswer = (field: string) => keys.get(field) ?? refill.get(field) ?? ""
 export const APP_KEYS = KEPT
 
 /** The app password and the client file's text, kept beside the app keys and forgotten with them. */
@@ -135,6 +148,7 @@ const typed: { password: string | undefined; clientFile: string | undefined } = 
 }
 const forget = () => {
   keys.clear()
+  refill.clear()
   typed.password = undefined
   typed.clientFile = undefined
 }
@@ -208,7 +222,16 @@ export const useSignIn = create<SignInState>()((set, get) => {
             .catch((err) => apply({ event: "failed", message: message(err), code: null }))
           return
         }
-        return set({ phase: "answer", need: e, sent: false, qr: null, expect: null, switchingTo: null })
+        const page = linkIn(e.hint)
+        return set((s) => ({
+          phase: "answer",
+          need: e,
+          sent: false,
+          qr: null,
+          expect: null,
+          switchingTo: null,
+          hintPage: page ?? s.hintPage,
+        }))
       }
       case "progress": {
         const s = get()
@@ -306,10 +329,9 @@ export const useSignIn = create<SignInState>()((set, get) => {
       )
     },
     begin() {
-      const { tool, profile, method, phase, onFinish, ownId, address, ownFile } = get()
+      const { tool, profile, method, phase, onFinish, ownId, ownFile } = get()
       if (phase !== "plan" || !tool || !profile || !method) return
       const chosen = methodOf(tool, method)
-      if (chosen?.address && !address.trim()) return set({ planMissing: "address" })
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
       const setting = chosen?.clientId
       const run = () => get().start(tool, profile, onFinish ?? undefined, method)
@@ -327,6 +349,9 @@ export const useSignIn = create<SignInState>()((set, get) => {
       if (!tool || !need || sent) return
       set({ sent: true })
       if (KEPT.has(need.field)) keys.set(need.field, value)
+      else if (!need.secret && !SPENT.has(need.field)) refill.set(need.field, value)
+      // The plan's own field: a new try passes it as the method's flag, and the tool does not ask again.
+      if (need.field === "address" && !need.secret) set({ address: value })
       try {
         await platform.signInAnswer(tool, value)
       } catch (e) {

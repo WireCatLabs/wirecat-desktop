@@ -46,6 +46,23 @@ pub struct Summary {
     pub complete: bool,
 }
 
+#[derive(specta::Type, Debug, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum CountUnit {
+    Files,
+    Bytes,
+}
+
+/// `{"event":"progress","step":"notes"|"download","done","total","unit","label"}`, the release that prints it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Counted {
+    pub done: u64,
+    pub total: u64,
+    pub unit: CountUnit,
+    /// A folder id or a model id, never a path: anything else is dropped.
+    pub label: Option<String>,
+}
+
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
 #[serde(tag = "event", rename_all = "camelCase")]
 pub enum SyncEvent {
@@ -59,6 +76,13 @@ pub enum SyncEvent {
         chats: Option<u64>,
         chats_done: Option<u64>,
         fetched: u64,
+    },
+    /// How far `sync --only notes` is, in files; never what it reads. `label` is a folder id.
+    Counted {
+        done: u64,
+        total: u64,
+        unit: CountUnit,
+        label: Option<String>,
     },
     Done {
         summary: Summary,
@@ -138,6 +162,8 @@ pub fn run(tool: &Tool, args: &[String], stopped: &dyn Fn() -> bool, send: &dyn 
                 error = Some(e);
             } else if let Some(p) = progress_of(&l) {
                 send(p);
+            } else if let Some(c) = counted_of(&l, "notes") {
+                send(SyncEvent::Counted { done: c.done, total: c.total, unit: c.unit, label: c.label });
             } else if let Some(stage) = stage_of(&l)
                 && last_stage != Some(stage)
             {
@@ -176,6 +202,30 @@ fn progress_of(line: &str) -> Option<SyncEvent> {
         chats_done: v.get("chats_done").and_then(Value::as_u64),
         fetched: v.get("fetched").and_then(Value::as_u64)?,
     })
+}
+
+/// A progress line of the given step. memo redraws one line with `\r`, so the newest piece is the last one.
+pub fn counted_of(line: &str, step: &str) -> Option<Counted> {
+    let last = line.rsplit('\r').map(str::trim).find(|s| !s.is_empty())?;
+    let v: Value = serde_json::from_str(last).ok()?;
+    if v.get("event")?.as_str()? != "progress" || v.get("step")?.as_str()? != step {
+        return None;
+    }
+    let unit = match v.get("unit")?.as_str()? {
+        "files" => CountUnit::Files,
+        "bytes" => CountUnit::Bytes,
+        _ => return None,
+    };
+    let label = v.get("label").and_then(Value::as_str).filter(|l| is_label(l)).map(str::to_string);
+    Some(Counted { done: v.get("done")?.as_u64()?, total: v.get("total")?.as_u64()?, unit, label })
+}
+
+/// A folder id or model id (`26`, `e5-small`); a path or a sentence is not one.
+pub fn is_label(l: &str) -> bool {
+    !l.is_empty()
+        && l.len() <= 64
+        && l.chars().next().is_some_and(|c| c.is_ascii_alphanumeric())
+        && l.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '_' | '.' | '-' | ':'))
 }
 
 /// The error envelope a failing tool prints on stderr, with its message masked.
@@ -453,6 +503,23 @@ mod tests {
         assert!(!text.contains("Family") && text.contains("chatsDone"), "{text}");
         assert_eq!(progress_of(r#"{"event":"progress","step":"history","fetched":1}"#), None);
         assert_eq!(progress_of("12 messages so far"), None);
+    }
+
+    #[test]
+    fn a_counted_line_takes_the_last_redraw_and_a_label_only_if_it_is_an_id() {
+        let line = "{\"event\":\"progress\",\"step\":\"notes\",\"done\":1,\"total\":9,\"unit\":\"files\"}\r\
+            {\"event\":\"progress\",\"step\":\"notes\",\"done\":4,\"total\":9,\"unit\":\"files\",\"label\":\"26\"}\r";
+        assert_eq!(
+            counted_of(line, "notes"),
+            Some(Counted { done: 4, total: 9, unit: CountUnit::Files, label: Some("26".into()) })
+        );
+        let path = r#"{"event":"progress","step":"notes","done":1,"total":2,"unit":"files","label":"/home/a/Private"}"#;
+        assert_eq!(counted_of(path, "notes").unwrap().label, None);
+        assert_eq!(counted_of(path, "download"), None);
+        assert_eq!(
+            counted_of(r#"{"event":"progress","step":"notes","done":1,"total":2,"unit":"rows"}"#, "notes"),
+            None
+        );
     }
 
     #[test]

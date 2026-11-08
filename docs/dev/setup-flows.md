@@ -32,6 +32,12 @@ steps.
 | max-cli | A `failed` reason for an expired QR code (`qr.expired`) | The window reads "expired" from the text |
 | cli-core | A stable `reason` on every sign-in failure, sent with `code` | `signin-failure.ts` falls back to text matching |
 
+The window's side of this phase is TASK-132 (branch `feat/setup-cli-events`): wa's phone link and QR expiry, zm's
+`client_id` question and `zm app` checklist, mail's window sign-in, drive's folder picker, and each CLI's failure
+`reason`. It works with today's released CLIs (an old one is sent to its update) and does its full job once
+whatsapp-cli #346, zoom-cli #337, mail-cli #128 and drive-cli #335 are released. max-cli's `qr.expired` and cli-core's
+reason on every failure are not done yet.
+
 ## Phase 3: Email after mail-cli (BUG-85)
 
 The Email entry still uses memo commands removed in memo 0.131.25. Fix: a mail-cli entry, after mail-cli has

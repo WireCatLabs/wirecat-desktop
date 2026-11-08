@@ -8,25 +8,30 @@ import { MOTION } from "@/ui/motion"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { wizardMessages } from "./messages-wizard"
 import { isKeys, isPassword, type SignInView } from "./Stages"
-import { type WizardStep, wizardPath } from "./wizard"
+import { MAIL_SERVER_FIELDS, type WizardStep, wizardPath } from "./wizard"
 
 /** The step the window shows; null while the tool says nothing that places it (starting, checking an answer). */
 function stepOf(s: SignInView, path: WizardStep[]): WizardStep | null {
   if (s.phase === "plan") return "intro"
   if (isKeys(s)) return "keys"
-  if (s.phase === "failed" && s.tool && s.failure && zoomNeedsClientId(s.tool, s.failure.message)) return "app"
+  if (s.phase === "failed" && s.tool && s.failure && zoomNeedsClientId(s.tool, s.failure.message, s.failure.reason))
+    return "app"
+  if (s.phase === "pair" && path.includes("pair")) return "pair"
   if (s.phase === "scan" || s.phase === "pair") return "scan"
   if (s.phase === "browser") return "browser"
   if (s.phase === "answer" && s.need) {
     if (APP_KEYS.has(s.need.field)) return "keys"
-    if (isPassword(s.need)) return path.includes("password") ? "password" : null
+    if (isPassword(s.need))
+      return path.includes("appPassword") ? "appPassword" : path.includes("password") ? "password" : null
     if (s.need.field === "redirect") return "browser"
+    if (s.need.field === "client_id") return "app"
+    if (MAIL_SERVER_FIELDS.has(s.need.field)) return path.includes("server") ? "server" : null
     const field = s.need.field as WizardStep
     return path.includes(field) ? field : null
   }
   if (s.phase === "progress" && s.progress) {
     if (s.progress.step === "history" || s.progress.step === "waiting") return "history"
-    if (s.progress.step === "check" && path.includes("check")) return "check"
+    if ((s.progress.step === "check" || s.progress.step === "login") && path.includes("check")) return "check"
   }
   if (s.phase === "done") return "done"
   return null

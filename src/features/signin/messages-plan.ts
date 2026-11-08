@@ -96,6 +96,17 @@ const en = {
       ],
       kept: ["Nothing to type: the phone and WhatsApp confirm it is you."],
     },
+    "wa:phone": {
+      steps: [
+        "Type your phone number with + and the country code.",
+        "WhatsApp shows a code here. On the phone, tap WhatsApp's notification, or open Settings → Linked devices → Link a device → Link with phone number instead, and type the code.",
+        "WhatsApp then sends your recent chats to this computer. Keep it open on the phone until it is done.",
+      ],
+      kept: [
+        "Use this when the phone cannot scan a QR code, for example when WhatsApp runs on this same screen.",
+        "Your number goes only to WhatsApp, to ask for the code.",
+      ],
+    },
     "max:token": {
       steps: [
         "Open web.max.ru in a browser on this computer and sign in there.",
@@ -259,6 +270,17 @@ const ru: PlanText = {
       ],
       kept: ["Вводить ничего не нужно: телефон и WhatsApp сами подтверждают, что это вы."],
     },
+    "wa:phone": {
+      steps: [
+        "Введите номер телефона с + и кодом страны.",
+        "WhatsApp покажет здесь код. На телефоне нажмите уведомление WhatsApp или откройте Настройки → Связанные устройства → Привязка устройства → Привязать по номеру телефона и введите код.",
+        "Затем WhatsApp отправит недавние чаты на этот компьютер. Не закрывайте его на телефоне, пока это не закончится.",
+      ],
+      kept: [
+        "Этот способ нужен, когда телефон не может отсканировать QR-код, например если WhatsApp открыт на этом же экране.",
+        "Номер уходит только в WhatsApp, чтобы запросить код.",
+      ],
+    },
     "max:token": {
       steps: [
         "Откройте web.max.ru в браузере на этом компьютере и войдите там.",
@@ -421,6 +443,17 @@ const es: PlanText = {
         "Después WhatsApp envía tus chats recientes a este equipo. Mantenlo abierto en el teléfono hasta que termine.",
       ],
       kept: ["No hay que escribir nada: el teléfono y WhatsApp confirman que eres tú."],
+    },
+    "wa:phone": {
+      steps: [
+        "Escribe tu número de teléfono con + y el prefijo del país.",
+        "WhatsApp muestra aquí un código. En el teléfono, toca la notificación de WhatsApp, o abre Ajustes → Dispositivos vinculados → Vincular un dispositivo → Vincular con el número de teléfono, y escribe el código.",
+        "Después WhatsApp envía tus chats recientes a este equipo. Mantenlo abierto en el teléfono hasta que termine.",
+      ],
+      kept: [
+        "Úsalo cuando el teléfono no puede escanear un código QR, por ejemplo si WhatsApp está abierto en esta misma pantalla.",
+        "Tu número va solo a WhatsApp, para pedir el código.",
+      ],
     },
     "max:token": {
       steps: [

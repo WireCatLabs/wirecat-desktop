@@ -14,6 +14,13 @@ import { MOTION } from "@/ui/motion"
 import { NewProfile } from "../tools/Health"
 import { SignInDialog } from "./SignInDialog"
 
+/** The wizard's step list item that starts with `label`, with its state words. */
+const step = (dialog: HTMLElement, label: string) =>
+  within(dialog)
+    .getAllByRole("listitem")
+    .map((li) => li.textContent ?? "")
+    .find((text) => text.startsWith(label)) ?? ""
+
 /** Text drawn in the dialog, not the line read out to a screen reader. */
 const STAGE_TEXT = "p:not([role=status])"
 
@@ -328,6 +335,48 @@ describe("answering what the tool asks", () => {
     await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalledTimes(2))
   })
 
+  it("answers Zoom's question for the Public Client ID in the window, beside zm's own checklist", async () => {
+    const setup = vi.spyOn(platform, "zoomAppSetup").mockResolvedValue({
+      state: "ready",
+      setup: {
+        marketplaceUrl: "https://marketplace.zoom.us/develop/create",
+        guideUrl: "https://wirecat.dev/en/docs/zm/zoom-app",
+        appType: "General app",
+        management: "User-managed",
+        oauth: "Public Client OAuth",
+        redirectUrl: "https://example.com/zoom-callback",
+        allowList: ["https://example.com/zoom-callback"],
+        scopes: [
+          { scope: "meeting:read:list_meetings", required: true, purpose: "find your meetings" },
+          { scope: "meeting:write:meeting", required: false, purpose: "create a meeting" },
+        ],
+        configKey: "zoom.client_id",
+      },
+    })
+    const dialog = await open("zm")
+    send({ event: "needs", field: "client_id", secret: false, prompt: "Public Client ID of your Zoom app", hint: null })
+    expect(setup).toHaveBeenCalledWith("zm")
+    await vi.waitFor(() => expect(within(dialog).getByText("https://example.com/zoom-callback")).toBeInTheDocument())
+    expect(within(dialog).getByRole("button", { name: "Copy all 1" })).toBeInTheDocument()
+    await userEvent.type(within(dialog).getByLabelText("Public Client ID of your Zoom app"), "abcDEF123{Enter}")
+    expect(platform.signInAnswer).toHaveBeenCalledWith("zm", "abcDEF123")
+  })
+
+  it("links WhatsApp by phone number: the number, then the code to type on the phone", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("wa", "personal", undefined, "phone"))
+    const dialog = screen.getByRole("dialog")
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("wa", "phone", "personal", expect.any(Function), {}),
+    )
+    send({ event: "needs", field: "phone", secret: false, prompt: "phone number, international format", hint: null })
+    await userEvent.type(within(dialog).getByRole("textbox", { name: /Phone number/ }), "+34 612 345 678{Enter}")
+    expect(platform.signInAnswer).toHaveBeenCalledWith("wa", "+34612345678")
+    send({ event: "pairingCode", code: "WCAT-2026", place: "WhatsApp on the phone", expiresAt: null })
+    expect(within(dialog).getByText("WCAT-2026")).toBeVisible()
+    expect(step(dialog, "Type the code on the phone")).toContain("in progress")
+  })
+
   it("says an older tool must be updated, and offers no field", async () => {
     const dialog = await open("max")
     send({ event: "failed", code: "needs_update", message: "This version cannot sign in here yet." })
@@ -550,7 +599,7 @@ describe("Telegram's QR code", () => {
 })
 
 describe("signing in to mail", () => {
-  it("asks the provider first, then sends the address and app password the steps asked for", async () => {
+  it("asks the provider first, then the app password in the window, and a new try keeps the address but never it", async () => {
     render(<SignInDialog />)
     act(() => useSignIn.getState().start("email", "work"))
     const dialog = screen.getByRole("dialog", { name: "Sign in to Email" })
@@ -559,19 +608,48 @@ describe("signing in to mail", () => {
     await vi.waitFor(() =>
       expect(within(dialog).getAllByText(/only the domain, never the whole address/)).toHaveLength(1),
     )
-    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("Type the mail address first.")
-
+    expect(within(dialog).queryByLabelText("App password")).not.toBeInTheDocument()
     await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@example.com")
-    await userEvent.type(within(dialog).getByLabelText("App password"), "abcd efgh")
     await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
     await vi.waitFor(() =>
       expect(platform.signIn).toHaveBeenCalledWith("email", "imap", "work", expect.any(Function), {
         address: "me@example.com",
-        password: "abcd efgh",
       }),
     )
+    send({ event: "note", text: "turn on IMAP in the mail settings" })
+    const page = "https://yandex.ru/support/id/ru/authorization/app-passwords"
+    send({
+      event: "needs",
+      field: "password",
+      secret: true,
+      prompt: "App password for me@example.com",
+      hint: `Yandex takes an app password, not your account password. How to make one: ${page}`,
+    })
+    expect(within(dialog).getByText("Turn on IMAP in the mail settings.")).toBeVisible()
+    const field = within(dialog).getByLabelText("App password for me@example.com")
+    expect(field).toHaveAttribute("type", "password")
+    await userEvent.type(field, "abcd efgh{Enter}")
+    expect(platform.signInAnswer).toHaveBeenCalledWith("email", "abcd efgh")
+
+    send({ event: "failed", code: "authentication_error", reason: "mail.login-refused", message: "refused" })
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("The mail server refused the login.")
+    const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Make an app password" }))
+    expect(open).toHaveBeenCalledWith(page)
     expect(JSON.stringify(useSignIn.getState())).not.toContain("abcd efgh")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Try again" }))
+    expect(within(dialog).getByLabelText("Mail address")).toHaveValue("me@example.com")
+  })
+
+  it("asks the server only when the tool found none, and lets a port stay empty", async () => {
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work", undefined, "imap"))
+    const dialog = screen.getByRole("dialog")
+    await vi.waitFor(() => expect(platform.signIn).toHaveBeenCalled())
+    send({ event: "needs", field: "imap_port", secret: false, prompt: "IMAP port", hint: null })
+    expect(within(dialog).getByText("Leave empty for 993.")).toBeVisible()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Continue" }))
+    expect(platform.signInAnswer).toHaveBeenCalledWith("email", "")
   })
 
   it("saves the owner's own Microsoft app for the profile before the browser opens", async () => {
@@ -620,12 +698,6 @@ describe("in Russian", () => {
 })
 
 describe("the setup wizard every tool shares", () => {
-  const step = (dialog: HTMLElement, label: string) =>
-    within(dialog)
-      .getAllByRole("listitem")
-      .map((li) => li.textContent ?? "")
-      .find((text) => text.startsWith(label)) ?? ""
-
   async function plan(tool: string) {
     render(<SignInDialog />)
     act(() => useSignIn.getState().start(tool, "personal"))

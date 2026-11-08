@@ -1,17 +1,20 @@
 import { ExternalLink } from "lucide-react"
-import { type FormEvent, type ReactNode, useId, useState } from "react"
+import { type FormEvent, type ReactNode, useEffect, useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { openTool, useSync } from "@/features/tools"
 import { useMessages } from "@/i18n"
+import type { ZoomScope } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import { useSignIn } from "@/shared/signin-store"
+import { keptAnswer, type Need, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { CopyButton } from "@/ui/CopyButton"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
+import { AnswerForm } from "./AnswerForm"
 import { signinMessages } from "./messages"
+import { setupMessages } from "./messages-setup"
 import { wizardMessages } from "./messages-wizard"
 import { ZOOM_APP } from "./wizard"
 
@@ -20,12 +23,56 @@ const FIELD =
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
+type AppValues = {
+  marketplace: string
+  guide: string | null
+  redirect: string
+  scopes: ZoomScope[]
+}
+
+const BUILT_IN: AppValues = {
+  marketplace: ZOOM_APP.marketplace,
+  guide: null,
+  redirect: ZOOM_APP.redirect,
+  scopes: ZOOM_APP.scopes.map((scope) => ({ scope, required: true, purpose: "" })),
+}
+
+/** zm's own list when it has `zm app` (zoom-cli PR #337); the window's built-in one before it, or while it answers. */
+function useAppValues(tool: string | null): AppValues {
+  const [values, setValues] = useState(BUILT_IN)
+  useEffect(() => {
+    if (!tool || !findTool(tool)?.signIn?.appSetup) return
+    let live = true
+    platform.zoomAppSetup(tool).then(
+      (answer) => {
+        if (!live || answer.state !== "ready") return
+        const { setup } = answer
+        setValues({
+          marketplace: setup.marketplaceUrl,
+          guide: setup.guideUrl,
+          redirect: setup.redirectUrl,
+          scopes: setup.scopes,
+        })
+      },
+      () => {},
+    )
+    return () => {
+      live = false
+    }
+  }, [tool])
+  return values
+}
+
 /**
  * Zoom signs in only through an app of the owner's own. Each screen of making it is a step to tick, with the values
- * to copy beside it; its Public Client ID is then saved with zm's own `config set` and the sign-in starts again.
+ * to copy beside it. A zm that asks for the Public Client ID (`need`) gets the answer on its stdin; an older one fails
+ * without it, and the ID is then saved with zm's own `config set` and the sign-in starts again.
  */
-export function ZoomAppSetup() {
+export function ZoomAppSetup({ need }: { need?: Need | undefined }) {
   const wm = useMessages(wizardMessages)
+  const sm = useMessages(setupMessages)
+  const tool = useSignIn((s) => s.tool)
+  const values = useAppValues(tool)
   const steps = wm.zoom.steps
   const [ticked, setTicked] = useState<boolean[]>(() => steps.map(() => false))
   const count = ticked.filter(Boolean).length
@@ -35,24 +82,24 @@ export function ZoomAppSetup() {
         size="sm"
         variant="secondary"
         icon={<ExternalLink className="size-4" aria-hidden />}
-        onClick={() => platform.openUrl(ZOOM_APP.marketplace)}
+        onClick={() => platform.openUrl(values.marketplace)}
       >
         {wm.zoom.openMarketplace}
       </Button>
     ),
-    3: <CopyField value={ZOOM_APP.redirect} label={wm.zoom.copyRedirect} />,
-    4: <Scopes />,
+    3: <CopyField value={values.redirect} label={wm.zoom.copyRedirect} />,
+    4: <Scopes scopes={values.scopes} />,
   }
   return (
     <div className="flex flex-col gap-4 text-left">
       <div className="flex flex-col gap-1">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="text-[1.15rem] font-semibold text-ink">{wm.zoom.title}</h3>
+          <h3 className="text-[1.15rem] font-semibold text-ink">{need ? sm.zoom.askTitle : wm.zoom.title}</h3>
           <p role="status" className="text-body text-ink-soft tabular-nums">
             {wm.zoom.done(count, steps.length)}
           </p>
         </div>
-        <p className="text-body leading-snug text-ink-soft">{wm.zoom.lead}</p>
+        <p className="text-body leading-snug text-ink-soft">{need ? sm.zoom.askLead : wm.zoom.lead}</p>
       </div>
       <ol className="flex flex-col gap-3">
         {steps.map((text, i) => (
@@ -67,8 +114,8 @@ export function ZoomAppSetup() {
           </Step>
         ))}
       </ol>
-      <ClientIdForm />
-      <GuideLink />
+      {need ? <ClientIdAnswer need={need} /> : <ClientIdForm />}
+      <GuideLink url={values.guide} />
       <NoApp />
     </div>
   )
@@ -108,27 +155,60 @@ function Step({
   )
 }
 
-function Scopes() {
+/** The scopes sync needs, to copy; the ones only other zm features use are listed apart, never in "copy all". */
+function Scopes({ scopes }: { scopes: ZoomScope[] }) {
   const wm = useMessages(wizardMessages)
+  const sm = useMessages(setupMessages)
+  const required = scopes.filter((s) => s.required)
+  const optional = scopes.filter((s) => !s.required)
+  const all = sm.zoom.copyRequired(required.length)
   return (
-    <div className="flex flex-col gap-1 rounded-[0.4rem] border border-line bg-app-2 py-1 pr-1 pl-3">
-      {ZOOM_APP.scopes.map((scope) => (
-        <div key={scope} className="flex items-center gap-2">
-          <code className="selectable min-w-0 flex-1 truncate font-mono text-[0.875rem] text-ink">{scope}</code>
-          <CopyButton value={scope} label={wm.zoom.copyScope(scope)} />
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1 rounded-[0.4rem] border border-line bg-app-2 py-1 pr-1 pl-3">
+        {required.map(({ scope, purpose }) => (
+          <div key={scope} className="flex items-center gap-2" title={purpose || undefined}>
+            <code className="selectable min-w-0 flex-1 truncate font-mono text-[0.875rem] text-ink">{scope}</code>
+            <CopyButton value={scope} label={wm.zoom.copyScope(scope)} />
+          </div>
+        ))}
+        <div className="flex items-center justify-end gap-2 border-line border-t pt-1">
+          <span className="text-[0.85rem] text-ink-soft">{all}</span>
+          <CopyButton value={required.map((s) => s.scope).join("\n")} label={all} />
         </div>
-      ))}
-      <div className="flex items-center justify-end gap-2 border-line border-t pt-1">
-        <span className="text-[0.85rem] text-ink-soft">{wm.zoom.copyScopes}</span>
-        <CopyButton value={ZOOM_APP.scopes.join("\n")} label={wm.zoom.copyScopes} />
       </div>
+      {optional.length > 0 && (
+        <Disclosure summary={sm.zoom.optional(optional.length)}>
+          <ul className="flex flex-col gap-1">
+            {optional.map(({ scope, purpose }) => (
+              <li key={scope} className="flex items-center gap-2">
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <code className="selectable truncate font-mono text-[0.85rem] text-ink">{scope}</code>
+                  <span className="text-[0.8rem] text-ink-soft">{purpose}</span>
+                </span>
+                <CopyButton value={scope} label={wm.zoom.copyScope(scope)} />
+              </li>
+            ))}
+          </ul>
+        </Disclosure>
+      )}
     </div>
   )
 }
 
-function GuideLink() {
+/** zm asked for the ID in the window: the answer goes to its stdin, and zm saves it only once the sign-in works. */
+function ClientIdAnswer({ need }: { need: Need }) {
+  const { sent, answer } = useSignIn()
+  return (
+    <div className="border-line border-t pt-4">
+      <AnswerForm need={need} sent={sent} onAnswer={answer} initial={keptAnswer(need.field)} />
+    </div>
+  )
+}
+
+function GuideLink({ url }: { url: string | null }) {
   const wm = useMessages(wizardMessages)
-  const guide = useSignIn((s) => (s.tool ? findTool(s.tool)?.signIn?.guide : undefined))
+  const catalogGuide = useSignIn((s) => (s.tool ? findTool(s.tool)?.signIn?.guide : undefined))
+  const guide = url ?? catalogGuide
   if (!guide) return null
   return (
     <Button
