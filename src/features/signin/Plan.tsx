@@ -2,9 +2,11 @@ import { CircleCheck, Clock, ExternalLink, ShieldCheck } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
+import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import { guidedProvider, methodOf, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
+import { guidedProvider, methodOf, oauthTooOld, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
 import { Disclosure } from "@/ui/Disclosure"
@@ -242,13 +244,30 @@ function Typed({ missing }: { missing: "address" | "password" | null }) {
  */
 function Ways({ own, m: pm }: { own: { text: string; guide?: string } | undefined; m: PlanText }) {
   const m = useMessages(mailMessages)
-  const { way } = useSignIn()
+  const { way, tool, method } = useSignIn()
+  const installs = useTools((s) => s.installs)
+  const old = oauthTooOld(tool, method, installs)
   const name = useId()
   return (
     <fieldset className="flex flex-col gap-2 border-0 p-0">
       <legend className="mb-2 text-[1rem] font-semibold text-ink">{m.ways.legend}</legend>
       <WayOption option="browser" name={name}>
-        {way === "browser" && own && <OwnApp own={own} kind="file" m={pm} />}
+        {old && (
+          <div className="flex flex-col items-start gap-2 pb-2">
+            <p className="text-[0.85rem] leading-snug text-ink">{m.ways.tooOld(old.version, old.need)}</p>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                useSignIn.getState().close()
+                if (tool) openTool(tool)
+              }}
+            >
+              {m.ways.update}
+            </Button>
+          </div>
+        )}
+        {way === "browser" && own && <OwnApp own={own} kind="file" m={pm} open={Boolean(old)} />}
       </WayOption>
       <fieldset className="flex flex-col gap-1.5 border-0 p-0 pt-1">
         <legend className="mb-1.5 text-[0.85rem] font-medium text-ink-soft">{m.ways.others}</legend>
@@ -340,11 +359,21 @@ function ClientChoice({ m }: { m: PlanText }) {
   )
 }
 
-function OwnApp({ own, kind, m }: { own: { text: string; guide?: string }; kind: "file" | "id"; m: PlanText }) {
+function OwnApp({
+  own,
+  kind,
+  m,
+  open = false,
+}: {
+  own: { text: string; guide?: string }
+  kind: "file" | "id"
+  m: PlanText
+  open?: boolean
+}) {
   const { ownFile, ownId, planError } = useSignIn()
   const id = useId()
   return (
-    <Disclosure summary={m.ownApp} openWhen={ownFile !== null || ownId !== "" || planError !== null}>
+    <Disclosure summary={m.ownApp} openWhen={open || ownFile !== null || ownId !== "" || planError !== null}>
       <div className="flex max-w-[30rem] flex-col gap-2">
         <p className="text-[0.9rem] leading-snug text-ink-soft">{own.text}</p>
         {own.guide && <GuideLink url={own.guide} label={m.ownGuide} />}

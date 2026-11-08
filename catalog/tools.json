@@ -2015,7 +2015,8 @@
             "words": ["{profile}", "session", "start", "--json", "--answer-stdin"],
             "address": "--address",
             "clientFile": "--client-file",
-            "oauth": ["--method", "oauth"]
+            "oauth": ["--method", "oauth"],
+            "oauthMinVersion": "0.22.0"
           },
           {
             "id": "imap",

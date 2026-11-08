@@ -94,6 +94,8 @@ export async function runMockScenario() {
   }
   const [plan, planMethod] = (params.get("signin-plan") ?? "").split(":")
   if (plan) {
+    // The plan reads the installed version, as for a mail-cli too old for WireCat's Google app.
+    await useTools.getState().refresh()
     useSignIn.getState().start(plan, "personal")
     if (planMethod) useSignIn.setState({ method: planMethod })
     mailPlan()

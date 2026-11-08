@@ -9,6 +9,7 @@ import { recentErrors } from "@/shared/errors"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useReport } from "@/shared/report-store"
 import { useSignIn } from "@/shared/signin-store"
+import { useTools } from "@/shared/tools-store"
 import { act, fireEvent, render, screen, within } from "@/testing/render"
 import { MOTION } from "@/ui/motion"
 import { NewProfile } from "../tools/Health"
@@ -784,6 +785,38 @@ describe("signing in to mail", () => {
         oauth: true,
       }),
     )
+  })
+
+  it("offers an update, and the owner's own app, when the installed mail-cli predates WireCat's Google app", async () => {
+    const mail = (version: string) => ({ path: "~/.local/bin/mail", version, manager: "npm", problem: null })
+    useTools.setState({ installs: { email: [mail("0.21.0")] } })
+    render(<SignInDialog />)
+    act(() => useSignIn.getState().start("email", "work"))
+    act(() => useSignIn.setState({ method: "gmail" }))
+    await settled()
+    const dialog = screen.getByRole("dialog")
+    expect(
+      within(dialog).getByText(/Email 0\.21\.0 cannot sign in with WireCat's app: it needs 0\.22\.0/),
+    ).toBeVisible()
+    expect(within(dialog).getByRole("button", { name: "Update Email to use this" })).toBeVisible()
+    expect(within(dialog).getByRole("button", { name: "Choose the client file" })).toBeVisible()
+    await userEvent.type(within(dialog).getByLabelText("Mail address"), "me@gmail.com")
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    expect(within(dialog).getByRole("alert")).toHaveTextContent(
+      "Choose the client file, or type the client ID and secret.",
+    )
+    expect(platform.signIn).not.toHaveBeenCalled()
+
+    act(() => useTools.setState({ installs: { email: [mail("0.22.0")] } }))
+    expect(within(dialog).queryByRole("button", { name: "Update Email to use this" })).toBeNull()
+    await userEvent.click(within(dialog).getByRole("button", { name: "Start sign-in" }))
+    await vi.waitFor(() =>
+      expect(platform.signIn).toHaveBeenCalledWith("email", "gmail", "work", expect.any(Function), {
+        address: "me@gmail.com",
+        oauth: true,
+      }),
+    )
+    useTools.setState({ installs: {} })
   })
 
   it("takes the owner's own Google client as typed ID and secret, sent as a client file", async () => {

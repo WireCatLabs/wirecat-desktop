@@ -2,9 +2,11 @@ import { create } from "zustand"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type AppPasswordProvider, appPasswordProvider, appPasswordValue, type MailWay } from "@/domain/mail-signin"
 import type { FailedAt } from "@/domain/signin-failure"
+import { isNewer } from "@/domain/status"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
+import { useTools } from "@/shared/tools-store"
 
 type Of<K extends SignInEvent["event"]> = Extract<SignInEvent, { event: K }>
 export type Qr = Of<"qr">
@@ -198,6 +200,13 @@ const kept = (s: Pick<SignInState, "address" | "ownFile" | "ownId" | "way">) => 
 export const methodOf = (tool: string, method: string | null) => {
   const entry = findTool(tool)
   return entry ? signInMethods(entry).find((m) => m.id === method) : undefined
+}
+
+/** The installed version and the one needed, when it predates the method's sign-in with the tool's own app. */
+export const oauthTooOld = (tool: string | null, method: string | null, installs = useTools.getState().installs) => {
+  const need = tool ? methodOf(tool, method)?.oauthMinVersion : undefined
+  const version = tool ? installs[tool]?.[0]?.version : null
+  return need && version && isNewer(need, version) ? { version, need } : null
 }
 
 function inputsFor(tool: string, method: string, address: string, way: MailWay): SignInInputs {
@@ -399,6 +408,8 @@ export const useSignIn = create<SignInState>()((set, get) => {
         }
         if (!typed.password?.trim()) return set({ planMissing: "password" })
       }
+      if (chosen?.oauth && get().way === "browser" && !ownFile && oauthTooOld(tool, method))
+        return set({ planMissing: "client" })
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
       const setting = chosen?.clientId
       const run = () => get().start(tool, profile, onFinish ?? undefined, method)
