@@ -4,7 +4,7 @@
 
 Check [src/ui/](../../../src/ui/) and [reuse.md](reuse.md) before you write a component. `ui/` has Button,
 TextButton, SplitButton, CopyButton, CopyField, Dialog, Disclosure, Collapse, AutoHeight, Crossfade, Callout,
-ErrorNotice, Checkbox, Select, Combobox, Segmented, FilterBar, FilterMenu, Calendar, Stepper, Skeleton, Lamp, Pill,
+ErrorNotice, Checkbox, Select, Combobox, Segmented, FilterBar, FilterMenu, Calendar, Stepper, Skeleton, Lamp, Pill, Board,
 ProgressBar.
 
 Missing today and planned: Tabs, Switch, Field, Table, Toast, Tooltip, Popover. Their behaviour library is
