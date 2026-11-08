@@ -345,7 +345,7 @@ export type NodeEvent = { event: "step"; step: NodeStep } |
 { event: "progress"; received: number; total: number | null } | { event: "done"; version: string; path: string; pathFix: PathFix | null } | { event: "failed"; reason: FailReason; message: string; hint: string | null };
 
 export type NodeStep = "check" | "download" | "verify" | "unpack" | 
-/**  Putting Node.js's folder on the user's PATH (`terminal_path::after_node_setup`, run by the command). */
+/**  Putting Node.js's folder on the user's PATH (`terminal_path::after_node_setup`, run by `set_up`). */
 "path";
 
 export type NotesFolder = {

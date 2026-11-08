@@ -26,6 +26,8 @@ catalog/
   tools.json    the tool list, read by both TypeScript and Rust.
 src-tauri/src/
   lib.rs        start-up and the `invoke_handler` list naming every command.
+  self_test.rs  `--self-test`, only with `WIRECAT_SELF_TEST=1`, before any window: install-check.yml's install of a
+                catalog tool through `install::install` (and `node::set_up` with `--own-node`), one JSON line.
   commands/     Tauri commands, one file per feature: the whole native surface, one function each. A command
                 fails with `error.rs`'s `{ kind, message }` (`unknown_tool`, `invalid_profile`, `not_installed`,
                 `busy`, `internal`, `failed`); `platform/command-error.ts` turns it into an `Error` with that message.
