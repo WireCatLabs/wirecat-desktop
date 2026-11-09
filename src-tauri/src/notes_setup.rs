@@ -35,8 +35,6 @@ pub struct NotesSetupSource {
     /// The one shown as the best local model.
     pub recommended: String,
     pub download: Vec<String>,
-    /// For a model with its own terms, until memo stops asking for `--accept-terms`.
-    pub download_with_terms: Vec<String>,
     /// `models set {model}`: every embed and search by meaning uses it from now on.
     #[serde(rename = "use")]
     pub use_model: Vec<String>,
@@ -342,8 +340,7 @@ pub fn download_args(tool: &Tool, model: &str) -> Result<Vec<String>, String> {
 }
 
 fn download_words(src: &NotesSetupSource, model: &NotesModel) -> Vec<String> {
-    let words = if model.terms.is_some() { &src.download_with_terms } else { &src.download };
-    with(words, "{model}", &model.id)
+    with(&src.download, "{model}", &model.id)
 }
 
 /// memo's `models set`: the model must be downloaded; memo then embeds what it lacks at the next syncs.
@@ -435,12 +432,9 @@ mod tests {
     }
 
     #[test]
-    fn a_model_with_terms_is_downloaded_accepting_them_and_set_by_id() {
+    fn every_model_is_downloaded_and_set_by_id_terms_or_not() {
         let models = models_of(&serde_json::from_str(MODELS).unwrap(), memo_src());
-        assert_eq!(
-            download_words(memo_src(), &models[0]).join(" "),
-            "models download embeddinggemma --accept-terms --json"
-        );
+        assert_eq!(download_words(memo_src(), &models[0]).join(" "), "models download embeddinggemma --json");
         assert_eq!(download_words(memo_src(), &models[1]).join(" "), "models download e5-small --json");
         assert_eq!(with(&memo_src().use_model, "{model}", "e5-small").join(" "), "models set e5-small --json");
     }
