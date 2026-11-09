@@ -23,8 +23,11 @@ function freshMemo(based?: boolean, writer: CrmWriter = "none") {
 }
 
 // A detection started by one test resolves in a later one and replaces its tools: no test starts one.
+// The sample CRMs' stage dialog has opened by itself already; "Confirming a CRM's stages" starts without that.
+const PROMPTED = ["deal", "lead"].flatMap((k) => [`${k}:bitrix24:northstar.example`, `${k}:amocrm:acme.example`])
+
 beforeEach(() => {
-  useClients.setState({ ...useClients.getInitialState(), view: "board" }, true)
+  useClients.setState({ ...useClients.getInitialState(), view: "board", prompted: PROMPTED }, true)
   useTools.setState({ checked: true })
 })
 afterEach(() => vi.restoreAllMocks())
@@ -375,6 +378,30 @@ describe("Clients as a table", () => {
     await user.click(within(map).getByRole("button", { name: "Close" }))
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
     expect(screen.getByRole("table", { name: "Deals" })).toBeInTheDocument()
+  })
+})
+
+describe("Confirming a CRM's stages", () => {
+  beforeEach(() => {
+    freshMemo()
+    useClients.setState({ prompted: [] })
+  })
+
+  it("opens the stage dialog by itself on the first read, once, and the notice stays until they are confirmed", async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<ClientsPage />)
+    const map = await screen.findByRole("dialog", { name: "Deal stages of your CRMs" }, { timeout: 4000 })
+    expect(within(map).getByRole("radio", { name: "Bitrix24 · northstar.example" })).toBeChecked()
+    await user.click(within(map).getByRole("button", { name: "Close" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    expect(screen.getByText(/CRM stages wait for you to confirm them/)).toBeInTheDocument()
+    unmount()
+
+    render(<ClientsPage />)
+    await card("Site for Northstar")
+    expect(screen.queryByRole("dialog")).toBeNull()
+    await user.click(screen.getByRole("button", { name: "Confirm stages" }))
+    expect(await screen.findByRole("dialog", { name: "Deal stages of your CRMs" })).toBeInTheDocument()
   })
 })
 

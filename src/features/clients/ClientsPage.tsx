@@ -1,4 +1,6 @@
-import { Columns3, Handshake, RefreshCw, Rows3, UserRoundPlus } from "lucide-react"
+import { Columns3, Handshake, ListChecks, RefreshCw, Rows3, UserRoundPlus } from "lucide-react"
+import { useEffect } from "react"
+import { crmsOf } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
 import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
 import { gapFromRead } from "@/domain/needs"
@@ -96,9 +98,46 @@ export function ClientsPage() {
         </div>
       </div>
       {usable && <CrmNeeded />}
+      {board.data?.kind === "base" && <StagesToConfirm read={board.data} kind={kind} />}
       <Body />
       <CardDialog />
       <StageMapDialog />
+    </div>
+  )
+}
+
+/**
+ * A CRM's stages are memo's guesses until the owner confirms them, and its cards wait in Unsorted until then. The first
+ * read that brings such stages opens the dialog by itself, once per CRM and kind (every new CRM at once, one dialog); the notice stays until none is left.
+ */
+function StagesToConfirm({ read, kind }: { read: Based; kind: Kind }) {
+  const s = useMessages(stageMessages)
+  const crms = crmsOf(read.pipelines, read.mapping)
+  const waiting = [...crms.values()].reduce((n, c) => n + c.waiting, 0)
+  const prompted = useClients((st) => st.prompted)
+  const mapOn = useClients((st) => st.mapOn)
+  const fresh = [...crms]
+    .filter(([key, c]) => c.waiting > 0 && !prompted.includes(`${kind}:${key}`))
+    .map(([key]) => `${kind}:${key}`)
+    .join("\n")
+  useEffect(() => {
+    if (fresh && mapOn === null) useClients.getState().prompt(fresh.split("\n"))
+  }, [fresh, mapOn])
+  if (waiting === 0) return null
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-[1.3rem] py-[0.9rem] text-[0.95rem]">
+      <div className="min-w-0">
+        <p className="font-medium text-ink">{s.toConfirm(waiting)}</p>
+        <p className="mt-1 max-w-[70ch] text-ink-soft">{s.toConfirmBody}</p>
+      </div>
+      <Button
+        size="sm"
+        variant="primary"
+        icon={<ListChecks className="size-4" aria-hidden />}
+        onClick={() => useClients.getState().openMap("")}
+      >
+        {s.confirmStages}
+      </Button>
     </div>
   )
 }

@@ -28,6 +28,9 @@ type Words = {
   unmapped: string
   noStages: string
   confirmAll: (n: number) => string
+  toConfirm: (n: number) => string
+  toConfirmBody: string
+  confirmStages: string
   allConfirmed: string
   failed: (reason: string) => string
   stageColumn: (name: string, n: number) => string
@@ -78,6 +81,13 @@ const en: Words = {
   unmapped: "Unmapped",
   noStages: "No stage here yet",
   confirmAll: (n) => `Confirm stages (${n})`,
+  toConfirm: (n) =>
+    plural("en", n, {
+      one: "# CRM stage waits for you to confirm it",
+      other: "# CRM stages wait for you to confirm them",
+    }),
+  toConfirmBody: "Memo suggested which of your stages each one is. Until you confirm, their cards stay in Unsorted.",
+  confirmStages: "Confirm stages",
   allConfirmed: "Every suggestion is confirmed.",
   failed: (reason) => `Not saved: ${reason}`,
   stageColumn: (name, n) => plural("en", n, { one: `${name}, # stage`, other: `${name}, # stages` }),
@@ -141,6 +151,16 @@ const ru: Words = {
   unmapped: "Не размечено",
   noStages: "Здесь пока нет стадий",
   confirmAll: (n) => `Подтвердить стадии (${n})`,
+  toConfirm: (n) =>
+    plural("ru", n, {
+      one: "# стадия CRM ждёт вашего подтверждения",
+      few: "# стадии CRM ждут вашего подтверждения",
+      many: "# стадий CRM ждут вашего подтверждения",
+      other: "# стадии CRM ждут вашего подтверждения",
+    }),
+  toConfirmBody:
+    "Memo предложил, какой из ваших стадий соответствует каждая. Пока вы не подтвердите, их карточки лежат в «Без стадии».",
+  confirmStages: "Подтвердить стадии",
   allConfirmed: "Все предложения подтверждены.",
   failed: (reason) => `Не сохранено: ${reason}`,
   stageColumn: (name, n) =>
@@ -199,6 +219,14 @@ const es: Words = {
   unmapped: "Sin asignar",
   noStages: "Aún no hay etapas aquí",
   confirmAll: (n) => `Confirmar etapas (${n})`,
+  toConfirm: (n) =>
+    plural("es", n, {
+      one: "# etapa del CRM espera tu confirmación",
+      other: "# etapas del CRM esperan tu confirmación",
+    }),
+  toConfirmBody:
+    "Memo sugirió a cuál de tus etapas corresponde cada una. Hasta que confirmes, sus tarjetas quedan en «Sin etapa».",
+  confirmStages: "Confirmar etapas",
   allConfirmed: "Todas las sugerencias están confirmadas.",
   failed: (reason) => `No se guardó: ${reason}`,
   stageColumn: (name, n) => plural("es", n, { one: `${name}, # etapa`, other: `${name}, # etapas` }),
