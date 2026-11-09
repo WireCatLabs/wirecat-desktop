@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ExternalLink, LoaderCircle, Plus, RefreshCw, X } from "lucide-react"
+import { ArrowRight, Check, ChevronDown, ExternalLink, LoaderCircle, Plus, RefreshCw, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
 import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
@@ -398,18 +398,16 @@ function RackSkeleton() {
 function HowItWorks() {
   const x = useMessages(explainedMessages)
   return (
-    <ol className="grid gap-[0.8rem] sm:grid-cols-3">
+    <ol className="flex flex-col gap-[0.6rem] border-y border-line py-[0.8rem] sm:flex-row sm:items-start sm:gap-[0.4rem]">
       {x.how.map((step, i) => (
-        <li
-          key={step.title}
-          className="flex gap-[0.7rem] rounded-[0.45rem] border border-line bg-app px-[0.95rem] py-[0.75rem]"
-        >
-          <span className="grid size-[1.6rem] shrink-0 place-items-center rounded-full bg-app-3 font-mono text-[0.85rem] text-ink-soft">
-            {i + 1}
-          </span>
+        <li key={step.title} className="flex min-w-0 flex-1 items-start gap-[0.6rem]">
+          {i > 0 && <ArrowRight className="mt-[0.2rem] hidden size-4 shrink-0 text-ink-dim sm:block" aria-hidden />}
           <span className="min-w-0">
-            <span className="block font-medium">{step.title}</span>
-            <span className="block text-[0.9rem] text-ink-soft">{step.body}</span>
+            <span className="block font-medium">
+              <span className="mr-[0.4rem] font-mono text-[0.85rem] text-ink-dim">{i + 1}</span>
+              {step.title}
+            </span>
+            <span className="block max-w-[34ch] text-[0.9rem] text-ink-soft">{step.body}</span>
           </span>
         </li>
       ))}
