@@ -81,6 +81,19 @@ pub fn readiness() -> Readiness {
     }
 }
 
+/// The name `bin/sandbox` launched this copy under; `None` in the real app.
+pub fn sandbox() -> Option<String> {
+    sandbox_from(std::env::var("WIRECAT_SANDBOX").ok())
+}
+
+fn sandbox_from(value: Option<String>) -> Option<String> {
+    value.map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
+}
+
+pub fn sandbox_title(name: &str) -> String {
+    format!("WireCat — sandbox {name}")
+}
+
 fn os_name() -> String {
     match std::env::consts::OS {
         "macos" => "macOS".into(),
@@ -161,5 +174,13 @@ mod tests {
         assert!(node_supported(&v("22.15.9")).is_err());
         assert!(node_supported(&v("23.4.0")).is_err());
         assert!(node_supported(&v("24.0.0")).is_ok());
+    }
+
+    #[test]
+    fn a_sandbox_is_named_only_by_a_non_empty_variable() {
+        assert_eq!(sandbox_from(Some(" demo ".into())).as_deref(), Some("demo"));
+        assert_eq!(sandbox_from(Some("  ".into())), None);
+        assert_eq!(sandbox_from(None), None);
+        assert_eq!(sandbox_title("demo"), "WireCat — sandbox demo");
     }
 }

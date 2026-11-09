@@ -27,6 +27,7 @@ import { useSectionHistory, useSectionSwitch } from "./history"
 import { LinkFailure } from "./LinkFailure"
 import { appMessages } from "./messages"
 import { PageSkeleton } from "./PageSkeleton"
+import { SandboxBanner, SandboxConfirm } from "./Sandbox"
 import { Sidebar } from "./Sidebar"
 import { sections } from "./sections"
 import { TopBar } from "./TopBar"
@@ -121,6 +122,7 @@ function Shell() {
             </>
           )}
         </TopBar>
+        <SandboxBanner />
         <TopNotices />
         <LinkFailure />
         {onboarding ? (
@@ -144,6 +146,7 @@ function Shell() {
         <PrivacyDialog open={privacy} onClose={() => setPrivacy(false)} />
         <SignInDialog />
         <BotSignInDialog />
+        <SandboxConfirm />
         <ReportDialog />
         <UpdateDialog />
       </div>

@@ -105,6 +105,7 @@ function createTauri(): Platform {
     kind: "tauri",
     os: detectOs(),
     readiness: () => invoke("readiness"),
+    sandbox: () => invoke("sandbox"),
     extraTools: () => invoke("extra_tools"),
     communityStatus: () => invoke("community_status"),
     setCommunityShown: (show) => invoke("set_community_shown", { show }),

@@ -143,6 +143,10 @@ pub fn run() {
             }
             listen_for_links(app.handle());
             digests::mark_running();
+            // A test copy must not pass for the real app: the owner once signed their real account into one.
+            if let (Some(name), Some(window)) = (system::sandbox(), app.get_webview_window("main")) {
+                let _ = window.set_title(&system::sandbox_title(&name));
+            }
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -166,6 +170,7 @@ pub fn run() {
             commands::app::digest_schedule_run,
             commands::app::digest_backfill,
             commands::app::readiness,
+            commands::app::sandbox,
             commands::app::report_context,
             commands::app::send_report,
             commands::app::notifications,

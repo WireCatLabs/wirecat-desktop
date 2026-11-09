@@ -1,6 +1,7 @@
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { captureErrors } from "@/shared/errors"
+import { useSandbox } from "@/shared/sandbox-store"
 import { App } from "./app/App"
 import { ErrorBoundary } from "./app/ErrorBoundary"
 import "./styles/index.css"
@@ -11,6 +12,8 @@ if (!root) throw new Error("index.html has no #root")
 
 captureErrors()
 trackInputMode()
+// Before any page: a sign-in in a test copy must find the name already known.
+void useSandbox.getState().load()
 
 // The first frame would be laid out in a fallback font, and the swap to the real one re-wraps every paragraph
 // (19 px on Logs). The fonts ship with the app, so the wait is a few milliseconds; the cap keeps a broken font
