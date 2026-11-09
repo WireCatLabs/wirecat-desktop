@@ -11,9 +11,10 @@ export function usePersonName() {
   const m = useMessages(peopleMessages)
   const people = usePeople((s) => s.people)
   const details = usePeople((s) => s.details)
+  const seen = usePeople((s) => s.seen)
   return (ref: string, listedName?: string | null) => {
     const listed = people.find((p) => p.ref === ref)
-    if (listed?.owner) return m.you
+    if (listed?.owner || seen[ref]?.owner) return m.you
     const detail = details[ref]
     const person = detail?.state === "ready" ? detail.person : null
     return (

@@ -90,7 +90,8 @@ const en = {
   kinds: {
     person: "People",
     organization: "Companies",
-    automated: "Mailings and notifications",
+    automated: "Newsletters & notifications",
+    stranger: "Strangers",
     unsorted: "Unsorted",
   } as Record<string, string>,
   kindsLabel: "Which people",
@@ -98,7 +99,8 @@ const en = {
     person: "People you talk to, the ones who write most first.",
     organization: "Companies and shared addresses such as info@ or sales@.",
     automated: "Bots, newsletters and no-reply senders.",
-    unsorted: "No tie with you, or no name and no contact: authors from big groups, numbers nobody named.",
+    stranger: "A real name, but no tie with you: authors from big groups and channels.",
+    unsorted: "No name and no contact yet: numbers and accounts nobody named.",
   } as Record<string, string>,
   columnsKind: {
     name: "Name",
@@ -261,6 +263,7 @@ const ru: typeof en = {
     person: "Люди",
     organization: "Компании",
     automated: "Рассылки и уведомления",
+    stranger: "Посторонние",
     unsorted: "Неразобранное",
   },
   kindsLabel: "Кого показать",
@@ -268,7 +271,8 @@ const ru: typeof en = {
     person: "Люди, с которыми вы общаетесь; первыми те, кто пишет больше всех.",
     organization: "Компании и общие адреса вроде info@ или sales@.",
     automated: "Боты, рассылки и адреса no-reply.",
-    unsorted: "Нет связи с вами или нет ни имени, ни контакта: авторы из больших групп, номера без имени.",
+    stranger: "Имя есть, но связи с вами нет: авторы из больших групп и каналов.",
+    unsorted: "Ни имени, ни контакта: номера и аккаунты, которые никто не назвал.",
   },
   columnsKind: {
     name: "Имя",
@@ -424,7 +428,8 @@ const es: typeof en = {
   kinds: {
     person: "Personas",
     organization: "Empresas",
-    automated: "Envíos y avisos",
+    automated: "Boletines y avisos",
+    stranger: "Desconocidos",
     unsorted: "Sin clasificar",
   },
   kindsLabel: "A quién mostrar",
@@ -432,7 +437,8 @@ const es: typeof en = {
     person: "Las personas con las que hablas; primero las que más escriben.",
     organization: "Empresas y direcciones compartidas como info@ o sales@.",
     automated: "Bots, boletines y remitentes no-reply.",
-    unsorted: "Sin relación contigo, o sin nombre ni contacto: autores de grupos grandes, números sin nombre.",
+    stranger: "Con nombre, pero sin relación contigo: autores de grupos grandes y canales.",
+    unsorted: "Sin nombre ni contacto: números y cuentas que nadie nombró.",
   },
   columnsKind: {
     name: "Nombre",

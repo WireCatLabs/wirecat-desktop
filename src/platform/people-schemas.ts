@@ -92,7 +92,7 @@ export type Merged = v.InferOutput<typeof MergedSchema>
 export type MatchAnswer = "confirm" | "reject"
 
 /** memo's kinds of people, in the order the page offers them. */
-export const PERSON_KINDS = ["person", "organization", "automated", "unsorted"] as const
+export const PERSON_KINDS = ["person", "organization", "automated", "stranger", "unsorted"] as const
 export type PersonKind = (typeof PERSON_KINDS)[number]
 
 export const KindCountsSchema = v.record(v.string(), v.number())

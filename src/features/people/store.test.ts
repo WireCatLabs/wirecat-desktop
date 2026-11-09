@@ -59,6 +59,23 @@ describe("the People store after a write", () => {
     expect(s.people.map((p) => p.ref)).toEqual(["person:7"])
   })
 
+  it("still knows the owner and their tasks on a tab that does not list them", async () => {
+    const row = (ref: string, owner: boolean, tasks: number) => ({ ref, name: ref, owner, tasks, ...older })
+    vi.spyOn(platform, "peopleKinds").mockResolvedValue({})
+    vi.spyOn(platform, "peopleRead").mockImplementation(async (kind) => ({
+      kind: "ready",
+      people: kind === "person" ? [row("person:1", true, 4)] : [row("person:23", false, 0)],
+      peopleMore: false,
+      matches: [],
+      matchesMore: false,
+      kinded: true,
+    }))
+    await usePeople.getState().load()
+    usePeople.getState().setKind("organization")
+    await vi.waitFor(() => expect(usePeople.getState().people.map((p) => p.ref)).toEqual(["person:23"]))
+    expect(usePeople.getState().seen["person:1"]).toEqual({ owner: true, tasks: 4 })
+  })
+
   it("reads the people on screen two at a time, in order, and drops those scrolled away", async () => {
     const waits: { ref: string; done: () => void }[] = []
     vi.spyOn(platform, "peopleShow").mockImplementation(

@@ -37,6 +37,8 @@ type PeopleState = {
   kinded: boolean
   /** People of each kind, for the tabs; read apart from the list and empty until it comes. */
   kinds: Partial<Record<PersonKind, number>>
+  /** Whether each person read so far is the owner, and their tasks: a match may name someone from another tab. */
+  seen: Record<string, { owner: boolean; tasks: number }>
   /** The open matches, with any the owner decided since the last full read kept in place. */
   matches: Match[]
   matchesMore: boolean
@@ -63,7 +65,8 @@ type PeopleState = {
   done: Record<string, Done>
   splitting: string | null
   undoing: { ref: string; merge: string } | null
-  load(): Promise<void>
+  /** `counts: false` keeps the tabs' counts: a tab switch does not change them. */
+  load(counts?: boolean): Promise<void>
   setView(view: View): void
   setKind(kind: PersonKind): void
   setQuery(query: string): void
@@ -102,6 +105,7 @@ const AT_ONCE = 2
 
 export const usePeople = create<PeopleState>((set, get) => {
   let seq = 0
+  let countSeq = 0
   let wanted: string[] = []
   let running = 0
 
@@ -151,12 +155,14 @@ export const usePeople = create<PeopleState>((set, get) => {
       details[asked] = { state: "ready", person: answer }
       return { details }
     })
+    const kind = get().kind
     try {
-      const read = await platform.peopleRead(get().kind)
+      const read = await platform.peopleRead(kind)
       if (read.kind !== "ready") return null
+      // The owner may have switched tabs meanwhile: that tab's own read owns the list.
       set((s) => ({
-        people: read.people,
-        peopleMore: read.peopleMore,
+        ...(s.kind === kind ? { people: read.people, peopleMore: read.peopleMore } : {}),
+        seen: seenWith(s.seen, read.people),
         matches: [
           ...read.matches,
           ...s.matches.filter(
@@ -183,6 +189,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     kind: "person",
     kinded: false,
     kinds: {},
+    seen: {},
     matches: [],
     matchesMore: false,
     decided: {},
@@ -207,21 +214,27 @@ export const usePeople = create<PeopleState>((set, get) => {
     splitting: null,
     undoing: null,
 
-    async load() {
+    async load(counts = true) {
       const call = ++seq
+      const older = get().read === "ready" && !get().kinded
       set({ reading: true, error: null })
       // The tabs' counts take a call per kind; the table never waits for them.
-      platform
-        .peopleKinds()
-        .then((kinds) => {
-          if (call === seq) set({ kinds })
-        })
-        .catch(() => undefined)
+      if (counts && !older) {
+        // Apart from `seq`: a tab switch reads no counts, so it must not drop the ones on their way.
+        const asked = ++countSeq
+        platform
+          .peopleKinds()
+          .then((kinds) => {
+            if (asked === countSeq) set({ kinds })
+          })
+          .catch(() => undefined)
+      }
       try {
         const read = await platform.peopleRead(get().kind)
         if (call !== seq) return
         const ready = read.kind === "ready" ? read : null
-        set({
+        set((s) => ({
+          seen: seenWith(s.seen, ready?.people ?? []),
           read: read.kind,
           oldVersion: read.kind === "old" ? { version: read.version, need: read.need } : null,
           people: ready?.people ?? [],
@@ -235,7 +248,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           details: {},
           failed: {},
           done: {},
-        })
+        }))
         const open = get().open
         if (open) void get().loadDetail(open)
       } catch (e) {
@@ -246,7 +259,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     setView: (view) => set({ view }),
     setKind(kind) {
       set({ kind, page: 1, query: "", found: null })
-      void get().load()
+      void get().load(false)
     },
     setQuery: (query) => set({ query, found: null, page: 1 }),
     setFilter: (filter) => set({ ...filter, page: 1 }),
@@ -363,4 +376,9 @@ export const usePeople = create<PeopleState>((set, get) => {
     askSplit: (ref) => set({ splitting: ref }),
     askUndo: (undo) => set({ undoing: undo }),
   }
+})
+
+const seenWith = (seen: PeopleState["seen"], people: readonly Listed[]) => ({
+  ...seen,
+  ...Object.fromEntries(people.map((p) => [p.ref, { owner: p.owner, tasks: p.tasks }])),
 })

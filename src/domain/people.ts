@@ -99,9 +99,7 @@ export function contactOf(
  */
 export type PeopleFilter = { query: string; withTasks: boolean; named: boolean }
 
-export const filterPeople = <
-  T extends { name: string | null; ref: string; tasks: number; owner: boolean; displayName?: string | null },
->(
+export const filterPeople = <T extends { name: string | null; ref: string; tasks: number; owner: boolean }>(
   people: readonly T[],
   { query, withTasks, named }: PeopleFilter,
 ) =>

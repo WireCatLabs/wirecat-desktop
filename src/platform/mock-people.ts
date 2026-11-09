@@ -153,6 +153,9 @@ const KIND: Record<string, Listed["kind"]> = {
   "person:23": "organization",
   "person:25": "automated",
   "person:26": "automated",
+  "person:105": "stranger",
+  "person:117": "stranger",
+  "person:129": "stranger",
   "person:27": "unsorted",
   "person:28": "unsorted",
 }

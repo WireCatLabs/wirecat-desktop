@@ -22,7 +22,7 @@ const WORDED: [&str; 4] = ["identity.stale", "identity.owner-only", "person.not-
 /// How a memo older than kinds of people (UX-133) refuses `kind:` and `--sort`: the page then reads it the old way.
 const OLDER: [&str; 2] = ["query.unknown-field", "input.invalid"];
 /// The kinds memo sorts people into, the list's tabs in this order.
-pub const KINDS: [&str; 4] = ["person", "organization", "automated", "unsorted"];
+pub const KINDS: [&str; 5] = ["person", "organization", "automated", "stranger", "unsorted"];
 
 type Call<'a> = dyn Fn(&[String]) -> Result<Value, String> + Sync + 'a;
 
@@ -35,21 +35,23 @@ fn decision(parts: &[&str]) -> Vec<String> {
 }
 
 /// memo answers a refused review decision with exit code 2 and the whole answer on stdout: it goes back as an answer,
-/// so `decided` names memo's reason, rather than as the last line of its output.
-fn answer(out: &run::Output) -> Result<Value, String> {
+/// so `decided` names memo's reason, rather than as the last line of its output. Only a `people list` gives an `OLDER`
+/// refusal back bare: elsewhere `input.invalid` is a real refusal and keeps memo's words.
+fn answer(out: &run::Output, listing: bool) -> Result<Value, String> {
     let json = out.json();
     let reason = json.as_ref().and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
-        Some(_) if WORDED.contains(&reason) || OLDER.contains(&reason) => Err(reason.to_string()),
+        Some(_) if WORDED.contains(&reason) || (listing && OLDER.contains(&reason)) => Err(reason.to_string()),
         j => Err(failure(out, j.as_ref())),
     }
 }
 
 fn call_at(bin: &Path, args: &[String]) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    answer(&crate::memo_server::run(bin, &refs, TIMEOUT).map_err(|e| e.to_string())?)
+    let listing = args.get(1).is_some_and(|w| w == "list");
+    answer(&crate::memo_server::run(bin, &refs, TIMEOUT).map_err(|e| e.to_string())?, listing)
 }
 
 fn text(v: &Value, key: &str) -> Option<String> {
@@ -713,7 +715,8 @@ mod tests {
             stdout: json!({"error": {"code": "validation_error", "reason": "input.invalid", "message": "unknown option '--sort'"}}).to_string(),
             stderr: String::new(),
         };
-        assert_eq!(answer(&out), Err("input.invalid".into()));
+        assert_eq!(answer(&out, true), Err("input.invalid".into()));
+        assert_ne!(answer(&out, false), Err("input.invalid".into()), "a decision keeps memo's words");
     }
 
     #[test]
@@ -755,13 +758,13 @@ mod tests {
     fn a_refusal_memo_exits_2_with_is_its_reason_not_raw_output() {
         for (fixture_name, reason) in [("stale", "identity.stale"), ("refused", "proposal.wrong-state")] {
             let out = run::Output { code: Some(2), stdout: fixture(fixture_name).to_string(), stderr: String::new() };
-            let v = answer(&out).unwrap();
+            let v = answer(&out, false).unwrap();
             let id = body(&v)["refused"][0]["id"].as_str().unwrap().to_string();
             assert_eq!(decided(&v, &id), Err(reason.to_string()));
         }
         assert_eq!(decided(&fixture("confirm"), "4"), Ok(()));
         let broken = run::Output { code: Some(1), stdout: "not json".into(), stderr: "boom".into() };
-        assert_eq!(answer(&broken), Err("boom".into()));
+        assert_eq!(answer(&broken, false), Err("boom".into()));
     }
 
     #[test]

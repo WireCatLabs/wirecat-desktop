@@ -443,8 +443,8 @@ with `memo people show|review|scan|link|unlink|unmerge`). The page is «Contacts
 so links to it still work); the CLI command stays `memo people`. `people_read(kind)` runs
 `people list kind:<kind> --sort interactions --limit 5000` and `people review --limit 500` at once, and carries each
 list's `has_more` to the page, which says when memo has more than it read. The kinds are tabs: people, companies,
-mailings and notifications, unsorted; `people_kinds` counts them with four `kind:<k> --limit 1` reads that never hold
-the table back. A memo older than kinds refuses the kind word (`query.unknown-field`) or `--sort` (`input.invalid`);
+newsletters and notifications, strangers (a real name, no tie with the owner), unsorted; `people_kinds` counts them
+with one `kind:<k> --limit 1` read each, never holding the table back. A memo older than kinds refuses the kind word (`query.unknown-field`) or `--sort` (`input.invalid`);
 Rust then reads the plain `people list --limit 5000`, the page shows no tabs, hides people with no name by default and
 takes each contact from the person's accounts. A row's name is `personName` in `src/domain/people.ts`: memo's
 `display_name`, else the cleaned name, else the phone, address or handle, never «null #id»; any page that names a

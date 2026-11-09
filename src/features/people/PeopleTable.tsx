@@ -1,6 +1,6 @@
-import { AtSign, Building2, Inbox, Mail, Megaphone, Phone, Users } from "lucide-react"
+import { AtSign, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
-import { cleanName, contactOf, filterPeople, looksLikeAccount } from "@/domain/people"
+import { cleanName, contactOf, filterPeople, looksLikeAccount, personName } from "@/domain/people"
 import { formatWhen } from "@/domain/runs"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import { type Listed, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
@@ -20,6 +20,7 @@ const KIND_ICONS: Record<PersonKind, ReactNode> = {
   person: <Users className="size-4" aria-hidden />,
   organization: <Building2 className="size-4" aria-hidden />,
   automated: <Megaphone className="size-4" aria-hidden />,
+  stranger: <UserX className="size-4" aria-hidden />,
   unsorted: <Inbox className="size-4" aria-hidden />,
 }
 
@@ -75,7 +76,7 @@ export function PeopleTable() {
       </div>
     )
   return (
-    <section aria-label={m.rows} aria-busy={reading} className="flex flex-col gap-[0.8rem]">
+    <section aria-label={m.rows} className="flex flex-col gap-[0.8rem]">
       {tabs}
       <form
         onSubmit={(e) => {
@@ -105,7 +106,9 @@ export function PeopleTable() {
         <p className="text-[0.95rem] text-ink-soft">{people.length === 0 ? m.emptyKind : m.noMatch}</p>
       ) : (
         <DataTable
+          key={kind}
           label={m.rows}
+          busy={reading}
           rows={kinded ? found : rows}
           rowKey={(p) => p.ref}
           columns={columns}
@@ -134,7 +137,6 @@ export function PeopleTable() {
 function useColumns(kinded: boolean): Column<Listed>[] {
   const m = useMessages(peopleMessages)
   const lang = useLang()
-  const name = usePersonName()
   const now = new Date()
   const t = m.columnsKind
   const tasks: Column<Listed> = {
@@ -156,7 +158,7 @@ function useColumns(kinded: boolean): Column<Listed>[] {
       id: "name",
       head: t.name,
       width: "minmax(14rem,1fr)",
-      sortBy: (p) => name(p.ref, p.displayName ?? p.name).toLocaleLowerCase(),
+      sortBy: (p) => (p.owner ? m.you : (personName(p) ?? m.noName)).toLocaleLowerCase(),
       cell: (p) => <Name person={p} />,
     },
     {

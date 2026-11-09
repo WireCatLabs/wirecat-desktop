@@ -291,7 +291,7 @@ function Side({
   const m = useMessages(peopleMessages)
   const name = usePersonName()
   const detail = usePeople((s) => s.details[reference])
-  const tasks = usePeople((s) => s.people.find((p) => p.ref === reference)?.tasks ?? 0)
+  const tasks = usePeople((s) => s.seen[reference]?.tasks ?? 0)
   const box = useId()
   useEffect(() => {
     if (!detail && !decided) usePeople.getState().need(reference)

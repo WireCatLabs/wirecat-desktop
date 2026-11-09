@@ -47,7 +47,7 @@ describe("People", () => {
 
     const kinds = screen.getByRole("group", { name: "Which people" })
     await user.click(
-      await within(kinds).findByRole("radio", { name: "Mailings and notifications 2" }, { timeout: 4000 }),
+      await within(kinds).findByRole("radio", { name: "Newsletters & notifications 2" }, { timeout: 4000 }),
     )
     expect(screen.getByText("Bots, newsletters and no-reply senders.")).toBeInTheDocument()
     await waitFor(async () =>
