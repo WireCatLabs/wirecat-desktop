@@ -320,6 +320,7 @@ pub fn run() {
             commands::tasks::task_comments,
             commands::tasks::task_comment_add,
             commands::tasks::people_list,
+            commands::tasks::people_search,
             commands::tasks::person_add,
             commands::tasks::project_list,
             commands::groups::groups_read,

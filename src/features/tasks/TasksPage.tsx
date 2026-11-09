@@ -6,10 +6,8 @@ import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { DemoNote } from "@/shared/DemoNote"
 import { Button } from "@/ui/Button"
-import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { Filters } from "./Filters"
@@ -31,7 +29,6 @@ export function TasksPage() {
   const reading = useTasks((s) => s.reading)
   const error = useTasks((s) => s.error)
   const view = useTasks((s) => s.view)
-  const creating = useTasks((s) => s.creating)
   const demo = useTasks((s) => s.demo)
 
   useEffect(() => {
@@ -84,12 +81,10 @@ export function TasksPage() {
           <Button
             variant="primary"
             size="sm"
-            aria-expanded={creating}
-            onClick={() => useTasks.getState().startCreate(!creating)}
+            onClick={() => useTasks.getState().startCreate(true)}
             icon={<Plus className="size-4" aria-hidden />}
           >
             {m.newTask}
-            <ExpandChevron open={creating} className="text-current!" />
           </Button>
         </div>
       </div>
@@ -98,6 +93,7 @@ export function TasksPage() {
         <Body />
         <Note />
       </div>
+      <NewTask />
     </div>
   )
 }
@@ -148,12 +144,6 @@ function Rack() {
   const tasks = useTasks((s) => s.tasks)
   const query = useTasks((s) => s.query)
   const badQuery = useTasks((s) => s.badQuery)
-  const creating = useTasks((s) => s.creating)
-  const form = (
-    <Collapse open={creating}>
-      <NewTask />
-    </Collapse>
-  )
 
   if (badQuery) {
     return (
@@ -166,7 +156,6 @@ function Rack() {
   if (tasks.length === 0) {
     return (
       <div className="rounded-[0.2rem] border border-line-strong bg-app">
-        {form}
         <div className="px-[1.3rem] py-[1.3rem] text-[0.95rem] text-ink-soft">
           {query.trim() ? (
             <p>
@@ -188,12 +177,11 @@ function Rack() {
   if (view === "board") {
     return (
       <div className="flex flex-col gap-[0.9rem]">
-        {creating && <div className="rounded-[0.2rem] border border-line-strong bg-app">{form}</div>}
         <TaskBoard />
       </div>
     )
   }
-  return <TaskTable top={form} />
+  return <TaskTable />
 }
 
 function Loading() {

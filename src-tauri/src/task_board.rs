@@ -411,10 +411,8 @@ pub struct Person {
     pub owner: bool,
 }
 
-/// memo lists 500 people unless asked for more, and has no pages; the owner's contacts can run to thousands.
-fn people_with(call: &Call) -> Result<Vec<Person>, Failure> {
-    let v = call(&words(&["people", "list", "--limit", "5000"]))?;
-    Ok(v["items"]
+fn read_people(v: &Value) -> Vec<Person> {
+    v["items"]
         .as_array()
         .map(|a| {
             a.iter()
@@ -425,11 +423,33 @@ fn people_with(call: &Call) -> Result<Vec<Person>, Failure> {
                 })
                 .collect()
         })
-        .unwrap_or_default())
+        .unwrap_or_default()
+}
+
+/// memo lists 500 people unless asked for more, and has no pages; the owner's contacts can run to thousands.
+fn people_with(call: &Call) -> Result<Vec<Person>, Failure> {
+    Ok(read_people(&call(&words(&["people", "list", "--limit", "5000"]))?))
+}
+
+const FOUND: &str = "20";
+
+/// Most people the finder shows; memo narrows by `name:`, and an empty search is the people the owner talks to most.
+fn people_search_with(call: &Call, query: &str) -> Result<Vec<Person>, Failure> {
+    let term = query.replace(['"', '\\'], " ");
+    let term = term.split_whitespace().collect::<Vec<_>>().join(" ");
+    let mut args = words(&["people", "list", "--limit", FOUND]);
+    if !term.is_empty() {
+        args.extend(["--".to_string(), format!("name:\"{term}\"")]);
+    }
+    Ok(read_people(&call(&args)?))
 }
 
 pub fn people() -> Result<Vec<Person>, String> {
     with_memo(READ, people_with)
+}
+
+pub fn people_search(query: &str) -> Result<Vec<Person>, String> {
+    with_memo(READ, |call| people_search_with(call, query))
 }
 
 /// The name goes after `--`: memo reads every word after it as the name, so one that starts with a dash stays a name.
@@ -1118,6 +1138,20 @@ mod tests {
             [Project { reference: Some("project:1".into()), key: "HRB".into(), name: "Harbour launch".into() }]
         );
         assert_eq!(fake.seen()[1], strs(&["projects", "list", "--json", "--no-record", "--", "kind:project"]));
+    }
+
+    #[test]
+    fn the_person_finder_asks_memo_for_a_name_and_a_short_list() {
+        let fake = Fake::new(|_| Ok(json!({"items":[{"ref":"person:2","name":"Ana Ruiz","owner":false}]})));
+        let call = |a: &[String]| fake.call(a);
+        assert_eq!(people_search_with(&call, " ana \"x\" ruiz ").unwrap().len(), 1);
+        people_search_with(&call, "").unwrap();
+        let seen = fake.seen();
+        assert_eq!(
+            seen[0],
+            strs(&["people", "list", "--limit", "20", "--json", "--no-record", "--", "name:\"ana x ruiz\""])
+        );
+        assert_eq!(seen[1], strs(&["people", "list", "--limit", "20", "--json", "--no-record"]));
     }
 
     #[test]

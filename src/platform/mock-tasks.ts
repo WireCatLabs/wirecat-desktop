@@ -425,6 +425,7 @@ type TaskApi = Pick<
   | "taskComments"
   | "taskCommentAdd"
   | "peopleList"
+  | "peopleSearch"
   | "personAdd"
   | "projectList"
 >
@@ -749,6 +750,11 @@ export function tasksMock(): TaskApi {
     async peopleList() {
       await delay(250)
       return people
+    },
+    async peopleSearch(query) {
+      await delay(250)
+      const q = query.trim().toLocaleLowerCase()
+      return people.filter((p) => !q || (p.name ?? "").toLocaleLowerCase().includes(q)).slice(0, 20)
     },
     async personAdd(name) {
       await delay(260)

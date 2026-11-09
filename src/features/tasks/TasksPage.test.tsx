@@ -269,7 +269,9 @@ describe("Tasks", () => {
 
     await user.click(within(dialog).getByRole("combobox", { name: "Assignee of HRB-12" }))
     await user.click(screen.getByRole("option", { name: "Someone else…" }))
-    await user.type(within(dialog).getByRole("combobox", { name: "Find or add a person" }), "Lena Ortiz{Enter}")
+    await user.type(within(dialog).getByRole("combobox", { name: "Find or add a person" }), "Lena Ortiz")
+    await screen.findByRole("option", { name: "Add “Lena Ortiz”" })
+    await user.keyboard("{Enter}")
     await waitFor(() => expect(assign).toHaveBeenCalledWith("HRB-12", expect.any(Number), "person:4"))
     expect(useTasks.getState().people.map((p) => p.name)).toContain("Lena Ortiz")
 
@@ -388,20 +390,61 @@ describe("Tasks", () => {
     expect(screen.queryByRole("searchbox")).not.toBeInTheDocument()
   })
 
-  it("adds a task with its project, then shows it first", async () => {
+  it("adds a task in a dialog, with its project, then shows it first", async () => {
     const user = userEvent.setup()
     const create = vi.spyOn(platform, "taskCreate")
     render(<TasksPage />)
     await loaded()
     await user.click(screen.getByRole("button", { name: "New task" }))
-    await user.click(screen.getByRole("button", { name: "Add task" }))
-    expect(screen.getByRole("alert")).toHaveTextContent("Type a title for the task.")
-    expect(screen.getByRole("textbox", { name: "Title of the new task" })).toHaveFocus()
-    await user.type(screen.getByRole("textbox", { name: "Title of the new task" }), "Print the flyers")
-    await user.click(screen.getByRole("combobox", { name: "Project" }))
+    const dialog = await screen.findByRole("dialog", { name: "New task" })
+    await user.click(within(dialog).getByRole("button", { name: "Add task" }))
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Type a title for the task.")
+    expect(within(dialog).getByRole("textbox", { name: "Title of the new task" })).toHaveFocus()
+    await user.type(within(dialog).getByRole("textbox", { name: "Title of the new task" }), "Print the flyers")
+    await user.click(within(dialog).getByRole("combobox", { name: "Project" }))
     await user.click(screen.getByRole("option", { name: /HOME · Home/ }))
-    await user.click(screen.getByRole("button", { name: "Add task" }))
+    await user.click(within(dialog).getByRole("button", { name: "Add task" }))
     await waitFor(() => expect(create).toHaveBeenCalledWith({ project: "HOME", title: "Print the flyers" }))
     await waitFor(() => expect(document.querySelector("[data-row]")).toHaveAttribute("data-row", "HOME-3"))
+    await waitFor(() => expect(useTasks.getState().creating).toBe(false))
+  })
+
+  it("finds an assignee by name in memo, once per search, and never reads everyone to do it", async () => {
+    const user = userEvent.setup()
+    const search = vi.spyOn(platform, "peopleSearch")
+    const create = vi.spyOn(platform, "taskCreate")
+    render(<TasksPage />)
+    await loaded()
+    await user.click(screen.getByRole("button", { name: "New task" }))
+    const dialog = await screen.findByRole("dialog", { name: "New task" })
+    await user.type(within(dialog).getByRole("textbox", { name: "Title of the new task" }), "Call Kai")
+    await user.click(within(dialog).getByRole("combobox", { name: "Project" }))
+    await user.click(screen.getByRole("option", { name: /HOME · Home/ }))
+    await user.click(within(dialog).getByRole("combobox", { name: "Assignee" }))
+    await user.click(screen.getByRole("option", { name: "Someone else…" }))
+    await user.type(within(dialog).getByRole("combobox", { name: "Find or add a person" }), "kai")
+    const kai = await screen.findByRole("option", { name: "Kai Moreno" })
+    expect(search).toHaveBeenCalledWith("kai")
+    expect(search).not.toHaveBeenCalledWith("k")
+    await user.click(kai)
+    await user.click(within(dialog).getByRole("button", { name: "Add task" }))
+    await waitFor(() =>
+      expect(create).toHaveBeenCalledWith({
+        project: "HOME",
+        title: "Call Kai",
+        assignee: expect.stringMatching(/^person:/),
+      }),
+    )
+
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "New task" })).not.toBeInTheDocument())
+    const calls = search.mock.calls.length
+    await user.click(screen.getByRole("button", { name: "New task" }))
+    const again = await screen.findByRole("dialog", { name: "New task" })
+    await user.click(within(again).getByRole("combobox", { name: "Assignee" }))
+    await user.click(screen.getByRole("option", { name: "Someone else…" }))
+    await user.type(within(again).getByRole("combobox", { name: "Find or add a person" }), "kai")
+    expect(await screen.findByRole("option", { name: "Kai Moreno" })).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 400))
+    expect(search.mock.calls.length).toBe(calls)
   })
 })
