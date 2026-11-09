@@ -84,7 +84,7 @@ Rust accepts an entry only when:
 3. The package is `@scope/name` outside `@wirecat`; the repository is `https://github.com/<owner>/<name>` outside
    WireCatLabs; every link is `https`.
 4. It sets none of `partOf`, `commandPrefix`, `memory`, `taskBoard`, `bot`, `storeReset`, `storeResetPreview`,
-   `configRepair` or `signIn.command` (a command line shown for the owner to copy).
+   `configRepair`, `storeRecover` or `signIn.command` (a command line shown for the owner to copy).
 5. The file is at most 512 KB and the first 32 entries are read.
 
 Each refusal is a sentence the interface writes to its console and Settings lists under the switch of its source. The interface parses the accepted entries again

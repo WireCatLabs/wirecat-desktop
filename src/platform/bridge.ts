@@ -4,6 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener"
 import { relaunch } from "@tauri-apps/plugin-process"
 import { check, type Update } from "@tauri-apps/plugin-updater"
 import * as v from "valibot"
+import { DamageReportSchema } from "@/domain/store-damage"
 import {
   AgentRunSchema,
   AgentsSchema,
@@ -144,6 +145,8 @@ function createTauri(): Platform {
     storePreflight: (id) => invoke("store_preflight", { id }),
     storeTables: (sizes) => call(TableListSchema, "store_tables", { sizes }),
     storeCheck: () => call(StoreCheckSchema, "store_check"),
+    storeRecover: (id) => call(v.nullable(DamageReportSchema), "store_recover", { id }),
+    storeRecoverStep: (id, index) => invoke("store_recover_step", { id, index }),
     storeBackup: (onEvent, password) => {
       const channel = new Channel<BackupEvent>()
       channel.onmessage = onEvent

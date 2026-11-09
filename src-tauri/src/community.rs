@@ -19,8 +19,17 @@ const MAX_TOOLS: usize = 32;
 
 /// Fields a community tool may not set: parts of our packages, memo's own pages, a bot token on stdin, and emptying
 /// the store every tool shares.
-pub const FORBIDDEN: [&str; 8] =
-    ["partOf", "commandPrefix", "memory", "taskBoard", "bot", "storeReset", "storeResetPreview", "configRepair"];
+pub const FORBIDDEN: [&str; 9] = [
+    "partOf",
+    "commandPrefix",
+    "memory",
+    "taskBoard",
+    "bot",
+    "storeReset",
+    "storeResetPreview",
+    "configRepair",
+    "storeRecover",
+];
 
 /// Where a tool came from. The badge follows it, never a key in the entry, so a listed entry can neither claim nor
 /// drop "Not checked".

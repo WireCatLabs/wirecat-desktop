@@ -16,6 +16,7 @@ import {
   RANGES,
   type RangeId,
   type Run,
+  STORE_KIND,
   suggest,
   toggleTerm,
   unknownFields,
@@ -135,7 +136,7 @@ export function LogsPage() {
       Object.fromEntries(
         FACETS.map((f) => {
           const c = facetCounts(ranged, parsed.terms, f)
-          return [f, f === "tool" ? withZeros(c, toolIds) : c]
+          return [f, f === "tool" ? withZeros(c, toolIds) : f === "kind" ? withZeros(c, [STORE_KIND]) : c]
         }),
       ),
     [ranged, parsed, toolIds],

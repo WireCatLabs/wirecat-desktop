@@ -1,7 +1,7 @@
 use super::{attempt, blocking, known_tool};
 use crate::error::AppError;
 use crate::install::Running;
-use crate::{archive, backup, catalog, compat, preflight};
+use crate::{archive, backup, catalog, compat, preflight, store_recover};
 use std::sync::Arc;
 use tauri::State;
 use tauri::ipc::Channel;
@@ -29,6 +29,26 @@ pub async fn store_preflight(id: String) -> Result<preflight::Preflight, AppErro
 #[tauri::command]
 pub async fn store_tables(sizes: bool) -> Result<Option<archive::TableList>, AppError> {
     crate::log::command("store_tables", async move { attempt(move || archive::tables(sizes)).await }).await
+}
+
+/// The damage report of a tool's `store recover`, masked; `None` from a tool older than the report.
+#[tauri::command]
+pub async fn store_recover(id: String) -> Result<Option<serde_json::Value>, AppError> {
+    crate::log::command("store_recover", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || store_recover::report(tool)).await
+    })
+    .await
+}
+
+/// One non-destructive step of the last report, by its place in the list.
+#[tauri::command]
+pub async fn store_recover_step(id: String, index: usize) -> Result<(), AppError> {
+    crate::log::command("store_recover_step", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || store_recover::run_step(tool, index)).await
+    })
+    .await
 }
 
 #[tauri::command]
