@@ -1,4 +1,4 @@
-import { Columns3, Handshake, RefreshCw, UserRoundPlus } from "lucide-react"
+import { Columns3, Handshake, RefreshCw, Rows3, UserRoundPlus } from "lucide-react"
 import { crmToolOf } from "@/domain/catalog"
 import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
 import { gapFromRead } from "@/domain/needs"
@@ -14,15 +14,20 @@ import { Segmented } from "@/ui/Segmented"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { type Based, type Ready, readAgain, useBoard } from "./api"
 import { BaseBoard } from "./BaseBoard"
+import { MovePickers } from "./base-move"
 import { CardDialog } from "./CardDialog"
 import { ClientsBoard } from "./ClientsBoard"
+import { ClientsTable } from "./ClientsTable"
 import { BaseFilters, ClientsFilters } from "./Filters"
+import { ImportButton } from "./ImportButton"
 import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
+import { tableMessages } from "./messages-table"
 import { StageMapDialog } from "./StageMapDialog"
-import { useClients } from "./store"
+import { useClients, type View } from "./store"
 
 const ICONS: Record<Kind, typeof Handshake> = { deal: Handshake, lead: UserRoundPlus }
+const VIEWS: Record<View, typeof Handshake> = { table: Rows3, board: Columns3 }
 
 export function ClientsPage() {
   const m = useMessages(clientMessages)
@@ -30,8 +35,11 @@ export function ClientsPage() {
   const pipeline = useClients((s) => s.pipeline[kind] ?? null)
   const board = useBoard(kind, pipeline)
   const usable = board.data?.kind === "ready" || board.data?.kind === "base"
+  const view = useClients((s) => s.view)
   const sm = useMessages(stageMessages)
   const waiting = board.data?.kind === "base" ? board.data.unsorted.stages : 0
+  const t = useMessages(tableMessages)
+  const based = board.data?.kind === "base"
   return (
     <div className="flex min-w-0 flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -50,7 +58,7 @@ export function ClientsPage() {
           >
             <StableText value={board.isFetching ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
           </Button>
-          {board.data?.kind === "base" && (
+          {based && (
             <Button
               variant="ghost"
               size="sm"
@@ -62,6 +70,18 @@ export function ClientsPage() {
               {waiting > 0 && <Pill tone="warn">{waiting}</Pill>}
             </Button>
           )}
+          {based && (
+            <Segmented<View>
+              size="md"
+              label={t.view}
+              value={view}
+              onChange={(v) => useClients.getState().setView(v)}
+              options={(["table", "board"] as const).map((v) => {
+                const Icon = VIEWS[v]
+                return { value: v, label: t[v], icon: <Icon className="size-4" aria-hidden /> }
+              })}
+            />
+          )}
           <Segmented<Kind>
             label={m.kind}
             value={kind}
@@ -72,6 +92,7 @@ export function ClientsPage() {
               return { value: k, label: m.kinds[k], icon: <Icon className="size-4" aria-hidden /> }
             })}
           />
+          {based && <ImportButton />}
         </div>
       </div>
       {usable && <CrmNeeded />}
@@ -115,6 +136,9 @@ function Body() {
     const gap = gapFromRead(data)
     return gap && <ToolNeeded gap={gap} />
   }
+  if (data.kind === "base" && data.cards.length === 0) {
+    return <Empty kind={kind} synced={data.pipelines.some((p) => p.account !== null)} />
+  }
   if (data.pipelines.length === 0) {
     return (
       <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.3rem] text-[0.95rem] text-ink-soft">
@@ -129,6 +153,7 @@ function Body() {
 
 function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
   const m = useMessages(clientMessages)
+  const view = useClients((s) => s.view)
   const query = useClients((s) => s.query)
   const pipelines = useClients((s) => s.pipelines)
   const accounts = useClients((s) => s.accounts)
@@ -153,7 +178,12 @@ function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
           </Button>
         </p>
       )}
-      <BaseBoard read={read} kind={kind} cards={shown} filtered={filtered} />
+      {view === "table" ? (
+        <ClientsTable read={read} kind={kind} cards={shown} />
+      ) : (
+        <BaseBoard read={read} kind={kind} cards={shown} filtered={filtered} />
+      )}
+      <MovePickers read={read} kind={kind} cards={read.cards} />
     </>
   )
 }
@@ -177,6 +207,29 @@ function Loaded({ read, kind }: { read: Ready; kind: Kind }) {
       )}
       <ClientsBoard read={read} kind={kind} cards={shown} />
     </>
+  )
+}
+
+/** No card of this kind yet: the three reasons that is so without anything being broken, each with its way out. */
+function Empty({ kind, synced }: { kind: Kind; synced: boolean }) {
+  const m = useMessages(clientMessages)
+  const t = useMessages(tableMessages)
+  const other = KINDS.find((k) => k !== kind) ?? kind
+  return (
+    <div className="flex flex-col gap-[0.7rem] rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.3rem] text-[0.95rem] text-ink-soft">
+      <p className="font-medium text-ink">{m.none[kind]}</p>
+      <div className="flex flex-wrap items-center gap-3">
+        <p>{t.notImported}</p>
+        <ImportButton />
+      </div>
+      {synced && <p>{t.emptyScope}</p>}
+      <div className="flex flex-wrap items-center gap-3">
+        <p>{t.elsewhere[kind]}</p>
+        <Button size="sm" variant="ghost" onClick={() => useClients.getState().setKind(other)}>
+          {t.showOther[kind]}
+        </Button>
+      </div>
+    </div>
   )
 }
 

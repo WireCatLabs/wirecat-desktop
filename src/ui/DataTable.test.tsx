@@ -80,4 +80,22 @@ describe("DataTable", () => {
     await user.click(screen.getByRole("cell", { name: "apple" }))
     expect(onRowClick).toHaveBeenCalledWith(FRUIT[1], expect.anything())
   })
+
+  it("shows one page of the sorted rows, so a sort orders every page and not only the one on screen", async () => {
+    const user = userEvent.setup()
+    const { rerender } = render(<Table />)
+    rerender(
+      <DataTable
+        label="Fruit"
+        rows={FRUIT}
+        rowKey={(f) => f.name}
+        columns={COLUMNS}
+        minWidth="20rem"
+        page={{ index: 1, size: 2 }}
+      />,
+    )
+    expect(names().map((c) => c.textContent)).toEqual(["pear", "apple"])
+    await user.click(screen.getByRole("button", { name: "Sort by count" }))
+    expect(names().map((c) => c.textContent)).toEqual(["fig", "pear"])
+  })
 })

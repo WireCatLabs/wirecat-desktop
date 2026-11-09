@@ -1804,7 +1804,7 @@
         "minVersion": "0.131.14"
       },
       "crmBoard": {
-        "minVersion": "0.131.56",
+        "minVersion": "0.131.71",
         "baseStagesMinVersion": "0.131.71"
       },
       "people": {

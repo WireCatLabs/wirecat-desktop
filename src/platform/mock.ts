@@ -215,6 +215,11 @@ function mockProfiles(id: string): Profile[] | null {
       linkedProfiles.length === 0 && params.get("service")?.startsWith("wa") ? ["personal", "work"] : linkedProfiles
     return names.map((name) => ({ name, signedIn: true }))
   }
+  // `?clients=import-one|import-two`: Bitrix24 is installed with one or two signed-in profiles to import from.
+  if (id === "bitrix" && params.get("clients")?.startsWith("import-")) {
+    const two = params.get("clients") === "import-two"
+    return [{ name: "work", signedIn: true }, ...(two ? [{ name: "personal", signedIn: true }] : [])]
+  }
   if (id === "tg") {
     return [
       { name: "personal", signedIn: true },
@@ -300,6 +305,7 @@ export function createMock(os: Platform["os"]): Platform {
   )
   if (params.get("mail-cli") === "old") installed.set("email", "0.21.0")
   if (params.has("sync-schedule") || params.get("sync-recovered") === "email") installed.set("email", "0.22.0")
+  if (params.get("clients")?.startsWith("import-")) installed.set("bitrix", LATEST.bitrix ?? "1.0.0")
   // `?accounts=<tool>` opens that tool's accounts, so it is installed even when the scenario leaves it out.
   const accounts = params.get("accounts")
   if (accounts && !installed.has(accounts)) installed.set(accounts, LATEST[ownerId(accounts)] ?? "1.0.0")

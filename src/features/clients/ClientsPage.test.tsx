@@ -22,7 +22,11 @@ function freshMemo(based?: boolean, writer: CrmWriter = "none") {
   vi.spyOn(platform, "clientsBaseEdit").mockImplementation(memo.clientsBaseEdit)
 }
 
-beforeEach(() => useClients.setState(useClients.getInitialState(), true))
+// A detection started by one test resolves in a later one and replaces its tools: no test starts one.
+beforeEach(() => {
+  useClients.setState({ ...useClients.getInitialState(), view: "board" }, true)
+  useTools.setState({ checked: true })
+})
 afterEach(() => vi.restoreAllMocks())
 
 const column = (name: RegExp) => screen.findByRole("region", { name }, { timeout: 4000 })
@@ -315,6 +319,114 @@ describe("Clients moving a CRM's cards through b24", () => {
     await user.click(everyone)
     expect(set).toHaveBeenCalledWith(NORTHSTAR, "work", "all")
     await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "work", expect.any(Function)))
+  })
+})
+
+describe("Clients as a table", () => {
+  beforeEach(() => {
+    freshMemo(true, "one")
+    useClients.setState({ view: "table" })
+  })
+  const row = (title: string) =>
+    screen.findByRole("button", { name: title }, { timeout: 4000 }).then((b) => b.closest("[data-row]") as HTMLElement)
+
+  it("opens on the table, and remembers the board once chosen", async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<ClientsPage />)
+    expect(await screen.findByRole("table", { name: "Deals" }, { timeout: 4000 })).toBeInTheDocument()
+    await user.click(screen.getByRole("radio", { name: "Board" }))
+    expect(await column(/^Quote/)).toBeInTheDocument()
+    unmount()
+    expect(JSON.parse(localStorage.getItem("wirecat.clients") ?? "{}").state.view).toBe("board")
+  })
+
+  it("sorts by amount, the largest first on a second click", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await row("Site for Northstar")
+    await user.click(screen.getByRole("button", { name: "Sort by amount" }))
+    await user.click(screen.getByRole("button", { name: "Sort by amount" }))
+    const first = screen.getAllByRole("row").find((r) => within(r).queryAllByRole("cell").length > 0)
+    expect(first).toHaveTextContent("Site for Northstar")
+  })
+
+  it("moves a card from its stage cell, and a refusal stays on its row", async () => {
+    const user = userEvent.setup()
+    const move = vi.spyOn(platform, "clientsMove")
+    render(<ClientsPage />)
+    await row("Site for Northstar")
+    await user.click(screen.getByRole("combobox", { name: "Stage of Site for Northstar" }))
+    await user.click(screen.getByRole("option", { name: "Call" }))
+    expect(move).toHaveBeenCalledWith("deal", "deal:1", "Call", null)
+    await user.click(screen.getByRole("combobox", { name: "Stage of Northstar: 40 office chairs" }))
+    await user.click(screen.getByRole("option", { name: "Contract" }))
+    expect(move).toHaveBeenCalledTimes(1)
+    expect(await row("Northstar: 40 office chairs")).toHaveTextContent(
+      "Not moved: no stage of this card's pipeline belongs to this column yet",
+    )
+  })
+
+  it("opens Map stages over the table, which stays when it closes", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await row("Site for Northstar")
+    await user.click(screen.getAllByRole("button", { name: /^Map stages/ })[0] as HTMLElement)
+    const map = await screen.findByRole("dialog", { name: "Deal stages of your CRMs" })
+    await user.click(within(map).getByRole("button", { name: "Close" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    expect(screen.getByRole("table", { name: "Deals" })).toBeInTheDocument()
+  })
+})
+
+describe("Importing from a CRM", () => {
+  beforeEach(() => freshMemo())
+  const bitrix = (profiles: string[]) => {
+    vi.spyOn(platform, "listProfiles").mockImplementation(async (id) =>
+      id === "bitrix" ? profiles.map((name) => ({ name, signedIn: true })) : null,
+    )
+    const installs = [{ path: "/b24", version: "9.9.9", manager: "npm", problem: null }]
+    useTools.setState({ checked: true, installs: { bitrix: installs } })
+  }
+
+  it("offers no import while no CRM is signed in: the notice asks for one", async () => {
+    render(<ClientsPage />)
+    await card("Site for Northstar")
+    expect(await screen.findByRole("button", { name: "Install Bitrix24" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /^Import from/ })).toBeNull()
+  })
+
+  it("imports from the one signed-in profile with a plain button", async () => {
+    const user = userEvent.setup()
+    const sync = vi.spyOn(platform, "syncRun").mockResolvedValue()
+    bitrix(["work"])
+    render(<ClientsPage />)
+    await user.click(await screen.findByRole("button", { name: "Import from Bitrix24" }, { timeout: 4000 }))
+    await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "work", expect.any(Function)))
+  })
+
+  it("lists every profile when there are several, and runs nothing until one is picked", async () => {
+    const user = userEvent.setup()
+    const sync = vi.spyOn(platform, "syncRun").mockResolvedValue()
+    bitrix(["work", "personal"])
+    render(<ClientsPage />)
+    await user.click(await screen.findByRole("button", { name: "Import from a CRM" }, { timeout: 4000 }))
+    expect(sync).not.toHaveBeenCalled()
+    await user.click(screen.getByRole("menuitem", { name: "Import from Bitrix24 · personal" }))
+    await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "personal", expect.any(Function)))
+  })
+
+  it("explains an empty kind: nothing imported, the scope, and where the other kind is", async () => {
+    const user = userEvent.setup()
+    const memo = clientsMock()
+    vi.spyOn(platform, "clientsRead").mockImplementation(async (kind, pipeline) => {
+      const answer = await memo.clientsRead(kind, pipeline)
+      return answer.kind === "base" ? { ...answer, cards: [] } : answer
+    })
+    render(<ClientsPage />)
+    expect(await screen.findByText("Nothing is imported from a CRM yet.", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(screen.getByText('Only your own deals are imported while the scope is "Mine".')).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Show leads" }))
+    expect(useClients.getState().kind).toBe("lead")
   })
 })
 

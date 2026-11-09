@@ -5,6 +5,8 @@ import { accountKey, type Kind } from "@/domain/clients"
 import type { CrmAccount } from "@/platform/bindings"
 import { safeStorage } from "@/shared/safe-storage"
 
+export type View = "table" | "board"
+
 /** A drop onto a base column that holds several stages of the card's pipeline: the owner picks one. */
 export type Picking = { ref: string; pipeline: string; base: string; stages: string[] }
 
@@ -21,6 +23,9 @@ type ClientsState = {
   kind: Kind
   /** The CRM account (`accountKey`) the stage mapping dialog is open on; `""` opens it on the CRM that needs it most. */
   mapOn: string | null
+  view: View
+  /** The table's page, from 1; a new filter or kind starts again at 1. */
+  page: number
   /** The pipeline last chosen for each kind; memo's first when none was. */
   pipeline: Partial<Record<Kind, string>>
   /** The filter words; the page narrows the read it holds, memo is not asked again. */
@@ -44,6 +49,8 @@ type ClientsState = {
   write(account: CrmAccount, profile: string): void
   setKind(kind: Kind): void
   openMap(account: string | null): void
+  setView(view: View): void
+  setPage(page: number): void
   setPipelines(pipelines: string[]): void
   setAccounts(accounts: string[]): void
   refuse(ref: string, why: Refusal | null): void
@@ -64,6 +71,8 @@ export const useClients = create<ClientsState>()(
       open: null,
       failed: {},
       mapOn: null,
+      view: "table",
+      page: 1,
       refused: {},
       pipelines: [],
       accounts: [],
@@ -73,10 +82,12 @@ export const useClients = create<ClientsState>()(
       asking: null,
       ask: (asking) => set({ asking }),
       write: (account, profile) => set((s) => ({ writers: { ...s.writers, [accountKey(account)]: profile } })),
-      setKind: (kind) => set({ kind, query: "", pipelines: [], accounts: [], refused: {} }),
+      setKind: (kind) => set({ kind, query: "", pipelines: [], accounts: [], refused: {}, page: 1 }),
       openMap: (mapOn) => set({ mapOn }),
-      setPipelines: (pipelines) => set({ pipelines }),
-      setAccounts: (accounts) => set({ accounts }),
+      setView: (view) => set({ view }),
+      setPage: (page) => set({ page }),
+      setPipelines: (pipelines) => set({ pipelines, page: 1 }),
+      setAccounts: (accounts) => set({ accounts, page: 1 }),
       refuse: (ref, why) =>
         set((s) => {
           const { [ref]: _, ...rest } = s.refused
@@ -85,7 +96,7 @@ export const useClients = create<ClientsState>()(
       pick: (picking) => set({ picking }),
       remember: (key, stage) => set((s) => ({ chosen: { ...s.chosen, [key]: stage } })),
       choose: (kind, pipeline) => set((s) => ({ pipeline: { ...s.pipeline, [kind]: pipeline }, query: "" })),
-      setQuery: (query) => set({ query }),
+      setQuery: (query) => set({ query, page: 1 }),
       setOpen: (open) => set({ open }),
       fail: (ref, reason) =>
         set((s) => {
@@ -96,7 +107,10 @@ export const useClients = create<ClientsState>()(
     {
       name: "wirecat.clients",
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ kind: s.kind, pipeline: s.pipeline }),
+      partialize: (s) => ({ kind: s.kind, pipeline: s.pipeline, view: s.view }),
+      // Version 0 remembered the board or the stage mapping view; the table came after, and the owner asked for it.
+      version: 1,
+      migrate: (kept) => ({ ...(kept as object), view: "table" }),
     },
   ),
 )
