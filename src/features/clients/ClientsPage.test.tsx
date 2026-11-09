@@ -22,7 +22,11 @@ function freshMemo(based?: boolean, writer: CrmWriter = "none") {
   vi.spyOn(platform, "clientsBaseEdit").mockImplementation(memo.clientsBaseEdit)
 }
 
-beforeEach(() => useClients.setState({ ...useClients.getInitialState(), view: "board" }, true))
+// A detection started by one test resolves in a later one and replaces its tools: no test starts one.
+beforeEach(() => {
+  useClients.setState({ ...useClients.getInitialState(), view: "board" }, true)
+  useTools.setState({ checked: true })
+})
 afterEach(() => vi.restoreAllMocks())
 
 const column = (name: RegExp) => screen.findByRole("region", { name }, { timeout: 4000 })
@@ -380,10 +384,8 @@ describe("Importing from a CRM", () => {
     vi.spyOn(platform, "listProfiles").mockImplementation(async (id) =>
       id === "bitrix" ? profiles.map((name) => ({ name, signedIn: true })) : null,
     )
-    useTools.setState({
-      checked: true,
-      installs: { bitrix: [{ path: "/b24", version: "9.9.9", manager: "npm", problem: null }] },
-    })
+    const installs = [{ path: "/b24", version: "9.9.9", manager: "npm", problem: null }]
+    useTools.setState({ checked: true, installs: { bitrix: installs } })
   }
 
   it("offers no import while no CRM is signed in: the notice asks for one", async () => {
