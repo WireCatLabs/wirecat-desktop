@@ -35,6 +35,7 @@ mod mail_agent;
 mod mcp;
 mod mcp_server;
 mod memo_cli;
+mod memo_server;
 mod memory;
 mod memory_add;
 mod memory_review;
@@ -371,6 +372,7 @@ pub fn run() {
         .run(|_, event| {
             if let tauri::RunEvent::Exit = event {
                 digests::unmark_running();
+                memo_server::stop_all();
             }
         });
 }

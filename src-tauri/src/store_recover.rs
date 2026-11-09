@@ -54,6 +54,7 @@ pub fn run_step(tool: &Tool, index: usize) -> Result<(), String> {
         .and_then(|c| c.get(index).cloned())
         .ok_or("Check the store again: this step is no longer in its report.")?
         .ok_or("This step is not one the app runs; copy it and run it in a terminal.")?;
+    crate::memo_server::stop_all();
     let out = match command {
         Command::CheckAgain => return Ok(()),
         Command::Own(args) => settings::run_tool_for(tool, &args, STEP_TIMEOUT)?,

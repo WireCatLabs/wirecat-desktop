@@ -121,7 +121,7 @@ fn ready(account: &CrmAccount) -> Result<(&'static Tool, &'static CrmSource), St
 
 fn with_tool<T>(tool: &Tool, timeout: Duration, f: impl FnOnce(&Call) -> Result<T, Failure>) -> Result<T, String> {
     let bin = crate::tools::program(&tool.bin).ok_or_else(|| format!("{} is not installed", tool.name))?;
-    f(&|args: &[String]| crate::memo_cli::call_at(&bin, args, timeout)).map_err(String::from)
+    f(&|args: &[String]| crate::memo_cli::spawn_at(&bin, args, timeout)).map_err(String::from)
 }
 
 /// The CLI writes the CRM, then its own copy in the shared store; the page reads the card again from memo.

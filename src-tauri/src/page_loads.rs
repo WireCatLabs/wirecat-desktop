@@ -1,9 +1,11 @@
 //! `cargo test --lib -- --ignored --nocapture page_loads`: replays each page's native calls the way the interface
-//! fires them, on a first visit and on a revisit in the same app session. Prints processes started and milliseconds,
-//! never names, paths or values.
+//! fires them, on a first visit and on a revisit in the same app session. Prints processes started, commands memo's
+//! servers answered and milliseconds, never names, paths or values.
 
 use crate::catalog::Tool;
-use crate::{archive, compat, crm_board, paths, run, runs, settings, skills, storage, system, tasks, tools};
+use crate::{
+    archive, compat, crm_board, memo_server, memory, paths, run, runs, settings, skills, storage, system, tasks, tools,
+};
 use std::time::Instant;
 
 type Job<'a> = Box<dyn FnOnce() + Send + 'a>;
@@ -29,11 +31,18 @@ fn installed() -> Vec<&'static Tool> {
     tools::owners().filter(|t| paths::find(&t.bin).is_some()).collect()
 }
 
-fn report(page: &str, visit: &str, data_ms: u128, before: usize, started: Instant) {
+type Before = (usize, usize);
+
+fn mark() -> (Before, Instant) {
+    ((run::started(), memo_server::served()), Instant::now())
+}
+
+fn report(page: &str, visit: &str, data_ms: u128, before: Before, started: Instant) {
     println!(
-        "{page:<8} {visit:<8} data {data_ms:>5} ms   all done {:>5} ms   processes {:>3}",
+        "{page:<8} {visit:<8} data {data_ms:>5} ms   all done {:>5} ms   processes {:>3}   served {:>3}",
         started.elapsed().as_millis(),
-        run::started() - before
+        run::started() - before.0,
+        memo_server::served() - before.1
     );
 }
 
@@ -41,7 +50,7 @@ fn report(page: &str, visit: &str, data_ms: u128, before: usize, started: Instan
 /// compatibility starts once the tools are found.
 fn tools_page(visit: &str) {
     let fresh = visit == "check";
-    let (before, started) = (run::started(), Instant::now());
+    let (before, started) = mark();
     let mut jobs: Vec<Job<'static>> =
         vec![Box::new(move || drop(tools::detect_all(fresh))), Box::new(move || drop(tools::latest_versions(fresh)))];
     if visit != "revisit" {
@@ -58,7 +67,7 @@ fn tools_page(visit: &str) {
 /// A real visit comes more than a few seconds after any other, so it never shares a store info round.
 fn storage_page(visit: &str) {
     compat::forget();
-    let (before, started) = (run::started(), Instant::now());
+    let (before, started) = mark();
     let done = together(vec![
         Box::new(|| drop(storage::report())),
         Box::new(|| drop(archive::info())),
@@ -80,7 +89,7 @@ fn logs_jobs() -> Vec<Job<'static>> {
 }
 
 fn logs_page(visit: &str) {
-    let (before, started) = (run::started(), Instant::now());
+    let (before, started) = mark();
     let done = together(logs_jobs());
     report("Logs", visit, done.into_iter().max().unwrap_or(0), before, started);
 }
@@ -91,14 +100,14 @@ fn config_page(visit: &str) {
     let Some(tool) = installed().into_iter().find(|t| t.settings.as_ref().is_some_and(|s| s.per_profile)) else {
         return;
     };
-    let (before, started) = (run::started(), Instant::now());
+    let (before, started) = mark();
     let done = together(vec![Box::new(|| drop(tools::profiles(tool))), Box::new(|| drop(settings::show(tool, None)))]);
     report("Config", visit, done[1], before, started);
 }
 
 /// The skills table first; the run logs, profiles and task claims once it has answered.
 fn agents_page(visit: &str) {
-    let (before, started) = (run::started(), Instant::now());
+    let (before, started) = mark();
     let mut first: Vec<Job<'static>> = vec![Box::new(|| drop(skills::agents()))];
     for t in installed().into_iter().filter(|t| t.skill.is_some()) {
         first.push(Box::new(move || drop(skills::status(t))));
@@ -125,11 +134,18 @@ fn agents_page(visit: &str) {
 /// The deals board, as the page opens on it. The page keeps memo's answer for 60 seconds, so a revisit within that
 /// asks nothing.
 fn clients_page(visit: &str) {
-    let (before, started) = (run::started(), Instant::now());
+    let (before, started) = mark();
     if visit != "revisit" {
         drop(crm_board::read(crm_board::CrmKind::Deal, None));
     }
     report("Clients", visit, started.elapsed().as_millis(), before, started);
+}
+
+/// Every list of the Memo page at once; the second visit finds memo's servers already running.
+fn memory_page(visit: &str) {
+    let (before, started) = mark();
+    let done = together(vec![Box::new(|| drop(memory::read()))]);
+    report("Memory", visit, done[0], before, started);
 }
 
 #[test]
@@ -138,7 +154,8 @@ fn page_loads() {
     let started = Instant::now();
     let _ = paths::search_path();
     println!("login shell PATH and node checks: {} ms", started.elapsed().as_millis());
-    let pages: [fn(&str); 6] = [tools_page, storage_page, logs_page, config_page, agents_page, clients_page];
+    let pages: [fn(&str); 7] =
+        [tools_page, storage_page, logs_page, config_page, agents_page, clients_page, memory_page];
     for page in pages {
         page("first");
         page("revisit");

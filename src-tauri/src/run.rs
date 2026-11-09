@@ -155,10 +155,16 @@ impl Drop for Slot {
     }
 }
 
-/// Processes `run` has started since launch; what the page-load measurements count.
+/// Processes `run` and `memo_server` have started since launch; what the page-load measurements count.
 #[cfg(test)]
 pub fn started() -> usize {
     STARTED.load(Ordering::Relaxed)
+}
+
+/// `spawn`, counted in `started`, for a long-lived program that is not held to a slot.
+pub(crate) fn spawn_counted(cmd: Command) -> Result<Child, RunError> {
+    STARTED.fetch_add(1, Ordering::Relaxed);
+    spawn(cmd)
 }
 
 /// `WIRECAT_TIMING=1` prints each run's program and duration to stderr. Arguments are left out: the first one is
@@ -201,11 +207,22 @@ fn timed(cmd: Command, timeout: Duration, cap: Option<usize>) -> Result<Output, 
     let name = Path::new(&program).file_name().unwrap_or_default().to_string_lossy().into_owned();
     let args = cmd.get_args().len();
     let result = run_inner(cmd, timeout, cap);
-    crate::log::program(&program, started, &outcome(result.as_ref().map(|o| o.code)));
+    record(&program, &name, args, started, result.as_ref().map(|o| o.code));
+    result
+}
+
+/// The log line and the `WIRECAT_TIMING` line of one run, wherever it ran.
+pub(crate) fn record(
+    program: &std::ffi::OsStr,
+    name: &str,
+    args: usize,
+    started: Instant,
+    result: Result<Option<i32>, &RunError>,
+) {
+    crate::log::program(program, started, &outcome(result));
     if timing() {
         eprintln!("[wirecat timing] {name} ({args} args) {} ms", started.elapsed().as_millis());
     }
-    result
 }
 
 fn read_capped(mut r: impl Read, cap: Option<usize>) -> String {
@@ -421,7 +438,7 @@ fn terminate(child: &Child) -> bool {
 
 /// npm starts its own children, so killing only the direct child would leave the install running.
 #[allow(unsafe_code)] // libc::kill on our own process group; std has no group kill
-fn kill(child: &mut Child) {
+pub(crate) fn kill(child: &mut Child) {
     #[cfg(unix)]
     if let Ok(pgid) = i32::try_from(child.id()) {
         // SAFETY: plain syscall with a pid we spawned with process_group(0); no memory is touched.
