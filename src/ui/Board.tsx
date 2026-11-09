@@ -47,14 +47,15 @@ const MOVE_MS = 220
 
 const modifier = (e: { altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => e.altKey || e.ctrlKey || e.metaKey
 
-type Places = Map<string, { x: number; y: number }>
+/** Places on screen, relative to the board; `scroll` is the board's scroll then, or null in a sticky column. */
+type Places = Map<string, { x: number; y: number; scroll: number | null }>
 
 /**
  * Cards that changed place slide from where they were, so a drop or a refusal is seen, never a jump. Columns do the
  * same when one comes or goes (the stage map's Unmapped), and a new column fades in. A card in a moving column slides
  * only by its own part of the move, or the two would add up. Places are kept relative to the board, so scrolling the
  * page between two changes is not mistaken for a move; a sticky column (`data-sticky`) stays put while the board
- * scrolls, so its own places are not. A card inside a `data-slide` box slides that box, its border and buttons with it.
+ * scrolls, so its places do not scroll. A card inside a `data-slide` box slides that box, its border and buttons with it.
  * `layout` is any value that changes when the cards do.
  */
 export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) {
@@ -68,8 +69,8 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
       const places: Places = new Map()
       for (const el of grid.querySelectorAll<HTMLElement>(`[data-${kind}]`)) {
         const r = el.getBoundingClientRect()
-        const scrolled = el.closest("[data-sticky]") ? 0 : grid.scrollLeft
-        places.set(el.dataset[kind] ?? "", { x: r.left - g.left + scrolled, y: r.top - g.top })
+        const scroll = el.closest("[data-sticky]") ? null : grid.scrollLeft
+        places.set(el.dataset[kind] ?? "", { x: r.left - g.left, y: r.top - g.top, scroll })
       }
       return places
     }
@@ -80,7 +81,9 @@ export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) 
     const shift = (from: Places, to: Places, key: string) => {
       const a = from.get(key)
       const b = to.get(key)
-      return a && b ? { dx: a.x - b.x, dy: a.y - b.y } : null
+      // Where the element was, as it would stand now: a place that scrolled with the board moved as far as it has since.
+      const scrolled = a?.scroll == null ? 0 : a.scroll - grid.scrollLeft
+      return a && b ? { dx: a.x + scrolled - b.x, dy: a.y - b.y } : null
     }
     const slide = (el: HTMLElement, dx: number, dy: number) => {
       if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return
@@ -354,7 +357,7 @@ export function BoardColumn({
   /** A number, or "3 of 12" while a filter hides some. */
   count: number | string
   aside?: ReactNode
-  /** The column's own actions, at the end of its name line; shown on hover and on keyboard focus. */
+  /** The column's own actions, at the end of its name line; dimmed until hover or keyboard focus. */
   menu?: ReactNode
   /** Stays at the board's left edge while the other columns scroll under it. */
   sticky?: boolean
@@ -389,7 +392,7 @@ export function BoardColumn({
           {typeof count === "number" ? formatNumber(count) : count}
         </span>
         {menu && (
-          <span className="-mr-[0.45rem] ml-auto opacity-0 transition-opacity duration-(--motion-fast) group-hover/column:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100">
+          <span className="-mr-[0.45rem] ml-auto opacity-50 transition-opacity duration-(--motion-fast) group-hover/column:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100">
             {menu}
           </span>
         )}

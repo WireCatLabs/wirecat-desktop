@@ -15,6 +15,7 @@ import { Segmented } from "@/ui/Segmented"
 import { SplitButton } from "@/ui/SplitButton"
 import { type Based, useBaseEdit, useBoard, useConfirm, useMapSet } from "./api"
 import { AddStage, StageMenu, StageRename } from "./BaseStageTools"
+import { OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
 import { useClients } from "./store"
@@ -93,12 +94,14 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
     const b = read.base.find((x) => x.ref === to)
     const x = byRef.get(stage)
     if (!b || (x?.confirmed && x.base?.ref === to)) return
+    setProblem(null)
     focusTo.current = { target: focus, from: layout }
     set.mutate({ stage, base: { ref: b.ref, name: b.name } })
   }
   const confirmAll = () => {
     const left = waiting.find((r) => !byRef.get(r)?.base)
     focusTo.current = { target: left ? badgeOf(left) : 'input[type="radio"]:checked', from: layout }
+    setProblem(null)
     confirm.mutate(pending.map((p) => p.pipeline))
   }
   const label = (ref: string) => {
@@ -127,8 +130,17 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
     setProblem(null)
     edit.mutate(e)
   }
-  const unmapped = columns.has(UNMAPPED)
-  const template = `${unmapped ? "minmax(20rem, 1.5fr) " : ""}repeat(${read.base.length}, minmax(13rem, 1fr)) minmax(12rem, max-content)`
+  const endRename = (ref: string) => {
+    setRenaming(null)
+    // The field goes, so the keyboard goes back to the menu it came from.
+    requestAnimationFrame(() =>
+      root.current?.querySelector<HTMLElement>(`[data-column="${ref}"] [aria-haspopup="menu"]`)?.focus(),
+    )
+  }
+  const template = [
+    ...ids.map((id) => (id === UNMAPPED ? "minmax(20rem, 1.5fr)" : "minmax(13rem, 1fr)")),
+    "minmax(12rem, max-content)",
+  ].join(" ")
   return (
     <div ref={root} className="flex flex-col gap-[0.9rem] pb-[0.2rem]">
       {/* The dialog starts here, not on the ×: a ring around the × on open read as a warning. */}
@@ -139,7 +151,10 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
         <Segmented<string>
           label={s.crm}
           value={key ?? ""}
-          onChange={(k) => useClients.getState().openMap(k)}
+          onChange={(k) => {
+            setProblem(null)
+            useClients.getState().openMap(k)
+          }}
           labelClass=""
           options={[...crms].map(([k, c]) => ({
             value: k,
@@ -176,7 +191,10 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                     base={read.base}
                     busy={busy}
                     onEdit={onEdit}
-                    onRename={() => setRenaming(b.ref)}
+                    onRename={() => {
+                      setProblem(null)
+                      setRenaming(b.ref)
+                    }}
                     onProblem={(text) => setProblem({ ref: b.ref, text })}
                   />
                 )
@@ -184,7 +202,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
               aside={
                 b ? (
                   renaming === b.ref ? (
-                    <StageRename stage={b} base={read.base} onEdit={onEdit} onDone={() => setRenaming(null)} />
+                    <StageRename stage={b} base={read.base} onEdit={onEdit} onDone={() => endRename(b.ref)} />
                   ) : problem?.ref === b.ref ? (
                     <ErrorNotice inline>{problem.text}</ErrorNotice>
                   ) : undefined
@@ -207,7 +225,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
               }
               target={drag?.to === id}
             >
-              {refs.length === 0 && (
+              {refs.length === 0 && b && (
                 <li
                   className={cx(
                     "rounded-[0.45rem] border border-dashed px-[0.75rem] py-[1.1rem] text-center text-[0.9rem] transition-colors duration-(--motion-fast)",
@@ -264,8 +282,9 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                                 aria-label={s.confirmTo(to.name)}
                                 title={s.confirmTo(to.name)}
                                 data-suggest={x.ref}
+                                disabled={busy}
                                 onClick={() => mapTo(x.ref, to.ref, nextAfter(x.ref))}
-                                className="inline-flex min-w-0 items-center gap-[0.3rem] rounded-[0.3rem] bg-warn/15 px-[0.5rem] py-[0.15rem] text-[0.875rem] font-medium text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand"
+                                className="inline-flex min-w-0 items-center gap-[0.3rem] rounded-[0.3rem] bg-warn/15 px-[0.5rem] py-[0.15rem] text-[0.875rem] font-medium text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-45"
                               >
                                 <Check className="size-[0.9rem] shrink-0" strokeWidth={2.4} aria-hidden />
                                 <span className="truncate">{to.name}</span>
@@ -273,6 +292,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                               <SplitButton
                                 compact
                                 className="ml-auto"
+                                disabled={busy}
                                 menuLabel={s.chooseOther(x.name)}
                                 moreLabel={s.chooseOther(x.name)}
                                 items={read.base
@@ -315,7 +335,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
 function OutcomeMark({ outcome }: { outcome: string }) {
   const s = useMessages(stageMessages)
   if (outcome !== "won" && outcome !== "lost") return null
-  return <Lamp tone={outcome === "won" ? "ok" : "off"} size="sm" label={s.outcomes[outcome]} />
+  return <OutcomeLamp outcome={outcome} label={s.outcomes[outcome]} />
 }
 
 /**
