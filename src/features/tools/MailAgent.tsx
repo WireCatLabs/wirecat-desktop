@@ -96,6 +96,7 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
   return (
     <section
       aria-labelledby={headingId}
+      data-place={`mailAgent:${tool.id}`}
       className="flex min-w-0 flex-col gap-3 border-line border-t pt-4 lg:col-span-2"
     >
       <h4 id={headingId} className="text-[1.02rem] font-semibold text-ink">

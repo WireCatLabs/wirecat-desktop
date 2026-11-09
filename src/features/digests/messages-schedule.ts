@@ -45,7 +45,11 @@ const en = {
   confirmRun: (price: string | null) => (price ? `Run for about ${price}` : "Run"),
   cancel: "Cancel",
   others: "Other schedules",
-  othersHint: "Other jobs that run on a schedule, read only. Change them where they were set up.",
+  othersHint: "Other jobs memo runs on a schedule. They are shown here only; each is changed where it was set up.",
+  changeMailAgent: (tool: string) => `Change in Tools → ${tool} → Mail agent`,
+  madeByHand: "Made in a terminal with memo schedule; change it there.",
+  ownChat: (profile: string) => `you, in ${profile}`,
+  ownMailbox: (profile: string) => `mailbox ${profile}`,
   otherLine: (when: string) => when,
   skipped: (ago: string, why: string) => `skipped ${ago}: ${why}`,
   skipReasons: {
@@ -133,7 +137,12 @@ const ru: typeof en = {
   confirmRun: (price) => (price ? `Запустить примерно за ${price}` : "Запустить"),
   cancel: "Отмена",
   others: "Другие расписания",
-  othersHint: "Другие задания по расписанию, только для просмотра. Меняются там, где их настроили.",
+  othersHint:
+    "Другие задания, которые memo запускает по расписанию. Здесь они только видны, а меняются там, где их настроили.",
+  changeMailAgent: (tool) => `Изменить: Инструменты → ${tool} → Почтовый агент`,
+  madeByHand: "Создано в терминале командой memo schedule, там и меняется.",
+  ownChat: (profile) => `вы, в профиле ${profile}`,
+  ownMailbox: (profile) => `ящик ${profile}`,
   otherLine: (when) => when,
   skipped: (ago, why) => `пропущен ${ago}: ${why}`,
   skipReasons: {
@@ -213,7 +222,12 @@ const es: typeof en = {
   confirmRun: (price) => (price ? `Ejecutar por unos ${price}` : "Ejecutar"),
   cancel: "Cancelar",
   others: "Otros horarios",
-  othersHint: "Otras tareas programadas, solo lectura. Se cambian donde se configuraron.",
+  othersHint:
+    "Otras tareas que memo ejecuta según un horario. Aquí solo se ven; cada una se cambia donde se configuró.",
+  changeMailAgent: (tool) => `Cambiar en Herramientas → ${tool} → Agente de correo`,
+  madeByHand: "Creada en una terminal con memo schedule; se cambia allí.",
+  ownChat: (profile) => `tú, en ${profile}`,
+  ownMailbox: (profile) => `buzón ${profile}`,
   otherLine: (when) => when,
   skipped: (ago, why) => `omitida ${ago}: ${why}`,
   skipReasons: {

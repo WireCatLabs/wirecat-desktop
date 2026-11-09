@@ -69,6 +69,7 @@ fn types() -> Types {
         .register::<crate::digest_book::DigestBook>()
         .register::<crate::digest_book::DigestSpec>()
         .register::<crate::digest_book::SendTo>()
+        .register::<crate::digest_routes::RouteChoices>()
         .register::<crate::digest_schedule::Backfill>()
         .register::<crate::digest_editors::Brief>()
         .register::<crate::digest_editors::DigestTemplate>()

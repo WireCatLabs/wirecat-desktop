@@ -22,6 +22,7 @@ mod crm_board;
 mod deep_link;
 mod digest_book;
 mod digest_editors;
+mod digest_routes;
 mod digest_schedule;
 mod digests;
 mod drive_folders;
@@ -186,6 +187,7 @@ pub fn run() {
             commands::app::digest_run,
             commands::app::digest_set_scheduled,
             commands::app::digest_remove,
+            commands::app::digest_route_choices,
             commands::app::digest_backfill,
             commands::app::digest_brief,
             commands::app::digest_brief_save,

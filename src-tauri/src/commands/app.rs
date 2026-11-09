@@ -62,6 +62,15 @@ pub async fn digest_remove(digest: String) -> Result<crate::digest_book::DigestB
         .await
 }
 
+/// The bots, own chats and mailboxes a digest's route can name; a tool that is missing or fails offers none.
+#[tauri::command]
+pub async fn digest_route_choices() -> Result<crate::digest_routes::RouteChoices, AppError> {
+    crate::log::command("digest_route_choices", async move {
+        attempt(|| Ok::<_, String>(crate::digest_routes::choices())).await
+    })
+    .await
+}
+
 /// `yes` false only prices the days; true builds them.
 #[tauri::command]
 pub async fn digest_backfill(

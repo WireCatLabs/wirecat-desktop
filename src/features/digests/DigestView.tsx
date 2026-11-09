@@ -274,31 +274,40 @@ function Days({ name }: { name: string }) {
       </div>
     )
   return (
-    <section aria-label={one.latest} className="flex min-w-0 flex-col gap-[1rem]">
-      {date && <Day date={date} />}
-      <nav aria-label={m.days} className="flex flex-col gap-[0.2rem] border-line border-t pt-3">
-        {mine.map((d) => (
-          <button
-            key={d.date}
-            type="button"
-            aria-current={d.date === date ? "page" : undefined}
-            onClick={() => useDigestDay.setState({ date: d.date })}
-            className={cx(
-              "flex cursor-pointer items-baseline gap-3 rounded-[0.3rem] px-[0.7rem] py-[0.45rem] text-left transition-colors hover:bg-app-3",
-              d.date === date && "bg-app-3",
-            )}
-          >
-            <span className="w-[9rem] shrink-0 font-medium text-ink first-letter:uppercase">
-              {dayTitle(d.date, lang)}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[0.88rem] text-ink-dim">
-              {d.backfill && <span className="italic">{later} · </span>}
-              {d.summary}
-            </span>
-          </button>
-        ))}
-      </nav>
-    </section>
+    <div className="@container min-w-0">
+      <section
+        aria-label={one.latest}
+        className="grid min-w-0 items-start gap-[1rem] @3xl:grid-cols-[minmax(0,1fr)_15rem]"
+      >
+        <div className="min-w-0">{date && <Day date={date} />}</div>
+        {/* Its own scroll: picking an old day moves neither the page nor the list (rule 9). */}
+        <nav
+          aria-label={m.days}
+          className="flex max-h-[32rem] flex-col gap-[0.2rem] overflow-y-auto overscroll-contain border-line border-t pt-3 @3xl:sticky @3xl:top-4 @3xl:max-h-[calc(100vh-8rem)] @3xl:border-t-0 @3xl:border-l @3xl:pt-0 @3xl:pl-3"
+        >
+          {mine.map((d) => (
+            <button
+              key={d.date}
+              type="button"
+              aria-current={d.date === date ? "page" : undefined}
+              onClick={() => useDigestDay.setState({ date: d.date })}
+              className={cx(
+                "flex shrink-0 cursor-pointer flex-wrap items-baseline gap-x-3 rounded-[0.3rem] px-[0.7rem] py-[0.45rem] text-left transition-colors hover:bg-app-3 @3xl:flex-col",
+                d.date === date && "bg-app-3",
+              )}
+            >
+              <span className="w-[9rem] shrink-0 font-medium text-ink first-letter:uppercase @3xl:w-auto">
+                {dayTitle(d.date, lang)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-[0.88rem] text-ink-dim @3xl:w-full @3xl:flex-none">
+                {d.backfill && <span className="italic">{later} · </span>}
+                {d.summary}
+              </span>
+            </button>
+          ))}
+        </nav>
+      </section>
+    </div>
   )
 }
 

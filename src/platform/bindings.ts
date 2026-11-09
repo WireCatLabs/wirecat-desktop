@@ -665,6 +665,11 @@ export type MailAgent = { state: "noMemo" } | { state: "old"; version: string | 
 /**  `30m` when memo's `when` is one of the catalog's intervals. */
 every: string | null; last: LastRun | null; spentTodayUsd: number | null; maxCostUsd: number | null; maxCostPerDayUsd: number | null };
 
+export type Mailbox = {
+	profile: string,
+	address: string | null,
+};
+
 export type Managed = {
 	version: string,
 	dir: string,
@@ -804,6 +809,12 @@ export type OwnAccess = {
 	writes: string[],
 	/**  No manifest: what the tool asks for is not known. */
 	unknown: boolean,
+};
+
+export type OwnChoice = {
+	value: string,
+	/**  The `tg` profile the account is signed in under. */
+	profile: string,
 };
 
 export type OwnCommand = {
@@ -1114,6 +1125,14 @@ export type Route = {
 	kind: RouteKind,
 	profile: string,
 	to: string,
+};
+
+export type RouteChoices = {
+	/**  `tg` bot profiles: the profile part of a `telegram-bot:` route. */
+	bots: string[],
+	/**  The owner's own Telegram users, `user:<id>`, a bot can write to once the owner started it. */
+	ownChats: OwnChoice[],
+	mailboxes: Mailbox[],
 };
 
 export type RouteKind = "telegramBot" | "email";

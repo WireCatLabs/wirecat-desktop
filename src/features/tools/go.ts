@@ -16,7 +16,7 @@ export function openConnect(id: string) {
   openTool(id)
 }
 
-export type ToolPlace = "accounts" | "sync" | "service"
+export type ToolPlace = "accounts" | "sync" | "service" | "mailAgent"
 
 // The Tools page loads lazily and the panel reads its profiles first, so the place shows up a moment later.
 const PLACE_WAIT_MS = 4000

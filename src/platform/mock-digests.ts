@@ -1,4 +1,4 @@
-import type { Backfill, DigestBook, DigestItem, DigestSpec, OtherSchedule, ScheduleRun } from "./bindings"
+import type { Backfill, DigestBook, DigestItem, DigestSpec, OtherSchedule, RouteChoices, ScheduleRun } from "./bindings"
 import type { Digest, DigestDay } from "./digest-schemas"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
@@ -165,6 +165,7 @@ type DigestsPart =
   | "digestRun"
   | "digestSetScheduled"
   | "digestRemove"
+  | "digestRouteChoices"
   | "digestBackfill"
 
 const run = (minutesAgo: number, over: Partial<ScheduleRun> = {}): ScheduleRun => ({
@@ -412,6 +413,17 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
       await delay(700)
       book = book.filter((d) => d.name !== name)
       return status()
+    },
+    async digestRouteChoices(): Promise<RouteChoices> {
+      await delay(300)
+      return {
+        bots: ["personal", "alerts"],
+        ownChats: [{ value: "user:1001", profile: "personal" }],
+        mailboxes: [
+          { profile: "work", address: "owner@example.com" },
+          { profile: "personal", address: "me@example.org" },
+        ],
+      }
     },
     async digestBackfill(from, to, yes): Promise<Backfill> {
       await delay(yes ? 4000 : 600)
