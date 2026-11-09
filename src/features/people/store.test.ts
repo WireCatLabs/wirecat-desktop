@@ -26,6 +26,9 @@ const match = (id: string, persons: [string, string]): Match => ({
   proposer: null,
 })
 
+/** A listed person as a memo older than kinds gives it. */
+const older = { displayName: null, kind: null, contact: null, messagesFrom: null, lastContact: null }
+
 describe("the People store after a write", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
@@ -42,10 +45,11 @@ describe("the People store after a write", () => {
     vi.spyOn(platform, "peopleDecide").mockResolvedValue(person("person:7", { mergedInto: "person:7" }))
     vi.spyOn(platform, "peopleRead").mockResolvedValue({
       kind: "ready",
-      people: [{ ref: "person:7", name: "Lena", owner: false, tasks: 0 }],
+      people: [{ ref: "person:7", name: "Lena", owner: false, tasks: 0, ...older }],
       peopleMore: false,
       matches: [match("3", ["person:7", "person:8"])],
       matchesMore: true,
+      kinded: false,
     })
     await usePeople.getState().decide("person:9", "1", "confirm")
     const s = usePeople.getState()

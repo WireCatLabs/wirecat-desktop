@@ -1,11 +1,12 @@
 import { delay } from "./mock-delay"
-import type { Identity, Listed, Match, PersonDetail } from "./people-schemas"
+import { type Identity, type Listed, type Match, PERSON_KINDS, type PersonDetail } from "./people-schemas"
 import type { Platform } from "./types"
 
 // The People page's stand-in for memo, with made-up people only, shaped like cli-memo #748's real answers
 // (src-tauri/tests/fixtures/people). `?people=none` knows only the owner, `missing` has no memo, `old` an older memo,
 // `more` says memo has more people and matches than were read. `?people-fail=read` fails the read (another sync holds
-// the store), `?people-fail=write` fails every decision the same way, `?people-fail=stale` refuses Same person as
+// the store), `?people=nokinds` is a memo older than kinds of people (one list of everyone, no contact),
+// `?people-fail=write` fails every decision the same way, `?people-fail=stale` refuses Same person as
 // `identity.stale`, `?people-fail=merge` refuses the second join of a group.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
@@ -105,6 +106,14 @@ function seed(): Held[] {
       account("email:news@czech.example", '"CZECH AIRLINES "', [["2", "personal"]], "initial", 90),
     ]),
     person("person:24", "!", [account("telegram:8812", "!", [["1", "personal"]], "initial", 15, "ivan_petrov")]),
+    person("person:25", "OpenWeather Team", [
+      account("email:no-reply@openweather.example", "OpenWeather Team", [["2", "personal"]], "initial", 80),
+    ]),
+    person("person:26", "OpenWeather Team", [
+      account("email:news@openweather.example", "OpenWeather Team", [["3", "work"]], "initial", 50),
+    ]),
+    person("person:27", "! null #97365", [account("telegram:97365", null, [["1", "personal"]], "initial", 11)]),
+    person("person:28", "Без имени", [account("max:5521", "Без имени", [["5", "personal"]], "initial", 7)]),
     person("person:30", "Konstantin Nikolaevich Loft Pro Max Semenov", [
       account(
         "bitrix24:https://northstar.example/crm/contact/details/5310/",
@@ -137,6 +146,15 @@ function crowd(): Held[] {
     })
     return { ref: `person:${100 + n}`, name, mergedInto: null, identities: ids, merges: [] }
   })
+}
+
+/** memo's kind of each made-up person who is not one; the rest are people. */
+const KIND: Record<string, Listed["kind"]> = {
+  "person:23": "organization",
+  "person:25": "automated",
+  "person:26": "automated",
+  "person:27": "unsorted",
+  "person:28": "unsorted",
 }
 
 /** Tasks the made-up people are assigned. */
@@ -203,7 +221,14 @@ const MATCHES: Match[] = [
 
 export function peopleMock(): Pick<
   Platform,
-  "peopleRead" | "peopleShow" | "peopleFind" | "peopleDecide" | "peopleMerge" | "peopleUnlink" | "peopleUnmerge"
+  | "peopleRead"
+  | "peopleKinds"
+  | "peopleShow"
+  | "peopleFind"
+  | "peopleDecide"
+  | "peopleMerge"
+  | "peopleUnlink"
+  | "peopleUnmerge"
 > {
   let people = scenario === "none" ? seed().slice(0, 1) : seed()
   let matches = scenario === "none" ? [] : [...MATCHES]
@@ -240,21 +265,56 @@ export function peopleMock(): Pick<
     await delay(500)
     if (fail === "write") throw new Error(BUSY)
   }
-  const listed = (p: Held): Listed => ({
-    ref: p.ref,
-    name: p.name,
-    owner: p.ref === "person:1",
-    tasks: TASKS[p.ref] ?? 0,
-  })
+  /** As memo's display_name: the name unquoted, else a handle, phone or email; never a placeholder. */
+  const display = (p: Held) => {
+    const name = p.name?.replace(/^["\s]+|["\s]+$/g, "") ?? ""
+    if (/\p{L}/u.test(name) && !/^(null|Без имени)$/.test(name) && !name.includes("#")) return name
+    const id = p.identities.find((i) => i.username)
+    return id?.username ? `@${id.username}` : (contactOf(p) ?? null)
+  }
+  const contactOf = (p: Held) => {
+    const value = (provider: string) => p.identities.find((i) => i.provider === provider)?.identity.split(":")[1]
+    const phone = value("whatsapp")
+    const username = p.identities.find((i) => i.username)?.username
+    return phone ? `+${phone}` : (value("email") ?? (username ? `@${username}` : null))
+  }
+  const rank = (p: Held) => Number(p.ref.slice(7))
+  const listed = (p: Held): Listed => {
+    const owner = p.ref === "person:1"
+    const base = { ref: p.ref, name: p.name, owner, tasks: TASKS[p.ref] ?? 0 }
+    if (scenario === "nokinds")
+      return { ...base, displayName: null, kind: null, contact: null, messagesFrom: null, lastContact: null }
+    const n = rank(p)
+    return {
+      ...base,
+      displayName: owner ? null : display(p),
+      kind: KIND[p.ref] ?? "person",
+      contact: contactOf(p),
+      messagesFrom: owner ? null : n < 100 ? 1000 - n : (n * 37) % 410,
+      lastContact: ago((n % 30) * 3_600_000 * 7),
+    }
+  }
+  const ofKind = (kind: string) => people.map(listed).filter((p) => (p.kind ?? "person") === kind)
 
   const api: ReturnType<typeof peopleMock> = {
-    async peopleRead() {
+    async peopleRead(kind = "person") {
       await delay(600)
       if (scenario === "missing") return { kind: "missing" }
       if (scenario === "old") return { kind: "old", version: "0.131.64", need: "0.131.72" }
       if (fail === "read") throw new Error(BUSY)
       const more = scenario === "more"
-      return { kind: "ready", people: people.map(listed), peopleMore: more, matches, matchesMore: more }
+      const kinded = scenario !== "nokinds"
+      const listing = kinded
+        ? ofKind(kind).sort(
+            (a, b) => Number(b.owner) - Number(a.owner) || (b.messagesFrom ?? 0) - (a.messagesFrom ?? 0),
+          )
+        : people.map(listed)
+      return { kind: "ready", people: listing, peopleMore: more, matches, matchesMore: more, kinded }
+    },
+    async peopleKinds() {
+      await delay(900)
+      if (scenario === "nokinds") return {}
+      return Object.fromEntries(PERSON_KINDS.map((k) => [k, ofKind(k).length + (k === "unsorted" ? 49_800 : 0)]))
     },
     async peopleShow(ref) {
       await delay(350)

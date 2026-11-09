@@ -20,7 +20,18 @@ export const MatchSchema = v.object({
   proposer: v.nullable(v.object({ kind: v.string(), name: text })),
 })
 
-const ListedSchema = v.object({ ref: v.string(), name: text, owner: v.boolean(), tasks: v.number() })
+/** A memo older than kinds of people (UX-133) gives only ref, name, owner and tasks: the rest arrives as null. */
+const ListedSchema = v.object({
+  ref: v.string(),
+  name: text,
+  owner: v.boolean(),
+  tasks: v.number(),
+  displayName: v.optional(text, null),
+  kind: v.optional(text, null),
+  contact: v.optional(text, null),
+  messagesFrom: v.optional(v.nullable(v.number()), null),
+  lastContact: v.optional(text, null),
+})
 
 export const PeopleReadSchema = v.variant("kind", [
   v.object({ kind: v.literal("missing") }),
@@ -31,6 +42,8 @@ export const PeopleReadSchema = v.variant("kind", [
     peopleMore: v.boolean(),
     matches: v.array(MatchSchema),
     matchesMore: v.boolean(),
+    /** memo lists one kind of people at a time; false from a memo older than kinds, which lists everyone. */
+    kinded: v.optional(v.boolean(), false),
   }),
 ])
 
@@ -77,3 +90,9 @@ export type Merge = PersonDetail["merges"][number]
 export type Unlinked = v.InferOutput<typeof UnlinkedSchema>
 export type Merged = v.InferOutput<typeof MergedSchema>
 export type MatchAnswer = "confirm" | "reject"
+
+/** memo's kinds of people, in the order the page offers them. */
+export const PERSON_KINDS = ["person", "organization", "automated", "unsorted"] as const
+export type PersonKind = (typeof PERSON_KINDS)[number]
+
+export const KindCountsSchema = v.record(v.string(), v.number())

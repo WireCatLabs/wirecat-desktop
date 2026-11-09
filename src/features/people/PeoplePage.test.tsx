@@ -7,7 +7,7 @@ import { usePeople } from "./store"
 
 // The mock store outlives each test, so these tests spy where a later one must not see an earlier decision.
 type User = ReturnType<typeof userEvent.setup>
-const table = () => screen.findByRole("table", { name: "People" }, { timeout: 4000 })
+const table = () => screen.findByRole("table", { name: "Contacts" }, { timeout: 4000 })
 const openPerson = async (user: User, name: string) => {
   await user.click(within(await table()).getAllByRole("button", { name })[0] as HTMLElement)
   return screen.findByRole("dialog", { name })
@@ -17,31 +17,75 @@ const openMatches = async (user: User) => {
   return screen.findByRole("region", { name: "Possible duplicates" })
 }
 
+/** A listed person as a memo older than kinds gives it. */
+const older = { displayName: null, kind: null, contact: null, messagesFrom: null, lastContact: null }
+
 describe("People", () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     usePeople.setState(usePeople.getInitialState(), true)
   })
 
-  it("lists people in a table with clean names, their sources and tasks, a page at a time", async () => {
+  it("lists people, the most written first, with their contact, and other kinds behind tabs", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const rows = await table()
     expect(within(rows).getByRole("button", { name: /You/ })).toBeInTheDocument()
-    expect(within(rows).getByRole("button", { name: "CZECH AIRLINES" })).toBeInTheDocument()
-    expect(await within(rows).findByRole("button", { name: "@ivan_petrov" }, { timeout: 4000 })).toBeInTheDocument()
+    expect(within(rows).getByRole("button", { name: "@ivan_petrov" })).toBeInTheDocument()
+    for (const noise of ["CZECH AIRLINES", "OpenWeather Team", "Без имени", /null/])
+      expect(within(rows).queryByRole("button", { name: noise })).not.toBeInTheDocument()
     const lena = within(rows)
       .getAllByRole("row")
       .find((r) => r.textContent?.startsWith("Lena Ortiz")) as HTMLElement
-    expect(await within(lena).findByText("3 accounts", {}, { timeout: 4000 })).toBeInTheDocument()
-    expect(within(lena).getByText("Telegram")).toBeInTheDocument()
-    expect(within(lena).getByText("3")).toBeInTheDocument()
+    expect(lena).toHaveTextContent("lena@example.org")
+    expect(lena).toHaveTextContent("993")
+    expect(lena).not.toHaveTextContent("account")
     const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent("1–50 of 122")
-    expect(within(pages).getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page")
+    expect(pages).toHaveTextContent(/^1–50 of \d+/)
     await user.click(within(pages).getByRole("button", { name: "Page 2" }))
-    expect(pages).toHaveTextContent("51–100 of 122")
-    expect(within(await table()).queryByRole("button", { name: "CZECH AIRLINES" })).not.toBeInTheDocument()
+    expect(pages).toHaveTextContent(/51–100 of/)
+
+    const kinds = screen.getByRole("group", { name: "Which people" })
+    await user.click(
+      await within(kinds).findByRole("radio", { name: "Mailings and notifications 2" }, { timeout: 4000 }),
+    )
+    expect(screen.getByText("Bots, newsletters and no-reply senders.")).toBeInTheDocument()
+    await waitFor(async () =>
+      expect(within(await table()).getAllByRole("button", { name: "OpenWeather Team" })).toHaveLength(2),
+    )
+    await user.click(within(kinds).getByRole("radio", { name: /^Companies/ }))
+    expect(
+      await within(await table()).findByRole("button", { name: "CZECH AIRLINES" }, { timeout: 4000 }),
+    ).toBeVisible()
+  })
+
+  it("on a memo older than kinds, lists everyone named, with a contact read from their accounts", async () => {
+    const real = platform.peopleRead.bind(platform)
+    vi.spyOn(platform, "peopleKinds").mockResolvedValue({})
+    vi.spyOn(platform, "peopleRead").mockImplementation(async () => {
+      const read = await real("person")
+      if (read.kind !== "ready") return read
+      const all = await Promise.all(["person", "organization", "automated", "unsorted"].map((k) => real(k as "person")))
+      const people = all
+        .flatMap((r) => (r.kind === "ready" ? r.people : []))
+        .sort((a, b) => Number(a.ref.slice(7)) - Number(b.ref.slice(7)))
+      return { ...read, kinded: false, people: people.map((p) => ({ ...p, ...older })) }
+    })
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const rows = await table()
+    expect(screen.queryByRole("group", { name: "Which people" })).not.toBeInTheDocument()
+    expect(within(rows).getByRole("button", { name: "CZECH AIRLINES" })).toBeInTheDocument()
+    expect(within(rows).queryByRole("button", { name: "Без имени" })).not.toBeInTheDocument()
+    expect(within(rows).queryByRole("button", { name: /null/ })).not.toBeInTheDocument()
+    const lena = within(rows)
+      .getAllByRole("row")
+      .find((r) => r.textContent?.startsWith("Lena Ortiz")) as HTMLElement
+    expect(await within(lena).findByText("lena@example.org", {}, { timeout: 4000 })).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "With a name" }))
+    expect(
+      (await within(await table()).findAllByRole("button", { name: "No name yet" }, { timeout: 4000 }))[0],
+    ).toBeVisible()
   })
 
   it("narrows the table to people with tasks", async () => {
@@ -71,7 +115,7 @@ describe("People", () => {
     const matches = await openMatches(user)
     expect(matches).toHaveTextContent("all their chats, mail, meetings and deals")
     expect(within(matches).getAllByRole("article")).toHaveLength(4)
-    await user.click(screen.getByRole("button", { name: "All people" }))
+    await user.click(screen.getByRole("button", { name: "All contacts" }))
     expect(await table()).toBeInTheDocument()
   })
 
@@ -213,7 +257,7 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     await table()
-    await user.type(screen.getByRole("searchbox", { name: "Find a person" }), "telegram:5120{Enter}")
+    await user.type(screen.getByRole("searchbox", { name: "Find by name, phone or address" }), "telegram:5120{Enter}")
     expect(await screen.findByText("telegram:5120 belongs to Kai Moreno.")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Open Kai Moreno" }))
     expect(await screen.findByRole("dialog", { name: "Kai Moreno" })).toBeInTheDocument()
@@ -223,17 +267,21 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     await table()
-    await user.type(screen.getByRole("searchbox", { name: "Find a person" }), "nobody@example.org{Enter}")
+    await user.type(
+      screen.getByRole("searchbox", { name: "Find by name, phone or address" }),
+      "nobody@example.org{Enter}",
+    )
     expect(await screen.findByText("No one in Memo has nobody@example.org.")).toBeInTheDocument()
   })
 
   it("says when memo has more people and matches than the page read", async () => {
     vi.spyOn(platform, "peopleRead").mockResolvedValue({
       kind: "ready",
-      people: [{ ref: "person:1", name: null, owner: true, tasks: 0 }],
+      people: [{ ref: "person:1", name: null, owner: true, tasks: 0, ...older }],
       peopleMore: true,
       matches: [],
       matchesMore: false,
+      kinded: false,
     })
     render(<PeoplePage />)
     expect(await screen.findByText(/Memo knows more people than this page read/)).toBeInTheDocument()

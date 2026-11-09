@@ -2,9 +2,18 @@ use super::attempt;
 use crate::error::AppError;
 use crate::people;
 
+/// `kind` is one of memo's kinds of people (`person` when absent); an older memo lists everyone.
 #[tauri::command]
-pub async fn people_read() -> Result<people::Read, AppError> {
-    crate::log::command("people_read", async move { attempt(people::read).await }).await
+pub async fn people_read(kind: Option<String>) -> Result<people::Read, AppError> {
+    crate::log::command("people_read", async move {
+        attempt(move || people::read(kind.as_deref().unwrap_or("person"))).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn people_kinds() -> Result<std::collections::BTreeMap<String, u64>, AppError> {
+    crate::log::command("people_kinds", async move { attempt(people::kinds).await }).await
 }
 
 #[tauri::command]

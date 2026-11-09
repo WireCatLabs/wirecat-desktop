@@ -1,4 +1,4 @@
-import { cleanName, handleOf } from "@/domain/people"
+import { handleOf, personName } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import { peopleMessages } from "./messages"
 import { usePeople } from "./store"
@@ -17,7 +17,13 @@ export function usePersonName() {
     const detail = details[ref]
     const person = detail?.state === "ready" ? detail.person : null
     return (
-      cleanName(listedName ?? listed?.name ?? person?.name) ?? (person ? handleOf(person.identities) : null) ?? m.noName
+      personName({
+        displayName: listedName === undefined ? listed?.displayName : null,
+        name: listedName ?? listed?.name ?? person?.name,
+        contact: listed?.contact,
+      }) ??
+      (person ? handleOf(person.identities) : null) ??
+      m.noName
     )
   }
 }

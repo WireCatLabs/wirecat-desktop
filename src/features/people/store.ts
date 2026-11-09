@@ -1,7 +1,7 @@
 import { create } from "zustand"
 import { looksLikeAccount, touched } from "@/domain/people"
 import { platform } from "@/platform/bridge"
-import type { Listed, Match, MatchAnswer, PeopleRead, PersonDetail } from "@/platform/people-schemas"
+import type { Listed, Match, MatchAnswer, PeopleRead, PersonDetail, PersonKind } from "@/platform/people-schemas"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -31,6 +31,12 @@ type PeopleState = {
   people: Listed[]
   /** memo has more people than it gave: the page says so. */
   peopleMore: boolean
+  /** The kind of people the table lists; memo lists one kind at a time. */
+  kind: PersonKind
+  /** memo knows kinds; false for an older memo, whose one list is everyone. */
+  kinded: boolean
+  /** People of each kind, for the tabs; read apart from the list and empty until it comes. */
+  kinds: Partial<Record<PersonKind, number>>
   /** The open matches, with any the owner decided since the last full read kept in place. */
   matches: Match[]
   matchesMore: boolean
@@ -59,6 +65,7 @@ type PeopleState = {
   undoing: { ref: string; merge: string } | null
   load(): Promise<void>
   setView(view: View): void
+  setKind(kind: PersonKind): void
   setQuery(query: string): void
   setFilter(filter: { withTasks?: boolean; named?: boolean }): void
   setPage(page: number): void
@@ -145,7 +152,7 @@ export const usePeople = create<PeopleState>((set, get) => {
       return { details }
     })
     try {
-      const read = await platform.peopleRead()
+      const read = await platform.peopleRead(get().kind)
       if (read.kind !== "ready") return null
       set((s) => ({
         people: read.people,
@@ -173,6 +180,9 @@ export const usePeople = create<PeopleState>((set, get) => {
     oldVersion: null,
     people: [],
     peopleMore: false,
+    kind: "person",
+    kinded: false,
+    kinds: {},
     matches: [],
     matchesMore: false,
     decided: {},
@@ -181,7 +191,8 @@ export const usePeople = create<PeopleState>((set, get) => {
     view: "people",
     query: "",
     withTasks: false,
-    named: false,
+    // An older memo lists the nameless with everyone; the page leaves them out until asked.
+    named: true,
     page: 1,
     pageSize: 50,
     matchPage: 1,
@@ -199,8 +210,15 @@ export const usePeople = create<PeopleState>((set, get) => {
     async load() {
       const call = ++seq
       set({ reading: true, error: null })
+      // The tabs' counts take a call per kind; the table never waits for them.
+      platform
+        .peopleKinds()
+        .then((kinds) => {
+          if (call === seq) set({ kinds })
+        })
+        .catch(() => undefined)
       try {
-        const read = await platform.peopleRead()
+        const read = await platform.peopleRead(get().kind)
         if (call !== seq) return
         const ready = read.kind === "ready" ? read : null
         set({
@@ -210,6 +228,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           peopleMore: ready?.peopleMore ?? false,
           matches: ready?.matches ?? [],
           matchesMore: ready?.matchesMore ?? false,
+          kinded: ready?.kinded ?? false,
           decided: {},
           joinedGroup: {},
           reading: false,
@@ -225,6 +244,10 @@ export const usePeople = create<PeopleState>((set, get) => {
       }
     },
     setView: (view) => set({ view }),
+    setKind(kind) {
+      set({ kind, page: 1, query: "", found: null })
+      void get().load()
+    },
     setQuery: (query) => set({ query, found: null, page: 1 }),
     setFilter: (filter) => set({ ...filter, page: 1 }),
     setPage: (page) => set({ page }),

@@ -7,6 +7,7 @@ import {
   handleOf,
   looksLikeAccount,
   matchesFilter,
+  personName,
   reasonOf,
   scopesOf,
   touched,
@@ -61,6 +62,12 @@ describe("people", () => {
     expect(cleanName('ООО "Ромашка"')).toBe('ООО "Ромашка"')
     expect(cleanName("!$")).toBeNull()
     expect(cleanName(null)).toBeNull()
+  })
+
+  it("names a person by display name, then name, then contact, and never prints null or an id", () => {
+    expect(personName({ displayName: "Lena Ortiz", name: "lena", contact: "+34600" })).toBe("Lena Ortiz")
+    expect(personName({ displayName: null, name: "! null #97365", contact: "+34600111222" })).toBe("+34600111222")
+    expect(personName({ name: "null #97365" })).toBeNull()
   })
 
   it("falls back to a handle, then to an account name with letters", () => {
