@@ -189,6 +189,8 @@ export function useBoardDrag<C extends string = string>(o: {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (!drag) return
       if (e.key === "Escape") {
+        // The drag takes this Escape: a dialog holding the board stays open.
+        e.preventDefault()
         press.current = null
         dropped.current = true
         setDrag(null)

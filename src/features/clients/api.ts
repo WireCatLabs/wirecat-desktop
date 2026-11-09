@@ -157,9 +157,12 @@ export function useMapSet(kind: Kind, pipeline: string | null) {
   })
 }
 
+/** memo's suggestions confirmed pipeline by pipeline: one CRM's only, and one write at a time, as memo's store allows. */
 export function useConfirm(kind: Kind, pipeline: string | null) {
   return useMutation({
-    mutationFn: (pipeline: string | null) => platform.clientsMapConfirm(kind, pipeline),
+    mutationFn: async (pipelines: readonly string[]) => {
+      for (const p of pipelines) await platform.clientsMapConfirm(kind, p)
+    },
     onSettled: () => queryClient().invalidateQueries({ queryKey: clientKeys.board(kind, pipeline) }),
   })
 }

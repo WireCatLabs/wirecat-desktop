@@ -5,8 +5,6 @@ import { accountKey, type Kind } from "@/domain/clients"
 import type { CrmAccount } from "@/platform/bindings"
 import { safeStorage } from "@/shared/safe-storage"
 
-export type View = "board" | "stages"
-
 /** A drop onto a base column that holds several stages of the card's pipeline: the owner picks one. */
 export type Picking = { ref: string; pipeline: string; base: string; stages: string[] }
 
@@ -21,8 +19,8 @@ export type Asking = {
 
 type ClientsState = {
   kind: Kind
-  /** The base board, or the mapping of every pipeline's stages onto the base set. */
-  view: View
+  /** The CRM account (`accountKey`) the stage mapping dialog is open on; `""` opens it on the CRM that needs it most. */
+  mapOn: string | null
   /** The pipeline last chosen for each kind; memo's first when none was. */
   pipeline: Partial<Record<Kind, string>>
   /** The filter words; the page narrows the read it holds, memo is not asked again. */
@@ -45,7 +43,7 @@ type ClientsState = {
   ask(asking: Asking | null): void
   write(account: CrmAccount, profile: string): void
   setKind(kind: Kind): void
-  setView(view: View): void
+  openMap(account: string | null): void
   setPipelines(pipelines: string[]): void
   setAccounts(accounts: string[]): void
   refuse(ref: string, why: Refusal | null): void
@@ -65,7 +63,7 @@ export const useClients = create<ClientsState>()(
       query: "",
       open: null,
       failed: {},
-      view: "board",
+      mapOn: null,
       refused: {},
       pipelines: [],
       accounts: [],
@@ -76,7 +74,7 @@ export const useClients = create<ClientsState>()(
       ask: (asking) => set({ asking }),
       write: (account, profile) => set((s) => ({ writers: { ...s.writers, [accountKey(account)]: profile } })),
       setKind: (kind) => set({ kind, query: "", pipelines: [], accounts: [], refused: {} }),
-      setView: (view) => set({ view }),
+      openMap: (mapOn) => set({ mapOn }),
       setPipelines: (pipelines) => set({ pipelines }),
       setAccounts: (accounts) => set({ accounts }),
       refuse: (ref, why) =>
@@ -98,7 +96,7 @@ export const useClients = create<ClientsState>()(
     {
       name: "wirecat.clients",
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ kind: s.kind, pipeline: s.pipeline, view: s.view }),
+      partialize: (s) => ({ kind: s.kind, pipeline: s.pipeline }),
     },
   ),
 )

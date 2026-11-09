@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest"
 import {
   baseColumnsOf,
+  crmsOf,
+  crmToOpen,
   dropOf,
   mapColumnsOf,
   mapDropOf,
@@ -112,14 +114,41 @@ describe("a drop onto a base column", () => {
   })
 })
 
-describe("the mapping screen", () => {
-  it("lists stages under their base stage grouped by pipeline, and the unmapped last", () => {
+describe("the mapping dialog", () => {
+  it("puts unconfirmed stages in Unmapped first, suggested or not, and the confirmed under their base stage", () => {
     const columns = mapColumnsOf(base, mapping, [{ ref: "pipeline:3" }, { ref: "pipeline:7" }])
-    expect(columns.get("stage:1")).toEqual(["stage:50", "stage:40"])
-    expect([...columns.keys()].at(-1)).toBe(UNMAPPED)
-    expect(columns.get(UNMAPPED)).toEqual(["stage:43"])
+    expect([...columns.keys()][0]).toBe(UNMAPPED)
+    expect(columns.get(UNMAPPED)).toEqual(["stage:50", "stage:43"])
+    expect(columns.get("stage:1")).toEqual(["stage:40"])
+    expect(columns.get("stage:3")).toEqual(["stage:41", "stage:42"])
     expect(mapDropOf(UNMAPPED)).toBe("unmapped")
     expect(mapDropOf("stage:3")).toBe(true)
+  })
+
+  it("has no Unmapped column once every stage is confirmed", () => {
+    const confirmed = mapping.filter((m) => m.confirmed)
+    expect([...mapColumnsOf(base, confirmed, [{ ref: "pipeline:7" }]).keys()]).toEqual(base.map((b) => b.ref))
+  })
+
+  it("lists each CRM account with its pipelines and its unconfirmed stages, and opens on one that has some", () => {
+    const north = { provider: "bitrix24", account: "north" }
+    const acme = { provider: "amocrm", account: "acme" }
+    const crms = crmsOf(
+      [
+        { ref: "pipeline:2", account: null },
+        { ref: "pipeline:7", account: acme },
+        { ref: "pipeline:3", account: north },
+        { ref: "pipeline:9", account: north },
+      ],
+      mapping.filter((m) => m.ref !== "stage:43"),
+    )
+    expect([...crms.entries()]).toEqual([
+      ["amocrm:acme", { account: acme, pipelines: ["pipeline:7"], waiting: 0 }],
+      ["bitrix24:north", { account: north, pipelines: ["pipeline:3"], waiting: 1 }],
+    ])
+    expect(crmToOpen(crms, null)).toBe("bitrix24:north")
+    expect(crmToOpen(crms, "amocrm:acme")).toBe("amocrm:acme")
+    expect(crmToOpen(crms, "gone")).toBe("bitrix24:north")
   })
 
   it("confirms a stage it maps, and counts each pipeline's suggestions to confirm, not its unmapped stages", () => {

@@ -2,6 +2,8 @@
 // pipeline's stage sits on the mapping screen, and what an edit of the base set may not break. Memo keeps the mapping;
 // these rules only read it.
 
+import { accountKey } from "./clients"
+
 // The parts of Rust's `CrmRead` "base" answer (platform/bindings.ts) these rules read.
 type BaseRef = { ref: string; name: string }
 type BaseStage = { ref: string; name: string; outcome: string }
@@ -17,7 +19,7 @@ type Card = { ref: string; pipeline: string; stage: string; baseStage: BaseRef |
 
 /** The column of cards whose stage points to no base stage, or to one the owner has not confirmed yet. */
 export const UNSORTED = "unsorted"
-/** The mapping screen's column of stages that point to no base stage. */
+/** The mapping dialog's column of stages the owner has not confirmed onto a base stage yet. */
 export const UNMAPPED = "unmapped"
 
 /** memo names a row's base stage only once its stage is confirmed onto one; until then it is unsorted. */
@@ -87,7 +89,10 @@ export function withBaseMove<C extends Card & { status: string }, R extends { ca
   return { ...read, cards: read.cards.map((c) => (c.ref === ref ? { ...c, stage, baseStage, status } : c)) }
 }
 
-/** Mapping screen: the base set's columns and Unmapped last, stages grouped by pipeline in the order pipelines come. */
+/**
+ * The mapping dialog's columns: Unmapped first, while any stage is unconfirmed, then the base set. A stage stands
+ * under its base stage only once confirmed; memo's suggestion alone does not place it. Stages grouped by pipeline.
+ */
 export function mapColumnsOf(
   base: readonly BaseStage[],
   mapping: readonly StageMap[],
@@ -95,9 +100,33 @@ export function mapColumnsOf(
 ) {
   const order = new Map(pipelines.map((p, i) => [p.ref, i]))
   const sorted = [...mapping].sort((a, b) => (order.get(a.pipeline) ?? 0) - (order.get(b.pipeline) ?? 0))
-  const columns = new Map<string, string[]>([...base.map((b) => [b.ref, [] as string[]] as const), [UNMAPPED, []]])
-  for (const m of sorted) (columns.get(m.base?.ref ?? UNMAPPED) ?? columns.get(UNMAPPED))?.push(m.ref)
-  return columns
+  const columns = new Map<string, string[]>(base.map((b) => [b.ref, [] as string[]] as const))
+  const unmapped: string[] = []
+  for (const m of sorted) ((m.confirmed && m.base && columns.get(m.base.ref)) || unmapped).push(m.ref)
+  return unmapped.length > 0 ? new Map([[UNMAPPED, unmapped], ...columns]) : columns
+}
+
+type Account = { provider: string; account: string }
+
+/** The CRM accounts the mapping holds stages of, in the order their pipelines come, by `accountKey`. */
+export function crmsOf(pipelines: readonly { ref: string; account: Account | null }[], mapping: readonly StageMap[]) {
+  const crms = new Map<string, { account: Account; pipelines: string[]; waiting: number }>()
+  for (const p of pipelines) {
+    const rows = mapping.filter((m) => m.pipeline === p.ref)
+    if (!p.account || rows.length === 0) continue
+    const crm = crms.get(accountKey(p.account)) ?? { account: p.account, pipelines: [], waiting: 0 }
+    crm.pipelines.push(p.ref)
+    crm.waiting += rows.filter((m) => !m.confirmed).length
+    crms.set(accountKey(p.account), crm)
+  }
+  return crms
+}
+
+/** The CRM the dialog opens on: the one asked for, else the first with stages to sort, else the first. */
+export function crmToOpen(crms: ReturnType<typeof crmsOf>, asked: string | null) {
+  if (asked && crms.has(asked)) return asked
+  const keys = [...crms.keys()]
+  return keys.find((k) => (crms.get(k)?.waiting ?? 0) > 0) ?? keys[0] ?? null
 }
 
 /** A pipeline's stage goes onto a base stage; Unmapped is where memo puts what it could not place, not a target. */
