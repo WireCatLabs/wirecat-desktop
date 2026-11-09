@@ -135,8 +135,10 @@ export const useSearch = create<SearchState>((set, get) => {
     },
     async searchHarder() {
       const s = get()
-      if (s.demo || missing(s) || s.tool === null) return
-      const asked: Asked = { tool: s.tool, profile: null, query: s.query, page: 1 }
+      // The query of the results on screen, not text typed since: only what the owner sees goes to the model.
+      const shown = s.asked?.query
+      if (s.demo || s.tool === null || !shown?.trim()) return
+      const asked: Asked = { tool: s.tool, profile: null, query: shown, page: 1 }
       const call = ++seq
       set({ loading: true, error: null })
       try {

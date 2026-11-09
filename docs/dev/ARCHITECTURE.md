@@ -173,7 +173,7 @@ src-tauri/src/
                 [--base-url]` without `--yes` (where a search goes, what it sends, the price per million tokens, whether a
                 key is found), `set --yes` from the consent step only, and `revoke`. memo offers no list here, so Rust
                 checks the provider (anthropic, openai), the model's name and the address before they become arguments.
-                The Search page's button runs `search all --only notes --harder --record` for the shown query, first page
+                The Search page's button runs `search all --only notes --harder --no-record` for the shown query (a recorded run keeps the query in memo's run log), first page
                 only; memo's `order` entry under `missing` is the outcome (no entry: the model's order stands). Gated on
                 `searchHarder.minVersion` in the catalog, null until a memo with it is on npm. Keys are enrichment's.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and

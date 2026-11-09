@@ -63,6 +63,8 @@ export function SearchPage() {
   // The tour's example tool is offered even when it is not installed, so its example results read whole.
   const installed = searchable.filter((t) => (installs[t.id]?.length ?? 0) > 0 || (s.demo && t.id === s.tool))
   const tool = s.tool ? findTool(s.tool) : undefined
+  // Asked as soon as memo is chosen, so the Search harder row is known before the hits arrive.
+  useSearchHarder(s.tool ?? "", Boolean(tool?.searchHarder) && !s.demo)
   const version = s.tool ? (installs[s.tool]?.[0]?.version ?? null) : null
   const what = tool?.search?.what ?? "messages"
   const parsed = useMemo(() => parseQuery(s.query), [s.query])
@@ -447,7 +449,7 @@ function resultsView(
               )
             : m.results(hits.hits.length, page)}
         </p>
-        {!hits.paged && hits.hits.length >= LIMIT && <p className="text-ink-dim">{m.bestOnly(LIMIT)}</p>}
+        {!hits.paged && !s.harder && hits.hits.length >= LIMIT && <p className="text-ink-dim">{m.bestOnly(LIMIT)}</p>}
         {hits.notes.map((n) => (
           <p key={n} className="selectable text-ink-dim">
             {n}
@@ -476,35 +478,44 @@ function HarderBar({ m, toolId, count }: { m: Words; toolId: string; count: numb
   const state = useSearchHarder(toolId, allowed && !s.demo)
   const status = state.data?.state === "ready" && state.data.status.on ? state.data.status : null
   const provider = status ? providerName(status.provider) : ""
-  if (s.harder)
-    return (
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem]" aria-live="polite">
-        <p className={cx("flex items-start gap-2", s.harder.applied ? "text-ink" : "text-ink-soft")}>
-          {s.harder.applied ? (
-            <Sparkles className="mt-[0.2rem] size-4 shrink-0 text-brand" aria-hidden />
-          ) : (
-            <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
-          )}
-          <span>
-            {s.harder.applied ? m.harderApplied(provider, status?.model ?? "") : m.harderKept(s.harder.why ?? "")}
-          </span>
-        </p>
-        <Button size="sm" variant="ghost" disabled={s.loading} onClick={() => s.search(1)}>
-          {m.usualOrder}
-        </Button>
-      </div>
-    )
-  if (!status || count < 2) return null
+  // Text typed since the last search is not what the results show, so nothing is offered for it.
+  const current = s.asked?.query === s.query
+  const offer = Boolean(status) && count >= 2 && current
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem]">
-      <Button size="sm" variant="secondary" disabled={s.loading} onClick={() => s.searchHarder()}>
-        <Sparkles className="size-4" aria-hidden />
-        {m.harder}
-      </Button>
-      <span className="text-ink-dim" aria-live="polite">
-        {s.loading ? m.harderBusy : m.harderNote(status.candidates, provider)}
-      </span>
-    </div>
+    <>
+      <Collapse open={s.harder !== null}>
+        {s.harder && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem]" aria-live="polite">
+            <p className={cx("flex items-start gap-2", s.harder.applied ? "text-ink" : "text-ink-soft")}>
+              {s.harder.applied ? (
+                <Sparkles className="mt-[0.2rem] size-4 shrink-0 text-brand" aria-hidden />
+              ) : (
+                <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
+              )}
+              <span>
+                {s.harder.applied ? m.harderApplied(provider, status?.model ?? "") : m.harderKept(s.harder.why ?? "")}
+              </span>
+            </p>
+            {current && (
+              <Button size="sm" variant="ghost" disabled={s.loading} onClick={() => s.search(1)}>
+                {m.usualOrder}
+              </Button>
+            )}
+          </div>
+        )}
+      </Collapse>
+      <Collapse open={s.harder === null && offer}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem]">
+          <Button size="sm" variant="secondary" disabled={s.loading || !offer} onClick={() => s.searchHarder()}>
+            <Sparkles className="size-4" aria-hidden />
+            {m.harder}
+          </Button>
+          <span className="text-ink-dim" aria-live="polite">
+            {s.loading ? m.harderBusy : m.harderNote(status?.candidates ?? 0, provider)}
+          </span>
+        </div>
+      </Collapse>
+    </>
   )
 }
 

@@ -270,6 +270,24 @@ describe("Search", () => {
     expect(screen.getByRole("button", { name: "Search harder" })).toBeInTheDocument()
   }, 15000)
 
+  it("sends only the query of the results on screen, never text typed since", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: allowed })
+    const harder = vi.spyOn(platform, "searchHarderRun")
+    render(<SearchPage />)
+    await choose(user, "Tool", "Memo")
+    const bar = screen.getByRole("combobox", { name: "Search notes" })
+    await user.type(bar, "plan{Enter}")
+    const button = await screen.findByRole("button", { name: "Search harder" }, { timeout: 3000 })
+    await user.click(button)
+    expect(harder).toHaveBeenLastCalledWith("memo", "plan", 50)
+    await screen.findByText(/^Reordered by Anthropic/, {}, { timeout: 4000 })
+
+    await user.type(bar, " secret draft")
+    expect(screen.queryByRole("button", { name: "Back to the usual order" })).not.toBeInTheDocument()
+    expect(harder).toHaveBeenCalledTimes(1)
+  }, 15000)
+
   it("offers no search harder while the owner has not allowed it", async () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: { ...allowed, on: false } })

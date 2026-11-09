@@ -391,10 +391,13 @@ mod tests {
     }
 
     #[test]
-    fn the_search_sends_only_with_harder_and_is_recorded() {
+    fn the_search_sends_only_with_harder_and_is_never_recorded() {
         let src = memo_source();
         let args = search_args(src, "-tag:work budget", 50).unwrap();
-        assert_eq!(args.join(" "), "search all --only notes --harder --limit 50 --record --json -- -tag:work budget");
+        assert_eq!(
+            args.join(" "),
+            "search all --only notes --harder --limit 50 --no-record --json -- -tag:work budget"
+        );
         assert!(search_args(src, "budget", 0).is_err());
         assert!(search_args(src, "budget", search::MAX_LIMIT + 1).is_err());
         assert!(search_args(src, "  ", 10).is_err());
