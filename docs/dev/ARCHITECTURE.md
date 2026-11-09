@@ -119,6 +119,8 @@ src-tauri/src/
                 `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
                 messenger chat's newest messages the messenger's own `messages list --offline` with that profile. A mail
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
+  people.rs     the People page: memo's `people list|review|show|unlink|unmerge` and `review confirm|reject` for
+                `identity_link` matches; every decision with `--from-app` (see "The People page").
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   crm_board.rs  the Clients page: memo's deals and leads of one pipeline by stage, each stage's count and sums per
                 currency from `pipelines show`, and moving the owner's own through `<kind>s move`. A CRM's copy is read
@@ -371,6 +373,36 @@ memo's own review as every other proposal kind: `review confirm <id> --from-app`
 here. Bulk approve leaves relationships out: each is approved in its row. A built-in role is worded by the app in the
 interface language; the owner's own role shows the label the owner gave it. The chip is `src/shared/StandingPill.tsx`,
 its rule `src/domain/relationships.ts`, for any page that shows a relationship.
+
+## The People page
+
+Who is who across sources, from memo (`people.minVersion` in the catalog; 0.132.0 is a placeholder for the memo release
+with `memo people show|review|scan|link|unlink|unmerge`). `people_read` runs `people list --limit 5000` (memo leaves out
+people merged into others) and `people review --limit 500` at once, and carries each list's `has_more` to the page, which
+says when memo has more than it read. Opening a person runs `people show person:<uid>`: every account grouped by source,
+with the scope (personal or work) of every account that saw it, the merges that joined others into this person
+(`merge:<to>-<from>`), and the matches open on them. Asked about someone merged away, memo answers with the person they
+are part of now (`merged_into`), and the page says so. memo has no profiles here, so nothing is picked for the owner:
+every move names the person and the accounts he chose.
+
+- **Matches** (`identity_link` proposals) carry memo's `joins` (`person`: join two people; `identity`: move one account),
+  `signal` (agent, phone, email, guest email), the people a shared phone points at, and who suggested it (memo's own
+  matching, an agent, or a person who may have no name). A match is decided with `review confirm|reject <id> --from-app`,
+  a rejection with the owner's reason (`--reason=`), only if `people show <ref>` lists it open on that person now.
+  memo answers a refused decision with exit code 2 and its whole answer on stdout; Rust reads that answer, so
+  `identity.stale` and `proposal.wrong-state` are worded on the page. A decided card stays in place until the next read.
+- **Move accounts to a new person** runs `people unlink <identities…> --from-app` with only accounts the person's own
+  read listed, each once, and never all of them: memo matches a name it does not know exactly to the nearest person.
+  Every account is shown; one whose ref cannot go back as one safe word is never offered for moving.
+- **Undo a join** runs `people unmerge merge:<to>-<from> --from-app`, only for a merge the person shows, behind a dialog
+  that lists the accounts that go back.
+- **Search** filters the list by name; an account (`telegram:4411`, an email address) is looked up with `people show
+  <account>` (`people_find`), and the person is shown only if one of their accounts is exactly that one, never memo's
+  nearest guess.
+
+After each move Rust reads the person again; the page forgets every person the move touched and reads both lists again
+without closing anything. The answers in Rust's tests are memo's real ones (`src-tauri/tests/fixtures/people/`). Names,
+addresses and account ids are the owner's own data, shown unmasked like the Memory page and never logged.
 
 ## What agents do with the tools
 

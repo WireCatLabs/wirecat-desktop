@@ -34,6 +34,7 @@ import {
   SourceContextSchema,
 } from "./memory-schemas"
 import { NotificationsSchema } from "./notifications-schemas"
+import { PeopleReadSchema, PersonDetailSchema, UnlinkedSchema } from "./people-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
@@ -218,6 +219,13 @@ function createTauri(): Platform {
     clientsMapSet: (stage, base) => invoke("clients_map_set", { stage, base }),
     clientsMapConfirm: (kind, pipeline) => invoke("clients_map_confirm", { kind, pipeline }),
     clientsBaseEdit: (kind, edit) => invoke("clients_base_edit", { kind, edit }),
+    peopleRead: () => call(PeopleReadSchema, "people_read"),
+    peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
+    peopleDecide: (ref, id, answer, reason) =>
+      call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
+    peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
+    peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),
+    peopleUnmerge: (ref, merge) => call(PersonDetailSchema, "people_unmerge", { reference: ref, merge }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
     taskShow: (key) => call(TaskSchema, "task_show", { key }),

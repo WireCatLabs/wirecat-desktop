@@ -157,6 +157,7 @@ const ToolSchema = v.object({
     ),
     null,
   ),
+  people: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
   /** Only memo: the first-run card's folder, notes sync and search model; Rust runs the commands. */
   notesSetup: v.optional(v.nullable(v.object({ minVersion: v.string(), recommended: v.string() })), null),
   /** Only memo: a hosted model rewrites records for search once the owner agrees; memo lists what it offers. */

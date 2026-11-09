@@ -12,6 +12,7 @@ import {
   ScrollText,
   Search,
   Settings,
+  Users,
   Wrench,
 } from "lucide-react"
 import { type ComponentType, type LazyExoticComponent, lazy, type SVGProps } from "react"
@@ -28,6 +29,7 @@ const LinkPage = lazy(() => import("@/features/links/page").then((m) => ({ defau
 const DigestsPage = lazy(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
 const GuidesPage = lazy(() => import("@/features/guides/page").then((m) => ({ default: m.GuidesPage })))
 const LogsPage = lazy(() => import("@/features/logs/page").then((m) => ({ default: m.LogsPage })))
+const PeoplePage = lazy(() => import("@/features/people/page").then((m) => ({ default: m.PeoplePage })))
 const MemoryPage = lazy(() => import("@/features/memory/page").then((m) => ({ default: m.MemoryPage })))
 const SearchPage = lazy(() => import("@/features/search/page").then((m) => ({ default: m.SearchPage })))
 const StoragePage = lazy(() => import("@/features/storage/page").then((m) => ({ default: m.StoragePage })))
@@ -55,6 +57,7 @@ export const sections: readonly Section[] = [
   { id: "clients", icon: Handshake, page: ClientsPage },
   { id: "guides", icon: BookOpenText, page: GuidesPage },
   { id: "memory", icon: Brain, page: MemoryPage },
+  { id: "people", icon: Users, page: PeoplePage },
   { id: "analytics", icon: ChartColumnBig, page: AnalyticsPage },
   { id: "storage", icon: HardDrive, page: StoragePage, group: "system" },
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },

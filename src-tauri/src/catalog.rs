@@ -65,6 +65,9 @@ pub struct Tool {
     /// A CRM's own CLI: the Clients board moves that CRM's cards and switches its sync scope through it.
     #[serde(default)]
     pub crm: Option<CrmSource>,
+    /// Only memo: the People page's lowest memo (`people.rs`); below it the page offers the update instead of a read.
+    #[serde(default)]
+    pub people: Option<PeopleSource>,
     /// Only memo: the first-run card's notes folders, notes sync and search model (`notes_setup.rs`).
     #[serde(default)]
     pub notes_setup: Option<crate::notes_setup::NotesSetupSource>,
@@ -244,6 +247,12 @@ pub struct CrmScopeSource {
     pub min_version: Option<String>,
     pub show: Vec<String>,
     pub set: Vec<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PeopleSource {
+    pub min_version: String,
 }
 
 /// The tool's own run-log commands; `{run}` is a validated run id.

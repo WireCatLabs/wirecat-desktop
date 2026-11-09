@@ -49,6 +49,7 @@ mod package_update;
 #[cfg(test)]
 mod page_loads;
 mod paths;
+mod people;
 mod permissions;
 mod preflight;
 mod profile;
@@ -306,6 +307,12 @@ pub fn run() {
             commands::memory::memory_forget,
             commands::memory::memory_source_context,
             commands::memory::memory_open_source,
+            commands::people::people_read,
+            commands::people::people_show,
+            commands::people::people_decide,
+            commands::people::people_unlink,
+            commands::people::people_unmerge,
+            commands::people::people_find,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,
