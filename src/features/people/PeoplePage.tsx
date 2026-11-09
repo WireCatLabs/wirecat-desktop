@@ -1,5 +1,6 @@
 import { ExternalLink, LoaderCircle, RefreshCw, Search } from "lucide-react"
 import { useEffect, useId } from "react"
+import { gapFromRead } from "@/domain/needs"
 import { looksLikeAccount, matchesFilter } from "@/domain/people"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
@@ -25,6 +26,7 @@ export function PeoplePage() {
   const m = useMessages(peopleMessages)
   const lang = useLang()
   const s = usePeople()
+  const gap = gapFromRead(s.read === "missing" || s.read === "old" ? { kind: s.read, ...s.oldVersion } : null)
   const { load } = s
   useEffect(() => {
     void load()
@@ -73,14 +75,8 @@ export function PeoplePage() {
         <ErrorNotice action={<ReportThis what="Reading people" error={s.error} />}>
           {m.readFailed} {s.error}
         </ErrorNotice>
-      ) : s.read === "missing" ? (
-        <ToolNeeded id="memo" update={false} label={m.goTools}>
-          {m.missing}
-        </ToolNeeded>
-      ) : s.read === "old" ? (
-        <ToolNeeded id="memo" update label={m.update}>
-          {m.old(s.oldVersion?.version ?? null, s.oldVersion?.need ?? "")}
-        </ToolNeeded>
+      ) : gap ? (
+        <ToolNeeded gap={gap} />
       ) : s.read === null ? (
         <ListSkeleton />
       ) : (

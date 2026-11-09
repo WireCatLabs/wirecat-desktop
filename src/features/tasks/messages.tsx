@@ -14,10 +14,6 @@ type Words = {
   newTask: string
   states: Record<State, string>
   labels: Record<Label | "none", string>
-  missing: string
-  goTools: string
-  old: (version: string | null, need: string) => string
-  update: string
   readFailed: string
   tryAgain: string
   badQuery: string
@@ -161,12 +157,6 @@ const en: Words = {
   newTask: "New task",
   states: { open: "Open", todo: "Todo", in_progress: "Progress", done: "Done", dismissed: "Dismissed" },
   labels: { critical: "Critical", high: "High", medium: "Medium", low: "Low", none: "No priority" },
-  missing:
-    "Tasks are kept by Memo, which is not installed. Install it on the Tools page; you and your agents can then plan work here.",
-  goTools: "Go to Tools",
-  old: (version, need) =>
-    `This page needs Memo ${need} or newer${version ? `; ${version} is installed` : ""}. Update Memo to see and move your tasks here.`,
-  update: "Update Memo",
   readFailed: "Could not read tasks.",
   tryAgain: "Try again",
   badQuery: "This search could not be read. Check the brackets and quotes, or clear it.",
@@ -318,12 +308,6 @@ const ru: Words = {
   newTask: "Новая задача",
   states: { open: "Новые", todo: "К выполнению", in_progress: "В работе", done: "Готово", dismissed: "Отклонено" },
   labels: { critical: "Критичный", high: "Высокий", medium: "Средний", low: "Низкий", none: "Без приоритета" },
-  missing:
-    "Задачи хранит Memo, а он не установлен. Установите его на странице «Инструменты» — тогда вы и агенты сможете планировать работу здесь.",
-  goTools: "К инструментам",
-  old: (version, need) =>
-    `Этой странице нужен Memo ${need} или новее${version ? `; установлен ${version}` : ""}. Обновите Memo, чтобы видеть и двигать задачи здесь.`,
-  update: "Обновить Memo",
   readFailed: "Не удалось прочитать задачи.",
   tryAgain: "Ещё раз",
   badQuery: "Этот поиск не удалось прочитать. Проверьте скобки и кавычки или очистите его.",
@@ -488,12 +472,6 @@ const es: Words = {
   newTask: "Nueva tarea",
   states: { open: "Abiertas", todo: "Por hacer", in_progress: "En curso", done: "Hechas", dismissed: "Descartadas" },
   labels: { critical: "Crítica", high: "Alta", medium: "Media", low: "Baja", none: "Sin prioridad" },
-  missing:
-    "Las tareas las guarda Memo, que no está instalado. Instálalo en la página Herramientas; entonces tú y tus agentes podréis planificar aquí.",
-  goTools: "Ir a Herramientas",
-  old: (version, need) =>
-    `Esta página necesita Memo ${need} o posterior${version ? `; está instalado ${version}` : ""}. Actualiza Memo para ver y mover tus tareas aquí.`,
-  update: "Actualizar Memo",
   readFailed: "No se pudieron leer las tareas.",
   tryAgain: "Reintentar",
   badQuery: "No se pudo leer esta búsqueda. Revisa los paréntesis y las comillas, o bórrala.",
