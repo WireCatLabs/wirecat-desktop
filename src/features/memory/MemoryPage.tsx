@@ -14,6 +14,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Skeleton } from "@/ui/Skeleton"
 import { Activity } from "./Activity"
 import { AddPanel, PANEL_TITLE } from "./AddPanel"
@@ -42,7 +43,11 @@ export function MemoryPage() {
   const ready = s.read?.kind === "ready" ? s.read : null
   const filter = memoryFilter(s.query)
   const filtered = s.entries.filter((e) => matchesFilter(e, filter))
-  const shown = filtered.filter((e) => entryInTab(s.tab, e) || s.held.includes(e.ref))
+  const groups = bySubjectGroups(filtered.filter((e) => entryInTab(s.tab, e) || s.held.includes(e.ref)))
+  const ordered = groups.flatMap((g) => g.entries)
+  const pages = Math.max(1, Math.ceil(ordered.length / s.pageSize))
+  const at = Math.min(s.page, pages)
+  const shown = ordered.slice((at - 1) * s.pageSize, at * s.pageSize)
   const count = (tab: Tab) => filtered.filter((e) => entryInTab(tab, e)).length
   const forgetting = s.entries.find((e) => e.ref === s.forgetting) ?? null
   const filtering = s.query.trim() !== ""
@@ -128,7 +133,17 @@ export function MemoryPage() {
                 </Button>
               </div>
             ) : (
-              <Rack entries={shown} tab={s.tab} filtering={filtering} />
+              <Rack entries={shown} groups={groups} tab={s.tab} filtering={filtering} />
+            )}
+            {ordered.length > PAGE_SIZES[0] && (
+              <Pager
+                page={at}
+                onPage={s.setPage}
+                total={ordered.length}
+                size={s.pageSize}
+                sizes={PAGE_SIZES}
+                onSize={s.setPageSize}
+              />
             )}
 
             {ready?.linksError && (
@@ -167,7 +182,17 @@ function AddButton() {
   )
 }
 
-function Rack({ entries, tab, filtering }: { entries: MemoryEntry[]; tab: Tab; filtering: boolean }) {
+function Rack({
+  entries,
+  groups,
+  tab,
+  filtering,
+}: {
+  entries: MemoryEntry[]
+  groups: Group[]
+  tab: Tab
+  filtering: boolean
+}) {
   const m = useMessages(memoryMessages)
   const leaving = useMemory((s) => s.leaving)
   const arriving = useMemory((s) => s.arriving)
@@ -191,7 +216,7 @@ function Rack({ entries, tab, filtering }: { entries: MemoryEntry[]; tab: Tab; f
       </div>
     )
 
-  return <SubjectRack entries={entries} leaving={leaving} arriving={arriving} />
+  return <SubjectRack entries={entries} groups={groups} leaving={leaving} arriving={arriving} />
 }
 
 type Group = { key: string; entries: MemoryEntry[]; waiting: number }
@@ -252,21 +277,27 @@ function ApproveShown({ refs }: { refs: string[] }) {
   )
 }
 
+/** One page of rows under their subjects; a subject's count is of all its rows, not only this page's. */
 function SubjectRack({
   entries,
+  groups,
   leaving,
   arriving,
 }: {
   entries: MemoryEntry[]
+  groups: Group[]
   leaving: string[]
   arriving: string[]
 }) {
   const m = useMessages(memoryMessages)
   const closed = useMemory((s) => s.closedGroups)
   const toggleGroup = useMemory((s) => s.toggleGroup)
+  const onPage = new Set(entries.map((e) => e.ref))
   return (
     <section aria-label={m.rows} className="rounded-[0.2rem] border border-line-strong bg-app">
-      {bySubjectGroups(entries).map((g) => {
+      {groups.flatMap((whole) => {
+        const g = { ...whole, entries: whole.entries.filter((e) => onPage.has(e.ref)) }
+        if (g.entries.length === 0) return []
         const subject = g.entries[0] ? subjectOf(g.entries[0]) : null
         const open = !closed.includes(g.key)
         return (
@@ -285,7 +316,7 @@ function SubjectRack({
                 )}
                 {g.waiting > 0 && <Lamp tone="warn" size="sm" />}
                 <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">
-                  {m.groupCount(g.waiting, g.entries.length)}
+                  {m.groupCount(whole.waiting, whole.entries.length)}
                 </span>
                 <ChevronDown
                   className={cx(

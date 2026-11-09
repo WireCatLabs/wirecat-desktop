@@ -35,6 +35,28 @@ describe("Memory", () => {
     expect(screen.queryByRole("button", { name: /Kai Moreno prefers calls on Friday/ })).not.toBeInTheDocument()
   })
 
+  it("pages a long list, and the subject's count stays the count of all its rows", async () => {
+    const user = userEvent.setup()
+    const read = await platform.memoryRead()
+    if (read.kind !== "ready") throw new Error("the mock memory is not ready")
+    const one = read.entries.find((e) => e.type === "fact" && e.status === "proposed") ?? read.entries[0]
+    if (!one) throw new Error("the mock memory has no entries")
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      ...one,
+      ref: `fact:${9000 + i}`,
+      text: `Long list fact ${i}`,
+    }))
+    vi.spyOn(platform, "memoryRead").mockResolvedValueOnce({ ...read, entries: many })
+    useMemory.setState(useMemory.getInitialState(), true)
+    render(<MemoryPage />)
+    const region = await rack()
+    expect(within(region).getAllByText(/^Long list fact/)).toHaveLength(50)
+    expect(within(region).getByRole("heading", { level: 2 })).toHaveTextContent(/60/)
+    await user.click(screen.getByRole("button", { name: "Next page" }))
+    expect(within(await rack()).getAllByText(/^Long list fact/)).toHaveLength(10)
+    expect(screen.getByText("Long list fact 59")).toBeInTheDocument()
+  })
+
   it("groups rows under the project or person they are about", async () => {
     render(<MemoryPage />)
     const region = await rack()
