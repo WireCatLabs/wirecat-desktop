@@ -137,9 +137,15 @@ export function useScopeSet(account: CrmAccount | null, profile: string | null) 
 }
 
 /** A pipeline's stage onto a base stage; it moves at once and goes back if memo refuses. */
+/** memo's store takes one write at a time: the map writes wait in line, and the owner never waits for the button. */
+const MAP_WRITES = { id: "clients-map" }
+const mapWritesLeft = () => queryClient().isMutating({ mutationKey: [MAP_WRITES.id] })
+
 export function useMapSet(kind: Kind, pipeline: string | null) {
   const key = clientKeys.board(kind, pipeline)
   return useMutation({
+    mutationKey: [MAP_WRITES.id],
+    scope: MAP_WRITES,
     mutationFn: ({ stage, base }: { stage: string; base: CrmBaseRef }) => platform.clientsMapSet(stage, base.ref),
     onMutate: async ({ stage, base }) => {
       await queryClient().cancelQueries({ queryKey: key })
@@ -152,14 +158,17 @@ export function useMapSet(kind: Kind, pipeline: string | null) {
     onError: (_e, _v, context) => {
       if (context?.before) queryClient().setQueryData(key, context.before)
     },
-    // Counts per base column change with the mapping: memo counts them again.
-    onSettled: () => queryClient().invalidateQueries({ queryKey: key }),
+    // Counts per base column change with the mapping: memo counts them again once the line is empty, so a read that
+    // ends between two writes never puts back a stage the owner has already moved.
+    onSettled: () => (mapWritesLeft() <= 1 ? queryClient().invalidateQueries({ queryKey: key }) : undefined),
   })
 }
 
 /** memo's suggestions confirmed pipeline by pipeline: one CRM's only, and one write at a time, as memo's store allows. */
 export function useConfirm(kind: Kind, pipeline: string | null) {
   return useMutation({
+    mutationKey: [MAP_WRITES.id],
+    scope: MAP_WRITES,
     mutationFn: async (pipelines: readonly string[]) => {
       for (const p of pipelines) await platform.clientsMapConfirm(kind, p)
     },

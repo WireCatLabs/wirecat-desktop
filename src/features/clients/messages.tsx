@@ -25,6 +25,7 @@ type Words = {
   owner: string
   nobody: string
   stage: string
+  stageOf: (title: string) => string
   baseStage: string
   account: string
   column: (name: string, n: number) => string
@@ -99,6 +100,7 @@ const en: Words = {
   owner: "Responsible",
   nobody: "Nobody",
   stage: "Stage",
+  stageOf: (title) => `Stage of ${title}`,
   baseStage: "Base stage",
   account: "Account",
   column: (name, n) => plural("en", n, { one: `${name}, # card`, other: `${name}, # cards` }),
@@ -156,7 +158,7 @@ const en: Words = {
 const ru: Words = {
   title: "Клиенты",
   intro:
-    "Сделки и лиды из ваших CRM и ваших собственных воронок, по стадиям. Копию хранит Memo; показаны все аккаунты, что в ней есть.",
+    "Сделки и лиды из ваших CRM и ваших собственных воронок, по этапам. Копию хранит Memo; показаны все аккаунты, что в ней есть.",
   readAgain: "Прочитать заново",
   reading: "Читаю…",
   kind: "Показать",
@@ -169,8 +171,8 @@ const ru: Words = {
   tryAgain: "Ещё раз",
   none: { deal: "Сделок пока нет", lead: "Лидов пока нет" },
   noneBody: {
-    deal: "Синхронизируйте CRM или попросите агента записать сделку командой memo deals add. Они появятся здесь по стадиям.",
-    lead: "Синхронизируйте CRM или попросите агента записать лид командой memo leads add. Они появятся здесь по стадиям.",
+    deal: "Синхронизируйте CRM или попросите агента записать сделку командой memo deals add. Они появятся здесь по этапам.",
+    lead: "Синхронизируйте CRM или попросите агента записать лид командой memo leads add. Они появятся здесь по этапам.",
   },
   noMatch: "На доске ничего не подходит.",
   clear: "Сбросить",
@@ -180,8 +182,9 @@ const ru: Words = {
   searchHint: "Слова, owner:, stage:, amount:>=1000",
   owner: "Ответственный",
   nobody: "Никто",
-  stage: "Стадия",
-  baseStage: "Базовая стадия",
+  stage: "Этап",
+  stageOf: (title) => `Этап: ${title}`,
+  baseStage: "Базовый этап",
   account: "Аккаунт",
   column: (name, n) =>
     plural("ru", n, { one: `${name}, # карточка`, few: `${name}, # карточки`, other: `${name}, # карточек` }),
@@ -189,7 +192,7 @@ const ru: Words = {
   of: (shown, all) => `${formatNumber(shown, "ru")} из ${formatNumber(all, "ru")}`,
   emptyColumn: "Пусто",
   readOnly:
-    "Только чтение: WireCat пока не умеет запускать инструмент этой CRM, и изменение осталось бы только на этом компьютере. Меняйте стадии в CRM, затем синхронизируйте.",
+    "Только чтение: WireCat пока не умеет запускать инструмент этой CRM, и изменение осталось бы только на этом компьютере. Меняйте этапы в CRM, затем синхронизируйте.",
   draggable: "перемещаемая карточка",
   dragHint: "Пробел — взять, стрелки — перенести, пробел — положить, Escape — вернуть на место.",
   picked: (ref) => `${ref} взята.`,
@@ -197,7 +200,7 @@ const ru: Words = {
   dropped: (ref, column) => `${ref} перенесена в «${column}».`,
   putBack: (ref, reason) => (reason ? `${ref} вернулась на место: ${reason}` : `${ref} вернулась на место.`),
   readOnlyShort: "карточки этой CRM меняются в самой CRM.",
-  otherPipeline: "карточка переходит только между стадиями своей воронки.",
+  otherPipeline: "карточка переходит только между этапами своей воронки.",
   notMoved: (reason) => `Не перенесено: ${reason}`,
   scope: "Синхронизировать",
   scopes: { mine: "Мои", all: "Все" },
@@ -267,6 +270,7 @@ const es: Words = {
   owner: "Responsable",
   nobody: "Nadie",
   stage: "Etapa",
+  stageOf: (title) => `Etapa de ${title}`,
   baseStage: "Etapa base",
   account: "Cuenta",
   column: (name, n) => plural("es", n, { one: `${name}, # tarjeta`, other: `${name}, # tarjetas` }),

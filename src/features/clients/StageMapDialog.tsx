@@ -136,19 +136,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
             icon: <Lamp tone={c.waiting > 0 ? "warn" : "ok"} size="sm" />,
           }))}
         />
-        {suggestions > 0 ? (
-          <Button
-            size="sm"
-            variant="primary"
-            disabled={busy}
-            icon={<CheckCheck className="size-4" aria-hidden />}
-            onClick={confirmAll}
-          >
-            {s.confirmAll(suggestions)}
-          </Button>
-        ) : (
-          crm.waiting === 0 && <span className="text-[0.9rem]">{s.allConfirmed}</span>
-        )}
+        {crm.waiting === 0 && <span className="text-[0.9rem]">{s.allConfirmed}</span>}
         <span className="ml-auto">
           <AddStage base={read.base} busy={busy} onEdit={(e) => edit.mutate(e)} />
         </span>
@@ -173,7 +161,20 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                 b ? (
                   <StageTools stage={b} base={read.base} busy={busy} onEdit={(e) => edit.mutate(e)} />
                 ) : (
-                  s.unmappedHint
+                  <span className="flex flex-col items-start gap-[0.45rem]">
+                    {s.unmappedHint}
+                    {suggestions > 0 && (
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        disabled={busy}
+                        icon={<CheckCheck className="size-4" aria-hidden />}
+                        onClick={confirmAll}
+                      >
+                        {s.acceptAll(suggestions)}
+                      </Button>
+                    )}
+                  </span>
                 )
               }
               target={drag?.to === id}
@@ -213,7 +214,6 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                         {!x.confirmed && x.base && (
                           <button
                             type="button"
-                            disabled={set.isPending}
                             aria-label={s.confirmTo(x.base.name)}
                             title={s.confirmTo(x.base.name)}
                             data-suggest={x.ref}

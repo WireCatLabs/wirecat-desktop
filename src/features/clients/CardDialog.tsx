@@ -1,10 +1,13 @@
 import type { ReactNode } from "react"
 import { crmToolOf } from "@/domain/catalog"
-import { moneyOf } from "@/domain/clients"
+import { type Kind, moneyOf } from "@/domain/clients"
 import { formatDate, useLang, useMessages } from "@/i18n"
+import type { CrmCard } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
-import { useBoard } from "./api"
+import { Select } from "@/ui/Select"
+import { type Based, useBoard } from "./api"
+import { useBaseMove } from "./base-move"
 import { OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
@@ -35,10 +38,7 @@ export function CardDialog() {
       {card && (
         <dl className="grid grid-cols-[max-content_1fr] gap-x-[1.2rem] gap-y-[0.55rem] text-[0.95rem]">
           <Row label={m.stage}>
-            <span className="inline-flex items-center gap-[0.5rem]">
-              <OutcomeLamp outcome={card.status} />
-              {card.stage} · {m.statusOf[card.status] ?? card.status}
-            </span>
+            {data?.kind === "base" ? <StageField read={data} kind={kind} card={card} /> : <StageText card={card} />}
           </Row>
           <Row label={m.baseStage}>{card.baseStage?.name}</Row>
           <Row label={m.amount}>{card.amount && card.currency ? moneyOf(card.amount, card.currency, lang) : null}</Row>
@@ -66,6 +66,39 @@ export function CardDialog() {
         </dl>
       )}
     </Dialog>
+  )
+}
+
+function StageText({ card }: { card: CrmCard }) {
+  const m = useMessages(clientMessages)
+  return (
+    <span className="inline-flex items-center gap-[0.5rem]">
+      <OutcomeLamp outcome={card.status} />
+      {card.stage} · {m.statusOf[card.status] ?? card.status}
+    </span>
+  )
+}
+
+/** The card's stage, changed in place among its own pipeline's stages, written the way a move on the board is. */
+function StageField({ read, kind, card }: { read: Based; kind: Kind; card: CrmCard }) {
+  const m = useMessages(clientMessages)
+  const move = useBaseMove(read, kind)
+  // The base set's own pipeline has no mapping: its stages are the base stages themselves.
+  const mapped = read.mapping.filter((x) => x.pipeline === card.pipeline)
+  const stages = mapped.length ? mapped : read.base
+  const current = stages.find((x) => x.name === card.stage)
+  if (!move.movable(card) || !current) return <StageText card={card} />
+  return (
+    <Select
+      size="sm"
+      aria-label={m.stageOf(card.title)}
+      value={current.ref}
+      onChange={(ref: string) => {
+        const to = stages.find((x) => x.ref === ref)
+        if (to && to.ref !== current.ref) move.run(card, to.name)
+      }}
+      options={stages.map((x) => ({ value: x.ref, label: x.name, icon: <OutcomeLamp outcome={x.outcome} /> }))}
+    />
   )
 }
 

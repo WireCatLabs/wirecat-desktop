@@ -23,11 +23,11 @@ type Words = {
   noCrm: string
   mapIntro: string
   unmappedHint: string
+  acceptAll: (n: number) => string
   suggestion: (base: string) => string
   confirmTo: (base: string) => string
   unmapped: string
   noStages: string
-  confirmAll: (n: number) => string
   toConfirm: (n: number) => string
   toConfirmBody: string
   confirmStages: string
@@ -76,11 +76,11 @@ const en: Words = {
   mapIntro:
     "The columns are your base stages. Each stage of this CRM is a badge: drag it onto the base stage it means, or move it with Space and the arrow keys.",
   unmappedHint: "Not placed yet. Confirm memo's suggestion or drag the stage onto its column.",
+  acceptAll: (n) => `Accept suggestions (${n})`,
   suggestion: (base) => `→ ${base}?`,
   confirmTo: (base) => `Confirm: ${base}`,
   unmapped: "Unmapped",
   noStages: "No stage here yet",
-  confirmAll: (n) => `Confirm stages (${n})`,
   toConfirm: (n) =>
     plural("en", n, {
       one: "# CRM stage waits for you to confirm it",
@@ -116,76 +116,76 @@ const en: Words = {
 }
 
 const ru: Words = {
-  unsorted: "Без стадии",
-  unsortedEmpty: "У каждой карточки есть стадия",
-  mapStages: "Стадии CRM",
+  unsorted: "Без этапа",
+  unsortedEmpty: "У каждой карточки есть этап",
+  mapStages: "Этапы CRM",
   refusal: {
     readOnly: "карточки этой CRM меняются в самой CRM.",
-    unsorted: "«Без стадии» — не стадия: перенесите карточку на стадию.",
-    unmapped: "ни одна стадия воронки этой карточки пока не относится к этой колонке.",
-    unconfirmed: "стадия этой воронки для колонки пока только предложена: сначала подтвердите её.",
-    toUnmapped: "стадия переносится на базовую стадию; «Не размечено» — только для тех, что ещё не размечены.",
+    unsorted: "«Без этапа» — не этап: перенесите карточку на этап.",
+    unmapped: "ни один этап воронки этой карточки пока не относится к этой колонке.",
+    unconfirmed: "этап этой воронки для колонки пока только предложен: сначала подтвердите его.",
+    toUnmapped: "этап переносится на базовый этап; «Не размечено» — только для тех, что ещё не размечены.",
   },
   badge: (stage, pipeline) => `${stage} · ${pipeline}`,
   suggested: (base) => `Предложено: ${base}`,
-  pickTitle: (base) => `Какая стадия из «${base}»?`,
-  pickBody: (title) => `К этой колонке относятся несколько стадий этой воронки. Выберите стадию для «${title}».`,
-  lastPicked: "Выбрана в прошлый раз",
+  pickTitle: (base) => `Какой этап из «${base}»?`,
+  pickBody: (title) => `К этой колонке относятся несколько этапов этой воронки. Выберите этап для «${title}».`,
+  lastPicked: "Выбран в прошлый раз",
   move: "Перенести",
   cancel: "Отмена",
-  mapTitle: { deal: "Стадии сделок в ваших CRM", lead: "Стадии лидов в ваших CRM" },
+  mapTitle: { deal: "Этапы сделок в ваших CRM", lead: "Этапы лидов в ваших CRM" },
   mapWaiting: (n) =>
     plural("ru", n, {
-      one: "Стадии CRM: # не размечена",
-      few: "Стадии CRM: # не размечены",
-      many: "Стадии CRM: # не размечено",
-      other: "Стадии CRM: # не размечено",
+      one: "Этапы CRM: # не размечен",
+      few: "Этапы CRM: # не размечены",
+      many: "Этапы CRM: # не размечено",
+      other: "Этапы CRM: # не размечено",
     }),
   crm: "CRM",
-  noCrm: "CRM пока не подключена. Её стадии появятся здесь после первой синхронизации.",
+  noCrm: "CRM пока не подключена. Её этапы появятся здесь после первой синхронизации.",
   mapIntro:
-    "Колонки — ваши базовые стадии. Каждая стадия этой CRM — бейдж: перетащите его на базовую стадию, которой он соответствует, или перенесите пробелом и стрелками.",
-  unmappedHint: "Ещё не размечены. Подтвердите предложение Memo или перетащите стадию в её колонку.",
+    "Колонки — ваши базовые этапы. Каждый этап этой CRM — бейдж: перетащите его на базовый этап, которому он соответствует, или перенесите пробелом и стрелками.",
+  unmappedHint: "Ещё не размечены. Подтвердите предложение Memo или перетащите этап в его колонку.",
+  acceptAll: (n) => `Принять предложения (${n})`,
   suggestion: (base) => `→ ${base}?`,
   confirmTo: (base) => `Подтвердить: ${base}`,
   unmapped: "Не размечено",
-  noStages: "Здесь пока нет стадий",
-  confirmAll: (n) => `Подтвердить стадии (${n})`,
+  noStages: "Здесь пока нет этапов",
   toConfirm: (n) =>
     plural("ru", n, {
-      one: "# стадия CRM ждёт вашего подтверждения",
-      few: "# стадии CRM ждут вашего подтверждения",
-      many: "# стадий CRM ждут вашего подтверждения",
-      other: "# стадии CRM ждут вашего подтверждения",
+      one: "# этап CRM ждёт вашего подтверждения",
+      few: "# этапа CRM ждут вашего подтверждения",
+      many: "# этапов CRM ждут вашего подтверждения",
+      other: "# этапа CRM ждут вашего подтверждения",
     }),
   toConfirmBody:
-    "Memo предложил, какой из ваших стадий соответствует каждая. Пока вы не подтвердите, их карточки лежат в «Без стадии».",
-  confirmStages: "Подтвердить стадии",
+    "Memo предложил, какому из ваших этапов соответствует каждый. Пока вы не подтвердите, их карточки лежат в «Без этапа».",
+  confirmStages: "Подтвердить этапы",
   allConfirmed: "Все предложения подтверждены.",
   failed: (reason) => `Не сохранено: ${reason}`,
   stageColumn: (name, n) =>
-    plural("ru", n, { one: `${name}, # стадия`, few: `${name}, # стадии`, other: `${name}, # стадий` }),
+    plural("ru", n, { one: `${name}, # этап`, few: `${name}, # этапа`, other: `${name}, # этапов` }),
   stageCard: (stage, pipeline) => `${stage}, ${pipeline}`,
   items: (kind, n) =>
     kind === "deal"
       ? plural("ru", n, { one: "# открытая сделка", few: "# открытые сделки", other: "# открытых сделок" })
       : plural("ru", n, { one: "# открытый лид", few: "# открытых лида", other: "# открытых лидов" }),
-  addStage: "Добавить стадию",
+  addStage: "Добавить этап",
   add: "Добавить",
   save: "Сохранить",
-  name: "Название новой стадии",
-  outcome: "Тип стадии",
-  outcomes: { open: "Открыта", won: "Выиграна", lost: "Проиграна" },
+  name: "Название нового этапа",
+  outcome: "Тип этапа",
+  outcomes: { open: "Открыт", won: "Выигран", lost: "Проигран" },
   rename: (name) => `Переименовать «${name}»`,
   renameTo: (name) => `Новое название для «${name}»`,
   moveLeft: (name) => `Сдвинуть «${name}» влево`,
   moveRight: (name) => `Сдвинуть «${name}» вправо`,
   remove: (name) => `Удалить «${name}»`,
-  keepOne: (outcome) => `Это последняя стадия типа «${outcome}»; в наборе остаётся по одной каждого типа.`,
+  keepOne: (outcome) => `Это последний этап типа «${outcome}»; в наборе остаётся по одному каждого типа.`,
   nameProblem: {
-    empty: "Дайте ей название.",
+    empty: "Дайте ему название.",
     long: "Одна короткая строка, не с дефиса.",
-    taken: "Такое название уже есть у другой стадии.",
+    taken: "Такое название уже есть у другого этапа.",
   },
 }
 
@@ -214,11 +214,11 @@ const es: Words = {
   mapIntro:
     "Las columnas son tus etapas base. Cada etapa de este CRM es una insignia: arrástrala a la etapa base que significa, o muévela con Espacio y las flechas.",
   unmappedHint: "Aún sin asignar. Confirma la sugerencia de Memo o arrastra la etapa a su columna.",
+  acceptAll: (n) => `Aceptar sugerencias (${n})`,
   suggestion: (base) => `→ ${base}?`,
   confirmTo: (base) => `Confirmar: ${base}`,
   unmapped: "Sin asignar",
   noStages: "Aún no hay etapas aquí",
-  confirmAll: (n) => `Confirmar etapas (${n})`,
   toConfirm: (n) =>
     plural("es", n, {
       one: "# etapa del CRM espera tu confirmación",
