@@ -345,12 +345,13 @@ describe("Mapping a CRM's stages onto the base set", () => {
     expect(map).not.toHaveTextContent("Brief")
   })
 
-  it("confirms memo's suggestion for one stage with a click", async () => {
+  it("confirms memo's suggestion for one stage with a click, and the keyboard goes on to the next one", async () => {
     const set = vi.spyOn(platform, "clientsMapSet")
     const { user, column } = await openMap()
     await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Confirm: Call" }))
     expect(set).toHaveBeenCalledWith(expect.stringMatching(/^stage:/), expect.stringMatching(/^stage:/))
     await waitFor(async () => expect(await column(/^Call/)).toHaveTextContent("Lead in"))
+    await waitFor(() => expect(screen.getByRole("button", { name: "Confirm: Contract" })).toHaveFocus())
   })
 
   it("confirms only the chosen CRM's suggestions, and Unmapped goes once nothing waits", async () => {
@@ -365,6 +366,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     expect(await within(map).findByText("Every suggestion is confirmed.", {}, { timeout: 4000 })).toBeVisible()
     expect(within(map).queryByRole("region", { name: /^Unmapped/ })).toBeNull()
     expect(await column(/^Quote/)).toHaveTextContent("Estimate")
+    await waitFor(() => expect(within(map).getByRole("radio", { name: "amocrm · acme.example" })).toHaveFocus())
   })
 
   it("maps a stage by carrying it onto a base stage, never back onto Unmapped", async () => {
@@ -377,6 +379,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await user.keyboard(" {ArrowRight} ")
     expect(set).toHaveBeenCalledWith(expect.stringMatching(/^stage:/), expect.stringMatching(/^stage:/))
     await waitFor(async () => expect(await column(/^Call/)).toHaveTextContent("Waiting for payment"))
+    await waitFor(async () => expect(await badge(/^Call/, "Waiting for payment")).toHaveFocus())
   })
 
   it("renames a base stage in place, and will not remove the last stage of an outcome", async () => {

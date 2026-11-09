@@ -1,5 +1,5 @@
 import { CheckCheck } from "lucide-react"
-import { useRef } from "react"
+import { useEffect, useRef } from "react"
 import { crmsOf, crmToOpen, mapColumnsOf, mapDropOf, UNMAPPED, unconfirmedOf } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
 import type { Kind } from "@/domain/clients"
@@ -62,13 +62,43 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
   const nameOf = (id: string) => (id === UNMAPPED ? s.unmapped : (read.base.find((b) => b.ref === id)?.name ?? id))
   const pending = unconfirmedOf(mapping, pipelines)
   const suggestions = pending.reduce((n, p) => n + p.count, 0)
-  const mapTo = (stage: string, to: string) => {
+  const layout = mapping.map((x) => `${x.ref}:${x.base?.ref}:${x.confirmed}`).join()
+  const root = useRef<HTMLDivElement>(null)
+  const board = useRef<HTMLDivElement>(null)
+  useSlide(board, layout)
+  // Where the keyboard goes once the mapping has changed: the badge or button pressed is gone or drawn anew by then.
+  const focusTo = useRef<{ target: string; from: string } | null>(null)
+  // A confirm button stays disabled while a write runs, so the target is tried again once it ends.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the target is looked up after each change of the mapping
+  useEffect(() => {
+    const to = focusTo.current
+    const el = to && to.from !== layout ? root.current?.querySelector<HTMLElement>(to.target) : null
+    if (!el) return
+    el.focus()
+    if (document.activeElement === el) focusTo.current = null
+  }, [layout, set.isPending, confirm.isPending])
+  const waiting = columns.get(UNMAPPED) ?? []
+  const badgeOf = (ref: string) => `[data-card="${ref}"]`
+  /** After a stage leaves Unmapped, the next one there (its confirm, when memo suggests a place), else the stage. */
+  const nextAfter = (ref: string) => {
+    const rest = waiting.filter((r) => r !== ref)
+    const at = waiting.indexOf(ref)
+    const next = at < 0 ? undefined : (rest[at] ?? rest[at - 1])
+    if (!next) return badgeOf(ref)
+    return byRef.get(next)?.base ? `[data-suggest="${next}"]` : badgeOf(next)
+  }
+  const mapTo = (stage: string, to: string, focus = badgeOf(stage)) => {
     const b = read.base.find((x) => x.ref === to)
     const x = byRef.get(stage)
-    if (b && !(x?.confirmed && x.base?.ref === to)) set.mutate({ stage, base: { ref: b.ref, name: b.name } })
+    if (!b || (x?.confirmed && x.base?.ref === to)) return
+    focusTo.current = { target: focus, from: layout }
+    set.mutate({ stage, base: { ref: b.ref, name: b.name } })
   }
-  const board = useRef<HTMLDivElement>(null)
-  useSlide(board, mapping.map((x) => `${x.ref}:${x.base?.ref}:${x.confirmed}`).join())
+  const confirmAll = () => {
+    const left = waiting.find((r) => !byRef.get(r)?.base)
+    focusTo.current = { target: left ? badgeOf(left) : 'input[type="radio"]:checked', from: layout }
+    confirm.mutate(pending.map((p) => p.pipeline))
+  }
   const label = (ref: string) => {
     const x = byRef.get(ref)
     return x ? s.stageCard(x.name, pipes.get(x.pipeline)?.name ?? x.pipeline) : ref
@@ -92,7 +122,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
 
   if (!crm) return <p>{s.noCrm}</p>
   return (
-    <div className="flex flex-col gap-[0.9rem] pb-[0.2rem]">
+    <div ref={root} className="flex flex-col gap-[0.9rem] pb-[0.2rem]">
       <p className="max-w-[80ch]">{s.mapIntro}</p>
       <div className="flex flex-wrap items-center gap-[0.6rem]">
         <Segmented<string>
@@ -107,12 +137,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
           }))}
         />
         {suggestions > 0 ? (
-          <Button
-            size="sm"
-            disabled={busy}
-            icon={<CheckCheck className="size-4" aria-hidden />}
-            onClick={() => confirm.mutate(pending.map((p) => p.pipeline))}
-          >
+          <Button size="sm" disabled={busy} icon={<CheckCheck className="size-4" aria-hidden />} onClick={confirmAll}>
             {s.confirmAll(suggestions)}
           </Button>
         ) : (
@@ -149,22 +174,14 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
               empty={refs.length === 0 && !drag ? s.noStages : undefined}
             >
               {byPipeline(refs, byRef).map((g) => (
-                <li key={g.stages[0]?.ref} className="flex flex-col gap-[0.4rem] px-[0.7rem] py-[0.6rem]">
+                <li key={g.key} className="flex flex-col gap-[0.4rem] px-[0.7rem] py-[0.6rem]">
                   {pipelines.length > 1 && (
                     <p className="truncate text-[0.8rem] text-ink-dim">{pipes.get(g.pipeline)?.name}</p>
                   )}
                   <div className="flex flex-wrap gap-[0.35rem]">
                     {g.stages.map((x) => (
-                      <span
-                        key={x.ref}
-                        className={cx(
-                          "inline-flex min-w-0 max-w-full flex-wrap items-stretch overflow-hidden rounded-[0.35rem] border bg-app text-[0.9rem] text-ink transition-[background-color,box-shadow] duration-(--motion-fast)",
-                          drag?.key === x.ref
-                            ? "border-line-strong border-dashed bg-app-3 [&>*]:invisible"
-                            : "border-line",
-                          held?.key === x.ref && "z-10 shadow-panel outline-2 outline-brand",
-                        )}
-                      >
+                      // The badge alone carries data-card, so it slides whole when it moves; its suggestion stays.
+                      <span key={x.ref} className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-[0.25rem]">
                         {/* biome-ignore lint/a11y/useSemanticElements: the board's drag ignores a press that starts on a <button> */}
                         <span
                           role="button"
@@ -177,7 +194,13 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                           onPointerDown={(e) => onPointerDown(e, x.ref)}
                           onKeyDown={(e) => onKeyDown(e, x.ref)}
                           onClick={() => onClick(x.ref)}
-                          className="flex min-w-0 cursor-grab touch-none items-center gap-[0.4rem] px-[0.55rem] py-[0.25rem] select-none [-webkit-user-select:none] hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+                          className={cx(
+                            "flex min-w-0 cursor-grab touch-none items-center gap-[0.4rem] rounded-[0.35rem] border bg-app px-[0.55rem] py-[0.25rem] text-[0.9rem] text-ink select-none [-webkit-user-select:none] transition-[background-color,box-shadow] duration-(--motion-fast) hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
+                            drag?.key === x.ref
+                              ? "border-line-strong border-dashed bg-app-3 [&>*]:invisible"
+                              : "border-line",
+                            held?.key === x.ref && "z-10 shadow-panel outline-2 outline-brand",
+                          )}
                         >
                           <StageBadge stage={x} kind={kind} />
                         </span>
@@ -187,8 +210,9 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                             disabled={set.isPending}
                             aria-label={s.confirmTo(x.base.name)}
                             title={s.confirmTo(x.base.name)}
-                            onClick={() => mapTo(x.ref, x.base?.ref ?? "")}
-                            className="grow bg-warn/15 px-[0.45rem] text-left text-[0.85rem] whitespace-nowrap text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand disabled:opacity-45"
+                            data-suggest={x.ref}
+                            onClick={() => mapTo(x.ref, x.base?.ref ?? "", nextAfter(x.ref))}
+                            className="rounded-[0.3rem] bg-warn/15 px-[0.45rem] py-[0.1rem] text-[0.85rem] whitespace-nowrap text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-45"
                           >
                             {s.suggestion(x.base.name)}
                           </button>
@@ -216,15 +240,22 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
   )
 }
 
-/** A column's stages in runs of one pipeline, so each run gets its pipeline's name once. */
+/**
+ * A column's stages in runs of one pipeline, so each run gets its pipeline's name once. A run is keyed by its pipeline,
+ * never its first stage: a run whose first stage leaves would be drawn anew and lose the keyboard's focus.
+ */
 function byPipeline(refs: readonly string[], byRef: ReadonlyMap<string, CrmStageMap>) {
-  const runs: { pipeline: string; stages: CrmStageMap[] }[] = []
+  const runs: { key: string; pipeline: string; stages: CrmStageMap[] }[] = []
   for (const ref of refs) {
     const x = byRef.get(ref)
     if (!x) continue
     const last = runs.at(-1)
     if (last?.pipeline === x.pipeline) last.stages.push(x)
-    else runs.push({ pipeline: x.pipeline, stages: [x] })
+    else {
+      // A badge carried by keyboard can split its pipeline's run in two for a moment.
+      const seen = runs.filter((r) => r.pipeline === x.pipeline).length
+      runs.push({ key: `${x.pipeline}:${seen}`, pipeline: x.pipeline, stages: [x] })
+    }
   }
   return runs
 }
