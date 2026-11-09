@@ -1,7 +1,7 @@
 import { LoaderCircle, Play, X } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { dailyCap, formatUsd, runOutcome } from "@/domain/mail-agent"
-import { ago, openTool } from "@/features/tools"
+import { ago, ToolNeeded } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
 import type { DigestSchedule, OtherSchedule, Route, ScheduleRun } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
@@ -68,14 +68,9 @@ export function ScheduleCard() {
       ) : status === null ? (
         <Skeleton className="h-[4.5rem] w-full" label={m.title} />
       ) : status.state === "noMemo" ? (
-        <div className="flex flex-wrap items-center gap-3">
-          <p className="text-[0.92rem] text-ink-soft">{m.noMemo}</p>
-          <Button size="sm" variant="secondary" onClick={() => openTool("memo")}>
-            {m.openMemo}
-          </Button>
-        </div>
+        <ToolNeeded inline gap={{ kind: "missing", tool: "memo", others: [] }} />
       ) : status.state === "old" ? (
-        <p className="text-[0.92rem] text-ink-soft">{m.old(status.version, status.need)}</p>
+        <ToolNeeded inline gap={{ kind: "old", tool: "memo", version: status.version, need: status.need }} />
       ) : (
         <>
           <Toggle id={switchId} digest={status.digest} harness={status.harness} />

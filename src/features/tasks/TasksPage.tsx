@@ -1,5 +1,6 @@
 import { Columns3, ExternalLink, Plus, RefreshCw, Rows3 } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
+import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -107,13 +108,8 @@ function Body() {
   const loaded = useTasks((s) => s.loaded)
   const error = useTasks((s) => s.error)
 
-  if (unusable) {
-    return (
-      <ToolNeeded id="memo" update={unusable.kind === "old"} label={unusable.kind === "old" ? m.update : m.goTools}>
-        {unusable.kind === "old" ? m.old(unusable.version, unusable.need) : m.missing}
-      </ToolNeeded>
-    )
-  }
+  const gap = gapFromRead(unusable)
+  if (gap) return <ToolNeeded gap={gap} />
   if (error) {
     return (
       <ErrorNotice

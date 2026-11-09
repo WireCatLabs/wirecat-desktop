@@ -16,6 +16,7 @@ import {
   valuesInHits,
 } from "@/domain/search"
 import { QueryBar } from "@/features/query"
+import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { SearchAnswer, SearchHit } from "@/platform/search-schemas"
@@ -118,8 +119,8 @@ export function SearchPage() {
       </div>
 
       {s.demo && <DemoNote />}
-      {checked && installed.length === 0 ? (
-        <Empty>{m.noTools}</Empty>
+      {checked && installed.length === 0 && searchable[0] ? (
+        <ToolNeeded gap={{ kind: "missing", tool: searchable[0].id, others: searchable.slice(1).map((t) => t.id) }} />
       ) : (
         <div inert={s.demo || undefined} className="contents">
           <div className="flex flex-wrap items-start gap-[0.7rem]">

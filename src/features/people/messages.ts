@@ -9,11 +9,6 @@ const en = {
   readAgain: "Read again",
   reading: "Reading…",
   readFailed: "Could not read the people:",
-  missing: "People come from Memo, which is not installed.",
-  goTools: "Open Tools",
-  old: (version: string | null, need: string) =>
-    `This page needs Memo ${need} or newer${version ? `; this computer has ${version}` : ""}.`,
-  update: "Update Memo",
   waiting: (n: number) => plural("en", n, { one: "# match waits for you", other: "# matches wait for you" }),
   waitingHelp: "Two people WireCat thinks may be one. Join them only if you know they are the same person.",
   search: "Find a person",
@@ -111,11 +106,6 @@ const ru: typeof en = {
   readAgain: "Прочитать заново",
   reading: "Читаем…",
   readFailed: "Не удалось прочитать список людей:",
-  missing: "Люди берутся из Memo, а Memo не установлен.",
-  goTools: "Открыть Инструменты",
-  old: (version: string | null, need: string) =>
-    `Этой странице нужен Memo ${need} или новее${version ? `; на этом компьютере ${version}` : ""}.`,
-  update: "Обновить Memo",
   waiting: (n: number) =>
     plural("ru", n, {
       one: "# совпадение ждёт вас",
@@ -228,11 +218,6 @@ const es: typeof en = {
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
   readFailed: "No se pudo leer la lista de personas:",
-  missing: "Las personas vienen de Memo, que no está instalado.",
-  goTools: "Abrir Herramientas",
-  old: (version: string | null, need: string) =>
-    `Esta página necesita Memo ${need} o más reciente${version ? `; este ordenador tiene ${version}` : ""}.`,
-  update: "Actualizar Memo",
   waiting: (n: number) => plural("es", n, { one: "# coincidencia te espera", other: "# coincidencias te esperan" }),
   waitingHelp: "Dos personas que WireCat cree que pueden ser una. Únelas solo si sabes que son la misma.",
   search: "Buscar una persona",

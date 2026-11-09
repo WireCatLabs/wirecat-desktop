@@ -145,12 +145,6 @@ const en = {
     revoke: "Undo approval instead",
   } satisfies Record<Exclude<Undo, "task" | "created" | "none" | null>, string>,
   forgetNow: "Erase",
-  missing:
-    "Memory is kept by Memo, which is not installed. Install it on the Tools page; your agents can then save what they learn, and you review it here.",
-  goTools: "Go to Tools",
-  old: (version: string | null, need: string) =>
-    `This page needs Memo ${need} or newer${version ? `; this computer has ${version}` : ""}. Update Memo to use it.`,
-  update: "Update Memo",
   emptyTitle: "No memories yet.",
   emptyBody:
     'An agent connected to WireCat saves what it learns here, for example "Kai prefers Friday calls", with the messages that show it. Ask your agent to remember something, or connect one on the Agents page.',
@@ -400,12 +394,6 @@ const ru: typeof en = {
     revoke: "Лучше отменить одобрение",
   },
   forgetNow: "Стереть",
-  missing:
-    "Память хранит Memo, а он не установлен. Установите его на странице «Инструменты»: тогда агенты смогут сохранять то, что узнали, а вы — проверять это здесь.",
-  goTools: "К инструментам",
-  old: (version, need) =>
-    `Этой странице нужен Memo ${need} или новее${version ? `, а на этом компьютере ${version}` : ""}. Обновите Memo, чтобы ею пользоваться.`,
-  update: "Обновить Memo",
   emptyTitle: "Записей пока нет.",
   emptyBody:
     "Агент, подключённый к WireCat, сохраняет сюда то, что узнал, например «Kai удобнее созваниваться по пятницам», вместе с сообщениями, где это видно. Попросите агента что-нибудь запомнить или подключите его на странице «Агенты».",
@@ -653,12 +641,6 @@ const es: typeof en = {
     revoke: "Mejor deshacer la aprobación",
   },
   forgetNow: "Borrar",
-  missing:
-    "La memoria la guarda Memo, que no está instalado. Instálalo en la página Herramientas; así tus agentes podrán guardar lo que aprenden y tú lo revisarás aquí.",
-  goTools: "Ir a Herramientas",
-  old: (version, need) =>
-    `Esta página necesita Memo ${need} o posterior${version ? `; este ordenador tiene la ${version}` : ""}. Actualiza Memo para usarla.`,
-  update: "Actualizar Memo",
   emptyTitle: "Aún no hay memorias.",
   emptyBody:
     "Un agente conectado a WireCat guarda aquí lo que aprende, por ejemplo «Kai prefiere las llamadas los viernes», con los mensajes que lo muestran. Pide a tu agente que recuerde algo o conecta uno en la página Agentes.",

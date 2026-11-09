@@ -1,6 +1,7 @@
 import { Check, ChevronDown, ExternalLink, LoaderCircle, Plus, RefreshCw } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
 import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
+import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
@@ -31,6 +32,7 @@ export function MemoryPage() {
   const m = useMessages(memoryMessages)
   const lang = useLang()
   const s = useMemory()
+  const gap = gapFromRead(s.read)
   const { load, demo } = s
 
   useEffect(() => {
@@ -102,14 +104,8 @@ export function MemoryPage() {
           <ErrorNotice action={<ReportThis what="Reading memory" error={s.error} />}>
             {m.readFailed} {s.error}
           </ErrorNotice>
-        ) : s.read?.kind === "missing" ? (
-          <ToolNeeded id="memo" update={false} label={m.goTools}>
-            {m.missing}
-          </ToolNeeded>
-        ) : s.read?.kind === "old" ? (
-          <ToolNeeded id="memo" update label={m.update}>
-            {m.old(s.read.version, s.read.need)}
-          </ToolNeeded>
+        ) : gap ? (
+          <ToolNeeded gap={gap} />
         ) : (
           <>
             {ready && <AddPanel />}

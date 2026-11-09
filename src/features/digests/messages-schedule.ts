@@ -4,10 +4,6 @@ type RouteKind = "telegramBot" | "email"
 
 const en = {
   title: "Morning digest schedule",
-  noMemo: "The morning digest runs in Memo. Install Memo to schedule it.",
-  openMemo: "Open Memo",
-  old: (version: string | null, need: string) =>
-    `${version ? `Memo ${version}` : "This Memo"} is too old to schedule the digest. Update it to ${need} or later.`,
   readFailed: (message: string) => `Could not read memo's schedules: ${message}`,
   toggle: "Write the digest every morning",
   daily: (time: string) => `Every day at ${time}`,
@@ -88,10 +84,6 @@ const en = {
 
 const ru: typeof en = {
   title: "Расписание утренней сводки",
-  noMemo: "Утренняя сводка работает в Memo. Установите Memo, чтобы поставить её в расписание.",
-  openMemo: "Открыть Memo",
-  old: (version, need) =>
-    `${version ? `Memo ${version}` : "Эта версия Memo"} слишком старая для расписания сводки. Обновите её до ${need} или новее.`,
   readFailed: (message) => `Не удалось прочитать расписания memo: ${message}`,
   toggle: "Писать сводку каждое утро",
   daily: (time) => `Каждый день в ${time}`,
@@ -180,10 +172,6 @@ const ru: typeof en = {
 
 const es: typeof en = {
   title: "Horario del resumen matutino",
-  noMemo: "El resumen matutino funciona en Memo. Instala Memo para programarlo.",
-  openMemo: "Abrir Memo",
-  old: (version, need) =>
-    `${version ? `Memo ${version}` : "Esta versión de Memo"} es demasiado antigua para programar el resumen. Actualízala a ${need} o posterior.`,
   readFailed: (message) => `No se pudieron leer los horarios de memo: ${message}`,
   toggle: "Escribir el resumen cada mañana",
   daily: (time) => `Cada día a las ${time}`,

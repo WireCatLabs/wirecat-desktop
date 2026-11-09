@@ -12,11 +12,8 @@ type Words = {
   pipeline: string
   ownAccount: string
   allAccounts: string
-  missing: string
-  old: (version: string | null, need: string) => string
-  goTools: string
-  update: string
   readFailed: string
+  crmWhy: string
   tryAgain: string
   none: Record<Kind, string>
   noneBody: Record<Kind, string>
@@ -85,12 +82,8 @@ const en: Words = {
   pipeline: "Pipeline",
   ownAccount: "Your own",
   allAccounts: "Every account",
-  missing: "The Clients page reads Memo, which is not installed yet.",
-  old: (version, need) =>
-    `The Clients page needs Memo ${need} or newer${version ? `; this computer has ${version}` : ""}.`,
-  goTools: "Open Tools",
-  update: "Update Memo",
   readFailed: "Memo could not read the deals.",
+  crmWhy: "Deals you add here work without one; a CRM brings in the deals and leads you keep there.",
   tryAgain: "Try again",
   none: { deal: "No deals yet", lead: "No leads yet" },
   noneBody: {
@@ -170,12 +163,8 @@ const ru: Words = {
   pipeline: "Воронка",
   ownAccount: "Ваша собственная",
   allAccounts: "Все аккаунты",
-  missing: "Страница «Клиенты» читает Memo, а он ещё не установлен.",
-  old: (version, need) =>
-    `Странице «Клиенты» нужен Memo ${need} или новее${version ? `; на этом компьютере ${version}` : ""}.`,
-  goTools: "Открыть «Инструменты»",
-  update: "Обновить Memo",
   readFailed: "Memo не смог прочитать сделки.",
+  crmWhy: "Сделки, добавленные здесь, работают и без неё; CRM приносит сделки и лиды, которые вы ведёте там.",
   tryAgain: "Ещё раз",
   none: { deal: "Сделок пока нет", lead: "Лидов пока нет" },
   noneBody: {
@@ -259,12 +248,9 @@ const es: Words = {
   pipeline: "Embudo",
   ownAccount: "El tuyo",
   allAccounts: "Todas las cuentas",
-  missing: "La página Clientes lee Memo, que aún no está instalado.",
-  old: (version, need) =>
-    `La página Clientes necesita Memo ${need} o posterior${version ? `; este ordenador tiene ${version}` : ""}.`,
-  goTools: "Abrir Herramientas",
-  update: "Actualizar Memo",
   readFailed: "Memo no pudo leer las negociaciones.",
+  crmWhy:
+    "Las negociaciones que añades aquí funcionan sin él; un CRM trae las negociaciones y los leads que llevas allí.",
   tryAgain: "Reintentar",
   none: { deal: "Aún no hay negociaciones", lead: "Aún no hay prospectos" },
   noneBody: {

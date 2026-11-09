@@ -88,7 +88,6 @@ const en = {
   another: "Add another",
   done: "Done",
   failed: "Could not do it:",
-  tooOld: "Memo on this computer cannot add sources yet. Update it on the Tools page.",
   tooOldReaders: "Memo on this computer cannot read sources for facts yet. Update it on the Tools page to get facts.",
   reasons: {
     "memo.refused": "Memo refused it and gave no reason WireCat can show. Try again, or add it from a file.",
@@ -204,7 +203,6 @@ const ru: typeof en = {
   another: "Добавить ещё",
   done: "Готово",
   failed: "Не получилось:",
-  tooOld: "Memo на этом компьютере пока не умеет добавлять источники. Обновите его на странице Инструменты.",
   tooOldReaders:
     "Memo на этом компьютере пока не умеет искать факты в источниках. Обновите его на странице Инструменты.",
   reasons: {
@@ -321,7 +319,6 @@ const es: typeof en = {
   another: "Añadir otra",
   done: "Listo",
   failed: "No se pudo hacer:",
-  tooOld: "Memo en este ordenador aún no puede añadir fuentes. Actualízalo en la página Herramientas.",
   tooOldReaders:
     "Memo en este ordenador aún no puede sacar hechos de las fuentes. Actualízalo en la página Herramientas.",
   reasons: {

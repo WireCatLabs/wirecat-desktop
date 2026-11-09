@@ -163,7 +163,6 @@ const en = {
   searching: "Searching…",
   start: "Choose a tool and a profile, type what to look for and press Enter.",
   startNoProfile: "Type what to look for and press Enter.",
-  noTools: "No installed tool can search what it keeps yet. Install one on the Tools page.",
   tooOld: (tool: string, version: string | null) =>
     `${tool}${version ? ` ${version}` : ""} can't search its local data yet. Update it on the Tools page.`,
   failed: "The search did not run.",
@@ -381,8 +380,6 @@ const ru: typeof en = {
   searching: "Ищем…",
   start: "Выберите инструмент и профиль, введите, что искать, и нажмите Enter.",
   startNoProfile: "Введите, что искать, и нажмите Enter.",
-  noTools:
-    "Ни один установленный инструмент пока не умеет искать по своим данным. Установите его на странице «Инструменты».",
   tooOld: (tool, version) =>
     `${tool}${version ? ` ${version}` : ""} пока не умеет искать по локальным данным. Обновите его на странице «Инструменты».`,
   failed: "Поиск не выполнен.",
@@ -601,8 +598,6 @@ const es: typeof en = {
   searching: "Buscando…",
   start: "Elige una herramienta y un perfil, escribe qué buscar y pulsa Intro.",
   startNoProfile: "Escribe qué buscar y pulsa Intro.",
-  noTools:
-    "Ninguna herramienta instalada puede buscar todavía en lo que guarda. Instala una en la página Herramientas.",
   tooOld: (tool, version) =>
     `${tool}${version ? ` ${version}` : ""} aún no puede buscar en sus datos locales. Actualízala en la página Herramientas.`,
   failed: "La búsqueda no se ejecutó.",

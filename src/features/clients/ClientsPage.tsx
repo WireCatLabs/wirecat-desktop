@@ -1,10 +1,12 @@
 import { Columns3, Handshake, LayoutGrid, RefreshCw, UserRoundPlus } from "lucide-react"
 import { crmToolOf } from "@/domain/catalog"
 import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
-import { ToolNeeded } from "@/features/tools"
+import { gapFromRead } from "@/domain/needs"
+import { crmNeed, ToolNeeded, useNeed } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { CrmPipeline } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Segmented } from "@/ui/Segmented"
@@ -72,10 +74,19 @@ export function ClientsPage() {
           />
         </div>
       </div>
+      {usable && <CrmNeeded />}
       <Body />
       <CardDialog />
     </div>
   )
+}
+
+/** The owner's own deals work without one; a CRM is where most of them come from. */
+function CrmNeeded() {
+  const m = useMessages(clientMessages)
+  const gap = useNeed(crmNeed())
+  // The tools are found apart from memo's read, so the notice may come after the board: it opens, never pops in.
+  return <Collapse open={gap !== null}>{gap && <ToolNeeded gap={gap}>{m.crmWhy}</ToolNeeded>}</Collapse>
 }
 
 function Body() {
@@ -100,12 +111,8 @@ function Body() {
   }
   if (isPending || !data) return <Loading />
   if (data.kind === "missing" || data.kind === "old") {
-    const old = data.kind === "old"
-    return (
-      <ToolNeeded id="memo" update={old} label={old ? m.update : m.goTools}>
-        {old ? m.old(data.version, data.need) : m.missing}
-      </ToolNeeded>
-    )
+    const gap = gapFromRead(data)
+    return gap && <ToolNeeded gap={gap} />
   }
   if (data.pipelines.length === 0) {
     return (

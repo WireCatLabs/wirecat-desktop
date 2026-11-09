@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useSync } from "@/features/tools"
 import { platform } from "@/platform/bridge"
 import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
+import { useTools } from "@/shared/tools-store"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { ClientsPage } from "./ClientsPage"
 import { useClients } from "./store"
@@ -141,10 +142,26 @@ describe("Clients with a memo without base stages", () => {
     expect(screen.queryByRole("button", { name: "Clear pipeline" })).toBeNull()
   })
 
+  it("asks for a CRM, and once one is installed, for its sign-in, while the board still shows", async () => {
+    render(<ClientsPage />)
+    await card("Site for Northstar")
+    expect(await screen.findByRole("button", { name: "Install Bitrix24" })).toBeInTheDocument()
+    vi.spyOn(platform, "listProfiles").mockResolvedValue([])
+    useTools.setState({
+      checked: true,
+      installs: {
+        ...useTools.getState().installs,
+        bitrix: [{ path: "/b24", version: "9.9.9", manager: "npm", problem: null }],
+      },
+    })
+    expect(await screen.findByRole("button", { name: "Sign in to Bitrix24" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Site for Northstar" })).toBeInTheDocument()
+  })
+
   it("offers Memo's install when it is missing", async () => {
     vi.spyOn(platform, "clientsRead").mockResolvedValue({ kind: "missing" })
     render(<ClientsPage />)
-    expect(await screen.findByRole("button", { name: "Open Tools" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Install Memo" })).toBeInTheDocument()
   })
 })
 
