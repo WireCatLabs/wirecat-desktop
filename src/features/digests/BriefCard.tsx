@@ -1,0 +1,90 @@
+import { useEffect, useId, useState } from "react"
+import { briefChars } from "@/domain/digest-editors"
+import { useMessages } from "@/i18n"
+import { platform } from "@/platform/bridge"
+import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
+import { ErrorNotice } from "@/ui/ErrorNotice"
+import { Skeleton } from "@/ui/Skeleton"
+import { area, card, useMemoEditor } from "./editor-state"
+import { editorMessages } from "./messages-editors"
+
+/** "What to collect": the owner's brief, through memo's `digest brief`. memo refuses it to an agent, never to him. */
+export function BriefCard() {
+  const all = useMessages(editorMessages)
+  const m = all.brief
+  const titleId = useId()
+  const counterId = useId()
+  const { value, readError, busy, failed, change } = useMemoEditor(() => platform.digestBrief(), "brief")
+  const saved = value?.state === "ready" ? (value.body ?? "") : ""
+  const [draft, setDraft] = useState(saved)
+  useEffect(() => setDraft(saved), [saved])
+
+  if (value?.state === "noMemo") return null
+  const ready = value?.state === "ready" ? value : null
+  const limit = ready?.limit ?? 4000
+  const chars = briefChars(draft)
+  const over = chars > limit
+
+  return (
+    <section aria-labelledby={titleId} className={card}>
+      <h2 id={titleId} className="text-[1.05rem] font-semibold text-ink">
+        {m.title}
+      </h2>
+      <p className="max-w-[70ch] text-[0.88rem] text-ink-soft">{m.hint}</p>
+      {readError ? (
+        <ErrorNotice inline>{all.readFailed(readError)}</ErrorNotice>
+      ) : value === null ? (
+        <Skeleton className="h-[9rem] w-full" label={m.title} />
+      ) : value.state === "unsupported" ? (
+        <p className="text-[0.92rem] text-ink-soft">{m.unsupported}</p>
+      ) : (
+        <>
+          <textarea
+            aria-label={m.label}
+            aria-describedby={counterId}
+            aria-invalid={over || undefined}
+            rows={7}
+            value={draft}
+            placeholder={m.placeholder}
+            onChange={(e) => setDraft(e.target.value)}
+            className={area}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <span id={counterId} className={cx("text-[0.85rem] tabular-nums", over ? "text-bad" : "text-ink-dim")}>
+              {m.counter(chars, limit)}
+            </span>
+            <span className="flex-1" />
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy || ready?.history === 0}
+              onClick={() => void change(() => platform.digestBriefUndo())}
+            >
+              {all.undo}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy || ready?.body == null}
+              onClick={() => void change(() => platform.digestBriefReset())}
+            >
+              {m.remove}
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={busy || over || chars === 0 || draft.trim() === saved.trim()}
+              onClick={() => void change(() => platform.digestBriefSave(draft))}
+            >
+              {busy ? all.saving : m.save}
+            </Button>
+          </div>
+          {over && <p className="text-[0.85rem] text-bad">{m.tooLong(limit)}</p>}
+          {ready?.body == null && !over && <p className="text-[0.85rem] text-ink-dim">{m.none}</p>}
+          {failed && <ErrorNotice inline>{m.failed(failed)}</ErrorNotice>}
+        </>
+      )}
+    </section>
+  )
+}

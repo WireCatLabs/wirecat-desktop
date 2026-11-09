@@ -19,6 +19,7 @@ mod config_repair;
 mod conversation;
 mod crm_board;
 mod deep_link;
+mod digest_editors;
 mod digest_schedule;
 mod digests;
 mod drive_folders;
@@ -174,6 +175,15 @@ pub fn run() {
             commands::app::digest_schedule_remove,
             commands::app::digest_schedule_run,
             commands::app::digest_backfill,
+            commands::app::digest_brief,
+            commands::app::digest_brief_save,
+            commands::app::digest_brief_undo,
+            commands::app::digest_brief_reset,
+            commands::app::digest_template,
+            commands::app::digest_template_save,
+            commands::app::digest_template_undo,
+            commands::app::digest_template_reset,
+            commands::app::digest_template_preview,
             commands::app::readiness,
             commands::app::sandbox,
             commands::app::report_context,

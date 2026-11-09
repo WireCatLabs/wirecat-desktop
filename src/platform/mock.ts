@@ -13,6 +13,7 @@ import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-commun
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
 import { conversationMock } from "./mock-conversation"
 import { delay } from "./mock-delay"
+import { digestEditorsMock } from "./mock-digest-editors"
 import { digestsMock } from "./mock-digests"
 import { driveFoldersMock } from "./mock-drive-folders"
 import { enrichmentMock } from "./mock-enrichment"
@@ -710,6 +711,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...syncScheduleMock(params),
     ...mailAgentMock(params),
     ...digestsMock(params),
+    ...digestEditorsMock(params),
     ...conversationMock(params),
     ...notesSetupMock(params),
     ...enrichmentMock(params),

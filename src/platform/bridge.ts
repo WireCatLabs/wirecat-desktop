@@ -385,6 +385,15 @@ function createTauri(): Platform {
     digestScheduleRemove: () => invoke("digest_schedule_remove"),
     digestScheduleRun: () => invoke("digest_schedule_run"),
     digestBackfill: (from, to, yes) => invoke("digest_backfill", { from, to, yes }),
+    digestBrief: () => invoke("digest_brief"),
+    digestBriefSave: (body) => invoke("digest_brief_save", { body }),
+    digestBriefUndo: () => invoke("digest_brief_undo"),
+    digestBriefReset: () => invoke("digest_brief_reset"),
+    digestTemplate: (channel, locale) => invoke("digest_template", { channel, locale }),
+    digestTemplateSave: (channel, locale, body) => invoke("digest_template_save", { channel, locale, body }),
+    digestTemplateUndo: (channel, locale) => invoke("digest_template_undo", { channel, locale }),
+    digestTemplateReset: (channel, locale) => invoke("digest_template_reset", { channel, locale }),
+    digestTemplatePreview: (channel, locale, draft) => invoke("digest_template_preview", { channel, locale, draft }),
     openUrl: (url) => openUrl(url),
     window: async (action) => {
       const w = getCurrentWindow()

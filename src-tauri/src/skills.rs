@@ -149,6 +149,34 @@ pub(crate) fn call(tool: &Tool, args: &[String], timeout: Duration) -> Result<(r
     Ok((out, json))
 }
 
+/// `call` with `input` on the tool's stdin, closed after it: text a tool takes with `--file -` never becomes an
+/// argument or a file.
+pub(crate) fn call_with_input(
+    tool: &Tool,
+    args: &[String],
+    input: &str,
+    timeout: Duration,
+) -> Result<(run::Output, Option<Value>), String> {
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let cmd = run::command(&bin, &refs, Some(&paths::search_path()));
+    let (mut stdout, mut stderr) = (String::new(), String::new());
+    let code = run::stream_with_input(
+        cmd,
+        Some(input.as_bytes()),
+        timeout,
+        || false,
+        |line| match line {
+            run::Line::Out(l) => stdout.push_str(&(l + "\n")),
+            run::Line::Err(l) => stderr.push_str(&(l + "\n")),
+        },
+    )
+    .map_err(|e| e.to_string())?;
+    let out = run::Output { code, stdout, stderr };
+    let json = out.json();
+    Ok((out, json))
+}
+
 /// Some commands wrap their answer in `item`, others print it bare.
 pub(crate) fn body(v: &Value) -> &Value {
     v.get("item").unwrap_or(v)
