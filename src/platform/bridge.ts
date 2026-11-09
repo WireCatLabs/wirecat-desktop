@@ -264,8 +264,8 @@ function createTauri(): Platform {
     memoryPickFile: () => call(v.nullable(v.string()), "memory_pick_file"),
     memorySourceAdd: (source) => call(AddedSourceSchema, "memory_source_add", { source }),
     recordTypes: () => call(RecordTypesSchema, "records_types"),
-    recordTemplateSave: (kind, format, separator, account) =>
-      call(v.nullable(v.string()), "records_template_save", { kind, format, separator, account: account ?? null }),
+    recordTemplateSave: (kind, format, locale, account) =>
+      call(v.nullable(v.string()), "records_template_save", { kind, format, locale, account: account ?? null }),
     recordPickFile: () => call(v.nullable(v.string()), "records_pick_file"),
     recordRun: (kind, account, dryRun) => call(ImportOutcomeSchema, "records_run", { kind, account, dryRun }),
     memorySourceShow: (ref) => call(StoredSourceSchema, "memory_source_show", { reference: ref }),

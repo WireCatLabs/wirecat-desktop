@@ -79,7 +79,9 @@ export const useImport = create<ImportState>((set, get) => {
       step("template", async () => {
         const { kind, format, separator, account } = get()
         if (!kind) return {}
-        return { saved: await platform.recordTemplateSave(kind, format, separator, account.trim() || undefined) }
+        // memo picks the separator from the Excel language: , for en, ; for ru and es.
+        const locale = separator === "," ? "en" : currentLang() === "es" ? "es" : "ru"
+        return { saved: await platform.recordTemplateSave(kind, format, locale, account.trim() || undefined) }
       }),
 
     pick: () =>
