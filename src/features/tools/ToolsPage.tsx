@@ -17,6 +17,7 @@ import { toolsMessages } from "./messages"
 import { OwnRemoved } from "./OwnRemoved"
 import { OwnToolDialog } from "./OwnToolDialog"
 import { StorageSummary } from "./StorageFit"
+import { StoreDamageLine } from "./StoreDamage"
 import { ToolRow } from "./ToolRow"
 import { ToolsIntro } from "./ToolsIntro"
 import { UpgradeWarning } from "./UpgradeWarning"
@@ -75,6 +76,7 @@ export function ToolsPage() {
 
       <ToolsIntro />
       <NodeNotice />
+      <StoreDamageLine />
       {error && (
         <ErrorNotice action={<ReportThis what="Looking for WireCat tools" error={error.message} />}>
           {m.inspectFailed(error.message)}

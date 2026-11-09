@@ -1,0 +1,66 @@
+import type { Messages } from "@/i18n"
+
+const en = {
+  title: "The message store needs recovery",
+  checking: "Checking every page of the message store…",
+  failed: (error: string) => `Could not check the message store: ${error}`,
+  impact: "What this means",
+  causes: "Likely causes",
+  check: "Copy the check",
+  lastOk: (at: string) => `Last check that passed: ${at}`,
+  noLastOk: "No check that passed is on record.",
+  steps: "What to do, in order",
+  run: "Run",
+  running: "Running…",
+  ran: "Done",
+  copy: "Copy the command",
+  yourself: "Changes the store or stops a program: run it yourself in a terminal.",
+  stepFailed: (error: string) => `The step failed: ${error}`,
+  healthy: "The message store passed the check. Start the timers again if you stopped them.",
+  strip: "The message store needs recovery.",
+  open: (tool: string) => `Open ${tool}`,
+}
+
+const ru: typeof en = {
+  title: "Хранилище сообщений нужно восстановить",
+  checking: "Проверяю каждую страницу хранилища сообщений…",
+  failed: (error) => `Не удалось проверить хранилище сообщений: ${error}`,
+  impact: "Что это значит",
+  causes: "Вероятные причины",
+  check: "Скопировать проверку",
+  lastOk: (at) => `Последняя успешная проверка: ${at}`,
+  noLastOk: "Успешных проверок пока не было.",
+  steps: "Что сделать, по порядку",
+  run: "Выполнить",
+  running: "Выполняю…",
+  ran: "Готово",
+  copy: "Скопировать команду",
+  yourself: "Меняет хранилище или останавливает программу: выполните её сами в терминале.",
+  stepFailed: (error) => `Шаг не удался: ${error}`,
+  healthy: "Хранилище сообщений прошло проверку. Если вы останавливали таймеры, запустите их снова.",
+  strip: "Хранилище сообщений нужно восстановить.",
+  open: (tool) => `Открыть ${tool}`,
+}
+
+const es: typeof en = {
+  title: "Hay que recuperar el almacén de mensajes",
+  checking: "Comprobando cada página del almacén de mensajes…",
+  failed: (error) => `No se pudo comprobar el almacén de mensajes: ${error}`,
+  impact: "Qué significa",
+  causes: "Causas probables",
+  check: "Copiar la comprobación",
+  lastOk: (at) => `Última comprobación correcta: ${at}`,
+  noLastOk: "No consta ninguna comprobación correcta.",
+  steps: "Qué hacer, en orden",
+  run: "Ejecutar",
+  running: "Ejecutando…",
+  ran: "Hecho",
+  copy: "Copiar el comando",
+  yourself: "Cambia el almacén o detiene un programa: ejecútalo tú en un terminal.",
+  stepFailed: (error) => `El paso falló: ${error}`,
+  healthy: "El almacén de mensajes pasó la comprobación. Si paraste los temporizadores, vuelve a iniciarlos.",
+  strip: "Hay que recuperar el almacén de mensajes.",
+  open: (tool) => `Abrir ${tool}`,
+}
+
+export const damageMessages: Messages<typeof en> = { en, ru, es }

@@ -1,0 +1,58 @@
+{
+  "what_happened": "the store file is damaged: 3 problems in the search data of email_words",
+  "likely_causes": [
+    {
+      "cause": "the store's journal file (m.db-wal) was deleted or replaced by another program while `mail sync` had the store open (2026-11-06T11:50:02.000Z)",
+      "check": "ls -li --time-style=full-iso /home/u/.local/share/WireCat/"
+    },
+    {
+      "cause": "the computer lost power or crashed, or the disk filled up, while a tool was writing",
+      "check": "journalctl --user -u 'memo-*' -u 'mail-*' -u 'tg-*' -u 'max-*' -u 'wirecat-*' --since -14d | grep -i -e malformed -e corrupt -e 'disk full'"
+    },
+    {
+      "cause": "the disk filled up while a tool was writing",
+      "check": "df -h /home/u/.local/share/WireCat"
+    },
+    {
+      "cause": "the file was copied, restored or synced while a tool had it open, or it sits in a synced or network folder",
+      "check": "findmnt -T /home/u/.local/share/WireCat"
+    },
+    {
+      "cause": "a fault of the disk itself",
+      "check": "journalctl -k --since -14d | grep -i -e 'I/O error' -e nvme -e ata"
+    }
+  ],
+  "impact": [
+    "searches may miss results or fail; email_words hold nothing that is not elsewhere, and are rebuilt",
+    "reads that do not touch a damaged page work; a write that touches one fails until the store is recovered"
+  ],
+  "external_data_safe": "only this computer's copy is damaged: Telegram, MAX, WhatsApp, the mail servers and Google Drive keep their own data, so whatever is lost here can be fetched again by a sync",
+  "last_ok_at": "2026-11-01T08:00:00.000Z",
+  "loss": "how many rows were lost is unknown: damage can take rows written since the last deep check that passed (2026-11-01T08:00:00.000Z) without leaving a trace; a sync fetches again what the servers still hold",
+  "steps": [
+    {
+      "command": "systemctl --user stop mail-sync.timer memo-import.timer",
+      "why": "a tool that writes while the store is recovered damages the new file too",
+      "destructive": false,
+      "runnable": true
+    },
+    {
+      "command": "kill 4242",
+      "why": "wa (process 4242) has the store open",
+      "destructive": true,
+      "runnable": false
+    },
+    {
+      "command": "mail store recover run",
+      "why": "copies every readable row into a new file and puts it in place of the store; the damaged file is kept beside it, and it prints the syncs that fetch again what was lost",
+      "destructive": true,
+      "runnable": false
+    },
+    {
+      "command": "mail store recover",
+      "why": "checks every page again; a check that passes lifts the damage mark",
+      "destructive": false,
+      "runnable": true
+    }
+  ]
+}

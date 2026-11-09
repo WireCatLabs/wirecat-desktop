@@ -28,6 +28,7 @@ import { searchMock } from "./mock-search"
 import { settingsMock } from "./mock-settings"
 import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
 import { isMockLogin, linkedProfiles, signInMock } from "./mock-signin"
+import { storeDamageMock, withDoctorDamage } from "./mock-store-damage"
 import { syncMock } from "./mock-sync"
 import { tailscaleMock } from "./mock-tailscale"
 import { tasksMock } from "./mock-tasks"
@@ -503,7 +504,7 @@ export function createMock(os: Platform["os"]): Platform {
           stderr: "",
         }
       }
-      return diagnosed(id, profile)
+      return withDoctorDamage(id, diagnosed(id, profile))
     },
     async install(given, onEvent: (e: InstallEvent) => void) {
       const id = ownerId(given)
@@ -650,6 +651,7 @@ export function createMock(os: Platform["os"]): Platform {
     storePreflight: (id) => storePreflightMock(id, installed, LATEST, storeCheck),
     storeTables: (sizes) => storeTablesMock(asksArchive(), sizes),
     storeCheck: () => storeCheckMock(asksArchive()),
+    ...storeDamageMock,
     ...backups.api,
     ...agents,
     ...memoryMock(),

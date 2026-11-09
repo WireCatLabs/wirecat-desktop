@@ -1,5 +1,6 @@
 import type { Preflight, StoreCompat } from "@/domain/compat"
 import type { DeepLinkTarget } from "@/domain/links"
+import type { DamageReport } from "@/domain/store-damage"
 import type {
   Agent,
   AgentRun,
@@ -158,6 +159,10 @@ export type Platform = {
   storeTables(sizes: boolean): Promise<TableList | null>
   /** The archive's integrity and health checks; a minute or more on a large archive. */
   storeCheck(): Promise<StoreCheck | null>
+  /** The tool's `store recover` damage report, each step marked runnable or not; null when healthy or older. */
+  storeRecover(id: string): Promise<DamageReport | null>
+  /** Runs one step of the last report by its place; Rust refuses one it did not mark runnable. */
+  storeRecoverStep(id: string, index: number): Promise<void>
   /**
    * The newest-schema tool's own `store backup`, zipped into the backups folder; progress and the result arrive as
    * events. With a password, the tool's `store backup --encrypt` seals it instead, reading the password on stdin.

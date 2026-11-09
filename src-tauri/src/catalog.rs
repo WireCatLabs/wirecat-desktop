@@ -103,6 +103,9 @@ pub struct Tool {
     /// refuses. Offered only where `doctor` names it as the fix, which it does only when the repair would succeed.
     #[serde(default)]
     pub config_repair: Option<Vec<String>>,
+    /// `store recover`: what is damaged in the shared store and the steps that recover it; changes nothing.
+    #[serde(default)]
+    pub store_recover: Option<Vec<String>>,
     /// Removing one account with the tool's own commands (`account.rs`); none for a tool that has no sign-out.
     #[serde(default)]
     pub account_remove: Option<crate::account::AccountRemoveSource>,
@@ -447,7 +450,9 @@ mod tests {
             reads.extend(t.settings.as_ref().map(|s| &s.show));
             reads.extend(t.permissions.as_ref().map(|p| &p.commands));
             reads.extend(
-                [&t.store_info, &t.store_tables, &t.store_table_sizes, &t.store_reset_preview].into_iter().flatten(),
+                [&t.store_info, &t.store_tables, &t.store_table_sizes, &t.store_reset_preview, &t.store_recover]
+                    .into_iter()
+                    .flatten(),
             );
             for args in reads {
                 assert!(args.iter().any(|a| a == "--no-record"), "{}: {args:?}", t.id);

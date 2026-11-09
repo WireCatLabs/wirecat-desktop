@@ -63,6 +63,7 @@ mod signin;
 mod signin_steps;
 mod skills;
 mod storage;
+mod store_recover;
 mod sync;
 mod system;
 mod tailscale;
@@ -209,6 +210,8 @@ pub fn run() {
             commands::store::store_preflight,
             commands::store::store_tables,
             commands::store::store_check,
+            commands::store::store_recover,
+            commands::store::store_recover_step,
             commands::store::store_backup,
             commands::store::cancel_store_backup,
             commands::store::list_backups,
