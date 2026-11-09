@@ -9,6 +9,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
+import { Segmented } from "@/ui/Segmented"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { Filters } from "./Filters"
 import { taskMessages } from "./messages"
@@ -68,7 +69,17 @@ export function TasksPage() {
           >
             <StableText value={reading ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
           </Button>
-          <ViewSwitch value={view} onChange={(v) => useTasks.getState().setView(v)} />
+          <Segmented<View>
+            size="md"
+            tour="tasks-view"
+            label={m.view}
+            value={view}
+            onChange={(v) => useTasks.getState().setView(v)}
+            options={[
+              { value: "table", label: m.table, icon: <Rows3 className="size-4" aria-hidden /> },
+              { value: "board", label: m.board, icon: <Columns3 className="size-4" aria-hidden /> },
+            ]}
+          />
           <Button
             variant="primary"
             size="sm"
@@ -210,36 +221,5 @@ function Frame({ children }: { children: ReactNode }) {
     <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.2rem] text-[0.95rem]">
       {children}
     </div>
-  )
-}
-
-function ViewSwitch({ value, onChange }: { value: View; onChange: (v: View) => void }) {
-  const m = useMessages(taskMessages)
-  const items = [
-    ["table", m.table, <Rows3 key="t" className="size-4" aria-hidden />],
-    ["board", m.board, <Columns3 key="b" className="size-4" aria-hidden />],
-  ] as const
-  return (
-    <fieldset
-      data-tour="tasks-view"
-      className="inline-flex h-8 items-center rounded-[0.45rem] border-0 bg-app-3 p-[3px]"
-    >
-      <legend className="sr-only">{m.view}</legend>
-      {items.map(([id, label, icon]) => (
-        <label key={id} className="relative h-full">
-          <input
-            type="radio"
-            name="tasks-view"
-            checked={id === value}
-            onChange={() => onChange(id)}
-            className="peer sr-only"
-          />
-          <span className="flex h-full cursor-pointer items-center gap-[0.4rem] rounded-[0.35rem] px-[0.65rem] text-[0.875rem] text-ink-soft transition-colors duration-(--motion-fast) peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand hover:text-ink">
-            {icon}
-            {label}
-          </span>
-        </label>
-      ))}
-    </fieldset>
   )
 }

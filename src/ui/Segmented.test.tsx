@@ -15,4 +15,9 @@ describe("Segmented", () => {
     expect(screen.getAllByText("Telegram")).toHaveLength(2)
     expect(screen.getByRole("radio", { name: "Telegram" })).toBeChecked()
   })
+  it("as a page's view switch, shows every label and anchors the tour", () => {
+    render(<Segmented size="md" tour="view" label="View" value="tg" options={OPTIONS} onChange={() => {}} />)
+    expect(screen.getAllByText("WhatsApp")).toHaveLength(2)
+    expect(screen.getByRole("group", { name: "View" })).toHaveAttribute("data-tour", "view")
+  })
 })

@@ -48,7 +48,6 @@ type Words = {
   pickDate: string
   late: string
   task: string
-  sortBy: (column: string) => string
   waitsFor: (keys: string[]) => string
   onIt: (agent: string) => string
   forAgent: (agent: string) => string
@@ -198,7 +197,6 @@ const en: Words = {
   pickDate: "Another day",
   late: "late",
   task: "Task",
-  sortBy: (column) => `Sort by ${column.toLowerCase()}`,
   waitsFor: (keys) => `waits for ${formatList(keys, "en")}`,
   onIt: (agent) => `${agent} is on it`,
   forAgent: (agent) => `for ${agent}`,
@@ -355,7 +353,6 @@ const ru: Words = {
   pickDate: "Другой день",
   late: "просрочено",
   task: "Задача",
-  sortBy: (column) => `Сортировать: ${column.toLowerCase()}`,
   waitsFor: (keys) => `ждёт ${formatList(keys, "ru")}`,
   onIt: (agent) => `${agent} работает над ней`,
   forAgent: (agent) => `для ${agent}`,
@@ -526,7 +523,6 @@ const es: Words = {
   pickDate: "Otro día",
   late: "vencida",
   task: "Tarea",
-  sortBy: (column) => `Ordenar por ${column.toLowerCase()}`,
   waitsFor: (keys) => `espera a ${formatList(keys, "es")}`,
   onIt: (agent) => `${agent} está en ello`,
   forAgent: (agent) => `para ${agent}`,

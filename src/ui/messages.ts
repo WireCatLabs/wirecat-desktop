@@ -25,6 +25,11 @@ const en = {
   noDate: "No date",
   pickDay: "Choose a day",
   calendarKeys: "Arrows move a day or a week, Page Up and Page Down a month, Enter picks.",
+  sortBy: (column: string) => `Sort by ${column.toLowerCase()}`,
+  previousPage: "Previous page",
+  nextPage: "Next page",
+  pageN: (n: number) => `Page ${n}`,
+  pages: "Pages",
 }
 
 const ru: typeof en = {
@@ -52,6 +57,11 @@ const ru: typeof en = {
   noDate: "Без даты",
   pickDay: "Выберите день",
   calendarKeys: "Стрелки сдвигают на день или неделю, Page Up и Page Down — на месяц, Enter выбирает.",
+  sortBy: (column) => `Сортировать: ${column.toLowerCase()}`,
+  previousPage: "Предыдущая страница",
+  nextPage: "Следующая страница",
+  pageN: (n) => `Страница ${n}`,
+  pages: "Страницы",
 }
 
 const es: typeof en = {
@@ -79,6 +89,11 @@ const es: typeof en = {
   noDate: "Sin fecha",
   pickDay: "Elige un día",
   calendarKeys: "Las flechas mueven un día o una semana, Re Pág y Av Pág un mes, Intro elige.",
+  sortBy: (column) => `Ordenar por ${column.toLowerCase()}`,
+  previousPage: "Página anterior",
+  nextPage: "Página siguiente",
+  pageN: (n) => `Página ${n}`,
+  pages: "Páginas",
 }
 
 export const uiMessages: Messages<typeof en> = { en, ru, es }
