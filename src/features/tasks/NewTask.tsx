@@ -1,22 +1,57 @@
-import { useEffect, useRef, useState } from "react"
+import { useId, useRef, useState } from "react"
 import { LABELS, type Label } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { DateField } from "@/ui/Calendar"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Select } from "@/ui/Select"
 import { dueDay, taskMessages } from "./messages"
+import { PersonFinder } from "./PersonFinder"
 import { personName } from "./parts"
 import { useTasks } from "./store"
 
-/** The new task's row: a title and its project (memo needs both), with priority, assignee and due date if known. */
+const ELSE = "else"
+
+/** The new task's dialog: a title and its project (memo needs both), with priority, assignee and due date if known. */
 export function NewTask() {
+  const m = useMessages(taskMessages)
+  const creating = useTasks((s) => s.creating)
+  const projects = useTasks((s) => s.projects)
+  const id = useId()
+  const busy = useTasks((s) => Boolean(s.busy.new))
+  return (
+    <Dialog
+      open={creating}
+      title={m.newTask}
+      wide
+      onClose={() => useTasks.getState().startCreate(false)}
+      actions={
+        projects.length === 0 ? undefined : (
+          <>
+            <Button variant="ghost" onClick={() => useTasks.getState().startCreate(false)}>
+              {m.cancel}
+            </Button>
+            <Button type="submit" form={id} disabled={busy}>
+              {busy ? m.saving : m.add}
+            </Button>
+          </>
+        )
+      }
+    >
+      <NewTaskForm id={id} />
+    </Dialog>
+  )
+}
+
+function NewTaskForm({ id }: { id: string }) {
   const m = useMessages(taskMessages)
   const lang = useLang()
   const projects = useTasks((s) => s.projects)
   const people = useTasks((s) => s.people)
+  const assigned = useTasks((s) => s.assigned)
   const busy = useTasks((s) => Boolean(s.busy.new))
   const failed = useTasks((s) => s.failed.new)
   const field = useRef<HTMLInputElement>(null)
@@ -24,13 +59,10 @@ export function NewTask() {
   const [project, setProject] = useState(projects.length === 1 ? (projects[0]?.key ?? "") : "")
   const [priority, setPriority] = useState<Label | "none">("none")
   const [assignee, setAssignee] = useState("none")
+  const [finding, setFinding] = useState(false)
   const [due, setDue] = useState("")
   const [missing, setMissing] = useState<"title" | "project" | null>(null)
   const projectBox = useRef<HTMLSpanElement>(null)
-
-  useEffect(() => {
-    field.current?.focus({ preventScroll: true })
-  }, [])
 
   const submit = async () => {
     if (busy) return
@@ -53,28 +85,28 @@ export function NewTask() {
       ...(assignee !== "none" ? { assignee } : {}),
       ...(due ? { due } : {}),
     })
-    if (ok) setTitle("")
+    if (ok) useTasks.getState().startCreate(false)
   }
-  const close = () => useTasks.getState().startCreate(false)
+  const owner = people.find((p) => p.owner)?.ref
+  const refs = [...new Set([...(owner ? [owner] : []), ...assigned, ...(assignee !== "none" ? [assignee] : [])])]
 
   if (projects.length === 0) {
-    return <p className="border-line border-b px-[1.3rem] py-[1rem] text-[0.95rem] text-ink-soft">{m.noProjects}</p>
+    return <p className="text-[0.95rem] text-ink-soft">{m.noProjects}</p>
   }
   return (
     <form
+      id={id}
       aria-label={m.newTask}
-      className="flex flex-col gap-[0.6rem] border-line border-b bg-app-2/60 px-[1.3rem] py-[1rem]"
+      className="flex flex-col gap-[0.8rem] pb-[0.4rem]"
       onSubmit={(e) => {
         e.preventDefault()
         void submit()
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Escape" && !e.defaultPrevented) close()
       }}
     >
       <div className="flex flex-wrap items-center gap-[0.6rem]">
         <input
           ref={field}
+          data-autofocus
           aria-label={m.newTitle}
           value={title}
           maxLength={500}
@@ -113,17 +145,24 @@ export function NewTask() {
           options={[...LABELS, "none" as const].map((l) => ({ value: l, label: m.labels[l] }))}
           className="w-[10rem]"
         />
-        <Select
-          size="sm"
-          aria-label={m.assignee}
-          value={assignee}
-          onChange={setAssignee}
-          options={[
-            { value: "none", label: m.nobody },
-            ...people.map((p) => ({ value: p.ref, label: personName(p.ref, people, m) })),
-          ]}
-          className="w-[11rem]"
-        />
+        {finding ? (
+          <div className="w-[11rem]">
+            <PersonFinder onPick={setAssignee} onDone={() => setFinding(false)} />
+          </div>
+        ) : (
+          <Select
+            size="sm"
+            aria-label={m.assignee}
+            value={assignee}
+            onChange={(v) => (v === ELSE ? setFinding(true) : setAssignee(v))}
+            options={[
+              { value: "none", label: m.nobody },
+              ...refs.map((ref) => ({ value: ref, label: personName(ref, people, m) })),
+              { value: ELSE, label: m.someoneElse },
+            ]}
+            className="w-[11rem]"
+          />
+        )}
         <DateField
           aria-label={m.due}
           value={due}
@@ -131,14 +170,6 @@ export function NewTask() {
           format={(day) => dueDay(new Date(`${day}T00:00:00`), lang)}
           className="w-[9.5rem]"
         />
-        <span className="ml-auto flex gap-2">
-          <Button size="sm" variant="ghost" onClick={close}>
-            {m.cancel}
-          </Button>
-          <Button size="sm" type="submit" disabled={busy}>
-            {busy ? m.saving : m.add}
-          </Button>
-        </span>
       </div>
       <Collapse open={missing !== null}>
         <p role="alert" className="text-[0.875rem] text-bad">

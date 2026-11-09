@@ -242,6 +242,7 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
     taskShow: async (key) => localise(await base.taskShow(key)),
     taskCounts: async (query) => localise(await base.taskCounts(query)),
     peopleList: async () => localise(await base.peopleList()),
+    peopleSearch: async (query) => localise(await base.peopleSearch(query)),
     projectList: async () => localise(await base.projectList()),
     memoryRead: async (...args) => localise(await base.memoryRead(...args)),
     // The website shows only what the tools count today, never the Analytics page's sample "Preview" parts.

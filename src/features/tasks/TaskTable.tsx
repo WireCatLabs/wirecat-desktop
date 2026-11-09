@@ -64,7 +64,7 @@ const columns = (m: Words): Column<Task>[] => [
 ]
 
 // Below the table's minimum width it scrolls sideways inside its frame; status, key and title stay in view.
-export function TaskTable({ top }: { top?: React.ReactNode }) {
+export function TaskTable() {
   const m = useMessages(taskMessages)
   const lang = useLang()
   const tasks = useTasks((s) => s.tasks)
@@ -87,7 +87,6 @@ export function TaskTable({ top }: { top?: React.ReactNode }) {
         leadWidth="minmax(30rem,1fr)"
         minWidth="calc(50.6rem + var(--priority))"
         style={WIDTHS[lang] as React.CSSProperties}
-        top={top}
         page={{ index: at, size }}
         below={(t) =>
           failed[t.key] || stale === t.key ? (

@@ -12,6 +12,7 @@ import type {
   TaskEvent,
   TaskWrite,
 } from "@/platform/task-schemas"
+import { queryClient } from "@/shared/query"
 
 export type View = "table" | "board"
 export type Unusable = { kind: "missing" } | { kind: "old"; version: string | null; need: string }
@@ -91,9 +92,14 @@ type TasksState = {
   comment(key: string, text: string): Promise<boolean>
   /** Adds a person by name and answers them, or null when memo refused. */
   addPerson(name: string): Promise<Person | null>
+  /** Remembers a person the finder found, so the row shows their name rather than a reference. */
+  know(person: Person): void
   startCreate(on: boolean): void
   dismissStale(): void
 }
+
+/** The finder's cached searches, shared by every row and the new task's form. */
+export const PEOPLE_FOUND = ["tasks", "people", "found"] as const
 
 const VIEW_KEY = "wirecat.tasks.view"
 
@@ -255,7 +261,8 @@ export const useTasks = create<TasksState>((set, get) => {
       // memo cannot filter the tasks it found in chats, so they show only while the owner has typed no search; any
       // filter shows project tasks alone, as its count says.
       const chats = get().query.trim() ? null : platform.taskChats().catch(() => null)
-      const people = platform.peopleList().catch(() => null)
+      // The names are read once; a person added or found since is already in the list.
+      const people = get().people.length ? Promise.resolve(null) : platform.peopleList().catch(() => null)
       const projects = platform.projectList().catch(() => null)
       try {
         const [read, found] = await Promise.all([platform.taskList(q), chats])
@@ -458,11 +465,16 @@ export const useTasks = create<TasksState>((set, get) => {
       try {
         const person = await platform.personAdd(name)
         set((s) => ({ people: [...s.people.filter((p) => p.ref !== person.ref), person] }))
+        void queryClient().invalidateQueries({ queryKey: PEOPLE_FOUND })
         return person
       } catch (e) {
         set((s) => ({ failed: { ...s.failed, person: message(e) } }))
         return null
       }
+    },
+
+    know(person) {
+      set((s) => (s.people.some((p) => p.ref === person.ref) ? s : { people: [...s.people, person] }))
     },
 
     startCreate(on) {

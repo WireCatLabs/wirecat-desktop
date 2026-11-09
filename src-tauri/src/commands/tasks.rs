@@ -90,6 +90,11 @@ pub async fn people_list() -> Result<Vec<task_board::Person>, AppError> {
 }
 
 #[tauri::command]
+pub async fn people_search(query: String) -> Result<Vec<task_board::Person>, AppError> {
+    crate::log::command("people_search", async move { attempt(move || task_board::people_search(&query)).await }).await
+}
+
+#[tauri::command]
 pub async fn person_add(name: String) -> Result<task_board::Person, AppError> {
     crate::log::command("person_add", async move { attempt(move || task_board::person_add(&name)).await }).await
 }

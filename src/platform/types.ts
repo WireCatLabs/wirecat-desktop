@@ -420,6 +420,8 @@ export type Platform = {
   taskCommentAdd(key: string, text: string): Promise<TaskComment>
   /** Everyone memo knows: the owner, people from messages, and people added here. */
   peopleList(): Promise<Person[]>
+  /** At most 20 people whose name matches; an empty query is the people the owner talks to most. */
+  peopleSearch(query: string): Promise<Person[]>
   /** Adds a person by name, so a task can be given to them before any message names them. */
   personAdd(name: string): Promise<Person>
   projectList(): Promise<Project[]>

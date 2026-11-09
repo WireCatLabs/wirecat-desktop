@@ -280,6 +280,7 @@ function createTauri(): Platform {
     taskComments: (key) => call(v.array(TaskCommentSchema), "task_comments", { key }),
     taskCommentAdd: (key, text) => call(TaskCommentSchema, "task_comment_add", { key, text }),
     peopleList: () => call(v.array(PersonSchema), "people_list"),
+    peopleSearch: (query) => call(v.array(PersonSchema), "people_search", { query }),
     personAdd: (name) => call(PersonSchema, "person_add", { name }),
     projectList: () => call(v.array(ProjectSchema), "project_list"),
     taskClaims: (id, profile) => call(ClaimsSchema, "task_claims", { id, profile }),
