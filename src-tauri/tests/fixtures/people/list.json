@@ -3,62 +3,156 @@
     {
       "ref": "person:1",
       "name": null,
+      "display_name": null,
+      "kind": "person",
+      "kind_signals": ["owner", "added"],
       "owner": true,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["owner", "added"]
     },
     {
       "ref": "person:4",
       "name": "Ana One",
+      "display_name": "Ana One",
+      "kind": "person",
+      "kind_signals": ["added"],
       "owner": false,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["added"]
     },
     {
       "ref": "person:5",
       "name": "Ana Three",
+      "display_name": "Ana Three",
+      "kind": "person",
+      "kind_signals": ["added"],
       "owner": false,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["added"]
     },
     {
       "ref": "person:8",
       "name": "Ana Two",
+      "display_name": "Ana Two",
+      "kind": "person",
+      "kind_signals": ["added"],
       "owner": false,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["added"]
     },
     {
       "ref": "person:3",
       "name": "Kai S.",
+      "display_name": "Kai S.",
+      "kind": "person",
+      "kind_signals": ["added"],
       "owner": false,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["added"]
     },
     {
       "ref": "person:7",
       "name": "Kai Sample",
+      "display_name": "Kai Sample",
+      "kind": "person",
+      "kind_signals": ["added"],
       "owner": false,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["added"]
     },
     {
       "ref": "person:9",
       "name": "Lena Ortiz",
+      "display_name": "Lena Ortiz",
+      "kind": "person",
+      "kind_signals": ["added"],
       "owner": false,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["added"]
     },
     {
       "ref": "person:2",
       "name": "Rin Example",
+      "display_name": "Rin Example",
+      "kind": "person",
+      "kind_signals": ["added"],
       "owner": false,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["added"]
     },
     {
       "ref": "person:10",
       "name": "Tom Becker",
+      "display_name": "Tom Becker",
+      "kind": "person",
+      "kind_signals": ["added"],
       "owner": false,
-      "tasks": 0
+      "tasks": 0,
+      "contact": null,
+      "phone": null,
+      "email": null,
+      "username": null,
+      "messages_from": 0,
+      "last_contact": null,
+      "ties": ["added"]
     }
   ],
   "page": {
     "mode": "page",
     "limit": 9,
-    "has_more": false
+    "has_more": false,
+    "total": {
+      "value": 9,
+      "relation": "eq"
+    }
   },
   "meta": {
     "complete": true
