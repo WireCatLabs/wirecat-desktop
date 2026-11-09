@@ -10,6 +10,9 @@ type AiModelState = {
   busy: "save" | "off" | "check" | null
   /** memo's refusal of the last save or turn off: a reason the page words, or memo's own words. */
   actionError: string | null
+  /** Which action `actionError` belongs to, so the page names it: not saved, not turned off, not checked. */
+  failed: "save" | "off" | "check" | null
+  turnedOff: boolean
   checked: AiChecked | null
   load(): Promise<void>
   save(choice: AiModelChoice): Promise<boolean>
@@ -23,6 +26,8 @@ export const useAiModel = create<AiModelState>((set, get) => ({
   error: null,
   busy: null,
   actionError: null,
+  failed: null,
+  turnedOff: false,
   checked: null,
   async load() {
     set({ error: null })
@@ -34,12 +39,12 @@ export const useAiModel = create<AiModelState>((set, get) => ({
   },
   async save(choice) {
     if (get().busy) return false
-    set({ busy: "save", actionError: null, checked: null })
+    set({ busy: "save", actionError: null, failed: null, turnedOff: false, checked: null })
     try {
       set({ model: await platform.aiModelSet(choice) })
       return true
     } catch (e) {
-      set({ actionError: message(e) })
+      set({ actionError: message(e), failed: "save" })
       return false
     } finally {
       set({ busy: null })
@@ -47,13 +52,13 @@ export const useAiModel = create<AiModelState>((set, get) => ({
   },
   async off() {
     if (get().busy) return false
-    set({ busy: "off", actionError: null, checked: null })
+    set({ busy: "off", actionError: null, failed: null, turnedOff: false, checked: null })
     try {
       await platform.aiModelOff()
-      set({ model: await platform.aiModelShow() })
+      set({ model: await platform.aiModelShow(), turnedOff: true })
       return true
     } catch (e) {
-      set({ actionError: message(e) })
+      set({ actionError: message(e), failed: "off" })
       return false
     } finally {
       set({ busy: null })
@@ -61,11 +66,11 @@ export const useAiModel = create<AiModelState>((set, get) => ({
   },
   async check() {
     if (get().busy) return
-    set({ busy: "check", checked: null, actionError: null })
+    set({ busy: "check", checked: null, actionError: null, failed: null, turnedOff: false })
     try {
       set({ checked: await platform.aiModelCheck() })
     } catch (e) {
-      set({ actionError: message(e) })
+      set({ actionError: message(e), failed: "check" })
     } finally {
       set({ busy: null })
     }

@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import { hostOfOrigin } from "@/domain/ai-model"
-import { imageReasonBefore } from "@/domain/memory-add"
+import { imageReasonBefore, tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { useAiModel } from "@/shared/ai-model-store"
 import { useNav } from "@/shared/nav"
@@ -31,6 +31,7 @@ export function ImageBefore() {
   }, [])
 
   if (model === null && !error) return <Skeleton className="mt-[0.3rem] h-[1.1rem] w-[70%]" />
+  if (error && tooOldFor(error)) return <p className="mt-[0.3rem] text-[0.9rem] text-ink-soft">{m.imageNeedsUpdate}</p>
   const reason = imageReasonBefore(error ? null : model)
   if (reason || !model?.provider)
     return (

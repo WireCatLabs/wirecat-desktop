@@ -1,7 +1,7 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { hostOfOrigin } from "@/domain/ai-model"
-import { tooOldFor } from "@/domain/memory-add"
+import { REFUSED, tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
 import { useAiModel } from "@/shared/ai-model-store"
@@ -93,6 +93,8 @@ function AiModelForm({ saved }: { saved: AiModel }) {
   const m = useMessages(aiModelMessages)
   const busy = useAiModel((s) => s.busy)
   const actionError = useAiModel((s) => s.actionError)
+  const failed = useAiModel((s) => s.failed)
+  const turnedOff = useAiModel((s) => s.turnedOff)
   const checked = useAiModel((s) => s.checked)
   const [draft, setDraft] = useState<Draft>(() => draftOf(saved))
   const [key, setKey] = useState("")
@@ -287,6 +289,11 @@ function AiModelForm({ saved }: { saved: AiModel }) {
             {m.saved}
           </span>
         )}
+        {turnedOff && saved.provider === null && (
+          <span role="status" className="text-[0.9rem] text-ink-soft">
+            {m.turnedOff}
+          </span>
+        )}
       </div>
       <p id={`${name}-cost`} className="-mt-[0.5rem] text-[0.85rem] text-ink-dim">
         {dirty && saved.provider !== null ? m.checkSaveFirst : m.checkCost}
@@ -303,11 +310,13 @@ function AiModelForm({ saved }: { saved: AiModel }) {
           <ErrorNotice inline>
             {(SAVE_REASONS as readonly string[]).includes(actionError)
               ? m.saveReasons[actionError as SaveReason]
-              : `${m.saveFailed} ${actionError}`}
+              : actionError === REFUSED
+                ? m.refused
+                : `${failed === "off" ? m.offFailed : failed === "check" ? m.checkFailed : m.saveFailed} ${actionError}`}
           </ErrorNotice>
         )}
       </Collapse>
-      {checked && <CheckResult checked={checked} saved={saved} />}
+      <Collapse open={checked !== null}>{checked && <CheckResult checked={checked} saved={saved} />}</Collapse>
     </form>
   )
 }

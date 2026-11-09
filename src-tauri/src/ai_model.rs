@@ -3,7 +3,7 @@
 //! `memory_add::with_memo`, so a refusal of a run fed the key answers only with a reason the page words.
 
 use crate::memory::{plain, text, words};
-use crate::memory_add::{link, one_line, with_memo};
+use crate::memory_add::{link, one_line, with_memo_worded};
 use crate::skills::body;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -14,6 +14,11 @@ const READ: Duration = Duration::from_secs(30);
 const CHECK: Duration = Duration::from_mins(2);
 const PROVIDERS: [&str; 3] = ["anthropic", "openai", "ollama"];
 const MAX_KEY: usize = 400;
+const WORDED: [&str; 1] = ["ai."];
+
+fn with_memo<T>(timeout: Duration, f: impl FnOnce(&crate::memory_add::Feed) -> Result<T, String>) -> Result<T, String> {
+    with_memo_worded(timeout, &WORDED, f)
+}
 
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -53,7 +58,8 @@ pub struct AiOff {
     pub key_kept: bool,
 }
 
-#[derive(Deserialize, Debug)]
+/// No `Debug`: it holds the key, and a stray `{:?}` would print it.
+#[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetModel {
     pub provider: String,
@@ -104,7 +110,7 @@ fn set_args(s: &SetModel) -> Result<(Vec<String>, Option<String>), String> {
 }
 
 fn show_with(feed: &crate::memory_add::Feed) -> Result<AiModel, String> {
-    Ok(model_of(&feed(&owner_words(&["models", "ai", "show"]), None)?))
+    Ok(model_of(&feed(&words(&["models", "ai", "show"]), None)?))
 }
 
 fn owner_words(parts: &[&str]) -> Vec<String> {
@@ -238,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn every_other_call_passes_from_app_and_no_key() {
+    fn calls_match_the_contract_and_carry_no_key() {
         let seen: Seen = Mutex::new(Vec::new());
         let feed = |a: &[String], i: Option<&[u8]>| -> Result<Value, String> {
             seen.lock().unwrap().push((a.to_vec(), i.map(|b| String::from_utf8_lossy(b).to_string())));
@@ -248,7 +254,7 @@ mod tests {
         feed(&owner_words(&["models", "ai", "off"]), None).unwrap();
         feed(&owner_words(&["models", "ai", "check"]), None).unwrap();
         let seen = seen.lock().unwrap();
-        assert_eq!(seen[0].0, ["models", "ai", "show", "--from-app", "--json", "--no-record"]);
+        assert_eq!(seen[0].0, ["models", "ai", "show", "--json", "--no-record"]);
         assert_eq!(seen[1].0, ["models", "ai", "off", "--from-app", "--json", "--no-record"]);
         assert!(seen.iter().all(|(_, input)| input.is_none()));
     }

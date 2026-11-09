@@ -24,7 +24,7 @@ const SUBJECTS: [&str; 5] = ["person", "organization", "project", "task", "meeti
 
 pub(crate) type Feed<'a> = dyn Fn(&[String], Option<&[u8]>) -> Result<Value, String> + Sync + 'a;
 
-fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration) -> Result<Value, String> {
+fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration, worded: &[&str]) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(bin, &refs, Some(&paths::search_path()));
     let (mut stdout, mut stderr) = (String::new(), String::new());
@@ -39,18 +39,18 @@ fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration) -> 
         },
     )
     .map_err(|e| e.to_string())?;
-    panel_answer(&run::Output { code, stdout, stderr }, input.is_some())
+    panel_answer(&run::Output { code, stdout, stderr }, input.is_some(), worded)
 }
 
 /// memo's refusals of a source or a reader, which the panel words in the owner's language.
-const WORDED: [&str; 3] = ["source.", "reader.", "ai."];
+const WORDED: [&str; 2] = ["source.", "reader."];
 pub const REFUSED: &str = "memo.refused";
 
 /// memo's message can quote what it read on stdin (the pasted text or the key), escaped or cut so that no replace
 /// finds it. A run fed on stdin therefore answers only with a reason the panel knows, never with memo's words.
-fn panel_answer(out: &run::Output, fed: bool) -> Result<Value, String> {
+fn panel_answer(out: &run::Output, fed: bool, prefixes: &[&str]) -> Result<Value, String> {
     let reason = out.json().and_then(|v| text(&v["error"], "reason"));
-    let worded = reason.filter(|r| r.len() <= 60 && plain(r).is_some() && WORDED.iter().any(|p| r.starts_with(p)));
+    let worded = reason.filter(|r| r.len() <= 60 && plain(r).is_some() && prefixes.iter().any(|p| r.starts_with(p)));
     match (answer(out), worded) {
         (Ok(v), _) => Ok(v),
         (Err(_), Some(reason)) => Err(reason),
@@ -59,9 +59,18 @@ fn panel_answer(out: &run::Output, fed: bool) -> Result<Value, String> {
     }
 }
 
-pub(crate) fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Feed) -> Result<T, String>) -> Result<T, String> {
+fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Feed) -> Result<T, String>) -> Result<T, String> {
+    with_memo_worded(timeout, &WORDED, f)
+}
+
+/// As `with_memo`, for a feature whose refusals carry reasons with other prefixes.
+pub(crate) fn with_memo_worded<T>(
+    timeout: Duration,
+    worded: &[&str],
+    f: impl FnOnce(&Feed) -> Result<T, String>,
+) -> Result<T, String> {
     let bin = memory::memo_bin()?;
-    f(&|args: &[String], input: Option<&[u8]>| fed(&bin, args, input, timeout))
+    f(&|args: &[String], input: Option<&[u8]>| fed(&bin, args, input, timeout, worded))
 }
 
 /// The file the owner last chose in the system's file window. Only that path reaches `sources add`: the interface
@@ -626,14 +635,19 @@ mod tests {
             stdout: format!(r#"{{"error":{{"code":"validation_error","message":{quoted}{reason}}}}}"#),
             stderr: format!("cannot read: {pasted}\n"),
         };
-        assert_eq!(panel_answer(&refusal(""), true), Err(REFUSED.into()));
-        assert_eq!(panel_answer(&refusal(r#","reason":"source.no-text""#), true), Err("source.no-text".into()));
-        assert_eq!(panel_answer(&refusal(r#","reason":"store.busy""#), true), Err(REFUSED.into()));
-        assert_eq!(panel_answer(&refusal(r#","reason":"ai.key-rejected""#), true), Err("ai.key-rejected".into()));
-        let unfed = panel_answer(&refusal(""), false).unwrap_err();
+        assert_eq!(panel_answer(&refusal(""), true, &WORDED), Err(REFUSED.into()));
+        assert_eq!(
+            panel_answer(&refusal(r#","reason":"source.no-text""#), true, &WORDED),
+            Err("source.no-text".into())
+        );
+        assert_eq!(panel_answer(&refusal(r#","reason":"store.busy""#), true, &WORDED), Err(REFUSED.into()));
+        let ai = refusal(r#","reason":"ai.key-rejected""#);
+        assert_eq!(panel_answer(&ai, true, &WORDED), Err(REFUSED.into()), "the panel does not word ai reasons");
+        assert_eq!(panel_answer(&ai, true, &["ai."]), Err("ai.key-rejected".into()));
+        let unfed = panel_answer(&refusal(""), false, &WORDED).unwrap_err();
         assert!(unfed.contains("cannot read"), "a run with nothing on stdin keeps memo's words: {unfed}");
         let ok = run::Output { code: Some(0), stdout: r#"{"item":{"stored":true}}"#.into(), stderr: String::new() };
-        assert!(panel_answer(&ok, true).is_ok());
+        assert!(panel_answer(&ok, true, &WORDED).is_ok());
     }
 
     #[test]
@@ -690,7 +704,7 @@ mod tests {
             ("no-text", "source.no-text", true),
             ("unsupported", "source.unsupported", false),
         ] {
-            assert_eq!(panel_answer(&refusal(name), fed), Err(reason.into()), "{name}");
+            assert_eq!(panel_answer(&refusal(name), fed, &WORDED), Err(reason.into()), "{name}");
         }
         let words = answer(&refusal("url-refused")).unwrap_err();
         assert!(words.starts_with("127.0.0.1 is not on the public internet"), "the Memory page keeps memo's words");

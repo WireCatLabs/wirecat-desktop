@@ -56,6 +56,8 @@ const en = {
       : `Pictures you add to memory leave this computer and go to ${host}, so the model can read the text in them. Without this, a picture is kept by its name only.`,
   save: "Save",
   saved: "Saved.",
+  refused: "memo refused the request. Check the provider, the model and the address, then try again.",
+  checkFailed: "The check could not run:",
   saveFailed: "The model was not saved:",
   saveReasons: {
     "ai.address-refused": "This address is not allowed. Use https, or http only for a server on this computer.",
@@ -129,6 +131,8 @@ const ru: typeof en = {
       : `Картинки, которые вы добавляете в память, уходят с этого компьютера на ${host}, чтобы модель прочитала текст в них. Без этого картинка сохраняется только по названию.`,
   save: "Сохранить",
   saved: "Сохранено.",
+  refused: "memo отклонил запрос. Проверьте провайдера, модель и адрес и попробуйте снова.",
+  checkFailed: "Проверку не удалось выполнить:",
   saveFailed: "Модель не сохранена:",
   saveReasons: {
     "ai.address-refused": "Этот адрес не разрешён. Нужен https, а http только для сервера на этом компьютере.",
@@ -202,6 +206,8 @@ const es: typeof en = {
       : `Las imágenes que añades a la memoria salen de este ordenador y van a ${host}, para que el modelo lea el texto que contienen. Sin esto, una imagen se guarda solo por su nombre.`,
   save: "Guardar",
   saved: "Guardado.",
+  refused: "memo rechazó la petición. Revisa el proveedor, el modelo y la dirección y vuelve a intentarlo.",
+  checkFailed: "No se pudo hacer la comprobación:",
   saveFailed: "El modelo no se guardó:",
   saveReasons: {
     "ai.address-refused":

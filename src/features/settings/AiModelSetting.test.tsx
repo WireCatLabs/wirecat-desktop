@@ -182,6 +182,35 @@ describe("AI model", () => {
     expect(screen.getByText(/No AI model is set/)).toBeInTheDocument()
   })
 
+  it("names the action that failed, and words a refusal memo did not explain", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(ANTHROPIC)
+    vi.spyOn(platform, "aiModelOff").mockRejectedValue(new Error("another run holds the store"))
+    vi.spyOn(platform, "aiModelCheck").mockRejectedValue(new Error("the process was killed"))
+    const set = vi.spyOn(platform, "aiModelSet").mockRejectedValue(new Error("memo.refused"))
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await user.click(await screen.findByRole("button", { name: "Turn off" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent("It was not turned off: another run holds the store")
+    await user.click(screen.getByRole("button", { name: "Check" }))
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent("The check could not run: the process was killed"),
+    )
+    await user.type(screen.getByLabelText("API key"), "sk-ant-test")
+    await user.click(screen.getByRole("button", { name: "Save" }))
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(/memo refused the request/))
+    expect(set).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole("alert")).not.toHaveTextContent("memo.refused")
+  })
+
+  it("says the model is off after it was turned off", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValueOnce(ANTHROPIC).mockResolvedValue(NONE)
+    vi.spyOn(platform, "aiModelOff").mockResolvedValue({ changed: true, keyKept: true })
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await user.click(await screen.findByRole("button", { name: "Turn off" }))
+    expect(await screen.findByText(/The AI model is off. Your key stays where it is/)).toBeInTheDocument()
+  })
+
   it("asks for a memo update when memo has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
     render(<AiModelSetting />)

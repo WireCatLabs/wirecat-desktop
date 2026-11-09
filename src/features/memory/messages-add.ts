@@ -90,6 +90,8 @@ const en = {
       "This picture cannot be read: GIF, over 4 MB, or too many pixels. It is kept by its name only.",
     "ai.failed": "The AI model could not read the picture, so it is kept by its name only. Check it in Settings.",
   } as Record<string, string>,
+  imageNeedsUpdate:
+    "Memo on this computer cannot read pictures with an AI model yet, so this picture will be kept by its name only. Update it on the Tools page.",
   goAiModel: "Open AI model settings",
   suggested: (facts: number, tasks: number) =>
     tasks
@@ -230,6 +232,8 @@ const ru: typeof en = {
     "ai.failed":
       "Модель ИИ не смогла прочитать картинку, поэтому она сохранена только по названию. Проверьте модель в Настройках.",
   },
+  imageNeedsUpdate:
+    "Memo на этом компьютере пока не умеет читать картинки с помощью модели ИИ, поэтому картинка сохранится только по названию. Обновите его на странице Инструменты.",
   goAiModel: "Открыть настройки модели ИИ",
   suggested: (facts: number, tasks: number) => {
     const f = plural("ru", facts, { one: "# факт", few: "# факта", many: "# фактов", other: "# факта" })
@@ -375,6 +379,8 @@ const es: typeof en = {
     "ai.failed":
       "El modelo de IA no pudo leer la imagen, así que se guarda solo por su nombre. Revisa el modelo en Ajustes.",
   },
+  imageNeedsUpdate:
+    "Memo en este ordenador aún no puede leer imágenes con un modelo de IA, así que esta imagen se guardará solo por su nombre. Actualízalo en la página Herramientas.",
   goAiModel: "Abrir los ajustes del modelo de IA",
   suggested: (facts: number, tasks: number) =>
     tasks
