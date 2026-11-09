@@ -1,10 +1,11 @@
 import { FileText, Link2, LoaderCircle, Paperclip } from "lucide-react"
-import { useId } from "react"
-import { fileName, missingOf, type Way, wordCount } from "@/domain/memory-add"
+import { useEffect, useId } from "react"
+import { fileName, isLink, missingOf, type Way, wordCount } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { fieldFocus } from "@/ui/field"
+import { SourcePreview } from "./AddPreview"
 import { Refusal } from "./AddRefusal"
 import { useAddSource } from "./add-store"
 import { addMessages } from "./messages-add"
@@ -118,12 +119,22 @@ function TextInput() {
   )
 }
 
+/** The address stops changing for this long before the page is read, so typing does not start a read per key. */
+const SETTLE_MS = 600
+
 function LinkInput() {
   const m = useMessages(addMessages)
   const draft = useAddSource((s) => s.draft)
-  const { edit } = useAddSource.getState()
+  const preview = useAddSource((s) => s.preview)
+  const { edit, previewLink } = useAddSource.getState()
   const url = useId()
   const hint = useId()
+  const address = draft.url.trim()
+  useEffect(() => {
+    if (!isLink(address) || useAddSource.getState().preview?.of === address) return
+    const wait = setTimeout(() => void previewLink(address), SETTLE_MS)
+    return () => clearTimeout(wait)
+  }, [address, previewLink])
   return (
     <div className="flex flex-col gap-[0.6rem]">
       <label htmlFor={url} className="text-[0.95rem] font-medium">
@@ -141,6 +152,7 @@ function LinkInput() {
       <p id={hint} className="max-w-[70ch] text-[0.9rem] text-ink-soft">
         {m.urlHint}
       </p>
+      <SourcePreview preview={preview} of={address} />
     </div>
   )
 }
@@ -149,10 +161,19 @@ function FileInput() {
   const m = useMessages(addMessages)
   const path = useAddSource((s) => s.draft.path)
   const busy = useAddSource((s) => s.busy)
+  const preview = useAddSource((s) => s.preview)
   const { pickFile } = useAddSource.getState()
+  const shown = !!path && preview?.of === path && preview.state !== "none"
   return (
     <div className="flex min-h-[9rem] flex-col items-start justify-center gap-[0.6rem] rounded-[0.45rem] border border-dashed border-line-strong px-[1rem] py-[0.9rem]">
-      {path && <p className="selectable font-medium break-all">{fileName(path)}</p>}
+      {path &&
+        (shown ? (
+          <div className="w-full">
+            <SourcePreview preview={preview} of={path} />
+          </div>
+        ) : (
+          <p className="selectable font-medium break-all">{fileName(path)}</p>
+        ))}
       <Button
         size="sm"
         disabled={!!busy}

@@ -39,6 +39,8 @@ mod memo_cli;
 mod memo_server;
 mod memory;
 mod memory_add;
+mod memory_edit;
+mod memory_preview;
 mod memory_review;
 mod names;
 mod node;
@@ -330,6 +332,11 @@ pub fn run() {
             commands::memory::memory_confirm,
             commands::memory::memory_discard,
             commands::memory::memory_correct,
+            commands::memory::memory_relation_edit,
+            commands::memory::memory_relation_remove,
+            commands::memory::memory_relations_decide,
+            commands::memory::memory_file_preview,
+            commands::memory::memory_link_preview,
             commands::memory::memory_forget,
             commands::memory::memory_source_context,
             commands::memory::memory_open_source,

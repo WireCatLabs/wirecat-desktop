@@ -1,3 +1,4 @@
+import { personName } from "./people"
 import { freeWords, setField, valuesOf } from "./query-terms"
 
 /** The parts of a Memory page record these rules read; the platform's `MemoryEntry` has them. */
@@ -13,7 +14,7 @@ type Subjected = {
 
 export type Subject = {
   key: string
-  kind: "you" | "person" | "project" | "organization" | "other"
+  kind: "you" | "person" | "project" | "organization" | "document" | "other"
   name: string | null
 }
 
@@ -26,7 +27,12 @@ export function subjectOf(e: Subjected): Subject | null {
   if (e.subjectIsOwner) return { key: "you", kind: "you", name: null }
   if (!e.subject) return null
   const prefix = e.subject.slice(0, e.subject.indexOf(":"))
-  const kind = prefix === "project" || prefix === "person" || prefix === "organization" ? prefix : "other"
+  const kind =
+    prefix === "project" || prefix === "person" || prefix === "organization"
+      ? prefix
+      : prefix === "document" || prefix === "note"
+        ? "document"
+        : "other"
   return { key: e.subject, kind, name: e.subjectName }
 }
 
@@ -108,7 +114,12 @@ export type Can = { confirm: boolean; discard: boolean; correct: boolean; forget
  */
 export type Undo = "reject" | "invalidate" | "reverse" | "revoke" | "task" | "created" | "none" | null
 
-type Held = Entry & { findings?: unknown; supersedes?: string | null }
+type Held = Entry & {
+  findings?: unknown
+  supersedes?: string | null
+  ref?: string
+  standing?: string | null | undefined
+}
 
 /**
  * An agent's accepted fact goes back to proposed with `facts revoke` when the installed memo has it (`revoke`). memo
@@ -134,9 +145,17 @@ export function undoOf(e: Held, revoke = false): Undo {
 export function can(e: Held, revoke = false): Can {
   const s = e.status
   const decision = e.kind === "decision" || undoOf(e, revoke) === "revoke"
-  // A relationship is decided in memo's review; one that holds is changed with memo's own relationships commands.
-  if (e.type === "action" || e.type === "relationship")
+  if (e.type === "action")
     return { confirm: s === "proposed", discard: s === "proposed", correct: false, forget: false }
+  // The owner changes a relationship's role; what a connected app reports stays as the app says it. A proposal approved
+  // here keeps its proposal ref until the next read, and memo changes only a `link:`.
+  if (e.type === "relationship")
+    return {
+      confirm: s === "proposed",
+      discard: s === "proposed",
+      correct: s === "proposed" || (s === "confirmed" && e.standing === "confirmed" && !!e.ref?.startsWith("link:")),
+      forget: false,
+    }
   if (e.type === "fact")
     return {
       confirm: s === "proposed",
@@ -329,3 +348,11 @@ export const actionSentence = (verb: string, target: string | null, text: string
 /** What a findings batch is about: a project, or the person or other subject it names. */
 export const batchSubjectOf = (e: Subjected, fallback: string) =>
   e.projectName ?? e.subjectName ?? e.project ?? fallback
+
+/** A source may have stored a missing name as "null #907"; only a person's name is cleaned, never a document's title. */
+export function withCleanNames<
+  T extends { subject: string | null; subjectName: string | null; target: string | null; targetName: string | null },
+>(e: T): T {
+  const clean = (ref: string | null, name: string | null) => (ref?.startsWith("person:") ? personName({ name }) : name)
+  return { ...e, subjectName: clean(e.subject, e.subjectName), targetName: clean(e.target, e.targetName) }
+}

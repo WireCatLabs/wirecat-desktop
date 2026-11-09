@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { roleLabel, standingOf, standingTone } from "./relationships"
+import { relationParts, roleLabel, roleListFor, standingOf, standingTone } from "./relationships"
 
 describe("relationships", () => {
   it("knows memo's four standings and nothing else", () => {
@@ -24,5 +24,24 @@ describe("relationships", () => {
     expect(roleLabel("employee", roles, words)).toBe("Сотрудник")
     expect(roleLabel("board-member", roles, words)).toBe("Board member")
     expect(roleLabel("chief-of-staff", [], words)).toBe("chief of staff")
+  })
+})
+
+describe("relationParts", () => {
+  const link = (subject: string, target: string, role: string | null = "owner") => ({
+    kind: "related-to",
+    subject,
+    subjectName: subject === "document:31" ? "Sales plan" : "Kai",
+    target,
+    targetName: target === "person:7" ? "Kai" : "Harbour",
+    role,
+  })
+
+  it("gives the role to the person, whichever end memo stored first", () => {
+    const drive = relationParts(link("document:31", "person:7"))
+    expect([drive.holder.name, drive.other.kind]).toEqual(["Kai", "document"])
+    const member = relationParts(link("person:7", "project:1"))
+    expect([member.holder.name, member.other.name, roleListFor(member)]).toEqual(["Kai", "Harbour", "project"])
+    expect(roleListFor(drive)).toBeNull()
   })
 })

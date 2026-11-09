@@ -1,73 +1,47 @@
 # Memory that explains itself (UX-125)
 
-Owner, 2026-11-09, after opening Memory on real data: "память — непонятно, что это и как с этим работать". This is a
-proposal. Nothing here is built yet.
+Owner, 2026-11-09, after opening Memory on real data: "в памяти ничего не понятно… кружки желтые… какие источники
+(давать их глянуть)"; "не вижу возможности редактировать память, а это база"; "в URL я бы сразу подтягивал и делал
+preview"; "Файл — то же самое — отображать превью"; "не работает предложить факты"; "непонятно, что даёт только
+сохранить".
 
-## What he saw
+## What the owner must understand to decide on a row
 
-168 rows under "На проверку". Each one was a Google Drive document, "Связан с: Miloslava 2", the role "Владелец", the
-status "Предложено", and under "Зачем" the raw JSON of a Drive revision. No agent proposed any of them. drive-cli
-recorded the owner of each document, and the store showed those links as proposals (BUG-659). The fix is in cli-core:
-a link that a source reports now gets the standing `reported`. This page also leaves out a document's reported owner
-and never shows raw JSON as a reason.
+1. What agents will know if he approves: the record as one sentence.
+2. What each button changes: approve, agents use it as true; reject, it moves to Rejected and is not used.
+3. Where it came from: the source document or message, opened in place.
+4. That he can correct it: wording, kind and who it is about for a memory or fact; the role for a relationship.
 
-The bug made the page look worse than it is, but it also shows three gaps that remain after the fix:
+## Built (branch `feat/memory-explained`)
 
-1. The page never says what a row is asking of him, or what each button changes.
-2. A fact that a source reports, such as a CRM's or Drive's, shows as "Подтверждено" (confirmed). The owner never
-   confirmed it (`relationship()` in `src-tauri/src/memory.rs` maps every standing other than proposed and ended to
-   `confirmed`).
-3. A bulk arrival (one source or one agent, many rows in one run) floods the review list one row at a time.
+- **Explained page.** A three-step strip (agent suggests → you review → agents use), one line under each tab, a
+  status word ("Ждёт решения", "Используется", "Отклонено") in place of the coloured lamp.
+- **Rows as sentences.** A relationship reads "Yaro Orlov — владелец документа «Sales motivation model»". Memo's
+  `null #<id>` name placeholders are dropped (the shared `personName` rule from the People page).
+- **Opened row.** "What agents will know" with the effect of each button, an always visible Edit, and the source.
+  A Drive or Bitrix24 link shows its document as the source.
+- **Edit.** A memory or fact: text, kind, subject (`memo add --supersedes`). A relationship: the role, chosen from
+  memo's list or typed; a proposal is approved first (`review confirm`), then the link it made is changed
+  (`relationships update`); a link can be removed (`relationships remove`). No memo release is needed.
+- **Groups.** A group header with a count, collapse, and Approve all / Reject all when two or more rows wait; one
+  `review confirm|reject` call decides the whole group and names each refusal.
+- **Add panel.** A link is previewed 600 ms after the address settles; a picked file shows as a thumbnail (pictures
+  up to 4 MiB, as a `data:` address the window's policy allows) or its first 600 characters (text). A picture says
+  it is kept by its name. When no reader is chosen, the choice appears in the panel, not only in Settings (BUG-670).
+  "Only save it" is now a standard "Save without facts" button with a line that says what it does.
 
-## Proposal
+## Not built, and why
 
-**UX-125.a · Say what review means, at the point of decision.** Under the tabs, one line per tab, in place of the
-long intro paragraph:
+- **Link preview needs memo.** Desktop calls `memo sources preview <url>` and shows nothing when memo has no such
+  command (all released memo versions today). The app does not fetch pages itself: memo already refuses private
+  addresses, sign-in pages and long redirects (IDEA-268).
+- **Reading pictures (IDEA-267).** The image reader answers `needs-agent`; reading a picture needs the AI-model
+  setting (CORE-53). Until then a picture is kept by its name, as ruled earlier (NEED-3).
+- **A source's facts apart from the owner's (UX-125.c)** and **folding a bulk arrival into one card (UX-125.d):**
+  groups by subject with Approve all cover the review load for now.
 
-- На проверку: "Agents suggested these. Until you approve, agents see each one marked as not yet approved."
-- В работе: "What agents use as true: what you approved, and what your connected sources report."
-- Отклонено: "What you rejected. Agents do not suggest it again."
+## Risks
 
-Each button gets a tooltip that names its effect: Approve → "agents use it as true"; Reject → "hidden, and not
-suggested again"; Edit → "your wording replaces the agent's". Before the copy ships, check each claim against Memo:
-that a rejected relationship is never written again is cli-core's `syncReported` rule, and a memory may differ.
-
-**UX-125.b · Rows read as sentences, not as fields.** A relationship becomes "Miloslava 2 is the owner of «Скрипт
-собеседования Ruby Engineer»", with the role from the owner's role list in the sentence, in place of "Связан с" and a
-role chip. "Зачем" shows words only. A row without a readable reason says "No reason given" and links its source.
-
-**UX-125.c · Keep the source's facts apart from the owner's.** A new state, "From <source>" (Google Drive, Bitrix24),
-with its own lamp, in place of "Подтверждено". A source's fact sits in В работе behind an "Only mine / With sources"
-switch, which defaults to Only mine. A document's owner and editor stay on the document (Desktop already leaves them
-out); a CRM's links stay, labelled.
-
-**UX-125.d · Group a bulk arrival.** When more than 10 rows to review share an author (an agent or a source) and a
-day, they fold into one card: "claude-code suggested 24 links between people and projects, 2 Nov". The card offers
-Review, Approve all and Reject all. Approve all is the existing "approve shown" action, scoped to the group.
-
-**UX-125.e · Empty and first-run states, one per cause.**
-
-- Memo is missing: the existing install prompt.
-- Memo is installed, nothing is stored yet: what memory is, in two sentences. One example row, drawn as an example.
-  "Connect an agent", which opens the Agents page.
-- Nothing to review: "Nothing waits for you", plus the date of the last decision and a link to В работе.
-- A read failed: the error with Report, as now.
-
-**UX-125.f · Layout from the shared table, not a new one.** The rack, the tabs and the pager move onto the shared
-table, pager and segmented control that the table work (D-1 + D-2, branch `refactor/shared-table-clients-speed`)
-puts into `src/ui/` (`DataTable`, `Pager`, `Segmented`). This work starts after that branch merges, and it adds
-nothing to those files that the Clients and Tasks pages do not need too.
-
-## What Memo must give the page
-
-- `standing` and the reporting account on every relationship row. Both exist today (`relationships list`: `standing`,
-  `account_id`).
-- A readable reason, or none. BUG-659 changes drive-cli to write words. Desktop drops any JSON reason as a guard.
-- For UX-125.d, the author of a source's fact. `account_id` gives it for a relationship. Memories and facts carry
-  `author`.
-
-## Open decisions
-
-- **UX-125.c:** should a source's facts show in Memory at all, or only on the person's and the document's pages? The
-  proposal shows them, labelled, behind a switch that is off by default.
-- **UX-125.d:** is the group threshold of 10 rows per author per day right?
+- **Approve all on a Drive group.** A document group can hold many owner and editor links. Approving them all makes
+  agents treat every Drive owner as a fact the owner confirmed. The owner decides whether such links should show for
+  review at all.

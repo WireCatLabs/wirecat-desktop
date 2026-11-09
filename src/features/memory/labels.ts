@@ -1,10 +1,12 @@
 import { actionSentence, actionTargetOf, byOwner, dayKey, findingsCounts } from "@/domain/memory"
-import { type OwnerRole, roleLabel } from "@/domain/relationships"
+import { type OwnerRole, relationParts, roleLabel } from "@/domain/relationships"
 import { formatDate, type Lang } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import type { memoryMessages } from "./messages"
+import type { explainedMessages } from "./messages-explained"
 
 export type M = typeof memoryMessages.en
+export type X = typeof explainedMessages.en
 
 /** Who an entry is about, as the About field matches it: "You" in the reader's language for the owner. */
 export const aboutOf = (e: MemoryEntry, m: M) => (e.subjectIsOwner ? m.you : (e.subjectName ?? e.subject ?? ""))
@@ -37,12 +39,20 @@ export function relationLine(e: MemoryEntry, m: M, roles: readonly OwnerRole[]) 
   return e.role ? `${to} · ${roleLabel(e.role, roles, m.roles)}` : to
 }
 
+/** A relationship as one sentence: "Kai Moreno is the owner of the document “Sales plan”". */
+export function relationSentence(e: MemoryEntry, m: M, x: X, roles: readonly OwnerRole[]) {
+  const p = relationParts(e)
+  if (p.role) return x.withRole(p, roleLabel(p.role, roles, m.roles))
+  const say = x.noRole[p.kind] ?? x.noRole.other
+  return say?.(p.from, p.to) ?? relationLine(e, m, roles)
+}
+
 /**
  * What the row's text says: the record's own text, for a findings batch how many facts and tasks it holds, for a
- * relationship its other end and role.
+ * relationship a sentence (or its other end and role, where the sentence's words are not at hand).
  */
-export function textOf(e: MemoryEntry, m: M, roles: readonly OwnerRole[] = []) {
-  if (e.type === "relationship") return relationLine(e, m, roles)
+export function textOf(e: MemoryEntry, m: M, roles: readonly OwnerRole[] = [], x?: X) {
+  if (e.type === "relationship") return x ? relationSentence(e, m, x, roles) : relationLine(e, m, roles)
   if (e.findings) {
     const c = findingsCounts(e.findings, e.status)
     return c.reviewed ? m.findingsReviewed(c.first, c.second) : m.findingsTitle(c.first, c.second)

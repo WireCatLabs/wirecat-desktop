@@ -60,12 +60,25 @@ import type { CommunityStatus, ExtraTools } from "./community-schemas"
 import type { Digest, DigestDay } from "./digest-schemas"
 import type { GroupsRead } from "./groups-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
-import type { AddedSource, AddSource, KeySaved, Mentions, Reader, StoredSource, Suggested } from "./memory-add-schemas"
+import type {
+  AddedSource,
+  AddSource,
+  FilePreview,
+  KeySaved,
+  LinkPreview,
+  Mentions,
+  Reader,
+  StoredSource,
+  Suggested,
+} from "./memory-add-schemas"
 import type {
   Forgot,
+  MemoryChange,
   MemoryEntry,
   MemoryRead,
   MemorySource,
+  RelationDecided,
+  RelationEdited,
   ReviewAnswer,
   SourceContext,
   SourceReview,
@@ -299,8 +312,18 @@ export type Platform = {
   memoryConfirm(ref: string, accept?: string[]): Promise<MemoryEntry>
   /** "No longer holds": a memory goes stale, a fact is rejected or reversed, an action is rejected. */
   memoryDiscard(ref: string): Promise<MemoryEntry>
-  /** Writes the owner's version, which replaces the old one; answers the new record. */
-  memoryCorrect(ref: string, text: string): Promise<MemoryEntry>
+  /** Writes the owner's version, which replaces the old one, with a new kind or subject if given; the new record. */
+  memoryCorrect(ref: string, text: string, change?: MemoryChange): Promise<MemoryEntry>
+  /** Sets a relationship's role (`null` clears it); a proposal is approved first. */
+  memoryRelationEdit(ref: string, role: string | null): Promise<RelationEdited>
+  /** Removes a link that holds; a proposal is rejected. */
+  memoryRelationRemove(ref: string): Promise<void>
+  /** Approves or rejects many relationship proposals in one memo call; each answer on its own. */
+  memoryRelationsDecide(refs: string[], approve: boolean): Promise<RelationDecided[]>
+  /** The file last picked in the file window, looked at before it is added. */
+  memoryFilePreview(): Promise<FilePreview | null>
+  /** A web page read by memo without keeping it; `null` when the installed memo cannot. */
+  memoryLinkPreview(url: string): Promise<LinkPreview | null>
   /** Erases the record, its links to sources and its search entry. */
   memoryForget(ref: string): Promise<Forgot>
   /** A cited source read back: a message with its neighbours, or a note's text. */

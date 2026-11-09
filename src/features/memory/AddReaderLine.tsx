@@ -1,6 +1,9 @@
 import { TriangleAlert } from "lucide-react"
+import { useId } from "react"
 import { chosenReader, tooOldFor } from "@/domain/memory-add"
+import { ReaderChoice } from "@/features/settings"
 import { useMessages } from "@/i18n"
+import type { Reader } from "@/platform/memory-add-schemas"
 import { useNav } from "@/shared/nav"
 import { useReaders } from "@/shared/readers-store"
 import { Button } from "@/ui/Button"
@@ -23,6 +26,8 @@ export function ReaderLine() {
       </ErrorNotice>
     )
   if (readers === null) return <Skeleton className="h-[1.2rem] w-[50%]" />
+  const usable = readers.filter((r) => r.available && r.signedIn !== false)
+  if (!reader && usable.length > 0) return <InlineChoice readers={usable} />
   if (!reader)
     return (
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem] text-ink-soft">
@@ -42,6 +47,32 @@ export function ReaderLine() {
           <TriangleAlert className="size-4 shrink-0" aria-hidden />
           {m.readsFiles(m.readerNames[reader.id] ?? reader.id)}
         </p>
+      )}
+    </div>
+  )
+}
+
+/** "Suggest facts" did nothing until a reader was picked in Settings; the pick is made here, where it is needed. */
+function InlineChoice({ readers }: { readers: Reader[] }) {
+  const m = useMessages(addMessages)
+  const chooseError = useReaders((s) => s.chooseError)
+  const hint = useId()
+  return (
+    <div className="flex flex-col gap-[0.6rem]">
+      <p id={hint} className="text-[0.95rem] text-ink-soft">
+        {m.noReader}
+      </p>
+      <ReaderChoice readers={readers} describedBy={hint} />
+      <p className="flex flex-wrap items-center gap-x-3 text-[0.9rem] text-ink-dim">
+        {m.otherReaders}
+        <Button size="sm" variant="ghost" onClick={() => useNav.getState().go("settings")}>
+          {m.goSettings}
+        </Button>
+      </p>
+      {chooseError && (
+        <ErrorNotice inline>
+          {m.failed} {chooseError}
+        </ErrorNotice>
       )}
     </div>
   )

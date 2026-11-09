@@ -446,8 +446,29 @@ function relationships(): MemoryEntry[] {
       "ended",
       ago(30 * DAY),
     ),
+    ...DRIVE_OWNERS.map(([ref, person], i) => ({
+      ...relation(
+        ref,
+        "related-to",
+        SALES_DOC,
+        person,
+        i === 2 ? "last-editor" : "owner",
+        "proposed",
+        ago(DAY + i * HOUR),
+      ),
+      author: agent("drive"),
+      reason: "Google Drive lists this person as the document's owner",
+    })),
   ]
 }
+
+const SALES_DOC: [string, string] = ["document:31", "Sales motivation model"]
+// A source that stored a missing name as "null #907", as Drive did for the owner (UX-136).
+const DRIVE_OWNERS: [string, [string, string]][] = [
+  ["relationship:21", ["person:907", "Yaro Orlov null #907"]],
+  ["relationship:22", ["person:7", "Kai Moreno"]],
+  ["relationship:23", ["person:40823", "Harry null #40823"]],
+]
 
 const ROLES = [
   { list: "organization", id: "employee", label: null, builtIn: true },
@@ -695,6 +716,9 @@ export function memoryMock(): Pick<
   | "memoryConfirm"
   | "memoryDiscard"
   | "memoryCorrect"
+  | "memoryRelationEdit"
+  | "memoryRelationRemove"
+  | "memoryRelationsDecide"
   | "memoryForget"
   | "memorySourceContext"
   | "memoryOpenSource"
@@ -829,7 +853,28 @@ export function memoryMock(): Pick<
       if (e.status === "accepted" && params.get("memory-revoke") !== "old") return update(ref, "proposed")
       throw new Error("Only a proposed fact or an accepted decision can be discarded.")
     },
-    async memoryCorrect(ref, text) {
+    async memoryRelationEdit(ref, role) {
+      await write()
+      const old = find(ref)
+      const link = ref.startsWith("link:") ? ref : `link:${next++}`
+      entries = entries.map((x) =>
+        x.ref === ref ? { ...old, ref: link, role, status: "confirmed", standing: "confirmed", author: null } : x,
+      )
+      return { ref: link, role, error: null }
+    },
+    async memoryRelationRemove(ref) {
+      await write()
+      find(ref)
+      entries = entries.filter((x) => x.ref !== ref)
+    },
+    async memoryRelationsDecide(refs, approve) {
+      await write()
+      return refs.map((ref) => {
+        const e = update(ref, approve ? "confirmed" : "rejected", approve ? "confirmed" : "rejected")
+        return { ref, status: e.status, error: null }
+      })
+    },
+    async memoryCorrect(ref, text, change) {
       await write()
       const old = find(ref)
       const replaced = { ...update(ref, "superseded"), sourceReview: null }
@@ -838,6 +883,14 @@ export function memoryMock(): Pick<
         ...old,
         ref: `${old.type}:${next++}`,
         text,
+        ...(change?.kind ? { kind: change.kind } : {}),
+        ...(change?.subject !== undefined
+          ? {
+              subject: change.subject || null,
+              subjectName: entries.find((x) => x.subject === change.subject)?.subjectName ?? null,
+              subjectIsOwner: false,
+            }
+          : {}),
         status: old.type === "fact" ? "accepted" : "confirmed",
         author: OWNER,
         supersedes: ref,

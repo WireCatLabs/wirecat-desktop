@@ -137,3 +137,14 @@ export type AgentCall = v.InferOutput<typeof AgentCallSchema>
 export type MemoryRead = v.InferOutput<typeof MemoryReadSchema>
 export type MemorySource = v.InferOutput<typeof MemorySourceSchema>
 export type Forgot = v.InferOutput<typeof ForgotSchema>
+
+/** A relationship after the owner changed its role: a proposal confirmed on the way is now `link:<id>`. */
+export const RelationEditedSchema = v.object({ ref: v.string(), role: text, error: text })
+
+/** One relationship proposal decided in a group: memo's new status, or why it refused. */
+export const RelationDecidedSchema = v.object({ ref: v.string(), status: text, error: text })
+
+/** What the owner changed besides the text: the kind, and who it is about (`""` for nobody). */
+export type MemoryChange = { kind?: string; subject?: string }
+export type RelationEdited = v.InferOutput<typeof RelationEditedSchema>
+export type RelationDecided = v.InferOutput<typeof RelationDecidedSchema>

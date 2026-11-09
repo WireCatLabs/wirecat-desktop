@@ -23,7 +23,7 @@ const sourceIcon = (kind: string) => {
 }
 
 /** One source; clicked, it opens what it says in place: the message among its neighbours, or the note. */
-function SourceItem({ source: s }: { source: MemorySource }) {
+export function SourceItem({ source: s }: { source: MemorySource }) {
   const m = useMessages(memoryMessages)
   const lang = useLang()
   const [open, setOpen] = useState(false)

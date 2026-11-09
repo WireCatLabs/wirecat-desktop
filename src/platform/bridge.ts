@@ -28,7 +28,9 @@ import { GroupsReadSchema } from "./groups-schemas"
 import { OpenedSchema } from "./link-schemas"
 import {
   AddedSourceSchema,
+  FilePreviewSchema,
   KeySavedSchema,
+  LinkPreviewSchema,
   MentionsSchema,
   ReaderSchema,
   StoredSourceSchema,
@@ -39,6 +41,8 @@ import {
   MemoryEntrySchema,
   MemoryReadSchema,
   MemorySourceSchema,
+  RelationDecidedSchema,
+  RelationEditedSchema,
   SourceContextSchema,
   SourceReviewSchema,
 } from "./memory-schemas"
@@ -221,7 +225,14 @@ function createTauri(): Platform {
     memorySourceContext: (ref) => call(SourceContextSchema, "memory_source_context", { reference: ref }),
     conversationRead: (place, ask) => invoke("conversation_read", { place, ask }),
     memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
-    memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
+    memoryCorrect: (ref, text, change) =>
+      call(MemoryEntrySchema, "memory_correct", { reference: ref, text, change: change ?? null }),
+    memoryRelationEdit: (ref, role) => call(RelationEditedSchema, "memory_relation_edit", { reference: ref, role }),
+    memoryRelationRemove: (ref) => invoke("memory_relation_remove", { reference: ref }),
+    memoryRelationsDecide: (refs, approve) =>
+      call(v.array(RelationDecidedSchema), "memory_relations_decide", { references: refs, approve }),
+    memoryFilePreview: () => call(v.nullable(FilePreviewSchema), "memory_file_preview"),
+    memoryLinkPreview: (url) => call(v.nullable(LinkPreviewSchema), "memory_link_preview", { url }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
     clientsRead: (kind, pipeline) => invoke("clients_read", { kind, pipeline }),
     clientsMove: (kind, ref, stage, via) => invoke("clients_move", { kind, reference: ref, stage, via }),

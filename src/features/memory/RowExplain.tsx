@@ -1,0 +1,223 @@
+import { LoaderCircle, Pencil, Trash2 } from "lucide-react"
+import { useId, useState } from "react"
+import { can, stateOf, toneOf } from "@/domain/memory"
+import { relationParts, roleListFor } from "@/domain/relationships"
+import { useMessages } from "@/i18n"
+import type { MemoryEntry } from "@/platform/memory-schemas"
+import { Button } from "@/ui/Button"
+import { ErrorNotice } from "@/ui/ErrorNotice"
+import { Pill } from "@/ui/Pill"
+import { Select } from "@/ui/Select"
+import { relationSentence, textOf } from "./labels"
+import { memoryMessages } from "./messages"
+import { explainedMessages } from "./messages-explained"
+import { SourceItem } from "./RowSources"
+import { canRevoke, ownerRoles, useMemory } from "./store"
+
+const TONES = { warn: "warn", ok: "brand", bad: "bad", idle: "neutral" } as const
+
+/** A record's state in words, where a coloured dot alone said it before. */
+export function StatusPill({ status }: { status: string }) {
+  const x = useMessages(explainedMessages)
+  const state = stateOf(status)
+  return <Pill tone={TONES[toneOf(status)]}>{x.status[state] ?? state}</Pill>
+}
+
+const SOURCE_APPS: Record<string, string> = { bitrix24: "Bitrix24", drive: "Google Drive", amocrm: "amoCRM" }
+const appOf = (account: string | null) => {
+  const app = account?.split(":")[0] ?? ""
+  return SOURCE_APPS[app] ?? app
+}
+
+/** What the owner's decision changes, said before it is made: what agents will know, and what each button does. */
+export function Outcome({ entry }: { entry: MemoryEntry }) {
+  const m = useMessages(memoryMessages)
+  const x = useMessages(explainedMessages)
+  const roles = useMemory(ownerRoles)
+  if (entry.type === "action" || entry.findings) return null
+  const state = stateOf(entry.status)
+  const what = entry.type === "relationship" ? relationSentence(entry, m, x, roles) : textOf(entry, m, roles, x)
+  return (
+    <section className="flex flex-col gap-[0.5rem] rounded-[0.45rem] border border-line bg-app px-[0.95rem] py-[0.8rem]">
+      <h3 className="text-[0.9rem] font-medium text-ink-dim">{x.whatWouldBeSaved}</h3>
+      <p className="selectable text-[1rem] leading-snug font-medium">{what}</p>
+      {state === "review" ? (
+        <dl className="mt-[0.2rem] grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-[0.25rem] text-[0.92rem]">
+          <dt className="font-medium text-ok">{x.ifApprove}</dt>
+          <dd className="text-ink-soft">{x.approveEffect}</dd>
+          <dt className="font-medium text-ink">{x.ifReject}</dt>
+          <dd className="text-ink-soft">{x.rejectEffect}</dd>
+        </dl>
+      ) : (
+        <p className="text-[0.92rem] text-ink-soft">
+          {entry.standing === "reported" && entry.account
+            ? x.reportedEffect(appOf(entry.account))
+            : state === "inuse" || state === "approved"
+              ? x.inUseEffect
+              : x.discardedEffect}
+        </p>
+      )}
+    </section>
+  )
+}
+
+const READABLE = /^(document|note|msg|meeting):/
+
+/**
+ * Where a relationship came from: a source writes a document's owner with the document as its first end, so that
+ * document opens here as a source does under any memory.
+ */
+export function RelationSource({ entry }: { entry: MemoryEntry }) {
+  const x = useMessages(explainedMessages)
+  const from = entry.subject && READABLE.test(entry.subject) ? entry.subject : null
+  return (
+    <div className="flex min-w-0 flex-col gap-[0.6rem]">
+      <h3 className="text-[0.9rem] font-medium text-ink-dim">{x.whereFrom}</h3>
+      {from ? (
+        <ul className="flex flex-col rounded-[0.45rem] border border-line bg-app">
+          <SourceItem
+            source={{
+              ref: from,
+              kind: from.slice(0, from.indexOf(":")),
+              title: entry.subjectName,
+              sender: null,
+              at: null,
+              excerpt: entry.reason,
+              tool: null,
+              missing: false,
+            }}
+          />
+        </ul>
+      ) : (
+        <p className="text-[0.95rem] text-ink-soft">{entry.reason ?? x.noSource}</p>
+      )}
+    </div>
+  )
+}
+
+/** An always visible way in to Edit, beside what would be saved: the row's own menu was easy to miss. */
+export function EditButton({ entry }: { entry: MemoryEntry }) {
+  const x = useMessages(explainedMessages)
+  const revoke = useMemory(canRevoke)
+  const busy = useMemory((s) => s.busy[entry.ref])
+  const editing = useMemory((s) => s.correcting === entry.ref)
+  if (editing || !can(entry, revoke).correct) return null
+  return (
+    <span>
+      <Button
+        size="sm"
+        disabled={!!busy}
+        onClick={() => useMemory.getState().startCorrect(entry.ref)}
+        icon={<Pencil className="size-4" aria-hidden />}
+      >
+        {x.edit}
+      </Button>
+    </span>
+  )
+}
+
+const NONE = "__none"
+
+/** A relationship's role, chosen from memo's list for the other end, or typed where memo has none. */
+export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: () => void }) {
+  const m = useMessages(memoryMessages)
+  const x = useMessages(explainedMessages)
+  const roles = useMemory(ownerRoles)
+  const busy = useMemory((s) => s.busy[entry.ref])
+  const failed = useMemory((s) => s.failed[entry.ref])
+  const { editRelation, removeRelation } = useMemory.getState()
+  const parts = relationParts(entry)
+  const list = roleListFor(parts)
+  const listed = list ? roles.filter((r) => r.list === list) : []
+  const [role, setRole] = useState(entry.role ?? "")
+  const label = useId()
+  const hint = useId()
+  const proposal = entry.status === "proposed"
+  const options = [
+    { value: NONE, label: x.noRoleChoice },
+    ...listed.map((r) => ({ value: r.id, label: r.label ?? m.roles[r.id] ?? r.id })),
+    ...(role && !listed.some((r) => r.id === role) ? [{ value: role, label: m.roles[role] ?? role }] : []),
+  ]
+  const save = () => void editRelation(entry.ref, role.trim() || null).then((done) => done && onDone())
+  return (
+    <form
+      className="flex flex-col gap-[0.6rem]"
+      onSubmit={(e) => {
+        e.preventDefault()
+        save()
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          e.stopPropagation()
+          onDone()
+        }
+      }}
+    >
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="flex min-w-[14rem] flex-col gap-[0.3rem]">
+          <span id={label} className="text-[0.9rem] text-ink-dim">
+            {list ? x.role : x.roleFree}
+          </span>
+          {list ? (
+            <Select<string>
+              value={role || NONE}
+              onChange={(v) => setRole(v === NONE ? "" : v)}
+              options={options}
+              aria-labelledby={label}
+            />
+          ) : (
+            <input
+              aria-labelledby={label}
+              maxLength={80}
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="inner-field h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand"
+            />
+          )}
+        </div>
+      </div>
+      {!proposal && (
+        <p id={hint} className="text-[0.9rem] text-ink-dim">
+          {x.removeHint}
+        </p>
+      )}
+      {failed && (
+        <ErrorNotice inline>
+          {x.editFailed} {failed}
+        </ErrorNotice>
+      )}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          size="sm"
+          type="submit"
+          variant={proposal ? "primary" : "secondary"}
+          disabled={!!busy}
+          icon={busy === "correct" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+        >
+          {proposal ? x.saveAndApprove : x.save}
+        </Button>
+        <Button size="sm" variant="ghost" disabled={!!busy} onClick={onDone}>
+          {x.cancel}
+        </Button>
+        {!proposal && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto text-bad hover:text-bad"
+            disabled={!!busy}
+            onClick={() => void removeRelation(entry.ref)}
+            icon={
+              busy === "remove" ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden />
+              ) : (
+                <Trash2 className="size-4" aria-hidden />
+              )
+            }
+          >
+            {busy === "remove" ? x.removing : x.remove}
+          </Button>
+        )}
+      </div>
+    </form>
+  )
+}

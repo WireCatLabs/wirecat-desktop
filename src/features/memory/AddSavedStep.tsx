@@ -1,6 +1,7 @@
 import { Check, LoaderCircle } from "lucide-react"
 import { useId, useState } from "react"
 import { chosenReader } from "@/domain/memory-add"
+import { personName } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import type { AddedSource } from "@/platform/memory-add-schemas"
 import { useReaders } from "@/shared/readers-store"
@@ -21,6 +22,7 @@ export function SavedStep() {
   const busy = useAddSource((s) => s.busy)
   const readers = useReaders((s) => s.readers)
   const { suggest, finish } = useAddSource.getState()
+  const saveHint = useId()
   if (!added) return null
   const reader = chosenReader(readers ?? [])
   const readable = added.read === "extracted"
@@ -47,10 +49,20 @@ export function SavedStep() {
             {busy === "suggest" ? m.suggesting : m.suggest}
           </Button>
         )}
-        <Button variant={readable ? "ghost" : "primary"} disabled={!!busy} onClick={finish}>
+        <Button
+          variant={readable ? "secondary" : "primary"}
+          disabled={!!busy}
+          onClick={finish}
+          aria-describedby={readable ? saveHint : undefined}
+        >
           {readable ? m.onlySave : m.done}
         </Button>
       </div>
+      {readable && (
+        <p id={saveHint} className="-mt-[0.6rem] text-[0.9rem] text-ink-dim">
+          {m.onlySaveHint}
+        </p>
+      )}
     </div>
   )
 }
@@ -146,7 +158,7 @@ function Mentions() {
             <li key={n.ref}>
               <label className="flex cursor-pointer items-center gap-2 text-[0.95rem]">
                 <Checkbox checked={subjects.includes(n.ref)} onChange={() => toggleSubject(n.ref)} />
-                <span>{n.name ?? n.foundAs[0] ?? n.ref}</span>
+                <span>{personName({ name: n.name, contact: n.foundAs[0] }) ?? n.ref}</span>
               </label>
             </li>
           ))}

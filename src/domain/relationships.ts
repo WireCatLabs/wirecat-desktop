@@ -22,3 +22,46 @@ export function roleLabel(role: string, roles: readonly OwnerRole[], words: Read
   const own = roles.find((r) => r.id === role && !r.builtIn)?.label
   return own ?? words[role] ?? role.replaceAll("-", " ")
 }
+
+type RelationLike = {
+  kind: string
+  subject: string | null
+  subjectName: string | null
+  target: string | null
+  targetName: string | null
+  role?: string | null | undefined
+}
+
+export type RelationEnd = { ref: string | null; name: string; kind: string }
+
+const endOf = (ref: string | null, name: string | null): RelationEnd => ({
+  ref,
+  name: name ?? ref ?? "",
+  kind: ref?.slice(0, Math.max(0, ref.indexOf(":"))) ?? "",
+})
+
+/**
+ * A relationship as a sentence needs to know whose role it is. A role always describes the person: a member's part in
+ * an organization, a person's part in a deal, and a source's "owner" of a document (Drive writes the document first).
+ */
+export function relationParts(e: RelationLike) {
+  const from = endOf(e.subject, e.subjectName)
+  const to = endOf(e.target, e.targetName)
+  const holderIsTo = to.kind === "person" && from.kind !== "person"
+  return {
+    kind: e.kind,
+    role: e.role ?? null,
+    from,
+    to,
+    holder: holderIsTo ? to : from,
+    other: holderIsTo ? from : to,
+  }
+}
+
+export type RelationParts = ReturnType<typeof relationParts>
+
+/** The role lists memo offers for a relationship, by the end that is not the person; free text elsewhere. */
+export function roleListFor(p: RelationParts): "organization" | "project" | "deal" | "contract" | null {
+  const k = p.other.kind
+  return k === "organization" || k === "project" || k === "deal" || k === "contract" ? k : null
+}
