@@ -6,7 +6,7 @@ import type { Platform } from "./types"
 // (src-tauri/tests/fixtures/people). `?people=none` knows only the owner, `missing` has no memo, `old` an older memo,
 // `more` says memo has more people and matches than were read. `?people-fail=read` fails the read (another sync holds
 // the store), `?people-fail=write` fails every decision the same way, `?people-fail=stale` refuses Same person as
-// `identity.stale`.
+// `identity.stale`, `?people-fail=merge` refuses the second join of a group.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("people")
@@ -105,6 +105,20 @@ function seed(): Held[] {
       account("email:news@czech.example", '"CZECH AIRLINES "', [["2", "personal"]], "initial", 90),
     ]),
     person("person:24", "!", [account("telegram:8812", "!", [["1", "personal"]], "initial", 15, "ivan_petrov")]),
+    person("person:30", "Konstantin Nikolaevich Loft Pro Max Semenov", [
+      account(
+        "bitrix24:https://northstar.example/crm/contact/details/5310/",
+        "Konstantin Nikolaevich Loft Pro Max Semenov",
+        [["acme", "work"]],
+        "initial",
+        14,
+      ),
+    ]),
+    person("person:31", "Konstantin", [
+      account("telegram:7012", "Konstantin", [["1", "personal"]], "initial", 70, "kostya_s"),
+      account("max:4410", "Костя", [["5", "personal"]], "same-phone", 30),
+    ]),
+    person("person:32", "K. Semenov", [account("whatsapp:34600555019", "K. Semenov", [["7", "work"]], "initial", 4)]),
     ...crowd(),
   ]
 }
@@ -160,16 +174,36 @@ const MATCHES: Match[] = [
     with: "email:marta@studio.example",
     joins: "person",
     signal: "email",
-    candidates: ["person:21", "person:22", "person:108"],
+    candidates: [],
     reason: null,
     evidence: ["marta@studio.example"],
     proposer: { kind: "rule", name: "rule" },
   },
+  ...(
+    [
+      ["17103", "person:30", "person:31", "telegram:7012"],
+      ["17104", "person:30", "person:32", "whatsapp:34600555019"],
+      ["17105", "person:31", "person:32", "whatsapp:34600555019"],
+    ] as const
+  ).map(
+    ([id, a, b, other]): Match => ({
+      id,
+      persons: [a, b],
+      identity: a === "person:30" ? "bitrix24:https://northstar.example/crm/contact/details/5310/" : "telegram:7012",
+      with: other,
+      joins: "person",
+      signal: "phone",
+      candidates: ["person:30", "person:31", "person:32"],
+      reason: null,
+      evidence: ["+34 600 555 019"],
+      proposer: { kind: "rule", name: "rule" },
+    }),
+  ),
 ]
 
 export function peopleMock(): Pick<
   Platform,
-  "peopleRead" | "peopleShow" | "peopleFind" | "peopleDecide" | "peopleUnlink" | "peopleUnmerge"
+  "peopleRead" | "peopleShow" | "peopleFind" | "peopleDecide" | "peopleMerge" | "peopleUnlink" | "peopleUnmerge"
 > {
   let people = scenario === "none" ? seed().slice(0, 1) : seed()
   let matches = scenario === "none" ? [] : [...MATCHES]
@@ -184,6 +218,24 @@ export function peopleMock(): Pick<
     ...find(ref),
     matches: matches.filter((m) => m.persons.includes(ref)),
   })
+  /** As cli-core's settleLinks: the pairs left name the person that stays, and one match is kept per pair. */
+  const settle = (from: string, to: string) => {
+    const pairs = new Set<string>()
+    matches = matches
+      .map((x) => ({ ...x, persons: x.persons.map((p) => (p === from ? to : p)) }))
+      .filter((x) => {
+        const key = [...x.persons].sort().join(" ")
+        if (x.persons[0] === x.persons[1] || pairs.has(key)) return false
+        pairs.add(key)
+        return true
+      })
+  }
+  const merged = new Map<string, string>()
+  const current = (ref: string): string => {
+    let now = ref
+    while (merged.has(now)) now = merged.get(now) ?? now
+    return now
+  }
   const write = async () => {
     await delay(500)
     if (fail === "write") throw new Error(BUSY)
@@ -195,7 +247,7 @@ export function peopleMock(): Pick<
     tasks: TASKS[p.ref] ?? 0,
   })
 
-  return {
+  const api: ReturnType<typeof peopleMock> = {
     async peopleRead() {
       await delay(600)
       if (scenario === "missing") return { kind: "missing" }
@@ -228,6 +280,7 @@ export function peopleMock(): Pick<
       matches = matches.filter((x) => x.id !== id)
       if (answer === "confirm") {
         const [from, to] = m.persons as [string, string]
+        if (m.joins !== "identity") merged.set(from, to)
         const gone = find(from)
         const moving =
           m.joins === "identity" ? gone.identities.filter((i) => i.identity === m.identity) : gone.identities
@@ -253,9 +306,32 @@ export function peopleMock(): Pick<
                   },
           )
           .filter((p) => p.ref !== from || p.identities.length > 0)
+        if (m.joins !== "identity") settle(from, to)
       }
       const now = people.some((p) => p.ref === ref) ? ref : (m.persons[1] as string)
       return now === ref ? shown(ref) : { ...shown(now), mergedInto: now }
+    },
+    async peopleMerge(refs) {
+      const joined = [refs[0] ?? ""]
+      const confirmed: string[] = []
+      const left = refs.slice(1)
+      const stop = (why: string) => {
+        if (confirmed.length === 0) throw new Error(why)
+        return { person: shown(current(joined[0] ?? "")), joined, confirmed, stopped: why }
+      }
+      while (left.length > 0) {
+        const kept = current(joined[0] ?? "")
+        const pair = (ref: string) =>
+          matches.find((x) => x.joins !== "identity" && x.persons.includes(kept) && x.persons.includes(current(ref)))
+        const at = left.findIndex((ref) => pair(ref))
+        const m = at < 0 ? undefined : pair(left[at] ?? "")
+        if (!m) return stop("No open match joins them any more. Read again.")
+        if (fail === "merge" && confirmed.length > 0) return stop("identity.stale")
+        await api.peopleDecide(kept, m.id, "confirm")
+        confirmed.push(m.id)
+        joined.push(left.splice(at, 1)[0] ?? "")
+      }
+      return { person: shown(current(joined[0] ?? "")), joined, confirmed, stopped: null }
     },
     async peopleUnlink(ref, identities) {
       await write()
@@ -291,4 +367,5 @@ export function peopleMock(): Pick<
       return shown(ref)
     },
   }
+  return api
 }

@@ -7,10 +7,14 @@ type Props = {
   label: string
   children: ReactNode
   className?: string
+  /** Shown instead of the "i", such as a badge; then it names the button and `label` is not used. */
+  trigger?: ReactNode
+  /** `end` opens the text leftwards, for a tip at the right edge of its box. */
+  align?: "center" | "end"
 }
 
 /** A small "i" whose text opens on hover, focus or click and closes on Escape, a click elsewhere or leaving. */
-export function InfoTip({ label, children, className }: Props) {
+export function InfoTip({ label, children, className, trigger, align = "center" }: Props) {
   const [hover, setHover] = useState(false)
   const [focus, setFocus] = useState(false)
   const [pinned, setPinned] = useState(false)
@@ -46,21 +50,26 @@ export function InfoTip({ label, children, className }: Props) {
     >
       <button
         type="button"
-        aria-label={label}
+        aria-label={trigger ? undefined : label}
         aria-describedby={tip}
         aria-expanded={open}
         onClick={() => setPinned((p) => !p)}
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
-        className="grid size-[1.4rem] place-items-center rounded-full text-ink-dim hover:text-ink focus-visible:text-ink"
+        className={
+          trigger
+            ? "inline-flex cursor-help rounded-[0.3rem]"
+            : "grid size-[1.4rem] place-items-center rounded-full text-ink-dim hover:text-ink focus-visible:text-ink"
+        }
       >
-        <Info className="size-4" strokeWidth={1.8} aria-hidden />
+        {trigger ?? <Info className="size-4" strokeWidth={1.8} aria-hidden />}
       </button>
       <span
         id={tip}
         role="tooltip"
         className={cx(
-          "absolute top-full left-1/2 z-20 mt-1 w-[min(24rem,80vw)] -translate-x-1/4 rounded-[0.5rem] border border-line-strong bg-app-2 p-3 text-[0.9rem] font-normal text-ink-soft shadow-lg transition-opacity duration-(--motion-fast) ease-out-quart",
+          "absolute top-full z-20 mt-1 w-[min(24rem,80vw)] rounded-[0.5rem] border border-line-strong bg-app-2 p-3 text-[0.9rem] font-normal text-ink-soft shadow-lg transition-opacity duration-(--motion-fast) ease-out-quart",
+          align === "end" ? "right-0" : "left-1/2 -translate-x-1/4",
           open ? "opacity-100" : "pointer-events-none opacity-0",
         )}
       >

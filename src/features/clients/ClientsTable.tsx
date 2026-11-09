@@ -7,7 +7,7 @@ import type { CrmCard } from "@/platform/bindings"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { Pager } from "@/ui/Pager"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Select } from "@/ui/Select"
 import type { Based } from "./api"
 import { Refused } from "./BaseBoard"
@@ -18,7 +18,6 @@ import { stageMessages } from "./messages-stages"
 import { tableMessages } from "./messages-table"
 import { useClients } from "./store"
 
-const PAGE = 50
 const BARE = "w-full border-transparent! bg-transparent! hover:bg-app-3! -ml-[0.45rem] pl-[0.45rem]!"
 
 /** Every pipeline's cards as rows; the stage cell moves a card the way a drop on the board does. */
@@ -28,6 +27,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
   const s = useMessages(stageMessages)
   const lang = useLang()
   const page = useClients((st) => st.page)
+  const size = useClients((st) => st.pageSize)
   const failed = useClients((st) => st.failed)
   const refused = useClients((st) => st.refused)
   const move = useBaseMove(read, kind)
@@ -120,7 +120,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
         columns={columns}
         leadWidth="minmax(14rem,1fr)"
         minWidth="70rem"
-        page={{ index: page, size: PAGE }}
+        page={{ index: page, size }}
         below={(c) =>
           failed[c.ref] || refused[c.ref] ? (
             <div className="sticky left-0 flex w-fit max-w-[58rem] flex-col gap-1 px-[1.3rem] pb-[0.6rem]">
@@ -130,8 +130,15 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
           ) : null
         }
       />
-      {cards.length > PAGE && (
-        <Pager page={page} hasMore={page * PAGE < cards.length} onPage={(p) => useClients.getState().setPage(p)} />
+      {cards.length > PAGE_SIZES[0] && (
+        <Pager
+          page={page}
+          onPage={(p) => useClients.getState().setPage(p)}
+          total={cards.length}
+          size={size}
+          sizes={PAGE_SIZES}
+          onSize={(s) => useClients.getState().setPageSize(s)}
+        />
       )}
     </>
   )

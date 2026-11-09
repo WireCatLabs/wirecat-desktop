@@ -16,6 +16,8 @@ export type Done =
   | { op: "unlink"; movedTo: string; count: number }
   | { op: "unmerge"; from: string }
 export type View = "people" | "matches"
+/** What joining some of a group did: who was joined, in order, and why the rest were not, if a join failed. */
+export type GroupDone = { joined: string[]; stopped: string | null }
 export type Found =
   | { state: "looking" }
   | { state: "found"; ref: string }
@@ -40,13 +42,15 @@ type PeopleState = {
   withTasks: boolean
   named: boolean
   page: number
+  pageSize: number
   matchPage: number
   /** The person whose account the search named, found by memo. */
   found: Found | null
   /** The person whose dialog is open. */
   open: string | null
-  /** The match whose Details dialog is open. */
+  /** The match, or the group of matches (its key from `groupMatches`), whose Details dialog is open. */
   matchOpen: string | null
+  joinedGroup: Record<string, GroupDone>
   details: Record<string, Detail>
   busy: Record<string, Op>
   failed: Record<string, string>
@@ -58,6 +62,7 @@ type PeopleState = {
   setQuery(query: string): void
   setFilter(filter: { withTasks?: boolean; named?: boolean }): void
   setPage(page: number): void
+  setPageSize(size: number): void
   setMatchPage(page: number): void
   findAccount(): Promise<void>
   /** Opens a person's dialog, from a row, a search result or "now part of"; `null` closes it. */
@@ -70,6 +75,10 @@ type PeopleState = {
   need(ref: string): void
   /** `ref` is the person the owner decides from: the open one, or the first of the match's two. */
   decide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<boolean>
+  /** Joins the chosen people of a group into one; `ids` are the group's matches, kept in place as decided. */
+  joinGroup(key: string, refs: string[], ids: string[]): Promise<boolean>
+  /** Keeps the given pairs of a group apart, for one reason; stops at the first refusal. */
+  rejectGroup(key: string, matches: Match[], reason: string): Promise<boolean>
   unlink(ref: string, identities: string[]): Promise<boolean>
   unmerge(ref: string, merge: string): Promise<boolean>
   askSplit(ref: string | null): void
@@ -120,9 +129,14 @@ export const usePeople = create<PeopleState>((set, get) => {
   /**
    * After a write the people it touched may have new accounts, merges or matches, or be gone into another: their
    * cached details go, the person the answer describes is kept, and both lists are read again. A match the owner
-   * decided stays in place until the next full read.
+   * decided stays in place until the next full read, and so do the `keep` ones a group decision just closed.
    */
-  const settle = async (answer: PersonDetail, asked: string, others: (string | null | undefined)[]) => {
+  const settle = async (
+    answer: PersonDetail,
+    asked: string,
+    others: (string | null | undefined)[],
+    keep: readonly string[] = [],
+  ): Promise<Set<string> | null> => {
     const gone = touched(asked, answer.ref, ...others)
     set((s) => {
       const details = { ...s.details }
@@ -132,21 +146,26 @@ export const usePeople = create<PeopleState>((set, get) => {
     })
     try {
       const read = await platform.peopleRead()
-      if (read.kind !== "ready") return
+      if (read.kind !== "ready") return null
       set((s) => ({
         people: read.people,
         peopleMore: read.peopleMore,
         matches: [
           ...read.matches,
-          ...s.matches.filter((m) => s.decided[m.id] && !read.matches.some((r) => r.id === m.id)),
+          ...s.matches.filter(
+            (m) => (s.decided[m.id] || keep.includes(m.id)) && !read.matches.some((r) => r.id === m.id),
+          ),
         ],
         matchesMore: read.matchesMore,
       }))
+      return new Set(read.matches.map((m) => m.id))
     } catch {
       // The person's own answer already shows; the lists catch up on the next read.
+      return null
+    } finally {
+      const open = get().open
+      if (open && !get().details[open]) void get().loadDetail(open)
     }
-    const open = get().open
-    if (open && !get().details[open]) void get().loadDetail(open)
   }
 
   return {
@@ -164,10 +183,12 @@ export const usePeople = create<PeopleState>((set, get) => {
     withTasks: false,
     named: false,
     page: 1,
+    pageSize: 50,
     matchPage: 1,
     found: null,
     open: null,
     matchOpen: null,
+    joinedGroup: {},
     details: {},
     busy: {},
     failed: {},
@@ -190,6 +211,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           matches: ready?.matches ?? [],
           matchesMore: ready?.matchesMore ?? false,
           decided: {},
+          joinedGroup: {},
           reading: false,
           details: {},
           failed: {},
@@ -206,6 +228,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     setQuery: (query) => set({ query, found: null, page: 1 }),
     setFilter: (filter) => set({ ...filter, page: 1 }),
     setPage: (page) => set({ page }),
+    setPageSize: (pageSize) => set({ pageSize, page: 1 }),
     setMatchPage: (matchPage) => set({ matchPage }),
     async findAccount() {
       const query = get().query.trim()
@@ -255,6 +278,46 @@ export const usePeople = create<PeopleState>((set, get) => {
       set((s) => ({ decided: { ...s.decided, [id]: answer }, done: { ...s.done, [ref]: { op: answer, with: other } } }))
       await settle(updated, ref, match?.persons ?? [])
       return true
+    },
+    async joinGroup(key, refs, ids) {
+      // The card stays busy until the lists are read again, so it never offers the pairs memo just folded away.
+      const done = await run(key, "confirm", async () => {
+        const result = await platform.peopleMerge(refs)
+        const open = await settle(result.person, result.person.ref, refs, ids)
+        return { result, open }
+      })
+      if (!done) return false
+      const { result, open } = done
+      // Without a fresh read, only the matches memo said it confirmed are known to be closed.
+      const closed = open ? ids.filter((id) => !open.has(id)) : result.confirmed
+      set((s) => ({
+        joinedGroup: { ...s.joinedGroup, [key]: { joined: result.joined, stopped: result.stopped } },
+        decided: { ...s.decided, ...Object.fromEntries(closed.map((id) => [id, "confirm" as const])) },
+      }))
+      return true
+    },
+    async rejectGroup(key, matches, reason) {
+      const kept: string[] = []
+      let last: PersonDetail | null = null
+      await run(key, "reject", async () => {
+        try {
+          for (const m of matches) {
+            last = await platform.peopleDecide(m.persons[0] ?? "", m.id, "reject", reason)
+            kept.push(m.id)
+          }
+        } finally {
+          set((s) => ({ decided: { ...s.decided, ...Object.fromEntries(kept.map((id) => [id, "reject" as const])) } }))
+          const answer = last as PersonDetail | null
+          if (answer)
+            await settle(
+              answer,
+              answer.ref,
+              matches.flatMap((m) => m.persons),
+              kept,
+            )
+        }
+      })
+      return kept.length === matches.length
     },
     async unlink(ref, identities) {
       const result = await run(ref, "unlink", () => platform.peopleUnlink(ref, identities))

@@ -4,6 +4,7 @@ import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Lamp } from "@/ui/Lamp"
 import { Pager } from "@/ui/Pager"
+import { groupMatches } from "./groups"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
 import { usePeople } from "./store"
@@ -14,7 +15,9 @@ const PAGE = 10
 /** On the people list: how many matches wait, and the way to them. */
 export function MatchesWaiting() {
   const m = useMessages(peopleMessages)
-  const waiting = usePeople((s) => s.matches.filter((x) => !s.decided[x.id]).length)
+  const waiting = usePeople(
+    (s) => groupMatches(s.matches, s.decided).filter((g) => g.matches.some((x) => !s.decided[x.id])).length,
+  )
   const head = useId()
   if (waiting === 0) return null
   return (
@@ -45,14 +48,16 @@ export function MatchesWaiting() {
 export function Matches() {
   const m = useMessages(peopleMessages)
   const matches = usePeople((s) => s.matches)
+  const decided = usePeople((s) => s.decided)
   const more = usePeople((s) => s.matchesMore)
   const page = usePeople((s) => s.matchPage)
   const { setView, setMatchPage, want } = usePeople.getState()
   const head = useId()
-  const pages = Math.max(1, Math.ceil(matches.length / PAGE))
+  const groups = groupMatches(matches, decided)
+  const pages = Math.max(1, Math.ceil(groups.length / PAGE))
   const at = Math.min(page, pages)
-  const shown = matches.slice((at - 1) * PAGE, at * PAGE)
-  const onScreen = [...new Set(shown.flatMap((x) => x.persons))].join(" ")
+  const shown = groups.slice((at - 1) * PAGE, at * PAGE)
+  const onScreen = [...new Set(shown.flatMap((g) => g.people))].join(" ")
   // biome-ignore lint/correctness/useExhaustiveDependencies: a read drops the details, and `matches` is new after it
   useEffect(() => want(onScreen ? onScreen.split(" ") : []), [onScreen, matches, want])
 
@@ -71,18 +76,18 @@ export function Matches() {
         <h2 id={head} className="text-[1.25rem] font-semibold">
           {m.matchesTitle}
         </h2>
-        <p className="mt-1 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.waitingHelp}</p>
+        <p className="mt-1 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.matchesIntro}</p>
       </div>
       {matches.length === 0 ? (
         <p className="text-[0.95rem] text-ink-soft">{m.noMatches}</p>
       ) : (
         <div className="flex flex-col gap-[0.8rem]">
-          {shown.map((match) => (
-            <MatchCard key={match.id} match={match} from={match.persons[0] ?? ""} />
+          {shown.map((group) => (
+            <MatchCard key={group.key} group={group} />
           ))}
         </div>
       )}
-      {pages > 1 && <Pager page={at} hasMore={at < pages} onPage={setMatchPage} />}
+      {pages > 1 && <Pager page={at} onPage={setMatchPage} total={groups.length} totalMore={more} size={PAGE} />}
       {more && <p className="text-[0.9rem] text-ink-dim">{m.matchesMore}</p>}
     </section>
   )

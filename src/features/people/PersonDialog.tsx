@@ -5,6 +5,7 @@ import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
+import { groupMatches } from "./groups"
 import { IdentityList } from "./IdentityList"
 import { usePersonName } from "./labels"
 import { MatchCard } from "./MatchCard"
@@ -32,6 +33,7 @@ export function PersonDialog() {
 function Details({ reference }: { reference: string }) {
   const m = useMessages(peopleMessages)
   const detail = usePeople((s) => s.details[reference])
+  const decided = usePeople((s) => s.decided)
   const failed = usePeople((s) => s.failed[reference])
   const box = "pb-[1.2rem]"
   if (!detail || detail.state === "loading")
@@ -73,8 +75,8 @@ function Details({ reference }: { reference: string }) {
       </div>
       <div className="flex min-w-0 flex-col gap-[0.9rem] empty:hidden">
         <Merges person={detail.person} />
-        {detail.person.matches.map((match) => (
-          <MatchCard key={match.id} match={match} from={reference} />
+        {groupMatches(detail.person.matches, decided).map((group) => (
+          <MatchCard key={group.key} group={group} from={reference} />
         ))}
       </div>
     </div>
