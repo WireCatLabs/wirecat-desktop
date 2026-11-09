@@ -63,6 +63,11 @@ type TasksState = {
   /** A move memo refused because the task is a subtask; the page offers to move it out of its parent. */
   detach: Record<string, Detach>
   creating: boolean
+  /** The table's page, from 1; a new search starts again at 1. */
+  page: number
+  pageSize: number
+  setPage(page: number): void
+  setPageSize(size: number): void
   load(quiet?: boolean): Promise<void>
   type(query: string): void
   setQuery(query: string): void
@@ -238,6 +243,8 @@ export const useTasks = create<TasksState>((set, get) => {
     moved: {},
     detach: {},
     creating: false,
+    page: 1,
+    pageSize: 50,
 
     async load(quiet = false) {
       if (get().demo) return
@@ -292,15 +299,18 @@ export const useTasks = create<TasksState>((set, get) => {
       set((s) => ({ counts: c, people: p ?? s.people, projects: j ?? s.projects }))
     },
 
+    setPage: (page) => set({ page }),
+    setPageSize: (pageSize) => set({ pageSize, page: 1 }),
+
     type(query) {
-      set({ query })
+      set({ query, page: 1 })
       clearTimeout(typing)
       typing = setTimeout(() => void get().load(), TYPING_MS)
     },
 
     setQuery(query) {
       clearTimeout(typing)
-      set({ query })
+      set({ query, page: 1 })
       void get().load()
     },
 
@@ -386,6 +396,7 @@ export const useTasks = create<TasksState>((set, get) => {
         set((s) => ({
           tasks: [made, ...s.tasks.filter((t) => t.key !== made.key)],
           order: [made.key, ...s.order.filter((k) => k !== made.key)],
+          page: 1,
           total: s.total + 1,
           creating: false,
         }))

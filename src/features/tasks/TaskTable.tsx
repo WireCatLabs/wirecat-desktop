@@ -4,6 +4,7 @@ import type { Task } from "@/platform/task-schemas"
 import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { AssigneeCell, DueCell, PriorityCell, StatusCell } from "./cells"
 import { taskMessages } from "./messages"
 import { StaleLine } from "./Note"
@@ -70,35 +71,45 @@ export function TaskTable({ top }: { top?: React.ReactNode }) {
   const order = useTasks((s) => s.order)
   const failed = useTasks((s) => s.failed)
   const stale = useTasks((s) => s.stale?.key)
+  const page = useTasks((s) => s.page)
+  const size = useTasks((s) => s.pageSize)
+  const { setPage, setPageSize } = useTasks.getState()
   const byKey = new Map(tasks.map((t) => [t.key, t]))
   const rows = order.map((k) => byKey.get(k)).filter((t): t is Task => Boolean(t))
+  const at = Math.min(page, Math.max(1, Math.ceil(rows.length / size)))
   return (
-    <DataTable
-      label={m.title}
-      rows={rows}
-      rowKey={(t) => t.key}
-      columns={columns(m)}
-      leadWidth="minmax(30rem,1fr)"
-      minWidth="calc(50.6rem + var(--priority))"
-      style={WIDTHS[lang] as React.CSSProperties}
-      top={top}
-      below={(t) =>
-        failed[t.key] || stale === t.key ? (
-          <>
-            {failed[t.key] && (
-              <div className="sticky left-0 w-fit max-w-[58rem] px-[1.3rem] pb-[0.6rem]">
-                <ErrorNotice inline>{m.notSaved(failed[t.key] ?? "")}</ErrorNotice>
-              </div>
-            )}
-            {stale === t.key && (
-              <div className="sticky left-0 w-fit max-w-[58rem] px-[1.3rem] pb-[0.6rem]">
-                <StaleLine taskKey={t.key} />
-              </div>
-            )}
-          </>
-        ) : null
-      }
-    />
+    <>
+      <DataTable
+        label={m.title}
+        rows={rows}
+        rowKey={(t) => t.key}
+        columns={columns(m)}
+        leadWidth="minmax(30rem,1fr)"
+        minWidth="calc(50.6rem + var(--priority))"
+        style={WIDTHS[lang] as React.CSSProperties}
+        top={top}
+        page={{ index: at, size }}
+        below={(t) =>
+          failed[t.key] || stale === t.key ? (
+            <>
+              {failed[t.key] && (
+                <div className="sticky left-0 w-fit max-w-[58rem] px-[1.3rem] pb-[0.6rem]">
+                  <ErrorNotice inline>{m.notSaved(failed[t.key] ?? "")}</ErrorNotice>
+                </div>
+              )}
+              {stale === t.key && (
+                <div className="sticky left-0 w-fit max-w-[58rem] px-[1.3rem] pb-[0.6rem]">
+                  <StaleLine taskKey={t.key} />
+                </div>
+              )}
+            </>
+          ) : null
+        }
+      />
+      {rows.length > PAGE_SIZES[0] && (
+        <Pager page={at} onPage={setPage} total={rows.length} size={size} sizes={PAGE_SIZES} onSize={setPageSize} />
+      )}
+    </>
   )
 }
 
