@@ -137,6 +137,27 @@ const ToolSchema = v.object({
   tasks: v.nullable(v.object({ list: v.array(v.string()), release: v.array(v.string()) })),
   /** The Tasks page's lowest version of the tool; only memo keeps project tasks. */
   taskBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
+  crmBoard: v.optional(
+    v.nullable(v.object({ minVersion: v.string(), baseStagesMinVersion: v.optional(v.string()) })),
+    null,
+  ),
+  /**
+   * A CRM's own CLI, for memo's `provider` of its accounts: Rust moves that CRM's cards and switches its sync scope
+   * with these words from `minVersion` on; `scope.minVersion` is absent until a release has the setting.
+   */
+  crm: v.optional(
+    v.nullable(
+      v.object({
+        provider: v.string(),
+        minVersion: v.string(),
+        moveDeal: v.array(v.string()),
+        moveLead: v.array(v.string()),
+        scope: v.object({ minVersion: v.optional(v.string()), show: v.array(v.string()), set: v.array(v.string()) }),
+      }),
+    ),
+    null,
+  ),
+  people: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
   /** Only memo: the first-run card's folder, notes sync and search model; Rust runs the commands. */
   notesSetup: v.optional(v.nullable(v.object({ minVersion: v.string(), recommended: v.string() })), null),
   /** Only memo: a hosted model rewrites records for search once the owner agrees; memo lists what it offers. */
@@ -322,6 +343,9 @@ export const maker = (t: CatalogTool) =>
   t.repo
     ? (t.repo.replace(/^https:\/\/github\.com\//, "").split("/")[0] ?? t.repo)
     : (t.package.split("/")[0] ?? t.package)
+
+/** The catalog tool that writes a CRM's accounts, by memo's `provider`; none for a CRM WireCat has no CLI for. */
+export const crmToolOf = (provider: string): CatalogTool | undefined => tools.find((t) => t.crm?.provider === provider)
 
 export function findTool(id: string): CatalogTool | undefined {
   return all.find((t) => t.id === id) ?? helpers.find((t) => t.id === id)

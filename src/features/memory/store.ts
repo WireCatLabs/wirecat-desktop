@@ -1,6 +1,7 @@
 import { create } from "zustand"
 import {
   can,
+  entryInTab,
   inTab,
   type MemoryField,
   matchesFilter,
@@ -13,15 +14,28 @@ import {
 import { useTasks } from "@/features/tasks"
 import { messagesOf } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { MemoryEntry, MemoryRead, MemorySource, Role, SourceContext } from "@/platform/memory-schemas"
+import type {
+  MemoryEntry,
+  MemoryRead,
+  MemorySource,
+  ReviewAnswer,
+  Role,
+  SourceContext,
+  SourceReview,
+} from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
 import { memoryMessages } from "./messages"
+import { reviewMessages } from "./messages-review"
 
 export type Context =
   | { state: "loading" }
   | { state: "ready"; context: SourceContext }
   | { state: "failed"; error: string }
-export type Op = "confirm" | "discard" | "correct" | "forget" | "open"
+export type Op = "confirm" | "discard" | "correct" | "forget" | "open" | ReviewAnswer
+export type Review =
+  | { state: "loading" }
+  | { state: "ready"; review: SourceReview }
+  | { state: "failed"; error: string }
 export type Sources =
   | { state: "loading" }
   | { state: "ready"; sources: MemorySource[] }
@@ -56,7 +70,13 @@ type MemoryState = {
   busy: Record<string, Op>
   failed: Record<string, string>
   correcting: string | null
+  /** The text a correction starts from when it is not the record's own: a wording an agent suggested. */
+  draft: string | null
   forgetting: string | null
+  /** Open source reviews read back in place, by the record's ref. */
+  reviews: Record<string, Review>
+  /** What the owner answered a review with, until the next read: the row says what happened. */
+  reviewed: Record<string, ReviewAnswer>
   /** Findings the owner unticked, per batch: Approve creates the rest. */
   skipped: Record<string, string[]>
   /** Subject groups folded shut: their rows are not on screen, so the page-wide Approve leaves them. */
@@ -76,7 +96,10 @@ type MemoryState = {
   discard(ref: string): Promise<void>
   correct(ref: string, text: string): Promise<boolean>
   forget(ref: string): Promise<void>
-  startCorrect(ref: string | null): void
+  startCorrect(ref: string | null, draft?: string): void
+  loadReview(ref: string): Promise<void>
+  /** The owner's answer to a record's source review; the record comes back with no review open. */
+  answerReview(ref: string, answer: ReviewAnswer, reason?: string): Promise<boolean>
   askForget(ref: string | null): void
   skip(ref: string, finding: string, skipped: boolean): void
   /** Opens a record where it is, in its tab, with the search and its group made to show it; false when not read. */
@@ -87,11 +110,13 @@ type MemoryState = {
 
 const REFUSALS = ["fact.not-accepted", "fact.owner-written", "fact.revoke-correction"] as const
 
-/** memo's reasons for refusing `facts revoke` arrive as they are and are worded here in the owner's language. */
+/** memo's reasons for refusing `facts revoke` or a review decision arrive as they are and are worded here. */
 const message = (e: unknown) => {
   const text = e instanceof Error ? e.message : String(e)
   const reason = REFUSALS.find((r) => r === text)
-  return (reason && messagesOf(memoryMessages).revokeRefused[reason]) || text
+  return (
+    (reason && messagesOf(memoryMessages).revokeRefused[reason]) || messagesOf(reviewMessages).refused[text] || text
+  )
 }
 
 /** The installed memo takes back an agent's accepted fact. */
@@ -148,7 +173,10 @@ export const useMemory = create<MemoryState>((set, get) => {
     busy: {},
     failed: {},
     correcting: null,
+    draft: null,
     forgetting: null,
+    reviews: {},
+    reviewed: {},
     skipped: {},
     closedGroups: [],
 
@@ -178,10 +206,22 @@ export const useMemory = create<MemoryState>((set, get) => {
         const entries = read.kind === "ready" ? read.entries : []
         const tab = get().tabChosen
           ? get().tab
-          : entries.some((e) => inTab("review", e.status)) || entries.length === 0
+          : entries.some((e) => entryInTab("review", e)) || entries.length === 0
             ? "review"
             : "inuse"
-        set({ read, entries, tab, reading: false, held: [], arriving: [], sources: {}, failed: {}, skipped: {} })
+        set({
+          read,
+          entries,
+          tab,
+          reading: false,
+          held: [],
+          arriving: [],
+          sources: {},
+          reviews: {},
+          reviewed: {},
+          failed: {},
+          skipped: {},
+        })
       } catch (e) {
         if (call !== seq || get().demo) return
         set({ error: message(e), reading: false })
@@ -205,6 +245,28 @@ export const useMemory = create<MemoryState>((set, get) => {
       const opening = get().open !== ref
       set((s) => ({ open: opening ? ref : null, correcting: s.correcting === ref ? null : s.correcting }))
       if (opening && !get().sources[ref]) get().loadSources(ref)
+      if (opening) get().loadReview(ref)
+    },
+    async loadReview(ref) {
+      const id = get().entries.find((e) => e.ref === ref)?.sourceReview?.id
+      const had = get().reviews[ref]
+      if (!id || (had && had.state !== "failed")) return
+      set((s) => ({ reviews: { ...s.reviews, [ref]: { state: "loading" } } }))
+      try {
+        const review = await platform.memoryReviewShow(ref, id)
+        set((s) => ({ reviews: { ...s.reviews, [ref]: { state: "ready", review } } }))
+      } catch (e) {
+        set((s) => ({ reviews: { ...s.reviews, [ref]: { state: "failed", error: message(e) } } }))
+      }
+    },
+    async answerReview(ref, answer, reason) {
+      const id = get().entries.find((e) => e.ref === ref)?.sourceReview?.id
+      if (!id) return false
+      const entry = await run(ref, answer, () => platform.memoryReviewDecide(ref, id, answer, reason))
+      if (!entry) return false
+      replace(entry)
+      set((s) => ({ reviews: without(s.reviews, ref), reviewed: { ...s.reviewed, [ref]: answer } }))
+      return true
     },
     async loadSources(ref) {
       const entry = get().entries.find((e) => e.ref === ref)
@@ -235,12 +297,14 @@ export const useMemory = create<MemoryState>((set, get) => {
     async correct(ref, text) {
       const added = await run(ref, "correct", () => platform.memoryCorrect(ref, text))
       if (!added) return false
+      const old = await platform.memoryShow(ref).catch(() => null)
       set((s) => ({
-        // memo marks the old record superseded; the page says so without reading everything again.
-        entries: [added, ...s.entries.map((e) => (e.ref === ref ? { ...e, status: "superseded" } : e))],
+        entries: [added, ...s.entries.map((e) => (e.ref !== ref ? e : (old ?? { ...e, status: "superseded" })))],
+        reviews: without(s.reviews, ref),
         held: [...s.held, ref, added.ref],
         arriving: [...s.arriving, added.ref],
         correcting: null,
+        draft: null,
       }))
       return true
     },
@@ -259,7 +323,8 @@ export const useMemory = create<MemoryState>((set, get) => {
         LEAVE_MS,
       )
     },
-    startCorrect: (ref) => set((s) => ({ correcting: ref, failed: ref ? without(s.failed, ref) : s.failed })),
+    startCorrect: (ref, draft) =>
+      set((s) => ({ correcting: ref, draft: draft ?? null, failed: ref ? without(s.failed, ref) : s.failed })),
     askForget: (ref) => set({ forgetting: ref }),
     reveal(ref, from) {
       const entry = get().entries.find((e) => e.ref === ref)

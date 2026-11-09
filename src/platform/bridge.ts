@@ -27,13 +27,23 @@ import { DigestDaySchema, DigestSchema } from "./digest-schemas"
 import { GroupsReadSchema } from "./groups-schemas"
 import { OpenedSchema } from "./link-schemas"
 import {
+  AddedSourceSchema,
+  KeySavedSchema,
+  MentionsSchema,
+  ReaderSchema,
+  StoredSourceSchema,
+  SuggestedSchema,
+} from "./memory-add-schemas"
+import {
   ForgotSchema,
   MemoryEntrySchema,
   MemoryReadSchema,
   MemorySourceSchema,
   SourceContextSchema,
+  SourceReviewSchema,
 } from "./memory-schemas"
 import { NotificationsSchema } from "./notifications-schemas"
+import { PeopleReadSchema, PersonDetailSchema, UnlinkedSchema } from "./people-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
@@ -211,6 +221,33 @@ function createTauri(): Platform {
     memoryOpenSource: (ref) => invoke("memory_open_source", { reference: ref }),
     memoryCorrect: (ref, text) => call(MemoryEntrySchema, "memory_correct", { reference: ref, text }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
+    clientsRead: (kind, pipeline) => invoke("clients_read", { kind, pipeline }),
+    clientsMove: (kind, ref, stage, via) => invoke("clients_move", { kind, reference: ref, stage, via }),
+    clientsScope: (account, profile) => invoke("clients_scope", { account, profile }),
+    clientsScopeSet: (account, profile, scope) => invoke("clients_scope_set", { account, profile, scope }),
+    clientsMapSet: (stage, base) => invoke("clients_map_set", { stage, base }),
+    clientsMapConfirm: (kind, pipeline) => invoke("clients_map_confirm", { kind, pipeline }),
+    clientsBaseEdit: (kind, edit) => invoke("clients_base_edit", { kind, edit }),
+    peopleRead: () => call(PeopleReadSchema, "people_read"),
+    peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
+    peopleDecide: (ref, id, answer, reason) =>
+      call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
+    peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
+    peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),
+    peopleUnmerge: (ref, merge) => call(PersonDetailSchema, "people_unmerge", { reference: ref, merge }),
+    memoryShow: (ref) => call(MemoryEntrySchema, "memory_show", { reference: ref }),
+    memoryReviewShow: (ref, id) => call(SourceReviewSchema, "memory_review_show", { reference: ref, id }),
+    memoryReviewDecide: (ref, id, answer, reason) =>
+      call(MemoryEntrySchema, "memory_review_decide", { reference: ref, id, answer, reason: reason ?? null }),
+    memoryPickFile: () => call(v.nullable(v.string()), "memory_pick_file"),
+    memorySourceAdd: (source) => call(AddedSourceSchema, "memory_source_add", { source }),
+    memorySourceShow: (ref) => call(StoredSourceSchema, "memory_source_show", { reference: ref }),
+    memoryMentions: (ref) => call(MentionsSchema, "memory_mentions", { reference: ref }),
+    memorySourceSuggest: (ref, reader, subjects, again) =>
+      call(SuggestedSchema, "memory_source_suggest", { reference: ref, reader, subjects, again }),
+    memoryReaders: () => call(v.array(ReaderSchema), "memory_readers"),
+    memoryReaderChoose: (id) => call(v.array(ReaderSchema), "memory_reader_choose", { id }),
+    memoryReaderKey: (provider, key) => call(KeySavedSchema, "memory_reader_key", { provider, key }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
     taskShow: (key) => call(TaskSchema, "task_show", { key }),

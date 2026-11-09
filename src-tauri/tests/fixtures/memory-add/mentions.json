@@ -1,0 +1,24 @@
+{
+  "items": [
+    {
+      "ref": "person:2",
+      "type": "person",
+      "name": "Lena Ortiz",
+      "found_as": ["Lena Ortiz"]
+    },
+    {
+      "ref": "person:4",
+      "type": "person",
+      "name": "Lena Ortiz",
+      "found_as": ["lena@example.org"]
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 2,
+    "has_more": false
+  },
+  "meta": {
+    "complete": true
+  }
+}

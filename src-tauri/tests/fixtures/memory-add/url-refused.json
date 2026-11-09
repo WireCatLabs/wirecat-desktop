@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "validation_error",
+    "reason": "source.url-refused",
+    "message": "127.0.0.1 is not on the public internet, so it is not read — give an http or https address of a public page",
+    "retry": {
+      "safe": false
+    }
+  }
+}

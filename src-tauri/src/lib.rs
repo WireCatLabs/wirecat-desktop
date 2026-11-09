@@ -17,6 +17,7 @@ mod community;
 mod compat;
 mod config_repair;
 mod conversation;
+mod crm_board;
 mod deep_link;
 mod digest_editors;
 mod digest_schedule;
@@ -35,6 +36,8 @@ mod mcp;
 mod mcp_server;
 mod memo_cli;
 mod memory;
+mod memory_add;
+mod memory_review;
 mod names;
 mod node;
 mod notes_setup;
@@ -49,6 +52,7 @@ mod package_update;
 #[cfg(test)]
 mod page_loads;
 mod paths;
+mod people;
 mod permissions;
 mod preflight;
 mod profile;
@@ -137,6 +141,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(window_state()).build())
         .manage(Arc::new(Running::default()))
         .manage(deep_link::Links::default())
+        .manage(memory_add::PickedFile::default())
         .setup(|app| {
             // Without a log the app still works; it says why on stderr.
             if let Err(e) = app.path().app_log_dir().map_err(|e| e.to_string()).and_then(|dir| log::init(&dir)) {
@@ -283,6 +288,13 @@ pub fn run() {
             commands::tasks::task_claims,
             commands::tasks::task_release,
             commands::tasks::task_list,
+            commands::clients::clients_read,
+            commands::clients::clients_move,
+            commands::clients::clients_scope,
+            commands::clients::clients_scope_set,
+            commands::clients::clients_map_set,
+            commands::clients::clients_map_confirm,
+            commands::clients::clients_base_edit,
             commands::tasks::task_counts,
             commands::tasks::task_show,
             commands::tasks::task_history,
@@ -308,6 +320,23 @@ pub fn run() {
             commands::memory::memory_forget,
             commands::memory::memory_source_context,
             commands::memory::memory_open_source,
+            commands::people::people_read,
+            commands::people::people_show,
+            commands::people::people_decide,
+            commands::people::people_unlink,
+            commands::people::people_unmerge,
+            commands::people::people_find,
+            commands::memory::memory_review_show,
+            commands::memory::memory_review_decide,
+            commands::memory::memory_pick_file,
+            commands::memory::memory_show,
+            commands::memory::memory_source_add,
+            commands::memory::memory_source_show,
+            commands::memory::memory_mentions,
+            commands::memory::memory_source_suggest,
+            commands::memory::memory_readers,
+            commands::memory::memory_reader_choose,
+            commands::memory::memory_reader_key,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,

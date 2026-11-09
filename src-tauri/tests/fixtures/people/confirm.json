@@ -1,0 +1,16 @@
+{
+  "item": {
+    "decided": [
+      {
+        "id": "4",
+        "kind": "identity_link",
+        "status": "confirmed",
+        "made": ["person:3"]
+      }
+    ],
+    "refused": []
+  },
+  "meta": {
+    "complete": true
+  }
+}

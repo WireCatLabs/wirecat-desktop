@@ -7,6 +7,7 @@ import { analyticsMock } from "./mock-analytics"
 import { storeCheckMock, storeInfoMock, storeTablesMock } from "./mock-archive"
 import { backupMock } from "./mock-backup"
 import { botMock } from "./mock-bot"
+import { clientsMock } from "./mock-clients"
 import { cloudflareMock } from "./mock-cloudflare"
 import { ACME, communityMock, extraToolsMock, ownToolsMock } from "./mock-community"
 import { newestReader, storeCompatMock, storePreflightMock } from "./mock-compat"
@@ -23,6 +24,7 @@ import { mcpServerMock } from "./mock-mcp"
 import { memoryMock } from "./mock-memory"
 import { notesSetupMock } from "./mock-notes-setup"
 import { notificationsMock } from "./mock-notifications"
+import { peopleMock } from "./mock-people"
 import { permissionsMock } from "./mock-permissions"
 import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
@@ -63,6 +65,7 @@ import type { Platform } from "./types"
 // `?groups=none|old|missing` and `?groups-fail=read|write` set up Settings' account groups (`mock-groups.ts`).
 // `?memory=<state>` and `?memory-fail=read|write` set up the Memory page (`mock-memory.ts`).
 // `?tasks=<state>` and `?view=table|board` set up the Tasks page (`mock-tasks.ts`).
+// `?clients=<state>` and `?kind=lead` set up the Clients page (`mock-clients.ts`).
 // `?store-check=cannot-open|also-update|wait` runs the store check before Install and Update (`storePreflightMock`).
 // `?showcase` is the healthy machine for the website's screenshots (`mock-showcase.ts`).
 
@@ -668,7 +671,9 @@ export function createMock(os: Platform["os"]): Platform {
     ...agents,
     ...groupsMock(),
     ...memoryMock(),
+    ...peopleMock(),
     ...tasksMock(),
+    ...clientsMock(),
     async removeCopy(id) {
       await delay(1600)
       if (params.get("copy-fail") === id) {

@@ -19,7 +19,7 @@ const grow = (el: HTMLTextAreaElement) => {
 export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: () => void }) {
   const m = useMessages(memoryMessages)
   const hint = useId()
-  const [text, setText] = useState(entry.text ?? "")
+  const [text, setText] = useState(() => useMemory.getState().draft ?? entry.text ?? "")
   const busy = useMemory((s) => s.busy[entry.ref] === "correct")
   const failed = useMemory((s) => s.failed[entry.ref])
   const { correct } = useMemory.getState()

@@ -1,4 +1,5 @@
 import {
+  Building2,
   CalendarDays,
   Globe,
   Mail,
@@ -38,6 +39,7 @@ const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
   gcal: CalendarDays,
   memo: NotebookText,
   email: Mail,
+  bitrix: Building2,
   funnel: Globe,
 }
 

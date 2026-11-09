@@ -1,7 +1,7 @@
 import { useRef, useState } from "react"
 import {
   byOwner,
-  inTab,
+  entryInTab,
   type MemoryField,
   matchesFilter,
   memoryFilter,
@@ -45,7 +45,7 @@ export function Filters() {
   const whenAnchor = useRef<HTMLSpanElement>(null)
 
   const f = memoryFilter(query)
-  const inTabNow = entries.filter((e) => inTab(tab, e.status))
+  const inTabNow = entries.filter((e) => entryInTab(tab, e))
   // Each chip counts what the rest of the search leaves, as Tasks' counts do: picking a project narrows the kinds.
   const others = (name: MemoryField) => {
     const rest = memoryFilter(setMemoryField(query, name, []))

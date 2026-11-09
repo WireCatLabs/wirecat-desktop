@@ -61,6 +61,33 @@ export function tabOf(status: string): Exclude<Tab, "all"> | null {
 
 export const inTab = (tab: Tab, status: string) => tab === "all" || tabOf(status) === tab
 
+type Reviewed = { status: string; sourceReview?: { id: string; cause: string } | null }
+
+/** A record whose source changed waits for the owner as well: it shows under Review too, never only where it was. */
+export const entryInTab = (tab: Tab, e: Reviewed) => inTab(tab, e.status) || (tab === "review" && !!e.sourceReview)
+
+/** The causes memo names, mildest first; a newer memo's unknown cause reads as a plain change. */
+export const REVIEW_CAUSES = ["changed", "outdated", "deleted", "contradicted"] as const
+export type ReviewCause = (typeof REVIEW_CAUSES)[number]
+export const causeOf = (cause: string): ReviewCause =>
+  (REVIEW_CAUSES as readonly string[]).includes(cause) ? (cause as ReviewCause) : "changed"
+
+export type ReviewChoice = "stillTrue" | "dismiss" | "correct" | "withdraw"
+
+/**
+ * The owner's answers to a source review. Correct writes a new version; Withdraw is memo's own "no longer holds" for
+ * a memory in use or an accepted decision; memo has none for other facts, which keep Erase.
+ */
+export function reviewChoices(e: Held, revoke = false): ReviewChoice[] {
+  const undo = undoOf(e, revoke)
+  return [
+    "stillTrue",
+    "dismiss",
+    ...(can(e, revoke).correct ? (["correct"] as const) : []),
+    ...(undo === "invalidate" || undo === "reverse" ? (["withdraw"] as const) : []),
+  ]
+}
+
 export function toneOf(status: string): Tone {
   const s = stateOf(status)
   if (s === "review") return "warn"

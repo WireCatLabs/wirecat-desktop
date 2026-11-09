@@ -1,0 +1,58 @@
+{
+  "item": {
+    "ref": "person:2",
+    "name": "Rin Example",
+    "merged_into": "person:2",
+    "identities": [
+      {
+        "identity": "max:22",
+        "name": "Rin E",
+        "username": null,
+        "seen_in": [
+          {
+            "account": "2",
+            "scope": "personal"
+          }
+        ],
+        "method": "same-phone",
+        "linked_by": "rule",
+        "linked_at": "2026-11-08T21:27:15.409Z"
+      },
+      {
+        "identity": "telegram:11",
+        "name": "Rin Example",
+        "username": null,
+        "seen_in": [
+          {
+            "account": "1",
+            "scope": "personal"
+          }
+        ],
+        "method": "initial",
+        "linked_by": "ingest",
+        "linked_at": "2026-11-08T21:27:05.853Z"
+      }
+    ],
+    "merges": [
+      {
+        "id": "merge:2-6",
+        "from": "6",
+        "to": "2",
+        "identities": [
+          {
+            "provider": "max",
+            "id": "22",
+            "name": "Rin E"
+          }
+        ],
+        "method": "same-phone",
+        "by": "rule",
+        "at": "2026-11-08T21:27:15.409Z"
+      }
+    ],
+    "matches": []
+  },
+  "meta": {
+    "complete": true
+  }
+}

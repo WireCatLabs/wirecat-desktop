@@ -1,0 +1,23 @@
+{
+  "item": {
+    "decided": [],
+    "refused": [
+      {
+        "id": "3",
+        "code": "validation_error",
+        "reason": "identity.stale",
+        "message": "the people 3 names changed since it was proposed; propose it again"
+      }
+    ]
+  },
+  "meta": {
+    "complete": false,
+    "issues": [
+      {
+        "code": "validation_error",
+        "source": "3",
+        "reason": "identity.stale"
+      }
+    ]
+  }
+}

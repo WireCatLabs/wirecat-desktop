@@ -1,0 +1,55 @@
+{
+  "item": {
+    "id": "1",
+    "kind": "memory_source_review",
+    "status": "proposed",
+    "title": "Fact «Both clinics sign before the pilot»: deleted: 1 source(s), 0 challenge(s)",
+    "project": null,
+    "project_title": null,
+    "source": null,
+    "owner_only": true,
+    "subject": "fact:1",
+    "object": null,
+    "summary": "deleted: 1 source(s), 0 challenge(s)",
+    "proposer": "source-check",
+    "proposed_by": {
+      "type": "bot",
+      "id": "3",
+      "name": "source-check",
+      "kind": "rule"
+    },
+    "reason": null,
+    "score": null,
+    "signals": null,
+    "evidence": [],
+    "parts": null,
+    "created_at": "2026-11-08T22:48:01.925Z",
+    "source_review": {
+      "cause": "deleted",
+      "raised_at": "2026-11-08T22:48:01.925Z",
+      "sources": [
+        {
+          "ref": null,
+          "kind": "note",
+          "cause": "deleted",
+          "replacement": null,
+          "quote": null,
+          "cited": null,
+          "now": null
+        }
+      ],
+      "challenges": [],
+      "suggestions": [],
+      "decide": {
+        "still_true": "memo review confirm 1",
+        "dismiss": "memo review reject 1 --reason <why>",
+        "correct": "memo facts add <the right text and its options> --supersedes fact:1",
+        "withdraw": "memo facts reverse fact:1"
+      },
+      "untrusted": ["sources.quote", "sources.cited", "sources.now", "challenges.reason", "suggestions.body"]
+    }
+  },
+  "meta": {
+    "complete": true
+  }
+}
