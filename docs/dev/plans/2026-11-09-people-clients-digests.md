@@ -239,6 +239,9 @@ exactly these (RISK-2237).
 - `memo digest edit <name>` takes the same options except `--paused`; each option given replaces what it set and the
   rest stays, so Desktop says an emptied list out loud: `--source all`, `--deliver-to none`. Desktop sends `--text`
   on add only: an open digest's brief is saved by `digest brief edit`, and a settings save must not write it back.
+- `--max-cost` must be above 0.
+- `memo digest edit` refuses a digest whose prompt was set by hand with `memo schedule agent`: an edit would replace
+  that prompt without a word.
 - `memo digest run <name> [--no-notify | --deliver-to <r> …] --from-app`: writes it now. Without a flag it sends to
   every route, as the timer does; `--no-notify` keeps it in the app only; `--deliver-to` sends to those of its routes
   only (NEED-2483, owner: "give a choice").
@@ -269,6 +272,23 @@ put, a toggle never resets the scroll, every open and close animates.
 - **Duplicates**: a second view on the same page, `People · Possible duplicates (12)` (`ViewSwitch`). It lists the
   open proposals as today's `MatchCard`s, newest first, with the same Same person / Not the same buttons. A decided
   card stays in place with its answer until Read again (as now).
+- **Duplicate cards** (UX-131, BUG-669; direction from Linear's `DESIGN.md` in
+  [awesome-design-md](https://github.com/VoltAgent/awesome-design-md): hairline cards, one accent, small 4px chips,
+  dense rows, words moved into tooltips). The screen opens with what joining gives: one card per person with all
+  their chats, mail, meetings and deals, which search and agents then see whole. A card's title is the people's names,
+  a link that opens Details. One row says the tie, «Телефон [одинаковый] [3]», the details in each badge's tooltip;
+  who found it is a small label («WireCat», or the agent's name) with the explanation in its tooltip. Each person shows
+  their accounts by source with name and handle, scope, account and task counts. Buttons: Details, Same person
+  (primary), Not the same.
+- **Groups** (BUG-669): memo proposes one match per pair of people who share a phone or an address
+  (`proposeEachPair` in cli-core), each carrying the whole set as `candidates`. The page shows the pairs of one set as
+  one card, keyed by signal and `candidates`; the people shown come from the open pairs, because `candidates` is not
+  rewritten after a join. The owner ticks two or all; `people_merge` confirms one open pair at a time and finds the
+  next pair by its two people, not its id, since each confirm folds the remaining pairs into one. The unticked stay
+  open; Not the same rejects every open pair of the group with one reason. No CLI change was needed.
+- **Pager** (UX-132, shared by People, Clients and Search): «‹ 1 2 … 9 10 ›», «51–100 из 1 234» in the owner's
+  digits, a page-size select (25, 50, 100); a total that memo capped reads «5 000+». Search pages by cursor and keeps
+  Previous and Next with the page number only.
 - **Add person** (the primary button) opens a dialog: a Name field; under it, 300 ms after typing stops,
   "Already here" (existing people, each with Open) and "Might be the same" (the `name` signal's candidates). Create is
   plain until the first answer comes back, then the primary action. A stale answer for older text is dropped.

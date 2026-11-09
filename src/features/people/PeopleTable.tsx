@@ -6,15 +6,12 @@ import { Button } from "@/ui/Button"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
-import { Pager } from "@/ui/Pager"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Skeleton } from "@/ui/Skeleton"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
 import { SourceIcons } from "./sources"
 import { usePeople } from "./store"
-
-/** A page of people; their accounts are read for the rows on screen only. */
-export const PAGE = 50
 
 export function PeopleTable() {
   const m = useMessages(peopleMessages)
@@ -24,14 +21,15 @@ export function PeopleTable() {
   const withTasks = usePeople((s) => s.withTasks)
   const named = usePeople((s) => s.named)
   const page = usePeople((s) => s.page)
-  const { setQuery, setFilter, setPage, findAccount, reveal, want } = usePeople.getState()
+  const size = usePeople((s) => s.pageSize)
+  const { setQuery, setFilter, setPage, setPageSize, findAccount, reveal, want } = usePeople.getState()
   const columns = useColumns()
   const account = looksLikeAccount(query)
 
   const found = filterPeople(people, { query, withTasks, named })
-  const pages = Math.max(1, Math.ceil(found.length / PAGE))
+  const pages = Math.max(1, Math.ceil(found.length / size))
   const at = Math.min(page, pages)
-  const rows = found.slice((at - 1) * PAGE, at * PAGE)
+  const rows = found.slice((at - 1) * size, at * size)
   const onScreen = rows.map((p) => p.ref).join(" ")
   // biome-ignore lint/correctness/useExhaustiveDependencies: a read drops the details, and `people` is new after it
   useEffect(() => want(onScreen ? onScreen.split(" ") : []), [onScreen, people, want])
@@ -80,7 +78,17 @@ export function PeopleTable() {
           onRowClick={(p) => reveal(p.ref)}
         />
       )}
-      {pages > 1 && <Pager page={at} hasMore={at < pages} onPage={setPage} />}
+      {found.length > PAGE_SIZES[0] && (
+        <Pager
+          page={at}
+          onPage={setPage}
+          total={found.length}
+          totalMore={more}
+          size={size}
+          sizes={PAGE_SIZES}
+          onSize={setPageSize}
+        />
+      )}
       {more && <p className="text-[0.9rem] text-ink-dim">{m.peopleMore}</p>}
     </section>
   )

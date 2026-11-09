@@ -43,7 +43,7 @@ import {
   SourceReviewSchema,
 } from "./memory-schemas"
 import { NotificationsSchema } from "./notifications-schemas"
-import { PeopleReadSchema, PersonDetailSchema, UnlinkedSchema } from "./people-schemas"
+import { MergedSchema, PeopleReadSchema, PersonDetailSchema, UnlinkedSchema } from "./people-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
@@ -233,6 +233,7 @@ function createTauri(): Platform {
     peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
     peopleDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
+    peopleMerge: (refs) => call(MergedSchema, "people_merge", { references: refs }),
     peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
     peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),
     peopleUnmerge: (ref, merge) => call(PersonDetailSchema, "people_unmerge", { reference: ref, merge }),

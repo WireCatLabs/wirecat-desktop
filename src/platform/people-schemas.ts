@@ -60,6 +60,9 @@ export const PersonDetailSchema = v.object({
 
 export const UnlinkedSchema = v.object({ person: PersonDetailSchema, movedTo: v.string() })
 
+/** `joined` names the chosen people joined so far, in order; `stopped` says why the rest were not. */
+export const MergedSchema = v.object({ person: PersonDetailSchema, joined: v.array(v.string()), stopped: text })
+
 export type Match = v.InferOutput<typeof MatchSchema>
 export type PeopleRead = v.InferOutput<typeof PeopleReadSchema>
 export type Listed = v.InferOutput<typeof ListedSchema>
@@ -67,4 +70,5 @@ export type PersonDetail = v.InferOutput<typeof PersonDetailSchema>
 export type Identity = PersonDetail["identities"][number]
 export type Merge = PersonDetail["merges"][number]
 export type Unlinked = v.InferOutput<typeof UnlinkedSchema>
+export type Merged = v.InferOutput<typeof MergedSchema>
 export type MatchAnswer = "confirm" | "reject"

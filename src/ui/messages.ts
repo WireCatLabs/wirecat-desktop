@@ -30,6 +30,9 @@ const en = {
   nextPage: "Next page",
   pageN: (n: number) => `Page ${n}`,
   pages: "Pages",
+  range: (from: string, to: string, total: string) => `${from}–${to} of ${total}`,
+  pageSize: "Rows per page",
+  perPage: (n: string) => `${n} per page`,
 }
 
 const ru: typeof en = {
@@ -62,6 +65,9 @@ const ru: typeof en = {
   nextPage: "Следующая страница",
   pageN: (n) => `Страница ${n}`,
   pages: "Страницы",
+  range: (from, to, total) => `${from}–${to} из ${total}`,
+  pageSize: "Строк на странице",
+  perPage: (n) => `${n} на странице`,
 }
 
 const es: typeof en = {
@@ -94,6 +100,9 @@ const es: typeof en = {
   nextPage: "Página siguiente",
   pageN: (n) => `Página ${n}`,
   pages: "Páginas",
+  range: (from, to, total) => `${from}–${to} de ${total}`,
+  pageSize: "Filas por página",
+  perPage: (n) => `${n} por página`,
 }
 
 export const uiMessages: Messages<typeof en> = { en, ru, es }

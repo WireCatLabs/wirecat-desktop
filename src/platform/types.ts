@@ -71,7 +71,7 @@ import type {
   SourceReview,
 } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
-import type { MatchAnswer, PeopleRead, PersonDetail, Unlinked } from "./people-schemas"
+import type { MatchAnswer, Merged, PeopleRead, PersonDetail, Unlinked } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
@@ -334,6 +334,8 @@ export type Platform = {
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */
   peopleDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
+  /** Joins the chosen people of one group of matches into one, a match at a time. */
+  peopleMerge(refs: string[]): Promise<Merged>
   /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */
   peopleUnlink(ref: string, identities: string[]): Promise<Unlinked>
   /** The person who has exactly this account (`<messenger>:<id>`, a username or an email address); `null` if no one. */

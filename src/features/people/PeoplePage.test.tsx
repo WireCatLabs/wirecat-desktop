@@ -36,9 +36,11 @@ describe("People", () => {
     expect(await within(lena).findByText("3 accounts", {}, { timeout: 4000 })).toBeInTheDocument()
     expect(within(lena).getByText("Telegram")).toBeInTheDocument()
     expect(within(lena).getByText("3")).toBeInTheDocument()
-    expect(screen.getByText("Page 1")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "Next page" }))
-    expect(screen.getByText("Page 2")).toBeInTheDocument()
+    const pages = screen.getByRole("navigation", { name: "Pages" })
+    expect(pages).toHaveTextContent("1–50 of 122")
+    expect(within(pages).getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page")
+    await user.click(within(pages).getByRole("button", { name: "Page 2" }))
+    expect(pages).toHaveTextContent("51–100 of 122")
     expect(within(await table()).queryByRole("button", { name: "CZECH AIRLINES" })).not.toBeInTheDocument()
   })
 
@@ -65,9 +67,10 @@ describe("People", () => {
   it("says how many matches wait, and opens them on their own screen and back", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    expect(await screen.findByRole("heading", { name: "3 matches wait for you" }, { timeout: 4000 })).toBeVisible()
+    expect(await screen.findByRole("heading", { name: "4 matches wait for you" }, { timeout: 4000 })).toBeVisible()
     const matches = await openMatches(user)
-    expect(within(matches).getAllByRole("article")).toHaveLength(3)
+    expect(matches).toHaveTextContent("all their chats, mail, meetings and deals")
+    expect(within(matches).getAllByRole("article")).toHaveLength(4)
     await user.click(screen.getByRole("button", { name: "All people" }))
     expect(await table()).toBeInTheDocument()
   })
@@ -76,14 +79,16 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = within(matches).getByRole("article", { name: "Join Marta Gil (Studio) and Marta Gil?" })
+    const card = within(matches).getByRole("article", { name: "Marta Gil (Studio) · Marta Gil" })
     const left = await within(card).findByRole("region", { name: "Marta Gil (Studio)" }, { timeout: 4000 })
     const tie = (await within(left).findByText("Bitrix24", {}, { timeout: 4000 })).closest("li") as HTMLElement
     expect(tie).toHaveTextContent("matched")
-    expect(card).toHaveTextContent("3 people have it.")
+    expect(within(card).getByRole("button", { name: "same" })).toHaveAccessibleDescription(
+      "They have the same email address. Seen as marta@studio.example",
+    )
     expect(card).not.toHaveTextContent("northstar.example")
     expect(card).not.toHaveTextContent("person:22")
-    await user.click(within(card).getByRole("button", { name: "Details" }))
+    await user.click(within(card).getByRole("button", { name: "Marta Gil (Studio) · Marta Gil" }))
     const details = await screen.findByRole("dialog", { name: "Match details" })
     expect(details).toHaveTextContent("bitrix24:https://northstar.example/crm/contact/details/4120/")
   })
@@ -92,8 +97,12 @@ describe("People", () => {
     const decide = vi.spyOn(platform, "peopleDecide").mockImplementation((ref) => platform.peopleShow(ref))
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const card = within(await openMatches(user)).getByRole("article", { name: "Join Lena Ortiz and Lena Ortiz?" })
-    expect(card).toHaveTextContent("Found by WireCat's matching")
+    const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
+    expect(within(card).getByRole("button", { name: "WireCat" })).toHaveAccessibleDescription(/found this itself/)
+    const buttons = within(card)
+      .getAllByRole("button")
+      .map((b) => b.textContent)
+    expect(buttons.slice(-3)).toEqual(["Details", "Same person", "Not the same"])
     await user.click(within(card).getByRole("button", { name: "Same person" }))
     expect(decide).toHaveBeenCalledWith("person:9", "17100", "confirm", undefined)
     expect(await within(card).findByText("Joined into one person.")).toBeInTheDocument()
@@ -103,7 +112,7 @@ describe("People", () => {
     const decide = vi.spyOn(platform, "peopleDecide").mockRejectedValue(new Error("identity.stale"))
     const user = userEvent.setup()
     render(<PeoplePage />)
-    const card = within(await openMatches(user)).getByRole("article", { name: "Join Lena Ortiz and Lena Ortiz?" })
+    const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
     await user.click(within(card).getByRole("button", { name: "Not the same" }))
     const why = within(card).getByRole("textbox", { name: "Why are they different people?" })
     expect(why).toHaveFocus()
@@ -117,13 +126,41 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = await within(matches).findByRole(
-      "article",
-      { name: "Move MAX Kai M. to Kai Moreno?" },
-      { timeout: 4000 },
+    const card = await within(matches).findByRole("article", { name: "Kai M. · Kai Moreno" }, { timeout: 4000 })
+    expect(
+      await within(card).findByText(/Moves MAX Kai M. to Kai Moreno. Only this account moves./, {}, { timeout: 4000 }),
+    ).toBeInTheDocument()
+    expect(within(card).getByRole("button", { name: "claude-code" })).toHaveAccessibleDescription(
+      "The agent claude-code suggested this.",
     )
-    expect(card).toHaveTextContent("Only this account moves.")
-    expect(card).toHaveTextContent("Suggested by claude-code")
+  })
+
+  it("shows three people who share a phone as one card, joins the two the owner ticks, then the third", async () => {
+    const merge = vi.spyOn(platform, "peopleMerge")
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const matches = await openMatches(user)
+    const title = "Konstantin Nikolaevich Loft Pro Max Semenov · Konstantin · K. Semenov"
+    const card = within(matches).getByRole("article", { name: title })
+    expect(within(card).getByRole("button", { name: "3" })).toHaveAccessibleDescription(
+      "3 people have it. Here now: Konstantin Nikolaevich Loft Pro Max Semenov, Konstantin, and K. Semenov.",
+    )
+    await user.click(within(card).getByRole("button", { name: title }))
+    const details = await screen.findByRole("dialog", { name: "Match details" })
+    expect(within(details).getAllByRole("region")).toHaveLength(3)
+    await user.click(within(details).getByRole("button", { name: "Close" }))
+
+    const boxes = within(card).getAllByRole("checkbox")
+    expect(boxes.map((b) => (b as HTMLInputElement).checked)).toEqual([true, true, true])
+    await user.click(within(card).getByRole("checkbox", { name: "K. Semenov is one of them" }))
+    await user.click(within(card).getByRole("button", { name: "Join 2" }))
+    expect(merge).toHaveBeenCalledWith(["person:30", "person:31"])
+    expect(
+      await within(card).findByText(/Konstantin Nikolaevich Loft Pro Max Semenov and Konstantin are now one person/),
+    ).toBeInTheDocument()
+    await waitFor(() => expect(within(card).queryAllByRole("checkbox")).toHaveLength(0))
+    await user.click(within(card).getByRole("button", { name: "Same person" }))
+    expect(await within(card).findByText("Joined into one person.", {}, { timeout: 4000 })).toBeInTheDocument()
   })
 
   it("moves ticked accounts to a new person, never all of them, with nothing ticked at first", async () => {
@@ -199,7 +236,7 @@ describe("People", () => {
     const rows = within(await table()).getAllByRole("button", { name: "Lena Ortiz" })
     await user.click(rows[1] as HTMLElement)
     const lena9 = await screen.findByRole("dialog", { name: "Lena Ortiz" })
-    const card = await within(lena9).findByRole("article", { name: /Join/ })
+    const card = await within(lena9).findByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
     await user.click(within(card).getByRole("button", { name: "Same person" }))
     expect(await within(lena9).findByText("This person is now part of Lena Ortiz.")).toBeInTheDocument()
   })

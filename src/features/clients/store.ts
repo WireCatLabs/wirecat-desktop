@@ -26,6 +26,7 @@ type ClientsState = {
   view: View
   /** The table's page, from 1; a new filter or kind starts again at 1. */
   page: number
+  pageSize: number
   /** The pipeline last chosen for each kind; memo's first when none was. */
   pipeline: Partial<Record<Kind, string>>
   /** The filter words; the page narrows the read it holds, memo is not asked again. */
@@ -51,6 +52,7 @@ type ClientsState = {
   openMap(account: string | null): void
   setView(view: View): void
   setPage(page: number): void
+  setPageSize(size: number): void
   setPipelines(pipelines: string[]): void
   setAccounts(accounts: string[]): void
   refuse(ref: string, why: Refusal | null): void
@@ -73,6 +75,7 @@ export const useClients = create<ClientsState>()(
       mapOn: null,
       view: "table",
       page: 1,
+      pageSize: 50,
       refused: {},
       pipelines: [],
       accounts: [],
@@ -86,6 +89,7 @@ export const useClients = create<ClientsState>()(
       openMap: (mapOn) => set({ mapOn }),
       setView: (view) => set({ view }),
       setPage: (page) => set({ page }),
+      setPageSize: (pageSize) => set({ pageSize, page: 1 }),
       setPipelines: (pipelines) => set({ pipelines, page: 1 }),
       setAccounts: (accounts) => set({ accounts, page: 1 }),
       refuse: (ref, why) =>
@@ -107,7 +111,7 @@ export const useClients = create<ClientsState>()(
     {
       name: "wirecat.clients",
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ kind: s.kind, pipeline: s.pipeline, view: s.view }),
+      partialize: (s) => ({ kind: s.kind, pipeline: s.pipeline, view: s.view, pageSize: s.pageSize }),
       // Version 0 remembered the board or the stage mapping view; the table came after, and the owner asked for it.
       version: 1,
       migrate: (kept) => ({ ...(kept as object), view: "table" }),

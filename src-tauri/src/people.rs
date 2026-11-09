@@ -391,6 +391,69 @@ pub fn decide(reference: &str, id: &str, answer: Answer, reason: Option<&str>) -
     with_memo(|call| decide_with(call, reference, id, answer, reason))
 }
 
+/// What joining a group did: the person they are now, the people joined so far, and why it stopped, if it did.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Merged {
+    pub person: Person,
+    pub joined: Vec<String>,
+    pub stopped: Option<String>,
+}
+
+/// One open match between the kept person and the next chosen one, found by its two people and not by an id: each
+/// confirm makes memo fold the group's other pairs into one, so the ids the page read go stale after the first.
+fn join_next(call: &Call, kept: &Person, next: &str) -> Result<Option<Person>, String> {
+    let other = show_with(call, next)?.reference;
+    if other == kept.reference {
+        return Ok(None);
+    }
+    let id = kept
+        .matches
+        .iter()
+        .find(|m| {
+            m.joins.as_deref() != Some("identity") && m.persons.contains(&kept.reference) && m.persons.contains(&other)
+        })
+        .map(|m| m.id.clone())
+        .ok_or_else(|| "No open match joins them any more. Read again.".to_string())?;
+    decided(&call(&decision(&["review", "confirm", &id]))?, &id)?;
+    show_with(call, &kept.reference).map(Some)
+}
+
+/// Joins the chosen people of one group into one, a match at a time. A failure after the first join is reported with
+/// what was joined, because those joins stay done.
+fn merge_with(call: &Call, chosen: &[String]) -> Result<Merged, String> {
+    let mut refs: Vec<&str> = Vec::new();
+    for c in chosen {
+        let r = person_ref(c)?;
+        if !refs.contains(&r) {
+            refs.push(r);
+        }
+    }
+    let [first, rest @ ..] = refs.as_slice() else {
+        return Err("Choose at least two people to join.".into());
+    };
+    if rest.is_empty() {
+        return Err("Choose at least two people to join.".into());
+    }
+    let mut kept = show_with(call, first)?;
+    let mut joined = vec![(*first).to_string()];
+    for next in rest {
+        match join_next(call, &kept, next) {
+            Ok(person) => {
+                kept = person.unwrap_or(kept);
+                joined.push((*next).to_string());
+            }
+            Err(e) if joined.len() < 2 => return Err(e),
+            Err(e) => return Ok(Merged { person: kept, joined, stopped: Some(e) }),
+        }
+    }
+    Ok(Merged { person: kept, joined, stopped: None })
+}
+
+pub fn join_group(chosen: &[String]) -> Result<Merged, String> {
+    with_memo(|call| merge_with(call, chosen))
+}
+
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Unlinked {
@@ -659,5 +722,107 @@ mod tests {
         let need = &tool.people.as_ref().unwrap().min_version;
         assert!(too_old(Some("0.131.64"), need));
         assert!(!too_old(Some(need), need));
+    }
+
+    /// memo on one group of three that share a phone: each confirm joins the pair into its second person and folds the
+    /// pairs left into one per pair, the lowest id kept, as cli-core's `settleLinks` does.
+    struct Group {
+        merged: Mutex<Vec<(u32, u32)>>,
+        open: Mutex<Vec<(u32, u32, u32)>>,
+        seen: Mutex<Vec<Vec<String>>>,
+        refuse: Option<u32>,
+    }
+
+    impl Group {
+        fn new(refuse: Option<u32>) -> Group {
+            Group {
+                merged: Mutex::new(Vec::new()),
+                open: Mutex::new(vec![(10, 1, 2), (11, 1, 3), (12, 2, 3)]),
+                seen: Mutex::new(Vec::new()),
+                refuse,
+            }
+        }
+        fn now(&self, mut p: u32) -> u32 {
+            let merged = self.merged.lock().unwrap();
+            while let Some(&(_, into)) = merged.iter().find(|(from, _)| *from == p) {
+                p = into;
+            }
+            p
+        }
+        fn call(&self, a: &[String]) -> Result<Value, String> {
+            self.seen.lock().unwrap().push(a.to_vec());
+            if a[0] == "review" {
+                let id: u32 = a[2].parse().unwrap();
+                if self.refuse == Some(id) {
+                    return Ok(json!({"item": {"decided": [], "refused": [{"id": a[2], "reason": "identity.stale"}]}}));
+                }
+                let (_, from, to) = *self.open.lock().unwrap().iter().find(|m| m.0 == id).unwrap();
+                let pair = (self.now(from), self.now(to));
+                self.merged.lock().unwrap().push(pair);
+                let mut kept: Vec<(u32, u32, u32)> = Vec::new();
+                let open = self.open.lock().unwrap().clone();
+                for (id, a, b) in open {
+                    let (a, b) = (self.now(a), self.now(b));
+                    if a != b && !kept.iter().any(|k| (k.1, k.2) == (a, b) || (k.1, k.2) == (b, a)) {
+                        kept.push((id, a, b));
+                    }
+                }
+                *self.open.lock().unwrap() = kept;
+                return Ok(json!({"item": {"decided": [{"id": a[2]}], "refused": []}}));
+            }
+            let asked: u32 = a[2].trim_start_matches("person:").parse().unwrap();
+            let p = self.now(asked);
+            let matches: Vec<Value> = self
+                .open
+                .lock()
+                .unwrap()
+                .iter()
+                .filter(|m| m.1 == p || m.2 == p)
+                .map(|m| json!({"id": m.0.to_string(), "persons": [format!("person:{}", m.1), format!("person:{}", m.2)], "joins": "person", "signal": "phone"}))
+                .collect();
+            Ok(
+                json!({"item": {"ref": format!("person:{p}"), "merged_into": (p != asked).then(|| format!("person:{p}")), "identities": [], "merges": [], "matches": matches}}),
+            )
+        }
+        fn confirmed(&self) -> Vec<String> {
+            self.seen.lock().unwrap().iter().filter(|a| a[0] == "review").map(|a| a[2].clone()).collect()
+        }
+    }
+
+    #[test]
+    fn joins_all_three_of_a_group_by_the_pair_left_open_after_each_join() {
+        let g = Group::new(None);
+        let merged = merge_with(&|a: &[String]| g.call(a), &strs(&["person:1", "person:2", "person:3"])).unwrap();
+        assert_eq!(merged.joined, ["person:1", "person:2", "person:3"]);
+        assert_eq!(merged.stopped, None);
+        assert_eq!(merged.person.reference, "person:3");
+        assert_eq!(g.confirmed(), ["10", "11"], "the pair 1–3 became 2–3 and kept its id; 12 was folded away");
+        assert!(g.seen.lock().unwrap().iter().filter(|a| a[0] == "review").all(|a| a.contains(&FROM_APP.to_string())));
+    }
+
+    #[test]
+    fn joins_two_of_three_and_leaves_the_third_open() {
+        let g = Group::new(None);
+        let merged = merge_with(&|a: &[String]| g.call(a), &strs(&["person:1", "person:3"])).unwrap();
+        assert_eq!(merged.joined, ["person:1", "person:3"]);
+        assert_eq!(g.confirmed(), ["11"]);
+        assert_eq!(merged.person.matches.len(), 1, "person:2 still waits as one match");
+    }
+
+    #[test]
+    fn a_refusal_after_the_first_join_says_what_was_joined() {
+        let g = Group::new(Some(11));
+        let call = |a: &[String]| g.call(a);
+        let merged = merge_with(&call, &strs(&["person:1", "person:2", "person:3"])).unwrap();
+        assert_eq!(merged.joined, ["person:1", "person:2"]);
+        assert_eq!(merged.stopped.as_deref(), Some("identity.stale"));
+        let first = Group::new(Some(10));
+        assert_eq!(
+            merge_with(&|a: &[String]| first.call(a), &strs(&["person:1", "person:2"])).unwrap_err(),
+            "identity.stale"
+        );
+        for one in [strs(&["person:1"]), strs(&["person:1", "person:1"]), strs(&["person:1", "max:2"])] {
+            assert!(merge_with(&call, &one).is_err(), "{one:?}");
+        }
     }
 }

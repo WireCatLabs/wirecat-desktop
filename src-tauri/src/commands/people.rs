@@ -25,6 +25,12 @@ pub async fn people_decide(
     .await
 }
 
+/// Joins the people the owner chose from one group of matches into one person.
+#[tauri::command]
+pub async fn people_merge(references: Vec<String>) -> Result<people::Merged, AppError> {
+    crate::log::command("people_merge", async move { attempt(move || people::join_group(&references)).await }).await
+}
+
 #[tauri::command]
 pub async fn people_unlink(reference: String, identities: Vec<String>) -> Result<people::Unlinked, AppError> {
     crate::log::command("people_unlink", async move { attempt(move || people::unlink(&reference, &identities)).await })
