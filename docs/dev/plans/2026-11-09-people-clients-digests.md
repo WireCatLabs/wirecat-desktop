@@ -223,19 +223,28 @@ identity (PERF-6). The Add person form and, later, `memo search people` use it.
 
 ### Digests by name
 
-memo learns more than one digest, keyed by name, with `morning-digest` as the first one and no change to its files:
+Any number of digests, each keyed by name; `morning-digest` is the first one and its files do not change (owner,
+2026-11-09, NEED-2343 B). This is the contract the Desktop page is built against; the memo session that implements it
+writes any change here before Desktop wires it.
 
-- `memo digest list --json`: name, period (`day` or `week`), schedule (`when`, time, weekday), routes, last run,
-  next run.
-- `memo digest add <name> --period day|week --at HH:MM [--on mon] [--route …] [--max-cost …]`: writes the schedule
-  (prompt `Run memo skill show <skill> --digest <name> and follow it.`), and copies the default brief and template to
-  `report/<name>`. The skill and the brief take the period, so a weekly run collects seven days, not one.
-- `brief`, `templates`, `backfill`, `schedule run` take the digest's name; without one they mean `morning-digest`, as
-  today.
-- The weekly period needs cli-core `schedule … --at HH:MM --on <weekday>` (systemd `OnCalendar=Mon 09:00`, launchd
-  `Weekday`, Task Scheduler weekly trigger).
-
-The scope (fixed daily and weekly, or any number of named digests) is NEED-2343.
+- `memo digest list --json` → `{items: [...]}`, `morning-digest` first. Each item: `name`, `title`, `times`
+  (`["08:30", "18:00"]`, any number), `weekdays` (`[]` every day, or `["mon", "fri"]`), `sources` (`[]` every
+  connected source, or kinds from memo's `SCOPE_KINDS`: `telegram`, `max`, `whatsapp`, `mail`, `meeting`, `task`),
+  `routes` (`telegram-bot:<profile>/<chat>`, `email:<profile>/<address>`), `brief`, `scheduled`, `max_cost_usd`,
+  `max_cost_per_day_usd`, `last` (`{at, ok, cost_usd, output}` or `null`), `next_at` (or `null`).
+- `memo digest add <name> --title <t> --at HH:MM [--at HH:MM …] [--on mon,fri] [--source <kind> …] [--route <r> …]
+  [--brief <text>] [--max-cost <usd>] [--max-cost-per-day <usd>] [--unscheduled] --from-app`; `memo digest edit
+  <name>` takes the same options and replaces what it is given.
+- `memo digest run <name> [--no-send | --route <r> …]`: writes it now. Without a flag it sends to every route, as the
+  timer does; `--no-send` keeps it in the app only; `--route` sends to those routes only (NEED-2483, owner: "give a
+  choice").
+- `memo digest schedule <name> --on|--off` keeps every setting either way; `memo digest remove <name>` removes the
+  schedule and its settings, and keeps the past runs.
+- `brief`, `templates` (key `report/<name>`) and `backfill` take the name as their first argument; without one they
+  mean `morning-digest`, as today. Desktop passes a name only for a digest other than `morning-digest`, so an older
+  memo keeps working.
+- A weekday needs cli-core `schedule … --at HH:MM --on <weekday>` (systemd `OnCalendar=Mon 09:00`, launchd
+  `Weekday`, Task Scheduler weekly trigger), FIND-269.
 
 ## The pages
 
@@ -279,18 +288,37 @@ put, a toggle never resets the scroll, every open and close animates.
 
 ### Digests
 
-- **List** (`DataTable`): Name · Period (Daily, Weekly) · When ("every day at 08:30", "Mondays at 09:00") · Next run
-  · Last run (lamp, date, cost) · Sends to (Telegram, Email). Filters: Period, Status (on, off, failed last time).
-  Read again and **New digest** in the header.
-- **One digest** opens as a page with Back: on the left its settings in three cards that already exist,
-  `ScheduleCard` (time, weekday, routes, caps, Run now), `BriefCard` (what to collect: the prompt), `TemplatesCard`
-  (how it looks); on the right the preview, today's `ReportView` for the latest day and the list of days. The cards
-  learn a `digest` name prop; nothing else in them changes.
-- **None yet**: two cards, "Daily digest: every morning, what came in and what waits for you" and "Weekly digest:
-  Monday morning, the week in one page", each with Set up. Set up opens a `Dialog` form prefilled: time (08:30 /
-  09:00), weekday (weekly only), where to send it (the routes `ScheduleCard` already offers), a cost cap. Save runs
-  `digest add` and the new row appears in the list with "Run now" offered.
-- Without Claude Code on PATH (`harness: false`) the forms say so and link to Agents, as `ScheduleCard` does today.
+The owner's words (2026-11-09, TASK-959): digests "should be a table, with the digest's name, so it is clear how
+regular it is, where it sends data, where it pulls data from"; "two buttons" to get one now and to put it on a
+schedule; "it can be twice a day"; "opening one shows its prompt and its time, and lets you set them up".
+
+- **Header.** Title "Digests". The line under it starts "Manage regular notifications with a digest for the day, the
+  week and so on" and says a digest can pull from any connected source and shows it neatly. On the right: Read again
+  (ghost) and **Create digest** (primary, the standard size, the page's one purple action).
+- **The table** (`DataTable`): Name (title, and its name in mono under it) · How often ("every day at 08:30", "twice a
+  day: 08:30 and 18:00", "Mondays at 09:00") · Takes from (source icons, or "All sources") · Sends to (Telegram,
+  Email, or "Only here") · Last run (lamp, date, cost) · Next run · On schedule (a `Switch` in the row; turning it
+  does not open the row). A row click opens the digest.
+- **One digest** opens in place of the table, with Back. Left: **Settings** (title, times — any number, added and
+  removed — weekdays, sources, routes, cost caps; Save is the card's action), then `BriefCard` (the prompt: what to
+  collect) and `TemplatesCard` (how it looks), both for this digest's name. Right: the latest report (`ReportView`)
+  and the list of past days. In the digest's header two buttons:
+  - **Get now**, a `SplitButton`. The main action writes it now and sends it to its routes, as the schedule does; the
+    menu has "Only show here" and, with two or more routes, "Send only to <route>". The price of the last run is
+    named first in a confirm dialog worded for the choice.
+  - **Put on schedule** / **Take off schedule**, the same thing the row's switch does.
+  - **Build past days…** stays a secondary action in the digest's header: past days are built for reading in the
+    app and never sent, so Telegram and mail are not flooded with old news. Remove digest is in the same menu.
+- **None yet:** two ready templates, "Daily digest: every morning, what came in and what waits for you" (08:30, every
+  day) and "Weekly digest: Monday morning, the week in one page" (09:00, Mondays), each with Set up, plus **Create
+  your own**. Each opens the same `Dialog` form, prefilled: title, times, weekdays, sources, routes, the prompt, the
+  cost caps. A weekday is required when "On days" is chosen. Save runs `digest add` and the row appears.
+- **Without Claude Code** on PATH the forms say so and link to Agents, as `ScheduleCard` does today; Save is off.
+- **An older memo** (no `digest list`): the page reads `memo schedule list --json` and shows the morning digest as one
+  row, so it works with today's memo. What that memo cannot do is off with a "needs a Memo update" hint: a second
+  digest, more than one time, weekdays, sources, "Only show here". Its switch is `schedule agent` / `schedule remove`,
+  Get now is `schedule run`. The catalog's memo minimum rises only once memo with `digest list` is released.
+- memo's other schedules (mail triage and the like) stay under the table, read only.
 
 ## Texts (en · ru · es)
 
@@ -309,12 +337,17 @@ New keys only; each lives in its feature's `messages` file and `i18n/catalogs.te
 | `clients.import(crm)` | Import from {crm} | Импорт из {crm} | Importar de {crm} |
 | `clients.addCrm` | Add a CRM | Подключить CRM | Añadir un CRM |
 | `clients.emptyScope` | Only your own deals are imported while the scope is "Mine". | Пока выбран охват «Мои», импортируются только ваши сделки. | Con el alcance «Míos» solo se importan tus tratos. |
-| `digests.new` | New digest | Новая сводка | Nuevo resumen |
+| `digests.intro` | Manage regular notifications with a digest for the day, the week and so on. A digest can pull from any connected source: chats, mail, meetings, tasks, and shows it in one neat page. | Управляйте регулярными уведомлениями со сводкой за день, неделю и т.п. Сводка может брать данные из любых подключённых источников: чатов, почты, встреч, задач, и показывает их на одной аккуратной странице. | Gestiona notificaciones periódicas con un resumen del día, la semana, etc. Un resumen puede tomar datos de cualquier fuente conectada: chats, correo, reuniones, tareas, y los muestra en una página ordenada. |
+| `digests.create` | Create digest | Создать сводку | Crear resumen |
 | `digests.daily` / `.weekly` | Daily digest · Weekly digest | Ежедневная сводка · Еженедельная сводка | Resumen diario · Resumen semanal |
-| `digests.when.daily(t)` / `.weekly(d,t)` | every day at {t} · {d}s at {t} | каждый день в {t} · по {d} в {t} | cada día a las {t} · los {d} a las {t} |
-| `digests.empty` | No digests yet. Pick one to start; you can change everything later. | Сводок пока нет. Выберите одну, всё можно поменять потом. | Aún no hay resúmenes. Elige uno; todo se puede cambiar después. |
+| `digests.when` | every day at {t} · twice a day: {t1} and {t2} · {days} at {t} | каждый день в {t} · дважды в день: {t1} и {t2} · по понедельникам в {t} | cada día a las {t} · dos veces al día: {t1} y {t2} · los lunes a las {t} |
+| `digests.getNow` / `.onlyHere` | Get now · Only show here | Получить сейчас · Только показать здесь | Obtener ahora · Solo mostrar aquí |
+| `digests.schedule` | Put on schedule · Take off schedule | Поставить в расписание · Снять с расписания | Programar · Quitar de la programación |
+| `digests.backfill` | Build past days… | Собрать прошлые дни… | Crear días pasados… |
+| `digests.empty` | No digests yet. Start from a template; you can change everything later. | Сводок пока нет. Начните с шаблона, всё можно поменять потом. | Aún no hay resúmenes. Empieza con una plantilla; todo se puede cambiar después. |
 
-The weekday names come from `Intl.DateTimeFormat`, not from the catalogs.
+Weekday names come from `Intl.DateTimeFormat`; the "by Mondays" phrasing for one weekday is a short table per
+language (ru «по понедельникам», es «los lunes»), since `Intl` has no such case.
 
 ## Pull requests, in merge order
 
@@ -336,7 +369,7 @@ same. Desktop PRs D-1 to D-3 need no CLI change and can start at once.
 | D-3 | desktop | `feat(clients): table view, import button, an empty page that explains` | D-1 | `ClientsPage.test.tsx`: Table/Board switch remembered; table sort; stage cell moves and a refusal stays on the row; import: 0 pairs → Add a CRM, 1 → button, 2 → menu, never runs without a chosen profile; empty state lines |
 | D-4 | desktop | `feat(people): a table of real people, Show all, pages, duplicates view`; Rust `people_list(query, all, cursor, sort)`; person dialog from `PersonRow`; catalog memo minimum | D-1, M-1 released | `people.rs` fixtures from memo's new JSON; `PeoplePage.test.tsx`: hidden count, Show all, Tie filter, pager, row opens dialog, Split and Undo still work, duplicates view decides a MatchCard, memo too old state |
 | D-5 | desktop | `feat(people): Add person searches while you type` | D-4 | dialog: debounce, stale answer dropped, Already here / Might be the same, Open goes to the person, Create calls `people add` once |
-| D-6 | desktop | `feat(digests): a list of digests, one digest's page, daily and weekly forms`; Rust `digest_list`, `digest_add`, name on existing commands; catalog memo minimum | D-1, M-2 released | `DigestsPage.test.tsx` (new): empty → two cards, daily form saves, weekly form needs a weekday, list filters, row opens settings and preview, no Claude Code; Rust: name and weekday validated before memo runs |
+| D-6 | desktop | `feat(digests): a table of digests, one digest's settings and preview, Get now and schedule`; Rust `digest_book` (new memo: `digest list`; older: `schedule list` as one row), `digest_save`, `digest_run`, `digest_set_scheduled`, `digest_remove`, name on brief, templates, backfill and the days; merges when it degrades cleanly on the older memo, catalog minimum later | D-1 | `DigestsPage.test.tsx`: empty → templates, create saves, twice a day, weekly needs a weekday, row opens settings, Get now and its menu, schedule switch, no Claude Code, older memo as one row; Rust: name, times, weekdays, sources, routes, brief and caps checked before memo runs; the run's delivery flags |
 
 Every Desktop PR: mock scenarios in `src/platform/mock-*.ts` (`?people=hidden|dupes|add`, `?clients=table|import-none|import-two`,
 `?digests=list|weekly`), both themes and 960 px with `scripts/capture.mjs`, keyboard, reduced motion, `pnpm check`.
@@ -360,7 +393,8 @@ Rule 9 check with `scripts/scroll-hold.mjs` on the People table's Show all and t
 - **NEED-2342 · What counts as "mail exchange" for a real person?** A the owner wrote to them at least once
   (an outgoing mail with them as recipient) · B any mail from them, including newsletters and notifications. I
   recommend **A**: B makes every shop and service that ever mailed the owner a real person, which is most of the 51k.
-- **NEED-2343 · Daily and weekly only, or any number of digests?** A two kinds, at most one of each · B any number,
+- **NEED-2343 · Daily and weekly only, or any number of digests?** Answered 2026-11-09: any number (the owner's
+  "create a new one", "twice a day"). Was: A two kinds, at most one of each · B any number,
   each named, with its own brief and template. I recommend **B in memo, A in the first Desktop forms**: memo keyed by
   name costs the same either way, and the page can open "New digest" for more later without another memo change.
 - **NEED-2344 · Should the one-pipeline board go?** Today a memo without base stages shows `ClientsBoard`, one
