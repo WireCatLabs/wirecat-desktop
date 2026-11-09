@@ -108,6 +108,25 @@ describe("Add to memory", () => {
     expect(within(panel).getByText("Kept (1)")).toBeInTheDocument()
   })
 
+  it("ticks and unticks every suggestion at once", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", true)])
+    vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
+    vi.spyOn(platform, "memorySourceSuggest").mockResolvedValue({ batch: BATCH, reused: false })
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.type(within(panel).getByRole("textbox", { name: "Text" }), "We agreed delivery on the 28th with Lena.")
+    await user.click(within(panel).getByRole("button", { name: "Save" }))
+    await user.click(await within(panel).findByRole("button", { name: "Suggest facts" }, { timeout: 3000 }))
+
+    await user.click(await within(panel).findByRole("button", { name: "Untick all" }))
+    expect(within(panel).getByRole("button", { name: "Keep none" })).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Untick all" })).toBeDisabled()
+    await user.click(within(panel).getByRole("button", { name: "Tick all" }))
+    const all = (BATCH.findings ?? []).length
+    expect(within(panel).getByRole("button", { name: `Keep ${all}` })).toBeInTheDocument()
+    expect(within(panel).getByRole("button", { name: "Tick all" })).toBeDisabled()
+  })
+
   it("never picks a reader the owner did not choose, and points to Settings", async () => {
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", false)])
     vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)

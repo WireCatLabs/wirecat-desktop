@@ -72,6 +72,8 @@ const en = {
       ? `Suggested: ${plural("en", facts, { one: "# fact", other: "# facts" })} and ${plural("en", tasks, { one: "# task", other: "# tasks" })}.`
       : `Suggested: ${plural("en", facts, { one: "# fact", other: "# facts" })}.`,
   tickHint: "Tick the ones to keep. Only the ticked ones count; the rest are dropped.",
+  tickAll: "Tick all",
+  untickAll: "Untick all",
   reused: "It was read with this reader before, so these are the same suggestions.",
   readAgain: "Read it again",
   nothingFound: "The reader found nothing it could show in the source's own words. The source is saved.",
@@ -187,6 +189,8 @@ const ru: typeof en = {
       : `Предложено: ${f}.`
   },
   tickHint: "Отметьте, что оставить. Считается только отмеченное, остальное отбрасывается.",
+  tickAll: "Отметить все",
+  untickAll: "Снять все",
   reused: "Этот читатель уже читал источник, поэтому предложения те же.",
   readAgain: "Прочитать заново",
   nothingFound: "Читатель не нашёл ничего, что можно показать словами самого источника. Источник сохранён.",
@@ -303,6 +307,8 @@ const es: typeof en = {
       ? `Propuestos: ${plural("es", facts, { one: "# hecho", other: "# hechos" })} y ${plural("es", tasks, { one: "# tarea", other: "# tareas" })}.`
       : `Propuestos: ${plural("es", facts, { one: "# hecho", other: "# hechos" })}.`,
   tickHint: "Marca los que quieres guardar. Solo cuentan los marcados; el resto se descarta.",
+  tickAll: "Marcar todos",
+  untickAll: "Desmarcar todos",
   reused: "Este lector ya lo leyó, así que son las mismas propuestas.",
   readAgain: "Leerlo de nuevo",
   nothingFound: "El lector no encontró nada que pueda mostrar con las palabras de la fuente. La fuente está guardada.",

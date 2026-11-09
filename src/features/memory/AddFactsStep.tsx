@@ -17,7 +17,7 @@ export function FactsStep() {
   const skipped = useAddSource((s) => s.skipped)
   const reused = useAddSource((s) => s.reused)
   const busy = useAddSource((s) => s.busy)
-  const { skip, keep, suggest } = useAddSource.getState()
+  const { skip, skipAll, keep, suggest } = useAddSource.getState()
   const findings = batch?.findings ?? []
   const ticked = findings.filter((f) => !skipped.includes(f.id)).length
   const facts = findings.filter((f) => f.kind === "fact").length
@@ -33,9 +33,19 @@ export function FactsStep() {
         <p className="text-[0.95rem] text-ink-soft">{m.nothingFound}</p>
       ) : (
         <>
-          <div>
-            <p className="font-medium">{m.suggested(facts, findings.length - facts)}</p>
-            <p className="text-[0.9rem] text-ink-soft">{m.tickHint}</p>
+          <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+            <div>
+              <p className="font-medium">{m.suggested(facts, findings.length - facts)}</p>
+              <p className="text-[0.9rem] text-ink-soft">{m.tickHint}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" variant="ghost" disabled={ticked === findings.length} onClick={() => skipAll(false)}>
+                {m.tickAll}
+              </Button>
+              <Button size="sm" variant="ghost" disabled={ticked === 0} onClick={() => skipAll(true)}>
+                {m.untickAll}
+              </Button>
+            </div>
           </div>
           <ul className="flex flex-col rounded-[0.45rem] border border-line">
             {findings.map((f) => (
