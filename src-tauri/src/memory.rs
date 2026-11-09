@@ -614,7 +614,8 @@ fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(
     Ok((items, v["page"]["has_more"].as_bool().unwrap_or(false)))
 }
 
-/// Every list at once: each is its own Node.js start, so one after another would take that many times as long.
+/// Every list at once: memo's server answers them side by side, and a memo without it starts a process for each, so one
+/// after another would take that many times as long.
 fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
     let (memories, facts, actions, agents, (proposed, held, roles)) = std::thread::scope(|s| {
         let memories = s.spawn(|| list(call, "memories", memory));
