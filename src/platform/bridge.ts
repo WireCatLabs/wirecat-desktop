@@ -45,6 +45,7 @@ import {
 import { NotificationsSchema } from "./notifications-schemas"
 import { KindCountsSchema, MergedSchema, PeopleReadSchema, PersonDetailSchema, UnlinkedSchema } from "./people-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
+import { ImportOutcomeSchema, RecordTypesSchema } from "./records-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
 import type { InstallEvent, NodeEvent } from "./schemas"
@@ -244,6 +245,11 @@ function createTauri(): Platform {
       call(MemoryEntrySchema, "memory_review_decide", { reference: ref, id, answer, reason: reason ?? null }),
     memoryPickFile: () => call(v.nullable(v.string()), "memory_pick_file"),
     memorySourceAdd: (source) => call(AddedSourceSchema, "memory_source_add", { source }),
+    recordTypes: () => call(RecordTypesSchema, "records_types"),
+    recordTemplateSave: (kind, format, separator, account) =>
+      call(v.nullable(v.string()), "records_template_save", { kind, format, separator, account: account ?? null }),
+    recordPickFile: () => call(v.nullable(v.string()), "records_pick_file"),
+    recordRun: (kind, account, dryRun) => call(ImportOutcomeSchema, "records_run", { kind, account, dryRun }),
     memorySourceShow: (ref) => call(StoredSourceSchema, "memory_source_show", { reference: ref }),
     memoryMentions: (ref) => call(MentionsSchema, "memory_mentions", { reference: ref }),
     memorySourceSuggest: (ref, reader, subjects, again) =>

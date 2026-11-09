@@ -73,6 +73,7 @@ import type {
 import type { Notification } from "./notifications-schemas"
 import type { MatchAnswer, Merged, PeopleRead, PersonDetail, PersonKind, Unlinked } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
+import type { ImportOutcome, RecordType } from "./records-schemas"
 import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
 import type { RunDetail, RunsPage } from "./runs-schemas"
@@ -354,6 +355,14 @@ export type Platform = {
   memoryPickFile(): Promise<string | null>
   /** Keeps a file, a web page or pasted text as a source of its own; only its text unless memo says `copy`. */
   memorySourceAdd(source: AddSource): Promise<AddedSource>
+  /** Every type a sheet can hold, with its columns; throws `records.too-old` for a memo without templates. */
+  recordTypes(): Promise<RecordType[]>
+  /** Writes one type's template where the owner chose; `null` when they closed the window. */
+  recordTemplateSave(kind: string, format: "csv" | "json", separator: string, account?: string): Promise<string | null>
+  /** The system's file window for a CSV or JSON to import; `null` when the owner closes it. */
+  recordPickFile(): Promise<string | null>
+  /** Checks (`dryRun`) or imports the last chosen file into the source `account`. */
+  recordRun(kind: string | null, account: string, dryRun: boolean): Promise<ImportOutcome>
   /** A source's stored text, what it is and what is kept. */
   memorySourceShow(ref: string): Promise<StoredSource>
   /** People and organizations memo knows whose names appear in a source, found on this computer. */
