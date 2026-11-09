@@ -188,15 +188,87 @@ and the benchmark README says how many groups that was in the synthetic store; t
 
 | Where | Default | Show all |
 | --- | --- | --- |
-| `memo people list` | real only; JSON `hidden: <n>` | `--all` |
+| `memo people list` | `kind:person` (see the contract below) | `kind:all`; the other kinds as filters |
 | `memo search people` | real first, then the rest marked `tie: none` (search must still find anyone) | — |
 | Desktop People | real only, "N hidden · Show all" | a toggle chip |
 | Desktop task assignee picker (`task_board.rs:392`) | real only | the picker's search finds the rest |
 | `memo people review` | proposals touching a hidden person stay listed (a duplicate is worth fixing either way) | — |
 | cli-core `contacts list` | unchanged: already dialogs only | — |
 
-RISK-127: memo's only `--all` today, on `answers`, means "every account". On `people list` it means "people with no
+RISK-127 (closed by the contract below: `people list` has no `--all`, the vocabulary's `--all` means every page): memo's only `--all` today, on `answers`, means "every account". On `people list` it means "people with no
 tie too". The help text says so; the owner asked for this word.
+
+### The people list contract (memo M-1, the owner's feedback UX-133)
+
+The owner, 2026-11-09: «не надо показывать всех попало… рассылки и уведомления в конец, левые имена вообще в
+отдельный блок с неразобранным мусором. нужно писать сам контакт — тел, email, messenger handle… сортировал бы по
+кол-ву коммуникаций от человека… отделить компании, можно в отдельный фильтр». So every person gets one **kind**,
+and the list shows one kind at a time.
+
+```sh
+memo people list [kind:<kind>] [name:<text>] [--sort interactions|recent|name|tasks] [--limit <n>] [--page <n>] --json
+```
+
+- `kind:` is `person` (the default), `organization`, `automated`, `unsorted` or `all`.
+- `--sort`: `interactions` (the default, most first), `recent` (newest `last_contact` first), `name`, `tasks`. The
+  owner comes first in every order; equal rows go by name, then ref.
+- `--limit` 500 by default, at most 5000; `--page` from 1. `page.total` is exact (`relation: "eq"`) for the kind and
+  the `name:` asked. In a group (`MEMO_GROUP`) the page leaves `total` out, since the store's counts include people
+  outside the group.
+
+```json
+{
+  "items": [
+    {
+      "ref": "person:12",
+      "name": "\"Kai Sample \"",
+      "display_name": "Kai Sample",
+      "kind": "person",
+      "kind_signals": ["chat", "mail"],
+      "owner": false,
+      "tasks": 2,
+      "contact": "+34600000001",
+      "phone": "+34600000001",
+      "email": "kai@example.com",
+      "username": "kai",
+      "messages_from": 314,
+      "last_contact": "2026-11-08T10:12:00.000Z",
+      "ties": ["chat", "mail"]
+    }
+  ],
+  "page": { "mode": "page", "limit": 50, "has_more": true, "next_page": 2, "total": { "value": 1240, "relation": "eq" } }
+}
+```
+
+- `display_name`: the name without wrapping quotes and extra spaces. A name with no letter or digit, or a
+  placeholder a messenger writes for a missing name (`null`, `undefined`, `Без имени`, `Deleted Account`), gives way
+  to `@username`, then the phone, then the email; `null` when there is none. `name` stays as stored. The `null` and
+  `#97365` on today's People rows are Desktop printing a missing username and the id, not stored text, so the CLI
+  strips no `#<digits>` from a real name.
+- `contact`: the one to show beside the name: the phone, else the email, else `@username`; `null` when there is none.
+  `phone`, `email` and `username` are the first of each across the person's accounts.
+- `messages_from`: the messages and the mail this person sent, every account together. `last_contact`: the newest of
+  their messages, their mail and their one-to-one chat's last message; `null` when the store holds none.
+- `ties`: as before (`chat`, `small-group`, `mail`, `meeting`, `crm`, `phone-book`, and `owner`, `added`, `task`).
+- **Counts per kind for the filter tabs**: the list envelope is a closed schema (`items`, `page`, `next`, `missing`,
+  `meta`), so there is no room for counts in `meta`. Desktop asks `memo people list kind:<k> --limit 1 --json` once per
+  kind (four calls through `commands --serve`) and reads `page.total`.
+
+**The kind of a person**, the first rule that holds; `kind_signals` names what decided it:
+
+| Order | Kind | When (`kind_signals`) |
+| --- | --- | --- |
+| 1 | `person` | the owner, a person added by hand, a task's assignee (`owner`, `added`, `task`): never hidden |
+| 2 | `automated` | a messenger bot (`bot`); a no-reply address (`no-reply`); most of the mail from them is in the bulk mailbox (`bulk-mail`); memo's sender score marked them `bulk_never_replied` (`bulk-never-replied`); a name such as «Notifications», «Newsletter», «No-reply», «Уведомления», «Рассылка» (`automated-name`) |
+| 3 | `organization` | an identity an organization owns (`organization`); a shared role address such as `info@`, `sales@` (`role-address`); a legal form or a company word in the name: ООО, ИП, АО, LLC, Ltd, Inc, GmbH, Airlines, Bank, Hotel, Team, Support, Shop… (`company-name`) |
+| 4 | `person` | a tie to the owner (the tie names) and a readable `display_name` |
+| 5 | `unsorted` | everyone else: no tie (`no-tie`), or no name and no contact to show (`no-name`) |
+
+A named stranger seen only as an author in a big group is `unsorted`, with the nameless ones: the owner's «левые
+имена… в отдельный блок» (NEED, see the session journal). Every rule is a fixed signal from the store; nothing is
+guessed by a model, and a wrong kind is fixed by the owner's own data (a tie, a CRM record, an organization link).
+
+`memo people similar <name...> --json --limit 8` answers items of the same shape plus `same_name`.
 
 ### Duplicates: one new signal, the same review
 
