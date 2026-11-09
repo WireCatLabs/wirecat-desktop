@@ -82,6 +82,8 @@ type Props<T> = {
   loading?: string
   /** A new answer is on its way: the rows on screen stay and dim. */
   busy?: boolean
+  /** Shows one page of the sorted rows, from 1; the caller's `Pager` moves it. */
+  page?: { index: number; size: number }
 }
 
 export function DataTable<T>(props: Props<T>) {
@@ -102,7 +104,10 @@ export function DataTable<T>(props: Props<T>) {
   const byKey = new Map(rows.map((r) => [rowKey(r), r]))
   const keys = rows.map(rowKey)
   const order = sort ? [...sorted.filter((k) => byKey.has(k)), ...keys.filter((k) => !sorted.includes(k))] : keys
-  const shown = order.map((k) => byKey.get(k)).filter((r): r is T => r !== undefined)
+  const paged = props.page
+    ? order.slice((props.page.index - 1) * props.page.size, props.page.index * props.page.size)
+    : order
+  const shown = paged.map((k) => byKey.get(k)).filter((r): r is T => r !== undefined)
 
   const head = (c: Column<T>) => {
     if (c.hideHead) return <span className="sr-only">{c.head}</span>

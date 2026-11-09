@@ -4,7 +4,7 @@ import { formatDate, useLang, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { useBoard } from "./api"
-import { OutcomeLamp } from "./ClientsBoard"
+import { OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 

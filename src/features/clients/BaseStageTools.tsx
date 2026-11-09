@@ -8,7 +8,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldClass } from "@/ui/field"
 import { focusInPlace } from "@/ui/motion"
 import { Segmented } from "@/ui/Segmented"
-import { OutcomeLamp } from "./ClientsBoard"
+import { OutcomeLamp } from "./Card"
 import { stageMessages } from "./messages-stages"
 
 type Edit = (edit: CrmBaseEdit) => void

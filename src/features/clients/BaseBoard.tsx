@@ -1,5 +1,5 @@
-import { useRef, useState } from "react"
-import { baseColumnsOf, columnOf, dropOf, type Refusal, UNSORTED } from "@/domain/base-stages"
+import { useRef } from "react"
+import { baseColumnsOf, columnOf, type Refusal, UNSORTED } from "@/domain/base-stages"
 import { accountKey, amountsOf, type Kind, sumsOf } from "@/domain/clients"
 import { useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
@@ -8,12 +8,11 @@ import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
-import { type Based, useCardMove } from "./api"
-import { Card, CardBody, OutcomeLamp } from "./ClientsBoard"
+import type { Based } from "./api"
+import { useBaseMove } from "./base-move"
+import { Card, CardBody, OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
-import { ProfilePicker } from "./ProfilePicker"
-import { StagePicker } from "./StagePicker"
 import { useClients } from "./store"
 
 /** The base set as columns, every pipeline's cards under the base stage their own stage points to. */
@@ -31,15 +30,8 @@ export function BaseBoard({
   const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
   const lang = useLang()
-  const asked = useClients((st) => st.pipeline[kind] ?? null)
   const refused = useClients((st) => st.refused)
-  const move = useCardMove(
-    kind,
-    asked,
-    read.pipelines,
-    (pipeline, stage) => read.mapping.find((x) => x.pipeline === pipeline && x.name === stage)?.externalId ?? null,
-  )
-  const [note, setNote] = useState("")
+  const move = useBaseMove(read, kind)
   const pipes = new Map(read.pipelines.map((p) => [p.ref, p]))
   const byRef = new Map(cards.map((c) => [c.ref, c]))
   const columns = baseColumnsOf(read.base, cards)
@@ -48,9 +40,7 @@ export function BaseBoard({
   const several = new Set(cards.map((c) => c.pipeline)).size > 1
   const verdict = (ref: string, to: string) => {
     const c = byRef.get(ref)
-    return c
-      ? dropOf(c, to, read, pipes.get(c.pipeline)?.movable.kind === "yes")
-      : ({ kind: "refuse", why: "unmapped" } as const)
+    return c ? move.verdict(c, to) : ({ kind: "refuse", why: "unmapped" } as const)
   }
   const board = useRef<HTMLDivElement>(null)
   useSlide(board, cards.map((c) => `${c.ref}:${c.stage}`).join())
@@ -66,15 +56,12 @@ export function BaseBoard({
       return d.kind === "refuse" ? s.refusal[d.why] : true
     },
     onRefuse: (ref, to) => {
-      const d = verdict(ref, to)
-      if (d.kind === "refuse") useClients.getState().refuse(ref, d.why)
+      const c = byRef.get(ref)
+      if (c) move.moveTo(c, to)
     },
     onDrop: ({ key, to }) => {
-      const d = verdict(key, to)
       const c = byRef.get(key)
-      if (d.kind === "move" && c) move.run(c, d.stage)
-      if (d.kind === "choose" && c)
-        useClients.getState().pick({ ref: key, pipeline: c.pipeline, base: to, stages: d.stages })
+      if (c) move.moveTo(c, to)
     },
     onOpen: (ref) => useClients.getState().setOpen(ref),
     words: {
@@ -168,27 +155,14 @@ export function BaseBoard({
           <CardBody card={dragged} badge={badge(dragged)} />
         </DragCopy>
       )}
-      <StagePicker
-        base={read.base}
-        cards={byRef}
-        onMove={(ref, stage) => {
-          const c = byRef.get(ref)
-          if (c) move.run(c, stage)
-        }}
-        onCancel={(ref) => setNote(m.putBack(ref))}
-      />
-      <ProfilePicker onChoose={move.chosen} onCancel={(ref) => setNote(ref ? m.putBack(ref) : "")} />
       <p aria-live="assertive" className="sr-only">
         {said}
-      </p>
-      <p aria-live="polite" className="sr-only">
-        {note}
       </p>
     </>
   )
 }
 
-function Refused({ why, account }: { why: Refusal; account: string }) {
+export function Refused({ why, account }: { why: Refusal; account: string }) {
   const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
   const mappable = why === "unmapped" || why === "unconfirmed"

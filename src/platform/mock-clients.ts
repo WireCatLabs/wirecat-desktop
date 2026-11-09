@@ -442,7 +442,7 @@ export function clientsMock(based = scenario !== "no-base", writer: CrmWriter = 
       await delay(350)
       if (scenario === "loading") await new Promise(() => undefined)
       if (scenario === "missing") return { kind: "missing" }
-      if (scenario === "old") return { kind: "old", version: "0.131.54", need: "0.131.56" }
+      if (scenario === "old") return { kind: "old", version: "0.131.54", need: "0.131.71" }
       if (scenario === "fail") throw new Error(BUSY)
       if (based) return baseRead(kind)
       const pipes = PIPES.filter((p) => p.kind === kind)
