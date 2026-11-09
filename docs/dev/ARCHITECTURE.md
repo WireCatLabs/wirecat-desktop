@@ -154,14 +154,17 @@ src-tauri/src/
                 functions against a real memo in a throwaway home.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
+                The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the
+                schedule's own and turns on at the one chosen, the catalog's `every` (30m) only when none is known.
   report.rs     bug reports: what this computer adds, masked, and sending to the WireCat API (docs/dev/report-api.md).
   deep_link.rs  `wirecat://open/v1/…` links (Tauri's deep-link plugin, with single-instance first so a click reaches the
                 running window): parsed to the v1 grammar of cli-core's `links.ts`, checked against its shared fixture
                 `src/domain/links-v1.fixture.json`; anything else reaches the interface as a refused link, its text
                 dropped. One `Channel` (`deep_link_listen`) carries them, the link that started the app first. A link
                 only opens a page (`src/features/links/open.ts`): a task, the task list on a filter, a proposal's row
-                on Memory, a tool's sync, a day on Digests; chat and message have no page yet and say so, with the
-                reference to copy.
+                on Memory, a tool's sync, a day on Digests, a chat or message on Conversation, a project (`project/<key>`, by key
+                or `project:<n>` reference) on Tasks searched by it; a person (`person/<id>`) and an unknown project
+                have no page yet and say so, with the reference to copy.
   digests.rs    the Digests page: memo's morning digest runs, read from the files its schedule keeps
                 (`<memo state>/schedules/morning-digest/runs/`; memo has no command that lists a schedule's runs), one
                 day per date, its newest run: `<stamp>.report.json` (cli-core's checked `wirecat.report/1`) or, for an
@@ -170,6 +173,18 @@ src-tauri/src/
                 (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls
                 `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and announces a run newer than
                 the last one it announced.
+  digest_schedule.rs the Digests page's schedule card: memo's own `schedule list` (the morning digest's time, routes,
+                last run with its cost and deliveries, the day's spend and caps; memo's other schedules read only),
+                `schedule agent morning-digest` to make it or change its time (memo replaces a schedule of the same
+                name), `schedule remove` for off (memo has no pause; the page remembers the time and routes to turn it
+                back on), `schedule run` for Run now (its price, the last run's cost, is shown first), and `digest
+                backfill --from --to --json`, first without `--yes` for the price, then with it. Routes are checked to
+                the two shapes `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and
+                the page says it needs an update.
+  sync_schedule.rs an account's sync on a timer: the tool's own `<bin> <profile> schedule command <bin>-<profile>
+                --every <d> -- <catalog sync.schedule.args>`, `schedule list` and `schedule remove`. The tool writes the
+                timer. Its latest run (and `failing_since`) shows under the account, and a failed sync from this window
+                clears once a later run succeeded, timed or listed by `syncLast`.
   notifications.rs news from the WireCat API for this version and OS (docs/dev/notifications-api.md); only https links pass.
 ```
 

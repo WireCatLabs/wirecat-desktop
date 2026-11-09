@@ -8,7 +8,7 @@ import type { Platform } from "./types"
 // sync for personal (`src/app/scenarios.ts`); `?sync-hold=<tool>` keeps it running; `?sync-fail=<tool>` ends it with
 // another sync holding the profile; `?sync-timeout=<tool>` at the time limit; `?sync-limited=<tool>` when the service
 // asks to wait 25 minutes (`?sync-limited=<tool>&wait=none` without saying how long); `?sync=never` has no profile synced
-// yet.
+// yet. `?sync-recovered=<tool>` ends it with configuration_error (see mock-sync-schedule.ts).
 // Background services: personal runs, any other profile is stopped with its unit written. `?service=<tool>` is that
 // scenario for one tool; `?service=<tool>:stopped` (nothing runs, no unit), `:missing` (the service manager does not
 // answer; "Run it for now" still works), `:fail` (another program holds the login), `:old` (the tool has no `server`
@@ -158,6 +158,18 @@ export function syncMock(): Pick<Platform, "syncRun" | "syncStop" | "syncLast" |
           message,
           code,
           reason: "profile.locked",
+          run: recordFailedSync(ownerId(id), { profile, command, code, message }),
+          retryAfterMs: null,
+        })
+      }
+      if (params.get("sync-recovered") === id) {
+        const message = "store schema 56 is newer than this mail; update mail"
+        const code = "configuration_error"
+        return onEvent({
+          event: "failed",
+          message,
+          code,
+          reason: null,
           run: recordFailedSync(ownerId(id), { profile, command, code, message }),
           retryAfterMs: null,
         })

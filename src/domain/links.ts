@@ -13,6 +13,9 @@ export type DeepLinkTarget =
   /** A review id as `memo review` shows it (`17070`, `fact:512`). */
   | { type: "proposal"; id: string }
   | { type: "digest"; date: string }
+  /** memo's person id, as `person:<id>` names it. */
+  | { type: "person"; id: string }
+  | { type: "project"; key: string }
   | { type: "sync"; tool: string; account?: string }
 
 // Links name a messenger as the store does (`telegram`); the catalog knows it by its tool id (`tg`).
@@ -44,6 +47,10 @@ const partsOf = (target: DeepLinkTarget): string[] => {
       return ["proposal", target.id]
     case "digest":
       return ["digest", target.date]
+    case "person":
+      return ["person", target.id]
+    case "project":
+      return ["project", target.key]
     case "sync":
       return target.account === undefined ? ["sync", target.tool] : ["sync", target.tool, target.account]
   }
@@ -68,6 +75,10 @@ const targetOfParts = (parts: string[]): DeepLinkTarget | null => {
       return rest.length === 1 ? { type: "proposal", id: a } : null
     case "digest":
       return rest.length === 1 && isMoment(a, DATE) ? { type: "digest", date: a } : null
+    case "person":
+      return rest.length === 1 ? { type: "person", id: a } : null
+    case "project":
+      return rest.length === 1 ? { type: "project", key: a } : null
     case "sync":
       if (rest.length === 1) return { type: "sync", tool: a }
       return rest.length === 2 ? { type: "sync", tool: a, account: b } : null
@@ -107,7 +118,7 @@ export const parseLink = (text: string): DeepLinkTarget | null => {
   return targetOfPath(rest)
 }
 
-const LINK_ONLY = new Set(["tasks", "proposal", "digest", "sync"])
+const LINK_ONLY = new Set(["tasks", "proposal", "digest", "sync", "person", "project"])
 
 const encodedParts = (rest: string, count: number): string[] | null => {
   const parts = rest.split("/")
@@ -122,7 +133,7 @@ const encodedParts = (rest: string, count: number): string[] | null => {
 /**
  * The target a digest item's ref names, or null. `msg:`, `chat:` and `task:` are store references (their parts
  * percent-encoded, a task id as it is); the kinds that are no reference are their path with a colon after the kind:
- * `proposal:fact%3A512`, `tasks:overdue`, `digest:2026-11-08`, `sync:telegram/1001`.
+ * `proposal:fact%3A512`, `tasks:overdue`, `digest:2026-11-08`, `sync:telegram/1001`, `person:77`, `project:north-wind`.
  */
 export const linkTargetOf = (ref: string): DeepLinkTarget | null => {
   const text = ref.trim()

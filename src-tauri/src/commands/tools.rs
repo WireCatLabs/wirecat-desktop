@@ -134,10 +134,11 @@ pub async fn mail_agent_status(id: String) -> Result<mail_agent::MailAgent, AppE
 }
 
 #[tauri::command]
-pub async fn mail_agent_set(id: String, on: bool) -> Result<mail_agent::MailAgent, AppError> {
+/// `every` is the interval for on; none keeps the catalog's.
+pub async fn mail_agent_set(id: String, on: bool, every: Option<String>) -> Result<mail_agent::MailAgent, AppError> {
     crate::log::command("mail_agent_set", async move {
         let tool = known_tool(&id)?;
-        attempt(move || mail_agent::set(tool, on)).await
+        attempt(move || mail_agent::set(tool, on, every.as_deref())).await
     })
     .await
 }

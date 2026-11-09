@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { beforeEach, expect, it, vi } from "vitest"
 import { findTool } from "@/domain/catalog"
 import type { LastRun, MailAgent as State } from "@/platform/bindings"
@@ -15,7 +16,8 @@ const ran: LastRun = {
 }
 const on: Extract<State, { state: "on" }> = {
   state: "on",
-  when: "every 5m",
+  when: "every 30m",
+  every: "30m",
   last: ran,
   spentTodayUsd: 0.84,
   maxCostUsd: 1,
@@ -28,7 +30,12 @@ beforeEach(() => {
 })
 
 it("is offered only for Email, which names memo's schedule", () => {
-  expect(email.mailAgent).toEqual({ via: "memo", name: "mail-triage" })
+  expect(email.mailAgent).toEqual({
+    via: "memo",
+    name: "mail-triage",
+    every: "30m",
+    choices: ["5m", "15m", "30m", "1h"],
+  })
   expect(findTool("tg")?.mailAgent).toBeNull()
 })
 
@@ -41,7 +48,7 @@ it("turns the schedule on through memo and then shows its status and the day's s
   expect(toggle).toHaveAttribute("aria-checked", "false")
   fireEvent.click(toggle)
 
-  expect(set).toHaveBeenCalledWith("email", true)
+  expect(set).toHaveBeenCalledWith("email", true, "30m")
   expect(await screen.findByText(/Last run .* · finished/)).toBeInTheDocument()
   expect(screen.getByText("Spent today: $0.84 of $5.00")).toBeInTheDocument()
   expect(screen.getByRole("switch", { name: "Run on a schedule" })).toHaveAttribute("aria-checked", "true")
@@ -55,7 +62,7 @@ it("turns it off with memo's remove", async () => {
 
   fireEvent.click(await screen.findByRole("switch", { name: "Run on a schedule" }))
 
-  expect(set).toHaveBeenCalledWith("email", false)
+  expect(set).toHaveBeenCalledWith("email", false, undefined)
   await vi.waitFor(() =>
     expect(screen.getByRole("switch", { name: "Run on a schedule" })).toHaveAttribute("aria-checked", "false"),
   )
@@ -128,4 +135,35 @@ it("leaves the cap out when there is none or memo is too old to report it", asyn
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ ...on, maxCostUsd: null, maxCostPerDayUsd: null })
   render(<MailAgent tool={email} />)
   expect(await screen.findByText("Spent today: $0.84")).toBeInTheDocument()
+})
+
+it("shows the schedule's own interval and changes it through memo, never falling back to 5 minutes", async () => {
+  vi.spyOn(platform, "mailAgentStatus").mockResolvedValue(on)
+  const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ ...on, when: "every 1h", every: "1h" })
+  const user = userEvent.setup()
+  render(<MailAgent tool={email} />)
+
+  const how = await screen.findByRole("combobox", { name: "How often" })
+  await vi.waitFor(() => expect(how).toHaveTextContent("30 min"))
+  expect(screen.getByText(/Checks for new mail every 30 min/)).toBeInTheDocument()
+  await user.click(how)
+  await user.click(screen.getByRole("option", { name: "hour" }))
+  expect(set).toHaveBeenCalledWith("email", true, "1h")
+  await vi.waitFor(() => expect(how).toHaveTextContent("hour"))
+})
+
+it("turns on at the interval chosen while it was off", async () => {
+  vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ state: "off", harness: true })
+  const set = vi.spyOn(platform, "mailAgentSet").mockResolvedValue({ ...on, when: "every 15m", every: "15m" })
+  const user = userEvent.setup()
+  render(<MailAgent tool={email} />)
+
+  const how = await screen.findByRole("combobox", { name: "How often" })
+  expect(how).toHaveTextContent("30 min")
+  await user.click(how)
+  await user.click(screen.getByRole("option", { name: "15 min" }))
+  expect(set).not.toHaveBeenCalled()
+  await user.click(screen.getByRole("switch", { name: "Run on a schedule" }))
+  expect(set).toHaveBeenCalledWith("email", true, "15m")
+  expect(within(document.body).queryByText(/every 5 min/)).not.toBeInTheDocument()
 })

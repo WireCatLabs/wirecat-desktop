@@ -87,6 +87,15 @@ export function dueOf(q: string, today = new Date()): DueChoice | null {
 }
 
 /** The search a `tasks/<filter>` link opens: the Due filter's own words, or the tasks opened since a moment. */
+/** The Tasks page searched on one project, for a `project/<key>` link. */
+export const projectQuery = (key: string) => writeField("", "project", [key])
+
+/** The project a link names: by its key (`HRB`, any case) or by its store reference (`project:1`). */
+export function projectNamed<P extends { key: string; ref: string | null }>(projects: readonly P[], name: string) {
+  const wanted = name.toLowerCase()
+  return projects.find((p) => p.key.toLowerCase() === wanted || p.ref === `project:${name}`) ?? null
+}
+
 export function taskQuery(
   link: { filter: "overdue" | "today" | "tomorrow" | "undated" } | { filter: "new"; since: string },
 ) {

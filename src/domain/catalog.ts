@@ -184,7 +184,17 @@ const ToolSchema = v.object({
     null,
   ),
   /** Only email: memo's scheduled agent that reads new mail and proposes; Rust runs its commands. */
-  mailAgent: v.optional(v.nullable(v.object({ via: v.string(), name: v.string() })), null),
+  mailAgent: v.optional(
+    v.nullable(
+      v.object({
+        via: v.string(),
+        name: v.string(),
+        every: v.optional(v.string(), "30m"),
+        choices: v.optional(v.array(v.string()), []),
+      }),
+    ),
+    null,
+  ),
   /** The tool's own sync; `run` is null when there is none to start and `note` says how it syncs instead. */
   sync: v.nullable(
     v.object({
@@ -193,6 +203,8 @@ const ToolSchema = v.object({
       lastShape: v.picklist(["runs", "driveStatus"]),
       what: v.picklist(["messages", "files", "meetings", "notes and mail", "mail", "records"]),
       note: v.nullable(v.string()),
+      /** The sync on a timer per account, through the tool's own `schedule command`; Rust holds the words. */
+      schedule: v.optional(v.nullable(v.object({ every: v.string(), choices: v.array(v.string()) })), null),
     }),
   ),
   storeInfo: v.nullable(v.array(v.string())),
@@ -358,6 +370,8 @@ export const signsInHere = (t: CatalogTool) => (t.signIn?.methods?.length ?? 0) 
 
 /** Whether the app can start this tool's sync; a profile is then needed when its words name one. */
 export const syncsHere = (t: CatalogTool) => (t.sync?.run?.length ?? 0) > 0
+/** Whether an account's sync can run on a timer from here. */
+export const syncSchedules = (t: CatalogTool) => (t.sync?.schedule ?? null) !== null && syncNeedsProfile(t)
 export const syncNeedsProfile = (t: CatalogTool) => t.sync?.run?.includes("{profile}") ?? false
 
 export const signInMethods = (t: CatalogTool) => t.signIn?.methods ?? []

@@ -20,6 +20,48 @@ pub async fn digest_show(date: String) -> Result<crate::digests::Digest, AppErro
 }
 
 #[tauri::command]
+pub async fn digest_schedule() -> Result<crate::digest_schedule::DigestSchedules, AppError> {
+    crate::log::command("digest_schedule", async move { attempt(crate::digest_schedule::status).await }).await
+}
+
+/// Makes the morning digest's schedule or replaces it: a new time, its routes, its caps.
+#[tauri::command]
+pub async fn digest_schedule_save(
+    time: String,
+    routes: Vec<String>,
+    max_cost_usd: f64,
+    max_cost_per_day_usd: f64,
+) -> Result<crate::digest_schedule::DigestSchedules, AppError> {
+    crate::log::command("digest_schedule_save", async move {
+        attempt(move || crate::digest_schedule::save(&time, &routes, max_cost_usd, max_cost_per_day_usd)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn digest_schedule_remove() -> Result<crate::digest_schedule::DigestSchedules, AppError> {
+    crate::log::command("digest_schedule_remove", async move { attempt(crate::digest_schedule::remove).await }).await
+}
+
+#[tauri::command]
+pub async fn digest_schedule_run() -> Result<crate::digest_schedule::DigestSchedules, AppError> {
+    crate::log::command("digest_schedule_run", async move { attempt(crate::digest_schedule::run_now).await }).await
+}
+
+/// `yes` false only prices the days; true builds them.
+#[tauri::command]
+pub async fn digest_backfill(
+    from: String,
+    to: String,
+    yes: bool,
+) -> Result<crate::digest_schedule::Backfill, AppError> {
+    crate::log::command("digest_backfill", async move {
+        attempt(move || crate::digest_schedule::backfill(&from, &to, yes)).await
+    })
+    .await
+}
+
+#[tauri::command]
 pub fn digest_notify(
     app: tauri::AppHandle,
     date: String,

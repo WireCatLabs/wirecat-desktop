@@ -33,7 +33,7 @@ describe("the v1 link grammar, as cli-core's shared fixture states it", () => {
   })
 
   it("names nothing for a ref no link opens", () => {
-    for (const ref of ["person:77", "account:max/1", "msg:max/1/2", "chat:tg//1", "task:", "plain"])
+    for (const ref of ["person:", "person:77/2", "account:max/1", "msg:max/1/2", "chat:tg//1", "task:", "plain"])
       expect(linkTargetOf(ref)).toBeNull()
   })
 })

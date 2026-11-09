@@ -114,9 +114,31 @@ export function amountText(amount: { value: number; currency: string; direction:
   return `${amount.direction === "in" ? "+" : "−"}${money}`
 }
 
-/** What an item's refs open in the app: the first one a link can name. */
+/** Every target an item's refs name, in their order, each once; refs no link can name are left out. */
+export function targetsOfRefs(refs: readonly string[]): DeepLinkTarget[] {
+  const seen = new Set<string>()
+  return refs.flatMap((ref) => {
+    const target = linkTargetOf(ref)
+    if (!target) return []
+    const key = formatLink(target)
+    if (seen.has(key)) return []
+    seen.add(key)
+    return [target]
+  })
+}
+
+/** The person or project an item names, when its refs name exactly one: its `who` or `topic` then links there. */
+export function entityOf(refs: readonly string[], type: "person" | "project"): DeepLinkTarget | null {
+  const found = targetsOfRefs(refs).filter((t) => t.type === type)
+  return found.length === 1 ? (found[0] ?? null) : null
+}
+
+/**
+ * What an item's Open opens: the first ref a link can name, people and projects aside, since its who and topic link
+ * to those.
+ */
 export const targetOfRefs = (refs: readonly string[]): DeepLinkTarget | null =>
-  refs.map(linkTargetOf).find((t) => t !== null) ?? null
+  refs.map(linkTargetOf).find((t) => t !== null && t.type !== "person" && t.type !== "project") ?? null
 
 export type TaskGroup = {
   filter: "overdue" | "today" | "tomorrow" | "new"

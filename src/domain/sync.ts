@@ -89,3 +89,17 @@ export function share(p: SyncProgress | null): number | null {
   if (!p?.chats || p.chatsDone === null) return null
   return Math.min(100, Math.round((p.chatsDone / p.chats) * 100))
 }
+
+/**
+ * Whether a failed sync is old news: a run that ended after it succeeded, whether the app's own (`laterSync`, the
+ * newest successful run the tool lists) or the account's timer (`scheduled`, its latest run).
+ */
+export function failureSuperseded(
+  endedAt: number | null,
+  laterSync: string | null,
+  scheduled: { at: string; exitCode: number; skipped: unknown } | null,
+): boolean {
+  if (endedAt === null) return false
+  const after = (at: string | null) => at !== null && Date.parse(at) > endedAt
+  return after(laterSync) || (scheduled !== null && scheduled.exitCode === 0 && after(scheduled.at))
+}

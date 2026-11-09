@@ -74,6 +74,20 @@ const en = {
       meetings: plural("en", n, { one: "# meeting", other: "# meetings" }),
     })[kind],
   notifyBody: "Your morning digest is ready.",
+  details: "Details",
+  detailsOf: (what: string) => `Details: ${what}`,
+  quote: "Quote",
+  from: "Where from",
+  linked: "Opens in WireCat",
+  refs: {
+    message: "the message",
+    chat: "the chat",
+    task: (id: string) => `task ${id}`,
+    proposal: "the proposal",
+    person: "the person",
+    project: (key: string) => `project ${key}`,
+    other: "open",
+  },
 }
 
 const ru: typeof en = {
@@ -146,6 +160,20 @@ const ru: typeof en = {
       meetings: plural("ru", n, { one: "# встреча", few: "# встречи", many: "# встреч", other: "# встречи" }),
     })[kind],
   notifyBody: "Утренняя сводка готова.",
+  details: "Подробнее",
+  detailsOf: (what) => `Подробнее: ${what}`,
+  quote: "Цитата",
+  from: "Откуда",
+  linked: "Открыть в WireCat",
+  refs: {
+    message: "сообщение",
+    chat: "чат",
+    task: (id) => `задача ${id}`,
+    proposal: "предложение",
+    person: "человек",
+    project: (key) => `проект ${key}`,
+    other: "открыть",
+  },
 }
 
 const es: typeof en = {
@@ -218,6 +246,20 @@ const es: typeof en = {
       meetings: plural("es", n, { one: "# reunión", other: "# reuniones" }),
     })[kind],
   notifyBody: "Tu resumen matutino está listo.",
+  details: "Detalles",
+  detailsOf: (what) => `Detalles: ${what}`,
+  quote: "Cita",
+  from: "De dónde",
+  linked: "Abrir en WireCat",
+  refs: {
+    message: "el mensaje",
+    chat: "el chat",
+    task: (id) => `tarea ${id}`,
+    proposal: "la propuesta",
+    person: "la persona",
+    project: (key) => `proyecto ${key}`,
+    other: "abrir",
+  },
 }
 
 export const digestMessages: Messages<typeof en> = { en, ru, es }

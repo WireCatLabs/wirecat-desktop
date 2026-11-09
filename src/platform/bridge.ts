@@ -253,10 +253,12 @@ function createTauri(): Platform {
     },
     syncStop: (id, profile) => invoke("sync_stop", { id, profile }),
     syncLast: (id, profile) => invoke("sync_last", { id, profile }),
+    syncScheduleStatus: (id, profile) => invoke("sync_schedule_status", { id, profile }),
+    syncScheduleSet: (id, profile, every) => invoke("sync_schedule_set", { id, profile, every }),
     backgroundStatus: (id, profile) => invoke("background_status", { id, profile }),
     backgroundRun: (id, profile, action) => invoke("background_run", { id, profile, action }),
     mailAgentStatus: (id) => invoke("mail_agent_status", { id }),
-    mailAgentSet: (id, on) => invoke("mail_agent_set", { id, on }),
+    mailAgentSet: (id, on, every) => invoke("mail_agent_set", { id, on, every: every ?? null }),
     mailAgentWaiting: (id) => invoke("mail_agent_waiting", { id }),
     enrichmentStatus: (id) => invoke("enrichment_status", { id }),
     enrichmentPreview: (id, provider, model) => invoke("enrichment_preview", { id, provider, model }),
@@ -336,6 +338,12 @@ function createTauri(): Platform {
     digestList: () => call(v.array(DigestDaySchema), "digest_list"),
     digestShow: (date) => call(DigestSchema, "digest_show", { date }),
     digestNotify: (date, title, body, open) => invoke("digest_notify", { date, title, body, open }),
+    digestSchedule: () => invoke("digest_schedule"),
+    digestScheduleSave: (time, routes, maxCostUsd, maxCostPerDayUsd) =>
+      invoke("digest_schedule_save", { time, routes, maxCostUsd, maxCostPerDayUsd }),
+    digestScheduleRemove: () => invoke("digest_schedule_remove"),
+    digestScheduleRun: () => invoke("digest_schedule_run"),
+    digestBackfill: (from, to, yes) => invoke("digest_backfill", { from, to, yes }),
     openUrl: (url) => openUrl(url),
     window: async (action) => {
       const w = getCurrentWindow()

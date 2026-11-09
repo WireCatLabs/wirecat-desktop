@@ -18,10 +18,12 @@ import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
 import type {
   AccountRemoval,
   AccountRemoved,
+  Backfill,
   ChatPage,
   ChatPlace,
   ChosenFolders,
   Conversation,
+  DigestSchedules,
   Enrichment,
   EnrichmentStatus,
   FolderAdded,
@@ -36,6 +38,7 @@ import type {
   OwnDiscovery,
   OwnSignal,
   OwnStatus,
+  SyncSchedule,
   ZoomAppAnswer,
 } from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
@@ -344,14 +347,19 @@ export type Platform = {
   syncStop(id: string, profile: string | null): Promise<void>
   /** When the profile's last successful sync ended, from the tool's own `runs list` or `status`. */
   syncLast(id: string, profile: string | null): Promise<LastSync>
+  /** The account's sync on a timer (`sync.schedule` in the catalog), from the tool's own `schedule list`. */
+  syncScheduleStatus(id: string, profile: string): Promise<SyncSchedule>
+  /** The tool's own `schedule command` at that interval, or `schedule remove` for null. */
+  syncScheduleSet(id: string, profile: string, every: string | null): Promise<SyncSchedule>
   /** Whether the tool's own `server status` says its `serve` keeps the profile current (`background` in the catalog). */
   backgroundStatus(id: string, profile: string): Promise<Background>
   /** One of the tool's own `server` commands for one profile; a failure comes back as `fault`, sorted for the page. */
   backgroundRun(id: string, profile: string, action: BackgroundAction): Promise<BackgroundOutcome>
   /** memo's mail agent schedule (`mailAgent` in the catalog): on or off, its last run and the day's spend. */
   mailAgentStatus(id: string): Promise<MailAgent>
-  /** memo's own `schedule agent` or `schedule remove`; rejects with memo's words, masked. */
-  mailAgentSet(id: string, on: boolean): Promise<MailAgent>
+  /** memo's own `schedule agent` at `every` (the catalog's default when left out) or `schedule remove`; rejects
+   * with memo's words, masked. On again with another interval replaces the schedule. */
+  mailAgentSet(id: string, on: boolean, every?: string): Promise<MailAgent>
   /** How many proposals wait for the owner's decision, from memo's `review status`; null when memo does not say. */
   mailAgentWaiting(id: string): Promise<number | null>
   /** memo's `models consents show` (`enrichment` in the catalog): whether a hosted model rewrites records for search. */
@@ -447,6 +455,21 @@ export type Platform = {
   digestShow(date: string): Promise<Digest>
   /** A system notification for a new digest; on Linux a click opens that day (`digest/<date>`). */
   digestNotify(date: string, title: string, body: string, open: string): Promise<void>
+  /** memo's `schedule list`: the morning digest's schedule and the other schedules, read only. */
+  digestSchedule(): Promise<DigestSchedules>
+  /** memo's `schedule agent morning-digest`, which makes the schedule or replaces it; rejects with memo's words. */
+  digestScheduleSave(
+    time: string,
+    routes: string[],
+    maxCostUsd: number,
+    maxCostPerDayUsd: number,
+  ): Promise<DigestSchedules>
+  /** memo's `schedule remove morning-digest`; the past digests stay. */
+  digestScheduleRemove(): Promise<DigestSchedules>
+  /** memo's `schedule run morning-digest`: one paid run now, delivered to its routes; answers once it ends. */
+  digestScheduleRun(): Promise<DigestSchedules>
+  /** memo's `digest backfill`: without `yes` the price only, with it the days built (never delivered). */
+  digestBackfill(from: string, to: string, yes: boolean): Promise<Backfill>
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>
 }

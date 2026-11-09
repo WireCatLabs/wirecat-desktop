@@ -30,6 +30,7 @@ import { settingsMock } from "./mock-settings"
 import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
 import { isMockLogin, linkedProfiles, signInMock } from "./mock-signin"
 import { syncMock } from "./mock-sync"
+import { syncScheduleMock } from "./mock-sync-schedule"
 import { tailscaleMock } from "./mock-tailscale"
 import { tasksMock } from "./mock-tasks"
 import { updateMock } from "./mock-update"
@@ -198,7 +199,11 @@ const forgotten = new Set<string>()
 
 function mockProfiles(id: string): Profile[] | null {
   if (id === "memo") return null
-  if (id === "email") return scenario === "mixed" ? [{ name: "personal", signedIn: null }] : []
+  if (id === "email") {
+    if (params.has("sync-schedule") || params.get("sync-recovered") === "email")
+      return [{ name: "personal", signedIn: true }]
+    return scenario === "mixed" ? [{ name: "personal", signedIn: null }] : []
+  }
   if (id === "wa") {
     // `?service=wa` shows the service of two linked accounts without a sign-in first.
     const names =
@@ -289,6 +294,7 @@ export function createMock(os: Platform["os"]): Platform {
           : [],
   )
   if (params.get("mail-cli") === "old") installed.set("email", "0.21.0")
+  if (params.has("sync-schedule") || params.get("sync-recovered") === "email") installed.set("email", "0.22.0")
   // `?accounts=<tool>` opens that tool's accounts, so it is installed even when the scenario leaves it out.
   const accounts = params.get("accounts")
   if (accounts && !installed.has(accounts)) installed.set(accounts, LATEST[ownerId(accounts)] ?? "1.0.0")
@@ -691,6 +697,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...accountRemoveMock(params, (id, profile) => forgotten.add(`${id}/${profile}`)),
     ...botMock(),
     ...syncMock(),
+    ...syncScheduleMock(params),
     ...mailAgentMock(params),
     ...digestsMock(params),
     ...conversationMock(params),

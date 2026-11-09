@@ -30,7 +30,7 @@ describe("Digests", () => {
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Digests/ }))
     const days = await screen.findByRole("navigation", { name: "Days" })
-    expect(within(days).getAllByRole("button")).toHaveLength(3)
+    expect(within(days).getAllByRole("button")).toHaveLength(4)
     expect(within(days).getAllByRole("button")[0]).toHaveAttribute("aria-current", "page")
     const today = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
     expect(today).toHaveTextContent("Anna Kotova · warehouse lease — Answer whether signing on Friday works")
@@ -62,7 +62,7 @@ describe("Digests", () => {
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Digests/ }))
     const days = await screen.findByRole("navigation", { name: "Days" })
-    await user.click(within(days).getAllByRole("button")[2] as HTMLElement)
+    await user.click(within(days).getAllByRole("button")[3] as HTMLElement)
     expect(await screen.findByText(/Pay November rent to Vector LLC/, {}, { timeout: 4000 })).toBeInTheDocument()
     expect(screen.getByText(/here is its text as it was/)).toBeInTheDocument()
   }, 15000)
@@ -84,6 +84,7 @@ describe("the new digest notification", () => {
     stamp,
     summary: "Two replies wait.",
     report: true,
+    backfill: false,
   })
 
   it("stays quiet on the first look, then announces a newer run with its title and summary", async () => {
