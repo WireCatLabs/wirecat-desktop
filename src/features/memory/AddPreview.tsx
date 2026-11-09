@@ -2,6 +2,7 @@ import { FileText, Globe, Image as ImageIcon } from "lucide-react"
 import { formatBytes } from "@/domain/format"
 import { useMessages } from "@/i18n"
 import { Skeleton } from "@/ui/Skeleton"
+import { ImageBefore } from "./AddImageLine"
 import type { Preview } from "./add-store"
 import { addMessages } from "./messages-add"
 
@@ -49,7 +50,7 @@ export function SourcePreview({ preview, of }: { preview: Preview | null; of: st
           {[f.mime, formatBytes(f.bytes)].filter(Boolean).join(" · ")}
         </p>
         {f.excerpt && <p className="selectable mt-[0.4rem] line-clamp-4 text-[0.92rem] text-ink-soft">“{f.excerpt}”</p>}
-        {f.mime?.startsWith("image/") && <p className="mt-[0.3rem] text-[0.9rem] text-ink-soft">{m.imageByTitle}</p>}
+        {f.mime?.startsWith("image/") && <ImageBefore />}
       </div>
     </section>
   )

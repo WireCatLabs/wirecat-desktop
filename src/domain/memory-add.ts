@@ -77,3 +77,15 @@ export const reasonOf = (error: string): Reason | null =>
 
 /** A memo from before `sources` answers as commander does for any word it does not know. */
 export const tooOldFor = (error: string) => /unknown (command|option)/.test(error)
+
+/** Why a picture would be kept by its name only, from what Settings holds; `null` when the AI model will read it. */
+export function imageReasonBefore(
+  model: { provider: string | null; images: boolean; key: { stored: boolean } } | null,
+): "ai.not-set" | "ai.images-not-allowed" | "ai.key-missing" | null {
+  if (!model?.provider) return "ai.not-set"
+  if (!model.images) return "ai.images-not-allowed"
+  return model.provider !== "ollama" && !model.key.stored ? "ai.key-missing" : null
+}
+
+/** The reasons a trip to Settings, "AI model", can mend. */
+export const MENDED_IN_SETTINGS = ["ai.not-set", "ai.images-not-allowed", "ai.key-missing", "ai.failed"]

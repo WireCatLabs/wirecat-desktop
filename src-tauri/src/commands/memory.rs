@@ -1,6 +1,6 @@
 use super::{attempt, blocking};
 use crate::error::AppError;
-use crate::{memory, memory_add, memory_edit, memory_preview, memory_review};
+use crate::{ai_model, memory, memory_add, memory_edit, memory_preview, memory_review};
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
@@ -189,6 +189,27 @@ pub async fn memory_reader_choose(id: String) -> Result<Vec<memory_add::Reader>,
 pub async fn memory_reader_key(provider: String, key: String) -> Result<memory_add::KeySaved, AppError> {
     crate::log::command("memory_reader_key", async move { attempt(move || memory_add::set_key(&provider, &key)).await })
         .await
+}
+
+#[tauri::command]
+pub async fn ai_model_show() -> Result<ai_model::AiModel, AppError> {
+    crate::log::command("ai_model_show", async move { attempt(ai_model::show).await }).await
+}
+
+/// The key arrives from the Settings field and leaves only on memo's stdin; it is never answered back or logged.
+#[tauri::command]
+pub async fn ai_model_set(choice: ai_model::SetModel) -> Result<ai_model::AiModel, AppError> {
+    crate::log::command("ai_model_set", async move { attempt(move || ai_model::set(&choice)).await }).await
+}
+
+#[tauri::command]
+pub async fn ai_model_off() -> Result<ai_model::AiOff, AppError> {
+    crate::log::command("ai_model_off", async move { attempt(ai_model::off).await }).await
+}
+
+#[tauri::command]
+pub async fn ai_model_check() -> Result<ai_model::AiChecked, AppError> {
+    crate::log::command("ai_model_check", async move { attempt(ai_model::check).await }).await
 }
 
 /// Only the file chosen in the system's file window is read, as `memory_source_add` does.

@@ -24,6 +24,8 @@ export const AddedSourceSchema = v.object({
   searchableWords: v.boolean(),
   searchableMeaning: v.boolean(),
   subjects: v.array(v.string()),
+  /** Only for a picture: who read it, or the reason nobody did. */
+  image: v.nullish(v.object({ readBy: text, reason: text })),
 })
 
 export const StoredSourceSchema = v.object({

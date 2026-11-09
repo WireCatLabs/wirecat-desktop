@@ -1,8 +1,10 @@
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
 import type { AddedSource, Reader } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
+import { useNav } from "@/shared/nav"
 import { useReaders } from "@/shared/readers-store"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { useAddSource } from "./add-store"
@@ -179,7 +181,18 @@ describe("Add to memory", () => {
     expect(within(card).getByText(/Delivery moves to the 28th/)).toBeInTheDocument()
   })
 
-  it("shows a picked picture as a thumbnail and says it is kept by its name", async () => {
+  const AI: AiModel = {
+    provider: "anthropic",
+    model: "claude-haiku-4-5",
+    baseUrl: null,
+    origin: "https://api.anthropic.com",
+    beta: false,
+    images: true,
+    key: { stored: true, source: "keyring" },
+  }
+
+  it("shows a picked picture as a thumbnail and says no model will read it, with the way to Settings", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue({ ...AI, provider: null, model: null, images: false })
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
     vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
     vi.spyOn(platform, "memoryFilePreview").mockResolvedValue({
@@ -197,7 +210,73 @@ describe("Add to memory", () => {
       "src",
       "data:image/png;base64,iVBORw==",
     )
-    expect(within(panel).getByText(/kept by its name/)).toBeInTheDocument()
+    expect(
+      await within(panel).findByText(/No AI model is set, so this picture will be kept by its name only/),
+    ).toBeInTheDocument()
+    await user.click(within(panel).getByRole("button", { name: "Open AI model settings" }))
+    expect(useNav.getState().active).toBe("settings")
+  })
+
+  it("says before adding which model reads the picture and where it goes", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(AI)
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
+    vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
+    vi.spyOn(platform, "memoryFilePreview").mockResolvedValue({
+      name: "whiteboard.png",
+      bytes: 2048,
+      mime: "image/png",
+      image: "data:image/png;base64,iVBORw==",
+      excerpt: null,
+    })
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole("radio", { name: /File/ }))
+    await user.click(within(panel).getByRole("button", { name: "Choose a file" }))
+    expect(
+      await within(panel).findByText(
+        /read by anthropic\/claude-haiku-4-5\. The picture is sent to api\.anthropic\.com/,
+      ),
+    ).toBeInTheDocument()
+  })
+
+  const picture = (over: Partial<AddedSource>): AddedSource => ({
+    ...ADDED,
+    kind: "file",
+    mime: "image/png",
+    title: "whiteboard.png",
+    ...over,
+  })
+
+  const addPicture = async (added: AddedSource) => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(AI)
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
+    vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
+    vi.spyOn(platform, "memoryFilePreview").mockResolvedValue(null)
+    vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(added)
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole("radio", { name: /File/ }))
+    await user.click(within(panel).getByRole("button", { name: "Choose a file" }))
+    await user.click(await within(panel).findByRole("button", { name: "Save" }))
+    return { user, panel }
+  }
+
+  it("says who recognised the text of a picture", async () => {
+    const { panel } = await addPicture(picture({ image: { readBy: "anthropic/claude-haiku-4-5", reason: null } }))
+    expect(await within(panel).findByText("Text recognised by anthropic/claude-haiku-4-5.")).toBeInTheDocument()
+    expect(within(panel).queryByRole("button", { name: "Open AI model settings" })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ["ai.not-set", /No AI model is set, so the picture is kept by its name only/, true],
+    ["ai.images-not-allowed", /Reading pictures is off/, true],
+    ["ai.key-missing", /no API key saved/, true],
+    ["ai.failed", /could not read the picture/, true],
+    ["image.unsupported", /GIF, over 4 MB/, false],
+  ])("words %s for a picture kept by its name", async (reason, text, linked) => {
+    const { panel } = await addPicture(picture({ read: "no-text", chars: 0, image: { readBy: null, reason } }))
+    expect(await within(panel).findByText(text)).toBeInTheDocument()
+    expect(!!within(panel).queryByRole("button", { name: "Open AI model settings" })).toBe(linked)
   })
 
   it("tells the owner to update memo when it cannot list readers yet, and still saves", async () => {
