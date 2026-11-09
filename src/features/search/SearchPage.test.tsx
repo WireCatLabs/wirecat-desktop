@@ -19,8 +19,8 @@ const allowed: HarderStatus = {
   consentedAt: "2026-11-09T09:12:00.000Z",
   candidates: 30,
   charsPerHit: 400,
-  usdPerMillionInput: 1,
-  usdPerMillionOutput: 5,
+  usdPerMillionInput: 0.1,
+  usdPerMillionOutput: 0.5,
   key: { present: false, source: null, envVar: "ANTHROPIC_API_KEY" },
 }
 

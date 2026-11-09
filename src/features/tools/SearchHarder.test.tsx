@@ -17,8 +17,8 @@ const off: HarderStatus = {
   consentedAt: null,
   candidates: 30,
   charsPerHit: 400,
-  usdPerMillionInput: 1,
-  usdPerMillionOutput: 5,
+  usdPerMillionInput: 0.1,
+  usdPerMillionOutput: 0.5,
   key: { present: false, source: null, envVar: "ANTHROPIC_API_KEY" },
 }
 const openai: HarderStatus = {

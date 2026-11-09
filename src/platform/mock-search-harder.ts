@@ -1,5 +1,6 @@
 import type { HarderStatus, SearchHarder } from "./bindings"
 import { delay } from "./mock-delay"
+import { MODEL_PRICES } from "./mock-model-prices"
 import { providerKeys } from "./mock-provider-keys"
 import { searchMock } from "./mock-search"
 import type { HarderChoice, Platform } from "./types"
@@ -12,14 +13,10 @@ import type { HarderChoice, Platform } from "./types"
 const DEFAULTS: Record<string, string> = { anthropic: "claude-haiku-5-5", openai: "gpt-4o-mini" }
 const ENDPOINTS: Record<string, string> = { anthropic: "api.anthropic.com", openai: "api.openai.com" }
 const ENV: Record<string, string> = { anthropic: "ANTHROPIC_API_KEY", openai: "OPENAI_API_KEY" }
-const PRICES: Record<string, [number, number]> = {
-  "anthropic/claude-haiku-5-5": [1, 5],
-  "openai/gpt-4o-mini": [0.15, 0.6],
-}
 
 function status(on: boolean, choice: HarderChoice): HarderStatus {
   const model = choice.model?.trim() || DEFAULTS[choice.provider] || "claude-haiku-5-5"
-  const price = choice.baseUrl ? undefined : PRICES[`${choice.provider}/${model}`]
+  const price = choice.baseUrl ? undefined : MODEL_PRICES[`${choice.provider}/${model}`]
   return {
     on,
     provider: choice.provider,
@@ -30,8 +27,8 @@ function status(on: boolean, choice: HarderChoice): HarderStatus {
     consentedAt: on ? new Date(new Date().setHours(9, 12, 0, 0)).toISOString() : null,
     candidates: 30,
     charsPerHit: 400,
-    usdPerMillionInput: price?.[0] ?? null,
-    usdPerMillionOutput: price?.[1] ?? null,
+    usdPerMillionInput: price?.input ?? null,
+    usdPerMillionOutput: price?.output ?? null,
     key: {
       present: providerKeys.found,
       source: providerKeys.found ? "keyring" : null,

@@ -1,5 +1,6 @@
 import type { Enrichment, EnrichmentOffer, EnrichmentStatus, EnrichmentTarget } from "./bindings"
 import { delay } from "./mock-delay"
+import { MODEL_PRICES } from "./mock-model-prices"
 import { providerKeys } from "./mock-provider-keys"
 import type { Platform } from "./types"
 
@@ -11,23 +12,17 @@ import type { Platform } from "./types"
 // `?enrich-key=env` the key comes from an environment variable (nothing to remove), `?enrich-key-fail=1` saving fails.
 // The mock never keeps what is typed into the key field.
 const RECORDS = 10_444
-const PRICES: Record<string, { input: number; output: number }> = {
-  "openai/gpt-4o-mini": { input: 0.15, output: 0.6 },
-  "anthropic/claude-haiku-5-5": { input: 0.1, output: 0.5 },
-}
 const HOSTS: Record<string, string> = { openai: "api.openai.com", anthropic: "api.anthropic.com" }
 const ENV: Record<string, string> = { openai: "OPENAI_API_KEY", anthropic: "ANTHROPIC_API_KEY" }
 
-const offered: EnrichmentOffer[] = [
-  { provider: "openai", model: "gpt-4o-mini", default: true, usdPerMillionInput: 0.15, usdPerMillionOutput: 0.6 },
-  {
-    provider: "anthropic",
-    model: "claude-haiku-5-5",
-    default: false,
-    usdPerMillionInput: 0.1,
-    usdPerMillionOutput: 0.5,
-  },
-]
+const offer = (provider: string, model: string, isDefault: boolean): EnrichmentOffer => ({
+  provider,
+  model,
+  default: isDefault,
+  usdPerMillionInput: MODEL_PRICES[`${provider}/${model}`]?.input ?? null,
+  usdPerMillionOutput: MODEL_PRICES[`${provider}/${model}`]?.output ?? null,
+})
+const offered: EnrichmentOffer[] = [offer("openai", "gpt-4o-mini", true), offer("anthropic", "claude-haiku-5-5", false)]
 
 export function enrichmentMock(
   params: URLSearchParams,
@@ -55,7 +50,7 @@ export function enrichmentMock(
   })
   const status = (on: boolean, provider: string, model: string, enriched: number): EnrichmentStatus => {
     const pending = RECORDS - enriched
-    const price = PRICES[`${provider}/${model}`]
+    const price = MODEL_PRICES[`${provider}/${model}`]
     const input = Math.round(66 * pending)
     const output = 70 * pending
     return {
