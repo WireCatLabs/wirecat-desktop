@@ -175,7 +175,14 @@ mod tests {
             (got.title.as_deref(), got.excerpt.as_deref(), got.chars),
             (Some("A page"), Some("First words"), Some(3211))
         );
-        let old = |_: &[String]| Err("error: unknown command 'preview'".to_string());
+        // memo 0.131.72's own answer, exit code 2, read through the same `answer` the app uses.
+        let old = |_: &[String]| {
+            answer(&crate::run::Output {
+                code: Some(2),
+                stdout: r#"{"error":{"code":"validation_error","reason":"input.invalid","message":"unknown command 'preview'","retry":{"safe":false}}}"#.into(),
+                stderr: String::new(),
+            })
+        };
         assert_eq!(link_with(&old, "https://example.org/a").unwrap(), None);
         let never = |_: &[String]| -> Result<Value, String> { panic!("must not run") };
         assert!(link_with(&never, "file:///etc/passwd").is_err());

@@ -2,6 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import { matcher, parseQuery, type Run } from "@/domain/runs"
 import { platform } from "@/platform/bridge"
+import type { MemoryEntry } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { useLogs } from "../logs/store"
@@ -304,5 +305,22 @@ describe("Memory", () => {
     expect(screen.getByText(/Links between people and companies are not shown/)).toHaveTextContent(
       "the program did not finish in time",
     )
+  })
+  it("decides a mixed group: relationship proposals in one call, a memory on its own", async () => {
+    const link = { ref: "relationship:5", type: "relationship", status: "proposed" } as MemoryEntry
+    const memory = { ref: "memory:6", type: "memory", status: "proposed" } as MemoryEntry
+    const done = { ref: "memory:6", type: "memory", status: "approved" } as MemoryEntry
+    const batch = vi
+      .spyOn(platform, "memoryRelationsDecide")
+      .mockResolvedValue([{ ref: "relationship:5", status: "confirmed", error: null }])
+    const one = vi.spyOn(platform, "memoryConfirm").mockResolvedValue(done)
+    useMemory.setState({ entries: [link, memory] })
+
+    expect(await useMemory.getState().decideMany(["relationship:5", "memory:6"], true)).toEqual({ done: 2, failed: 0 })
+    expect(batch).toHaveBeenCalledWith(["relationship:5"], true)
+    expect(one).toHaveBeenCalledWith("memory:6", undefined)
+    expect(useMemory.getState().entries.map((e) => e.status)).toEqual(["confirmed", "approved"])
+    batch.mockRestore()
+    one.mockRestore()
   })
 })

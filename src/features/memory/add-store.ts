@@ -13,8 +13,8 @@ export type Preview =
   | { of: string; state: "loading" }
   | { of: string; state: "link"; link: LinkPreview }
   | { of: string; state: "file"; file: FilePreview }
+  /** No preview: an older memo, or a look that failed. Save still works, and its own refusal is worded. */
   | { of: string; state: "none" }
-  | { of: string; state: "failed"; error: string }
 export const STEPS: Step[] = ["source", "saved", "facts", "done"]
 
 type AddState = {
@@ -105,8 +105,8 @@ export const useAddSource = create<AddState>((set, get) => ({
       const link = await platform.memoryLinkPreview(url)
       if (get().preview?.of === url)
         set({ preview: link ? { of: url, state: "link", link } : { of: url, state: "none" } })
-    } catch (e) {
-      if (get().preview?.of === url) set({ preview: { of: url, state: "failed", error: message(e) } })
+    } catch {
+      if (get().preview?.of === url) set({ preview: { of: url, state: "none" } })
     }
   },
   async save() {
@@ -205,8 +205,7 @@ async function showFile(path: string) {
     const file = await platform.memoryFilePreview()
     if (useAddSource.getState().preview?.of === path)
       useAddSource.setState({ preview: file ? { of: path, state: "file", file } : { of: path, state: "none" } })
-  } catch (e) {
-    if (useAddSource.getState().preview?.of === path)
-      useAddSource.setState({ preview: { of: path, state: "failed", error: message(e) } })
+  } catch {
+    if (useAddSource.getState().preview?.of === path) useAddSource.setState({ preview: { of: path, state: "none" } })
   }
 }

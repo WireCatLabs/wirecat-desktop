@@ -13,12 +13,6 @@ export function SourcePreview({ preview, of }: { preview: Preview | null; of: st
   if (!preview || preview.of !== of || preview.state === "none") return null
   if (preview.state === "loading")
     return <Skeleton className="h-[5.5rem] w-full rounded-[0.45rem]" label={m.previewLoading} />
-  if (preview.state === "failed")
-    return (
-      <p className="text-[0.9rem] text-ink-soft">
-        {m.previewFailed} {preview.error}
-      </p>
-    )
   if (preview.state === "link") {
     const l = preview.link
     return (

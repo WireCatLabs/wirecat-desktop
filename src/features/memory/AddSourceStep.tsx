@@ -163,7 +163,7 @@ function FileInput() {
   const busy = useAddSource((s) => s.busy)
   const preview = useAddSource((s) => s.preview)
   const { pickFile } = useAddSource.getState()
-  const shown = !!path && preview?.of === path && preview.state !== "none" && preview.state !== "failed"
+  const shown = !!path && preview?.of === path && preview.state !== "none"
   return (
     <div className="flex min-h-[9rem] flex-col items-start justify-center gap-[0.6rem] rounded-[0.45rem] border border-dashed border-line-strong px-[1rem] py-[0.9rem]">
       {path &&
