@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod app;
+pub mod clients;
 pub mod cloudflare;
 pub mod community;
 pub mod enrichment;

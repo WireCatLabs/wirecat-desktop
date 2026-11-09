@@ -540,6 +540,7 @@ const ru: OnboardingText = {
       gcal: "Агент сможет находить и читать события вашего Google Календаря. Изменять календарь он не сможет.",
       email:
         "Агент сможет искать и читать вашу почту на этом компьютере. Синхронизация копирует почту сюда и никогда не меняет ваш ящик.",
+      bitrix: "Агент сможет читать и менять CRM портала с правами сотрудника, который создал вебхук.",
     },
     asks: {
       tg: "В первый раз — номер телефона и код, который пришлёт Telegram: так регистрируется ваше собственное приложение Telegram. Затем QR-код, который нужно отсканировать в Telegram: «Настройки → Устройства → Подключить устройство».",
@@ -550,6 +551,8 @@ const ru: OnboardingText = {
       gcal: "Браузер откроет Google: выберите аккаунт и разрешите доступ к Календарю только на чтение.",
       email:
         "Ваш адрес почты, затем вход Microsoft в браузере или пароль приложения — отдельный пароль только для этой программы.",
+      bitrix:
+        "Адрес входящего вебхука: «Разработчикам → Другое → Входящий вебхук», с правами crm и user, и department — для структуры отделов.",
     },
   },
   done: {
@@ -852,6 +855,7 @@ const es: OnboardingText = {
       gcal: "Tu agente podrá encontrar y leer los eventos de tu Google Calendar. No puede cambiar tu calendario.",
       email:
         "Tu agente podrá buscar y leer tu correo en este equipo. La sincronización copia el correo aquí y nunca cambia tu buzón.",
+      bitrix: "Tu agente podrá leer y cambiar el CRM del portal con los permisos del empleado que creó el webhook.",
     },
     asks: {
       tg: "La primera vez, tu número de teléfono y el código que envía Telegram, para registrar tu propia app de Telegram. Después, un código QR que escaneas en Telegram: Ajustes → Dispositivos → Vincular dispositivo.",
@@ -862,6 +866,8 @@ const es: OnboardingText = {
       gcal: "Tu navegador abre Google: elige la cuenta y permite el acceso de solo lectura a Calendar.",
       email:
         "Tu dirección de correo, y después el inicio de sesión de Microsoft en el navegador o una contraseña de aplicación: una contraseña solo para este programa.",
+      bitrix:
+        "La dirección de un webhook entrante, de Recursos para desarrolladores → Otros → Webhook entrante, con los permisos crm y user, y department para la estructura de departamentos.",
     },
   },
   done: {

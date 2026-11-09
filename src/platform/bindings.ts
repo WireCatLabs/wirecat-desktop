@@ -217,6 +217,149 @@ export type CopyRemoval = {
 
 export type CountUnit = "files" | "bytes";
 
+export type CrmAccount = {
+	provider: string,
+	account: string,
+};
+
+export type CrmAmount = {
+	/**  A decimal string, as Memo keeps it; never added across currencies. */
+	amount: string,
+	currency: string,
+	items: number,
+};
+
+/**  A change to the base set; memo keeps at least one stage per outcome and refuses what would break it. */
+export type CrmBaseEdit = { op: "add"; name: string; outcome: string } | { op: "rename"; ref: string; name: string } | 
+/**  `position` counts from 1, in the set's order. */
+{ op: "move"; ref: string; position: number } | { op: "remove"; ref: string };
+
+/**  A base stage as a card or a mapping names it. */
+export type CrmBaseRef = {
+	ref: string,
+	name: string,
+};
+
+/**  One column of the base set; memo counts across every pipeline and account, confirmed mappings only. */
+export type CrmBaseStage = {
+	/**  `stage:<id>`, or the stage's name while the set does not exist yet (memo takes either in a write). */
+	ref: string,
+	name: string,
+	/**  `open`, `won` or `lost`. */
+	outcome: string,
+	/**  Open deals or leads standing in it. */
+	open: number,
+	/**  CRM stages confirmed onto it. */
+	mapped: number,
+};
+
+export type CrmCard = {
+	ref: string,
+	title: string,
+	pipeline: string,
+	stage: string,
+	/**  `open`, `won` or `lost`. */
+	status: string,
+	amount: string | null,
+	currency: string | null,
+	organization: string | null,
+	people: CrmPerson[],
+	closeDate: string | null,
+	closedDate: string | null,
+	closedReason: string | null,
+	projectName: string | null,
+	account: CrmAccount | null,
+	/**  The base stage its stage points to once confirmed; `None` on a board of one pipeline's stages, or unsorted. */
+	baseStage: CrmBaseRef | null,
+	createdAt: string,
+	updatedAt: string,
+};
+
+export type CrmKind = "deal" | "lead";
+
+export type CrmMovable = { kind: "yes" } | 
+/**
+ *  A CRM's copy, which only that CRM's own CLI may change: `crmCli` while memo names no CLI the catalog has for
+ *  it, `crmCliMissing` or `crmCliOld` while that CLI is not installed or older than the catalog's `crm.minVersion`.
+ */
+{ kind: "no"; why: string };
+
+export type CrmPerson = {
+	name: string | null,
+	/**  `owner` (who is responsible), `contact`, `decision-maker` or `influencer`. */
+	role: string,
+};
+
+export type CrmPipeline = {
+	ref: string,
+	name: string,
+	/**  The CRM account it was copied from; `None` for the owner's own. */
+	account: CrmAccount | null,
+	/**  Open deals or leads in all its stages, as memo counts them. */
+	open: number,
+	/**  Whether the app may move its cards: on a board of several pipelines each card asks its own. */
+	movable: CrmMovable,
+	/**  The CLI and profile that change a CRM's copy there, as memo names them; `None` for the owner's own. */
+	writesWith: CrmWritesWith | null,
+};
+
+export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 
+/**  `pipeline` is the one asked for, or the first Memo lists; `None` when there is none of this kind. */
+{ kind: "ready"; pipelines: CrmPipeline[]; pipeline: string | null; stages: CrmStage[]; cards: CrmCard[]; 
+/**  More open ones match than one read holds; the counts above the columns still hold them all. */
+more: boolean; movable: CrmMovable } | 
+/**  Base stages as columns, cards of every pipeline of the kind; `mapping` is every CRM pipeline's stages. */
+{ kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; unsorted: CrmUnsorted; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean };
+
+export type CrmStage = {
+	name: string,
+	/**  The CRM's own id of the stage (`C2:NEW`); `None` for an own pipeline's. */
+	externalId: string | null,
+	/**  `open`, `won` or `lost`. */
+	outcome: string,
+	/**  Every deal or lead standing in it now, as Memo counts them. */
+	items: number,
+	amounts: CrmAmount[],
+};
+
+/**  A CRM pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion. */
+export type CrmStageMap = {
+	ref: string,
+	name: string,
+	/**  The CRM's own id of the stage, when memo lists it: a move names it, since names may repeat in a pipeline. */
+	externalId: string | null,
+	outcome: string,
+	pipeline: string,
+	/**  Open deals or leads standing in it now. */
+	open: number,
+	base: CrmBaseRef | null,
+	confirmed: boolean,
+};
+
+/**  What no column holds yet: open rows whose stage is unmapped or only suggested, and those stages. */
+export type CrmUnsorted = {
+	open: number,
+	stages: number,
+};
+
+/**  The CRM account and the profile of its CLI that write a move; the owner chose the profile, or memo named the one. */
+export type CrmVia = {
+	account: CrmAccount,
+	profile: string,
+};
+
+/**
+ *  memo's `writes_with`: `profile` only when exactly one profile of `tool` is on the account; otherwise the owner
+ *  chooses among `profiles`, and `why` says so. Never filled in by the app.
+ */
+export type CrmWritesWith = {
+	tool: string,
+	account: CrmAccount,
+	profile: string | null,
+	profiles: string[],
+	why: string | null,
+};
+
 export type Delivery = {
 	kind: RouteKind | null,
 	ok: boolean,

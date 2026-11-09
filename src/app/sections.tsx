@@ -3,6 +3,7 @@ import {
   Bot,
   Brain,
   ChartColumnBig,
+  Handshake,
   HardDrive,
   Link2,
   ListTodo,
@@ -21,6 +22,7 @@ const AnalyticsPage = lazy(() => import("@/features/analytics/page").then((m) =>
 const ConversationPage = lazy(() =>
   import("@/features/conversation/page").then((m) => ({ default: m.ConversationPage })),
 )
+const ClientsPage = lazy(() => import("@/features/clients/page").then((m) => ({ default: m.ClientsPage })))
 const ConfigPage = lazy(() => import("@/features/config/page").then((m) => ({ default: m.ConfigPage })))
 const LinkPage = lazy(() => import("@/features/links/page").then((m) => ({ default: m.LinkPage })))
 const DigestsPage = lazy(() => import("@/features/digests/page").then((m) => ({ default: m.DigestsPage })))
@@ -50,6 +52,7 @@ export const sections: readonly Section[] = [
   { id: "search", icon: Search, page: SearchPage },
   { id: "tasks", icon: ListTodo, page: TasksPage },
   { id: "digests", icon: Newspaper, page: DigestsPage },
+  { id: "clients", icon: Handshake, page: ClientsPage },
   { id: "guides", icon: BookOpenText, page: GuidesPage },
   { id: "memory", icon: Brain, page: MemoryPage },
   { id: "analytics", icon: ChartColumnBig, page: AnalyticsPage },

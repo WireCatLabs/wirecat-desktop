@@ -1803,6 +1803,9 @@
       "taskBoard": {
         "minVersion": "0.131.14"
       },
+      "crmBoard": {
+        "minVersion": "0.131.56"
+      },
       "notesSetup": {
         "minVersion": "0.131.14",
         "folders": ["folders", "list", "--no-record", "--json"],
@@ -2087,6 +2090,75 @@
         },
         "removes": ["signIn"],
         "keeps": ["settings", "mail", "listed", "providerAccess"]
+      }
+    },
+    {
+      "id": "bitrix",
+      "name": "Bitrix24",
+      "tagline": "Bitrix24 CRM: deals, leads, contacts and companies",
+      "bin": "b24",
+      "package": "@wirecat/bitrix24-cli",
+      "summary": "Read and change a Bitrix24 portal's CRM: deals, leads, contacts and companies, from the Clients page and your agent.",
+      "docs": "https://wirecat.dev/en/docs/b24",
+      "repo": "https://github.com/WireCatLabs/bitrix24-cli",
+      "profiles": {
+        "args": ["session", "list", "--no-record", "--json"],
+        "shape": "items"
+      },
+      "doctor": ["{profile}", "doctor", "--record", "--json"],
+      "runs": {
+        "list": ["runs", "list", "{query}", "--limit", "{limit}", "--page", "{page}", "--no-record", "--json"],
+        "show": ["runs", "show", "{run}", "--no-record", "--json"]
+      },
+      "search": null,
+      "setup": ["{profile}", "session", "start"],
+      "skill": {
+        "status": ["skill", "status", "--no-record", "--json"],
+        "install": ["skill", "install", "--for", "{target}", "--json"],
+        "show": ["skill", "show", "--no-record", "--json"]
+      },
+      "mcpServer": {
+        "port": 8764,
+        "start": ["mcp", "server", "start", "--port", "{port}", "--public-url", "{url}", "--profiles", "all", "--json"],
+        "stop": ["mcp", "server", "stop", "--profiles", "all", "--json"],
+        "status": ["mcp", "server", "status", "--profiles", "all", "--no-record", "--json"],
+        "revoke": ["mcp", "revoke", "--profiles", "all", "--json"],
+        "config": ["mcp", "config", "--profiles", "all", "--no-record", "--json"]
+      },
+      "tasks": null,
+      "sync": {
+        "run": ["{profile}", "sync", "--record", "--json"],
+        "last": ["runs", "list", "command:sync", "status:success", "--limit", "50", "--no-record", "--json"],
+        "lastShape": "runs",
+        "what": "records",
+        "note": null
+      },
+      "storeInfo": null,
+      "storeTables": null,
+      "storeTableSizes": null,
+      "storeCheck": null,
+      "storeBackup": null,
+      "storeBackupEncrypted": null,
+      "storeResetPreview": null,
+      "storeReset": null,
+      "storage": {
+        "app": "bitrix24-cli",
+        "env": "B24"
+      },
+      "settings": null,
+      "signIn": {
+        "gives": "Lets your agent read and change the portal's CRM with the rights of the employee who made the webhook.",
+        "asks": "An incoming webhook address, from Developer resources → Other → Incoming webhook, with the crm and user scopes, and department for reporting lines."
+      },
+      "crm": {
+        "provider": "bitrix24",
+        "minVersion": "0.8.0",
+        "moveDeal": ["{profile}", "deals", "move", "{ref}", "{stage}", "--record", "--json"],
+        "moveLead": ["{profile}", "leads", "move", "{ref}", "{stage}", "--record", "--json"],
+        "scope": {
+          "show": ["{profile}", "config", "show", "--no-record", "--json"],
+          "set": ["{profile}", "config", "set", "{setting}", "{value}", "--record", "--json"]
+        }
       }
     },
     {

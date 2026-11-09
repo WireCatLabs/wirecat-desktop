@@ -17,6 +17,7 @@ mod community;
 mod compat;
 mod config_repair;
 mod conversation;
+mod crm_board;
 mod deep_link;
 mod digest_schedule;
 mod digests;
@@ -273,6 +274,13 @@ pub fn run() {
             commands::tasks::task_claims,
             commands::tasks::task_release,
             commands::tasks::task_list,
+            commands::clients::clients_read,
+            commands::clients::clients_move,
+            commands::clients::clients_scope,
+            commands::clients::clients_scope_set,
+            commands::clients::clients_map_set,
+            commands::clients::clients_map_confirm,
+            commands::clients::clients_base_edit,
             commands::tasks::task_counts,
             commands::tasks::task_show,
             commands::tasks::task_history,
