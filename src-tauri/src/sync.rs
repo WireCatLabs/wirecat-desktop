@@ -35,7 +35,7 @@ pub enum LastShape {
 }
 
 /// Counts only: titles, chat keys and account names in the tool's answer stay in Rust.
-#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq, Default)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 #[serde(rename = "SyncSummary")]
 pub struct Summary {
@@ -47,6 +47,8 @@ pub struct Summary {
     /// Files the tool will fetch on the next run.
     pub left: u64,
     pub complete: bool,
+    /// Only memo, while search rewriting is on: what this sync sent to the hosted model.
+    pub enrichment: Option<crate::enrichment::SyncEnrichment>,
 }
 
 #[derive(specta::Type, Debug, Serialize, Clone, Copy, PartialEq, Eq)]
@@ -66,7 +68,7 @@ pub struct Counted {
     pub label: Option<String>,
 }
 
-#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
 #[serde(tag = "event", rename_all = "camelCase")]
 pub enum SyncEvent {
     /// A stage from a fixed list, read from the tool's notes; never the note itself.
@@ -294,6 +296,10 @@ fn list<'a>(v: &'a Value, key: &str) -> &'a [Value] {
 
 /// Each tool's own result, in counts. Unknown shapes give zeros rather than an error: the sync itself succeeded.
 fn summary_of(what: &str, item: &Value) -> Summary {
+    Summary { enrichment: crate::enrichment::sync_enrichment(item), ..counts_of(what, item) }
+}
+
+fn counts_of(what: &str, item: &Value) -> Summary {
     let flag = |v: &Value, k: &str| v.get(k).and_then(Value::as_bool);
     match what {
         "messages" => {
@@ -305,6 +311,7 @@ fn summary_of(what: &str, item: &Value) -> Summary {
                 failed: failed.unwrap_or_else(|| chats.iter().filter(|c| c.get("error").is_some()).count() as u64),
                 left: 0,
                 complete: flag(item, "complete").unwrap_or(true),
+                enrichment: None,
             }
         }
         "files" => {
@@ -315,6 +322,7 @@ fn summary_of(what: &str, item: &Value) -> Summary {
                 failed: list(item, "errors").len() as u64,
                 left,
                 complete: left == 0,
+                enrichment: None,
             }
         }
         "mail" => {
@@ -325,11 +333,19 @@ fn summary_of(what: &str, item: &Value) -> Summary {
                 failed: count(item, "unreadable"),
                 left,
                 complete: flag(item, "complete").unwrap_or(left == 0),
+                enrichment: None,
             }
         }
         "meetings" => {
             let failed = list(item, "warnings").len() as u64;
-            Summary { new: count(item, "meetings"), places: 0, failed, left: 0, complete: failed == 0 }
+            Summary {
+                new: count(item, "meetings"),
+                places: 0,
+                failed,
+                left: 0,
+                complete: failed == 0,
+                enrichment: None,
+            }
         }
         "records" => records_summary(item),
         _ => {
@@ -344,6 +360,7 @@ fn summary_of(what: &str, item: &Value) -> Summary {
                 failed: list(item, "failed").len() as u64,
                 left: 0,
                 complete: mail.iter().all(|m| flag(m, "complete").unwrap_or(true)),
+                enrichment: None,
             }
         }
     }
@@ -365,6 +382,7 @@ fn records_summary(item: &Value) -> Summary {
         failed: refused + list(item, "issues").len() as u64,
         left: 0,
         complete: item.get("state").and_then(Value::as_str) != Some("partial"),
+        enrichment: None,
     }
 }
 
@@ -451,7 +469,7 @@ mod tests {
             {"chat": "4", "title": "Broken", "fetched": 0, "complete": false, "error": "provider_error"}
         ]});
         let s = summary_of("messages", &item);
-        assert_eq!(s, Summary { new: 1240, places: 2, failed: 1, left: 0, complete: true });
+        assert_eq!(s, Summary { new: 1240, places: 2, failed: 1, left: 0, complete: true, enrichment: None });
         let text = serde_json::to_string(&SyncEvent::Done { summary: s }).unwrap();
         assert!(!text.contains("Family"), "{text}");
     }
@@ -459,20 +477,29 @@ mod tests {
     #[test]
     fn reads_drive_memo_and_zoom_answers() {
         let drive = json!({"saved": 12, "pending": 30, "errors": [{"id": "x", "code": "c", "message": "m"}]});
-        assert_eq!(summary_of("files", &drive), Summary { new: 12, places: 0, failed: 1, left: 30, complete: false });
+        assert_eq!(
+            summary_of("files", &drive),
+            Summary { new: 12, places: 0, failed: 1, left: 30, complete: false, enrichment: None }
+        );
         let memo = json!({"notes": [{"folder": "~/n", "changed": 2}], "mail": [
             {"account": "me@example.com", "saved": 5, "complete": true},
             {"account": "work", "saved": 0, "complete": false}
         ], "failed": []});
         assert_eq!(
             summary_of("notes and mail", &memo),
-            Summary { new: 7, places: 2, failed: 0, left: 0, complete: false }
+            Summary { new: 7, places: 2, failed: 0, left: 0, complete: false, enrichment: None }
         );
         let mail =
             json!({"address": "me@example.com", "saved": 40, "remaining": 120, "unreadable": 1, "complete": false});
-        assert_eq!(summary_of("mail", &mail), Summary { new: 40, places: 0, failed: 1, left: 120, complete: false });
+        assert_eq!(
+            summary_of("mail", &mail),
+            Summary { new: 40, places: 0, failed: 1, left: 120, complete: false, enrichment: None }
+        );
         let zm = json!({"meetings": 3, "warnings": []});
-        assert_eq!(summary_of("meetings", &zm), Summary { new: 3, places: 0, failed: 0, left: 0, complete: true });
+        assert_eq!(
+            summary_of("meetings", &zm),
+            Summary { new: 3, places: 0, failed: 0, left: 0, complete: true, enrichment: None }
+        );
     }
 
     #[test]
@@ -481,11 +508,17 @@ mod tests {
             "organizations": 10, "people": 25, "deals": 15,
             "invoices": {"created": 8, "updated": 0, "unchanged": 0, "refused": 0, "proposed": ["a"], "waiting": 0},
             "issues": []});
-        assert_eq!(summary_of("records", &first), Summary { new: 58, places: 4, failed: 0, left: 0, complete: true });
+        assert_eq!(
+            summary_of("records", &first),
+            Summary { new: 58, places: 4, failed: 0, left: 0, complete: true, enrichment: None }
+        );
         let again = json!({"state": "partial", "organizations": 0, "people": 0, "deals": 0,
             "invoices": {"created": 0, "updated": 0, "unchanged": 8, "refused": 1},
             "issues": [{"kind": "deal", "reason": "sync.partial", "message": "m"}]});
-        assert_eq!(summary_of("records", &again), Summary { new: 0, places: 0, failed: 2, left: 0, complete: false });
+        assert_eq!(
+            summary_of("records", &again),
+            Summary { new: 0, places: 0, failed: 2, left: 0, complete: false, enrichment: None }
+        );
     }
 
     #[test]

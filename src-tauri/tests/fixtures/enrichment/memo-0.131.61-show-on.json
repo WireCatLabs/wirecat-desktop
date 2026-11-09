@@ -1,0 +1,65 @@
+{
+  "item": {
+    "on": true,
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "endpoint": "http://127.0.0.1:18765/v1",
+    "consented_at": "2026-11-08T17:48:14.471Z",
+    "target": {
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "endpoint": "http://127.0.0.1:18765/v1",
+      "endpoint_host": "127.0.0.1:18765",
+      "key": {
+        "present": false,
+        "source": null,
+        "env_var": "OPENAI_API_KEY"
+      },
+      "price_known": false
+    },
+    "records": 3,
+    "enriched": 3,
+    "pending": 0,
+    "estimate": {
+      "records": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "usd": null
+    },
+    "per_sync": 600,
+    "syncs_needed": 0,
+    "sends_new_records": true,
+    "offered": [
+      {
+        "provider": "openai",
+        "model": "gpt-4o-mini",
+        "default": true,
+        "usd_per_million": {
+          "input": 0.15,
+          "output": 0.6
+        }
+      },
+      {
+        "provider": "anthropic",
+        "model": "claude-haiku-5-5",
+        "default": false,
+        "usd_per_million": {
+          "input": 0.1,
+          "output": 0.5
+        }
+      }
+    ],
+    "measured": {
+      "reworded_at_10": {
+        "off": 0.62,
+        "on": 0.79
+      },
+      "own_words_first": {
+        "off": 0.54,
+        "on": 0.48
+      },
+      "source": "https://github.com/WireCatLabs/cli-testing/pull/322"
+    },
+    "off_command": "memo models consents revoke"
+  }
+}

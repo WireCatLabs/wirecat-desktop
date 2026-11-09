@@ -14,6 +14,7 @@ import { conversationMock } from "./mock-conversation"
 import { delay } from "./mock-delay"
 import { digestsMock } from "./mock-digests"
 import { driveFoldersMock } from "./mock-drive-folders"
+import { enrichmentMock } from "./mock-enrichment"
 import { npmLines } from "./mock-install"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
@@ -698,6 +699,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...digestsMock(params),
     ...conversationMock(params),
     ...notesSetupMock(params),
+    ...enrichmentMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
     ...cloudflareMock(),

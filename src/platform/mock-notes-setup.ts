@@ -112,7 +112,10 @@ export function notesSetupMock(
           run: null,
           retryAfterMs: null,
         })
-      onEvent({ event: "done", summary: { new: 214, places: folders.length, failed: 0, left: 0, complete: true } })
+      onEvent({
+        event: "done",
+        summary: { new: 214, places: folders.length, failed: 0, left: 0, complete: true, enrichment: null },
+      })
     },
     async notesModelDownload(_id, model, onEvent) {
       const size = (model === E5.id ? E5 : GEMMA).sizeBytes

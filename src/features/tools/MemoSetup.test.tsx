@@ -51,7 +51,7 @@ it("walks from the system folder window to the first read of the notes", async (
     return { result: "added", folder: notes }
   })
   vi.spyOn(platform, "notesSync").mockImplementation(async (_id, onEvent) => {
-    onEvent({ event: "done", summary: { new: 214, places: 1, failed: 0, left: 0, complete: true } })
+    onEvent({ event: "done", summary: { new: 214, places: 1, failed: 0, left: 0, complete: true, enrichment: null } })
   })
   render(<MemoSetup tool={memo} />)
 
@@ -89,7 +89,7 @@ it("shows a failed download with its way out, then prepares the notes after a go
       onEvent({ event: "done" })
     })
   const sync = vi.spyOn(platform, "notesSync").mockImplementation(async (_id, onEvent) => {
-    onEvent({ event: "done", summary: { new: 0, places: 0, failed: 0, left: 0, complete: true } })
+    onEvent({ event: "done", summary: { new: 0, places: 0, failed: 0, left: 0, complete: true, enrichment: null } })
   })
   render(<MemoSetup tool={memo} />)
 
@@ -119,7 +119,7 @@ it("shows how far the first read and the download are, in files and megabytes", 
     await new Promise<void>((resolve) => {
       finish = resolve
     })
-    onEvent({ event: "done", summary: { new: 12, places: 1, failed: 0, left: 0, complete: true } })
+    onEvent({ event: "done", summary: { new: 12, places: 1, failed: 0, left: 0, complete: true, enrichment: null } })
   })
   vi.spyOn(platform, "notesModelDownload").mockImplementation(async (_id, _model, onEvent) => {
     onEvent({ event: "counted", done: 67_000_000, total: 219_000_000, unit: "bytes", label: "embeddinggemma" })

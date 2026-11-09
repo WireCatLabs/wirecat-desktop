@@ -21,6 +21,7 @@ mod deep_link;
 mod digest_schedule;
 mod digests;
 mod drive_folders;
+mod enrichment;
 mod error;
 mod funnel_helper;
 mod install;
@@ -194,6 +195,12 @@ pub fn run() {
             commands::notes_setup::notes_sync,
             commands::notes_setup::notes_model_download,
             commands::notes_setup::notes_model_stop,
+            commands::enrichment::enrichment_status,
+            commands::enrichment::enrichment_preview,
+            commands::enrichment::enrichment_on,
+            commands::enrichment::enrichment_off,
+            commands::enrichment::enrichment_key_set,
+            commands::enrichment::enrichment_key_remove,
             commands::notes_setup::notes_model_use,
             commands::tools::config_repair,
             commands::tools::account_sign_out,

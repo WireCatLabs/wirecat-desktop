@@ -16,6 +16,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
+import { Enrichment } from "./Enrichment"
 import { Health } from "./Health"
 import { packageNamesOf } from "./InstallPanel"
 import { MailAgent } from "./MailAgent"
@@ -217,6 +218,7 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
       <RemoveCopyDialog tool={tool} copy={removing} onClose={() => setRemoving(null)} />
       {installs.length > 0 && tool.permissions && <Permissions tool={tool} />}
       {installs.length > 0 && tool.notesSetup && <MemoSetup tool={tool} />}
+      {installs.length > 0 && tool.enrichment && <Enrichment tool={tool} />}
       {installs.length > 0 && tool.background && <Service tool={tool} />}
       {installs.length > 0 && tool.mailAgent && <MailAgent tool={tool} />}
       {installs.length > 0 && tool.mcpServer && <McpServer tool={tool} />}

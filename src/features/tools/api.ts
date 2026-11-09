@@ -1,9 +1,11 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { Enrichment } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { Background, BackgroundAction } from "@/platform/sync-schemas"
 import { profilesQuery } from "@/shared/query"
 
 export const toolKeys = {
+  enrichment: (id: string) => ["tool", id, "enrichment"] as const,
   background: (id: string, profile: string) => ["tool", id, "background", profile] as const,
   permissions: (id: string, profile: string | null) => ["tool", id, "permissions", profile] as const,
 }
@@ -77,5 +79,43 @@ export function useSetPermission(id: string, profile: string | null) {
     },
     // The defaults show through in every profile, so each permissions answer of the tool is read again.
     onSettled: () => client.invalidateQueries({ queryKey: ["tool", id, "permissions"] }),
+  })
+}
+
+/** Whether memo has a hosted model rewrite records for search, and how far it got. */
+export function useEnrichment(id: string) {
+  return useQuery({ queryKey: toolKeys.enrichment(id), queryFn: () => platform.enrichmentStatus(id) })
+}
+
+export type EnrichmentChoice = { provider: string; model: string }
+
+/** What turning it on sends and costs. A mutation, not a query: it runs only when the owner opens the consent step. */
+export function useEnrichmentPreview(id: string) {
+  return useMutation({ mutationFn: (c: EnrichmentChoice) => platform.enrichmentPreview(id, c.provider, c.model) })
+}
+
+/** `null` turns it off; a choice turns it on with that offer. */
+export function useSetEnrichment(id: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (c: EnrichmentChoice | null) =>
+      c ? platform.enrichmentOn(id, c.provider, c.model) : platform.enrichmentOff(id),
+    onSuccess: (status) =>
+      client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment),
+  })
+}
+
+export type EnrichmentKeyChange = { provider: string; key: string } | { provider: string; remove: true }
+
+/** Saves or removes the provider key through memo; the key is in the request only, never kept here. */
+export function useEnrichmentKey(id: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (change: EnrichmentKeyChange) =>
+      "key" in change
+        ? platform.enrichmentKeySet(id, change.provider, change.key)
+        : platform.enrichmentKeyRemove(id, change.provider),
+    onSuccess: (status) =>
+      client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment),
   })
 }
