@@ -1,8 +1,8 @@
 import { Check, LoaderCircle, PanelRightOpen } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
-import { scopesOf } from "@/domain/people"
+import { type PeopleReason, reasonOf, scopesOf } from "@/domain/people"
 import { formatList, useLang, useMessages } from "@/i18n"
-import type { Identity, Match } from "@/platform/people-schemas"
+import type { Identity, Match, MatchAnswer } from "@/platform/people-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
@@ -48,10 +48,9 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   const first = open[0] ?? group.matches[0]
   const people = group.people
   const picking = open.length > 0 && people.length > 2
-  const [picked, setPicked] = useState<string[]>(people)
-  const peopleKey = people.join(" ")
-  // biome-ignore lint/correctness/useExhaustiveDependencies: after a join the people are new, and all are ticked again
-  useEffect(() => setPicked(people), [peopleKey])
+  // Who the owner unticked, so a re-read that reorders or joins people keeps their choice; a new person starts ticked.
+  const [unticked, setUnticked] = useState<string[]>([])
+  const [last, setLast] = useState<MatchAnswer | null>(null)
   const asked = useRef(new Map<string, string>())
   const [asking, setAsking] = useState(false)
   const [why, setWhy] = useState("")
@@ -69,18 +68,22 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   const failed = failedOf[group.key] ?? ids.map((id) => failedOf[id]).find(Boolean)
   const done = open.length === 0
   const moving = first.joins === "identity" && first.identity
-  const chosen = people.filter((p) => picked.includes(p))
+  const chosen = people.filter((p) => !unticked.includes(p))
+  const among = open.filter((x) => x.persons.every((p) => chosen.includes(p)))
   const all = chosen.length === people.length
   const said = (ref: string) => asked.current.get(ref) ?? name(ref)
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
   const confirm = () => {
     for (const p of people) asked.current.set(p, name(p))
+    setLast(picking ? null : "confirm")
     if (picking) void joinGroup(group.key, chosen, ids)
-    else void decide(from ?? first.persons[0] ?? "", first.id, "confirm").then((ok) => ok && forgetJoined(group.key))
+    else void decide(from ?? first.persons[0] ?? "", first.id, "confirm")
   }
+  // Ticked people only: unticking one says "the others are one; this one I have not decided".
   const reject = (reason: string) => {
-    if (picking) void rejectGroup(open, reason)
+    setLast("reject")
+    if (picking) void rejectGroup(group.key, among, reason)
     else void decide(from ?? first.persons[0] ?? "", first.id, "reject", reason)
   }
 
@@ -120,8 +123,8 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
             pick={
               picking
                 ? {
-                    on: picked.includes(ref),
-                    set: (on) => setPicked((p) => (on ? [...p, ref] : p.filter((x) => x !== ref))),
+                    on: !unticked.includes(ref),
+                    set: (on) => setUnticked((u) => (on ? u.filter((x) => x !== ref) : [...u, ref])),
                   }
                 : null
             }
@@ -132,15 +135,15 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         <p role="status" className="reveal flex flex-wrap items-center gap-2 text-[0.95rem] text-ink-soft">
           <Check className="size-4 shrink-0 text-ok" aria-hidden />
           {m.joinedSome(formatList(joined.joined.map(said), lang))}
-          {joined.stopped && <span className="text-bad">{m.stoppedAt(joined.stopped)}</span>}
+          {joined.stopped && <span className="text-bad">{m.stoppedAt(stoppedWords(joined.stopped, m.reasons))}</span>}
         </p>
       )}
       <AutoHeight swap={done ? "done" : String(asking)}>
         {done ? (
-          joined ? null : (
+          joined && !last ? null : (
             <p role="status" className="reveal flex items-center gap-2 text-[0.95rem] text-ink-soft">
               <Check className="size-4 shrink-0 text-ok" aria-hidden />
-              {m.decided[decided[first.id] ?? "confirm"]}
+              {m.decided[last ?? decided[first.id] ?? "confirm"]}
             </p>
           )
         ) : asking ? (
@@ -195,7 +198,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
             >
               {picking && !all ? m.joinPicked(chosen.length) : m.confirm}
             </Button>
-            <Button size="sm" disabled={!!busy} onClick={() => setAsking(true)}>
+            <Button size="sm" disabled={!!busy || (picking && chosen.length < 2)} onClick={() => setAsking(true)}>
               {m.reject}
             </Button>
             {picking && chosen.length < 2 && <span className="text-[0.85rem] text-ink-dim">{m.pickTwo}</span>}
@@ -207,11 +210,9 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   )
 }
 
-/** The last pair of a group decided on its own: the card then says that decision, not the earlier join. */
-function forgetJoined(key: string) {
-  usePeople.setState((s) => ({
-    joinedGroup: Object.fromEntries(Object.entries(s.joinedGroup).filter(([k]) => k !== key)),
-  }))
+const stoppedWords = (error: string, reasons: Record<PeopleReason, string>) => {
+  const reason = reasonOf(error)
+  return reason ? reasons[reason] : error
 }
 
 function moveWords(match: Match, anAccount: (source: string) => string) {

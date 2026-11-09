@@ -60,8 +60,13 @@ export const PersonDetailSchema = v.object({
 
 export const UnlinkedSchema = v.object({ person: PersonDetailSchema, movedTo: v.string() })
 
-/** `joined` names the chosen people joined so far, in order; `stopped` says why the rest were not. */
-export const MergedSchema = v.object({ person: PersonDetailSchema, joined: v.array(v.string()), stopped: text })
+/** `joined` names the chosen people joined so far, in order, `confirmed` the matches memo confirmed; `stopped` says why the rest were not. */
+export const MergedSchema = v.object({
+  person: PersonDetailSchema,
+  joined: v.array(v.string()),
+  confirmed: v.array(v.string()),
+  stopped: text,
+})
 
 export type Match = v.InferOutput<typeof MatchSchema>
 export type PeopleRead = v.InferOutput<typeof PeopleReadSchema>

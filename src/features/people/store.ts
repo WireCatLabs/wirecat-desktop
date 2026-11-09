@@ -77,8 +77,8 @@ type PeopleState = {
   decide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<boolean>
   /** Joins the chosen people of a group into one; `ids` are the group's matches, kept in place as decided. */
   joinGroup(key: string, refs: string[], ids: string[]): Promise<boolean>
-  /** Keeps every pair of a group apart, for one reason; stops at the first refusal. */
-  rejectGroup(matches: Match[], reason: string): Promise<boolean>
+  /** Keeps the given pairs of a group apart, for one reason; stops at the first refusal. */
+  rejectGroup(key: string, matches: Match[], reason: string): Promise<boolean>
   unlink(ref: string, identities: string[]): Promise<boolean>
   unmerge(ref: string, merge: string): Promise<boolean>
   askSplit(ref: string | null): void
@@ -283,24 +283,41 @@ export const usePeople = create<PeopleState>((set, get) => {
       // The card stays busy until the lists are read again, so it never offers the pairs memo just folded away.
       const done = await run(key, "confirm", async () => {
         const result = await platform.peopleMerge(refs)
-        const open = await settle(result.person, refs[0] ?? result.person.ref, refs, ids)
+        const open = await settle(result.person, result.person.ref, refs, ids)
         return { result, open }
       })
       if (!done) return false
       const { result, open } = done
+      // Without a fresh read, only the matches memo said it confirmed are known to be closed.
+      const closed = open ? ids.filter((id) => !open.has(id)) : result.confirmed
       set((s) => ({
         joinedGroup: { ...s.joinedGroup, [key]: { joined: result.joined, stopped: result.stopped } },
-        decided: {
-          ...s.decided,
-          ...Object.fromEntries(ids.filter((id) => !open?.has(id)).map((id) => [id, "confirm" as const])),
-        },
+        decided: { ...s.decided, ...Object.fromEntries(closed.map((id) => [id, "confirm" as const])) },
       }))
       return true
     },
-    async rejectGroup(matches, reason) {
-      for (const match of matches)
-        if (!(await get().decide(match.persons[0] ?? "", match.id, "reject", reason))) return false
-      return true
+    async rejectGroup(key, matches, reason) {
+      const kept: string[] = []
+      let last: PersonDetail | null = null
+      await run(key, "reject", async () => {
+        try {
+          for (const m of matches) {
+            last = await platform.peopleDecide(m.persons[0] ?? "", m.id, "reject", reason)
+            kept.push(m.id)
+          }
+        } finally {
+          set((s) => ({ decided: { ...s.decided, ...Object.fromEntries(kept.map((id) => [id, "reject" as const])) } }))
+          const answer = last as PersonDetail | null
+          if (answer)
+            await settle(
+              answer,
+              answer.ref,
+              matches.flatMap((m) => m.persons),
+              kept,
+            )
+        }
+      })
+      return kept.length === matches.length
     },
     async unlink(ref, identities) {
       const result = await run(ref, "unlink", () => platform.peopleUnlink(ref, identities))

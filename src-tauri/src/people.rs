@@ -391,36 +391,23 @@ pub fn decide(reference: &str, id: &str, answer: Answer, reason: Option<&str>) -
     with_memo(|call| decide_with(call, reference, id, answer, reason))
 }
 
-/// What joining a group did: the person they are now, the people joined so far, and why it stopped, if it did.
+/// What joining a group did: the person they are now, the people joined and the matches memo confirmed so far, and why
+/// it stopped, if it did.
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Merged {
     pub person: Person,
     pub joined: Vec<String>,
+    pub confirmed: Vec<String>,
     pub stopped: Option<String>,
 }
 
-/// One open match between the kept person and the next chosen one, found by its two people and not by an id: each
-/// confirm makes memo fold the group's other pairs into one, so the ids the page read go stale after the first.
-fn join_next(call: &Call, kept: &Person, next: &str) -> Result<Option<Person>, String> {
-    let other = show_with(call, next)?.reference;
-    if other == kept.reference {
-        return Ok(None);
-    }
-    let id = kept
-        .matches
-        .iter()
-        .find(|m| {
-            m.joins.as_deref() != Some("identity") && m.persons.contains(&kept.reference) && m.persons.contains(&other)
-        })
-        .map(|m| m.id.clone())
-        .ok_or_else(|| "No open match joins them any more. Read again.".to_string())?;
-    decided(&call(&decision(&["review", "confirm", &id]))?, &id)?;
-    show_with(call, &kept.reference).map(Some)
-}
+const NO_PAIR: &str = "No open match joins them any more. Read again.";
 
-/// Joins the chosen people of one group into one, a match at a time. A failure after the first join is reported with
-/// what was joined, because those joins stay done.
+/// Joins the chosen people of one group into one, a match at a time. Each step takes any chosen person with an open
+/// match to the person kept so far, found by its two people and not by an id: each confirm makes memo fold the group's
+/// other pairs into one, so the ids the page read go stale, and a pair the owner rejected before is routed around. A
+/// failure after the first join is reported with what was joined, because those joins stay done.
 fn merge_with(call: &Call, chosen: &[String]) -> Result<Merged, String> {
     let mut refs: Vec<&str> = Vec::new();
     for c in chosen {
@@ -436,18 +423,43 @@ fn merge_with(call: &Call, chosen: &[String]) -> Result<Merged, String> {
         return Err("Choose at least two people to join.".into());
     }
     let mut kept = show_with(call, first)?;
+    let mut left = Vec::new();
+    for r in rest {
+        left.push((*r, show_with(call, r)?.reference));
+    }
     let mut joined = vec![(*first).to_string()];
-    for next in rest {
-        match join_next(call, &kept, next) {
-            Ok(person) => {
-                kept = person.unwrap_or(kept);
-                joined.push((*next).to_string());
-            }
-            Err(e) if joined.len() < 2 => return Err(e),
-            Err(e) => return Ok(Merged { person: kept, joined, stopped: Some(e) }),
+    let mut confirmed: Vec<String> = Vec::new();
+    let stop = |kept: Person, joined: Vec<String>, confirmed: Vec<String>, why: String| {
+        if confirmed.is_empty() { Err(why) } else { Ok(Merged { person: kept, joined, confirmed, stopped: Some(why) }) }
+    };
+    while !left.is_empty() {
+        let between = |now: &String| {
+            kept.matches.iter().find(|m| {
+                m.joins.as_deref() != Some("identity") && m.persons.contains(&kept.reference) && m.persons.contains(now)
+            })
+        };
+        let next = left.iter().position(|(_, now)| *now == kept.reference).map(|i| (i, None)).or_else(|| {
+            left.iter().enumerate().find_map(|(i, (_, now))| between(now).map(|m| (i, Some(m.id.clone()))))
+        });
+        let Some((i, id)) = next else {
+            return stop(kept, joined, confirmed, NO_PAIR.into());
+        };
+        let (who, _) = left.remove(i);
+        let Some(id) = id else {
+            joined.push(who.to_string());
+            continue;
+        };
+        if let Err(e) = call(&decision(&["review", "confirm", &id])).and_then(|v| decided(&v, &id)) {
+            return stop(kept, joined, confirmed, e);
+        }
+        confirmed.push(id);
+        joined.push(who.to_string());
+        match show_with(call, &kept.reference) {
+            Ok(person) => kept = person,
+            Err(e) => return stop(kept, joined, confirmed, e),
         }
     }
-    Ok(Merged { person: kept, joined, stopped: None })
+    Ok(Merged { person: kept, joined, confirmed, stopped: None })
 }
 
 pub fn join_group(chosen: &[String]) -> Result<Merged, String> {
@@ -735,12 +747,10 @@ mod tests {
 
     impl Group {
         fn new(refuse: Option<u32>) -> Group {
-            Group {
-                merged: Mutex::new(Vec::new()),
-                open: Mutex::new(vec![(10, 1, 2), (11, 1, 3), (12, 2, 3)]),
-                seen: Mutex::new(Vec::new()),
-                refuse,
-            }
+            Group::with(refuse, vec![(10, 1, 2), (11, 1, 3), (12, 2, 3)])
+        }
+        fn with(refuse: Option<u32>, open: Vec<(u32, u32, u32)>) -> Group {
+            Group { merged: Mutex::new(Vec::new()), open: Mutex::new(open), seen: Mutex::new(Vec::new()), refuse }
         }
         fn now(&self, mut p: u32) -> u32 {
             let merged = self.merged.lock().unwrap();
@@ -795,10 +805,22 @@ mod tests {
         let g = Group::new(None);
         let merged = merge_with(&|a: &[String]| g.call(a), &strs(&["person:1", "person:2", "person:3"])).unwrap();
         assert_eq!(merged.joined, ["person:1", "person:2", "person:3"]);
+        assert_eq!(merged.confirmed, ["10", "11"]);
         assert_eq!(merged.stopped, None);
         assert_eq!(merged.person.reference, "person:3");
         assert_eq!(g.confirmed(), ["10", "11"], "the pair 1–3 became 2–3 and kept its id; 12 was folded away");
         assert!(g.seen.lock().unwrap().iter().filter(|a| a[0] == "review").all(|a| a.contains(&FROM_APP.to_string())));
+    }
+
+    #[test]
+    fn routes_around_a_pair_with_no_open_match() {
+        let g = Group::with(None, vec![(11, 1, 3), (12, 2, 3)]);
+        let merged = merge_with(&|a: &[String]| g.call(a), &strs(&["person:1", "person:2", "person:3"])).unwrap();
+        assert_eq!(merged.joined, ["person:1", "person:3", "person:2"]);
+        assert_eq!(merged.stopped, None);
+        let apart = Group::with(None, vec![(11, 1, 3), (12, 2, 3)]);
+        let err = merge_with(&|a: &[String]| apart.call(a), &strs(&["person:1", "person:2"])).unwrap_err();
+        assert_eq!(err, NO_PAIR, "nothing joins 1 and 2 without 3");
     }
 
     #[test]

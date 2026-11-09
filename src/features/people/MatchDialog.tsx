@@ -1,4 +1,5 @@
 import { useMessages } from "@/i18n"
+import type { Match } from "@/platform/people-schemas"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
@@ -18,16 +19,12 @@ export function MatchDialog() {
   const matches = usePeople((s) => s.matches)
   const decided = usePeople((s) => s.decided)
   const key = usePeople((s) => s.matchOpen)
-  // A match about an open person may lie past the matches the page read.
-  const single = usePeople((s) =>
-    Object.values(s.details)
-      .flatMap((d) => (d.state === "ready" ? d.person.matches : []))
-      .find((x) => x.id === s.matchOpen),
-  )
-  const group = key
-    ? (groupMatches(matches, decided).find((g) => g.key === key || g.matches.some((x) => x.id === key)) ??
-      (single ? groupMatches([single], {})[0] : undefined))
-    : undefined
+  // A match about an open person may lie past the matches the page read: its group is then made from that person's.
+  const details = usePeople((s) => s.details)
+  const theirs = Object.values(details).flatMap((d) => (d.state === "ready" ? d.person.matches : []))
+  const find = (list: Match[]) =>
+    groupMatches(list, decided).find((g) => g.key === key || g.matches.some((x) => x.id === key))
+  const group = key ? (find(matches) ?? find(theirs)) : undefined
   const match = group?.matches.find((x) => !decided[x.id]) ?? group?.matches[0]
   const facts: [string, string | null][] = match
     ? [

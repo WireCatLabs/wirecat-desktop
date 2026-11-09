@@ -135,7 +135,21 @@ describe("People", () => {
     )
   })
 
-  it("shows three people who share a phone as one card, joins the two the owner ticks, then the third", async () => {
+  it("keeps apart only the ticked people of a group", async () => {
+    const decide = vi.spyOn(platform, "peopleDecide").mockImplementation((ref) => platform.peopleShow(ref))
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const card = within(await openMatches(user)).getByRole("article", {
+      name: "Konstantin Nikolaevich Loft Pro Max Semenov · Konstantin · K. Semenov",
+    })
+    await user.click(within(card).getByRole("checkbox", { name: "K. Semenov is one of them" }))
+    await user.click(within(card).getByRole("button", { name: "Not the same" }))
+    await user.type(within(card).getByRole("textbox"), "two brothers{Enter}")
+    await waitFor(() => expect(decide).toHaveBeenCalledTimes(1))
+    expect(decide).toHaveBeenCalledWith("person:30", "17103", "reject", "two brothers")
+  })
+
+  it("shows three people who share a phone as one card, joins the two the owner ticks, then keeps the third apart", async () => {
     const merge = vi.spyOn(platform, "peopleMerge")
     const user = userEvent.setup()
     render(<PeoplePage />)
@@ -159,8 +173,10 @@ describe("People", () => {
       await within(card).findByText(/Konstantin Nikolaevich Loft Pro Max Semenov and Konstantin are now one person/),
     ).toBeInTheDocument()
     await waitFor(() => expect(within(card).queryAllByRole("checkbox")).toHaveLength(0))
-    await user.click(within(card).getByRole("button", { name: "Same person" }))
-    expect(await within(card).findByText("Joined into one person.", {}, { timeout: 4000 })).toBeInTheDocument()
+    await user.click(within(card).getByRole("button", { name: "Not the same" }))
+    await user.type(within(card).getByRole("textbox"), "a namesake{Enter}")
+    expect(await within(card).findByText(/Kept apart/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(card).toHaveTextContent("are now one person")
   })
 
   it("moves ticked accounts to a new person, never all of them, with nothing ticked at first", async () => {

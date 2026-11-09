@@ -313,21 +313,25 @@ export function peopleMock(): Pick<
     },
     async peopleMerge(refs) {
       const joined = [refs[0] ?? ""]
-      for (const next of refs.slice(1)) {
-        const kept = current(joined[0] ?? "")
-        const other = current(next)
-        const m = matches.find((x) => x.joins !== "identity" && x.persons.includes(kept) && x.persons.includes(other))
-        try {
-          if (!m) throw new Error("No open match joins them any more. Read again.")
-          if (fail === "merge" && joined.length > 1) throw new Error("identity.stale")
-          await api.peopleDecide(kept, m.id, "confirm")
-          joined.push(next)
-        } catch (e) {
-          if (joined.length < 2) throw e
-          return { person: shown(current(kept)), joined, stopped: e instanceof Error ? e.message : String(e) }
-        }
+      const confirmed: string[] = []
+      const left = refs.slice(1)
+      const stop = (why: string) => {
+        if (confirmed.length === 0) throw new Error(why)
+        return { person: shown(current(joined[0] ?? "")), joined, confirmed, stopped: why }
       }
-      return { person: shown(current(joined[0] ?? "")), joined, stopped: null }
+      while (left.length > 0) {
+        const kept = current(joined[0] ?? "")
+        const pair = (ref: string) =>
+          matches.find((x) => x.joins !== "identity" && x.persons.includes(kept) && x.persons.includes(current(ref)))
+        const at = left.findIndex((ref) => pair(ref))
+        const m = at < 0 ? undefined : pair(left[at] ?? "")
+        if (!m) return stop("No open match joins them any more. Read again.")
+        if (fail === "merge" && confirmed.length > 0) return stop("identity.stale")
+        await api.peopleDecide(kept, m.id, "confirm")
+        confirmed.push(m.id)
+        joined.push(left.splice(at, 1)[0] ?? "")
+      }
+      return { person: shown(current(joined[0] ?? "")), joined, confirmed, stopped: null }
     },
     async peopleUnlink(ref, identities) {
       await write()
