@@ -1,0 +1,106 @@
+{
+  "item": {
+    "ref": "person:8",
+    "name": "Ana Two",
+    "identities": [
+      {
+        "identity": "max:66",
+        "name": "Ana Two",
+        "username": null,
+        "seen_in": [
+          {
+            "account": "2",
+            "scope": "personal"
+          }
+        ],
+        "method": "initial",
+        "linked_by": "ingest",
+        "linked_at": "2026-11-08T21:27:05.867Z"
+      },
+      {
+        "identity": "max:99",
+        "name": "Tom Becker",
+        "username": null,
+        "seen_in": [
+          {
+            "account": "2",
+            "scope": "personal"
+          }
+        ],
+        "method": "manual",
+        "linked_by": "owner",
+        "linked_at": "2026-11-08T21:27:45.551Z"
+      },
+      {
+        "identity": "telegram:55",
+        "name": "Ana One",
+        "username": null,
+        "seen_in": [
+          {
+            "account": "1",
+            "scope": "personal"
+          }
+        ],
+        "method": "proposal",
+        "linked_by": "owner",
+        "linked_at": "2026-11-08T21:27:45.968Z"
+      }
+    ],
+    "merges": [
+      {
+        "id": "merge:8-4",
+        "from": "4",
+        "to": "8",
+        "identities": [
+          {
+            "provider": "telegram",
+            "id": "55",
+            "name": "Ana One"
+          }
+        ],
+        "method": "proposal",
+        "by": "owner",
+        "at": "2026-11-08T21:27:45.968Z"
+      },
+      {
+        "id": "merge:8-10",
+        "from": "10",
+        "to": "8",
+        "identities": [
+          {
+            "provider": "max",
+            "id": "99",
+            "name": "Tom Becker"
+          }
+        ],
+        "method": "manual",
+        "by": "owner",
+        "at": "2026-11-08T21:27:45.551Z"
+      }
+    ],
+    "matches": [
+      {
+        "id": "3",
+        "persons": ["person:5", "person:8"],
+        "joins": "person",
+        "identity": "telegram:77",
+        "with": "max:66",
+        "signal": "phone",
+        "score": null,
+        "candidates": ["person:4", "person:5", "person:8"],
+        "reason": null,
+        "evidence": [],
+        "proposed_by": {
+          "type": "bot",
+          "id": "1",
+          "name": "rule",
+          "kind": "rule"
+        },
+        "created_at": "2026-11-08T21:27:15.413Z"
+      }
+    ]
+  },
+  "meta": {
+    "complete": true
+  }
+}

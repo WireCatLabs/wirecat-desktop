@@ -10,7 +10,7 @@ New here? Read [the architecture report](architecture-report.md) first. Rules pe
 ```text
 src/
   app/          shell: window frame, sidebar, sections, theme. May import everything below.
-  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
+  features/     one folder per area (tools/, agents/, links/, conversation/, digests/, tasks/, clients/, system/, logs/, search/, query/ (the query bar Logs and Search share), memory/, analytics/, guides/, config/, settings/, storage/, onboarding/, report/, signin/, update/, notifications/).
   shared/       parts and stores two or more features use: ToolIcon, ReportThis, JsonTree, nav, and the stores of tools, agents, storage, system, signin and onboarding. Imports no feature (Biome rule).
   features/<name>/index.ts   a feature's public surface. Other features and the app import `@/features/<name>`, never a file inside it (Biome rule). The one exception is `@/features/<name>/page`, the lazy entry of a page: `app/sections.tsx` loads it with `import()` so a page's code does not enter the first chunk through the index; `main.tsx` imports `tools/community` directly because it must run before any page module loads. Feature folders never import each other in a cycle (`src/features/no-cycles.test.ts`).
   features/<name>/api.ts     the feature's requests to Rust as TanStack Query hooks: `useQuery` for reads, `useMutation` for writes, keys per tool and profile (`["tool", id, "permissions", profile]`). Its store keeps UI and live-event state, not a copy of an answer a query holds. Moved so far: tools (profiles, permissions, background), search (value lists), analytics (extra counts, aggregates, closed weeks); the rest still call `platform` from stores and components (step 6 note in architecture-report.md).
@@ -119,7 +119,18 @@ src-tauri/src/
                 `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
                 messenger chat's newest messages the messenger's own `messages list --offline` with that profile. A mail
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
+  people.rs     the People page: memo's `people list|review|show|unlink|unmerge` and `review confirm|reject` for
+                `identity_link` matches; every decision with `--from-app` (see "The People page").
+  memory_review.rs a memory or fact whose source changed: memo's source review read with `review show` and
+                decided by the owner (Still true, Dismiss, No longer true), each with `--from-app`.
+  memory_add.rs Add to Memory: `memo sources add|show|mentions|suggest`, the readers and the reader's key; pasted
+                text and the key go on stdin, never on the command line (see "Adding to memory").
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
+  crm_board.rs  the Clients page: memo's deals and leads of one pipeline by stage, each stage's count and sums per
+                currency from `pipelines show`, and moving the owner's own through `<kind>s move`. A CRM's copy is read
+                only: its own CLI changes it, and the catalog has none yet. With a memo at the catalog's
+                `crmBoard.baseStagesMinVersion`, the columns are the owner's base set and the cards come from every
+                pipeline; `crm_board/base.rs` alone knows the base-stage commands' argv and JSON.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
   redact.rs     masking tokens, numbers, addresses and names in tool output.
@@ -327,7 +338,8 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.51 or newer (`memory.minVersion` in the catalog); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.132.0 or newer (`memory.minVersion` in the catalog, a placeholder for
+the memo release that ships `sources` and source reviews); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
 (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
 shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
@@ -351,6 +363,47 @@ takes as nobody's run and refuses to let decide, so every confirm, discard, corr
 `--from-app`: memo records it as the owner's. Reads (`list`, `show`) never pass it. It is the app's word that the owner
 clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `CLAUDECODE`, so no run is an agent's.
 
+**When a source changes.** memo marks a memory or fact whose cited source changed, went or was contradicted with
+`source_review: {id, cause}` on its reads, and never changes its status. The row shows a badge and waits under Review as
+well as under In use (`entryInTab` in `domain/memory.ts`). Opened, `memory_review_show` reads `review show <id>`, checked
+to be a `memory_source_review` of that record, and shows each source as it was cited and as it is now. The answers:
+Still true (`review confirm`), Dismiss (`review reject --reason=<the owner's words>`), Edit (the record's own
+correction, which can start from an agent's suggested wording) and No longer true (the Discard mapping:
+`memories invalidate`, or `facts reverse` for a decision; memo has none for other facts, and it is never a revoke).
+After every answer the record is read back with `show` (`memory_show` after an Edit), so the page shows what memo
+now holds rather than what it expects. `review confirm` and `reject` refuse with exit code 2 and their whole answer on
+stdout; Rust reads it, so the page words memo's reason (`proposal.wrong-state`), and a success must list the id under
+`decided`. Rust's tests use memo's real answers (`src-tauri/tests/fixtures/memory-review/` and `memory-add/`). A source review is never listed as an action: memo refuses `actions confirm` on it.
+
+### Adding to memory
+
+The Memory page's Add to memory panel (plan `docs/dev/plans/2026-11-01-memory-add.md`), four steps on one surface:
+
+1. **Source**: pasted text (`memo sources add -`, the text on stdin), a link (`sources add <url>`, read once by memo
+   from this computer) or a file chosen in the system's file window (`memory_pick_file`). Rust keeps the picked path
+   and `memory_source_add` takes no other; a name that is not UTF-8 is refused there. Every add passes `--from-app`,
+   so its subjects are the owner's. Values go as one word (`--title=`).
+2. **Saved**: what memo kept in its own words (`kept: text | copy`, `read: no-text`, `truncated`, `duplicate_of`), the
+   stored text from `sources show`, and the people and organizations named in it from `sources mentions`. The ticked
+   ones become `--subject` of the suggestion.
+3. **Facts**: `sources suggest <ref> --reader=<the owner's pick>` names the batch in `batch`; Rust reads it back with
+   `actions show` and uses it only if every finding cites this document and it is proposed (or already decided, when
+   memo says it reused an earlier reading; the panel then says so). The panel decides it like any findings batch:
+   `actions confirm <id> <ticked> --fingerprint … --from-app`, or `reject` when nothing is ticked. Ticking is
+   confirming.
+4. **Done**: the source and what was kept, and as "About" only the subjects `sources show` says the source is linked
+   to.
+
+The reader is never picked by the app. Settings → "Reading for facts" lists `sources readers` (available, signed in,
+model, whether the text leaves the computer, whether it reads files; an unknown answer counts as the riskier one) and
+saves the owner's pick with `config set sources.reader <id>` only when he presses Use this reader, so arrow keys
+through the radios save nothing. An API key goes to `models keys set <provider>` on stdin and never comes back to the
+interface. `sources suggest`, `sources readers` and `config set sources.reader` are written
+against the planned memo interface (not released when this was written); each command line is one constant in
+`memory_add.rs`. memo's `source.*` and `reader.*` refusals come back as ids and are worded in `messages-add.ts`. A run
+fed on stdin (pasted text, the key) never returns memo's message, which can quote the input escaped or cut: an unknown
+refusal comes back as `memo.refused`.
+
 ### Relationships
 
 Relationships between people, organizations and projects are rows of the same page (CRM relations plan, PR 11).
@@ -366,6 +419,36 @@ memo's own review as every other proposal kind: `review confirm <id> --from-app`
 here. Bulk approve leaves relationships out: each is approved in its row. A built-in role is worded by the app in the
 interface language; the owner's own role shows the label the owner gave it. The chip is `src/shared/StandingPill.tsx`,
 its rule `src/domain/relationships.ts`, for any page that shows a relationship.
+
+## The People page
+
+Who is who across sources, from memo (`people.minVersion` in the catalog; 0.132.0 is a placeholder for the memo release
+with `memo people show|review|scan|link|unlink|unmerge`). `people_read` runs `people list --limit 5000` (memo leaves out
+people merged into others) and `people review --limit 500` at once, and carries each list's `has_more` to the page, which
+says when memo has more than it read. Opening a person runs `people show person:<uid>`: every account grouped by source,
+with the scope (personal or work) of every account that saw it, the merges that joined others into this person
+(`merge:<to>-<from>`), and the matches open on them. Asked about someone merged away, memo answers with the person they
+are part of now (`merged_into`), and the page says so. memo has no profiles here, so nothing is picked for the owner:
+every move names the person and the accounts he chose.
+
+- **Matches** (`identity_link` proposals) carry memo's `joins` (`person`: join two people; `identity`: move one account),
+  `signal` (agent, phone, email, guest email), the people a shared phone points at, and who suggested it (memo's own
+  matching, an agent, or a person who may have no name). A match is decided with `review confirm|reject <id> --from-app`,
+  a rejection with the owner's reason (`--reason=`), only if `people show <ref>` lists it open on that person now.
+  memo answers a refused decision with exit code 2 and its whole answer on stdout; Rust reads that answer, so
+  `identity.stale` and `proposal.wrong-state` are worded on the page. A decided card stays in place until the next read.
+- **Move accounts to a new person** runs `people unlink <identities…> --from-app` with only accounts the person's own
+  read listed, each once, and never all of them: memo matches a name it does not know exactly to the nearest person.
+  Every account is shown; one whose ref cannot go back as one safe word is never offered for moving.
+- **Undo a join** runs `people unmerge merge:<to>-<from> --from-app`, only for a merge the person shows, behind a dialog
+  that lists the accounts that go back.
+- **Search** filters the list by name; an account (`telegram:4411`, an email address) is looked up with `people show
+  <account>` (`people_find`), and the person is shown only if one of their accounts is exactly that one, never memo's
+  nearest guess.
+
+After each move Rust reads the person again; the page forgets every person the move touched and reads both lists again
+without closing anything. The answers in Rust's tests are memo's real ones (`src-tauri/tests/fixtures/people/`). Names,
+addresses and account ids are the owner's own data, shown unmasked like the Memory page and never logged.
 
 ## What agents do with the tools
 

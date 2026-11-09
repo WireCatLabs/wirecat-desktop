@@ -17,13 +17,15 @@ pub const FILE: &str = "extra-tools.json";
 pub const MAX_BYTES: usize = 512 * 1024;
 const MAX_TOOLS: usize = 32;
 
-/// Fields a community tool may not set: parts of our packages, memo's own pages, a bot token on stdin, and emptying
-/// the store every tool shares.
-pub const FORBIDDEN: [&str; 9] = [
+/// Fields a community tool may not set: parts of our packages, memo's own pages, a bot token on stdin, emptying the
+/// store every tool shares, and writing a CRM's cards from the Clients board.
+pub const FORBIDDEN: [&str; 11] = [
     "partOf",
     "commandPrefix",
     "memory",
     "taskBoard",
+    "crmBoard",
+    "crm",
     "bot",
     "storeReset",
     "storeResetPreview",

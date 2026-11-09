@@ -1,0 +1,23 @@
+{
+  "item": {
+    "decided": [],
+    "refused": [
+      {
+        "id": "1",
+        "code": "validation_error",
+        "reason": "proposal.wrong-state",
+        "message": "1 is already rejected"
+      }
+    ]
+  },
+  "meta": {
+    "complete": false,
+    "issues": [
+      {
+        "code": "validation_error",
+        "source": "1",
+        "reason": "proposal.wrong-state"
+      }
+    ]
+  }
+}

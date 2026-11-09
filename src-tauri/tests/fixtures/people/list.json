@@ -1,0 +1,66 @@
+{
+  "items": [
+    {
+      "ref": "person:1",
+      "name": null,
+      "owner": true,
+      "tasks": 0
+    },
+    {
+      "ref": "person:4",
+      "name": "Ana One",
+      "owner": false,
+      "tasks": 0
+    },
+    {
+      "ref": "person:5",
+      "name": "Ana Three",
+      "owner": false,
+      "tasks": 0
+    },
+    {
+      "ref": "person:8",
+      "name": "Ana Two",
+      "owner": false,
+      "tasks": 0
+    },
+    {
+      "ref": "person:3",
+      "name": "Kai S.",
+      "owner": false,
+      "tasks": 0
+    },
+    {
+      "ref": "person:7",
+      "name": "Kai Sample",
+      "owner": false,
+      "tasks": 0
+    },
+    {
+      "ref": "person:9",
+      "name": "Lena Ortiz",
+      "owner": false,
+      "tasks": 0
+    },
+    {
+      "ref": "person:2",
+      "name": "Rin Example",
+      "owner": false,
+      "tasks": 0
+    },
+    {
+      "ref": "person:10",
+      "name": "Tom Becker",
+      "owner": false,
+      "tasks": 0
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 9,
+    "has_more": false
+  },
+  "meta": {
+    "complete": true
+  }
+}

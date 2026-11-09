@@ -1,0 +1,69 @@
+{
+  "item": {
+    "id": "3",
+    "kind": "memory_source_review",
+    "status": "proposed",
+    "title": "Memory «Kai prefers Monday calls»: contradicted: 0 source(s), 1 challenge(s)",
+    "project": null,
+    "project_title": null,
+    "source": null,
+    "owner_only": true,
+    "subject": "memory:2",
+    "object": null,
+    "summary": "contradicted: 0 source(s), 1 challenge(s)",
+    "proposer": "claude-code",
+    "proposed_by": {
+      "type": "bot",
+      "id": "4",
+      "name": "claude-code",
+      "kind": "agent"
+    },
+    "reason": "Kai now asks for Friday afternoons",
+    "score": null,
+    "signals": null,
+    "evidence": [
+      {
+        "reference": "note:3",
+        "state": "untracked",
+        "title": "Note note:3",
+        "text": "Kai: please never Monday, Friday afternoons only.",
+        "around": [],
+        "ref": "note:3",
+        "untrusted": ["title", "text", "around", "sender.name"]
+      }
+    ],
+    "parts": null,
+    "created_at": "2026-11-08T22:48:34.890Z",
+    "source_review": {
+      "cause": "contradicted",
+      "raised_at": "2026-11-08T22:48:34.890Z",
+      "sources": [],
+      "challenges": [
+        {
+          "evidence": ["note:3"],
+          "reason": "Kai now asks for Friday afternoons",
+          "by": "claude-code",
+          "at": "2026-11-08T22:48:34.890Z"
+        }
+      ],
+      "suggestions": [
+        {
+          "author": "claude-code",
+          "body": "Kai prefers Friday afternoon calls",
+          "evidence": ["note:3"],
+          "at": "2026-11-08T22:48:34.890Z"
+        }
+      ],
+      "decide": {
+        "still_true": "memo review confirm 3",
+        "dismiss": "memo review reject 3 --reason <why>",
+        "correct": "memo memories add <the right text and its options> --supersedes memory:2",
+        "withdraw": "memo memories invalidate memory:2"
+      },
+      "untrusted": ["sources.quote", "sources.cited", "sources.now", "challenges.reason", "suggestions.body"]
+    }
+  },
+  "meta": {
+    "complete": true
+  }
+}

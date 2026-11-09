@@ -1,0 +1,65 @@
+{
+  "item": {
+    "id": "2",
+    "kind": "memory_source_review",
+    "status": "proposed",
+    "title": "Memory «Delivery is on the 28th»: changed: 1 source(s), 0 challenge(s)",
+    "project": null,
+    "project_title": null,
+    "source": null,
+    "owner_only": true,
+    "subject": "memory:1",
+    "object": null,
+    "summary": "changed: 1 source(s), 0 challenge(s)",
+    "proposer": "source-check",
+    "proposed_by": {
+      "type": "bot",
+      "id": "3",
+      "name": "source-check",
+      "kind": "rule"
+    },
+    "reason": null,
+    "score": null,
+    "signals": null,
+    "evidence": [
+      {
+        "reference": "note:1",
+        "state": "untracked",
+        "title": "Note «Delivery»",
+        "text": "We agreed delivery on the 30th with Lena.",
+        "around": [],
+        "ref": "note:1",
+        "untrusted": ["title", "text", "around", "sender.name"]
+      }
+    ],
+    "parts": null,
+    "created_at": "2026-11-08T22:48:02.487Z",
+    "source_review": {
+      "cause": "changed",
+      "raised_at": "2026-11-08T22:48:02.487Z",
+      "sources": [
+        {
+          "ref": "note:1",
+          "kind": null,
+          "cause": "changed",
+          "replacement": null,
+          "quote": "delivery on the 28th",
+          "cited": "We agreed delivery on the 28th with Lena.",
+          "now": "We agreed delivery on the 30th with Lena."
+        }
+      ],
+      "challenges": [],
+      "suggestions": [],
+      "decide": {
+        "still_true": "memo review confirm 2",
+        "dismiss": "memo review reject 2 --reason <why>",
+        "correct": "memo memories add <the right text and its options> --supersedes memory:1",
+        "withdraw": "memo memories invalidate memory:1"
+      },
+      "untrusted": ["sources.quote", "sources.cited", "sources.now", "challenges.reason", "suggestions.body"]
+    }
+  },
+  "meta": {
+    "complete": true
+  }
+}

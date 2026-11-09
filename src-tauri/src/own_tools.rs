@@ -1758,7 +1758,7 @@ mod tests {
                 "revoke": ["mcp", "revoke"], "config": null }),
         );
         let first = review("@example/acme-crm-cli", None, &Fake::with(&with_server), catalog(), "").unwrap();
-        assert_eq!(first.entry["mcpServer"]["port"], FIRST_PORT, "8765-8769 are the catalog's");
+        assert_eq!(first.entry["mcpServer"]["port"], FIRST_PORT, "8764-8769 are the catalog's");
         let mut other = first.entry.clone();
         other["id"] = json!("other");
         other["bin"] = json!("wcat-other");

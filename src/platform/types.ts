@@ -24,6 +24,12 @@ import type {
   ChatPlace,
   ChosenFolders,
   Conversation,
+  CrmAccount,
+  CrmBaseEdit,
+  CrmCard,
+  CrmKind,
+  CrmRead,
+  CrmVia,
   DigestSchedules,
   Enrichment,
   EnrichmentStatus,
@@ -48,8 +54,18 @@ import type { CommunityStatus, ExtraTools } from "./community-schemas"
 import type { Digest, DigestDay } from "./digest-schemas"
 import type { GroupsRead } from "./groups-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
-import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
+import type { AddedSource, AddSource, KeySaved, Mentions, Reader, StoredSource, Suggested } from "./memory-add-schemas"
+import type {
+  Forgot,
+  MemoryEntry,
+  MemoryRead,
+  MemorySource,
+  ReviewAnswer,
+  SourceContext,
+  SourceReview,
+} from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
+import type { MatchAnswer, PeopleRead, PersonDetail, Unlinked } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
@@ -285,6 +301,60 @@ export type Platform = {
   conversationRead(place: ChatPlace, ask: ChatPage): Promise<Conversation>
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
+  /** memo's deals or leads of one pipeline (the first when none is asked), with each stage's count and sums. */
+  clientsRead(kind: CrmKind, pipeline: string | null): Promise<CrmRead>
+  /**
+   * Moves a deal or lead to another stage of its own pipeline. The owner's own goes through memo, which answers the
+   * card; a CRM's copy goes through that CRM's CLI as `via`'s profile, which answers none: the page reads it again.
+   */
+  clientsMove(kind: CrmKind, ref: string, stage: string, via: CrmVia | null): Promise<CrmCard | null>
+  /**
+   * Whether a CRM account syncs only what is assigned to the owner (`mine`) or everything (`all`), read through its
+   * CRM's CLI as `profile`, and whether the app can change it (`why` says why not).
+   */
+  clientsScope(account: CrmAccount, profile: string | null): Promise<CrmScope>
+  /** Saves the account's scope through its CRM's CLI as `profile`; the page then starts that profile's sync. */
+  clientsScopeSet(account: CrmAccount, profile: string, scope: "mine" | "all"): Promise<void>
+  /** Points a pipeline's stage (`stage:<id>`) at a base stage; memo takes it as confirmed. */
+  clientsMapSet(stage: string, base: string): Promise<void>
+  /** Confirms memo's suggested mappings of one pipeline, or with `null` of every pipeline of the kind. */
+  clientsMapConfirm(kind: CrmKind, pipeline: string | null): Promise<void>
+  /** Adds, renames, moves or removes a stage of the kind's base set. */
+  clientsBaseEdit(kind: CrmKind, edit: CrmBaseEdit): Promise<void>
+  /** Everyone memo knows (merged-away people left out) and the matches waiting; "old" below the catalog's minimum. */
+  peopleRead(): Promise<PeopleRead>
+  /** One person: identities by source with the accounts that saw each, merges and open matches. */
+  peopleShow(ref: string): Promise<PersonDetail>
+  /** The owner's answer to a match about this person; answers the person read again. */
+  peopleDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
+  /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */
+  peopleUnlink(ref: string, identities: string[]): Promise<Unlinked>
+  /** The person who has exactly this account (`<messenger>:<id>`, a username or an email address); `null` if no one. */
+  peopleFind(account: string): Promise<PersonDetail | null>
+  /** Gives a merge's accounts back to the person they came from. */
+  peopleUnmerge(ref: string, merge: string): Promise<PersonDetail>
+  /** One memory or fact as memo now has it. */
+  memoryShow(ref: string): Promise<MemoryEntry>
+  /** The open source review of a memory or a fact: each source as the record cited it and as it is now. */
+  memoryReviewShow(ref: string, id: string): Promise<SourceReview>
+  /** The owner's answer to a source review; answers the record as it now is, with no open review. */
+  memoryReviewDecide(ref: string, id: string, answer: ReviewAnswer, reason?: string): Promise<MemoryEntry>
+  /** The system's file window; `null` when the owner closes it. */
+  memoryPickFile(): Promise<string | null>
+  /** Keeps a file, a web page or pasted text as a source of its own; only its text unless memo says `copy`. */
+  memorySourceAdd(source: AddSource): Promise<AddedSource>
+  /** A source's stored text, what it is and what is kept. */
+  memorySourceShow(ref: string): Promise<StoredSource>
+  /** People and organizations memo knows whose names appear in a source, found on this computer. */
+  memoryMentions(ref: string): Promise<Mentions>
+  /** Facts suggested from a source by the reader the owner chose, as a findings batch to tick. */
+  memorySourceSuggest(ref: string, reader: string, subjects: string[], again: boolean): Promise<Suggested>
+  /** The ways to read a source for facts that memo found on this computer; memo never chooses one. */
+  memoryReaders(): Promise<Reader[]>
+  /** The owner's pick of a reader; answers the readers again. */
+  memoryReaderChoose(id: string): Promise<Reader[]>
+  /** Hands the provider's key to memo, which keeps it in the system keyring; it never comes back. */
+  memoryReaderKey(provider: string, key: string): Promise<KeySaved>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
   taskList(query: string): Promise<TaskRead>
   /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */
@@ -480,3 +550,17 @@ export type Platform = {
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>
 }
+
+/** What the last sync applied (`item.scope` of a CRM sync, cli-core #2695); a CRM that cannot limit reports `all`. */
+export type CrmAppliedScope = { mode: "mine"; also: string[] } | { mode: "all" }
+
+/** `scope` is the setting `crm.<provider>:<account>.scope`: what the next sync copies, not what the board shows. */
+export type CrmScope =
+  | { kind: "settable"; scope: "mine" | "all"; applied: CrmAppliedScope | null }
+  | {
+      kind: "unavailable"
+      scope: "mine" | "all" | null
+      applied: null
+      /** No CLI here writes this CRM or has the setting yet, it is not installed, too old, or no profile is chosen. */
+      why: "crmCli" | "crmCliMissing" | "crmCliOld" | "profile"
+    }

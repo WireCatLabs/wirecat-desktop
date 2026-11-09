@@ -10,6 +10,7 @@ import { Lamp } from "@/ui/Lamp"
 import { aboutOf, actionLine, authorOf, kindOf, type M, savedAt } from "./labels"
 import { memoryMessages } from "./messages"
 import { Findings } from "./RowFindings"
+import { ReviewAnswered, ReviewPanel } from "./RowReview"
 import { Sources } from "./RowSources"
 import { canRevoke, ownerRoles, useMemory } from "./store"
 
@@ -134,7 +135,11 @@ export function Details({ entry }: { entry: MemoryEntry }) {
       ) : entry.type === "relationship" ? (
         <RelationFacts entry={entry} m={m} />
       ) : (
-        <Sources entry={entry} />
+        <div className="flex min-w-0 flex-col gap-[1.2rem]">
+          <ReviewPanel entry={entry} />
+          <ReviewAnswered entry={entry} />
+          <Sources entry={entry} />
+        </div>
       )}
 
       <div className="flex min-w-0 flex-col gap-[1.1rem]">

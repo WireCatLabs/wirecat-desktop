@@ -5,8 +5,32 @@ extract), image url or image itself, audio or just plain text and link it to oth
 create facts from it - how we'd need to decide eg a few facts to suggest to user so it could pick them. I'd also
 explain that the source will be stored in db and be searchable too".
 
-This round is the plan and the design. Nothing is built in the app or in memo. It extends the Memory page
-([first plan](2026-10-31-memory-page.md), [three versions](2026-11-01-memory-versions.md), PR #37; version 2 chosen).
+It extends the Memory page ([first plan](2026-10-31-memory-page.md),
+[three versions](2026-11-01-memory-versions.md), PR #37; version 2 chosen). The panel is built (see "Decided and
+built" below); the rest of this page is the design it was built from.
+
+## Decided and built
+
+The owner's rulings since this plan, and where the built panel differs from the design below:
+
+- **Who reads a source (NEED-1).** memo reads it with a reader the owner picks once in Settings → "Reading for facts":
+  the owner's signed-in Claude Code, Codex (with a warning that it can open files), an Ollama already running on this
+  computer, or an API key kept in the system keyring. The app never picks one, even when only one exists. "Only save
+  it" is always there.
+- **What is kept (NEED-2).** Only the extracted text, unless memo is asked for a copy (`--keep-copy`); the panel says
+  "Text kept", and "File kept" only when memo answers `kept: copy`. The panel does not ask for a copy yet.
+- **Images (NEED-3).** A picture or a scan is kept by its title only (`read: no-text`), and the panel says so; reading
+  an image's words comes with the key reader later. Audio is not offered.
+- **Subjects (NEED-4).** Suggestions may be about a person, an organization, a task or nobody. The panel offers the
+  people and organizations memo finds named in the text (`sources mentions`); the people, projects and tasks pickers
+  are not built yet.
+- **Google Docs links (NEED-5).** A private page is refused with `source.needs-sign-in`, and the panel says to save it
+  as a file. Reading it through Drive is drive-cli's work and not in the panel yet.
+- **Ticking is confirming (NEED-6).** The ticked facts are accepted at once (`actions confirm … --from-app`).
+- **The order of steps.** memo can list the names in a source only once it is stored, so the panel saves first:
+  Source → Saved (names, reader, Suggest or Only save) → Facts → Done.
+- **Quotes.** Each suggestion shows its reason; the quoted words appear once memo's findings carry them.
+- **Drop.** A file is chosen in the system's file window; dropping a file on the panel is not built.
 
 ## Why
 

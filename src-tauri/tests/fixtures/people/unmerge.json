@@ -1,0 +1,25 @@
+{
+  "item": {
+    "ref": "person:6",
+    "name": "Rin E",
+    "identities": [
+      {
+        "identity": "max:22",
+        "name": "Rin E",
+        "username": null,
+        "seen_in": [
+          {
+            "account": "2",
+            "scope": "personal"
+          }
+        ],
+        "method": "undo-merge",
+        "linked_by": "owner",
+        "linked_at": "2026-11-08T21:27:55.536Z"
+      }
+    ]
+  },
+  "meta": {
+    "complete": true
+  }
+}

@@ -6,7 +6,9 @@ import {
   batchSubjectOf,
   byDay,
   can,
+  causeOf,
   createdTarget,
+  entryInTab,
   findingsCounts,
   inTab,
   isCorrection,
@@ -14,6 +16,7 @@ import {
   memoryFilter,
   oneLine,
   refKind,
+  reviewChoices,
   setMemoryField,
   sourceKindOf,
   stateLineOf,
@@ -224,5 +227,33 @@ describe("rules of a record's row", () => {
     expect(batchSubjectOf({ ...e, projectName: "Apollo" }, "Project")).toBe("Apollo")
     expect(batchSubjectOf({ ...e, subjectName: null }, "Project")).toBe("project:2")
     expect(batchSubjectOf({ ...e, subjectName: null, project: null }, "Project")).toBe("Project")
+  })
+})
+
+describe("source reviews", () => {
+  const marked = { id: "17090", cause: "changed" }
+
+  it("shows a record whose source changed under Review as well as where its status puts it", () => {
+    const e = { status: "confirmed", sourceReview: marked }
+    expect(entryInTab("review", e)).toBe(true)
+    expect(entryInTab("inuse", e)).toBe(true)
+    expect(entryInTab("review", { status: "confirmed", sourceReview: null })).toBe(false)
+    expect(entryInTab("review", { status: "confirmed" })).toBe(false)
+  })
+
+  it("reads an unknown cause from a newer memo as a plain change", () => {
+    expect(causeOf("deleted")).toBe("deleted")
+    expect(causeOf("expired")).toBe("changed")
+  })
+
+  it("offers Withdraw only where memo has a way to say it no longer holds", () => {
+    expect(reviewChoices(entry("memory", "summary", "confirmed"))).toEqual([
+      "stillTrue",
+      "dismiss",
+      "correct",
+      "withdraw",
+    ])
+    expect(reviewChoices(entry("fact", "decision", "accepted"))).toContain("withdraw")
+    expect(reviewChoices(entry("fact", "promise", "accepted"))).toEqual(["stillTrue", "dismiss", "correct"])
   })
 })

@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod app;
+pub mod clients;
 pub mod cloudflare;
 pub mod community;
 pub mod enrichment;
@@ -9,6 +10,7 @@ pub mod memory;
 pub mod node;
 pub mod notes_setup;
 pub mod own_tools;
+pub mod people;
 pub mod search;
 pub mod settings;
 pub mod setup_extras;

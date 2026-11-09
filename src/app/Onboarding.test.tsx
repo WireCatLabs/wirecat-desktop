@@ -67,7 +67,7 @@ describe("First start", () => {
     expect(await screen.findByText("Ready to install WireCat tools.")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Continue" }))
 
-    await waitFor(() => expect(screen.getAllByRole("checkbox")).toHaveLength(3))
+    await waitFor(() => expect(screen.getAllByRole("checkbox")).toHaveLength(4))
     const drive = screen.getByRole("checkbox", { name: /Google Drive/ })
     expect(drive).not.toBeChecked()
     await user.click(drive)

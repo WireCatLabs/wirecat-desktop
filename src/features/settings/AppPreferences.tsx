@@ -7,6 +7,7 @@ import { Select } from "@/ui/Select"
 import { CommunitySetting } from "./CommunitySetting"
 import { settingsMessages } from "./messages"
 import { OwnToolsSetting } from "./OwnToolsSetting"
+import { ReadersSetting } from "./ReadersSetting"
 import { DEFAULT_SCALE, MAX_SCALE, MIN_SCALE, SCALE_STEP, useScale } from "./scale"
 
 /** WireCat's own preferences, above the tools' settings on the Settings page. */
@@ -24,6 +25,9 @@ export function AppPreferences() {
       <div className="mt-6 grid gap-x-10 gap-y-6 @2xl:grid-cols-2">
         <CommunitySetting />
         <OwnToolsSetting />
+      </div>
+      <div className="mt-6">
+        <ReadersSetting />
       </div>
     </section>
   )

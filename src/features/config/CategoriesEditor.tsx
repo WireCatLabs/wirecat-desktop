@@ -6,6 +6,7 @@ import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { fieldClass } from "@/ui/field"
 import { focusInPlace } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
 import { isReadOnly, type Op } from "./diff"
@@ -14,8 +15,7 @@ import { type Reason, reasonText, reportText } from "./reason"
 import { CATEGORY, type Category, categoryValue, FALLBACK, removeCategory, setCategory, toCategory } from "./scope"
 import { useConfig } from "./store"
 
-const field =
-  "h-8 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 text-[0.95rem] text-ink placeholder:text-ink-dim focus-visible:border-brand disabled:opacity-45"
+const field = fieldClass
 
 /** Saves one change and says whether the tool took it; the store keeps the tool's refusal by setting name. */
 async function save(op: Op): Promise<Reason | null> {

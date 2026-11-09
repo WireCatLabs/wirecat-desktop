@@ -1,0 +1,25 @@
+{
+  "item": {
+    "ref": "document:1",
+    "created": true,
+    "duplicate_of": null,
+    "title": "Call with Lena",
+    "kind": "text",
+    "mime": "text/plain",
+    "bytes": 25,
+    "chars": 24,
+    "truncated": false,
+    "extractor": null,
+    "read": "extracted",
+    "url": null,
+    "kept": "text",
+    "searchable": {
+      "words": true,
+      "meaning": false
+    },
+    "subjects": []
+  },
+  "meta": {
+    "complete": true
+  }
+}
