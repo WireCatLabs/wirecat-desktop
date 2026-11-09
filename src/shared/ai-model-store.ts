@@ -55,7 +55,24 @@ export const useAiModel = create<AiModelState>((set, get) => ({
     set({ busy: "off", actionError: null, failed: null, turnedOff: false, checked: null })
     try {
       await platform.aiModelOff()
-      set({ model: await platform.aiModelShow(), turnedOff: true })
+      const was = get().model
+      set({
+        model: {
+          provider: null,
+          model: null,
+          baseUrl: null,
+          origin: null,
+          beta: false,
+          images: false,
+          key: was?.key ?? { stored: false, source: null },
+        },
+        turnedOff: true,
+      })
+      // The turn off is done either way: a read that fails now only leaves the cleared view.
+      await platform.aiModelShow().then(
+        (model) => set({ model }),
+        () => undefined,
+      )
       return true
     } catch (e) {
       set({ actionError: message(e), failed: "off" })

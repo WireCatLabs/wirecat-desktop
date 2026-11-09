@@ -92,6 +92,8 @@ const en = {
   } as Record<string, string>,
   imageNeedsUpdate:
     "Memo on this computer cannot read pictures with an AI model yet, so this picture will be kept by its name only. Update it on the Tools page.",
+  imageUnknown:
+    "WireCat could not look at the AI model, so it cannot say whether this picture will be read. Check it in Settings.",
   goAiModel: "Open AI model settings",
   suggested: (facts: number, tasks: number) =>
     tasks
@@ -234,6 +236,8 @@ const ru: typeof en = {
   },
   imageNeedsUpdate:
     "Memo на этом компьютере пока не умеет читать картинки с помощью модели ИИ, поэтому картинка сохранится только по названию. Обновите его на странице Инструменты.",
+  imageUnknown:
+    "WireCat не смог посмотреть модель ИИ, поэтому не может сказать, прочитают ли эту картинку. Проверьте её в Настройках.",
   goAiModel: "Открыть настройки модели ИИ",
   suggested: (facts: number, tasks: number) => {
     const f = plural("ru", facts, { one: "# факт", few: "# факта", many: "# фактов", other: "# факта" })
@@ -381,6 +385,8 @@ const es: typeof en = {
   },
   imageNeedsUpdate:
     "Memo en este ordenador aún no puede leer imágenes con un modelo de IA, así que esta imagen se guardará solo por su nombre. Actualízalo en la página Herramientas.",
+  imageUnknown:
+    "WireCat no pudo mirar el modelo de IA, así que no puede decir si esta imagen se leerá. Revísalo en Ajustes.",
   goAiModel: "Abrir los ajustes del modelo de IA",
   suggested: (facts: number, tasks: number) =>
     tasks

@@ -258,6 +258,25 @@ describe("Add to memory", () => {
     expect(within(panel).queryByText(/No AI model is set/)).not.toBeInTheDocument()
   })
 
+  it("does not claim no model is set when memo could not be asked", async () => {
+    vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("memo.refused"))
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
+    vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
+    vi.spyOn(platform, "memoryFilePreview").mockResolvedValue({
+      name: "whiteboard.png",
+      bytes: 2048,
+      mime: "image/png",
+      image: "data:image/png;base64,iVBORw==",
+      excerpt: null,
+    })
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole("radio", { name: /File/ }))
+    await user.click(within(panel).getByRole("button", { name: "Choose a file" }))
+    expect(await within(panel).findByText(/could not look at the AI model/)).toBeInTheDocument()
+    expect(within(panel).queryByText(/No AI model is set/)).not.toBeInTheDocument()
+  })
+
   const picture = (over: Partial<AddedSource>): AddedSource => ({
     ...ADDED,
     kind: "file",

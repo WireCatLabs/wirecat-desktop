@@ -202,6 +202,38 @@ describe("AI model", () => {
     expect(screen.getByRole("alert")).not.toHaveTextContent("memo.refused")
   })
 
+  it("drops a key, a model name and an address typed for another provider when the provider changes", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(ANTHROPIC)
+    const set = vi.spyOn(platform, "aiModelSet").mockResolvedValue(ANTHROPIC)
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await user.type(await screen.findByLabelText("API key"), "sk-ant-secret")
+    await user.click(screen.getByRole("radio", { name: "Ollama on this computer (beta)" }))
+    expect(screen.getByLabelText("Model")).toHaveValue("")
+    await user.type(screen.getByLabelText("Model"), "llava")
+    await user.click(screen.getByRole("button", { name: "Save" }))
+    expect(set).toHaveBeenCalledWith({ provider: "ollama", model: "llava", baseUrl: null, key: null, images: true })
+  })
+
+  it("is off even when the read after turning off fails", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValueOnce(ANTHROPIC).mockRejectedValue(new Error("busy"))
+    vi.spyOn(platform, "aiModelOff").mockResolvedValue({ changed: true, keyKept: true })
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await user.click(await screen.findByRole("button", { name: "Turn off" }))
+    expect(await screen.findByText(/The AI model is off/)).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Turn off" })).not.toBeInTheDocument()
+  })
+
+  it("does not word what memo said about a provider, which may quote a key", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(ANTHROPIC)
+    vi.spyOn(platform, "aiModelCheck").mockResolvedValue(checked("constructor"))
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await user.click(await screen.findByRole("button", { name: "Check" }))
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no words for/)
+  })
+
   it("says the model is off after it was turned off", async () => {
     vi.spyOn(platform, "aiModelShow").mockResolvedValueOnce(ANTHROPIC).mockResolvedValue(NONE)
     vi.spyOn(platform, "aiModelOff").mockResolvedValue({ changed: true, keyKept: true })

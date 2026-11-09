@@ -16,8 +16,19 @@ const PROVIDERS: [&str; 3] = ["anthropic", "openai", "ollama"];
 const MAX_KEY: usize = 400;
 const WORDED: [&str; 1] = ["ai."];
 
+/// memo's message can quote what the provider answered, including part of a key. Only a reason the page words, or
+/// commander's refusal of a command an older memo lacks, goes on; anything else comes back as `memo.refused`.
+fn guarded(e: String) -> String {
+    let old = e.contains("unknown command") || e.contains("unknown option");
+    if e.starts_with("ai.") || e == crate::memory_add::REFUSED || old && e.len() < 200 {
+        e
+    } else {
+        crate::memory_add::REFUSED.into()
+    }
+}
+
 fn with_memo<T>(timeout: Duration, f: impl FnOnce(&crate::memory_add::Feed) -> Result<T, String>) -> Result<T, String> {
-    with_memo_worded(timeout, &WORDED, f)
+    with_memo_worded(timeout, &WORDED, f).map_err(guarded)
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -142,7 +153,7 @@ pub fn off() -> Result<AiOff, String> {
 fn checked(v: &Value) -> AiChecked {
     let item = body(v);
     let ok = item["ok"].as_bool().unwrap_or(false);
-    let reason = text(item, "reason").filter(|r| plain(r).is_some() && r.len() <= 60);
+    let reason = text(item, "reason").filter(|r| plain(r).is_some() && r.len() <= 60 && r.starts_with("ai."));
     AiChecked {
         ok,
         reason: reason.unwrap_or_else(|| (if ok { "ai.ok" } else { "ai.failed" }).into()),
@@ -260,6 +271,13 @@ mod tests {
     }
 
     #[test]
+    fn memos_words_never_reach_the_page_but_a_reason_or_an_old_memo_does() {
+        assert_eq!(guarded("ai.no-credit".into()), "ai.no-credit");
+        assert_eq!(guarded("error: unknown command 'ai'".into()), "error: unknown command 'ai'");
+        assert_eq!(guarded("Incorrect API key provided: sk-proj-****abcd".into()), crate::memory_add::REFUSED);
+    }
+
+    #[test]
     fn reads_memos_answers() {
         let m = model_of(&json!({"item": {"provider": "openai", "model": "openai/gpt-4o-mini",
             "base_url": "https://openrouter.ai/api/v1", "origin": "https://openrouter.ai", "beta": false,
@@ -275,6 +293,7 @@ mod tests {
         let c = checked(&json!({"item": {"ok": false, "reason": "ai.key-rejected", "ms": 120}}));
         assert_eq!((c.ok, c.reason.as_str(), c.ms), (false, "ai.key-rejected", Some(120)));
         assert_eq!(checked(&json!({"item": {"ok": false, "reason": "has space"}})).reason, "ai.failed");
+        assert_eq!(checked(&json!({"item": {"ok": false, "reason": "toString"}})).reason, "ai.failed");
         assert_eq!(checked(&json!({"item": {"ok": true}})).reason, "ai.ok");
     }
 }

@@ -1,6 +1,6 @@
 import { LoaderCircle } from "lucide-react"
 import { useEffect, useId, useState } from "react"
-import { hostOfOrigin } from "@/domain/ai-model"
+import { hostOfOrigin, providerHost, staysHere } from "@/domain/ai-model"
 import { REFUSED, tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import type { AiChecked, AiModel } from "@/platform/ai-model-schemas"
@@ -18,12 +18,6 @@ import { aiModelMessages, SAVE_REASONS, type SaveReason } from "./messages-ai-mo
 export const AI_PROVIDERS = ["anthropic", "openai", "ollama"] as const
 type Provider = (typeof AI_PROVIDERS)[number]
 
-const DEFAULT_HOST: Record<Provider, string> = {
-  anthropic: "api.anthropic.com",
-  openai: "api.openai.com",
-  ollama: "this computer",
-}
-
 const OPENROUTER = "https://openrouter.ai/api/v1"
 
 type Draft = { provider: Provider | null; model: string; baseUrl: string; images: boolean }
@@ -34,18 +28,6 @@ const draftOf = (m: AiModel): Draft => ({
   baseUrl: m.baseUrl ?? "",
   images: m.images,
 })
-
-/** The host the pictures and the key go to, from what is typed, so the consent names the address before it is saved. */
-export function hostOf(provider: Provider, baseUrl: string): string {
-  if (provider === "ollama") return DEFAULT_HOST.ollama
-  const typed = baseUrl.trim()
-  if (provider === "anthropic" || !typed) return DEFAULT_HOST[provider]
-  try {
-    return new URL(typed).host || typed
-  } catch {
-    return typed
-  }
-}
 
 /** Settings, "AI model": one model for reading sources and pictures. A key goes to memo once and is never shown back. */
 export function AiModelSetting() {
@@ -62,6 +44,7 @@ function AiModelSection() {
 
   useEffect(() => {
     void useAiModel.getState().load()
+    return () => useAiModel.setState({ actionError: null, failed: null, turnedOff: false, checked: null })
   }, [])
 
   return (
@@ -75,6 +58,8 @@ function AiModelSection() {
       {error ? (
         tooOldFor(error) ? (
           <p className="text-[0.95rem] text-ink-soft">{m.tooOld}</p>
+        ) : error === REFUSED ? (
+          <ErrorNotice inline>{m.refused}</ErrorNotice>
         ) : (
           <ErrorNotice inline>
             {m.failed} {error}
@@ -124,6 +109,13 @@ function AiModelForm({ saved }: { saved: AiModel }) {
     setJustSaved(false)
     setDraft((d) => ({ ...d, ...patch }))
   }
+  // A key, a model name and an address typed for one provider never carry over to another.
+  const pick = (p: Provider) => {
+    const same = p === savedDraft.provider
+    setKey("")
+    set({ provider: p, model: same ? savedDraft.model : "", baseUrl: same ? savedDraft.baseUrl : "" })
+  }
+  const host = provider === null ? "" : providerHost(provider, provider === "openai" ? draft.baseUrl : null)
   const keyHere = saved.key.stored && saved.provider === provider
   const keyLine = keyHere
     ? [
@@ -164,13 +156,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
             key={p}
             className="flex cursor-pointer items-center gap-[0.8rem] border-line px-[0.9rem] py-[0.65rem] not-first:border-t"
           >
-            <Radio
-              name={name}
-              value={p}
-              checked={provider === p}
-              disabled={busy !== null}
-              onChange={() => set({ provider: p })}
-            />
+            <Radio name={name} value={p} checked={provider === p} disabled={busy !== null} onChange={() => pick(p)} />
             <span className="font-medium">{m.providers[p]}</span>
           </label>
         ))}
@@ -254,7 +240,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
               {m.images}
             </label>
             <p id={consent} className="ml-[1.5rem] text-[0.85rem] text-ink-soft">
-              {m.imagesConsent(hostOf(provider, draft.baseUrl), local)}
+              {m.imagesConsent(host, staysHere(provider, provider === "openai" ? draft.baseUrl : null))}
             </p>
           </div>
         </>
@@ -284,7 +270,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
             {m.turnOff}
           </Button>
         )}
-        {justSaved && !actionError && (
+        {justSaved && !actionError && !turnedOff && checked === null && (
           <span role="status" className="text-[0.9rem] text-ink-soft">
             {m.saved}
           </span>
@@ -324,12 +310,10 @@ function AiModelForm({ saved }: { saved: AiModel }) {
 function CheckResult({ checked, saved }: { checked: AiChecked; saved: AiModel }) {
   const m = useMessages(aiModelMessages)
   const provider = checked.provider ?? saved.provider
-  const say = m.checkReasons[checked.reason]
+  const say = Object.hasOwn(m.checkReasons, checked.reason) ? m.checkReasons[checked.reason] : undefined
   const text = say
     ? say({
-        host:
-          hostOfOrigin(checked.origin ?? saved.origin) ||
-          (provider === "anthropic" ? DEFAULT_HOST.anthropic : DEFAULT_HOST.openai),
+        host: hostOfOrigin(checked.origin ?? saved.origin) || providerHost(provider ?? "openai", null),
         model: checked.model ?? saved.model ?? "",
         ms: checked.ms,
         ollama: provider === "ollama",
