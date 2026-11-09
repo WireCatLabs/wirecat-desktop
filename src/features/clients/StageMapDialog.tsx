@@ -1,5 +1,5 @@
-import { CheckCheck } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { Check, CheckCheck } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { crmsOf, crmToOpen, mapColumnsOf, mapDropOf, UNMAPPED, unconfirmedOf } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
 import type { Kind } from "@/domain/clients"
@@ -12,9 +12,9 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Segmented } from "@/ui/Segmented"
+import { SplitButton } from "@/ui/SplitButton"
 import { type Based, useBaseEdit, useBoard, useConfirm, useMapSet } from "./api"
-import { AddStage, StageTools } from "./BaseStageTools"
-import { OutcomeLamp } from "./Card"
+import { AddStage, StageMenu, StageRename } from "./BaseStageTools"
 import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
 import { useClients } from "./store"
@@ -49,6 +49,8 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
   const set = useMapSet(kind, pipeline)
   const confirm = useConfirm(kind, pipeline)
   const edit = useBaseEdit(kind, pipeline)
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [problem, setProblem] = useState<{ ref: string; text: string } | null>(null)
   const crms = crmsOf(read.pipelines, read.mapping)
   const key = crmToOpen(crms, asked)
   const crm = key ? crms.get(key) : undefined
@@ -121,9 +123,18 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
   const failed = set.error ?? confirm.error ?? edit.error
 
   if (!crm) return <p>{s.noCrm}</p>
+  const onEdit = (e: Parameters<typeof edit.mutate>[0]) => {
+    setProblem(null)
+    edit.mutate(e)
+  }
+  const unmapped = columns.has(UNMAPPED)
+  const template = `${unmapped ? "minmax(20rem, 1.5fr) " : ""}repeat(${read.base.length}, minmax(13rem, 1fr)) minmax(12rem, max-content)`
   return (
     <div ref={root} className="flex flex-col gap-[0.9rem] pb-[0.2rem]">
-      <p className="max-w-[80ch]">{s.mapIntro}</p>
+      {/* The dialog starts here, not on the ×: a ring around the × on open read as a warning. */}
+      <p data-autofocus tabIndex={-1} className="step-heading max-w-[80ch]">
+        {s.mapIntro[kind]}
+      </p>
       <div className="flex flex-wrap items-center gap-[0.6rem]">
         <Segmented<string>
           label={s.crm}
@@ -137,31 +148,48 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
           }))}
         />
         {crm.waiting === 0 && <span className="text-[0.9rem]">{s.allConfirmed}</span>}
-        <span className="ml-auto">
-          <AddStage base={read.base} busy={busy} onEdit={(e) => edit.mutate(e)} />
-        </span>
       </div>
       {failed && <ErrorNotice inline>{s.failed(message(failed))}</ErrorNotice>}
       <p className="sr-only" id="clients-map-hint">
         {m.dragHint}
       </p>
-      <Board columns={ids.length} boardRef={board}>
+      <Board columns={ids.length + 1} template={template} boardRef={board}>
         {ids.map((id) => {
           const refs = shown(id)
           const b = read.base.find((x) => x.ref === id)
+          const runs = byPipeline(refs, byRef)
+          const mixed = new Set(runs.map((r) => r.pipeline)).size > 1
           return (
             <BoardColumn
               key={id}
               id={id}
               label={s.stageColumn(nameOf(id), refs.length)}
-              lamp={b ? <OutcomeLamp outcome={b.outcome} /> : <Lamp tone="warn" size="sm" />}
+              lamp={b ? <OutcomeMark outcome={b.outcome} /> : <Lamp tone="warn" size="sm" />}
               name={nameOf(id)}
               count={refs.length}
+              sticky={!b}
+              tiles
+              menu={
+                b && (
+                  <StageMenu
+                    stage={b}
+                    base={read.base}
+                    busy={busy}
+                    onEdit={onEdit}
+                    onRename={() => setRenaming(b.ref)}
+                    onProblem={(text) => setProblem({ ref: b.ref, text })}
+                  />
+                )
+              }
               aside={
                 b ? (
-                  <StageTools stage={b} base={read.base} busy={busy} onEdit={(e) => edit.mutate(e)} />
+                  renaming === b.ref ? (
+                    <StageRename stage={b} base={read.base} onEdit={onEdit} onDone={() => setRenaming(null)} />
+                  ) : problem?.ref === b.ref ? (
+                    <ErrorNotice inline>{problem.text}</ErrorNotice>
+                  ) : undefined
                 ) : (
-                  <span className="flex flex-col items-start gap-[0.45rem]">
+                  <span className="flex flex-col items-stretch gap-[0.5rem] pb-[0.3rem]">
                     {s.unmappedHint}
                     {suggestions > 0 && (
                       <Button
@@ -178,63 +206,100 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                 )
               }
               target={drag?.to === id}
-              empty={refs.length === 0 && !drag ? s.noStages : undefined}
             >
-              {byPipeline(refs, byRef).map((g) => (
-                <li key={g.key} className="flex flex-col gap-[0.4rem] px-[0.7rem] py-[0.6rem]">
-                  {pipelines.length > 1 && (
-                    <p className="truncate text-[0.8rem] text-ink-dim">{pipes.get(g.pipeline)?.name}</p>
+              {refs.length === 0 && (
+                <li
+                  className={cx(
+                    "rounded-[0.45rem] border border-dashed px-[0.75rem] py-[1.1rem] text-center text-[0.9rem] transition-colors duration-(--motion-fast)",
+                    drag?.to === id ? "border-brand/60 bg-brand-soft/50 text-ink" : "border-line-strong text-ink-dim",
                   )}
-                  <div className="flex flex-wrap gap-[0.35rem]">
-                    {g.stages.map((x) => (
-                      // The badge alone carries data-card, so it slides whole when it moves; its suggestion stays.
-                      <span key={x.ref} className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-[0.25rem]">
-                        {/* biome-ignore lint/a11y/useSemanticElements: the board's drag ignores a press that starts on a <button> */}
-                        <span
-                          role="button"
-                          tabIndex={0}
-                          data-card={x.ref}
-                          aria-label={label(x.ref)}
-                          aria-roledescription={m.draggable}
-                          aria-describedby="clients-map-hint"
-                          aria-pressed={held?.key === x.ref || undefined}
-                          onPointerDown={(e) => onPointerDown(e, x.ref)}
-                          onKeyDown={(e) => onKeyDown(e, x.ref)}
-                          onClick={() => onClick(x.ref)}
+                >
+                  {s.dropHere}
+                </li>
+              )}
+              {runs.map((g) => (
+                <li key={g.key} className="flex flex-col gap-[0.4rem]">
+                  {mixed && (
+                    <p className="truncate px-[0.2rem] pt-[0.2rem] text-[0.8rem] text-ink-dim">
+                      {pipes.get(g.pipeline)?.name}
+                    </p>
+                  )}
+                  <ul className="flex flex-col gap-[0.4rem]">
+                    {g.stages.map((x) => {
+                      const to = !x.confirmed ? x.base : null
+                      return (
+                        <li
+                          key={x.ref}
+                          data-slide={x.ref}
                           className={cx(
-                            "flex min-w-0 cursor-grab touch-none items-center gap-[0.4rem] rounded-[0.35rem] border bg-app px-[0.55rem] py-[0.25rem] text-[0.9rem] text-ink select-none [-webkit-user-select:none] transition-[background-color,box-shadow] duration-(--motion-fast) hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
+                            "rounded-[0.45rem] border bg-app transition-[border-color,box-shadow] duration-(--motion-fast)",
                             drag?.key === x.ref
                               ? "border-line-strong border-dashed bg-app-3 [&>*]:invisible"
-                              : "border-line",
-                            held?.key === x.ref && "z-10 shadow-panel outline-2 outline-brand",
+                              : "border-line hover:border-line-strong",
+                            held?.key === x.ref && "relative z-10 shadow-panel outline-2 outline-brand",
                           )}
                         >
-                          <StageBadge stage={x} kind={kind} />
-                        </span>
-                        {!x.confirmed && x.base && (
-                          <button
-                            type="button"
-                            aria-label={s.confirmTo(x.base.name)}
-                            title={s.confirmTo(x.base.name)}
-                            data-suggest={x.ref}
-                            onClick={() => mapTo(x.ref, x.base?.ref ?? "", nextAfter(x.ref))}
-                            className="rounded-[0.3rem] bg-warn/15 px-[0.45rem] py-[0.1rem] text-[0.85rem] whitespace-nowrap text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-45"
+                          {/* biome-ignore lint/a11y/useSemanticElements: the board's drag ignores a press that starts on a <button> */}
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            data-card={x.ref}
+                            aria-label={label(x.ref)}
+                            aria-roledescription={m.draggable}
+                            aria-describedby="clients-map-hint"
+                            aria-pressed={held?.key === x.ref || undefined}
+                            title={pipelines.length > 1 ? pipes.get(x.pipeline)?.name : undefined}
+                            onPointerDown={(e) => onPointerDown(e, x.ref)}
+                            onKeyDown={(e) => onKeyDown(e, x.ref)}
+                            onClick={() => onClick(x.ref)}
+                            className="flex cursor-grab touch-none items-baseline gap-[0.45rem] rounded-[0.45rem] px-[0.7rem] py-[0.5rem] text-[0.95rem] leading-snug text-ink select-none [-webkit-user-select:none] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
                           >
-                            {s.suggestion(x.base.name)}
-                          </button>
-                        )}
-                      </span>
-                    ))}
-                  </div>
+                            <StageBadge stage={x} kind={kind} />
+                          </span>
+                          {to && (
+                            <div className="flex items-center gap-[0.4rem] border-line border-t py-[0.3rem] pr-[0.25rem] pl-[0.7rem]">
+                              <span className="text-[0.85rem] text-ink-dim">{s.suggested}</span>
+                              <button
+                                type="button"
+                                aria-label={s.confirmTo(to.name)}
+                                title={s.confirmTo(to.name)}
+                                data-suggest={x.ref}
+                                onClick={() => mapTo(x.ref, to.ref, nextAfter(x.ref))}
+                                className="inline-flex min-w-0 items-center gap-[0.3rem] rounded-[0.3rem] bg-warn/15 px-[0.5rem] py-[0.15rem] text-[0.875rem] font-medium text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand"
+                              >
+                                <Check className="size-[0.9rem] shrink-0" strokeWidth={2.4} aria-hidden />
+                                <span className="truncate">{to.name}</span>
+                              </button>
+                              <SplitButton
+                                compact
+                                className="ml-auto"
+                                menuLabel={s.chooseOther(x.name)}
+                                moreLabel={s.chooseOther(x.name)}
+                                items={read.base
+                                  .filter((b) => b.ref !== to.ref)
+                                  .map((b) => ({
+                                    label: b.name,
+                                    onSelect: () => mapTo(x.ref, b.ref, nextAfter(x.ref)),
+                                  }))}
+                              />
+                            </div>
+                          )}
+                        </li>
+                      )
+                    })}
+                  </ul>
                 </li>
               ))}
             </BoardColumn>
           )
         })}
+        <div className="self-start">
+          <AddStage base={read.base} busy={busy} onEdit={onEdit} />
+        </div>
       </Board>
       {drag && dragged && (
         <DragCopy drag={drag}>
-          <span className="flex items-center gap-[0.4rem] px-[0.55rem] py-[0.25rem] text-[0.9rem] text-ink">
+          <span className="flex items-baseline gap-[0.45rem] px-[0.7rem] py-[0.5rem] text-[0.95rem] leading-snug text-ink">
             <StageBadge stage={dragged} kind={kind} />
           </span>
         </DragCopy>
@@ -244,6 +309,13 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
       </p>
     </div>
   )
+}
+
+/** Only a won or lost stage carries a lamp: an open one is the usual kind, and a ring on every badge said nothing. */
+function OutcomeMark({ outcome }: { outcome: string }) {
+  const s = useMessages(stageMessages)
+  if (outcome !== "won" && outcome !== "lost") return null
+  return <Lamp tone={outcome === "won" ? "ok" : "off"} size="sm" label={s.outcomes[outcome]} />
 }
 
 /**
@@ -270,13 +342,20 @@ function StageBadge({ stage, kind }: { stage: CrmStageMap; kind: Kind }) {
   const s = useMessages(stageMessages)
   return (
     <>
-      <OutcomeLamp outcome={stage.outcome} />
-      <span className="min-w-0 [overflow-wrap:anywhere]">{stage.name}</span>
-      {stage.open > 0 && (
-        <span title={s.items(kind, stage.open)} className="font-mono text-[0.8rem] tabular-nums text-ink-dim">
-          {stage.open}
-        </span>
-      )}
+      <span className="shrink-0 self-center empty:hidden">
+        <OutcomeMark outcome={stage.outcome} />
+      </span>
+      <span className="min-w-0 hyphens-auto [overflow-wrap:break-word]">
+        {stage.name}
+        {stage.open > 0 && (
+          <span
+            title={s.items(kind, stage.open)}
+            className="ml-[0.45rem] font-mono text-[0.8rem] whitespace-nowrap tabular-nums text-ink-dim"
+          >
+            {stage.open}
+          </span>
+        )}
+      </span>
     </>
   )
 }

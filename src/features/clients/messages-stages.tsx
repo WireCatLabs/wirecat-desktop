@@ -22,13 +22,14 @@ type Words = {
   mapWaiting: (n: number) => string
   crm: string
   noCrm: string
-  mapIntro: string
+  mapIntro: Record<Kind, string>
   unmappedHint: string
   acceptAll: (n: number) => string
-  suggestion: (base: string) => string
+  suggested: string
+  chooseOther: (stage: string) => string
   confirmTo: (base: string) => string
   unmapped: string
-  noStages: string
+  dropHere: string
   toConfirm: (n: number) => string
   toConfirmBody: string
   confirmStages: string
@@ -43,11 +44,12 @@ type Words = {
   name: string
   outcome: string
   outcomes: Record<Outcome, string>
-  rename: (name: string) => string
+  columnMenu: (name: string) => string
+  rename: string
   renameTo: (name: string) => string
-  moveLeft: (name: string) => string
-  moveRight: (name: string) => string
-  remove: (name: string) => string
+  moveLeft: string
+  moveRight: string
+  remove: string
   keepOne: (outcome: string) => string
   nameProblem: Record<NameProblem, string>
 }
@@ -74,14 +76,17 @@ const en: Words = {
   mapWaiting: (n) => plural("en", n, { one: "Map stages: # stage to sort", other: "Map stages: # stages to sort" }),
   crm: "CRM",
   noCrm: "No CRM is connected yet. Its stages show here after its first sync.",
-  mapIntro:
-    "The columns are your base stages. Each stage of this CRM is a badge: drag it onto the base stage it means, or move it with Space and the arrow keys.",
-  unmappedHint: "Not placed yet. Confirm memo's suggestion or drag the stage onto its column.",
+  mapIntro: {
+    deal: "Put each CRM stage on one of your stages, and deals from every CRM line up on one board.",
+    lead: "Put each CRM stage on one of your stages, and leads from every CRM line up on one board.",
+  },
+  unmappedHint: "Accept a suggestion or drag the stage to its column.",
   acceptAll: (n) => `Accept suggestions (${n})`,
-  suggestion: (base) => `→ ${base}?`,
+  suggested: "Suggested",
+  chooseOther: (stage) => `Another stage for ${stage}`,
   confirmTo: (base) => `Confirm: ${base}`,
   unmapped: "Unmapped",
-  noStages: "No stage here yet",
+  dropHere: "Drop a stage here",
   toConfirm: (n) =>
     plural("en", n, {
       one: "# CRM stage waits for you to confirm it",
@@ -104,11 +109,12 @@ const en: Words = {
   name: "Name of the new stage",
   outcome: "Kind of stage",
   outcomes: { open: "Open", won: "Won", lost: "Lost" },
-  rename: (name) => `Rename ${name}`,
+  columnMenu: (name) => `${name}: actions`,
+  rename: "Rename",
   renameTo: (name) => `New name for ${name}`,
-  moveLeft: (name) => `Move ${name} left`,
-  moveRight: (name) => `Move ${name} right`,
-  remove: (name) => `Remove ${name}`,
+  moveLeft: "Move left",
+  moveRight: "Move right",
+  remove: "Remove",
   keepOne: (outcome) => `This is the last "${outcome}" stage; the set keeps one of each kind.`,
   nameProblem: {
     empty: "Give it a name.",
@@ -126,7 +132,7 @@ const ru: Words = {
     unsorted: "«Без этапа» — не этап: перенесите карточку на этап.",
     unmapped: "ни один этап воронки этой карточки пока не относится к этой колонке.",
     unconfirmed: "этап этой воронки для колонки пока только предложен: сначала подтвердите его.",
-    toUnmapped: "этап переносится на базовый этап; «Не размечено» — только для тех, что ещё не размечены.",
+    toUnmapped: "этап переносится на один из ваших этапов, а в «Не размечено» лежат только те, у которых его пока нет.",
   },
   unconfirmed: "Не подтверждено",
   confirmCard: (base) => `Memo предложил для этого этапа «${base}». Подтвердите в «Этапы CRM»`,
@@ -144,15 +150,18 @@ const ru: Words = {
       other: "Этапы CRM: # не размечено",
     }),
   crm: "CRM",
-  noCrm: "CRM пока не подключена. Её этапы появятся здесь после первой синхронизации.",
-  mapIntro:
-    "Колонки — ваши базовые этапы. Каждый этап этой CRM — бейдж: перетащите его на базовый этап, которому он соответствует, или перенесите пробелом и стрелками.",
-  unmappedHint: "Ещё не размечены. Подтвердите предложение Memo или перетащите этап в его колонку.",
+  noCrm: "CRM пока не подключена. Этапы этой CRM появятся здесь после первой синхронизации.",
+  mapIntro: {
+    deal: "Разложите этапы CRM по своим этапам, и сделки из всех CRM встанут на одну доску.",
+    lead: "Разложите этапы CRM по своим этапам, и лиды из всех CRM встанут на одну доску.",
+  },
+  unmappedHint: "Примите предложение или перетащите этап в нужную колонку.",
   acceptAll: (n) => `Принять предложения (${n})`,
-  suggestion: (base) => `→ ${base}?`,
+  suggested: "Предложение",
+  chooseOther: (stage) => `Другой этап для «${stage}»`,
   confirmTo: (base) => `Подтвердить: ${base}`,
   unmapped: "Не размечено",
-  noStages: "Здесь пока нет этапов",
+  dropHere: "Перетащите сюда этап",
   toConfirm: (n) =>
     plural("ru", n, {
       one: "# этап CRM ждёт вашего подтверждения",
@@ -178,12 +187,13 @@ const ru: Words = {
   name: "Название нового этапа",
   outcome: "Тип этапа",
   outcomes: { open: "Открыт", won: "Выигран", lost: "Проигран" },
-  rename: (name) => `Переименовать «${name}»`,
+  columnMenu: (name) => `Действия с этапом «${name}»`,
+  rename: "Переименовать",
   renameTo: (name) => `Новое название для «${name}»`,
-  moveLeft: (name) => `Сдвинуть «${name}» влево`,
-  moveRight: (name) => `Сдвинуть «${name}» вправо`,
-  remove: (name) => `Удалить «${name}»`,
-  keepOne: (outcome) => `Это последний этап типа «${outcome}»; в наборе остаётся по одному каждого типа.`,
+  moveLeft: "Сдвинуть влево",
+  moveRight: "Сдвинуть вправо",
+  remove: "Удалить",
+  keepOne: (outcome) => `Это последний этап типа «${outcome}». В наборе должен быть хотя бы один этап каждого типа.`,
   nameProblem: {
     empty: "Дайте ему название.",
     long: "Одна короткая строка, не с дефиса.",
@@ -213,14 +223,17 @@ const es: Words = {
   mapWaiting: (n) => plural("es", n, { one: "Etapas del CRM: # sin asignar", other: "Etapas del CRM: # sin asignar" }),
   crm: "CRM",
   noCrm: "Aún no hay ningún CRM conectado. Sus etapas aparecen aquí tras su primera sincronización.",
-  mapIntro:
-    "Las columnas son tus etapas base. Cada etapa de este CRM es una insignia: arrástrala a la etapa base que significa, o muévela con Espacio y las flechas.",
-  unmappedHint: "Aún sin asignar. Confirma la sugerencia de Memo o arrastra la etapa a su columna.",
+  mapIntro: {
+    deal: "Coloca cada etapa del CRM en una de tus etapas y las negociaciones de todos tus CRM quedan en un mismo tablero.",
+    lead: "Coloca cada etapa del CRM en una de tus etapas y los prospectos de todos tus CRM quedan en un mismo tablero.",
+  },
+  unmappedHint: "Acepta una sugerencia o arrastra la etapa a su columna.",
   acceptAll: (n) => `Aceptar sugerencias (${n})`,
-  suggestion: (base) => `→ ${base}?`,
+  suggested: "Sugerencia",
+  chooseOther: (stage) => `Otra etapa para ${stage}`,
   confirmTo: (base) => `Confirmar: ${base}`,
   unmapped: "Sin asignar",
-  noStages: "Aún no hay etapas aquí",
+  dropHere: "Suelta una etapa aquí",
   toConfirm: (n) =>
     plural("es", n, {
       one: "# etapa del CRM espera tu confirmación",
@@ -243,11 +256,12 @@ const es: Words = {
   name: "Nombre de la etapa nueva",
   outcome: "Tipo de etapa",
   outcomes: { open: "Abierta", won: "Ganada", lost: "Perdida" },
-  rename: (name) => `Renombrar ${name}`,
+  columnMenu: (name) => `${name}: acciones`,
+  rename: "Renombrar",
   renameTo: (name) => `Nuevo nombre para ${name}`,
-  moveLeft: (name) => `Mover ${name} a la izquierda`,
-  moveRight: (name) => `Mover ${name} a la derecha`,
-  remove: (name) => `Quitar ${name}`,
+  moveLeft: "Mover a la izquierda",
+  moveRight: "Mover a la derecha",
+  remove: "Quitar",
   keepOne: (outcome) => `Es la última etapa «${outcome}»; el conjunto conserva una de cada tipo.`,
   nameProblem: {
     empty: "Ponle un nombre.",

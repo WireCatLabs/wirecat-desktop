@@ -1,5 +1,5 @@
-import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react"
-import { type FormEvent, type ReactNode, useEffect, useRef, useState } from "react"
+import { Plus } from "lucide-react"
+import { type FormEvent, useEffect, useRef, useState } from "react"
 import { nameProblem, removable, stepTo } from "@/domain/base-stages"
 import { useMessages } from "@/i18n"
 import type { CrmBaseEdit, CrmBaseStage } from "@/platform/bindings"
@@ -8,107 +8,82 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldClass } from "@/ui/field"
 import { focusInPlace } from "@/ui/motion"
 import { Segmented } from "@/ui/Segmented"
+import { SplitButton } from "@/ui/SplitButton"
 import { OutcomeLamp } from "./Card"
 import { stageMessages } from "./messages-stages"
 
 type Edit = (edit: CrmBaseEdit) => void
 
-/** A base column's own line: rename in place, a step left or right, remove; or why a step cannot be taken. */
-export function StageTools({
+/** A base column's menu: a step left or right, rename, remove. A remove the set refuses says why through `onProblem`. */
+export function StageMenu({
   stage,
   base,
   busy,
   onEdit,
+  onRename,
+  onProblem,
 }: {
   stage: CrmBaseStage
   base: readonly CrmBaseStage[]
   busy: boolean
   onEdit: Edit
+  onRename: () => void
+  onProblem: (problem: string) => void
 }) {
   const s = useMessages(stageMessages)
-  const [renaming, setRenaming] = useState(false)
-  const [problem, setProblem] = useState<string | null>(null)
   const step = (by: -1 | 1) => {
     const position = stepTo(base, stage.ref, by)
     if (position !== null) onEdit({ op: "move", ref: stage.ref, position })
   }
-  if (renaming) {
-    return (
-      <NameForm
-        base={base}
-        initial={stage.name}
-        except={stage.ref}
-        label={s.renameTo(stage.name)}
-        submit={s.save}
-        onCancel={() => setRenaming(false)}
-        onSave={(name) => {
-          setRenaming(false)
-          if (name !== stage.name) onEdit({ op: "rename", ref: stage.ref, name })
-        }}
-      />
-    )
-  }
-  const icon = "size-4"
   return (
-    <span className="flex flex-col gap-[0.3rem]">
-      <span className="flex items-center gap-[0.15rem]">
-        <IconButton
-          label={s.moveLeft(stage.name)}
-          disabled={busy || stepTo(base, stage.ref, -1) === null}
-          onClick={() => step(-1)}
-        >
-          <ChevronLeft className={icon} aria-hidden />
-        </IconButton>
-        <IconButton
-          label={s.moveRight(stage.name)}
-          disabled={busy || stepTo(base, stage.ref, 1) === null}
-          onClick={() => step(1)}
-        >
-          <ChevronRight className={icon} aria-hidden />
-        </IconButton>
-        <IconButton label={s.rename(stage.name)} disabled={busy} onClick={() => setRenaming(true)}>
-          <Pencil className={icon} aria-hidden />
-        </IconButton>
-        <IconButton
-          label={s.remove(stage.name)}
-          disabled={busy}
-          onClick={() =>
+    <SplitButton
+      compact
+      menuLabel={s.columnMenu(stage.name)}
+      moreLabel={s.columnMenu(stage.name)}
+      disabled={busy}
+      items={[
+        { label: s.moveLeft, disabled: stepTo(base, stage.ref, -1) === null, onSelect: () => step(-1) },
+        { label: s.moveRight, disabled: stepTo(base, stage.ref, 1) === null, onSelect: () => step(1) },
+        { label: s.rename, onSelect: onRename },
+        {
+          label: s.remove,
+          danger: true,
+          onSelect: () =>
             removable(base, stage.ref)
               ? onEdit({ op: "remove", ref: stage.ref })
-              : setProblem(s.keepOne(s.outcomes[stage.outcome as Outcome] ?? stage.outcome))
-          }
-        >
-          <Trash2 className={icon} aria-hidden />
-        </IconButton>
-      </span>
-      {problem && <ErrorNotice inline>{problem}</ErrorNotice>}
-    </span>
+              : onProblem(s.keepOne(s.outcomes[stage.outcome as Outcome] ?? stage.outcome)),
+        },
+      ]}
+    />
   )
 }
 
-function IconButton({
-  label,
-  disabled,
-  onClick,
-  children,
+/** A base stage's name, edited in place of its column's header line. */
+export function StageRename({
+  stage,
+  base,
+  onEdit,
+  onDone,
 }: {
-  label: string
-  disabled: boolean
-  onClick: () => void
-  children: ReactNode
+  stage: CrmBaseStage
+  base: readonly CrmBaseStage[]
+  onEdit: Edit
+  onDone: () => void
 }) {
+  const s = useMessages(stageMessages)
   return (
-    <Button
-      size="sm"
-      variant="ghost"
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="!px-[0.4rem]"
-    >
-      {children}
-    </Button>
+    <NameForm
+      base={base}
+      initial={stage.name}
+      except={stage.ref}
+      label={s.renameTo(stage.name)}
+      submit={s.save}
+      onCancel={onDone}
+      onSave={(name) => {
+        onDone()
+        if (name !== stage.name) onEdit({ op: "rename", ref: stage.ref, name })
+      }}
+    />
   )
 }
 
@@ -122,13 +97,19 @@ export function AddStage({ base, busy, onEdit }: { base: readonly CrmBaseStage[]
   const [outcome, setOutcome] = useState<Outcome>("open")
   if (!open) {
     return (
-      <Button size="sm" disabled={busy} icon={<Plus className="size-4" aria-hidden />} onClick={() => setOpen(true)}>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => setOpen(true)}
+        className="flex min-h-[3rem] w-full items-center justify-center gap-[0.45rem] rounded-[0.2rem] border border-line-strong border-dashed px-[0.9rem] text-[0.95rem] font-medium text-ink-soft transition-colors duration-(--motion-fast) hover:bg-app-2 hover:text-ink disabled:opacity-45"
+      >
+        <Plus className="size-4" aria-hidden />
         {s.addStage}
-      </Button>
+      </button>
     )
   }
   return (
-    <span className="flex flex-wrap items-center gap-[0.6rem]">
+    <div className="flex flex-col items-start gap-[0.6rem] rounded-[0.2rem] border border-line-strong bg-app p-[0.75rem]">
       <Segmented<Outcome>
         label={s.outcome}
         value={outcome}
@@ -147,7 +128,7 @@ export function AddStage({ base, busy, onEdit }: { base: readonly CrmBaseStage[]
           onEdit({ op: "add", name, outcome })
         }}
       />
-    </span>
+    </div>
   )
 }
 

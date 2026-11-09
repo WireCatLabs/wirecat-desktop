@@ -18,7 +18,8 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // too old), fail (the read fails), loading (it never ends), crm-write (memo names b24 profile work: the portal's
 // copies move through it and its scope switches), crm-profiles (two b24 profiles on the portal and none named: a
 // drop asks which, and the choice holds for the session), move-fail (every move is refused), many (600 deals
-// in the portal and its partners pipeline, more than one read holds);
+// in the portal and its partners pipeline, more than one read holds), long-stages (a third CRM, Bitrix24 on
+// saas.example, whose two pipelines hold many long Russian stage names, nearly all of them memo's suggestions);
 // `?kind=lead` opens the leads.
 //
 // By default memo has base stages (cli-core #2720): the owner's only own pipeline of a kind is adopted as its base set
@@ -37,6 +38,8 @@ const BUSY = "another process holds the store (store.busy); try again in a minut
 export const NORTHSTAR: CrmAccount = { provider: "bitrix24", account: "northstar.example" }
 /** A second CRM, with stages only: the mapping dialog switches between the two. */
 const ACME: CrmAccount = { provider: "amocrm", account: "acme.example" }
+/** `?clients=long-stages`: a portal with many long Russian stage names, for the mapping dialog's layout. */
+const SAAS: CrmAccount = { provider: "bitrix24", account: "saas.example" }
 
 type Pipe = {
   ref: string
@@ -147,6 +150,48 @@ const ALL_PIPES: Pipe[] = [
   },
 ]
 
+type Row = [name: string, outcome: string, base: string | null, confirmed: boolean]
+// cspell:disable
+const SAAS_STAGES: Row[] = [
+  ["Новая", "open", "Call", true],
+  ["На стопе", "open", "Call", false],
+  ["Запись на демо", "open", "Call", false],
+  ["Предложил тестовый период", "open", "Quote", false],
+  ["На тестовом периоде", "open", "Quote", true],
+  ["Актуализировать потребность", "open", "Quote", false],
+  ["Скинул вводный урок", "open", "Quote", true],
+  ["Жду решения", "open", "Contract", false],
+  ["В работе", "open", "Contract", false],
+  ["Согласование договора с юристами клиента", "open", "Contract", false],
+  ["Ожидает оплаты", "open", null, false],
+  ["Сделка успешна", "won", "Won", false],
+  ["Сделка провалена", "lost", "Lost", false],
+  ["Не вышел на связь после демонстрации", "lost", "Lost", false],
+]
+const SAAS_PARTNER_STAGES: Row[] = [
+  ["Первичный контакт", "open", "Call", false],
+  ["Подписание партнерского соглашения", "open", "Contract", false],
+  ["Партнер активен", "won", "Won", false],
+  ["Отказ", "lost", "Lost", false],
+]
+// cspell:enable
+const saasPipe = (ref: string, name: string, rows: Row[]): Pipe => ({
+  ref,
+  name,
+  kind: "deal",
+  account: SAAS,
+  only: "base",
+  stages: rows.map(([n, outcome]) => [n, outcome]),
+})
+const saasMap = (rows: Row[]): Record<string, [string, boolean]> =>
+  Object.fromEntries(rows.flatMap(([n, , to, ok]) => (to ? [[n, [to, ok] as [string, boolean]]] : [])))
+if (scenario === "long-stages") {
+  ALL_PIPES.push(
+    saasPipe("pipeline:21", "SAAS Покупатели", SAAS_STAGES),
+    saasPipe("pipeline:22", "SAAS Партнеры", SAAS_PARTNER_STAGES),
+  )
+}
+
 const person = (name: string, role: string) => ({ name, role })
 const DAY = 86_400_000
 const ago = (days: number) => new Date(Date.now() - days * DAY).toISOString()
@@ -201,6 +246,12 @@ function seeds(based: boolean): CrmCard[] {
             },
           )
         })
+      : []
+  const saas =
+    scenario === "long-stages"
+      ? SAAS_STAGES.flatMap(([stage], i) =>
+          Array.from({ length: (i * 7) % 5 }, (_, k) => card("deal", "pipeline:21", stage, `Клиент ${i + 1}.${k + 1}`)),
+        )
       : []
   return [
     own("Quote", "Site for Northstar", {
@@ -272,6 +323,7 @@ function seeds(based: boolean): CrmCard[] {
         ]
       : []),
     ...many,
+    ...saas,
   ]
 }
 
@@ -298,6 +350,8 @@ const MAPS: Record<string, Record<string, [string, boolean]>> = {
     Done: ["Won", true],
     Cancelled: ["Lost", true],
   },
+  "pipeline:21": saasMap(SAAS_STAGES),
+  "pipeline:22": saasMap(SAAS_PARTNER_STAGES),
   "pipeline:8": {
     "Not processed": ["new", true],
     "In progress": ["contacted", false],
