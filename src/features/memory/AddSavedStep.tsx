@@ -1,7 +1,7 @@
 import { Check, LoaderCircle } from "lucide-react"
 import { useId, useState } from "react"
 import { chosenReader } from "@/domain/memory-add"
-import { cleanName } from "@/domain/people"
+import { personName } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import type { AddedSource } from "@/platform/memory-add-schemas"
 import { useReaders } from "@/shared/readers-store"
@@ -158,7 +158,7 @@ function Mentions() {
             <li key={n.ref}>
               <label className="flex cursor-pointer items-center gap-2 text-[0.95rem]">
                 <Checkbox checked={subjects.includes(n.ref)} onChange={() => toggleSubject(n.ref)} />
-                <span>{cleanName(n.name) ?? cleanName(n.foundAs[0]) ?? n.ref}</span>
+                <span>{personName({ name: n.name, contact: n.foundAs[0] }) ?? n.ref}</span>
               </label>
             </li>
           ))}

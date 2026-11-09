@@ -17,7 +17,7 @@ preview"; "Файл — то же самое — отображать превь
 - **Explained page.** A three-step strip (agent suggests → you review → agents use), one line under each tab, a
   status word ("Ждёт решения", "Используется", "Отклонено") in place of the coloured lamp.
 - **Rows as sentences.** A relationship reads "Yaro Orlov — владелец документа «Sales motivation model»". Memo's
-  `null #<id>` name placeholders are dropped (`cleanName`, the same change as the People branch `feat/people-kinds`).
+  `null #<id>` name placeholders are dropped (the shared `personName` rule from the People page).
 - **Opened row.** "What agents will know" with the effect of each button, an always visible Edit, and the source.
   A Drive or Bitrix24 link shows its document as the source.
 - **Edit.** A memory or fact: text, kind, subject (`memo add --supersedes`). A relationship: the role, chosen from

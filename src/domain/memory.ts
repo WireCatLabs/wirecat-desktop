@@ -1,4 +1,4 @@
-import { cleanName } from "./people"
+import { personName } from "./people"
 import { freeWords, setField, valuesOf } from "./query-terms"
 
 /** The parts of a Memory page record these rules read; the platform's `MemoryEntry` has them. */
@@ -347,6 +347,6 @@ export const batchSubjectOf = (e: Subjected, fallback: string) =>
 export function withCleanNames<
   T extends { subject: string | null; subjectName: string | null; target: string | null; targetName: string | null },
 >(e: T): T {
-  const clean = (ref: string | null, name: string | null) => (ref?.startsWith("person:") ? cleanName(name) : name)
+  const clean = (ref: string | null, name: string | null) => (ref?.startsWith("person:") ? personName({ name }) : name)
   return { ...e, subjectName: clean(e.subject, e.subjectName), targetName: clean(e.target, e.targetName) }
 }

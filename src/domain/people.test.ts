@@ -105,11 +105,3 @@ describe("people", () => {
     expect(reasonOf("the store is busy")).toBeNull()
   })
 })
-
-describe("cleanName and placeholders", () => {
-  it("never shows a source's placeholder for a missing name", () => {
-    expect(cleanName("Benjamin Baert null #5485")).toBe("Benjamin Baert")
-    expect(cleanName("Harry null #40823")).toBe("Harry")
-    expect(cleanName("! null #97365")).toBeNull()
-  })
-})
