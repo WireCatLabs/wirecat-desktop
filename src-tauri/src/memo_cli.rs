@@ -3,7 +3,7 @@
 
 use crate::catalog::{self, Tool};
 use crate::skills::failure;
-use crate::{paths, run};
+use crate::{memo_server, paths, run};
 use serde_json::Value;
 use std::path::Path;
 use std::time::Duration;
@@ -36,9 +36,20 @@ impl From<Failure> for String {
     }
 }
 
+/// One memo command, through memo's command server when one is free.
 pub fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Failure> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| Failure::plain(e.to_string()))?;
+    answer(memo_server::run(bin, &refs, timeout))
+}
+
+/// One command of a CLI that is not memo, in a process of its own.
+pub fn spawn_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Failure> {
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    answer(run::run(bin, &refs, Some(&paths::search_path()), timeout))
+}
+
+fn answer(out: Result<run::Output, run::RunError>) -> Result<Value, Failure> {
+    let out = out.map_err(|e| Failure::plain(e.to_string()))?;
     let json = out.json();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),

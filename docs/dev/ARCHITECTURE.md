@@ -113,6 +113,12 @@ src-tauri/src/
   memory.rs     the Memory page: memo's memories, facts, proposed actions, relationships and agents' calls; confirm, discard,
                 correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").
   memo_cli.rs   running Memo for a page: one command, its JSON or Memo's error object (Tasks, account groups).
+  memo_server.rs up to two long-running `memo` processes (memo's command server, argv in `SERVER_ARGV`) that answer
+                the pages' memo commands one line at a time, so a call skips memo's start. memo_cli, memory and people
+                call through it; a call that finds no idle server, or a memo without the server, starts its own
+                process as before. A timed-out request kills its server; servers end on a new memo program, after ten
+                minutes, and at app exit, and none runs during an install, update or removal, a store reset or repair.
+                Syncs, sign-ins and installs never use it.
   groups.rs     account groups through Memo's own `groups list|add|remove|move`.
   conversation.rs a chat or mail thread a `chat/…` or `msg/…` link opens, read only: memo's `show` (title, where, the
                 profile signed in to the account, or that the account is not here), memo's `messages show` with

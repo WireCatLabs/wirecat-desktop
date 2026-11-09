@@ -4,7 +4,7 @@
 
 use crate::catalog::{self, Tool};
 use crate::skills::{body, failure, too_old};
-use crate::{paths, run, tools};
+use crate::{run, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::Path;
@@ -44,7 +44,7 @@ fn answer(out: &run::Output) -> Result<Value, String> {
 
 fn call_at(bin: &Path, args: &[String]) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    answer(&run::run(bin, &refs, Some(&paths::search_path()), TIMEOUT).map_err(|e| e.to_string())?)
+    answer(&crate::memo_server::run(bin, &refs, TIMEOUT).map_err(|e| e.to_string())?)
 }
 
 fn text(v: &Value, key: &str) -> Option<String> {

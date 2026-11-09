@@ -536,6 +536,8 @@ pub fn reset() -> Result<Option<u64>, String> {
     let args = tool.store_reset.as_ref().ok_or("No installed tool can clear storage.")?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    // memo refuses a reset while one of its servers has the store open.
+    let _paused = crate::memo_server::pause();
     let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(10)).map_err(|e| e.to_string())?;
     match out.json() {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v["item"]["schema"].as_u64()),
