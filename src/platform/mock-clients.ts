@@ -17,7 +17,8 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // as the CLI that writes it (`writes_with`). `?clients=` none (no deals or leads yet), missing (no memo), old (memo
 // too old), fail (the read fails), loading (it never ends), crm-write (memo names b24 profile work: the portal's
 // copies move through it and its scope switches), crm-profiles (two b24 profiles on the portal and none named: a
-// drop asks which, and the choice holds for the session), move-fail (every move is refused), many (300 deals);
+// drop asks which, and the choice holds for the session), move-fail (every move is refused), many (600 deals
+// in the portal and its partners pipeline, more than one read holds);
 // `?kind=lead` opens the leads.
 //
 // By default memo has base stages (cli-core #2720): the owner's only own pipeline of a kind is adopted as its base set
@@ -187,12 +188,19 @@ function seeds(based: boolean): CrmCard[] {
     card("lead", pipe, stage, title, more)
   const many =
     scenario === "many"
-      ? Array.from({ length: 300 }, (_, i) =>
-          portal(["New", "Preparing documents", "Invoice sent"][i % 3] ?? "New", `Example order ${i + 1}`, {
-            ...money(`${(i + 1) * 100}.00`, "EUR"),
-            people: [person(i % 2 ? "Bob Lee" : "Alice Moreno", "owner")],
-          }),
-        )
+      ? Array.from({ length: 600 }, (_, i) => {
+          const stages = i % 2 ? ["New", "Preparing documents", "Invoice sent"] : ["Lead in", "Offer"]
+          return card(
+            "deal",
+            i % 2 ? "pipeline:7" : "pipeline:9",
+            stages[Math.floor(i / 2) % stages.length] ?? "New",
+            `Order ${i + 1}`,
+            {
+              ...money(`${(i + 1) * 100}.00`, "EUR"),
+              people: [person(i % 2 ? "Bob Lee" : "Alice Moreno", "owner")],
+            },
+          )
+        })
       : []
   return [
     own("Quote", "Site for Northstar", {

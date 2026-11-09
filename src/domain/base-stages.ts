@@ -25,11 +25,40 @@ export const UNMAPPED = "unmapped"
 /** memo names a row's base stage only once its stage is confirmed onto one; until then it is unsorted. */
 export const columnOf = (card: Card): string => card.baseStage?.ref ?? UNSORTED
 
+/** The base stage memo suggests for the card's stage while the owner has not confirmed it. */
+export const suggestionOf = (card: Card, mapping: readonly StageMap[]): BaseRef | null =>
+  card.baseStage
+    ? null
+    : (mapping.find((m) => m.pipeline === card.pipeline && m.name === card.stage && !m.confirmed)?.base ?? null)
+
+/** The board's column: the confirmed base stage, else memo's suggestion for it, else Unsorted. */
+export const placeOf = (card: Card, mapping: readonly StageMap[]): string =>
+  card.baseStage?.ref ?? suggestionOf(card, mapping)?.ref ?? UNSORTED
+
 /** Unsorted first, then the base set in its order; each column's cards in memo's order. */
-export function baseColumnsOf(base: readonly BaseStage[], cards: readonly Card[]) {
+export function baseColumnsOf(base: readonly BaseStage[], cards: readonly Card[], mapping: readonly StageMap[]) {
   const columns = new Map<string, string[]>([[UNSORTED, []], ...base.map((b) => [b.ref, [] as string[]] as const)])
-  for (const c of cards) (columns.get(columnOf(c)) ?? columns.get(UNSORTED))?.push(c.ref)
+  for (const c of cards) (columns.get(placeOf(c, mapping)) ?? columns.get(UNSORTED))?.push(c.ref)
   return columns
+}
+
+/**
+ * Open rows per column, all of them, not only the ones read. memo counts a base stage's confirmed stages only and puts
+ * suggested ones in Unsorted; the board places suggested stages under their suggestion, so their rows move with them.
+ */
+export function openCountsOf(
+  base: readonly (BaseStage & { open: number })[],
+  unsorted: { open: number },
+  mapping: readonly (StageMap & { open: number })[],
+) {
+  const counts = new Map<string, number>([[UNSORTED, unsorted.open], ...base.map((b) => [b.ref, b.open] as const)])
+  for (const m of mapping) {
+    const to = m.confirmed ? undefined : m.base?.ref
+    if (!to || !counts.has(to)) continue
+    counts.set(to, (counts.get(to) ?? 0) + m.open)
+    counts.set(UNSORTED, Math.max(0, (counts.get(UNSORTED) ?? 0) - m.open))
+  }
+  return counts
 }
 
 /** The stages of the card's own pipeline the owner confirmed for this base stage. */

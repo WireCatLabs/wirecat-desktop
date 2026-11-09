@@ -63,6 +63,12 @@ export function ClientsBoard({ read, kind, cards }: { read: Ready; kind: Kind; c
               count={filtered ? m.of(here.length, s.items) : s.items}
               aside={amounts.length ? sumsOf(amounts, lang) : undefined}
               target={drag?.to === s.name}
+              tiles
+              footer={
+                !filtered && s.items > (columns.get(s.name)?.length ?? 0)
+                  ? m.notLoaded(s.items - (columns.get(s.name)?.length ?? 0))
+                  : undefined
+              }
               empty={refs.length === 0 && !drag ? m.emptyColumn : undefined}
             >
               {refs.map((ref) => {

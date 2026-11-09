@@ -175,20 +175,39 @@ describe("Clients with a memo without base stages", () => {
 describe("Clients on the base stages", () => {
   beforeEach(() => freshMemo())
 
-  it("shows every pipeline's cards under the base stages, each with its real stage, and Unsorted first", async () => {
+  it("shows every pipeline's cards under the base stages, each with its stage and pipeline, and Unsorted first", async () => {
     render(<ClientsPage />)
-    const quote = await column(/^Quote/)
-    expect(within(quote).getByRole("button", { name: "Site for Northstar" })).toHaveTextContent("Quote · Sales")
-    expect(
-      within(await column(/^Call/)).getByRole("button", { name: "Northstar: 40 office chairs" }),
-    ).toHaveTextContent("New · Northstar sales")
+    const site = within(await column(/^Quote/)).getByRole("button", { name: "Site for Northstar" })
+    expect(within(site).getByText("Quote")).toBeInTheDocument()
+    expect(within(site).getByText("Sales")).toBeInTheDocument()
+    const chairs = within(await column(/^Call/)).getByRole("button", { name: "Northstar: 40 office chairs" })
+    expect(within(chairs).getByText("Northstar sales")).toBeInTheDocument()
     const unsorted = await column(/^Unsorted/)
     expect(within(unsorted).getByRole("button", { name: "Northstar: printer lease" })).toHaveTextContent(
-      "Waiting for payment · Northstar sales",
+      "Waiting for payment",
     )
-    expect(within(unsorted).getByRole("button", { name: "Acme: showroom partnership" })).toHaveTextContent(
-      "Suggested: Contract",
-    )
+  })
+
+  it("places a card under memo's suggestion, marked not confirmed, and its mark opens the stage dialog", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    const contract = await column(/^Contract/)
+    const showroom = within(contract).getByRole("button", { name: "Acme: showroom partnership" })
+    expect(showroom).toHaveTextContent("Not confirmed")
+    await user.click(within(showroom).getByRole("button", { name: /Memo suggested Contract/ }))
+    expect(useClients.getState().mapOn).toBe("bitrix24:northstar.example")
+    expect(useClients.getState().open).toBeNull()
+  })
+
+  it("counts every open card memo holds and says how many one read did not bring", async () => {
+    const memo = clientsMock()
+    vi.spyOn(platform, "clientsRead").mockImplementation(async (...args) => {
+      const r = await memo.clientsRead(...args)
+      return r.kind === "base" ? { ...r, cards: r.cards.filter((c) => c.title !== "Northstar: 40 office chairs") } : r
+    })
+    render(<ClientsPage />)
+    const call = await column(/^Call/)
+    expect(within(call).getByText("1 more not loaded")).toBeInTheDocument()
   })
 
   it("changes a card's stage from its details, among its own pipeline's stages", async () => {

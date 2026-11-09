@@ -7,6 +7,7 @@ import {
   mapColumnsOf,
   mapDropOf,
   nameProblem,
+  openCountsOf,
   preferred,
   removable,
   stepTo,
@@ -49,16 +50,32 @@ const card = (ref: string, pipeline: string, stage: string, baseStage: string | 
 const read = { base, mapping }
 
 describe("the base board's columns", () => {
-  it("puts a card under the base stage memo names for it, and one with none (unmapped or unconfirmed) in Unsorted first", () => {
-    const columns = baseColumnsOf(base, [
-      card("deal:1", "pipeline:7", "Invoice sent", "stage:3"),
-      card("deal:2", "pipeline:7", "Waiting for payment"),
-      card("deal:3", "pipeline:3", "Intro"),
-      card("deal:4", "pipeline:20", "Proposal", "stage:3"),
-    ])
+  it("puts a card under its confirmed base stage, else under memo's suggestion, else in Unsorted first", () => {
+    const columns = baseColumnsOf(
+      base,
+      [
+        card("deal:1", "pipeline:7", "Invoice sent", "stage:3"),
+        card("deal:2", "pipeline:7", "Waiting for payment"),
+        card("deal:3", "pipeline:3", "Intro"),
+        card("deal:4", "pipeline:20", "Proposal", "stage:3"),
+      ],
+      mapping,
+    )
     expect([...columns.keys()][0]).toBe(UNSORTED)
-    expect(columns.get(UNSORTED)).toEqual(["deal:2", "deal:3"])
+    expect(columns.get(UNSORTED)).toEqual(["deal:2"])
+    expect(columns.get("stage:1")).toEqual(["deal:3"])
     expect(columns.get("stage:3")).toEqual(["deal:1", "deal:4"])
+  })
+
+  it("counts a suggested stage's open rows under its suggestion instead of Unsorted", () => {
+    const counted = mapping.map((m) => ({ ...m, open: m.ref === "stage:50" ? 4 : 1 }))
+    const counts = openCountsOf(
+      base.map((b) => ({ ...b, open: b.ref === "stage:1" ? 2 : 0 })),
+      { open: 5 },
+      counted,
+    )
+    expect(counts.get("stage:1")).toBe(6)
+    expect(counts.get(UNSORTED)).toBe(1)
   })
 })
 
