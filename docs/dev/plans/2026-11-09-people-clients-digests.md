@@ -252,15 +252,17 @@ memo people list [kind:<kind>] [name:<text>] [--sort interactions|recent|name|ta
 - `ties`: as before (`chat`, `small-group`, `mail`, `meeting`, `crm`, `phone-book`, and `owner`, `added`, `task`).
 - **Counts per kind for the filter tabs**: the list envelope is a closed schema (`items`, `page`, `next`, `missing`,
   `meta`), so there is no room for counts in `meta`. Desktop asks `memo people list kind:<k> --limit 1 --json` once per
-  kind (four calls through `commands --serve`) and reads `page.total`.
+  kind (four calls through `commands --serve`) and reads `page.total`. For an agent, the answer's `next` steps
+  (`step: "people.kind"`) name each other kind that holds someone, with its count in `why` (`"120 organizations"`).
+  An unknown `kind:` or `--sort` is refused (`validation_error`).
 
 **The kind of a person**, the first rule that holds; `kind_signals` names what decided it:
 
 | Order | Kind | When (`kind_signals`) |
 | --- | --- | --- |
 | 1 | `person` | the owner, a person added by hand, a task's assignee (`owner`, `added`, `task`): never hidden |
-| 2 | `automated` | a messenger bot (`bot`); a no-reply address (`no-reply`); most of the mail from them is in the bulk mailbox (`bulk-mail`); memo's sender score marked them `bulk_never_replied` (`bulk-never-replied`); a name such as «Notifications», «Newsletter», «No-reply», «Уведомления», «Рассылка» (`automated-name`) |
-| 3 | `organization` | an identity an organization owns (`organization`); a shared role address such as `info@`, `sales@` (`role-address`); a legal form or a company word in the name: ООО, ИП, АО, LLC, Ltd, Inc, GmbH, Airlines, Bank, Hotel, Team, Support, Shop… (`company-name`) |
+| 2 | `automated` | a messenger bot (`bot`); a no-reply address (`no-reply`); most of the mail from them, 3 letters at least, is in the bulk mailbox (`bulk-mail`); memo's sender score marked them `bulk_never_replied` (`bulk-never-replied`); a name such as «Notifications», «Newsletter», «No-reply», «Уведомления», «Рассылка» (`automated-name`) |
+| 3 | `organization` | an identity an organization owns (`organization`); every address of theirs a shared role address such as `info@`, `sales@` (`role-address`); a legal form or a company word in the name: ООО, ИП, АО, LLC, Ltd, Inc, GmbH, Airlines, Bank, Hotel, Team, Support, Shop… (`company-name`) |
 | 4 | `person` | a tie to the owner (the tie names) and a readable `display_name` |
 | 5 | `unsorted` | everyone else: no tie (`no-tie`), or no name and no contact to show (`no-name`) |
 
