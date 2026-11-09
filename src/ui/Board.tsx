@@ -376,12 +376,7 @@ export function BoardColumn({
         </span>
         {aside && <span className="basis-full text-[0.85rem] font-normal text-ink-soft">{aside}</span>}
       </h2>
-      <ul
-        className={cx(
-          "flex flex-1 flex-col",
-          tiles && "min-h-0 gap-[0.5rem] overflow-y-auto bg-app-2/60 p-[0.5rem] [scrollbar-gutter:stable]",
-        )}
-      >
+      <ul className={cx("flex flex-1 flex-col", tiles && "min-h-0 gap-[0.6rem] overflow-y-auto bg-app-2")}>
         {children}
         {empty && <li className="px-[0.9rem] py-[1rem] text-[0.9rem] text-ink-dim">{empty}</li>}
       </ul>
@@ -414,9 +409,7 @@ export function DragCopy<C extends string>({ drag, children }: { drag: BoardDrag
 export const cardClass = (ghost: boolean, held: boolean, movable = true, tile = false) =>
   cx(
     "group relative select-none [-webkit-user-select:none] transition-[background-color,border-color,box-shadow] duration-(--motion-fast) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
-    tile
-      ? "shrink-0 rounded-[0.45rem] border border-line bg-app hover:border-line-strong"
-      : "border-line border-b last:border-b-0 hover:bg-app-2",
+    tile ? "shrink-0 bg-app hover:bg-app-2/40" : "border-line border-b last:border-b-0 hover:bg-app-2",
     movable ? "cursor-grab touch-none" : "cursor-pointer",
     ghost && "bg-app-3 outline-1 outline-line-strong outline-dashed -outline-offset-4 [&>*]:invisible",
     held && "z-10 bg-app shadow-panel outline-2 outline-brand",
