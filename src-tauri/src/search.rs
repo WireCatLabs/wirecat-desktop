@@ -288,6 +288,11 @@ fn pick(body: &Value, src: &ValuesSource) -> Vec<ValueItem> {
 }
 
 fn read(src: &SearchSource, out: &run::Output, limit: u32) -> Answer {
+    read_shaped(src.shape, paged(src), out, limit)
+}
+
+/// A tool's search answer in `shape`; `paged` is whether the command asked for one page of several.
+pub(crate) fn read_shaped(shape: SearchShape, paged: bool, out: &run::Output, limit: u32) -> Answer {
     let notes = stderr_notes(&out.stderr);
     if out.code != Some(0) {
         return error_of(&out.stderr, &out.stdout);
@@ -295,7 +300,7 @@ fn read(src: &SearchSource, out: &run::Output, limit: u32) -> Answer {
     let Some(body) = out.json() else {
         return Answer::Failed { message: last_line(&out.stderr, &out.stdout), candidates: Vec::new() };
     };
-    let (hits, total) = match src.shape {
+    let (hits, total) = match shape {
         SearchShape::Items => (&body["items"], &body["page"]["total"]),
         SearchShape::ItemHits => (&body["item"]["hits"], &body["item"]["total"]),
     };
@@ -311,8 +316,8 @@ fn read(src: &SearchSource, out: &run::Output, limit: u32) -> Answer {
             return Answer::Failed { message: note.clone(), candidates: Vec::new() };
         }
     }
-    let has_more = paged(src)
-        && match src.shape {
+    let has_more = paged
+        && match shape {
             SearchShape::Items => body["page"]["has_more"].as_bool().unwrap_or(false),
             // drive says nothing about more pages; a full page may have one.
             SearchShape::ItemHits => hits.len() as u64 >= u64::from(limit),
@@ -328,7 +333,7 @@ fn read(src: &SearchSource, out: &run::Output, limit: u32) -> Answer {
             all.push(note);
         }
     }
-    Answer::Hits { hits, has_more, paged: paged(src), notes: all, total }
+    Answer::Hits { hits, has_more, paged, notes: all, total }
 }
 
 fn nothing_searched(meta: &Value) -> bool {

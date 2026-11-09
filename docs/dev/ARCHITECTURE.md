@@ -169,6 +169,13 @@ src-tauri/src/
                 read from its own `models keys set --help`. Counts, hosts and whether a key exists only; never a record
                 or a key. `bin/enrichment-e2e` runs these
                 functions against a real memo in a throwaway home.
+  search_harder.rs memo's "search harder": its own `models search-consents show`, `set <provider> [--model]
+                [--base-url]` without `--yes` (where a search goes, what it sends, the price per million tokens, whether a
+                key is found), `set --yes` from the consent step only, and `revoke`. memo offers no list here, so Rust
+                checks the provider (anthropic, openai), the model's name and the address before they become arguments.
+                The Search page's button runs `search all --only notes --harder --no-record` for the shown query (a recorded run keeps the query in memo's run log), first page
+                only; memo's `order` entry under `missing` is the outcome (no entry: the model's order stands). Gated on
+                `searchHarder.minVersion` in the catalog, null until a memo with it is on npm. Keys are enrichment's.
   mail_agent.rs Email's mail agent: memo's own `schedule agent` and `schedule remove` for `mail-triage`, its last run and
                 the day's spend from `schedule list`, waiting proposals from `review status`. memo writes the timer.
                 The interval is the owner's (`--every {every}`, one of the catalog's `choices`): the page shows the

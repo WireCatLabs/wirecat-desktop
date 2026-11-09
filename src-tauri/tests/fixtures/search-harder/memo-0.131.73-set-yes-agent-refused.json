@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "permission_error",
+    "reason": "search-harder.owner-only",
+    "message": "only the owner allows search all --harder, not an agent",
+    "retry": {
+      "safe": false
+    }
+  }
+}

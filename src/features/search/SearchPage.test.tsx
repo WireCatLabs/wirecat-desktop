@@ -1,5 +1,6 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
+import type { HarderOutcome, HarderStatus } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useTools } from "@/shared/tools-store"
@@ -7,6 +8,21 @@ import { act, render, screen, waitFor, within } from "@/testing/render"
 import { SearchPage } from "./SearchPage"
 
 afterEach(() => vi.restoreAllMocks())
+
+const allowed: HarderStatus = {
+  on: true,
+  provider: "anthropic",
+  model: "claude-haiku-5-5",
+  endpointHost: "api.anthropic.com",
+  baseUrl: null,
+  proposedFromEnrichment: false,
+  consentedAt: "2026-11-09T09:12:00.000Z",
+  candidates: 30,
+  charsPerHit: 400,
+  usdPerMillionInput: 0.1,
+  usdPerMillionOutput: 0.5,
+  key: { present: false, source: null, envVar: "ANTHROPIC_API_KEY" },
+}
 
 async function choose(user: ReturnType<typeof userEvent.setup>, box: string, option: string) {
   const select = await screen.findByRole("combobox", { name: box })
@@ -222,6 +238,75 @@ describe("Search", () => {
     await user.type(screen.getByRole("combobox", { name: "Search notes" }), "plan{Enter}")
     expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
     expect(search).toHaveBeenLastCalledWith("memo", null, "plan", 50, 1)
+  }, 15000)
+
+  it("offers memo's search harder only once allowed, and says whether the model reordered the hits", async () => {
+    const user = userEvent.setup()
+    const status = vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: allowed })
+    const used = { provider: "openai", model: "gpt-4o-mini" }
+    let outcome: HarderOutcome = {
+      applied: false,
+      reason: "harder.no-key",
+      why: "no key for the provider",
+      ...used,
+      costUsd: 0,
+    }
+    const harder = vi.spyOn(platform, "searchHarderRun").mockImplementation(async (id, query, limit) => {
+      const plain = await platform.searchStore(id, null, query, limit, 1)
+      if (plain.kind !== "hits") throw new Error("the mock answers hits")
+      return { answer: { ...plain, paged: false, total: null }, outcome }
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Memo")
+    await user.type(screen.getByRole("combobox", { name: "Search notes" }), "plan{Enter}")
+    expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
+    expect(await screen.findByText("Sends your question and the first 30 results to Anthropic")).toBeInTheDocument()
+    expect(status).toHaveBeenCalledWith("memo")
+
+    await user.click(screen.getByRole("button", { name: "Search harder" }))
+    expect(
+      await screen.findByText("memo's usual order: memo has no key for the provider, nothing was sent."),
+    ).toBeInTheDocument()
+    expect(harder).toHaveBeenCalledWith("memo", "plan", 50)
+    expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Back to the usual order" }))
+    expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
+    outcome = { applied: true, reason: null, why: null, ...used, costUsd: 0.0003 }
+    await user.click(screen.getByRole("button", { name: "Search harder" }))
+    expect(
+      await screen.findByText(
+        "Reordered by OpenAI gpt-4o-mini: the results that answer your question come first. It cost less than $0.01.",
+      ),
+    ).toBeInTheDocument()
+  }, 15000)
+
+  it("sends only the query of the results on screen, never text typed since", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: allowed })
+    const harder = vi.spyOn(platform, "searchHarderRun")
+    render(<SearchPage />)
+    await choose(user, "Tool", "Memo")
+    const bar = screen.getByRole("combobox", { name: "Search notes" })
+    await user.type(bar, "plan{Enter}")
+    const button = await screen.findByRole("button", { name: "Search harder" }, { timeout: 3000 })
+    await user.click(button)
+    expect(harder).toHaveBeenLastCalledWith("memo", "plan", 50)
+    await screen.findByText(/^Reordered by Anthropic/, {}, { timeout: 4000 })
+
+    await user.type(bar, " secret draft")
+    expect(screen.queryByRole("button", { name: "Back to the usual order" })).not.toBeInTheDocument()
+    expect(harder).toHaveBeenCalledTimes(1)
+  }, 15000)
+
+  it("offers no search harder while the owner has not allowed it", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: { ...allowed, on: false } })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Memo")
+    await user.type(screen.getByRole("combobox", { name: "Search notes" }), "plan{Enter}")
+    expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Search harder" })).not.toBeInTheDocument()
   }, 15000)
 
   it("says which update a tool too old to search needs", async () => {

@@ -1832,6 +1832,26 @@
         "keySet": ["models", "keys", "set", "{provider}", "--record", "--json"],
         "keyRemove": ["models", "keys", "remove", "{provider}", "--record", "--json"]
       },
+      "searchHarder": {
+        "minVersion": "0.131.74",
+        "show": ["models", "search-consents", "show", "--no-record", "--json"],
+        "preview": ["models", "search-consents", "set", "{provider}", "{model}", "{baseUrl}", "--no-record", "--json"],
+        "on": ["models", "search-consents", "set", "{provider}", "{model}", "{baseUrl}", "--yes", "--record", "--json"],
+        "off": ["models", "search-consents", "revoke", "--record", "--json"],
+        "search": [
+          "search",
+          "all",
+          "--only",
+          "notes",
+          "--harder",
+          "--limit",
+          "{limit}",
+          "--no-record",
+          "--json",
+          "--",
+          "{query}"
+        ]
+      },
       "sync": {
         "run": ["sync", "--record", "--json"],
         "last": ["runs", "list", "command:sync status:success", "--limit", "50", "--no-record", "--json"],

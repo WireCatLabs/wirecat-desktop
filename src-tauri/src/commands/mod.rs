@@ -13,6 +13,7 @@ pub mod own_tools;
 pub mod people;
 pub mod records;
 pub mod search;
+pub mod search_harder;
 pub mod settings;
 pub mod setup_extras;
 pub mod signin;

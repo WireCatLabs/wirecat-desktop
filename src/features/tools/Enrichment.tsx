@@ -12,16 +12,13 @@ import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { SecretField } from "@/ui/SecretField"
 import { Skeleton } from "@/ui/Skeleton"
-import { type EnrichmentChoice, useEnrichment, useEnrichmentKey, useEnrichmentPreview, useSetEnrichment } from "./api"
+import { type EnrichmentChoice, useEnrichment, useEnrichmentPreview, useSetEnrichment } from "./api"
 import { type EnrichmentText, enrichmentMessages } from "./messages-enrichment"
+import { ProviderKey, providerName } from "./ProviderKey"
 import { syncKey, useSync } from "./sync-store"
 
 type Done = { on: true } | { on: false; deleted: number } | null
-
-const PROVIDERS: Record<string, string> = { openai: "OpenAI", anthropic: "Anthropic" }
-const providerName = (id: string) => PROVIDERS[id] ?? id
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 /** memo's four benchmark shares as whole percents, or nothing when one is missing. */
@@ -207,27 +204,7 @@ function Off(props: { m: EnrichmentText; status: EnrichmentStatus; deleted: numb
   )
 }
 
-function KeyLine({ m, target, keys }: { m: EnrichmentText; target: EnrichmentTarget; keys: boolean }) {
-  if (target.key.present)
-    return (
-      <span className="text-ink-soft">
-        {m.keyFound(m.keySource[target.key.source ?? ""] ?? target.key.source ?? "")}
-      </span>
-    )
-  return (
-    <span className="flex items-start gap-2 text-ink">
-      <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
-      <span>{!keys && target.key.envVar ? m.keyMissing(target.key.envVar) : m.keyMissingGeneric}</span>
-    </span>
-  )
-}
-
-/**
- * The provider key, through memo's own `models keys`: a masked field and Save while none is found, Remove while memo
- * keeps one. What is typed lives only in this field until Save hands it to Rust; the field and the request state are
- * cleared at once, so a failed save asks for it again. A memo without `models keys` gets the variable's name instead.
- */
-function KeyArea(props: {
+function EnrichmentKey(props: {
   m: EnrichmentText
   toolId: string
   target: EnrichmentTarget
@@ -235,92 +212,16 @@ function KeyArea(props: {
   onChanged?: () => void
 }) {
   const { m, toolId, target, keys, onChanged } = props
-  const change = useEnrichmentKey(toolId)
-  const [draft, setDraft] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [removed, setRemoved] = useState(false)
-  const fieldId = useId()
-  const helpId = useId()
-  const provider = providerName(target.provider)
-
-  const run = async (request: Parameters<typeof change.mutateAsync>[0], fail: (message: string) => string) => {
-    setError(null)
-    try {
-      await change.mutateAsync(request)
-      setRemoved(!("key" in request))
-      onChanged?.()
-    } catch (e) {
-      setError(fail(messageOf(e)))
-    } finally {
-      change.reset()
-    }
-  }
-
-  const failure = (
-    <Collapse open={error !== null}>
-      <ErrorNotice inline>{error}</ErrorNotice>
-    </Collapse>
-  )
-
-  if (target.key.present)
-    return (
-      <div className="flex flex-col gap-1.5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <KeyLine m={m} target={target} keys={keys} />
-          {keys && target.key.source !== "env" && (
-            <Button
-              size="sm"
-              variant="ghost"
-              disabled={change.isPending}
-              onClick={() => run({ provider: target.provider, remove: true }, m.keyRemoveFailed)}
-            >
-              {change.isPending ? m.keyRemoving : m.keyRemove}
-            </Button>
-          )}
-        </div>
-        {keys && target.key.source === "env" && target.key.envVar && (
-          <p className="text-[0.85rem] text-ink-dim">{m.keyEnvStays(target.key.envVar)}</p>
-        )}
-        {failure}
-      </div>
-    )
-  if (!keys) return <KeyLine m={m} target={target} keys={keys} />
+  const envVar = target.key.envVar
   return (
-    <form
-      className="flex flex-col gap-1.5"
-      onSubmit={(e) => {
-        e.preventDefault()
-        const key = draft
-        setDraft("")
-        run({ provider: target.provider, key }, m.keySaveFailed)
-      }}
-    >
-      <KeyLine m={m} target={target} keys={keys} />
-      {removed && <p className="text-[0.875rem] text-ink-soft">{m.keyRemoved}</p>}
-      <label htmlFor={fieldId} className="mt-1 text-[0.9rem] font-medium text-ink">
-        {m.keyLabel(provider)}
-      </label>
-      <div className="flex flex-wrap items-start gap-2">
-        <div className="min-w-0 flex-1 basis-[18rem]">
-          <SecretField
-            id={fieldId}
-            value={draft}
-            onChange={setDraft}
-            showLabel={m.keyShow}
-            hideLabel={m.keyHide}
-            disabled={change.isPending}
-            describedBy={helpId}
-          />
-        </div>
-        <Button type="submit" variant="primary" disabled={!draft.trim() || change.isPending}>
-          {change.isPending ? m.keySaving : m.keySave}
-        </Button>
-      </div>
-      <p id={helpId} className="text-[0.8rem] text-ink-dim">
-        {m.keyWhere}
-      </p>
-      {failure}
-    </form>
+    <ProviderKey
+      toolId={toolId}
+      provider={target.provider}
+      found={target.key}
+      keys={keys}
+      missing={!keys && envVar ? m.keyMissing(envVar) : m.keyMissingGeneric}
+      onChanged={onChanged}
+    />
   )
 }
 
@@ -409,7 +310,7 @@ function Consent(props: {
           )}
           <li>{m.kept}</li>
           <li className="-ml-5 list-none">
-            <KeyArea m={m} toolId={toolId} target={target} keys={preview.keys} onChanged={onRetry} />
+            <EnrichmentKey m={m} toolId={toolId} target={target} keys={preview.keys} onChanged={onRetry} />
           </li>
         </ul>
       )}
@@ -473,7 +374,7 @@ function On(props: {
         {m.progress(formatNumber(status.enriched, lang), m.records(status.records))}{" "}
         {status.pending > 0 ? m.waiting(m.records(status.pending), status.syncsNeeded ?? 1, usd) : m.allDone}
       </p>
-      {target && <KeyArea m={m} toolId={toolId} target={target} keys={status.keys} />}
+      {target && <EnrichmentKey m={m} toolId={toolId} target={target} keys={status.keys} />}
       {sync && <SyncLine m={m} sync={sync} />}
       <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="secondary" disabled={busy} onClick={onOff}>

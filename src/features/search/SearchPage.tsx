@@ -1,6 +1,7 @@
-import { ExternalLink, Search, X } from "lucide-react"
+import { AlertTriangle, ExternalLink, Search, Sparkles, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
+import { formatUsd } from "@/domain/mail-agent"
 import { formatWhen, parseQuery } from "@/domain/runs"
 import {
   ambiguousTerm,
@@ -16,10 +17,10 @@ import {
   valuesInHits,
 } from "@/domain/search"
 import { QueryBar } from "@/features/query"
-import { ToolNeeded } from "@/features/tools"
+import { providerName, ToolNeeded, useSearchHarder } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { SearchAnswer, SearchHit } from "@/platform/search-schemas"
+import type { HarderAnswer, SearchAnswer, SearchHit } from "@/platform/search-schemas"
 import { DemoNote } from "@/shared/DemoNote"
 import { ReportThis } from "@/shared/ReportThis"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -63,6 +64,8 @@ export function SearchPage() {
   // The tour's example tool is offered even when it is not installed, so its example results read whole.
   const installed = searchable.filter((t) => (installs[t.id]?.length ?? 0) > 0 || (s.demo && t.id === s.tool))
   const tool = s.tool ? findTool(s.tool) : undefined
+  // Asked as soon as memo is chosen, so the Search harder row is known before the hits arrive.
+  useSearchHarder(s.tool ?? "", Boolean(tool?.searchHarder) && !s.demo)
   const version = s.tool ? (installs[s.tool]?.[0]?.version ?? null) : null
   const what = tool?.search?.what ?? "messages"
   const parsed = useMemo(() => parseQuery(s.query), [s.query])
@@ -447,13 +450,14 @@ function resultsView(
               )
             : m.results(hits.hits.length, page)}
         </p>
-        {!hits.paged && hits.hits.length >= LIMIT && <p className="text-ink-dim">{m.bestOnly(LIMIT)}</p>}
+        {!hits.paged && !s.harder && hits.hits.length >= LIMIT && <p className="text-ink-dim">{m.bestOnly(LIMIT)}</p>}
         {hits.notes.map((n) => (
           <p key={n} className="selectable text-ink-dim">
             {n}
           </p>
         ))}
       </div>
+      {s.tool && page === 1 && <HarderBar m={m} toolId={s.tool} count={hits.hits.length} />}
       {s.groupBy ? (
         <Grouped hits={hits.hits} field={s.groupBy} now={now} m={m} />
       ) : (
@@ -463,6 +467,68 @@ function resultsView(
     </div>
   )
   return { view: "hits", node }
+}
+
+function HarderOutcomeText({ m, outcome }: { m: Words; outcome: NonNullable<HarderAnswer["outcome"]> }) {
+  const lang = useLang()
+  if (outcome.applied) {
+    const usd = outcome.costUsd
+    const cost = usd === null || usd === 0 ? null : usd < 0.01 ? m.harderLessThanCent : formatUsd(usd, lang)
+    return m.harderApplied(providerName(outcome.provider), outcome.model, cost)
+  }
+  const ours = outcome.reason ? m.harderReasons[outcome.reason] : undefined
+  return ours ? m.harderKeptBecause(ours) : m.harderKept(outcome.why ?? outcome.reason ?? "")
+}
+
+/**
+ * memo's search harder for the shown query: offered only once the owner allowed it in memo's settings, and only for
+ * the first page of two or more results. After it, what the model did, in place of the offer.
+ */
+function HarderBar({ m, toolId, count }: { m: Words; toolId: string; count: number }) {
+  const s = useSearch()
+  const allowed = Boolean(findTool(toolId)?.searchHarder)
+  const state = useSearchHarder(toolId, allowed && !s.demo)
+  const status = state.data?.state === "ready" && state.data.status.on ? state.data.status : null
+  const provider = status ? providerName(status.provider) : ""
+  // Text typed since the last search is not what the results show, so nothing is offered for it.
+  const current = s.asked?.query === s.query
+  const offer = Boolean(status) && count >= 2 && current
+  return (
+    <>
+      <Collapse open={s.harder !== null}>
+        {s.harder && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem]" aria-live="polite">
+            <p className={cx("flex items-start gap-2", s.harder.applied ? "text-ink" : "text-ink-soft")}>
+              {s.harder.applied ? (
+                <Sparkles className="mt-[0.2rem] size-4 shrink-0 text-brand" aria-hidden />
+              ) : (
+                <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
+              )}
+              <span>
+                <HarderOutcomeText m={m} outcome={s.harder} />
+              </span>
+            </p>
+            {current && (
+              <Button size="sm" variant="ghost" disabled={s.loading} onClick={() => s.search(1)}>
+                {m.usualOrder}
+              </Button>
+            )}
+          </div>
+        )}
+      </Collapse>
+      <Collapse open={s.harder === null && offer}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem]">
+          <Button size="sm" variant="secondary" disabled={s.loading || !offer} onClick={() => s.searchHarder()}>
+            <Sparkles className="size-4" aria-hidden />
+            {m.harder}
+          </Button>
+          <span className="text-ink-dim" aria-live="polite">
+            {s.loading ? m.harderBusy : m.harderNote(status?.candidates ?? 0, provider)}
+          </span>
+        </div>
+      </Collapse>
+    </>
+  )
 }
 
 /** Adds the term and searches again: a filter from a result is a new search, not a filter of this page. */

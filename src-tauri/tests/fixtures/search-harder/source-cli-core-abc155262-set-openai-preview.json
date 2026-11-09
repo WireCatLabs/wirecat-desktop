@@ -1,0 +1,18 @@
+{
+  "item": {
+    "on": false,
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "endpoint": "https://api.openai.com/v1",
+    "proposed_from": "enrichment",
+    "consented_at": null,
+    "candidates": 30,
+    "chars_per_hit": 400,
+    "usd_per_million": { "input": 0.15, "output": 0.6 },
+    "key": { "present": false, "source": null, "env_var": "OPENAI_API_KEY" },
+    "consent": "`memo search all --harder` sends the question and its first 30 hits (each one's title, date and up to 400 characters of its text) to openai (api.openai.com), model gpt-4o-mini, which puts the hits that answer it first. Only a search with --harder sends anything; with claude-haiku-5-5 one costs about $0.0003 and adds 1 to 2 seconds. `memo models search-consents revoke` turns it off.",
+    "off_command": "memo models search-consents revoke",
+    "changed": false
+  },
+  "meta": { "run_id": "synthetic", "duration_ms": 14, "complete": true }
+}

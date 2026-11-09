@@ -30,6 +30,7 @@ import { useTools } from "@/shared/tools-store"
 // (`src/platform/mock-clients.ts`).
 // `?sync=<tool>` opens that tool's details and starts its sync for personal (`src/platform/mock-sync.ts`).
 // `?memo=<state>` and `?memo-fail=<kind>` open memo's details at its first-run card (`src/platform/mock-notes-setup.ts`).
+// `?harder=<state>` opens them at search harder (`src/platform/mock-search-harder.ts`); with `?search=memo`, Search.
 // `?showcase` hides the setup and the Agents dot.
 // `?own-review=<package>` opens Add your own tool reading that name (`src/platform/mock-community.ts`).
 // `?tailscale=<state>` opens tg's, with the "MCP server (or connect web)" guide's Tailscale steps at that state (`src/platform/mock-tailscale.ts`); `?cloudflare=<state>` the same with the Cloudflare tunnel (`mock-cloudflare.ts`).
@@ -145,7 +146,7 @@ export async function runMockScenario() {
     await useTools.getState().refresh()
     useTools.getState().toggle("email")
   }
-  if (params.has("memo") || params.has("memo-fail") || params.has("enrich") || params.has("model")) {
+  if (["memo", "memo-fail", "enrich", "model", "harder"].some((k) => params.has(k))) {
     useNav.getState().go("tools")
     await useTools.getState().refresh()
     useTools.setState({ expanded: "memo" })
@@ -171,7 +172,7 @@ export async function runMockScenario() {
 
 // `?search=<tool>` opens Search on that tool's hits, `?search=empty` on a query nothing matches, `?search-fail=query`
 // on a query error with a span, `?search-fail=tool` on the tool's refusal, `?search-old=<tool>` on a tool too old to
-// search (`src/platform/mock-search.ts`). Profile personal, else the first, is chosen here as the owner would; the page
+// search (`src/platform/mock-search.ts`), `?harder-run=applied|kept` then searches harder. Profile personal, else the first, is chosen here as the owner would; the page
 // never chooses one.
 async function searchScenario(params: URLSearchParams) {
   const asked = params.get("search") ?? params.get("search-old") ?? (params.has("search-fail") ? "tg" : null)
@@ -195,6 +196,7 @@ async function searchScenario(params: URLSearchParams) {
           : "invoice",
   )
   await search.search(1)
+  if (params.has("harder-run")) await useSearch.getState().searchHarder()
 }
 
 // `?notifications=open` opens the bell's panel once the first check has answered.

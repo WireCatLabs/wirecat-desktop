@@ -74,6 +74,10 @@ pub struct Tool {
     /// Only memo: its own `models consents`, which turn search rewriting by a hosted model on and off (`enrichment.rs`).
     #[serde(default)]
     pub enrichment: Option<crate::enrichment::EnrichmentSource>,
+    /// Only memo: its own `models search-consents` and `search all --harder`, a hosted model reordering one search's
+    /// first hits (`search_harder.rs`).
+    #[serde(default)]
+    pub search_harder: Option<crate::search_harder::SearchHarderSource>,
     /// Only drive: the tool's own listing of Google Drive folders, to choose the ones it imports (`drive_folders.rs`).
     #[serde(default)]
     pub folder_picker: Option<crate::drive_folders::FolderPickerSource>,

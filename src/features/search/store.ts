@@ -2,7 +2,7 @@ import { create } from "zustand"
 import { findTool, usesProfiles } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
-import type { SearchAnswer } from "@/platform/search-schemas"
+import type { HarderAnswer, SearchAnswer } from "@/platform/search-schemas"
 import { useTools } from "@/shared/tools-store"
 
 export const LIMIT = 50
@@ -20,6 +20,8 @@ type SearchState = {
   query: string
   answer: SearchAnswer | null
   asked: Asked | null
+  /** Set while the shown answer is a search harder's: whether the model's order replaced memo's, or why not. */
+  harder: HarderAnswer["outcome"]
   /** A search is running; the last answer stays on screen meanwhile. */
   loading: boolean
   /** The call itself failed (the tool is missing, a bad argument), as opposed to an answer the tool gave. */
@@ -37,6 +39,8 @@ type SearchState = {
   chooseProfile(name: string): void
   setQuery(query: string): void
   search(page?: number): Promise<void>
+  /** The shown query once more, its first hits reordered by the model the owner allowed (memo only). */
+  searchHarder(): Promise<void>
   toggle(key: string): void
   /** The tour's example results are on screen (onboarding/demo.ts): no search runs and no answer lands meanwhile. */
   demo: boolean
@@ -69,6 +73,7 @@ export const useSearch = create<SearchState>((set, get) => {
     query: "",
     answer: null,
     asked: null,
+    harder: null,
     loading: false,
     error: null,
     expanded: null,
@@ -89,6 +94,7 @@ export const useSearch = create<SearchState>((set, get) => {
         profilesError: null,
         answer: null,
         asked: null,
+        harder: null,
         loading: false,
         error: null,
         expanded: null,
@@ -105,7 +111,7 @@ export const useSearch = create<SearchState>((set, get) => {
     chooseProfile(name) {
       if (name === get().profile) return
       seq++
-      set({ profile: name, answer: null, asked: null, loading: false, error: null, expanded: null })
+      set({ profile: name, answer: null, asked: null, harder: null, loading: false, error: null, expanded: null })
     },
     setQuery: (query) => set({ query }),
     async search(page = 1) {
@@ -117,14 +123,31 @@ export const useSearch = create<SearchState>((set, get) => {
       try {
         const answer = await platform.searchStore(asked.tool, asked.profile, asked.query, LIMIT, page)
         if (call !== seq || get().demo) return
-        set({ answer, asked, loading: false, expanded: null })
+        set({ answer, asked, harder: null, loading: false, expanded: null })
         if (answer.kind === "old") {
           const version = useTools.getState().installs[asked.tool]?.[0]?.version ?? null
           set((st) => ({ old: { ...st.old, [asked.tool]: version } }))
         }
       } catch (e) {
         if (call !== seq || get().demo) return
-        set({ error: message(e), asked, answer: null, loading: false })
+        set({ error: message(e), asked, answer: null, harder: null, loading: false })
+      }
+    },
+    async searchHarder() {
+      const s = get()
+      // The query of the results on screen, not text typed since: only what the owner sees goes to the model.
+      const shown = s.asked?.query
+      if (s.demo || s.tool === null || !shown?.trim()) return
+      const asked: Asked = { tool: s.tool, profile: null, query: shown, page: 1 }
+      const call = ++seq
+      set({ loading: true, error: null })
+      try {
+        const { answer, outcome } = await platform.searchHarderRun(asked.tool, asked.query, LIMIT)
+        if (call !== seq || get().demo) return
+        set({ answer, asked, harder: outcome, loading: false, expanded: null, groupBy: null })
+      } catch (e) {
+        if (call !== seq || get().demo) return
+        set({ error: message(e), asked, answer: null, harder: null, loading: false })
       }
     },
     toggle: (key) => set((s) => ({ expanded: s.expanded === key ? null : key })),
