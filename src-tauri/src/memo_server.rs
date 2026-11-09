@@ -20,7 +20,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 /// How memo starts its command server; the one place to change when cli-core settles the name.
-pub const SERVER_ARGV: [&str; 2] = ["commands", "serve"];
+pub const SERVER_ARGV: [&str; 2] = ["commands", "--serve"];
 const PROTOCOL: u64 = 1;
 const SERVERS: usize = 2;
 const READY_WAIT: Duration = Duration::from_secs(10);
@@ -394,7 +394,7 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
 
     const SPEAKS: &str = r#"
-if [ "$1 $2" = "commands serve" ]; then
+if [ "$1 $2" = "commands --serve" ]; then
   echo 'starting up'
   echo '{"ready":true,"protocol":1,"version":"9.9.9"}'
   while IFS= read -r line; do
@@ -414,12 +414,12 @@ echo '{"via":"spawn"}'
 "#;
 
     const REFUSES: &str = r#"
-if [ "$1 $2" = "commands serve" ]; then echo "error: unknown command 'commands'" >&2; exit 1; fi
+if [ "$1 $2" = "commands --serve" ]; then echo "error: unknown command 'commands'" >&2; exit 1; fi
 echo '{"via":"spawn"}'
 "#;
 
     const NEVER_READY: &str = r#"
-if [ "$1 $2" = "commands serve" ]; then sleep 30; fi
+if [ "$1 $2" = "commands --serve" ]; then sleep 30; fi
 echo '{"via":"spawn"}'
 "#;
 
