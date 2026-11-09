@@ -79,7 +79,7 @@ function Readers() {
 }
 
 /** Arrow keys move through the radios, so a pick is only marked there; the button saves it. */
-function ReaderChoice({ readers, describedBy }: { readers: Reader[]; describedBy: string }) {
+export function ReaderChoice({ readers, describedBy }: { readers: Reader[]; describedBy: string }) {
   const m = useMessages(readersMessages)
   const busy = useReaders((s) => s.busy)
   const name = useId()

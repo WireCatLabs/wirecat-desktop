@@ -127,17 +127,77 @@ describe("Add to memory", () => {
     expect(within(panel).getByRole("button", { name: "Tick all" })).toBeDisabled()
   })
 
-  it("never picks a reader the owner did not choose, and points to Settings", async () => {
+  it("never picks a reader for the owner, lets them choose one right there, and saves without facts", async () => {
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", false)])
+    const choose = vi.spyOn(platform, "memoryReaderChoose").mockResolvedValue([reader("ollama", true)])
     vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
     const user = userEvent.setup()
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
     expect(await within(panel).findByRole("button", { name: "Suggest facts" })).toBeDisabled()
-    expect(within(panel).getByRole("button", { name: "Open Settings" })).toBeInTheDocument()
-    await user.click(within(panel).getByRole("button", { name: "Only save it" }))
+    expect(within(panel).getByRole("radio", { name: /Ollama/ })).not.toBeChecked()
+    await user.click(within(panel).getByRole("radio", { name: /Ollama/ }))
+    await user.click(within(panel).getByRole("button", { name: "Use this reader" }))
+    expect(choose).toHaveBeenCalledWith("ollama")
+    expect(await within(panel).findByRole("button", { name: "Suggest facts" })).toBeEnabled()
+    const only = within(panel).getByRole("button", { name: "Save without facts" })
+    expect(only).toHaveAccessibleDescription(/No facts are suggested/)
+    await user.click(only)
     expect(within(panel).getByText("Kept (0)")).toBeInTheDocument()
+  })
+
+  it("points to Settings when no reader exists on this computer", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
+    vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
+    await user.click(within(panel).getByRole("button", { name: "Save" }))
+    expect(await within(panel).findByRole("button", { name: "Open Settings" })).toBeInTheDocument()
+  })
+
+  it("shows what a link holds before it is saved", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
+    const look = vi.spyOn(platform, "memoryLinkPreview").mockResolvedValue({
+      url: "https://example.org/plan",
+      title: "Q3 plan",
+      site: "example.org",
+      description: "What ships in July",
+      excerpt: "Delivery moves to the 28th.",
+      kind: "web-page",
+      chars: 3200,
+    })
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole("radio", { name: /Link/ }))
+    await user.type(within(panel).getByRole("textbox", { name: "Web address" }), "https://example.org/plan")
+    const card = await within(panel).findByRole("region", { name: "What will be saved" }, { timeout: 3000 })
+    expect(look).toHaveBeenCalledTimes(1)
+    expect(look).toHaveBeenCalledWith("https://example.org/plan")
+    expect(within(card).getByText("Q3 plan")).toBeInTheDocument()
+    expect(within(card).getByText(/Delivery moves to the 28th/)).toBeInTheDocument()
+  })
+
+  it("shows a picked picture as a thumbnail and says it is kept by its name", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([])
+    vi.spyOn(platform, "memoryPickFile").mockResolvedValue("/home/u/whiteboard.png")
+    vi.spyOn(platform, "memoryFilePreview").mockResolvedValue({
+      name: "whiteboard.png",
+      bytes: 2048,
+      mime: "image/png",
+      image: "data:image/png;base64,iVBORw==",
+      excerpt: null,
+    })
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole("radio", { name: /File/ }))
+    await user.click(within(panel).getByRole("button", { name: "Choose a file" }))
+    expect(await within(panel).findByRole("img", { name: "Preview of whiteboard.png" })).toHaveAttribute(
+      "src",
+      "data:image/png;base64,iVBORw==",
+    )
+    expect(within(panel).getByText(/kept by its name/)).toBeInTheDocument()
   })
 
   it("tells the owner to update memo when it cannot list readers yet, and still saves", async () => {

@@ -61,12 +61,18 @@ const en = {
   leaves: "It leaves this computer.",
   stays: "It does not leave this computer.",
   readsFiles: (reader: string) => `${reader} can also open files on this computer while it reads.`,
-  noReader: "To get facts from it, first choose in Settings what reads sources.",
+  noReader: "Facts need something that reads the text. Choose it here, once:",
   goSettings: "Open Settings",
   suggest: "Suggest facts",
   suggesting: "Reading it for facts…",
   suggestingHint: "This can take a few minutes with a model on this computer. The source is already saved.",
-  onlySave: "Only save it",
+  onlySave: "Save without facts",
+  onlySaveHint: "The text is already saved and turns up in Search. No facts are suggested from it.",
+  previewLoading: "Reading the page…",
+  previewFailed: "Could not look at it yet:",
+  previewLabel: "What will be saved",
+  thumbnail: (name: string) => `Preview of ${name}`,
+  imageByTitle: "A picture is kept by its name for now: its content is not read yet.",
   suggested: (facts: number, tasks: number) =>
     tasks
       ? `Suggested: ${plural("en", facts, { one: "# fact", other: "# facts" })} and ${plural("en", tasks, { one: "# task", other: "# tasks" })}.`
@@ -176,12 +182,18 @@ const ru: typeof en = {
   leaves: "Текст уходит с этого компьютера.",
   stays: "Текст не покидает этот компьютер.",
   readsFiles: (reader: string) => `Пока ${reader} читает, он может открывать и файлы на этом компьютере.`,
-  noReader: "Чтобы получить из него факты, сначала выберите в Настройках, что читает источники.",
+  noReader: "Чтобы предложить факты, кто-то должен прочитать текст. Выберите это здесь, один раз:",
   goSettings: "Открыть Настройки",
   suggest: "Предложить факты",
   suggesting: "Ищем в нём факты…",
   suggestingHint: "С моделью на этом компьютере это может занять несколько минут. Источник уже сохранён.",
-  onlySave: "Только сохранить",
+  onlySave: "Сохранить без фактов",
+  onlySaveHint: "Текст уже сохранён и находится в Поиске. Факты из него не предлагаются.",
+  previewLoading: "Читаю страницу…",
+  previewFailed: "Пока не удалось посмотреть:",
+  previewLabel: "Что сохранится",
+  thumbnail: (name) => `Превью ${name}`,
+  imageByTitle: "Картинка пока сохраняется по названию: её содержимое ещё не распознаётся.",
   suggested: (facts: number, tasks: number) => {
     const f = plural("ru", facts, { one: "# факт", few: "# факта", many: "# фактов", other: "# факта" })
     return tasks
@@ -296,12 +308,18 @@ const es: typeof en = {
   leaves: "Sale de este ordenador.",
   stays: "No sale de este ordenador.",
   readsFiles: (reader: string) => `Mientras lee, ${reader} también puede abrir archivos de este ordenador.`,
-  noReader: "Para sacar hechos, elige antes en Ajustes qué lee las fuentes.",
+  noReader: "Para proponer hechos, algo tiene que leer el texto. Elígelo aquí, una vez:",
   goSettings: "Abrir Ajustes",
   suggest: "Proponer hechos",
   suggesting: "Leyéndolo en busca de hechos…",
   suggestingHint: "Con un modelo en este ordenador puede tardar unos minutos. La fuente ya está guardada.",
-  onlySave: "Solo guardarlo",
+  onlySave: "Guardar sin hechos",
+  onlySaveHint: "El texto ya está guardado y aparece en Buscar. No se proponen hechos a partir de él.",
+  previewLoading: "Leyendo la página…",
+  previewFailed: "Aún no se pudo ver:",
+  previewLabel: "Lo que se guardará",
+  thumbnail: (name) => `Vista previa de ${name}`,
+  imageByTitle: "Por ahora una imagen se guarda por su nombre: aún no se lee su contenido.",
   suggested: (facts: number, tasks: number) =>
     tasks
       ? `Propuestos: ${plural("es", facts, { one: "# hecho", other: "# hechos" })} y ${plural("es", tasks, { one: "# tarea", other: "# tareas" })}.`

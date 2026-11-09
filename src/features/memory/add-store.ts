@@ -1,12 +1,20 @@
 import { create } from "zustand"
 import { type Draft, emptyDraft, givenOf, untickedAtFirst, type Way } from "@/domain/memory-add"
 import { platform } from "@/platform/bridge"
-import type { AddedSource, Mentions, StoredSource } from "@/platform/memory-add-schemas"
+import type { AddedSource, FilePreview, LinkPreview, Mentions, StoredSource } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { errorText as message } from "@/shared/errors"
 import { useMemory } from "./store"
 
 export type Step = "source" | "saved" | "facts" | "done"
+
+/** A look at the link or file before it is saved; `of` is the address or path it shows, so a stale one is never shown. */
+export type Preview =
+  | { of: string; state: "loading" }
+  | { of: string; state: "link"; link: LinkPreview }
+  | { of: string; state: "file"; file: FilePreview }
+  | { of: string; state: "none" }
+  | { of: string; state: "failed"; error: string }
 export const STEPS: Step[] = ["source", "saved", "facts", "done"]
 
 type AddState = {
@@ -30,6 +38,9 @@ type AddState = {
   skipped: string[]
   /** What Keep created, by finding id; empty when the owner kept the source only. */
   kept: string[]
+  preview: Preview | null
+  /** Reads the page at `url` without keeping it; the panel calls it once the address stops changing. */
+  previewLink(url: string): Promise<void>
   openPanel(): void
   close(): void
   setWay(way: Way): void
@@ -61,6 +72,7 @@ const fresh = {
   reused: false,
   skipped: [],
   kept: [],
+  preview: null,
 }
 
 export const useAddSource = create<AddState>((set, get) => ({
@@ -77,11 +89,24 @@ export const useAddSource = create<AddState>((set, get) => ({
     set({ busy: "pick", error: null })
     try {
       const path = await platform.memoryPickFile()
-      if (path) set((s) => ({ draft: { ...s.draft, path } }))
+      if (path) {
+        set((s) => ({ draft: { ...s.draft, path }, preview: { of: path, state: "loading" } }))
+        void showFile(path)
+      }
     } catch (e) {
       set({ error: message(e) })
     } finally {
       set({ busy: null })
+    }
+  },
+  async previewLink(url) {
+    set({ preview: { of: url, state: "loading" } })
+    try {
+      const link = await platform.memoryLinkPreview(url)
+      if (get().preview?.of === url)
+        set({ preview: link ? { of: url, state: "link", link } : { of: url, state: "none" } })
+    } catch (e) {
+      if (get().preview?.of === url) set({ preview: { of: url, state: "failed", error: message(e) } })
     }
   },
   async save() {
@@ -172,5 +197,16 @@ async function loadMentions(ref: string) {
   } catch (e) {
     if (useAddSource.getState().added?.ref === ref)
       useAddSource.setState({ mentions: { state: "failed", error: message(e) } })
+  }
+}
+
+async function showFile(path: string) {
+  try {
+    const file = await platform.memoryFilePreview()
+    if (useAddSource.getState().preview?.of === path)
+      useAddSource.setState({ preview: file ? { of: path, state: "file", file } : { of: path, state: "none" } })
+  } catch (e) {
+    if (useAddSource.getState().preview?.of === path)
+      useAddSource.setState({ preview: { of: path, state: "failed", error: message(e) } })
   }
 }
