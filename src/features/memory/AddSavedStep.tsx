@@ -1,6 +1,6 @@
 import { Check, LoaderCircle } from "lucide-react"
 import { useId, useState } from "react"
-import { chosenReader } from "@/domain/memory-add"
+import { chosenReader, MENDED_IN_SETTINGS } from "@/domain/memory-add"
 import { personName } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import type { AddedSource } from "@/platform/memory-add-schemas"
@@ -10,6 +10,7 @@ import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
+import { GoAiModel } from "./AddImageLine"
 import { ReaderLine } from "./AddReaderLine"
 import { Refusal } from "./AddRefusal"
 import { useAddSource } from "./add-store"
@@ -75,9 +76,12 @@ export function SourceCard({ added }: { added: AddedSource }) {
   const facts = [m.kinds[added.kind] ?? added.kind, ...(added.mime ? [added.mime] : []), m.chars(added.chars)].join(
     " · ",
   )
+  const unread = added.read === "no-text"
+  const reason = added.image?.reason ?? null
   const notes = [
     added.duplicateOf ? m.duplicate : added.kept ? m.kept[added.kept] : null,
-    added.read === "no-text" ? m.noText : null,
+    unread ? (reason ? (m.imageAfter[reason] ?? m.noText) : m.noText) : null,
+    added.image?.readBy && added.read === "extracted" ? m.imageRead(added.image.readBy) : null,
     added.truncated ? m.truncated : null,
     added.searchableWords ? m.findWords : null,
     added.searchableWords && !added.searchableMeaning ? m.findMeaning : null,
@@ -98,6 +102,7 @@ export function SourceCard({ added }: { added: AddedSource }) {
           <li key={n}>{n}</li>
         ))}
       </ul>
+      {unread && reason && MENDED_IN_SETTINGS.includes(reason) && <GoAiModel className="mt-[0.4rem] -ml-2" />}
       {added.read === "extracted" && (
         <Button
           size="sm"

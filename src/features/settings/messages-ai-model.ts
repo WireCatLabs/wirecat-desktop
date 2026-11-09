@@ -1,0 +1,251 @@
+import type { Messages } from "@/i18n"
+
+/** What a reason's line may name: the provider's host, the model, how long it took, and whether it is Ollama. */
+export type Said = { host: string; model: string; ms: number | null; ollama: boolean }
+
+export const CHECK_REASONS = [
+  "ai.ok",
+  "ai.not-set",
+  "ai.key-missing",
+  "ai.key-rejected",
+  "ai.no-credit",
+  "ai.spend-limit",
+  "ai.rate-limited",
+  "ai.model-unknown",
+  "ai.unreachable",
+  "ai.bad-answer",
+  "ai.provider-error",
+  "ai.address-refused",
+  "ai.failed",
+] as const
+export type CheckReason = (typeof CHECK_REASONS)[number]
+
+export const SAVE_REASONS = ["ai.address-refused", "ai.setting-invalid", "ai.owner-only"] as const
+export type SaveReason = (typeof SAVE_REASONS)[number]
+
+const en = {
+  heading: "AI model",
+  intro:
+    "WireCat can use a model from an AI company instead of your agent (Claude Code, Codex) for reading sources, linking chats and other jobs. You pay the company for what it reads.",
+  providers: {
+    anthropic: "Anthropic (Claude)",
+    openai: "OpenAI or compatible",
+    ollama: "Ollama on this computer (beta)",
+  } as Record<string, string>,
+  providerLegend: "Provider",
+  baseUrl: "Address (base URL)",
+  baseUrlHelp:
+    "The address WireCat sends requests to. Leave it empty for OpenAI itself. To use another service that works like OpenAI, paste its address. For OpenRouter, which gives one key for models from many companies, it is https://openrouter.ai/api/v1. Then type the model as OpenRouter names it, for example openai/gpt-4o-mini. Your key is sent only to this address.",
+  baseUrlRule: "Use an https address. http works only for a server on this computer, such as LM Studio or Ollama.",
+  key: "API key",
+  keyHelp: "Kept in your system's password store and never shown again.",
+  keyInFile: "This computer has no password store, so the key is kept in a file only your user can read.",
+  keyFromEnvironment: "The key comes from an environment variable on this computer.",
+  keyNone: "No key is saved yet.",
+  keyReplace: "A key is saved. Paste a new one only to replace it.",
+  showKey: "Show the key",
+  hideKey: "Hide the key",
+  model: "Model",
+  modelHelp: "Type the model's name as the provider writes it.",
+  ollamaBeta:
+    "Beta. Ollama must be running, and the model pulled with ollama pull. Nothing leaves this computer. Use a model that can read pictures, such as llava, if you want it to read them.",
+  images: "Read pictures with this model",
+  imagesConsent: (host: string, ollama: boolean) =>
+    ollama
+      ? "Pictures you add to memory stay on this computer. The model on it reads the text in them."
+      : `Pictures you add to memory leave this computer and go to ${host}, so the model can read the text in them. Without this, a picture is kept by its name only.`,
+  save: "Save",
+  saved: "Saved.",
+  refused: "memo refused the request. Check the provider, the model and the address, then try again.",
+  checkFailed: "The check could not run:",
+  saveFailed: "The model was not saved:",
+  saveReasons: {
+    "ai.address-refused": "This address is not allowed. Use https, or http only for a server on this computer.",
+    "ai.setting-invalid": "memo refused these settings. Check the provider, the model and the address.",
+    "ai.owner-only": "Only you can change the AI model, from WireCat or from your own terminal.",
+  } satisfies Record<SaveReason, string>,
+  check: "Check",
+  checking: "Checking…",
+  checkCost: "Sends one short request, billed by your provider. Usually under one cent.",
+  checkSaveFirst: "Check works on the saved model. Save your changes first.",
+  checkReasons: {
+    "ai.ok": (s) => `Works: ${s.model} answered${s.ms === null ? "" : ` in ${s.ms} ms`}.`,
+    "ai.not-set": () => "No AI model is set yet.",
+    "ai.key-missing": (s) => `No API key saved for ${s.host}.`,
+    "ai.key-rejected": (s) => `${s.host} refused the key. Check that it is copied whole and not revoked.`,
+    "ai.no-credit": (s) => `The account at ${s.host} has no credit left.`,
+    "ai.spend-limit": (s) => `A spending limit at ${s.host} is reached. Raise it in your account there.`,
+    "ai.rate-limited": (s) => `${s.host} is busy or the limit is reached. Try again in a minute.`,
+    "ai.model-unknown": (s) =>
+      s.ollama ? `Run ollama pull ${s.model} first.` : `${s.host} has no model called ${s.model}.`,
+    "ai.unreachable": (s) =>
+      s.ollama ? "Ollama is not running. Start it, then check again." : `Cannot reach ${s.host}.`,
+    "ai.bad-answer": (s) => `${s.host} answered, but not with text. The model may not support chat.`,
+    "ai.provider-error": (s) => `${s.host} has a problem on its side. Try again later.`,
+    "ai.address-refused": () => "This address is not allowed. Use https, or http only for a server on this computer.",
+    "ai.failed": (s) => `${s.host} refused the request.`,
+  } as Record<string, (s: Said) => string>,
+  checkUnknown: "The check failed for a reason WireCat has no words for. Update WireCat and memo.",
+  turnOff: "Turn off",
+  turnedOff: "The AI model is off. Your key stays where it is.",
+  offFailed: "It was not turned off:",
+  summary: (provider: string, model: string) => `In use: ${provider}, ${model}.`,
+  off: "No AI model is set. Agents and readers work as before.",
+  looking: "Looking at the AI model…",
+  failed: "Could not read the AI model:",
+  tooOld: "Memo on this computer cannot use an AI model yet. Update it on the Tools page.",
+}
+
+const ru: typeof en = {
+  heading: "Модель ИИ",
+  intro:
+    "WireCat может использовать модель ИИ-компании вместо вашего агента (Claude Code, Codex): для чтения источников, связывания чатов и других задач. Вы платите компании за прочитанное.",
+  providers: {
+    anthropic: "Anthropic (Claude)",
+    openai: "OpenAI или совместимый",
+    ollama: "Ollama на этом компьютере (бета)",
+  },
+  providerLegend: "Провайдер",
+  baseUrl: "Адрес (base URL)",
+  baseUrlHelp:
+    "Адрес, на который WireCat отправляет запросы. Для самого OpenAI оставьте поле пустым. Чтобы подключить другой сервис, который работает как OpenAI, вставьте его адрес. Для OpenRouter (один ключ для моделей многих компаний) это https://openrouter.ai/api/v1. Модель укажите так, как её называет OpenRouter, например openai/gpt-4o-mini. Ключ уходит только на этот адрес.",
+  baseUrlRule:
+    "Нужен адрес с https. http подходит только для сервера на этом компьютере, например LM Studio или Ollama.",
+  key: "API-ключ",
+  keyHelp: "Хранится в системном хранилище паролей и больше не показывается.",
+  keyInFile:
+    "На этом компьютере нет хранилища паролей, поэтому ключ хранится в файле, который может прочитать только ваш пользователь.",
+  keyFromEnvironment: "Ключ берётся из переменной окружения на этом компьютере.",
+  keyNone: "Ключ пока не сохранён.",
+  keyReplace: "Ключ сохранён. Вставляйте новый, только если хотите заменить его.",
+  showKey: "Показать ключ",
+  hideKey: "Скрыть ключ",
+  model: "Модель",
+  modelHelp: "Впишите название модели так, как его пишет провайдер.",
+  ollamaBeta:
+    "Бета. Ollama должна быть запущена, а модель скачана командой ollama pull. Ничего не покидает этот компьютер. Чтобы модель читала картинки, возьмите такую, что их понимает, например llava.",
+  images: "Распознавать картинки этой моделью",
+  imagesConsent: (host: string, ollama: boolean) =>
+    ollama
+      ? "Картинки, которые вы добавляете в память, остаются на этом компьютере. Текст в них читает модель на нём."
+      : `Картинки, которые вы добавляете в память, уходят с этого компьютера на ${host}, чтобы модель прочитала текст в них. Без этого картинка сохраняется только по названию.`,
+  save: "Сохранить",
+  saved: "Сохранено.",
+  refused: "memo отклонил запрос. Проверьте провайдера, модель и адрес и попробуйте снова.",
+  checkFailed: "Проверку не удалось выполнить:",
+  saveFailed: "Модель не сохранена:",
+  saveReasons: {
+    "ai.address-refused": "Этот адрес не разрешён. Нужен https, а http только для сервера на этом компьютере.",
+    "ai.setting-invalid": "memo отказался от этих настроек. Проверьте провайдера, модель и адрес.",
+    "ai.owner-only": "Модель ИИ можете менять только вы, из WireCat или из своего терминала.",
+  },
+  check: "Проверить",
+  checking: "Проверяем…",
+  checkCost: "Отправляет один короткий запрос, его оплачиваете вы у провайдера. Обычно меньше цента.",
+  checkSaveFirst: "Проверка работает с сохранённой моделью. Сначала сохраните изменения.",
+  checkReasons: {
+    "ai.ok": (s) => `Работает: ${s.model} ответила${s.ms === null ? "" : ` за ${s.ms} мс`}.`,
+    "ai.not-set": () => "Модель ИИ пока не выбрана.",
+    "ai.key-missing": (s) => `Для ${s.host} не сохранён ключ API.`,
+    "ai.key-rejected": (s) => `${s.host} отклонил ключ. Проверьте, что он скопирован целиком и не отозван.`,
+    "ai.no-credit": (s) => `На счёте у ${s.host} закончились деньги.`,
+    "ai.spend-limit": (s) => `Достигнут лимит расходов у ${s.host}. Поднимите его в своём аккаунте там.`,
+    "ai.rate-limited": (s) => `${s.host} занят или достигнут лимит. Попробуйте через минуту.`,
+    "ai.model-unknown": (s) =>
+      s.ollama ? `Сначала выполните ollama pull ${s.model}.` : `У ${s.host} нет модели ${s.model}.`,
+    "ai.unreachable": (s) =>
+      s.ollama ? "Ollama не запущена. Запустите её и проверьте снова." : `Не удаётся связаться с ${s.host}.`,
+    "ai.bad-answer": (s) => `${s.host} ответил, но не текстом. Возможно, модель не умеет вести чат.`,
+    "ai.provider-error": (s) => `У ${s.host} неполадка на их стороне. Попробуйте позже.`,
+    "ai.address-refused": () => "Этот адрес не разрешён. Нужен https, а http только для сервера на этом компьютере.",
+    "ai.failed": (s) => `${s.host} отклонил запрос.`,
+  },
+  checkUnknown: "Проверка не удалась по причине, для которой у WireCat нет слов. Обновите WireCat и memo.",
+  turnOff: "Выключить",
+  turnedOff: "Модель ИИ выключена. Ключ остался там, где был.",
+  offFailed: "Не удалось выключить:",
+  summary: (provider: string, model: string) => `Используется: ${provider}, ${model}.`,
+  off: "Модель ИИ не выбрана. Агенты и читатели работают как раньше.",
+  looking: "Смотрим модель ИИ…",
+  failed: "Не удалось прочитать модель ИИ:",
+  tooOld: "Memo на этом компьютере пока не умеет работать с моделью ИИ. Обновите его на странице Инструменты.",
+}
+
+const es: typeof en = {
+  heading: "Modelo de IA",
+  intro:
+    "WireCat puede usar un modelo de una empresa de IA en lugar de tu agente (Claude Code, Codex) para leer fuentes, enlazar chats y otras tareas. Pagas a la empresa por lo que lee.",
+  providers: {
+    anthropic: "Anthropic (Claude)",
+    openai: "OpenAI o compatible",
+    ollama: "Ollama en este ordenador (beta)",
+  },
+  providerLegend: "Proveedor",
+  baseUrl: "Dirección (base URL)",
+  baseUrlHelp:
+    "La dirección a la que WireCat envía las peticiones. Déjala vacía para OpenAI. Para otro servicio que funciona como OpenAI, pega su dirección. Para OpenRouter, que da una sola clave para modelos de muchas empresas, es https://openrouter.ai/api/v1. Escribe el modelo como lo llama OpenRouter, por ejemplo openai/gpt-4o-mini. Tu clave solo se envía a esta dirección.",
+  baseUrlRule:
+    "Usa una dirección https. http solo funciona con un servidor en este ordenador, como LM Studio u Ollama.",
+  key: "Clave de API",
+  keyHelp: "Se guarda en el almacén de contraseñas del sistema y no se vuelve a mostrar.",
+  keyInFile:
+    "Este ordenador no tiene almacén de contraseñas, así que la clave se guarda en un archivo que solo tu usuario puede leer.",
+  keyFromEnvironment: "La clave viene de una variable de entorno de este ordenador.",
+  keyNone: "Aún no hay ninguna clave guardada.",
+  keyReplace: "Hay una clave guardada. Pega otra solo para reemplazarla.",
+  showKey: "Mostrar la clave",
+  hideKey: "Ocultar la clave",
+  model: "Modelo",
+  modelHelp: "Escribe el nombre del modelo como lo escribe el proveedor.",
+  ollamaBeta:
+    "Beta. Ollama debe estar en marcha y el modelo descargado con ollama pull. Nada sale de este ordenador. Si quieres que lea imágenes, usa un modelo que las entienda, como llava.",
+  images: "Leer imágenes con este modelo",
+  imagesConsent: (host: string, ollama: boolean) =>
+    ollama
+      ? "Las imágenes que añades a la memoria se quedan en este ordenador. El modelo que corre en él lee el texto que contienen."
+      : `Las imágenes que añades a la memoria salen de este ordenador y van a ${host}, para que el modelo lea el texto que contienen. Sin esto, una imagen se guarda solo por su nombre.`,
+  save: "Guardar",
+  saved: "Guardado.",
+  refused: "memo rechazó la petición. Revisa el proveedor, el modelo y la dirección y vuelve a intentarlo.",
+  checkFailed: "No se pudo hacer la comprobación:",
+  saveFailed: "El modelo no se guardó:",
+  saveReasons: {
+    "ai.address-refused":
+      "Esta dirección no está permitida. Usa https, o http solo para un servidor en este ordenador.",
+    "ai.setting-invalid": "memo rechazó estos ajustes. Revisa el proveedor, el modelo y la dirección.",
+    "ai.owner-only": "Solo tú puedes cambiar el modelo de IA, desde WireCat o desde tu propia terminal.",
+  },
+  check: "Comprobar",
+  checking: "Comprobando…",
+  checkCost: "Envía una petición corta que cobra tu proveedor. Suele costar menos de un céntimo.",
+  checkSaveFirst: "La comprobación usa el modelo guardado. Guarda primero tus cambios.",
+  checkReasons: {
+    "ai.ok": (s) => `Funciona: ${s.model} respondió${s.ms === null ? "" : ` en ${s.ms} ms`}.`,
+    "ai.not-set": () => "Aún no hay ningún modelo de IA elegido.",
+    "ai.key-missing": (s) => `No hay clave de API guardada para ${s.host}.`,
+    "ai.key-rejected": (s) => `${s.host} rechazó la clave. Comprueba que está copiada entera y no revocada.`,
+    "ai.no-credit": (s) => `La cuenta en ${s.host} se quedó sin saldo.`,
+    "ai.spend-limit": (s) => `Se alcanzó un límite de gasto en ${s.host}. Súbelo en tu cuenta allí.`,
+    "ai.rate-limited": (s) => `${s.host} está ocupado o se alcanzó el límite. Inténtalo en un minuto.`,
+    "ai.model-unknown": (s) =>
+      s.ollama ? `Ejecuta primero ollama pull ${s.model}.` : `${s.host} no tiene ningún modelo llamado ${s.model}.`,
+    "ai.unreachable": (s) =>
+      s.ollama ? "Ollama no está en marcha. Inícialo y comprueba de nuevo." : `No se puede conectar con ${s.host}.`,
+    "ai.bad-answer": (s) => `${s.host} respondió, pero no con texto. Puede que el modelo no admita chat.`,
+    "ai.provider-error": (s) => `${s.host} tiene un problema por su parte. Inténtalo más tarde.`,
+    "ai.address-refused": () =>
+      "Esta dirección no está permitida. Usa https, o http solo para un servidor en este ordenador.",
+    "ai.failed": (s) => `${s.host} rechazó la petición.`,
+  },
+  checkUnknown: "La comprobación falló por un motivo para el que WireCat no tiene palabras. Actualiza WireCat y memo.",
+  turnOff: "Desactivar",
+  turnedOff: "El modelo de IA está desactivado. Tu clave sigue donde estaba.",
+  offFailed: "No se desactivó:",
+  summary: (provider: string, model: string) => `En uso: ${provider}, ${model}.`,
+  off: "No hay ningún modelo de IA elegido. Los agentes y lectores funcionan como antes.",
+  looking: "Mirando el modelo de IA…",
+  failed: "No se pudo leer el modelo de IA:",
+  tooOld: "Memo en este ordenador aún no puede usar un modelo de IA. Actualízalo en la página Herramientas.",
+}
+
+export const aiModelMessages: Messages<typeof en> = { en, ru, es }

@@ -25,7 +25,8 @@ const en = {
     "WireCat opens the link once, from this computer, and keeps the text as it reads today. A page that needs you signed in, such as a private Google Doc, cannot be read this way: save it as a file and add the file.",
   chooseFile: "Choose a file",
   chooseOther: "Choose another",
-  fileHint: "PDF, Word, text and saved web pages, up to 50 MB. A picture or a scan is kept by its title only.",
+  fileHint:
+    "PDF, Word, text, saved web pages and pictures, up to 50 MB. A picture is read only when an AI model is set in Settings.",
   missing: {
     text: "Write or paste some text to go on.",
     tooLong: "This is more text than WireCat keeps. Add a shorter part.",
@@ -72,7 +73,28 @@ const en = {
   previewLoading: "Reading the page…",
   previewLabel: "What will be saved",
   thumbnail: (name: string) => `Preview of ${name}`,
-  imageByTitle: "A picture is kept by its name for now: its content is not read yet.",
+  imageWillRead: (model: string, host: string, ollama: boolean) =>
+    `The text in this picture will be read by ${model}. ${ollama ? "The picture stays on this computer." : `The picture is sent to ${host}.`}`,
+  imageBefore: {
+    "ai.not-set": "No AI model is set, so this picture will be kept by its name only.",
+    "ai.images-not-allowed":
+      "An AI model is set, but reading pictures is off, so this picture will be kept by its name only.",
+    "ai.key-missing": "The AI model has no API key saved, so this picture will be kept by its name only.",
+  } as Record<string, string>,
+  imageRead: (by: string) => `Text recognised by ${by}.`,
+  imageAfter: {
+    "ai.not-set": "No AI model is set, so the picture is kept by its name only.",
+    "ai.images-not-allowed": "Reading pictures is off, so the picture is kept by its name only.",
+    "ai.key-missing": "The AI model has no API key saved, so the picture is kept by its name only.",
+    "image.unsupported":
+      "This picture cannot be read: GIF, over 4 MB, or too many pixels. It is kept by its name only.",
+    "ai.failed": "The AI model could not read the picture, so it is kept by its name only. Check it in Settings.",
+  } as Record<string, string>,
+  imageNeedsUpdate:
+    "Memo on this computer cannot read pictures with an AI model yet, so this picture will be kept by its name only. Update it on the Tools page.",
+  imageUnknown:
+    "WireCat could not look at the AI model, so it cannot say whether this picture will be read. Check it in Settings.",
+  goAiModel: "Open AI model settings",
   suggested: (facts: number, tasks: number) =>
     tasks
       ? `Suggested: ${plural("en", facts, { one: "# fact", other: "# facts" })} and ${plural("en", tasks, { one: "# task", other: "# tasks" })}.`
@@ -149,7 +171,8 @@ const ru: typeof en = {
     "WireCat откроет ссылку один раз с этого компьютера и сохранит текст таким, какой он сегодня. Страницу, для которой нужно войти, например закрытый Google Doc, так не прочитать: сохраните её файлом и добавьте файл.",
   chooseFile: "Выбрать файл",
   chooseOther: "Выбрать другой",
-  fileHint: "PDF, Word, текст и сохранённые страницы, до 50 МБ. Картинка или скан сохраняются только по названию.",
+  fileHint:
+    "PDF, Word, текст, сохранённые страницы и картинки, до 50 МБ. Картинку читают, только если в Настройках выбрана модель ИИ.",
   missing: {
     text: "Напишите или вставьте текст, чтобы продолжить.",
     tooLong: "Это больше текста, чем хранит WireCat. Добавьте часть покороче.",
@@ -193,7 +216,29 @@ const ru: typeof en = {
   previewLoading: "Читаю страницу…",
   previewLabel: "Что сохранится",
   thumbnail: (name) => `Превью ${name}`,
-  imageByTitle: "Картинка пока сохраняется по названию: её содержимое ещё не распознаётся.",
+  imageWillRead: (model: string, host: string, ollama: boolean) =>
+    `Текст на этой картинке прочитает ${model}. ${ollama ? "Картинка остаётся на этом компьютере." : `Картинка уйдёт на ${host}.`}`,
+  imageBefore: {
+    "ai.not-set": "Модель ИИ не выбрана, поэтому картинка сохранится только по названию.",
+    "ai.images-not-allowed":
+      "Модель ИИ выбрана, но чтение картинок выключено, поэтому картинка сохранится только по названию.",
+    "ai.key-missing": "Для модели ИИ не сохранён ключ API, поэтому картинка сохранится только по названию.",
+  },
+  imageRead: (by: string) => `Текст распознал ${by}.`,
+  imageAfter: {
+    "ai.not-set": "Модель ИИ не выбрана, поэтому картинка сохранена только по названию.",
+    "ai.images-not-allowed": "Чтение картинок выключено, поэтому картинка сохранена только по названию.",
+    "ai.key-missing": "Для модели ИИ не сохранён ключ API, поэтому картинка сохранена только по названию.",
+    "image.unsupported":
+      "Эту картинку не прочитать: это GIF, или она больше 4 МБ, или в ней слишком много пикселей. Она сохранена только по названию.",
+    "ai.failed":
+      "Модель ИИ не смогла прочитать картинку, поэтому она сохранена только по названию. Проверьте модель в Настройках.",
+  },
+  imageNeedsUpdate:
+    "Memo на этом компьютере пока не умеет читать картинки с помощью модели ИИ, поэтому картинка сохранится только по названию. Обновите его на странице Инструменты.",
+  imageUnknown:
+    "WireCat не смог посмотреть модель ИИ, поэтому не может сказать, прочитают ли эту картинку. Проверьте её в Настройках.",
+  goAiModel: "Открыть настройки модели ИИ",
   suggested: (facts: number, tasks: number) => {
     const f = plural("ru", facts, { one: "# факт", few: "# факта", many: "# фактов", other: "# факта" })
     return tasks
@@ -275,7 +320,7 @@ const es: typeof en = {
   chooseFile: "Elegir un archivo",
   chooseOther: "Elegir otro",
   fileHint:
-    "PDF, Word, texto y páginas web guardadas, hasta 50 MB. Una imagen o un escaneo se guarda solo por su título.",
+    "PDF, Word, texto, páginas web guardadas e imágenes, hasta 50 MB. Una imagen se lee solo si hay un modelo de IA elegido en Ajustes.",
   missing: {
     text: "Escribe o pega algo de texto para seguir.",
     tooLong: "Es más texto del que guarda WireCat. Añade una parte más corta.",
@@ -319,7 +364,30 @@ const es: typeof en = {
   previewLoading: "Leyendo la página…",
   previewLabel: "Lo que se guardará",
   thumbnail: (name) => `Vista previa de ${name}`,
-  imageByTitle: "Por ahora una imagen se guarda por su nombre: aún no se lee su contenido.",
+  imageWillRead: (model: string, host: string, ollama: boolean) =>
+    `El texto de esta imagen lo leerá ${model}. ${ollama ? "La imagen se queda en este ordenador." : `La imagen se enviará a ${host}.`}`,
+  imageBefore: {
+    "ai.not-set": "No hay ningún modelo de IA elegido, así que esta imagen se guardará solo por su nombre.",
+    "ai.images-not-allowed":
+      "Hay un modelo de IA, pero la lectura de imágenes está desactivada, así que esta imagen se guardará solo por su nombre.",
+    "ai.key-missing":
+      "El modelo de IA no tiene clave de API guardada, así que esta imagen se guardará solo por su nombre.",
+  },
+  imageRead: (by: string) => `Texto reconocido por ${by}.`,
+  imageAfter: {
+    "ai.not-set": "No hay ningún modelo de IA elegido, así que la imagen se guarda solo por su nombre.",
+    "ai.images-not-allowed": "La lectura de imágenes está desactivada, así que la imagen se guarda solo por su nombre.",
+    "ai.key-missing": "El modelo de IA no tiene clave de API guardada, así que la imagen se guarda solo por su nombre.",
+    "image.unsupported":
+      "Esta imagen no se puede leer: es un GIF, pesa más de 4 MB o tiene demasiados píxeles. Se guarda solo por su nombre.",
+    "ai.failed":
+      "El modelo de IA no pudo leer la imagen, así que se guarda solo por su nombre. Revisa el modelo en Ajustes.",
+  },
+  imageNeedsUpdate:
+    "Memo en este ordenador aún no puede leer imágenes con un modelo de IA, así que esta imagen se guardará solo por su nombre. Actualízalo en la página Herramientas.",
+  imageUnknown:
+    "WireCat no pudo mirar el modelo de IA, así que no puede decir si esta imagen se leerá. Revísalo en Ajustes.",
+  goAiModel: "Abrir los ajustes del modelo de IA",
   suggested: (facts: number, tasks: number) =>
     tasks
       ? `Propuestos: ${plural("es", facts, { one: "# hecho", other: "# hechos" })} y ${plural("es", tasks, { one: "# tarea", other: "# tareas" })}.`

@@ -22,9 +22,9 @@ const MAX_TITLE: usize = 500;
 const MAX_URL: usize = 2048;
 const SUBJECTS: [&str; 5] = ["person", "organization", "project", "task", "meeting"];
 
-type Feed<'a> = dyn Fn(&[String], Option<&[u8]>) -> Result<Value, String> + Sync + 'a;
+pub(crate) type Feed<'a> = dyn Fn(&[String], Option<&[u8]>) -> Result<Value, String> + Sync + 'a;
 
-fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration) -> Result<Value, String> {
+fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration, worded: &[&str]) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let cmd = run::command(bin, &refs, Some(&paths::search_path()));
     let (mut stdout, mut stderr) = (String::new(), String::new());
@@ -39,7 +39,7 @@ fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration) -> 
         },
     )
     .map_err(|e| e.to_string())?;
-    panel_answer(&run::Output { code, stdout, stderr }, input.is_some())
+    panel_answer(&run::Output { code, stdout, stderr }, input.is_some(), worded)
 }
 
 /// memo's refusals of a source or a reader, which the panel words in the owner's language.
@@ -48,9 +48,9 @@ pub const REFUSED: &str = "memo.refused";
 
 /// memo's message can quote what it read on stdin (the pasted text or the key), escaped or cut so that no replace
 /// finds it. A run fed on stdin therefore answers only with a reason the panel knows, never with memo's words.
-fn panel_answer(out: &run::Output, fed: bool) -> Result<Value, String> {
+fn panel_answer(out: &run::Output, fed: bool, prefixes: &[&str]) -> Result<Value, String> {
     let reason = out.json().and_then(|v| text(&v["error"], "reason"));
-    let worded = reason.filter(|r| r.len() <= 60 && plain(r).is_some() && WORDED.iter().any(|p| r.starts_with(p)));
+    let worded = reason.filter(|r| r.len() <= 60 && plain(r).is_some() && prefixes.iter().any(|p| r.starts_with(p)));
     match (answer(out), worded) {
         (Ok(v), _) => Ok(v),
         (Err(_), Some(reason)) => Err(reason),
@@ -60,8 +60,17 @@ fn panel_answer(out: &run::Output, fed: bool) -> Result<Value, String> {
 }
 
 fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Feed) -> Result<T, String>) -> Result<T, String> {
+    with_memo_worded(timeout, &WORDED, f)
+}
+
+/// As `with_memo`, for a feature whose refusals carry reasons with other prefixes.
+pub(crate) fn with_memo_worded<T>(
+    timeout: Duration,
+    worded: &[&str],
+    f: impl FnOnce(&Feed) -> Result<T, String>,
+) -> Result<T, String> {
     let bin = memory::memo_bin()?;
-    f(&|args: &[String], input: Option<&[u8]>| fed(&bin, args, input, timeout))
+    f(&|args: &[String], input: Option<&[u8]>| fed(&bin, args, input, timeout, worded))
 }
 
 /// The file the owner last chose in the system's file window. Only that path reaches `sources add`: the interface
@@ -117,9 +126,19 @@ pub struct Added {
     pub searchable_words: bool,
     pub searchable_meaning: bool,
     pub subjects: Vec<String>,
+    /// Only for a picture: who read it, or why nobody did.
+    pub image: Option<ImageRead>,
 }
 
-fn one_line(what: &str, s: &str, most: usize) -> Result<String, String> {
+/// How memo's AI model dealt with a picture: `read_by` like `anthropic/claude-haiku-4-5`, or a `reason` the page words.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct ImageRead {
+    pub read_by: Option<String>,
+    pub reason: Option<String>,
+}
+
+pub(crate) fn one_line(what: &str, s: &str, most: usize) -> Result<String, String> {
     let t = s.trim();
     if t.is_empty() || t.chars().count() > most || t.chars().any(char::is_control) {
         return Err(format!("{what} is 1 to {most} characters on one line"));
@@ -214,6 +233,10 @@ fn added(v: &Value) -> Option<Added> {
         searchable_words: item["searchable"]["words"].as_bool().unwrap_or(false),
         searchable_meaning: item["searchable"]["meaning"].as_bool().unwrap_or(false),
         subjects: refs(&item["subjects"]),
+        image: item["image"].is_object().then(|| ImageRead {
+            read_by: text(&item["image"], "read_by"),
+            reason: text(&item["image"], "reason").filter(|r| r.len() <= 60 && plain(r).is_some()),
+        }),
     })
 }
 
@@ -337,7 +360,7 @@ pub struct Reader {
 }
 
 /// A reader or provider id goes into a command line, so it is only ever a plain lowercase word.
-fn id_word<'a>(what: &str, s: &'a str) -> Result<&'a str, String> {
+pub(crate) fn id_word<'a>(what: &str, s: &'a str) -> Result<&'a str, String> {
     if s.is_empty()
         || s.len() > 40
         || s.starts_with('-')
@@ -550,7 +573,7 @@ mod tests {
             serde_json::to_value(&a).unwrap(),
             json!({"ref":"document:3","created":true,"duplicateOf":null,"title":"Lena moves the review to Friday.",
                 "kind":"text","mime":"text/plain","bytes":33,"chars":32,"truncated":false,"read":"extracted","url":null,
-                "kept":"text","searchableWords":true,"searchableMeaning":false,"subjects":["person:2"]})
+                "kept":"text","searchableWords":true,"searchableMeaning":false,"subjects":["person:2"],"image":null})
         );
         let r = reader(&json!({"id":"ollama","available":true,"model":"llama3.2","leaves_computer":false})).unwrap();
         assert_eq!(
@@ -558,6 +581,19 @@ mod tests {
             json!({"id":"ollama","available":true,"signedIn":null,"model":"llama3.2","provider":null,
                 "leavesComputer":false,"readsFiles":true,"chosen":false})
         );
+    }
+
+    #[test]
+    fn a_pictures_reading_comes_through_as_who_read_it_or_why_not() {
+        let mut v = added_answer();
+        v["item"]["image"] = json!({"read_by": "anthropic/claude-haiku-4-5", "reason": null});
+        let read = added(&v).unwrap().image.unwrap();
+        assert_eq!(read, ImageRead { read_by: Some("anthropic/claude-haiku-4-5".into()), reason: None });
+        v["item"]["image"] = json!({"read_by": null, "reason": "ai.images-not-allowed"});
+        assert_eq!(added(&v).unwrap().image.unwrap().reason.as_deref(), Some("ai.images-not-allowed"));
+        v["item"]["image"] = json!({"read_by": null, "reason": "two words"});
+        assert_eq!(added(&v).unwrap().image.unwrap().reason, None);
+        assert!(added(&added_answer()).unwrap().image.is_none());
     }
 
     #[test]
@@ -599,13 +635,19 @@ mod tests {
             stdout: format!(r#"{{"error":{{"code":"validation_error","message":{quoted}{reason}}}}}"#),
             stderr: format!("cannot read: {pasted}\n"),
         };
-        assert_eq!(panel_answer(&refusal(""), true), Err(REFUSED.into()));
-        assert_eq!(panel_answer(&refusal(r#","reason":"source.no-text""#), true), Err("source.no-text".into()));
-        assert_eq!(panel_answer(&refusal(r#","reason":"store.busy""#), true), Err(REFUSED.into()));
-        let unfed = panel_answer(&refusal(""), false).unwrap_err();
+        assert_eq!(panel_answer(&refusal(""), true, &WORDED), Err(REFUSED.into()));
+        assert_eq!(
+            panel_answer(&refusal(r#","reason":"source.no-text""#), true, &WORDED),
+            Err("source.no-text".into())
+        );
+        assert_eq!(panel_answer(&refusal(r#","reason":"store.busy""#), true, &WORDED), Err(REFUSED.into()));
+        let ai = refusal(r#","reason":"ai.key-rejected""#);
+        assert_eq!(panel_answer(&ai, true, &WORDED), Err(REFUSED.into()), "the panel does not word ai reasons");
+        assert_eq!(panel_answer(&ai, true, &["ai."]), Err("ai.key-rejected".into()));
+        let unfed = panel_answer(&refusal(""), false, &WORDED).unwrap_err();
         assert!(unfed.contains("cannot read"), "a run with nothing on stdin keeps memo's words: {unfed}");
         let ok = run::Output { code: Some(0), stdout: r#"{"item":{"stored":true}}"#.into(), stderr: String::new() };
-        assert!(panel_answer(&ok, true).is_ok());
+        assert!(panel_answer(&ok, true, &WORDED).is_ok());
     }
 
     #[test]
@@ -662,7 +704,7 @@ mod tests {
             ("no-text", "source.no-text", true),
             ("unsupported", "source.unsupported", false),
         ] {
-            assert_eq!(panel_answer(&refusal(name), fed), Err(reason.into()), "{name}");
+            assert_eq!(panel_answer(&refusal(name), fed, &WORDED), Err(reason.into()), "{name}");
         }
         let words = answer(&refusal("url-refused")).unwrap_err();
         assert!(words.starts_with("127.0.0.1 is not on the public internet"), "the Memory page keeps memo's words");

@@ -4,6 +4,7 @@ import { ENDONYMS, LANGS, type LangChoice, systemLang, useLanguage, useMessages 
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { Select } from "@/ui/Select"
+import { AiModelSetting } from "./AiModelSetting"
 import { CommunitySetting } from "./CommunitySetting"
 import { settingsMessages } from "./messages"
 import { OwnToolsSetting } from "./OwnToolsSetting"
@@ -26,7 +27,8 @@ export function AppPreferences() {
         <CommunitySetting />
         <OwnToolsSetting />
       </div>
-      <div className="mt-6">
+      <div className="mt-6 flex flex-col gap-6">
+        <AiModelSetting />
         <ReadersSetting />
       </div>
     </section>

@@ -14,6 +14,7 @@ import type {
   SkillText,
   Target,
 } from "./agents-schemas"
+import type { AiChecked, AiModel, AiModelChoice, AiOff } from "./ai-model-schemas"
 import type { Aggregate, AnalyticsPreview, Ask, MessageCounts, Period, Which } from "./analytics-schemas"
 import type { StoreCheck, StoreInfo, TableList } from "./archive-schemas"
 import type { BackupEvent, Backups, ResetPreview } from "./backup-schemas"
@@ -403,6 +404,14 @@ export type Platform = {
   memoryReaderChoose(id: string): Promise<Reader[]>
   /** Hands the provider's key to memo, which keeps it in the system keyring; it never comes back. */
   memoryReaderKey(provider: string, key: string): Promise<KeySaved>
+  /** The AI model memo and the other WireCat tools share; a memo before `models ai` fails with commander's words. */
+  aiModelShow(): Promise<AiModel>
+  /** Saves the model; the key, when given, goes to memo on stdin and never comes back. */
+  aiModelSet(choice: AiModelChoice): Promise<AiModel>
+  /** Stops using the model; the key stays where it is. */
+  aiModelOff(): Promise<AiOff>
+  /** One tiny request to the saved model, which costs a fraction of a cent. */
+  aiModelCheck(): Promise<AiChecked>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
   taskList(query: string): Promise<TaskRead>
   /** The open tasks memo found in the owner's chats, mail and notes, of every account; memo cannot filter them more. */

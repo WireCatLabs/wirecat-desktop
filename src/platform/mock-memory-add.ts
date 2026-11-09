@@ -1,5 +1,6 @@
 import type { AddedSource, Mentions, Reader, StoredSource } from "./memory-add-schemas"
 import type { MemoryEntry } from "./memory-schemas"
+import { aiModelMock, imageOutcome } from "./mock-ai-model"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
@@ -86,6 +87,7 @@ export function memoryAddMock(
   | "memoryReaders"
   | "memoryReaderChoose"
   | "memoryReaderKey"
+  | keyof ReturnType<typeof aiModelMock>
 > {
   let chosen = readersScenario === "unchosen" || readersScenario === "none" ? null : "ollama"
   let next = 42
@@ -97,6 +99,7 @@ export function memoryAddMock(
       : READERS.map((r) => ({ ...r, available: r.id === "key" ? keySaved : r.available, chosen: r.id === chosen }))
 
   return {
+    ...aiModelMock(),
     async memoryPickFile() {
       await delay(300)
       return params.get("file") === "image"
@@ -129,10 +132,15 @@ export function memoryAddMock(
       await delay(given.kind === "link" ? 1200 : 600)
       if (given.kind === "link" && fail === "link") throw new Error("source.url-status")
       const ref = `document:${next++}`
+      const picture = given.kind === "file" && params.get("file") === "image" ? imageOutcome() : null
       const text =
         given.kind === "text"
           ? given.text
-          : "Runner notes. Lena Ortiz says Northbridge Bench moves the eval set to 120 queries and delivery is on the 28th."
+          : picture
+            ? picture.read === "extracted"
+              ? "Whiteboard. Q3 plan: Lena Ortiz owns the eval set. Delivery on the 28th."
+              : ""
+            : "Runner notes. Lena Ortiz says Northbridge Bench moves the eval set to 120 queries and delivery is on the 28th."
       const name = given.kind === "file" ? (given.path.split("/").pop() ?? null) : null
       const added: AddedSource = {
         ref,
@@ -140,16 +148,24 @@ export function memoryAddMock(
         duplicateOf: null,
         title: title ?? name ?? (given.kind === "link" ? "Release notes" : (text.split("\n")[0] ?? "").slice(0, 60)),
         kind: given.kind === "link" ? "page" : given.kind,
-        mime: given.kind === "file" ? "application/pdf" : given.kind === "link" ? "text/html" : null,
+        mime:
+          given.kind === "file"
+            ? picture
+              ? "image/png"
+              : "application/pdf"
+            : given.kind === "link"
+              ? "text/html"
+              : null,
         bytes: given.kind === "file" ? 1_400_000 : text.length,
         chars: text.length,
         truncated: false,
-        read: "extracted",
+        read: picture ? picture.read : "extracted",
         url: given.kind === "link" ? given.url : null,
-        kept: "text",
-        searchableWords: true,
+        kept: picture ? "copy" : "text",
+        searchableWords: picture?.read !== "no-text",
         searchableMeaning: false,
         subjects: [],
+        image: picture?.image ?? null,
       }
       stored.set(ref, {
         ref,

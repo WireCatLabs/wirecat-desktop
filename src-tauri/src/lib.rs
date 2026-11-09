@@ -1,5 +1,6 @@
 mod account;
 mod agent_run;
+mod ai_model;
 mod analytics;
 mod archive;
 mod background;
@@ -361,6 +362,10 @@ pub fn run() {
             commands::memory::memory_readers,
             commands::memory::memory_reader_choose,
             commands::memory::memory_reader_key,
+            commands::memory::ai_model_show,
+            commands::memory::ai_model_set,
+            commands::memory::ai_model_off,
+            commands::memory::ai_model_check,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,
