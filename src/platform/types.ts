@@ -331,7 +331,7 @@ export type Platform = {
   /** Everyone memo knows (merged-away people left out) and the matches waiting; "old" below the catalog's minimum. */
   peopleRead(kind?: PersonKind): Promise<PeopleRead>
   /** How many people memo holds of each kind; empty from a memo older than kinds. */
-  peopleKinds(): Promise<Record<string, number>>
+  peopleKinds(): Promise<Record<string, { value: number; more: boolean }>>
   /** One person: identities by source with the accounts that saw each, merges and open matches. */
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */

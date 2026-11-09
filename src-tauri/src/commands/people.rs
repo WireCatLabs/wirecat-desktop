@@ -12,7 +12,7 @@ pub async fn people_read(kind: Option<String>) -> Result<people::Read, AppError>
 }
 
 #[tauri::command]
-pub async fn people_kinds() -> Result<std::collections::BTreeMap<String, u64>, AppError> {
+pub async fn people_kinds() -> Result<std::collections::BTreeMap<String, people::KindCount>, AppError> {
     crate::log::command("people_kinds", async move { attempt(people::kinds).await }).await
 }
 

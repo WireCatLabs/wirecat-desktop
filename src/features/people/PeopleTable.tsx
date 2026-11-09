@@ -61,7 +61,12 @@ export function PeopleTable() {
         options={PERSON_KINDS.map((k) => ({
           value: k,
           icon: KIND_ICONS[k],
-          label: kinds[k] === undefined ? (m.kinds[k] ?? k) : `${m.kinds[k] ?? k} ${formatNumber(kinds[k] ?? 0, lang)}`,
+          label: (() => {
+            const count = kinds[k]
+            return count
+              ? `${m.kinds[k] ?? k} ${formatNumber(count.value, lang)}${count.more ? "+" : ""}`
+              : (m.kinds[k] ?? k)
+          })(),
         }))}
       />
       <p className="text-[0.9rem] text-ink-soft">{m.kindHelp[kind]}</p>

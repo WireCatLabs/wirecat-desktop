@@ -211,19 +211,29 @@ fn joined(h: Joined<'_>) -> Result<Value, String> {
     h.join().unwrap_or_else(|_| Err("a read stopped".into()))
 }
 
-/// Each kind's total, from a one-row page of each, asked at once; a kind memo gives no total for (in a group, or an older
-/// memo) is left out.
-fn counts_with(call: &Call) -> BTreeMap<String, u64> {
-    std::thread::scope(|s| {
-        let asked: Vec<_> = KINDS
-            .iter()
-            .map(|k| (*k, s.spawn(move || call(&words(&["people", "list", &format!("kind:{k}"), "--limit", "1"])))))
-            .collect();
-        asked
-            .into_iter()
-            .filter_map(|(k, h)| Some((k.to_string(), joined(h).ok()?["page"]["total"]["value"].as_u64()?)))
-            .collect()
-    })
+/// A kind's total; `more` when memo gave only a floor (`relation` other than `eq`), which the tab shows as "N+".
+#[derive(Serialize, Debug, PartialEq, Eq)]
+pub struct KindCount {
+    pub value: u64,
+    pub more: bool,
+}
+
+/// Each kind's total, from a one-row page of each; a kind memo gives no total for (in a group, or an older memo) is left
+/// out. Two at a time: memo keeps two servers, and the list must not wait behind the counts for a third.
+fn counts_with(call: &Call) -> BTreeMap<String, KindCount> {
+    let count = |k: &str| {
+        let total = &call(&words(&["people", "list", &format!("kind:{k}"), "--limit", "1"])).ok()?["page"]["total"];
+        Some(KindCount { value: total["value"].as_u64()?, more: total["relation"].as_str().is_some_and(|r| r != "eq") })
+    };
+    KINDS
+        .chunks(2)
+        .flat_map(|pair| {
+            std::thread::scope(|s| {
+                let asked: Vec<_> = pair.iter().map(|k| (*k, s.spawn(move || count(k)))).collect();
+                asked.into_iter().filter_map(|(k, h)| Some((k.to_string(), h.join().ok()??))).collect::<Vec<_>>()
+            })
+        })
+        .collect()
 }
 
 fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
@@ -260,7 +270,7 @@ fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String>
 }
 
 /// How many people memo holds of each kind, for the list's tabs; read apart from the list so it never waits on them.
-pub fn kinds() -> Result<BTreeMap<String, u64>, String> {
+pub fn kinds() -> Result<BTreeMap<String, KindCount>, String> {
     with_memo(|call| Ok(counts_with(call)))
 }
 
@@ -663,6 +673,9 @@ mod tests {
                 "kind:person" => 1240,
                 "kind:organization" => 87,
                 "kind:automated" => 412,
+                "kind:stranger" => {
+                    return Ok(json!({"items": [], "page": {"total": {"value": 5000, "relation": "gte"}}}));
+                }
                 _ => return Ok(json!({"items": [], "page": {"has_more": true}})),
             };
             Ok(json!({"items": [{
@@ -674,8 +687,9 @@ mod tests {
         let Read::Ready { people, kinded, .. } = read_with(&call, "organization").unwrap() else { panic!() };
         assert!(kinded);
         let kinds = counts_with(&call);
-        assert_eq!(kinds.get("person"), Some(&1240));
-        assert_eq!(kinds.get("automated"), Some(&412));
+        assert_eq!(kinds.get("person"), Some(&KindCount { value: 1240, more: false }));
+        assert_eq!(kinds.get("automated"), Some(&KindCount { value: 412, more: false }));
+        assert_eq!(kinds.get("stranger"), Some(&KindCount { value: 5000, more: true }), "a floor reads N+");
         assert_eq!(kinds.get("unsorted"), None, "no total, no count");
         assert_eq!(people[0].display_name.as_deref(), Some("Kai Sample"));
         assert_eq!(people[0].contact.as_deref(), Some("+34600000001"));

@@ -50,6 +50,7 @@ describe("People", () => {
       await within(kinds).findByRole("radio", { name: "Newsletters & notifications 2" }, { timeout: 4000 }),
     )
     expect(screen.getByText("Bots, newsletters and no-reply senders.")).toBeInTheDocument()
+    expect(within(kinds).getByRole("radio", { name: "Unsorted 5,002+" })).toBeInTheDocument()
     await waitFor(async () =>
       expect(within(await table()).getAllByRole("button", { name: "OpenWeather Team" })).toHaveLength(2),
     )
