@@ -517,7 +517,11 @@ describe("Mapping a CRM's stages onto the base set", () => {
     const column = (name: RegExp) => within(map).findByRole("region", { name }, { timeout: 4000 })
     const badge = async (name: RegExp, stage: string) =>
       within(await column(name)).getByRole("button", { name: new RegExp(`^${stage}, `) })
-    return { user, map, column, badge }
+    const columnAction = async (column: string, action: string) => {
+      await user.click(within(map).getByRole("button", { name: `${column}: actions` }))
+      await user.click(screen.getByRole("menuitem", { name: action }))
+    }
+    return { user, map, column, badge, columnAction }
   }
 
   it("opens on the CRM with stages to sort, every unconfirmed stage in Unmapped with memo's suggestion", async () => {
@@ -579,6 +583,15 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await waitFor(() => expect(within(map).getByRole("radio", { name: "amocrm · acme.example" })).toHaveFocus())
   })
 
+  it("puts a stage on another base stage than memo suggested, from the stage's own menu", async () => {
+    const set = vi.spyOn(platform, "clientsMapSet")
+    const { user, column } = await openMap()
+    await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: "Another stage for Lead in" }))
+    await user.click(screen.getByRole("menuitem", { name: "Quote" }))
+    expect(set).toHaveBeenCalledWith(expect.stringMatching(/^stage:/), expect.stringMatching(/^stage:/))
+    await waitFor(async () => expect(await column(/^Quote/)).toHaveTextContent("Lead in"))
+  })
+
   it("maps a stage by carrying it onto a base stage, never back onto Unmapped", async () => {
     const set = vi.spyOn(platform, "clientsMapSet")
     const { user, column, badge } = await openMap()
@@ -594,21 +607,21 @@ describe("Mapping a CRM's stages onto the base set", () => {
 
   it("renames a base stage in place, and will not remove the last stage of an outcome", async () => {
     const edit = vi.spyOn(platform, "clientsBaseEdit")
-    const { user, map, column } = await openMap()
-    await user.click(within(map).getByRole("button", { name: "Rename Quote" }))
+    const { user, map, column, columnAction } = await openMap()
+    await columnAction("Quote", "Rename")
     const field = within(map).getByRole("textbox", { name: "New name for Quote" })
     await user.clear(field)
     await user.type(field, "Offer{Enter}")
     expect(edit).toHaveBeenCalledWith("deal", { op: "rename", ref: expect.stringMatching(/^stage:/), name: "Offer" })
     expect(await column(/^Offer/)).toBeInTheDocument()
-    await user.click(within(map).getByRole("button", { name: "Remove Won" }))
+    await columnAction("Won", "Remove")
     expect(await within(map).findByText(/This is the last "Won" stage/)).toBeInTheDocument()
     expect(edit).toHaveBeenCalledTimes(1)
   })
 
   it("cancels a rename with Escape and keeps the dialog open", async () => {
-    const { user, map } = await openMap()
-    await user.click(within(map).getByRole("button", { name: "Rename Quote" }))
+    const { map, columnAction } = await openMap()
+    await columnAction("Quote", "Rename")
     const field = within(map).getByRole("textbox", { name: "New name for Quote" })
     // A dialog closes on an Escape whose default is left to run.
     expect(fireEvent.keyDown(field, { key: "Escape" })).toBe(false)

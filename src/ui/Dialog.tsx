@@ -110,7 +110,7 @@ export function Dialog({ open, title, children, actions, onClose, wide = false, 
         if (pressedOutside.current && e.target === e.currentTarget) onClose()
         pressedOutside.current = false
       }}
-      className={`m-auto ${wide === "full" ? "w-[min(84rem,calc(100vw-2rem))]" : wide === "xl" ? "w-[min(62rem,calc(100vw-2rem))]" : wide ? "w-[min(46rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]"} ${scroll ? "max-h-[calc(100vh-2rem)] overflow-hidden" : ""} rounded-[0.6rem] border border-line bg-app p-0 text-ink shadow-panel backdrop:bg-black/40 backdrop:backdrop-blur-[1px]`}
+      className={`m-auto ${wide === "full" ? "w-[min(112rem,calc(100vw-2rem))]" : wide === "xl" ? "w-[min(62rem,calc(100vw-2rem))]" : wide ? "w-[min(46rem,calc(100vw-2rem))]" : "w-[min(32rem,calc(100vw-2rem))]"} ${scroll ? "max-h-[calc(100vh-2rem)] overflow-hidden" : ""} rounded-[0.6rem] border border-line bg-app p-0 text-ink shadow-panel backdrop:bg-black/40 backdrop:backdrop-blur-[1px]`}
     >
       {(open || closing) &&
         (scroll ? (

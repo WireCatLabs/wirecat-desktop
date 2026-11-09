@@ -10,7 +10,9 @@ import { useClients } from "./store"
 
 const TONE: Record<string, LampTone> = { open: "idle", won: "ok", lost: "off" }
 
-export const OutcomeLamp = ({ outcome }: { outcome: string }) => <Lamp tone={TONE[outcome] ?? "idle"} size="sm" />
+export const OutcomeLamp = ({ outcome, label }: { outcome: string; label?: string }) => (
+  <Lamp tone={TONE[outcome] ?? "idle"} size="sm" {...(label ? { label } : {})} />
+)
 
 export function Card(props: {
   card: CrmCard
