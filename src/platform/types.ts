@@ -1,4 +1,5 @@
 import type { Preflight, StoreCompat } from "@/domain/compat"
+import type { TemplateChannel, TemplateLocale } from "@/domain/digest-editors"
 import type { DeepLinkTarget } from "@/domain/links"
 import type { DamageReport } from "@/domain/store-damage"
 import type {
@@ -20,11 +21,13 @@ import type {
   AccountRemoval,
   AccountRemoved,
   Backfill,
+  Brief,
   ChatPage,
   ChatPlace,
   ChosenFolders,
   Conversation,
   DigestSchedules,
+  DigestTemplate,
   Enrichment,
   EnrichmentStatus,
   FolderAdded,
@@ -40,6 +43,7 @@ import type {
   OwnSignal,
   OwnStatus,
   SyncSchedule,
+  TemplatePreview,
   ZoomAppAnswer,
 } from "./bindings"
 import type { BotProfile, BotResult } from "./bot-schemas"
@@ -477,6 +481,27 @@ export type Platform = {
   digestScheduleRun(): Promise<DigestSchedules>
   /** memo's `digest backfill`: without `yes` the price only, with it the days built (never delivered). */
   digestBackfill(from: string, to: string, yes: boolean): Promise<Backfill>
+  /** memo's `digest brief show`: the owner's own words on what the morning digest collects. */
+  digestBrief(): Promise<Brief>
+  /** memo's `digest brief edit --file -`, the text on stdin; rejects with memo's words (too long, not the owner). */
+  digestBriefSave(body: string): Promise<Brief>
+  /** memo's `digest brief edit --undo`: the body the last change replaced comes back. */
+  digestBriefUndo(): Promise<Brief>
+  /** memo's `digest brief reset`: the digest follows its skill alone; undo brings the brief back. */
+  digestBriefReset(): Promise<Brief>
+  /** memo's `templates show report/morning-digest` for one channel and language. */
+  digestTemplate(channel: TemplateChannel, locale: TemplateLocale): Promise<DigestTemplate>
+  /** memo's `templates edit`, the body on stdin; memo checks it first and rejects with why. */
+  digestTemplateSave(channel: TemplateChannel, locale: TemplateLocale, body: string): Promise<DigestTemplate>
+  digestTemplateUndo(channel: TemplateChannel, locale: TemplateLocale): Promise<DigestTemplate>
+  /** memo's `templates reset`: the shipped template applies again; undo brings the owner's back. */
+  digestTemplateReset(channel: TemplateChannel, locale: TemplateLocale): Promise<DigestTemplate>
+  /** memo's `templates preview`: what would be sent with `draft`, or with the template that applies when null. */
+  digestTemplatePreview(
+    channel: TemplateChannel,
+    locale: TemplateLocale,
+    draft: string | null,
+  ): Promise<TemplatePreview>
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>
 }

@@ -62,6 +62,88 @@ pub async fn digest_backfill(
 }
 
 #[tauri::command]
+pub async fn digest_brief() -> Result<crate::digest_editors::Brief, AppError> {
+    crate::log::command("digest_brief", async move { attempt(crate::digest_editors::brief).await }).await
+}
+
+#[tauri::command]
+pub async fn digest_brief_save(body: String) -> Result<crate::digest_editors::Brief, AppError> {
+    crate::log::command(
+        "digest_brief_save",
+        async move { attempt(move || crate::digest_editors::brief_save(&body)).await },
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn digest_brief_undo() -> Result<crate::digest_editors::Brief, AppError> {
+    crate::log::command("digest_brief_undo", async move { attempt(crate::digest_editors::brief_undo).await }).await
+}
+
+#[tauri::command]
+pub async fn digest_brief_reset() -> Result<crate::digest_editors::Brief, AppError> {
+    crate::log::command("digest_brief_reset", async move { attempt(crate::digest_editors::brief_reset).await }).await
+}
+
+#[tauri::command]
+pub async fn digest_template(
+    channel: String,
+    locale: String,
+) -> Result<crate::digest_editors::DigestTemplate, AppError> {
+    crate::log::command("digest_template", async move {
+        attempt(move || crate::digest_editors::template(&channel, &locale)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn digest_template_save(
+    channel: String,
+    locale: String,
+    body: String,
+) -> Result<crate::digest_editors::DigestTemplate, AppError> {
+    crate::log::command("digest_template_save", async move {
+        attempt(move || crate::digest_editors::template_save(&channel, &locale, &body)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn digest_template_undo(
+    channel: String,
+    locale: String,
+) -> Result<crate::digest_editors::DigestTemplate, AppError> {
+    crate::log::command("digest_template_undo", async move {
+        attempt(move || crate::digest_editors::template_undo(&channel, &locale)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn digest_template_reset(
+    channel: String,
+    locale: String,
+) -> Result<crate::digest_editors::DigestTemplate, AppError> {
+    crate::log::command("digest_template_reset", async move {
+        attempt(move || crate::digest_editors::template_reset(&channel, &locale)).await
+    })
+    .await
+}
+
+/// `draft` null previews the template that applies; a draft is previewed without being saved.
+#[tauri::command]
+pub async fn digest_template_preview(
+    channel: String,
+    locale: String,
+    draft: Option<String>,
+) -> Result<crate::digest_editors::TemplatePreview, AppError> {
+    crate::log::command("digest_template_preview", async move {
+        attempt(move || crate::digest_editors::template_preview(&channel, &locale, draft.as_deref())).await
+    })
+    .await
+}
+
+#[tauri::command]
 pub fn digest_notify(
     app: tauri::AppHandle,
     date: String,

@@ -97,6 +97,12 @@ export type BotResult =
 /**  The bot's own public name and username, as the messenger reported them; never the token. */
 { outcome: "connected"; name: string | null; username: string | null } | { outcome: "failed"; message: string; code: string | null; reason: string | null };
 
+export type Brief = { state: "noMemo" } | 
+/**  This memo has no `digest brief` yet. */
+{ state: "unsupported" } | 
+/**  `body` is `None` when the owner wrote none; `history` counts the bodies an undo can put back. */
+{ state: "ready"; body: string | null; chars: number; limit: number; updatedAt: string | null; updatedBy: string | null; history: number };
+
 export type BuiltBy = {
 	repo: string,
 	workflow: string,
@@ -252,6 +258,12 @@ export type DigestSchedules = { state: "noMemo" } | { state: "old"; version: str
  *  schedule can be made.
  */
 { state: "ready"; digest: DigestSchedule | null; others: OtherSchedule[]; harness: boolean };
+
+export type DigestTemplate = { state: "noMemo" } | 
+/**  This memo has no `templates` yet. */
+{ state: "unsupported" } | 
+/**  `stored` is the owner's own template; otherwise the one memo ships. */
+{ state: "ready"; body: string; stored: boolean; updatedAt: string | null; updatedBy: string | null; history: number };
 
 export type Dns = 
 /**  Public DNS has an address for the name. */
@@ -992,6 +1004,14 @@ export type SyncSummary = {
 export type TableRows = {
 	name: string,
 	rows: number,
+};
+
+/**  What memo would send on a channel; `sample` when there is no real digest yet to render. */
+export type TemplatePreview = {
+	text: string,
+	problems: string[],
+	templateFailed: boolean,
+	sample: boolean,
 };
 
 /**

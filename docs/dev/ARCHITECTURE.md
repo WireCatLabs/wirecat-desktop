@@ -181,6 +181,11 @@ src-tauri/src/
                 backfill --from --to --json`, first without `--yes` for the price, then with it. Routes are checked to
                 the two shapes `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and
                 the page says it needs an update.
+  digest_editors.rs the Digests page's two editors, both owner-only writes memo itself guards: What to collect is
+                `digest brief show|edit --file -|edit --undo|reset`, How it looks is `templates show|edit|preview|reset
+                report/morning-digest --channel --locale`. Text goes on stdin; `templates` has no `--file -` yet, so it
+                gets `/dev/stdin` (none on Windows: there a save says to use the terminal). A memo without either
+                command answers "unknown command" and the card says it needs an update.
   sync_schedule.rs an account's sync on a timer: the tool's own `<bin> <profile> schedule command <bin>-<profile>
                 --every <d> -- <catalog sync.schedule.args>`, `schedule list` and `schedule remove`. The tool writes the
                 timer. Its latest run (and `failing_since`) shows under the account, and a failed sync from this window

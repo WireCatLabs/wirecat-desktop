@@ -65,6 +65,9 @@ fn types() -> Types {
         .register::<crate::conversation::Conversation>()
         .register::<crate::digest_schedule::DigestSchedules>()
         .register::<crate::digest_schedule::Backfill>()
+        .register::<crate::digest_editors::Brief>()
+        .register::<crate::digest_editors::DigestTemplate>()
+        .register::<crate::digest_editors::TemplatePreview>()
         .register::<crate::sync_schedule::SyncSchedule>()
 }
 

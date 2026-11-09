@@ -8,12 +8,14 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
+import { BriefCard } from "./BriefCard"
 import { FillHistory } from "./FillHistory"
 import { digestMessages } from "./messages"
 import { scheduleMessages } from "./messages-schedule"
 import { ReportView } from "./ReportView"
 import { ScheduleCard } from "./ScheduleCard"
 import { useDigests } from "./store"
+import { TemplatesCard } from "./TemplatesCard"
 
 export function DigestsPage() {
   const m = useMessages(digestMessages)
@@ -61,6 +63,10 @@ export function DigestsPage() {
       </div>
 
       <ScheduleCard />
+      <div className="grid items-start gap-[1.5rem] xl:grid-cols-2">
+        <BriefCard />
+        <TemplatesCard />
+      </div>
 
       {error ? (
         <ErrorNotice action={<ReportThis what="Reading digests" error={error} />}>
