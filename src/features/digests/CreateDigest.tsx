@@ -154,7 +154,7 @@ export function CreateDialog({
             onDays={onDays}
             setOnDays={setOnDays}
             can={{ named: can.named }}
-            brief={can.named}
+            creating
           />
           {failed?.name === draft.name && failed.what === "create" && (
             <ErrorNotice inline>{m.failedCreate(failed.message)}</ErrorNotice>

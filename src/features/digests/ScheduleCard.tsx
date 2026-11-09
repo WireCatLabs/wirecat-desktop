@@ -56,7 +56,7 @@ export function DigestFields({
   onDays,
   setOnDays,
   can,
-  brief,
+  creating,
 }: {
   spec: DigestSpec
   onChange: (spec: DigestSpec) => void
@@ -64,8 +64,8 @@ export function DigestFields({
   onDays: boolean
   setOnDays: (on: boolean) => void
   can: Can
-  /** The instructions field; the open digest edits them in its own card instead. */
-  brief: boolean
+  /** The brief and the schedule switch; an open digest has its own card and button for them. */
+  creating: boolean
 }) {
   const m = useMessages(bookMessages).form
   const b = useMessages(bookMessages)
@@ -204,7 +204,7 @@ export function DigestFields({
 
       <Routes routes={spec.routes} onChange={(routes) => set({ routes })} m={s} />
 
-      {brief && (
+      {creating && (
         <Field label={m.brief} hint={m.briefHint} htmlFor={ids.brief}>
           <textarea
             id={ids.brief}
@@ -234,12 +234,14 @@ export function DigestFields({
         </div>
       </Field>
 
-      <div className="flex items-center gap-2">
-        <Checkbox id={ids.run} checked={spec.scheduled} onChange={(scheduled) => set({ scheduled })} />
-        <label htmlFor={ids.run} className="font-medium text-ink">
-          {m.schedule}
-        </label>
-      </div>
+      {creating && (
+        <div className="flex items-center gap-2">
+          <Checkbox id={ids.run} checked={spec.scheduled} onChange={(scheduled) => set({ scheduled })} />
+          <label htmlFor={ids.run} className="font-medium text-ink">
+            {m.schedule}
+          </label>
+        </div>
+      )}
     </div>
   )
 }
@@ -417,7 +419,7 @@ export function ScheduleCard({
         onDays={onDays}
         setOnDays={setOnDays}
         can={can}
-        brief={false}
+        creating={false}
       />
       <div className="flex flex-wrap items-center gap-2 border-line border-t pt-3">
         {savedOnce && !dirty && !working && (

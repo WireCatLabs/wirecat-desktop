@@ -10,7 +10,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Segmented } from "@/ui/Segmented"
 import { scheduleMessages } from "./messages-schedule"
-import { backfillRange, useDigestBook } from "./schedule-store"
+import { backfillRange, MORNING, useDigestBook } from "./schedule-store"
 import { useDigests } from "./store"
 
 const SPANS = ["7", "14", "30"] as const
@@ -27,7 +27,7 @@ type Step =
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 // One build at a time across the page; the dialog may close while it runs and reopen on its result.
-let building: Promise<Backfill> | null = null
+const building = new Map<string, Promise<Backfill>>()
 
 /**
  * "Build past days": memo's `digest backfill` for the last 7, 14 or 30 days. The price comes first (the command without
@@ -61,8 +61,9 @@ export function FillHistory({ name }: { name: string }) {
   const build = (days: number) => {
     setStep({ step: "building", days })
     const { from, to } = backfillRange(Number(span))
-    building ??= platform.digestBackfill(from, to, true, name)
-    building
+    const running = building.get(name) ?? platform.digestBackfill(from, to, true, name)
+    building.set(name, running)
+    running
       .then(
         (b) =>
           setStep(
@@ -73,8 +74,8 @@ export function FillHistory({ name }: { name: string }) {
         (e) => setStep({ step: "failed", message: messageOf(e), priced: true }),
       )
       .finally(() => {
-        building = null
-        void useDigests.getState().load(name)
+        building.delete(name)
+        if ((useDigests.getState().name ?? MORNING) === name) void useDigests.getState().load(name)
       })
   }
 

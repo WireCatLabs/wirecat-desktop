@@ -237,7 +237,8 @@ exactly these (RISK-2237).
   [--text <brief>] [--max-cost <usd>] [--max-cost-per-day <usd>] [--paused] --from-app`. `<when>` is `HH:MM` every
   day or `mon,fri HH:MM` on those days, one `--at` per time.
 - `memo digest edit <name>` takes the same options except `--paused`; each option given replaces what it set and the
-  rest stays, so Desktop says an emptied list out loud: `--source all`, `--deliver-to none`.
+  rest stays, so Desktop says an emptied list out loud: `--source all`, `--deliver-to none`. Desktop sends `--text`
+  on add only: an open digest's brief is saved by `digest brief edit`, and a settings save must not write it back.
 - `memo digest run <name> [--no-notify | --deliver-to <r> …] --from-app`: writes it now. Without a flag it sends to
   every route, as the timer does; `--no-notify` keeps it in the app only; `--deliver-to` sends to those of its routes
   only (NEED-2483, owner: "give a choice").

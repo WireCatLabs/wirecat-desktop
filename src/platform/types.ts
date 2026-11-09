@@ -550,7 +550,7 @@ export type Platform = {
   digestSave(spec: DigestSpec, create: boolean): Promise<DigestBook>
   /** memo's `digest run`: one paid run now, sent as `to` says; answers once it ends. */
   digestRun(digest: string, to: SendTo): Promise<DigestBook>
-  /** memo's `digest schedule --on|--off`; every setting stays. */
+  /** memo's `digest pause|resume`; every setting stays. */
   digestSetScheduled(digest: string, on: boolean): Promise<DigestBook>
   /** memo's `digest remove`: the settings and schedule go, the past days stay. */
   digestRemove(digest: string): Promise<DigestBook>

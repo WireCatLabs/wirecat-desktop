@@ -154,7 +154,8 @@ fn spec_options(spec: &DigestSpec) -> Result<Vec<String>, String> {
         return Err(format!("not a source a digest reads: {}", redact::text(bad)));
     }
     check_routes(&spec.routes)?;
-    let cap = |v: f64, zero: bool| v.is_finite() && v <= MAX_USD && (v > 0.0 || (zero && v == 0.0));
+    // memo reads a cap of 0 as none: a run's cap below a cent would round to no cap at all.
+    let cap = |v: f64, zero: bool| v.is_finite() && v <= MAX_USD && (v >= 0.01 || (zero && v == 0.0));
     if !cap(spec.max_cost_usd, false) || !cap(spec.max_cost_per_day_usd, true) {
         return Err("a cost cap is out of range".into());
     }
@@ -182,9 +183,6 @@ fn spec_options(spec: &DigestSpec) -> Result<Vec<String>, String> {
         args.push("--deliver-to=none".into());
     }
     args.extend(spec.routes.iter().map(|r| format!("--deliver-to={r}")));
-    if let Some(b) = brief {
-        args.push(format!("--text={b}"));
-    }
     args.push(format!("--max-cost={}", usd(spec.max_cost_usd)));
     args.push(format!("--max-cost-per-day={}", usd(spec.max_cost_per_day_usd)));
     Ok(args)
@@ -194,8 +192,14 @@ fn save_args(spec: &DigestSpec, create: bool) -> Result<Vec<String>, String> {
     let options = spec_options(spec)?;
     let mut args = words(&["digest", if create { "add" } else { "edit" }, &spec.name]);
     args.extend(options);
-    if create && !spec.scheduled {
-        args.push("--paused".into());
+    // An open digest's brief has its own card and memo verb; an edit that sent it would undo that card's save.
+    if create {
+        if let Some(b) = spec.brief.as_deref().map(str::trim).filter(|b| !b.is_empty()) {
+            args.push(format!("--text={b}"));
+        }
+        if !spec.scheduled {
+            args.push("--paused".into());
+        }
     }
     args.extend(words(&["--from-app", "--json"]));
     Ok(args)
@@ -377,9 +381,6 @@ pub fn save(spec: &DigestSpec, create: bool) -> Result<DigestBook, String> {
         } else {
             digest_schedule::remove()?;
         }
-    } else if !create {
-        // An edit keeps a digest paused or not; the form's switch is said with its own verb.
-        write(memo, &timer_args(&spec.name, spec.scheduled), CALL)?;
     }
     book()
 }
@@ -483,11 +484,16 @@ mod tests {
         };
         let args = save_args(&weekly, false).unwrap();
         assert_eq!(args[..3], words(&["digest", "edit", "evening"]));
-        for want in ["--at=mon,fri 08:30", "--at=mon,fri 18:00", "--source=mail", "--text=-- skip newsletters"] {
+        for want in ["--at=mon,fri 08:30", "--at=mon,fri 18:00", "--source=mail"] {
             assert!(args.contains(&want.to_string()), "{want}");
         }
-        assert!(!args.iter().any(|a| a == "--source=all" || a == "--paused"), "an edit pauses with its own verb");
-        assert!(save_args(&weekly, true).unwrap().contains(&"--paused".to_string()));
+        assert!(
+            !args.iter().any(|a| a == "--source=all" || a == "--paused" || a.starts_with("--text")),
+            "an edit leaves the brief and the timer to their own verbs"
+        );
+        let added = save_args(&weekly, true).unwrap();
+        assert!(added.contains(&"--paused".to_string()));
+        assert!(added.contains(&"--text=-- skip newsletters".to_string()));
     }
 
     #[test]
@@ -519,6 +525,7 @@ mod tests {
         assert!(bad(|s| s.sources = vec!["sms".into()]));
         assert!(bad(|s| s.routes = vec!["--yes".into()]));
         assert!(bad(|s| s.max_cost_usd = 0.0));
+        assert!(bad(|s| s.max_cost_usd = 0.004), "rounds to 0, which memo reads as no cap");
         assert!(bad(|s| s.max_cost_per_day_usd = f64::NAN));
         assert!(bad(|s| s.brief = Some("x".repeat(MAX_BRIEF + 1))));
         assert!(!bad(|s| s.max_cost_per_day_usd = 0.0), "0 a day is no daily cap");
