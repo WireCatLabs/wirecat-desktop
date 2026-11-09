@@ -244,7 +244,7 @@ mod tests {
         for bad in ["--kind=x", "a\nb", &"x".repeat(81)] {
             let (out, seen) = run(|_| json!({}), |c| edit_with(c, "link:9", Some(bad)));
             assert!(out.is_err(), "{bad}");
-            assert!(seen.is_empty());
+            assert_eq!(seen, Vec::<Vec<String>>::new());
         }
     }
 
@@ -288,6 +288,6 @@ mod tests {
     fn only_proposals_are_decided_together() {
         let (out, seen) = run(|_| json!({}), |c| decide_with(c, &strs(&["link:3"]), true));
         assert!(out.is_err());
-        assert!(seen.is_empty());
+        assert_eq!(seen, Vec::<Vec<String>>::new());
     }
 }
