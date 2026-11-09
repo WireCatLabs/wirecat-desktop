@@ -192,7 +192,7 @@ fn guarded(tool: &Tool, running: &Running, events: &Channel<InstallEvent>, steps
         return false;
     }
     // A command server keeps running the program npm is about to replace, and may hold its files open.
-    crate::memo_server::stop_all();
+    let _paused = crate::memo_server::pause();
     let result = steps(tool, running, events);
     running.finish(&tool.id);
     let ok = result.is_ok();

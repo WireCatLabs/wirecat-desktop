@@ -26,6 +26,9 @@ const SERVERS: usize = 2;
 const READY_WAIT: Duration = Duration::from_secs(10);
 /// memo quits after 10 idle minutes; a request written as it quits would be lost, so it is retired first.
 const IDLE_KEPT: Duration = Duration::from_mins(9);
+/// An update outside the app may leave the program's file stamp as it was; the version cache in `tools.rs` is
+/// asked again after the same time.
+const SERVER_KEPT: Duration = Duration::from_mins(10);
 /// A server that only failed to get ready in time may have met a busy moment, so it is tried again after this.
 const SLOW_START_KEPT: Duration = Duration::from_mins(2);
 
@@ -43,6 +46,20 @@ pub fn stop_all() {
     POOL.stop_all();
 }
 
+/// Ends every server and starts none until the guard is dropped: an install replaces memo's files, and a reset or a
+/// repair needs the store free, so calls meanwhile start their own processes.
+pub fn pause() -> Paused<'static> {
+    POOL.pause()
+}
+
+pub struct Paused<'a>(&'a Pool);
+
+impl Drop for Paused<'_> {
+    fn drop(&mut self) {
+        self.0.paused.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
 /// Commands the servers answered since launch; `page_loads` prints them beside the processes started.
 #[cfg(test)]
 pub fn served() -> usize {
@@ -55,6 +72,8 @@ pub struct Pool {
     ready_wait: Duration,
     state: Mutex<State>,
     generation: AtomicU64,
+    paused: AtomicUsize,
+    max_age: Duration,
     served: AtomicUsize,
     #[cfg(test)]
     starts: AtomicUsize,
@@ -86,6 +105,7 @@ struct Server {
     search: OsString,
     generation: u64,
     idle_since: Instant,
+    born: Instant,
     next_id: u64,
 }
 
@@ -114,6 +134,8 @@ impl Pool {
             ready_wait,
             state: Mutex::new(State::default()),
             generation: AtomicU64::new(0),
+            paused: AtomicUsize::new(0),
+            max_age: SERVER_KEPT,
             served: AtomicUsize::new(0),
             #[cfg(test)]
             starts: AtomicUsize::new(0),
@@ -145,6 +167,9 @@ impl Pool {
     }
 
     fn checkout(&self, bin: &Path, stamp: &Stamp, search: &OsStr) -> Checkout {
+        if self.paused.load(Ordering::Relaxed) > 0 {
+            return Checkout::Spawn;
+        }
         let generation = self.generation.load(Ordering::Relaxed);
         let mut retired = Vec::new();
         let picked = {
@@ -158,7 +183,7 @@ impl Pool {
             let servers = state.by_bin.entry(bin.to_path_buf()).or_default();
             let mut picked = None;
             while let Some(mut s) = servers.idle.pop() {
-                if s.usable(stamp, search, generation) {
+                if s.usable(stamp, search, generation, self.max_age) {
                     picked = Some(Checkout::Idle(Box::new(s)));
                     break;
                 }
@@ -231,6 +256,7 @@ impl Pool {
             search: search.to_os_string(),
             generation: self.generation.load(Ordering::Relaxed),
             idle_since: Instant::now(),
+            born: Instant::now(),
             next_id: 0,
         };
         let deadline = started + wait;
@@ -273,6 +299,12 @@ impl Pool {
         result
     }
 
+    fn pause(&self) -> Paused<'_> {
+        self.paused.fetch_add(1, Ordering::Relaxed);
+        self.stop_all();
+        Paused(self)
+    }
+
     fn stop_all(&self) {
         self.generation.fetch_add(1, Ordering::Relaxed);
         let idle: Vec<Server> = {
@@ -284,11 +316,12 @@ impl Pool {
 }
 
 impl Server {
-    fn usable(&mut self, stamp: &Stamp, search: &OsStr, generation: u64) -> bool {
+    fn usable(&mut self, stamp: &Stamp, search: &OsStr, generation: u64, max_age: Duration) -> bool {
         self.stamp == *stamp
             && self.search == search
             && self.generation == generation
             && self.idle_since.elapsed() < IDLE_KEPT
+            && self.born.elapsed() < max_age
             && matches!(self.child.try_wait(), Ok(None))
     }
 
@@ -554,6 +587,30 @@ echo '{"via":"spawn"}'
         fake.write(&format!("# 9.9.10\n{SPEAKS}"));
         assert_ne!(served_by(&pool, &fake), old);
         assert!(!alive(old));
+    }
+
+    #[test]
+    fn a_server_past_its_age_is_retired_even_when_memo_looks_unchanged() {
+        let fake = Fake::new("age", SPEAKS);
+        let mut pool = pool(2, Duration::from_secs(10));
+        pool.max_age = Duration::ZERO;
+        let old = served_by(&pool, &fake);
+        assert_ne!(served_by(&pool, &fake), old);
+        assert!(!alive(old));
+    }
+
+    #[test]
+    fn a_paused_pool_ends_its_servers_and_starts_none_until_resumed() {
+        let fake = Fake::new("pause", SPEAKS);
+        let pool = pool(2, Duration::from_secs(10));
+        let old = served_by(&pool, &fake);
+        let paused = pool.pause();
+        assert!(!alive(old));
+        let own = call(&pool, &fake, "list", Duration::from_secs(10)).unwrap();
+        assert_eq!(via(&own), ("spawn".into(), None));
+        drop(paused);
+        served_by(&pool, &fake);
+        assert_eq!(starts(&pool), 2);
     }
 
     #[test]
