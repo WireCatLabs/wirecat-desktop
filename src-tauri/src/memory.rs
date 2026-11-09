@@ -15,6 +15,9 @@ const LIMIT: &str = "500";
 const ACTIVITY_LIMIT: &str = "30";
 pub const MAX_TEXT: usize = 2000;
 const READ: Duration = Duration::from_mins(1);
+/// Memo 0.131.72 lists the links its sources reported in minutes on a big store (BUG-663); the page shows the rest
+/// without them rather than wait.
+const LINKS: Duration = Duration::from_secs(15);
 const WRITE: Duration = Duration::from_secs(30);
 const QUIET: [&str; 2] = ["--json", "--no-record"];
 /// The app starts memo with no terminal, which memo takes as nobody's run; this says the owner decided here.
@@ -495,6 +498,8 @@ pub enum Read {
         /// `None` when only the activity log could not be read; the entries still show.
         activity: Option<Vec<Activity>>,
         activity_error: Option<String>,
+        /// The links memo holds could not be read; every other entry still shows.
+        links_error: Option<String>,
         /// The installed memo takes back the approval of an agent's fact (`facts revoke`).
         revoke: bool,
         roles: Vec<Role>,
@@ -591,7 +596,11 @@ pub fn read() -> Result<Read, String> {
     }
     let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     let revoke = can_revoke(tool, crate::tools::version_of(&bin).as_deref());
-    read_with(&|args: &[String]| call_at(&bin, args, READ), revoke)
+    read_with(&|args: &[String]| call_at(&bin, args, if is_held_links(args) { LINKS } else { READ }), revoke)
+}
+
+fn is_held_links(args: &[String]) -> bool {
+    args.starts_with(&["relationships".to_string(), "list".to_string()]) && !args.iter().any(|a| a == "confirmed:false")
 }
 
 fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(Vec<Entry>, bool), String> {
@@ -634,7 +643,13 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
         more |= has_more;
     }
     entries.extend(proposed?);
-    entries.extend(held?);
+    let links_error = match held {
+        Ok(held) => {
+            entries.extend(held);
+            None
+        }
+        Err(e) => Some(e),
+    };
     let roles = roles?;
     // ISO 8601 in UTC, so the text order is the time order.
     entries.sort_by(|a, b| b.created_at.cmp(&a.created_at));
@@ -644,7 +659,7 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
         }
         Err(e) => (None, Some(e)),
     };
-    Ok(Read::Ready { entries, more, activity, activity_error, revoke, roles })
+    Ok(Read::Ready { entries, more, activity, activity_error, links_error, revoke, roles })
 }
 
 pub(crate) fn memo_bin() -> Result<std::path::PathBuf, String> {
@@ -1406,6 +1421,27 @@ mod tests {
     }
 
     #[test]
+    fn links_that_do_not_come_still_show_the_memories() {
+        let fake = Fake::new(|a| match (a[0].as_str(), a.iter().any(|w| w == "confirmed:false")) {
+            ("memories", _) => Ok(json!({"items":[agent_memory()]})),
+            ("relationships", false) if a[1] == "list" => Err("the program did not finish in time".into()),
+            _ => Ok(json!({"items":[]})),
+        });
+        let read = read_with(&|a: &[String]| fake.call(a), false).unwrap();
+        let Read::Ready { entries, links_error, .. } = read else { panic!("not ready") };
+        assert_eq!(entries.len(), 1);
+        assert_eq!(links_error.as_deref(), Some("the program did not finish in time"));
+    }
+
+    #[test]
+    fn only_the_held_links_wait_less() {
+        assert!(is_held_links(&words(&["relationships", "list", "include:ended"])));
+        assert!(is_held_links(&words(&["relationships", "list"])));
+        assert!(!is_held_links(&words(&["relationships", "list", "confirmed:false"])));
+        assert!(!is_held_links(&words(&["memories", "list", "--limit", LIMIT])));
+    }
+
+    #[test]
     fn a_record_carries_its_open_source_review_and_an_older_memo_none() {
         let mut marked = agent_memory();
         marked["source_review"] = json!({"id":"17090","cause":"deleted"});
@@ -1744,6 +1780,7 @@ mod tests {
             more: false,
             activity: None,
             activity_error: None,
+            links_error: None,
             revoke: true,
             roles: vec![Role { list: "organization".into(), id: "employee".into(), label: None, built_in: true }],
         };

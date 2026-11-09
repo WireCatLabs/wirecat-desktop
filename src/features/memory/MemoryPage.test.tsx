@@ -272,4 +272,15 @@ describe("Memory", () => {
     expect(match(run("memo", "search all"))).toBe(false)
     expect(match(run("tg", "facts list"))).toBe(false)
   })
+
+  it("shows the rest of memory, and says so, when memo does not list the links", async () => {
+    const read = await platform.memoryRead()
+    if (read.kind !== "ready") throw new Error("the mock memo is ready")
+    vi.spyOn(platform, "memoryRead").mockResolvedValue({ ...read, linksError: "the program did not finish in time" })
+    render(<MemoryPage />)
+    await rack()
+    expect(screen.getByText(/Links between people and companies are not shown/)).toHaveTextContent(
+      "the program did not finish in time",
+    )
+  })
 })

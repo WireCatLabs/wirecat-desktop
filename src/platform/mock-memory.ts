@@ -781,6 +781,7 @@ export function memoryMock(): Pick<
         more: scenario === "many",
         activity: scenario === "none" ? [] : ACTIVITY,
         activityError: null,
+        linksError: null,
         revoke: params.get("memory-revoke") !== "old",
         roles: ROLES,
       }

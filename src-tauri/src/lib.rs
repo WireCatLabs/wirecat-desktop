@@ -84,17 +84,12 @@ mod tasks;
 mod terminal;
 mod terminal_path;
 mod tools;
+mod window_size;
 mod zoom_app;
 
 use install::Running;
 use std::sync::Arc;
 use tauri::Manager;
-
-fn window_state() -> tauri_plugin_window_state::StateFlags {
-    use tauri_plugin_window_state::StateFlags;
-    // Not VISIBLE: a window saved while hidden would never show again. Not DECORATIONS: the app draws its own frame.
-    StateFlags::SIZE | StateFlags::POSITION | StateFlags::MAXIMIZED
-}
 
 fn listen_for_links(app: &tauri::AppHandle) {
     use tauri_plugin_deep_link::DeepLinkExt;
@@ -139,7 +134,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         // Every launch, a restart included, opens where the owner left the window. A saved spot on a monitor that is
         // gone is ignored and the window opens centred.
-        .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(window_state()).build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(window_size::flags())
+                .skip_initial_state("main")
+                .build(),
+        )
         .manage(Arc::new(Running::default()))
         .manage(deep_link::Links::default())
         .manage(memory_add::PickedFile::default())
@@ -147,6 +147,9 @@ pub fn run() {
             // Without a log the app still works; it says why on stderr.
             if let Err(e) = app.path().app_log_dir().map_err(|e| e.to_string()).and_then(|dir| log::init(&dir)) {
                 eprintln!("[wirecat] no log file: {e}");
+            }
+            if let Some(window) = app.get_webview_window("main") {
+                window_size::restore(&window);
             }
             listen_for_links(app.handle());
             digests::mark_running();
