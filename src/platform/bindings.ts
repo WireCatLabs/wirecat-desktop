@@ -381,26 +381,52 @@ export type Diagnosis = {
 	stderr: string,
 };
 
-export type DigestSchedule = {
-	/**  memo's words, `daily at 08:30`. */
-	when: string,
-	/**  `08:30`, for a schedule that runs daily at a time. */
-	time: string | null,
+export type DigestBook = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
+/**
+ *  `named`: this memo keeps digests by name (`digest list`); without it there is only `morning-digest`.
+ *  `harness`: Claude Code is on PATH, so a digest can be written.
+ */
+{ state: "ready"; digests: DigestItem[]; others: OtherSchedule[]; harness: boolean; named: boolean };
+
+export type DigestItem = {
+	name: string,
+	title: string | null,
+	/**  `HH:MM`, each a run; empty for a digest that has no time yet. */
+	times: string[],
+	/**  Empty is every day. */
+	weekdays: string[],
+	/**  Empty is every connected source. */
+	sources: string[],
 	routes: Route[],
-	notify: string | null,
-	last: ScheduleRun | null,
-	spentTodayUsd: number | null,
+	brief: string | null,
+	scheduled: boolean,
 	maxCostUsd: number | null,
-	/**  0 is no daily cap. */
 	maxCostPerDayUsd: number | null,
+	spentTodayUsd: number | null,
+	last: DigestRun | null,
+	nextAt: string | null,
 };
 
-export type DigestSchedules = { state: "noMemo" } | { state: "old"; version: string | null; need: string } | 
-/**
- *  `digest`: the morning digest's schedule, `None` when there is none. `harness`: Claude Code is on PATH, so a
- *  schedule can be made.
- */
-{ state: "ready"; digest: DigestSchedule | null; others: OtherSchedule[]; harness: boolean };
+/**  The last run, without its output: the output quotes messages and the page reads the day itself. */
+export type DigestRun = {
+	at: string,
+	ok: boolean,
+	costUsd: number | null,
+};
+
+/**  One digest as the form saves it. */
+export type DigestSpec = {
+	name: string,
+	title: string,
+	times: string[],
+	weekdays: string[],
+	sources: string[],
+	routes: string[],
+	brief: string | null,
+	maxCostUsd: number | null,
+	maxCostPerDayUsd: number | null,
+	scheduled: boolean,
+};
 
 export type DigestTemplate = { state: "noMemo" } | 
 /**  This memo has no `templates` yet. */
@@ -1068,6 +1094,9 @@ export type ScheduleRun = {
 	skipped: Skipped | null,
 	deliveries: Delivery[],
 };
+
+/**  Where a run made now goes: everywhere the schedule sends it, only into the app, or to some of its routes. */
+export type SendTo = { kind: "all" } | { kind: "here" } | { kind: "only"; routes: string[] };
 
 export type ShellReach = {
 	name: string,

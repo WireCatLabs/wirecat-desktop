@@ -8,15 +8,14 @@ type Count = "chats" | "mail" | "tasks" | "meetings"
 const en = {
   page: "Digests",
   intro:
-    "Memo's morning digest, one per day, newest first. Each line opens what it is about here in WireCat: the task, the task list, the proposal, the tool to fix.",
+    "Manage regular notifications with a digest for the day, the week and so on. A digest can take data from any connected source, such as chats, mail, meetings and tasks, and shows it on one tidy page, here and in Telegram or mail.",
   readAgain: "Read again",
   reading: "Reading…",
   readFailed: "Couldn't read the digests.",
   dayFailed: "Couldn't read this digest.",
   days: "Days",
-  emptyTitle: "No digest yet",
-  emptyBody:
-    "Memo writes a morning digest when its morning-digest schedule runs on this computer. Once it has run, each day appears here.",
+  emptyTitle: "No days yet",
+  emptyBody: "The first one appears here after the digest runs: at its time, or now with Get now.",
   title: (day: string) => `Digest for ${day}`,
   textRun: "This digest was written before WireCat could lay digests out as a page, so here is its text as it was.",
   quiet: "A quiet morning: nothing urgent.",
@@ -93,15 +92,14 @@ const en = {
 const ru: typeof en = {
   page: "Сводки",
   intro:
-    "Утренняя сводка Memo, по одной на день, новые сверху. Каждая строка открывает здесь, в WireCat, то, о чём она: задачу, список задач, предложение, инструмент, который надо починить.",
+    "Управляйте регулярными уведомлениями со сводкой за день, неделю и т.п. Сводка может брать данные из любых подключённых источников: чатов, почты, встреч, задач, и показывает их на одной аккуратной странице, здесь и в Telegram или почте.",
   readAgain: "Прочитать заново",
   reading: "Читаю…",
   readFailed: "Не удалось прочитать сводки.",
   dayFailed: "Не удалось прочитать эту сводку.",
   days: "Дни",
-  emptyTitle: "Сводок пока нет",
-  emptyBody:
-    "Memo пишет утреннюю сводку, когда на этом компьютере срабатывает его расписание morning-digest. После первого запуска здесь появится каждый день.",
+  emptyTitle: "Дней пока нет",
+  emptyBody: "Первая появится здесь после запуска: в назначенное время или сразу, по кнопке «Получить сейчас».",
   title: (day) => `Сводка: ${day}`,
   textRun:
     "Эта сводка написана до того, как WireCat научился показывать сводки страницей, поэтому здесь её текст как есть.",
@@ -179,15 +177,14 @@ const ru: typeof en = {
 const es: typeof en = {
   page: "Resúmenes",
   intro:
-    "El resumen matutino de Memo, uno por día, el más reciente arriba. Cada línea abre aquí, en WireCat, aquello de lo que trata: la tarea, la lista de tareas, la propuesta, la herramienta que hay que arreglar.",
+    "Gestiona notificaciones periódicas con un resumen del día, la semana, etc. Un resumen puede tomar datos de cualquier fuente conectada, como chats, correo, reuniones y tareas, y los muestra en una página ordenada, aquí y en Telegram o el correo.",
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
   readFailed: "No se pudieron leer los resúmenes.",
   dayFailed: "No se pudo leer este resumen.",
   days: "Días",
-  emptyTitle: "Aún no hay resúmenes",
-  emptyBody:
-    "Memo escribe un resumen matutino cuando su programación morning-digest se ejecuta en este ordenador. Después de la primera vez, cada día aparece aquí.",
+  emptyTitle: "Aún no hay días",
+  emptyBody: "El primero aparece aquí cuando el resumen se ejecuta: a su hora, o ahora con «Obtener ahora».",
   title: (day) => `Resumen del ${day}`,
   textRun:
     "Este resumen se escribió antes de que WireCat pudiera mostrar los resúmenes como una página, así que aquí está su texto tal cual.",

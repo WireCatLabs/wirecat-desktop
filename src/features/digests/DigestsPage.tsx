@@ -1,39 +1,56 @@
-import { LoaderCircle, RefreshCw } from "lucide-react"
+import { LoaderCircle, Plus, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
-import { dayTitle } from "@/domain/digest"
-import { useLang, useMessages } from "@/i18n"
+import { ToolNeeded } from "@/features/tools"
+import { useMessages } from "@/i18n"
+import type { DigestSpec } from "@/platform/bindings"
 import { useDigestDay } from "@/shared/digest-day"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
-import { cx } from "@/ui/cx"
+import { Crossfade } from "@/ui/Crossfade"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
-import { BriefCard } from "./BriefCard"
-import { FillHistory } from "./FillHistory"
+import { CreateDialog, draftOf, Starter, type Template, takenNames } from "./CreateDigest"
+import { DigestTable } from "./DigestTable"
+import { DigestView } from "./DigestView"
 import { digestMessages } from "./messages"
+import { bookMessages } from "./messages-book"
 import { scheduleMessages } from "./messages-schedule"
-import { ReportView } from "./ReportView"
-import { ScheduleCard } from "./ScheduleCard"
-import { useDigests } from "./store"
-import { TemplatesCard } from "./TemplatesCard"
+import { NoHarness, OtherSchedules } from "./ScheduleCard"
+import { useDigestBook } from "./schedule-store"
 
 export function DigestsPage() {
   const m = useMessages(digestMessages)
-  const later = useMessages(scheduleMessages).history.builtLater
-  const lang = useLang()
-  const { days, error, reading, load } = useDigests()
-  const chosen = useDigestDay((s) => s.date)
+  const b = useMessages(bookMessages)
+  const s = useMessages(scheduleMessages)
+  const { book, error, open, load, openDigest } = useDigestBook()
+  const [reading, setReading] = useState(false)
+  const [creating, setCreating] = useState<DigestSpec | null>(null)
 
+  const read = async () => {
+    setReading(true)
+    await load()
+    setReading(false)
+  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: read once when the page opens
   useEffect(() => {
-    void load()
-  }, [load])
-  // A link or a notification can name a day newer than the list read before it.
-  useEffect(() => {
-    const known = useDigests.getState().days
-    if (chosen && known && !known.some((d) => d.date === chosen)) void useDigests.getState().load()
-  }, [chosen])
+    void read()
+  }, [])
 
-  const date = days?.some((d) => d.date === chosen) ? chosen : (days?.[0]?.date ?? null)
+  const ready = book?.state === "ready" ? book : null
+  const can = { named: ready?.named ?? false }
+  const harness = ready?.harness ?? false
+  const item = ready?.digests.find((d) => d.name === open) ?? null
+  // A digest removed elsewhere closes its page.
+  useEffect(() => {
+    if (open && ready && !item) openDigest(null)
+  }, [open, ready, item, openDigest])
+  const linked = useDigestDay((s) => s.digest)
+  useEffect(() => {
+    if (!linked) return
+    openDigest(linked)
+    useDigestDay.setState({ digest: null })
+  }, [linked, openDigest])
+  const pick = (t: Template) => ready && setCreating(draftOf(t, takenNames(ready.digests), b))
 
   return (
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
@@ -42,13 +59,12 @@ export function DigestsPage() {
           <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.page}</h1>
           <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
         </div>
-        <div className="flex flex-wrap items-start gap-2">
-          <FillHistory />
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
             disabled={reading}
-            onClick={() => void load()}
+            onClick={() => void read()}
             icon={
               reading ? (
                 <LoaderCircle className="size-4 animate-spin" aria-hidden />
@@ -57,83 +73,48 @@ export function DigestsPage() {
               )
             }
           >
-            {reading && days ? m.reading : m.readAgain}
+            {reading && book ? m.reading : m.readAgain}
           </Button>
+          {ready && (ready.named || ready.digests.length === 0) && (
+            <Button
+              // The one purple action: while a digest is open its own Save is the purple one.
+              variant={item ? "secondary" : "primary"}
+              disabled={!harness}
+              onClick={() => pick(ready.digests.length === 0 ? "daily" : "own")}
+              icon={<Plus className="size-4" aria-hidden />}
+            >
+              {b.create}
+            </Button>
+          )}
         </div>
       </div>
 
-      <ScheduleCard />
-      <div className="grid items-start gap-[1.5rem] xl:grid-cols-2">
-        <BriefCard />
-        <TemplatesCard />
-      </div>
-
-      {error ? (
-        <ErrorNotice action={<ReportThis what="Reading digests" error={error} />}>
-          {m.readFailed} {error}
-        </ErrorNotice>
-      ) : days === null ? (
-        <Skeleton className="h-[16rem] w-full" label={m.reading} />
-      ) : days.length === 0 ? (
-        <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
-          <p className="font-medium text-ink">{m.emptyTitle}</p>
-          <p className="mt-1 max-w-[70ch]">{m.emptyBody}</p>
-        </div>
+      {error && !book ? (
+        <ErrorNotice action={<ReportThis what="Reading digests" error={error} />}>{s.readFailed(error)}</ErrorNotice>
+      ) : book === null ? (
+        <Skeleton className="h-[14rem] w-full" label={m.reading} />
+      ) : book.state === "noMemo" ? (
+        <ToolNeeded gap={{ kind: "missing", tool: "memo", others: [] }} />
+      ) : book.state === "old" ? (
+        <ToolNeeded gap={{ kind: "old", tool: "memo", version: book.version, need: book.need }} />
       ) : (
-        <div className="grid grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)] items-start gap-[1.5rem]">
-          <nav aria-label={m.days} className="flex flex-col gap-[0.2rem]">
-            {days.map((d) => (
-              <button
-                key={d.date}
-                type="button"
-                aria-current={d.date === date ? "page" : undefined}
-                onClick={() => useDigestDay.setState({ date: d.date })}
-                className={cx(
-                  "cursor-pointer rounded-[0.3rem] px-[0.7rem] py-[0.5rem] text-left transition-colors hover:bg-app-3",
-                  d.date === date && "bg-app-3",
-                )}
-              >
-                <span className="block font-medium text-ink first-letter:uppercase">{dayTitle(d.date, lang)}</span>
-                {d.backfill && <span className="mt-[0.1rem] block text-[0.8rem] text-ink-dim italic">{later}</span>}
-                {d.summary && (
-                  <span className="mt-[0.1rem] line-clamp-2 block text-[0.85rem] text-ink-dim">{d.summary}</span>
-                )}
-              </button>
-            ))}
-          </nav>
-          {date && <Day date={date} />}
-        </div>
+        <Crossfade swap={item ? item.name : "list"}>
+          {item ? (
+            <DigestView item={item} can={can} harness={harness} />
+          ) : (
+            <div className="flex flex-col gap-[1.5rem]">
+              {!harness && <NoHarness />}
+              {book.digests.length === 0 ? (
+                <Starter can={can} onPick={pick} />
+              ) : (
+                <DigestTable digests={book.digests} harness={harness} />
+              )}
+              {book.others.length > 0 && <OtherSchedules others={book.others} />}
+            </div>
+          )}
+        </Crossfade>
       )}
-    </div>
-  )
-}
-
-function Day({ date }: { date: string }) {
-  const m = useMessages(digestMessages)
-  const shown = useDigests((s) => s.shown[date])
-  const [now] = useState(() => Date.now())
-  useEffect(() => {
-    void useDigests.getState().show(date)
-  }, [date])
-
-  const box = "min-w-0 rounded-[0.2rem] border border-line-strong bg-app px-[1.4rem] py-[1.3rem]"
-  if (!shown || shown.state === "loading") return <Skeleton className={cx(box, "h-[24rem]")} label={m.reading} />
-  if (shown.state === "failed")
-    return (
-      <ErrorNotice action={<ReportThis what="Reading a digest" error={shown.error} />}>
-        {m.dayFailed} {shown.error}
-      </ErrorNotice>
-    )
-  return (
-    <div className={box}>
-      {shown.state === "report" ? (
-        <ReportView report={shown.report} now={now} />
-      ) : (
-        <>
-          <p className="text-[0.88rem] text-ink-dim">{m.textRun}</p>
-          <pre className="mt-3 font-sans text-[0.95rem] whitespace-pre-wrap text-ink-soft">{shown.text}</pre>
-        </>
-      )}
+      <CreateDialog start={creating} can={can} harness={harness} onClose={() => setCreating(null)} />
     </div>
   )
 }

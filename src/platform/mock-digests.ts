@@ -1,16 +1,16 @@
-import type { Backfill, DigestSchedules, OtherSchedule, ScheduleRun } from "./bindings"
+import type { Backfill, DigestBook, DigestItem, DigestSpec, OtherSchedule, ScheduleRun } from "./bindings"
 import type { Digest, DigestDay } from "./digest-schemas"
 import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
 // Synthetic digests for the browser build: every section, item type, task group, sync line and the "viewed" footer,
 // one plain-text run from before report documents, one day built later by `digest backfill`, and `?digests=none|new`
-// (`new`: a newer day lands after 3 s).
-// The schedule: on, daily at 08:30 to a Telegram bot and a mailbox. `?digest-schedule=missing` (none yet, nothing
-// remembered), `failed` (the last run failed, mail not delivered), `capped` (today's spend reached the daily cap),
-// `noclaude` (none, Claude Code missing), `nomemo`, `old`; `?digest-schedule-fail=1` makes saving fail with memo's
-// words. Backfill: `?backfill=old` (this memo has no `digest backfill`), `?backfill-fail=1` (building fails halfway);
-// otherwise building takes 4 s and adds the days, marked built later.
+// (`none`: no digest and no day yet; `new`: a newer day lands after 3 s).
+// The book: the morning digest (every day at 08:30, to a Telegram bot and a mailbox), an evening one twice a day and a
+// weekly one off schedule. `?digest-memo=old` (a memo without `digest list`: the morning digest as its one row),
+// `tooold`, `nomemo`; `?digest-claude=none`; `?digest-fail=1` makes saving fail with memo's words; `?digest-run=failed`
+// (the morning digest's last run failed). Backfill: `?backfill=old` (this memo has no `digest backfill`),
+// `?backfill-fail=1` (building fails halfway); otherwise building takes 4 s and adds the days, marked built later.
 
 const iso = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
@@ -22,6 +22,11 @@ const dayFrom = (n: number) => {
 const at = (days: number, hour: number) => {
   const d = dayFrom(days)
   d.setHours(hour, 0, 0, 0)
+  return d.toISOString()
+}
+const nextAt = (time: string) => {
+  const d = dayFrom(1)
+  d.setHours(Number(time.slice(0, 2)), Number(time.slice(3, 5)), 0, 0)
   return d.toISOString()
 }
 const stampOf = (date: string, hour: string) => `${date}T${hour}-30-00Z`
@@ -155,10 +160,11 @@ type DigestsPart =
   | "digestList"
   | "digestShow"
   | "digestNotify"
-  | "digestSchedule"
-  | "digestScheduleSave"
-  | "digestScheduleRemove"
-  | "digestScheduleRun"
+  | "digestBook"
+  | "digestSave"
+  | "digestRun"
+  | "digestSetScheduled"
+  | "digestRemove"
   | "digestBackfill"
 
 const run = (minutesAgo: number, over: Partial<ScheduleRun> = {}): ScheduleRun => ({
@@ -217,41 +223,90 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
   const started = Date.now()
   const today = iso(dayFrom(0))
   const built = new Set<string>()
-  const scenario = params.get("digest-schedule")
-  let schedule: { time: string; routes: string[]; maxCost: number; maxCostPerDay: number } | null =
-    scenario === "missing" || scenario === "noclaude"
-      ? null
-      : { time: "08:30", routes: ROUTES, maxCost: 0.5, maxCostPerDay: 1 }
-  let last: ScheduleRun | null =
-    scenario === "failed"
-      ? run(70, {
-          exitCode: 1,
-          reason: "provider_error (claude.exit)",
-          failures: 1,
-          failingSince: new Date(Date.now() - 70 * 60_000).toISOString(),
-          costUsd: 0.12,
-          deliveries: [{ kind: "email", ok: false, reason: "smtp.refused" }],
-        })
-      : run(scenario === "capped" ? 20 : 95)
-  let spent = scenario === "capped" ? 1.02 : 0.27
-  const status = (): DigestSchedules => {
-    if (scenario === "nomemo") return { state: "noMemo" }
-    if (scenario === "old") return { state: "old", version: "0.131.20", need: "0.131.26" }
-    return {
-      state: "ready",
-      harness: scenario !== "noclaude",
-      others,
-      digest: schedule && {
-        when: `daily at ${schedule.time}`,
-        time: schedule.time,
-        routes: schedule.routes.map(routeOf),
-        notify: "always",
-        last,
-        spentTodayUsd: spent,
-        maxCostUsd: schedule.maxCost,
-        maxCostPerDayUsd: schedule.maxCostPerDay,
-      },
-    }
+  const memo = params.get("digest-memo")
+  const named = memo !== "old"
+  const item = (spec: DigestSpec, over: Partial<DigestItem> = {}): DigestItem => ({
+    name: spec.name,
+    title: named ? spec.title : null,
+    times: [...new Set(spec.times)].sort(),
+    weekdays: spec.weekdays,
+    sources: spec.sources,
+    routes: spec.routes.map(routeOf),
+    brief: spec.brief,
+    scheduled: spec.scheduled,
+    maxCostUsd: spec.maxCostUsd,
+    maxCostPerDayUsd: spec.maxCostPerDayUsd,
+    spentTodayUsd: null,
+    last: null,
+    nextAt: spec.scheduled ? nextAt(spec.times[0] ?? "08:30") : null,
+    ...over,
+  })
+  const failed = params.get("digest-run") === "failed"
+  let book: DigestItem[] =
+    mode === "none"
+      ? []
+      : [
+          item(
+            {
+              name: "morning-digest",
+              title: "Morning digest",
+              times: ["08:30"],
+              weekdays: [],
+              sources: [],
+              routes: ROUTES,
+              brief: "Projects HRB and the warehouse first; skip newsletters.",
+              maxCostUsd: 0.5,
+              maxCostPerDayUsd: 1,
+              scheduled: true,
+            },
+            {
+              spentTodayUsd: 0.27,
+              last: {
+                at: new Date(Date.now() - (failed ? 70 : 95) * 60_000).toISOString(),
+                ok: !failed,
+                costUsd: 0.27,
+              },
+            },
+          ),
+          ...(named
+            ? [
+                item(
+                  {
+                    name: "evening-wrap",
+                    title: "Evening wrap-up",
+                    times: ["13:00", "19:00"],
+                    weekdays: ["mon", "tue", "wed", "thu", "fri"],
+                    sources: ["telegram", "mail"],
+                    routes: [ROUTES[0] ?? ""],
+                    brief: null,
+                    maxCostUsd: 0.4,
+                    maxCostPerDayUsd: 1,
+                    scheduled: true,
+                  },
+                  { last: { at: new Date(Date.now() - 18 * 3_600_000).toISOString(), ok: true, costUsd: 0.19 } },
+                ),
+                item({
+                  name: "weekly-digest",
+                  title: "Weekly digest",
+                  times: ["09:00"],
+                  weekdays: ["mon"],
+                  sources: ["mail", "meetings", "tasks"],
+                  routes: [ROUTES[1] ?? ""],
+                  brief: null,
+                  maxCostUsd: 1,
+                  maxCostPerDayUsd: 2,
+                  scheduled: false,
+                }),
+              ]
+            : []),
+        ]
+  const status = (): DigestBook => {
+    if (memo === "nomemo") return { state: "noMemo" }
+    if (memo === "tooold") return { state: "old", version: "0.131.20", need: "0.131.26" }
+    return { state: "ready", digests: book, others, harness: params.get("digest-claude") !== "none", named }
+  }
+  const replace = (name: string, change: (d: DigestItem) => DigestItem) => {
+    book = book.map((d) => (d.name === name ? change(d) : d))
   }
   const missingDays = (from: string, to: string, have: Set<string>) => {
     const out: string[] = []
@@ -324,25 +379,38 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
       return found.digest
     },
     async digestNotify() {},
-    async digestSchedule() {
+    async digestBook() {
       await delay(300)
       return status()
     },
-    async digestScheduleSave(time, routes, maxCost, maxCostPerDay) {
+    async digestSave(spec, create) {
       await delay(900)
-      if (params.get("digest-schedule-fail")) throw new Error("unknown option '--deliver-to'")
-      schedule = { time, routes, maxCost, maxCostPerDay }
+      if (params.get("digest-fail")) throw new Error("unknown option '--on'")
+      if (!named && (spec.name !== "morning-digest" || spec.times.length !== 1))
+        throw new Error("this needs a newer Memo")
+      const old = book.find((d) => d.name === spec.name)
+      if (create && old && named) throw new Error(`a digest named ${spec.name} already exists`)
+      const next = item(spec, { last: old?.last ?? null, spentTodayUsd: old?.spentTodayUsd ?? null })
+      book = old ? book.map((d) => (d.name === spec.name ? next : d)) : [...book, next]
       return status()
     },
-    async digestScheduleRemove() {
-      await delay(700)
-      schedule = null
-      return status()
-    },
-    async digestScheduleRun() {
+    async digestRun(name, to) {
       await delay(4000)
-      last = run(0)
-      spent += 0.27
+      replace(name, (d) => ({
+        ...d,
+        last: { at: new Date().toISOString(), ok: true, costUsd: 0.27 },
+        spentTodayUsd: (d.spentTodayUsd ?? 0) + (to.kind === "here" ? 0.25 : 0.27),
+      }))
+      return status()
+    },
+    async digestSetScheduled(name, on) {
+      await delay(700)
+      replace(name, (d) => ({ ...d, scheduled: on, nextAt: on ? nextAt(d.times[0] ?? "08:30") : null }))
+      return status()
+    },
+    async digestRemove(name) {
+      await delay(700)
+      book = book.filter((d) => d.name !== name)
       return status()
     },
     async digestBackfill(from, to, yes): Promise<Backfill> {

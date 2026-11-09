@@ -1,5 +1,6 @@
-//! The morning digest's schedule on the Digests page, and memo's other schedules beside it, read only. Everything
-//! goes through memo's own `schedule list|agent|remove|run` and `digest backfill`; memo writes the schedule file and
+//! The morning digest kept as a schedule, as a memo without `digest list` keeps it (`digest_book.rs` reads that memo
+//! through here), memo's other schedules beside it, read only, and `digest backfill`. Everything goes through memo's
+//! own `schedule list|agent|remove|run` and `digest backfill`; memo writes the schedule file and
 //! the timer (systemd, launchd or Task Scheduler). Nothing here touches either.
 //!
 //! memo has no pause: off is `schedule remove` (the runs stay), on is `schedule agent` again with the time and routes
@@ -132,7 +133,7 @@ pub enum Backfill {
     Done { built: u64, skipped: u64, cost_usd: Option<f64> },
 }
 
-fn memo() -> Result<Result<&'static Tool, DigestSchedules>, String> {
+pub(crate) fn memo() -> Result<Result<&'static Tool, DigestSchedules>, String> {
     let memo = catalog::tool("memo")?;
     let state = tools::detect(memo, false);
     let Some(first) = state.installs.first() else { return Ok(Err(DigestSchedules::NoMemo)) };
@@ -197,7 +198,7 @@ fn daily_time(when: &str) -> Option<String> {
     when.strip_prefix("daily at ").filter(|t| is_time(t)).map(str::to_string)
 }
 
-fn is_time(t: &str) -> bool {
+pub(crate) fn is_time(t: &str) -> bool {
     let Some((h, m)) = t.split_once(':') else { return false };
     let two = |s: &str| (s.len() == 2 && s.bytes().all(|b| b.is_ascii_digit())).then(|| s.parse::<u8>().ok()).flatten();
     two(h).is_some_and(|h| h <= 23) && two(m).is_some_and(|m| m <= 59)
@@ -334,14 +335,23 @@ pub fn run_now() -> Result<DigestSchedules, String> {
     status()
 }
 
-fn backfill_args(from: &str, to: &str, yes: bool, [since, until]: [&str; 2]) -> Result<Vec<String>, String> {
+fn backfill_args(
+    name: Option<&str>,
+    from: &str,
+    to: &str,
+    yes: bool,
+    [since, until]: [&str; 2],
+) -> Result<Vec<String>, String> {
+    let name = crate::digest_book::name_arg(name)?;
     let day = |d: &str| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").map_err(|_| format!("not a day: {d}"));
     let (start, end) = (day(from)?, day(to)?);
     let span = (end - start).num_days();
     if !(0..MAX_BACKFILL_DAYS).contains(&span) {
         return Err(format!("from {from} to {to} is not 1 to {MAX_BACKFILL_DAYS} days"));
     }
-    let mut args = words(&["digest", "backfill", since, from, until, to, "--json"]);
+    let mut args = words(&["digest", "backfill"]);
+    args.extend(name);
+    args.extend(words(&[since, from, until, to, "--json"]));
     if yes {
         args.push("--yes".into());
     }
@@ -386,13 +396,13 @@ fn unknown_command(json: Option<&Value>) -> bool {
 
 /// Without `yes`, memo only prices the days; with it, memo builds them, writes each as that day's run and delivers
 /// none of them.
-pub fn backfill(from: &str, to: &str, yes: bool) -> Result<Backfill, String> {
-    let args = backfill_args(from, to, yes, RANGE)?;
+pub fn backfill(name: Option<&str>, from: &str, to: &str, yes: bool) -> Result<Backfill, String> {
+    let args = backfill_args(name, from, to, yes, RANGE)?;
     let Ok(memo) = memo()? else { return Ok(Backfill::Unsupported) };
     let timeout = if yes { BACKFILL_TIMEOUT } else { Duration::from_mins(1) };
     let (mut out, mut json) = call(memo, &args, timeout)?;
     if old_range(json.as_ref()) {
-        (out, json) = call(memo, &backfill_args(from, to, yes, OLD_RANGE)?, timeout)?;
+        (out, json) = call(memo, &backfill_args(name, from, to, yes, OLD_RANGE)?, timeout)?;
     }
     if unknown_command(json.as_ref()) {
         return Ok(Backfill::Unsupported);
@@ -484,17 +494,28 @@ mod tests {
     #[test]
     fn backfill_prices_first_and_reads_both_shapes() {
         assert_eq!(
-            backfill_args("2026-11-01", "2026-11-07", false, RANGE).unwrap().join(" "),
+            backfill_args(None, "2026-11-01", "2026-11-07", false, RANGE).unwrap().join(" "),
             "digest backfill --since-time 2026-11-01 --until-time 2026-11-07 --json"
         );
         assert_eq!(
-            backfill_args("2026-11-01", "2026-11-07", false, OLD_RANGE).unwrap().join(" "),
+            backfill_args(None, "2026-11-01", "2026-11-07", false, OLD_RANGE).unwrap().join(" "),
             "digest backfill --from 2026-11-01 --to 2026-11-07 --json"
         );
-        assert!(backfill_args("2026-11-01", "2026-11-07", true, RANGE).unwrap().ends_with(&["--yes".to_string()]));
-        assert!(backfill_args("2026-11-07", "2026-11-01", false, RANGE).is_err());
-        assert!(backfill_args("2026-10-01", "2026-11-07", false, RANGE).is_err());
-        assert!(backfill_args("--yes", "2026-11-07", false, RANGE).is_err());
+        assert!(
+            backfill_args(None, "2026-11-01", "2026-11-07", true, RANGE).unwrap().ends_with(&["--yes".to_string()])
+        );
+        assert!(backfill_args(None, "2026-11-07", "2026-11-01", false, RANGE).is_err());
+        assert!(backfill_args(None, "2026-10-01", "2026-11-07", false, RANGE).is_err());
+        assert!(backfill_args(None, "--yes", "2026-11-07", false, RANGE).is_err());
+        assert_eq!(
+            backfill_args(Some("weekly"), "2026-11-01", "2026-11-07", false, RANGE).unwrap()[..3].join(" "),
+            "digest backfill weekly"
+        );
+        assert_eq!(
+            backfill_args(Some("morning-digest"), "2026-11-01", "2026-11-07", false, RANGE).unwrap()[2],
+            "--since-time"
+        );
+        assert!(backfill_args(Some("-x"), "2026-11-01", "2026-11-07", false, RANGE).is_err());
 
         let estimate = json!({"item": {"days": ["2026-11-01", "2026-11-02"], "skipped": 1, "estimate_usd": 0.54}});
         assert_eq!(

@@ -1,43 +1,74 @@
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
-import type { Backfill, DigestSchedules } from "@/platform/bindings"
+import type { Backfill, DigestBook, DigestItem, DigestSpec, SendTo } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { safeStorage } from "@/shared/safe-storage"
-import { useDigests } from "./store"
+import { MORNING, useDigests } from "./store"
 
-/** What the schedule had when the page last read it; memo forgets it on `schedule remove`, so on brings it back. */
+export { MORNING }
+
+/** The caps memo's digest skill was set up with: one run, then one day. */
+export const DEFAULT_CAPS = { maxCostUsd: 0.5, maxCostPerDayUsd: 1 }
+export const DEFAULT_TIME = "08:30"
+
+/**
+ * The morning digest's settings as the page last read them. An older memo forgets them when it is taken off the
+ * schedule (`schedule remove`), so putting it back on uses these.
+ */
 export type Remembered = { time: string; routes: string[]; maxCostUsd: number; maxCostPerDayUsd: number }
 
-/** The caps of the morning digest memo's skill was set up with: one run, then one day. */
-export const DEFAULT_SETTINGS: Remembered = { time: "08:30", routes: [], maxCostUsd: 0.5, maxCostPerDayUsd: 1 }
-
-export type Busy = "save" | "remove" | "run" | null
+export type Busy = "save" | "schedule" | "run" | "remove"
+export type Failed = { name: string; what: Busy | "create"; message: string }
 
 type State = {
-  status: DigestSchedules | null
+  book: DigestBook | null
   error: string | null
-  busy: Busy
-  /** Why the last change failed, in memo's words. */
-  failed: { what: Exclude<Busy, null>; message: string } | null
+  /** What is under way, per digest; a run takes minutes and the other digests stay usable meanwhile. */
+  busy: Record<string, Busy>
+  failed: Failed | null
   remembered: Remembered | null
+  /** The digest on screen; null is the table. */
+  open: string | null
   /** Whether this memo has `digest backfill`; null until asked. */
   backfill: "yes" | "no" | null
   load(): Promise<void>
-  save(settings: Remembered): Promise<void>
-  remove(): Promise<void>
-  runNow(): Promise<void>
+  openDigest(name: string | null): void
+  /** True once memo saved it. */
+  save(spec: DigestSpec, create: boolean): Promise<boolean>
+  run(name: string, to: SendTo): Promise<void>
+  setScheduled(item: DigestItem, on: boolean): Promise<void>
+  remove(name: string): Promise<boolean>
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
-const rememberedOf = (status: DigestSchedules): Remembered | null => {
-  if (status.state !== "ready" || !status.digest?.time) return null
-  const d = status.digest
+const rememberedOf = (book: DigestBook): Remembered | null => {
+  if (book.state !== "ready" || book.named) return null
+  const d = book.digests.find((x) => x.name === MORNING)
+  const time = d?.times[0]
+  if (!d?.scheduled || !time) return null
   return {
-    time: d.time ?? DEFAULT_SETTINGS.time,
+    time,
     routes: d.routes.map((r) => r.value),
-    maxCostUsd: d.maxCostUsd ?? DEFAULT_SETTINGS.maxCostUsd,
-    maxCostPerDayUsd: d.maxCostPerDayUsd ?? DEFAULT_SETTINGS.maxCostPerDayUsd,
+    maxCostUsd: d.maxCostUsd ?? DEFAULT_CAPS.maxCostUsd,
+    maxCostPerDayUsd: d.maxCostPerDayUsd ?? DEFAULT_CAPS.maxCostPerDayUsd,
+  }
+}
+
+/** The settings of a digest as the form edits them. */
+export function specOf(item: DigestItem, title: string, remembered: Remembered | null): DigestSpec {
+  const old = item.times.length === 0 ? remembered : null
+  return {
+    name: item.name,
+    title,
+    times: item.times.length > 0 ? item.times : [old?.time ?? DEFAULT_TIME],
+    weekdays: item.weekdays,
+    sources: item.sources,
+    routes: old ? old.routes : item.routes.map((r) => r.value),
+    brief: item.brief,
+    maxCostUsd: item.maxCostUsd ?? old?.maxCostUsd ?? DEFAULT_CAPS.maxCostUsd,
+    maxCostPerDayUsd: item.maxCostPerDayUsd ?? old?.maxCostPerDayUsd ?? DEFAULT_CAPS.maxCostPerDayUsd,
+    scheduled: item.scheduled,
   }
 }
 
@@ -51,31 +82,42 @@ export function dayBefore(days: number, now = new Date()): string {
 /** The `n` days up to yesterday: today's digest is the schedule's to write. */
 export const backfillRange = (n: number, now = new Date()) => ({ from: dayBefore(n, now), to: dayBefore(1, now) })
 
-export const useDigestSchedule = create<State>()(
+export const useDigestBook = create<State>()(
   persist(
     (set, get) => {
-      const take = (status: DigestSchedules) =>
-        set((s) => ({ status, error: null, remembered: rememberedOf(status) ?? s.remembered }))
-      const change = async (what: Exclude<Busy, null>, call: () => Promise<DigestSchedules>) => {
-        set({ busy: what, failed: null })
+      const take = (book: DigestBook) =>
+        set((s) => ({ book, error: null, remembered: rememberedOf(book) ?? s.remembered }))
+      const change = async (
+        name: string,
+        what: Busy,
+        call: () => Promise<DigestBook>,
+        failedAs: Failed["what"] = what,
+      ) => {
+        set((s) => ({ busy: { ...s.busy, [name]: what }, failed: null }))
         try {
           take(await call())
+          return true
         } catch (e) {
-          set({ failed: { what, message: message(e) } })
+          set({ failed: { name, what: failedAs, message: message(e) } })
+          return false
         } finally {
-          set({ busy: null })
+          set((s) => {
+            const { [name]: _, ...rest } = s.busy
+            return { busy: rest }
+          })
         }
       }
       return {
-        status: null,
+        book: null,
         error: null,
-        busy: null,
+        busy: {},
         failed: null,
         remembered: null,
+        open: null,
         backfill: null,
         async load() {
           try {
-            take(await platform.digestSchedule())
+            take(await platform.digestBook())
           } catch (e) {
             set({ error: message(e) })
           }
@@ -87,12 +129,31 @@ export const useDigestSchedule = create<State>()(
             () => set({ backfill: "yes" }),
           )
         },
-        save: (s) =>
-          change("save", () => platform.digestScheduleSave(s.time, s.routes, s.maxCostUsd, s.maxCostPerDayUsd)),
-        remove: () => change("remove", () => platform.digestScheduleRemove()),
-        async runNow() {
-          await change("run", () => platform.digestScheduleRun())
-          void useDigests.getState().load()
+        openDigest: (open) => set({ open, failed: null }),
+        save: (spec, create) =>
+          change(spec.name, "save", () => platform.digestSave(spec, create), create ? "create" : "save"),
+        async run(name, to) {
+          await change(name, "run", () => platform.digestRun(name, to))
+          if ((useDigests.getState().name ?? MORNING) === name) void useDigests.getState().load(name)
+        },
+        async setScheduled(item, on) {
+          const book = get().book
+          const named = book?.state === "ready" && book.named
+          // An older memo forgot the settings when it was taken off; it is put back on with the ones remembered.
+          const call =
+            on && !named
+              ? () =>
+                  platform.digestSave(
+                    { ...specOf(item, item.title ?? item.name, get().remembered), scheduled: true },
+                    false,
+                  )
+              : () => platform.digestSetScheduled(item.name, on)
+          await change(item.name, "schedule", call)
+        },
+        async remove(name) {
+          const ok = await change(name, "remove", () => platform.digestRemove(name))
+          if (ok && get().open === name) set({ open: null })
+          return ok
         },
       }
     },

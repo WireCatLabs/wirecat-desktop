@@ -224,25 +224,29 @@ identity (PERF-6). The Add person form and, later, `memo search people` use it.
 ### Digests by name
 
 Any number of digests, each keyed by name; `morning-digest` is the first one and its files do not change (owner,
-2026-11-09, NEED-2343 B). This is the contract the Desktop page is built against; the memo session that implements it
-writes any change here before Desktop wires it.
+2026-11-09, NEED-2343 B). memo's own help is the source of truth: the names below are those of cli-memo's
+`digest-commands.ts` as its session wrote them on 2026-11-09, before release, and Desktop's `digest_book.rs` asks
+exactly these (RISK-2237).
 
 - `memo digest list --json` → `{items: [...]}`, `morning-digest` first. Each item: `name`, `title`, `times`
   (`["08:30", "18:00"]`, any number), `weekdays` (`[]` every day, or `["mon", "fri"]`), `sources` (`[]` every
-  connected source, or kinds from memo's `SCOPE_KINDS`: `telegram`, `max`, `whatsapp`, `mail`, `meeting`, `task`),
-  `routes` (`telegram-bot:<profile>/<chat>`, `email:<profile>/<address>`), `brief`, `scheduled`, `max_cost_usd`,
+  source, or from memo's `DIGEST_SOURCES`: `telegram`, `max`, `whatsapp`, `mail`, `meetings`, `tasks`), `routes`
+  (`telegram-bot:<profile>/<chat>`, `email:<profile>/<address>`), `brief`, `scheduled`, `max_cost_usd`,
   `max_cost_per_day_usd`, `last` (`{at, ok, cost_usd, output}` or `null`), `next_at` (or `null`).
-- `memo digest add <name> --title <t> --at HH:MM [--at HH:MM …] [--on mon,fri] [--source <kind> …] [--route <r> …]
-  [--brief <text>] [--max-cost <usd>] [--max-cost-per-day <usd>] [--unscheduled] --from-app`; `memo digest edit
-  <name>` takes the same options and replaces what it is given.
-- `memo digest run <name> [--no-send | --route <r> …]`: writes it now. Without a flag it sends to every route, as the
-  timer does; `--no-send` keeps it in the app only; `--route` sends to those routes only (NEED-2483, owner: "give a
-  choice").
-- `memo digest schedule <name> --on|--off` keeps every setting either way; `memo digest remove <name>` removes the
-  schedule and its settings, and keeps the past runs.
-- `brief`, `templates` (key `report/<name>`) and `backfill` take the name as their first argument; without one they
-  mean `morning-digest`, as today. Desktop passes a name only for a digest other than `morning-digest`, so an older
-  memo keeps working.
+- `memo digest add <name> --title <t> --at <when> [--at <when> …] [--source <kind> …] [--deliver-to <r> …]
+  [--text <brief>] [--max-cost <usd>] [--max-cost-per-day <usd>] [--paused] --from-app`. `<when>` is `HH:MM` every
+  day or `mon,fri HH:MM` on those days, one `--at` per time.
+- `memo digest edit <name>` takes the same options except `--paused`; each option given replaces what it set and the
+  rest stays, so Desktop says an emptied list out loud: `--source all`, `--deliver-to none`. Desktop sends `--text`
+  on add only: an open digest's brief is saved by `digest brief edit`, and a settings save must not write it back.
+- `memo digest run <name> [--no-notify | --deliver-to <r> …] --from-app`: writes it now. Without a flag it sends to
+  every route, as the timer does; `--no-notify` keeps it in the app only; `--deliver-to` sends to those of its routes
+  only (NEED-2483, owner: "give a choice").
+- `memo digest pause|resume <name> --from-app` take it off its timer and back, every setting kept; `memo digest
+  remove <name> --from-app` removes the schedule and its settings, and keeps the past runs.
+- `brief show|edit|reset [digest]`, `templates` (key `report/<name>`) and `backfill [digest]` take the name as an
+  optional argument; without one they mean `morning-digest`, as today. Desktop passes a name only for a digest other
+  than `morning-digest`, so an older memo keeps working.
 - A weekday needs cli-core `schedule … --at HH:MM --on <weekday>` (systemd `OnCalendar=Mon 09:00`, launchd
   `Weekday`, Task Scheduler weekly trigger), FIND-269.
 

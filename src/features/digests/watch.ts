@@ -15,8 +15,8 @@ const SEEN_KEY = "wirecat.digests.seen"
  * arrived while it was closed. The very first look only remembers the newest run, so a first start announces nothing.
  */
 export async function checkForNew() {
-  await useDigests.getState().load()
-  const days = useDigests.getState().days
+  // Read apart from the page, which may show another digest by the time the answer comes; the notice is the morning's.
+  const days = await platform.digestList().catch(() => null)
   const newest = days?.[0]
   if (!newest) return
   const seen = safeStorage.getItem(SEEN_KEY)
@@ -26,7 +26,10 @@ export async function checkForNew() {
     const title = `${TITLE_EMOJI} ${m.title(dayTitle(newest.date, lang))}`
     await platform.digestNotify(newest.date, title, newest.summary ?? m.notifyBody, m.open).catch(() => {})
   }
-  if (seen === null || newest.stamp > seen) safeStorage.setItem(SEEN_KEY, newest.stamp)
+  if (seen === null || newest.stamp > seen) {
+    safeStorage.setItem(SEEN_KEY, newest.stamp)
+    if (useDigests.getState().name === undefined) void useDigests.getState().load()
+  }
 }
 
 export function useDigestWatch(enabled: boolean) {

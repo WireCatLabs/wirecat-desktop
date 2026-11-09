@@ -7,8 +7,8 @@ const en = {
   undo: "Undo last change",
   brief: {
     title: "What to collect",
-    hint: "Your own instructions for the morning digest: projects, people, topics, what to skip, how many items. They add to the built-in instructions, and where the two differ, yours win.",
-    label: "Your instructions for the morning digest",
+    hint: "Your own instructions for this digest: projects, people, topics, what to skip, how many items. They add to the built-in instructions, and where the two differ, yours win.",
+    label: "Your instructions for this digest",
     placeholder: "For example: projects HRB and the warehouse first; skip newsletters; at most five items a section.",
     counter: (chars: number, limit: number) => `${chars} / ${limit}`,
     tooLong: (limit: number) => `At most ${limit} characters: every run reads them and pays for them.`,
@@ -20,7 +20,7 @@ const en = {
   },
   templates: {
     title: "How it looks",
-    hint: "The morning digest's template for each channel and language, in Liquid. A change is checked before it is saved.",
+    hint: "This digest's template for each channel and language, in Liquid. A change is checked before it is saved.",
     channel: "Channel",
     language: "Language",
     channels: { telegram: "Telegram", email: "Email", text: "Plain text" } satisfies Record<TemplateChannel, string>,
@@ -47,8 +47,8 @@ const ru: typeof en = {
   undo: "Отменить последнее изменение",
   brief: {
     title: "Что собирать",
-    hint: "Ваши указания для утренней сводки: проекты, люди, темы, что пропускать, сколько пунктов. Они дополняют встроенные указания, а где расходятся с ними, побеждают ваши.",
-    label: "Ваши указания для утренней сводки",
+    hint: "Ваши указания для этой сводки: проекты, люди, темы, что пропускать, сколько пунктов. Они дополняют встроенные указания, а где расходятся с ними, побеждают ваши.",
+    label: "Ваши указания для этой сводки",
     placeholder: "Например: сначала проекты HRB и склад; рассылки пропускать; не больше пяти пунктов в разделе.",
     counter: (chars, limit) => `${chars} / ${limit}`,
     tooLong: (limit) => `Не больше ${limit} знаков: каждый запуск читает их и платит за них.`,
@@ -60,7 +60,7 @@ const ru: typeof en = {
   },
   templates: {
     title: "Как выглядит",
-    hint: "Шаблон утренней сводки для каждого канала и языка, на Liquid. Изменение проверяется перед сохранением.",
+    hint: "Шаблон этой сводки для каждого канала и языка, на Liquid. Изменение проверяется перед сохранением.",
     channel: "Канал",
     language: "Язык",
     channels: { telegram: "Telegram", email: "Почта", text: "Простой текст" },
@@ -87,8 +87,8 @@ const es: typeof en = {
   undo: "Deshacer el último cambio",
   brief: {
     title: "Qué recoger",
-    hint: "Tus propias instrucciones para el resumen matutino: proyectos, personas, temas, qué omitir, cuántos puntos. Se suman a las instrucciones integradas y, donde difieren, ganan las tuyas.",
-    label: "Tus instrucciones para el resumen matutino",
+    hint: "Tus propias instrucciones para este resumen: proyectos, personas, temas, qué omitir, cuántos puntos. Se suman a las instrucciones integradas y, donde difieren, ganan las tuyas.",
+    label: "Tus instrucciones para este resumen",
     placeholder:
       "Por ejemplo: primero los proyectos HRB y el almacén; omite los boletines; como mucho cinco puntos por sección.",
     counter: (chars, limit) => `${chars} / ${limit}`,
@@ -101,7 +101,7 @@ const es: typeof en = {
   },
   templates: {
     title: "Cómo se ve",
-    hint: "La plantilla del resumen matutino para cada canal e idioma, en Liquid. Un cambio se comprueba antes de guardarlo.",
+    hint: "La plantilla de este resumen para cada canal e idioma, en Liquid. Un cambio se comprueba antes de guardarlo.",
     channel: "Canal",
     language: "Idioma",
     channels: { telegram: "Telegram", email: "Correo", text: "Texto sin formato" },

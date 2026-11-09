@@ -1,7 +1,6 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { useDigests } from "@/features/digests"
-import { useDigestSchedule } from "@/features/digests/schedule-store"
+import { useDigestBook, useDigests } from "@/features/digests"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { render, screen, waitFor, within } from "@/testing/render"
@@ -9,8 +8,16 @@ import { App } from "./App"
 
 beforeEach(() => {
   useOnboarding.setState({ status: "done", open: false })
-  useDigestSchedule.setState({ status: null, error: null, busy: null, failed: null, remembered: null, backfill: null })
-  useDigests.setState({ days: null, error: null, reading: false, shown: {} })
+  useDigestBook.setState({
+    book: null,
+    error: null,
+    busy: {},
+    failed: null,
+    remembered: null,
+    open: null,
+    backfill: null,
+  })
+  useDigests.setState({ name: undefined, days: null, error: null, reading: false, shown: {} })
   vi.spyOn(platform, "listenLinks").mockResolvedValue()
 })
 
@@ -20,6 +27,7 @@ async function openCard(name: string) {
   const user = userEvent.setup()
   render(<App />)
   await user.click(screen.getByRole("button", { name: /Digests/ }))
+  await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
   const card = await screen.findByRole("region", { name })
   return { user, card }
 }
@@ -32,12 +40,12 @@ describe("what the digest collects", () => {
     const undo = vi.spyOn(platform, "digestBriefUndo")
     const { user, card } = await openCard("What to collect")
     expect(card).toHaveTextContent("where the two differ, yours win")
-    const brief = await within(card).findByRole("textbox", { name: "Your instructions for the morning digest" })
+    const brief = await within(card).findByRole("textbox", { name: "Your instructions for this digest" })
     expect(within(card).getByRole("button", { name: "Undo last change" })).toBeDisabled()
     await user.type(brief, "Only HRB.")
     expect(card).toHaveTextContent("9 / 4000")
     await user.click(within(card).getByRole("button", { name: "Save" }))
-    expect(save).toHaveBeenCalledWith("Only HRB.")
+    expect(save).toHaveBeenCalledWith("Only HRB.", undefined)
     const back = within(card).getByRole("button", { name: "Undo last change" })
     await waitFor(() => expect(back).toBeEnabled())
     await user.click(back)
@@ -87,14 +95,14 @@ describe("how the digest looks", () => {
     await user.clear(body)
     await user.type(body, "Hello {{{{ summary }}")
     await user.click(within(card).getByRole("button", { name: "Preview" }))
-    expect(preview).toHaveBeenCalledWith("telegram", "en", "Hello {{ summary }}")
+    expect(preview).toHaveBeenCalledWith("telegram", "en", "Hello {{ summary }}", undefined)
     const shown = await within(card).findByRole("region", { name: "What would be sent" })
     expect(shown).toHaveTextContent("Hello Three replies wait for you")
     await user.click(within(card).getByRole("button", { name: "Save" }))
-    expect(save).toHaveBeenCalledWith("telegram", "en", "Hello {{ summary }}")
+    expect(save).toHaveBeenCalledWith("telegram", "en", "Hello {{ summary }}", undefined)
     expect(await within(card).findByText("Your own template")).toBeInTheDocument()
     await user.click(within(card).getByRole("button", { name: "Reset to default" }))
-    expect(reset).toHaveBeenCalledWith("telegram", "en")
+    expect(reset).toHaveBeenCalledWith("telegram", "en", undefined)
     expect(await within(card).findByText("The built-in template")).toBeInTheDocument()
   }, 15000)
 
@@ -104,7 +112,7 @@ describe("how the digest looks", () => {
     await within(card).findByRole("textbox", { name: "Template" })
     await user.click(within(card).getByRole("combobox", { name: "Channel" }))
     await user.click(await screen.findByRole("option", { name: "Email" }))
-    await waitFor(() => expect(read).toHaveBeenLastCalledWith("email", "en"))
+    await waitFor(() => expect(read).toHaveBeenLastCalledWith("email", "en", undefined))
     await waitFor(() =>
       expect((within(card).getByRole("textbox", { name: "Template" }) as HTMLTextAreaElement).value).toContain(
         '<div style="font-family',

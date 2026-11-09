@@ -378,24 +378,28 @@ function createTauri(): Platform {
       }
       await invoke("deep_link_listen", { onLink: channel })
     },
-    digestList: () => call(v.array(DigestDaySchema), "digest_list"),
-    digestShow: (date) => call(DigestSchema, "digest_show", { date }),
+    digestList: (digest) => call(v.array(DigestDaySchema), "digest_list", { digest: digest ?? null }),
+    digestShow: (date, digest) => call(DigestSchema, "digest_show", { date, digest: digest ?? null }),
     digestNotify: (date, title, body, open) => invoke("digest_notify", { date, title, body, open }),
-    digestSchedule: () => invoke("digest_schedule"),
-    digestScheduleSave: (time, routes, maxCostUsd, maxCostPerDayUsd) =>
-      invoke("digest_schedule_save", { time, routes, maxCostUsd, maxCostPerDayUsd }),
-    digestScheduleRemove: () => invoke("digest_schedule_remove"),
-    digestScheduleRun: () => invoke("digest_schedule_run"),
-    digestBackfill: (from, to, yes) => invoke("digest_backfill", { from, to, yes }),
-    digestBrief: () => invoke("digest_brief"),
-    digestBriefSave: (body) => invoke("digest_brief_save", { body }),
-    digestBriefUndo: () => invoke("digest_brief_undo"),
-    digestBriefReset: () => invoke("digest_brief_reset"),
-    digestTemplate: (channel, locale) => invoke("digest_template", { channel, locale }),
-    digestTemplateSave: (channel, locale, body) => invoke("digest_template_save", { channel, locale, body }),
-    digestTemplateUndo: (channel, locale) => invoke("digest_template_undo", { channel, locale }),
-    digestTemplateReset: (channel, locale) => invoke("digest_template_reset", { channel, locale }),
-    digestTemplatePreview: (channel, locale, draft) => invoke("digest_template_preview", { channel, locale, draft }),
+    digestBook: () => invoke("digest_book"),
+    digestSave: (spec, create) => invoke("digest_save", { spec, create }),
+    digestRun: (digest, to) => invoke("digest_run", { digest, delivery: to }),
+    digestSetScheduled: (digest, on) => invoke("digest_set_scheduled", { digest, on }),
+    digestRemove: (digest) => invoke("digest_remove", { digest }),
+    digestBackfill: (from, to, yes, digest) => invoke("digest_backfill", { from, to, yes, digest: digest ?? null }),
+    digestBrief: (digest) => invoke("digest_brief", { digest: digest ?? null }),
+    digestBriefSave: (body, digest) => invoke("digest_brief_save", { body, digest: digest ?? null }),
+    digestBriefUndo: (digest) => invoke("digest_brief_undo", { digest: digest ?? null }),
+    digestBriefReset: (digest) => invoke("digest_brief_reset", { digest: digest ?? null }),
+    digestTemplate: (channel, locale, digest) => invoke("digest_template", { channel, locale, digest: digest ?? null }),
+    digestTemplateSave: (channel, locale, body, digest) =>
+      invoke("digest_template_save", { channel, locale, body, digest: digest ?? null }),
+    digestTemplateUndo: (channel, locale, digest) =>
+      invoke("digest_template_undo", { channel, locale, digest: digest ?? null }),
+    digestTemplateReset: (channel, locale, digest) =>
+      invoke("digest_template_reset", { channel, locale, digest: digest ?? null }),
+    digestTemplatePreview: (channel, locale, draft, digest) =>
+      invoke("digest_template_preview", { channel, locale, draft, digest: digest ?? null }),
     openUrl: (url) => openUrl(url),
     window: async (action) => {
       const w = getCurrentWindow()

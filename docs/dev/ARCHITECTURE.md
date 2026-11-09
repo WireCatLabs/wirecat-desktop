@@ -182,28 +182,32 @@ src-tauri/src/
                 on Memory, a tool's sync, a day on Digests, a chat or message on Conversation, a project (`project/<key>`, by key
                 or `project:<n>` reference) on Tasks searched by it; a person (`person/<id>`) and an unknown project
                 have no page yet and say so, with the reference to copy.
-  digests.rs    the Digests page: memo's morning digest runs, read from the files its schedule keeps
-                (`<memo state>/schedules/morning-digest/runs/`; memo has no command that lists a schedule's runs), one
+  digests.rs    the Digests page's past days: a digest's runs, read from the files its schedule keeps
+                (`<memo state>/schedules/<name>/runs/`; memo has no command that lists a schedule's runs), one
                 day per date, its newest run: `<stamp>.report.json` (cli-core's checked `wirecat.report/1`) or, for an
                 older run, its `.md` text. Shown unmasked, an exception to rule 4 like memory.rs, never logged.
                 `digest_notify` shows a system notification (notify-rust: Tauri's plugin has no click on desktop); a click
-                (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls
-                `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and announces a run newer than
-                the last one it announced.
-  digest_schedule.rs the Digests page's schedule card: memo's own `schedule list` (the morning digest's time, routes,
-                last run with its cost and deliveries, the day's spend and caps; memo's other schedules read only),
-                `schedule agent morning-digest` to make it or change its time (memo replaces a schedule of the same
-                name), `schedule remove` for off (memo has no pause; the page remembers the time and routes to turn it
-                back on), `schedule run` for Run now (its price, the last run's cost, is shown first), and `digest
-                backfill --since-time --until-time --json` (`--from --to` when memo 0.131.72 or older says the option
-                is unknown), first without `--yes` for the price, then with it. Routes are checked to the two shapes
-                `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and
-                the page says it needs an update.
-  digest_editors.rs the Digests page's two editors, both owner-only writes memo itself guards: What to collect is
-                `digest brief show|edit --file -|edit --undo|reset`, How it looks is `templates show|edit|preview|reset
-                report/morning-digest --channel --locale`. Text goes on stdin; `templates` has no `--file -` yet, so it
-                gets `/dev/stdin` (none on Windows: there a save says to use the terminal). A memo without either
-                command answers "unknown command" and the card says it needs an update.
+                (Windows: its Open button) opens that day through `deep_link::open_target`. The interface polls the
+                morning digest's `digest_list` every minute while it runs (`src/features/digests/watch.ts`) and
+                announces a run newer than the last one it announced.
+  digest_book.rs the Digests page's table: `memo digest list|add|edit|run|pause|resume|remove` (the contract in
+                docs/dev/plans/2026-11-09-people-clients-digests.md, "Digests by name"), every write with `--from-app`.
+                A memo without `digest list` has only `morning-digest`, kept as a schedule: the page reads it through
+                digest_schedule.rs and refuses what that memo cannot do (a second digest, several times, weekdays,
+                sources, a run that is not sent) before memo runs.
+  digest_schedule.rs the older memo's morning digest: `schedule list` (its time, routes, last run with its cost, the
+                day's spend and caps; memo's other schedules read only), `schedule agent morning-digest` to make it or
+                change its time, `schedule remove` for off, `schedule run` for Get now; and `digest backfill [name]
+                --since-time --until-time --json` (`--from --to` when memo 0.131.72 or older says the option is
+                unknown), first without `--yes` for the price, then with it. Routes are checked to the two shapes
+                `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and the page says
+                it needs an update.
+  digest_editors.rs the Digests page's two editors for one digest, both owner-only writes memo itself guards: What to
+                collect is `digest brief show|edit --file -|edit --undo|reset [name]`, How it looks is
+                `templates show|edit|preview|reset report/<name> --channel --locale`. Text goes on stdin; `templates`
+                has no `--file -` yet, so it gets `/dev/stdin` (none on Windows: there a save says to use the
+                terminal). A memo without either command answers "unknown command" and the card says it needs an
+                update.
   sync_schedule.rs an account's sync on a timer: the tool's own `<bin> <profile> schedule command <bin>-<profile>
                 --every <d> -- <catalog sync.schedule.args>`, `schedule list` and `schedule remove`. The tool writes the
                 timer. Its latest run (and `failing_since`) shows under the account, and a failed sync from this window

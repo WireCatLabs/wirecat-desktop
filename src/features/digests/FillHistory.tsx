@@ -10,7 +10,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Segmented } from "@/ui/Segmented"
 import { scheduleMessages } from "./messages-schedule"
-import { backfillRange, useDigestSchedule } from "./schedule-store"
+import { backfillRange, MORNING, useDigestBook } from "./schedule-store"
 import { useDigests } from "./store"
 
 const SPANS = ["7", "14", "30"] as const
@@ -27,16 +27,16 @@ type Step =
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 // One build at a time across the page; the dialog may close while it runs and reopen on its result.
-let building: Promise<Backfill> | null = null
+const building = new Map<string, Promise<Backfill>>()
 
 /**
  * "Build past days": memo's `digest backfill` for the last 7, 14 or 30 days. The price comes first (the command without
  * `--yes` builds nothing), the build only after the owner confirms that price, and each step stays in this dialog.
  */
-export function FillHistory() {
+export function FillHistory({ name }: { name: string }) {
   const m = useMessages(scheduleMessages).history
   const lang = useLang()
-  const supported = useDigestSchedule((s) => s.backfill)
+  const supported = useDigestBook((s) => s.backfill)
   const [open, setOpen] = useState(false)
   const [span, setSpan] = useState<Span>("7")
   const [step, setStep] = useState<Step>({ step: "pricing" })
@@ -45,7 +45,7 @@ export function FillHistory() {
     setSpan(n)
     setStep({ step: "pricing" })
     const { from, to } = backfillRange(Number(n))
-    platform.digestBackfill(from, to, false).then(
+    platform.digestBackfill(from, to, false, name).then(
       (b) =>
         setStep(
           b.state === "estimate"
@@ -61,8 +61,9 @@ export function FillHistory() {
   const build = (days: number) => {
     setStep({ step: "building", days })
     const { from, to } = backfillRange(Number(span))
-    building ??= platform.digestBackfill(from, to, true)
-    building
+    const running = building.get(name) ?? platform.digestBackfill(from, to, true, name)
+    building.set(name, running)
+    running
       .then(
         (b) =>
           setStep(
@@ -73,8 +74,8 @@ export function FillHistory() {
         (e) => setStep({ step: "failed", message: messageOf(e), priced: true }),
       )
       .finally(() => {
-        building = null
-        void useDigests.getState().load()
+        building.delete(name)
+        if ((useDigests.getState().name ?? MORNING) === name) void useDigests.getState().load(name)
       })
   }
 

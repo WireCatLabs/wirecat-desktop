@@ -103,9 +103,18 @@ fn read_brief(v: &Value) -> Brief {
     }
 }
 
-pub fn brief() -> Result<Brief, String> {
+/// `digest brief <verb> [name] <rest>`: no name for the morning digest, as an older memo knows it.
+fn brief_args(verb: &str, digest: Option<&str>, rest: &[&str]) -> Result<Vec<String>, String> {
+    let mut args = words(&["digest", "brief", verb]);
+    args.extend(crate::digest_book::name_arg(digest)?);
+    args.extend(words(rest));
+    Ok(args)
+}
+
+pub fn brief(digest: Option<&str>) -> Result<Brief, String> {
+    let args = brief_args("show", digest, &["--json"])?;
     let Some(memo) = memo()? else { return Ok(Brief::NoMemo) };
-    let (out, json) = call(memo, &words(&["digest", "brief", "show", "--json"]), CALL)?;
+    let (out, json) = call(memo, &args, CALL)?;
     if unknown_command(json.as_ref(), &BRIEF_COMMANDS) {
         return Ok(Brief::Unsupported);
     }
@@ -117,12 +126,11 @@ pub fn brief() -> Result<Brief, String> {
 
 /// A write, then the brief as memo now has it. memo's refusal (too long, empty, not the owner) is the error, in its
 /// own words.
-fn brief_change(args: &[&str], input: Option<&str>) -> Result<Brief, String> {
+fn brief_change(digest: Option<&str>, args: &[String], input: Option<&str>) -> Result<Brief, String> {
     let Some(memo) = memo()? else { return Ok(Brief::NoMemo) };
-    let args = words(args);
     let (out, json) = match input {
-        Some(text) => call_with_input(memo, &args, text, CALL)?,
-        None => call(memo, &args, CALL)?,
+        Some(text) => call_with_input(memo, args, text, CALL)?,
+        None => call(memo, args, CALL)?,
     };
     if unknown_command(json.as_ref(), &BRIEF_COMMANDS) {
         return Ok(Brief::Unsupported);
@@ -130,33 +138,37 @@ fn brief_change(args: &[&str], input: Option<&str>) -> Result<Brief, String> {
     if out.code != Some(0) {
         return Err(failure(&out, json.as_ref()));
     }
-    brief()
+    brief(digest)
 }
 
-pub fn brief_save(text: &str) -> Result<Brief, String> {
+pub fn brief_save(digest: Option<&str>, text: &str) -> Result<Brief, String> {
     checked_text(text)?;
-    brief_change(&["digest", "brief", "edit", "--file", "-", "--json"], Some(text))
+    brief_change(digest, &brief_args("edit", digest, &["--file", "-", "--json"])?, Some(text))
 }
 
-pub fn brief_undo() -> Result<Brief, String> {
-    brief_change(&["digest", "brief", "edit", "--undo", "--json"], None)
+pub fn brief_undo(digest: Option<&str>) -> Result<Brief, String> {
+    brief_change(digest, &brief_args("edit", digest, &["--undo", "--json"])?, None)
 }
 
-pub fn brief_reset() -> Result<Brief, String> {
-    brief_change(&["digest", "brief", "reset", "--json"], None)
+pub fn brief_reset(digest: Option<&str>) -> Result<Brief, String> {
+    brief_change(digest, &brief_args("reset", digest, &["--json"])?, None)
 }
 
 const TEMPLATE_COMMANDS: [&str; 1] = ["templates"];
 
-/// `templates <verb> report/morning-digest --channel <c> --locale <l>`, the channel and language checked.
-fn template_args(verb: &str, channel: &str, locale: &str) -> Result<Vec<String>, String> {
+/// `templates <verb> report/<digest> --channel <c> --locale <l>`, the name, channel and language checked.
+fn template_args(verb: &str, digest: Option<&str>, channel: &str, locale: &str) -> Result<Vec<String>, String> {
+    let key = match crate::digest_book::name_arg(digest)? {
+        Some(name) => format!("report/{name}"),
+        None => KEY.to_string(),
+    };
     if !CHANNELS.contains(&channel) {
         return Err(format!("not a channel memo has: {}", redact::text(channel)));
     }
     if !LOCALES.contains(&locale) {
         return Err(format!("not a language the digest has: {}", redact::text(locale)));
     }
-    Ok(words(&["templates", verb, KEY, "--channel", channel, "--locale", locale]))
+    Ok(words(&["templates", verb, &key, "--channel", channel, "--locale", locale]))
 }
 
 /// memo's `templates` reads `--file` as a path and has no `-` for stdin yet; `/dev/stdin` is that path on Linux and
@@ -183,8 +195,8 @@ fn read_template(v: &Value) -> DigestTemplate {
     }
 }
 
-pub fn template(channel: &str, locale: &str) -> Result<DigestTemplate, String> {
-    let args = with_json(template_args("show", channel, locale)?);
+pub fn template(digest: Option<&str>, channel: &str, locale: &str) -> Result<DigestTemplate, String> {
+    let args = with_json(template_args("show", digest, channel, locale)?);
     let Some(memo) = memo()? else { return Ok(DigestTemplate::NoMemo) };
     let (out, json) = call(memo, &args, CALL)?;
     if unknown_command(json.as_ref(), &TEMPLATE_COMMANDS) {
@@ -202,6 +214,7 @@ fn with_json(mut args: Vec<String>) -> Vec<String> {
 }
 
 fn template_change(
+    digest: Option<&str>,
     channel: &str,
     locale: &str,
     args: Vec<String>,
@@ -218,26 +231,26 @@ fn template_change(
     if out.code != Some(0) {
         return Err(failure(&out, json.as_ref()));
     }
-    template(channel, locale)
+    template(digest, channel, locale)
 }
 
 /// memo checks the template against the last real digest and a sample before it stores it, and says why it did not.
-pub fn template_save(channel: &str, locale: &str, text: &str) -> Result<DigestTemplate, String> {
+pub fn template_save(digest: Option<&str>, channel: &str, locale: &str, text: &str) -> Result<DigestTemplate, String> {
     checked_text(text)?;
-    let mut args = template_args("edit", channel, locale)?;
+    let mut args = template_args("edit", digest, channel, locale)?;
     args.extend(["--file".into(), stdin_path()?.into()]);
-    template_change(channel, locale, with_json(args), Some(text))
+    template_change(digest, channel, locale, with_json(args), Some(text))
 }
 
-pub fn template_undo(channel: &str, locale: &str) -> Result<DigestTemplate, String> {
-    let mut args = template_args("edit", channel, locale)?;
+pub fn template_undo(digest: Option<&str>, channel: &str, locale: &str) -> Result<DigestTemplate, String> {
+    let mut args = template_args("edit", digest, channel, locale)?;
     args.push("--undo".into());
-    template_change(channel, locale, with_json(args), None)
+    template_change(digest, channel, locale, with_json(args), None)
 }
 
-pub fn template_reset(channel: &str, locale: &str) -> Result<DigestTemplate, String> {
-    let args = with_json(template_args("reset", channel, locale)?);
-    template_change(channel, locale, args, None)
+pub fn template_reset(digest: Option<&str>, channel: &str, locale: &str) -> Result<DigestTemplate, String> {
+    let args = with_json(template_args("reset", digest, channel, locale)?);
+    template_change(digest, channel, locale, args, None)
 }
 
 fn read_preview(v: &Value) -> TemplatePreview {
@@ -251,8 +264,13 @@ fn read_preview(v: &Value) -> TemplatePreview {
 }
 
 /// What memo would send with `draft`, or with the template that applies when there is none; saves nothing.
-pub fn template_preview(channel: &str, locale: &str, draft: Option<&str>) -> Result<TemplatePreview, String> {
-    let mut args = template_args("preview", channel, locale)?;
+pub fn template_preview(
+    digest: Option<&str>,
+    channel: &str,
+    locale: &str,
+    draft: Option<&str>,
+) -> Result<TemplatePreview, String> {
+    let mut args = template_args("preview", digest, channel, locale)?;
     if let Some(text) = draft {
         checked_text(text)?;
         args.extend(["--file".into(), stdin_path()?.into()]);
@@ -311,12 +329,20 @@ mod tests {
     #[test]
     fn template_commands_take_only_the_digest_key_and_known_channels_and_languages() {
         assert_eq!(
-            template_args("show", "telegram", "ru").unwrap().join(" "),
+            template_args("show", None, "telegram", "ru").unwrap().join(" "),
             "templates show report/morning-digest --channel telegram --locale ru"
         );
-        assert!(template_args("show", "sms", "ru").is_err());
-        assert!(template_args("show", "text", "--file").is_err());
-        assert!(template_args("show", "text", "es").is_err());
+        assert!(template_args("show", None, "sms", "ru").is_err());
+        assert!(template_args("show", None, "text", "--file").is_err());
+        assert!(template_args("show", None, "text", "es").is_err());
+        assert_eq!(template_args("edit", Some("weekly"), "text", "en").unwrap()[2], "report/weekly");
+        assert_eq!(template_args("edit", Some("morning-digest"), "text", "en").unwrap()[2], "report/morning-digest");
+        assert!(template_args("edit", Some("../x"), "text", "en").is_err());
+        assert_eq!(
+            brief_args("show", Some("weekly"), &["--json"]).unwrap().join(" "),
+            "digest brief show weekly --json"
+        );
+        assert_eq!(brief_args("show", None, &["--json"]).unwrap().join(" "), "digest brief show --json");
     }
 
     #[test]

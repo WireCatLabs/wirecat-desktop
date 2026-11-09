@@ -1,7 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { DeepLinkTarget } from "@/domain/links"
-import { checkForNew, useDigests } from "@/features/digests"
+import { checkForNew, useDigestBook, useDigests } from "@/features/digests"
 import { useTasks } from "@/features/tasks"
 import { platform } from "@/platform/bridge"
 import type { DigestDay } from "@/platform/digest-schemas"
@@ -14,6 +14,8 @@ let deliver: (target: DeepLinkTarget | null) => void = () => {}
 
 beforeEach(() => {
   useOnboarding.setState({ status: "done", open: false })
+  useDigestBook.setState({ book: null, busy: {}, failed: null, open: null })
+  useDigests.setState({ name: undefined, days: null, error: null, reading: false, shown: {} })
   vi.spyOn(platform, "listenLinks").mockImplementation(async (onLink) => {
     deliver = onLink
   })
@@ -29,7 +31,8 @@ describe("Digests", () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Digests/ }))
-    const days = await screen.findByRole("navigation", { name: "Days" })
+    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
+    const days = await screen.findByRole("navigation", { name: "Days" }, { timeout: 4000 })
     expect(within(days).getAllByRole("button")).toHaveLength(4)
     expect(within(days).getAllByRole("button")[0]).toHaveAttribute("aria-current", "page")
     const today = await screen.findByRole("region", { name: "Today" }, { timeout: 4000 })
@@ -45,6 +48,7 @@ describe("Digests", () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Digests/ }))
+    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
     await user.click(
       await screen.findByRole("button", { name: "Open: Reconciliation for North Wind" }, { timeout: 4000 }),
     )
@@ -61,7 +65,8 @@ describe("Digests", () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole("button", { name: /Digests/ }))
-    const days = await screen.findByRole("navigation", { name: "Days" })
+    await user.click(await screen.findByRole("button", { name: "Open Morning digest" }, { timeout: 4000 }))
+    const days = await screen.findByRole("navigation", { name: "Days" }, { timeout: 4000 })
     await user.click(within(days).getAllByRole("button")[3] as HTMLElement)
     expect(await screen.findByText(/Pay November rent to Vector LLC/, {}, { timeout: 4000 })).toBeInTheDocument()
     expect(screen.getByText(/here is its text as it was/)).toBeInTheDocument()
@@ -71,6 +76,7 @@ describe("Digests", () => {
     render(<App />)
     act(() => deliver({ type: "digest", date: today() }))
     await waitFor(() => expect(useNav.getState().active).toBe("digests"), { timeout: 4000 })
+    expect(await screen.findByRole("region", { name: "Settings" }, { timeout: 4000 })).toBeInTheDocument()
     act(() => deliver({ type: "digest", date: "2001-01-01" }))
     expect(
       await screen.findByRole("heading", { name: "This item is not on this computer" }, { timeout: 4000 }),
