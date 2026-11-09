@@ -749,6 +749,7 @@ mod tests {
             }
             p
         }
+        #[allow(clippy::unnecessary_wraps, reason = "it stands in for memo's call, which can fail")]
         fn call(&self, a: &[String]) -> Result<Value, String> {
             self.seen.lock().unwrap().push(a.to_vec());
             if a[0] == "review" {
