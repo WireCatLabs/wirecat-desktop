@@ -15,8 +15,15 @@ const SEEN_KEY = "wirecat.digests.seen"
  * arrived while it was closed. The very first look only remembers the newest run, so a first start announces nothing.
  */
 export async function checkForNew() {
-  await useDigests.getState().load()
-  const days = useDigests.getState().days
+  // The page may show another digest's days; the notice is the morning digest's.
+  const shown = useDigests.getState()
+  let days = null
+  if (shown.name === undefined) {
+    await shown.load()
+    days = useDigests.getState().days
+  } else {
+    days = await platform.digestList().catch(() => null)
+  }
   const newest = days?.[0]
   if (!newest) return
   const seen = safeStorage.getItem(SEEN_KEY)

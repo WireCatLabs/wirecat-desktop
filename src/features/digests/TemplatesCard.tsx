@@ -23,7 +23,7 @@ type Shown = { state: "asking" } | { state: "shown"; preview: TemplatePreview } 
  * "How it looks": the morning digest's template per channel and language, through memo's `templates`. A preview
  * renders the draft as it stands, unsaved; memo checks a save itself and its refusal is shown as it says it.
  */
-export function TemplatesCard() {
+export function TemplatesCard({ name }: { name?: string | undefined }) {
   const all = useMessages(editorMessages)
   const m = all.templates
   const lang = useLang()
@@ -31,8 +31,8 @@ export function TemplatesCard() {
   const [channel, setChannel] = useState<TemplateChannel>("telegram")
   const [locale, setLocale] = useState<TemplateLocale>(() => localeFor(lang))
   const { value, readError, busy, failed, change } = useMemoEditor(
-    () => platform.digestTemplate(channel, locale),
-    `${channel}/${locale}`,
+    () => platform.digestTemplate(channel, locale, name),
+    `${name}/${channel}/${locale}`,
   )
   const saved = value?.state === "ready" ? value.body : ""
   const [draft, setDraft] = useState(saved)
@@ -47,7 +47,7 @@ export function TemplatesCard() {
 
   const preview = () => {
     setShown({ state: "asking" })
-    platform.digestTemplatePreview(channel, locale, draft === saved ? null : draft).then(
+    platform.digestTemplatePreview(channel, locale, draft === saved ? null : draft, name).then(
       (p) => setShown({ state: "shown", preview: p }),
       (e) => setShown({ state: "failed", message: e instanceof Error ? e.message : String(e) }),
     )
@@ -101,7 +101,7 @@ export function TemplatesCard() {
               size="sm"
               variant="ghost"
               disabled={busy || ready?.history === 0}
-              onClick={() => void change(() => platform.digestTemplateUndo(channel, locale))}
+              onClick={() => void change(() => platform.digestTemplateUndo(channel, locale, name))}
             >
               {all.undo}
             </Button>
@@ -109,7 +109,7 @@ export function TemplatesCard() {
               size="sm"
               variant="ghost"
               disabled={busy || !ready?.stored}
-              onClick={() => void change(() => platform.digestTemplateReset(channel, locale))}
+              onClick={() => void change(() => platform.digestTemplateReset(channel, locale, name))}
             >
               {m.reset}
             </Button>
@@ -117,7 +117,7 @@ export function TemplatesCard() {
               size="sm"
               variant="primary"
               disabled={busy || !draft.trim() || draft === saved}
-              onClick={() => void change(() => platform.digestTemplateSave(channel, locale, draft))}
+              onClick={() => void change(() => platform.digestTemplateSave(channel, locale, draft, name))}
             >
               {busy ? all.saving : m.save}
             </Button>

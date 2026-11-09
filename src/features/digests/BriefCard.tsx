@@ -10,12 +10,12 @@ import { area, card, useMemoEditor } from "./editor-state"
 import { editorMessages } from "./messages-editors"
 
 /** "What to collect": the owner's brief, through memo's `digest brief`. memo refuses it to an agent, never to him. */
-export function BriefCard() {
+export function BriefCard({ name }: { name?: string | undefined }) {
   const all = useMessages(editorMessages)
   const m = all.brief
   const titleId = useId()
   const counterId = useId()
-  const { value, readError, busy, failed, change } = useMemoEditor(() => platform.digestBrief(), "brief")
+  const { value, readError, busy, failed, change } = useMemoEditor(() => platform.digestBrief(name), `brief:${name}`)
   const saved = value?.state === "ready" ? (value.body ?? "") : ""
   const [draft, setDraft] = useState(saved)
   useEffect(() => setDraft(saved), [saved])
@@ -59,7 +59,7 @@ export function BriefCard() {
               size="sm"
               variant="ghost"
               disabled={busy || ready?.history === 0}
-              onClick={() => void change(() => platform.digestBriefUndo())}
+              onClick={() => void change(() => platform.digestBriefUndo(name))}
             >
               {all.undo}
             </Button>
@@ -67,7 +67,7 @@ export function BriefCard() {
               size="sm"
               variant="ghost"
               disabled={busy || ready?.body == null}
-              onClick={() => void change(() => platform.digestBriefReset())}
+              onClick={() => void change(() => platform.digestBriefReset(name))}
             >
               {m.remove}
             </Button>
@@ -75,7 +75,7 @@ export function BriefCard() {
               size="sm"
               variant="primary"
               disabled={busy || over || chars === 0 || draft.trim() === saved.trim()}
-              onClick={() => void change(() => platform.digestBriefSave(draft))}
+              onClick={() => void change(() => platform.digestBriefSave(draft, name))}
             >
               {busy ? all.saving : m.save}
             </Button>

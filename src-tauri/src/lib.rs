@@ -19,6 +19,7 @@ mod config_repair;
 mod conversation;
 mod crm_board;
 mod deep_link;
+mod digest_book;
 mod digest_editors;
 mod digest_schedule;
 mod digests;
@@ -174,10 +175,11 @@ pub fn run() {
             commands::app::digest_list,
             commands::app::digest_show,
             commands::app::digest_notify,
-            commands::app::digest_schedule,
-            commands::app::digest_schedule_save,
-            commands::app::digest_schedule_remove,
-            commands::app::digest_schedule_run,
+            commands::app::digest_book,
+            commands::app::digest_save,
+            commands::app::digest_run,
+            commands::app::digest_set_scheduled,
+            commands::app::digest_remove,
             commands::app::digest_backfill,
             commands::app::digest_brief,
             commands::app::digest_brief_save,

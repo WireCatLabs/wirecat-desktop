@@ -37,7 +37,7 @@ async function openTask(target: Extract<DeepLinkTarget, { type: "task" }>) {
 async function openDigest(target: Extract<DeepLinkTarget, { type: "digest" }>) {
   const days = await platform.digestList().catch(() => [])
   if (!days.some((d) => d.date === target.date)) return show({ kind: "missing", target })
-  useDigestDay.setState({ date: target.date })
+  useDigestDay.setState({ date: target.date, digest: "morning-digest" })
   useNav.getState().go("digests")
 }
 

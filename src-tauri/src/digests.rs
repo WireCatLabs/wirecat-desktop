@@ -1,6 +1,6 @@
-//! The Digests page: memo's morning digest runs, read from the files its schedule keeps
-//! (`<memo state>/schedules/morning-digest/runs/<stamp>.md`, and `<stamp>.report.json`, the checked
-//! `wirecat.report/1` document, from cli-core with report rendering). memo has no command that lists a schedule's
+//! The Digests page: a digest's runs, read from the files its schedule keeps (`<memo state>/schedules/<name>/runs/
+//! <stamp>.md`, `morning-digest` when no name is given, and `<stamp>.report.json`, the checked `wirecat.report/1`
+//! document, from cli-core with report rendering). memo has no command that lists a schedule's
 //! runs, so the files are the only source. Shown unmasked, an exception to rule 4 like memory.rs: the digest is the
 //! owner's own summary of his own data. Never logged or put in a report.
 
@@ -42,9 +42,12 @@ pub struct Digest {
     pub text: Option<String>,
 }
 
-fn runs_dir() -> Result<PathBuf, String> {
+/// A digest's runs are its schedule's: `schedules/<name>/runs`.
+fn runs_dir(name: Option<&str>) -> Result<PathBuf, String> {
+    let name = name.unwrap_or(SCHEDULE);
+    crate::digest_book::check_name(name)?;
     let memo = catalog::tool("memo")?;
-    Ok(storage::state_folder(&memo.storage).join("schedules").join(SCHEDULE).join("runs"))
+    Ok(storage::state_folder(&memo.storage).join("schedules").join(name).join("runs"))
 }
 
 /// `2026-11-08T07-30-10Z`, as cli-core names a run's files.
@@ -124,8 +127,8 @@ fn days_in(dir: &Path) -> Vec<Day> {
 }
 
 /// One entry per day, newest first; a day with several runs shows its newest. No folder yet is no digest yet.
-pub fn list() -> Result<Vec<Day>, String> {
-    Ok(days_in(&runs_dir()?))
+pub fn list(name: Option<&str>) -> Result<Vec<Day>, String> {
+    Ok(days_in(&runs_dir(name)?))
 }
 
 fn show_in(dir: &Path, date: &str) -> Result<Digest, String> {
@@ -138,8 +141,8 @@ fn show_in(dir: &Path, date: &str) -> Result<Digest, String> {
     Ok(Digest { date: day.date, stamp: day.stamp, document, text })
 }
 
-pub fn show(date: &str) -> Result<Digest, String> {
-    show_in(&runs_dir()?, date)
+pub fn show(name: Option<&str>, date: &str) -> Result<Digest, String> {
+    show_in(&runs_dir(name)?, date)
 }
 
 /// `<memo state>/schedules/desktop.json`: while it names a live pid, cli-core's timer leaves its own desktop notice

@@ -32,7 +32,8 @@ import type {
   CrmKind,
   CrmRead,
   CrmVia,
-  DigestSchedules,
+  DigestBook,
+  DigestSpec,
   DigestTemplate,
   Enrichment,
   EnrichmentStatus,
@@ -48,6 +49,7 @@ import type {
   OwnDiscovery,
   OwnSignal,
   OwnStatus,
+  SendTo,
   SyncSchedule,
   TemplatePreview,
   ZoomAppAnswer,
@@ -534,46 +536,52 @@ export type Platform = {
    * text never reaches the interface. One listener for the app's life.
    */
   listenLinks(onLink: (target: DeepLinkTarget | null) => void): Promise<void>
-  /** memo's morning digests, one per day, newest first, from the files its schedule keeps. */
-  digestList(): Promise<DigestDay[]>
-  digestShow(date: string): Promise<Digest>
+  /** A digest's runs, one per day, newest first, from the files its schedule keeps; no name is the morning digest. */
+  digestList(digest?: string): Promise<DigestDay[]>
+  digestShow(date: string, digest?: string): Promise<Digest>
   /** A system notification for a new digest; on Linux a click opens that day (`digest/<date>`). */
   digestNotify(date: string, title: string, body: string, open: string): Promise<void>
-  /** memo's `schedule list`: the morning digest's schedule and the other schedules, read only. */
-  digestSchedule(): Promise<DigestSchedules>
-  /** memo's `schedule agent morning-digest`, which makes the schedule or replaces it; rejects with memo's words. */
-  digestScheduleSave(
-    time: string,
-    routes: string[],
-    maxCostUsd: number,
-    maxCostPerDayUsd: number,
-  ): Promise<DigestSchedules>
-  /** memo's `schedule remove morning-digest`; the past digests stay. */
-  digestScheduleRemove(): Promise<DigestSchedules>
-  /** memo's `schedule run morning-digest`: one paid run now, delivered to its routes; answers once it ends. */
-  digestScheduleRun(): Promise<DigestSchedules>
+  /**
+   * memo's `digest list`, every digest by name, and its other schedules, read only. A memo without `digest list`
+   * answers with its morning digest as the one row (`named: false`).
+   */
+  digestBook(): Promise<DigestBook>
+  /** memo's `digest add` (`create`) or `digest edit`; rejects with memo's words, or before memo for a bad value. */
+  digestSave(spec: DigestSpec, create: boolean): Promise<DigestBook>
+  /** memo's `digest run`: one paid run now, sent as `to` says; answers once it ends. */
+  digestRun(digest: string, to: SendTo): Promise<DigestBook>
+  /** memo's `digest schedule --on|--off`; every setting stays. */
+  digestSetScheduled(digest: string, on: boolean): Promise<DigestBook>
+  /** memo's `digest remove`: the settings and schedule go, the past days stay. */
+  digestRemove(digest: string): Promise<DigestBook>
   /** memo's `digest backfill`: without `yes` the price only, with it the days built (never delivered). */
-  digestBackfill(from: string, to: string, yes: boolean): Promise<Backfill>
-  /** memo's `digest brief show`: the owner's own words on what the morning digest collects. */
-  digestBrief(): Promise<Brief>
+  digestBackfill(from: string, to: string, yes: boolean, digest?: string): Promise<Backfill>
+  /** memo's `digest brief show`: the owner's own words on what the digest collects. */
+  digestBrief(digest?: string): Promise<Brief>
   /** memo's `digest brief edit --file -`, the text on stdin; rejects with memo's words (too long, not the owner). */
-  digestBriefSave(body: string): Promise<Brief>
+  digestBriefSave(body: string, digest?: string): Promise<Brief>
   /** memo's `digest brief edit --undo`: the body the last change replaced comes back. */
-  digestBriefUndo(): Promise<Brief>
+  digestBriefUndo(digest?: string): Promise<Brief>
   /** memo's `digest brief reset`: the digest follows its skill alone; undo brings the brief back. */
-  digestBriefReset(): Promise<Brief>
-  /** memo's `templates show report/morning-digest` for one channel and language. */
-  digestTemplate(channel: TemplateChannel, locale: TemplateLocale): Promise<DigestTemplate>
+  digestBriefReset(digest?: string): Promise<Brief>
+  /** memo's `templates show report/<digest>` for one channel and language. */
+  digestTemplate(channel: TemplateChannel, locale: TemplateLocale, digest?: string): Promise<DigestTemplate>
   /** memo's `templates edit`, the body on stdin; memo checks it first and rejects with why. */
-  digestTemplateSave(channel: TemplateChannel, locale: TemplateLocale, body: string): Promise<DigestTemplate>
-  digestTemplateUndo(channel: TemplateChannel, locale: TemplateLocale): Promise<DigestTemplate>
+  digestTemplateSave(
+    channel: TemplateChannel,
+    locale: TemplateLocale,
+    body: string,
+    digest?: string,
+  ): Promise<DigestTemplate>
+  digestTemplateUndo(channel: TemplateChannel, locale: TemplateLocale, digest?: string): Promise<DigestTemplate>
   /** memo's `templates reset`: the shipped template applies again; undo brings the owner's back. */
-  digestTemplateReset(channel: TemplateChannel, locale: TemplateLocale): Promise<DigestTemplate>
+  digestTemplateReset(channel: TemplateChannel, locale: TemplateLocale, digest?: string): Promise<DigestTemplate>
   /** memo's `templates preview`: what would be sent with `draft`, or with the template that applies when null. */
   digestTemplatePreview(
     channel: TemplateChannel,
     locale: TemplateLocale,
     draft: string | null,
+    digest?: string,
   ): Promise<TemplatePreview>
   openUrl(url: string): Promise<void>
   window(action: WindowAction): Promise<void>
