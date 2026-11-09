@@ -42,13 +42,21 @@ export const FACETS = [
   "error_code",
   "error.class",
   "error.http.status",
+  "kind",
+  "table",
 ] as const
+/** `kind:store`: runs that wrote the store; cli-core lists `store.write` among a run's operations. */
+export const STORE_KIND = "store"
+const STORE_WRITE = "store.write"
+// Fields the query bar accepts before any fetched run carries them: a store write is rare.
+const ALWAYS_KNOWN = new Set(["kind", "table"])
 // Short names for fields a run keeps nested; `valuesAt` reads them at their real path.
 const PATHS: Record<string, string> = {
   agent: "agent.kind",
   session_id: "agent.session_id",
   client: "agent.client.name",
   connection: "mcp.connection_id",
+  table: "tables",
 }
 
 // A tool records `command` without its own name ("chats list"), except when it recognised no command at all: then
@@ -262,6 +270,7 @@ export function parseQuery(query: string): Parsed {
 /** Every scalar at a dotted path; arrays on the way are walked, so `codes` or `partial.failures.stage` match any. */
 export function valuesAt(run: Run, path: string): string[] {
   if (path === NO_COMMAND) return [String(bare(run))]
+  if (path === "kind") return Array.isArray(run.operations) && run.operations.includes(STORE_WRITE) ? [STORE_KIND] : []
   let current: unknown[] = [run]
   for (const key of (PATHS[path] ?? path).split(".")) {
     const next: unknown[] = []
@@ -546,7 +555,10 @@ export function toggleTerm(query: string, field: string, value: string, negate =
 /** Problems a parse cannot see: a field no fetched run has at all. */
 export function unknownFields(parsed: Parsed, runs: Run[]): QueryProblem[] {
   return parsed.terms.flatMap((t) =>
-    t.kind === "field" && runs.length > 0 && !runs.some((r) => valuesAt(r, t.field).length > 0)
+    t.kind === "field" &&
+    runs.length > 0 &&
+    !ALWAYS_KNOWN.has(t.field) &&
+    !runs.some((r) => valuesAt(r, t.field).length > 0)
       ? [{ start: t.start, end: t.end, code: "unknownField" as const, field: t.field }]
       : [],
   )

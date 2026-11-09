@@ -103,6 +103,8 @@ const en = {
     conversation: "Conversation",
     "error.class": "Error class",
     "error.http.status": "HTTP status",
+    kind: "Kind",
+    table: "Store table",
     cli_version: "Version",
   } as Record<string, string>,
   via: {
@@ -388,6 +390,8 @@ const ru: typeof en = {
     conversation: "Разговор",
     "error.class": "Класс ошибки",
     "error.http.status": "HTTP-статус",
+    kind: "Тип",
+    table: "Таблица хранилища",
     cli_version: "Версия",
   },
   via: {
@@ -659,6 +663,8 @@ const es: typeof en = {
     conversation: "Conversación",
     "error.class": "Clase de error",
     "error.http.status": "Estado HTTP",
+    kind: "Tipo",
+    table: "Tabla del almacén",
     cli_version: "Versión",
   },
   via: {

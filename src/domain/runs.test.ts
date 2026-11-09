@@ -93,6 +93,22 @@ describe("run query", () => {
   })
 })
 
+describe("store writes", () => {
+  const wrote = run({ status: "success", operations: ["messages.list", "store.write"], tables: ["messages", "chats"] })
+
+  it("finds the runs that wrote the store by kind and by table", () => {
+    const all = [...runs, wrote]
+    const find = (q: string) => all.filter(matcher(parseQuery(q).terms))
+    expect(find("kind:store")).toEqual([wrote])
+    expect(find("table:chats")).toEqual([wrote])
+    expect(find("-kind:store")).toHaveLength(runs.length)
+  })
+
+  it("accepts kind and table before any fetched run carries them", () => {
+    expect(unknownFields(parseQuery("kind:store table:emails"), runs)).toEqual([])
+  })
+})
+
 describe("facets and groups", () => {
   it("counts a facet over the other filters, so its own values stay pickable", () => {
     const { terms } = parseQuery("tool:tg error_code:timeout")
@@ -164,6 +180,8 @@ describe("commands, facets and grouping by path", () => {
       "error_code",
       "error.class",
       "error.http.status",
+      "kind",
+      "table",
     ])
     expect(countValues(runs, "tool")).toEqual([
       { value: "tg", count: 2 },
