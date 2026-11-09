@@ -11,7 +11,7 @@ import {
   User,
   UserRound,
 } from "lucide-react"
-import { type MouseEvent, type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef } from "react"
+import { type MouseEvent, memo, type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef } from "react"
 import { approveMode, can, type Subject, tickedCount, undoMenuKey, undoOf } from "@/domain/memory"
 import { standingOf } from "@/domain/relationships"
 import { useLang, useMessages } from "@/i18n"
@@ -70,7 +70,7 @@ export function SubjectLabel({ subject, className }: { subject: Subject; classNa
  * One record under its subject's heading. Collapsed: its kind, when, one line of text and its actions. Opened: the
  * text whole, the place to correct it, its sources or findings, and everything Memo says about it.
  */
-export function Row({ entry }: { entry: MemoryEntry }) {
+export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
   const m = useMessages(memoryMessages)
   const x = useMessages(explainedMessages)
   const lang = useLang()
@@ -303,4 +303,4 @@ export function Row({ entry }: { entry: MemoryEntry }) {
       </Collapse>
     </div>
   )
-}
+})

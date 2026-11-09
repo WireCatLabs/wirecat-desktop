@@ -172,15 +172,16 @@ pub async fn digest_template_preview(
     .await
 }
 
+/// Async: a sync command runs on the main thread, and showing a notice waits on the desktop's notification service.
 #[tauri::command]
-pub fn digest_notify(
+pub async fn digest_notify(
     app: tauri::AppHandle,
     date: String,
     title: String,
     body: String,
     open: String,
 ) -> Result<(), AppError> {
-    crate::digests::notify(&app, &date, &title, &body, &open).map_err(AppError::from)
+    attempt(move || crate::digests::notify(&app, &date, &title, &body, &open)).await
 }
 
 #[tauri::command]
