@@ -74,7 +74,7 @@ export function GroupsSetting() {
 function BoardPlaceholder() {
   const m = useMessages(groupsMessages)
   return (
-    <div className="grid grid-cols-[repeat(3,minmax(13rem,1fr))] gap-[0.75rem] overflow-x-auto">
+    <div className="grid grid-cols-[repeat(3,minmax(13rem,1fr))] gap-[0.75rem] overflow-x-auto overflow-y-hidden">
       {[3, 2, 3].map((cards, i) => (
         // biome-ignore lint/suspicious/noArrayIndexKey: placeholders have no identity of their own
         <div key={i} className="rounded-[0.2rem] border border-line-strong bg-app">

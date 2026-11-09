@@ -6,6 +6,7 @@ import {
   daysUntil,
   dueOf,
   dueTone,
+  fromMessages,
   labelOf,
   placeKey,
   projectNamed,
@@ -106,5 +107,13 @@ describe("a project link", () => {
     expect(projectNamed(projects, "north-wind")).toBeNull()
     expect(projectQuery("HRB")).toBe("project:HRB")
     expect(projectQuery("Офис 2")).toBe('project:"Офис 2"')
+  })
+})
+
+describe("a task found in messages", () => {
+  it("is one that names the account it came from", () => {
+    expect(fromMessages({ account: "telegram:220195113" })).toBe(true)
+    expect(fromMessages({ account: null })).toBe(false)
+    expect(fromMessages({})).toBe(false)
   })
 })

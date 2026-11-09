@@ -278,7 +278,11 @@ export function useBoardDrag<C extends string = string>(o: {
   return { drag, held, said, shown, onPointerDown, onClick, consumeClick, onKeyDown }
 }
 
-/** Columns side by side; below their minimum width the board scrolls sideways, never the page. */
+/**
+ * Columns side by side; below their minimum width the board scrolls sideways, never the page. Only sideways: an
+ * `overflow-x` scroller is a vertical one too, and a card sliding past the bottom or a fraction of a pixel there gave
+ * the board a second vertical scrollbar under the page's own.
+ */
 export function Board({
   columns,
   boardRef,
@@ -291,7 +295,7 @@ export function Board({
   return (
     <div
       ref={boardRef}
-      className="grid gap-[0.75rem] overflow-x-auto pb-[0.4rem] xl:gap-[1rem]"
+      className="grid gap-[0.75rem] overflow-x-auto overflow-y-hidden pb-[0.4rem] xl:gap-[1rem]"
       style={{ gridTemplateColumns: `repeat(${columns}, minmax(12rem, 1fr))` }}
     >
       {children}

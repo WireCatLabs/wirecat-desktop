@@ -171,6 +171,8 @@ pub struct Task {
     pub blocked_by: Vec<Blocker>,
     pub created_at: String,
     pub updated_at: Option<String>,
+    /// `provider:account` of a task found in a chat, mail or note; such a task belongs to no project.
+    pub account: Option<String>,
 }
 
 /// Who made a task: the owner, another person or an agent.
@@ -234,6 +236,7 @@ fn task(v: &Value) -> Option<Task> {
         key: text(v, "key")?,
         created_at: text(v, "created_at")?,
         updated_at: text(v, "updated_at"),
+        account: text(v, "account"),
     })
 }
 
@@ -322,6 +325,27 @@ pub fn list(query: &str) -> Result<Read, String> {
         return Ok(r);
     }
     with_memo(READ, |call| list_with(call, query))
+}
+
+/// The open tasks memo found in the owner's chats, mail and notes, every account's. memo keeps them outside any
+/// project and lists them only for a query without `project:`, and then by state and source alone.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct ChatTasks {
+    pub tasks: Vec<Task>,
+    pub more: bool,
+}
+
+fn chats_with(call: &Call) -> Result<ChatTasks, Failure> {
+    let v = call(&words(&["tasks", "list", "--limit", LIMIT]))?;
+    let tasks = v["items"].as_array().map(|a| a.iter().filter_map(task).collect()).unwrap_or_default();
+    Ok(ChatTasks { tasks, more: v["page"]["has_more"].as_bool().unwrap_or(false) })
+}
+
+pub fn chats() -> Result<ChatTasks, String> {
+    if gate()?.is_some() {
+        return Ok(ChatTasks { tasks: vec![], more: false });
+    }
+    with_memo(READ, chats_with)
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -976,6 +1000,29 @@ mod tests {
         assert_eq!(board_query("  ").unwrap(), "project:*");
         assert_eq!(board_query("-project:HRB").unwrap(), "project:* (-project:HRB)");
         assert!(board_query("a\nb").is_err());
+    }
+
+    // memo 0.131.72's shape for a task found in a Telegram chat: no assignments, readiness or blockers.
+    fn from_chat() -> Value {
+        json!({"ref":"task:96","id":"96","key":"INDBB44DA4-7","title":"Send Ana the lease draft","description":null,
+            "kind":"task","state":"open","project":"project:9","project_key":"INDBB44DA4","project_name":null,
+            "origin":"message","account":"telegram:220195113","chat":"chat:telegram/220195113/-1001",
+            "source_message":"msg:telegram/220195113/-1001/55","external_id":null,"source_url":null,"priority":null,
+            "priority_label":null,"agent":null,"revision":1,"parent":null,"due_at":null,"closed_at":null,"reason":null,
+            "category":null,"claimed_by":null,"claimed_until":null,"created_by":null,
+            "created_at":"2026-11-08T09:12:00.000Z","updated_at":null})
+    }
+
+    #[test]
+    fn reads_the_tasks_found_in_chats_with_no_query_and_no_sort() {
+        let fake = Fake::new(|_| Ok(json!({"items":[from_chat()],"page":{"limit":500,"has_more":false}})));
+        let read = chats_with(&|a: &[String]| fake.call(a)).unwrap();
+        assert_eq!(read.tasks.len(), 1);
+        let t = &read.tasks[0];
+        assert_eq!((t.key.as_str(), t.project.as_str()), ("INDBB44DA4-7", "INDBB44DA4"));
+        assert_eq!(t.account.as_deref(), Some("telegram:220195113"));
+        assert!(!read.more);
+        assert_eq!(fake.seen()[0], strs(&["tasks", "list", "--limit", "500", "--json", "--no-record"]));
     }
 
     #[test]

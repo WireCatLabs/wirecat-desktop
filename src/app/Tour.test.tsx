@@ -171,7 +171,9 @@ describe("Tour", () => {
     expect(within(view).getByRole("radio", { name: "Table" })).toBeChecked()
 
     await next(user, "Who, how urgent, by when")
-    const row = screen.getByRole("button", { name: "EX-3 Draft the launch announcement for 2 March" }).closest("li")
+    const row = screen
+      .getByRole("button", { name: "EX-3 Draft the launch announcement for 2 March" })
+      .closest("[data-row]")
     expect(row).not.toBeNull()
     expect(within(row as HTMLElement).getByText("for claude-code")).toBeInTheDocument()
     expect(within(row as HTMLElement).getAllByText("Medium").length).toBeGreaterThan(0)

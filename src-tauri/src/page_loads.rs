@@ -3,7 +3,7 @@
 //! never names, paths or values.
 
 use crate::catalog::Tool;
-use crate::{archive, compat, paths, run, runs, settings, skills, storage, system, tasks, tools};
+use crate::{archive, compat, crm_board, paths, run, runs, settings, skills, storage, system, tasks, tools};
 use std::time::Instant;
 
 type Job<'a> = Box<dyn FnOnce() + Send + 'a>;
@@ -122,13 +122,23 @@ fn agents_page(visit: &str) {
     report("Agents", visit, skills_ms, before, started);
 }
 
+/// The deals board, as the page opens on it. The page keeps memo's answer for 60 seconds, so a revisit within that
+/// asks nothing.
+fn clients_page(visit: &str) {
+    let (before, started) = (run::started(), Instant::now());
+    if visit != "revisit" {
+        drop(crm_board::read(crm_board::CrmKind::Deal, None));
+    }
+    report("Clients", visit, started.elapsed().as_millis(), before, started);
+}
+
 #[test]
 #[ignore = "runs the installed tools; prints timings"]
 fn page_loads() {
     let started = Instant::now();
     let _ = paths::search_path();
     println!("login shell PATH and node checks: {} ms", started.elapsed().as_millis());
-    let pages: [fn(&str); 5] = [tools_page, storage_page, logs_page, config_page, agents_page];
+    let pages: [fn(&str); 6] = [tools_page, storage_page, logs_page, config_page, agents_page, clients_page];
     for page in pages {
         page("first");
         page("revisit");

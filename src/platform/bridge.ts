@@ -60,6 +60,7 @@ import {
   TailscaleStatusSchema,
 } from "./tailscale-schemas"
 import {
+  ChatTasksSchema,
   PersonSchema,
   ProjectSchema,
   TaskCommentSchema,
@@ -249,6 +250,7 @@ function createTauri(): Platform {
     memoryReaderChoose: (id) => call(v.array(ReaderSchema), "memory_reader_choose", { id }),
     memoryReaderKey: (provider, key) => call(KeySavedSchema, "memory_reader_key", { provider, key }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
+    taskChats: () => call(ChatTasksSchema, "task_chats"),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),
     taskShow: (key) => call(TaskSchema, "task_show", { key }),
     taskHistory: (key) => call(v.array(TaskEventSchema), "task_history", { key }),

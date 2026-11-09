@@ -93,6 +93,7 @@ import type { SignInEvent, SignInInputs } from "./signin-schemas"
 import type { Background, BackgroundAction, BackgroundOutcome, LastSync, SyncEvent } from "./sync-schemas"
 import type { FunnelHelperStatus, FunnelState, TailscaleDownload, TailscaleStatus } from "./tailscale-schemas"
 import type {
+  ChatTasks,
   NewTask,
   Person,
   Project,
@@ -361,6 +362,8 @@ export type Platform = {
   memoryReaderKey(provider: string, key: string): Promise<KeySaved>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
   taskList(query: string): Promise<TaskRead>
+  /** The open tasks memo found in the owner's chats, mail and notes, of every account; memo cannot filter them more. */
+  taskChats(): Promise<ChatTasks>
   /** How many tasks each filter choice would show, from memo; each facet ignores the search's own terms on it. */
   taskCounts(query: string): Promise<TaskCounts>
   taskShow(key: string): Promise<Task>

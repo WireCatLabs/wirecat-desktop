@@ -1,10 +1,13 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { useSync } from "@/features/tools"
 import { platform } from "@/platform/bridge"
 import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { ClientsPage } from "./ClientsPage"
 import { useClients } from "./store"
+
+type SyncRun = ReturnType<typeof useSync.getState>["runs"][string]
 
 // A mock of its own per test: a write still under way from the last test must not move a card in this one.
 function freshMemo(based?: boolean, writer: CrmWriter = "none") {
@@ -47,6 +50,38 @@ describe("Clients with a memo without base stages", () => {
     unmount()
     render(<ClientsPage />)
     expect(await screen.findByRole("region", { name: /^Intro, 0 cards/ }, { timeout: 4000 })).toBeInTheDocument()
+  })
+
+  it("opens again within a minute on the cards it showed, without asking memo or showing a skeleton", async () => {
+    const read = vi.spyOn(platform, "clientsRead")
+    const { unmount } = render(<ClientsPage />)
+    await card("Site for Northstar")
+    unmount()
+    render(<ClientsPage />)
+    expect(screen.getByRole("button", { name: "Site for Northstar" })).toBeInTheDocument()
+    expect(screen.queryByRole("status")).toBeNull()
+    expect(read).toHaveBeenCalledTimes(1)
+  })
+
+  it("reads the board again when a CRM's sync ends, even one started on the Tools page", async () => {
+    const read = vi.spyOn(platform, "clientsRead")
+    render(<ClientsPage />)
+    await card("Site for Northstar")
+    const run: SyncRun = {
+      phase: "running",
+      startedAt: 0,
+      endedAt: null,
+      stage: null,
+      progress: null,
+      stopping: false,
+      summary: null,
+      failure: null,
+    }
+    useSync.setState({ runs: { "tg:personal": run, "bitrix:work": run } })
+    useSync.setState({ runs: { "tg:personal": { ...run, phase: "done" }, "bitrix:work": run } })
+    expect(read).toHaveBeenCalledTimes(1)
+    useSync.setState({ runs: { "tg:personal": { ...run, phase: "done" }, "bitrix:work": { ...run, phase: "done" } } })
+    await waitFor(() => expect(read).toHaveBeenCalledTimes(2))
   })
 
   it("opens a card's details on a click", async () => {

@@ -7,6 +7,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { fieldFocus } from "@/ui/field"
 import { Skeleton } from "@/ui/Skeleton"
 import { Comments } from "./Comments"
 import { AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, StatusCell } from "./cells"
@@ -174,7 +175,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
                   }
                 }}
                 placeholder={m.notesHint}
-                className="selectable reveal rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+                className={`selectable reveal rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
               />
             ) : (
               <article

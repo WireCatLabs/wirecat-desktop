@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, ExternalLink, Search, X } from "lucide-react"
+import { ExternalLink, Search, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { formatWhen, parseQuery } from "@/domain/runs"
@@ -29,6 +29,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace } from "@/ui/motion"
+import { Pager } from "@/ui/Pager"
 import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
 import { useSearchValues } from "./api"
@@ -441,23 +442,7 @@ function resultsView(
       ) : (
         <Table hits={hits.hits} now={now} busy={s.loading} />
       )}
-      {pager && (
-        <nav aria-label={m.pages} className="flex items-center justify-center gap-3 text-[0.9rem] text-ink-dim">
-          <Button
-            size="sm"
-            disabled={page <= 1 || s.loading}
-            onClick={() => s.search(page - 1)}
-            icon={<ChevronLeft className="size-4" aria-hidden />}
-          >
-            {m.previous}
-          </Button>
-          <span className="min-w-[6rem] text-center tabular-nums">{m.pageN(page)}</span>
-          <Button size="sm" disabled={!hits.hasMore || s.loading} onClick={() => s.search(page + 1)}>
-            {m.next}
-            <ChevronRight className="size-4" aria-hidden />
-          </Button>
-        </nav>
-      )}
+      {pager && <Pager page={page} hasMore={hits.hasMore} busy={s.loading} onPage={s.search} />}
     </div>
   )
   return { view: "hits", node }
@@ -479,29 +464,22 @@ function Table(props: { hits: SearchHit[]; placeholders?: number; now: Date; bus
   const known = useMemo(() => (tool ? (findTool(tool)?.search?.fields ?? []).map((f) => f.name) : []), [tool])
   const fieldOf = useCallback((path: string[]) => hitField(path, known), [known])
   return (
-    <div
-      aria-busy={busy}
-      className={cx(
-        "overflow-hidden rounded-[0.2rem] border border-line-strong bg-app transition-opacity duration-(--motion-normal)",
-        busy && hits.length > 0 && "opacity-60",
-      )}
-    >
-      <HitsTable
-        hits={hits}
-        placeholders={placeholders}
-        now={now}
-        expanded={expanded}
-        onToggle={toggle}
-        fieldOf={fieldOf}
-        onFilter={filterBy}
-        onGroup={useSearch.getState().setGroupBy}
-        actions={(hit) =>
-          tool ? (
-            <HitContext hit={hit} tool={tool} profile={useSearch.getState().asked?.profile ?? null} now={now} />
-          ) : null
-        }
-      />
-    </div>
+    <HitsTable
+      hits={hits}
+      placeholders={placeholders}
+      busy={busy}
+      now={now}
+      expanded={expanded}
+      onToggle={toggle}
+      fieldOf={fieldOf}
+      onFilter={filterBy}
+      onGroup={useSearch.getState().setGroupBy}
+      actions={(hit) =>
+        tool ? (
+          <HitContext hit={hit} tool={tool} profile={useSearch.getState().asked?.profile ?? null} now={now} />
+        ) : null
+      }
+    />
   )
 }
 

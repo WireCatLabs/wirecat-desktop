@@ -1,5 +1,4 @@
 import { Building2, User, Users } from "lucide-react"
-import { useEffect } from "react"
 import { crmToolOf } from "@/domain/catalog"
 import { accountKey, busiestOf, type Kind, NOBODY, OWN, ownersOf } from "@/domain/clients"
 import { setField, valuesOf } from "@/domain/query-terms"
@@ -11,7 +10,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
-import { type Based, type Ready, readAgain, useScope, useScopeSet, useWriter } from "./api"
+import { type Based, type Ready, useScope, useScopeSet, useWriter } from "./api"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
@@ -89,9 +88,6 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
   const set = useScopeSet(account, profile)
   const tool = crmToolOf(account.provider)
   const phase = useSync((s) => (tool && profile ? s.runs[syncKey(tool.id, profile)]?.phase : undefined))
-  useEffect(() => {
-    if (phase === "done") void readAgain()
-  }, [phase])
   const answer = scope.data
   const busy = set.isPending || phase === "running"
   const value = set.isPending ? set.variables : (answer?.scope ?? "mine")

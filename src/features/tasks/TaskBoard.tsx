@@ -1,6 +1,6 @@
 import { GripVertical } from "lucide-react"
 import { type KeyboardEvent, type PointerEvent as ReactPointerEvent, useRef } from "react"
-import { anchorOf, closed, STATES, type State } from "@/domain/tasks"
+import { anchorOf, closed, fromMessages, STATES, type State } from "@/domain/tasks"
 import { useMessages } from "@/i18n"
 import type { Task } from "@/platform/task-schemas"
 import { Board, BoardColumn, cardClass, DragCopy, DropLine, useBoardDrag, useSlide } from "@/ui/Board"
@@ -25,6 +25,7 @@ export function TaskBoard() {
     columns: STATES,
     cardsIn: column,
     columnOf: (key) => byKey.get(key)?.state,
+    canDrop: (key, to) => !fromMessages(byKey.get(key) ?? {}) || byKey.get(key)?.state === to,
     onDrop: ({ key, to, before }) => {
       const keys = column(to).filter((k) => k !== key)
       const index = before ? keys.indexOf(before) : keys.length
