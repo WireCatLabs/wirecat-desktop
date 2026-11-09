@@ -360,7 +360,7 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await user.click(within(map).getByRole("radio", { name: "amocrm · acme.example" }))
     expect(await column(/^Unmapped/)).toHaveTextContent("Estimate")
     expect(map).not.toHaveTextContent("Waiting for payment")
-    await user.click(within(map).getByRole("button", { name: "Confirm memo's suggestions (1)" }))
+    await user.click(within(map).getByRole("button", { name: "Confirm stages (1)" }))
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(confirm).toHaveBeenCalledWith("deal", "pipeline:11")
     expect(await within(map).findByText("Every suggestion is confirmed.", {}, { timeout: 4000 })).toBeVisible()

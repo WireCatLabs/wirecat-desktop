@@ -137,7 +137,13 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
           }))}
         />
         {suggestions > 0 ? (
-          <Button size="sm" disabled={busy} icon={<CheckCheck className="size-4" aria-hidden />} onClick={confirmAll}>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={busy}
+            icon={<CheckCheck className="size-4" aria-hidden />}
+            onClick={confirmAll}
+          >
             {s.confirmAll(suggestions)}
           </Button>
         ) : (
