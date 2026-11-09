@@ -19,17 +19,16 @@ const FRUIT = [
 
 const names = () => screen.getAllByRole("row").flatMap((r) => within(r).queryAllByRole("cell").slice(0, 1))
 
-function Table(props: { rows?: Fruit[]; below?: (f: Fruit) => React.ReactNode; onRowClick?: (f: Fruit) => void }) {
+function Table(extra: { rows?: Fruit[]; below?: (f: Fruit) => React.ReactNode; onRowClick?: (f: Fruit) => void }) {
   return (
     <DataTable
       label="Fruit"
-      rows={props.rows ?? FRUIT}
+      rows={FRUIT}
       rowKey={(f) => f.name}
       columns={COLUMNS}
       leadWidth="10rem"
       minWidth="20rem"
-      below={props.below}
-      onRowClick={props.onRowClick}
+      {...extra}
     />
   )
 }

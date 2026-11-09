@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 import { withBaseMove, withMapping } from "@/domain/base-stages"
-import { crmToolOf } from "@/domain/catalog"
+import { crmToolOf, findTool } from "@/domain/catalog"
 import { accountKey, type Kind, withMove, writerProfile } from "@/domain/clients"
 import { useSync } from "@/features/tools"
 import type { CrmAccount, CrmBaseEdit, CrmBaseRef, CrmCard, CrmPipeline, CrmRead, CrmVia } from "@/platform/bindings"
@@ -22,14 +22,25 @@ export const clientKeys = {
 
 export const useBoard = (kind: Kind, pipeline: string | null) =>
   // Another pipeline or kind keeps the board on screen until its own answer comes, never a skeleton of other columns.
+  // A read is six memo processes; a page opened again within a minute shows the last answer instead of waiting.
   useQuery({
     queryKey: clientKeys.board(kind, pipeline),
     queryFn: () => platform.clientsRead(kind, pipeline),
     placeholderData: keepPreviousData,
+    staleTime: 60_000,
   })
 
 /** Every board the page read, so a move or a new scope is read again from memo. */
 export const readAgain = () => queryClient().invalidateQueries({ queryKey: clientKeys.all })
+
+// A CRM's sync may end on the Tools page, while the board kept above is still fresh.
+useSync.subscribe((s, before) => {
+  const ended = Object.entries(s.runs).some(
+    ([key, run]) =>
+      run.phase === "done" && before.runs[key]?.phase !== "done" && findTool(key.split(":")[0] ?? "")?.crm,
+  )
+  if (ended) void readAgain()
+})
 
 /**
  * The card moves at once; memo writes the owner's own, the CRM's own CLI a CRM's copy. A refusal puts it back and says

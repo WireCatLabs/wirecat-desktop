@@ -295,7 +295,7 @@ fn account(v: &Value) -> Option<CrmAccount> {
     Some(CrmAccount { provider: text(a, "provider")?, account: text(a, "account")? })
 }
 
-/// `movable` is the owner's own pipeline's until `pipelines_with` asks the CRM's CLI.
+/// `movable` is the owner's own pipeline's until `pipelines_from` asks the CRM's CLI.
 fn pipeline(v: &Value) -> Option<CrmPipeline> {
     let open = v["stages"].as_array().map_or(0, |a| a.iter().map(|st| count(st, "open")).sum());
     let account = account(v);
@@ -355,31 +355,50 @@ fn busiest(pipelines: &[CrmPipeline]) -> Option<&CrmPipeline> {
 /// Whether a CRM's CLI can write, by provider; the real one asks once per provider and read.
 type Writers<'a> = dyn Fn(&str) -> writer::Writer + 'a;
 
-fn pipelines_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<Vec<CrmPipeline>, Failure> {
-    let listed = call(&with_query(&["pipelines", "list"], &format!("kind:{}", kind.noun())))?;
+/// Runs memo's calls at once and answers them in the order asked: each is a Node process that opens the store, and
+/// none needs another's answer. `run` caps how many processes start together.
+fn at_once<const N: usize>(call: &Call, asked: [Vec<String>; N]) -> [Result<Value, Failure>; N] {
+    std::thread::scope(|s| {
+        let handles = asked.map(|args| s.spawn(move || call(&args)));
+        handles.map(|h| h.join().unwrap_or_else(|_| Err(Failure::plain("a read stopped"))))
+    })
+}
+
+fn pipelines_args(kind: CrmKind) -> Vec<String> {
+    with_query(&["pipelines", "list"], &format!("kind:{}", kind.noun()))
+}
+
+fn pipelines_from(listed: &Value, writers: &Writers) -> Vec<CrmPipeline> {
     let mut pipelines: Vec<CrmPipeline> =
         listed["items"].as_array().map(|a| a.iter().filter_map(pipeline).collect()).unwrap_or_default();
     for p in &mut pipelines {
         p.movable = writer::movable(p, writers);
     }
-    Ok(pipelines)
+    pipelines
 }
 
 /// The open ones in full up to the limit, the newest closed ones capped; `scope` narrows memo's query, if any.
-fn cards_with(call: &Call, kind: CrmKind, scope: &str) -> Result<(Vec<CrmCard>, bool), Failure> {
+fn cards_args(kind: CrmKind, scope: &str) -> [Vec<String>; 3] {
     // memo answers the newest of any status first, so a portal's years of closed deals would push the open ones out.
-    let mut more = false;
-    let mut cards = Vec::new();
-    for (status, limit) in [("open", LIMIT), ("won", CLOSED), ("lost", CLOSED)] {
-        let list = call(&with_query(&[kind.plural(), "list", "--limit", limit], &format!("{scope}status:{status}")))?;
-        more |= status == "open" && list["page"]["has_more"].as_bool().unwrap_or(false);
-        cards.extend(list["items"].as_array().into_iter().flatten().filter_map(card));
-    }
+    [("open", LIMIT), ("won", CLOSED), ("lost", CLOSED)].map(|(status, limit)| {
+        with_query(&[kind.plural(), "list", "--limit", limit], &format!("{scope}status:{status}"))
+    })
+}
+
+/// The answers of `cards_args`, in its order.
+fn cards_from(lists: [Result<Value, Failure>; 3]) -> Result<(Vec<CrmCard>, bool), Failure> {
+    let [open, won, lost] = lists;
+    let (open, won, lost) = (open?, won?, lost?);
+    let more = open["page"]["has_more"].as_bool().unwrap_or(false);
+    let cards = [open, won, lost]
+        .iter()
+        .flat_map(|list| list["items"].as_array().into_iter().flatten().filter_map(card))
+        .collect();
     Ok((cards, more))
 }
 
 fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>, writers: &Writers) -> Result<CrmRead, Failure> {
-    let pipelines = pipelines_with(call, kind, writers)?;
+    let pipelines = pipelines_from(&call(&pipelines_args(kind))?, writers);
     let chosen = asked.and_then(|r| pipelines.iter().find(|p| p.reference == r)).or_else(|| busiest(&pipelines));
     let Some(chosen) = chosen else {
         return Ok(CrmRead::Ready {
@@ -391,9 +410,10 @@ fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>, writers: &Writers)
             movable: CrmMovable::Yes,
         });
     };
-    let shown = call(&words(&["pipelines", "show", &chosen.reference]))?;
-    let stages = body(&shown)["stages"].as_array().map(|a| a.iter().filter_map(stage).collect()).unwrap_or_default();
-    let (cards, more) = cards_with(call, kind, &format!("pipeline:\"{}\" ", chosen.reference))?;
+    let [a, b, c] = cards_args(kind, &format!("pipeline:\"{}\" ", chosen.reference));
+    let [shown, open, won, lost] = at_once(call, [words(&["pipelines", "show", &chosen.reference]), a, b, c]);
+    let stages = body(&shown?)["stages"].as_array().map(|a| a.iter().filter_map(stage).collect()).unwrap_or_default();
+    let (cards, more) = cards_from([open, won, lost])?;
     Ok(CrmRead::Ready {
         pipeline: Some(chosen.reference.clone()),
         movable: chosen.movable.clone(),
@@ -405,10 +425,13 @@ fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>, writers: &Writers)
 }
 
 fn read_base_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<CrmRead, Failure> {
-    let pipelines = pipelines_with(call, kind, writers)?;
-    let (base, unsorted) = base::columns(&call(&base::show_args(kind))?);
-    let mapping = base::mapping(&call(&base::mapping_args(kind))?);
-    let (cards, more) = cards_with(call, kind, "")?;
+    let [a, b, c] = cards_args(kind, "");
+    let [listed, shown, mapped, open, won, lost] =
+        at_once(call, [pipelines_args(kind), base::show_args(kind), base::mapping_args(kind), a, b, c]);
+    let pipelines = pipelines_from(&listed?, writers);
+    let (base, unsorted) = base::columns(&shown?);
+    let mapping = base::mapping(&mapped?);
+    let (cards, more) = cards_from([open, won, lost])?;
     Ok(CrmRead::Base { pipelines, base, unsorted, mapping, cards, more })
 }
 
@@ -596,13 +619,15 @@ mod tests {
         assert_eq!(movable, CrmMovable::Yes);
         let seen = seen.lock().unwrap();
         assert_eq!(seen[0], ["pipelines", "list", "--json", "--no-record", "--", "kind:deal"]);
-        assert_eq!(seen[1], ["pipelines", "show", "pipeline:2", "--json", "--no-record"]);
-        assert_eq!(
-            seen[2],
-            ["deals", "list", "--limit", "500", "--json", "--no-record", "--", "pipeline:\"pipeline:2\" status:open"]
+        let rest: Vec<String> = seen[1..].iter().map(|a| a.join(" ")).collect();
+        assert_eq!(rest.len(), 4);
+        assert!(rest.contains(&"pipelines show pipeline:2 --json --no-record".to_string()));
+        assert!(
+            rest.contains(&"deals list --limit 500 --json --no-record -- pipeline:\"pipeline:2\" status:open".into())
         );
-        assert_eq!(seen[3][3], "20");
-        assert_eq!(seen[4].last().map(String::as_str), Some("pipeline:\"pipeline:2\" status:lost"));
+        assert!(
+            rest.contains(&"deals list --limit 20 --json --no-record -- pipeline:\"pipeline:2\" status:lost".into())
+        );
     }
 
     #[test]
@@ -711,10 +736,58 @@ mod tests {
         assert_eq!((mapping[0].external_id.as_deref(), mapping[1].external_id.as_deref()), (Some("C7:INVOICE"), None));
         assert_eq!(cards[0].base_stage, Some(CrmBaseRef { reference: "stage:3".into(), name: "Quote".into() }));
         assert!(!more);
-        let seen = seen.lock().unwrap();
-        assert_eq!(seen[1], ["stages", "show", "deal", "--json", "--no-record"]);
-        assert_eq!(seen[2], ["stages", "list", "--json", "--no-record", "--", "kind:deal"]);
-        assert_eq!(seen[3], ["deals", "list", "--limit", "500", "--json", "--no-record", "--", "status:open"]);
+        let mut seen: Vec<String> = seen.lock().unwrap().iter().map(|a| a.join(" ")).collect();
+        seen.sort();
+        assert_eq!(
+            seen,
+            [
+                "deals list --limit 20 --json --no-record -- status:lost",
+                "deals list --limit 20 --json --no-record -- status:won",
+                "deals list --limit 500 --json --no-record -- status:open",
+                "pipelines list --json --no-record -- kind:deal",
+                "stages list --json --no-record -- kind:deal",
+                "stages show deal --json --no-record",
+            ]
+        );
+    }
+
+    #[test]
+    fn a_base_read_asks_memo_everything_at_once_and_waits_for_the_slowest() {
+        let (started, ended) = (Mutex::new(0), Mutex::new(0));
+        let call = |a: &[String]| {
+            *started.lock().unwrap() += 1;
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            // Each call holds until all six have started: in turn, the first would wait for the deadline and fail.
+            while *started.lock().unwrap() < 6 {
+                if std::time::Instant::now() > deadline {
+                    return Err(invalid("asked one at a time".into()));
+                }
+                std::thread::yield_now();
+            }
+            *ended.lock().unwrap() += 1;
+            Ok(based(a))
+        };
+        let read = read_base_with(&call, CrmKind::Deal, &none).unwrap();
+        assert!(matches!(read, CrmRead::Base { .. }));
+        assert_eq!(*ended.lock().unwrap(), 6);
+    }
+
+    #[test]
+    fn a_base_read_fails_with_the_failing_calls_own_words_and_the_earliest_asked_wins() {
+        let failing = |words: &'static [&'static str]| {
+            move |a: &[String]| {
+                if words.iter().any(|w| a.join(" ").contains(w)) {
+                    Err(Failure::plain(format!("memo refused {}", a[..2].join(" "))))
+                } else {
+                    Ok(based(a))
+                }
+            }
+        };
+        let err = |r: Result<CrmRead, Failure>| r.err().map(|f| f.message);
+        let one = read_base_with(&failing(&["status:won"]), CrmKind::Deal, &none);
+        assert_eq!(err(one).as_deref(), Some("memo refused deals list"));
+        let two = read_base_with(&failing(&["status:won", "stages show"]), CrmKind::Deal, &none);
+        assert_eq!(err(two).as_deref(), Some("memo refused stages show"));
     }
 
     #[test]
