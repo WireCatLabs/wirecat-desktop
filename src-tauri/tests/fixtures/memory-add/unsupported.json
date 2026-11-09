@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "validation_error",
+    "reason": "source.unsupported",
+    "message": "no reader takes blob.bin — save it as PDF, Word or plain text and add that file",
+    "retry": {
+      "safe": false
+    }
+  }
+}

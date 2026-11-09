@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "validation_error",
+    "reason": "source.no-text",
+    "message": "the text on stdin holds no text to keep — nothing was saved; add a file that holds text, or paste the text with memo sources add -",
+    "retry": {
+      "safe": false
+    }
+  }
+}

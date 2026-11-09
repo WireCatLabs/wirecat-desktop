@@ -1,0 +1,25 @@
+{
+  "item": {
+    "ref": "document:2",
+    "created": true,
+    "duplicate_of": null,
+    "title": "notes",
+    "kind": "file",
+    "mime": "text/plain",
+    "bytes": 114,
+    "chars": 113,
+    "truncated": false,
+    "extractor": "plain",
+    "read": "extracted",
+    "url": null,
+    "kept": "text",
+    "searchable": {
+      "words": true,
+      "meaning": false
+    },
+    "subjects": []
+  },
+  "meta": {
+    "complete": true
+  }
+}

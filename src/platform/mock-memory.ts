@@ -1,11 +1,13 @@
-import type { AgentCall, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
+import type { AgentCall, MemoryEntry, MemoryRead, MemorySource, SourceContext, SourceReview } from "./memory-schemas"
 import { delay } from "./mock-delay"
+import { memoryAddMock } from "./mock-memory-add"
 import { TASK_IDS } from "./mock-tasks"
 import type { Platform } from "./types"
 
 // The Memory page's stand-in for memo, with made-up people only. `?memory=none` holds nothing, `missing` has no memo,
-// `old` an older memo, `many` 300 entries across 40 days, `gone` one source deleted since. `?memory-fail=read` fails
-// the read (another sync holds the store), `?memory-fail=write` fails every write the same way.
+// `old` an older memo, `many` 300 entries across 40 days, `gone` one source deleted since, `changed` two records in
+// use whose sources changed or went (a "source changed" marker and its review). `?memory-fail=read` fails the read
+// (another sync holds the store), `?memory-fail=write` fails every write the same way.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("memory")
@@ -39,7 +41,62 @@ const base = {
   task: null,
   model: null,
   confidence: null,
+  sourceReview: null,
 } as const
+
+/** `?memory=changed`: memo found these records' sources changed or gone since they were cited. */
+const MARKED: Record<string, { id: string; cause: string }> = {
+  "memory:39": { id: "17090", cause: "changed" },
+  "fact:22": { id: "17091", cause: "deleted" },
+}
+
+const REVIEWS: Record<string, SourceReview> = {
+  "17090": {
+    id: "17090",
+    cause: "changed",
+    raisedAt: ago(5 * HOUR),
+    sources: [
+      {
+        ref: "msg:telegram/1/77/42",
+        kind: "message",
+        cause: "changed",
+        replacement: null,
+        quote: "the clinics confirmed the February pilot",
+        cited: "Good news: the clinics confirmed the February pilot, Lena owns the onboarding.",
+        now: "Update: the clinics moved the pilot to March, Lena still owns the onboarding.",
+      },
+    ],
+    challenges: [],
+    suggestions: [],
+  },
+  "17091": {
+    id: "17091",
+    cause: "deleted",
+    raisedAt: ago(26 * HOUR),
+    sources: [
+      {
+        ref: null,
+        kind: "note",
+        cause: "deleted",
+        replacement: null,
+        quote: null,
+        cited: "Both clinics sign the data agreement before the pilot.",
+        now: null,
+      },
+    ],
+    challenges: [
+      {
+        evidence: ["msg:telegram/1/77/50"],
+        reason: "Kai says only one clinic signs before the pilot.",
+        by: "claude-code",
+        at: ago(25 * HOUR),
+      },
+    ],
+    suggestions: [
+      { author: "claude-code", body: "One pilot clinic signs the data agreement first.", at: ago(25 * HOUR) },
+    ],
+  },
+}
 
 const [PRICING_TASK = "", CLINICS_TASK = ""] = Object.keys(TASK_IDS).map((id) => `task:${id}`)
 
@@ -641,8 +698,15 @@ export function memoryMock(): Pick<
   | "memoryForget"
   | "memorySourceContext"
   | "memoryOpenSource"
+  | "memoryShow"
+  | "memoryReviewShow"
+  | "memoryReviewDecide"
+  | keyof ReturnType<typeof memoryAddMock>
 > {
-  let entries: MemoryEntry[] = scenario === "none" ? [] : scenario === "many" ? many() : [...seed(), ...relationships()]
+  const marked = (e: MemoryEntry): MemoryEntry =>
+    scenario === "changed" && MARKED[e.ref] ? { ...e, sourceReview: MARKED[e.ref] ?? null } : e
+  let entries: MemoryEntry[] =
+    scenario === "none" ? [] : scenario === "many" ? many() : [...seed(), ...relationships()].map(marked)
   let next = 50
 
   const find = (ref: string) => {
@@ -676,6 +740,29 @@ export function memoryMock(): Pick<
   }
 
   return {
+    ...memoryAddMock((batch) => {
+      entries = [batch, ...entries]
+    }),
+    async memoryShow(ref) {
+      await delay(200)
+      return find(ref)
+    },
+    async memoryReviewShow(ref, id) {
+      await delay(400)
+      const review = REVIEWS[id]
+      if (!review || find(ref).sourceReview?.id !== id)
+        throw new Error("This review is not about this record any more.")
+      return review
+    },
+    async memoryReviewDecide(ref, _id, answer, reason) {
+      await write()
+      if (answer === "dismiss" && !reason?.trim()) throw new Error("Say in a few words why it does not matter.")
+      const e = find(ref)
+      const status = answer !== "withdraw" ? e.status : e.type === "fact" ? "reversed" : "stale"
+      const done = { ...update(ref, status), sourceReview: null }
+      entries = entries.map((x) => (x.ref === ref ? done : x))
+      return done
+    },
     async memorySourceContext(ref) {
       await delay(350)
       return context(ref)
@@ -744,7 +831,8 @@ export function memoryMock(): Pick<
     async memoryCorrect(ref, text) {
       await write()
       const old = find(ref)
-      update(ref, "superseded")
+      const replaced = { ...update(ref, "superseded"), sourceReview: null }
+      entries = entries.map((x) => (x.ref === ref ? replaced : x))
       const added: MemoryEntry = {
         ...old,
         ref: `${old.type}:${next++}`,
@@ -752,6 +840,7 @@ export function memoryMock(): Pick<
         status: old.type === "fact" ? "accepted" : "confirmed",
         author: OWNER,
         supersedes: ref,
+        sourceReview: null,
         createdAt: new Date().toISOString(),
         updatedAt: null,
       }

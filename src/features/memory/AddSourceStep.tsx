@@ -1,0 +1,167 @@
+import { FileText, Link2, LoaderCircle, Paperclip } from "lucide-react"
+import { useId } from "react"
+import { fileName, missingOf, type Way, wordCount } from "@/domain/memory-add"
+import { useMessages } from "@/i18n"
+import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
+import { Refusal } from "./AddRefusal"
+import { useAddSource } from "./add-store"
+import { addMessages } from "./messages-add"
+
+const WAYS: { way: Way; Icon: typeof FileText }[] = [
+  { way: "text", Icon: FileText },
+  { way: "link", Icon: Link2 },
+  { way: "file", Icon: Paperclip },
+]
+
+const field =
+  "selectable w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem] text-ink placeholder:text-ink-dim"
+
+/** Step 1: Text, Link or File, each with its own input; Save keeps it and moves on. */
+export function SourceStep() {
+  const m = useMessages(addMessages)
+  const draft = useAddSource((s) => s.draft)
+  const busy = useAddSource((s) => s.busy)
+  const { setWay, save } = useAddSource.getState()
+  const name = useId()
+  const missing = missingOf(draft)
+
+  return (
+    <form
+      className="flex flex-col gap-[1rem]"
+      onSubmit={(e) => {
+        e.preventDefault()
+        void save()
+      }}
+    >
+      <div className="grid gap-[1rem] md:grid-cols-[minmax(0,16rem)_minmax(0,1fr)]">
+        <fieldset className="flex flex-col gap-[0.5rem]">
+          <legend className="mb-[0.5rem] font-medium">{m.what}</legend>
+          {WAYS.map(({ way, Icon }) => (
+            <label key={way} className="relative flex">
+              <input
+                type="radio"
+                name={name}
+                checked={draft.way === way}
+                onChange={() => setWay(way)}
+                className="peer sr-only"
+              />
+              <span className="flex w-full cursor-pointer items-start gap-[0.7rem] rounded-[0.45rem] border border-line-strong px-[0.8rem] py-[0.65rem] transition-colors duration-(--motion-fast) hover:bg-app-2 peer-checked:border-brand peer-checked:bg-brand-soft peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
+                <Icon className="mt-[0.15rem] size-[1.1rem] shrink-0 text-ink-soft" aria-hidden />
+                <span>
+                  <span className="block font-medium">{m.ways[way].name}</span>
+                  <span className="block text-[0.9rem] text-ink-soft">{m.ways[way].line}</span>
+                </span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+        <div key={draft.way} className="fade-in min-w-0">
+          {draft.way === "text" ? <TextInput /> : draft.way === "link" ? <LinkInput /> : <FileInput />}
+        </div>
+      </div>
+      <Refusal />
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={!!missing || !!busy}
+          icon={busy === "save" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+        >
+          {busy === "save" ? m.saving[draft.way] : m.save}
+        </Button>
+        {missing && <p className="text-[0.9rem] text-ink-soft">{m.missing[missing]}</p>}
+      </div>
+    </form>
+  )
+}
+
+function TextInput() {
+  const m = useMessages(addMessages)
+  const draft = useAddSource((s) => s.draft)
+  const { edit } = useAddSource.getState()
+  const title = useId()
+  const text = useId()
+  const hint = useId()
+  return (
+    <div className="flex flex-col gap-[0.6rem]">
+      <label htmlFor={title} className="text-[0.95rem] font-medium">
+        {m.titleLabel}
+      </label>
+      <input
+        id={title}
+        value={draft.title}
+        maxLength={500}
+        aria-describedby={hint}
+        onChange={(e) => edit({ title: e.target.value })}
+        className={cx(field, "h-10")}
+      />
+      <p id={hint} className="-mt-[0.3rem] text-[0.85rem] text-ink-dim">
+        {m.titleHint}
+      </p>
+      <span className="flex items-baseline justify-between">
+        <label htmlFor={text} className="text-[0.95rem] font-medium">
+          {m.textLabel}
+        </label>
+        <span aria-live="polite" className="font-mono text-[0.85rem] tabular-nums text-ink-dim">
+          {m.words(wordCount(draft.text))}
+        </span>
+      </span>
+      <textarea
+        id={text}
+        rows={4}
+        value={draft.text}
+        onChange={(e) => edit({ text: e.target.value })}
+        className={cx(field, "min-h-[6.5rem] resize-y py-2 leading-snug")}
+      />
+    </div>
+  )
+}
+
+function LinkInput() {
+  const m = useMessages(addMessages)
+  const draft = useAddSource((s) => s.draft)
+  const { edit } = useAddSource.getState()
+  const url = useId()
+  const hint = useId()
+  return (
+    <div className="flex flex-col gap-[0.6rem]">
+      <label htmlFor={url} className="text-[0.95rem] font-medium">
+        {m.urlLabel}
+      </label>
+      <input
+        id={url}
+        type="url"
+        inputMode="url"
+        value={draft.url}
+        aria-describedby={hint}
+        onChange={(e) => edit({ url: e.target.value })}
+        className={cx(field, "h-10 font-mono")}
+      />
+      <p id={hint} className="max-w-[70ch] text-[0.9rem] text-ink-soft">
+        {m.urlHint}
+      </p>
+    </div>
+  )
+}
+
+function FileInput() {
+  const m = useMessages(addMessages)
+  const path = useAddSource((s) => s.draft.path)
+  const busy = useAddSource((s) => s.busy)
+  const { pickFile } = useAddSource.getState()
+  return (
+    <div className="flex min-h-[9rem] flex-col items-start justify-center gap-[0.6rem] rounded-[0.45rem] border border-dashed border-line-strong px-[1rem] py-[0.9rem]">
+      {path && <p className="selectable font-medium break-all">{fileName(path)}</p>}
+      <Button
+        size="sm"
+        disabled={!!busy}
+        onClick={() => void pickFile()}
+        icon={busy === "pick" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+      >
+        {path ? m.chooseOther : m.chooseFile}
+      </Button>
+      <p className="text-[0.9rem] text-ink-soft">{m.fileHint}</p>
+    </div>
+  )
+}

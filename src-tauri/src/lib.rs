@@ -35,6 +35,8 @@ mod mcp;
 mod mcp_server;
 mod memo_cli;
 mod memory;
+mod memory_add;
+mod memory_review;
 mod names;
 mod node;
 mod notes_setup;
@@ -138,6 +140,7 @@ pub fn run() {
         .plugin(tauri_plugin_window_state::Builder::default().with_state_flags(window_state()).build())
         .manage(Arc::new(Running::default()))
         .manage(deep_link::Links::default())
+        .manage(memory_add::PickedFile::default())
         .setup(|app| {
             // Without a log the app still works; it says why on stderr.
             if let Err(e) = app.path().app_log_dir().map_err(|e| e.to_string()).and_then(|dir| log::init(&dir)) {
@@ -313,6 +316,17 @@ pub fn run() {
             commands::people::people_unlink,
             commands::people::people_unmerge,
             commands::people::people_find,
+            commands::memory::memory_review_show,
+            commands::memory::memory_review_decide,
+            commands::memory::memory_pick_file,
+            commands::memory::memory_show,
+            commands::memory::memory_source_add,
+            commands::memory::memory_source_show,
+            commands::memory::memory_mentions,
+            commands::memory::memory_source_suggest,
+            commands::memory::memory_readers,
+            commands::memory::memory_reader_choose,
+            commands::memory::memory_reader_key,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,

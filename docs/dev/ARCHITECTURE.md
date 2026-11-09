@@ -121,6 +121,10 @@ src-tauri/src/
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
   people.rs     the People page: memo's `people list|review|show|unlink|unmerge` and `review confirm|reject` for
                 `identity_link` matches; every decision with `--from-app` (see "The People page").
+  memory_review.rs a memory or fact whose source changed: memo's source review read with `review show` and
+                decided by the owner (Still true, Dismiss, No longer true), each with `--from-app`.
+  memory_add.rs Add to Memory: `memo sources add|show|mentions|suggest`, the readers and the reader's key; pasted
+                text and the key go on stdin, never on the command line (see "Adding to memory").
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   crm_board.rs  the Clients page: memo's deals and leads of one pipeline by stage, each stage's count and sums per
                 currency from `pipelines show`, and moving the owner's own through `<kind>s move`. A CRM's copy is read
@@ -334,7 +338,8 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.51 or newer (`memory.minVersion` in the catalog); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.132.0 or newer (`memory.minVersion` in the catalog, a placeholder for
+the memo release that ships `sources` and source reviews); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
 (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
 shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
@@ -357,6 +362,47 @@ The text is the owner's own, shown unmasked like the Search page's hits, and it 
 takes as nobody's run and refuses to let decide, so every confirm, discard, correct and forget also passes
 `--from-app`: memo records it as the owner's. Reads (`list`, `show`) never pass it. It is the app's word that the owner
 clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `CLAUDECODE`, so no run is an agent's.
+
+**When a source changes.** memo marks a memory or fact whose cited source changed, went or was contradicted with
+`source_review: {id, cause}` on its reads, and never changes its status. The row shows a badge and waits under Review as
+well as under In use (`entryInTab` in `domain/memory.ts`). Opened, `memory_review_show` reads `review show <id>`, checked
+to be a `memory_source_review` of that record, and shows each source as it was cited and as it is now. The answers:
+Still true (`review confirm`), Dismiss (`review reject --reason=<the owner's words>`), Edit (the record's own
+correction, which can start from an agent's suggested wording) and No longer true (the Discard mapping:
+`memories invalidate`, or `facts reverse` for a decision; memo has none for other facts, and it is never a revoke).
+After every answer the record is read back with `show` (`memory_show` after an Edit), so the page shows what memo
+now holds rather than what it expects. `review confirm` and `reject` refuse with exit code 2 and their whole answer on
+stdout; Rust reads it, so the page words memo's reason (`proposal.wrong-state`), and a success must list the id under
+`decided`. Rust's tests use memo's real answers (`src-tauri/tests/fixtures/memory-review/` and `memory-add/`). A source review is never listed as an action: memo refuses `actions confirm` on it.
+
+### Adding to memory
+
+The Memory page's Add to memory panel (plan `docs/dev/plans/2026-11-01-memory-add.md`), four steps on one surface:
+
+1. **Source**: pasted text (`memo sources add -`, the text on stdin), a link (`sources add <url>`, read once by memo
+   from this computer) or a file chosen in the system's file window (`memory_pick_file`). Rust keeps the picked path
+   and `memory_source_add` takes no other; a name that is not UTF-8 is refused there. Every add passes `--from-app`,
+   so its subjects are the owner's. Values go as one word (`--title=`).
+2. **Saved**: what memo kept in its own words (`kept: text | copy`, `read: no-text`, `truncated`, `duplicate_of`), the
+   stored text from `sources show`, and the people and organizations named in it from `sources mentions`. The ticked
+   ones become `--subject` of the suggestion.
+3. **Facts**: `sources suggest <ref> --reader=<the owner's pick>` names the batch in `batch`; Rust reads it back with
+   `actions show` and uses it only if every finding cites this document and it is proposed (or already decided, when
+   memo says it reused an earlier reading; the panel then says so). The panel decides it like any findings batch:
+   `actions confirm <id> <ticked> --fingerprint … --from-app`, or `reject` when nothing is ticked. Ticking is
+   confirming.
+4. **Done**: the source and what was kept, and as "About" only the subjects `sources show` says the source is linked
+   to.
+
+The reader is never picked by the app. Settings → "Reading for facts" lists `sources readers` (available, signed in,
+model, whether the text leaves the computer, whether it reads files; an unknown answer counts as the riskier one) and
+saves the owner's pick with `config set sources.reader <id>` only when he presses Use this reader, so arrow keys
+through the radios save nothing. An API key goes to `models keys set <provider>` on stdin and never comes back to the
+interface. `sources suggest`, `sources readers` and `config set sources.reader` are written
+against the planned memo interface (not released when this was written); each command line is one constant in
+`memory_add.rs`. memo's `source.*` and `reader.*` refusals come back as ids and are worded in `messages-add.ts`. A run
+fed on stdin (pasted text, the key) never returns memo's message, which can quote the input escaped or cut: an unknown
+refusal comes back as `memo.refused`.
 
 ### Relationships
 

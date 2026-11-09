@@ -1,0 +1,25 @@
+{
+  "item": {
+    "ref": "document:3",
+    "created": true,
+    "duplicate_of": null,
+    "title": "Lena moves the review to Friday.",
+    "kind": "text",
+    "mime": "text/plain",
+    "bytes": 33,
+    "chars": 32,
+    "truncated": false,
+    "extractor": null,
+    "read": "extracted",
+    "url": null,
+    "kept": "text",
+    "searchable": {
+      "words": true,
+      "meaning": false
+    },
+    "subjects": ["person:2"]
+  },
+  "meta": {
+    "complete": true
+  }
+}

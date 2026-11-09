@@ -53,6 +53,8 @@ export const MemoryEntrySchema = v.object({
   role: v.optional(text),
   /** A relationship's standing: proposed, confirmed, reported or ended. */
   standing: v.optional(text),
+  /** The open review memo raised because a source changed, went or was contradicted; absent before memo had them. */
+  sourceReview: v.optional(v.nullable(v.object({ id: v.string(), cause: v.string() })), null),
 })
 
 /** One role of the owner's role lists (`memo relationships roles list`): built in, or the owner's own with a label. */
@@ -105,6 +107,28 @@ export const SourceContextSchema = v.variant("kind", [
   v.object({ kind: v.literal("unsupported"), prefix: v.string() }),
 ])
 
+const ReviewSourceSchema = v.object({
+  ref: text,
+  kind: text,
+  cause: v.string(),
+  replacement: text,
+  quote: text,
+  /** The source as the record cited it, and as it is now; `null` once it is gone. */
+  cited: text,
+  now: text,
+})
+
+export const SourceReviewSchema = v.object({
+  id: v.string(),
+  cause: v.string(),
+  raisedAt: text,
+  sources: v.array(ReviewSourceSchema),
+  challenges: v.array(v.object({ evidence: v.array(v.string()), reason: v.string(), by: text, at: text })),
+  suggestions: v.array(v.object({ author: text, body: v.string(), at: text })),
+})
+
+export type SourceReview = v.InferOutput<typeof SourceReviewSchema>
+export type ReviewAnswer = "stillTrue" | "dismiss" | "withdraw"
 export type SourceContext = v.InferOutput<typeof SourceContextSchema>
 export type MemoryEntry = v.InferOutput<typeof MemoryEntrySchema>
 export type Role = v.InferOutput<typeof RoleSchema>

@@ -1,0 +1,13 @@
+{
+  "item": {
+    "checked": 1,
+    "baselined": 0,
+    "raised": 1,
+    "refreshed": 0,
+    "closed": 0,
+    "changed_refs": ["note:1"]
+  },
+  "meta": {
+    "complete": true
+  }
+}

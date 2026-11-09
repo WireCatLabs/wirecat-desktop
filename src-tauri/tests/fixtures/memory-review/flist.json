@@ -1,0 +1,46 @@
+{
+  "items": [
+    {
+      "ref": "fact:1",
+      "id": "1",
+      "kind": "decision",
+      "text": "Both clinics sign before the pilot",
+      "status": "accepted",
+      "project": null,
+      "project_name": null,
+      "subject": null,
+      "subject_name": null,
+      "subject_is_owner": false,
+      "occurred_at": null,
+      "supersedes": null,
+      "author": {
+        "type": "person",
+        "id": "1",
+        "name": null,
+        "kind": null
+      },
+      "model": null,
+      "scope": null,
+      "origin": "owner",
+      "evidence": [],
+      "source_review": {
+        "id": "1",
+        "cause": "deleted"
+      },
+      "created_at": "2026-11-08T22:47:47.787Z",
+      "updated_at": "2026-11-08T22:47:47.788Z",
+      "confirmed_by": {
+        "type": "person",
+        "id": "1"
+      }
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 500,
+    "has_more": false
+  },
+  "meta": {
+    "complete": true
+  }
+}
