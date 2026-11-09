@@ -1804,13 +1804,14 @@
         "minVersion": "0.131.14"
       },
       "crmBoard": {
-        "minVersion": "0.131.56"
+        "minVersion": "0.131.56",
+        "baseStagesMinVersion": "0.131.71"
       },
       "people": {
         "minVersion": "0.132.0"
       },
       "notesSetup": {
-        "minVersion": "0.131.14",
+        "minVersion": "0.131.71",
         "folders": ["folders", "list", "--no-record", "--json"],
         "add": ["folders", "add", "{path}", "--no-record", "--json"],
         "remove": ["folders", "remove", "{id}", "--record", "--json"],
@@ -1820,7 +1821,6 @@
         "choices": ["embeddinggemma", "e5-small"],
         "recommended": "embeddinggemma",
         "download": ["models", "download", "{model}", "--json"],
-        "downloadWithTerms": ["models", "download", "{model}", "--accept-terms", "--json"],
         "use": ["models", "set", "{model}", "--json"]
       },
       "enrichment": {
@@ -2151,7 +2151,7 @@
       "settings": null,
       "signIn": {
         "gives": "Lets your agent read and change the portal's CRM with the rights of the employee who made the webhook.",
-        "asks": "An incoming webhook address, from Developer resources → Other → Incoming webhook, with the crm and user scopes, and department for reporting lines."
+        "asks": "An incoming webhook address, from Developer resources → Other → Incoming webhook, with the crm, user_basic and department scopes."
       },
       "crm": {
         "provider": "bitrix24",

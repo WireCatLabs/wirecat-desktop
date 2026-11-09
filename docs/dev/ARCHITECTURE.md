@@ -806,8 +806,8 @@ profile, with a Sync or Stop button beside the name. A result stays until dismis
 one of memo's own commands: `folders add <path>` (listed with `folders list`), `sync --only notes`, and
 a search model. The model step lists the catalog's `choices` (EmbeddingGemma, shown only as the best local model, its
 word "model" linking to the `terms` memo gives; e5-small as the lighter one) as memo's `models list` reports them, plus
-the model in use when it is neither. The model in use, not downloaded yet, gets `models download <id>` (with
-`--accept-terms` for a model that has terms, until memo stops asking), and the card then runs the notes sync, since
+the model in use when it is neither. The model in use, not downloaded yet, gets `models download <id>` (memo asks no
+terms to be accepted, so the card needs that memo, `minVersion`), and the card then runs the notes sync, since
 memo embeds notes only then. Another model is downloaded if needed, then `models set <id>` (`notes_model_use`); memo
 returns what it will embed again and an estimate, and the next syncs do it while search keeps working. Rust takes a
 model id only when memo's own list shows it on the card. The folder comes from the system's window: `notes_pick_folder` opens it from Rust through tauri-plugin-dialog,

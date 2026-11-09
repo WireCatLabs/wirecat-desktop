@@ -67,7 +67,7 @@ export function notesSetupMock(
   return {
     async notesSetupStatus(): Promise<NotesSetup> {
       await delay(400)
-      if (scenario === "old") return { state: "old", version: "0.131.2", need: "0.131.14" }
+      if (scenario === "old") return { state: "old", version: "0.131.2", need: "0.131.71" }
       return { state: "ready", folders: [...folders], models: models() }
     },
     async notesPickFolder() {
