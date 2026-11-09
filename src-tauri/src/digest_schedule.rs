@@ -27,6 +27,9 @@ const MAX_USD: f64 = 50.0;
 const RUN_TIMEOUT: Duration = Duration::from_mins(20);
 const BACKFILL_TIMEOUT: Duration = Duration::from_hours(3);
 const MAX_BACKFILL_DAYS: i64 = 31;
+const RANGE: [&str; 2] = ["--since-time", "--until-time"];
+/// memo 0.131.72 and older name the range `--from` and `--to`.
+const OLD_RANGE: [&str; 2] = ["--from", "--to"];
 
 #[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase", tag = "state")]
@@ -331,14 +334,14 @@ pub fn run_now() -> Result<DigestSchedules, String> {
     status()
 }
 
-fn backfill_args(from: &str, to: &str, yes: bool) -> Result<Vec<String>, String> {
+fn backfill_args(from: &str, to: &str, yes: bool, [since, until]: [&str; 2]) -> Result<Vec<String>, String> {
     let day = |d: &str| chrono::NaiveDate::parse_from_str(d, "%Y-%m-%d").map_err(|_| format!("not a day: {d}"));
     let (start, end) = (day(from)?, day(to)?);
     let span = (end - start).num_days();
     if !(0..MAX_BACKFILL_DAYS).contains(&span) {
         return Err(format!("from {from} to {to} is not 1 to {MAX_BACKFILL_DAYS} days"));
     }
-    let mut args = words(&["digest", "backfill", "--from", from, "--to", to, "--json"]);
+    let mut args = words(&["digest", "backfill", since, from, until, to, "--json"]);
     if yes {
         args.push("--yes".into());
     }
@@ -368,17 +371,24 @@ fn read_backfill(v: &Value, yes: bool) -> Backfill {
     }
 }
 
+fn error_starts(json: Option<&Value>, prefixes: &[&str]) -> bool {
+    json.and_then(|v| v["error"]["message"].as_str()).is_some_and(|m| prefixes.iter().any(|p| m.starts_with(p)))
+}
+
 fn unknown_command(json: Option<&Value>) -> bool {
-    json.and_then(|v| v["error"]["message"].as_str())
-        .is_some_and(|m| m.starts_with("unknown command 'digest'") || m.starts_with("unknown command 'backfill'"))
+    error_starts(json, &["unknown command 'digest'", "unknown command 'backfill'"])
 }
 
 /// Without `yes`, memo only prices the days; with it, memo builds them, writes each as that day's run and delivers
 /// none of them.
 pub fn backfill(from: &str, to: &str, yes: bool) -> Result<Backfill, String> {
-    let args = backfill_args(from, to, yes)?;
+    let args = backfill_args(from, to, yes, RANGE)?;
     let Ok(memo) = memo()? else { return Ok(Backfill::Unsupported) };
-    let (out, json) = call(memo, &args, if yes { BACKFILL_TIMEOUT } else { Duration::from_mins(1) })?;
+    let timeout = if yes { BACKFILL_TIMEOUT } else { Duration::from_mins(1) };
+    let (mut out, mut json) = call(memo, &args, timeout)?;
+    if error_starts(json.as_ref(), &["unknown option '--since-time'"]) {
+        (out, json) = call(memo, &backfill_args(from, to, yes, OLD_RANGE)?, timeout)?;
+    }
     if unknown_command(json.as_ref()) {
         return Ok(Backfill::Unsupported);
     }
@@ -469,13 +479,17 @@ mod tests {
     #[test]
     fn backfill_prices_first_and_reads_both_shapes() {
         assert_eq!(
-            backfill_args("2026-11-01", "2026-11-07", false).unwrap().join(" "),
+            backfill_args("2026-11-01", "2026-11-07", false, RANGE).unwrap().join(" "),
+            "digest backfill --since-time 2026-11-01 --until-time 2026-11-07 --json"
+        );
+        assert_eq!(
+            backfill_args("2026-11-01", "2026-11-07", false, OLD_RANGE).unwrap().join(" "),
             "digest backfill --from 2026-11-01 --to 2026-11-07 --json"
         );
-        assert!(backfill_args("2026-11-01", "2026-11-07", true).unwrap().ends_with(&["--yes".to_string()]));
-        assert!(backfill_args("2026-11-07", "2026-11-01", false).is_err());
-        assert!(backfill_args("2026-10-01", "2026-11-07", false).is_err());
-        assert!(backfill_args("--yes", "2026-11-07", false).is_err());
+        assert!(backfill_args("2026-11-01", "2026-11-07", true, RANGE).unwrap().ends_with(&["--yes".to_string()]));
+        assert!(backfill_args("2026-11-07", "2026-11-01", false, RANGE).is_err());
+        assert!(backfill_args("2026-10-01", "2026-11-07", false, RANGE).is_err());
+        assert!(backfill_args("--yes", "2026-11-07", false, RANGE).is_err());
 
         let estimate = json!({"item": {"days": ["2026-11-01", "2026-11-02"], "skipped": 1, "estimate_usd": 0.54}});
         assert_eq!(
@@ -488,7 +502,7 @@ mod tests {
         );
         let unknown = json!({"error": {"code": "validation_error", "message": "unknown command 'digest'"}});
         assert!(unknown_command(Some(&unknown)));
-        assert!(!unknown_command(Some(&json!({"error": {"message": "unknown option '--from'"}}))));
+        assert!(!unknown_command(Some(&json!({"error": {"message": "unknown option '--since-time'"}}))));
     }
 
     #[test]

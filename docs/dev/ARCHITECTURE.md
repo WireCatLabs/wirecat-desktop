@@ -189,8 +189,9 @@ src-tauri/src/
                 `schedule agent morning-digest` to make it or change its time (memo replaces a schedule of the same
                 name), `schedule remove` for off (memo has no pause; the page remembers the time and routes to turn it
                 back on), `schedule run` for Run now (its price, the last run's cost, is shown first), and `digest
-                backfill --from --to --json`, first without `--yes` for the price, then with it. Routes are checked to
-                the two shapes `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and
+                backfill --since-time --until-time --json` (`--from --to` when memo 0.131.72 or older says the option
+                is unknown), first without `--yes` for the price, then with it. Routes are checked to the two shapes
+                `--deliver-to` documents; a memo without `digest backfill` answers "unknown command" and
                 the page says it needs an update.
   digest_editors.rs the Digests page's two editors, both owner-only writes memo itself guards: What to collect is
                 `digest brief show|edit --file -|edit --undo|reset`, How it looks is `templates show|edit|preview|reset
