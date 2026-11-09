@@ -10,11 +10,13 @@ import {
   subjectOf,
   type Tab,
   tabOf,
+  withCleanNames,
 } from "@/domain/memory"
 import { useTasks } from "@/features/tasks"
 import { messagesOf } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type {
+  MemoryChange,
   MemoryEntry,
   MemoryRead,
   MemorySource,
@@ -31,7 +33,7 @@ export type Context =
   | { state: "loading" }
   | { state: "ready"; context: SourceContext }
   | { state: "failed"; error: string }
-export type Op = "confirm" | "discard" | "correct" | "forget" | "open" | ReviewAnswer
+export type Op = "confirm" | "discard" | "correct" | "forget" | "open" | "remove" | ReviewAnswer
 export type Review =
   | { state: "loading" }
   | { state: "ready"; review: SourceReview }
@@ -88,6 +90,15 @@ type MemoryState = {
   setPageSize(size: number): void
   /** Approves these single rows one by one and says how many memo approved; a findings batch never is. */
   confirmMany(refs: string[]): Promise<number>
+  /**
+   * Approves or rejects every waiting record given: relationship proposals in one memo call, the rest one by one.
+   * Answers how many memo decided and how many it refused.
+   */
+  decideMany(refs: string[], approve: boolean): Promise<{ done: number; failed: number }>
+  /** Sets a relationship's role; a proposal is approved on the way. */
+  editRelation(ref: string, role: string | null): Promise<boolean>
+  /** Removes a link that holds, or rejects a proposal; the row folds away. */
+  removeRelation(ref: string): Promise<void>
   load(): Promise<void>
   setTab(tab: Tab): void
   setQuery(query: string): void
@@ -98,7 +109,7 @@ type MemoryState = {
   loadSources(ref: string): Promise<void>
   confirm(ref: string): Promise<void>
   discard(ref: string): Promise<void>
-  correct(ref: string, text: string): Promise<boolean>
+  correct(ref: string, text: string, change?: MemoryChange): Promise<boolean>
   forget(ref: string): Promise<void>
   startCorrect(ref: string | null, draft?: string): void
   loadReview(ref: string): Promise<void>
@@ -155,7 +166,7 @@ export const useMemory = create<MemoryState>((set, get) => {
 
   const replace = (entry: MemoryEntry) =>
     set((s) => ({
-      entries: s.entries.map((e) => (e.ref === entry.ref ? entry : e)),
+      entries: s.entries.map((e) => (e.ref === entry.ref ? withCleanNames(entry) : e)),
       held: s.held.includes(entry.ref) ? s.held : [...s.held, entry.ref],
     }))
 
@@ -202,6 +213,77 @@ export const useMemory = create<MemoryState>((set, get) => {
       return approved
     },
 
+    async decideMany(refs, approve) {
+      const waiting = get().entries.filter((e) => refs.includes(e.ref) && e.status === "proposed" && !e.findings)
+      const proposals = waiting.filter((e) => e.type === "relationship").map((e) => e.ref)
+      let done = 0
+      let failed = 0
+      if (proposals.length > 0) {
+        set((s) => ({
+          busy: { ...s.busy, ...Object.fromEntries(proposals.map((r) => [r, approve ? "confirm" : "discard"])) },
+        }))
+        try {
+          const answers = await platform.memoryRelationsDecide(proposals, approve)
+          set((s) => ({
+            entries: s.entries.map((e) => {
+              const a = answers.find((x) => x.ref === e.ref)
+              return a?.status ? { ...e, status: a.status, standing: a.status } : e
+            }),
+            failed: {
+              ...s.failed,
+              ...Object.fromEntries(answers.filter((a) => a.error).map((a) => [a.ref, a.error ?? ""])),
+            },
+            held: [...s.held, ...proposals],
+          }))
+          done += answers.filter((a) => a.status).length
+          failed += answers.filter((a) => !a.status).length
+        } catch (e) {
+          const why = message(e)
+          set((s) => ({ failed: { ...s.failed, ...Object.fromEntries(proposals.map((r) => [r, why])) } }))
+          failed += proposals.length
+        } finally {
+          set((s) => ({ busy: Object.fromEntries(Object.entries(s.busy).filter(([r]) => !proposals.includes(r))) }))
+        }
+      }
+      // One at a time: memo holds a lock per write.
+      for (const e of waiting.filter((x) => x.type !== "relationship")) {
+        if (approve) await get().confirm(e.ref)
+        else await get().discard(e.ref)
+        if (get().entries.find((x) => x.ref === e.ref)?.status !== e.status) done++
+        else failed++
+      }
+      return { done, failed }
+    },
+    async editRelation(ref, role) {
+      const edited = await run(ref, "correct", () => platform.memoryRelationEdit(ref, role))
+      if (!edited) return false
+      set((s) => ({
+        entries: s.entries.map((e) =>
+          e.ref === ref ? { ...e, ref: edited.ref, role: edited.role, status: "confirmed", standing: "confirmed" } : e,
+        ),
+        held: [...s.held, edited.ref],
+        open: s.open === ref ? edited.ref : s.open,
+        correcting: null,
+      }))
+      return true
+    },
+    async removeRelation(ref) {
+      const done = await run(ref, "remove", async () => {
+        await platform.memoryRelationRemove(ref)
+        return true
+      })
+      if (!done) return
+      set((s) => ({ leaving: [...s.leaving, ref], open: s.open === ref ? null : s.open, correcting: null }))
+      setTimeout(
+        () =>
+          set((s) => ({
+            entries: s.entries.filter((e) => e.ref !== ref),
+            leaving: s.leaving.filter((r) => r !== ref),
+          })),
+        LEAVE_MS,
+      )
+    },
+
     async load() {
       if (get().demo) return
       const call = ++seq
@@ -209,7 +291,7 @@ export const useMemory = create<MemoryState>((set, get) => {
       try {
         const read = await platform.memoryRead()
         if (call !== seq || get().demo) return
-        const entries = read.kind === "ready" ? read.entries : []
+        const entries = read.kind === "ready" ? read.entries.map(withCleanNames) : []
         const tab = get().tabChosen
           ? get().tab
           : entries.some((e) => entryInTab("review", e)) || entries.length === 0
@@ -302,12 +384,15 @@ export const useMemory = create<MemoryState>((set, get) => {
       const entry = await run(ref, "discard", () => platform.memoryDiscard(ref))
       if (entry) replace(entry)
     },
-    async correct(ref, text) {
-      const added = await run(ref, "correct", () => platform.memoryCorrect(ref, text))
+    async correct(ref, text, change) {
+      const added = await run(ref, "correct", () => platform.memoryCorrect(ref, text, change))
       if (!added) return false
       const old = await platform.memoryShow(ref).catch(() => null)
       set((s) => ({
-        entries: [added, ...s.entries.map((e) => (e.ref !== ref ? e : (old ?? { ...e, status: "superseded" })))],
+        entries: [
+          withCleanNames(added),
+          ...s.entries.map((e) => (e.ref !== ref ? e : (old ?? { ...e, status: "superseded" }))),
+        ],
         reviews: without(s.reviews, ref),
         held: [...s.held, ref, added.ref],
         arriving: [...s.arriving, added.ref],

@@ -1,6 +1,6 @@
 use super::{attempt, blocking};
 use crate::error::AppError;
-use crate::{memory, memory_add, memory_review};
+use crate::{memory, memory_add, memory_edit, memory_preview, memory_review};
 use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
@@ -28,9 +28,43 @@ pub async fn memory_discard(reference: String) -> Result<memory::Entry, AppError
 }
 
 #[tauri::command]
-pub async fn memory_correct(reference: String, text: String) -> Result<memory::Entry, AppError> {
-    crate::log::command("memory_correct", async move { attempt(move || memory::correct(&reference, &text)).await })
+pub async fn memory_correct(
+    reference: String,
+    text: String,
+    change: Option<memory::Change>,
+) -> Result<memory::Entry, AppError> {
+    crate::log::command("memory_correct", async move {
+        attempt(move || memory::correct(&reference, &text, &change.unwrap_or_default())).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn memory_relation_edit(
+    reference: String,
+    role: Option<String>,
+) -> Result<memory_edit::RelationEdited, AppError> {
+    crate::log::command("memory_relation_edit", async move {
+        attempt(move || memory_edit::edit(&reference, role.as_deref())).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn memory_relation_remove(reference: String) -> Result<(), AppError> {
+    crate::log::command("memory_relation_remove", async move { attempt(move || memory_edit::remove(&reference)).await })
         .await
+}
+
+#[tauri::command]
+pub async fn memory_relations_decide(
+    references: Vec<String>,
+    approve: bool,
+) -> Result<Vec<memory_edit::Decided>, AppError> {
+    crate::log::command("memory_relations_decide", async move {
+        attempt(move || memory_edit::decide(&references, approve)).await
+    })
+    .await
 }
 
 #[tauri::command]
@@ -155,4 +189,22 @@ pub async fn memory_reader_choose(id: String) -> Result<Vec<memory_add::Reader>,
 pub async fn memory_reader_key(provider: String, key: String) -> Result<memory_add::KeySaved, AppError> {
     crate::log::command("memory_reader_key", async move { attempt(move || memory_add::set_key(&provider, &key)).await })
         .await
+}
+
+/// Only the file chosen in the system's file window is read, as `memory_source_add` does.
+#[tauri::command]
+pub async fn memory_file_preview(
+    kept: State<'_, memory_add::PickedFile>,
+) -> Result<Option<memory_preview::FilePreview>, AppError> {
+    let picked = kept.0.lock().unwrap_or_else(std::sync::PoisonError::into_inner).clone();
+    crate::log::command("memory_file_preview", async move {
+        let Some(path) = picked else { return Ok(None) };
+        attempt(move || memory_preview::file(&path).map(Some)).await
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn memory_link_preview(url: String) -> Result<Option<memory_preview::LinkPreview>, AppError> {
+    crate::log::command("memory_link_preview", async move { attempt(move || memory_preview::link(&url)).await }).await
 }

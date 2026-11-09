@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ExternalLink, LoaderCircle, Plus, RefreshCw } from "lucide-react"
+import { Check, ChevronDown, ExternalLink, LoaderCircle, Plus, RefreshCw, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
 import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
@@ -13,7 +13,6 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { Lamp } from "@/ui/Lamp"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Skeleton } from "@/ui/Skeleton"
 import { Activity } from "./Activity"
@@ -23,6 +22,7 @@ import { Filters } from "./Filters"
 import { ForgetDialog } from "./ForgetDialog"
 import { memoryMessages } from "./messages"
 import { addMessages } from "./messages-add"
+import { explainedMessages } from "./messages-explained"
 import { Row, SubjectLabel } from "./Row"
 import { useMemory } from "./store"
 
@@ -31,6 +31,7 @@ const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
 
 export function MemoryPage() {
   const m = useMessages(memoryMessages)
+  const x = useMessages(explainedMessages)
   const lang = useLang()
   const s = useMemory()
   const gap = gapFromRead(s.read)
@@ -67,7 +68,7 @@ export function MemoryPage() {
         <div>
           <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
           <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
-            {m.intro}{" "}
+            {x.intro}{" "}
             <a
               href={guide(lang)}
               onClick={(e) => {
@@ -114,9 +115,13 @@ export function MemoryPage() {
         ) : (
           <>
             {ready && <AddPanel />}
+            <HowItWorks />
             <div className="flex flex-col gap-[1rem]">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <Tabs value={s.tab} onChange={s.setTab} count={count} />
+                <div className="flex flex-col gap-[0.5rem]">
+                  <Tabs value={s.tab} onChange={s.setTab} count={count} />
+                  <p className="text-[0.92rem] text-ink-soft">{x.tabHint[s.tab]}</p>
+                </div>
                 <ApproveShown key={`${s.tab}|${s.query}`} refs={approvable.map((e) => e.ref)} />
               </div>
               <Filters />
@@ -290,6 +295,7 @@ function SubjectRack({
   arriving: string[]
 }) {
   const m = useMessages(memoryMessages)
+  const x = useMessages(explainedMessages)
   const closed = useMemory((s) => s.closedGroups)
   const toggleGroup = useMemory((s) => s.toggleGroup)
   const onPage = new Set(entries.map((e) => e.ref))
@@ -302,31 +308,33 @@ function SubjectRack({
         const open = !closed.includes(g.key)
         return (
           <section key={g.key || "none"} className="border-line [&+&]:border-t">
-            <h2>
-              <button
-                type="button"
-                aria-expanded={open}
-                onClick={() => toggleGroup(g.key)}
-                className="group flex w-full cursor-pointer items-center gap-[0.7rem] px-[1.3rem] pt-[1rem] pb-[0.6rem] text-left"
-              >
-                {subject ? (
-                  <SubjectLabel subject={subject} className="text-[1.05rem] font-semibold" />
-                ) : (
-                  <span className="text-[1.05rem] font-semibold text-ink-soft">{m.noSubject}</span>
-                )}
-                {g.waiting > 0 && <Lamp tone="warn" size="sm" />}
-                <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">
-                  {m.groupCount(whole.waiting, whole.entries.length)}
-                </span>
-                <ChevronDown
-                  className={cx(
-                    "ml-auto size-4 text-ink-dim transition-transform duration-(--motion-fast) group-hover:text-ink",
-                    !open && "-rotate-90",
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pr-[1.3rem]">
+              <h2 className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  aria-expanded={open}
+                  onClick={() => toggleGroup(g.key)}
+                  className="group flex w-full cursor-pointer items-center gap-[0.7rem] pt-[1rem] pb-[0.6rem] pl-[1.3rem] text-left"
+                >
+                  <ChevronDown
+                    className={cx(
+                      "size-4 shrink-0 text-ink-dim transition-transform duration-(--motion-fast) group-hover:text-ink",
+                      !open && "-rotate-90",
+                    )}
+                    aria-hidden
+                  />
+                  {subject ? (
+                    <SubjectLabel subject={subject} className="text-[1.05rem] font-semibold" />
+                  ) : (
+                    <span className="text-[1.05rem] font-semibold text-ink-soft">{m.noSubject}</span>
                   )}
-                  aria-hidden
-                />
-              </button>
-            </h2>
+                  <span className="shrink-0 text-[0.9rem] text-ink-dim">
+                    {x.groupCount(whole.waiting, whole.entries.length)}
+                  </span>
+                </button>
+              </h2>
+              <GroupDecide entries={whole.entries} />
+            </div>
             <Collapse open={open}>
               {g.entries.map((e) => (
                 <Moving key={e.ref} leaving={leaving.includes(e.ref)} arriving={arriving.includes(e.ref)}>
@@ -363,7 +371,6 @@ function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => vo
         <label key={t} className="relative flex">
           <input type="radio" name={name} checked={t === value} onChange={() => onChange(t)} className="peer sr-only" />
           <span className="flex h-[calc(2.8rem-6px)] cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
-            {t === "review" && count("review") > 0 && <Lamp tone="warn" size="sm" />}
             {m.tabs[t]}
             <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{count(t)}</span>
           </span>
@@ -384,5 +391,76 @@ function RackSkeleton() {
         </div>
       ))}
     </div>
+  )
+}
+
+/** Three steps that say what memory is for, before the first row: who writes, who decides, who uses it. */
+function HowItWorks() {
+  const x = useMessages(explainedMessages)
+  return (
+    <ol className="grid gap-[0.8rem] sm:grid-cols-3">
+      {x.how.map((step, i) => (
+        <li
+          key={step.title}
+          className="flex gap-[0.7rem] rounded-[0.45rem] border border-line bg-app px-[0.95rem] py-[0.75rem]"
+        >
+          <span className="grid size-[1.6rem] shrink-0 place-items-center rounded-full bg-app-3 font-mono text-[0.85rem] text-ink-soft">
+            {i + 1}
+          </span>
+          <span className="min-w-0">
+            <span className="block font-medium">{step.title}</span>
+            <span className="block text-[0.9rem] text-ink-soft">{step.body}</span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/**
+ * Approve or reject everything waiting in one group: a source that wrote a hundred links to one document is decided
+ * in one go. A findings batch and an action are left to their own rows, where what they create is on screen.
+ */
+function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
+  const x = useMessages(explainedMessages)
+  const [running, setRunning] = useState<"approve" | "reject" | null>(null)
+  const [result, setResult] = useState<string | null>(null)
+  const waiting = entries.filter((e) => e.status === "proposed" && !e.findings && e.type !== "action").map((e) => e.ref)
+  if (waiting.length < 2)
+    return result ? (
+      <p role="status" className="reveal text-[0.9rem] text-ink-soft">
+        {result}
+      </p>
+    ) : null
+  const decide = async (approve: boolean) => {
+    if (running) return
+    setRunning(approve ? "approve" : "reject")
+    const { done, failed } = await useMemory.getState().decideMany(waiting, approve)
+    setRunning(null)
+    setResult(x.bulkDone(approve ? done : 0, approve ? 0 : done, failed))
+  }
+  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
+  return (
+    <span className="flex shrink-0 items-center gap-2">
+      <Button
+        size="sm"
+        variant="ghost"
+        disabled={!!running}
+        title={x.rejectAllHint}
+        onClick={() => void decide(false)}
+        icon={running === "reject" ? spin : <X className="size-4" aria-hidden />}
+      >
+        {x.rejectAll(waiting.length)}
+      </Button>
+      <Button
+        size="sm"
+        disabled={!!running}
+        title={x.approveAllHint}
+        onClick={() => void decide(true)}
+        icon={running === "approve" ? spin : <Check className="size-4" aria-hidden />}
+      >
+        {x.approveAll(waiting.length)}
+      </Button>
+    </span>
   )
 }

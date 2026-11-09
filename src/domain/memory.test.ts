@@ -25,6 +25,7 @@ import {
   toneOf,
   undoMenuKey,
   undoOf,
+  withCleanNames,
 } from "./memory"
 
 const entry = (type: string, kind: string, status: string) => ({ type, kind, status, author: { type: "bot" } })
@@ -255,5 +256,12 @@ describe("source reviews", () => {
     ])
     expect(reviewChoices(entry("fact", "decision", "accepted"))).toContain("withdraw")
     expect(reviewChoices(entry("fact", "promise", "accepted"))).toEqual(["stillTrue", "dismiss", "correct"])
+  })
+})
+
+describe("withCleanNames", () => {
+  it("cleans a person's name and leaves a document's title as it is", () => {
+    const e = { subject: "document:3", subjectName: "Release #12", target: "person:9", targetName: "Yaro null #907" }
+    expect(withCleanNames(e)).toEqual({ ...e, targetName: "Yaro" })
   })
 })

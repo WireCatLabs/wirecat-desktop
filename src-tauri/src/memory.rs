@@ -805,7 +805,7 @@ fn proposal_id(reference: &str) -> Option<&str> {
 }
 
 /// Memo asks why a proposal is turned down; the page's Reject says only that the owner did it here.
-const REJECTED_HERE: &str = "rejected in WireCat Desktop";
+pub(crate) const REJECTED_HERE: &str = "rejected in WireCat Desktop";
 
 /// An agent's relationship is decided through Memo's review, as every other kind it holds. The row is read first, so
 /// the answer is the same row with Memo's decision, or Memo's reason when it refused.
@@ -840,8 +840,44 @@ pub(crate) fn plain(word: &str) -> Option<&str> {
 /// the kind, the scope and evidence for a new record, so they come from the old one; one whose sources are all gone
 /// cites the old record itself. The text goes last, after `--`, so a text that starts with `-` is never an option.
 fn correct_args(r: &Ref, old: &Value, text: &str) -> Result<Vec<String>, String> {
+    correct_args_with(r, old, text, &Change::default())
+}
+
+const MEMORY_KINDS: [&str; 3] = ["summary", "digest", "preference"];
+const FACT_KINDS: [&str; 5] = ["fact", "statement", "question", "decision", "promise"];
+
+/// What the owner changed besides the text: the kind, and who it is about (`""` for nobody).
+#[derive(serde::Deserialize, Debug, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Change {
+    pub kind: Option<String>,
+    pub subject: Option<String>,
+}
+
+fn subject_word(s: &str) -> Result<&str, String> {
+    let ok = s.split_once(':').is_some_and(|(p, id)| {
+        matches!(p, "person" | "organization" | "project" | "task")
+            && !id.is_empty()
+            && id.len() <= 15
+            && id.bytes().all(|b| b.is_ascii_digit())
+    });
+    if ok { Ok(s) } else { Err(format!("not a person, organization, project or task: {s}")) }
+}
+
+fn correct_args_with(r: &Ref, old: &Value, text: &str, change: &Change) -> Result<Vec<String>, String> {
     let item = body(old);
-    let field = |k: &str| text_field(item, k);
+    let kinds: &[&str] = if r.kind == Kind::Fact { &FACT_KINDS } else { &MEMORY_KINDS };
+    if let Some(k) = change.kind.as_deref().filter(|k| !kinds.contains(k)) {
+        return Err(format!("not a kind memo keeps here: {k}"));
+    }
+    let field = |k: &str| match (k, &change.kind, &change.subject) {
+        ("kind", Some(kind), _) => Some(kind.clone()),
+        ("subject", _, Some(subject)) => (!subject.is_empty()).then(|| subject.clone()),
+        _ => text_field(item, k),
+    };
+    if let Some(s) = change.subject.as_deref().filter(|s| !s.is_empty()) {
+        subject_word(s)?;
+    }
     let mut args: Vec<String> = vec![r.noun().into(), "add".into()];
     match r.kind {
         Kind::Memory => {
@@ -887,12 +923,16 @@ fn text_field(v: &Value, key: &str) -> Option<String> {
 }
 
 fn correct_with(call: &Call, r: &Ref, text: &str) -> Result<Entry, String> {
+    correct_changed(call, r, text, &Change::default())
+}
+
+fn correct_changed(call: &Call, r: &Ref, text: &str, change: &Change) -> Result<Entry, String> {
     validate_text(text)?;
     if r.kind == Kind::Action {
         return Err("An action cannot be corrected; discard it instead.".into());
     }
     let old = call(&words(&[r.noun(), "show", &r.memo()]))?;
-    let added = call(&correct_args(r, &old, text)?)?;
+    let added = call(&correct_args_with(r, &old, text, change)?)?;
     let item = body(&added);
     match r.kind {
         Kind::Fact => fact(item),
@@ -901,9 +941,9 @@ fn correct_with(call: &Call, r: &Ref, text: &str) -> Result<Entry, String> {
     .ok_or_else(|| "Memo's answer did not describe the correction".into())
 }
 
-pub fn correct(reference: &str, text: &str) -> Result<Entry, String> {
+pub fn correct(reference: &str, text: &str, change: &Change) -> Result<Entry, String> {
     let r = Ref::parse(reference)?;
-    with_memo(|call| correct_with(call, &r, text))
+    with_memo(|call| correct_changed(call, &r, text, change))
 }
 
 /// Erases the record, its links to sources and its search entry, through Memo's own `remove`. Actions have none.
@@ -1750,6 +1790,21 @@ mod tests {
         promise["kind"] = json!("promise");
         assert_eq!(&correct_args(&r, &promise, "x").unwrap()[..4], strs(&["facts", "add", "--kind", "promise"]));
         assert!(correct_args(&r, &decision("superseded"), "x").is_err());
+    }
+
+    #[test]
+    fn an_edit_may_change_the_kind_and_who_it_is_about() {
+        let r = Ref::parse("memory:3").unwrap();
+        let change = Change { kind: Some("preference".into()), subject: Some("person:9".into()) };
+        let args = correct_args_with(&r, &agent_memory(), "x", &change).unwrap();
+        let after = |flag: &str| args[args.iter().position(|a| a == flag).unwrap() + 1].clone();
+        assert_eq!((after("--kind"), after("--subject")), ("preference".to_string(), "person:9".to_string()));
+        let nobody = Change { kind: None, subject: Some(String::new()) };
+        assert!(!correct_args_with(&r, &agent_memory(), "x", &nobody).unwrap().contains(&"--subject".to_string()));
+        let bad_kind = Change { kind: Some("decision".into()), subject: None };
+        assert!(correct_args_with(&r, &agent_memory(), "x", &bad_kind).is_err());
+        let bad_subject = Change { kind: None, subject: Some("--project=x".into()) };
+        assert!(correct_args_with(&r, &agent_memory(), "x", &bad_subject).is_err());
     }
 
     #[test]

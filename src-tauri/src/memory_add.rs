@@ -149,7 +149,7 @@ fn document(s: &str) -> Result<&str, String> {
     Ok(s)
 }
 
-fn link(url: &str) -> Result<&str, String> {
+pub(crate) fn link(url: &str) -> Result<&str, String> {
     let u = url.trim();
     let scheme = u.split_once("://").map(|(s, _)| s.to_ascii_lowercase());
     if !matches!(scheme.as_deref(), Some("http" | "https")) || u.len() > MAX_URL || u.contains(char::is_whitespace) {

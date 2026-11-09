@@ -1,6 +1,7 @@
 import {
   Brain,
   Building2,
+  FileText,
   FolderKanban,
   Link2,
   ListChecks,
@@ -11,7 +12,7 @@ import {
   UserRound,
 } from "lucide-react"
 import { type MouseEvent, type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef } from "react"
-import { approveMode, can, type Subject, stateOf, tickedCount, toneOf, undoMenuKey, undoOf } from "@/domain/memory"
+import { approveMode, can, type Subject, tickedCount, undoMenuKey, undoOf } from "@/domain/memory"
 import { standingOf } from "@/domain/relationships"
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
@@ -22,27 +23,38 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
-import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
 import { SplitButton } from "@/ui/SplitButton"
 import { TextButton } from "@/ui/TextButton"
 import { dayLabel, kindOf, textOf, timeOf } from "./labels"
 import { memoryMessages } from "./messages"
+import { explainedMessages } from "./messages-explained"
 import { InlineCorrect } from "./RowCorrect"
 import { Details } from "./RowDetails"
+import { RelationEdit, StatusPill } from "./RowExplain"
 import { ReviewMarker } from "./RowReview"
 import { canRevoke, ownerRoles, useMemory } from "./store"
 
 const ICONS = { memory: Brain, fact: MessageSquareQuote, action: ListChecks, relationship: Link2 }
-const SUBJECT_ICONS = { project: FolderKanban, person: User, you: UserRound, organization: Building2, other: User }
+const SUBJECT_ICONS = {
+  project: FolderKanban,
+  person: User,
+  you: UserRound,
+  organization: Building2,
+  document: FileText,
+  other: User,
+}
 
 export function SubjectLabel({ subject, className }: { subject: Subject; className?: string }) {
   const m = useMessages(memoryMessages)
+  const x = useMessages(explainedMessages)
   const Icon = SUBJECT_ICONS[subject.kind]
+  const kindWord = subject.kind === "document" ? x.kindWord[subject.key.slice(0, subject.key.indexOf(":"))] : null
   return (
     <span className={cx("inline-flex min-w-0 items-center gap-[0.35rem] font-medium text-ink", className)}>
       <Icon className="size-[0.95rem] shrink-0 text-ink-soft" strokeWidth={1.8} aria-hidden />
+      {kindWord && <span className="shrink-0 font-normal text-ink-soft">{kindWord} ·</span>}
       {subject.kind === "you" ? (
         m.you
       ) : subject.name ? (
@@ -60,6 +72,7 @@ export function SubjectLabel({ subject, className }: { subject: Subject; classNa
  */
 export function Row({ entry }: { entry: MemoryEntry }) {
   const m = useMessages(memoryMessages)
+  const x = useMessages(explainedMessages)
   const lang = useLang()
   const open = useMemory((s) => s.open === entry.ref)
   const editing = useMemory((s) => s.correcting === entry.ref)
@@ -69,7 +82,6 @@ export function Row({ entry }: { entry: MemoryEntry }) {
   const { toggle, confirm, discard, startCorrect, askForget, openTask } = useMemory.getState()
   const panel = useId()
   const row = useRef<HTMLDivElement>(null)
-  const state = stateOf(entry.status)
   const Icon = ICONS[entry.type]
   const revoke = useMemory(canRevoke)
   const roles = useMemory(ownerRoles)
@@ -134,13 +146,14 @@ export function Row({ entry }: { entry: MemoryEntry }) {
 
   const label = (
     <span className="flex min-w-0 flex-wrap items-center gap-x-[0.5rem] gap-y-[0.1rem] text-[0.9rem] text-ink-soft">
-      <span>{kindOf(entry.kind, m)}</span>
+      <StatusPill status={entry.status} />
+      <span>{entry.type === "relationship" ? x.relationKind : kindOf(entry.kind, m)}</span>
       <span aria-hidden>·</span>
       <span className="font-mono text-[0.85rem] tabular-nums">
         {dayLabel(entry.createdAt, m, lang)} {timeOf(entry.createdAt, lang)}
       </span>
       {entry.scope === "personal" && <Pill>{m.personal}</Pill>}
-      {standing && <StandingPill standing={standing} />}
+      {(standing === "reported" || standing === "ended") && <StandingPill standing={standing} />}
       {entry.sourceReview && <ReviewMarker cause={entry.sourceReview.cause} />}
     </span>
   )
@@ -186,10 +199,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
 
   return (
     <div ref={row} data-row data-ref={entry.ref} className="border-line border-t">
-      <div className="grid min-h-[4.5rem] grid-cols-[auto_auto_minmax(0,1fr)_auto] items-start gap-[0.9rem] px-[1.3rem] py-[0.95rem] xl:gap-[1.2rem]">
-        <span className="mt-[0.55rem]">
-          <Lamp tone={toneOf(entry.status)} label={m.states[state]} />
-        </span>
+      <div className="grid min-h-[4.5rem] grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-[0.9rem] px-[1.3rem] py-[0.95rem] xl:gap-[1.2rem]">
         <Icon
           className="mt-[0.45rem] size-[1.6rem] text-ink-soft"
           strokeWidth={1.6}
@@ -199,7 +209,14 @@ export function Row({ entry }: { entry: MemoryEntry }) {
           {editing ? (
             <div className="flex flex-col gap-[0.35rem]">
               {label}
-              <InlineCorrect entry={entry} onDone={stopEditing} />
+              {entry.type === "relationship" ? (
+                <>
+                  <span className="text-[1rem] leading-snug font-medium">{textOf(entry, m, roles, x)}</span>
+                  <RelationEdit entry={entry} onDone={stopEditing} />
+                </>
+              ) : (
+                <InlineCorrect entry={entry} onDone={stopEditing} />
+              )}
             </div>
           ) : (
             <div className="flex min-w-0 items-start gap-[0.4rem]">
@@ -222,7 +239,7 @@ export function Row({ entry }: { entry: MemoryEntry }) {
                         "-mx-[0.3rem] cursor-text rounded-[0.3rem] px-[0.3rem] transition-colors duration-(--motion-fast) hover:bg-app-3",
                     )}
                   >
-                    {textOf(entry, m, roles)}
+                    {textOf(entry, m, roles, x)}
                   </span>
                 </span>
                 <ExpandChevron open={open} className="mt-[0.2rem] group-hover:text-ink" />
@@ -266,18 +283,13 @@ export function Row({ entry }: { entry: MemoryEntry }) {
               />
             </>
           ) : (
-            <>
-              <span className={cx("text-[0.9rem]", toneOf(entry.status) === "ok" ? "text-ink-soft" : "text-ink-dim")}>
-                {m.states[state]}
-              </span>
-              <SplitButton
-                disabled={!!busy}
-                {...(settled ? { main: settled } : {})}
-                items={[editLeads ? null : correctItem, rejectItem, eraseItem].filter((i) => !!i)}
-                menuLabel={m.moreActions}
-                moreLabel={m.moreButton}
-              />
-            </>
+            <SplitButton
+              disabled={!!busy}
+              {...(settled ? { main: settled } : {})}
+              items={[editLeads ? null : correctItem, rejectItem, eraseItem].filter((i) => !!i)}
+              menuLabel={m.moreActions}
+              moreLabel={m.moreButton}
+            />
           )}
         </span>
       </div>

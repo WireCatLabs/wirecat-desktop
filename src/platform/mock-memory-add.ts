@@ -9,6 +9,13 @@ import type { Platform } from "./types"
 // model is not running), `?add-fail=key` refuses the key.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
+
+/** A tiny drawn whiteboard, so the thumbnail has something to show without a real picture. */
+const WHITEBOARD = `data:image/svg+xml;utf8,${encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="200"><rect width="320" height="200" fill="#f4f1ea"/>' +
+    '<path d="M30 60h120M30 90h180M30 120h90" stroke="#3b3bd6" stroke-width="6" stroke-linecap="round"/>' +
+    '<circle cx="250" cy="120" r="34" fill="none" stroke="#c2410c" stroke-width="6"/></svg>',
+)}`
 const readersScenario = params.get("readers")
 const fail = params.get("add-fail")
 
@@ -70,6 +77,8 @@ export function memoryAddMock(
 ): Pick<
   Platform,
   | "memoryPickFile"
+  | "memoryFilePreview"
+  | "memoryLinkPreview"
   | "memorySourceAdd"
   | "memorySourceShow"
   | "memoryMentions"
@@ -90,7 +99,31 @@ export function memoryAddMock(
   return {
     async memoryPickFile() {
       await delay(300)
-      return "/home/owner/Downloads/runner-notes.pdf"
+      return params.get("file") === "image"
+        ? "/home/owner/Pictures/whiteboard.png"
+        : "/home/owner/Downloads/runner-notes.pdf"
+    },
+    async memoryFilePreview() {
+      await delay(150)
+      return params.get("file") === "image"
+        ? { name: "whiteboard.png", bytes: 48_213, mime: "image/png", image: WHITEBOARD, excerpt: null }
+        : { name: "runner-notes.pdf", bytes: 214_880, mime: "application/pdf", image: null, excerpt: null }
+    },
+    async memoryLinkPreview(url) {
+      await delay(700)
+      if (params.get("preview") === "old") return null
+      if (fail === "link") throw new Error("source.url-status")
+      return {
+        url,
+        title: "ir-measures documentation",
+        site: new URL(url).hostname,
+        description: "Provides a common interface to many information retrieval evaluation measures.",
+        excerpt:
+          "ir-measures is a Python package that interfaces with several information retrieval evaluation tools, " +
+          "including trec_eval, gdeval and others. It gives one name to each measure, so results can be compared…",
+        kind: "web-page",
+        chars: 3211,
+      }
     },
     async memorySourceAdd({ given, title }) {
       await delay(given.kind === "link" ? 1200 : 600)

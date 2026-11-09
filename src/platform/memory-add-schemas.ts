@@ -59,6 +59,26 @@ export const KeySavedSchema = v.object({ provider: v.string(), source: text })
 
 export const SuggestedSchema = v.object({ batch: MemoryEntrySchema, reused: v.boolean() })
 
+/** The picked file looked at before it is added: a picture's thumbnail as a `data:` address, a text file's first words. */
+export const FilePreviewSchema = v.object({
+  name: v.string(),
+  bytes: v.number(),
+  mime: text,
+  image: text,
+  excerpt: text,
+})
+
+/** A web page as memo read it without keeping it; `null` from a memo that cannot yet. */
+export const LinkPreviewSchema = v.object({
+  url: v.string(),
+  title: text,
+  site: text,
+  description: text,
+  excerpt: text,
+  kind: text,
+  chars: v.nullable(v.number()),
+})
+
 export type GivenSource =
   | { kind: "text"; text: string }
   | { kind: "file"; path: string }
@@ -71,3 +91,5 @@ export type Mention = Mentions["items"][number]
 export type Reader = v.InferOutput<typeof ReaderSchema>
 export type KeySaved = v.InferOutput<typeof KeySavedSchema>
 export type Suggested = v.InferOutput<typeof SuggestedSchema>
+export type FilePreview = v.InferOutput<typeof FilePreviewSchema>
+export type LinkPreview = v.InferOutput<typeof LinkPreviewSchema>

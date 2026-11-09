@@ -27,7 +27,7 @@ describe("Memory", () => {
     const kai = row(/Kai Moreno prefers calls on Friday/)
     expect(within(kai).getByRole("button", { name: "Reject" })).toBeInTheDocument()
     await user.click(within(kai).getByRole("button", { name: "Approve" }))
-    await waitFor(() => expect(within(kai).getByRole("img", { name: "In use" })).toBeInTheDocument())
+    await waitFor(() => expect(within(kai).getByText("In use")).toBeInTheDocument())
     expect(row(/Kai Moreno prefers calls on Friday/)).toBe(kai)
 
     await user.click(screen.getByRole("radio", { name: /In use/ }))
@@ -92,7 +92,7 @@ describe("Memory", () => {
     render(<MemoryPage />)
     await rack()
     await user.click(screen.getByRole("button", { name: /Harbour launch moves/ }))
-    await user.click(screen.getByText(/Harbour launch moves/))
+    await user.click(screen.getAllByText(/Harbour launch moves/)[0] as HTMLElement)
     expect(screen.getByRole("textbox", { name: "What is true instead" })).toHaveFocus()
     await user.keyboard("{Escape}")
     expect(screen.queryByRole("textbox")).not.toBeInTheDocument()
@@ -110,7 +110,7 @@ describe("Memory", () => {
     await user.type(box, "You want reminders before 10:00.")
     await user.click(screen.getByRole("button", { name: "Save correction" }))
     expect(await screen.findByRole("button", { name: /You want reminders before 10:00/ })).toBeInTheDocument()
-    expect(within(row(/You want reminders in the morning/)).getByRole("img", { name: "Replaced" })).toBeInTheDocument()
+    expect(within(row(/You want reminders in the morning/)).getByText("Replaced")).toBeInTheDocument()
   })
 
   it("filters by a value clicked in the details, and the chip and the search say the same", async () => {
@@ -202,13 +202,13 @@ describe("Memory", () => {
     const digest = row(/Project Harbour this week/)
     await user.click(within(digest).getByRole("button", { name: "More actions" }))
     await user.click(screen.getByRole("menuitem", { name: "No longer true" }))
-    await waitFor(() => expect(within(digest).getByRole("img", { name: "Rejected" })).toBeInTheDocument())
+    await waitFor(() => expect(within(digest).getByText("Rejected")).toBeInTheDocument())
 
     const decision = row(/Both pilot clinics sign the data agreement/)
     expect(within(decision).getByRole("button", { name: "Edit" })).toBeInTheDocument()
     await user.click(within(decision).getByRole("button", { name: "More actions" }))
     await user.click(screen.getByRole("menuitem", { name: "Undo approval" }))
-    await waitFor(() => expect(within(decision).getByRole("img", { name: "Rejected" })).toBeInTheDocument())
+    await waitFor(() => expect(within(decision).getByText("Rejected")).toBeInTheDocument())
   })
 
   it("on an older memo offers only Edit and Erase on an approved fact, and says why", async () => {
@@ -236,7 +236,7 @@ describe("Memory", () => {
     expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Undo approval", "Erase…"])
     await user.click(screen.getByRole("menuitem", { name: "Undo approval" }))
     expect(discard).toHaveBeenCalledWith("fact:12")
-    await waitFor(() => expect(within(promise).getByRole("img", { name: "To review" })).toBeInTheDocument())
+    await waitFor(() => expect(within(promise).getByText("Waiting for you")).toBeInTheDocument())
   })
 
   it("approves, then undoes the approval through the More menu, by keyboard only", async () => {
@@ -253,7 +253,7 @@ describe("Memory", () => {
     await user.keyboard("{Enter}")
     expect(screen.getByRole("menuitem", { name: "Undo approval" })).toHaveFocus()
     await user.keyboard("{Enter}")
-    await waitFor(() => expect(within(scores).getByRole("img", { name: "Rejected" })).toBeInTheDocument())
+    await waitFor(() => expect(within(scores).getByText("Rejected")).toBeInTheDocument())
     await waitFor(() => expect(scores.contains(document.activeElement)).toBe(true))
   })
 
