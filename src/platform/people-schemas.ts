@@ -95,4 +95,5 @@ export type MatchAnswer = "confirm" | "reject"
 export const PERSON_KINDS = ["person", "organization", "automated", "stranger", "unsorted"] as const
 export type PersonKind = (typeof PERSON_KINDS)[number]
 
-export const KindCountsSchema = v.record(v.string(), v.number())
+export const KindCountsSchema = v.record(v.string(), v.object({ value: v.number(), more: v.boolean() }))
+export type KindCount = v.InferOutput<typeof KindCountsSchema>[string]

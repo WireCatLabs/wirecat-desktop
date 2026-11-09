@@ -36,7 +36,7 @@ type PeopleState = {
   /** memo knows kinds; false for an older memo, whose one list is everyone. */
   kinded: boolean
   /** People of each kind, for the tabs; read apart from the list and empty until it comes. */
-  kinds: Partial<Record<PersonKind, number>>
+  kinds: Partial<Record<PersonKind, { value: number; more: boolean }>>
   /** Whether each person read so far is the owner, and their tasks: a match may name someone from another tab. */
   seen: Record<string, { owner: boolean; tasks: number }>
   /** The open matches, with any the owner decided since the last full read kept in place. */

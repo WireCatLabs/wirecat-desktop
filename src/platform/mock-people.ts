@@ -317,7 +317,12 @@ export function peopleMock(): Pick<
     async peopleKinds() {
       await delay(900)
       if (scenario === "nokinds") return {}
-      return Object.fromEntries(PERSON_KINDS.map((k) => [k, ofKind(k).length + (k === "unsorted" ? 49_800 : 0)]))
+      return Object.fromEntries(
+        PERSON_KINDS.map((k) => [
+          k,
+          { value: ofKind(k).length + (k === "unsorted" ? 5_000 : 0), more: k === "unsorted" },
+        ]),
+      )
     },
     async peopleShow(ref) {
       await delay(350)

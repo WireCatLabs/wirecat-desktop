@@ -188,15 +188,90 @@ and the benchmark README says how many groups that was in the synthetic store; t
 
 | Where | Default | Show all |
 | --- | --- | --- |
-| `memo people list` | real only; JSON `hidden: <n>` | `--all` |
+| `memo people list` | `kind:person` (see the contract below) | `kind:all`; the other kinds as filters |
 | `memo search people` | real first, then the rest marked `tie: none` (search must still find anyone) | — |
 | Desktop People | real only, "N hidden · Show all" | a toggle chip |
 | Desktop task assignee picker (`task_board.rs:392`) | real only | the picker's search finds the rest |
 | `memo people review` | proposals touching a hidden person stay listed (a duplicate is worth fixing either way) | — |
 | cli-core `contacts list` | unchanged: already dialogs only | — |
 
-RISK-127: memo's only `--all` today, on `answers`, means "every account". On `people list` it means "people with no
+RISK-127 (closed by the contract below: `people list` has no `--all`, the vocabulary's `--all` means every page): memo's only `--all` today, on `answers`, means "every account". On `people list` it means "people with no
 tie too". The help text says so; the owner asked for this word.
+
+### The people list contract (memo M-1, the owner's feedback UX-133)
+
+The owner, 2026-11-09: «не надо показывать всех попало… рассылки и уведомления в конец, левые имена вообще в
+отдельный блок с неразобранным мусором. нужно писать сам контакт — тел, email, messenger handle… сортировал бы по
+кол-ву коммуникаций от человека… отделить компании, можно в отдельный фильтр». So every person gets one **kind**,
+and the list shows one kind at a time.
+
+```sh
+memo people list [kind:<kind>] [name:<text>] [--sort interactions|recent|name|tasks] [--limit <n>] [--page <n>] --json
+```
+
+- `kind:` is `person` (the default), `organization`, `automated`, `stranger`, `unsorted` or `all`.
+- `--sort`: `interactions` (the default, most first), `recent` (newest `last_contact` first), `name`, `tasks`. The
+  owner comes first in every order; equal rows go by name, then ref.
+- `--limit` 500 by default, at most 5000; `--page` from 1. `page.total` is exact (`relation: "eq"`) for the kind and
+  the `name:` asked. In a group (`MEMO_GROUP`) the page leaves `total` out, since the store's counts include people
+  outside the group.
+
+```json
+{
+  "items": [
+    {
+      "ref": "person:12",
+      "name": "\"Kai Sample \"",
+      "display_name": "Kai Sample",
+      "kind": "person",
+      "kind_signals": ["chat", "mail"],
+      "owner": false,
+      "tasks": 2,
+      "contact": "+34600000001",
+      "phone": "+34600000001",
+      "email": "kai@example.com",
+      "username": "kai",
+      "messages_from": 314,
+      "last_contact": "2026-11-08T10:12:00.000Z",
+      "ties": ["chat", "mail"]
+    }
+  ],
+  "page": { "mode": "page", "limit": 50, "has_more": true, "next_page": 2, "total": { "value": 1240, "relation": "eq" } }
+}
+```
+
+- `display_name`: the name without wrapping quotes and extra spaces. A name with no letter or digit, or a
+  placeholder a messenger writes for a missing name (`null`, `undefined`, `Без имени`, `Deleted Account`), gives way
+  to `@username`, then the phone, then the email; `null` when there is none. `name` stays as stored. The `null` and
+  `#97365` on today's People rows are Desktop printing a missing username and the id, not stored text, so the CLI
+  strips no `#<digits>` from a real name.
+- `contact`: the one to show beside the name: the phone, else the email, else `@username`; `null` when there is none.
+  `phone`, `email` and `username` are the first of each across the person's accounts.
+- `messages_from`: the messages and the mail this person sent, every account together. `last_contact`: the newest of
+  their messages, their mail and their one-to-one chat's last message; `null` when the store holds none.
+- `ties`: as before (`chat`, `small-group`, `mail`, `meeting`, `crm`, `phone-book`, and `owner`, `added`, `task`).
+- **Counts per kind for the filter tabs**: the list envelope is a closed schema (`items`, `page`, `next`, `missing`,
+  `meta`), so there is no room for counts in `meta`. Desktop asks `memo people list kind:<k> --limit 1 --json` once per
+  kind (five calls through `commands --serve`) and reads `page.total`; a `relation` other than `eq` shows as «N+». For an agent, the answer's `next` steps
+  (`step: "people.kind"`) name each other kind that holds someone, with its count in `why` (`"120 organizations"`).
+  An unknown `kind:` or `--sort` is refused (`validation_error`).
+
+**The kind of a person**, the first rule that holds; `kind_signals` names what decided it:
+
+| Order | Kind | When (`kind_signals`) |
+| --- | --- | --- |
+| 1 | `person` | the owner, a person added by hand, a task's assignee (`owner`, `added`, `task`): never hidden |
+| 2 | `automated` | a messenger bot (`bot`); a no-reply address (`no-reply`); most of the mail from them, 3 letters at least, is in the bulk mailbox (`bulk-mail`); memo's sender score marked them `bulk_never_replied` (`bulk-never-replied`); a name such as «Notifications», «Newsletter», «No-reply», «Уведомления», «Рассылка» (`automated-name`) |
+| 3 | `organization` | an identity an organization owns (`organization`); every address of theirs a shared role address such as `info@`, `sales@` (`role-address`); a legal form or a company word in the name: ООО, ИП, АО, LLC, Ltd, Inc, GmbH, Airlines, Bank, Hotel, Team, Support, Shop… (`company-name`) |
+| 4 | `person` | a tie to the owner (the tie names) and a readable `display_name` |
+| 5 | `stranger` | a readable `display_name` and no tie to the owner (`no-tie`): an author seen only in a big group |
+| 6 | `unsorted` | everyone else: no name and no contact to show (`no-name`) |
+
+Strangers are their own kind by the owner's decision NEED-2490 B (option B); the nameless stay in `unsorted`, the
+owner's «левые имена… в отдельный блок». Every rule is a fixed signal from the store; nothing is
+guessed by a model, and a wrong kind is fixed by the owner's own data (a tie, a CRM record, an organization link).
+
+`memo people similar <name...> --json --limit 8` answers items of the same shape plus `same_name`.
 
 ### Duplicates: one new signal, the same review
 
@@ -259,14 +334,19 @@ All three follow `TasksPage`: the header (title, one line, guide link; on the ri
 the one primary action), then `FilterBar`, then the table or board, then the pager. Rule 9 holds: an edited row stays
 put, a toggle never resets the scroll, every open and close animates.
 
-### People
+### Contacts (was People; UX-134)
 
-- **Table** (`DataTable`): Name (`display_name`; the raw one in a tooltip when they differ) · Reached by (the person's
-  accounts as tool icons) · Tie (Chat, Mail, Meeting, CRM, Phone book, Small group; the first two shown, "+n") · Last
-  contact · Tasks. Sort by Name, Last contact, Tasks.
-- **Filters**: search (memo's `--query`), Tie, Source (provider), and a **Show all** toggle chip. Under the bar:
-  "1,240 people · 49,812 hidden: no chat, mail, meeting, CRM or small group with you."
-- **Pages** of 50 through `Pager`; memo pages with a cursor, the page never holds 5000 rows again.
+- **Name**: the page is «Контакты» / Contacts / Contactos; its section id stays `people`, so links keep working, and
+  the CLI command stays `memo people`.
+- **Kind tabs**: Люди · Компании · Рассылки и уведомления · Посторонние · Неразобранное, each with its count (one
+  `kind:<k> --limit 1` read per kind, at most two at a time, never holding the table back; a lower bound reads «N+»).
+- **Table** (`DataTable`): Name (`personName` in `src/domain/people.ts`: `display_name`, else the cleaned name, else
+  the contact, never «null #id»; the raw name in a tooltip when they differ) · Contact (phone, address or handle with
+  its icon) · Messages from them · Last contact · Tasks; every column sorts, the most written first.
+- **Filters**: the name search (an account such as `telegram:4411` is looked up exactly) and With tasks.
+- **An older memo** (no kinds) refuses the kind word or `--sort`: the page reads the plain list, shows no tabs, hides
+  the nameless until asked and takes the contact from the person's accounts.
+- **Pages** of 50 through `Pager`.
 - **A row opens the person in a dialog** (`Dialog wide scroll`), the way a task opens: identities, merges, matches,
   Split and Undo merge, moved from `PersonRow` without changing what they do.
 - **Duplicates**: a second view on the same page, `People · Possible duplicates (12)` (`ViewSwitch`). It lists the
@@ -285,7 +365,7 @@ put, a toggle never resets the scroll, every open and close animates.
   one card, keyed by signal and `candidates`; the people shown come from the open pairs, because `candidates` is not
   rewritten after a join. The owner ticks two or all; `people_merge` confirms one open pair at a time and finds the
   next pair by its two people, not its id, since each confirm folds the remaining pairs into one. The unticked stay
-  open; Not the same rejects every open pair of the group with one reason. No CLI change was needed.
+  open; Not the same rejects the open pairs among the ticked people, with one reason. No CLI change was needed.
 - **Pager** (UX-132, shared by People, Clients and Search): «‹ 1 2 … 9 10 ›», «51–100 из 1 234» in the owner's
   digits, a page-size select (25, 50, 100); a total that memo capped reads «5 000+». Search pages by cursor and keeps
   Previous and Next with the page number only.
