@@ -19,7 +19,7 @@ import { BaseBoard } from "./BaseBoard"
 import { MovePickers } from "./base-move"
 import { CardDialog } from "./CardDialog"
 import { ClientsBoard } from "./ClientsBoard"
-import { ClientsTable } from "./ClientsTable"
+import { ClientsTable, ClientsTableLoading } from "./ClientsTable"
 import { BaseFilters, ClientsFilters } from "./Filters"
 import { ImportButton } from "./ImportButton"
 import { clientMessages } from "./messages"
@@ -290,7 +290,17 @@ function ReadOnly({ pipeline }: { pipeline: CrmPipeline | undefined }) {
 /** The filters and the columns at their final size, so nothing below moves when memo answers. */
 function Loading() {
   const m = useMessages(clientMessages)
-  return (
+  const kind = useClients((s) => s.kind)
+  const table = useClients((s) => s.view === "table")
+  return table ? (
+    <>
+      <div className="flex flex-col gap-[0.7rem]">
+        <Skeleton className="h-[2.8rem] w-full" />
+        <Skeleton className="h-[1.9rem] w-[22rem]" />
+      </div>
+      <ClientsTableLoading kind={kind} label={m.reading} />
+    </>
+  ) : (
     <>
       <div className="flex flex-col gap-[0.7rem]">
         <Skeleton className="h-[2.8rem] w-full" label={m.reading} />

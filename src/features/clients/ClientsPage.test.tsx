@@ -336,7 +336,8 @@ describe("Clients as a table", () => {
   it("opens on the table, and remembers the board once chosen", async () => {
     const user = userEvent.setup()
     const { unmount } = render(<ClientsPage />)
-    expect(await screen.findByRole("table", { name: "Deals" }, { timeout: 4000 })).toBeInTheDocument()
+    expect(await row("Site for Northstar")).toBeInTheDocument()
+    expect(screen.getByRole("table", { name: "Deals" })).toBeInTheDocument()
     await user.click(screen.getByRole("radio", { name: "Board" }))
     expect(await column(/^Quote/)).toBeInTheDocument()
     unmount()
