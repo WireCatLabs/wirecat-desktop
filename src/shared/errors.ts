@@ -33,3 +33,6 @@ export function captureErrors(target: Window = window) {
   target.addEventListener("error", (e) => recordError("error", e.error ?? e.message))
   target.addEventListener("unhandledrejection", (e) => recordError("rejection", e.reason))
 }
+
+/** What a failed call said, for a line beside the control that failed. */
+export const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e))

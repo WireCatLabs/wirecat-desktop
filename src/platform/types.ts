@@ -42,6 +42,7 @@ import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
 import type { Digest, DigestDay } from "./digest-schemas"
+import type { GroupsRead } from "./groups-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
 import type { Forgot, MemoryEntry, MemoryRead, MemorySource, SourceContext } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
@@ -246,6 +247,13 @@ export type Platform = {
   /** Takes the tool's paths off the tunnel; cloudflared stops when no tool is left. */
   cloudflareTunnelClose(id: string): Promise<void>
   cloudflareRoutes(): Promise<TunnelRoute[]>
+  /** memo's account groups: the saved ones, then `all`, each account with its profiles; "old" before `memo groups`. */
+  groupsRead(): Promise<GroupsRead>
+  /** Puts an account in a group (made when new); it stays in its other groups. Answers every group again. */
+  groupsAdd(group: string, source: string): Promise<GroupsRead>
+  groupsRemove(group: string, source: string): Promise<GroupsRead>
+  /** Out of one saved group and into another, in one write. */
+  groupsMove(source: string, from: string, to: string): Promise<GroupsRead>
   /** memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old" below memo 0.130.0. */
   memoryRead(): Promise<MemoryRead>
   /** What a memory or a fact rests on: each source read back, with a quoted line, or marked deleted since. */

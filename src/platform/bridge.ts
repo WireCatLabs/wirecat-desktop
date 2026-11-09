@@ -23,6 +23,7 @@ import type { BackupEvent } from "./backup-schemas"
 import type { NotesModelEvent } from "./bindings"
 import { commandError } from "./command-error"
 import { DigestDaySchema, DigestSchema } from "./digest-schemas"
+import { GroupsReadSchema } from "./groups-schemas"
 import { OpenedSchema } from "./link-schemas"
 import {
   ForgotSchema,
@@ -192,6 +193,10 @@ function createTauri(): Platform {
     cloudflareTunnelOpen: (id, port) => call(v.string(), "cloudflare_tunnel_open", { id, port }),
     cloudflareTunnelClose: (id) => invoke("cloudflare_tunnel_close", { id }),
     cloudflareRoutes: () => invoke("cloudflare_routes"),
+    groupsRead: () => call(GroupsReadSchema, "groups_read"),
+    groupsAdd: (group, source) => call(GroupsReadSchema, "groups_add", { group, source }),
+    groupsRemove: (group, source) => call(GroupsReadSchema, "groups_remove", { group, source }),
+    groupsMove: (source, from, to) => call(GroupsReadSchema, "groups_move", { source, from, to }),
     memoryRead: () => call(MemoryReadSchema, "memory_read"),
     memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
     memoryConfirm: (ref, accept) =>

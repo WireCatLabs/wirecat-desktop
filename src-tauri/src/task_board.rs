@@ -4,12 +4,10 @@
 //! keep the owner's notes in Memo's run log. Every write passes the revision the page read, so Memo refuses an edit made
 //! on a stale copy (`task.stale`) instead of undoing an agent's change.
 
-use crate::catalog::{self, Tool};
-use crate::skills::failure;
-use crate::{paths, run, tools};
+use crate::memo_cli::{Call, Failure, memo, too_old, with_memo};
+use crate::tools;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::path::Path;
 use std::time::Duration;
 
 const LIMIT: &str = "500";
@@ -23,23 +21,6 @@ pub const STATES: [&str; 5] = ["open", "todo", "in_progress", "done", "dismissed
 pub const PRIORITIES: [&str; 5] = ["low", "medium", "high", "critical", "none"];
 pub const KINDS: [&str; 3] = ["bug", "feature", "chore"];
 const MAX_NAME: usize = 200;
-
-/// One Memo command: its JSON on success, or the error object Memo printed.
-type Call<'a> = dyn Fn(&[String]) -> Result<Value, Failure> + Sync + 'a;
-
-#[derive(Debug, PartialEq)]
-pub struct Failure {
-    reason: Option<String>,
-    message: String,
-    /// What memo adds to some refusals: the subtasks a move leaves behind, the parent a subtask has.
-    details: Value,
-}
-
-impl From<Failure> for String {
-    fn from(f: Failure) -> String {
-        f.message
-    }
-}
 
 fn plain_word(s: &str, max: usize, extra: &[char]) -> bool {
     !s.is_empty()
@@ -293,37 +274,6 @@ pub enum Read {
     },
 }
 
-fn call_at(bin: &Path, args: &[String], timeout: Duration) -> Result<Value, Failure> {
-    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| Failure {
-        reason: None,
-        details: Value::Null,
-        message: e.to_string(),
-    })?;
-    let json = out.json();
-    match json {
-        Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
-        j => Err(Failure {
-            // memo puts the reason on the error itself; its notes name `details.reason` as well.
-            reason: j
-                .as_ref()
-                .and_then(|v| v["error"]["reason"].as_str().or_else(|| v["error"]["details"]["reason"].as_str()))
-                .map(str::to_string),
-            details: j.as_ref().map_or(Value::Null, |v| v["error"]["details"].clone()),
-            message: failure(&out, j.as_ref()),
-        }),
-    }
-}
-
-fn memo() -> Result<&'static Tool, String> {
-    catalog::tool("memo")
-}
-
-fn too_old(version: Option<&str>, need: &str) -> bool {
-    let Ok(need) = semver::Version::parse(need) else { return false };
-    version.and_then(|v| semver::Version::parse(v).ok()).is_none_or(|v| v < need)
-}
-
 /// `None` when Memo can serve the page; otherwise what the page shows instead.
 fn gate() -> Result<Option<Read>, String> {
     let tool = memo()?;
@@ -334,12 +284,6 @@ fn gate() -> Result<Option<Read>, String> {
         return Ok(Some(Read::Old { version: first.version.clone(), need }));
     }
     Ok(None)
-}
-
-fn with_memo<T>(timeout: Duration, f: impl FnOnce(&Call) -> Result<T, Failure>) -> Result<T, String> {
-    let tool = memo()?;
-    let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
-    f(&|args: &[String]| call_at(&bin, args, timeout)).map_err(String::from)
 }
 
 fn list_with(call: &Call, query: &str) -> Result<Read, Failure> {
@@ -896,6 +840,8 @@ pub fn create(new: &New) -> Result<Write, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::catalog;
+    use crate::memo_cli::call_at;
     use serde_json::json;
     use std::sync::Mutex;
 

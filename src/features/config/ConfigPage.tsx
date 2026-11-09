@@ -1,6 +1,7 @@
 import { Search } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
+import { GroupsSetting } from "@/features/groups"
 import { AppPreferences, settingsMessages } from "@/features/settings"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
@@ -156,6 +157,9 @@ export function ConfigPage() {
       {(tool || shared) && (st.target || st.profiles === undefined) && !st.error && (
         <Panel toolName={tool?.name ?? ""} dirty={dirty} />
       )}
+
+      {/* Last: it loads after the rest, and growing at the bottom moves nothing above it. */}
+      <GroupsSetting />
 
       <Dialog
         open={pending !== null}
