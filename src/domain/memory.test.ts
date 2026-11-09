@@ -61,6 +61,18 @@ describe("memory records", () => {
     expect(can(entry("action", "reply", "approved")).discard).toBe(false)
   })
 
+  it("edits a relationship only as a proposal or as a link the owner holds, never a proposal approved a moment ago", () => {
+    const rel = (ref: string, status: string, standing: string) => ({
+      ...entry("relationship", "member-of", status),
+      ref,
+      standing,
+    })
+    expect(can(rel("relationship:4", "proposed", "proposed")).correct).toBe(true)
+    expect(can(rel("link:9", "confirmed", "confirmed")).correct).toBe(true)
+    expect(can(rel("relationship:4", "confirmed", "confirmed")).correct).toBe(false)
+    expect(can(rel("link:9", "confirmed", "reported")).correct).toBe(false)
+  })
+
   it("takes back an approval the way memo can, and says when it cannot", () => {
     expect(undoOf(entry("memory", "summary", "confirmed"))).toBe("invalidate")
     expect(undoOf(entry("fact", "decision", "accepted"))).toBe("reverse")

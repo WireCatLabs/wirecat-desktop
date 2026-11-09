@@ -230,7 +230,7 @@ export const useMemory = create<MemoryState>((set, get) => {
               return a?.status ? { ...e, status: a.status, standing: a.status } : e
             }),
             failed: {
-              ...s.failed,
+              ...Object.fromEntries(Object.entries(s.failed).filter(([r]) => !proposals.includes(r))),
               ...Object.fromEntries(answers.filter((a) => a.error).map((a) => [a.ref, a.error ?? ""])),
             },
             held: [...s.held, ...proposals],
@@ -263,9 +263,10 @@ export const useMemory = create<MemoryState>((set, get) => {
         ),
         held: [...s.held, edited.ref],
         open: s.open === ref ? edited.ref : s.open,
-        correcting: null,
+        correcting: edited.error ? edited.ref : null,
+        failed: edited.error ? { ...s.failed, [edited.ref]: edited.error } : s.failed,
       }))
-      return true
+      return !edited.error
     },
     async removeRelation(ref) {
       const done = await run(ref, "remove", async () => {
@@ -391,7 +392,7 @@ export const useMemory = create<MemoryState>((set, get) => {
       set((s) => ({
         entries: [
           withCleanNames(added),
-          ...s.entries.map((e) => (e.ref !== ref ? e : (old ?? { ...e, status: "superseded" }))),
+          ...s.entries.map((e) => (e.ref !== ref ? e : old ? withCleanNames(old) : { ...e, status: "superseded" })),
         ],
         reviews: without(s.reviews, ref),
         held: [...s.held, ref, added.ref],

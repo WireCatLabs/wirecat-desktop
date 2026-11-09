@@ -424,12 +424,12 @@ function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
   const [running, setRunning] = useState<"approve" | "reject" | null>(null)
   const [result, setResult] = useState<string | null>(null)
   const waiting = entries.filter((e) => e.status === "proposed" && !e.findings && e.type !== "action").map((e) => e.ref)
-  if (waiting.length < 2)
-    return result ? (
-      <p role="status" className="reveal text-[0.9rem] text-ink-soft">
-        {result}
-      </p>
-    ) : null
+  const said = result && (
+    <p role="status" className="reveal text-[0.9rem] text-ink-soft">
+      {result}
+    </p>
+  )
+  if (waiting.length < 2) return said || null
   const decide = async (approve: boolean) => {
     if (running) return
     setRunning(approve ? "approve" : "reject")
@@ -440,6 +440,7 @@ function GroupDecide({ entries }: { entries: MemoryEntry[] }) {
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
   return (
     <span className="flex shrink-0 items-center gap-2">
+      {said}
       <Button
         size="sm"
         variant="ghost"

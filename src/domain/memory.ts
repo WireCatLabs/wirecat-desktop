@@ -114,7 +114,12 @@ export type Can = { confirm: boolean; discard: boolean; correct: boolean; forget
  */
 export type Undo = "reject" | "invalidate" | "reverse" | "revoke" | "task" | "created" | "none" | null
 
-type Held = Entry & { findings?: unknown; supersedes?: string | null; standing?: string | null | undefined }
+type Held = Entry & {
+  findings?: unknown
+  supersedes?: string | null
+  ref?: string
+  standing?: string | null | undefined
+}
 
 /**
  * An agent's accepted fact goes back to proposed with `facts revoke` when the installed memo has it (`revoke`). memo
@@ -142,12 +147,13 @@ export function can(e: Held, revoke = false): Can {
   const decision = e.kind === "decision" || undoOf(e, revoke) === "revoke"
   if (e.type === "action")
     return { confirm: s === "proposed", discard: s === "proposed", correct: false, forget: false }
-  // The owner changes a relationship's role; what a connected app reports stays as the app says it.
+  // The owner changes a relationship's role; what a connected app reports stays as the app says it. A proposal approved
+  // here keeps its proposal ref until the next read, and memo changes only a `link:`.
   if (e.type === "relationship")
     return {
       confirm: s === "proposed",
       discard: s === "proposed",
-      correct: s === "proposed" || (s === "confirmed" && e.standing === "confirmed"),
+      correct: s === "proposed" || (s === "confirmed" && e.standing === "confirmed" && !!e.ref?.startsWith("link:")),
       forget: false,
     }
   if (e.type === "fact")

@@ -139,7 +139,7 @@ export type MemorySource = v.InferOutput<typeof MemorySourceSchema>
 export type Forgot = v.InferOutput<typeof ForgotSchema>
 
 /** A relationship after the owner changed its role: a proposal confirmed on the way is now `link:<id>`. */
-export const RelationEditedSchema = v.object({ ref: v.string(), role: text })
+export const RelationEditedSchema = v.object({ ref: v.string(), role: text, error: text })
 
 /** One relationship proposal decided in a group: memo's new status, or why it refused. */
 export const RelationDecidedSchema = v.object({ ref: v.string(), status: text, error: text })

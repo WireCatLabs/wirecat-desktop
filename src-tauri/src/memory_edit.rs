@@ -34,6 +34,8 @@ pub struct RelationEdited {
     #[serde(rename = "ref")]
     pub reference: String,
     pub role: Option<String>,
+    /// Set when the approval went through and the role did not: the link exists, without the role.
+    pub error: Option<String>,
 }
 
 /// memo's first refusal in a `review` answer, in its own words.
@@ -61,14 +63,20 @@ fn confirm_proposal(call: &Call, id: &str) -> Result<String, String> {
 
 fn edit_with(call: &Call, reference: &str, role: Option<&str>) -> Result<RelationEdited, String> {
     let role = role_word(role)?;
-    let link = match (id_after(reference, LINK), id_after(reference, PROPOSAL)) {
-        (Some(id), _) => id.to_string(),
-        (None, Some(id)) => confirm_proposal(call, id)?,
+    let (link, approved_here) = match (id_after(reference, LINK), id_after(reference, PROPOSAL)) {
+        (Some(id), _) => (id.to_string(), false),
+        (None, Some(id)) => (confirm_proposal(call, id)?, true),
         _ => return Err(format!("not a relationship: {reference}")),
     };
+    // memo 0.131.72 reads an empty `--role=` as "no role" and stores null.
     let set_role = format!("--role={role}");
-    call(&decision(&["relationships", "update", &link, &set_role]))?;
-    Ok(RelationEdited { reference: format!("{LINK}{link}"), role: (!role.is_empty()).then_some(role) })
+    let reference = format!("{LINK}{link}");
+    match call(&decision(&["relationships", "update", &link, &set_role])) {
+        Ok(_) => Ok(RelationEdited { reference, role: (!role.is_empty()).then_some(role), error: None }),
+        // The proposal cannot be approved twice, so the page must move to the link even though the role failed.
+        Err(e) if approved_here => Ok(RelationEdited { reference, role: None, error: Some(e) }),
+        Err(e) => Err(e),
+    }
 }
 
 pub fn edit(reference: &str, role: Option<&str>) -> Result<RelationEdited, String> {
@@ -113,7 +121,18 @@ fn decide_with(call: &Call, references: &[String], approve: bool) -> Result<Vec<
         if !approve {
             args.extend(["--reason", REJECTED_HERE]);
         }
-        let v = call(&decision(&args))?;
+        // Parts memo already decided stand; a failed part is reported for its own proposals only.
+        let v = match call(&decision(&args)) {
+            Ok(v) => v,
+            Err(e) => {
+                out.extend(part.iter().map(|id| Decided {
+                    reference: format!("{PROPOSAL}{id}"),
+                    status: None,
+                    error: Some(e.clone()),
+                }));
+                continue;
+            }
+        };
         let item = body(&v);
         let listed = |key: &str| item[key].as_array().cloned().unwrap_or_default();
         let (decided, refused) = (listed("decided"), listed("refused"));
@@ -169,7 +188,10 @@ mod tests {
     fn a_link_role_changes_in_one_update() {
         let (out, seen) =
             run(|_| json!({"item":{"id":"9","role":"manager"}}), |c| edit_with(c, "link:9", Some(" manager ")));
-        assert_eq!(out.unwrap(), RelationEdited { reference: "link:9".into(), role: Some("manager".into()) });
+        assert_eq!(
+            out.unwrap(),
+            RelationEdited { reference: "link:9".into(), role: Some("manager".into()), error: None }
+        );
         assert_eq!(
             seen,
             [strs(&["relationships", "update", "9", "--role=manager", "--from-app", "--json", "--no-record"])]
@@ -182,9 +204,39 @@ mod tests {
             |a| if a[0] == "review" { confirmed("relationship:42") } else { json!({"item":{"id":"42"}}) },
             |c| edit_with(c, "relationship:1", None),
         );
-        assert_eq!(out.unwrap(), RelationEdited { reference: "link:42".into(), role: None });
+        assert_eq!(out.unwrap(), RelationEdited { reference: "link:42".into(), role: None, error: None });
         assert_eq!(seen[0][..3], strs(&["review", "confirm", "1"]));
         assert_eq!(seen[1][..4], strs(&["relationships", "update", "42", "--role="]));
+    }
+
+    #[test]
+    fn a_role_that_fails_after_the_approval_still_moves_the_row_to_its_link() {
+        let call =
+            |a: &[String]| if a[0] == "review" { Ok(confirmed("relationship:42")) } else { Err("memo busy".into()) };
+        let out = edit_with(&call, "relationship:1", Some("owner")).unwrap();
+        assert_eq!(out, RelationEdited { reference: "link:42".into(), role: None, error: Some("memo busy".into()) });
+        let failed = |_: &[String]| -> Result<Value, String> { Err("memo busy".into()) };
+        assert!(edit_with(&failed, "link:9", Some("owner")).is_err());
+    }
+
+    #[test]
+    fn a_failed_part_of_a_large_group_does_not_undo_the_parts_memo_decided() {
+        let calls = Mutex::new(0);
+        let call = |a: &[String]| {
+            let mut n = calls.lock().unwrap();
+            *n += 1;
+            if *n == 1 {
+                let decided: Vec<Value> =
+                    a[2..2 + BATCH].iter().map(|id| json!({"id": id, "status": "confirmed"})).collect();
+                Ok(json!({"item":{"decided": decided, "refused": []}}))
+            } else {
+                Err("timed out".into())
+            }
+        };
+        let refs: Vec<String> = (1..=BATCH + 2).map(|i| format!("relationship:{i}")).collect();
+        let out = decide_with(&call, &refs, true).unwrap();
+        assert_eq!(out.iter().filter(|d| d.status.is_some()).count(), BATCH);
+        assert_eq!(out.iter().filter(|d| d.error.as_deref() == Some("timed out")).count(), 2);
     }
 
     #[test]

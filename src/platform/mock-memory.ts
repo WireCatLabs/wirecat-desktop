@@ -860,7 +860,7 @@ export function memoryMock(): Pick<
       entries = entries.map((x) =>
         x.ref === ref ? { ...old, ref: link, role, status: "confirmed", standing: "confirmed", author: null } : x,
       )
-      return { ref: link, role }
+      return { ref: link, role, error: null }
     },
     async memoryRelationRemove(ref) {
       await write()
