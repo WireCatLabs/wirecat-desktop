@@ -343,8 +343,8 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.132.0 or newer (`memory.minVersion` in the catalog, a placeholder for
-the memo release that ships `sources` and source reviews); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.72 or newer (`memory.minVersion` in the catalog, the first memo with
+`sources` and source reviews); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
 (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
 shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
@@ -391,7 +391,7 @@ The Memory page's Add to memory panel (plan `docs/dev/plans/2026-11-01-memory-ad
 2. **Saved**: what memo kept in its own words (`kept: text | copy`, `read: no-text`, `truncated`, `duplicate_of`), the
    stored text from `sources show`, and the people and organizations named in it from `sources mentions`. The ticked
    ones become `--subject` of the suggestion.
-3. **Facts**: `sources suggest <ref> --reader=<the owner's pick>` names the batch in `batch`; Rust reads it back with
+3. **Facts**: `sources suggest <ref> --provider=<the owner's pick> --from-app` (`--rescan` to read it again) names the batch in `batch`; Rust reads it back with
    `actions show` and uses it only if every finding cites this document and it is proposed (or already decided, when
    memo says it reused an earlier reading; the panel then says so). The panel decides it like any findings batch:
    `actions confirm <id> <ticked> --fingerprint … --from-app`, or `reject` when nothing is ticked. Ticking is
@@ -401,11 +401,11 @@ The Memory page's Add to memory panel (plan `docs/dev/plans/2026-11-01-memory-ad
 
 The reader is never picked by the app. Settings → "Reading for facts" lists `sources readers` (available, signed in,
 model, whether the text leaves the computer, whether it reads files; an unknown answer counts as the riskier one) and
-saves the owner's pick with `config set sources.reader <id>` only when he presses Use this reader, so arrow keys
-through the radios save nothing. An API key goes to `models keys set <provider>` on stdin and never comes back to the
-interface. `sources suggest`, `sources readers` and `config set sources.reader` are written
-against the planned memo interface (not released when this was written); each command line is one constant in
-`memory_add.rs`. memo's `source.*` and `reader.*` refusals come back as ids and are worded in `messages-add.ts`. A run
+saves the owner's pick with `sources readers set <id> --from-app` only when he presses Use this reader, so arrow keys
+through the radios save nothing. memo refuses Ollama and the API readers without a model (`needs_model`): the app
+passes the model memo already lists for that reader, and with none it refuses the pick and asks the owner to choose
+one in memo. An API key goes to `models keys set <provider>` on stdin and never comes back to the
+interface. Each command line is one constant in `memory_add.rs`. memo's `source.*` and `reader.*` refusals come back as ids and are worded in `messages-add.ts`. A run
 fed on stdin (pasted text, the key) never returns memo's message, which can quote the input escaped or cut: an unknown
 refusal comes back as `memo.refused`.
 
@@ -427,7 +427,7 @@ its rule `src/domain/relationships.ts`, for any page that shows a relationship.
 
 ## The People page
 
-Who is who across sources, from memo (`people.minVersion` in the catalog; 0.132.0 is a placeholder for the memo release
+Who is who across sources, from memo (`people.minVersion` in the catalog; memo 0.131.72 is the first
 with `memo people show|review|scan|link|unlink|unmerge`). `people_read` runs `people list --limit 5000` (memo leaves out
 people merged into others) and `people review --limit 500` at once, and carries each list's `has_more` to the page, which
 says when memo has more than it read. Opening a person runs `people show person:<uid>`: every account grouped by source,

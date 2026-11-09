@@ -83,7 +83,10 @@ const en = {
   rejectWhy: "Why are they different people?",
   rejectHint: "A few words, such as “two colleagues with one name”.",
   rejectNow: "Keep them apart",
-  decided: { confirm: "Joined into one person.", reject: "Kept apart. WireCat will not suggest them again." },
+  decided: {
+    confirm: "Joined into one person.",
+    reject: "Kept apart. WireCat suggests them again only if it finds a new reason.",
+  },
   done: {
     confirm: (other: string) => `Joined with ${other}.`,
     reject: (other: string) => `Kept apart from ${other}.`,
@@ -196,7 +199,10 @@ const ru: typeof en = {
   rejectWhy: "Почему это разные люди?",
   rejectHint: "Пара слов, например «два коллеги с одним именем».",
   rejectNow: "Оставить раздельно",
-  decided: { confirm: "Объединены в одного человека.", reject: "Оставлены раздельно. WireCat больше их не предложит." },
+  decided: {
+    confirm: "Объединены в одного человека.",
+    reject: "Оставлены раздельно. WireCat предложит их снова, только если найдёт новую причину.",
+  },
   done: {
     confirm: (other: string) => `Объединено с ${other}.`,
     reject: (other: string) => `Оставлено отдельно от ${other}.`,
@@ -296,7 +302,10 @@ const es: typeof en = {
   rejectWhy: "¿Por qué son personas distintas?",
   rejectHint: "Unas palabras, como «dos compañeros con el mismo nombre».",
   rejectNow: "Mantener separadas",
-  decided: { confirm: "Unidas en una persona.", reject: "Separadas. WireCat no las volverá a proponer." },
+  decided: {
+    confirm: "Unidas en una persona.",
+    reject: "Separadas. WireCat solo las volverá a proponer si encuentra un motivo nuevo.",
+  },
   done: {
     confirm: (other: string) => `Unida con ${other}.`,
     reject: (other: string) => `Separada de ${other}.`,

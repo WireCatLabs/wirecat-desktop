@@ -363,9 +363,8 @@ fn reader(v: &Value) -> Option<Reader> {
     })
 }
 
-// The C6 commands are written against the plan's interface; each line lives only here, to adjust in one place.
 const READERS: [&str; 2] = ["sources", "readers"];
-const CHOOSE: [&str; 3] = ["config", "set", "sources.reader"];
+const CHOOSE: [&str; 3] = ["sources", "readers", "set"];
 const KEY: [&str; 3] = ["models", "keys", "set"];
 const SUGGEST_CMD: [&str; 2] = ["sources", "suggest"];
 const BATCH: &str = "batch";
@@ -380,8 +379,19 @@ pub fn readers() -> Result<Vec<Reader>, String> {
 }
 
 fn choose_with(feed: &Feed, id: &str) -> Result<Vec<Reader>, String> {
+    let id = id_word("reader", id)?;
+    let listed = feed(&words(&READERS), None)?;
+    let entry = listed["items"].as_array().and_then(|a| a.iter().find(|r| r["id"].as_str() == Some(id)));
     let mut args: Vec<String> = CHOOSE.iter().map(|s| (*s).to_string()).collect();
-    args.push(id_word("reader", id)?.into());
+    args.push(id.into());
+    // memo refuses Ollama and the API readers without a model, and only the owner may name one.
+    if entry.is_some_and(|r| r["needs_model"].as_bool() == Some(true)) {
+        let model = entry.and_then(|r| text(r, "model")).ok_or_else(|| {
+            format!("{id} needs a model, and WireCat cannot choose one yet. Choose it in Memo, then here again.")
+        })?;
+        args.push(format!("--model={}", one_line("A model", &model, 200)?));
+    }
+    args.push("--from-app".into());
     feed(&words(&args.iter().map(String::as_str).collect::<Vec<_>>()), None)?;
     readers_with(feed)
 }
@@ -448,13 +458,14 @@ fn suggest_with(
     let mut args: Vec<String> = SUGGEST_CMD.iter().map(|s| (*s).to_string()).collect();
     args.push(document(reference)?.into());
     // Named every time: what the page said reads the text is what reads it.
-    args.push(format!("--reader={}", id_word("reader", reader)?));
+    args.push(format!("--provider={}", id_word("reader", reader)?));
     for s in subjects {
         args.push(format!("--subject={}", subject(s)?));
     }
     if again {
-        args.push("--again".into());
+        args.push("--rescan".into());
     }
+    args.push("--from-app".into());
     args.extend(words(&[]));
     let v = feed(&args, None)?;
     let item = body(&v);
@@ -690,13 +701,14 @@ mod tests {
     #[test]
     fn readers_are_listed_as_memo_found_them_and_none_is_picked_here() {
         let fake = Fake::new(|a, _| {
-            Ok(if a[0] == "sources" {
-                json!({"items":[{"id":"claude-code","available":true,"signed_in":true,"model":"sonnet","provider":"anthropic",
-                    "leaves_computer":true,"reads_files":false,"chosen":false},
-                    {"id":"ollama","available":true,"model":"llama3.2","leaves_computer":false,"chosen":false},
-                    {"id":"codex","available":false,"reads_files":true}]})
+            Ok(if a[2] == "set" {
+                json!({"item":{"reader":"ollama","model":"llama3.2","leaves_computer":false,"reads_files":false}})
             } else {
-                json!({"item":{"key":"sources.reader","value":"ollama"}})
+                json!({"items":[{"id":"claude-code","available":true,"signed_in":true,"model":"sonnet","provider":"anthropic",
+                    "needs_model":false,"leaves_computer":true,"reads_files":false,"chosen":false},
+                    {"id":"ollama","available":true,"model":"llama3.2","needs_model":true,"leaves_computer":false,"chosen":false},
+                    {"id":"codex","available":false,"reads_files":true},
+                    {"id":"openai","available":true,"signed_in":false,"model":null,"needs_model":true,"chosen":false}]})
             })
         });
         let feed = |a: &[String], i: Option<&[u8]>| fake.feed(a, i);
@@ -707,7 +719,18 @@ mod tests {
         assert!(r[1].reads_files, "unknown counts as reading files");
         assert!(!r[0].reads_files);
         choose_with(&feed, "ollama").unwrap();
-        assert_eq!(fake.seen()[1].0, strs(&["config", "set", "sources.reader", "ollama", "--json", "--no-record"]));
+        assert_eq!(
+            fake.seen()[2].0,
+            strs(&["sources", "readers", "set", "ollama", "--model=llama3.2", "--from-app", "--json", "--no-record"])
+        );
+        choose_with(&feed, "claude-code").unwrap();
+        assert_eq!(
+            fake.seen()[5].0,
+            strs(&["sources", "readers", "set", "claude-code", "--from-app", "--json", "--no-record"])
+        );
+        let sent = fake.seen().len();
+        assert!(choose_with(&feed, "openai").unwrap_err().contains("needs a model"));
+        assert_eq!(fake.seen().len(), sent + 1, "nothing is set without a model");
         assert!(choose_with(&feed, "--all").is_err());
     }
 
@@ -769,8 +792,9 @@ mod tests {
                 "sources",
                 "suggest",
                 "document:42",
-                "--reader=ollama",
+                "--provider=ollama",
                 "--subject=person:7",
+                "--from-app",
                 "--json",
                 "--no-record"
             ])

@@ -123,9 +123,9 @@ describe("People", () => {
   })
 
   it("offers memo's update when it is too old", async () => {
-    vi.spyOn(platform, "peopleRead").mockResolvedValue({ kind: "old", version: "0.131.63", need: "0.132.0" })
+    vi.spyOn(platform, "peopleRead").mockResolvedValue({ kind: "old", version: "0.131.63", need: "0.131.72" })
     render(<PeoplePage />)
-    expect(await screen.findByText(/needs Memo 0.132.0 or newer/)).toBeInTheDocument()
+    expect(await screen.findByText(/needs Memo 0.131.72 or newer/)).toBeInTheDocument()
   })
 
   it("after a join, the person merged away says whom they are part of now", async () => {
