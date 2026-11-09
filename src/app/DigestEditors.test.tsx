@@ -54,7 +54,7 @@ describe("what the digest collects", () => {
     await user.type(await within(card).findByRole("textbox"), "Skip newsletters.")
     await user.click(within(card).getByRole("button", { name: "Save" }))
     expect(await within(card).findByRole("alert")).toHaveTextContent(
-      "Memo did not save it: only the owner changes the digest brief, not an agent",
+      "Not saved: only the owner changes the digest brief, not an agent",
     )
   }, 15000)
 
@@ -64,7 +64,7 @@ describe("what the digest collects", () => {
     const brief = await within(card).findByRole("textbox")
     await user.type(brief, "y")
     expect(card).toHaveTextContent("4001 / 4000")
-    expect(card).toHaveTextContent("at most 4000 characters")
+    expect(card).toHaveTextContent("At most 4000 characters")
     expect(within(card).getByRole("button", { name: "Save" })).toBeDisabled()
   }, 15000)
 
@@ -83,19 +83,19 @@ describe("how the digest looks", () => {
     const reset = vi.spyOn(platform, "digestTemplateReset")
     const { user, card } = await openCard("How it looks")
     const body = await within(card).findByRole("textbox", { name: "Template" })
-    expect(card).toHaveTextContent("Memo's shipped template")
+    expect(card).toHaveTextContent("The built-in template")
     await user.clear(body)
     await user.type(body, "Hello {{{{ summary }}")
     await user.click(within(card).getByRole("button", { name: "Preview" }))
     expect(preview).toHaveBeenCalledWith("telegram", "en", "Hello {{ summary }}")
-    const shown = await within(card).findByRole("region", { name: "What Memo would send" })
+    const shown = await within(card).findByRole("region", { name: "What would be sent" })
     expect(shown).toHaveTextContent("Hello Three replies wait for you")
     await user.click(within(card).getByRole("button", { name: "Save" }))
     expect(save).toHaveBeenCalledWith("telegram", "en", "Hello {{ summary }}")
     expect(await within(card).findByText("Your own template")).toBeInTheDocument()
     await user.click(within(card).getByRole("button", { name: "Reset to default" }))
     expect(reset).toHaveBeenCalledWith("telegram", "en")
-    expect(await within(card).findByText("Memo's shipped template")).toBeInTheDocument()
+    expect(await within(card).findByText("The built-in template")).toBeInTheDocument()
   }, 15000)
 
   it("reads the template of the channel and language picked", async () => {

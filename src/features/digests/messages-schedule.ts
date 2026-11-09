@@ -4,7 +4,7 @@ type RouteKind = "telegramBot" | "email"
 
 const en = {
   title: "Morning digest schedule",
-  readFailed: (message: string) => `Could not read memo's schedules: ${message}`,
+  readFailed: (message: string) => `Could not read the schedules: ${message}`,
   toggle: "Write the digest every morning",
   daily: (time: string) => `Every day at ${time}`,
   when: (when: string) => `Runs ${when}`,
@@ -18,15 +18,14 @@ const en = {
   notDelivered: (kind: string) => `not delivered to ${kind}`,
   noRunYet: "No run yet.",
   spentToday: (usd: string, cap: string | null) => `Spent today: ${usd}${cap ? ` of ${cap} a day` : ""}`,
-  capReached: "Today's limit is reached: memo starts no more runs today.",
+  capReached: "Today's limit is reached: no more digests are written today.",
   time: "Time",
   changeTime: "Change the time",
   runNow: "Run now…",
   running: "Writing the digest… this takes a few minutes.",
   saving: "Saving…",
   removing: "Turning off…",
-  offBody:
-    "Memo writes the digest at this time each morning and sends it where you choose. Turning it off keeps every past digest.",
+  offBody: "Each morning at this time you get the digest where you choose. Turning it off keeps every past digest.",
   turnOn: "Turn on",
   create: "Schedule the digest",
   noHarness: "Claude Code is not installed. The digest is written in it: install Claude Code first.",
@@ -41,12 +40,12 @@ const en = {
   failedRun: (message: string) => `Could not run the digest: ${message}`,
   confirmTitle: "Run the morning digest now?",
   confirmBody: (price: string | null, to: string) =>
-    `${price ? `It costs about ${price}, as the last run did.` : "Memo has no cost for an earlier run yet."} It is sent ${to}, as the morning run is.`,
+    `${price ? `It costs about ${price}, as the last run did.` : "There is no price from an earlier run yet."} It is sent ${to}, as the morning run is.`,
   confirmTo: (routes: string) => (routes ? `to ${routes}` : "to this computer's notification only"),
   confirmRun: (price: string | null) => (price ? `Run for about ${price}` : "Run"),
   cancel: "Cancel",
   others: "Other schedules",
-  othersHint: "memo's other scheduled jobs, read only. Change them in the tool they belong to.",
+  othersHint: "Other jobs that run on a schedule, read only. Change them where they were set up.",
   otherLine: (when: string) => when,
   skipped: (ago: string, why: string) => `skipped ${ago}: ${why}`,
   skipReasons: {
@@ -55,15 +54,15 @@ const en = {
     "mail.below-threshold": "not enough new mail yet",
   } as Record<string, string>,
   history: {
-    fill: "Fill history…",
+    fill: "Build past days…",
     needsUpdate: "Needs a Memo update",
     needsUpdateHint: "This Memo cannot build past digests yet. Update Memo to fill the history.",
     builtLater: "built later",
-    title: "Fill the history",
-    body: "Memo builds the digest each past day would have had and keeps it here. Nothing is sent to Telegram or mail.",
+    title: "Build the digests of past days",
+    body: "You get the digest each past day would have had, to read and compare in this list. They are not sent to Telegram or mail, so your chats do not fill with old news.",
     days: "How many days",
     span: (n: number) => plural("en", n, { one: "# day", other: "# days" }),
-    pricing: "Asking Memo for the price…",
+    pricing: "Working out the price…",
     estimate: (days: number, skipped: number, price: string | null) =>
       days === 0
         ? "Every one of these days already has a digest."
@@ -74,7 +73,7 @@ const en = {
       `Building ${plural("en", days, { one: "# day", other: "# days" })}… each takes a minute or two. You can close this; it keeps going.`,
     done: (built: number, cost: string | null) =>
       `Built ${plural("en", built, { one: "# day", other: "# days" })}${cost ? ` for ${cost}` : ""}. They are in the list, marked “built later”.`,
-    failed: (message: string) => `Memo stopped: ${message}. The days built before it stopped are kept.`,
+    failed: (message: string) => `The build stopped: ${message}. The days built before it stopped are kept.`,
     priceFailed: (message: string) => `Could not get the price: ${message}`,
     unsupported: "This Memo cannot build past digests yet. Update Memo, then try again.",
     close: "Close",
@@ -84,7 +83,7 @@ const en = {
 
 const ru: typeof en = {
   title: "Расписание утренней сводки",
-  readFailed: (message) => `Не удалось прочитать расписания memo: ${message}`,
+  readFailed: (message) => `Не удалось прочитать расписания: ${message}`,
   toggle: "Писать сводку каждое утро",
   daily: (time) => `Каждый день в ${time}`,
   when: (when) => `Запуск: ${when}`,
@@ -106,7 +105,7 @@ const ru: typeof en = {
   notDelivered: (kind) => `не доставлено: ${kind}`,
   noRunYet: "Запусков ещё не было.",
   spentToday: (usd, cap) => `Потрачено сегодня: ${usd}${cap ? ` из ${cap} в день` : ""}`,
-  capReached: "Дневной лимит исчерпан: сегодня memo больше не запустит сводку.",
+  capReached: "Дневной лимит исчерпан: сегодня сводок больше не будет.",
   time: "Время",
   changeTime: "Изменить время",
   runNow: "Запустить сейчас…",
@@ -114,7 +113,7 @@ const ru: typeof en = {
   saving: "Сохраняю…",
   removing: "Выключаю…",
   offBody:
-    "Memo пишет сводку каждое утро в это время и отправляет её туда, куда вы выберете. Если выключить, все прошлые сводки останутся.",
+    "Каждое утро в это время вы получаете сводку туда, куда выберете. Если выключить, все прошлые сводки останутся.",
   turnOn: "Включить",
   create: "Поставить сводку в расписание",
   noHarness: "Claude Code не установлен. Сводка пишется в нём: сначала установите Claude Code.",
@@ -129,12 +128,12 @@ const ru: typeof en = {
   failedRun: (message) => `Не удалось запустить сводку: ${message}`,
   confirmTitle: "Запустить утреннюю сводку сейчас?",
   confirmBody: (price, to) =>
-    `${price ? `Это стоит около ${price}, как прошлый запуск.` : "Memo ещё не знает цену прошлого запуска."} Сводка уйдёт ${to}, как и утренняя.`,
+    `${price ? `Это стоит около ${price}, как прошлый запуск.` : "Цены прошлого запуска пока нет."} Сводка уйдёт ${to}, как и утренняя.`,
   confirmTo: (routes) => (routes ? `в ${routes}` : "только в уведомление на этом компьютере"),
   confirmRun: (price) => (price ? `Запустить примерно за ${price}` : "Запустить"),
   cancel: "Отмена",
   others: "Другие расписания",
-  othersHint: "Другие задания memo по расписанию, только для просмотра. Меняются в инструменте, к которому относятся.",
+  othersHint: "Другие задания по расписанию, только для просмотра. Меняются там, где их настроили.",
   otherLine: (when) => when,
   skipped: (ago, why) => `пропущен ${ago}: ${why}`,
   skipReasons: {
@@ -143,15 +142,15 @@ const ru: typeof en = {
     "mail.below-threshold": "новой почты пока мало",
   },
   history: {
-    fill: "Заполнить историю…",
+    fill: "Собрать прошлые дни…",
     needsUpdate: "Нужно обновить Memo",
     needsUpdateHint: "Эта версия Memo пока не умеет собирать прошлые сводки. Обновите Memo, чтобы заполнить историю.",
     builtLater: "собрана позже",
-    title: "Заполнить историю",
-    body: "Memo соберёт сводку, какой она была бы в каждый прошлый день, и сохранит её здесь. В Telegram и почту ничего не уйдёт.",
+    title: "Собрать сводки за прошлые дни",
+    body: "Вы получите сводку, какой она была бы в каждый прошлый день, чтобы прочитать и сравнить их в этом списке. В Telegram и почту они не уходят, чтобы старые новости не засыпали ваши чаты.",
     days: "За сколько дней",
     span: (n) => plural("ru", n, { one: "# день", few: "# дня", many: "# дней", other: "# дня" }),
-    pricing: "Спрашиваю у Memo цену…",
+    pricing: "Считаю цену…",
     estimate: (days, skipped, price) =>
       days === 0
         ? "У всех этих дней сводка уже есть."
@@ -162,7 +161,7 @@ const ru: typeof en = {
       `Собираю ${plural("ru", days, { one: "# день", few: "# дня", many: "# дней", other: "# дня" })}… на каждый уходит минута-две. Окно можно закрыть, сборка продолжится.`,
     done: (built, cost) =>
       `Собрано: ${plural("ru", built, { one: "# день", few: "# дня", many: "# дней", other: "# дня" })}${cost ? ` за ${cost}` : ""}. Они в списке с пометкой «собрана позже».`,
-    failed: (message) => `Memo остановился: ${message}. Дни, собранные до остановки, сохранены.`,
+    failed: (message) => `Сборка остановилась: ${message}. Дни, собранные до остановки, сохранены.`,
     priceFailed: (message) => `Не удалось узнать цену: ${message}`,
     unsupported: "Эта версия Memo пока не умеет собирать прошлые сводки. Обновите Memo и попробуйте снова.",
     close: "Закрыть",
@@ -172,7 +171,7 @@ const ru: typeof en = {
 
 const es: typeof en = {
   title: "Horario del resumen matutino",
-  readFailed: (message) => `No se pudieron leer los horarios de memo: ${message}`,
+  readFailed: (message) => `No se pudieron leer los horarios: ${message}`,
   toggle: "Escribir el resumen cada mañana",
   daily: (time) => `Cada día a las ${time}`,
   when: (when) => `Se ejecuta: ${when}`,
@@ -186,7 +185,7 @@ const es: typeof en = {
   notDelivered: (kind) => `no entregado: ${kind}`,
   noRunYet: "Aún no se ha ejecutado.",
   spentToday: (usd, cap) => `Gastado hoy: ${usd}${cap ? ` de ${cap} al día` : ""}`,
-  capReached: "Se alcanzó el límite de hoy: memo no inicia más ejecuciones hoy.",
+  capReached: "Se alcanzó el límite de hoy: hoy no se escriben más resúmenes.",
   time: "Hora",
   changeTime: "Cambiar la hora",
   runNow: "Ejecutar ahora…",
@@ -194,7 +193,7 @@ const es: typeof en = {
   saving: "Guardando…",
   removing: "Desactivando…",
   offBody:
-    "Memo escribe el resumen cada mañana a esta hora y lo envía donde elijas. Al desactivarlo se conservan todos los resúmenes anteriores.",
+    "Cada mañana a esta hora recibes el resumen donde elijas. Al desactivarlo se conservan todos los resúmenes anteriores.",
   turnOn: "Activar",
   create: "Programar el resumen",
   noHarness: "Claude Code no está instalado. El resumen se escribe en él: instala Claude Code primero.",
@@ -209,12 +208,12 @@ const es: typeof en = {
   failedRun: (message) => `No se pudo ejecutar el resumen: ${message}`,
   confirmTitle: "¿Ejecutar el resumen matutino ahora?",
   confirmBody: (price, to) =>
-    `${price ? `Cuesta unos ${price}, como la última ejecución.` : "Memo aún no tiene el coste de una ejecución anterior."} Se envía ${to}, como el de la mañana.`,
+    `${price ? `Cuesta unos ${price}, como la última ejecución.` : "Aún no hay precio de una ejecución anterior."} Se envía ${to}, como el de la mañana.`,
   confirmTo: (routes) => (routes ? `a ${routes}` : "solo a la notificación de este ordenador"),
   confirmRun: (price) => (price ? `Ejecutar por unos ${price}` : "Ejecutar"),
   cancel: "Cancelar",
   others: "Otros horarios",
-  othersHint: "Las otras tareas programadas de memo, solo lectura. Se cambian en la herramienta a la que pertenecen.",
+  othersHint: "Otras tareas programadas, solo lectura. Se cambian donde se configuraron.",
   otherLine: (when) => when,
   skipped: (ago, why) => `omitida ${ago}: ${why}`,
   skipReasons: {
@@ -223,15 +222,15 @@ const es: typeof en = {
     "mail.below-threshold": "aún hay poco correo nuevo",
   },
   history: {
-    fill: "Completar el historial…",
+    fill: "Crear días pasados…",
     needsUpdate: "Hay que actualizar Memo",
     needsUpdateHint: "Esta versión de Memo aún no crea resúmenes pasados. Actualiza Memo para completar el historial.",
     builtLater: "creado después",
-    title: "Completar el historial",
-    body: "Memo crea el resumen que habría tenido cada día pasado y lo guarda aquí. No se envía nada a Telegram ni al correo.",
+    title: "Crear los resúmenes de días pasados",
+    body: "Recibes el resumen que habría tenido cada día pasado, para leerlos y compararlos en esta lista. No se envían a Telegram ni al correo, para que tus chats no se llenen de noticias viejas.",
     days: "Cuántos días",
     span: (n) => plural("es", n, { one: "# día", other: "# días" }),
-    pricing: "Preguntando el precio a Memo…",
+    pricing: "Calculando el precio…",
     estimate: (days, skipped, price) =>
       days === 0
         ? "Todos estos días ya tienen resumen."
@@ -242,7 +241,7 @@ const es: typeof en = {
       `Creando ${plural("es", days, { one: "# día", other: "# días" })}… cada uno tarda un minuto o dos. Puedes cerrar esto; sigue en marcha.`,
     done: (built, cost) =>
       `Creados ${plural("es", built, { one: "# día", other: "# días" })}${cost ? ` por ${cost}` : ""}. Están en la lista, marcados “creado después”.`,
-    failed: (message) => `Memo se detuvo: ${message}. Se conservan los días creados antes.`,
+    failed: (message) => `La creación se detuvo: ${message}. Se conservan los días creados antes.`,
     priceFailed: (message) => `No se pudo obtener el precio: ${message}`,
     unsupported: "Esta versión de Memo aún no crea resúmenes pasados. Actualiza Memo y vuelve a intentarlo.",
     close: "Cerrar",
