@@ -20,6 +20,7 @@ type Words = {
   noMatch: string
   clear: string
   more: (n: number) => string
+  notLoaded: (n: number) => string
   search: string
   searchHint: string
   owner: string
@@ -45,6 +46,7 @@ type Words = {
   scope: string
   scopes: { mine: string; all: string }
   scopeHint: string
+  scopeAbout: string
   applied: (mode: "mine" | "all") => string
   scopeSaving: string
   scopeFailed: (reason: string) => string
@@ -94,7 +96,8 @@ const en: Words = {
   noMatch: "Nothing on this board matches.",
   clear: "Clear",
   more: (n) =>
-    `More match than one read holds: the first ${formatNumber(n, "en")} are shown. The counts above each column hold them all.`,
+    `More match than one read holds: the first ${formatNumber(n, "en")} are shown. Each column counts them all and says how many it does not show.`,
+  notLoaded: (n) => `${formatNumber(n, "en")} more not loaded`,
   search: "Search the board",
   searchHint: "Words, owner:, stage:, amount:>=1000",
   owner: "Responsible",
@@ -122,6 +125,7 @@ const en: Words = {
   scopes: { mine: "Mine", all: "Everyone's" },
   scopeHint:
     "Changes what WireCat downloads from this CRM. Mine keeps only what is assigned to you or to nobody, and removes the rest from this computer.",
+  scopeAbout: "About the sync scope",
   applied: (mode) => `Last sync downloaded: ${mode === "all" ? "everyone's" : "mine"}.`,
   scopeSaving: "Saving and syncing…",
   scopeFailed: (reason) => `The sync scope did not change: ${reason}`,
@@ -177,7 +181,8 @@ const ru: Words = {
   noMatch: "На доске ничего не подходит.",
   clear: "Сбросить",
   more: (n) =>
-    `Подходит больше, чем помещается в одно чтение: показаны первые ${formatNumber(n, "ru")}. Числа над колонками учитывают все.`,
+    `Подходит больше, чем помещается в одно чтение: показаны первые ${formatNumber(n, "ru")}. Колонки считают все и пишут, сколько не загружено.`,
+  notLoaded: (n) => `Ещё ${formatNumber(n, "ru")} не загружено`,
   search: "Поиск по доске",
   searchHint: "Слова, owner:, stage:, amount:>=1000",
   owner: "Ответственный",
@@ -206,6 +211,7 @@ const ru: Words = {
   scopes: { mine: "Мои", all: "Все" },
   scopeHint:
     "Меняет, что WireCat скачивает из этой CRM. «Мои» оставляет только назначенное на вас или ни на кого, остальное удаляется с этого компьютера.",
+  scopeAbout: "Об охвате синхронизации",
   applied: (mode) => `Последняя синхронизация скачала: ${mode === "all" ? "все" : "мои"}.`,
   scopeSaving: "Сохраняю и синхронизирую…",
   scopeFailed: (reason) => `Охват синхронизации не изменился: ${reason}`,
@@ -264,7 +270,8 @@ const es: Words = {
   noMatch: "Nada del tablero coincide.",
   clear: "Borrar",
   more: (n) =>
-    `Coinciden más de los que caben en una lectura: se muestran los primeros ${formatNumber(n, "es")}. Los números de cada columna los cuentan todos.`,
+    `Coinciden más de los que caben en una lectura: se muestran los primeros ${formatNumber(n, "es")}. Cada columna los cuenta todos y dice cuántos no muestra.`,
+  notLoaded: (n) => `${formatNumber(n, "es")} más sin cargar`,
   search: "Buscar en el tablero",
   searchHint: "Palabras, owner:, stage:, amount:>=1000",
   owner: "Responsable",
@@ -292,6 +299,7 @@ const es: Words = {
   scopes: { mine: "Mías", all: "De todos" },
   scopeHint:
     "Cambia lo que WireCat descarga de este CRM. Mías guarda solo lo asignado a ti o a nadie y borra el resto de este ordenador.",
+  scopeAbout: "Sobre el alcance de la sincronización",
   applied: (mode) => `La última sincronización descargó: ${mode === "all" ? "de todos" : "mías"}.`,
   scopeSaving: "Guardando y sincronizando…",
   scopeFailed: (reason) => `El alcance de la sincronización no cambió: ${reason}`,

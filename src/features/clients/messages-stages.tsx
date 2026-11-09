@@ -10,8 +10,9 @@ type Words = {
   unsortedEmpty: string
   mapStages: string
   refusal: Record<Refusal | "toUnmapped", string>
-  badge: (stage: string, pipeline: string) => string
-  suggested: (base: string) => string
+  /** A card whose stage memo only suggested for its column. */
+  unconfirmed: string
+  confirmCard: (base: string) => string
   pickTitle: (base: string) => string
   pickBody: (title: string) => string
   lastPicked: string
@@ -62,8 +63,8 @@ const en: Words = {
     unconfirmed: "this column's stage for this pipeline is only suggested: confirm it first.",
     toUnmapped: "a stage goes onto a base stage; Unmapped is only for what has none yet.",
   },
-  badge: (stage, pipeline) => `${stage} · ${pipeline}`,
-  suggested: (base) => `Suggested: ${base}`,
+  unconfirmed: "Not confirmed",
+  confirmCard: (base) => `Memo suggested ${base} for this stage. Confirm it in Map stages`,
   pickTitle: (base) => `Which stage of ${base}?`,
   pickBody: (title) => `Several stages of this pipeline belong to this column. Pick the one for ${title}.`,
   lastPicked: "Picked last time",
@@ -86,7 +87,8 @@ const en: Words = {
       one: "# CRM stage waits for you to confirm it",
       other: "# CRM stages wait for you to confirm them",
     }),
-  toConfirmBody: "Memo suggested which of your stages each one is. Until you confirm, their cards stay in Unsorted.",
+  toConfirmBody:
+    "Memo suggested which of your stages each one is. Their cards already stand there, marked Not confirmed, until you confirm.",
   confirmStages: "Confirm stages",
   allConfirmed: "Every suggestion is confirmed.",
   failed: (reason) => `Not saved: ${reason}`,
@@ -126,8 +128,8 @@ const ru: Words = {
     unconfirmed: "этап этой воронки для колонки пока только предложен: сначала подтвердите его.",
     toUnmapped: "этап переносится на базовый этап; «Не размечено» — только для тех, что ещё не размечены.",
   },
-  badge: (stage, pipeline) => `${stage} · ${pipeline}`,
-  suggested: (base) => `Предложено: ${base}`,
+  unconfirmed: "Не подтверждено",
+  confirmCard: (base) => `Memo предложил для этого этапа «${base}». Подтвердите в «Этапы CRM»`,
   pickTitle: (base) => `Какой этап из «${base}»?`,
   pickBody: (title) => `К этой колонке относятся несколько этапов этой воронки. Выберите этап для «${title}».`,
   lastPicked: "Выбран в прошлый раз",
@@ -159,7 +161,7 @@ const ru: Words = {
       other: "# этапа CRM ждут вашего подтверждения",
     }),
   toConfirmBody:
-    "Memo предложил, какому из ваших этапов соответствует каждый. Пока вы не подтвердите, их карточки лежат в «Без этапа».",
+    "Memo предложил, какому из ваших этапов соответствует каждый. Карточки уже стоят там с пометкой «Не подтверждено», пока вы не подтвердите.",
   confirmStages: "Подтвердить этапы",
   allConfirmed: "Все предложения подтверждены.",
   failed: (reason) => `Не сохранено: ${reason}`,
@@ -200,8 +202,8 @@ const es: Words = {
     unconfirmed: "la etapa de este embudo para esta columna solo está sugerida: confírmala primero.",
     toUnmapped: "una etapa va sobre una etapa base; «Sin asignar» es solo para las que aún no tienen.",
   },
-  badge: (stage, pipeline) => `${stage} · ${pipeline}`,
-  suggested: (base) => `Sugerida: ${base}`,
+  unconfirmed: "Sin confirmar",
+  confirmCard: (base) => `Memo sugirió ${base} para esta etapa. Confírmala en Asignar etapas`,
   pickTitle: (base) => `¿Qué etapa de ${base}?`,
   pickBody: (title) => `Varias etapas de este embudo pertenecen a esta columna. Elige la de ${title}.`,
   lastPicked: "Elegida la última vez",
@@ -225,7 +227,7 @@ const es: Words = {
       other: "# etapas del CRM esperan tu confirmación",
     }),
   toConfirmBody:
-    "Memo sugirió a cuál de tus etapas corresponde cada una. Hasta que confirmes, sus tarjetas quedan en «Sin etapa».",
+    "Memo sugirió a cuál de tus etapas corresponde cada una. Sus tarjetas ya están ahí, marcadas Sin confirmar, hasta que confirmes.",
   confirmStages: "Confirmar etapas",
   allConfirmed: "Todas las sugerencias están confirmadas.",
   failed: (reason) => `No se guardó: ${reason}`,

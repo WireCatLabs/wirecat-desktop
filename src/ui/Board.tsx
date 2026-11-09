@@ -336,6 +336,7 @@ export function BoardColumn({
   target,
   empty,
   footer,
+  tiles,
   children,
 }: {
   id: string
@@ -350,6 +351,11 @@ export function BoardColumn({
   /** Shown in place of cards. */
   empty?: ReactNode
   footer?: ReactNode
+  /**
+   * Cards as separate tiles on a tinted column, which scrolls on its own: a long column then never pushes the board's
+   * sideways scrollbar below the window.
+   */
+  tiles?: boolean
   children: ReactNode
 }) {
   return (
@@ -359,6 +365,7 @@ export function BoardColumn({
       className={cx(
         "flex min-h-[22rem] min-w-0 flex-col rounded-[0.2rem] border bg-app transition-colors duration-(--motion-fast)",
         target ? "border-brand/60" : "border-line-strong",
+        tiles && "max-h-[max(22rem,calc(100dvh-12rem))]",
       )}
     >
       <h2 className="flex min-h-[3rem] flex-wrap items-center gap-x-[0.55rem] border-line border-b px-[0.9rem] py-[0.4rem]">
@@ -369,7 +376,12 @@ export function BoardColumn({
         </span>
         {aside && <span className="basis-full text-[0.85rem] font-normal text-ink-soft">{aside}</span>}
       </h2>
-      <ul className="flex flex-1 flex-col">
+      <ul
+        className={cx(
+          "flex flex-1 flex-col",
+          tiles && "min-h-0 gap-[0.5rem] overflow-y-auto bg-app-2/60 p-[0.5rem] [scrollbar-gutter:stable]",
+        )}
+      >
         {children}
         {empty && <li className="px-[0.9rem] py-[1rem] text-[0.9rem] text-ink-dim">{empty}</li>}
       </ul>
@@ -399,9 +411,12 @@ export function DragCopy<C extends string>({ drag, children }: { drag: BoardDrag
 }
 
 /** The class of a card that can be carried: a drag shows a dashed place, a keyboard hold lifts it. */
-export const cardClass = (ghost: boolean, held: boolean, movable = true) =>
+export const cardClass = (ghost: boolean, held: boolean, movable = true, tile = false) =>
   cx(
-    "group relative border-line border-b select-none [-webkit-user-select:none] transition-[background-color,box-shadow] duration-(--motion-fast) last:border-b-0 hover:bg-app-2 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
+    "group relative select-none [-webkit-user-select:none] transition-[background-color,border-color,box-shadow] duration-(--motion-fast) focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand",
+    tile
+      ? "shrink-0 rounded-[0.45rem] border border-line bg-app hover:border-line-strong"
+      : "border-line border-b last:border-b-0 hover:bg-app-2",
     movable ? "cursor-grab touch-none" : "cursor-pointer",
     ghost && "bg-app-3 outline-1 outline-line-strong outline-dashed -outline-offset-4 [&>*]:invisible",
     held && "z-10 bg-app shadow-panel outline-2 outline-brand",

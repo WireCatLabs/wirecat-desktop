@@ -1,5 +1,5 @@
 import { useRef } from "react"
-import { baseColumnsOf, columnOf, type Refusal, UNSORTED } from "@/domain/base-stages"
+import { baseColumnsOf, openCountsOf, placeOf, type Refusal, suggestionOf, UNSORTED } from "@/domain/base-stages"
 import { accountKey, amountsOf, type Kind, sumsOf } from "@/domain/clients"
 import { useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
@@ -34,7 +34,8 @@ export function BaseBoard({
   const move = useBaseMove(read, kind)
   const pipes = new Map(read.pipelines.map((p) => [p.ref, p]))
   const byRef = new Map(cards.map((c) => [c.ref, c]))
-  const columns = baseColumnsOf(read.base, cards)
+  const columns = baseColumnsOf(read.base, cards, read.mapping)
+  const counts = openCountsOf(read.base, read.unsorted, read.mapping)
   const ids = [UNSORTED, ...read.base.map((b) => b.ref)]
   const nameOf = (id: string) => (id === UNSORTED ? s.unsorted : (read.base.find((b) => b.ref === id)?.name ?? id))
   const several = new Set(cards.map((c) => c.pipeline)).size > 1
@@ -49,7 +50,7 @@ export function BaseBoard({
     cardsIn: (id) => columns.get(id) ?? [],
     columnOf: (ref) => {
       const c = byRef.get(ref)
-      return c ? columnOf(c) : undefined
+      return c ? placeOf(c, read.mapping) : undefined
     },
     canDrop: (ref, to) => {
       const d = verdict(ref, to)
@@ -73,12 +74,29 @@ export function BaseBoard({
   })
   const dragged = drag ? byRef.get(drag.key) : undefined
   const badge = (c: CrmCard) => {
-    const entry = read.mapping.find((x) => x.pipeline === c.pipeline && x.name === c.stage)
+    const suggested = suggestionOf(c, read.mapping)
     const pipeline = several ? pipes.get(c.pipeline)?.name : undefined
     return (
-      <span className="flex min-w-0 flex-wrap items-center gap-[0.35rem]">
-        <Pill>{pipeline ? s.badge(c.stage, pipeline) : c.stage}</Pill>
-        {entry && !entry.confirmed && entry.base && <Pill tone="warn">{s.suggested(entry.base.name)}</Pill>}
+      <span className="flex min-w-0 flex-wrap items-center gap-[0.3rem]">
+        <Pill size="sm">{c.stage}</Pill>
+        {pipeline && <Pill size="sm">{pipeline}</Pill>}
+        {suggested && (
+          <button
+            type="button"
+            title={s.confirmCard(suggested.name)}
+            aria-label={s.confirmCard(suggested.name)}
+            className="inline-flex min-w-0 rounded-[0.3rem] focus-visible:outline-2 focus-visible:outline-brand"
+            onClick={(e) => {
+              e.stopPropagation()
+              useClients.getState().openMap(c.account ? accountKey(c.account) : "")
+            }}
+            onKeyDown={(e) => e.stopPropagation()}
+          >
+            <Pill size="sm" tone="warn">
+              {s.unconfirmed}
+            </Pill>
+          </button>
+        )}
       </span>
     )
   }
@@ -92,11 +110,12 @@ export function BaseBoard({
           const refs = shown(id)
           const b = read.base.find((x) => x.ref === id)
           const here = (columns.get(id) ?? []).flatMap((r) => byRef.get(r) ?? [])
-          // memo counts an open column's open rows across every pipeline; a filter, closed columns (capped to the
-          // newest) and Unsorted count what the page shows. Sums are always the shown cards'.
-          const counted = b && b.outcome === "open" && !filtered
+          // One read holds the newest open cards only; memo counts every open one, so a column says what it is
+          // missing. A filter counts what it shows, and sums are always the shown cards'.
+          const loaded = here.filter((c) => c.status === "open").length
+          const missing = filtered ? 0 : Math.max(0, (counts.get(id) ?? 0) - loaded)
           const amounts = amountsOf(here)
-          const items = counted ? b.open : here.length
+          const items = here.length + missing
           return (
             <BoardColumn
               key={id}
@@ -115,7 +134,15 @@ export function BaseBoard({
                 ) : undefined
               }
               target={drag?.to === id}
-              empty={refs.length === 0 && !drag ? (id === UNSORTED ? s.unsortedEmpty : m.emptyColumn) : undefined}
+              tiles
+              footer={missing > 0 ? m.notLoaded(missing) : undefined}
+              empty={
+                refs.length === 0 && !drag && missing === 0
+                  ? id === UNSORTED
+                    ? s.unsortedEmpty
+                    : m.emptyColumn
+                  : undefined
+              }
             >
               {refs.map((ref) => {
                 const c = byRef.get(ref)

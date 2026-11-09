@@ -42,7 +42,7 @@ export function Card(props: {
       onPointerDown={props.onPointerDown}
       onKeyDown={props.onKeyDown}
       onClick={props.onOpen}
-      className={cardClass(props.ghost, props.held, movable)}
+      className={cardClass(props.ghost, props.held, movable, true)}
     >
       <CardBody card={card} badge={props.badge} />
       {failed && (

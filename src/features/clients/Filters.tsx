@@ -9,6 +9,7 @@ import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
+import { InfoTip } from "@/ui/InfoTip"
 import { Segmented } from "@/ui/Segmented"
 import { type Based, type Ready, useScope, useScopeSet, useWriter } from "./api"
 import { clientMessages } from "./messages"
@@ -30,6 +31,7 @@ export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
   })
   return (
     <div className="flex flex-col gap-[0.7rem]">
+      {current?.account && <ScopeSwitch account={current.account} pipelines={read.pipelines} />}
       <FilterBar query={query} onQuery={setQuery} label={m.search} placeholder={m.searchHint}>
         {accounts.length > 1 && (
           <FilterMenu
@@ -73,7 +75,6 @@ export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
           {...field("stage")}
         />
       </FilterBar>
-      {current?.account && <ScopeSwitch account={current.account} pipelines={read.pipelines} />}
     </div>
   )
 }
@@ -131,12 +132,16 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
           {m.chooseProfile}
         </Button>
       )}
-      <span className="max-w-[70ch] basis-full text-ink-dim">
-        {busy ? m.scopeSaving : m.scopeHint}
-        {!busy && profile && settable && ` ${m.scopeAs(profile)}`}
-        {!busy && hint && ` ${hint}`}
-        {!busy && answer?.applied && ` ${m.applied(answer.applied.mode)}`}
-      </span>
+      {busy ? (
+        <span className="text-ink-dim">{m.scopeSaving}</span>
+      ) : (
+        <InfoTip label={m.scopeAbout}>
+          {m.scopeHint}
+          {profile && settable && ` ${m.scopeAs(profile)}`}
+          {hint && ` ${hint}`}
+          {answer?.applied && ` ${m.applied(answer.applied.mode)}`}
+        </InfoTip>
+      )}
       {set.error && <ErrorNotice inline>{m.scopeFailed(set.error.message)}</ErrorNotice>}
     </div>
   )
@@ -167,6 +172,9 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
   const offeredOf = (f: "owner" | "stage", found: readonly string[]) => [...new Set([...found, ...valuesOf(query, f)])]
   return (
     <div className="flex flex-col gap-[0.7rem]">
+      {crms.map((a) => (
+        <ScopeSwitch key={accountKey(a)} account={a} pipelines={read.pipelines} />
+      ))}
       <FilterBar query={query} onQuery={setQuery} label={m.search} placeholder={m.searchHint}>
         {listed.length > 1 && (
           <FilterMenu
@@ -207,9 +215,6 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
           {...field("stage")}
         />
       </FilterBar>
-      {crms.map((a) => (
-        <ScopeSwitch key={accountKey(a)} account={a} pipelines={read.pipelines} />
-      ))}
     </div>
   )
 }
