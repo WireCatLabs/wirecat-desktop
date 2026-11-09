@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { formatNumber } from "@/i18n"
 import { cx } from "./cx"
 import { reducedMotion } from "./motion"
 
@@ -363,7 +364,9 @@ export function BoardColumn({
       <h2 className="flex min-h-[3rem] flex-wrap items-center gap-x-[0.55rem] border-line border-b px-[0.9rem] py-[0.4rem]">
         {lamp}
         <span className="min-w-0 truncate text-[1rem] font-semibold">{name}</span>
-        <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{count}</span>
+        <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">
+          {typeof count === "number" ? formatNumber(count) : count}
+        </span>
         {aside && <span className="basis-full text-[0.85rem] font-normal text-ink-soft">{aside}</span>}
       </h2>
       <ul className="flex flex-1 flex-col">

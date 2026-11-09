@@ -1,8 +1,7 @@
 import { columnOf, UNSORTED } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
 import { accountKey, type Kind, moneyOf } from "@/domain/clients"
-import { formatWhen } from "@/domain/runs"
-import { useLang, useMessages } from "@/i18n"
+import { formatDate, type Lang, useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { type Column, DataTable } from "@/ui/DataTable"
@@ -17,6 +16,19 @@ import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
 import { tableMessages } from "./messages-table"
 import { useClients } from "./store"
+
+const WIDTH = { stage: "10rem", amount: "8.5rem", pipeline: "10rem", contact: "10rem", updated: "7rem" }
+const LEAD = "minmax(14rem,1fr)"
+const MIN = "62rem"
+
+/** A CRM's change is news by the day, not the second: the time today, the date before, the year once it differs. */
+function updatedOf(iso: string, now: Date, lang: Lang) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  if (d.toDateString() === now.toDateString()) return formatDate(d, { hour: "2-digit", minute: "2-digit" }, lang)
+  const year = d.getFullYear() === now.getFullYear() ? undefined : "numeric"
+  return formatDate(d, { day: "numeric", month: "short", year }, lang)
+}
 
 const BARE = "w-full border-transparent! bg-transparent! hover:bg-app-3! -ml-[0.45rem] pl-[0.45rem]!"
 
@@ -54,7 +66,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
     {
       id: "stage",
       head: t.stage,
-      width: "11rem",
+      width: WIDTH.stage,
       sortBy: position,
       cell: (c) => (
         <Select
@@ -74,7 +86,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
     {
       id: "amount",
       head: t.amount,
-      width: "9rem",
+      width: WIDTH.amount,
       // A card without an amount sorts after every amount.
       sortBy: (c) => (c.amount ? Number.parseFloat(c.amount) : Number.POSITIVE_INFINITY),
       className: "truncate font-mono text-[0.9rem] tabular-nums",
@@ -83,7 +95,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
     {
       id: "pipeline",
       head: t.pipeline,
-      width: "11rem",
+      width: WIDTH.pipeline,
       cell: (c) => {
         const p = pipes.get(c.pipeline)
         const tool = p?.account ? crmToolOf(p.account.provider) : undefined
@@ -98,17 +110,17 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
     {
       id: "contact",
       head: t.contact,
-      width: "11rem",
+      width: WIDTH.contact,
       className: "truncate text-ink-soft",
       cell: (c) => c.organization ?? c.people[0]?.name ?? "—",
     },
     {
       id: "updated",
       head: t.updated,
-      width: "9.5rem",
+      width: WIDTH.updated,
       sortBy: (c) => c.updatedAt,
       className: "truncate font-mono text-[0.9rem] tabular-nums text-ink-soft",
-      cell: (c) => (c.updatedAt ? formatWhen(c.updatedAt, now, lang) : "—"),
+      cell: (c) => (c.updatedAt ? updatedOf(c.updatedAt, now, lang) : "—"),
     },
   ]
   return (
@@ -118,8 +130,8 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
         rows={cards}
         rowKey={(c) => c.ref}
         columns={columns}
-        leadWidth="minmax(14rem,1fr)"
-        minWidth="70rem"
+        leadWidth={LEAD}
+        minWidth={MIN}
         page={{ index: page, size }}
         below={(c) =>
           failed[c.ref] || refused[c.ref] ? (
@@ -141,5 +153,32 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
         />
       )}
     </>
+  )
+}
+
+/** The table's frame and head at their final size while memo reads, so the rows arrive without the page moving. */
+export function ClientsTableLoading({ kind, label }: { kind: Kind; label: string }) {
+  const m = useMessages(clientMessages)
+  const t = useMessages(tableMessages)
+  const columns: Column<CrmCard>[] = [
+    { id: "title", head: t.title, width: "minmax(0,1fr)", lead: true, cell: () => null },
+    ...(Object.keys(WIDTH) as (keyof typeof WIDTH)[]).map((id) => ({
+      id,
+      head: t[id],
+      width: WIDTH[id],
+      cell: () => null,
+    })),
+  ]
+  return (
+    <DataTable
+      label={m.kinds[kind]}
+      rows={[]}
+      rowKey={(c) => c.ref}
+      columns={columns}
+      leadWidth={LEAD}
+      minWidth={MIN}
+      placeholders={8}
+      loading={label}
+    />
   )
 }

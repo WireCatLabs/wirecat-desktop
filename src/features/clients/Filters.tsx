@@ -1,6 +1,6 @@
 import { Building2, User, Users } from "lucide-react"
 import { crmToolOf } from "@/domain/catalog"
-import { accountKey, busiestOf, type Kind, NOBODY, OWN, ownersOf } from "@/domain/clients"
+import { accountKey, busiestOf, inScope, type Kind, NOBODY, OWN, ownersOf } from "@/domain/clients"
 import { setField, valuesOf } from "@/domain/query-terms"
 import { syncKey, useSync } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -14,7 +14,8 @@ import { type Based, type Ready, useScope, useScopeSet, useWriter } from "./api"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
-const nameOf = (a: CrmAccount | null, own: string) => (a ? `${a.provider} · ${a.account}` : own)
+const nameOf = (a: CrmAccount | null, own: string) =>
+  a ? `${crmToolOf(a.provider)?.name ?? a.provider} · ${a.account}` : own
 
 /** The search field over the chips Tasks uses: pipeline and account read memo again, the rest narrow this read. */
 export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
@@ -130,7 +131,7 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
           {m.chooseProfile}
         </Button>
       )}
-      <span className="max-w-[70ch]">
+      <span className="max-w-[70ch] basis-full text-ink-dim">
         {busy ? m.scopeSaving : m.scopeHint}
         {!busy && profile && settable && ` ${m.scopeAs(profile)}`}
         {!busy && hint && ` ${hint}`}
@@ -160,6 +161,10 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
     selected: valuesOf(query, f),
     onChange: (values: string[]) => setQuery(setField(query, f, values)),
   })
+  // Owners and stages of the chosen accounts and pipelines only: one of another CRM would empty the list. A value
+  // chosen before stays offered, so it can be taken off.
+  const scoped = read.cards.filter((c) => inScope(c, pipelines, accounts))
+  const offeredOf = (f: "owner" | "stage", found: readonly string[]) => [...new Set([...found, ...valuesOf(query, f)])]
   return (
     <div className="flex flex-col gap-[0.7rem]">
       <FilterBar query={query} onQuery={setQuery} label={m.search} placeholder={m.searchHint}>
@@ -190,12 +195,15 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
         )}
         <FilterMenu
           label={m.owner}
-          options={ownersOf(read.cards).map((o) => ({ value: o, label: o === NOBODY ? m.nobody : o }))}
+          options={offeredOf("owner", ownersOf(scoped)).map((o) => ({ value: o, label: o === NOBODY ? m.nobody : o }))}
           {...field("owner")}
         />
         <FilterMenu
           label={m.stage}
-          options={[...new Set(read.cards.map((c) => c.stage))].map((st) => ({ value: st, label: st }))}
+          options={offeredOf(
+            "stage",
+            scoped.map((c) => c.stage),
+          ).map((st) => ({ value: st, label: st }))}
           {...field("stage")}
         />
       </FilterBar>

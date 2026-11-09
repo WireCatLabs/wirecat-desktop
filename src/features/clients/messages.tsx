@@ -1,6 +1,6 @@
 // cspell:words Clientes Сделки Лиды Negociaciones Prospectos
 import type { Kind } from "@/domain/clients"
-import { type Messages, plural } from "@/i18n"
+import { formatNumber, type Messages, plural } from "@/i18n"
 
 type Words = {
   title: string
@@ -25,6 +25,7 @@ type Words = {
   owner: string
   nobody: string
   stage: string
+  stageOf: (title: string) => string
   baseStage: string
   account: string
   column: (name: string, n: number) => string
@@ -92,17 +93,19 @@ const en: Words = {
   },
   noMatch: "Nothing on this board matches.",
   clear: "Clear",
-  more: (n) => `More match than one read holds: the first ${n} are shown. The counts above each column hold them all.`,
+  more: (n) =>
+    `More match than one read holds: the first ${formatNumber(n, "en")} are shown. The counts above each column hold them all.`,
   search: "Search the board",
   searchHint: "Words, owner:, stage:, amount:>=1000",
   owner: "Responsible",
   nobody: "Nobody",
   stage: "Stage",
+  stageOf: (title) => `Stage of ${title}`,
   baseStage: "Base stage",
   account: "Account",
   column: (name, n) => plural("en", n, { one: `${name}, # card`, other: `${name}, # cards` }),
-  columnOf: (name, shown, all) => `${name}, ${shown} of ${all} shown`,
-  of: (shown, all) => `${shown} of ${all}`,
+  columnOf: (name, shown, all) => `${name}, ${formatNumber(shown, "en")} of ${formatNumber(all, "en")} shown`,
+  of: (shown, all) => `${formatNumber(shown, "en")} of ${formatNumber(all, "en")}`,
   emptyColumn: "Nothing here",
   readOnly:
     "Read only: WireCat cannot run this CRM's own tool yet, so a change would stay on this computer. Change stages in the CRM, then sync.",
@@ -155,7 +158,7 @@ const en: Words = {
 const ru: Words = {
   title: "Клиенты",
   intro:
-    "Сделки и лиды из ваших CRM и ваших собственных воронок, по стадиям. Копию хранит Memo; показаны все аккаунты, что в ней есть.",
+    "Сделки и лиды из ваших CRM и ваших собственных воронок, по этапам. Копию хранит Memo; показаны все аккаунты, что в ней есть.",
   readAgain: "Прочитать заново",
   reading: "Читаю…",
   kind: "Показать",
@@ -168,27 +171,28 @@ const ru: Words = {
   tryAgain: "Ещё раз",
   none: { deal: "Сделок пока нет", lead: "Лидов пока нет" },
   noneBody: {
-    deal: "Синхронизируйте CRM или попросите агента записать сделку командой memo deals add. Они появятся здесь по стадиям.",
-    lead: "Синхронизируйте CRM или попросите агента записать лид командой memo leads add. Они появятся здесь по стадиям.",
+    deal: "Синхронизируйте CRM или попросите агента записать сделку командой memo deals add. Они появятся здесь по этапам.",
+    lead: "Синхронизируйте CRM или попросите агента записать лид командой memo leads add. Они появятся здесь по этапам.",
   },
   noMatch: "На доске ничего не подходит.",
   clear: "Сбросить",
   more: (n) =>
-    `Подходит больше, чем помещается в одно чтение: показаны первые ${n}. Числа над колонками учитывают все.`,
+    `Подходит больше, чем помещается в одно чтение: показаны первые ${formatNumber(n, "ru")}. Числа над колонками учитывают все.`,
   search: "Поиск по доске",
   searchHint: "Слова, owner:, stage:, amount:>=1000",
   owner: "Ответственный",
   nobody: "Никто",
-  stage: "Стадия",
-  baseStage: "Базовая стадия",
+  stage: "Этап",
+  stageOf: (title) => `Этап: ${title}`,
+  baseStage: "Базовый этап",
   account: "Аккаунт",
   column: (name, n) =>
     plural("ru", n, { one: `${name}, # карточка`, few: `${name}, # карточки`, other: `${name}, # карточек` }),
-  columnOf: (name, shown, all) => `${name}, показано ${shown} из ${all}`,
-  of: (shown, all) => `${shown} из ${all}`,
+  columnOf: (name, shown, all) => `${name}, показано ${formatNumber(shown, "ru")} из ${formatNumber(all, "ru")}`,
+  of: (shown, all) => `${formatNumber(shown, "ru")} из ${formatNumber(all, "ru")}`,
   emptyColumn: "Пусто",
   readOnly:
-    "Только чтение: WireCat пока не умеет запускать инструмент этой CRM, и изменение осталось бы только на этом компьютере. Меняйте стадии в CRM, затем синхронизируйте.",
+    "Только чтение: WireCat пока не умеет запускать инструмент этой CRM, и изменение осталось бы только на этом компьютере. Меняйте этапы в CRM, затем синхронизируйте.",
   draggable: "перемещаемая карточка",
   dragHint: "Пробел — взять, стрелки — перенести, пробел — положить, Escape — вернуть на место.",
   picked: (ref) => `${ref} взята.`,
@@ -196,7 +200,7 @@ const ru: Words = {
   dropped: (ref, column) => `${ref} перенесена в «${column}».`,
   putBack: (ref, reason) => (reason ? `${ref} вернулась на место: ${reason}` : `${ref} вернулась на место.`),
   readOnlyShort: "карточки этой CRM меняются в самой CRM.",
-  otherPipeline: "карточка переходит только между стадиями своей воронки.",
+  otherPipeline: "карточка переходит только между этапами своей воронки.",
   notMoved: (reason) => `Не перенесено: ${reason}`,
   scope: "Синхронизировать",
   scopes: { mine: "Мои", all: "Все" },
@@ -260,17 +264,18 @@ const es: Words = {
   noMatch: "Nada del tablero coincide.",
   clear: "Borrar",
   more: (n) =>
-    `Coinciden más de los que caben en una lectura: se muestran los primeros ${n}. Los números de cada columna los cuentan todos.`,
+    `Coinciden más de los que caben en una lectura: se muestran los primeros ${formatNumber(n, "es")}. Los números de cada columna los cuentan todos.`,
   search: "Buscar en el tablero",
   searchHint: "Palabras, owner:, stage:, amount:>=1000",
   owner: "Responsable",
   nobody: "Nadie",
   stage: "Etapa",
+  stageOf: (title) => `Etapa de ${title}`,
   baseStage: "Etapa base",
   account: "Cuenta",
   column: (name, n) => plural("es", n, { one: `${name}, # tarjeta`, other: `${name}, # tarjetas` }),
-  columnOf: (name, shown, all) => `${name}, se muestran ${shown} de ${all}`,
-  of: (shown, all) => `${shown} de ${all}`,
+  columnOf: (name, shown, all) => `${name}, se muestran ${formatNumber(shown, "es")} de ${formatNumber(all, "es")}`,
+  of: (shown, all) => `${formatNumber(shown, "es")} de ${formatNumber(all, "es")}`,
   emptyColumn: "Nada aquí",
   readOnly:
     "Solo lectura: WireCat aún no puede ejecutar la herramienta de este CRM, así que un cambio se quedaría en este ordenador. Cambia las etapas en el CRM y sincroniza.",

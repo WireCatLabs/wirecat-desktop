@@ -24,6 +24,8 @@ type ClientsState = {
   /** The CRM account (`accountKey`) the stage mapping dialog is open on; `""` opens it on the CRM that needs it most. */
   mapOn: string | null
   view: View
+  /** The kind and CRM (`kind:accountKey`) whose stage dialog has opened by itself once; it never does so again. */
+  prompted: string[]
   /** The table's page, from 1; a new filter or kind starts again at 1. */
   page: number
   pageSize: number
@@ -53,6 +55,8 @@ type ClientsState = {
   setView(view: View): void
   setPage(page: number): void
   setPageSize(size: number): void
+  /** Marks these `kind:accountKey`s as prompted and opens the dialog on the first one's CRM. */
+  prompt(keys: string[]): void
   setPipelines(pipelines: string[]): void
   setAccounts(accounts: string[]): void
   refuse(ref: string, why: Refusal | null): void
@@ -76,6 +80,7 @@ export const useClients = create<ClientsState>()(
       view: "table",
       page: 1,
       pageSize: 50,
+      prompted: [],
       refused: {},
       pipelines: [],
       accounts: [],
@@ -90,6 +95,8 @@ export const useClients = create<ClientsState>()(
       setView: (view) => set({ view }),
       setPage: (page) => set({ page }),
       setPageSize: (pageSize) => set({ pageSize, page: 1 }),
+      prompt: (keys) =>
+        set((st) => ({ prompted: [...st.prompted, ...keys], mapOn: keys[0]?.slice(keys[0].indexOf(":") + 1) ?? null })),
       setPipelines: (pipelines) => set({ pipelines, page: 1 }),
       setAccounts: (accounts) => set({ accounts, page: 1 }),
       refuse: (ref, why) =>
@@ -111,7 +118,13 @@ export const useClients = create<ClientsState>()(
     {
       name: "wirecat.clients",
       storage: createJSONStorage(() => safeStorage),
-      partialize: (s) => ({ kind: s.kind, pipeline: s.pipeline, view: s.view, pageSize: s.pageSize }),
+      partialize: (s) => ({
+        kind: s.kind,
+        pipeline: s.pipeline,
+        view: s.view,
+        pageSize: s.pageSize,
+        prompted: s.prompted,
+      }),
       // Version 0 remembered the board or the stage mapping view; the table came after, and the owner asked for it.
       version: 1,
       migrate: (kept) => ({ ...(kept as object), view: "table" }),

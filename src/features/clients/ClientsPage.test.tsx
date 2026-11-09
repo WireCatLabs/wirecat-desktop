@@ -23,8 +23,11 @@ function freshMemo(based?: boolean, writer: CrmWriter = "none") {
 }
 
 // A detection started by one test resolves in a later one and replaces its tools: no test starts one.
+// The sample CRMs' stage dialog has opened by itself already; "Confirming a CRM's stages" starts without that.
+const PROMPTED = ["deal", "lead"].flatMap((k) => [`${k}:bitrix24:northstar.example`, `${k}:amocrm:acme.example`])
+
 beforeEach(() => {
-  useClients.setState({ ...useClients.getInitialState(), view: "board" }, true)
+  useClients.setState({ ...useClients.getInitialState(), view: "board", prompted: PROMPTED }, true)
   useTools.setState({ checked: true })
 })
 afterEach(() => vi.restoreAllMocks())
@@ -188,6 +191,34 @@ describe("Clients on the base stages", () => {
     )
   })
 
+  it("changes a card's stage from its details, among its own pipeline's stages", async () => {
+    const user = userEvent.setup()
+    const move = vi.spyOn(platform, "clientsMove")
+    render(<ClientsPage />)
+    await user.click(await card("Site for Northstar"))
+    const dialog = await screen.findByRole("dialog", { name: "Site for Northstar" })
+    await user.click(within(dialog).getByRole("combobox", { name: "Stage of Site for Northstar" }))
+    await user.click(screen.getByRole("option", { name: "Contract" }))
+    expect(move).toHaveBeenCalledWith("deal", "deal:1", "Contract", null)
+  })
+
+  it("offers in Responsible and Stage only what the chosen account holds", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await card("Site for Northstar")
+    useClients.getState().setAccounts(["bitrix24:northstar.example"])
+    const menu = () =>
+      screen.getAllByRole("button", { name: /^Stage/ }).find((b) => b.getAttribute("aria-haspopup") === "listbox")
+    await user.click(menu() as HTMLElement)
+    const stages = screen.getAllByRole("option").map((o) => o.textContent)
+    expect(stages).toContain("New")
+    expect(stages).not.toContain("Quote")
+    await user.keyboard("{Escape}")
+    useClients.getState().setAccounts([])
+    await user.click(menu() as HTMLElement)
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toContain("Quote")
+  })
+
   it("moves the base set's own card at once to the column's stage", async () => {
     const user = userEvent.setup()
     const move = vi.spyOn(platform, "clientsMove")
@@ -203,7 +234,7 @@ describe("Clients on the base stages", () => {
     const move = vi.spyOn(platform, "clientsMove")
     render(<ClientsPage />)
     expect(await screen.findByText(/Read only: WireCat cannot run this CRM's own tool yet/)).toBeInTheDocument()
-    expect(screen.getByText(/Sync · bitrix24 · northstar\.example/)).toBeInTheDocument()
+    expect(screen.getByText(/Sync · Bitrix24 · northstar\.example/)).toBeInTheDocument()
     const chairs = await card("Northstar: 40 office chairs")
     chairs.focus()
     await user.keyboard(" {ArrowRight} ")
@@ -333,7 +364,8 @@ describe("Clients as a table", () => {
   it("opens on the table, and remembers the board once chosen", async () => {
     const user = userEvent.setup()
     const { unmount } = render(<ClientsPage />)
-    expect(await screen.findByRole("table", { name: "Deals" }, { timeout: 4000 })).toBeInTheDocument()
+    expect(await row("Site for Northstar")).toBeInTheDocument()
+    expect(screen.getByRole("table", { name: "Deals" })).toBeInTheDocument()
     await user.click(screen.getByRole("radio", { name: "Board" }))
     expect(await column(/^Quote/)).toBeInTheDocument()
     unmount()
@@ -375,6 +407,30 @@ describe("Clients as a table", () => {
     await user.click(within(map).getByRole("button", { name: "Close" }))
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
     expect(screen.getByRole("table", { name: "Deals" })).toBeInTheDocument()
+  })
+})
+
+describe("Confirming a CRM's stages", () => {
+  beforeEach(() => {
+    freshMemo()
+    useClients.setState({ prompted: [] })
+  })
+
+  it("opens the stage dialog by itself on the first read, once, and the notice stays until they are confirmed", async () => {
+    const user = userEvent.setup()
+    const { unmount } = render(<ClientsPage />)
+    const map = await screen.findByRole("dialog", { name: "Deal stages of your CRMs" }, { timeout: 4000 })
+    expect(within(map).getByRole("radio", { name: "Bitrix24 · northstar.example" })).toBeChecked()
+    await user.click(within(map).getByRole("button", { name: "Close" }))
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
+    expect(screen.getByText(/CRM stages wait for you to confirm them/)).toBeInTheDocument()
+    unmount()
+
+    render(<ClientsPage />)
+    await card("Site for Northstar")
+    expect(screen.queryByRole("dialog")).toBeNull()
+    await user.click(screen.getByRole("button", { name: "Confirm stages" }))
+    expect(await screen.findByRole("dialog", { name: "Deal stages of your CRMs" })).toBeInTheDocument()
   })
 })
 
@@ -466,13 +522,36 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await waitFor(() => expect(screen.getByRole("button", { name: "Confirm: Contract" })).toHaveFocus())
   })
 
+  it("keeps every suggestion clickable while memo writes one, and writes them one after another", async () => {
+    let release = () => {}
+    const set = vi
+      .spyOn(platform, "clientsMapSet")
+      .mockImplementationOnce(() => new Promise<void>((done) => (release = done)))
+    const { user, column } = await openMap()
+    const unmapped = await column(/^Unmapped/)
+    await user.click(within(unmapped).getByRole("button", { name: "Confirm: Call" }))
+    const next = within(await column(/^Unmapped/)).getByRole("button", { name: "Confirm: Contract" })
+    expect(next).toBeEnabled()
+    await user.click(next)
+    expect(set).toHaveBeenCalledTimes(1)
+    release()
+    await waitFor(() => expect(set).toHaveBeenCalledTimes(2))
+  })
+
+  it("accepts every suggestion of the CRM from the Unmapped column", async () => {
+    const confirm = vi.spyOn(platform, "clientsMapConfirm")
+    const { user, column } = await openMap()
+    await user.click(within(await column(/^Unmapped/)).getByRole("button", { name: /^Accept suggestions \(\d+\)$/ }))
+    expect(confirm).toHaveBeenCalled()
+  })
+
   it("confirms only the chosen CRM's suggestions, and Unmapped goes once nothing waits", async () => {
     const confirm = vi.spyOn(platform, "clientsMapConfirm")
     const { user, map, column } = await openMap()
     await user.click(within(map).getByRole("radio", { name: "amocrm · acme.example" }))
     expect(await column(/^Unmapped/)).toHaveTextContent("Estimate")
     expect(map).not.toHaveTextContent("Waiting for payment")
-    await user.click(within(map).getByRole("button", { name: "Confirm stages (1)" }))
+    await user.click(within(map).getByRole("button", { name: "Accept suggestions (1)" }))
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(confirm).toHaveBeenCalledWith("deal", "pipeline:11")
     expect(await within(map).findByText("Every suggestion is confirmed.", {}, { timeout: 4000 })).toBeVisible()
