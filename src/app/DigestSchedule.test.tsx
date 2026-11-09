@@ -131,8 +131,8 @@ describe("the digest history", () => {
     const days = await screen.findByRole("navigation", { name: "Days" })
     expect(days).toHaveTextContent("built later")
 
-    await user.click(screen.getByRole("button", { name: "Fill history…" }))
-    const dialog = await screen.findByRole("dialog", { name: "Fill the history" })
+    await user.click(screen.getByRole("button", { name: "Build past days…" }))
+    const dialog = await screen.findByRole("dialog", { name: "Build the digests of past days" })
     expect(await within(dialog).findByText(/to build/, {}, { timeout: 4000 })).toHaveTextContent(
       /4 days to build \(3 already have one\), about \$1\.08/,
     )
@@ -145,11 +145,11 @@ describe("the digest history", () => {
     expect(await within(dialog).findByText(/Built 11 days/, {}, { timeout: 8000 })).toBeInTheDocument()
   }, 20000)
 
-  it("shows Fill history off when this memo has no digest backfill", async () => {
+  it("shows Build past days off when this memo has no digest backfill", async () => {
     vi.spyOn(platform, "digestBackfill").mockResolvedValue({ state: "unsupported" })
     await openDigests()
     expect(await screen.findByText("Needs a Memo update")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Fill history…" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Build past days…" })).toBeDisabled()
   }, 15000)
 })
 

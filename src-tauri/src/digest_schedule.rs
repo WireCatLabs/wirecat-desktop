@@ -375,6 +375,11 @@ fn error_starts(json: Option<&Value>, prefixes: &[&str]) -> bool {
     json.and_then(|v| v["error"]["message"].as_str()).is_some_and(|m| prefixes.iter().any(|p| m.starts_with(p)))
 }
 
+/// memo checks its required options before its unknown ones, so 0.131.72 asks for `--from` first.
+fn old_range(json: Option<&Value>) -> bool {
+    error_starts(json, &["unknown option '--since-time'", "required option '--from"])
+}
+
 fn unknown_command(json: Option<&Value>) -> bool {
     error_starts(json, &["unknown command 'digest'", "unknown command 'backfill'"])
 }
@@ -386,7 +391,7 @@ pub fn backfill(from: &str, to: &str, yes: bool) -> Result<Backfill, String> {
     let Ok(memo) = memo()? else { return Ok(Backfill::Unsupported) };
     let timeout = if yes { BACKFILL_TIMEOUT } else { Duration::from_mins(1) };
     let (mut out, mut json) = call(memo, &args, timeout)?;
-    if error_starts(json.as_ref(), &["unknown option '--since-time'"]) {
+    if old_range(json.as_ref()) {
         (out, json) = call(memo, &backfill_args(from, to, yes, OLD_RANGE)?, timeout)?;
     }
     if unknown_command(json.as_ref()) {
@@ -503,6 +508,15 @@ mod tests {
         let unknown = json!({"error": {"code": "validation_error", "message": "unknown command 'digest'"}});
         assert!(unknown_command(Some(&unknown)));
         assert!(!unknown_command(Some(&json!({"error": {"message": "unknown option '--since-time'"}}))));
+    }
+
+    #[test]
+    fn an_older_memo_gets_the_old_range() {
+        let error = |m: &str| json!({"error": {"code": "validation_error", "message": m}});
+        assert!(old_range(Some(&error("required option '--from <date>' not specified"))));
+        assert!(old_range(Some(&error("unknown option '--since-time'"))));
+        assert!(!old_range(Some(&error("required option '--name <name>' not specified"))));
+        assert!(!old_range(None));
     }
 
     #[test]

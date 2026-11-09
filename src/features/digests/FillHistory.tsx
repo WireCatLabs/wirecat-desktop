@@ -30,7 +30,7 @@ const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 let building: Promise<Backfill> | null = null
 
 /**
- * "Fill history": memo's `digest backfill` for the last 7, 14 or 30 days. The price comes first (the command without
+ * "Build past days": memo's `digest backfill` for the last 7, 14 or 30 days. The price comes first (the command without
  * `--yes` builds nothing), the build only after the owner confirms that price, and each step stays in this dialog.
  */
 export function FillHistory() {
