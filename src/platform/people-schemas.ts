@@ -20,7 +20,7 @@ export const MatchSchema = v.object({
   proposer: v.nullable(v.object({ kind: v.string(), name: text })),
 })
 
-const ListedSchema = v.object({ ref: v.string(), name: text, owner: v.boolean() })
+const ListedSchema = v.object({ ref: v.string(), name: text, owner: v.boolean(), tasks: v.number() })
 
 export const PeopleReadSchema = v.variant("kind", [
   v.object({ kind: v.literal("missing") }),

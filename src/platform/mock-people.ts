@@ -88,8 +88,45 @@ function seed(): Held[] {
       ),
     ]),
     person("person:5", "Kai M.", [account("max:7731", "Kai M.", [["5", "personal"]], "initial", 9)]),
+    person("person:21", "Marta Gil", [
+      account("whatsapp:34600111222", "Marta", [["7", "personal"]], "initial", 30),
+      account("email:marta@studio.example", "Marta Gil", [["2", "work"]], "same-email", 8),
+    ]),
+    person("person:22", "Marta Gil (Studio)", [
+      account(
+        "bitrix24:https://northstar.example/crm/contact/details/4120/",
+        "Marta Gil",
+        [["acme", "work"]],
+        "initial",
+        6,
+      ),
+    ]),
+    person("person:23", '"CZECH AIRLINES "', [
+      account("email:news@czech.example", '"CZECH AIRLINES "', [["2", "personal"]], "initial", 90),
+    ]),
+    person("person:24", "!", [account("telegram:8812", "!", [["1", "personal"]], "initial", 15, "ivan_petrov")]),
+    ...crowd(),
   ]
 }
+
+/** Enough made-up people for the table to have pages. */
+function crowd(): Held[] {
+  const first = ["Ana", "Bruno", "Chen", "Dana", "Emil", "Farah", "Goran", "Hana", "Ilya", "Jun", "Kira", "Luis"]
+  const last = ["Abad", "Berg", "Costa", "Diaz", "Engel", "Fox", "Grau", "Hill", "Ito", "Jaramillo"]
+  const sources = ["telegram", "max", "whatsapp", "email"]
+  return Array.from({ length: 110 }, (_, n) => {
+    const name = `${first[n % first.length]} ${last[Math.floor(n / first.length) % last.length]}`
+    const ids = Array.from({ length: 1 + (n % 3) }, (_, k) => {
+      const provider = sources[(n + k) % sources.length] ?? "telegram"
+      const id = provider === "email" ? `${name.toLowerCase().replace(" ", ".")}@example.org` : String(9000 + n * 7 + k)
+      return account(`${provider}:${id}`, name, [[String(1 + k), k % 2 ? "work" : "personal"]], "initial", 5 + n)
+    })
+    return { ref: `person:${100 + n}`, name, mergedInto: null, identities: ids, merges: [] }
+  })
+}
+
+/** Tasks the made-up people are assigned. */
+const TASKS: Record<string, number> = { "person:1": 4, "person:7": 3, "person:4": 1, "person:21": 2 }
 
 const MATCHES: Match[] = [
   {
@@ -116,6 +153,18 @@ const MATCHES: Match[] = [
     evidence: [],
     proposer: { kind: "agent", name: "claude-code" },
   },
+  {
+    id: "17102",
+    persons: ["person:22", "person:21"],
+    identity: "bitrix24:https://northstar.example/crm/contact/details/4120/",
+    with: "email:marta@studio.example",
+    joins: "person",
+    signal: "email",
+    candidates: ["person:21", "person:22", "person:108"],
+    reason: null,
+    evidence: ["marta@studio.example"],
+    proposer: { kind: "rule", name: "rule" },
+  },
 ]
 
 export function peopleMock(): Pick<
@@ -139,7 +188,12 @@ export function peopleMock(): Pick<
     await delay(500)
     if (fail === "write") throw new Error(BUSY)
   }
-  const listed = (p: Held): Listed => ({ ref: p.ref, name: p.name, owner: p.ref === "person:1" })
+  const listed = (p: Held): Listed => ({
+    ref: p.ref,
+    name: p.name,
+    owner: p.ref === "person:1",
+    tasks: TASKS[p.ref] ?? 0,
+  })
 
   return {
     async peopleRead() {

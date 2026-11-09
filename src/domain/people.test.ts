@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest"
-import { bySource, canSplit, looksLikeAccount, matchesFilter, reasonOf, scopesOf, touched } from "./people"
+import {
+  bySource,
+  canSplit,
+  cleanName,
+  filterPeople,
+  handleOf,
+  looksLikeAccount,
+  matchesFilter,
+  reasonOf,
+  scopesOf,
+  touched,
+} from "./people"
 
 const id = (identity: string, scopes: (string | null)[] = [], movable = true) => ({
   identity,
@@ -42,6 +53,44 @@ describe("people", () => {
     expect(matchesFilter({ name: "Lena Ortiz", ref: "person:7" }, "lena")).toBe(true)
     expect(matchesFilter({ name: null, ref: "person:7" }, "person:7")).toBe(true)
     expect(matchesFilter({ name: "Kai", ref: "person:4" }, "lena")).toBe(false)
+  })
+
+  it("cleans a name as a source typed it, and has none when no letter is left", () => {
+    expect(cleanName('"CZECH AIRLINES "')).toBe("CZECH AIRLINES")
+    expect(cleanName("  «Анна   Петрова» ")).toBe("Анна Петрова")
+    expect(cleanName('ООО "Ромашка"')).toBe('ООО "Ромашка"')
+    expect(cleanName("!$")).toBeNull()
+    expect(cleanName(null)).toBeNull()
+  })
+
+  it("falls back to a handle, then to an account name with letters", () => {
+    expect(
+      handleOf([
+        { name: "!", username: null },
+        { name: "x", username: "kai_m" },
+      ]),
+    ).toBe("@kai_m")
+    expect(
+      handleOf([
+        { name: "!", username: null },
+        { name: " 'Kai' ", username: null },
+      ]),
+    ).toBe("Kai")
+    expect(handleOf([{ name: "?", username: null }])).toBeNull()
+  })
+
+  it("narrows people to those with tasks or a usable name, the owner always named", () => {
+    const people = [
+      { ref: "person:1", name: null, owner: true, tasks: 0 },
+      { ref: "person:2", name: "!", owner: false, tasks: 2 },
+      { ref: "person:3", name: "Lena", owner: false, tasks: 0 },
+    ]
+    const refs = (f: Partial<Parameters<typeof filterPeople>[1]>) =>
+      filterPeople(people, { query: "", withTasks: false, named: false, ...f }).map((p) => p.ref)
+    expect(refs({})).toEqual(["person:1", "person:2", "person:3"])
+    expect(refs({ withTasks: true })).toEqual(["person:2"])
+    expect(refs({ named: true })).toEqual(["person:1", "person:3"])
+    expect(refs({ query: "len" })).toEqual(["person:3"])
   })
 
   it("words memo's known refusals and leaves the rest in memo's words", () => {
