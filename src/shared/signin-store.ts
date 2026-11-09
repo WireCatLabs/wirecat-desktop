@@ -6,6 +6,7 @@ import { isNewer } from "@/domain/status"
 import { isTelegramAppsUrl, keysStillGood, telegramFailure } from "@/domain/telegram-signin"
 import { platform } from "@/platform/bridge"
 import type { SignInEvent, SignInInputs } from "@/platform/signin-schemas"
+import { useSandbox } from "@/shared/sandbox-store"
 import { useTools } from "@/shared/tools-store"
 
 type Of<K extends SignInEvent["event"]> = Extract<SignInEvent, { event: K }>
@@ -413,9 +414,19 @@ export const useSignIn = create<SignInState>()((set, get) => {
       if (chosen?.password && !ownFile && !typed.password) return set({ planMissing: "password" })
       const setting = chosen?.clientId
       const run = () => get().start(tool, profile, onFinish ?? undefined, method)
-      if (!setting || !ownId.trim()) return run()
-      set({ planError: null })
-      platform.settingsSet(tool, profile, false, setting, ownId.trim()).then(run, (e) => set({ planError: message(e) }))
+      const go = () => {
+        if (!setting || !ownId.trim()) return run()
+        set({ planError: null })
+        platform
+          .settingsSet(tool, profile, false, setting, ownId.trim())
+          .then(run, (e) => set({ planError: message(e) }))
+      }
+      if (!useSandbox.getState().name) return go()
+      const asked = get().run
+      void useSandbox
+        .getState()
+        .confirmSignIn()
+        .then((ok) => ok && get().run === asked && get().phase === "plan" && go())
     },
     again() {
       const { tool, profile, onFinish, method, failure } = get()

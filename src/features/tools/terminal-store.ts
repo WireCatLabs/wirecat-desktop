@@ -1,5 +1,6 @@
 import { create } from "zustand"
 import { platform } from "@/platform/bridge"
+import { useSandbox } from "@/shared/sandbox-store"
 
 /**
  * A sign-in the app handed to a terminal window, per tool. `preview`: the browser build, where no terminal opens.
@@ -20,6 +21,7 @@ type TerminalState = {
 export const useTerminal = create<TerminalState>((set) => ({
   byTool: {},
   async open(tool, profile) {
+    if (!(await useSandbox.getState().confirmSignIn())) return
     let next: TerminalSignIn
     try {
       await platform.openSetup(tool, profile)

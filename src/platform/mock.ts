@@ -349,6 +349,9 @@ export function createMock(os: Platform["os"]): Platform {
     },
     ...communityMock(params),
     ...ownToolsMock(params),
+    async sandbox() {
+      return params.get("sandbox") || null
+    },
     async readiness(): Promise<Readiness> {
       await delay(450)
       const managedInfo = managed ? { version: NODE.version, dir: NODE.dir, active: true } : null

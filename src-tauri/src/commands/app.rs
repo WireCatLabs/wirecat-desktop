@@ -78,6 +78,12 @@ pub async fn readiness() -> Result<system::Readiness, AppError> {
 }
 
 #[tauri::command]
+#[must_use]
+pub fn sandbox() -> Option<String> {
+    system::sandbox()
+}
+
+#[tauri::command]
 pub async fn report_context() -> Result<report::Context, AppError> {
     crate::log::command("report_context", async move { blocking(report::context).await }).await
 }

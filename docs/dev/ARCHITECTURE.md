@@ -50,7 +50,7 @@ src-tauri/src/
   own_scan.rs   what the tool's own JavaScript in the tarball says about the network; bundled libraries are skipped.
   own_risks.rs  the review's things to check: npm, the cli-base and cli-core versions, the scan, and GitHub
                 (`own_tool_risks`, unauthenticated, cached); a check that cannot run says so, none refuses.
-  system.rs     OS, Node.js, npm, npm's global folder and whether it is writable.
+  system.rs     OS, Node.js, npm, npm's global folder and whether it is writable; the sandbox name (`WIRECAT_SANDBOX`).
   npm_prefix.rs where npm installs a tool: npm's own global folder, or the user's (`~/.local`, `%APPDATA%\npm`) when
                 that one needs administrator rights; an update stays where its copy is. `bin/install-e2e` runs the
                 real install and uninstall against a test package; CI runs it on all three systems.

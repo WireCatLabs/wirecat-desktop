@@ -98,6 +98,8 @@ export type Platform = {
   kind: "tauri" | "mock"
   os: "linux" | "macos" | "windows"
   readiness(): Promise<Readiness>
+  /** The name `bin/sandbox` started this copy under (`WIRECAT_SANDBOX`); null in the real app. */
+  sandbox(): Promise<string | null>
   /**
    * The community tools Rust added at start, each with its source: the signed list while "Enable community tools" is
    * on, then `<app data>/extra-tools.json` while "Allow tools WireCat has not checked" is on or

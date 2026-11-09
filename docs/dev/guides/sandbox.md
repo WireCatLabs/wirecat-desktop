@@ -13,6 +13,11 @@ bin/sandbox --list                           # the sandboxes and their presets
 bin/sandbox-check                            # proves that a sandbox keeps away from your own setup
 ```
 
+A sandboxed window says so: `bin/sandbox` sets `WIRECAT_SANDBOX=<name>`, so the window title reads
+"WireCat — sandbox <name>", a banner that cannot be hidden sits across the top of every page, and every sign-in (in
+the window or in a terminal) first warns that it brings a real account's messages into the copy, with Cancel
+focused. The browser build shows the same with `?sandbox=<name>`.
+
 The script runs the binary of the tree it sits in (`src-tauri/target/debug/wirecat-desktop`), so a worktree's script
 runs that worktree's build. Hand the owner the absolute path, e.g.
 `~/Projects/AI/wirecat-desktop/bin/sandbox demo --seed demo`.
