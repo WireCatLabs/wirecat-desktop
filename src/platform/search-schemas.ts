@@ -21,6 +21,7 @@ export const SearchAnswerSchema = v.variant("kind", [
     message: v.string(),
     span: v.nullable(SpanSchema),
   }),
+  v.object({ kind: v.literal("timedOut"), message: v.string(), seconds: v.nullable(v.number()) }),
   v.object({ kind: v.literal("old"), message: v.string() }),
   v.object({
     kind: v.literal("failed"),

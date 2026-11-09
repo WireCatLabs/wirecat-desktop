@@ -396,6 +396,22 @@ function resultsView(
       ),
     }
   }
+  if (answer?.kind === "timedOut")
+    return {
+      view: "timedOut",
+      node: (
+        <ErrorNotice
+          detail={answer.message}
+          action={
+            <Button size="sm" onClick={() => s.search(page)}>
+              {m.tryAgain}
+            </Button>
+          }
+        >
+          {m.timedOut(answer.seconds)}
+        </ErrorNotice>
+      ),
+    }
   if (answer?.kind === "queryError") return { view: "queryError", node: <Empty busy={s.loading}>{m.fixQuery}</Empty> }
   const hits = answer?.kind === "hits" ? answer : null
   if (!hits) {

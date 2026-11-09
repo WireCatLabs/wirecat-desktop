@@ -16,6 +16,7 @@ describe("SearchAnswerSchema", () => {
       },
       { kind: "queryError", reason: "query.invalid-syntax", message: "m", span: null },
       { kind: "queryError", reason: "r", message: "m", span: { start: 0, end: 7 } },
+      { kind: "timedOut", message: "m", seconds: 2 },
       { kind: "old", message: "m" },
       { kind: "failed", message: "m" },
       { kind: "failed", message: "m", candidates: [{ id: "-1001", label: "@kyrillic", field: "chat" }] },
