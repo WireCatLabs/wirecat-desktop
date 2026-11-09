@@ -343,8 +343,8 @@ store open, so a running sync or import is never cut off. Only one backup or cle
 ## The Memory page
 
 What agents concluded about the owner and the people around them, read from memo (plan
-`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.132.0 or newer (`memory.minVersion` in the catalog, a placeholder for
-the memo release that ships `sources` and source reviews); an older one
+`docs/dev/plans/2026-10-31-memory-page.md`). memo 0.131.72 or newer (`memory.minVersion` in the catalog, the memo release that ships
+`sources` with `suggest` and `readers`, and source reviews); an older one
 answers "old" and the page offers its update. `memory_read` runs `memories list`, `facts list`, `actions list --brief`
 (each `--limit 500`) and `agents list --limit 30` at once and returns one newest-first list; a failed activity log still
 shows the entries. memo names each record's project (`project_name`) and gives every action its parts: `verb`,
@@ -427,7 +427,7 @@ its rule `src/domain/relationships.ts`, for any page that shows a relationship.
 
 ## The People page
 
-Who is who across sources, from memo (`people.minVersion` in the catalog; 0.132.0 is a placeholder for the memo release
+Who is who across sources, from memo (`people.minVersion` in the catalog: 0.131.72, the memo release
 with `memo people show|review|scan|link|unlink|unmerge`). `people_read` runs `people list --limit 5000` (memo leaves out
 people merged into others) and `people review --limit 500` at once, and carries each list's `has_more` to the page, which
 says when memo has more than it read. Opening a person runs `people show person:<uid>`: every account grouped by source,
