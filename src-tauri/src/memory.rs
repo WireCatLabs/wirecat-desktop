@@ -328,6 +328,11 @@ fn name_in(title: Option<String>) -> Option<String> {
     }
 }
 
+/// A source's raw record written as the evidence, such as a Drive revision's JSON, is not a reason the owner can read.
+fn is_record(text: &str) -> bool {
+    serde_json::from_str::<Value>(text).is_ok_and(|v| v.is_object() || v.is_array())
+}
+
 /// A row of `relationships list`: `pending` for the proposals (`confirmed:false`), else a link with its standing. A
 /// link that ended goes with what no longer holds; a CRM's `reported` link is in use, as Memo counts it. A memo that
 /// lists proposals beside the links has them in the pending list already, so they are left out of the other.
@@ -340,6 +345,10 @@ fn relationship(v: &Value, pending: bool) -> Option<Entry> {
         })
     };
     if !pending && (standing == "proposed" || v.get("proposer").is_some()) {
+        return None;
+    }
+    // A document's owner or editor, as its source reports it, belongs on the document, not among what memory holds.
+    if standing == "reported" && text(v, "from").is_some_and(|from| from.starts_with("document:")) {
         return None;
     }
     let status = match standing.as_str() {
@@ -368,7 +377,7 @@ fn relationship(v: &Value, pending: bool) -> Option<Entry> {
         project_name: None,
         supersedes: None,
         links: 0,
-        reason: text(v, "evidence"),
+        reason: text(v, "evidence").filter(|e| !is_record(e)),
         account: text(v, "account_id"),
         target: text(v, "to"),
         created_at: text(v, "created_at")?,
@@ -1247,6 +1256,17 @@ mod tests {
                 built_in: false
             }]
         );
+    }
+
+    #[test]
+    fn leaves_out_a_documents_reported_owner_and_never_shows_a_raw_record_as_the_reason() {
+        let mut drive = held_relationship("reported");
+        drive["from"] = json!("document:42");
+        assert!(relationship(&drive, false).is_none());
+        let mut waiting = pending_relationship();
+        waiting["evidence"] = json!(r#"{"fileId":"f-1","version":"68","user":{"email":"owner@example.invalid"}}"#);
+        assert_eq!(relationship(&waiting, true).unwrap().reason, None);
+        assert_eq!(relationship(&held_relationship("reported"), false).unwrap().standing.as_deref(), Some("reported"));
     }
 
     #[test]
