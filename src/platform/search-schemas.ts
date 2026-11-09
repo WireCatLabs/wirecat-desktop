@@ -35,7 +35,14 @@ export const SearchAnswerSchema = v.variant("kind", [
   }),
 ])
 
+/** `search_harder_run`'s answer: the hits in the model's order, or memo's own and why (`search_harder.rs`). */
+export const HarderAnswerSchema = v.object({
+  answer: SearchAnswerSchema,
+  outcome: v.nullable(v.object({ applied: v.boolean(), why: v.nullable(v.string()) })),
+})
+
 export type SearchHit = v.InferOutput<typeof SearchHitSchema>
+export type HarderAnswer = v.InferOutput<typeof HarderAnswerSchema>
 export type SearchAnswer = v.InferOutput<typeof SearchAnswerSchema>
 
 export const ValueItemSchema = v.object({

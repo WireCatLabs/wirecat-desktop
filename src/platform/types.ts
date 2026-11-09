@@ -40,6 +40,7 @@ import type {
   FolderAdded,
   FolderLevel,
   FolderRemoved,
+  HarderStatus,
   MailAgent,
   NotesFolderAdded,
   NotesFolderRemoved,
@@ -49,6 +50,7 @@ import type {
   OwnDiscovery,
   OwnSignal,
   OwnStatus,
+  SearchHarder,
   SendTo,
   SyncSchedule,
   TemplatePreview,
@@ -103,7 +105,7 @@ import type {
   StorageFolder,
   ToolState,
 } from "./schemas"
-import type { QueryDraft, SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
+import type { HarderAnswer, QueryDraft, SearchAnswer, SearchContext, ValueItem } from "./search-schemas"
 import type { Settings } from "./settings-schemas"
 import type { SignInEvent, SignInInputs } from "./signin-schemas"
 import type { Background, BackgroundAction, BackgroundOutcome, LastSync, SyncEvent } from "./sync-schemas"
@@ -131,6 +133,9 @@ export type AppUpdate = { version: string; notes: string | null; kind: UpdateKin
 export type { PackageOutcome, UpdateFailure, UpdateKind, UpdateProgress }
 
 /** Everything the interface may ask of the machine. Each call names a known operation, never a command line. */
+/** The provider, model and address the owner picks for search harder; a null model is memo's default. */
+export type HarderChoice = { provider: string; model: string | null; baseUrl: string | null }
+
 export type Platform = {
   kind: "tauri" | "mock"
   os: "linux" | "macos" | "windows"
@@ -501,6 +506,19 @@ export type Platform = {
   enrichmentKeyRemove(id: string, provider: string): Promise<EnrichmentStatus>
   /** Turns it off; memo deletes what the model wrote. */
   enrichmentOff(id: string): Promise<EnrichmentStatus>
+  /**
+   * memo's `models search-consents show` (`searchHarder` in the catalog): whether a hosted model may reorder a search's
+   * first hits. `old` below the catalog's `minVersion`, and always while it is null (no such memo released yet).
+   */
+  searchHarderStatus(id: string): Promise<SearchHarder>
+  /** What allowing it with this choice sends and where (`set` without `--yes`); changes nothing. A null model is memo's default. */
+  searchHarderPreview(id: string, choice: HarderChoice): Promise<HarderStatus>
+  /** Allows it; only after the owner agreed in the consent step. Rust checks the provider, model and address. */
+  searchHarderOn(id: string, choice: HarderChoice): Promise<HarderStatus>
+  /** memo's `search-consents revoke`: nothing is sent again until the owner allows it again. */
+  searchHarderOff(id: string): Promise<HarderStatus>
+  /** One search the owner asked to search harder: its question and first hits go to the model he allowed. */
+  searchHarderRun(id: string, query: string, limit: number): Promise<HarderAnswer>
   /** memo's first run (`notesSetup` in the catalog): its notes folders on this computer and the search model. */
   notesSetupStatus(id: string): Promise<NotesSetup>
   /** The system's own folder window; the chosen path, or null when the owner closes it. */

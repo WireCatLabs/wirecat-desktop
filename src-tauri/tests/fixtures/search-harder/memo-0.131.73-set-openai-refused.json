@@ -1,0 +1,10 @@
+{
+  "error": {
+    "code": "validation_error",
+    "reason": "input.invalid",
+    "message": "search all --harder calls anthropic only, not openai",
+    "retry": {
+      "safe": false
+    }
+  }
+}

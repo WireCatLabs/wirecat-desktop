@@ -30,6 +30,7 @@ import { recordsMock } from "./mock-records"
 import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
+import { searchHarderMock } from "./mock-search-harder"
 import { settingsMock } from "./mock-settings"
 import { SHOWCASE_VERSIONS, showcase, showcaseMock } from "./mock-showcase"
 import { isMockLogin, linkedProfiles, signInMock } from "./mock-signin"
@@ -723,6 +724,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...notesSetupMock(params),
     ...recordsMock(params),
     ...enrichmentMock(params),
+    ...searchHarderMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),
     ...cloudflareMock(),

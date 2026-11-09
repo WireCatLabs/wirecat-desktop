@@ -70,6 +70,7 @@ mod report;
 mod run;
 mod runs;
 mod search;
+mod search_harder;
 mod self_test;
 mod settings;
 mod signin;
@@ -365,6 +366,11 @@ pub fn run() {
             commands::search::message_stats,
             commands::search::analytics_aggregate,
             commands::search::search_context,
+            commands::search_harder::search_harder_status,
+            commands::search_harder::search_harder_preview,
+            commands::search_harder::search_harder_on,
+            commands::search_harder::search_harder_off,
+            commands::search_harder::search_harder_run,
             commands::search::search_draft,
             commands::search::search_values,
             commands::search::show_run,

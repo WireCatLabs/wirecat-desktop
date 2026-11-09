@@ -1,4 +1,4 @@
-import { ExternalLink, Search, X } from "lucide-react"
+import { AlertTriangle, ExternalLink, Search, Sparkles, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { formatWhen, parseQuery } from "@/domain/runs"
@@ -16,7 +16,7 @@ import {
   valuesInHits,
 } from "@/domain/search"
 import { QueryBar } from "@/features/query"
-import { ToolNeeded } from "@/features/tools"
+import { providerName, ToolNeeded, useSearchHarder } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { SearchAnswer, SearchHit } from "@/platform/search-schemas"
@@ -454,6 +454,7 @@ function resultsView(
           </p>
         ))}
       </div>
+      {s.tool && page === 1 && <HarderBar m={m} toolId={s.tool} count={hits.hits.length} />}
       {s.groupBy ? (
         <Grouped hits={hits.hits} field={s.groupBy} now={now} m={m} />
       ) : (
@@ -463,6 +464,48 @@ function resultsView(
     </div>
   )
   return { view: "hits", node }
+}
+
+/**
+ * memo's search harder for the shown query: offered only once the owner allowed it in memo's settings, and only for
+ * the first page of two or more results. After it, what the model did, in place of the offer.
+ */
+function HarderBar({ m, toolId, count }: { m: Words; toolId: string; count: number }) {
+  const s = useSearch()
+  const allowed = Boolean(findTool(toolId)?.searchHarder)
+  const state = useSearchHarder(toolId, allowed && !s.demo)
+  const status = state.data?.state === "ready" && state.data.status.on ? state.data.status : null
+  const provider = status ? providerName(status.provider) : ""
+  if (s.harder)
+    return (
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem]" aria-live="polite">
+        <p className={cx("flex items-start gap-2", s.harder.applied ? "text-ink" : "text-ink-soft")}>
+          {s.harder.applied ? (
+            <Sparkles className="mt-[0.2rem] size-4 shrink-0 text-brand" aria-hidden />
+          ) : (
+            <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
+          )}
+          <span>
+            {s.harder.applied ? m.harderApplied(provider, status?.model ?? "") : m.harderKept(s.harder.why ?? "")}
+          </span>
+        </p>
+        <Button size="sm" variant="ghost" disabled={s.loading} onClick={() => s.search(1)}>
+          {m.usualOrder}
+        </Button>
+      </div>
+    )
+  if (!status || count < 2) return null
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem]">
+      <Button size="sm" variant="secondary" disabled={s.loading} onClick={() => s.searchHarder()}>
+        <Sparkles className="size-4" aria-hidden />
+        {m.harder}
+      </Button>
+      <span className="text-ink-dim" aria-live="polite">
+        {s.loading ? m.harderBusy : m.harderNote(status.candidates, provider)}
+      </span>
+    </div>
+  )
 }
 
 /** Adds the term and searches again: a filter from a result is a new search, not a filter of this page. */

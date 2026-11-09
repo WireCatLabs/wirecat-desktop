@@ -53,7 +53,13 @@ import { ImportOutcomeSchema, RecordTypesSchema } from "./records-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
 import type { InstallEvent, NodeEvent } from "./schemas"
-import { QueryDraftSchema, SearchAnswerSchema, SearchContextSchema, ValueItemSchema } from "./search-schemas"
+import {
+  HarderAnswerSchema,
+  QueryDraftSchema,
+  SearchAnswerSchema,
+  SearchContextSchema,
+  ValueItemSchema,
+} from "./search-schemas"
 import { SettingsSchema } from "./settings-schemas"
 import { SignInEventSchema } from "./signin-schemas"
 import type { SyncEvent } from "./sync-schemas"
@@ -329,6 +335,11 @@ function createTauri(): Platform {
     enrichmentOff: (id) => invoke("enrichment_off", { id }),
     enrichmentKeySet: (id, provider, key) => invoke("enrichment_key_set", { id, provider, key }),
     enrichmentKeyRemove: (id, provider) => invoke("enrichment_key_remove", { id, provider }),
+    searchHarderStatus: (id) => invoke("search_harder_status", { id }),
+    searchHarderPreview: (id, choice) => invoke("search_harder_preview", { id, choice }),
+    searchHarderOn: (id, choice) => invoke("search_harder_on", { id, choice }),
+    searchHarderOff: (id) => invoke("search_harder_off", { id }),
+    searchHarderRun: (id, query, limit) => call(HarderAnswerSchema, "search_harder_run", { id, query, limit }),
     notesSetupStatus: (id) => invoke("notes_setup_status", { id }),
     notesPickFolder: () => invoke("notes_pick_folder"),
     notesFolderAdd: (id, path) => invoke("notes_folder_add", { id, path }),

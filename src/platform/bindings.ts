@@ -571,6 +571,35 @@ export type FolderLevel =
 
 export type FolderRemoved = { result: "removed" } | { result: "failed"; message: string; code: string | null; reason: string | null };
 
+/**
+ *  Whether the model's order replaced memo's own. memo's `--json` answer says only when it did not, as an `order`
+ *  entry under `missing`, in English.
+ */
+export type HarderOutcome = {
+	applied: boolean,
+	why: string | null,
+};
+
+/**  What `show` and `set` report; never a question or a hit. */
+export type HarderStatus = {
+	on: boolean,
+	provider: string,
+	model: string,
+	endpointHost: string,
+	/**  The address when the owner gave one (`OpenRouter`…), so the form can show it again. */
+	baseUrl: string | null,
+	/**  memo proposed the provider and model the owner chose for enrichment. */
+	proposedFromEnrichment: boolean,
+	consentedAt: string | null,
+	/**  How many of the first hits go to the model, and how much of each one's text. */
+	candidates: number,
+	charsPerHit: number,
+	/**  `None` for a model memo has no price for. */
+	usdPerMillionInput: number | null,
+	usdPerMillionOutput: number | null,
+	key: EnrichmentKey,
+};
+
 export type Install = {
 	path: string,
 	version: string | null,
@@ -1094,6 +1123,10 @@ export type ScheduleRun = {
 	skipped: Skipped | null,
 	deliveries: Delivery[],
 };
+
+export type SearchHarder = 
+/**  The installed memo is older than `need`, or `need` is `None`: no memo with it is released yet. */
+{ state: "old"; version: string | null; need: string | null } | { state: "ready"; status: HarderStatus };
 
 /**  Where a run made now goes: everywhere the schedule sends it, only into the app, or to some of its routes. */
 export type SendTo = { kind: "all" } | { kind: "here" } | { kind: "only"; routes: string[] };

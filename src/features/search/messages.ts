@@ -181,6 +181,13 @@ const en = {
   shownOf: (from: number, to: number, total: number, atLeast: boolean) =>
     `Showing ${from}–${to} of ${formatNumber(total, "en")}${atLeast ? "+" : ""} results`,
   bestOnly: (n: number) => `The best ${n}; this search has no further pages. Narrow the query to see others.`,
+  harder: "Search harder",
+  harderNote: (n: number, provider: string) => `Sends your question and the first ${n} results to ${provider}`,
+  harderBusy: "The model is reading the results…",
+  harderApplied: (provider: string, model: string) =>
+    `Reordered by ${provider} ${model}: the results that answer your question come first.`,
+  harderKept: (why: string) => `memo's usual order: the model did not reorder it (${why}).`,
+  usualOrder: "Back to the usual order",
   when: "When",
   where: "Where",
   who: "From",
@@ -400,6 +407,13 @@ const ru: typeof en = {
     `${plural("ru", n, { one: "# результат", few: "# результата", many: "# результатов", other: "# результата" })}${page > 1 ? ` на странице ${page}` : ""}`,
   shownOf: (from, to, total, atLeast) => `Показаны ${from}–${to} из ${formatNumber(total, "ru")}${atLeast ? "+" : ""}`,
   bestOnly: (n) => `Лучшие ${n}; у этого поиска нет следующих страниц. Уточните запрос, чтобы увидеть другие.`,
+  harder: "Искать тщательнее",
+  harderNote: (n, provider) => `Отправит ваш вопрос и первые ${n} результатов в ${provider}`,
+  harderBusy: "Модель читает результаты…",
+  harderApplied: (provider, model) =>
+    `Порядок изменил ${provider} ${model}: вперёд поставлены результаты, которые отвечают на вопрос.`,
+  harderKept: (why) => `Обычный порядок memo: модель его не изменила. Причина (слова memo): ${why}.`,
+  usualOrder: "Вернуть обычный порядок",
   when: "Когда",
   where: "Где",
   who: "От кого",
@@ -624,6 +638,13 @@ const es: typeof en = {
   shownOf: (from, to, total, atLeast) =>
     `Mostrando ${from}–${to} de ${formatNumber(total, "es")}${atLeast ? "+" : ""} resultados`,
   bestOnly: (n) => `Los ${n} mejores; esta búsqueda no tiene más páginas. Acota la consulta para ver otros.`,
+  harder: "Buscar a fondo",
+  harderNote: (n, provider) => `Envía tu pregunta y los primeros ${n} resultados a ${provider}`,
+  harderBusy: "El modelo está leyendo los resultados…",
+  harderApplied: (provider, model) =>
+    `Reordenado por ${provider} ${model}: primero van los resultados que responden a tu pregunta.`,
+  harderKept: (why) => `Orden habitual de memo: el modelo no lo cambió. Motivo (en palabras de memo): ${why}.`,
+  usualOrder: "Volver al orden habitual",
   when: "Cuándo",
   where: "Dónde",
   who: "De",

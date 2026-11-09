@@ -1,11 +1,13 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { Enrichment } from "@/platform/bindings"
+import type { Enrichment, SearchHarder } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { Background, BackgroundAction } from "@/platform/sync-schemas"
+import type { HarderChoice } from "@/platform/types"
 import { profilesQuery } from "@/shared/query"
 
 export const toolKeys = {
   enrichment: (id: string) => ["tool", id, "enrichment"] as const,
+  searchHarder: (id: string) => ["tool", id, "searchHarder"] as const,
   background: (id: string, profile: string) => ["tool", id, "background", profile] as const,
   permissions: (id: string, profile: string | null) => ["tool", id, "permissions", profile] as const,
 }
@@ -115,7 +117,34 @@ export function useEnrichmentKey(id: string) {
       "key" in change
         ? platform.enrichmentKeySet(id, change.provider, change.key)
         : platform.enrichmentKeyRemove(id, change.provider),
+    onSuccess: (status) => {
+      client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment)
+      // The same key serves search harder.
+      client.invalidateQueries({ queryKey: toolKeys.searchHarder(id) })
+    },
+  })
+}
+
+/** Whether memo may have a hosted model reorder one search's first hits, and which model. */
+export function useSearchHarder(id: string, enabled = true) {
+  return useQuery({
+    queryKey: toolKeys.searchHarder(id),
+    queryFn: () => platform.searchHarderStatus(id),
+    enabled,
+  })
+}
+
+/** Where allowing it sends a search and what it sends. A mutation: it runs only while the consent step is open. */
+export function useSearchHarderPreview(id: string) {
+  return useMutation({ mutationFn: (c: HarderChoice) => platform.searchHarderPreview(id, c) })
+}
+
+/** `null` revokes; a choice allows it with that provider, model and address. */
+export function useSetSearchHarder(id: string) {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: (c: HarderChoice | null) => (c ? platform.searchHarderOn(id, c) : platform.searchHarderOff(id)),
     onSuccess: (status) =>
-      client.setQueryData(toolKeys.enrichment(id), { state: "ready", status } satisfies Enrichment),
+      client.setQueryData(toolKeys.searchHarder(id), { state: "ready", status } satisfies SearchHarder),
   })
 }

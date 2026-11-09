@@ -1,5 +1,6 @@
 import type { Enrichment, EnrichmentOffer, EnrichmentStatus, EnrichmentTarget } from "./bindings"
 import { delay } from "./mock-delay"
+import { providerKeys } from "./mock-provider-keys"
 import type { Platform } from "./types"
 
 // memo's search rewriting, in the shape memo 0.131.61 prints: off at first, with the default offer priced.
@@ -41,13 +42,13 @@ export function enrichmentMock(
 > {
   const scenario = params.get("enrich")
   const keyScenario = params.get("enrich-key")
-  let keyFound = scenario !== "nokey"
+  providerKeys.found = scenario !== "nokey"
   const keySource = keyScenario === "env" ? "env" : "keyring"
   const target = (provider: string, model: string): EnrichmentTarget => ({
     provider,
     model,
     endpointHost: HOSTS[provider] ?? provider,
-    key: keyFound
+    key: providerKeys.found
       ? { present: true, source: keySource, envVar: ENV[provider] ?? null }
       : { present: false, source: null, envVar: ENV[provider] ?? null },
     priceKnown: true,
@@ -101,13 +102,13 @@ export function enrichmentMock(
     async enrichmentKeySet() {
       await delay(700)
       if (params.get("enrich-key-fail")) throw new Error("could not reach the system keyring or write the key file")
-      keyFound = true
+      providerKeys.found = true
       current = { ...current, target: current.target && target(current.target.provider, current.target.model) }
       return current
     },
     async enrichmentKeyRemove() {
       await delay(600)
-      keyFound = false
+      providerKeys.found = false
       current = { ...current, target: current.target && target(current.target.provider, current.target.model) }
       return current
     },

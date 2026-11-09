@@ -27,6 +27,7 @@ import { copiesMessages } from "./messages-copies"
 import { Permissions } from "./Permissions"
 import { type Copy, RemoveCopyDialog, removable } from "./RemoveCopy"
 import { RemoveOwn } from "./RemoveOwn"
+import { SearchHarder } from "./SearchHarder"
 import { Service } from "./Service"
 import { FitDetails } from "./StorageFit"
 import { toolText } from "./tool-text"
@@ -219,6 +220,7 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
       {installs.length > 0 && tool.permissions && <Permissions tool={tool} />}
       {installs.length > 0 && tool.notesSetup && <MemoSetup tool={tool} />}
       {installs.length > 0 && tool.enrichment && <Enrichment tool={tool} />}
+      {installs.length > 0 && tool.searchHarder && <SearchHarder tool={tool} />}
       {installs.length > 0 && tool.background && <Service tool={tool} />}
       {installs.length > 0 && tool.mailAgent && <MailAgent tool={tool} />}
       {installs.length > 0 && tool.mcpServer && <McpServer tool={tool} />}

@@ -1,0 +1,41 @@
+{
+  "items": [
+    {
+      "kind": "note",
+      "ref": "note:2",
+      "provider": "notes",
+      "account": "internal",
+      "title": null,
+      "timestamp": "2026-11-09T17:07:22.997Z",
+      "excerpt": "Budget review notes from the October call",
+      "found_by": ["words"]
+    },
+    {
+      "kind": "note",
+      "ref": "note:1",
+      "provider": "notes",
+      "account": "internal",
+      "title": null,
+      "timestamp": "2026-11-09T17:07:22.548Z",
+      "excerpt": "Budget plan for the offsite: venue, travel and food",
+      "found_by": ["words"]
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 5,
+    "has_more": false
+  },
+  "missing": [
+    {
+      "field": "found_by",
+      "why": "embeddinggemma is not downloaded \u2014 `memo models download embeddinggemma`"
+    }
+  ],
+  "meta": {
+    "run_id": "20261109T170738Z-process-2ffc62",
+    "duration_ms": 65,
+    "accounts": ["notes:internal"],
+    "complete": true
+  }
+}
