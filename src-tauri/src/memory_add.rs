@@ -664,7 +664,7 @@ mod tests {
         let shown = show_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), "document:2").unwrap();
         assert_eq!((shown.file_name.as_deref(), shown.kept.as_deref()), (Some("notes.txt"), Some("copy")));
         assert!(shown.text.starts_with("Call with Lena Ortiz."));
-        assert!(shown.subjects.is_empty());
+        assert_eq!(shown.subjects, Vec::<Linked>::new());
     }
 
     #[test]
