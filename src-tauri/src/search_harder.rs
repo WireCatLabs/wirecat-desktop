@@ -334,6 +334,8 @@ mod tests {
     const ON_OPENROUTER: &str =
         include_str!("../tests/fixtures/search-harder/source-cli-core-abc155262-show-on-openrouter.json");
     const NOT_APPLIED: &str = include_str!("../tests/fixtures/search-harder/memo-0.131.74-harder-no-consent.json");
+    // The owner's one real run on synthetic notes, OpenAI gpt-4o-mini (bin/harder-live-check).
+    const APPLIED: &str = include_str!("../tests/fixtures/search-harder/memo-0.131.74-harder-applied-openai.json");
 
     fn parse(s: &str) -> Value {
         serde_json::from_str(s).unwrap()
@@ -475,26 +477,16 @@ mod tests {
         assert_eq!(refusal(&output(2, "", ""), Some(&json)), "search all --harder calls anthropic only, not openai");
     }
 
-    /// memo 0.131.74's answer as if the model had reordered it: the fields cli-base 0.94.0's `meta.ranking` sets then.
-    fn reordered() -> Value {
-        let mut v = parse(NOT_APPLIED);
-        v["missing"] = json!([]);
-        v["meta"]["ranking"] = json!({"applied": true, "provider": "openai", "model": "gpt-4o-mini",
-            "endpoint": "https://api.openai.com/v1", "sent": 2, "cost_usd": 0.0002, "ms": 900});
-        v
-    }
-
     #[test]
     fn the_outcome_is_memos_ranking_block() {
-        let body = reordered();
         let applied = with_outcome(
-            search::read_shaped(SearchShape::Items, false, &output(0, &body.to_string(), ""), 50),
-            Some(&body),
+            search::read_shaped(SearchShape::Items, false, &output(0, APPLIED, ""), 50),
+            Some(&parse(APPLIED)),
         );
         let outcome = applied.outcome.unwrap();
         assert!(outcome.applied);
         assert_eq!((outcome.reason, outcome.why), (None, None));
-        assert_eq!((outcome.model.as_str(), outcome.cost_usd), ("gpt-4o-mini", Some(0.0002)));
+        assert_eq!((outcome.model.as_str(), outcome.cost_usd), ("gpt-4o-mini", Some(0.000_033)));
         let search::Answer::Hits { hits, paged, .. } = &applied.answer else { panic!() };
         assert_eq!((hits.len(), *paged), (2, false));
 

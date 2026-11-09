@@ -1,0 +1,54 @@
+{
+  "items": [
+    {
+      "kind": "note",
+      "ref": "note:1",
+      "provider": "notes",
+      "account": "internal",
+      "title": null,
+      "timestamp": "2026-11-09T22:36:54.302Z",
+      "excerpt": "Budget for the garden shed: 400 euros, decided with Ana in March",
+      "found_by": ["words"]
+    },
+    {
+      "kind": "note",
+      "ref": "note:2",
+      "provider": "notes",
+      "account": "internal",
+      "title": null,
+      "timestamp": "2026-11-09T22:36:54.792Z",
+      "excerpt": "Budget review moved to Friday",
+      "found_by": ["words"]
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 5,
+    "has_more": false
+  },
+  "missing": [
+    {
+      "field": "found_by",
+      "why": "embeddinggemma is not downloaded \u2014 `memo models download embeddinggemma`"
+    }
+  ],
+  "meta": {
+    "run_id": "synthetic",
+    "duration_ms": 1207,
+    "accounts": ["notes:internal"],
+    "ranking": {
+      "applied": true,
+      "provider": "openai",
+      "model": "gpt-4o-mini",
+      "endpoint": "https://api.openai.com/v1",
+      "sent": 2,
+      "cost_usd": 3.3e-5,
+      "usage": {
+        "input": 186,
+        "output": 9
+      },
+      "ms": 1124
+    },
+    "complete": true
+  }
+}
