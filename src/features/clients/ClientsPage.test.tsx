@@ -4,7 +4,7 @@ import { useSync } from "@/features/tools"
 import { platform } from "@/platform/bridge"
 import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
-import { render, screen, waitFor, within } from "@/testing/render"
+import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { ClientsPage } from "./ClientsPage"
 import { useClients } from "./store"
 
@@ -391,6 +391,16 @@ describe("Mapping a CRM's stages onto the base set", () => {
     await user.click(within(map).getByRole("button", { name: "Remove Won" }))
     expect(await within(map).findByText(/This is the last "Won" stage/)).toBeInTheDocument()
     expect(edit).toHaveBeenCalledTimes(1)
+  })
+
+  it("cancels a rename with Escape and keeps the dialog open", async () => {
+    const { user, map } = await openMap()
+    await user.click(within(map).getByRole("button", { name: "Rename Quote" }))
+    const field = within(map).getByRole("textbox", { name: "New name for Quote" })
+    // A dialog closes on an Escape whose default is left to run.
+    expect(fireEvent.keyDown(field, { key: "Escape" })).toBe(false)
+    expect(within(map).queryByRole("textbox", { name: "New name for Quote" })).toBeNull()
+    expect(useClients.getState().mapOn).not.toBeNull()
   })
 
   it("adds a won stage and refuses a name another stage has", async () => {
