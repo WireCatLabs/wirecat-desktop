@@ -80,13 +80,20 @@ pub struct HarderChoice {
     pub base_url: Option<String>,
 }
 
-/// Whether the model's order replaced memo's own. memo's `--json` answer says only when it did not, as an `order`
-/// entry under `missing`, in English.
-#[derive(specta::Type, Debug, Serialize, Clone, PartialEq, Eq)]
+/// What memo's `meta.ranking` says of one search harder: whether the model's order replaced memo's own, and the model
+/// and cost of the call.
+#[derive(specta::Type, Debug, Serialize, Clone, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct HarderOutcome {
     pub applied: bool,
+    /// memo's id for why not (`harder.no-key`), which the interface words in its own language.
+    pub reason: Option<String>,
+    /// memo's English for the same, shown only for an id the interface does not know.
     pub why: Option<String>,
+    pub provider: String,
+    pub model: String,
+    /// `None` when memo has no price for the model.
+    pub cost_usd: Option<f64>,
 }
 
 #[derive(Debug, Serialize, PartialEq)]
@@ -266,7 +273,8 @@ pub fn turn_off(tool: &Tool) -> Result<HarderStatus, String> {
 
 const NOT_REORDERED: &str = "not reordered by the model: ";
 
-/// memo's `order` note leaves the general notes and becomes the outcome; without one, the model's order stands.
+/// memo's `order` note leaves the general notes: the outcome says it, in the owner's language. No `meta.ranking`, no
+/// outcome: the window then claims nothing about the order.
 fn with_outcome(answer: search::Answer, body: Option<&Value>) -> HarderAnswer {
     let search::Answer::Hits { hits, has_more, paged, notes, total } = answer else {
         return HarderAnswer { answer, outcome: None };
@@ -279,11 +287,19 @@ fn with_outcome(answer: search::Answer, body: Option<&Value>) -> HarderAnswer {
         .and_then(|m| m["why"].as_str())
         .map(str::to_string);
     let notes = notes.into_iter().filter(|n| Some(n) != order.as_ref()).collect();
-    let outcome = HarderOutcome {
-        applied: order.is_none(),
-        why: order.map(|w| w.strip_prefix(NOT_REORDERED).map_or(w.clone(), str::to_string)),
-    };
-    HarderAnswer { answer: search::Answer::Hits { hits, has_more, paged, notes, total }, outcome: Some(outcome) }
+    let outcome = body.map(|b| &b["meta"]["ranking"]).filter(|r| r.is_object()).map(|r| {
+        let text = |k: &str| r[k].as_str().map(str::to_string);
+        let applied = r["applied"].as_bool() == Some(true);
+        HarderOutcome {
+            applied,
+            reason: text("reason_id").filter(|_| !applied),
+            why: order.filter(|_| !applied).map(|w| w.strip_prefix(NOT_REORDERED).map_or(w.clone(), str::to_string)),
+            provider: text("provider").unwrap_or_default(),
+            model: text("model").unwrap_or_default(),
+            cost_usd: r["cost_usd"].as_f64(),
+        }
+    });
+    HarderAnswer { answer: search::Answer::Hits { hits, has_more, paged, notes, total }, outcome }
 }
 
 /// One search the owner asked to search harder: the question and its first hits go to the model he agreed to.
@@ -312,12 +328,12 @@ mod tests {
     const UNKNOWN_OPTION: &str =
         include_str!("../tests/fixtures/search-harder/memo-0.131.73-harder-unknown-option.json");
     const ALL_NOTES: &str = include_str!("../tests/fixtures/search-harder/memo-0.131.73-search-all-notes.json");
-    // Not from a released memo: written from the source of cli-core abc155262 (#2792) and cli-memo #774.
+    // Not from a released memo: written from the source of cli-core abc155262 (#2792).
     const OPENAI_PREVIEW: &str =
         include_str!("../tests/fixtures/search-harder/source-cli-core-abc155262-set-openai-preview.json");
     const ON_OPENROUTER: &str =
         include_str!("../tests/fixtures/search-harder/source-cli-core-abc155262-show-on-openrouter.json");
-    const NOT_APPLIED: &str = include_str!("../tests/fixtures/search-harder/source-cli-memo-774-harder-no-key.json");
+    const NOT_APPLIED: &str = include_str!("../tests/fixtures/search-harder/memo-0.131.74-harder-no-consent.json");
 
     fn parse(s: &str) -> Value {
         serde_json::from_str(s).unwrap()
@@ -418,12 +434,8 @@ mod tests {
         assert!(!gate(&src, Some("0.131.73")));
         assert!(!gate(&src, None));
         assert!(gate(&src, Some("0.132.0")));
-        let memo = catalog::tool("memo").unwrap();
-        if memo.search_harder.as_ref().unwrap().min_version.is_none() {
-            assert!(matches!(status(memo).unwrap(), SearchHarder::Old { need: None, .. }));
-            assert!(turn_on(memo, &choice("anthropic", None, None)).is_err());
-            assert!(run(memo, "budget", 10).is_err());
-        }
+        // The first memo on npm with `--harder` and `meta.ranking`.
+        assert_eq!(memo_source().min_version.as_deref(), Some("0.131.74"));
     }
 
     #[test]
@@ -463,13 +475,26 @@ mod tests {
         assert_eq!(refusal(&output(2, "", ""), Some(&json)), "search all --harder calls anthropic only, not openai");
     }
 
+    /// memo 0.131.74's answer as if the model had reordered it: the fields cli-base 0.94.0's `meta.ranking` sets then.
+    fn reordered() -> Value {
+        let mut v = parse(NOT_APPLIED);
+        v["missing"] = json!([]);
+        v["meta"]["ranking"] = json!({"applied": true, "provider": "openai", "model": "gpt-4o-mini",
+            "endpoint": "https://api.openai.com/v1", "sent": 2, "cost_usd": 0.0002, "ms": 900});
+        v
+    }
+
     #[test]
-    fn the_outcome_is_applied_unless_memo_says_why_not() {
+    fn the_outcome_is_memos_ranking_block() {
+        let body = reordered();
         let applied = with_outcome(
-            search::read_shaped(SearchShape::Items, false, &output(0, ALL_NOTES, ""), 50),
-            Some(&parse(ALL_NOTES)),
+            search::read_shaped(SearchShape::Items, false, &output(0, &body.to_string(), ""), 50),
+            Some(&body),
         );
-        assert_eq!(applied.outcome, Some(HarderOutcome { applied: true, why: None }));
+        let outcome = applied.outcome.unwrap();
+        assert!(outcome.applied);
+        assert_eq!((outcome.reason, outcome.why), (None, None));
+        assert_eq!((outcome.model.as_str(), outcome.cost_usd), ("gpt-4o-mini", Some(0.0002)));
         let search::Answer::Hits { hits, paged, .. } = &applied.answer else { panic!() };
         assert_eq!((hits.len(), *paged), (2, false));
 
@@ -479,9 +504,16 @@ mod tests {
         );
         let outcome = kept.outcome.unwrap();
         assert!(!outcome.applied);
-        assert_eq!(outcome.why.as_deref(), Some("no key for the provider"));
+        assert_eq!(outcome.reason.as_deref(), Some("harder.no-consent"));
+        assert!(outcome.why.unwrap().starts_with("the owner has not agreed"));
         let search::Answer::Hits { notes, .. } = &kept.answer else { panic!() };
         assert!(notes.iter().all(|n| !n.contains("reordered")), "{notes:?}");
+
+        let plain = with_outcome(
+            search::read_shaped(SearchShape::Items, false, &output(0, ALL_NOTES, ""), 50),
+            Some(&parse(ALL_NOTES)),
+        );
+        assert_eq!(plain.outcome, None);
 
         let old =
             search::read_shaped(SearchShape::Items, false, &output(2, "", &parse(UNKNOWN_OPTION).to_string()), 50);
@@ -507,6 +539,7 @@ mod tests {
         );
         let v = serde_json::to_value(a).unwrap();
         assert_eq!(v["answer"]["kind"], "hits");
-        assert_eq!(v["outcome"], json!({"applied": false, "why": "no key for the provider"}));
+        assert_eq!(v["outcome"]["reason"], "harder.no-consent");
+        assert_eq!(v["outcome"]["costUsd"], 0.0);
     }
 }

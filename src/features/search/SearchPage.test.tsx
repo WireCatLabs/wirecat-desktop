@@ -1,6 +1,6 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import type { HarderStatus } from "@/platform/bindings"
+import type { HarderOutcome, HarderStatus } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useTools } from "@/shared/tools-store"
@@ -243,13 +243,18 @@ describe("Search", () => {
   it("offers memo's search harder only once allowed, and says whether the model reordered the hits", async () => {
     const user = userEvent.setup()
     const status = vi.spyOn(platform, "searchHarderStatus").mockResolvedValue({ state: "ready", status: allowed })
+    const used = { provider: "openai", model: "gpt-4o-mini" }
+    let outcome: HarderOutcome = {
+      applied: false,
+      reason: "harder.no-key",
+      why: "no key for the provider",
+      ...used,
+      costUsd: 0,
+    }
     const harder = vi.spyOn(platform, "searchHarderRun").mockImplementation(async (id, query, limit) => {
       const plain = await platform.searchStore(id, null, query, limit, 1)
       if (plain.kind !== "hits") throw new Error("the mock answers hits")
-      return {
-        answer: { ...plain, paged: false, total: null },
-        outcome: { applied: false, why: "no key for the provider" },
-      }
+      return { answer: { ...plain, paged: false, total: null }, outcome }
     })
     render(<SearchPage />)
     await choose(user, "Tool", "Memo")
@@ -260,14 +265,20 @@ describe("Search", () => {
 
     await user.click(screen.getByRole("button", { name: "Search harder" }))
     expect(
-      await screen.findByText("memo's usual order: the model did not reorder it (no key for the provider)."),
+      await screen.findByText("memo's usual order: memo has no key for the provider, nothing was sent."),
     ).toBeInTheDocument()
     expect(harder).toHaveBeenCalledWith("memo", "plan", 50)
     expect(screen.queryByRole("button", { name: "Next page" })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole("button", { name: "Back to the usual order" }))
     expect(await screen.findByText("Showing 1–50 of 128 results", {}, { timeout: 3000 })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Search harder" })).toBeInTheDocument()
+    outcome = { applied: true, reason: null, why: null, ...used, costUsd: 0.0003 }
+    await user.click(screen.getByRole("button", { name: "Search harder" }))
+    expect(
+      await screen.findByText(
+        "Reordered by OpenAI gpt-4o-mini: the results that answer your question come first. It cost less than $0.01.",
+      ),
+    ).toBeInTheDocument()
   }, 15000)
 
   it("sends only the query of the results on screen, never text typed since", async () => {

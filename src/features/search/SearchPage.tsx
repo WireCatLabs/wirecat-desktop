@@ -1,6 +1,7 @@
 import { AlertTriangle, ExternalLink, Search, Sparkles, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
+import { formatUsd } from "@/domain/mail-agent"
 import { formatWhen, parseQuery } from "@/domain/runs"
 import {
   ambiguousTerm,
@@ -19,7 +20,7 @@ import { QueryBar } from "@/features/query"
 import { providerName, ToolNeeded, useSearchHarder } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { SearchAnswer, SearchHit } from "@/platform/search-schemas"
+import type { HarderAnswer, SearchAnswer, SearchHit } from "@/platform/search-schemas"
 import { DemoNote } from "@/shared/DemoNote"
 import { ReportThis } from "@/shared/ReportThis"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -468,6 +469,17 @@ function resultsView(
   return { view: "hits", node }
 }
 
+function HarderOutcomeText({ m, outcome }: { m: Words; outcome: NonNullable<HarderAnswer["outcome"]> }) {
+  const lang = useLang()
+  if (outcome.applied) {
+    const usd = outcome.costUsd
+    const cost = usd === null || usd === 0 ? null : usd < 0.01 ? m.harderLessThanCent : formatUsd(usd, lang)
+    return m.harderApplied(providerName(outcome.provider), outcome.model, cost)
+  }
+  const ours = outcome.reason ? m.harderReasons[outcome.reason] : undefined
+  return ours ? m.harderKeptBecause(ours) : m.harderKept(outcome.why ?? outcome.reason ?? "")
+}
+
 /**
  * memo's search harder for the shown query: offered only once the owner allowed it in memo's settings, and only for
  * the first page of two or more results. After it, what the model did, in place of the offer.
@@ -493,7 +505,7 @@ function HarderBar({ m, toolId, count }: { m: Words; toolId: string; count: numb
                 <AlertTriangle className="mt-[0.2rem] size-4 shrink-0 text-warn" aria-hidden />
               )}
               <span>
-                {s.harder.applied ? m.harderApplied(provider, status?.model ?? "") : m.harderKept(s.harder.why ?? "")}
+                <HarderOutcomeText m={m} outcome={s.harder} />
               </span>
             </p>
             {current && (

@@ -84,18 +84,18 @@ export function searchHarderMock(
       await delay(1200)
       if (answer.kind !== "hits") return { answer, outcome: null }
       const hits = answer.hits.slice(0, limit)
-      if (!providerKeys.found)
-        return {
-          answer: { ...answer, hits, paged: false },
-          outcome: { applied: false, why: "no key for the provider" },
-        }
-      if (params.get("harder-run") === "kept")
-        return {
-          answer: { ...answer, hits, paged: false },
-          outcome: { applied: false, why: "the model did not answer within 5 s" },
-        }
+      const used = { provider: chosen.provider, model: status(on, chosen).model }
+      const kept = (reason: string, why: string) => ({
+        answer: { ...answer, hits, paged: false },
+        outcome: { applied: false, reason, why, ...used, costUsd: 0 },
+      })
+      if (!providerKeys.found) return kept("harder.no-key", "no key for the provider")
+      if (params.get("harder-run") === "kept") return kept("harder.timeout", "the model did not answer within 5 s")
       const moved = [...hits.slice(0, 30).reverse(), ...hits.slice(30)]
-      return { answer: { ...answer, hits: moved, hasMore: false, paged: false }, outcome: { applied: true, why: null } }
+      return {
+        answer: { ...answer, hits: moved, hasMore: false, paged: false },
+        outcome: { applied: true, reason: null, why: null, ...used, costUsd: 0.0003 },
+      }
     },
   }
 }

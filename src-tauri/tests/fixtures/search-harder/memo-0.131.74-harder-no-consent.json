@@ -1,0 +1,55 @@
+{
+  "items": [
+    {
+      "kind": "note",
+      "ref": "note:2",
+      "provider": "notes",
+      "account": "internal",
+      "title": null,
+      "timestamp": "2026-11-09T21:55:35.595Z",
+      "excerpt": "Budget review moved to Friday",
+      "found_by": ["words"]
+    },
+    {
+      "kind": "note",
+      "ref": "note:1",
+      "provider": "notes",
+      "account": "internal",
+      "title": null,
+      "timestamp": "2026-11-09T21:55:35.037Z",
+      "excerpt": "Budget for the garden shed: 400 euros, decided with Ana in March",
+      "found_by": ["words"]
+    }
+  ],
+  "page": {
+    "mode": "page",
+    "limit": 5,
+    "has_more": false
+  },
+  "missing": [
+    {
+      "field": "found_by",
+      "why": "embeddinggemma is not downloaded \u2014 `memo models download embeddinggemma`"
+    },
+    {
+      "field": "order",
+      "why": "not reordered by the model: the owner has not agreed to send searches to a hosted model: `memo models search-consents set <provider> --yes`; nothing was sent"
+    }
+  ],
+  "meta": {
+    "run_id": "synthetic",
+    "duration_ms": 101,
+    "accounts": ["notes:internal"],
+    "ranking": {
+      "applied": false,
+      "provider": "anthropic",
+      "model": "claude-haiku-5-5",
+      "endpoint": "https://api.anthropic.com",
+      "sent": 0,
+      "cost_usd": 0,
+      "ms": 0,
+      "reason_id": "harder.no-consent"
+    },
+    "complete": true
+  }
+}

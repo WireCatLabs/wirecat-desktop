@@ -33,11 +33,10 @@ const openai: HarderStatus = {
 
 afterEach(() => vi.restoreAllMocks())
 
-it("is offered only for memo, and waits for a memo release that has it", () => {
+it("is offered only for memo, from the first memo on npm that has it", () => {
   expect(memo.searchHarder).not.toBeNull()
   expect(findTool("tg")?.searchHarder).toBeNull()
-  // The owner's rule: the catalog names only a version already on npm.
-  expect(memo.searchHarder?.minVersion).toBeNull()
+  expect(memo.searchHarder?.minVersion).toBe("0.131.74")
 })
 
 it("says that no memo release can search harder yet", async () => {

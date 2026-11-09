@@ -572,12 +572,19 @@ export type FolderLevel =
 export type FolderRemoved = { result: "removed" } | { result: "failed"; message: string; code: string | null; reason: string | null };
 
 /**
- *  Whether the model's order replaced memo's own. memo's `--json` answer says only when it did not, as an `order`
- *  entry under `missing`, in English.
+ *  What memo's `meta.ranking` says of one search harder: whether the model's order replaced memo's own, and the model
+ *  and cost of the call.
  */
 export type HarderOutcome = {
 	applied: boolean,
+	/**  memo's id for why not (`harder.no-key`), which the interface words in its own language. */
+	reason: string | null,
+	/**  memo's English for the same, shown only for an id the interface does not know. */
 	why: string | null,
+	provider: string,
+	model: string,
+	/**  `None` when memo has no price for the model. */
+	costUsd: number | null,
 };
 
 /**  What `show` and `set` report; never a question or a hit. */
