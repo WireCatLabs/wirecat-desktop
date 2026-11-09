@@ -192,9 +192,10 @@ describe("editing a digest", () => {
   it("saves the days and sources picked, and a route from the suggested bot and own chat", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openMorning(ready([morning]))
-    await user.click(screen.getByRole("radio", { name: "On days" }))
-    await user.click(screen.getByRole("button", { name: /^tue/i }))
-    await user.click(screen.getByRole("button", { name: "Mail" }))
+    const settings = screen.getByRole("region", { name: "Settings" })
+    await user.click(within(settings).getByRole("radio", { name: "On days" }))
+    await user.click(within(settings).getByRole("button", { name: /^tue/i }))
+    await user.click(within(settings).getByRole("button", { name: "Mail" }))
 
     await user.click(screen.getByRole("combobox", { name: "Account" }))
     await user.click(await screen.findByRole("option", { name: "alerts" }))
@@ -203,7 +204,7 @@ describe("editing a digest", () => {
     await user.click(screen.getByRole("button", { name: "Add" }))
     expect(screen.getByText(/alerts → user:1001/)).toBeInTheDocument()
 
-    await user.click(within(screen.getByRole("region", { name: "Settings" })).getByRole("button", { name: "Save" }))
+    await user.click(within(settings).getByRole("button", { name: "Save" }))
     await waitFor(() =>
       expect(save).toHaveBeenCalledWith(
         expect.objectContaining({
