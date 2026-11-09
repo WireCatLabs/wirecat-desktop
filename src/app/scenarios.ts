@@ -56,10 +56,10 @@ export async function runMockScenario() {
     useNav.getState().go("tasks")
   }
   const clients = params.get("clients")
-  const clientsView = params.get("clients-view")
-  if (clients || clientsView || params.get("kind") === "lead") {
+  const clientsMap = params.get("clients-map")
+  if (clients || clientsMap !== null || params.get("kind") === "lead") {
     if (params.get("kind") === "lead") useClients.setState({ kind: "lead" })
-    if (clientsView === "stages" || clientsView === "board") useClients.setState({ view: clientsView })
+    if (clientsMap !== null) useClients.setState({ mapOn: clientsMap })
     useNav.getState().go("clients")
   }
   const task = params.get("task")

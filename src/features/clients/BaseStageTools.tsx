@@ -179,6 +179,8 @@ function NameForm(props: {
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Escape") {
+            // Cancels the name only: a dialog holding the field stays open.
+            e.preventDefault()
             e.stopPropagation()
             props.onCancel()
           }

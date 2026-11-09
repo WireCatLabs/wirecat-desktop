@@ -1,6 +1,6 @@
 import { useRef, useState } from "react"
 import { baseColumnsOf, columnOf, dropOf, type Refusal, UNSORTED } from "@/domain/base-stages"
-import { amountsOf, type Kind, sumsOf } from "@/domain/clients"
+import { accountKey, amountsOf, type Kind, sumsOf } from "@/domain/clients"
 import { useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
 import { Board, BoardColumn, DragCopy, DropLine, useBoardDrag, useSlide } from "@/ui/Board"
@@ -120,7 +120,7 @@ export function BaseBoard({
               count={items}
               aside={
                 id === UNSORTED ? (
-                  <Button size="sm" variant="ghost" onClick={() => useClients.getState().setView("stages")}>
+                  <Button size="sm" variant="ghost" onClick={() => useClients.getState().openMap("")}>
                     {s.mapStages}
                   </Button>
                 ) : amounts.length ? (
@@ -144,7 +144,7 @@ export function BaseBoard({
                       ghost={drag?.key === ref}
                       held={held?.key === ref}
                       badge={badge(c)}
-                      notice={why && <Refused why={why} />}
+                      notice={why && <Refused why={why} account={accountKey(c.account)} />}
                       onPointerDown={movable ? (e) => onPointerDown(e, ref) : undefined}
                       onKeyDown={(e) => {
                         if (movable || e.key === "Enter") onKeyDown(e, ref)
@@ -188,7 +188,7 @@ export function BaseBoard({
   )
 }
 
-function Refused({ why }: { why: Refusal }) {
+function Refused({ why, account }: { why: Refusal; account: string }) {
   const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
   const mappable = why === "unmapped" || why === "unconfirmed"
@@ -201,7 +201,7 @@ function Refused({ why }: { why: Refusal }) {
           variant="ghost"
           onClick={(e) => {
             e.stopPropagation()
-            useClients.getState().setView("stages")
+            useClients.getState().openMap(account)
           }}
         >
           {s.mapStages}

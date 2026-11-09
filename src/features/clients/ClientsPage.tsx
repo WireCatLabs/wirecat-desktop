@@ -1,4 +1,4 @@
-import { Columns3, Handshake, LayoutGrid, RefreshCw, UserRoundPlus } from "lucide-react"
+import { Columns3, Handshake, RefreshCw, UserRoundPlus } from "lucide-react"
 import { crmToolOf } from "@/domain/catalog"
 import { inScope, KINDS, type Kind, matches } from "@/domain/clients"
 import { gapFromRead } from "@/domain/needs"
@@ -9,6 +9,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { type Based, type Ready, readAgain, useBoard } from "./api"
@@ -18,11 +19,10 @@ import { ClientsBoard } from "./ClientsBoard"
 import { BaseFilters, ClientsFilters } from "./Filters"
 import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
-import { StageMap } from "./StageMap"
-import { useClients, type View } from "./store"
+import { StageMapDialog } from "./StageMapDialog"
+import { useClients } from "./store"
 
 const ICONS: Record<Kind, typeof Handshake> = { deal: Handshake, lead: UserRoundPlus }
-const VIEWS: Record<View, typeof Handshake> = { board: LayoutGrid, stages: Columns3 }
 
 export function ClientsPage() {
   const m = useMessages(clientMessages)
@@ -30,8 +30,8 @@ export function ClientsPage() {
   const pipeline = useClients((s) => s.pipeline[kind] ?? null)
   const board = useBoard(kind, pipeline)
   const usable = board.data?.kind === "ready" || board.data?.kind === "base"
-  const view = useClients((s) => s.view)
   const sm = useMessages(stageMessages)
+  const waiting = board.data?.kind === "base" ? board.data.unsorted.stages : 0
   return (
     <div className="flex min-w-0 flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -51,16 +51,16 @@ export function ClientsPage() {
             <StableText value={board.isFetching ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
           </Button>
           {board.data?.kind === "base" && (
-            <Segmented<View>
-              label={sm.view}
-              value={view}
-              onChange={(v) => useClients.getState().setView(v)}
-              labelClass=""
-              options={(["board", "stages"] as const).map((v) => {
-                const Icon = VIEWS[v]
-                return { value: v, label: sm.views[v], icon: <Icon className="size-4" aria-hidden /> }
-              })}
-            />
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={waiting > 0 ? sm.mapWaiting(waiting) : undefined}
+              onClick={() => useClients.getState().openMap("")}
+              icon={<Columns3 className="size-4" aria-hidden />}
+            >
+              {sm.mapStages}
+              {waiting > 0 && <Pill tone="warn">{waiting}</Pill>}
+            </Button>
           )}
           <Segmented<Kind>
             label={m.kind}
@@ -77,6 +77,7 @@ export function ClientsPage() {
       {usable && <CrmNeeded />}
       <Body />
       <CardDialog />
+      <StageMapDialog />
     </div>
   )
 }
@@ -128,11 +129,9 @@ function Body() {
 
 function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
   const m = useMessages(clientMessages)
-  const view = useClients((s) => s.view)
   const query = useClients((s) => s.query)
   const pipelines = useClients((s) => s.pipelines)
   const accounts = useClients((s) => s.accounts)
-  if (view === "stages") return <StageMap read={read} kind={kind} />
   const shown = read.cards.filter((c) => inScope(c, pipelines, accounts) && matches(c, query))
   const filtered = query.trim() !== "" || pipelines.length > 0 || accounts.length > 0
   return (

@@ -24,7 +24,8 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // (Sales, Leads), the board's columns are its stages, and a CRM pipeline's card stands under the base stage its stage
 // is confirmed onto. Northstar sales maps onto it, with "Preparing documents" and "Invoice sent" both on Quote (a drop
 // there asks which), none on Contract (a drop there is refused) and "Waiting for payment" unmapped; Northstar partners
-// and the "In progress" lead stage are suggestions not confirmed yet. Drops of the portal's cards need crm-write or
+// and the "In progress" lead stage are suggestions not confirmed yet. A second CRM, Acme on amoCRM, has one pipeline of
+// stages and no cards; its Estimate is a suggestion not confirmed yet. Drops of the portal's cards need crm-write or
 // crm-profiles.
 // `?clients=no-base` is a memo without base stages: one pipeline's own stages, as before, with Partners.
 
@@ -33,6 +34,8 @@ const scenario = params.get("clients") ?? "default"
 const BUSY = "another process holds the store (store.busy); try again in a minute"
 
 export const NORTHSTAR: CrmAccount = { provider: "bitrix24", account: "northstar.example" }
+/** A second CRM, with stages only: the mapping dialog switches between the two. */
+const ACME: CrmAccount = { provider: "amocrm", account: "acme.example" }
 
 type Pipe = {
   ref: string
@@ -114,6 +117,19 @@ const ALL_PIPES: Pipe[] = [
       ["Offer", "open"],
       ["Signed", "won"],
       ["Rejected", "lost"],
+    ],
+  },
+  {
+    ref: "pipeline:11",
+    name: "Acme projects",
+    kind: "deal",
+    account: ACME,
+    only: "base",
+    stages: [
+      ["Brief", "open"],
+      ["Estimate", "open"],
+      ["Done", "won"],
+      ["Cancelled", "lost"],
     ],
   },
   {
@@ -268,6 +284,12 @@ const MAPS: Record<string, Record<string, [string, boolean]>> = {
     Signed: ["Won", false],
     Rejected: ["Lost", false],
   },
+  "pipeline:11": {
+    Brief: ["Call", true],
+    Estimate: ["Quote", false],
+    Done: ["Won", true],
+    Cancelled: ["Lost", true],
+  },
   "pipeline:8": {
     "Not processed": ["new", true],
     "In progress": ["contacted", false],
@@ -350,7 +372,7 @@ export type CrmWriter = "none" | "one" | "choose"
 const SCENARIO_WRITER: CrmWriter = scenario === "crm-write" ? "one" : scenario === "crm-profiles" ? "choose" : "none"
 
 const writesWithOf = (writer: CrmWriter, account: CrmAccount | null): CrmWritesWith | null =>
-  account === null || writer === "none"
+  account?.account !== NORTHSTAR.account || writer === "none"
     ? null
     : writer === "one"
       ? { tool: "b24", account, profile: "work", profiles: ["work"], why: null }

@@ -46,39 +46,58 @@ const MOVE_MS = 220
 
 const modifier = (e: { altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => e.altKey || e.ctrlKey || e.metaKey
 
+type Places = Map<string, { x: number; y: number }>
+
 /**
- * Cards that changed place slide from where they were, so a drop or a refusal is seen, never a jump. Places are kept
- * relative to the board, so scrolling the page between two changes is not mistaken for a move. `layout` is any value
- * that changes when the cards do.
+ * Cards that changed place slide from where they were, so a drop or a refusal is seen, never a jump. Columns do the
+ * same when one comes or goes (the stage map's Unmapped), and a new column fades in. A card in a moving column slides
+ * only by its own part of the move, or the two would add up. Places are kept relative to the board, so scrolling the
+ * page between two changes is not mistaken for a move. `layout` is any value that changes when the cards do.
  */
 export function useSlide(board: RefObject<HTMLElement | null>, layout: unknown) {
-  const last = useRef(new Map<string, { x: number; y: number }>())
+  const last = useRef<{ cards: Places; columns: Places } | null>(null)
   // biome-ignore lint/correctness/useExhaustiveDependencies: the cards are read from the page after each change of layout
   useLayoutEffect(() => {
     const grid = board.current
     if (!grid) return
     const g = grid.getBoundingClientRect()
-    const cards = grid.querySelectorAll<HTMLElement>("[data-card]")
-    const next = new Map<string, { x: number; y: number }>()
-    for (const el of cards) {
-      const r = el.getBoundingClientRect()
-      next.set(el.dataset.card ?? "", { x: r.left - g.left + grid.scrollLeft, y: r.top - g.top })
-    }
-    if (!reducedMotion()) {
-      for (const el of cards) {
-        const before = last.current.get(el.dataset.card ?? "")
-        const now = next.get(el.dataset.card ?? "")
-        if (!before || !now) continue
-        const dx = before.x - now.x
-        const dy = before.y - now.y
-        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue
-        el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
-          duration: MOVE_MS,
-          easing: "cubic-bezier(0.25, 1, 0.5, 1)",
-        })
+    const read = (kind: "card" | "column") => {
+      const places: Places = new Map()
+      for (const el of grid.querySelectorAll<HTMLElement>(`[data-${kind}]`)) {
+        const r = el.getBoundingClientRect()
+        places.set(el.dataset[kind] ?? "", { x: r.left - g.left + grid.scrollLeft, y: r.top - g.top })
       }
+      return places
     }
+    const next = { cards: read("card"), columns: read("column") }
+    const before = last.current
     last.current = next
+    if (!before || reducedMotion() || typeof grid.animate !== "function") return
+    const shift = (from: Places, to: Places, key: string) => {
+      const a = from.get(key)
+      const b = to.get(key)
+      return a && b ? { dx: a.x - b.x, dy: a.y - b.y } : null
+    }
+    const slide = (el: HTMLElement, dx: number, dy: number) => {
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], {
+        duration: MOVE_MS,
+        easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+      })
+    }
+    for (const el of grid.querySelectorAll<HTMLElement>("[data-column]")) {
+      const id = el.dataset.column ?? ""
+      const d = shift(before.columns, next.columns, id)
+      if (d) slide(el, d.dx, d.dy)
+      else if (before.columns.size > 0) el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: MOVE_MS })
+    }
+    for (const el of grid.querySelectorAll<HTMLElement>("[data-card]")) {
+      const d = shift(before.cards, next.cards, el.dataset.card ?? "")
+      if (!d) continue
+      const column = el.closest<HTMLElement>("[data-column]")?.dataset.column ?? ""
+      const carried = shift(before.columns, next.columns, column) ?? { dx: 0, dy: 0 }
+      slide(el, d.dx - carried.dx, d.dy - carried.dy)
+    }
   }, [layout])
 }
 
@@ -189,6 +208,8 @@ export function useBoardDrag<C extends string = string>(o: {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (!drag) return
       if (e.key === "Escape") {
+        // The drag takes this Escape: a dialog holding the board stays open.
+        e.preventDefault()
         press.current = null
         dropped.current = true
         setDrag(null)

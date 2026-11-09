@@ -42,3 +42,5 @@ draft and the tag (`git push origin :refs/tags/v<version>`) and run `bin/tag-rel
 - Never publish a release by hand from a local build: only CI has the updater and signing keys.
 - Never move a published tag. Bump the version instead.
 - A release with a missing platform in `latest.json` is not published. Re-run that system's build job.
+- A catalog `minVersion` (`catalog/tools.json`) names only a CLI version already on npm. Set it in a Desktop PR after
+  that CLI's release (owner's ruling, 2026-11-09).
