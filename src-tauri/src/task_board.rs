@@ -4,9 +4,10 @@
 //! keep the owner's notes in Memo's run log. Every write passes the revision the page read, so Memo refuses an edit made
 //! on a stale copy (`task.stale`) instead of undoing an agent's change.
 
+use crate::catalog::Tool;
 use crate::memo_cli::{Call, Failure, memo, too_old, with_memo};
-use crate::tools;
 use crate::skills::body;
+use crate::tools;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
