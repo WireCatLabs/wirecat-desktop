@@ -14,7 +14,8 @@ import { type Based, type Ready, useScope, useScopeSet, useWriter } from "./api"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
-const nameOf = (a: CrmAccount | null, own: string) => (a ? `${a.provider} · ${a.account}` : own)
+const nameOf = (a: CrmAccount | null, own: string) =>
+  a ? `${crmToolOf(a.provider)?.name ?? a.provider} · ${a.account}` : own
 
 /** The search field over the chips Tasks uses: pipeline and account read memo again, the rest narrow this read. */
 export function ClientsFilters({ read, kind }: { read: Ready; kind: Kind }) {
@@ -130,7 +131,7 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
           {m.chooseProfile}
         </Button>
       )}
-      <span className="max-w-[70ch]">
+      <span className="max-w-[70ch] basis-full text-ink-dim">
         {busy ? m.scopeSaving : m.scopeHint}
         {!busy && profile && settable && ` ${m.scopeAs(profile)}`}
         {!busy && hint && ` ${hint}`}

@@ -1,8 +1,7 @@
 import { columnOf, UNSORTED } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
 import { accountKey, type Kind, moneyOf } from "@/domain/clients"
-import { formatWhen } from "@/domain/runs"
-import { useLang, useMessages } from "@/i18n"
+import { formatDate, type Lang, useLang, useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { type Column, DataTable } from "@/ui/DataTable"
@@ -17,6 +16,15 @@ import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
 import { tableMessages } from "./messages-table"
 import { useClients } from "./store"
+
+/** A CRM's change is news by the day, not the second: the time today, the date before, the year once it differs. */
+function updatedOf(iso: string, now: Date, lang: Lang) {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  if (d.toDateString() === now.toDateString()) return formatDate(d, { hour: "2-digit", minute: "2-digit" }, lang)
+  const year = d.getFullYear() === now.getFullYear() ? undefined : "numeric"
+  return formatDate(d, { day: "numeric", month: "short", year }, lang)
+}
 
 const BARE = "w-full border-transparent! bg-transparent! hover:bg-app-3! -ml-[0.45rem] pl-[0.45rem]!"
 
@@ -54,7 +62,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
     {
       id: "stage",
       head: t.stage,
-      width: "11rem",
+      width: "10rem",
       sortBy: position,
       cell: (c) => (
         <Select
@@ -74,7 +82,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
     {
       id: "amount",
       head: t.amount,
-      width: "9rem",
+      width: "8.5rem",
       // A card without an amount sorts after every amount.
       sortBy: (c) => (c.amount ? Number.parseFloat(c.amount) : Number.POSITIVE_INFINITY),
       className: "truncate font-mono text-[0.9rem] tabular-nums",
@@ -83,7 +91,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
     {
       id: "pipeline",
       head: t.pipeline,
-      width: "11rem",
+      width: "10rem",
       cell: (c) => {
         const p = pipes.get(c.pipeline)
         const tool = p?.account ? crmToolOf(p.account.provider) : undefined
@@ -98,17 +106,17 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
     {
       id: "contact",
       head: t.contact,
-      width: "11rem",
+      width: "10rem",
       className: "truncate text-ink-soft",
       cell: (c) => c.organization ?? c.people[0]?.name ?? "—",
     },
     {
       id: "updated",
       head: t.updated,
-      width: "9.5rem",
+      width: "7rem",
       sortBy: (c) => c.updatedAt,
       className: "truncate font-mono text-[0.9rem] tabular-nums text-ink-soft",
-      cell: (c) => (c.updatedAt ? formatWhen(c.updatedAt, now, lang) : "—"),
+      cell: (c) => (c.updatedAt ? updatedOf(c.updatedAt, now, lang) : "—"),
     },
   ]
   return (
@@ -119,7 +127,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
         rowKey={(c) => c.ref}
         columns={columns}
         leadWidth="minmax(14rem,1fr)"
-        minWidth="70rem"
+        minWidth="62rem"
         page={{ index: page, size }}
         below={(c) =>
           failed[c.ref] || refused[c.ref] ? (

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { crmToolOf } from "@/domain/catalog"
 import { moneyOf } from "@/domain/clients"
 import { formatDate, useLang, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
@@ -58,7 +59,9 @@ export function CardDialog() {
           <Row label={m.closedReason}>{card.closedReason}</Row>
           <Row label={m.project}>{card.projectName}</Row>
           <Row label={m.account}>
-            {card.account ? `${card.account.provider} · ${card.account.account}` : m.ownAccount}
+            {card.account
+              ? `${crmToolOf(card.account.provider)?.name ?? card.account.provider} · ${card.account.account}`
+              : m.ownAccount}
           </Row>
         </dl>
       )}
