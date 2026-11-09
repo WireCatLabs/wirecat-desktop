@@ -167,6 +167,9 @@ const en = {
     `${tool}${version ? ` ${version}` : ""} can't search its local data yet. Update it on the Tools page.`,
   failed: "The search did not run.",
   fixQuery: "Fix the marked part of the query, then press Enter.",
+  timedOut: (seconds: number | null) =>
+    `The search did not finish${seconds ? ` in ${seconds} s` : " in time"}. The query is fine. ` +
+    "Add a chat or a date to search less, or try again.",
   pickOne: (field: string): string =>
     field === "chat"
       ? "This name fits several chats. Pick the one you meant below."
@@ -384,6 +387,9 @@ const ru: typeof en = {
     `${tool}${version ? ` ${version}` : ""} пока не умеет искать по локальным данным. Обновите его на странице «Инструменты».`,
   failed: "Поиск не выполнен.",
   fixQuery: "Исправьте отмеченную часть запроса и нажмите Enter.",
+  timedOut: (seconds) =>
+    `Поиск не успел закончить${seconds ? ` за ${seconds} с` : " вовремя"}. С запросом всё в порядке. ` +
+    "Добавьте чат или дату, чтобы искать в меньшем объёме, или попробуйте снова.",
   pickOne: (field) =>
     field === "chat"
       ? "Это имя подходит нескольким чатам. Выберите нужный ниже."
@@ -602,6 +608,9 @@ const es: typeof en = {
     `${tool}${version ? ` ${version}` : ""} aún no puede buscar en sus datos locales. Actualízala en la página Herramientas.`,
   failed: "La búsqueda no se ejecutó.",
   fixQuery: "Corrige la parte marcada de la consulta y pulsa Intro.",
+  timedOut: (seconds) =>
+    `La búsqueda no terminó${seconds ? ` en ${seconds} s` : " a tiempo"}. La consulta está bien. ` +
+    "Añade un chat o una fecha para buscar en menos, o inténtalo de nuevo.",
   pickOne: (field) =>
     field === "chat"
       ? "Este nombre encaja con varios chats. Elige el que querías abajo."

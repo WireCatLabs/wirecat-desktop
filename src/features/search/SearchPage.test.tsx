@@ -241,6 +241,22 @@ describe("Search", () => {
     )
   }, 15000)
 
+  it("says a search out of time had a valid query, and searches again on Try again", async () => {
+    const user = userEvent.setup()
+    const search = vi
+      .spyOn(platform, "searchStore")
+      .mockResolvedValue({ kind: "timedOut", message: "search stopped at its time limit of 2s", seconds: 2 })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    const bar = screen.getByRole("combobox", { name: "Search messages" })
+    await user.type(bar, "has:photo{Enter}")
+    expect(await screen.findByText(/did not finish in 2 s\. The query is fine/)).toBeInTheDocument()
+    expect(bar).not.toHaveAttribute("aria-invalid")
+    await user.click(screen.getByRole("button", { name: "Try again" }))
+    await waitFor(() => expect(search).toHaveBeenCalledTimes(2))
+  }, 15000)
+
   it("offers to report a search the tool itself failed", async () => {
     const user = userEvent.setup()
     vi.spyOn(platform, "searchStore").mockResolvedValue({

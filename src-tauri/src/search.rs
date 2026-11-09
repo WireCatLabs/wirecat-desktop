@@ -14,8 +14,8 @@ use std::time::Duration;
 pub const MAX_LIMIT: u32 = 100;
 const MAX_QUERY: usize = 1000;
 const SEARCH: &str = "search";
-// Longer than the `--timeout 60s` in the templates, so the tool's own time-limit answer comes back, not a kill.
-const TIMEOUT: Duration = Duration::from_secs(90);
+// Longer than the `--timeout 30s` in the templates, so the tool's own time-limit answer comes back, not a kill.
+const TIMEOUT: Duration = Duration::from_secs(45);
 
 /// Elasticsearch's `hits.total`: `gte` means the tool stopped counting at `value`.
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -48,6 +48,9 @@ pub enum Answer {
     /// A closed `query.*` reason; `span` counts UTF-16 units of the query as typed, as JavaScript does.
     #[serde(rename_all = "camelCase")]
     QueryError { reason: String, message: String, span: Option<Span> },
+    /// `query.time-limit`: the query is valid, the search ran out of time; `seconds` is the tool's limit.
+    #[serde(rename_all = "camelCase")]
+    TimedOut { message: String, seconds: Option<f64> },
     /// The installed version has no such search, or no `--offline`: the answer is "update it".
     Old { message: String },
     /// `candidates` are what an ambiguous name could mean (`details.candidates`), each named by its id.
@@ -218,7 +221,9 @@ pub fn context(tool: &Tool, profile: Option<&str>, reference: &str) -> Result<Co
     if out.code != Some(0) {
         return Ok(match error_of(&out.stderr, &out.stdout) {
             Answer::Old { message } => Context::Old { message },
-            Answer::Failed { message, .. } | Answer::QueryError { message, .. } => Context::Failed { message },
+            Answer::Failed { message, .. } | Answer::QueryError { message, .. } | Answer::TimedOut { message, .. } => {
+                Context::Failed { message }
+            }
             Answer::Hits { .. } => Context::Failed { message: last_line(&out.stderr, &out.stdout) },
         });
     }
@@ -359,6 +364,10 @@ fn error_of(stderr: &str, stdout: &str) -> Answer {
     let e = &error["error"];
     let reason = e["reason"].as_str().unwrap_or_default();
     let message = e["message"].as_str().unwrap_or("the tool gave no answer").to_string();
+    if reason == "query.time-limit" {
+        let seconds = e["details"]["limit_ms"].as_f64().map(|ms| ms / 1000.0);
+        return Answer::TimedOut { message, seconds };
+    }
     if reason.starts_with("query.") {
         let span = span_of(&e["details"]["span"]);
         return Answer::QueryError { reason: reason.to_string(), message, span };
@@ -595,6 +604,15 @@ mod tests {
                 message: "no field \"bogus\"".into(),
                 span: Some(Span { start: 0, end: 7 }),
             }
+        );
+    }
+
+    #[test]
+    fn running_out_of_time_is_not_a_query_error() {
+        let err = r#"{"error":{"code":"timeout","reason":"query.time-limit","message":"search stopped at its time limit of 2s","details":{"limit_ms":2000}}}"#;
+        assert_eq!(
+            read(src("tg"), &output(1, "", err), 50),
+            Answer::TimedOut { message: "search stopped at its time limit of 2s".into(), seconds: Some(2.0) }
         );
     }
 
