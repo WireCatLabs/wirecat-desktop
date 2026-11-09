@@ -61,6 +61,7 @@ mod profile;
 mod provenance;
 mod public_address;
 mod query_writer;
+mod records_import;
 mod redact;
 mod registry;
 mod report;
@@ -144,6 +145,7 @@ pub fn run() {
         .manage(Arc::new(Running::default()))
         .manage(deep_link::Links::default())
         .manage(memory_add::PickedFile::default())
+        .manage(records_import::PickedSheet::default())
         .setup(|app| {
             // Without a log the app still works; it says why on stderr.
             if let Err(e) = app.path().app_log_dir().map_err(|e| e.to_string()).and_then(|dir| log::init(&dir)) {
@@ -238,6 +240,10 @@ pub fn run() {
             commands::tools::account_remove,
             commands::tools::open_setup,
             commands::storage::storage_report,
+            commands::records::records_types,
+            commands::records::records_template_save,
+            commands::records::records_pick_file,
+            commands::records::records_run,
             commands::storage::clear_storage,
             commands::storage::open_folder,
             commands::store::store_info,

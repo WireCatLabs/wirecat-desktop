@@ -26,6 +26,7 @@ import { notesSetupMock } from "./mock-notes-setup"
 import { notificationsMock } from "./mock-notifications"
 import { peopleMock } from "./mock-people"
 import { permissionsMock } from "./mock-permissions"
+import { recordsMock } from "./mock-records"
 import { reportMock } from "./mock-report"
 import { runsMock } from "./mock-runs"
 import { searchMock } from "./mock-search"
@@ -720,6 +721,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...digestEditorsMock(params),
     ...conversationMock(params),
     ...notesSetupMock(params),
+    ...recordsMock(params),
     ...enrichmentMock(params),
     ...mcpServerMock(),
     ...tailscaleMock(installed),

@@ -18,6 +18,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { ArchiveSummary } from "./ArchiveSummary"
 import { BackupPanel } from "./BackupPanel"
+import { ImportPanel } from "./ImportPanel"
 import { storageMessages } from "./messages"
 
 type M = typeof storageMessages.en
@@ -81,6 +82,8 @@ export function StoragePage() {
       <ArchiveSummary />
 
       <BackupPanel />
+
+      <ImportPanel />
 
       <ul aria-label={m.areasLabel} className="overflow-hidden rounded-[0.2rem] border border-line-strong bg-app">
         {areas === null
