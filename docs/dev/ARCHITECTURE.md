@@ -112,6 +112,8 @@ src-tauri/src/
   tasks.rs      task claims through the tool's own `tasks list` / `tasks release`, ids and holders only.
   memory.rs     the Memory page: memo's memories, facts, proposed actions, relationships and agents' calls; confirm, discard,
                 correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").
+  memo_cli.rs   running Memo for a page: one command, its JSON or Memo's error object (Tasks, account groups).
+  groups.rs     account groups through Memo's own `groups list|add|remove|move`.
   conversation.rs a chat or mail thread a `chat/…` or `msg/…` link opens, read only: memo's `show` (title, where, the
                 profile signed in to the account, or that the account is not here), memo's `messages show` with
                 `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
@@ -758,6 +760,27 @@ page carries everything it keeps by key over to the new one. memo refuses to mov
 `details.parent`); the dialog then offers to move it on its own, the same write with `--parent none`. Comments are a thread of their own, oldest first; adding one moves no
 revision. A comment's text and a new person's name go after `--`. The page's minimum memo is the catalog's
 `taskBoard.minVersion`; the catalog's `tasks` key means something else, a source of agents' claims.
+
+## Account groups
+
+Settings has a block per memo account group (WC-ACCT-13): a column for `all`, then one per saved group, a card per
+account with its profiles in each tool (`tg work`, `b24 work`), from `memo groups list`. `all` is every account; memo
+computes it and never saves it, so its column takes no drop and its cards are only copied out (a move from it would be
+an add anyway). `personal` is an ordinary saved group. An account in two saved groups is allowed and highlighted
+(`also_in`); a profile named like a group is offered as a suggestion, never added by itself. Dragging a card moves it
+(`groups move`, one write), Alt, Ctrl or ⌘ held at the drop copies it (`groups add`); each card's Change menu does the
+same from the keyboard, and takes it out (`groups remove`). The board changes at once and slides back with memo's reason
+when memo refuses (a saved entry such as a bare `email` that names more than one account). A new group is a draft
+column until its first account: memo makes a group on its first `add`. A memo before `groups` answers "unknown
+command", and the block says the groups arrive with its next update.
+
+The member is the source memo prints, `telegram:102` or `email:me@work.example`: the owner's own account ids on the
+owner's own page, an exception to rule 4 like the Tailscale name, needed to tell accounts apart and to name one back to
+memo. It is shown only when no tool recorded a profile for the account, and never logged or put in a report.
+
+The board is `src/ui/Board.tsx` (`useBoardDrag`, `useSlide`, `Board`, `DragCopy`, `cardClass`), shared with the Tasks
+board: `canDrop` refuses the card's own column, and `all` with the reason the board then says; `copyable` makes Alt,
+Ctrl or ⌘ at the drop a copy. A change is said once memo made it, a refusal by the board's `putBack`.
 
 ## Growing the app
 

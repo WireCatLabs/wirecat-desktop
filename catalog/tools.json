@@ -831,7 +831,7 @@
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
         "remove": {
-          "minVersion": null,
+          "minVersion": "0.105.0",
           "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
           "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
           "dryRun": "--dry-run",
@@ -1258,7 +1258,7 @@
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
         "remove": {
-          "minVersion": null,
+          "minVersion": "0.35.0",
           "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
           "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
           "dryRun": "--dry-run",
@@ -1658,7 +1658,7 @@
       "accountRemove": {
         "signOut": ["{profile}", "session", "end", "--record", "--json"],
         "remove": {
-          "minVersion": null,
+          "minVersion": "0.23.0",
           "keepData": ["{profile}", "account", "remove", "--keep-data", "--record", "--json"],
           "deleteData": ["{profile}", "account", "remove", "--delete-data", "--record", "--json"],
           "dryRun": "--dry-run",

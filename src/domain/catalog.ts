@@ -402,3 +402,6 @@ export const isValidProfile = (name: string) =>
 export function catalogCommand(t: CatalogTool, args: readonly string[], fill: Record<string, string>): string {
   return [t.bin, ...args.map((a) => (/^\{\w+\}$/.test(a) ? (fill[a.slice(1, -1)] ?? a) : a))].join(" ")
 }
+
+/** The tool a profile's app word names (`tg` in `tg work`): Memo records profiles by the program's name. */
+export const toolByBin = (bin: string) => tools.find((t) => t.bin === bin && !t.partOf)

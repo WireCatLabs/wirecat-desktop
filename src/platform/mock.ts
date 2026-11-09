@@ -15,6 +15,7 @@ import { delay } from "./mock-delay"
 import { digestsMock } from "./mock-digests"
 import { driveFoldersMock } from "./mock-drive-folders"
 import { enrichmentMock } from "./mock-enrichment"
+import { groupsMock } from "./mock-groups"
 import { npmLines } from "./mock-install"
 import { mailAgentMock } from "./mock-mail-agent"
 import { mcpServerMock } from "./mock-mcp"
@@ -57,6 +58,7 @@ import type { Platform } from "./types"
 // `?mail-cli=old` installs mail-cli 0.21, without WireCat's Google app (`--method oauth`). `?compat=upgrade` offers MAX 0.75, so updating WhatsApp shows the warning with an update to queue. `?signin=wa` opens
 // WhatsApp's sign-in on the Tools page (`src/app/scenarios.ts`); `?signin-fail=wa` makes it fail (`mock-signin.ts`).
 // `?mcp=<tool>` opens that tool's MCP server, running; `?mcp-fail=<tool>` makes its Start fail (`mock-mcp.ts`).
+// `?groups=none|old|missing` and `?groups-fail=read|write` set up Settings' account groups (`mock-groups.ts`).
 // `?memory=<state>` and `?memory-fail=read|write` set up the Memory page (`mock-memory.ts`).
 // `?tasks=<state>` and `?view=table|board` set up the Tasks page (`mock-tasks.ts`).
 // `?store-check=cannot-open|also-update|wait` runs the store check before Install and Update (`storePreflightMock`).
@@ -658,6 +660,7 @@ export function createMock(os: Platform["os"]): Platform {
     storeCheck: () => storeCheckMock(asksArchive()),
     ...backups.api,
     ...agents,
+    ...groupsMock(),
     ...memoryMock(),
     ...tasksMock(),
     async removeCopy(id) {

@@ -24,6 +24,7 @@ mod drive_folders;
 mod enrichment;
 mod error;
 mod funnel_helper;
+mod groups;
 mod install;
 #[cfg(test)]
 mod install_e2e;
@@ -31,6 +32,7 @@ mod log;
 mod mail_agent;
 mod mcp;
 mod mcp_server;
+mod memo_cli;
 mod memory;
 mod names;
 mod node;
@@ -275,6 +277,10 @@ pub fn run() {
             commands::tasks::people_list,
             commands::tasks::person_add,
             commands::tasks::project_list,
+            commands::groups::groups_read,
+            commands::groups::groups_add,
+            commands::groups::groups_remove,
+            commands::groups::groups_move,
             commands::memory::memory_read,
             commands::memory::conversation_read,
             commands::memory::memory_sources,
