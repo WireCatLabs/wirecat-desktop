@@ -265,9 +265,13 @@ fn strings(v: &Value) -> Vec<String> {
     v.as_array().into_iter().flatten().filter_map(|s| s.as_str().map(str::to_string)).collect()
 }
 
-fn item_of(i: &Value) -> Option<DigestItem> {
+/// 0.131.75's `digest list` leaves out what the day has cost so far; its `schedule list` has it, by the same name.
+fn item_of(i: &Value, schedules: &[OtherSchedule]) -> Option<DigestItem> {
     let name = i["name"].as_str().filter(|n| check_name(n).is_ok())?.to_string();
     let last = &i["last"];
+    let spent_today_usd = i["spent_today_usd"]
+        .as_f64()
+        .or_else(|| schedules.iter().find(|s| s.name == name).and_then(|s| s.spent_today_usd));
     Some(DigestItem {
         name,
         title: text(&i["title"]),
@@ -279,7 +283,7 @@ fn item_of(i: &Value) -> Option<DigestItem> {
         scheduled: i["scheduled"].as_bool().unwrap_or(false),
         max_cost_usd: i["max_cost_usd"].as_f64(),
         max_cost_per_day_usd: i["max_cost_per_day_usd"].as_f64(),
-        spent_today_usd: i["spent_today_usd"].as_f64(),
+        spent_today_usd,
         last: last["at"].as_str().map(|at| DigestRun {
             at: at.to_string(),
             ok: last["ok"].as_bool().unwrap_or(false),
@@ -290,13 +294,13 @@ fn item_of(i: &Value) -> Option<DigestItem> {
 }
 
 fn read_named(list: &Value, schedules: DigestSchedules, harness: bool) -> DigestBook {
-    let digests: Vec<DigestItem> = list["items"].as_array().into_iter().flatten().filter_map(item_of).collect();
-    let others = match schedules {
-        DigestSchedules::Ready { others, .. } => {
-            others.into_iter().filter(|o| !digests.iter().any(|d| d.name == o.name)).collect()
-        }
+    let schedules = match schedules {
+        DigestSchedules::Ready { others, .. } => others,
         _ => Vec::new(),
     };
+    let digests: Vec<DigestItem> =
+        list["items"].as_array().into_iter().flatten().filter_map(|i| item_of(i, &schedules)).collect();
+    let others = schedules.into_iter().filter(|o| !digests.iter().any(|d| d.name == o.name)).collect();
     DigestBook::Ready { digests, others, harness, named: true }
 }
 
@@ -582,7 +586,7 @@ mod tests {
                     kind: "agent".into(),
                     when: "every 30m".into(),
                     last: None,
-                    spent_today_usd: None,
+                    spent_today_usd: Some(0.4),
                     max_cost_usd: None,
                     max_cost_per_day_usd: None,
                 })
@@ -599,6 +603,8 @@ mod tests {
             digests[0].last,
             Some(DigestRun { at: "2026-11-09T07:30:00Z".into(), ok: true, cost_usd: Some(0.27) })
         );
+        assert_eq!(digests[0].spent_today_usd, Some(0.4), "from the schedule of the same name");
+        assert_eq!(digests[1].spent_today_usd, None);
         assert_eq!(digests[1].title, None);
         assert_eq!(digests[1].times, ["09:00"]);
         assert_eq!(digests[1].weekdays, ["mon"]);

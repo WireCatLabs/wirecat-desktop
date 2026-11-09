@@ -171,18 +171,12 @@ fn template_args(verb: &str, digest: Option<&str>, channel: &str, locale: &str) 
     Ok(words(&["templates", verb, &key, "--channel", channel, "--locale", locale]))
 }
 
-/// memo's `templates` reads `--file` as a path and has no `-` for stdin yet; `/dev/stdin` is that path on Linux and
-/// macOS. Windows has none, so there a draft cannot reach memo without a file.
+/// memo 0.131.75 reads `--file -` as stdin; the older `templates` took only a path, and `/dev/stdin` is one where there
+/// is one.
 #[cfg(unix)]
-const STDIN_PATH: Option<&str> = Some("/dev/stdin");
+const STDIN_PATH: &str = "/dev/stdin";
 #[cfg(not(unix))]
-const STDIN_PATH: Option<&str> = None;
-
-fn stdin_path() -> Result<&'static str, String> {
-    STDIN_PATH.ok_or_else(|| {
-        "On Windows memo cannot take a template from WireCat yet. Use memo templates edit in a terminal.".to_string()
-    })
-}
+const STDIN_PATH: &str = "-";
 
 fn read_template(v: &Value) -> DigestTemplate {
     let b = body(v);
@@ -238,7 +232,7 @@ fn template_change(
 pub fn template_save(digest: Option<&str>, channel: &str, locale: &str, text: &str) -> Result<DigestTemplate, String> {
     checked_text(text)?;
     let mut args = template_args("edit", digest, channel, locale)?;
-    args.extend(["--file".into(), stdin_path()?.into()]);
+    args.extend(["--file".into(), STDIN_PATH.into()]);
     template_change(digest, channel, locale, with_json(args), Some(text))
 }
 
@@ -273,7 +267,7 @@ pub fn template_preview(
     let mut args = template_args("preview", digest, channel, locale)?;
     if let Some(text) = draft {
         checked_text(text)?;
-        args.extend(["--file".into(), stdin_path()?.into()]);
+        args.extend(["--file".into(), STDIN_PATH.into()]);
     }
     let args = with_json(args);
     let memo = memo()?.ok_or("Memo is not installed")?;

@@ -6,7 +6,7 @@ use crate::catalog::{self, Tool};
 use crate::skills::{body, failure, too_old};
 use crate::{run, tools};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
@@ -21,6 +21,8 @@ const FROM_APP: &str = "--from-app";
 const WORDED: [&str; 4] = ["identity.stale", "identity.owner-only", "person.not-found", "proposal.wrong-state"];
 /// How a memo older than kinds of people (UX-133) refuses `kind:` and `--sort`: the page then reads it the old way.
 const OLDER: [&str; 2] = ["query.unknown-field", "input.invalid"];
+/// How a memo that has kinds, but not this one (0.131.75 has no `stranger`), refuses it: no one is of that kind yet.
+const UNKNOWN_KIND: &str = "query.unknown-value";
 /// The kinds memo sorts people into, the list's tabs in this order.
 pub const KINDS: [&str; 5] = ["person", "organization", "automated", "stranger", "unsorted"];
 
@@ -43,7 +45,9 @@ fn answer(out: &run::Output, listing: bool) -> Result<Value, String> {
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
-        Some(_) if WORDED.contains(&reason) || (listing && OLDER.contains(&reason)) => Err(reason.to_string()),
+        Some(_) if WORDED.contains(&reason) || (listing && (OLDER.contains(&reason) || reason == UNKNOWN_KIND)) => {
+            Err(reason.to_string())
+        }
         j => Err(failure(out, j.as_ref())),
     }
 }
@@ -244,6 +248,9 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
         let people = match call(&words(&["people", "list", &asked, "--sort", "interactions", "--limit", LIST_LIMIT])) {
             Err(e) if OLDER.contains(&e.as_str()) => {
                 call(&words(&["people", "list", "--limit", LIST_LIMIT])).map(|v| (v, false))
+            }
+            Err(e) if e == UNKNOWN_KIND && kind == "stranger" => {
+                Ok((json!({"items": [], "page": {"has_more": false}}), true))
             }
             r => r.map(|v| (v, true)),
         };
@@ -649,7 +656,16 @@ mod tests {
         else {
             panic!()
         };
-        assert_eq!(people[0], Listed { reference: "person:1".into(), owner: true, ..Listed::default() });
+        assert_eq!(
+            people[0],
+            Listed {
+                reference: "person:1".into(),
+                owner: true,
+                kind: Some("person".into()),
+                messages_from: Some(0),
+                ..Listed::default()
+            }
+        );
         assert!(!people_more && !matches_more);
         let agent = &matches[0];
         assert_eq!(agent.persons, ["person:8", "person:3"]);
@@ -717,7 +733,15 @@ mod tests {
             match (a[1].as_str(), a.get(2).map(String::as_str)) {
                 ("review", _) => Ok(fixture("review")),
                 ("list", Some(k)) if k.starts_with("kind:") => Err("query.unknown-field".into()),
-                _ => Ok(fixture("list")),
+                _ => {
+                    let mut v = fixture("list");
+                    for p in v["items"].as_array_mut().unwrap() {
+                        p.as_object_mut()
+                            .unwrap()
+                            .retain(|k, _| ["ref", "name", "owner", "tasks"].contains(&k.as_str()));
+                    }
+                    Ok(v)
+                }
             }
         };
         let Read::Ready { people, kinded, .. } = read_with(&older, "person").unwrap() else { panic!() };
@@ -731,6 +755,28 @@ mod tests {
         };
         assert_eq!(answer(&out, true), Err("input.invalid".into()));
         assert_ne!(answer(&out, false), Err("input.invalid".into()), "a decision keeps memo's words");
+    }
+
+    #[test]
+    fn a_kind_memo_does_not_know_yet_is_an_empty_tab() {
+        let no_strangers = |a: &[String]| -> Result<Value, String> {
+            match (a[1].as_str(), a.get(2).map(String::as_str)) {
+                ("review", _) => Ok(fixture("review")),
+                ("list", Some("kind:stranger")) => Err(UNKNOWN_KIND.into()),
+                _ => Ok(fixture("list")),
+            }
+        };
+        let Read::Ready { people, kinded, .. } = read_with(&no_strangers, "stranger").unwrap() else { panic!() };
+        assert!(people.is_empty() && kinded);
+        assert!(!counts_with(&no_strangers).contains_key("stranger"));
+        let out = run::Output {
+            code: Some(2),
+            stdout:
+                json!({"error": {"code": "validation_error", "reason": UNKNOWN_KIND, "message": "kind takes person"}})
+                    .to_string(),
+            stderr: String::new(),
+        };
+        assert_eq!(answer(&out, true), Err(UNKNOWN_KIND.into()));
     }
 
     #[test]
