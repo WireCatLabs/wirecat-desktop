@@ -472,7 +472,15 @@ export function showDemo(page: DemoPage, lang: Lang) {
     const entries = demoMemory(lang)
     useMemory.setState({
       demo: true,
-      read: { kind: "ready", entries, more: false, activity: null, activityError: null, revoke: true },
+      read: {
+        kind: "ready",
+        entries,
+        more: false,
+        activity: null,
+        activityError: null,
+        linksError: null,
+        revoke: true,
+      },
       entries,
       error: null,
       reading: false,

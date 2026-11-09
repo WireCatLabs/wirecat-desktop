@@ -131,6 +131,11 @@ export function MemoryPage() {
               <Rack entries={shown} tab={s.tab} filtering={filtering} />
             )}
 
+            {ready?.linksError && (
+              <ErrorNotice action={<ReportThis what="Reading memory links" error={ready.linksError} />}>
+                {m.linksFailed} {ready.linksError}
+              </ErrorNotice>
+            )}
             {ready?.more && <p className="text-[0.9rem] text-ink-dim">{m.more}</p>}
             {ready && <Activity calls={ready.activity} error={ready.activityError} />}
           </>
