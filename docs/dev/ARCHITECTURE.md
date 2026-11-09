@@ -439,8 +439,8 @@ its rule `src/domain/relationships.ts`, for any page that shows a relationship.
 ## The Contacts page
 
 Who is who across sources, from memo (`people.minVersion` in the catalog; memo 0.131.75 is the first
-with `memo people show|review|scan|link|unlink|unmerge` and the kinds). The page is «Contacts» (id `people` in `src/app/sections.tsx`,
-so links to it still work); the CLI command stays `memo people`. `people_read(kind)` runs
+with `memo people show|review|scan|link|unlink|unmerge` and the kinds). The page is «Contacts» (id `people` in
+`src/app/sections.tsx`, so links to it still work); the CLI command stays `memo people`. `people_read(kind)` runs
 `people list kind:<kind> --sort interactions --limit 5000` and `people review --limit 500` at once, and carries each
 list's `has_more` to the page, which says when memo has more than it read. The kinds are tabs: people, companies,
 newsletters and notifications, strangers (a real name, no tie with the owner), unsorted; `people_kinds` counts them

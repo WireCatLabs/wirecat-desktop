@@ -249,7 +249,9 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
             Err(e) if OLDER.contains(&e.as_str()) => {
                 call(&words(&["people", "list", "--limit", LIST_LIMIT])).map(|v| (v, false))
             }
-            Err(e) if e == UNKNOWN_KIND => Ok((json!({"items": [], "page": {"has_more": false}}), true)),
+            Err(e) if e == UNKNOWN_KIND && kind == "stranger" => {
+                Ok((json!({"items": [], "page": {"has_more": false}}), true))
+            }
             r => r.map(|v| (v, true)),
         };
         (people, joined(m))
