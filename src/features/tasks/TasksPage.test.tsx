@@ -22,6 +22,49 @@ describe("Tasks", () => {
     expect(within(row("HRB-12")).getByRole("combobox", { name: "Status of HRB-12" })).toHaveTextContent("Progress")
   })
 
+  it("shows the tasks memo found in chats beside the project tasks, read only, while nothing is searched", async () => {
+    const user = userEvent.setup()
+    const found = (key: string, title: string) => ({
+      key,
+      project: "INDBB44DA4",
+      projectName: null,
+      createdBy: null,
+      title,
+      description: null,
+      kind: null,
+      state: "open" as const,
+      priority: null,
+      priorityLabel: null,
+      agent: null,
+      revision: 1,
+      parent: null,
+      dueAt: null,
+      closedAt: null,
+      claimedBy: null,
+      claimedUntil: null,
+      assignees: [],
+      ready: null,
+      blockedBy: [],
+      createdAt: "2026-11-08T09:12:00.000Z",
+      updatedAt: null,
+      account: "telegram:220195113",
+    })
+    const chats = vi
+      .spyOn(platform, "taskChats")
+      .mockResolvedValue({ tasks: [found("INDBB44DA4-7", "Send Ana the lease draft")], more: false })
+    render(<TasksPage />)
+    await loaded()
+    const chat = row("INDBB44DA4-7")
+    expect(chat).toHaveTextContent("found in your messages")
+    expect(within(chat).getByRole("combobox", { name: "Status of INDBB44DA4-7" })).toBeDisabled()
+    expect(within(chat).getByRole("combobox", { name: "Priority of INDBB44DA4-7" })).toBeDisabled()
+    expect(useTasks.getState().total).toBe(useTasks.getState().tasks.length)
+    await user.click(screen.getByRole("button", { name: "Project" }))
+    await user.click(screen.getByRole("option", { name: /Operations/ }))
+    await waitFor(() => expect(row("INDBB44DA4-7")).toBeNull())
+    expect(chats).toHaveBeenCalledTimes(1)
+  })
+
   it("writes a filter into the search, which memo answers", async () => {
     const user = userEvent.setup()
     const list = vi.spyOn(platform, "taskList")

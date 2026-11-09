@@ -1,5 +1,5 @@
-import { Lock } from "lucide-react"
-import { claimActive, closed, dueTone, type Label, labelOf, type State } from "@/domain/tasks"
+import { Lock, MessageSquare } from "lucide-react"
+import { claimActive, closed, dueTone, fromMessages, type Label, labelOf, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import type { Person, Task } from "@/platform/task-schemas"
 import { cx } from "@/ui/cx"
@@ -88,7 +88,8 @@ export function Markers({ task }: { task: Task }) {
   const waiting = task.blockedBy.filter((b) => !closed(b.state as State)).map((b) => b.key)
   const claim = task.claimedBy && claimActive(task.claimedUntil) ? task.claimedBy : null
   const agent = !claim && task.agent ? task.agent : null
-  if (waiting.length === 0 && !claim && !agent) return null
+  const found = fromMessages(task)
+  if (waiting.length === 0 && !claim && !agent && !found) return null
   return (
     <span className="flex flex-wrap gap-x-[0.9rem] gap-y-[0.15rem]">
       {waiting.length > 0 && (
@@ -118,6 +119,12 @@ export function Markers({ task }: { task: Task }) {
       )}
       {agent && (
         <span className="inline-flex items-center gap-[0.35rem] text-[0.85rem] text-ink-soft">{m.forAgent(agent)}</span>
+      )}
+      {found && (
+        <span className="inline-flex items-center gap-[0.35rem] text-[0.85rem] text-ink-soft">
+          <MessageSquare className="size-[0.85rem] shrink-0" aria-hidden />
+          {m.fromMessages}
+        </span>
       )}
     </span>
   )

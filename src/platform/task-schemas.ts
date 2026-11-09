@@ -34,7 +34,11 @@ export const TaskSchema = v.object({
   blockedBy: v.array(v.object({ key: v.string(), state: v.string() })),
   createdAt: v.string(),
   updatedAt: v.nullable(v.string()),
+  /** `provider:account` of a task memo found in a chat, mail or note: it belongs to no project. */
+  account: v.optional(v.nullable(v.string())),
 })
+
+export const ChatTasksSchema = v.object({ tasks: v.array(TaskSchema), more: v.boolean() })
 
 export const TaskReadSchema = v.variant("kind", [
   v.object({ kind: v.literal("missing") }),
@@ -94,6 +98,7 @@ export type TaskKind = v.InferOutput<typeof TaskKindSchema>
 export type Creator = v.InferOutput<typeof CreatorSchema>
 export type TaskComment = v.InferOutput<typeof TaskCommentSchema>
 export type TaskRead = v.InferOutput<typeof TaskReadSchema>
+export type ChatTasks = v.InferOutput<typeof ChatTasksSchema>
 export type TaskCounts = v.InferOutput<typeof TaskCountsSchema>
 export type TaskEvent = v.InferOutput<typeof TaskEventSchema>
 export type TaskWrite = v.InferOutput<typeof TaskWriteSchema>

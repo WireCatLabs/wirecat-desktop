@@ -288,6 +288,7 @@ pub fn run() {
             commands::tasks::task_claims,
             commands::tasks::task_release,
             commands::tasks::task_list,
+            commands::tasks::task_chats,
             commands::clients::clients_read,
             commands::clients::clients_move,
             commands::clients::clients_scope,

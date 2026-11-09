@@ -107,6 +107,9 @@ export const setDue = (q: string, choice: DueChoice | null, today = new Date()) 
   choice ? tidy(`${dropField(q, "due")} ${dueTerm(choice, today)}`) : dropField(q, "due")
 
 /** What goes to memo: the owner's words, plus the board's default unless they chose states or closing dates. */
+/** A task memo found in a chat, mail or note: no project holds it, and memo changes none of its board fields. */
+export const fromMessages = (t: { account?: string | null | undefined }) => Boolean(t.account)
+
 export function boardQuery(q: string): string {
   const words = q.trim()
   if (/(^|[\s(-])(state|closed):/.test(words)) return words

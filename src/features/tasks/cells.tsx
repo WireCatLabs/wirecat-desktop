@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react"
-import { addDays, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
+import { addDays, fromMessages, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import type { Task, TaskKind } from "@/platform/task-schemas"
 import { Calendar, CalendarFooter, DatePopover } from "@/ui/Calendar"
@@ -43,7 +43,7 @@ export function StatusCell({ task, label }: { task: Task; label?: string }) {
       size="sm"
       aria-label={label ?? m.cell(m.status, task.key)}
       value={task.state}
-      disabled={busy}
+      disabled={busy || fromMessages(task)}
       onChange={(state: State) => void useTasks.getState().update(task.key, { state })}
       options={STATES.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
       className={BARE}
@@ -60,7 +60,7 @@ export function PriorityCell({ task }: { task: Task }) {
       size="sm"
       aria-label={m.cell(m.priority, task.key)}
       value={current}
-      disabled={busy}
+      disabled={busy || fromMessages(task)}
       onChange={(priority) => void useTasks.getState().update(task.key, { priority })}
       options={[...LABELS, "none" as const].map((l) => {
         const [filled, tone] = BAR[l] ?? [0, ""]
@@ -105,7 +105,7 @@ export function AssigneeCell({ task }: { task: Task }) {
           size="sm"
           aria-label={m.cell(m.assignee, task.key)}
           value={current}
-          disabled={busy}
+          disabled={busy || fromMessages(task)}
           onChange={(v) => {
             if (v === ELSE) setFinding(true)
             else void useTasks.getState().assign(task.key, v === "none" ? null : v)
@@ -202,7 +202,7 @@ export function KindCell({ task }: { task: Task }) {
       size="sm"
       aria-label={m.cell(m.kind, task.key)}
       value={current ?? "other"}
-      disabled={busy}
+      disabled={busy || fromMessages(task)}
       onChange={(kind) => kind !== "other" && void useTasks.getState().update(task.key, { kind })}
       options={[
         ...kinds.map((k) => ({ value: k, label: m.kinds[k] ?? k })),
@@ -228,7 +228,7 @@ export function ProjectCell({ task }: { task: Task }) {
       size="sm"
       aria-label={m.cell(m.project, task.key)}
       value={task.project}
-      disabled={busy}
+      disabled={busy || fromMessages(task)}
       onChange={(project) => project !== task.project && void useTasks.getState().update(task.key, { project })}
       options={keys.map((k) => ({ value: k, label: nameOf(k) ? `${k} · ${nameOf(k)}` : k }))}
       className={BARE}
@@ -264,7 +264,7 @@ export function DueCell({ task }: { task: Task }) {
         size="sm"
         aria-label={m.cell(m.due, task.key)}
         value="current"
-        disabled={busy}
+        disabled={busy || fromMessages(task)}
         onChange={(v) => {
           if (v === "pick") setPicking(true)
           else if (v === "none") save("none")

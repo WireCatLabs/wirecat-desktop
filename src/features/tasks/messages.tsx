@@ -51,6 +51,7 @@ type Words = {
   waitsFor: (keys: string[]) => string
   onIt: (agent: string) => string
   forAgent: (agent: string) => string
+  fromMessages: string
   cell: (what: string, key: string) => string
   open: (key: string) => string
   notSaved: (reason: string) => string
@@ -200,6 +201,7 @@ const en: Words = {
   waitsFor: (keys) => `waits for ${formatList(keys, "en")}`,
   onIt: (agent) => `${agent} is on it`,
   forAgent: (agent) => `for ${agent}`,
+  fromMessages: "found in your messages; change it where it came from",
   cell: (what, key) => `${what} of ${key}`,
   open: (key) => `Open ${key}`,
   notSaved: (reason) => `The change was not saved: ${reason}. Nothing changed.`,
@@ -356,6 +358,7 @@ const ru: Words = {
   waitsFor: (keys) => `ждёт ${formatList(keys, "ru")}`,
   onIt: (agent) => `${agent} работает над ней`,
   forAgent: (agent) => `для ${agent}`,
+  fromMessages: "найдена в ваших сообщениях; меняется там, откуда пришла",
   cell: (what, key) => `${what} задачи ${key}`,
   open: (key) => `Открыть ${key}`,
   notSaved: (reason) => `Изменение не сохранено: ${reason}. Ничего не изменилось.`,
@@ -526,6 +529,7 @@ const es: Words = {
   waitsFor: (keys) => `espera a ${formatList(keys, "es")}`,
   onIt: (agent) => `${agent} está en ello`,
   forAgent: (agent) => `para ${agent}`,
+  fromMessages: "encontrada en tus mensajes; se cambia donde surgió",
   cell: (what, key) => `${what} de ${key}`,
   open: (key) => `Abrir ${key}`,
   notSaved: (reason) => `El cambio no se guardó: ${reason}. No cambió nada.`,

@@ -245,10 +245,13 @@ export const useTasks = create<TasksState>((set, get) => {
       const q = boardQuery(get().query)
       set({ reading: true, ...(quiet ? {} : { error: null }) })
       const counts = platform.taskCounts(q).catch(() => null)
+      // memo cannot filter the tasks it found in chats, so they show only while the owner has typed no search; any
+      // filter shows project tasks alone, as its count says.
+      const chats = get().query.trim() ? null : platform.taskChats().catch(() => null)
       const people = platform.peopleList().catch(() => null)
       const projects = platform.projectList().catch(() => null)
       try {
-        const read = await platform.taskList(q)
+        const [read, found] = await Promise.all([platform.taskList(q), chats])
         if (mine !== seq || get().demo) return
         if (read.kind === "missing" || read.kind === "old") {
           set({ unusable: read, loaded: true, reading: false })
@@ -258,19 +261,21 @@ export const useTasks = create<TasksState>((set, get) => {
           set({ unusable: null, badQuery: read.message, loaded: true, reading: false })
           return
         }
+        const fromChats = (found?.tasks ?? []).filter((t) => !read.tasks.some((x) => x.key === t.key))
+        const tasks = [...read.tasks, ...fromChats]
         set({
           unusable: null,
           badQuery: null,
           error: null,
-          tasks: read.tasks,
-          assigned: [...new Set(read.tasks.flatMap((t) => t.assignees))],
-          order: read.tasks.map((t) => t.key),
-          total: read.total,
-          more: read.more,
+          tasks,
+          assigned: [...new Set(tasks.flatMap((t) => t.assignees))],
+          order: tasks.map((t) => t.key),
+          total: read.total + fromChats.length,
+          more: read.more || Boolean(found?.more),
           // The open task stays readable in its dialog when the new search leaves it out.
           outside: Object.fromEntries(
             [find(get().open ?? "")]
-              .filter((t): t is Task => Boolean(t && !read.tasks.some((x) => x.key === t.key)))
+              .filter((t): t is Task => Boolean(t && !tasks.some((x) => x.key === t.key)))
               .map((t) => [t.key, t]),
           ),
           failed: {},

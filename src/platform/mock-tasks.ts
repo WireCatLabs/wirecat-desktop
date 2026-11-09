@@ -414,6 +414,7 @@ const filter = (all: Task[], q: string) => {
 type TaskApi = Pick<
   Platform,
   | "taskList"
+  | "taskChats"
   | "taskCounts"
   | "taskShow"
   | "taskHistory"
@@ -510,6 +511,26 @@ export function tasksMock(): TaskApi {
       } catch (e) {
         if (e instanceof BadQuery) return { kind: "badQuery", message: `tasks list: ${e.message}` }
         throw e
+      }
+    },
+    async taskChats() {
+      await delay(300)
+      if (scenario() !== "chats") return { tasks: [], more: false }
+      const chat = (key: string, title: string, minutes: number): Task => ({
+        ...make({ key, title, state: "open", createdAt: ago(minutes), account: "telegram:personal" }),
+        project: "INB7",
+        projectName: null,
+        createdBy: null,
+        kind: null,
+        priorityLabel: null,
+        ready: null,
+      })
+      return {
+        tasks: [
+          chat("INB7-1", "Send Ana the signed lease", 60 * 5),
+          chat("INB7-2", "Answer Kai about the Friday call", 60 * 30),
+        ],
+        more: false,
       }
     },
     async taskCounts(query): Promise<TaskCounts> {

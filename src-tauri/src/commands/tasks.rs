@@ -26,6 +26,11 @@ pub async fn task_list(query: String) -> Result<task_board::Read, AppError> {
 }
 
 #[tauri::command]
+pub async fn task_chats() -> Result<task_board::ChatTasks, AppError> {
+    crate::log::command("task_chats", async move { attempt(task_board::chats).await }).await
+}
+
+#[tauri::command]
 pub async fn task_counts(query: String) -> Result<task_board::Counts, AppError> {
     crate::log::command("task_counts", async move { attempt(move || task_board::counts(&query)).await }).await
 }
