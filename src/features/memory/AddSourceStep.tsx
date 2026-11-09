@@ -4,6 +4,7 @@ import { fileName, missingOf, type Way, wordCount } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
+import { fieldFocus } from "@/ui/field"
 import { Refusal } from "./AddRefusal"
 import { useAddSource } from "./add-store"
 import { addMessages } from "./messages-add"
@@ -14,8 +15,7 @@ const WAYS: { way: Way; Icon: typeof FileText }[] = [
   { way: "file", Icon: Paperclip },
 ]
 
-const field =
-  "selectable w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem] text-ink placeholder:text-ink-dim"
+const field = `selectable w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem] text-ink placeholder:text-ink-dim ${fieldFocus}`
 
 /** Step 1: Text, Link or File, each with its own input; Save keeps it and moves on. */
 export function SourceStep() {

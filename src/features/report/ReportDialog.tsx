@@ -11,13 +11,13 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { Disclosure } from "@/ui/Disclosure"
+import { fieldFocus } from "@/ui/field"
 import { Monogram } from "@/ui/Logo"
 import { Select, type SelectGroup } from "@/ui/Select"
 import { reportMessages } from "./messages"
 
 const SECURITY_POLICY = "https://github.com/WireCatLabs/.github/blob/main/SECURITY.md"
-const control =
-  "w-full rounded-[0.35rem] border border-line-strong bg-app px-2.5 py-1.5 text-[0.95rem] leading-normal text-ink placeholder:text-ink-dim disabled:opacity-60 aria-[invalid=true]:border-bad"
+const control = `w-full rounded-[0.35rem] border border-line-strong bg-app px-2.5 py-1.5 text-[0.95rem] leading-normal text-ink placeholder:text-ink-dim disabled:opacity-60 aria-[invalid=true]:border-bad ${fieldFocus}`
 const empty: ReportFields = { summary: "", about: "", steps: "", happened: "", expected: "" }
 
 type FieldId = keyof ReportFields

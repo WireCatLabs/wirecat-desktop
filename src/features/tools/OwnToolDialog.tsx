@@ -14,6 +14,7 @@ import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { fieldFocus } from "@/ui/field"
 import { failureWords, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
 import { type OwnText, ownMessages } from "./messages-own"
@@ -35,8 +36,7 @@ type Step =
   | { kind: "installing"; review: OwnReview; session: InstallSession }
   | { kind: "uninstalling"; review: OwnReview; done: boolean }
 
-const field =
-  "h-9 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.95rem] text-ink placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand"
+const field = `h-9 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.95rem] text-ink placeholder:font-sans placeholder:text-ink-dim ${fieldFocus}`
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 

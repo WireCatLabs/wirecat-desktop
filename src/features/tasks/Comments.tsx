@@ -5,6 +5,7 @@ import type { TaskComment } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { fieldFocus } from "@/ui/field"
 import { Skeleton } from "@/ui/Skeleton"
 import { stamp, taskMessages } from "./messages"
 import { useTasks } from "./store"
@@ -89,7 +90,7 @@ export function Comments({ taskKey }: { taskKey: string }) {
             }
           }}
           placeholder={`${m.addComment}. ${m.commentHint}`}
-          className="selectable rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+          className={`selectable rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
         />
         {/* The button appears with the first word; its line is kept, so nothing below moves. */}
         <div

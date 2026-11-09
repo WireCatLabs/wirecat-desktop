@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react"
+import { fieldFocus } from "@/ui/field"
 
 export const card =
   "flex min-w-0 flex-col gap-3 rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.1rem]"
-export const area =
-  "selectable w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.92rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+export const area = `selectable w-full rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.92rem] text-ink placeholder:text-ink-dim ${fieldFocus}`
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
