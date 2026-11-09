@@ -192,9 +192,10 @@ export function QueryBar(props: Props) {
           }}
           className="selectable inner-field h-full min-w-0 flex-1 bg-transparent no-ligatures pr-[2.6rem] pl-[2.5rem] font-mono text-[1.02rem] text-transparent caret-ink outline-none placeholder:font-sans placeholder:text-ink-dim"
         />
+        {/* 0.2rem wider than the input's text on each side, padded back: a chip's border reaches that far out. */}
         <div
           ref={layer}
-          className="pointer-events-none absolute inset-y-0 right-[2.6rem] left-[2.5rem] flex items-center overflow-hidden whitespace-pre font-mono text-[1.02rem] text-transparent no-ligatures"
+          className="pointer-events-none absolute inset-y-0 right-[2.4rem] left-[2.3rem] flex items-center overflow-hidden whitespace-pre px-[0.2rem] font-mono text-[1.02rem] text-transparent no-ligatures"
         >
           <Chips
             query={query}
