@@ -42,11 +42,9 @@ export function relationLine(e: MemoryEntry, m: M, roles: readonly OwnerRole[]) 
 /** A relationship as one sentence: "Kai Moreno is the owner of the document “Sales plan”". */
 export function relationSentence(e: MemoryEntry, m: M, x: X, roles: readonly OwnerRole[]) {
   const p = relationParts(e)
-  if (p.role) return x.withRole(p, roleLabel(p.role, roles, m.roles), x.words)
+  if (p.role) return x.withRole(p, roleLabel(p.role, roles, m.roles))
   const say = x.noRole[p.kind] ?? x.noRole.other
-  return (
-    say?.(x.words.quote(p.from.kind, p.from.name), x.words.quote(p.to.kind, p.to.name)) ?? relationLine(e, m, roles)
-  )
+  return say?.(p.from, p.to) ?? relationLine(e, m, roles)
 }
 
 /**

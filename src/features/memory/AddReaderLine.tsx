@@ -26,7 +26,8 @@ export function ReaderLine() {
       </ErrorNotice>
     )
   if (readers === null) return <Skeleton className="h-[1.2rem] w-[50%]" />
-  if (!reader && readers.length > 0) return <InlineChoice readers={readers} />
+  const usable = readers.filter((r) => r.available && r.signedIn !== false)
+  if (!reader && usable.length > 0) return <InlineChoice readers={usable} />
   if (!reader)
     return (
       <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem] text-ink-soft">
@@ -62,6 +63,12 @@ function InlineChoice({ readers }: { readers: Reader[] }) {
         {m.noReader}
       </p>
       <ReaderChoice readers={readers} describedBy={hint} />
+      <p className="flex flex-wrap items-center gap-x-3 text-[0.9rem] text-ink-dim">
+        {m.otherReaders}
+        <Button size="sm" variant="ghost" onClick={() => useNav.getState().go("settings")}>
+          {m.goSettings}
+        </Button>
+      </p>
       {chooseError && (
         <ErrorNotice inline>
           {m.failed} {chooseError}

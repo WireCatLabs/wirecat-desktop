@@ -2,8 +2,11 @@ import type { Tab } from "@/domain/memory"
 import type { RelationParts } from "@/domain/relationships"
 import { type Messages, plural } from "@/i18n"
 
-/** How a role and the other end read in a sentence: "owner" + "of the document «Plan»". */
-type Words = { of: (kind: string, name: string) => string; quote: (kind: string, name: string) => string }
+/** One end of a relationship as a sentence names it. */
+type End = { kind: string; name: string }
+
+const curly = (e: End) => (e.kind === "person" ? e.name : `“${e.name}”`)
+const guillemets = (e: End) => (e.kind === "person" ? e.name : `«${e.name}»`)
 
 const lower = (s: string) => s.charAt(0).toLocaleLowerCase() + s.slice(1)
 
@@ -56,20 +59,19 @@ const en = {
       .join(" · "),
   kindWord: EN_KINDS as Record<string, string>,
   relationKind: "Link",
-  words: {
-    of: (kind: string, name: string) =>
-      kind === "person" ? `for ${name}` : `of the ${lower(EN_KINDS[kind] ?? "record")} “${name}”`,
-    quote: (kind: string, name: string) => (kind === "person" ? name : `“${name}”`),
-  } satisfies Words,
-  withRole: (p: RelationParts, role: string, w: Words) =>
-    `${p.holder.name} is the ${lower(role)} ${w.of(p.other.kind, p.other.name)}`,
+  withRole: (p: RelationParts, role: string) =>
+    `${p.holder.name} is the ${lower(role)} ${
+      p.other.kind === "person"
+        ? `for ${p.other.name}`
+        : `of the ${lower(EN_KINDS[p.other.kind] ?? "record")} ${curly(p.other)}`
+    }`,
   noRole: {
-    "member-of": (from: string, to: string) => `${from} is a member of ${to}`,
-    "reports-to": (from: string, to: string) => `${from} reports to ${to}`,
-    "customer-of": (from: string, to: string) => `${from} is a customer of ${to}`,
-    "partner-of": (from: string, to: string) => `${from} and ${to} are partners`,
-    other: (from: string, to: string) => `${from} is linked to ${to}`,
-  } as Record<string, (from: string, to: string) => string>,
+    "member-of": (from: End, to: End) => `${curly(from)} is a member of ${curly(to)}`,
+    "reports-to": (from: End, to: End) => `${curly(from)} reports to ${curly(to)}`,
+    "customer-of": (from: End, to: End) => `${curly(from)} is a customer of ${curly(to)}`,
+    "partner-of": (from: End, to: End) => `${curly(from)} and ${curly(to)} are partners`,
+    other: (from: End, to: End) => `${curly(from)} is linked to ${curly(to)}`,
+  } as Record<string, (from: End, to: End) => string>,
   ifApprove: "If you approve",
   ifReject: "If you reject",
   approveEffect: "agents take this as true when they answer you.",
@@ -145,29 +147,27 @@ const ru: typeof en = {
     task: "Задача",
   },
   relationKind: "Связь",
-  words: {
-    of: (kind, name) => {
-      const of: Record<string, string> = {
-        document: "документа",
-        note: "заметки",
-        project: "проекта",
-        organization: "организации",
-        deal: "сделки",
-        lead: "лида",
-        contract: "договора",
-        task: "задачи",
-      }
-      return kind === "person" ? `для ${name}` : `${of[kind] ?? "записи"} «${name}»`
-    },
-    quote: (kind, name) => (kind === "person" ? name : `«${name}»`),
+  withRole: (p, role) => {
+    const of: Record<string, string> = {
+      document: "документа",
+      note: "заметки",
+      project: "проекта",
+      organization: "организации",
+      deal: "сделки",
+      lead: "лида",
+      contract: "договора",
+      task: "задачи",
+    }
+    const other =
+      p.other.kind === "person" ? `для ${p.other.name}` : `${of[p.other.kind] ?? "записи"} ${guillemets(p.other)}`
+    return `${p.holder.name} — ${lower(role)} ${other}`
   },
-  withRole: (p, role, w) => `${p.holder.name} — ${lower(role)} ${w.of(p.other.kind, p.other.name)}`,
   noRole: {
-    "member-of": (from, to) => `${from} входит в ${to}`,
-    "reports-to": (from, to) => `${from} подчиняется ${to}`,
-    "customer-of": (from, to) => `${from} — клиент ${to}`,
-    "partner-of": (from, to) => `${from} и ${to} — партнёры`,
-    other: (from, to) => `${from} связан с ${to}`,
+    "member-of": (from, to) => `${guillemets(from)} входит в ${guillemets(to)}`,
+    "reports-to": (from, to) => `${guillemets(from)} подчиняется ${guillemets(to)}`,
+    "customer-of": (from, to) => `${guillemets(from)} — клиент ${guillemets(to)}`,
+    "partner-of": (from, to) => `${guillemets(from)} и ${guillemets(to)} — партнёры`,
+    other: (from, to) => `${guillemets(from)} связан с ${guillemets(to)}`,
   },
   ifApprove: "Если одобрите",
   ifReject: "Если отклоните",
@@ -245,29 +245,29 @@ const es: typeof en = {
     task: "Tarea",
   },
   relationKind: "Vínculo",
-  words: {
-    of: (kind, name) => {
-      const of: Record<string, string> = {
-        document: "del documento",
-        note: "de la nota",
-        project: "del proyecto",
-        organization: "de la organización",
-        deal: "del trato",
-        lead: "del lead",
-        contract: "del contrato",
-        task: "de la tarea",
-      }
-      return kind === "person" ? `para ${name}` : `${of[kind] ?? "del registro"} «${name}»`
-    },
-    quote: (kind, name) => (kind === "person" ? name : `«${name}»`),
+  withRole: (p, role) => {
+    const of: Record<string, string> = {
+      document: "del documento",
+      note: "de la nota",
+      project: "del proyecto",
+      organization: "de la organización",
+      deal: "del trato",
+      lead: "del lead",
+      contract: "del contrato",
+      task: "de la tarea",
+    }
+    const other =
+      p.other.kind === "person"
+        ? `para ${p.other.name}`
+        : `${of[p.other.kind] ?? "del registro"} ${guillemets(p.other)}`
+    return `${p.holder.name} — ${lower(role)} ${other}`
   },
-  withRole: (p, role, w) => `${p.holder.name} — ${lower(role)} ${w.of(p.other.kind, p.other.name)}`,
   noRole: {
-    "member-of": (from, to) => `${from} forma parte de ${to}`,
-    "reports-to": (from, to) => `${from} depende de ${to}`,
-    "customer-of": (from, to) => `${from} es cliente de ${to}`,
-    "partner-of": (from, to) => `${from} y ${to} son socios`,
-    other: (from, to) => `${from} está vinculado con ${to}`,
+    "member-of": (from, to) => `${guillemets(from)} forma parte de ${guillemets(to)}`,
+    "reports-to": (from, to) => `${guillemets(from)} depende de ${guillemets(to)}`,
+    "customer-of": (from, to) => `${guillemets(from)} es cliente de ${guillemets(to)}`,
+    "partner-of": (from, to) => `${guillemets(from)} y ${guillemets(to)} son socios`,
+    other: (from, to) => `${guillemets(from)} está vinculado con ${guillemets(to)}`,
   },
   ifApprove: "Si lo apruebas",
   ifReject: "Si lo rechazas",

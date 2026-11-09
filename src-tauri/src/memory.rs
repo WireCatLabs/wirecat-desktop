@@ -836,9 +836,7 @@ pub(crate) fn plain(word: &str) -> Option<&str> {
     (!word.is_empty() && !word.starts_with('-') && !word.chars().any(char::is_whitespace)).then_some(word)
 }
 
-/// The owner's version, written as the owner's with `--supersedes`: Memo marks the agent's one superseded. Memo needs
-/// the kind, the scope and evidence for a new record, so they come from the old one; one whose sources are all gone
-/// cites the old record itself. The text goes last, after `--`, so a text that starts with `-` is never an option.
+#[cfg(test)]
 fn correct_args(r: &Ref, old: &Value, text: &str) -> Result<Vec<String>, String> {
     correct_args_with(r, old, text, &Change::default())
 }
@@ -864,6 +862,9 @@ fn subject_word(s: &str) -> Result<&str, String> {
     if ok { Ok(s) } else { Err(format!("not a person, organization, project or task: {s}")) }
 }
 
+/// The owner's version, written as the owner's with `--supersedes`: Memo marks the agent's one superseded. Memo needs
+/// the kind, the scope and evidence for a new record, so they come from the old one; one whose sources are all gone
+/// cites the old record itself. The text goes last, after `--`, so a text that starts with `-` is never an option.
 fn correct_args_with(r: &Ref, old: &Value, text: &str, change: &Change) -> Result<Vec<String>, String> {
     let item = body(old);
     let kinds: &[&str] = if r.kind == Kind::Fact { &FACT_KINDS } else { &MEMORY_KINDS };
@@ -922,6 +923,7 @@ fn text_field(v: &Value, key: &str) -> Option<String> {
     text(v, key).filter(|s| plain(s).is_some())
 }
 
+#[cfg(test)]
 fn correct_with(call: &Call, r: &Ref, text: &str) -> Result<Entry, String> {
     correct_changed(call, r, text, &Change::default())
 }
