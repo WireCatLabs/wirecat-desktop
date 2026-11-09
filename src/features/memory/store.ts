@@ -82,6 +82,10 @@ type MemoryState = {
   /** Subject groups folded shut: their rows are not on screen, so the page-wide Approve leaves them. */
   closedGroups: string[]
   toggleGroup(key: string): void
+  page: number
+  pageSize: number
+  setPage(page: number): void
+  setPageSize(size: number): void
   /** Approves these single rows one by one and says how many memo approved; a findings batch never is. */
   confirmMany(refs: string[]): Promise<number>
   load(): Promise<void>
@@ -179,6 +183,8 @@ export const useMemory = create<MemoryState>((set, get) => {
     reviewed: {},
     skipped: {},
     closedGroups: [],
+    page: 1,
+    pageSize: 50,
 
     toggleGroup: (key) =>
       set((s) => ({
@@ -227,9 +233,11 @@ export const useMemory = create<MemoryState>((set, get) => {
         set({ error: message(e), reading: false })
       }
     },
-    setTab: (tab) => set({ tab, tabChosen: true, held: [], arriving: [] }),
-    setQuery: (query) => set({ query }),
-    filterBy: (field, value) => set((s) => ({ query: setMemoryField(s.query, field, [value]) })),
+    setTab: (tab) => set({ tab, tabChosen: true, held: [], arriving: [], page: 1 }),
+    setQuery: (query) => set({ query, page: 1 }),
+    filterBy: (field, value) => set((s) => ({ query: setMemoryField(s.query, field, [value]), page: 1 })),
+    setPage: (page) => set({ page }),
+    setPageSize: (pageSize) => set({ pageSize, page: 1 }),
     async loadContext(ref) {
       const had = get().contexts[ref]
       if (had && had.state !== "failed") return

@@ -40,6 +40,7 @@ type AddState = {
   toggleSubject(ref: string): void
   suggest(reader: string, again?: boolean): Promise<void>
   skip(id: string, skipped: boolean): void
+  skipAll(skipped: boolean): void
   keep(): Promise<void>
   /** Only save it: the source is kept, no reader is asked. */
   finish(): void
@@ -126,6 +127,7 @@ export const useAddSource = create<AddState>((set, get) => ({
   },
   skip: (id, skipped) =>
     set((s) => ({ skipped: skipped ? [...s.skipped.filter((x) => x !== id), id] : s.skipped.filter((x) => x !== id) })),
+  skipAll: (skipped) => set((s) => ({ skipped: skipped ? (s.batch?.findings ?? []).map((f) => f.id) : [] })),
   async keep() {
     const { batch, skipped, busy } = get()
     if (!batch || busy) return
