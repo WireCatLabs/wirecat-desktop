@@ -2155,7 +2155,7 @@
       },
       "crm": {
         "provider": "bitrix24",
-        "minVersion": "0.8.0",
+        "minVersion": "0.9.0",
         "moveDeal": ["{profile}", "deals", "move", "{ref}", "{stage}", "--record", "--json"],
         "moveLead": ["{profile}", "leads", "move", "{ref}", "{stage}", "--record", "--json"],
         "scope": {
