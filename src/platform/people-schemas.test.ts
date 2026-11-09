@@ -54,7 +54,7 @@ describe("People schemas", () => {
   it("reads every state of the page's read", () => {
     for (const read of [
       { kind: "missing" },
-      { kind: "old", version: null, need: "0.132.0" },
+      { kind: "old", version: null, need: "0.131.72" },
       {
         kind: "ready",
         people: [{ ref: "person:1", name: null, owner: true }],

@@ -1796,7 +1796,7 @@
         "config": null
       },
       "memory": {
-        "minVersion": "0.132.0",
+        "minVersion": "0.131.72",
         "revokeMinVersion": "0.131.28"
       },
       "tasks": null,
@@ -1808,7 +1808,7 @@
         "baseStagesMinVersion": "0.131.71"
       },
       "people": {
-        "minVersion": "0.132.0"
+        "minVersion": "0.131.72"
       },
       "notesSetup": {
         "minVersion": "0.131.71",

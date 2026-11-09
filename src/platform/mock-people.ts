@@ -145,7 +145,7 @@ export function peopleMock(): Pick<
     async peopleRead() {
       await delay(600)
       if (scenario === "missing") return { kind: "missing" }
-      if (scenario === "old") return { kind: "old", version: "0.131.64", need: "0.132.0" }
+      if (scenario === "old") return { kind: "old", version: "0.131.64", need: "0.131.72" }
       if (fail === "read") throw new Error(BUSY)
       const more = scenario === "more"
       return { kind: "ready", people: people.map(listed), peopleMore: more, matches, matchesMore: more }

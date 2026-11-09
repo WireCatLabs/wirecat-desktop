@@ -23,7 +23,7 @@ describe("Reading for facts", () => {
   beforeEach(() => {
     useReaders.setState(useReaders.getInitialState(), true)
     useTools.setState({
-      installs: { memo: [{ path: "/bin/memo", version: "0.132.0", manager: "npm", problem: null }] },
+      installs: { memo: [{ path: "/bin/memo", version: "0.131.72", manager: "npm", problem: null }] },
     })
   })
 
