@@ -71,7 +71,7 @@ import type {
   SourceReview,
 } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
-import type { MatchAnswer, Merged, PeopleRead, PersonDetail, Unlinked } from "./people-schemas"
+import type { MatchAnswer, Merged, PeopleRead, PersonDetail, PersonKind, Unlinked } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { Repair } from "./repair-schemas"
 import type { ReportContext, ReportDraft, ReportSent } from "./report-schemas"
@@ -329,7 +329,9 @@ export type Platform = {
   /** Adds, renames, moves or removes a stage of the kind's base set. */
   clientsBaseEdit(kind: CrmKind, edit: CrmBaseEdit): Promise<void>
   /** Everyone memo knows (merged-away people left out) and the matches waiting; "old" below the catalog's minimum. */
-  peopleRead(): Promise<PeopleRead>
+  peopleRead(kind?: PersonKind): Promise<PeopleRead>
+  /** How many people memo holds of each kind; empty from a memo older than kinds. */
+  peopleKinds(): Promise<Record<string, number>>
   /** One person: identities by source with the accounts that saw each, merges and open matches. */
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */

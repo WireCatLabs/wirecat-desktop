@@ -7,6 +7,7 @@ use crate::skills::{body, failure, too_old};
 use crate::{run, tools};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
 
@@ -18,6 +19,10 @@ const QUIET: [&str; 2] = ["--json", "--no-record"];
 const FROM_APP: &str = "--from-app";
 /// memo's own refusals the page words in the owner's language.
 const WORDED: [&str; 4] = ["identity.stale", "identity.owner-only", "person.not-found", "proposal.wrong-state"];
+/// How a memo older than kinds of people (UX-133) refuses `kind:` and `--sort`: the page then reads it the old way.
+const OLDER: [&str; 2] = ["query.unknown-field", "input.invalid"];
+/// The kinds memo sorts people into, the list's tabs in this order.
+pub const KINDS: [&str; 5] = ["person", "organization", "automated", "stranger", "unsorted"];
 
 type Call<'a> = dyn Fn(&[String]) -> Result<Value, String> + Sync + 'a;
 
@@ -30,21 +35,23 @@ fn decision(parts: &[&str]) -> Vec<String> {
 }
 
 /// memo answers a refused review decision with exit code 2 and the whole answer on stdout: it goes back as an answer,
-/// so `decided` names memo's reason, rather than as the last line of its output.
-fn answer(out: &run::Output) -> Result<Value, String> {
+/// so `decided` names memo's reason, rather than as the last line of its output. Only a `people list` gives an `OLDER`
+/// refusal back bare: elsewhere `input.invalid` is a real refusal and keeps memo's words.
+fn answer(out: &run::Output, listing: bool) -> Result<Value, String> {
     let json = out.json();
     let reason = json.as_ref().and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
-        Some(_) if WORDED.contains(&reason) => Err(reason.to_string()),
+        Some(_) if WORDED.contains(&reason) || (listing && OLDER.contains(&reason)) => Err(reason.to_string()),
         j => Err(failure(out, j.as_ref())),
     }
 }
 
 fn call_at(bin: &Path, args: &[String]) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    answer(&crate::memo_server::run(bin, &refs, TIMEOUT).map_err(|e| e.to_string())?)
+    let listing = args.get(1).is_some_and(|w| w == "list");
+    answer(&crate::memo_server::run(bin, &refs, TIMEOUT).map_err(|e| e.to_string())?, listing)
 }
 
 fn text(v: &Value, key: &str) -> Option<String> {
@@ -98,13 +105,23 @@ fn sendable(s: &str) -> Option<&str> {
     (named && !id.is_empty() && s.len() <= 400 && !s.chars().any(|c| c.is_whitespace() || c.is_control())).then_some(s)
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+/// A person in the list. An older memo gives only the ref, name, owner and tasks; the rest is then `None`.
+#[derive(Serialize, Debug, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct Listed {
     #[serde(rename = "ref")]
     pub reference: String,
     pub name: Option<String>,
     pub owner: bool,
     pub tasks: u64,
+    /// The name cleaned, or a handle, phone or email when the name is not one.
+    pub display_name: Option<String>,
+    pub kind: Option<String>,
+    /// The phone, else the email, else the `@username`.
+    pub contact: Option<String>,
+    /// Messages and mail this person sent, every account together.
+    pub messages_from: Option<u64>,
+    pub last_contact: Option<String>,
 }
 
 fn listed(v: &Value) -> Option<Listed> {
@@ -113,6 +130,11 @@ fn listed(v: &Value) -> Option<Listed> {
         name: text(v, "name"),
         owner: v["owner"].as_bool().unwrap_or(false),
         tasks: v["tasks"].as_u64().unwrap_or(0),
+        display_name: text(v, "display_name"),
+        kind: text(v, "kind"),
+        contact: text(v, "contact"),
+        messages_from: v["messages_from"].as_u64(),
+        last_contact: text(v, "last_contact"),
     })
 }
 
@@ -178,24 +200,53 @@ pub enum Read {
         people_more: bool,
         matches: Vec<Match>,
         matches_more: bool,
+        /// memo lists one kind at a time; false from a memo older than kinds, which lists everyone.
+        kinded: bool,
     },
 }
 
-fn read_with(call: &Call) -> Result<Read, String> {
+type Joined<'a> = std::thread::ScopedJoinHandle<'a, Result<Value, String>>;
+
+fn joined(h: Joined<'_>) -> Result<Value, String> {
+    h.join().unwrap_or_else(|_| Err("a read stopped".into()))
+}
+
+/// Each kind's total, from a one-row page of each, asked at once; a kind memo gives no total for (in a group, or an older
+/// memo) is left out.
+fn counts_with(call: &Call) -> BTreeMap<String, u64> {
+    std::thread::scope(|s| {
+        let asked: Vec<_> = KINDS
+            .iter()
+            .map(|k| (*k, s.spawn(move || call(&words(&["people", "list", &format!("kind:{k}"), "--limit", "1"])))))
+            .collect();
+        asked
+            .into_iter()
+            .filter_map(|(k, h)| Some((k.to_string(), joined(h).ok()?["page"]["total"]["value"].as_u64()?)))
+            .collect()
+    })
+}
+
+fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
+    let kind = KINDS.iter().find(|k| **k == kind).copied().unwrap_or("person");
     let (people, matches) = std::thread::scope(|s| {
-        let p = s.spawn(|| call(&words(&["people", "list", "--limit", LIST_LIMIT])));
         let m = s.spawn(|| call(&words(&["people", "review", "--limit", MATCH_LIMIT])));
-        let joined =
-            |h: std::thread::ScopedJoinHandle<'_, _>| h.join().unwrap_or_else(|_| Err("a read stopped".into()));
-        (joined(p), joined(m))
+        let asked = format!("kind:{kind}");
+        let people = match call(&words(&["people", "list", &asked, "--sort", "interactions", "--limit", LIST_LIMIT])) {
+            Err(e) if OLDER.contains(&e.as_str()) => {
+                call(&words(&["people", "list", "--limit", LIST_LIMIT])).map(|v| (v, false))
+            }
+            r => r.map(|v| (v, true)),
+        };
+        (people, joined(m))
     });
-    let (people, matches) = (people?, matches?);
+    let ((people, kinded), matches) = (people?, matches?);
     let more = |v: &Value| v["page"]["has_more"].as_bool().unwrap_or(false);
     Ok(Read::Ready {
         people: list(&people, "items", listed),
         people_more: more(&people),
         matches: list(&matches, "items", matched),
         matches_more: more(&matches),
+        kinded,
     })
 }
 
@@ -208,7 +259,12 @@ fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String>
     f(&|args: &[String]| call_at(&bin, args))
 }
 
-pub fn read() -> Result<Read, String> {
+/// How many people memo holds of each kind, for the list's tabs; read apart from the list so it never waits on them.
+pub fn kinds() -> Result<BTreeMap<String, u64>, String> {
+    with_memo(|call| Ok(counts_with(call)))
+}
+
+pub fn read(kind: &str) -> Result<Read, String> {
     let tool = memo()?;
     let need = tool.people.as_ref().ok_or("Memo has no People commands in the catalog")?.min_version.clone();
     let state = tools::detect(tool, false);
@@ -216,7 +272,7 @@ pub fn read() -> Result<Read, String> {
     if too_old(first.version.as_deref(), &need) {
         return Ok(Read::Old { version: first.version.clone(), need });
     }
-    with_memo(read_with)
+    with_memo(|call| read_with(call, kind))
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -578,11 +634,12 @@ mod tests {
     #[test]
     fn reads_everyone_and_the_matches_with_whether_memo_has_more() {
         let f = Fake::new("confirm");
-        let Read::Ready { people, people_more, matches, matches_more } = read_with(&|a: &[String]| f.call(a)).unwrap()
+        let Read::Ready { people, people_more, matches, matches_more, .. } =
+            read_with(&|a: &[String]| f.call(a), "person").unwrap()
         else {
             panic!()
         };
-        assert_eq!(people[0], Listed { reference: "person:1".into(), name: None, owner: true, tasks: 0 });
+        assert_eq!(people[0], Listed { reference: "person:1".into(), owner: true, ..Listed::default() });
         assert!(!people_more && !matches_more);
         let agent = &matches[0];
         assert_eq!(agent.persons, ["person:8", "person:3"]);
@@ -595,13 +652,81 @@ mod tests {
     }
 
     #[test]
+    fn lists_one_kind_by_interactions_with_every_kinds_total() {
+        let seen = Mutex::new(Vec::new());
+        let call = |a: &[String]| -> Result<Value, String> {
+            seen.lock().unwrap().push(a.to_vec());
+            if a[1] == "review" {
+                return Ok(fixture("review"));
+            }
+            let total = match a[2].as_str() {
+                "kind:person" => 1240,
+                "kind:organization" => 87,
+                "kind:automated" => 412,
+                _ => return Ok(json!({"items": [], "page": {"has_more": true}})),
+            };
+            Ok(json!({"items": [{
+                "ref": "person:12", "name": "\"Kai Sample \"", "display_name": "Kai Sample", "kind": "person",
+                "owner": false, "tasks": 2, "contact": "+34600000001", "messages_from": 314,
+                "last_contact": "2026-11-08T10:12:00.000Z"
+            }], "page": {"has_more": true, "total": {"value": total, "relation": "eq"}}}))
+        };
+        let Read::Ready { people, kinded, .. } = read_with(&call, "organization").unwrap() else { panic!() };
+        assert!(kinded);
+        let kinds = counts_with(&call);
+        assert_eq!(kinds.get("person"), Some(&1240));
+        assert_eq!(kinds.get("automated"), Some(&412));
+        assert_eq!(kinds.get("unsorted"), None, "no total, no count");
+        assert_eq!(people[0].display_name.as_deref(), Some("Kai Sample"));
+        assert_eq!(people[0].contact.as_deref(), Some("+34600000001"));
+        assert_eq!(people[0].messages_from, Some(314));
+        let asked = seen.lock().unwrap().clone();
+        assert!(asked.contains(&words(&[
+            "people",
+            "list",
+            "kind:organization",
+            "--sort",
+            "interactions",
+            "--limit",
+            LIST_LIMIT
+        ])));
+        assert_eq!(read_with(&call, "nonsense").map(|_| ()), Ok(()));
+        assert!(
+            seen.lock().unwrap().iter().all(|a| !a.iter().any(|w| w.contains("nonsense"))),
+            "an unknown kind is person"
+        );
+    }
+
+    #[test]
+    fn an_older_memo_without_kinds_is_read_the_old_way() {
+        let older = |a: &[String]| -> Result<Value, String> {
+            match (a[1].as_str(), a.get(2).map(String::as_str)) {
+                ("review", _) => Ok(fixture("review")),
+                ("list", Some(k)) if k.starts_with("kind:") => Err("query.unknown-field".into()),
+                _ => Ok(fixture("list")),
+            }
+        };
+        let Read::Ready { people, kinded, .. } = read_with(&older, "person").unwrap() else { panic!() };
+        assert!(!kinded);
+        assert!(counts_with(&older).is_empty());
+        assert_eq!(people[0].kind, None);
+        let out = run::Output {
+            code: Some(2),
+            stdout: json!({"error": {"code": "validation_error", "reason": "input.invalid", "message": "unknown option '--sort'"}}).to_string(),
+            stderr: String::new(),
+        };
+        assert_eq!(answer(&out, true), Err("input.invalid".into()));
+        assert_ne!(answer(&out, false), Err("input.invalid".into()), "a decision keeps memo's words");
+    }
+
+    #[test]
     fn says_when_memo_has_more_people_or_matches_than_were_read() {
         let more = |a: &[String]| -> Result<Value, String> {
             let mut v = if a[1] == "list" { fixture("list") } else { fixture("review") };
             v["page"]["has_more"] = json!(true);
             Ok(v)
         };
-        let Read::Ready { people_more, matches_more, .. } = read_with(&more).unwrap() else { panic!() };
+        let Read::Ready { people_more, matches_more, .. } = read_with(&more, "person").unwrap() else { panic!() };
         assert!(people_more && matches_more);
     }
 
@@ -633,13 +758,13 @@ mod tests {
     fn a_refusal_memo_exits_2_with_is_its_reason_not_raw_output() {
         for (fixture_name, reason) in [("stale", "identity.stale"), ("refused", "proposal.wrong-state")] {
             let out = run::Output { code: Some(2), stdout: fixture(fixture_name).to_string(), stderr: String::new() };
-            let v = answer(&out).unwrap();
+            let v = answer(&out, false).unwrap();
             let id = body(&v)["refused"][0]["id"].as_str().unwrap().to_string();
             assert_eq!(decided(&v, &id), Err(reason.to_string()));
         }
         assert_eq!(decided(&fixture("confirm"), "4"), Ok(()));
         let broken = run::Output { code: Some(1), stdout: "not json".into(), stderr: "boom".into() };
-        assert_eq!(answer(&broken), Err("boom".into()));
+        assert_eq!(answer(&broken, false), Err("boom".into()));
     }
 
     #[test]

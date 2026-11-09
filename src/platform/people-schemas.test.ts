@@ -57,10 +57,23 @@ describe("People schemas", () => {
       { kind: "old", version: null, need: "0.131.72" },
       {
         kind: "ready",
-        people: [{ ref: "person:1", name: null, owner: true, tasks: 2 }],
+        people: [
+          {
+            ref: "person:1",
+            name: null,
+            owner: true,
+            tasks: 2,
+            displayName: null,
+            kind: null,
+            contact: null,
+            messagesFrom: 3,
+            lastContact: null,
+          },
+        ],
         peopleMore: true,
         matches: [],
         matchesMore: false,
+        kinded: true,
       },
     ])
       expect(v.parse(PeopleReadSchema, read)).toEqual(read)

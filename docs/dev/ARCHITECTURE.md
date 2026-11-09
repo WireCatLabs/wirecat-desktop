@@ -125,8 +125,8 @@ src-tauri/src/
                 `--before-n`/`--after-n` (the linked message and its neighbours, and each further page), and for a
                 messenger chat's newest messages the messenger's own `messages list --offline` with that profile. A mail
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
-  people.rs     the People page: memo's `people list|review|show|unlink|unmerge` and `review confirm|reject` for
-                `identity_link` matches; every decision with `--from-app` (see "The People page").
+  people.rs     the Contacts page: memo's `people list|review|show|unlink|unmerge` and `review confirm|reject` for
+                `identity_link` matches; every decision with `--from-app` (see "The Contacts page").
   memory_review.rs a memory or fact whose source changed: memo's source review read with `review show` and
                 decided by the owner (Still true, Dismiss, No longer true), each with `--from-app`.
   memory_add.rs Add to Memory: `memo sources add|show|mentions|suggest`, the readers and the reader's key; pasted
@@ -436,12 +436,19 @@ here. Bulk approve leaves relationships out: each is approved in its row. A buil
 interface language; the owner's own role shows the label the owner gave it. The chip is `src/shared/StandingPill.tsx`,
 its rule `src/domain/relationships.ts`, for any page that shows a relationship.
 
-## The People page
+## The Contacts page
 
 Who is who across sources, from memo (`people.minVersion` in the catalog; memo 0.131.72 is the first
-with `memo people show|review|scan|link|unlink|unmerge`). `people_read` runs `people list --limit 5000` (memo leaves out
-people merged into others) and `people review --limit 500` at once, and carries each list's `has_more` to the page, which
-says when memo has more than it read. Opening a person runs `people show person:<uid>`: every account grouped by source,
+with `memo people show|review|scan|link|unlink|unmerge`). The page is «Contacts» (id `people` in `src/app/sections.tsx`,
+so links to it still work); the CLI command stays `memo people`. `people_read(kind)` runs
+`people list kind:<kind> --sort interactions --limit 5000` and `people review --limit 500` at once, and carries each
+list's `has_more` to the page, which says when memo has more than it read. The kinds are tabs: people, companies,
+newsletters and notifications, strangers (a real name, no tie with the owner), unsorted; `people_kinds` counts them
+with one `kind:<k> --limit 1` read each, never holding the table back. A memo older than kinds refuses the kind word (`query.unknown-field`) or `--sort` (`input.invalid`);
+Rust then reads the plain `people list --limit 5000`, the page shows no tabs, hides people with no name by default and
+takes each contact from the person's accounts. A row's name is `personName` in `src/domain/people.ts`: memo's
+`display_name`, else the cleaned name, else the phone, address or handle, never «null #id»; any page that names a
+person from a list row uses it. Opening a person runs `people show person:<uid>`: every account grouped by source,
 with the scope (personal or work) of every account that saw it, the merges that joined others into this person
 (`merge:<to>-<from>`), and the matches open on them. Asked about someone merged away, memo answers with the person they
 are part of now (`merged_into`), and the page says so. memo has no profiles here, so nothing is picked for the owner:

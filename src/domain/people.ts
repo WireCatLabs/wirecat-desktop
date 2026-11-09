@@ -1,4 +1,4 @@
-/** The People page's rules: how a person's accounts are grouped and what a split may take. */
+/** The Contacts page's rules: how a person's accounts are grouped and what a split may take. */
 
 type Seen = { account: string; scope: string | null }
 type IdentityLike = { identity: string; provider: string; seenIn: Seen[] }
@@ -35,14 +35,29 @@ export const touched = (...refs: (string | null | undefined)[]) => [...new Set(r
 
 const QUOTES = "\"'`«»“”„‘’"
 
+/** Words a source writes for a missing name, and a bare `#123` id: never a name (memo's display_name drops them too). */
+const PLACEHOLDER = /(^|\s)(null|undefined|Без имени|Deleted Account|#\d+)(?=\s|$)/giu
+
 /**
  * memo keeps a name as the first source typed it (`"CZECH AIRLINES "`, `!`). Until cli-core cleans names itself, the
  * page trims them, drops quotes that wrap the whole name and gives `null` for a name with no letter in it.
  */
 export function cleanName(name: string | null | undefined): string | null {
-  let s = (name ?? "").replace(/\s+/g, " ").trim()
+  let s = (name ?? "").replace(PLACEHOLDER, " ").replace(/\s+/g, " ").trim()
   while (s.length > 1 && QUOTES.includes(s[0] ?? "") && QUOTES.includes(s.at(-1) ?? "")) s = s.slice(1, -1).trim()
   return /\p{L}/u.test(s) ? s : null
+}
+
+/**
+ * The one way the app names a person from a list row: memo's display_name, else a cleaned name, else their phone,
+ * address or handle. `null` when there is none, so the caller picks its own word; never «null #97365».
+ */
+export function personName(p: {
+  displayName?: string | null | undefined
+  name?: string | null | undefined
+  contact?: string | null | undefined
+}) {
+  return cleanName(p.displayName) ?? cleanName(p.name) ?? (p.contact?.trim() || null)
 }
 
 /** For a person with no usable name: their first handle, else the first account name that has letters. */
@@ -56,9 +71,26 @@ export function handleOf(identities: readonly { name: string | null; username: s
   return null
 }
 
-export const matchesFilter = (person: { name: string | null; ref: string }, query: string) => {
+export const matchesFilter = (
+  person: { name: string | null; ref: string; displayName?: string | null; contact?: string | null },
+  query: string,
+) => {
   const q = query.trim().toLocaleLowerCase()
-  return !q || (cleanName(person.name) ?? "").toLocaleLowerCase().includes(q) || person.ref.includes(q)
+  const words = [cleanName(person.name), person.displayName, person.contact].filter(Boolean).join(" ")
+  return !q || words.toLocaleLowerCase().includes(q) || person.ref.includes(q)
+}
+
+/** The contact an older memo does not give, from the person's accounts: a phone, else an email, else a handle. */
+export function contactOf(
+  identities: readonly { identity: string; provider: string; username: string | null }[],
+): { provider: string; value: string } | null {
+  const id = (i: { identity: string }) => i.identity.slice(i.identity.indexOf(":") + 1)
+  const phone = identities.find((i) => i.provider === "phone" || i.provider === "whatsapp")
+  if (phone) return { provider: phone.provider, value: `+${id(phone).replace(/^\+/, "")}` }
+  const email = identities.find((i) => i.provider === "email")
+  if (email) return { provider: email.provider, value: id(email) }
+  const handle = identities.find((i) => i.username?.trim())
+  return handle ? { provider: handle.provider, value: `@${handle.username?.trim().replace(/^@/, "")}` } : null
 }
 
 /**

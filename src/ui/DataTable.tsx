@@ -103,7 +103,8 @@ export function DataTable<T>(props: Props<T>) {
 
   const byKey = new Map(rows.map((r) => [rowKey(r), r]))
   const keys = rows.map(rowKey)
-  const order = sort ? [...sorted.filter((k) => byKey.has(k)), ...keys.filter((k) => !sorted.includes(k))] : keys
+  const inSorted = new Set(sorted)
+  const order = sort ? [...sorted.filter((k) => byKey.has(k)), ...keys.filter((k) => !inSorted.has(k))] : keys
   const paged = props.page
     ? order.slice((props.page.index - 1) * props.page.size, props.page.index * props.page.size)
     : order

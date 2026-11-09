@@ -43,7 +43,7 @@ import {
   SourceReviewSchema,
 } from "./memory-schemas"
 import { NotificationsSchema } from "./notifications-schemas"
-import { MergedSchema, PeopleReadSchema, PersonDetailSchema, UnlinkedSchema } from "./people-schemas"
+import { KindCountsSchema, MergedSchema, PeopleReadSchema, PersonDetailSchema, UnlinkedSchema } from "./people-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
 import { ReportContextSchema, ReportSentSchema } from "./report-schemas"
 import { RunDetailSchema, RunsPageSchema } from "./runs-schemas"
@@ -229,7 +229,8 @@ function createTauri(): Platform {
     clientsMapSet: (stage, base) => invoke("clients_map_set", { stage, base }),
     clientsMapConfirm: (kind, pipeline) => invoke("clients_map_confirm", { kind, pipeline }),
     clientsBaseEdit: (kind, edit) => invoke("clients_base_edit", { kind, edit }),
-    peopleRead: () => call(PeopleReadSchema, "people_read"),
+    peopleRead: (kind) => call(PeopleReadSchema, "people_read", { kind: kind ?? null }),
+    peopleKinds: () => call(KindCountsSchema, "people_kinds"),
     peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
     peopleDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
