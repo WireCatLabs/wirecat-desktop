@@ -57,7 +57,7 @@ describe("People schemas", () => {
       { kind: "old", version: null, need: "0.131.72" },
       {
         kind: "ready",
-        people: [{ ref: "person:1", name: null, owner: true }],
+        people: [{ ref: "person:1", name: null, owner: true, tasks: 2 }],
         peopleMore: true,
         matches: [],
         matchesMore: false,

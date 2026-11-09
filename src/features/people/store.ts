@@ -15,6 +15,7 @@ export type Done =
   | { op: "confirm" | "reject"; with: string }
   | { op: "unlink"; movedTo: string; count: number }
   | { op: "unmerge"; from: string }
+export type View = "people" | "matches"
 export type Found =
   | { state: "looking" }
   | { state: "found"; ref: string }
@@ -34,10 +35,18 @@ type PeopleState = {
   decided: Record<string, MatchAnswer>
   reading: boolean
   error: string | null
+  view: View
   query: string
+  withTasks: boolean
+  named: boolean
+  page: number
+  matchPage: number
   /** The person whose account the search named, found by memo. */
   found: Found | null
+  /** The person whose dialog is open. */
   open: string | null
+  /** The match whose Details dialog is open. */
+  matchOpen: string | null
   details: Record<string, Detail>
   busy: Record<string, Op>
   failed: Record<string, string>
@@ -45,12 +54,20 @@ type PeopleState = {
   splitting: string | null
   undoing: { ref: string; merge: string } | null
   load(): Promise<void>
+  setView(view: View): void
   setQuery(query: string): void
+  setFilter(filter: { withTasks?: boolean; named?: boolean }): void
+  setPage(page: number): void
+  setMatchPage(page: number): void
   findAccount(): Promise<void>
-  toggle(ref: string): void
-  /** Opens a person from elsewhere on the page (a match, a search result, "now part of"). */
-  reveal(ref: string): void
+  /** Opens a person's dialog, from a row, a search result or "now part of"; `null` closes it. */
+  reveal(ref: string | null): void
+  openMatch(id: string | null): void
   loadDetail(ref: string, again?: boolean): Promise<void>
+  /** The people on screen: their details are read a few at a time, the first rows first. */
+  want(refs: readonly string[]): void
+  /** One more person to read, before the rows waiting: the owner just opened them. */
+  need(ref: string): void
   /** `ref` is the person the owner decides from: the open one, or the first of the match's two. */
   decide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<boolean>
   unlink(ref: string, identities: string[]): Promise<boolean>
@@ -64,8 +81,28 @@ const without = <T>(record: Record<string, T>, key: string) => {
   return rest
 }
 
+/** memo's command server keeps two processes; more calls at once would each start memo anew. */
+const AT_ONCE = 2
+
 export const usePeople = create<PeopleState>((set, get) => {
   let seq = 0
+  let wanted: string[] = []
+  let running = 0
+
+  const pump = () => {
+    while (running < AT_ONCE) {
+      const ref = wanted.find((r) => !get().details[r])
+      if (!ref) return
+      wanted = wanted.filter((r) => r !== ref)
+      running++
+      void get()
+        .loadDetail(ref)
+        .finally(() => {
+          running--
+          pump()
+        })
+    }
+  }
 
   const run = async <T>(key: string, op: Op, f: () => Promise<T>): Promise<T | null> => {
     if (get().busy[key]) return null
@@ -122,9 +159,15 @@ export const usePeople = create<PeopleState>((set, get) => {
     decided: {},
     reading: false,
     error: null,
+    view: "people",
     query: "",
+    withTasks: false,
+    named: false,
+    page: 1,
+    matchPage: 1,
     found: null,
     open: null,
+    matchOpen: null,
     details: {},
     busy: {},
     failed: {},
@@ -159,7 +202,11 @@ export const usePeople = create<PeopleState>((set, get) => {
         set({ error: message(e), reading: false })
       }
     },
-    setQuery: (query) => set({ query, found: null }),
+    setView: (view) => set({ view }),
+    setQuery: (query) => set({ query, found: null, page: 1 }),
+    setFilter: (filter) => set({ ...filter, page: 1 }),
+    setPage: (page) => set({ page }),
+    setMatchPage: (matchPage) => set({ matchPage }),
     async findAccount() {
       const query = get().query.trim()
       if (!looksLikeAccount(query)) return
@@ -176,17 +223,18 @@ export const usePeople = create<PeopleState>((set, get) => {
         set({ found: { state: "failed", error: message(e) } })
       }
     },
-    toggle(ref) {
-      const opening = get().open !== ref
-      set({ open: opening ? ref : null })
-      if (opening) void get().loadDetail(ref)
-    },
     reveal(ref) {
-      set({ open: ref, query: "", found: null })
-      void get().loadDetail(ref)
-      requestAnimationFrame(() =>
-        document.querySelector(`[data-person="${ref}"]`)?.scrollIntoView?.({ block: "nearest", behavior: "smooth" }),
-      )
+      set({ open: ref })
+      if (ref) void get().loadDetail(ref)
+    },
+    openMatch: (matchOpen) => set({ matchOpen }),
+    want(refs) {
+      wanted = [...refs]
+      pump()
+    },
+    need(ref) {
+      wanted = [ref, ...wanted.filter((r) => r !== ref)]
+      pump()
     },
     async loadDetail(ref, again = false) {
       const had = get().details[ref]

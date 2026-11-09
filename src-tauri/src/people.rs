@@ -104,6 +104,7 @@ pub struct Listed {
     pub reference: String,
     pub name: Option<String>,
     pub owner: bool,
+    pub tasks: u64,
 }
 
 fn listed(v: &Value) -> Option<Listed> {
@@ -111,6 +112,7 @@ fn listed(v: &Value) -> Option<Listed> {
         reference: person_of(&v["ref"])?,
         name: text(v, "name"),
         owner: v["owner"].as_bool().unwrap_or(false),
+        tasks: v["tasks"].as_u64().unwrap_or(0),
     })
 }
 
@@ -493,13 +495,19 @@ mod tests {
     }
 
     #[test]
+    fn a_listed_person_keeps_memos_task_count() {
+        let p = listed(&json!({ "ref": "person:7", "name": "Lena", "owner": false, "tasks": 3 })).unwrap();
+        assert_eq!(p.tasks, 3);
+    }
+
+    #[test]
     fn reads_everyone_and_the_matches_with_whether_memo_has_more() {
         let f = Fake::new("confirm");
         let Read::Ready { people, people_more, matches, matches_more } = read_with(&|a: &[String]| f.call(a)).unwrap()
         else {
             panic!()
         };
-        assert_eq!(people[0], Listed { reference: "person:1".into(), name: None, owner: true });
+        assert_eq!(people[0], Listed { reference: "person:1".into(), name: None, owner: true, tasks: 0 });
         assert!(!people_more && !matches_more);
         let agent = &matches[0];
         assert_eq!(agent.persons, ["person:8", "person:3"]);

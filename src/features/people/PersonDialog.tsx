@@ -1,13 +1,10 @@
-import { Check, Split, Undo2, User, UserRound } from "lucide-react"
-import { useId } from "react"
+import { Check, Split, Undo2 } from "lucide-react"
 import { useLang, useMessages } from "@/i18n"
-import type { Listed, PersonDetail } from "@/platform/people-schemas"
+import type { PersonDetail } from "@/platform/people-schemas"
 import { Button } from "@/ui/Button"
-import { Collapse } from "@/ui/Collapse"
+import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Skeleton } from "@/ui/Skeleton"
-import { TextButton } from "@/ui/TextButton"
 import { IdentityList } from "./IdentityList"
 import { usePersonName } from "./labels"
 import { MatchCard } from "./MatchCard"
@@ -15,34 +12,20 @@ import { peopleMessages } from "./messages"
 import { Refusal } from "./Refusal"
 import { usePeople } from "./store"
 
-/** One person; opened, their accounts by source, what was joined into them, and the matches about them. */
-export function PersonRow({ person }: { person: Listed }) {
-  const m = useMessages(peopleMessages)
-  const open = usePeople((s) => s.open === person.ref)
-  const panel = useId()
-  const Icon = person.owner ? UserRound : User
+/** One person, from a table row or a search: their accounts by source, what was joined into them, their matches. */
+export function PersonDialog() {
+  const name = usePersonName()
+  const open = usePeople((s) => s.open)
   return (
-    <div className="border-line not-first:border-t" data-person={person.ref}>
-      <TextButton
-        as="div"
-        aria-expanded={open}
-        aria-controls={panel}
-        onClick={() => usePeople.getState().toggle(person.ref)}
-        className="group flex min-h-[3.6rem] cursor-pointer items-center gap-[0.8rem] px-[1.3rem] py-[0.7rem]"
-      >
-        <Icon className="size-[1.2rem] shrink-0 text-ink-soft" strokeWidth={1.8} aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2 font-medium group-hover:text-brand">
-            {person.owner ? m.you : (person.name ?? m.noName)}
-          </span>
-          <span className="font-mono text-[0.85rem] text-ink-dim">{person.ref}</span>
-        </span>
-        <ExpandChevron open={open} />
-      </TextButton>
-      <Collapse open={open} id={panel}>
-        <Details reference={person.ref} />
-      </Collapse>
-    </div>
+    <Dialog
+      open={open !== null}
+      title={open ? name(open) : ""}
+      onClose={() => usePeople.getState().reveal(null)}
+      wide="xl"
+      scroll
+    >
+      {open && <Details key={open} reference={open} />}
+    </Dialog>
   )
 }
 
@@ -50,7 +33,7 @@ function Details({ reference }: { reference: string }) {
   const m = useMessages(peopleMessages)
   const detail = usePeople((s) => s.details[reference])
   const failed = usePeople((s) => s.failed[reference])
-  const box = "border-line border-t bg-app-2/60 px-[1.3rem] py-[1.1rem]"
+  const box = "pb-[1.2rem]"
   if (!detail || detail.state === "loading")
     return (
       <div className={box}>
@@ -66,7 +49,7 @@ function Details({ reference }: { reference: string }) {
       </div>
     )
   return (
-    <div className={`${box} grid gap-[1.4rem] lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]`}>
+    <div className={`${box} reveal grid gap-[1.4rem]`}>
       {detail.person.mergedInto && <NowPartOf into={detail.person.mergedInto} />}
       <div className="flex min-w-0 flex-col gap-[0.8rem]">
         <div>
@@ -78,8 +61,6 @@ function Details({ reference }: { reference: string }) {
           <span>
             <Button
               size="sm"
-              variant="ghost"
-              className="-ml-2"
               icon={<Split className="size-4" aria-hidden />}
               onClick={() => usePeople.getState().askSplit(reference)}
             >
@@ -90,7 +71,7 @@ function Details({ reference }: { reference: string }) {
         <DoneNote reference={reference} />
         {failed && <Refusal error={failed} />}
       </div>
-      <div className="flex min-w-0 flex-col gap-[0.9rem]">
+      <div className="flex min-w-0 flex-col gap-[0.9rem] empty:hidden">
         <Merges person={detail.person} />
         {detail.person.matches.map((match) => (
           <MatchCard key={match.id} match={match} from={reference} />
@@ -122,7 +103,6 @@ function Merges({ person }: { person: PersonDetail }) {
             </span>
             <Button
               size="sm"
-              variant="ghost"
               icon={<Undo2 className="size-4" aria-hidden />}
               onClick={() => usePeople.getState().askUndo({ ref: person.ref, merge: merge.id })}
             >
@@ -140,9 +120,9 @@ function NowPartOf({ into }: { into: string }) {
   const m = useMessages(peopleMessages)
   const name = usePersonName()
   return (
-    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem] lg:col-span-2">
+    <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem]">
       {m.nowPartOf(name(into))}
-      <Button size="sm" variant="ghost" onClick={() => usePeople.getState().reveal(into)}>
+      <Button size="sm" onClick={() => usePeople.getState().reveal(into)}>
         {m.openPerson(name(into))}
       </Button>
     </p>

@@ -42,7 +42,7 @@ describe("the People store after a write", () => {
     vi.spyOn(platform, "peopleDecide").mockResolvedValue(person("person:7", { mergedInto: "person:7" }))
     vi.spyOn(platform, "peopleRead").mockResolvedValue({
       kind: "ready",
-      people: [{ ref: "person:7", name: "Lena", owner: false }],
+      people: [{ ref: "person:7", name: "Lena", owner: false, tasks: 0 }],
       peopleMore: false,
       matches: [match("3", ["person:7", "person:8"])],
       matchesMore: true,
@@ -53,5 +53,21 @@ describe("the People store after a write", () => {
     expect(s.matches.map((m) => m.id)).toEqual(["3", "1"])
     expect(s.matchesMore).toBe(true)
     expect(s.people.map((p) => p.ref)).toEqual(["person:7"])
+  })
+
+  it("reads the people on screen two at a time, in order, and drops those scrolled away", async () => {
+    const waits: { ref: string; done: () => void }[] = []
+    vi.spyOn(platform, "peopleShow").mockImplementation(
+      (ref) => new Promise((resolve) => waits.push({ ref, done: () => resolve(person(ref)) })),
+    )
+    usePeople.getState().want(["person:1", "person:2", "person:3", "person:4"])
+    expect(waits.map((w) => w.ref)).toEqual(["person:1", "person:2"])
+    usePeople.getState().want(["person:9"])
+    waits[0]?.done()
+    await vi.waitFor(() => expect(waits.map((w) => w.ref)).toEqual(["person:1", "person:2", "person:9"]))
+    waits[1]?.done()
+    waits[2]?.done()
+    await vi.waitFor(() => expect(usePeople.getState().details["person:9"]?.state).toBe("ready"))
+    expect(waits).toHaveLength(3)
   })
 })

@@ -3,6 +3,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { Identity } from "@/platform/people-schemas"
 import { Pill } from "@/ui/Pill"
 import { peopleMessages } from "./messages"
+import { SourceIcon, sourceOf } from "./sources"
 
 const day = (iso: string, lang: string) => new Date(iso).toLocaleDateString(lang, { dateStyle: "medium" })
 
@@ -13,8 +14,15 @@ export function IdentityList({ identities }: { identities: Identity[] }) {
   return (
     <div className="flex flex-col gap-[0.8rem]">
       {bySource(identities).map((group) => (
-        <section key={group.provider} aria-label={group.provider} className="flex flex-col gap-[0.35rem]">
-          <h4 className="font-mono text-[0.85rem] text-ink-dim">{group.provider}</h4>
+        <section
+          key={group.provider}
+          aria-label={sourceOf(group.provider).name}
+          className="flex flex-col gap-[0.35rem]"
+        >
+          <h4 className="flex items-center gap-[0.4rem] text-[0.9rem] font-medium text-ink-soft">
+            <SourceIcon provider={group.provider} />
+            {sourceOf(group.provider).name}
+          </h4>
           <ul className="flex flex-col rounded-[0.45rem] border border-line">
             {group.identities.map((i) => {
               const scopes = scopesOf(i.seenIn)
