@@ -19,6 +19,7 @@ export function Filters() {
   const view = useTasks((s) => s.view)
   const counts = useTasks((s) => s.counts)
   const people = useTasks((s) => s.people)
+  const assigned = useTasks((s) => s.assigned)
   const projects = useTasks((s) => s.projects)
   const tasks = useTasks((s) => s.tasks)
   const badQuery = useTasks((s) => s.badQuery)
@@ -38,10 +39,17 @@ export function Filters() {
   }))
   const assigneeOptions = [
     { value: "none", label: m.nobody, count: countOf(counts?.assignee, "none") },
-    ...people.map((p) => ({
-      value: p.ref,
-      label: personName(p.ref, people, m),
-      count: countOf(counts?.assignee, p.ref),
+    // The owner and whoever has a task; memo's whole list of people is thousands and takes seconds to read.
+    ...[
+      ...new Set([
+        ...people.filter((p) => p.owner).map((p) => p.ref),
+        ...(counts?.assignee ?? []).map((f) => f.value).filter((v) => v !== "none"),
+        ...assigned,
+      ]),
+    ].map((ref) => ({
+      value: ref,
+      label: personName(ref, people, m),
+      count: countOf(counts?.assignee, ref),
     })),
   ]
   const priorityOptions = [...LABELS, "none" as const].map((l) => ({

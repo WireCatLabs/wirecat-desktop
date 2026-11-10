@@ -433,8 +433,8 @@ export type Platform = {
   taskComments(key: string): Promise<TaskComment[]>
   /** Comments in the owner's name; a comment moves no revision. */
   taskCommentAdd(key: string, text: string): Promise<TaskComment>
-  /** Everyone memo knows: the owner, people from messages, and people added here. */
-  peopleList(): Promise<Person[]>
+  /** The names of these people, one `people show` each; a person memo cannot show is left out, and none is the owner. */
+  peopleNamed(refs: string[]): Promise<Person[]>
   /** At most 20 people whose name matches; an empty query is the people the owner talks to most. */
   peopleSearch(query: string): Promise<Person[]>
   /** Adds a person by name, so a task can be given to them before any message names them. */

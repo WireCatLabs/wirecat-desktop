@@ -12,6 +12,7 @@ import type {
   TaskEvent,
   TaskWrite,
 } from "@/platform/task-schemas"
+import { fresh } from "@/shared/fresh"
 import { queryClient } from "@/shared/query"
 
 export type View = "table" | "board"
@@ -50,6 +51,9 @@ type TasksState = {
   /** Who has a task on the page, as the rows' assignee choices; the full list is searched in the person finder. */
   assigned: string[]
   projects: Project[]
+  /** When the tasks and the projects were last read; a page opened again within a minute reads nothing. */
+  readAt: number | null
+  projectsAt: number | null
   open: string | null
   /** Tasks opened through a "waits for" link that the current search leaves out; never shown in the list. */
   outside: Record<string, Task>
@@ -70,6 +74,8 @@ type TasksState = {
   setPage(page: number): void
   setPageSize(size: number): void
   load(quiet?: boolean): Promise<void>
+  /** The page opened: a read unless the last one is under a minute old; the rows on screen stay while it runs. */
+  visit(): void
   type(query: string): void
   setQuery(query: string): void
   setDue(choice: DueChoice | null): void
@@ -100,6 +106,7 @@ type TasksState = {
 
 /** The finder's cached searches, shared by every row and the new task's form. */
 export const PEOPLE_FOUND = ["tasks", "people", "found"] as const
+export const FINDER_FRESH_MS = 5 * 60_000
 
 const VIEW_KEY = "wirecat.tasks.view"
 
@@ -122,6 +129,42 @@ const TYPING_MS = 350
 export const useTasks = create<TasksState>((set, get) => {
   let seq = 0
   let typing: ReturnType<typeof setTimeout> | undefined
+  const asking = new Set<string>()
+
+  /** Adds or renames people; the owner keeps the mark only memo's list gives. */
+  const learn = (found: Person[]) =>
+    set((s) => {
+      const owner = new Set(s.people.filter((p) => p.owner).map((p) => p.ref))
+      const added = found.filter((f) => !owner.has(f.ref))
+      return { people: [...s.people.filter((p) => !added.some((f) => f.ref === p.ref)), ...added] }
+    })
+
+  /** Names only the people on the page: memo's full list of people takes seconds. */
+  const name = async (refs: string[]) => {
+    const known = new Set(get().people.map((p) => p.ref))
+    const missing = [...new Set(refs)].filter((r) => r.startsWith("person:") && !known.has(r) && !asking.has(r))
+    if (missing.length === 0) return
+    for (const r of missing) asking.add(r)
+    const found = await platform.peopleNamed(missing).catch(() => null)
+    for (const r of missing) asking.delete(r)
+    if (found) learn(found)
+  }
+
+  /**
+   * memo marks the owner only in its people list, which costs seconds on a large store whatever its limit; the
+   * finder's first search is that list, so it is read once, after the page has its data, and the finder opens on it.
+   */
+  const findOwner = async () => {
+    if (get().people.some((p) => p.owner)) return
+    const found = await queryClient()
+      .fetchQuery({
+        queryKey: [...PEOPLE_FOUND, ""],
+        queryFn: () => platform.peopleSearch(""),
+        staleTime: FINDER_FRESH_MS,
+      })
+      .catch(() => null)
+    if (found) learn(found)
+  }
 
   const replace = (task: Task) =>
     set((s) =>
@@ -238,6 +281,8 @@ export const useTasks = create<TasksState>((set, get) => {
     people: [],
     assigned: [],
     projects: [],
+    readAt: null,
+    projectsAt: null,
     open: null,
     outside: {},
     busy: {},
@@ -261,9 +306,25 @@ export const useTasks = create<TasksState>((set, get) => {
       // memo cannot filter the tasks it found in chats, so they show only while the owner has typed no search; any
       // filter shows project tasks alone, as its count says.
       const chats = get().query.trim() ? null : platform.taskChats().catch(() => null)
-      // The names are read once; a person added or found since is already in the list.
-      const people = get().people.length ? Promise.resolve(null) : platform.peopleList().catch(() => null)
-      const projects = platform.projectList().catch(() => null)
+      // A keystroke reads the tasks again, not the projects.
+      const projects = fresh(get().projectsAt) ? Promise.resolve(null) : platform.projectList().catch(() => null)
+      void counts.then((c) => {
+        if (mine !== seq || get().demo) return
+        set({ counts: c })
+        if (!c) return
+        // memo's counts carry each assignee's name, so only the rest are asked for.
+        const known = new Set(get().people.map((p) => p.ref))
+        learn(
+          c.assignee
+            .filter((f) => f.value.startsWith("person:") && f.name && !known.has(f.value))
+            .map((f) => ({ ref: f.value, name: f.name, owner: false })),
+        )
+        void name(c.assignee.map((f) => f.value))
+      })
+      void projects.then((j) => {
+        if (mine !== seq || get().demo || !j) return
+        set({ projects: j, projectsAt: Date.now() })
+      })
       try {
         const [read, found] = await Promise.all([platform.taskList(q), chats])
         if (mine !== seq || get().demo) return
@@ -296,14 +357,19 @@ export const useTasks = create<TasksState>((set, get) => {
           stale: null,
           loaded: true,
           reading: false,
+          readAt: Date.now(),
         })
+        void name(get().assigned)
       } catch (e) {
         if (mine === seq && !get().demo) set({ error: message(e), loaded: true, reading: false })
         return
       }
-      const [c, p, j] = await Promise.all([counts, people, projects])
-      if (mine !== seq || get().demo) return
-      set((s) => ({ counts: c, people: p ?? s.people, projects: j ?? s.projects }))
+      await Promise.all([counts, projects])
+      if (mine === seq && !get().demo) void findOwner()
+    },
+
+    visit() {
+      if (!get().demo && !fresh(get().readAt)) void get().load()
     },
 
     setPage: (page) => set({ page }),
@@ -408,10 +474,7 @@ export const useTasks = create<TasksState>((set, get) => {
           creating: false,
         }))
         void recount()
-        void platform
-          .peopleList()
-          .then((people) => set({ people }))
-          .catch(() => undefined)
+        void name(made.assignees)
         return true
       } catch (e) {
         set((s) => ({ failed: { ...s.failed, new: message(e) } }))

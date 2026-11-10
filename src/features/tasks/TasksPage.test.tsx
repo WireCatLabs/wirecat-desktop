@@ -423,8 +423,9 @@ describe("Tasks", () => {
     await user.click(within(dialog).getByRole("combobox", { name: "Assignee" }))
     await user.click(screen.getByRole("option", { name: "Someone else…" }))
     await user.type(within(dialog).getByRole("combobox", { name: "Find or add a person" }), "kai")
+    // The page has already read the finder's first list (memo's people, owner first) to know who the owner is.
+    await waitFor(() => expect(search).toHaveBeenCalledWith("kai"))
     const kai = await screen.findByRole("option", { name: "Kai Moreno" })
-    expect(search).toHaveBeenCalledWith("kai")
     expect(search).not.toHaveBeenCalledWith("k")
     await user.click(kai)
     await user.click(within(dialog).getByRole("button", { name: "Add task" }))

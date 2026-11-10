@@ -27,7 +27,7 @@ export const TaskSchema = v.object({
   closedAt: v.nullable(v.string()),
   claimedBy: v.nullable(v.string()),
   claimedUntil: v.nullable(v.string()),
-  /** `person:<id>`; names come from `peopleList`. */
+  /** `person:<id>`; names come from `peopleNamed`. */
   assignees: v.array(v.string()),
   /** Null from `taskShow`, which does not work it out. */
   ready: v.nullable(v.boolean()),
