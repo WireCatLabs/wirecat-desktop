@@ -393,7 +393,7 @@ takes as nobody's run and refuses to let decide, so every confirm, discard, corr
 clicked, not a check memo can make; `run::command` also removes `AI_AGENT` and `CLAUDECODE`, so no run is an agent's.
 
 **When a source changes.** memo marks a memory or fact whose cited source changed, went or was contradicted with
-`source_review: {id, cause}` on its reads, and never changes its status. The row shows a badge and waits under Review as
+`source_review: {id, cause}` on its reads, and never changes its status. The row shows a badge and waits under Waiting for you (the `review` tab) as
 well as under In use (`entryInTab` in `domain/memory.ts`). Opened, `memory_review_show` reads `review show <id>`, checked
 to be a `memory_source_review` of that record, and shows each source as it was cited and as it is now. The answers:
 Still true (`review confirm`), Dismiss (`review reject --reason=<the owner's words>`), Edit (the record's own
@@ -441,7 +441,7 @@ its `standing`; a memo that does not know `include:` lists without it, so withou
 list` (the owner's role lists, from the memo with cli-core's role lists). A memo without one of them leaves its part out
 and the rest of the page as it is; any other failure (a busy store) fails the read as a failed memories list does. A row sits under the end
 it starts from (a person, an organization or a project), says the other end and the role, and carries a standing chip:
-**Proposed** waits in Review, **Confirmed** (the owner's) and **Reported** (a source such as a CRM says so, nobody
+**Proposed** waits in Waiting for you, **Confirmed** (the owner's) and **Reported** (a source such as a CRM says so, nobody
 confirmed it) are In use, **Ended** is with what no longer holds. A proposal is `relationship:<id>`, decided through
 memo's own review as every other proposal kind: `review confirm <id> --from-app`, or `review reject <id> --reason
 "rejected in WireCat Desktop" --from-app` (memo needs a reason). A link that holds is `link:<id>` and is not changed

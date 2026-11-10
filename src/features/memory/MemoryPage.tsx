@@ -371,7 +371,7 @@ function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => vo
         <label key={t} className="relative flex">
           <input type="radio" name={name} checked={t === value} onChange={() => onChange(t)} className="peer sr-only" />
           <span className="flex h-[calc(2.8rem-6px)] cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
-            {m.tabs[t]}
+            {t === "all" ? m.allTab : m.states[t]}
             <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{count(t)}</span>
           </span>
         </label>

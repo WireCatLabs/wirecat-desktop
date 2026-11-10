@@ -69,7 +69,7 @@ export const inTab = (tab: Tab, status: string) => tab === "all" || tabOf(status
 
 type Reviewed = { status: string; sourceReview?: { id: string; cause: string } | null }
 
-/** A record whose source changed waits for the owner as well: it shows under Review too, never only where it was. */
+/** A record whose source changed waits for the owner as well: it shows under Waiting for you too, never only where it was. */
 export const entryInTab = (tab: Tab, e: Reviewed) => inTab(tab, e.status) || (tab === "review" && !!e.sourceReview)
 
 /** The causes memo names, mildest first; a newer memo's unknown cause reads as a plain change. */
