@@ -50,8 +50,20 @@ export function contactsOf(
     const digits = WHATSAPP_PHONE.exec(id)?.[1]
     return digits ? [`+${digits}`] : []
   })
-  const phones = [...(profile?.phones ?? []), ...(looksLikePhone(contact) ? [contact] : []), ...whatsapp]
-  const emails = [...(profile?.emails ?? []), ...(looksLikeEmail(contact) ? [contact] : []), ...ids("email")]
+  const own = (key: "phone" | "email") =>
+    [row?.[key], ...(person?.identities ?? []).map((i) => i[key])].filter((v): v is string => !!v)
+  const phones = [
+    ...(profile?.phones ?? []),
+    ...own("phone"),
+    ...(looksLikePhone(contact) ? [contact] : []),
+    ...whatsapp,
+  ]
+  const emails = [
+    ...(profile?.emails ?? []),
+    ...own("email"),
+    ...(looksLikeEmail(contact) ? [contact] : []),
+    ...ids("email"),
+  ]
   return { phones: uniqueBy(phones, phoneKey), emails: uniqueBy(emails, emailKey) }
 }
 

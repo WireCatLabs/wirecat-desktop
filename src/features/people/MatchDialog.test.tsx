@@ -140,10 +140,37 @@ describe("what the people share", () => {
           method: null,
           linkedAt: null,
           movable: true,
+          phone: null,
+          email: null,
         },
       ],
     })
     expect(contactsOf(person("34600111222@s.whatsapp.net"), null, undefined).phones).toEqual(["+34600111222"])
     expect(contactsOf(person("2389472398472@lid"), null, undefined).phones).toEqual([])
+  })
+
+  it("reads the phone and the address memo reports on an account", () => {
+    const person = {
+      ref: "person:1",
+      name: null,
+      mergedInto: null,
+      merges: [],
+      matches: [],
+      identities: [
+        {
+          identity: "telegram:4411",
+          provider: "telegram",
+          name: null,
+          username: null,
+          seenIn: [],
+          method: null,
+          linkedAt: null,
+          movable: true,
+          phone: "+34 600 111 222",
+          email: "lena@example.org",
+        },
+      ],
+    }
+    expect(contactsOf(person, null, undefined)).toEqual({ phones: ["+34 600 111 222"], emails: ["lena@example.org"] })
   })
 })
