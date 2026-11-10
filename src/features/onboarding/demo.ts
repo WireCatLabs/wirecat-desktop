@@ -7,6 +7,7 @@ import type { Lang } from "@/i18n"
 import type { MemoryEntry, MemorySource } from "@/platform/memory-schemas"
 import type { SearchAnswer } from "@/platform/search-schemas"
 import type { Person, Task } from "@/platform/task-schemas"
+import { markStale } from "@/shared/fresh"
 
 // The tour's example rows live only in the pages' stores, and the pages are inert while they show: memo's store
 // belongs to the tools (rules 1 and 5). Rust refuses refs like `memory:example-1`, so a stray write could not land.
@@ -550,6 +551,8 @@ export function stageDemo(page: DemoPage, scene: DemoScene | null) {
 }
 
 export function hideDemo(page: DemoPage) {
+  // The owner's own data was set aside for the examples; what memo holds may have changed meanwhile.
+  markStale()
   if (page === "memory") {
     if (!useMemory.getState().demo) return
     useMemory.setState({ ...memoryBefore, reading: false, demo: false })

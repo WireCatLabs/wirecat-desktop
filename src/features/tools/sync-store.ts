@@ -4,6 +4,7 @@ import { failureSuperseded, type SyncFailure, type SyncSummary } from "@/domain/
 import type { SyncSchedule } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { LastSync, SyncEvent } from "@/platform/sync-schemas"
+import { markStale } from "@/shared/fresh"
 import { listProfiles } from "@/shared/query"
 
 export type SyncRun = {
@@ -91,6 +92,7 @@ export const useSync = create<State>()((set, get) => {
         return patch(key, { progress: { chats: e.chats, chatsDone: e.chatsDone, fetched: e.fetched } })
       case "done":
         patch(key, { ...ended, phase: "done", summary: e.summary })
+        markStale()
         return void get().loadLast(tool, profile)
       case "stopped":
         return patch(key, { ...ended, phase: "stopped" })
