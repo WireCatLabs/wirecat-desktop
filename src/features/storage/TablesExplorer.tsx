@@ -15,6 +15,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { storageMessages } from "./messages"
 
@@ -205,27 +206,17 @@ function GroupFilter(props: {
     ...present.map(({ g, of }) => ({ g, label: m.tableGroup[g], of })),
   ]
   return (
-    <fieldset className="m-0 flex min-w-0 flex-wrap gap-1 border-0 p-0">
-      <legend className="sr-only">{m.tableGroups}</legend>
-      {choices.map(({ g, label, of }) => (
-        <button
-          key={g ?? "all"}
-          type="button"
-          aria-pressed={value === g}
-          onClick={() => onChange(g)}
-          className={cx(
-            "inline-flex items-baseline gap-1.5 rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-(--motion-fast)",
-            value === g ? "bg-app-3 font-medium text-ink" : "text-ink-soft hover:bg-app-2 hover:text-ink",
-          )}
-        >
-          {label}
-          <span className="font-mono text-[0.8rem] font-normal text-ink-dim tabular-nums">
-            {of.length}
-            {measured && ` · ${formatBytes(totalBytes(of))}`}
-          </span>
-        </button>
-      ))}
-    </fieldset>
+    <Segmented<TableGroup | "all">
+      size="md"
+      label={m.tableGroups}
+      value={value ?? "all"}
+      onChange={(g) => onChange(g === "all" ? null : g)}
+      options={choices.map(({ g, label, of }) => ({
+        value: g ?? "all",
+        label,
+        count: measured ? `${of.length} · ${formatBytes(totalBytes(of))}` : of.length,
+      }))}
+    />
   )
 }
 

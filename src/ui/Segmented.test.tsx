@@ -20,4 +20,17 @@ describe("Segmented", () => {
     expect(screen.getAllByText("WhatsApp")).toHaveLength(2)
     expect(screen.getByRole("group", { name: "View" })).toHaveAttribute("data-tour", "view")
   })
+  it("says each option's count after its label, to the eye and to a screen reader", () => {
+    const counted = [
+      { value: "review", label: "Waiting for you", count: 10 },
+      { value: "all", label: "All", count: "1,200+" },
+    ]
+    render(<Segmented size="md" label="Show" value="review" options={counted} onChange={() => {}} />)
+    expect(screen.getByRole("radio", { name: "Waiting for you 10" })).toBeChecked()
+    expect(screen.getByText("1,200+")).toBeInTheDocument()
+  })
+  it("as a stand-in while loading, shows its choice but takes none", () => {
+    render(<Segmented size="md" label="Show" value="tg" options={OPTIONS} onChange={() => {}} disabled />)
+    expect(screen.getByRole("radio", { name: "WhatsApp" })).toBeDisabled()
+  })
 })

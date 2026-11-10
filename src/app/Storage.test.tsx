@@ -20,7 +20,7 @@ describe("Storage", () => {
     expect(within(archive).getByRole("table", { name: "By source" })).toHaveTextContent("via tg")
     expect(within(archive).getByRole("table", { name: "By source" })).toHaveTextContent("WhatsApp")
 
-    await user.click(within(archive).getByRole("button", { name: "Chat type" }))
+    await user.click(within(archive).getByRole("radio", { name: "Chat type" }))
     expect(within(archive).getByRole("table", { name: "By chat type" })).toHaveTextContent("Telegram · Groups")
 
     for (const more of await screen.findAllByRole("button", { name: /What is in here/ }, { timeout: 4000 })) {
@@ -53,7 +53,7 @@ describe("Storage", () => {
 
     await screen.findByRole("table", { name: "Tables" }, { timeout: 4000 })
     const groups = screen.getByRole("group", { name: "Show tables" })
-    await user.click(within(groups).getByRole("button", { name: /^Mail/ }))
+    await user.click(within(groups).getByRole("radio", { name: /^Mail/ }))
     const tables = screen.getByRole("table", { name: "Tables" })
     const names = within(tables)
       .getAllByRole("rowheader")

@@ -6,8 +6,8 @@ import { formatDate, formatNumber, useMessages } from "@/i18n"
 import type { StoreInfo } from "@/platform/archive-schemas"
 import { ReportThis } from "@/shared/ReportThis"
 import { useStorage } from "@/shared/storage-store"
-import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { DatabaseFacts, DatabaseFactsSkeleton } from "./DatabaseFacts"
 import { storageMessages } from "./messages"
@@ -110,23 +110,7 @@ function Contents({ info }: { info: StoreInfo }) {
 
       {info.breakdown ? (
         <div className="flex flex-col gap-3">
-          <fieldset className="m-0 flex min-w-0 flex-wrap items-center gap-1 border-0 p-0">
-            <legend className="float-left mr-2 text-[0.9rem] text-ink-dim">{m.breakDownBy}</legend>
-            {DIMENSIONS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                aria-pressed={dim === d}
-                onClick={() => setDim(d)}
-                className={cx(
-                  "rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-(--motion-fast)",
-                  dim === d ? "bg-app-3 font-medium text-ink" : "text-ink-soft hover:bg-app-2 hover:text-ink",
-                )}
-              >
-                {m.dimension[d]}
-              </button>
-            ))}
-          </fieldset>
+          <BreakDownBy value={dim} onChange={setDim} />
           {rows.length === 0 ? (
             <p className="text-[0.9rem] text-ink-soft">{m.nothingToBreak}</p>
           ) : (
@@ -191,22 +175,7 @@ function ContentsSkeleton() {
         ))}
       </dl>
       <div className="flex flex-col gap-3">
-        <fieldset disabled className="m-0 flex min-w-0 flex-wrap items-center gap-1 border-0 p-0">
-          <legend className="float-left mr-2 text-[0.9rem] text-ink-dim">{m.breakDownBy}</legend>
-          {DIMENSIONS.map((d) => (
-            <button
-              key={d}
-              type="button"
-              aria-pressed={d === "provider"}
-              className={cx(
-                "rounded-[0.35rem] px-2.5 py-1 text-[0.875rem]",
-                d === "provider" ? "bg-app-3 font-medium text-ink" : "text-ink-soft",
-              )}
-            >
-              {m.dimension[d]}
-            </button>
-          ))}
-        </fieldset>
+        <BreakDownBy value="provider" onChange={() => {}} disabled />
         <table aria-hidden className="w-full">
           <tbody>
             {tools.map((t) => (
@@ -230,6 +199,26 @@ function ContentsSkeleton() {
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+function BreakDownBy(props: { value: Dimension; onChange: (d: Dimension) => void; disabled?: boolean }) {
+  const { value, onChange, disabled = false } = props
+  const m = useMessages(storageMessages)
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span aria-hidden className="text-[0.9rem] text-ink-dim">
+        {m.breakDownBy}
+      </span>
+      <Segmented<Dimension>
+        size="md"
+        label={m.breakDownBy}
+        value={value}
+        onChange={onChange}
+        disabled={disabled}
+        options={DIMENSIONS.map((d) => ({ value: d, label: m.dimension[d] }))}
+      />
     </div>
   )
 }
