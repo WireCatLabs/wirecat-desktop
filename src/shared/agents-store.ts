@@ -18,6 +18,9 @@ type AgentsState = {
   refreshing: boolean
   /** Every tool answered once this session; the page asks for logs and claims only after, so skills come first. */
   answered: boolean
+  /** When `load` last finished, and for which tools; the Agents page opened again within a minute asks nothing. */
+  answeredAt: number | null
+  answeredFor: string
   /** Finds the agents only, once; for pages that start an agent and need no skills. */
   detect(): Promise<void>
   /** Asks every installed tool at once; each row fills in as its tool answers. */
@@ -62,6 +65,8 @@ export const useAgents = create<AgentsState>((set, get) => ({
   failures: {},
   refreshing: false,
   answered: false,
+  answeredAt: null,
+  answeredFor: "",
 
   async detect() {
     if (get().agents !== null) return
@@ -90,7 +95,7 @@ export const useAgents = create<AgentsState>((set, get) => ({
         .then((result) => set((s) => ({ skills: { ...s.skills, [id]: result } }))),
     )
     await Promise.all([agents, ...skills])
-    set({ refreshing: false, answered: true })
+    set({ refreshing: false, answered: true, answeredAt: Date.now(), answeredFor: installed.join(",") })
   },
 
   async install(id, target) {

@@ -19,6 +19,7 @@ import { useMessages } from "@/i18n"
 import type { Agent } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import { useAgents } from "@/shared/agents-store"
+import { fresh } from "@/shared/fresh"
 import { useTools } from "@/shared/tools-store"
 import type { AgentClaim } from "./ClaimRow"
 import { useConnect } from "./connect"
@@ -115,14 +116,19 @@ export function useAgentsView() {
     if (!toolsChecked && !tools.refreshing) tools.refresh()
   }, [toolsChecked])
   useEffect(() => {
-    if (detected) load(skillToolIds ? skillToolIds.split(",") : [])
+    const was = useAgents.getState()
+    if (detected && !(fresh(was.answeredAt) && was.answeredFor === skillToolIds))
+      load(skillToolIds ? skillToolIds.split(",") : [])
   }, [detected, skillToolIds, load])
 
   useEffect(() => {
     if (answered && Object.keys(useLogs.getState().sources).length === 0) useLogs.getState().load()
   }, [answered])
   useEffect(() => {
-    if (answered && foundIds && installedIds) useConnect.getState().load(foundIds.split(","), installedIds.split(","))
+    const was = useConnect.getState()
+    if (!answered || !foundIds || !installedIds) return
+    if (fresh(was.loadedAt) && was.loadedFor === `${foundIds}|${installedIds}`) return
+    void was.load(foundIds.split(","), installedIds.split(","))
   }, [answered, foundIds, installedIds])
 
   const sourceList = Object.values(sources)
