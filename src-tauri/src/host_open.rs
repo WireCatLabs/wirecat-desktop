@@ -163,7 +163,7 @@ mod tests {
     #[test]
     fn outside_an_appimage_nothing_changes() {
         let env = vars(&[("PATH", "/usr/bin"), ("LD_LIBRARY_PATH", "/opt/lib"), ("GTK_THEME", "Adwaita:dark")]);
-        assert!(host_env(env).is_empty());
+        assert_eq!(host_env(env), Vec::<Change>::new());
     }
 
     #[test]
