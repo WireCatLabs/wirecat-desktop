@@ -95,10 +95,41 @@ pub struct Agent {
     /// `program` when it is on PATH, `folder` when only its settings folder is there, `None` when not found.
     pub found_by: Option<&'static str>,
     pub reads: &'static [&'static str],
+    /// Only for an agent not found, so the owner sees why: the programs and settings files looked for, and where.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub looked: Option<Looked>,
+}
+
+#[derive(Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Looked {
+    pub programs: &'static [&'static str],
+    pub files: Vec<String>,
+    #[serde(flatten)]
+    pub path: paths::Lookup,
 }
 
 pub fn agents() -> Vec<Agent> {
-    detect(paths::home().as_deref(), |k| std::env::var_os(k), |p| paths::find(p).is_some())
+    let home = paths::home();
+    let mut agents = detect(home.as_deref(), |k| std::env::var_os(k), |p| paths::find(p).is_some());
+    let lookup = paths::lookup();
+    for (agent, spec) in agents.iter_mut().zip(AGENTS.iter()) {
+        if agent.found_by.is_none() {
+            agent.looked = Some(Looked {
+                programs: spec.programs,
+                files: settings_files(spec, home.as_deref(), |k| std::env::var_os(k)),
+                path: lookup.clone(),
+            });
+        }
+    }
+    agents
+}
+
+fn settings_files(a: &AgentSpec, home: Option<&Path>, env: impl Fn(&str) -> Option<OsString>) -> Vec<String> {
+    let moved =
+        a.home_env.and_then(|(var, file)| env(var).filter(|v| !v.is_empty()).map(|d| PathBuf::from(d).join(file)));
+    let marks = home.into_iter().flat_map(|h| a.marks.iter().map(move |m| h.join(m)));
+    moved.into_iter().chain(marks).map(|p| paths::tilde(&p.to_string_lossy())).collect()
 }
 
 fn detect(home: Option<&Path>, env: impl Fn(&str) -> Option<OsString>, on_path: impl Fn(&str) -> bool) -> Vec<Agent> {
@@ -118,7 +149,7 @@ fn detect(home: Option<&Path>, env: impl Fn(&str) -> Option<OsString>, on_path: 
             } else {
                 None
             };
-            Agent { id: a.id, name: a.name, found_by, reads: a.reads }
+            Agent { id: a.id, name: a.name, found_by, reads: a.reads, looked: None }
         })
         .collect()
 }

@@ -1,7 +1,9 @@
 import { CHAT_AGENTS } from "@/domain/agents"
 import { TARGET_FOLDER } from "@/domain/skills"
 import { useMessages } from "@/i18n"
+import type { Agent } from "@/platform/agents-schemas"
 import { Button } from "@/ui/Button"
+import { Disclosure } from "@/ui/Disclosure"
 import { Skeleton } from "@/ui/Skeleton"
 import { AgentDetails } from "./AgentDetails"
 import { AgentIcon } from "./AgentIcon"
@@ -41,6 +43,7 @@ export function AgentPane({ entry, all }: { entry: AgentEntry | null; all: Agent
             </span>,
           )}
         </p>
+        {entry.agent.looked && <WhereLooked looked={entry.agent.looked} />}
       </div>
     )
   const { view } = entry
@@ -91,6 +94,26 @@ export function AgentPane({ entry, all }: { entry: AgentEntry | null; all: Agent
 }
 
 /** The found agent's pane at its usual size while agents are still being looked for. */
+/** So a report of "not found" carries its cause: the PATH the app searched and whether the terminal's was read. */
+function WhereLooked({ looked }: { looked: NonNullable<Agent["looked"]> }) {
+  const m = useMessages(agentsMessages)
+  const mono = (items: readonly string[]) => <span className="selectable font-mono">{items.join(", ")}</span>
+  return (
+    <Disclosure summary={m.whereLooked}>
+      <div className="flex max-w-[70ch] flex-col gap-2 text-[0.9rem] text-ink-soft">
+        <p>{m.lookedForProgram(mono(looked.programs))}</p>
+        <ul className="selectable font-mono text-[0.85rem]">
+          {looked.folders.map((f) => (
+            <li key={f}>{f}</li>
+          ))}
+        </ul>
+        {looked.files.length > 0 && <p>{m.lookedForFiles(mono(looked.files))}</p>}
+        {looked.shellProblem && <p>{m.shellUnread(looked.shell ?? "sh", looked.shellProblem)}</p>}
+      </div>
+    </Disclosure>
+  )
+}
+
 function PendingPane() {
   return (
     <div className="flex flex-col gap-5">

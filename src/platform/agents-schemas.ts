@@ -8,6 +8,16 @@ export const AgentsSchema = v.array(
     name: v.string(),
     foundBy: v.nullable(v.picklist(["program", "folder"])),
     reads: v.array(TargetSchema),
+    /** Only when not found: what was looked for, and where. */
+    looked: v.optional(
+      v.object({
+        programs: v.array(v.string()),
+        files: v.array(v.string()),
+        folders: v.array(v.string()),
+        shell: v.nullable(v.string()),
+        shellProblem: v.nullable(v.string()),
+      }),
+    ),
   }),
 )
 
