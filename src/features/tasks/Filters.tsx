@@ -28,8 +28,8 @@ export function Filters() {
   const source = useSource((s) => s.source)
   const found = tasks.filter((t) => t.account).length
   const owner = people.find((p) => p.owner)?.ref
-  const assigned = valuesOf(query, "assignee")
-  const mine = owner !== undefined && assigned.length === 1 && assigned[0] === owner
+  const chosen = valuesOf(query, "assignee")
+  const mine = owner !== undefined && chosen.length === 1 && chosen[0] === owner
 
   const field = (name: "project" | "assignee" | "priority" | "state" | "agent", options: FilterOption[]) => ({
     selected: valuesOf(query, name),
@@ -51,6 +51,7 @@ export function Filters() {
         ...people.filter((p) => p.owner).map((p) => p.ref),
         ...(counts?.assignee ?? []).map((f) => f.value).filter((v) => v !== "none"),
         ...assigned,
+        ...chosen,
       ]),
     ].map((ref) => ({
       value: ref,
