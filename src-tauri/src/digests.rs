@@ -123,9 +123,10 @@ fn day_of(dir: &Path, stamp: &str) -> Option<Day> {
 
 /// The modification times of a run's two files: a run whose files did not change is not parsed again.
 type Seen = (Option<SystemTime>, Option<SystemTime>);
+type Parsed = (Seen, Option<Day>);
 
 /// The watcher lists the runs every minute; parsing every past report each time grows with the history.
-static PARSED: LazyLock<Mutex<HashMap<PathBuf, (Seen, Option<Day>)>>> = LazyLock::new(Mutex::default);
+static PARSED: LazyLock<Mutex<HashMap<PathBuf, Parsed>>> = LazyLock::new(Mutex::default);
 
 fn modified(path: &Path) -> Option<SystemTime> {
     std::fs::metadata(path).and_then(|m| m.modified()).ok()
