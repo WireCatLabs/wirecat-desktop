@@ -27,6 +27,7 @@ import type { StoreInfo } from "@/platform/archive-schemas"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
+import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./charts"
 import { Explorer } from "./explorer"
@@ -348,23 +349,16 @@ export function People() {
   return (
     <Panel id="an-people" title={m.people} source={`stats messages show --by ${by === "senders" ? "sender" : "chat"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <fieldset className="m-0 flex min-w-0 gap-1 border-0 p-0">
-          <legend className="sr-only">{m.people}</legend>
-          {(["senders", "chats"] as const).map((b) => (
-            <button
-              key={b}
-              type="button"
-              aria-pressed={by === b}
-              onClick={() => setBy(b)}
-              className={cx(
-                "cursor-pointer rounded-[0.35rem] px-2.5 py-1 text-[0.875rem] transition-colors duration-(--motion-fast)",
-                by === b ? "bg-app-3 font-medium text-ink" : "text-ink-soft hover:bg-app-2 hover:text-ink",
-              )}
-            >
-              {b === "senders" ? m.byPeople : m.byChats}
-            </button>
-          ))}
-        </fieldset>
+        <Segmented<"senders" | "chats">
+          size="md"
+          label={m.people}
+          value={by}
+          onChange={setBy}
+          options={[
+            { value: "senders", label: m.byPeople },
+            { value: "chats", label: m.byChats },
+          ]}
+        />
         <p className="text-[0.85rem] text-ink-dim">{m.namesStay}</p>
       </div>
       {none ? (

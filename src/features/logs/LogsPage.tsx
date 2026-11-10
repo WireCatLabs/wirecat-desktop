@@ -34,6 +34,7 @@ import { Lamp } from "@/ui/Lamp"
 import { reducedMotion } from "@/ui/motion"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { RefreshButton } from "@/ui/RefreshButton"
+import { Segmented } from "@/ui/Segmented"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { Facets } from "./Facets"
@@ -244,7 +245,10 @@ export function LogsPage() {
               docs={LOGS_DOCS}
               onChange={setQuery}
             />
-            <Range value={range} onChange={setRange} />
+            {/* Centred on the 2.8rem search field, as the Facets button is. */}
+            <div className="mt-[0.4rem]">
+              <Range value={range} onChange={setRange} />
+            </div>
             <GroupBy value={groupBy} onChange={setGroupBy} />
             <Button
               size="sm"
@@ -490,26 +494,14 @@ function Freshness({ at, reading, asked }: { at: number | null; reading: number;
 
 function Range({ value, onChange }: { value: RangeId; onChange: (r: RangeId) => void }) {
   const m = useMessages(logsMessages)
-  const name = useId()
   return (
-    <fieldset className="inline-flex h-[2.8rem] items-center rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
-      <legend className="sr-only">{m.timeRange}</legend>
-      {RANGES.map((r) => (
-        <label key={r.id} className="relative h-full">
-          <input
-            type="radio"
-            name={name}
-            value={r.id}
-            checked={r.id === value}
-            onChange={() => onChange(r.id)}
-            className="peer sr-only"
-          />
-          <span className="grid h-full min-w-[3rem] cursor-pointer place-items-center rounded-[0.35rem] px-[0.7rem] font-mono text-[0.9rem] text-ink-soft transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
-            {m.ranges[r.id]}
-          </span>
-        </label>
-      ))}
-    </fieldset>
+    <Segmented<RangeId>
+      size="md"
+      label={m.timeRange}
+      value={value}
+      onChange={onChange}
+      options={RANGES.map((r) => ({ value: r.id, label: m.ranges[r.id] }))}
+    />
   )
 }
 

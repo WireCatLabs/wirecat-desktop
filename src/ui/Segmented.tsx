@@ -1,9 +1,10 @@
 import { type ReactNode, useId } from "react"
 import { cx } from "./cx"
 
-type Option<T extends string> = { value: T; label: string; icon: ReactNode }
+/** `count` is said after the label, in mono, as a tab's number of rows ("Waiting for you 10"). */
+type Option<T extends string> = { value: T; label: string; icon?: ReactNode; count?: string | number | undefined }
 
-/** `sm` sits in a toolbar, icons first; `md` is a page's view switch (Table · Board), its labels always shown. */
+/** `sm` sits in a toolbar, icons first; `md` is a page's switch (Table · Board, a status tab, a range), labels shown. */
 type Size = "sm" | "md"
 
 const LOOK: Record<Size, { box: string; item: string; face: string }> = {
@@ -57,7 +58,7 @@ export function Segmented<T extends string>({
             onChange={() => onChange(o.value)}
             className="peer sr-only"
           />
-          <span className="sr-only">{o.label}</span>
+          <span className="sr-only">{o.count === undefined ? o.label : `${o.label} ${o.count}`}</span>
           <span
             aria-hidden
             className={cx(
@@ -68,6 +69,9 @@ export function Segmented<T extends string>({
           >
             {o.icon}
             {labelled && <span className={cx(size === "sm" && "text-[0.9rem]", labelClass)}>{o.label}</span>}
+            {o.count !== undefined && (
+              <span className="font-mono text-[0.85rem] text-ink-dim tabular-nums">{o.count}</span>
+            )}
           </span>
         </label>
       ))}
