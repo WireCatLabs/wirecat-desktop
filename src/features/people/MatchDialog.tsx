@@ -6,18 +6,19 @@ import { sourceLink } from "@/domain/source-link"
 import { openConversation } from "@/features/conversation"
 import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { Identity, Match, PersonDetail } from "@/platform/people-schemas"
+import type { Identity, Listed, Match, PersonDetail } from "@/platform/people-schemas"
 import type { PersonProfile } from "@/platform/person-profile-schemas"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
-import { groupMatches } from "./groups"
+import { groupMatches, type MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
 import { moveWords, tieOf } from "./MatchCard"
 import { peopleMessages } from "./messages"
+import { useUnticked } from "./picks"
 import { type ProfileRead, useProfiles } from "./profiles"
 import { accountName, SourceIcon, sourceOf } from "./sources"
 import { usePeople } from "./store"
@@ -28,29 +29,54 @@ type Contacts = { phones: string[]; emails: string[] }
 const phoneKey = (phone: string) => phone.replace(/\D/g, "").slice(-10)
 const emailKey = (email: string) => email.trim().toLowerCase()
 const keyOf = (signal: string | null) => (signal === "phone" ? phoneKey : emailKey)
+const looksLikePhone = (v: string) => /^\+?[\d\s().-]{7,20}$/.test(v.trim())
+const looksLikeEmail = (v: string) => /^[^\s@:/]+@[^\s@:/]+\.[^\s@:/]+$/.test(v.trim())
+/** A WhatsApp id is a phone only as `<digits>@s.whatsapp.net` or `@c.us`, or bare digits; `@lid` is no number. */
+const WHATSAPP_PHONE = /^(\d{7,15})(?:@s\.whatsapp\.net|@c\.us)?$/
 
 const uniqueBy = (values: string[], key: (v: string) => string) =>
   values.filter((v, i) => key(v) !== "" && values.findIndex((w) => key(w) === key(v)) === i)
 
 /** A person's phones and addresses: what memo's row and context give, and what their accounts are. */
-function contactsOf(person: PersonDetail | null, profile: PersonProfile | null): Contacts {
+export function contactsOf(
+  person: PersonDetail | null,
+  profile: PersonProfile | null,
+  row: Listed | undefined,
+): Contacts {
   const ids = (provider: string) =>
     (person?.identities ?? []).filter((i) => i.provider === provider).map((i) => i.identity.slice(provider.length + 1))
-  const phones = [...(profile?.phones ?? []), ...ids("whatsapp").map((n) => `+${n.replace(/@.*/, "")}`)]
-  return {
-    phones: uniqueBy(phones, phoneKey),
-    emails: uniqueBy([...(profile?.emails ?? []), ...ids("email")], emailKey),
-  }
+  const contact = row?.contact ?? ""
+  const whatsapp = ids("whatsapp").flatMap((id) => {
+    const digits = WHATSAPP_PHONE.exec(id)?.[1]
+    return digits ? [`+${digits}`] : []
+  })
+  const phones = [...(profile?.phones ?? []), ...(looksLikePhone(contact) ? [contact] : []), ...whatsapp]
+  const emails = [...(profile?.emails ?? []), ...(looksLikeEmail(contact) ? [contact] : []), ...ids("email")]
+  return { phones: uniqueBy(phones, phoneKey), emails: uniqueBy(emails, emailKey) }
 }
+
+/** The page's own list row knows their counts for certain; the name search behind the profile can miss them. */
+const withRow = (profile: PersonProfile, row: Listed | undefined): PersonProfile =>
+  row
+    ? {
+        ...profile,
+        messagesFrom: row.messagesFrom ?? profile.messagesFrom,
+        lastContact: row.lastContact ?? profile.lastContact,
+        tasks: row.tasks,
+        tasksMore: false,
+      }
+    : profile
 
 /**
  * The value the people share, as memo named it, else a phone or address two of them have. `null` when neither is
  * known: the dialog then says only what kind of thing they share, and marks the accounts the match names.
  */
-function sharedValue(match: Match, contacts: Contacts[]): string | null {
-  if (match.evidence[0]) return match.evidence[0]
+export function sharedValue(match: Match, contacts: Contacts[]): string | null {
   const phone = match.signal === "phone"
   if (!phone && match.signal !== "email" && match.signal !== "guest-email") return null
+  // memo's evidence may be a reference (a meeting's) rather than the value: only a phone or an address is shown.
+  const evidence = match.evidence.find(phone ? looksLikePhone : looksLikeEmail)
+  if (evidence) return evidence
   const key = keyOf(match.signal)
   const lists = contacts.map((c) => (phone ? c.phones : c.emails))
   const holders = (v: string) => lists.filter((l) => l.some((w) => key(w) === key(v))).length
@@ -74,11 +100,19 @@ export function MatchDialog() {
   const theirs = Object.values(details).flatMap((d) => (d.state === "ready" ? d.person.matches : []))
   const find = (list: Match[]) =>
     groupMatches(list, decided).find((g) => g.key === key || g.matches.some((x) => x.id === key))
-  const group = key ? (find(matches) ?? find(theirs)) : undefined
+  const found = key ? (find(matches) ?? find(theirs)) : undefined
+  // A match opened from a person's dialog lives in that person's details, which a join drops: keep it while open.
+  const last = useRef<{ key: string | null; group: MatchGroup | undefined }>({ key: null, group: undefined })
+  if (found || last.current.key !== key) last.current = { key, group: found }
+  const group = key ? last.current.group : undefined
   const open = group?.matches.filter((x) => !decided[x.id]) ?? []
   const match = open[0] ?? group?.matches[0]
   const done = group !== undefined && open.length === 0
   const people = group?.people ?? []
+  const listed = usePeople((s) => s.people)
+  const unticked = useUnticked(group?.key ?? "")
+  const picking = open.length > 0 && people.length > 2
+  const chosen = picking ? people.filter((p) => !unticked.includes(p)) : people
 
   // A decision re-reads the people and drops the one merged away: what the owner compared stays as it was.
   const kept = useRef<{ key: string | null; people: Record<string, { name: string; person: PersonDetail | null }> }>({
@@ -95,9 +129,10 @@ export function MatchDialog() {
 
   const refs = people.join(" ")
   useEffect(() => {
-    if (!refs || done) return
+    if (!refs) return
     for (const ref of refs.split(" ")) {
-      if (!usePeople.getState().details[ref]) usePeople.getState().need(ref)
+      // Decided, a person may be merged away: their accounts are not read again, as on the card.
+      if (!done && !usePeople.getState().details[ref]) usePeople.getState().need(ref)
       void useProfiles.getState().load(ref)
     }
   }, [refs, done])
@@ -108,12 +143,22 @@ export function MatchDialog() {
   }
   const contacts = people.map((ref) => {
     const p = profiles[ref]
-    return contactsOf(kept.current.people[ref]?.person ?? null, p?.state === "ready" ? p.profile : null)
+    const row = listed.find((x) => x.ref === ref)
+    return contactsOf(kept.current.people[ref]?.person ?? null, p?.state === "ready" ? p.profile : null, row)
   })
   const shared = match ? sharedValue(match, contacts) : null
+  const sharedKind = match?.signal === "phone" ? "phone" : "email"
   const sharedKey = keyOf(match?.signal ?? null)
+  const same = (kind: "phone" | "email", v: string) =>
+    shared !== null && kind === sharedKind && sharedKey(v) === sharedKey(shared)
   const moving = match?.joins === "identity" && match.identity
-  const confirmLabel = moving ? m.moveAccount : people.length > 2 ? m.mergeAll(people.length) : m.merge
+  const confirmLabel = moving
+    ? m.moveAccount
+    : picking && chosen.length < people.length
+      ? m.joinPicked(chosen.length)
+      : people.length > 2
+        ? m.mergeAll(people.length)
+        : m.merge
 
   return (
     <Dialog
@@ -125,7 +170,12 @@ export function MatchDialog() {
       actions={
         group && (
           <div className="flex w-full flex-col gap-[0.6rem]">
-            <MatchActions group={group} chosen={people} confirmLabel={confirmLabel} />
+            <MatchActions
+              group={group}
+              chosen={chosen}
+              confirmLabel={confirmLabel}
+              hint={picking && chosen.length < 2 && <span className="text-[0.85rem] text-ink-dim">{m.pickTwo}</span>}
+            />
           </div>
         )
       }
@@ -142,15 +192,19 @@ export function MatchDialog() {
           <div className={cx("grid grid-cols-1 gap-x-[2rem] md:grid-cols-2", people.length > 2 && "xl:grid-cols-3")}>
             {people.map((ref, i) => {
               const d = details[ref]
+              const p = profiles[ref]
+              const row = listed.find((x) => x.ref === ref)
               return (
                 <Column
                   key={ref}
+                  waiting={!done}
+                  left={picking && !chosen.includes(ref)}
                   name={kept.current.people[ref]?.name ?? name(ref)}
                   person={kept.current.people[ref]?.person ?? null}
                   failed={d?.state === "failed" && !kept.current.people[ref]?.person ? d.error : null}
-                  profile={profiles[ref]}
+                  profile={p?.state === "ready" ? { state: "ready", profile: withRow(p.profile, row) } : p}
                   contacts={contacts[i] ?? { phones: [], emails: [] }}
-                  same={(v) => shared !== null && sharedKey(v) === sharedKey(shared)}
+                  same={same}
                   tie={shared === null ? tieOf(open.length ? open : group.matches, ref) : null}
                 />
               )
@@ -210,14 +264,19 @@ function Value({ text, same }: { text: string; same: boolean }) {
   )
 }
 
-const Lines = () => (
-  <div className="flex flex-col gap-[0.4rem]">
-    <Skeleton className="h-[1.2rem] w-[70%]" />
-    <Skeleton className="h-[1.2rem] w-[45%]" />
-  </div>
-)
+function Lines() {
+  const m = useMessages(peopleMessages)
+  return (
+    <div className="flex flex-col gap-[0.4rem]">
+      <Skeleton className="h-[1.2rem] w-[70%]" label={m.loadingPerson} />
+      <Skeleton className="h-[1.2rem] w-[45%]" />
+    </div>
+  )
+}
 
 function Column({
+  waiting,
+  left,
   name,
   person,
   failed,
@@ -226,12 +285,16 @@ function Column({
   same,
   tie,
 }: {
+  /** Still undecided: a missing read is on its way. Decided, a person merged away is not read again. */
+  waiting: boolean
+  /** Unticked on the group's card: a join leaves them as they are. */
+  left: boolean
   name: string
   person: PersonDetail | null
   failed: string | null
   profile: ProfileRead | undefined
   contacts: Contacts
-  same: (value: string) => boolean
+  same: (kind: "phone" | "email", value: string) => boolean
   tie: string | null
 }) {
   const m = useMessages(peopleMessages)
@@ -247,12 +310,18 @@ function Column({
         [m.lastContact, ready.lastContact ? formatDate(ready.lastContact, { dateStyle: "medium" }, lang) : m.unknown],
         [m.messagesFrom, count(ready.messagesFrom)],
         [m.dealsN, count(ready.deals)],
-        [m.tasksN, count(ready.tasks)],
+        [m.tasksN, ready.tasksMore ? `${count(ready.tasks)}+` : count(ready.tasks)],
       ]
     : []
 
   return (
-    <section aria-label={name} className="row-span-4 grid min-w-0 grid-rows-subgrid max-md:not-first:mt-[1.2rem]">
+    <section
+      aria-label={name}
+      className={cx(
+        "row-span-4 grid min-w-0 grid-rows-subgrid transition-opacity duration-(--motion-fast) max-md:not-first:mt-[1.2rem]",
+        left && "opacity-60",
+      )}
+    >
       <Cell first>
         <h3 className="text-[1.08rem] leading-[1.25] font-semibold text-ink">{name}</h3>
         {failed ? (
@@ -265,15 +334,21 @@ function Column({
               <Source key={i.identity} identity={i} person={name} tie={i.identity === tie} />
             ))}
           </ul>
-        ) : (
+        ) : waiting ? (
           <Lines />
-        )}
+        ) : null}
       </Cell>
       <Cell label={m.contacts}>
         {anything ? (
           <dl className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-[0.9rem] gap-y-[0.35rem]">
-            <Facts label={m.phone} values={contacts.phones.map((p) => <Value key={p} text={p} same={same(p)} />)} />
-            <Facts label={m.email} values={contacts.emails.map((e) => <Value key={e} text={e} same={same(e)} />)} />
+            <Facts
+              label={m.phone}
+              values={contacts.phones.map((p) => <Value key={p} text={p} same={same("phone", p)} />)}
+            />
+            <Facts
+              label={m.email}
+              values={contacts.emails.map((e) => <Value key={e} text={e} same={same("email", e)} />)}
+            />
             <Facts
               label={m.handles}
               values={handles.map((i) => (
@@ -292,7 +367,7 @@ function Column({
               ))}
             />
           </dl>
-        ) : loading || !person ? (
+        ) : loading || (!person && waiting) ? (
           <Lines />
         ) : (
           <p className="text-ink-dim">{m.noContacts}</p>

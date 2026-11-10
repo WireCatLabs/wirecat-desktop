@@ -12,8 +12,9 @@ export const PersonProfileSchema = v.object({
   /** `null` when memo's row for the person was not found: the count is then unknown, not zero. */
   messagesFrom: v.nullable(v.number()),
   tasks: v.nullable(v.number()),
+  /** `tasks` counts only what the context read, and memo has more. */
+  tasksMore: v.boolean(),
   deals: v.number(),
-  projects: v.number(),
   recent: v.array(
     v.object({
       kind: v.string(),

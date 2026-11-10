@@ -504,8 +504,8 @@ const EMPTY_PROFILE: PersonProfile = {
   lastContact: null,
   messagesFrom: null,
   tasks: null,
+  tasksMore: false,
   deals: 0,
-  projects: 0,
   recent: [],
 }
 

@@ -45,8 +45,9 @@ pub struct Profile {
     /// Messages and mail they sent, every account together; `None` when their row was not found.
     pub messages_from: Option<u64>,
     pub tasks: Option<u64>,
+    /// `tasks` counts only the tasks the context read, and memo has more.
+    pub tasks_more: bool,
     pub deals: u64,
-    pub projects: u64,
     pub recent: Vec<Recent>,
 }
 
@@ -119,13 +120,19 @@ fn profile_of(context: &Value, row: Option<&Value>) -> Profile {
         push_new(&mut p.emails, text(identity, "email"));
     }
     let business = &item["business"];
+    // An ended membership or an agent's unconfirmed guess is not where they work now.
+    let current = |r: &&Value| matches!(r["standing"].as_str(), Some("confirmed" | "reported") | None);
     p.organizations = items(business, &["organizations", "items"])
-        .map(|o| Organization { name: text(o, "name"), role: items(o, &["roles"]).find_map(|r| text(r, "role")) })
+        .filter(|o| items(o, &["roles"]).any(|r| current(&r)))
+        .map(|o| Organization {
+            name: text(o, "name"),
+            role: items(o, &["roles"]).filter(current).find_map(|r| text(r, "position").or_else(|| text(r, "role"))),
+        })
         .collect();
     p.deals = business["deals"]["total"].as_u64().unwrap_or_default();
-    p.projects = business["projects"]["total"].as_u64().unwrap_or_default();
     if p.tasks.is_none() {
         p.tasks = items(item, &["tasks", "items"]).count().try_into().ok();
+        p.tasks_more = item["tasks"]["has_more"].as_bool().unwrap_or(false);
     }
     let last = &item["messages"]["last"];
     if p.last_contact.is_none() {
@@ -202,11 +209,18 @@ mod tests {
                 }
             },
             "events": { "recent": [{ "ref": "event:1", "title": "Call", "starts_at": "2026-10-01T10:00:00Z" }] },
-            "tasks": { "items": [{ "id": "t1" }, { "id": "t2" }], "has_more": false },
+            "tasks": { "items": [{ "id": "t1" }, { "id": "t2" }], "has_more": true },
             "business": {
                 "organizations": { "items": [
                     { "ref": "organization:3", "name": "Northstar", "roles": [
-                        { "kind": "member-of", "role": null }, { "kind": "member-of", "role": "Buyer" }
+                        { "kind": "member-of", "role": null, "standing": "confirmed" },
+                        { "kind": "member-of", "role": "member", "position": "Buyer", "standing": "reported" }
+                    ] },
+                    { "ref": "organization:4", "name": "Old Co", "roles": [
+                        { "kind": "member-of", "position": "Intern", "standing": "ended" }
+                    ] },
+                    { "ref": "organization:5", "name": "Guessed Co", "roles": [
+                        { "kind": "member-of", "standing": "proposed" }
                     ] }
                 ], "total": 1 },
                 "deals": { "items": [{ "ref": "deal:1" }], "total": 4 },
@@ -238,7 +252,7 @@ mod tests {
         assert_eq!(p.phones, ["+34600111222"]);
         assert!(p.emails.is_empty());
         assert_eq!(p.messages_from, None);
-        assert_eq!(p.tasks, Some(2));
+        assert_eq!((p.tasks, p.tasks_more), (Some(2), true));
         assert_eq!(p.last_contact.as_deref(), Some("2026-11-03T09:00:00Z"));
     }
 

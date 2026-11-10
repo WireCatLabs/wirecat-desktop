@@ -494,7 +494,8 @@ every move names the person and the accounts he chose.
   its portal, `src/domain/source-link.ts`; a Telegram username on t.me), phones, addresses, handles and companies, last
   contact, messages from them, deals and tasks, and their latest messages, which open in WireCat's conversation view.
   `people_profile(ref)` reads them; memo's context lacks the message count, phone and address, so Rust also finds the
-  person's own row (by ref) among `people check` of their name, at most 50 rows. What they share is said in words and
+  person's own row (by ref) among `people check` of their name, at most 50 rows; the page's own list row, when it
+  holds the person, wins for the counts, and a count neither knows shows «—». Companies are current memberships only. What they share is said in words and
   marked on each side: memo's evidence, else a phone or address two of them have; no ids. Merge and Not the same use the
   card's actions (`MatchActions.tsx`); the dialog keeps what was compared after a decision and says what happened.
 - **Move accounts to a new person** runs `people unlink <identities…> --from-app` with only accounts the person's own

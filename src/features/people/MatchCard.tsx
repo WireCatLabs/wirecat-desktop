@@ -1,5 +1,5 @@
 import { PanelRightOpen } from "lucide-react"
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId } from "react"
 import { scopesOf } from "@/domain/people"
 import { formatList, useLang, useMessages } from "@/i18n"
 import type { Identity, Match } from "@/platform/people-schemas"
@@ -14,6 +14,7 @@ import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
 import { peopleMessages } from "./messages"
+import { usePicks, useUnticked } from "./picks"
 import { accountName, SourceIcon, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
@@ -43,8 +44,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   const first = open[0] ?? group.matches[0]
   const people = group.people
   const picking = open.length > 0 && people.length > 2
-  // Who the owner unticked, so a re-read that reorders or joins people keeps their choice; a new person starts ticked.
-  const [unticked, setUnticked] = useState<string[]>([])
+  const unticked = useUnticked(group.key)
   const head = useId()
   if (!first) return null
 
@@ -90,7 +90,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
               picking
                 ? {
                     on: !unticked.includes(ref),
-                    set: (on) => setUnticked((u) => (on ? u.filter((x) => x !== ref) : [...u, ref])),
+                    set: (on) => usePicks.getState().set(group.key, ref, on),
                   }
                 : null
             }

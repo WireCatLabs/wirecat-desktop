@@ -125,14 +125,6 @@ const en = {
   tie: "matched",
   details: "Details",
   matchDetails: "Match details",
-  facts: {
-    match: "Match",
-    signal: "Signal",
-    identity: "Account",
-    with: "Same as",
-    evidence: "Seen as",
-    candidates: "People with it",
-  },
   reviewMatches: "Review matches",
   backToPeople: "All contacts",
   matchesTitle: "Possible duplicates",
@@ -192,7 +184,6 @@ const en = {
   openChat: (chat: string) => `Open the conversation in ${chat}`,
   contactIn: (source: string) => `${source} contact`,
   profileFailed: "Could not read their history:",
-  loadingProfile: "Reading their history…",
 }
 
 const ru: typeof en = {
@@ -340,14 +331,6 @@ const ru: typeof en = {
   tie: "совпадает",
   details: "Подробнее",
   matchDetails: "Подробности совпадения",
-  facts: {
-    match: "Совпадение",
-    signal: "Признак",
-    identity: "Аккаунт",
-    with: "Совпадает с",
-    evidence: "Встречается как",
-    candidates: "У кого есть",
-  },
   reviewMatches: "Разобрать совпадения",
   backToPeople: "Все контакты",
   matchesTitle: "Возможные дубли",
@@ -408,7 +391,6 @@ const ru: typeof en = {
   openChat: (chat: string) => `Открыть переписку в ${chat}`,
   contactIn: (source: string) => `Контакт ${source}`,
   profileFailed: "Не удалось прочитать историю:",
-  loadingProfile: "Читаем историю…",
 }
 
 const es: typeof en = {
@@ -535,14 +517,6 @@ const es: typeof en = {
   tie: "coincide",
   details: "Detalles",
   matchDetails: "Detalles de la coincidencia",
-  facts: {
-    match: "Coincidencia",
-    signal: "Señal",
-    identity: "Cuenta",
-    with: "Igual que",
-    evidence: "Visto como",
-    candidates: "Personas que lo tienen",
-  },
   reviewMatches: "Revisar coincidencias",
   backToPeople: "Todos los contactos",
   matchesTitle: "Posibles duplicados",
@@ -604,7 +578,6 @@ const es: typeof en = {
   openChat: (chat: string) => `Abrir la conversación en ${chat}`,
   contactIn: (source: string) => `Contacto de ${source}`,
   profileFailed: "No se pudo leer su historial:",
-  loadingProfile: "Leyendo su historial…",
 }
 
 export const peopleMessages: Messages<typeof en> = { en, ru, es }
