@@ -125,6 +125,9 @@ pub fn run() {
     std::thread::spawn(|| {
         paths::search_path();
         npm_prefix::keep_tools_on_windows_path();
+        if let Ok(bin) = memory::memo_bin() {
+            memo_server::warm(&bin);
+        }
     });
     std::thread::spawn(|| {
         node::make_app_data_private();
