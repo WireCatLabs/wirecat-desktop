@@ -148,6 +148,38 @@ body,
   }
 }
 
+/* A narrow scrollbar whose thumb shows only while the pointer or focus is inside, for boxes that sit side by side (a
+   board's columns): a full bar in each read as clutter. The width never changes, so showing it moves nothing; a touch
+   screen has no hover, so there it always shows. */
+.scroll-quiet::-webkit-scrollbar {
+  width: 7px;
+}
+.scroll-quiet::-webkit-scrollbar-thumb {
+  border-left-width: 2px;
+  background-color: transparent;
+}
+.scroll-quiet:hover::-webkit-scrollbar-thumb,
+.scroll-quiet:focus-within::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--ink-dim) 55%, transparent);
+}
+.scroll-quiet::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--ink-dim) 80%, transparent);
+}
+@supports not selector(::-webkit-scrollbar) {
+  .scroll-quiet {
+    scrollbar-color: transparent transparent;
+  }
+  .scroll-quiet:hover,
+  .scroll-quiet:focus-within {
+    scrollbar-color: color-mix(in srgb, var(--ink-dim) 60%, transparent) transparent;
+  }
+}
+@media (hover: none) {
+  .scroll-quiet::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--ink-dim) 55%, transparent);
+  }
+}
+
 body {
   margin: 0;
   background: var(--wall);

@@ -68,6 +68,7 @@ const en = {
   sharedTip: (n: number, names: string) =>
     `${plural("en", n, { one: "# person has it", other: "# people have it" })}. Here now: ${names}.`,
   evidence: "Seen as",
+  haveIt: (n: number) => plural("en", n, { one: "# person has it", other: "# people have it" }),
   wirecat: "WireCat",
   wirecatTip: "WireCat found this itself, by comparing phone numbers and addresses across your sources.",
   agentTip: (who: string) => `The agent ${who} suggested this.`,
@@ -269,6 +270,13 @@ const ru: typeof en = {
   sharedTip: (n: number, names: string) =>
     `${plural("ru", n, { one: "Есть у # человека", few: "Есть у # человек", many: "Есть у # человек", other: "Есть у # человека" })}. Здесь сейчас: ${names}.`,
   evidence: "Встречается как",
+  haveIt: (n: number) =>
+    plural("ru", n, {
+      one: "есть у # человека",
+      few: "есть у # человек",
+      many: "есть у # человек",
+      other: "есть у # человека",
+    }),
   wirecat: "WireCat",
   wirecatTip: "WireCat нашёл это сам: сравнил номера телефонов и адреса во всех источниках.",
   agentTip: (who: string) => `Это предложил агент ${who}.`,
@@ -464,6 +472,7 @@ const es: typeof en = {
   sharedTip: (n: number, names: string) =>
     `${plural("es", n, { one: "Lo tiene # persona", other: "Lo tienen # personas" })}. Aquí ahora: ${names}.`,
   evidence: "Visto como",
+  haveIt: (n: number) => plural("es", n, { one: "# persona lo tiene", other: "# personas lo tienen" }),
   wirecat: "WireCat",
   wirecatTip: "WireCat lo encontró solo, comparando teléfonos y direcciones en todas tus fuentes.",
   agentTip: (who: string) => `Lo propuso el agente ${who}.`,

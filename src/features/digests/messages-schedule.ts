@@ -2,6 +2,10 @@ import { type Messages, plural } from "@/i18n"
 
 type RouteKind = "telegramBot" | "email"
 
+/** Minutes as the largest whole unit: 1440 is one day, 120 two hours. */
+const unitOf = (minutes: number): ["day" | "hour" | "minute", number] =>
+  minutes % 1440 === 0 ? ["day", minutes / 1440] : minutes % 60 === 0 ? ["hour", minutes / 60] : ["minute", minutes]
+
 const en = {
   title: "Morning digest schedule",
   readFailed: (message: string) => `Could not read the schedules: ${message}`,
@@ -11,13 +15,11 @@ const en = {
   routes: "Sends it to",
   routeKinds: { telegramBot: "Telegram bot", email: "Mail" } satisfies Record<RouteKind, string>,
   noRoute: "only this computer's notification",
-  lastRun: (ago: string) => `Last run ${ago}`,
   ok: "finished",
   failed: (times: number | null) => (times && times > 1 ? `failed ${times} times in a row` : "failed"),
   cost: (usd: string) => `cost ${usd}`,
   notDelivered: (kind: string) => `not delivered to ${kind}`,
   noRunYet: "No run yet.",
-  spentToday: (usd: string, cap: string | null) => `Spent today: ${usd}${cap ? ` of ${cap} a day` : ""}`,
   capReached: "Today's limit is reached: no more digests are written today.",
   time: "Time",
   changeTime: "Change the time",
@@ -49,11 +51,19 @@ const en = {
   others: "Other schedules",
   othersHint: "Other jobs memo runs on a schedule. They are shown here only; each is changed where it was set up.",
   changeMailAgent: (tool: string) => `Change in Tools → ${tool} → Mail agent`,
-  madeByHand: "Made in a terminal with memo schedule; change it there.",
+  othersCol: { name: "Name", when: "How often", last: "Last run", spent: "Spent today", change: "Changed in" },
+  every: (minutes: number) => {
+    const [unit, n] = unitOf(minutes)
+    return n === 1 ? `Every ${unit}` : `Every ${n} ${unit}s`
+  },
+  once: (at: string) => `Once, ${at}`,
+  capOf: (cap: string) => `of ${cap} a day`,
+  mailAgentAt: (tool: string) => `Tools → ${tool} → Mail agent`,
+  inTerminal: "In a terminal: memo schedule",
   ownChat: (profile: string) => `you, in ${profile}`,
   ownMailbox: (profile: string) => `mailbox ${profile}`,
   otherLine: (when: string) => when,
-  skipped: (ago: string, why: string) => `skipped ${ago}: ${why}`,
+  skippedWhy: (why: string) => `skipped: ${why}`,
   skipReasons: {
     "cost.day-cap": "the daily cost limit is reached",
     "mail.none-new": "no new mail",
@@ -96,7 +106,6 @@ const ru: typeof en = {
   routes: "Отправляет",
   routeKinds: { telegramBot: "Telegram-бот", email: "Почта" },
   noRoute: "только уведомление на этом компьютере",
-  lastRun: (ago) => `Последний запуск ${ago}`,
   ok: "прошёл успешно",
   failed: (times) =>
     times && times > 1
@@ -110,7 +119,6 @@ const ru: typeof en = {
   cost: (usd) => `стоил ${usd}`,
   notDelivered: (kind) => `не доставлено: ${kind}`,
   noRunYet: "Запусков ещё не было.",
-  spentToday: (usd, cap) => `Потрачено сегодня: ${usd}${cap ? ` из ${cap} в день` : ""}`,
   capReached: "Дневной лимит исчерпан: сегодня сводок больше не будет.",
   time: "Время",
   changeTime: "Изменить время",
@@ -144,11 +152,30 @@ const ru: typeof en = {
   othersHint:
     "Другие задания, которые memo запускает по расписанию. Здесь они только видны, а меняются там, где их настроили.",
   changeMailAgent: (tool) => `Изменить: Инструменты → ${tool} → Почтовый агент`,
-  madeByHand: "Создано в терминале командой memo schedule, там и меняется.",
+  othersCol: {
+    name: "Название",
+    when: "Как часто",
+    last: "Последний запуск",
+    spent: "Потрачено сегодня",
+    change: "Где меняется",
+  },
+  every: (minutes) => {
+    const [unit, n] = unitOf(minutes)
+    const forms = {
+      day: { one: "# день", few: "# дня", many: "# дней", other: "# дня" },
+      hour: { one: "# час", few: "# часа", many: "# часов", other: "# часа" },
+      minute: { one: "# минуту", few: "# минуты", many: "# минут", other: "# минуты" },
+    }[unit]
+    return n === 1 ? `Раз в ${forms.one.slice(2)}` : `Раз в ${plural("ru", n, forms)}`
+  },
+  once: (at) => `Один раз, ${at}`,
+  capOf: (cap) => `из ${cap} в день`,
+  mailAgentAt: (tool) => `Инструменты → ${tool} → Почтовый агент`,
+  inTerminal: "В терминале: memo schedule",
   ownChat: (profile) => `вы, в профиле ${profile}`,
   ownMailbox: (profile) => `ящик ${profile}`,
   otherLine: (when) => when,
-  skipped: (ago, why) => `пропущен ${ago}: ${why}`,
+  skippedWhy: (why) => `пропущен: ${why}`,
   skipReasons: {
     "cost.day-cap": "дневной лимит расходов исчерпан",
     "mail.none-new": "новой почты нет",
@@ -191,13 +218,11 @@ const es: typeof en = {
   routes: "Lo envía a",
   routeKinds: { telegramBot: "Bot de Telegram", email: "Correo" },
   noRoute: "solo la notificación de este ordenador",
-  lastRun: (ago) => `Última ejecución ${ago}`,
   ok: "terminó bien",
   failed: (times) => (times && times > 1 ? `falló ${times} veces seguidas` : "falló"),
   cost: (usd) => `costó ${usd}`,
   notDelivered: (kind) => `no entregado: ${kind}`,
   noRunYet: "Aún no se ha ejecutado.",
-  spentToday: (usd, cap) => `Gastado hoy: ${usd}${cap ? ` de ${cap} al día` : ""}`,
   capReached: "Se alcanzó el límite de hoy: hoy no se escriben más resúmenes.",
   time: "Hora",
   changeTime: "Cambiar la hora",
@@ -233,11 +258,26 @@ const es: typeof en = {
   othersHint:
     "Otras tareas que memo ejecuta según un horario. Aquí solo se ven; cada una se cambia donde se configuró.",
   changeMailAgent: (tool) => `Cambiar en Herramientas → ${tool} → Agente de correo`,
-  madeByHand: "Creada en una terminal con memo schedule; se cambia allí.",
+  othersCol: {
+    name: "Nombre",
+    when: "Con qué frecuencia",
+    last: "Última ejecución",
+    spent: "Gastado hoy",
+    change: "Dónde se cambia",
+  },
+  every: (minutes) => {
+    const [unit, n] = unitOf(minutes)
+    const word = { day: ["día", "días"], hour: ["hora", "horas"], minute: ["minuto", "minutos"] }[unit]
+    return n === 1 ? `Cada ${word[0]}` : `Cada ${n} ${word[1]}`
+  },
+  once: (at) => `Una vez, ${at}`,
+  capOf: (cap) => `de ${cap} al día`,
+  mailAgentAt: (tool) => `Herramientas → ${tool} → Agente de correo`,
+  inTerminal: "En una terminal: memo schedule",
   ownChat: (profile) => `tú, en ${profile}`,
   ownMailbox: (profile) => `buzón ${profile}`,
   otherLine: (when) => when,
-  skipped: (ago, why) => `omitida ${ago}: ${why}`,
+  skippedWhy: (why) => `omitida: ${why}`,
   skipReasons: {
     "cost.day-cap": "se alcanzó el límite diario de gasto",
     "mail.none-new": "no hay correo nuevo",

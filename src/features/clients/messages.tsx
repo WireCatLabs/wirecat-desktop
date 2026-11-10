@@ -57,6 +57,7 @@ type Words = {
   closedDate: string
   closedReason: string
   project: string
+  updated: string
   statusOf: Record<string, string>
   close: string
   cancel: string
@@ -136,6 +137,7 @@ const en: Words = {
   closedDate: "Closed",
   closedReason: "Why",
   project: "Project",
+  updated: "Last changed",
   statusOf: { open: "Open", won: "Won", lost: "Lost" },
   close: "Close",
   cancel: "Cancel",
@@ -222,6 +224,7 @@ const ru: Words = {
   closedDate: "Закрыта",
   closedReason: "Почему",
   project: "Проект",
+  updated: "Последнее изменение",
   statusOf: { open: "Открыта", won: "Выиграна", lost: "Проиграна" },
   close: "Закрыть",
   cancel: "Отмена",
@@ -311,6 +314,7 @@ const es: Words = {
   closedDate: "Cerrada",
   closedReason: "Por qué",
   project: "Proyecto",
+  updated: "Último cambio",
   statusOf: { open: "Abierta", won: "Ganada", lost: "Perdida" },
   close: "Cerrar",
   cancel: "Cancelar",

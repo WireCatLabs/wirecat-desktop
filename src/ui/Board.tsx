@@ -334,7 +334,7 @@ export function Board({
   )
 }
 
-/** One column: its lamp, name and count, an optional line beside them (a sum), its cards, and a quiet footer. */
+/** One column: its lamp and name, its count under the name, an optional line below them, its cards, and a quiet footer. */
 export function BoardColumn({
   id,
   label,
@@ -385,20 +385,22 @@ export function BoardColumn({
         sticky && "sticky left-0 z-10 shadow-[0.6rem_0_0.8rem_-0.6rem_rgb(0_0_0/0.18)]",
       )}
     >
-      <h2 className="flex min-h-[3rem] flex-wrap items-center gap-x-[0.55rem] border-line border-b px-[0.9rem] py-[0.4rem]">
-        {lamp}
-        <span className="min-w-0 truncate text-[1rem] font-semibold">{name}</span>
-        <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">
-          {typeof count === "number" ? formatNumber(count) : count}
+      <h2 className="flex min-h-[3rem] flex-wrap items-start gap-x-[0.55rem] border-line border-b px-[0.9rem] py-[0.4rem]">
+        <span className="flex h-[1.5rem] items-center">{lamp}</span>
+        <span className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-[1rem] leading-[1.5rem] font-semibold">{name}</span>
+          <span className="font-mono text-[0.85rem] font-normal tabular-nums text-ink-dim">
+            {typeof count === "number" ? formatNumber(count) : count}
+          </span>
         </span>
         {menu && (
-          <span className="-mr-[0.45rem] ml-auto opacity-50 transition-opacity duration-(--motion-fast) group-hover/column:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100">
+          <span className="-mr-[0.45rem] flex h-[1.5rem] items-center opacity-50 transition-opacity duration-(--motion-fast) group-hover/column:opacity-100 focus-within:opacity-100 has-[[aria-expanded=true]]:opacity-100">
             {menu}
           </span>
         )}
         {aside && <span className="basis-full text-[0.85rem] font-normal text-ink-soft">{aside}</span>}
       </h2>
-      <ul className={cx("flex flex-1 flex-col", tiles && "min-h-0 gap-[0.6rem] overflow-y-auto bg-app-2")}>
+      <ul className={cx("flex flex-1 flex-col", tiles && "scroll-quiet min-h-0 gap-[0.6rem] overflow-y-auto bg-app-2")}>
         {children}
         {empty && <li className="px-[0.9rem] py-[1rem] text-[0.9rem] text-ink-dim">{empty}</li>}
       </ul>

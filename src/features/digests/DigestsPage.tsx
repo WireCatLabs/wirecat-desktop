@@ -15,7 +15,8 @@ import { DigestView } from "./DigestView"
 import { digestMessages } from "./messages"
 import { bookMessages } from "./messages-book"
 import { scheduleMessages } from "./messages-schedule"
-import { NoHarness, OlderMemo, OtherSchedules } from "./ScheduleCard"
+import { OtherSchedules } from "./OtherSchedules"
+import { NoHarness, OlderMemo } from "./ScheduleCard"
 import { useDigestBook } from "./schedule-store"
 
 export function DigestsPage() {

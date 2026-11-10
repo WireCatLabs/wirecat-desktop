@@ -300,15 +300,6 @@ fn card(v: &Value) -> Option<CrmCard> {
 /// Whether a CRM's CLI can write, by provider; the real one asks once per provider and read.
 type Writers<'a> = dyn Fn(&str) -> writer::Writer + 'a;
 
-/// Runs memo's calls at once and answers them in the order asked: each is a Node process that opens the store, and
-/// none needs another's answer. `run` caps how many processes start together.
-fn at_once<const N: usize>(call: &Call, asked: [Vec<String>; N]) -> [Result<Value, Failure>; N] {
-    std::thread::scope(|s| {
-        let handles = asked.map(|args| s.spawn(move || call(&args)));
-        handles.map(|h| h.join().unwrap_or_else(|_| Err(Failure::plain("a read stopped"))))
-    })
-}
-
 fn pipelines_args(kind: CrmKind) -> Vec<String> {
     with_query(&["pipelines", "list"], &format!("kind:{}", kind.noun()))
 }
@@ -344,12 +335,16 @@ fn cards_from(lists: [Result<Value, Failure>; 3]) -> Result<(Vec<CrmCard>, bool)
 
 fn read_base_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<CrmRead, Failure> {
     let [a, b, c] = cards_args(kind, "");
-    // memo up to 0.131.76 answers concurrent calls of one command with the last one's words (cli-memo#792): the
-    // three lists go one after another, beside the other reads.
-    let ([listed, shown, mapped], [open, won, lost]) = std::thread::scope(|s| {
-        let lists = s.spawn(|| [a, b, c].map(|args| call(&args)));
-        let others = at_once(call, [pipelines_args(kind), base::show_args(kind), base::mapping_args(kind)]);
-        (others, lists.join().unwrap_or_else(|_| [(); 3].map(|()| Err(Failure::plain("a read stopped")))))
+    let stopped = || Err(Failure::plain("a read stopped"));
+    // memo makes the base set on a store's first `stages show`: cards and mapping read beside it came back with no
+    // base stage, every card unsorted (BUG-699). memo up to 0.131.76 answers concurrent calls of one command with the
+    // last one's words (cli-memo#792): the three lists go one after another.
+    let (listed, shown, mapped, [open, won, lost]) = std::thread::scope(|s| {
+        let pipes = s.spawn(|| call(&pipelines_args(kind)));
+        let shown = call(&base::show_args(kind));
+        let mapped = s.spawn(|| call(&base::mapping_args(kind)));
+        let lists = [a, b, c].map(|args| call(&args));
+        (pipes.join().unwrap_or_else(|_| stopped()), shown, mapped.join().unwrap_or_else(|_| stopped()), lists)
     });
     let pipelines = pipelines_from(&listed?, writers);
     let (base, unsorted) = base::columns(&shown?);
@@ -588,22 +583,23 @@ mod tests {
     }
 
     #[test]
-    fn a_base_read_asks_the_lists_one_at_a_time_beside_the_other_reads() {
-        let (started, lists, most, ended) = (Mutex::new(0), Mutex::new(0), Mutex::new(0), Mutex::new(0));
+    fn a_base_read_asks_the_base_set_first_then_the_lists_one_at_a_time() {
+        let (log, lists, most) = (Mutex::new(Vec::<String>::new()), Mutex::new(0), Mutex::new(0));
         let call = |a: &[String]| {
-            *started.lock().unwrap() += 1;
-            let list = a[1] == "list" && a[0] == "deals";
+            let what = a[..2].join(" ");
+            log.lock().unwrap().push(format!("start {what}"));
+            let list = what == "deals list";
             if list {
                 let mut l = lists.lock().unwrap();
                 *l += 1;
                 let mut m = most.lock().unwrap();
                 *m = (*m).max(*l);
             }
+            // The pipelines read runs beside the base set's: in turn, `stages show` would wait for the deadline.
             let deadline = std::time::Instant::now() + Duration::from_secs(5);
-            // The three other reads and the first list run together: in turn, one would wait for the deadline.
-            while *started.lock().unwrap() < 4 {
+            while what == "stages show" && !log.lock().unwrap().iter().any(|e| e == "start pipelines list") {
                 if std::time::Instant::now() > deadline {
-                    return Err(invalid("asked one at a time".into()));
+                    return Err(invalid("the pipelines waited for the base set".into()));
                 }
                 std::thread::yield_now();
             }
@@ -611,12 +607,16 @@ mod tests {
             if list {
                 *lists.lock().unwrap() -= 1;
             }
-            *ended.lock().unwrap() += 1;
+            log.lock().unwrap().push(format!("end {what}"));
             Ok(based(a))
         };
         let read = read_base_with(&call, CrmKind::Deal, &none).unwrap();
         assert!(matches!(read, CrmRead::Base { .. }));
-        assert_eq!((*ended.lock().unwrap(), *most.lock().unwrap()), (6, 1));
+        let log = log.lock().unwrap();
+        let at = |e: &str| log.iter().position(|x| x == e).unwrap();
+        assert!(at("end stages show") < at("start deals list"));
+        assert!(at("end stages show") < at("start stages list"));
+        assert_eq!((log.len(), *most.lock().unwrap()), (12, 1));
     }
 
     #[test]

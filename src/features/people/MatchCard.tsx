@@ -1,7 +1,7 @@
-import { PanelRightOpen } from "lucide-react"
+import { Mail, PanelRightOpen, Phone } from "lucide-react"
 import { useEffect, useId } from "react"
 import { scopesOf } from "@/domain/people"
-import { formatList, useLang, useMessages } from "@/i18n"
+import { formatDate, formatList, formatNumber, useLang, useMessages } from "@/i18n"
 import type { Identity, Match } from "@/platform/people-schemas"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
@@ -10,6 +10,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
+import { type Contacts, contactsOf, keyOf, sameMark, sharedValue } from "./contacts"
 import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
@@ -47,7 +48,18 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   const unticked = useUnticked(group.key)
   const head = useId()
   const pickList = useId()
+  const details = usePeople((s) => s.details)
+  const listed = usePeople((s) => s.people)
   if (!first) return null
+  const contacts = people.map((ref) => {
+    const d = details[ref]
+    return contactsOf(
+      d?.state === "ready" ? d.person : null,
+      null,
+      listed.find((x) => x.ref === ref),
+    )
+  })
+  const shared = sharedValue(first, contacts)
 
   const done = open.length === 0
   const moving = first.joins === "identity" && first.identity
@@ -72,7 +84,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         </h3>
         <Proposer match={first} />
       </div>
-      <Signal group={group} match={first} names={people.map((p) => name(p))} />
+      <Signal group={group} match={first} value={shared} names={people.map((p) => name(p))} />
       {moving && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.moveHeading(moveWords(first, m.anAccount), name(first.persons[1] ?? ""))} {m.moveHelp}
@@ -85,6 +97,8 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
           <Side
             key={ref}
             reference={ref}
+            contacts={contacts[people.indexOf(ref)] ?? { phones: [], emails: [] }}
+            same={(v) => shared !== null && keyOf(first.signal)(v) === keyOf(first.signal)(shared)}
             tie={tieOf(open.length ? open : group.matches, ref)}
             decided={done}
             pick={
@@ -146,30 +160,53 @@ function Proposer({ match }: { match: Match }) {
   )
 }
 
-/** "Phone [same] [3]": what ties them, and how many people have it, with the details in each badge's tooltip. */
-function Signal({ group, match, names }: { group: MatchGroup; match: Match; names: string[] }) {
+/**
+ * What ties them, with the value itself when it is known: "Phone +7 912 555-01-47 · 2 people have it". The names of
+ * everyone who has it are in the count's tooltip.
+ */
+function Signal({
+  group,
+  match,
+  value,
+  names,
+}: {
+  group: MatchGroup
+  match: Match
+  value: string | null
+  names: string[]
+}) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
   const signal = match.signal ?? ""
   const sameTip = m.sameTip[signal]
+  const Icon = signal === "phone" ? Phone : signal === "email" || signal === "guest-email" ? Mail : null
   return (
-    <p className="flex flex-wrap items-center gap-[0.4rem] text-[0.92rem]">
-      <span className="font-medium text-ink-soft">{m.signalNames[signal] ?? signal}</span>
-      {sameTip && (
-        <InfoTip label={sameTip} trigger={<Pill>{m.same}</Pill>}>
-          {sameTip}
-          {match.evidence.length > 0 && (
-            <>
-              {" "}
-              {m.evidence} <span className="selectable font-mono text-ink">{match.evidence.join(", ")}</span>
-            </>
-          )}
-        </InfoTip>
+    <p className="flex flex-wrap items-center gap-x-[0.6rem] gap-y-[0.3rem]">
+      {Icon && <Icon className="size-[1.05rem] shrink-0 text-ink-soft" aria-hidden />}
+      <span className="text-[0.92rem] font-medium text-ink-soft">{m.signalNames[signal] ?? signal}</span>
+      {value ? (
+        <span className="selectable font-mono text-[1.05rem] font-semibold text-ink tabular-nums">{value}</span>
+      ) : (
+        sameTip && (
+          <InfoTip label={sameTip} trigger={<Pill>{m.same}</Pill>}>
+            {sameTip}
+            {match.evidence.length > 0 && (
+              <>
+                {" "}
+                {m.evidence} <span className="selectable font-mono text-ink">{match.evidence.join(", ")}</span>
+              </>
+            )}
+          </InfoTip>
+        )
       )}
       {sameTip && (
         <InfoTip
           label={m.sharedTip(group.sharing, formatList(names, lang))}
-          trigger={<Pill>{group.sharing.toLocaleString(lang)}</Pill>}
+          trigger={
+            <span className="text-[0.88rem] text-ink-dim underline decoration-dotted underline-offset-[0.2em]">
+              {m.haveIt(group.sharing)}
+            </span>
+          }
         >
           {m.sharedTip(group.sharing, formatList(names, lang))}
         </InfoTip>
@@ -179,24 +216,32 @@ function Signal({ group, match, names }: { group: MatchGroup; match: Match; name
 }
 
 /**
- * One of the people: name, tasks, and their accounts by source, the one the match names marked. Once decided, the
- * people may be one now, so their accounts are not read again.
+ * One of the people: name, how much there is of them, their phones and addresses with the shared one marked, when they
+ * last talked, and their accounts by source. Once decided, the people may be one now, so their accounts are not read
+ * again. The row of the page's list gives the activity; a person on another page has none here, and the line is left out.
  */
 function Side({
   reference,
+  contacts,
+  same,
   tie,
   decided,
   pick,
 }: {
   reference: string
+  contacts: Contacts
+  same: (value: string) => boolean
+  /** The account the match names; marked when this side shows no shared phone or address to point at. */
   tie: string | null
   decided: boolean
   pick: { on: boolean; set: (on: boolean) => void } | null
 }) {
   const m = useMessages(peopleMessages)
+  const lang = useLang()
   const name = usePersonName()
   const detail = usePeople((s) => s.details[reference])
   const tasks = usePeople((s) => s.seen[reference]?.tasks ?? 0)
+  const row = usePeople((s) => s.people.find((p) => p.ref === reference))
   const box = useId()
   useEffect(() => {
     if (!detail && !decided) usePeople.getState().need(reference)
@@ -206,11 +251,17 @@ function Side({
   const ordered = [...identities.filter((i) => i.identity === tie), ...identities.filter((i) => i.identity !== tie)]
   const rest = ordered.length - ACCOUNTS_SHOWN
   const facts = [identities.length ? m.accountsN(identities.length) : null, tasks > 0 ? m.tasksOf(tasks) : null]
+  const values = [...contacts.phones, ...contacts.emails]
+  const marked = values.some(same) ? null : tie
+  const activity = [
+    row?.lastContact ? `${m.lastContact}: ${formatDate(row.lastContact, { dateStyle: "medium" }, lang)}` : null,
+    row?.messagesFrom ? `${m.messagesFrom}: ${formatNumber(row.messagesFrom, lang)}` : null,
+  ].filter(Boolean)
   return (
     <section
       aria-label={name(reference)}
       className={cx(
-        "flex min-w-0 flex-col gap-[0.5rem] rounded-[0.35rem] bg-app-2 px-[0.85rem] py-[0.7rem] transition-opacity duration-(--motion-fast)",
+        "flex min-w-0 flex-col gap-[0.5rem] rounded-[0.35rem] border border-line px-[0.85rem] py-[0.7rem] transition-opacity duration-(--motion-fast)",
         pick && !pick.on && "opacity-60",
       )}
     >
@@ -221,6 +272,22 @@ function Side({
         </span>
         <span className="text-[0.85rem] text-ink-dim tabular-nums">{facts.filter(Boolean).join(" · ")}</span>
       </p>
+      {values.length > 0 && (
+        <ul className="flex flex-wrap gap-x-[0.9rem] gap-y-[0.2rem]">
+          {values.map((v) => (
+            <li
+              key={v}
+              className={cx(
+                "selectable font-mono text-[0.9rem] break-all tabular-nums",
+                same(v) ? sameMark : "text-ink-soft",
+              )}
+            >
+              {v}
+            </li>
+          ))}
+        </ul>
+      )}
+      {activity.length > 0 && <p className="text-[0.85rem] text-ink-soft">{activity.join(" · ")}</p>}
       {decided && detail?.state !== "ready" ? null : !detail || detail.state === "loading" ? (
         <div className="flex flex-col gap-[0.4rem]">
           <Skeleton className="h-[1.6rem] w-full" label={m.loadingPerson} />
@@ -233,7 +300,7 @@ function Side({
       ) : (
         <ul className="flex flex-col gap-[0.3rem]">
           {ordered.slice(0, ACCOUNTS_SHOWN).map((i) => (
-            <Account key={i.identity} identity={i} tie={i.identity === tie} />
+            <Account key={i.identity} identity={i} tie={i.identity === marked} />
           ))}
           {rest > 0 && <li className="text-[0.85rem] text-ink-dim">{m.moreAccounts(rest)}</li>}
         </ul>
@@ -248,20 +315,17 @@ function Account({ identity: i, tie }: { identity: Identity; tie: boolean }) {
   const handle = accountName(i)
   const named = i.name?.trim()
   return (
-    <li
-      className={cx(
-        "flex min-w-0 flex-wrap items-center gap-x-[0.5rem] gap-y-[0.2rem] rounded-[0.3rem] px-[0.45rem] py-[0.25rem] text-[0.92rem]",
-        tie && "bg-brand-soft text-ink ring-1 ring-brand/40",
-      )}
-    >
-      <SourceIcon provider={i.provider} className={tie ? "text-brand" : "text-ink-soft"} />
+    <li className="flex min-w-0 flex-wrap items-center gap-x-[0.5rem] gap-y-[0.2rem] text-[0.92rem]">
+      <SourceIcon provider={i.provider} className="text-ink-soft" />
       <span className="font-medium">{sourceOf(i.provider).name}</span>
       {named && <span className="min-w-0 truncate">{named}</span>}
       {handle && handle !== named && <span className="min-w-0 truncate text-ink-soft">{handle}</span>}
       {scopesOf(i.seenIn).map((s) => (
-        <Pill key={s}>{m.scopes[s] ?? s}</Pill>
+        <Pill key={s} size="sm">
+          {m.scopes[s] ?? s}
+        </Pill>
       ))}
-      {tie && <span className="ml-auto text-[0.8rem] font-medium text-brand">{m.tie}</span>}
+      {tie && <span className="ml-auto text-[0.8rem] font-medium text-ink-dim">{m.tie}</span>}
     </li>
   )
 }

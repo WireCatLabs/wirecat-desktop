@@ -21,7 +21,7 @@ import { digestMessages } from "./messages"
 import { bookMessages } from "./messages-book"
 import { scheduleMessages } from "./messages-schedule"
 import { ReportView } from "./ReportView"
-import { type Can, parsedRoute, routeLabel, ScheduleCard } from "./ScheduleCard"
+import { type Can, NoHarness, parsedRoute, routeLabel, ScheduleCard } from "./ScheduleCard"
 import { MORNING, useDigestBook } from "./schedule-store"
 import { useDigests } from "./store"
 import { TemplatesCard } from "./TemplatesCard"
@@ -66,6 +66,8 @@ export function DigestView({ item, can, harness }: { item: DigestItem; can: Can;
             {can.named && <RemoveButton item={item} title={title} />}
           </div>
         </div>
+        {/* Get now and Put on schedule wait for an agent: the reason stands beside them, not only in the settings. */}
+        {!harness && <NoHarness />}
         {working === "run" && (
           <p className="flex items-center gap-2 text-[0.92rem] text-ink-soft" aria-live="polite">
             <LoaderCircle className="size-4 animate-spin" aria-hidden /> {m.one.running}

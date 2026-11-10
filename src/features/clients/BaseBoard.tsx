@@ -1,7 +1,7 @@
 import { useRef, useState } from "react"
 import { baseColumnsOf, openCountsOf, placeOf, type Refusal, suggestionOf, UNSORTED } from "@/domain/base-stages"
-import { accountKey, amountsOf, type Kind, sumsOf } from "@/domain/clients"
-import { useLang, useMessages } from "@/i18n"
+import { accountKey, type Kind } from "@/domain/clients"
+import { useMessages } from "@/i18n"
 import type { CrmCard } from "@/platform/bindings"
 import { Board, BoardColumn, DragCopy, DropLine, useBoardDrag, useSlide } from "@/ui/Board"
 import { Button } from "@/ui/Button"
@@ -32,7 +32,6 @@ export function BaseBoard({
 }) {
   const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
-  const lang = useLang()
   const refused = useClients((st) => st.refused)
   const move = useBaseMove(read, kind)
   const pipes = new Map(read.pipelines.map((p) => [p.ref, p]))
@@ -119,10 +118,9 @@ export function BaseBoard({
           const b = read.base.find((x) => x.ref === id)
           const here = (columns.get(id) ?? []).flatMap((r) => byRef.get(r) ?? [])
           // One read holds the newest open cards only; memo counts every open one, so a column says what it is
-          // missing. A filter counts what it shows, and sums are always the shown cards'.
+          // missing. A filter counts what it shows.
           const loaded = here.filter((c) => c.status === "open").length
           const missing = filtered ? 0 : Math.max(0, (counts.get(id) ?? 0) - loaded)
-          const amounts = amountsOf(here)
           const items = here.length + missing
           return (
             <BoardColumn
@@ -137,8 +135,6 @@ export function BaseBoard({
                   <Button size="sm" variant="ghost" onClick={() => useClients.getState().openMap("")}>
                     {s.mapStages}
                   </Button>
-                ) : amounts.length ? (
-                  sumsOf(amounts, lang)
                 ) : undefined
               }
               target={drag?.to === id}
@@ -165,7 +161,9 @@ export function BaseBoard({
                       movable={movable}
                       ghost={drag?.key === ref}
                       held={held?.key === ref}
+                      dragging={drag !== null}
                       badge={badge(c)}
+                      pipeline={pipes.get(c.pipeline)?.name}
                       notice={why && <Refused why={why} account={accountKey(c.account)} />}
                       onPointerDown={movable ? (e) => onPointerDown(e, ref) : undefined}
                       onKeyDown={(e) => {

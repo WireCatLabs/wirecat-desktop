@@ -1,5 +1,5 @@
 // The Clients page's plain logic: which card stands in which column, what the filter words keep, where a card may be
-// dropped, and how a stage's sums read. Memo answers the cards and the sums; the filters narrow what one read holds.
+// dropped, and how money reads. Memo answers the cards; the filters narrow what one read holds.
 
 import { freeWords, valuesOf } from "./query-terms"
 
@@ -18,7 +18,6 @@ type CrmCard = {
   organization: string | null
   people: { name: string | null; role: string }[]
 }
-type CrmStage = { name: string; outcome: string; amounts: { amount: string; currency: string }[] }
 
 export const OWN = "own"
 /** `bitrix24:northstar.example`, or `own` for the owner's own pipelines. */
@@ -87,34 +86,11 @@ export function matches(card: CrmCard, q: string): boolean {
   return freeWords(q, FIELDS).every((w) => text.includes(w.toLocaleLowerCase()))
 }
 
-/** A column's sums over the cards a filter left, one per currency, added in cents so nothing is lost to floats. */
-export function amountsOf(cards: readonly { amount: string | null; currency?: string | null }[]) {
-  const sums = new Map<string, bigint>()
-  for (const c of cards) {
-    const cents = c.amount === null || !c.currency ? null : centsOf(c.amount)
-    if (cents === null || !c.currency) continue
-    sums.set(c.currency, (sums.get(c.currency) ?? 0n) + cents)
-  }
-  return [...sums].map(([currency, cents]) => ({
-    amount: `${cents / 100n}.${String(cents % 100n).padStart(2, "0")}`,
-    currency,
-  }))
-}
-
-function centsOf(amount: string): bigint | null {
-  const m = /^(\d+)(?:\.(\d{1,2})\d*)?$/.exec(amount)
-  return m ? BigInt(m[1] ?? "0") * 100n + BigInt((m[2] ?? "").padEnd(2, "0")) : null
-}
-
 /** Every person responsible for a card on the board, for the filter's choices. */
 export const ownersOf = (cards: readonly CrmCard[]) =>
   [...new Set(cards.map((c) => ownerOf(c) ?? NOBODY))].sort((a, b) =>
     a === NOBODY ? 1 : b === NOBODY ? -1 : a.localeCompare(b),
   )
-
-/** One sum per currency, never converted: "500 000 ₽ · 1 200 €". */
-export const sumsOf = (amounts: CrmStage["amounts"], lang: string) =>
-  amounts.map((a) => moneyOf(a.amount, a.currency, lang)).join(" · ")
 
 export function moneyOf(amount: string, currency: string, lang: string): string {
   const n = Number(amount)
