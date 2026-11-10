@@ -82,7 +82,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
             {people.map((p) => name(p)).join(" · ")}
           </button>
         </h3>
-        <Proposer match={first} />
+        <Proposer by={first.proposer} />
       </div>
       <Signal group={group} match={first} value={shared} names={people.map((p) => name(p))} />
       {moving && (
@@ -143,9 +143,8 @@ export function moveWords(match: Match, anAccount: (source: string) => string) {
 }
 
 /** Who found it, as a small label: WireCat's own matching, an agent by name, or a person. Why is in its tooltip. */
-function Proposer({ match }: { match: Match }) {
+export function Proposer({ by }: { by: Match["proposer"] }) {
   const m = useMessages(peopleMessages)
-  const by = match.proposer
   if (!by) return null
   const [label, tip] =
     by.kind === "rule"
@@ -310,7 +309,7 @@ function Side({
 }
 
 /** A source, the account's name and its handle when it has both, and where it was seen. */
-function Account({ identity: i, tie }: { identity: Identity; tie: boolean }) {
+export function Account({ identity: i, tie = false }: { identity: Identity; tie?: boolean }) {
   const m = useMessages(peopleMessages)
   const handle = accountName(i)
   const named = i.name?.trim()

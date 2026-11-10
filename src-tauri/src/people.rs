@@ -189,11 +189,46 @@ fn matched(v: &Value) -> Option<Match> {
         candidates: v["candidates"].as_array().into_iter().flatten().filter_map(person_of).collect(),
         reason: text(v, "reason"),
         evidence: strings(&v["evidence"]),
-        proposer: by.is_object().then(|| Proposer {
-            kind: text(by, "kind").or_else(|| text(by, "type")).unwrap_or_else(|| "person".into()),
-            name: text(by, "name"),
-        }),
+        proposer: proposer_of(by),
         persons: (persons.len() == 2).then_some(persons)?,
+    })
+}
+
+/// Identities an agent says are not this person, waiting for the owner: `unlink` moves them to one new person,
+/// `unmerge` undoes `merge`. It names one person, never a pair, so it is never read as a match.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Split {
+    pub id: String,
+    pub person: String,
+    /// `unlink` or `unmerge`.
+    pub op: String,
+    pub identities: Vec<String>,
+    pub merge: Option<String>,
+    pub reason: Option<String>,
+    pub evidence: Vec<String>,
+    pub proposer: Option<Proposer>,
+}
+
+fn proposer_of(by: &Value) -> Option<Proposer> {
+    by.is_object().then(|| Proposer {
+        kind: text(by, "kind").or_else(|| text(by, "type")).unwrap_or_else(|| "person".into()),
+        name: text(by, "name"),
+    })
+}
+
+fn split_row(v: &Value) -> Option<Split> {
+    if v["kind"].as_str() != Some("identity_split") {
+        return None;
+    }
+    Some(Split {
+        id: number(&v["id"])?,
+        person: person_of(&v["person"])?,
+        op: text(v, "split")?,
+        identities: strings(&v["identities"]),
+        merge: text(v, "merge"),
+        reason: text(v, "reason"),
+        evidence: strings(&v["evidence"]),
+        proposer: proposer_of(&v["proposed_by"]),
     })
 }
 
@@ -214,6 +249,8 @@ pub enum Read {
         people_more: bool,
         matches: Vec<Match>,
         matches_more: bool,
+        /// Splits an agent proposed, from the same review read as the matches.
+        splits: Vec<Split>,
         /// memo lists one kind at a time; false from a memo older than kinds, which lists everyone.
         kinded: bool,
     },
@@ -274,6 +311,7 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
         people_more: more(&people),
         matches: list(&matches, "items", matched),
         matches_more: more(&matches),
+        splits: list(&matches, "items", split_row),
         kinded,
     })
 }
@@ -533,6 +571,108 @@ pub fn decide(reference: &str, id: &str, answer: Answer, reason: Option<&str>) -
     with_memo(|call| decide_with(call, reference, id, answer, reason))
 }
 
+/// The owner's answer to a split an agent proposed; a turn-down needs the owner's reason. Answers the person as memo
+/// shows them after it.
+fn decide_split_with(
+    call: &Call,
+    reference: &str,
+    id: &str,
+    answer: Answer,
+    reason: Option<&str>,
+) -> Result<Person, String> {
+    let reference = person_ref(reference)?;
+    if id.is_empty() || !id.bytes().all(|b| b.is_ascii_digit()) {
+        return Err("Not a proposal memo listed. Read again.".into());
+    }
+    let mut args = decision(&["people", if answer == Answer::Confirm { "confirm" } else { "reject" }, id]);
+    if answer == Answer::Reject {
+        args.push(reason_word(reason)?);
+    }
+    decided(&call(&args)?, id)?;
+    show_with(call, reference)
+}
+
+pub fn decide_split(reference: &str, id: &str, answer: Answer, reason: Option<&str>) -> Result<Person, String> {
+    with_memo(|call| decide_split_with(call, reference, id, answer, reason))
+}
+
+/// The memo move that would set a doubted person right; `None` from a memo that gives only the command line.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(tag = "op", rename_all = "camelCase")]
+pub enum Move {
+    Unmerge { merge: String },
+    Unlink { identities: Vec<String> },
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct DoubtIdentity {
+    pub identity: String,
+    pub name: Option<String>,
+}
+
+/// A person whose identities may be wrongly joined, from `people links check`.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Doubt {
+    pub person: String,
+    pub name: Option<String>,
+    pub owner: bool,
+    /// `owner-other-name`, `test-data`, `shared-address` or `mixed-names`; a newer memo may add one.
+    pub reason: String,
+    pub identities: Vec<DoubtIdentity>,
+    pub moves: Vec<Move>,
+}
+
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Doubts {
+    pub items: Vec<Doubt>,
+    /// Absent in a group, where memo cannot count without naming people outside it.
+    pub total: Option<u64>,
+    pub more: bool,
+}
+
+fn move_of(v: &Value) -> Option<Move> {
+    match v["op"].as_str()? {
+        "unmerge" => Some(Move::Unmerge { merge: merge_word(v["merge"].as_str()?).map(|_| text(v, "merge"))?? }),
+        "unlink" => Some(Move::Unlink { identities: strings(&v["identities"]) }),
+        _ => None,
+    }
+}
+
+fn doubt(v: &Value) -> Option<Doubt> {
+    Some(Doubt {
+        person: person_of(&v["person"])?,
+        name: text(v, "name"),
+        owner: v["owner"].as_bool().unwrap_or(false),
+        reason: text(v, "reason")?,
+        identities: v["identities"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|i| Some(DoubtIdentity { identity: text(i, "identity")?, name: text(i, "name") }))
+            .collect(),
+        moves: list(v, "moves", move_of),
+    })
+}
+
+const MAX_DOUBTS: u32 = 50;
+
+fn doubts_with(call: &Call, page: u32, size: u32) -> Result<Doubts, String> {
+    if page == 0 || page > MAX_PAGE || size == 0 || size > MAX_DOUBTS {
+        return Err("Not a page memo can give.".into());
+    }
+    let v = call(&words(&["people", "links", "check", "--limit", &size.to_string(), "--page", &page.to_string()]))?;
+    Ok(Doubts {
+        items: list(&v, "items", doubt),
+        total: v["page"]["total"]["value"].as_u64(),
+        more: v["page"]["has_more"].as_bool().unwrap_or(false),
+    })
+}
+
+/// People that look wrongly joined, a page at a time, the owner first.
+pub fn doubts(page: u32, size: u32) -> Result<Doubts, String> {
+    with_memo(|call| doubts_with(call, page, size))
+}
+
 /// What joining a group did: the person they are now, the people joined and the matches memo confirmed so far, and why
 /// it stopped, if it did.
 #[derive(Serialize, Debug, PartialEq)]
@@ -675,6 +815,9 @@ mod tests {
             "stale" => include_str!("../tests/fixtures/people/stale.json"),
             "unlink" => include_str!("../tests/fixtures/people/unlink.json"),
             "unmerge" => include_str!("../tests/fixtures/people/unmerge.json"),
+            "review-split" => include_str!("../tests/fixtures/people/review-split.json"),
+            "links-check" => include_str!("../tests/fixtures/people/links-check.json"),
+            "split-confirm" => include_str!("../tests/fixtures/people/split-confirm.json"),
             _ => panic!("no fixture {name}"),
         };
         serde_json::from_str(text).unwrap()
@@ -709,6 +852,65 @@ mod tests {
 
     fn strs(v: &[&str]) -> Vec<String> {
         v.iter().map(|s| (*s).to_string()).collect()
+    }
+
+    #[test]
+    fn a_split_is_never_read_as_a_match_and_keeps_its_own_row() {
+        let call = |a: &[String]| -> Result<Value, String> {
+            Ok(if a[1] == "review" { fixture("review-split") } else { fixture("list") })
+        };
+        let Read::Ready { matches, splits, .. } = read_with(&call, "person").unwrap() else { panic!() };
+        assert_eq!(matches.len(), 1);
+        assert_eq!(splits.len(), 2);
+        assert_eq!(splits[0].person, "person:3");
+        assert_eq!(splits[0].op, "unlink");
+        assert_eq!(splits[0].identities, ["phone:+447700900188", "seed:demo/contact/mila"]);
+        assert_eq!(splits[0].proposer, Some(Proposer { kind: "agent".into(), name: Some("claude-code".into()) }));
+        assert_eq!(splits[1].merge.as_deref(), Some("merge:3-2"));
+    }
+
+    #[test]
+    fn a_split_is_decided_by_the_owner_with_peoples_own_commands() {
+        let f = Fake::new("split-confirm");
+        decide_split_with(&|a| f.call(a), "person:3", "1", Answer::Confirm, None).unwrap();
+        assert_eq!(f.seen()[0], strs(&["people", "confirm", "1", "--from-app", "--json", "--no-record"]));
+
+        let r = Fake::new("split-confirm");
+        let no = decide_split_with(&|a| r.call(a), "person:3", "1", Answer::Reject, Some("  ")).unwrap_err();
+        assert!(no.contains("why"), "{no}");
+        assert!(r.seen().is_empty(), "nothing is sent without a reason");
+        assert!(decide_split_with(&|a| r.call(a), "person:3", "1 --yes", Answer::Confirm, None).is_err());
+        decide_split_with(&|a| r.call(a), "person:3", "1", Answer::Reject, Some("one man")).unwrap();
+        assert_eq!(
+            r.seen()[0],
+            strs(&["people", "reject", "1", "--from-app", "--json", "--no-record", "--reason=one man"])
+        );
+    }
+
+    #[test]
+    fn doubts_carry_their_moves_and_memos_total_and_skip_an_unknown_move() {
+        let seen = Mutex::new(Vec::new());
+        let call = |a: &[String]| -> Result<Value, String> {
+            seen.lock().unwrap().push(a.to_vec());
+            Ok(fixture("links-check"))
+        };
+        let d = doubts_with(&call, 2, 10).unwrap();
+        assert_eq!(
+            seen.lock().unwrap()[0],
+            strs(&["people", "links", "check", "--limit", "10", "--page", "2", "--json", "--no-record"])
+        );
+        assert_eq!((d.total, d.more, d.items.len()), (Some(2), true, 2));
+        assert_eq!(d.items[0].reason, "mixed-names");
+        assert!(d.items[0].moves.is_empty());
+        assert_eq!(
+            d.items[1].moves,
+            [
+                Move::Unmerge { merge: "merge:4-7".into() },
+                Move::Unlink { identities: vec!["seed:demo/contact/olga s".into()] }
+            ]
+        );
+        assert!(doubts_with(&call, 0, 10).is_err());
+        assert!(doubts_with(&call, 1, 500).is_err());
     }
 
     #[test]

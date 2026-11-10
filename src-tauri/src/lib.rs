@@ -352,6 +352,8 @@ pub fn run() {
             commands::memory::memory_source_context,
             commands::memory::memory_open_source,
             commands::people::people_read,
+            commands::people::people_split_decide,
+            commands::people::people_doubts,
             commands::people::people_kinds,
             commands::people::people_page,
             commands::people::people_show,

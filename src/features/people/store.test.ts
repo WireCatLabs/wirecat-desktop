@@ -59,6 +59,7 @@ describe("the People store after a write", () => {
       peopleMore: false,
       matches: [match("3", ["person:7", "person:8"])],
       matchesMore: true,
+      splits: [],
       kinded: false,
     })
     await usePeople.getState().decide("person:9", "1", "confirm")
@@ -78,6 +79,7 @@ describe("the People store after a write", () => {
       peopleMore: false,
       matches: [],
       matchesMore: false,
+      splits: [],
       kinded: true,
     }))
     await usePeople.getState().load()

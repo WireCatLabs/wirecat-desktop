@@ -73,3 +73,23 @@ pub async fn people_unmerge(reference: String, merge: String) -> Result<people::
 pub async fn people_find(account: String) -> Result<Option<people::Person>, AppError> {
     crate::log::command("people_find", async move { attempt(move || people::find(&account)).await }).await
 }
+
+/// The owner's answer to a split an agent proposed on `reference`; a turn-down carries the owner's reason.
+#[tauri::command]
+pub async fn people_split_decide(
+    reference: String,
+    id: String,
+    answer: people::Answer,
+    reason: Option<String>,
+) -> Result<people::Person, AppError> {
+    crate::log::command("people_split_decide", async move {
+        attempt(move || people::decide_split(&reference, &id, answer, reason.as_deref())).await
+    })
+    .await
+}
+
+/// One page of the people whose identities look wrongly joined, from memo's `people links check`.
+#[tauri::command]
+pub async fn people_doubts(page: u32, size: u32) -> Result<people::Doubts, AppError> {
+    crate::log::command("people_doubts", async move { attempt(move || people::doubts(page, size)).await }).await
+}

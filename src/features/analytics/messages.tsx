@@ -57,9 +57,13 @@ const en = {
   overdue: "Overdue",
   closed: "Closed",
   memoryCol: "Memory",
-  messagesCol: "Messages",
-  noProjects: "No project has tasks or memory in this period.",
-  projectsTable: "Tasks, memory and messages per project",
+  chatLine: (chats: string, messages: string, last: string | null) =>
+    `${chats} ${chats === "1" ? "chat" : "chats"} · ${messages} messages${last ? ` · last ${last}` : ""}`,
+  untitledChat: "A chat",
+  chatsNote:
+    "Chats and messages count the chats linked to each project and its sub-projects. Muted chats are not counted.",
+  noProjects: "No project has tasks, memory or linked chats in this period.",
+  projectsTable: "Tasks, memory and linked chats per project",
 
   tasks: "Tasks",
   openNow: "Open in projects",
@@ -302,9 +306,11 @@ const ru: typeof en = {
   overdue: "Просрочено",
   closed: "Закрыто",
   memoryCol: "Память",
-  messagesCol: "Сообщения",
-  noProjects: "За этот период ни в одном проекте нет задач или памяти.",
-  projectsTable: "Задачи, память и сообщения по проектам",
+  chatLine: (chats, messages, last) => `чатов: ${chats} · сообщений: ${messages}${last ? ` · последнее ${last}` : ""}`,
+  untitledChat: "Чат",
+  chatsNote: "Чаты и сообщения — по чатам, привязанным к проекту и его подпроектам. Чаты без звука не учитываются.",
+  noProjects: "За этот период ни в одном проекте нет задач, памяти или привязанных чатов.",
+  projectsTable: "Задачи, память и привязанные чаты по проектам",
 
   tasks: "Задачи",
   openNow: "Открыто в проектах",
@@ -542,9 +548,13 @@ const es: typeof en = {
   overdue: "Vencidas",
   closed: "Cerradas",
   memoryCol: "Memoria",
-  messagesCol: "Mensajes",
-  noProjects: "Ningún proyecto tiene tareas ni memoria en este periodo.",
-  projectsTable: "Tareas, memoria y mensajes por proyecto",
+  chatLine: (chats, messages, last) =>
+    `${chats} ${chats === "1" ? "chat" : "chats"} · ${messages} mensajes${last ? ` · último ${last}` : ""}`,
+  untitledChat: "Un chat",
+  chatsNote:
+    "Chats y mensajes cuentan los chats vinculados a cada proyecto y sus subproyectos. Los chats silenciados no cuentan.",
+  noProjects: "Ningún proyecto tiene tareas, memoria ni chats vinculados en este periodo.",
+  projectsTable: "Tareas, memoria y chats vinculados por proyecto",
 
   tasks: "Tareas",
   openNow: "Abiertas en proyectos",

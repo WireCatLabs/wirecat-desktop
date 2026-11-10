@@ -1,5 +1,13 @@
 import { delay } from "./mock-delay"
-import { type Identity, type Listed, type Match, PERSON_KINDS, type PersonDetail } from "./people-schemas"
+import {
+  type Doubt,
+  type Identity,
+  type Listed,
+  type Match,
+  PERSON_KINDS,
+  type PersonDetail,
+  type Split,
+} from "./people-schemas"
 import type { PersonProfile } from "./person-profile-schemas"
 import type { Platform } from "./types"
 
@@ -8,7 +16,8 @@ import type { Platform } from "./types"
 // `more` says memo has more people and matches than were read. `?people-fail=read` fails the read (another sync holds
 // the store), `?people=nokinds` is a memo older than kinds of people (one list of everyone, no contact),
 // `?people-fail=write` fails every decision the same way, `?people-fail=stale` refuses Same person as
-// `identity.stale`, `?people-fail=merge` refuses the second join of a group.
+// `identity.stale`, `?people-fail=merge` refuses the second join of a group. Two splits an agent proposed wait beside the
+// matches and eight people look wrongly joined (`people links check`); `?people=calm` has neither.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("people")
@@ -137,9 +146,37 @@ function seed(): Held[] {
     person("person:34", "Сергей", [
       account("bitrix24:northstar.example/contact/7733", "Сергей", [["acme", "personal"]], "initial", 1),
     ]),
+    person("person:40", "Viktor Example", [
+      account("telegram:7001", "Viktor", [["1", "personal"]], "initial", 60, "viktor_ex"),
+      account("email:viktor@example.org", "Viktor Example", [["2", "work"]], "same-email", 50),
+      account("max:7002", "Mila Example", [["5", "personal"]], "same-phone", 30),
+    ]),
     ...crowd(),
   ]
 }
+
+const SPLITS: Split[] = [
+  {
+    id: "901",
+    person: "person:40",
+    op: "unlink",
+    identities: ["max:7002"],
+    merge: null,
+    reason: "The MAX account is Mila's, Viktor's wife: another name, and she writes about Viktor as «he».",
+    evidence: ["max:7002", "telegram:7001"],
+    proposer: { kind: "agent", name: "claude-code" },
+  },
+  {
+    id: "902",
+    person: "person:7",
+    op: "unmerge",
+    identities: ["email:lena@example.org"],
+    merge: "merge:7-12",
+    reason: "This address is the studio's shared inbox; three people sign from it.",
+    evidence: ["email:lena@example.org", "merge:7-12"],
+    proposer: { kind: "agent", name: "openclaw" },
+  },
+]
 
 /** Enough made-up people for the table to have pages. */
 function crowd(): Held[] {
@@ -255,10 +292,40 @@ export function peopleMock(): Pick<
   | "peopleMerge"
   | "peopleUnlink"
   | "peopleUnmerge"
+  | "peopleSplitDecide"
+  | "peopleDoubts"
 > {
   let people = scenario === "none" ? seed().slice(0, 1) : seed()
   let matches = scenario === "none" ? [] : [...MATCHES]
-  let next = 40
+  let splits = scenario === "none" || scenario === "calm" ? [] : [...SPLITS]
+  let next = 60
+  /** As `people links check`: only while the person still holds the doubted accounts. */
+  const doubts = (): Doubt[] => {
+    if (scenario === "none" || scenario === "calm") return []
+    const holds = (ref: string, identity: string) =>
+      people.some((p) => p.ref === ref && p.identities.length > 1 && p.identities.some((i) => i.identity === identity))
+    const of = (ref: string, reason: string, ids: string[], moves: Doubt["moves"]): Doubt[] => {
+      const p = people.find((x) => x.ref === ref)
+      if (!p || !ids.every((id) => holds(ref, id))) return []
+      const identities = ids.map((id) => ({
+        identity: id,
+        name: p.identities.find((i) => i.identity === id)?.name ?? null,
+      }))
+      return [{ person: ref, name: p.name, owner: false, reason, identities, moves }]
+    }
+    const test = people
+      .filter((p) => Number(p.ref.slice(7)) >= 100 && p.identities.some((i) => i.provider === "email"))
+      .slice(0, 6)
+      .flatMap((p) => {
+        const email = p.identities.find((i) => i.provider === "email")?.identity ?? ""
+        return of(p.ref, "test-data", [email], [])
+      })
+    return [
+      ...of("person:40", "mixed-names", ["max:7002"], [{ op: "unlink", identities: ["max:7002"] }]),
+      ...of("person:7", "shared-address", ["email:lena@example.org"], [{ op: "unmerge", merge: "merge:7-12" }]),
+      ...test,
+    ]
+  }
 
   const find = (ref: string): Held => {
     const p = people.find((x) => x.ref === ref)
@@ -352,7 +419,7 @@ export function peopleMock(): Pick<
             (a, b) => Number(b.owner) - Number(a.owner) || (b.messagesFrom ?? 0) - (a.messagesFrom ?? 0),
           )
         : people.map(listed)
-      return { kind: "ready", people: listing, peopleMore: more, matches, matchesMore: more, kinded }
+      return { kind: "ready", people: listing, peopleMore: more, matches, matchesMore: more, splits, kinded }
     },
     async peoplePage({ kind, page, size, query, sort }) {
       await delay(400)
@@ -472,6 +539,23 @@ export function peopleMock(): Pick<
         { ref: to, name: moved[0]?.name ?? null, mergedInto: null, identities: moved, merges: [] },
       ]
       return { person: shown(ref), movedTo: to }
+    },
+    async peopleSplitDecide(ref, id, answer, reason) {
+      await write()
+      const split = splits.find((x) => x.id === id && x.person === ref)
+      if (!split) throw new Error("proposal.wrong-state")
+      if (answer === "reject" && !reason?.trim()) throw new Error("Say in a few words why they are not one person.")
+      if (answer === "confirm" && fail === "stale") throw new Error("identity.stale")
+      splits = splits.filter((x) => x.id !== id)
+      if (answer === "reject") return shown(ref)
+      if (split.op === "unmerge" && split.merge) return api.peopleUnmerge(ref, split.merge)
+      return (await api.peopleUnlink(ref, split.identities)).person
+    },
+    async peopleDoubts(page, size) {
+      await delay(450)
+      if (fail === "read") throw new Error(BUSY)
+      const all = doubts()
+      return { items: all.slice((page - 1) * size, page * size), total: all.length, more: page * size < all.length }
     },
     async peopleUnmerge(ref, merge) {
       await write()

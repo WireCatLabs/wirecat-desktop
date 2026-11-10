@@ -88,6 +88,7 @@ import type {
 } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
 import type {
+  Doubts,
   MatchAnswer,
   Merged,
   PeoplePage,
@@ -387,6 +388,10 @@ export type Platform = {
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */
   peopleDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
+  /** The owner's answer to a split an agent proposed on this person; answers the person read again. */
+  peopleSplitDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
+  /** One page of the people whose accounts look wrongly joined, the owner first. */
+  peopleDoubts(page: number, size: number): Promise<Doubts>
   /** Joins the chosen people of one group of matches into one, a match at a time. */
   peopleMerge(refs: string[]): Promise<Merged>
   /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */

@@ -1784,6 +1784,20 @@
           ],
           "date": "created",
           "minVersion": "0.131.79"
+        },
+        "projectActivity": {
+          "args": [
+            "stats",
+            "projects",
+            "show",
+            "--since-time",
+            "{sinceOrAll}",
+            "--limit",
+            "200",
+            "--no-record",
+            "--json"
+          ],
+          "minVersion": "0.131.80"
         }
       },
       "setup": null,
@@ -1813,7 +1827,7 @@
         "minVersion": "0.131.71"
       },
       "people": {
-        "minVersion": "0.131.75"
+        "minVersion": "0.131.79"
       },
       "digests": {
         "minVersion": "0.131.75"

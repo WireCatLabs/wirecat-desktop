@@ -379,7 +379,7 @@ pub enum Aggregate {
     Failed { message: String },
 }
 
-const AGGREGATES: [&str; 9] = [
+const AGGREGATES: [&str; 10] = [
     "responses",
     "waiting",
     "coverage",
@@ -389,6 +389,7 @@ const AGGREGATES: [&str; 9] = [
     "mail",
     "taskSources",
     "taskMeetings",
+    "projectActivity",
 ];
 /// The counts made of a messenger's messages, which leave muted chats out like every other count on the page.
 const COUNTS_MESSAGES: [&str; 2] = ["responses", "waiting"];
@@ -431,6 +432,8 @@ pub fn aggregate_args(
                     args.pop();
                 }
             },
+            // For a command whose own default is a window, so all time must be said.
+            "{sinceOrAll}" => args.push(days.map_or_else(|| "all".to_string(), |d| format!("{d}d"))),
             other => args.push(other.to_string()),
         }
     }
@@ -760,6 +763,10 @@ mod tests {
         let memo = catalog::tool("memo").unwrap();
         let t = aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, "UTC", false).unwrap();
         assert_eq!(&t[t.len() - 2..], ["--", "created>=30d"]);
+        let week = aggregate_args(&memo.aggregates["projectActivity"], None, Period::Week, "UTC", false).unwrap();
+        assert!(week.windows(2).any(|w| w == ["--since-time", "7d"]));
+        let all = aggregate_args(&memo.aggregates["projectActivity"], None, Period::All, "UTC", false).unwrap();
+        assert!(all.windows(2).any(|w| w == ["--since-time", "all"]));
         let mail = catalog::tool("email").unwrap();
         assert!(aggregate_args(&mail.aggregates["mail"], None, Period::Week, "UTC", false).is_err());
         let m = aggregate_args(&mail.aggregates["mail"], Some("ya"), Period::Week, "UTC", false).unwrap();

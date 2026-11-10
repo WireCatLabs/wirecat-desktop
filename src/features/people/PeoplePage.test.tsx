@@ -102,10 +102,10 @@ describe("People", () => {
     expect(page).toHaveBeenLastCalledWith({ kind: "person", page: 1, size: 50, query: "", sort: "interactions" })
     expect(within(await table()).getAllByRole("row")).toHaveLength(51)
     const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent(/^1–50 of 120/)
+    expect(pages).toHaveTextContent(/^1–50 of 121/)
     await user.click(within(pages).getByRole("button", { name: "Page 2" }))
     expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
-    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 120/))
+    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 121/))
 
     await user.click(screen.getByRole("combobox", { name: "Order" }))
     await user.click(screen.getByRole("option", { name: "Most tasks" }))
@@ -145,7 +145,7 @@ describe("People", () => {
     expect(await screen.findByRole("heading", { name: "5 matches wait for you" }, { timeout: 4000 })).toBeVisible()
     const matches = await openMatches(user)
     expect(matches).toHaveTextContent("all their chats, mail, meetings and deals")
-    expect(within(matches).getAllByRole("article")).toHaveLength(5)
+    expect(within(matches).getAllByRole("article")).toHaveLength(7)
     await user.click(screen.getByRole("button", { name: "All contacts" }))
     expect(await table()).toBeInTheDocument()
   })
@@ -227,6 +227,44 @@ describe("People", () => {
     await user.type(within(card).getByRole("textbox"), "two brothers{Enter}")
     await waitFor(() => expect(decide).toHaveBeenCalledTimes(1))
     expect(decide).toHaveBeenCalledWith("person:30", "17103", "reject", "two brothers")
+  })
+
+  it("shows an agent's split in words, and keeping it together sends the owner's reason, a default he may edit", async () => {
+    const decide = vi.spyOn(platform, "peopleSplitDecide")
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const matches = await openMatches(user)
+    const card = within(matches).getByRole("article", { name: "Split off accounts of Viktor Example" })
+    expect(card).toHaveTextContent("These accounts would become a new person:")
+    expect(await within(card).findByText(/Mila Example/, {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(card).toHaveTextContent("Viktor's wife")
+    expect(card).not.toHaveTextContent("max:7002")
+    await user.click(within(card).getByRole("button", { name: "Keep together" }))
+    const why = within(card).getByRole("textbox", { name: /Why do they belong together/ })
+    expect(why).toHaveValue("I know they are the same person.")
+    await user.clear(why)
+    await user.click(within(card).getByRole("button", { name: "Keep together" }))
+    expect(decide).not.toHaveBeenCalled()
+    expect(within(card).getByRole("alert")).toHaveTextContent("Say in a few words why they belong together.")
+    await user.type(why, "Mila uses his phone{Enter}")
+    await waitFor(() => expect(decide).toHaveBeenCalledWith("person:40", "901", "reject", "Mila uses his phone"))
+    expect(await within(card).findByText(/Kept together/)).toBeInTheDocument()
+  })
+
+  it("lists doubtful links above the contacts, and a split from there opens with the doubted account ticked", async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    expect(panel).toHaveTextContent("people to check")
+    expect(within(panel).getByRole("navigation", { name: "Pages of people to check" })).toBeInTheDocument()
+    const viktor = within(panel)
+      .getAllByRole("listitem")
+      .find((row) => row.textContent?.startsWith("Viktor Example")) as HTMLElement
+    expect(viktor).toHaveTextContent("The accounts carry different names.")
+    expect(viktor).toHaveTextContent("MAX Mila Example")
+    await user.click(within(viktor).getByRole("button", { name: "Split…" }))
+    const dialog = await screen.findByRole("dialog", { name: "Move accounts to a new person" })
+    await waitFor(() => expect(within(dialog).getByRole("checkbox", { name: /Mila Example/ })).toBeChecked())
   })
 
   it("shows three people who share a phone as one card, joins the two the owner ticks, then keeps the third apart", async () => {
@@ -325,6 +363,7 @@ describe("People", () => {
       peopleMore: true,
       matches: [],
       matchesMore: false,
+      splits: [],
       kinded: false,
     })
     render(<PeoplePage />)
