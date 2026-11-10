@@ -95,7 +95,7 @@ memo gives deals, facts and memories no id a loader could set, so they are match
 - A demo sandbox seeded before the seed set made its people by name only, so the set would add them again: `bin/sandbox`
   says so and starts it with its old data. `--seed demo --reset` loads the seed set.
 
-What no command can load yet:
+What the seed set leaves empty:
 
 - **SMS on a page.** An SMS can be loaded (the envelope's `message` type, under the import-only `phone` provider), but
   no page reads SMS; they back the tasks from chats.
