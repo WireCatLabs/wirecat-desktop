@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { baseColumnsOf, openCountsOf, placeOf, type Refusal, suggestionOf, UNSORTED } from "@/domain/base-stages"
 import { accountKey, amountsOf, type Kind, sumsOf } from "@/domain/clients"
 import { useLang, useMessages } from "@/i18n"
@@ -14,6 +14,9 @@ import { Card, CardBody, OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
 import { useClients } from "./store"
+
+/** A column shows this many cards at first and this many more on each «Show more»: a read may hold hundreds. */
+export const COLUMN_PAGE = 20
 
 /** The base set as columns, every pipeline's cards under the base stage their own stage points to. */
 export function BaseBoard({
@@ -44,6 +47,7 @@ export function BaseBoard({
     return c ? move.verdict(c, to) : ({ kind: "refuse", why: "unmapped" } as const)
   }
   const board = useRef<HTMLDivElement>(null)
+  const [limits, setLimits] = useState<Record<string, number>>({})
   useSlide(board, cards.map((c) => `${c.ref}:${c.stage}`).join())
   const { drag, held, said, shown, onPointerDown, onClick, onKeyDown } = useBoardDrag<string>({
     columns: ids,
@@ -107,7 +111,11 @@ export function BaseBoard({
       </p>
       <Board columns={ids.length} boardRef={board}>
         {ids.map((id) => {
-          const refs = shown(id)
+          const all = shown(id)
+          const limit = limits[id] ?? COLUMN_PAGE
+          // The card carried by keyboard stays on screen wherever it lands.
+          const refs = all.filter((ref, at) => at < limit || ref === held?.key)
+          const hidden = all.length - refs.length
           const b = read.base.find((x) => x.ref === id)
           const here = (columns.get(id) ?? []).flatMap((r) => byRef.get(r) ?? [])
           // One read holds the newest open cards only; memo counts every open one, so a column says what it is
@@ -168,6 +176,18 @@ export function BaseBoard({
                   </li>
                 )
               })}
+              {hidden > 0 && (
+                <li className="px-[0.6rem] pb-[0.6rem]">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => setLimits((l) => ({ ...l, [id]: limit + COLUMN_PAGE }))}
+                  >
+                    {m.showMore(Math.min(hidden, COLUMN_PAGE))}
+                  </Button>
+                </li>
+              )}
               {drag && drag.to === id && drag.before === null && (
                 <li aria-hidden className="contents">
                   <DropLine />
