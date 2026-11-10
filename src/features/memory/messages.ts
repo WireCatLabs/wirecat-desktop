@@ -3,6 +3,40 @@ import { type Messages, plural } from "@/i18n"
 
 type Record3 = "memory" | "fact" | "action" | "relationship"
 
+/** One set of state words for the tabs, the row pills and the details, so they cannot drift apart. */
+const EN_STATES = {
+  review: "Waiting for you",
+  inuse: "In use",
+  approved: "Approved",
+  done: "Done",
+  failed: "Failed",
+  discarded: "Rejected",
+  replaced: "Replaced",
+  other: "Other",
+} satisfies Record<State, string>
+
+const RU_STATES: typeof EN_STATES = {
+  review: "Ждёт решения",
+  inuse: "Используется",
+  approved: "Одобрено",
+  done: "Сделано",
+  failed: "Не удалось",
+  discarded: "Отклонено",
+  replaced: "Заменено",
+  other: "Другое",
+}
+
+const ES_STATES: typeof EN_STATES = {
+  review: "Pendiente",
+  inuse: "En uso",
+  approved: "Aprobado",
+  done: "Hecho",
+  failed: "Falló",
+  discarded: "Rechazado",
+  replaced: "Sustituido",
+  other: "Otro",
+}
+
 const en = {
   title: "Memory",
   intro:
@@ -11,22 +45,13 @@ const en = {
   readAgain: "Read again",
   reading: "Reading…",
   show: "Show",
-  tabs: { review: "Review", inuse: "In use", discarded: "Rejected", all: "All" } satisfies Record<Tab, string>,
+  allTab: "All",
   about: "About",
   search: "Search memory",
   searchHint: "Search memory, or filter: kind:decision project:Harbour by:me when:7d",
   by: "Written by",
   you: "You",
-  states: {
-    review: "To review",
-    inuse: "In use",
-    approved: "Approved",
-    done: "Done",
-    failed: "Failed",
-    discarded: "Rejected",
-    replaced: "Replaced",
-    other: "Other",
-  } satisfies Record<State, string>,
+  states: EN_STATES,
   record: { memory: "Memory", fact: "Fact", action: "Action", relationship: "Relationship" } satisfies Record<
     Record3,
     string
@@ -116,8 +141,8 @@ const en = {
   wouldAct: "Would act in",
   why: "Why",
   corrects: "Corrects",
-  stateReview: "To review. Agents see it marked as not yet approved.",
-  stateReviewAction: "To review. Nothing is sent until you approve it, and approving only makes it a task.",
+  stateReview: "Waiting for you. Agents see it marked as not yet approved.",
+  stateReviewAction: "Waiting for you. Nothing is sent until you approve it, and approving only makes it a task.",
   stateApproved:
     "Approved. It became a task in that account; nothing was sent. To take it back, open the task and dismiss it.",
   stateApprovedOld: "Approved. It became a task in that account; nothing was sent.",
@@ -235,7 +260,7 @@ const en = {
   approveFindings: (n: number) => `Approve ${n}`,
   approveShown: (n: number) => `Approve ${n}`,
   approveShownHint: (n: number) =>
-    `Approves the ${n} facts and memories shown here with these filters. Tasks, agents' findings, and rows in another tab, filtered out or in a folded group stay to review.`,
+    `Approves the ${n} facts and memories shown here with these filters. Tasks, agents' findings, and rows in another tab, filtered out or in a folded group keep waiting for you.`,
   approvedShown: (n: number) => `Approved ${n}`,
   showContext: (what: string) => `Show ${what} in context`,
   readingContext: "Reading it…",
@@ -243,7 +268,7 @@ const en = {
   openFile: "Open file",
   noContext: (prefix: string) => `A ${prefix} source cannot be shown here yet.`,
   project: "Project",
-  stateReviewFindings: "To review. Nothing is created until you approve, and you pick which findings.",
+  stateReviewFindings: "Waiting for you. Nothing is created until you approve, and you pick which findings.",
   stateReviewed:
     "Reviewed. The findings marked Created are in the project now. To take one back, open it: erase the fact or dismiss the task.",
   noSubject: "Not about anyone in particular",
@@ -259,22 +284,13 @@ const ru: typeof en = {
   readAgain: "Прочитать снова",
   reading: "Читаю…",
   show: "Показать",
-  tabs: { review: "На проверку", inuse: "В работе", discarded: "Отклонено", all: "Все" },
+  allTab: "Все",
   about: "О ком",
   search: "Поиск по памяти",
   searchHint: "Найти в памяти или отфильтровать: kind:decision project:Harbour by:me when:7d",
   by: "Кто записал",
   you: "Вы",
-  states: {
-    review: "На проверку",
-    inuse: "В работе",
-    approved: "Одобрено",
-    done: "Сделано",
-    failed: "Не удалось",
-    discarded: "Отклонено",
-    replaced: "Заменено",
-    other: "Другое",
-  },
+  states: RU_STATES,
   record: { memory: "Память", fact: "Факт", action: "Действие", relationship: "Связь" },
   kinds: {
     evidence_findings: "Находки",
@@ -362,8 +378,8 @@ const ru: typeof en = {
   wouldAct: "Где выполнится",
   why: "Зачем",
   corrects: "Исправляет",
-  stateReview: "На проверку. Агенты видят её как ещё не одобренную.",
-  stateReviewAction: "На проверку. Ничего не отправится, пока вы не одобрите, а одобрение только создаёт задачу.",
+  stateReview: "Ждёт решения. Агенты видят её как ещё не одобренную.",
+  stateReviewAction: "Ждёт решения. Ничего не отправится, пока вы не одобрите, а одобрение только создаёт задачу.",
   stateApproved:
     "Одобрено. В этом аккаунте появилась задача; ничего не отправлено. Чтобы отменить, откройте задачу и переведите её в «Отклонено».",
   stateApprovedOld: "Одобрено. В этом аккаунте появилась задача; ничего не отправлено.",
@@ -402,12 +418,12 @@ const ru: typeof en = {
     "Агент, подключённый к WireCat, сохраняет сюда то, что узнал, например «Kai удобнее созваниваться по пятницам», вместе с сообщениями, где это видно. Попросите агента что-нибудь запомнить или подключите его на странице «Агенты».",
   goAgents: "Открыть «Агенты»",
   nothing: {
-    review: "Ничего не ждёт проверки.",
-    inuse: "В работе пока ничего нет.",
+    review: "Ничего не ждёт решения.",
+    inuse: "Пока ничего не используется.",
     discarded: "Отклонённых нет.",
     all: "Здесь пока пусто.",
   },
-  showInUse: "Посмотреть, что в работе",
+  showInUse: "Посмотреть, что используется",
   noMatch: "Под эти фильтры ничего не подходит.",
   clearFilters: "Сбросить фильтры",
   readFailed: "Не удалось прочитать память.",
@@ -484,7 +500,7 @@ const ru: typeof en = {
   approveFindings: (n) => `Одобрить ${n}`,
   approveShown: (n) => `Одобрить ${n}`,
   approveShownHint: (n) =>
-    `Одобряет факты и воспоминания, показанные здесь с этими фильтрами: ${n}. Задачи, находки агентов и записи в другой вкладке, отфильтрованные или в свёрнутой группе остаются на проверке.`,
+    `Одобряет факты и воспоминания, показанные здесь с этими фильтрами: ${n}. Задачи, находки агентов и записи в другой вкладке, отфильтрованные или в свёрнутой группе по-прежнему ждут решения.`,
   approvedShown: (n) => `Одобрено: ${n}`,
   showContext: (what: string) => `Показать ${what} в контексте`,
   readingContext: "Читаю…",
@@ -492,7 +508,7 @@ const ru: typeof en = {
   openFile: "Открыть файл",
   noContext: (prefix: string) => `Источник ${prefix} здесь пока не показать.`,
   project: "Проект",
-  stateReviewFindings: "На проверке. Ничего не создаётся, пока вы не одобрите, и вы выбираете, какие находки.",
+  stateReviewFindings: "Ждёт решения. Ничего не создаётся, пока вы не одобрите, и вы выбираете, какие находки.",
   stateReviewed:
     "Проверено. Находки с пометкой «Создано» теперь в проекте. Чтобы отменить одну, откройте её: сотрите факт или переведите задачу в «Отклонено».",
   noSubject: "Ни о ком конкретно",
@@ -510,22 +526,13 @@ const es: typeof en = {
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
   show: "Mostrar",
-  tabs: { review: "Revisar", inuse: "En uso", discarded: "Rechazado", all: "Todo" },
+  allTab: "Todo",
   about: "Sobre",
   search: "Buscar en la memoria",
   searchHint: "Busca en la memoria o filtra: kind:decision project:Harbour by:me when:7d",
   by: "Escrito por",
   you: "Tú",
-  states: {
-    review: "Por revisar",
-    inuse: "En uso",
-    approved: "Aprobado",
-    done: "Hecho",
-    failed: "Falló",
-    discarded: "Rechazado",
-    replaced: "Sustituido",
-    other: "Otro",
-  },
+  states: ES_STATES,
   record: { memory: "Memoria", fact: "Hecho", action: "Acción", relationship: "Relación" },
   kinds: {
     evidence_findings: "Hallazgos",
@@ -613,8 +620,8 @@ const es: typeof en = {
   wouldAct: "Actuaría en",
   why: "Por qué",
   corrects: "Corrige",
-  stateReview: "Por revisar. Los agentes la ven marcada como aún no aprobada.",
-  stateReviewAction: "Por revisar. No se envía nada hasta que lo apruebes, y aprobarlo solo crea una tarea.",
+  stateReview: "Pendiente. Los agentes la ven marcada como aún no aprobada.",
+  stateReviewAction: "Pendiente. No se envía nada hasta que lo apruebes, y aprobarlo solo crea una tarea.",
   stateApproved:
     "Aprobado. Se creó una tarea en esa cuenta; no se envió nada. Para deshacerlo, abre la tarea y descártala.",
   stateApprovedOld: "Aprobado. Se creó una tarea en esa cuenta; no se envió nada.",
@@ -651,7 +658,7 @@ const es: typeof en = {
     "Un agente conectado a WireCat guarda aquí lo que aprende, por ejemplo «Kai prefiere las llamadas los viernes», con los mensajes que lo muestran. Pide a tu agente que recuerde algo o conecta uno en la página Agentes.",
   goAgents: "Abrir Agentes",
   nothing: {
-    review: "Nada espera tu revisión.",
+    review: "No hay nada pendiente.",
     inuse: "Aún no hay nada en uso.",
     discarded: "No hay nada rechazado.",
     all: "Aquí aún no hay nada.",
@@ -733,7 +740,7 @@ const es: typeof en = {
   approveFindings: (n) => `Aprobar ${n}`,
   approveShown: (n) => `Aprobar ${n}`,
   approveShownHint: (n) =>
-    `Aprueba los ${n} hechos y recuerdos que se ven aquí con estos filtros. Las tareas, los hallazgos de agentes y lo que está en otra pestaña, filtrado o en un grupo plegado siguen por revisar.`,
+    `Aprueba los ${n} hechos y recuerdos que se ven aquí con estos filtros. Las tareas, los hallazgos de agentes y lo que está en otra pestaña, filtrado o en un grupo plegado siguen pendientes.`,
   approvedShown: (n) => `Aprobados: ${n}`,
   showContext: (what: string) => `Mostrar ${what} en contexto`,
   readingContext: "Leyéndolo…",
@@ -741,7 +748,7 @@ const es: typeof en = {
   openFile: "Abrir archivo",
   noContext: (prefix: string) => `Una fuente ${prefix} aún no se puede mostrar aquí.`,
   project: "Proyecto",
-  stateReviewFindings: "Por revisar. No se crea nada hasta que lo apruebes, y eliges qué hallazgos.",
+  stateReviewFindings: "Pendiente. No se crea nada hasta que lo apruebes, y eliges qué hallazgos.",
   stateReviewed:
     "Revisado. Los hallazgos marcados como Creado ya están en el proyecto. Para deshacer uno, ábrelo: borra el hecho o descarta la tarea.",
   noSubject: "Sobre nadie en concreto",

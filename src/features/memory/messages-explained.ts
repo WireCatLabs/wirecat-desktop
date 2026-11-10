@@ -35,16 +35,6 @@ const en = {
     discarded: "What you rejected or replaced. Agents do not use it.",
     all: "Everything in memory, in every state.",
   } satisfies Record<Tab, string>,
-  status: {
-    review: "Waiting for you",
-    inuse: "In use",
-    approved: "Approved",
-    done: "Done",
-    failed: "Failed",
-    discarded: "Rejected",
-    replaced: "Replaced",
-    other: "Other",
-  } as Record<string, string>,
   groupCount: (waiting: number, total: number) =>
     waiting > 0
       ? `${waiting} waiting for you · ${total} in all`
@@ -112,16 +102,6 @@ const ru: typeof en = {
     inuse: "То, что агенты считают правдой: одобренное вами и то, что сообщают подключённые сервисы.",
     discarded: "То, что вы отклонили или заменили. Агенты это не используют.",
     all: "Всё, что есть в памяти, в любом состоянии.",
-  },
-  status: {
-    review: "Ждёт решения",
-    inuse: "Используется",
-    approved: "Одобрено",
-    done: "Сделано",
-    failed: "Не удалось",
-    discarded: "Отклонено",
-    replaced: "Заменено",
-    other: "Другое",
   },
   groupCount: (waiting, total) =>
     waiting > 0
@@ -210,16 +190,6 @@ const es: typeof en = {
     inuse: "Lo que los agentes toman como cierto: lo que aprobaste y lo que informan tus apps conectadas.",
     discarded: "Lo que rechazaste o sustituiste. Los agentes no lo usan.",
     all: "Todo lo que hay en la memoria, en cualquier estado.",
-  },
-  status: {
-    review: "Pendiente",
-    inuse: "En uso",
-    approved: "Aprobado",
-    done: "Hecho",
-    failed: "Falló",
-    discarded: "Rechazado",
-    replaced: "Sustituido",
-    other: "Otro",
   },
   groupCount: (waiting, total) =>
     waiting > 0
