@@ -1,12 +1,17 @@
+import { useQuery } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
+import { findTool, tools } from "@/domain/catalog"
 import { dailyCap, formatUsd, runOutcome } from "@/domain/mail-agent"
-import { ago } from "@/features/tools"
+import { ago, openToolAt, ToolNeeded } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
-import type { DigestItem, DigestSpec, OtherSchedule, Route } from "@/platform/bindings"
+import type { DigestItem, DigestSpec, OtherSchedule, Route, RouteChoices } from "@/platform/bindings"
+import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
+import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Checkbox, Radio } from "@/ui/Checkbox"
+import { Combobox } from "@/ui/Combobox"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ToggleChip } from "@/ui/FilterBar"
@@ -45,6 +50,19 @@ export function problemOf(spec: DigestSpec, onDays: boolean): "title" | "time" |
 
 /** What an older memo, with one digest kept as a schedule, can be asked. */
 export type Can = { named: boolean }
+
+/** An older memo keeps one digest at one time a day: what the update brings, and the update itself. */
+export function OlderMemo() {
+  const m = useMessages(bookMessages).form
+  const version = useTools((s) => s.installs.memo?.[0]?.version ?? null)
+  const need = findTool("memo")?.digests?.minVersion
+  if (!need) return <p className="text-[0.88rem] text-ink-dim">{m.olderMemo}</p>
+  return (
+    <ToolNeeded inline gap={{ kind: "old", tool: "memo", version, need }}>
+      <p className="text-[0.88rem] text-ink-dim">{m.olderMemo}</p>
+    </ToolNeeded>
+  )
+}
 
 /**
  * The settings of one digest as fields: title, times, days, sources, routes, instructions and caps. The caller holds
@@ -87,7 +105,7 @@ export function DigestFields({
 
   return (
     <div className="flex flex-col gap-[1.1rem] text-[0.92rem]">
-      {!can.named && <p className="text-[0.88rem] text-ink-dim">{m.olderMemo}</p>}
+      {!can.named && <OlderMemo />}
       <Field label={m.title} htmlFor={ids.title}>
         <input
           id={ids.title}
@@ -287,11 +305,39 @@ function Usd(props: { label: string; value: number; min: number; onChange: (v: n
   )
 }
 
+const NO_CHOICES: RouteChoices = { bots: [], ownChats: [], mailboxes: [] }
+
+/** What the account and the chat or address fields suggest; the owner may still type any other. */
+function suggestions(choices: RouteChoices, kind: RouteKind, profile: string, m: ScheduleText) {
+  if (kind === "telegramBot")
+    return {
+      accounts: choices.bots,
+      targets: choices.ownChats.map((c) => c.value),
+      notes: Object.fromEntries(choices.ownChats.map((c) => [c.value, m.ownChat(c.profile)])),
+    }
+  const boxes = choices.mailboxes.filter((b) => b.address)
+  // The account's own address first: a digest sent to the mailbox it comes from.
+  const mine = boxes.filter((b) => b.profile === profile.trim())
+  const ordered = [...mine, ...boxes.filter((b) => !mine.includes(b))]
+  const targets = [...new Set(ordered.map((b) => b.address ?? ""))]
+  return {
+    accounts: choices.mailboxes.map((b) => b.profile),
+    targets,
+    notes: Object.fromEntries(ordered.map((b) => [b.address ?? "", m.ownMailbox(b.profile)])),
+  }
+}
+
 function Routes({ routes, onChange, m }: { routes: string[]; onChange: (r: string[]) => void; m: ScheduleText }) {
   const kindId = useId()
   const [kind, setKind] = useState<RouteKind>("telegramBot")
   const [profile, setProfile] = useState("")
   const [to, setTo] = useState("")
+  const { data } = useQuery({
+    queryKey: ["digest", "route-choices"],
+    queryFn: () => platform.digestRouteChoices(),
+    staleTime: 60_000,
+  })
+  const offer = suggestions(data ?? NO_CHOICES, kind, profile, m)
   const draft = `${PREFIX[kind]}:${profile.trim()}/${to.trim()}`
   const add = () => {
     if (parsedRoute(draft) && !routes.includes(draft)) onChange([...routes, draft])
@@ -332,19 +378,22 @@ function Routes({ routes, onChange, m }: { routes: string[]; onChange: (r: strin
             { value: "email", label: m.routeKinds.email },
           ]}
         />
-        <input
+        <Combobox
           aria-label={m.routeProfile}
           placeholder={m.routeProfile}
           value={profile}
-          onChange={(e) => setProfile(e.target.value)}
-          className={`${input} w-[9rem]`}
+          onChange={setProfile}
+          options={offer.accounts}
+          className="w-[10rem]"
         />
-        <input
+        <Combobox
           aria-label={m.routeTo(kind)}
           placeholder={m.routeTo(kind)}
           value={to}
-          onChange={(e) => setTo(e.target.value)}
-          className={`${input} w-[14rem]`}
+          onChange={setTo}
+          options={offer.targets}
+          notes={offer.notes}
+          className="w-[16rem]"
         />
         <Button size="sm" variant="ghost" disabled={!parsedRoute(draft)} onClick={add}>
           {m.addRoute}
@@ -455,6 +504,9 @@ export function ScheduleCard({
   )
 }
 
+/** The tool whose panel sets a schedule up, by the name the catalog gives it there; null for one made by hand. */
+const setUpIn = (name: string) => tools.find((t) => t.mailAgent?.name === name) ?? null
+
 export function OtherSchedules({ others }: { others: OtherSchedule[] }) {
   const m = useMessages(scheduleMessages)
   const lang = useLang()
@@ -480,11 +532,23 @@ export function OtherSchedules({ others }: { others: OtherSchedule[] }) {
           }
           if (o.spentTodayUsd !== null)
             parts.push(m.spentToday(formatUsd(o.spentTodayUsd, lang), cap === null ? null : formatUsd(cap, lang)))
+          const tool = setUpIn(o.name)
           return (
-            <li key={o.name} className="flex items-center gap-2">
+            <li key={o.name} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
               <Lamp tone={last ? TONE[runOutcome(last)] : "idle"} size="sm" />
               <span className="font-medium text-ink">{o.name}</span>
               <span>{parts.join(" · ")}</span>
+              {tool ? (
+                <button
+                  type="button"
+                  onClick={() => openToolAt(tool.id, "mailAgent")}
+                  className="cursor-pointer text-[0.88rem] font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline"
+                >
+                  {m.changeMailAgent(tool.name)}
+                </button>
+              ) : (
+                <span className="text-[0.85rem] text-ink-dim">{m.madeByHand}</span>
+              )}
             </li>
           )
         })}

@@ -10,6 +10,8 @@ type Props = {
   onChange: (value: string) => void
   /** Suggestions; the list shows those that contain what is typed. */
   options: readonly string[]
+  /** A dim word after an option, such as whose it is. */
+  notes?: Readonly<Record<string, string>>
   placeholder?: string
   id?: string
   className?: string
@@ -23,7 +25,7 @@ const contains = (option: string, typed: string) =>
  * An editable combobox with a list that filters as one types (WAI-ARIA APG, list autocomplete). Focus stays in the
  * field; the list follows it with aria-activedescendant. The typed text is the value, so a partial name filters too.
  */
-export function Combobox({ value, onChange, options, placeholder, id, className, ...aria }: Props) {
+export function Combobox({ value, onChange, options, notes, placeholder, id, className, ...aria }: Props) {
   const m = useMessages(uiMessages)
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
@@ -168,6 +170,7 @@ export function Combobox({ value, onChange, options, placeholder, id, className,
             )}
           >
             <span className="min-w-0 flex-1 truncate">{o}</span>
+            {notes?.[o] && <span className="ml-3 shrink-0 text-[0.85rem] text-ink-dim">{notes[o]}</span>}
           </div>
         ))}
       </div>

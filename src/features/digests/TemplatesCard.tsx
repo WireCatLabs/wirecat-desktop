@@ -11,11 +11,13 @@ import type { TemplatePreview } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
+import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { area, card, useMemoEditor } from "./editor-state"
 import { editorMessages } from "./messages-editors"
+import { TEMPLATE_EXAMPLE, TEMPLATE_VARS, templateHelpMessages } from "./messages-template-help"
 
 type Shown = { state: "asking" } | { state: "shown"; preview: TemplatePreview } | { state: "failed"; message: string }
 
@@ -58,7 +60,9 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
       <h2 id={titleId} className="text-[1.05rem] font-semibold text-ink">
         {m.title}
       </h2>
-      <p className="max-w-[70ch] text-[0.88rem] text-ink-soft">{m.hint}</p>
+      <p className="max-w-[70ch] text-[0.88rem] text-ink-soft">
+        {m.hint} <TemplateHelp />
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         <Select
           size="sm"
@@ -157,5 +161,47 @@ function Preview({ preview }: { preview: TemplatePreview }) {
         {preview.text}
       </pre>
     </section>
+  )
+}
+
+/** What a template is and what it can use, in the app: memo's own docs are its source. */
+function TemplateHelp() {
+  const m = useMessages(templateHelpMessages)
+  const [open, setOpen] = useState(false)
+  const varsId = useId()
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="cursor-pointer font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline"
+      >
+        {m.open}
+      </button>
+      <Dialog open={open} title={m.title} onClose={() => setOpen(false)} wide scroll>
+        <div className="flex max-w-[72ch] flex-col gap-3 text-[0.92rem] text-ink-soft">
+          <p>{m.what}</p>
+          <p>{m.liquid}</p>
+          <p>{m.builtIn}</p>
+          <p>{m.check}</p>
+          <h3 id={varsId} className="mt-1 font-semibold text-ink">
+            {m.varsTitle}
+          </h3>
+          <dl aria-labelledby={varsId} className="grid grid-cols-[max-content_minmax(0,1fr)] gap-x-4 gap-y-1">
+            {TEMPLATE_VARS.map((v) => (
+              <div key={v} className="contents">
+                <dt className="selectable font-mono text-[0.82rem] text-ink">{v}</dt>
+                <dd>{m.vars[v]}</dd>
+              </div>
+            ))}
+          </dl>
+          <p>{m.safety}</p>
+          <h3 className="mt-1 font-semibold text-ink">{m.exampleTitle}</h3>
+          <pre className="selectable overflow-auto rounded-[0.3rem] bg-app-3 px-3 py-2 font-mono text-[0.82rem] whitespace-pre text-ink-soft">
+            {TEMPLATE_EXAMPLE}
+          </pre>
+        </div>
+      </Dialog>
+    </>
   )
 }

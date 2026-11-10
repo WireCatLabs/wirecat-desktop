@@ -86,8 +86,19 @@ fn text(dir: &Path, stamp: &str) -> Option<String> {
     read_small(&dir.join(format!("{stamp}.md"))).filter(|t| !t.trim().is_empty())
 }
 
+/// The list shows text, not Markdown: an agent's `**Сегодня**` or `[a](b)` would show its marks.
+fn plain(line: &str) -> String {
+    static LINK: std::sync::LazyLock<regex::Regex> =
+        std::sync::LazyLock::new(|| regex::Regex::new(r"!?\[([^\]]*)\]\([^)]*\)").expect("a valid pattern"));
+    static MARKS: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"\*\*|__|~~|`|^\s*(#{1,6}\s+|>\s*|[-*+]\s+)").expect("a valid pattern")
+    });
+    MARKS.replace_all(&LINK.replace_all(line, "$1"), "").trim().to_string()
+}
+
 fn short(summary: &str) -> String {
-    let line = summary.lines().next().unwrap_or_default().trim();
+    let line = summary.lines().map(plain).find(|l| !l.is_empty()).unwrap_or_default();
+    let line = line.as_str();
     if line.chars().count() <= MAX_SUMMARY {
         line.to_string()
     } else {
@@ -224,6 +235,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_summary_in_the_list_is_plain_text_without_markdown_marks() {
+        assert_eq!(
+            short("**Сегодня**: ответить `Ивану` и [HRB-14](wirecat://v1/task/HRB-14)"),
+            "Сегодня: ответить Ивану и HRB-14"
+        );
+        assert_eq!(short("## \n- __Two__ things"), "Two things");
+        assert_eq!(short("3 * 4 stays"), "3 * 4 stays");
+    }
+
+    #[test]
     fn marks_the_running_app_beside_memo_state_and_removes_only_its_own_marker() {
         let state = std::env::temp_dir().join(format!("wirecat-digest-marker-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&state);
@@ -303,7 +324,7 @@ mod tests {
         let days = days_in(&dir);
         assert_eq!(days.len(), 1);
         assert!(!days[0].report);
-        assert_eq!(days[0].summary.as_deref(), Some("# Morning digest"));
+        assert_eq!(days[0].summary.as_deref(), Some("Morning digest"));
         let digest = show_in(&dir, &days[0].date).unwrap();
         assert!(digest.document.is_none());
         assert!(digest.text.unwrap().contains("reply to Anna"));

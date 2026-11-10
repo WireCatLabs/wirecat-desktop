@@ -422,6 +422,7 @@ function createTauri(): Platform {
     digestRun: (digest, to) => invoke("digest_run", { digest, delivery: to }),
     digestSetScheduled: (digest, on) => invoke("digest_set_scheduled", { digest, on }),
     digestRemove: (digest) => invoke("digest_remove", { digest }),
+    digestRouteChoices: () => invoke("digest_route_choices"),
     digestBackfill: (from, to, yes, digest) => invoke("digest_backfill", { from, to, yes, digest: digest ?? null }),
     digestBrief: (digest) => invoke("digest_brief", { digest: digest ?? null }),
     digestBriefSave: (body, digest) => invoke("digest_brief_save", { body, digest: digest ?? null }),

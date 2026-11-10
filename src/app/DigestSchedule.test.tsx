@@ -6,6 +6,7 @@ import type { DigestBook, DigestItem } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { useTools } from "@/shared/tools-store"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { App } from "./App"
 
@@ -78,6 +79,17 @@ async function openMorning(book?: DigestBook) {
   await screen.findByRole("region", { name: "Settings" })
   return user
 }
+
+describe("the other schedules", () => {
+  it("links mail triage to where it is set up and says a hand-made one is changed in a terminal", async () => {
+    const user = await openPage()
+    const others = await screen.findByRole("region", { name: "Other schedules" }, { timeout: 4000 })
+    expect(within(others).getByText(/Made in a terminal with memo schedule/)).toBeInTheDocument()
+    await user.click(within(others).getByRole("button", { name: "Change in Tools → Email → Mail agent" }))
+    expect(useNav.getState().active).toBe("tools")
+    expect(useTools.getState().expanded).toBe("email")
+  }, 15000)
+})
 
 describe("the table of digests", () => {
   it("shows how often each runs, where it takes from and sends to, its last run, and the other schedules", async () => {
@@ -176,6 +188,63 @@ describe("creating a digest", () => {
   }, 15000)
 })
 
+describe("editing a digest", () => {
+  it("saves the days and sources picked, and a route from the suggested bot and own chat", async () => {
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
+    const user = await openMorning(ready([morning]))
+    const settings = screen.getByRole("region", { name: "Settings" })
+    await user.click(within(settings).getByRole("radio", { name: "On days" }))
+    await user.click(within(settings).getByRole("button", { name: /^tue/i }))
+    await user.click(within(settings).getByRole("button", { name: "Mail" }))
+
+    await user.click(screen.getByRole("combobox", { name: "Account" }))
+    await user.click(await screen.findByRole("option", { name: "alerts" }))
+    await user.click(screen.getByRole("combobox", { name: "Chat id or user:id" }))
+    await user.click(await screen.findByRole("option", { name: /user:1001.*you, in personal/ }))
+    await user.click(screen.getByRole("button", { name: "Add" }))
+    expect(screen.getByText(/alerts → user:1001/)).toBeInTheDocument()
+
+    await user.click(within(settings).getByRole("button", { name: "Save" }))
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          weekdays: ["tue"],
+          sources: ["mail"],
+          routes: expect.arrayContaining(["telegram-bot:alerts/user:1001"]),
+        }),
+        false,
+      ),
+    )
+  }, 20000)
+
+  it("suggests the mailboxes for an email route, the account's own address first, and keeps a typed one", async () => {
+    const user = await openMorning(ready([morning]))
+    const settings = screen.getByRole("region", { name: "Settings" })
+    await user.click(within(settings).getByRole("combobox", { name: "Sends it to" }))
+    await user.click(await screen.findByRole("option", { name: "Mail" }))
+    await user.click(within(settings).getByRole("combobox", { name: "Account" }))
+    expect((await screen.findAllByRole("option")).map((o) => o.textContent)).toEqual(["work", "personal"])
+    await user.click(screen.getByRole("option", { name: "personal" }))
+    const to = within(settings).getByRole("combobox", { name: "Address" })
+    await user.click(to)
+    expect(screen.getAllByRole("option")[0]).toHaveTextContent(/me@example\.org/)
+    await user.type(to, "boss@example.com")
+    await user.click(within(settings).getByRole("button", { name: "Add" }))
+    expect(within(settings).getByText(/personal → boss@example\.com/)).toBeInTheDocument()
+  }, 20000)
+})
+
+describe("templates", () => {
+  it("explains what a template is, what it can use and shows an example", async () => {
+    const user = await openMorning(ready([morning]))
+    await user.click(await screen.findByRole("button", { name: "How templates work" }, { timeout: 4000 }))
+    const help = await screen.findByRole("dialog", { name: "Digest templates" })
+    expect(within(help).getByText(/written in Liquid/)).toBeInTheDocument()
+    expect(within(help).getByText("section.items")).toBeInTheDocument()
+    expect(within(help).getByText(/for section in sections/)).toBeInTheDocument()
+  }, 15000)
+})
+
 describe("getting a digest now", () => {
   it("names the price and where it goes before the run, and only then runs", async () => {
     const run = vi.spyOn(platform, "digestRun").mockResolvedValue(ready([morning]))
@@ -240,7 +309,9 @@ describe("what the page cannot do", () => {
     const user = await openPage(old)
     const table = await screen.findByRole("table", { name: "Digests" }, { timeout: 4000 })
     expect(within(table).getAllByRole("row")).toHaveLength(2)
-    expect(screen.queryByRole("button", { name: "Create digest" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Create digest" })).toBeDisabled()
+    expect(screen.getByText(/needs Memo 0\.131\.75 or newer/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
 
     await user.click(within(table).getByRole("switch", { name: "Morning digest on schedule" }))
     expect(set).toHaveBeenCalledWith("morning-digest", false)

@@ -15,7 +15,7 @@ import { DigestView } from "./DigestView"
 import { digestMessages } from "./messages"
 import { bookMessages } from "./messages-book"
 import { scheduleMessages } from "./messages-schedule"
-import { NoHarness, OtherSchedules } from "./ScheduleCard"
+import { NoHarness, OlderMemo, OtherSchedules } from "./ScheduleCard"
 import { useDigestBook } from "./schedule-store"
 
 export function DigestsPage() {
@@ -50,6 +50,7 @@ export function DigestsPage() {
     openDigest(linked)
     useDigestDay.setState({ digest: null })
   }, [linked, openDigest])
+  const oneOnly = ready !== null && !ready.named && ready.digests.length > 0
   const pick = (t: Template) => ready && setCreating(draftOf(t, takenNames(ready.digests), b))
 
   return (
@@ -75,11 +76,13 @@ export function DigestsPage() {
           >
             {reading && book ? m.reading : m.readAgain}
           </Button>
-          {ready && (ready.named || ready.digests.length === 0) && (
+          {ready && (
             <Button
               // The one purple action: while a digest is open its own Save is the purple one.
               variant={item ? "secondary" : "primary"}
-              disabled={!harness}
+              // An older memo keeps one digest; it is made from the starter, then the update allows more.
+              disabled={!harness || oneOnly}
+              title={oneOnly ? b.form.needsUpdate : undefined}
               onClick={() => pick(ready.digests.length === 0 ? "daily" : "own")}
               icon={<Plus className="size-4" aria-hidden />}
             >
@@ -104,6 +107,7 @@ export function DigestsPage() {
           ) : (
             <div className="flex flex-col gap-[1.5rem]">
               {!harness && <NoHarness />}
+              {!can.named && <OlderMemo />}
               {book.digests.length === 0 ? (
                 <Starter can={can} onPick={pick} />
               ) : (

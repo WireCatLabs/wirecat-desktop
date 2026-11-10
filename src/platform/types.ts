@@ -51,6 +51,7 @@ import type {
   OwnDiscovery,
   OwnSignal,
   OwnStatus,
+  RouteChoices,
   SearchHarder,
   SendTo,
   SyncSchedule,
@@ -619,6 +620,8 @@ export type Platform = {
   digestSetScheduled(digest: string, on: boolean): Promise<DigestBook>
   /** memo's `digest remove`: the settings and schedule go, the past days stay. */
   digestRemove(digest: string): Promise<DigestBook>
+  /** The bots, own Telegram users and mailboxes a route can name, from `tg` and `mail`; none for a missing tool. */
+  digestRouteChoices(): Promise<RouteChoices>
   /** memo's `digest backfill`: without `yes` the price only, with it the days built (never delivered). */
   digestBackfill(from: string, to: string, yes: boolean, digest?: string): Promise<Backfill>
   /** memo's `digest brief show`: the owner's own words on what the digest collects. */
