@@ -12,6 +12,7 @@ import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { RefreshButton } from "@/ui/RefreshButton"
@@ -108,13 +109,16 @@ export function MemoryPage() {
             {s.read === null ? (
               <RackSkeleton />
             ) : s.entries.length === 0 ? (
-              <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
-                <p className="font-medium text-ink">{m.emptyTitle}</p>
-                <p className="mt-1 max-w-[70ch]">{m.emptyBody}</p>
-                <Button size="sm" className="mt-3" onClick={() => useNav.getState().go("agents")}>
-                  {m.goAgents}
-                </Button>
-              </div>
+              <EmptyState
+                title={m.emptyTitle}
+                action={
+                  <Button size="sm" onClick={() => useNav.getState().go("agents")}>
+                    {m.goAgents}
+                  </Button>
+                }
+              >
+                {m.emptyBody}
+              </EmptyState>
             ) : (
               <Rack entries={shown} groups={groups} tab={s.tab} filtering={filtering} />
             )}
@@ -190,20 +194,23 @@ function Rack({
 
   if (entries.length === 0)
     return (
-      <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.2rem] text-[0.95rem] text-ink-soft">
-        <p>{filtering ? m.noMatch : m.nothing[tab]}</p>
-        {filtering ? (
-          <Button size="sm" variant="ghost" className="mt-2 -ml-2" onClick={() => setQuery("")}>
-            {m.clearFilters}
-          </Button>
-        ) : (
-          tab === "review" && (
-            <Button size="sm" variant="ghost" className="mt-2 -ml-2" onClick={() => setTab("inuse")}>
-              {m.showInUse}
+      <EmptyState
+        action={
+          filtering ? (
+            <Button size="sm" variant="ghost" className="-ml-2" onClick={() => setQuery("")}>
+              {m.clearFilters}
             </Button>
+          ) : (
+            tab === "review" && (
+              <Button size="sm" variant="ghost" className="-ml-2" onClick={() => setTab("inuse")}>
+                {m.showInUse}
+              </Button>
+            )
           )
-        )}
-      </div>
+        }
+      >
+        {filtering ? m.noMatch : m.nothing[tab]}
+      </EmptyState>
     )
 
   return <SubjectRack entries={entries} groups={groups} leaving={leaving} arriving={arriving} />
