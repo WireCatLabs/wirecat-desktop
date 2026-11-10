@@ -309,17 +309,23 @@ describe("Clients moving a CRM's cards through b24", () => {
     expect(screen.queryByRole("dialog", { name: /Bitrix24 profile/ })).toBeNull()
   })
 
-  it("switches the portal's sync scope through b24 as memo's profile, then syncs that profile", async () => {
+  it("offers no scope of everyone's, and sets a stored one back to mine through b24, then syncs", async () => {
     freshMemo("one")
+    vi.spyOn(platform, "clientsScope").mockResolvedValueOnce({
+      kind: "settable",
+      scope: "all",
+      applied: { mode: "all" },
+    })
     const set = vi.spyOn(platform, "clientsScopeSet")
     const sync = vi.spyOn(platform, "syncRun").mockResolvedValue()
     const user = userEvent.setup()
     render(<ClientsPage />)
     await card("Northstar: 40 office chairs")
-    const everyone = await screen.findByRole("radio", { name: "Everyone's" })
-    await waitFor(() => expect(everyone).toBeEnabled())
-    await user.click(everyone)
-    expect(set).toHaveBeenCalledWith(NORTHSTAR, "work", "all")
+    expect(screen.queryByRole("radio", { name: "Everyone's" })).toBeNull()
+    const mine = await screen.findByRole("button", { name: "Only mine" })
+    await waitFor(() => expect(mine).toBeEnabled())
+    await user.click(mine)
+    expect(set).toHaveBeenCalledWith(NORTHSTAR, "work", "mine")
     await waitFor(() => expect(sync).toHaveBeenCalledWith("bitrix", "work", expect.any(Function)))
   })
 })
@@ -451,7 +457,9 @@ describe("Importing from a CRM", () => {
     })
     render(<ClientsPage />)
     expect(await screen.findByText("Nothing is imported from a CRM yet.", {}, { timeout: 4000 })).toBeInTheDocument()
-    expect(screen.getByText('Only your own deals are imported while the scope is "Mine".')).toBeInTheDocument()
+    expect(
+      screen.getByText("Only the deals of the CRM users you chose are imported, and the clients on them."),
+    ).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Show leads" }))
     expect(useClients.getState().kind).toBe("lead")
   })

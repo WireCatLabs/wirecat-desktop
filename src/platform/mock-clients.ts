@@ -489,7 +489,7 @@ export function clientsMock(writer: CrmWriter = SCENARIO_WRITER): ClientsApi {
       await delay(900)
       const key = `${account.provider}:${account.account}`
       scopes.set(key, scope)
-      applied.set(key, scope === "all" ? { mode: "all" } : { mode: "mine", also: [] })
+      applied.set(key, { mode: "mine", also: [] })
     },
     async clientsMapSet(stage, base) {
       await delay(400)

@@ -182,8 +182,9 @@ pub(super) fn scope_set_with(
     scope: &str,
 ) -> Result<(), Failure> {
     catalog::validate_profile(profile).map_err(invalid)?;
-    if !matches!(scope, "mine" | "all") {
-        return Err(invalid(format!("not a sync scope: {scope}")));
+    // The owner's ruling (2026-11-10): a CRM's sync never copies everyone's; `all` is read only to offer the way back.
+    if scope != "mine" {
+        return Err(invalid(format!("not a sync scope WireCat sets: {scope}")));
     }
     let key = setting(crm, account)?;
     call(&filled(&crm.scope.set, &[("{profile}", profile), ("{setting}", &key), ("{value}", scope)])).map(drop)
@@ -340,12 +341,16 @@ mod tests {
     fn a_scope_switch_sets_the_accounts_setting_through_the_crms_cli() {
         let seen = Mutex::new(vec![]);
         let answer = json!({});
-        scope_set_with(&recording(&seen, &answer), b24(), &northstar(), "work", "all").unwrap();
-        assert_eq!(*seen.lock().unwrap(), ["work config set crm.bitrix24:northstar.example.scope all --record --json"]);
+        scope_set_with(&recording(&seen, &answer), b24(), &northstar(), "work", "mine").unwrap();
+        assert_eq!(
+            *seen.lock().unwrap(),
+            ["work config set crm.bitrix24:northstar.example.scope mine --record --json"]
+        );
         let call = recording(&seen, &answer);
+        assert!(scope_set_with(&call, b24(), &northstar(), "work", "all").is_err());
         assert!(scope_set_with(&call, b24(), &northstar(), "work", "everyone").is_err());
-        let odd = CrmAccount { provider: "bitrix24".into(), account: "x.scope all;".into() };
-        assert!(scope_set_with(&call, b24(), &odd, "work", "all").is_err());
+        let odd = CrmAccount { provider: "bitrix24".into(), account: "x.scope mine;".into() };
+        assert!(scope_set_with(&call, b24(), &odd, "work", "mine").is_err());
         assert_eq!(seen.lock().unwrap().len(), 1);
     }
 
