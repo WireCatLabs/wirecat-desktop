@@ -12,7 +12,7 @@
       "text": "Lena prefers calls before noon",
       "kind": "fact",
       "state": "accepted",
-      "subject": "marco-sample"
+      "subject": "lena-example"
     },
     {
       "id": "fact-03",

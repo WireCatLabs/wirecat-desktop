@@ -4,7 +4,9 @@ import { dirname, join } from "node:path"
 
 export class SeedError extends Error {}
 
-/** Runs a tool with --json and returns its parsed answer; an agent's run waits for the owner, as a real agent's does. */
+/**
+ * Runs a tool with --json and returns its parsed answer; an agent's run waits for the owner, as a real agent's does.
+ */
 export function runTool(bin, args, { agent = false, path } = {}) {
   const env = { ...process.env }
   if (agent) env.AI_AGENT = "sandbox-seed"
@@ -17,7 +19,12 @@ export function runTool(bin, args, { agent = false, path } = {}) {
     out = e.stdout || ""
     if (!out.trim()) throw new SeedError(`${bin} ${args.join(" ")}: ${(e.stderr || e.message).trim()}`)
   }
-  const answer = JSON.parse(out)
+  let answer
+  try {
+    answer = JSON.parse(out)
+  } catch {
+    throw new SeedError(`${bin} ${args.join(" ")}: printed no JSON answer: ${out.trim().slice(0, 200)}`)
+  }
   if (answer.error) throw new SeedError(`${bin} ${args.join(" ")}: ${answer.error.message}`)
   return answer
 }
@@ -43,7 +50,7 @@ export function memoAll(args, limit = 500) {
   }
 }
 
-/** Lists that take only AND-joined terms: one list per status, merged. */
+/** For lists whose query takes no OR (deals, facts, memories, an account's tasks): one list per value, merged. */
 export const memoEach = (args, field, values) => values.flatMap((v) => memoAll([...args, "--", `${field}:${v}`]))
 
 const splitQuery = (args) => {

@@ -63,5 +63,8 @@ export default function mailStep(ctx) {
   const file = join(ctx.home, ".cache", "sandbox-seed", "mail.mbox")
   writeIfChanged(file, mboxOf(ctx, data, known))
   const r = mail([data.profile, "messages", "import", file]).item
+  // An import joins the mailbox owner to your own person only when their address is already stored, so the first load
+  // repeats it (reading nothing new) to end where a second load would.
+  if (r.saved) mail([data.profile, "messages", "import", file])
   return `${r.saved} saved, ${r.already_stored} already stored (profile ${data.profile})`
 }

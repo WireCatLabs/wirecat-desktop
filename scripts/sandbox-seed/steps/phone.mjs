@@ -3,7 +3,7 @@ import { importEnvelope } from "./contacts.mjs"
 
 export const PHONE = { provider: "phone", account: "sandbox-phone" }
 
-/** SMS are the one kind of chat message a file may bring in: the store takes them only under an import-only provider. */
+/** SMS are the one chat message a file may bring in: the store takes them only under an import-only provider. */
 export const smsRef = (m) => `msg:${PHONE.provider}/${PHONE.account}/${encodeURIComponent(m.phone)}/${m.id}`
 
 export default function phone(ctx) {

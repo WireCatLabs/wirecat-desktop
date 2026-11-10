@@ -17,11 +17,30 @@ import notes from "./steps/notes.mjs"
 import phone from "./steps/phone.mjs"
 import tasks from "./steps/tasks.mjs"
 
+// contacts fills ctx.refs for every step after it. Chat messages from tg, max and wa, once a command loads them, go in
+// a step after phone: tasks and memory cite messages as evidence.
 const STEPS = { notes, contacts, phone, mail, crm, tasks, memory, matches, digests }
 
+/** Every reason this process could reach the owner's own notes, store, mail settings or keyring. */
+function outsideSandbox(env) {
+  const { WIRECAT_SANDBOX: name, HOME: home } = env
+  if (!name) return ["WIRECAT_SANDBOX is not set"]
+  const problems = []
+  const inHome = (key) => env[key]?.startsWith(`${home}/`)
+  if (!home?.endsWith(`/wirecat-sandbox/${name}/home`)) problems.push(`HOME is not …/wirecat-sandbox/${name}/home`)
+  if (!inHome("MESSAGING_STORE")) problems.push("MESSAGING_STORE is not inside HOME")
+  for (const key of ["XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "XDG_STATE_HOME"]) {
+    if (env[key] && !inHome(key)) problems.push(`${key} is not inside HOME`)
+  }
+  if (env.DBUS_SESSION_BUS_ADDRESS !== "disabled:") problems.push("DBUS_SESSION_BUS_ADDRESS is not disabled:")
+  return problems
+}
+
 const [anchorFile] = process.argv.slice(2)
-if (!anchorFile || !process.env.WIRECAT_SANDBOX) {
-  console.error("sandbox-seed: run through bin/sandbox <name> --seed demo, never against your own store")
+const problems = outsideSandbox(process.env)
+if (!anchorFile || problems.length) {
+  const why = problems.map((p) => `\n  ${p}`).join("")
+  console.error(`sandbox-seed: run through bin/sandbox <name> --seed demo, never against your own store${why}`)
   process.exit(2)
 }
 

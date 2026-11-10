@@ -34,7 +34,10 @@ export function importEnvelope(ctx, source, records) {
   const receipt = memo(["records", "import", file, "--account", `${source.provider}:${source.account}`]).item
   if (receipt.errors.length || receipt.refused) {
     const first = receipt.errors[0]
-    const hint = first?.reason === "record.stale-revision" ? " (raise version in data/seed.json after an edit)" : ""
+    const hint =
+      first?.code === "record.stale-revision"
+        ? " (after an edit, raise version in data/seed.json; a sandbox at a newer version needs --reset)"
+        : ""
     throw new SeedError(`records import ${source.provider}:${source.account}: ${first?.message ?? "refused"}${hint}`)
   }
   return receipt

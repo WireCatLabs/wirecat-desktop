@@ -88,10 +88,29 @@ fi
 mkdir -p "$home" "$dir/bin"
 chmod 700 "$dir"
 
+store_has_mail() {
+  local db="$home/.local/share/WireCat/wirecat.db"
+  [ -f "$db" ] || return 1
+  python3 -I - "$db" <<'PY'
+import pathlib, sqlite3, sys
+db = sqlite3.connect(pathlib.Path(sys.argv[1]).resolve().as_uri() + "?mode=ro", uri=True)
+try:
+    found = db.execute("select exists(select 1 from messages) or exists(select 1 from emails)").fetchone()[0]
+except sqlite3.Error:
+    found = 0
+sys.exit(0 if found else 1)
+PY
+}
+
 had=$(cat "$dir/seed" 2>/dev/null || true)
 # demo only adds to tools, so a tools sandbox may take it; any other change of preset starts over.
 if [ -n "$seed" ] && [ -n "$had" ] && [ "$seed" != "$had" ] && ! { [ "$had" = tools ] && [ "$seed" = demo ]; }; then
   die "'$name' was seeded with '$had'; add --reset to seed it with '$seed'"
+fi
+# The seed set adds made-up people and deals: in a copy of a real store or one with synced mail they would mix with
+# real ones.
+if [ "$seed" = demo ] && [ "$had" = tools ] && { [ -f "$dir/from-store" ] || store_has_mail; }; then
+  die "'$name' holds a copied store or synced messages; add --reset to load the seed set into a store of its own"
 fi
 # A demo seeded before the seed set made its people by name only: loading the set would add them a second time.
 old_demo=
@@ -248,13 +267,14 @@ seed_profiles() {
 }
 
 seed_version() {
-  python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$root/scripts/sandbox-seed/data/seed.json"
+  python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' \
+    "$root/scripts/sandbox-seed/data/seed.json"
 }
 
 # The seed set in scripts/sandbox-seed, loaded through the tools' own commands. Every step looks up what is there
 # first, so loading it again adds nothing and a newer version updates what changed.
 seed_demo() {
-  [ -n "$(node_dir)" ] || seed_tools
+  [ -x "$(node_dir)/bin/memo" ] || seed_tools
   in_sandbox node "$root/scripts/sandbox-seed/load.mjs" "$dir/seed-anchor"
   seed_version > "$dir/seed-version"
   echo "Seed set version $(cat "$dir/seed-version") loaded"
@@ -277,6 +297,7 @@ dst.close()
 src.close()
 PY
   chmod 600 "$dst"
+  touch "$dir/from-store"
   echo "Copied the store from $src (a copy: the sandbox never writes the original)"
 }
 
@@ -289,10 +310,15 @@ if [ -n "$seed" ] && [ -z "$had" ]; then
   echo "$seed" > "$dir/seed"
 elif [ -z "$had" ]; then
   echo fresh > "$dir/seed"
-elif [ -z "$old_demo" ] && { [ "$seed" = demo ] || { [ "$had" = demo ] && [ -f "$dir/seed-version" ] &&
-  [ "$(cat "$dir/seed-version")" != "$(seed_version)" ]; }; }; then
-  seed_demo
-  echo demo > "$dir/seed"
+elif [ -z "$old_demo" ] && { [ "$seed" = demo ] || [ "$had" = demo ]; }; then
+  stored=$(cat "$dir/seed-version" 2>/dev/null || echo 0)
+  # Sandboxes are shared by every worktree: an older branch would be refused by records it wrote at a newer revision.
+  if [ "$stored" -gt "$(seed_version)" ]; then
+    echo "sandbox: '$name' holds seed set version $stored, newer than this checkout's $(seed_version); it keeps it" >&2
+  elif [ "$seed" = demo ] || [ "$stored" -lt "$(seed_version)" ]; then
+    seed_demo
+    echo demo > "$dir/seed"
+  fi
 fi
 if [ -n "$from_store" ]; then copy_store "$from_store"; fi
 

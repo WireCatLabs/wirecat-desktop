@@ -8,6 +8,7 @@
   "ignorePaths": ["CHANGELOG.md", "docs/journal/**", "src-tauri/target/**", "other/**"],
   "words": [
     "mbox",
+    "DBUS",
     "Asturio",
     "brakeman",
     "bundlephobia",
