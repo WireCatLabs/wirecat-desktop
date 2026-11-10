@@ -56,7 +56,7 @@ address and number is made up: addresses are on `example.org` and `.test`, phone
 | Clients | pipelines Sales (40 deals, 22 in Call) and Inbound (15 leads), your own, so the board moves them; their stages mapped onto the base stages | `memo pipelines`, `memo deals`, `memo leads`, `memo stages set` |
 | Digests | a paused `morning-digest` and its last 5 days | `memo digest add`; the days are report files (below) |
 | Search | Email: 97 messages in 60 threads on profile `personal`, two pages for `invoice`. memo: 57 notes in `~/Notes` | `mail personal messages import` of a Takeout mbox; `memo folders add`, `memo sync --only notes` |
-| Analytics | Email by day, tasks by state and source | the data above |
+| Analytics | Emails by day, tasks closed | the data above |
 
 Loading it again adds nothing. `bin/sandbox <name> --seed demo` on a demo sandbox loads the set again; a start
 without `--seed` loads it when `data/seed.json` holds a newer `version` than the sandbox has. To change the set, edit
