@@ -2,7 +2,7 @@
 //! `relationship:<id>` (memo's review id), a link that holds is `link:<id>`; memo changes only a link, so a proposal
 //! whose role the owner changes is confirmed first and the link it made is changed.
 
-use crate::memory::{Call, REJECTED_HERE, decision, text, with_memo};
+use crate::memory::{Call, REJECTED_HERE, Role, decision, role, text, with_memo};
 use crate::skills::body;
 use serde::Serialize;
 use serde_json::Value;
@@ -98,6 +98,32 @@ pub fn remove(reference: &str) -> Result<(), String> {
     with_memo(|call| remove_with(call, reference))
 }
 
+const ROLE_LISTS: [&str; 5] = ["organization", "project", "deal", "contract", "related"];
+const MAX_ROLE_ID: usize = 40;
+
+/// The owner's own role in one of memo's lists: an id memo accepts (`board-member`) and the words it reads as.
+fn add_role_with(call: &Call, list: &str, id: &str, label: &str) -> Result<Vec<Role>, String> {
+    if !ROLE_LISTS.contains(&list) {
+        return Err(format!("not a role list: {list}"));
+    }
+    let id_ok = id.len() <= MAX_ROLE_ID
+        && id.starts_with(|c: char| c.is_ascii_lowercase() || c.is_ascii_digit())
+        && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+    if !id_ok {
+        return Err(format!("A role id is lowercase letters, digits and -, at most {MAX_ROLE_ID}."));
+    }
+    let label = role_word(Some(label))?;
+    if label.is_empty() {
+        return Err("A role needs a name.".into());
+    }
+    let v = call(&decision(&["relationships", "roles", "add", list, id, "--label", &label]))?;
+    Ok(v["items"].as_array().map(|a| a.iter().filter_map(role).collect()).unwrap_or_default())
+}
+
+pub fn add_role(list: &str, id: &str, label: &str) -> Result<Vec<Role>, String> {
+    with_memo(|call| add_role_with(call, list, id, label))
+}
+
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Decided {
@@ -161,6 +187,30 @@ pub fn decide(references: &[String], approve: bool) -> Result<Vec<Decided>, Stri
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn adds_an_own_role_from_the_app_and_refuses_a_bad_list_or_id() {
+        let seen = std::sync::Mutex::new(Vec::new());
+        let call = |a: &[String]| {
+            seen.lock().unwrap().push(a.to_vec());
+            Ok(serde_json::json!({"items":[
+                {"list":"related","id":"friend","label":null,"labels":{"en":"Friend","ru":"Друг"},"built_in":true},
+                {"list":"related","id":"board-member","label":"Board member","labels":null,"built_in":false}
+            ]}))
+        };
+        let roles = add_role_with(&call, "related", "board-member", " Board member ").unwrap();
+        assert_eq!(roles[1].label.as_deref(), Some("Board member"));
+        assert_eq!(roles[0].labels.as_ref().and_then(|l| l.get("ru")).map(String::as_str), Some("Друг"));
+        let args = seen.lock().unwrap()[0].clone();
+        assert_eq!(args[..7], ["relationships", "roles", "add", "related", "board-member", "--label", "Board member"]);
+        assert!(args.contains(&"--from-app".to_string()));
+        assert!(add_role_with(&call, "bogus", "x", "X").is_err());
+        assert!(add_role_with(&call, "related", "Board Member", "X").is_err());
+        assert!(add_role_with(&call, "related", "-x", "X").is_err());
+        assert!(add_role_with(&call, "related", "x", "  ").is_err());
+        assert_eq!(seen.lock().unwrap().len(), 1);
+    }
+
     use super::*;
     use serde_json::json;
     use std::sync::Mutex;

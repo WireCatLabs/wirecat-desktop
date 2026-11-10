@@ -1,11 +1,14 @@
-import { LoaderCircle, Pencil, Trash2 } from "lucide-react"
+import { LoaderCircle, Pencil, Plus, Trash2 } from "lucide-react"
 import { useId, useState } from "react"
 import { can, stateOf, toneOf } from "@/domain/memory"
-import { relationParts, roleListFor } from "@/domain/relationships"
-import { useMessages } from "@/i18n"
+import { relationParts, roleIdOf, roleLabel, roleListFor } from "@/domain/relationships"
+import { formatDate, useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
+import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { Pill } from "@/ui/Pill"
 import { Select } from "@/ui/Select"
 import { relationSentence, textOf } from "./labels"
@@ -125,8 +128,9 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
   const busy = useMemory((s) => s.busy[entry.ref])
   const failed = useMemory((s) => s.failed[entry.ref])
   const { editRelation, removeRelation } = useMemory.getState()
+  const lang = useLang()
   const parts = relationParts(entry)
-  const list = roleListFor(parts)
+  const list = entry.roleList ?? roleListFor(parts)
   const listed = list ? roles.filter((r) => r.list === list) : []
   const [role, setRole] = useState(entry.role ?? "")
   const label = useId()
@@ -134,8 +138,10 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
   const proposal = entry.status === "proposed"
   const options = [
     { value: NONE, label: x.noRoleChoice },
-    ...listed.map((r) => ({ value: r.id, label: r.label ?? m.roles[r.id] ?? r.id })),
-    ...(role && !listed.some((r) => r.id === role) ? [{ value: role, label: m.roles[role] ?? role }] : []),
+    ...listed.map((r) => ({ value: r.id, label: roleLabel(r.id, roles, m.roles, lang) })),
+    ...(role && !listed.some((r) => r.id === role)
+      ? [{ value: role, label: roleLabel(role, roles, m.roles, lang) }]
+      : []),
   ]
   const save = () => void editRelation(entry.ref, role.trim() || null).then((done) => done && onDone())
   return (
@@ -174,6 +180,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
             />
           )}
         </div>
+        {list && <AddRole list={list} onAdded={setRole} />}
       </div>
       {!proposal && (
         <p id={hint} className="text-[0.9rem] text-ink-dim">
@@ -218,5 +225,109 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
         )}
       </div>
     </form>
+  )
+}
+
+/** The owner's own role, added to memo's list for this kind of link and chosen at once. */
+function AddRole({ list, onAdded }: { list: string; onAdded: (id: string) => void }) {
+  const x = useMessages(explainedMessages)
+  const addRole = useMemory((s) => s.addRole)
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [busy, setBusy] = useState(false)
+  const field = useId()
+  const need = useFieldError(field)
+  if (!open)
+    return (
+      <Button size="sm" variant="ghost" icon={<Plus className="size-4" aria-hidden />} onClick={() => setOpen(true)}>
+        {x.addRole}
+      </Button>
+    )
+  const add = async () => {
+    const label = name.trim()
+    if (!label) return need.fail(x.newRoleMissing)
+    setBusy(true)
+    const id = roleIdOf(label)
+    const refused = await addRole(list, id, label)
+    setBusy(false)
+    if (refused) return need.fail(x.addRoleFailed(refused))
+    onAdded(id)
+    setName("")
+    setOpen(false)
+  }
+  return (
+    <div className="flex flex-col gap-[0.3rem]">
+      <label htmlFor={field} className="text-[0.9rem] text-ink-dim">
+        {x.newRole}
+      </label>
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          id={field}
+          // biome-ignore lint/a11y/noAutofocus: the owner just asked for this field
+          autoFocus
+          maxLength={80}
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value)
+            need.clear()
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault()
+              void add()
+            }
+          }}
+          {...need.field}
+          className={cx(
+            "inner-field h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand",
+            invalidBorder,
+          )}
+        />
+        <Button
+          size="sm"
+          disabled={busy}
+          icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+          onClick={() => void add()}
+        >
+          {x.addRole}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
+          {x.cancel}
+        </Button>
+      </div>
+      {need.hint}
+    </div>
+  )
+}
+
+/** What the document at a link's end is and where it lives, so the owner can judge the link before deciding. */
+export function DocumentFacts({ entry }: { entry: MemoryEntry }) {
+  const x = useMessages(explainedMessages)
+  const lang = useLang()
+  const doc = entry.document
+  if (!doc) return null
+  const folder = doc.path?.includes("/") ? doc.path.slice(0, doc.path.lastIndexOf("/")) : null
+  return (
+    <section className="flex flex-col gap-[0.4rem]">
+      <h3 className="text-[0.9rem] font-medium text-ink-dim">{x.document}</h3>
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="selectable font-medium">{doc.title ?? doc.ref}</span>
+        {doc.url && <ExtLink href={doc.url}>{x.documentOpen}</ExtLink>}
+      </div>
+      <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-[0.2rem] text-[0.92rem]">
+        {folder && (
+          <>
+            <dt className="text-ink-dim">{x.documentFolder}</dt>
+            <dd className="selectable break-all font-mono text-[0.88rem] text-ink-soft">{folder}</dd>
+          </>
+        )}
+        {doc.modifiedAt && (
+          <>
+            <dt className="text-ink-dim">{x.documentChanged}</dt>
+            <dd className="text-ink-soft">{formatDate(doc.modifiedAt, { dateStyle: "medium" }, lang)}</dd>
+          </>
+        )}
+      </dl>
+    </section>
   )
 }

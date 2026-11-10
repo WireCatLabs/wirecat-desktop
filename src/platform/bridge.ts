@@ -42,6 +42,7 @@ import {
   MemorySourceSchema,
   RelationDecidedSchema,
   RelationEditedSchema,
+  RoleSchema,
   SourceContextSchema,
   SourceReviewSchema,
 } from "./memory-schemas"
@@ -245,6 +246,7 @@ function createTauri(): Platform {
       call(MemoryEntrySchema, "memory_correct", { reference: ref, text, change: change ?? null }),
     memoryRelationEdit: (ref, role) => call(RelationEditedSchema, "memory_relation_edit", { reference: ref, role }),
     memoryRelationRemove: (ref) => invoke("memory_relation_remove", { reference: ref }),
+    memoryRoleAdd: (list, id, label) => call(v.array(RoleSchema), "memory_role_add", { list, id, label }),
     memoryRelationsDecide: (refs, approve) =>
       call(v.array(RelationDecidedSchema), "memory_relations_decide", { references: refs, approve }),
     memoryFilePreview: () => call(v.nullable(FilePreviewSchema), "memory_file_preview"),

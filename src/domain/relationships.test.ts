@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { relationParts, roleLabel, roleListFor, standingOf, standingTone } from "./relationships"
+import { relationParts, roleIdOf, roleLabel, roleListFor, standingOf, standingTone } from "./relationships"
 
 describe("relationships", () => {
   it("knows memo's four standings and nothing else", () => {
@@ -43,5 +43,13 @@ describe("relationParts", () => {
     const member = relationParts(link("person:7", "project:1"))
     expect([member.holder.name, member.other.name, roleListFor(member)]).toEqual(["Kai", "Harbour", "project"])
     expect(roleListFor(drive)).toBeNull()
+  })
+})
+
+describe("roleIdOf", () => {
+  it("makes memo's id from the owner's name for a role", () => {
+    expect(roleIdOf("Board member")).toBe("board-member")
+    expect(roleIdOf("  Café — owner! ")).toBe("cafe-owner")
+    expect(roleIdOf("Совет директоров", 1_000_000)).toBe("own-lfls")
   })
 })

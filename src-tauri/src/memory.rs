@@ -8,6 +8,7 @@ use crate::skills::{body, failure, too_old};
 use crate::{redact, run, tools};
 use serde::Serialize;
 use serde_json::Value;
+use std::collections::BTreeMap;
 use std::path::Path;
 use std::time::Duration;
 
@@ -140,6 +141,34 @@ pub struct Entry {
     pub standing: Option<String>,
     /// The open review memo raised because a source changed, went or was contradicted; status itself never changes.
     pub source_review: Option<SourceReviewMarker>,
+    /// The role list memo offers a relationship's role from (`organization`, `related`…); memo before 0.131.80 none.
+    pub role_list: Option<String>,
+    /// The document at one end of a relationship: what it is and where, so the owner can judge the link.
+    pub document: Option<Document>,
+}
+
+/// A document a relationship names, from memo's `from_document`/`to_document`.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Document {
+    #[serde(rename = "ref")]
+    pub reference: String,
+    pub title: Option<String>,
+    /// Its folders and name, `Clients/Acme/contract.pdf`; none for a file memo has no folder record of.
+    pub path: Option<String>,
+    /// Only a web address: anything else is dropped rather than opened.
+    pub url: Option<String>,
+    pub modified_at: Option<String>,
+}
+
+fn document(v: &Value) -> Option<Document> {
+    Some(Document {
+        reference: text(v, "ref")?,
+        title: text(v, "title"),
+        path: text(v, "path"),
+        url: text(v, "url").filter(|u| u.starts_with("https://") || u.starts_with("http://")),
+        modified_at: text(v, "modified_at"),
+    })
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -274,6 +303,8 @@ fn record(v: &Value, record: &'static str) -> Option<Entry> {
         role: None,
         standing: None,
         source_review: marker(&v["source_review"]),
+        role_list: None,
+        document: None,
     })
 }
 
@@ -327,6 +358,8 @@ pub(crate) fn action(v: &Value) -> Option<Entry> {
         findings: batch.then(|| findings_of(v)),
         task: text_field(&v["result"], "task").map(|id| format!("task:{id}")),
         source_review: None,
+        role_list: None,
+        document: None,
         kind,
     })
 }
@@ -405,6 +438,8 @@ fn relationship(v: &Value, pending: bool) -> Option<Entry> {
         role: text(v, "role"),
         standing: Some(standing),
         source_review: None,
+        role_list: text(v, "role_list"),
+        document: document(&v["from_document"]).or_else(|| document(&v["to_document"])),
     })
 }
 
@@ -415,14 +450,21 @@ pub struct Role {
     pub list: String,
     pub id: String,
     pub label: Option<String>,
+    /// A built-in role's name in each language memo has (`en`, `ru`, `es`); the owner's own have only `label`.
+    pub labels: Option<BTreeMap<String, String>>,
     pub built_in: bool,
 }
 
-fn role(v: &Value) -> Option<Role> {
+pub(crate) fn role(v: &Value) -> Option<Role> {
+    let labels: BTreeMap<String, String> = v["labels"]
+        .as_object()
+        .map(|o| o.iter().filter_map(|(k, l)| Some((k.clone(), l.as_str()?.to_string()))).collect())
+        .unwrap_or_default();
     Some(Role {
         list: text(v, "list")?,
         id: text(v, "id")?,
         label: text(v, "label"),
+        labels: (!labels.is_empty()).then_some(labels),
         built_in: v["built_in"].as_bool().unwrap_or(true),
     })
 }
@@ -1338,6 +1380,25 @@ mod tests {
     }
 
     #[test]
+    fn reads_a_relationship_role_list_and_the_document_at_its_end() {
+        let mut row = held_relationship("confirmed");
+        row["role_list"] = json!("related");
+        row["from"] = json!("document:4");
+        row["from_document"] = json!({"ref":"document:4","title":"contract.pdf","path":"Clients/Acme/contract.pdf",
+            "url":"https://drive.google.com/file/d/4","modified_at":"2026-11-09T10:00:00Z","mime":"application/pdf"});
+        let entry = relationship(&row, false).unwrap();
+        assert_eq!(entry.role_list.as_deref(), Some("related"));
+        let doc = entry.document.unwrap();
+        assert_eq!(
+            (doc.title.as_deref(), doc.path.as_deref()),
+            (Some("contract.pdf"), Some("Clients/Acme/contract.pdf"))
+        );
+        assert_eq!(doc.url.as_deref(), Some("https://drive.google.com/file/d/4"));
+        row["from_document"]["url"] = json!("file:///etc/passwd");
+        assert_eq!(relationship(&row, false).unwrap().document.unwrap().url, None);
+    }
+
+    #[test]
     fn reads_relationships_with_their_ends_role_and_standing_beside_the_records() {
         let fake = Fake::new(|a| match (a[0].as_str(), a.get(2).map(String::as_str)) {
             ("relationships", Some("confirmed:false")) => Ok(json!({"items":[pending_relationship()]})),
@@ -1380,6 +1441,7 @@ mod tests {
                 list: "organization".into(),
                 id: "board-member".into(),
                 label: Some("Board member".into()),
+                labels: None,
                 built_in: false
             }]
         );
@@ -1979,7 +2041,13 @@ mod tests {
             activity_error: None,
             links_error: None,
             revoke: true,
-            roles: vec![Role { list: "organization".into(), id: "employee".into(), label: None, built_in: true }],
+            roles: vec![Role {
+                list: "organization".into(),
+                id: "employee".into(),
+                label: None,
+                labels: None,
+                built_in: true,
+            }],
         };
         let v = serde_json::to_value(read).unwrap();
         assert_eq!(v["roles"][0]["builtIn"], true);

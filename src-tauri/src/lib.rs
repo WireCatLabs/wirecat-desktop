@@ -346,6 +346,7 @@ pub fn run() {
             commands::memory::memory_correct,
             commands::memory::memory_relation_edit,
             commands::memory::memory_relation_remove,
+            commands::memory::memory_role_add,
             commands::memory::memory_relations_decide,
             commands::memory::memory_file_preview,
             commands::memory::memory_link_preview,

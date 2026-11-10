@@ -1,4 +1,12 @@
-import type { AgentCall, MemoryEntry, MemoryRead, MemorySource, SourceContext, SourceReview } from "./memory-schemas"
+import type {
+  AgentCall,
+  MemoryEntry,
+  MemoryRead,
+  MemorySource,
+  Role,
+  SourceContext,
+  SourceReview,
+} from "./memory-schemas"
 import { delay } from "./mock-delay"
 import { memoryAddMock } from "./mock-memory-add"
 import { TASK_IDS } from "./mock-tasks"
@@ -437,6 +445,10 @@ function relationships(): MemoryEntry[] {
     ),
     relation("link:10", "reports-to", ["person:8", "Ana Ruiz"], KAI, null, "reported", ago(4 * DAY)),
     relation("link:11", "customer-of", NORTHSTAR, ["organization:1", "Your company"], null, "reported", ago(4 * DAY)),
+    {
+      ...relation("link:13", "related-to", KAI, ["person:9", "Lena Ortiz"], "colleague", "confirmed", ago(6 * DAY)),
+      roleList: "related",
+    },
     relation(
       "link:12",
       "member-of",
@@ -450,6 +462,13 @@ function relationships(): MemoryEntry[] {
       ...relation(ref, "related-to", SALES_DOC, person, "owner", "proposed", ago(DAY + i * HOUR)),
       author: agent("drive"),
       reason: "Google Drive lists this person as the document's owner",
+      document: {
+        ref: SALES_DOC[0],
+        title: "Sales motivation model.xlsx",
+        path: "Sales/2026/Sales motivation model.xlsx",
+        url: "https://drive.google.com/file/d/sample-31",
+        modifiedAt: ago(3 * DAY),
+      },
     })),
   ]
 }
@@ -462,10 +481,30 @@ const DRIVE_OWNERS: [string, [string, string]][] = [
   ["relationship:23", ["person:40823", "Harry null #40823"]],
 ]
 
-const ROLES = [
-  { list: "organization", id: "employee", label: null, builtIn: true },
-  { list: "organization", id: "board-member", label: "Board member", builtIn: false },
-  { list: "deal", id: "decision-maker", label: null, builtIn: true },
+const ROLES: Role[] = [
+  {
+    list: "organization",
+    id: "employee",
+    label: null,
+    labels: { en: "Employee", ru: "Сотрудник", es: "Empleado" },
+    builtIn: true,
+  },
+  { list: "organization", id: "board-member", label: "Board member", labels: null, builtIn: false },
+  { list: "deal", id: "decision-maker", label: null, labels: null, builtIn: true },
+  {
+    list: "related",
+    id: "colleague",
+    label: null,
+    labels: { en: "Colleague", ru: "Коллега", es: "Colega" },
+    builtIn: true,
+  },
+  {
+    list: "related",
+    id: "adviser",
+    label: null,
+    labels: { en: "Adviser", ru: "Советник", es: "Asesor" },
+    builtIn: true,
+  },
 ]
 
 const PEOPLE = ["Kai Moreno", "Ana Ruiz", "Project Harbour", "Lena Ortiz", "Tom Becker"]
@@ -710,6 +749,7 @@ export function memoryMock(): Pick<
   | "memoryCorrect"
   | "memoryRelationEdit"
   | "memoryRelationRemove"
+  | "memoryRoleAdd"
   | "memoryRelationsDecide"
   | "memoryForget"
   | "memorySourceContext"
@@ -724,6 +764,7 @@ export function memoryMock(): Pick<
   let entries: MemoryEntry[] =
     scenario === "none" ? [] : scenario === "many" ? many() : [...seed(), ...relationships()].map(marked)
   let next = 50
+  let roles = ROLES
 
   const find = (ref: string) => {
     const e = entries.find((x) => x.ref === ref)
@@ -800,7 +841,7 @@ export function memoryMock(): Pick<
         activityError: null,
         linksError: null,
         revoke: params.get("memory-revoke") !== "old",
-        roles: ROLES,
+        roles,
       }
     },
     async memorySources(ref) {
@@ -854,6 +895,12 @@ export function memoryMock(): Pick<
         x.ref === ref ? { ...old, ref: link, role, status: "confirmed", standing: "confirmed", author: null } : x,
       )
       return { ref: link, role, error: null }
+    },
+    async memoryRoleAdd(list, id, label) {
+      await write()
+      if (roles.some((r) => r.list === list && r.id === id)) throw new Error(`the ${list} roles hold ${id} already`)
+      roles = [...roles, { list, id, label, labels: null, builtIn: false }]
+      return roles.filter((r) => r.list === list)
     },
     async memoryRelationRemove(ref) {
       await write()

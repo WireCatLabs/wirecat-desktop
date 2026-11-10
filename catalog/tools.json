@@ -1816,7 +1816,7 @@
         "config": null
       },
       "memory": {
-        "minVersion": "0.131.77",
+        "minVersion": "0.131.80",
         "revokeMinVersion": "0.131.28"
       },
       "tasks": null,

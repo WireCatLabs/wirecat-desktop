@@ -83,6 +83,7 @@ import type {
   RelationDecided,
   RelationEdited,
   ReviewAnswer,
+  Role,
   SourceContext,
   SourceReview,
 } from "./memory-schemas"
@@ -339,6 +340,8 @@ export type Platform = {
   memoryCorrect(ref: string, text: string, change?: MemoryChange): Promise<MemoryEntry>
   /** Sets a relationship's role (`null` clears it); a proposal is approved first. */
   memoryRelationEdit(ref: string, role: string | null): Promise<RelationEdited>
+  /** The owner's own role in one of memo's lists; answers with that list as memo now has it. */
+  memoryRoleAdd(list: string, id: string, label: string): Promise<Role[]>
   /** Removes a link that holds; a proposal is rejected. */
   memoryRelationRemove(ref: string): Promise<void>
   /** Approves or rejects many relationship proposals in one memo call; each answer on its own. */

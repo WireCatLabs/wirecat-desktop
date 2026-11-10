@@ -52,6 +52,15 @@ pub async fn memory_relation_edit(
 }
 
 #[tauri::command]
+pub async fn memory_role_add(list: String, id: String, label: String) -> Result<Vec<memory::Role>, AppError> {
+    crate::log::command(
+        "memory_role_add",
+        async move { attempt(move || memory_edit::add_role(&list, &id, &label)).await },
+    )
+    .await
+}
+
+#[tauri::command]
 pub async fn memory_relation_remove(reference: String) -> Result<(), AppError> {
     crate::log::command("memory_relation_remove", async move { attempt(move || memory_edit::remove(&reference)).await })
         .await
