@@ -3,6 +3,7 @@ import { useEffect, useState } from "react"
 import { ToolNeeded } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { DigestSpec } from "@/platform/bindings"
+import { BetaBadge } from "@/shared/BetaBadge"
 import { useDigestDay } from "@/shared/digest-day"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
@@ -57,7 +58,10 @@ export function DigestsPage() {
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.page}</h1>
+          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">
+            {m.page}
+            <BetaBadge section="digests" className="ml-[0.7rem] align-middle" />
+          </h1>
           <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
