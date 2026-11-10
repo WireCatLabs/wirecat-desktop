@@ -43,6 +43,8 @@ it("shows all first, every saved group, and the account that is in two of them",
   expect(column(/^work/).getByText("Also in personal")).toBeInTheDocument()
   expect(column(/^All/).getByText("email:me@work.example")).toBeInTheDocument()
   expect(column(/^All/).queryByText(/^Also in/)).toBeNull()
+  expect(column(/^work/).getByText("Telegram")).toHaveClass("sr-only")
+  expect(column(/^work/).queryByText("tg work")).toBeNull()
 })
 
 it("moves an account from the keyboard, and puts it back with Memo's reason when Memo refuses", async () => {
@@ -54,8 +56,8 @@ it("moves an account from the keyboard, and puts it back with Memo's reason when
   await userEvent.click(screen.getByRole("option", { name: "Move to work" }))
   expect(move).toHaveBeenCalledWith("telegram:1", "personal", "work")
   expect(await screen.findByText(/Memo did not change the groups: email names more/)).toBeInTheDocument()
-  expect(column(/^personal/).getByText("tg personal")).toBeInTheDocument()
-  expect(column(/^work/).queryByText("tg personal")).toBeNull()
+  expect(column(/^personal/).getByRole("combobox", { name: "Groups for tg personal" })).toBeInTheDocument()
+  expect(column(/^work/).queryByRole("combobox", { name: "Groups for tg personal" })).toBeNull()
 })
 
 it("adds from all, never takes from it, and makes a new group with its first account", async () => {

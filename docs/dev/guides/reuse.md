@@ -11,7 +11,8 @@ Search first. Most things this app needs exist once already.
 | Class names joined | [ui/cx.ts](../../../src/ui/cx.ts) | same |
 | Formatting numbers, sizes, dates | [domain/format.ts](../../../src/domain/format.ts) | same |
 | Tool list, ids, owners, profiles | [domain/catalog.ts](../../../src/domain/catalog.ts) | same |
-| Tool icon | [features/tools/ToolIcon.tsx](../../../src/features/tools/ToolIcon.tsx) | `src/shared/` |
+| Tool icon: the service's logo beside its name | [shared/ToolIcon.tsx](../../../src/shared/ToolIcon.tsx) | same |
+| A logo standing in for the service's name (`@kai_m` with Telegram's logo, not "Telegram @kai_m") | [shared/ServiceIcon.tsx](../../../src/shared/ServiceIcon.tsx) | same |
 | A page that needs a tool: missing, too old, signed out, with the button to fix it | [features/tools/ToolNeeded.tsx](../../../src/features/tools/ToolNeeded.tsx), `useNeed` and the rule in [domain/needs.ts](../../../src/domain/needs.ts) | same |
 | "Report this" button | [features/report/ReportThis.tsx](../../../src/features/report/ReportThis.tsx) | `src/shared/` |
 | JSON viewer | [features/logs/JsonTree.tsx](../../../src/features/logs/JsonTree.tsx) | `src/shared/` |

@@ -1,50 +1,45 @@
-import {
-  Building2,
-  CalendarDays,
-  Globe,
-  Mail,
-  MessageCircle,
-  MessagesSquare,
-  NotebookText,
-  Package,
-  Send,
-  Video,
-} from "lucide-react"
+import { Globe, Mail, NotebookText, Package } from "lucide-react"
 import type { ComponentType, SVGProps } from "react"
+import bitrix24 from "@/assets/logos/bitrix24.svg"
+import gmail from "@/assets/logos/gmail.svg"
+import calendar from "@/assets/logos/google-calendar.svg"
+import drive from "@/assets/logos/google-drive.svg"
+import max from "@/assets/logos/max.svg"
+import outlook from "@/assets/logos/outlook.svg"
+import telegram from "@/assets/logos/telegram.svg"
+import whatsapp from "@/assets/logos/whatsapp.svg"
+import zoom from "@/assets/logos/zoom.png"
+import { cx } from "@/ui/cx"
 
-function DriveIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.75}
-      strokeLinejoin="round"
-      strokeLinecap="round"
-      aria-hidden="true"
-      {...props}
-    >
-      <path d="M8.5 3.5h7l6 10.5-3.5 6h-12L2.5 14z" />
-      <path d="M8.5 3.5 14 14H2.5M15.5 3.5 9.5 14l-3.5 6M14 14l4 6" />
-    </svg>
-  )
+/**
+ * The services' own marks (sources in `src/assets/logos/SOURCES.md`), by tool id and by mail provider. Their brand rules
+ * forbid recolouring; each of these reads on both themes as it is.
+ */
+const LOGOS: Record<string, string> = {
+  tg: telegram,
+  max,
+  wa: whatsapp,
+  zm: zoom,
+  drive,
+  gcal: calendar,
+  bitrix: bitrix24,
+  gmail,
+  outlook,
 }
 
 const icons: Record<string, ComponentType<SVGProps<SVGSVGElement>>> = {
-  tg: Send,
-  max: MessagesSquare,
-  wa: MessageCircle,
-  zm: Video,
-  drive: DriveIcon,
-  gcal: CalendarDays,
   memo: NotebookText,
   email: Mail,
-  bitrix: Building2,
   funnel: Globe,
 }
 
-/** A community tool ships no icon in the app's code, so every one shows the same package. */
-export function ToolIcon({ id, className }: { id: string; className?: string }) {
+/**
+ * A tool's logo; WireCat's own tools, Email (a provider's logo per account instead) and the Tailscale helper keep a line
+ * icon. A community tool ships no icon in the app's code, so every one shows the same package.
+ */
+export function ToolIcon({ id, className }: { id: string; className?: string | undefined }) {
+  const logo = LOGOS[id]
+  if (logo) return <img src={logo} alt="" draggable={false} className={cx("object-contain", className)} />
   const Icon = icons[id] ?? Package
   return <Icon className={className} strokeWidth={1.75} aria-hidden />
 }

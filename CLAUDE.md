@@ -66,7 +66,8 @@ Analytics: `?section=analytics`, `?analytics=real` (no Preview parts and a memo 
    allowed shape is opening the user's own terminal with a command Rust built (Tailscale's install, a .deb or .rpm
    update), so the user types the password there and runs `sudo` themselves.
 7. **Adding a tool** is an entry in [`catalog/tools.json`](catalog/tools.json) plus an icon in
-   `src/features/tools/ToolIcon.tsx`. If it needs more, the catalog shape is what changes.
+   `src/shared/ToolIcon.tsx` (a brand logo goes in `src/assets/logos/`, its source in that folder's `SOURCES.md`). If
+   it needs more, the catalog shape is what changes.
 8. **Both themes, keyboard and reduced motion** are part of done for every UI change. Check light and dark with
    the capture script.
 9. **Nothing jumps, nothing vanishes.** A click never resets the scroll position or shifts content the user did not

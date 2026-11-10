@@ -340,8 +340,7 @@ export function Account({ identity: i, tie = false }: { identity: Identity; tie?
   const named = i.name?.trim()
   return (
     <li className="flex min-w-0 flex-wrap items-center gap-x-[0.5rem] gap-y-[0.2rem] text-[0.92rem]">
-      <SourceIcon provider={i.provider} className="text-ink-soft" />
-      <span className="font-medium">{sourceOf(i.provider).name}</span>
+      <SourceIcon provider={i.provider} className="text-ink-soft" labelled />
       {named && <span className="min-w-0 truncate">{named}</span>}
       {handle && handle !== named && <span className="min-w-0 truncate text-ink-soft">{handle}</span>}
       {seenAtWork(i.seenIn) && <Pill size="sm">{m.atWork}</Pill>}

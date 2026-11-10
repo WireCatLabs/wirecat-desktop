@@ -305,7 +305,7 @@ function Column({
               label={m.handles}
               values={handles.map((i) => (
                 <span key={i.identity} className="flex items-center gap-[0.4rem]">
-                  <SourceIcon provider={i.provider} className="text-ink-soft" />
+                  <SourceIcon provider={i.provider} className="text-ink-soft" labelled />
                   <span className="selectable">{accountName(i)}</span>
                 </span>
               ))}
@@ -413,7 +413,7 @@ function Recent({ items }: { items: PersonProfile["recent"] }) {
               {r.kind === "event" ? (
                 <CalendarDays className="size-4 shrink-0" aria-hidden />
               ) : (
-                <SourceIcon provider={r.provider ?? ""} />
+                <SourceIcon provider={r.provider ?? ""} labelled={Boolean(r.chat)} />
               )}
               <span className="min-w-0 truncate">{where}</span>
               {r.at && (

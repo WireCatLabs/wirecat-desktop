@@ -1,5 +1,6 @@
 import { Filter, FilterX, Group } from "lucide-react"
 import { type ReactNode, useState } from "react"
+import { findTool } from "@/domain/catalog"
 import { formatWhen } from "@/domain/runs"
 import { type HitFile, type HitRow, hitRow } from "@/domain/search"
 import { hitLink } from "@/domain/search-context"
@@ -7,6 +8,7 @@ import { formatDate, useLang, useMessages } from "@/i18n"
 import type { SearchHit } from "@/platform/search-schemas"
 import { CopyValue, type FieldOf, JsonTree } from "@/shared/JsonTree"
 import { sharedMessages } from "@/shared/messages"
+import { ServiceIcon } from "@/shared/ServiceIcon"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
@@ -64,7 +66,12 @@ export function HitsTable(props: Props) {
       width: "var(--where)",
       className: cx(CELL, "font-medium"),
       cell: ({ row }) => (
-        <span title={row.where ?? undefined}>{row.where ?? <span className="font-normal text-ink-dim">—</span>}</span>
+        <span className="flex min-w-0 items-center gap-[0.4rem]">
+          {row.tool && <ServiceIcon id={row.tool} label={findTool(row.tool)?.name ?? row.tool} className="size-4" />}
+          <span className="truncate" title={row.where ?? undefined}>
+            {row.where ?? <span className="font-normal text-ink-dim">—</span>}
+          </span>
+        </span>
       ),
     },
     {
