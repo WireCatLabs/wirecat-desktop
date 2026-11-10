@@ -340,7 +340,7 @@ export type Platform = {
   /** Opens a note's file with the system's app; Rust finds the file from the ref, inside memo's folders. */
   memoryOpenSource(ref: string): Promise<void>
   /** memo's deals or leads of one pipeline (the first when none is asked), with each stage's count and sums. */
-  clientsRead(kind: CrmKind, pipeline: string | null): Promise<CrmRead>
+  clientsRead(kind: CrmKind): Promise<CrmRead>
   /**
    * Moves a deal or lead to another stage of its own pipeline. The owner's own goes through memo, which answers the
    * card; a CRM's copy goes through that CRM's CLI as `via`'s profile, which answers none: the page reads it again.

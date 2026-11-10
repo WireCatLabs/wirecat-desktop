@@ -14,13 +14,12 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton, StableText } from "@/ui/Skeleton"
-import { type Based, type Ready, readAgain, useBoard } from "./api"
+import { type Based, readAgain, useBoard } from "./api"
 import { BaseBoard } from "./BaseBoard"
 import { MovePickers } from "./base-move"
 import { CardDialog } from "./CardDialog"
-import { ClientsBoard } from "./ClientsBoard"
 import { ClientsTable, ClientsTableLoading } from "./ClientsTable"
-import { BaseFilters, ClientsFilters } from "./Filters"
+import { BaseFilters } from "./Filters"
 import { ImportButton } from "./ImportButton"
 import { clientMessages } from "./messages"
 import { stageMessages } from "./messages-stages"
@@ -36,7 +35,6 @@ export function ClientsPage() {
   const kind = useClients((s) => s.kind)
   const pipeline = useClients((s) => s.pipeline[kind] ?? null)
   const board = useBoard(kind, pipeline)
-  const usable = board.data?.kind === "ready" || board.data?.kind === "base"
   const view = useClients((s) => s.view)
   const sm = useMessages(stageMessages)
   const waiting = board.data?.kind === "base" ? board.data.unsorted.stages : 0
@@ -55,7 +53,7 @@ export function ClientsPage() {
             size="sm"
             disabled={board.isFetching}
             onClick={() => void readAgain()}
-            className={cx(!usable && "invisible")}
+            className={cx(!based && "invisible")}
             icon={<RefreshCw className={cx("size-4", board.isFetching && "motion-safe:animate-spin")} aria-hidden />}
           >
             <StableText value={board.isFetching ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
@@ -97,7 +95,7 @@ export function ClientsPage() {
           {based && <ImportButton />}
         </div>
       </div>
-      {usable && <CrmNeeded />}
+      {based && <CrmNeeded />}
       {board.data?.kind === "base" && <StagesToConfirm read={board.data} kind={kind} />}
       <Body />
       <CardDialog />
@@ -186,8 +184,7 @@ function Body() {
       </div>
     )
   }
-  if (data.kind === "base") return <BaseLoaded read={data} kind={kind} />
-  return <Loaded read={data} kind={kind} />
+  return <BaseLoaded read={data} kind={kind} />
 }
 
 function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
@@ -223,28 +220,6 @@ function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
         <BaseBoard read={read} kind={kind} cards={shown} filtered={filtered} />
       )}
       <MovePickers read={read} kind={kind} cards={read.cards} />
-    </>
-  )
-}
-
-function Loaded({ read, kind }: { read: Ready; kind: Kind }) {
-  const m = useMessages(clientMessages)
-  const query = useClients((s) => s.query)
-  const shown = read.cards.filter((c) => matches(c, query))
-  return (
-    <>
-      <ClientsFilters read={read} kind={kind} />
-      {read.more && <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">{m.more(read.cards.length)}</p>}
-      <ReadOnly pipeline={read.pipelines.find((p) => p.ref === read.pipeline && p.movable.kind === "no")} />
-      {query.trim() && shown.length === 0 && (
-        <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">
-          {m.noMatch}{" "}
-          <Button size="sm" variant="ghost" onClick={() => useClients.getState().setQuery("")}>
-            {m.clear}
-          </Button>
-        </p>
-      )}
-      <ClientsBoard read={read} kind={kind} cards={shown} />
     </>
   )
 }

@@ -137,10 +137,7 @@ const ToolSchema = v.object({
   tasks: v.nullable(v.object({ list: v.array(v.string()), release: v.array(v.string()) })),
   /** The Tasks page's lowest version of the tool; only memo keeps project tasks. */
   taskBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
-  crmBoard: v.optional(
-    v.nullable(v.object({ minVersion: v.string(), baseStagesMinVersion: v.optional(v.string()) })),
-    null,
-  ),
+  crmBoard: v.optional(v.nullable(v.object({ minVersion: v.string() })), null),
   /**
    * A CRM's own CLI, for memo's `provider` of its accounts: Rust moves that CRM's cards and switches its sync scope
    * with these words from `minVersion` on; `scope.minVersion` is absent until a release has the setting.

@@ -136,7 +136,7 @@ fn agents_page(visit: &str) {
 fn clients_page(visit: &str) {
     let (before, started) = mark();
     if visit != "revisit" {
-        drop(crm_board::read(crm_board::CrmKind::Deal, None));
+        drop(crm_board::read(crm_board::CrmKind::Deal));
     }
     report("Clients", visit, started.elapsed().as_millis(), before, started);
 }

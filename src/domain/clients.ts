@@ -19,7 +19,6 @@ type CrmCard = {
   people: { name: string | null; role: string }[]
 }
 type CrmStage = { name: string; outcome: string; amounts: { amount: string; currency: string }[] }
-type Board<C extends CrmCard> = { stages: CrmStage[]; cards: C[] }
 
 export const OWN = "own"
 /** `bitrix24:northstar.example`, or `own` for the owner's own pipelines. */
@@ -88,23 +87,6 @@ export function matches(card: CrmCard, q: string): boolean {
   return freeWords(q, FIELDS).every((w) => text.includes(w.toLocaleLowerCase()))
 }
 
-/** Each stage's cards in Memo's order, newest first; a card whose stage the pipeline no longer lists is left out. */
-export function columnsOf(stages: readonly CrmStage[], cards: readonly CrmCard[]): Map<string, string[]> {
-  const columns = new Map(stages.map((s) => [s.name, [] as string[]]))
-  for (const c of cards) columns.get(c.stage)?.push(c.ref)
-  return columns
-}
-
-/** A card moves only within its own pipeline: a deal's stage stays in its category. */
-export const canDrop = (card: CrmCard | undefined, pipeline: string | null, stages: readonly CrmStage[], to: string) =>
-  card !== undefined && card.pipeline === pipeline && stages.some((s) => s.name === to)
-
-/** The read with one card in another stage, as the board shows it while the write runs. */
-export function withMove<C extends CrmCard, R extends Board<C>>(read: R, ref: string, to: string): R {
-  const outcome = read.stages.find((s) => s.name === to)?.outcome ?? "open"
-  return { ...read, cards: read.cards.map((c) => (c.ref === ref ? { ...c, stage: to, status: outcome } : c)) }
-}
-
 /** A column's sums over the cards a filter left, one per currency, added in cents so nothing is lost to floats. */
 export function amountsOf(cards: readonly { amount: string | null; currency?: string | null }[]) {
   const sums = new Map<string, bigint>()
@@ -123,10 +105,6 @@ function centsOf(amount: string): bigint | null {
   const m = /^(\d+)(?:\.(\d{1,2})\d*)?$/.exec(amount)
   return m ? BigInt(m[1] ?? "0") * 100n + BigInt((m[2] ?? "").padEnd(2, "0")) : null
 }
-
-/** The pipeline with the most open cards, the first on a tie; memo often lists an empty one first. */
-export const busiestOf = <P extends { open: number }>(pipelines: readonly P[]): P | undefined =>
-  pipelines.reduce<P | undefined>((best, p) => (best && best.open >= p.open ? best : p), undefined)
 
 /** Every person responsible for a card on the board, for the filter's choices. */
 export const ownersOf = (cards: readonly CrmCard[]) =>

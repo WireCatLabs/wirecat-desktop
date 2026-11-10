@@ -3,12 +3,8 @@ use crate::crm_board::{self, CrmKind};
 use crate::error::AppError;
 
 #[tauri::command]
-pub async fn clients_read(kind: CrmKind, pipeline: Option<String>) -> Result<crm_board::CrmRead, AppError> {
-    crate::log::command(
-        "clients_read",
-        async move { attempt(move || crm_board::read(kind, pipeline.as_deref())).await },
-    )
-    .await
+pub async fn clients_read(kind: CrmKind) -> Result<crm_board::CrmRead, AppError> {
+    crate::log::command("clients_read", async move { attempt(move || crm_board::read(kind)).await }).await
 }
 
 /// `via` names the CRM account and the profile of its CLI for a CRM's copy; `None` moves the owner's own through memo.

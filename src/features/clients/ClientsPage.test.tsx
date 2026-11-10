@@ -11,8 +11,8 @@ import { useClients } from "./store"
 type SyncRun = ReturnType<typeof useSync.getState>["runs"][string]
 
 // A mock of its own per test: a write still under way from the last test must not move a card in this one.
-function freshMemo(based?: boolean, writer: CrmWriter = "none") {
-  const memo = clientsMock(based, writer)
+function freshMemo(writer: CrmWriter = "none") {
+  const memo = clientsMock(writer)
   vi.spyOn(platform, "clientsRead").mockImplementation(memo.clientsRead)
   vi.spyOn(platform, "clientsMove").mockImplementation(memo.clientsMove)
   vi.spyOn(platform, "clientsScope").mockImplementation(memo.clientsScope)
@@ -35,30 +35,8 @@ afterEach(() => vi.restoreAllMocks())
 const column = (name: RegExp) => screen.findByRole("region", { name }, { timeout: 4000 })
 const card = (title: string) => screen.findByRole("button", { name: title }, { timeout: 4000 })
 
-describe("Clients with a memo without base stages", () => {
-  beforeEach(() => freshMemo(false))
-
-  it("shows the deals by stage with memo's count and sum per column, and switches to the leads", async () => {
-    const user = userEvent.setup()
-    render(<ClientsPage />)
-    const quote = await column(/^Quote, 1 card/)
-    expect(within(quote).getByRole("button", { name: "Site for Northstar" })).toHaveTextContent("Northstar Labs")
-    expect(quote).toHaveTextContent(/500[\s,.]?000/)
-    await user.click(screen.getByRole("radio", { name: "Leads" }))
-    expect(await column(/^contacted, 1 card/)).toHaveTextContent("Referral from Acme")
-  })
-
-  it("opens the pipeline with the most open deals, then the one last chosen while it is still listed", async () => {
-    const user = userEvent.setup()
-    const { unmount } = render(<ClientsPage />)
-    expect(await screen.findByRole("button", { name: /^Pipeline/ }, { timeout: 4000 })).toHaveTextContent("Sales")
-    await user.click(screen.getByRole("button", { name: /^Pipeline/ }))
-    await user.click(screen.getByRole("option", { name: /Partners/ }))
-    await waitFor(() => expect(screen.getByRole("button", { name: /^Pipeline/ })).toHaveTextContent("Partners"))
-    unmount()
-    render(<ClientsPage />)
-    expect(await screen.findByRole("region", { name: /^Intro, 0 cards/ }, { timeout: 4000 })).toBeInTheDocument()
-  })
+describe("Clients on the base stages", () => {
+  beforeEach(() => freshMemo())
 
   it("opens again within a minute on the cards it showed, without asking memo or showing a skeleton", async () => {
     const read = vi.spyOn(platform, "clientsRead")
@@ -101,54 +79,6 @@ describe("Clients with a memo without base stages", () => {
     expect(dialog).toHaveTextContent("Northstar site")
   })
 
-  it("moves the owner's own deal to another stage with the keyboard, at once", async () => {
-    const user = userEvent.setup()
-    const move = vi.spyOn(platform, "clientsMove")
-    render(<ClientsPage />)
-    const site = await card("Site for Northstar")
-    site.focus()
-    await user.keyboard(" {ArrowRight} ")
-    expect(move).toHaveBeenCalledWith("deal", "deal:1", "Contract", null)
-    await waitFor(async () =>
-      expect(within(await column(/^Contract/)).getByRole("button", { name: "Site for Northstar" })).toBeInTheDocument(),
-    )
-  })
-
-  it("puts a refused move back and says why on the card", async () => {
-    const user = userEvent.setup()
-    vi.spyOn(platform, "clientsMove").mockRejectedValue(new Error("the portal refused the change"))
-    render(<ClientsPage />)
-    const support = await card("Support contract")
-    support.focus()
-    await user.keyboard(" {ArrowRight} ")
-    await waitFor(async () =>
-      expect(within(await column(/^Call/)).getByRole("button", { name: "Support contract" })).toHaveTextContent(
-        "Not moved: the portal refused the change",
-      ),
-    )
-  })
-
-  it("keeps a CRM's pipeline read only, says why, and narrows it by the responsible person", async () => {
-    const user = userEvent.setup()
-    const move = vi.spyOn(platform, "clientsMove")
-    render(<ClientsPage />)
-    await card("Site for Northstar")
-    await user.click(screen.getByRole("button", { name: /^Pipeline/ }))
-    await user.click(screen.getByRole("option", { name: /Northstar sales/ }))
-    expect(await screen.findByText(/Read only: WireCat cannot run this CRM's own tool yet/)).toBeInTheDocument()
-    const chairs = await card("Northstar: 40 office chairs")
-    chairs.focus()
-    await user.keyboard(" {ArrowRight} ")
-    expect(move).not.toHaveBeenCalled()
-    await user.click(screen.getByRole("button", { name: /^Responsible/ }))
-    await user.click(screen.getByRole("option", { name: /Alice Moreno/ }))
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Northstar: 40 office chairs" })).toBeNull())
-    expect(screen.getByRole("button", { name: "Acme: meeting room" })).toBeInTheDocument()
-    expect(screen.getByRole("region", { name: "New, 1 of 2 shown" })).toHaveTextContent("1 of 2")
-    expect(screen.getByRole("button", { name: "Clear responsible" })).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Clear pipeline" })).toBeNull()
-  })
-
   it("asks for a CRM, and once one is installed, for its sign-in, while the board still shows", async () => {
     render(<ClientsPage />)
     await card("Site for Northstar")
@@ -170,10 +100,6 @@ describe("Clients with a memo without base stages", () => {
     render(<ClientsPage />)
     expect(await screen.findByRole("button", { name: "Install Memo" })).toBeInTheDocument()
   })
-})
-
-describe("Clients on the base stages", () => {
-  beforeEach(() => freshMemo())
 
   it("shows every pipeline's cards under the base stages, each with its stage and pipeline, and Unsorted first", async () => {
     render(<ClientsPage />)
@@ -264,7 +190,7 @@ describe("Clients on the base stages", () => {
 const WORK = { account: NORTHSTAR, profile: "work" }
 
 describe("Clients on the base stages, once memo names b24 for the portal", () => {
-  beforeEach(() => freshMemo(true, "one"))
+  beforeEach(() => freshMemo("one"))
 
   it("asks which stage when several fit, offers the last pick first, and sends b24 the CRM's stage id, else its name", async () => {
     const user = userEvent.setup()
@@ -317,7 +243,7 @@ describe("Clients moving a CRM's cards through b24", () => {
   }
 
   it("puts the card back with b24's own reason when it refuses the move", async () => {
-    freshMemo(true, "one")
+    freshMemo("one")
     vi.spyOn(platform, "clientsMove").mockRejectedValue(new Error("deal:3 is not a deal of this CRM account"))
     const user = userEvent.setup()
     render(<ClientsPage />)
@@ -330,7 +256,7 @@ describe("Clients moving a CRM's cards through b24", () => {
   })
 
   it("writes nothing while memo names no profile, asks which one, and keeps the choice for the next move", async () => {
-    freshMemo(true, "choose")
+    freshMemo("choose")
     const move = vi.spyOn(platform, "clientsMove")
     const user = userEvent.setup()
     render(<ClientsPage />)
@@ -358,7 +284,7 @@ describe("Clients moving a CRM's cards through b24", () => {
   })
 
   it("switches the portal's sync scope through b24 as memo's profile, then syncs that profile", async () => {
-    freshMemo(true, "one")
+    freshMemo("one")
     const set = vi.spyOn(platform, "clientsScopeSet")
     const sync = vi.spyOn(platform, "syncRun").mockResolvedValue()
     const user = userEvent.setup()
@@ -374,7 +300,7 @@ describe("Clients moving a CRM's cards through b24", () => {
 
 describe("Clients as a table", () => {
   beforeEach(() => {
-    freshMemo(true, "one")
+    freshMemo("one")
     useClients.setState({ view: "table" })
   })
   const row = (title: string) =>
@@ -493,8 +419,8 @@ describe("Importing from a CRM", () => {
   it("explains an empty kind: nothing imported, the scope, and where the other kind is", async () => {
     const user = userEvent.setup()
     const memo = clientsMock()
-    vi.spyOn(platform, "clientsRead").mockImplementation(async (kind, pipeline) => {
-      const answer = await memo.clientsRead(kind, pipeline)
+    vi.spyOn(platform, "clientsRead").mockImplementation(async (kind) => {
+      const answer = await memo.clientsRead(kind)
       return answer.kind === "base" ? { ...answer, cards: [] } : answer
     })
     render(<ClientsPage />)

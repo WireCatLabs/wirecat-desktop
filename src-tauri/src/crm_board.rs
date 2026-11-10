@@ -7,9 +7,9 @@
 //! own CLI (`writer`, catalog `crm`), as the profile memo's `writes_with` names or the owner chose; its pipeline
 //! answers `movable: no` while memo names no CLI for it or that CLI is missing or too old.
 //!
-//! With a memo that has base stages (catalog `crmBoard.baseStagesMinVersion`), the board's columns are the owner's
-//! base set and the cards come from every pipeline; below it, one pipeline's own stages as before. `base` holds every
-//! argv and field name of the base-stage commands.
+//! The board's columns are the owner's base set and the cards come from every pipeline; the catalog's
+//! `crmBoard.minVersion` is the first memo with base stages, and an older memo is refused. `base` holds every argv and
+//! field name of the base-stage commands.
 
 mod base;
 mod writer;
@@ -57,27 +57,6 @@ impl CrmKind {
 pub struct CrmAccount {
     pub provider: String,
     pub account: String,
-}
-
-#[derive(Serialize, Type, Debug, PartialEq)]
-pub struct CrmAmount {
-    /// A decimal string, as Memo keeps it; never added across currencies.
-    pub amount: String,
-    pub currency: String,
-    pub items: u32,
-}
-
-#[derive(Serialize, Type, Debug, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct CrmStage {
-    pub name: String,
-    /// The CRM's own id of the stage (`C2:NEW`); `None` for an own pipeline's.
-    pub external_id: Option<String>,
-    /// `open`, `won` or `lost`.
-    pub outcome: String,
-    /// Every deal or lead standing in it now, as Memo counts them.
-    pub items: u32,
-    pub amounts: Vec<CrmAmount>,
 }
 
 #[derive(Serialize, Type, Debug, PartialEq)]
@@ -205,7 +184,7 @@ pub struct CrmCard {
     pub closed_reason: Option<String>,
     pub project_name: Option<String>,
     pub account: Option<CrmAccount>,
-    /// The base stage its stage points to once confirmed; `None` on a board of one pipeline's stages, or unsorted.
+    /// The base stage its stage points to once confirmed; `None` while unsorted.
     pub base_stage: Option<CrmBaseRef>,
     pub created_at: String,
     pub updated_at: String,
@@ -230,17 +209,6 @@ pub enum CrmRead {
     Old {
         version: Option<String>,
         need: String,
-    },
-    /// `pipeline` is the one asked for, or the first Memo lists; `None` when there is none of this kind.
-    #[serde(rename_all = "camelCase")]
-    Ready {
-        pipelines: Vec<CrmPipeline>,
-        pipeline: Option<String>,
-        stages: Vec<CrmStage>,
-        cards: Vec<CrmCard>,
-        /// More open ones match than one read holds; the counts above the columns still hold them all.
-        more: bool,
-        movable: CrmMovable,
     },
     /// Base stages as columns, cards of every pipeline of the kind; `mapping` is every CRM pipeline's stages.
     #[serde(rename_all = "camelCase")]
@@ -304,23 +272,6 @@ fn pipeline(v: &Value) -> Option<CrmPipeline> {
     Some(CrmPipeline { reference: text(v, "ref")?, name: text(v, "name")?, account, open, movable, writes_with })
 }
 
-fn stage(v: &Value) -> Option<CrmStage> {
-    let amounts = v["amounts"].as_array().map_or_else(Vec::new, |a| {
-        a.iter()
-            .filter_map(|x| {
-                Some(CrmAmount { amount: text(x, "amount")?, currency: text(x, "currency")?, items: count(x, "items") })
-            })
-            .collect()
-    });
-    Some(CrmStage {
-        name: text(v, "name")?,
-        external_id: text(v, "external_id"),
-        outcome: text(v, "outcome")?,
-        items: count(v, "items"),
-        amounts,
-    })
-}
-
 fn card(v: &Value) -> Option<CrmCard> {
     let people = v["people"].as_array().map_or_else(Vec::new, |a| {
         a.iter().filter_map(|p| Some(CrmPerson { name: text(p, "name"), role: text(p, "role")? })).collect()
@@ -344,12 +295,6 @@ fn card(v: &Value) -> Option<CrmCard> {
         created_at: text(v, "created_at").unwrap_or_default(),
         updated_at: text(v, "updated_at").unwrap_or_default(),
     })
-}
-
-/// The pipeline with the most open cards, the first in memo's order on a tie: memo lists an empty one first as often
-/// as not, and an empty board reads as "nothing synced".
-fn busiest(pipelines: &[CrmPipeline]) -> Option<&CrmPipeline> {
-    pipelines.iter().rev().max_by_key(|p| p.open)
 }
 
 /// Whether a CRM's CLI can write, by provider; the real one asks once per provider and read.
@@ -397,33 +342,6 @@ fn cards_from(lists: [Result<Value, Failure>; 3]) -> Result<(Vec<CrmCard>, bool)
     Ok((cards, more))
 }
 
-fn read_with(call: &Call, kind: CrmKind, asked: Option<&str>, writers: &Writers) -> Result<CrmRead, Failure> {
-    let pipelines = pipelines_from(&call(&pipelines_args(kind))?, writers);
-    let chosen = asked.and_then(|r| pipelines.iter().find(|p| p.reference == r)).or_else(|| busiest(&pipelines));
-    let Some(chosen) = chosen else {
-        return Ok(CrmRead::Ready {
-            pipelines,
-            pipeline: None,
-            stages: vec![],
-            cards: vec![],
-            more: false,
-            movable: CrmMovable::Yes,
-        });
-    };
-    let [a, b, c] = cards_args(kind, &format!("pipeline:\"{}\" ", chosen.reference));
-    let [shown, open, won, lost] = at_once(call, [words(&["pipelines", "show", &chosen.reference]), a, b, c]);
-    let stages = body(&shown?)["stages"].as_array().map(|a| a.iter().filter_map(stage).collect()).unwrap_or_default();
-    let (cards, more) = cards_from([open, won, lost])?;
-    Ok(CrmRead::Ready {
-        pipeline: Some(chosen.reference.clone()),
-        movable: chosen.movable.clone(),
-        more,
-        stages,
-        cards,
-        pipelines,
-    })
-}
-
 fn read_base_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<CrmRead, Failure> {
     let [a, b, c] = cards_args(kind, "");
     let [listed, shown, mapped, open, won, lost] =
@@ -435,39 +353,23 @@ fn read_base_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<CrmRe
     Ok(CrmRead::Base { pipelines, base, unsorted, mapping, cards, more })
 }
 
-enum Mode {
-    Unusable(CrmRead),
-    Pipeline,
-    Base,
-}
-
-fn gate() -> Result<Mode, String> {
+/// An answer instead of a board while memo is missing or older than the catalog's `crmBoard.minVersion`.
+fn unusable() -> Result<Option<CrmRead>, String> {
     let source = crate::catalog::tool("memo")?.crm_board.as_ref().ok_or("Memo has no Clients page in the catalog")?;
-    if let Some(u) = task_board::memo_unusable(&source.min_version)? {
-        return Ok(Mode::Unusable(match u {
-            Unusable::Missing => CrmRead::Missing,
-            Unusable::Old { version, need } => CrmRead::Old { version, need },
-        }));
-    }
-    Ok(match source.base_stages_min_version.as_deref() {
-        Some(need) if task_board::memo_unusable(need)?.is_none() => Mode::Base,
-        _ => Mode::Pipeline,
-    })
+    Ok(task_board::memo_unusable(&source.min_version)?.map(|u| match u {
+        Unusable::Missing => CrmRead::Missing,
+        Unusable::Old { version, need } => CrmRead::Old { version, need },
+    }))
 }
 
-/// `pipeline` chooses the board of one pipeline's stages; the base board holds every pipeline and ignores it.
-pub fn read(kind: CrmKind, pipeline: Option<&str>) -> Result<CrmRead, String> {
-    if let Some(p) = pipeline {
-        validate_pipeline(p)?;
+pub fn read(kind: CrmKind) -> Result<CrmRead, String> {
+    if let Some(answer) = unusable()? {
+        return Ok(answer);
     }
     let known = std::cell::RefCell::new(std::collections::HashMap::new());
     let writers =
         |provider: &str| *known.borrow_mut().entry(provider.to_string()).or_insert_with(|| writer::writer(provider));
-    match gate()? {
-        Mode::Unusable(r) => Ok(r),
-        Mode::Pipeline => with_memo(READ, |call| read_with(call, kind, pipeline, &writers)),
-        Mode::Base => with_memo(READ, |call| read_base_with(call, kind, &writers)),
-    }
+    with_memo(READ, |call| read_base_with(call, kind, &writers))
 }
 
 fn move_with(call: &Call, kind: CrmKind, reference: &str, stage: &str) -> Result<CrmCard, Failure> {
@@ -564,17 +466,6 @@ mod tests {
             "page":{"mode":"page","limit":2,"has_more":false}})
     }
 
-    fn shown() -> Value {
-        json!({"item":{"id":"2","ref":"pipeline:2","name":"Sales","kind":"deal","account":null,"stages":[
-            {"name":"Call","position":1,"outcome":"open","external_id":null,"open":0,"reached":2,"conversion":1,
-             "items":0,"amounts":[]},
-            {"name":"Quote","position":2,"outcome":"open","external_id":"C2:QUOTE","open":1,"reached":2,"conversion":0.5,
-             "items":1,"amounts":[{"amount":"500000.00","currency":"RUB","items":1}]},
-            {"name":"won","position":4,"outcome":"won","external_id":null,"open":0,"reached":1,"conversion":null,
-             "items":1,"amounts":[{"amount":"1200.00","currency":"EUR","items":1}]}],
-            "totals":{"items":2,"open":1,"won":1,"lost":0,"win_rate":1},"since":null}})
-    }
-
     fn deal() -> Value {
         json!({"id":"2","ref":"deal:2","kind":"deal","title":"Site for Northstar",
             "summary":"Site for Northstar · Quote, 500 000.00 RUB","pipeline":"pipeline:2","pipeline_name":"Sales",
@@ -594,7 +485,6 @@ mod tests {
         seen.lock().unwrap().push(args.to_vec());
         match (args[0].as_str(), args[1].as_str()) {
             ("pipelines", "list") => Ok(pipelines()),
-            ("pipelines", "show") => Ok(shown()),
             ("deals", "list") if args.last().is_some_and(|q| q.ends_with("status:open")) => {
                 Ok(json!({"items":[deal()],"page":{"limit":500,"has_more":true}}))
             }
@@ -602,80 +492,6 @@ mod tests {
             ("deals", "move") => Ok(json!({"item": deal()})),
             _ => Err(invalid("unexpected".into())),
         }
-    }
-
-    #[test]
-    fn reads_the_first_pipeline_its_stage_sums_and_its_cards() {
-        let seen = Mutex::new(vec![]);
-        let read = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, None, &none).unwrap();
-        let CrmRead::Ready { pipelines, pipeline, stages, cards, more, movable } = read else { panic!("not ready") };
-        assert_eq!(pipelines.len(), 2);
-        assert_eq!(pipeline.as_deref(), Some("pipeline:2"));
-        assert_eq!((stages[0].external_id.as_deref(), stages[1].external_id.as_deref()), (None, Some("C2:QUOTE")));
-        assert_eq!(stages[1].amounts, vec![CrmAmount { amount: "500000.00".into(), currency: "RUB".into(), items: 1 }]);
-        assert_eq!(cards[0].organization.as_deref(), Some("Northstar Labs"));
-        assert_eq!(cards[0].people[0].role, "decision-maker");
-        assert!(more);
-        assert_eq!(movable, CrmMovable::Yes);
-        let seen = seen.lock().unwrap();
-        assert_eq!(seen[0], ["pipelines", "list", "--json", "--no-record", "--", "kind:deal"]);
-        let rest: Vec<String> = seen[1..].iter().map(|a| a.join(" ")).collect();
-        assert_eq!(rest.len(), 4);
-        assert!(rest.contains(&"pipelines show pipeline:2 --json --no-record".to_string()));
-        assert!(
-            rest.contains(&"deals list --limit 500 --json --no-record -- pipeline:\"pipeline:2\" status:open".into())
-        );
-        assert!(
-            rest.contains(&"deals list --limit 20 --json --no-record -- pipeline:\"pipeline:2\" status:lost".into())
-        );
-    }
-
-    #[test]
-    fn opens_the_pipeline_with_the_most_open_cards_unless_one_still_listed_was_chosen() {
-        let listed = |stages: [u32; 3]| -> Vec<CrmPipeline> {
-            stages
-                .iter()
-                .enumerate()
-                .filter_map(|(i, open)| {
-                    pipeline(&json!({"ref": format!("pipeline:{i}"), "name": "P", "account": null,
-                        "stages": [{"name": "A", "open": open}, {"name": "B", "open": 1}]}))
-                })
-                .collect()
-        };
-        let three = listed([0, 5, 5]);
-        assert_eq!(three[1].open, 6);
-        assert_eq!(busiest(&three).map(|p| p.reference.as_str()), Some("pipeline:1"));
-        assert_eq!(busiest(&listed([0, 0, 0])).map(|p| p.reference.as_str()), Some("pipeline:0"));
-
-        let seen = Mutex::new(vec![]);
-        let gone = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, Some("pipeline:99"), &none).unwrap();
-        let CrmRead::Ready { pipeline, .. } = gone else { panic!("not ready") };
-        assert_eq!(pipeline.as_deref(), Some("pipeline:2"));
-    }
-
-    #[test]
-    fn a_crm_pipeline_is_read_but_not_moved_from_the_app() {
-        let seen = Mutex::new(vec![]);
-        let read = read_with(&|a: &[String]| fake(&seen, a), CrmKind::Deal, Some("pipeline:7"), &none).unwrap();
-        let CrmRead::Ready { pipeline, movable, .. } = read else { panic!("not ready") };
-        assert_eq!(pipeline.as_deref(), Some("pipeline:7"));
-        assert_eq!(movable, CrmMovable::No { why: "crmCli".into() });
-    }
-
-    #[test]
-    fn a_crm_pipeline_moves_once_memo_names_its_cli_and_that_cli_can_write() {
-        let portal = json!({"provider":"bitrix24","account":"northstar.example"});
-        let listed = json!({"items":[{"ref":"pipeline:7","name":"Northstar sales","kind":"deal","account":portal,
-            "stages":[],"writes_with":{"tool":"b24","account":portal,"profile":null,"profiles":["sales","work"],
-            "why":"two b24 profiles are on this account; the owner chooses one"}}]});
-        let seen = Mutex::new(vec![]);
-        let call = |a: &[String]| if a[..2] == ["pipelines", "list"] { Ok(listed.clone()) } else { fake(&seen, a) };
-        let b24 = crate::catalog::tool("bitrix").unwrap();
-        let read = read_with(&call, CrmKind::Deal, None, &|_| writer::Writer::Ready(b24)).unwrap();
-        let CrmRead::Ready { pipelines, movable, .. } = read else { panic!("not ready") };
-        assert_eq!(movable, CrmMovable::Yes);
-        let w = pipelines[0].writes_with.as_ref().unwrap();
-        assert_eq!((w.profile.as_deref(), w.profiles.len()), (None, 2));
     }
 
     #[test]
@@ -749,6 +565,21 @@ mod tests {
                 "stages show deal --json --no-record",
             ]
         );
+    }
+
+    #[test]
+    fn a_crm_pipeline_moves_once_memo_names_its_cli_and_that_cli_can_write() {
+        let portal = json!({"provider":"bitrix24","account":"northstar.example"});
+        let listed = json!({"items":[{"ref":"pipeline:7","name":"Northstar sales","kind":"deal","account":portal,
+            "stages":[],"writes_with":{"tool":"b24","account":portal,"profile":null,"profiles":["sales","work"],
+            "why":"two b24 profiles are on this account; the owner chooses one"}}]});
+        let call = |a: &[String]| if a[..2] == ["pipelines", "list"] { Ok(listed.clone()) } else { Ok(based(a)) };
+        let b24 = crate::catalog::tool("bitrix").unwrap();
+        let read = read_base_with(&call, CrmKind::Deal, &|_| writer::Writer::Ready(b24)).unwrap();
+        let CrmRead::Base { pipelines, .. } = read else { panic!("not a base read") };
+        assert_eq!(pipelines[0].movable, CrmMovable::Yes);
+        let w = pipelines[0].writes_with.as_ref().unwrap();
+        assert_eq!((w.profile.as_deref(), w.profiles.len()), (None, 2));
     }
 
     #[test]

@@ -222,10 +222,6 @@ pub struct TaskBoardSource {
 #[serde(rename_all = "camelCase")]
 pub struct CrmBoardSource {
     pub min_version: String,
-    /// The first memo with base stages (`stages base|map`, `pipelines list --base`); absent until one is released,
-    /// and below it the board shows one pipeline's own stages.
-    #[serde(default)]
-    pub base_stages_min_version: Option<String>,
 }
 
 /// `{profile}` is the one the owner chose, `{ref}` a validated `deal:<id>` or `lead:<id>`, `{stage}` a validated stage
