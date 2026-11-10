@@ -228,13 +228,6 @@ export type CrmAccount = {
 	account: string,
 };
 
-export type CrmAmount = {
-	/**  A decimal string, as Memo keeps it; never added across currencies. */
-	amount: string,
-	currency: string,
-	items: number,
-};
-
 /**  A change to the base set; memo keeps at least one stage per outcome and refuses what would break it. */
 export type CrmBaseEdit = { op: "add"; name: string; outcome: string } | { op: "rename"; ref: string; name: string } | 
 /**  `position` counts from 1, in the set's order. */
@@ -275,7 +268,7 @@ export type CrmCard = {
 	closedReason: string | null,
 	projectName: string | null,
 	account: CrmAccount | null,
-	/**  The base stage its stage points to once confirmed; `None` on a board of one pipeline's stages, or unsorted. */
+	/**  The base stage its stage points to once confirmed; `None` while unsorted. */
 	baseStage: CrmBaseRef | null,
 	createdAt: string,
 	updatedAt: string,
@@ -310,23 +303,8 @@ export type CrmPipeline = {
 };
 
 export type CrmRead = { kind: "missing" } | { kind: "old"; version: string | null; need: string } | 
-/**  `pipeline` is the one asked for, or the first Memo lists; `None` when there is none of this kind. */
-{ kind: "ready"; pipelines: CrmPipeline[]; pipeline: string | null; stages: CrmStage[]; cards: CrmCard[]; 
-/**  More open ones match than one read holds; the counts above the columns still hold them all. */
-more: boolean; movable: CrmMovable } | 
 /**  Base stages as columns, cards of every pipeline of the kind; `mapping` is every CRM pipeline's stages. */
 { kind: "base"; pipelines: CrmPipeline[]; base: CrmBaseStage[]; unsorted: CrmUnsorted; mapping: CrmStageMap[]; cards: CrmCard[]; more: boolean };
-
-export type CrmStage = {
-	name: string,
-	/**  The CRM's own id of the stage (`C2:NEW`); `None` for an own pipeline's. */
-	externalId: string | null,
-	/**  `open`, `won` or `lost`. */
-	outcome: string,
-	/**  Every deal or lead standing in it now, as Memo counts them. */
-	items: number,
-	amounts: CrmAmount[],
-};
 
 /**  A CRM pipeline's stage and the base stage it points to; `confirmed` is false while it is memo's suggestion. */
 export type CrmStageMap = {

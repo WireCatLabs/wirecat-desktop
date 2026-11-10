@@ -62,7 +62,6 @@ type ClientsState = {
   refuse(ref: string, why: Refusal | null): void
   pick(picking: Picking | null): void
   remember(key: string, stage: string): void
-  choose(kind: Kind, pipeline: string): void
   setQuery(query: string): void
   setOpen(ref: string | null): void
   fail(ref: string, reason: string | null): void
@@ -106,7 +105,6 @@ export const useClients = create<ClientsState>()(
         }),
       pick: (picking) => set({ picking }),
       remember: (key, stage) => set((s) => ({ chosen: { ...s.chosen, [key]: stage } })),
-      choose: (kind, pipeline) => set((s) => ({ pipeline: { ...s.pipeline, [kind]: pipeline }, query: "" })),
       setQuery: (query) => set({ query, page: 1 }),
       setOpen: (open) => set({ open }),
       fail: (ref, reason) =>

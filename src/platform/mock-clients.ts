@@ -1,14 +1,4 @@
-import { busiestOf } from "@/domain/clients"
-import type {
-  CrmAccount,
-  CrmBaseEdit,
-  CrmCard,
-  CrmKind,
-  CrmRead,
-  CrmStage,
-  CrmStageMap,
-  CrmWritesWith,
-} from "./bindings"
+import type { CrmAccount, CrmBaseEdit, CrmCard, CrmKind, CrmRead, CrmStageMap, CrmWritesWith } from "./bindings"
 import { delay } from "./mock-delay"
 import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 
@@ -29,7 +19,6 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // and the "In progress" lead stage are suggestions not confirmed yet. A second CRM, Acme on amoCRM, has one pipeline of
 // stages and no cards; its Estimate is a suggestion not confirmed yet. Drops of the portal's cards need crm-write or
 // crm-profiles.
-// `?clients=no-base` is a memo without base stages: one pipeline's own stages, as before, with Partners.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("clients") ?? "default"
@@ -49,25 +38,9 @@ type Pipe = {
   stages: [string, string][]
   /** The pipeline adopted as its kind's base set. */
   base?: true
-  /** Listed only with base stages, or only without. */
-  only?: "base" | "legacy"
 }
 
 const ALL_PIPES: Pipe[] = [
-  // Listed first and empty, as memo listed them for a real account: the board must not open on it.
-  {
-    ref: "pipeline:3",
-    name: "Partners",
-    kind: "deal",
-    account: null,
-    // A second own pipeline would stop memo adopting Sales as the base set.
-    only: "legacy",
-    stages: [
-      ["Intro", "open"],
-      ["Signed", "won"],
-      ["Dropped", "lost"],
-    ],
-  },
   {
     ref: "pipeline:2",
     name: "Sales",
@@ -115,7 +88,6 @@ const ALL_PIPES: Pipe[] = [
     name: "Northstar partners",
     kind: "deal",
     account: NORTHSTAR,
-    only: "base",
     stages: [
       ["Lead in", "open"],
       ["Offer", "open"],
@@ -128,7 +100,6 @@ const ALL_PIPES: Pipe[] = [
     name: "Acme projects",
     kind: "deal",
     account: ACME,
-    only: "base",
     stages: [
       ["Brief", "open"],
       ["Estimate", "open"],
@@ -180,7 +151,6 @@ const saasPipe = (ref: string, name: string, rows: Row[]): Pipe => ({
   name,
   kind: "deal",
   account: SAAS,
-  only: "base",
   stages: rows.map(([n, outcome]) => [n, outcome]),
 })
 const saasMap = (rows: Row[]): Record<string, [string, boolean]> =>
@@ -224,7 +194,7 @@ const card = (kind: CrmKind, pipe: string, stage: string, title: string, more: P
 
 const money = (amount: string, currency: string) => ({ amount, currency })
 
-function seeds(based: boolean): CrmCard[] {
+function seeds(): CrmCard[] {
   id = 0
   const own = (stage: string, title: string, more?: Partial<CrmCard>) => card("deal", "pipeline:2", stage, title, more)
   const portal = (stage: string, title: string, more?: Partial<CrmCard>) =>
@@ -308,20 +278,16 @@ function seeds(based: boolean): CrmCard[] {
       organization: "Northstar Labs",
       people: [person("Alice Moreno", "owner")],
     }),
-    ...(based
-      ? [
-          portal("Waiting for payment", "Northstar: printer lease", {
-            ...money("640.00", "EUR"),
-            organization: "Northstar Labs",
-            people: [person("Bob Lee", "owner")],
-          }),
-          card("deal", "pipeline:9", "Offer", "Acme: showroom partnership", {
-            ...money("4200.00", "EUR"),
-            organization: "Acme Corp",
-            people: [person("Alice Moreno", "owner")],
-          }),
-        ]
-      : []),
+    portal("Waiting for payment", "Northstar: printer lease", {
+      ...money("640.00", "EUR"),
+      organization: "Northstar Labs",
+      people: [person("Bob Lee", "owner")],
+    }),
+    card("deal", "pipeline:9", "Offer", "Acme: showroom partnership", {
+      ...money("4200.00", "EUR"),
+      organization: "Acme Corp",
+      people: [person("Alice Moreno", "owner")],
+    }),
     ...many,
     ...saas,
   ]
@@ -401,12 +367,6 @@ const STAGE_IDS: Record<string, string> = {
 
 const externalIdOf = (pipe: Pipe, name: string) => (pipe.account ? (STAGE_IDS[name] ?? null) : null)
 
-const stagesOf = (pipe: Pipe, cards: CrmCard[]): CrmStage[] =>
-  pipe.stages.map(([name, outcome]) => {
-    const here = cards.filter((c) => c.pipeline === pipe.ref && c.stage === name)
-    return { name, externalId: externalIdOf(pipe, name), outcome, items: here.length, amounts: sumsOf(here) }
-  })
-
 type ClientsApi = Pick<
   Platform,
   | "clientsRead"
@@ -417,16 +377,6 @@ type ClientsApi = Pick<
   | "clientsMapConfirm"
   | "clientsBaseEdit"
 >
-
-const sumsOf = (here: CrmCard[]) => {
-  const sums = new Map<string, { units: number; items: number }>()
-  for (const c of here) {
-    if (!c.amount || !c.currency) continue
-    const s = sums.get(c.currency) ?? { units: 0, items: 0 }
-    sums.set(c.currency, { units: s.units + Math.round(Number(c.amount) * 100), items: s.items + 1 })
-  }
-  return [...sums].map(([currency, s]) => ({ amount: (s.units / 100).toFixed(2), currency, items: s.items }))
-}
 
 /** Whether memo names b24 for the portal: not at all (a memo before `writes_with`), one profile, or two to choose. */
 export type CrmWriter = "none" | "one" | "choose"
@@ -446,10 +396,9 @@ const writesWithOf = (writer: CrmWriter, account: CrmAccount | null): CrmWritesW
           why: "2 b24 profiles are on bitrix24:northstar.example; the owner chooses one",
         }
 
-/** `based` false is a memo without base stages, as `?clients=no-base`; `writer` as `?clients=crm-write|crm-profiles`. */
-export function clientsMock(based = scenario !== "no-base", writer: CrmWriter = SCENARIO_WRITER): ClientsApi {
-  const PIPES = ALL_PIPES.filter((p) => p.only !== (based ? "legacy" : "base"))
-  let cards = scenario === "none" ? [] : seeds(based)
+/** `writer` as `?clients=crm-write|crm-profiles`. */
+export function clientsMock(writer: CrmWriter = SCENARIO_WRITER): ClientsApi {
+  let cards = scenario === "none" ? [] : seeds()
   const scopes = new Map<string, "mine" | "all">()
   const applied = new Map<string, CrmAppliedScope>()
   const writable = (pipe: Pipe | undefined) => pipe?.account === null || writer !== "none"
@@ -457,7 +406,7 @@ export function clientsMock(based = scenario !== "no-base", writer: CrmWriter = 
   const movable = (p: Pipe) => (writable(p) ? { kind: "yes" as const } : { kind: "no" as const, why: "crmCli" })
   // memo answers a row's base stage only once its stage is confirmed onto one; the base set's own rows stand in it.
   const baseOf = (c: CrmCard) => {
-    const pipe = PIPES.find((p) => p.ref === c.pipeline)
+    const pipe = ALL_PIPES.find((p) => p.ref === c.pipeline)
     if (pipe?.base) {
       const b = bases[pipe.kind].find((x) => x.name === c.stage)
       return b ? { ref: b.ref, name: b.name } : null
@@ -466,7 +415,7 @@ export function clientsMock(based = scenario !== "no-base", writer: CrmWriter = 
     return m?.confirmed ? m.base : null
   }
   const baseRead = (kind: CrmKind): CrmRead => {
-    const pipes = PIPES.filter((p) => p.kind === kind)
+    const pipes = ALL_PIPES.filter((p) => p.kind === kind)
     const ours = cards
       .filter((c) => pipes.some((p) => p.ref === c.pipeline))
       .map((c) => ({ ...c, baseStage: baseOf(c) }))
@@ -500,39 +449,19 @@ export function clientsMock(based = scenario !== "no-base", writer: CrmWriter = 
     }
   }
   return {
-    async clientsRead(kind, pipeline) {
+    async clientsRead(kind) {
       await delay(350)
       if (scenario === "loading") await new Promise(() => undefined)
       if (scenario === "missing") return { kind: "missing" }
       if (scenario === "old") return { kind: "old", version: "0.131.54", need: "0.131.71" }
       if (scenario === "fail") throw new Error(BUSY)
-      if (based) return baseRead(kind)
-      const pipes = PIPES.filter((p) => p.kind === kind)
-      const open = (ref: string) => cards.filter((c) => c.pipeline === ref && c.status === "open").length
-      const chosen = pipes.find((p) => p.ref === pipeline) ?? busiestOf(pipes.map((p) => ({ ...p, open: open(p.ref) })))
-      const read: CrmRead = {
-        kind: "ready",
-        pipelines: pipes.map((p) => ({
-          ref: p.ref,
-          name: p.name,
-          account: p.account,
-          open: open(p.ref),
-          movable: movable(p),
-          writesWith: writesWithOf(writer, p.account),
-        })),
-        pipeline: chosen?.ref ?? null,
-        stages: chosen ? stagesOf(chosen, cards) : [],
-        cards: cards.filter((c) => c.pipeline === chosen?.ref).slice(0, 500),
-        more: cards.filter((c) => c.pipeline === chosen?.ref).length > 500,
-        movable: writable(chosen) ? { kind: "yes" } : { kind: "no", why: "crmCli" },
-      }
-      return read
+      return baseRead(kind)
     },
     async clientsMove(_kind, ref, given, via) {
       await delay(600)
       if (scenario === "move-fail") throw new Error("the portal refused the change: access denied (crm.permission)")
       const found = cards.find((c) => c.ref === ref)
-      const pipe = PIPES.find((p) => p.ref === found?.pipeline)
+      const pipe = ALL_PIPES.find((p) => p.ref === found?.pipeline)
       if (pipe?.account && !via) throw new Error(`${ref} is a copy from bitrix24; change it there`)
       if (via && !writesWithOf(writer, pipe?.account ?? null)?.profiles.includes(via.profile)) {
         throw new Error(`${ref} is not a deal of this CRM account (not_found)`)

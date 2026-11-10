@@ -30,8 +30,6 @@ type Words = {
   baseStage: string
   account: string
   column: (name: string, n: number) => string
-  columnOf: (name: string, shown: number, all: number) => string
-  of: (shown: number, all: number) => string
   emptyColumn: string
   readOnly: string
   draggable: string
@@ -40,8 +38,6 @@ type Words = {
   place: (column: string, at: number, of: number) => string
   dropped: (ref: string, column: string) => string
   putBack: (ref: string, reason?: string) => string
-  readOnlyShort: string
-  otherPipeline: string
   notMoved: (reason: string) => string
   scope: string
   scopes: { mine: string; all: string }
@@ -107,8 +103,6 @@ const en: Words = {
   baseStage: "Base stage",
   account: "Account",
   column: (name, n) => plural("en", n, { one: `${name}, # card`, other: `${name}, # cards` }),
-  columnOf: (name, shown, all) => `${name}, ${formatNumber(shown, "en")} of ${formatNumber(all, "en")} shown`,
-  of: (shown, all) => `${formatNumber(shown, "en")} of ${formatNumber(all, "en")}`,
   emptyColumn: "Nothing here",
   readOnly:
     "Read only: WireCat cannot run this CRM's own tool yet, so a change would stay on this computer. Change stages in the CRM, then sync.",
@@ -118,8 +112,6 @@ const en: Words = {
   place: (column, at, of) => `${column}, place ${at} of ${of}.`,
   dropped: (ref, column) => `Dropped ${ref} in ${column}.`,
   putBack: (ref, reason) => (reason ? `${ref} is back where it was: ${reason}` : `${ref} is back where it was.`),
-  readOnlyShort: "this CRM's cards change in the CRM.",
-  otherPipeline: "a card moves only between the stages of its own pipeline.",
   notMoved: (reason) => `Not moved: ${reason}`,
   scope: "Sync",
   scopes: { mine: "Mine", all: "Everyone's" },
@@ -193,8 +185,6 @@ const ru: Words = {
   account: "Аккаунт",
   column: (name, n) =>
     plural("ru", n, { one: `${name}, # карточка`, few: `${name}, # карточки`, other: `${name}, # карточек` }),
-  columnOf: (name, shown, all) => `${name}, показано ${formatNumber(shown, "ru")} из ${formatNumber(all, "ru")}`,
-  of: (shown, all) => `${formatNumber(shown, "ru")} из ${formatNumber(all, "ru")}`,
   emptyColumn: "Пусто",
   readOnly:
     "Только чтение: WireCat пока не умеет запускать инструмент этой CRM, и изменение осталось бы только на этом компьютере. Меняйте этапы в CRM, затем синхронизируйте.",
@@ -204,8 +194,6 @@ const ru: Words = {
   place: (column, at, of) => `${column}, место ${at} из ${of}.`,
   dropped: (ref, column) => `${ref} перенесена в «${column}».`,
   putBack: (ref, reason) => (reason ? `${ref} вернулась на место: ${reason}` : `${ref} вернулась на место.`),
-  readOnlyShort: "карточки этой CRM меняются в самой CRM.",
-  otherPipeline: "карточка переходит только между этапами своей воронки.",
   notMoved: (reason) => `Не перенесено: ${reason}`,
   scope: "Синхронизировать",
   scopes: { mine: "Мои", all: "Все" },
@@ -281,8 +269,6 @@ const es: Words = {
   baseStage: "Etapa base",
   account: "Cuenta",
   column: (name, n) => plural("es", n, { one: `${name}, # tarjeta`, other: `${name}, # tarjetas` }),
-  columnOf: (name, shown, all) => `${name}, se muestran ${formatNumber(shown, "es")} de ${formatNumber(all, "es")}`,
-  of: (shown, all) => `${formatNumber(shown, "es")} de ${formatNumber(all, "es")}`,
   emptyColumn: "Nada aquí",
   readOnly:
     "Solo lectura: WireCat aún no puede ejecutar la herramienta de este CRM, así que un cambio se quedaría en este ordenador. Cambia las etapas en el CRM y sincroniza.",
@@ -292,8 +278,6 @@ const es: Words = {
   place: (column, at, of) => `${column}, puesto ${at} de ${of}.`,
   dropped: (ref, column) => `${ref} soltada en ${column}.`,
   putBack: (ref, reason) => (reason ? `${ref} ha vuelto a su sitio: ${reason}` : `${ref} ha vuelto a su sitio.`),
-  readOnlyShort: "las tarjetas de este CRM se cambian en el CRM.",
-  otherPipeline: "una tarjeta solo pasa entre las etapas de su propio embudo.",
   notMoved: (reason) => `No se movió: ${reason}`,
   scope: "Sincronizar",
   scopes: { mine: "Mías", all: "De todos" },

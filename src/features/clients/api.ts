@@ -1,14 +1,13 @@
 import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
 import { withBaseMove, withMapping } from "@/domain/base-stages"
 import { crmToolOf, findTool } from "@/domain/catalog"
-import { accountKey, type Kind, withMove, writerProfile } from "@/domain/clients"
+import { accountKey, type Kind, writerProfile } from "@/domain/clients"
 import { useSync } from "@/features/tools"
 import type { CrmAccount, CrmBaseEdit, CrmBaseRef, CrmCard, CrmPipeline, CrmRead, CrmVia } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { queryClient } from "@/shared/query"
 import { useClients } from "./store"
 
-export type Ready = Extract<CrmRead, { kind: "ready" }>
 export type Based = Extract<CrmRead, { kind: "base" }>
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -25,7 +24,7 @@ export const useBoard = (kind: Kind, pipeline: string | null) =>
   // A read is six memo processes; a page opened again within a minute shows the last answer instead of waiting.
   useQuery({
     queryKey: clientKeys.board(kind, pipeline),
-    queryFn: () => platform.clientsRead(kind, pipeline),
+    queryFn: () => platform.clientsRead(kind),
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   })
@@ -57,7 +56,6 @@ export function useMove(kind: Kind, pipeline: string | null) {
       useClients.getState().refuse(ref, null)
       await queryClient().cancelQueries({ queryKey: key })
       const before = queryClient().getQueryData<CrmRead>(key)
-      if (before?.kind === "ready") queryClient().setQueryData<Ready>(key, withMove(before, ref, stage))
       if (before?.kind === "base") queryClient().setQueryData<Based>(key, withBaseMove(before, ref, stage))
       return { before }
     },

@@ -241,7 +241,7 @@ function createTauri(): Platform {
     memoryFilePreview: () => call(v.nullable(FilePreviewSchema), "memory_file_preview"),
     memoryLinkPreview: (url) => call(v.nullable(LinkPreviewSchema), "memory_link_preview", { url }),
     memoryForget: (ref) => call(ForgotSchema, "memory_forget", { reference: ref }),
-    clientsRead: (kind, pipeline) => invoke("clients_read", { kind, pipeline }),
+    clientsRead: (kind) => invoke("clients_read", { kind }),
     clientsMove: (kind, ref, stage, via) => invoke("clients_move", { kind, reference: ref, stage, via }),
     clientsScope: (account, profile) => invoke("clients_scope", { account, profile }),
     clientsScopeSet: (account, profile, scope) => invoke("clients_scope_set", { account, profile, scope }),
