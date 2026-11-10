@@ -1,6 +1,6 @@
 use crate::catalog::{self, Tool};
 use crate::redact::Names;
-use crate::{paths, run, tools};
+use crate::tools;
 use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::mpsc::{self, Sender};
@@ -80,7 +80,7 @@ fn listing(tool: &Tool, profile: &str, args: &[String]) -> Option<Vec<String>> {
     let bin = tools::program(&tool.bin)?;
     let args = catalog::with_profile(args, Some(profile)).ok()?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), LISTING_TIMEOUT).ok()?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, LISTING_TIMEOUT).ok()?;
     if out.code != Some(0) {
         return None;
     }

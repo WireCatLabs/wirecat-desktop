@@ -24,6 +24,7 @@ use std::time::{Duration, Instant};
 /// How memo starts its command server; the one place to change when cli-core settles the name.
 pub const SERVER_ARGV: [&str; 2] = ["commands", "--serve"];
 const PROTOCOL: u64 = 1;
+const NOT_IN_SERVER: &str = "start it as a process of its own";
 const SERVERS: usize = 2;
 const READY_WAIT: Duration = Duration::from_secs(10);
 /// memo quits after 10 idle minutes; a request written as it quits would be lost, so it is retired first.
@@ -47,6 +48,15 @@ pub fn run(bin: &Path, args: &[&str], timeout: Duration) -> Result<Output, RunEr
 /// Starts a server for `bin` in the background, unless one runs, is starting, or memo has none.
 pub fn warm(bin: &Path) {
     POOL.warm(bin, &crate::paths::search_path());
+}
+
+/// A tool's command: memo's through a server, any other CLI's in a process of its own.
+pub fn run_tool(tool: &crate::catalog::Tool, bin: &Path, args: &[&str], timeout: Duration) -> Result<Output, RunError> {
+    if tool.id == "memo" {
+        run(bin, args, timeout)
+    } else {
+        run::run(bin, args, Some(&crate::paths::search_path()), timeout)
+    }
 }
 
 /// Ends every server: before memo is installed, updated or removed, before the store is reset or repaired, and when
@@ -188,10 +198,16 @@ impl Pool {
                 }
             }
         };
-        self.ask(bin, server, args, timeout).or_else(|asked| match asked {
+        let out = self.ask(bin, server, args, timeout).or_else(|asked| match asked {
             Asked::NotSent => spawn(),
             Asked::Failed(e) => Err(e),
-        })
+        })?;
+        // cli-core refuses in a server a command that never returns, waits on a person or reads stdin; a process of
+        // its own runs it as before.
+        if out.code != Some(0) && out.stderr.contains(NOT_IN_SERVER) {
+            return spawn();
+        }
+        Ok(out)
     }
 
     fn lock(&self) -> MutexGuard<'_, State> {
@@ -511,6 +527,7 @@ if [ "$1 $2" = "commands --serve" ]; then
       *'"hold"'*) sleep 1 ;;
       *'"die"'*) exit 3 ;;
       *'"bad"'*) echo "{\"id\":$id,\"code\":0}"; continue ;;
+      *'"waits"'*) echo "{\"id\":$id,\"code\":2,\"stdout\":\"\",\"stderr\":\"error: waits on a person; start it as a process of its own\"}"; continue ;;
       *'"stray"'*) echo 'a note'; echo '{"id":999,"code":0,"stdout":"","stderr":""}' ;;
     esac
     printf '{"id":%s,"code":0,"stdout":"{\\"via\\":\\"server\\",\\"pid\\":%s}\\n","stderr":"%s"}\n' "$id" "$$" "$WIRECAT_CALLER"
@@ -628,6 +645,16 @@ echo '{"via":"spawn"}'
         let first = via(&out).1.unwrap();
         assert_eq!(served_by(&pool, &fake), first);
         assert_eq!((starts(&pool), pool.served.load(Ordering::Relaxed)), (1, 2));
+    }
+
+    #[test]
+    fn a_command_the_server_refuses_runs_in_a_process_of_its_own() {
+        let fake = Fake::new("refused-here", SPEAKS);
+        let pool = pool(1, Duration::from_secs(10));
+        let server = served_by(&pool, &fake);
+        let out = call(&pool, &fake, "waits", Duration::from_secs(10)).unwrap();
+        assert_eq!((out.code, via(&out)), (Some(0), ("spawn".into(), None)));
+        assert_eq!(served_by(&pool, &fake), server);
     }
 
     #[test]

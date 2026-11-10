@@ -1,5 +1,5 @@
 use crate::catalog::{self, SettingsShape, SettingsSource, Tool};
-use crate::{paths, redact, run};
+use crate::{redact, run};
 use serde::Serialize;
 use serde_json::{Map, Value};
 use std::time::Duration;
@@ -90,7 +90,7 @@ pub(crate) fn run_tool(tool: &Tool, args: &[String]) -> Result<run::Output, Stri
 pub(crate) fn run_tool_for(tool: &Tool, args: &[String], timeout: Duration) -> Result<run::Output, String> {
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    run::run(&bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())
+    crate::memo_server::run_tool(tool, &bin, &refs, timeout).map_err(|e| e.to_string())
 }
 
 pub(crate) fn parsed(out: &run::Output) -> Option<Value> {

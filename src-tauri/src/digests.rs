@@ -8,8 +8,10 @@ use crate::deep_link::{self, Target};
 use crate::{catalog, storage};
 use serde::Serialize;
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
+use std::sync::{LazyLock, Mutex, PoisonError};
+use std::time::SystemTime;
 
 const SCHEDULE: &str = "morning-digest";
 /// A digest is a page of text; a larger file is not one memo wrote.
@@ -119,6 +121,29 @@ fn day_of(dir: &Path, stamp: &str) -> Option<Day> {
     Some(Day { date: local_day(stamp)?, stamp: stamp.to_string(), summary, report: false, backfill: false })
 }
 
+/// The modification times of a run's two files: a run whose files did not change is not parsed again.
+type Seen = (Option<SystemTime>, Option<SystemTime>);
+
+/// The watcher lists the runs every minute; parsing every past report each time grows with the history.
+static PARSED: LazyLock<Mutex<HashMap<PathBuf, (Seen, Option<Day>)>>> = LazyLock::new(Mutex::default);
+
+fn modified(path: &Path) -> Option<SystemTime> {
+    std::fs::metadata(path).and_then(|m| m.modified()).ok()
+}
+
+fn day_seen(dir: &Path, stamp: &str) -> Option<Day> {
+    let seen = (modified(&dir.join(format!("{stamp}.report.json"))), modified(&dir.join(format!("{stamp}.md"))));
+    let key = dir.join(stamp);
+    if let Some((was, day)) = PARSED.lock().unwrap_or_else(PoisonError::into_inner).get(&key)
+        && *was == seen
+    {
+        return day.clone();
+    }
+    let day = day_of(dir, stamp);
+    PARSED.lock().unwrap_or_else(PoisonError::into_inner).insert(key, (seen, day.clone()));
+    day
+}
+
 fn days_in(dir: &Path) -> Vec<Day> {
     let Ok(entries) = std::fs::read_dir(dir) else { return Vec::new() };
     let mut stamps: Vec<String> = entries
@@ -130,7 +155,7 @@ fn days_in(dir: &Path) -> Vec<Day> {
     stamps.dedup();
     let mut by_day: BTreeMap<String, Day> = BTreeMap::new();
     for stamp in stamps {
-        if let Some(day) = day_of(dir, &stamp) {
+        if let Some(day) = day_seen(dir, &stamp) {
             by_day.insert(day.date.clone(), day);
         }
     }
@@ -242,6 +267,27 @@ mod tests {
         );
         assert_eq!(short("## \n- __Two__ things"), "Two things");
         assert_eq!(short("3 * 4 stays"), "3 * 4 stays");
+    }
+
+    #[test]
+    fn a_run_is_parsed_again_only_when_its_file_changes() {
+        let dir = std::env::temp_dir().join(format!("wirecat-digest-seen-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        let file = dir.join("2026-11-08T07-30-10Z.report.json");
+        let write = |summary: &str, secs: u64| {
+            let doc = serde_json::json!({ "format": "wirecat.report/1", "date": "2026-11-08", "summary": summary });
+            std::fs::write(&file, doc.to_string()).unwrap();
+            let at = SystemTime::UNIX_EPOCH + std::time::Duration::from_secs(secs);
+            std::fs::File::options().write(true).open(&file).unwrap().set_modified(at).unwrap();
+        };
+        write("first", 1_000);
+        assert_eq!(days_in(&dir)[0].summary.as_deref(), Some("first"));
+        write("second", 1_000);
+        assert_eq!(days_in(&dir)[0].summary.as_deref(), Some("first"), "same stamp, same time: not read again");
+        write("third", 2_000);
+        assert_eq!(days_in(&dir)[0].summary.as_deref(), Some("third"));
+        std::fs::remove_dir_all(&dir).unwrap();
     }
 
     #[test]

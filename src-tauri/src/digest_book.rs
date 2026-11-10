@@ -350,13 +350,19 @@ pub fn book() -> Result<DigestBook, String> {
         Ok(memo) => memo,
         Err(shown) => return Ok(shown),
     };
-    let (out, json) = call(memo, &words(&["digest", "list", "--json"]), CALL)?;
+    // Both lists are needed whatever the first answers, so they are asked together.
+    let (listed, schedules) = std::thread::scope(|s| {
+        let schedules = s.spawn(digest_schedule::status);
+        (call(memo, &words(&["digest", "list", "--json"]), CALL), schedules.join())
+    });
+    let schedules = schedules.map_err(|_| "reading the schedules failed".to_string())?;
+    let (out, json) = listed?;
     if older(json.as_ref(), "list") {
         let has_days = digests::list(None).is_ok_and(|d| !d.is_empty());
-        return Ok(read_old(digest_schedule::status()?, has_days));
+        return Ok(read_old(schedules?, has_days));
     }
     match json {
-        Some(v) if out.code == Some(0) => Ok(read_named(&v, digest_schedule::status()?, harness())),
+        Some(v) if out.code == Some(0) => Ok(read_named(&v, schedules?, harness())),
         j => Err(failure(&out, j.as_ref())),
     }
 }

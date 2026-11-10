@@ -4,7 +4,7 @@
 //! The ids and addresses are the owner's own and leave Rust unmasked, the exception routes already are (rule 4); never
 //! logged.
 
-use crate::{bots, catalog, paths, run, tools};
+use crate::{bots, catalog, tools};
 use serde::Serialize;
 use serde_json::Value;
 use std::time::Duration;
@@ -41,7 +41,7 @@ fn rows(id: &str) -> Vec<Value> {
     let Ok(tool) = catalog::tool(id) else { return Vec::new() };
     let (Some(src), Some(bin)) = (&tool.profiles, tools::program(&tool.bin)) else { return Vec::new() };
     let args: Vec<&str> = src.args.iter().map(String::as_str).collect();
-    run::run(&bin, &args, Some(&paths::search_path()), CALL)
+    crate::memo_server::run_tool(tool, &bin, &args, CALL)
         .ok()
         .and_then(|out| out.json())
         .and_then(|v| v["items"].as_array().cloned())

@@ -26,11 +26,15 @@ pub(crate) type Feed<'a> = dyn Fn(&[String], Option<&[u8]>) -> Result<Value, Str
 
 fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration, worded: &[&str]) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let Some(input) = input else {
+        let out = crate::memo_server::run(bin, &refs, timeout).map_err(|e| e.to_string())?;
+        return panel_answer(&out, false, worded);
+    };
     let cmd = run::command(bin, &refs, Some(&paths::search_path()));
     let (mut stdout, mut stderr) = (String::new(), String::new());
     let code = run::stream_with_input(
         cmd,
-        input,
+        Some(input),
         timeout,
         || false,
         |line| match line {
@@ -39,7 +43,7 @@ fn fed(bin: &Path, args: &[String], input: Option<&[u8]>, timeout: Duration, wor
         },
     )
     .map_err(|e| e.to_string())?;
-    panel_answer(&run::Output { code, stdout, stderr }, input.is_some(), worded)
+    panel_answer(&run::Output { code, stdout, stderr }, true, worded)
 }
 
 /// memo's refusals of a source or a reader, which the panel words in the owner's language.

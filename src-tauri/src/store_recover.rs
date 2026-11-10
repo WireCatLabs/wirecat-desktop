@@ -32,7 +32,10 @@ const STEP_TIMEOUT: Duration = Duration::from_mins(30);
 pub fn report(tool: &Tool) -> Result<Option<Value>, String> {
     let Some(args) = tool.store_recover.as_ref() else { return Ok(None) };
     // Exit 1 means damaged, so the answer is read whatever the code.
-    let out = settings::run_tool_for(tool, args, CHECK_TIMEOUT)?;
+    // Not through memo's server: the check names the processes holding the store, and the server would be one.
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    let out = run::run(&bin, &refs, Some(&paths::search_path()), CHECK_TIMEOUT).map_err(|e| e.to_string())?;
     let json = out.json();
     let Some(found) = json.as_ref().and_then(damage_of) else {
         if json.as_ref().is_some_and(|v| v["item"].is_object() || unknown_command(v)) {
