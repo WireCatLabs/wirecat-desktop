@@ -1,6 +1,15 @@
 import { ArrowRight, Check, ChevronDown, LoaderCircle, Plus, X } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
-import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
+import {
+  byReviewRank,
+  can,
+  entryInTab,
+  matchesFilter,
+  memoryFilter,
+  reviewRank,
+  subjectOf,
+  type Tab,
+} from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
@@ -47,7 +56,8 @@ export function MemoryPage() {
   const ready = s.read?.kind === "ready" ? s.read : null
   const filter = memoryFilter(s.query)
   const filtered = s.entries.filter((e) => matchesFilter(e, filter))
-  const groups = bySubjectGroups(filtered.filter((e) => entryInTab(s.tab, e) || s.held.includes(e.ref)))
+  const inTab = filtered.filter((e) => entryInTab(s.tab, e) || s.held.includes(e.ref))
+  const groups = bySubjectGroups(s.tab === "review" ? byReviewRank(inTab) : inTab, s.tab === "review")
   const ordered = groups.flatMap((g) => g.entries)
   const pages = Math.max(1, Math.ceil(ordered.length / s.pageSize))
   const at = Math.min(s.page, pages)
@@ -218,8 +228,8 @@ function Rack({
 
 type Group = { key: string; entries: MemoryEntry[]; waiting: number }
 
-/** Version 2: one run per subject, those with something waiting first, then the most recently touched. */
-function bySubjectGroups(entries: MemoryEntry[]): Group[] {
+/** One run per subject: those with something waiting first, in Waiting for you the one whose first record ranks highest, then the most recently touched. */
+function bySubjectGroups(entries: MemoryEntry[], ranked: boolean): Group[] {
   const groups = new Map<string, Group>()
   for (const e of entries) {
     const key = subjectOf(e)?.key ?? ""
@@ -231,10 +241,13 @@ function bySubjectGroups(entries: MemoryEntry[]): Group[] {
   return [...groups.values()].sort(
     (a, b) =>
       Number(b.waiting > 0) - Number(a.waiting > 0) ||
+      (ranked ? rankOf(a) - rankOf(b) : 0) ||
       (b.key === "" ? -1 : 0) - (a.key === "" ? -1 : 0) ||
       (b.entries[0]?.createdAt ?? "").localeCompare(a.entries[0]?.createdAt ?? ""),
   )
 }
+
+const rankOf = (g: Group) => (g.entries[0] ? reviewRank(g.entries[0]) : 2)
 
 /** Approves every single row on screen; the count says how many, and the rows turn green where they are. */
 function ApproveShown({ refs }: { refs: string[] }) {

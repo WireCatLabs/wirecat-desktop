@@ -24,7 +24,9 @@ export function Page({
     <div
       className={cx(
         "flex min-w-0 flex-col px-[2.1rem] pt-[1.6rem]",
-        fill ? "h-full gap-[1rem] pb-[1.2rem]" : "gap-[1.5rem] pb-[2.2rem]",
+        // A spacer, not padding: when the header and a board at its least overflow the window, the padding of a
+        // full-height box would be left behind and the board would end at the window's edge.
+        fill ? "h-full gap-[1rem] after:h-[0.2rem] after:shrink-0 after:content-['']" : "gap-[1.5rem] pb-[2.2rem]",
         className,
       )}
     >
