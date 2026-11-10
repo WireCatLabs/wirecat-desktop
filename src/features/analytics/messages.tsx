@@ -61,7 +61,9 @@ const en = {
     `${chats} ${chats === "1" ? "chat" : "chats"} · ${messages} messages${last ? ` · last ${last}` : ""}`,
   untitledChat: "A chat",
   chatsNote:
-    "Chats and messages count the chats linked to each project and its sub-projects. Muted chats are not counted.",
+    "Chats and messages count the chats linked to each project and its sub-projects. A muted chat is counted as a chat, its messages are not.",
+  partialProject: "some sub-projects not counted",
+  projectsCut: "Only the 200 busiest projects are shown.",
   noProjects: "No project has tasks, memory or linked chats in this period.",
   projectsTable: "Tasks, memory and linked chats per project",
 
@@ -308,7 +310,10 @@ const ru: typeof en = {
   memoryCol: "Память",
   chatLine: (chats, messages, last) => `чатов: ${chats} · сообщений: ${messages}${last ? ` · последнее ${last}` : ""}`,
   untitledChat: "Чат",
-  chatsNote: "Чаты и сообщения — по чатам, привязанным к проекту и его подпроектам. Чаты без звука не учитываются.",
+  chatsNote:
+    "Чаты и сообщения — по чатам, привязанным к проекту и его подпроектам. Чат без звука считается как чат, его сообщения — нет.",
+  partialProject: "часть подпроектов не учтена",
+  projectsCut: "Показаны только 200 самых активных проектов.",
   noProjects: "За этот период ни в одном проекте нет задач, памяти или привязанных чатов.",
   projectsTable: "Задачи, память и привязанные чаты по проектам",
 
@@ -552,7 +557,9 @@ const es: typeof en = {
     `${chats} ${chats === "1" ? "chat" : "chats"} · ${messages} mensajes${last ? ` · último ${last}` : ""}`,
   untitledChat: "Un chat",
   chatsNote:
-    "Chats y mensajes cuentan los chats vinculados a cada proyecto y sus subproyectos. Los chats silenciados no cuentan.",
+    "Chats y mensajes cuentan los chats vinculados a cada proyecto y sus subproyectos. Un chat silenciado cuenta como chat, sus mensajes no.",
+  partialProject: "faltan algunos subproyectos",
+  projectsCut: "Solo se muestran los 200 proyectos más activos.",
   noProjects: "Ningún proyecto tiene tareas, memoria ni chats vinculados en este periodo.",
   projectsTable: "Tareas, memoria y chats vinculados por proyecto",
 

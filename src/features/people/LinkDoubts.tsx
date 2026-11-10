@@ -115,7 +115,13 @@ function DoubtRow({ doubt }: { doubt: Doubt }) {
           </Button>
         )}
         {unmerge && (
-          <Button size="sm" onClick={() => askUndo({ ref: doubt.person, merge: unmerge.merge })}>
+          <Button
+            size="sm"
+            onClick={() => {
+              need(doubt.person)
+              askUndo({ ref: doubt.person, merge: unmerge.merge })
+            }}
+          >
             {m.undo}
           </Button>
         )}

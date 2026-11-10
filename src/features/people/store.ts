@@ -214,9 +214,13 @@ export const usePeople = create<PeopleState>((set, get) => {
           ),
         ],
         matchesMore: read.matchesMore,
+        // A decided split keeps its place; one memo lists for the first time goes after the rest.
         splits: [
-          ...read.splits,
-          ...s.splits.filter((x) => s.splitDecided[x.id] && !read.splits.some((r) => r.id === x.id)),
+          ...s.splits.flatMap((x) => {
+            const fresh = read.splits.find((r) => r.id === x.id)
+            return fresh ? [fresh] : s.splitDecided[x.id] ? [x] : []
+          }),
+          ...read.splits.filter((r) => !s.splits.some((x) => x.id === r.id)),
         ],
       }))
       return new Set(read.matches.map((m) => m.id))
@@ -284,11 +288,12 @@ export const usePeople = create<PeopleState>((set, get) => {
           })
           .catch(() => undefined)
       }
-      if (counts) void get().readDoubts()
       // The page is read beside the matches, not after them: the rows paint as soon as memo cuts them.
       const paged = older ? null : get().readPage()
       try {
         const read = await platform.peopleRead(get().kind)
+        // After the read, not beside it: memo's command server runs two calls at once and starts anew for a third.
+        if (counts) void get().readDoubts()
         if (call !== seq) return
         const ready = read.kind === "ready" ? read : null
         const kinded = ready?.kinded ?? false
@@ -474,10 +479,16 @@ export const usePeople = create<PeopleState>((set, get) => {
     async decideSplit(id, answer, reason) {
       const split = get().splits.find((x) => x.id === id)
       if (!split) return false
+      const d = get().details[split.person]
+      const merged = d?.state === "ready" ? d.person.merges.find((m) => m.id === split.merge) : undefined
+      const from = answer === "confirm" && split.op === "unmerge" ? (merged?.from ?? "") : ""
       const updated = await run(id, answer, () => platform.peopleSplitDecide(split.person, id, answer, reason))
       if (!updated) return false
-      set((s) => ({ splitDecided: { ...s.splitDecided, [id]: answer } }))
-      await settle(updated, split.person, [])
+      set((s) => ({
+        splitDecided: { ...s.splitDecided, [id]: answer },
+        ...(from ? { done: { ...s.done, [split.person]: { op: "unmerge" as const, from } } } : {}),
+      }))
+      await settle(updated, split.person, from ? [from] : [])
       if (answer === "confirm") void get().readDoubts()
       return true
     },

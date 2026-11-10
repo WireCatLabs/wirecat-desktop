@@ -469,7 +469,7 @@ export function peopleMock(): Pick<
       await write()
       const m = matches.find((x) => x.id === id && shown(ref).matches.includes(x))
       if (!m) throw new Error("This match is not open on this person any more. Read again.")
-      if (answer === "reject" && !reason?.trim()) throw new Error("Say in a few words why they are not one person.")
+      if (answer === "reject" && !reason?.trim()) throw new Error("Say in a few words why they belong together.")
       if (answer === "confirm" && fail === "stale") throw new Error("identity.stale")
       matches = matches.filter((x) => x.id !== id)
       if (answer === "confirm") {
@@ -544,7 +544,7 @@ export function peopleMock(): Pick<
       await write()
       const split = splits.find((x) => x.id === id && x.person === ref)
       if (!split) throw new Error("proposal.wrong-state")
-      if (answer === "reject" && !reason?.trim()) throw new Error("Say in a few words why they are not one person.")
+      if (answer === "reject" && !reason?.trim()) throw new Error("Say in a few words why they belong together.")
       if (answer === "confirm" && fail === "stale") throw new Error("identity.stale")
       splits = splits.filter((x) => x.id !== id)
       if (answer === "reject") return shown(ref)

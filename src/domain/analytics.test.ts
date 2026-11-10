@@ -144,7 +144,7 @@ describe("tasks", () => {
       "30d",
       TODAY,
     )
-    const none = { chats: null, messages: null, lastAt: null, top: [] }
+    const none = { chats: null, messages: null, lastAt: null, top: [], partial: false }
     expect(rows).toEqual([
       { key: "HRB", name: "Harbour", open: 4, overdue: 1, closed: 0, memories: 0, ...none },
       { key: "WEB", name: "Website", open: 0, overdue: 0, closed: 2, memories: 1, ...none },

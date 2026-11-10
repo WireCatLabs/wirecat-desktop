@@ -584,10 +584,19 @@ fn decide_split_with(
     if id.is_empty() || !id.bytes().all(|b| b.is_ascii_digit()) {
         return Err("Not a proposal memo listed. Read again.".into());
     }
-    let mut args = decision(&["people", if answer == Answer::Confirm { "confirm" } else { "reject" }, id]);
-    if answer == Answer::Reject {
-        args.push(reason_word(reason)?);
+    let why = match answer {
+        Answer::Reject => {
+            Some(reason_word(reason).map_err(|_| "Say in a few words why they belong together.".to_string())?)
+        }
+        Answer::Confirm => None,
+    };
+    // `people confirm` takes a match's id too, and both share one sequence: only a split listed on this person goes.
+    let review = call(&words(&["people", "review", "--limit", MATCH_LIMIT]))?;
+    if !list(&review, "items", split_row).iter().any(|s| s.id == id && s.person == reference) {
+        return Err("This split is not open on this person any more. Read again.".into());
     }
+    let mut args = decision(&["people", if answer == Answer::Confirm { "confirm" } else { "reject" }, id]);
+    args.extend(why);
     decided(&call(&args)?, id)?;
     show_with(call, reference)
 }
@@ -872,15 +881,20 @@ mod tests {
     #[test]
     fn a_split_is_decided_by_the_owner_with_peoples_own_commands() {
         let f = Fake::new("split-confirm");
-        decide_split_with(&|a| f.call(a), "person:3", "1", Answer::Confirm, None).unwrap();
+        let listed = |a: &[String]| if a[1] == "review" { Ok(fixture("review-split")) } else { f.call(a) };
+        decide_split_with(&listed, "person:3", "1", Answer::Confirm, None).unwrap();
         assert_eq!(f.seen()[0], strs(&["people", "confirm", "1", "--from-app", "--json", "--no-record"]));
+        let gone = decide_split_with(&listed, "person:8", "1", Answer::Confirm, None).unwrap_err();
+        assert!(gone.contains("not open"), "{gone}");
+        assert!(decide_split_with(&listed, "person:3", "5", Answer::Confirm, None).is_err(), "a match id is no split");
 
         let r = Fake::new("split-confirm");
-        let no = decide_split_with(&|a| r.call(a), "person:3", "1", Answer::Reject, Some("  ")).unwrap_err();
-        assert!(no.contains("why"), "{no}");
+        let listed = |a: &[String]| if a[1] == "review" { Ok(fixture("review-split")) } else { r.call(a) };
+        let no = decide_split_with(&listed, "person:3", "1", Answer::Reject, Some("  ")).unwrap_err();
+        assert!(no.contains("belong together"), "{no}");
         assert!(r.seen().is_empty(), "nothing is sent without a reason");
-        assert!(decide_split_with(&|a| r.call(a), "person:3", "1 --yes", Answer::Confirm, None).is_err());
-        decide_split_with(&|a| r.call(a), "person:3", "1", Answer::Reject, Some("one man")).unwrap();
+        assert!(decide_split_with(&listed, "person:3", "1 --yes", Answer::Confirm, None).is_err());
+        decide_split_with(&listed, "person:3", "1", Answer::Reject, Some("one man")).unwrap();
         assert_eq!(
             r.seen()[0],
             strs(&["people", "reject", "1", "--from-app", "--json", "--no-record", "--reason=one man"])
@@ -901,7 +915,7 @@ mod tests {
         );
         assert_eq!((d.total, d.more, d.items.len()), (Some(2), true, 2));
         assert_eq!(d.items[0].reason, "mixed-names");
-        assert!(d.items[0].moves.is_empty());
+        assert_eq!(d.items[0].moves.len(), 0);
         assert_eq!(
             d.items[1].moves,
             [

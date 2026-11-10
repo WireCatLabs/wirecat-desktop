@@ -417,6 +417,7 @@ export function Projects() {
   const keyOf = (p: string) => projects.find((x) => x.ref === p)?.key ?? p
   const entries = memory.state === "ready" && memory.data.kind === "ready" ? memory.data.entries : []
   const chats = activity.ready[0]?.body.items ?? null
+  const cutShort = activity.ready[0]?.body.page.has_more ?? false
   const rows =
     tasks.state === "ready"
       ? projectRows(
@@ -482,6 +483,7 @@ export function Projects() {
                             formatNumber(r.messages, lang),
                             r.lastAt ? formatDate(r.lastAt, { dateStyle: "medium" }, lang) : null,
                           )}
+                          {r.partial && ` · ${m.partialProject}`}
                         </span>
                       )}
                       {r.top.length > 0 && (
@@ -503,7 +505,10 @@ export function Projects() {
           </div>
           {pages > 1 && <Pager page={at} onPage={setPage} total={rows.length} size={PROJECT_PAGE} />}
           {chats ? (
-            <Note>{m.chatsNote}</Note>
+            <Note>
+              {m.chatsNote}
+              {cutShort && ` ${m.projectsCut}`}
+            </Note>
           ) : (
             activity.problems.length > 0 && <SourceProblems problems={activity.problems} />
           )}

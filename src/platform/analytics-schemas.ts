@@ -140,8 +140,10 @@ export const ProjectActivitySchema = v.looseObject({
       sent: n,
       last_at: v.nullable(v.string()),
       top: v.array(v.looseObject({ ref: v.string(), title: v.nullable(v.string()), messages: n })),
+      partial: v.optional(v.boolean(), false),
     }),
   ),
+  page: v.optional(v.looseObject({ has_more: v.optional(v.boolean(), false) }), { has_more: false }),
 })
 
 export type ProjectActivity = v.InferOutput<typeof ProjectActivitySchema>["items"][number]

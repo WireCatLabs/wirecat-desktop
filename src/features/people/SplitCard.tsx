@@ -57,9 +57,10 @@ export function SplitCard({ split }: { split: Split }) {
   }, [asking])
 
   const person = detail?.state === "ready" ? detail.person : null
-  const leaving: (Identity | string)[] = split.identities.map(
-    (ref) => person?.identities.find((i) => i.identity === ref) ?? ref,
-  )
+  // Split, the person no longer holds these accounts: the card keeps naming them as it did before.
+  const held = useRef<Record<string, Identity>>({})
+  for (const i of person?.identities ?? []) if (split.identities.includes(i.identity)) held.current[i.identity] = i
+  const leaving: (Identity | string)[] = split.identities.map((ref) => held.current[ref] ?? ref)
   const from = split.merge ? person?.merges.find((x) => x.id === split.merge)?.from : null
   const evidence = split.evidence.filter((e) => !split.identities.includes(e) && e !== split.merge)
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />

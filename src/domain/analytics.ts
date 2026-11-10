@@ -201,6 +201,8 @@ export type ProjectRow = {
   messages: number | null
   lastAt: string | null
   top: { title: string | null; messages: number }[]
+  /** Some sub-projects were too deep or too many for memo to read. */
+  partial: boolean
 }
 
 type Activity = {
@@ -211,6 +213,7 @@ type Activity = {
   messages: number
   last_at: string | null
   top: readonly { title: string | null; messages: number }[]
+  partial?: boolean
 }
 
 type Facet = { value: string; name: string | null; count: number }
@@ -248,6 +251,7 @@ export function projectRows(
       messages: activity ? 0 : null,
       lastAt: null,
       top: [],
+      partial: false,
     }
     rows.set(key, made)
     return made
@@ -262,7 +266,13 @@ export function projectRows(
   for (const a of activity ?? []) {
     if (a.chats === 0) continue
     const r = row(a.key ?? a.ref, a.name)
-    Object.assign(r, { chats: a.chats, messages: a.messages, lastAt: a.last_at, top: a.top.filter((t) => t.messages) })
+    Object.assign(r, {
+      chats: a.chats,
+      messages: a.messages,
+      lastAt: a.last_at,
+      top: a.top.filter((t) => t.messages),
+      partial: a.partial ?? false,
+    })
   }
   const weight = (r: ProjectRow) => r.open + r.closed + r.memories + (r.messages ?? 0)
   return [...rows.values()]

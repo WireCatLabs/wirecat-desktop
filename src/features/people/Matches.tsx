@@ -19,7 +19,7 @@ export function MatchesWaiting() {
   const waiting = usePeople(
     (s) => groupMatches(s.matches, s.decided).filter((g) => g.matches.some((x) => !s.decided[x.id])).length,
   )
-  const splits = usePeople((s) => s.splits.filter((x) => !s.splitDecided[x.id]).length)
+  const splits = usePeople((s) => new Set(s.splits.filter((x) => !s.splitDecided[x.id]).map((x) => x.person)).size)
   const head = useId()
   if (waiting + splits === 0) return null
   return (
