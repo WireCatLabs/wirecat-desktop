@@ -457,7 +457,9 @@ describe("Importing from a CRM", () => {
     })
     render(<ClientsPage />)
     expect(await screen.findByText("Nothing is imported from a CRM yet.", {}, { timeout: 4000 })).toBeInTheDocument()
-    expect(screen.getByText("Only your own deals are imported, and the clients on them.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Only the deals of the CRM users you chose are imported, and the clients on them."),
+    ).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Show leads" }))
     expect(useClients.getState().kind).toBe("lead")
   })
