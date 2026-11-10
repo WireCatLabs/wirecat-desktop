@@ -1,0 +1,112 @@
+{
+  "tools": {
+    "tg": {
+      "profile": "personal",
+      "account": { "id": "seed-tg-owner", "name": "Alex Demo", "username": "alexdemo" },
+      "chats": [
+        {
+          "id": "seed-tg-lena",
+          "title": "Lena Example",
+          "kind": "dialog",
+          "with": ["lena-example"],
+          "messages": [
+            [6, "09:12", "lena-example", "Morning! The new room photos are uploaded to the shared folder"],
+            [6, "09:30", "me", "Thanks, I will pick three for the booking page"],
+            [4, "18:05", "lena-example", "Did the invoice for October go out?"],
+            [4, "18:20", "me", "Yes, sent it yesterday, invoice 2026-114"],
+            [1, "10:02", "lena-example", "Can we move Friday's call to 15:00?"],
+            [1, "10:15", "me", "Works for me, I moved it in the calendar"]
+          ]
+        },
+        {
+          "id": "seed-tg-ines",
+          "title": "Ines Testova",
+          "kind": "dialog",
+          "with": ["ines-testova"],
+          "messages": [
+            [9, "11:40", "ines-testova", "Here is the first draft of the logo, three colour options"],
+            [9, "12:05", "me", "The dark blue one looks best, can you try a lighter font?"],
+            [7, "16:20", "ines-testova", "New version with the lighter font attached"],
+            [3, "09:45", "ines-testova", "Reminder: the invoice for the logo work is due on Monday"],
+            [2, "13:10", "me", "Paid today, thanks for the reminder"]
+          ]
+        },
+        {
+          "id": "seed-tg-studio",
+          "title": "Studio team",
+          "kind": "group",
+          "with": ["lena-example", "marco-sample", "ines-testova"],
+          "messages": [
+            [13, "09:00", "marco-sample", "Weekly plan: booking page, logo, October invoices"],
+            [13, "09:10", "lena-example", "I will finish the photos by Wednesday"],
+            [12, "15:30", "ines-testova", "Logo drafts are in the folder"],
+            [8, "10:00", "me", "Booking page is live on the test site, please have a look"],
+            [8, "10:45", "marco-sample", "Looks good, one typo in the prices table"],
+            [5, "17:20", "lena-example", "Client asked for a call next week about the spring campaign"],
+            [2, "09:05", "marco-sample", "Office is closed on Friday afternoon"],
+            [0, "08:50", "me", "Standup at 10 today, short one"]
+          ]
+        }
+      ]
+    },
+    "max": {
+      "profile": "personal",
+      "account": { "id": "seed-max-owner", "name": "Alex Demo", "username": null },
+      "chats": [
+        {
+          "id": "seed-max-marco",
+          "title": "Marco Sample",
+          "kind": "dialog",
+          "with": ["marco-sample"],
+          "messages": [
+            [10, "14:00", "marco-sample", "The contract draft for the orchard project is ready"],
+            [10, "14:30", "me", "Thanks, I will read it tonight"],
+            [6, "11:00", "marco-sample", "Any comments on the contract?"],
+            [6, "11:20", "me", "Two small changes, sending them by mail"],
+            [1, "16:40", "marco-sample", "Signed copy is in your inbox"]
+          ]
+        },
+        {
+          "id": "seed-max-suppliers",
+          "title": "Suppliers",
+          "kind": "group",
+          "with": ["marco-sample", "lena-example"],
+          "messages": [
+            [11, "09:30", "marco-sample", "Paper delivery moves to Thursday"],
+            [7, "12:00", "lena-example", "Printer invoice for October attached"],
+            [3, "15:15", "me", "Please send the new price list before the end of the month"]
+          ]
+        }
+      ]
+    },
+    "wa": {
+      "profile": "personal",
+      "account": { "id": "seed-wa-owner", "name": "Alex Demo", "username": null },
+      "chats": [
+        {
+          "id": "seed-wa-ines",
+          "title": "Ines Testova",
+          "kind": "dialog",
+          "with": ["ines-testova"],
+          "messages": [
+            [5, "19:10", "ines-testova", "Are you coming to the design meetup on Thursday?"],
+            [5, "19:30", "me", "Yes, see you there"],
+            [2, "08:15", "ines-testova", "Running ten minutes late"]
+          ]
+        },
+        {
+          "id": "seed-wa-family",
+          "title": "Family",
+          "kind": "group",
+          "with": ["lena-example", "ines-testova"],
+          "messages": [
+            [12, "20:00", "lena-example", "Dinner on Sunday at seven?"],
+            [12, "20:10", "me", "Sounds good"],
+            [4, "09:00", "ines-testova", "Photos from the weekend are in the album"],
+            [0, "07:40", "me", "Happy Monday everyone"]
+          ]
+        }
+      ]
+    }
+  }
+}
