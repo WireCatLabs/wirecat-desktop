@@ -51,5 +51,6 @@ describe("roleIdOf", () => {
     expect(roleIdOf("Board member")).toBe("board-member")
     expect(roleIdOf("  Café — owner! ")).toBe("cafe-owner")
     expect(roleIdOf("Совет директоров", 1_000_000)).toBe("own-lfls")
+    expect(roleIdOf("3D designer")).toBe("r-3d-designer")
   })
 })

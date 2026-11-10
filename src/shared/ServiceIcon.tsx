@@ -9,8 +9,8 @@ type Props = {
   label?: string
   className?: string
   /**
-   * Off where the name is read already, such as inside an option that carries it: otherwise the icon takes a tab stop
-   * so the keyboard reaches its name too.
+   * A tab stop that shows the name on focus. Off by default: rows and cards repeat the icon, and screen readers read
+   * its name without one.
    */
   focusable?: boolean
 }
@@ -19,7 +19,7 @@ type Props = {
  * A service's logo standing in for its name, so a row says "Telegram" without the word: screen readers read the name,
  * hover and focus show it. Beside a visible name, use `ToolIcon`, which is decoration.
  */
-export function ServiceIcon({ id, label, className, focusable = true }: Props) {
+export function ServiceIcon({ id, label, className, focusable = false }: Props) {
   const name = label ?? findTool(id)?.name ?? crmToolOf(id)?.name ?? id
   const tip = useTip({ delay: 300 })
   const anchor = useRef<HTMLSpanElement>(null)

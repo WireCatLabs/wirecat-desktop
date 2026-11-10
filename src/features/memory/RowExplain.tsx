@@ -6,6 +6,7 @@ import { formatDate, useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
+import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
@@ -180,7 +181,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
             />
           )}
         </div>
-        {list && <AddRole list={list} onAdded={setRole} />}
+        {list && <AddRole list={list} taken={listed.map((r) => r.id)} onAdded={setRole} />}
       </div>
       {!proposal && (
         <p id={hint} className="text-[0.9rem] text-ink-dim">
@@ -229,7 +230,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
 }
 
 /** The owner's own role, added to memo's list for this kind of link and chosen at once. */
-function AddRole({ list, onAdded }: { list: string; onAdded: (id: string) => void }) {
+function AddRole({ list, taken, onAdded }: { list: string; taken: readonly string[]; onAdded: (id: string) => void }) {
   const x = useMessages(explainedMessages)
   const addRole = useMemory((s) => s.addRole)
   const [open, setOpen] = useState(false)
@@ -237,65 +238,79 @@ function AddRole({ list, onAdded }: { list: string; onAdded: (id: string) => voi
   const [busy, setBusy] = useState(false)
   const field = useId()
   const need = useFieldError(field)
-  if (!open)
-    return (
-      <Button size="sm" variant="ghost" icon={<Plus className="size-4" aria-hidden />} onClick={() => setOpen(true)}>
-        {x.addRole}
-      </Button>
-    )
+  const close = () => {
+    setName("")
+    need.clear()
+    setOpen(false)
+  }
   const add = async () => {
     const label = name.trim()
     if (!label) return need.fail(x.newRoleMissing)
-    setBusy(true)
     const id = roleIdOf(label)
-    const refused = await addRole(list, id, label)
-    setBusy(false)
-    if (refused) return need.fail(x.addRoleFailed(refused))
+    if (!taken.includes(id)) {
+      setBusy(true)
+      const refused = await addRole(list, id, label)
+      setBusy(false)
+      if (refused) return need.fail(x.addRoleFailed(refused))
+    }
     onAdded(id)
-    setName("")
-    setOpen(false)
+    close()
   }
   return (
-    <div className="flex flex-col gap-[0.3rem]">
-      <label htmlFor={field} className="text-[0.9rem] text-ink-dim">
-        {x.newRole}
-      </label>
-      <div className="flex flex-wrap items-center gap-2">
-        <input
-          id={field}
-          // biome-ignore lint/a11y/noAutofocus: the owner just asked for this field
-          autoFocus
-          maxLength={80}
-          value={name}
-          onChange={(e) => {
-            setName(e.target.value)
-            need.clear()
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault()
-              void add()
-            }
-          }}
-          {...need.field}
-          className={cx(
-            "inner-field h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand",
-            invalidBorder,
-          )}
-        />
-        <Button
-          size="sm"
-          disabled={busy}
-          icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-          onClick={() => void add()}
-        >
+    <div className="flex flex-col">
+      {!open && (
+        <Button size="sm" variant="ghost" icon={<Plus className="size-4" aria-hidden />} onClick={() => setOpen(true)}>
           {x.addRole}
         </Button>
-        <Button size="sm" variant="ghost" onClick={() => setOpen(false)}>
-          {x.cancel}
-        </Button>
-      </div>
-      {need.hint}
+      )}
+      <Collapse open={open}>
+        <div className="flex flex-col gap-[0.3rem]">
+          <label htmlFor={field} className="text-[0.9rem] text-ink-dim">
+            {x.newRole}
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              id={field}
+              // biome-ignore lint/a11y/noAutofocus: the owner just asked for this field
+              autoFocus
+              maxLength={80}
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value)
+                need.clear()
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  void add()
+                }
+                // The form's own Escape closes the whole editor and drops the role picked so far.
+                if (e.key === "Escape") {
+                  e.stopPropagation()
+                  close()
+                }
+              }}
+              {...need.field}
+              className={cx(
+                "inner-field h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.6rem] text-[0.95rem] focus:border-brand focus:ring-1 focus:ring-brand",
+                invalidBorder,
+              )}
+            />
+            <Button
+              size="sm"
+              disabled={busy}
+              icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
+              onClick={() => void add()}
+            >
+              {x.addRole}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={close}>
+              {x.cancel}
+            </Button>
+          </div>
+          {need.hint}
+        </div>
+      </Collapse>
     </div>
   )
 }

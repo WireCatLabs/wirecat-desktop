@@ -294,7 +294,7 @@ export const useMemory = create<MemoryState>((set, get) => {
         )
         return null
       } catch (e) {
-        return e instanceof Error ? e.message : String(e)
+        return message(e)
       }
     },
     async removeRelation(ref) {

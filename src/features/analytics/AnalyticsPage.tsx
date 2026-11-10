@@ -99,7 +99,7 @@ function Filters() {
             icon: (
               <span className="flex shrink-0 items-center gap-[0.3rem]">
                 {(toolsOf.get(p) ?? []).map((id) => (
-                  <ServiceIcon key={id} id={id} className="size-4" focusable={false} />
+                  <ServiceIcon key={id} id={id} className="size-4" />
                 ))}
               </span>
             ),

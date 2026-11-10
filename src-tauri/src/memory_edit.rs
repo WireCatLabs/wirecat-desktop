@@ -107,10 +107,12 @@ fn add_role_with(call: &Call, list: &str, id: &str, label: &str) -> Result<Vec<R
         return Err(format!("not a role list: {list}"));
     }
     let id_ok = id.len() <= MAX_ROLE_ID
-        && id.starts_with(|c: char| c.is_ascii_lowercase() || c.is_ascii_digit())
+        && id.starts_with(|c: char| c.is_ascii_lowercase())
         && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
     if !id_ok {
-        return Err(format!("A role id is lowercase letters, digits and -, at most {MAX_ROLE_ID}."));
+        return Err(format!(
+            "A role id starts with a letter and holds lowercase letters, digits and -, at most {MAX_ROLE_ID}."
+        ));
     }
     let label = role_word(Some(label))?;
     if label.is_empty() {
@@ -207,6 +209,7 @@ mod tests {
         assert!(add_role_with(&call, "bogus", "x", "X").is_err());
         assert!(add_role_with(&call, "related", "Board Member", "X").is_err());
         assert!(add_role_with(&call, "related", "-x", "X").is_err());
+        assert!(add_role_with(&call, "related", "3d-designer", "X").is_err());
         assert!(add_role_with(&call, "related", "x", "  ").is_err());
         assert_eq!(seen.lock().unwrap().len(), 1);
     }

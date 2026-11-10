@@ -1,6 +1,6 @@
 import { actionSentence, actionTargetOf, byOwner, dayKey, findingsCounts } from "@/domain/memory"
 import { type OwnerRole, relationParts, roleLabel } from "@/domain/relationships"
-import { formatDate, type Lang } from "@/i18n"
+import { currentLang, formatDate, type Lang } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import type { memoryMessages } from "./messages"
 import type { explainedMessages } from "./messages-explained"
@@ -36,13 +36,13 @@ export const savedAt = (iso: string, lang: Lang) =>
 /** A relationship's other end and its role, under the heading of the end it starts from: "Acme Ltd · Manager". */
 export function relationLine(e: MemoryEntry, m: M, roles: readonly OwnerRole[]) {
   const to = e.targetName ?? e.target ?? ""
-  return e.role ? `${to} · ${roleLabel(e.role, roles, m.roles)}` : to
+  return e.role ? `${to} · ${roleLabel(e.role, roles, m.roles, currentLang())}` : to
 }
 
 /** A relationship as one sentence: "Kai Moreno is the owner of the document “Sales plan”". */
 export function relationSentence(e: MemoryEntry, m: M, x: X, roles: readonly OwnerRole[]) {
   const p = relationParts(e)
-  if (p.role) return x.withRole(p, roleLabel(p.role, roles, m.roles))
+  if (p.role) return x.withRole(p, roleLabel(p.role, roles, m.roles, currentLang()))
   const say = x.noRole[p.kind] ?? x.noRole.other
   return say?.(p.from, p.to) ?? relationLine(e, m, roles)
 }

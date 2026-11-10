@@ -91,5 +91,7 @@ export function roleIdOf(name: string, now = Date.now()): string {
     .replace(/^-+|-+$/g, "")
     .slice(0, 32)
     .replace(/-+$/, "")
+  // memo takes an id only when it starts with a letter.
+  if (/^[0-9]/.test(id)) return `r-${id}`
   return id || `own-${now.toString(36)}`
 }
