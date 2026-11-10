@@ -13,6 +13,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
@@ -78,18 +79,12 @@ export function AgentsMatrix({ expected = [] }: { expected?: readonly string[] }
   ]
 
   if (detected && rows.length === 0) {
-    return (
-      <p className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-5 text-body text-ink-soft">
-        {m.noTool}
-      </p>
-    )
+    return <EmptyState>{m.noTool}</EmptyState>
   }
 
   return (
     <div className="flex flex-col gap-3">
-      {found !== null && found.length === 0 && (
-        <p className="rounded-[0.2rem] border border-warn/40 bg-warn/10 px-4 py-3 text-body">{m.noAgent}</p>
-      )}
+      {found !== null && found.length === 0 && <ErrorNotice tone="warn">{m.noAgent}</ErrorNotice>}
       <Collapse open={grouped}>
         <ErrorNotice
           detail={

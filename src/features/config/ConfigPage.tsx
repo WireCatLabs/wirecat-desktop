@@ -145,7 +145,7 @@ export function ConfigPage() {
         <ScopeLine />
       </div>
 
-      {st.settings?.notice && <Banner tone="warn">{m.fromProfile(st.settings.notice.profile)}</Banner>}
+      {st.settings?.notice && <ErrorNotice tone="warn">{m.fromProfile(st.settings.notice.profile)}</ErrorNotice>}
       {st.error && (
         <ErrorNotice action={<ReportThis what="Reading settings" tool={st.tool} error={reportText(st.error)} />}>
           {reasonText(m, st.error)}
@@ -432,19 +432,5 @@ function OthersHeading() {
     <h3 className="border-line border-b px-[1.3rem] pt-4 pb-2.5 text-[1.08rem] font-semibold leading-tight">
       {m.otherShared}
     </h3>
-  )
-}
-
-function Banner({ tone, children }: { tone: "warn" | "bad"; children: ReactNode }) {
-  return (
-    <p
-      role={tone === "bad" ? "alert" : "status"}
-      className={cx(
-        "rounded-[0.2rem] border px-4 py-3 text-[0.95rem]",
-        tone === "bad" ? "border-bad/40 bg-bad/10" : "border-warn/40 bg-warn/10",
-      )}
-    >
-      {children}
-    </p>
   )
 }

@@ -8,6 +8,7 @@ import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
@@ -50,14 +51,8 @@ export function Notices({ view }: { view: AgentsView }) {
           {m.lookFailed(view.agentsError)}
         </ErrorNotice>
       )}
-      {!view.agentsError && noneFound && (
-        <p className="rounded-[0.2rem] border border-warn/40 bg-warn/10 px-4 py-3 text-[0.95rem]">{m.noAgent}</p>
-      )}
-      {view.toolsKnown && view.rows.length === 0 && (
-        <p className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-4 text-[0.95rem] text-ink-soft">
-          {m.noTool}
-        </p>
-      )}
+      {!view.agentsError && noneFound && <ErrorNotice tone="warn">{m.noAgent}</ErrorNotice>}
+      {view.toolsKnown && view.rows.length === 0 && <EmptyState>{m.noTool}</EmptyState>}
     </>
   )
 }

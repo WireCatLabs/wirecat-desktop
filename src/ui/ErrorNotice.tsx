@@ -8,23 +8,26 @@ type Props = {
   action?: ReactNode
   /** A line inside a row or a panel instead of a box across the page. */
   inline?: boolean
+  /** `warn` for something to know or fix that did not fail, such as a setting read from another profile. */
+  tone?: "bad" | "warn"
   className?: string
 }
 
-/** Something that went wrong, said where it happened. */
-export function ErrorNotice({ children, detail, action, inline = false, className }: Props) {
+/** Something that went wrong, or needs attention, said where it happened. */
+export function ErrorNotice({ children, detail, action, inline = false, tone = "bad", className }: Props) {
   return (
     <div
-      role="alert"
+      role={tone === "bad" ? "alert" : "status"}
       className={cx(
         // An error that appears fades in where it happened, so it reads as the answer to the click, not a glitch.
         "reveal flex flex-wrap items-center gap-x-3 gap-y-1.5",
-        inline ? "text-[0.875rem]" : "rounded-[0.2rem] border border-bad/40 bg-bad/10 py-2 pr-2 pl-4 text-[0.95rem]",
+        inline ? "text-[0.875rem]" : "rounded-[0.2rem] border py-2 pr-2 pl-4 text-body",
+        !inline && (tone === "bad" ? "border-bad/40 bg-bad/10" : "border-warn/40 bg-warn/10"),
         className,
       )}
     >
       <div className={cx("min-w-0 flex-1 basis-[16rem]", !inline && "py-1")}>
-        <p className={cx("selectable", inline && "text-bad")}>{children}</p>
+        <p className={cx("selectable", inline && (tone === "bad" ? "text-bad" : "text-warn-ink"))}>{children}</p>
         {detail && <div className="selectable mt-1 text-[0.9rem] text-ink-soft">{detail}</div>}
       </div>
       {action && <div className="flex shrink-0 gap-2">{action}</div>}

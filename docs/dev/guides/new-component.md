@@ -4,7 +4,7 @@
 
 Check [src/ui/](../../../src/ui/) and [reuse.md](reuse.md) before you write a component. `ui/` has Button,
 TextButton, SplitButton, CopyButton, CopyField, Dialog, Disclosure, Collapse, AutoHeight, Crossfade, Callout,
-ErrorNotice, Checkbox, Select, Combobox, Segmented (its `md` size is a page's Table · Board switch), FilterBar, FilterMenu,
+ErrorNotice (also `tone="warn"` for a warning banner), EmptyState (nothing to show, and why), Checkbox, Select, Combobox, Segmented (its `md` size is a page's Table · Board switch), FilterBar, FilterMenu,
 Calendar, Stepper, Skeleton, Lamp, Pill, Board, ProgressBar, DataTable (a page's table of records: Tasks, Search) and
 Pager, RefreshButton (a page's Read again / Check again). A page's frame and title row are `Page` and
 `PageHeader` in [shared/Page.tsx](../../../src/shared/Page.tsx). Which component does which job, and what still does

@@ -29,6 +29,7 @@ import { Page, PageHeader } from "@/shared/Page"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { EmptyState } from "@/ui/EmptyState"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { reducedMotion } from "@/ui/motion"
@@ -231,7 +232,7 @@ export function LogsPage() {
       </div>
 
       {withLogs.length === 0 && list.length > 0 ? (
-        <Empty>{m.noLogs}</Empty>
+        <EmptyState>{m.noLogs}</EmptyState>
       ) : (
         <>
           <div className="flex flex-wrap items-start gap-[0.7rem]">
@@ -527,13 +528,5 @@ function GroupBy({ value, onChange }: { value: string | null; onChange: (f: stri
         className="min-w-[9rem]"
       />
     </div>
-  )
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft">
-      {children}
-    </p>
   )
 }

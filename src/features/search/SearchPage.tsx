@@ -29,6 +29,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace } from "@/ui/motion"
 import { Pager } from "@/ui/Pager"
@@ -402,18 +403,19 @@ function resultsView(
         </ErrorNotice>
       ),
     }
-  if (answer?.kind === "queryError") return { view: "queryError", node: <Empty busy={s.loading}>{m.fixQuery}</Empty> }
+  if (answer?.kind === "queryError")
+    return { view: "queryError", node: <EmptyState busy={s.loading}>{m.fixQuery}</EmptyState> }
   const hits = answer?.kind === "hits" ? answer : null
   if (!hits) {
     if (s.loading) return { view: "loading", node: <Table hits={[]} placeholders={8} now={now} busy /> }
-    return { view: "start", node: <Empty>{s.profiles === null ? m.startNoProfile : m.start}</Empty> }
+    return { view: "start", node: <EmptyState>{s.profiles === null ? m.startNoProfile : m.start}</EmptyState> }
   }
   if (hits.hits.length === 0)
     return {
       view: "empty",
       node: (
         <div className="flex flex-col gap-[0.5rem]">
-          <Empty busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</Empty>
+          <EmptyState busy={s.loading}>{m.noHits(toolName, s.asked?.profile ?? null)}</EmptyState>
           {hits.notes.map((n) => (
             <p key={n} className="selectable text-[0.9rem] text-ink-dim">
               {n}
@@ -632,19 +634,5 @@ function Picker({ id, label, children }: { id: string; label: string; children: 
       </label>
       {children(id)}
     </div>
-  )
-}
-
-function Empty({ children, busy = false }: { children: ReactNode; busy?: boolean }) {
-  return (
-    <p
-      aria-busy={busy}
-      className={cx(
-        "rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft transition-opacity duration-(--motion-normal)",
-        busy && "opacity-60",
-      )}
-    >
-      {children}
-    </p>
   )
 }
