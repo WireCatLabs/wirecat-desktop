@@ -371,9 +371,9 @@ pub fn book() -> Result<DigestBook, String> {
         return Ok(read_old(schedules?, has_days));
     }
     match json {
-        Some(v) if out.code == Some(0) => Ok(read_named(&v, schedules?, harness(), || {
-            digests::list(None).is_ok_and(|d| !d.is_empty())
-        })),
+        Some(v) if out.code == Some(0) => {
+            Ok(read_named(&v, schedules?, harness(), || digests::list(None).is_ok_and(|d| !d.is_empty())))
+        }
         j => Err(failure(&out, j.as_ref())),
     }
 }
