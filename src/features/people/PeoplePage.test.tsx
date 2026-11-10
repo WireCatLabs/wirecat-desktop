@@ -50,16 +50,16 @@ describe("People", () => {
     expect(lena).toHaveTextContent("lena@example.org")
     expect(lena).toHaveTextContent("993")
     expect(lena).not.toHaveTextContent("account")
-    const kinds = screen.getByRole("tablist", { name: "Which people" })
+    const kinds = screen.getByRole("group", { name: "Which people" })
     await user.click(
-      await within(kinds).findByRole("tab", { name: "Newsletters & notifications 2" }, { timeout: 4000 }),
+      await within(kinds).findByRole("radio", { name: "Newsletters & notifications 2" }, { timeout: 4000 }),
     )
     expect(screen.getByText("Bots, newsletters and no-reply senders.")).toBeInTheDocument()
-    expect(within(kinds).getByRole("tab", { name: "Unsorted 5,002+" })).toBeInTheDocument()
+    expect(within(kinds).getByRole("radio", { name: "Unsorted 5,002+" })).toBeInTheDocument()
     await waitFor(async () =>
       expect(within(await table()).getAllByRole("button", { name: "OpenWeather Team" })).toHaveLength(2),
     )
-    await user.click(within(kinds).getByRole("tab", { name: /^Companies/ }))
+    await user.click(within(kinds).getByRole("radio", { name: /^Companies/ }))
     expect(
       await within(await table()).findByRole("button", { name: "CZECH AIRLINES" }, { timeout: 4000 }),
     ).toBeVisible()

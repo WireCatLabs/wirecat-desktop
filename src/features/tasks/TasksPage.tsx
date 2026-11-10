@@ -1,5 +1,5 @@
 import { Columns3, Plus, Rows3 } from "lucide-react"
-import { type ReactNode, useEffect } from "react"
+import { useEffect } from "react"
 import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
@@ -7,6 +7,7 @@ import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
@@ -136,32 +137,21 @@ function Rack() {
   const badQuery = useTasks((s) => s.badQuery)
 
   if (badQuery) {
-    return (
-      <Frame>
-        <p className="text-bad">{m.badQuery}</p>
-        <p className="selectable mt-1 font-mono text-[0.9rem] text-ink-soft">{badQuery}</p>
-      </Frame>
-    )
+    return <ErrorNotice detail={<span className="font-mono">{badQuery}</span>}>{m.badQuery}</ErrorNotice>
   }
   if (tasks.length === 0) {
-    return (
-      <div className="rounded-[0.2rem] border border-line-strong bg-app">
-        <div className="px-[1.3rem] py-[1.3rem] text-[0.95rem] text-ink-soft">
-          {query.trim() ? (
-            <p>
-              {m.noMatch}{" "}
-              <Button size="sm" variant="ghost" onClick={() => useTasks.getState().setQuery("")}>
-                {m.clear}
-              </Button>
-            </p>
-          ) : (
-            <>
-              <p className="font-medium text-ink">{m.empty}</p>
-              <p className="mt-1 max-w-[70ch]">{m.emptyBody}</p>
-            </>
-          )}
-        </div>
-      </div>
+    return query.trim() ? (
+      <EmptyState
+        action={
+          <Button size="sm" variant="ghost" className="-ml-2" onClick={() => useTasks.getState().setQuery("")}>
+            {m.clear}
+          </Button>
+        }
+      >
+        {m.noMatch}
+      </EmptyState>
+    ) : (
+      <EmptyState title={m.empty}>{m.emptyBody}</EmptyState>
     )
   }
   if (view === "board") {
@@ -186,14 +176,6 @@ function Loading() {
           <Skeleton className="h-[1rem] w-[45%]" />
         </div>
       ))}
-    </div>
-  )
-}
-
-function Frame({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.2rem] text-[0.95rem]">
-      {children}
     </div>
   )
 }

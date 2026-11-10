@@ -9,6 +9,7 @@ import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Skeleton } from "@/ui/Skeleton"
@@ -266,13 +267,7 @@ function Days({ name }: { name: string }) {
       </ErrorNotice>
     )
   if (mine === null) return <Skeleton className="h-[24rem] w-full" label={m.reading} />
-  if (mine.length === 0)
-    return (
-      <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
-        <p className="font-medium text-ink">{m.emptyTitle}</p>
-        <p className="mt-1 max-w-[70ch]">{m.emptyBody}</p>
-      </div>
-    )
+  if (mine.length === 0) return <EmptyState title={m.emptyTitle}>{m.emptyBody}</EmptyState>
   return (
     <div className="@container min-w-0">
       <section
