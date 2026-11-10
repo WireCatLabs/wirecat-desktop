@@ -89,6 +89,10 @@ type MemoryState = {
   toggleGroup(key: string): void
   page: number
   pageSize: number
+  /** The page of memo's lists on screen; the page above pages within it. Only this one is read. */
+  memoPage: number
+  /** Reads another page of memo's lists, and only that one. */
+  turnMemoPage(page: number): void
   setPage(page: number): void
   setPageSize(size: number): void
   /** Approves these single rows one by one and says how many memo approved; a findings batch never is. */
@@ -202,6 +206,7 @@ export const useMemory = create<MemoryState>((set, get) => {
     closedGroups: [],
     page: 1,
     pageSize: 50,
+    memoPage: 1,
 
     toggleGroup: (key) =>
       set((s) => ({
@@ -296,7 +301,7 @@ export const useMemory = create<MemoryState>((set, get) => {
       const call = ++seq
       set({ reading: true, error: null })
       try {
-        const read = await platform.memoryRead()
+        const read = await platform.memoryRead(get().memoPage)
         if (call !== seq || get().demo) return
         const entries = read.kind === "ready" ? read.entries.map(withCleanNames) : []
         const tab = get().tabChosen
@@ -329,6 +334,10 @@ export const useMemory = create<MemoryState>((set, get) => {
     setTab: (tab) => set({ tab, tabChosen: true, held: [], arriving: [], page: 1 }),
     setQuery: (query) => set({ query, page: 1 }),
     filterBy: (field, value) => set((s) => ({ query: setMemoryField(s.query, field, [value]), page: 1 })),
+    turnMemoPage(memoPage) {
+      set({ memoPage, page: 1 })
+      void get().load()
+    },
     setPage: (page) => set({ page }),
     setPageSize: (pageSize) => set({ pageSize, page: 1 }),
     async loadContext(ref) {

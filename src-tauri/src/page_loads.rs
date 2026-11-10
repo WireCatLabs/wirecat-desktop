@@ -145,7 +145,7 @@ fn clients_page(visit: &str) {
 /// Every list of the Memo page at once; the second visit finds memo's servers already running.
 fn memory_page(visit: &str) {
     let (before, started) = mark();
-    let done = together(vec![Box::new(|| drop(memory::read()))]);
+    let done = together(vec![Box::new(|| drop(memory::read(1)))]);
     report("Memory", visit, done[0], before, started);
 }
 

@@ -224,7 +224,7 @@ function createTauri(): Platform {
     groupsAdd: (group, source) => call(GroupsReadSchema, "groups_add", { group, source }),
     groupsRemove: (group, source) => call(GroupsReadSchema, "groups_remove", { group, source }),
     groupsMove: (source, from, to) => call(GroupsReadSchema, "groups_move", { source, from, to }),
-    memoryRead: () => call(MemoryReadSchema, "memory_read"),
+    memoryRead: (page = 1) => call(MemoryReadSchema, "memory_read", { page }),
     memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
     memoryConfirm: (ref, accept) =>
       call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),

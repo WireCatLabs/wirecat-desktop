@@ -356,7 +356,10 @@ export const useAnalytics = create<State>((set, get) => {
       .then((projects) => set({ projects }))
       .catch(() => undefined)
     const memory = useMemory.getState()
-    ;(fresh(memory.readAt) && memory.read ? Promise.resolve(memory.read) : platform.memoryRead())
+    ;(fresh(memory.readAt) && memory.read && memory.memoPage === 1
+      ? Promise.resolve(memory.read)
+      : platform.memoryRead()
+    )
       .then((data) => set({ memory: { state: "ready", data } }))
       .catch((e) => set({ memory: { state: "error", error: message(e) } }))
     const logs = useLogs.getState()

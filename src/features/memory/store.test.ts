@@ -17,4 +17,13 @@ describe("the Memory store", () => {
     expect(useMemory.getState()).toMatchObject({ reading: true, entries: shown })
     expect(read).toHaveBeenCalledTimes(2)
   })
+  it("reads only the memo page turned to, even within a minute of the last read", async () => {
+    const read = vi.spyOn(platform, "memoryRead")
+    await useMemory.getState().load()
+    useMemory.getState().turnMemoPage(2)
+    await vi.waitFor(() => expect(useMemory.getState().reading).toBe(false))
+    expect(read.mock.calls.map(([page]) => page)).toEqual([1, 2])
+    useMemory.getState().visit()
+    expect(read).toHaveBeenCalledTimes(2)
+  })
 })

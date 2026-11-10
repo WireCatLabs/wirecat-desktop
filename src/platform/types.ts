@@ -308,8 +308,11 @@ export type Platform = {
   groupsRemove(group: string, source: string): Promise<GroupsRead>
   /** Out of one saved group and into another, in one write. */
   groupsMove(source: string, from: string, to: string): Promise<GroupsRead>
-  /** memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old" below memo 0.130.0. */
-  memoryRead(): Promise<MemoryRead>
+  /**
+   * One page (from 1) of memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old"
+   * below memo 0.130.0.
+   */
+  memoryRead(page?: number): Promise<MemoryRead>
   /** What a memory or a fact rests on: each source read back, with a quoted line, or marked deleted since. */
   memorySources(ref: string): Promise<MemorySource[]>
   /**

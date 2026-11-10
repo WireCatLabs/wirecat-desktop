@@ -477,6 +477,7 @@ export function showDemo(page: DemoPage, lang: Lang) {
         kind: "ready",
         entries,
         more: false,
+        page: 1,
         activity: null,
         activityError: null,
         linksError: null,

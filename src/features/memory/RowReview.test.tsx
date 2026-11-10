@@ -63,6 +63,7 @@ const read = (entries: MemoryEntry[]) =>
     kind: "ready",
     entries,
     more: false,
+    page: 1,
     activity: [],
     activityError: null,
     linksError: null,
