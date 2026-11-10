@@ -13,7 +13,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Segmented } from "@/ui/Segmented"
 import { SplitButton } from "@/ui/SplitButton"
-import { type Based, useBaseEdit, useBoard, useConfirm, useMapSet } from "./api"
+import { type Based, useBaseEdit, useBoard, useConfirm, useMapSet, useStageName } from "./api"
 import { AddStage, StageMenu, StageRename } from "./BaseStageTools"
 import { OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
@@ -46,6 +46,7 @@ export function StageMapDialog() {
 function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: string | null }) {
   const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
+  const names = useStageName(kind)
   const pipeline = useClients((st) => st.pipeline[kind] ?? null)
   const set = useMapSet(kind, pipeline)
   const confirm = useConfirm(kind, pipeline)
@@ -62,7 +63,10 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
   const columns = mapColumnsOf(read.base, mapping, pipelines)
   const ids = [...columns.keys()]
   const columnOf = new Map([...columns].flatMap(([id, refs]) => refs.map((ref) => [ref, id] as const)))
-  const nameOf = (id: string) => (id === UNMAPPED ? s.unmapped : (read.base.find((b) => b.ref === id)?.name ?? id))
+  const nameOf = (id: string) => {
+    const b = read.base.find((x) => x.ref === id)
+    return id === UNMAPPED ? s.unmapped : b ? names.stage(b.name) : id
+  }
   const pending = unconfirmedOf(mapping, pipelines)
   const suggestions = pending.reduce((n, p) => n + p.count, 0)
   const layout = mapping.map((x) => `${x.ref}:${x.base?.ref}:${x.confirmed}`).join()
@@ -187,7 +191,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
               menu={
                 b && (
                   <StageMenu
-                    stage={b}
+                    stage={{ ...b, name: nameOf(b.ref) }}
                     base={read.base}
                     busy={busy}
                     onEdit={onEdit}
@@ -202,7 +206,12 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
               aside={
                 b ? (
                   renaming === b.ref ? (
-                    <StageRename stage={b} base={read.base} onEdit={onEdit} onDone={() => endRename(b.ref)} />
+                    <StageRename
+                      stage={{ ...b, name: nameOf(b.ref) }}
+                      base={read.base}
+                      onEdit={onEdit}
+                      onDone={() => endRename(b.ref)}
+                    />
                   ) : problem?.ref === b.ref ? (
                     <ErrorNotice inline>{problem.text}</ErrorNotice>
                   ) : undefined
@@ -279,15 +288,15 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                               <span className="text-[0.85rem] text-ink-dim">{s.suggested}</span>
                               <button
                                 type="button"
-                                aria-label={s.confirmTo(to.name)}
-                                title={s.confirmTo(to.name)}
+                                aria-label={s.confirmTo(names.stage(to.name))}
+                                title={s.confirmTo(names.stage(to.name))}
                                 data-suggest={x.ref}
                                 disabled={busy}
                                 onClick={() => mapTo(x.ref, to.ref, nextAfter(x.ref))}
                                 className="inline-flex min-w-0 items-center gap-[0.3rem] rounded-[0.3rem] bg-warn/15 px-[0.5rem] py-[0.15rem] text-[0.875rem] font-medium text-warn-ink transition-colors duration-(--motion-fast) hover:bg-warn/25 focus-visible:outline-2 focus-visible:outline-brand disabled:opacity-45"
                               >
                                 <Check className="size-[0.9rem] shrink-0" strokeWidth={2.4} aria-hidden />
-                                <span className="truncate">{to.name}</span>
+                                <span className="truncate">{names.stage(to.name)}</span>
                               </button>
                               <SplitButton
                                 compact
@@ -298,7 +307,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
                                 items={read.base
                                   .filter((b) => b.ref !== to.ref)
                                   .map((b) => ({
-                                    label: b.name,
+                                    label: names.stage(b.name),
                                     onSelect: () => mapTo(x.ref, b.ref, nextAfter(x.ref)),
                                   }))}
                               />

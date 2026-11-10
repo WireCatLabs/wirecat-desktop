@@ -10,6 +10,7 @@ on 2026-11-10. A row is removed once its fix is merged; a row half done lists on
 |---|---|---|
 | Page frame and header: title, β badge, a live status beside the title, intro with a guide link, actions on the right | `Page` and `PageHeader` (`src/shared/Page.tsx`; in `shared/` because the guide link opens through the platform and the β badge reads the section list) | a hand-written `h1` with the display classes |
 | Guide link at the end of an intro | `PageHeader`'s `guide` prop | an `<a>`/`<button>` with `ExternalLink` per page |
+| A page with a board (Clients, Tasks) | `PageHeader compact` in every view (intro behind an "i"), `FilterBar inline`, and in board view `Page fill` with `Board fill`: the board takes the window's height left and its columns scroll inside | a column height guessed from the window (`calc(100dvh-…)`) |
 | Read again / Check again | `RefreshButton` (`src/ui/RefreshButton.tsx`) | a `Button` with its own `RefreshCw` and spinner |
 | Search field with filter chips | `FilterBar`, `FilterMenu`, `ToggleChip` | — (all four pages already use it) |
 | A one-of-few switch: view, status tab, range, "by people / by chats" | `Segmented` (`size="md"` with labels; `count` per option) | a hand `fieldset` of radios or `aria-pressed` buttons |

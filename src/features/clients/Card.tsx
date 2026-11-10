@@ -8,6 +8,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { TipPanel, useTip } from "@/ui/Tooltip"
+import { useStageName } from "./api"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
@@ -110,10 +111,11 @@ export function CardBody({ card, badge }: { card: CrmCard; badge?: ReactNode | u
 
 export function StageText({ card }: { card: CrmCard }) {
   const m = useMessages(clientMessages)
+  const label = useStageName(useClients((s) => s.kind))
   return (
     <span className="inline-flex items-center gap-[0.5rem]">
       <OutcomeLamp outcome={card.status} />
-      {card.stage} · {m.statusOf[card.status] ?? card.status}
+      {label.stage(card.stage, card.account !== null)} · {m.statusOf[card.status] ?? card.status}
     </span>
   )
 }
@@ -136,6 +138,7 @@ export function CardFacts({
 }) {
   const m = useMessages(clientMessages)
   const lang = useLang()
+  const label = useStageName(useClients((s) => s.kind))
   const day = (iso: string | null) =>
     iso ? formatDate(`${iso.slice(0, 10)}T00:00:00`, { day: "numeric", month: "long", year: "numeric" }, lang) : null
   return (
@@ -146,8 +149,8 @@ export function CardFacts({
       )}
     >
       <Row label={m.stage}>{stage ?? <StageText card={card} />}</Row>
-      {!compact && <Row label={m.baseStage}>{card.baseStage?.name}</Row>}
-      <Row label={m.pipeline}>{pipeline}</Row>
+      {!compact && <Row label={m.baseStage}>{card.baseStage && label.stage(card.baseStage.name)}</Row>}
+      <Row label={m.pipeline}>{pipeline && label.pipeline(pipeline, card.account !== null)}</Row>
       <Row label={m.amount}>{card.amount && card.currency ? moneyOf(card.amount, card.currency, lang) : null}</Row>
       <Row label={m.organization}>{card.organization}</Row>
       <Row label={m.people}>

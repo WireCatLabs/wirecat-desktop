@@ -14,7 +14,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { PAGE_SIZES, Pager } from "@/ui/Pager"
+import { Pager } from "@/ui/Pager"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
@@ -27,7 +27,7 @@ import { memoryMessages } from "./messages"
 import { addMessages } from "./messages-add"
 import { explainedMessages } from "./messages-explained"
 import { Row, SubjectLabel } from "./Row"
-import { useMemory } from "./store"
+import { MEMORY_PAGE_SIZES, useMemory } from "./store"
 
 const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/memories`
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
@@ -122,13 +122,13 @@ export function MemoryPage() {
             ) : (
               <Rack entries={shown} groups={groups} tab={s.tab} filtering={filtering} />
             )}
-            {ordered.length > PAGE_SIZES[0] && (
+            {ordered.length > MEMORY_PAGE_SIZES[0] && (
               <Pager
                 page={at}
                 onPage={s.setPage}
                 total={ordered.length}
                 size={s.pageSize}
-                sizes={PAGE_SIZES}
+                sizes={MEMORY_PAGE_SIZES}
                 onSize={s.setPageSize}
               />
             )}

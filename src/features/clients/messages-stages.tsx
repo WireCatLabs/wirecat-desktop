@@ -52,6 +52,8 @@ type Words = {
   remove: string
   keepOne: (outcome: string) => string
   nameProblem: Record<NameProblem, string>
+  /** memo's default set, as cli-core names it in each language (`base-stages.ts`, `NAMES`). */
+  defaults: { set: string } & Record<Kind, readonly string[]>
 }
 
 const en: Words = {
@@ -120,6 +122,11 @@ const en: Words = {
     empty: "Give it a name.",
     long: "Use one short line that does not start with a dash.",
     taken: "Another stage has this name.",
+  },
+  defaults: {
+    set: "Base stages",
+    lead: ["New", "Contacted", "Qualified", "Converted", "Rejected"],
+    deal: ["New", "Qualification", "Proposal", "Negotiation", "Won", "Lost"],
   },
 }
 
@@ -199,6 +206,11 @@ const ru: Words = {
     long: "Одна короткая строка, не с дефиса.",
     taken: "Такое название уже есть у другого этапа.",
   },
+  defaults: {
+    set: "Базовые стадии",
+    lead: ["Новый", "Связались", "Квалифицирован", "Конвертирован", "Отклонён"],
+    deal: ["Новая", "Квалификация", "Предложение", "Переговоры", "Выиграна", "Проиграна"],
+  },
 }
 
 const es: Words = {
@@ -267,6 +279,11 @@ const es: Words = {
     empty: "Ponle un nombre.",
     long: "Una línea corta que no empiece con guion.",
     taken: "Otra etapa ya tiene este nombre.",
+  },
+  defaults: {
+    set: "Etapas base",
+    lead: ["Nuevo", "Contactado", "Calificado", "Convertido", "Rechazado"],
+    deal: ["Nuevo", "Calificación", "Propuesta", "Negociación", "Ganado", "Perdido"],
   },
 }
 

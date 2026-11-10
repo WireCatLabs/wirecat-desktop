@@ -3,9 +3,11 @@ import { withBaseMove, withMapping } from "@/domain/base-stages"
 import { crmToolOf, findTool } from "@/domain/catalog"
 import { accountKey, type Kind, writerProfile } from "@/domain/clients"
 import { useSync } from "@/features/tools"
+import { useMessages } from "@/i18n"
 import type { CrmAccount, CrmBaseEdit, CrmBaseRef, CrmCard, CrmPipeline, CrmRead, CrmVia } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { queryClient } from "@/shared/query"
+import { stageMessages } from "./messages-stages"
 import { useClients } from "./store"
 
 export type Based = Extract<CrmRead, { kind: "base" }>
@@ -28,6 +30,32 @@ export const useBoard = (kind: Kind, pipeline: string | null) =>
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   })
+
+/**
+ * A stage's name as shown. memo makes its default set once, in an own pipeline named "Base stages" in the language of
+ * the owner's messages, so while that pipeline is there its default names show in the interface's language. A set the
+ * owner adopted or renamed, and a CRM's stage (`crm`), stay as they are. Labels only: a move and a filter keep memo's
+ * own name.
+ */
+export function useStageName(kind: Kind) {
+  const here = useMessages(stageMessages).defaults
+  const pipeline = useClients((s) => s.pipeline[kind] ?? null)
+  const { data } = useBoard(kind, pipeline)
+  const sets = Object.values(stageMessages).map((w) => w.defaults)
+  const isSet = (name: string) => sets.some((set) => set.set === name)
+  const made = data?.kind === "base" && data.pipelines.some((p) => p.account === null && isSet(p.name))
+  return {
+    stage: (name: string, crm = false) => {
+      if (crm || !made) return name
+      for (const set of sets) {
+        const at = set[kind].indexOf(name)
+        if (at >= 0) return here[kind][at] ?? name
+      }
+      return name
+    },
+    pipeline: (name: string, crm = false) => (!crm && isSet(name) ? here.set : name),
+  }
+}
 
 /** Every board the page read, so a move or a new scope is read again from memo. */
 export const readAgain = () => queryClient().invalidateQueries({ queryKey: clientKeys.all })

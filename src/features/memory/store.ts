@@ -157,6 +157,9 @@ const without = <T>(record: Record<string, T>, key: string) => {
 
 export const LEAVE_MS = 320
 
+/** A memory row is several lines tall, so a page holds fewer of them than a table holds rows. */
+export const MEMORY_PAGE_SIZES = [20, 50, 100] as const
+
 export const useMemory = create<MemoryState>((set, get) => {
   let seq = 0
 
@@ -205,7 +208,7 @@ export const useMemory = create<MemoryState>((set, get) => {
     skipped: {},
     closedGroups: [],
     page: 1,
-    pageSize: 50,
+    pageSize: MEMORY_PAGE_SIZES[0],
     memoPage: 1,
 
     toggleGroup: (key) =>

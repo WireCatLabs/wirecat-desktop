@@ -4,7 +4,7 @@ import type { CrmCard } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
 import { Select } from "@/ui/Select"
-import { type Based, useBoard } from "./api"
+import { type Based, useBoard, useStageName } from "./api"
 import { useBaseMove } from "./base-move"
 import { CardFacts, OutcomeLamp, StageText } from "./Card"
 import { clientMessages } from "./messages"
@@ -44,6 +44,7 @@ export function CardDialog() {
 /** The card's stage, changed in place among its own pipeline's stages, written the way a move on the board is. */
 function StageField({ read, kind, card }: { read: Based; kind: Kind; card: CrmCard }) {
   const m = useMessages(clientMessages)
+  const label = useStageName(kind)
   const move = useBaseMove(read, kind)
   // The base set's own pipeline has no mapping: its stages are the base stages themselves.
   const mapped = read.mapping.filter((x) => x.pipeline === card.pipeline)
@@ -59,7 +60,11 @@ function StageField({ read, kind, card }: { read: Based; kind: Kind; card: CrmCa
         const to = stages.find((x) => x.ref === ref)
         if (to && to.ref !== current.ref) move.run(card, to.name)
       }}
-      options={stages.map((x) => ({ value: x.ref, label: x.name, icon: <OutcomeLamp outcome={x.outcome} /> }))}
+      options={stages.map((x) => ({
+        value: x.ref,
+        label: label.stage(x.name, card.account !== null),
+        icon: <OutcomeLamp outcome={x.outcome} />,
+      }))}
     />
   )
 }

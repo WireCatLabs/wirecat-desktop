@@ -1,6 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useSync } from "@/features/tools"
+import { useLanguage } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
@@ -113,6 +114,28 @@ describe("Clients on the base stages", () => {
     expect(within(unsorted).getByRole("button", { name: "Northstar: printer lease" })).toHaveTextContent(
       "Waiting for payment",
     )
+  })
+
+  it("shows memo's default lead stages in the interface's language and leaves out an empty Unsorted", async () => {
+    useClients.setState({ kind: "lead" })
+    render(<ClientsPage />)
+    const call = within(await column(/^New/)).getByRole("button", { name: "Call from the site" })
+    expect(within(call).getByText("New")).toBeInTheDocument()
+    expect(within(call).getByText("Base stages")).toBeInTheDocument()
+    expect(await column(/^Converted/)).toBeInTheDocument()
+    expect(screen.queryByRole("region", { name: /^Unsorted/ })).not.toBeInTheDocument()
+    expect(screen.queryByText("Новый")).not.toBeInTheDocument()
+  })
+
+  it("keeps the names of a set the owner adopted, even one that matches a default name", async () => {
+    useLanguage.setState({ choice: "ru" })
+    try {
+      render(<ClientsPage />)
+      expect(await column(/^Won/)).toBeInTheDocument()
+      expect(screen.queryByRole("region", { name: /^Выиграна/ })).not.toBeInTheDocument()
+    } finally {
+      useLanguage.setState({ choice: "en" })
+    }
   })
 
   it("places a card under memo's suggestion, marked not confirmed, and its mark opens the stage dialog", async () => {
