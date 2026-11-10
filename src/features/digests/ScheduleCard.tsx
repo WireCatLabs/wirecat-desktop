@@ -14,6 +14,7 @@ import { Checkbox, Radio } from "@/ui/Checkbox"
 import { Combobox } from "@/ui/Combobox"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FieldError } from "@/ui/FieldError"
 import { ToggleChip } from "@/ui/FilterBar"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
@@ -25,7 +26,7 @@ import { MORNING, specOf, useDigestBook } from "./schedule-store"
 type RouteKind = Route["kind"]
 const PREFIX: Record<RouteKind, string> = { telegramBot: "telegram-bot", email: "email" }
 const input =
-  "h-8 rounded-[0.3rem] border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand"
+  "h-8 rounded-[0.3rem] border border-line-strong bg-app px-2 text-[0.9rem] text-ink focus-visible:outline-2 focus-visible:outline-brand aria-[invalid=true]:border-bad"
 const MAX_TIMES = 6
 
 export const routeLabel = (r: { kind: RouteKind; profile: string; to: string }, m: ScheduleText) =>
@@ -130,7 +131,7 @@ export function DigestFields({
           onChange={(e) => set({ title: e.target.value })}
           className={cx(input, "h-9 w-full max-w-[28rem] text-[0.95rem]")}
         />
-        {shown === "title" && <FieldError id={ids.titleError}>{m.needTitle}</FieldError>}
+        <FieldError id={ids.titleError}>{shown === "title" && m.needTitle}</FieldError>
       </Field>
 
       <Field label={m.times} hint={m.timesHint} id={ids.times}>
@@ -171,7 +172,7 @@ export function DigestFields({
             </Button>
           </li>
         </ul>
-        {shown === "time" && <FieldError id={ids.timesError}>{m.needTime}</FieldError>}
+        <FieldError id={ids.timesError}>{shown === "time" && m.needTime}</FieldError>
       </Field>
 
       <Field label={m.days} id={ids.days}>
@@ -286,14 +287,6 @@ export function DigestFields({
         </div>
       )}
     </div>
-  )
-}
-
-function FieldError({ id, children }: { id: string; children: ReactNode }) {
-  return (
-    <p id={id} role="alert" className="text-[0.85rem] text-bad">
-      {children}
-    </p>
   )
 }
 
