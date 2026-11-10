@@ -79,13 +79,16 @@ export function Filters() {
     <FilterBar
       query={query}
       onQuery={type}
-      onClear={() => setQuery("")}
+      onClear={() => {
+        setQuery("")
+        useSource.getState().setSource(null)
+      }}
       label={m.search}
       placeholder={m.searchHint}
       invalid={badQuery !== null}
       describedBy={badQuery ? "tasks-bad-query" : undefined}
     >
-      {found > 0 && (
+      {(found > 0 || source !== null) && (
         <FilterMenu
           label={m.source}
           single

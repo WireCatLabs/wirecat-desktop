@@ -32,10 +32,12 @@ export function TaskBoard() {
   const byKey = new Map(tasks.filter((t) => ofSource(t, source)).map((t) => [t.key, t]))
   const column = (s: State) => order.filter((k) => byKey.get(k)?.state === s)
   const board = useRef<HTMLDivElement>(null)
-  // The query a column's paging was opened under: a new search starts every column at its first page again.
-  const [paged, setPaged] = useState<{ query: string; limits: Partial<Record<State, number>> }>({ query, limits: {} })
-  const limits = paged.query === query ? paged.limits : {}
+  // What a column's paging was opened under: a new search or source starts every column at its first page again.
+  const scope = `${source}|${query}`
+  const [paged, setPaged] = useState<{ scope: string; limits: Partial<Record<State, number>> }>({ scope, limits: {} })
+  const limits = paged.scope === scope ? paged.limits : {}
   const limitOf = (s: State) => limits[s] ?? COLUMN_PAGE
+  const showUpTo = (s: State, n: number) => setPaged({ scope, limits: { ...limits, [s]: Math.max(limitOf(s), n) } })
   useSlide(board, `${order.join()}|${tasks.map((t) => t.state).join()}`)
   const { drag, held, said, shown, onPointerDown, onClick, onKeyDown } = useBoardDrag<State>({
     columns: STATES,
@@ -44,8 +46,11 @@ export function TaskBoard() {
     canDrop: (key, to) => !fromMessages(byKey.get(key) ?? {}) || byKey.get(key)?.state === to,
     onDrop: ({ key, to, before }) => {
       const keys = column(to).filter((k) => k !== key)
-      const index = before ? keys.indexOf(before) : keys.length
-      void useTasks.getState().move(key, to, anchorOf(keys, key, index < 0 ? keys.length : index), before)
+      // Dropped below the last card shown, it lands there, not after the cards "Show more" still hides.
+      const index = before ? keys.indexOf(before) : Math.min(keys.length, limitOf(to))
+      showUpTo(to, (index < 0 ? keys.length : index) + 1)
+      const at = index < 0 ? keys.length : index
+      void useTasks.getState().move(key, to, anchorOf(keys, key, at), before ?? keys[at] ?? null)
     },
     onOpen: (key) => void useTasks.getState().openTask(key),
     words: {
@@ -109,7 +114,7 @@ export function TaskBoard() {
                     variant="ghost"
                     size="sm"
                     className="w-full"
-                    onClick={() => setPaged({ query, limits: { ...limits, [s]: visible.length + COLUMN_PAGE } })}
+                    onClick={() => showUpTo(s, visible.length + COLUMN_PAGE)}
                   >
                     {m.showMore(left)}
                   </Button>

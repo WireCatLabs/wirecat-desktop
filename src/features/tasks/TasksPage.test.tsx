@@ -123,6 +123,15 @@ describe("Tasks", () => {
     await user.click(within(column).getByRole("button", { name: `Show more (${total - 20})` }))
     expect(cards()).toHaveLength(40)
 
+    await user.click(card)
+    const dialog = await screen.findByRole("dialog", { name: "Task Q-1" })
+    expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("")
+    expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveAttribute(
+      "placeholder",
+      "A question in a message",
+    )
+    await user.keyboard("{Escape}")
+
     await user.click(screen.getByRole("button", { name: "Source" }))
     await user.click(screen.getByRole("option", { name: /Projects/ }))
     await waitFor(() => expect(within(column).queryByRole("button", { name: /^Q-1 / })).toBeNull())

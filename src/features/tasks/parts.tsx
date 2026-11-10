@@ -1,4 +1,5 @@
 import { Lock, Mail, MessageSquare } from "lucide-react"
+import { providerName } from "@/domain/archive"
 import {
   bareTitleKind,
   claimActive,
@@ -7,9 +8,9 @@ import {
   fromMessages,
   type Label,
   labelOf,
-  providerOf,
   type State,
 } from "@/domain/tasks"
+import { storageMessages } from "@/features/storage"
 import { useLang, useMessages } from "@/i18n"
 import type { Person, Task } from "@/platform/task-schemas"
 import { cx } from "@/ui/cx"
@@ -142,7 +143,8 @@ export function Markers({ task }: { task: Task }) {
 export function taskTitle(task: Task, m: TaskWords): string {
   const kind = bareTitleKind(task)
   if (kind === null) return task.title
-  return m.foundTitle[kind] ?? m.foundTitle.other ?? task.title
+  const named = task.kind ?? kind
+  return (Object.hasOwn(m.foundTitle, named) ? m.foundTitle[named] : m.foundTitle.other) ?? task.title
 }
 
 const MAIL = new Set(["email", "mail", "gmail"])
@@ -150,17 +152,19 @@ const MAIL = new Set(["email", "mail", "gmail"])
 /** Where a found task came from, as an icon and the app; the tooltip says it changes there, not here. */
 export function SourceMark({ task }: { task: Task }) {
   const m = useMessages(taskMessages)
+  const archive = useMessages(storageMessages).archiveWords
   if (!fromMessages(task) || !task.account) return null
   const provider = task.account.split(":")[0] ?? ""
   const mail = MAIL.has(provider)
   const Icon = mail ? Mail : MessageSquare
   return (
     <InfoTip
+      align="end"
       label={m.fromMessages}
       trigger={
         <span className="inline-flex min-w-0 items-center gap-[0.3rem] text-[0.85rem] text-ink-soft">
           <Icon className="size-[0.85rem] shrink-0" aria-hidden />
-          <span className="truncate">{mail ? m.mail : providerOf(task.account)}</span>
+          <span className="truncate">{mail ? m.mail : providerName(provider, archive)}</span>
         </span>
       }
     >

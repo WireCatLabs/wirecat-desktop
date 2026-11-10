@@ -120,14 +120,6 @@ export function bareTitleKind(t: { title: string; account?: string | null | unde
   return bare ? (bare[1] ?? null) : null
 }
 
-const PROVIDERS: Record<string, string> = { telegram: "Telegram", max: "MAX", whatsapp: "WhatsApp" }
-
-/** The app a found task came from, by its account's provider; mail and notes are named by the page's words. */
-export const providerOf = (account: string): string => {
-  const provider = account.split(":")[0] ?? ""
-  return PROVIDERS[provider] ?? provider
-}
-
 export function boardQuery(q: string): string {
   const words = q.trim()
   if (/(^|[\s(-])(state|closed):/.test(words)) return words
