@@ -24,6 +24,9 @@ for Rust.
   [setup.ts](../../../src/testing/setup.ts) resets nav, language and kept state after each test.
   **Target:** a shared `src/testing/render.tsx` does all resets and providers.
 - Use the mock's scenarios instead of building fake data in each test when one exists (`src/platform/mock-*.ts`).
+- No real waits. A flow test calls `answerAtOnce()` ([mock-speed.ts](../../../src/testing/mock-speed.ts)) so the mock
+  answers at once, and waits for what the click starts (a focus move, a list) before it types or reads. A `vi.mock`
+  of `mock-delay` in a test file has no effect: [setup.ts](../../../src/testing/setup.ts) loads the mock first.
 - Write the test name as a sentence about behaviour, without a comment above it.
 - A new rule in `domain/` always gets a unit test. A new screen gets one flow test.
 

@@ -2,7 +2,11 @@ import "@testing-library/jest-dom/vitest"
 import { cleanup, configure } from "@testing-library/react"
 import { afterEach, beforeEach, vi } from "vitest"
 import { initPlatform } from "@/platform/bridge"
+import { answerAtOnce } from "./mock-speed"
 import { resetStores } from "./stores"
+
+// The mock is imported here, before any test file runs, so a `vi.mock` of it inside a test file comes too late.
+vi.mock("@/platform/mock-delay", () => import("./mock-speed"))
 
 await initPlatform()
 
@@ -30,6 +34,7 @@ beforeEach(async () => {
 afterEach(() => {
   cleanup()
   resetStores()
+  answerAtOnce(false)
 })
 
 // jsdom has no matchMedia; the theme follows it.

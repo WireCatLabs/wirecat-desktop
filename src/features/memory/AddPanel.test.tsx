@@ -1,11 +1,12 @@
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { AiModel } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
 import type { AddedSource, Reader } from "@/platform/memory-add-schemas"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
 import { useReaders } from "@/shared/readers-store"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { useAddSource } from "./add-store"
 import { MemoryPage } from "./MemoryPage"
@@ -65,16 +66,22 @@ const BATCH = {
 
 const openPanel = async (user: ReturnType<typeof userEvent.setup>) => {
   render(<MemoryPage />)
-  await user.click(await screen.findByRole("button", { name: "Add to memory" }, { timeout: 4000 }))
-  return screen.getByRole("region", { name: "Add to memory" })
+  await user.click(await screen.findByRole("button", { name: "Add to memory" }))
+  const panel = screen.getByRole("region", { name: "Add to memory" })
+  // The click moves focus to the panel's title on the next frame; typing before that loses keys to the title.
+  await waitFor(() => expect(within(panel).getByRole("heading", { name: "Add to memory" })).toHaveFocus())
+  return panel
 }
 
 describe("Add to memory", () => {
   beforeEach(() => {
+    answerAtOnce()
     useAddSource.setState(useAddSource.getInitialState(), true)
     useReaders.setState(useReaders.getInitialState(), true)
     useMemory.setState(useMemory.getInitialState(), true)
   })
+
+  afterEach(() => vi.restoreAllMocks())
 
   it("says a wrong address while it is typed, before any click", async () => {
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", true)])

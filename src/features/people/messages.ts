@@ -48,6 +48,8 @@ const en = {
   undoTitle: "Undo this join?",
   undoBody: (from: string) =>
     `These accounts go back to ${from}, as before the join. WireCat will not join them again on its own.`,
+  undoBodyUnnamed:
+    "These accounts go back to the person they were joined from, as before the join. WireCat will not join them again on its own.",
   undo: "Undo the join",
   moveHeading: (account: string, to: string) => `Moves ${account} to ${to}.`,
   moveHelp: "Only this account moves. The rest of its person stays as it is.",
@@ -60,6 +62,9 @@ const en = {
     "guest-email": "Meeting guest's email",
   } as Record<string, string>,
   same: "same",
+  phoneHidden: "number hidden: only its fingerprint is known",
+  phoneHiddenTip:
+    "Memo found the same number on both, but keeps only a fingerprint of it, not the number itself, so it cannot be shown here.",
   sameTip: {
     phone: "They have the same phone number.",
     email: "They have the same email address.",
@@ -289,6 +294,8 @@ const ru: typeof en = {
   undoMerge: "Отменить",
   undoTitle: "Отменить это объединение?",
   undoBody: (from: string) => `Эти аккаунты вернутся к ${from}, как до объединения. Сам WireCat их снова не объединит.`,
+  undoBodyUnnamed:
+    "Эти аккаунты вернутся к человеку, с которым их объединили, как до объединения. Сам WireCat их снова не объединит.",
   undo: "Отменить объединение",
   moveHeading: (account: string, to: string) => `Переносит ${account} к ${to}.`,
   moveHelp: "Переносится только этот аккаунт. Остальное у этого человека не меняется.",
@@ -301,6 +308,9 @@ const ru: typeof en = {
     "guest-email": "Почта гостя встречи",
   },
   same: "одинаковый",
+  phoneHidden: "номер скрыт: известен только отпечаток",
+  phoneHiddenTip:
+    "Memo нашёл у обоих один и тот же номер, но хранит только его отпечаток, а не сам номер, поэтому показать его нельзя.",
   sameTip: {
     phone: "У них один и тот же номер телефона.",
     email: "У них один и тот же адрес почты.",
@@ -531,6 +541,8 @@ const es: typeof en = {
   undoTitle: "¿Deshacer esta unión?",
   undoBody: (from: string) =>
     `Estas cuentas vuelven a ${from}, como antes de la unión. WireCat no las volverá a unir por su cuenta.`,
+  undoBodyUnnamed:
+    "Estas cuentas vuelven a la persona de la que se unieron, como antes de la unión. WireCat no las volverá a unir por su cuenta.",
   undo: "Deshacer la unión",
   moveHeading: (account: string, to: string) => `Mueve ${account} a ${to}.`,
   moveHelp: "Solo se mueve esta cuenta. El resto de su persona queda igual.",
@@ -543,6 +555,9 @@ const es: typeof en = {
     "guest-email": "Correo de un invitado",
   },
   same: "el mismo",
+  phoneHidden: "número oculto: solo se conoce su huella",
+  phoneHiddenTip:
+    "Memo encontró el mismo número en ambos, pero guarda solo una huella de él, no el número, así que no se puede mostrar aquí.",
   sameTip: {
     phone: "Tienen el mismo número de teléfono.",
     email: "Tienen la misma dirección de correo.",

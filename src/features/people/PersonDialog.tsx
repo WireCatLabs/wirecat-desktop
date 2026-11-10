@@ -7,7 +7,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { groupMatches } from "./groups"
 import { IdentityList } from "./IdentityList"
-import { usePersonName } from "./labels"
+import { useJoinedFrom, usePersonName } from "./labels"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
 import { Refusal } from "./Refusal"
@@ -86,7 +86,7 @@ function Details({ reference }: { reference: string }) {
 function Merges({ person }: { person: PersonDetail }) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
-  const name = usePersonName()
+  const joinedFrom = useJoinedFrom()
   if (person.merges.length === 0) return null
   return (
     <section className="flex flex-col gap-[0.4rem]">
@@ -95,7 +95,10 @@ function Merges({ person }: { person: PersonDetail }) {
         {person.merges.map((merge) => (
           <li key={merge.id} className="flex flex-wrap items-center justify-between gap-2 text-[0.95rem]">
             <span className="min-w-0">
-              {m.mergeLine(name(merge.from), merge.method ? (m.methods[merge.method] ?? merge.method) : null)}
+              {m.mergeLine(
+                joinedFrom(person, merge) ?? m.noName,
+                merge.method ? (m.methods[merge.method] ?? merge.method) : null,
+              )}
               {merge.at && (
                 <span className="ml-2 font-mono text-[0.85rem] text-ink-dim">
                   {new Date(merge.at).toLocaleDateString(lang, { dateStyle: "medium" })}

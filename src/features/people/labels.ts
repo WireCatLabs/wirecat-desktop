@@ -1,5 +1,6 @@
 import { handleOf, personName } from "@/domain/people"
 import { useMessages } from "@/i18n"
+import type { Merge, PersonDetail } from "@/platform/people-schemas"
 import { peopleMessages } from "./messages"
 import { usePeople } from "./store"
 
@@ -25,6 +26,22 @@ export function usePersonName() {
       }) ??
       (person ? handleOf(person.identities) : null) ??
       m.noName
+    )
+  }
+}
+
+/** Who a join came from. That person is no longer listed or read, so the name falls back to the accounts it brought. */
+export function useJoinedFrom() {
+  const m = useMessages(peopleMessages)
+  const name = usePersonName()
+  return (person: PersonDetail, merge: Merge): string | null => {
+    const known = name(merge.from)
+    if (known !== m.noName) return known
+    return (
+      person.identities
+        .filter((i) => merge.identities.includes(i.identity))
+        .map((i) => i.name?.trim())
+        .find(Boolean) ?? null
     )
   }
 }

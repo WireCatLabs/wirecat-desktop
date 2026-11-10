@@ -8,6 +8,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
+import { titleOf } from "./DigestTable"
 import { type BookText, bookMessages } from "./messages-book"
 import { type Can, DigestFields, focusProblem, NoHarness, problemOf } from "./ScheduleCard"
 import { DEFAULT_CAPS, MORNING, useDigestBook } from "./schedule-store"
@@ -20,7 +21,15 @@ export function freeName(base: string, taken: readonly string[]): string {
   for (let n = 2; ; n++) if (!taken.includes(`${base}-${n}`)) return `${base}-${n}`
 }
 
-export function draftOf(template: Template, taken: readonly string[], m: BookText): DigestSpec {
+/** A template's title, with " 2", " 3" when a digest already has it, so two rows from one template read apart. */
+export function freeTitle(base: string, taken: readonly string[]): string {
+  if (!taken.includes(base)) return base
+  for (let n = 2; ; n++) if (!taken.includes(`${base} ${n}`)) return `${base} ${n}`
+}
+
+export function draftOf(template: Template, digests: readonly DigestItem[], m: BookText): DigestSpec {
+  const taken = digests.map((d) => d.name)
+  const titles = digests.map((d) => titleOf(d, m))
   const base = { sources: [], routes: [], brief: null, scheduled: true, ...DEFAULT_CAPS }
   switch (template) {
     case "daily":
@@ -28,7 +37,7 @@ export function draftOf(template: Template, taken: readonly string[], m: BookTex
       return {
         ...base,
         name: freeName(taken.includes(MORNING) ? "daily-digest" : MORNING, taken),
-        title: m.starter.daily,
+        title: freeTitle(m.starter.daily, titles),
         times: ["08:30"],
         weekdays: [],
       }
@@ -36,7 +45,7 @@ export function draftOf(template: Template, taken: readonly string[], m: BookTex
       return {
         ...base,
         name: freeName("weekly-digest", taken),
-        title: m.starter.weekly,
+        title: freeTitle(m.starter.weekly, titles),
         times: ["09:00"],
         weekdays: ["mon"],
         maxCostUsd: 1,
@@ -225,5 +234,3 @@ export function CreateDialog({
     </Dialog>
   )
 }
-
-export const takenNames = (digests: readonly DigestItem[]) => digests.map((d) => d.name)

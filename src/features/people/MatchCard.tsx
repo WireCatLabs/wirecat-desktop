@@ -60,6 +60,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
     )
   })
   const shared = sharedValue(first, contacts)
+  const read = people.every((ref) => details[ref]?.state === "ready")
 
   const done = open.length === 0
   const moving = first.joins === "identity" && first.identity
@@ -84,7 +85,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         </h3>
         <Proposer by={first.proposer} />
       </div>
-      <Signal group={group} match={first} value={shared} names={people.map((p) => name(p))} />
+      <Signal group={group} match={first} value={shared} read={read} names={people.map((p) => name(p))} />
       {moving && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.moveHeading(moveWords(first, m.anAccount), name(first.persons[1] ?? ""))} {m.moveHelp}
@@ -167,11 +168,14 @@ function Signal({
   group,
   match,
   value,
+  read,
   names,
 }: {
   group: MatchGroup
   match: Match
   value: string | null
+  /** Every side's accounts are read, so a missing number is not just still loading. */
+  read: boolean
   names: string[]
 }) {
   const m = useMessages(peopleMessages)
@@ -185,6 +189,10 @@ function Signal({
       <span className="text-[0.92rem] font-medium text-ink-soft">{m.signalNames[signal] ?? signal}</span>
       {value ? (
         <span className="selectable font-mono text-[1.05rem] font-semibold text-ink tabular-nums">{value}</span>
+      ) : signal === "phone" && read ? (
+        <InfoTip label={m.phoneHiddenTip} trigger={<Pill>{m.phoneHidden}</Pill>}>
+          {m.phoneHiddenTip}
+        </InfoTip>
       ) : (
         sameTip && (
           <InfoTip label={sameTip} trigger={<Pill>{m.same}</Pill>}>

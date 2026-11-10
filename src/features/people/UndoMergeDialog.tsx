@@ -2,20 +2,23 @@ import { LoaderCircle } from "lucide-react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
-import { usePersonName } from "./labels"
+import { useJoinedFrom } from "./labels"
+import { Account } from "./MatchCard"
 import { peopleMessages } from "./messages"
 import { usePeople } from "./store"
 
 /** Says which accounts go back to whom before the join is undone. */
 export function UndoMergeDialog() {
   const m = useMessages(peopleMessages)
-  const name = usePersonName()
+  const joinedFrom = useJoinedFrom()
   const undoing = usePeople((s) => s.undoing)
   const detail = usePeople((s) => (s.undoing ? s.details[s.undoing.ref] : undefined))
   const busy = usePeople((s) => (s.undoing ? s.busy[s.undoing.ref] : undefined))
   const { askUndo, unmerge } = usePeople.getState()
-  const merge =
-    detail?.state === "ready" && undoing ? detail.person.merges.find((x) => x.id === undoing.merge) : undefined
+  const person = detail?.state === "ready" ? detail.person : null
+  const merge = undoing ? person?.merges.find((x) => x.id === undoing.merge) : undefined
+  const back = (merge?.identities ?? []).map((ref) => person?.identities.find((i) => i.identity === ref) ?? ref)
+  const from = person && merge ? joinedFrom(person, merge) : null
   return (
     <Dialog
       open={undoing !== null}
@@ -39,13 +42,17 @@ export function UndoMergeDialog() {
     >
       {merge && (
         <>
-          <p className="text-[0.95rem] text-ink-soft">{m.undoBody(name(merge.from))}</p>
+          <p className="text-[0.95rem] text-ink-soft">{from ? m.undoBody(from) : m.undoBodyUnnamed}</p>
           <ul className="mt-3 flex flex-col gap-1">
-            {merge.identities.map((i) => (
-              <li key={i} className="font-mono text-[0.9rem]">
-                {i}
-              </li>
-            ))}
+            {back.map((i) =>
+              typeof i === "string" ? (
+                <li key={i} className="font-mono text-[0.9rem]">
+                  {i}
+                </li>
+              ) : (
+                <Account key={i.identity} identity={i} />
+              ),
+            )}
           </ul>
         </>
       )}
