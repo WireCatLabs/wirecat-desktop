@@ -245,10 +245,7 @@ export function LogsPage() {
               docs={LOGS_DOCS}
               onChange={setQuery}
             />
-            {/* Centred on the 2.8rem search field, as the Facets button is. */}
-            <div className="mt-[0.4rem]">
-              <Range value={range} onChange={setRange} />
-            </div>
+            <Range value={range} onChange={setRange} />
             <GroupBy value={groupBy} onChange={setGroupBy} />
             <Button
               size="sm"
@@ -496,7 +493,7 @@ function Range({ value, onChange }: { value: RangeId; onChange: (r: RangeId) => 
   const m = useMessages(logsMessages)
   return (
     <Segmented<RangeId>
-      size="md"
+      size="lg"
       label={m.timeRange}
       value={value}
       onChange={onChange}

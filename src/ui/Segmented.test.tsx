@@ -29,4 +29,8 @@ describe("Segmented", () => {
     expect(screen.getByRole("radio", { name: "Waiting for you 10" })).toBeChecked()
     expect(screen.getByText("1,200+")).toBeInTheDocument()
   })
+  it("as a stand-in while loading, shows its choice but takes none", () => {
+    render(<Segmented size="md" label="Show" value="tg" options={OPTIONS} onChange={() => {}} disabled />)
+    expect(screen.getByRole("radio", { name: "WhatsApp" })).toBeDisabled()
+  })
 })

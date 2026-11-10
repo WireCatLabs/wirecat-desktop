@@ -175,9 +175,7 @@ function ContentsSkeleton() {
         ))}
       </dl>
       <div className="flex flex-col gap-3">
-        <fieldset disabled className="contents">
-          <BreakDownBy value="provider" onChange={() => {}} />
-        </fieldset>
+        <BreakDownBy value="provider" onChange={() => {}} disabled />
         <table aria-hidden className="w-full">
           <tbody>
             {tools.map((t) => (
@@ -205,7 +203,8 @@ function ContentsSkeleton() {
   )
 }
 
-function BreakDownBy({ value, onChange }: { value: Dimension; onChange: (d: Dimension) => void }) {
+function BreakDownBy(props: { value: Dimension; onChange: (d: Dimension) => void; disabled?: boolean }) {
+  const { value, onChange, disabled = false } = props
   const m = useMessages(storageMessages)
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -217,6 +216,7 @@ function BreakDownBy({ value, onChange }: { value: Dimension; onChange: (d: Dime
         label={m.breakDownBy}
         value={value}
         onChange={onChange}
+        disabled={disabled}
         options={DIMENSIONS.map((d) => ({ value: d, label: m.dimension[d] }))}
       />
     </div>
