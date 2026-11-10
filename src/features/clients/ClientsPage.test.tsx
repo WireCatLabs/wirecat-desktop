@@ -82,8 +82,11 @@ describe("Clients on the base stages", () => {
   })
 
   it("asks for a CRM, and once one is installed, for its sign-in, while the board still shows", async () => {
+    const user = userEvent.setup()
     render(<ClientsPage />)
     await card("Site for Northstar")
+    expect(screen.queryByRole("button", { name: "Install Bitrix24" })).toBeNull()
+    await user.click(await screen.findByRole("button", { name: "Bitrix24 not installed", expanded: false }))
     expect(await screen.findByRole("button", { name: "Install Bitrix24" })).toBeInTheDocument()
     vi.spyOn(platform, "listProfiles").mockResolvedValue([])
     useTools.setState({
@@ -94,6 +97,7 @@ describe("Clients on the base stages", () => {
       },
     })
     expect(await screen.findByRole("button", { name: "Sign in to Bitrix24" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Bitrix24: not signed in", expanded: true })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Site for Northstar" })).toBeInTheDocument()
   })
 
@@ -248,6 +252,7 @@ describe("Clients on the base stages", () => {
     const user = userEvent.setup()
     const move = vi.spyOn(platform, "clientsMove")
     render(<ClientsPage />)
+    await user.click(await screen.findByRole("button", { name: "Read only" }))
     expect(await screen.findByText(/Read only: WireCat cannot run this CRM's own tool yet/)).toBeInTheDocument()
     expect(screen.getByText(/Sync · Bitrix24 · northstar\.example/)).toBeInTheDocument()
     const chairs = await card("Northstar: 40 office chairs")
@@ -446,12 +451,14 @@ describe("Confirming a CRM's stages", () => {
     expect(within(map).getByRole("radio", { name: "Bitrix24 · northstar.example" })).toBeChecked()
     await user.click(within(map).getByRole("button", { name: "Close" }))
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull())
-    expect(screen.getByText(/CRM stages wait for you to confirm them/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /stages to confirm/ })).toBeInTheDocument()
     unmount()
 
     render(<ClientsPage />)
     await card("Site for Northstar")
     expect(screen.queryByRole("dialog")).toBeNull()
+    await user.click(screen.getByRole("button", { name: /stages to confirm/ }))
+    expect(screen.getByText(/CRM stages wait for you to confirm them/)).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Confirm stages" }))
     expect(await screen.findByRole("dialog", { name: "Deal stages of your CRMs" })).toBeInTheDocument()
   })
@@ -470,7 +477,7 @@ describe("Importing from a CRM", () => {
   it("offers no import while no CRM is signed in: the notice asks for one", async () => {
     render(<ClientsPage />)
     await card("Site for Northstar")
-    expect(await screen.findByRole("button", { name: "Install Bitrix24" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Bitrix24 not installed" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /^Import from/ })).toBeNull()
   })
 
