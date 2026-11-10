@@ -1,5 +1,5 @@
 import { ArrowRight, Check, ChevronDown, LoaderCircle, Plus, X } from "lucide-react"
-import { type ReactNode, useEffect, useId, useState } from "react"
+import { type ReactNode, useEffect, useState } from "react"
 import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
@@ -15,6 +15,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { RefreshButton } from "@/ui/RefreshButton"
+import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { Activity } from "./Activity"
 import { AddPanel, PANEL_TITLE } from "./AddPanel"
@@ -347,20 +348,14 @@ function Moving({ leaving, arriving, children }: { leaving: boolean; arriving: b
 
 function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => void; count: (t: Tab) => number }) {
   const m = useMessages(memoryMessages)
-  const name = useId()
   return (
-    <fieldset className="inline-flex h-[2.8rem] items-stretch self-start rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
-      <legend className="sr-only">{m.show}</legend>
-      {TABS.map((t) => (
-        <label key={t} className="relative flex">
-          <input type="radio" name={name} checked={t === value} onChange={() => onChange(t)} className="peer sr-only" />
-          <span className="flex h-[calc(2.8rem-6px)] cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
-            {t === "all" ? m.allTab : m.states[t]}
-            <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{count(t)}</span>
-          </span>
-        </label>
-      ))}
-    </fieldset>
+    <Segmented<Tab>
+      size="md"
+      label={m.show}
+      value={value}
+      onChange={onChange}
+      options={TABS.map((t) => ({ value: t, label: t === "all" ? m.allTab : m.states[t], count: count(t) }))}
+    />
   )
 }
 
