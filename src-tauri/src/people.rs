@@ -123,6 +123,10 @@ pub struct Listed {
     pub kind: Option<String>,
     /// The phone, else the email, else the `@username`.
     pub contact: Option<String>,
+    pub phone: Option<String>,
+    pub email: Option<String>,
+    /// A messenger handle, without its `@`; memo 0.131.76 does not say which messenger it is on.
+    pub username: Option<String>,
     /// Messages and mail this person sent, every account together.
     pub messages_from: Option<u64>,
     pub last_contact: Option<String>,
@@ -137,6 +141,9 @@ fn listed(v: &Value) -> Option<Listed> {
         display_name: text(v, "display_name"),
         kind: text(v, "kind"),
         contact: text(v, "contact"),
+        phone: text(v, "phone"),
+        email: text(v, "email"),
+        username: text(v, "username").map(|u| u.trim_start_matches('@').to_string()),
         messages_from: v["messages_from"].as_u64(),
         last_contact: text(v, "last_contact"),
     })
@@ -245,7 +252,8 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
     let (people, matches) = std::thread::scope(|s| {
         let m = s.spawn(|| call(&words(&["people", "review", "--limit", MATCH_LIMIT])));
         let asked = format!("kind:{kind}");
-        let people = match call(&words(&["people", "list", &asked, "--sort", "interactions", "--limit", LIST_LIMIT])) {
+        // The table reads its rows a page at a time (`page`); this one row only tells a memo with kinds from one without.
+        let people = match call(&words(&["people", "list", &asked, "--limit", "1"])) {
             Err(e) if OLDER.contains(&e.as_str()) => {
                 call(&words(&["people", "list", "--limit", LIST_LIMIT])).map(|v| (v, false))
             }
@@ -265,6 +273,59 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
         matches_more: more(&matches),
         kinded,
     })
+}
+
+/// One page of one kind of people, as memo sorts them; `total` is memo's count of everyone the page is cut from.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct Page {
+    pub people: Vec<Listed>,
+    pub total: Option<KindCount>,
+    pub more: bool,
+}
+
+/// The orders memo's `people list --sort` takes, each in its one direction.
+const SORTS: [&str; 4] = ["interactions", "recent", "name", "tasks"];
+const MAX_PAGE: u32 = 200;
+const MAX_QUERY: usize = 100;
+
+fn page_args(kind: &str, page: u32, size: u32, query: &str, sort: &str) -> Result<Vec<String>, String> {
+    let kind = KINDS.iter().find(|k| **k == kind).ok_or("not a kind of people")?;
+    let sort = SORTS.iter().find(|s| **s == sort).ok_or("not an order memo sorts people by")?;
+    if page == 0 || !(1..=MAX_PAGE).contains(&size) {
+        return Err(format!("a page is 1 to {MAX_PAGE} people, from page 1"));
+    }
+    let query = query.trim();
+    if query.chars().count() > MAX_QUERY || query.chars().any(char::is_control) {
+        return Err(format!("a name to look for is at most {MAX_QUERY} characters on one line"));
+    }
+    let mut args = vec!["people".to_string(), "list".into(), format!("kind:{kind}")];
+    if !query.is_empty() {
+        args.push(format!("name:{}", serde_json::to_string(query).map_err(|e| e.to_string())?));
+    }
+    let (size, page) = (size.to_string(), page.to_string());
+    args.extend(words(&["--sort", sort, "--limit", &size, "--page", &page]));
+    Ok(args)
+}
+
+fn page_with(call: &Call, kind: &str, page: u32, size: u32, query: &str, sort: &str) -> Result<Page, String> {
+    let v = match call(&page_args(kind, page, size, query, sort)?) {
+        Err(e) if e == UNKNOWN_KIND && kind == "stranger" => json!({"items": [], "page": {"has_more": false}}),
+        r => r?,
+    };
+    let total = &v["page"]["total"];
+    Ok(Page {
+        people: list(&v, "items", listed),
+        total: total["value"]
+            .as_u64()
+            .map(|value| KindCount { value, more: total["relation"].as_str().is_some_and(|r| r != "eq") }),
+        more: v["page"]["has_more"].as_bool().unwrap_or(false),
+    })
+}
+
+/// One page of the list, read on its own: turning a page or searching never reads the matches again.
+pub fn page(kind: &str, page: u32, size: u32, query: &str, sort: &str) -> Result<Page, String> {
+    with_memo(|call| page_with(call, kind, page, size, query, sort))
 }
 
 fn memo() -> Result<&'static Tool, String> {
@@ -711,20 +772,62 @@ mod tests {
         assert_eq!(people[0].contact.as_deref(), Some("+34600000001"));
         assert_eq!(people[0].messages_from, Some(314));
         let asked = seen.lock().unwrap().clone();
-        assert!(asked.contains(&words(&[
-            "people",
-            "list",
-            "kind:organization",
-            "--sort",
-            "interactions",
-            "--limit",
-            LIST_LIMIT
-        ])));
+        assert!(asked.contains(&words(&["people", "list", "kind:organization", "--limit", "1"])));
         assert_eq!(read_with(&call, "nonsense").map(|_| ()), Ok(()));
         assert!(
             seen.lock().unwrap().iter().all(|a| !a.iter().any(|w| w.contains("nonsense"))),
             "an unknown kind is person"
         );
+    }
+
+    #[test]
+    fn reads_one_page_of_one_kind_with_memos_total_and_the_name_as_one_word() {
+        let seen = Mutex::new(Vec::new());
+        let call = |a: &[String]| -> Result<Value, String> {
+            seen.lock().unwrap().push(a.to_vec());
+            Ok(json!({"items": [{
+                "ref": "person:12", "name": "Kai Sample", "owner": false, "tasks": 0, "contact": "+34600000001",
+                "phone": "+34600000001", "email": "kai@example.com", "username": "@kai_s"
+            }], "page": {"has_more": true, "next_page": 3, "total": {"value": 1240, "relation": "eq"}}}))
+        };
+        let page = page_with(&call, "organization", 2, 50, "  kai \"s\" ", "recent").unwrap();
+        assert_eq!(page.total, Some(KindCount { value: 1240, more: false }));
+        assert!(page.more);
+        let kai = &page.people[0];
+        assert_eq!(
+            (kai.phone.as_deref(), kai.email.as_deref(), kai.username.as_deref()),
+            (Some("+34600000001"), Some("kai@example.com"), Some("kai_s"))
+        );
+        assert_eq!(
+            seen.lock().unwrap()[0],
+            strs(&[
+                "people",
+                "list",
+                "kind:organization",
+                r#"name:"kai \"s\"""#,
+                "--sort",
+                "recent",
+                "--limit",
+                "50",
+                "--page",
+                "2",
+                "--json",
+                "--no-record"
+            ])
+        );
+        page_with(&call, "person", 1, 50, "", "interactions").unwrap();
+        assert!(!seen.lock().unwrap()[1].iter().any(|w| w.starts_with("name:")), "no name, no term");
+    }
+
+    #[test]
+    fn a_page_refuses_what_memo_should_never_be_asked() {
+        let call = |_: &[String]| -> Result<Value, String> { panic!("memo is never asked") };
+        assert!(page_with(&call, "everyone", 1, 50, "", "interactions").is_err());
+        assert!(page_with(&call, "person", 1, 50, "", "--all").is_err());
+        assert!(page_with(&call, "person", 0, 50, "", "interactions").is_err());
+        assert!(page_with(&call, "person", 1, 5000, "", "interactions").is_err());
+        assert!(page_with(&call, "person", 1, 50, "a\nb", "interactions").is_err());
+        assert!(page_with(&call, "person", 1, 50, &"x".repeat(101), "interactions").is_err());
     }
 
     #[test]

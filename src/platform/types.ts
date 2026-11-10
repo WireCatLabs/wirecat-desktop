@@ -88,7 +88,16 @@ import type {
   SourceReview,
 } from "./memory-schemas"
 import type { Notification } from "./notifications-schemas"
-import type { MatchAnswer, Merged, PeopleRead, PersonDetail, PersonKind, Unlinked } from "./people-schemas"
+import type {
+  MatchAnswer,
+  Merged,
+  PeoplePage,
+  PeopleRead,
+  PeopleSort,
+  PersonDetail,
+  PersonKind,
+  Unlinked,
+} from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
 import type { ImportOutcome, RecordType } from "./records-schemas"
 import type { Repair } from "./repair-schemas"
@@ -366,6 +375,14 @@ export type Platform = {
   peopleRead(kind?: PersonKind): Promise<PeopleRead>
   /** How many people memo holds of each kind; empty from a memo older than kinds. */
   peopleKinds(): Promise<Record<string, { value: number; more: boolean }>>
+  /** One page of one kind, cut and sorted by memo; `query` looks for a name. */
+  peoplePage(ask: {
+    kind: PersonKind
+    page: number
+    size: number
+    query: string
+    sort: PeopleSort
+  }): Promise<PeoplePage>
   /** One person: identities by source with the accounts that saw each, merges and open matches. */
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */

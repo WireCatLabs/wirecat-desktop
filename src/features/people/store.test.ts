@@ -27,7 +27,16 @@ const match = (id: string, persons: [string, string]): Match => ({
 })
 
 /** A listed person as a memo older than kinds gives it. */
-const older = { displayName: null, kind: null, contact: null, messagesFrom: null, lastContact: null }
+const older = {
+  displayName: null,
+  kind: null,
+  contact: null,
+  phone: null,
+  email: null,
+  username: null,
+  messagesFrom: null,
+  lastContact: null,
+}
 
 describe("the People store after a write", () => {
   beforeEach(() => {
