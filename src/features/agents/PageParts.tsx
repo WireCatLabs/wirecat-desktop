@@ -1,15 +1,16 @@
-import { RefreshCw } from "lucide-react"
 import { findTool } from "@/domain/catalog"
 import { agentName, termText } from "@/domain/runs"
 import { useLogs } from "@/features/logs"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
+import { PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { Skeleton, StableText } from "@/ui/Skeleton"
+import { RefreshButton } from "@/ui/RefreshButton"
+import { Skeleton } from "@/ui/Skeleton"
 import { openManage } from "./AgentDetails"
 import { ClaimRow } from "./ClaimRow"
 import { ConfirmCommand } from "./Confirm"
@@ -23,22 +24,19 @@ const box = "rounded-[0.45rem] border border-line bg-app"
 export function PageHead({ view }: { view: AgentsView }) {
   const m = useMessages(agentsMessages)
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
-        <p className="mt-3 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
-      </div>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="-mr-2 text-ink-dim"
-        disabled={view.checking || view.anyBusy}
-        onClick={view.checkAll}
-        icon={<RefreshCw className={cx("size-[0.95rem]", view.checking && "animate-spin")} aria-hidden />}
-      >
-        <StableText value={view.checking ? m.checking : m.checkAgain} variants={[m.checkAgain, m.checking]} />
-      </Button>
-    </div>
+    <PageHeader
+      title={m.title}
+      intro={m.intro}
+      actions={
+        <RefreshButton
+          busy={view.checking}
+          disabled={view.anyBusy}
+          onClick={view.checkAll}
+          label={m.checkAgain}
+          busyLabel={m.checking}
+        />
+      }
+    />
   )
 }
 

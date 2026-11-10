@@ -1,4 +1,4 @@
-import { AlertTriangle, ExternalLink, Search, Sparkles, X } from "lucide-react"
+import { AlertTriangle, Search, Sparkles, X } from "lucide-react"
 import { type ReactNode, useCallback, useEffect, useId, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { formatUsd } from "@/domain/mail-agent"
@@ -19,9 +19,9 @@ import {
 import { QueryBar } from "@/features/query"
 import { providerName, ToolNeeded, useSearchHarder } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { HarderAnswer, SearchAnswer, SearchHit } from "@/platform/search-schemas"
 import { DemoNote } from "@/shared/DemoNote"
+import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
@@ -105,21 +105,8 @@ export function SearchPage() {
   const ambiguous = answer?.kind === "failed" && current ? choicesFor(s.query, answer.candidates) : null
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div>
-        <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
-        <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
-          {m.intro}{" "}
-          <button
-            type="button"
-            onClick={() => platform.openUrl(searchGuide(lang))}
-            className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
-          >
-            {m.howToSearch}
-            <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
-          </button>
-        </p>
-      </div>
+    <Page>
+      <PageHeader title={m.title} intro={m.intro} guide={{ label: m.howToSearch, href: searchGuide(lang) }} />
 
       {s.demo && <DemoNote />}
       {checked && installed.length === 0 && searchable[0] ? (
@@ -234,7 +221,7 @@ export function SearchPage() {
           <Results m={m} version={version} toolName={tool?.name ?? s.tool ?? ""} />
         </div>
       )}
-    </div>
+    </Page>
   )
 }
 

@@ -1,9 +1,9 @@
 import "./analytics.css"
-import { LoaderCircle } from "lucide-react"
 import { useEffect } from "react"
 import type { Period } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
 import { formatList, useMessages } from "@/i18n"
+import { Page, PageHeader } from "@/shared/Page"
 import { ToggleChip } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { Segmented } from "@/ui/Segmented"
@@ -27,30 +27,21 @@ export function AnalyticsPage() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-baseline gap-[1.2rem]">
-            <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
-            <p aria-live="polite" className="flex items-center gap-1.5 text-[0.9rem] text-ink-soft">
-              {refreshing && (
-                <>
-                  <LoaderCircle className="size-4 shrink-0 animate-spin text-brand" aria-hidden />
-                  {m.refreshing}
-                </>
-              )}
-            </p>
-          </div>
-          <p className="mt-3 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
-        </div>
-        <Segmented<Period>
-          label={m.periodLabel}
-          value={period}
-          options={WEEK_OR_MONTH.map((p) => ({ value: p, label: m.period[p] ?? p, icon: null }))}
-          onChange={(p) => useAnalytics.getState().setPeriod(p)}
-          labelClass=""
-        />
-      </div>
+    <Page>
+      <PageHeader
+        title={m.title}
+        status={refreshing ? m.refreshing : null}
+        intro={m.intro}
+        actions={
+          <Segmented<Period>
+            size="md"
+            label={m.periodLabel}
+            value={period}
+            options={WEEK_OR_MONTH.map((p) => ({ value: p, label: m.period[p] ?? p, icon: null }))}
+            onChange={(p) => useAnalytics.getState().setPeriod(p)}
+          />
+        }
+      />
 
       <div className="flex min-h-[2rem] flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Scope />
@@ -68,7 +59,7 @@ export function AnalyticsPage() {
           <Cards ids={g.cards} />
         </Group>
       ))}
-    </div>
+    </Page>
   )
 }
 

@@ -1,4 +1,4 @@
-import { ArrowUp, ExternalLink, RefreshCw, Settings2, SlidersHorizontal } from "lucide-react"
+import { ArrowUp, Settings2, SlidersHorizontal } from "lucide-react"
 import { useCallback, useDeferredValue, useEffect, useId, useMemo, useRef, useState } from "react"
 import { tools } from "@/domain/catalog"
 import {
@@ -25,7 +25,7 @@ import {
 } from "@/domain/runs"
 import { QueryBar } from "@/features/query"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
+import { Page, PageHeader } from "@/shared/Page"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -33,8 +33,9 @@ import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { reducedMotion } from "@/ui/motion"
 import { ProgressBar } from "@/ui/ProgressBar"
+import { RefreshButton } from "@/ui/RefreshButton"
 import { Select } from "@/ui/Select"
-import { Skeleton, StableText } from "@/ui/Skeleton"
+import { Skeleton } from "@/ui/Skeleton"
 import { Facets } from "./Facets"
 import { Groups } from "./Groups"
 import { LogSettings, settingsTone } from "./LogSettings"
@@ -173,61 +174,55 @@ export function LogsPage() {
   const trouble = settingsTone(sources, keeping)
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
+    <Page>
       {/* One box for the header and the panel under it, so the page's gap does not appear at once as it opens. */}
       <div>
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
-            <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
-              {m.intro}{" "}
-              <button
-                type="button"
-                onClick={() => platform.openUrl(LOGS_DOCS)}
-                className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
+        <PageHeader
+          title={m.title}
+          intro={m.intro}
+          guide={{ label: m.howToSearch, href: LOGS_DOCS }}
+          actions={
+            <>
+              <Freshness at={loadedAt} reading={reading.length} asked={asked} />
+              <Button
+                size="sm"
+                aria-expanded={settingsOpen}
+                aria-controls={settingsId}
+                onClick={() => setSettingsOpen(!settingsOpen)}
+                icon={<Settings2 className="size-4" aria-hidden />}
               >
-                {m.howToSearch}
-                <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
-              </button>
-            </p>
-          </div>
-          <div className="flex items-center gap-[0.7rem]">
-            <Freshness at={loadedAt} reading={reading.length} asked={asked} />
-            <Button
-              aria-expanded={settingsOpen}
-              aria-controls={settingsId}
-              onClick={() => setSettingsOpen(!settingsOpen)}
-              icon={<Settings2 className="size-4" aria-hidden />}
-            >
-              {m.settings}
-              {trouble && <Lamp tone={trouble} size="sm" label={m.settingsTrouble} />}
-              <ExpandChevron open={settingsOpen} className="-mr-1" />
-            </Button>
-            <Button
-              aria-pressed={live}
-              onClick={() => setLive(!live)}
-              title={live ? m.liveStop : m.liveStart}
-              icon={
-                <span
-                  aria-hidden
-                  className={cx(
-                    "size-[0.6rem] rounded-full",
-                    live ? "animate-[lamp-pulse_1.4s_ease-in-out_infinite] bg-ok" : "ring-[1.5px] ring-idle ring-inset",
-                  )}
-                />
-              }
-            >
-              {m.live}
-            </Button>
-            <Button
-              onClick={() => reading.length === 0 && load()}
-              aria-busy={reading.length > 0}
-              icon={<RefreshCw className={cx("size-4", reading.length > 0 && "animate-spin")} aria-hidden />}
-            >
-              <StableText value={reading.length > 0 ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
-            </Button>
-          </div>
-        </div>
+                {m.settings}
+                {trouble && <Lamp tone={trouble} size="sm" label={m.settingsTrouble} />}
+                <ExpandChevron open={settingsOpen} className="-mr-1" />
+              </Button>
+              <Button
+                size="sm"
+                aria-pressed={live}
+                onClick={() => setLive(!live)}
+                title={live ? m.liveStop : m.liveStart}
+                icon={
+                  <span
+                    aria-hidden
+                    className={cx(
+                      "size-[0.6rem] rounded-full",
+                      live
+                        ? "animate-[lamp-pulse_1.4s_ease-in-out_infinite] bg-ok"
+                        : "ring-[1.5px] ring-idle ring-inset",
+                    )}
+                  />
+                }
+              >
+                {m.live}
+              </Button>
+              <RefreshButton
+                busy={reading.length > 0}
+                onClick={() => load()}
+                label={m.readAgain}
+                busyLabel={m.reading}
+              />
+            </>
+          }
+        />
 
         <Collapse open={settingsOpen} className="pt-[1.2rem]">
           <LogSettings id={settingsId} />
@@ -377,7 +372,7 @@ export function LogsPage() {
           )}
         </>
       )}
-    </div>
+    </Page>
   )
 }
 

@@ -5,6 +5,7 @@ import { GroupsSetting } from "@/features/groups"
 import { AppPreferences, settingsMessages } from "@/features/settings"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
+import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
@@ -81,11 +82,8 @@ export function ConfigPage() {
   }
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div>
-        <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{sm.title}</h1>
-        <p className="mt-3 max-w-[70ch] text-[0.95rem] text-ink-soft">{sm.intro}</p>
-      </div>
+    <Page>
+      <PageHeader title={sm.title} intro={sm.intro} />
 
       <AppPreferences />
 
@@ -185,7 +183,7 @@ export function ConfigPage() {
       >
         {m.discard.body}
       </Dialog>
-    </div>
+    </Page>
   )
 }
 
