@@ -140,7 +140,7 @@ export function PeopleTable() {
   )
 }
 
-/** The kinds of people as tabs, each with its count large enough to read at a glance. */
+/** The kinds of people, each with its count, as the one switch every page uses. */
 function KindTabs(props: {
   kind: PersonKind
   kinds: Partial<Record<PersonKind, { value: number; more: boolean }>>

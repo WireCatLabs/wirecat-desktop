@@ -47,7 +47,7 @@ export function TasksPage() {
         guide={{ label: m.guide, href: guide(lang) }}
         actions={
           <div
-            className={cx("flex items-center gap-2", !usable && "invisible")}
+            className={cx("flex flex-wrap items-center gap-2", !usable && "invisible")}
             aria-hidden={!usable || undefined}
             inert={demo || undefined}
           >
@@ -137,7 +137,11 @@ function Rack() {
   const badQuery = useTasks((s) => s.badQuery)
 
   if (badQuery) {
-    return <ErrorNotice detail={<span className="font-mono">{badQuery}</span>}>{m.badQuery}</ErrorNotice>
+    return (
+      <ErrorNotice tone="warn" detail={<span className="font-mono">{badQuery}</span>}>
+        {m.badQuery}
+      </ErrorNotice>
+    )
   }
   if (tasks.length === 0) {
     return query.trim() ? (

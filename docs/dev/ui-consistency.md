@@ -32,6 +32,7 @@ Ids are local to this page. "Owner" is who is editing that area now; "free" mean
 | Id | Job | Where (on `82c0c839` and the owned-pages PR) | Fix | Owner |
 |---|---|---|---|---|
 | C2 | Page frame | `conversation/ConversationPage.tsx` and `links/LinkPage.tsx` repeat the frame classes (every other page uses `Page`) | `Page` | free |
+| C11 | Empty states | the not-found boxes of `links/LinkPage.tsx` and `conversation/ConversationPage.tsx` (44rem wide, with their own actions) | `EmptyState` | free, with C2 |
 | C7 | Check again inside a panel | `tools/Health.tsx` (two), `tools/Permissions.tsx`, `agents/AgentDetails.tsx` draw their own `RefreshCw` with `animate-spin`; Health and AgentDetails disable the button while it checks, so focus is lost | `RefreshButton` | free |
 | C12 | Warning banners | 13 hand warn boxes, mostly in dialogs and Tools panels: `tools/ToolDetails.tsx`, `StorageFit.tsx`, `PreflightNotice.tsx`, `Permissions.tsx`, `OwnReview.tsx`, `ConnectReach.tsx`, `signin/BotSteps.tsx`, `signin/SignInDialog.tsx`, `agents/ConnectDialog.tsx`, `storage/BackupPassword.tsx`, `storage/ClearStorageDialog.tsx`, `system/NodeNotice.tsx`, `people/Matches.tsx` | `ErrorNotice tone="warn"` | free |
 | C13 | Skeletons | page-local skeletons are fine (they draw the shape), but `RackSkeleton` (Memory) and `ListSkeleton` (People) draw the same rack | keep; share only when a third copy appears | — |

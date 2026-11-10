@@ -80,7 +80,7 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const rows = await table()
-    expect(screen.queryByRole("tablist", { name: "Which people" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("group", { name: "Which people" })).not.toBeInTheDocument()
     expect(within(rows).getByRole("button", { name: "CZECH AIRLINES" })).toBeInTheDocument()
     expect(within(rows).queryByRole("button", { name: "Без имени" })).not.toBeInTheDocument()
     expect(within(rows).queryByRole("button", { name: /null/ })).not.toBeInTheDocument()
