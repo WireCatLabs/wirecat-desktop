@@ -10,11 +10,11 @@ export function bySource<T extends IdentityLike>(identities: readonly T[]): { pr
   return [...groups].map(([provider, list]) => ({ provider, identities: list }))
 }
 
-/** Which sides of life saw an account: personal, work, or both. A scope memo does not name is left out. */
-export function scopesOf(seenIn: readonly Seen[]): ("personal" | "work")[] {
-  const found = new Set(seenIn.map((s) => s.scope))
-  return (["personal", "work"] as const).filter((s) => found.has(s))
-}
+/**
+ * Whether a work account saw this one. Only work is marked: memo files every new account as personal and has no command
+ * to change it, so a «personal» mark sat on every account and read as "this address is private".
+ */
+export const seenAtWork = (seenIn: readonly Seen[]) => seenIn.some((s) => s.scope === "work")
 
 /**
  * A split moves some of a person's accounts to a new person; moving all of them would only rename the person, and an

@@ -1,7 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
-import { render, screen, within } from "@/testing/render"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { contactsOf, sameMark, sharedValue } from "./contacts"
 import { PeoplePage } from "./PeoplePage"
 import { useProfiles } from "./profiles"
@@ -39,6 +39,15 @@ describe("Match details", () => {
     expect(within(sides[0] as HTMLElement).getByText("Созвон по поставке")).toBeInTheDocument()
     for (const technical of ["person:", "bitrix24:", "northstar.example/contact", "17106", "initial", "Signal"])
       expect(dialog).not.toHaveTextContent(technical)
+  })
+
+  it("does not mark the accounts on a card personal, the scope memo gives every new account", async () => {
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
+    const card = screen.getByRole("article", { name: "Сергей · Сергей" })
+    await waitFor(() => expect(within(card).getAllByText("Bitrix24")).toHaveLength(2), { timeout: 4000 })
+    expect(card).not.toHaveTextContent("personal")
   })
 
   it("opens the contact on its Bitrix24 portal", async () => {

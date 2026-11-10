@@ -9,7 +9,7 @@ import {
   matchesFilter,
   personName,
   reasonOf,
-  scopesOf,
+  seenAtWork,
   touched,
 } from "./people"
 
@@ -29,9 +29,10 @@ describe("people", () => {
     ])
   })
 
-  it("names each side of life that saw an account, once", () => {
-    expect(scopesOf(id("email:a", ["work", "personal", "work", null]).seenIn)).toEqual(["personal", "work"])
-    expect(scopesOf([])).toEqual([])
+  it("marks an account a work account saw, never the default personal one", () => {
+    expect(seenAtWork(id("email:a", ["personal", "work", null]).seenIn)).toBe(true)
+    expect(seenAtWork(id("email:a", ["personal", null]).seenIn)).toBe(false)
+    expect(seenAtWork([])).toBe(false)
   })
 
   it("splits off some accounts, never none, all, or one the person does not have", () => {
