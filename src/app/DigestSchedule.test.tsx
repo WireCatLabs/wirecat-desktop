@@ -341,6 +341,22 @@ describe("what the page cannot do", () => {
     expect(useNav.getState().active).toBe("agents")
   }, 15000)
 
+  it("prints why a digest's own actions are off beside them when Claude Code is missing", async () => {
+    await openMorning(ready([{ ...morning, scheduled: false }], { harness: false }))
+    const getNow = screen.getByRole("button", { name: "Get now" })
+    expect(getNow).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Put on schedule" })).toBeDisabled()
+    const settings = screen.getByRole("heading", { name: "Settings" })
+    const between = screen
+      .getAllByText(/Digests are written by Claude Code, which is not installed/)
+      .filter(
+        (n) =>
+          getNow.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING &&
+          settings.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING,
+      )
+    expect(between).toHaveLength(1)
+  }, 15000)
+
   it("shows an older memo's morning digest as one row and keeps to what that memo can do", async () => {
     const old = ready([{ ...morning, title: null }], { named: false })
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(old)
