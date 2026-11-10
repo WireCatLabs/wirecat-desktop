@@ -85,7 +85,7 @@ const en = {
   memorySeries: "Memories",
   factSeries: "Facts",
   memoryStatus: {
-    confirmed: "Confirmed",
+    confirmed: "In use",
     proposed: "Waiting for you",
     stale: "Out of date",
     superseded: "Replaced",
@@ -331,8 +331,8 @@ const ru: typeof en = {
   memorySeries: "Воспоминания",
   factSeries: "Факты",
   memoryStatus: {
-    confirmed: "Подтверждено",
-    proposed: "Ждёт вас",
+    confirmed: "Используется",
+    proposed: "Ждёт решения",
     stale: "Устарело",
     superseded: "Заменено",
     accepted: "Принято",
@@ -574,8 +574,8 @@ const es: typeof en = {
   memorySeries: "Recuerdos",
   factSeries: "Hechos",
   memoryStatus: {
-    confirmed: "Confirmados",
-    proposed: "Esperan tu decisión",
+    confirmed: "En uso",
+    proposed: "Pendientes",
     stale: "Desactualizados",
     superseded: "Sustituidos",
     accepted: "Aceptados",
