@@ -1,4 +1,4 @@
-import { Building2, User, Users } from "lucide-react"
+import { Building2, User } from "lucide-react"
 import { crmToolOf } from "@/domain/catalog"
 import { accountKey, inScope, NOBODY, ownersOf } from "@/domain/clients"
 import { setField, valuesOf } from "@/domain/query-terms"
@@ -10,7 +10,6 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { InfoTip } from "@/ui/InfoTip"
-import { Segmented } from "@/ui/Segmented"
 import { type Based, useScope, useScopeSet, useWriter } from "./api"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
@@ -19,8 +18,8 @@ const nameOf = (a: CrmAccount | null, own: string) =>
   a ? `${crmToolOf(a.provider)?.name ?? a.provider} · ${a.account}` : own
 
 /**
- * Manager mode: whether the account's sync brings only what is assigned to the owner or the whole account. The CRM's
- * CLI saves it as the account's profile, then the Tools page's runner syncs that profile and the board reads again.
+ * The account's sync brings only what is assigned to the owner: the owner's ruling (2026-11-10) is that another client
+ * is found in the CRM itself. A scope of everyone's set before stops the CRM's sync, so it gets a way back to mine.
  */
 function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: readonly CrmPipeline[] }) {
   const m = useMessages(clientMessages)
@@ -31,7 +30,7 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
   const phase = useSync((s) => (tool && profile ? s.runs[syncKey(tool.id, profile)]?.phase : undefined))
   const answer = scope.data
   const busy = set.isPending || phase === "running"
-  const value = set.isPending ? set.variables : (answer?.scope ?? "mine")
+  const everyone = answer?.scope === "all" && !set.isSuccess
   const settable = answer?.kind === "settable" && !busy
   const why = answer?.kind === "unavailable" ? answer.why : null
   const name = tool?.name ?? account.provider
@@ -48,18 +47,19 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
       <span>
         {m.scope} · {nameOf(account, m.ownAccount)}
       </span>
-      <fieldset disabled={!settable} className="contents">
-        <Segmented<"mine" | "all">
-          label={m.scope}
-          value={value ?? "mine"}
-          labelClass=""
-          onChange={(s) => set.mutate(s)}
-          options={[
-            { value: "mine", label: m.scopes.mine, icon: <User className="size-4" aria-hidden /> },
-            { value: "all", label: m.scopes.all, icon: <Users className="size-4" aria-hidden /> },
-          ]}
-        />
-      </fieldset>
+      {everyone ? (
+        <>
+          <ErrorNotice inline>{m.scopeAll}</ErrorNotice>
+          <Button size="sm" disabled={!settable} onClick={() => set.mutate("mine")}>
+            {m.scopeToMine}
+          </Button>
+        </>
+      ) : (
+        <span className="inline-flex items-center gap-[0.3rem] text-ink">
+          <User className="size-4" aria-hidden />
+          {m.scopeMine}
+        </span>
+      )}
       {why === "profile" && writesWith && (
         <Button
           size="sm"

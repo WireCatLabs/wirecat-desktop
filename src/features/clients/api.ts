@@ -122,7 +122,7 @@ export const useScope = (account: CrmAccount | null, profile: string | null) =>
 /** Saves the scope, then starts the account's sync through the Tools page's own runner, which shows its progress. */
 export function useScopeSet(account: CrmAccount | null, profile: string | null) {
   return useMutation({
-    mutationFn: (scope: "mine" | "all") =>
+    mutationFn: (scope: "mine") =>
       account && profile
         ? platform.clientsScopeSet(account, profile, scope)
         : Promise.reject(new Error("no CRM account or profile")),

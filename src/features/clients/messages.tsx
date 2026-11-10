@@ -41,7 +41,9 @@ type Words = {
   putBack: (ref: string, reason?: string) => string
   notMoved: (reason: string) => string
   scope: string
-  scopes: { mine: string; all: string }
+  scopeMine: string
+  scopeAll: string
+  scopeToMine: string
   scopeHint: string
   scopeAbout: string
   applied: (mode: "mine" | "all") => string
@@ -117,9 +119,11 @@ const en: Words = {
   putBack: (ref, reason) => (reason ? `${ref} is back where it was: ${reason}` : `${ref} is back where it was.`),
   notMoved: (reason) => `Not moved: ${reason}`,
   scope: "Sync",
-  scopes: { mine: "Mine", all: "Everyone's" },
+  scopeMine: "Mine",
+  scopeAll: "This CRM is set to download everyone's deals, so its sync stops. Download only yours instead.",
+  scopeToMine: "Only mine",
   scopeHint:
-    "Changes what WireCat downloads from this CRM. Mine keeps only what is assigned to you or to nobody, and removes the rest from this computer.",
+    "WireCat downloads only what is assigned to you or to nobody, and the clients on it. Find any other client in the CRM itself.",
   scopeAbout: "About the sync scope",
   applied: (mode) => `Last sync downloaded: ${mode === "all" ? "everyone's" : "mine"}.`,
   scopeSaving: "Saving and syncing…",
@@ -201,9 +205,11 @@ const ru: Words = {
   putBack: (ref, reason) => (reason ? `${ref} вернулась на место: ${reason}` : `${ref} вернулась на место.`),
   notMoved: (reason) => `Не перенесено: ${reason}`,
   scope: "Синхронизировать",
-  scopes: { mine: "Мои", all: "Все" },
+  scopeMine: "Мои",
+  scopeAll: "Эта CRM настроена скачивать сделки всех, поэтому синхронизация остановлена. Скачивайте только свои.",
+  scopeToMine: "Только мои",
   scopeHint:
-    "Меняет, что WireCat скачивает из этой CRM. «Мои» оставляет только назначенное на вас или ни на кого, остальное удаляется с этого компьютера.",
+    "WireCat скачивает только назначенное на вас или ни на кого и клиентов из этих сделок. Других клиентов ищите в самой CRM.",
   scopeAbout: "Об охвате синхронизации",
   applied: (mode) => `Последняя синхронизация скачала: ${mode === "all" ? "все" : "мои"}.`,
   scopeSaving: "Сохраняю и синхронизирую…",
@@ -287,9 +293,12 @@ const es: Words = {
   putBack: (ref, reason) => (reason ? `${ref} ha vuelto a su sitio: ${reason}` : `${ref} ha vuelto a su sitio.`),
   notMoved: (reason) => `No se movió: ${reason}`,
   scope: "Sincronizar",
-  scopes: { mine: "Mías", all: "De todos" },
+  scopeMine: "Mías",
+  scopeAll:
+    "Este CRM está configurado para descargar los tratos de todos, así que su sincronización se detiene. Descarga solo los tuyos.",
+  scopeToMine: "Solo las mías",
   scopeHint:
-    "Cambia lo que WireCat descarga de este CRM. Mías guarda solo lo asignado a ti o a nadie y borra el resto de este ordenador.",
+    "WireCat descarga solo lo asignado a ti o a nadie y los clientes que aparecen en ello. Busca cualquier otro cliente en el propio CRM.",
   scopeAbout: "Sobre el alcance de la sincronización",
   applied: (mode) => `La última sincronización descargó: ${mode === "all" ? "de todos" : "mías"}.`,
   scopeSaving: "Guardando y sincronizando…",

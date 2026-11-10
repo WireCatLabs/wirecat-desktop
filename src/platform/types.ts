@@ -355,7 +355,7 @@ export type Platform = {
    */
   clientsScope(account: CrmAccount, profile: string | null): Promise<CrmScope>
   /** Saves the account's scope through its CRM's CLI as `profile`; the page then starts that profile's sync. */
-  clientsScopeSet(account: CrmAccount, profile: string, scope: "mine" | "all"): Promise<void>
+  clientsScopeSet(account: CrmAccount, profile: string, scope: "mine"): Promise<void>
   /** Points a pipeline's stage (`stage:<id>`) at a base stage; memo takes it as confirmed. */
   clientsMapSet(stage: string, base: string): Promise<void>
   /** Confirms memo's suggested mappings of one pipeline, or with `null` of every pipeline of the kind. */

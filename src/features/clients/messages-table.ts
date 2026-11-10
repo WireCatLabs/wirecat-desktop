@@ -17,7 +17,7 @@ const en = {
   importMenu: "Import from a CRM",
   importing: (crm: string) => `Importing from ${crm}…`,
   notImported: "Nothing is imported from a CRM yet.",
-  emptyScope: 'Only your own deals are imported while the scope is "Mine".',
+  emptyScope: "Only your own deals are imported, and the clients on them.",
   elsewhere: { deal: "Leads are under Leads.", lead: "Deals are under Deals." } as Record<Kind, string>,
   showOther: { deal: "Show leads", lead: "Show deals" } as Record<Kind, string>,
 }
@@ -38,7 +38,7 @@ const ru: typeof en = {
   importMenu: "Импорт из CRM",
   importing: (crm) => `Импорт из ${crm}…`,
   notImported: "Из CRM пока ничего не импортировано.",
-  emptyScope: "Пока выбран охват «Мои», импортируются только ваши сделки.",
+  emptyScope: "Импортируются только ваши сделки и клиенты из них.",
   elsewhere: { deal: "Лиды — во вкладке «Лиды».", lead: "Сделки — во вкладке «Сделки»." },
   showOther: { deal: "Показать лиды", lead: "Показать сделки" },
 }
@@ -59,7 +59,7 @@ const es: typeof en = {
   importMenu: "Importar de un CRM",
   importing: (crm) => `Importando de ${crm}…`,
   notImported: "Aún no se ha importado nada de un CRM.",
-  emptyScope: "Con el alcance «Míos» solo se importan tus tratos.",
+  emptyScope: "Solo se importan tus tratos y los clientes que aparecen en ellos.",
   elsewhere: { deal: "Los prospectos están en Prospectos.", lead: "Las negociaciones están en Negociaciones." },
   showOther: { deal: "Ver prospectos", lead: "Ver negociaciones" },
 }
