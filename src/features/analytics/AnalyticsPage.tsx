@@ -72,7 +72,10 @@ function Filters() {
       toolsOf.set(p, [...(toolsOf.get(p) ?? []), findTool(x.id)?.name ?? x.id])
   }
   const profiles = [...toolsOf.keys()].sort()
-  if (present.length === 0) return <span className="text-[0.9rem] text-ink-soft">{m.noProfilesYet}</span>
+  if (present.length === 0)
+    return MESSENGERS.some((x) => sources[x.id]?.state === "loading") ? null : (
+      <span className="text-[0.9rem] text-ink-soft">{m.noProfilesYet}</span>
+    )
   return (
     <>
       <FilterMenu

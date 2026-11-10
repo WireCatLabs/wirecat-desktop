@@ -34,6 +34,7 @@ export function readParts<T>(states: [string, AggState][], schema: v.GenericSche
   for (const [id, s] of states) {
     if (s.state === "loading") loading = true
     if (s.state !== "ready") continue
+    for (const profile of s.signedOut ?? []) problems.push({ kind: "signedOut", tool: id, profile })
     for (const p of s.parts) {
       const a: Aggregate = p.answer
       if (a.kind === "old") {

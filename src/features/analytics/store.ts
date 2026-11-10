@@ -82,7 +82,7 @@ const profilesKnown = (s: Pick<State, "profilesOf" | "sources">) =>
 export type AggState =
   | { state: "loading" }
   | { state: "missing" }
-  | { state: "ready"; parts: { profile: string | null; answer: Aggregate }[] }
+  | { state: "ready"; parts: { profile: string | null; answer: Aggregate }[]; signedOut?: string[] }
 
 type State = {
   period: Period
@@ -282,6 +282,9 @@ export function useAggregate(which: Which, id: string, enabled = true, fixed?: P
   const period = fixed ?? current
   const zone = useAnalytics((s) => s.zone)
   const listed = useAnalytics((s) => s.profilesOf[id])
+  const signedOut = useAnalytics((s) => s.signedOut[id])
+  // Every profile is signed out: there is nothing to ask, only a sign-in to offer.
+  const none = listed?.length === 0 && (signedOut?.length ?? 0) > 0
   const ids = useAnalytics((s) => s.onlySources)
   const profiles = useAnalytics((s) => s.onlyProfiles)
   const missing = useTools((s) => s.installs[id]?.length === 0)
@@ -289,12 +292,13 @@ export function useAggregate(which: Which, id: string, enabled = true, fixed?: P
     which,
     id,
     listed === undefined ? null : { period, zone, profiles: listed },
-    enabled && !missing,
+    enabled && !missing && !none,
   )
   const parts = query.data
   return useMemo(() => {
     if (!enabled) return { state: "loading" }
     if (missing) return { state: "missing" }
+    if (none) return { state: "ready", parts: [], signedOut: signedOut ?? [] }
     if (parts === undefined) return { state: "loading" }
     const messenger = MESSENGERS.some((x) => x.id === id)
     if (messenger && ids.length && !ids.includes(id)) return { state: "ready", parts: [] }
@@ -302,7 +306,7 @@ export function useAggregate(which: Which, id: string, enabled = true, fixed?: P
       state: "ready",
       parts: parts.filter((p) => p.profile === null || !profiles.length || profiles.includes(p.profile)),
     }
-  }, [enabled, missing, parts, ids, profiles, id])
+  }, [enabled, missing, none, signedOut, parts, ids, profiles, id])
 }
 
 export const useAnalytics = create<State>((set, get) => {

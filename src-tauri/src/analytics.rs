@@ -16,6 +16,8 @@ const STATS: &str = "stats";
 const UNMUTED: &str = "muted:false";
 /// The key under which a copy too old for `muted:` is remembered, so its counts skip the term until it is updated.
 const MUTED_FIELD: &str = "muted:";
+/// Reply times and waiting chats learned `muted:` apart from search, so a copy is remembered for each on its own.
+const MUTED_REPLIES: &str = "muted: replies";
 // Longer than the `--timeout 60s` in the templates, so the tool's own time-limit answer comes back, not a kill.
 const TIMEOUT: Duration = Duration::from_secs(90);
 /// Ranked rows for senders and chats; the page shows ten and keeps the rest for its table.
@@ -458,13 +460,13 @@ pub fn aggregate(
     {
         return Ok(Aggregate::Old { message: format!("needs {} {min} or newer", tool.bin) });
     }
-    let unmuted = COUNTS_MESSAGES.contains(name) && REFUSED.known(&tool.id, MUTED_FIELD, &bin).is_none();
+    let unmuted = COUNTS_MESSAGES.contains(name) && REFUSED.known(&tool.id, MUTED_REPLIES, &bin).is_none();
     let answer = run_aggregate(tool, &bin, &aggregate_args(src, profile, period, timezone, unmuted)?)?;
     if let Aggregate::Failed { message } = &answer
         && unmuted
         && unknown_muted(message)
     {
-        REFUSED.remember(&tool.id, MUTED_FIELD, &bin, message);
+        REFUSED.remember(&tool.id, MUTED_REPLIES, &bin, message);
         return run_aggregate(tool, &bin, &aggregate_args(src, profile, period, timezone, false)?);
     }
     Ok(answer)

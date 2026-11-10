@@ -97,7 +97,6 @@ export function WhenYouTalk() {
   )
 }
 
-/** People who wrote much less than in the period before, and chats that grew most. */
 /**
  * The chats the owner wrote in at least once in the last 30 days (UX-164): a busier group he never writes in is noise.
  * The day is in the query, so the set is read once a day and kept for the session.
@@ -112,14 +111,31 @@ function useActiveChats(today: string, enabled: boolean) {
       ),
     [sent.bySource],
   )
-  return { ids, loading: sent.loading, stale: sent.stale }
+  // A messenger whose count of the owner's own messages failed is not filtered: an empty set would hide every chat.
+  const known = useMemo(
+    () =>
+      new Set(
+        Object.keys(sent.bySource)
+          .filter((id) => !sent.problems.some((p) => p.tool === id))
+          .map(providerOf),
+      ),
+    [sent.bySource, sent.problems],
+  )
+  return { ids, known, problems: sent.problems, loading: sent.loading, stale: sent.stale }
 }
 
-const onlyActive = <R extends { key: string }>(bySource: Record<string, readonly R[]>, ids: ReadonlySet<string>) =>
+const onlyActive = <R extends { key: string }>(
+  bySource: Record<string, readonly R[]>,
+  { ids, known }: { ids: ReadonlySet<string>; known: ReadonlySet<string> },
+) =>
   Object.fromEntries(
-    Object.entries(bySource).map(([source, rows]) => [source, rows.filter((r) => ids.has(`${source}:${r.key}`))]),
+    Object.entries(bySource).map(([source, rows]) => [
+      source,
+      known.has(source) ? rows.filter((r) => ids.has(`${source}:${r.key}`)) : rows,
+    ]),
   )
 
+/** People who wrote much less than in the period before, and chats that grew most. */
 export function WhatChanged() {
   const m = useMessages(analyticsMessages)
   const period = useAnalytics((s) => s.period)
@@ -165,8 +181,8 @@ export function WhatChanged() {
   if (loading) return <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.changesTitle} />
   const people = changes(byProvider(peopleNow.bySource), byProvider(peopleBefore.bySource))
   const chats = changes(
-    onlyActive(byProvider(chatsNow.bySource), active.ids),
-    onlyActive(byProvider(chatsBefore.bySource), active.ids),
+    onlyActive(byProvider(chatsNow.bySource), active),
+    onlyActive(byProvider(chatsBefore.bySource), active),
   )
   const name = (c: Change) => (c.name === null ? m.unnamed : hide ? initials(c.name) : c.name)
   return (

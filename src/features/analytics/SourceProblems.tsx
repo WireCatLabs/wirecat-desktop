@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import { findTool, ownerId, signsInHere } from "@/domain/catalog"
 import { InstallLine, openToolAt, syncKey, useSync, useTerminal } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -76,6 +77,13 @@ function Action({ problem: p }: { problem: Problem }) {
   const session = useTools((s) => s.sessions[ownerId(p.tool)])
   const run = useSync((s) => ("profile" in p ? s.runs[syncKey(p.tool, p.profile)] : undefined))
   const reload = useAnalytics((s) => s.reload)
+  const phase = run?.phase
+  const was = useRef(phase)
+  // The counts are kept for the session; a load that just finished is the moment to read them again.
+  useEffect(() => {
+    if (was.current === "running" && phase === "done") reload()
+    was.current = phase
+  }, [phase, reload])
   if ((p.kind === "missing" || p.kind === "old") && session && !session.outcome)
     return <InstallLine session={session} name={tool} />
   switch (p.kind) {
