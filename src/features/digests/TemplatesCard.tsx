@@ -13,6 +13,7 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { area, card, useMemoEditor } from "./editor-state"
@@ -39,6 +40,16 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
   const saved = value?.state === "ready" ? value.body : ""
   const [draft, setDraft] = useState(saved)
   const [shown, setShown] = useState<Shown | null>(null)
+  const fieldId = useId()
+  const need = useFieldError(fieldId, {
+    live: {
+      problem: !draft.trim()
+        ? (l) => editorMessages[l].templates.empty
+        : draft === saved
+          ? (l) => editorMessages[l].unchanged
+          : null,
+    },
+  })
   useEffect(() => {
     setDraft(saved)
     setShown(null)
@@ -89,6 +100,8 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
       ) : (
         <>
           <textarea
+            id={fieldId}
+            {...need.field}
             aria-label={m.body}
             rows={14}
             spellCheck={false}
@@ -120,12 +133,17 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
             <Button
               size="sm"
               variant="primary"
-              disabled={busy || !draft.trim() || draft === saved}
-              onClick={() => void change(() => platform.digestTemplateSave(channel, locale, draft, name))}
+              disabled={busy}
+              onClick={() =>
+                !draft.trim() || draft === saved
+                  ? need.fail()
+                  : void change(() => platform.digestTemplateSave(channel, locale, draft, name))
+              }
             >
               {busy ? all.saving : m.save}
             </Button>
           </div>
+          {need.hint}
           {failed && <ErrorNotice inline>{m.failed(failed)}</ErrorNotice>}
           {shown?.state === "failed" && <ErrorNotice inline>{m.previewFailed(shown.message)}</ErrorNotice>}
           {shown?.state === "shown" && <Preview preview={shown.preview} />}

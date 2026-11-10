@@ -38,7 +38,6 @@ Ids are local to this page. "Owner" is who is editing that area now; "free" mean
 | C13 | Skeletons | page-local skeletons are fine (they draw the shape), but `RackSkeleton` (Memory) and `ListSkeleton` (People) draw the same rack | keep; share only when a third copy appears | — |
 | C14 | Hand tables | `logs/RunsTable.tsx`, `storage/TablesExplorer.tsx`, `agents/AgentsMatrix.tsx`, `search/SearchPage.tsx` (an inline `<table>`) are record lists outside `DataTable`; analytics and storage facts are key–value or chart tables and may stay | `DataTable` (sorting, density, paging) | Logs and Storage next; Agents matrix is a grid of switches, kept |
 | C15 | Paging rule (12) | Memory loads the whole list and slices it (`MemoryPage.tsx:54`); Logs runs, Digests table, Storage tables and Agents' skills have no pager | server paging; Memory needs memo paging on its reads first | Memory: the coordinator routes it to the CLI side; the others are Desktop work |
-| C16 | Disabled-for-validation rule (10) | buttons still disabled for an empty or unchanged value: `people/MatchCard.tsx` (reason empty; fewer than two picked, twice), `people/SplitDialog.tsx` (`canSplit`), `digests/TemplatesCard.tsx` and `digests/BriefCard.tsx` (empty or unchanged text), `digests/ScheduleCard.tsx` (route that does not parse; nothing changed), `digests/CreateDigest.tsx` (no draft) | keep the button enabled and say what is missing with `useFieldError` | free |
 | C19 | Text sizes | 562 uses of `text-[0.9rem]`, 291 of `text-[0.95rem]`, 58 of `text-body`; DESIGN.md says body copy is `text-body` | shared components use `text-body`; pages move as they are touched | debt, no sweep |
 | C20 | Hand-styled buttons and links | Guides' jump list and the HelpMenu rows are raw buttons by design (menu items); external links now all go through `ExtLink` | `Button`, `ExtLink` | — |
 | C21 | Count beside a label | Guides' jump list styles its number by hand | `Segmented`'s `count` where it is a switch; the jump list may keep it | later |
@@ -46,7 +45,9 @@ Ids are local to this page. "Owner" is who is editing that area now; "free" mean
 
 ## Where the owner's rules stand
 
-- **A button is never disabled for a missing or wrong value** (CLAUDE.md rule 10): see C16.
+- **A button is never disabled for a missing or wrong value** (CLAUDE.md rule 10): holds. A click says what is
+  missing at the field through `useFieldError`; its `live` option keeps an error that follows the value as it is typed.
+  Buttons stay disabled only while busy, or for what cannot be done at all (an older memo, no agent, nothing to undo).
 - **Creation presets above lists** (rule 11): holds; Digests puts its templates above the table, and no other page
   creates from presets.
 - **Every list pages on the server** (rule 12): see C15.

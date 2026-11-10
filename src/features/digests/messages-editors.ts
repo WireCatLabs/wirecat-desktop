@@ -5,6 +5,7 @@ const en = {
   readFailed: (message: string) => `Could not read it: ${message}`,
   saving: "Saving…",
   undo: "Undo last change",
+  unchanged: "Nothing is changed yet.",
   brief: {
     title: "What to collect",
     hint: "Your own instructions for this digest: projects, people, topics, what to skip, how many items. They add to the built-in instructions, and where the two differ, yours win.",
@@ -12,6 +13,7 @@ const en = {
     placeholder: "For example: projects HRB and the warehouse first; skip newsletters; at most five items a section.",
     counter: (chars: number, limit: number) => `${chars} / ${limit}`,
     tooLong: (limit: number) => `At most ${limit} characters: every run reads them and pays for them.`,
+    empty: "Write what to collect first.",
     save: "Save",
     remove: "Remove",
     none: "No instructions yet: the digest follows the built-in ones alone.",
@@ -19,6 +21,7 @@ const en = {
     failed: (message: string) => `Not saved: ${message}`,
   },
   templates: {
+    empty: "The template is empty. Write it, or press Reset to default.",
     title: "How it looks",
     hint: "This digest's template for each channel and language, in Liquid. A change is checked before it is saved.",
     channel: "Channel",
@@ -45,6 +48,7 @@ const ru: typeof en = {
   readFailed: (message) => `Не удалось прочитать: ${message}`,
   saving: "Сохраняю…",
   undo: "Отменить последнее изменение",
+  unchanged: "Пока ничего не изменено.",
   brief: {
     title: "Что собирать",
     hint: "Ваши указания для этой сводки: проекты, люди, темы, что пропускать, сколько пунктов. Они дополняют встроенные указания, а где расходятся с ними, побеждают ваши.",
@@ -52,6 +56,7 @@ const ru: typeof en = {
     placeholder: "Например: сначала проекты HRB и склад; рассылки пропускать; не больше пяти пунктов в разделе.",
     counter: (chars, limit) => `${chars} / ${limit}`,
     tooLong: (limit) => `Не больше ${limit} знаков: каждый запуск читает их и платит за них.`,
+    empty: "Сначала напишите, что собирать.",
     save: "Сохранить",
     remove: "Удалить",
     none: "Указаний пока нет: сводка следует только встроенным.",
@@ -59,6 +64,7 @@ const ru: typeof en = {
     failed: (message) => `Не сохранено: ${message}`,
   },
   templates: {
+    empty: "Шаблон пуст. Напишите его или нажмите «Вернуть по умолчанию».",
     title: "Как выглядит",
     hint: "Шаблон этой сводки для каждого канала и языка, на Liquid. Изменение проверяется перед сохранением.",
     channel: "Канал",
@@ -85,6 +91,7 @@ const es: typeof en = {
   readFailed: (message) => `No se pudo leer: ${message}`,
   saving: "Guardando…",
   undo: "Deshacer el último cambio",
+  unchanged: "Aún no has cambiado nada.",
   brief: {
     title: "Qué recoger",
     hint: "Tus propias instrucciones para este resumen: proyectos, personas, temas, qué omitir, cuántos puntos. Se suman a las instrucciones integradas y, donde difieren, ganan las tuyas.",
@@ -93,6 +100,7 @@ const es: typeof en = {
       "Por ejemplo: primero los proyectos HRB y el almacén; omite los boletines; como mucho cinco puntos por sección.",
     counter: (chars, limit) => `${chars} / ${limit}`,
     tooLong: (limit) => `Como mucho ${limit} caracteres: cada ejecución los lee y paga por ellos.`,
+    empty: "Escribe primero qué recopilar.",
     save: "Guardar",
     remove: "Quitar",
     none: "Aún no hay instrucciones: el resumen sigue solo las integradas.",
@@ -100,6 +108,7 @@ const es: typeof en = {
     failed: (message) => `No se guardó: ${message}`,
   },
   templates: {
+    empty: "La plantilla está vacía. Escríbela o pulsa «Volver a la predeterminada».",
     title: "Cómo se ve",
     hint: "La plantilla de este resumen para cada canal e idioma, en Liquid. Un cambio se comprueba antes de guardarlo.",
     channel: "Canal",

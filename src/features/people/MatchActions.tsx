@@ -5,6 +5,8 @@ import { formatList, useLang, useMessages } from "@/i18n"
 import type { MatchAnswer } from "@/platform/people-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
+import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
@@ -22,6 +24,7 @@ export function MatchActions({
   confirmLabel,
   lead,
   hint,
+  pickId,
 }: {
   group: MatchGroup
   from?: string | undefined
@@ -31,6 +34,8 @@ export function MatchActions({
   lead?: ReactNode
   /** Beside the answers, when the owner must do something first. */
   hint?: ReactNode
+  /** The list where the people of a group are ticked; an answer with too few ticked puts focus there. */
+  pickId?: string | undefined
 }) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
@@ -51,10 +56,15 @@ export function MatchActions({
   const [why, setWhy] = useState("")
   const field = useId()
   const hintId = useId()
+  const reason = useFieldError(field)
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
     if (asking) input.current?.focus({ preventScroll: true })
   }, [asking])
+  const tooFew = picking && chosen.length < 2
+  const few = useFieldError(pickId ?? `${field}-pick`, {
+    live: { problem: tooFew ? (l) => peopleMessages[l].pickTwo : null },
+  })
   if (!first) return null
 
   const ids = group.matches.map((x) => x.id)
@@ -62,7 +72,6 @@ export function MatchActions({
   const failed = failedOf[group.key] ?? ids.map((id) => failedOf[id]).find(Boolean)
   const done = open.length === 0
   const among = open.filter((x) => x.persons.every((p) => chosen.includes(p)))
-  const tooFew = picking && chosen.length < 2
   const said = (ref: string) => asked.current.get(ref) ?? name(ref)
   const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
 
@@ -102,6 +111,7 @@ export function MatchActions({
             onSubmit={(e) => {
               e.preventDefault()
               if (why.trim()) reject(why.trim())
+              else reason.fail((l) => peopleMessages[l].rejectWhyNeeded)
             }}
           >
             <label htmlFor={field} className="text-[0.95rem] font-medium">
@@ -112,8 +122,12 @@ export function MatchActions({
               id={field}
               maxLength={500}
               value={why}
-              aria-describedby={hintId}
-              onChange={(e) => setWhy(e.target.value)}
+              aria-invalid={reason.field["aria-invalid"]}
+              aria-describedby={cx(reason.field["aria-describedby"], hintId)}
+              onChange={(e) => {
+                reason.clear()
+                setWhy(e.target.value)
+              }}
               onKeyDown={(e) => {
                 if (e.key !== "Escape") return
                 // Escape closes the question, not the dialog around it.
@@ -121,13 +135,17 @@ export function MatchActions({
                 e.stopPropagation()
                 setAsking(false)
               }}
-              className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]"
+              className={cx(
+                "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]",
+                invalidBorder,
+              )}
             />
+            {reason.hint}
             <p id={hintId} className="text-[0.9rem] text-ink-soft">
               {m.rejectHint}
             </p>
             <span className="flex gap-2">
-              <Button type="submit" size="sm" disabled={!why.trim() || !!busy} icon={busy ? spin : undefined}>
+              <Button type="submit" size="sm" disabled={!!busy} icon={busy ? spin : undefined}>
                 {m.rejectNow}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setAsking(false)}>
@@ -141,19 +159,20 @@ export function MatchActions({
             <Button
               size="sm"
               variant="primary"
-              disabled={!!busy || tooFew}
+              disabled={!!busy}
               icon={busy === "confirm" ? spin : undefined}
-              onClick={confirm}
+              onClick={() => (tooFew ? few.fail() : confirm())}
             >
               {confirmLabel}
             </Button>
-            <Button size="sm" disabled={!!busy || tooFew} onClick={() => setAsking(true)}>
+            <Button size="sm" disabled={!!busy} onClick={() => (tooFew ? few.fail() : setAsking(true))}>
               {m.reject}
             </Button>
-            {hint}
+            {few.error === null && hint}
           </span>
         )}
       </AutoHeight>
+      {few.hint}
       {failed && <Refusal error={failed} />}
     </>
   )

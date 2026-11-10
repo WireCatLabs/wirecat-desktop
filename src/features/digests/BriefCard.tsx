@@ -5,6 +5,7 @@ import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { Skeleton } from "@/ui/Skeleton"
 import { area, card, useMemoEditor } from "./editor-state"
 import { editorMessages } from "./messages-editors"
@@ -15,16 +16,30 @@ export function BriefCard({ name }: { name?: string | undefined }) {
   const m = all.brief
   const titleId = useId()
   const counterId = useId()
+  const fieldId = useId()
   const { value, readError, busy, failed, change } = useMemoEditor(() => platform.digestBrief(name), `brief:${name}`)
   const saved = value?.state === "ready" ? (value.body ?? "") : ""
   const [draft, setDraft] = useState(saved)
   useEffect(() => setDraft(saved), [saved])
 
-  if (value?.state === "noMemo") return null
   const ready = value?.state === "ready" ? value : null
   const limit = ready?.limit ?? 4000
   const chars = briefChars(draft)
   const over = chars > limit
+  const need = useFieldError(fieldId, {
+    live: {
+      problem: over
+        ? (lang) => editorMessages[lang].brief.tooLong(limit)
+        : chars === 0
+          ? (lang) => editorMessages[lang].brief.empty
+          : draft.trim() === saved.trim()
+            ? (lang) => editorMessages[lang].unchanged
+            : null,
+      early: over,
+    },
+  })
+
+  if (value?.state === "noMemo") return null
 
   return (
     <section aria-labelledby={titleId} className={card}>
@@ -41,9 +56,10 @@ export function BriefCard({ name }: { name?: string | undefined }) {
       ) : (
         <>
           <textarea
+            id={fieldId}
             aria-label={m.label}
-            aria-describedby={counterId}
-            aria-invalid={over || undefined}
+            aria-describedby={cx(need.field["aria-describedby"], counterId)}
+            aria-invalid={need.field["aria-invalid"]}
             rows={7}
             value={draft}
             placeholder={m.placeholder}
@@ -74,14 +90,18 @@ export function BriefCard({ name }: { name?: string | undefined }) {
             <Button
               size="sm"
               variant="primary"
-              disabled={busy || over || chars === 0 || draft.trim() === saved.trim()}
-              onClick={() => void change(() => platform.digestBriefSave(draft, name))}
+              disabled={busy}
+              onClick={() =>
+                need.error !== null || over || chars === 0 || draft.trim() === saved.trim()
+                  ? need.fail()
+                  : void change(() => platform.digestBriefSave(draft, name))
+              }
             >
               {busy ? all.saving : m.save}
             </Button>
           </div>
-          {over && <p className="text-[0.85rem] text-bad">{m.tooLong(limit)}</p>}
-          {ready?.body == null && !over && <p className="text-[0.85rem] text-ink-dim">{m.none}</p>}
+          {need.hint}
+          {ready?.body == null && need.error === null && <p className="text-[0.85rem] text-ink-dim">{m.none}</p>}
           {failed && <ErrorNotice inline>{m.failed(failed)}</ErrorNotice>}
         </>
       )}

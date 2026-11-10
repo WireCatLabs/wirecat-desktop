@@ -14,7 +14,7 @@ import { Checkbox, Radio } from "@/ui/Checkbox"
 import { Combobox } from "@/ui/Combobox"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { FieldError } from "@/ui/FieldError"
+import { useFieldError } from "@/ui/FieldError"
 import { ToggleChip } from "@/ui/FilterBar"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
@@ -110,9 +110,13 @@ export function DigestFields({
     days: useId(),
     every: useId(),
     some: useId(),
-    titleError: useId(),
-    timesError: useId(),
   }
+  const title = useFieldError(ids.title, {
+    live: { problem: shown === "title" ? (l) => bookMessages[l].form.needTitle : null, early: true },
+  })
+  const time = useFieldError(ids.times, {
+    live: { problem: shown === "time" ? (l) => bookMessages[l].form.needTime : null, early: true },
+  })
   const set = (part: Partial<DigestSpec>) => onChange({ ...spec, ...part })
   const short = (day: string) =>
     new Intl.DateTimeFormat(lang, { weekday: "short" }).format(new Date(2026, 10, 9 + WEEKDAYS.indexOf(day as never)))
@@ -126,12 +130,11 @@ export function DigestFields({
           value={spec.title}
           disabled={!can.named}
           maxLength={80}
-          aria-invalid={shown === "title" || undefined}
-          aria-describedby={shown === "title" ? ids.titleError : undefined}
+          {...title.field}
           onChange={(e) => set({ title: e.target.value })}
           className={cx(input, "h-9 w-full max-w-[28rem] text-[0.95rem]")}
         />
-        <FieldError id={ids.titleError}>{shown === "title" && m.needTitle}</FieldError>
+        {title.hint}
       </Field>
 
       <Field label={m.times} hint={m.timesHint} id={ids.times}>
@@ -143,8 +146,8 @@ export function DigestFields({
                 type="time"
                 aria-label={`${m.times} ${i + 1}`}
                 value={t}
-                aria-invalid={(shown === "time" && !CLOCK.test(t)) || undefined}
-                aria-describedby={shown === "time" ? ids.timesError : undefined}
+                aria-invalid={(time.error !== null && !CLOCK.test(t)) || undefined}
+                aria-describedby={time.field["aria-describedby"]}
                 onChange={(e) => set({ times: spec.times.map((x, j) => (j === i ? e.target.value : x)) })}
                 className={input}
               />
@@ -172,7 +175,7 @@ export function DigestFields({
             </Button>
           </li>
         </ul>
-        <FieldError id={ids.timesError}>{shown === "time" && m.needTime}</FieldError>
+        {time.hint}
       </Field>
 
       <Field label={m.days} id={ids.days}>
@@ -365,9 +368,15 @@ function Routes({ routes, onChange, m }: { routes: string[]; onChange: (r: strin
   })
   const offer = suggestions(data ?? NO_CHOICES, kind, profile, m)
   const draft = `${PREFIX[kind]}:${profile.trim()}/${to.trim()}`
+  const rowId = useId()
+  const need = useFieldError(rowId, {
+    live: { problem: parsedRoute(draft) ? null : (l) => scheduleMessages[l].routeIncomplete(kind) },
+  })
   const add = () => {
-    if (parsedRoute(draft) && !routes.includes(draft)) onChange([...routes, draft])
+    if (!parsedRoute(draft)) return need.fail()
+    if (!routes.includes(draft)) onChange([...routes, draft])
     setTo("")
+    need.clear()
   }
   return (
     <Field label={m.routes} hint={m.routesHint}>
@@ -392,7 +401,7 @@ function Routes({ routes, onChange, m }: { routes: string[]; onChange: (r: strin
           })}
         </ul>
       )}
-      <div className="flex flex-wrap items-center gap-2">
+      <div id={rowId} className="flex flex-wrap items-center gap-2">
         <Select
           id={kindId}
           size="sm"
@@ -409,6 +418,8 @@ function Routes({ routes, onChange, m }: { routes: string[]; onChange: (r: strin
           placeholder={m.routeProfile}
           value={profile}
           onChange={setProfile}
+          aria-invalid={(need.error !== null && !profile.trim()) || undefined}
+          aria-describedby={need.field["aria-describedby"]}
           options={offer.accounts}
           className="w-[10rem]"
         />
@@ -417,14 +428,17 @@ function Routes({ routes, onChange, m }: { routes: string[]; onChange: (r: strin
           placeholder={m.routeTo(kind)}
           value={to}
           onChange={setTo}
+          aria-invalid={(need.error !== null && !to.trim()) || undefined}
+          aria-describedby={need.field["aria-describedby"]}
           options={offer.targets}
           notes={offer.notes}
           className="w-[16rem]"
         />
-        <Button size="sm" variant="ghost" disabled={!parsedRoute(draft)} onClick={add}>
+        <Button size="sm" variant="ghost" onClick={add}>
           {m.addRoute}
         </Button>
       </div>
+      {need.hint}
     </Field>
   )
 }
@@ -475,6 +489,10 @@ export function ScheduleCard({
   const [tried, setTried] = useState(false)
   const form = useRef<HTMLDivElement>(null)
   const dirty = JSON.stringify(draft) !== key
+  const saveId = useId()
+  const unchanged = useFieldError(saveId, {
+    live: { problem: dirty ? null : (l) => bookMessages[l].form.nothingToSave },
+  })
   const working = busy[item.name] === "save"
   const cap = dailyCap(item.maxCostPerDayUsd)
 
@@ -520,10 +538,12 @@ export function ScheduleCard({
           {m.form.cancel}
         </Button>
         <Button
+          id={saveId}
           variant="primary"
           size="sm"
-          disabled={!dirty || working || !harness}
+          disabled={working || !harness}
           onClick={async () => {
+            if (!dirty) return unchanged.fail()
             if (problem) {
               setTried(true)
               focusProblem(form.current)
@@ -535,6 +555,7 @@ export function ScheduleCard({
           {working ? m.form.saving : m.form.save}
         </Button>
       </div>
+      {unchanged.hint}
       {failed?.name === item.name && failed.what === "save" && (
         <ErrorNotice inline>{m.form.failedSave(failed.message)}</ErrorNotice>
       )}
