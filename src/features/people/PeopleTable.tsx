@@ -102,10 +102,12 @@ export function PeopleTable() {
               {m.findAccount}
             </Button>
           )}
-          <span className="ml-auto font-mono text-[0.85rem] text-ink-dim tabular-nums">
-            {m.everyone(count)}
-            {kinded && total?.more ? "+" : ""}
-          </span>
+          {(!kinded || total) && (
+            <span className="ml-auto font-mono text-[0.85rem] text-ink-dim tabular-nums">
+              {m.everyone(count)}
+              {kinded && total?.more ? "+" : ""}
+            </span>
+          )}
         </FilterBar>
       </form>
       <AccountResult account={query.trim()} />
@@ -124,13 +126,15 @@ export function PeopleTable() {
           onRowClick={(p) => reveal(p.ref)}
         />
       )}
-      {count > PAGE_SIZES[0] && (
+      {(kinded ? at > 1 || more || count > PAGE_SIZES[0] : count > PAGE_SIZES[0]) && (
         <Pager
           page={at}
           onPage={setPage}
           busy={reading}
-          total={count}
-          totalMore={kinded ? (total?.more ?? false) : more}
+          // In a group memo gives no total: the pager then only knows whether there is a next page.
+          {...(kinded && !total
+            ? { hasMore: more }
+            : { total: count, totalMore: kinded ? (total?.more ?? false) : more })}
           size={size}
           sizes={PAGE_SIZES}
           onSize={setPageSize}
@@ -287,11 +291,9 @@ function Contact({ person: p }: { person: Listed }) {
     ...(p.phone ? [{ icon: <Phone className={ICON} aria-hidden />, value: p.phone }] : []),
     ...(p.email ? [{ icon: <Mail className={ICON} aria-hidden />, value: p.email }] : []),
   ]
-  const handle = p.username ?? (p.contact?.startsWith("@") ? p.contact.slice(1) : null)
+  const handle = p.username
   if (lines.length === 0 && handle)
     lines.push({ icon: <AtSign className={ICON} aria-hidden />, value: `@${handle}`, label: m.handle(handle) })
-  // A memo that gives only `contact` (0.131.75) still shows it.
-  if (lines.length === 0 && p.contact) lines.push({ icon: <Phone className={ICON} aria-hidden />, value: p.contact })
   if (lines.length === 0)
     return (
       <span className="text-ink-dim" title={m.noContact}>

@@ -118,9 +118,10 @@ src-tauri/src/
                 through it (`run_tool` picks it when the tool is memo), except calls fed on stdin, streamed runs, the
                 doctor and `store recover`'s check; a command cli-core refuses in a server runs in its own process. A
                 server whose ready line says `concurrent` takes that many requests at once, one reader thread handing
-                each answer to its caller by `id`; one without it takes one at a time. Two requests of one command
-                (`people list` and `people list`) still take turns: memo 0.131.76's server parses them on one shared
-                program, so the second's options answered both (the Contacts tabs read each other's counts). One
+                each answer to its caller by `id`; one without it takes one at a time. A request of a command already
+                running on its server waits up to a second, then starts its own process: memo 0.131.76's server parses
+                requests on one shared program, so two of one command at once answered both with the second's options
+                (the Contacts tabs read each other's counts). One
                 server starts with the app (`warm`). A call that finds no server with room waits up to a second for
                 one that is starting; past that, or for a memo without the server, it starts its own process. A
                 timed-out or unreadable request retires its server once the other requests on it are answered;

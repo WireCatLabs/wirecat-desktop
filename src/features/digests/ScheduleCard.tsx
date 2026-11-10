@@ -40,16 +40,18 @@ export const parsedRoute = (route: string): { kind: RouteKind; profile: string; 
 
 export const TONE: Record<ReturnType<typeof runOutcome>, LampTone> = { ok: "ok", skipped: "warn", failed: "bad" }
 
+const CLOCK = /^([01]\d|2[0-3]):[0-5]\d$/
+
 export type Problem = "title" | "time" | "day"
 
 /** After a click found a problem: moves the focus to the field that holds it, once the error is painted. */
 export const focusProblem = (form: HTMLElement | null) =>
-  requestAnimationFrame(() => form?.querySelector<HTMLElement>("[aria-invalid='true']")?.focus())
+  requestAnimationFrame(() => form?.querySelector<HTMLElement>("[aria-invalid='true'], [data-problem]")?.focus())
 
 /** Why a draft cannot be saved yet, or null. */
 export function problemOf(spec: DigestSpec, onDays: boolean): Problem | null {
   if (!spec.title.trim()) return "title"
-  if (spec.times.length === 0 || spec.times.some((t) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(t))) return "time"
+  if (spec.times.length === 0 || spec.times.some((t) => !CLOCK.test(t))) return "time"
   if (onDays && spec.weekdays.length === 0) return "day"
   return null
 }
@@ -140,7 +142,7 @@ export function DigestFields({
                 type="time"
                 aria-label={`${m.times} ${i + 1}`}
                 value={t}
-                aria-invalid={shown === "time" || undefined}
+                aria-invalid={(shown === "time" && !CLOCK.test(t)) || undefined}
                 aria-describedby={shown === "time" ? ids.timesError : undefined}
                 onChange={(e) => set({ times: spec.times.map((x, j) => (j === i ? e.target.value : x)) })}
                 className={input}
@@ -219,6 +221,8 @@ export function DigestFields({
             <p
               id={ids.day}
               role={shown === "day" ? "alert" : undefined}
+              data-problem={shown === "day" || undefined}
+              tabIndex={shown === "day" ? -1 : undefined}
               className={cx("text-[0.85rem]", shown === "day" ? "text-bad" : "text-warn-ink")}
             >
               {m.pickDay}

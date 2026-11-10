@@ -36,6 +36,8 @@ const SERVER_KEPT: Duration = Duration::from_mins(10);
 const STARTING_WAIT: Duration = Duration::from_secs(1);
 /// A server that only failed to get ready in time may have met a busy moment, so it is tried again after this.
 const SLOW_START_KEPT: Duration = Duration::from_mins(2);
+/// How long a request waits for one of the same command on its server before it starts its own process.
+const LANE_WAIT: Duration = Duration::from_secs(1);
 
 static POOL: LazyLock<Pool> = LazyLock::new(|| Pool::new(&SERVER_ARGV, SERVERS, READY_WAIT));
 
@@ -178,6 +180,8 @@ enum Checkout {
 enum Asked {
     NotSent,
     Failed(RunError),
+    /// A request of the same command runs on this server: the server is fine, the call starts its own process.
+    Busy,
 }
 
 fn locked<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
@@ -217,7 +221,7 @@ impl Pool {
             }
         };
         let out = self.ask(bin, server, args, timeout).or_else(|asked| match asked {
-            Asked::NotSent => spawn(),
+            Asked::NotSent | Asked::Busy => spawn(),
             Asked::Failed(e) => Err(e),
         })?;
         // cli-core refuses in a server a command that never returns, waits on a person or reads stdin; a process of
@@ -391,10 +395,10 @@ impl Pool {
                 run::record(bin.as_os_str(), &name, args.len(), started, Ok(out.code));
             }
             Err(Asked::Failed(e)) => run::record(bin.as_os_str(), &name, args.len(), started, Err(e)),
-            Err(Asked::NotSent) => {}
+            Err(Asked::NotSent | Asked::Busy) => {}
         }
         // A server that did not answer may still be working on the request, and so has one place less than it says.
-        self.returned(bin, &server, result.is_ok());
+        self.returned(bin, &server, matches!(result, Ok(_) | Err(Asked::Busy)));
         result
     }
 
@@ -431,10 +435,11 @@ impl Server {
         matches!(locked(&self.child).try_wait(), Ok(None))
     }
 
-    /// Waits, within `timeout`, until no request of the same command runs on this server.
-    fn lane(&self, args: &[&str], timeout: Duration) -> Option<Lane<'_>> {
+    /// Waits a moment until no request of the same command runs on this server; past that the caller starts its
+    /// own process rather than queue behind a slow one.
+    fn lane(&self, args: &[&str]) -> Option<Lane<'_>> {
         let key = args.iter().take(2).copied().collect::<Vec<_>>().join(" ");
-        let deadline = Instant::now() + timeout;
+        let deadline = Instant::now() + LANE_WAIT;
         let mut running = locked(&self.running);
         while running.contains(&key) {
             let left = deadline.saturating_duration_since(Instant::now());
@@ -448,9 +453,7 @@ impl Server {
     }
 
     fn request(&self, args: &[&str], timeout: Duration) -> Result<Output, Asked> {
-        let started = Instant::now();
-        let Some(_lane) = self.lane(args, timeout) else { return Err(Asked::Failed(RunError::TimedOut)) };
-        let timeout = timeout.saturating_sub(started.elapsed());
+        let Some(taken) = self.lane(args) else { return Err(Asked::Busy) };
         let id = self.next_id.fetch_add(1, Ordering::Relaxed) + 1;
         let words = serde_json::to_string(args).map_err(|e| Asked::Failed(RunError::Other(e.to_string())))?;
         let line = format!("{{\"id\":{id},\"argv\":{words}}}\n");
@@ -478,6 +481,8 @@ impl Server {
             ))),
             Err(RecvTimeoutError::Timeout) => {
                 locked(&self.waiting).by_id.remove(&id);
+                // memo is still running it: the lane stays taken so no request of this command joins it there.
+                std::mem::forget(taken);
                 Err(Asked::Failed(RunError::TimedOut))
             }
             Err(RecvTimeoutError::Disconnected) => {
@@ -585,6 +590,7 @@ if [ "$1 $2" = "commands --serve" ]; then
       id=$(printf '%s' "$line" | sed 's/^{"id":\([0-9]*\),.*/\1/')
       case "$line" in
         *'"slow"'*) sleep 30 ;;
+        *'"hold3"'*) sleep 3 ;;
         *'"hold"'*) sleep 1 ;;
       esac
       printf '{"id":%s,"code":0,"stdout":"{\\"via\\":\\"server\\",\\"pid\\":%s}\\n","stderr":""}\n' "$id" "$$"
@@ -727,21 +733,18 @@ echo '{"via":"spawn"}'
     }
 
     #[test]
-    fn two_requests_of_one_command_take_turns_on_a_concurrent_server() {
+    fn a_request_of_a_command_already_running_on_the_server_goes_to_its_own_process() {
         let fake = Fake::new("same-command", CONCURRENT);
         let pool = pool(1, Duration::from_secs(10));
         let server = served_by(&pool, &fake);
-        let started = Instant::now();
         thread::scope(|s| {
-            let asked = [
-                s.spawn(|| call(&pool, &fake, "hold", Duration::from_secs(10)).unwrap()),
-                s.spawn(|| call(&pool, &fake, "hold", Duration::from_secs(10)).unwrap()),
-            ];
-            for h in asked {
-                assert_eq!(via(&h.join().unwrap()), ("server".into(), Some(server)));
-            }
+            let held = s.spawn(|| call(&pool, &fake, "hold3", Duration::from_secs(10)).unwrap());
+            wait_until_busy(&pool, &fake, 1);
+            let second = call(&pool, &fake, "hold3", Duration::from_secs(10)).unwrap();
+            assert_eq!(via(&second), ("spawn".into(), None), "memo would mix the two requests' options");
+            assert_eq!(via(&held.join().unwrap()), ("server".into(), Some(server)));
         });
-        assert!(started.elapsed() >= Duration::from_secs(2), "the two ran at once and memo would mix their options");
+        assert_eq!(served_by(&pool, &fake), server, "a busy lane does not retire the server");
         assert_eq!(starts(&pool), 1);
     }
 

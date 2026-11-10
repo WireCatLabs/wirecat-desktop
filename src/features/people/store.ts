@@ -294,6 +294,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     },
     setView: (view) => set({ view }),
     setKind(kind) {
+      clearTimeout(typing)
       set({ kind, page: 1, query: "", found: null })
       if (get().kinded) void get().readPage()
       else void get().load(false)
@@ -302,6 +303,8 @@ export const usePeople = create<PeopleState>((set, get) => {
       set({ query, found: null, page: 1 })
       if (!get().kinded) return
       clearTimeout(typing)
+      // An account is found with Find account, not by name.
+      if (looksLikeAccount(query)) return
       // Each key would be a read of memo: the search waits until the owner stops typing.
       typing = setTimeout(() => void get().readPage(), 300)
     },
@@ -319,12 +322,19 @@ export const usePeople = create<PeopleState>((set, get) => {
       void get().readPage()
     },
     async readPage() {
+      clearTimeout(typing)
       const asked = ++pageSeq
       const { kind, page, pageSize, query, sort } = get()
       set({ reading: true })
       try {
         const got = await platform.peoplePage({ kind, page, size: pageSize, query: query.trim(), sort })
         if (asked !== pageSeq) return
+        // A merge or a decision can shrink the kind under the page the owner is on: go to its new last page.
+        const last = got.total ? Math.max(1, Math.ceil(got.total.value / pageSize)) : page
+        if (got.people.length === 0 && page > last) {
+          set({ page: last })
+          return get().readPage()
+        }
         set((s) => ({
           people: got.people,
           peopleMore: got.more,
@@ -335,6 +345,8 @@ export const usePeople = create<PeopleState>((set, get) => {
         }))
       } catch (e) {
         if (asked !== pageSeq) return
+        // Missing, too old or older than kinds: the page's own read says so, not this refusal.
+        if (get().read !== null && !get().kinded) return set({ reading: false })
         set({ error: message(e), reading: false })
       }
     },

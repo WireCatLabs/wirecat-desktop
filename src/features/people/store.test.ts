@@ -121,3 +121,32 @@ describe("the People page opened again", () => {
     expect(read).toHaveBeenCalledTimes(2)
   })
 })
+
+describe("the People pages", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    usePeople.setState(usePeople.getInitialState(), true)
+  })
+
+  it("goes to the new last page when the kind shrank under the page on screen", async () => {
+    const row = { ref: "person:3", name: "Lena", owner: false, tasks: 0, ...older }
+    const page = vi
+      .spyOn(platform, "peoplePage")
+      .mockImplementation(async (ask) =>
+        ask.page === 2
+          ? { people: [], total: { value: 50, more: false }, more: false }
+          : { people: [row], total: { value: 50, more: false }, more: false },
+      )
+    usePeople.setState({ kinded: true, read: "ready", page: 2 })
+    await usePeople.getState().readPage()
+    expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1 }))
+    expect(usePeople.getState()).toMatchObject({ page: 1, people: [row] })
+  })
+
+  it("lets the page's own read say memo is missing, not the page's refusal", async () => {
+    vi.spyOn(platform, "peoplePage").mockRejectedValue(new Error("Memo is not installed"))
+    usePeople.setState({ read: "missing", kinded: false })
+    await usePeople.getState().readPage()
+    expect(usePeople.getState().error).toBeNull()
+  })
+})

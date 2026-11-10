@@ -252,7 +252,7 @@ fn read_with(call: &Call, kind: &str) -> Result<Read, String> {
     let (people, matches) = std::thread::scope(|s| {
         let m = s.spawn(|| call(&words(&["people", "review", "--limit", MATCH_LIMIT])));
         let asked = format!("kind:{kind}");
-        // The table reads its rows a page at a time (`page`); this one row only tells a memo with kinds from one without.
+        // The table reads its rows a page at a time (`page`); this one row tells a memo with kinds from one without.
         let people = match call(&words(&["people", "list", &asked, "--limit", "1"])) {
             Err(e) if OLDER.contains(&e.as_str()) => {
                 call(&words(&["people", "list", "--limit", LIST_LIMIT])).map(|v| (v, false))
