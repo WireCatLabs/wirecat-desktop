@@ -109,11 +109,11 @@ fn set_args(s: &SetModel) -> Result<(Vec<String>, Option<String>), String> {
         return Err("Paste the key as the provider shows it: one word, no spaces.".into());
     }
     if key.is_some() {
-        args.push("--key-stdin".into());
+        args.push("--secret-stdin".into());
     }
-    // memo turns picture reading off when the flag is missing, so it is sent on every save that keeps it on.
+    // Consent is sticky in memo: leaving the flag out keeps an earlier yes, so turning it off is `revoke`, in `set`.
     if s.images {
-        args.push("--images".into());
+        args.push("--allow-remote".into());
     }
     args.push("--from-app".into());
     args.extend(words(&[]));
@@ -134,14 +134,26 @@ pub fn show() -> Result<AiModel, String> {
     with_memo(READ, show_with)
 }
 
-pub fn set(s: &SetModel) -> Result<AiModel, String> {
+fn set_with(feed: &crate::memory_add::Feed, s: &SetModel) -> Result<AiModel, String> {
     let (args, key) = set_args(s)?;
-    with_memo(READ, |feed| Ok(model_of(&feed(&args, key.as_deref().map(str::as_bytes))?)))
+    // Consent is sticky in memo, so an unticked box revokes before the save: the new target never inherits an old yes,
+    // and a failed revoke stops the save. With no model set yet there is nothing to revoke.
+    if !s.images
+        && let Err(e) = feed(&owner_words(&["models", "ai", "revoke"]), None)
+        && e != "ai.not-set"
+    {
+        return Err(e);
+    }
+    Ok(model_of(&feed(&args, key.as_deref().map(str::as_bytes))?))
+}
+
+pub fn set(s: &SetModel) -> Result<AiModel, String> {
+    with_memo(READ, |feed| set_with(feed, s))
 }
 
 pub fn off() -> Result<AiOff, String> {
     with_memo(READ, |feed| {
-        let v = feed(&owner_words(&["models", "ai", "off"]), None)?;
+        let v = feed(&owner_words(&["models", "ai", "unset"]), None)?;
         let item = body(&v);
         Ok(AiOff {
             changed: item["changed"].as_bool().unwrap_or(false),
@@ -178,6 +190,7 @@ pub fn check() -> Result<AiChecked, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::memory_add::REFUSED;
     use serde_json::json;
     use std::sync::Mutex;
 
@@ -206,8 +219,8 @@ mod tests {
                 "set",
                 "anthropic",
                 "--model=claude-haiku-4-5",
-                "--key-stdin",
-                "--images",
+                "--secret-stdin",
+                "--allow-remote",
                 "--from-app",
                 "--json",
                 "--no-record"
@@ -222,7 +235,7 @@ mod tests {
         s.key = Some("   ".into());
         let (args, stdin) = set_args(&s).unwrap();
         assert!(stdin.is_none());
-        assert!(!args.iter().any(|a| a == "--key-stdin" || a == "--images"), "{args:?}");
+        assert!(!args.iter().any(|a| a == "--secret-stdin" || a == "--allow-remote"), "{args:?}");
     }
 
     #[test]
@@ -255,6 +268,37 @@ mod tests {
     }
 
     #[test]
+    fn unticking_pictures_revokes_first_and_a_failed_revoke_stops_the_save() {
+        let seen: Seen = Mutex::new(Vec::new());
+        let reply = |revoke: Result<Value, String>| {
+            let revoke = Mutex::new(Some(revoke));
+            let seen = &seen;
+            move |a: &[String], _: Option<&[u8]>| -> Result<Value, String> {
+                seen.lock().unwrap().push((a.to_vec(), None));
+                if a[2] == "revoke" {
+                    return revoke.lock().unwrap().take().unwrap();
+                }
+                Ok(json!({"item": {"provider": "ollama", "model": "llava", "images": false, "key": {"stored": false}}}))
+            }
+        };
+        let order = || seen.lock().unwrap().iter().map(|(a, _)| a[2].clone()).collect::<Vec<_>>();
+        let mut s = input("ollama", None);
+        s.images = false;
+        assert!(set_with(&reply(Ok(json!({"item": {"changed": true}}))), &s).is_ok());
+        assert_eq!(order(), ["revoke", "set"]);
+        assert_eq!(seen.lock().unwrap()[0].0, ["models", "ai", "revoke", "--from-app", "--json", "--no-record"]);
+        seen.lock().unwrap().clear();
+        assert!(set_with(&reply(Err("ai.not-set".into())), &s).is_ok(), "nothing to revoke yet");
+        seen.lock().unwrap().clear();
+        assert_eq!(set_with(&reply(Err(REFUSED.into())), &s).unwrap_err(), REFUSED);
+        assert_eq!(order(), ["revoke"], "the save did not run");
+        seen.lock().unwrap().clear();
+        s.images = true;
+        assert!(set_with(&reply(Ok(json!({}))), &s).is_ok());
+        assert_eq!(order(), ["set"], "a ticked box never revokes");
+    }
+
+    #[test]
     fn calls_match_the_contract_and_carry_no_key() {
         let seen: Seen = Mutex::new(Vec::new());
         let feed = |a: &[String], i: Option<&[u8]>| -> Result<Value, String> {
@@ -262,11 +306,11 @@ mod tests {
             Ok(json!({"item": {"changed": true, "key_kept": true}}))
         };
         show_with(&feed).unwrap();
-        feed(&owner_words(&["models", "ai", "off"]), None).unwrap();
+        feed(&owner_words(&["models", "ai", "unset"]), None).unwrap();
         feed(&owner_words(&["models", "ai", "check"]), None).unwrap();
         let seen = seen.lock().unwrap();
         assert_eq!(seen[0].0, ["models", "ai", "show", "--json", "--no-record"]);
-        assert_eq!(seen[1].0, ["models", "ai", "off", "--from-app", "--json", "--no-record"]);
+        assert_eq!(seen[1].0, ["models", "ai", "unset", "--from-app", "--json", "--no-record"]);
         assert!(seen.iter().all(|(_, input)| input.is_none()));
     }
 

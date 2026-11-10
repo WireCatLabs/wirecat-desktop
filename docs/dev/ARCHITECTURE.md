@@ -133,9 +133,10 @@ src-tauri/src/
                 decided by the owner (Still true, Dismiss, No longer true), each with `--from-app`.
   memory_add.rs Add to Memory: `memo sources add|show|mentions|suggest`, the readers and the reader's key; pasted
                 text and the key go on stdin, never on the command line (see "Adding to memory").
-  ai_model.rs   Settings "AI model": memo's `models ai show|set|off|check`, each with `--from-app`; the key goes on
-                stdin, and memo's `ai.*` reasons come back as ids worded in `messages-ai-model.ts`. It needs a memo
-                that has `models ai`: an older one answers like an unknown command and the section asks for an update.
+  ai_model.rs   Settings "AI model": memo's `models ai show|set|unset|check`, each with `--from-app`. `set` first runs
+                `revoke` when pictures are unticked, because consent is sticky in memo. The key goes on stdin, and
+                memo's `ai.*` reasons come back as ids worded in `messages-ai-model.ts`. It needs a memo that has
+                `models ai`: an older one answers like an unknown command and the section asks for an update.
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   crm_board.rs  the Clients page: memo's deals and leads of one pipeline by stage, each stage's count and sums per
                 currency from `pipelines show`, and moving the owner's own through `<kind>s move`. A CRM's copy is read
