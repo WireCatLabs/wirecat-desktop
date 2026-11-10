@@ -25,3 +25,9 @@ export function resetQueryClient() {
 /** A tool's profiles. Several features list them, so they share one key and one answer. */
 export const profilesQuery = (id: string) =>
   queryOptions({ queryKey: ["tool", id, "profiles"], queryFn: () => platform.listProfiles(id) })
+
+/**
+ * A tool's profiles for a store outside React: pages that open together ask once, and a page opened within 10 s takes
+ * that answer. Short, because a sign-in elsewhere changes it.
+ */
+export const listProfiles = (id: string) => client.fetchQuery({ ...profilesQuery(id), staleTime: 10_000 })

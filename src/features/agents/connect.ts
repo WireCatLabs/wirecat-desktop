@@ -3,6 +3,7 @@ import { findTool } from "@/domain/catalog"
 import type { Claim, Registrations } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { listProfiles } from "@/shared/query"
 
 export type Loaded<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error"; error: string }
 export type ProfileClaims = Loaded<{ items: Claim[]; more: boolean; signedOut: boolean }>
@@ -101,7 +102,7 @@ export const useConnect = create<ConnectState>((set, get) => {
       const servers = agents.map((a) => get().loadServers(a))
       const own = agents.filter((a) => OWN_PATH.has(a)).map((a) => get().loadReach(a))
       const profiles = withProfiles.map(async (id) => {
-        const list = (await platform.listProfiles(id).catch(() => null)) ?? []
+        const list = (await listProfiles(id).catch(() => null)) ?? []
         set((s) => ({ profiles: { ...s.profiles, [id]: list } }))
         if (!findTool(id)?.tasks) return
         // A profile never signed in has no tasks, and asking would only leave a failed run in the owner's logs.

@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest"
-import { combine, shown } from "./store"
+import { waitFor } from "@testing-library/react"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { useMemory } from "@/features/memory"
+import { platform } from "@/platform/bridge"
+import { combine, shown, useAnalytics } from "./store"
+
+afterEach(() => vi.restoreAllMocks())
 
 const ready = (rows: { key: string; name: string | null; count: number }[], more = false) =>
   ({ kind: "ready", total: rows.reduce((s, r) => s + r.count, 0), rows, more }) as const
@@ -44,5 +49,28 @@ describe("shown", () => {
 
   it("shows everything when nothing is chosen", () => {
     expect(shown({ tg: all }, [], []).tg).toBe(all)
+  })
+})
+
+describe("the Analytics page opened again", () => {
+  it("within a minute reads nothing; later it reads with the numbers still on screen", async () => {
+    const info = vi.spyOn(platform, "storeInfo")
+    useAnalytics.getState().load()
+    await waitFor(() => expect(useAnalytics.getState().volume.state).toBe("ready"))
+    useAnalytics.getState().load()
+    expect(info).toHaveBeenCalledTimes(1)
+
+    useAnalytics.setState({ readAt: Date.now() - 61_000 })
+    useAnalytics.getState().load()
+    expect(useAnalytics.getState().volume.state).toBe("ready")
+    expect(info).toHaveBeenCalledTimes(2)
+  })
+
+  it("takes the Memory page's answer when it is under a minute old", async () => {
+    const read = vi.spyOn(platform, "memoryRead")
+    await useMemory.getState().load()
+    useAnalytics.getState().load()
+    await waitFor(() => expect(useAnalytics.getState().memory.state).toBe("ready"))
+    expect(read).toHaveBeenCalledTimes(1)
   })
 })

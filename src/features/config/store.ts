@@ -4,6 +4,7 @@ import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import type { SettingRow, Settings } from "@/platform/settings-schemas"
 import { useNav } from "@/shared/nav"
+import { listProfiles } from "@/shared/query"
 import { change, format, type Op, type Problem, parse, plan, toDocument } from "./diff"
 import { type Reason, told } from "./reason"
 import { rowsFor, sharedDocument, sharedPlan, type View } from "./scope"
@@ -224,7 +225,7 @@ export const useConfig = create<ConfigState>((set, get) => {
       const defaults = src.defaults && (last === null || last === undefined)
       const shown = defaults ? get().chooseTarget({ profile: null }) : null
       try {
-        const profiles = (await platform.listProfiles(id)) ?? []
+        const profiles = (await listProfiles(id)) ?? []
         if (get().tool !== id) return
         set({ profiles })
         await shown

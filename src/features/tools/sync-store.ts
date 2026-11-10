@@ -4,6 +4,7 @@ import { failureSuperseded, type SyncFailure, type SyncSummary } from "@/domain/
 import type { SyncSchedule } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { LastSync, SyncEvent } from "@/platform/sync-schemas"
+import { listProfiles } from "@/shared/query"
 
 export type SyncRun = {
   phase: "running" | "done" | "stopped" | "failed"
@@ -204,7 +205,7 @@ export const useSync = create<State>()((set, get) => {
         void get().loadLast(tool, null)
         return
       }
-      queued(() => platform.listProfiles(tool)).then(
+      queued(() => listProfiles(tool)).then(
         (list) => {
           const names = (list ?? []).map((p) => p.name)
           set((s) => ({ profiles: { ...s.profiles, [tool]: names } }))

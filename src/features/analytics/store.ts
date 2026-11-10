@@ -3,6 +3,8 @@ import { create } from "zustand"
 import { closedRanges, closedTerm, type Period, sumRows, todayIn } from "@/domain/analytics"
 import type { Run } from "@/domain/runs"
 import { useLogs } from "@/features/logs"
+import { useMemory } from "@/features/memory"
+import { useTasks } from "@/features/tasks"
 import type {
   Aggregate,
   AnalyticsPreview,
@@ -17,7 +19,8 @@ import type { StoreInfo, TableList } from "@/platform/archive-schemas"
 import { platform } from "@/platform/bridge"
 import type { MemoryRead } from "@/platform/memory-schemas"
 import type { Project, TaskCounts } from "@/platform/task-schemas"
-import { queryClient } from "@/shared/query"
+import { fresh } from "@/shared/fresh"
+import { listProfiles, queryClient } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
 import { analyticsKeys, earlierAnswer, installed, limiter, useAggregateQuery, useExtraQueries } from "./api"
 
@@ -91,6 +94,8 @@ type State = {
   preview: AnalyticsPreview | null
   /** A new period is being read; the charts keep the last one, dimmed, until it arrives. */
   refreshing: boolean
+  /** When the page last read; it opens again within a minute without reading. */
+  readAt: number | null
   /** Names on screen, or initials; the owner's choice for screen sharing, kept for the session. */
   hideNames: boolean
   /** Each messenger's profiles, as listed when the page loaded. */
@@ -273,7 +278,7 @@ export const useAnalytics = create<State>((set, get) => {
   const loadSource = async (id: string, period: Period, tz: string, mine: number, run: ReturnType<typeof limiter>) => {
     const ok = installed(id)
     if (ok === false) return set((s) => ({ sources: { ...s.sources, [id]: { state: "missing" } } }))
-    const profiles = ((await platform.listProfiles(id).catch(() => null)) ?? []).map((p) => p.name)
+    const profiles = ((await listProfiles(id).catch(() => null)) ?? []).map((p) => p.name)
     set((s) => ({ profilesOf: { ...s.profilesOf, [id]: profiles } }))
     const answers = await Promise.all(
       profiles.flatMap((profile) =>
@@ -319,7 +324,7 @@ export const useAnalytics = create<State>((set, get) => {
     const ids = SYNCED.filter((id) => installed(id) !== false)
     const lists = await Promise.all(
       ids.map(async (id) => {
-        const listed = (await platform.listProfiles(id).catch(() => null))?.map((p) => p.name) ?? null
+        const listed = (await listProfiles(id).catch(() => null))?.map((p) => p.name) ?? null
         set((s) => ({ profilesOf: { ...s.profilesOf, [id]: s.profilesOf[id] ?? listed ?? [] } }))
         const profiles = listed ?? [null]
         return Promise.all(
@@ -345,12 +350,13 @@ export const useAnalytics = create<State>((set, get) => {
     void readSyncs()
       .then((data) => set({ syncs: { state: "ready", data } }))
       .catch((e) => set({ syncs: { state: "error", error: message(e) } }))
-    platform
-      .projectList()
+    // What the Memory and Tasks pages read under a minute ago is what memo would answer again.
+    const tasks = useTasks.getState()
+    ;(fresh(tasks.projectsAt) ? Promise.resolve(tasks.projects) : platform.projectList())
       .then((projects) => set({ projects }))
       .catch(() => undefined)
-    platform
-      .memoryRead()
+    const memory = useMemory.getState()
+    ;(fresh(memory.readAt) && memory.read ? Promise.resolve(memory.read) : platform.memoryRead())
       .then((data) => set({ memory: { state: "ready", data } }))
       .catch((e) => set({ memory: { state: "error", error: message(e) } }))
     const logs = useLogs.getState()
@@ -393,22 +399,16 @@ export const useAnalytics = create<State>((set, get) => {
     syncs: { state: "loading" },
     preview: null,
     refreshing: false,
+    readAt: null,
     hideNames: false,
     onlySources: [],
     onlyProfiles: [],
     profilesOf: {},
     load() {
-      set({
-        today: todayIn(get().zone),
-        volume: { state: "loading" },
-        sources: loadingSources(),
-        tasks: { state: "loading" },
-        memory: { state: "loading" },
-        runs: { state: "loading" },
-        tables: undefined,
-        syncs: { state: "loading" },
-      })
-      void queryClient().resetQueries({ queryKey: analyticsKeys.all })
+      if (fresh(get().readAt)) return
+      // A later visit keeps the numbers on screen until each new one arrives.
+      set({ today: todayIn(get().zone), readAt: Date.now() })
+      void queryClient().invalidateQueries({ queryKey: analyticsKeys.all })
       loadOnce()
       loadPeriod()
     },
