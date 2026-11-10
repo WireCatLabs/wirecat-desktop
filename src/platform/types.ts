@@ -387,7 +387,7 @@ export type Platform = {
   /** Every type a sheet can hold, with its columns; throws `records.too-old` for a memo without templates. */
   recordTypes(): Promise<RecordType[]>
   /** Writes one type's template where the owner chose; `null` when they closed the window. */
-  recordTemplateSave(kind: string, format: "csv" | "json", separator: string, account?: string): Promise<string | null>
+  recordTemplateSave(kind: string, format: "csv" | "json", locale: string, account?: string): Promise<string | null>
   /** The system's file window for a CSV or JSON to import; `null` when the owner closes it. */
   recordPickFile(): Promise<string | null>
   /** Checks (`dryRun`) or imports the last chosen file into the source `account`. */

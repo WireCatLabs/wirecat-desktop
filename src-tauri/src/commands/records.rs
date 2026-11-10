@@ -16,13 +16,13 @@ pub async fn records_template_save(
     app: AppHandle,
     kind: String,
     format: String,
-    separator: String,
+    locale: String,
     account: Option<String>,
 ) -> Result<Option<String>, AppError> {
     crate::log::command("records_template_save", async move {
         let text = attempt({
             let (kind, format) = (kind.clone(), format.clone());
-            move || records_import::template(&kind, &format, &separator, account.as_deref())
+            move || records_import::template(&kind, &format, &locale, account.as_deref())
         })
         .await?;
         let name = format!("{kind}-template.{format}");

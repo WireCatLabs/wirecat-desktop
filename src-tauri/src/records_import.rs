@@ -1,4 +1,4 @@
-//! Storage's import: a template to fill for one type of record (`memo records template`), then `memo records check`
+//! Storage's import: a template to fill for one type of record (`memo records templates show`), then `memo records check`
 //! and `memo records import` of the file the owner chose. Only the file chosen in the system's own window reaches
 //! memo; the interface never sends a path.
 
@@ -17,7 +17,8 @@ const READ: Duration = Duration::from_mins(1);
 const IMPORT: Duration = Duration::from_mins(15);
 pub const TOO_OLD: &str = "records.too-old";
 const FORMATS: [&str; 2] = ["csv", "json"];
-const SEPARATORS: [&str; 2] = [",", ";"];
+/// The Excel language a CSV template is for: memo writes `,` for en and `;` for ru and es.
+const LOCALES: [&str; 3] = ["en", "ru", "es"];
 
 /// The file the owner last chose for an import.
 #[derive(Default)]
@@ -39,7 +40,7 @@ fn call(args: &[String], timeout: Duration) -> Result<(Output, Option<Value>), S
     Ok((out, json))
 }
 
-/// An installed memo without `records template` or `--type` answers with commander's own words.
+/// An installed memo without `records templates` or `--type` answers with commander's own words.
 fn worded(out: &Output, json: Option<&Value>) -> String {
     let message = failure(out, json);
     let text = format!("{message}\n{}", out.stderr).to_lowercase();
@@ -69,23 +70,24 @@ fn quiet(mut args: Vec<String>) -> Vec<String> {
 
 /// Every type a sheet can hold, with its columns.
 pub fn types() -> Result<Value, String> {
-    let (out, json) = call(&quiet(vec!["records".into(), "template".into()]), READ)?;
+    let (out, json) = call(&quiet(vec!["records".into(), "templates".into(), "list".into()]), READ)?;
     answered(&out, json).map(|v| v["types"].clone())
 }
 
-pub fn template_args(kind: &str, format: &str, separator: &str, account: Option<&str>) -> Result<Vec<String>, String> {
+pub fn template_args(kind: &str, format: &str, locale: &str, account: Option<&str>) -> Result<Vec<String>, String> {
     if !FORMATS.contains(&format) {
         return Err("A template is CSV or JSON".into());
     }
-    if !SEPARATORS.contains(&separator) {
-        return Err("A CSV separator is a comma or a semicolon".into());
+    if !LOCALES.contains(&locale) {
+        return Err("A template's language is en, ru or es".into());
     }
     let mut args: Vec<String> = vec![
         "records".into(),
-        "template".into(),
+        "templates".into(),
+        "show".into(),
         one_word("A record type", kind)?.into(),
         format!("--format={format}"),
-        format!("--separator={separator}"),
+        format!("--locale={locale}"),
     ];
     if let Some(a) = account.filter(|a| !a.trim().is_empty()) {
         args.push(format!("--account={}", one_word("A source", a)?));
@@ -94,8 +96,8 @@ pub fn template_args(kind: &str, format: &str, separator: &str, account: Option<
 }
 
 /// The template's text, as memo writes it.
-pub fn template(kind: &str, format: &str, separator: &str, account: Option<&str>) -> Result<String, String> {
-    let (out, json) = call(&template_args(kind, format, separator, account)?, READ)?;
+pub fn template(kind: &str, format: &str, locale: &str, account: Option<&str>) -> Result<String, String> {
+    let (out, json) = call(&template_args(kind, format, locale, account)?, READ)?;
     let v = answered(&out, json)?;
     v["text"].as_str().map(str::to_string).ok_or_else(|| "memo wrote no template".into())
 }
@@ -132,20 +134,21 @@ mod tests {
     #[test]
     fn a_template_asks_for_one_type_in_a_known_format() {
         assert_eq!(
-            template_args("invoice", "csv", ";", Some("sheet:rentals")).unwrap(),
+            template_args("invoice", "csv", "ru", Some("sheet:rentals")).unwrap(),
             [
                 "records",
-                "template",
+                "templates",
+                "show",
                 "invoice",
                 "--format=csv",
-                "--separator=;",
+                "--locale=ru",
                 "--account=sheet:rentals",
                 "--json",
                 "--no-record"
             ]
         );
-        assert!(template_args("invoice", "xlsx", ",", None).is_err());
-        assert!(template_args("--help", "csv", ",", None).is_err());
+        assert!(template_args("invoice", "xlsx", "en", None).is_err());
+        assert!(template_args("--help", "csv", "en", None).is_err());
     }
 
     #[test]
