@@ -464,6 +464,23 @@ describe("Confirming a CRM's stages", () => {
   })
 })
 
+describe("Accepting every CRM's suggestions from the notice", () => {
+  beforeEach(() => freshMemo())
+
+  it("confirms every CRM's suggestions from the stage chip at once, and the chip goes with them", async () => {
+    const confirm = vi.spyOn(platform, "clientsMapConfirm")
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    await user.click(await screen.findByRole("button", { name: /stages to confirm/ }, { timeout: 4000 }))
+    await user.click(await screen.findByRole("button", { name: /^Accept all \(\d+\)$/ }))
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith("deal", "pipeline:11"), { timeout: 4000 })
+    expect(confirm).toHaveBeenCalledWith("deal", "pipeline:9")
+    await waitFor(() => expect(screen.queryByRole("button", { name: /stages to confirm/ })).toBeNull(), {
+      timeout: 4000,
+    })
+  })
+})
+
 describe("Importing from a CRM", () => {
   beforeEach(() => freshMemo())
   const bitrix = (profiles: string[]) => {
