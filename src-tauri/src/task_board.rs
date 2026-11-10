@@ -468,8 +468,17 @@ fn people_search_with(call: &Call, query: &str) -> Result<Vec<Person>, Failure> 
     Ok(read_people(&call(&args)?))
 }
 
+/// A memo older than the People page's minimum may answer `people show` otherwise; it gets the whole list as before.
+fn people_listed_with(call: &Call, refs: &[String]) -> Result<Vec<Person>, Failure> {
+    let all = read_people(&call(&words(&["people", "list", "--limit", "5000"]))?);
+    Ok(all.into_iter().filter(|p| refs.contains(&p.reference)).map(|p| Person { owner: false, ..p }).collect())
+}
+
 pub fn people_named(refs: &[String]) -> Result<Vec<Person>, String> {
-    with_memo(READ, |call| Ok(people_named_with(call, refs)))
+    let tool = memo()?;
+    let bin = tools::program(&tool.bin).ok_or("Memo is not installed")?;
+    let shows = tool.people.as_ref().is_some_and(|p| !too_old(tools::version_of(&bin).as_deref(), &p.min_version));
+    with_memo(READ, |call| if shows { Ok(people_named_with(call, refs)) } else { people_listed_with(call, refs) })
 }
 
 pub fn people_search(query: &str) -> Result<Vec<Person>, String> {
@@ -1163,6 +1172,15 @@ mod tests {
         seen.sort();
         assert_eq!(seen.len(), 3);
         assert_eq!(seen[0], strs(&["people", "show", "person:1", "--json", "--no-record"]));
+    }
+
+    #[test]
+    fn an_older_memo_names_the_people_from_its_whole_list() {
+        let fake = Fake::new(|_| {
+            Ok(json!({"items":[{"ref":"person:1","name":"Owner","owner":true},{"ref":"person:2","name":"Ana Ruiz"}]}))
+        });
+        let named = people_listed_with(&|a: &[String]| fake.call(a), &strs(&["person:1"])).unwrap();
+        assert_eq!(named, [Person { reference: "person:1".into(), name: Some("Owner".into()), owner: false }]);
     }
 
     #[test]
