@@ -18,7 +18,9 @@ import { queryClient } from "@/shared/query"
 export type View = "table" | "board"
 export type Unusable = { kind: "missing" } | { kind: "old"; version: string | null; need: string }
 export type History = { state: "loading" } | { state: "ready"; events: TaskEvent[] } | { state: "failed" }
-export type Comments = { state: "loading" } | { state: "ready"; items: TaskComment[] } | { state: "failed" }
+/** A comment on screen; `local` keeps its place while memo saves it and after, so the row never remounts. */
+export type ShownComment = TaskComment & { local?: string; saving?: true }
+export type Comments = { state: "loading" } | { state: "ready"; items: ShownComment[] } | { state: "failed" }
 /** A subtask memo would not move on its own: its parent, and the project the owner chose. */
 export type Detach = { parent: string; project: string }
 /** A write Memo refused because the task changed after the page read it. */
@@ -63,6 +65,8 @@ type TasksState = {
   note: Note | null
   history: Record<string, History>
   comments: Record<string, Comments>
+  /** A comment memo refused, by task, waiting to go back into the box; kept here so a closed dialog keeps it too. */
+  unsent: Record<string, string>
   /** The subtasks a move to another project took along, by the moved task's new key, so its dialog can say so. */
   moved: Record<string, { from: string; to: string }[]>
   /** A move memo refused because the task is a subtask; the page offers to move it out of its parent. */
@@ -94,8 +98,12 @@ type TasksState = {
   create(task: NewTask): Promise<boolean>
   loadHistory(key: string): Promise<void>
   loadComments(key: string): Promise<void>
-  /** Adds the owner's comment; false when memo refused it, with the reason in `failed`. */
+  /**
+   * Shows the owner's comment at once and has memo save it; a refusal takes it out, with the reason in `failed` and
+   * the text in `unsent`.
+   */
   comment(key: string, text: string): Promise<boolean>
+  takeUnsent(key: string): string | null
   /** Adds a person by name and answers them, or null when memo refused. */
   addPerson(name: string): Promise<Person | null>
   /** Remembers a person the finder found, so the row shows their name rather than a reference. */
@@ -131,6 +139,7 @@ const TYPING_MS = 350
 
 export const useTasks = create<TasksState>((set, get) => {
   let seq = 0
+  let drafts = 0
   let typing: ReturnType<typeof setTimeout> | undefined
   const asking = new Set<string>()
 
@@ -275,6 +284,7 @@ export const useTasks = create<TasksState>((set, get) => {
         open: s.open === from ? task.key : s.open,
         history: without(s.history, from),
         comments: move(s.comments),
+        unsent: move(s.unsent),
         moved: without(s.moved, from),
         detach: without(s.detach, from),
       }
@@ -307,6 +317,7 @@ export const useTasks = create<TasksState>((set, get) => {
     note: null,
     history: {},
     comments: {},
+    unsent: {},
     moved: {},
     detach: {},
     creating: false,
@@ -524,21 +535,38 @@ export const useTasks = create<TasksState>((set, get) => {
 
     async comment(key, text) {
       const slot = `comment:${key}`
-      set((s) => ({ busy: { ...s.busy, [slot]: true }, failed: without(s.failed, slot) }))
-      try {
-        const said = await platform.taskCommentAdd(key, text)
+      const local = `saving:${++drafts}`
+      const items = (change: (items: ShownComment[]) => ShownComment[]) =>
         set((s) => {
           const had = s.comments[key]
-          const items = had?.state === "ready" ? [...had.items, said] : [said]
-          return { comments: { ...s.comments, [key]: { state: "ready", items } } }
+          return {
+            comments: {
+              ...s.comments,
+              [key]: { state: "ready", items: change(had?.state === "ready" ? had.items : []) },
+            },
+          }
         })
+      const author = { type: "person", name: null, owner: true }
+      set((s) => ({ failed: without(s.failed, slot) }))
+      items((all) => [...all, { ref: null, text, author, at: new Date().toISOString(), local, saving: true }])
+      try {
+        const said = await platform.taskCommentAdd(key, text)
+        items((all) => all.map((c) => (c.local === local ? { ...said, local } : c)))
         return true
       } catch (e) {
-        set((s) => ({ failed: { ...s.failed, [slot]: message(e) } }))
+        items((all) => all.filter((c) => c.local !== local))
+        set((s) => ({
+          failed: { ...s.failed, [slot]: message(e) },
+          unsent: { ...s.unsent, [key]: s.unsent[key] ? `${s.unsent[key]}\n\n${text}` : text },
+        }))
         return false
-      } finally {
-        set((s) => ({ busy: without(s.busy, slot) }))
       }
+    },
+
+    takeUnsent(key) {
+      const text = get().unsent[key] ?? null
+      if (text !== null) set((s) => ({ unsent: without(s.unsent, key) }))
+      return text
     },
 
     async addPerson(name) {

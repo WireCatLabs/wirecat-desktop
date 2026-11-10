@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from "react"
 import { useLang, useMessages } from "@/i18n"
 import type { TaskComment } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { Skeleton } from "@/ui/Skeleton"
@@ -29,18 +30,24 @@ export function Comments({ taskKey }: { taskKey: string }) {
   const lang = useLang()
   const id = useId()
   const comments = useTasks((s) => s.comments[taskKey])
-  const busy = useTasks((s) => Boolean(s.busy[`comment:${taskKey}`]))
   const failed = useTasks((s) => s.failed[`comment:${taskKey}`])
+  const unsent = useTasks((s) => s.unsent[taskKey])
   const [text, setText] = useState("")
   const ready = text.trim() !== ""
   const empty = useFieldError(`${id}-text`)
   useEffect(() => {
     if (!useTasks.getState().comments[taskKey]) void useTasks.getState().loadComments(taskKey)
   }, [taskKey])
-  const send = async () => {
-    if (busy) return
+  // A refused comment comes back into the box, ahead of anything typed since.
+  useEffect(() => {
+    if (unsent === undefined) return
+    const back = useTasks.getState().takeUnsent(taskKey)
+    if (back !== null) setText((now) => (now.trim() ? `${back}\n\n${now}` : back))
+  }, [unsent, taskKey])
+  const send = () => {
     if (!ready) return empty.fail(m.commentEmpty)
-    if (await useTasks.getState().comment(taskKey, text)) setText("")
+    setText("")
+    void useTasks.getState().comment(taskKey, text)
   }
 
   return (
@@ -58,14 +65,22 @@ export function Comments({ taskKey }: { taskKey: string }) {
         <ol className="flex flex-col gap-[0.5rem]">
           {comments.items.map((c) => (
             <li
-              key={c.ref ?? `${c.at}|${c.text}`}
-              className="reveal rounded-[0.45rem] border border-line bg-app-2 px-[0.8rem] pt-[0.45rem] pb-[0.6rem]"
+              key={c.local ?? c.ref ?? `${c.at}|${c.text}`}
+              aria-busy={c.saving}
+              className={cx(
+                "reveal rounded-[0.45rem] border border-line bg-app-2 px-[0.8rem] pt-[0.45rem] pb-[0.6rem] transition-opacity duration-(--motion-fast)",
+                c.saving && "opacity-70",
+              )}
             >
               <header className="flex items-center gap-[0.45rem] text-[0.85rem] text-ink-dim">
                 <Author comment={c} />
-                <time dateTime={c.at} className="tabular-nums">
-                  {stamp(c.at, lang)}
-                </time>
+                {c.saving ? (
+                  <span>{m.sending}</span>
+                ) : (
+                  <time dateTime={c.at} className="tabular-nums">
+                    {stamp(c.at, lang)}
+                  </time>
+                )}
               </header>
               <p className="selectable mt-[0.2rem] text-[0.95rem] whitespace-pre-wrap text-ink">{c.text}</p>
             </li>
@@ -76,7 +91,7 @@ export function Comments({ taskKey }: { taskKey: string }) {
         className="flex flex-col gap-[0.4rem]"
         onSubmit={(e) => {
           e.preventDefault()
-          void send()
+          send()
         }}
       >
         <textarea
@@ -93,7 +108,7 @@ export function Comments({ taskKey }: { taskKey: string }) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
               e.preventDefault()
-              void send()
+              send()
             }
           }}
           placeholder={`${m.addComment}. ${m.commentHint}`}
@@ -101,8 +116,8 @@ export function Comments({ taskKey }: { taskKey: string }) {
         />
         {empty.hint}
         <div className="flex gap-2">
-          <Button variant="primary" size="sm" type="submit" disabled={busy}>
-            {busy ? m.sending : m.send}
+          <Button variant="primary" size="sm" type="submit">
+            {m.send}
           </Button>
         </div>
         {failed && <TaskError lead={m.commentFailed} raw={failed} />}

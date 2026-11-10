@@ -645,7 +645,11 @@ export function tasksMock(): TaskApi {
       const found = find(key).account
       // memo's own refusals for a task found in messages.
       if (found && edit.account !== found) throw new Error(`give --account — the stored accounts: --account ${found}`)
-      if (found && (edit.state || edit.priority || edit.agent || edit.project || edit.kind))
+      // Rust closes a found task with `tasks close` when its state is all that changes.
+      const closing = found && (edit.state === "done" || edit.state === "dismissed") && Object.keys(edit).length === 2
+      if (closing && closed(find(key).state))
+        throw new Error(`task ${key} is already ${find(key).state}; a closed task stays closed`)
+      if (found && !closing && (edit.state || edit.priority || edit.agent || edit.project || edit.kind))
         throw new Error("--status, --agent, --revision, --project and --type are for a project task")
       const to = edit.project
       if (to !== undefined && to !== find(key).project) {

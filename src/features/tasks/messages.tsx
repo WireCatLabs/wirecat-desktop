@@ -263,7 +263,7 @@ const en: Words = {
   agentTip:
     "The AI agent that should take this task, besides the assignee, written as its name, such as hermes. That agent sees the task as its own.",
   foundOnly:
-    "Memo found this task in your messages. Its title, notes, due date and assignee change here. Status, priority, type, agent and project belong to project tasks.",
+    "Memo found this task in your messages. Its title, notes, due date and assignee change here, and you can close it as Done or Dismissed. Other statuses, priority, type, agent and project belong to project tasks.",
   agentNone: "No agent",
   waitsHeading: "Waits for",
   nothingBlocks: "Nothing. It can start now.",
@@ -451,7 +451,7 @@ const ru: Words = {
   agentTip:
     "ИИ-агент, который должен взять задачу, помимо исполнителя. Пишется именем, например hermes. Этот агент видит задачу как свою.",
   foundOnly:
-    "Memo нашел эту задачу в ваших сообщениях. Здесь меняются название, заметки, срок и исполнитель. Статус, приоритет, тип, агент и проект есть только у задач проекта.",
+    "Memo нашел эту задачу в ваших сообщениях. Здесь меняются название, заметки, срок и исполнитель, а закрыть ее можно как «Готово» или «Отклонено». Другие статусы, приоритет, тип, агент и проект есть только у задач проекта.",
   agentNone: "Без агента",
   waitsHeading: "Ждёт",
   nothingBlocks: "Ничего. Можно начинать.",
@@ -639,7 +639,7 @@ const es: Words = {
   agentTip:
     "El agente de IA que debe tomar esta tarea, además del responsable, escrito por su nombre, como hermes. Ese agente la ve como suya.",
   foundOnly:
-    "Memo encontró esta tarea en tus mensajes. Aquí cambian su título, notas, fecha límite y responsable. Estado, prioridad, tipo, agente y proyecto son de las tareas de un proyecto.",
+    "Memo encontró esta tarea en tus mensajes. Aquí cambian su título, notas, fecha límite y responsable, y puedes cerrarla como Hecha o Descartada. Los demás estados, la prioridad, el tipo, el agente y el proyecto son de las tareas de un proyecto.",
   agentNone: "Sin agente",
   waitsHeading: "Espera a",
   nothingBlocks: "Nada. Se puede empezar ya.",

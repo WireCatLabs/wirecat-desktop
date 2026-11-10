@@ -40,7 +40,7 @@ describe("Tasks", () => {
     expect(within(row("HRB-12")).getByRole("combobox", { name: "Status of HRB-12" })).toHaveTextContent("Progress")
   })
 
-  it("shows the tasks memo found in chats beside the project tasks, read only, while nothing is searched", async () => {
+  it("shows the tasks memo found in chats beside the project tasks, closes one, while nothing is searched", async () => {
     const user = userEvent.setup()
     const found = (key: string, title: string) => ({
       key,
@@ -74,10 +74,23 @@ describe("Tasks", () => {
     await loaded()
     const chat = row("INDBB44DA4-7")
     expect(chat).toHaveTextContent("Telegram")
-    // memo keeps a status and priority for project tasks only: plain text, not controls that refuse every click.
-    expect(within(chat).queryByRole("combobox", { name: "Status of INDBB44DA4-7" })).toBeNull()
+    // memo keeps a priority for project tasks only: plain text, not a control that refuses every click.
     expect(within(chat).queryByRole("combobox", { name: "Priority of INDBB44DA4-7" })).toBeNull()
     expect(within(chat).getByRole("combobox", { name: "Due of INDBB44DA4-7" })).toBeEnabled()
+    const close = vi.spyOn(platform, "taskUpdate").mockResolvedValue({
+      kind: "saved",
+      task: { ...found("INDBB44DA4-7", "Send Ana the lease draft"), state: "dismissed", revision: 2 },
+      label: null,
+      renumbered: [],
+      moved: [],
+    })
+    await user.click(within(chat).getByRole("combobox", { name: "Status of INDBB44DA4-7" }))
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Open", "Done", "Dismissed"])
+    await user.click(screen.getByRole("option", { name: "Dismissed" }))
+    expect(close).toHaveBeenCalledWith("INDBB44DA4-7", 1, { state: "dismissed", account: "telegram:220195113" })
+    // A closed found task stays closed, so its status is text again.
+    await waitFor(() => expect(within(chat).queryByRole("combobox", { name: /^Status of/ })).toBeNull())
+    expect(chat).toHaveTextContent("Dismissed")
     expect(useTasks.getState().total).toBe(useTasks.getState().tasks.length)
     await user.click(screen.getByRole("button", { name: "Project" }))
     await user.click(screen.getByRole("option", { name: /Operations/ }))
@@ -133,7 +146,7 @@ describe("Tasks", () => {
     const dialog = await screen.findByRole("dialog", { name: "Task Q-1" })
     expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("")
     expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveAttribute("placeholder", "Untitled question")
-    expect(dialog).toHaveTextContent("Status, priority, type, agent and project belong to project tasks.")
+    expect(dialog).toHaveTextContent("you can close it as Done or Dismissed. Other statuses, priority, type")
     const update = vi.spyOn(platform, "taskUpdate").mockImplementation(async (_key, _revision, edit) => {
       if (edit.account !== "telegram:1") throw new Error("give --account — the stored accounts: --account telegram:1")
       return {
@@ -399,6 +412,30 @@ describe("Tasks", () => {
     expect(await screen.findByRole("dialog", { name: "Task HRB-17" })).toBeInTheDocument()
     expect(row("HRB-17")).toBeInTheDocument()
     expect(row("OPS-4")).toBeNull()
+  })
+
+  it("shows a comment while memo saves it, and gives the text back when memo refuses", async () => {
+    const user = userEvent.setup()
+    let refuse: (e: Error) => void = () => {}
+    vi.spyOn(platform, "taskCommentAdd").mockImplementation(() => new Promise((_, reject) => (refuse = reject)))
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("HRB-12")).getByRole("button", { name: /^HRB-12 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-12" })
+    const thread = (await within(dialog).findByText(/Kai wants the per-seat price/)).closest("ol") as HTMLElement
+    const before = within(thread).getAllByRole("listitem").length
+    const box = within(dialog).getByRole("textbox", { name: "Add a comment" })
+    await user.type(box, "Booked the hall")
+    await user.click(within(dialog).getByRole("button", { name: "Comment" }))
+    expect(box).toHaveValue("")
+    const saving = within(thread).getAllByRole("listitem")[before]
+    expect(saving).toHaveTextContent("Booked the hall")
+    expect(saving).toHaveAttribute("aria-busy", "true")
+    expect(saving).toHaveTextContent("Sending…")
+    refuse(new Error("another memo process holds the store; try again in a minute"))
+    await waitFor(() => expect(box).toHaveValue("Booked the hall"))
+    expect(within(thread).getAllByRole("listitem")).toHaveLength(before)
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("The comment was not added. Your text is still here.")
   })
 
   it("says which subtasks a move to another project took along", async () => {
