@@ -43,7 +43,7 @@ export function StagePicker(props: {
           <Button size="sm" variant="ghost" onClick={() => close(false)}>
             {s.cancel}
           </Button>
-          <Button size="sm" variant="primary" disabled={!stage} onClick={() => close(true)}>
+          <Button size="sm" variant="primary" onClick={() => close(true)}>
             {s.move}
           </Button>
         </>
