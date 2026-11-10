@@ -5,6 +5,7 @@ import { platform } from "@/platform/bridge"
 import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
 import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
+import { COLUMN_PAGE } from "./BaseBoard"
 import { ClientsPage } from "./ClientsPage"
 import { useClients } from "./store"
 
@@ -120,7 +121,7 @@ describe("Clients on the base stages", () => {
     const contract = await column(/^Contract/)
     const showroom = within(contract).getByRole("button", { name: "Acme: showroom partnership" })
     expect(showroom).toHaveTextContent("Not confirmed")
-    await user.click(within(showroom).getByRole("button", { name: /Memo suggested Contract/ }))
+    await user.click(within(showroom).getByRole("button", { name: /Suggested for this stage: Contract/ }))
     expect(useClients.getState().mapOn).toBe("bitrix24:northstar.example")
     expect(useClients.getState().open).toBeNull()
   })
@@ -134,6 +135,29 @@ describe("Clients on the base stages", () => {
     render(<ClientsPage />)
     const call = await column(/^Call/)
     expect(within(call).getByText("1 more not loaded")).toBeInTheDocument()
+  })
+
+  it("shows a column's first cards and more of them on Show more", async () => {
+    const user = userEvent.setup()
+    const memo = clientsMock()
+    vi.spyOn(platform, "clientsRead").mockImplementation(async (...args) => {
+      const r = await memo.clientsRead(...args)
+      if (r.kind !== "base") return r
+      const site = r.cards.find((c) => c.title === "Site for Northstar")
+      if (!site) return r
+      const more = Array.from({ length: COLUMN_PAGE + 5 }, (_, i) => ({
+        ...site,
+        ref: `deal:9${i}`,
+        title: `Quote ${i}`,
+      }))
+      return { ...r, cards: [...r.cards, ...more] }
+    })
+    render(<ClientsPage />)
+    const quote = await column(/^Quote/)
+    expect(within(quote).queryByRole("button", { name: `Quote ${COLUMN_PAGE + 4}` })).toBeNull()
+    await user.click(within(quote).getByRole("button", { name: /^Show \d+ more$/ }))
+    expect(within(quote).getByRole("button", { name: `Quote ${COLUMN_PAGE + 4}` })).toBeInTheDocument()
+    expect(within(quote).queryByRole("button", { name: /^Show \d+ more$/ })).toBeNull()
   })
 
   it("changes a card's stage from its details, among its own pipeline's stages", async () => {

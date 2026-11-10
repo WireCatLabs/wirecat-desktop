@@ -21,6 +21,7 @@ type Words = {
   clear: string
   more: (n: number) => string
   notLoaded: (n: number) => string
+  showMore: (n: number) => string
   search: string
   searchHint: string
   owner: string
@@ -94,6 +95,7 @@ const en: Words = {
   more: (n) =>
     `More match than one read holds: the first ${formatNumber(n, "en")} are shown. Each column counts them all and says how many it does not show.`,
   notLoaded: (n) => `${formatNumber(n, "en")} more not loaded`,
+  showMore: (n) => `Show ${formatNumber(n, "en")} more`,
   search: "Search the board",
   searchHint: "Words, owner:, stage:, amount:>=1000",
   owner: "Responsible",
@@ -175,6 +177,7 @@ const ru: Words = {
   more: (n) =>
     `Подходит больше, чем помещается в одно чтение: показаны первые ${formatNumber(n, "ru")}. Колонки считают все и пишут, сколько не загружено.`,
   notLoaded: (n) => `Ещё ${formatNumber(n, "ru")} не загружено`,
+  showMore: (n) => `Показать ещё ${formatNumber(n, "ru")}`,
   search: "Поиск по доске",
   searchHint: "Слова, owner:, stage:, amount:>=1000",
   owner: "Ответственный",
@@ -260,6 +263,7 @@ const es: Words = {
   more: (n) =>
     `Coinciden más de los que caben en una lectura: se muestran los primeros ${formatNumber(n, "es")}. Cada columna los cuenta todos y dice cuántos no muestra.`,
   notLoaded: (n) => `${formatNumber(n, "es")} más sin cargar`,
+  showMore: (n) => `Mostrar ${formatNumber(n, "es")} más`,
   search: "Buscar en el tablero",
   searchHint: "Palabras, owner:, stage:, amount:>=1000",
   owner: "Responsable",

@@ -344,8 +344,13 @@ fn cards_from(lists: [Result<Value, Failure>; 3]) -> Result<(Vec<CrmCard>, bool)
 
 fn read_base_with(call: &Call, kind: CrmKind, writers: &Writers) -> Result<CrmRead, Failure> {
     let [a, b, c] = cards_args(kind, "");
-    let [listed, shown, mapped, open, won, lost] =
-        at_once(call, [pipelines_args(kind), base::show_args(kind), base::mapping_args(kind), a, b, c]);
+    // memo up to 0.131.76 answers concurrent calls of one command with the last one's words (cli-memo#792): the
+    // three lists go one after another, beside the other reads.
+    let ([listed, shown, mapped], [open, won, lost]) = std::thread::scope(|s| {
+        let lists = s.spawn(|| [a, b, c].map(|args| call(&args)));
+        let others = at_once(call, [pipelines_args(kind), base::show_args(kind), base::mapping_args(kind)]);
+        (others, lists.join().unwrap_or_else(|_| [(); 3].map(|()| Err(Failure::plain("a read stopped")))))
+    });
     let pipelines = pipelines_from(&listed?, writers);
     let (base, unsorted) = base::columns(&shown?);
     let mapping = base::mapping(&mapped?);
@@ -583,24 +588,35 @@ mod tests {
     }
 
     #[test]
-    fn a_base_read_asks_memo_everything_at_once_and_waits_for_the_slowest() {
-        let (started, ended) = (Mutex::new(0), Mutex::new(0));
+    fn a_base_read_asks_the_lists_one_at_a_time_beside_the_other_reads() {
+        let (started, lists, most, ended) = (Mutex::new(0), Mutex::new(0), Mutex::new(0), Mutex::new(0));
         let call = |a: &[String]| {
             *started.lock().unwrap() += 1;
+            let list = a[1] == "list" && a[0] == "deals";
+            if list {
+                let mut l = lists.lock().unwrap();
+                *l += 1;
+                let mut m = most.lock().unwrap();
+                *m = (*m).max(*l);
+            }
             let deadline = std::time::Instant::now() + Duration::from_secs(5);
-            // Each call holds until all six have started: in turn, the first would wait for the deadline and fail.
-            while *started.lock().unwrap() < 6 {
+            // The three other reads and the first list run together: in turn, one would wait for the deadline.
+            while *started.lock().unwrap() < 4 {
                 if std::time::Instant::now() > deadline {
                     return Err(invalid("asked one at a time".into()));
                 }
                 std::thread::yield_now();
+            }
+            std::thread::sleep(Duration::from_millis(5));
+            if list {
+                *lists.lock().unwrap() -= 1;
             }
             *ended.lock().unwrap() += 1;
             Ok(based(a))
         };
         let read = read_base_with(&call, CrmKind::Deal, &none).unwrap();
         assert!(matches!(read, CrmRead::Base { .. }));
-        assert_eq!(*ended.lock().unwrap(), 6);
+        assert_eq!((*ended.lock().unwrap(), *most.lock().unwrap()), (6, 1));
     }
 
     #[test]
