@@ -74,6 +74,15 @@ Analytics: `?section=analytics`, `?analytics=real` (no Preview parts, as in the 
    user sees where things came from and went. A multi-step flow stays on one surface, slides from step to step, and
    after each action shows what happens next; a surface never closes on its own. When the user's goal is reached, the
    surface says so plainly ("ChatGPT can now read your Telegram") and suggests the next steps.
+10. **A button is never disabled because a value is missing or wrong.** It stays clickable; pressed with an empty or
+    bad field, it shows the error at that field in words that say what to do ("Enter a title"), marks the field
+    (`aria-invalid`) and moves focus to it. Use `useFieldError` (`src/ui/FieldError.tsx`). Disable only while the
+    button's own action runs (with a spinner), or when the action is impossible right now and the reason is printed
+    beside it.
+11. **Creation presets stay in view.** Templates or presets for making something (Digests' daily, weekly, custom) stay
+    above the list or table once it has items, not only on the empty page.
+12. **Every list pages on the server** (memo's `--limit` and `--page`). Never load a whole list to page or filter it
+    in the browser.
 
 Code style: Biome (`biome.json`, shared base in `config/wirecat/` — do not edit that folder, it is synced from
 `WireCatLabs/community`), rustfmt and clippy pedantic for Rust. Comments say why, not what. Conventional commits.
