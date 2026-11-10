@@ -1,6 +1,7 @@
 //! memo's command server: a few long-running `memo` processes that take a page's commands one line at a time, so a
-//! page does not pay memo's start (about 0.6 s of loading Node modules) on every call. A call that finds no server
-//! with room, or a memo without the server, starts its own process as before, so the worst case is the old behaviour.
+//! page does not pay memo's start (about 0.6 s of loading Node modules) on every call. One server starts with the
+//! app. A call that finds no server with room waits up to a second for one that is starting; past that, or for a memo
+//! without the server, it starts its own process as before, so the worst case is about the old behaviour.
 //!
 //! Protocol (cli-core): the first stdout line is `{"ready":true,"protocol":1,"version":…}`; each request is
 //! `{"id":n,"argv":[…]}` on stdin, each answer `{"id":n,"code":…,"stdout":…,"stderr":…}`, exactly what a started
@@ -16,7 +17,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Stdio};
 use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::mpsc::{self, RecvTimeoutError, Sender};
-use std::sync::{Arc, LazyLock, Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Condvar, LazyLock, Mutex, MutexGuard, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -30,15 +31,22 @@ const IDLE_KEPT: Duration = Duration::from_mins(9);
 /// An update outside the app may leave the program's file stamp as it was; the version cache in `tools.rs` is
 /// asked again after the same time.
 const SERVER_KEPT: Duration = Duration::from_mins(10);
+/// A server gets ready in about 0.35 s; a call waits this long for one that is starting before it starts memo itself.
+const STARTING_WAIT: Duration = Duration::from_secs(1);
 /// A server that only failed to get ready in time may have met a busy moment, so it is tried again after this.
 const SLOW_START_KEPT: Duration = Duration::from_mins(2);
 
 static POOL: LazyLock<Pool> = LazyLock::new(|| Pool::new(&SERVER_ARGV, SERVERS, READY_WAIT));
 
-/// One memo command through a server with room, or its own process when none has. The same `Output` and the same
+/// One memo command through a server with room, waiting a moment for one that is starting, or its own process. The same `Output` and the same
 /// errors a started process gives.
 pub fn run(bin: &Path, args: &[&str], timeout: Duration) -> Result<Output, RunError> {
     POOL.run(bin, args, &crate::paths::search_path(), timeout)
+}
+
+/// Starts a server for `bin` in the background, unless one runs, is starting, or memo has none.
+pub fn warm(bin: &Path) {
+    POOL.warm(bin, &crate::paths::search_path());
 }
 
 /// Ends every server: before memo is installed, updated or removed, before the store is reset or repaired, and when
@@ -75,6 +83,9 @@ pub struct Pool {
     generation: AtomicU64,
     paused: AtomicUsize,
     max_age: Duration,
+    starting_wait: Duration,
+    /// Rung when a server gets ready or fails to.
+    changed: Condvar,
     served: AtomicUsize,
     #[cfg(test)]
     starts: AtomicUsize,
@@ -155,6 +166,8 @@ impl Pool {
             generation: AtomicU64::new(0),
             paused: AtomicUsize::new(0),
             max_age: SERVER_KEPT,
+            starting_wait: STARTING_WAIT,
+            changed: Condvar::new(),
             served: AtomicUsize::new(0),
             #[cfg(test)]
             starts: AtomicUsize::new(0),
@@ -169,7 +182,7 @@ impl Pool {
             Checkout::Lent(server) => server,
             Checkout::Start => {
                 let started = self.start(bin, stamp, search, timeout.min(self.ready_wait));
-                match self.started(bin, started) {
+                match self.started(bin, started, 1) {
                     Some(server) => server,
                     None => return spawn(),
                 }
@@ -185,49 +198,73 @@ impl Pool {
         locked(&self.state)
     }
 
+    /// A call that finds a server starting waits for it rather than paying memo's start itself.
     fn checkout(&self, bin: &Path, stamp: &Stamp, search: &OsStr) -> Checkout {
-        if self.paused.load(Ordering::Relaxed) > 0 {
-            return Checkout::Spawn;
-        }
-        let generation = self.generation.load(Ordering::Relaxed);
-        let retired: Vec<Slot>;
-        let picked = {
-            let mut state = self.lock();
+        let deadline = Instant::now() + self.starting_wait;
+        let mut retired: Vec<Slot> = Vec::new();
+        let mut state = self.lock();
+        let picked = loop {
+            if self.paused.load(Ordering::Relaxed) > 0 {
+                break Checkout::Spawn;
+            }
             if let Some(r) = state.refused.get(bin) {
                 if r.stamp == *stamp && r.until.is_none_or(|u| Instant::now() < u) {
-                    return Checkout::Spawn;
+                    break Checkout::Spawn;
                 }
                 state.refused.remove(bin);
             }
+            let generation = self.generation.load(Ordering::Relaxed);
             let servers = state.by_bin.entry(bin.to_path_buf()).or_default();
-            let (kept, gone) = std::mem::take(&mut servers.live)
+            let (kept, gone): (Vec<Slot>, Vec<Slot>) = std::mem::take(&mut servers.live)
                 .into_iter()
                 .partition(|slot| slot.usable(stamp, search, generation, self.max_age));
             servers.live = kept;
-            retired = gone;
+            retired.extend(gone);
             if let Some(slot) = servers.live.iter_mut().find(|slot| slot.busy < slot.server.concurrent) {
                 slot.busy += 1;
-                Checkout::Lent(Arc::clone(&slot.server))
-            } else if servers.live.len() + servers.starting < self.size {
-                servers.starting += 1;
-                Checkout::Start
-            } else {
-                Checkout::Spawn
+                break Checkout::Lent(Arc::clone(&slot.server));
             }
+            if servers.starting == 0 && servers.live.len() < self.size {
+                servers.starting += 1;
+                break Checkout::Start;
+            }
+            let left = deadline.saturating_duration_since(Instant::now());
+            if servers.starting == 0 || left.is_zero() {
+                break Checkout::Spawn;
+            }
+            state = self.changed.wait_timeout(state, left).unwrap_or_else(PoisonError::into_inner).0;
         };
+        drop(state);
         drop(retired);
         picked
     }
 
-    /// Puts a server that got ready into the pool, already lent to its first request; a refusal is remembered.
-    fn started(&self, bin: &Path, started: Result<Server, Option<Refusal>>) -> Option<Arc<Server>> {
+    /// Starts a server in the background when `bin` has none, so the first page finds it ready.
+    fn warm(&self, bin: &Path, search: &OsStr) {
+        let Some(stamp) = Stamp::of(bin) else { return };
+        {
+            let mut state = self.lock();
+            let refused = state.refused.get(bin).is_some_and(|r| r.stamp == stamp);
+            let servers = state.by_bin.entry(bin.to_path_buf()).or_default();
+            if self.paused.load(Ordering::Relaxed) > 0 || refused || servers.starting > 0 || !servers.live.is_empty() {
+                return;
+            }
+            servers.starting += 1;
+        }
+        let started = self.start(bin, stamp, search, self.ready_wait);
+        self.started(bin, started, 0);
+    }
+
+    /// Puts a server that got ready into the pool, lent to `busy` requests; a refusal is remembered. Wakes the calls
+    /// that wait for it either way.
+    fn started(&self, bin: &Path, started: Result<Server, Option<Refusal>>, busy: usize) -> Option<Arc<Server>> {
         let mut state = self.lock();
         let servers = state.by_bin.entry(bin.to_path_buf()).or_default();
         servers.starting = servers.starting.saturating_sub(1);
-        match started {
+        let server = match started {
             Ok(server) => {
                 let server = Arc::new(server);
-                servers.live.push(Slot { server: Arc::clone(&server), busy: 1, idle_since: Instant::now() });
+                servers.live.push(Slot { server: Arc::clone(&server), busy, idle_since: Instant::now() });
                 Some(server)
             }
             Err(refusal) => {
@@ -236,7 +273,9 @@ impl Pool {
                 }
                 None
             }
-        }
+        };
+        self.changed.notify_all();
+        server
     }
 
     /// Gives a request's place back. A server that failed a request takes no new one and ends when the others on it
@@ -261,6 +300,7 @@ impl Pool {
                 }
             }
         }
+        self.changed.notify_all();
         drop(retired);
     }
 
@@ -636,6 +676,53 @@ echo '{"via":"spawn"}'
         });
         assert!(!alive(server));
         assert_eq!(starts(&pool), 2);
+    }
+
+    #[test]
+    fn a_burst_while_the_server_starts_waits_for_it_and_goes_through_it() {
+        let fake = Fake::new("burst", &CONCURRENT.replacen("then\n", "then\n  sleep 0.3\n", 1));
+        let pool = pool(2, Duration::from_secs(10));
+        let answers: Vec<_> = thread::scope(|s| {
+            let calls: Vec<_> =
+                (0..7).map(|_| s.spawn(|| call(&pool, &fake, "list", Duration::from_secs(10)).unwrap())).collect();
+            calls.into_iter().map(|c| via(&c.join().unwrap())).collect()
+        });
+        let pid = answers[0].1;
+        assert!(pid.is_some() && answers.iter().all(|a| *a == ("server".into(), pid)), "{answers:?}");
+        assert_eq!(starts(&pool), 1);
+    }
+
+    #[test]
+    fn a_call_waits_a_moment_for_a_starting_server_then_starts_its_own_process() {
+        let fake = Fake::new("slow-start", NEVER_READY);
+        let mut pool = pool(2, Duration::from_secs(10));
+        pool.starting_wait = Duration::from_millis(300);
+        thread::scope(|s| {
+            let starter = s.spawn(|| call(&pool, &fake, "list", Duration::from_secs(2)).unwrap());
+            let since = Instant::now();
+            while pool.lock().by_bin.get(&fake.0).is_none_or(|s| s.starting != 1) {
+                assert!(since.elapsed() < Duration::from_secs(5), "the server never started");
+                thread::yield_now();
+            }
+            let asked = Instant::now();
+            let own = call(&pool, &fake, "list", Duration::from_secs(10)).unwrap();
+            assert_eq!(via(&own), ("spawn".into(), None));
+            assert!((Duration::from_millis(300)..Duration::from_secs(2)).contains(&asked.elapsed()));
+            assert_eq!(via(&starter.join().unwrap()), ("spawn".into(), None));
+        });
+        assert_eq!(starts(&pool), 1);
+    }
+
+    #[test]
+    fn a_warmed_server_answers_the_first_call() {
+        let fake = Fake::new("warm", SPEAKS);
+        let pool = pool(2, Duration::from_secs(10));
+        let search = std::env::var_os("PATH").unwrap_or_default();
+        pool.warm(&fake.0, &search);
+        pool.warm(&fake.0, &search);
+        assert_eq!(busy(&pool, &fake), 0);
+        served_by(&pool, &fake);
+        assert_eq!(starts(&pool), 1);
     }
 
     #[test]
