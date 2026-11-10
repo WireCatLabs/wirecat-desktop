@@ -1,0 +1,882 @@
+{
+  "profile": "personal",
+  "owner": {
+    "name": "Sam Owner",
+    "email": "owner@studio.example.org"
+  },
+  "imap_host": "imap.gmail.com",
+  "senders": [
+    {
+      "id": "cold-1",
+      "name": "Wendell Quarry",
+      "email": "wendell@quarry-tours.test"
+    },
+    {
+      "id": "cold-2",
+      "name": "Ottilie Brandvold",
+      "email": "ottilie@brandvold.test"
+    },
+    {
+      "id": "cold-3",
+      "name": "Casimir Ondaatje",
+      "email": "casimir@ondaatje-media.test"
+    },
+    {
+      "id": "cold-4",
+      "name": "—",
+      "email": "x7q2@mailbox.test"
+    },
+    {
+      "id": "cold-5",
+      "name": "???",
+      "email": "zz91@inbox.test"
+    }
+  ],
+  "threads": [
+    {
+      "id": "t01",
+      "subject": "Booking page draft",
+      "days_ago": 1,
+      "messages": [
+        {
+          "from": "lena-example",
+          "body": "Hi Sam,\n\nAbout the booking page draft: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nLena"
+        },
+        {
+          "from": "owner",
+          "hours_after": 2,
+          "body": "Thanks Lena, I'll check the booking page draft today and send the invoice tomorrow."
+        },
+        {
+          "from": "lena-example",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t02",
+      "subject": "Invoice for the first stage",
+      "days_ago": 8,
+      "messages": [
+        {
+          "from": "marco-sample",
+          "body": "Hi Sam,\n\nAbout the invoice for the first stage: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nMarco"
+        },
+        {
+          "from": "owner",
+          "hours_after": 3,
+          "body": "Thanks Marco, I'll check the invoice for the first stage today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t03",
+      "subject": "Photo shoot on Thursday",
+      "days_ago": 15,
+      "messages": [
+        {
+          "from": "tomas-placeholder",
+          "body": "Hi Sam,\n\nAbout the photo shoot on thursday: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nTomas"
+        }
+      ]
+    },
+    {
+      "id": "t04",
+      "subject": "Menu proof",
+      "days_ago": 22,
+      "messages": [
+        {
+          "from": "tomas-placeholder",
+          "body": "Hi Sam,\n\nAbout the menu proof: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nTomas"
+        },
+        {
+          "from": "owner",
+          "hours_after": 5,
+          "body": "Thanks Tomas, I'll check the menu proof today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t05",
+      "subject": "Price list",
+      "days_ago": 2,
+      "messages": [
+        {
+          "from": "vera-fictus",
+          "body": "Hi Sam,\n\nAbout the price list: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nVera"
+        },
+        {
+          "from": "owner",
+          "hours_after": 6,
+          "body": "Thanks Vera, I'll check the price list today and send the invoice tomorrow."
+        },
+        {
+          "from": "vera-fictus",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t06",
+      "subject": "Gift voucher design",
+      "days_ago": 9,
+      "messages": [
+        {
+          "from": "nadia-demoran",
+          "body": "Hi Sam,\n\nAbout the gift voucher design: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nNadia"
+        }
+      ]
+    },
+    {
+      "id": "t07",
+      "subject": "Hosting renewal",
+      "days_ago": 16,
+      "messages": [
+        {
+          "from": "nadia-demoran",
+          "body": "Hi Sam,\n\nAbout the hosting renewal: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nNadia"
+        },
+        {
+          "from": "owner",
+          "hours_after": 3,
+          "body": "Thanks Nadia, I'll check the hosting renewal today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t08",
+      "subject": "Newsletter template",
+      "days_ago": 23,
+      "messages": [
+        {
+          "from": "felix-specimen",
+          "body": "Hi Sam,\n\nAbout the newsletter template: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nFelix"
+        },
+        {
+          "from": "owner",
+          "hours_after": 4,
+          "body": "Thanks Felix, I'll check the newsletter template today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t09",
+      "subject": "Room list for the booking tool",
+      "days_ago": 3,
+      "messages": [
+        {
+          "from": "ruben-dummett",
+          "body": "Hi Sam,\n\nAbout the room list for the booking tool: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nRuben"
+        },
+        {
+          "from": "ruben-dummett",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t10",
+      "subject": "Delivery radius",
+      "days_ago": 10,
+      "messages": [
+        {
+          "from": "ruben-dummett",
+          "body": "Hi Sam,\n\nAbout the delivery radius: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nRuben"
+        },
+        {
+          "from": "owner",
+          "hours_after": 6,
+          "body": "Thanks Ruben, I'll check the delivery radius today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t11",
+      "subject": "Logo files",
+      "days_ago": 17,
+      "messages": [
+        {
+          "from": "mira-notreal",
+          "body": "Hi Sam,\n\nAbout the logo files: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nMira"
+        },
+        {
+          "from": "owner",
+          "hours_after": 2,
+          "body": "Thanks Mira, I'll check the logo files today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t12",
+      "subject": "Allergen page texts",
+      "days_ago": 24,
+      "messages": [
+        {
+          "from": "petra-stubbins",
+          "body": "Hi Sam,\n\nAbout the allergen page texts: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nPetra"
+        }
+      ]
+    },
+    {
+      "id": "t13",
+      "subject": "Booking page draft",
+      "days_ago": 4,
+      "messages": [
+        {
+          "from": "petra-stubbins",
+          "body": "Hi Sam,\n\nAbout the booking page draft: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nPetra"
+        },
+        {
+          "from": "owner",
+          "hours_after": 4,
+          "body": "Thanks Petra, I'll check the booking page draft today and send the invoice tomorrow."
+        },
+        {
+          "from": "petra-stubbins",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t14",
+      "subject": "Invoice for the first stage",
+      "days_ago": 11,
+      "messages": [
+        {
+          "from": "lucas-fakely",
+          "body": "Hi Sam,\n\nAbout the invoice for the first stage: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nLucas"
+        },
+        {
+          "from": "owner",
+          "hours_after": 5,
+          "body": "Thanks Lucas, I'll check the invoice for the first stage today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t15",
+      "subject": "Photo shoot on Thursday",
+      "days_ago": 18,
+      "messages": [
+        {
+          "from": "emil-hypothe",
+          "body": "Hi Sam,\n\nAbout the photo shoot on thursday: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nEmil"
+        }
+      ]
+    },
+    {
+      "id": "t16",
+      "subject": "Menu proof",
+      "days_ago": 25,
+      "messages": [
+        {
+          "from": "emil-hypothe",
+          "body": "Hi Sam,\n\nAbout the menu proof: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nEmil"
+        },
+        {
+          "from": "owner",
+          "hours_after": 2,
+          "body": "Thanks Emil, I'll check the menu proof today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t17",
+      "subject": "Price list",
+      "days_ago": 5,
+      "messages": [
+        {
+          "from": "dina-modelle",
+          "body": "Hi Sam,\n\nAbout the price list: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nDina"
+        },
+        {
+          "from": "owner",
+          "hours_after": 3,
+          "body": "Thanks Dina, I'll check the price list today and send the invoice tomorrow."
+        },
+        {
+          "from": "dina-modelle",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t18",
+      "subject": "Gift voucher design",
+      "days_ago": 12,
+      "messages": [
+        {
+          "from": "rosa-draftson",
+          "body": "Hi Sam,\n\nAbout the gift voucher design: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nRosa"
+        }
+      ]
+    },
+    {
+      "id": "t19",
+      "subject": "Hosting renewal",
+      "days_ago": 19,
+      "messages": [
+        {
+          "from": "rosa-draftson",
+          "body": "Hi Sam,\n\nAbout the hosting renewal: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nRosa"
+        },
+        {
+          "from": "owner",
+          "hours_after": 5,
+          "body": "Thanks Rosa, I'll check the hosting renewal today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t20",
+      "subject": "Newsletter template",
+      "days_ago": 26,
+      "messages": [
+        {
+          "from": "ivo-sketchley",
+          "body": "Hi Sam,\n\nAbout the newsletter template: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nIvo"
+        },
+        {
+          "from": "owner",
+          "hours_after": 6,
+          "body": "Thanks Ivo, I'll check the newsletter template today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t21",
+      "subject": "Room list for the booking tool",
+      "days_ago": 6,
+      "messages": [
+        {
+          "from": "bruno-prototyp",
+          "body": "Hi Sam,\n\nAbout the room list for the booking tool: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nBruno"
+        },
+        {
+          "from": "bruno-prototyp",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t22",
+      "subject": "Delivery radius",
+      "days_ago": 13,
+      "messages": [
+        {
+          "from": "bruno-prototyp",
+          "body": "Hi Sam,\n\nAbout the delivery radius: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nBruno"
+        },
+        {
+          "from": "owner",
+          "hours_after": 3,
+          "body": "Thanks Bruno, I'll check the delivery radius today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t23",
+      "subject": "Logo files",
+      "days_ago": 20,
+      "messages": [
+        {
+          "from": "sofia-quillfeather",
+          "body": "Hi Sam,\n\nAbout the logo files: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nSofia"
+        },
+        {
+          "from": "owner",
+          "hours_after": 4,
+          "body": "Thanks Sofia, I'll check the logo files today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t24",
+      "subject": "Allergen page texts",
+      "days_ago": 27,
+      "messages": [
+        {
+          "from": "lidia-papermill",
+          "body": "Hi Sam,\n\nAbout the allergen page texts: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nLidia"
+        }
+      ]
+    },
+    {
+      "id": "t25",
+      "subject": "Booking page draft",
+      "days_ago": 7,
+      "messages": [
+        {
+          "from": "lidia-papermill",
+          "body": "Hi Sam,\n\nAbout the booking page draft: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nLidia"
+        },
+        {
+          "from": "owner",
+          "hours_after": 6,
+          "body": "Thanks Lidia, I'll check the booking page draft today and send the invoice tomorrow."
+        },
+        {
+          "from": "lidia-papermill",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t26",
+      "subject": "Invoice for the first stage",
+      "days_ago": 14,
+      "messages": [
+        {
+          "from": "kai-brightwater",
+          "body": "Hi Sam,\n\nAbout the invoice for the first stage: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nKai"
+        },
+        {
+          "from": "owner",
+          "hours_after": 2,
+          "body": "Thanks Kai, I'll check the invoice for the first stage today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t27",
+      "subject": "Photo shoot on Thursday",
+      "days_ago": 21,
+      "messages": [
+        {
+          "from": "matteo-fernhill",
+          "body": "Hi Sam,\n\nAbout the photo shoot on thursday: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nMatteo"
+        }
+      ]
+    },
+    {
+      "id": "t28",
+      "subject": "Menu proof",
+      "days_ago": 1,
+      "messages": [
+        {
+          "from": "matteo-fernhill",
+          "body": "Hi Sam,\n\nAbout the menu proof: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nMatteo"
+        },
+        {
+          "from": "owner",
+          "hours_after": 4,
+          "body": "Thanks Matteo, I'll check the menu proof today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t29",
+      "subject": "Price list",
+      "days_ago": 8,
+      "messages": [
+        {
+          "from": "yana-ashgrove",
+          "body": "Hi Sam,\n\nAbout the price list: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nYana"
+        },
+        {
+          "from": "owner",
+          "hours_after": 5,
+          "body": "Thanks Yana, I'll check the price list today and send the invoice tomorrow."
+        },
+        {
+          "from": "yana-ashgrove",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t30",
+      "subject": "Gift voucher design",
+      "days_ago": 15,
+      "messages": [
+        {
+          "from": "irene-redcliff",
+          "body": "Hi Sam,\n\nAbout the gift voucher design: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nIrene"
+        }
+      ]
+    },
+    {
+      "id": "t31",
+      "subject": "Hosting renewal",
+      "days_ago": 22,
+      "messages": [
+        {
+          "from": "irene-redcliff",
+          "body": "Hi Sam,\n\nAbout the hosting renewal: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nIrene"
+        },
+        {
+          "from": "owner",
+          "hours_after": 2,
+          "body": "Thanks Irene, I'll check the hosting renewal today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t32",
+      "subject": "Newsletter template",
+      "days_ago": 2,
+      "messages": [
+        {
+          "from": "leon-thornbury",
+          "body": "Hi Sam,\n\nAbout the newsletter template: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nLeon"
+        },
+        {
+          "from": "owner",
+          "hours_after": 3,
+          "body": "Thanks Leon, I'll check the newsletter template today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t33",
+      "subject": "Room list for the booking tool",
+      "days_ago": 9,
+      "messages": [
+        {
+          "from": "sergio-oakhurst",
+          "body": "Hi Sam,\n\nAbout the room list for the booking tool: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nSergio"
+        },
+        {
+          "from": "sergio-oakhurst",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t34",
+      "subject": "Delivery radius",
+      "days_ago": 16,
+      "messages": [
+        {
+          "from": "sergio-oakhurst",
+          "body": "Hi Sam,\n\nAbout the delivery radius: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nSergio"
+        },
+        {
+          "from": "owner",
+          "hours_after": 5,
+          "body": "Thanks Sergio, I'll check the delivery radius today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t35",
+      "subject": "Logo files",
+      "days_ago": 23,
+      "messages": [
+        {
+          "from": "olga-elmstead",
+          "body": "Hi Sam,\n\nAbout the logo files: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nOlga"
+        },
+        {
+          "from": "owner",
+          "hours_after": 6,
+          "body": "Thanks Olga, I'll check the logo files today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t36",
+      "subject": "Allergen page texts",
+      "days_ago": 3,
+      "messages": [
+        {
+          "from": "edda-hollowell",
+          "body": "Hi Sam,\n\nAbout the allergen page texts: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nEdda"
+        }
+      ]
+    },
+    {
+      "id": "t37",
+      "subject": "Booking page draft",
+      "days_ago": 10,
+      "messages": [
+        {
+          "from": "edda-hollowell",
+          "body": "Hi Sam,\n\nAbout the booking page draft: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nEdda"
+        },
+        {
+          "from": "owner",
+          "hours_after": 3,
+          "body": "Thanks Edda, I'll check the booking page draft today and send the invoice tomorrow."
+        },
+        {
+          "from": "edda-hollowell",
+          "hours_after": 7,
+          "body": "Perfect, thank you. Talk on the next call."
+        }
+      ]
+    },
+    {
+      "id": "t38",
+      "subject": "Invoice for the first stage",
+      "days_ago": 17,
+      "messages": [
+        {
+          "from": "rafael-linden",
+          "body": "Hi Sam,\n\nAbout the invoice for the first stage: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nRafael"
+        },
+        {
+          "from": "owner",
+          "hours_after": 4,
+          "body": "Thanks Rafael, I'll check the invoice for the first stage today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "t39",
+      "subject": "Photo shoot on Thursday",
+      "days_ago": 24,
+      "messages": [
+        {
+          "from": "boris-pinehurst",
+          "body": "Hi Sam,\n\nAbout the photo shoot on thursday: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nBoris"
+        }
+      ]
+    },
+    {
+      "id": "t40",
+      "subject": "Menu proof",
+      "days_ago": 4,
+      "messages": [
+        {
+          "from": "boris-pinehurst",
+          "body": "Hi Sam,\n\nAbout the menu proof: the client side is ready on our end. Could you look at the booking details and the invoice before Friday?\n\nBoris"
+        },
+        {
+          "from": "owner",
+          "hours_after": 6,
+          "body": "Thanks Boris, I'll check the menu proof today and send the invoice tomorrow."
+        }
+      ]
+    },
+    {
+      "id": "b01",
+      "subject": "Your booking report for the week",
+      "days_ago": 1,
+      "messages": [
+        {
+          "from": "harbour-notifications",
+          "body": "Your booking report for the week. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b02",
+      "subject": "New paper samples this month",
+      "days_ago": 6,
+      "messages": [
+        {
+          "from": "lumen-newsletter",
+          "body": "New paper samples this month. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b03",
+      "subject": "A payment was received",
+      "days_ago": 11,
+      "messages": [
+        {
+          "from": "bank-alerts",
+          "body": "A payment was received. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b04",
+      "subject": "Your parcel is on its way",
+      "days_ago": 16,
+      "messages": [
+        {
+          "from": "parcel-robot",
+          "body": "Your parcel is on its way. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b05",
+      "subject": "This week's small business news",
+      "days_ago": 21,
+      "messages": [
+        {
+          "from": "digest-weekly",
+          "body": "This week's small business news. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b06",
+      "subject": "Your booking report for the week",
+      "days_ago": 1,
+      "messages": [
+        {
+          "from": "harbour-notifications",
+          "body": "Your booking report for the week. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b07",
+      "subject": "New paper samples this month",
+      "days_ago": 6,
+      "messages": [
+        {
+          "from": "lumen-newsletter",
+          "body": "New paper samples this month. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b08",
+      "subject": "A payment was received",
+      "days_ago": 11,
+      "messages": [
+        {
+          "from": "bank-alerts",
+          "body": "A payment was received. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b09",
+      "subject": "Your parcel is on its way",
+      "days_ago": 16,
+      "messages": [
+        {
+          "from": "parcel-robot",
+          "body": "Your parcel is on its way. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b10",
+      "subject": "This week's small business news",
+      "days_ago": 21,
+      "messages": [
+        {
+          "from": "digest-weekly",
+          "body": "This week's small business news. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b11",
+      "subject": "Your booking report for the week",
+      "days_ago": 1,
+      "messages": [
+        {
+          "from": "harbour-notifications",
+          "body": "Your booking report for the week. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b12",
+      "subject": "New paper samples this month",
+      "days_ago": 6,
+      "messages": [
+        {
+          "from": "lumen-newsletter",
+          "body": "New paper samples this month. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b13",
+      "subject": "A payment was received",
+      "days_ago": 11,
+      "messages": [
+        {
+          "from": "bank-alerts",
+          "body": "A payment was received. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b14",
+      "subject": "Your parcel is on its way",
+      "days_ago": 16,
+      "messages": [
+        {
+          "from": "parcel-robot",
+          "body": "Your parcel is on its way. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "b15",
+      "subject": "This week's small business news",
+      "days_ago": 21,
+      "messages": [
+        {
+          "from": "digest-weekly",
+          "body": "This week's small business news. This is an automated message about your account and bookings; do not reply."
+        }
+      ]
+    },
+    {
+      "id": "c01",
+      "subject": "Partnership enquiry",
+      "days_ago": 2,
+      "messages": [
+        {
+          "from": "cold-1",
+          "body": "Hello, we would like to offer a partnership on booking and invoice software for your clients."
+        }
+      ]
+    },
+    {
+      "id": "c02",
+      "subject": "Partnership enquiry",
+      "days_ago": 5,
+      "messages": [
+        {
+          "from": "cold-2",
+          "body": "Hello, we would like to offer a partnership on booking and invoice software for your clients."
+        }
+      ]
+    },
+    {
+      "id": "c03",
+      "subject": "Partnership enquiry",
+      "days_ago": 8,
+      "messages": [
+        {
+          "from": "cold-3",
+          "body": "Hello, we would like to offer a partnership on booking and invoice software for your clients."
+        }
+      ]
+    },
+    {
+      "id": "c04",
+      "subject": "Partnership enquiry",
+      "days_ago": 11,
+      "messages": [
+        {
+          "from": "cold-4",
+          "body": "Hello, we would like to offer a partnership on booking and invoice software for your clients."
+        }
+      ]
+    },
+    {
+      "id": "c05",
+      "subject": "Partnership enquiry",
+      "days_ago": 14,
+      "messages": [
+        {
+          "from": "cold-5",
+          "body": "Hello, we would like to offer a partnership on booking and invoice software for your clients."
+        }
+      ]
+    }
+  ]
+}

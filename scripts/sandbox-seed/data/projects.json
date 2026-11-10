@@ -1,0 +1,504 @@
+{
+  "projects": [
+    {
+      "key": "HRB",
+      "name": "Harbour",
+      "type": "client",
+      "organization": "harbour"
+    },
+    {
+      "key": "ORC",
+      "name": "Orchard Lane",
+      "type": "client",
+      "organization": "orchard"
+    },
+    {
+      "key": "OPS",
+      "name": "Studio operations",
+      "type": "work"
+    },
+    {
+      "key": "HOME",
+      "name": "Home",
+      "type": "personal"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "hrb-01",
+      "project": "HRB",
+      "title": "Send the booking page draft to Lena",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "marco-sample",
+      "type": "feature"
+    },
+    {
+      "id": "hrb-02",
+      "project": "HRB",
+      "title": "Check the payment provider's test keys",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "ines-testova"
+    },
+    {
+      "id": "hrb-03",
+      "project": "HRB",
+      "title": "Plan the weekly digest",
+      "status": "todo",
+      "priority": "low"
+    },
+    {
+      "id": "hrb-04",
+      "project": "HRB",
+      "title": "Add room photos to the gallery",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "vera-fictus",
+      "due_in_days": 1,
+      "type": "bug"
+    },
+    {
+      "id": "hrb-05",
+      "project": "HRB",
+      "title": "Write the cancellation policy page",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "oskar-mockridge"
+    },
+    {
+      "id": "hrb-06",
+      "project": "HRB",
+      "title": "Set up the booking confirmation mail",
+      "status": "todo",
+      "priority": "medium",
+      "type": "feature"
+    },
+    {
+      "id": "hrb-07",
+      "project": "HRB",
+      "title": "Test the booking form on a phone",
+      "status": "todo",
+      "assignee": "felix-specimen"
+    },
+    {
+      "id": "hrb-08",
+      "project": "HRB",
+      "title": "Ask Lena for the spring prices",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "alba-pretendo",
+      "due_in_days": 5
+    },
+    {
+      "id": "hrb-09",
+      "project": "HRB",
+      "title": "Fix the map on the contact page",
+      "status": "todo",
+      "priority": "critical"
+    },
+    {
+      "id": "hrb-10",
+      "project": "HRB",
+      "title": "Translate the booking page to Spanish",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "mira-notreal"
+    },
+    {
+      "id": "hrb-11",
+      "project": "HRB",
+      "title": "Move the domain to the new host",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "hugo-imaginov",
+      "type": "feature"
+    },
+    {
+      "id": "hrb-12",
+      "project": "HRB",
+      "title": "Review the analytics consent banner",
+      "status": "in_progress",
+      "priority": "low",
+      "due_in_days": 0
+    },
+    {
+      "id": "hrb-13",
+      "project": "HRB",
+      "title": "Prepare the launch checklist",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "marco-sample"
+    },
+    {
+      "id": "hrb-14",
+      "project": "HRB",
+      "title": "Agree the support hours with Harbour",
+      "status": "dismissed",
+      "priority": "low",
+      "assignee": "ines-testova"
+    },
+    {
+      "id": "hrb-15",
+      "project": "HRB",
+      "title": "Draft the invoice for the first stage",
+      "status": "open",
+      "priority": "medium"
+    },
+    {
+      "id": "hrb-16",
+      "project": "HRB",
+      "title": "Load the room list into the booking tool",
+      "status": "todo",
+      "assignee": "vera-fictus",
+      "due_in_days": 4,
+      "type": "feature"
+    },
+    {
+      "id": "hrb-17",
+      "project": "HRB",
+      "title": "Check the page speed on slow mobile",
+      "status": "done",
+      "priority": "medium",
+      "assignee": "oskar-mockridge"
+    },
+    {
+      "id": "orc-01",
+      "project": "ORC",
+      "title": "Photograph the new sourdough range",
+      "status": "todo",
+      "priority": "critical",
+      "type": "feature"
+    },
+    {
+      "id": "orc-02",
+      "project": "ORC",
+      "title": "Update the opening hours for winter",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "felix-specimen"
+    },
+    {
+      "id": "orc-03",
+      "project": "ORC",
+      "title": "Design the gift voucher",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "alba-pretendo",
+      "due_in_days": -1
+    },
+    {
+      "id": "orc-04",
+      "project": "ORC",
+      "title": "Set up online preorders",
+      "status": "todo",
+      "priority": "low",
+      "type": "bug"
+    },
+    {
+      "id": "orc-05",
+      "project": "ORC",
+      "title": "Print the loyalty cards",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "mira-notreal"
+    },
+    {
+      "id": "orc-06",
+      "project": "ORC",
+      "title": "Write the allergen page",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "hugo-imaginov",
+      "type": "feature"
+    },
+    {
+      "id": "orc-07",
+      "project": "ORC",
+      "title": "Send Marco the menu proof",
+      "status": "todo",
+      "priority": "medium",
+      "due_in_days": 3
+    },
+    {
+      "id": "orc-08",
+      "project": "ORC",
+      "title": "Order the shop window sticker",
+      "status": "todo",
+      "assignee": "marco-sample"
+    },
+    {
+      "id": "orc-09",
+      "project": "ORC",
+      "title": "Plan the Christmas order form",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "ines-testova"
+    },
+    {
+      "id": "orc-10",
+      "project": "ORC",
+      "title": "Collect reviews for the home page",
+      "status": "todo",
+      "priority": "critical"
+    },
+    {
+      "id": "orc-11",
+      "project": "ORC",
+      "title": "Fix the broken link in the footer",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "vera-fictus",
+      "due_in_days": -2,
+      "type": "feature"
+    },
+    {
+      "id": "orc-12",
+      "project": "ORC",
+      "title": "Make the price list printable",
+      "status": "open",
+      "priority": "high",
+      "assignee": "oskar-mockridge"
+    },
+    {
+      "id": "orc-13",
+      "project": "ORC",
+      "title": "Agree the delivery radius",
+      "status": "todo",
+      "priority": "low"
+    },
+    {
+      "id": "orc-14",
+      "project": "ORC",
+      "title": "Check the bakery's Google listing",
+      "status": "in_progress",
+      "priority": "high",
+      "assignee": "felix-specimen"
+    },
+    {
+      "id": "ops-01",
+      "project": "OPS",
+      "title": "Renew the accounting software",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "alba-pretendo",
+      "due_in_days": 2
+    },
+    {
+      "id": "ops-02",
+      "project": "OPS",
+      "title": "File the quarterly VAT return",
+      "status": "todo",
+      "priority": "medium"
+    },
+    {
+      "id": "ops-03",
+      "project": "OPS",
+      "title": "Back up the project folders",
+      "status": "in_progress",
+      "assignee": "mira-notreal"
+    },
+    {
+      "id": "ops-04",
+      "project": "OPS",
+      "title": "Update the contract template",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "hugo-imaginov",
+      "type": "bug"
+    },
+    {
+      "id": "ops-05",
+      "project": "OPS",
+      "title": "Chase the overdue Bluefin invoice",
+      "status": "dismissed",
+      "priority": "critical",
+      "due_in_days": -3
+    },
+    {
+      "id": "ops-06",
+      "project": "OPS",
+      "title": "Review the hosting bills",
+      "status": "open",
+      "priority": "medium",
+      "assignee": "marco-sample"
+    },
+    {
+      "id": "ops-07",
+      "project": "OPS",
+      "title": "Archive last year's mail",
+      "status": "todo",
+      "priority": "high",
+      "assignee": "ines-testova"
+    },
+    {
+      "id": "ops-08",
+      "project": "OPS",
+      "title": "Write the onboarding checklist",
+      "status": "done",
+      "priority": "low"
+    },
+    {
+      "id": "ops-09",
+      "project": "OPS",
+      "title": "Replace the office printer toner",
+      "status": "open",
+      "priority": "high",
+      "assignee": "vera-fictus",
+      "due_in_days": 1
+    },
+    {
+      "id": "ops-10",
+      "project": "OPS",
+      "title": "Book the team planning day",
+      "status": "todo",
+      "priority": "low",
+      "assignee": "oskar-mockridge"
+    },
+    {
+      "id": "ops-11",
+      "project": "OPS",
+      "title": "Update the portfolio page",
+      "status": "in_progress",
+      "priority": "medium",
+      "type": "bug"
+    },
+    {
+      "id": "ops-12",
+      "project": "OPS",
+      "title": "Clean up the shared drive",
+      "status": "todo",
+      "assignee": "felix-specimen"
+    },
+    {
+      "id": "ops-13",
+      "project": "OPS",
+      "title": "Check the domain renewals",
+      "status": "todo",
+      "priority": "medium",
+      "assignee": "alba-pretendo",
+      "due_in_days": 5
+    },
+    {
+      "id": "ops-14",
+      "project": "OPS",
+      "title": "Set the holiday auto-reply",
+      "status": "in_progress",
+      "priority": "critical"
+    },
+    {
+      "id": "home-01",
+      "project": "HOME",
+      "title": "Book the boiler service",
+      "status": "todo",
+      "priority": "medium"
+    },
+    {
+      "id": "home-02",
+      "project": "HOME",
+      "title": "Renew the car insurance",
+      "status": "dismissed",
+      "priority": "high"
+    },
+    {
+      "id": "home-03",
+      "project": "HOME",
+      "title": "Pay the school trip",
+      "status": "open",
+      "priority": "low",
+      "due_in_days": 0
+    },
+    {
+      "id": "home-04",
+      "project": "HOME",
+      "title": "Return the hired ladder",
+      "status": "todo",
+      "priority": "high",
+      "type": "bug"
+    },
+    {
+      "id": "home-05",
+      "project": "HOME",
+      "title": "Order new running shoes",
+      "status": "done",
+      "priority": "low"
+    },
+    {
+      "id": "home-06",
+      "project": "HOME",
+      "title": "Call the bank about the card",
+      "status": "open",
+      "priority": "medium"
+    },
+    {
+      "id": "home-07",
+      "project": "HOME",
+      "title": "Plan the weekend in the mountains",
+      "status": "todo",
+      "due_in_days": 4
+    },
+    {
+      "id": "home-08",
+      "project": "HOME",
+      "title": "Fix the bike's back brake",
+      "status": "in_progress",
+      "priority": "medium"
+    },
+    {
+      "id": "home-09",
+      "project": "HOME",
+      "title": "Buy a birthday present for Nadia",
+      "status": "todo",
+      "priority": "critical"
+    },
+    {
+      "id": "home-10",
+      "project": "HOME",
+      "title": "Sort the photos from summer",
+      "status": "todo",
+      "priority": "medium"
+    },
+    {
+      "id": "home-11",
+      "project": "HOME",
+      "title": "Cancel the unused gym plan",
+      "status": "in_progress",
+      "priority": "high",
+      "due_in_days": -1,
+      "type": "bug"
+    },
+    {
+      "id": "home-12",
+      "project": "HOME",
+      "title": "Water the neighbour's plants",
+      "status": "todo",
+      "priority": "low"
+    }
+  ],
+  "chat_tasks": [
+    {
+      "id": "sms-task-01",
+      "message": "sms-01-a",
+      "type": "request",
+      "title": "Answer Lena: the room photos for the booking page are ready"
+    },
+    {
+      "id": "sms-task-03",
+      "message": "sms-03-a",
+      "type": "request",
+      "title": "Answer Vera: the sourdough photos came out well, see the shared folder"
+    },
+    {
+      "id": "sms-task-05",
+      "message": "sms-05-a",
+      "type": "request",
+      "title": "Answer Alba: the printer needs the final file by Thursday"
+    },
+    {
+      "id": "sms-task-07",
+      "message": "sms-07-a",
+      "type": "request",
+      "title": "Answer Petra: we got two bookings through the test page!"
+    }
+  ]
+}

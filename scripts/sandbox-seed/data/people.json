@@ -1,0 +1,534 @@
+{
+  "people": [
+    {
+      "id": "lena-example",
+      "name": "Lena Example",
+      "email": "lena.example@harbour.example.org",
+      "phone": "+447700900100",
+      "organization": "harbour",
+      "position": "Owner"
+    },
+    {
+      "id": "marco-sample",
+      "name": "Marco Sample",
+      "email": "marco.sample@orchard.example.org",
+      "organization": "orchard",
+      "position": "Office manager"
+    },
+    {
+      "id": "ines-testova",
+      "name": "Ines Testova",
+      "phone": "+447700900101",
+      "organization": "northwind",
+      "position": "Designer"
+    },
+    {
+      "id": "tomas-placeholder",
+      "name": "Tomas Placeholder",
+      "email": "tomas.placeholder@bluefin.example.org",
+      "organization": "bluefin",
+      "position": "Accountant"
+    },
+    {
+      "id": "vera-fictus",
+      "name": "Vera Fictus",
+      "email": "vera.fictus@tallow.example.org",
+      "phone": "+447700900102",
+      "organization": "tallow",
+      "position": "Sales lead"
+    },
+    {
+      "id": "oskar-mockridge",
+      "name": "Oskar Mockridge",
+      "organization": "granite",
+      "position": "Developer"
+    },
+    {
+      "id": "nadia-demoran",
+      "name": "Nadia Demoran",
+      "email": "nadia.demoran@lumen.example.org",
+      "phone": "+447700900103",
+      "organization": "lumen",
+      "position": "Owner"
+    },
+    {
+      "id": "felix-specimen",
+      "name": "Felix Specimen",
+      "email": "felix.specimen@saffron.example.org",
+      "organization": "saffron",
+      "position": "Office manager"
+    },
+    {
+      "id": "alba-pretendo",
+      "name": "Alba Pretendo",
+      "phone": "+447700900104",
+      "organization": "kestrel",
+      "position": "Designer"
+    },
+    {
+      "id": "ruben-dummett",
+      "name": "Ruben Dummett",
+      "email": "ruben.dummett@marigold.example.org",
+      "organization": "marigold",
+      "position": "Accountant"
+    },
+    {
+      "id": "mira-notreal",
+      "name": "Mira Notreal",
+      "email": "mira.notreal@harbour.example.org",
+      "phone": "+447700900105",
+      "organization": "harbour",
+      "position": "Sales lead"
+    },
+    {
+      "id": "hugo-imaginov",
+      "name": "Hugo Imaginov",
+      "organization": "orchard",
+      "position": "Developer"
+    },
+    {
+      "id": "petra-stubbins",
+      "name": "Petra Stubbins",
+      "email": "petra.stubbins@northwind.example.org",
+      "phone": "+447700900106",
+      "organization": "northwind",
+      "position": "Owner"
+    },
+    {
+      "id": "lucas-fakely",
+      "name": "Lucas Fakely",
+      "email": "lucas.fakely@bluefin.example.org",
+      "organization": "bluefin",
+      "position": "Office manager"
+    },
+    {
+      "id": "zoe-proxima",
+      "name": "Zoe Proxima",
+      "phone": "+447700900107",
+      "organization": "tallow",
+      "position": "Designer"
+    },
+    {
+      "id": "emil-hypothe",
+      "name": "Emil Hypothe",
+      "email": "emil.hypothe@granite.example.org",
+      "organization": "granite",
+      "position": "Accountant"
+    },
+    {
+      "id": "dina-modelle",
+      "name": "Dina Modelle",
+      "email": "dina.modelle@lumen.example.org",
+      "phone": "+447700900108",
+      "organization": "lumen",
+      "position": "Sales lead"
+    },
+    {
+      "id": "pablo-templar",
+      "name": "Pablo Templar",
+      "organization": "saffron",
+      "position": "Developer"
+    },
+    {
+      "id": "rosa-draftson",
+      "name": "Rosa Draftson",
+      "email": "rosa.draftson@kestrel.example.org",
+      "phone": "+447700900109",
+      "organization": "kestrel",
+      "position": "Owner"
+    },
+    {
+      "id": "ivo-sketchley",
+      "name": "Ivo Sketchley",
+      "email": "ivo.sketchley@marigold.example.org",
+      "organization": "marigold",
+      "position": "Office manager"
+    },
+    {
+      "id": "clara-outlina",
+      "name": "Clara Outlina",
+      "phone": "+447700900110",
+      "organization": "harbour",
+      "position": "Designer"
+    },
+    {
+      "id": "bruno-prototyp",
+      "name": "Bruno Prototyp",
+      "email": "bruno.prototyp@orchard.example.org",
+      "organization": "orchard",
+      "position": "Accountant"
+    },
+    {
+      "id": "sofia-quillfeather",
+      "name": "Sofia Quillfeather",
+      "email": "sofia.quillfeather@northwind.example.org",
+      "phone": "+447700900111",
+      "organization": "northwind",
+      "position": "Sales lead"
+    },
+    {
+      "id": "anton-inkwell",
+      "name": "Anton Inkwell",
+      "organization": "bluefin",
+      "position": "Developer"
+    },
+    {
+      "id": "lidia-papermill",
+      "name": "Lidia Papermill",
+      "email": "lidia.papermill@tallow.example.org",
+      "phone": "+447700900112",
+      "organization": "tallow",
+      "position": "Owner"
+    },
+    {
+      "id": "kai-brightwater",
+      "name": "Kai Brightwater",
+      "email": "kai.brightwater@granite.example.org",
+      "organization": "granite",
+      "position": "Office manager"
+    },
+    {
+      "id": "elsa-stonebrook",
+      "name": "Elsa Stonebrook",
+      "phone": "+447700900113",
+      "organization": "lumen",
+      "position": "Designer"
+    },
+    {
+      "id": "matteo-fernhill",
+      "name": "Matteo Fernhill",
+      "email": "matteo.fernhill@saffron.example.org",
+      "organization": "saffron",
+      "position": "Accountant"
+    },
+    {
+      "id": "yana-ashgrove",
+      "name": "Yana Ashgrove",
+      "email": "yana.ashgrove@kestrel.example.org",
+      "phone": "+447700900114",
+      "organization": "kestrel",
+      "position": "Sales lead"
+    },
+    {
+      "id": "gustavo-willowmere",
+      "name": "Gustavo Willowmere",
+      "organization": "marigold",
+      "position": "Developer"
+    },
+    {
+      "id": "irene-redcliff",
+      "name": "Irene Redcliff",
+      "email": "irene.redcliff@harbour.example.org",
+      "phone": "+447700900115",
+      "organization": "harbour",
+      "position": "Owner"
+    },
+    {
+      "id": "leon-thornbury",
+      "name": "Leon Thornbury",
+      "email": "leon.thornbury@orchard.example.org",
+      "organization": "orchard",
+      "position": "Office manager"
+    },
+    {
+      "id": "maya-marshwell",
+      "name": "Maya Marshwell",
+      "phone": "+447700900116",
+      "organization": "northwind",
+      "position": "Designer"
+    },
+    {
+      "id": "sergio-oakhurst",
+      "name": "Sergio Oakhurst",
+      "email": "sergio.oakhurst@bluefin.example.org",
+      "organization": "bluefin",
+      "position": "Accountant"
+    },
+    {
+      "id": "olga-elmstead",
+      "name": "Olga Elmstead",
+      "email": "olga.elmstead@tallow.example.org",
+      "phone": "+447700900117",
+      "organization": "tallow",
+      "position": "Sales lead"
+    },
+    {
+      "id": "nico-birchwood",
+      "name": "Nico Birchwood",
+      "organization": "granite",
+      "position": "Developer"
+    },
+    {
+      "id": "edda-hollowell",
+      "name": "Edda Hollowell",
+      "email": "edda.hollowell@lumen.example.org",
+      "phone": "+447700900118",
+      "organization": "lumen",
+      "position": "Owner"
+    },
+    {
+      "id": "rafael-linden",
+      "name": "Rafael Linden",
+      "email": "rafael.linden@saffron.example.org",
+      "organization": "saffron",
+      "position": "Office manager"
+    },
+    {
+      "id": "tilda-moorcroft",
+      "name": "Tilda Moorcroft",
+      "phone": "+447700900119",
+      "organization": "kestrel",
+      "position": "Designer"
+    },
+    {
+      "id": "boris-pinehurst",
+      "name": "Boris Pinehurst",
+      "email": "boris.pinehurst@marigold.example.org",
+      "organization": "marigold",
+      "position": "Accountant"
+    },
+    {
+      "id": "greta-larkspur",
+      "name": "Greta Larkspur",
+      "email": "greta.larkspur@harbour.example.org",
+      "phone": "+447700900120"
+    },
+    {
+      "id": "dario-wrenfield",
+      "name": "Dario Wrenfield"
+    },
+    {
+      "id": "nora-hawthorne",
+      "name": "Nora Hawthorne",
+      "email": "nora.hawthorne@northwind.example.org",
+      "phone": "+447700900121"
+    },
+    {
+      "id": "jonas-brambley",
+      "name": "Jonas Brambley",
+      "email": "jonas.brambley@bluefin.example.org"
+    },
+    {
+      "id": "vika-copperfield",
+      "name": "Vika Copperfield",
+      "phone": "+447700900122"
+    },
+    {
+      "id": "arturo-silvermoor",
+      "name": "Arturo Silvermoor",
+      "email": "arturo.silvermoor@granite.example.org"
+    },
+    {
+      "id": "selma-goldcrest",
+      "name": "Selma Goldcrest",
+      "email": "selma.goldcrest@lumen.example.org",
+      "phone": "+447700900123"
+    },
+    {
+      "id": "teo-ravensby",
+      "name": "Teo Ravensby"
+    },
+    {
+      "id": "ada-foxley",
+      "name": "Ada Foxley",
+      "email": "ada.foxley@kestrel.example.org",
+      "phone": "+447700900124"
+    },
+    {
+      "id": "milo-heathcote",
+      "name": "Milo Heathcote",
+      "email": "milo.heathcote@marigold.example.org"
+    },
+    {
+      "id": "lena-fakely",
+      "name": "Lena Fakely",
+      "phone": "+447700900125"
+    },
+    {
+      "id": "marco-proxima",
+      "name": "Marco Proxima",
+      "email": "marco.proxima@orchard.example.org"
+    },
+    {
+      "id": "ines-hypothe",
+      "name": "Ines Hypothe",
+      "email": "ines.hypothe@northwind.example.org",
+      "phone": "+447700900126"
+    },
+    {
+      "id": "tomas-modelle",
+      "name": "Tomas Modelle"
+    },
+    {
+      "id": "vera-templar",
+      "name": "Vera Templar",
+      "email": "vera.templar@tallow.example.org",
+      "phone": "+447700900127"
+    },
+    {
+      "id": "oskar-draftson",
+      "name": "Oskar Draftson",
+      "email": "oskar.draftson@granite.example.org"
+    },
+    {
+      "id": "nadia-sketchley",
+      "name": "Nadia Sketchley",
+      "phone": "+447700900128"
+    },
+    {
+      "id": "felix-outlina",
+      "name": "Felix Outlina",
+      "email": "felix.outlina@saffron.example.org"
+    },
+    {
+      "id": "alba-prototyp",
+      "name": "Alba Prototyp",
+      "email": "alba.prototyp@kestrel.example.org",
+      "phone": "+447700900129"
+    },
+    {
+      "id": "ruben-quillfeather",
+      "name": "Ruben Quillfeather"
+    },
+    {
+      "id": "mira-inkwell",
+      "name": "Mira Inkwell",
+      "email": "mira.inkwell@harbour.example.org",
+      "phone": "+447700900130"
+    },
+    {
+      "id": "hugo-papermill",
+      "name": "Hugo Papermill",
+      "email": "hugo.papermill@orchard.example.org"
+    },
+    {
+      "id": "petra-brightwater",
+      "name": "Petra Brightwater",
+      "phone": "+447700900131"
+    },
+    {
+      "id": "lucas-stonebrook",
+      "name": "Lucas Stonebrook",
+      "email": "lucas.stonebrook@bluefin.example.org"
+    },
+    {
+      "id": "lena-example-mobile",
+      "name": "Lena E.",
+      "phone": "+447700900132"
+    },
+    {
+      "id": "marco-sample-mobile",
+      "name": "Marco S.",
+      "phone": "+447700900133"
+    },
+    {
+      "id": "tomas-placeholder-mobile",
+      "name": "Tomas P.",
+      "phone": "+447700900134"
+    },
+    {
+      "id": "vera-fictus-mobile",
+      "name": "Vera F.",
+      "phone": "+447700900135"
+    },
+    {
+      "id": "nadia-demoran-mobile",
+      "name": "Nadia D.",
+      "phone": "+447700900136"
+    },
+    {
+      "id": "felix-specimen-mobile",
+      "name": "Felix S.",
+      "phone": "+447700900137"
+    },
+    {
+      "id": "ruben-dummett-mobile",
+      "name": "Ruben D.",
+      "phone": "+447700900138"
+    },
+    {
+      "id": "mira-notreal-mobile",
+      "name": "Mira N.",
+      "phone": "+447700900139"
+    },
+    {
+      "id": "petra-stubbins-mobile",
+      "name": "Petra S.",
+      "phone": "+447700900140"
+    },
+    {
+      "id": "lucas-fakely-mobile",
+      "name": "Lucas F.",
+      "phone": "+447700900141"
+    },
+    {
+      "id": "emil-hypothe-mobile",
+      "name": "Emil H.",
+      "phone": "+447700900142"
+    },
+    {
+      "id": "dina-modelle-mobile",
+      "name": "Dina M.",
+      "phone": "+447700900143"
+    }
+  ],
+  "automated": [
+    {
+      "id": "harbour-notifications",
+      "name": "Harbour Notifications",
+      "email": "noreply@harbour.example.org"
+    },
+    {
+      "id": "lumen-newsletter",
+      "name": "Lumen Print Newsletter",
+      "email": "newsletter@lumen.example.org"
+    },
+    {
+      "id": "bank-alerts",
+      "name": "Example Bank Alerts",
+      "email": "alerts@bank.example.org"
+    },
+    {
+      "id": "parcel-robot",
+      "name": "Parcel Tracking Robot",
+      "email": "no-reply@parcels.example.org"
+    },
+    {
+      "id": "calendar-mailer",
+      "name": "Calendar Mailer",
+      "email": "mailer@calendar.example.org"
+    },
+    {
+      "id": "digest-weekly",
+      "name": "Weekly Digest",
+      "email": "digest@news.example.org"
+    }
+  ],
+  "companies": [
+    {
+      "id": "northwind-info",
+      "name": "Northwind Supplies Ltd",
+      "email": "info@northwind.example.org"
+    },
+    {
+      "id": "granite-hello",
+      "name": "Granite Peak Climbing LLC",
+      "email": "hello@granite.example.org"
+    },
+    {
+      "id": "saffron-support",
+      "name": "Saffron Table Support",
+      "email": "support@saffron.example.org"
+    },
+    {
+      "id": "kestrel-shop",
+      "name": "Kestrel Bike Shop",
+      "email": "shop@kestrel.example.org"
+    },
+    {
+      "id": "bluefin-team",
+      "name": "Bluefin Dental Team",
+      "email": "team@bluefin.example.org"
+    }
+  ]
+}

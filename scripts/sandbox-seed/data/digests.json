@@ -1,0 +1,364 @@
+{
+  "digest": {
+    "name": "morning-digest",
+    "title": "Morning digest",
+    "at": "07:30"
+  },
+  "days": [
+    {
+      "days_ago": 5,
+      "report": {
+        "format": "wirecat.report/1",
+        "kind": "morning-digest",
+        "summary": "Two replies wait, and the Harbour launch slips by a week.",
+        "sections": [
+          {
+            "kind": "today",
+            "items": [
+              {
+                "type": "reply",
+                "who": "Lena Example",
+                "topic": "Harbour asked to move the launch",
+                "action": "Answer today",
+                "channel": "telegram",
+                "priority": "high"
+              },
+              {
+                "type": "task",
+                "topic": "Send the booking page draft to Lena",
+                "due": "17:00",
+                "channel": "task"
+              }
+            ]
+          },
+          {
+            "kind": "decisions",
+            "items": [
+              {
+                "type": "decision",
+                "topic": "Harbour wants the booking page live before the spring season",
+                "channel": "mail"
+              }
+            ]
+          },
+          {
+            "kind": "money",
+            "items": [
+              {
+                "type": "money",
+                "topic": "Invoice for the first stage",
+                "amount": {
+                  "value": 2400,
+                  "currency": "EUR",
+                  "direction": "in"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "meetings",
+            "items": [
+              {
+                "type": "meeting",
+                "topic": "Weekly call with Harbour",
+                "time": "11:00",
+                "channel": "meeting"
+              }
+            ]
+          }
+        ],
+        "tasks": {
+          "overdue": 0,
+          "today": 3,
+          "tomorrow": 2,
+          "new": 1
+        }
+      },
+      "text": "# Morning digest\n\nTwo replies wait, and the Harbour launch slips by a week.\n"
+    },
+    {
+      "days_ago": 4,
+      "report": {
+        "format": "wirecat.report/1",
+        "kind": "morning-digest",
+        "summary": "Orchard Lane approved the voucher; Bluefin's invoice is overdue.",
+        "sections": [
+          {
+            "kind": "today",
+            "items": [
+              {
+                "type": "reply",
+                "who": "Marco Sample",
+                "topic": "Voucher design approved",
+                "action": "Answer today",
+                "channel": "telegram",
+                "priority": "high"
+              },
+              {
+                "type": "task",
+                "topic": "Add room photos to the gallery",
+                "due": "17:00",
+                "channel": "task"
+              }
+            ]
+          },
+          {
+            "kind": "decisions",
+            "items": [
+              {
+                "type": "decision",
+                "topic": "Lena prefers calls before noon",
+                "channel": "mail"
+              }
+            ]
+          },
+          {
+            "kind": "money",
+            "items": [
+              {
+                "type": "money",
+                "topic": "Invoice for the first stage",
+                "amount": {
+                  "value": 2500,
+                  "currency": "EUR",
+                  "direction": "in"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "meetings",
+            "items": [
+              {
+                "type": "meeting",
+                "topic": "Weekly call with Harbour",
+                "time": "11:00",
+                "channel": "meeting"
+              }
+            ]
+          }
+        ],
+        "tasks": {
+          "overdue": 1,
+          "today": 3,
+          "tomorrow": 2,
+          "new": 2
+        }
+      },
+      "text": "# Morning digest\n\nOrchard Lane approved the voucher; Bluefin's invoice is overdue.\n"
+    },
+    {
+      "days_ago": 3,
+      "report": {
+        "format": "wirecat.report/1",
+        "kind": "morning-digest",
+        "summary": "A quiet day: one new lead from Granite Peak.",
+        "sections": [
+          {
+            "kind": "today",
+            "items": [
+              {
+                "type": "reply",
+                "who": "Ines Testova",
+                "topic": "New enquiry from Granite Peak",
+                "action": "Answer today",
+                "channel": "telegram",
+                "priority": "high"
+              },
+              {
+                "type": "task",
+                "topic": "Test the booking form on a phone",
+                "due": "17:00",
+                "channel": "task"
+              }
+            ]
+          },
+          {
+            "kind": "decisions",
+            "items": [
+              {
+                "type": "decision",
+                "topic": "The Harbour budget for the first stage is 4,800 EUR",
+                "channel": "mail"
+              }
+            ]
+          },
+          {
+            "kind": "money",
+            "items": [
+              {
+                "type": "money",
+                "topic": "Invoice for the first stage",
+                "amount": {
+                  "value": 2600,
+                  "currency": "EUR",
+                  "direction": "in"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "meetings",
+            "items": [
+              {
+                "type": "meeting",
+                "topic": "Weekly call with Harbour",
+                "time": "11:00",
+                "channel": "meeting"
+              }
+            ]
+          }
+        ],
+        "tasks": {
+          "overdue": 2,
+          "today": 3,
+          "tomorrow": 2,
+          "new": 3
+        }
+      },
+      "text": "# Morning digest\n\nA quiet day: one new lead from Granite Peak.\n"
+    },
+    {
+      "days_ago": 2,
+      "report": {
+        "format": "wirecat.report/1",
+        "kind": "morning-digest",
+        "summary": "Three tasks are due today, one is overdue.",
+        "sections": [
+          {
+            "kind": "today",
+            "items": [
+              {
+                "type": "reply",
+                "who": "Tomas Placeholder",
+                "topic": "Printer needs the final file",
+                "action": "Answer today",
+                "channel": "telegram",
+                "priority": "high"
+              },
+              {
+                "type": "task",
+                "topic": "Translate the booking page to Spanish",
+                "due": "17:00",
+                "channel": "task"
+              }
+            ]
+          },
+          {
+            "kind": "decisions",
+            "items": [
+              {
+                "type": "decision",
+                "topic": "Orchard Lane closes on Mondays from December",
+                "channel": "mail"
+              }
+            ]
+          },
+          {
+            "kind": "money",
+            "items": [
+              {
+                "type": "money",
+                "topic": "Invoice for the first stage",
+                "amount": {
+                  "value": 2700,
+                  "currency": "EUR",
+                  "direction": "in"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "meetings",
+            "items": [
+              {
+                "type": "meeting",
+                "topic": "Weekly call with Harbour",
+                "time": "11:00",
+                "channel": "meeting"
+              }
+            ]
+          }
+        ],
+        "tasks": {
+          "overdue": 0,
+          "today": 3,
+          "tomorrow": 2,
+          "new": 4
+        }
+      },
+      "text": "# Morning digest\n\nThree tasks are due today, one is overdue.\n"
+    },
+    {
+      "days_ago": 1,
+      "report": {
+        "format": "wirecat.report/1",
+        "kind": "morning-digest",
+        "summary": "Lena sent the room photos; the booking page can go to review.",
+        "sections": [
+          {
+            "kind": "today",
+            "items": [
+              {
+                "type": "reply",
+                "who": "Vera Fictus",
+                "topic": "Room photos received",
+                "action": "Answer today",
+                "channel": "telegram",
+                "priority": "high"
+              },
+              {
+                "type": "task",
+                "topic": "Prepare the launch checklist",
+                "due": "17:00",
+                "channel": "task"
+              }
+            ]
+          },
+          {
+            "kind": "decisions",
+            "items": [
+              {
+                "type": "decision",
+                "topic": "Marco promised the menu texts by Friday",
+                "channel": "mail"
+              }
+            ]
+          },
+          {
+            "kind": "money",
+            "items": [
+              {
+                "type": "money",
+                "topic": "Invoice for the first stage",
+                "amount": {
+                  "value": 2800,
+                  "currency": "EUR",
+                  "direction": "in"
+                }
+              }
+            ]
+          },
+          {
+            "kind": "meetings",
+            "items": [
+              {
+                "type": "meeting",
+                "topic": "Weekly call with Harbour",
+                "time": "11:00",
+                "channel": "meeting"
+              }
+            ]
+          }
+        ],
+        "tasks": {
+          "overdue": 1,
+          "today": 3,
+          "tomorrow": 2,
+          "new": 5
+        }
+      },
+      "text": "# Morning digest\n\nLena sent the room photos; the booking page can go to review.\n"
+    }
+  ]
+}

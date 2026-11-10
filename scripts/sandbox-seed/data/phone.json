@@ -1,0 +1,157 @@
+{
+  "account": "sandbox-phone",
+  "messages": [
+    {
+      "id": "sms-01-a",
+      "phone": "+447700900100",
+      "name": "Lena Example",
+      "direction": "in",
+      "body": "The room photos for the booking page are ready",
+      "days_ago": 9,
+      "time": "09:10",
+      "read": true
+    },
+    {
+      "id": "sms-01-b",
+      "phone": "+447700900100",
+      "name": "Lena Example",
+      "direction": "out",
+      "body": "Great, send them over when you can",
+      "days_ago": 9,
+      "time": "09:20"
+    },
+    {
+      "id": "sms-02-a",
+      "phone": "+447700900101",
+      "name": "Ines Testova",
+      "direction": "in",
+      "body": "Can we move Tuesday's call to 11?",
+      "days_ago": 8,
+      "time": "09:11",
+      "read": true
+    },
+    {
+      "id": "sms-02-b",
+      "phone": "+447700900101",
+      "name": "Ines Testova",
+      "direction": "out",
+      "body": "Yes, 11 works",
+      "days_ago": 8,
+      "time": "09:21"
+    },
+    {
+      "id": "sms-03-a",
+      "phone": "+447700900102",
+      "name": "Vera Fictus",
+      "direction": "in",
+      "body": "The sourdough photos came out well, see the shared folder",
+      "days_ago": 7,
+      "time": "09:12",
+      "read": true
+    },
+    {
+      "id": "sms-03-b",
+      "phone": "+447700900102",
+      "name": "Vera Fictus",
+      "direction": "out",
+      "body": "Lovely, I'll pick three for the home page",
+      "days_ago": 7,
+      "time": "09:22"
+    },
+    {
+      "id": "sms-04-a",
+      "phone": "+447700900103",
+      "name": "Nadia Demoran",
+      "direction": "in",
+      "body": "Is the invoice for the first stage ready?",
+      "days_ago": 6,
+      "time": "09:13",
+      "read": true
+    },
+    {
+      "id": "sms-04-b",
+      "phone": "+447700900103",
+      "name": "Nadia Demoran",
+      "direction": "out",
+      "body": "Sending it today",
+      "days_ago": 6,
+      "time": "09:23"
+    },
+    {
+      "id": "sms-05-a",
+      "phone": "+447700900104",
+      "name": "Alba Pretendo",
+      "direction": "in",
+      "body": "The printer needs the final file by Thursday",
+      "days_ago": 5,
+      "time": "09:14",
+      "read": true
+    },
+    {
+      "id": "sms-05-b",
+      "phone": "+447700900104",
+      "name": "Alba Pretendo",
+      "direction": "out",
+      "body": "Noted, Wednesday evening at the latest",
+      "days_ago": 5,
+      "time": "09:24"
+    },
+    {
+      "id": "sms-06-a",
+      "phone": "+447700900105",
+      "name": "Mira Notreal",
+      "direction": "in",
+      "body": "Could you check the voucher design once more?",
+      "days_ago": 4,
+      "time": "09:15",
+      "read": true
+    },
+    {
+      "id": "sms-06-b",
+      "phone": "+447700900105",
+      "name": "Mira Notreal",
+      "direction": "out",
+      "body": "Looks good, one typo in the date",
+      "days_ago": 4,
+      "time": "09:25"
+    },
+    {
+      "id": "sms-07-a",
+      "phone": "+447700900106",
+      "name": "Petra Stubbins",
+      "direction": "in",
+      "body": "We got two bookings through the test page!",
+      "days_ago": 3,
+      "time": "09:16",
+      "read": true
+    },
+    {
+      "id": "sms-07-b",
+      "phone": "+447700900106",
+      "name": "Petra Stubbins",
+      "direction": "out",
+      "body": "Those were mine, testing the payment flow",
+      "days_ago": 3,
+      "time": "09:26"
+    },
+    {
+      "id": "sms-08-a",
+      "phone": "+447700900107",
+      "name": "Zoe Proxima",
+      "direction": "in",
+      "body": "Delivery radius: 5 km is fine for us",
+      "days_ago": 2,
+      "time": "09:17",
+      "read": true
+    },
+    {
+      "id": "sms-08-b",
+      "phone": "+447700900107",
+      "name": "Zoe Proxima",
+      "direction": "out",
+      "body": "Then 5 km it is",
+      "days_ago": 2,
+      "time": "09:27"
+    }
+  ]
+}
