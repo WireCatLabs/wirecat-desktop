@@ -1,4 +1,5 @@
 // cspell:words hermes Новые Отклонено Descartadas
+import type { TaskFailure } from "@/domain/task-failure"
 import type { Label, State } from "@/domain/tasks"
 import { formatDate, formatList, formatNumber, type Lang, type Messages, plural } from "@/i18n"
 
@@ -59,8 +60,10 @@ type Words = {
   mail: string
   cell: (what: string, key: string) => string
   open: (key: string) => string
-  notSaved: (reason: string) => string
-  notMoved: (reason: string) => string
+  notSaved: string
+  notMoved: string
+  failure: Record<TaskFailure, string>
+  failureDetails: string
   changed: (key: string, who: string, what: string, at: string) => string
   changedUnknown: (key: string) => string
   someone: string
@@ -83,7 +86,9 @@ type Words = {
   save: string
   cancel: string
   saving: string
-  agentHint: string
+  agentField: string
+  agentTip: string
+  foundOnly: string
   agentNone: string
   waitsHeading: string
   nothingBlocks: string
@@ -124,7 +129,7 @@ type Words = {
   commentEmpty: string
   send: string
   sending: string
-  commentFailed: (reason: string) => string
+  commentFailed: string
   key: string
   kind: string
   kinds: Record<string, string>
@@ -202,13 +207,13 @@ const en: Words = {
   waitsFor: (keys) => `waits for ${formatList(keys, "en")}`,
   onIt: (agent) => `${agent} is on it`,
   forAgent: (agent) => `for ${agent}`,
-  fromMessages: "found in your messages; change it where it came from",
+  fromMessages: "Memo found this task in your messages.",
   foundTitle: {
-    question: "A question in a message",
-    request: "A request in a message",
-    promise: "A promise in a message",
-    mention: "A mention in a message",
-    other: "A task in a message",
+    question: "Untitled question",
+    request: "Untitled request",
+    promise: "Untitled promise",
+    mention: "Untitled mention",
+    other: "Untitled task",
   },
   priorityIs: (label) => `Priority: ${label}`,
   showMore: (left) => `Show more (${formatNumber(left, "en")})`,
@@ -219,8 +224,18 @@ const en: Words = {
   mail: "Mail",
   cell: (what, key) => `${what} of ${key}`,
   open: (key) => `Open ${key}`,
-  notSaved: (reason) => `The change was not saved: ${reason}. Nothing changed.`,
-  notMoved: (reason) => `Not moved: ${reason}. The card is back where it was.`,
+  notSaved: "Not saved.",
+  notMoved: "Not moved, the card is back.",
+  failure: {
+    account: "Memo could not tell which account the task belongs to. Read the tasks again, then retry.",
+    projectOnly:
+      "Memo found this task in your messages, and only project tasks have a status, priority, type, agent or project.",
+    busy: "Memo is busy, most likely with a sync. Try again in a minute.",
+    timeout: "Memo took too long to answer. Try again, and report it if it happens again.",
+    missing: "Memo is not installed. Install it on the Tools page.",
+    other: "Memo refused the change. The details say why.",
+  },
+  failureDetails: "Details",
   changed: (key, who, what, at) =>
     `${key} changed elsewhere: ${who} changed ${what} at ${at}. Your change was not saved; the task shows what it is now.`,
   changedUnknown: (key) => `${key} changed elsewhere. Your change was not saved; the task shows what it is now.`,
@@ -244,7 +259,11 @@ const en: Words = {
   save: "Save",
   cancel: "Cancel",
   saving: "Saving…",
-  agentHint: "An agent's name, such as hermes",
+  agentField: "AI agent",
+  agentTip:
+    "The AI agent that should take this task, besides the assignee, written as its name, such as hermes. That agent sees the task as its own.",
+  foundOnly:
+    "Memo found this task in your messages. Its title, notes, due date and assignee change here. Status, priority, type, agent and project belong to project tasks.",
   agentNone: "No agent",
   waitsHeading: "Waits for",
   nothingBlocks: "Nothing. It can start now.",
@@ -281,7 +300,7 @@ const en: Words = {
   readingTask: "Reading the task…",
   openFailed: (key, reason) => `Could not read ${key}: ${reason}.`,
   properties: "Properties",
-  projectHint: "Moving it gives it a new key; the old key still finds it.",
+  projectHint: "Moving it to another project gives it a new key. The old key still finds it.",
   movedWith: (n) => plural("en", n, { one: "Its subtask moved with it:", other: "Its # subtasks moved with it:" }),
   partOf: "Not moved: this task is part of",
   moveAlone: (parent, project) => `Move it to ${project} on its own (it leaves ${parent})`,
@@ -297,7 +316,7 @@ const en: Words = {
   commentEmpty: "Write a comment first, then send it.",
   send: "Comment",
   sending: "Sending…",
-  commentFailed: (reason) => `The comment was not added: ${reason}. Your text is still here.`,
+  commentFailed: "The comment was not added. Your text is still here.",
   key: "Key",
   kind: "Type",
   kinds: { bug: "Bug", feature: "Feature", chore: "Chore", task: "Task" },
@@ -369,13 +388,13 @@ const ru: Words = {
   waitsFor: (keys) => `ждёт ${formatList(keys, "ru")}`,
   onIt: (agent) => `${agent} работает над ней`,
   forAgent: (agent) => `для ${agent}`,
-  fromMessages: "найдена в ваших сообщениях; меняется там, откуда пришла",
+  fromMessages: "Memo нашел эту задачу в ваших сообщениях.",
   foundTitle: {
-    question: "Вопрос в сообщении",
-    request: "Просьба в сообщении",
-    promise: "Обещание в сообщении",
-    mention: "Упоминание в сообщении",
-    other: "Задача в сообщении",
+    question: "Вопрос без названия",
+    request: "Просьба без названия",
+    promise: "Обещание без названия",
+    mention: "Упоминание без названия",
+    other: "Задача без названия",
   },
   priorityIs: (label) => `Приоритет: ${label}`,
   showMore: (left) => `Показать ещё (${formatNumber(left, "ru")})`,
@@ -386,8 +405,18 @@ const ru: Words = {
   mail: "Почта",
   cell: (what, key) => `${what} задачи ${key}`,
   open: (key) => `Открыть ${key}`,
-  notSaved: (reason) => `Изменение не сохранено: ${reason}. Ничего не изменилось.`,
-  notMoved: (reason) => `Не перенесено: ${reason}. Карточка вернулась на место.`,
+  notSaved: "Не сохранено.",
+  notMoved: "Не перенесено, карточка на месте.",
+  failure: {
+    account: "Memo не понял, к какому аккаунту относится задача. Обновите список и попробуйте снова.",
+    projectOnly:
+      "Memo нашел эту задачу в ваших сообщениях. Статус, приоритет, тип, агент и проект есть только у задач проекта.",
+    busy: "Memo занят, скорее всего синхронизацией. Попробуйте через минуту.",
+    timeout: "Memo слишком долго не отвечал. Попробуйте еще раз, а если повторится, сообщите об ошибке.",
+    missing: "Memo не установлен. Установите его на странице Инструменты.",
+    other: "Memo не принял изменение. Причина в подробностях.",
+  },
+  failureDetails: "Подробнее",
   changed: (key, who, what, at) =>
     `${key} изменили в другом месте: ${who} — ${what}, ${at}. Ваше изменение не сохранено; задача показана такой, какая она сейчас.`,
   changedUnknown: (key) =>
@@ -418,7 +447,11 @@ const ru: Words = {
   save: "Сохранить",
   cancel: "Отмена",
   saving: "Сохраняю…",
-  agentHint: "Имя агента, например hermes",
+  agentField: "ИИ-агент",
+  agentTip:
+    "ИИ-агент, который должен взять задачу, помимо исполнителя. Пишется именем, например hermes. Этот агент видит задачу как свою.",
+  foundOnly:
+    "Memo нашел эту задачу в ваших сообщениях. Здесь меняются название, заметки, срок и исполнитель. Статус, приоритет, тип, агент и проект есть только у задач проекта.",
   agentNone: "Без агента",
   waitsHeading: "Ждёт",
   nothingBlocks: "Ничего. Можно начинать.",
@@ -455,7 +488,7 @@ const ru: Words = {
   readingTask: "Читаю задачу…",
   openFailed: (key, reason) => `Не удалось прочитать ${key}: ${reason}.`,
   properties: "Свойства",
-  projectHint: "При переносе у задачи будет новый ключ; по старому её тоже можно найти.",
+  projectHint: "При переносе в другой проект у задачи будет новый ключ. По старому ее тоже можно найти.",
   movedWith: (n) =>
     plural("ru", n, {
       one: "Вместе с ней перенесена # подзадача:",
@@ -463,7 +496,7 @@ const ru: Words = {
       many: "Вместе с ней перенесены # подзадач:",
       other: "Вместе с ней перенесены # подзадачи:",
     }),
-  partOf: "Не перенесено: эта задача — часть",
+  partOf: "Не перенесено: эта задача входит в",
   moveAlone: (parent, project) => `Перенести в ${project} отдельно (она выйдет из ${parent})`,
   someoneElse: "Кто-то другой…",
   findPerson: "Найти или добавить человека",
@@ -477,7 +510,7 @@ const ru: Words = {
   commentEmpty: "Сначала напишите комментарий, потом отправьте.",
   send: "Отправить",
   sending: "Отправка…",
-  commentFailed: (reason) => `Комментарий не добавлен: ${reason}. Ваш текст остался.`,
+  commentFailed: "Комментарий не добавлен. Ваш текст остался.",
   key: "Ключ",
   kind: "Тип",
   kinds: { bug: "Ошибка", feature: "Функция", chore: "Рутина", task: "Задача" },
@@ -550,13 +583,13 @@ const es: Words = {
   waitsFor: (keys) => `espera a ${formatList(keys, "es")}`,
   onIt: (agent) => `${agent} está en ello`,
   forAgent: (agent) => `para ${agent}`,
-  fromMessages: "encontrada en tus mensajes; se cambia donde surgió",
+  fromMessages: "Memo encontró esta tarea en tus mensajes.",
   foundTitle: {
-    question: "Una pregunta en un mensaje",
-    request: "Una petición en un mensaje",
-    promise: "Una promesa en un mensaje",
-    mention: "Una mención en un mensaje",
-    other: "Una tarea en un mensaje",
+    question: "Pregunta sin título",
+    request: "Petición sin título",
+    promise: "Promesa sin título",
+    mention: "Mención sin título",
+    other: "Tarea sin título",
   },
   priorityIs: (label) => `Prioridad: ${label}`,
   showMore: (left) => `Mostrar más (${formatNumber(left, "es")})`,
@@ -567,8 +600,18 @@ const es: Words = {
   mail: "Correo",
   cell: (what, key) => `${what} de ${key}`,
   open: (key) => `Abrir ${key}`,
-  notSaved: (reason) => `El cambio no se guardó: ${reason}. No cambió nada.`,
-  notMoved: (reason) => `No se movió: ${reason}. La tarjeta volvió a su sitio.`,
+  notSaved: "No se guardó.",
+  notMoved: "No se movió, la tarjeta volvió a su sitio.",
+  failure: {
+    account: "Memo no supo a qué cuenta pertenece la tarea. Vuelve a leer las tareas e inténtalo de nuevo.",
+    projectOnly:
+      "Memo encontró esta tarea en tus mensajes, y solo las tareas de un proyecto tienen estado, prioridad, tipo, agente o proyecto.",
+    busy: "Memo está ocupado, seguramente con una sincronización. Inténtalo dentro de un minuto.",
+    timeout: "Memo tardó demasiado en responder. Inténtalo de nuevo y, si se repite, avísanos.",
+    missing: "Memo no está instalado. Instálalo en la página Herramientas.",
+    other: "Memo rechazó el cambio. Los detalles dicen por qué.",
+  },
+  failureDetails: "Detalles",
   changed: (key, who, what, at) =>
     `${key} cambió en otro sitio: ${who} cambió ${what} a las ${at}. Tu cambio no se guardó; la tarea muestra cómo está ahora.`,
   changedUnknown: (key) => `${key} cambió en otro sitio. Tu cambio no se guardó; la tarea muestra cómo está ahora.`,
@@ -592,7 +635,11 @@ const es: Words = {
   save: "Guardar",
   cancel: "Cancelar",
   saving: "Guardando…",
-  agentHint: "Nombre de un agente, como hermes",
+  agentField: "Agente de IA",
+  agentTip:
+    "El agente de IA que debe tomar esta tarea, además del responsable, escrito por su nombre, como hermes. Ese agente la ve como suya.",
+  foundOnly:
+    "Memo encontró esta tarea en tus mensajes. Aquí cambian su título, notas, fecha límite y responsable. Estado, prioridad, tipo, agente y proyecto son de las tareas de un proyecto.",
   agentNone: "Sin agente",
   waitsHeading: "Espera a",
   nothingBlocks: "Nada. Se puede empezar ya.",
@@ -629,7 +676,7 @@ const es: Words = {
   readingTask: "Leyendo la tarea…",
   openFailed: (key, reason) => `No se pudo leer ${key}: ${reason}.`,
   properties: "Propiedades",
-  projectHint: "Al moverla recibe una clave nueva; la antigua también la encuentra.",
+  projectHint: "Al moverla a otro proyecto recibe una clave nueva. La antigua también la encuentra.",
   movedWith: (n) =>
     plural("es", n, { one: "Su subtarea se movió con ella:", other: "Sus # subtareas se movieron con ella:" }),
   partOf: "No se ha movido: esta tarea forma parte de",
@@ -646,7 +693,7 @@ const es: Words = {
   commentEmpty: "Escribe primero un comentario y luego envíalo.",
   send: "Comentar",
   sending: "Enviando…",
-  commentFailed: (reason) => `No se ha añadido el comentario: ${reason}. Tu texto sigue aquí.`,
+  commentFailed: "No se ha añadido el comentario. Tu texto sigue aquí.",
   key: "Clave",
   kind: "Tipo",
   kinds: { bug: "Error", feature: "Función", chore: "Mantenimiento", task: "Tarea" },

@@ -6,11 +6,11 @@ import { DateField } from "@/ui/Calendar"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
-import { ErrorNotice } from "@/ui/ErrorNotice"
+import { fieldFocus } from "@/ui/field"
 import { Select } from "@/ui/Select"
 import { dueDay, taskMessages } from "./messages"
 import { PersonFinder } from "./PersonFinder"
-import { personName } from "./parts"
+import { personName, TaskError } from "./parts"
 import { useTasks } from "./store"
 
 const ELSE = "else"
@@ -117,7 +117,8 @@ function NewTaskForm({ id }: { id: string }) {
           aria-invalid={missing === "title" || undefined}
           placeholder={m.newTitleHint}
           className={cx(
-            "selectable h-[2.4rem] min-w-[16rem] flex-1 rounded-[0.35rem] border bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand",
+            "selectable h-[2.4rem] min-w-[16rem] flex-1 rounded-[0.35rem] border bg-app px-[0.625rem] text-[0.95rem] text-ink placeholder:text-ink-dim",
+            fieldFocus,
             missing === "title" ? "border-bad" : "border-line-strong",
           )}
         />
@@ -176,7 +177,7 @@ function NewTaskForm({ id }: { id: string }) {
           {missing === "project" ? m.needProject : missing === "title" ? m.needTitle : ""}
         </p>
       </Collapse>
-      {failed && <ErrorNotice inline>{m.notSaved(failed)}</ErrorNotice>}
+      {failed && <TaskError lead={m.notSaved} raw={failed} />}
     </form>
   )
 }

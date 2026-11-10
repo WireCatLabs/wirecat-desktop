@@ -17,6 +17,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { fieldFocus } from "@/ui/field"
 import { Skeleton } from "@/ui/Skeleton"
 import { GroupCard, Profiles } from "./GroupCard"
 import { groupsMessages } from "./messages"
@@ -303,7 +304,8 @@ function NewGroup({ taken }: { taken: string[] }) {
           setProblem(null)
         }}
         className={cx(
-          "selectable h-[2.4rem] w-full rounded-[0.35rem] border bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand",
+          "selectable h-[2.4rem] w-full rounded-[0.35rem] border bg-app px-[0.625rem] text-[0.95rem] text-ink placeholder:text-ink-dim",
+          fieldFocus,
           problem ? "border-bad" : "border-line-strong",
         )}
       />

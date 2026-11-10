@@ -6,13 +6,22 @@ import type { Task } from "@/platform/task-schemas"
 import { Board, BoardColumn, cardClass, DragCopy, DropLine, useBoardDrag, useSlide } from "@/ui/Board"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Select } from "@/ui/Select"
 import { taskMessages } from "./messages"
 import { StaleLine } from "./Note"
-import { DueText, Markers, PriorityMark, personName, priorityLabel, SourceMark, StateLamp, taskTitle } from "./parts"
+import {
+  DueText,
+  Markers,
+  PriorityMark,
+  personName,
+  priorityLabel,
+  SourceMark,
+  StateLamp,
+  TaskError,
+  taskTitle,
+} from "./parts"
 import { ofSource, useSource } from "./source"
-import { useTasks } from "./store"
+import { moveSlot, useTasks } from "./store"
 
 /** Cards a column shows before "Show more"; each click shows as many again. */
 export const COLUMN_PAGE = 20
@@ -43,7 +52,8 @@ export function TaskBoard() {
     columns: STATES,
     cardsIn: column,
     columnOf: (key) => byKey.get(key)?.state,
-    canDrop: (key, to) => !fromMessages(byKey.get(key) ?? {}) || byKey.get(key)?.state === to,
+    // memo moves only project tasks on the board; a found task's card opens it instead.
+    canDrop: (key) => !fromMessages(byKey.get(key) ?? {}),
     onDrop: ({ key, to, before }) => {
       const keys = column(to).filter((k) => k !== key)
       // Dropped below the last card shown, it lands there, not after the cards "Show more" still hides.
@@ -85,6 +95,7 @@ export function TaskBoard() {
               target={drag?.to === s}
               empty={keys.length === 0 && !drag && !(held && held.to === s) ? m.emptyColumn : undefined}
               footer={closed(s) && showsClosedDefault ? m.last14 : undefined}
+              tiles
             >
               {visible.map((k) => {
                 const t = byKey.get(k)
@@ -96,8 +107,10 @@ export function TaskBoard() {
                       task={t}
                       ghost={drag?.key === k}
                       held={held?.key === k}
-                      onPointerDown={(e) => onPointerDown(e, k)}
-                      onKeyDown={(e) => onKeyDown(e, k)}
+                      onPointerDown={fromMessages(t) ? undefined : (e) => onPointerDown(e, k)}
+                      onKeyDown={(e) => {
+                        if (!fromMessages(t) || e.key === "Enter") onKeyDown(e, k)
+                      }}
                       onOpen={() => onClick(k)}
                     />
                   </li>
@@ -109,7 +122,7 @@ export function TaskBoard() {
                 </li>
               )}
               {left > 0 && (
-                <li className="px-[0.6rem] py-[0.5rem]">
+                <li className="px-[0.6rem] pb-[0.6rem]">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -140,13 +153,14 @@ function Card(props: {
   task: Task
   ghost: boolean
   held: boolean
-  onPointerDown: (e: ReactPointerEvent<HTMLElement>) => void
+  onPointerDown: ((e: ReactPointerEvent<HTMLElement>) => void) | undefined
   onKeyDown: (e: KeyboardEvent<HTMLElement>) => void
   onOpen: () => void
 }) {
   const { task, ghost, held } = props
   const m = useMessages(taskMessages)
-  const failed = useTasks((s) => s.failed[task.key])
+  const failed = useTasks((s) => s.failed[moveSlot(task.key)])
+  const movable = !fromMessages(task)
   return (
     // biome-ignore lint/a11y/useSemanticElements: a card holds a picker, so it cannot be a button itself
     <div
@@ -155,8 +169,8 @@ function Card(props: {
       data-card={task.key}
       data-opens={task.key}
       aria-haspopup="dialog"
-      aria-roledescription={m.draggable}
-      aria-describedby="tasks-drag-hint"
+      aria-roledescription={movable ? m.draggable : undefined}
+      aria-describedby={movable ? "tasks-drag-hint" : undefined}
       aria-pressed={held || undefined}
       aria-label={`${task.key} ${taskTitle(task, m)}`}
       onPointerDown={props.onPointerDown}
@@ -165,12 +179,12 @@ function Card(props: {
         if ((e.target as HTMLElement).closest("button,[role=combobox],[role=listbox]")) return
         props.onOpen()
       }}
-      className={cardClass(ghost, held)}
+      className={cardClass(ghost, held, movable, true)}
     >
       <CardBody task={task} />
       {failed && (
         <div className="px-[0.9rem] pb-[0.6rem]">
-          <ErrorNotice inline>{m.notMoved(failed)}</ErrorNotice>
+          <TaskError lead={m.notMoved} raw={failed} />
         </div>
       )}
       <div className="px-[0.9rem] empty:hidden [&:has(>*)]:pb-[0.6rem]">
@@ -188,10 +202,12 @@ function CardBody({ task }: { task: Task }) {
   const found = fromMessages(task)
   return (
     <div className="flex flex-col gap-[0.45rem] px-[0.9rem] py-[0.7rem]">
-      <GripVertical
-        className="absolute top-[0.85rem] left-[0.05rem] size-[0.85rem] text-ink-dim opacity-0 group-hover:opacity-100"
-        aria-hidden
-      />
+      {!found && (
+        <GripVertical
+          className="absolute top-[0.85rem] left-[0.05rem] size-[0.85rem] text-ink-dim opacity-0 group-hover:opacity-100"
+          aria-hidden
+        />
+      )}
       <p
         title={taskTitle(task, m)}
         className={cx(
@@ -217,21 +233,23 @@ function CardBody({ task }: { task: Task }) {
             assignee && <span className="min-w-0 truncate">{personName(assignee, people, m)}</span>
           )}
         </span>
-        <Select<State>
-          size="sm"
-          aria-label={m.moveTo(task.key)}
-          value={task.state}
-          disabled={busy}
-          onChange={(to) => {
-            const first = useTasks.getState().order.find((k) => {
-              const x = useTasks.getState().tasks.find((y) => y.key === k)
-              return x?.state === to && k !== task.key
-            })
-            void useTasks.getState().move(task.key, to, first ? { before: first } : {}, first ?? null)
-          }}
-          options={STATES.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
-          className="-mr-[0.3rem] w-8 shrink-0 border-transparent! bg-transparent! px-1! hover:bg-app-3! [&>span]:hidden [&>svg]:block"
-        />
+        {!found && (
+          <Select<State>
+            size="sm"
+            aria-label={m.moveTo(task.key)}
+            value={task.state}
+            disabled={busy}
+            onChange={(to) => {
+              const first = useTasks.getState().order.find((k) => {
+                const x = useTasks.getState().tasks.find((y) => y.key === k)
+                return x?.state === to && k !== task.key
+              })
+              void useTasks.getState().move(task.key, to, first ? { before: first } : {}, first ?? null)
+            }}
+            options={STATES.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
+            className="-mr-[0.3rem] w-8 shrink-0 border-transparent! bg-transparent! px-1! hover:bg-app-3! [&>span]:hidden [&>svg]:block"
+          />
+        )}
       </div>
     </div>
   )

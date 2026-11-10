@@ -14,6 +14,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { fieldFocus } from "@/ui/field"
 import { Monogram } from "@/ui/Logo"
 import { Skeleton } from "@/ui/Skeleton"
 import { Tab as TabButton, TabList, TabPanel, Tabs } from "@/ui/Tabs"
@@ -377,7 +378,7 @@ function Panel({ toolName, dirty }: { toolName: string; dirty: boolean }) {
                 value={st.query}
                 onChange={(e) => st.setQuery(e.target.value)}
                 placeholder={m.search}
-                className="h-8 w-[15rem] rounded-[0.35rem] border border-line-strong bg-app pr-2.5 pl-8 text-[0.95rem] text-ink placeholder:text-ink-dim focus-visible:border-brand"
+                className={`h-8 w-[15rem] rounded-[0.35rem] border border-line-strong bg-app pr-2.5 pl-8 text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
               />
             </label>
           ) : (

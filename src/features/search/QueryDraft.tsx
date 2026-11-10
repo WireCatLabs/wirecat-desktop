@@ -7,6 +7,7 @@ import { useNav } from "@/shared/nav"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { fieldFocus } from "@/ui/field"
 import { focusInPlace } from "@/ui/motion"
 import { StableText } from "@/ui/Skeleton"
 import { searchMessages } from "./messages"
@@ -94,7 +95,7 @@ export function QueryDraft({ tool, example = null, onNeedTool, onWritten }: Prop
           autoComplete="off"
           aria-invalid={state.kind === "empty"}
           aria-describedby={`${id}-line`}
-          className="h-[2.8rem] min-w-0 flex-1 basis-[26rem] rounded-[0.4rem] border border-line-strong bg-app px-[0.9rem] text-[1.02rem] text-ink placeholder:text-ink-dim focus:border-brand aria-[invalid=true]:border-bad"
+          className={`h-[2.8rem] min-w-0 flex-1 basis-[26rem] rounded-[0.4rem] border border-line-strong bg-app px-[0.9rem] text-[1.02rem] text-ink placeholder:text-ink-dim aria-[invalid=true]:border-bad ${fieldFocus}`}
         />
         <Button
           type="submit"

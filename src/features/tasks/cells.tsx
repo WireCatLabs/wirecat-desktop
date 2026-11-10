@@ -1,13 +1,14 @@
-import { useEffect, useRef, useState } from "react"
+import { type ReactNode, useEffect, useRef, useState } from "react"
 import { addDays, fromMessages, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import type { Task, TaskKind } from "@/platform/task-schemas"
 import { Calendar, CalendarFooter, DatePopover } from "@/ui/Calendar"
 import { cx } from "@/ui/cx"
+import { fieldFocus } from "@/ui/field"
 import { Select } from "@/ui/Select"
 import { dueDay, taskMessages } from "./messages"
 import { PersonFinder } from "./PersonFinder"
-import { DueText, personName, priorityLabel, StateLamp } from "./parts"
+import { DueText, personName, priorityLabel, SourceMark, StateLamp } from "./parts"
 import { useTasks } from "./store"
 
 // A cell reads as text and takes a wash on hover; it is a Select underneath, so keys and screen readers work as there.
@@ -35,15 +36,33 @@ const BAR: Record<string, [number, string]> = {
   none: [0, "text-ink-dim/50"],
 }
 
+/**
+ * A found task's value that memo keeps for project tasks only: text, not a control that refuses every click. The
+ * dialog says why beside it.
+ */
+function Fixed({ children }: { children: ReactNode }) {
+  return (
+    <span className="flex min-h-[1.9rem] min-w-0 items-center gap-[0.45rem] text-[0.9rem] text-ink-soft">
+      {children}
+    </span>
+  )
+}
+
 export function StatusCell({ task, label }: { task: Task; label?: string }) {
   const m = useMessages(taskMessages)
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
+  if (fromMessages(task))
+    return (
+      <Fixed>
+        <StateLamp state={task.state} /> {m.states[task.state]}
+      </Fixed>
+    )
   return (
     <Select
       size="sm"
       aria-label={label ?? m.cell(m.status, task.key)}
       value={task.state}
-      disabled={busy || fromMessages(task)}
+      disabled={busy}
       onChange={(state: State) => void useTasks.getState().update(task.key, { state })}
       options={STATES.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
       className={BARE}
@@ -55,6 +74,7 @@ export function PriorityCell({ task }: { task: Task }) {
   const m = useMessages(taskMessages)
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const current = priorityLabel(task) ?? "none"
+  if (fromMessages(task)) return <Fixed>{current === "none" ? "—" : m.labels[current]}</Fixed>
   // The closed cell shows the bars alone, and nothing for no priority; the words stay in the list and the tooltip.
   return (
     <span className="flex" title={current === "none" ? undefined : m.priorityIs(m.labels[current])}>
@@ -62,7 +82,7 @@ export function PriorityCell({ task }: { task: Task }) {
         size="sm"
         aria-label={m.cell(m.priority, task.key)}
         value={current}
-        disabled={busy || fromMessages(task)}
+        disabled={busy}
         onChange={(priority) => void useTasks.getState().update(task.key, { priority })}
         options={[...LABELS, "none" as const].map((l) => {
           const [filled, tone] = BAR[l] ?? [0, ""]
@@ -112,7 +132,7 @@ export function AssigneeCell({ task }: { task: Task }) {
           size="sm"
           aria-label={m.cell(m.assignee, task.key)}
           value={current}
-          disabled={busy || fromMessages(task)}
+          disabled={busy}
           onChange={(v) => {
             if (v === ELSE) setFinding(true)
             else void useTasks.getState().assign(task.key, v === "none" ? null : v)
@@ -134,12 +154,13 @@ export function KindCell({ task }: { task: Task }) {
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const kinds: TaskKind[] = ["feature", "bug", "chore"]
   const current = kinds.find((k) => k === task.kind)
+  if (fromMessages(task)) return <Fixed>{m.kinds[task.kind ?? ""] ?? task.kind ?? "—"}</Fixed>
   return (
     <Select<TaskKind | "other">
       size="sm"
       aria-label={m.cell(m.kind, task.key)}
       value={current ?? "other"}
-      disabled={busy || fromMessages(task)}
+      disabled={busy}
       onChange={(kind) => kind !== "other" && void useTasks.getState().update(task.key, { kind })}
       options={[
         ...kinds.map((k) => ({ value: k, label: m.kinds[k] ?? k })),
@@ -160,15 +181,56 @@ export function ProjectCell({ task }: { task: Task }) {
   const keys = [...new Set([task.project, ...projects.map((p) => p.key)])]
   const nameOf = (key: string) =>
     (key === task.project ? task.projectName : null) ?? projects.find((p) => p.key === key)?.name ?? null
+  if (fromMessages(task))
+    return (
+      <Fixed>
+        <SourceMark task={task} />
+      </Fixed>
+    )
   return (
     <Select
       size="sm"
       aria-label={m.cell(m.project, task.key)}
       value={task.project}
-      disabled={busy || fromMessages(task)}
+      disabled={busy}
       onChange={(project) => project !== task.project && void useTasks.getState().update(task.key, { project })}
       options={keys.map((k) => ({ value: k, label: nameOf(k) ? `${k} · ${nameOf(k)}` : k }))}
       className={BARE}
+    />
+  )
+}
+
+/** The agent's name saves when the field is left or Enter is pressed; Escape puts back what memo has. */
+export function AgentCell({ task }: { task: Task }) {
+  const m = useMessages(taskMessages)
+  const busy = useTasks((s) => Boolean(s.busy[task.key]))
+  const [agent, setAgent] = useState(task.agent ?? "")
+  useEffect(() => setAgent(task.agent ?? ""), [task.agent])
+  if (fromMessages(task)) return <Fixed>—</Fixed>
+  const save = () => {
+    const name = agent.trim()
+    if (name !== (task.agent ?? "")) void useTasks.getState().update(task.key, { agent: name || "none" })
+  }
+  return (
+    <input
+      value={agent}
+      aria-label={m.cell(m.agentField, task.key)}
+      maxLength={64}
+      spellCheck={false}
+      readOnly={busy}
+      onChange={(e) => setAgent(e.target.value.replace(/[^\w.-]/g, ""))}
+      onBlur={save}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault()
+          save()
+        } else if (e.key === "Escape" && agent !== (task.agent ?? "")) {
+          e.stopPropagation()
+          setAgent(task.agent ?? "")
+        }
+      }}
+      placeholder={m.agentNone}
+      className={`selectable -ml-[0.45rem] h-[1.9rem] w-full rounded-[0.35rem] border border-transparent bg-transparent px-[0.45rem] font-mono text-[0.9rem] text-ink placeholder:font-sans placeholder:text-ink-dim hover:bg-app-3 focus-visible:bg-app ${fieldFocus}`}
     />
   )
 }
@@ -201,7 +263,7 @@ export function DueCell({ task }: { task: Task }) {
         size="sm"
         aria-label={m.cell(m.due, task.key)}
         value="current"
-        disabled={busy || fromMessages(task)}
+        disabled={busy}
         onChange={(v) => {
           if (v === "pick") setPicking(true)
           else if (v === "none") save("none")

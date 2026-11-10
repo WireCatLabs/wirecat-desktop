@@ -642,6 +642,11 @@ export function tasksMock(): TaskApi {
       return { kind: "saved", task, label: null, renumbered: [], moved: [] }
     },
     async taskUpdate(key, revision, edit: TaskEdit) {
+      const found = find(key).account
+      // memo's own refusals for a task found in messages.
+      if (found && edit.account !== found) throw new Error(`give --account — the stored accounts: --account ${found}`)
+      if (found && (edit.state || edit.priority || edit.agent || edit.project || edit.kind))
+        throw new Error("--status, --agent, --revision, --project and --type are for a project task")
       const to = edit.project
       if (to !== undefined && to !== find(key).project) {
         const parent = find(key).parent
@@ -718,6 +723,7 @@ export function tasksMock(): TaskApi {
     },
     async taskMove(key, revision, place: TaskPlace) {
       const t = find(key)
+      if (t.account) throw new Error("only a project task moves on the board")
       const state = place.state ?? t.state
       const column = sorted().filter((x) => x.state === state && x.key !== key)
       const anchor = place.before ?? place.after
@@ -737,7 +743,9 @@ export function tasksMock(): TaskApi {
         { kind: "saved", task: t, label: from !== to ? { from, to } : null, renumbered: [], moved: [] },
       )
     },
-    taskAssign(key, revision, person) {
+    async taskAssign(key, revision, person, account) {
+      const found = find(key).account
+      if (found && account !== found) throw new Error(`give --source — the stored accounts: --source ${found}`)
       return write(key, revision, (t) => {
         record(key, [{ field: "assignee", from: t.assignees[0] ?? null, to: person }], "assigned")
         return { ...t, assignees: person ? [person] : [] }

@@ -17,6 +17,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
+import { fieldFocus } from "@/ui/field"
 import { Lamp } from "@/ui/Lamp"
 import { focusInPlace, holdInPlace, reducedMotion } from "@/ui/motion"
 import { Segmented } from "@/ui/Segmented"
@@ -160,7 +161,7 @@ export function GuidesPage() {
             }}
             placeholder={m.searchHint}
             spellCheck={false}
-            className="selectable h-[2.6rem] w-full rounded-[0.35rem] border border-line-strong bg-app pr-[0.8rem] pl-[2.3rem] text-[0.95rem] text-ink outline-none placeholder:text-ink-dim focus-visible:border-brand"
+            className={`selectable h-[2.6rem] w-full rounded-[0.35rem] border border-line-strong bg-app pr-[0.8rem] pl-[2.3rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
           />
         </label>
         <nav aria-label={m.jumpTo} className="flex flex-wrap gap-x-[0.3rem] gap-y-[0.3rem]">

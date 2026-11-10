@@ -73,9 +73,11 @@ describe("Tasks", () => {
     render(<TasksPage />)
     await loaded()
     const chat = row("INDBB44DA4-7")
-    expect(within(chat).getByRole("button", { name: "Telegram" })).toHaveAccessibleDescription(/found in your messages/)
-    expect(within(chat).getByRole("combobox", { name: "Status of INDBB44DA4-7" })).toBeDisabled()
-    expect(within(chat).getByRole("combobox", { name: "Priority of INDBB44DA4-7" })).toBeDisabled()
+    expect(chat).toHaveTextContent("Telegram")
+    // memo keeps a status and priority for project tasks only: plain text, not controls that refuse every click.
+    expect(within(chat).queryByRole("combobox", { name: "Status of INDBB44DA4-7" })).toBeNull()
+    expect(within(chat).queryByRole("combobox", { name: "Priority of INDBB44DA4-7" })).toBeNull()
+    expect(within(chat).getByRole("combobox", { name: "Due of INDBB44DA4-7" })).toBeEnabled()
     expect(useTasks.getState().total).toBe(useTasks.getState().tasks.length)
     await user.click(screen.getByRole("button", { name: "Project" }))
     await user.click(screen.getByRole("option", { name: /Operations/ }))
@@ -120,7 +122,7 @@ describe("Tasks", () => {
     const cards = () => column.querySelectorAll("[data-card]")
     expect(cards()).toHaveLength(20)
     const total = Number(/\d+/.exec(column.getAttribute("aria-label") ?? "")?.[0])
-    const card = within(column).getByRole("button", { name: "Q-1 A question in a message" })
+    const card = within(column).getByRole("button", { name: "Q-1 Untitled question" })
     expect(card).not.toHaveTextContent("msg:telegram")
     expect(card).toHaveTextContent("Telegram")
     expect(card).not.toHaveTextContent("No priority")
@@ -130,11 +132,28 @@ describe("Tasks", () => {
     await user.click(card)
     const dialog = await screen.findByRole("dialog", { name: "Task Q-1" })
     expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("")
-    expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveAttribute(
-      "placeholder",
-      "A question in a message",
+    expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveAttribute("placeholder", "Untitled question")
+    expect(dialog).toHaveTextContent("Status, priority, type, agent and project belong to project tasks.")
+    const update = vi.spyOn(platform, "taskUpdate").mockImplementation(async (_key, _revision, edit) => {
+      if (edit.account !== "telegram:1") throw new Error("give --account — the stored accounts: --account telegram:1")
+      return {
+        kind: "saved",
+        task: { ...found(1), title: "Hand over the keys", revision: 2 },
+        label: null,
+        renumbered: [],
+        moved: [],
+      }
+    })
+    await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Hand over the keys")
+    await user.click(within(dialog).getByRole("button", { name: "Save" }))
+    await waitFor(() =>
+      expect(update).toHaveBeenCalledWith("Q-1", 1, { title: "Hand over the keys", account: "telegram:1" }),
     )
+    expect(within(dialog).queryByRole("alert")).toBeNull()
     await user.keyboard("{Escape}")
+    expect(within(column).getByRole("button", { name: "Q-1 Hand over the keys" })).not.toHaveAttribute(
+      "aria-roledescription",
+    )
 
     await user.click(screen.getByRole("button", { name: "Source" }))
     await user.click(screen.getByRole("option", { name: /Projects/ }))
@@ -221,12 +240,14 @@ describe("Tasks", () => {
     )
     expect([...document.querySelectorAll("[data-row]")].map((r) => r.getAttribute("data-row"))).toEqual(before)
 
-    vi.spyOn(platform, "taskUpdate").mockRejectedValueOnce(new Error("the store is busy"))
+    vi.spyOn(platform, "taskUpdate").mockRejectedValueOnce(new Error("database is locked"))
     await user.click(within(row("OPS-3")).getByRole("combobox", { name: "Status of OPS-3" }))
     await user.click(screen.getByRole("option", { name: "Done" }))
-    expect(await within(row("OPS-3")).findByRole("alert")).toHaveTextContent(
-      "The change was not saved: the store is busy. Nothing changed.",
-    )
+    const alert = await within(row("OPS-3")).findByRole("alert")
+    expect(alert).toHaveTextContent("Not saved. Memo is busy, most likely with a sync. Try again in a minute.")
+    expect(alert).not.toHaveTextContent("database is locked")
+    await user.click(within(alert).getByRole("button", { name: "Details" }))
+    expect(alert).toHaveTextContent("database is locked")
     expect(within(row("OPS-3")).getByRole("combobox", { name: /Status/ })).toHaveTextContent("Open")
   })
 
@@ -264,7 +285,10 @@ describe("Tasks", () => {
     const dialog = await screen.findByRole("dialog", { name: "Task HRB-15" })
     expect(within(dialog).getByText("Created")).toBeInTheDocument()
     expect(await within(dialog).findByText(/by hermes$/)).toBeInTheDocument()
-    expect(within(dialog).getByText("Moving it gives it a new key; the old key still finds it.")).toBeInTheDocument()
+    const tip = within(dialog).getByRole("button", { name: "Project" })
+    expect(document.getElementById(tip.getAttribute("aria-describedby") ?? "")).toHaveTextContent(
+      "Moving it to another project gives it a new key.",
+    )
     const notes = within(dialog).getByRole("article", { name: "Notes" })
     expect(notes).toHaveTextContent("Waits until both pilot clinics have said yes.")
     await user.click(within(notes).getByRole("button", { name: "Edit" }))
@@ -351,7 +375,7 @@ describe("Tasks", () => {
     await user.type(within(dialog).getByRole("combobox", { name: "Find or add a person" }), "Lena Ortiz")
     await screen.findByRole("option", { name: "Add “Lena Ortiz”" })
     await user.keyboard("{Enter}")
-    await waitFor(() => expect(assign).toHaveBeenCalledWith("HRB-12", expect.any(Number), "person:4"))
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("HRB-12", expect.any(Number), "person:4", undefined))
     expect(useTasks.getState().people.map((p) => p.name)).toContain("Lena Ortiz")
 
     await user.click(screen.getByRole("button", { name: "Close" }))

@@ -1,5 +1,6 @@
 import { Lock, Mail, MessageSquare } from "lucide-react"
 import { providerName } from "@/domain/archive"
+import { taskFailure } from "@/domain/task-failure"
 import {
   bareTitleKind,
   claimActive,
@@ -14,7 +15,8 @@ import { storageMessages } from "@/features/storage"
 import { useLang, useMessages } from "@/i18n"
 import type { Person, Task } from "@/platform/task-schemas"
 import { cx } from "@/ui/cx"
-import { InfoTip } from "@/ui/InfoTip"
+import { Disclosure } from "@/ui/Disclosure"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { dueDay, type TaskWords, taskMessages } from "./messages"
 import { useTasks } from "./store"
@@ -149,7 +151,10 @@ export function taskTitle(task: Task, m: TaskWords): string {
 
 const MAIL = new Set(["email", "mail", "gmail"])
 
-/** Where a found task came from, as an icon and the app; the tooltip says it changes there, not here. */
+/**
+ * Where a found task came from, as an icon and the app. Plain text, not a tip: on a card a tip opened past the
+ * column's edge, and the card is itself the button that opens the task.
+ */
 export function SourceMark({ task }: { task: Task }) {
   const m = useMessages(taskMessages)
   const archive = useMessages(storageMessages).archiveWords
@@ -158,18 +163,35 @@ export function SourceMark({ task }: { task: Task }) {
   const mail = MAIL.has(provider)
   const Icon = mail ? Mail : MessageSquare
   return (
-    <InfoTip
-      align="end"
-      label={m.fromMessages}
-      trigger={
-        <span className="inline-flex min-w-0 items-center gap-[0.3rem] text-[0.85rem] text-ink-soft">
-          <Icon className="size-[0.85rem] shrink-0" aria-hidden />
-          <span className="truncate">{mail ? m.mail : providerName(provider, archive)}</span>
-        </span>
+    <span title={m.fromMessages} className="inline-flex min-w-0 items-center gap-[0.3rem] text-[0.85rem] text-ink-soft">
+      <Icon className="size-[0.85rem] shrink-0" aria-hidden />
+      <span className="truncate">{mail ? m.mail : providerName(provider, archive)}</span>
+    </span>
+  )
+}
+
+/** A refused write in one line of plain words with what to do; memo's own words, already masked, behind a click. */
+export function TaskError({ lead, raw }: { lead: string; raw: string }) {
+  const m = useMessages(taskMessages)
+  return (
+    <ErrorNotice
+      inline
+      detail={
+        // On a card, pointer down starts a drag, a click opens the task and Space picks it up: the details only fold.
+        // biome-ignore lint/a11y/noStaticElementInteractions: it only keeps the card's own handlers out
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <Disclosure summary={m.failureDetails}>
+            <p className="font-mono text-[0.8rem] [overflow-wrap:anywhere] text-ink-soft">{raw}</p>
+          </Disclosure>
+        </div>
       }
     >
-      {m.fromMessages}
-    </InfoTip>
+      {lead} {m.failure[taskFailure(raw)]}
+    </ErrorNotice>
   )
 }
 
