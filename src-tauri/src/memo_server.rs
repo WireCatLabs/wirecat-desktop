@@ -10,7 +10,7 @@
 
 use crate::cache::Stamp;
 use crate::run::{self, Output, RunError};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::{OsStr, OsString};
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -136,6 +136,24 @@ struct Server {
     generation: u64,
     born: Instant,
     next_id: AtomicU64,
+    /// The commands running now, by their first two words. memo 0.131.76's server mixes up the options of two
+    /// requests of one command at once (`people list kind:person` and `kind:organization` both answered the second),
+    /// so a request waits for the one of its command before it; other commands still run side by side.
+    running: Mutex<HashSet<String>>,
+    finished: Condvar,
+}
+
+/// A command's place on a server, given back when the request ends, answered or not.
+struct Lane<'a> {
+    server: &'a Server,
+    key: String,
+}
+
+impl Drop for Lane<'_> {
+    fn drop(&mut self) {
+        locked(&self.server.running).remove(&self.key);
+        self.server.finished.notify_all();
+    }
 }
 
 /// Who waits for which answer. The reader thread holds only this, never the server, so dropping the server ends it.
@@ -346,6 +364,8 @@ impl Pool {
             generation: self.generation.load(Ordering::Relaxed),
             born: Instant::now(),
             next_id: AtomicU64::new(0),
+            running: Mutex::new(HashSet::new()),
+            finished: Condvar::new(),
         };
         let outcome = match ready.recv_timeout(wait.saturating_sub(started.elapsed())) {
             Ok(Ready::Speaks(concurrent)) => {
@@ -411,7 +431,26 @@ impl Server {
         matches!(locked(&self.child).try_wait(), Ok(None))
     }
 
+    /// Waits, within `timeout`, until no request of the same command runs on this server.
+    fn lane(&self, args: &[&str], timeout: Duration) -> Option<Lane<'_>> {
+        let key = args.iter().take(2).copied().collect::<Vec<_>>().join(" ");
+        let deadline = Instant::now() + timeout;
+        let mut running = locked(&self.running);
+        while running.contains(&key) {
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                return None;
+            }
+            running = self.finished.wait_timeout(running, left).unwrap_or_else(PoisonError::into_inner).0;
+        }
+        running.insert(key.clone());
+        Some(Lane { server: self, key })
+    }
+
     fn request(&self, args: &[&str], timeout: Duration) -> Result<Output, Asked> {
+        let started = Instant::now();
+        let Some(_lane) = self.lane(args, timeout) else { return Err(Asked::Failed(RunError::TimedOut)) };
+        let timeout = timeout.saturating_sub(started.elapsed());
         let id = self.next_id.fetch_add(1, Ordering::Relaxed) + 1;
         let words = serde_json::to_string(args).map_err(|e| Asked::Failed(RunError::Other(e.to_string())))?;
         let line = format!("{{\"id\":{id},\"argv\":{words}}}\n");
@@ -684,6 +723,25 @@ echo '{"via":"spawn"}'
             assert!(!held.is_finished(), "the quick request waited for the slow one");
             assert_eq!(via(&held.join().unwrap()), ("server".into(), Some(server)));
         });
+        assert_eq!(starts(&pool), 1);
+    }
+
+    #[test]
+    fn two_requests_of_one_command_take_turns_on_a_concurrent_server() {
+        let fake = Fake::new("same-command", CONCURRENT);
+        let pool = pool(1, Duration::from_secs(10));
+        let server = served_by(&pool, &fake);
+        let started = Instant::now();
+        thread::scope(|s| {
+            let asked = [
+                s.spawn(|| call(&pool, &fake, "hold", Duration::from_secs(10)).unwrap()),
+                s.spawn(|| call(&pool, &fake, "hold", Duration::from_secs(10)).unwrap()),
+            ];
+            for h in asked {
+                assert_eq!(via(&h.join().unwrap()), ("server".into(), Some(server)));
+            }
+        });
+        assert!(started.elapsed() >= Duration::from_secs(2), "the two ran at once and memo would mix their options");
         assert_eq!(starts(&pool), 1);
     }
 
