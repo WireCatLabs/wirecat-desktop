@@ -9,15 +9,25 @@ export type Period = (typeof PERIODS)[number]
 export type CountBy = "day" | "hour" | "sender" | "chat"
 /** Which messages to count; each is a fixed term in Rust (`from:me`, `has:photo`, `kind:group`…). */
 export type Only = "all" | "sent" | "photo" | "voice" | "video" | "file" | "link" | "private" | "group" | "channel"
-/** One count: the period or, with `previous`, the same length just before it. */
-export type Ask = { period: Period; by: CountBy; only: Only; previous: boolean }
+/**
+ * One count: the period or, with `previous`, the same length just before it. `range` puts calendar days in its place;
+ * `full` asks for every sender or chat up to the tool's 1000 rows, not the page's top 25.
+ */
+export type Ask = {
+  period: Period
+  by: CountBy
+  only: Only
+  previous: boolean
+  range?: { from: string; to: string | null }
+  full?: boolean
+}
 
 export const CountRowSchema = v.object({ key: v.string(), name: v.nullable(v.string()), count })
 
 export const MessageCountsSchema = v.variant("kind", [
   v.object({ kind: v.literal("ready"), total: count, rows: v.array(CountRowSchema), more: v.boolean() }),
   v.object({ kind: v.literal("old"), message: v.string() }),
-  v.object({ kind: v.literal("failed"), message: v.string() }),
+  v.object({ kind: v.literal("failed"), message: v.string(), code: v.optional(v.nullable(v.string()), null) }),
 ])
 
 /**

@@ -12,12 +12,25 @@ use serde_json::Value;
 use std::time::Duration;
 
 const STATS: &str = "stats";
+/// The owner's ruling (NEED-2511): messages in chats he muted count nowhere on the page.
+const UNMUTED: &str = "muted:false";
+/// The key under which a copy too old for `muted:` is remembered, so its counts skip the term until it is updated.
+const MUTED_FIELD: &str = "muted:";
+/// Reply times and waiting chats learned `muted:` apart from search, so a copy is remembered for each on its own.
+const MUTED_REPLIES: &str = "muted: replies";
 // Longer than the `--timeout 60s` in the templates, so the tool's own time-limit answer comes back, not a kill.
 const TIMEOUT: Duration = Duration::from_secs(90);
 /// Ranked rows for senders and chats; the page shows ten and keeps the rest for its table.
 const TOP: u32 = 25;
-/// Days in "all": the tool keeps the oldest rows when there are more, so the limit must cover the whole history.
-const ALL_DAYS: u32 = 20_000;
+/// The most rows the tool answers in one run: a larger `--limit` is refused as `query.invalid-limit`.
+const MAX_ROWS: u32 = 1000;
+/// Days per run when counting by hour or by day: 41 calendar days of hours, or 991 days, still fit in `MAX_ROWS`.
+const HOUR_SPAN: u32 = 40;
+const DAY_SPAN: u32 = 990;
+/// All time by hour reads the last year only: a decade of hourly rows would take ninety runs for one heat map.
+pub const ALL_HOURS_DAYS: u32 = 360;
+/// All time by day stops at the first empty stretch, or after this many (about 32 years).
+const DAY_STRETCHES: u32 = 12;
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum Period {
@@ -32,16 +45,14 @@ pub enum Period {
 }
 
 impl Period {
-    /// The query term the tool reads; "all" has none. `previous` is the window of the same length just before it.
-    fn term(self, previous: bool) -> Result<Option<String>, String> {
-        let days = match self {
-            Self::Week => 7,
-            Self::Month => 30,
-            Self::Quarter => 90,
-            Self::All if previous => return Err("all time has no period before it".into()),
-            Self::All => return Ok(None),
-        };
-        Ok(Some(if previous { format!("date:[{}d TO {days}d]", days * 2) } else { format!("date>={days}d") }))
+    /// The days back the period covers, as `(oldest, newest)`; `previous` is the same length just before it.
+    fn span(self, previous: bool) -> Result<Option<(u32, u32)>, String> {
+        match (self.days(), previous) {
+            (None, true) => Err("all time has no period before it".into()),
+            (None, false) => Ok(None),
+            (Some(d), true) => Ok(Some((d * 2, d))),
+            (Some(d), false) => Ok(Some((d, 0))),
+        }
     }
 
     fn days(self) -> Option<u32> {
@@ -109,7 +120,7 @@ impl Only {
 }
 
 /// One count the page asks for: the period (or the one before it), how to group, and which messages.
-#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
 pub struct Ask {
     pub period: Period,
     pub by: By,
@@ -117,6 +128,85 @@ pub struct Ask {
     pub only: Only,
     #[serde(default)]
     pub previous: bool,
+    /// Calendar days in the zone, in place of the period: the same weekdays of last week.
+    #[serde(default)]
+    pub range: Option<Range>,
+    /// Every sender or chat the tool holds, up to `MAX_ROWS`, not the page's top rows.
+    #[serde(default)]
+    pub full: bool,
+}
+
+/// `from` to `to`, both `YYYY-MM-DD` and both included; no `to` is up to now.
+#[derive(Debug, Deserialize, Clone, PartialEq, Eq)]
+pub struct Range {
+    pub from: String,
+    pub to: Option<String>,
+}
+
+fn validate_day(day: &str) -> Result<(), String> {
+    let b = day.as_bytes();
+    let ok = b.len() == 10
+        && b.iter().enumerate().all(|(i, c)| if i == 4 || i == 7 { *c == b'-' } else { c.is_ascii_digit() });
+    if ok { Ok(()) } else { Err(format!("not a day: {day}")) }
+}
+
+impl Range {
+    fn term(&self) -> Result<String, String> {
+        validate_day(&self.from)?;
+        match &self.to {
+            Some(to) => {
+                validate_day(to)?;
+                Ok(format!("date:[{} TO {to}]", self.from))
+            }
+            None => Ok(format!("date>={}", self.from)),
+        }
+    }
+}
+
+/// One run's stretch: the period term (none for all time) and the rows to ask for.
+#[derive(Debug, PartialEq, Eq)]
+struct Stretch {
+    term: Option<String>,
+    limit: u32,
+}
+
+/// A day or hour count longer than `MAX_ROWS` rows is read in stretches, newest first, and added up.
+fn stretches(ask: &Ask) -> Result<Vec<Stretch>, String> {
+    let ranked = if ask.full { MAX_ROWS } else { TOP };
+    if let Some(range) = &ask.range {
+        let limit = match ask.by {
+            By::Sender | By::Chat => ranked,
+            By::Day | By::Hour => MAX_ROWS,
+        };
+        return Ok(vec![Stretch { term: Some(range.term()?), limit }]);
+    }
+    let span = ask.period.span(ask.previous)?;
+    let (per, size) = match ask.by {
+        By::Sender | By::Chat => {
+            return Ok(vec![Stretch { term: span.map(|(old, new)| window(old, new)), limit: ranked }]);
+        }
+        By::Hour => (HOUR_SPAN, 24),
+        By::Day => (DAY_SPAN, 1),
+    };
+    let (oldest, newest) = match (span, ask.by) {
+        (Some(s), _) => s,
+        (None, By::Hour) => (ALL_HOURS_DAYS, 0),
+        // All time by day: open-ended, read until a stretch comes back empty.
+        (None, _) => (per * DAY_STRETCHES, 0),
+    };
+    let mut out = Vec::new();
+    let mut new = newest;
+    while new < oldest {
+        let old = (new + per).min(oldest);
+        out.push(Stretch { term: Some(window(old, new)), limit: ((old - new + 1) * size).min(MAX_ROWS) });
+        new = old;
+    }
+    Ok(out)
+}
+
+/// `date>=30d` for the newest stretch, `date:[60d TO 30d}` for the ones before: no message counted twice.
+fn window(old: u32, new: u32) -> String {
+    if new == 0 { format!("date>={old}d") } else { format!("date:[{old}d TO {new}d}}") }
 }
 
 #[derive(Debug, Serialize, PartialEq)]
@@ -137,11 +227,11 @@ pub enum Counts {
         more: bool,
     },
     /// The installed version has no `stats messages show`: the answer is "update it".
-    Old {
-        message: String,
-    },
+    Old { message: String },
     Failed {
         message: String,
+        /// The tool's error code, such as `not_found` for a profile that holds nothing yet.
+        code: Option<String>,
     },
 }
 
@@ -157,18 +247,23 @@ fn source(tool: &Tool) -> Result<&StatsSource, String> {
     tool.stats.as_ref().ok_or_else(|| "This tool keeps no messages to count.".into())
 }
 
-pub fn args(src: &StatsSource, profile: &str, ask: Ask, timezone: &str) -> Result<Vec<String>, String> {
+fn args_for(
+    src: &StatsSource,
+    profile: &str,
+    ask: &Ask,
+    timezone: &str,
+    part: &Stretch,
+    unmuted: bool,
+) -> Result<Vec<String>, String> {
     catalog::validate_profile(profile)?;
     validate_timezone(timezone)?;
-    let limit = match (ask.by, ask.period.days()) {
-        (By::Day, None) => ALL_DAYS,
-        (By::Day, Some(_)) => 200,
-        (By::Hour, None) => ALL_DAYS * 24,
-        (By::Hour, Some(d)) => d * 2 * 24 + 48,
-        (By::Sender | By::Chat, _) => TOP,
-    };
-    let terms: Vec<String> =
-        ask.period.term(ask.previous)?.into_iter().chain(ask.only.term().map(str::to_string)).collect();
+    let terms: Vec<String> = part
+        .term
+        .clone()
+        .into_iter()
+        .chain(ask.only.term().map(str::to_string))
+        .chain(unmuted.then(|| UNMUTED.to_string()))
+        .collect();
     let mut args: Vec<String> = src
         .messages
         .iter()
@@ -176,7 +271,7 @@ pub fn args(src: &StatsSource, profile: &str, ask: Ask, timezone: &str) -> Resul
             "{profile}" => profile.to_string(),
             "{by}" => ask.by.word().to_string(),
             "{timezone}" => timezone.to_string(),
-            "{limit}" => limit.to_string(),
+            "{limit}" => part.limit.to_string(),
             other => other.to_string(),
         })
         .collect();
@@ -189,20 +284,90 @@ pub fn args(src: &StatsSource, profile: &str, ask: Ask, timezone: &str) -> Resul
     Ok(args)
 }
 
+/// Every run one count takes, in order: one, or one per stretch of a long day or hour count.
+pub fn args(
+    src: &StatsSource,
+    profile: &str,
+    ask: &Ask,
+    timezone: &str,
+    unmuted: bool,
+) -> Result<Vec<Vec<String>>, String> {
+    stretches(ask)?.iter().map(|part| args_for(src, profile, ask, timezone, part, unmuted)).collect()
+}
+
+/// The tool's copy predates `muted:` (search refuses the field; reply times refuse any field past date, chat and kind):
+/// the count is read again without it, and that copy is not asked with it again.
+fn unknown_muted(message: &str) -> bool {
+    (message.contains("query.unknown-field") && message.contains("muted"))
+        || message.contains("reads date:, chat: and kind: terms")
+}
+
 pub fn messages(tool: &Tool, profile: &str, ask: Ask, timezone: &str) -> Result<Counts, String> {
     let src = source(tool)?;
-    let args = args(src, profile, ask, timezone)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     if let Some(message) = REFUSED.known(&tool.id, STATS, &bin) {
         return Ok(Counts::Old { message });
     }
-    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = crate::memo_server::run_tool(tool, &bin, &refs, TIMEOUT).map_err(|e| e.to_string())?;
-    let counts = read(&out);
-    if let Counts::Old { message } = &counts {
-        REFUSED.remember(&tool.id, STATS, &bin, message);
+    let unmuted = REFUSED.known(&tool.id, MUTED_FIELD, &bin).is_none();
+    let counts = count(tool, &bin, &args(src, profile, &ask, timezone, unmuted)?, &ask)?;
+    if let Counts::Failed { message, .. } = &counts
+        && unmuted
+        && unknown_muted(message)
+    {
+        REFUSED.remember(&tool.id, MUTED_FIELD, &bin, message);
+        return count(tool, &bin, &args(src, profile, &ask, timezone, false)?, &ask);
     }
     Ok(counts)
+}
+
+fn count(tool: &Tool, bin: &std::path::Path, runs: &[Vec<String>], ask: &Ask) -> Result<Counts, String> {
+    let open_ended = ask.range.is_none() && ask.period == Period::All && ask.by == By::Day;
+    let mut sum = Sum::default();
+    for (n, args) in runs.iter().enumerate() {
+        let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+        let out = crate::memo_server::run_tool(tool, bin, &refs, TIMEOUT).map_err(|e| e.to_string())?;
+        let counts = read(&out);
+        match counts {
+            Counts::Ready { total, rows, more } => {
+                if open_ended && n > 0 && total == 0 {
+                    break;
+                }
+                sum.add(total, rows, more);
+            }
+            Counts::Old { message } => {
+                REFUSED.remember(&tool.id, STATS, bin, &message);
+                return Ok(Counts::Old { message });
+            }
+            failed @ Counts::Failed { .. } => return Ok(failed),
+        }
+    }
+    Ok(sum.done())
+}
+
+/// Stretches added up: a day or hour cut by a stretch's edge appears in both, so equal keys add.
+#[derive(Default)]
+struct Sum {
+    total: u64,
+    rows: Vec<Row>,
+    more: bool,
+}
+
+impl Sum {
+    fn add(&mut self, total: u64, rows: Vec<Row>, more: bool) {
+        self.total += total;
+        self.more |= more;
+        for r in rows {
+            match self.rows.iter_mut().find(|x| x.key == r.key) {
+                Some(x) => x.count += r.count,
+                None => self.rows.push(r),
+            }
+        }
+    }
+
+    fn done(mut self) -> Counts {
+        self.rows.sort_by(|a, b| a.key.cmp(&b.key));
+        Counts::Ready { total: self.total, rows: self.rows, more: self.more }
+    }
 }
 
 /// An aggregate the page reads as the tool printed it: counts, times and, for a series or a chat, its name.
@@ -225,6 +390,8 @@ const AGGREGATES: [&str; 9] = [
     "taskSources",
     "taskMeetings",
 ];
+/// The counts made of a messenger's messages, which leave muted chats out like every other count on the page.
+const COUNTS_MESSAGES: [&str; 2] = ["responses", "waiting"];
 /// Rows to ask for when the period is all time: a day or week row per bar, years of them.
 const ALL_ROWS: u32 = 5000;
 
@@ -233,6 +400,7 @@ pub fn aggregate_args(
     profile: Option<&str>,
     period: Period,
     timezone: &str,
+    unmuted: bool,
 ) -> Result<Vec<String>, String> {
     validate_timezone(timezone)?;
     let wants_profile = src.args.iter().any(|a| a == "{profile}");
@@ -243,10 +411,12 @@ pub fn aggregate_args(
         (false, None) => {}
     }
     let days = period.days();
-    let term = match (&src.date, days) {
+    let since = match (&src.date, days) {
         (Some(field), Some(days)) => Some(format!("{field}>={days}d")),
         _ => None,
     };
+    let terms: Vec<String> = since.into_iter().chain(unmuted.then(|| UNMUTED.to_string())).collect();
+    let term = (!terms.is_empty()).then(|| terms.join(" "));
     let limit = days.map_or(ALL_ROWS, |d| (d + 7).max(50));
     let mut args: Vec<String> = Vec::with_capacity(src.args.len());
     for a in &src.args {
@@ -284,15 +454,27 @@ pub fn aggregate(
 ) -> Result<Aggregate, String> {
     let name = AGGREGATES.iter().find(|n| **n == which).ok_or("not a known count")?;
     let src = tool.aggregates.get(*name).ok_or("this tool has no such count")?;
-    let args = aggregate_args(src, profile, period, timezone)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     if let Some(min) = &src.min_version
         && crate::tools::older(crate::tools::version_of(&bin).as_deref(), min)
     {
         return Ok(Aggregate::Old { message: format!("needs {} {min} or newer", tool.bin) });
     }
+    let unmuted = COUNTS_MESSAGES.contains(name) && REFUSED.known(&tool.id, MUTED_REPLIES, &bin).is_none();
+    let answer = run_aggregate(tool, &bin, &aggregate_args(src, profile, period, timezone, unmuted)?)?;
+    if let Aggregate::Failed { message } = &answer
+        && unmuted
+        && unknown_muted(message)
+    {
+        REFUSED.remember(&tool.id, MUTED_REPLIES, &bin, message);
+        return run_aggregate(tool, &bin, &aggregate_args(src, profile, period, timezone, false)?);
+    }
+    Ok(answer)
+}
+
+fn run_aggregate(tool: &Tool, bin: &std::path::Path, args: &[String]) -> Result<Aggregate, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = crate::memo_server::run_tool(tool, &bin, &refs, TIMEOUT).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, bin, &refs, TIMEOUT).map_err(|e| e.to_string())?;
     let json = out.json();
     if out.code == Some(0)
         && let Some(v) = json.as_ref().filter(|v| v.get("error").is_none())
@@ -338,7 +520,8 @@ fn read(out: &run::Output) -> Counts {
         .as_ref()
         .and_then(|v| v["error"]["message"].as_str())
         .map_or_else(|| last_line(&out.stderr, &out.stdout), str::to_string);
-    if too_old(&message) { Counts::Old { message } } else { Counts::Failed { message } }
+    let code = json.as_ref().and_then(|v| v["error"]["code"].as_str()).map(str::to_string);
+    if too_old(&message) { Counts::Old { message } } else { Counts::Failed { message, code } }
 }
 
 fn last_line(stderr: &str, stdout: &str) -> String {
@@ -381,12 +564,23 @@ mod tests {
     }
 
     const fn ask(period: Period, by: By) -> Ask {
-        Ask { period, by, only: Only::All, previous: false }
+        Ask { period, by, only: Only::All, previous: false, range: None, full: false }
+    }
+
+    /// The one run a count takes; a count read in stretches fails here.
+    fn one(ask: Ask) -> Vec<String> {
+        let mut runs = args(src("tg"), "personal", &ask, "Europe/Madrid", false).unwrap();
+        assert_eq!(runs.len(), 1, "{ask:?}");
+        runs.remove(0)
+    }
+
+    fn limit(a: &[String]) -> u32 {
+        a.windows(2).find(|w| w[0] == "--limit").map(|w| w[1].parse().unwrap()).unwrap()
     }
 
     #[test]
     fn a_period_is_a_fixed_term_after_the_separator() {
-        let a = args(src("tg"), "personal", ask(Period::Month, By::Day), "Europe/Madrid").unwrap();
+        let a = one(ask(Period::Month, By::Day));
         assert_eq!(&a[..4], ["personal", "stats", "messages", "show"]);
         assert_eq!(&a[a.len() - 2..], ["--", "date>=30d"]);
         assert!(a.windows(2).any(|w| w == ["--by", "day"]));
@@ -394,34 +588,111 @@ mod tests {
     }
 
     #[test]
-    fn a_kind_of_message_and_the_period_before_are_fixed_terms_too() {
-        let a = args(
-            src("tg"),
-            "personal",
-            Ask { period: Period::Week, by: By::Sender, only: Only::Photo, previous: true },
-            "UTC",
-        )
-        .unwrap();
-        assert_eq!(a.last().map(String::as_str), Some("date:[14d TO 7d] has:photo"));
-        let sent = args(src("tg"), "p", Ask { only: Only::Sent, ..ask(Period::All, By::Day) }, "UTC").unwrap();
-        assert_eq!(&sent[sent.len() - 2..], ["--", "from:me"]);
-        assert!(args(src("tg"), "p", Ask { previous: true, ..ask(Period::All, By::Day) }, "UTC").is_err());
+    fn muted_chats_are_left_out_of_every_count_that_reads_messages() {
+        let runs =
+            args(src("tg"), "p", &Ask { only: Only::Sent, ..ask(Period::Quarter, By::Hour) }, "UTC", true).unwrap();
+        assert!(runs.len() > 1);
+        assert!(runs.iter().all(|a| a.last().unwrap().ends_with(" from:me muted:false")), "{runs:?}");
+        let tg = catalog::tool("tg").unwrap();
+        let r = aggregate_args(&tg.aggregates["responses"], Some("p"), Period::Week, "UTC", true).unwrap();
+        assert_eq!(&r[r.len() - 2..], ["--", "date>=7d muted:false"]);
+        let ever = aggregate_args(&tg.aggregates["responses"], Some("p"), Period::All, "UTC", true).unwrap();
+        assert_eq!(&ever[ever.len() - 2..], ["--", "muted:false"]);
+        let waiting = aggregate_args(&tg.aggregates["waiting"], Some("p"), Period::Week, "UTC", true).unwrap();
+        assert_eq!(&waiting[waiting.len() - 2..], ["--", "muted:false"]);
+        let plain = aggregate_args(&tg.aggregates["waiting"], Some("p"), Period::Week, "UTC", false).unwrap();
+        assert!(!plain.iter().any(|a| a == "--" || a.starts_with('{')), "{plain:?}");
+        assert!(COUNTS_MESSAGES.iter().all(|n| AGGREGATES.contains(n)));
     }
 
     #[test]
-    fn all_time_drops_the_query_and_keeps_every_day() {
-        let a = args(src("wa"), "personal", ask(Period::All, By::Day), "UTC").unwrap();
-        assert!(!a.iter().any(|w| w == "--" || w == "{query}"));
-        assert!(a.windows(2).any(|w| w == ["--limit", &ALL_DAYS.to_string()]));
-        let top = args(src("max"), "work", ask(Period::All, By::Sender), "UTC").unwrap();
-        assert!(top.windows(2).any(|w| w == ["--limit", &TOP.to_string()]));
+    fn a_copy_without_the_muted_field_is_told_apart_from_other_failures() {
+        assert!(unknown_muted("search: query.unknown-field at position 1 — no field \"muted\""));
+        assert!(!unknown_muted("search: query.unknown-field at position 1 — no field \"mood\""));
+        assert!(!unknown_muted("search: query.invalid-limit — use 1–1000 results"));
+        assert!(unknown_muted("stats messages responses reads date:, chat: and kind: terms, AND-ed — not words"));
+    }
+
+    #[test]
+    fn a_kind_of_message_and_the_period_before_are_fixed_terms_too() {
+        let a = one(Ask { only: Only::Photo, previous: true, ..ask(Period::Week, By::Sender) });
+        assert_eq!(a.last().map(String::as_str), Some("date:[14d TO 7d} has:photo"));
+        let sent = one(Ask { only: Only::Sent, ..ask(Period::Month, By::Chat) });
+        assert_eq!(&sent[sent.len() - 2..], ["--", "date>=30d from:me"]);
+        assert!(args(src("tg"), "p", &Ask { previous: true, ..ask(Period::All, By::Day) }, "UTC", false).is_err());
+    }
+
+    #[test]
+    fn no_run_asks_for_more_rows_than_the_tool_answers() {
+        for period in [Period::Week, Period::Month, Period::Quarter, Period::All] {
+            for by in [By::Day, By::Hour, By::Sender, By::Chat] {
+                for full in [false, true] {
+                    for a in args(src("tg"), "p", &Ask { full, ..ask(period, by) }, "UTC", false).unwrap() {
+                        assert!(limit(&a) <= MAX_ROWS, "{period:?} {by:?}: {}", limit(&a));
+                    }
+                }
+            }
+        }
+        // 30 days by hour fit in one run: BUG-694 asked for 1488 and got "no messages".
+        assert_eq!(limit(&one(ask(Period::Month, By::Hour))), 744);
+    }
+
+    #[test]
+    fn a_long_hourly_count_reads_back_to_back_stretches() {
+        let runs = args(src("tg"), "p", &ask(Period::Quarter, By::Hour), "UTC", false).unwrap();
+        let terms: Vec<&str> = runs.iter().map(|a| a.last().unwrap().as_str()).collect();
+        assert_eq!(terms, ["date>=40d", "date:[80d TO 40d}", "date:[90d TO 80d}"]);
+        let year = args(src("tg"), "p", &ask(Period::All, By::Hour), "UTC", false).unwrap();
+        assert_eq!(year.last().unwrap().last().unwrap(), &format!("date:[{ALL_HOURS_DAYS}d TO 320d}}"));
+        let days = args(src("wa"), "p", &ask(Period::All, By::Day), "UTC", false).unwrap();
+        assert_eq!(u32::try_from(days.len()).unwrap(), DAY_STRETCHES);
+        assert_eq!(days[1].last().unwrap(), "date:[1980d TO 990d}");
+        let top = one(ask(Period::All, By::Sender));
+        assert!(!top.iter().any(|w| w == "--" || w == "{query}"));
+        assert_eq!(limit(&top), TOP);
+        assert_eq!(limit(&one(Ask { full: true, ..ask(Period::Month, By::Chat) })), MAX_ROWS);
+    }
+
+    #[test]
+    fn a_range_of_days_takes_the_place_of_the_period() {
+        let r = |from: &str, to: Option<&str>| Range { from: from.into(), to: to.map(str::to_string) };
+        let a =
+            one(Ask { range: Some(r("2026-11-02", Some("2026-11-03"))), full: true, ..ask(Period::Month, By::Chat) });
+        assert_eq!(a.last().unwrap(), "date:[2026-11-02 TO 2026-11-03]");
+        assert_eq!(limit(&a), MAX_ROWS);
+        assert_eq!(
+            one(Ask { range: Some(r("2026-11-04", None)), ..ask(Period::Month, By::Chat) }).last().unwrap(),
+            "date>=2026-11-04"
+        );
+        for bad in ["2026-11-4", "today", "2026-11-02 OR x", "--json"] {
+            assert!(
+                args(src("tg"), "p", &Ask { range: Some(r(bad, None)), ..ask(Period::Week, By::Chat) }, "UTC", false)
+                    .is_err()
+            );
+        }
+    }
+
+    #[test]
+    fn stretches_add_up_and_a_day_cut_in_two_counts_once_in_full() {
+        let mut sum = Sum::default();
+        let row = |k: &str, n| Row { key: k.into(), name: None, count: n };
+        sum.add(3, vec![row("2026-10-02", 1), row("2026-10-03", 2)], false);
+        sum.add(4, vec![row("2026-09-01", 3), row("2026-10-02", 1)], true);
+        assert_eq!(
+            sum.done(),
+            Counts::Ready {
+                total: 7,
+                more: true,
+                rows: vec![row("2026-09-01", 3), row("2026-10-02", 2), row("2026-10-03", 2)]
+            }
+        );
     }
 
     #[test]
     fn refuses_a_profile_or_zone_that_could_be_a_flag() {
-        assert!(args(src("tg"), "--all", ask(Period::Week, By::Day), "UTC").is_err());
-        assert!(args(src("tg"), "personal", ask(Period::Week, By::Day), "--json").is_err());
-        assert!(args(src("tg"), "personal", ask(Period::Week, By::Day), "Europe/Madrid now").is_err());
+        assert!(args(src("tg"), "--all", &ask(Period::Week, By::Day), "UTC", false).is_err());
+        assert!(args(src("tg"), "personal", &ask(Period::Week, By::Day), "--json", false).is_err());
+        assert!(args(src("tg"), "personal", &ask(Period::Week, By::Day), "Europe/Madrid now", false).is_err());
         assert!(validate_timezone("America/Argentina/Buenos_Aires").is_ok());
         assert!(validate_timezone("Etc/GMT+3").is_ok());
     }
@@ -461,7 +732,10 @@ mod tests {
         let c = read(&output(1, "", "unknown command 'stats'\n"));
         assert!(matches!(c, Counts::Old { .. }));
         let err = json!({"error":{"code":"validation_error","message":"the store is locked"}});
-        assert_eq!(read(&output(1, "", &err.to_string())), Counts::Failed { message: "the store is locked".into() });
+        assert_eq!(
+            read(&output(1, "", &err.to_string())),
+            Counts::Failed { message: "the store is locked".into(), code: Some("validation_error".into()) }
+        );
     }
 
     #[test]
@@ -474,24 +748,25 @@ mod tests {
             }
         }
         let zm = catalog::tool("zm").unwrap();
-        let a = aggregate_args(&zm.aggregates["meetings"], Some("personal"), Period::Week, "UTC").unwrap();
+        let a = aggregate_args(&zm.aggregates["meetings"], Some("personal"), Period::Week, "UTC", false).unwrap();
         assert_eq!(&a[a.len() - 2..], ["--", "started_at>=7d"]);
-        let week = aggregate_args(&zm.aggregates["meetingsWeek"], Some("p"), Period::Month, "Europe/Madrid").unwrap();
+        let week =
+            aggregate_args(&zm.aggregates["meetingsWeek"], Some("p"), Period::Month, "Europe/Madrid", false).unwrap();
         assert!(week.windows(2).any(|w| w == ["--since-time", "30d"]));
         assert!(week.windows(2).any(|w| w == ["--timezone", "Europe/Madrid"]));
-        let ever = aggregate_args(&zm.aggregates["meetingsSeries"], Some("p"), Period::All, "UTC").unwrap();
+        let ever = aggregate_args(&zm.aggregates["meetingsSeries"], Some("p"), Period::All, "UTC", false).unwrap();
         assert!(!ever.iter().any(|w| w == "--since-time" || w.starts_with('{')));
         assert!(ever.windows(2).any(|w| w == ["--limit", &ALL_ROWS.to_string()]));
         let memo = catalog::tool("memo").unwrap();
-        let t = aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, "UTC").unwrap();
+        let t = aggregate_args(&memo.aggregates["taskSources"], None, Period::Month, "UTC", false).unwrap();
         assert_eq!(&t[t.len() - 2..], ["--", "created>=30d"]);
         let mail = catalog::tool("email").unwrap();
-        assert!(aggregate_args(&mail.aggregates["mail"], None, Period::Week, "UTC").is_err());
-        let m = aggregate_args(&mail.aggregates["mail"], Some("ya"), Period::Week, "UTC").unwrap();
+        assert!(aggregate_args(&mail.aggregates["mail"], None, Period::Week, "UTC", false).is_err());
+        let m = aggregate_args(&mail.aggregates["mail"], Some("ya"), Period::Week, "UTC", false).unwrap();
         assert_eq!(&m[..4], ["ya", "stats", "messages", "show"]);
         assert!(m.windows(2).any(|w| w == ["--limit", "50"]));
         let tg = catalog::tool("tg").unwrap();
-        let c = aggregate_args(&tg.aggregates["coverage"], Some("personal"), Period::All, "UTC").unwrap();
+        let c = aggregate_args(&tg.aggregates["coverage"], Some("personal"), Period::All, "UTC", false).unwrap();
         assert_eq!(&c[..4], ["personal", "store", "chats", "status"]);
     }
 

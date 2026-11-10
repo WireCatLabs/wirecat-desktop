@@ -23,6 +23,7 @@ import { fresh } from "@/shared/fresh"
 import { listProfiles, queryClient } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
 import { analyticsKeys, earlierAnswer, installed, limiter, useAggregateQuery, useExtraQueries } from "./api"
+import { failure, type Problem } from "./problems"
 
 /** The messengers that count their own messages, and the source each writes into storage. */
 export const MESSENGERS = [
@@ -43,7 +44,7 @@ export type SourceCounts =
   | {
       state: "ready"
       profiles: string[]
-      failed: { profile: string; message: string }[]
+      failed: { profile: string; message: string; code: string | null }[]
       days: { key: string; count: number }[]
       senders: CountRow[]
       chats: CountRow[]
@@ -65,7 +66,14 @@ export type TaskNumbers = {
 
 /** A count beyond the page's own three (day, sender, chat): an hour, a kind of message, the period before. */
 /** `period` fixes the window for a card that does not follow the page's period (the week summary). */
-export type Spec = { by: CountBy; only: Only; previous: boolean; period?: Period }
+export type Spec = {
+  by: CountBy
+  only: Only
+  previous: boolean
+  period?: Period
+  range?: { from: string; to: string | null } | undefined
+  full?: boolean | undefined
+}
 /** Every messenger has said which profiles it has, or that it is not installed. */
 const profilesKnown = (s: Pick<State, "profilesOf" | "sources">) =>
   MESSENGERS.every((x) => s.profilesOf[x.id] !== undefined || s.sources[x.id]?.state === "missing")
@@ -74,7 +82,7 @@ const profilesKnown = (s: Pick<State, "profilesOf" | "sources">) =>
 export type AggState =
   | { state: "loading" }
   | { state: "missing" }
-  | { state: "ready"; parts: { profile: string | null; answer: Aggregate }[] }
+  | { state: "ready"; parts: { profile: string | null; answer: Aggregate }[]; signedOut?: string[] }
 
 type State = {
   period: Period
@@ -98,12 +106,16 @@ type State = {
   readAt: number | null
   /** Names on screen, or initials; the owner's choice for screen sharing, kept for the session. */
   hideNames: boolean
-  /** Each messenger's profiles, as listed when the page loaded. */
+  /** Each tool's signed-in profiles, as listed when the page loaded: a profile never signed in has nothing to read. */
   profilesOf: Record<string, string[]>
+  /** Each tool's profiles that were never signed in, said on the page with a sign-in button. */
+  signedOut: Record<string, string[]>
   /** Messenger ids and profile names to show; empty is every one. */
   onlySources: string[]
   onlyProfiles: string[]
   load(): void
+  /** Reads everything again now, as after a sign-in or a failed tool's "Try again". */
+  reload(): void
   setPeriod(period: Period): void
   setHideNames(hide: boolean): void
   setOnlySources(ids: string[]): void
@@ -111,6 +123,12 @@ type State = {
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
+/** A profile the tool says was never signed in is not asked: its answer would only be "nothing recorded". */
+const split = (list: readonly { name: string; signedIn: boolean | null }[]) => ({
+  profiles: list.filter((p) => p.signedIn !== false).map((p) => p.name),
+  signedOut: list.filter((p) => p.signedIn === false).map((p) => p.name),
+})
 
 const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC"
 
@@ -125,10 +143,14 @@ export function combine(answers: { profile: string; by: CountBy; answer: Message
   const ready = answers.filter((a) => a.answer.kind === "ready")
   const old = answers.find((a) => a.answer.kind === "old")
   if (ready.length === 0 && old?.answer.kind === "old") return { state: "old", message: old.answer.message }
-  const failed: { profile: string; message: string }[] = []
+  const failed: { profile: string; message: string; code: string | null }[] = []
   for (const a of answers) {
     if (a.answer.kind === "ready" || failed.some((f) => f.profile === a.profile)) continue
-    failed.push({ profile: a.profile, message: a.answer.message })
+    failed.push({
+      profile: a.profile,
+      message: a.answer.message,
+      code: a.answer.kind === "failed" ? a.answer.code : null,
+    })
   }
   const kept = ready.flatMap((a) =>
     a.answer.kind === "ready" ? [{ profile: a.profile, by: a.by, rows: a.answer.rows, more: a.answer.more }] : [],
@@ -201,6 +223,8 @@ export function useExtra(
   bySource: Record<string, CountRow[]>
   /** Keyed `tg/personal`, for a chart split by profile. */
   byProfile: Record<string, CountRow[]>
+  /** Each profile that did not answer, so a card never reads its silence as "no messages". */
+  problems: Problem[]
   loading: boolean
   stale: boolean
 } {
@@ -211,36 +235,45 @@ export function useExtra(
   const ids = useAnalytics((s) => s.onlySources)
   const profiles = useAnalytics((s) => s.onlyProfiles)
   const known = useAnalytics(profilesKnown)
-  const { by, only, previous } = spec
+  const { by, only, previous, range, full } = spec
   const asking = useMemo(
     () => (known ? MESSENGERS.map((x) => x.id).filter((id) => profilesOf[id]?.length) : []),
     [known, profilesOf],
   )
   // The page's own load already asks for every day's messages of its period.
-  const own = by === "day" && only === "all" && !previous && period === current
+  const own = by === "day" && only === "all" && !previous && period === current && !range && !full
   const results = useExtraQueries(
     asking,
-    { by, only, previous },
+    { by, only, previous, ...(range ? { range } : {}), ...(full ? { full } : {}) },
     { period, zone, profilesOf },
     { enabled: enabled && !(previous && period === "all"), own },
   )
   return useMemo(() => {
-    if (!enabled) return { bySource: {}, byProfile: {}, loading: false, stale: false }
+    if (!enabled) return { bySource: {}, byProfile: {}, problems: [], loading: false, stale: false }
     const settled = asking.length > 0 && results.every((r) => r !== undefined)
-    const earlier = settled ? [] : asking.map((id) => earlierAnswer(id, { by, only, previous }))
+    const earlier = settled ? [] : asking.map((id) => earlierAnswer(id, { by, only, previous, range, full }))
     const stale = !settled && asking.length > 0 && earlier.every((e) => e !== undefined)
     const use = stale ? earlier : results
     const bySource: Record<string, CountRow[]> = {}
     const byProfile: Record<string, CountRow[]> = {}
+    const problems: Problem[] = []
     asking.forEach((id, n) => {
       const answers = use[n]
       if (!answers || (ids.length && !ids.includes(id))) return
       const chosen = answers.filter((a) => !profiles.length || profiles.includes(a.profile))
-      bySource[id] = sumRows(chosen.map((a) => a.rows))
-      for (const a of chosen) byProfile[`${id}/${a.profile}`] = a.rows
+      const ready = chosen.filter((a) => !a.failed)
+      if (ready.length) bySource[id] = sumRows(ready.map((a) => a.rows))
+      for (const a of ready) byProfile[`${id}/${a.profile}`] = a.rows
+      for (const a of chosen)
+        if (a.failed)
+          problems.push(
+            a.failed.old
+              ? { kind: "old", tool: id, detail: a.failed.message }
+              : failure(id, a.profile, a.failed.message, a.failed.code),
+          )
     })
-    return { bySource, byProfile, loading: !settled && !stale, stale }
-  }, [enabled, asking, results, ids, profiles, by, only, previous])
+    return { bySource, byProfile, problems, loading: !settled && !stale, stale }
+  }, [enabled, asking, results, ids, profiles, by, only, previous, range, full])
 }
 
 /** One aggregate of one tool in the current period, its profiles narrowed to the owner's choice, asked for on first use. */
@@ -249,6 +282,9 @@ export function useAggregate(which: Which, id: string, enabled = true, fixed?: P
   const period = fixed ?? current
   const zone = useAnalytics((s) => s.zone)
   const listed = useAnalytics((s) => s.profilesOf[id])
+  const signedOut = useAnalytics((s) => s.signedOut[id])
+  // Every profile is signed out: there is nothing to ask, only a sign-in to offer.
+  const none = listed?.length === 0 && (signedOut?.length ?? 0) > 0
   const ids = useAnalytics((s) => s.onlySources)
   const profiles = useAnalytics((s) => s.onlyProfiles)
   const missing = useTools((s) => s.installs[id]?.length === 0)
@@ -256,12 +292,13 @@ export function useAggregate(which: Which, id: string, enabled = true, fixed?: P
     which,
     id,
     listed === undefined ? null : { period, zone, profiles: listed },
-    enabled && !missing,
+    enabled && !missing && !none,
   )
   const parts = query.data
   return useMemo(() => {
     if (!enabled) return { state: "loading" }
     if (missing) return { state: "missing" }
+    if (none) return { state: "ready", parts: [], signedOut: signedOut ?? [] }
     if (parts === undefined) return { state: "loading" }
     const messenger = MESSENGERS.some((x) => x.id === id)
     if (messenger && ids.length && !ids.includes(id)) return { state: "ready", parts: [] }
@@ -269,7 +306,7 @@ export function useAggregate(which: Which, id: string, enabled = true, fixed?: P
       state: "ready",
       parts: parts.filter((p) => p.profile === null || !profiles.length || profiles.includes(p.profile)),
     }
-  }, [enabled, missing, parts, ids, profiles, id])
+  }, [enabled, missing, none, signedOut, parts, ids, profiles, id])
 }
 
 export const useAnalytics = create<State>((set, get) => {
@@ -278,14 +315,14 @@ export const useAnalytics = create<State>((set, get) => {
   const loadSource = async (id: string, period: Period, tz: string, mine: number, run: ReturnType<typeof limiter>) => {
     const ok = installed(id)
     if (ok === false) return set((s) => ({ sources: { ...s.sources, [id]: { state: "missing" } } }))
-    const profiles = ((await listProfiles(id).catch(() => null)) ?? []).map((p) => p.name)
-    set((s) => ({ profilesOf: { ...s.profilesOf, [id]: profiles } }))
+    const { profiles, signedOut } = split((await listProfiles(id).catch(() => null)) ?? [])
+    set((s) => ({ profilesOf: { ...s.profilesOf, [id]: profiles }, signedOut: { ...s.signedOut, [id]: signedOut } }))
     const answers = await Promise.all(
       profiles.flatMap((profile) =>
         BYS.map(async (by) => {
           const ask: Ask = { period, by, only: "all", previous: false }
           const answer = await run(() => platform.messageStats(id, profile, ask, tz)).catch(
-            (e): MessageCounts => ({ kind: "failed", message: message(e) }),
+            (e): MessageCounts => ({ kind: "failed", message: message(e), code: null }),
           )
           return { profile, by, answer }
         }),
@@ -324,8 +361,13 @@ export const useAnalytics = create<State>((set, get) => {
     const ids = SYNCED.filter((id) => installed(id) !== false)
     const lists = await Promise.all(
       ids.map(async (id) => {
-        const listed = (await listProfiles(id).catch(() => null))?.map((p) => p.name) ?? null
-        set((s) => ({ profilesOf: { ...s.profilesOf, [id]: s.profilesOf[id] ?? listed ?? [] } }))
+        const read = await listProfiles(id).catch(() => null)
+        const listed = read?.map((p) => p.name) ?? null
+        const { profiles: ready, signedOut } = split(read ?? [])
+        set((s) => ({
+          profilesOf: { ...s.profilesOf, [id]: s.profilesOf[id] ?? ready },
+          signedOut: { ...s.signedOut, [id]: s.signedOut[id] ?? signedOut },
+        }))
         const profiles = listed ?? [null]
         return Promise.all(
           (profiles.length ? profiles : [null]).map(async (profile) => {
@@ -407,6 +449,7 @@ export const useAnalytics = create<State>((set, get) => {
     onlySources: [],
     onlyProfiles: [],
     profilesOf: {},
+    signedOut: {},
     load() {
       if (fresh(get().readAt)) return
       // A later visit keeps the numbers on screen until each new one arrives.
@@ -414,6 +457,10 @@ export const useAnalytics = create<State>((set, get) => {
       void queryClient().invalidateQueries({ queryKey: analyticsKeys.all })
       loadOnce()
       loadPeriod()
+    },
+    reload() {
+      set({ readAt: null })
+      get().load()
     },
     setPeriod(period) {
       if (period === get().period) return

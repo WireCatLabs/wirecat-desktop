@@ -7,6 +7,7 @@ import {
   TaskSourcesSchema,
 } from "@/platform/analytics-schemas"
 import type { analyticsMessages } from "./messages"
+import { failure, type Problem } from "./problems"
 import { type AggState, useAggregate, useAnalytics } from "./store"
 
 type M = typeof analyticsMessages.en
@@ -20,27 +21,39 @@ export function duration(ms: number, m: M, lang: string): string {
   return m.days(Math.round(h / 24))
 }
 
-/** Each profile's parsed answer; `old` lists the tools still too old for the command. */
-export function readParts<T>(states: [string, AggState][], schema: v.GenericSchema<unknown, T>) {
+/**
+ * Each profile's parsed answer; `old` lists the tools still too old for the command, and `problems` says what each
+ * profile that gave no numbers needs.
+ */
+export function readParts<T>(states: [string, AggState][], schema: v.GenericSchema<unknown, T>, command?: string) {
   const ready: { id: string; profile: string | null; body: T }[] = []
   const old: string[] = []
   const failed: string[] = []
+  const problems: Problem[] = []
   let loading = false
   for (const [id, s] of states) {
     if (s.state === "loading") loading = true
     if (s.state !== "ready") continue
+    for (const profile of s.signedOut ?? []) problems.push({ kind: "signedOut", tool: id, profile })
     for (const p of s.parts) {
       const a: Aggregate = p.answer
-      if (a.kind === "old") old.push(id)
-      else if (a.kind === "failed") failed.push(a.message)
-      else {
+      if (a.kind === "old") {
+        old.push(id)
+        problems.push({ kind: "old", tool: id, detail: a.message })
+      } else if (a.kind === "failed") {
+        failed.push(a.message)
+        problems.push(failure(id, p.profile, a.message, null, command))
+      } else {
         const parsed = v.safeParse(schema, a.body)
         if (parsed.success) ready.push({ id, profile: p.profile, body: parsed.output })
-        else failed.push(parsed.issues[0]?.message ?? "")
+        else {
+          failed.push(parsed.issues[0]?.message ?? "")
+          problems.push(failure(id, p.profile, parsed.issues[0]?.message ?? "", null, command))
+        }
       }
     }
   }
-  return { ready, old: [...new Set(old)], failed, loading }
+  return { ready, old: [...new Set(old)], failed, problems, loading }
 }
 
 /** Tasks per chat and per meeting, from memo's own counts, both read once. */
@@ -51,7 +64,21 @@ export function useTaskSources() {
       ["memo", useAggregate("taskMeetings", "memo")],
     ],
     TaskSourcesSchema,
+    "memo stats tasks show",
   )
+}
+
+/**
+ * Tasks found in messages and meetings, every account: `--by chat` groups them all, a meeting's under its meeting, so
+ * its totals alone count each task once. null until memo answers or when it cannot.
+ */
+export function useInboxTotals(): { open: number; created: number } | null {
+  const parts = readParts([["memo", useAggregate("taskSources", "memo")]], TaskSourcesSchema).ready
+  if (!parts.length) return null
+  return {
+    open: parts.reduce((s, p) => s + p.body.open, 0),
+    created: parts.reduce((s, p) => s + p.body.created, 0),
+  }
 }
 
 /** When the oldest open task came in, from memo's own per-chat counts; undefined while they are read. */
@@ -83,6 +110,7 @@ export function useMeetingNumbers(): {
   missing: boolean
   old: string[]
   failed: string[]
+  problems: Problem[]
 } {
   const period = useAnalytics((s) => s.period)
   const today = useAnalytics((s) => s.today)
@@ -94,7 +122,8 @@ export function useMeetingNumbers(): {
   const history = week.ready.length > 0 && !week.old.length
   const listState = useAggregate("meetings", "zm", !history && !week.loading)
   const list = readParts([["zm", listState]], MeetingsListSchema)
-  if (weekState.state === "missing") return { numbers: null, loading: false, missing: true, old: [], failed: [] }
+  if (weekState.state === "missing")
+    return { numbers: null, loading: false, missing: true, old: [], failed: [], problems: [] }
   if (history) {
     const parts = week.ready.map((p) => p.body)
     const count = parts.reduce((s, b) => s + b.meetings, 0)
@@ -125,11 +154,20 @@ export function useMeetingNumbers(): {
       missing: false,
       old: [],
       failed: [],
+      problems: [],
     }
   }
   if (week.loading || list.loading || listState.state === "loading")
-    return { numbers: null, loading: true, missing: false, old: [], failed: [] }
-  if (!list.ready.length) return { numbers: null, loading: false, missing: false, old: list.old, failed: list.failed }
+    return { numbers: null, loading: true, missing: false, old: [], failed: [], problems: [] }
+  if (!list.ready.length)
+    return {
+      numbers: null,
+      loading: false,
+      missing: false,
+      old: list.old,
+      failed: list.failed,
+      problems: [...week.problems.filter((p) => p.kind !== "old"), ...list.problems],
+    }
   const s = meetingStats(
     list.ready.flatMap((p) => p.body.items),
     period,
@@ -149,5 +187,6 @@ export function useMeetingNumbers(): {
     missing: false,
     old: [],
     failed: [],
+    problems: [],
   }
 }

@@ -85,8 +85,8 @@ export const TOP: readonly CardId[] = ["week"]
  */
 export const LAYOUT: readonly Section[] = [
   { id: "messages", cards: ["activity", "people", "reply", "waiting", "when", "standsOut"] },
-  { id: "tasks", cards: ["tasks", "taskSources", "projects", "memory", "memoryWeeks"] },
   { id: "meetings", cards: ["meetings", "meetingDays"] },
+  { id: "tasks", cards: ["tasks", "taskSources", "projects", "memory", "memoryWeeks"] },
   { id: "agents", cards: ["helps"] },
   { id: "archive", cards: ["kept", "breakdown", "upToDate"], closed: true },
 ]

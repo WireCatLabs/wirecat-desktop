@@ -243,7 +243,9 @@
             "--timeout",
             "60s",
             "--no-record",
-            "--json"
+            "--json",
+            "--",
+            "{query}"
           ],
           "minVersion": "0.116.0"
         },
@@ -665,7 +667,9 @@
             "--timeout",
             "60s",
             "--no-record",
-            "--json"
+            "--json",
+            "--",
+            "{query}"
           ]
         },
         "coverage": {
@@ -1087,7 +1091,9 @@
             "--timeout",
             "60s",
             "--no-record",
-            "--json"
+            "--json",
+            "--",
+            "{query}"
           ],
           "minVersion": "0.29.0"
         },
@@ -1760,7 +1766,7 @@
             "{query}"
           ],
           "date": "created",
-          "minVersion": "0.131.26"
+          "minVersion": "0.131.79"
         },
         "taskMeetings": {
           "args": [
@@ -1777,7 +1783,7 @@
             "{query}"
           ],
           "date": "created",
-          "minVersion": "0.131.26"
+          "minVersion": "0.131.79"
         }
       },
       "setup": null,

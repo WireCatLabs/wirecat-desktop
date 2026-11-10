@@ -1,25 +1,18 @@
 import { addDays, bucketDays, meetingWeekdays, PERIOD_DAYS } from "@/domain/analytics"
 import { findTool } from "@/domain/catalog"
-import { formatDate, formatList, formatNumber, useLang, useMessages } from "@/i18n"
+import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
 import { MeetingsListSchema, ResponsesSchema, WaitingSchema } from "@/platform/analytics-schemas"
 import { cx } from "@/ui/cx"
 import { Skeleton } from "@/ui/Skeleton"
 import { ColumnChart, PartsBar, RankBars, Stat } from "./charts"
 import { analyticsMessages } from "./messages"
+import { MEMO_MISSING } from "./problems"
 import { duration, readParts, useMeetingNumbers, useTaskSources } from "./reads"
+import { SourceProblems } from "./SourceProblems"
 import { Panel } from "./sections"
 import { type AggState, useAggregate, useAnalytics } from "./store"
 
 const toolName = (id: string) => findTool(id)?.name ?? id
-
-function Missing({ old, failed }: { old: string[]; failed: string[] }) {
-  const m = useMessages(analyticsMessages)
-  return (
-    <p className="text-[0.9rem] text-ink-soft">
-      {old.length ? m.needsUpdate(formatList(old.map(toolName))) : m.countFailed(failed[0] ?? "")}
-    </p>
-  )
-}
 
 const CardSkeleton = ({ label }: { label: string }) => (
   <Skeleton className="h-[8.5rem] w-full rounded-[0.2rem]" label={label} />
@@ -36,7 +29,7 @@ export function ReplyTime() {
     ["wa", useAggregate("responses", "wa")],
   ]
   const live = states.filter(([, s]) => s.state !== "missing")
-  const r = readParts(live, ResponsesSchema)
+  const r = readParts(live, ResponsesSchema, "stats messages responses --who me")
   const buckets = BUCKETS.map((k, i) => ({
     id: k,
     label: m.bucket[k] ?? k,
@@ -49,7 +42,7 @@ export function ReplyTime() {
         <CardSkeleton label={m.replyTitle} />
       ) : !r.ready.length ? (
         live.length ? (
-          <Missing old={r.old} failed={r.failed} />
+          <SourceProblems problems={r.problems} />
         ) : (
           <p className="text-[0.9rem] text-ink-soft">{m.noMessengers}</p>
         )
@@ -86,7 +79,7 @@ export function ReplyTime() {
             </div>
           )}
           <p className="text-[0.85rem] text-ink-dim">{m.replyNote}</p>
-          {r.old.length > 0 && <Missing old={r.old} failed={[]} />}
+          <SourceProblems problems={r.problems} />
         </div>
       )}
     </Panel>
@@ -102,7 +95,7 @@ export function WaitingOnYou() {
     ["wa", useAggregate("waiting", "wa")],
   ]
   const live = states.filter(([, s]) => s.state !== "missing")
-  const r = readParts(live, WaitingSchema)
+  const r = readParts(live, WaitingSchema, "stats messages waiting")
   const chats = r.ready.reduce((s, p) => s + p.body.chats, 0)
   const kinds = r.ready.reduce(
     (s, p) => ({ private: s.private + (p.body.by_kind?.private ?? 0), group: s.group + (p.body.by_kind?.group ?? 0) }),
@@ -118,7 +111,7 @@ export function WaitingOnYou() {
         <CardSkeleton label={m.waitingTitle} />
       ) : !r.ready.length ? (
         live.length ? (
-          <Missing old={r.old} failed={r.failed} />
+          <SourceProblems problems={r.problems} />
         ) : (
           <p className="text-[0.9rem] text-ink-soft">{m.noMessengers}</p>
         )
@@ -136,7 +129,7 @@ export function WaitingOnYou() {
               {m.waitingKinds(formatNumber(kinds.private), formatNumber(kinds.group))}
             </p>
           )}
-          {r.old.length > 0 && <Missing old={r.old} failed={[]} />}
+          <SourceProblems problems={r.problems} />
         </div>
       )}
     </Panel>
@@ -148,7 +141,7 @@ export function Meetings() {
   const lang = useLang()
   const period = useAnalytics((s) => s.period)
   const today = useAnalytics((s) => s.today)
-  const { numbers, loading, missing, old, failed } = useMeetingNumbers()
+  const { numbers, loading, missing, problems } = useMeetingNumbers()
   const source = numbers?.from === "list" ? "zm meetings list" : "zm stats meetings history"
   const weeks = Math.max(1, (PERIOD_DAYS[period] ?? Math.max(7, (numbers?.weeks.length ?? 1) * 7)) / 7)
   const perWeek = (numbers?.minutes ?? 0) / 60 / weeks
@@ -159,11 +152,11 @@ export function Meetings() {
     <>
       <Panel id="an-meetings" title={m.meetingsTitle} source={source}>
         {missing ? (
-          <p className="text-[0.9rem] text-ink-soft">{m.needsUpdate("Zoom")}</p>
+          <SourceProblems problems={[{ kind: "missing", tool: "zm" }]} />
         ) : loading ? (
           <CardSkeleton label={m.meetingsTitle} />
         ) : !numbers ? (
-          <Missing old={old} failed={failed} />
+          <SourceProblems problems={problems} />
         ) : numbers.count === 0 ? (
           <p className="text-[0.9rem] text-ink-soft">{m.noMeetings}</p>
         ) : (
@@ -237,11 +230,11 @@ export function TaskSources() {
   return (
     <Panel id="an-sources" title={m.taskSourcesTitle} source="stats tasks show">
       {state.state === "missing" ? (
-        <p className="text-[0.9rem] text-ink-soft">{m.tasksMissing}</p>
+        <SourceProblems problems={MEMO_MISSING} />
       ) : r.loading ? (
         <CardSkeleton label={m.taskSourcesTitle} />
       ) : !r.ready.length ? (
-        <Missing old={r.old} failed={r.failed} />
+        <SourceProblems problems={r.problems} />
       ) : rows.length === 0 ? (
         <p className="text-[0.9rem] text-ink-soft">{m.noTaskSources}</p>
       ) : (
@@ -296,7 +289,7 @@ export function MeetingDays() {
   const today = useAnalytics((s) => s.today)
   const zone = useAnalytics((s) => s.zone)
   const state = useAggregate("meetings", "zm")
-  const r = readParts([["zm", state]], MeetingsListSchema)
+  const r = readParts([["zm", state]], MeetingsListSchema, "zm meetings list")
   const { buckets, series } = meetingWeekdays(
     r.ready.flatMap((p) => p.body.items),
     period,
@@ -315,7 +308,7 @@ export function MeetingDays() {
       ) : r.loading ? (
         <CardSkeleton label={m.meetingDaysTitle} />
       ) : !r.ready.length ? (
-        <Missing old={r.old} failed={r.failed} />
+        <SourceProblems problems={r.problems} />
       ) : buckets.every((b) => b.total === 0) ? (
         <p className="text-[0.9rem] text-ink-soft">{m.noMeetings}</p>
       ) : (

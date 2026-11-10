@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { Aggregate, MessageCounts } from "@/platform/analytics-schemas"
 import { platform } from "@/platform/bridge"
-import { act, render, renderHook, screen, waitFor } from "@/testing/render"
+import { act, fireEvent, render, renderHook, screen, waitFor } from "@/testing/render"
 import { useClosedWeeks } from "./api"
 import { MeetingDays } from "./daily"
 import { useAnalytics, useExtra } from "./store"
@@ -34,17 +34,20 @@ describe("an aggregate card", () => {
     expect(screen.queryByText(/Could not count/)).not.toBeInTheDocument()
   })
 
-  it("says why the tool could not count", async () => {
+  it("says the tool did not answer, offers to try again and keeps its words under Details", async () => {
     vi.spyOn(platform, "analyticsAggregate").mockRejectedValue(new Error("zm is not signed in"))
     render(<MeetingDays />)
-    expect(await screen.findByText("Could not count: zm is not signed in")).toBeInTheDocument()
+    expect(await screen.findAllByText("Zoom (personal) did not answer.")).toHaveLength(1)
+    expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument()
+    fireEvent.click(screen.getByText("Details"))
+    expect(await screen.findByText("zm is not signed in")).toBeInTheDocument()
   })
 
   it("asks again when the page loads again", async () => {
     const ask = vi.spyOn(platform, "analyticsAggregate").mockRejectedValueOnce(new Error("timed out"))
     ask.mockResolvedValue({ kind: "ready", body: { items: [] } })
     render(<MeetingDays />)
-    expect(await screen.findByText("Could not count: timed out")).toBeInTheDocument()
+    expect(await screen.findByText("Zoom (personal) did not answer.")).toBeInTheDocument()
     act(() => useAnalytics.getState().load())
     expect(await screen.findByText("No meetings in this period.")).toBeInTheDocument()
   })
@@ -85,12 +88,15 @@ describe("extra message counts", () => {
     expect(result.current.stale).toBe(false)
   })
 
-  it("leave out a profile whose count failed", async () => {
+  it("leave out a profile whose count failed, and say so instead of counting it as no messages", async () => {
     useAnalytics.setState(known)
     vi.spyOn(platform, "messageStats").mockRejectedValue(new Error("locked"))
     const { result } = renderHook(() => useExtra(hours))
     await waitFor(() => expect(result.current.loading).toBe(false))
-    expect(result.current.bySource.tg).toEqual([])
+    expect(result.current.bySource.tg ?? []).toEqual([])
+    expect(result.current.problems).toEqual([
+      expect.objectContaining({ kind: "failed", tool: "tg", profile: "personal" }),
+    ])
   })
 })
 

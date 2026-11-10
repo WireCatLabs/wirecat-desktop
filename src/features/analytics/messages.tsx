@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import { type Messages, plural } from "@/i18n"
 
 const en = {
@@ -10,7 +9,7 @@ const en = {
   hideNames: "Hide names",
   sourceChip: "Source",
   profileChip: "Profile",
-  countedFor: (list: ReactNode) => <>Messages counted for every profile: {list}</>,
+  weekHead: "This week against the same days of last week",
   noProfilesYet: "No messenger profiles yet",
   refreshing: "Counting…",
 
@@ -40,9 +39,6 @@ const en = {
   busiest: { day: "Busiest day", week: "Busiest week", month: "Busiest month" } as Record<string, string>,
   noMessengers: "Install Telegram, MAX or WhatsApp on the Tools page to see your messages over time.",
   noMessages: "No messages in this period.",
-  sourceOld: (name: string) => `${name} cannot count its messages yet. Update it on the Tools page.`,
-  sourceFailed: (name: string, profile: string, error: string) =>
-    `${name} (${profile}) did not answer: ${error}. The other profiles are counted.`,
   sourceNoProfiles: (name: string) => `${name} has no profile yet.`,
   sourceMore: (name: string) => `${name} has more days than one answer holds; the oldest are left out.`,
 
@@ -66,7 +62,9 @@ const en = {
   projectsTable: "Tasks, memory and messages per project",
 
   tasks: "Tasks",
-  openNow: "Open now",
+  openNow: "Open in projects",
+  unsortedOpen: "Unsorted",
+  unsortedNote: "from messages and meetings, in no project yet",
   overdueNow: "Overdue",
   closedIn: "Closed in the period",
   closedChart: "Tasks closed",
@@ -75,7 +73,6 @@ const en = {
   madeChart: "Tasks made and closed",
   allTimeClosed: "Bars for all time come with a WireCat update; the totals above are complete.",
   madeLater: "How many tasks were made each week arrives with a WireCat update.",
-  tasksMissing: "Projects and tasks come with Memo. Install it on the Tools page.",
   tasksError: (e: string) => `Could not read the tasks: ${e}`,
 
   memory: "Memory",
@@ -144,6 +141,7 @@ const en = {
   links: "Links",
   linksNote: "Shared in messages",
   whenTitle: "When you talk",
+  lastYearOnly: "For all time, the hours are from the last year.",
   whenNote: "Messages by weekday and hour, in your time zone.",
   hourCol: "Hour",
   heatTable: "Messages by weekday and hour",
@@ -186,7 +184,6 @@ const en = {
   oldestOpen: "Oldest open",
   medianClose: "Half closed within",
   needsUpdate: (tool: string) => `Arrives with a ${tool} update.`,
-  countFailed: (e: string) => `Could not count: ${e}`,
   meetingsTitle: "Meetings",
   meetingsCount: "Meetings",
   meetingHours: "Hours a week",
@@ -257,7 +254,7 @@ const ru: typeof en = {
   hideNames: "Скрыть имена",
   sourceChip: "Источник",
   profileChip: "Профиль",
-  countedFor: (list) => <>Сообщения посчитаны по всем профилям: {list}</>,
+  weekHead: "Эта неделя против тех же дней прошлой",
   noProfilesYet: "Профилей мессенджеров пока нет",
   refreshing: "Считаем…",
 
@@ -287,8 +284,6 @@ const ru: typeof en = {
   busiest: { day: "Самый активный день", week: "Самая активная неделя", month: "Самый активный месяц" },
   noMessengers: "Установите Telegram, MAX или WhatsApp на странице «Инструменты», чтобы видеть сообщения по времени.",
   noMessages: "За этот период сообщений нет.",
-  sourceOld: (name) => `${name} пока не умеет считать сообщения. Обновите его на странице «Инструменты».`,
-  sourceFailed: (name, profile, error) => `${name} (${profile}) не ответил: ${error}. Остальные профили посчитаны.`,
   sourceNoProfiles: (name) => `У ${name} пока нет профиля.`,
   sourceMore: (name) => `У ${name} больше дней, чем помещается в один ответ; самые старые не вошли.`,
 
@@ -312,7 +307,9 @@ const ru: typeof en = {
   projectsTable: "Задачи, память и сообщения по проектам",
 
   tasks: "Задачи",
-  openNow: "Открыто сейчас",
+  openNow: "Открыто в проектах",
+  unsortedOpen: "Неразобранные",
+  unsortedNote: "из переписки и встреч, ещё не в проекте",
   overdueNow: "Просрочено",
   closedIn: "Закрыто за период",
   closedChart: "Закрытые задачи",
@@ -321,7 +318,6 @@ const ru: typeof en = {
   madeChart: "Созданные и закрытые задачи",
   allTimeClosed: "Столбцы за всё время появятся с обновлением WireCat; итоги выше полные.",
   madeLater: "Сколько задач создано за каждую неделю, появится с обновлением WireCat.",
-  tasksMissing: "Проекты и задачи приходят с Memo. Установите его на странице «Инструменты».",
   tasksError: (e) => `Не удалось прочитать задачи: ${e}`,
 
   memory: "Память",
@@ -387,6 +383,7 @@ const ru: typeof en = {
   links: "Ссылки",
   linksNote: "Из сообщений",
   whenTitle: "Когда вы общаетесь",
+  lastYearOnly: "За всё время часы взяты за последний год.",
   whenNote: "Сообщения по дням недели и часам, в вашем часовом поясе.",
   hourCol: "Час",
   heatTable: "Сообщения по дням недели и часам",
@@ -429,7 +426,6 @@ const ru: typeof en = {
   oldestOpen: "Самая старая",
   medianClose: "Половина закрыта за",
   needsUpdate: (tool) => `Появится с обновлением ${tool}.`,
-  countFailed: (e) => `Не удалось посчитать: ${e}`,
   meetingsTitle: "Встречи",
   meetingsCount: "Встречи",
   meetingHours: "Часов в неделю",
@@ -498,7 +494,7 @@ const es: typeof en = {
   hideNames: "Ocultar nombres",
   sourceChip: "Fuente",
   profileChip: "Perfil",
-  countedFor: (list) => <>Mensajes contados en todos los perfiles: {list}</>,
+  weekHead: "Esta semana frente a los mismos días de la anterior",
   noProfilesYet: "Todavía no hay perfiles de mensajería",
   refreshing: "Contando…",
 
@@ -528,9 +524,6 @@ const es: typeof en = {
   busiest: { day: "Día con más actividad", week: "Semana con más actividad", month: "Mes con más actividad" },
   noMessengers: "Instala Telegram, MAX o WhatsApp en Herramientas para ver tus mensajes en el tiempo.",
   noMessages: "No hay mensajes en este periodo.",
-  sourceOld: (name) => `${name} todavía no sabe contar sus mensajes. Actualízalo en Herramientas.`,
-  sourceFailed: (name, profile, error) =>
-    `${name} (${profile}) no respondió: ${error}. Los demás perfiles sí se cuentan.`,
   sourceNoProfiles: (name) => `${name} todavía no tiene perfil.`,
   sourceMore: (name) => `${name} tiene más días de los que caben en una respuesta; los más antiguos quedan fuera.`,
 
@@ -554,7 +547,9 @@ const es: typeof en = {
   projectsTable: "Tareas, memoria y mensajes por proyecto",
 
   tasks: "Tareas",
-  openNow: "Abiertas ahora",
+  openNow: "Abiertas en proyectos",
+  unsortedOpen: "Sin clasificar",
+  unsortedNote: "de mensajes y reuniones, aún sin proyecto",
   overdueNow: "Vencidas",
   closedIn: "Cerradas en el periodo",
   closedChart: "Tareas cerradas",
@@ -564,7 +559,6 @@ const es: typeof en = {
   allTimeClosed:
     "Las barras de todo el periodo llegan con una actualización de WireCat; los totales de arriba están completos.",
   madeLater: "Cuántas tareas se crearon cada semana llega con una actualización de WireCat.",
-  tasksMissing: "Los proyectos y las tareas vienen con Memo. Instálalo en Herramientas.",
   tasksError: (e) => `No se pudieron leer las tareas: ${e}`,
 
   memory: "Memoria",
@@ -631,6 +625,7 @@ const es: typeof en = {
   links: "Enlaces",
   linksNote: "Compartidos en mensajes",
   whenTitle: "Cuándo hablas",
+  lastYearOnly: "En todo el periodo, las horas son del último año.",
   whenNote: "Mensajes por día de la semana y hora, en tu zona horaria.",
   hourCol: "Hora",
   heatTable: "Mensajes por día de la semana y hora",
@@ -673,7 +668,6 @@ const es: typeof en = {
   oldestOpen: "La más antigua",
   medianClose: "La mitad se cierra en",
   needsUpdate: (tool) => `Llega con una actualización de ${tool}.`,
-  countFailed: (e) => `No se pudo contar: ${e}`,
   meetingsTitle: "Reuniones",
   meetingsCount: "Reuniones",
   meetingHours: "Horas a la semana",
