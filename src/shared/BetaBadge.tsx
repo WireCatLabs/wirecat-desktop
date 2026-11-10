@@ -3,7 +3,7 @@ import { cx } from "@/ui/cx"
 import { isBeta } from "./beta"
 import { betaMessages } from "./messages-beta"
 
-/** A quiet β beside a section that is new and lightly tested; renders nothing once the section drops `beta`. */
+/** A quiet β beside a section that is new and lightly tested; renders nothing once its id leaves `BETA` (`shared/beta.ts`). */
 export function BetaBadge({ section, className }: { section: string; className?: string }) {
   const m = useMessages(betaMessages)
   if (!isBeta(section)) return null

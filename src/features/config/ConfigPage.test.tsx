@@ -195,6 +195,9 @@ describe("Config", () => {
     await user.click(screen.getByRole("button", { name: "Save" }))
     expect(screen.getByRole("alert")).toHaveTextContent("Nothing is changed yet.")
     expect(editor).toHaveFocus()
+    act(() => useLanguage.setState({ choice: "ru" }))
+    expect(screen.getByRole("alert")).toHaveTextContent("Пока ничего не изменено.")
+    act(() => useLanguage.setState({ choice: "en" }))
 
     fireEvent.change(editor, { target: { value: "{ broken" } })
     const format = screen.getByRole("button", { name: "Format" })

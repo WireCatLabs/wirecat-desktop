@@ -43,6 +43,7 @@ const field = `h-9 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg
 const NAME_FIELD = "own-tool-name"
 const PASTE_FIELD = "own-tool-paste"
 const ACCEPT_FIELD = "own-tool-accept"
+type Field = typeof NAME_FIELD | typeof PASTE_FIELD | typeof ACCEPT_FIELD
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -71,12 +72,12 @@ export function OwnToolDialog() {
   const needName = useFieldError(NAME_FIELD)
   const needPaste = useFieldError(PASTE_FIELD)
   const needAccept = useFieldError(ACCEPT_FIELD)
-  const ask = (field: string) =>
-    field === NAME_FIELD
-      ? needName.fail(m.nameEmpty)
-      : field === PASTE_FIELD
-        ? needPaste.fail(m.pasteEmpty)
-        : needAccept.fail(m.acceptFirst)
+  const ask = (field: Field) =>
+    ({
+      [NAME_FIELD]: () => needName.fail((lang) => ownMessages[lang].nameEmpty),
+      [PASTE_FIELD]: () => needPaste.fail((lang) => ownMessages[lang].pasteEmpty),
+      [ACCEPT_FIELD]: () => needAccept.fail((lang) => ownMessages[lang].acceptFirst),
+    })[field]()
 
   const read = async (name: string, desktop: string | null) => {
     setStep({ kind: "reading", pkg: name })
@@ -218,7 +219,7 @@ type On = {
   uninstall(review: OwnReview): void
   setStep(step: Step): void
   close(): void
-  ask(field: string): void
+  ask(field: Field): void
 }
 
 function Actions({

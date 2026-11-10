@@ -12,10 +12,19 @@ import { reasonText } from "./reason"
 import { documentText, type Step, useConfig } from "./store"
 
 const EDITOR = "config-json"
-const ERRORS = `${EDITOR}-errors`
+const PROBLEMS = `${EDITOR}-problems`
 
 /** Puts the caret in the editor once the store has marked the lines a save or a format found wrong. */
 const focusEditor = () => document.getElementById(EDITOR)?.focus()
+
+/** Saves, then shows the marked editor, unless the owner has moved elsewhere while the steps ran. */
+async function saveAndShow() {
+  const from = document.activeElement
+  await useConfig.getState().saveDraft()
+  const after = useConfig.getState()
+  const stayed = document.activeElement === from || document.activeElement === document.body
+  if (stayed && (after.jsonError !== null || after.problems.length > 0)) focusEditor()
+}
 
 export function JsonActions({ dirty }: { dirty: boolean }) {
   const m = useMessages(configMessages).editor
@@ -25,10 +34,8 @@ export function JsonActions({ dirty }: { dirty: boolean }) {
     if (dirty) unchanged.clear()
   }, [dirty, unchanged.clear])
   const save = async () => {
-    if (!dirty) return unchanged.fail(m.nothingToSave)
-    await st.saveDraft()
-    const after = useConfig.getState()
-    if (after.jsonError !== null || after.problems.length > 0) focusEditor()
+    if (!dirty) return unchanged.fail((lang) => configMessages[lang].editor.nothingToSave)
+    await saveAndShow()
   }
   return (
     <div className="flex flex-wrap items-center gap-2 py-2">
@@ -86,18 +93,18 @@ export function JsonTab() {
       ) : (
         <JsonEditor
           id={EDITOR}
-          errors={ERRORS}
+          errors={PROBLEMS}
           label={m.label}
           value={text}
           onChange={st.edit}
           onSave={() => {
-            if (!st.saving) st.saveDraft()
+            if (!st.saving) void saveAndShow()
           }}
           marks={marks}
           readOnly={st.saving}
         />
       )}
-      <div id={ERRORS} aria-live="polite" className="border-line border-t empty:hidden">
+      <div id={PROBLEMS} aria-live="polite" className="border-line border-t empty:hidden">
         {st.jsonError && (
           <Message tone="bad" where={m.line(st.jsonError.line)}>
             {reasonText(all, st.jsonError.message)}

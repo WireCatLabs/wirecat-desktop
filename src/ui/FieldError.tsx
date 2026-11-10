@@ -1,23 +1,27 @@
 import { type ReactNode, useCallback, useState } from "react"
+import { type Lang, useLang } from "@/i18n"
 import { Collapse } from "./Collapse"
 
 /**
  * What a form does when its button is pressed with a value missing: show the error at the field, mark the field and put
  * focus in it. The button itself is never disabled for this. The error clears when the user edits the field.
  */
-export function useFieldError(id: string) {
-  const [error, setError] = useState<string | null>(null)
+export function useFieldError(id: string, { preventScroll = false }: { preventScroll?: boolean } = {}) {
+  const lang = useLang()
+  // A function of the language, so a hint already on screen follows a language switch.
+  const [said, setSaid] = useState<{ text: string | ((lang: Lang) => string) } | null>(null)
+  const error = said === null ? null : typeof said.text === "string" ? said.text : said.text(lang)
   const fail = useCallback(
-    (message: string) => {
-      setError(message)
+    (message: string | ((lang: Lang) => string)) => {
+      setSaid({ text: message })
       const el = document.getElementById(id)
       // A group (fieldset) takes focus in its first control that can take it.
       const usable = "input:not(:disabled),textarea:not(:disabled),select:not(:disabled),button:not(:disabled)"
-      ;(el?.matches(usable) ? el : el?.querySelector<HTMLElement>(usable))?.focus()
+      ;(el?.matches(usable) ? el : el?.querySelector<HTMLElement>(usable))?.focus({ preventScroll })
     },
-    [id],
+    [id, preventScroll],
   )
-  const clear = useCallback(() => setError(null), [])
+  const clear = useCallback(() => setSaid(null), [])
   return {
     error,
     fail,

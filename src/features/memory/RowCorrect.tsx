@@ -43,7 +43,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
   const x = useMessages(explainedMessages)
   const hint = useId()
   const fieldId = useId()
-  const need = useFieldError(fieldId)
+  const need = useFieldError(fieldId, { preventScroll: true })
   const kindLabel = useId()
   const aboutLabel = useId()
   const [text, setTextNow] = useState(() => useMemory.getState().draft ?? entry.text ?? "")
@@ -79,7 +79,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
 
   const save = () => {
     if (busy) return
-    if (!changed) return need.fail(m.nothingChanged)
+    if (!changed) return need.fail((lang) => memoryMessages[lang].nothingChanged)
     const row = box.current?.closest<HTMLElement>("[data-row]")
     // The owner's version unfolds at the top of its day, above this row: keep this row where it is.
     const change = {

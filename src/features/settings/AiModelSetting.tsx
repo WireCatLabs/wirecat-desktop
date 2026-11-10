@@ -284,7 +284,11 @@ function AiModelForm({ saved }: { saved: AiModel }) {
           disabled={busy !== null}
           aria-describedby={`${name}-cost`}
           onClick={() =>
-            saved.provider === null || dirty ? saveFirst.fail(m.checkSaveFirst) : void useAiModel.getState().check()
+            dirty
+              ? saveFirst.fail((lang) => aiModelMessages[lang].checkSaveFirst)
+              : saved.provider === null
+                ? noProvider.fail(m.needProvider)
+                : void useAiModel.getState().check()
           }
           icon={busy === "check" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
         >
@@ -309,7 +313,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
       <FieldError id={`${name}-nothing`}>{nothing && m.nothingToSave}</FieldError>
       {saveFirst.hint}
       <p id={`${name}-cost`} className="-mt-[0.5rem] text-[0.85rem] text-ink-dim">
-        {dirty && saved.provider !== null ? m.checkSaveFirst : m.checkCost}
+        {m.checkCost}
       </p>
       {saved.provider === null && <p className="text-[0.9rem] text-ink-soft">{m.off}</p>}
       {saved.provider !== null && (
