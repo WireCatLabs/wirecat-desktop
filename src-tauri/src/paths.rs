@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
@@ -66,6 +67,9 @@ fn place_managed(dirs: &mut Vec<PathBuf>, bin: PathBuf) {
 struct ShellEnv {
     path: Option<OsString>,
     pnpm_home: Option<OsString>,
+    shell: Option<String>,
+    /// Why the shell gave no PATH: tools only it would find are then reported missing, so the interface says so.
+    problem: Option<String>,
 }
 
 static LOGIN_SHELL: RwLock<Option<Arc<ShellEnv>>> = RwLock::new(None);
@@ -90,13 +94,44 @@ fn read_login_shell() -> ShellEnv {
     let shell = user_shell().unwrap_or_else(|| PathBuf::from("/bin/sh"));
     let script = "printf '__WIRECAT_PATH__%s__WIRECAT_PNPM__%s' \"$PATH\" \"$PNPM_HOME\"";
     let flags = terminal_flags(&shell, cfg!(target_os = "linux"));
-    let Ok(out) = crate::run::run(&shell, &[flags, script], None, Duration::from_secs(5)) else {
-        return ShellEnv::default();
+    let failed = |problem: String| ShellEnv {
+        shell: Some(shell.to_string_lossy().into_owned()),
+        problem: Some(problem),
+        ..ShellEnv::default()
     };
-    let Some((_, rest)) = out.stdout.rsplit_once("__WIRECAT_PATH__") else { return ShellEnv::default() };
+    let out = match crate::run::run(&shell, &[flags, script], None, Duration::from_secs(5)) {
+        Ok(out) => out,
+        Err(e) => return failed(e.to_string()),
+    };
+    let Some((_, rest)) = out.stdout.rsplit_once("__WIRECAT_PATH__") else {
+        return failed(format!("it printed no PATH (exit {})", out.code.map_or("?".into(), |c| c.to_string())));
+    };
     let (path, pnpm) = rest.split_once("__WIRECAT_PNPM__").unwrap_or((rest, ""));
     let non_empty = |s: &str| (!s.trim().is_empty()).then(|| OsString::from(s.trim()));
-    ShellEnv { path: non_empty(path), pnpm_home: non_empty(pnpm) }
+    ShellEnv {
+        path: non_empty(path),
+        pnpm_home: non_empty(pnpm),
+        shell: Some(shell.to_string_lossy().into_owned()),
+        problem: None,
+    }
+}
+
+/// Where `find` looks, for a "not found" that says why: every folder, and the shell whose PATH was or was not read.
+#[derive(Serialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct Lookup {
+    pub folders: Vec<String>,
+    pub shell: Option<String>,
+    pub shell_problem: Option<String>,
+}
+
+pub fn lookup() -> Lookup {
+    let env = login_shell();
+    Lookup {
+        folders: std::env::split_paths(&absolute(&search_path())).map(|d| tilde(&d.to_string_lossy())).collect(),
+        shell: env.shell.clone(),
+        shell_problem: env.problem.clone(),
+    }
 }
 
 /// The PATH a new terminal running `shell` ends with. Asked fresh each time: used right after the app edits a file.
@@ -215,7 +250,11 @@ fn account_shell() -> Option<PathBuf> {
 fn account_shell() -> Option<PathBuf> {
     use std::os::unix::fs::MetadataExt;
     let uid = std::fs::metadata("/proc/self").ok()?.uid().to_string();
-    let getent = ["/usr/bin/getent", "/bin/getent"].into_iter().map(Path::new).find(|p| p.is_file())?;
+    // NixOS has neither of the usual two.
+    let getent = ["/usr/bin/getent", "/bin/getent", "/run/current-system/sw/bin/getent"]
+        .into_iter()
+        .map(Path::new)
+        .find(|p| p.is_file())?;
     let out = crate::run::run(getent, &["passwd", &uid], None, Duration::from_secs(3)).ok()?;
     parse_passwd_shell(&out.stdout, &uid)
 }
@@ -300,9 +339,26 @@ fn known_dirs() -> Vec<PathBuf> {
         }
         dirs.extend(nvm_bins(&home.join(".nvm/versions/node")));
     }
+    let user = ["USER", "LOGNAME"].iter().find_map(|v| std::env::var(v).ok());
+    dirs.extend(nix_dirs(home().as_deref(), user.as_deref()));
     dirs.push("/opt/homebrew/bin".into());
     dirs.push("/usr/local/bin".into());
     dirs.push("/usr/bin".into());
+    dirs
+}
+
+/// Nix installs programs only into profile folders. A launcher's PATH on NixOS or nix-darwin can miss them, and so does
+/// ours when the login shell does not answer in time.
+fn nix_dirs(home: Option<&Path>, user: Option<&str>) -> Vec<PathBuf> {
+    let mut dirs = vec![PathBuf::from("/run/current-system/sw/bin")];
+    if let Some(user) = user.filter(|u| !u.is_empty() && !u.contains('/')) {
+        dirs.push(PathBuf::from(format!("/etc/profiles/per-user/{user}/bin")));
+    }
+    if let Some(home) = home {
+        dirs.push(home.join(".nix-profile/bin"));
+        dirs.push(home.join(".local/state/nix/profile/bin"));
+    }
+    dirs.push("/nix/var/nix/profiles/default/bin".into());
     dirs
 }
 
@@ -489,6 +545,24 @@ mod tests {
         std::fs::remove_dir_all(&planted).unwrap();
         assert_eq!(found, None);
         assert_eq!(absolute(std::ffi::OsStr::new("node_modules/.bin:/usr/bin:.")), OsString::from("/usr/bin"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn finds_a_program_installed_into_a_nix_profile() {
+        use std::os::unix::fs::PermissionsExt;
+        let home = std::env::temp_dir().join(format!("wirecat-nix-{}", std::process::id()));
+        let bin = home.join(".nix-profile/bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        std::fs::write(bin.join("openclaw"), "#!/bin/sh\n").unwrap();
+        std::fs::set_permissions(bin.join("openclaw"), std::fs::Permissions::from_mode(0o755)).unwrap();
+        let dirs = nix_dirs(Some(&home), Some("slava"));
+        let found = which_in("openclaw", &std::env::join_paths(&dirs).unwrap());
+        std::fs::remove_dir_all(&home).unwrap();
+        assert_eq!(found, Some(bin.join("openclaw")));
+        assert!(dirs.contains(&PathBuf::from("/run/current-system/sw/bin")));
+        assert!(dirs.contains(&PathBuf::from("/etc/profiles/per-user/slava/bin")));
+        assert!(!nix_dirs(None, Some("../x")).iter().any(|d| d.starts_with("/etc/profiles")));
     }
 
     #[test]

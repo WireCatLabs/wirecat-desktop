@@ -64,6 +64,14 @@ describe("Agents", () => {
     await waitFor(() => expect(screen.getAllByRole("button", { name: /Check again|Checking/ })).toHaveLength(1), wait)
   }, 20000)
 
+  it("says where it looked for a missing agent and that the terminal's PATH could not be read", async () => {
+    const user = await openAgents()
+    await user.click(await foundTab(/^Gemini CLI.*Not found/))
+    await user.click(within(pane()).getByRole("button", { name: "Where WireCat looked" }))
+    expect(within(pane()).getByText("~/.nix-profile/bin")).toBeInTheDocument()
+    expect(within(pane()).getByText(/could not be read from \/run\/current-system\/sw\/bin\/zsh/)).toBeInTheDocument()
+  }, 20000)
+
   it("moves through agents with the arrow keys, Home and End, and shows where a missing agent's skills go", async () => {
     const user = await openAgents()
     const claude = await foundTab(/^Claude Code.*to set up/)

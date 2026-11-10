@@ -102,6 +102,11 @@ const en = {
   absentAlone: (folders: ReactNode): ReactNode => (
     <>Not found on this computer. Once it is installed it reads skills from {folders}.</>
   ),
+  whereLooked: "Where WireCat looked",
+  lookedForProgram: (names: ReactNode): ReactNode => <>A program named {names}, in these folders:</>,
+  lookedForFiles: (files: ReactNode): ReactNode => <>And its settings: {files}</>,
+  shellUnread: (shell: string, problem: string) =>
+    `Your terminal's PATH could not be read from ${shell} (${problem}), so a program only it adds to PATH is missed.`,
   allCurrent: "Every skill it can see is current",
   connect: "Connect",
   chooseATool: "Choose at least one tool to connect.",
@@ -417,6 +422,11 @@ const ru: typeof en = {
   absentAlone: (folders) => (
     <>На этом компьютере не найден. Когда его установят, он будет читать навыки из {folders}.</>
   ),
+  whereLooked: "Где WireCat искал",
+  lookedForProgram: (names) => <>Программу {names} в этих папках:</>,
+  lookedForFiles: (files) => <>И файл его настроек: {files}</>,
+  shellUnread: (shell, problem) =>
+    `Не удалось прочитать PATH вашего терминала из ${shell} (${problem}), поэтому программа, которую добавляет в PATH только он, не находится.`,
   allCurrent: "Все навыки, которые он видит, актуальны",
   connect: "Подключить",
   chooseATool: "Выберите хотя бы один инструмент для подключения.",
@@ -734,6 +744,11 @@ const es: typeof en = {
   absentAlone: (folders) => (
     <>No se ha encontrado en este ordenador. Cuando se instale, leerá las skills de {folders}.</>
   ),
+  whereLooked: "Dónde buscó WireCat",
+  lookedForProgram: (names) => <>Un programa llamado {names}, en estas carpetas:</>,
+  lookedForFiles: (files) => <>Y sus ajustes: {files}</>,
+  shellUnread: (shell, problem) =>
+    `No se pudo leer el PATH de tu terminal desde ${shell} (${problem}), así que no se encuentra un programa que solo él añade al PATH.`,
   allCurrent: "Todas las skills que ve están al día",
   connect: "Conectar",
   chooseATool: "Elige al menos una herramienta para conectar.",
