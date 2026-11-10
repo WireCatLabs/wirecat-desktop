@@ -27,13 +27,14 @@ type Sort = { id: string; dir: 1 | -1 }
  */
 type Density = "roomy" | "compact"
 
-const LOOK: Record<Density, { table: string; head: string; grid: string; row: string; lead: string }> = {
+const LOOK: Record<Density, { table: string; head: string; grid: string; row: string; cell: string }> = {
   roomy: {
     table: "",
-    head: "h-[2.6rem] border-line border-b",
+    head: "min-h-[2.6rem] border-line border-b",
     grid: "gap-x-[0.9rem] pr-[1.3rem] xl:gap-x-[1.2rem]",
     row: "min-h-[3.6rem]",
-    lead: "py-[0.45rem]",
+    // On the cells, not the row: the sticky lead group's background has to cover the whole row height.
+    cell: "py-[0.7rem]",
   },
   compact: {
     table: "text-[0.95rem]",
@@ -41,7 +42,7 @@ const LOOK: Record<Density, { table: string; head: string; grid: string; row: st
     grid: "gap-x-[0.9rem] pr-[0.9rem]",
     // A <table> row of 2.6rem stood half a collapsed border taller; the same pitch keeps a long list as long.
     row: "h-[calc(2.6rem+0.5px)] border-line border-b",
-    lead: "",
+    cell: "",
   },
 }
 
@@ -143,13 +144,13 @@ export function DataTable<T>(props: Props<T>) {
     </span>
   )
   const cell = (c: Column<T>, r: T) => (
-    <span key={c.id} role="cell" className={cx("min-w-0", c.className)}>
+    <span key={c.id} role="cell" className={cx("min-w-0", look.cell, c.className)}>
       {c.cell(r)}
     </span>
   )
-  const leadGroup = (children: ReactNode, extra?: string) =>
+  const leadGroup = (children: ReactNode) =>
     lead.length > 0 && (
-      <span className={cx(LEAD, extra)} style={{ gridTemplateColumns: leadTrack }}>
+      <span className={LEAD} style={{ gridTemplateColumns: leadTrack }}>
         {children}
       </span>
     )
@@ -202,10 +203,7 @@ export function DataTable<T>(props: Props<T>) {
                     props.selected?.(r) && "bg-app-2",
                   )}
                 >
-                  {leadGroup(
-                    lead.map((c) => cell(c, r)),
-                    look.lead,
-                  )}
+                  {leadGroup(lead.map((c) => cell(c, r)))}
                   {rest.map((c) => cell(c, r))}
                 </div>
                 {under && (
