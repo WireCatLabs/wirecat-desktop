@@ -174,8 +174,7 @@ fn stretches(ask: &Ask) -> Result<Vec<Stretch>, String> {
     if let Some(range) = &ask.range {
         let limit = match ask.by {
             By::Sender | By::Chat => ranked,
-            By::Day => MAX_ROWS,
-            By::Hour => MAX_ROWS,
+            By::Day | By::Hour => MAX_ROWS,
         };
         return Ok(vec![Stretch { term: Some(range.term()?), limit }]);
     }
@@ -644,7 +643,7 @@ mod tests {
         let year = args(src("tg"), "p", &ask(Period::All, By::Hour), "UTC", false).unwrap();
         assert_eq!(year.last().unwrap().last().unwrap(), &format!("date:[{ALL_HOURS_DAYS}d TO 320d}}"));
         let days = args(src("wa"), "p", &ask(Period::All, By::Day), "UTC", false).unwrap();
-        assert_eq!(days.len() as u32, DAY_STRETCHES);
+        assert_eq!(u32::try_from(days.len()).unwrap(), DAY_STRETCHES);
         assert_eq!(days[1].last().unwrap(), "date:[1980d TO 990d}");
         let top = one(ask(Period::All, By::Sender));
         assert!(!top.iter().any(|w| w == "--" || w == "{query}"));

@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import { type Messages, plural } from "@/i18n"
 
 const en = {
@@ -10,7 +9,7 @@ const en = {
   hideNames: "Hide names",
   sourceChip: "Source",
   profileChip: "Profile",
-  countedFor: (list: ReactNode) => <>Messages counted for every profile: {list}</>,
+  weekHead: "This week against the same days of last week",
   noProfilesYet: "No messenger profiles yet",
   refreshing: "Counting…",
 
@@ -260,7 +259,7 @@ const ru: typeof en = {
   hideNames: "Скрыть имена",
   sourceChip: "Источник",
   profileChip: "Профиль",
-  countedFor: (list) => <>Сообщения посчитаны по всем профилям: {list}</>,
+  weekHead: "Эта неделя против тех же дней прошлой",
   noProfilesYet: "Профилей мессенджеров пока нет",
   refreshing: "Считаем…",
 
@@ -504,7 +503,7 @@ const es: typeof en = {
   hideNames: "Ocultar nombres",
   sourceChip: "Fuente",
   profileChip: "Perfil",
-  countedFor: (list) => <>Mensajes contados en todos los perfiles: {list}</>,
+  weekHead: "Esta semana frente a los mismos días de la anterior",
   noProfilesYet: "Todavía no hay perfiles de mensajería",
   refreshing: "Contando…",
 

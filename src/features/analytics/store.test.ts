@@ -74,3 +74,23 @@ describe("the Analytics page opened again", () => {
     expect(read).toHaveBeenCalledTimes(1)
   })
 })
+
+describe("the period switch", () => {
+  it("counts every messenger again for the new period and replaces the numbers", async () => {
+    useAnalytics.getState().load()
+    await waitFor(() => expect(useAnalytics.getState().refreshing).toBe(false))
+    const stats = vi
+      .spyOn(platform, "messageStats")
+      .mockImplementation(async (_id, _profile, ask) =>
+        ready([{ key: "2026-11-09", name: null, count: ask.period === "7d" ? 7 : 30 }]),
+      )
+    useAnalytics.getState().setPeriod("7d")
+    await waitFor(() => expect(useAnalytics.getState().refreshing).toBe(false))
+    expect(stats.mock.calls.length).toBeGreaterThan(0)
+    expect(stats.mock.calls.every(([, , ask]) => ask.period === "7d")).toBe(true)
+    const tg = useAnalytics.getState().sources.tg
+    if (tg?.state !== "ready") throw new Error(`tg is ${tg?.state}`)
+    expect(tg.days).toEqual([{ key: "2026-11-09", name: null, count: 7 * tg.profiles.length }])
+    useAnalytics.getState().setPeriod("30d")
+  })
+})
