@@ -1,15 +1,15 @@
 // `?guides=first` arrives from the setup's last step, `?guides=offline` shows the bundled copy with no network,
 // `?guide=<id>` opens one guide, `?q=<words>` starts with a search.
-import { Check, ChevronDown, Copy, ExternalLink, Search, ShieldCheck, SquareTerminal, X } from "lucide-react"
+import { Check, ChevronDown, Copy, Search, ShieldCheck, SquareTerminal, X } from "lucide-react"
 import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { AgentRunNote, runAgent, useStartableAgents } from "@/features/fix"
 import { openTool } from "@/features/tools"
 import { formatList, LANGS, type Lang, useLang, useMessages } from "@/i18n"
 import type { AgentRun } from "@/platform/agents-schemas"
-import { platform } from "@/platform/bridge"
+import { ExtLink } from "@/shared/ExtLink"
 import { useNav } from "@/shared/nav"
-import { PageHeader } from "@/shared/Page"
+import { Page, PageHeader } from "@/shared/Page"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -129,13 +129,18 @@ export function GuidesPage() {
   }
 
   return (
-    <div className="@container flex flex-col gap-[1.8rem] px-[2.1rem] pt-[1.6rem] pb-[3rem]">
+    <Page className="@container">
       <header data-tour="guides" className="flex flex-col gap-[1rem]">
         <PageHeader
           title={m.title}
           status={scenario === "offline" ? m.offline : m.fresh}
+          busy={false}
           intro={m.intro}
-          actions={<SiteLink href={`https://wirecat.dev/${lang}/docs/prompting`}>{m.allOnSite}</SiteLink>}
+          actions={
+            <ExtLink href={`https://wirecat.dev/${lang}/docs/prompting`} className="font-medium">
+              {m.allOnSite}
+            </ExtLink>
+          }
         />
         <label className="relative block max-w-[36rem]">
           <span className="sr-only">{m.search}</span>
@@ -227,7 +232,7 @@ export function GuidesPage() {
           />
         ))}
       </div>
-    </div>
+    </Page>
   )
 }
 
@@ -491,7 +496,9 @@ function GuideBody(props: {
 
       <div className="flex flex-wrap items-center justify-between gap-x-[1.2rem] gap-y-2 border-line border-t pt-[0.9rem]">
         <Needs guide={g} fit={fit} messenger={messenger} ctx={ctx} />
-        <SiteLink href={docsOf(g, messenger, lang)}>{m.fullGuide}</SiteLink>
+        <ExtLink href={docsOf(g, messenger, lang)} className="shrink-0 font-medium">
+          {m.fullGuide}
+        </ExtLink>
       </div>
     </article>
   )
@@ -604,21 +611,5 @@ function CopyButton({ text, m, primary }: { text: string; m: Text; primary: bool
         {copied ? m.copied : ""}
       </span>
     </Button>
-  )
-}
-
-function SiteLink({ href, children }: { href: string; children: string }) {
-  return (
-    <a
-      href={href}
-      onClick={(e) => {
-        e.preventDefault()
-        platform.openUrl(href)
-      }}
-      className="inline-flex shrink-0 items-center gap-1.5 text-[0.95rem] font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-    >
-      {children}
-      <ExternalLink className="size-[0.95rem]" aria-hidden />
-    </a>
   )
 }

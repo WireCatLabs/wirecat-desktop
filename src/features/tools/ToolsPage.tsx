@@ -47,7 +47,6 @@ export function ToolsPage() {
       <PageHeader
         title={m.title}
         status={progress}
-        busy
         actions={
           <>
             <AddOwnTool />

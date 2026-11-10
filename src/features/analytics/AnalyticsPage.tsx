@@ -31,7 +31,6 @@ export function AnalyticsPage() {
       <PageHeader
         title={m.title}
         status={refreshing ? m.refreshing : null}
-        busy
         intro={m.intro}
         actions={
           <Segmented<Period>

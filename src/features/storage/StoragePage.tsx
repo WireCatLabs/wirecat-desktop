@@ -50,7 +50,6 @@ export function StoragePage() {
       <PageHeader
         title={m.title}
         status={revalidating && areas !== null ? m.checking : null}
-        busy
         intro={m.intro}
         actions={
           leftovers.length > 1 && (
