@@ -26,9 +26,9 @@ const UNKNOWN_KIND: &str = "query.unknown-value";
 /// The kinds memo sorts people into, the list's tabs in this order.
 pub const KINDS: [&str; 5] = ["person", "organization", "automated", "stranger", "unsorted"];
 
-type Call<'a> = dyn Fn(&[String]) -> Result<Value, String> + Sync + 'a;
+pub(crate) type Call<'a> = dyn Fn(&[String]) -> Result<Value, String> + Sync + 'a;
 
-fn words(parts: &[&str]) -> Vec<String> {
+pub(crate) fn words(parts: &[&str]) -> Vec<String> {
     parts.iter().chain(QUIET.iter()).map(|s| (*s).to_string()).collect()
 }
 
@@ -58,7 +58,7 @@ fn call_at(bin: &Path, args: &[String]) -> Result<Value, String> {
     answer(&crate::memo_server::run(bin, &refs, TIMEOUT).map_err(|e| e.to_string())?, listing)
 }
 
-fn text(v: &Value, key: &str) -> Option<String> {
+pub(crate) fn text(v: &Value, key: &str) -> Option<String> {
     v.get(key).and_then(Value::as_str).filter(|s| !s.is_empty()).map(str::to_string)
 }
 
@@ -85,7 +85,7 @@ fn list<T>(v: &Value, key: &str, parse: fn(&Value) -> Option<T>) -> Vec<T> {
 }
 
 /// `person:<uid>`, the only way the page names a person to memo.
-fn person_ref(s: &str) -> Result<&str, String> {
+pub(crate) fn person_ref(s: &str) -> Result<&str, String> {
     let uid = s.strip_prefix("person:").unwrap_or_default();
     if uid.is_empty() || uid.len() > 15 || uid.starts_with('0') || !uid.bytes().all(|b| b.is_ascii_digit()) {
         return Err(format!("not a person: {s}"));
@@ -335,7 +335,7 @@ fn memo() -> Result<&'static Tool, String> {
     catalog::tool("memo")
 }
 
-fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
+pub(crate) fn with_memo<T>(f: impl FnOnce(&Call) -> Result<T, String>) -> Result<T, String> {
     let bin = tools::program(&memo()?.bin).ok_or("Memo is not installed")?;
     f(&|args: &[String]| call_at(&bin, args))
 }

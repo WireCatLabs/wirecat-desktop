@@ -1,5 +1,6 @@
 import { delay } from "./mock-delay"
 import { type Identity, type Listed, type Match, PERSON_KINDS, type PersonDetail } from "./people-schemas"
+import type { PersonProfile } from "./person-profile-schemas"
 import type { Platform } from "./types"
 
 // The People page's stand-in for memo, with made-up people only, shaped like cli-memo #748's real answers
@@ -130,6 +131,12 @@ function seed(): Held[] {
       account("max:4410", "Костя", [["5", "personal"]], "same-phone", 30),
     ]),
     person("person:32", "K. Semenov", [account("whatsapp:34600555019", "K. Semenov", [["7", "work"]], "initial", 4)]),
+    person("person:33", "Сергей", [
+      account("bitrix24:northstar.example/contact/7731", "Сергей", [["acme", "personal"]], "initial", 1),
+    ]),
+    person("person:34", "Сергей", [
+      account("bitrix24:northstar.example/contact/7733", "Сергей", [["acme", "personal"]], "initial", 1),
+    ]),
     ...crowd(),
   ]
 }
@@ -222,6 +229,19 @@ const MATCHES: Match[] = [
       proposer: { kind: "rule", name: "rule" },
     }),
   ),
+  // As memo gave the owner's real one (UX-150): a phone match with no evidence, so the number comes from the profiles.
+  {
+    id: "17106",
+    persons: ["person:33", "person:34"],
+    identity: "bitrix24:northstar.example/contact/7731",
+    with: "bitrix24:northstar.example/contact/7733",
+    joins: "person",
+    signal: "phone",
+    candidates: [],
+    reason: null,
+    evidence: [],
+    proposer: { kind: "rule", name: "rule" },
+  },
 ]
 
 export function peopleMock(): Pick<
@@ -475,4 +495,87 @@ export function peopleMock(): Pick<
     },
   }
   return api
+}
+
+const EMPTY_PROFILE: PersonProfile = {
+  phones: [],
+  emails: [],
+  organizations: [],
+  lastContact: null,
+  messagesFrom: null,
+  tasks: null,
+  deals: 0,
+  projects: 0,
+  recent: [],
+}
+
+const said = (days: number, text: string, outgoing: boolean, chat: string, provider = "telegram", n = days) => ({
+  kind: "message",
+  at: ago(days * DAY),
+  text,
+  outgoing,
+  provider,
+  chat,
+  locator: `msg:${provider}/1/2/${30 + n}`,
+})
+
+/** What each made-up person's context says; the rest have none. Phones are 555 numbers, made up. */
+const PROFILES: Record<string, Partial<PersonProfile>> = {
+  "person:7": {
+    phones: ["+34 600 111 222"],
+    emails: ["lena@example.org"],
+    organizations: [{ name: "Acme Studio", role: "Producer" }],
+    lastContact: ago(2 * DAY),
+    messagesFrom: 993,
+    tasks: 3,
+    deals: 2,
+    recent: [
+      said(2, "Sending the cut tonight, can you check the colour on scene 4?", false, "Lena"),
+      said(3, "Sure, after 6.", true, "Lena"),
+      said(9, "Invoice for October attached.", false, "Lena Ortiz", "email"),
+    ],
+  },
+  "person:9": {
+    phones: ["+34 600 111 222"],
+    lastContact: ago(20 * DAY),
+    messagesFrom: 4,
+    recent: [said(20, "Привет! Это Лена, мой новый номер.", false, "Лена Ортис", "max")],
+  },
+  "person:33": {
+    phones: ["+7 912 555-01-47"],
+    emails: ["s.volkov@northstar.example"],
+    organizations: [{ name: "Northstar Logistics", role: "Закупки" }],
+    lastContact: ago(6 * DAY),
+    messagesFrom: 0,
+    tasks: 1,
+    deals: 3,
+    recent: [
+      {
+        kind: "event",
+        at: ago(6 * DAY),
+        text: "Созвон по поставке",
+        outgoing: null,
+        provider: null,
+        chat: null,
+        locator: null,
+      },
+    ],
+  },
+  "person:34": {
+    phones: ["+7 912 555-01-47", "+7 495 555-20-10"],
+    lastContact: ago(41 * DAY),
+    messagesFrom: 0,
+    deals: 1,
+  },
+}
+
+/** `memo context` and the person's row for the match dialog; `?people-fail=profile` fails every read. */
+export function peopleProfileMock(): Pick<Platform, "peopleProfile"> {
+  return {
+    async peopleProfile(ref) {
+      await delay(450)
+      if (fail === "profile") throw new Error(BUSY)
+      return { ...EMPTY_PROFILE, ...PROFILES[ref] }
+    },
+  }
 }

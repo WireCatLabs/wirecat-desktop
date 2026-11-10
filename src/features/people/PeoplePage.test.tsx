@@ -142,10 +142,10 @@ describe("People", () => {
   it("says how many matches wait, and opens them on their own screen and back", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    expect(await screen.findByRole("heading", { name: "4 matches wait for you" }, { timeout: 4000 })).toBeVisible()
+    expect(await screen.findByRole("heading", { name: "5 matches wait for you" }, { timeout: 4000 })).toBeVisible()
     const matches = await openMatches(user)
     expect(matches).toHaveTextContent("all their chats, mail, meetings and deals")
-    expect(within(matches).getAllByRole("article")).toHaveLength(4)
+    expect(within(matches).getAllByRole("article")).toHaveLength(5)
     await user.click(screen.getByRole("button", { name: "All contacts" }))
     expect(await table()).toBeInTheDocument()
   })
@@ -165,7 +165,8 @@ describe("People", () => {
     expect(card).not.toHaveTextContent("person:22")
     await user.click(within(card).getByRole("button", { name: "Marta Gil (Studio) · Marta Gil" }))
     const details = await screen.findByRole("dialog", { name: "Match details" })
-    expect(details).toHaveTextContent("bitrix24:https://northstar.example/crm/contact/details/4120/")
+    expect(await within(details).findByText("Same email address marta@studio.example")).toBeInTheDocument()
+    expect(details).not.toHaveTextContent("bitrix24:")
   })
 
   it("confirms a waiting match as the owner, and the card stays and says so", async () => {

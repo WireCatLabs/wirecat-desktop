@@ -135,6 +135,9 @@ src-tauri/src/
                 thread opens from its first email (Gmail names a thread by it). Text unmasked, never logged, as search.rs.
   people.rs     the Contacts page: memo's `people list|review|show|unlink|unmerge` and `review confirm|reject` for
                 `identity_link` matches; every decision with `--from-app` (see "The Contacts page").
+  person_profile.rs what a match's details compare about one person: memo's `context <ref> --limit 3 --trimmed` and the
+                person's row from `people check -- <name words>`, slimmed to contacts, companies, counts and the latest
+                messages (see "The Contacts page").
   memory_review.rs a memory or fact whose source changed: memo's source review read with `review show` and
                 decided by the owner (Still true, Dismiss, No longer true), each with `--from-app`.
   memory_add.rs Add to Memory: `memo sources add|show|mentions|suggest`, the readers and the reader's key; pasted
@@ -487,6 +490,13 @@ every move names the person and the accounts he chose.
   a rejection with the owner's reason (`--reason=`), only if `people show <ref>` lists it open on that person now.
   memo answers a refused decision with exit code 2 and its whole answer on stdout; Rust reads that answer, so
   `identity.stale` and `proposal.wrong-state` are worded on the page. A decided card stays in place until the next read.
+- **Match details** compare the people side by side, row by row: where each comes from (a Bitrix24 contact opens on
+  its portal, `src/domain/source-link.ts`; a Telegram username on t.me), phones, addresses, handles and companies, last
+  contact, messages from them, deals and tasks, and their latest messages, which open in WireCat's conversation view.
+  `people_profile(ref)` reads them; memo's context lacks the message count, phone and address, so Rust also finds the
+  person's own row (by ref) among `people check` of their name, at most 50 rows. What they share is said in words and
+  marked on each side: memo's evidence, else a phone or address two of them have; no ids. Merge and Not the same use the
+  card's actions (`MatchActions.tsx`); the dialog keeps what was compared after a decision and says what happened.
 - **Move accounts to a new person** runs `people unlink <identities…> --from-app` with only accounts the person's own
   read listed, each once, and never all of them: memo matches a name it does not know exactly to the nearest person.
   Every account is shown; one whose ref cannot go back as one safe word is never offered for moving.

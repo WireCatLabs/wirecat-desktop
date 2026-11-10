@@ -60,6 +60,7 @@ mod page_loads;
 mod paths;
 mod people;
 mod permissions;
+mod person_profile;
 mod preflight;
 mod profile;
 mod provenance;
@@ -357,6 +358,7 @@ pub fn run() {
             commands::people::people_unlink,
             commands::people::people_unmerge,
             commands::people::people_find,
+            commands::person_profile::people_profile,
             commands::memory::memory_review_show,
             commands::memory::memory_review_decide,
             commands::memory::memory_pick_file,
