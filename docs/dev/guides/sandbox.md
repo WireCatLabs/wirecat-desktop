@@ -55,8 +55,8 @@ address and number is made up: addresses are on `example.org` and `.test`, phone
 | Tasks | 4 projects, 57 project tasks in every state (38 to do), with owners, priorities and due dates; 4 tasks from SMS | `memo projects add`, `memo tasks add` and `update` |
 | Clients | pipelines Sales (40 deals, 22 in Call) and Inbound (15 leads), your own, so the board moves them; their stages mapped onto the base stages | `memo pipelines`, `memo deals`, `memo leads`, `memo stages set` |
 | Digests | a paused `morning-digest` and its last 5 days | `memo digest add`; the days are report files (below) |
-| Search | Email: 97 messages in 60 threads on profile `personal`, two pages for `invoice`. memo: 57 notes in `~/Notes` | `mail personal messages import` of a Takeout mbox; `memo folders add`, `memo sync --only notes` |
-| Analytics | Emails by day, tasks closed | the data above |
+| Search | Email: 97 messages in 60 threads on profile `personal`, two pages for `invoice`. Telegram (19 messages in 3 chats), MAX (8 in 2) and WhatsApp (7 in 2) on profile `personal`. memo: 57 notes in `~/Notes` | `mail personal messages import` of a Takeout mbox; `tg`, `max`, `wa personal store import`; `memo folders add`, `memo sync --only notes` |
+| Analytics | Emails and messenger messages by day, tasks closed | the data above |
 
 Loading it again adds nothing. `bin/sandbox <name> --seed demo` on a demo sandbox loads the set again; a start
 without `--seed` loads it when `data/seed.json` holds a newer `version` than the sandbox has. A sandbox holding a
@@ -73,6 +73,7 @@ What a later load changes, by kind of row:
 | Deals, leads | title | the stage | renaming (adds a second card), amount, organization, people |
 | Facts, memories | text | the state (accepted, rejected, reversed; confirmed, stale) | new text (adds a second row), kind, subject, evidence |
 | Email | Gmail id, made from the thread's seed id | adds new messages and threads | a changed message |
+| Telegram, MAX, WhatsApp | chat and message seed ids (`store import`, a file marked `synthetic`) | message text, chat titles, members | removing a chat or message |
 | Notes, digest days | file name | the file | removing a file |
 
 memo gives deals, facts and memories no id a loader could set, so they are matched by what they say.
@@ -96,10 +97,8 @@ memo gives deals, facts and memories no id a loader could set, so they are match
 
 What no command can load yet:
 
-- **Telegram, MAX and WhatsApp messages.** No tool takes them from a file yet (a `store import` command is coming to
-  cli-core; its step goes after `phone` in `load.mjs`), and the store is never written with SQL from here, so Search
-  and Analytics have nothing for those three. An SMS can be loaded (the envelope's `message` type, under
-  the import-only `phone` provider), but no page reads SMS; they back the tasks from chats.
+- **SMS on a page.** An SMS can be loaded (the envelope's `message` type, under the import-only `phone` provider), but
+  no page reads SMS; they back the tasks from chats.
 - **Unsorted people**: only a messenger contact can lack a readable name; a mail sender always has an address.
 
 ## What is separate, and what is shared

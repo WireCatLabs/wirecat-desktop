@@ -13,13 +13,14 @@ import digests from "./steps/digests.mjs"
 import mail from "./steps/mail.mjs"
 import matches from "./steps/matches.mjs"
 import memory from "./steps/memory.mjs"
+import messengers from "./steps/messengers.mjs"
 import notes from "./steps/notes.mjs"
 import phone from "./steps/phone.mjs"
 import tasks from "./steps/tasks.mjs"
 
 // contacts fills ctx.refs for every step after it. Chat messages from tg, max and wa, once a command loads them, go in
 // a step after phone: tasks and memory cite messages as evidence.
-const STEPS = { notes, contacts, phone, mail, crm, tasks, memory, matches, digests }
+const STEPS = { notes, contacts, phone, messengers, mail, crm, tasks, memory, matches, digests }
 
 /** Every reason this process could reach the owner's own notes, store, mail settings or keyring. */
 function outsideSandbox(env) {
