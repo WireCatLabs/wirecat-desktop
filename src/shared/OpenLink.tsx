@@ -13,6 +13,8 @@ type Props = {
   children?: ReactNode
   variant?: "primary" | "secondary" | "ghost"
   size?: "md" | "sm"
+  /** Markers a dialog finds its next button by, such as `data-autofocus`. */
+  marks?: Record<`data-${string}`, boolean>
 }
 
 const hostOf = (url: string) => {
@@ -24,7 +26,7 @@ const hostOf = (url: string) => {
 }
 
 /** A button that opens a web page, and beside it the page's link to copy for a browser the system did not choose. */
-export function OpenLink({ url, children, variant = "secondary", size = "sm" }: Props) {
+export function OpenLink({ url, children, variant = "secondary", size = "sm", marks }: Props) {
   const m = useMessages(linkMessages)
   const host = hostOf(url)
   return (
@@ -35,6 +37,7 @@ export function OpenLink({ url, children, variant = "secondary", size = "sm" }: 
         icon={<ExternalLink className="size-4" aria-hidden />}
         onClick={() => platform.openUrl(url)}
         {...externalHref(url)}
+        {...marks}
       >
         {children ?? m.openHost(host)}
       </Button>

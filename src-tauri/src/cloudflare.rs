@@ -331,8 +331,8 @@ pub fn login(stopped: &dyn Fn() -> bool, send: &dyn Fn(PageEvent)) -> Result<(),
         let (run::Line::Out(s) | run::Line::Err(s)) = line;
         if !opened && let Some(url) = page_url(&s) {
             opened = true;
+            send(PageEvent::Opened { url: url.clone() });
             let _ = crate::host_open::url(&url);
-            send(PageEvent::Opened { url });
         } else {
             text.push_str(&s);
             text.push('\n');

@@ -87,15 +87,18 @@ pub fn path(path: &std::path::Path) -> Result<(), String> {
 
 #[cfg(target_os = "linux")]
 fn open(target: &OsStr) -> Result<(), String> {
+    // `xdg-open` waits for the browser it starts when the desktop has no handler of its own; one still running after
+    // this long has handed the page over. A launcher that fails sooner is reported, and the next one is tried.
+    launch(open::commands(target), std::time::Duration::from_secs(3))
+}
+
+#[cfg(target_os = "linux")]
+fn launch(launchers: Vec<Command>, handed_over: std::time::Duration) -> Result<(), String> {
     use std::process::Stdio;
     use std::time::{Duration, Instant};
 
-    // `xdg-open` waits for the browser it starts when the desktop has no handler of its own; one still running after
-    // this long has handed the page over. A launcher that fails sooner is reported, and the next one is tried.
-    const HANDED_OVER: Duration = Duration::from_secs(3);
-
     let mut failures = Vec::new();
-    for mut cmd in open::commands(target) {
+    for mut cmd in launchers {
         let program = cmd.get_program().to_string_lossy().into_owned();
         let spawned = for_host(&mut cmd).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).spawn();
         let mut child = match spawned {
@@ -111,10 +114,10 @@ fn open(target: &OsStr) -> Result<(), String> {
             match child.try_wait() {
                 Ok(Some(status)) if status.success() => return Ok(()),
                 Ok(Some(status)) => {
-                    failures.push(format!("{program} {}", exit_words(status.code())));
+                    failures.push(format!("{program} {}", exit_words(&program, status.code())));
                     break;
                 }
-                Ok(None) if started.elapsed() >= HANDED_OVER => {
+                Ok(None) if started.elapsed() >= handed_over => {
                     // Reaped in the background so it does not stay a zombie once the browser closes.
                     std::thread::spawn(move || child.wait());
                     return Ok(());
@@ -136,16 +139,16 @@ fn open(target: &OsStr) -> Result<(), String> {
     open::that_detached(target).map_err(|e| e.to_string())
 }
 
-/// xdg-open's own exit codes (`man xdg-open`).
+/// Only xdg-open documents what its exit codes mean (`man xdg-open`); gio uses 2 for any launch error.
 #[cfg(target_os = "linux")]
-fn exit_words(code: Option<i32>) -> String {
-    match code {
-        Some(1) => "refused the address (exit 1)".into(),
-        Some(2) => "found no such file (exit 2)".into(),
-        Some(3) => "found no program for it (exit 3)".into(),
-        Some(4) => "could not open it (exit 4)".into(),
-        Some(c) => format!("failed (exit {c})"),
-        None => "was stopped by a signal".into(),
+fn exit_words(program: &str, code: Option<i32>) -> String {
+    match (program, code) {
+        ("xdg-open", Some(1)) => "refused the address (exit 1)".into(),
+        ("xdg-open", Some(2)) => "found no such file (exit 2)".into(),
+        ("xdg-open", Some(3)) => "found no program for it (exit 3)".into(),
+        ("xdg-open", Some(4)) => "could not open it (exit 4)".into(),
+        (_, Some(c)) => format!("failed (exit {c})"),
+        (_, None) => "was stopped by a signal".into(),
     }
 }
 
@@ -184,6 +187,31 @@ mod tests {
         assert!(changes.contains(&Change::Remove("GTK_THEME".into())));
         assert!(changes.contains(&Change::Remove("APPDIR".into())));
         assert!(!changes.iter().any(|c| matches!(c, Change::Remove(n) | Change::Set(n, _) if n == "HOME")));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_launcher_that_fails_is_reported_and_the_next_one_tried() {
+        let fail = |code: &str| {
+            let mut c = Command::new("sh");
+            c.args(["-c", &format!("exit {code}")]);
+            c
+        };
+        let short = std::time::Duration::from_secs(2);
+        assert_eq!(launch(vec![fail("4"), fail("0")], short), Ok(()));
+        assert_eq!(
+            launch(vec![fail("4"), Command::new("false")], short),
+            Err("sh failed (exit 4); false failed (exit 1)".into())
+        );
+        assert!(launch(vec![Command::new("wirecat-no-such-launcher")], short).unwrap_err().starts_with("No program"));
+    }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn a_launcher_still_running_has_handed_the_page_over() {
+        let mut slow = Command::new("sleep");
+        slow.arg("5");
+        assert_eq!(launch(vec![slow], std::time::Duration::from_millis(200)), Ok(()));
     }
 
     #[test]

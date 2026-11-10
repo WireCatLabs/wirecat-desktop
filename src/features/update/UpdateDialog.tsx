@@ -1,4 +1,4 @@
-import { Download, ExternalLink, SquareTerminal } from "lucide-react"
+import { Download, SquareTerminal } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
 import { formatBytes } from "@/domain/format"
 import { type Lang, useLang, useMessages } from "@/i18n"
@@ -235,16 +235,14 @@ export function UpdateDialog() {
         <Button variant="secondary" onClick={close}>
           {m.later}
         </Button>
-        <Button
+        <OpenLink
+          url={downloadPage(lang)}
           variant="primary"
-          data-autofocus
-          data-update-next
-          icon={<ExternalLink className="size-4" aria-hidden />}
-          onClick={() => platform.openUrl(downloadPage(lang))}
-          {...externalHref(downloadPage(lang))}
+          size="md"
+          marks={{ "data-autofocus": true, "data-update-next": true }}
         >
           {m.openDownloadPage}
-        </Button>
+        </OpenLink>
       </>
     )
   } else if (phase === "saved") {

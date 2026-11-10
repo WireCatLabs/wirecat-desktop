@@ -56,8 +56,11 @@ export function LinkMenu() {
       left: Math.max(margin, Math.min(open.x, window.innerWidth - width - margin)),
       top: Math.max(margin, Math.min(open.y, window.innerHeight - height - margin)),
     })
-    root.current.querySelector<HTMLElement>("[role=menuitem]")?.focus()
   }, [open])
+
+  useEffect(() => {
+    if (at) root.current?.querySelector<HTMLElement>("[role=menuitem]")?.focus({ preventScroll: true })
+  }, [at])
 
   useEffect(() => {
     if (!open) return
@@ -109,7 +112,8 @@ export function LinkMenu() {
   return createPortal(
     <div
       ref={root}
-      style={at ?? { left: open.x, top: open.y, visibility: "hidden" }}
+      // Measured off screen first, not hidden: a hidden menu item takes no focus.
+      style={at ?? { left: -9999, top: -9999 }}
       className="fixed z-50 flex w-max max-w-[min(26rem,calc(100vw-1rem))] flex-col rounded-[0.6rem] border border-line bg-app p-[0.3rem] shadow-panel origin-top-left motion-safe:animate-[select-in_120ms_var(--ease-out-quart)]"
     >
       <div role="menu" aria-label={m.menu} className="flex flex-col">
