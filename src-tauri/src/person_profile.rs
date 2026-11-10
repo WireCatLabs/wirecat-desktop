@@ -250,7 +250,7 @@ mod tests {
     fn without_a_row_it_counts_what_the_context_holds() {
         let p = profile_of(&context(), None);
         assert_eq!(p.phones, ["+34600111222"]);
-        assert!(p.emails.is_empty());
+        assert_eq!(p.emails, Vec::<String>::new());
         assert_eq!(p.messages_from, None);
         assert_eq!((p.tasks, p.tasks_more), (Some(2), true));
         assert_eq!(p.last_contact.as_deref(), Some("2026-11-03T09:00:00Z"));
