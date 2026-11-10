@@ -76,6 +76,20 @@ describe("Add to memory", () => {
     useMemory.setState(useMemory.getInitialState(), true)
   })
 
+  it("says a wrong address while it is typed, before any click", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", true)])
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole("radio", { name: /Link/ }))
+    const url = within(panel).getByRole("textbox", { name: "Web address" })
+    await user.type(url, "example")
+    expect(url).toHaveAttribute("aria-invalid", "true")
+    expect(within(panel).getByText("Give an address that starts with http:// or https://.")).toBeInTheDocument()
+    await user.clear(url)
+    await user.type(url, "https://example.org")
+    expect(url).not.toHaveAttribute("aria-invalid")
+  })
+
   it("saves pasted text, then keeps only the suggested facts the owner ticked", async () => {
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", true)])
     const add = vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
@@ -88,6 +102,10 @@ describe("Add to memory", () => {
     await user.click(save)
     expect(within(panel).getByText("Write or paste some text to go on.")).toBeInTheDocument()
     expect(add).not.toHaveBeenCalled()
+    expect(within(panel).getByRole("textbox", { name: "Text" })).toHaveFocus()
+    expect(within(panel).getByRole("textbox", { name: "Text" })).toHaveAccessibleDescription(
+      "Write or paste some text to go on.",
+    )
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "We agreed delivery on the 28th with Lena.")
     await user.click(save)
     expect(add).toHaveBeenCalledWith({

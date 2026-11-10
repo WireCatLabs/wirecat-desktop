@@ -1,10 +1,11 @@
 import { LoaderCircle } from "lucide-react"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { canSplit } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Dialog } from "@/ui/Dialog"
+import { useFieldError } from "@/ui/FieldError"
 import { peopleMessages } from "./messages"
 import { usePeople } from "./store"
 
@@ -19,9 +20,20 @@ export function SplitDialog() {
   const identities = detail?.state === "ready" ? detail.person.identities : []
   const close = () => {
     setChosen([])
+    need.clear()
     askSplit(null)
   }
   const all = chosen.length === identities.length && identities.length > 0
+  const listId = useId()
+  const need = useFieldError(listId, {
+    live: {
+      problem: canSplit(chosen, identities)
+        ? null
+        : all
+          ? (l) => peopleMessages[l].splitAll
+          : (l) => peopleMessages[l].splitPickOne,
+    },
+  })
   return (
     <Dialog
       open={ref !== null}
@@ -33,9 +45,11 @@ export function SplitDialog() {
             {m.cancel}
           </Button>
           <Button
-            disabled={!canSplit(chosen, identities) || !!busy}
+            disabled={!!busy}
             icon={busy === "unlink" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
-            onClick={() => ref && void unlink(ref, chosen).then(() => setChosen([]))}
+            onClick={() =>
+              canSplit(chosen, identities) ? ref && void unlink(ref, chosen).then(() => setChosen([])) : need.fail()
+            }
           >
             {m.move(chosen.length)}
           </Button>
@@ -43,7 +57,7 @@ export function SplitDialog() {
       }
     >
       <p className="text-[0.95rem] text-ink-soft">{m.splitBody}</p>
-      <ul className="mt-3 flex flex-col gap-2">
+      <ul id={listId} className="mt-3 flex flex-col gap-2">
         {identities.map((i) => (
           <li key={i.identity}>
             <label className="flex cursor-pointer items-start gap-2">
@@ -61,7 +75,8 @@ export function SplitDialog() {
           </li>
         ))}
       </ul>
-      {all && <p className="mt-2 text-[0.9rem] text-warn-ink">{m.splitAll}</p>}
+      {all && need.error === null && <p className="mt-2 text-[0.9rem] text-warn-ink">{m.splitAll}</p>}
+      {need.hint}
     </Dialog>
   )
 }

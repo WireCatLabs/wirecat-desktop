@@ -46,6 +46,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   const picking = open.length > 0 && people.length > 2
   const unticked = useUnticked(group.key)
   const head = useId()
+  const pickList = useId()
   if (!first) return null
 
   const done = open.length === 0
@@ -79,7 +80,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
       )}
       {first.reason && <p className="selectable text-[0.95rem]">{first.reason}</p>}
       {picking && <p className="text-[0.9rem] text-ink-soft">{m.pickHelp}</p>}
-      <div className={cx("grid gap-[0.6rem] md:grid-cols-2", people.length > 2 && "xl:grid-cols-3")}>
+      <div id={pickList} className={cx("grid gap-[0.6rem] md:grid-cols-2", people.length > 2 && "xl:grid-cols-3")}>
         {people.map((ref) => (
           <Side
             key={ref}
@@ -101,6 +102,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         group={group}
         from={from}
         chosen={chosen}
+        pickId={pickList}
         confirmLabel={picking && !all ? m.joinPicked(chosen.length) : m.confirm}
         hint={picking && chosen.length < 2 && <span className="text-[0.85rem] text-ink-dim">{m.pickTwo}</span>}
         lead={

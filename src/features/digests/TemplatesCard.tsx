@@ -6,13 +6,14 @@ import {
   type TemplateChannel,
   type TemplateLocale,
 } from "@/domain/digest-editors"
-import { ENDONYMS, useLang, useMessages } from "@/i18n"
+import { ENDONYMS, type Lang, useLang, useMessages } from "@/i18n"
 import type { TemplatePreview } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { area, card, useMemoEditor } from "./editor-state"
@@ -39,10 +40,18 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
   const saved = value?.state === "ready" ? value.body : ""
   const [draft, setDraft] = useState(saved)
   const [shown, setShown] = useState<Shown | null>(null)
+  const fieldId = useId()
+  const problem = !draft.trim()
+    ? (l: Lang) => editorMessages[l].templates.empty
+    : draft === saved
+      ? (l: Lang) => editorMessages[l].unchanged
+      : null
+  const need = useFieldError(fieldId, { live: { problem } })
   useEffect(() => {
     setDraft(saved)
     setShown(null)
-  }, [saved])
+    need.clear()
+  }, [saved, need.clear])
 
   if (value?.state === "noMemo") return null
   const ready = value?.state === "ready" ? value : null
@@ -89,6 +98,8 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
       ) : (
         <>
           <textarea
+            id={fieldId}
+            {...need.field}
             aria-label={m.body}
             rows={14}
             spellCheck={false}
@@ -120,12 +131,15 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
             <Button
               size="sm"
               variant="primary"
-              disabled={busy || !draft.trim() || draft === saved}
-              onClick={() => void change(() => platform.digestTemplateSave(channel, locale, draft, name))}
+              disabled={busy}
+              onClick={() =>
+                problem ? need.fail() : void change(() => platform.digestTemplateSave(channel, locale, draft, name))
+              }
             >
               {busy ? all.saving : m.save}
             </Button>
           </div>
+          {need.hint}
           {failed && <ErrorNotice inline>{m.failed(failed)}</ErrorNotice>}
           {shown?.state === "failed" && <ErrorNotice inline>{m.previewFailed(shown.message)}</ErrorNotice>}
           {shown?.state === "shown" && <Preview preview={shown.preview} />}

@@ -217,8 +217,18 @@ describe("editing a digest", () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openMorning(ready([morning]))
     const settings = screen.getByRole("region", { name: "Settings" })
+    await user.click(within(settings).getByRole("button", { name: "Save" }))
+    expect(within(settings).getByRole("alert")).toHaveTextContent("Nothing is changed yet.")
+    expect(save).not.toHaveBeenCalled()
+    await user.click(within(settings).getByRole("button", { name: "Add" }))
+    expect(screen.getByRole("combobox", { name: "Account" })).toHaveFocus()
+    expect(screen.getByRole("combobox", { name: "Account" })).toHaveAccessibleDescription(
+      "Choose an account and type a chat id first.",
+    )
     await user.click(within(settings).getByRole("radio", { name: "On days" }))
     await user.click(within(settings).getByRole("button", { name: /^tue/i }))
+    expect(within(settings).getByRole("button", { name: "Save" })).not.toHaveAccessibleDescription()
+    await waitFor(() => expect(within(settings).queryByText("Nothing is changed yet.")).toBeNull())
     await user.click(within(settings).getByRole("button", { name: "Mail" }))
 
     await user.click(screen.getByRole("combobox", { name: "Account" }))

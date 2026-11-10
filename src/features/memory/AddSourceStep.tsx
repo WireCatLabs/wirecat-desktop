@@ -1,10 +1,10 @@
 import { FileText, Link2, LoaderCircle, Paperclip } from "lucide-react"
-import { useEffect, useId, useState } from "react"
+import { useEffect, useId } from "react"
 import { fileName, isLink, missingOf, type Way, wordCount } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
-import { FieldError, invalidBorder } from "@/ui/FieldError"
+import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { SourcePreview } from "./AddPreview"
 import { Refusal } from "./AddRefusal"
@@ -27,18 +27,15 @@ export function SourceStep() {
   const { setWay, save } = useAddSource.getState()
   const name = useId()
   const missing = missingOf(draft)
-  const [tries, setTries] = useState(0)
   const inputs = `${name}-inputs`
-  const problem = `${name}-problem`
+  const problem = `${inputs}-error`
   const early = missing === "tooLong" || (missing === "link" && draft.url.trim() !== "")
-  const shown = tries > 0 || early ? missing : null
+  const need = useFieldError(inputs, {
+    live: { problem: missing ? (lang) => addMessages[lang].missing[missing] : null, early },
+  })
+  const shown = need.error !== null ? missing : null
   // biome-ignore lint/correctness/useExhaustiveDependencies: another way to add starts without the last complaint
-  useEffect(() => setTries(0), [draft.way])
-  useEffect(() => {
-    if (tries === 0) return
-    const box = document.getElementById(inputs)
-    box?.querySelector<HTMLElement>("[aria-invalid='true'], button")?.focus()
-  }, [tries, inputs])
+  useEffect(() => need.clear(), [draft.way])
 
   return (
     <form
@@ -46,10 +43,7 @@ export function SourceStep() {
       className="flex flex-col gap-[1rem]"
       onSubmit={(e) => {
         e.preventDefault()
-        if (missing) {
-          setTries((n) => n + 1)
-          return
-        }
+        if (missing) return need.fail()
         void save()
       }}
     >
@@ -86,7 +80,7 @@ export function SourceStep() {
         </div>
       </div>
       <Refusal />
-      <FieldError id={problem}>{shown && m.missing[shown]}</FieldError>
+      {need.hint}
       <div className="flex flex-wrap items-center gap-3">
         <Button
           type="submit"

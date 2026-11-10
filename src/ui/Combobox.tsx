@@ -16,6 +16,8 @@ type Props = {
   id?: string
   className?: string
   "aria-label"?: string
+  "aria-invalid"?: boolean | undefined
+  "aria-describedby"?: string | undefined
 }
 
 const contains = (option: string, typed: string) =>

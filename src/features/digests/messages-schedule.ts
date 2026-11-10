@@ -33,6 +33,8 @@ const en = {
   addRoute: "Add",
   routeProfile: "Account",
   routeTo: (kind: RouteKind): string => (kind === "email" ? "Address" : "Chat id or user:id"),
+  routeIncomplete: (kind: RouteKind): string =>
+    kind === "email" ? "Choose an account and type an address first." : "Choose an account and type a chat id first.",
   removeRoute: (route: string) => `Remove ${route}`,
   caps: (run: string, day: string) => `At most ${run} a run and ${day} a day.`,
   failedSave: (message: string) => `Could not save the schedule: ${message}`,
@@ -125,6 +127,8 @@ const ru: typeof en = {
   addRoute: "Добавить",
   routeProfile: "Аккаунт",
   routeTo: (kind) => (kind === "email" ? "Адрес" : "Id чата или user:id"),
+  routeIncomplete: (kind) =>
+    kind === "email" ? "Сначала выберите аккаунт и введите адрес." : "Сначала выберите аккаунт и введите id чата.",
   removeRoute: (route) => `Убрать ${route}`,
   caps: (run, day) => `Не больше ${run} за запуск и ${day} в день.`,
   failedSave: (message) => `Не удалось сохранить расписание: ${message}`,
@@ -210,6 +214,10 @@ const es: typeof en = {
   addRoute: "Añadir",
   routeProfile: "Cuenta",
   routeTo: (kind) => (kind === "email" ? "Dirección" : "Id del chat o user:id"),
+  routeIncomplete: (kind) =>
+    kind === "email"
+      ? "Primero elige una cuenta y escribe una dirección."
+      : "Primero elige una cuenta y escribe un id de chat.",
   removeRoute: (route) => `Quitar ${route}`,
   caps: (run, day) => `Como mucho ${run} por ejecución y ${day} al día.`,
   failedSave: (message) => `No se pudo guardar el horario: ${message}`,

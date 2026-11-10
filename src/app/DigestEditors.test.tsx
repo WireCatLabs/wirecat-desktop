@@ -68,12 +68,27 @@ describe("what the digest collects", () => {
 
   it("stops a brief over the limit before it reaches memo", async () => {
     vi.spyOn(platform, "digestBrief").mockResolvedValue({ ...ready, body: "x".repeat(4000), chars: 4000 })
+    const save = vi.spyOn(platform, "digestBriefSave")
     const { user, card } = await openCard("What to collect")
     const brief = await within(card).findByRole("textbox")
     await user.type(brief, "y")
     expect(card).toHaveTextContent("4001 / 4000")
-    expect(card).toHaveTextContent("At most 4000 characters")
-    expect(within(card).getByRole("button", { name: "Save" })).toBeDisabled()
+    expect(brief).toHaveAccessibleDescription(/At most 4000 characters/)
+    await user.click(within(card).getByRole("button", { name: "Save" }))
+    expect(save).not.toHaveBeenCalled()
+    expect(brief).toHaveFocus()
+  }, 15000)
+
+  it("keeps Save clickable on an unchanged or empty brief and says why at the field", async () => {
+    vi.spyOn(platform, "digestBrief").mockResolvedValue({ ...ready, body: "News only", chars: 9 })
+    const save = vi.spyOn(platform, "digestBriefSave")
+    const { user, card } = await openCard("What to collect")
+    const brief = await within(card).findByRole("textbox")
+    await user.click(within(card).getByRole("button", { name: "Save" }))
+    expect(brief).toHaveAccessibleDescription(/Nothing is changed yet/)
+    await user.clear(brief)
+    expect(brief).toHaveAccessibleDescription(/Write what to collect first/)
+    expect(save).not.toHaveBeenCalled()
   }, 15000)
 
   it("asks for a memo update when this memo has no brief", async () => {
@@ -92,7 +107,12 @@ describe("how the digest looks", () => {
     const { user, card } = await openCard("How it looks")
     const body = await within(card).findByRole("textbox", { name: "Template" })
     expect(card).toHaveTextContent("The built-in template")
+    await user.click(within(card).getByRole("button", { name: "Save" }))
+    expect(body).toHaveAccessibleDescription("Nothing is changed yet.")
+    expect(body).toHaveFocus()
     await user.clear(body)
+    expect(body).toHaveAccessibleDescription(/The template is empty/)
+    expect(save).not.toHaveBeenCalled()
     await user.type(body, "Hello {{{{ summary }}")
     await user.click(within(card).getByRole("button", { name: "Preview" }))
     expect(preview).toHaveBeenCalledWith("telegram", "en", "Hello {{ summary }}", undefined)
