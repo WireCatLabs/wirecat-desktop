@@ -361,6 +361,8 @@ pub struct Reader {
     /// The reader can open files on this computer, so the page warns before it is chosen.
     pub reads_files: bool,
     pub chosen: bool,
+    /// Why memo cannot read with it yet, such as `ai-model` with no model chosen; the page points to «AI model».
+    pub problem: Option<String>,
 }
 
 /// A reader or provider id goes into a command line, so it is only ever a plain lowercase word.
@@ -387,12 +389,12 @@ fn reader(v: &Value) -> Option<Reader> {
         leaves_computer: v["leaves_computer"].as_bool().unwrap_or(true),
         reads_files: v["reads_files"].as_bool().unwrap_or(true),
         chosen: flag("chosen"),
+        problem: text(v, "problem"),
     })
 }
 
 const READERS: [&str; 2] = ["sources", "readers"];
 const CHOOSE: [&str; 3] = ["sources", "readers", "set"];
-const KEY: [&str; 3] = ["models", "keys", "set"];
 const SUGGEST_CMD: [&str; 2] = ["sources", "suggest"];
 const BATCH: &str = "batch";
 
@@ -425,34 +427,6 @@ fn choose_with(feed: &Feed, id: &str) -> Result<Vec<Reader>, String> {
 
 pub fn choose(id: &str) -> Result<Vec<Reader>, String> {
     with_memo(READ, |feed| choose_with(feed, id))
-}
-
-/// Whether memo kept the key, and where; the key itself never comes back.
-#[derive(Serialize, Debug, PartialEq)]
-pub struct KeySaved {
-    pub provider: String,
-    /// `keyring`, or `file` when no keyring answered.
-    pub source: Option<String>,
-}
-
-fn key_with(feed: &Feed, provider: &str, key: &str) -> Result<KeySaved, String> {
-    let key = key.trim();
-    if key.is_empty() || key.len() > 400 || key.chars().any(|c| c.is_whitespace() || c.is_control()) {
-        return Err("Paste the key as the provider shows it: one word, no spaces.".into());
-    }
-    let provider = id_word("provider", provider)?;
-    let mut args: Vec<&str> = KEY.to_vec();
-    args.push(provider);
-    let v = feed(&words(&args), Some(key.as_bytes()))?;
-    let item = body(&v);
-    if item["stored"].as_bool() != Some(true) {
-        return Err("Memo did not say the key was saved.".into());
-    }
-    Ok(KeySaved { provider: provider.into(), source: text(item, "source") })
-}
-
-pub fn set_key(provider: &str, key: &str) -> Result<KeySaved, String> {
-    with_memo(READ, |feed| key_with(feed, provider, key))
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -502,8 +476,20 @@ fn suggest_with(
     Ok(Suggested { batch, reused })
 }
 
+/// memo 0.131.77 refuses `--provider=ai-model` with no AI model chosen as `config.invalid`, not `reader.ai-not-set`.
+const AI_NOT_SET: &str = "config.invalid";
+
+fn suggest_worded(reader: &str) -> &'static [&'static str] {
+    if reader == "ai-model" { &["source.", "reader.", AI_NOT_SET] } else { &WORDED }
+}
+
+fn ai_not_set(e: String) -> String {
+    if e == AI_NOT_SET { "reader.ai-not-set".into() } else { e }
+}
+
 pub fn suggest(reference: &str, reader: &str, subjects: &[String], again: bool) -> Result<Suggested, String> {
-    with_memo(SUGGEST, |feed| suggest_with(feed, reference, reader, subjects, again))
+    with_memo_worded(SUGGEST, suggest_worded(reader), |feed| suggest_with(feed, reference, reader, subjects, again))
+        .map_err(ai_not_set)
 }
 
 #[cfg(test)]
@@ -583,7 +569,7 @@ mod tests {
         assert_eq!(
             serde_json::to_value(&r).unwrap(),
             json!({"id":"ollama","available":true,"signedIn":null,"model":"llama3.2","provider":null,
-                "leavesComputer":false,"readsFiles":true,"chosen":false})
+                "leavesComputer":false,"readsFiles":true,"chosen":false,"problem":null})
         );
     }
 
@@ -652,6 +638,21 @@ mod tests {
         assert!(unfed.contains("cannot read"), "a run with nothing on stdin keeps memo's words: {unfed}");
         let ok = run::Output { code: Some(0), stdout: r#"{"item":{"stored":true}}"#.into(), stderr: String::new() };
         assert!(panel_answer(&ok, true, &WORDED).is_ok());
+    }
+
+    #[test]
+    fn an_unset_ai_model_is_worded_as_reader_ai_not_set_only_for_the_ai_model_reader() {
+        let out = run::Output {
+            code: Some(1),
+            stdout: r#"{"error":{"code":"configuration_error","reason":"config.invalid",
+                "message":"no AI model is chosen: memo models ai set"}}"#
+                .into(),
+            stderr: String::new(),
+        };
+        let ai = panel_answer(&out, false, suggest_worded("ai-model")).map_err(ai_not_set);
+        assert_eq!(ai.unwrap_err(), "reader.ai-not-set");
+        let other = panel_answer(&out, false, suggest_worded("codex")).map_err(ai_not_set).unwrap_err();
+        assert!(other.contains("no AI model is chosen"), "another reader keeps memo's words: {other}");
     }
 
     #[test]
@@ -750,7 +751,9 @@ mod tests {
             Ok(if a[2] == "set" {
                 json!({"item":{"reader":"ollama","model":"llama3.2","leaves_computer":false,"reads_files":false}})
             } else {
-                json!({"items":[{"id":"claude-code","available":true,"signed_in":true,"model":"sonnet","provider":"anthropic",
+                json!({"items":[{"id":"ai-model","available":false,"needs_model":false,"leaves_computer":true,
+                    "reads_files":false,"chosen":false,"problem":"no AI model is chosen: memo models ai set"},
+                    {"id":"claude-code","available":true,"signed_in":true,"model":"sonnet","provider":"anthropic",
                     "needs_model":false,"leaves_computer":true,"reads_files":false,"chosen":false},
                     {"id":"ollama","available":true,"model":"llama3.2","needs_model":true,"leaves_computer":false,"chosen":false},
                     {"id":"codex","available":false,"reads_files":true},
@@ -760,10 +763,12 @@ mod tests {
         let feed = |a: &[String], i: Option<&[u8]>| fake.feed(a, i);
         let r = readers_with(&feed).unwrap();
         assert!(r.iter().all(|r| !r.chosen));
-        assert!(!r[1].leaves_computer);
-        assert!(r[2].leaves_computer, "unknown counts as leaving");
-        assert!(r[1].reads_files, "unknown counts as reading files");
-        assert!(!r[0].reads_files);
+        assert_eq!(r[0].problem.as_deref(), Some("no AI model is chosen: memo models ai set"));
+        assert_eq!(r[1].problem, None);
+        assert!(!r[2].leaves_computer);
+        assert!(r[3].leaves_computer, "unknown counts as leaving");
+        assert!(r[2].reads_files, "unknown counts as reading files");
+        assert!(!r[1].reads_files);
         choose_with(&feed, "ollama").unwrap();
         assert_eq!(
             fake.seen()[2].0,
@@ -774,23 +779,15 @@ mod tests {
             fake.seen()[5].0,
             strs(&["sources", "readers", "set", "claude-code", "--from-app", "--json", "--no-record"])
         );
+        choose_with(&feed, "ai-model").unwrap();
+        assert_eq!(
+            fake.seen()[8].0,
+            strs(&["sources", "readers", "set", "ai-model", "--from-app", "--json", "--no-record"])
+        );
         let sent = fake.seen().len();
         assert!(choose_with(&feed, "openai").unwrap_err().contains("needs a model"));
         assert_eq!(fake.seen().len(), sent + 1, "nothing is set without a model");
         assert!(choose_with(&feed, "--all").is_err());
-    }
-
-    #[test]
-    fn the_key_goes_on_stdin_and_never_comes_back() {
-        let fake = Fake::new(|_, _| Err("the provider refused the key".into()));
-        assert!(key_with(&|a: &[String], i: Option<&[u8]>| fake.feed(a, i), "openai", " sk-test-123 ").is_err());
-        let (args, input) = &fake.seen()[0];
-        assert_eq!(args, &strs(&["models", "keys", "set", "openai", "--json", "--no-record"]));
-        assert_eq!(input.as_deref(), Some("sk-test-123"));
-        let ok = Fake::new(|_, _| Ok(json!({"item":{"provider":"openai","stored":true,"source":"keyring"}})));
-        let saved = key_with(&|a: &[String], i: Option<&[u8]>| ok.feed(a, i), "openai", "sk-test-123").unwrap();
-        assert_eq!(saved, KeySaved { provider: "openai".into(), source: Some("keyring".into()) });
-        assert!(key_with(&|a: &[String], i: Option<&[u8]>| ok.feed(a, i), "openai", "two words").is_err());
     }
 
     fn batch(status: &str, cites: &str) -> Value {

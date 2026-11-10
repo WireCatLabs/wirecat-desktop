@@ -2,6 +2,12 @@ import { create } from "zustand"
 import type { AiChecked, AiModel, AiModelChoice } from "@/platform/ai-model-schemas"
 import { platform } from "@/platform/bridge"
 import { errorText as message } from "./errors"
+import { useReaders } from "./readers-store"
+
+/** The `ai-model` reader's problem follows this setting, so a list already shown is read again. */
+const rereadReaders = () => {
+  if (useReaders.getState().readers !== null) void useReaders.getState().load()
+}
 
 type AiModelState = {
   /** null until memo answers. */
@@ -42,6 +48,7 @@ export const useAiModel = create<AiModelState>((set, get) => ({
     set({ busy: "save", actionError: null, failed: null, turnedOff: false, checked: null })
     try {
       set({ model: await platform.aiModelSet(choice) })
+      rereadReaders()
       return true
     } catch (e) {
       set({ actionError: message(e), failed: "save" })
@@ -73,6 +80,7 @@ export const useAiModel = create<AiModelState>((set, get) => ({
         (model) => set({ model }),
         () => undefined,
       )
+      rereadReaders()
       return true
     } catch (e) {
       set({ actionError: message(e), failed: "off" })

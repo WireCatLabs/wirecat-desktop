@@ -366,7 +366,6 @@ pub fn run() {
             commands::memory::memory_source_suggest,
             commands::memory::memory_readers,
             commands::memory::memory_reader_choose,
-            commands::memory::memory_reader_key,
             commands::memory::ai_model_show,
             commands::memory::ai_model_set,
             commands::memory::ai_model_off,

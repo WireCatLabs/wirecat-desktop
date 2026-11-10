@@ -31,6 +31,7 @@ const READER = {
   leavesComputer: false,
   readsFiles: false,
   chosen: false,
+  problem: null,
 }
 
 const ENTRY = {

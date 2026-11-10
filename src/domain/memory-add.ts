@@ -29,11 +29,20 @@ export function givenOf(d: Draft): Given | null {
   return d.path ? { kind: "file", path: d.path } : null
 }
 
-type ReaderLike = { id: string; available: boolean; chosen: boolean }
+type ReaderLike = {
+  id: string
+  available: boolean
+  chosen: boolean
+  signedIn?: boolean | null
+  problem?: string | null
+}
+
+/** memo cannot read with it now: not found, signed out, or, for `ai-model`, no model or key in «AI model». */
+export const readerOff = (r: ReaderLike) => !r.available || r.signedIn === false || (r.problem ?? null) !== null
 
 /** The reader the owner chose in Settings, if it still works here. Never a guess, even when only one exists. */
 export const chosenReader = <R extends ReaderLike>(readers: readonly R[]): R | null =>
-  readers.find((r) => r.chosen && r.available) ?? null
+  readers.find((r) => r.chosen && r.available && (r.problem ?? null) === null) ?? null
 
 /** A suggested task needs the owner's own yes; a fact starts ticked, as the panel's design says. */
 export const untickedAtFirst = (findings: readonly { id: string; kind: string }[]) =>
@@ -59,6 +68,8 @@ export const READER_REASONS = [
   "reader.too-old",
   "reader.limit",
   "reader.key-rejected",
+  "reader.no-key",
+  "reader.ai-not-set",
   "reader.no-credit",
   "reader.not-running",
   "reader.timeout",
@@ -88,4 +99,10 @@ export function imageReasonBefore(
 }
 
 /** The reasons a trip to Settings, "AI model", can mend. */
-export const MENDED_IN_SETTINGS = ["ai.not-set", "ai.images-not-allowed", "ai.key-missing", "ai.failed"]
+export const MENDED_IN_SETTINGS = [
+  "ai.not-set",
+  "ai.images-not-allowed",
+  "ai.key-missing",
+  "ai.failed",
+  "ai.setting-invalid",
+]

@@ -3,16 +3,16 @@ import { hostOfOrigin, providerHost, staysHere } from "@/domain/ai-model"
 import { imageReasonBefore, tooOldFor } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { useAiModel } from "@/shared/ai-model-store"
-import { useNav } from "@/shared/nav"
+import { goAiModel } from "@/shared/go-ai-model"
 import { Button } from "@/ui/Button"
 import { Skeleton } from "@/ui/Skeleton"
 import { addMessages } from "./messages-add"
 
-/** The way to Settings, where the AI model is chosen; the section sits at the top of the page. */
+/** The way to Settings, at the AI model section. */
 export function GoAiModel({ className }: { className?: string }) {
   const m = useMessages(addMessages)
   return (
-    <Button size="sm" variant="ghost" className={className} onClick={() => useNav.getState().go("settings")}>
+    <Button size="sm" variant="ghost" className={className} onClick={goAiModel}>
       {m.goAiModel}
     </Button>
   )

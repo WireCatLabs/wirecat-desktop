@@ -38,6 +38,7 @@ const reader = (id: string, chosen: boolean): Reader => ({
   leavesComputer: false,
   readsFiles: false,
   chosen,
+  problem: null,
 })
 
 const finding = (id: string, kind: string, text: string) => ({
@@ -131,6 +132,26 @@ describe("Add to memory", () => {
     expect(within(panel).getByRole("button", { name: "Tick all" })).toBeDisabled()
   })
 
+  it("sends the owner to AI model when the chosen AI model reader has no model or key", async () => {
+    vi.spyOn(platform, "memoryReaders").mockResolvedValue([
+      { ...reader("ai-model", true), problem: "the AI model has no key: memo models ai set" },
+      reader("ollama", false),
+    ])
+    vi.spyOn(platform, "memorySourceAdd").mockResolvedValue(ADDED)
+    const suggest = vi.spyOn(platform, "memorySourceSuggest").mockRejectedValue("reader.ai-not-set")
+    const user = userEvent.setup()
+    const panel = await openPanel(user)
+    await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
+    await user.click(within(panel).getByRole("button", { name: "Save" }))
+    expect(within(panel).getByText(/has no model or key yet/)).toBeInTheDocument()
+    await user.click(await within(panel).findByRole("button", { name: "Suggest facts" }))
+    expect(suggest).toHaveBeenCalledWith(ADDED.ref, "ai-model", [], false)
+    expect(await within(panel).findByText(/No AI model is chosen yet/)).toBeInTheDocument()
+    const go = within(panel).getAllByRole("button", { name: "Open AI model settings" })
+    await user.click(go[go.length - 1] as HTMLElement)
+    expect(useNav.getState().active).toBe("settings")
+  })
+
   it("never picks a reader for the owner, lets them choose one right there, and saves without facts", async () => {
     vi.spyOn(platform, "memoryReaders").mockResolvedValue([reader("ollama", false)])
     const choose = vi.spyOn(platform, "memoryReaderChoose").mockResolvedValue([reader("ollama", true)])
@@ -139,7 +160,8 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
-    expect(await within(panel).findByRole("button", { name: "Suggest facts" })).toBeDisabled()
+    await user.click(await within(panel).findByRole("button", { name: "Suggest facts" }))
+    expect(await within(panel).findByText("Choose in Settings what reads sources for facts.")).toBeInTheDocument()
     expect(within(panel).getByRole("radio", { name: /Ollama/ })).not.toBeChecked()
     await user.click(within(panel).getByRole("radio", { name: /Ollama/ }))
     await user.click(within(panel).getByRole("button", { name: "Use this reader" }))
@@ -327,7 +349,7 @@ describe("Add to memory", () => {
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "notes")
     await user.click(within(panel).getByRole("button", { name: "Save" }))
     expect(await within(panel).findByText(/cannot read sources for facts yet/)).toBeInTheDocument()
-    expect(within(panel).getByRole("button", { name: "Suggest facts" })).toBeDisabled()
+    expect(within(panel).getByRole("button", { name: "Suggest facts" })).toBeEnabled()
   })
 
   it("reads again with the reader chosen now, says who reads it, and lists only what memo linked", async () => {

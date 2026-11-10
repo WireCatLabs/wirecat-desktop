@@ -5,9 +5,9 @@ import { delay } from "./mock-delay"
 import type { Platform } from "./types"
 
 // Add to Memory's stand-in for memo's `sources` commands, with made-up people only. Readers: Ollama is the owner's
-// pick unless `?readers=unchosen` (found, none picked) or `?readers=none` (nothing found). `?add=open` opens the panel
-// on load. `?add-fail=link` refuses a link (the site answers 404), `?add-fail=suggest` fails the reading (the local
-// model is not running), `?add-fail=key` refuses the key.
+// pick unless `?readers=unchosen` (found, none picked), `?readers=none` (nothing found) or `?readers=ai-unset` (the
+// AI model reader has no model yet). `?add=open` opens the panel on load. `?add-fail=link` refuses a link (the site
+// answers 404), `?add-fail=suggest` fails the reading (the local model is not running).
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 
@@ -22,6 +22,17 @@ const fail = params.get("add-fail")
 
 const READERS: Reader[] = [
   {
+    id: "ai-model",
+    available: readersScenario !== "ai-unset",
+    signedIn: readersScenario !== "ai-unset",
+    model: null,
+    provider: null,
+    leavesComputer: true,
+    readsFiles: false,
+    chosen: false,
+    problem: readersScenario === "ai-unset" ? "no AI model is chosen: memo models ai set" : null,
+  },
+  {
     id: "claude-code",
     available: true,
     signedIn: true,
@@ -30,6 +41,7 @@ const READERS: Reader[] = [
     leavesComputer: true,
     readsFiles: false,
     chosen: false,
+    problem: null,
   },
   {
     id: "codex",
@@ -40,6 +52,7 @@ const READERS: Reader[] = [
     leavesComputer: true,
     readsFiles: true,
     chosen: false,
+    problem: null,
   },
   {
     id: "ollama",
@@ -50,16 +63,18 @@ const READERS: Reader[] = [
     leavesComputer: false,
     readsFiles: false,
     chosen: false,
+    problem: null,
   },
   {
-    id: "key",
-    available: false,
-    signedIn: null,
+    id: "openai",
+    available: true,
+    signedIn: false,
     model: null,
     provider: "openai",
     leavesComputer: true,
     readsFiles: false,
     chosen: false,
+    problem: "no OpenAI key: memo models keys set openai",
   },
 ]
 
@@ -70,8 +85,6 @@ const MENTIONS: Mentions = {
   ],
   partial: false,
 }
-
-const words = (text: string) => text.split(/\s+/).filter(Boolean).length
 
 export function memoryAddMock(
   stage: (batch: MemoryEntry) => void,
@@ -86,17 +99,12 @@ export function memoryAddMock(
   | "memorySourceSuggest"
   | "memoryReaders"
   | "memoryReaderChoose"
-  | "memoryReaderKey"
   | keyof ReturnType<typeof aiModelMock>
 > {
   let chosen = readersScenario === "unchosen" || readersScenario === "none" ? null : "ollama"
   let next = 42
-  let keySaved = false
   const stored = new Map<string, StoredSource>()
-  const readers = () =>
-    readersScenario === "none"
-      ? []
-      : READERS.map((r) => ({ ...r, available: r.id === "key" ? keySaved : r.available, chosen: r.id === chosen }))
+  const readers = () => (readersScenario === "none" ? [] : READERS.map((r) => ({ ...r, chosen: r.id === chosen })))
 
   return {
     ...aiModelMock(),
@@ -266,12 +274,6 @@ export function memoryAddMock(
       await delay(300)
       chosen = id
       return readers()
-    },
-    async memoryReaderKey(provider, key) {
-      await delay(400)
-      if (fail === "key" || words(key) !== 1) throw new Error("the provider refused this key")
-      keySaved = true
-      return { provider, source: "keyring" }
     },
   }
 }

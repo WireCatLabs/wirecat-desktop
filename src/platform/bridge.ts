@@ -30,7 +30,6 @@ import { OpenedSchema } from "./link-schemas"
 import {
   AddedSourceSchema,
   FilePreviewSchema,
-  KeySavedSchema,
   LinkPreviewSchema,
   MentionsSchema,
   ReaderSchema,
@@ -274,7 +273,6 @@ function createTauri(): Platform {
       call(SuggestedSchema, "memory_source_suggest", { reference: ref, reader, subjects, again }),
     memoryReaders: () => call(v.array(ReaderSchema), "memory_readers"),
     memoryReaderChoose: (id) => call(v.array(ReaderSchema), "memory_reader_choose", { id }),
-    memoryReaderKey: (provider, key) => call(KeySavedSchema, "memory_reader_key", { provider, key }),
     aiModelShow: () => call(AiModelSchema, "ai_model_show"),
     aiModelSet: (choice) => call(AiModelSchema, "ai_model_set", { choice }),
     aiModelOff: () => call(AiOffSchema, "ai_model_off"),
