@@ -12,12 +12,12 @@ import { Markers, SourceMark, taskTitle } from "./parts"
 import { ofSource, useSource } from "./source"
 import { useTasks } from "./store"
 
-// Wide enough for each language's longest status and priority, so none is cut ("К выполнению", "Без приоритета").
+// Wide enough for each language's longest status ("К выполнению") and the word Priority over its bars.
 // One width per language, not per value: a cell that changes never moves the columns (rule 9).
 const WIDTHS: Record<Lang, { "--status": string; "--priority": string }> = {
-  en: { "--status": "8.2rem", "--priority": "8.2rem" },
-  ru: { "--status": "9.9rem", "--priority": "10.5rem" },
-  es: { "--status": "9rem", "--priority": "9rem" },
+  en: { "--status": "8.2rem", "--priority": "5.6rem" },
+  ru: { "--status": "9.9rem", "--priority": "6.6rem" },
+  es: { "--status": "9rem", "--priority": "6.4rem" },
 }
 
 const keyOrder = (t: Task) => {

@@ -33,6 +33,10 @@ describe("Tasks", () => {
     expect(blocked).toHaveTextContent("waits for HRB-14")
     expect(blocked).toHaveTextContent("claude-code is on it")
     expect(within(row("HRB-14")).getByRole("combobox", { name: "Priority of HRB-14" })).toHaveTextContent("Critical")
+    const priority = (key: string) => within(row(key)).getByRole("combobox", { name: `Priority of ${key}` })
+    const bars = (key: string) => priority(key).querySelectorAll("span[aria-hidden] > span").length
+    expect(bars("HRB-14")).toBe(3)
+    expect(bars("HOME-2")).toBe(0)
     expect(within(row("HRB-12")).getByRole("combobox", { name: "Status of HRB-12" })).toHaveTextContent("Progress")
   })
 
