@@ -17,6 +17,7 @@
       } catch {}
     </script>
     <!-- The app's stylesheet arrives with its scripts, so the boot screen carries its own few colours (index.css). -->
+    <!-- Sizes in px: the app sets the root font size by window width when its stylesheet loads, and rem would shrink. -->
     <style>
       html { background: #f1efed; }
       html[data-theme="dark"] { background: #171614; }
@@ -42,13 +43,13 @@
         background: #171614;
       }
       #boot[data-done] { opacity: 0; pointer-events: none; }
-      #boot .boot-box { display: flex; flex-direction: column; align-items: center; gap: 1.4rem; }
-      #boot .boot-logo { display: flex; align-items: center; gap: 0.9rem; height: 3.2rem; color: var(--boot-ink); }
+      #boot .boot-box { display: flex; flex-direction: column; align-items: center; gap: 22px; }
+      #boot .boot-logo { display: flex; align-items: center; gap: 14px; height: 51px; color: var(--boot-ink); }
       #boot .boot-logo svg { height: 100%; width: auto; }
       #boot .boot-logo svg + svg { height: 58%; }
-      #boot .boot-slogan { margin: 0; font-size: 1.05rem; color: var(--boot-soft); text-align: center; }
-      #boot .boot-tagline { margin: -0.9rem 0 0; font-size: 0.85rem; letter-spacing: 0.02em; color: var(--boot-soft); opacity: 0.8; text-align: center; }
-      #boot .boot-bar { width: 9rem; height: 3px; border-radius: 3px; overflow: hidden; background: var(--boot-track); }
+      #boot .boot-slogan { margin: 0; font-size: 17px; color: var(--boot-soft); text-align: center; }
+      #boot .boot-tagline { margin: -14px 0 0; font-size: 14px; letter-spacing: 0.02em; color: var(--boot-soft); opacity: 0.8; text-align: center; }
+      #boot .boot-bar { width: 144px; height: 3px; border-radius: 3px; overflow: hidden; background: var(--boot-track); }
       #boot .boot-bar::after {
         content: "";
         display: block;
