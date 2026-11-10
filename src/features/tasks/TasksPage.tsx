@@ -1,15 +1,16 @@
-import { Columns3, ExternalLink, Plus, RefreshCw, Rows3 } from "lucide-react"
+import { Columns3, Plus, Rows3 } from "lucide-react"
 import { type ReactNode, useEffect } from "react"
 import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import { DemoNote } from "@/shared/DemoNote"
+import { Page, PageHeader } from "@/shared/Page"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
-import { Skeleton, StableText } from "@/ui/Skeleton"
+import { Skeleton } from "@/ui/Skeleton"
 import { Filters } from "./Filters"
 import { taskMessages } from "./messages"
 import { NewTask } from "./NewTask"
@@ -37,64 +38,53 @@ export function TasksPage() {
 
   const usable = loaded && !unusable && !error
   return (
-    <div className="flex min-w-0 flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[2.1rem] leading-none font-extrabold tracking-[-0.035em]">{m.title}</h1>
-          <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
-            {m.intro}{" "}
-            <button
-              type="button"
-              onClick={() => void platform.openUrl(guide(lang))}
-              className="inline-flex cursor-pointer items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
+    <Page>
+      <PageHeader
+        title={m.title}
+        section="tasks"
+        intro={m.intro}
+        guide={{ label: m.guide, href: guide(lang) }}
+        actions={
+          <div
+            className={cx("flex items-center gap-2", !usable && "invisible")}
+            aria-hidden={!usable || undefined}
+            inert={demo || undefined}
+          >
+            <RefreshButton
+              busy={reading}
+              onClick={() => void useTasks.getState().load()}
+              label={m.readAgain}
+              busyLabel={m.reading}
+            />
+            <Segmented<View>
+              size="md"
+              tour="tasks-view"
+              label={m.view}
+              value={view}
+              onChange={(v) => useTasks.getState().setView(v)}
+              options={[
+                { value: "table", label: m.table, icon: <Rows3 className="size-4" aria-hidden /> },
+                { value: "board", label: m.board, icon: <Columns3 className="size-4" aria-hidden /> },
+              ]}
+            />
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => useTasks.getState().startCreate(true)}
+              icon={<Plus className="size-4" aria-hidden />}
             >
-              {m.guide}
-              <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
-            </button>
-          </p>
-        </div>
-        <div
-          className={cx("flex items-center gap-2", !usable && "invisible")}
-          aria-hidden={!usable || undefined}
-          inert={demo || undefined}
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={reading}
-            onClick={() => void useTasks.getState().load()}
-            icon={<RefreshCw className={cx("size-4", reading && "motion-safe:animate-spin")} aria-hidden />}
-          >
-            <StableText value={reading ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
-          </Button>
-          <Segmented<View>
-            size="md"
-            tour="tasks-view"
-            label={m.view}
-            value={view}
-            onChange={(v) => useTasks.getState().setView(v)}
-            options={[
-              { value: "table", label: m.table, icon: <Rows3 className="size-4" aria-hidden /> },
-              { value: "board", label: m.board, icon: <Columns3 className="size-4" aria-hidden /> },
-            ]}
-          />
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => useTasks.getState().startCreate(true)}
-            icon={<Plus className="size-4" aria-hidden />}
-          >
-            {m.newTask}
-          </Button>
-        </div>
-      </div>
+              {m.newTask}
+            </Button>
+          </div>
+        }
+      />
       {demo && <DemoNote />}
       <div inert={demo || undefined} className="contents">
         <Body />
         <Note />
       </div>
       <NewTask />
-    </div>
+    </Page>
   )
 }
 
