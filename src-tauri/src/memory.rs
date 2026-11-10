@@ -416,7 +416,7 @@ fn role(v: &Value) -> Option<Role> {
 
 /// A memo from before a list, or before one of its words, says so; anything else (a busy store) is a real failure.
 fn unsupported(e: &str) -> bool {
-    e.starts_with("unknown command") || e.contains("query.unknown-field")
+    e.starts_with("unknown command") || e.starts_with("unknown option") || e.contains("query.unknown-field")
 }
 
 fn rows(call: &Call, args: &[&str], pending: bool) -> Result<Vec<Entry>, String> {
@@ -603,15 +603,39 @@ fn is_held_links(args: &[String]) -> bool {
     args.starts_with(&["relationships".to_string(), "list".to_string()]) && !args.iter().any(|a| a == "confirmed:false")
 }
 
+/// Pages of 500 asked for at most; `more` says only that this cap stopped the read.
+const MAX_PAGES: u32 = 40;
+
+/// Every page memo has, so the page's counts and groups cover the whole list; a memo before `--page` gives one.
 fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(Vec<Entry>, bool), String> {
     // `actions list` reads every findings batch's sources back unless brief; the page reads them on opening one.
     let mut parts = vec![noun, "list", "--limit", LIMIT];
     if noun == "actions" {
         parts.push("--brief");
     }
-    let v = call(&words(&parts))?;
-    let items = v["items"].as_array().map(|a| a.iter().filter_map(parse).collect()).unwrap_or_default();
-    Ok((items, v["page"]["has_more"].as_bool().unwrap_or(false)))
+    let rows =
+        |v: &Value| v["items"].as_array().map(|a| a.iter().filter_map(parse).collect::<Vec<_>>()).unwrap_or_default();
+    let has_more = |v: &Value| v["page"]["has_more"].as_bool().unwrap_or(false);
+    let mut items: Vec<Entry> = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+    for page in 1..=MAX_PAGES {
+        let number = page.to_string();
+        let mut paged = parts.clone();
+        paged.extend(["--page", number.as_str()]);
+        let v = match call(&words(&paged)) {
+            Ok(v) => v,
+            Err(e) if page == 1 && unsupported(&e) => {
+                let v = call(&words(&parts))?;
+                return Ok((rows(&v), has_more(&v)));
+            }
+            Err(e) => return Err(e),
+        };
+        items.extend(rows(&v).into_iter().filter(|e| seen.insert(e.reference.clone())));
+        if !has_more(&v) {
+            return Ok((items, false));
+        }
+    }
+    Ok((items, true))
 }
 
 /// Every list at once: memo's server answers them side by side, and a memo without it starts a process for each, so one
@@ -1401,6 +1425,33 @@ mod tests {
         let id = proposal_id(&waiting.reference).unwrap();
         let done = decide_relationship(&call, id, true).unwrap();
         assert_eq!(done.standing.as_deref(), Some("confirmed"));
+    }
+
+    #[test]
+    fn reads_every_page_of_a_list_and_asks_an_older_memo_once() {
+        let fake = Fake::new(|a| {
+            let page = a.iter().position(|w| w == "--page").map(|i| a[i + 1].clone());
+            Ok(match (a[0].as_str(), page.as_deref()) {
+                ("facts", Some("1")) => json!({"items":[decision("proposed")],"page":{"has_more":true}}),
+                ("facts", Some(_)) => {
+                    let mut second = decision("proposed");
+                    second["ref"] = json!("fact:2");
+                    json!({"items":[decision("proposed"), second],"page":{"has_more":false}})
+                }
+                ("memories", Some(_)) => return Err("unknown option '--page'".into()),
+                ("memories", None) => json!({"items":[agent_memory()],"page":{"has_more":true}}),
+                _ => json!({"items":[],"page":{"has_more":false}}),
+            })
+        });
+        let call = |a: &[String]| fake.call(a);
+        let (facts, more) = list(&call, "facts", fact).unwrap();
+        assert_eq!(
+            (facts.iter().map(|e| e.reference.as_str()).collect::<Vec<_>>(), more),
+            (vec!["fact:1", "fact:2"], false)
+        );
+        let (memories, more) = list(&call, "memories", memory).unwrap();
+        assert_eq!((memories.len(), more), (1, true));
+        assert_eq!(fake.seen().iter().filter(|a| a[0] == "memories").count(), 2);
     }
 
     #[test]
