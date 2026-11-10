@@ -1,10 +1,10 @@
-import { ExternalLink } from "lucide-react"
 import { useCallback, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { dailyCap, formatUsd, type RunOutcome, runOutcome } from "@/domain/mail-agent"
 import { useLang, useMessages } from "@/i18n"
 import type { Skipped, MailAgent as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
@@ -156,14 +156,9 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
       <Collapse open={state?.state === "off" && !state.harness}>
         <div className="flex flex-wrap items-center gap-3">
           <p className="text-[0.9rem] text-ink-soft">{m.noHarness}</p>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => platform.openUrl("https://claude.com/claude-code")}
-            icon={<ExternalLink className="size-4" aria-hidden />}
-          >
+          <OpenLink url="https://claude.com/claude-code" variant="ghost">
             {m.aboutClaude}
-          </Button>
+          </OpenLink>
         </div>
       </Collapse>
       <Collapse open={state?.state === "on"}>{state?.state === "on" && <Status state={state} m={m} />}</Collapse>

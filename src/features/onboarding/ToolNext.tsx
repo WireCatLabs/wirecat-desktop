@@ -5,12 +5,13 @@ import { useLogs } from "@/features/logs"
 import { openConnect, openToolAt, useProfiles } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { externalHref } from "@/shared/external-href"
 import { useNav } from "@/shared/nav"
 import { Collapse } from "@/ui/Collapse"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { nextMessages } from "./messages-next"
 
-type Item = { key: string; label: string; hint?: string; open: () => void }
+type Item = { key: string; label: string; hint?: string; open: () => void; href?: string }
 
 function useItems(tool: CatalogTool, leave: (then: () => void) => void): Item[] {
   const m = useMessages(nextMessages)
@@ -57,7 +58,7 @@ function useItems(tool: CatalogTool, leave: (then: () => void) => void): Item[] 
           useNav.getState().go("logs")
         }),
     },
-    { key: "docs", label: m.docs, open: () => void platform.openUrl(tool.docs) },
+    { key: "docs", label: m.docs, open: () => void platform.openUrl(tool.docs), href: tool.docs },
   ]
   return items.filter((i): i is Item => i !== false)
 }
@@ -94,6 +95,7 @@ export function ToolNext(props: {
               <button
                 type="button"
                 onClick={i.open}
+                {...(i.href && externalHref(i.href))}
                 className="text-left font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline"
               >
                 {i.label}

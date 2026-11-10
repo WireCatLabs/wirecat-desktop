@@ -3,6 +3,7 @@ import { FUNNEL_HELPER } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { FunnelHelperStatus } from "@/platform/tailscale-schemas"
+import { OpenLink } from "@/shared/OpenLink"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -139,11 +140,7 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
                 {waiting && waiting !== "stopped" && waiting !== "error" ? m.waiting[waiting] : m.connecting}
               </p>
               <div className="flex flex-wrap gap-2">
-                {page && (
-                  <Button size="sm" onClick={() => platform.openUrl(page)}>
-                    {m.openAgain}
-                  </Button>
-                )}
+                {page && <OpenLink url={page}>{m.openAgain}</OpenLink>}
                 <Button size="sm" variant="ghost" onClick={() => platform.tailscaleStop()}>
                   {m.stop}
                 </Button>

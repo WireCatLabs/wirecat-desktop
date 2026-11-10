@@ -1,14 +1,13 @@
-import { CircleCheck, Clock, ExternalLink, ShieldCheck } from "lucide-react"
+import { CircleCheck, Clock, ShieldCheck } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import type { MailWay } from "@/domain/mail-signin"
 import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
+import { OpenLink } from "@/shared/OpenLink"
 import { guidedProvider, methodOf, oauthTooOld, setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
-import { CopyButton } from "@/ui/CopyButton"
 import { Disclosure } from "@/ui/Disclosure"
 import { AppPasswordStep, GoogleClient } from "./MailSteps"
 import { mailMessages } from "./messages-mail"
@@ -123,18 +122,11 @@ export function Plan() {
 }
 
 function GuideLink({ url, label }: { url: string; label: string }) {
-  const tm = useMessages(telegramMessages)
   return (
-    <div className="flex items-center gap-1 self-start">
-      <Button
-        variant="ghost"
-        size="sm"
-        icon={<ExternalLink className="size-4" aria-hidden />}
-        onClick={() => platform.openUrl(url)}
-      >
+    <div className="self-start">
+      <OpenLink url={url} variant="ghost">
         {label}
-      </Button>
-      <CopyButton value={url} label={tm.copyLink(new URL(url).host)} />
+      </OpenLink>
     </div>
   )
 }

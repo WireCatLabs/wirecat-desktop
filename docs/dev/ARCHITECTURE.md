@@ -153,6 +153,10 @@ src-tauri/src/
                 `crm_board/base.rs` alone knows the base-stage commands' argv and JSON.
   paths.rs      the PATH a terminal would have; finding every copy of a binary.
   run.rs        running a process with a timeout; streaming lines; killing a whole process tree.
+  host_open.rs  opening a web page or a folder with the system's own launcher (xdg-open, then gio, then kde-open), and
+                the system's environment for every program the app starts: under an AppImage it drops the AppImage's
+                libraries and GTK modules, which break the browser a launcher starts. A launcher that fails is an error
+                the interface shows with the address to copy (`LinkFailure`).
   redact.rs     masking tokens, numbers, addresses and names in tool output.
   names.rs      the chat titles and contact names the messengers keep, read per profile with their own offline
                 `chats list` / `contacts list`, held in memory only, so doctor output and reports mask them.

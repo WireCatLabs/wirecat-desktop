@@ -1,6 +1,7 @@
 import { linkParts } from "@/domain/format"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { externalHref } from "@/shared/external-href"
 import { conversationMessages } from "./messages"
 
 /**
@@ -18,6 +19,7 @@ export function LinkedText({ text }: { text: string }) {
             type="button"
             title={m.openLink(part.text)}
             onClick={() => void platform.openUrl(part.text)}
+            {...externalHref(part.text)}
             className="rounded text-left font-medium break-all text-brand underline underline-offset-2 hover:text-brand-hover"
           >
             {part.text}

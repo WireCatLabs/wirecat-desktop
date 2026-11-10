@@ -8,6 +8,7 @@ import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Identity, Listed, Match, PersonDetail } from "@/platform/people-schemas"
 import type { PersonProfile } from "@/platform/person-profile-schemas"
+import { externalHref } from "@/shared/external-href"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -443,6 +444,7 @@ function Source({ identity: i, person, tie }: { identity: Identity; person: stri
         <button
           type="button"
           onClick={() => void platform.openUrl(href)}
+          {...externalHref(href)}
           aria-label={m.openIn(source)}
           title={m.openIn(source)}
           className="inline-flex items-center gap-[0.25rem] rounded-[0.2rem] text-[0.9rem] text-brand transition-colors duration-(--motion-fast) hover:text-brand-hover"

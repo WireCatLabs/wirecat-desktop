@@ -1,4 +1,4 @@
-import { CheckCircle2, ExternalLink, LoaderCircle } from "lucide-react"
+import { CheckCircle2, LoaderCircle } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { MAIL_PROVIDERS_LIST, readMailNotes } from "@/domain/mail-signin"
@@ -15,7 +15,7 @@ import {
 } from "@/domain/telegram-signin"
 import { openConnect, openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
+import { OpenLink } from "@/shared/OpenLink"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { ReportThis } from "@/shared/ReportThis"
 import {
@@ -32,7 +32,6 @@ import {
 } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
-import { CopyButton } from "@/ui/CopyButton"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -46,14 +45,7 @@ import { planMessages } from "./messages-plan"
 import { setupMessages } from "./messages-setup"
 import { telegramMessages } from "./messages-telegram"
 import { wizardMessages } from "./messages-wizard"
-import {
-  isTelegramApps,
-  MY_TELEGRAM,
-  OpenLink,
-  TelegramAppGuide,
-  TelegramFailureText,
-  TelegramScanSteps,
-} from "./TelegramGuide"
+import { isTelegramApps, MY_TELEGRAM, TelegramAppGuide, TelegramFailureText, TelegramScanSteps } from "./TelegramGuide"
 import { MAIL_SERVER_FIELDS, maxTokenIn } from "./wizard"
 import { SyncNow, ZoomAppSetup } from "./ZoomApp"
 
@@ -324,7 +316,7 @@ function BrowserLink({ url, compact = false }: { url: OpenUrl; compact?: boolean
         {url.purpose ? sentence(url.purpose) : m.continueOn(host)}
       </p>
       <div className={compact ? "self-start" : undefined}>
-        <OpenLink url={url.url} primary={!compact} />
+        <OpenLink url={url.url} variant={compact ? "secondary" : "primary"} size={compact ? "sm" : "md"} />
       </div>
     </div>
   )
@@ -560,7 +552,6 @@ function RedirectStage({ need, s }: { need: Need; s: SignInView }) {
 /** MAX's token: where web.max.ru keeps it, step by step, and the field that takes the whole stored value. */
 function TokenStage({ need, s }: { need: Need; s: SignInView }) {
   const wm = useMessages(wizardMessages)
-  const tm = useMessages(telegramMessages)
   const check: Check = (typed) => {
     const value = maxTokenIn(typed)
     return { value, error: value ? null : wm.token.empty }
@@ -582,16 +573,8 @@ function TokenStage({ need, s }: { need: Need; s: SignInView }) {
             </li>
           ))}
         </ol>
-        <div className="flex items-center gap-1 self-start">
-          <Button
-            size="sm"
-            variant="secondary"
-            icon={<ExternalLink className="size-4" aria-hidden />}
-            onClick={() => platform.openUrl("https://web.max.ru/")}
-          >
-            {wm.token.open}
-          </Button>
-          <CopyButton value="https://web.max.ru/" label={tm.copyLink("web.max.ru")} />
+        <div className="self-start">
+          <OpenLink url="https://web.max.ru/">{wm.token.open}</OpenLink>
         </div>
       </section>
       <div className="pl-[2.05rem]">

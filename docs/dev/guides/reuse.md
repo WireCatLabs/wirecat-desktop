@@ -16,6 +16,8 @@ Search first. Most things this app needs exist once already.
 | "Report this" button | [features/report/ReportThis.tsx](../../../src/features/report/ReportThis.tsx) | `src/shared/` |
 | JSON viewer | [features/logs/JsonTree.tsx](../../../src/features/logs/JsonTree.tsx) | `src/shared/` |
 | localStorage that never throws | `safeStorage` in [onboarding/store.ts](../../../src/features/onboarding/store.ts) | `src/shared/` |
+| A button that opens a web page, with its link to copy beside it | [shared/OpenLink.tsx](../../../src/shared/OpenLink.tsx) | same |
+| An inline web link; any other element that opens a page gets `externalHref(url)` so right-click can copy it | [shared/ExtLink.tsx](../../../src/shared/ExtLink.tsx), [shared/external-href.ts](../../../src/shared/external-href.ts) | same |
 | Query bar of Logs and Search | [features/query/](../../../src/features/query/) | same |
 | Running a program in Rust | [run.rs](../../../src-tauri/src/run.rs) | same |
 | Masking personal data in Rust | [redact.rs](../../../src-tauri/src/redact.rs) | same |

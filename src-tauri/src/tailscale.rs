@@ -400,7 +400,7 @@ pub enum PageEvent {
 }
 
 pub(crate) fn open_page(url: &str, send: &dyn Fn(PageEvent)) {
-    let _ = tauri_plugin_opener::open_url(url, None::<&str>);
+    let _ = crate::host_open::url(url);
     send(PageEvent::Opened { url: url.to_string() });
 }
 

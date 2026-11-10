@@ -1,9 +1,11 @@
-import { CircleAlert, CircleCheck, ExternalLink, LoaderCircle, LockKeyhole, Send } from "lucide-react"
+import { CircleAlert, CircleCheck, LoaderCircle, LockKeyhole, Send } from "lucide-react"
 import { type KeyboardEvent, type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { issueBody, LIMITS, newIssueUrl, type ReportFields, type ReportProblem, validateReport } from "@/domain/report"
 import { formatList, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { externalHref } from "@/shared/external-href"
+import { OpenLink } from "@/shared/OpenLink"
 import { attachmentsOf, useReport } from "@/shared/report-store"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -104,6 +106,7 @@ export function ReportDialog() {
                 type="button"
                 className="font-medium text-brand hover:text-brand-hover"
                 onClick={() => platform.openUrl(SECURITY_POLICY)}
+                {...externalHref(SECURITY_POLICY)}
               >
                 {m.policy}
               </button>,
@@ -343,13 +346,9 @@ function Actions({ fields }: { fields: ReportFields }) {
         </p>
       )}
       {phase === "failed" && context && (
-        <Button
-          variant="ghost"
-          icon={<ExternalLink className="size-4" aria-hidden />}
-          onClick={() => platform.openUrl(newIssueUrl(fields, context))}
-        >
+        <OpenLink url={newIssueUrl(fields, context)} variant="ghost" size="md">
           {m.openOnGitHub}
-        </Button>
+        </OpenLink>
       )}
       <Button variant="secondary" onClick={close}>
         {m.cancel}
@@ -387,14 +386,10 @@ function Sent() {
         {sent.issueUrl ? m.thanksIssue(sent.issueNumber ?? 0) : m.thanksSaved}
       </p>
       {sent.issueUrl ? (
-        <div>
-          <Button
-            variant="secondary"
-            icon={<ExternalLink className="size-4" aria-hidden />}
-            onClick={() => sent.issueUrl && platform.openUrl(sent.issueUrl)}
-          >
+        <div className="self-start">
+          <OpenLink url={sent.issueUrl} size="md">
             {m.openIssue}
-          </Button>
+          </OpenLink>
         </div>
       ) : (
         <p>{m.queued(sent.id)}</p>

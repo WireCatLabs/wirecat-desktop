@@ -4,6 +4,8 @@ import { formatBytes } from "@/domain/format"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { UpdateFailure } from "@/platform/types"
+import { externalHref } from "@/shared/external-href"
+import { OpenLink } from "@/shared/OpenLink"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
@@ -40,6 +42,7 @@ function Link({ href, children, quiet = false }: { href: string; children: React
       type="button"
       className={quiet ? "text-ink-dim underline hover:text-ink" : "text-brand underline hover:text-brand-hover"}
       onClick={() => platform.openUrl(href)}
+      {...externalHref(href)}
     >
       {children}
     </button>
@@ -207,12 +210,7 @@ export function UpdateDialog() {
     if (step !== "idle") document.querySelector<HTMLElement>("[data-update-next]")?.focus()
   }, [step])
   const close = () => useUpdate.getState().close()
-  const toDownloadPage = () => platform.openUrl(downloadPage(lang))
-  const pageButton = (
-    <Button size="sm" onClick={toDownloadPage}>
-      {m.openDownloadPage}
-    </Button>
-  )
+  const pageButton = <OpenLink url={downloadPage(lang)}>{m.openDownloadPage}</OpenLink>
 
   if (!update) {
     const { title, actions, body, footer } = checkStep(m, asked, lang, pageButton)
@@ -242,7 +240,8 @@ export function UpdateDialog() {
           data-autofocus
           data-update-next
           icon={<ExternalLink className="size-4" aria-hidden />}
-          onClick={toDownloadPage}
+          onClick={() => platform.openUrl(downloadPage(lang))}
+          {...externalHref(downloadPage(lang))}
         >
           {m.openDownloadPage}
         </Button>

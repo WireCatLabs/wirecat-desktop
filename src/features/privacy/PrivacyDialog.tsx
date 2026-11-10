@@ -2,6 +2,7 @@ import { ArrowUpFromLine, ExternalLink, EyeOff, HardDrive, ScrollText } from "lu
 import type { ReactNode } from "react"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { externalHref } from "@/shared/external-href"
 import { Dialog } from "@/ui/Dialog"
 import { privacyMessages } from "./messages"
 
@@ -21,6 +22,7 @@ export function PrivacyDialog({ open, onClose }: { open: boolean; onClose: () =>
           type="button"
           title={policy}
           onClick={() => platform.openUrl(policy)}
+          {...externalHref(policy)}
           className="inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
         >
           {m.policy}

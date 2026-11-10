@@ -4,6 +4,7 @@ import type { Parsed, Term } from "@/domain/runs"
 import type { QueryOption, QueryOptions } from "@/domain/search"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { externalHref } from "@/shared/external-href"
 import { cx } from "@/ui/cx"
 import { queryMessages } from "./messages"
 
@@ -293,6 +294,7 @@ export function QueryBar(props: Props) {
         <button
           type="button"
           onClick={() => platform.openUrl(docs)}
+          {...externalHref(docs)}
           className="inline-flex shrink-0 items-center gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
         >
           {m.searchSyntax}

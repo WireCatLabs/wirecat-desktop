@@ -1,10 +1,10 @@
-import { ExternalLink } from "lucide-react"
 import { type FormEvent, type ReactNode, useEffect, useId, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { openTool, useSync } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { ZoomScope } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { OpenLink } from "@/shared/OpenLink"
 import { keptAnswer, type Need, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
@@ -15,7 +15,6 @@ import { Disclosure } from "@/ui/Disclosure"
 import { AnswerForm } from "./AnswerForm"
 import { signinMessages } from "./messages"
 import { setupMessages } from "./messages-setup"
-import { telegramMessages } from "./messages-telegram"
 import { wizardMessages } from "./messages-wizard"
 import { ZOOM_APP } from "./wizard"
 
@@ -73,23 +72,14 @@ export function ZoomAppSetup({ need }: { need?: Need | undefined }) {
   const wm = useMessages(wizardMessages)
   const sm = useMessages(setupMessages)
   const tool = useSignIn((s) => s.tool)
-  const tm = useMessages(telegramMessages)
   const values = useAppValues(tool)
   const steps = wm.zoom.steps
   const [ticked, setTicked] = useState<boolean[]>(() => steps.map(() => false))
   const count = ticked.filter(Boolean).length
   const extra: Record<number, ReactNode> = {
     0: (
-      <div className="flex items-center gap-1 self-start">
-        <Button
-          size="sm"
-          variant="secondary"
-          icon={<ExternalLink className="size-4" aria-hidden />}
-          onClick={() => platform.openUrl(values.marketplace)}
-        >
-          {wm.zoom.openMarketplace}
-        </Button>
-        <CopyButton value={values.marketplace} label={tm.copyLink(new URL(values.marketplace).host)} />
+      <div className="self-start">
+        <OpenLink url={values.marketplace}>{wm.zoom.openMarketplace}</OpenLink>
       </div>
     ),
     3: <CopyField value={values.redirect} label={wm.zoom.copyRedirect} />,
@@ -212,21 +202,14 @@ function ClientIdAnswer({ need }: { need: Need }) {
 
 function GuideLink({ url }: { url: string | null }) {
   const wm = useMessages(wizardMessages)
-  const tm = useMessages(telegramMessages)
   const catalogGuide = useSignIn((s) => (s.tool ? findTool(s.tool)?.signIn?.guide : undefined))
   const guide = url ?? catalogGuide
   if (!guide) return null
   return (
-    <div className="flex items-center gap-1 self-start">
-      <Button
-        variant="ghost"
-        size="sm"
-        icon={<ExternalLink className="size-4" aria-hidden />}
-        onClick={() => platform.openUrl(guide)}
-      >
+    <div className="self-start">
+      <OpenLink url={guide} variant="ghost">
         {wm.zoom.guide}
-      </Button>
-      <CopyButton value={guide} label={tm.copyLink(new URL(guide).host)} />
+      </OpenLink>
     </div>
   )
 }
