@@ -1,4 +1,4 @@
-import { Database, FolderOpen, KeyRound, LoaderCircle, Trash2 } from "lucide-react"
+import { Database, FolderOpen, KeyRound, Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { describeEntry } from "@/domain/files"
@@ -8,6 +8,7 @@ import { formatList, useMessages } from "@/i18n"
 import type { StorageArea } from "@/platform/schemas"
 import { useCompat } from "@/shared/compat-store"
 import { KeptFolders } from "@/shared/KeptFolders"
+import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
 import { areaBytes, useStorage } from "@/shared/storage-store"
 import { ToolIcon } from "@/shared/ToolIcon"
@@ -45,28 +46,20 @@ export function StoragePage() {
   const leftoverBytes = leftovers.reduce((sum, a) => sum + areaBytes(a), 0)
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-baseline gap-[1.2rem]">
-            <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
-            <p aria-live="polite" className="flex items-center gap-1.5 text-[0.9rem] text-ink-soft">
-              {revalidating && areas !== null && (
-                <>
-                  <LoaderCircle className="size-4 shrink-0 animate-spin text-brand" aria-hidden />
-                  {m.checking}
-                </>
-              )}
-            </p>
-          </div>
-          <p className="mt-3 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
-        </div>
-        {leftovers.length > 1 && (
-          <Button variant="danger" onClick={() => setConfirm("all")} icon={<Trash2 className="size-4" aria-hidden />}>
-            {m.deleteAll}
-          </Button>
-        )}
-      </div>
+    <Page>
+      <PageHeader
+        title={m.title}
+        status={revalidating && areas !== null ? m.checking : null}
+        busy
+        intro={m.intro}
+        actions={
+          leftovers.length > 1 && (
+            <Button variant="danger" onClick={() => setConfirm("all")} icon={<Trash2 className="size-4" aria-hidden />}>
+              {m.deleteAll}
+            </Button>
+          )
+        }
+      />
 
       {error && (
         <ErrorNotice action={<ReportThis what="Working with data on this computer" error={error} />}>
@@ -103,7 +96,7 @@ export function StoragePage() {
           else if (target) clear(target.id)
         }}
       />
-    </div>
+    </Page>
   )
 }
 

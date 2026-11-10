@@ -1,4 +1,5 @@
 import { useEffect } from "react"
+import { Page } from "@/shared/Page"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Crossfade } from "@/ui/Crossfade"
 import { TabPanel, Tabs } from "@/ui/Tabs"
@@ -24,7 +25,7 @@ export function AgentsPage() {
 
   return (
     // The page fills the window from its first frame, so details arriving inside the pane do not grow it.
-    <div className="@container flex min-h-full flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
+    <Page className="@container min-h-full">
       <PageHead view={view} />
       <Notices view={view} />
       {!view.agentsError && (
@@ -50,6 +51,6 @@ export function AgentsPage() {
       )}
       <Elsewhere view={view} />
       <Dialogs />
-    </div>
+    </Page>
   )
 }

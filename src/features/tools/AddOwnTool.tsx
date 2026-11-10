@@ -3,10 +3,11 @@ import { useEffect, useState } from "react"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { useOwnDialog } from "@/shared/own-dialog-store"
+import { Button } from "@/ui/Button"
 import { ownMessages } from "./messages-own"
 
 /** Shown only while "Allow tools WireCat has not checked" is on (or the developer flag is set). */
-export function AddOwnTool({ className }: { className: string }) {
+export function AddOwnTool() {
   const m = useMessages(ownMessages)
   const [allowed, setAllowed] = useState(false)
   useEffect(() => {
@@ -17,9 +18,13 @@ export function AddOwnTool({ className }: { className: string }) {
   }, [])
   if (!allowed) return null
   return (
-    <button type="button" className={className} onClick={() => useOwnDialog.getState().show()}>
-      <Plus className="size-4" aria-hidden />
+    <Button
+      variant="ghost"
+      size="sm"
+      icon={<Plus className="size-4" aria-hidden />}
+      onClick={() => useOwnDialog.getState().show()}
+    >
       {m.open}
-    </button>
+    </Button>
   )
 }

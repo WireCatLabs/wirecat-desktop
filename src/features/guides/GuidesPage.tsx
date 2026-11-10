@@ -9,6 +9,7 @@ import { formatList, LANGS, type Lang, useLang, useMessages } from "@/i18n"
 import type { AgentRun } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
+import { PageHeader } from "@/shared/Page"
 import { ToolIcon } from "@/shared/ToolIcon"
 import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
@@ -130,16 +131,12 @@ export function GuidesPage() {
   return (
     <div className="@container flex flex-col gap-[1.8rem] px-[2.1rem] pt-[1.6rem] pb-[3rem]">
       <header data-tour="guides" className="flex flex-col gap-[1rem]">
-        <div className="flex items-end justify-between gap-4">
-          <div className="flex min-w-0 items-baseline gap-[1.2rem]">
-            <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
-            <p className="min-w-0 truncate text-[0.9rem] text-ink-dim">
-              {scenario === "offline" ? m.offline : m.fresh}
-            </p>
-          </div>
-          <SiteLink href={`https://wirecat.dev/${lang}/docs/prompting`}>{m.allOnSite}</SiteLink>
-        </div>
-        <p className="max-w-[62ch] text-[1.02rem] leading-relaxed text-ink-soft">{m.intro}</p>
+        <PageHeader
+          title={m.title}
+          status={scenario === "offline" ? m.offline : m.fresh}
+          intro={m.intro}
+          actions={<SiteLink href={`https://wirecat.dev/${lang}/docs/prompting`}>{m.allOnSite}</SiteLink>}
+        />
         <label className="relative block max-w-[36rem]">
           <span className="sr-only">{m.search}</span>
           <Search

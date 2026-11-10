@@ -1,17 +1,17 @@
-import { LoaderCircle, RefreshCw } from "lucide-react"
 import { useEffect } from "react"
 import { tools } from "@/domain/catalog"
 import { NodeNotice } from "@/features/system"
 import { useMessages } from "@/i18n"
 import { useCatalog } from "@/shared/catalog-store"
 import { useCompat } from "@/shared/compat-store"
+import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
-import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { keepBelow } from "@/ui/motion"
-import { Skeleton, StableText } from "@/ui/Skeleton"
+import { RefreshButton } from "@/ui/RefreshButton"
+import { Skeleton } from "@/ui/Skeleton"
 import { AddOwnTool } from "./AddOwnTool"
 import { toolsMessages } from "./messages"
 import { OwnRemoved } from "./OwnRemoved"
@@ -21,9 +21,6 @@ import { StoreDamageLine } from "./StoreDamage"
 import { ToolRow } from "./ToolRow"
 import { ToolsIntro } from "./ToolsIntro"
 import { UpgradeWarning } from "./UpgradeWarning"
-
-const headerAction =
-  "inline-flex items-center gap-1.5 rounded-[0.35rem] px-2 py-1 text-[0.875rem] text-ink-dim transition-colors hover:bg-app-3 hover:text-ink disabled:opacity-60"
 
 export function ToolsPage() {
   const m = useMessages(toolsMessages).page
@@ -46,33 +43,24 @@ export function ToolsPage() {
   }, [])
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex items-end justify-between gap-4">
-        <div className="flex min-w-0 items-baseline gap-[1.2rem]">
-          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
-          <p aria-live="polite" className="flex min-w-0 items-center gap-1.5 text-[0.9rem] text-ink-soft">
-            {progress && (
-              <>
-                <LoaderCircle className="size-4 shrink-0 animate-spin text-brand" aria-hidden />
-                <span className="truncate">{progress}</span>
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">
-          <AddOwnTool className={headerAction} />
-          <button
-            type="button"
-            data-tour="check-again"
-            onClick={() => useTools.getState().refresh(true)}
-            disabled={refreshing}
-            className={headerAction}
-          >
-            <RefreshCw className={cx("size-4", refreshing && "animate-spin")} aria-hidden />
-            <StableText value={refreshing ? m.checking : m.checkAgain} variants={[m.checkAgain, m.checking]} />
-          </button>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title={m.title}
+        status={progress}
+        busy
+        actions={
+          <>
+            <AddOwnTool />
+            <RefreshButton
+              tour="check-again"
+              busy={refreshing}
+              onClick={() => useTools.getState().refresh(true)}
+              label={m.checkAgain}
+              busyLabel={m.checking}
+            />
+          </>
+        }
+      />
 
       <ToolsIntro />
       <NodeNotice />
@@ -112,6 +100,6 @@ export function ToolsPage() {
       <UpgradeWarning />
 
       {latestUnknown && <p className="text-[0.9rem] text-ink-dim">{m.latestUnknown}</p>}
-    </div>
+    </Page>
   )
 }
