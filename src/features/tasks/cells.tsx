@@ -1,5 +1,5 @@
 import { type ReactNode, useEffect, useRef, useState } from "react"
-import { addDays, fromMessages, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
+import { addDays, closed, fromMessages, isoDay, LABELS, localDay, STATES, type State } from "@/domain/tasks"
 import { useLang, useMessages } from "@/i18n"
 import type { Task, TaskKind } from "@/platform/task-schemas"
 import { Calendar, CalendarFooter, DatePopover } from "@/ui/Calendar"
@@ -51,12 +51,15 @@ function Fixed({ children }: { children: ReactNode }) {
 export function StatusCell({ task, label }: { task: Task; label?: string }) {
   const m = useMessages(taskMessages)
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
-  if (fromMessages(task))
+  const found = fromMessages(task)
+  // memo only closes a found task, and a closed one stays closed.
+  if (found && closed(task.state))
     return (
       <Fixed>
         <StateLamp state={task.state} /> {m.states[task.state]}
       </Fixed>
     )
+  const states: readonly State[] = found ? [task.state, "done", "dismissed"] : STATES
   return (
     <Select
       size="sm"
@@ -64,7 +67,7 @@ export function StatusCell({ task, label }: { task: Task; label?: string }) {
       value={task.state}
       disabled={busy}
       onChange={(state: State) => void useTasks.getState().update(task.key, { state })}
-      options={STATES.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
+      options={states.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
       className={BARE}
     />
   )

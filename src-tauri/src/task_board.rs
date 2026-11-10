@@ -857,8 +857,33 @@ fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, Strin
     Ok(args)
 }
 
+/// memo keeps no status for a found task, only `tasks close`: done or dismissed, and closed for good.
+fn close_args(key: &str, edit: &Edit) -> Result<Option<Vec<String>>, String> {
+    let (Some(account), Some(state)) = (edit.account.as_deref(), edit.state.as_deref()) else { return Ok(None) };
+    let only_state = Edit { account: edit.account.clone(), state: edit.state.clone(), ..Edit::default() };
+    if !matches!(state, "done" | "dismissed") || *edit != only_state {
+        return Err("a task found in messages is only closed, as done or dismissed, on its own".into());
+    }
+    let account = validate_account(account)?;
+    Ok(Some(words(&["tasks", "close", key, &format!("--as={state}"), &format!("--account={account}")])))
+}
+
+/// The answer to `tasks close` is the found task's short form, with no title or revision: the task is read again.
+fn close_with(call: &Call, key: &str, args: &[String], account: &str) -> Result<Write, Failure> {
+    call(args)?;
+    Ok(Write::Saved {
+        task: show_in(call, key, Some(account))?,
+        label: None,
+        renumbered: Vec::new(),
+        moved: Vec::new(),
+    })
+}
+
 pub fn update(key: &str, revision: u64, edit: &Edit) -> Result<Write, String> {
     let key = validate_key(key)?;
+    if let (Some(args), Some(account)) = (close_args(key, edit)?, edit.account.as_deref()) {
+        return with_memo(WRITE, |call| close_with(call, key, &args, account));
+    }
     let args = edit_args(key, revision, edit)?;
     with_memo(WRITE, |call| write_as(call, key, &args, edit.account.as_deref()))
 }
@@ -1348,6 +1373,37 @@ mod tests {
     }
 
     #[test]
+    fn a_found_task_is_closed_as_its_account_and_read_again() {
+        let found =
+            |state: &str| Edit { state: Some(state.into()), account: Some("telegram:1".into()), ..Edit::default() };
+        let args = close_args("Q-1", &found("dismissed")).unwrap().unwrap();
+        assert_eq!(
+            args,
+            strs(&["tasks", "close", "Q-1", "--as=dismissed", "--account=telegram:1", "--json", "--no-record"])
+        );
+        assert!(close_args("Q-1", &found("todo")).is_err());
+        assert!(close_args("Q-1", &Edit { title: Some("x".into()), ..found("done") }).is_err());
+        assert!(close_args("Q-1", &Edit { account: Some("--json".into()), ..found("done") }).is_err());
+        assert_eq!(close_args("HRB-1", &Edit { state: Some("done".into()), ..Edit::default() }), Ok(None));
+
+        let fake = Fake::new(|a| {
+            if a[1] == "close" {
+                return Ok(json!({ "item": { "key": "Q-1", "state": "dismissed", "account": "telegram:1" } }));
+            }
+            let mut item = card(4, &[]);
+            item["key"] = json!("Q-1");
+            item["status"] = json!("dismissed");
+            Ok(json!({ "item": item }))
+        });
+        let Write::Saved { task, .. } = close_with(&|a: &[String]| fake.call(a), "Q-1", &args, "telegram:1").unwrap()
+        else {
+            panic!("not saved")
+        };
+        assert_eq!((task.state.as_str(), task.account.as_deref()), ("dismissed", Some("telegram:1")));
+        assert_eq!(fake.seen()[1], strs(&["tasks", "show", "Q-1", "--source=telegram:1", "--json", "--no-record"]));
+    }
+
+    #[test]
     fn a_move_takes_the_subtasks_along_and_is_refused_for_a_subtask_that_keeps_its_parent() {
         let refusal =
             |reason: &str, details: Value| Failure { details, reason: Some(reason.into()), message: "no".into() };
@@ -1708,6 +1764,17 @@ mod tests {
         assert_eq!(gone.project, "OPS");
         assert!(gone.key.starts_with("OPS-"));
         assert_eq!(show_with(&call, &task.key).unwrap().key, gone.key, "the old key still finds it");
+        // A store with a found task (one memo took from a stored message) closes it as its account.
+        if let Some(found) = chats_with(&call).unwrap().tasks.into_iter().find(|t| t.state == "open") {
+            let account = found.account.clone().unwrap();
+            let close = Edit { state: Some("dismissed".into()), account: Some(account.clone()), ..Edit::default() };
+            let args = close_args(&found.key, &close).unwrap().unwrap();
+            let Write::Saved { task: shut, .. } = close_with(&call, &found.key, &args, &account).unwrap() else {
+                panic!("not closed")
+            };
+            assert_eq!((shut.state.as_str(), shut.account), ("dismissed", Some(account)));
+            assert!(shut.closed_at.is_some());
+        }
         if let Ok(dir) = std::env::var("TASK_BOARD_DUMP") {
             let put =
                 |name: &str, v: serde_json::Value| std::fs::write(format!("{dir}/{name}.json"), v.to_string()).unwrap();
