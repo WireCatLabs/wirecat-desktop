@@ -35,11 +35,11 @@ export function MemoryPage() {
   const lang = useLang()
   const s = useMemory()
   const gap = gapFromRead(s.read)
-  const { load, demo } = s
+  const { load, visit, demo } = s
 
   useEffect(() => {
-    if (!demo) load()
-  }, [load, demo])
+    if (!demo) visit()
+  }, [visit, demo])
 
   const ready = s.read?.kind === "ready" ? s.read : null
   const filter = memoryFilter(s.query)

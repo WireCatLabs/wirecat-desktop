@@ -26,10 +26,10 @@ export function PeoplePage() {
   const s = usePeople()
   const view = usePeople((x) => x.view)
   const gap = gapFromRead(s.read === "missing" || s.read === "old" ? { kind: s.read, ...s.oldVersion } : null)
-  const { load } = s
+  const { load, visit } = s
   useEffect(() => {
-    void load()
-  }, [load])
+    visit()
+  }, [visit])
 
   return (
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">

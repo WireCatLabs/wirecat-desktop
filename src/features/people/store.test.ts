@@ -92,3 +92,23 @@ describe("the People store after a write", () => {
     expect(waits).toHaveLength(3)
   })
 })
+
+describe("the People page opened again", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    usePeople.setState(usePeople.getInitialState(), true)
+  })
+
+  it("within a minute reads nothing; later it reads with the people still on screen", async () => {
+    const read = vi.spyOn(platform, "peopleRead")
+    await usePeople.getState().load(false)
+    usePeople.getState().visit()
+    expect(read).toHaveBeenCalledTimes(1)
+
+    usePeople.setState({ readAt: Date.now() - 61_000 })
+    const shown = usePeople.getState().people
+    usePeople.getState().visit()
+    expect(usePeople.getState()).toMatchObject({ reading: true, people: shown })
+    expect(read).toHaveBeenCalledTimes(2)
+  })
+})
