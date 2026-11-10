@@ -6,7 +6,7 @@ import {
   type TemplateChannel,
   type TemplateLocale,
 } from "@/domain/digest-editors"
-import { ENDONYMS, useLang, useMessages } from "@/i18n"
+import { ENDONYMS, type Lang, useLang, useMessages } from "@/i18n"
 import type { TemplatePreview } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
@@ -41,19 +41,17 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
   const [draft, setDraft] = useState(saved)
   const [shown, setShown] = useState<Shown | null>(null)
   const fieldId = useId()
-  const need = useFieldError(fieldId, {
-    live: {
-      problem: !draft.trim()
-        ? (l) => editorMessages[l].templates.empty
-        : draft === saved
-          ? (l) => editorMessages[l].unchanged
-          : null,
-    },
-  })
+  const problem = !draft.trim()
+    ? (l: Lang) => editorMessages[l].templates.empty
+    : draft === saved
+      ? (l: Lang) => editorMessages[l].unchanged
+      : null
+  const need = useFieldError(fieldId, { live: { problem } })
   useEffect(() => {
     setDraft(saved)
     setShown(null)
-  }, [saved])
+    need.clear()
+  }, [saved, need.clear])
 
   if (value?.state === "noMemo") return null
   const ready = value?.state === "ready" ? value : null
@@ -135,9 +133,7 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
               variant="primary"
               disabled={busy}
               onClick={() =>
-                !draft.trim() || draft === saved
-                  ? need.fail()
-                  : void change(() => platform.digestTemplateSave(channel, locale, draft, name))
+                problem ? need.fail() : void change(() => platform.digestTemplateSave(channel, locale, draft, name))
               }
             >
               {busy ? all.saving : m.save}

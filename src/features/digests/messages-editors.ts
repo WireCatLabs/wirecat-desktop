@@ -21,7 +21,7 @@ const en = {
     failed: (message: string) => `Not saved: ${message}`,
   },
   templates: {
-    empty: "The template is empty. Write it, or press Reset to default.",
+    empty: "The template is empty. Write it before you save.",
     title: "How it looks",
     hint: "This digest's template for each channel and language, in Liquid. A change is checked before it is saved.",
     channel: "Channel",
@@ -64,7 +64,7 @@ const ru: typeof en = {
     failed: (message) => `Не сохранено: ${message}`,
   },
   templates: {
-    empty: "Шаблон пуст. Напишите его или нажмите «Вернуть по умолчанию».",
+    empty: "Шаблон пуст. Напишите его, прежде чем сохранять.",
     title: "Как выглядит",
     hint: "Шаблон этой сводки для каждого канала и языка, на Liquid. Изменение проверяется перед сохранением.",
     channel: "Канал",
@@ -108,7 +108,7 @@ const es: typeof en = {
     failed: (message) => `No se guardó: ${message}`,
   },
   templates: {
-    empty: "La plantilla está vacía. Escríbela o pulsa «Volver a la predeterminada».",
+    empty: "La plantilla está vacía. Escríbela antes de guardar.",
     title: "Cómo se ve",
     hint: "La plantilla de este resumen para cada canal e idioma, en Liquid. Un cambio se comprueba antes de guardarlo.",
     channel: "Canal",

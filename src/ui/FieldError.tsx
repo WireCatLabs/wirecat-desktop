@@ -9,7 +9,7 @@ type Options = {
   /**
    * The value's problem as it stands now, worked out on every render. Once a click has failed (or at once with
    * `early`, for a mistake worth saying while it is typed) the error follows the value: it changes with the problem
-   * and goes when the value is fixed. Such a field does not call `clear` on each edit.
+   * and goes when the value is fixed, until the next failed click. Such a field does not call `clear` on each edit.
    */
   live?: { problem: FieldMessage | null; early?: boolean }
 }
@@ -24,6 +24,11 @@ export function useFieldError(id: string, { preventScroll = false, live }: Optio
   const [said, setSaid] = useState<{ text: FieldMessage } | null>(null)
   const [tried, setTried] = useState(false)
   const [asked, setAsked] = useState(0)
+  const fixed = live !== undefined && live.problem === null
+  // A fixed value ends the failed click: a later problem, such as an unchanged draft after a good save, waits for the next.
+  useEffect(() => {
+    if (fixed) setTried(false)
+  }, [fixed])
   const now = live && live.problem !== null && (tried || live.early) ? live.problem : null
   const shown = now ?? said?.text ?? null
   const error = shown === null ? null : typeof shown === "string" ? shown : shown(lang)

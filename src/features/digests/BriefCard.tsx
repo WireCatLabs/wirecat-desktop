@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from "react"
 import { briefChars } from "@/domain/digest-editors"
-import { useMessages } from "@/i18n"
+import { type Lang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
@@ -20,24 +20,24 @@ export function BriefCard({ name }: { name?: string | undefined }) {
   const { value, readError, busy, failed, change } = useMemoEditor(() => platform.digestBrief(name), `brief:${name}`)
   const saved = value?.state === "ready" ? (value.body ?? "") : ""
   const [draft, setDraft] = useState(saved)
-  useEffect(() => setDraft(saved), [saved])
 
   const ready = value?.state === "ready" ? value : null
   const limit = ready?.limit ?? 4000
   const chars = briefChars(draft)
   const over = chars > limit
-  const need = useFieldError(fieldId, {
-    live: {
-      problem: over
-        ? (lang) => editorMessages[lang].brief.tooLong(limit)
-        : chars === 0
-          ? (lang) => editorMessages[lang].brief.empty
-          : draft.trim() === saved.trim()
-            ? (lang) => editorMessages[lang].unchanged
-            : null,
-      early: over,
-    },
-  })
+  const problem = over
+    ? (lang: Lang) => editorMessages[lang].brief.tooLong(limit)
+    : chars === 0
+      ? (lang: Lang) => editorMessages[lang].brief.empty
+      : draft.trim() === saved.trim()
+        ? (lang: Lang) => editorMessages[lang].unchanged
+        : null
+  const need = useFieldError(fieldId, { live: { problem, early: over } })
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new saved brief starts without the last complaint
+  useEffect(() => {
+    setDraft(saved)
+    need.clear()
+  }, [saved])
 
   if (value?.state === "noMemo") return null
 
@@ -91,11 +91,7 @@ export function BriefCard({ name }: { name?: string | undefined }) {
               size="sm"
               variant="primary"
               disabled={busy}
-              onClick={() =>
-                need.error !== null || over || chars === 0 || draft.trim() === saved.trim()
-                  ? need.fail()
-                  : void change(() => platform.digestBriefSave(draft, name))
-              }
+              onClick={() => (problem ? need.fail() : void change(() => platform.digestBriefSave(draft, name)))}
             >
               {busy ? all.saving : m.save}
             </Button>

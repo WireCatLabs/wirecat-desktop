@@ -34,7 +34,8 @@ export function MatchActions({
   lead?: ReactNode
   /** Beside the answers, when the owner must do something first. */
   hint?: ReactNode
-  /** The list where the people of a group are ticked; an answer with too few ticked puts focus there. */
+  /** The list where the people of a group are ticked; an answer with too few ticked puts focus there. Without it
+   * (the details dialog, which has no ticks) the error is said and focus stays. */
   pickId?: string | undefined
 }) {
   const m = useMessages(peopleMessages)
@@ -59,8 +60,9 @@ export function MatchActions({
   const reason = useFieldError(field)
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
+    reason.clear()
     if (asking) input.current?.focus({ preventScroll: true })
-  }, [asking])
+  }, [asking, reason.clear])
   const tooFew = picking && chosen.length < 2
   const few = useFieldError(pickId ?? `${field}-pick`, {
     live: { problem: tooFew ? (l) => peopleMessages[l].pickTwo : null },
@@ -110,7 +112,8 @@ export function MatchActions({
             className="flex flex-col gap-[0.45rem]"
             onSubmit={(e) => {
               e.preventDefault()
-              if (why.trim()) reject(why.trim())
+              if (tooFew) few.fail()
+              else if (why.trim()) reject(why.trim())
               else reason.fail((l) => peopleMessages[l].rejectWhyNeeded)
             }}
           >

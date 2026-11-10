@@ -49,7 +49,7 @@ function LiveForm({ send }: { send: () => void }) {
 }
 
 describe("field error", () => {
-  it("in live mode says a mistake while it is typed and, after a failed click, follows the value", async () => {
+  it("in live mode says a mistake while it is typed and, after a failed click, follows the value until it is fixed", async () => {
     const send = vi.fn()
     const user = userEvent.setup()
     render(<LiveForm send={send} />)
@@ -67,7 +67,7 @@ describe("field error", () => {
     await user.type(field, "abcdef")
     expect(field).toHaveAccessibleDescription("Four characters at most")
     await user.clear(field)
-    expect(field).toHaveAccessibleDescription("Enter a code")
+    expect(field).not.toHaveAttribute("aria-invalid")
     await user.type(field, "ab")
     await user.click(screen.getByRole("button", { name: "Save" }))
     expect(send).toHaveBeenCalledTimes(1)
