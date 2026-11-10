@@ -183,11 +183,13 @@ function useStagePrompt(read: Based, kind: Kind) {
   return [...crms.values()].reduce((n, c) => n + c.waiting, 0)
 }
 
-/** Why a CRM's shown cards stay put, in words: its CLI is missing or too old, or memo names none the app can run. */
+/**
+ * Why a CRM's cards stay put, in words: its CLI is missing or too old, or memo names none the app can run. Read from
+ * every card, not the filtered ones, so the chip does not come and go above the search box while the owner types.
+ */
 function useReadOnly(read: Based): string | null {
   const m = useMessages(clientMessages)
-  const shown = useShown(read)
-  const pipeline = read.pipelines.find((p) => p.movable.kind === "no" && shown.some((c) => c.pipeline === p.ref))
+  const pipeline = read.pipelines.find((p) => p.movable.kind === "no" && read.cards.some((c) => c.pipeline === p.ref))
   if (pipeline?.movable.kind !== "no") return null
   const why = pipeline.movable.why
   const tool = pipeline.account ? crmToolOf(pipeline.account.provider)?.name : undefined
@@ -196,14 +198,6 @@ function useReadOnly(read: Based): string | null {
     : tool && why === "crmCliOld"
       ? m.readOnlyUpdate(tool)
       : m.readOnly
-}
-
-/** The cards the filters let through. */
-function useShown(read: Based) {
-  const query = useClients((s) => s.query)
-  const pipelines = useClients((s) => s.pipelines)
-  const accounts = useClients((s) => s.accounts)
-  return read.cards.filter((c) => inScope(c, pipelines, accounts) && matches(c, query))
 }
 
 function Body() {
@@ -246,7 +240,7 @@ function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
   const query = useClients((s) => s.query)
   const pipelines = useClients((s) => s.pipelines)
   const accounts = useClients((s) => s.accounts)
-  const shown = useShown(read)
+  const shown = read.cards.filter((c) => inScope(c, pipelines, accounts) && matches(c, query))
   const filtered = query.trim() !== "" || pipelines.length > 0 || accounts.length > 0
   return (
     <>

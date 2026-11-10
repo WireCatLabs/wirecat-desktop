@@ -429,16 +429,35 @@ fn read_people(v: &Value) -> Vec<Person> {
 
 const NAMED_MAX: usize = 200;
 
+/// Words a source writes for a missing name, as the interface's `cleanName` drops them.
+const PLACEHOLDERS: [&str; 6] = ["null", "undefined", "none", "без имени", "deleted account", "удалённый аккаунт"];
+
+/// A name as the interface would show it: no wrapping quotes, no `#123` ids or placeholders, at least one letter.
+fn clean_name(name: &str) -> Option<String> {
+    let words: Vec<&str> = name
+        .split_whitespace()
+        .filter(|w| !(w.starts_with('#') && w.len() > 1 && w[1..].chars().all(|c| c.is_ascii_digit())))
+        .collect();
+    let joined = words.join(" ");
+    let s = joined.trim_matches(|c| "\"'`«»“”„‘’".contains(c)).trim().to_string();
+    let lower = s.to_lowercase();
+    (s.chars().any(char::is_alphabetic) && !PLACEHOLDERS.contains(&lower.as_str())).then_some(s)
+}
+
 /// `people show` gives no display name: a person with none of their own is named by an account's name before its
 /// handle, as memo's list names them.
 fn shown_name(person: &Value) -> Option<String> {
-    let readable = |s: &String| s.chars().any(char::is_alphanumeric);
     let accounts = person["identities"].as_array().map(Vec::as_slice).unwrap_or_default();
     text(person, "name")
-        .filter(readable)
-        .or_else(|| accounts.iter().filter_map(|i| text(i, "name")).find(readable))
+        .and_then(|n| clean_name(&n))
+        .or_else(|| accounts.iter().filter_map(|i| text(i, "name")).find_map(|n| clean_name(&n)))
         .or_else(|| {
-            accounts.iter().find_map(|i| text(i, "username")).map(|u| format!("@{}", u.trim_start_matches('@')))
+            accounts
+                .iter()
+                .filter_map(|i| text(i, "username"))
+                .map(|u| u.trim().trim_start_matches('@').to_string())
+                .find(|u| !u.is_empty())
+                .map(|u| format!("@{u}"))
         })
 }
 
@@ -1245,8 +1264,11 @@ mod tests {
         });
         let call = |a: &[String]| fake.call(a);
         assert_eq!(people_named_with(&call, &strs(&["person:2297"]))[0].name.as_deref(), Some("Ярослав Орлов"));
-        let handle_only = json!({"name":"!","identities":[{"name":null,"username":"@kai_m"}]});
+        let handle_only =
+            json!({"name":"!","identities":[{"name":null,"username":"  "},{"name":"12","username":"@kai_m"}]});
         assert_eq!(shown_name(&handle_only).as_deref(), Some("@kai_m"));
+        let placeholder = json!({"name":"null #97365","identities":[{"name":"«Deleted Account»"},{"name":" 'Kai' "}]});
+        assert_eq!(shown_name(&placeholder).as_deref(), Some("Kai"));
     }
 
     #[test]

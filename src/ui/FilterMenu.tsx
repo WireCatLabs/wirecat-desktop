@@ -11,6 +11,8 @@ export type FilterOption = {
   value: string
   label: string
   hint?: string
+  /** More words the menu's search matches, not shown: the tools of a profile drawn as logos. */
+  terms?: string
   count?: number | undefined
   icon?: ReactNode
   /** Opens something of its own (a calendar) each time it is chosen, so choosing it again never clears it. */
@@ -59,7 +61,7 @@ export function FilterMenu({
   const base = useId()
   const searchable = options.length >= SEARCH_FROM
   const shown = options.filter((o) =>
-    `${o.label} ${o.hint ?? ""}`.toLocaleLowerCase().includes(text.trim().toLocaleLowerCase()),
+    `${o.label} ${o.hint ?? ""} ${o.terms ?? ""}`.toLocaleLowerCase().includes(text.trim().toLocaleLowerCase()),
   )
 
   const close = useCallback((refocus: boolean) => {

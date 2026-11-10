@@ -1,4 +1,4 @@
-import { type ReactNode, useId, useState } from "react"
+import { type ReactNode, useEffect, useId, useState } from "react"
 import { Collapse } from "./Collapse"
 import { cx } from "./cx"
 import { ExpandChevron } from "./ExpandChevron"
@@ -22,6 +22,10 @@ export function NoticeChips({ notices, label }: { notices: readonly Notice[]; la
   const [openId, setOpenId] = useState<string | null>(null)
   const base = useId()
   const open = notices.find((n) => n.id === openId) ?? null
+  // A notice that went (its stages confirmed) closes, so it does not open by itself when it comes back.
+  useEffect(() => {
+    if (openId !== null && open === null) setOpenId(null)
+  }, [openId, open])
   return (
     <Collapse open={notices.length > 0}>
       <div className="flex flex-col gap-[0.6rem]">

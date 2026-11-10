@@ -133,7 +133,7 @@ export function Profiles({ member }: { member: Member }) {
         return (
           <span key={p} className="flex min-w-0 items-center gap-[0.45rem] text-[0.95rem] font-medium">
             {tool ? (
-              <ServiceIcon id={tool.id} label={tool.name} className="size-4 shrink-0" />
+              <ServiceIcon id={tool.id} className="size-4 shrink-0" />
             ) : (
               <ToolIcon id={app} className="size-4 shrink-0 text-ink-soft" />
             )}

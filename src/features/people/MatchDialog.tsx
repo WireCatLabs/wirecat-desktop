@@ -376,7 +376,10 @@ function Source({ identity: i, person, tie }: { identity: Identity; person: stri
   const href = sourceLink(i.identity, i.username)
   return (
     <li className="flex min-w-0 flex-wrap items-center gap-x-[0.5rem] gap-y-[0.2rem]">
-      <SourceIcon provider={i.provider} className={tie ? "text-brand" : "text-ink-soft"} />
+      <SourceIcon
+        provider={i.provider}
+        className={tie ? "rounded-full text-brand ring-2 ring-brand" : "text-ink-soft"}
+      />
       <span className="text-ink">{crm ? m.contactIn(source) : source}</span>
       {extra && <span className="selectable min-w-0 truncate text-ink-soft">{extra}</span>}
       {href && (

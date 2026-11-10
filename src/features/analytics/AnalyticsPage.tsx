@@ -95,10 +95,11 @@ function Filters() {
           options={profiles.map((p) => ({
             value: p,
             label: p,
+            terms: (toolsOf.get(p) ?? []).map((id) => findTool(id)?.name ?? id).join(" "),
             icon: (
               <span className="flex shrink-0 items-center gap-[0.3rem]">
                 {(toolsOf.get(p) ?? []).map((id) => (
-                  <ServiceIcon key={id} id={id} label={findTool(id)?.name ?? id} className="size-4" />
+                  <ServiceIcon key={id} id={id} className="size-4" focusable={false} />
                 ))}
               </span>
             ),

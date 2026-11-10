@@ -96,8 +96,8 @@ describe("Clients on the base stages", () => {
         bitrix: [{ path: "/b24", version: "9.9.9", manager: "npm", problem: null }],
       },
     })
+    await user.click(await screen.findByRole("button", { name: "Bitrix24: not signed in", expanded: false }))
     expect(await screen.findByRole("button", { name: "Sign in to Bitrix24" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Bitrix24: not signed in", expanded: true })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Site for Northstar" })).toBeInTheDocument()
   })
 
