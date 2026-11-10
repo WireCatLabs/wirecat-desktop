@@ -184,6 +184,32 @@ describe("Config", () => {
     expect(within(list).queryByRole("button", { name: "Remove other" })).not.toBeInTheDocument()
   }, 15000)
 
+  it("keeps Save and Format clickable: nothing changed says so, broken JSON marks the editor and puts the caret in it", async () => {
+    const user = userEvent.setup()
+    render(<ConfigPage />)
+    await user.click(screen.getByRole("radio", { name: /Telegram/ }))
+    await user.click(await screen.findByRole("radio", { name: "personal" }))
+    await user.click(await screen.findByRole("tab", { name: "JSON" }))
+    const editor = await screen.findByRole("textbox", { name: "Settings as JSON" })
+
+    await user.click(screen.getByRole("button", { name: "Save" }))
+    expect(screen.getByRole("alert")).toHaveTextContent("Nothing is changed yet.")
+    expect(editor).toHaveFocus()
+
+    fireEvent.change(editor, { target: { value: "{ broken" } })
+    const format = screen.getByRole("button", { name: "Format" })
+    expect(format).toBeEnabled()
+    format.focus()
+    await user.click(format)
+    expect(editor).toHaveFocus()
+    expect(editor).toHaveAttribute("aria-invalid", "true")
+    expect(editor).toHaveAccessibleDescription(/Not valid JSON from broken/)
+
+    screen.getByRole("button", { name: "Save" }).focus()
+    await user.click(screen.getByRole("button", { name: "Save" }))
+    expect(editor).toHaveFocus()
+  }, 15000)
+
   it("turns an error already on screen into Russian when the language changes", async () => {
     const user = userEvent.setup()
     render(<ConfigPage />)

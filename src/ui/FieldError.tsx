@@ -32,6 +32,8 @@ export function useFieldError(id: string) {
   }
 }
 
+export type FieldNeed = ReturnType<typeof useFieldError>
+
 export function FieldError({ id, children }: { id: string; children: ReactNode }) {
   return (
     <Collapse open={Boolean(children)}>

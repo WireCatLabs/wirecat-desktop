@@ -9,7 +9,7 @@ import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Checkbox } from "@/ui/Checkbox"
 import { Disclosure } from "@/ui/Disclosure"
-import { FieldError } from "@/ui/FieldError"
+import type { FieldNeed } from "@/ui/FieldError"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
 import type { OwnText } from "./messages-own"
@@ -71,7 +71,7 @@ function Changes({
   m,
   accepted,
   accept,
-  unaccepted,
+  need,
   acceptId,
 }: ReviewProps & { review: OwnReview & { update: OwnUpdate } }) {
   const change = review.update
@@ -106,19 +106,12 @@ function Changes({
       )}
       {review.access.unknown && <p>{m.unknownAccess}</p>}
       <div className="mt-1 flex items-center gap-2">
-        <Checkbox
-          id={acceptId}
-          checked={accepted}
-          onChange={accept}
-          aria-labelledby={id}
-          aria-invalid={unaccepted || undefined}
-          aria-describedby={unaccepted ? `${id}-error` : undefined}
-        />
+        <Checkbox id={acceptId} checked={accepted} onChange={accept} aria-labelledby={id} {...need?.field} />
         <span id={id} className="font-medium">
           {m.acceptChanges}
         </span>
       </div>
-      <FieldError id={`${id}-error`}>{unaccepted && m.acceptFirst}</FieldError>
+      {need?.hint}
     </WarnBox>
   )
 }
@@ -313,12 +306,12 @@ type ReviewProps = {
   m: OwnText
   accepted: boolean
   accept(accepted: boolean): void
-  /** Add was pressed before the changes were accepted. */
-  unaccepted?: boolean | undefined
+  /** Add pressed before the changes were accepted says so here. */
+  need?: FieldNeed | undefined
   acceptId?: string | undefined
 }
 
-export function ReviewStep({ review, m, accepted, accept, unaccepted, acceptId }: ReviewProps) {
+export function ReviewStep({ review, m, accepted, accept, need, acceptId }: ReviewProps) {
   const r = useMessages(ownReviewMessages)
   const agent = [review.skill && m.skill, review.mcp && m.mcp].filter(Boolean).join(" · ") || m.noAgent
   const update = review.update
@@ -338,7 +331,7 @@ export function ReviewStep({ review, m, accepted, accept, unaccepted, acceptId }
           m={m}
           accepted={accepted}
           accept={accept}
-          unaccepted={unaccepted}
+          need={need}
           acceptId={acceptId}
         />
       )}
