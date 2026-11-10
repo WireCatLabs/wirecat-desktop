@@ -23,6 +23,27 @@ describe("the Tasks store", () => {
     expect(search.mock.calls).toEqual([[""]])
   })
 
+  it("asks for names one call at a time", async () => {
+    let open = 0
+    let most = 0
+    const named = vi.spyOn(platform, "peopleNamed").mockImplementation(async (refs) => {
+      most = Math.max(most, ++open)
+      await new Promise((r) => setTimeout(r, 200))
+      open--
+      return refs.map((ref) => ({ ref, name: `Name of ${ref}`, owner: false }))
+    })
+    const counts = await platform.taskCounts("")
+    // The counts answer just before the list, so the two asks for names would overlap.
+    vi.spyOn(platform, "taskCounts").mockImplementation(async () => {
+      await new Promise((r) => setTimeout(r, 300))
+      return { ...counts, assignee: [{ value: "person:777", name: null, count: 1 }] }
+    })
+    await useTasks.getState().load()
+    await waitFor(() => expect(named).toHaveBeenCalledTimes(2), { timeout: 2000 })
+    await waitFor(() => expect(open).toBe(0), { timeout: 2000 })
+    expect(most).toBe(1)
+  })
+
   it("shows the counts and projects without waiting for any name", async () => {
     vi.spyOn(platform, "peopleNamed").mockImplementation(never)
     vi.spyOn(platform, "peopleSearch").mockImplementation(never)

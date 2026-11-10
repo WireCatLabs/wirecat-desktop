@@ -139,15 +139,23 @@ export const useTasks = create<TasksState>((set, get) => {
       return { people: [...s.people.filter((p) => !added.some((f) => f.ref === p.ref)), ...added] }
     })
 
-  /** Names only the people on the page: memo's full list of people takes seconds. */
-  const name = async (refs: string[]) => {
+  let naming: Promise<void> = Promise.resolve()
+
+  /**
+   * Names only the people on the page: memo's full list of people takes seconds. One ask at a time: memo 0.131.76's
+   * command server mixes the options of two `people show` calls at once.
+   */
+  const name = (refs: string[]) => {
     const known = new Set(get().people.map((p) => p.ref))
     const missing = [...new Set(refs)].filter((r) => r.startsWith("person:") && !known.has(r) && !asking.has(r))
-    if (missing.length === 0) return
+    if (missing.length === 0) return naming
     for (const r of missing) asking.add(r)
-    const found = await platform.peopleNamed(missing).catch(() => null)
-    for (const r of missing) asking.delete(r)
-    if (found) learn(found)
+    naming = naming.then(async () => {
+      const found = await platform.peopleNamed(missing).catch(() => null)
+      for (const r of missing) asking.delete(r)
+      if (found) learn(found)
+    })
+    return naming
   }
 
   /**

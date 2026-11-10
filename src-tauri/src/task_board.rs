@@ -426,31 +426,23 @@ fn read_people(v: &Value) -> Vec<Person> {
         .unwrap_or_default()
 }
 
-/// `people show` calls at once: memo's server takes 8, and the page's other reads need a place.
-const NAMING: usize = 4;
 const NAMED_MAX: usize = 200;
 
 /// The people the page shows, one `people show` each: `people list` costs seconds on a large store whatever its
-/// limit, and has no field to ask for given references. `show` does not mark the owner; a person memo cannot show is
-/// left out.
+/// limit, and has no field to ask for given references. One after another: memo 0.131.76's command server mixes the
+/// options of two calls of the same command at once. `show` does not mark the owner; a person memo cannot show is left
+/// out.
 fn people_named_with(call: &Call, refs: &[String]) -> Vec<Person> {
     let mut refs: Vec<&str> = refs.iter().map(String::as_str).filter(|r| validate_person(r).is_ok()).collect();
     refs.sort_unstable();
     refs.dedup();
     refs.truncate(NAMED_MAX);
-    refs.chunks(NAMING)
-        .flat_map(|chunk| {
-            std::thread::scope(|s| {
-                let asks: Vec<_> =
-                    chunk.iter().map(|r| s.spawn(move || call(&words(&["people", "show", r])).ok())).collect();
-                asks.into_iter().map(|a| a.join().ok().flatten()).collect::<Vec<_>>()
-            })
-        })
-        .zip(refs.iter())
-        .filter_map(|(v, r)| {
-            let item = body(v.as_ref()?);
+    refs.into_iter()
+        .filter_map(|r| {
+            let v = call(&words(&["people", "show", r])).ok()?;
+            let item = body(&v);
             let reference = text(item, "ref")?;
-            (reference == *r).then(|| Person { name: text(item, "name"), owner: false, reference })
+            (reference == r).then(|| Person { name: text(item, "name"), owner: false, reference })
         })
         .collect()
 }
