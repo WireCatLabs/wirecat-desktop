@@ -18,7 +18,17 @@ const openMatches = async (user: User) => {
 }
 
 /** A listed person as a memo older than kinds gives it. */
-const older = { displayName: null, kind: null, contact: null, messagesFrom: null, lastContact: null }
+const older = {
+  displayName: null,
+  kind: null,
+  contact: null,
+  phone: null,
+  email: null,
+  username: null,
+  usernameSource: null,
+  messagesFrom: null,
+  lastContact: null,
+}
 
 describe("People", () => {
   beforeEach(() => {
@@ -40,21 +50,16 @@ describe("People", () => {
     expect(lena).toHaveTextContent("lena@example.org")
     expect(lena).toHaveTextContent("993")
     expect(lena).not.toHaveTextContent("account")
-    const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent(/^1–50 of \d+/)
-    await user.click(within(pages).getByRole("button", { name: "Page 2" }))
-    expect(pages).toHaveTextContent(/51–100 of/)
-
-    const kinds = screen.getByRole("group", { name: "Which people" })
+    const kinds = screen.getByRole("tablist", { name: "Which people" })
     await user.click(
-      await within(kinds).findByRole("radio", { name: "Newsletters & notifications 2" }, { timeout: 4000 }),
+      await within(kinds).findByRole("tab", { name: "Newsletters & notifications 2" }, { timeout: 4000 }),
     )
     expect(screen.getByText("Bots, newsletters and no-reply senders.")).toBeInTheDocument()
-    expect(within(kinds).getByRole("radio", { name: "Unsorted 5,002+" })).toBeInTheDocument()
+    expect(within(kinds).getByRole("tab", { name: "Unsorted 5,002+" })).toBeInTheDocument()
     await waitFor(async () =>
       expect(within(await table()).getAllByRole("button", { name: "OpenWeather Team" })).toHaveLength(2),
     )
-    await user.click(within(kinds).getByRole("radio", { name: /^Companies/ }))
+    await user.click(within(kinds).getByRole("tab", { name: /^Companies/ }))
     expect(
       await within(await table()).findByRole("button", { name: "CZECH AIRLINES" }, { timeout: 4000 }),
     ).toBeVisible()
@@ -75,7 +80,7 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const rows = await table()
-    expect(screen.queryByRole("group", { name: "Which people" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("tablist", { name: "Which people" })).not.toBeInTheDocument()
     expect(within(rows).getByRole("button", { name: "CZECH AIRLINES" })).toBeInTheDocument()
     expect(within(rows).queryByRole("button", { name: "Без имени" })).not.toBeInTheDocument()
     expect(within(rows).queryByRole("button", { name: /null/ })).not.toBeInTheDocument()
@@ -89,13 +94,38 @@ describe("People", () => {
     ).toBeVisible()
   })
 
-  it("narrows the table to people with tasks", async () => {
+  it("reads one page at a time from memo, never everyone, and memo sorts and searches it", async () => {
+    const page = vi.spyOn(platform, "peoplePage")
     const user = userEvent.setup()
     render(<PeoplePage />)
     await table()
-    await user.click(screen.getByRole("button", { name: "With tasks" }))
-    expect(screen.getByText("4 people")).toBeInTheDocument()
-    expect(screen.queryByRole("navigation", { name: "Pages" })).not.toBeInTheDocument()
+    expect(page).toHaveBeenLastCalledWith({ kind: "person", page: 1, size: 50, query: "", sort: "interactions" })
+    expect(within(await table()).getAllByRole("row")).toHaveLength(51)
+    const pages = screen.getByRole("navigation", { name: "Pages" })
+    expect(pages).toHaveTextContent(/^1–50 of 118/)
+    await user.click(within(pages).getByRole("button", { name: "Page 2" }))
+    expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
+    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 118/))
+
+    await user.click(screen.getByRole("combobox", { name: "Order" }))
+    await user.click(screen.getByRole("option", { name: "Most tasks" }))
+    expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 1, sort: "tasks" }))
+
+    await user.type(screen.getByRole("searchbox"), "Lena")
+    await waitFor(() => expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ query: "Lena" })), {
+      timeout: 2000,
+    })
+    expect(page.mock.calls.filter(([a]) => a.query.startsWith("L")).length).toBeLessThan(4)
+  })
+
+  it("stacks phone and email, shows the messenger and handle when there is neither, and a quiet dash when nothing", async () => {
+    render(<PeoplePage />)
+    const rows = within(await table()).getAllByRole("row")
+    const row = (name: string) => rows.find((r) => r.textContent?.startsWith(name)) as HTMLElement
+    expect(row("Marta Gil")).toHaveTextContent(/\+34600111222.*marta@studio\.example/)
+    expect(row("Kai Moreno")).toHaveTextContent("Telegram @kai_m")
+    expect(within(row("Kai M.")).getByText("No phone, email or handle")).toHaveClass("sr-only")
+    expect(row("Kai M.")).not.toHaveTextContent(/No contact/)
   })
 
   it("opens a person in a dialog with their accounts by source and scope", async () => {

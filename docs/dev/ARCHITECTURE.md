@@ -118,9 +118,12 @@ src-tauri/src/
                 through it (`run_tool` picks it when the tool is memo), except calls fed on stdin, streamed runs, the
                 doctor and `store recover`'s check; a command cli-core refuses in a server runs in its own process. A
                 server whose ready line says `concurrent` takes that many requests at once, one reader thread handing
-                each answer to its caller by `id`; one without it takes one at a time. One server starts with the app
-                (`warm`). A call that finds no server with room waits up to a second for one that is starting; past
-                that, or for a memo without the server, it starts its own process. A
+                each answer to its caller by `id`; one without it takes one at a time. A request of a command already
+                running on its server waits up to a second, then starts its own process: memo 0.131.76's server parses
+                requests on one shared program, so two of one command at once answered both with the second's options
+                (the Contacts tabs read each other's counts). One
+                server starts with the app (`warm`). A call that finds no server with room waits up to a second for
+                one that is starting; past that, or for a memo without the server, it starts its own process. A
                 timed-out or unreadable request retires its server once the other requests on it are answered;
                 servers end on a new memo program, after ten minutes, and at app exit, and none runs during an install, update or removal, a store reset or repair.
                 Syncs, sign-ins and installs never use it.
@@ -458,9 +461,13 @@ its rule `src/domain/relationships.ts`, for any page that shows a relationship.
 
 Who is who across sources, from memo (`people.minVersion` in the catalog; memo 0.131.75 is the first
 with `memo people show|review|scan|link|unlink|unmerge` and the kinds). The page is «Contacts» (id `people` in
-`src/app/sections.tsx`, so links to it still work); the CLI command stays `memo people`. `people_read(kind)` runs
-`people list kind:<kind> --sort interactions --limit 5000` and `people review --limit 500` at once, and carries each
-list's `has_more` to the page, which says when memo has more than it read. The kinds are tabs: people, companies,
+`src/app/sections.tsx`, so links to it still work); the CLI command stays `memo people`. The table never holds the
+whole list: `people_page(kind, page, size, query, sort)` reads one page, `people list kind:<kind> [name:"…"] --sort
+<sort> --limit <size> --page <n>`, and memo's exact `total` feeds the pager; turning a page, changing the order or
+typing a name (after 300 ms) reads that page alone. `people_read(kind)` reads `people review --limit 500` for the
+matches beside a one-row `people list kind:<kind> --limit 1` that tells a memo with kinds from one without, and runs
+at the same time as the first page. A row's contact shows the phone and the email one under the other, else the
+messenger handle (memo 0.131.76 does not say which messenger), else a dash. The kinds are tabs: people, companies,
 newsletters and notifications, strangers (a real name, no tie with the owner), unsorted; `people_kinds` counts them
 with one `kind:<k> --limit 1` read each, two at a time, never holding the table back; a count memo gives only as a
 floor reads «N+». A memo older than kinds refuses the kind word (`query.unknown-field`) or `--sort` (`input.invalid`);

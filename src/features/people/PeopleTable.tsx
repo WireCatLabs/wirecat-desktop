@@ -1,19 +1,20 @@
 import { AtSign, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
-import { type ReactNode, useEffect } from "react"
-import { cleanName, contactOf, filterPeople, looksLikeAccount, personName } from "@/domain/people"
+import { type KeyboardEvent, type ReactNode, useEffect } from "react"
+import { cleanName, contactOf, filterPeople, looksLikeAccount } from "@/domain/people"
 import { formatWhen } from "@/domain/runs"
 import { formatNumber, useLang, useMessages } from "@/i18n"
-import { type Listed, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
+import { type Listed, PEOPLE_SORTS, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
-import { Segmented } from "@/ui/Segmented"
+import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
-import { SourceIcon } from "./sources"
+import { SourceIcon, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
 const KIND_ICONS: Record<PersonKind, ReactNode> = {
@@ -26,7 +27,6 @@ const KIND_ICONS: Record<PersonKind, ReactNode> = {
 
 export function PeopleTable() {
   const m = useMessages(peopleMessages)
-  const lang = useLang()
   const people = usePeople((s) => s.people)
   const more = usePeople((s) => s.peopleMore)
   const query = usePeople((s) => s.query)
@@ -38,37 +38,26 @@ export function PeopleTable() {
   const kind = usePeople((s) => s.kind)
   const kinds = usePeople((s) => s.kinds)
   const reading = usePeople((s) => s.reading)
-  const { setQuery, setFilter, setPage, setPageSize, setKind, findAccount, reveal, want } = usePeople.getState()
+  const total = usePeople((s) => s.total)
+  const sort = usePeople((s) => s.sort)
+  const { setQuery, setFilter, setPage, setPageSize, setKind, setSort, findAccount, reveal, want } =
+    usePeople.getState()
   const columns = useColumns(kinded)
   const account = looksLikeAccount(query)
 
-  // memo already keeps the nameless out of its people; an older memo lists everyone, so the page does it there.
-  const found = filterPeople(people, { query, withTasks, named: !kinded && named })
-  const pages = Math.max(1, Math.ceil(found.length / size))
-  const at = Math.min(page, pages)
-  const rows = found.slice((at - 1) * size, at * size)
+  // memo cuts, sorts and searches the pages; only an older memo, which lists everyone at once, is cut here.
+  const found = kinded ? people : filterPeople(people, { query, withTasks, named })
+  const count = kinded ? (total?.value ?? people.length) : found.length
+  const pages = Math.max(1, Math.ceil(count / size))
+  const at = kinded ? page : Math.min(page, pages)
+  const rows = kinded ? people : found.slice((at - 1) * size, at * size)
   const onScreen = kinded ? "" : rows.map((p) => p.ref).join(" ")
   // biome-ignore lint/correctness/useExhaustiveDependencies: a read drops the details, and `people` is new after it
   useEffect(() => want(onScreen ? onScreen.split(" ") : []), [onScreen, people, want])
 
   const tabs = kinded && (
-    <div className="flex flex-col gap-[0.4rem]">
-      <Segmented
-        size="md"
-        label={m.kindsLabel}
-        value={kind}
-        onChange={setKind}
-        options={PERSON_KINDS.map((k) => ({
-          value: k,
-          icon: KIND_ICONS[k],
-          label: (() => {
-            const count = kinds[k]
-            return count
-              ? `${m.kinds[k] ?? k} ${formatNumber(count.value, lang)}${count.more ? "+" : ""}`
-              : (m.kinds[k] ?? k)
-          })(),
-        }))}
-      />
+    <div className="flex flex-col gap-[0.5rem]">
+      <KindTabs kind={kind} kinds={kinds} onKind={setKind} />
       <p className="text-[0.9rem] text-ink-soft">{m.kindHelp[kind]}</p>
     </div>
   )
@@ -90,52 +79,130 @@ export function PeopleTable() {
         }}
       >
         <FilterBar query={query} onQuery={setQuery} label={m.search} placeholder={m.searchHint}>
-          <ToggleChip on={withTasks} onChange={(on) => setFilter({ withTasks: on })}>
-            {m.withTasks}
-          </ToggleChip>
-          {!kinded && (
-            <ToggleChip on={named} onChange={(on) => setFilter({ named: on })}>
-              {m.named}
-            </ToggleChip>
+          {kinded ? (
+            <Select
+              size="sm"
+              aria-label={m.sortLabel}
+              value={sort}
+              onChange={setSort}
+              options={PEOPLE_SORTS.map((value) => ({ value, label: m.sorts[value] }))}
+            />
+          ) : (
+            <>
+              <ToggleChip on={withTasks} onChange={(on) => setFilter({ withTasks: on })}>
+                {m.withTasks}
+              </ToggleChip>
+              <ToggleChip on={named} onChange={(on) => setFilter({ named: on })}>
+                {m.named}
+              </ToggleChip>
+            </>
           )}
           {account && (
             <Button size="sm" type="submit">
               {m.findAccount}
             </Button>
           )}
-          <span className="ml-auto font-mono text-[0.85rem] text-ink-dim tabular-nums">{m.everyone(found.length)}</span>
+          {(!kinded || total) && (
+            <span className="ml-auto font-mono text-[0.85rem] text-ink-dim tabular-nums">
+              {m.everyone(count)}
+              {kinded && total?.more ? "+" : ""}
+            </span>
+          )}
         </FilterBar>
       </form>
       <AccountResult account={query.trim()} />
-      {found.length === 0 ? (
-        <p className="text-[0.95rem] text-ink-soft">{people.length === 0 ? m.emptyKind : m.noMatch}</p>
+      {found.length === 0 && !reading ? (
+        <p className="text-[0.95rem] text-ink-soft">{query.trim() ? m.noMatch : m.emptyKind}</p>
       ) : (
         <DataTable
           key={kind}
           label={m.rows}
           busy={reading}
-          rows={kinded ? found : rows}
+          rows={rows}
           rowKey={(p) => p.ref}
           columns={columns}
           density="compact"
           minWidth={kinded ? "52rem" : "34rem"}
           onRowClick={(p) => reveal(p.ref)}
-          {...(kinded ? { page: { index: at, size } } : {})}
         />
       )}
-      {found.length > PAGE_SIZES[0] && (
+      {(kinded ? at > 1 || more || count > PAGE_SIZES[0] : count > PAGE_SIZES[0]) && (
         <Pager
           page={at}
           onPage={setPage}
-          total={found.length}
-          totalMore={more}
+          busy={reading}
+          // In a group memo gives no total: the pager then only knows whether there is a next page.
+          {...(kinded && !total
+            ? { hasMore: more }
+            : { total: count, totalMore: kinded ? (total?.more ?? false) : more })}
           size={size}
           sizes={PAGE_SIZES}
           onSize={setPageSize}
         />
       )}
-      {more && <p className="text-[0.9rem] text-ink-dim">{m.peopleMore}</p>}
+      {more && !kinded && <p className="text-[0.9rem] text-ink-dim">{m.peopleMore}</p>}
     </section>
+  )
+}
+
+/** The kinds of people as tabs, each with its count large enough to read at a glance. */
+function KindTabs(props: {
+  kind: PersonKind
+  kinds: Partial<Record<PersonKind, { value: number; more: boolean }>>
+  onKind: (kind: PersonKind) => void
+}) {
+  const m = useMessages(peopleMessages)
+  const lang = useLang()
+  const at = PERSON_KINDS.indexOf(props.kind)
+  const step = (e: KeyboardEvent<HTMLDivElement>) => {
+    const by = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0
+    if (!by) return
+    e.preventDefault()
+    const next = PERSON_KINDS[(at + by + PERSON_KINDS.length) % PERSON_KINDS.length] ?? props.kind
+    props.onKind(next)
+    e.currentTarget.querySelector<HTMLElement>(`[data-kind="${next}"]`)?.focus()
+  }
+  return (
+    <div
+      role="tablist"
+      aria-label={m.kindsLabel}
+      onKeyDown={step}
+      className="grid grid-cols-2 gap-[0.5rem] sm:grid-cols-3 lg:grid-cols-5"
+    >
+      {PERSON_KINDS.map((k) => {
+        const on = k === props.kind
+        const count = props.kinds[k]
+        return (
+          <button
+            key={k}
+            type="button"
+            role="tab"
+            data-kind={k}
+            aria-selected={on}
+            aria-label={
+              count ? `${m.kinds[k] ?? k} ${formatNumber(count.value, lang)}${count.more ? "+" : ""}` : undefined
+            }
+            tabIndex={on ? 0 : -1}
+            onClick={() => props.onKind(k)}
+            className={cx(
+              "flex min-w-0 cursor-pointer flex-col gap-[0.3rem] rounded-[0.45rem] border px-[0.85rem] py-[0.6rem] text-left",
+              "transition-colors duration-(--motion-fast) focus-visible:outline-2 focus-visible:outline-brand",
+              on
+                ? "border-brand bg-app text-ink"
+                : "border-line bg-app-2 text-ink-soft hover:border-line-strong hover:text-ink",
+            )}
+          >
+            <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] font-medium">
+              <span className={cx("shrink-0", on ? "text-brand" : "text-ink-dim")}>{KIND_ICONS[k]}</span>
+              <span className="leading-tight">{m.kinds[k] ?? k}</span>
+            </span>
+            <span className="font-display text-[1.35rem] font-bold leading-none tabular-nums">
+              {count ? `${formatNumber(count.value, lang)}${count.more ? "+" : ""}` : "—"}
+            </span>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -148,7 +215,6 @@ function useColumns(kinded: boolean): Column<Listed>[] {
     id: "tasks",
     head: t.tasks,
     width: "5rem",
-    sortBy: (p) => p.tasks,
     className: "text-right tabular-nums",
     cell: (p) => (p.tasks > 0 ? p.tasks : <span className="text-ink-dim">—</span>),
   }
@@ -156,27 +222,25 @@ function useColumns(kinded: boolean): Column<Listed>[] {
     return [
       { id: "name", head: t.name, width: "minmax(14rem,1fr)", cell: (p) => <Name person={p} /> },
       { id: "contact", head: t.contact, width: "16rem", cell: (p) => <ContactFromAccounts reference={p.ref} /> },
-      tasks,
+      { ...tasks, sortBy: (p) => p.tasks },
     ]
   return [
     {
       id: "name",
       head: t.name,
       width: "minmax(14rem,1fr)",
-      sortBy: (p) => (p.owner ? m.you : (personName(p) ?? m.noName)).toLocaleLowerCase(),
       cell: (p) => <Name person={p} />,
     },
     {
       id: "contact",
       head: t.contact,
       width: "15rem",
-      cell: (p) => <Contact value={p.contact} />,
+      cell: (p) => <Contact person={p} />,
     },
     {
       id: "messages",
       head: t.messages,
       width: "9rem",
-      sortBy: (p) => p.messagesFrom ?? -1,
       className: "text-right tabular-nums",
       cell: (p) => (p.messagesFrom ? formatNumber(p.messagesFrom, lang) : <span className="text-ink-dim">—</span>),
     },
@@ -184,7 +248,6 @@ function useColumns(kinded: boolean): Column<Listed>[] {
       id: "last",
       head: t.last,
       width: "9.5rem",
-      sortBy: (p) => p.lastContact ?? "",
       className: "truncate font-mono text-[0.9rem] tabular-nums text-ink-soft",
       cell: (p) => (p.lastContact ? formatWhen(p.lastContact, now, lang) : "—"),
     },
@@ -221,18 +284,45 @@ function Name({ person: p }: { person: Listed }) {
   )
 }
 
-/** memo's contact as it is: a phone, an email address or a handle, its kind as an icon. */
-function Contact({ value }: { value: string | null }) {
+/** Phone and email one under the other; with neither, the messenger handle; with nothing, a quiet dash. */
+function Contact({ person: p }: { person: Listed }) {
   const m = useMessages(peopleMessages)
-  if (!value) return <span className="text-[0.9rem] text-ink-dim">{m.noContact}</span>
-  const Icon = value.startsWith("@") ? AtSign : value.includes("@") ? Mail : Phone
+  const lines: { icon: ReactNode; value: string; label?: string }[] = [
+    ...(p.phone ? [{ icon: <Phone className={ICON} aria-hidden />, value: p.phone }] : []),
+    ...(p.email ? [{ icon: <Mail className={ICON} aria-hidden />, value: p.email }] : []),
+  ]
+  const handle = p.username
+  // Which messenger the handle is on arrives with a newer memo; until then it is a bare @name.
+  const source = p.usernameSource ? sourceOf(p.usernameSource) : null
+  if (lines.length === 0 && handle)
+    lines.push(
+      source
+        ? {
+            icon: <SourceIcon provider={p.usernameSource ?? ""} className="text-ink-dim" />,
+            value: `${source.name} @${handle}`,
+          }
+        : { icon: <AtSign className={ICON} aria-hidden />, value: `@${handle}`, label: m.handle(handle) },
+    )
+  if (lines.length === 0)
+    return (
+      <span className="text-ink-dim" title={m.noContact}>
+        <span aria-hidden>—</span>
+        <span className="sr-only">{m.noContact}</span>
+      </span>
+    )
   return (
-    <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] text-ink-soft">
-      <Icon className="size-4 shrink-0 text-ink-dim" aria-hidden />
-      <span className="selectable truncate font-mono text-[0.88rem]">{value}</span>
+    <span className="flex min-w-0 flex-col gap-[0.15rem] text-[0.92rem] text-ink-soft">
+      {lines.map((l) => (
+        <span key={l.value} className="flex min-w-0 items-center gap-[0.45rem]" title={l.label}>
+          {l.icon}
+          <span className="selectable truncate font-mono text-[0.88rem]">{l.value}</span>
+        </span>
+      ))}
     </span>
   )
 }
+
+const ICON = "size-4 shrink-0 text-ink-dim"
 
 /** For an older memo, which gives no contact: the person's phone, else email, else handle, with its source's icon. */
 function ContactFromAccounts({ reference }: { reference: string }) {
@@ -241,7 +331,12 @@ function ContactFromAccounts({ reference }: { reference: string }) {
   if (!detail || detail.state === "loading") return <Skeleton className="h-[0.9rem] w-[7rem]" />
   if (detail.state === "failed") return <span className="text-ink-dim">—</span>
   const found = contactOf(detail.person.identities)
-  if (!found) return <span className="text-[0.9rem] text-ink-dim">{m.noContact}</span>
+  if (!found)
+    return (
+      <span className="text-ink-dim" title={m.noContact}>
+        —
+      </span>
+    )
   return (
     <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] text-ink-soft">
       <SourceIcon provider={found.provider} className="text-ink-dim" />

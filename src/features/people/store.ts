@@ -1,7 +1,16 @@
 import { create } from "zustand"
 import { looksLikeAccount, touched } from "@/domain/people"
 import { platform } from "@/platform/bridge"
-import type { Listed, Match, MatchAnswer, PeopleRead, PersonDetail, PersonKind } from "@/platform/people-schemas"
+import type {
+  KindCount,
+  Listed,
+  Match,
+  MatchAnswer,
+  PeopleRead,
+  PeopleSort,
+  PersonDetail,
+  PersonKind,
+} from "@/platform/people-schemas"
 import { fresh } from "@/shared/fresh"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
@@ -32,6 +41,10 @@ type PeopleState = {
   people: Listed[]
   /** memo has more people than it gave: the page says so. */
   peopleMore: boolean
+  /** Everyone of the kind (and name searched) that memo cuts the pages from; null from an older memo. */
+  total: KindCount | null
+  /** The order memo cuts the pages in. */
+  sort: PeopleSort
   /** The kind of people the table lists; memo lists one kind at a time. */
   kind: PersonKind
   /** memo knows kinds; false for an older memo, whose one list is everyone. */
@@ -78,6 +91,9 @@ type PeopleState = {
   setFilter(filter: { withTasks?: boolean; named?: boolean }): void
   setPage(page: number): void
   setPageSize(size: number): void
+  setSort(sort: PeopleSort): void
+  /** The rows on screen: one page of one kind, cut, sorted and searched by memo. */
+  readPage(): Promise<void>
   setMatchPage(page: number): void
   findAccount(): Promise<void>
   /** Opens a person's dialog, from a row, a search result or "now part of"; `null` closes it. */
@@ -111,6 +127,8 @@ const AT_ONCE = 2
 export const usePeople = create<PeopleState>((set, get) => {
   let seq = 0
   let countSeq = 0
+  let pageSeq = 0
+  let typing: ReturnType<typeof setTimeout> | undefined
   let wanted: string[] = []
   let running = 0
 
@@ -165,8 +183,9 @@ export const usePeople = create<PeopleState>((set, get) => {
       const read = await platform.peopleRead(kind)
       if (read.kind !== "ready") return null
       // The owner may have switched tabs meanwhile: that tab's own read owns the list.
+      if (read.kinded) void get().readPage()
       set((s) => ({
-        ...(s.kind === kind ? { people: read.people, peopleMore: read.peopleMore } : {}),
+        ...(s.kind === kind && !read.kinded ? { people: read.people, peopleMore: read.peopleMore } : {}),
         seen: seenWith(s.seen, read.people),
         matches: [
           ...read.matches,
@@ -191,6 +210,8 @@ export const usePeople = create<PeopleState>((set, get) => {
     oldVersion: null,
     people: [],
     peopleMore: false,
+    total: null,
+    sort: "interactions",
     kind: "person",
     kinded: false,
     kinds: {},
@@ -235,22 +256,27 @@ export const usePeople = create<PeopleState>((set, get) => {
           })
           .catch(() => undefined)
       }
+      // The page is read beside the matches, not after them: the rows paint as soon as memo cuts them.
+      const paged = older ? null : get().readPage()
       try {
         const read = await platform.peopleRead(get().kind)
         if (call !== seq) return
         const ready = read.kind === "ready" ? read : null
+        const kinded = ready?.kinded ?? false
+        if (kinded && !paged) void get().readPage()
         set((s) => ({
           seen: seenWith(s.seen, ready?.people ?? []),
           read: read.kind,
           oldVersion: read.kind === "old" ? { version: read.version, need: read.need } : null,
-          people: ready?.people ?? [],
-          peopleMore: ready?.peopleMore ?? false,
+          ...(kinded
+            ? {}
+            : { people: ready?.people ?? [], peopleMore: ready?.peopleMore ?? false, total: null, error: null }),
           matches: ready?.matches ?? [],
           matchesMore: ready?.matchesMore ?? false,
-          kinded: ready?.kinded ?? false,
+          kinded,
           decided: {},
           joinedGroup: {},
-          reading: false,
+          reading: kinded && s.reading,
           readAt: Date.now(),
           details: {},
           failed: {},
@@ -268,13 +294,62 @@ export const usePeople = create<PeopleState>((set, get) => {
     },
     setView: (view) => set({ view }),
     setKind(kind) {
+      clearTimeout(typing)
       set({ kind, page: 1, query: "", found: null })
-      void get().load(false)
+      if (get().kinded) void get().readPage()
+      else void get().load(false)
     },
-    setQuery: (query) => set({ query, found: null, page: 1 }),
+    setQuery(query) {
+      set({ query, found: null, page: 1 })
+      if (!get().kinded) return
+      clearTimeout(typing)
+      // An account is found with Find account, not by name.
+      if (looksLikeAccount(query)) return
+      // Each key would be a read of memo: the search waits until the owner stops typing.
+      typing = setTimeout(() => void get().readPage(), 300)
+    },
     setFilter: (filter) => set({ ...filter, page: 1 }),
-    setPage: (page) => set({ page }),
-    setPageSize: (pageSize) => set({ pageSize, page: 1 }),
+    setPage(page) {
+      set({ page })
+      if (get().kinded) void get().readPage()
+    },
+    setPageSize(pageSize) {
+      set({ pageSize, page: 1 })
+      if (get().kinded) void get().readPage()
+    },
+    setSort(sort) {
+      set({ sort, page: 1 })
+      void get().readPage()
+    },
+    async readPage() {
+      clearTimeout(typing)
+      const asked = ++pageSeq
+      const { kind, page, pageSize, query, sort } = get()
+      set({ reading: true })
+      try {
+        const got = await platform.peoplePage({ kind, page, size: pageSize, query: query.trim(), sort })
+        if (asked !== pageSeq) return
+        // A merge or a decision can shrink the kind under the page the owner is on: go to its new last page.
+        const last = got.total ? Math.max(1, Math.ceil(got.total.value / pageSize)) : page
+        if (got.people.length === 0 && page > last) {
+          set({ page: last })
+          return get().readPage()
+        }
+        set((s) => ({
+          people: got.people,
+          peopleMore: got.more,
+          total: got.total,
+          seen: seenWith(s.seen, got.people),
+          reading: false,
+          error: null,
+        }))
+      } catch (e) {
+        if (asked !== pageSeq) return
+        // Missing, too old or older than kinds: the page's own read says so, not this refusal.
+        if (get().read !== null && !get().kinded) return set({ reading: false })
+        set({ error: message(e), reading: false })
+      }
+    },
     setMatchPage: (matchPage) => set({ matchPage }),
     async findAccount() {
       const query = get().query.trim()

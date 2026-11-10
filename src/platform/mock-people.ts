@@ -31,6 +31,8 @@ const account = (
   provider: identity.split(":")[0] ?? identity,
   name,
   username,
+  phone: null,
+  email: null,
   seenIn: seen.map(([id, scope]) => ({ account: id, scope })),
   method,
   linkedAt: ago(days * DAY),
@@ -226,6 +228,7 @@ export function peopleMock(): Pick<
   Platform,
   | "peopleRead"
   | "peopleKinds"
+  | "peoplePage"
   | "peopleShow"
   | "peopleFind"
   | "peopleDecide"
@@ -275,8 +278,10 @@ export function peopleMock(): Pick<
     const id = p.identities.find((i) => i.username)
     return id?.username ? `@${id.username}` : (contactOf(p) ?? null)
   }
+  const identityValue = (p: Held, provider: string) =>
+    p.identities.find((i) => i.provider === provider)?.identity.split(":")[1]
   const contactOf = (p: Held) => {
-    const value = (provider: string) => p.identities.find((i) => i.provider === provider)?.identity.split(":")[1]
+    const value = (provider: string) => identityValue(p, provider)
     const phone = value("whatsapp")
     const username = p.identities.find((i) => i.username)?.username
     return phone ? `+${phone}` : (value("email") ?? (username ? `@${username}` : null))
@@ -286,13 +291,28 @@ export function peopleMock(): Pick<
     const owner = p.ref === "person:1"
     const base = { ref: p.ref, name: p.name, owner, tasks: TASKS[p.ref] ?? 0 }
     if (scenario === "nokinds")
-      return { ...base, displayName: null, kind: null, contact: null, messagesFrom: null, lastContact: null }
+      return {
+        ...base,
+        displayName: null,
+        kind: null,
+        contact: null,
+        phone: null,
+        email: null,
+        username: null,
+        usernameSource: null,
+        messagesFrom: null,
+        lastContact: null,
+      }
     const n = rank(p)
     return {
       ...base,
       displayName: owner ? null : display(p),
       kind: KIND[p.ref] ?? "person",
       contact: contactOf(p),
+      phone: identityValue(p, "whatsapp") ? `+${identityValue(p, "whatsapp")}` : null,
+      email: identityValue(p, "email") ?? null,
+      username: p.identities.find((i) => i.username)?.username ?? null,
+      usernameSource: p.identities.find((i) => i.username)?.provider ?? null,
       messagesFrom: owner ? null : n < 100 ? 1000 - n : (n * 37) % 410,
       lastContact: ago((n % 30) * 3_600_000 * 7),
     }
@@ -313,6 +333,25 @@ export function peopleMock(): Pick<
           )
         : people.map(listed)
       return { kind: "ready", people: listing, peopleMore: more, matches, matchesMore: more, kinded }
+    },
+    async peoplePage({ kind, page, size, query, sort }) {
+      await delay(400)
+      if (fail === "read") throw new Error(BUSY)
+      const q = query.trim().toLowerCase()
+      const rows = ofKind(kind)
+        .filter((p) => !q || (p.displayName ?? p.name ?? "").toLowerCase().includes(q))
+        .sort((a, b) => {
+          if (a.owner !== b.owner) return Number(b.owner) - Number(a.owner)
+          if (sort === "name") return (a.displayName ?? "").localeCompare(b.displayName ?? "")
+          if (sort === "tasks") return b.tasks - a.tasks
+          if (sort === "recent") return (b.lastContact ?? "").localeCompare(a.lastContact ?? "")
+          return (b.messagesFrom ?? 0) - (a.messagesFrom ?? 0)
+        })
+      return {
+        people: rows.slice((page - 1) * size, page * size),
+        total: { value: rows.length, more: false },
+        more: page * size < rows.length,
+      }
     },
     async peopleKinds() {
       await delay(900)

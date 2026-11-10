@@ -11,6 +11,22 @@ pub async fn people_read(kind: Option<String>) -> Result<people::Read, AppError>
     .await
 }
 
+/// One page of one kind of people; `query` looks for a name, `sort` is one of memo's orders.
+#[tauri::command]
+pub async fn people_page(
+    kind: String,
+    page: u32,
+    size: u32,
+    query: String,
+    sort: String,
+) -> Result<people::Page, AppError> {
+    crate::log::command(
+        "people_page",
+        async move { attempt(move || people::page(&kind, page, size, &query, &sort)).await },
+    )
+    .await
+}
+
 #[tauri::command]
 pub async fn people_kinds() -> Result<std::collections::BTreeMap<String, people::KindCount>, AppError> {
     crate::log::command("people_kinds", async move { attempt(people::kinds).await }).await

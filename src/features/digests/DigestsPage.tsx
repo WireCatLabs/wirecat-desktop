@@ -1,4 +1,4 @@
-import { LoaderCircle, Plus, RefreshCw } from "lucide-react"
+import { LoaderCircle, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
 import { ToolNeeded } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -51,7 +51,6 @@ export function DigestsPage() {
     openDigest(linked)
     useDigestDay.setState({ digest: null })
   }, [linked, openDigest])
-  const oneOnly = ready !== null && !ready.named && ready.digests.length > 0
   const pick = (t: Template) => ready && setCreating(draftOf(t, takenNames(ready.digests), b))
 
   return (
@@ -80,19 +79,6 @@ export function DigestsPage() {
           >
             {reading && book ? m.reading : m.readAgain}
           </Button>
-          {ready && (
-            <Button
-              // The one purple action: while a digest is open its own Save is the purple one.
-              variant={item ? "secondary" : "primary"}
-              // An older memo keeps one digest; it is made from the starter, then the update allows more.
-              disabled={!harness || oneOnly}
-              title={oneOnly ? b.form.needsUpdate : undefined}
-              onClick={() => pick(ready.digests.length === 0 ? "daily" : "own")}
-              icon={<Plus className="size-4" aria-hidden />}
-            >
-              {b.create}
-            </Button>
-          )}
         </div>
       </div>
 
@@ -113,9 +99,13 @@ export function DigestsPage() {
               {!harness && <NoHarness />}
               {!can.named && <OlderMemo />}
               {book.digests.length === 0 ? (
-                <Starter can={can} onPick={pick} />
+                <Starter can={can} onPick={pick} morningRests={book.morningRests} />
               ) : (
-                <DigestTable digests={book.digests} harness={harness} />
+                <>
+                  {/* An older memo keeps one digest: nothing more can be created until it updates. */}
+                  {can.named && <Starter can={can} onPick={pick} morningRests={book.morningRests} compact />}
+                  <DigestTable digests={book.digests} harness={harness} />
+                </>
               )}
               {book.others.length > 0 && <OtherSchedules others={book.others} />}
             </div>

@@ -46,6 +46,9 @@ pub enum DigestBook {
         others: Vec<OtherSchedule>,
         harness: bool,
         named: bool,
+        /// memo lists a digest only while its schedule exists: a morning digest taken off schedule the old way has
+        /// past days and no row, and the daily template brings it back by its name.
+        morning_rests: bool,
     },
 }
 
@@ -293,7 +296,12 @@ fn item_of(i: &Value, schedules: &[OtherSchedule]) -> Option<DigestItem> {
     })
 }
 
-fn read_named(list: &Value, schedules: DigestSchedules, harness: bool) -> DigestBook {
+fn read_named(
+    list: &Value,
+    schedules: DigestSchedules,
+    harness: bool,
+    morning_days: impl FnOnce() -> bool,
+) -> DigestBook {
     let schedules = match schedules {
         DigestSchedules::Ready { others, .. } => others,
         _ => Vec::new(),
@@ -301,7 +309,8 @@ fn read_named(list: &Value, schedules: DigestSchedules, harness: bool) -> Digest
     let digests: Vec<DigestItem> =
         list["items"].as_array().into_iter().flatten().filter_map(|i| item_of(i, &schedules)).collect();
     let others = schedules.into_iter().filter(|o| !digests.iter().any(|d| d.name == o.name)).collect();
-    DigestBook::Ready { digests, others, harness, named: true }
+    let morning_rests = !digests.iter().any(|d| d.name == MORNING) && morning_days();
+    DigestBook::Ready { digests, others, harness, named: true, morning_rests }
 }
 
 /// The morning digest of an older memo as a row: its schedule, or, once taken off schedule, its past days alone.
@@ -342,7 +351,7 @@ fn read_old(schedules: DigestSchedules, has_days: bool) -> DigestBook {
         }),
         None => None,
     };
-    DigestBook::Ready { digests: row.into_iter().collect(), others, harness, named: false }
+    DigestBook::Ready { digests: row.into_iter().collect(), others, harness, named: false, morning_rests: false }
 }
 
 pub fn book() -> Result<DigestBook, String> {
@@ -362,7 +371,9 @@ pub fn book() -> Result<DigestBook, String> {
         return Ok(read_old(schedules?, has_days));
     }
     match json {
-        Some(v) if out.code == Some(0) => Ok(read_named(&v, schedules?, harness())),
+        Some(v) if out.code == Some(0) => {
+            Ok(read_named(&v, schedules?, harness(), || digests::list(None).is_ok_and(|d| !d.is_empty())))
+        }
         j => Err(failure(&out, j.as_ref())),
     }
 }
@@ -599,7 +610,8 @@ mod tests {
                 .into(),
             harness: true,
         };
-        let DigestBook::Ready { digests, others, harness: false, named: true } = read_named(&list, schedules, false)
+        let DigestBook::Ready { digests, others, harness: false, named: true, morning_rests: false } =
+            read_named(&list, schedules, false, || panic!("the morning digest is listed: its days are not looked at"))
         else {
             panic!()
         };
@@ -615,6 +627,19 @@ mod tests {
         assert_eq!(digests[1].times, ["09:00"]);
         assert_eq!(digests[1].weekdays, ["mon"]);
         assert_eq!(others.iter().map(|o| o.name.as_str()).collect::<Vec<_>>(), ["mail-triage"]);
+    }
+
+    #[test]
+    fn a_morning_digest_off_schedule_with_past_days_is_said_to_rest() {
+        let list = json!({"items": [{"name": "weekly-digest", "title": "Weekly", "times": ["09:00"], "weekdays": ["mon"],
+            "sources": [], "routes": [], "scheduled": true, "last": null, "next_at": null}]});
+        let schedules = || DigestSchedules::Ready { digest: None, others: vec![], harness: true };
+        let rests = |days: bool| match read_named(&list, schedules(), true, || days) {
+            DigestBook::Ready { morning_rests, .. } => morning_rests,
+            _ => panic!(),
+        };
+        assert!(rests(true));
+        assert!(!rests(false));
     }
 
     #[test]

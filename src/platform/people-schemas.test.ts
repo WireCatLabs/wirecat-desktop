@@ -48,7 +48,7 @@ describe("People schemas", () => {
         },
       ],
     }
-    expect(v.parse(PersonDetailSchema, person)).toEqual(person)
+    expect(v.parse(PersonDetailSchema, person)).toMatchObject(person)
   })
 
   it("reads every state of the page's read", () => {
@@ -76,6 +76,6 @@ describe("People schemas", () => {
         kinded: true,
       },
     ])
-      expect(v.parse(PeopleReadSchema, read)).toEqual(read)
+      expect(v.parse(PeopleReadSchema, read)).toMatchObject(read)
   })
 })

@@ -350,6 +350,7 @@ pub fn run() {
             commands::memory::memory_open_source,
             commands::people::people_read,
             commands::people::people_kinds,
+            commands::people::people_page,
             commands::people::people_show,
             commands::people::people_decide,
             commands::people::people_merge,

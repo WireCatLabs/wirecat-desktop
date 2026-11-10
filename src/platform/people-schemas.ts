@@ -29,8 +29,23 @@ const ListedSchema = v.object({
   displayName: v.optional(text, null),
   kind: v.optional(text, null),
   contact: v.optional(text, null),
+  phone: v.optional(text, null),
+  email: v.optional(text, null),
+  /** A messenger handle without its `@`. */
+  username: v.optional(text, null),
+  /** The messenger `username` is on; null before memo carries it. */
+  usernameSource: v.optional(text, null),
   messagesFrom: v.optional(v.nullable(v.number()), null),
   lastContact: v.optional(text, null),
+})
+
+const KindCountSchema = v.object({ value: v.number(), more: v.boolean() })
+
+/** One page of one kind, cut by memo; `total` is everyone of that kind (and name) the page is cut from. */
+export const PeoplePageSchema = v.object({
+  people: v.array(ListedSchema),
+  total: v.nullable(KindCountSchema),
+  more: v.boolean(),
 })
 
 export const PeopleReadSchema = v.variant("kind", [
@@ -58,6 +73,8 @@ export const PersonDetailSchema = v.object({
       provider: v.string(),
       name: text,
       username: text,
+      phone: v.optional(text, null),
+      email: v.optional(text, null),
       seenIn: v.array(v.object({ account: v.string(), scope: text })),
       method: text,
       linkedAt: text,
@@ -83,6 +100,7 @@ export const MergedSchema = v.object({
 
 export type Match = v.InferOutput<typeof MatchSchema>
 export type PeopleRead = v.InferOutput<typeof PeopleReadSchema>
+export type PeoplePage = v.InferOutput<typeof PeoplePageSchema>
 export type Listed = v.InferOutput<typeof ListedSchema>
 export type PersonDetail = v.InferOutput<typeof PersonDetailSchema>
 export type Identity = PersonDetail["identities"][number]
@@ -94,6 +112,8 @@ export type MatchAnswer = "confirm" | "reject"
 /** memo's kinds of people, in the order the page offers them. */
 export const PERSON_KINDS = ["person", "organization", "automated", "stranger", "unsorted"] as const
 export type PersonKind = (typeof PERSON_KINDS)[number]
+export const PEOPLE_SORTS = ["interactions", "recent", "name", "tasks"] as const
+export type PeopleSort = (typeof PEOPLE_SORTS)[number]
 
-export const KindCountsSchema = v.record(v.string(), v.object({ value: v.number(), more: v.boolean() }))
+export const KindCountsSchema = v.record(v.string(), KindCountSchema)
 export type KindCount = v.InferOutput<typeof KindCountsSchema>[string]

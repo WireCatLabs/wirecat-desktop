@@ -247,6 +247,9 @@ memo people list [kind:<kind>] [name:<text>] [--sort interactions|recent|name|ta
   strips no `#<digits>` from a real name.
 - `contact`: the one to show beside the name: the phone, else the email, else `@username`; `null` when there is none.
   `phone`, `email` and `username` are the first of each across the person's accounts.
+- `username_source`: the messenger the row's `username` belongs to (`telegram`, `max`, …), null when there is no
+  username. When `contact` is `@name` (no phone or email), show it as «<Messenger> @name», e.g. «Telegram @name».
+- `people show` identities also carry `phone` and `email` as each source gave them (null when absent).
 - `messages_from`: the messages and the mail this person sent, every account together. `last_contact`: the newest of
   their messages, their mail and their one-to-one chat's last message; `null` when the store holds none.
 - `ties`: as before (`chat`, `small-group`, `mail`, `meeting`, `crm`, `phone-book`, and `owner`, `added`, `task`).
