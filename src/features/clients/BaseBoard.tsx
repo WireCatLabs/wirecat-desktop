@@ -8,7 +8,7 @@ import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
-import type { Based } from "./api"
+import { type Based, useStageName } from "./api"
 import { useBaseMove } from "./base-move"
 import { Card, CardBody, OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
@@ -32,14 +32,20 @@ export function BaseBoard({
 }) {
   const m = useMessages(clientMessages)
   const s = useMessages(stageMessages)
+  const label = useStageName(kind)
   const refused = useClients((st) => st.refused)
   const move = useBaseMove(read, kind)
   const pipes = new Map(read.pipelines.map((p) => [p.ref, p]))
   const byRef = new Map(cards.map((c) => [c.ref, c]))
   const columns = baseColumnsOf(read.base, cards, read.mapping)
   const counts = openCountsOf(read.base, read.unsorted, read.mapping)
-  const ids = [UNSORTED, ...read.base.map((b) => b.ref)]
-  const nameOf = (id: string) => (id === UNSORTED ? s.unsorted : (read.base.find((b) => b.ref === id)?.name ?? id))
+  // A column that cannot be dropped on and holds nothing, loaded or not, only takes room from the stages.
+  const unsorted = (columns.get(UNSORTED)?.length ?? 0) > 0 || (!filtered && (counts.get(UNSORTED) ?? 0) > 0)
+  const ids = [...(unsorted ? [UNSORTED] : []), ...read.base.map((b) => b.ref)]
+  const nameOf = (id: string) => {
+    const b = read.base.find((x) => x.ref === id)
+    return id === UNSORTED ? s.unsorted : b ? label.stage(b.name) : id
+  }
   const several = new Set(cards.map((c) => c.pipeline)).size > 1
   const verdict = (ref: string, to: string) => {
     const c = byRef.get(ref)
@@ -78,16 +84,17 @@ export function BaseBoard({
   const dragged = drag ? byRef.get(drag.key) : undefined
   const badge = (c: CrmCard) => {
     const suggested = suggestionOf(c, read.mapping)
-    const pipeline = several ? pipes.get(c.pipeline)?.name : undefined
+    const name = several ? pipes.get(c.pipeline)?.name : undefined
+    const pipeline = name && label.pipeline(name, c.account !== null)
     return (
       <span className="flex min-w-0 flex-wrap items-center gap-[0.3rem]">
-        <Pill size="sm">{c.stage}</Pill>
+        <Pill size="sm">{label.stage(c.stage, c.account !== null)}</Pill>
         {pipeline && <Pill size="sm">{pipeline}</Pill>}
         {suggested && (
           <button
             type="button"
-            title={s.confirmCard(suggested.name)}
-            aria-label={s.confirmCard(suggested.name)}
+            title={s.confirmCard(label.stage(suggested.name))}
+            aria-label={s.confirmCard(label.stage(suggested.name))}
             className="inline-flex min-w-0 rounded-[0.3rem] focus-visible:outline-2 focus-visible:outline-brand"
             onClick={(e) => {
               e.stopPropagation()
@@ -108,7 +115,7 @@ export function BaseBoard({
       <p className="sr-only" id="clients-drag-hint">
         {m.dragHint}
       </p>
-      <Board columns={ids.length} boardRef={board}>
+      <Board columns={ids.length} boardRef={board} fill>
         {ids.map((id) => {
           const all = shown(id)
           const limit = limits[id] ?? COLUMN_PAGE
@@ -163,7 +170,7 @@ export function BaseBoard({
                       held={held?.key === ref}
                       dragging={drag !== null}
                       badge={badge(c)}
-                      pipeline={pipes.get(c.pipeline)?.name}
+                      pipeline={label.pipeline(pipes.get(c.pipeline)?.name ?? "", c.account !== null) || undefined}
                       notice={why && <Refused why={why} account={accountKey(c.account)} />}
                       onPointerDown={movable ? (e) => onPointerDown(e, ref) : undefined}
                       onKeyDown={(e) => {

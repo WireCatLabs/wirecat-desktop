@@ -19,6 +19,8 @@ type Props = {
   describedBy?: string | undefined
   /** The chips: `FilterMenu`s and `ToggleChip`s, in the order they read. */
   children: ReactNode
+  /** The chips beside the field, wrapping under it only when they do not fit: one row less above a board. */
+  inline?: boolean
 }
 
 /**
@@ -26,15 +28,15 @@ type Props = {
  * into the field and read them back, so typing `project:HRB` and picking HRB in the chip are the same thing.
  */
 export function FilterBar(props: Props) {
-  const { query, onQuery, label, placeholder, invalid = false, describedBy, children } = props
+  const { query, onQuery, label, placeholder, invalid = false, describedBy, children, inline = false } = props
   const m = useMessages(uiMessages)
   const clear = props.onClear ?? (() => onQuery(""))
   const field = useRef<HTMLInputElement>(null)
   return (
-    <div className="flex flex-col gap-[0.7rem]">
+    <div className={cx("flex gap-[0.7rem]", inline ? "flex-wrap items-center" : "flex-col")}>
       {/* Clear all lives in the field: hidden at the end of the chip row it still took room, and a long label
           (Spanish) wrapped it alone onto a second, empty-looking line. */}
-      <div className="relative">
+      <div className={cx("relative", inline && "min-w-[18rem] flex-1 basis-[22rem]")}>
         <label className="relative block">
           <span className="sr-only">{label}</span>
           <Search

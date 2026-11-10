@@ -10,7 +10,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar } from "@/ui/FilterBar"
 import { FilterMenu } from "@/ui/FilterMenu"
 import { InfoTip } from "@/ui/InfoTip"
-import { type Based, useScope, useScopeSet, useWriter } from "./api"
+import { type Based, useScope, useScopeSet, useStageName, useWriter } from "./api"
 import { clientMessages } from "./messages"
 import { useClients } from "./store"
 
@@ -92,6 +92,7 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
  */
 export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmCard[] }) {
   const m = useMessages(clientMessages)
+  const names = useStageName(useClients((s) => s.kind))
   const query = useClients((s) => s.query)
   const pipelines = useClients((s) => s.pipelines)
   const accounts = useClients((s) => s.accounts)
@@ -114,7 +115,7 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
       {crms.map((a) => (
         <ScopeSwitch key={accountKey(a)} account={a} pipelines={read.pipelines} />
       ))}
-      <FilterBar query={query} onQuery={setQuery} label={m.search} placeholder={m.searchHint}>
+      <FilterBar query={query} onQuery={setQuery} label={m.search} placeholder={m.searchHint} inline>
         {listed.length > 1 && (
           <FilterMenu
             label={m.account}
@@ -135,7 +136,11 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
         {offered.length > 1 && (
           <FilterMenu
             label={m.pipeline}
-            options={offered.map((p) => ({ value: p.ref, label: p.name, hint: p.account?.provider ?? m.ownAccount }))}
+            options={offered.map((p) => ({
+              value: p.ref,
+              label: names.pipeline(p.name, p.account !== null),
+              hint: p.account?.provider ?? m.ownAccount,
+            }))}
             selected={pipelines}
             onChange={setPipelines}
           />
@@ -150,7 +155,10 @@ export function BaseFilters({ read, shown }: { read: Based; shown: readonly CrmC
           options={offeredOf(
             "stage",
             scoped.map((c) => c.stage),
-          ).map((st) => ({ value: st, label: st }))}
+          ).map((st) => ({
+            value: st,
+            label: names.stage(st, !scoped.some((c) => c.account === null && c.stage === st)),
+          }))}
           {...field("stage")}
         />
       </FilterBar>

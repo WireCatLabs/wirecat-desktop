@@ -306,6 +306,8 @@ The root font size is fluid, `clamp(13px, 0.5rem + 0.52vw, 18px)`: about 14.7px 
 
 A page is a vertical stack with a 1.5rem gap and a 2.1rem side gutter: title row (title left, a quiet secondary action right, bottom-aligned), then any notice banners, then the rack. The rack row is a five-column grid: lamp, icon, name and tagline (flexible), version, action. The fixed columns widen and the gap grows from 0.9rem to 1.2rem at `xl`. Rows are at least 4.5rem tall. The Storage rack uses the same frame with four columns (icon, name and folders, size, action).
 
+A page with a board (Clients, Tasks) keeps its title row to one line in every view: a 1.6rem title, the intro behind an "i" beside it and the guide link after it, and the filter chips beside the search field. In board view the page is the window's height with a 1rem gap, and the board takes what is left; its columns scroll their cards inside, never shorter than 22rem.
+
 A row expands in place: the panel under it opens by animating grid rows from 0fr to 1fr over 300ms with the quart ease-out. The details panel becomes two columns from `lg` (1024px), about and links on the left, profiles and health on the right.
 
 ## Elevation & Depth

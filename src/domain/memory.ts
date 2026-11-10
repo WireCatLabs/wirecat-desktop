@@ -69,6 +69,18 @@ export const inTab = (tab: Tab, status: string) => tab === "all" || tabOf(status
 
 type Reviewed = { status: string; sourceReview?: { id: string; cause: string } | null }
 
+type Ranked = { type: string; links: number; findings: readonly unknown[] | null; createdAt: string }
+
+/**
+ * Waiting for you puts first what an agent found with evidence (a findings batch, a fact or memory with sources), then
+ * links between people, organizations and documents, then the rest; newest first within each.
+ */
+export const reviewRank = (e: Ranked) =>
+  e.findings || ((e.type === "memory" || e.type === "fact") && e.links > 0) ? 0 : e.type === "relationship" ? 1 : 2
+
+export const byReviewRank = <E extends Ranked>(entries: readonly E[]) =>
+  [...entries].sort((a, b) => reviewRank(a) - reviewRank(b) || b.createdAt.localeCompare(a.createdAt))
+
 /** A record whose source changed waits for the owner as well: it shows under Waiting for you too, never only where it was. */
 export const entryInTab = (tab: Tab, e: Reviewed) => inTab(tab, e.status) || (tab === "review" && !!e.sourceReview)
 

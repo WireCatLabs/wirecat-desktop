@@ -78,7 +78,7 @@ export function TaskBoard() {
       <p className="sr-only" id="tasks-drag-hint">
         {m.dragHint}
       </p>
-      <Board columns={STATES.length} template={`repeat(${STATES.length}, minmax(15.5rem, 1fr))`} boardRef={board}>
+      <Board columns={STATES.length} template={`repeat(${STATES.length}, minmax(15.5rem, 1fr))`} boardRef={board} fill>
         {STATES.map((s) => {
           const keys = column(s)
           const cards = shown(s)

@@ -315,18 +315,27 @@ export function Board({
   columns,
   template,
   boardRef,
+  fill = false,
   children,
 }: {
   columns: number
   /** The grid's own tracks, for a board whose columns differ in width; `columns` equal ones otherwise. */
   template?: string
   boardRef?: RefObject<HTMLDivElement | null>
+  /**
+   * Takes the height its flex parent leaves (`Page fill`), never less than a column's minimum; the columns stand that
+   * tall and scroll their cards inside.
+   */
+  fill?: boolean
   children: ReactNode
 }) {
   return (
     <div
       ref={boardRef}
-      className="grid gap-[0.75rem] overflow-x-auto overflow-y-hidden pb-[0.4rem] xl:gap-[1rem]"
+      className={cx(
+        "grid gap-[0.75rem] overflow-x-auto overflow-y-hidden pb-[0.4rem] xl:gap-[1rem]",
+        fill && "min-h-[22rem] flex-1 grid-rows-[minmax(0,1fr)] [&>[data-column]]:max-h-none",
+      )}
       style={{ gridTemplateColumns: template ?? `repeat(${columns}, minmax(12rem, 1fr))` }}
     >
       {children}

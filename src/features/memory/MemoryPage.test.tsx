@@ -51,11 +51,11 @@ describe("Memory", () => {
     useMemory.setState(useMemory.getInitialState(), true)
     render(<MemoryPage />)
     const region = await rack()
-    expect(within(region).getAllByText(/^Long list fact/)).toHaveLength(50)
+    expect(within(region).getAllByText(/^Long list fact/)).toHaveLength(20)
     expect(within(region).getByRole("heading", { level: 2 })).toHaveTextContent(/60/)
     await user.click(screen.getByRole("button", { name: "Next page" }))
-    expect(within(await rack()).getAllByText(/^Long list fact/)).toHaveLength(10)
-    expect(screen.getByText("Long list fact 59")).toBeInTheDocument()
+    expect(within(await rack()).getAllByText(/^Long list fact/)).toHaveLength(20)
+    expect(screen.getByText("Long list fact 39")).toBeInTheDocument()
   })
 
   it("groups rows under the project or person they are about", async () => {

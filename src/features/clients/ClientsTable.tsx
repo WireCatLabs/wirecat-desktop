@@ -8,7 +8,7 @@ import { type Column, DataTable } from "@/ui/DataTable"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Select } from "@/ui/Select"
-import type { Based } from "./api"
+import { type Based, useStageName } from "./api"
 import { Refused } from "./BaseBoard"
 import { useBaseMove } from "./base-move"
 import { OutcomeLamp } from "./Card"
@@ -37,6 +37,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
   const m = useMessages(clientMessages)
   const t = useMessages(tableMessages)
   const s = useMessages(stageMessages)
+  const label = useStageName(kind)
   const lang = useLang()
   const page = useClients((st) => st.page)
   const size = useClients((st) => st.pageSize)
@@ -77,7 +78,11 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
           onChange={(to: string) => move.moveTo(c, to)}
           options={[
             ...(columnOf(c) === UNSORTED ? [{ value: UNSORTED, label: s.unsorted, disabled: true }] : []),
-            ...read.base.map((b) => ({ value: b.ref, label: b.name, icon: <OutcomeLamp outcome={b.outcome} /> })),
+            ...read.base.map((b) => ({
+              value: b.ref,
+              label: label.stage(b.name),
+              icon: <OutcomeLamp outcome={b.outcome} />,
+            })),
           ]}
           className={BARE}
         />
@@ -102,7 +107,7 @@ export function ClientsTable({ read, kind, cards }: { read: Based; kind: Kind; c
         return (
           <span className="flex min-w-0 items-center gap-[0.4rem] text-ink-soft">
             {tool && <ToolIcon id={tool.id} className="size-4 shrink-0" />}
-            <span className="truncate">{p?.name ?? c.pipeline}</span>
+            <span className="truncate">{p ? label.pipeline(p.name, p.account !== null) : c.pipeline}</span>
           </span>
         )
       },

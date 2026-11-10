@@ -44,11 +44,12 @@ export function ClientsPage() {
   const t = useMessages(tableMessages)
   const based = board.data?.kind === "base"
   return (
-    <Page>
+    <Page fill={view === "board"}>
       <PageHeader
         title={m.title}
         section="clients"
         intro={m.intro}
+        compact
         actions={
           <>
             <RefreshButton
@@ -278,7 +279,7 @@ function Loading() {
         <Skeleton className="h-[2.8rem] w-full" label={m.reading} />
         <Skeleton className="h-[1.9rem] w-[22rem]" />
       </div>
-      <div className="grid grid-cols-[repeat(5,minmax(12rem,1fr))] gap-[0.75rem] overflow-hidden xl:gap-[1rem]">
+      <div className="grid min-h-[22rem] flex-1 grid-cols-[repeat(5,minmax(12rem,1fr))] gap-[0.75rem] overflow-hidden xl:gap-[1rem]">
         {[0, 1, 2, 3, 4].map((i) => (
           <div key={i} className="flex min-h-[22rem] flex-col rounded-[0.2rem] border border-line-strong bg-app">
             <div className="flex min-h-[3rem] items-center border-line border-b px-[0.9rem]">

@@ -13,12 +13,12 @@ import type { CrmAppliedScope, CrmScope, Platform } from "./types"
 // `?kind=lead` opens the leads.
 //
 // By default memo has base stages (cli-core #2720): the owner's only own pipeline of a kind is adopted as its base set
-// (Sales, Leads), the board's columns are its stages, and a CRM pipeline's card stands under the base stage its stage
-// is confirmed onto. Northstar sales maps onto it, with "Preparing documents" and "Invoice sent" both on Quote (a drop
-// there asks which), none on Contract (a drop there is refused) and "Waiting for payment" unmapped; Northstar partners
-// and the "In progress" lead stage are suggestions not confirmed yet. A second CRM, Acme on amoCRM, has one pipeline of
-// stages and no cards; its Estimate is a suggestion not confirmed yet. Drops of the portal's cards need crm-write or
-// crm-profiles.
+// (Sales; the leads' is memo's default set in Russian), the board's columns are its stages, and a CRM pipeline's card
+// stands under the base stage its stage is confirmed onto. Northstar sales maps onto it, with "Preparing documents"
+// and "Invoice sent" both on Quote (a drop there asks which), none on Contract (a drop there is refused) and "Waiting
+// for payment" unmapped; Northstar partners and the "In progress" lead stage are suggestions not confirmed yet. A
+// second CRM, Acme on amoCRM, has one pipeline of stages and no cards; its Estimate is a suggestion not confirmed yet.
+// Drops of the portal's cards need crm-write or crm-profiles.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("clients") ?? "default"
@@ -71,16 +71,18 @@ const ALL_PIPES: Pipe[] = [
   },
   {
     ref: "pipeline:1",
-    name: "Leads",
+    // memo's default lead set as cli-core writes it for an owner whose messages are in Russian; the board shows it in
+    // the interface's language.
+    name: "Базовые стадии",
     kind: "lead",
     account: null,
     base: true,
     stages: [
-      ["new", "open"],
-      ["contacted", "open"],
-      ["qualified", "open"],
-      ["won", "won"],
-      ["lost", "lost"],
+      ["Новый", "open"],
+      ["Связались", "open"],
+      ["Квалифицирован", "open"],
+      ["Конвертирован", "won"],
+      ["Отклонён", "lost"],
     ],
   },
   {
@@ -271,8 +273,8 @@ function seeds(): CrmCard[] {
       people: [person("Alice Moreno", "owner")],
       closedReason: "Example: chose another supplier",
     }),
-    lead("pipeline:1", "new", "Call from the site"),
-    lead("pipeline:1", "contacted", "Referral from Acme", { organization: "Acme Corp" }),
+    lead("pipeline:1", "Новый", "Call from the site"),
+    lead("pipeline:1", "Связались", "Referral from Acme", { organization: "Acme Corp" }),
     lead("pipeline:8", "Not processed", "Form: office fit-out", { people: [person("Bob Lee", "owner")] }),
     lead("pipeline:8", "In progress", "Northstar: second office", {
       organization: "Northstar Labs",
@@ -319,10 +321,10 @@ const MAPS: Record<string, Record<string, [string, boolean]>> = {
   "pipeline:21": saasMap(SAAS_STAGES),
   "pipeline:22": saasMap(SAAS_PARTNER_STAGES),
   "pipeline:8": {
-    "Not processed": ["new", true],
-    "In progress": ["contacted", false],
-    "Good lead": ["won", true],
-    "Junk lead": ["lost", true],
+    "Not processed": ["Новый", true],
+    "In progress": ["Связались", false],
+    "Good lead": ["Конвертирован", true],
+    "Junk lead": ["Отклонён", true],
   },
 }
 

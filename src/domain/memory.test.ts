@@ -5,6 +5,7 @@ import {
   approveMode,
   batchSubjectOf,
   byDay,
+  byReviewRank,
   can,
   causeOf,
   createdTarget,
@@ -275,5 +276,25 @@ describe("withCleanNames", () => {
   it("cleans a person's name and leaves a document's title as it is", () => {
     const e = { subject: "document:3", subjectName: "Release #12", target: "person:9", targetName: "Yaro null #907" }
     expect(withCleanNames(e)).toEqual({ ...e, targetName: "Yaro" })
+  })
+})
+
+describe("Waiting for you's order", () => {
+  it("puts findings and sourced facts first, then links, then the rest, newest first within each", () => {
+    const e = (ref: string, type: string, createdAt: string, links = 0, findings: unknown[] | null = null) => ({
+      ref,
+      type,
+      links,
+      findings,
+      createdAt,
+    })
+    const order = byReviewRank([
+      e("bare fact", "fact", "2026-11-10T12:00:00Z"),
+      e("link", "relationship", "2026-11-10T11:00:00Z"),
+      e("old sourced fact", "fact", "2026-11-09T10:00:00Z", 2),
+      e("findings", "memory", "2026-11-08T10:00:00Z", 0, []),
+      e("new link", "relationship", "2026-11-10T13:00:00Z"),
+    ]).map((x) => x.ref)
+    expect(order).toEqual(["old sourced fact", "findings", "new link", "link", "bare fact"])
   })
 })

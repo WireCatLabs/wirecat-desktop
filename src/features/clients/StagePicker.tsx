@@ -4,6 +4,7 @@ import { useMessages } from "@/i18n"
 import type { CrmBaseStage, CrmCard } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
 import { Dialog } from "@/ui/Dialog"
+import { useStageName } from "./api"
 import { Choice } from "./Choice"
 import { stageMessages } from "./messages-stages"
 import { useClients } from "./store"
@@ -16,13 +17,14 @@ export function StagePicker(props: {
   onCancel: (ref: string) => void
 }) {
   const s = useMessages(stageMessages)
+  const label = useStageName(useClients((st) => st.kind))
   const picking = useClients((st) => st.picking)
   const remembered = useClients((st) => (picking ? st.chosen[choiceKey(picking.pipeline, picking.base)] : undefined))
   const [choice, setChoice] = useState<string | null>(null)
   const card = picking ? props.cards.get(picking.ref) : undefined
   const stage =
     picking && (choice !== null && picking.stages.includes(choice) ? choice : preferred(picking.stages, remembered))
-  const base = props.base.find((b) => b.ref === picking?.base)?.name ?? ""
+  const base = label.stage(props.base.find((b) => b.ref === picking?.base)?.name ?? "")
   const close = (moved: boolean) => {
     const p = useClients.getState().picking
     useClients.getState().pick(null)

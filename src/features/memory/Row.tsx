@@ -12,7 +12,7 @@ import {
   UserRound,
 } from "lucide-react"
 import { type MouseEvent, memo, type KeyboardEvent as ReactKeyboardEvent, useEffect, useId, useRef } from "react"
-import { approveMode, can, type Subject, tickedCount, undoMenuKey, undoOf } from "@/domain/memory"
+import { approveMode, can, type Subject, tabOf, tickedCount, undoMenuKey, undoOf } from "@/domain/memory"
 import { standingOf } from "@/domain/relationships"
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
@@ -78,6 +78,8 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
   const editing = useMemory((s) => s.correcting === entry.ref)
   const busy = useMemory((s) => s.busy[entry.ref])
   const failed = useMemory((s) => s.failed[entry.ref])
+  // The tab already names the state of what it lists; a record that has left it (held on screen) still says so.
+  const saysState = useMemory((s) => s.tab === "all" || tabOf(entry.status) !== s.tab)
   const skipped = useMemory((s) => s.skipped[entry.ref])
   const { toggle, confirm, discard, startCorrect, askForget, openTask } = useMemory.getState()
   const panel = useId()
@@ -146,7 +148,7 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
 
   const label = (
     <span className="flex min-w-0 flex-wrap items-center gap-x-[0.5rem] gap-y-[0.1rem] text-[0.9rem] text-ink-soft">
-      <StatusPill status={entry.status} />
+      {saysState && <StatusPill status={entry.status} />}
       <span>{entry.type === "relationship" ? x.relationKind : kindOf(entry.kind, m)}</span>
       <span aria-hidden>·</span>
       <span className="font-mono text-[0.85rem] tabular-nums">
@@ -244,18 +246,6 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
                 </span>
                 <ExpandChevron open={open} className="mt-[0.2rem] group-hover:text-ink" />
               </TextButton>
-              {editable && (
-                <button
-                  type="button"
-                  aria-label={m.correct}
-                  title={m.correct}
-                  disabled={!!busy}
-                  onClick={() => startCorrect(entry.ref)}
-                  className="reveal mt-[1.55rem] grid size-8 shrink-0 cursor-pointer place-items-center rounded-[0.35rem] text-ink-dim transition-colors duration-(--motion-fast) hover:bg-app-3 hover:text-ink disabled:opacity-45"
-                >
-                  <Pencil className="size-4" aria-hidden />
-                </button>
-              )}
             </div>
           )}
         </AutoHeight>

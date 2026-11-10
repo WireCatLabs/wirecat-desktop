@@ -86,6 +86,7 @@ export function Filters() {
 
   return (
     <FilterBar
+      inline
       query={query}
       onQuery={type}
       onClear={() => {

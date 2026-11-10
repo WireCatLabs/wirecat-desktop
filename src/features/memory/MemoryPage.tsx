@@ -1,6 +1,15 @@
 import { ArrowRight, Check, ChevronDown, LoaderCircle, Plus, X } from "lucide-react"
 import { type ReactNode, useEffect, useState } from "react"
-import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
+import {
+  byReviewRank,
+  can,
+  entryInTab,
+  matchesFilter,
+  memoryFilter,
+  reviewRank,
+  subjectOf,
+  type Tab,
+} from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
@@ -14,7 +23,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { PAGE_SIZES, Pager } from "@/ui/Pager"
+import { Pager } from "@/ui/Pager"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
@@ -27,7 +36,7 @@ import { memoryMessages } from "./messages"
 import { addMessages } from "./messages-add"
 import { explainedMessages } from "./messages-explained"
 import { Row, SubjectLabel } from "./Row"
-import { useMemory } from "./store"
+import { MEMORY_PAGE_SIZES, useMemory } from "./store"
 
 const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/memories`
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
@@ -47,7 +56,8 @@ export function MemoryPage() {
   const ready = s.read?.kind === "ready" ? s.read : null
   const filter = memoryFilter(s.query)
   const filtered = s.entries.filter((e) => matchesFilter(e, filter))
-  const groups = bySubjectGroups(filtered.filter((e) => entryInTab(s.tab, e) || s.held.includes(e.ref)))
+  const inTab = filtered.filter((e) => entryInTab(s.tab, e) || s.held.includes(e.ref))
+  const groups = bySubjectGroups(s.tab === "review" ? byReviewRank(inTab) : inTab, s.tab === "review")
   const ordered = groups.flatMap((g) => g.entries)
   const pages = Math.max(1, Math.ceil(ordered.length / s.pageSize))
   const at = Math.min(s.page, pages)
@@ -122,13 +132,13 @@ export function MemoryPage() {
             ) : (
               <Rack entries={shown} groups={groups} tab={s.tab} filtering={filtering} />
             )}
-            {ordered.length > PAGE_SIZES[0] && (
+            {ordered.length > MEMORY_PAGE_SIZES[0] && (
               <Pager
                 page={at}
                 onPage={s.setPage}
                 total={ordered.length}
                 size={s.pageSize}
-                sizes={PAGE_SIZES}
+                sizes={MEMORY_PAGE_SIZES}
                 onSize={s.setPageSize}
               />
             )}
@@ -218,8 +228,11 @@ function Rack({
 
 type Group = { key: string; entries: MemoryEntry[]; waiting: number }
 
-/** Version 2: one run per subject, those with something waiting first, then the most recently touched. */
-function bySubjectGroups(entries: MemoryEntry[]): Group[] {
+/**
+ * One run per subject: those with something waiting first, the run with no subject last, in Waiting for you the one
+ * whose first record ranks highest, then the most recently touched.
+ */
+function bySubjectGroups(entries: MemoryEntry[], ranked: boolean): Group[] {
   const groups = new Map<string, Group>()
   for (const e of entries) {
     const key = subjectOf(e)?.key ?? ""
@@ -232,9 +245,12 @@ function bySubjectGroups(entries: MemoryEntry[]): Group[] {
     (a, b) =>
       Number(b.waiting > 0) - Number(a.waiting > 0) ||
       (b.key === "" ? -1 : 0) - (a.key === "" ? -1 : 0) ||
+      (ranked ? rankOf(a) - rankOf(b) : 0) ||
       (b.entries[0]?.createdAt ?? "").localeCompare(a.entries[0]?.createdAt ?? ""),
   )
 }
+
+const rankOf = (g: Group) => (g.entries[0] ? reviewRank(g.entries[0]) : 2)
 
 /** Approves every single row on screen; the count says how many, and the rows turn green where they are. */
 function ApproveShown({ refs }: { refs: string[] }) {

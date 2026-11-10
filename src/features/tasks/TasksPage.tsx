@@ -39,11 +39,12 @@ export function TasksPage() {
 
   const usable = loaded && !unusable && !error
   return (
-    <Page>
+    <Page fill={view === "board"}>
       <PageHeader
         title={m.title}
         section="tasks"
         intro={m.intro}
+        compact
         guide={{ label: m.guide, href: guide(lang) }}
         actions={
           <div
@@ -158,13 +159,7 @@ function Rack() {
       <EmptyState title={m.empty}>{m.emptyBody}</EmptyState>
     )
   }
-  if (view === "board") {
-    return (
-      <div className="flex flex-col gap-[0.9rem]">
-        <TaskBoard />
-      </div>
-    )
-  }
+  if (view === "board") return <TaskBoard />
   return <TaskTable />
 }
 
