@@ -243,7 +243,9 @@
             "--timeout",
             "60s",
             "--no-record",
-            "--json"
+            "--json",
+            "--",
+            "{query}"
           ],
           "minVersion": "0.116.0"
         },
@@ -665,7 +667,9 @@
             "--timeout",
             "60s",
             "--no-record",
-            "--json"
+            "--json",
+            "--",
+            "{query}"
           ]
         },
         "coverage": {
@@ -1087,7 +1091,9 @@
             "--timeout",
             "60s",
             "--no-record",
-            "--json"
+            "--json",
+            "--",
+            "{query}"
           ],
           "minVersion": "0.29.0"
         },

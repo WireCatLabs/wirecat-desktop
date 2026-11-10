@@ -15,7 +15,7 @@ describe("combine", () => {
       { profile: "personal", by: "day", answer: ready([{ key: "2026-11-01", name: null, count: 3 }]) },
       { profile: "work", by: "day", answer: ready([{ key: "2026-11-01", name: null, count: 2 }]) },
       { profile: "personal", by: "sender", answer: ready([{ key: "me", name: null, count: 4 }]) },
-      { profile: "work", by: "sender", answer: { kind: "failed", message: "locked" } },
+      { profile: "work", by: "sender", answer: { kind: "failed", message: "locked", code: null } },
     ])
     expect(c).toMatchObject({
       state: "ready",

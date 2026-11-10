@@ -33,8 +33,11 @@ import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./ch
 import { Explorer } from "./explorer"
 import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
-import { duration, useOldestOpen, useTaskSources } from "./reads"
+import { MEMO_MISSING } from "./problems"
+import { duration, useInboxTotals, useOldestOpen } from "./reads"
+import { SourceProblems } from "./SourceProblems"
 import { MESSENGERS, useAnalytics, useShownSources } from "./store"
+import { useMessengerProblems } from "./useProblems"
 
 type M = typeof analyticsMessages.en
 
@@ -312,21 +315,26 @@ export function Activity() {
 
 function SourceNotes({ m }: { m: M }) {
   const sources = useShownSources()
+  const signedOut = useAnalytics((s) => s.signedOut)
+  const problems = useMessengerProblems()
   const lines = MESSENGERS.flatMap((x) => {
     const s = sources[x.id]
     const name = messengerName(x.id)
-    if (s?.state === "old") return [m.sourceOld(name)]
-    if (s?.state === "noProfiles") return [m.sourceNoProfiles(name)]
-    if (s?.state !== "ready") return []
-    return [...s.failed.map((f) => m.sourceFailed(name, f.profile, f.message)), ...(s.more ? [m.sourceMore(name)] : [])]
+    if (s?.state === "noProfiles" && !signedOut[x.id]?.length) return [m.sourceNoProfiles(name)]
+    return s?.state === "ready" && s.more ? [m.sourceMore(name)] : []
   })
-  if (!lines.length) return null
+  if (!lines.length && !problems.length) return null
   return (
-    <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[0.9rem] text-warn-ink">
-      {lines.map((l) => (
-        <li key={l}>{l}</li>
-      ))}
-    </ul>
+    <div className="flex flex-col gap-3">
+      <SourceProblems problems={problems} />
+      {lines.length > 0 && (
+        <ul className="m-0 flex list-none flex-col gap-1 p-0 text-[0.9rem] text-warn-ink">
+          {lines.map((l) => (
+            <li key={l}>{l}</li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }
 
@@ -419,7 +427,7 @@ export function Projects() {
   return (
     <Panel id="an-projects" title={m.projects} source="tasks counts" badge={preview ? <PreviewPill /> : undefined}>
       {tasks.state === "missing" ? (
-        <Note>{m.tasksMissing}</Note>
+        <SourceProblems problems={MEMO_MISSING} />
       ) : tasks.state === "error" ? (
         <ErrorNotice inline>{m.tasksError(tasks.error)}</ErrorNotice>
       ) : tasks.state === "loading" ? (
@@ -492,14 +500,15 @@ export function Tasks() {
   const refreshing = useAnalytics((s) => s.refreshing)
   const lang = useLang()
   const oldest = useOldestOpen()
-  const sources = useTaskSources()
-  // Each task comes from one chat or one meeting, so the two answers add up without counting one twice.
-  const made = sources.ready.length ? sources.ready.reduce((s, p) => s + p.body.created, 0) : null
+  // Tasks found in messages and meetings stay in each account's inbox until sorted; the board counts projects only.
+  const inbox = useInboxTotals()
+  const made = inbox?.created ?? null
+  const unsorted = inbox?.open ?? null
   const grain = taskGrain(period)
   return (
     <Panel id="an-tasks" title={m.tasks} source="tasks counts · stats tasks show">
       {tasks.state === "missing" ? (
-        <Note>{m.tasksMissing}</Note>
+        <SourceProblems problems={MEMO_MISSING} />
       ) : tasks.state === "error" ? (
         <ErrorNotice inline>{m.tasksError(tasks.error)}</ErrorNotice>
       ) : tasks.state === "loading" ? (
@@ -511,6 +520,7 @@ export function Tasks() {
         <div className="reveal flex flex-col gap-[1.3rem]">
           <Stats>
             <Stat label={m.openNow} value={formatNumber(tasks.data.open.total)} />
+            {unsorted !== null && <Stat label={m.unsortedOpen} value={formatNumber(unsorted)} note={m.unsortedNote} />}
             <Stat
               label={m.overdueNow}
               value={
@@ -592,7 +602,7 @@ export function Memory() {
       ) : memory.state === "error" ? (
         <ErrorNotice inline>{m.memoryError(memory.error)}</ErrorNotice>
       ) : memory.data.kind === "missing" ? (
-        <Note>{m.memoryMissing}</Note>
+        <SourceProblems problems={MEMO_MISSING} />
       ) : memory.data.kind === "old" ? (
         <Note>{m.memoryOld}</Note>
       ) : memory.data.entries.length === 0 ? (

@@ -19,6 +19,7 @@ import { Skeleton } from "@/ui/Skeleton"
 import { NumbersTable, Stat } from "./charts"
 import { colorOf, longKey, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
+import { SourceProblems } from "./SourceProblems"
 import { MESSENGERS, useAggregate, useAnalytics, useExtra } from "./store"
 
 const MONDAY = "2026-11-02"
@@ -33,6 +34,7 @@ export function WhenYouTalk() {
   const m = useMessages(analyticsMessages)
   const lang = useLang()
   const hours = useExtra({ by: "hour", only: "all", previous: false })
+  const period = useAnalytics((s) => s.period)
   const grid = weekHours(Object.values(hours.bySource).flat())
   const max = grid.flat().reduce((a, n) => Math.max(a, n), 1)
   const days = grid.map((_, i) =>
@@ -41,7 +43,13 @@ export function WhenYouTalk() {
   const empty = !hours.loading && grid.flat().every((n) => n === 0)
   if (hours.loading && Object.keys(hours.bySource).length === 0)
     return <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.whenTitle} />
-  if (empty) return <p className="text-[0.9rem] text-ink-soft">{m.noMessages}</p>
+  // A profile that did not answer is said as such: its silence is not "no messages".
+  if (empty)
+    return hours.problems.length ? (
+      <SourceProblems problems={hours.problems} />
+    ) : (
+      <p className="text-[0.9rem] text-ink-soft">{m.noMessages}</p>
+    )
   const off = offHours(grid)
   const pct = (n: number) => (off.total ? Math.round((n / off.total) * 100) : 0)
   return (
@@ -82,7 +90,8 @@ export function WhenYouTalk() {
         head={[m.hourCol, ...days]}
         rows={HOURS.map((h) => [`${String(h).padStart(2, "0")}:00`, ...grid.map((row) => row[h] ?? 0)])}
       />
-      <p className="text-[0.85rem] text-ink-dim">{m.offNote}</p>
+      <p className="text-[0.85rem] text-ink-dim">{period === "all" ? `${m.offNote} ${m.lastYearOnly}` : m.offNote}</p>
+      <SourceProblems problems={hours.problems} />
     </div>
   )
 }

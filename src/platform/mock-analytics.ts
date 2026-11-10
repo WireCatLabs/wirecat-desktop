@@ -327,7 +327,7 @@ export const analyticsMock = (
     await delay(300 + noise(`${id}${profile}${by}${ask.only}`) * 700)
     if (scenario === "old" && id === "tg") return { kind: "old", message: "unknown command 'stats'" }
     if (scenario === "fail" && profile === "work")
-      return { kind: "failed", message: "another process holds the store; try again in a minute" }
+      return { kind: "failed", message: "another process holds the store; try again in a minute", code: "busy" }
     const today = todayIn(timezone)
     const dayRows = days(id, profile, ask, today)
     const total = dayRows.reduce((s, r) => s + r.count, 0)

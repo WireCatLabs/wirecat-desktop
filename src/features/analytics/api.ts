@@ -27,8 +27,12 @@ export function limiter(n: number) {
 
 const run = limiter(3)
 
-/** Each profile's rows; a profile that failed or is too old has none. */
-export type ExtraAnswers = { profile: string; rows: CountRow[] }[]
+/** Each profile's rows; a profile that failed or is too old has none, and says why in `failed`. */
+export type ExtraAnswers = {
+  profile: string
+  rows: CountRow[]
+  failed?: { message: string; code: string | null; old: boolean }
+}[]
 
 type Asked = { period: Period; zone: string; profiles: string[] }
 
@@ -39,7 +43,20 @@ const SESSION = { staleTime: Number.POSITIVE_INFINITY, gcTime: Number.POSITIVE_I
 export const analyticsKeys = {
   all: ["analytics"] as const,
   extra: (id: string, spec: Omit<Spec, "period">, { period, zone, profiles }: Asked) =>
-    ["analytics", "extra", id, period, zone, spec.by, spec.only, spec.previous, profiles] as const,
+    [
+      "analytics",
+      "extra",
+      id,
+      period,
+      zone,
+      spec.by,
+      spec.only,
+      spec.previous,
+      profiles,
+      spec.range?.from ?? null,
+      spec.range?.to ?? null,
+      spec.full ?? false,
+    ] as const,
   aggregate: (which: Which, id: string, { period, zone, profiles }: Asked) =>
     ["analytics", "aggregate", which, id, period, zone, profiles] as const,
 }
@@ -50,10 +67,15 @@ export const installed = (id: string) => {
 }
 
 /** A messenger's answer to the spec in any period already read, shown dimmed while the asked period loads. */
-export function earlierAnswer(id: string, { by, only, previous }: Omit<Spec, "period">) {
+export function earlierAnswer(id: string, { by, only, previous, range, full }: Omit<Spec, "period">) {
   const found = queryClient().getQueriesData<ExtraAnswers>({
     queryKey: ["analytics", "extra", id],
-    predicate: (q) => q.queryKey[5] === by && q.queryKey[6] === only && q.queryKey[7] === previous,
+    predicate: (q) =>
+      q.queryKey[5] === by &&
+      q.queryKey[6] === only &&
+      q.queryKey[7] === previous &&
+      q.queryKey[9] === (range?.from ?? null) &&
+      q.queryKey[11] === (full ?? false),
   })
   return found.find(([, data]) => data !== undefined)?.[1]
 }
@@ -68,24 +90,39 @@ export function useExtraQueries(
   asked: { period: Period; zone: string; profilesOf: Record<string, string[]> },
   options: { enabled: boolean; own: boolean },
 ) {
-  const { by, only, previous } = spec
+  const { by, only, previous, range, full } = spec
   const combine = useCallback((results: UseQueryResult<ExtraAnswers>[]) => results.map((r) => r.data), [])
   return useQueries({
     queries: ids.map((id) => {
       const profiles = asked.profilesOf[id] ?? []
       return {
-        queryKey: analyticsKeys.extra(id, { by, only, previous }, { ...asked, profiles }),
-        queryFn: async (): Promise<ExtraAnswers> => {
-          const parts = await Promise.all(
+        queryKey: analyticsKeys.extra(id, { by, only, previous, range, full }, { ...asked, profiles }),
+        queryFn: async (): Promise<ExtraAnswers> =>
+          Promise.all(
             profiles.map(async (profile) => {
-              const answer = await run(() =>
-                platform.messageStats(id, profile, { by, only, previous, period: asked.period }, asked.zone),
-              ).catch((): MessageCounts => ({ kind: "failed", message: "" }))
-              return answer.kind === "ready" ? [{ profile, rows: answer.rows }] : []
+              const ask = {
+                by,
+                only,
+                previous,
+                period: asked.period,
+                ...(range ? { range } : {}),
+                ...(full ? { full } : {}),
+              }
+              const answer = await run(() => platform.messageStats(id, profile, ask, asked.zone)).catch(
+                (e): MessageCounts => ({ kind: "failed", message: message(e), code: null }),
+              )
+              if (answer.kind === "ready") return { profile, rows: answer.rows }
+              return {
+                profile,
+                rows: [],
+                failed: {
+                  message: answer.message,
+                  code: answer.kind === "failed" ? answer.code : null,
+                  old: answer.kind === "old",
+                },
+              }
             }),
-          )
-          return parts.flat()
-        },
+          ),
         enabled: options.enabled && !options.own,
         ...SESSION,
       }
