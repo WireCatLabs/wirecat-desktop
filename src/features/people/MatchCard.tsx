@@ -1,6 +1,6 @@
 import { Mail, PanelRightOpen, Phone } from "lucide-react"
 import { useEffect, useId } from "react"
-import { scopesOf } from "@/domain/people"
+import { seenAtWork } from "@/domain/people"
 import { formatDate, formatList, formatNumber, useLang, useMessages } from "@/i18n"
 import type { Identity, Match } from "@/platform/people-schemas"
 import { Button } from "@/ui/Button"
@@ -319,11 +319,7 @@ export function Account({ identity: i, tie = false }: { identity: Identity; tie?
       <span className="font-medium">{sourceOf(i.provider).name}</span>
       {named && <span className="min-w-0 truncate">{named}</span>}
       {handle && handle !== named && <span className="min-w-0 truncate text-ink-soft">{handle}</span>}
-      {scopesOf(i.seenIn).map((s) => (
-        <Pill key={s} size="sm">
-          {m.scopes[s] ?? s}
-        </Pill>
-      ))}
+      {seenAtWork(i.seenIn) && <Pill size="sm">{m.atWork}</Pill>}
       {tie && <span className="ml-auto text-[0.8rem] font-medium text-ink-dim">{m.tie}</span>}
     </li>
   )

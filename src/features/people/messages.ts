@@ -23,7 +23,7 @@ const en = {
   personFailed: "Could not read this person:",
   accounts: "Accounts",
   accountsHelp: "Each account and where it was seen. Personal and work show which side of your life saw it.",
-  scopes: { personal: "personal", work: "work" } as Record<string, string>,
+  atWork: "work",
   seenNowhere: "Not seen in any account yet",
   username: (u: string) => `@${u}`,
   methods: {
@@ -257,7 +257,7 @@ const ru: typeof en = {
   personFailed: "Не удалось прочитать этого человека:",
   accounts: "Аккаунты",
   accountsHelp: "Каждый аккаунт и где он встречался. Личное и рабочее показывают, какая часть вашей жизни его видела.",
-  scopes: { personal: "личное", work: "работа" },
+  atWork: "работа",
   seenNowhere: "Пока не встречался ни в одном аккаунте",
   username: (u: string) => `@${u}`,
   methods: {
@@ -506,7 +506,7 @@ const es: typeof en = {
   personFailed: "No se pudo leer esta persona:",
   accounts: "Cuentas",
   accountsHelp: "Cada cuenta y dónde se vio. Personal y trabajo indican qué parte de tu vida la vio.",
-  scopes: { personal: "personal", work: "trabajo" },
+  atWork: "trabajo",
   seenNowhere: "Aún no se ha visto en ninguna cuenta",
   username: (u: string) => `@${u}`,
   methods: {

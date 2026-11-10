@@ -33,3 +33,4 @@
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-people` (branch `feat/people-table`) and the remote branch `screenshots/people-table` (the PR's screenshots only): remove once the People table PR is merged and its screenshots are no longer needed. 2026-11-09
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-ai-model` (worktree) and branch `feat/ai-model-setting`: PR #262 is merged, the contract follow-up reuses the worktree on `feat/ai-model-contract`. Remove both after the follow-up merges. 2026-11-10
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-one-key` (worktree) and branch `feat/one-ai-key`: one AI key in Settings (NEED-2497 A). Remove both after the PR merges. 2026-11-10
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-people-pills` (worktree) and branch `fix/people-scope-pills`: People cards mark only work accounts. Remove both after the PR merges. 2026-11-10
