@@ -1766,7 +1766,7 @@
             "{query}"
           ],
           "date": "created",
-          "minVersion": "0.131.26"
+          "minVersion": "0.131.79"
         },
         "taskMeetings": {
           "args": [
@@ -1783,7 +1783,7 @@
             "{query}"
           ],
           "date": "created",
-          "minVersion": "0.131.26"
+          "minVersion": "0.131.79"
         }
       },
       "setup": null,
