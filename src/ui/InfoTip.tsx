@@ -1,6 +1,7 @@
 import { Info } from "lucide-react"
-import { type ReactNode, useEffect, useId, useRef, useState } from "react"
+import { type ReactNode, useEffect, useId, useRef } from "react"
 import { cx } from "./cx"
+import { type TipAlign, TipPanel, useTip } from "./Tooltip"
 
 type Props = {
   /** What the button is called for a screen reader, e.g. "About community tools". */
@@ -10,52 +11,36 @@ type Props = {
   /** Shown instead of the "i", such as a badge; then it names the button and `label` is not used. */
   trigger?: ReactNode
   /** `end` opens the text leftwards, for a tip at the right edge of its box. */
-  align?: "center" | "end"
+  align?: TipAlign
 }
 
 /** A small "i" whose text opens on hover, focus or click and closes on Escape, a click elsewhere or leaving. */
 export function InfoTip({ label, children, className, trigger, align = "center" }: Props) {
-  const [hover, setHover] = useState(false)
-  const [focus, setFocus] = useState(false)
-  const [pinned, setPinned] = useState(false)
+  const tip = useTip()
   const root = useRef<HTMLSpanElement>(null)
-  const tip = useId()
-  const open = hover || focus || pinned
+  const id = useId()
+  const { open, unpin } = tip
 
   useEffect(() => {
     if (!open) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return
-      setHover(false)
-      setPinned(false)
-    }
     const onDown = (e: PointerEvent) => {
-      if (root.current && !root.current.contains(e.target as Node)) setPinned(false)
+      const target = e.target as Node
+      if (root.current?.contains(target) || document.getElementById(id)?.contains(target)) return
+      unpin()
     }
-    document.addEventListener("keydown", onKey)
     document.addEventListener("pointerdown", onDown)
-    return () => {
-      document.removeEventListener("keydown", onKey)
-      document.removeEventListener("pointerdown", onDown)
-    }
-  }, [open])
+    return () => document.removeEventListener("pointerdown", onDown)
+  }, [open, unpin, id])
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: hover only widens the open area; the button carries the semantics
-    <span
-      ref={root}
-      className={cx("relative inline-flex", className)}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
+    <span ref={root} className={cx("relative inline-flex", className)} {...tip.hover}>
       <button
         type="button"
         aria-label={trigger ? undefined : label}
-        aria-describedby={tip}
+        aria-describedby={id}
         aria-expanded={open}
-        onClick={() => setPinned((p) => !p)}
-        onFocus={() => setFocus(true)}
-        onBlur={() => setFocus(false)}
+        onClick={tip.togglePin}
+        {...tip.focus}
         className={
           trigger
             ? "inline-flex cursor-help rounded-[0.3rem]"
@@ -64,17 +49,9 @@ export function InfoTip({ label, children, className, trigger, align = "center" 
       >
         {trigger ?? <Info className="size-4" strokeWidth={1.8} aria-hidden />}
       </button>
-      <span
-        id={tip}
-        role="tooltip"
-        className={cx(
-          "absolute top-full z-20 mt-1 w-[min(24rem,80vw)] rounded-[0.5rem] border border-line-strong bg-app-2 p-3 text-[0.9rem] font-normal text-ink-soft shadow-lg transition-opacity duration-(--motion-fast) ease-out-quart",
-          align === "end" ? "right-0" : "left-1/2 -translate-x-1/4",
-          open ? "opacity-100" : "pointer-events-none opacity-0",
-        )}
-      >
+      <TipPanel id={id} anchor={root} open={open} align={align} interactive hover={tip.hover}>
         {children}
-      </span>
+      </TipPanel>
     </span>
   )
 }

@@ -158,8 +158,9 @@ describe("People", () => {
     const left = await within(card).findByRole("region", { name: "Marta Gil (Studio)" }, { timeout: 4000 })
     const tie = (await within(left).findByText("Bitrix24", {}, { timeout: 4000 })).closest("li") as HTMLElement
     expect(tie).toHaveTextContent("matched")
-    expect(within(card).getByRole("button", { name: "same" })).toHaveAccessibleDescription(
-      "They have the same email address. Seen as marta@studio.example",
+    expect(within(card).getByText("marta@studio.example", { selector: "p > span" })).toBeInTheDocument()
+    expect(within(card).getByRole("button", { name: "2 people have it" })).toHaveAccessibleDescription(
+      "2 people have it. Here now: Marta Gil (Studio) and Marta Gil.",
     )
     expect(card).not.toHaveTextContent("northstar.example")
     expect(card).not.toHaveTextContent("person:22")
@@ -235,7 +236,7 @@ describe("People", () => {
     const matches = await openMatches(user)
     const title = "Konstantin Nikolaevich Loft Pro Max Semenov · Konstantin · K. Semenov"
     const card = within(matches).getByRole("article", { name: title })
-    expect(within(card).getByRole("button", { name: "3" })).toHaveAccessibleDescription(
+    expect(within(card).getByRole("button", { name: "3 people have it" })).toHaveAccessibleDescription(
       "3 people have it. Here now: Konstantin Nikolaevich Loft Pro Max Semenov, Konstantin, and K. Semenov.",
     )
     await user.click(within(card).getByRole("button", { name: title }))

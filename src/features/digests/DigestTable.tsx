@@ -48,7 +48,7 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
     {
       id: "when",
       head: m.col.when,
-      width: "minmax(9rem,1.2fr)",
+      width: "minmax(9.5rem,1.2fr)",
       cell: (d) => (
         <span className="flex flex-col text-ink-soft">
           <span>{m.when(d.times, d.weekdays)}</span>
@@ -81,7 +81,7 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
     {
       id: "last",
       head: m.col.last,
-      width: "minmax(8rem,1fr)",
+      width: "minmax(10rem,1fr)",
       sortBy: (d) => d.last?.at ?? "",
       cell: (d) =>
         busy[d.name] === "run" ? (
@@ -90,12 +90,16 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
             {m.running}
           </span>
         ) : d.last ? (
-          <span className="flex items-center gap-2 text-ink-soft">
+          <span className="flex items-baseline gap-2 text-ink-soft">
             <Lamp tone={d.last.ok ? "ok" : "bad"} size="sm" />
-            <span className="tabular-nums">
-              {ago(d.last.at)}
-              {!d.last.ok && ` · ${m.lastFailed}`}
-              {d.last.costUsd !== null && ` · ${formatUsd(d.last.costUsd, lang)}`}
+            <span className="flex flex-col tabular-nums">
+              <span>
+                {ago(d.last.at)}
+                {!d.last.ok && ` · ${m.lastFailed}`}
+              </span>
+              {d.last.costUsd !== null && (
+                <span className="text-[0.85rem] text-ink-dim">{formatUsd(d.last.costUsd, lang)}</span>
+              )}
             </span>
           </span>
         ) : (
@@ -105,7 +109,7 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
     {
       id: "scheduled",
       head: m.col.scheduled,
-      width: "5.5rem",
+      width: "7.5rem",
       cell: (d) => (
         // biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: keeps the switch's click off the row
         <span onClick={(e) => e.stopPropagation()} className="flex">
@@ -127,7 +131,7 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
       rowKey={(d) => d.name}
       columns={columns}
       density="roomy"
-      minWidth="54rem"
+      minWidth="60rem"
       leadWidth="minmax(10rem,1.4fr)"
       onRowClick={(d) => openDigest(d.name)}
     />

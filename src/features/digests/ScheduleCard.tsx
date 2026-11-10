@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
-import { findTool, tools } from "@/domain/catalog"
-import { dailyCap, formatUsd, runOutcome } from "@/domain/mail-agent"
-import { ago, openToolAt, ToolNeeded } from "@/features/tools"
+import { findTool } from "@/domain/catalog"
+import { dailyCap, formatUsd, type runOutcome } from "@/domain/mail-agent"
+import { ToolNeeded } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
-import type { DigestItem, DigestSpec, OtherSchedule, Route, RouteChoices } from "@/platform/bindings"
+import type { DigestItem, DigestSpec, Route, RouteChoices } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { useNav } from "@/shared/nav"
 import { useTools } from "@/shared/tools-store"
@@ -16,7 +16,7 @@ import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { ToggleChip } from "@/ui/FilterBar"
-import { Lamp, type LampTone } from "@/ui/Lamp"
+import type { LampTone } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { area, card } from "./editor-state"
 import { bookMessages, SOURCES, type Source, WEEKDAYS } from "./messages-book"
@@ -559,59 +559,6 @@ export function ScheduleCard({
       {failed?.name === item.name && failed.what === "save" && (
         <ErrorNotice inline>{m.form.failedSave(failed.message)}</ErrorNotice>
       )}
-    </section>
-  )
-}
-
-/** The tool whose panel sets a schedule up, by the name the catalog gives it there; null for one made by hand. */
-const setUpIn = (name: string) => tools.find((t) => t.mailAgent?.name === name) ?? null
-
-export function OtherSchedules({ others }: { others: OtherSchedule[] }) {
-  const m = useMessages(scheduleMessages)
-  const lang = useLang()
-  const titleId = useId()
-  return (
-    <section aria-labelledby={titleId} className="flex flex-col gap-1.5">
-      <h2 id={titleId} className="font-semibold text-ink">
-        {m.others}
-      </h2>
-      <p className="text-[0.85rem] text-ink-dim">{m.othersHint}</p>
-      <ul className="flex flex-col gap-1 text-[0.9rem] text-ink-soft">
-        {others.map((o) => {
-          const cap = dailyCap(o.maxCostPerDayUsd)
-          const last = o.last
-          const skip = last?.skipped
-          const parts = [o.when]
-          if (last) {
-            parts.push(
-              skip
-                ? m.skipped(ago(skip.at), (skip.reason && m.skipReasons[skip.reason]) || skip.why)
-                : `${m.lastRun(ago(last.at)).toLowerCase()} · ${runOutcome(last) === "failed" ? m.failed(last.failures) : m.ok}`,
-            )
-          }
-          if (o.spentTodayUsd !== null)
-            parts.push(m.spentToday(formatUsd(o.spentTodayUsd, lang), cap === null ? null : formatUsd(cap, lang)))
-          const tool = setUpIn(o.name)
-          return (
-            <li key={o.name} className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <Lamp tone={last ? TONE[runOutcome(last)] : "idle"} size="sm" />
-              <span className="font-medium text-ink">{o.name}</span>
-              <span>{parts.join(" · ")}</span>
-              {tool ? (
-                <button
-                  type="button"
-                  onClick={() => openToolAt(tool.id, "mailAgent")}
-                  className="cursor-pointer text-[0.88rem] font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline"
-                >
-                  {m.changeMailAgent(tool.name)}
-                </button>
-              ) : (
-                <span className="text-[0.85rem] text-ink-dim">{m.madeByHand}</span>
-              )}
-            </li>
-          )
-        })}
-      </ul>
     </section>
   )
 }

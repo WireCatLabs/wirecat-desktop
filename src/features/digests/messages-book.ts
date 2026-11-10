@@ -76,6 +76,7 @@ const en = {
   starter: {
     title: "No digests yet",
     more: "New digest",
+    restsBadge: "Off schedule",
     morningRests: "Your morning digest is off its schedule; its past days are kept. Set up brings it back.",
     body: "Start from a template; you can change everything later.",
     daily: "Daily digest",
@@ -220,6 +221,7 @@ const ru: typeof en = {
   starter: {
     title: "Сводок пока нет",
     more: "Новая сводка",
+    restsBadge: "Снята с расписания",
     morningRests: "Утренняя сводка снята с расписания, её прошлые дни сохранены. «Настроить» вернёт её.",
     body: "Начните с шаблона, всё можно поменять потом.",
     daily: "Ежедневная сводка",
@@ -364,6 +366,7 @@ const es: typeof en = {
   starter: {
     title: "Aún no hay resúmenes",
     more: "Nuevo resumen",
+    restsBadge: "Fuera de horario",
     morningRests:
       "Tu resumen matutino está fuera de su horario; sus días anteriores se conservan. «Configurar» lo recupera.",
     body: "Empieza con una plantilla; todo se puede cambiar después.",

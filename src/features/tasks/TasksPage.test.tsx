@@ -73,7 +73,7 @@ describe("Tasks", () => {
     render(<TasksPage />)
     await loaded()
     const chat = row("INDBB44DA4-7")
-    expect(chat).toHaveTextContent("found in your messages")
+    expect(within(chat).getByRole("button", { name: "Telegram" })).toHaveAccessibleDescription(/found in your messages/)
     expect(within(chat).getByRole("combobox", { name: "Status of INDBB44DA4-7" })).toBeDisabled()
     expect(within(chat).getByRole("combobox", { name: "Priority of INDBB44DA4-7" })).toBeDisabled()
     expect(useTasks.getState().total).toBe(useTasks.getState().tasks.length)

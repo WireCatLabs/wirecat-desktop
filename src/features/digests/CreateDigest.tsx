@@ -6,6 +6,8 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { InfoTip } from "@/ui/InfoTip"
+import { Pill } from "@/ui/Pill"
 import { type BookText, bookMessages } from "./messages-book"
 import { type Can, DigestFields, focusProblem, NoHarness, problemOf } from "./ScheduleCard"
 import { DEFAULT_CAPS, MORNING, useDigestBook } from "./schedule-store"
@@ -66,7 +68,14 @@ export function Starter(props: { can: Can; onPick: (t: Template) => void; compac
           compact={compact}
           icon={<Sun className="size-5" aria-hidden />}
           title={m.daily}
-          body={morningRests ? `${m.dailyBody} ${m.morningRests}` : m.dailyBody}
+          body={m.dailyBody}
+          badge={
+            morningRests && (
+              <InfoTip label={m.morningRests} trigger={<Pill size="sm">{m.restsBadge}</Pill>}>
+                {m.morningRests}
+              </InfoTip>
+            )
+          }
         >
           <Button variant="secondary" size="sm" onClick={() => onPick("daily")}>
             {m.setUp}
@@ -94,12 +103,26 @@ export function Starter(props: { can: Can; onPick: (t: Template) => void; compac
   )
 }
 
-function Choice(props: { compact: boolean; icon: ReactNode; title: string; body: string; children: ReactNode }) {
+function Choice(props: {
+  compact: boolean
+  icon: ReactNode
+  title: string
+  body: string
+  /** A short state after the description, its explanation in a tooltip. */
+  badge?: ReactNode
+  children: ReactNode
+}) {
   const title = (
     <span className="flex items-center gap-2 font-semibold text-ink">
       <span className="text-brand">{props.icon}</span>
       {props.title}
     </span>
+  )
+  const body = (
+    <>
+      {props.body}
+      {props.badge && <span className="ml-[0.4rem] inline-flex align-middle">{props.badge}</span>}
+    </>
   )
   const actions = <div className="flex flex-wrap items-center gap-2">{props.children}</div>
   if (props.compact)
@@ -109,13 +132,13 @@ function Choice(props: { compact: boolean; icon: ReactNode; title: string; body:
           {title}
           {actions}
         </div>
-        <p className="text-[0.88rem] text-ink-soft">{props.body}</p>
+        <p className="text-[0.88rem] text-ink-soft">{body}</p>
       </li>
     )
   return (
     <li className="flex flex-col gap-2 px-[1.3rem] py-[1.2rem]">
       {title}
-      <p className="flex-1 text-[0.92rem] text-ink-soft">{props.body}</p>
+      <p className="flex-1 text-[0.92rem] text-ink-soft">{body}</p>
       {actions}
     </li>
   )

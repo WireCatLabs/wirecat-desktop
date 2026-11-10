@@ -125,9 +125,9 @@ export function DataTable<T>(props: Props<T>) {
         }}
         aria-label={m.sortBy(c.head)}
         aria-pressed={on}
-        className="inline-flex cursor-pointer items-center gap-1 hover:text-ink"
+        className="inline-flex max-w-full min-w-0 cursor-pointer items-center gap-1 hover:text-ink"
       >
-        {c.head}
+        <span className="min-w-0 truncate">{c.head}</span>
         <ChevronDown
           aria-hidden
           className={cx("size-[0.85rem] transition-transform", !on && "invisible", sort?.dir === -1 && "rotate-180")}
@@ -135,8 +135,10 @@ export function DataTable<T>(props: Props<T>) {
       </button>
     )
   }
+  // A header never wraps: a two-line header made its row taller than the others' and pushed its column's cells down.
+  // The padding keeps the sort button's focus ring inside the clipped box.
   const columnHead = (c: Column<T>) => (
-    <span key={c.id} role="columnheader">
+    <span key={c.id} role="columnheader" className="-m-[0.15rem] min-w-0 truncate p-[0.15rem]">
       {head(c)}
     </span>
   )

@@ -4,7 +4,7 @@ import { useSync } from "@/features/tools"
 import { platform } from "@/platform/bridge"
 import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
-import { fireEvent, render, screen, waitFor, within } from "@/testing/render"
+import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
 import { COLUMN_PAGE } from "./BaseBoard"
 import { ClientsPage } from "./ClientsPage"
 import { useClients } from "./store"
@@ -124,6 +124,29 @@ describe("Clients on the base stages", () => {
     await user.click(within(showroom).getByRole("button", { name: /Suggested for this stage: Contract/ }))
     expect(useClients.getState().mapOn).toBe("bitrix24:northstar.example")
     expect(useClients.getState().open).toBeNull()
+  })
+
+  it("shows a card's details beside it on keyboard focus, never the column's total, and Escape hides them", async () => {
+    const user = userEvent.setup()
+    render(<ClientsPage />)
+    expect((await column(/^Quote/)).querySelector("h2")).not.toHaveTextContent("₽")
+    const site = await card("Site for Northstar")
+    document.documentElement.dataset.input = "keyboard"
+    const before = await card("Northstar: 40 office chairs")
+    act(() => before.focus())
+    act(() => site.focus())
+    const shown = () =>
+      site
+        .getAttribute("aria-describedby")
+        ?.split(" ")
+        .find((id) => id !== "clients-drag-hint")
+    await waitFor(() => expect(shown()).toBeDefined())
+    const details = document.getElementById(shown() ?? "") as HTMLElement
+    expect(details).toHaveTextContent("Alice Moreno")
+    expect(details).toHaveTextContent("Northstar site")
+    await user.keyboard("{Escape}")
+    expect(shown()).toBeUndefined()
+    delete document.documentElement.dataset.input
   })
 
   it("counts every open card memo holds and says how many one read did not bring", async () => {
