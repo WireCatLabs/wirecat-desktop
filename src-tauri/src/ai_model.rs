@@ -109,11 +109,11 @@ fn set_args(s: &SetModel) -> Result<(Vec<String>, Option<String>), String> {
         return Err("Paste the key as the provider shows it: one word, no spaces.".into());
     }
     if key.is_some() {
-        args.push("--key-stdin".into());
+        args.push("--secret-stdin".into());
     }
-    // memo turns picture reading off when the flag is missing, so it is sent on every save that keeps it on.
+    // Consent is per call: memo drops it when the flag is missing, so one `set` carries the owner's whole choice.
     if s.images {
-        args.push("--images".into());
+        args.push("--allow-remote".into());
     }
     args.push("--from-app".into());
     args.extend(words(&[]));
@@ -134,14 +134,18 @@ pub fn show() -> Result<AiModel, String> {
     with_memo(READ, show_with)
 }
 
-pub fn set(s: &SetModel) -> Result<AiModel, String> {
+fn set_with(feed: &crate::memory_add::Feed, s: &SetModel) -> Result<AiModel, String> {
     let (args, key) = set_args(s)?;
-    with_memo(READ, |feed| Ok(model_of(&feed(&args, key.as_deref().map(str::as_bytes))?)))
+    Ok(model_of(&feed(&args, key.as_deref().map(str::as_bytes))?))
+}
+
+pub fn set(s: &SetModel) -> Result<AiModel, String> {
+    with_memo(READ, |feed| set_with(feed, s))
 }
 
 pub fn off() -> Result<AiOff, String> {
     with_memo(READ, |feed| {
-        let v = feed(&owner_words(&["models", "ai", "off"]), None)?;
+        let v = feed(&owner_words(&["models", "ai", "unset"]), None)?;
         let item = body(&v);
         Ok(AiOff {
             changed: item["changed"].as_bool().unwrap_or(false),
@@ -206,8 +210,8 @@ mod tests {
                 "set",
                 "anthropic",
                 "--model=claude-haiku-4-5",
-                "--key-stdin",
-                "--images",
+                "--secret-stdin",
+                "--allow-remote",
                 "--from-app",
                 "--json",
                 "--no-record"
@@ -222,7 +226,7 @@ mod tests {
         s.key = Some("   ".into());
         let (args, stdin) = set_args(&s).unwrap();
         assert!(stdin.is_none());
-        assert!(!args.iter().any(|a| a == "--key-stdin" || a == "--images"), "{args:?}");
+        assert!(!args.iter().any(|a| a == "--secret-stdin" || a == "--allow-remote"), "{args:?}");
     }
 
     #[test]
@@ -255,6 +259,25 @@ mod tests {
     }
 
     #[test]
+    fn a_save_is_one_call_and_never_revokes() {
+        let seen: Seen = Mutex::new(Vec::new());
+        let feed = |a: &[String], _: Option<&[u8]>| -> Result<Value, String> {
+            seen.lock().unwrap().push((a.to_vec(), None));
+            Ok(json!({"item": {"provider": "ollama", "model": "llava", "images": false, "key": {"stored": false}}}))
+        };
+        let mut s = input("ollama", None);
+        s.images = false;
+        set_with(&feed, &s).unwrap();
+        s.images = true;
+        set_with(&feed, &s).unwrap();
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen.len(), 2);
+        assert!(seen.iter().all(|(a, _)| a[2] == "set"));
+        assert!(!seen[0].0.contains(&"--allow-remote".to_string()));
+        assert!(seen[1].0.contains(&"--allow-remote".to_string()));
+    }
+
+    #[test]
     fn calls_match_the_contract_and_carry_no_key() {
         let seen: Seen = Mutex::new(Vec::new());
         let feed = |a: &[String], i: Option<&[u8]>| -> Result<Value, String> {
@@ -262,11 +285,11 @@ mod tests {
             Ok(json!({"item": {"changed": true, "key_kept": true}}))
         };
         show_with(&feed).unwrap();
-        feed(&owner_words(&["models", "ai", "off"]), None).unwrap();
+        feed(&owner_words(&["models", "ai", "unset"]), None).unwrap();
         feed(&owner_words(&["models", "ai", "check"]), None).unwrap();
         let seen = seen.lock().unwrap();
         assert_eq!(seen[0].0, ["models", "ai", "show", "--json", "--no-record"]);
-        assert_eq!(seen[1].0, ["models", "ai", "off", "--from-app", "--json", "--no-record"]);
+        assert_eq!(seen[1].0, ["models", "ai", "unset", "--from-app", "--json", "--no-record"]);
         assert!(seen.iter().all(|(_, input)| input.is_none()));
     }
 
