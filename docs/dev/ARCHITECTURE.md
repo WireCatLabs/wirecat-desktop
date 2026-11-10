@@ -506,8 +506,9 @@ every move names the person and the accounts he chose.
   holds the person, wins for the counts, and a count neither knows shows «—». Companies are current memberships only. What they share is said in words and
   marked on each side: memo's evidence, else a phone or address two of them have; no ids. Merge and Not the same use the
   card's actions (`MatchActions.tsx`); the dialog keeps what was compared after a decision and says what happened.
-- **Move accounts to a new person** runs `people unlink <identities…> --from-app` with only accounts the person's own
-  read listed, each once, and never all of them: memo matches a name it does not know exactly to the nearest person.
+- **Move accounts to a new person** runs `people unlink <identities…> --from person:<uid> --from-app` with only accounts
+  the person's own read listed, each once, and never all of them: memo matches a name it does not know exactly to the
+  nearest person, and `--from` makes memo refuse an account that sits on someone else.
   Every account is shown; one whose ref cannot go back as one safe word is never offered for moving.
 - **Undo a join** runs `people unmerge merge:<to>-<from> --from-app`, only for a merge the person shows, behind a dialog
   that lists the accounts that go back.

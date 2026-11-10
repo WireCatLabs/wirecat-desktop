@@ -61,7 +61,7 @@
         }
       ],
       "evidence": ["seed:demo/contact/olga s", "merge:4-7"],
-      "fix": ["people unmerge merge:4-7", "people unlink 'seed:demo/contact/olga s'"],
+      "fix": ["people unmerge merge:4-7", "people unlink 'seed:demo/contact/olga s' --from person:4"],
       "moves": [
         {
           "op": "unmerge",
@@ -69,7 +69,8 @@
         },
         {
           "op": "unlink",
-          "identities": ["seed:demo/contact/olga s"]
+          "identities": ["seed:demo/contact/olga s"],
+          "from": "person:4"
         },
         {
           "op": "bogus"

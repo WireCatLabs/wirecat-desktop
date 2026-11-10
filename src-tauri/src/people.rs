@@ -895,6 +895,7 @@ fn unlink_with(call: &Call, reference: &str, chosen: &[String]) -> Result<Unlink
     }
     let mut args = vec!["people", "unlink"];
     args.extend(chosen);
+    args.extend(["--from", reference]);
     let moved = person(&call(&decision(&args))?).ok_or("Memo's answer did not describe the new person")?;
     Ok(Unlinked { person: show_with(call, reference)?, moved_to: moved.reference })
 }
@@ -1414,7 +1415,10 @@ mod tests {
         let call = |a: &[String]| f.call(a);
         let done = unlink_with(&call, "person:8", &strs(&["max:99", "max:99"])).unwrap();
         assert_eq!(done.moved_to, "person:11");
-        assert_eq!(f.seen()[1], strs(&["people", "unlink", "max:99", "--from-app", "--json", "--no-record"]));
+        assert_eq!(
+            f.seen()[1],
+            strs(&["people", "unlink", "max:99", "--from", "person:8", "--from-app", "--json", "--no-record"])
+        );
         for bad in [vec!["telegram:Lena"], vec!["max:66", "max:99", "telegram:55"], vec![]] {
             let before = f.seen().len();
             assert!(unlink_with(&call, "person:8", &strs(&bad)).is_err(), "{bad:?}");
