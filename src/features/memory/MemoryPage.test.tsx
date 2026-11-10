@@ -24,7 +24,7 @@ describe("Memory", () => {
     const user = userEvent.setup()
     render(<MemoryPage />)
     await rack()
-    expect(screen.getByRole("radio", { name: /Review/ })).toBeChecked()
+    expect(screen.getByRole("radio", { name: /Waiting for you/ })).toBeChecked()
     const kai = row(/Kai Moreno prefers calls on Friday/)
     expect(within(kai).getByRole("button", { name: "Reject" })).toBeInTheDocument()
     await user.click(within(kai).getByRole("button", { name: "Approve" }))
@@ -32,7 +32,7 @@ describe("Memory", () => {
     expect(row(/Kai Moreno prefers calls on Friday/)).toBe(kai)
 
     await user.click(screen.getByRole("radio", { name: /In use/ }))
-    await user.click(screen.getByRole("radio", { name: /Review/ }))
+    await user.click(screen.getByRole("radio", { name: /Waiting for you/ }))
     expect(screen.queryByRole("button", { name: /Kai Moreno prefers calls on Friday/ })).not.toBeInTheDocument()
   })
 

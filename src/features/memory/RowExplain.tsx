@@ -18,9 +18,8 @@ const TONES = { warn: "warn", ok: "brand", bad: "bad", idle: "neutral" } as cons
 
 /** A record's state in words, where a coloured dot alone said it before. */
 export function StatusPill({ status }: { status: string }) {
-  const x = useMessages(explainedMessages)
-  const state = stateOf(status)
-  return <Pill tone={TONES[toneOf(status)]}>{x.status[state] ?? state}</Pill>
+  const m = useMessages(memoryMessages)
+  return <Pill tone={TONES[toneOf(status)]}>{m.states[stateOf(status)]}</Pill>
 }
 
 const SOURCE_APPS: Record<string, string> = { bitrix24: "Bitrix24", drive: "Google Drive", amocrm: "amoCRM" }

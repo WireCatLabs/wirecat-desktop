@@ -92,7 +92,7 @@ describe("A memory whose source changed", () => {
     read([entry({})])
     const user = userEvent.setup()
     const row = await opened(user)
-    expect(screen.getByRole("radio", { name: /Review/ })).toBeChecked()
+    expect(screen.getByRole("radio", { name: /Waiting for you/ })).toBeChecked()
     const review = await within(row).findByRole("region", { name: "A source it rests on has changed" })
     expect(within(review).getByText("The clinics moved the pilot to March.", { selector: "p" })).toBeInTheDocument()
     expect(platform.memoryReviewShow).toHaveBeenCalledWith("memory:3", "17090")
