@@ -394,7 +394,7 @@ pub fn last(tool: &Tool, profile: Option<&str>) -> Result<LastSync, String> {
     let args = catalog::with_profile(words, profile)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), LAST_TIMEOUT).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, LAST_TIMEOUT).map_err(|e| e.to_string())?;
     Ok(match out.json() {
         Some(v) if v.get("error").is_none() => read_last(src.last_shape, &v, profile, whole(src)),
         _ => unknown,

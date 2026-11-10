@@ -3,6 +3,7 @@ import { findTool, usesProfiles } from "@/domain/catalog"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import type { HarderAnswer, SearchAnswer } from "@/platform/search-schemas"
+import { listProfiles } from "@/shared/query"
 import { useTools } from "@/shared/tools-store"
 
 export const LIMIT = 50
@@ -103,7 +104,7 @@ export const useSearch = create<SearchState>((set, get) => {
       if (!t || !usesProfiles(t)) return
       // An answer that comes while the tour's examples show is dropped; hideDemo asks again.
       const mine = () => call === profilesSeq && !get().demo
-      platform.listProfiles(id).then(
+      listProfiles(id).then(
         (profiles) => mine() && set({ profiles: profiles ?? [] }),
         (e) => mine() && set({ profiles: [], profilesError: message(e) }),
       )

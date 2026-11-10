@@ -114,11 +114,13 @@ src-tauri/src/
                 correct and forget through memo's own commands, `--no-record` on every call (see "The Memory page").
   memo_cli.rs   running Memo for a page: one command, its JSON or Memo's error object (Tasks, account groups).
   memo_server.rs up to two long-running `memo` processes (memo's command server, argv in `SERVER_ARGV`) that answer
-                the pages' memo commands one line at a time, so a call skips memo's start. memo_cli, memory and people
-                call through it. A server whose ready line says `concurrent` takes that many requests at once, one
-                reader thread handing each answer to its caller by `id`; one without it takes one at a time. One
-                server starts with the app (`warm`). A call that finds no server with room waits up to a second for
-                one that is starting; past that, or for a memo without the server, it starts its own process. A
+                the pages' memo commands one line at a time, so a call skips memo's start. Every memo command calls
+                through it (`run_tool` picks it when the tool is memo), except calls fed on stdin, streamed runs, the
+                doctor and `store recover`'s check; a command cli-core refuses in a server runs in its own process. A
+                server whose ready line says `concurrent` takes that many requests at once, one reader thread handing
+                each answer to its caller by `id`; one without it takes one at a time. One server starts with the app
+                (`warm`). A call that finds no server with room waits up to a second for one that is starting; past
+                that, or for a memo without the server, it starts its own process. A
                 timed-out or unreadable request retires its server once the other requests on it are answered;
                 servers end on a new memo program, after ten minutes, and at app exit, and none runs during an install, update or removal, a store reset or repair.
                 Syncs, sign-ins and installs never use it.

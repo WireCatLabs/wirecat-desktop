@@ -426,9 +426,25 @@ fn read_people(v: &Value) -> Vec<Person> {
         .unwrap_or_default()
 }
 
-/// memo lists 500 people unless asked for more, and has no pages; the owner's contacts can run to thousands.
-fn people_with(call: &Call) -> Result<Vec<Person>, Failure> {
-    Ok(read_people(&call(&words(&["people", "list", "--limit", "5000"]))?))
+const NAMED_MAX: usize = 200;
+
+/// The people the page shows, one `people show` each: `people list` costs seconds on a large store whatever its
+/// limit, and has no field to ask for given references. One after another: memo 0.131.76's command server mixes the
+/// options of two calls of the same command at once. `show` does not mark the owner; a person memo cannot show is left
+/// out.
+fn people_named_with(call: &Call, refs: &[String]) -> Vec<Person> {
+    let mut refs: Vec<&str> = refs.iter().map(String::as_str).filter(|r| validate_person(r).is_ok()).collect();
+    refs.sort_unstable();
+    refs.dedup();
+    refs.truncate(NAMED_MAX);
+    refs.into_iter()
+        .filter_map(|r| {
+            let v = call(&words(&["people", "show", r])).ok()?;
+            let item = body(&v);
+            let reference = text(item, "ref")?;
+            (reference == r).then(|| Person { name: text(item, "name"), owner: false, reference })
+        })
+        .collect()
 }
 
 const FOUND: &str = "20";
@@ -444,8 +460,17 @@ fn people_search_with(call: &Call, query: &str) -> Result<Vec<Person>, Failure> 
     Ok(read_people(&call(&args)?))
 }
 
-pub fn people() -> Result<Vec<Person>, String> {
-    with_memo(READ, people_with)
+/// A memo older than the People page's minimum may answer `people show` otherwise; it gets the whole list as before.
+fn people_listed_with(call: &Call, refs: &[String]) -> Result<Vec<Person>, Failure> {
+    let all = read_people(&call(&words(&["people", "list", "--limit", "5000"]))?);
+    Ok(all.into_iter().filter(|p| refs.contains(&p.reference)).map(|p| Person { owner: false, ..p }).collect())
+}
+
+pub fn people_named(refs: &[String]) -> Result<Vec<Person>, String> {
+    let tool = memo()?;
+    let bin = tools::program(&tool.bin).ok_or("Memo is not installed")?;
+    let shows = tool.people.as_ref().is_some_and(|p| !too_old(tools::version_of(&bin).as_deref(), &p.min_version));
+    with_memo(READ, |call| if shows { Ok(people_named_with(call, refs)) } else { people_listed_with(call, refs) })
 }
 
 pub fn people_search(query: &str) -> Result<Vec<Person>, String> {
@@ -1120,24 +1145,47 @@ mod tests {
     }
 
     #[test]
-    fn people_and_projects_leave_out_what_the_page_cannot_use() {
-        let fake = Fake::new(|a| {
-            Ok(if a[0] == "people" {
-                json!({"items":[{"ref":"person:1","name":null,"owner":true,"tasks":0},
-                    {"ref":"person:2","name":"Ana Ruiz","owner":false,"tasks":1},{"ref":"--x","name":"x"}]})
-            } else {
-                json!({"items":[{"id":"1","ref":"project:1","key":"HRB","name":"Harbour launch","kind":"project"}]})
-            })
+    fn names_only_the_people_asked_for_one_show_each() {
+        let fake = Fake::new(|a| match a[2].as_str() {
+            "person:9" => Err(Failure::plain("no person person:9")),
+            r => Ok(json!({"item":{"ref":r,"name":format!("Name of {r}"),"identities":[]}})),
         });
         let call = |a: &[String]| fake.call(a);
-        let people = people_with(&call).unwrap();
-        assert_eq!(people.len(), 2);
-        assert!(people[0].owner);
+        let refs = strs(&["person:2", "--x", "person:9", "person:1", "person:2"]);
+        let named = people_named_with(&call, &refs);
+        assert_eq!(
+            named,
+            [
+                Person { reference: "person:1".into(), name: Some("Name of person:1".into()), owner: false },
+                Person { reference: "person:2".into(), name: Some("Name of person:2".into()), owner: false },
+            ]
+        );
+        let mut seen = fake.seen();
+        seen.sort();
+        assert_eq!(seen.len(), 3);
+        assert_eq!(seen[0], strs(&["people", "show", "person:1", "--json", "--no-record"]));
+    }
+
+    #[test]
+    fn an_older_memo_names_the_people_from_its_whole_list() {
+        let fake = Fake::new(|_| {
+            Ok(json!({"items":[{"ref":"person:1","name":"Owner","owner":true},{"ref":"person:2","name":"Ana Ruiz"}]}))
+        });
+        let named = people_listed_with(&|a: &[String]| fake.call(a), &strs(&["person:1"])).unwrap();
+        assert_eq!(named, [Person { reference: "person:1".into(), name: Some("Owner".into()), owner: false }]);
+    }
+
+    #[test]
+    fn projects_leave_out_what_the_page_cannot_use() {
+        let fake = Fake::new(|_| {
+            Ok(json!({"items":[{"id":"1","ref":"project:1","key":"HRB","name":"Harbour launch","kind":"project"}]}))
+        });
+        let call = |a: &[String]| fake.call(a);
         assert_eq!(
             projects_with(&call).unwrap(),
             [Project { reference: Some("project:1".into()), key: "HRB".into(), name: "Harbour launch".into() }]
         );
-        assert_eq!(fake.seen()[1], strs(&["projects", "list", "--json", "--no-record", "--", "kind:project"]));
+        assert_eq!(fake.seen()[0], strs(&["projects", "list", "--json", "--no-record", "--", "kind:project"]));
     }
 
     #[test]
@@ -1409,7 +1457,7 @@ mod tests {
         let Read::Ready { tasks, .. } = list_with(&call, "state:*").unwrap() else { panic!("not ready") };
         assert_eq!(tasks.len(), raw["items"].as_array().unwrap().len(), "a task did not parse");
         assert_ne!(projects_with(&call).unwrap(), Vec::<Project>::new());
-        assert!(people_with(&call).unwrap().iter().any(|p| p.owner));
+        assert!(people_search_with(&call, "").unwrap().iter().any(|p| p.owner));
         assert!(counts_with(&call, "").unwrap().state.iter().any(|f| f.value == "in_progress"));
         assert!(matches!(list_with(&call, "(").unwrap(), Read::BadQuery { .. }));
         // The words the page's filters write, inside the board's default, as the page sends them.
@@ -1473,7 +1521,7 @@ mod tests {
         let held = show_with(&call, &b.key).unwrap();
         call(&words(&["tasks", "claim", &b.key, "--holder", "probe"])).unwrap();
         assert_eq!(show_with(&call, &b.key).unwrap().revision, held.revision);
-        let owner = people_with(&call).unwrap().into_iter().find(|p| p.owner).unwrap();
+        let owner = people_search_with(&call, "").unwrap().into_iter().find(|p| p.owner).unwrap();
         let Write::Saved { task: mine, .. } =
             assign_with(&call, &done.key, done.revision, Some(&owner.reference)).unwrap()
         else {
@@ -1492,7 +1540,7 @@ mod tests {
             put("read", serde_json::to_value(list_with(&call, "state:*").unwrap()).unwrap());
             put("counts", serde_json::to_value(counts_with(&call, "").unwrap()).unwrap());
             put("history", serde_json::to_value(history_with(&call, &a.key).unwrap()).unwrap());
-            put("people", serde_json::to_value(people_with(&call).unwrap()).unwrap());
+            put("people", serde_json::to_value(people_search_with(&call, "").unwrap()).unwrap());
             put("projects", serde_json::to_value(projects_with(&call).unwrap()).unwrap());
             put("show", serde_json::to_value(show_with(&call, &a.key).unwrap()).unwrap());
             let stale = edit_args(&a.key, 1, &Edit { title: Some("x".into()), ..Edit::default() }).unwrap();
@@ -1536,7 +1584,10 @@ mod tests {
         assert_eq!(said.text, "-Probe: booked the hall");
         assert_eq!(comments_with(&call, &task.key).unwrap().last().unwrap().text, said.text);
         let lena = person_add_with(&call, "Probe Lena").unwrap();
-        assert!(people_with(&call).unwrap().iter().any(|p| p.reference == lena.reference));
+        assert_eq!(
+            people_named_with(&call, std::slice::from_ref(&lena.reference))[0].name.as_deref(),
+            Some("Probe Lena")
+        );
 
         let Write::Saved { task: parent, .. } =
             create(&New { project: "HRB".into(), title: "Probe parent".into(), ..New::default() })

@@ -309,7 +309,7 @@ pub fn run(tool: &Tool, query: &str, limit: u32) -> Result<HarderAnswer, String>
     let args = search_args(src, query, limit)?;
     let bin = tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = crate::run::run(&bin, &refs, Some(&crate::paths::search_path()), SEARCH).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, SEARCH).map_err(|e| e.to_string())?;
     let answer = search::read_shaped(SearchShape::Items, false, &out, limit);
     Ok(with_outcome(answer, out.json().as_ref()))
 }

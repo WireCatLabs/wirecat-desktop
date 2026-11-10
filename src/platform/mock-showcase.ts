@@ -241,7 +241,7 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
     },
     taskShow: async (key) => localise(await base.taskShow(key)),
     taskCounts: async (query) => localise(await base.taskCounts(query)),
-    peopleList: async () => localise(await base.peopleList()),
+    peopleNamed: async (refs) => localise(await base.peopleNamed(refs)),
     peopleSearch: async (query) => localise(await base.peopleSearch(query)),
     projectList: async () => localise(await base.projectList()),
     memoryRead: async (...args) => localise(await base.memoryRead(...args)),

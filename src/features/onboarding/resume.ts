@@ -2,10 +2,10 @@ import { tools } from "@/domain/catalog"
 import { accountReady, computerGate, type Progress, resumeAt, skillInPlace } from "@/domain/onboarding-flow"
 import { skillCell, skillColumns } from "@/domain/skills"
 import { useNode } from "@/features/system"
-import { platform } from "@/platform/bridge"
 import { useAgents } from "@/shared/agents-store"
 import { HOME_SECTION, useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { listProfiles } from "@/shared/query"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
 
@@ -31,7 +31,7 @@ async function readProgress(): Promise<Progress> {
   const [, ...accounts] = await Promise.all([
     useAgents.getState().load(withSkill.map((t) => t.id)),
     ...installed.filter(signsIn).map((t) =>
-      platform.listProfiles(t.id).then(
+      listProfiles(t.id).then(
         (profiles) => accountReady(profiles, !t.setup),
         () => true,
       ),

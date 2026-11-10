@@ -32,7 +32,8 @@ export type ExtraAnswers = { profile: string; rows: CountRow[] }[]
 
 type Asked = { period: Period; zone: string; profiles: string[] }
 
-// Kept for the page's visit, so a period seen once comes back at once; `load()` resets every key under "analytics".
+// Kept for the page's visit, so a period seen once comes back at once; `load()` marks every key under "analytics"
+// stale, so a later visit reads again with the last answer on screen.
 const SESSION = { staleTime: Number.POSITIVE_INFINITY, gcTime: Number.POSITIVE_INFINITY }
 
 export const analyticsKeys = {

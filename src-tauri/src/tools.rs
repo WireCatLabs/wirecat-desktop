@@ -235,7 +235,7 @@ pub fn profiles(tool: &Tool) -> Result<Option<Vec<Profile>>, String> {
     let Some(src) = &tool.profiles else { return Ok(None) };
     let bin = program(&tool.bin).ok_or("the tool is not installed")?;
     let args: Vec<&str> = src.args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &args, Some(&paths::search_path()), Duration::from_secs(30)).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &args, Duration::from_secs(30)).map_err(|e| e.to_string())?;
     let value = out.json().ok_or_else(|| redact::text(last_line(&out.stderr)))?;
     Ok(Some(parse_profiles(&value, &src.shape)))
 }

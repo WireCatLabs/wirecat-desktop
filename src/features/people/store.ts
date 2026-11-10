@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { looksLikeAccount, touched } from "@/domain/people"
 import { platform } from "@/platform/bridge"
 import type { Listed, Match, MatchAnswer, PeopleRead, PersonDetail, PersonKind } from "@/platform/people-schemas"
+import { fresh } from "@/shared/fresh"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -44,6 +45,8 @@ type PeopleState = {
   matchesMore: boolean
   decided: Record<string, MatchAnswer>
   reading: boolean
+  /** When memo last answered; the page reads again only when it is older than a minute. */
+  readAt: number | null
   error: string | null
   view: View
   query: string
@@ -67,6 +70,8 @@ type PeopleState = {
   undoing: { ref: string; merge: string } | null
   /** `counts: false` keeps the tabs' counts: a tab switch does not change them. */
   load(counts?: boolean): Promise<void>
+  /** The page opened: a read unless the last one is under a minute old; what it shows stays while it runs. */
+  visit(): void
   setView(view: View): void
   setKind(kind: PersonKind): void
   setQuery(query: string): void
@@ -194,6 +199,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     matchesMore: false,
     decided: {},
     reading: false,
+    readAt: null,
     error: null,
     view: "people",
     query: "",
@@ -245,6 +251,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           decided: {},
           joinedGroup: {},
           reading: false,
+          readAt: Date.now(),
           details: {},
           failed: {},
           done: {},
@@ -255,6 +262,9 @@ export const usePeople = create<PeopleState>((set, get) => {
         if (call !== seq) return
         set({ error: message(e), reading: false })
       }
+    },
+    visit() {
+      if (!fresh(get().readAt)) void get().load()
     },
     setView: (view) => set({ view }),
     setKind(kind) {

@@ -224,7 +224,7 @@ function createTauri(): Platform {
     groupsAdd: (group, source) => call(GroupsReadSchema, "groups_add", { group, source }),
     groupsRemove: (group, source) => call(GroupsReadSchema, "groups_remove", { group, source }),
     groupsMove: (source, from, to) => call(GroupsReadSchema, "groups_move", { source, from, to }),
-    memoryRead: () => call(MemoryReadSchema, "memory_read"),
+    memoryRead: (page = 1) => call(MemoryReadSchema, "memory_read", { page }),
     memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
     memoryConfirm: (ref, accept) =>
       call(MemoryEntrySchema, "memory_confirm", { reference: ref, accept: accept ?? null }),
@@ -290,7 +290,7 @@ function createTauri(): Platform {
     taskAssign: (key, revision, person) => call(TaskWriteSchema, "task_assign", { key, revision, person }),
     taskComments: (key) => call(v.array(TaskCommentSchema), "task_comments", { key }),
     taskCommentAdd: (key, text) => call(TaskCommentSchema, "task_comment_add", { key, text }),
-    peopleList: () => call(v.array(PersonSchema), "people_list"),
+    peopleNamed: (refs) => call(v.array(PersonSchema), "people_named", { refs }),
     peopleSearch: (query) => call(v.array(PersonSchema), "people_search", { query }),
     personAdd: (name) => call(PersonSchema, "person_add", { name }),
     projectList: () => call(v.array(ProjectSchema), "project_list"),

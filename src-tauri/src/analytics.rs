@@ -6,7 +6,7 @@
 
 use crate::cache::REFUSED;
 use crate::catalog::{self, AggregateSource, StatsSource, Tool};
-use crate::{paths, run};
+use crate::run;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
@@ -197,7 +197,7 @@ pub fn messages(tool: &Tool, profile: &str, ask: Ask, timezone: &str) -> Result<
         return Ok(Counts::Old { message });
     }
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), TIMEOUT).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, TIMEOUT).map_err(|e| e.to_string())?;
     let counts = read(&out);
     if let Counts::Old { message } = &counts {
         REFUSED.remember(&tool.id, STATS, &bin, message);
@@ -292,7 +292,7 @@ pub fn aggregate(
         return Ok(Aggregate::Old { message: format!("needs {} {min} or newer", tool.bin) });
     }
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), TIMEOUT).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, TIMEOUT).map_err(|e| e.to_string())?;
     let json = out.json();
     if out.code == Some(0)
         && let Some(v) = json.as_ref().filter(|v| v.get("error").is_none())

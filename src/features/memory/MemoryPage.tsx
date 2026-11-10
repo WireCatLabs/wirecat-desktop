@@ -35,11 +35,11 @@ export function MemoryPage() {
   const lang = useLang()
   const s = useMemory()
   const gap = gapFromRead(s.read)
-  const { load, demo } = s
+  const { load, visit, demo } = s
 
   useEffect(() => {
-    if (!demo) load()
-  }, [load, demo])
+    if (!demo) visit()
+  }, [visit, demo])
 
   const ready = s.read?.kind === "ready" ? s.read : null
   const filter = memoryFilter(s.query)
@@ -156,7 +156,14 @@ export function MemoryPage() {
                 {m.linksFailed} {ready.linksError}
               </ErrorNotice>
             )}
-            {ready?.more && <p className="text-[0.9rem] text-ink-dim">{m.more}</p>}
+            {ready?.page == null
+              ? ready?.more && <p className="text-[0.9rem] text-ink-dim">{m.more}</p>
+              : (ready.more || ready.page > 1) && (
+                  <div className="flex flex-col gap-[0.5rem]">
+                    <p className="text-[0.9rem] text-ink-dim">{m.memoPage(ready.page)}</p>
+                    <Pager page={ready.page} onPage={s.turnMemoPage} hasMore={ready.more} busy={s.reading} />
+                  </div>
+                )}
             {ready && <Activity calls={ready.activity} error={ready.activityError} />}
           </>
         )}

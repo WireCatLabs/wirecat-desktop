@@ -416,7 +416,7 @@ fn role(v: &Value) -> Option<Role> {
 
 /// A memo from before a list, or before one of its words, says so; anything else (a busy store) is a real failure.
 fn unsupported(e: &str) -> bool {
-    e.starts_with("unknown command") || e.contains("query.unknown-field")
+    e.starts_with("unknown command") || e.starts_with("unknown option") || e.contains("query.unknown-field")
 }
 
 fn rows(call: &Call, args: &[&str], pending: bool) -> Result<Vec<Entry>, String> {
@@ -493,8 +493,10 @@ pub enum Read {
     #[serde(rename_all = "camelCase")]
     Ready {
         entries: Vec<Entry>,
-        /// A list reached its limit: older entries exist that the page does not show.
+        /// A list has a page after this one.
         more: bool,
+        /// The page of memo's lists these entries are; `None` from a memo before `--page`, which gives only the first.
+        page: Option<u32>,
         /// `None` when only the activity log could not be read; the entries still show.
         activity: Option<Vec<Activity>>,
         activity_error: Option<String>,
@@ -586,7 +588,7 @@ pub(crate) fn memo() -> Result<&'static Tool, String> {
     catalog::tool("memo")
 }
 
-pub fn read() -> Result<Read, String> {
+pub fn read(page: u32) -> Result<Read, String> {
     let tool = memo()?;
     let need = tool.memory.as_ref().ok_or("Memo has no memory commands in the catalog")?.min_version.clone();
     let state = tools::detect(tool, false);
@@ -596,31 +598,42 @@ pub fn read() -> Result<Read, String> {
     }
     let bin = crate::tools::program(&tool.bin).ok_or("Memo is not installed")?;
     let revoke = can_revoke(tool, crate::tools::version_of(&bin).as_deref());
-    read_with(&|args: &[String]| call_at(&bin, args, if is_held_links(args) { LINKS } else { READ }), revoke)
+    read_with(&|args: &[String]| call_at(&bin, args, if is_held_links(args) { LINKS } else { READ }), revoke, page)
 }
 
 fn is_held_links(args: &[String]) -> bool {
     args.starts_with(&["relationships".to_string(), "list".to_string()]) && !args.iter().any(|a| a == "confirmed:false")
 }
 
-fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>) -> Result<(Vec<Entry>, bool), String> {
+/// One page of a list, never every page: a large store has thousands. A memo before `--page` refuses the option and
+/// gives its first page, `None` for the page.
+fn list(call: &Call, noun: &str, parse: fn(&Value) -> Option<Entry>, page: u32) -> Result<Listed, String> {
     // `actions list` reads every findings batch's sources back unless brief; the page reads them on opening one.
     let mut parts = vec![noun, "list", "--limit", LIMIT];
     if noun == "actions" {
         parts.push("--brief");
     }
-    let v = call(&words(&parts))?;
+    let number = page.to_string();
+    let mut paged = parts.clone();
+    paged.extend(["--page", number.as_str()]);
+    let (v, page) = match call(&words(&paged)) {
+        Ok(v) => (v, Some(page)),
+        Err(e) if page == 1 && unsupported(&e) => (call(&words(&parts))?, None),
+        Err(e) => return Err(e),
+    };
     let items = v["items"].as_array().map(|a| a.iter().filter_map(parse).collect()).unwrap_or_default();
-    Ok((items, v["page"]["has_more"].as_bool().unwrap_or(false)))
+    Ok((items, v["page"]["has_more"].as_bool().unwrap_or(false), page))
 }
+
+type Listed = (Vec<Entry>, bool, Option<u32>);
 
 /// Every list at once: memo's server answers them side by side, and a memo without it starts a process for each, so one
 /// after another would take that many times as long.
-fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
+fn read_with(call: &Call, revoke: bool, page: u32) -> Result<Read, String> {
     let (memories, facts, actions, agents, (proposed, held, roles)) = std::thread::scope(|s| {
-        let memories = s.spawn(|| list(call, "memories", memory));
-        let facts = s.spawn(|| list(call, "facts", fact));
-        let actions = s.spawn(|| list(call, "actions", action));
+        let memories = s.spawn(|| list(call, "memories", memory, page));
+        let facts = s.spawn(|| list(call, "facts", fact, page));
+        let actions = s.spawn(|| list(call, "actions", action, page));
         let agents = s.spawn(|| call(&words(&["agents", "list", "--limit", ACTIVITY_LIMIT])));
         let proposed = s.spawn(|| relationships(call, true));
         let held = s.spawn(|| relationships(call, false));
@@ -638,10 +651,11 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
             ),
         )
     });
-    let (mut entries, mut more) = memories?;
-    for (items, has_more) in [facts?, actions?] {
+    let (mut entries, mut more, mut page) = memories?;
+    for (items, has_more, paged) in [facts?, actions?] {
         entries.extend(items);
         more |= has_more;
+        page = page.and(paged);
     }
     entries.extend(proposed?);
     let links_error = match held {
@@ -660,7 +674,7 @@ fn read_with(call: &Call, revoke: bool) -> Result<Read, String> {
         }
         Err(e) => (None, Some(e)),
     };
-    Ok(Read::Ready { entries, more, activity, activity_error, links_error, revoke, roles })
+    Ok(Read::Ready { entries, more, page, activity, activity_error, links_error, revoke, roles })
 }
 
 pub(crate) fn memo_bin() -> Result<std::path::PathBuf, String> {
@@ -1284,7 +1298,7 @@ mod tests {
             ("agents", _) => Err("unknown command 'agents'".into()),
             _ => Ok(json!({"items":[]})),
         });
-        let Read::Ready { entries, roles, .. } = read_with(&|a: &[String]| fake.call(a), false).unwrap() else {
+        let Read::Ready { entries, roles, .. } = read_with(&|a: &[String]| fake.call(a), false, 1).unwrap() else {
             panic!("not ready")
         };
         let proposed = entries.iter().find(|e| e.reference == "relationship:1").unwrap();
@@ -1334,7 +1348,7 @@ mod tests {
             "memories" => Ok(json!({"items":[agent_memory()]})),
             _ => Ok(json!({"items":[]})),
         });
-        let Read::Ready { entries, roles, .. } = read_with(&|a: &[String]| fake.call(a), false).unwrap() else {
+        let Read::Ready { entries, roles, .. } = read_with(&|a: &[String]| fake.call(a), false, 1).unwrap() else {
             panic!("not ready")
         };
         assert_eq!(entries.len(), 1);
@@ -1343,7 +1357,7 @@ mod tests {
             "relationships" => Err("another process holds the store".into()),
             _ => Ok(json!({"items":[]})),
         });
-        assert!(read_with(&|a: &[String]| busy.call(a), false).is_err(), "a busy store is not an older memo");
+        assert!(read_with(&|a: &[String]| busy.call(a), false, 1).is_err(), "a busy store is not an older memo");
     }
 
     #[test]
@@ -1395,12 +1409,32 @@ mod tests {
     fn decides_relationships_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
-        let Read::Ready { entries, .. } = read_with(&call, false).unwrap() else { panic!("not ready") };
+        let Read::Ready { entries, .. } = read_with(&call, false, 1).unwrap() else { panic!("not ready") };
         let waiting = entries.iter().find(|e| e.reference.starts_with(PROPOSED_RELATIONSHIP)).expect("a proposal");
         assert!(entries.iter().any(|e| e.reference.starts_with("link:") && e.standing.is_some()));
         let id = proposal_id(&waiting.reference).unwrap();
         let done = decide_relationship(&call, id, true).unwrap();
         assert_eq!(done.standing.as_deref(), Some("confirmed"));
+    }
+
+    #[test]
+    fn reads_only_the_page_asked_for_and_an_older_memo_its_first() {
+        let fake = Fake::new(|a| {
+            let page = a.iter().position(|w| w == "--page").map(|i| a[i + 1].clone());
+            Ok(match (a[0].as_str(), page.as_deref()) {
+                ("facts", Some("2")) => json!({"items":[decision("proposed")],"page":{"has_more":true}}),
+                ("memories", Some(_)) => return Err("unknown option '--page'".into()),
+                ("memories", None) => json!({"items":[agent_memory()],"page":{"has_more":true}}),
+                _ => json!({"items":[],"page":{"has_more":false}}),
+            })
+        });
+        let call = |a: &[String]| fake.call(a);
+        let (facts, more, page) = list(&call, "facts", fact, 2).unwrap();
+        assert_eq!((facts.len(), more, page), (1, true, Some(2)));
+        assert_eq!(fake.seen().len(), 1, "no page is read ahead");
+        let (memories, more, page) = list(&call, "memories", memory, 1).unwrap();
+        assert_eq!((memories.len(), more, page), (1, true, None));
+        assert!(list(&call, "memories", memory, 2).is_err(), "an older memo has no second page");
     }
 
     #[test]
@@ -1418,7 +1452,7 @@ mod tests {
             })
         });
         let Read::Ready { entries, more, activity, activity_error, .. } =
-            read_with(&|a: &[String]| fake.call(a), false).unwrap()
+            read_with(&|a: &[String]| fake.call(a), false, 1).unwrap()
         else {
             panic!("not ready")
         };
@@ -1454,13 +1488,13 @@ mod tests {
             "agents" => Err("unknown command 'agents'".into()),
             _ => Ok(json!({"items":[]})),
         });
-        let read = read_with(&|a: &[String]| fake.call(a), false).unwrap();
+        let read = read_with(&|a: &[String]| fake.call(a), false, 1).unwrap();
         assert!(matches!(read, Read::Ready { activity: None, activity_error: Some(_), .. }));
         let busy = Fake::new(|a| match a[0].as_str() {
             "facts" => Err("the store is busy".into()),
             _ => Ok(json!({"items":[]})),
         });
-        assert_eq!(read_with(&|a: &[String]| busy.call(a), false), Err("the store is busy".into()));
+        assert_eq!(read_with(&|a: &[String]| busy.call(a), false, 1), Err("the store is busy".into()));
     }
 
     #[test]
@@ -1470,7 +1504,7 @@ mod tests {
             ("relationships", false) if a[1] == "list" => Err("the program did not finish in time".into()),
             _ => Ok(json!({"items":[]})),
         });
-        let read = read_with(&|a: &[String]| fake.call(a), false).unwrap();
+        let read = read_with(&|a: &[String]| fake.call(a), false, 1).unwrap();
         let Read::Ready { entries, links_error, .. } = read else { panic!("not ready") };
         assert_eq!(entries.len(), 1);
         assert_eq!(links_error.as_deref(), Some("the program did not finish in time"));
@@ -1564,7 +1598,7 @@ mod tests {
                 _ => json!({"items":[]}),
             })
         });
-        let Read::Ready { entries, .. } = read_with(&|a: &[String]| fake.call(a), false).unwrap() else {
+        let Read::Ready { entries, .. } = read_with(&|a: &[String]| fake.call(a), false, 1).unwrap() else {
             panic!("not ready")
         };
         let batch = entries.iter().find(|e| e.reference == "action:9").unwrap();
@@ -1836,6 +1870,7 @@ mod tests {
         let read = Read::Ready {
             entries: vec![memory(&agent_memory()).unwrap()],
             more: false,
+            page: Some(1),
             activity: None,
             activity_error: None,
             links_error: None,
@@ -1872,7 +1907,7 @@ mod tests {
         let call = |a: &[String]| call_at(&bin, a, READ);
         let raw =
             |noun: &str| call(&words(&[noun, "list", "--limit", LIMIT])).unwrap()["items"].as_array().unwrap().len();
-        let Read::Ready { entries, activity, .. } = read_with(&call, false).unwrap() else { panic!("not ready") };
+        let Read::Ready { entries, activity, .. } = read_with(&call, false, 1).unwrap() else { panic!("not ready") };
         let records = entries.iter().filter(|e| e.record != "relationship").count();
         assert_eq!(records, raw("memories") + raw("facts") + raw("actions"), "an item did not parse");
         assert!(activity.is_some());

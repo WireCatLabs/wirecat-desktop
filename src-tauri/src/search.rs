@@ -6,7 +6,7 @@
 
 use crate::cache::REFUSED;
 use crate::catalog::{self, ContextSource, SearchShape, SearchSource, Tool, ValuesSource};
-use crate::{paths, run};
+use crate::run;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
@@ -149,7 +149,7 @@ pub fn search(tool: &Tool, profile: Option<&str>, query: &str, limit: u32, page:
         return Ok(Answer::Old { message });
     }
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), TIMEOUT).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, TIMEOUT).map_err(|e| e.to_string())?;
     let answer = read(src, &out, limit);
     if let Answer::Old { message } = &answer {
         REFUSED.remember(&tool.id, SEARCH, &bin, message);
@@ -217,7 +217,7 @@ pub fn context(tool: &Tool, profile: Option<&str>, reference: &str) -> Result<Co
     let args = context_args(src, profile, reference)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(1)).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, Duration::from_mins(1)).map_err(|e| e.to_string())?;
     if out.code != Some(0) {
         return Ok(match error_of(&out.stderr, &out.stdout) {
             Answer::Old { message } => Context::Old { message },
@@ -252,7 +252,7 @@ pub fn values(tool: &Tool, profile: Option<&str>, source: &str) -> Result<Vec<Va
     let args = values_args(src, profile)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_mins(1)).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, Duration::from_mins(1)).map_err(|e| e.to_string())?;
     if out.code != Some(0) {
         return Ok(Vec::new());
     }

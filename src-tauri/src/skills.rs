@@ -144,7 +144,7 @@ pub struct SkillReport {
 pub(crate) fn call(tool: &Tool, args: &[String], timeout: Duration) -> Result<(run::Output, Option<Value>), String> {
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, timeout).map_err(|e| e.to_string())?;
     let json = out.json();
     Ok((out, json))
 }

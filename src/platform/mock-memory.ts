@@ -794,15 +794,16 @@ export function memoryMock(): Pick<
     async memoryOpenSource() {
       await delay(200)
     },
-    async memoryRead(): Promise<MemoryRead> {
+    async memoryRead(page = 1): Promise<MemoryRead> {
       await delay(700)
       if (scenario === "missing") return { kind: "missing" }
       if (scenario === "old") return { kind: "old", version: "0.124.0", need: "0.131.11" }
       if (fail === "read") throw new Error(BUSY)
       return {
         kind: "ready",
-        entries: [...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-        more: scenario === "many",
+        entries: page === 1 ? [...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : [],
+        more: scenario === "many" && page === 1,
+        page,
         activity: scenario === "none" ? [] : ACTIVITY,
         activityError: null,
         linksError: null,

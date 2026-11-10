@@ -4,7 +4,7 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Combobox } from "@/ui/Combobox"
 import { taskMessages } from "./messages"
-import { PEOPLE_FOUND, useTasks } from "./store"
+import { FINDER_FRESH_MS, PEOPLE_FOUND, useTasks } from "./store"
 
 const TYPING_MS = 250
 
@@ -28,7 +28,7 @@ export function PersonFinder({ onPick, onDone }: { onPick: (ref: string) => void
   const found = useQuery({
     queryKey: [...PEOPLE_FOUND, asked.toLocaleLowerCase()],
     queryFn: () => platform.peopleSearch(asked),
-    staleTime: 5 * 60_000,
+    staleTime: FINDER_FRESH_MS,
     placeholderData: keepPreviousData,
   })
   const named = useMemo(() => {

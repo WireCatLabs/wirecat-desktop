@@ -4,7 +4,8 @@
 
 use crate::catalog::Tool;
 use crate::{
-    archive, compat, crm_board, memo_server, memory, paths, run, runs, settings, skills, storage, system, tasks, tools,
+    archive, compat, crm_board, digest_book, digests, memo_server, memory, paths, run, runs, search, settings, skills,
+    storage, system, task_board, tasks, tools,
 };
 use std::time::Instant;
 
@@ -144,8 +145,43 @@ fn clients_page(visit: &str) {
 /// Every list of the Memo page at once; the second visit finds memo's servers already running.
 fn memory_page(visit: &str) {
     let (before, started) = mark();
-    let done = together(vec![Box::new(|| drop(memory::read()))]);
+    let done = together(vec![Box::new(|| drop(memory::read(1)))]);
     report("Memory", visit, done[0], before, started);
+}
+
+fn assignees(read: &task_board::Read) -> Vec<String> {
+    match read {
+        task_board::Read::Ready { tasks, .. } => tasks.iter().flat_map(|t| t.assignees.clone()).collect(),
+        _ => Vec::new(),
+    }
+}
+
+/// The table (tasks and chat tasks) with its counts and projects, then the names of the people on it.
+fn tasks_page(visit: &str) {
+    let (before, started) = mark();
+    let q = "project:*";
+    let done = together(vec![
+        Box::new(move || drop(task_board::list(q))),
+        Box::new(|| drop(task_board::chats())),
+        Box::new(move || drop(task_board::counts(q))),
+        Box::new(|| drop(task_board::projects())),
+        Box::new(|| drop(task_board::list(q).map(|r| task_board::people_named(&assignees(&r))))),
+    ]);
+    println!("Tasks    {visit:<8} counts {:>5} ms   projects {:>5} ms   names {:>5} ms", done[2], done[3], done[4]);
+    report("Tasks", visit, done[0].max(done[1]), before, started);
+}
+
+fn digests_page(visit: &str) {
+    let (before, started) = mark();
+    let done = together(vec![Box::new(|| drop(digest_book::book())), Box::new(|| drop(digests::list(None)))]);
+    report("Digests", visit, done.into_iter().max().unwrap_or(0), before, started);
+}
+
+fn search_page(visit: &str) {
+    let Some(memo) = installed().into_iter().find(|t| t.id == "memo") else { return };
+    let (before, started) = mark();
+    let done = together(vec![Box::new(move || drop(search::search(memo, None, "meeting", 50, 1)))]);
+    report("Search", visit, done[0], before, started);
 }
 
 #[test]
@@ -154,8 +190,18 @@ fn page_loads() {
     let started = Instant::now();
     let _ = paths::search_path();
     println!("login shell PATH and node checks: {} ms", started.elapsed().as_millis());
-    let pages: [fn(&str); 7] =
-        [tools_page, storage_page, logs_page, config_page, agents_page, clients_page, memory_page];
+    let pages: [fn(&str); 10] = [
+        tools_page,
+        storage_page,
+        logs_page,
+        config_page,
+        agents_page,
+        clients_page,
+        memory_page,
+        tasks_page,
+        digests_page,
+        search_page,
+    ];
     for page in pages {
         page("first");
         page("revisit");

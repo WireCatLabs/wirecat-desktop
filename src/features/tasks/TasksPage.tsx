@@ -32,7 +32,7 @@ export function TasksPage() {
   const demo = useTasks((s) => s.demo)
 
   useEffect(() => {
-    if (!demo) void useTasks.getState().load()
+    if (!demo) useTasks.getState().visit()
   }, [demo])
 
   const usable = loaded && !unusable && !error

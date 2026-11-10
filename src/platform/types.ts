@@ -308,8 +308,11 @@ export type Platform = {
   groupsRemove(group: string, source: string): Promise<GroupsRead>
   /** Out of one saved group and into another, in one write. */
   groupsMove(source: string, from: string, to: string): Promise<GroupsRead>
-  /** memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old" below memo 0.130.0. */
-  memoryRead(): Promise<MemoryRead>
+  /**
+   * One page (from 1) of memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old"
+   * below memo 0.130.0.
+   */
+  memoryRead(page?: number): Promise<MemoryRead>
   /** What a memory or a fact rests on: each source read back, with a quoted line, or marked deleted since. */
   memorySources(ref: string): Promise<MemorySource[]>
   /**
@@ -433,8 +436,8 @@ export type Platform = {
   taskComments(key: string): Promise<TaskComment[]>
   /** Comments in the owner's name; a comment moves no revision. */
   taskCommentAdd(key: string, text: string): Promise<TaskComment>
-  /** Everyone memo knows: the owner, people from messages, and people added here. */
-  peopleList(): Promise<Person[]>
+  /** The names of these people, one `people show` each; a person memo cannot show is left out, and none is the owner. */
+  peopleNamed(refs: string[]): Promise<Person[]>
   /** At most 20 people whose name matches; an empty query is the people the owner talks to most. */
   peopleSearch(query: string): Promise<Person[]>
   /** Adds a person by name, so a task can be given to them before any message names them. */

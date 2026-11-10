@@ -3,6 +3,7 @@ import { findTool } from "@/domain/catalog"
 import type { Claim, Registrations } from "@/platform/agents-schemas"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
+import { listProfiles } from "@/shared/query"
 
 export type Loaded<T> = { state: "loading" } | { state: "ready"; data: T } | { state: "error"; error: string }
 export type ProfileClaims = Loaded<{ items: Claim[]; more: boolean; signedOut: boolean }>
@@ -25,6 +26,9 @@ type ConnectState = {
   busy: Record<string, boolean>
   failures: Record<string, string>
   load(agents: readonly string[], tools: readonly string[]): Promise<void>
+  /** When `load` last ran, and for which agents and tools; a visit within a minute asks nothing. */
+  loadedAt: number | null
+  loadedFor: string
   loadServers(agent: string): Promise<void>
   /** PATH, MCP registrations (for Advanced) and every profile's permissions; starts no server. */
   check(agent: string): Promise<void>
@@ -82,6 +86,8 @@ export const useConnect = create<ConnectState>((set, get) => {
 
   return {
     reach: null,
+    loadedAt: null,
+    loadedFor: "",
     agentReach: {},
     servers: {},
     profiles: {},
@@ -93,6 +99,7 @@ export const useConnect = create<ConnectState>((set, get) => {
     failures: {},
 
     async load(agents, tools) {
+      set({ loadedAt: Date.now(), loadedFor: `${agents.join(",")}|${tools.join(",")}` })
       const withProfiles = tools.filter((id) => findTool(id)?.profiles && !findTool(id)?.partOf)
       const reach = platform
         .terminalReach()
@@ -101,7 +108,7 @@ export const useConnect = create<ConnectState>((set, get) => {
       const servers = agents.map((a) => get().loadServers(a))
       const own = agents.filter((a) => OWN_PATH.has(a)).map((a) => get().loadReach(a))
       const profiles = withProfiles.map(async (id) => {
-        const list = (await platform.listProfiles(id).catch(() => null)) ?? []
+        const list = (await listProfiles(id).catch(() => null)) ?? []
         set((s) => ({ profiles: { ...s.profiles, [id]: list } }))
         if (!findTool(id)?.tasks) return
         // A profile never signed in has no tasks, and asking would only leave a failed run in the owner's logs.

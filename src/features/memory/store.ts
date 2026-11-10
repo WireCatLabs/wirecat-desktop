@@ -25,6 +25,7 @@ import type {
   SourceContext,
   SourceReview,
 } from "@/platform/memory-schemas"
+import { fresh } from "@/shared/fresh"
 import { useNav } from "@/shared/nav"
 import { memoryMessages } from "./messages"
 import { reviewMessages } from "./messages-review"
@@ -51,6 +52,8 @@ type MemoryState = {
   entries: MemoryEntry[]
   error: string | null
   reading: boolean
+  /** When memo last answered; the page reads again only when it is older than a minute. */
+  readAt: number | null
   tab: Tab
   /** The owner picked a tab: a later read no longer chooses one for them. */
   tabChosen: boolean
@@ -86,6 +89,10 @@ type MemoryState = {
   toggleGroup(key: string): void
   page: number
   pageSize: number
+  /** The page of memo's lists on screen; the page above pages within it. Only this one is read. */
+  memoPage: number
+  /** Reads another page of memo's lists, and only that one. */
+  turnMemoPage(page: number): void
   setPage(page: number): void
   setPageSize(size: number): void
   /** Approves these single rows one by one and says how many memo approved; a findings batch never is. */
@@ -100,6 +107,8 @@ type MemoryState = {
   /** Removes a link that holds, or rejects a proposal; the row folds away. */
   removeRelation(ref: string): Promise<void>
   load(): Promise<void>
+  /** The page opened: a read unless the last one is under a minute old; what it shows stays while it runs. */
+  visit(): void
   setTab(tab: Tab): void
   setQuery(query: string): void
   /** Narrows the search to one value of a field, as a value clicked in a record's details does. */
@@ -176,6 +185,7 @@ export const useMemory = create<MemoryState>((set, get) => {
     entries: [],
     error: null,
     reading: false,
+    readAt: null,
     tab: "review",
     tabChosen: false,
     query: "",
@@ -196,6 +206,7 @@ export const useMemory = create<MemoryState>((set, get) => {
     closedGroups: [],
     page: 1,
     pageSize: 50,
+    memoPage: 1,
 
     toggleGroup: (key) =>
       set((s) => ({
@@ -290,7 +301,7 @@ export const useMemory = create<MemoryState>((set, get) => {
       const call = ++seq
       set({ reading: true, error: null })
       try {
-        const read = await platform.memoryRead()
+        const read = await platform.memoryRead(get().memoPage)
         if (call !== seq || get().demo) return
         const entries = read.kind === "ready" ? read.entries.map(withCleanNames) : []
         const tab = get().tabChosen
@@ -303,6 +314,7 @@ export const useMemory = create<MemoryState>((set, get) => {
           entries,
           tab,
           reading: false,
+          readAt: Date.now(),
           held: [],
           arriving: [],
           sources: {},
@@ -316,9 +328,16 @@ export const useMemory = create<MemoryState>((set, get) => {
         set({ error: message(e), reading: false })
       }
     },
+    visit() {
+      if (!get().demo && !fresh(get().readAt)) void get().load()
+    },
     setTab: (tab) => set({ tab, tabChosen: true, held: [], arriving: [], page: 1 }),
     setQuery: (query) => set({ query, page: 1 }),
     filterBy: (field, value) => set((s) => ({ query: setMemoryField(s.query, field, [value]), page: 1 })),
+    turnMemoPage(memoPage) {
+      set({ memoPage, page: 1 })
+      void get().load()
+    },
     setPage: (page) => set({ page }),
     setPageSize: (pageSize) => set({ pageSize, page: 1 }),
     async loadContext(ref) {

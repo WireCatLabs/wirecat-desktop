@@ -1,6 +1,6 @@
 use crate::cache::REFUSED;
 use crate::catalog::{RunsSource, Tool};
-use crate::{paths, redact, run};
+use crate::{redact, run};
 use serde_json::Value;
 use std::time::Duration;
 
@@ -79,7 +79,7 @@ pub fn show(tool: &Tool, run: &str) -> Result<Value, String> {
 fn call(tool: &Tool, args: &[String]) -> Result<Value, String> {
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), Duration::from_secs(30)).map_err(|e| e.to_string())?;
+    let out = crate::memo_server::run_tool(tool, &bin, &refs, Duration::from_secs(30)).map_err(|e| e.to_string())?;
     // Run records stay on this computer and the CLI already hid secrets and phone numbers in them, so the Logs page
     // shows their ids and paths as kept (owner's NEED-115). Anything sent away is filtered again in `report.rs`.
     match out.json() {

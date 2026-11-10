@@ -77,6 +77,8 @@ export const MemoryReadSchema = v.variant("kind", [
     kind: v.literal("ready"),
     entries: v.array(MemoryEntrySchema),
     more: v.boolean(),
+    /** The page these entries are; null from a memo before `--page`, which gives only the first. */
+    page: v.optional(v.nullable(v.number()), null),
     activity: v.nullable(v.array(AgentCallSchema)),
     activityError: text,
     linksError: v.optional(text, null),

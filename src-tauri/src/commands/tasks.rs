@@ -85,8 +85,8 @@ pub async fn task_comment_add(key: String, text: String) -> Result<task_board::C
 }
 
 #[tauri::command]
-pub async fn people_list() -> Result<Vec<task_board::Person>, AppError> {
-    crate::log::command("people_list", async move { attempt(task_board::people).await }).await
+pub async fn people_named(refs: Vec<String>) -> Result<Vec<task_board::Person>, AppError> {
+    crate::log::command("people_named", async move { attempt(move || task_board::people_named(&refs)).await }).await
 }
 
 #[tauri::command]

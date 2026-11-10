@@ -424,7 +424,7 @@ type TaskApi = Pick<
   | "taskAssign"
   | "taskComments"
   | "taskCommentAdd"
-  | "peopleList"
+  | "peopleNamed"
   | "peopleSearch"
   | "personAdd"
   | "projectList"
@@ -755,9 +755,9 @@ export function tasksMock(): TaskApi {
       comments.set(key, [...(comments.get(key) ?? []), said])
       return said
     },
-    async peopleList() {
-      await delay(250)
-      return people
+    async peopleNamed(refs) {
+      await delay(120)
+      return people.filter((p) => refs.includes(p.ref)).map((p) => ({ ...p, owner: false }))
     },
     async peopleSearch(query) {
       await delay(250)

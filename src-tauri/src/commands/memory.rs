@@ -5,8 +5,9 @@ use tauri::{AppHandle, State};
 use tauri_plugin_dialog::DialogExt;
 
 #[tauri::command]
-pub async fn memory_read() -> Result<memory::Read, AppError> {
-    crate::log::command("memory_read", async move { attempt(memory::read).await }).await
+pub async fn memory_read(page: Option<u32>) -> Result<memory::Read, AppError> {
+    let page = page.unwrap_or(1).max(1);
+    crate::log::command("memory_read", async move { attempt(move || memory::read(page)).await }).await
 }
 
 #[tauri::command]
