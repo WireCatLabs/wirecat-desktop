@@ -11,6 +11,7 @@ pub mod node;
 pub mod notes_setup;
 pub mod own_tools;
 pub mod people;
+pub mod person_profile;
 pub mod records;
 pub mod search;
 pub mod search_harder;

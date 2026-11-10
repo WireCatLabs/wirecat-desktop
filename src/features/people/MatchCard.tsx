@@ -1,9 +1,8 @@
-import { Check, LoaderCircle, PanelRightOpen } from "lucide-react"
-import { useEffect, useId, useRef, useState } from "react"
-import { type PeopleReason, reasonOf, scopesOf } from "@/domain/people"
+import { PanelRightOpen } from "lucide-react"
+import { useEffect, useId } from "react"
+import { scopesOf } from "@/domain/people"
 import { formatList, useLang, useMessages } from "@/i18n"
-import type { Identity, Match, MatchAnswer } from "@/platform/people-schemas"
-import { AutoHeight } from "@/ui/AutoHeight"
+import type { Identity, Match } from "@/platform/people-schemas"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { cx } from "@/ui/cx"
@@ -13,8 +12,9 @@ import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
+import { MatchActions } from "./MatchActions"
 import { peopleMessages } from "./messages"
-import { Refusal } from "./Refusal"
+import { usePicks, useUnticked } from "./picks"
 import { accountName, SourceIcon, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
@@ -22,7 +22,7 @@ import { usePeople } from "./store"
 const ACCOUNTS_SHOWN = 4
 
 /** The account a match names on this person: its own on the first side, the one it would join on the second. */
-const tieOf = (matches: readonly Match[], ref: string) => {
+export const tieOf = (matches: readonly Match[], ref: string) => {
   for (const m of matches) {
     if (m.persons[0] === ref && m.identity) return m.identity
     if (m.persons[1] === ref && m.with) return m.with
@@ -37,55 +37,21 @@ const tieOf = (matches: readonly Match[], ref: string) => {
  */
 export function MatchCard({ group, from }: { group: MatchGroup; from?: string }) {
   const m = useMessages(peopleMessages)
-  const lang = useLang()
   const name = usePersonName()
   const decided = usePeople((s) => s.decided)
-  const busyOf = usePeople((s) => s.busy)
-  const failedOf = usePeople((s) => s.failed)
-  const joined = usePeople((s) => s.joinedGroup[group.key])
-  const { decide, joinGroup, rejectGroup, openMatch } = usePeople.getState()
+  const { openMatch } = usePeople.getState()
   const open = group.matches.filter((x) => !decided[x.id])
   const first = open[0] ?? group.matches[0]
   const people = group.people
   const picking = open.length > 0 && people.length > 2
-  // Who the owner unticked, so a re-read that reorders or joins people keeps their choice; a new person starts ticked.
-  const [unticked, setUnticked] = useState<string[]>([])
-  const [last, setLast] = useState<MatchAnswer | null>(null)
-  const asked = useRef(new Map<string, string>())
-  const [asking, setAsking] = useState(false)
-  const [why, setWhy] = useState("")
-  const field = useId()
-  const hint = useId()
+  const unticked = useUnticked(group.key)
   const head = useId()
-  const input = useRef<HTMLInputElement>(null)
-  useEffect(() => {
-    if (asking) input.current?.focus({ preventScroll: true })
-  }, [asking])
   if (!first) return null
 
-  const ids = group.matches.map((x) => x.id)
-  const busy = busyOf[group.key] ?? ids.map((id) => busyOf[id]).find(Boolean)
-  const failed = failedOf[group.key] ?? ids.map((id) => failedOf[id]).find(Boolean)
   const done = open.length === 0
   const moving = first.joins === "identity" && first.identity
   const chosen = people.filter((p) => !unticked.includes(p))
-  const among = open.filter((x) => x.persons.every((p) => chosen.includes(p)))
   const all = chosen.length === people.length
-  const said = (ref: string) => asked.current.get(ref) ?? name(ref)
-  const spin = <LoaderCircle className="size-4 animate-spin" aria-hidden />
-
-  const confirm = () => {
-    for (const p of people) asked.current.set(p, name(p))
-    setLast(picking ? null : "confirm")
-    if (picking) void joinGroup(group.key, chosen, ids)
-    else void decide(from ?? first.persons[0] ?? "", first.id, "confirm")
-  }
-  // Ticked people only: unticking one says "the others are one; this one I have not decided".
-  const reject = (reason: string) => {
-    setLast("reject")
-    if (picking) void rejectGroup(group.key, among, reason)
-    else void decide(from ?? first.persons[0] ?? "", first.id, "reject", reason)
-  }
 
   return (
     <article
@@ -124,98 +90,35 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
               picking
                 ? {
                     on: !unticked.includes(ref),
-                    set: (on) => setUnticked((u) => (on ? u.filter((x) => x !== ref) : [...u, ref])),
+                    set: (on) => usePicks.getState().set(group.key, ref, on),
                   }
                 : null
             }
           />
         ))}
       </div>
-      {joined && (
-        <p role="status" className="reveal flex flex-wrap items-center gap-2 text-[0.95rem] text-ink-soft">
-          <Check className="size-4 shrink-0 text-ok" aria-hidden />
-          {m.joinedSome(formatList(joined.joined.map(said), lang))}
-          {joined.stopped && <span className="text-bad">{m.stoppedAt(stoppedWords(joined.stopped, m.reasons))}</span>}
-        </p>
-      )}
-      <AutoHeight swap={done ? "done" : String(asking)}>
-        {done ? (
-          joined && !last ? null : (
-            <p role="status" className="reveal flex items-center gap-2 text-[0.95rem] text-ink-soft">
-              <Check className="size-4 shrink-0 text-ok" aria-hidden />
-              {m.decided[last ?? decided[first.id] ?? "confirm"]}
-            </p>
-          )
-        ) : asking ? (
-          <form
-            className="flex flex-col gap-[0.45rem]"
-            onSubmit={(e) => {
-              e.preventDefault()
-              if (why.trim()) reject(why.trim())
-            }}
+      <MatchActions
+        group={group}
+        from={from}
+        chosen={chosen}
+        confirmLabel={picking && !all ? m.joinPicked(chosen.length) : m.confirm}
+        hint={picking && chosen.length < 2 && <span className="text-[0.85rem] text-ink-dim">{m.pickTwo}</span>}
+        lead={
+          <Button
+            size="sm"
+            aria-haspopup="dialog"
+            icon={<PanelRightOpen className="size-4" aria-hidden />}
+            onClick={() => openMatch(group.key)}
           >
-            <label htmlFor={field} className="text-[0.95rem] font-medium">
-              {m.rejectWhy}
-            </label>
-            <input
-              ref={input}
-              id={field}
-              maxLength={500}
-              value={why}
-              aria-describedby={hint}
-              onChange={(e) => setWhy(e.target.value)}
-              onKeyDown={(e) => e.key === "Escape" && setAsking(false)}
-              className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]"
-            />
-            <p id={hint} className="text-[0.9rem] text-ink-soft">
-              {m.rejectHint}
-            </p>
-            <span className="flex gap-2">
-              <Button type="submit" size="sm" disabled={!why.trim() || !!busy} icon={busy ? spin : undefined}>
-                {m.rejectNow}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setAsking(false)}>
-                {m.cancel}
-              </Button>
-            </span>
-          </form>
-        ) : (
-          <span className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              aria-haspopup="dialog"
-              icon={<PanelRightOpen className="size-4" aria-hidden />}
-              onClick={() => openMatch(group.key)}
-            >
-              {m.details}
-            </Button>
-            <Button
-              size="sm"
-              variant="primary"
-              disabled={!!busy || (picking && chosen.length < 2)}
-              icon={busy === "confirm" ? spin : undefined}
-              onClick={confirm}
-            >
-              {picking && !all ? m.joinPicked(chosen.length) : m.confirm}
-            </Button>
-            <Button size="sm" disabled={!!busy || (picking && chosen.length < 2)} onClick={() => setAsking(true)}>
-              {m.reject}
-            </Button>
-            {picking && chosen.length < 2 && <span className="text-[0.85rem] text-ink-dim">{m.pickTwo}</span>}
-          </span>
-        )}
-      </AutoHeight>
-      {failed && <Refusal error={failed} />}
+            {m.details}
+          </Button>
+        }
+      />
     </article>
   )
 }
 
-const stoppedWords = (error: string, reasons: Record<PeopleReason, string>) => {
-  const reason = reasonOf(error)
-  return reason ? reasons[reason] : error
-}
-
-function moveWords(match: Match, anAccount: (source: string) => string) {
+export function moveWords(match: Match, anAccount: (source: string) => string) {
   const moved = usePeople.getState().details[match.persons[0] ?? ""]
   const i = moved?.state === "ready" ? moved.person.identities.find((x) => x.identity === match.identity) : undefined
   return i

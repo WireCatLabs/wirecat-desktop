@@ -24,7 +24,7 @@ import { mcpServerMock } from "./mock-mcp"
 import { memoryMock } from "./mock-memory"
 import { notesSetupMock } from "./mock-notes-setup"
 import { notificationsMock } from "./mock-notifications"
-import { peopleMock } from "./mock-people"
+import { peopleMock, peopleProfileMock } from "./mock-people"
 import { permissionsMock } from "./mock-permissions"
 import { recordsMock } from "./mock-records"
 import { reportMock } from "./mock-report"
@@ -682,6 +682,7 @@ export function createMock(os: Platform["os"]): Platform {
     ...groupsMock(),
     ...memoryMock(),
     ...peopleMock(),
+    ...peopleProfileMock(),
     ...tasksMock(),
     ...clientsMock(),
     async removeCopy(id) {
