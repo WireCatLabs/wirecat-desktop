@@ -89,8 +89,14 @@ mkdir -p "$home" "$dir/bin"
 chmod 700 "$dir"
 
 had=$(cat "$dir/seed" 2>/dev/null || true)
-if [ -n "$seed" ] && [ -n "$had" ] && [ "$seed" != "$had" ]; then
+# demo only adds to tools, so a tools sandbox may take it; any other change of preset starts over.
+if [ -n "$seed" ] && [ -n "$had" ] && [ "$seed" != "$had" ] && ! { [ "$had" = tools ] && [ "$seed" = demo ]; }; then
   die "'$name' was seeded with '$had'; add --reset to seed it with '$seed'"
+fi
+# A demo seeded before the seed set made its people by name only: loading the set would add them a second time.
+if [ "$had" = demo ] && [ ! -f "$dir/seed-version" ]; then
+  if [ "$seed" = demo ]; then die "'$name' holds the old demo data; add --reset to load the seed set"; fi
+  echo "sandbox: '$name' holds the old demo data; --seed demo --reset loads the seed set" >&2
 fi
 
 real_home="$HOME"
@@ -240,41 +246,17 @@ seed_profiles() {
   echo "Profiles personal and work for tg, max, wa, mail and gcal"
 }
 
-# Synthetic people, a project with tasks and a folder of notes, through memo's own commands. Every name is made up.
-# Messages cannot be seeded: no tool takes messages from a file yet.
+seed_version() {
+  python3 -I -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' "$root/scripts/sandbox-seed/data/seed.json"
+}
+
+# The seed set in scripts/sandbox-seed, loaded through the tools' own commands. Every step looks up what is there
+# first, so loading it again adds nothing and a newer version updates what changed.
 seed_demo() {
-  seed_tools
-  local notes="$home/Notes"
-  mkdir -p "$notes"
-  cat > "$notes/harbour-kickoff.md" <<'MD'
-# Harbour kickoff
-
-With Lena Example and Marco Sample. Harbour wants the booking page live before the spring season.
-
-- Lena sends the room photos by Friday.
-- Marco checks the payment provider's test keys.
-- Next call on Tuesday.
-MD
-  cat > "$notes/reading-list.md" <<'MD'
-# Reading list
-
-- A book about small teams that Marco Sample recommended.
-- The SQLite WAL documentation, for the backup question.
-MD
-  cat > "$notes/ideas.md" <<'MD'
-# Ideas
-
-A weekly digest of open tasks for Harbour, sent on Monday morning. Ask Lena Example whether Monday suits her team.
-MD
-  in_sandbox memo people add Lena Example > /dev/null
-  in_sandbox memo people add Marco Sample > /dev/null
-  in_sandbox memo projects add Harbour --key HRB --type client > /dev/null
-  in_sandbox memo tasks add --project HRB --title "Send the booking page draft to Lena" --priority high > /dev/null
-  in_sandbox memo tasks add --project HRB --title "Check the payment provider's test keys" --status in_progress > /dev/null
-  in_sandbox memo tasks add --project HRB --title "Plan the weekly digest" > /dev/null
-  in_sandbox memo folders add "$notes" > /dev/null
-  in_sandbox memo sync --only notes --no-embed > /dev/null
-  echo "Demo data: 2 people, project Harbour with 3 tasks, 3 notes in $notes"
+  [ -n "$(node_dir)" ] || seed_tools
+  in_sandbox node "$root/scripts/sandbox-seed/load.mjs" "$dir/seed-anchor"
+  seed_version > "$dir/seed-version"
+  echo "Seed set version $(cat "$dir/seed-version") loaded"
 }
 
 copy_store() {
@@ -306,6 +288,10 @@ if [ -n "$seed" ] && [ -z "$had" ]; then
   echo "$seed" > "$dir/seed"
 elif [ -z "$had" ]; then
   echo fresh > "$dir/seed"
+elif [ "$seed" = demo ] || { [ "$had" = demo ] && [ -f "$dir/seed-version" ] &&
+  [ "$(cat "$dir/seed-version")" != "$(seed_version)" ]; }; then
+  seed_demo
+  echo demo > "$dir/seed"
 fi
 if [ -n "$from_store" ]; then copy_store "$from_store"; fi
 

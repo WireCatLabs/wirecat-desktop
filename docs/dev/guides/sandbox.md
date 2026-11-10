@@ -24,15 +24,14 @@ runs that worktree's build. Hand the owner the absolute path, e.g.
 
 ## Presets
 
-A sandbox is seeded once, on its first start. `--reset` empties it first; a different preset needs `--reset`.
+A sandbox is seeded on its first start. `--reset` empties it first. A different preset needs `--reset`, except that
+`--seed demo` may be added to a `tools` sandbox.
 
 | `--seed` | What the sandbox holds |
 | --- | --- |
 | `fresh` (default) | Nothing: no Node.js, no tools. The first-run setup, as a new user sees it. |
 | `tools` | Node.js from nodejs.org (checksum checked) where WireCat keeps its own, every catalog tool installed from npm, and profiles `personal` and `work` made with each tool's `config set` (Telegram, MAX, WhatsApp, Email, Google Calendar), so Settings and the tool pages list them. Nobody is signed in. Drive makes a profile only at sign-in. |
-| `demo` | `tools`, plus synthetic data through memo's own commands: two people, the project Harbour with three tasks, three notes in `~/Notes`. Every name is made up. |
-
-No preset seeds messages: no tool takes messages from a file yet, and the store is never written with SQL from here.
+| `demo` | `tools`, plus the seed set below. |
 
 `--from-store <path>` copies a store you name into the sandbox, for a bug that needs real data. It is a copy made with
 SQLite's backup (the source is opened read-only and may stay open in a sync), never a link. It goes with `fresh` or
@@ -41,6 +40,52 @@ SQLite's backup (the source is opened read-only and may stay open in a sync), ne
 ```sh
 bin/sandbox bug-123 --seed tools --from-store ~/.local/share/WireCat/wirecat.db
 ```
+
+## The demo seed set
+
+The data lives in `scripts/sandbox-seed/data/`, one JSON file per subject; `scripts/sandbox-seed/load.mjs` loads it
+inside the sandbox through the tools' own commands, one step per file in `scripts/sandbox-seed/steps/`. Every name,
+address and number is made up: addresses are on `example.org` and `.test`, phones in the UK's drama range
+`+44 7700 900xxx`.
+
+| Page | What the seed set gives it | Loaded with |
+| --- | --- | --- |
+| People | 77 people, 5 companies, 6 automated senders, 5 strangers (mail from people you never answered), 12 match suggestions | `memo records import` (account `seed:demo`), mail, `memo people link` as an agent |
+| Memory | 37 facts (accepted, proposed, rejected, reversed, superseded) and 18 memories (confirmed, proposed, stale) | `memo facts`, `memo memories`; a proposal is an agent's (`AI_AGENT`), a decision the owner's (`--from-app`) |
+| Tasks | 4 projects, 57 project tasks in every state (38 to do), with owners, priorities and due dates; 4 tasks from SMS | `memo projects add`, `memo tasks add` and `update` |
+| Clients | pipelines Sales (40 deals, 22 in Call) and Inbound (15 leads), your own, so the board moves them; their stages mapped onto the base stages | `memo pipelines`, `memo deals`, `memo leads`, `memo stages set` |
+| Digests | a paused `morning-digest` and its last 5 days | `memo digest add`; the days are report files (below) |
+| Search | Email: 97 messages in 60 threads on profile `personal`, two pages for `invoice`. memo: 57 notes in `~/Notes` | `mail personal messages import` of a Takeout mbox; `memo folders add`, `memo sync --only notes` |
+| Analytics | Email by day, tasks by state and source | the data above |
+
+Loading it again adds nothing. `bin/sandbox <name> --seed demo` on a demo sandbox loads the set again; a start
+without `--seed` loads it when `data/seed.json` holds a newer `version` than the sandbox has. To change the set, edit
+the data, raise `version`, and start the sandbox: what changed is updated, the rest is left.
+
+- **How each step knows what is there.** People, companies and SMS carry the seed id as their
+  `external_id` in a records envelope, which the store matches itself; the same file twice changes nothing, and a
+  changed record needs the higher `version` as its revision. Tasks carry `seed:<id>` as their external id and are
+  looked up before they are added. Pipelines, deals, facts and memories are known by name, title or text. Mail is
+  deduplicated by its Gmail id, made from the thread's seed id; mail-cli only adds, so a changed mail stays as first
+  loaded.
+- **Dates count back from the day of the first load**, kept in `<name>/seed-anchor`: the data looks recent then, and
+  a later load writes the same dates. A due date is set once, when the task is made.
+- **The Email profile** is `owner@studio.example.org` with Gmail's IMAP host, because mail-cli reads a Takeout file
+  only into a Gmail mailbox. Nobody signs in and nothing is sent.
+- **Digest days** are files a digest run would leave (`~/.local/share/cli-memo/schedules/morning-digest/runs`, in the
+  `wirecat.report/1` format), since making them otherwise is a paid model run; `src/platform/digest-seed.test.ts`
+  holds them to the page's schema. `memo digest add` needs `claude` on PATH, so a stub that only fails is on PATH for
+  that one call. The app does not see it, so the Digests page says no agent is set up.
+- **Removing a row from the data does not remove it from a sandbox.** `--reset` starts over.
+- A demo sandbox seeded before the seed set made its people by name only, so the set would add them again: `bin/sandbox`
+  says so and asks for `--reset`.
+
+What no command can load yet:
+
+- **Telegram, MAX and WhatsApp messages.** No tool takes them from a file, and the store is never written with SQL from
+  here, so Search and Analytics have nothing for those three. An SMS can be loaded (the envelope's `message` type, under
+  the import-only `phone` provider), but no page reads SMS; they back the tasks from chats.
+- **Unsorted people**: only a messenger contact can lack a readable name; a mail sender always has an address.
 
 ## What is separate, and what is shared
 

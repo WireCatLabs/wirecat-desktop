@@ -1,0 +1,370 @@
+{
+  "facts": [
+    {
+      "id": "fact-01",
+      "text": "Harbour wants the booking page live before the spring season",
+      "kind": "decision",
+      "state": "accepted",
+      "project": "HRB"
+    },
+    {
+      "id": "fact-02",
+      "text": "Lena prefers calls before noon",
+      "kind": "fact",
+      "state": "accepted",
+      "subject": "marco-sample"
+    },
+    {
+      "id": "fact-03",
+      "text": "The Harbour budget for the first stage is 4,800 EUR",
+      "kind": "fact",
+      "state": "superseded",
+      "project": "HRB"
+    },
+    {
+      "id": "fact-04",
+      "text": "Orchard Lane closes on Mondays from December",
+      "kind": "fact",
+      "state": "accepted",
+      "project": "ORC"
+    },
+    {
+      "id": "fact-05",
+      "text": "Marco promised the menu texts by Friday",
+      "kind": "promise",
+      "state": "proposed",
+      "project": "ORC"
+    },
+    {
+      "id": "fact-06",
+      "text": "We agreed a 5 km delivery radius for Orchard Lane",
+      "kind": "decision",
+      "state": "rejected",
+      "project": "ORC",
+      "subject": "oskar-mockridge"
+    },
+    {
+      "id": "fact-07",
+      "text": "Bluefin pays invoices at the end of the month",
+      "kind": "fact",
+      "state": "accepted"
+    },
+    {
+      "id": "fact-08",
+      "text": "The studio does not take projects under 1,000 EUR",
+      "kind": "decision",
+      "state": "reversed",
+      "project": "OPS"
+    },
+    {
+      "id": "fact-09",
+      "text": "Northwind delivers paper on Wednesdays",
+      "kind": "fact",
+      "state": "accepted"
+    },
+    {
+      "id": "fact-10",
+      "text": "Should the booking page show prices with VAT?",
+      "kind": "question",
+      "state": "accepted",
+      "project": "HRB",
+      "subject": "ruben-dummett"
+    },
+    {
+      "id": "fact-11",
+      "text": "Granite Peak asked for a members' area",
+      "kind": "statement",
+      "state": "proposed"
+    },
+    {
+      "id": "fact-12",
+      "text": "Saffron Table wants the menu in three languages",
+      "kind": "statement",
+      "state": "accepted"
+    },
+    {
+      "id": "fact-13",
+      "text": "Kestrel Bike Repair's season starts in March",
+      "kind": "fact",
+      "state": "proposed"
+    },
+    {
+      "id": "fact-14",
+      "text": "Marigold Yoga Loft books the studio for photos twice a year",
+      "kind": "fact",
+      "state": "rejected",
+      "subject": "marco-sample"
+    },
+    {
+      "id": "fact-15",
+      "text": "The hosting contract renews on the first of January",
+      "kind": "fact",
+      "state": "accepted",
+      "project": "OPS"
+    },
+    {
+      "id": "fact-16",
+      "text": "Lumen Print needs files as PDF/X with 3 mm bleed",
+      "kind": "fact",
+      "state": "accepted"
+    },
+    {
+      "id": "fact-17",
+      "text": "Tallow & Wick sells mostly in December",
+      "kind": "fact",
+      "state": "accepted"
+    },
+    {
+      "id": "fact-18",
+      "text": "Is the Orchard Lane gift voucher valid for a year?",
+      "kind": "question",
+      "state": "accepted",
+      "project": "ORC",
+      "subject": "oskar-mockridge"
+    },
+    {
+      "id": "fact-19",
+      "text": "Lena will send the room list in a spreadsheet",
+      "kind": "promise",
+      "state": "proposed",
+      "project": "HRB"
+    },
+    {
+      "id": "fact-20",
+      "text": "The car insurance renews in February",
+      "kind": "fact",
+      "state": "accepted",
+      "project": "HOME"
+    },
+    {
+      "id": "fact-21",
+      "text": "The boiler was last serviced two years ago",
+      "kind": "fact",
+      "state": "proposed",
+      "project": "HOME"
+    },
+    {
+      "id": "fact-22",
+      "text": "Nadia's birthday is on the 14th",
+      "kind": "fact",
+      "state": "rejected",
+      "project": "HOME",
+      "subject": "ruben-dummett"
+    },
+    {
+      "id": "fact-23",
+      "text": "Harbour's support hours are 9 to 18 on weekdays",
+      "kind": "decision",
+      "state": "accepted",
+      "project": "HRB"
+    },
+    {
+      "id": "fact-24",
+      "text": "The studio invoices in two stages: half at the start",
+      "kind": "decision",
+      "state": "reversed",
+      "project": "OPS"
+    },
+    {
+      "id": "fact-25",
+      "text": "Orchard Lane wants preorders closed at 16:00 the day before",
+      "kind": "decision",
+      "state": "accepted",
+      "project": "ORC"
+    },
+    {
+      "id": "fact-26",
+      "text": "Harbour has twelve rooms in the main house",
+      "kind": "fact",
+      "state": "accepted",
+      "project": "HRB",
+      "subject": "marco-sample"
+    },
+    {
+      "id": "fact-27",
+      "text": "Granite Peak's owner prefers e-mail to calls",
+      "kind": "fact",
+      "state": "proposed"
+    },
+    {
+      "id": "fact-28",
+      "text": "The shared drive keeps projects for three years",
+      "kind": "decision",
+      "state": "accepted",
+      "project": "OPS"
+    },
+    {
+      "id": "fact-29",
+      "text": "Saffron Table caters events of up to 80 guests",
+      "kind": "fact",
+      "state": "proposed"
+    },
+    {
+      "id": "fact-30",
+      "text": "Bluefin's practice manager approves every design",
+      "kind": "fact",
+      "state": "rejected",
+      "subject": "oskar-mockridge"
+    },
+    {
+      "id": "fact-31",
+      "text": "The Christmas order form opens on the 1st of December",
+      "kind": "decision",
+      "state": "accepted",
+      "project": "ORC"
+    },
+    {
+      "id": "fact-32",
+      "text": "Kestrel wants a repair price list on the site",
+      "kind": "statement",
+      "state": "accepted"
+    },
+    {
+      "id": "fact-33",
+      "text": "Harbour uses its own payment provider account",
+      "kind": "fact",
+      "state": "accepted",
+      "project": "HRB"
+    },
+    {
+      "id": "fact-34",
+      "text": "Marco is away the last week of November",
+      "kind": "fact",
+      "state": "accepted",
+      "project": "ORC",
+      "subject": "ruben-dummett"
+    },
+    {
+      "id": "fact-35",
+      "text": "The portfolio needs three new case studies",
+      "kind": "statement",
+      "state": "proposed",
+      "project": "OPS"
+    },
+    {
+      "id": "fact-36",
+      "text": "The neighbours return on the 20th",
+      "kind": "fact",
+      "state": "accepted",
+      "project": "HOME"
+    },
+    {
+      "id": "fact-37",
+      "text": "The Harbour budget for the first stage is 5,200 EUR",
+      "kind": "fact",
+      "state": "accepted",
+      "project": "HRB",
+      "supersedes": "fact-03"
+    }
+  ],
+  "memories": [
+    {
+      "id": "memory-01",
+      "text": "Lena answers fastest on SMS, slowest by e-mail",
+      "kind": "preference",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-02",
+      "text": "Harbour is the biggest client this winter",
+      "kind": "summary",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-03",
+      "text": "Orchard Lane decides by the owner only, never the staff",
+      "kind": "summary",
+      "state": "proposed"
+    },
+    {
+      "id": "memory-04",
+      "text": "I write proposals in English, invoices in Spanish",
+      "kind": "preference",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-05",
+      "text": "Bluefin needs two reminders before paying",
+      "kind": "summary",
+      "state": "stale"
+    },
+    {
+      "id": "memory-06",
+      "text": "Morning digest: skip newsletters and bank alerts",
+      "kind": "preference",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-07",
+      "text": "Northwind is the paper supplier for every print job",
+      "kind": "summary",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-08",
+      "text": "Granite Peak is a lead, not a client yet",
+      "kind": "summary",
+      "state": "proposed"
+    },
+    {
+      "id": "memory-09",
+      "text": "Keep Friday afternoons free of calls",
+      "kind": "preference",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-10",
+      "text": "Saffron Table pays a deposit before each event",
+      "kind": "summary",
+      "state": "stale"
+    },
+    {
+      "id": "memory-11",
+      "text": "Kestrel and Marigold share an office building",
+      "kind": "summary",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-12",
+      "text": "Home tasks go to the HOME project, never to clients",
+      "kind": "preference",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-13",
+      "text": "Tallow & Wick's busiest week is the second week of December",
+      "kind": "summary",
+      "state": "proposed"
+    },
+    {
+      "id": "memory-14",
+      "text": "Lumen Print is closed in August",
+      "kind": "summary",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-15",
+      "text": "The studio's hourly rate is 60 EUR",
+      "kind": "summary",
+      "state": "stale"
+    },
+    {
+      "id": "memory-16",
+      "text": "Mira handles the design reviews for Bluefin",
+      "kind": "summary",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-17",
+      "text": "Old invoices live in the OPS shared folder",
+      "kind": "summary",
+      "state": "confirmed"
+    },
+    {
+      "id": "memory-18",
+      "text": "Replies to Harbour within one working day",
+      "kind": "preference",
+      "state": "proposed"
+    }
+  ]
+}

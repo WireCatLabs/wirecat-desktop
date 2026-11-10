@@ -1,0 +1,52 @@
+[
+  {
+    "id": "harbour",
+    "name": "Harbour Rooms",
+    "domain": "harbour.example.org"
+  },
+  {
+    "id": "orchard",
+    "name": "Orchard Lane Bakery",
+    "domain": "orchard.example.org"
+  },
+  {
+    "id": "northwind",
+    "name": "Northwind Supplies",
+    "domain": "northwind.example.org"
+  },
+  {
+    "id": "bluefin",
+    "name": "Bluefin Dental Studio",
+    "domain": "bluefin.example.org"
+  },
+  {
+    "id": "tallow",
+    "name": "Tallow & Wick Candles",
+    "domain": "tallow.example.org"
+  },
+  {
+    "id": "granite",
+    "name": "Granite Peak Climbing",
+    "domain": "granite.example.org"
+  },
+  {
+    "id": "lumen",
+    "name": "Lumen Print House",
+    "domain": "lumen.example.org"
+  },
+  {
+    "id": "saffron",
+    "name": "Saffron Table Catering",
+    "domain": "saffron.example.org"
+  },
+  {
+    "id": "kestrel",
+    "name": "Kestrel Bike Repair",
+    "domain": "kestrel.example.org"
+  },
+  {
+    "id": "marigold",
+    "name": "Marigold Yoga Loft",
+    "domain": "marigold.example.org"
+  }
+]

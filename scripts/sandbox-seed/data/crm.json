@@ -1,0 +1,567 @@
+{
+  "pipelines": [
+    {
+      "id": "sales",
+      "name": "Sales",
+      "kind": "deal",
+      "stages": [
+        {
+          "id": "call",
+          "name": "Call"
+        },
+        {
+          "id": "quote",
+          "name": "Quote"
+        },
+        {
+          "id": "contract",
+          "name": "Contract"
+        },
+        {
+          "id": "won",
+          "name": "Won"
+        },
+        {
+          "id": "lost",
+          "name": "Lost"
+        }
+      ]
+    },
+    {
+      "id": "inbound",
+      "name": "Inbound",
+      "kind": "lead",
+      "stages": [
+        {
+          "id": "new",
+          "name": "New"
+        },
+        {
+          "id": "contacted",
+          "name": "Contacted"
+        },
+        {
+          "id": "qualified",
+          "name": "Qualified"
+        },
+        {
+          "id": "won",
+          "name": "Won"
+        },
+        {
+          "id": "lost",
+          "name": "Lost"
+        }
+      ]
+    }
+  ],
+  "deals": [
+    {
+      "id": "deal-01",
+      "title": "Booking page for Harbour Rooms",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "4600.00",
+      "currency": "EUR",
+      "organization": "harbour",
+      "people": ["lena-example"]
+    },
+    {
+      "id": "deal-02",
+      "title": "Website refresh for Orchard Lane Bakery",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "9000.00",
+      "currency": "EUR",
+      "organization": "orchard",
+      "people": ["marco-sample"]
+    },
+    {
+      "id": "deal-03",
+      "title": "Logo and signage for Northwind Supplies",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "3000.00",
+      "currency": "EUR",
+      "organization": "northwind",
+      "people": ["ines-testova"]
+    },
+    {
+      "id": "deal-04",
+      "title": "Online shop for Bluefin Dental Studio",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "8000.00",
+      "currency": "EUR",
+      "organization": "bluefin",
+      "people": ["tomas-placeholder"]
+    },
+    {
+      "id": "deal-05",
+      "title": "Price list print run for Tallow & Wick Candles",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "11500.00",
+      "currency": "EUR",
+      "organization": "tallow",
+      "people": ["vera-fictus"]
+    },
+    {
+      "id": "deal-06",
+      "title": "Newsletter setup for Granite Peak Climbing",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "9900.00",
+      "currency": "EUR",
+      "organization": "granite",
+      "people": ["oskar-mockridge"]
+    },
+    {
+      "id": "deal-07",
+      "title": "Loyalty cards for Lumen Print House",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "10000.00",
+      "currency": "EUR",
+      "organization": "lumen",
+      "people": ["nadia-demoran"]
+    },
+    {
+      "id": "deal-08",
+      "title": "Photo shoot for Saffron Table Catering",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "6800.00",
+      "currency": "EUR",
+      "organization": "saffron",
+      "people": ["felix-specimen"]
+    },
+    {
+      "id": "deal-09",
+      "title": "Menu redesign for Kestrel Bike Repair",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "10100.00",
+      "currency": "EUR",
+      "organization": "kestrel",
+      "people": ["alba-pretendo"]
+    },
+    {
+      "id": "deal-10",
+      "title": "Gift vouchers for Marigold Yoga Loft",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "9200.00",
+      "currency": "EUR",
+      "organization": "marigold",
+      "people": ["ruben-dummett"]
+    },
+    {
+      "id": "deal-11",
+      "title": "Appointment reminders for Harbour Rooms",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "5500.00",
+      "currency": "EUR",
+      "organization": "harbour",
+      "people": ["mira-notreal"]
+    },
+    {
+      "id": "deal-12",
+      "title": "Event flyers for Orchard Lane Bakery",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "4800.00",
+      "currency": "EUR",
+      "organization": "orchard",
+      "people": ["hugo-imaginov"]
+    },
+    {
+      "id": "deal-13",
+      "title": "Booking page for Northwind Supplies",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "3100.00",
+      "currency": "EUR",
+      "organization": "northwind",
+      "people": ["petra-stubbins"]
+    },
+    {
+      "id": "deal-14",
+      "title": "Website refresh for Bluefin Dental Studio",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "7900.00",
+      "currency": "EUR",
+      "organization": "bluefin",
+      "people": ["lucas-fakely"]
+    },
+    {
+      "id": "deal-15",
+      "title": "Logo and signage for Tallow & Wick Candles",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "4900.00",
+      "currency": "EUR",
+      "organization": "tallow",
+      "people": ["zoe-proxima"]
+    },
+    {
+      "id": "deal-16",
+      "title": "Online shop for Granite Peak Climbing",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "3700.00",
+      "currency": "EUR",
+      "organization": "granite",
+      "people": ["emil-hypothe"]
+    },
+    {
+      "id": "deal-17",
+      "title": "Price list print run for Lumen Print House",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "11100.00",
+      "currency": "EUR",
+      "organization": "lumen",
+      "people": ["dina-modelle"]
+    },
+    {
+      "id": "deal-18",
+      "title": "Newsletter setup for Saffron Table Catering",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "4900.00",
+      "currency": "EUR",
+      "organization": "saffron",
+      "people": ["pablo-templar"]
+    },
+    {
+      "id": "deal-19",
+      "title": "Loyalty cards for Kestrel Bike Repair",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "7600.00",
+      "currency": "EUR",
+      "organization": "kestrel",
+      "people": ["rosa-draftson"]
+    },
+    {
+      "id": "deal-20",
+      "title": "Photo shoot for Marigold Yoga Loft",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "7700.00",
+      "currency": "EUR",
+      "organization": "marigold",
+      "people": ["ivo-sketchley"]
+    },
+    {
+      "id": "deal-21",
+      "title": "Menu redesign for Harbour Rooms",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "5900.00",
+      "currency": "EUR",
+      "organization": "harbour",
+      "people": ["clara-outlina"]
+    },
+    {
+      "id": "deal-22",
+      "title": "Gift vouchers for Orchard Lane Bakery",
+      "pipeline": "sales",
+      "stage": "call",
+      "amount": "7600.00",
+      "currency": "EUR",
+      "organization": "orchard",
+      "people": ["bruno-prototyp"]
+    },
+    {
+      "id": "deal-23",
+      "title": "Appointment reminders for Northwind Supplies",
+      "pipeline": "sales",
+      "stage": "quote",
+      "amount": "2500.00",
+      "currency": "EUR",
+      "organization": "northwind",
+      "people": ["sofia-quillfeather"]
+    },
+    {
+      "id": "deal-24",
+      "title": "Event flyers for Bluefin Dental Studio",
+      "pipeline": "sales",
+      "stage": "quote",
+      "amount": "5300.00",
+      "currency": "EUR",
+      "organization": "bluefin",
+      "people": ["anton-inkwell"]
+    },
+    {
+      "id": "deal-25",
+      "title": "Booking page for Tallow & Wick Candles",
+      "pipeline": "sales",
+      "stage": "quote",
+      "amount": "9700.00",
+      "currency": "EUR",
+      "organization": "tallow",
+      "people": ["lidia-papermill"]
+    },
+    {
+      "id": "deal-26",
+      "title": "Website refresh for Granite Peak Climbing",
+      "pipeline": "sales",
+      "stage": "quote",
+      "amount": "8300.00",
+      "currency": "EUR",
+      "organization": "granite",
+      "people": ["kai-brightwater"]
+    },
+    {
+      "id": "deal-27",
+      "title": "Logo and signage for Lumen Print House",
+      "pipeline": "sales",
+      "stage": "quote",
+      "amount": "6500.00",
+      "currency": "EUR",
+      "organization": "lumen",
+      "people": ["elsa-stonebrook"]
+    },
+    {
+      "id": "deal-28",
+      "title": "Online shop for Saffron Table Catering",
+      "pipeline": "sales",
+      "stage": "quote",
+      "amount": "10100.00",
+      "currency": "EUR",
+      "organization": "saffron",
+      "people": ["matteo-fernhill"]
+    },
+    {
+      "id": "deal-29",
+      "title": "Price list print run for Kestrel Bike Repair",
+      "pipeline": "sales",
+      "stage": "quote",
+      "amount": "5900.00",
+      "currency": "EUR",
+      "organization": "kestrel",
+      "people": ["yana-ashgrove"]
+    },
+    {
+      "id": "deal-30",
+      "title": "Newsletter setup for Marigold Yoga Loft",
+      "pipeline": "sales",
+      "stage": "contract",
+      "amount": "11200.00",
+      "currency": "EUR",
+      "organization": "marigold",
+      "people": ["gustavo-willowmere"]
+    },
+    {
+      "id": "deal-31",
+      "title": "Loyalty cards for Harbour Rooms",
+      "pipeline": "sales",
+      "stage": "contract",
+      "amount": "10100.00",
+      "currency": "EUR",
+      "organization": "harbour",
+      "people": ["irene-redcliff"]
+    },
+    {
+      "id": "deal-32",
+      "title": "Photo shoot for Orchard Lane Bakery",
+      "pipeline": "sales",
+      "stage": "contract",
+      "amount": "3600.00",
+      "currency": "EUR",
+      "organization": "orchard",
+      "people": ["leon-thornbury"]
+    },
+    {
+      "id": "deal-33",
+      "title": "Menu redesign for Northwind Supplies",
+      "pipeline": "sales",
+      "stage": "contract",
+      "amount": "3000.00",
+      "currency": "EUR",
+      "organization": "northwind",
+      "people": ["maya-marshwell"]
+    },
+    {
+      "id": "deal-34",
+      "title": "Gift vouchers for Bluefin Dental Studio",
+      "pipeline": "sales",
+      "stage": "won",
+      "amount": "8000.00",
+      "currency": "EUR",
+      "organization": "bluefin",
+      "people": ["sergio-oakhurst"]
+    },
+    {
+      "id": "deal-35",
+      "title": "Appointment reminders for Tallow & Wick Candles",
+      "pipeline": "sales",
+      "stage": "won",
+      "amount": "9500.00",
+      "currency": "EUR",
+      "organization": "tallow",
+      "people": ["olga-elmstead"]
+    },
+    {
+      "id": "deal-36",
+      "title": "Event flyers for Granite Peak Climbing",
+      "pipeline": "sales",
+      "stage": "won",
+      "amount": "7100.00",
+      "currency": "EUR",
+      "organization": "granite",
+      "people": ["nico-birchwood"]
+    },
+    {
+      "id": "deal-37",
+      "title": "Booking page for Lumen Print House",
+      "pipeline": "sales",
+      "stage": "won",
+      "amount": "7700.00",
+      "currency": "EUR",
+      "organization": "lumen",
+      "people": ["edda-hollowell"]
+    },
+    {
+      "id": "deal-38",
+      "title": "Website refresh for Saffron Table Catering",
+      "pipeline": "sales",
+      "stage": "lost",
+      "amount": "3400.00",
+      "currency": "EUR",
+      "organization": "saffron",
+      "people": ["rafael-linden"]
+    },
+    {
+      "id": "deal-39",
+      "title": "Logo and signage for Kestrel Bike Repair",
+      "pipeline": "sales",
+      "stage": "lost",
+      "amount": "2700.00",
+      "currency": "EUR",
+      "organization": "kestrel",
+      "people": ["tilda-moorcroft"]
+    },
+    {
+      "id": "deal-40",
+      "title": "Online shop for Marigold Yoga Loft",
+      "pipeline": "sales",
+      "stage": "lost",
+      "amount": "2800.00",
+      "currency": "EUR",
+      "organization": "marigold",
+      "people": ["boris-pinehurst"]
+    }
+  ],
+  "leads": [
+    {
+      "id": "lead-01",
+      "title": "Enquiry from Greta Larkspur",
+      "pipeline": "inbound",
+      "stage": "new",
+      "people": ["greta-larkspur"]
+    },
+    {
+      "id": "lead-02",
+      "title": "Enquiry from Dario Wrenfield",
+      "pipeline": "inbound",
+      "stage": "new",
+      "people": ["dario-wrenfield"]
+    },
+    {
+      "id": "lead-03",
+      "title": "Enquiry from Nora Hawthorne",
+      "pipeline": "inbound",
+      "stage": "new",
+      "people": ["nora-hawthorne"]
+    },
+    {
+      "id": "lead-04",
+      "title": "Enquiry from Jonas Brambley",
+      "pipeline": "inbound",
+      "stage": "new",
+      "people": ["jonas-brambley"]
+    },
+    {
+      "id": "lead-05",
+      "title": "Enquiry from Vika Copperfield",
+      "pipeline": "inbound",
+      "stage": "new",
+      "people": ["vika-copperfield"]
+    },
+    {
+      "id": "lead-06",
+      "title": "Enquiry from Arturo Silvermoor",
+      "pipeline": "inbound",
+      "stage": "new",
+      "people": ["arturo-silvermoor"]
+    },
+    {
+      "id": "lead-07",
+      "title": "Enquiry from Selma Goldcrest",
+      "pipeline": "inbound",
+      "stage": "contacted",
+      "people": ["selma-goldcrest"]
+    },
+    {
+      "id": "lead-08",
+      "title": "Enquiry from Teo Ravensby",
+      "pipeline": "inbound",
+      "stage": "contacted",
+      "people": ["teo-ravensby"]
+    },
+    {
+      "id": "lead-09",
+      "title": "Enquiry from Ada Foxley",
+      "pipeline": "inbound",
+      "stage": "contacted",
+      "people": ["ada-foxley"]
+    },
+    {
+      "id": "lead-10",
+      "title": "Enquiry from Milo Heathcote",
+      "pipeline": "inbound",
+      "stage": "contacted",
+      "people": ["milo-heathcote"]
+    },
+    {
+      "id": "lead-11",
+      "title": "Enquiry from Lena Fakely",
+      "pipeline": "inbound",
+      "stage": "qualified",
+      "people": ["lena-fakely"]
+    },
+    {
+      "id": "lead-12",
+      "title": "Enquiry from Marco Proxima",
+      "pipeline": "inbound",
+      "stage": "qualified",
+      "people": ["marco-proxima"]
+    },
+    {
+      "id": "lead-13",
+      "title": "Enquiry from Ines Hypothe",
+      "pipeline": "inbound",
+      "stage": "qualified",
+      "people": ["ines-hypothe"]
+    },
+    {
+      "id": "lead-14",
+      "title": "Enquiry from Tomas Modelle",
+      "pipeline": "inbound",
+      "stage": "won",
+      "people": ["tomas-modelle"]
+    },
+    {
+      "id": "lead-15",
+      "title": "Enquiry from Vera Templar",
+      "pipeline": "inbound",
+      "stage": "lost",
+      "people": ["vera-templar"]
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "identity": "email:lena.example@harbour.example.org",
+    "other": "phone:+447700900132",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:marco.sample@orchard.example.org",
+    "other": "phone:+447700900133",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:tomas.placeholder@bluefin.example.org",
+    "other": "phone:+447700900134",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:vera.fictus@tallow.example.org",
+    "other": "phone:+447700900135",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:nadia.demoran@lumen.example.org",
+    "other": "phone:+447700900136",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:felix.specimen@saffron.example.org",
+    "other": "phone:+447700900137",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:ruben.dummett@marigold.example.org",
+    "other": "phone:+447700900138",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:mira.notreal@harbour.example.org",
+    "other": "phone:+447700900139",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:petra.stubbins@northwind.example.org",
+    "other": "phone:+447700900140",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:lucas.fakely@bluefin.example.org",
+    "other": "phone:+447700900141",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:emil.hypothe@granite.example.org",
+    "other": "phone:+447700900142",
+    "reason": "the same first name and company in the signature"
+  },
+  {
+    "identity": "email:dina.modelle@lumen.example.org",
+    "other": "phone:+447700900143",
+    "reason": "the same first name and company in the signature"
+  }
+]
