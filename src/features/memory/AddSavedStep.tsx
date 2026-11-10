@@ -3,7 +3,7 @@ import { useId, useState } from "react"
 import { chosenReader, MENDED_IN_SETTINGS } from "@/domain/memory-add"
 import { personName } from "@/domain/people"
 import { useMessages } from "@/i18n"
-import type { AddedSource } from "@/platform/memory-add-schemas"
+import type { AddedSource, Reader } from "@/platform/memory-add-schemas"
 import { useReaders } from "@/shared/readers-store"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
@@ -17,15 +17,24 @@ import { useAddSource } from "./add-store"
 import { addMessages } from "./messages-add"
 
 /** Step 2: what WireCat kept, the names it found in it, and whether to read it for facts, with who reads it. */
+/**
+ * Never disabled for a missing reader: a click with none chosen says so, and a chosen reader that cannot read yet
+ * is still asked, so memo says why in its own reason.
+ */
+function suggestWith(readers: readonly Reader[]) {
+  const reader = chosenReader(readers) ?? readers.find((r) => r.chosen)
+  if (reader) void useAddSource.getState().suggest(reader.id)
+  else useAddSource.setState({ error: "reader.none-chosen" })
+}
+
 export function SavedStep() {
   const m = useMessages(addMessages)
   const added = useAddSource((s) => s.added)
   const busy = useAddSource((s) => s.busy)
   const readers = useReaders((s) => s.readers)
-  const { suggest, finish } = useAddSource.getState()
+  const { finish } = useAddSource.getState()
   const saveHint = useId()
   if (!added) return null
-  const reader = chosenReader(readers ?? [])
   const readable = added.read === "extracted"
 
   return (
@@ -43,8 +52,8 @@ export function SavedStep() {
         {readable && (
           <Button
             variant="primary"
-            disabled={!reader || !!busy}
-            onClick={() => reader && void suggest(reader.id)}
+            disabled={!!busy}
+            onClick={() => suggestWith(readers ?? [])}
             icon={busy === "suggest" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
           >
             {busy === "suggest" ? m.suggesting : m.suggest}

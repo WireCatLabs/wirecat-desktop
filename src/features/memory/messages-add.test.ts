@@ -3,7 +3,15 @@ import { MENDED_IN_SETTINGS } from "@/domain/memory-add"
 import { LANGS } from "@/i18n"
 import { addMessages } from "./messages-add"
 
-const IMAGE_REASONS = ["ai.not-set", "ai.images-not-allowed", "ai.key-missing", "image.unsupported", "ai.failed"]
+const IMAGE_REASONS = [
+  "ai.not-set",
+  "ai.images-not-allowed",
+  "ai.key-missing",
+  "image.unsupported",
+  "ai.failed",
+  "ai.owner-only",
+  "ai.setting-invalid",
+]
 
 describe("the words for a picture added to memory", () => {
   it.each(LANGS)("%s has a line for every reason a picture is kept by its name", (lang) => {

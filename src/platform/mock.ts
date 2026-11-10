@@ -305,6 +305,8 @@ export function createMock(os: Platform["os"]): Platform {
           ? [["tg", "0.88.0"]]
           : [],
   )
+  const memo = params.get("memo-version")
+  if (memo) installed.set("memo", memo)
   if (params.get("mail-cli") === "old") installed.set("email", "0.21.0")
   if (params.has("sync-schedule") || params.get("sync-recovered") === "email") installed.set("email", "0.22.0")
   if (params.get("clients")?.startsWith("import-")) installed.set("bitrix", LATEST.bitrix ?? "1.0.0")

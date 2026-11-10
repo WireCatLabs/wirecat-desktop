@@ -37,6 +37,9 @@ describe("Add to Memory", () => {
     expect(chosenReader(one)).toBeNull()
     expect(chosenReader([{ id: "codex", available: false, chosen: true }])).toBeNull()
     expect(chosenReader([...one, { id: "codex", available: true, chosen: true }])?.id).toBe("codex")
+    expect(
+      chosenReader([{ id: "ai-model", available: true, chosen: true, problem: "the AI model has no key" }]),
+    ).toBeNull()
   })
 
   it("leaves suggested tasks unticked at first", () => {

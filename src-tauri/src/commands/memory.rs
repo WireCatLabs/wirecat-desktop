@@ -185,13 +185,6 @@ pub async fn memory_reader_choose(id: String) -> Result<Vec<memory_add::Reader>,
     crate::log::command("memory_reader_choose", async move { attempt(move || memory_add::choose(&id)).await }).await
 }
 
-/// The key arrives from the Settings field and leaves only on memo's stdin; it is never answered back or logged.
-#[tauri::command]
-pub async fn memory_reader_key(provider: String, key: String) -> Result<memory_add::KeySaved, AppError> {
-    crate::log::command("memory_reader_key", async move { attempt(move || memory_add::set_key(&provider, &key)).await })
-        .await
-}
-
 #[tauri::command]
 pub async fn ai_model_show() -> Result<ai_model::AiModel, AppError> {
     crate::log::command("ai_model_show", async move { attempt(ai_model::show).await }).await

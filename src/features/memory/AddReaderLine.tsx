@@ -1,9 +1,10 @@
 import { TriangleAlert } from "lucide-react"
 import { useId } from "react"
-import { chosenReader, tooOldFor } from "@/domain/memory-add"
+import { chosenReader, readerOff, tooOldFor } from "@/domain/memory-add"
 import { ReaderChoice } from "@/features/settings"
 import { useMessages } from "@/i18n"
 import type { Reader } from "@/platform/memory-add-schemas"
+import { goAiModel } from "@/shared/go-ai-model"
 import { useNav } from "@/shared/nav"
 import { useReaders } from "@/shared/readers-store"
 import { Button } from "@/ui/Button"
@@ -26,7 +27,17 @@ export function ReaderLine() {
       </ErrorNotice>
     )
   if (readers === null) return <Skeleton className="h-[1.2rem] w-[50%]" />
-  const usable = readers.filter((r) => r.available && r.signedIn !== false)
+  const usable = readers.filter((r) => !readerOff(r))
+  const waiting = readers.find((r) => r.chosen && r.id === "ai-model" && readerOff(r))
+  if (!reader && waiting)
+    return (
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem] text-ink-soft">
+        {m.aiModelNotReady}
+        <Button size="sm" variant="ghost" onClick={goAiModel}>
+          {m.goAiModel}
+        </Button>
+      </p>
+    )
   if (!reader && usable.length > 0) return <InlineChoice readers={usable} />
   if (!reader)
     return (

@@ -430,10 +430,13 @@ model, whether the text leaves the computer, whether it reads files; an unknown 
 saves the owner's pick with `sources readers set <id> --from-app` only when he presses Use this reader, so arrow keys
 through the radios save nothing. memo refuses Ollama and the API readers without a model (`needs_model`): the app
 passes the model memo already lists for that reader, and with none it refuses the pick and asks the owner to choose
-one in memo. An API key goes to `models keys set <provider>` on stdin and never comes back to the
-interface. Each command line is one constant in `memory_add.rs`. memo's `source.*` and `reader.*` refusals come back as ids and are worded in `messages-add.ts`. A run
-fed on stdin (pasted text, the key) never returns memo's message, which can quote the input escaped or cut: an unknown
-refusal comes back as `memo.refused`.
+one in memo. memo lists its `ai-model` reader first: it reads with the model and the one key set in Settings → "AI
+model" (`models ai set`), so it needs no model of its own and the page marks it recommended. While that setting has no
+model or key, memo answers a `problem` for it; the page shows its own words and a button to "AI model", never memo's
+text. A key reader without a key points there too: this section has no key field. Each command line is one constant in
+`memory_add.rs`. memo's `source.*` and `reader.*` refusals come back as ids and are worded in `messages-add.ts`. A run
+fed on stdin (pasted text) never returns memo's message, which can quote the input escaped or cut: an unknown refusal
+comes back as `memo.refused`.
 
 ### Relationships
 

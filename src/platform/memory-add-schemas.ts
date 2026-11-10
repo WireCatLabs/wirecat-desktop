@@ -55,9 +55,8 @@ export const ReaderSchema = v.object({
   leavesComputer: v.boolean(),
   readsFiles: v.boolean(),
   chosen: v.boolean(),
+  problem: text,
 })
-
-export const KeySavedSchema = v.object({ provider: v.string(), source: text })
 
 export const SuggestedSchema = v.object({ batch: MemoryEntrySchema, reused: v.boolean() })
 
@@ -91,7 +90,6 @@ export type StoredSource = v.InferOutput<typeof StoredSourceSchema>
 export type Mentions = v.InferOutput<typeof MentionsSchema>
 export type Mention = Mentions["items"][number]
 export type Reader = v.InferOutput<typeof ReaderSchema>
-export type KeySaved = v.InferOutput<typeof KeySavedSchema>
 export type Suggested = v.InferOutput<typeof SuggestedSchema>
 export type FilePreview = v.InferOutput<typeof FilePreviewSchema>
 export type LinkPreview = v.InferOutput<typeof LinkPreviewSchema>

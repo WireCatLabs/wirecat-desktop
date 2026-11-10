@@ -32,3 +32,4 @@
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-merge-219`, `-wt-merge-221`, `-wt-r221` and branches `merge/memory-add`, `merge/people-page`, `rebase/people-page`: older attempts to land #219 and #221, stale since #229 landed them (2026-11-09)
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-people` (branch `feat/people-table`) and the remote branch `screenshots/people-table` (the PR's screenshots only): remove once the People table PR is merged and its screenshots are no longer needed. 2026-11-09
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-ai-model` (worktree) and branch `feat/ai-model-setting`: PR #262 is merged, the contract follow-up reuses the worktree on `feat/ai-model-contract`. Remove both after the follow-up merges. 2026-11-10
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-one-key` (worktree) and branch `feat/one-ai-key`: one AI key in Settings (NEED-2497 A). Remove both after the PR merges. 2026-11-10

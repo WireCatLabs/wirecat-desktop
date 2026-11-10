@@ -68,7 +68,6 @@ import type {
   AddedSource,
   AddSource,
   FilePreview,
-  KeySaved,
   LinkPreview,
   Mentions,
   Reader,
@@ -407,7 +406,6 @@ export type Platform = {
   /** The owner's pick of a reader; answers the readers again. */
   memoryReaderChoose(id: string): Promise<Reader[]>
   /** Hands the provider's key to memo, which keeps it in the system keyring; it never comes back. */
-  memoryReaderKey(provider: string, key: string): Promise<KeySaved>
   /** The AI model memo and the other WireCat tools share; a memo before `models ai` fails with commander's words. */
   aiModelShow(): Promise<AiModel>
   /** Saves the model; the key, when given, goes to memo on stdin and never comes back. */
