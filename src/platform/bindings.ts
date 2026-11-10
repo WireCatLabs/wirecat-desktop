@@ -364,7 +364,12 @@ export type DigestBook = { state: "noMemo" } | { state: "old"; version: string |
  *  `named`: this memo keeps digests by name (`digest list`); without it there is only `morning-digest`.
  *  `harness`: Claude Code is on PATH, so a digest can be written.
  */
-{ state: "ready"; digests: DigestItem[]; others: OtherSchedule[]; harness: boolean; named: boolean };
+{ state: "ready"; digests: DigestItem[]; others: OtherSchedule[]; harness: boolean; named: boolean; 
+/**
+ *  memo lists a digest only while its schedule exists: a morning digest taken off schedule the old way has
+ *  past days and no row, and the daily template brings it back by its name.
+ */
+morningRests: boolean };
 
 export type DigestItem = {
 	name: string,

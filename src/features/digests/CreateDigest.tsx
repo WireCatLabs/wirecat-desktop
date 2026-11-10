@@ -1,12 +1,13 @@
 import { CalendarDays, Plus, Sun } from "lucide-react"
-import { type ReactNode, useState } from "react"
+import { type ReactNode, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import type { DigestItem, DigestSpec } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { type BookText, bookMessages } from "./messages-book"
-import { type Can, DigestFields, NoHarness, problemOf } from "./ScheduleCard"
+import { type Can, DigestFields, focusProblem, NoHarness, problemOf } from "./ScheduleCard"
 import { DEFAULT_CAPS, MORNING, useDigestBook } from "./schedule-store"
 
 export type Template = "daily" | "weekly" | "own"
@@ -44,31 +45,45 @@ export function draftOf(template: Template, taken: readonly string[], m: BookTex
   }
 }
 
-/** The three ways to start when there is no digest yet: two ready templates and an own one. */
-export function Starter({ can, onPick }: { can: Can; onPick: (t: Template) => void }) {
+/**
+ * The three ways to start a digest: two ready templates and an own one. With no digest yet it is the page; once there
+ * are some it stays above the table, smaller, so every way to create one is still a click away.
+ */
+export function Starter(props: { can: Can; onPick: (t: Template) => void; compact?: boolean; morningRests?: boolean }) {
+  const { can, onPick, compact = false, morningRests = false } = props
   const m = useMessages(bookMessages).starter
   const update = <span className="text-[0.85rem] text-ink-dim">{m.needsUpdate}</span>
   return (
     <section aria-labelledby="digest-starter" className="rounded-[0.2rem] border border-line-strong bg-app">
-      <div className="border-line border-b px-[1.3rem] py-[1.1rem]">
-        <h2 id="digest-starter" className="text-[1.05rem] font-semibold text-ink">
-          {m.title}
+      <div className={cx("border-line border-b", compact ? "px-[1.1rem] py-[0.65rem]" : "px-[1.3rem] py-[1.1rem]")}>
+        <h2 id="digest-starter" className={cx("font-semibold text-ink", compact ? "text-[0.95rem]" : "text-[1.05rem]")}>
+          {compact ? m.more : m.title}
         </h2>
-        <p className="mt-1 text-ink-soft">{m.body}</p>
+        {!compact && <p className="mt-1 text-ink-soft">{m.body}</p>}
       </div>
       <ul className="grid divide-line md:grid-cols-3 md:divide-x max-md:divide-y">
-        <Choice icon={<Sun className="size-5" aria-hidden />} title={m.daily} body={m.dailyBody}>
+        <Choice
+          compact={compact}
+          icon={<Sun className="size-5" aria-hidden />}
+          title={m.daily}
+          body={morningRests ? `${m.dailyBody} ${m.morningRests}` : m.dailyBody}
+        >
           <Button variant="secondary" size="sm" onClick={() => onPick("daily")}>
             {m.setUp}
           </Button>
         </Choice>
-        <Choice icon={<CalendarDays className="size-5" aria-hidden />} title={m.weekly} body={m.weeklyBody}>
+        <Choice
+          compact={compact}
+          icon={<CalendarDays className="size-5" aria-hidden />}
+          title={m.weekly}
+          body={m.weeklyBody}
+        >
           <Button variant="secondary" size="sm" disabled={!can.named} onClick={() => onPick("weekly")}>
             {m.setUp}
           </Button>
           {!can.named && update}
         </Choice>
-        <Choice icon={<Plus className="size-5" aria-hidden />} title={m.own} body={m.ownBody}>
+        <Choice compact={compact} icon={<Plus className="size-5" aria-hidden />} title={m.own} body={m.ownBody}>
           <Button variant="secondary" size="sm" disabled={!can.named} onClick={() => onPick("own")}>
             {m.setUp}
           </Button>
@@ -79,15 +94,29 @@ export function Starter({ can, onPick }: { can: Can; onPick: (t: Template) => vo
   )
 }
 
-function Choice(props: { icon: ReactNode; title: string; body: string; children: ReactNode }) {
+function Choice(props: { compact: boolean; icon: ReactNode; title: string; body: string; children: ReactNode }) {
+  const title = (
+    <span className="flex items-center gap-2 font-semibold text-ink">
+      <span className="text-brand">{props.icon}</span>
+      {props.title}
+    </span>
+  )
+  const actions = <div className="flex flex-wrap items-center gap-2">{props.children}</div>
+  if (props.compact)
+    return (
+      <li className="flex flex-col gap-1.5 px-[1.1rem] py-[0.8rem]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {title}
+          {actions}
+        </div>
+        <p className="text-[0.88rem] text-ink-soft">{props.body}</p>
+      </li>
+    )
   return (
     <li className="flex flex-col gap-2 px-[1.3rem] py-[1.2rem]">
-      <span className="flex items-center gap-2 font-semibold text-ink">
-        <span className="text-brand">{props.icon}</span>
-        {props.title}
-      </span>
+      {title}
       <p className="flex-1 text-[0.92rem] text-ink-soft">{props.body}</p>
-      <div className="flex flex-wrap items-center gap-2">{props.children}</div>
+      {actions}
     </li>
   )
 }
@@ -109,10 +138,13 @@ export function CreateDialog({
   const [draft, setDraft] = useState(start)
   const [onDays, setOnDays] = useState((start?.weekdays.length ?? 0) > 0)
   const [shownFor, setShownFor] = useState(start)
+  const [tried, setTried] = useState(false)
+  const form = useRef<HTMLDivElement>(null)
   if (start !== shownFor) {
     setShownFor(start)
     setDraft(start)
     setOnDays((start?.weekdays.length ?? 0) > 0)
+    setTried(false)
   }
   const working = draft !== null && busy[draft.name] === "save"
   const problem = draft && problemOf(draft, onDays)
@@ -131,9 +163,14 @@ export function CreateDialog({
           </Button>
           <Button
             variant="primary"
-            disabled={!draft || working || problem !== null || !harness}
+            disabled={!draft || working || !harness}
             onClick={async () => {
               if (!draft) return
+              if (problem) {
+                setTried(true)
+                focusProblem(form.current)
+                return
+              }
               if (await save({ ...draft, title: draft.title.trim() }, true)) {
                 onClose()
                 openDigest(draft.name)
@@ -146,7 +183,7 @@ export function CreateDialog({
       }
     >
       {draft && (
-        <div className="flex flex-col gap-4">
+        <div ref={form} className="flex flex-col gap-4">
           {!harness && <NoHarness />}
           <DigestFields
             spec={draft}
@@ -155,6 +192,7 @@ export function CreateDialog({
             setOnDays={setOnDays}
             can={{ named: can.named }}
             creating
+            shown={tried ? problem : null}
           />
           {failed?.name === draft.name && failed.what === "create" && (
             <ErrorNotice inline>{m.failedCreate(failed.message)}</ErrorNotice>

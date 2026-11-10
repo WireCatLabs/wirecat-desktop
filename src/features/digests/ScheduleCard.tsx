@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
-import { type ReactNode, useEffect, useId, useState } from "react"
+import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
 import { dailyCap, formatUsd, runOutcome } from "@/domain/mail-agent"
 import { ago, openToolAt, ToolNeeded } from "@/features/tools"
@@ -40,8 +40,14 @@ export const parsedRoute = (route: string): { kind: RouteKind; profile: string; 
 
 export const TONE: Record<ReturnType<typeof runOutcome>, LampTone> = { ok: "ok", skipped: "warn", failed: "bad" }
 
+export type Problem = "title" | "time" | "day"
+
+/** After a click found a problem: moves the focus to the field that holds it, once the error is painted. */
+export const focusProblem = (form: HTMLElement | null) =>
+  requestAnimationFrame(() => form?.querySelector<HTMLElement>("[aria-invalid='true']")?.focus())
+
 /** Why a draft cannot be saved yet, or null. */
-export function problemOf(spec: DigestSpec, onDays: boolean): "title" | "time" | "day" | null {
+export function problemOf(spec: DigestSpec, onDays: boolean): Problem | null {
   if (!spec.title.trim()) return "title"
   if (spec.times.length === 0 || spec.times.some((t) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(t))) return "time"
   if (onDays && spec.weekdays.length === 0) return "day"
@@ -75,6 +81,7 @@ export function DigestFields({
   setOnDays,
   can,
   creating,
+  shown = null,
 }: {
   spec: DigestSpec
   onChange: (spec: DigestSpec) => void
@@ -84,6 +91,8 @@ export function DigestFields({
   can: Can
   /** The brief and the schedule switch; an open digest has its own card and button for them. */
   creating: boolean
+  /** The problem a click on Save or Create found; it is said at its field until the draft is fixed. */
+  shown?: Problem | null
 }) {
   const m = useMessages(bookMessages).form
   const b = useMessages(bookMessages)
@@ -98,6 +107,8 @@ export function DigestFields({
     days: useId(),
     every: useId(),
     some: useId(),
+    titleError: useId(),
+    timesError: useId(),
   }
   const set = (part: Partial<DigestSpec>) => onChange({ ...spec, ...part })
   const short = (day: string) =>
@@ -112,9 +123,12 @@ export function DigestFields({
           value={spec.title}
           disabled={!can.named}
           maxLength={80}
+          aria-invalid={shown === "title" || undefined}
+          aria-describedby={shown === "title" ? ids.titleError : undefined}
           onChange={(e) => set({ title: e.target.value })}
           className={cx(input, "h-9 w-full max-w-[28rem] text-[0.95rem]")}
         />
+        {shown === "title" && <FieldError id={ids.titleError}>{m.needTitle}</FieldError>}
       </Field>
 
       <Field label={m.times} hint={m.timesHint} id={ids.times}>
@@ -126,6 +140,8 @@ export function DigestFields({
                 type="time"
                 aria-label={`${m.times} ${i + 1}`}
                 value={t}
+                aria-invalid={shown === "time" || undefined}
+                aria-describedby={shown === "time" ? ids.timesError : undefined}
                 onChange={(e) => set({ times: spec.times.map((x, j) => (j === i ? e.target.value : x)) })}
                 className={input}
               />
@@ -153,6 +169,7 @@ export function DigestFields({
             </Button>
           </li>
         </ul>
+        {shown === "time" && <FieldError id={ids.timesError}>{m.needTime}</FieldError>}
       </Field>
 
       <Field label={m.days} id={ids.days}>
@@ -199,7 +216,11 @@ export function DigestFields({
             </div>
           )}
           {onDays && spec.weekdays.length === 0 && (
-            <p id={ids.day} className="text-[0.85rem] text-warn-ink">
+            <p
+              id={ids.day}
+              role={shown === "day" ? "alert" : undefined}
+              className={cx("text-[0.85rem]", shown === "day" ? "text-bad" : "text-warn-ink")}
+            >
               {m.pickDay}
             </p>
           )}
@@ -261,6 +282,14 @@ export function DigestFields({
         </div>
       )}
     </div>
+  )
+}
+
+function FieldError({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <p id={id} role="alert" className="text-[0.85rem] text-bad">
+      {children}
+    </p>
   )
 }
 
@@ -446,6 +475,8 @@ export function ScheduleCard({
   // biome-ignore lint/correctness/useExhaustiveDependencies: as the draft, from memo's answer only
   useEffect(() => setOnDays(start.weekdays.length > 0), [key])
   const problem = problemOf(draft, onDays)
+  const [tried, setTried] = useState(false)
+  const form = useRef<HTMLDivElement>(null)
   const dirty = JSON.stringify(draft) !== key
   const working = busy[item.name] === "save"
   const cap = dailyCap(item.maxCostPerDayUsd)
@@ -461,15 +492,18 @@ export function ScheduleCard({
         </p>
       )}
       {!harness && <NoHarness />}
-      <DigestFields
-        key={item.name}
-        spec={draft}
-        onChange={setDraft}
-        onDays={onDays}
-        setOnDays={setOnDays}
-        can={can}
-        creating={false}
-      />
+      <div ref={form}>
+        <DigestFields
+          key={item.name}
+          spec={draft}
+          onChange={setDraft}
+          onDays={onDays}
+          setOnDays={setOnDays}
+          can={can}
+          creating={false}
+          shown={tried ? problem : null}
+        />
+      </div>
       <div className="flex flex-wrap items-center gap-2 border-line border-t pt-3">
         {savedOnce && !dirty && !working && (
           <span className="text-[0.88rem] text-ink-dim" aria-live="polite">
@@ -491,8 +525,15 @@ export function ScheduleCard({
         <Button
           variant="primary"
           size="sm"
-          disabled={!dirty || working || problem !== null || !harness}
-          onClick={async () => setSavedOnce(await save(draft, false))}
+          disabled={!dirty || working || !harness}
+          onClick={async () => {
+            if (problem) {
+              setTried(true)
+              focusProblem(form.current)
+              return
+            }
+            setSavedOnce(await save(draft, false))
+          }}
         >
           {working ? m.form.saving : m.form.save}
         </Button>

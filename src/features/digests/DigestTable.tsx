@@ -40,21 +40,28 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
           }}
           className="flex min-w-0 cursor-pointer flex-col text-left"
         >
-          <span className="truncate font-medium text-ink group-hover:text-brand">{titleOf(d, m)}</span>
-          <span className="truncate font-mono text-[0.8rem] text-ink-dim">{d.name}</span>
+          <span className="font-medium text-ink [overflow-wrap:anywhere] group-hover:text-brand">{titleOf(d, m)}</span>
+          <span className="font-mono text-[0.8rem] text-ink-dim [overflow-wrap:anywhere]">{d.name}</span>
         </button>
       ),
     },
     {
       id: "when",
       head: m.col.when,
-      width: "minmax(10rem,1.2fr)",
-      cell: (d) => <span className="text-ink-soft">{m.when(d.times, d.weekdays)}</span>,
+      width: "minmax(9rem,1.2fr)",
+      cell: (d) => (
+        <span className="flex flex-col text-ink-soft">
+          <span>{m.when(d.times, d.weekdays)}</span>
+          {d.scheduled && d.nextAt && (
+            <span className="text-[0.85rem] text-ink-dim tabular-nums">{m.nextAt(nextOf(d.nextAt, lang))}</span>
+          )}
+        </span>
+      ),
     },
     {
       id: "sources",
       head: m.col.sources,
-      width: "minmax(8rem,1fr)",
+      width: "minmax(7rem,1fr)",
       cell: (d) => (
         <span className="line-clamp-2 text-ink-soft">
           {d.sources.length === 0 ? m.allSources : d.sources.map((x) => m.sources[x as Source] ?? x).join(", ")}
@@ -64,7 +71,7 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
     {
       id: "routes",
       head: m.col.routes,
-      width: "minmax(8rem,1fr)",
+      width: "minmax(7rem,1fr)",
       cell: (d) => (
         <span className="line-clamp-2 text-ink-soft">
           {d.routes.length === 0 ? m.onlyHere : [...new Set(d.routes.map((r) => s.routeKinds[r.kind]))].join(", ")}
@@ -74,7 +81,7 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
     {
       id: "last",
       head: m.col.last,
-      width: "minmax(10.5rem,1fr)",
+      width: "minmax(8rem,1fr)",
       sortBy: (d) => d.last?.at ?? "",
       cell: (d) =>
         busy[d.name] === "run" ? (
@@ -85,7 +92,7 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
         ) : d.last ? (
           <span className="flex items-center gap-2 text-ink-soft">
             <Lamp tone={d.last.ok ? "ok" : "bad"} size="sm" />
-            <span className="whitespace-nowrap tabular-nums">
+            <span className="tabular-nums">
               {ago(d.last.at)}
               {!d.last.ok && ` · ${m.lastFailed}`}
               {d.last.costUsd !== null && ` · ${formatUsd(d.last.costUsd, lang)}`}
@@ -96,18 +103,9 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
         ),
     },
     {
-      id: "next",
-      head: m.col.next,
-      width: "7.5rem",
-      sortBy: (d) => (d.scheduled ? (d.nextAt ?? "") : "~"),
-      cell: (d) => (
-        <span className="text-ink-soft tabular-nums">{d.scheduled && d.nextAt ? nextOf(d.nextAt, lang) : "—"}</span>
-      ),
-    },
-    {
       id: "scheduled",
       head: m.col.scheduled,
-      width: "6.5rem",
+      width: "5.5rem",
       cell: (d) => (
         // biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: keeps the switch's click off the row
         <span onClick={(e) => e.stopPropagation()} className="flex">
@@ -129,8 +127,8 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
       rowKey={(d) => d.name}
       columns={columns}
       density="roomy"
-      minWidth="60rem"
-      leadWidth="minmax(11rem,1.3fr)"
+      minWidth="54rem"
+      leadWidth="minmax(10rem,1.4fr)"
       onRowClick={(d) => openDigest(d.name)}
     />
   )

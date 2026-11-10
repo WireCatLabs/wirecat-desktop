@@ -62,6 +62,7 @@ const ready = (digests: DigestItem[], over: Partial<Extract<DigestBook, { state:
   others: [],
   harness: true,
   named: true,
+  morningRests: false,
   ...over,
 })
 
@@ -100,7 +101,20 @@ describe("the table of digests", () => {
     expect(rows[1]).toHaveTextContent(/Evening wrap-up.*Weekdays at 13:00 and 19:00.*Telegram, Mail/)
     expect(rows[2]).toHaveTextContent(/Weekly digest.*Mondays at 09:00.*Mail, Meetings, Tasks.*Not yet/)
     expect(screen.getByRole("region", { name: "Other schedules" })).toHaveTextContent(/mail-triage/)
-    expect(screen.getByRole("button", { name: "Create digest" })).toHaveAttribute("data-variant", "primary")
+    const presets = screen.getByRole("region", { name: "New digest" })
+    for (const name of ["Daily digest", "Weekly digest", "Create your own"]) expect(presets).toHaveTextContent(name)
+    expect(presets.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  }, 15000)
+
+  it("says the morning digest is off its schedule with its past days kept, and the daily template brings it back", async () => {
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning, weekly]))
+    const user = await openPage(ready([weekly], { morningRests: true }))
+    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    expect(presets).toHaveTextContent(/morning digest is off its schedule; its past days are kept/)
+    await user.click(within(presets).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
+    const dialog = await screen.findByRole("dialog", { name: "Create digest" })
+    await user.click(within(dialog).getByRole("button", { name: "Create" }))
+    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: "morning-digest" }), true))
   }, 15000)
 
   it("puts a digest on the schedule from its row without opening it", async () => {
@@ -147,11 +161,19 @@ describe("creating a digest", () => {
   it("saves a digest that runs twice a day", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openPage(ready([morning]))
-    await user.click(await screen.findByRole("button", { name: "Create digest" }, { timeout: 4000 }))
+    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    await user.click(within(presets).getAllByRole("button", { name: "Set up" })[2] as HTMLElement)
     const dialog = await screen.findByRole("dialog", { name: "Create digest" })
     const create = within(dialog).getByRole("button", { name: "Create" })
-    expect(create).toBeDisabled()
-    await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Twice a day")
+    const title = within(dialog).getByRole("textbox", { name: "Title" })
+    expect(create).toBeEnabled()
+    await user.click(create)
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Enter a title.")
+    expect(title).toHaveAttribute("aria-invalid", "true")
+    await waitFor(() => expect(title).toHaveFocus())
+    expect(save).not.toHaveBeenCalled()
+    await user.type(title, "Twice a day")
+    expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument()
     await user.click(within(dialog).getByRole("button", { name: "Add a time" }))
     expect(within(dialog).getByLabelText("Times 2")).toHaveValue("18:00")
     await user.type(within(dialog).getByRole("textbox", { name: "Instructions" }), "Only HRB")
@@ -176,7 +198,9 @@ describe("creating a digest", () => {
     expect(monday).toHaveAttribute("aria-pressed", "true")
     await user.click(monday)
     expect(within(dialog).getByText("Pick at least one day.")).toBeInTheDocument()
-    expect(create).toBeDisabled()
+    await user.click(create)
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Pick at least one day.")
+    expect(save).not.toHaveBeenCalled()
     await user.click(within(dialog).getByRole("button", { name: /^fri/i }))
     await user.click(create)
     await waitFor(() =>
@@ -295,7 +319,11 @@ describe("what the page cannot do", () => {
     const user = await openPage(ready([], { harness: false }))
     const go = await screen.findByRole("button", { name: "Install it in Agents" }, { timeout: 4000 })
     expect(screen.getByText(/Digests are written by Claude Code, which is not installed/)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Create digest" })).toBeDisabled()
+    const starter = screen.getByRole("region", { name: "No digests yet" })
+    await user.click(within(starter).getAllByRole("button", { name: "Set up" })[0] as HTMLElement)
+    const dialog = await screen.findByRole("dialog", { name: "Create digest" })
+    expect(within(dialog).getByRole("button", { name: "Create" })).toBeDisabled()
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
     await user.click(go)
     expect(useNav.getState().active).toBe("agents")
   }, 15000)
@@ -309,7 +337,7 @@ describe("what the page cannot do", () => {
     const user = await openPage(old)
     const table = await screen.findByRole("table", { name: "Digests" }, { timeout: 4000 })
     expect(within(table).getAllByRole("row")).toHaveLength(2)
-    expect(screen.getByRole("button", { name: "Create digest" })).toBeDisabled()
+    expect(screen.queryByRole("region", { name: "New digest" })).not.toBeInTheDocument()
     expect(screen.getByText(/needs Memo 0\.131\.75 or newer/)).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Update Memo" })).toBeInTheDocument()
 

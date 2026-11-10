@@ -8,7 +8,8 @@ import type { Platform } from "./types"
 // (`none`: no digest and no day yet; `new`: a newer day lands after 3 s).
 // The book: the morning digest (every day at 08:30, to a Telegram bot and a mailbox), an evening one twice a day and a
 // weekly one off schedule. `?digest-memo=old` (a memo without `digest list`: the morning digest as its one row),
-// `tooold`, `nomemo`; `?digest-claude=none`; `?digest-fail=1` makes saving fail with memo's words; `?digest-run=failed`
+// `resting` (the morning digest taken off schedule the old way: past days, no row), `tooold`, `nomemo`;
+// `?digest-claude=none`; `?digest-fail=1` makes saving fail with memo's words; `?digest-run=failed`
 // (the morning digest's last run failed). Backfill: `?backfill=old` (this memo has no `digest backfill`),
 // `?backfill-fail=1` (building fails halfway); otherwise building takes 4 s and adds the days, marked built later.
 
@@ -301,10 +302,19 @@ export function digestsMock(params: URLSearchParams): Pick<Platform, DigestsPart
               ]
             : []),
         ]
+  if (memo === "resting") book = book.filter((d) => d.name !== "morning-digest")
   const status = (): DigestBook => {
     if (memo === "nomemo") return { state: "noMemo" }
     if (memo === "tooold") return { state: "old", version: "0.131.20", need: "0.131.26" }
-    return { state: "ready", digests: book, others, harness: params.get("digest-claude") !== "none", named }
+    const morningRests = memo === "resting" && !book.some((d) => d.name === "morning-digest")
+    return {
+      state: "ready",
+      digests: book,
+      others,
+      harness: params.get("digest-claude") !== "none",
+      named,
+      morningRests,
+    }
   }
   const replace = (name: string, change: (d: DigestItem) => DigestItem) => {
     book = book.map((d) => (d.name === name ? change(d) : d))

@@ -23,10 +23,10 @@ const en = {
     sources: "Takes from",
     routes: "Sends to",
     last: "Last run",
-    next: "Next run",
     scheduled: "On schedule",
   },
   morning: "Morning digest",
+  nextAt: (when: string) => `Next: ${when}`,
   /** How often, in words: "every day at 08:30", "twice a day: 08:30 and 18:00", "Mondays at 09:00". */
   when: (times: readonly string[], weekdays: readonly string[]): string => {
     if (times.length === 0) return "No time set"
@@ -75,6 +75,8 @@ const en = {
   open: (title: string) => `Open ${title}`,
   starter: {
     title: "No digests yet",
+    more: "New digest",
+    morningRests: "Your morning digest is off its schedule; its past days are kept. Set up brings it back.",
     body: "Start from a template; you can change everything later.",
     daily: "Daily digest",
     dailyBody: "Every morning, what came in and what waits for you.",
@@ -96,6 +98,8 @@ const en = {
     everyDay: "Every day",
     onDays: "On days",
     pickDay: "Pick at least one day.",
+    needTitle: "Enter a title.",
+    needTime: "Set each time as HH:MM.",
     sources: "Takes from",
     sourcesHint: "With none picked, every connected source.",
     brief: "Instructions",
@@ -171,10 +175,10 @@ const ru: typeof en = {
     sources: "Откуда берёт",
     routes: "Куда шлёт",
     last: "Последний запуск",
-    next: "Следующий",
     scheduled: "В расписании",
   },
   morning: "Утренняя сводка",
+  nextAt: (when) => `Далее: ${when}`,
   when: (times, weekdays) => {
     if (times.length === 0) return "Время не задано"
     const at = `в ${list(times, "и")}`
@@ -214,6 +218,8 @@ const ru: typeof en = {
   open: (title) => `Открыть: ${title}`,
   starter: {
     title: "Сводок пока нет",
+    more: "Новая сводка",
+    morningRests: "Утренняя сводка снята с расписания, её прошлые дни сохранены. «Настроить» вернёт её.",
     body: "Начните с шаблона, всё можно поменять потом.",
     daily: "Ежедневная сводка",
     dailyBody: "Каждое утро: что пришло и что ждёт вашего ответа.",
@@ -235,6 +241,8 @@ const ru: typeof en = {
     everyDay: "Каждый день",
     onDays: "По дням",
     pickDay: "Выберите хотя бы один день.",
+    needTitle: "Введите название.",
+    needTime: "Укажите каждое время в виде ЧЧ:ММ.",
     sources: "Откуда берёт",
     sourcesHint: "Если ничего не выбрано — все подключённые источники.",
     brief: "Указания",
@@ -310,10 +318,10 @@ const es: typeof en = {
     sources: "De dónde toma",
     routes: "Adónde envía",
     last: "Última ejecución",
-    next: "Próxima",
     scheduled: "Programado",
   },
   morning: "Resumen matutino",
+  nextAt: (when) => `Siguiente: ${when}`,
   when: (times, weekdays) => {
     if (times.length === 0) return "Sin hora"
     const at = `a las ${list(times, "y")}`
@@ -353,6 +361,9 @@ const es: typeof en = {
   open: (title) => `Abrir ${title}`,
   starter: {
     title: "Aún no hay resúmenes",
+    more: "Nuevo resumen",
+    morningRests:
+      "Tu resumen matutino está fuera de su horario; sus días anteriores se conservan. «Configurar» lo recupera.",
     body: "Empieza con una plantilla; todo se puede cambiar después.",
     daily: "Resumen diario",
     dailyBody: "Cada mañana: lo que llegó y lo que espera tu respuesta.",
@@ -374,6 +385,8 @@ const es: typeof en = {
     everyDay: "Cada día",
     onDays: "Algunos días",
     pickDay: "Elige al menos un día.",
+    needTitle: "Escribe un título.",
+    needTime: "Indica cada hora como HH:MM.",
     sources: "De dónde toma",
     sourcesHint: "Sin ninguna elegida, todas las fuentes conectadas.",
     brief: "Instrucciones",
