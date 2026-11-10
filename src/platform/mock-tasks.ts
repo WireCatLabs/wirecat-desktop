@@ -516,16 +516,24 @@ export function tasksMock(): TaskApi {
     },
     async taskChats() {
       await delay(300)
-      if (scenario() !== "chats") return { tasks: [], more: false }
-      const chat = (key: string, title: string, minutes: number): Task => ({
+      if (scenario() !== "chats" && scenario() !== "chats96") return { tasks: [], more: false }
+      const chat = (key: string, title: string, minutes: number, kind: string | null = null): Task => ({
         ...make({ key, title, state: "open", createdAt: ago(minutes), account: "telegram:personal" }),
         project: "INB7",
         projectName: null,
         createdBy: null,
-        kind: null,
+        kind,
         priorityLabel: null,
         ready: null,
       })
+      // memo before cli-core's readable titles: a found task's title is its kind and the message's locator.
+      if (scenario() === "chats96")
+        return {
+          tasks: Array.from({ length: 96 }, (_, i) =>
+            chat(`Q-${i + 1}`, `question — msg:telegram/1/${7000 + (i % 9)}/${129000 + i}`, 60 * (i + 1), "question"),
+          ),
+          more: false,
+        }
       return {
         tasks: [
           chat("INB7-1", "Send Ana the signed lease", 60 * 5),

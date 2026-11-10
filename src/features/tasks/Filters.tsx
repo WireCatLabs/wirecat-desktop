@@ -8,6 +8,7 @@ import { FilterMenu, type FilterOption } from "@/ui/FilterMenu"
 import { StableText } from "@/ui/Skeleton"
 import { dueDay, taskMessages } from "./messages"
 import { personName, StateLamp } from "./parts"
+import { useSource } from "./source"
 import { useTasks } from "./store"
 
 const countOf = (facet: { value: string; count: number }[] | undefined, value: string) =>
@@ -23,6 +24,11 @@ export function Filters() {
   const tasks = useTasks((s) => s.tasks)
   const badQuery = useTasks((s) => s.badQuery)
   const { type, setQuery, setDue } = useTasks.getState()
+  const source = useSource((s) => s.source)
+  const found = tasks.filter((t) => t.account).length
+  const owner = people.find((p) => p.owner)?.ref
+  const assigned = valuesOf(query, "assignee")
+  const mine = owner !== undefined && assigned.length === 1 && assigned[0] === owner
 
   const field = (name: "project" | "assignee" | "priority" | "state" | "agent", options: FilterOption[]) => ({
     selected: valuesOf(query, name),
@@ -79,6 +85,23 @@ export function Filters() {
       invalid={badQuery !== null}
       describedBy={badQuery ? "tasks-bad-query" : undefined}
     >
+      {found > 0 && (
+        <FilterMenu
+          label={m.source}
+          single
+          options={[
+            { value: "projects", label: m.fromProjects, count: tasks.length - found },
+            { value: "chats", label: m.fromChats, count: found },
+          ]}
+          selected={source ? [source] : []}
+          onChange={([v]) => useSource.getState().setSource((v as "projects" | "chats" | undefined) ?? null)}
+        />
+      )}
+      {owner && (
+        <ToggleChip on={mine} onChange={(on) => setQuery(setField(query, "assignee", on ? [owner] : []))}>
+          {m.onlyMine}
+        </ToggleChip>
+      )}
       <FilterMenu label={m.project} {...field("project", projectOptions)} />
       <FilterMenu label={m.assignee} {...field("assignee", assigneeOptions)} />
       <FilterMenu label={m.priority} {...field("priority", priorityOptions)} />

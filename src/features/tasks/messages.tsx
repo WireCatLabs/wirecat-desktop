@@ -48,6 +48,15 @@ type Words = {
   onIt: (agent: string) => string
   forAgent: (agent: string) => string
   fromMessages: string
+  /** A task memo found in a message whose title is still only the message's address. */
+  foundTitle: Record<string, string>
+  priorityIs: (label: string) => string
+  showMore: (left: number) => string
+  source: string
+  fromProjects: string
+  fromChats: string
+  onlyMine: string
+  mail: string
   cell: (what: string, key: string) => string
   open: (key: string) => string
   notSaved: (reason: string) => string
@@ -192,6 +201,20 @@ const en: Words = {
   onIt: (agent) => `${agent} is on it`,
   forAgent: (agent) => `for ${agent}`,
   fromMessages: "found in your messages; change it where it came from",
+  foundTitle: {
+    question: "A question in a message",
+    request: "A request in a message",
+    promise: "A promise in a message",
+    mention: "A mention in a message",
+    other: "A task in a message",
+  },
+  priorityIs: (label) => `Priority: ${label}`,
+  showMore: (left) => `Show more (${formatNumber(left, "en")})`,
+  source: "Source",
+  fromProjects: "Projects",
+  fromChats: "Chats and mail",
+  onlyMine: "Only mine",
+  mail: "Mail",
   cell: (what, key) => `${what} of ${key}`,
   open: (key) => `Open ${key}`,
   notSaved: (reason) => `The change was not saved: ${reason}. Nothing changed.`,
@@ -343,6 +366,20 @@ const ru: Words = {
   onIt: (agent) => `${agent} работает над ней`,
   forAgent: (agent) => `для ${agent}`,
   fromMessages: "найдена в ваших сообщениях; меняется там, откуда пришла",
+  foundTitle: {
+    question: "Вопрос в сообщении",
+    request: "Просьба в сообщении",
+    promise: "Обещание в сообщении",
+    mention: "Упоминание в сообщении",
+    other: "Задача в сообщении",
+  },
+  priorityIs: (label) => `Приоритет: ${label}`,
+  showMore: (left) => `Показать ещё (${formatNumber(left, "ru")})`,
+  source: "Источник",
+  fromProjects: "Проекты",
+  fromChats: "Чаты и почта",
+  onlyMine: "Только мои",
+  mail: "Почта",
   cell: (what, key) => `${what} задачи ${key}`,
   open: (key) => `Открыть ${key}`,
   notSaved: (reason) => `Изменение не сохранено: ${reason}. Ничего не изменилось.`,
@@ -508,6 +545,20 @@ const es: Words = {
   onIt: (agent) => `${agent} está en ello`,
   forAgent: (agent) => `para ${agent}`,
   fromMessages: "encontrada en tus mensajes; se cambia donde surgió",
+  foundTitle: {
+    question: "Una pregunta en un mensaje",
+    request: "Una petición en un mensaje",
+    promise: "Una promesa en un mensaje",
+    mention: "Una mención en un mensaje",
+    other: "Una tarea en un mensaje",
+  },
+  priorityIs: (label) => `Prioridad: ${label}`,
+  showMore: (left) => `Mostrar más (${formatNumber(left, "es")})`,
+  source: "Origen",
+  fromProjects: "Proyectos",
+  fromChats: "Chats y correo",
+  onlyMine: "Solo mías",
+  mail: "Correo",
   cell: (what, key) => `${what} de ${key}`,
   open: (key) => `Abrir ${key}`,
   notSaved: (reason) => `El cambio no se guardó: ${reason}. No cambió nada.`,

@@ -2,14 +2,28 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { render, screen, waitFor, within } from "@/testing/render"
+import { useSource } from "./source"
 import { useTasks } from "./store"
+import { pageOf } from "./TaskBoard"
 import { TasksPage } from "./TasksPage"
 
-beforeEach(() => useTasks.setState({ ...useTasks.getInitialState(), view: "table" }, true))
+beforeEach(() => {
+  useTasks.setState({ ...useTasks.getInitialState(), view: "table" }, true)
+  useSource.setState({ source: null })
+})
 afterEach(() => vi.restoreAllMocks())
 
 const row = (key: string) => document.querySelector(`[data-row="${key}"]`) as HTMLElement
 const loaded = () => screen.findByRole("button", { name: /HRB-12 Send Kai the pricing table/ }, { timeout: 4000 })
+
+describe("a board column's page", () => {
+  it("shows the first cards, and a card held by the keyboard past them too", () => {
+    const keys = ["a", "b", "c", "d"]
+    expect(pageOf(keys, 2)).toEqual(["a", "b"])
+    expect(pageOf(keys, 2, "d")).toEqual(keys)
+    expect(pageOf(keys, 9)).toEqual(keys)
+  })
+})
 
 describe("Tasks", () => {
   it("lists memo's tasks with their state, priority and who is on them", async () => {
@@ -63,6 +77,56 @@ describe("Tasks", () => {
     await user.click(screen.getByRole("option", { name: /Operations/ }))
     await waitFor(() => expect(row("INDBB44DA4-7")).toBeNull())
     expect(chats).toHaveBeenCalledTimes(1)
+  })
+
+  it("names a found task by its kind while its title is only the message's address, and pages a long column", async () => {
+    const user = userEvent.setup()
+    useTasks.setState({ view: "board" })
+    const found = (n: number) => ({
+      key: `Q-${n}`,
+      project: "INDBB44DA4",
+      projectName: null,
+      createdBy: null,
+      title: `question — msg:telegram/1/7/${n}`,
+      description: null,
+      kind: "question",
+      state: "open" as const,
+      priority: null,
+      priorityLabel: null,
+      agent: null,
+      revision: 1,
+      parent: null,
+      dueAt: null,
+      closedAt: null,
+      claimedBy: null,
+      claimedUntil: null,
+      assignees: [],
+      ready: null,
+      blockedBy: [],
+      createdAt: "2026-11-08T09:12:00.000Z",
+      updatedAt: null,
+      account: "telegram:1",
+    })
+    vi.spyOn(platform, "taskChats").mockResolvedValue({
+      tasks: Array.from({ length: 96 }, (_, i) => found(i + 1)),
+      more: false,
+    })
+    render(<TasksPage />)
+    const column = await screen.findByRole("region", { name: /^Open, \d+ tasks/ }, { timeout: 4000 })
+    const cards = () => column.querySelectorAll("[data-card]")
+    expect(cards()).toHaveLength(20)
+    const total = Number(/\d+/.exec(column.getAttribute("aria-label") ?? "")?.[0])
+    const card = within(column).getByRole("button", { name: "Q-1 A question in a message" })
+    expect(card).not.toHaveTextContent("msg:telegram")
+    expect(card).toHaveTextContent("Telegram")
+    expect(card).not.toHaveTextContent("No priority")
+    await user.click(within(column).getByRole("button", { name: `Show more (${total - 20})` }))
+    expect(cards()).toHaveLength(40)
+
+    await user.click(screen.getByRole("button", { name: "Source" }))
+    await user.click(screen.getByRole("option", { name: /Projects/ }))
+    await waitFor(() => expect(within(column).queryByRole("button", { name: /^Q-1 / })).toBeNull())
+    expect(cards().length).toBe(total - 96)
   })
 
   it("writes a filter into the search, which memo answers", async () => {

@@ -1,25 +1,41 @@
 import { GripVertical } from "lucide-react"
-import { type KeyboardEvent, type PointerEvent as ReactPointerEvent, useRef } from "react"
+import { type KeyboardEvent, type PointerEvent as ReactPointerEvent, useRef, useState } from "react"
 import { anchorOf, closed, fromMessages, STATES, type State } from "@/domain/tasks"
 import { useMessages } from "@/i18n"
 import type { Task } from "@/platform/task-schemas"
 import { Board, BoardColumn, cardClass, DragCopy, DropLine, useBoardDrag, useSlide } from "@/ui/Board"
+import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Select } from "@/ui/Select"
 import { taskMessages } from "./messages"
 import { StaleLine } from "./Note"
-import { DueText, Markers, PriorityMark, personName, priorityLabel, StateLamp } from "./parts"
+import { DueText, Markers, PriorityMark, personName, priorityLabel, SourceMark, StateLamp, taskTitle } from "./parts"
+import { ofSource, useSource } from "./source"
 import { useTasks } from "./store"
+
+/** Cards a column shows before "Show more"; each click shows as many again. */
+export const COLUMN_PAGE = 20
+
+/** A column's first `limit` cards, and a card held by the keyboard wherever it now stands, so it never moves out of view. */
+export function pageOf(keys: readonly string[], limit: number, keep?: string): string[] {
+  const at = keep ? keys.indexOf(keep) : -1
+  return keys.slice(0, Math.max(limit, at + 1))
+}
 
 export function TaskBoard() {
   const m = useMessages(taskMessages)
   const tasks = useTasks((s) => s.tasks)
   const order = useTasks((s) => s.order)
   const query = useTasks((s) => s.query)
-  const byKey = new Map(tasks.map((t) => [t.key, t]))
+  const source = useSource((s) => s.source)
+  const byKey = new Map(tasks.filter((t) => ofSource(t, source)).map((t) => [t.key, t]))
   const column = (s: State) => order.filter((k) => byKey.get(k)?.state === s)
   const board = useRef<HTMLDivElement>(null)
+  // The query a column's paging was opened under: a new search starts every column at its first page again.
+  const [paged, setPaged] = useState<{ query: string; limits: Partial<Record<State, number>> }>({ query, limits: {} })
+  const limits = paged.query === query ? paged.limits : {}
+  const limitOf = (s: State) => limits[s] ?? COLUMN_PAGE
   useSlide(board, `${order.join()}|${tasks.map((t) => t.state).join()}`)
   const { drag, held, said, shown, onPointerDown, onClick, onKeyDown } = useBoardDrag<State>({
     columns: STATES,
@@ -47,9 +63,12 @@ export function TaskBoard() {
       <p className="sr-only" id="tasks-drag-hint">
         {m.dragHint}
       </p>
-      <Board columns={STATES.length} boardRef={board}>
+      <Board columns={STATES.length} template={`repeat(${STATES.length}, minmax(15.5rem, 1fr))`} boardRef={board}>
         {STATES.map((s) => {
           const keys = column(s)
+          const cards = shown(s)
+          const visible = pageOf(cards, limitOf(s), held?.to === s ? held.key : undefined)
+          const left = cards.length - visible.length
           return (
             <BoardColumn
               key={s}
@@ -62,7 +81,7 @@ export function TaskBoard() {
               empty={keys.length === 0 && !drag && !(held && held.to === s) ? m.emptyColumn : undefined}
               footer={closed(s) && showsClosedDefault ? m.last14 : undefined}
             >
-              {shown(s).map((k) => {
+              {visible.map((k) => {
                 const t = byKey.get(k)
                 if (!t) return null
                 return (
@@ -82,6 +101,18 @@ export function TaskBoard() {
               {drag && drag.to === s && drag.before === null && (
                 <li aria-hidden className="contents">
                   <DropLine />
+                </li>
+              )}
+              {left > 0 && (
+                <li className="px-[0.6rem] py-[0.5rem]">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => setPaged({ query, limits: { ...limits, [s]: visible.length + COLUMN_PAGE } })}
+                  >
+                    {m.showMore(left)}
+                  </Button>
                 </li>
               )}
             </BoardColumn>
@@ -122,7 +153,7 @@ function Card(props: {
       aria-roledescription={m.draggable}
       aria-describedby="tasks-drag-hint"
       aria-pressed={held || undefined}
-      aria-label={`${task.key} ${task.title}`}
+      aria-label={`${task.key} ${taskTitle(task, m)}`}
       onPointerDown={props.onPointerDown}
       onKeyDown={props.onKeyDown}
       onClick={(e) => {
@@ -149,30 +180,38 @@ function CardBody({ task }: { task: Task }) {
   const people = useTasks((s) => s.people)
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const assignee = task.assignees[0]
+  const found = fromMessages(task)
   return (
-    <div className="flex flex-col gap-[0.4rem] px-[0.9rem] py-[0.7rem]">
-      <div className="flex items-center gap-[0.5rem]">
-        <GripVertical
-          className="absolute top-[0.85rem] left-[0.05rem] size-[0.85rem] text-ink-dim opacity-0 group-hover:opacity-100"
-          aria-hidden
-        />
-        <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{task.key}</span>
-        <span className="ml-auto min-w-0">
-          <PriorityMark label={priorityLabel(task)} />
-        </span>
-      </div>
+    <div className="flex flex-col gap-[0.45rem] px-[0.9rem] py-[0.7rem]">
+      <GripVertical
+        className="absolute top-[0.85rem] left-[0.05rem] size-[0.85rem] text-ink-dim opacity-0 group-hover:opacity-100"
+        aria-hidden
+      />
       <p
+        title={taskTitle(task, m)}
         className={cx(
-          "line-clamp-3 text-[0.95rem] leading-snug font-medium",
+          "line-clamp-2 text-[0.95rem] leading-snug font-medium [overflow-wrap:anywhere]",
           closed(task.state) && "font-normal text-ink-soft",
         )}
       >
-        {task.title}
+        {taskTitle(task, m)}
       </p>
       <Markers task={task} />
-      <div className="flex min-w-0 items-center gap-[0.5rem] text-[0.9rem] text-ink-soft">
-        <span className="min-w-0 truncate">{assignee ? personName(assignee, people, m) : m.nobody}</span>
-        <span className="ml-auto shrink-0">{task.dueAt && <DueText task={task} />}</span>
+      <div className="flex min-w-0 items-center gap-[0.45rem] text-[0.85rem] text-ink-soft">
+        <span className="shrink-0 font-mono text-[0.8rem] whitespace-nowrap tabular-nums text-ink-dim">{task.key}</span>
+        <PriorityMark label={priorityLabel(task)} />
+        {task.dueAt && (
+          <span className="shrink-0">
+            <DueText task={task} />
+          </span>
+        )}
+        <span className="ml-auto flex min-w-[1.6rem] justify-end">
+          {found ? (
+            <SourceMark task={task} />
+          ) : (
+            assignee && <span className="min-w-0 truncate">{personName(assignee, people, m)}</span>
+          )}
+        </span>
         <Select<State>
           size="sm"
           aria-label={m.moveTo(task.key)}
@@ -186,7 +225,7 @@ function CardBody({ task }: { task: Task }) {
             void useTasks.getState().move(task.key, to, first ? { before: first } : {}, first ?? null)
           }}
           options={STATES.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
-          className="w-8 shrink-0 border-transparent! bg-transparent! px-1! hover:bg-app-3! [&>span]:hidden [&>svg]:block"
+          className="-mr-[0.3rem] w-8 shrink-0 border-transparent! bg-transparent! px-1! hover:bg-app-3! [&>span]:hidden [&>svg]:block"
         />
       </div>
     </div>

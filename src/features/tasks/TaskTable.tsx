@@ -8,7 +8,8 @@ import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { AssigneeCell, DueCell, PriorityCell, StatusCell } from "./cells"
 import { taskMessages } from "./messages"
 import { StaleLine } from "./Note"
-import { Markers } from "./parts"
+import { Markers, SourceMark, taskTitle } from "./parts"
+import { ofSource, useSource } from "./source"
 import { useTasks } from "./store"
 
 // Wide enough for each language's longest status and priority, so none is cut ("К выполнению", "Без приоритета").
@@ -74,7 +75,8 @@ export function TaskTable() {
   const page = useTasks((s) => s.page)
   const size = useTasks((s) => s.pageSize)
   const { setPage, setPageSize } = useTasks.getState()
-  const byKey = new Map(tasks.map((t) => [t.key, t]))
+  const source = useSource((s) => s.source)
+  const byKey = new Map(tasks.filter((t) => ofSource(t, source)).map((t) => [t.key, t]))
   const rows = order.map((k) => byKey.get(k)).filter((t): t is Task => Boolean(t))
   const at = Math.min(page, Math.max(1, Math.ceil(rows.length / size)))
   return (
@@ -113,13 +115,14 @@ export function TaskTable() {
 }
 
 function Title({ task: t }: { task: Task }) {
+  const m = useMessages(taskMessages)
   return (
     <>
       <button
         type="button"
         data-opens={t.key}
         aria-haspopup="dialog"
-        aria-label={`${t.key} ${t.title}`}
+        aria-label={`${t.key} ${taskTitle(t, m)}`}
         onClick={() => void useTasks.getState().openTask(t.key)}
         className="block w-full min-w-0 cursor-pointer rounded-[0.2rem] text-left focus-visible:outline-2 focus-visible:outline-brand"
       >
@@ -130,10 +133,11 @@ function Title({ task: t }: { task: Task }) {
             t.state === "done" && "line-through decoration-ink-dim/60",
           )}
         >
-          {t.title}
+          {taskTitle(t, m)}
         </span>
       </button>
       <Markers task={t} />
+      <SourceMark task={t} />
     </>
   )
 }
