@@ -110,6 +110,16 @@ export const setDue = (q: string, choice: DueChoice | null, today = new Date()) 
 /** A task memo found in a chat, mail or note: no project holds it, and memo changes none of its board fields. */
 export const fromMessages = (t: { account?: string | null | undefined }) => Boolean(t.account)
 
+/**
+ * The kind of a found task whose title is only `<kind> — <locator>`, memo's stand-in while the task keeps no message
+ * text; null for a real title. cli-core later reads the message's first line instead, and then this never matches.
+ */
+export function bareTitleKind(t: { title: string; account?: string | null | undefined }): string | null {
+  if (!fromMessages(t)) return null
+  const bare = /^(\w+) — (msg|note|document|mail|email):\S+$/.exec(t.title.trim())
+  return bare ? (bare[1] ?? null) : null
+}
+
 export function boardQuery(q: string): string {
   const words = q.trim()
   if (/(^|[\s(-])(state|closed):/.test(words)) return words

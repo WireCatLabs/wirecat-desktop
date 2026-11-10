@@ -1,6 +1,6 @@
 import { Bot, CalendarDays, GitBranch, Lock, User } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
-import { closed, labelOf, STATES, type State } from "@/domain/tasks"
+import { bareTitleKind, closed, labelOf, STATES, type State } from "@/domain/tasks"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import type { Creator, Person, Project, Task, TaskEdit, TaskEvent } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
@@ -13,7 +13,7 @@ import { Comments } from "./Comments"
 import { AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, StatusCell } from "./cells"
 import { dueDay, stamp, type TaskWords, taskMessages } from "./messages"
 import { StaleLine } from "./Note"
-import { personName, StateLamp, TaskLink } from "./parts"
+import { personName, StateLamp, TaskLink, taskTitle } from "./parts"
 import { useTasks } from "./store"
 
 const isState = (v: unknown): v is State => typeof v === "string" && (STATES as readonly string[]).includes(v)
@@ -89,18 +89,20 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const history = useTasks((s) => s.history[task.key])
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const failed = useTasks((s) => s.failed[task.key])
-  const [title, setTitle] = useState(task.title)
+  // The stand-in "<kind> — <locator>" is no title to edit: the box starts empty and shows the readable name.
+  const own = bareTitleKind(task) === null ? task.title : ""
+  const [title, setTitle] = useState(own)
   const [notes, setNotes] = useState(task.description ?? "")
   const [agent, setAgent] = useState(task.agent ?? "")
   const [writing, setWriting] = useState(!task.description)
   const box = useRef<HTMLTextAreaElement>(null)
   // A write from elsewhere (a stale refusal shows the current task) resets the fields to what the task now says.
   useEffect(() => {
-    setTitle(task.title)
+    setTitle(own)
     setNotes(task.description ?? "")
     setAgent(task.agent ?? "")
     setWriting(!task.description)
-  }, [task.title, task.description, task.agent])
+  }, [own, task.description, task.agent])
 
   useEffect(() => {
     if (!useTasks.getState().history[task.key]) void useTasks.getState().loadHistory(task.key)
@@ -115,7 +117,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const changed = Object.keys(edit).length > 0
   useEffect(() => onDirty?.(changed), [changed, onDirty])
   const reset = () => {
-    setTitle(task.title)
+    setTitle(own)
     setNotes(task.description ?? "")
     setAgent(task.agent ?? "")
     setWriting(!task.description)
@@ -151,6 +153,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
             <span className="text-[0.9rem] font-medium text-ink-dim">{m.titleField}</span>
             <input
               value={title}
+              placeholder={taskTitle(task, m)}
               maxLength={500}
               onChange={(e) => setTitle(e.target.value)}
               className="selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none focus-visible:border-brand"
@@ -238,7 +241,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
                 <p key={b.key} className="flex min-w-0 items-center gap-[0.5rem] text-[0.95rem]">
                   <StateLamp state={isState(b.state) ? b.state : "open"} />
                   <TaskLink taskKey={b.key} />
-                  {other && <span className="truncate text-ink-soft">{other.title}</span>}
+                  {other && <span className="truncate text-ink-soft">{taskTitle(other, m)}</span>}
                 </p>
               )
             })
@@ -253,7 +256,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
               <p key={t.key} className="flex min-w-0 items-center gap-[0.5rem] text-[0.95rem]">
                 <StateLamp state={t.state} />
                 <TaskLink taskKey={t.key} />
-                <span className="truncate text-ink-soft">{t.title}</span>
+                <span className="truncate text-ink-soft">{taskTitle(t, m)}</span>
               </p>
             ))}
             <p className="text-[0.8rem] text-ink-dim">{m.holdsUpHint}</p>
@@ -324,7 +327,12 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
                   <span key={x.to} className="flex min-w-0 items-center gap-[0.4rem]">
                     <span className="font-mono text-ink-dim line-through">{x.from}</span>
                     <TaskLink taskKey={x.to} />
-                    <span className="truncate text-ink-soft">{all.find((t) => t.key === x.to)?.title}</span>
+                    <span className="truncate text-ink-soft">
+                      {(() => {
+                        const t = all.find((y) => y.key === x.to)
+                        return t ? taskTitle(t, m) : null
+                      })()}
+                    </span>
                   </span>
                 ))}
               </div>

@@ -55,19 +55,26 @@ export function PriorityCell({ task }: { task: Task }) {
   const m = useMessages(taskMessages)
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const current = priorityLabel(task) ?? "none"
+  // The closed cell shows the bars alone, and nothing for no priority; the words stay in the list and the tooltip.
   return (
-    <Select
-      size="sm"
-      aria-label={m.cell(m.priority, task.key)}
-      value={current}
-      disabled={busy || fromMessages(task)}
-      onChange={(priority) => void useTasks.getState().update(task.key, { priority })}
-      options={[...LABELS, "none" as const].map((l) => {
-        const [filled, tone] = BAR[l] ?? [0, ""]
-        return { value: l, label: m.labels[l], icon: <Bars filled={filled} tone={tone} /> }
-      })}
-      className={BARE}
-    />
+    <span className="flex" title={current === "none" ? undefined : m.priorityIs(m.labels[current])}>
+      <Select
+        size="sm"
+        aria-label={m.cell(m.priority, task.key)}
+        value={current}
+        disabled={busy || fromMessages(task)}
+        onChange={(priority) => void useTasks.getState().update(task.key, { priority })}
+        options={[...LABELS, "none" as const].map((l) => {
+          const [filled, tone] = BAR[l] ?? [0, ""]
+          return {
+            value: l,
+            label: m.labels[l],
+            ...(l === "none" ? {} : { icon: <Bars filled={filled} tone={tone} /> }),
+          }
+        })}
+        className={cx(BARE, "[&>span.flex-1]:sr-only")}
+      />
+    </span>
   )
 }
 

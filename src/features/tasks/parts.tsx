@@ -1,8 +1,20 @@
-import { Lock, MessageSquare } from "lucide-react"
-import { claimActive, closed, dueTone, fromMessages, type Label, labelOf, type State } from "@/domain/tasks"
+import { Lock, Mail, MessageSquare } from "lucide-react"
+import { providerName } from "@/domain/archive"
+import {
+  bareTitleKind,
+  claimActive,
+  closed,
+  dueTone,
+  fromMessages,
+  type Label,
+  labelOf,
+  type State,
+} from "@/domain/tasks"
+import { storageMessages } from "@/features/storage"
 import { useLang, useMessages } from "@/i18n"
 import type { Person, Task } from "@/platform/task-schemas"
 import { cx } from "@/ui/cx"
+import { InfoTip } from "@/ui/InfoTip"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { dueDay, type TaskWords, taskMessages } from "./messages"
 import { useTasks } from "./store"
@@ -29,28 +41,32 @@ export function StateText({ state }: { state: State }) {
   )
 }
 
-/** Three bars and the word; red and amber only for critical and high. */
+/**
+ * Three bars, red and amber only for critical and high; the word is in the tooltip and for a screen reader. No priority
+ * shows nothing, so a card says only what was set.
+ */
 export function PriorityMark({ label }: { label: Label | null }) {
   const m = useMessages(taskMessages)
+  if (!label) return null
   const filled = label === "critical" ? 3 : label === "high" ? 2 : label === "medium" ? 1 : 0
+  const said = m.priorityIs(m.labels[label])
   return (
-    <span className="inline-flex min-w-0 items-center gap-[0.4rem] text-[0.9rem] text-ink-soft">
-      <span
-        aria-hidden
-        className={cx(
-          "inline-flex h-[0.8rem] shrink-0 items-end gap-[2px]",
-          label === "critical" ? "text-bad" : label === "high" ? "text-warn" : "text-ink-dim",
-        )}
-      >
-        {[0, 1, 2].map((b) => (
-          <span
-            key={b}
-            className={cx("w-[3px] rounded-[1px] bg-current", b >= filled && "opacity-25")}
-            style={{ height: `${(b + 1) * 33}%` }}
-          />
-        ))}
-      </span>
-      <span className="truncate">{m.labels[label ?? "none"]}</span>
+    <span
+      role="img"
+      aria-label={said}
+      title={said}
+      className={cx(
+        "inline-flex h-[0.8rem] shrink-0 items-end gap-[2px]",
+        label === "critical" ? "text-bad" : label === "high" ? "text-warn" : "text-ink-dim",
+      )}
+    >
+      {[0, 1, 2].map((b) => (
+        <span
+          key={b}
+          className={cx("w-[3px] rounded-[1px] bg-current", b >= filled && "opacity-25")}
+          style={{ height: `${(b + 1) * 33}%` }}
+        />
+      ))}
     </span>
   )
 }
@@ -88,8 +104,7 @@ export function Markers({ task }: { task: Task }) {
   const waiting = task.blockedBy.filter((b) => !closed(b.state as State)).map((b) => b.key)
   const claim = task.claimedBy && claimActive(task.claimedUntil) ? task.claimedBy : null
   const agent = !claim && task.agent ? task.agent : null
-  const found = fromMessages(task)
-  if (waiting.length === 0 && !claim && !agent && !found) return null
+  if (waiting.length === 0 && !claim && !agent) return null
   return (
     <span className="flex flex-wrap gap-x-[0.9rem] gap-y-[0.15rem]">
       {waiting.length > 0 && (
@@ -120,13 +135,41 @@ export function Markers({ task }: { task: Task }) {
       {agent && (
         <span className="inline-flex items-center gap-[0.35rem] text-[0.85rem] text-ink-soft">{m.forAgent(agent)}</span>
       )}
-      {found && (
-        <span className="inline-flex items-center gap-[0.35rem] text-[0.85rem] text-ink-soft">
-          <MessageSquare className="size-[0.85rem] shrink-0" aria-hidden />
-          {m.fromMessages}
-        </span>
-      )}
     </span>
+  )
+}
+
+/** What a task is called on screen: a found task whose title is only its message's address reads as its kind. */
+export function taskTitle(task: Task, m: TaskWords): string {
+  const kind = bareTitleKind(task)
+  if (kind === null) return task.title
+  const named = task.kind ?? kind
+  return (Object.hasOwn(m.foundTitle, named) ? m.foundTitle[named] : m.foundTitle.other) ?? task.title
+}
+
+const MAIL = new Set(["email", "mail", "gmail"])
+
+/** Where a found task came from, as an icon and the app; the tooltip says it changes there, not here. */
+export function SourceMark({ task }: { task: Task }) {
+  const m = useMessages(taskMessages)
+  const archive = useMessages(storageMessages).archiveWords
+  if (!fromMessages(task) || !task.account) return null
+  const provider = task.account.split(":")[0] ?? ""
+  const mail = MAIL.has(provider)
+  const Icon = mail ? Mail : MessageSquare
+  return (
+    <InfoTip
+      align="end"
+      label={m.fromMessages}
+      trigger={
+        <span className="inline-flex min-w-0 items-center gap-[0.3rem] text-[0.85rem] text-ink-soft">
+          <Icon className="size-[0.85rem] shrink-0" aria-hidden />
+          <span className="truncate">{mail ? m.mail : providerName(provider, archive)}</span>
+        </span>
+      }
+    >
+      {m.fromMessages}
+    </InfoTip>
   )
 }
 

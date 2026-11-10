@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   anchorOf,
   BOARD_DEFAULT,
+  bareTitleKind,
   boardQuery,
   daysUntil,
   dueOf,
@@ -115,5 +116,15 @@ describe("a task found in messages", () => {
     expect(fromMessages({ account: "telegram:220195113" })).toBe(true)
     expect(fromMessages({ account: null })).toBe(false)
     expect(fromMessages({})).toBe(false)
+  })
+})
+
+describe("bareTitleKind", () => {
+  it("reads the kind from a found task's stand-in title, and nothing from a real one", () => {
+    const account = "telegram:1"
+    expect(bareTitleKind({ title: "question — msg:telegram/1/7/129198", account })).toBe("question")
+    expect(bareTitleKind({ title: "promise — note:42", account })).toBe("promise")
+    expect(bareTitleKind({ title: "Send Ana the lease draft", account })).toBeNull()
+    expect(bareTitleKind({ title: "question — msg:telegram/1/7/1", account: null })).toBeNull()
   })
 })
