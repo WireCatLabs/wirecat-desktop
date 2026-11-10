@@ -22,3 +22,8 @@ pub async fn groups_move(source: String, from: String, to: String) -> Result<gro
     crate::log::command("groups_move", async move { attempt(move || groups::move_member(&source, &from, &to)).await })
         .await
 }
+
+#[tauri::command]
+pub async fn groups_scope(source: String, scope: String) -> Result<groups::Read, AppError> {
+    crate::log::command("groups_scope", async move { attempt(move || groups::set_scope(&source, &scope)).await }).await
+}

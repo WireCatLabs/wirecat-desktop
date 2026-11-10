@@ -102,10 +102,10 @@ describe("People", () => {
     expect(page).toHaveBeenLastCalledWith({ kind: "person", page: 1, size: 50, query: "", sort: "interactions" })
     expect(within(await table()).getAllByRole("row")).toHaveLength(51)
     const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent(/^1–50 of 121/)
+    expect(pages).toHaveTextContent(/^1–50 of 124/)
     await user.click(within(pages).getByRole("button", { name: "Page 2" }))
     expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
-    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 121/))
+    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 124/))
 
     await user.click(screen.getByRole("combobox", { name: "Order" }))
     await user.click(screen.getByRole("option", { name: "Most tasks" }))
@@ -142,10 +142,10 @@ describe("People", () => {
   it("says how many matches wait, and opens them on their own screen and back", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
-    expect(await screen.findByRole("heading", { name: "5 matches wait for you" }, { timeout: 4000 })).toBeVisible()
+    expect(await screen.findByRole("heading", { name: "6 matches wait for you" }, { timeout: 4000 })).toBeVisible()
     const matches = await openMatches(user)
     expect(matches).toHaveTextContent("all their chats, mail, meetings and deals")
-    expect(within(matches).getAllByRole("article")).toHaveLength(7)
+    expect(within(matches).getAllByRole("article")).toHaveLength(8)
     await user.click(screen.getByRole("button", { name: "All contacts" }))
     expect(await table()).toBeInTheDocument()
   })
@@ -386,5 +386,42 @@ describe("People", () => {
     const card = await within(lena9).findByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
     await user.click(within(card).getByRole("button", { name: "Same person" }))
     expect(await within(lena9).findByText("This person is now part of Lena Ortiz.")).toBeInTheDocument()
+  })
+
+  // Last: it decides the mock's shared-mailbox card for the tests after it.
+  it("shows everyone on one shared mailbox as one card, and gives the address to a company the owner names", async () => {
+    const real = platform.peopleResolve.bind(platform)
+    const resolve = vi
+      .spyOn(platform, "peopleResolve")
+      .mockResolvedValueOnce({
+        kind: "refused",
+        reason: "organization.unnamed",
+        message: "info@harbour.example is a free mailbox; name the company or its organization",
+        organizations: [],
+      })
+      .mockImplementation(real)
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const matches = await openMatches(user)
+    const card = within(matches).getByRole("article", { name: "Harbour Studio · Olga Harbour · Pavel Harbour" })
+    expect(within(card).getByText("shared mailbox")).toBeInTheDocument()
+    expect(within(matches).getAllByText("shared mailbox")).toHaveLength(1)
+    expect(within(matches).getAllByRole("button", { name: "Company mailbox" })).toHaveLength(1)
+
+    await user.click(within(card).getByRole("button", { name: "Company mailbox" }))
+    expect(await within(card).findByText(/free mail address/)).toBeInTheDocument()
+    await user.click(within(card).getByRole("button", { name: "Give it to this company" }))
+    expect(within(card).getByText("Type the company's name.")).toBeInTheDocument()
+    await user.type(within(card).getByRole("textbox", { name: "Company name" }), "Harbour Studio")
+    await user.click(within(card).getByRole("button", { name: "Give it to this company" }))
+    expect(
+      await within(card).findByText(/info@harbour.example is a company's mailbox now/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument()
+    expect(resolve.mock.calls.map(([, id, to]) => [id, to])).toEqual([
+      ["17107", {}],
+      ["17107", { name: "Harbour Studio" }],
+      ["17108", { organization: "organization:3" }],
+      ["17109", { organization: "organization:3" }],
+    ])
   })
 })

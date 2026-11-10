@@ -355,12 +355,10 @@ mod tests {
     }
 
     #[test]
-    fn the_scope_switch_stays_off_until_a_release_of_the_cli_has_the_setting() {
-        assert!(b24().scope.min_version.is_none());
-        assert_eq!(scope(&northstar(), Some("work")).unwrap(), unavailable("crmCli"));
+    fn the_scope_switch_needs_the_release_of_the_cli_that_has_the_setting() {
+        assert_eq!(b24().scope.min_version.as_deref(), Some("0.12.0"));
         let elsewhere = CrmAccount { provider: "acme".into(), account: "acme.example".into() };
         assert_eq!(scope(&elsewhere, Some("work")).unwrap(), unavailable("crmCli"));
-        assert!(scope_set(&northstar(), "work", "all").is_err());
     }
 
     #[test]

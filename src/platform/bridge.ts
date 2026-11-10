@@ -53,6 +53,7 @@ import {
   PeoplePageSchema,
   PeopleReadSchema,
   PersonDetailSchema,
+  ResolvedSchema,
   UnlinkedSchema,
 } from "./people-schemas"
 import { PermissionsSchema } from "./permissions-schemas"
@@ -231,6 +232,7 @@ function createTauri(): Platform {
     groupsAdd: (group, source) => call(GroupsReadSchema, "groups_add", { group, source }),
     groupsRemove: (group, source) => call(GroupsReadSchema, "groups_remove", { group, source }),
     groupsMove: (source, from, to) => call(GroupsReadSchema, "groups_move", { source, from, to }),
+    groupsScope: (source, scope) => call(GroupsReadSchema, "groups_scope", { source, scope }),
     memoryRead: (page = 1) => call(MemoryReadSchema, "memory_read", { page }),
     memorySources: (ref) => call(v.array(MemorySourceSchema), "memory_sources", { reference: ref }),
     memoryConfirm: (ref, accept) =>
@@ -261,6 +263,13 @@ function createTauri(): Platform {
     peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
     peopleDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
+    peopleResolve: (ref, id, to) =>
+      call(ResolvedSchema, "people_resolve", {
+        reference: ref,
+        id,
+        organization: to.organization ?? null,
+        name: to.name ?? null,
+      }),
     peopleSplitDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_split_decide", { reference: ref, id, answer, reason: reason ?? null }),
     peopleDoubts: (page, size) => call(DoubtsSchema, "people_doubts", { page, size }),

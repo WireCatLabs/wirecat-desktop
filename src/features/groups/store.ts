@@ -1,10 +1,10 @@
 import { create } from "zustand"
 import { applyChange, type Change } from "@/domain/groups"
 import { platform } from "@/platform/bridge"
-import type { GroupsRead } from "@/platform/groups-schemas"
+import type { AccountScope, GroupsRead } from "@/platform/groups-schemas"
 import { errorText } from "@/shared/errors"
 
-type Refusal = { change: Change; message: string }
+type Refusal = { message: string }
 
 type State = {
   read: GroupsRead | null
@@ -16,6 +16,8 @@ type State = {
   drafts: string[]
   load(): Promise<void>
   change(change: Change): Promise<boolean>
+  /** Puts an account on the personal or the work side; work views and work agents read only work accounts. */
+  setScope(source: string, scope: AccountScope): Promise<boolean>
   draft(name: string): void
   dismiss(): void
 }
@@ -53,7 +55,18 @@ export const useGroups = create<State>()((set, get) => ({
       set({ read, busy: false, drafts: get().drafts.filter((d) => !names(read).includes(d)) })
       return true
     } catch (e) {
-      set({ read: before, busy: false, refused: { change, message: errorText(e) } })
+      set({ read: before, busy: false, refused: { message: errorText(e) } })
+      return false
+    }
+  },
+  async setScope(source, scope) {
+    if (get().read?.kind !== "ready" || get().busy) return false
+    set({ busy: true, refused: null })
+    try {
+      set({ read: await platform.groupsScope(source, scope), busy: false })
+      return true
+    } catch (e) {
+      set({ busy: false, refused: { message: errorText(e) } })
       return false
     }
   },

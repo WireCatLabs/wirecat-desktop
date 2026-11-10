@@ -49,6 +49,13 @@ const en = {
   retry: "Try again",
   dismiss: "Dismiss",
   loading: "Loading account groups",
+  personal: "Personal",
+  work: "Work",
+  scopeOf: (account: string) => `Personal or work: ${account}`,
+  scopeNote:
+    "Personal or Work on each account: work views, work agents and the work mark on contacts read only work accounts.",
+  scopeBusy: "Memo is still saving the last change. Try again in a moment.",
+  scopeOld: "This Memo cannot set personal or work yet. Update Memo on the Tools page.",
 }
 
 const ru: typeof en = {
@@ -102,6 +109,13 @@ const ru: typeof en = {
   retry: "Повторить",
   dismiss: "Скрыть",
   loading: "Загрузка групп аккаунтов",
+  personal: "Личный",
+  work: "Работа",
+  scopeOf: (account: string) => `Личный или рабочий: ${account}`,
+  scopeNote:
+    "Личный или Работа у каждого аккаунта: рабочие виды, рабочие агенты и метка «работа» у контактов читают только рабочие аккаунты.",
+  scopeBusy: "Memo еще сохраняет прошлое изменение. Попробуйте через минуту.",
+  scopeOld: "Эта версия Memo пока не умеет ставить личный или рабочий. Обновите Memo на странице Инструменты.",
 }
 
 const es: typeof en = {
@@ -153,6 +167,13 @@ const es: typeof en = {
   retry: "Reintentar",
   dismiss: "Cerrar",
   loading: "Cargando grupos de cuentas",
+  personal: "Personal",
+  work: "Trabajo",
+  scopeOf: (account: string) => `Personal o trabajo: ${account}`,
+  scopeNote:
+    "Personal o Trabajo en cada cuenta: las vistas de trabajo, los agentes de trabajo y la marca de trabajo en los contactos leen solo las cuentas de trabajo.",
+  scopeBusy: "Memo aún guarda el último cambio. Inténtalo de nuevo en un momento.",
+  scopeOld: "Esta versión de Memo aún no puede marcar personal o trabajo. Actualiza Memo en la página Herramientas.",
 }
 
 export const groupsMessages: Messages<typeof en> = { en, ru, es }

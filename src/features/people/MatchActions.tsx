@@ -7,6 +7,7 @@ import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
+import { CompanyButton, CompanyFollowUp } from "./Company"
 import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
@@ -45,6 +46,7 @@ export function MatchActions({
   const busyOf = usePeople((s) => s.busy)
   const failedOf = usePeople((s) => s.failed)
   const joined = usePeople((s) => s.joinedGroup[group.key])
+  const company = usePeople((s) => s.company[group.key])
   const { decide, joinGroup, rejectGroup } = usePeople.getState()
   const open = group.matches.filter((x) => !decided[x.id])
   const first = open[0] ?? group.matches[0]
@@ -101,7 +103,7 @@ export function MatchActions({
       )}
       <AutoHeight swap={done ? "done" : String(asking)}>
         {done ? (
-          joined && !last ? null : (
+          (joined && !last) || (company && !company.refused) ? null : (
             <p role="status" className="reveal flex items-center gap-2 text-[0.95rem] text-ink-soft">
               <Check className="size-4 shrink-0 text-ok" aria-hidden />
               {m.decided[last ?? decided[first.id] ?? "confirm"]}
@@ -171,12 +173,14 @@ export function MatchActions({
             <Button size="sm" disabled={!!busy} onClick={() => (tooFew ? few.fail() : setAsking(true))}>
               {m.reject}
             </Button>
+            {group.mailbox && <CompanyButton group={group} />}
             {few.error === null && hint}
           </span>
         )}
       </AutoHeight>
       {few.hint}
       {failed && <Refusal error={failed} />}
+      {group.mailbox && <CompanyFollowUp group={group} />}
     </>
   )
 }

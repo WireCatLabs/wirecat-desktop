@@ -117,6 +117,9 @@ describe("what the people share", () => {
     reason: null,
     evidence,
     proposer: null,
+    score: null,
+    shared: null,
+    mailbox: null,
   })
 
   it("never shows a reference memo gives as evidence, only a phone or an address", () => {

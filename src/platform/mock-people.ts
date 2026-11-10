@@ -16,7 +16,8 @@ import type { Platform } from "./types"
 // `more` says memo has more people and matches than were read. `?people-fail=read` fails the read (another sync holds
 // the store), `?people=nokinds` is a memo older than kinds of people (one list of everyone, no contact),
 // `?people-fail=write` fails every decision the same way, `?people-fail=stale` refuses Same person as
-// `identity.stale`, `?people-fail=merge` refuses the second join of a group. Two splits an agent proposed wait beside the
+// `identity.stale`, `?people-fail=merge` refuses the second join of a group, `?people-fail=unnamed|ambiguous` refuses
+// Company mailbox until the owner names the company or picks one of two. Two splits an agent proposed wait beside the
 // matches and eight people look wrongly joined (`people links check`); `?people=calm` has neither.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
@@ -151,6 +152,16 @@ function seed(): Held[] {
       account("email:viktor@example.org", "Viktor Example", [["2", "work"]], "same-email", 50),
       account("max:7002", "Mila Example", [["5", "personal"]], "same-phone", 30),
     ]),
+    person("person:41", "Harbour Studio", [
+      account("email:info@harbour.example", "Harbour Studio", [["2", "work"]], "initial", 45),
+    ]),
+    person("person:42", "Olga Harbour", [
+      account("telegram:7301", "Olga", [["1", "personal"]], "initial", 40, "olga_h"),
+      account("email:olga@harbour.example", "Olga Harbour", [["2", "work"]], "initial", 20),
+    ]),
+    person("person:43", "Pavel Harbour", [
+      account("email:pavel@harbour.example", "Pavel Harbour", [["2", "work"]], "initial", 18),
+    ]),
     ...crowd(),
   ]
 }
@@ -209,6 +220,9 @@ const KIND: Record<string, Listed["kind"]> = {
 /** Tasks the made-up people are assigned. */
 const TASKS: Record<string, number> = { "person:1": 4, "person:7": 3, "person:4": 1, "person:21": 2 }
 
+const UNSHARED = { score: 0.9, shared: null, mailbox: null }
+
+/** In memo's order: highest score first, the agent's (no score) last. */
 const MATCHES: Match[] = [
   {
     id: "17100",
@@ -221,18 +235,7 @@ const MATCHES: Match[] = [
     reason: null,
     evidence: [],
     proposer: { kind: "rule", name: "rule" },
-  },
-  {
-    id: "17101",
-    persons: ["person:5", "person:4"],
-    identity: "max:7731",
-    with: "telegram:5120",
-    joins: "identity",
-    signal: "agent",
-    candidates: [],
-    reason: "Kai writes from this MAX account in the Harbour chat.",
-    evidence: [],
-    proposer: { kind: "agent", name: "claude-code" },
+    ...UNSHARED,
   },
   {
     id: "17102",
@@ -245,6 +248,7 @@ const MATCHES: Match[] = [
     reason: null,
     evidence: ["marta@studio.example"],
     proposer: { kind: "rule", name: "rule" },
+    ...UNSHARED,
   },
   ...(
     [
@@ -264,6 +268,8 @@ const MATCHES: Match[] = [
       reason: null,
       evidence: ["+34 600 555 019"],
       proposer: { kind: "rule", name: "rule" },
+      ...UNSHARED,
+      score: 0.8,
     }),
   ),
   // As memo gave the owner's real one (UX-150): a phone match with no evidence, so the number comes from the profiles.
@@ -278,6 +284,46 @@ const MATCHES: Match[] = [
     reason: null,
     evidence: [],
     proposer: { kind: "rule", name: "rule" },
+    ...UNSHARED,
+    score: 0.7,
+  },
+  // One shared mailbox three people sign from: memo suggests the pairs and never joins them by itself.
+  ...(
+    [
+      ["17107", "person:41", "person:42"],
+      ["17108", "person:41", "person:43"],
+      ["17109", "person:42", "person:43"],
+    ] as const
+  ).map(
+    ([id, a, b]): Match => ({
+      id,
+      persons: [a, b],
+      identity: a === "person:41" ? "email:info@harbour.example" : "email:olga@harbour.example",
+      with: b === "person:42" ? "email:olga@harbour.example" : "email:pavel@harbour.example",
+      joins: "person",
+      signal: "email",
+      candidates: [],
+      reason: null,
+      evidence: ["info@harbour.example"],
+      proposer: { kind: "rule", name: "rule" },
+      score: 0.4,
+      shared: "role",
+      mailbox: "info@harbour.example",
+    }),
+  ),
+  {
+    id: "17101",
+    persons: ["person:5", "person:4"],
+    identity: "max:7731",
+    with: "telegram:5120",
+    joins: "identity",
+    signal: "agent",
+    candidates: [],
+    reason: "Kai writes from this MAX account in the Harbour chat.",
+    evidence: [],
+    proposer: { kind: "agent", name: "claude-code" },
+    ...UNSHARED,
+    score: null,
   },
 ]
 
@@ -289,6 +335,7 @@ export function peopleMock(): Pick<
   | "peopleShow"
   | "peopleFind"
   | "peopleDecide"
+  | "peopleResolve"
   | "peopleMerge"
   | "peopleUnlink"
   | "peopleUnmerge"
@@ -464,6 +511,27 @@ export function peopleMock(): Pick<
         ),
       )
       return p ? shown(p.ref) : null
+    },
+    async peopleResolve(ref, id, to) {
+      await write()
+      const m = matches.find((x) => x.id === id && shown(ref).matches.includes(x))
+      if (!m) throw new Error("This match is not open on this person any more. Read again.")
+      const refused = (reason: string, message: string, organizations: { ref: string; name: string | null }[] = []) =>
+        ({ kind: "refused", reason, message, organizations }) as const
+      if (!m.shared) return refused("identity.not-shared", `${id} is not about a shared mailbox; confirm or reject it`)
+      if (fail === "unnamed" && !to.name && !to.organization)
+        return refused("organization.unnamed", `${m.mailbox} is a free mailbox; name the company or its organization`)
+      if (fail === "ambiguous" && !to.organization)
+        return refused(
+          "organization.ambiguous",
+          "2 organizations match harbour.example (organization:3, organization:8); name the one meant as a reference",
+          [
+            { ref: "organization:3", name: "Harbour Studio" },
+            { ref: "organization:8", name: "Harbour Studio Ltd" },
+          ],
+        )
+      matches = matches.filter((x) => x.id !== id)
+      return { kind: "done", organization: to.organization ?? "organization:3", mailbox: m.mailbox, person: shown(ref) }
     },
     async peopleDecide(ref, id, answer, reason) {
       await write()

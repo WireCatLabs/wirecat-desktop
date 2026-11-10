@@ -2201,6 +2201,7 @@
         "moveDeal": ["{profile}", "deals", "move", "{ref}", "{stage}", "--record", "--json"],
         "moveLead": ["{profile}", "leads", "move", "{ref}", "{stage}", "--record", "--json"],
         "scope": {
+          "minVersion": "0.12.0",
           "show": ["{profile}", "config", "show", "--no-record", "--json"],
           "set": ["{profile}", "config", "set", "{setting}", "{value}", "--record", "--json"]
         }

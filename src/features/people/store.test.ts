@@ -24,6 +24,9 @@ const match = (id: string, persons: [string, string]): Match => ({
   reason: null,
   evidence: [],
   proposer: null,
+  score: null,
+  shared: null,
+  mailbox: null,
 })
 
 /** A listed person as a memo older than kinds gives it. */

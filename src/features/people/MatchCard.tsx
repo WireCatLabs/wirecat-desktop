@@ -210,6 +210,11 @@ function Signal({
           {m.sharedTip(group.sharing, formatList(names, lang))}
         </InfoTip>
       )}
+      {group.mailbox && (
+        <InfoTip label={m.sharedMailboxTip} trigger={<Pill tone="warn">{m.sharedMailbox}</Pill>}>
+          {m.sharedMailboxTip}
+        </InfoTip>
+      )}
     </p>
   )
 }
