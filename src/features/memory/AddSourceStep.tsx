@@ -27,12 +27,18 @@ export function SourceStep() {
   const { setWay, save } = useAddSource.getState()
   const name = useId()
   const missing = missingOf(draft)
-  const [tried, setTried] = useState(false)
+  const [tries, setTries] = useState(0)
   const inputs = `${name}-inputs`
   const problem = `${name}-problem`
-  const shown = tried && missing ? missing : null
+  const early = missing === "tooLong" || (missing === "link" && draft.url.trim() !== "")
+  const shown = tries > 0 || early ? missing : null
   // biome-ignore lint/correctness/useExhaustiveDependencies: another way to add starts without the last complaint
-  useEffect(() => setTried(false), [draft.way])
+  useEffect(() => setTries(0), [draft.way])
+  useEffect(() => {
+    if (tries === 0) return
+    const box = document.getElementById(inputs)
+    box?.querySelector<HTMLElement>("[aria-invalid='true'], button")?.focus()
+  }, [tries, inputs])
 
   return (
     <form
@@ -41,8 +47,7 @@ export function SourceStep() {
       onSubmit={(e) => {
         e.preventDefault()
         if (missing) {
-          setTried(true)
-          document.getElementById(inputs)?.querySelector<HTMLElement>("textarea, input, button")?.focus()
+          setTries((n) => n + 1)
           return
         }
         void save()

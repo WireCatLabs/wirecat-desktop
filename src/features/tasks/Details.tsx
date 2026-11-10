@@ -97,13 +97,16 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const [agent, setAgent] = useState(task.agent ?? "")
   const [writing, setWriting] = useState(!task.description)
   const box = useRef<HTMLTextAreaElement>(null)
+  const noTitle = useFieldError(`${id}-title`)
+  const clearTitle = noTitle.clear
   // A write from elsewhere (a stale refusal shows the current task) resets the fields to what the task now says.
   useEffect(() => {
+    clearTitle()
     setTitle(own)
     setNotes(task.description ?? "")
     setAgent(task.agent ?? "")
     setWriting(!task.description)
-  }, [own, task.description, task.agent])
+  }, [own, task.description, task.agent, clearTitle])
 
   useEffect(() => {
     if (!useTasks.getState().history[task.key]) void useTasks.getState().loadHistory(task.key)
@@ -117,9 +120,9 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   if (agent.trim() !== (task.agent ?? "")) edit.agent = agent.trim() || "none"
   const changed = Object.keys(edit).length > 0
   const blank = title.trim() === ""
-  const noTitle = useFieldError(`${id}-title`)
   useEffect(() => onDirty?.(changed), [changed, onDirty])
   const reset = () => {
+    noTitle.clear()
     setTitle(own)
     setNotes(task.description ?? "")
     setAgent(task.agent ?? "")
@@ -153,8 +156,10 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
             if (changed) void useTasks.getState().update(task.key, edit)
           }}
         >
-          <label className="flex flex-col gap-[0.35rem]">
-            <span className="text-[0.9rem] font-medium text-ink-dim">{m.titleField}</span>
+          <div className="flex flex-col gap-[0.35rem]">
+            <label htmlFor={`${id}-title`} className="text-[0.9rem] font-medium text-ink-dim">
+              {m.titleField}
+            </label>
             <input
               id={`${id}-title`}
               value={title}
@@ -168,7 +173,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
               className="selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none focus-visible:border-brand aria-[invalid=true]:border-bad"
             />
             {noTitle.hint}
-          </label>
+          </div>
           <div className="flex flex-col gap-[0.35rem]">
             <span id={`${id}-notes`} className="text-[0.9rem] font-medium text-ink-dim">
               {m.notes}

@@ -109,6 +109,9 @@ function AiModelForm({ saved }: { saved: AiModel }) {
     draft.model.trim() !== savedDraft.model ||
     draft.baseUrl.trim() !== savedDraft.baseUrl ||
     draft.images !== savedDraft.images
+  useEffect(() => {
+    if (dirty) setNothing(false)
+  }, [dirty])
   const set = (patch: Partial<Draft>) => {
     setJustSaved(false)
     setNothing(false)

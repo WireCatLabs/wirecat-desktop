@@ -1,5 +1,5 @@
 import { AlignLeft, Check, LoaderCircle, Undo2, X } from "lucide-react"
-import { type ReactNode, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
@@ -14,6 +14,9 @@ export function JsonActions({ dirty }: { dirty: boolean }) {
   const m = useMessages(configMessages).editor
   const st = useConfig()
   const [asked, setAsked] = useState(false)
+  useEffect(() => {
+    if (dirty) setAsked(false)
+  }, [dirty])
   return (
     <div className="flex flex-wrap items-center gap-2 py-2">
       <Button

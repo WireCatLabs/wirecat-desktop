@@ -44,16 +44,25 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
   const unchanged = useId()
   const kindLabel = useId()
   const aboutLabel = useId()
-  const [text, setText] = useState(() => useMemory.getState().draft ?? entry.text ?? "")
-  const [kind, setKind] = useState(entry.kind)
+  const [text, setTextNow] = useState(() => useMemory.getState().draft ?? entry.text ?? "")
+  const [kind, setKindNow] = useState(entry.kind)
   const ownSubject = entry.project ? null : entry.subject
-  const [about, setAbout] = useState(ownSubject ?? "")
+  const [about, setAboutNow] = useState(ownSubject ?? "")
   const subjects = useSubjects(ownSubject)
   const busy = useMemory((s) => s.busy[entry.ref] === "correct")
   const failed = useMemory((s) => s.failed[entry.ref])
   const { correct } = useMemory.getState()
   const box = useRef<HTMLTextAreaElement>(null)
   const [tried, setTried] = useState(false)
+  const editing =
+    <T,>(apply: (v: T) => void) =>
+    (v: T) => {
+      setTried(false)
+      apply(v)
+    }
+  const setText = editing(setTextNow)
+  const setKind = editing(setKindNow)
+  const setAbout = editing(setAboutNow)
   const kinds = entry.type === "fact" ? FACT_KINDS : MEMORY_KINDS
   // The owner is a subject memo writes for itself; moving such a record to someone else is not offered here.
   const movable = !entry.subjectIsOwner && !entry.project
@@ -97,8 +106,8 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
         maxLength={2000}
         value={text}
         aria-label={m.fixLabel}
-        aria-describedby={tried && !changed ? `${unchanged} ${hint}` : hint}
-        aria-invalid={!!failed || (tried && !changed) || undefined}
+        aria-describedby={tried ? `${unchanged} ${hint}` : hint}
+        aria-invalid={!!failed || tried || undefined}
         onChange={(e) => {
           setText(e.target.value)
           grow(e.target)
@@ -115,7 +124,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
         }}
         className="selectable inner-field -mx-[0.4rem] resize-none overflow-hidden rounded-[0.35rem] border border-line-strong bg-app px-[0.35rem] py-[0.2rem] text-[1rem] leading-snug font-medium text-ink focus:border-brand focus:ring-1 focus:ring-brand aria-[invalid=true]:border-bad"
       />
-      <FieldError id={unchanged}>{tried && !changed && m.nothingChanged}</FieldError>
+      <FieldError id={unchanged}>{tried && m.nothingChanged}</FieldError>
       <div className="flex flex-wrap gap-3">
         <div className="flex min-w-[11rem] flex-col gap-[0.3rem]">
           <span id={kindLabel} className="text-[0.9rem] text-ink-dim">

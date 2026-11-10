@@ -33,6 +33,9 @@ export function ImportPanel() {
   useEffect(() => {
     load()
   }, [load])
+  const clearImport = noImport.clear
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new check answers the old complaint
+  useEffect(() => clearImport(), [s.checked, clearImport])
 
   const sourceOk = SOURCE.test(s.account.trim())
   const columns = s.types?.find((t) => t.type === s.kind)?.columns ?? []
@@ -44,7 +47,7 @@ export function ImportPanel() {
     check()
   }
   const askImport = () => {
-    if (!canImport) return noImport.fail(checked === null ? m.checkFirst : m.nothingToImport)
+    if (!canImport) return noImport.fail(s.checked ? m.nothingToImport : m.checkFirst)
     run()
   }
 

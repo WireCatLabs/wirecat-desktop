@@ -11,11 +11,9 @@ export function useFieldError(id: string) {
     (message: string) => {
       setError(message)
       const el = document.getElementById(id)
-      // A group (fieldset) takes focus in its first control.
-      ;(el?.matches("input,textarea,select,button")
-        ? el
-        : el?.querySelector<HTMLElement>("input,textarea,select,button")
-      )?.focus()
+      // A group (fieldset) takes focus in its first control that can take it.
+      const usable = "input:not(:disabled),textarea:not(:disabled),select:not(:disabled),button:not(:disabled)"
+      ;(el?.matches(usable) ? el : el?.querySelector<HTMLElement>(usable))?.focus()
     },
     [id],
   )
