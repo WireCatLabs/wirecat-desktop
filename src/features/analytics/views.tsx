@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import * as v from "valibot"
 import {
   addDays,
@@ -97,17 +98,40 @@ export function WhenYouTalk() {
 }
 
 /** People who wrote much less than in the period before, and chats that grew most. */
+/**
+ * The chats the owner wrote in at least once in the last 30 days (UX-164): a busier group he never writes in is noise.
+ * The day is in the query, so the set is read once a day and kept for the session.
+ */
+function useActiveChats(today: string, enabled: boolean) {
+  const range = useMemo(() => ({ from: addDays(today, -30), to: null }), [today])
+  const sent = useExtra({ by: "chat", only: "sent", previous: false, range, full: true }, enabled)
+  const ids = useMemo(
+    () =>
+      new Set(
+        Object.entries(byProvider(sent.bySource)).flatMap(([source, rows]) => rows.map((r) => `${source}:${r.key}`)),
+      ),
+    [sent.bySource],
+  )
+  return { ids, loading: sent.loading, stale: sent.stale }
+}
+
+const onlyActive = <R extends { key: string }>(bySource: Record<string, readonly R[]>, ids: ReadonlySet<string>) =>
+  Object.fromEntries(
+    Object.entries(bySource).map(([source, rows]) => [source, rows.filter((r) => ids.has(`${source}:${r.key}`))]),
+  )
+
 export function WhatChanged() {
   const m = useMessages(analyticsMessages)
   const period = useAnalytics((s) => s.period)
   const hide = useAnalytics((s) => s.hideNames)
   const all = period === "all"
-  const peopleNow = useExtra({ by: "sender", only: "all", previous: false }, !all)
-  const peopleBefore = useExtra({ by: "sender", only: "all", previous: true }, !all)
+  const today = useAnalytics((s) => s.today)
+  const peopleNow = useExtra({ by: "sender", only: "private", previous: false }, !all)
+  const peopleBefore = useExtra({ by: "sender", only: "private", previous: true }, !all)
   const chatsNow = useExtra({ by: "chat", only: "all", previous: false }, !all)
   const chatsBefore = useExtra({ by: "chat", only: "all", previous: true }, !all)
+  const active = useActiveChats(today, !all)
   const days = useExtra({ by: "day", only: "all", previous: false })
-  const today = useAnalytics((s) => s.today)
   const grain = grainOf(period)
   const bars = bucketDays(byProvider(days.bySource), period, today)
   const loud = spikes(bars).slice(0, 3)
@@ -136,11 +160,14 @@ export function WhatChanged() {
         <p className="text-[0.9rem] text-ink-soft">{m.changesAll}</p>
       </div>
     )
-  const loading = [peopleNow, peopleBefore, chatsNow, chatsBefore].some((x) => x.loading)
-  const stale = [peopleNow, peopleBefore, chatsNow, chatsBefore].some((x) => x.stale)
+  const loading = [peopleNow, peopleBefore, chatsNow, chatsBefore, active].some((x) => x.loading)
+  const stale = [peopleNow, peopleBefore, chatsNow, chatsBefore, active].some((x) => x.stale)
   if (loading) return <Skeleton className="h-[13.5rem] w-full rounded-[0.2rem]" label={m.changesTitle} />
   const people = changes(byProvider(peopleNow.bySource), byProvider(peopleBefore.bySource))
-  const chats = changes(byProvider(chatsNow.bySource), byProvider(chatsBefore.bySource))
+  const chats = changes(
+    onlyActive(byProvider(chatsNow.bySource), active.ids),
+    onlyActive(byProvider(chatsBefore.bySource), active.ids),
+  )
   const name = (c: Change) => (c.name === null ? m.unnamed : hide ? initials(c.name) : c.name)
   return (
     <div className={cx("flex flex-col gap-3 transition-opacity duration-(--motion-slow)", stale && "opacity-55")}>

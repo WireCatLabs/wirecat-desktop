@@ -200,7 +200,8 @@ const STATE_ENTRIES: Record<string, [string, boolean, number][]> = {
 }
 
 // Profiles a sign-out in this window ended; they stay listed, signed out, as the CLIs' own lists keep them.
-const signedOut = new Set<string>()
+// `?analytics=problems`: MAX's profile was never signed in, as on the owner's machine (BUG-693).
+const signedOut = new Set<string>(params.get("analytics") === "problems" ? ["max/personal"] : [])
 // Profiles `account remove` forgot: the tools no longer list them.
 const forgotten = new Set<string>()
 

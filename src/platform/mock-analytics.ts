@@ -326,6 +326,12 @@ export const analyticsMock = (
     const { by } = ask
     await delay(300 + noise(`${id}${profile}${by}${ask.only}`) * 700)
     if (scenario === "old" && id === "tg") return { kind: "old", message: "unknown command 'stats'" }
+    if (scenario === "problems" && by === "hour")
+      return {
+        kind: "failed",
+        message: "search: database is locked (another process holds the store)",
+        code: "busy",
+      }
     if (scenario === "fail" && profile === "work")
       return { kind: "failed", message: "another process holds the store; try again in a minute", code: "busy" }
     const today = todayIn(timezone)
