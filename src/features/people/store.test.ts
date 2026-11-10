@@ -34,6 +34,7 @@ const older = {
   phone: null,
   email: null,
   username: null,
+  usernameSource: null,
   messagesFrom: null,
   lastContact: null,
 }

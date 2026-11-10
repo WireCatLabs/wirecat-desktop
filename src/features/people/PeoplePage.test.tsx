@@ -25,6 +25,7 @@ const older = {
   phone: null,
   email: null,
   username: null,
+  usernameSource: null,
   messagesFrom: null,
   lastContact: null,
 }
@@ -117,12 +118,12 @@ describe("People", () => {
     expect(page.mock.calls.filter(([a]) => a.query.startsWith("L")).length).toBeLessThan(4)
   })
 
-  it("stacks phone and email, shows a handle when there is neither, and a quiet dash when nothing", async () => {
+  it("stacks phone and email, shows the messenger and handle when there is neither, and a quiet dash when nothing", async () => {
     render(<PeoplePage />)
     const rows = within(await table()).getAllByRole("row")
     const row = (name: string) => rows.find((r) => r.textContent?.startsWith(name)) as HTMLElement
     expect(row("Marta Gil")).toHaveTextContent(/\+34600111222.*marta@studio\.example/)
-    expect(row("Kai Moreno")).toHaveTextContent("@kai_m")
+    expect(row("Kai Moreno")).toHaveTextContent("Telegram @kai_m")
     expect(within(row("Kai M.")).getByText("No phone, email or handle")).toHaveClass("sr-only")
     expect(row("Kai M.")).not.toHaveTextContent(/No contact/)
   })

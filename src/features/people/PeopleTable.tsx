@@ -14,7 +14,7 @@ import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
-import { SourceIcon } from "./sources"
+import { SourceIcon, sourceOf } from "./sources"
 import { usePeople } from "./store"
 
 const KIND_ICONS: Record<PersonKind, ReactNode> = {
@@ -292,8 +292,17 @@ function Contact({ person: p }: { person: Listed }) {
     ...(p.email ? [{ icon: <Mail className={ICON} aria-hidden />, value: p.email }] : []),
   ]
   const handle = p.username
+  // Which messenger the handle is on arrives with a newer memo; until then it is a bare @name.
+  const source = p.usernameSource ? sourceOf(p.usernameSource) : null
   if (lines.length === 0 && handle)
-    lines.push({ icon: <AtSign className={ICON} aria-hidden />, value: `@${handle}`, label: m.handle(handle) })
+    lines.push(
+      source
+        ? {
+            icon: <SourceIcon provider={p.usernameSource ?? ""} className="text-ink-dim" />,
+            value: `${source.name} @${handle}`,
+          }
+        : { icon: <AtSign className={ICON} aria-hidden />, value: `@${handle}`, label: m.handle(handle) },
+    )
   if (lines.length === 0)
     return (
       <span className="text-ink-dim" title={m.noContact}>

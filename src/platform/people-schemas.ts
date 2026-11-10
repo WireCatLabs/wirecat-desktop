@@ -31,8 +31,10 @@ const ListedSchema = v.object({
   contact: v.optional(text, null),
   phone: v.optional(text, null),
   email: v.optional(text, null),
-  /** A messenger handle without its `@`; memo does not yet say which messenger. */
+  /** A messenger handle without its `@`. */
   username: v.optional(text, null),
+  /** The messenger `username` is on; null before memo carries it. */
+  usernameSource: v.optional(text, null),
   messagesFrom: v.optional(v.nullable(v.number()), null),
   lastContact: v.optional(text, null),
 })
@@ -71,6 +73,8 @@ export const PersonDetailSchema = v.object({
       provider: v.string(),
       name: text,
       username: text,
+      phone: v.optional(text, null),
+      email: v.optional(text, null),
       seenIn: v.array(v.object({ account: v.string(), scope: text })),
       method: text,
       linkedAt: text,

@@ -31,6 +31,8 @@ const account = (
   provider: identity.split(":")[0] ?? identity,
   name,
   username,
+  phone: null,
+  email: null,
   seenIn: seen.map(([id, scope]) => ({ account: id, scope })),
   method,
   linkedAt: ago(days * DAY),
@@ -297,6 +299,7 @@ export function peopleMock(): Pick<
         phone: null,
         email: null,
         username: null,
+        usernameSource: null,
         messagesFrom: null,
         lastContact: null,
       }
@@ -309,6 +312,7 @@ export function peopleMock(): Pick<
       phone: identityValue(p, "whatsapp") ? `+${identityValue(p, "whatsapp")}` : null,
       email: identityValue(p, "email") ?? null,
       username: p.identities.find((i) => i.username)?.username ?? null,
+      usernameSource: p.identities.find((i) => i.username)?.provider ?? null,
       messagesFrom: owner ? null : n < 100 ? 1000 - n : (n * 37) % 410,
       lastContact: ago((n % 30) * 3_600_000 * 7),
     }

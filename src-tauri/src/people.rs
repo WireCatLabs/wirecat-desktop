@@ -125,8 +125,10 @@ pub struct Listed {
     pub contact: Option<String>,
     pub phone: Option<String>,
     pub email: Option<String>,
-    /// A messenger handle, without its `@`; memo 0.131.76 does not say which messenger it is on.
+    /// A messenger handle, without its `@`.
     pub username: Option<String>,
+    /// The messenger `username` is on (`telegram`, `max`…); absent before memo carries `username_source`.
+    pub username_source: Option<String>,
     /// Messages and mail this person sent, every account together.
     pub messages_from: Option<u64>,
     pub last_contact: Option<String>,
@@ -144,6 +146,7 @@ fn listed(v: &Value) -> Option<Listed> {
         phone: text(v, "phone"),
         email: text(v, "email"),
         username: text(v, "username").map(|u| u.trim_start_matches('@').to_string()),
+        username_source: text(v, "username_source"),
         messages_from: v["messages_from"].as_u64(),
         last_contact: text(v, "last_contact"),
     })
@@ -369,6 +372,9 @@ pub struct Identity {
     pub provider: String,
     pub name: Option<String>,
     pub username: Option<String>,
+    /// As this source gave them; absent before memo carries them on identities.
+    pub phone: Option<String>,
+    pub email: Option<String>,
     pub seen_in: Vec<Seen>,
     /// How it was joined: `initial`, `manual`, `same-email`, `same-phone`, `proposal`, `unlink`, `undo-merge`…
     pub method: Option<String>,
@@ -414,6 +420,8 @@ fn identity(v: &Value) -> Option<Identity> {
         reference: id,
         name: text(v, "name"),
         username: text(v, "username"),
+        phone: text(v, "phone"),
+        email: text(v, "email"),
         seen_in: list(v, "seen_in", |s| Some(Seen { account: id_text(&s["account"])?, scope: text(s, "scope") })),
         method: text(v, "method"),
         linked_at: text(v, "linked_at"),
@@ -787,7 +795,7 @@ mod tests {
             seen.lock().unwrap().push(a.to_vec());
             Ok(json!({"items": [{
                 "ref": "person:12", "name": "Kai Sample", "owner": false, "tasks": 0, "contact": "+34600000001",
-                "phone": "+34600000001", "email": "kai@example.com", "username": "@kai_s"
+                "phone": "+34600000001", "email": "kai@example.com", "username": "@kai_s", "username_source": "telegram"
             }], "page": {"has_more": true, "next_page": 3, "total": {"value": 1240, "relation": "eq"}}}))
         };
         let page = page_with(&call, "organization", 2, 50, "  kai \"s\" ", "recent").unwrap();
@@ -798,6 +806,7 @@ mod tests {
             (kai.phone.as_deref(), kai.email.as_deref(), kai.username.as_deref()),
             (Some("+34600000001"), Some("kai@example.com"), Some("kai_s"))
         );
+        assert_eq!(kai.username_source.as_deref(), Some("telegram"));
         assert_eq!(
             seen.lock().unwrap()[0],
             strs(&[
