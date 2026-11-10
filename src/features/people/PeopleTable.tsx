@@ -1,15 +1,16 @@
 import { AtSign, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
-import { type KeyboardEvent, type ReactNode, useEffect } from "react"
+import { type ReactNode, useEffect } from "react"
 import { cleanName, contactOf, filterPeople, looksLikeAccount } from "@/domain/people"
 import { formatWhen } from "@/domain/runs"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import { type Listed, PEOPLE_SORTS, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
 import { Button } from "@/ui/Button"
-import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
+import { Segmented } from "@/ui/Segmented"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { usePersonName } from "./labels"
@@ -62,13 +63,7 @@ export function PeopleTable() {
     </div>
   )
 
-  if (people.length === 0 && !kinded)
-    return (
-      <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
-        <p className="font-medium text-ink">{m.emptyTitle}</p>
-        <p className="mt-1">{m.emptyBody}</p>
-      </div>
-    )
+  if (people.length === 0 && !kinded) return <EmptyState title={m.emptyTitle}>{m.emptyBody}</EmptyState>
   return (
     <section aria-label={m.rows} className="flex flex-col gap-[0.8rem]">
       {tabs}
@@ -145,7 +140,7 @@ export function PeopleTable() {
   )
 }
 
-/** The kinds of people as tabs, each with its count large enough to read at a glance. */
+/** The kinds of people, each with its count, as the one switch every page uses. */
 function KindTabs(props: {
   kind: PersonKind
   kinds: Partial<Record<PersonKind, { value: number; more: boolean }>>
@@ -153,56 +148,22 @@ function KindTabs(props: {
 }) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
-  const at = PERSON_KINDS.indexOf(props.kind)
-  const step = (e: KeyboardEvent<HTMLDivElement>) => {
-    const by = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0
-    if (!by) return
-    e.preventDefault()
-    const next = PERSON_KINDS[(at + by + PERSON_KINDS.length) % PERSON_KINDS.length] ?? props.kind
-    props.onKind(next)
-    e.currentTarget.querySelector<HTMLElement>(`[data-kind="${next}"]`)?.focus()
-  }
   return (
-    <div
-      role="tablist"
-      aria-label={m.kindsLabel}
-      onKeyDown={step}
-      className="grid grid-cols-2 gap-[0.5rem] sm:grid-cols-3 lg:grid-cols-5"
-    >
-      {PERSON_KINDS.map((k) => {
-        const on = k === props.kind
+    <Segmented<PersonKind>
+      size="md"
+      label={m.kindsLabel}
+      value={props.kind}
+      onChange={props.onKind}
+      options={PERSON_KINDS.map((k) => {
         const count = props.kinds[k]
-        return (
-          <button
-            key={k}
-            type="button"
-            role="tab"
-            data-kind={k}
-            aria-selected={on}
-            aria-label={
-              count ? `${m.kinds[k] ?? k} ${formatNumber(count.value, lang)}${count.more ? "+" : ""}` : undefined
-            }
-            tabIndex={on ? 0 : -1}
-            onClick={() => props.onKind(k)}
-            className={cx(
-              "flex min-w-0 cursor-pointer flex-col gap-[0.3rem] rounded-[0.45rem] border px-[0.85rem] py-[0.6rem] text-left",
-              "transition-colors duration-(--motion-fast) focus-visible:outline-2 focus-visible:outline-brand",
-              on
-                ? "border-brand bg-app text-ink"
-                : "border-line bg-app-2 text-ink-soft hover:border-line-strong hover:text-ink",
-            )}
-          >
-            <span className="flex min-w-0 items-center gap-[0.45rem] text-[0.92rem] font-medium">
-              <span className={cx("shrink-0", on ? "text-brand" : "text-ink-dim")}>{KIND_ICONS[k]}</span>
-              <span className="leading-tight">{m.kinds[k] ?? k}</span>
-            </span>
-            <span className="font-display text-[1.35rem] font-bold leading-none tabular-nums">
-              {count ? `${formatNumber(count.value, lang)}${count.more ? "+" : ""}` : "—"}
-            </span>
-          </button>
-        )
+        return {
+          value: k,
+          label: m.kinds[k] ?? k,
+          icon: KIND_ICONS[k],
+          count: count ? `${formatNumber(count.value, lang)}${count.more ? "+" : ""}` : "—",
+        }
       })}
-    </div>
+    />
   )
 }
 

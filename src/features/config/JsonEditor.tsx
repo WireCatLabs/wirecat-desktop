@@ -66,6 +66,9 @@ function matchLayer(text: string, at: readonly number[], length: number, current
 }
 
 type Props = {
+  id?: string
+  /** The messages that explain the marked lines. */
+  errors?: string
   label: string
   value: string
   onChange: (text: string) => void
@@ -75,7 +78,7 @@ type Props = {
 }
 
 /** A textarea with a highlighted copy underneath: native editing, undo and selection, at no bundle cost. */
-export function JsonEditor({ label, value, onChange, onSave, marks, readOnly }: Props) {
+export function JsonEditor({ id, errors, label, value, onChange, onSave, marks, readOnly }: Props) {
   const area = useRef<HTMLTextAreaElement>(null)
   const under = useRef<HTMLPreElement>(null)
   const gutter = useRef<HTMLDivElement>(null)
@@ -227,8 +230,10 @@ export function JsonEditor({ label, value, onChange, onSave, marks, readOnly }: 
           </pre>
           <textarea
             ref={area}
+            id={id}
             aria-label={label}
             aria-invalid={marks.size > 0}
+            aria-describedby={marks.size > 0 ? errors : undefined}
             value={value}
             readOnly={readOnly}
             onChange={(e) => onChange(e.target.value)}

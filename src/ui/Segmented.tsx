@@ -17,12 +17,12 @@ const LOOK: Record<Size, { box: string; item: string; face: string }> = {
     face: "h-7 min-w-7 justify-center text-ink-dim",
   },
   md: {
-    box: "min-w-0 max-w-full flex-wrap items-center",
+    box: "w-fit min-w-0 max-w-full flex-wrap items-center",
     item: "h-[calc(2rem-6px)]",
     face: "h-full px-[0.65rem] text-[0.875rem] text-ink-soft",
   },
   lg: {
-    box: "min-w-0 max-w-full flex-wrap items-center",
+    box: "w-fit min-w-0 max-w-full flex-wrap items-center",
     item: "h-[calc(2.8rem-6px)]",
     face: "h-full px-[0.8rem] text-[0.95rem] text-ink-soft",
   },

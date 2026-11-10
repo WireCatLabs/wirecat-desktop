@@ -3,6 +3,7 @@ import { useLogs } from "@/features/logs"
 import { useLang, useMessages } from "@/i18n"
 import type { AgentCall } from "@/platform/memory-schemas"
 import { useNav } from "@/shared/nav"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { dayLabel, timeOf } from "./labels"
@@ -48,9 +49,7 @@ export function Activity({ calls, error }: { calls: AgentCall[] | null; error: s
           {m.activityFailed} {error}
         </ErrorNotice>
       ) : calls.length === 0 ? (
-        <p className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[0.9rem] text-[0.95rem] text-ink-soft">
-          {m.activityNone}
-        </p>
+        <EmptyState>{m.activityNone}</EmptyState>
       ) : (
         <ul className="rounded-[0.2rem] border border-line-strong bg-app">
           {calls.map((c) => {

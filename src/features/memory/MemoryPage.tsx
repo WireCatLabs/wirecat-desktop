@@ -1,20 +1,22 @@
-import { ArrowRight, Check, ChevronDown, ExternalLink, LoaderCircle, Plus, RefreshCw, X } from "lucide-react"
-import { type ReactNode, useEffect, useId, useState } from "react"
+import { ArrowRight, Check, ChevronDown, LoaderCircle, Plus, X } from "lucide-react"
+import { type ReactNode, useEffect, useState } from "react"
 import { can, entryInTab, matchesFilter, memoryFilter, subjectOf, type Tab } from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
-import { BetaBadge } from "@/shared/BetaBadge"
 import { DemoNote } from "@/shared/DemoNote"
 import { useNav } from "@/shared/nav"
+import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
+import { RefreshButton } from "@/ui/RefreshButton"
+import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { Activity } from "./Activity"
 import { AddPanel, PANEL_TITLE } from "./AddPanel"
@@ -64,49 +66,22 @@ export function MemoryPage() {
   )
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">
-            {m.title}
-            <BetaBadge section="memory" className="ml-[0.7rem] align-middle" />
-          </h1>
-          <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
-            {x.intro}{" "}
-            <a
-              href={guide(lang)}
-              onClick={(e) => {
-                e.preventDefault()
-                platform.openUrl(guide(lang))
-              }}
-              className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
-            >
-              {m.guide}
-              <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
-            </a>
-          </p>
-        </div>
-        {s.read?.kind !== "missing" && !demo && (
-          <span className="flex flex-wrap items-center gap-2">
-            {s.read?.kind === "ready" && <AddButton />}
-            <Button
-              variant="ghost"
-              size="sm"
-              disabled={s.reading}
-              onClick={() => load()}
-              icon={
-                s.reading ? (
-                  <LoaderCircle className="size-4 animate-spin" aria-hidden />
-                ) : (
-                  <RefreshCw className="size-4" aria-hidden />
-                )
-              }
-            >
-              {s.reading && s.read ? m.reading : m.readAgain}
-            </Button>
-          </span>
-        )}
-      </div>
+    <Page>
+      <PageHeader
+        title={m.title}
+        section="memory"
+        intro={x.intro}
+        guide={{ label: m.guide, href: guide(lang) }}
+        actions={
+          s.read?.kind !== "missing" &&
+          !demo && (
+            <>
+              {s.read?.kind === "ready" && <AddButton />}
+              <RefreshButton busy={s.reading} onClick={() => load()} label={m.readAgain} busyLabel={m.reading} />
+            </>
+          )
+        }
+      />
 
       {demo && <DemoNote />}
       <div inert={demo || undefined} className="contents">
@@ -134,13 +109,16 @@ export function MemoryPage() {
             {s.read === null ? (
               <RackSkeleton />
             ) : s.entries.length === 0 ? (
-              <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem] text-[0.95rem] text-ink-soft">
-                <p className="font-medium text-ink">{m.emptyTitle}</p>
-                <p className="mt-1 max-w-[70ch]">{m.emptyBody}</p>
-                <Button size="sm" className="mt-3" onClick={() => useNav.getState().go("agents")}>
-                  {m.goAgents}
-                </Button>
-              </div>
+              <EmptyState
+                title={m.emptyTitle}
+                action={
+                  <Button size="sm" onClick={() => useNav.getState().go("agents")}>
+                    {m.goAgents}
+                  </Button>
+                }
+              >
+                {m.emptyBody}
+              </EmptyState>
             ) : (
               <Rack entries={shown} groups={groups} tab={s.tab} filtering={filtering} />
             )}
@@ -174,7 +152,7 @@ export function MemoryPage() {
       </div>
 
       <ForgetDialog entry={forgetting} />
-    </div>
+    </Page>
   )
 }
 
@@ -216,20 +194,23 @@ function Rack({
 
   if (entries.length === 0)
     return (
-      <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.2rem] text-[0.95rem] text-ink-soft">
-        <p>{filtering ? m.noMatch : m.nothing[tab]}</p>
-        {filtering ? (
-          <Button size="sm" variant="ghost" className="mt-2 -ml-2" onClick={() => setQuery("")}>
-            {m.clearFilters}
-          </Button>
-        ) : (
-          tab === "review" && (
-            <Button size="sm" variant="ghost" className="mt-2 -ml-2" onClick={() => setTab("inuse")}>
-              {m.showInUse}
+      <EmptyState
+        action={
+          filtering ? (
+            <Button size="sm" variant="ghost" className="-ml-2" onClick={() => setQuery("")}>
+              {m.clearFilters}
             </Button>
+          ) : (
+            tab === "review" && (
+              <Button size="sm" variant="ghost" className="-ml-2" onClick={() => setTab("inuse")}>
+                {m.showInUse}
+              </Button>
+            )
           )
-        )}
-      </div>
+        }
+      >
+        {filtering ? m.noMatch : m.nothing[tab]}
+      </EmptyState>
     )
 
   return <SubjectRack entries={entries} groups={groups} leaving={leaving} arriving={arriving} />
@@ -374,20 +355,14 @@ function Moving({ leaving, arriving, children }: { leaving: boolean; arriving: b
 
 function Tabs({ value, onChange, count }: { value: Tab; onChange: (t: Tab) => void; count: (t: Tab) => number }) {
   const m = useMessages(memoryMessages)
-  const name = useId()
   return (
-    <fieldset className="inline-flex h-[2.8rem] items-stretch self-start rounded-[0.45rem] border-0 bg-app-3 p-[3px]">
-      <legend className="sr-only">{m.show}</legend>
-      {TABS.map((t) => (
-        <label key={t} className="relative flex">
-          <input type="radio" name={name} checked={t === value} onChange={() => onChange(t)} className="peer sr-only" />
-          <span className="flex h-[calc(2.8rem-6px)] cursor-pointer items-center gap-[0.45rem] rounded-[0.35rem] px-[0.8rem] text-[0.95rem] text-ink-soft transition-colors duration-(--motion-fast) hover:text-ink peer-checked:bg-app peer-checked:text-ink peer-checked:shadow-panel peer-focus-visible:outline-2 peer-focus-visible:outline-brand">
-            {t === "all" ? m.allTab : m.states[t]}
-            <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{count(t)}</span>
-          </span>
-        </label>
-      ))}
-    </fieldset>
+    <Segmented<Tab>
+      size="md"
+      label={m.show}
+      value={value}
+      onChange={onChange}
+      options={TABS.map((t) => ({ value: t, label: t === "all" ? m.allTab : m.states[t], count: count(t) }))}
+    />
   )
 }
 

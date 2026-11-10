@@ -15,7 +15,7 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { FieldError, invalidBorder } from "@/ui/FieldError"
+import { type FieldNeed, invalidBorder, useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { failureWords, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
@@ -43,6 +43,7 @@ const field = `h-9 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg
 const NAME_FIELD = "own-tool-name"
 const PASTE_FIELD = "own-tool-paste"
 const ACCEPT_FIELD = "own-tool-accept"
+type Field = typeof NAME_FIELD | typeof PASTE_FIELD | typeof ACCEPT_FIELD
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -68,11 +69,15 @@ export function OwnToolDialog() {
   const [step, setStep] = useState<Step>({ kind: "name" })
   const [pkg, setPkg] = useState("")
   const [pasted, setPasted] = useState("")
-  const [tried, setTried] = useState<string | null>(null)
-  const ask = (field: string) => {
-    setTried(field)
-    document.getElementById(field)?.focus()
-  }
+  const needName = useFieldError(NAME_FIELD)
+  const needPaste = useFieldError(PASTE_FIELD)
+  const needAccept = useFieldError(ACCEPT_FIELD)
+  const ask = (field: Field) =>
+    ({
+      [NAME_FIELD]: () => needName.fail((lang) => ownMessages[lang].nameEmpty),
+      [PASTE_FIELD]: () => needPaste.fail((lang) => ownMessages[lang].pasteEmpty),
+      [ACCEPT_FIELD]: () => needAccept.fail((lang) => ownMessages[lang].acceptFirst),
+    })[field]()
 
   const read = async (name: string, desktop: string | null) => {
     setStep({ kind: "reading", pkg: name })
@@ -124,7 +129,11 @@ export function OwnToolDialog() {
   }, [open])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new step starts without the last step's complaint
-  useEffect(() => setTried(null), [step.kind])
+  useEffect(() => {
+    needName.clear()
+    needPaste.clear()
+    needAccept.clear()
+  }, [step.kind])
 
   const busy = step.kind === "reading" || (step.kind === "installing" && !step.session.outcome)
   const done = step.kind === "installing" && step.session.outcome?.event === "done"
@@ -162,7 +171,7 @@ export function OwnToolDialog() {
             pkg={pkg}
             select={step.select === true}
             setPkg={setPkg}
-            empty={tried === NAME_FIELD && !pkg.trim()}
+            need={needName}
             onSubmit={() => (pkg.trim() ? read(pkg.trim(), null) : ask(NAME_FIELD))}
           />
         )}
@@ -173,22 +182,18 @@ export function OwnToolDialog() {
           </p>
         )}
         {step.kind === "refused" && (
-          <Refused
-            step={step}
-            m={m}
-            r={r}
-            pasted={pasted}
-            setPasted={setPasted}
-            empty={tried === PASTE_FIELD && !pasted.trim()}
-          />
+          <Refused step={step} m={m} r={r} pasted={pasted} setPasted={setPasted} need={needPaste} />
         )}
         {step.kind === "review" && (
           <ReviewStep
             review={step.review}
             m={m}
             accepted={step.accepted}
-            accept={(accepted) => setStep({ ...step, accepted })}
-            unaccepted={tried === ACCEPT_FIELD && !step.accepted}
+            accept={(accepted) => {
+              needAccept.clear()
+              setStep({ ...step, accepted })
+            }}
+            need={needAccept}
             acceptId={ACCEPT_FIELD}
           />
         )}
@@ -214,7 +219,7 @@ type On = {
   uninstall(review: OwnReview): void
   setStep(step: Step): void
   close(): void
-  ask(field: string): void
+  ask(field: Field): void
 }
 
 function Actions({
@@ -355,7 +360,7 @@ function NameStep({
   pkg,
   select,
   setPkg,
-  empty,
+  need,
   onSubmit,
 }: {
   m: OwnText
@@ -363,7 +368,7 @@ function NameStep({
   pkg: string
   select: boolean
   setPkg(v: string): void
-  empty: boolean
+  need: FieldNeed
   onSubmit(): void
 }) {
   const id = NAME_FIELD
@@ -386,14 +391,17 @@ function NameStep({
           value={pkg}
           spellCheck={false}
           autoComplete="off"
-          aria-invalid={empty || undefined}
-          aria-describedby={empty ? `${id}-error ${help}` : help}
+          {...need.field}
+          aria-describedby={cx(need.field["aria-describedby"], help)}
           placeholder={m.namePlaceholder}
-          onChange={(e) => setPkg(e.target.value)}
+          onChange={(e) => {
+            need.clear()
+            setPkg(e.target.value)
+          }}
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
           className={cx(field, invalidBorder)}
         />
-        <FieldError id={`${id}-error`}>{empty && m.nameEmpty}</FieldError>
+        {need.hint}
         <p id={help} className="text-[0.9rem] text-ink-soft">
           {m.nameHelp}
         </p>
@@ -408,14 +416,14 @@ function Refused({
   r,
   pasted,
   setPasted,
-  empty,
+  need,
 }: {
   step: Extract<Step, { kind: "refused" }>
   m: OwnText
   r: OwnReviewText
   pasted: string
   setPasted(v: string): void
-  empty: boolean
+  need: FieldNeed
 }) {
   const id = PASTE_FIELD
   const x = step.refusal
@@ -442,13 +450,15 @@ function Refused({
             id={id}
             value={pasted}
             spellCheck={false}
-            onChange={(e) => setPasted(e.target.value)}
+            onChange={(e) => {
+              need.clear()
+              setPasted(e.target.value)
+            }}
             rows={8}
-            aria-invalid={empty || undefined}
-            aria-describedby={empty ? `${id}-error` : undefined}
+            {...need.field}
             className={cx(field, invalidBorder, "h-auto py-2")}
           />
-          <FieldError id={`${id}-error`}>{empty && m.pasteEmpty}</FieldError>
+          {need.hint}
         </div>
       )}
     </div>

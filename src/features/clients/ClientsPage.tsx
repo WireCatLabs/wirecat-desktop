@@ -1,4 +1,4 @@
-import { Columns3, Handshake, ListChecks, RefreshCw, Rows3, UserRoundPlus } from "lucide-react"
+import { Columns3, Handshake, ListChecks, Rows3, UserRoundPlus } from "lucide-react"
 import { useEffect } from "react"
 import { crmsOf } from "@/domain/base-stages"
 import { crmToolOf } from "@/domain/catalog"
@@ -7,14 +7,16 @@ import { gapFromRead } from "@/domain/needs"
 import { crmNeed, ToolNeeded, useNeed } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { CrmPipeline } from "@/platform/bindings"
-import { BetaBadge } from "@/shared/BetaBadge"
+import { Page, PageHeader } from "@/shared/Page"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
+import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
-import { Skeleton, StableText } from "@/ui/Skeleton"
+import { Skeleton } from "@/ui/Skeleton"
 import { type Based, readAgain, useBoard } from "./api"
 import { BaseBoard } from "./BaseBoard"
 import { MovePickers } from "./base-move"
@@ -42,69 +44,64 @@ export function ClientsPage() {
   const t = useMessages(tableMessages)
   const based = board.data?.kind === "base"
   return (
-    <div className="flex min-w-0 flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[2.1rem] leading-none font-extrabold tracking-[-0.035em]">
-            {m.title}
-            <BetaBadge section="clients" className="ml-[0.7rem] align-middle" />
-          </h1>
-          <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={board.isFetching}
-            onClick={() => void readAgain()}
-            className={cx(!based && "invisible")}
-            icon={<RefreshCw className={cx("size-4", board.isFetching && "motion-safe:animate-spin")} aria-hidden />}
-          >
-            <StableText value={board.isFetching ? m.reading : m.readAgain} variants={[m.reading, m.readAgain]} />
-          </Button>
-          {based && (
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-label={waiting > 0 ? sm.mapWaiting(waiting) : undefined}
-              onClick={() => useClients.getState().openMap("")}
-              icon={<Columns3 className="size-4" aria-hidden />}
-            >
-              {sm.mapStages}
-              {waiting > 0 && <Pill tone="warn">{waiting}</Pill>}
-            </Button>
-          )}
-          {based && (
-            <Segmented<View>
-              size="md"
-              label={t.view}
-              value={view}
-              onChange={(v) => useClients.getState().setView(v)}
-              options={(["table", "board"] as const).map((v) => {
-                const Icon = VIEWS[v]
-                return { value: v, label: t[v], icon: <Icon className="size-4" aria-hidden /> }
+    <Page>
+      <PageHeader
+        title={m.title}
+        section="clients"
+        intro={m.intro}
+        actions={
+          <>
+            <RefreshButton
+              busy={board.isFetching}
+              onClick={() => void readAgain()}
+              label={m.readAgain}
+              busyLabel={m.reading}
+              className={cx(!based && "invisible")}
+            />
+            {based && (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={waiting > 0 ? sm.mapWaiting(waiting) : undefined}
+                onClick={() => useClients.getState().openMap("")}
+                icon={<Columns3 className="size-4" aria-hidden />}
+              >
+                {sm.mapStages}
+                {waiting > 0 && <Pill tone="warn">{waiting}</Pill>}
+              </Button>
+            )}
+            {based && (
+              <Segmented<View>
+                size="md"
+                label={t.view}
+                value={view}
+                onChange={(v) => useClients.getState().setView(v)}
+                options={(["table", "board"] as const).map((v) => {
+                  const Icon = VIEWS[v]
+                  return { value: v, label: t[v], icon: <Icon className="size-4" aria-hidden /> }
+                })}
+              />
+            )}
+            <Segmented<Kind>
+              label={m.kind}
+              value={kind}
+              onChange={(k) => useClients.getState().setKind(k)}
+              labelClass=""
+              options={KINDS.map((k) => {
+                const Icon = ICONS[k]
+                return { value: k, label: m.kinds[k], icon: <Icon className="size-4" aria-hidden /> }
               })}
             />
-          )}
-          <Segmented<Kind>
-            label={m.kind}
-            value={kind}
-            onChange={(k) => useClients.getState().setKind(k)}
-            labelClass=""
-            options={KINDS.map((k) => {
-              const Icon = ICONS[k]
-              return { value: k, label: m.kinds[k], icon: <Icon className="size-4" aria-hidden /> }
-            })}
-          />
-          {based && <ImportButton />}
-        </div>
-      </div>
+            {based && <ImportButton />}
+          </>
+        }
+      />
       {based && <CrmNeeded />}
       {board.data?.kind === "base" && <StagesToConfirm read={board.data} kind={kind} />}
       <Body />
       <CardDialog />
       <StageMapDialog />
-    </div>
+    </Page>
   )
 }
 
@@ -127,20 +124,22 @@ function StagesToConfirm({ read, kind }: { read: Based; kind: Kind }) {
   }, [fresh, mapOn])
   if (waiting === 0) return null
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-[1.3rem] py-[0.9rem] text-[0.95rem]">
-      <div className="min-w-0">
-        <p className="font-medium text-ink">{s.toConfirm(waiting)}</p>
-        <p className="mt-1 max-w-[70ch] text-ink-soft">{s.toConfirmBody}</p>
-      </div>
-      <Button
-        size="sm"
-        variant="primary"
-        icon={<ListChecks className="size-4" aria-hidden />}
-        onClick={() => useClients.getState().openMap("")}
-      >
-        {s.confirmStages}
-      </Button>
-    </div>
+    <ErrorNotice
+      tone="warn"
+      detail={s.toConfirmBody}
+      action={
+        <Button
+          size="sm"
+          variant="primary"
+          icon={<ListChecks className="size-4" aria-hidden />}
+          onClick={() => useClients.getState().openMap("")}
+        >
+          {s.confirmStages}
+        </Button>
+      }
+    >
+      <span className="font-medium text-ink">{s.toConfirm(waiting)}</span>
+    </ErrorNotice>
   )
 }
 
@@ -181,12 +180,7 @@ function Body() {
     return <Empty kind={kind} synced={data.pipelines.some((p) => p.account !== null)} />
   }
   if (data.pipelines.length === 0) {
-    return (
-      <div className="rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.3rem] text-[0.95rem] text-ink-soft">
-        <p className="font-medium text-ink">{m.none[kind]}</p>
-        <p className="mt-1 max-w-[70ch]">{m.noneBody[kind]}</p>
-      </div>
-    )
+    return <EmptyState title={m.none[kind]}>{m.noneBody[kind]}</EmptyState>
   }
   return <BaseLoaded read={data} kind={kind} />
 }
@@ -234,20 +228,19 @@ function Empty({ kind, synced }: { kind: Kind; synced: boolean }) {
   const t = useMessages(tableMessages)
   const other = KINDS.find((k) => k !== kind) ?? kind
   return (
-    <div className="flex flex-col gap-[0.7rem] rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.3rem] text-[0.95rem] text-ink-soft">
-      <p className="font-medium text-ink">{m.none[kind]}</p>
-      <div className="flex flex-wrap items-center gap-3">
+    <EmptyState title={m.none[kind]}>
+      <div className="mt-[0.7rem] flex flex-wrap items-center gap-3">
         <p>{t.notImported}</p>
         <ImportButton />
       </div>
-      {synced && <p>{t.emptyScope}</p>}
-      <div className="flex flex-wrap items-center gap-3">
+      {synced && <p className="mt-[0.7rem]">{t.emptyScope}</p>}
+      <div className="mt-[0.7rem] flex flex-wrap items-center gap-3">
         <p>{t.elsewhere[kind]}</p>
         <Button size="sm" variant="ghost" onClick={() => useClients.getState().setKind(other)}>
           {t.showOther[kind]}
         </Button>
       </div>
-    </div>
+    </EmptyState>
   )
 }
 

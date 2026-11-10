@@ -1,14 +1,13 @@
-import { LoaderCircle, RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
 import { ToolNeeded } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { DigestSpec } from "@/platform/bindings"
-import { BetaBadge } from "@/shared/BetaBadge"
 import { useDigestDay } from "@/shared/digest-day"
+import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
-import { Button } from "@/ui/Button"
 import { Crossfade } from "@/ui/Crossfade"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
 import { CreateDialog, draftOf, Starter, type Template, takenNames } from "./CreateDigest"
 import { DigestTable } from "./DigestTable"
@@ -54,33 +53,13 @@ export function DigestsPage() {
   const pick = (t: Template) => ready && setCreating(draftOf(t, takenNames(ready.digests), b))
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">
-            {m.page}
-            <BetaBadge section="digests" className="ml-[0.7rem] align-middle" />
-          </h1>
-          <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={reading}
-            onClick={() => void read()}
-            icon={
-              reading ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <RefreshCw className="size-4" aria-hidden />
-              )
-            }
-          >
-            {reading && book ? m.reading : m.readAgain}
-          </Button>
-        </div>
-      </div>
+    <Page>
+      <PageHeader
+        title={m.page}
+        section="digests"
+        intro={m.intro}
+        actions={<RefreshButton busy={reading} onClick={() => void read()} label={m.readAgain} busyLabel={m.reading} />}
+      />
 
       {error && !book ? (
         <ErrorNotice action={<ReportThis what="Reading digests" error={error} />}>{s.readFailed(error)}</ErrorNotice>
@@ -113,6 +92,6 @@ export function DigestsPage() {
         </Crossfade>
       )}
       <CreateDialog start={creating} can={can} harness={harness} onClose={() => setCreating(null)} />
-    </div>
+    </Page>
   )
 }

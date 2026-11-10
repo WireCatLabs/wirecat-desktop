@@ -1,8 +1,9 @@
 import { AlignLeft, Check, LoaderCircle, Undo2, X } from "lucide-react"
-import { type ReactNode, useEffect, useMemo, useState } from "react"
+import { type ReactNode, useEffect, useMemo } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
+import { useFieldError } from "@/ui/FieldError"
 import { Skeleton } from "@/ui/Skeleton"
 import { lineOf } from "./diff"
 import { JsonEditor } from "./JsonEditor"
@@ -10,20 +11,39 @@ import { type ConfigText, configMessages } from "./messages"
 import { reasonText } from "./reason"
 import { documentText, type Step, useConfig } from "./store"
 
+const EDITOR = "config-json"
+const PROBLEMS = `${EDITOR}-problems`
+
+/** Puts the caret in the editor once the store has marked the lines a save or a format found wrong. */
+const focusEditor = () => document.getElementById(EDITOR)?.focus()
+
+/** Saves, then shows the marked editor, unless the owner has moved elsewhere while the steps ran. */
+async function saveAndShow() {
+  const from = document.activeElement
+  await useConfig.getState().saveDraft()
+  const after = useConfig.getState()
+  const stayed = document.activeElement === from || document.activeElement === document.body
+  if (stayed && (after.jsonError !== null || after.problems.length > 0)) focusEditor()
+}
+
 export function JsonActions({ dirty }: { dirty: boolean }) {
   const m = useMessages(configMessages).editor
   const st = useConfig()
-  const [asked, setAsked] = useState(false)
+  const unchanged = useFieldError(EDITOR)
   useEffect(() => {
-    if (dirty) setAsked(false)
-  }, [dirty])
+    if (dirty) unchanged.clear()
+  }, [dirty, unchanged.clear])
+  const save = async () => {
+    if (!dirty) return unchanged.fail((lang) => configMessages[lang].editor.nothingToSave)
+    await saveAndShow()
+  }
   return (
     <div className="flex flex-wrap items-center gap-2 py-2">
       <Button
         size="sm"
         variant="ghost"
-        onClick={st.formatDraft}
-        disabled={st.draft === null || st.jsonError !== null || st.saving}
+        onClick={() => (st.jsonError !== null ? focusEditor() : st.formatDraft())}
+        disabled={st.draft === null || st.saving}
         icon={<AlignLeft className="size-3.5" aria-hidden />}
       >
         {m.format}
@@ -40,17 +60,13 @@ export function JsonActions({ dirty }: { dirty: boolean }) {
       <Button
         size="sm"
         variant="primary"
-        onClick={() => (dirty ? st.saveDraft() : setAsked(true))}
+        onClick={() => void save()}
         disabled={st.saving}
         icon={st.saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : undefined}
       >
         {st.saving ? m.saving : m.save}
       </Button>
-      {asked && !dirty && (
-        <span role="alert" className="text-[0.9rem] text-bad">
-          {m.nothingToSave}
-        </span>
-      )}
+      {unchanged.hint}
     </div>
   )
 }
@@ -76,17 +92,19 @@ export function JsonTab() {
         <Skeleton className="h-[min(60vh,34rem)] min-h-[16rem] w-full rounded-none" label={all.reading} />
       ) : (
         <JsonEditor
+          id={EDITOR}
+          errors={PROBLEMS}
           label={m.label}
           value={text}
           onChange={st.edit}
           onSave={() => {
-            if (!st.saving) st.saveDraft()
+            if (!st.saving) void saveAndShow()
           }}
           marks={marks}
           readOnly={st.saving}
         />
       )}
-      <div aria-live="polite" className="border-line border-t empty:hidden">
+      <div id={PROBLEMS} aria-live="polite" className="border-line border-t empty:hidden">
         {st.jsonError && (
           <Message tone="bad" where={m.line(st.jsonError.line)}>
             {reasonText(all, st.jsonError.message)}

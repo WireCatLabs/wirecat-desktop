@@ -1,14 +1,12 @@
-import { ExternalLink, LoaderCircle, RefreshCw } from "lucide-react"
 import { useEffect } from "react"
 import { gapFromRead } from "@/domain/needs"
 import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { BetaBadge } from "@/shared/BetaBadge"
+import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
-import { Button } from "@/ui/Button"
 import { Crossfade } from "@/ui/Crossfade"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
 import { MatchDialog } from "./MatchDialog"
 import { Matches, MatchesWaiting } from "./Matches"
@@ -33,46 +31,18 @@ export function PeoplePage() {
   }, [visit])
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">
-            {m.title}
-            <BetaBadge section="people" className="ml-[0.7rem] align-middle" />
-          </h1>
-          <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
-            {m.intro}{" "}
-            <a
-              href={guide(lang)}
-              onClick={(e) => {
-                e.preventDefault()
-                platform.openUrl(guide(lang))
-              }}
-              className="inline-flex items-baseline gap-[0.2rem] font-medium text-brand hover:text-brand-hover"
-            >
-              {m.guide}
-              <ExternalLink className="size-[0.8rem] self-center" aria-hidden />
-            </a>
-          </p>
-        </div>
-        {s.read !== "missing" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={s.reading}
-            onClick={() => void load()}
-            icon={
-              s.reading ? (
-                <LoaderCircle className="size-4 animate-spin" aria-hidden />
-              ) : (
-                <RefreshCw className="size-4" aria-hidden />
-              )
-            }
-          >
-            {s.reading && s.read ? m.reading : m.readAgain}
-          </Button>
-        )}
-      </div>
+    <Page>
+      <PageHeader
+        title={m.title}
+        section="people"
+        intro={m.intro}
+        guide={{ label: m.guide, href: guide(lang) }}
+        actions={
+          s.read !== "missing" && (
+            <RefreshButton busy={s.reading} onClick={() => void load()} label={m.readAgain} busyLabel={m.reading} />
+          )
+        }
+      />
 
       {s.error ? (
         <ErrorNotice action={<ReportThis what="Reading people" error={s.error} />}>
@@ -98,7 +68,7 @@ export function PeoplePage() {
       <MatchDialog />
       <SplitDialog />
       <UndoMergeDialog />
-    </div>
+    </Page>
   )
 }
 

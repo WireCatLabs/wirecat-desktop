@@ -96,6 +96,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
   const consent = useId()
   const noProvider = useFieldError(`${name}-providers`)
   const noModel = useFieldError(modelId)
+  const saveFirst = useFieldError(`${name}-save`)
   const [nothing, setNothing] = useState(false)
 
   useEffect(() => setDraft(draftOf(saved)), [saved])
@@ -111,7 +112,8 @@ function AiModelForm({ saved }: { saved: AiModel }) {
     draft.images !== savedDraft.images
   useEffect(() => {
     if (dirty) setNothing(false)
-  }, [dirty])
+    else saveFirst.clear()
+  }, [dirty, saveFirst.clear])
   const set = (patch: Partial<Draft>) => {
     setJustSaved(false)
     setNothing(false)
@@ -268,6 +270,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
 
       <div className="flex flex-wrap items-center gap-3">
         <Button
+          id={`${name}-save`}
           type="submit"
           size="sm"
           variant="primary"
@@ -278,9 +281,15 @@ function AiModelForm({ saved }: { saved: AiModel }) {
         </Button>
         <Button
           size="sm"
-          disabled={saved.provider === null || dirty || busy !== null}
+          disabled={busy !== null}
           aria-describedby={`${name}-cost`}
-          onClick={() => void useAiModel.getState().check()}
+          onClick={() =>
+            dirty
+              ? saveFirst.fail((lang) => aiModelMessages[lang].checkSaveFirst)
+              : saved.provider === null
+                ? noProvider.fail(m.needProvider)
+                : void useAiModel.getState().check()
+          }
           icon={busy === "check" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
         >
           {busy === "check" ? m.checking : m.check}
@@ -302,8 +311,9 @@ function AiModelForm({ saved }: { saved: AiModel }) {
         )}
       </div>
       <FieldError id={`${name}-nothing`}>{nothing && m.nothingToSave}</FieldError>
+      {saveFirst.hint}
       <p id={`${name}-cost`} className="-mt-[0.5rem] text-[0.85rem] text-ink-dim">
-        {dirty && saved.provider !== null ? m.checkSaveFirst : m.checkCost}
+        {m.checkCost}
       </p>
       {saved.provider === null && <p className="text-[0.9rem] text-ink-soft">{m.off}</p>}
       {saved.provider !== null && (

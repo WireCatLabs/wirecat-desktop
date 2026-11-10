@@ -46,7 +46,7 @@ describe("Clients on the base stages", () => {
     unmount()
     render(<ClientsPage />)
     expect(screen.getByRole("button", { name: "Site for Northstar" })).toBeInTheDocument()
-    expect(screen.queryByRole("status")).toBeNull()
+    expect(screen.queryAllByRole("status").filter((s) => s.textContent === "Reading…")).toHaveLength(0)
     expect(read).toHaveBeenCalledTimes(1)
   })
 

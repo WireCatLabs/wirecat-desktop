@@ -1,5 +1,6 @@
 import { LoaderCircle } from "lucide-react"
 import type { ReactNode } from "react"
+import { BetaBadge } from "@/shared/BetaBadge"
 import { ExtLink } from "@/shared/ExtLink"
 import { cx } from "@/ui/cx"
 
@@ -14,6 +15,8 @@ export function Page({ children, className }: { children: ReactNode; className?:
 
 type Props = {
   title: string
+  /** The sidebar section this page is; a section marked beta gets its β beside the title. */
+  section?: string
   /** A short line beside the title. While `busy` (the default) it has a spinner and is announced, as "Checking…". */
   status?: string | null
   busy?: boolean
@@ -25,13 +28,15 @@ type Props = {
 }
 
 /** The one page title row (DESIGN.md, Layout): display title, intro capped at 70ch, quiet actions on the right. */
-export function PageHeader({ title, status, busy = true, intro, guide, actions }: Props) {
+export function PageHeader({ title, section, status, busy = true, intro, guide, actions }: Props) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       {/* A basis, not the content, decides when the actions wrap: a status line appearing must not push them down. */}
       <div className="min-w-0 flex-1 basis-[24rem]">
         <div className="flex min-w-0 items-baseline gap-[1.2rem]">
           <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{title}</h1>
+          {/* Beside the heading, not in it: the β must not become part of the page's name for a screen reader. */}
+          {section && <BetaBadge section={section} className="-ml-[0.5rem] self-center" />}
           {status !== undefined && (
             <p
               aria-live={busy ? "polite" : undefined}
