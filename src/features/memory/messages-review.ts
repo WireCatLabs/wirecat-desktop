@@ -44,6 +44,7 @@ const en = {
   },
   why: "Why does the change not matter?",
   whyHint: "A few words, such as “a typo fix”.",
+  whyEmpty: "Write a few words on why first.",
   dismissNow: "Dismiss",
   cancel: "Cancel",
   refused: {
@@ -99,6 +100,7 @@ const ru: typeof en = {
   },
   why: "Почему изменение не важно?",
   whyHint: "Пара слов, например «исправили опечатку».",
+  whyEmpty: "Сначала напишите пару слов о причине.",
   dismissNow: "Отклонить",
   cancel: "Отмена",
   refused: {
@@ -154,6 +156,7 @@ const es: typeof en = {
   },
   why: "¿Por qué no importa el cambio?",
   whyHint: "Unas palabras, como «se corrigió una errata».",
+  whyEmpty: "Escribe primero unas palabras sobre el motivo.",
   dismissNow: "Descartar",
   cancel: "Cancelar",
   refused: {

@@ -3,7 +3,9 @@ import { useEffect, useId } from "react"
 import { useMessages } from "@/i18n"
 import type { Receipt, ReceiptLine, RecordColumn } from "@/platform/records-schemas"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
+import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { fieldClass } from "@/ui/field"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
@@ -22,6 +24,11 @@ export function ImportPanel() {
   const { load, choose, saveTemplate, pick, check, run } = useImport.getState()
   const sourceId = useId()
   const sourceHelpId = useId()
+  const fileId = useId()
+  const importId = useId()
+  const noSource = useFieldError(sourceId)
+  const noFile = useFieldError(fileId)
+  const noImport = useFieldError(importId)
 
   useEffect(() => {
     load()
@@ -31,6 +38,15 @@ export function ImportPanel() {
   const columns = s.types?.find((t) => t.type === s.kind)?.columns ?? []
   const checked = s.checked?.kind === "receipt" ? s.checked.receipt : null
   const canImport = checked !== null && checked.created + checked.updated + checked.deleted > 0
+  const askCheck = () => {
+    if (!sourceOk) return noSource.fail(s.account.trim() === "" ? m.sourceNeeded : m.sourceInvalid)
+    if (!s.file) return noFile.fail(m.fileNeeded)
+    check()
+  }
+  const askImport = () => {
+    if (!canImport) return noImport.fail(checked === null ? m.checkFirst : m.nothingToImport)
+    run()
+  }
 
   return (
     <section aria-labelledby="import-title" className="rounded-[0.2rem] border border-line-strong bg-app">
@@ -116,21 +132,30 @@ export function ImportPanel() {
               <input
                 id={sourceId}
                 value={s.account}
-                onChange={(e) => choose({ account: e.target.value })}
+                onChange={(e) => {
+                  choose({ account: e.target.value })
+                  noSource.clear()
+                }}
                 placeholder={m.sourceExample}
                 spellCheck={false}
-                aria-describedby={sourceHelpId}
-                aria-invalid={s.account.trim() !== "" && !sourceOk}
-                className={`${fieldClass} max-w-[22rem] font-mono`}
+                aria-describedby={noSource.error ? `${sourceId}-error ${sourceHelpId}` : sourceHelpId}
+                aria-invalid={noSource.error !== null || (s.account.trim() !== "" && !sourceOk)}
+                className={cx(fieldClass, invalidBorder, "max-w-[22rem] font-mono")}
               />
+              {noSource.hint}
               <p id={sourceHelpId} className="max-w-[80ch] text-[0.85rem] text-ink-dim">
                 {s.account.trim() !== "" && !sourceOk ? m.sourceInvalid : m.sourceHelp}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <Button
+                id={fileId}
                 size="sm"
-                onClick={() => pick()}
+                aria-describedby={noFile.error ? `${fileId}-error` : undefined}
+                onClick={() => {
+                  noFile.clear()
+                  pick()
+                }}
                 disabled={s.busy !== null}
                 icon={<FileUp className="size-4" aria-hidden />}
               >
@@ -140,20 +165,23 @@ export function ImportPanel() {
                 {s.file ?? m.noFile}
               </span>
             </div>
+            {noFile.hint}
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 size="sm"
-                onClick={() => check()}
-                disabled={!s.file || !sourceOk || s.busy !== null}
+                onClick={askCheck}
+                disabled={s.busy !== null}
                 icon={<ListChecks className="size-4" aria-hidden />}
               >
                 {m.check}
               </Button>
               <Button
+                id={importId}
                 size="sm"
                 variant="primary"
-                onClick={() => run()}
-                disabled={!canImport || s.busy !== null}
+                aria-describedby={noImport.error ? `${importId}-error` : undefined}
+                onClick={askImport}
+                disabled={s.busy !== null}
                 icon={<Upload className="size-4" aria-hidden />}
               >
                 {m.import}
@@ -165,6 +193,7 @@ export function ImportPanel() {
                 </span>
               )}
             </div>
+            {noImport.hint}
             <Result m={m} />
           </div>
         </>

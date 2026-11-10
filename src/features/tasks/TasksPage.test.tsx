@@ -339,6 +339,8 @@ describe("Tasks", () => {
     const dialog = await screen.findByRole("dialog", { name: "Task HRB-12" })
     // The task's history is a list too, and may arrive first.
     const thread = (await within(dialog).findByText(/Kai wants the per-seat price/)).closest("ol") as HTMLElement
+    await user.click(within(dialog).getByRole("button", { name: "Comment" }))
+    expect(within(dialog).getByText("Write a comment first, then send it.")).toBeInTheDocument()
     await user.type(within(dialog).getByRole("textbox", { name: "Add a comment" }), "-Sent the second tab.")
     await user.click(within(dialog).getByRole("button", { name: "Comment" }))
     await waitFor(() => expect(within(thread).getAllByRole("listitem")).toHaveLength(3))

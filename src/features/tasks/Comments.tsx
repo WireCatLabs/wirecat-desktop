@@ -3,8 +3,8 @@ import { useEffect, useId, useState } from "react"
 import { useLang, useMessages } from "@/i18n"
 import type { TaskComment } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
-import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { Skeleton } from "@/ui/Skeleton"
 import { stamp, taskMessages } from "./messages"
@@ -33,11 +33,13 @@ export function Comments({ taskKey }: { taskKey: string }) {
   const failed = useTasks((s) => s.failed[`comment:${taskKey}`])
   const [text, setText] = useState("")
   const ready = text.trim() !== ""
+  const empty = useFieldError(`${id}-text`)
   useEffect(() => {
     if (!useTasks.getState().comments[taskKey]) void useTasks.getState().loadComments(taskKey)
   }, [taskKey])
   const send = async () => {
-    if (!ready || busy) return
+    if (busy) return
+    if (!ready) return empty.fail(m.commentEmpty)
     if (await useTasks.getState().comment(taskKey, text)) setText("")
   }
 
@@ -78,11 +80,16 @@ export function Comments({ taskKey }: { taskKey: string }) {
         }}
       >
         <textarea
+          id={`${id}-text`}
           aria-label={m.addComment}
           rows={2}
           value={text}
           maxLength={20_000}
-          onChange={(e) => setText(e.target.value)}
+          {...empty.field}
+          onChange={(e) => {
+            setText(e.target.value)
+            empty.clear()
+          }}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
               e.preventDefault()
@@ -90,17 +97,10 @@ export function Comments({ taskKey }: { taskKey: string }) {
             }
           }}
           placeholder={`${m.addComment}. ${m.commentHint}`}
-          className={`selectable rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
+          className={`selectable rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] py-[0.5rem] text-[0.95rem] text-ink placeholder:text-ink-dim aria-[invalid=true]:border-bad ${fieldFocus}`}
         />
-        {/* The button appears with the first word; its line is kept, so nothing below moves. */}
-        <div
-          inert={(!ready && !busy) || undefined}
-          aria-hidden={(!ready && !busy) || undefined}
-          className={cx(
-            "flex gap-2 transition-opacity duration-(--motion-fast)",
-            !ready && !busy && "pointer-events-none opacity-0",
-          )}
-        >
+        {empty.hint}
+        <div className="flex gap-2">
           <Button variant="primary" size="sm" type="submit" disabled={busy}>
             {busy ? m.sending : m.send}
           </Button>

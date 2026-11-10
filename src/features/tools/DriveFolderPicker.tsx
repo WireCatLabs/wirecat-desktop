@@ -8,6 +8,7 @@ import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
+import { useFieldError } from "@/ui/FieldError"
 import { driveMessages } from "./messages-drive"
 
 /** "Shared with me" is a list, not a folder: drive-cli refuses to add it, only what is under it. */
@@ -45,6 +46,8 @@ export function DriveFolderPicker(props: {
   const [added, setAdded] = useState<string[]>([])
   const [notAdded, setNotAdded] = useState<string[]>([])
   const list = useRef<HTMLUListElement>(null)
+  const listId = `${heading}-list`
+  const none = useFieldError(listId)
   const here = trail.at(-1)?.id ?? null
   const key = here ?? ""
 
@@ -68,15 +71,18 @@ export function DriveFolderPicker(props: {
 
   const open = (folder: DriveFolder) => setTrail((t) => [...t, { id: folder.id, name: folder.name }])
   const back = (to: number) => setTrail((t) => t.slice(0, to + 1))
-  const toggle = (folder: DriveFolder, on: boolean) =>
+  const toggle = (folder: DriveFolder, on: boolean) => {
+    none.clear()
     setChosen((c) => {
       const next = new Map(c)
       if (on) next.set(folder.id, folder.name)
       else next.delete(folder.id)
       return next
     })
+  }
 
   const add = async () => {
+    if (chosen.size === 0) return none.fail(sm.picker.noneChosen)
     setAdding(true)
     const failed: string[] = []
     const done: string[] = []
@@ -163,6 +169,8 @@ export function DriveFolderPicker(props: {
               ) : (
                 <ul
                   ref={list}
+                  id={listId}
+                  {...none.field}
                   onKeyDown={keys}
                   className="flex max-h-[18rem] flex-col overflow-y-auto rounded-[0.4rem] border border-line"
                 >
@@ -182,8 +190,9 @@ export function DriveFolderPicker(props: {
           )}
         </Crossfade>
       </AutoHeight>
+      {none.hint}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <Button size="sm" variant="primary" disabled={chosen.size === 0 || adding} onClick={add}>
+        <Button size="sm" variant="primary" disabled={adding} onClick={add}>
           {adding ? sm.picker.adding : sm.picker.add(chosen.size)}
         </Button>
         {added.length > 0 && after}

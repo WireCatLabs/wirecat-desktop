@@ -5,7 +5,9 @@ import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry, SourceReview } from "@/platform/memory-schemas"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { Skeleton } from "@/ui/Skeleton"
 import { savedAt } from "./labels"
 import { reviewMessages } from "./messages-review"
@@ -152,6 +154,7 @@ function Answers({ entry }: { entry: MemoryEntry }) {
   const [why, setWhy] = useState("")
   const field = useId()
   const hint = useId()
+  const empty = useFieldError(field)
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
     if (asking) input.current?.focus({ preventScroll: true })
@@ -171,7 +174,8 @@ function Answers({ entry }: { entry: MemoryEntry }) {
           className="flex flex-col gap-[0.45rem]"
           onSubmit={(e) => {
             e.preventDefault()
-            if (why.trim()) answerReview(entry.ref, "dismiss", why.trim())
+            if (!why.trim()) return empty.fail(m.whyEmpty)
+            answerReview(entry.ref, "dismiss", why.trim())
           }}
         >
           <label htmlFor={field} className="text-[0.95rem] font-medium">
@@ -182,21 +186,24 @@ function Answers({ entry }: { entry: MemoryEntry }) {
             id={field}
             maxLength={2000}
             value={why}
-            aria-describedby={hint}
-            onChange={(e) => setWhy(e.target.value)}
+            {...empty.field}
+            aria-describedby={empty.error ? `${field}-error ${hint}` : hint}
+            onChange={(e) => {
+              setWhy(e.target.value)
+              empty.clear()
+            }}
             onKeyDown={(e) => e.key === "Escape" && setAsking(false)}
-            className="selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]"
+            className={cx(
+              "selectable h-10 w-full rounded-[0.35rem] border border-line-strong bg-app px-3 text-[1rem]",
+              invalidBorder,
+            )}
           />
           <p id={hint} className="text-[0.9rem] text-ink-soft">
             {m.whyHint}
           </p>
+          {empty.hint}
           <span className="flex gap-2">
-            <Button
-              type="submit"
-              size="sm"
-              disabled={!why.trim() || !!busy}
-              icon={busy === "dismiss" ? spin : undefined}
-            >
+            <Button type="submit" size="sm" disabled={!!busy} icon={busy === "dismiss" ? spin : undefined}>
               {m.dismissNow}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setAsking(false)}>

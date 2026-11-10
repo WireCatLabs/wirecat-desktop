@@ -6,7 +6,7 @@ import { platform } from "@/platform/bridge"
 import { ownReview, riskyReview, UNCHANGED } from "@/platform/mock-community"
 import { useAgents } from "@/shared/agents-store"
 import { useOwnDialog } from "@/shared/own-dialog-store"
-import { render, screen, within } from "@/testing/render"
+import { render, screen, waitFor, within } from "@/testing/render"
 import { OwnToolDialog } from "./OwnToolDialog"
 
 const PKG = "@example/acme-crm-cli"
@@ -309,9 +309,11 @@ describe("Add your own tool", () => {
     expect(screen.getByText(/now also has: an MCP server/)).toBeInTheDocument()
     expect(screen.getByText(/a sign-in, its check \(doctor\)/)).toBeInTheDocument()
     const add = screen.getByRole("button", { name: "Update" })
-    expect(add).toBeDisabled()
-    await userEvent.click(screen.getByRole("checkbox", { name: "I accept these changes" }))
     expect(add).toBeEnabled()
+    await userEvent.click(add)
+    expect(screen.getByText(/Tick the box to accept the changes/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("checkbox", { name: "I accept these changes" }))
+    await waitFor(() => expect(screen.queryByText(/Tick the box to accept the changes/)).not.toBeInTheDocument())
   })
 
   it("names a thrown discovery error instead of blaming the network", async () => {

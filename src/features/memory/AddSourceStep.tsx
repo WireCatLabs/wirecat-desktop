@@ -1,9 +1,10 @@
 import { FileText, Link2, LoaderCircle, Paperclip } from "lucide-react"
-import { useEffect, useId } from "react"
+import { useEffect, useId, useState } from "react"
 import { fileName, isLink, missingOf, type Way, wordCount } from "@/domain/memory-add"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
+import { FieldError, invalidBorder } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { SourcePreview } from "./AddPreview"
 import { Refusal } from "./AddRefusal"
@@ -26,12 +27,24 @@ export function SourceStep() {
   const { setWay, save } = useAddSource.getState()
   const name = useId()
   const missing = missingOf(draft)
+  const [tried, setTried] = useState(false)
+  const inputs = `${name}-inputs`
+  const problem = `${name}-problem`
+  const shown = tried && missing ? missing : null
+  // biome-ignore lint/correctness/useExhaustiveDependencies: another way to add starts without the last complaint
+  useEffect(() => setTried(false), [draft.way])
 
   return (
     <form
+      noValidate
       className="flex flex-col gap-[1rem]"
       onSubmit={(e) => {
         e.preventDefault()
+        if (missing) {
+          setTried(true)
+          document.getElementById(inputs)?.querySelector<HTMLElement>("textarea, input, button")?.focus()
+          return
+        }
         void save()
       }}
     >
@@ -57,27 +70,33 @@ export function SourceStep() {
             </label>
           ))}
         </fieldset>
-        <div key={draft.way} className="fade-in min-w-0">
-          {draft.way === "text" ? <TextInput /> : draft.way === "link" ? <LinkInput /> : <FileInput />}
+        <div key={draft.way} id={inputs} className="fade-in min-w-0">
+          {draft.way === "text" ? (
+            <TextInput invalid={shown === "text" || shown === "tooLong"} problem={problem} />
+          ) : draft.way === "link" ? (
+            <LinkInput invalid={shown === "link"} problem={problem} />
+          ) : (
+            <FileInput problem={shown === "file" ? problem : undefined} />
+          )}
         </div>
       </div>
       <Refusal />
+      <FieldError id={problem}>{shown && m.missing[shown]}</FieldError>
       <div className="flex flex-wrap items-center gap-3">
         <Button
           type="submit"
           variant="primary"
-          disabled={!!missing || !!busy}
+          disabled={!!busy}
           icon={busy === "save" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
         >
           {busy === "save" ? m.saving[draft.way] : m.save}
         </Button>
-        {missing && <p className="text-[0.9rem] text-ink-soft">{m.missing[missing]}</p>}
       </div>
     </form>
   )
 }
 
-function TextInput() {
+function TextInput({ invalid, problem }: { invalid: boolean; problem: string }) {
   const m = useMessages(addMessages)
   const draft = useAddSource((s) => s.draft)
   const { edit } = useAddSource.getState()
@@ -112,8 +131,10 @@ function TextInput() {
         id={text}
         rows={4}
         value={draft.text}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? problem : undefined}
         onChange={(e) => edit({ text: e.target.value })}
-        className={cx(field, "min-h-[6.5rem] resize-y py-2 leading-snug")}
+        className={cx(field, invalidBorder, "min-h-[6.5rem] resize-y py-2 leading-snug")}
       />
     </div>
   )
@@ -122,7 +143,7 @@ function TextInput() {
 /** The address stops changing for this long before the page is read, so typing does not start a read per key. */
 const SETTLE_MS = 600
 
-function LinkInput() {
+function LinkInput({ invalid, problem }: { invalid: boolean; problem: string }) {
   const m = useMessages(addMessages)
   const draft = useAddSource((s) => s.draft)
   const preview = useAddSource((s) => s.preview)
@@ -145,9 +166,10 @@ function LinkInput() {
         type="url"
         inputMode="url"
         value={draft.url}
-        aria-describedby={hint}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? `${problem} ${hint}` : hint}
         onChange={(e) => edit({ url: e.target.value })}
-        className={cx(field, "h-10 font-mono")}
+        className={cx(field, invalidBorder, "h-10 font-mono")}
       />
       <p id={hint} className="max-w-[70ch] text-[0.9rem] text-ink-soft">
         {m.urlHint}
@@ -157,7 +179,7 @@ function LinkInput() {
   )
 }
 
-function FileInput() {
+function FileInput({ problem }: { problem: string | undefined }) {
   const m = useMessages(addMessages)
   const path = useAddSource((s) => s.draft.path)
   const busy = useAddSource((s) => s.busy)
@@ -177,6 +199,7 @@ function FileInput() {
       <Button
         size="sm"
         disabled={!!busy}
+        aria-describedby={problem}
         onClick={() => void pickFile()}
         icon={busy === "pick" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
       >

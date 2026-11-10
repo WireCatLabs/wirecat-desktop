@@ -9,6 +9,7 @@ import { Button } from "@/ui/Button"
 import { Radio } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { SecretField } from "@/ui/SecretField"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
@@ -86,13 +87,16 @@ export function ReaderChoice({ readers, describedBy }: { readers: Reader[]; desc
   const chosen = readers.find((r) => r.chosen)?.id ?? null
   const [picked, setPicked] = useState<string | null>(null)
   const marked = picked ?? chosen
+  const need = useFieldError(`${name}-readers`)
   const state = (r: Reader) =>
     !r.available ? (r.id === "key" ? m.noKey : m.notFound) : r.signedIn === false ? m.notSignedIn : null
   return (
     <div className="flex flex-col gap-3">
       <fieldset
-        aria-describedby={describedBy}
-        className="flex max-w-[40rem] flex-col rounded-[0.45rem] border border-line"
+        id={`${name}-readers`}
+        {...need.field}
+        aria-describedby={need.error ? `${name}-readers-error ${describedBy}` : describedBy}
+        className="flex max-w-[40rem] flex-col rounded-[0.45rem] border border-line aria-[invalid=true]:border-bad"
       >
         <legend className="sr-only">{m.heading}</legend>
         {readers.map((r) => {
@@ -108,7 +112,10 @@ export function ReaderChoice({ readers, describedBy }: { readers: Reader[]; desc
                 value={r.id}
                 checked={marked === r.id}
                 disabled={off || busy === "choose"}
-                onChange={() => setPicked(r.id)}
+                onChange={() => {
+                  setPicked(r.id)
+                  need.clear()
+                }}
               />
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-baseline gap-x-2">
@@ -129,11 +136,16 @@ export function ReaderChoice({ readers, describedBy }: { readers: Reader[]; desc
           )
         })}
       </fieldset>
+      {need.hint}
       <span>
         <Button
           size="sm"
-          disabled={marked === null || marked === chosen || busy !== null}
-          onClick={() => marked && void useReaders.getState().choose(marked)}
+          disabled={busy !== null}
+          onClick={() => {
+            if (marked === null) return need.fail(m.needReader)
+            if (marked === chosen) return need.fail(m.sameReader)
+            void useReaders.getState().choose(marked)
+          }}
           icon={busy === "choose" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
         >
           {m.use}
@@ -153,14 +165,17 @@ function KeyForm() {
   const keyId = useId()
   const providerId = useId()
   const help = useId()
-  const ready = provider !== "" && key.trim() !== "" && busy === null
+  const noProvider = useFieldError(providerId)
+  const noKey = useFieldError(keyId)
 
   return (
     <form
       className="flex max-w-[40rem] flex-col gap-[0.5rem]"
       onSubmit={async (e) => {
         e.preventDefault()
-        if (!ready) return
+        if (busy !== null) return
+        if (provider === "") return noProvider.fail(m.needProvider)
+        if (key.trim() === "") return noKey.fail(m.needKey)
         // The field empties either way: the key is handed on once and never kept in the window.
         const given = key
         setKey("")
@@ -173,16 +188,22 @@ function KeyForm() {
       </p>
       <div className="grid gap-3 sm:grid-cols-[12rem_minmax(0,1fr)]">
         <div className="flex flex-col gap-[0.3rem]">
-          <span id={providerId} className="text-[0.9rem] text-ink-dim">
+          <span id={`${providerId}-label`} className="text-[0.9rem] text-ink-dim">
             {m.provider}
           </span>
           <Select<Provider | "">
+            id={providerId}
             value={provider}
-            onChange={setProvider}
+            onChange={(p) => {
+              setProvider(p)
+              noProvider.clear()
+            }}
             placeholder={m.pickProvider}
             options={PROVIDERS.map((p) => ({ value: p, label: m.providers[p] ?? p }))}
-            aria-labelledby={providerId}
+            aria-labelledby={`${providerId}-label`}
+            {...noProvider.field}
           />
+          {noProvider.hint}
         </div>
         <div className="flex flex-col gap-[0.3rem]">
           <label htmlFor={keyId} className="text-[0.9rem] text-ink-dim">
@@ -191,19 +212,24 @@ function KeyForm() {
           <SecretField
             id={keyId}
             value={key}
-            onChange={setKey}
+            onChange={(k) => {
+              setKey(k)
+              noKey.clear()
+            }}
             showLabel={m.showKey}
             hideLabel={m.hideKey}
-            describedBy={help}
+            invalid={noKey.error !== null}
+            describedBy={noKey.error ? `${keyId}-error ${help}` : help}
             disabled={busy === "key"}
           />
+          {noKey.hint}
         </div>
       </div>
       <span className="flex flex-wrap items-center gap-3">
         <Button
           type="submit"
           size="sm"
-          disabled={!ready}
+          disabled={busy !== null}
           icon={busy === "key" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
         >
           {m.saveKey}

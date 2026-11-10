@@ -9,7 +9,9 @@ import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Checkbox, Radio } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FieldError, invalidBorder, useFieldError } from "@/ui/FieldError"
 import { fieldClass } from "@/ui/field"
 import { SecretField } from "@/ui/SecretField"
 import { Skeleton } from "@/ui/Skeleton"
@@ -92,6 +94,9 @@ function AiModelForm({ saved }: { saved: AiModel }) {
   const keyHelp = useId()
   const imagesId = useId()
   const consent = useId()
+  const noProvider = useFieldError(`${name}-providers`)
+  const noModel = useFieldError(modelId)
+  const [nothing, setNothing] = useState(false)
 
   useEffect(() => setDraft(draftOf(saved)), [saved])
 
@@ -104,14 +109,16 @@ function AiModelForm({ saved }: { saved: AiModel }) {
     draft.model.trim() !== savedDraft.model ||
     draft.baseUrl.trim() !== savedDraft.baseUrl ||
     draft.images !== savedDraft.images
-  const ready = provider !== null && draft.model.trim() !== "" && busy === null
   const set = (patch: Partial<Draft>) => {
     setJustSaved(false)
+    setNothing(false)
+    noModel.clear()
     setDraft((d) => ({ ...d, ...patch }))
   }
   // A key, a model name and an address typed for one provider never carry over to another.
   const pick = (p: Provider) => {
     const same = p === savedDraft.provider
+    noProvider.clear()
     setKey("")
     set({ provider: p, model: same ? savedDraft.model : "", baseUrl: same ? savedDraft.baseUrl : "" })
   }
@@ -133,7 +140,10 @@ function AiModelForm({ saved }: { saved: AiModel }) {
       className="flex max-w-[40rem] flex-col gap-[0.9rem]"
       onSubmit={async (e) => {
         e.preventDefault()
-        if (!ready || provider === null) return
+        if (busy !== null) return
+        if (provider === null) return noProvider.fail(m.needProvider)
+        if (draft.model.trim() === "") return noModel.fail(m.needModel)
+        if (!dirty) return setNothing(true)
         // The field empties either way: the key is handed on once and never kept in the window.
         const given = key.trim()
         setKey("")
@@ -149,7 +159,11 @@ function AiModelForm({ saved }: { saved: AiModel }) {
         )
       }}
     >
-      <fieldset className="flex flex-col rounded-[0.45rem] border border-line">
+      <fieldset
+        id={`${name}-providers`}
+        className="flex flex-col rounded-[0.45rem] border border-line aria-[invalid=true]:border-bad"
+        {...noProvider.field}
+      >
         <legend className="sr-only">{m.providerLegend}</legend>
         {AI_PROVIDERS.map((p) => (
           <label
@@ -161,6 +175,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
           </label>
         ))}
       </fieldset>
+      {noProvider.hint}
 
       {provider === "openai" && (
         <div className="flex flex-col gap-[0.3rem]">
@@ -200,8 +215,10 @@ function AiModelForm({ saved }: { saved: AiModel }) {
               spellCheck={false}
               value={draft.model}
               onChange={(e) => set({ model: e.target.value })}
-              className={`${fieldClass} selectable font-mono`}
+              {...noModel.field}
+              className={cx(fieldClass, invalidBorder, "selectable font-mono")}
             />
+            {noModel.hint}
             <p className="text-[0.85rem] text-ink-soft">{m.modelHelp}</p>
           </div>
 
@@ -251,7 +268,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
           type="submit"
           size="sm"
           variant="primary"
-          disabled={!ready || !dirty}
+          disabled={busy !== null}
           icon={busy === "save" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
         >
           {m.save}
@@ -281,6 +298,7 @@ function AiModelForm({ saved }: { saved: AiModel }) {
           </span>
         )}
       </div>
+      <FieldError id={`${name}-nothing`}>{nothing && m.nothingToSave}</FieldError>
       <p id={`${name}-cost`} className="-mt-[0.5rem] text-[0.85rem] text-ink-dim">
         {dirty && saved.provider !== null ? m.checkSaveFirst : m.checkCost}
       </p>

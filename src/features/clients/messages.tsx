@@ -64,6 +64,7 @@ type Words = {
   profileNone: (tool: string) => string
   profileWhy: (why: string) => string
   profileMove: string
+  profileNeeded: string
   profileUse: string
   chooseProfile: string
   scopeAs: (profile: string) => string
@@ -141,6 +142,7 @@ const en: Words = {
     `No ${tool} profile has synced this account yet, so its cards stay read only. Sign in on the Tools page and sync, then try again.`,
   profileWhy: (why) => `Memo says: ${why}`,
   profileMove: "Use it and move",
+  profileNeeded: "Choose a profile first.",
   profileUse: "Use this profile",
   chooseProfile: "Choose profile",
   scopeAs: (profile) => `Through profile ${profile}.`,
@@ -225,6 +227,7 @@ const ru: Words = {
     `Ни один профиль ${tool} ещё не синхронизировал этот аккаунт, поэтому его карточки только для чтения. Войдите на странице «Инструменты», синхронизируйте и попробуйте снова.`,
   profileWhy: (why) => `Memo сообщает: ${why}`,
   profileMove: "Выбрать и перенести",
+  profileNeeded: "Сначала выберите профиль.",
   profileUse: "Выбрать профиль",
   chooseProfile: "Выбрать профиль",
   scopeAs: (profile) => `Через профиль ${profile}.`,
@@ -309,6 +312,7 @@ const es: Words = {
     `Ningún perfil de ${tool} ha sincronizado aún esta cuenta, así que sus tarjetas son de solo lectura. Inicia sesión en la página Herramientas, sincroniza y vuelve a intentarlo.`,
   profileWhy: (why) => `Memo dice: ${why}`,
   profileMove: "Usarlo y mover",
+  profileNeeded: "Elige primero un perfil.",
   profileUse: "Usar este perfil",
   chooseProfile: "Elegir perfil",
   scopeAs: (profile) => `Con el perfil ${profile}.`,

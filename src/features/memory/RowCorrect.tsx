@@ -5,6 +5,7 @@ import { useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FieldError } from "@/ui/FieldError"
 import { holdInPlace } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { kindOf } from "./labels"
@@ -40,6 +41,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
   const m = useMessages(memoryMessages)
   const x = useMessages(explainedMessages)
   const hint = useId()
+  const unchanged = useId()
   const kindLabel = useId()
   const aboutLabel = useId()
   const [text, setText] = useState(() => useMemory.getState().draft ?? entry.text ?? "")
@@ -51,6 +53,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
   const failed = useMemory((s) => s.failed[entry.ref])
   const { correct } = useMemory.getState()
   const box = useRef<HTMLTextAreaElement>(null)
+  const [tried, setTried] = useState(false)
   const kinds = entry.type === "fact" ? FACT_KINDS : MEMORY_KINDS
   // The owner is a subject memo writes for itself; moving such a record to someone else is not offered here.
   const movable = !entry.subjectIsOwner && !entry.project
@@ -65,7 +68,12 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
   }, [])
 
   const save = () => {
-    if (!changed || busy) return
+    if (busy) return
+    if (!changed) {
+      setTried(true)
+      box.current?.focus({ preventScroll: true })
+      return
+    }
     const row = box.current?.closest<HTMLElement>("[data-row]")
     // The owner's version unfolds at the top of its day, above this row: keep this row where it is.
     const change = {
@@ -89,8 +97,8 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
         maxLength={2000}
         value={text}
         aria-label={m.fixLabel}
-        aria-describedby={hint}
-        aria-invalid={!!failed || undefined}
+        aria-describedby={tried && !changed ? `${unchanged} ${hint}` : hint}
+        aria-invalid={!!failed || (tried && !changed) || undefined}
         onChange={(e) => {
           setText(e.target.value)
           grow(e.target)
@@ -107,6 +115,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
         }}
         className="selectable inner-field -mx-[0.4rem] resize-none overflow-hidden rounded-[0.35rem] border border-line-strong bg-app px-[0.35rem] py-[0.2rem] text-[1rem] leading-snug font-medium text-ink focus:border-brand focus:ring-1 focus:ring-brand aria-[invalid=true]:border-bad"
       />
+      <FieldError id={unchanged}>{tried && !changed && m.nothingChanged}</FieldError>
       <div className="flex flex-wrap gap-3">
         <div className="flex min-w-[11rem] flex-col gap-[0.3rem]">
           <span id={kindLabel} className="text-[0.9rem] text-ink-dim">
@@ -148,7 +157,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
         <Button
           size="sm"
           type="submit"
-          disabled={!changed || busy}
+          disabled={busy}
           icon={busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}
         >
           {m.save}

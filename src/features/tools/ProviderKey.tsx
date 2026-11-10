@@ -5,6 +5,7 @@ import type { EnrichmentKey } from "@/platform/bindings"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { SecretField } from "@/ui/SecretField"
 import { useEnrichmentKey } from "./api"
 import { providerKeyMessages } from "./messages-provider-key"
@@ -50,6 +51,7 @@ export function ProviderKey({ toolId, provider, found, keys, missing, onChanged 
   const [removed, setRemoved] = useState(false)
   const fieldId = useId()
   const helpId = useId()
+  const empty = useFieldError(fieldId)
 
   const run = async (request: Parameters<typeof change.mutateAsync>[0], fail: (message: string) => string) => {
     setError(null)
@@ -98,6 +100,7 @@ export function ProviderKey({ toolId, provider, found, keys, missing, onChanged 
       className="flex flex-col gap-1.5"
       onSubmit={(e) => {
         e.preventDefault()
+        if (!draft.trim()) return empty.fail(m.keyEmpty)
         const key = draft
         setDraft("")
         run({ provider, key }, m.keySaveFailed)
@@ -113,14 +116,19 @@ export function ProviderKey({ toolId, provider, found, keys, missing, onChanged 
           <SecretField
             id={fieldId}
             value={draft}
-            onChange={setDraft}
+            onChange={(v) => {
+              setDraft(v)
+              empty.clear()
+            }}
             showLabel={m.keyShow}
             hideLabel={m.keyHide}
             disabled={change.isPending}
-            describedBy={helpId}
+            invalid={empty.error !== null}
+            describedBy={empty.error ? `${fieldId}-error ${helpId}` : helpId}
           />
+          {empty.hint}
         </div>
-        <Button type="submit" variant="primary" disabled={!draft.trim() || change.isPending}>
+        <Button type="submit" variant="primary" disabled={change.isPending}>
           {change.isPending ? m.keySaving : m.keySave}
         </Button>
       </div>

@@ -21,7 +21,7 @@ type Props<T extends string> = {
   "aria-label"?: string
   "aria-labelledby"?: string
   "aria-describedby"?: string | undefined
-  "aria-invalid"?: boolean
+  "aria-invalid"?: boolean | undefined
 }
 
 const isGroup = <T extends string>(item: Item<T>): item is SelectGroup<T> => "options" in item

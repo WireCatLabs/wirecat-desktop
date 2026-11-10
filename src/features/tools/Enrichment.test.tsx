@@ -324,7 +324,11 @@ it("says why a key was not saved and asks for it again", async () => {
 
   expect(await screen.findByText("Could not save the key: no keyring and no key file")).toBeInTheDocument()
   expect(field).toHaveValue("")
-  expect(screen.getByRole("button", { name: "Save key" })).toBeDisabled()
+  const save = screen.getByRole("button", { name: "Save key" })
+  expect(save).toBeEnabled()
+  fireEvent.click(save)
+  expect(await screen.findByText("Paste the key first, then save.")).toBeInTheDocument()
+  expect(field).toHaveAttribute("aria-invalid", "true")
 })
 
 it("names the variable instead of a field when memo cannot store a key, and keeps an environment key", async () => {

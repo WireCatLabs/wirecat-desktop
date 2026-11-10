@@ -77,6 +77,7 @@ type Words = {
   dropped: (key: string, column: string) => string
   putBack: (key: string) => string
   titleField: string
+  titleEmpty: string
   notes: string
   notesHint: string
   save: string
@@ -120,6 +121,7 @@ type Words = {
   commentsFailed: string
   addComment: string
   commentHint: string
+  commentEmpty: string
   send: string
   sending: string
   commentFailed: (reason: string) => string
@@ -236,6 +238,7 @@ const en: Words = {
   dropped: (key, column) => `Dropped ${key} in ${column}.`,
   putBack: (key) => `${key} put back.`,
   titleField: "Title",
+  titleEmpty: "Enter a title for the task.",
   notes: "Notes",
   notesHint: "Anything you or an agent should know. Ctrl+Enter saves.",
   save: "Save",
@@ -291,6 +294,7 @@ const en: Words = {
   commentsFailed: "Could not read the comments.",
   addComment: "Add a comment",
   commentHint: "For you and your agents to read. Ctrl+Enter sends.",
+  commentEmpty: "Write a comment first, then send it.",
   send: "Comment",
   sending: "Sending…",
   commentFailed: (reason) => `The comment was not added: ${reason}. Your text is still here.`,
@@ -408,6 +412,7 @@ const ru: Words = {
   dropped: (key, column) => `${key} положена в «${column}».`,
   putBack: (key) => `${key} возвращена на место.`,
   titleField: "Название",
+  titleEmpty: "Введите название задачи.",
   notes: "Заметки",
   notesHint: "Всё, что нужно знать вам или агенту. Ctrl+Enter сохраняет.",
   save: "Сохранить",
@@ -469,6 +474,7 @@ const ru: Words = {
   commentsFailed: "Не удалось прочитать комментарии.",
   addComment: "Добавить комментарий",
   commentHint: "Для вас и ваших агентов. Ctrl+Enter отправляет.",
+  commentEmpty: "Сначала напишите комментарий, потом отправьте.",
   send: "Отправить",
   sending: "Отправка…",
   commentFailed: (reason) => `Комментарий не добавлен: ${reason}. Ваш текст остался.`,
@@ -580,6 +586,7 @@ const es: Words = {
   dropped: (key, column) => `${key} soltada en ${column}.`,
   putBack: (key) => `${key} devuelta a su sitio.`,
   titleField: "Título",
+  titleEmpty: "Escribe un título para la tarea.",
   notes: "Notas",
   notesHint: "Lo que tú o un agente debéis saber. Ctrl+Enter guarda.",
   save: "Guardar",
@@ -636,6 +643,7 @@ const es: Words = {
   commentsFailed: "No se han podido leer los comentarios.",
   addComment: "Añadir un comentario",
   commentHint: "Para ti y tus agentes. Ctrl+Enter lo envía.",
+  commentEmpty: "Escribe primero un comentario y luego envíalo.",
   send: "Comentar",
   sending: "Enviando…",
   commentFailed: (reason) => `No se ha añadido el comentario: ${reason}. Tu texto sigue aquí.`,

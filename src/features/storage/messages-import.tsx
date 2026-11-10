@@ -28,6 +28,9 @@ const en = {
     "Where the records come from, as provider:account, such as sheet:rentals. Importing the same source again " +
     "updates its records instead of adding copies.",
   sourceInvalid: "One word with a colon, such as sheet:rentals",
+  nothingToImport: "The check found nothing to change in this file.",
+  fileNeeded: "Choose the file to import first.",
+  sourceNeeded: "Type the source first, as provider:account, such as sheet:rentals.",
   chooseFile: "Choose file",
   noFile: "No file chosen",
   check: "Check",
@@ -85,6 +88,9 @@ const ru: typeof en = {
     "Откуда записи, в виде провайдер:аккаунт, например sheet:rentals. Повторный импорт того же источника обновляет " +
     "его записи, а не добавляет копии.",
   sourceInvalid: "Одно слово с двоеточием, например sheet:rentals",
+  nothingToImport: "Проверка не нашла в этом файле ничего, что нужно менять.",
+  fileNeeded: "Сначала выберите файл для импорта.",
+  sourceNeeded: "Сначала введите источник в виде провайдер:аккаунт, например sheet:rentals.",
   chooseFile: "Выбрать файл",
   noFile: "Файл не выбран",
   check: "Проверить",
@@ -142,6 +148,9 @@ const es: typeof en = {
     "De dónde vienen los registros, como proveedor:cuenta, por ejemplo sheet:rentals. Importar el mismo origen otra " +
     "vez actualiza sus registros en lugar de añadir copias.",
   sourceInvalid: "Una palabra con dos puntos, por ejemplo sheet:rentals",
+  nothingToImport: "La comprobación no encontró nada que cambiar en este archivo.",
+  fileNeeded: "Elige primero el archivo que importar.",
+  sourceNeeded: "Escribe primero el origen como proveedor:cuenta, por ejemplo sheet:rentals.",
   chooseFile: "Elegir archivo",
   noFile: "Ningún archivo elegido",
   check: "Comprobar",

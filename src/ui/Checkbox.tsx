@@ -27,12 +27,13 @@ type Props = {
   checked: boolean
   onChange: (checked: boolean) => void
   disabled?: boolean | undefined
-  id?: string
+  id?: string | undefined
   name?: string
   value?: string
   "aria-label"?: string
   "aria-labelledby"?: string
-  "aria-describedby"?: string
+  "aria-describedby"?: string | undefined
+  "aria-invalid"?: boolean | undefined
   className?: string
   /** False when the card around the box already draws the keyboard ring. */
   ring?: boolean
@@ -77,7 +78,7 @@ function Native({
         className={cx(
           "pointer-events-none size-[1.05rem]",
           ring && "peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-brand",
-          !checked && "peer-hover:border-ink-dim",
+          !checked && "peer-hover:border-ink-dim peer-aria-[invalid=true]:border-bad",
           disabled && "opacity-45",
         )}
       />
