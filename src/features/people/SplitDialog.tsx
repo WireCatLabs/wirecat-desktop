@@ -1,5 +1,5 @@
 import { LoaderCircle } from "lucide-react"
-import { useId, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { canSplit } from "@/domain/people"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
@@ -9,15 +9,18 @@ import { useFieldError } from "@/ui/FieldError"
 import { peopleMessages } from "./messages"
 import { usePeople } from "./store"
 
-/** Ticks the accounts that leave this person; nothing is ticked for the owner, and at least one stays. */
+/** Ticks the accounts that leave this person; nothing is ticked unless a doubt named them, and at least one stays. */
 export function SplitDialog() {
   const m = useMessages(peopleMessages)
   const ref = usePeople((s) => s.splitting)
   const detail = usePeople((s) => (s.splitting ? s.details[s.splitting] : undefined))
   const busy = usePeople((s) => (s.splitting ? s.busy[s.splitting] : undefined))
   const { askSplit, unlink } = usePeople.getState()
+  const preset = usePeople((s) => s.splitPreset)
   const [chosen, setChosen] = useState<string[]>([])
   const identities = detail?.state === "ready" ? detail.person.identities : []
+  // A doubt opens the dialog with the accounts it names ticked; the owner can still change them.
+  useEffect(() => setChosen(preset), [preset])
   const close = () => {
     setChosen([])
     need.clear()

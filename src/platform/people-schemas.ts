@@ -20,6 +20,36 @@ export const MatchSchema = v.object({
   proposer: v.nullable(v.object({ kind: v.string(), name: text })),
 })
 
+/** Accounts an agent says are not this person: `unlink` moves them to one new person, `unmerge` undoes `merge`. */
+export const SplitSchema = v.object({
+  id: v.string(),
+  person: v.string(),
+  op: v.string(),
+  identities: v.array(v.string()),
+  merge: text,
+  reason: text,
+  evidence: v.array(v.string()),
+  proposer: v.nullable(v.object({ kind: v.string(), name: text })),
+})
+
+/** A person whose accounts may be wrongly joined, with memo's moves that would set it right. */
+const DoubtSchema = v.object({
+  person: v.string(),
+  name: text,
+  owner: v.boolean(),
+  reason: v.string(),
+  identities: v.array(v.object({ identity: v.string(), name: text })),
+  moves: v.array(
+    v.variant("op", [
+      v.object({ op: v.literal("unmerge"), merge: v.string() }),
+      v.object({ op: v.literal("unlink"), identities: v.array(v.string()) }),
+    ]),
+  ),
+})
+
+/** `total` is null in a group, where memo cannot count. */
+export const DoubtsSchema = v.object({ items: v.array(DoubtSchema), total: v.nullable(v.number()), more: v.boolean() })
+
 /** A memo older than kinds of people (UX-133) gives only ref, name, owner and tasks: the rest arrives as null. */
 const ListedSchema = v.object({
   ref: v.string(),
@@ -57,6 +87,7 @@ export const PeopleReadSchema = v.variant("kind", [
     peopleMore: v.boolean(),
     matches: v.array(MatchSchema),
     matchesMore: v.boolean(),
+    splits: v.optional(v.array(SplitSchema), []),
     /** memo lists one kind of people at a time; false from a memo older than kinds, which lists everyone. */
     kinded: v.optional(v.boolean(), false),
   }),
@@ -99,6 +130,9 @@ export const MergedSchema = v.object({
 })
 
 export type Match = v.InferOutput<typeof MatchSchema>
+export type Split = v.InferOutput<typeof SplitSchema>
+export type Doubts = v.InferOutput<typeof DoubtsSchema>
+export type Doubt = Doubts["items"][number]
 export type PeopleRead = v.InferOutput<typeof PeopleReadSchema>
 export type PeoplePage = v.InferOutput<typeof PeoplePageSchema>
 export type Listed = v.InferOutput<typeof ListedSchema>

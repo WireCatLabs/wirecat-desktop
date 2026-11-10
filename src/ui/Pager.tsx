@@ -6,6 +6,8 @@ import { Select } from "./Select"
 
 type Props = {
   page: number
+  /** Names the pager when a screen holds more than one. */
+  label?: string
   onPage: (page: number) => void
   busy?: boolean
   /** The rows there are; numbers the pages and says "1–50 of 1,234". Without it the pager steps by `hasMore`. */
@@ -37,7 +39,18 @@ export function pageList(at: number, pages: number): (number | "gap")[] {
 }
 
 /** Numbered pages with Previous and Next, the rows shown of how many, and the page size; the caller keeps the page. */
-export function Pager({ page, onPage, busy = false, total, totalMore = false, size, sizes, onSize, hasMore }: Props) {
+export function Pager({
+  page,
+  onPage,
+  label,
+  busy = false,
+  total,
+  totalMore = false,
+  size,
+  sizes,
+  onSize,
+  hasMore,
+}: Props) {
   const m = useMessages(uiMessages)
   const lang = useLang()
   const known = total !== undefined && size !== undefined
@@ -55,7 +68,10 @@ export function Pager({ page, onPage, busy = false, total, totalMore = false, si
         : "border-transparent text-ink-soft hover:bg-app-3 hover:text-ink",
     )
   return (
-    <nav aria-label={m.pages} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-[0.9rem]">
+    <nav
+      aria-label={label ?? m.pages}
+      className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-[0.9rem]"
+    >
       <span className="min-w-[8rem] text-ink-dim tabular-nums" aria-live="polite">
         {known && total > 0
           ? m.range(n((at - 1) * size + 1), n(Math.min(at * size, total)), `${n(total)}${totalMore ? "+" : ""}`)

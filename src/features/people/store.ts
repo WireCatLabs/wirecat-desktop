@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { looksLikeAccount, touched } from "@/domain/people"
 import { platform } from "@/platform/bridge"
 import type {
+  Doubts,
   KindCount,
   Listed,
   Match,
@@ -10,6 +11,7 @@ import type {
   PeopleSort,
   PersonDetail,
   PersonKind,
+  Split,
 } from "@/platform/people-schemas"
 import { fresh } from "@/shared/fresh"
 
@@ -28,6 +30,11 @@ export type Done =
 export type View = "people" | "matches"
 /** What joining some of a group did: who was joined, in order, and why the rest were not, if a join failed. */
 export type GroupDone = { joined: string[]; stopped: string | null }
+/** One page of `people links check`; kept on screen while the next page or a read again is on its way. */
+export type DoubtsRead =
+  | { state: "loading"; page: number; last: Doubts | null }
+  | { state: "ready"; page: number; last: Doubts }
+  | { state: "failed"; page: number; error: string; last: Doubts | null }
 export type Found =
   | { state: "looking" }
   | { state: "found"; ref: string }
@@ -57,6 +64,10 @@ type PeopleState = {
   matches: Match[]
   matchesMore: boolean
   decided: Record<string, MatchAnswer>
+  /** Splits an agent proposed, with any the owner decided since the last full read kept in place. */
+  splits: Split[]
+  splitDecided: Record<string, MatchAnswer>
+  doubts: DoubtsRead | null
   reading: boolean
   /** When memo last answered; the page reads again only when it is older than a minute. */
   readAt: number | null
@@ -80,6 +91,8 @@ type PeopleState = {
   failed: Record<string, string>
   done: Record<string, Done>
   splitting: string | null
+  /** The accounts the Move dialog opens with ticked, when a doubt named them. */
+  splitPreset: string[]
   undoing: { ref: string; merge: string } | null
   /** `counts: false` keeps the tabs' counts: a tab switch does not change them. */
   load(counts?: boolean): Promise<void>
@@ -110,9 +123,13 @@ type PeopleState = {
   joinGroup(key: string, refs: string[], ids: string[]): Promise<boolean>
   /** Keeps the given pairs of a group apart, for one reason; stops at the first refusal. */
   rejectGroup(key: string, matches: Match[], reason: string): Promise<boolean>
+  /** The owner's answer to a split an agent proposed; a turn-down carries the owner's reason. */
+  decideSplit(id: string, answer: MatchAnswer, reason?: string): Promise<boolean>
+  /** A page of the people whose accounts look wrongly joined; the page on screen when none is given. */
+  readDoubts(page?: number): Promise<void>
   unlink(ref: string, identities: string[]): Promise<boolean>
   unmerge(ref: string, merge: string): Promise<boolean>
-  askSplit(ref: string | null): void
+  askSplit(ref: string | null, preset?: string[]): void
   askUndo(undo: { ref: string; merge: string } | null): void
 }
 
@@ -123,6 +140,8 @@ const without = <T>(record: Record<string, T>, key: string) => {
 
 /** memo's command server keeps two processes; more calls at once would each start memo anew. */
 const AT_ONCE = 2
+/** Each doubt lists its accounts, so a page stays short. */
+export const DOUBTS_PAGE = 5
 
 export const usePeople = create<PeopleState>((set, get) => {
   let seq = 0
@@ -130,6 +149,7 @@ export const usePeople = create<PeopleState>((set, get) => {
   let pageSeq = 0
   let typing: ReturnType<typeof setTimeout> | undefined
   let wanted: string[] = []
+  let doubtSeq = 0
   let running = 0
 
   const pump = () => {
@@ -194,6 +214,14 @@ export const usePeople = create<PeopleState>((set, get) => {
           ),
         ],
         matchesMore: read.matchesMore,
+        // A decided split keeps its place; one memo lists for the first time goes after the rest.
+        splits: [
+          ...s.splits.flatMap((x) => {
+            const fresh = read.splits.find((r) => r.id === x.id)
+            return fresh ? [fresh] : s.splitDecided[x.id] ? [x] : []
+          }),
+          ...read.splits.filter((r) => !s.splits.some((x) => x.id === r.id)),
+        ],
       }))
       return new Set(read.matches.map((m) => m.id))
     } catch {
@@ -219,6 +247,9 @@ export const usePeople = create<PeopleState>((set, get) => {
     matches: [],
     matchesMore: false,
     decided: {},
+    splits: [],
+    splitDecided: {},
+    doubts: null,
     reading: false,
     readAt: null,
     error: null,
@@ -239,6 +270,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     failed: {},
     done: {},
     splitting: null,
+    splitPreset: [],
     undoing: null,
 
     async load(counts = true) {
@@ -260,6 +292,8 @@ export const usePeople = create<PeopleState>((set, get) => {
       const paged = older ? null : get().readPage()
       try {
         const read = await platform.peopleRead(get().kind)
+        // After the read, not beside it: memo's command server runs two calls at once and starts anew for a third.
+        if (counts) void get().readDoubts()
         if (call !== seq) return
         const ready = read.kind === "ready" ? read : null
         const kinded = ready?.kinded ?? false
@@ -273,6 +307,8 @@ export const usePeople = create<PeopleState>((set, get) => {
             : { people: ready?.people ?? [], peopleMore: ready?.peopleMore ?? false, total: null, error: null }),
           matches: ready?.matches ?? [],
           matchesMore: ready?.matchesMore ?? false,
+          splits: ready?.splits ?? [],
+          splitDecided: {},
           kinded,
           decided: {},
           joinedGroup: {},
@@ -440,12 +476,46 @@ export const usePeople = create<PeopleState>((set, get) => {
       })
       return kept.length === matches.length
     },
+    async decideSplit(id, answer, reason) {
+      const split = get().splits.find((x) => x.id === id)
+      if (!split) return false
+      const d = get().details[split.person]
+      const merged = d?.state === "ready" ? d.person.merges.find((m) => m.id === split.merge) : undefined
+      const from = answer === "confirm" && split.op === "unmerge" ? (merged?.from ?? "") : ""
+      const updated = await run(id, answer, () => platform.peopleSplitDecide(split.person, id, answer, reason))
+      if (!updated) return false
+      set((s) => ({
+        splitDecided: { ...s.splitDecided, [id]: answer },
+        ...(from ? { done: { ...s.done, [split.person]: { op: "unmerge" as const, from } } } : {}),
+      }))
+      await settle(updated, split.person, from ? [from] : [])
+      if (answer === "confirm") void get().readDoubts()
+      return true
+    },
+    async readDoubts(page) {
+      const asked = ++doubtSeq
+      const had = get().doubts
+      const at = page ?? had?.page ?? 1
+      const last = had?.last ?? null
+      set({ doubts: { state: "loading", page: at, last } })
+      try {
+        const got = await platform.peopleDoubts(at, DOUBTS_PAGE)
+        if (asked !== doubtSeq) return
+        // A fix can empty the page the owner is on: go back to the last page that still has someone.
+        if (got.items.length === 0 && at > 1) return get().readDoubts(at - 1)
+        set({ doubts: { state: "ready", page: at, last: got } })
+      } catch (e) {
+        if (asked !== doubtSeq) return
+        set({ doubts: { state: "failed", page: at, error: message(e), last } })
+      }
+    },
     async unlink(ref, identities) {
       const result = await run(ref, "unlink", () => platform.peopleUnlink(ref, identities))
       set({ splitting: null })
       if (!result) return false
       set((s) => ({ done: { ...s.done, [ref]: { op: "unlink", movedTo: result.movedTo, count: identities.length } } }))
       await settle(result.person, ref, [result.movedTo])
+      void get().readDoubts()
       return true
     },
     async unmerge(ref, merge) {
@@ -456,9 +526,10 @@ export const usePeople = create<PeopleState>((set, get) => {
       if (!updated) return false
       set((s) => ({ done: { ...s.done, [ref]: { op: "unmerge", from } } }))
       await settle(updated, ref, [from])
+      void get().readDoubts()
       return true
     },
-    askSplit: (ref) => set({ splitting: ref }),
+    askSplit: (ref, preset = []) => set({ splitting: ref, splitPreset: ref ? preset : [] }),
     askUndo: (undo) => set({ undoing: undo }),
   }
 })

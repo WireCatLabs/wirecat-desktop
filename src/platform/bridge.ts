@@ -47,6 +47,7 @@ import {
 } from "./memory-schemas"
 import { NotificationsSchema } from "./notifications-schemas"
 import {
+  DoubtsSchema,
   KindCountsSchema,
   MergedSchema,
   PeoplePageSchema,
@@ -260,6 +261,9 @@ function createTauri(): Platform {
     peopleShow: (ref) => call(PersonDetailSchema, "people_show", { reference: ref }),
     peopleDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_decide", { reference: ref, id, answer, reason: reason ?? null }),
+    peopleSplitDecide: (ref, id, answer, reason) =>
+      call(PersonDetailSchema, "people_split_decide", { reference: ref, id, answer, reason: reason ?? null }),
+    peopleDoubts: (page, size) => call(DoubtsSchema, "people_doubts", { page, size }),
     peopleMerge: (refs) => call(MergedSchema, "people_merge", { references: refs }),
     peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
     peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),

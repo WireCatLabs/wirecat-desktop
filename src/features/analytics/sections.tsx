@@ -22,10 +22,12 @@ import {
 import { TOTALS } from "@/domain/archive"
 import { findTool } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
-import { formatNumber, useLang, useMessages } from "@/i18n"
+import { formatDate, formatNumber, useLang, useMessages } from "@/i18n"
+import { ProjectActivitySchema } from "@/platform/analytics-schemas"
 import type { StoreInfo } from "@/platform/archive-schemas"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { Pager } from "@/ui/Pager"
 import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
@@ -34,9 +36,9 @@ import { Explorer } from "./explorer"
 import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
 import { MEMO_MISSING } from "./problems"
-import { duration, useInboxTotals, useOldestOpen } from "./reads"
+import { duration, readParts, useInboxTotals, useOldestOpen } from "./reads"
 import { SourceProblems } from "./SourceProblems"
-import { MESSENGERS, useAnalytics, useShownSources } from "./store"
+import { MESSENGERS, useAggregate, useAnalytics, useShownSources } from "./store"
 import { useMessengerProblems } from "./useProblems"
 
 type M = typeof analyticsMessages.en
@@ -398,17 +400,24 @@ export function People() {
   )
 }
 
+/** Rows per page: a table of every project would push the sections below it off the screen. */
+const PROJECT_PAGE = 8
+
 export function Projects() {
   const m = useMessages(analyticsMessages)
+  const lang = useLang()
   const tasks = useAnalytics((s) => s.tasks)
   const memory = useAnalytics((s) => s.memory)
   const period = useAnalytics((s) => s.period)
   const today = useAnalytics((s) => s.today)
-  const preview = useAnalytics((s) => s.preview)
   const refreshing = useAnalytics((s) => s.refreshing)
   const projects = useAnalytics((s) => s.projects)
+  const activity = readParts([["memo", useAggregate("projectActivity", "memo")]], ProjectActivitySchema)
+  const [page, setPage] = useState(1)
   const keyOf = (p: string) => projects.find((x) => x.ref === p)?.key ?? p
   const entries = memory.state === "ready" && memory.data.kind === "ready" ? memory.data.entries : []
+  const chats = activity.ready[0]?.body.items ?? null
+  const cutShort = activity.ready[0]?.body.page.has_more ?? false
   const rows =
     tasks.state === "ready"
       ? projectRows(
@@ -418,14 +427,17 @@ export function Projects() {
           entries,
           period,
           today,
-          preview?.projectMessages ?? null,
+          chats,
           keyOf,
-        ).slice(0, 8)
+        )
       : []
-  const head = [m.open, m.overdue, m.closed, m.memoryCol, ...(preview ? [m.messagesCol] : [])]
+  const pages = Math.max(1, Math.ceil(rows.length / PROJECT_PAGE))
+  const at = Math.min(page, pages)
+  const shown = rows.slice((at - 1) * PROJECT_PAGE, at * PROJECT_PAGE)
+  const head = [m.open, m.overdue, m.closed, m.memoryCol]
 
   return (
-    <Panel id="an-projects" title={m.projects} source="tasks counts" badge={preview ? <PreviewPill /> : undefined}>
+    <Panel id="an-projects" title={m.projects} source="tasks counts · stats projects show">
       {tasks.state === "missing" ? (
         <SourceProblems problems={MEMO_MISSING} />
       ) : tasks.state === "error" ? (
@@ -437,42 +449,69 @@ export function Projects() {
       ) : (
         <div
           className={cx(
-            "reveal min-h-[15rem] overflow-x-auto transition-opacity duration-(--motion-slow)",
+            "reveal flex min-h-[15rem] flex-col gap-3 transition-opacity duration-(--motion-slow)",
             refreshing && "opacity-55",
           )}
         >
-          <table className="w-full text-[0.95rem]">
-            <caption className="sr-only">{m.projectsTable}</caption>
-            <thead className="text-[0.875rem] text-ink-dim">
-              <tr>
-                <th scope="col" className="pb-2 text-left font-medium">
-                  {m.project}
-                </th>
-                {head.map((h) => (
-                  <th key={h} scope="col" className="pb-2 pl-3 text-right font-medium">
-                    {h}
+          <div className="overflow-x-auto">
+            <table className="w-full text-[0.95rem]">
+              <caption className="sr-only">{m.projectsTable}</caption>
+              <thead className="text-[0.875rem] text-ink-dim">
+                <tr>
+                  <th scope="col" className="pb-2 text-left font-medium">
+                    {m.project}
                   </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="selectable">
-              {rows.map((r) => (
-                <tr key={r.key} className="border-line border-t">
-                  <th scope="row" className="max-w-[14rem] py-[0.45rem] text-left font-normal">
-                    <span className="block truncate">{r.name ?? r.key}</span>
-                    {!r.key.startsWith("project:") && (
-                      <span className="block font-mono text-[0.85rem] text-ink-dim">{r.key}</span>
-                    )}
-                  </th>
-                  <Num value={r.open} />
-                  <Num value={r.overdue} warn />
-                  <Num value={r.closed} />
-                  <Num value={r.memories} />
-                  {r.messages !== null && <Num value={r.messages} />}
+                  {head.map((h) => (
+                    <th key={h} scope="col" className="pb-2 pl-3 text-right font-medium">
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="selectable">
+                {shown.map((r) => (
+                  <tr key={r.key} className="border-line border-t align-top">
+                    <th scope="row" className="max-w-[22rem] py-[0.45rem] text-left font-normal">
+                      <span className="block truncate">{r.name ?? r.key}</span>
+                      {!r.key.startsWith("project:") && (
+                        <span className="block font-mono text-[0.85rem] text-ink-dim">{r.key}</span>
+                      )}
+                      {r.chats !== null && r.messages !== null && r.chats > 0 && (
+                        <span className="block text-[0.85rem] text-ink-soft">
+                          {m.chatLine(
+                            formatNumber(r.chats, lang),
+                            formatNumber(r.messages, lang),
+                            r.lastAt ? formatDate(r.lastAt, { dateStyle: "medium" }, lang) : null,
+                          )}
+                          {r.partial && ` · ${m.partialProject}`}
+                        </span>
+                      )}
+                      {r.top.length > 0 && (
+                        <span className="block truncate text-[0.85rem] text-ink-dim">
+                          {r.top
+                            .map((t) => `${t.title ?? m.untitledChat} ${formatNumber(t.messages, lang)}`)
+                            .join(" · ")}
+                        </span>
+                      )}
+                    </th>
+                    <Num value={r.open} />
+                    <Num value={r.overdue} warn />
+                    <Num value={r.closed} />
+                    <Num value={r.memories} />
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {pages > 1 && <Pager page={at} onPage={setPage} total={rows.length} size={PROJECT_PAGE} />}
+          {chats ? (
+            <Note>
+              {m.chatsNote}
+              {cutShort && ` ${m.projectsCut}`}
+            </Note>
+          ) : (
+            activity.problems.length > 0 && <SourceProblems problems={activity.problems} />
+          )}
         </div>
       )}
     </Panel>

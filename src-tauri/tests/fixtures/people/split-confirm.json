@@ -1,0 +1,17 @@
+{
+  "item": {
+    "decided": [
+      {
+        "id": "1",
+        "kind": "identity_split",
+        "status": "confirmed",
+        "made": ["person:5"]
+      }
+    ],
+    "refused": [],
+    "has_more": false
+  },
+  "meta": {
+    "complete": true
+  }
+}

@@ -135,7 +135,7 @@ function ranked(list: [string, string, number][], total: number, me: boolean): C
 }
 
 /** zm's own meeting counts, not released yet: `?analytics=real` and the website show the page as an older zm does. */
-const PLANNED: readonly Which[] = ["meetingsWeek", "meetingsSeries"]
+const PLANNED: readonly Which[] = ["meetingsWeek", "meetingsSeries", "projectActivity"]
 const showcaseOn = params.has("showcase")
 
 const SERIES: [string, number, number][] = [
@@ -273,6 +273,37 @@ function aggregateMock(id: string, which: Which, profile: string | null, period:
         },
       }
     }
+    case "projectActivity": {
+      const scale = span / 30
+      const at = (hours: number) => new Date(Date.now() - hours * 3_600_000).toISOString()
+      const items = (
+        [
+          ["project:1", "HRB", "Harbour launch", 12, 1, 412, 2, ["Harbour crew", "Ana Ruiz", "Suppliers"]],
+          ["project:2", "OPS", "Operations", 10, 1, 186, 20, ["Ops on call", "Warehouse"]],
+          ["project:3", "HOME", "Home", 3, 0, 73, 50, ["Family"]],
+          ["project:4", "WEB", "Website", 2, 0, 0, 900, []],
+          ["project:5", null, "Garden shed", 0, 0, 0, 0, []],
+        ] as const
+      ).map(([ref, key, name, chats, muted, base, ago, titles]) => {
+        const messages = Math.round(base * scale)
+        return {
+          ref,
+          key,
+          name,
+          chats,
+          muted,
+          messages,
+          sent: Math.round(messages * 0.3),
+          last_at: chats ? at(ago) : null,
+          top: titles.map((title, i) => ({
+            ref: `chat:tg/1/${ref.length}${i}`,
+            title,
+            messages: Math.round(messages / (i + 1.6)),
+          })),
+        }
+      })
+      return { kind: "ready", body: { items, page: { has_more: false, total: { value: items.length } } } }
+    }
     case "meetingsWeek":
     case "meetingsSeries": {
       const counted = days.flatMap((day) =>
@@ -364,16 +395,7 @@ export const analyticsMock = (
       const n = noise(`tasks${week}`)
       return { week, created: Math.round(4 + n * 9), closed: Math.round(3 + noise(`closed${week}`) * 9) }
     })
-    const scale = (PERIOD_DAYS[period] ?? 365) / 30
-    return {
-      taskWeeks,
-      projectMessages: {
-        HRB: Math.round(412 * scale),
-        OPS: Math.round(186 * scale),
-        HOME: Math.round(73 * scale),
-        WEB: Math.round(29 * scale),
-      },
-    }
+    return { taskWeeks }
   },
 
   // Only the Analytics page asks for closed tasks by a date range; the Tasks page never does.

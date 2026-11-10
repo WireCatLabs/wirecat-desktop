@@ -196,14 +196,31 @@ export type ProjectRow = {
   overdue: number
   closed: number
   memories: number
+  /** From the project's linked chats; null while memo cannot count them. */
+  chats: number | null
   messages: number | null
+  lastAt: string | null
+  top: { title: string | null; messages: number }[]
+  /** Some sub-projects were too deep or too many for memo to read. */
+  partial: boolean
+}
+
+type Activity = {
+  ref: string
+  key: string | null
+  name: string | null
+  chats: number
+  messages: number
+  last_at: string | null
+  top: readonly { title: string | null; messages: number }[]
+  partial?: boolean
 }
 
 type Facet = { value: string; name: string | null; count: number }
 
 /**
- * One row per project anything was counted for: open and overdue tasks now, tasks closed in the period, and the
- * memories and facts written about it in the period. Busiest first.
+ * One row per project anything was counted for: open and overdue tasks now, tasks closed in the period, the memories
+ * and facts written about it in the period, and its linked chats. Busiest first.
  */
 export function projectRows(
   open: readonly Facet[],
@@ -212,7 +229,7 @@ export function projectRows(
   entries: readonly Entry[],
   period: Period,
   today: string,
-  messages: Readonly<Record<string, number>> | null = null,
+  activity: readonly Activity[] | null = null,
   /** memo names a record's project by its ref (`project:3`) or its key; tasks always by key. */
   keyOf: (project: string) => string = (p) => p,
 ): ProjectRow[] {
@@ -230,7 +247,11 @@ export function projectRows(
       overdue: 0,
       closed: 0,
       memories: 0,
-      messages: messages ? (messages[key] ?? 0) : null,
+      chats: activity ? 0 : null,
+      messages: activity ? 0 : null,
+      lastAt: null,
+      top: [],
+      partial: false,
     }
     rows.set(key, made)
     return made
@@ -242,9 +263,20 @@ export function projectRows(
     if (!e.project || (e.type !== "memory" && e.type !== "fact") || !inPeriod(e.createdAt, period, today)) continue
     row(keyOf(e.project), e.projectName).memories += 1
   }
+  for (const a of activity ?? []) {
+    if (a.chats === 0) continue
+    const r = row(a.key ?? a.ref, a.name)
+    Object.assign(r, {
+      chats: a.chats,
+      messages: a.messages,
+      lastAt: a.last_at,
+      top: a.top.filter((t) => t.messages),
+      partial: a.partial ?? false,
+    })
+  }
   const weight = (r: ProjectRow) => r.open + r.closed + r.memories + (r.messages ?? 0)
   return [...rows.values()]
-    .filter((r) => weight(r) > 0)
+    .filter((r) => weight(r) > 0 || (r.chats ?? 0) > 0)
     .sort((a, b) => weight(b) - weight(a) || a.key.localeCompare(b.key))
 }
 

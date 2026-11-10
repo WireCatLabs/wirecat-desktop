@@ -144,9 +144,31 @@ describe("tasks", () => {
       "30d",
       TODAY,
     )
+    const none = { chats: null, messages: null, lastAt: null, top: [], partial: false }
     expect(rows).toEqual([
-      { key: "HRB", name: "Harbour", open: 4, overdue: 1, closed: 0, memories: 0, messages: null },
-      { key: "WEB", name: "Website", open: 0, overdue: 0, closed: 2, memories: 1, messages: null },
+      { key: "HRB", name: "Harbour", open: 4, overdue: 1, closed: 0, memories: 0, ...none },
+      { key: "WEB", name: "Website", open: 0, overdue: 0, closed: 2, memories: 1, ...none },
+    ])
+  })
+
+  it("adds each project's linked chats, and lists one with quiet chats but no tasks", () => {
+    const chat = { title: "Crew", messages: 9 }
+    const rows = projectRows([{ value: "HRB", name: "Harbour", count: 1 }], [], [], [], "30d", TODAY, [
+      {
+        ref: "project:1",
+        key: "HRB",
+        name: "Harbour",
+        chats: 3,
+        messages: 9,
+        last_at: "2026-11-01T10:00:00Z",
+        top: [chat],
+      },
+      { ref: "project:2", key: null, name: "Shed", chats: 1, messages: 0, last_at: null, top: [] },
+      { ref: "project:3", key: "NIL", name: "None", chats: 0, messages: 0, last_at: null, top: [] },
+    ])
+    expect(rows.map((r) => [r.key, r.chats, r.messages, r.top])).toEqual([
+      ["HRB", 3, 9, [chat]],
+      ["project:2", 1, 0, []],
     ])
   })
 })

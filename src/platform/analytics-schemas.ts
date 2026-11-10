@@ -37,8 +37,6 @@ export const MessageCountsSchema = v.variant("kind", [
 export type AnalyticsPreview = {
   /** Tasks made and closed per week, oldest first; `week` is the Monday it starts on. */
   taskWeeks: { week: string; created: number; closed: number }[]
-  /** Messages and mail linked to each project in the period, by project key. */
-  projectMessages: Record<string, number>
 }
 
 export type CountRow = v.InferOutput<typeof CountRowSchema>
@@ -55,6 +53,7 @@ export type Which =
   | "mail"
   | "taskSources"
   | "taskMeetings"
+  | "projectActivity"
 
 /** What a tool printed for one aggregate; `old` when the installed version does not have the command yet. */
 export const AggregateSchema = v.variant("kind", [
@@ -128,6 +127,26 @@ export const TaskSourcesSchema = v.looseObject({
   ),
 })
 
+/** `memo stats projects show`: each project's linked chats; a muted chat is listed, its messages not counted. */
+export const ProjectActivitySchema = v.looseObject({
+  items: v.array(
+    v.looseObject({
+      ref: v.string(),
+      key: v.nullable(v.string()),
+      name: v.nullable(v.string()),
+      chats: n,
+      muted: n,
+      messages: n,
+      sent: n,
+      last_at: v.nullable(v.string()),
+      top: v.array(v.looseObject({ ref: v.string(), title: v.nullable(v.string()), messages: n })),
+      partial: v.optional(v.boolean(), false),
+    }),
+  ),
+  page: v.optional(v.looseObject({ has_more: v.optional(v.boolean(), false) }), { has_more: false }),
+})
+
+export type ProjectActivity = v.InferOutput<typeof ProjectActivitySchema>["items"][number]
 export type Responses = v.InferOutput<typeof ResponsesSchema>
 export type Waiting = v.InferOutput<typeof WaitingSchema>
 export type Coverage = v.InferOutput<typeof CoverageSchema>
