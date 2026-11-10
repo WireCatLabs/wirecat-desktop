@@ -48,7 +48,7 @@ type Props = {
   /** On the right, bottom-aligned with the title block: the refresh button, a view switch, the page's one action. */
   actions?: ReactNode
   /**
-   * One line, for a page with a board: a smaller title, the intro and guide behind an "i" beside it. Set for every view
+   * One line, for a page with a board: a smaller title, the intro behind an "i" beside it, the guide link after it. Set for every view
    * of the page, so switching to the board moves nothing under the pointer.
    */
   compact?: boolean
@@ -85,10 +85,16 @@ export function PageHeader({ title, section, status, busy = true, intro, guide, 
           </h1>
           {/* Beside the heading, not in it: the β must not become part of the page's name for a screen reader. */}
           {section && <BetaBadge section={section} className="-ml-[0.5rem] self-center" />}
-          {compact && introText && (
+          {compact && intro && (
             <InfoTip label={m.aboutPage(title)} className="-ml-[0.6rem] self-center">
-              {introText}
+              {intro}
             </InfoTip>
+          )}
+          {/* Out of the tip: a link in it would close with the tip before the keyboard reaches it. */}
+          {compact && guide && (
+            <ExtLink href={guide.href} className="-ml-[0.6rem] self-center text-[0.9rem] font-medium">
+              {guide.label}
+            </ExtLink>
           )}
           {status !== undefined && (
             <p

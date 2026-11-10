@@ -32,28 +32,24 @@ export const useBoard = (kind: Kind, pipeline: string | null) =>
   })
 
 /**
- * A stage's name as shown. memo makes its default set once, in an own pipeline named "Base stages" in the language of
- * the owner's messages, so while that pipeline is there its default names show in the interface's language. A set the
- * owner adopted or renamed, and a CRM's stage (`crm`), stay as they are. Labels only: a move and a filter keep memo's
- * own name.
+ * A stage's name as shown. cli-core makes memo's default set once, in the language of the owner's messages; a base set
+ * holding at least three default names of one language is taken for it, and its default names show in the interface's
+ * language. An adopted set (its own names, perhaps a Won and a Lost) and a CRM's stage (`crm`) stay as they are.
+ * Labels only: a move, a rename and a filter keep memo's own name.
  */
 export function useStageName(kind: Kind) {
   const here = useMessages(stageMessages).defaults
   const pipeline = useClients((s) => s.pipeline[kind] ?? null)
   const { data } = useBoard(kind, pipeline)
   const sets = Object.values(stageMessages).map((w) => w.defaults)
-  const isSet = (name: string) => sets.some((set) => set.set === name)
-  const made = data?.kind === "base" && data.pipelines.some((p) => p.account === null && isSet(p.name))
+  const base = data?.kind === "base" ? data.base.map((b) => b.name) : []
+  const made = sets.find((set) => base.filter((name) => set[kind].includes(name)).length >= 3)
   return {
     stage: (name: string, crm = false) => {
-      if (crm || !made) return name
-      for (const set of sets) {
-        const at = set[kind].indexOf(name)
-        if (at >= 0) return here[kind][at] ?? name
-      }
-      return name
+      const at = crm || !made ? -1 : made[kind].indexOf(name)
+      return at >= 0 ? (here[kind][at] ?? name) : name
     },
-    pipeline: (name: string, crm = false) => (!crm && isSet(name) ? here.set : name),
+    pipeline: (name: string, crm = false) => (!crm && sets.some((set) => set.set === name) ? here.set : name),
   }
 }
 

@@ -228,7 +228,10 @@ function Rack({
 
 type Group = { key: string; entries: MemoryEntry[]; waiting: number }
 
-/** One run per subject: those with something waiting first, in Waiting for you the one whose first record ranks highest, then the most recently touched. */
+/**
+ * One run per subject: those with something waiting first, the run with no subject last, in Waiting for you the one
+ * whose first record ranks highest, then the most recently touched.
+ */
 function bySubjectGroups(entries: MemoryEntry[], ranked: boolean): Group[] {
   const groups = new Map<string, Group>()
   for (const e of entries) {
@@ -241,8 +244,8 @@ function bySubjectGroups(entries: MemoryEntry[], ranked: boolean): Group[] {
   return [...groups.values()].sort(
     (a, b) =>
       Number(b.waiting > 0) - Number(a.waiting > 0) ||
-      (ranked ? rankOf(a) - rankOf(b) : 0) ||
       (b.key === "" ? -1 : 0) - (a.key === "" ? -1 : 0) ||
+      (ranked ? rankOf(a) - rankOf(b) : 0) ||
       (b.entries[0]?.createdAt ?? "").localeCompare(a.entries[0]?.createdAt ?? ""),
   )
 }
