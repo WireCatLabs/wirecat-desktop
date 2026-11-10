@@ -1126,7 +1126,7 @@ pub fn open_source(reference: &str) -> Result<(), String> {
     if runs_as_program(&file) {
         tauri_plugin_opener::reveal_item_in_dir(&file).map_err(|e| e.to_string())
     } else {
-        tauri_plugin_opener::open_path(&file, None::<&str>).map_err(|e| e.to_string())
+        crate::host_open::path(&file)
     }
 }
 

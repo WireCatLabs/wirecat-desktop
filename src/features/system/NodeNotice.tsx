@@ -1,10 +1,11 @@
-import { Download, ExternalLink } from "lucide-react"
+import { Download } from "lucide-react"
 import { type ReactNode, useEffect, useId } from "react"
 import { requirements } from "@/domain/catalog"
 import { formatBytes } from "@/domain/format"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Readiness } from "@/platform/schemas"
+import { OpenLink } from "@/shared/OpenLink"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSystem } from "@/shared/system-store"
 import { Button } from "@/ui/Button"
@@ -230,13 +231,7 @@ function Manual({ admin }: { admin: boolean }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
       <p className="min-w-0 flex-1 text-[0.95rem] text-ink-soft">{m.install[platform.os](requirements.nodeLabel)}</p>
-      <Button
-        size="sm"
-        onClick={() => platform.openUrl(requirements.nodeDownload)}
-        icon={<ExternalLink className="size-4" aria-hidden />}
-      >
-        {NODEJS_ORG}
-      </Button>
+      <OpenLink url={requirements.nodeDownload}>{NODEJS_ORG}</OpenLink>
     </div>
   )
 }

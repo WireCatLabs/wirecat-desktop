@@ -5,6 +5,7 @@ import type { SyncSummary } from "@/domain/sync"
 import { useMessages } from "@/i18n"
 import type { NotesFolder, NotesModel, NotesProblem, NotesSetup } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { externalHref } from "@/shared/external-href"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
@@ -431,6 +432,7 @@ function ModelName({ model, m }: { model: NotesModel; m: NotesSetupText }) {
         type="button"
         title={model.terms}
         onClick={() => model.terms && platform.openUrl(model.terms)}
+        {...externalHref(model.terms)}
         className="font-semibold text-brand underline-offset-4 hover:text-brand-hover hover:underline"
       >
         {s.modelWord}

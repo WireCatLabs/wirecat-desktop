@@ -331,8 +331,8 @@ pub fn login(stopped: &dyn Fn() -> bool, send: &dyn Fn(PageEvent)) -> Result<(),
         let (run::Line::Out(s) | run::Line::Err(s)) = line;
         if !opened && let Some(url) = page_url(&s) {
             opened = true;
-            let _ = tauri_plugin_opener::open_url(&url, None::<&str>);
-            send(PageEvent::Opened { url });
+            send(PageEvent::Opened { url: url.clone() });
+            let _ = crate::host_open::url(&url);
         } else {
             text.push_str(&s);
             text.push('\n');

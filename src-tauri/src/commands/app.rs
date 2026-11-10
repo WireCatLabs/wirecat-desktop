@@ -9,6 +9,12 @@ pub fn deep_link_listen(links: tauri::State<'_, crate::deep_link::Links>, on_lin
     links.listen(on_link);
 }
 
+/// A web page in the owner's browser; a launcher that fails is an error the interface shows with the address.
+#[tauri::command]
+pub async fn open_url(url: String) -> Result<(), AppError> {
+    crate::log::command("open_url", async move { attempt(move || crate::host_open::url(&url)).await }).await
+}
+
 #[tauri::command]
 pub async fn digest_list(digest: Option<String>) -> Result<Vec<crate::digests::Day>, AppError> {
     crate::log::command("digest_list", async move { attempt(move || crate::digests::list(digest.as_deref())).await })

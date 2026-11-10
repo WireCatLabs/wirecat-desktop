@@ -181,13 +181,13 @@ pub fn open(id: &str, kind: &str, entry: Option<&str>) -> Result<(), String> {
         return Err("That folder no longer exists.".into());
     }
     let Some(name) = entry else {
-        return tauri_plugin_opener::open_path(&path, None::<&str>).map_err(|e| e.to_string());
+        return crate::host_open::path(&path);
     };
     let child = child_of(&path, name)?;
     let meta = std::fs::symlink_metadata(&child).map_err(|_| "That entry no longer exists.".to_string())?;
     // A file would open in whatever app claims it, and a link could lead anywhere: show those in their folder.
     if meta.is_dir() {
-        tauri_plugin_opener::open_path(&child, None::<&str>).map_err(|e| e.to_string())
+        crate::host_open::path(&child)
     } else {
         tauri_plugin_opener::reveal_item_in_dir(&child).map_err(|e| e.to_string())
     }

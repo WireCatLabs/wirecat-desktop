@@ -3,6 +3,7 @@ import { Fragment, useEffect, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { externalHref } from "@/shared/external-href"
 import { useReport } from "@/shared/report-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
@@ -159,6 +160,7 @@ function LinkButton({ href, children }: { href: string; children: string }) {
       type="button"
       title={href}
       onClick={() => platform.openUrl(href)}
+      {...externalHref(href)}
       className="inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
     >
       {children}

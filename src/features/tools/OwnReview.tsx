@@ -5,6 +5,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { OwnReview, OwnSignal, OwnUpdate } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { ExtLink } from "@/shared/ExtLink"
+import { externalHref } from "@/shared/external-href"
 import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Checkbox } from "@/ui/Checkbox"
@@ -42,6 +43,7 @@ export function Danger({ lines, m }: { lines: string[]; m: OwnText }) {
           type="button"
           className="mt-1 self-start text-brand underline hover:text-brand-hover"
           onClick={() => platform.openUrl(ownToolsDocs(lang))}
+          {...externalHref(ownToolsDocs(lang))}
         >
           {m.docs}
         </button>

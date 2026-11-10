@@ -1,12 +1,12 @@
-import { AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react"
+import { AlertTriangle, CheckCircle2 } from "lucide-react"
 import { type FormEvent, useEffect, useId, useRef, useState } from "react"
 import { botCause, botCommand, botHandle, fieldProblem, tokenProblem } from "@/domain/bot-signin"
 import { type CatalogTool, isValidProfile } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { type BotFailure, useBotSignIn } from "@/shared/bot-signin-store"
 import { type BotMessages, type BotTool, botMessages } from "@/shared/messages-bot"
+import { OpenLink } from "@/shared/OpenLink"
 import { AutoHeight } from "@/ui/AutoHeight"
-import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
@@ -121,16 +121,11 @@ export function TokenStep({ tool }: { tool: CatalogTool }) {
           {m.howTo}
         </h3>
         {key === "tg" ? <TelegramHow m={m} /> : <Steps steps={m.howSteps[key]} />}
-        <div>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={s.openCreate}
-            icon={<ExternalLink className="size-4" aria-hidden />}
-          >
-            {m.create[key]}
-          </Button>
-        </div>
+        {tool.bot?.create && (
+          <div className="self-start">
+            <OpenLink url={tool.bot.create}>{m.create[key]}</OpenLink>
+          </div>
+        )}
         {key === "wa" && (
           <p className="flex items-start gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-3 py-2 text-[0.88rem] leading-snug text-ink">
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
@@ -303,11 +298,13 @@ export function DoneStep({ tool }: { tool: CatalogTool }) {
         <p className="text-[0.93rem] leading-snug text-ink">{m.after[key]}</p>
         <p className="text-[0.9rem] text-ink-soft">{m.tryIt}</p>
         <CopyField value={botCommand(tool.bin, s.profile, "me")} label={m.copyCommand} />
-        <div>
-          <Button size="sm" variant="ghost" onClick={s.openDocs} icon={<ExternalLink className="size-4" aria-hidden />}>
-            {m.guide}
-          </Button>
-        </div>
+        {tool.bot?.docs && (
+          <div className="self-start">
+            <OpenLink url={tool.bot.docs} variant="ghost">
+              {m.guide}
+            </OpenLink>
+          </div>
+        )}
       </section>
     </div>
   )

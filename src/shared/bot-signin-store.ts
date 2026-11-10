@@ -1,5 +1,4 @@
 import { create } from "zustand"
-import { findTool } from "@/domain/catalog"
 import type { BotProfile, BotResult } from "@/platform/bot-schemas"
 import { platform } from "@/platform/bridge"
 
@@ -27,8 +26,6 @@ type BotSignInState = {
   setField(key: string, value: string): void
   /** The token is an argument only: it is never kept in the store, so no snapshot or devtools view carries it. */
   connect(token: string): Promise<void>
-  openCreate(): void
-  openDocs(): void
   close(): void
 }
 
@@ -87,14 +84,6 @@ export const useBotSignIn = create<BotSignInState>()((set, get) => ({
       set({ checking: false, connected: result, step: "done" })
       get().onFinish?.()
     } else set({ checking: false, failure: result })
-  },
-  openCreate() {
-    const url = get().tool ? findTool(get().tool ?? "")?.bot?.create : undefined
-    if (url) void platform.openUrl(url)
-  },
-  openDocs() {
-    const url = get().tool ? findTool(get().tool ?? "")?.bot?.docs : undefined
-    if (url) void platform.openUrl(url)
   },
   close() {
     set({ ...closed, run: get().run + 1 })

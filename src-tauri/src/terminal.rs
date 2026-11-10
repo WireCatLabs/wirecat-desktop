@@ -146,7 +146,7 @@ fn launch(shell: Option<&Path>, line: &str, syntax: Syntax) -> std::io::Result<(
     let path = paths::search_path();
     for (term, flag) in terminals(std::env::var("TERMINAL").ok()) {
         let Some(exe) = paths::find(&term) else { continue };
-        let spawned = Command::new(exe)
+        let spawned = crate::host_open::for_host(&mut Command::new(exe))
             .args(flag)
             .args(&argv)
             .env("PATH", &path)

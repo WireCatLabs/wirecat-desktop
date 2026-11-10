@@ -83,6 +83,7 @@ pub const CALLER_ENV: &str = "WIRECAT_CALLER";
 
 pub fn command(program: &Path, args: &[&str], path_env: Option<&std::ffi::OsStr>) -> Command {
     let mut cmd = Command::new(program);
+    crate::host_open::for_host(&mut cmd);
     cmd.args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

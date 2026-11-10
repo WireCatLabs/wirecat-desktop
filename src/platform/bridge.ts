@@ -1,6 +1,5 @@
 import { Channel, type InvokeArgs, invoke as tauriInvoke } from "@tauri-apps/api/core"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { openUrl } from "@tauri-apps/plugin-opener"
 import { relaunch } from "@tauri-apps/plugin-process"
 import { check, type Update } from "@tauri-apps/plugin-updater"
 import * as v from "valibot"
@@ -445,7 +444,7 @@ function createTauri(): Platform {
       invoke("digest_template_reset", { channel, locale, digest: digest ?? null }),
     digestTemplatePreview: (channel, locale, draft, digest) =>
       invoke("digest_template_preview", { channel, locale, draft, digest: digest ?? null }),
-    openUrl: (url) => openUrl(url),
+    openUrl: (url) => invoke("open_url", { url }),
     window: async (action) => {
       const w = getCurrentWindow()
       if (action === "minimize") await w.minimize()

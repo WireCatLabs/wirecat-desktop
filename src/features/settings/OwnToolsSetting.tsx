@@ -3,6 +3,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { OwnStatus } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { reloadAddedTools } from "@/shared/added-tools"
+import { externalHref } from "@/shared/external-href"
 import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -63,6 +64,7 @@ export function OwnToolsSetting() {
           type="button"
           className="text-brand underline hover:text-brand-hover"
           onClick={() => platform.openUrl(ownToolsDocs(lang))}
+          {...externalHref(ownToolsDocs(lang))}
         >
           {m.ownDocs}
         </button>

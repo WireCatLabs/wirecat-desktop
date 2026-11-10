@@ -1,4 +1,4 @@
-import { ExternalLink, Info, Smartphone } from "lucide-react"
+import { Info, Smartphone } from "lucide-react"
 import { useState } from "react"
 import addDevice from "@/assets/signin/telegram-android-add-device.webp"
 import createApp from "@/assets/signin/telegram-create-app.webp"
@@ -6,41 +6,18 @@ import credentials from "@/assets/signin/telegram-credentials.webp"
 import type { KeyringFallback } from "@/domain/signin-notes"
 import { isTelegramAppsUrl, type KeyHint, MY_TELEGRAM, type TelegramFailure, waitParts } from "@/domain/telegram-signin"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
+import { OpenLink } from "@/shared/OpenLink"
 import type { OpenUrl } from "@/shared/signin-store"
 import { AutoHeight } from "@/ui/AutoHeight"
-import { Button } from "@/ui/Button"
-import { CopyButton } from "@/ui/CopyButton"
 import { Crossfade } from "@/ui/Crossfade"
 import { Dialog } from "@/ui/Dialog"
 import { Disclosure } from "@/ui/Disclosure"
 import { Segmented } from "@/ui/Segmented"
-import { signinMessages } from "./messages"
 import { type PhoneOs, telegramMessages } from "./messages-telegram"
 
 export { MY_TELEGRAM }
 
 export const isTelegramApps = (url: OpenUrl) => isTelegramAppsUrl(url.url)
-
-/** Opens the page, and copies its link for a browser the system did not choose. */
-export function OpenLink({ url, primary = false }: { url: string; primary?: boolean }) {
-  const m = useMessages(signinMessages)
-  const tm = useMessages(telegramMessages)
-  const host = new URL(url).host
-  return (
-    <div className="flex items-center gap-1">
-      <Button
-        variant={primary ? "primary" : "secondary"}
-        size={primary ? "md" : "sm"}
-        icon={<ExternalLink className="size-4" aria-hidden />}
-        onClick={() => platform.openUrl(url)}
-      >
-        {m.openHost(host)}
-      </Button>
-      <CopyButton value={url} label={tm.copyLink(host)} />
-    </div>
-  )
-}
 
 type Shot = { src: string; width: number; height: number; alt: string; caption: string }
 

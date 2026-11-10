@@ -1,4 +1,4 @@
-import { ExternalLink, MessagesSquare, Paperclip, ScrollText } from "lucide-react"
+import { MessagesSquare, Paperclip, ScrollText } from "lucide-react"
 import { useLayoutEffect, useRef, useState } from "react"
 import { findTool } from "@/domain/catalog"
 import { formatWhen } from "@/domain/runs"
@@ -7,6 +7,7 @@ import { clock } from "@/domain/sync"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { SearchContext, SearchHit } from "@/platform/search-schemas"
+import { OpenLink } from "@/shared/OpenLink"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -54,14 +55,9 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
           </Button>
         )}
         {link && (
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => platform.openUrl(link)}
-            icon={<ExternalLink className="size-4" aria-hidden />}
-          >
+          <OpenLink url={link} variant="ghost">
             {m.openOriginal}
-          </Button>
+          </OpenLink>
         )}
       </div>
       <Collapse open={open}>

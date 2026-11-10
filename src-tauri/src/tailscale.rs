@@ -400,8 +400,9 @@ pub enum PageEvent {
 }
 
 pub(crate) fn open_page(url: &str, send: &dyn Fn(PageEvent)) {
-    let _ = tauri_plugin_opener::open_url(url, None::<&str>);
+    // First, so the page's own button shows while a launcher may still take seconds to answer.
     send(PageEvent::Opened { url: url.to_string() });
+    let _ = crate::host_open::url(url);
 }
 
 /// Streams a waiting CLI command, opens the first Tailscale page it prints, and gives back its exit and its lines.

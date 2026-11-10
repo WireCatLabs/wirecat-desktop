@@ -25,6 +25,7 @@ import { CrashScenario } from "./CrashScenario"
 import { ErrorBoundary } from "./ErrorBoundary"
 import { useSectionHistory, useSectionSwitch } from "./history"
 import { LinkFailure } from "./LinkFailure"
+import { LinkMenu } from "./LinkMenu"
 import { appMessages } from "./messages"
 import { PageSkeleton } from "./PageSkeleton"
 import { SandboxBanner, SandboxConfirm } from "./Sandbox"
@@ -125,6 +126,7 @@ function Shell() {
         <SandboxBanner />
         <TopNotices />
         <LinkFailure />
+        <LinkMenu />
         {onboarding ? (
           <ErrorBoundary scope="page">
             <Onboarding onExit={toHome} onTour={() => useTour.getState().start("setup")} />

@@ -1,10 +1,10 @@
-import { Copy, ExternalLink } from "lucide-react"
+import { Copy } from "lucide-react"
 import { useState } from "react"
 import { findTool, signInMethods } from "@/domain/catalog"
 import { type ExplainedFailure, explainFailure } from "@/domain/signin-failure"
 import { openTool } from "@/features/tools"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
+import { OpenLink } from "@/shared/OpenLink"
 import { ReportThis } from "@/shared/ReportThis"
 import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
@@ -97,15 +97,9 @@ export function FailureCard({ s, explained }: { s: SignInView; explained: Explai
             if (action === "openPage" && explained.page) {
               const page = explained.page
               return (
-                <Button
-                  key={action}
-                  size="sm"
-                  variant="secondary"
-                  icon={<ExternalLink className="size-4" aria-hidden />}
-                  onClick={() => platform.openUrl(page)}
-                >
+                <OpenLink key={action} url={page}>
                   {wm.actions.openPage[explained.reason] ?? wm.actions.openPageOther}
-                </Button>
+                </OpenLink>
               )
             }
             return null

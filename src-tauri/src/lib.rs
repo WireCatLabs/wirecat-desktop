@@ -30,6 +30,7 @@ mod enrichment;
 mod error;
 mod funnel_helper;
 mod groups;
+mod host_open;
 mod install;
 #[cfg(test)]
 mod install_e2e;
@@ -183,6 +184,7 @@ pub fn run() {
             commands::own_tools::own_tool_uninstall,
             commands::own_tools::own_tool_remove,
             commands::app::deep_link_listen,
+            commands::app::open_url,
             commands::app::digest_list,
             commands::app::digest_show,
             commands::app::digest_notify,

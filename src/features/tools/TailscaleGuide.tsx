@@ -3,6 +3,8 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { TailscaleDownload, TailscaleLinux, TailscaleStatus } from "@/platform/tailscale-schemas"
+import { externalHref } from "@/shared/external-href"
+import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
@@ -111,6 +113,7 @@ function Link({ href, children }: { href: string; children: ReactNode }) {
       type="button"
       className="text-brand underline hover:text-brand-hover"
       onClick={() => platform.openUrl(href)}
+      {...externalHref(href)}
     >
       {children}
     </button>
@@ -323,9 +326,7 @@ function LoginStep({ s, m, check }: { s: TailscaleStatus; m: Words; check(): Pro
       <>
         <Para>{m.approval}</Para>
         <div>
-          <Button size="sm" onClick={() => platform.openUrl(PAGES.machines)}>
-            {m.machines}
-          </Button>
+          <OpenLink url={PAGES.machines}>{m.machines}</OpenLink>
         </div>
       </>
     )
@@ -345,11 +346,7 @@ function LoginStep({ s, m, check }: { s: TailscaleStatus; m: Words; check(): Pro
             <span className="text-[0.9rem] text-ink" role="status">
               {m.waiting}
             </span>
-            {page && (
-              <Button size="sm" onClick={() => platform.openUrl(page)}>
-                {m.pageAgain}
-              </Button>
-            )}
+            {page && <OpenLink url={page}>{m.pageAgain}</OpenLink>}
             <Button size="sm" variant="ghost" onClick={() => platform.tailscaleStop()}>
               {m.stop}
             </Button>
@@ -371,9 +368,7 @@ function FunnelStep({ s, m }: { s: TailscaleStatus; m: Words }) {
       <>
         <Para>{m.https}</Para>
         <div>
-          <Button size="sm" onClick={() => platform.openUrl(PAGES.dns)}>
-            {m.dns}
-          </Button>
+          <OpenLink url={PAGES.dns}>{m.dns}</OpenLink>
         </div>
         <Note>{m.certLog}</Note>
       </>
@@ -382,9 +377,7 @@ function FunnelStep({ s, m }: { s: TailscaleStatus; m: Words }) {
     <>
       <Para>{m.funnel}</Para>
       <div>
-        <Button size="sm" onClick={() => platform.openUrl(PAGES.acls)}>
-          {m.acls}
-        </Button>
+        <OpenLink url={PAGES.acls}>{m.acls}</OpenLink>
       </div>
     </>
   )

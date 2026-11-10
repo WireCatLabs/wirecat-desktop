@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from "react"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CommunityStatus } from "@/platform/community-schemas"
+import { externalHref } from "@/shared/external-href"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -61,6 +62,7 @@ export function CommunitySetting() {
           type="button"
           className="text-brand underline hover:text-brand-hover"
           onClick={() => platform.openUrl(`https://wirecat.dev/${lang}/docs/build-create-cli`)}
+          {...externalHref(`https://wirecat.dev/${lang}/docs/build-create-cli`)}
         >
           {m.communityHow}
         </button>

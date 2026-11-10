@@ -24,6 +24,8 @@ tauri = { version = "2", features = [] }
 tauri-plugin-deep-link = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-opener = "2"
+# The launchers the opener uses, started here with the system's environment instead of the AppImage's (host_open.rs).
+open = "5"
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
 tauri-plugin-window-state = "2"

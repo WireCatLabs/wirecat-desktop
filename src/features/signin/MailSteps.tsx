@@ -1,9 +1,11 @@
-import { Clock, ExternalLink, Eye, EyeOff, FileJson, KeyRound } from "lucide-react"
+import { Clock, Eye, EyeOff, FileJson, KeyRound } from "lucide-react"
 import { useEffect, useId, useRef, useState } from "react"
 import { linkParts } from "@/domain/format"
 import type { AppPasswordProvider, MailNotes } from "@/domain/mail-signin"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { externalHref } from "@/shared/external-href"
+import { OpenLink } from "@/shared/OpenLink"
 import { setClientFile, setPassword, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
@@ -28,18 +30,9 @@ function Numbered({ i }: { i: number }) {
 }
 
 function OpenPage({ url, label }: { url: string; label: string }) {
-  const tm = useMessages(telegramMessages)
   return (
-    <div className="flex items-center gap-1 self-start">
-      <Button
-        size="sm"
-        variant="secondary"
-        icon={<ExternalLink className="size-4" aria-hidden />}
-        onClick={() => platform.openUrl(url)}
-      >
-        {label}
-      </Button>
-      <CopyButton value={url} label={tm.copyLink(new URL(url).host)} />
+    <div className="self-start">
+      <OpenLink url={url}>{label}</OpenLink>
     </div>
   )
 }
@@ -306,6 +299,7 @@ function Linked({ text }: { text: string }) {
             <button
               type="button"
               onClick={() => platform.openUrl(part.text)}
+              {...externalHref(part.text)}
               className="rounded font-medium text-brand underline underline-offset-2 hover:text-brand-hover"
             >
               {`${url.host}${url.pathname === "/" ? "" : url.pathname}`}

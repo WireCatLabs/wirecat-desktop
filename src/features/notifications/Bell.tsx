@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { Localized, Notification } from "@/platform/notifications-schemas"
+import { externalHref } from "@/shared/external-href"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { focusInPlace, reducedMotion } from "@/ui/motion"
@@ -227,6 +228,7 @@ function Item({
             type="button"
             title={n.link.url}
             onClick={() => n.link && platform.openUrl(n.link.url)}
+            {...externalHref(n.link.url)}
             className="mt-[0.55rem] inline-flex items-center gap-1 font-medium text-[0.95rem] text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
           >
             {text(n.link.label, lang) || n.link.url}

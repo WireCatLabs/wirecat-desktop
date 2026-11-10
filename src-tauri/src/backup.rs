@@ -134,7 +134,7 @@ pub fn open(name: Option<&str>) -> Result<(), String> {
         return Err("There are no backups yet.".into());
     }
     let Some(name) = name else {
-        return tauri_plugin_opener::open_path(&dir, None::<&str>).map_err(|e| e.to_string());
+        return crate::host_open::path(&dir);
     };
     if !is_backup_name(name) {
         return Err("Not a backup in that folder.".into());

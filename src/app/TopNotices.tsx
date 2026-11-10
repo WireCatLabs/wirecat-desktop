@@ -1,5 +1,6 @@
 import { AlertTriangle, ExternalLink, X } from "lucide-react"
 import { useLang, useMessages } from "@/i18n"
+import { externalHref } from "@/shared/external-href"
 import { shownNotices, type TopNotice, useNotices } from "@/shared/notices-store"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -45,6 +46,7 @@ function Notice({ notice: n }: { notice: TopNotice }) {
             type="button"
             title={n.link.url[lang]}
             onClick={() => n.link && openLink(n.link.url[lang])}
+            {...externalHref(n.link.url[lang])}
             className="ml-[0.5rem] inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
           >
             {n.link.label[lang]}
