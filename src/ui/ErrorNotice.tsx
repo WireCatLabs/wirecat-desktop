@@ -21,7 +21,7 @@ export function ErrorNotice({ children, detail, action, inline = false, tone = "
       className={cx(
         // An error that appears fades in where it happened, so it reads as the answer to the click, not a glitch.
         "reveal flex flex-wrap items-center gap-x-3 gap-y-1.5",
-        inline ? "text-[0.875rem]" : "rounded-[0.2rem] border py-2 pr-2 pl-4 text-[0.95rem]",
+        inline ? "text-[0.875rem]" : "rounded-[0.2rem] border py-2 pr-2 pl-4 text-body",
         !inline && (tone === "bad" ? "border-bad/40 bg-bad/10" : "border-warn/40 bg-warn/10"),
         className,
       )}

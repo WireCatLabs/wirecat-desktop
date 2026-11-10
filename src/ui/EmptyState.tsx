@@ -12,6 +12,7 @@ type Props = {
 
 /** A list, table or page with nothing to show, and why: one box for "nothing yet" and "nothing matches". */
 export function EmptyState({ title, children, action, busy = false }: Props) {
+  const titled = title !== undefined && title !== null && title !== ""
   return (
     <div
       aria-busy={busy || undefined}
@@ -20,8 +21,8 @@ export function EmptyState({ title, children, action, busy = false }: Props) {
         busy && "opacity-60",
       )}
     >
-      {title && <p className="font-medium text-ink">{title}</p>}
-      {children && <div className={cx("max-w-[70ch]", title !== undefined && "mt-1")}>{children}</div>}
+      {titled && <p className="font-medium text-ink">{title}</p>}
+      {children != null && children !== "" && <div className={cx("max-w-[70ch]", titled && "mt-1")}>{children}</div>}
       {action && <div className="mt-3">{action}</div>}
     </div>
   )
