@@ -94,9 +94,10 @@ if [ -n "$seed" ] && [ -n "$had" ] && [ "$seed" != "$had" ] && ! { [ "$had" = to
   die "'$name' was seeded with '$had'; add --reset to seed it with '$seed'"
 fi
 # A demo seeded before the seed set made its people by name only: loading the set would add them a second time.
+old_demo=
 if [ "$had" = demo ] && [ ! -f "$dir/seed-version" ]; then
-  if [ "$seed" = demo ]; then die "'$name' holds the old demo data; add --reset to load the seed set"; fi
-  echo "sandbox: '$name' holds the old demo data; --seed demo --reset loads the seed set" >&2
+  old_demo=1
+  echo "sandbox: '$name' holds the old demo data and keeps it; --seed demo --reset loads the seed set" >&2
 fi
 
 real_home="$HOME"
@@ -288,8 +289,8 @@ if [ -n "$seed" ] && [ -z "$had" ]; then
   echo "$seed" > "$dir/seed"
 elif [ -z "$had" ]; then
   echo fresh > "$dir/seed"
-elif [ "$seed" = demo ] || { [ "$had" = demo ] && [ -f "$dir/seed-version" ] &&
-  [ "$(cat "$dir/seed-version")" != "$(seed_version)" ]; }; then
+elif [ -z "$old_demo" ] && { [ "$seed" = demo ] || { [ "$had" = demo ] && [ -f "$dir/seed-version" ] &&
+  [ "$(cat "$dir/seed-version")" != "$(seed_version)" ]; }; }; then
   seed_demo
   echo demo > "$dir/seed"
 fi

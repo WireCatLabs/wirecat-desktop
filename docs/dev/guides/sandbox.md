@@ -78,7 +78,7 @@ the data, raise `version`, and start the sandbox: what changed is updated, the r
   that one call. The app does not see it, so the Digests page says no agent is set up.
 - **Removing a row from the data does not remove it from a sandbox.** `--reset` starts over.
 - A demo sandbox seeded before the seed set made its people by name only, so the set would add them again: `bin/sandbox`
-  says so and asks for `--reset`.
+  says so and starts it with its old data. `--seed demo --reset` loads the seed set.
 
 What no command can load yet:
 
