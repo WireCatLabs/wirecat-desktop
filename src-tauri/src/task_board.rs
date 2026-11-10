@@ -644,7 +644,15 @@ fn shown(v: &Value) -> Result<Task, Failure> {
 }
 
 fn show_with(call: &Call, key: &str) -> Result<Task, Failure> {
-    shown(&call(&words(&["tasks", "show", key]))?)
+    show_in(call, key, None)
+}
+
+/// memo reads a found task only with the account it belongs to; the answer leaves the account out, so it is put back.
+fn show_in(call: &Call, key: &str, account: Option<&str>) -> Result<Task, Failure> {
+    let Some(a) = account else { return shown(&call(&words(&["tasks", "show", key]))?) };
+    let mut task = shown(&call(&words(&["tasks", "show", key, &format!("--source={a}")]))?)?;
+    task.account.get_or_insert_with(|| a.to_string());
+    Ok(task)
 }
 
 /// A task's id as Memo gives it in `task:<id>` (a UUID): what an approved action or finding names before it has a key.
@@ -712,9 +720,20 @@ fn stale(f: &Failure) -> bool {
 
 /// A write, or the task as it now is when Memo refused it as stale.
 fn write_with(call: &Call, key: &str, args: &[String]) -> Result<Write, Failure> {
+    write_as(call, key, args, None)
+}
+
+fn write_as(call: &Call, key: &str, args: &[String], account: Option<&str>) -> Result<Write, Failure> {
     match call(args) {
-        Ok(v) => Ok(saved(&v)?),
-        Err(f) if stale(&f) => stale_with(call, key),
+        Ok(v) => {
+            let mut out = saved(&v)?;
+            // memo's answer to a found task's write leaves out its account, which marks it as found on the page.
+            if let (Write::Saved { task, .. }, Some(a)) = (&mut out, account) {
+                task.account.get_or_insert_with(|| a.to_string());
+            }
+            Ok(out)
+        }
+        Err(f) if stale(&f) => stale_with(call, key, account),
         Err(f) if f.reason.as_deref() == Some("task.is-subtask") => match text(&f.details, "parent") {
             Some(parent) if validate_key(&bare_key(&parent)).is_ok() => {
                 Ok(Write::IsSubtask { parent: bare_key(&parent) })
@@ -725,8 +744,8 @@ fn write_with(call: &Call, key: &str, args: &[String]) -> Result<Write, Failure>
     }
 }
 
-fn stale_with(call: &Call, key: &str) -> Result<Write, Failure> {
-    let current = show_with(call, key)?;
+fn stale_with(call: &Call, key: &str, account: Option<&str>) -> Result<Write, Failure> {
+    let current = show_in(call, key, account)?;
     let last = history_with(call, key).ok().and_then(|mut h| h.pop());
     Ok(Write::Stale { current, last })
 }
@@ -772,10 +791,32 @@ pub struct Edit {
     /// Takes a subtask out of its parent (`--parent none`), so it can move to another project on its own.
     #[serde(default)]
     pub detach: bool,
+    /// The `provider:account` of a task found in a chat, mail or note: memo writes such a task only as that account.
+    pub account: Option<String>,
+}
+
+/// `telegram:220195113`, `email:me@example.com`: what `tasks list` gives as a found task's account.
+pub fn validate_account(account: &str) -> Result<&str, String> {
+    let ok = account
+        .split_once(':')
+        .is_some_and(|(p, a)| plain_word(p, 32, &[]) && plain_word(a, 200, &['@', '.', '-', '_', '+', ':', '/']));
+    if ok { Ok(account) } else { Err(format!("not an account: {account}")) }
 }
 
 /// Text goes as `--title=<text>`, so a title that starts with a dash is never read as an option.
 fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, String> {
+    let found = edit.account.as_deref().map(validate_account).transpose()?;
+    // memo refuses these, and a revision, for a task found in messages: they belong to project tasks.
+    if found.is_some()
+        && (edit.priority.is_some()
+            || edit.agent.is_some()
+            || edit.state.is_some()
+            || edit.project.is_some()
+            || edit.kind.is_some()
+            || edit.detach)
+    {
+        return Err("a task found in messages keeps no priority, agent, status, project or kind".into());
+    }
     let mut args = vec!["tasks".to_string(), "update".into(), key.into()];
     if let Some(t) = &edit.title {
         args.push(format!("--title={}", validate_title(t)?));
@@ -808,7 +849,10 @@ fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, Strin
     if args.len() == 3 {
         return Err("nothing to change".into());
     }
-    args.push(format!("--revision={revision}"));
+    match found {
+        Some(a) => args.push(format!("--account={a}")),
+        None => args.push(format!("--revision={revision}")),
+    }
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
     Ok(args)
 }
@@ -816,7 +860,7 @@ fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, Strin
 pub fn update(key: &str, revision: u64, edit: &Edit) -> Result<Write, String> {
     let key = validate_key(key)?;
     let args = edit_args(key, revision, edit)?;
-    with_memo(WRITE, |call| write_with(call, key, &args))
+    with_memo(WRITE, |call| write_as(call, key, &args, edit.account.as_deref()))
 }
 
 /// Where a dragged card lands: a column, and the card it goes above or below there.
@@ -853,10 +897,16 @@ pub fn move_task(key: &str, revision: u64, place: &Place) -> Result<Write, Strin
 
 /// Makes `person` the one assignee (or nobody, with `None`): the others are taken off first, each write with the
 /// revision the one before answered.
-fn assign_with(call: &Call, key: &str, revision: u64, person: Option<&str>) -> Result<Write, Failure> {
-    let current = show_with(call, key)?;
+fn assign_with(
+    call: &Call,
+    key: &str,
+    revision: u64,
+    person: Option<&str>,
+    account: Option<&str>,
+) -> Result<Write, Failure> {
+    let current = show_in(call, key, account)?;
     if current.revision != revision {
-        return stale_with(call, key);
+        return stale_with(call, key, account);
     }
     let off: Vec<String> = current.assignees.iter().filter(|p| Some(p.as_str()) != person).cloned().collect();
     let has = person.is_some_and(|p| current.assignees.iter().any(|a| a == p));
@@ -864,7 +914,7 @@ fn assign_with(call: &Call, key: &str, revision: u64, person: Option<&str>) -> R
     let mut rev = revision;
     for p in &off {
         let r = format!("--revision={rev}");
-        result = write_with(call, key, &words(&["tasks", "assign", key, p, "--clear", &r]))?;
+        result = write_as(call, key, &words(&["tasks", "assign", key, p, "--clear", &r]), account)?;
         match &result {
             Write::Saved { task, .. } => rev = task.revision,
             Write::Stale { .. } | Write::IsSubtask { .. } => return Ok(result),
@@ -872,15 +922,17 @@ fn assign_with(call: &Call, key: &str, revision: u64, person: Option<&str>) -> R
     }
     if let (Some(p), false) = (person, has) {
         let r = format!("--revision={rev}");
-        result = write_with(call, key, &words(&["tasks", "assign", key, p, &r]))?;
+        result = write_as(call, key, &words(&["tasks", "assign", key, p, &r]), account)?;
     }
     Ok(result)
 }
 
-pub fn assign(key: &str, revision: u64, person: Option<&str>) -> Result<Write, String> {
+/// `account` names a found task's account, which memo needs to read it.
+pub fn assign(key: &str, revision: u64, person: Option<&str>, account: Option<&str>) -> Result<Write, String> {
     let key = validate_key(key)?;
     let person = person.map(validate_person).transpose()?;
-    with_memo(WRITE, |call| assign_with(call, key, revision, person))
+    let account = account.map(validate_account).transpose()?;
+    with_memo(WRITE, |call| assign_with(call, key, revision, person, account))
 }
 
 #[derive(Deserialize, Debug, Default, PartialEq)]
@@ -1254,6 +1306,48 @@ mod tests {
     }
 
     #[test]
+    fn a_found_task_is_written_as_its_account_with_no_revision() {
+        let found = |e: Edit| Edit { account: Some("telegram:220195113".into()), ..e };
+        assert_eq!(
+            edit_args("Q-1", 7, &found(Edit { title: Some("Keys".into()), ..Edit::default() })).unwrap(),
+            strs(&["tasks", "update", "Q-1", "--title=Keys", "--account=telegram:220195113", "--json", "--no-record"])
+        );
+        assert!(edit_args("Q-1", 7, &found(Edit { state: Some("todo".into()), ..Edit::default() })).is_err());
+        assert!(edit_args("Q-1", 7, &found(Edit { agent: Some("none".into()), ..Edit::default() })).is_err());
+        let bad = Edit { title: Some("x".into()), account: Some("--json".into()), ..Edit::default() };
+        assert!(edit_args("Q-1", 7, &bad).is_err());
+        assert!(validate_account("email:me@example.com").is_ok());
+        assert!(validate_account("telegram").is_err());
+
+        let mut answer = card(3, &[]);
+        answer["key"] = json!("Q-1");
+        let fake = Fake::new(move |_| Ok(json!({ "item": answer.clone() })));
+        let args = edit_args("Q-1", 7, &found(Edit { title: Some("Keys".into()), ..Edit::default() })).unwrap();
+        let Write::Saved { task, .. } =
+            write_as(&|a: &[String]| fake.call(a), "Q-1", &args, Some("telegram:1")).unwrap()
+        else {
+            panic!("not saved")
+        };
+        assert_eq!(task.account.as_deref(), Some("telegram:1"));
+    }
+
+    #[test]
+    fn a_found_task_is_read_with_its_account_before_an_assignment() {
+        let fake = Fake::new(|a| {
+            let mut item = card(4, &[]);
+            item["key"] = json!("Q-1");
+            if a[1] == "assign" {
+                item["revision"] = json!(5);
+            }
+            Ok(json!({ "item": item }))
+        });
+        let out = assign_with(&|a: &[String]| fake.call(a), "Q-1", 4, Some("person:5"), Some("telegram:1")).unwrap();
+        assert_eq!(fake.seen()[0], strs(&["tasks", "show", "Q-1", "--source=telegram:1", "--json", "--no-record"]));
+        let Write::Saved { task, .. } = out else { panic!("not saved") };
+        assert_eq!(task.account.as_deref(), Some("telegram:1"));
+    }
+
+    #[test]
     fn a_move_takes_the_subtasks_along_and_is_refused_for_a_subtask_that_keeps_its_parent() {
         let refusal =
             |reason: &str, details: Value| Failure { details, reason: Some(reason.into()), message: "no".into() };
@@ -1369,7 +1463,7 @@ mod tests {
                 _ => card(7, &["person:5"]),
             }}))
         });
-        let out = assign_with(&|a: &[String]| fake.call(a), "HRB-1", 4, Some("person:5")).unwrap();
+        let out = assign_with(&|a: &[String]| fake.call(a), "HRB-1", 4, Some("person:5"), None).unwrap();
         let Write::Saved { task, .. } = out else { panic!("not saved") };
         assert_eq!(task.assignees, ["person:5"]);
         let seen = fake.seen();
@@ -1384,7 +1478,7 @@ mod tests {
     #[test]
     fn assigning_on_a_stale_copy_writes_nothing() {
         let fake = Fake::new(|a| Ok(if a[1] == "history" { history_rows() } else { json!({"item": card(9, &[])}) }));
-        let out = assign_with(&|a: &[String]| fake.call(a), "HRB-1", 4, None).unwrap();
+        let out = assign_with(&|a: &[String]| fake.call(a), "HRB-1", 4, None, None).unwrap();
         assert!(matches!(out, Write::Stale { .. }));
         assert!(fake.seen().iter().all(|a| a[1] != "assign"));
     }
@@ -1523,12 +1617,13 @@ mod tests {
         assert_eq!(show_with(&call, &b.key).unwrap().revision, held.revision);
         let owner = people_search_with(&call, "").unwrap().into_iter().find(|p| p.owner).unwrap();
         let Write::Saved { task: mine, .. } =
-            assign_with(&call, &done.key, done.revision, Some(&owner.reference)).unwrap()
+            assign_with(&call, &done.key, done.revision, Some(&owner.reference), None).unwrap()
         else {
             panic!("not assigned")
         };
         assert_eq!(mine.assignees, [owner.reference]);
-        let Write::Saved { task: nobody, .. } = assign_with(&call, &mine.key, mine.revision, None).unwrap() else {
+        let Write::Saved { task: nobody, .. } = assign_with(&call, &mine.key, mine.revision, None, None).unwrap()
+        else {
             panic!("not cleared")
         };
         assert_eq!(nobody.assignees, Vec::<String>::new());

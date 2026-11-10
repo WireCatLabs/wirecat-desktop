@@ -1,20 +1,20 @@
 import { Bot, CalendarDays, GitBranch, Lock, User } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
-import { bareTitleKind, closed, labelOf, STATES, type State } from "@/domain/tasks"
+import { bareTitleKind, closed, fromMessages, labelOf, STATES, type State } from "@/domain/tasks"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import type { Creator, Person, Project, Task, TaskEdit, TaskEvent } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
+import { InfoTip } from "@/ui/InfoTip"
 import { Skeleton } from "@/ui/Skeleton"
 import { Comments } from "./Comments"
-import { AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, StatusCell } from "./cells"
+import { AgentCell, AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, StatusCell } from "./cells"
 import { dueDay, stamp, type TaskWords, taskMessages } from "./messages"
 import { StaleLine } from "./Note"
-import { personName, StateLamp, TaskLink, taskTitle } from "./parts"
+import { personName, StateLamp, TaskError, TaskLink, taskTitle } from "./parts"
 import { useTasks } from "./store"
 
 const isState = (v: unknown): v is State => typeof v === "string" && (STATES as readonly string[]).includes(v)
@@ -64,20 +64,24 @@ function Who({ by }: { by: TaskEvent["by"] }) {
   return <Icon role="img" aria-label={isAgent(by) ? m.byAgent : m.byPerson} className="size-[0.85rem] shrink-0" />
 }
 
-function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string | undefined }) {
+function Field({ label, children, tip }: { label: string; children: ReactNode; tip?: string | undefined }) {
   return (
     <div className="grid grid-cols-[6rem_minmax(0,1fr)] items-baseline gap-x-3 py-[0.15rem]">
-      <dt className="text-[0.875rem] text-ink-dim">{label}</dt>
-      <dd className="min-w-0 text-[0.9rem] text-ink">
-        {children}
-        {hint && <span className="block text-[0.8rem] leading-snug text-ink-dim">{hint}</span>}
-      </dd>
+      <dt className="flex items-center gap-[0.15rem] text-[0.875rem] text-ink-dim">
+        {label}
+        {tip && (
+          <InfoTip label={label} align="end" className="-my-[0.2rem]">
+            {tip}
+          </InfoTip>
+        )}
+      </dt>
+      <dd className="min-w-0 text-[0.9rem] text-ink">{children}</dd>
     </div>
   )
 }
 
 /**
- * A task in the dialog: title, notes and agent to edit and save; status, priority, assignee and due date that save
+ * A task in the dialog: title and notes to edit and save; status, priority, assignee, agent and due date that save
  * on change, as the table's cells do; then what it waits for, what waits for it, and who changed what.
  */
 export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boolean) => void }) {
@@ -94,7 +98,6 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const own = bareTitleKind(task) === null ? task.title : ""
   const [title, setTitle] = useState(own)
   const [notes, setNotes] = useState(task.description ?? "")
-  const [agent, setAgent] = useState(task.agent ?? "")
   const [writing, setWriting] = useState(!task.description)
   const box = useRef<HTMLTextAreaElement>(null)
   const noTitle = useFieldError(`${id}-title`)
@@ -104,9 +107,8 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
     clearTitle()
     setTitle(own)
     setNotes(task.description ?? "")
-    setAgent(task.agent ?? "")
     setWriting(!task.description)
-  }, [own, task.description, task.agent, clearTitle])
+  }, [own, task.description, clearTitle])
 
   useEffect(() => {
     if (!useTasks.getState().history[task.key]) void useTasks.getState().loadHistory(task.key)
@@ -117,7 +119,6 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   // An emptied box clears the notes.
   if (notes.trim() ? notes !== (task.description ?? "") : Boolean(task.description))
     edit.description = notes.trim() && notes
-  if (agent.trim() !== (task.agent ?? "")) edit.agent = agent.trim() || "none"
   const changed = Object.keys(edit).length > 0
   const blank = title.trim() === ""
   useEffect(() => onDirty?.(changed), [changed, onDirty])
@@ -125,7 +126,6 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
     noTitle.clear()
     setTitle(own)
     setNotes(task.description ?? "")
-    setAgent(task.agent ?? "")
     setWriting(!task.description)
   }
   const write = () => {
@@ -170,7 +170,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
                 setTitle(e.target.value)
                 noTitle.clear()
               }}
-              className="selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none focus-visible:border-brand aria-[invalid=true]:border-bad"
+              className={`selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink aria-[invalid=true]:border-bad ${fieldFocus}`}
             />
             {noTitle.hint}
           </div>
@@ -212,17 +212,6 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
               </article>
             )}
           </div>
-          <label className="flex flex-col gap-[0.35rem]">
-            <span className="text-[0.9rem] font-medium text-ink-dim">{m.agent}</span>
-            <input
-              value={agent}
-              maxLength={64}
-              spellCheck={false}
-              onChange={(e) => setAgent(e.target.value.replace(/[^\w.-]/g, ""))}
-              placeholder={m.agentHint}
-              className="selectable h-[2.4rem] max-w-[20rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] font-mono text-[0.9rem] text-ink outline-none placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand"
-            />
-          </label>
           {/* The buttons appear with the first change; their line is kept, so nothing below moves. */}
           <div
             inert={(!changed && !blank && !busy) || undefined}
@@ -239,7 +228,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
               {m.cancel}
             </Button>
           </div>
-          {failed && <ErrorNotice inline>{m.notSaved(failed)}</ErrorNotice>}
+          {failed && <TaskError lead={m.notSaved} raw={failed} />}
           <StaleLine taskKey={task.key} />
         </form>
         <Comments taskKey={task.key} />
@@ -330,10 +319,13 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           <Field label={m.assignee}>
             <AssigneeCell task={task} />
           </Field>
+          <Field label={m.agentField} tip={m.agentTip}>
+            <AgentCell task={task} />
+          </Field>
           <Field label={m.due}>
             <DueCell task={task} />
           </Field>
-          <Field label={m.project} hint={moved || detach ? undefined : m.projectHint}>
+          <Field label={m.project} tip={fromMessages(task) ? undefined : m.projectHint}>
             <ProjectCell task={task} />
             <Collapse open={Boolean(moved)}>
               <div role="status" className="mt-[0.3rem] flex flex-col gap-[0.25rem] text-[0.85rem] leading-snug">
@@ -373,6 +365,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
             </Collapse>
           </Field>
         </dl>
+        {fromMessages(task) && <p className="text-[0.85rem] leading-snug text-ink-dim">{m.foundOnly}</p>}
         <dl className="flex flex-col border-line border-t pt-[0.7rem] text-ink-soft">
           <Field label={m.key}>
             <span className="selectable font-mono text-[0.85rem]">{task.key}</span>

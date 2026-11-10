@@ -6,6 +6,7 @@ import { ReportThis } from "@/shared/ReportThis"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { fieldFocus } from "@/ui/field"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { Switch } from "@/ui/Switch"
@@ -166,8 +167,7 @@ function ResetCell({ children }: { children?: ReactNode }) {
 
 const shown = (v: unknown) => (typeof v === "string" ? v : JSON.stringify(v))
 
-const field =
-  "h-8 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.9rem] text-ink placeholder:font-sans placeholder:text-ink-dim focus-visible:border-brand disabled:opacity-45"
+const field = `h-8 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.9rem] text-ink placeholder:font-sans placeholder:text-ink-dim disabled:opacity-45 ${fieldFocus}`
 
 function Control({
   id,

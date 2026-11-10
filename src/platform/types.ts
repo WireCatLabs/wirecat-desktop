@@ -449,7 +449,8 @@ export type Platform = {
   /** A card dropped into a column, above or below another card: memo gives it a priority between its neighbours. */
   taskMove(key: string, revision: number, place: TaskPlace): Promise<TaskWrite>
   /** Makes one person the assignee, or nobody with `null`. */
-  taskAssign(key: string, revision: number, person: string | null): Promise<TaskWrite>
+  /** `account` is a found task's own: memo reads such a task only with it. */
+  taskAssign(key: string, revision: number, person: string | null, account?: string | null): Promise<TaskWrite>
   /** What people and agents wrote on a task, oldest first. */
   taskComments(key: string): Promise<TaskComment[]>
   /** Comments in the owner's name; a comment moves no revision. */

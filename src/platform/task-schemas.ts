@@ -120,6 +120,8 @@ export type TaskEdit = {
   kind?: TaskKind
   /** Takes a subtask out of its parent, so it moves to another project on its own. */
   detach?: boolean
+  /** A found task's `provider:account`: memo writes it only as that account, with no revision. */
+  account?: string
 }
 
 export type TaskPlace = { state?: TaskState; before?: string; after?: string }

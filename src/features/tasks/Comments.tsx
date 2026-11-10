@@ -3,11 +3,11 @@ import { useEffect, useId, useState } from "react"
 import { useLang, useMessages } from "@/i18n"
 import type { TaskComment } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { Skeleton } from "@/ui/Skeleton"
 import { stamp, taskMessages } from "./messages"
+import { TaskError } from "./parts"
 import { useTasks } from "./store"
 
 function Author({ comment }: { comment: TaskComment }) {
@@ -105,7 +105,7 @@ export function Comments({ taskKey }: { taskKey: string }) {
             {busy ? m.sending : m.send}
           </Button>
         </div>
-        {failed && <ErrorNotice inline>{m.commentFailed(failed)}</ErrorNotice>}
+        {failed && <TaskError lead={m.commentFailed} raw={failed} />}
       </form>
     </section>
   )

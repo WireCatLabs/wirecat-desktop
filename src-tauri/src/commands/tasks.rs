@@ -66,9 +66,14 @@ pub async fn task_move(key: String, revision: u64, place: task_board::Place) -> 
 }
 
 #[tauri::command]
-pub async fn task_assign(key: String, revision: u64, person: Option<String>) -> Result<task_board::Write, AppError> {
+pub async fn task_assign(
+    key: String,
+    revision: u64,
+    person: Option<String>,
+    account: Option<String>,
+) -> Result<task_board::Write, AppError> {
     crate::log::command("task_assign", async move {
-        attempt(move || task_board::assign(&key, revision, person.as_deref())).await
+        attempt(move || task_board::assign(&key, revision, person.as_deref(), account.as_deref())).await
     })
     .await
 }

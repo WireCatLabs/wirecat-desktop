@@ -118,6 +118,9 @@ function savedView(): View {
   }
 }
 
+/** A refused move is said on its card, apart from a refused edit, which the dialog and the table say. */
+export const moveSlot = (key: string) => `move:${key}`
+
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 const without = <T>(record: Record<string, T>, key: string) => {
   const { [key]: _, ...rest } = record
@@ -205,10 +208,15 @@ export const useTasks = create<TasksState>((set, get) => {
   }
 
   /** Applies a write's answer; `undo` puts back what the page showed before it. */
-  const settle = async (key: string, write: () => Promise<TaskWrite>, undo?: () => void): Promise<TaskWrite | null> => {
+  const settle = async (
+    key: string,
+    write: () => Promise<TaskWrite>,
+    undo?: () => void,
+    slot = key,
+  ): Promise<TaskWrite | null> => {
     set((s) => ({
       busy: { ...s.busy, [key]: true },
-      failed: without(s.failed, key),
+      failed: without(without(s.failed, key), moveSlot(key)),
       moved: without(s.moved, key),
       detach: without(s.detach, key),
       stale: null,
@@ -243,7 +251,7 @@ export const useTasks = create<TasksState>((set, get) => {
       return out
     } catch (e) {
       undo?.()
-      set((s) => ({ failed: { ...s.failed, [key]: message(e) } }))
+      set((s) => ({ failed: { ...s.failed, [slot]: message(e) } }))
       return null
     } finally {
       set((s) => ({ busy: without(s.busy, key) }))
@@ -431,7 +439,9 @@ export const useTasks = create<TasksState>((set, get) => {
     async update(key, edit) {
       const t = find(key)
       if (!t) return false
-      const out = await settle(key, () => platform.taskUpdate(key, t.revision, edit))
+      const out = await settle(key, () =>
+        platform.taskUpdate(key, t.revision, t.account ? { ...edit, account: t.account } : edit),
+      )
       if (out?.kind === "isSubtask" && edit.project) {
         const detach = { parent: out.parent, project: edit.project }
         set((s) => ({ detach: { ...s.detach, [key]: detach } }))
@@ -443,7 +453,7 @@ export const useTasks = create<TasksState>((set, get) => {
       const t = find(key)
       if (!t) return
       if (person) set((s) => ({ assigned: s.assigned.includes(person) ? s.assigned : [...s.assigned, person] }))
-      await settle(key, () => platform.taskAssign(key, t.revision, person))
+      await settle(key, () => platform.taskAssign(key, t.revision, person, t.account))
     },
 
     async move(key, state, anchor, beforeOnScreen) {
@@ -462,7 +472,7 @@ export const useTasks = create<TasksState>((set, get) => {
         }))
       const place = { ...(state !== t.state ? { state } : {}), ...anchor }
       if (!place.state && !place.before && !place.after) return
-      const out = await settle(key, () => platform.taskMove(key, t.revision, place), undo)
+      const out = await settle(key, () => platform.taskMove(key, t.revision, place), undo, moveSlot(key))
       if (out?.kind === "saved" && (out.label || state !== before.state)) {
         set({ note: { key, label: out.label?.to ?? null, column: state !== before.state ? state : null } })
       }

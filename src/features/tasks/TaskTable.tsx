@@ -3,12 +3,11 @@ import { type Lang, useLang, useMessages } from "@/i18n"
 import type { Task } from "@/platform/task-schemas"
 import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { AssigneeCell, DueCell, PriorityCell, StatusCell } from "./cells"
 import { taskMessages } from "./messages"
 import { StaleLine } from "./Note"
-import { Markers, SourceMark, taskTitle } from "./parts"
+import { Markers, SourceMark, TaskError, taskTitle } from "./parts"
 import { ofSource, useSource } from "./source"
 import { useTasks } from "./store"
 
@@ -95,7 +94,7 @@ export function TaskTable() {
             <>
               {failed[t.key] && (
                 <div className="sticky left-0 w-fit max-w-[58rem] px-[1.3rem] pb-[0.6rem]">
-                  <ErrorNotice inline>{m.notSaved(failed[t.key] ?? "")}</ErrorNotice>
+                  <TaskError lead={m.notSaved} raw={failed[t.key] ?? ""} />
                 </div>
               )}
               {stale === t.key && (
