@@ -12,8 +12,10 @@ import { useTools } from "@/shared/tools-store"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { FieldError, invalidBorder } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { failureWords, useFailureMessages } from "./failure-words"
 import { InstallProgress } from "./InstallProgress"
@@ -37,6 +39,10 @@ type Step =
   | { kind: "uninstalling"; review: OwnReview; done: boolean }
 
 const field = `h-9 w-full min-w-0 rounded-[0.35rem] border border-line-strong bg-app px-2.5 font-mono text-[0.95rem] text-ink placeholder:font-sans placeholder:text-ink-dim ${fieldFocus}`
+
+const NAME_FIELD = "own-tool-name"
+const PASTE_FIELD = "own-tool-paste"
+const ACCEPT_FIELD = "own-tool-accept"
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
@@ -62,6 +68,11 @@ export function OwnToolDialog() {
   const [step, setStep] = useState<Step>({ kind: "name" })
   const [pkg, setPkg] = useState("")
   const [pasted, setPasted] = useState("")
+  const [tried, setTried] = useState<string | null>(null)
+  const ask = (field: string) => {
+    setTried(field)
+    document.getElementById(field)?.focus()
+  }
 
   const read = async (name: string, desktop: string | null) => {
     setStep({ kind: "reading", pkg: name })
@@ -112,6 +123,9 @@ export function OwnToolDialog() {
     }
   }, [open])
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new step starts without the last step's complaint
+  useEffect(() => setTried(null), [step.kind])
+
   const busy = step.kind === "reading" || (step.kind === "installing" && !step.session.outcome)
   const done = step.kind === "installing" && step.session.outcome?.event === "done"
   const title = update ? m.updateTitle(update.name) : m.title
@@ -136,7 +150,7 @@ export function OwnToolDialog() {
           done={done}
           pkg={pkg}
           pasted={pasted}
-          on={{ read, install, uninstall, setStep, close }}
+          on={{ read, install, uninstall, setStep, close, ask }}
         />
       }
     >
@@ -148,7 +162,8 @@ export function OwnToolDialog() {
             pkg={pkg}
             select={step.select === true}
             setPkg={setPkg}
-            onSubmit={() => pkg.trim() && read(pkg.trim(), null)}
+            empty={tried === NAME_FIELD && !pkg.trim()}
+            onSubmit={() => (pkg.trim() ? read(pkg.trim(), null) : ask(NAME_FIELD))}
           />
         )}
         {step.kind === "reading" && (
@@ -157,13 +172,24 @@ export function OwnToolDialog() {
             {m.reading(step.pkg)}
           </p>
         )}
-        {step.kind === "refused" && <Refused step={step} m={m} r={r} pasted={pasted} setPasted={setPasted} />}
+        {step.kind === "refused" && (
+          <Refused
+            step={step}
+            m={m}
+            r={r}
+            pasted={pasted}
+            setPasted={setPasted}
+            empty={tried === PASTE_FIELD && !pasted.trim()}
+          />
+        )}
         {step.kind === "review" && (
           <ReviewStep
             review={step.review}
             m={m}
             accepted={step.accepted}
             accept={(accepted) => setStep({ ...step, accepted })}
+            unaccepted={tried === ACCEPT_FIELD && !step.accepted}
+            acceptId={ACCEPT_FIELD}
           />
         )}
         {step.kind === "check" && (
@@ -188,6 +214,7 @@ type On = {
   uninstall(review: OwnReview): void
   setStep(step: Step): void
   close(): void
+  ask(field: string): void
 }
 
 function Actions({
@@ -217,7 +244,7 @@ function Actions({
       return (
         <>
           {cancel}
-          <Button variant="primary" disabled={!pkg.trim()} onClick={() => on.read(pkg.trim(), null)}>
+          <Button variant="primary" onClick={() => (pkg.trim() ? on.read(pkg.trim(), null) : on.ask(NAME_FIELD))}>
             {m.check}
           </Button>
         </>
@@ -235,7 +262,7 @@ function Actions({
             {m.tryAgain}
           </Button>
           {manual && (
-            <Button variant="primary" disabled={!pasted.trim()} onClick={() => on.read(step.pkg, pasted)}>
+            <Button variant="primary" onClick={() => (pasted.trim() ? on.read(step.pkg, pasted) : on.ask(PASTE_FIELD))}>
               {m.checkPasted}
             </Button>
           )}
@@ -249,8 +276,11 @@ function Actions({
           {cancel}
           <Button
             variant="primary"
-            disabled={step.review.update?.confirm === true && !step.accepted}
-            onClick={() => on.setStep({ kind: "check", review: step.review, checked: false })}
+            onClick={() =>
+              step.review.update?.confirm === true && !step.accepted
+                ? on.ask(ACCEPT_FIELD)
+                : on.setStep({ kind: "check", review: step.review, checked: false })
+            }
           >
             {step.review.update ? m.update : m.add}
           </Button>
@@ -325,6 +355,7 @@ function NameStep({
   pkg,
   select,
   setPkg,
+  empty,
   onSubmit,
 }: {
   m: OwnText
@@ -332,9 +363,10 @@ function NameStep({
   pkg: string
   select: boolean
   setPkg(v: string): void
+  empty: boolean
   onSubmit(): void
 }) {
-  const id = useId()
+  const id = NAME_FIELD
   const help = useId()
   const input = useRef<HTMLInputElement>(null)
   useEffect(() => {
@@ -354,12 +386,14 @@ function NameStep({
           value={pkg}
           spellCheck={false}
           autoComplete="off"
-          aria-describedby={help}
+          aria-invalid={empty || undefined}
+          aria-describedby={empty ? `${id}-error ${help}` : help}
           placeholder={m.namePlaceholder}
           onChange={(e) => setPkg(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSubmit()}
-          className={field}
+          className={cx(field, invalidBorder)}
         />
+        <FieldError id={`${id}-error`}>{empty && m.nameEmpty}</FieldError>
         <p id={help} className="text-[0.9rem] text-ink-soft">
           {m.nameHelp}
         </p>
@@ -374,14 +408,16 @@ function Refused({
   r,
   pasted,
   setPasted,
+  empty,
 }: {
   step: Extract<Step, { kind: "refused" }>
   m: OwnText
   r: OwnReviewText
   pasted: string
   setPasted(v: string): void
+  empty: boolean
 }) {
-  const id = useId()
+  const id = PASTE_FIELD
   const x = step.refusal
   const [what, todo] =
     x.kind === "entry"
@@ -408,8 +444,11 @@ function Refused({
             spellCheck={false}
             onChange={(e) => setPasted(e.target.value)}
             rows={8}
-            className={`${field} h-auto py-2`}
+            aria-invalid={empty || undefined}
+            aria-describedby={empty ? `${id}-error` : undefined}
+            className={cx(field, invalidBorder, "h-auto py-2")}
           />
+          <FieldError id={`${id}-error`}>{empty && m.pasteEmpty}</FieldError>
         </div>
       )}
     </div>

@@ -29,6 +29,10 @@ const en = {
   showKey: "Show the key",
   hideKey: "Hide the key",
   saveKey: "Save key",
+  sameReader: "This reader is already in use. Choose another one to switch.",
+  needReader: "Choose a reader first.",
+  needKey: "Paste the key first, then save.",
+  needProvider: "Choose a provider first.",
   keySaved: (where: string): string =>
     where === "file" ? "Saved in a protected file: no system keyring answered." : "Saved in the system keyring.",
   keyFailed: "The key was not saved:",
@@ -60,6 +64,10 @@ const ru: typeof en = {
   showKey: "Показать ключ",
   hideKey: "Скрыть ключ",
   saveKey: "Сохранить ключ",
+  sameReader: "Этот способ уже используется. Выберите другой, чтобы переключиться.",
+  needReader: "Сначала выберите, чем читать.",
+  needKey: "Сначала вставьте ключ, потом сохраните.",
+  needProvider: "Сначала выберите поставщика.",
   keySaved: (where: string) =>
     where === "file"
       ? "Сохранён в защищённом файле: системное хранилище ключей не ответило."
@@ -93,6 +101,10 @@ const es: typeof en = {
   showKey: "Mostrar la clave",
   hideKey: "Ocultar la clave",
   saveKey: "Guardar clave",
+  sameReader: "Este lector ya está en uso. Elige otro para cambiar.",
+  needReader: "Elige primero un lector.",
+  needKey: "Pega primero la clave y luego guarda.",
+  needProvider: "Elige primero un proveedor.",
   keySaved: (where: string) =>
     where === "file"
       ? "Guardada en un archivo protegido: el llavero del sistema no respondió."

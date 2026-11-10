@@ -336,6 +336,9 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
 - **Ghost:** no fill, `ink-soft`; hover fills `app-3`. Used for Keep it, Close, Check, Sign in.
 - **Danger:** outlined only: white surface, red label, the border tints red on hover. Used for Fix, Uninstall, Delete.
 - **Hover / Focus:** colour transitions at 150ms with the quart ease-out; pressing nudges the button down 1px. Focus is the global 2px purple outline at 2px offset. Disabled buttons drop to 45% opacity and stop taking pointer events.
+- **Never disable a button for a missing or wrong value** (CLAUDE.md rule 10). It stays clickable and the error shows at the
+  field (`useFieldError`, `src/ui/FieldError.tsx`).
+- **Creation presets stay above a list** once it has items (rule 11), and **lists page on the server** (rule 12).
 - **A disabled button explains nothing.** Prefer an active button that says what is missing: pressed too early, it
   shows a one-line red message under the control to fix ("Choose a profile to search in"), marks that control and moves
   focus to it; the message folds open with `Collapse` or fills a line kept for it, so nothing below jumps. Disable a

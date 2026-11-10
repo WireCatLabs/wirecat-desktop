@@ -44,6 +44,22 @@ describe("AI model", () => {
     })
   })
 
+  it("keeps Save clickable and says what is missing instead of disabling it", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(NONE)
+    const set = vi.spyOn(platform, "aiModelSet")
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    const save = await screen.findByRole("button", { name: "Save" })
+    expect(save).toBeEnabled()
+    await user.click(save)
+    expect(screen.getByText("Choose a provider first.")).toBeInTheDocument()
+    await user.click(screen.getByRole("radio", { name: "Anthropic (Claude)" }))
+    await user.click(save)
+    expect(screen.getByText("Type the model name first.")).toBeInTheDocument()
+    expect(screen.getByLabelText("Model")).toHaveFocus()
+    expect(set).not.toHaveBeenCalled()
+  })
+
   it("saves Anthropic with the key handed on once, cleared and never shown back", async () => {
     vi.spyOn(platform, "aiModelShow").mockResolvedValue(NONE)
     const set = vi.spyOn(platform, "aiModelSet").mockResolvedValue(ANTHROPIC)

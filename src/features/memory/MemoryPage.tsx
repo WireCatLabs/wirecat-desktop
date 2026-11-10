@@ -6,6 +6,7 @@ import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { MemoryEntry } from "@/platform/memory-schemas"
+import { BetaBadge } from "@/shared/BetaBadge"
 import { DemoNote } from "@/shared/DemoNote"
 import { useNav } from "@/shared/nav"
 import { ReportThis } from "@/shared/ReportThis"
@@ -66,7 +67,10 @@ export function MemoryPage() {
     <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{m.title}</h1>
+          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">
+            {m.title}
+            <BetaBadge section="memory" className="ml-[0.7rem] align-middle" />
+          </h1>
           <p className="mt-3 max-w-[72ch] text-[0.95rem] text-ink-soft">
             {x.intro}{" "}
             <a

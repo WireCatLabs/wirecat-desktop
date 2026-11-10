@@ -15,6 +15,7 @@ const en = {
   ],
   name: "npm package name",
   namePlaceholder: "@scope/name",
+  nameEmpty: "Type the package name first, for example @scope/name.",
   nameHelp:
     "A scoped package built for WireCat, such as @scope/name. WireCat only reads npm now; nothing is installed.",
   check: "Check package",
@@ -63,6 +64,7 @@ const en = {
   },
   nothingNew: (from: string) => `Compared with ${from}, this version asks for nothing new.`,
   acceptChanges: "I accept these changes",
+  acceptFirst: "Tick the box to accept the changes, then continue.",
   add: "Add",
   update: "Update",
   back: "Back",
@@ -78,6 +80,7 @@ const en = {
   uninstalled: "The package is uninstalled.",
   tryAgain: "Try again",
   paste: "The tool's desktop object (JSON)",
+  pasteEmpty: "Paste the tool's desktop object first.",
   checkPasted: "Check with this object",
   refusal: {
     not_found: ["npm has no package with this name.", "Check the spelling, including the scope: @scope/name."] as Words,
@@ -149,6 +152,7 @@ const ru: typeof en = {
   ],
   name: "Имя пакета в npm",
   namePlaceholder: "@scope/name",
+  nameEmpty: "Сначала введите имя пакета, например @scope/name.",
   nameHelp:
     "Пакет с областью имён, сделанный для WireCat, например @scope/name. Сейчас WireCat только читает npm и ничего не устанавливает.",
   check: "Проверить пакет",
@@ -197,6 +201,7 @@ const ru: typeof en = {
   },
   nothingNew: (from) => `По сравнению с ${from} эта версия не просит ничего нового.`,
   acceptChanges: "Я принимаю эти изменения",
+  acceptFirst: "Отметьте галочку, что принимаете изменения, и продолжайте.",
   add: "Добавить",
   update: "Обновить",
   back: "Назад",
@@ -212,6 +217,7 @@ const ru: typeof en = {
   uninstalled: "Пакет удалён.",
   tryAgain: "Попробовать снова",
   paste: "Объект desktop инструмента (JSON)",
+  pasteEmpty: "Сначала вставьте объект desktop инструмента.",
   checkPasted: "Проверить с этим объектом",
   refusal: {
     not_found: ["В npm нет пакета с таким именем.", "Проверьте написание вместе с областью: @scope/name."],
@@ -279,6 +285,7 @@ const es: typeof en = {
   ],
   name: "Nombre del paquete en npm",
   namePlaceholder: "@scope/name",
+  nameEmpty: "Escribe primero el nombre del paquete, por ejemplo @scope/name.",
   nameHelp: "Un paquete con ámbito hecho para WireCat, como @scope/name. Ahora WireCat solo lee npm; no instala nada.",
   check: "Comprobar paquete",
   reading: (pkg) => `Leyendo ${pkg} en npm…`,
@@ -326,6 +333,7 @@ const es: typeof en = {
   },
   nothingNew: (from) => `Frente a ${from}, esta versión no pide nada nuevo.`,
   acceptChanges: "Acepto estos cambios",
+  acceptFirst: "Marca la casilla para aceptar los cambios y continúa.",
   add: "Añadir",
   update: "Actualizar",
   back: "Atrás",
@@ -341,6 +349,7 @@ const es: typeof en = {
   uninstalled: "El paquete está desinstalado.",
   tryAgain: "Intentar de nuevo",
   paste: "El objeto desktop de la herramienta (JSON)",
+  pasteEmpty: "Pega primero el objeto desktop de la herramienta.",
   checkPasted: "Comprobar con este objeto",
   refusal: {
     not_found: [

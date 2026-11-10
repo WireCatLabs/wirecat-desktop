@@ -9,6 +9,7 @@ import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Checkbox } from "@/ui/Checkbox"
 import { Disclosure } from "@/ui/Disclosure"
+import { FieldError } from "@/ui/FieldError"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
 import type { OwnText } from "./messages-own"
@@ -65,7 +66,14 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-function Changes({ review, m, accepted, accept }: ReviewProps & { review: OwnReview & { update: OwnUpdate } }) {
+function Changes({
+  review,
+  m,
+  accepted,
+  accept,
+  unaccepted,
+  acceptId,
+}: ReviewProps & { review: OwnReview & { update: OwnUpdate } }) {
   const change = review.update
   const id = useId()
   const built = (b: OwnReview["built"]) => (b ? m.builtBy(b.repo) : m.notBuilt)
@@ -98,11 +106,19 @@ function Changes({ review, m, accepted, accept }: ReviewProps & { review: OwnRev
       )}
       {review.access.unknown && <p>{m.unknownAccess}</p>}
       <div className="mt-1 flex items-center gap-2">
-        <Checkbox checked={accepted} onChange={accept} aria-labelledby={id} />
+        <Checkbox
+          id={acceptId}
+          checked={accepted}
+          onChange={accept}
+          aria-labelledby={id}
+          aria-invalid={unaccepted || undefined}
+          aria-describedby={unaccepted ? `${id}-error` : undefined}
+        />
         <span id={id} className="font-medium">
           {m.acceptChanges}
         </span>
       </div>
+      <FieldError id={`${id}-error`}>{unaccepted && m.acceptFirst}</FieldError>
     </WarnBox>
   )
 }
@@ -292,9 +308,17 @@ function Signals({ review, r }: { review: OwnReview; r: OwnReviewText }) {
   )
 }
 
-type ReviewProps = { review: OwnReview; m: OwnText; accepted: boolean; accept(accepted: boolean): void }
+type ReviewProps = {
+  review: OwnReview
+  m: OwnText
+  accepted: boolean
+  accept(accepted: boolean): void
+  /** Add was pressed before the changes were accepted. */
+  unaccepted?: boolean | undefined
+  acceptId?: string | undefined
+}
 
-export function ReviewStep({ review, m, accepted, accept }: ReviewProps) {
+export function ReviewStep({ review, m, accepted, accept, unaccepted, acceptId }: ReviewProps) {
   const r = useMessages(ownReviewMessages)
   const agent = [review.skill && m.skill, review.mcp && m.mcp].filter(Boolean).join(" · ") || m.noAgent
   const update = review.update
@@ -308,7 +332,16 @@ export function ReviewStep({ review, m, accepted, accept }: ReviewProps) {
         <p className="mt-1 text-ink-soft">{review.summary}</p>
       </div>
       <Danger lines={dangerLines(r, review.usesCore)} m={m} />
-      {update && <Changes review={{ ...review, update }} m={m} accepted={accepted} accept={accept} />}
+      {update && (
+        <Changes
+          review={{ ...review, update }}
+          m={m}
+          accepted={accepted}
+          accept={accept}
+          unaccepted={unaccepted}
+          acceptId={acceptId}
+        />
+      )}
       <Details review={review} m={m} r={r} />
       <Signals review={review} r={r} />
       <section aria-label={r.access.title}>

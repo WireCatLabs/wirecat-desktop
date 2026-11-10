@@ -2,6 +2,7 @@ import { ListChecks, Monitor, Moon, Sun } from "lucide-react"
 import { useId } from "react"
 import { HELP_OPENER, type HelpActions, HelpPanel, resumeSetup, useHelpMenu } from "@/features/onboarding"
 import { useMessages } from "@/i18n"
+import { BetaBadge } from "@/shared/BetaBadge"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { cx } from "@/ui/cx"
 import { Logo } from "@/ui/Logo"
@@ -122,7 +123,10 @@ function NavItem({
         strokeWidth={1.6}
         aria-hidden
       />
-      <span className="flex-1">{m.nav[s.id]}</span>
+      <span className="flex flex-1 items-center gap-[0.5rem]">
+        {m.nav[s.id]}
+        <BetaBadge section={s.id} />
+      </span>
       {!ready && <Pill>{m.soon}</Pill>}
       {ready && (
         <span

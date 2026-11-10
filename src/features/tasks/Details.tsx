@@ -7,6 +7,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { Skeleton } from "@/ui/Skeleton"
 import { Comments } from "./Comments"
@@ -96,13 +97,16 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const [agent, setAgent] = useState(task.agent ?? "")
   const [writing, setWriting] = useState(!task.description)
   const box = useRef<HTMLTextAreaElement>(null)
+  const noTitle = useFieldError(`${id}-title`)
+  const clearTitle = noTitle.clear
   // A write from elsewhere (a stale refusal shows the current task) resets the fields to what the task now says.
   useEffect(() => {
+    clearTitle()
     setTitle(own)
     setNotes(task.description ?? "")
     setAgent(task.agent ?? "")
     setWriting(!task.description)
-  }, [own, task.description, task.agent])
+  }, [own, task.description, task.agent, clearTitle])
 
   useEffect(() => {
     if (!useTasks.getState().history[task.key]) void useTasks.getState().loadHistory(task.key)
@@ -115,8 +119,10 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
     edit.description = notes.trim() && notes
   if (agent.trim() !== (task.agent ?? "")) edit.agent = agent.trim() || "none"
   const changed = Object.keys(edit).length > 0
+  const blank = title.trim() === ""
   useEffect(() => onDirty?.(changed), [changed, onDirty])
   const reset = () => {
+    noTitle.clear()
     setTitle(own)
     setNotes(task.description ?? "")
     setAgent(task.agent ?? "")
@@ -146,19 +152,28 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           className="flex min-w-0 flex-col gap-[0.8rem]"
           onSubmit={(e) => {
             e.preventDefault()
+            if (blank) return noTitle.fail(m.titleEmpty)
             if (changed) void useTasks.getState().update(task.key, edit)
           }}
         >
-          <label className="flex flex-col gap-[0.35rem]">
-            <span className="text-[0.9rem] font-medium text-ink-dim">{m.titleField}</span>
+          <div className="flex flex-col gap-[0.35rem]">
+            <label htmlFor={`${id}-title`} className="text-[0.9rem] font-medium text-ink-dim">
+              {m.titleField}
+            </label>
             <input
+              id={`${id}-title`}
               value={title}
               placeholder={taskTitle(task, m)}
               maxLength={500}
-              onChange={(e) => setTitle(e.target.value)}
-              className="selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none focus-visible:border-brand"
+              {...noTitle.field}
+              onChange={(e) => {
+                setTitle(e.target.value)
+                noTitle.clear()
+              }}
+              className="selectable h-[2.4rem] rounded-[0.35rem] border border-line-strong bg-app px-[0.625rem] text-[0.95rem] text-ink outline-none focus-visible:border-brand aria-[invalid=true]:border-bad"
             />
-          </label>
+            {noTitle.hint}
+          </div>
           <div className="flex flex-col gap-[0.35rem]">
             <span id={`${id}-notes`} className="text-[0.9rem] font-medium text-ink-dim">
               {m.notes}
@@ -210,11 +225,11 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           </label>
           {/* The buttons appear with the first change; their line is kept, so nothing below moves. */}
           <div
-            inert={(!changed && !busy) || undefined}
-            aria-hidden={(!changed && !busy) || undefined}
+            inert={(!changed && !blank && !busy) || undefined}
+            aria-hidden={(!changed && !blank && !busy) || undefined}
             className={cx(
               "flex gap-2 transition-opacity duration-(--motion-fast)",
-              !changed && !busy && "pointer-events-none opacity-0",
+              !changed && !blank && !busy && "pointer-events-none opacity-0",
             )}
           >
             <Button variant="primary" size="sm" type="submit" disabled={busy}>

@@ -82,6 +82,7 @@ const en = {
   editor: {
     format: "Format",
     revert: "Revert",
+    nothingToSave: "Nothing is changed yet.",
     save: "Save",
     saving: "Saving…",
     label: "Settings as JSON",
@@ -238,6 +239,7 @@ const ru: ConfigText = {
   editor: {
     format: "Форматировать",
     revert: "Отменить",
+    nothingToSave: "Пока ничего не изменено.",
     save: "Сохранить",
     saving: "Сохраняем…",
     label: "Настройки в JSON",
@@ -396,6 +398,7 @@ const es: ConfigText = {
   editor: {
     format: "Formatear",
     revert: "Revertir",
+    nothingToSave: "Aún no has cambiado nada.",
     save: "Guardar",
     saving: "Guardando…",
     label: "Ajustes en JSON",

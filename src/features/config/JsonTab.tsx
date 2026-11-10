@@ -1,5 +1,5 @@
 import { AlignLeft, Check, LoaderCircle, Undo2, X } from "lucide-react"
-import { type ReactNode, useMemo } from "react"
+import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
@@ -13,8 +13,12 @@ import { documentText, type Step, useConfig } from "./store"
 export function JsonActions({ dirty }: { dirty: boolean }) {
   const m = useMessages(configMessages).editor
   const st = useConfig()
+  const [asked, setAsked] = useState(false)
+  useEffect(() => {
+    if (dirty) setAsked(false)
+  }, [dirty])
   return (
-    <div className="flex items-center gap-2 py-2">
+    <div className="flex flex-wrap items-center gap-2 py-2">
       <Button
         size="sm"
         variant="ghost"
@@ -36,11 +40,17 @@ export function JsonActions({ dirty }: { dirty: boolean }) {
       <Button
         size="sm"
         variant="primary"
-        onClick={st.saveDraft}
-        disabled={!dirty || st.saving || st.jsonError !== null}
+        onClick={() => (dirty ? st.saveDraft() : setAsked(true))}
+        disabled={st.saving}
+        icon={st.saving ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden /> : undefined}
       >
         {st.saving ? m.saving : m.save}
       </Button>
+      {asked && !dirty && (
+        <span role="alert" className="text-[0.9rem] text-bad">
+          {m.nothingToSave}
+        </span>
+      )}
     </div>
   )
 }

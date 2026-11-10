@@ -91,7 +91,8 @@ describe("Config", () => {
     fireEvent.change(editor, { target: { value: edit(editor.value, (d) => (d.limit = 25)) } })
     await user.click(screen.getByRole("button", { name: "Save" }))
     await waitFor(() => expect(screen.getAllByText("Saved")).toHaveLength(2))
-    await waitFor(() => expect(screen.getByRole("button", { name: "Save" })).toBeDisabled())
+    await user.click(await screen.findByRole("button", { name: "Save" }))
+    expect(await screen.findByText("Nothing is changed yet.")).toBeInTheDocument()
     expect(JSON.parse(editor.value)).toMatchObject({ limit: 25, record: false })
   }, 15000)
 

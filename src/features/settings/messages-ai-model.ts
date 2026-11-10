@@ -68,6 +68,9 @@ const en = {
   checking: "Checking…",
   checkCost: "Sends one short request, billed by your provider. Usually under one cent.",
   checkSaveFirst: "Check works on the saved model. Save your changes first.",
+  nothingToSave: "Nothing is changed yet. Change a setting, then save.",
+  needModel: "Type the model name first.",
+  needProvider: "Choose a provider first.",
   checkReasons: {
     "ai.ok": (s) => `Works: ${s.model} answered${s.ms === null ? "" : ` in ${s.ms} ms`}.`,
     "ai.not-set": () => "No AI model is set yet.",
@@ -143,6 +146,9 @@ const ru: typeof en = {
   checking: "Проверяем…",
   checkCost: "Отправляет один короткий запрос, его оплачиваете вы у провайдера. Обычно меньше цента.",
   checkSaveFirst: "Проверка работает с сохранённой моделью. Сначала сохраните изменения.",
+  nothingToSave: "Пока ничего не изменено. Поменяйте настройку и сохраните.",
+  needModel: "Сначала введите имя модели.",
+  needProvider: "Сначала выберите поставщика.",
   checkReasons: {
     "ai.ok": (s) => `Работает: ${s.model} ответила${s.ms === null ? "" : ` за ${s.ms} мс`}.`,
     "ai.not-set": () => "Модель ИИ пока не выбрана.",
@@ -219,6 +225,9 @@ const es: typeof en = {
   checking: "Comprobando…",
   checkCost: "Envía una petición corta que cobra tu proveedor. Suele costar menos de un céntimo.",
   checkSaveFirst: "La comprobación usa el modelo guardado. Guarda primero tus cambios.",
+  nothingToSave: "Aún no has cambiado nada. Cambia un ajuste y guarda.",
+  needModel: "Escribe primero el nombre del modelo.",
+  needProvider: "Elige primero un proveedor.",
   checkReasons: {
     "ai.ok": (s) => `Funciona: ${s.model} respondió${s.ms === null ? "" : ` en ${s.ms} ms`}.`,
     "ai.not-set": () => "Aún no hay ningún modelo de IA elegido.",

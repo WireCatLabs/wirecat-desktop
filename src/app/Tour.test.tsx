@@ -114,7 +114,7 @@ describe("Tour", () => {
 
     await user.keyboard("{Escape}")
     await user.click(navItem("Memory"))
-    await screen.findByRole("heading", { level: 1, name: "Memory" })
+    await screen.findByRole("heading", { level: 1, name: /^Memory/u })
     expect(screen.queryByText(MEMORY_EXAMPLE)).not.toBeInTheDocument()
   }, 20000)
 

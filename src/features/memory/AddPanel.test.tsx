@@ -84,7 +84,9 @@ describe("Add to memory", () => {
     const panel = await openPanel(user)
 
     const save = within(panel).getByRole("button", { name: "Save" })
-    expect(save).toBeDisabled()
+    await user.click(save)
+    expect(within(panel).getByText("Write or paste some text to go on.")).toBeInTheDocument()
+    expect(add).not.toHaveBeenCalled()
     await user.type(within(panel).getByRole("textbox", { name: "Text" }), "We agreed delivery on the 28th with Lena.")
     await user.click(save)
     expect(add).toHaveBeenCalledWith({
@@ -380,7 +382,8 @@ describe("Add to memory", () => {
     await user.click(within(panel).getByRole("radio", { name: /Link/ }))
     const save = within(panel).getByRole("button", { name: "Save" })
     await user.type(within(panel).getByRole("textbox", { name: "Web address" }), "docs.google.com/x")
-    expect(save).toBeDisabled()
+    await user.click(save)
+    expect(within(panel).getByText(/Give an address that starts with http/)).toBeInTheDocument()
     await user.clear(within(panel).getByRole("textbox", { name: "Web address" }))
     await user.type(within(panel).getByRole("textbox", { name: "Web address" }), "https://docs.google.com/x")
     await user.click(save)

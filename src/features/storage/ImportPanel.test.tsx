@@ -60,8 +60,10 @@ describe("Importing records from a file", () => {
     await user.click(await screen.findByRole("button", { name: "Choose file" }))
     await screen.findByText(/invoices-2026\.csv/)
     const check = screen.getByRole("button", { name: "Check" })
-    expect(check).toBeDisabled()
-    expect(screen.getByRole("button", { name: "Import" })).toBeDisabled()
+    await user.click(check)
+    expect(screen.getByText(/Type the source first/)).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Import" }))
+    expect(run).not.toHaveBeenCalled()
 
     await user.type(screen.getByLabelText("Source"), "sheet:rentals")
     await user.click(check)
