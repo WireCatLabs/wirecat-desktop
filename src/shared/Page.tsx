@@ -34,10 +34,9 @@ export function PageHeader({ title, section, status, busy = true, intro, guide, 
       {/* A basis, not the content, decides when the actions wrap: a status line appearing must not push them down. */}
       <div className="min-w-0 flex-1 basis-[24rem]">
         <div className="flex min-w-0 items-baseline gap-[1.2rem]">
-          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">
-            {title}
-            {section && <BetaBadge section={section} className="ml-[0.7rem] align-middle" />}
-          </h1>
+          <h1 className="font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em]">{title}</h1>
+          {/* Beside the heading, not in it: the β must not become part of the page's name for a screen reader. */}
+          {section && <BetaBadge section={section} className="-ml-[0.5rem] self-center" />}
           {status !== undefined && (
             <p
               aria-live={busy ? "polite" : undefined}

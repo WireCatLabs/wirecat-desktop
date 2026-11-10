@@ -20,7 +20,8 @@ describe("beta badge", () => {
     expect(within(within(nav).getByRole("button", { name: /Tasks/ })).queryByRole("img", { name: LABEL })).toBeNull()
 
     await user.click(within(nav).getByRole("button", { name: /Memory/ }))
-    const title = await screen.findByRole("heading", { level: 1, name: /^Memory/ })
-    expect(within(title).getByRole("img", { name: LABEL })).toHaveAttribute("title", LABEL)
+    const title = await screen.findByRole("heading", { level: 1, name: "Memory" })
+    expect(within(title).queryByRole("img", { name: LABEL })).toBeNull()
+    expect(within(title.parentElement as HTMLElement).getByRole("img", { name: LABEL })).toHaveAttribute("title", LABEL)
   }, 15000)
 })

@@ -1,9 +1,4 @@
-const ids = new Set<string>()
+/** New and lightly tested sections: a β badge in the sidebar and beside the page title. Remove an id to drop it. */
+const BETA: readonly string[] = Object.freeze(["digests", "clients", "memory", "people"])
 
-/** `app/sections.tsx` owns the list; pages cannot import `app/`, so it hands the beta ids down here once. */
-export function registerBeta(sections: readonly { id: string; beta?: true }[]) {
-  ids.clear()
-  for (const s of sections) if (s.beta) ids.add(s.id)
-}
-
-export const isBeta = (id: string) => ids.has(id)
+export const isBeta = (id: string) => BETA.includes(id)

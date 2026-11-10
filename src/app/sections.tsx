@@ -16,7 +16,6 @@ import {
   Wrench,
 } from "lucide-react"
 import { type ComponentType, type LazyExoticComponent, lazy, type SVGProps } from "react"
-import { registerBeta } from "@/shared/beta"
 
 // Each page is its own chunk: the first screen does not pay for the other nine.
 const AgentsPage = lazy(() => import("@/features/agents/page").then((m) => ({ default: m.AgentsPage })))
@@ -46,8 +45,6 @@ export type Section = {
   group?: "system"
   /** Reached only from a link, never listed in the sidebar. */
   hidden?: true
-  /** New and lightly tested: a β badge in the sidebar and beside the page title. Delete the flag to drop it. */
-  beta?: true
 }
 
 // A new area of the app (accounts, memory, people, projects…) is one entry here and one folder in features/.
@@ -56,11 +53,11 @@ export const sections: readonly Section[] = [
   { id: "agents", icon: Bot, page: AgentsPage },
   { id: "search", icon: Search, page: SearchPage },
   { id: "tasks", icon: ListTodo, page: TasksPage },
-  { id: "digests", icon: Newspaper, page: DigestsPage, beta: true },
-  { id: "clients", icon: Handshake, page: ClientsPage, beta: true },
+  { id: "digests", icon: Newspaper, page: DigestsPage },
+  { id: "clients", icon: Handshake, page: ClientsPage },
   { id: "guides", icon: BookOpenText, page: GuidesPage },
-  { id: "memory", icon: Brain, page: MemoryPage, beta: true },
-  { id: "people", icon: Users, page: PeoplePage, beta: true },
+  { id: "memory", icon: Brain, page: MemoryPage },
+  { id: "people", icon: Users, page: PeoplePage },
   { id: "analytics", icon: ChartColumnBig, page: AnalyticsPage },
   { id: "storage", icon: HardDrive, page: StoragePage, group: "system" },
   { id: "logs", icon: ScrollText, page: LogsPage, group: "system" },
@@ -68,5 +65,3 @@ export const sections: readonly Section[] = [
   { id: "open", icon: Link2, page: LinkPage, hidden: true },
   { id: "conversation", icon: MessagesSquare, page: ConversationPage, hidden: true },
 ]
-
-registerBeta(sections)
