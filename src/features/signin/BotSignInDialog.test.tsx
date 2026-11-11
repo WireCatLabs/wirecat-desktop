@@ -206,33 +206,13 @@ describe("finding the bot sign-in from elsewhere", () => {
     expect(useSignIn.getState().tool).toBeNull()
   })
 
-  it("puts an Add a bot button on the Tools page row of an installed tool", async () => {
-    useTools.setState({ installs: { tg: [{ path: "~/a/tg", version: "0.89.0", manager: "npm", problem: null }] } })
-    render(
-      <>
-        <ul>
-          <ToolRow tool={tool("tg")} />
-        </ul>
-        <BotSignInDialog />
-      </>,
-    )
-    await userEvent.click(screen.getByRole("button", { name: "Add a bot: Telegram" }))
-    expect(useBotSignIn.getState().tool).toBe("tg")
-  })
-
-  it("places the Add a bot tip against the window, so the list's clipped edge cannot cut it", async () => {
+  it("leaves adding a bot to the accounts section, off the Tools page row", () => {
     useTools.setState({ installs: { tg: [{ path: "~/a/tg", version: "0.89.0", manager: "npm", problem: null }] } })
     render(
       <ul>
         <ToolRow tool={tool("tg")} />
       </ul>,
     )
-    const button = screen.getByRole("button", { name: "Add a bot: Telegram" })
-    const tip = within(button).getByText("Add a bot")
-    expect(tip).toHaveClass("fixed")
-    await userEvent.hover(button)
-    expect(tip.style.top || tip.style.bottom).not.toBe("")
-    await userEvent.unhover(button)
-    expect(tip.style.opacity).toBe("0")
+    expect(screen.queryByRole("button", { name: /Add a bot/ })).not.toBeInTheDocument()
   })
 })

@@ -44,6 +44,18 @@ describe("a messenger's background service", () => {
     expect((await row("personal")).getByRole("button", { name: "Stop" })).toBeInTheDocument()
   })
 
+  it("offers to stop starting at login only for a service that does start at login", async () => {
+    vi.spyOn(platform, "backgroundStatus").mockImplementation(async (_id, profile) =>
+      stopped({ unit: true, startsAtLogin: profile === "personal" }),
+    )
+    render(<Service tool={wa} />)
+    const personal = await row("personal")
+    expect(await personal.findByRole("button", { name: "Stop starting at login" })).toBeInTheDocument()
+    const work = await row("work")
+    expect(await work.findByRole("button", { name: "Start and keep running" })).toBeInTheDocument()
+    expect(work.queryByRole("button", { name: "Stop starting at login" })).not.toBeInTheDocument()
+  })
+
   it("says a missing service manager in plain words and offers to run it for now, without administrator rights", async () => {
     vi.spyOn(platform, "backgroundStatus").mockResolvedValue(stopped())
     const run = vi.spyOn(platform, "backgroundRun").mockResolvedValueOnce({

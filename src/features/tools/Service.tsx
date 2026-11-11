@@ -134,7 +134,7 @@ function ServiceRow(props: { tool: CatalogTool; profile: string; signedIn: boole
             <StableText value={busy === "stop" ? m.working.stop : m.stop} variants={[m.stop, m.working.stop]} />
           </Button>
         )}
-        {unit === true && !needsSignIn && (
+        {atLogin === true && !needsSignIn && (
           <Button
             size="sm"
             variant="ghost"

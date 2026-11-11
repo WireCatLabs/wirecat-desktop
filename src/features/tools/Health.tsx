@@ -93,32 +93,42 @@ function ProfileList(props: {
     )
   }
   return (
-    <div className="flex flex-col gap-2">
-      {profiles === undefined ? (
-        <ul className="divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app">
-          {[0, 1].map((n) => (
-            // A profile row with its sync line is taller, so the placeholder takes that height.
-            <li
-              key={n}
-              className={cx(
-                "flex box-content flex-col justify-center gap-[0.4rem] px-3 py-2",
-                syncNeedsProfile(tool) ? "h-[3.4rem]" : "h-8",
-              )}
-            >
-              <Skeleton className="h-4 w-28" label={n === 0 ? m.loadingProfiles : ""} />
-              {syncNeedsProfile(tool) && <Skeleton className="h-4 w-44" />}
-            </li>
-          ))}
-        </ul>
-      ) : profiles && profiles.length > 0 ? (
-        <AccountList tool={tool} profiles={profiles} onReload={onReload} />
-      ) : (
-        <p className="text-[0.95rem] font-medium text-ink">
-          {tool.setup ? (signsInHere(tool) ? m.noAccountHere(tool.name) : m.noAccountTerminal(tool.name)) : m.noAccount}
-        </p>
-      )}
-      {tool.setup && <NewProfile tool={tool} onCheck={onReload} />}
-      {tool.bot && <BotList tool={tool} />}
+    <div className="@container flex flex-col gap-2">
+      <div
+        className={cx("grid items-start gap-x-8 gap-y-2", tool.bot && "@4xl:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]")}
+      >
+        <div className="flex min-w-0 flex-col gap-2">
+          {profiles === undefined ? (
+            <ul className="divide-y divide-line overflow-hidden rounded-[0.45rem] border border-line bg-app">
+              {[0, 1].map((n) => (
+                // A profile row with its sync line is taller, so the placeholder takes that height.
+                <li
+                  key={n}
+                  className={cx(
+                    "flex box-content flex-col justify-center gap-[0.4rem] px-3 py-2",
+                    syncNeedsProfile(tool) ? "h-[3.4rem]" : "h-8",
+                  )}
+                >
+                  <Skeleton className="h-4 w-28" label={n === 0 ? m.loadingProfiles : ""} />
+                  {syncNeedsProfile(tool) && <Skeleton className="h-4 w-44" />}
+                </li>
+              ))}
+            </ul>
+          ) : profiles && profiles.length > 0 ? (
+            <AccountList tool={tool} profiles={profiles} onReload={onReload} />
+          ) : (
+            <p className="text-[0.95rem] font-medium text-ink">
+              {tool.setup
+                ? signsInHere(tool)
+                  ? m.noAccountHere(tool.name)
+                  : m.noAccountTerminal(tool.name)
+                : m.noAccount}
+            </p>
+          )}
+          {tool.setup && <NewProfile tool={tool} onCheck={onReload} />}
+        </div>
+        {tool.bot && <BotList tool={tool} />}
+      </div>
       {tool.setup && <TerminalStatus tool={tool} profiles={profiles} onCheck={onReload} checking={reloading} />}
       {!tool.setup && <ManualSetup tool={tool} onCheck={onReload} checking={reloading} />}
     </div>
