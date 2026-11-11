@@ -1,42 +1,95 @@
 import { Sparkles } from "lucide-react"
-import { useId, useState } from "react"
+import { useId, useRef, useState } from "react"
+import { type NameChoices, nameChoices, type ValueOption } from "@/domain/search"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
-import type { QueryDraft as Draft } from "@/platform/search-schemas"
+import type { QueryDraft as Draft, QueryWriter, SearchAnswer } from "@/platform/search-schemas"
 import { useNav } from "@/shared/nav"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldFocus } from "@/ui/field"
 import { focusInPlace } from "@/ui/motion"
 import { StableText } from "@/ui/Skeleton"
 import { searchMessages } from "./messages"
+import { NameChoiceButtons } from "./NameChoices"
 
-type State = { kind: "idle" } | { kind: "empty" } | { kind: "writing" } | { kind: "error"; message: string } | Draft
+/** What one search with a limit of 1 says about a written query, before it is offered. */
+type Checked =
+  | { kind: "found"; count: number; more: boolean }
+  /** Accepted without a count (too slow, too old), or the tool could not search just now: `message` says why. */
+  | { kind: "unchecked"; message?: string }
+  | { kind: "choose"; choices: NameChoices }
+  | { kind: "refused"; message: string }
+
+type State =
+  | { kind: "idle" }
+  | { kind: "empty" }
+  | { kind: "writing" }
+  | { kind: "checking"; by: QueryWriter }
+  | { kind: "error"; message: string }
+  | Exclude<Draft, { kind: "query" }>
+  | { kind: "query"; query: string; by: QueryWriter; checked: Checked }
 
 type Props = {
   tool: string | null
   /** The tour's example request, shown as already written into the query; nothing is sent. */
   example?: string | null
-  /** Says what is missing on the page, as the Search button does, when no tool is chosen yet. */
+  /**
+   * One search of the chosen profile with a limit of 1, so a query is offered only once the tool took it; null while
+   * the tool or the profile is still to be chosen.
+   */
+  check: ((query: string) => Promise<SearchAnswer>) | null
+  /** The people and chats the tool knows, for the choices when a name in the query fits several or nobody. */
+  values: Readonly<Record<string, readonly ValueOption[]>>
+  /** Says what is missing on the page, as the Search button does, when no tool or profile is chosen yet. */
   onNeedTool: () => void
-  /** The query goes into the bar for the owner to check; it is never searched by itself. */
-  onWritten: (query: string) => void
+  /** The query goes into the bar for the owner to check; the results show only once he presses Search. */
+  onWritten: (query: string, named?: { field: string; id: string; label: string }) => void
+}
+
+const MAX_REQUEST = 500
+
+/** What the tool's answer to the check means for the query; a query the parser refused comes back as `retry`. */
+function checkedBy(query: string, answer: SearchAnswer, values: Props["values"]): Checked | "retry" {
+  if (answer.kind === "hits") {
+    const count = answer.total?.value ?? answer.hits.length
+    return { kind: "found", count, more: answer.total?.relation === "gte" || (!answer.total && answer.hasMore) }
+  }
+  if (answer.kind === "queryError") return "retry"
+  if (answer.kind === "failed") {
+    const choices = nameChoices(query, answer.message, answer.candidates, values)
+    // Any other refusal is the store's (nothing synced yet, held by another process), not the query's.
+    return choices ? { kind: "choose", choices } : { kind: "unchecked", message: answer.message }
+  }
+  if (answer.kind === "timedOut") return { kind: "unchecked" }
+  return { kind: "unchecked", message: answer.message }
+}
+
+/** The owner's words again, with only what the parser said about the last query: never a hit or a name it found. */
+function retryRequest(request: string, query: string, answer: Extract<SearchAnswer, { kind: "queryError" }>) {
+  const said = ` (The query ${query} was refused: ${answer.reason}, ${answer.message}. Write a valid one.)`
+  return `${request.slice(0, Math.max(0, MAX_REQUEST - said.length))}${said}`.slice(0, MAX_REQUEST)
 }
 
 /** "Describe what you're looking for": the owner's words as the tool's query, written by an agent he set up. */
-export function QueryDraft({ tool, example = null, onNeedTool, onWritten }: Props) {
+export function QueryDraft({ tool, example = null, check, values, onNeedTool, onWritten }: Props) {
   const m = useMessages(searchMessages)
   const id = useId()
   const [typed, setRequest] = useState("")
   const [real, setState] = useState<State>({ kind: "idle" })
+  // The lists may arrive while the agent writes; the check reads them as they are when its answer comes.
+  const known = useRef(values)
+  known.current = values
   const request = example ?? typed
-  const state: State = example === null ? real : { kind: "query", query: "", by: "claude-code" }
-  const writing = state.kind === "writing"
+  const state: State =
+    example === null ? real : { kind: "query", query: "", by: "claude-code", checked: { kind: "unchecked" } }
+  const writing = state.kind === "writing" || state.kind === "checking"
 
   const write = async () => {
     if (writing) return
-    if (!tool) return onNeedTool()
+    if (!tool || !check) return onNeedTool()
     if (!request.trim()) {
       setState({ kind: "empty" })
       focusInPlace(document.getElementById(id))
@@ -44,9 +97,28 @@ export function QueryDraft({ tool, example = null, onNeedTool, onWritten }: Prop
     }
     setState({ kind: "writing" })
     try {
-      const draft = await platform.searchDraft(tool, request.trim())
-      setState(draft)
-      if (draft.kind === "query") onWritten(draft.query)
+      let asked = request.trim()
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const draft = await platform.searchDraft(tool, asked)
+        if (draft.kind !== "query") return setState(draft)
+        setState({ kind: "checking", by: draft.by })
+        const answer = await check(draft.query).catch(
+          (e: unknown): SearchAnswer => ({ kind: "old", message: e instanceof Error ? e.message : String(e) }),
+        )
+        const checked = checkedBy(draft.query, answer, known.current)
+        if (checked === "retry" && answer.kind === "queryError" && attempt === 0) {
+          asked = retryRequest(request.trim(), draft.query, answer)
+          setState({ kind: "writing" })
+          continue
+        }
+        const final: Checked =
+          checked === "retry"
+            ? { kind: "refused", message: answer.kind === "queryError" ? answer.message : "" }
+            : checked
+        setState({ kind: "query", query: draft.query, by: draft.by, checked: final })
+        if (final.kind === "found" || final.kind === "unchecked") onWritten(draft.query)
+        return
+      }
     } catch (e) {
       setState({ kind: "error", message: e instanceof Error ? e.message : String(e) })
     }
@@ -64,13 +136,15 @@ export function QueryDraft({ tool, example = null, onNeedTool, onWritten }: Prop
       ? { text: m.draft.empty, bad: true }
       : state.kind === "writing"
         ? { text: m.draft.writing, bad: false }
-        : state.kind === "query"
-          ? { text: m.draft.written(m.draft.by[state.by]), bad: false }
-          : state.kind === "failed"
-            ? { text: m.draft.failed(m.draft.by[state.by], failure(state)), bad: true }
-            : state.kind === "error"
-              ? { text: m.draft.error(state.message), bad: true }
-              : { text: m.draft.hint, bad: false }
+        : state.kind === "checking"
+          ? { text: m.draft.checking(m.draft.by[state.by]), bad: false }
+          : state.kind === "query"
+            ? writtenLine(m, state)
+            : state.kind === "failed"
+              ? { text: m.draft.failed(m.draft.by[state.by], failure(state)), bad: true }
+              : state.kind === "error"
+                ? { text: m.draft.error(state.message), bad: true }
+                : { text: m.draft.hint, bad: false }
 
   return (
     <div className="flex flex-col gap-[0.35rem]">
@@ -114,6 +188,33 @@ export function QueryDraft({ tool, example = null, onNeedTool, onWritten }: Prop
       >
         {line.text}
       </p>
+      <Collapse open={state.kind === "query" && state.checked.kind === "choose"}>
+        {state.kind === "query" && state.checked.kind === "choose" && (
+          <NameChoiceButtons
+            tool={tool}
+            choices={state.checked.choices}
+            onPick={(c) => {
+              const field = state.checked.kind === "choose" ? state.checked.choices.field : "from"
+              setState({ ...state, query: c.query, checked: { kind: "unchecked" } })
+              onWritten(c.query, c.label ? { field, id: c.value, label: c.label } : undefined)
+            }}
+          />
+        )}
+      </Collapse>
+      <Collapse open={state.kind === "query" && state.checked.kind === "unchecked" && Boolean(state.checked.message)}>
+        {state.kind === "query" && state.checked.kind === "unchecked" && state.checked.message && (
+          <ErrorNotice inline tone="warn" raw={state.checked.message}>
+            {m.draft.uncheckedHow}
+          </ErrorNotice>
+        )}
+      </Collapse>
+      <Collapse open={state.kind === "query" && state.checked.kind === "refused"}>
+        {state.kind === "query" && state.checked.kind === "refused" && (
+          <ErrorNotice inline raw={`${state.query}\n${state.checked.message}`}>
+            {m.draft.refusedHow}
+          </ErrorNotice>
+        )}
+      </Collapse>
       <Collapse open={state.kind === "query" && state.by === "codex"}>
         <p className="text-[0.9rem] text-warn-ink">{m.draft.codexWarning}</p>
       </Collapse>
@@ -133,4 +234,20 @@ export function QueryDraft({ tool, example = null, onNeedTool, onWritten }: Prop
       </Collapse>
     </div>
   )
+}
+
+function writtenLine(
+  m: (typeof searchMessages)["en"],
+  state: Extract<State, { kind: "query" }>,
+): { text: string; bad: boolean } {
+  const by = m.draft.by[state.by]
+  const c = state.checked
+  if (c.kind === "found")
+    return c.count === 0
+      ? { text: m.draft.writtenNone(by), bad: false }
+      : { text: m.draft.found(by, c.count, c.more), bad: false }
+  if (c.kind === "choose") return { text: m.draft.choose(by, c.choices.field, c.choices.typed), bad: false }
+  if (c.kind === "refused") return { text: m.draft.refused(by), bad: true }
+  if (c.message) return { text: m.draft.unchecked(by), bad: false }
+  return { text: m.draft.written(by), bad: false }
 }

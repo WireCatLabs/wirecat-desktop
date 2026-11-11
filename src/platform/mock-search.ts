@@ -120,7 +120,12 @@ const VALUES: Record<string, ValueItem[]> = {
     { value: "-1001762030832", label: "kyrillic", detail: "kyrillic" },
     { value: "-1001334573228", label: "kyrillic", detail: null },
   ],
-  contacts: PEOPLE.filter((p) => p !== "You").map((name, i) => ({ value: String(500 + i), label: name, detail: null })),
+  contacts: [
+    ...PEOPLE.filter((p) => p !== "You").map((name, i) => ({ value: String(500 + i), label: name, detail: null })),
+    { value: "700", label: "Ярослав", detail: "yar_one" },
+    { value: "701", label: "Ярослав", detail: "yar_two" },
+    { value: "702", label: "Ярослав Петров", detail: null },
+  ],
   tags: ["work", "family", "receipts"].map((value) => ({ value, label: null, detail: null })),
 }
 
@@ -305,6 +310,18 @@ export const searchMock: Pick<Platform, "searchStore" | "searchValues" | "search
           { id: "-1001334573228", label: "kyrillic", field: "chat" },
         ],
       }
+    // cli-core takes the exact names when there are any, so the one whose name only contains it is left out.
+    if (/(^|\s)-?from:"?Ярослав"?(\s|$)/.test(query))
+      return {
+        kind: "failed",
+        message: '"Ярослав" matches 2 people — name one by its id:\n  700  Ярослав  @yar_one\n  701  Ярослав  @yar_two',
+        candidates: [
+          { id: "700", label: "Ярослав · @yar_one", field: "from" },
+          { id: "701", label: "Ярослав · @yar_two", field: "from" },
+        ],
+      }
+    if (/(^|\s)-?from:"?zzz/.test(query))
+      return { kind: "failed", message: 'from:zzz — nobody matches "zzz"', candidates: [] }
     const refused = refusal(id, query)
     if (refused) return refused
     const paged = search.args.includes("{page}")

@@ -3,9 +3,11 @@ import {
   ambiguousTerm,
   clampSpan,
   errorDetail,
+  fieldsIn,
   groupHits,
   hitField,
   hitRow,
+  nameChoices,
   queryReason,
   quoteValue,
   suggestSearch,
@@ -88,14 +90,18 @@ describe("suggestSearch", () => {
     group: { who: "Who", where: "Where", when: "When", what: "What", files: "Files and links" },
     describe: (f: string) => `about ${f}`,
     more: "More fields…",
-    examplesHeading: "Try",
+    popularHeading: "Most used",
     datesHeading: "Dates",
     valuesHeading: (f: string) => `Values for ${f}`,
+    count: (n: number) => `${n} messages`,
   } as const
   const fields = [
     { name: "from", group: "who", example: 'from:"Ana Ruiz"', top: true },
     { name: "chat", group: "where", example: "chat:x", top: true },
     { name: "date", group: "when", example: "date>=7d", top: true },
+    { name: "tag", group: "what", example: "tag:x", top: true },
+    { name: "has", group: "files", example: "has:photo", top: true },
+    { name: "kind", group: "where", example: "kind:group", top: true },
     { name: "transcript", group: "what", example: "transcript:x", top: false },
   ] as const
   const ctx = {
@@ -108,8 +114,14 @@ describe("suggestSearch", () => {
         { value: "-1001762030832", label: "kyrillic", detail: "kyrillic" },
         { value: "-1001334573228", label: "kyrillic" },
       ],
-      from: [],
+      from: [
+        { value: "11", label: "Ярослав", detail: "yar_one", count: 3 },
+        { value: "12", label: "Ярослав", detail: "yar_two", count: 40 },
+        { value: "13", label: "Ярослав Петров", detail: null, count: 900 },
+        { value: "14", label: "Мирослав", detail: null, count: 5000 },
+      ],
     },
+    used: {},
     all: false,
     now: new Date(2026, 9, 31),
     words,
@@ -122,47 +134,42 @@ describe("suggestSearch", () => {
       since: "s",
       between: "b",
     },
-    exampleWords: Object.fromEntries(
-      ["filesMonth", "links30", "attachments30", "changed30", "titled", "words"].map((k) => [k, k]),
-    ) as Record<import("./search").ExampleId, string>,
     what: "messages",
   }
   const labels = (q: string, at = q.length, all = false) =>
     suggestSearch(q, at, { ...ctx, all }).items.map((i) => i.label)
 
-  it("leads an empty box with the most used keys, then ready queries, then the other fields once each", () => {
-    expect(labels("")).toEqual([
-      "from:",
-      "chat:",
-      "date",
-      "has:file date:[2026-10-01 TO *]",
-      "has:link date>=30d",
-      "More fields…",
+  it("leads an empty box with the usual first keys, then the rest by group, and no ready queries", () => {
+    const found = suggestSearch("", 0, ctx).items
+    expect(found.map((i) => [i.label, i.group])).toEqual([
+      ["from:", "Most used"],
+      ["chat:", "Most used"],
+      ["date", "Most used"],
+      ["has:", "Most used"],
+      ["kind:", "Most used"],
+      ["tag:", "What"],
+      ["More fields…", undefined],
     ])
-    expect(suggestSearch("", 0, ctx).items[0]).toMatchObject({
-      insert: "from:",
-      open: true,
-      note: "about from",
-      group: "Try",
-    })
-    expect(suggestSearch("", 0, ctx).items[0]?.whole).toBeUndefined()
-    expect(suggestSearch("", 0, ctx).items[3]).toMatchObject({ whole: true, group: "Try" })
+    expect(found[0]).toMatchObject({ insert: "from:", open: true, note: "about from" })
+    expect(found.some((i) => i.whole)).toBe(false)
   })
 
-  it("offers only the popular keys the tool has", () => {
-    const items = suggestSearch("", 0, { ...ctx, what: "mail" }).items.map((i) => i.label)
-    expect(items.slice(0, 3)).toEqual(["from:", "date", "has:attachment date>=30d"])
+  it("puts the keys the owner searched with first, a hidden one too", () => {
+    const used = { transcript: 4, tag: 2 }
+    expect(labels("").length).toBe(7)
+    expect(
+      suggestSearch("", 0, { ...ctx, used })
+        .items.map((i) => i.label)
+        .slice(0, 5),
+    ).toEqual(["transcript:", "tag:", "from:", "chat:", "date"])
+    expect(suggestSearch("x t", 3, { ...ctx, used }).items.map((i) => i.label)).toEqual(["transcript:", "tag:"])
   })
 
   it("shows the first fields by group, the rest behind More fields, and finds a hidden one by name", () => {
-    expect(labels("x ")).toEqual(["from:", "chat:", "date", "More fields…"])
+    expect(labels("x ")).toEqual(["from:", "chat:", "date", "has:", "kind:", "tag:", "More fields…"])
     expect(labels("x ", 2, true)).toContain("transcript:")
     expect(labels("x tr")).toEqual(["transcript:"])
-    expect(suggestSearch("x ", 2, ctx).items[0]).toMatchObject({
-      note: "about from",
-      example: 'from:"Ana Ruiz"',
-      group: "Who",
-    })
+    expect(suggestSearch("x ", 2, ctx).items[5]).toMatchObject({ example: "tag:x", group: "What" })
   })
 
   it("offers dates the tools accept after date, narrowed as typed", () => {
@@ -197,8 +204,64 @@ describe("suggestSearch", () => {
     ])
   })
 
+  it("offers the people who write most first, by any part of the name, with ё typed as е", () => {
+    const found = suggestSearch("from:ярос", 9, ctx).items
+    expect(found.map((i) => [i.label, i.note])).toEqual([
+      ["Ярослав Петров", "900 messages"],
+      ["Ярослав", "@yar_two · 40 messages"],
+      ["Ярослав", "@yar_one · 3 messages"],
+    ])
+    expect(labels("from:слав")).toEqual(["Мирослав", "Ярослав Петров", "Ярослав", "Ярослав"])
+  })
+
   it("keeps a quoted value with spaces as one term while it is typed", () => {
     expect(suggestSearch('chat:"Design c', 14, ctx).items.map((i) => i.label)).toEqual(["Design crit"])
+  })
+})
+
+describe("fieldsIn", () => {
+  it("names each key a query filters by once, and none of the values", () => {
+    expect(fieldsIn('photo from:"Ana Ruiz" -chat:x date>=7d from:12 (a OR b)')).toEqual(["from", "chat", "date"])
+    expect(fieldsIn("")).toEqual([])
+  })
+})
+
+describe("nameChoices", () => {
+  const known = {
+    from: [
+      { value: "11", label: "Ярослав", detail: "yar_one", count: 3 },
+      { value: "12", label: "Ярослав", detail: "yar_two", count: 40 },
+      { value: "13", label: "Ярослав Петров", detail: null, count: 900 },
+      { value: "20", label: "Ana", detail: null, count: 1 },
+    ],
+  }
+
+  it("lists everyone whose name holds the refused name, who writes most first, as a query naming one id", () => {
+    const refused = [
+      { id: "11", label: "Ярослав · @yar_one", field: "from" as const },
+      { id: "12", label: "Ярослав · @yar_two", field: "from" as const },
+    ]
+    const found = nameChoices('from:"Ярослав" has:photo', '"Ярослав" matches 2 people', refused, known)
+    expect(found?.typed).toBe("Ярослав")
+    expect(found?.options.map((o) => [o.label, o.query])).toEqual([
+      ["Ярослав Петров", "from:13 has:photo"],
+      ["Ярослав", "from:12 has:photo"],
+      ["Ярослав", "from:11 has:photo"],
+    ])
+  })
+
+  it("answers a name that fits nobody with the names that contain it", () => {
+    const found = nameChoices("-from:петров", 'from:петров — nobody matches "петров"', [], known)
+    expect(found?.options.map((o) => o.query)).toEqual(["-from:13"])
+    expect(nameChoices("from:zzz", 'from:zzz — nobody matches "zzz"', [], known)).toBeNull()
+    expect(nameChoices("from:ana", "the store is locked", [], known)).toBeNull()
+  })
+
+  it("keeps the tool's own candidates when no list knows them", () => {
+    const refused = [{ id: "-1001", label: "Design", field: "chat" as const }]
+    expect(nameChoices("chat:design", "matches 2 chats", refused, {})?.options.map((o) => o.query)).toEqual([
+      'chat:"-1001"',
+    ])
   })
 })
 

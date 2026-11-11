@@ -1,5 +1,5 @@
 import { groupDigits } from "@/domain/format"
-import type { DateMeaning, ExampleId, FieldGroup, QueryReason } from "@/domain/search"
+import type { DateMeaning, FieldGroup, QueryReason } from "@/domain/search"
 import { type Messages, plural } from "@/i18n"
 
 type What = "messages" | "meetings" | "documents" | "notes" | "mail"
@@ -41,10 +41,23 @@ const en = {
     placeholder: "photos Ana sent last week about the flat",
     write: "Write the query",
     busy: "Writing…",
-    hint: "Your words only, and the keys this tool searches by, go to the agent you set up; never your messages. It writes the query below, and nothing is searched until you press Search.",
+    hint: "Your words only, and the keys this tool searches by, go to the agent you set up; never your messages. WireCat tries its query once on this computer, and offers it only if the tool accepts it. Results show when you press Search.",
     empty: "Describe what you want to find first.",
     writing: "Writing the query from your words…",
     written: (by: string) => `${by} wrote the query below. Check it, change it if needed, then press Search.`,
+    checking: (by: string) => `${by} wrote a query. Trying it on this computer…`,
+    found: (by: string, n: number, more: boolean) =>
+      `${by} wrote the query below; it finds ${groupDigits(n)}${more ? "+" : ""} ${n === 1 && !more ? "result" : "results"}. Press Search to see them.`,
+    writtenNone: (by: string) =>
+      `${by} wrote the query below, but it finds nothing. Remove a condition, or describe it differently.`,
+    choose: (by: string, field: string, typed: string) =>
+      field === "chat"
+        ? `${by} wrote a query, but "${typed}" fits several chats or none. Pick the chat you meant:`
+        : `${by} wrote a query, but "${typed}" fits several people or nobody. Pick the person you meant:`,
+    refused: (by: string) => `${by} wrote a query the tool does not accept, twice. Nothing was put in the search box.`,
+    refusedHow: "Describe it differently, or type the query yourself. The query and the tool's answer are below.",
+    unchecked: (by: string) => `${by} wrote the query below, but the tool could not try it just now.`,
+    uncheckedHow: "Press Search to run it anyway. If it fails again, the tool's answer says what to fix.",
     failed: (by: string, why: string) =>
       `${by} could not write the query: ${why}. Try again, or type the query yourself.`,
     why: {
@@ -97,7 +110,9 @@ const en = {
     string
   >,
   moreFields: "More fields…",
-  tryHeading: "Try",
+  popularHeading: "Most used",
+  messageCount: (n: number) =>
+    plural("en", n, { one: `${groupDigits(n)} message`, other: `${groupDigits(n)} messages` }),
   datesHeading: "Dates",
   valuesHeading: (field: string) => `Values for ${field}`,
   dates: {
@@ -109,14 +124,6 @@ const en = {
     since: "from a day on; change the date",
     between: "between two days; change the dates",
   } as Record<DateMeaning, string>,
-  examples: {
-    filesMonth: "files sent this month",
-    links30: "links shared in the last 30 days",
-    attachments30: "mail with attachments from the last 30 days",
-    changed30: "changed in the last 30 days",
-    titled: "with plan in the title",
-    words: "meetings where someone said demo",
-  } as Record<ExampleId, string>,
   fields: {
     "messages:from": "messages sent by a person",
     "messages:chat": "messages in one chat",
@@ -160,17 +167,15 @@ const en = {
   searching: "Searching…",
   start: "Choose a tool and a profile, type what to look for and press Enter.",
   startNoProfile: "Type what to look for and press Enter.",
-  tooOld: (tool: string, version: string | null) =>
-    `${tool}${version ? ` ${version}` : ""} can't search its local data yet. Update it on the Tools page.`,
   failed: "The search did not run.",
   fixQuery: "Fix the marked part of the query, then press Enter.",
   timedOut: (seconds: number | null) =>
     `The search did not finish${seconds ? ` in ${seconds} s` : " in time"}. The query is fine. ` +
     "Add a chat or a date to search less, or try again.",
-  pickOne: (field: string): string =>
+  pickOne: (field: string, typed: string, counted: boolean): string =>
     field === "chat"
-      ? "This name fits several chats. Pick the one you meant below."
-      : "This name fits several people. Pick the one you meant below.",
+      ? `Pick the chat you meant below: every chat with "${typed}" in its name${counted ? ", the busiest first" : ""}.`
+      : `Pick the person you meant below: everyone with "${typed}" in their name${counted ? ", who writes most first" : ""}.`,
   noHits: (tool: string, profile: string | null) =>
     profile ? `Nothing matches this search in what ${tool} keeps for ${profile}.` : `Nothing matches this search.`,
   results: (n: number, page: number) =>
@@ -290,10 +295,25 @@ const ru: typeof en = {
     placeholder: "фото, которые Ana прислала на прошлой неделе про квартиру",
     write: "Составить запрос",
     busy: "Составляем…",
-    hint: "Агенту, которого вы настроили, уходят только ваши слова и ключи поиска этого инструмента, но не ваши сообщения. Он составит запрос ниже; поиск начнётся, только когда вы нажмёте «Искать».",
+    hint: "Агенту, которого вы настроили, уходят только ваши слова и ключи поиска этого инструмента, но не ваши сообщения. WireCat один раз пробует его запрос на этом компьютере и предлагает его, только если инструмент его принял. Результаты появятся, когда вы нажмёте «Искать».",
     empty: "Сначала опишите, что хотите найти.",
     writing: "Составляем запрос по вашим словам…",
     written: (by) => `${by} составил запрос ниже. Проверьте, поправьте при необходимости и нажмите «Искать».`,
+    checking: (by) => `${by} составил запрос. Пробуем его на этом компьютере…`,
+    found: (by, n, more) =>
+      `${by} составил запрос ниже; по нему найдено ${groupDigits(n)}${more ? "+" : ""}. Нажмите «Искать», чтобы увидеть результаты.`,
+    writtenNone: (by) =>
+      `${by} составил запрос ниже, но по нему ничего не найдено. Уберите одно из условий или опишите иначе.`,
+    choose: (by, field, typed) =>
+      field === "chat"
+        ? `${by} составил запрос, но «${typed}» подходит нескольким чатам или ни одному. Выберите нужный:`
+        : `${by} составил запрос, но «${typed}» подходит нескольким людям или никому. Выберите нужного:`,
+    refused: (by) =>
+      `${by} дважды составил запрос, который инструмент не принимает. В поле поиска ничего не вставлено.`,
+    refusedHow: "Опишите иначе или введите запрос сами. Запрос и ответ инструмента — ниже.",
+    unchecked: (by) => `${by} составил запрос ниже, но инструмент сейчас не смог его попробовать.`,
+    uncheckedHow:
+      "Нажмите «Искать», чтобы всё равно запустить его. Если не выйдет, ответ инструмента подскажет, что исправить.",
     failed: (by, why) => `${by} не смог составить запрос: ${why}. Попробуйте снова или введите запрос сами.`,
     why: {
       "signed-out": (writer) =>
@@ -336,7 +356,14 @@ const ru: typeof en = {
   hint: 'Слова, «фразы», AND, OR, NOT, from:"Ana", date>=7d. Enter — искать.',
   groups: { who: "Кто", where: "Где", when: "Когда", what: "Что", files: "Файлы и ссылки" },
   moreFields: "Ещё поля…",
-  tryHeading: "Попробуйте",
+  popularHeading: "Частые",
+  messageCount: (n) =>
+    plural("ru", n, {
+      one: `${groupDigits(n)} сообщение`,
+      few: `${groupDigits(n)} сообщения`,
+      many: `${groupDigits(n)} сообщений`,
+      other: `${groupDigits(n)} сообщения`,
+    }),
   datesHeading: "Даты",
   valuesHeading: (field) => `Значения ${field}`,
   dates: {
@@ -347,14 +374,6 @@ const ru: typeof en = {
     thisMonth: "этот месяц",
     since: "с какого-то дня; поменяйте дату",
     between: "между двумя днями; поменяйте даты",
-  },
-  examples: {
-    filesMonth: "файлы, отправленные в этом месяце",
-    links30: "ссылки за последние 30 дней",
-    attachments30: "письма с вложениями за последние 30 дней",
-    changed30: "изменённые за последние 30 дней",
-    titled: "со словом plan в заголовке",
-    words: "встречи, где кто-то сказал demo",
   },
   fields: {
     "messages:from": "сообщения от человека",
@@ -399,17 +418,15 @@ const ru: typeof en = {
   searching: "Ищем…",
   start: "Выберите инструмент и профиль, введите, что искать, и нажмите Enter.",
   startNoProfile: "Введите, что искать, и нажмите Enter.",
-  tooOld: (tool, version) =>
-    `${tool}${version ? ` ${version}` : ""} пока не умеет искать по локальным данным. Обновите его на странице «Инструменты».`,
   failed: "Поиск не выполнен.",
   fixQuery: "Исправьте отмеченную часть запроса и нажмите Enter.",
   timedOut: (seconds) =>
     `Поиск не успел закончить${seconds ? ` за ${seconds} с` : " вовремя"}. С запросом всё в порядке. ` +
     "Добавьте чат или дату, чтобы искать в меньшем объёме, или попробуйте снова.",
-  pickOne: (field) =>
+  pickOne: (field, typed, counted) =>
     field === "chat"
-      ? "Это имя подходит нескольким чатам. Выберите нужный ниже."
-      : "Это имя подходит нескольким людям. Выберите нужного ниже.",
+      ? `Выберите нужный чат ниже: все чаты, в названии которых есть «${typed}»${counted ? ", самые активные первыми" : ""}.`
+      : `Выберите нужного человека ниже: все, в чьём имени есть «${typed}»${counted ? ", кто пишет чаще — первыми" : ""}.`,
   noHits: (tool, profile) =>
     profile ? `Ничего не найдено в том, что ${tool} хранит для ${profile}.` : "Ничего не найдено.",
   results: (n, page) =>
@@ -532,10 +549,26 @@ const es: typeof en = {
     placeholder: "fotos que Ana envió la semana pasada sobre el piso",
     write: "Escribir la consulta",
     busy: "Escribiendo…",
-    hint: "Al agente que configuraste solo le llegan tus palabras y las claves de búsqueda de esta herramienta, nunca tus mensajes. Escribe la consulta abajo, y no se busca nada hasta que pulses Buscar.",
+    hint: "Al agente que configuraste solo le llegan tus palabras y las claves de búsqueda de esta herramienta, nunca tus mensajes. WireCat prueba su consulta una vez en este ordenador y solo la ofrece si la herramienta la acepta. Los resultados aparecen al pulsar Buscar.",
     empty: "Primero describe lo que quieres encontrar.",
     writing: "Escribiendo la consulta a partir de tus palabras…",
     written: (by) => `${by} escribió la consulta de abajo. Revísala, cámbiala si hace falta y pulsa Buscar.`,
+    checking: (by) => `${by} escribió una consulta. La probamos en este ordenador…`,
+    found: (by, n, more) =>
+      `${by} escribió la consulta de abajo; encuentra ${groupDigits(n)}${more ? "+" : ""}. Pulsa Buscar para verlos.`,
+    writtenNone: (by) =>
+      `${by} escribió la consulta de abajo, pero no encuentra nada. Quita una condición o descríbelo de otra forma.`,
+    choose: (by, field, typed) =>
+      field === "chat"
+        ? `${by} escribió una consulta, pero «${typed}» encaja con varios chats o con ninguno. Elige el que querías:`
+        : `${by} escribió una consulta, pero «${typed}» encaja con varias personas o con nadie. Elige la que querías:`,
+    refused: (by) =>
+      `${by} escribió dos veces una consulta que la herramienta no acepta. No se puso nada en la búsqueda.`,
+    refusedHow:
+      "Descríbelo de otra forma o escribe la consulta tú. La consulta y la respuesta de la herramienta están abajo.",
+    unchecked: (by) => `${by} escribió la consulta de abajo, pero la herramienta no pudo probarla ahora.`,
+    uncheckedHow:
+      "Pulsa Buscar para ejecutarla igualmente. Si falla, la respuesta de la herramienta dirá qué corregir.",
     failed: (by, why) => `${by} no pudo escribir la consulta: ${why}. Inténtalo de nuevo o escribe la consulta tú.`,
     why: {
       "signed-out": (writer) =>
@@ -580,7 +613,8 @@ const es: typeof en = {
   hint: 'Palabras, «frases», AND, OR, NOT, from:"Ana", date>=7d. Pulsa Intro para buscar.',
   groups: { who: "Quién", where: "Dónde", when: "Cuándo", what: "Qué", files: "Archivos y enlaces" },
   moreFields: "Más campos…",
-  tryHeading: "Prueba",
+  popularHeading: "Más usados",
+  messageCount: (n) => plural("es", n, { one: `${groupDigits(n)} mensaje`, other: `${groupDigits(n)} mensajes` }),
   datesHeading: "Fechas",
   valuesHeading: (field) => `Valores de ${field}`,
   dates: {
@@ -591,14 +625,6 @@ const es: typeof en = {
     thisMonth: "este mes",
     since: "desde un día; cambia la fecha",
     between: "entre dos días; cambia las fechas",
-  },
-  examples: {
-    filesMonth: "archivos enviados este mes",
-    links30: "enlaces de los últimos 30 días",
-    attachments30: "correo con adjuntos de los últimos 30 días",
-    changed30: "cambiado en los últimos 30 días",
-    titled: "con plan en el título",
-    words: "reuniones donde alguien dijo demo",
   },
   fields: {
     "messages:from": "mensajes de una persona",
@@ -643,17 +669,15 @@ const es: typeof en = {
   searching: "Buscando…",
   start: "Elige una herramienta y un perfil, escribe qué buscar y pulsa Intro.",
   startNoProfile: "Escribe qué buscar y pulsa Intro.",
-  tooOld: (tool, version) =>
-    `${tool}${version ? ` ${version}` : ""} aún no puede buscar en sus datos locales. Actualízala en la página Herramientas.`,
   failed: "La búsqueda no se ejecutó.",
   fixQuery: "Corrige la parte marcada de la consulta y pulsa Intro.",
   timedOut: (seconds) =>
     `La búsqueda no terminó${seconds ? ` en ${seconds} s` : " a tiempo"}. La consulta está bien. ` +
     "Añade un chat o una fecha para buscar en menos, o inténtalo de nuevo.",
-  pickOne: (field) =>
+  pickOne: (field, typed, counted) =>
     field === "chat"
-      ? "Este nombre encaja con varios chats. Elige el que querías abajo."
-      : "Este nombre encaja con varias personas. Elige la que querías abajo.",
+      ? `Elige abajo el chat que querías: todos los que tienen «${typed}» en el nombre${counted ? ", los más activos primero" : ""}.`
+      : `Elige abajo a la persona que querías: todas las que tienen «${typed}» en el nombre${counted ? ", quien más escribe primero" : ""}.`,
   noHits: (tool, profile) =>
     profile
       ? `Nada coincide con esta búsqueda en lo que ${tool} guarda para ${profile}.`

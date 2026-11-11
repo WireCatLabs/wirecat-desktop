@@ -1,6 +1,6 @@
 // Every field the Search page offers, run against the owner's real stores through the Rust code the app uses.
 //   node scripts/search-fields-check.mjs [--tools tg,wa] [--out results.json]
-// Queries are built by src/domain/search.ts, the page's own code (quoting, dates, examples); values come from
+// Queries are built by src/domain/search.ts, the page's own code (quoting, dates); values come from
 // search_values and answers from search_store, both through `cargo test real_batch` (src-tauri/src/search.rs).
 // Read-only: every template passes --offline (memo has none) and --no-record. The table printed names value kinds
 // ("a chat id", "has:photo"), never the owner's chats or people; the raw rows go to --out, which stays local.
@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process"
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { dateOptions, examples, quoteValue } from "../src/domain/search.ts"
+import { dateOptions, quoteValue } from "../src/domain/search.ts"
 
 const root = new URL("..", import.meta.url).pathname
 const args = process.argv.slice(2)
@@ -138,7 +138,6 @@ for (const { tool, profile } of plan) {
     }
     add(`${field.name}: catalog example`, field.example)
   }
-  for (const e of examples(tool.search.what, now)) add(`example: ${e.id}`, e.query)
   const chat = lists.get(`${tool.id}|${profile}|chats`)?.find((i) => i.label)
   if (chat)
     add("combo: date>=3d chat:id", `date>=3d chat:${quoteValue(chat.value)}`, { field: "chat", label: chat.label })

@@ -6,6 +6,7 @@ import { useNav } from "@/shared/nav"
 import { useTools } from "@/shared/tools-store"
 import { act, render, screen, waitFor, within } from "@/testing/render"
 import { SearchPage } from "./SearchPage"
+import { useSearch } from "./store"
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -108,12 +109,12 @@ describe("Search", () => {
     const options = within(list)
       .getAllByRole("option")
       .map((o) => o.textContent)
-    expect(options[0]).toContain("from:")
-    expect(options.some((o) => o?.startsWith("chat:"))).toBe(true)
-    expect(options.some((o) => o?.startsWith("has:link"))).toBe(true)
-    expect(within(list).getByText("Try")).toBeInTheDocument()
+    const starts = ["from:", "chat:", "date", "has:", "tag:"]
+    for (const [i, key] of starts.entries()) expect(options[i]?.startsWith(key), `${i}: ${options[i]}`).toBe(true)
+    expect(options.some((o) => o?.includes("date:["))).toBe(false)
+    expect(within(list).getByText("Most used")).toBeInTheDocument()
 
-    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}")
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}")
     expect(bar).toHaveValue("has:")
     expect(within(screen.getByRole("listbox")).getByRole("option", { name: /^voice/ })).toBeInTheDocument()
     await user.keyboard("{Escape}")
@@ -166,11 +167,14 @@ describe("Search", () => {
     expect(within(around).getByText("invoice-2026-10.pdf")).toBeInTheDocument()
   }, 15000)
 
-  it("writes a query from plain words into the box, and never searches by itself", async () => {
+  it("writes a query from plain words into the box once one search with a limit of 1 found it works", async () => {
     const user = userEvent.setup()
     const search = vi.spyOn(platform, "searchStore")
     render(<SearchPage />)
     await choose(user, "Tool", "Telegram")
+    await user.click(screen.getByRole("button", { name: "Write the query" }))
+    expect(await screen.findByText("Choose a profile to search in.")).toBeInTheDocument()
+    await choose(user, "Profile", "personal")
     await user.click(screen.getByRole("button", { name: "Write the query" }))
     expect(screen.getByText("Describe what you want to find first.")).toBeInTheDocument()
     const request = screen.getByLabelText("Describe what you're looking for")
@@ -180,8 +184,74 @@ describe("Search", () => {
     const bar = screen.getByRole("combobox", { name: "Search messages" })
     await waitFor(() => expect(bar).toHaveValue('from:"Ana Ruiz" has:photo date>=7d'), { timeout: 4000 })
     expect(bar).toHaveFocus()
-    expect(screen.getByText(/Claude Code, with your Claude plan, wrote the query below/)).toBeInTheDocument()
-    expect(search).not.toHaveBeenCalled()
+    expect(
+      screen.getByText(/Claude Code, with your Claude plan, wrote the query below; it finds [\d,]+ results/),
+    ).toBeInTheDocument()
+    expect(search).toHaveBeenCalledTimes(1)
+    expect(search).toHaveBeenCalledWith("tg", "personal", 'from:"Ana Ruiz" has:photo date>=7d', 1, 1)
+    expect(useSearch.getState().answer).toBeNull()
+  }, 15000)
+
+  it("asks the agent once more when the tool refuses its query, and offers nothing when it fails again", async () => {
+    const user = userEvent.setup()
+    const draft = vi
+      .spyOn(platform, "searchDraft")
+      .mockResolvedValue({ kind: "query", query: "bogus:x", by: "claude-code" })
+    vi.spyOn(platform, "searchStore").mockResolvedValue({
+      kind: "queryError",
+      reason: "query.unknown-field",
+      message: 'search: query.unknown-field at position 1 — no field "bogus"',
+      span: { start: 0, end: 5 },
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "bogus things{Enter}")
+    expect(
+      await screen.findByText(/wrote a query the tool does not accept, twice/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument()
+    expect(draft).toHaveBeenCalledTimes(2)
+    expect(draft.mock.calls[1]?.[1]).toMatch(/^bogus things \(The query bogus:x was refused: query.unknown-field/)
+    expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("")
+  }, 15000)
+
+  it("puts the query in the box when the store could not try it, and says why under Details", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchDraft").mockResolvedValue({ kind: "query", query: "plan", by: "claude-code" })
+    vi.spyOn(platform, "searchStore").mockResolvedValue({
+      kind: "failed",
+      candidates: [],
+      message: "another process holds the store",
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "the plan{Enter}")
+    expect(await screen.findByText(/wrote the query below, but the tool could not try it just now/)).toBeInTheDocument()
+    expect(screen.getByRole("combobox", { name: "Search messages" })).toHaveValue("plan")
+    expect(screen.queryByText(/twice/)).not.toBeInTheDocument()
+    await user.click(screen.getByText("Details"))
+    expect(screen.getByText("another process holds the store")).toBeVisible()
+  }, 15000)
+
+  it("offers the people a name in a written query may mean, and puts the one picked in the box", async () => {
+    const user = userEvent.setup()
+    vi.spyOn(platform, "searchDraft").mockResolvedValue({
+      kind: "query",
+      query: 'from:"Ярослав" has:photo',
+      by: "claude-code",
+    })
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    await user.type(screen.getByLabelText("Describe what you're looking for"), "фото от Ярослава{Enter}")
+    expect(
+      await screen.findByText(/"Ярослав" fits several people or nobody/, {}, { timeout: 4000 }),
+    ).toBeInTheDocument()
+    const bar = screen.getByRole("combobox", { name: "Search messages" })
+    expect(bar).toHaveValue("")
+    await user.click(screen.getByRole("button", { name: /^Ярослав Петров/ }))
+    expect(bar).toHaveValue("from:702 has:photo")
   }, 15000)
 
   it("says which agent could not write the query, and how to fix it", async () => {
@@ -194,6 +264,7 @@ describe("Search", () => {
     })
     render(<SearchPage />)
     await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
     await user.type(screen.getByLabelText("Describe what you're looking for"), "как купить велосипед у Милы{Enter}")
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Codex, with your ChatGPT plan, could not write the query: it is not signed in. Run codex login once in a terminal.",
@@ -206,6 +277,7 @@ describe("Search", () => {
     const draft = vi.spyOn(platform, "searchDraft").mockResolvedValue({ kind: "none" })
     render(<SearchPage />)
     await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
     await user.type(screen.getByLabelText("Describe what you're looking for"), "photos from Ana")
     await user.click(screen.getByRole("button", { name: "Write the query" }))
     expect(await screen.findByText(/WireCat needs one of these agents/)).toBeInTheDocument()
@@ -317,7 +389,10 @@ describe("Search", () => {
     await choose(user, "Tool", "MAX")
     await choose(user, "Profile", "personal")
     await user.type(screen.getByRole("combobox", { name: "Search messages" }), "x{Enter}")
-    expect(await screen.findByText(/MAX 0\.74\.0 can't search its local data yet/)).toBeInTheDocument()
+    expect(await screen.findByText("This page needs a newer MAX than 0.74.0.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Update MAX" })).toBeInTheDocument()
+    await user.click(screen.getByText("Details"))
+    expect(screen.getByText("unknown option '--offline'")).toBeVisible()
 
     await choose(user, "Tool", "Telegram")
     await user.click(screen.getByRole("combobox", { name: "Tool" }))
@@ -354,7 +429,9 @@ describe("Search", () => {
     await choose(user, "Tool", "MAX")
     await choose(user, "Profile", "personal")
     await user.type(screen.getByRole("combobox", { name: "Search messages" }), "hello{Enter}")
-    expect(await screen.findByText("the command failed; this is a bug")).toBeInTheDocument()
+    expect(await screen.findByText("The search did not run.")).toBeInTheDocument()
+    await user.click(screen.getByText("Details"))
+    expect(screen.getByText("the command failed; this is a bug")).toBeVisible()
     expect(screen.getByRole("button", { name: "Report this" })).toBeVisible()
   }, 15000)
 
@@ -378,7 +455,7 @@ describe("Search", () => {
     expect(screen.queryByRole("button", { name: "Report this" })).not.toBeInTheDocument()
   }, 15000)
 
-  it("offers ready queries, then the tool's own values after a field", async () => {
+  it("puts the keys of the last searches first, and offers the tool's own values after a field", async () => {
     const user = userEvent.setup()
     const values = vi.spyOn(platform, "searchValues")
     render(<SearchPage />)
@@ -388,9 +465,13 @@ describe("Search", () => {
     await waitFor(() => expect(values).toHaveBeenCalledWith("tg", "personal", "chats"))
     const bar = screen.getByRole("combobox", { name: "Search messages" })
 
+    await user.type(bar, "tag:work{Enter}")
+    await waitFor(() => expect(useSearch.getState().usedKeys).toEqual({ tag: 1 }))
+    await user.clear(bar)
     await user.click(bar)
-    await user.click(await screen.findByRole("option", { name: /has:link date>=30d/ }))
-    expect(bar).toHaveValue("has:link date>=30d ")
+    expect((await screen.findAllByRole("option"))[0]).toHaveTextContent(/^tag:/)
+    await user.keyboard("{Escape}")
+    await user.type(bar, "has:link date>=30d ")
 
     await user.type(bar, "chat:des")
     await user.click(await screen.findByRole("option", { name: /Design crit/ }))
@@ -419,13 +500,33 @@ describe("Search", () => {
     const bar = screen.getByRole("combobox", { name: "Search messages" })
     await user.type(bar, "date>=3d chat:kyrillic{Enter}")
 
-    expect(await screen.findByText("This name fits several chats. Pick the one you meant below.")).toBeInTheDocument()
-    await user.click(await screen.findByRole("button", { name: /^@kyrillic/ }))
+    expect(await screen.findByText(/Pick the chat you meant below: every chat with "kyrillic"/)).toBeInTheDocument()
+    await user.click(await screen.findByRole("button", { name: /^kyrillic\s*@kyrillic/ }))
     expect(bar).toHaveValue('date>=3d chat:"-1001762030832"')
-    expect(screen.getByRole("button", { name: "Edit chat: @kyrillic" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Edit chat: kyrillic" })).toBeInTheDocument()
     await waitFor(() =>
       expect(search).toHaveBeenLastCalledWith("tg", "personal", 'date>=3d chat:"-1001762030832"', 50, 1),
     )
+  }, 15000)
+})
+
+describe("a name that fits several people", () => {
+  it("offers everyone whose name holds it, the one cli-core left out too, and searches the one picked", async () => {
+    const user = userEvent.setup()
+    const search = vi.spyOn(platform, "searchStore")
+    render(<SearchPage />)
+    await choose(user, "Tool", "Telegram")
+    await choose(user, "Profile", "personal")
+    const bar = screen.getByRole("combobox", { name: "Search messages" })
+    await user.type(bar, 'from:"Ярослав" has:photo{Enter}')
+
+    expect(await screen.findByText(/everyone with "Ярослав" in their name/)).toBeInTheDocument()
+    const choice = await screen.findByRole("button", { name: /^Ярослав Петров/ })
+    expect(screen.getByRole("button", { name: /^Ярослав\s*@yar_one/ })).toBeInTheDocument()
+    await user.click(choice)
+    expect(bar).toHaveValue("from:702 has:photo")
+    expect(screen.getByRole("button", { name: "Edit from: Ярослав Петров" })).toBeInTheDocument()
+    await waitFor(() => expect(search).toHaveBeenLastCalledWith("tg", "personal", "from:702 has:photo", 50, 1))
   }, 15000)
 })
 

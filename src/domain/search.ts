@@ -121,9 +121,11 @@ export type SuggestWords = {
   group: Record<FieldGroup, string>
   describe: (field: string) => string | null
   more: string
-  examplesHeading: string
+  popularHeading: string
   datesHeading: string
   valuesHeading: (field: string) => string
+  /** "1 234 messages": how often a person wrote, or how many messages a chat holds. */
+  count: (n: number) => string
 }
 
 const pad = (n: number) => String(n).padStart(2, "0")
@@ -146,29 +148,43 @@ export function dateOptions(now: Date): { query: string; meaning: DateMeaning }[
   ]
 }
 
-/** The filters people reach for first, by judgment: there are no usage numbers. */
+/** The order keys start in before the owner has searched with any: the filters people reach for first. */
 const POPULAR_FIELDS: Readonly<Record<string, readonly string[]>> = {
-  messages: ["from", "chat", "date"],
-  mail: ["from", "subject", "date"],
+  messages: ["from", "chat", "date", "has", "kind", "tag"],
+  mail: ["from", "subject", "date", "mailbox", "label"],
+  notes: ["title", "tag", "date", "author"],
+  documents: ["title", "tag", "date", "author"],
 }
 
-export type ExampleId = "filesMonth" | "links30" | "attachments30" | "changed30" | "titled" | "words"
+/** How many of the most used keys lead the list; the rest follow by group. */
+const LEAD = 5
 
-/** Ready queries the empty bar offers, each run against an installed tool's real data before it was listed. */
-export function examples(what: string, now: Date): { query: string; id: ExampleId }[] {
-  const first = day(new Date(now.getFullYear(), now.getMonth(), 1))
-  if (what === "messages")
-    return [
-      { query: `has:file date:[${first} TO *]`, id: "filesMonth" },
-      { query: "has:link date>=30d", id: "links30" },
-    ]
-  if (what === "mail") return [{ query: "has:attachment date>=30d", id: "attachments30" }]
-  if (what === "notes" || what === "documents")
-    return [
-      { query: "date>=30d", id: "changed30" },
-      { query: "title:plan", id: "titled" },
-    ]
-  return [{ query: "demo", id: "words" }]
+/** The keys a query filters by, once each: `from:`, `-chat:`, `date>=`. Only names, never the values typed. */
+export function fieldsIn(query: string): string[] {
+  const out = new Set<string>()
+  for (let at = 0; at <= query.length; ) {
+    const tok = tokenAt(query, at)
+    const name = /^[-+]?([a-z_]+)(?::|>=|<=|>|<)/i.exec(tok.raw)?.[1]
+    if (name) out.add(name.toLowerCase())
+    at = tok.end + 1
+  }
+  return [...out]
+}
+
+/** Most used by the owner first, then the usual first filters, then by group. */
+export function rankFields(
+  fields: readonly SearchFieldInfo[],
+  what: string,
+  used: Readonly<Record<string, number>>,
+): SearchFieldInfo[] {
+  const popular = POPULAR_FIELDS[what] ?? []
+  const place = (name: string) => (popular.includes(name) ? popular.indexOf(name) : popular.length)
+  return [...fields].sort(
+    (a, b) =>
+      (used[b.name] ?? 0) - (used[a.name] ?? 0) ||
+      place(a.name) - place(b.name) ||
+      GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group),
+  )
 }
 
 /**
@@ -182,8 +198,28 @@ export const quoteValue = (value: string) =>
     ? value
     : `"${value.replace(/[\\"]/g, (c) => `\\${c}`)}"`
 
-/** One value a field can take: `value` goes in the query; `label` and `detail` (an @username) are what the row shows. */
-export type ValueOption = { value: string; label?: string | null; detail?: string | null }
+/**
+ * One value a field can take: `value` goes in the query; `label` and `detail` (an @username) are what the row shows;
+ * `count` (messages from that person or in that chat) puts the most used first.
+ */
+export type ValueOption = { value: string; label?: string | null; detail?: string | null; count?: number | null }
+
+/** As cli-core compares names (`foldName`): any case, and е for ё, which is how Russian is mostly typed. */
+export const foldText = (text: string) => text.normalize("NFC").toLowerCase().replaceAll("ё", "е")
+
+const byCount = (a: ValueOption, b: ValueOption) => (b.count ?? -1) - (a.count ?? -1)
+
+/** The values whose name, @username or id start with `typed`, then those that contain it; most used first in each. */
+export function matchingValues(all: readonly ValueOption[], typed: string): ValueOption[] {
+  const wanted = foldText(typed)
+  const texts = (v: ValueOption) =>
+    [v.label, v.detail, v.detail ? `@${v.detail.replace(/^@/, "")}` : null, v.value]
+      .filter(Boolean)
+      .map((t) => foldText(t as string))
+  const starts = all.filter((v) => texts(v).some((t) => t.startsWith(wanted)))
+  const contains = all.filter((v) => !starts.includes(v) && texts(v).some((t) => t.includes(wanted)))
+  return [...starts.sort(byCount), ...contains.sort(byCount)]
+}
 
 type Token = { start: number; end: number; raw: string }
 
@@ -206,12 +242,12 @@ function tokenAt(query: string, cursor: number): Token {
   return { start: cursor, end: cursor, raw: "" }
 }
 
-const fieldRow = (f: SearchFieldInfo, sign: string, words: SuggestWords): QueryOption => ({
+const fieldRow = (f: SearchFieldInfo, sign: string, words: SuggestWords, group: string | null): QueryOption => ({
   label: f.name === "date" ? "date" : `${f.name}:`,
   insert: f.name === "date" ? `${sign}date` : `${sign}${f.name}:`,
   note: words.describe(f.name),
   example: f.example,
-  group: words.group[f.group],
+  group,
   open: true,
 })
 
@@ -222,37 +258,35 @@ export type SuggestContext = {
   fields: SearchFieldInfo[]
   /** Every value a field can be given here: its fixed list, the tool's own list, and what the results show. */
   values: Readonly<Record<string, readonly ValueOption[]>>
+  /** How many searches that found an answer used each key, kept on this computer. */
+  used: Readonly<Record<string, number>>
   /** "More fields" was chosen: every field, not only the first few. */
   all: boolean
   now: Date
   words: SuggestWords
   dateWords: Record<DateMeaning, string>
-  exampleWords: Record<ExampleId, string>
   what: string
 }
 
-/** The fields to start with, the rest behind "More fields" until it is chosen. */
+/**
+ * The most used keys first, then the rest of the first fields by group, the others behind "More fields" until it is
+ * chosen. A key the owner used counts as a first field even when the catalog keeps it behind "More fields".
+ */
 function fieldRows(ctx: SuggestContext, sign: string): QueryOption[] {
-  const shown = byGroup(ctx.all ? ctx.fields : ctx.fields.filter((f) => f.top))
-  const items = shown.map((f) => fieldRow(f, sign, ctx.words))
+  const ranked = rankFields(ctx.fields, ctx.what, ctx.used)
+  const shown = ctx.all ? ranked : ranked.filter((f) => f.top || (ctx.used[f.name] ?? 0) > 0)
+  const lead = shown.slice(0, LEAD)
+  const rest = byGroup(shown.slice(LEAD))
+  const items = [
+    ...lead.map((f) => fieldRow(f, sign, ctx.words, ctx.words.popularHeading)),
+    ...rest.map((f) => fieldRow(f, sign, ctx.words, ctx.words.group[f.group])),
+  ]
   if (!ctx.all && shown.length < ctx.fields.length) items.push({ label: ctx.words.more, insert: "", more: true })
   return items
 }
 
 export function suggestSearch(query: string, cursor: number, ctx: SuggestContext): QueryOptions {
-  if (query.trim() === "") {
-    const tried = examples(ctx.what, ctx.now).map((e) => ({
-      label: e.query,
-      insert: e.query,
-      note: ctx.exampleWords[e.id],
-      group: ctx.words.examplesHeading,
-      whole: true,
-    }))
-    const popular = (POPULAR_FIELDS[ctx.what] ?? []).flatMap((name) => ctx.fields.filter((f) => f.name === name))
-    const lead = popular.map((f) => ({ ...fieldRow(f, "", ctx.words), group: ctx.words.examplesHeading }))
-    const rest = fieldRows(ctx, "").filter((row) => !lead.some((l) => l.insert === row.insert))
-    return { from: 0, to: query.length, items: lead.length ? [...lead, ...tried, ...rest] : [...rest, ...tried] }
-  }
+  if (query.trim() === "") return { from: 0, to: query.length, items: fieldRows(ctx, "") }
   const tok = tokenAt(query, cursor)
   const sign = /^[-+]/.test(tok.raw) ? (tok.raw[0] as string) : ""
   const body = tok.raw.slice(sign.length)
@@ -279,21 +313,16 @@ export function suggestSearch(query: string, cursor: number, ctx: SuggestContext
       .slice(colon + 1)
       .replace(/^"/, "")
       .replace(/"$/, "")
-      .toLowerCase()
-    const all = ctx.values[field] ?? []
-    const texts = (v: ValueOption) =>
-      [v.label, v.detail, v.detail ? `@${v.detail}` : null, v.value]
-        .filter(Boolean)
-        .map((t) => (t as string).toLowerCase())
-    const starts = all.filter((v) => texts(v).some((t) => t.startsWith(typed)))
-    const contains = all.filter((v) => !starts.includes(v) && texts(v).some((t) => t.includes(typed)))
-    const items = [...starts, ...contains]
-      .filter((v) => v.value.toLowerCase() !== typed)
+    const items = matchingValues(ctx.values[field] ?? [], typed)
+      .filter((v) => foldText(v.value) !== foldText(typed))
       .slice(0, 40)
       .map((v) => ({
         label: v.label ?? v.value,
         insert: `${sign}${field}:${quoteValue(v.value)}`,
-        note: v.detail ? `@${v.detail.replace(/^@/, "")}` : null,
+        note:
+          [v.detail ? `@${v.detail.replace(/^@/, "")}` : null, v.count ? ctx.words.count(v.count) : null]
+            .filter(Boolean)
+            .join(" · ") || null,
         example: v.label && v.label !== v.value ? v.value : null,
         group: ctx.words.valuesHeading(field),
       }))
@@ -302,9 +331,11 @@ export function suggestSearch(query: string, cursor: number, ctx: SuggestContext
 
   const prefix = body.toLowerCase()
   if (prefix === "") return { ...at, items: fieldRows(ctx, sign) }
-  const items = byGroup(ctx.fields.filter((f) => f.name.startsWith(prefix) && f.name !== prefix)).map((f) =>
-    fieldRow(f, sign, ctx.words),
-  )
+  const items = rankFields(
+    ctx.fields.filter((f) => f.name.startsWith(prefix) && f.name !== prefix),
+    ctx.what,
+    ctx.used,
+  ).map((f) => fieldRow(f, sign, ctx.words, null))
   return { ...at, items }
 }
 
@@ -350,6 +381,78 @@ export function ambiguousTerm(
   const named = labels.filter((l): l is string => Boolean(l)).map((l) => l.toLowerCase())
   const found = ofField.find((t) => typedIn(t) !== "" && named.some((l) => l.includes(typedIn(t)))) ?? ofField[0]
   return found ? { start: found.start, end: found.end, sign: found.sign } : null
+}
+
+/** One list of values from several sources, once per id: the first source's text wins, a later one fills the gaps. */
+export function mergeValues(...lists: readonly (readonly ValueOption[])[]): ValueOption[] {
+  const out = new Map<string, ValueOption>()
+  for (const list of lists)
+    for (const v of list) {
+      const had = out.get(v.value)
+      out.set(
+        v.value,
+        had
+          ? {
+              value: v.value,
+              label: had.label ?? v.label ?? null,
+              detail: had.detail ?? v.detail ?? null,
+              count: had.count ?? v.count ?? null,
+            }
+          : v,
+      )
+    }
+  return [...out.values()]
+}
+
+export type RefusedName = { id: string; label: string | null; field: "chat" | "from" | null }
+
+/** The name in a refused term, and every person or chat whose name holds it, as queries that name one by its id. */
+export type NameChoices = {
+  field: "chat" | "from"
+  typed: string
+  term: { start: number; end: number; sign: string }
+  options: (ValueOption & { query: string })[]
+}
+
+// cli-core's words for a name that fits nobody: `senderAmong` and `pickChat`/`chatAmong` (message-resolution.ts).
+const NOBODY = /^from:.* — nobody matches "(.*)"$/s
+const NO_CHAT = /no (?:stored )?chat matches "(.*)"$/s
+const CHOICES = 8
+
+/**
+ * A `from:` or `chat:` the tool refused, because the name fits several or none, answered with the people or chats
+ * whose name contains what was typed, most messages first. cli-core settles on exact names when there are any, so
+ * "Ярослав" lists the two people called just that and hides "Ярослав Петров"; the list here shows them all.
+ */
+export function nameChoices(
+  query: string,
+  message: string,
+  candidates: readonly RefusedName[],
+  known: Readonly<Record<string, readonly ValueOption[]>>,
+): NameChoices | null {
+  const from = NOBODY.exec(message)
+  const chat = NO_CHAT.exec(message)
+  const field = candidates.find((c) => c.field)?.field ?? (from ? "from" : chat ? "chat" : null)
+  if (!field) return null
+  const missed = (from ?? chat)?.[1]
+  const term = ambiguousTerm(query, field, missed !== undefined ? [missed] : candidates.map((c) => c.label))
+  if (!term) return null
+  const typed = query
+    .slice(term.start + term.sign.length + field.length + 1, term.end)
+    .replace(/^"|"$/g, "")
+    .replace(/\\(.)/g, "$1")
+  const refused = candidates.filter((c) => c.field === field).map((c) => ({ value: c.id, label: c.label }))
+  const pool = mergeValues(known[field] ?? [], refused)
+  const found = typed.trim() ? matchingValues(pool, typed.trim()).slice(0, CHOICES) : []
+  const listed = mergeValues(
+    found,
+    refused.filter((c) => !found.some((f) => f.value === c.value)),
+  )
+  const options = listed.map((v) => ({
+    ...v,
+    query: `${query.slice(0, term.start)}${term.sign}${field}:${quoteValue(v.value)}${query.slice(term.end)}`,
+  }))
+  return options.length ? { field, typed, term, options } : null
 }
 
 /**

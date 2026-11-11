@@ -65,13 +65,13 @@ export function HitContext(props: { hit: SearchHit; tool: string; profile: strin
           {state?.kind === "found" ? (
             <Lines lines={contextLines(what, state.body, hit)} meeting={what === "meetings"} now={now} />
           ) : state?.kind === "old" ? (
-            <ErrorNotice inline detail={state.message}>
+            <ErrorNotice inline raw={state.message}>
               {m.contextOld(toolName)}
             </ErrorNotice>
           ) : state?.kind === "failed" ? (
             <ErrorNotice
               inline
-              detail={state.message}
+              raw={state.message}
               action={
                 <Button size="sm" onClick={load}>
                   {m.tryAgain}
