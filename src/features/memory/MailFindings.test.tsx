@@ -28,7 +28,7 @@ describe("A mail findings batch", () => {
 })
 
 describe("A meeting findings batch", () => {
-  it("lists each finding and approves only the ticked ones", async () => {
+  it("lists each finding and saves only the approved ones", async () => {
     const read = platform.memoryRead.bind(platform)
     vi.spyOn(platform, "memoryRead").mockImplementation(async (page) => {
       const out = await read(page)
@@ -44,8 +44,9 @@ describe("A meeting findings batch", () => {
     await rack()
     const batch = screen.getByText(/2 facts and 2 tasks to review/).closest("[data-row]") as HTMLElement
     await user.click(within(batch).getByRole("button", { name: "Review 4" }))
-    await user.click(screen.getByRole("checkbox", { name: /Ask Tom Becker for read access/ }))
-    await user.click(within(batch).getByRole("button", { name: "Approve 3" }))
+    const tom = within(batch).getByRole("group", { name: /Decision on: Ask Tom Becker for read access/ })
+    await user.click(within(tom).getByRole("radio", { name: /Reject/ }))
+    await user.click(within(batch).getByRole("button", { name: "Save: create 3, reject 1" }))
     await waitFor(() => expect(confirm).toHaveBeenCalledWith("action:7", ["f1", "f2", "f3"]))
   })
 })

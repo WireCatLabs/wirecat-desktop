@@ -22,7 +22,7 @@ const en = {
     mail
       ? "Nothing is saved until you press Save. Each approved finding is kept as its label says. Nothing is sent to anyone."
       : `Nothing is created until you press Save. Facts are kept as accepted, tasks go on the board of ${project}.`,
-  editLater: "Memo cannot change a finding before it is saved. After saving, edit the fact or task it became.",
+  editLater: "After you save, you can edit the fact or task a finding became.",
   editFact: "Edit the fact",
   editTask: "Edit the task",
   details: "More details",
@@ -54,8 +54,7 @@ const ru: typeof en = {
     mail
       ? "Ничего не сохраняется, пока вы не нажмете «Сохранить». Каждая одобренная находка сохраняется так, как написано на ее метке. Никому ничего не отправляется."
       : `Ничего не создается, пока вы не нажмете «Сохранить». Факты сохраняются как принятые, задачи попадают на доску ${project}.`,
-  editLater:
-    "Memo не умеет менять находку до сохранения. После сохранения можно изменить факт или задачу, которые из нее получились.",
+  editLater: "После сохранения можно изменить факт или задачу, которые получились из находки.",
   editFact: "Изменить факт",
   editTask: "Изменить задачу",
   details: "Подробнее",
@@ -87,8 +86,7 @@ const es: typeof en = {
     mail
       ? "No se guarda nada hasta que pulses Guardar. Cada hallazgo aprobado se guarda como dice su etiqueta. No se envía nada a nadie."
       : `No se crea nada hasta que pulses Guardar. Los hechos quedan aceptados y las tareas van al tablero de ${project}.`,
-  editLater:
-    "Memo no puede cambiar un hallazgo antes de guardarlo. Después puedes editar el hecho o la tarea que resultó.",
+  editLater: "Después de guardar, puedes editar el hecho o la tarea que resultó de un hallazgo.",
   editFact: "Editar el hecho",
   editTask: "Editar la tarea",
   details: "Más detalles",
