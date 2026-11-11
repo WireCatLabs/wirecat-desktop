@@ -3,12 +3,9 @@ import type { Messages } from "@/i18n"
 const en = {
   title: "Account groups",
   intro:
-    "Groups keep work apart from personal. Put your work accounts in a group called Work. An agent connected to " +
-    "that group searches only its accounts and does not see your personal messages. You can set apart a project or " +
-    "a client the same way. Drag an account to another group to move it, or hold Alt or Ctrl to copy it. An account " +
-    "may be in several groups.",
-  profilesLabel: "About the names on a card",
-  profilesTip: "Under each account are its profiles: the name the account has in each tool.",
+    "A group is a set of your accounts, such as work or personal. An agent can search one group instead of all. A card is an account with " +
+    "its profiles in each tool. Drag a card to move it to another group; hold Alt or Ctrl while you drop to copy it. " +
+    "An account may be in several groups.",
   all: "All",
   allNote: "Every account, always. Memo reads it when no group is named.",
   column: (name: string, n: number) => `${name}, ${n} accounts`,
@@ -59,12 +56,9 @@ const en = {
 const ru: typeof en = {
   title: "Группы аккаунтов",
   intro:
-    "Группы разделяют работу и личное. Положите рабочие аккаунты в группу «Работа». Агент, подключенный к этой " +
-    "группе, ищет только в ее аккаунтах и не видит личную переписку. Так же можно выделить проект или клиента. " +
-    "Перетащите аккаунт в другую группу, чтобы перенести его, или с Alt либо Ctrl, чтобы скопировать. Аккаунт " +
-    "может быть в нескольких группах.",
-  profilesLabel: "Об именах на карточке",
-  profilesTip: "Под каждым аккаунтом его профили: имя, которое у аккаунта в каждом инструменте.",
+    "Группа: набор ваших аккаунтов, например «работа» или «личное». Агент может искать в одной группе, а не во всех. Карточка — это аккаунт с его " +
+    "профилями в каждом инструменте. Перетащите карточку, чтобы перенести её в другую группу; удерживайте Alt или " +
+    "Ctrl, когда отпускаете, чтобы скопировать. Аккаунт может быть в нескольких группах.",
   all: "Все",
   allNote: "Всегда все аккаунты. Memo читает её, когда группа не названа.",
   column: (name: string, n: number) => `${name}, аккаунтов: ${n}`,
@@ -117,12 +111,9 @@ const ru: typeof en = {
 const es: typeof en = {
   title: "Grupos de cuentas",
   intro:
-    "Los grupos separan el trabajo de lo personal. Pon tus cuentas de trabajo en un grupo llamado Trabajo. Un " +
-    "agente conectado a ese grupo busca solo en sus cuentas y no ve tus mensajes personales. Puedes apartar un " +
-    "proyecto o un cliente de la misma forma. Arrastra una cuenta a otro grupo para moverla, o mantén Alt o Ctrl " +
+    "Un grupo es un conjunto de tus cuentas, como trabajo o personal. Un agente puede buscar en un solo grupo en vez de en todos. Una tarjeta es una cuenta con sus " +
+    "perfiles en cada herramienta. Arrastra una tarjeta para moverla a otro grupo; mantén Alt o Ctrl al soltarla " +
     "para copiarla. Una cuenta puede estar en varios grupos.",
-  profilesLabel: "Sobre los nombres de una tarjeta",
-  profilesTip: "Debajo de cada cuenta están sus perfiles: el nombre que tiene la cuenta en cada herramienta.",
   all: "Todas",
   allNote: "Siempre todas las cuentas. Memo lo lee cuando no se nombra ningún grupo.",
   column: (name: string, n: number) => `${name}, ${n} cuentas`,

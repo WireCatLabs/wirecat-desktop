@@ -1,7 +1,6 @@
 import { Search } from "lucide-react"
 import { type ReactNode, useEffect, useMemo, useState } from "react"
 import { findTool, tools } from "@/domain/catalog"
-import { GroupsSetting } from "@/features/groups"
 import { AppPreferences, settingsMessages } from "@/features/settings"
 import { useMessages } from "@/i18n"
 import { nameOf, useAccountNames } from "@/shared/account-names-store"
@@ -159,8 +158,7 @@ export function ConfigPage() {
         <Panel toolName={tool?.name ?? ""} dirty={dirty} />
       )}
 
-      {/* Last: it loads after the rest, and growing at the bottom moves nothing above it. */}
-      <GroupsSetting />
+      {/* Account groups (GroupsSetting from @/features/groups) are hidden until an agent can be connected to a group. */}
 
       <Dialog
         open={pending !== null}
