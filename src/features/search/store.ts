@@ -1,5 +1,7 @@
+import * as v from "valibot"
 import { create } from "zustand"
 import { findTool, usesProfiles } from "@/domain/catalog"
+import { fieldsIn } from "@/domain/search"
 import { platform } from "@/platform/bridge"
 import type { Profile } from "@/platform/schemas"
 import type { HarderAnswer, SearchAnswer } from "@/platform/search-schemas"
@@ -34,6 +36,8 @@ type SearchState = {
   /** Names of ids the owner picked from a refusal's choices, by `field:id`, so the query box can show the name. */
   named: Record<string, string>
   remember(field: string, id: string, label: string): void
+  /** How many searches that came back with an answer used each key, so the bar offers the owner's own keys first. */
+  usedKeys: Record<string, number>
   /** Tools that answered "too old" to search, by the version that said so; an update brings the tool back. */
   old: Record<string, string | null>
   chooseTool(id: string): void
@@ -50,6 +54,30 @@ type SearchState = {
 }
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
+
+// Key names only, never the values typed after them: those are people's and chats' names.
+const USED_KEY = "wirecat.search.keys"
+const UsedSchema = v.record(v.string(), v.pipe(v.number(), v.integer(), v.minValue(0)))
+
+function readUsed(): Record<string, number> {
+  try {
+    const parsed = v.safeParse(UsedSchema, JSON.parse(globalThis.localStorage?.getItem(USED_KEY) ?? "{}"))
+    return parsed.success ? parsed.output : {}
+  } catch {
+    return {}
+  }
+}
+
+function countUsed(used: Record<string, number>, query: string): Record<string, number> {
+  const next = { ...used }
+  for (const name of fieldsIn(query)) next[name] = (next[name] ?? 0) + 1
+  try {
+    globalThis.localStorage?.setItem(USED_KEY, JSON.stringify(next))
+  } catch {
+    // Without storage the keys keep their usual order on the next start.
+  }
+  return next
+}
 
 /** What still stops a search, in the order the page asks for it; "profiles" when the tool has none to choose. */
 export type Missing = "tool" | "profiles" | "profile" | "query"
@@ -81,6 +109,7 @@ export const useSearch = create<SearchState>((set, get) => {
     groupBy: null,
     setGroupBy: (groupBy) => set({ groupBy }),
     old: {},
+    usedKeys: readUsed(),
     named: {},
     remember: (field, id, label) => set((st) => ({ named: { ...st.named, [`${field}:${id}`]: label } })),
     chooseTool(id) {
@@ -125,6 +154,7 @@ export const useSearch = create<SearchState>((set, get) => {
         const answer = await platform.searchStore(asked.tool, asked.profile, asked.query, LIMIT, page)
         if (call !== seq || get().demo) return
         set({ answer, asked, harder: null, loading: false, expanded: null })
+        if (answer.kind === "hits" && page === 1) set((st) => ({ usedKeys: countUsed(st.usedKeys, asked.query) }))
         if (answer.kind === "old") {
           const version = useTools.getState().installs[asked.tool]?.[0]?.version ?? null
           set((st) => ({ old: { ...st.old, [asked.tool]: version } }))

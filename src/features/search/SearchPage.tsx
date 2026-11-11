@@ -5,11 +5,13 @@ import { groupDigits } from "@/domain/format"
 import { formatUsd } from "@/domain/mail-agent"
 import { formatWhen, parseQuery } from "@/domain/runs"
 import {
-  ambiguousTerm,
   clampSpan,
   errorDetail,
   groupHits,
   hitField,
+  mergeValues,
+  type NameChoices,
+  nameChoices,
   queryReason,
   quoteValue,
   suggestSearch,
@@ -20,6 +22,7 @@ import {
 import { QueryBar } from "@/features/query"
 import { providerName, ToolNeeded, useSearchHarder } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
+import { platform } from "@/platform/bridge"
 import type { HarderAnswer, SearchAnswer, SearchHit } from "@/platform/search-schemas"
 import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
@@ -30,16 +33,19 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
+import { Disclosure } from "@/ui/Disclosure"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { uiMessages } from "@/ui/messages"
 import { focusInPlace } from "@/ui/motion"
 import { Pager } from "@/ui/Pager"
 import { Select } from "@/ui/Select"
 import { StableText } from "@/ui/Skeleton"
-import { useSearchValues } from "./api"
+import { useMessageCounts, useSearchValues } from "./api"
 import { HitContext } from "./HitContext"
 import { HitsTable } from "./HitsTable"
 import { searchMessages } from "./messages"
+import { NameChoiceButtons } from "./NameChoices"
 import { QueryDraft } from "./QueryDraft"
 import { LIMIT, missing, useSearch } from "./store"
 
@@ -64,14 +70,17 @@ export function SearchPage() {
   }, [checked, refreshing])
 
   // The tour's example tool is offered even when it is not installed, so its example results read whole.
-  const installed = searchable.filter((t) => (installs[t.id]?.length ?? 0) > 0 || (s.demo && t.id === s.tool))
+  const installed = useMemo(
+    () => searchable.filter((t) => (installs[t.id]?.length ?? 0) > 0 || (s.demo && t.id === s.tool)),
+    [installs, s.demo, s.tool],
+  )
   const tool = s.tool ? findTool(s.tool) : undefined
   // Asked as soon as memo is chosen, so the Search harder row is known before the hits arrive.
   useSearchHarder(s.tool ?? "", Boolean(tool?.searchHarder) && !s.demo)
   const version = s.tool ? (installs[s.tool]?.[0]?.version ?? null) : null
   const what = tool?.search?.what ?? "messages"
   const parsed = useMemo(() => parseQuery(s.query), [s.query])
-  const { suggest, named } = useSuggest(m, version)
+  const { suggest, named, values } = useSuggest(m, version, installed)
   const ids = { tool: useId(), profile: useId(), query: useId(), hint: useId() }
   // Shown only after a search was asked for, and only while the thing is still missing.
   const [tried, setTried] = useState(false)
@@ -86,6 +95,13 @@ export function SearchPage() {
       : gap === "profile"
         ? m.needProfile
         : null
+
+  // Null until a search could run: the draft is tried on the same tool and profile before it is offered.
+  const { tool: chosen, profile, profiles } = s
+  const check = useMemo(() => {
+    if (!chosen || (profiles !== null && !profile)) return null
+    return (query: string) => platform.searchStore(chosen, profiles === null ? null : profile, query, 1, 1)
+  }, [chosen, profile, profiles])
 
   const submit = () => {
     const now = useSearch.getState()
@@ -104,7 +120,8 @@ export function SearchPage() {
   const current = s.asked !== null && s.asked.query === s.query
   const queryError = answer?.kind === "queryError" && current ? answer : null
   const span = queryError ? clampSpan(queryError.span, s.query.length) : null
-  const ambiguous = answer?.kind === "failed" && current ? choicesFor(s.query, answer.candidates) : null
+  const choices =
+    answer?.kind === "failed" && current ? nameChoices(s.query, answer.message, answer.candidates, values) : null
 
   return (
     <Page>
@@ -171,11 +188,14 @@ export function SearchPage() {
             <QueryDraft
               tool={s.tool}
               example={s.demo ? s.demoAsk : null}
+              check={check}
+              values={values}
               onNeedTool={() => {
                 setTried(true)
-                focusInPlace(document.getElementById(ids.tool))
+                focusInPlace(document.getElementById(ids[s.tool ? "profile" : "tool"]))
               }}
-              onWritten={(query) => {
+              onWritten={(query, name) => {
+                if (name) s.remember(name.field, name.id, name.label)
                 s.setQuery(query)
                 focusInPlace(document.getElementById(ids.query))
               }}
@@ -186,12 +206,16 @@ export function SearchPage() {
                 inputId={ids.query}
                 query={s.query}
                 parsed={parsed}
-                problems={span ? [span] : ambiguous ? [ambiguous.term] : []}
+                problems={span ? [span] : choices ? [choices.term] : []}
                 problem={
                   queryError
                     ? problemText(m, queryError)
-                    : ambiguous
-                      ? m.pickOne(ambiguous.field)
+                    : choices
+                      ? m.pickOne(
+                          choices.field,
+                          choices.typed,
+                          choices.options.some((o) => o.count),
+                        )
                       : gap === "query"
                         ? m.needQuery
                         : null
@@ -220,26 +244,44 @@ export function SearchPage() {
             </div>
           </div>
 
-          <Results m={m} version={version} toolName={tool?.name ?? s.tool ?? ""} />
+          <Results m={m} version={version} toolName={tool?.name ?? s.tool ?? ""} choices={choices} />
         </div>
       )}
     </Page>
   )
 }
 
-const NO_FIELDS: NonNullable<NonNullable<ReturnType<typeof findTool>>["search"]>["fields"] = []
+type SearchTool = (typeof searchable)[number]
+type Fields = NonNullable<SearchTool["search"]>["fields"]
 
-/** What the bar offers: the tool's fields, their values from its own lists and the results, dates and examples. */
-function useSuggest(m: Words, version: string | null) {
+/** Before a tool is chosen, the keys of every installed one, once each, so the bar still offers keys to start from. */
+function fieldsOf(tool: SearchTool | undefined, installed: readonly SearchTool[]): { fields: Fields; what: string } {
+  if (tool?.search) return { fields: tool.search.fields, what: tool.search.what }
+  const seen = new Set<string>()
+  const fields = installed.flatMap((t) => (t.search?.fields ?? []).filter((f) => !seen.has(f.name) && seen.add(f.name)))
+  const what = installed.some((t) => t.search?.what === "messages") ? "messages" : (installed[0]?.search?.what ?? "")
+  return { fields, what }
+}
+
+/**
+ * What the bar offers: the keys the owner uses most, then the tool's others; each key's values from its own lists,
+ * the results and the message counts, most messages first; dates.
+ */
+function useSuggest(m: Words, version: string | null, installed: readonly SearchTool[]) {
   const tool = useSearch((s) => s.tool)
   const profile = useSearch((s) => s.profile)
   const profiles = useSearch((s) => s.profiles)
   const answer = useSearch((s) => s.answer)
   const demo = useSearch((s) => s.demo)
+  const used = useSearch((s) => s.usedKeys)
   const lists = useSearchValues({ tool, profile, profiles, version, demo })
-  const search = tool ? findTool(tool)?.search : null
-  const fields = search?.fields ?? NO_FIELDS
-  const what = search?.what ?? "messages"
+  const { fields, what } = useMemo(() => fieldsOf(tool ? findTool(tool) : undefined, installed), [tool, installed])
+  const counts = useMessageCounts({
+    tool,
+    profile: profiles === null ? null : profile,
+    messages: Boolean(tool) && what === "messages",
+    demo,
+  })
 
   const values = useMemo(() => {
     const seen = valuesInHits(answer?.kind === "hits" ? answer.hits : [])
@@ -249,21 +291,29 @@ function useSuggest(m: Words, version: string | null) {
         out[f.name] = f.values.map((value) => ({ value }))
         continue
       }
-      const listed = typeof f.values === "string" ? (lists[f.values] ?? []) : []
+      const counted = f.name === "from" ? counts.sender : f.name === "chat" ? counts.chat : []
+      const howMany = new Map(counted.map((c) => [c.value, c.count]))
+      // People who write only in groups are missing from the contact list; every chat is in the chat list.
+      const extra = f.name === "from" ? counted : []
+      const listed = (typeof f.values === "string" ? (lists[f.values] ?? []) : []).map((v) => ({
+        ...v,
+        count: howMany.get(v.value) ?? null,
+      }))
       const inResults = new Set(seen[f.name] ?? [])
       // Without a list the tool can give (wa's contacts are not the people its search knows), the names the results
       // show; a name two people share comes back as a choice of both.
-      if (listed.length === 0) {
+      if (listed.length === 0 && extra.length === 0) {
         out[f.name] = [...inResults].map((value) => ({ value }))
         continue
       }
-      out[f.name] = [
-        ...listed.filter((v) => v.label && inResults.has(v.label)),
-        ...listed.filter((v) => !(v.label && inResults.has(v.label))),
-      ]
+      out[f.name] = mergeValues(
+        listed.filter((v) => v.label && inResults.has(v.label)),
+        listed.filter((v) => !(v.label && inResults.has(v.label))),
+        extra,
+      )
     }
     return out
-  }, [fields, answer, lists])
+  }, [fields, answer, lists, counts])
 
   const picked = useSearch((s) => s.named)
   const named = useCallback(
@@ -280,42 +330,40 @@ function useSuggest(m: Words, version: string | null) {
       suggestSearch(query, cursor, {
         fields,
         values,
+        used,
         all,
         now: new Date(),
         what,
         dateWords: m.dates,
-        exampleWords: m.examples,
         words: {
           group: m.groups,
-          describe: (field) => m.fields[`${area}:${field}`] ?? null,
+          // Before a tool is chosen a key may come from another kind of data: notes' title, mail's subject.
+          describe: (field) =>
+            m.fields[`${area}:${field}`] ??
+            Object.entries(m.fields).find(([key]) => key.endsWith(`:${field}`))?.[1] ??
+            null,
           more: m.moreFields,
-          examplesHeading: m.tryHeading,
+          popularHeading: m.popularHeading,
           datesHeading: m.datesHeading,
           valuesHeading: m.valuesHeading,
+          count: m.messageCount,
         },
       }),
-    [fields, values, what, area, m],
+    [fields, values, used, what, area, m],
   )
-  return { suggest, named }
+  return { suggest, named, values }
 }
 
-type Candidate = { id: string; label: string | null; field: "chat" | "from" | null }
-
-/** Each candidate as the query with the refused term naming it by id, for a refusal that lists them. */
-function choicesFor(query: string, candidates: readonly Candidate[]) {
-  const field = candidates.find((c) => c.field)?.field
-  if (!field) return null
-  const term = ambiguousTerm(
-    query,
-    field,
-    candidates.map((c) => c.label),
+/** The tool's own words, folded away as every notice keeps them. */
+function RawDetails({ text }: { text: string }) {
+  const ui = useMessages(uiMessages)
+  return (
+    <div className="text-[0.9rem]">
+      <Disclosure summary={ui.details}>
+        <p className="selectable whitespace-pre-wrap break-words">{text}</p>
+      </Disclosure>
+    </div>
   )
-  if (!term) return null
-  const options = candidates.map((c) => ({
-    ...c,
-    query: `${query.slice(0, term.start)}${term.sign}${field}:${quoteValue(c.id)}${query.slice(term.end)}`,
-  }))
-  return { field, term, options }
 }
 
 function problemText(m: Words, e: Extract<SearchAnswer, { kind: "queryError" }>): string {
@@ -325,11 +373,12 @@ function problemText(m: Words, e: Extract<SearchAnswer, { kind: "queryError" }>)
   return detail ? `${m.reasons[reason]} ${m.toolSaid(detail)}` : m.reasons[reason]
 }
 
-function Results({ m, version, toolName }: { m: Words; version: string | null; toolName: string }) {
+function Results(props: { m: Words; version: string | null; toolName: string; choices: NameChoices | null }) {
+  const { m, version, toolName, choices } = props
   const s = useSearch()
   // biome-ignore lint/correctness/useExhaustiveDependencies: each answer's times are told from when it came
   const now = useMemo(() => new Date(), [s.answer])
-  const { view, node } = resultsView(m, s, now, version, toolName)
+  const { view, node } = resultsView(m, s, now, version, toolName, choices)
   return <Crossfade swap={view}>{node}</Crossfade>
 }
 
@@ -339,6 +388,7 @@ function resultsView(
   now: Date,
   version: string | null,
   toolName: string,
+  choices: NameChoices | null,
 ): { view: string; node: ReactNode } {
   const answer = s.answer
   const page = s.asked?.page ?? 1
@@ -346,38 +396,37 @@ function resultsView(
     return {
       view: "error",
       node: (
-        <ErrorNotice detail={s.error} action={<ReportThis what={`Searching ${toolName}`} error={s.error} />}>
+        <ErrorNotice raw={s.error} action={<ReportThis what={`Searching ${toolName}`} error={s.error} />}>
           {m.failed}
         </ErrorNotice>
       ),
     }
   if (answer?.kind === "old")
-    return { view: "old", node: <ErrorNotice detail={answer.message}>{m.tooOld(toolName, version)}</ErrorNotice> }
-  if (answer?.kind === "failed") {
-    const choices = s.asked?.query === s.query ? choicesFor(s.query, answer.candidates) : null
+    return {
+      view: "old",
+      node: s.tool ? (
+        <ToolNeeded gap={{ kind: "old", tool: s.tool, version, need: null }}>
+          <RawDetails text={answer.message} />
+        </ToolNeeded>
+      ) : null,
+    }
+  if (answer?.kind === "failed")
     return {
       view: "failed",
       node: (
         <ErrorNotice
-          detail={<span className="whitespace-pre-line">{answer.message}</span>}
+          raw={answer.message}
           action={
             choices ? (
-              <span className="flex flex-wrap gap-2">
-                {choices.options.map((c) => (
-                  <Button
-                    key={c.id}
-                    size="sm"
-                    onClick={() => {
-                      if (c.label && choices.field) s.remember(choices.field, c.id, c.label)
-                      s.setQuery(c.query)
-                      s.search(1)
-                    }}
-                  >
-                    {c.label ?? c.id}
-                    <span className="font-mono text-[0.85rem] text-ink-dim">{c.id}</span>
-                  </Button>
-                ))}
-              </span>
+              <NameChoiceButtons
+                tool={s.tool}
+                choices={choices}
+                onPick={(c) => {
+                  if (c.label) s.remember(choices.field, c.value, c.label)
+                  s.setQuery(c.query)
+                  s.search(1)
+                }}
+              />
             ) : (
               <ReportThis what={`Searching ${toolName}`} error={answer.message} />
             )
@@ -387,13 +436,12 @@ function resultsView(
         </ErrorNotice>
       ),
     }
-  }
   if (answer?.kind === "timedOut")
     return {
       view: "timedOut",
       node: (
         <ErrorNotice
-          detail={answer.message}
+          raw={answer.message}
           action={
             <Button size="sm" onClick={() => s.search(page)}>
               {m.tryAgain}

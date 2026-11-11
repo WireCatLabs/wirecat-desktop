@@ -606,13 +606,28 @@ Values come from the tool's own read-only lists (`search_values`, `search.values
 `--offline`): tg, max and wa `chats list`, `contacts list` and `tags list`. A chat or a person goes into the query by its
 id, which names exactly one (`chat:"-1001762030832"`); the row shows the title and @username. Every value is quoted by
 the rule of cli-base's parser (`quoteValue` in `src/domain/search.ts`). A name that fits several chats or people is
-refused with `details.candidates`; the page offers each as a button that puts its id in place of that term.
-`scripts/search-fields-check.mjs` runs every field, value form, date and example against the installed tools through
-the same Rust code (`cargo test real_batch`).
+refused with `details.candidates`, and one that fits nobody with `from:X — nobody matches "X"` or `no chat matches
+"X"`. cli-core's `pickPerson` takes the exact names when there are any, so `from:"Ярослав"` lists only the people
+called exactly that. The page (`nameChoices`) offers every person or chat whose name, @username or alias contains
+the typed text, from the tool's candidates, its lists and the message counts below, most messages first, each as a
+button that puts its id in place of that term. `scripts/search-fields-check.mjs` runs every field, value form and
+date against the installed tools through the same Rust code (`cargo test real_batch`).
 
 Which fields the bar suggests is static, in the catalog: `commands --json` gives `query.fields` for list commands
 only, not for `search messages`, `search notes` or `search all`, and a refused field's `details.fields` lists the
 whole parser's vocabulary, the same for every tool. The lists were checked against the installed tools' answers.
+Before a tool is chosen, the bar offers the keys of every installed one. Their order is the owner's own use: each
+search that comes back with an answer counts the keys it used (names only, never values) in `localStorage`
+(`wirecat.search.keys`), and the most used five lead the list. Unused keys follow a fixed order per kind of data
+(`POPULAR_FIELDS`), then by group. A messenger's `from:` and `chat:` values carry how many messages each person wrote
+and each chat holds, all time (`message_stats` by sender and by chat, as the Analytics page counts). The most used
+come first, and senders who write only in groups are added to the contact list.
+
+"Write the query" (`QueryDraft.tsx`, `query_writer.rs`) needs the tool and the profile chosen. The agent's query is
+tried once with `search_store(…, limit 1, page 1)` before it is offered. It is put in the bar with the count when the
+tool accepts it, even when the count is 0. A refused parse is sent back to the agent once, with the parser's reason and
+message only, and a second refusal puts nothing in the bar. A name that fits several people or nobody shows the same
+choices as above.
 
 ## Profiles and diagnostics
 
