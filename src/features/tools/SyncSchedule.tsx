@@ -88,12 +88,12 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
         {schedule === null ? (
           <span>{m.readFailed}</span>
         ) : on ? (
-          <>
+          <span className="flex min-w-0 items-baseline gap-2">
             <Lamp tone={failing ? "bad" : last ? "ok" : "idle"} size="sm" />
             <span>
               {on.every ? m.on(m.duration(on.every)) : m.onWhen(on.when)} · {lastWords(last, m, why)}
             </span>
-          </>
+          </span>
         ) : null}
         {!open && schedule !== null && (
           <Button size="sm" variant="secondary" onClick={openPanel}>
