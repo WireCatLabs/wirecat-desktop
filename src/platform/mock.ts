@@ -225,6 +225,9 @@ function mockProfiles(id: string): Profile[] | null {
     return [{ name: "work", signedIn: true }, ...(two ? [{ name: "personal", signedIn: true }] : [])]
   }
   if (id === "tg") {
+    // `?account-count=3`: that many signed-in profiles, for the list's loading.
+    const many = Number(params.get("account-count"))
+    if (many > 0) return Array.from({ length: many }, (_, i) => ({ name: i ? `test${i + 1}` : "test", signedIn: true }))
     return [
       { name: "personal", signedIn: true },
       { name: "work", signedIn: false },

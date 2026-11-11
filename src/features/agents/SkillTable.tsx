@@ -90,7 +90,7 @@ export function AgentCta({ view, all }: { view: AgentView; all: AgentsView }) {
       onClick={() => askAgentSkills(view, (t) => sharers(all.entries, t, view.agent.id))}
       aria-label={`${todoInstalls(view) ? m.installAll : m.updateAll}: ${todoSentence(view, m)}`}
     >
-      {todoInstalls(view) ? m.installAll : m.updateAll}
+      <StableText value={todoInstalls(view) ? m.installAll : m.updateAll} variants={[m.installAll, m.updateAll]} />
       <span className="tabular-nums opacity-80">{view.todo.length}</span>
     </Button>
   )

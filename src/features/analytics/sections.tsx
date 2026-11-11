@@ -34,7 +34,7 @@ import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./charts"
-import { Explorer } from "./explorer"
+import { Explorer, ExplorerSkeleton } from "./explorer"
 import { colorOf, longKey, SOURCE_ORDER, shortKey, toolColor, toolName, useSourceName } from "./format"
 import { analyticsMessages } from "./messages"
 import { MessengerSwitch, useMessengerChoice } from "./messenger-switch"
@@ -94,6 +94,9 @@ function StatsSkeleton({ n, label }: { n: number; label?: string }) {
           </dt>
           <dd className="m-0 text-[1.75rem] leading-tight">
             <Skeleton chars={5} />
+          </dd>
+          <dd className="m-0 text-[0.875rem]">
+            <Skeleton chars={8} />
           </dd>
         </div>
       ))}
@@ -292,10 +295,10 @@ export function Activity() {
       {none ? (
         <Note>{m.noMessengers}</Note>
       ) : loading && ready.length === 0 ? (
-        <>
+        <div className="flex flex-col gap-[1.3rem]">
           <StatsSkeleton n={4} label={m.activity} />
-          <ChartSkeleton />
-        </>
+          <ExplorerSkeleton />
+        </div>
       ) : (
         <div className="reveal flex flex-col gap-[1.3rem]">
           <Stats>
@@ -388,12 +391,13 @@ export function People() {
           <MessengerSwitch ids={ids} value={picked} onChange={choose} />
           <InfoTip label={m.closeLabel}>{counts.privateOnly ? m.closeTipOld : m.closeTip}</InfoTip>
         </div>
-        <p className="text-[0.85rem] text-ink-dim">{m.namesStay}</p>
+        {/* On a line of its own: the messenger switch joins the line above once the counts are read. */}
+        <p className="basis-full text-[0.85rem] text-ink-dim">{m.namesStay}</p>
       </div>
       {none ? (
         <Note>{m.noMessengers}</Note>
       ) : counts.loading ? (
-        <Skeleton className="h-[15rem] w-full rounded-[0.2rem]" label={m.people} />
+        <Skeleton className="h-[21.25rem] w-full rounded-[0.2rem]" label={m.people} />
       ) : rows.length === 0 ? (
         counts.problems.length ? (
           <SourceProblems problems={counts.problems} />
@@ -401,7 +405,8 @@ export function People() {
           <Note>{m.nobody}</Note>
         )
       ) : (
-        <div className="reveal flex min-h-[15rem] flex-col gap-3">
+        // As tall as the legend and the ten rows the list shows at most, which is the placeholder's height.
+        <div className="reveal flex min-h-[21.25rem] flex-col gap-3">
           <Legend
             series={shownSources.map((r) => ({
               id: r.provider,

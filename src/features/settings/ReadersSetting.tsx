@@ -74,7 +74,19 @@ function Readers({ gap }: { gap: Gap | null }) {
           </ErrorNotice>
         )
       ) : readers === null ? (
-        <Skeleton className="h-[5rem] w-full max-w-[36rem] rounded-[0.35rem]" label={m.looking} />
+        // The list with a reader chosen: the list, its two lines of details, the button.
+        <div className="flex max-w-[40rem] flex-col gap-3">
+          <Skeleton className="h-[2.4rem] w-full" label={m.looking} />
+          <div className="flex flex-col gap-[0.15rem] text-[0.9rem]">
+            <span className="font-mono text-[0.85rem]">
+              <Skeleton chars={16} />
+            </span>
+            <span>
+              <Skeleton chars={32} />
+            </span>
+          </div>
+          <Skeleton className="h-8 w-32" />
+        </div>
       ) : (
         <>
           {readers.length === 0 ? (

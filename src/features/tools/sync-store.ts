@@ -42,12 +42,25 @@ type State = {
 
 export const syncKey = (tool: string, profile: string | null) => `${tool}:${profile ?? ""}`
 
-/** One read at a time across the page: each is a tool process, and the owner's computer is easily loaded. */
-let queue: Promise<unknown> = Promise.resolve()
-const queued = <T>(read: () => Promise<T>): Promise<T> => {
-  const next = queue.then(read, read)
-  queue = next.catch(() => {})
-  return next
+/**
+ * Reads at a time across the page. Each is a tool process and the owner's computer is easily loaded, but one at a
+ * time made every profile's rows fill in one after another. These are read-only commands: the store is WAL, so they
+ * do not wait on each other.
+ */
+export const READS_AT_ONCE = 3
+let reading = 0
+const waiting: (() => void)[] = []
+const queued = async <T>(read: () => Promise<T>): Promise<T> => {
+  // A finished read hands its slot straight to the next in line, so a newcomer cannot slip in between.
+  if (reading >= READS_AT_ONCE) await new Promise<void>((go) => waiting.push(go))
+  else reading++
+  try {
+    return await read()
+  } finally {
+    const next = waiting.shift()
+    if (next) next()
+    else reading--
+  }
 }
 
 const rows = new Set<string>()

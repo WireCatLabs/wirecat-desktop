@@ -94,7 +94,8 @@ export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): vo
           </ul>
         </Section>
       )}
-      <AdvancedMcp key={agent.id} agent={agent} />
+      {/* After the checks above have answered, so the fixes arriving do not push it down. */}
+      {view.items && <AdvancedMcp key={agent.id} agent={agent} />}
     </div>
   )
 }
@@ -197,7 +198,15 @@ function Sessions({ agent, sessions }: { agent: Agent; sessions: readonly Sessio
   const go = useNav((s) => s.go)
   const m = useMessages(agentsMessages)
   const lang = useLang()
-  if (sessions === null) return <Skeleton className="h-8 w-full" label={m.readingRunLogs} />
+  if (sessions === null)
+    return (
+      // One session row in the list's box: a row is as tall as its Show in Logs button.
+      <div className={box}>
+        <div className="flex min-h-8 box-content items-center px-4 py-2 text-[0.9rem]">
+          <Skeleton chars={36} label={m.readingRunLogs} />
+        </div>
+      </div>
+    )
   if (sessions.length === 0) return <p className="text-[0.9rem] text-ink-soft">{m.noSessions(agent.name)}</p>
   const open = (s: Session) => {
     const logs = useLogs.getState()

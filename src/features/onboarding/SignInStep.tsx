@@ -4,6 +4,7 @@ import { type CatalogTool, isCommunity, ownerId, tools } from "@/domain/catalog"
 import { accountReady, afterSignIn, signInGroups, signsIn } from "@/domain/onboarding-flow"
 import {
   AccountList,
+  AccountListPlaceholder,
   InstallPanel,
   ManualSetup,
   NewProfile,
@@ -50,16 +51,14 @@ function SignInHeader({ tool }: { tool: CatalogTool }) {
   )
 }
 
-/** One account line and the "Add another account" line: the usual shape once the accounts are read. */
+/** One account row in the list's own box: the shape once the accounts are read. */
 function AccountsSkeleton({ tool }: { tool: CatalogTool }) {
   const m = useMessages(onboardingMessages).signIn
-  return (
-    <>
-      <Skeleton className="h-8 w-full" label={m.reading(tool.name)} />
-      <Skeleton className="h-8 w-[10.5rem]" />
-    </>
-  )
+  return <AccountListPlaceholder tool={tool} count={1} label={m.reading(tool.name)} sync={false} />
 }
+
+/** The "Add another account" line while the accounts are read. */
+const AddLineSkeleton = () => <Skeleton className="h-8 w-[10.5rem]" />
 
 function PendingSignInRow({ tool }: { tool: CatalogTool }) {
   return (
@@ -67,6 +66,7 @@ function PendingSignInRow({ tool }: { tool: CatalogTool }) {
       <SignInHeader tool={tool} />
       <div className={accountsArea}>
         <AccountsSkeleton tool={tool} />
+        <AddLineSkeleton />
       </div>
     </li>
   )
@@ -191,7 +191,9 @@ function SignInRow({
                   <NewProfile tool={tool} label={count ? m.addAnother : m.add} onCheck={reload} />
                 )}
               </>
-            ) : profiles === undefined && !error ? null : (
+            ) : profiles === undefined && !error ? (
+              <AddLineSkeleton />
+            ) : (
               <div className="flex flex-wrap items-center gap-x-2">
                 <Button
                   size="sm"
@@ -253,6 +255,12 @@ export function SignIn() {
     if (next !== "wait") setSignedIn(false)
   }, [next])
 
+  const inSetup = new Set(list.map((t) => t.id))
+  const setupFirst = [...ready, ...waiting]
+    .filter((t) => inSetup.has(t.id))
+    .sort((a, b) => tools.indexOf(a) - tools.indexOf(b))
+  const others = waiting.filter((t) => !inSetup.has(t.id))
+
   // Until the tools are found, the chosen ones stand in: they are the ones just installed.
   if (!detected && !failed) {
     const chosen = list.filter(signsIn)
@@ -270,12 +278,14 @@ export function SignIn() {
     <>
       {ready.length + waiting.length > 0 ? (
         <ul aria-label={m.list} className={rack}>
-          {ready.map((t) => (
-            <SignInRow key={t.id} tool={t} onReady={onReady} startAdding={fresh.includes(t.id)} />
-          ))}
-          {waiting.map((t) => (
-            <InstallRow key={t.id} tool={t} onInstall={onInstall} />
-          ))}
+          {/* The setup's own tools keep the places their placeholders held, installed or not; the others follow. */}
+          {[...setupFirst, ...others].map((t) =>
+            ready.includes(t) ? (
+              <SignInRow key={t.id} tool={t} onReady={onReady} startAdding={fresh.includes(t.id)} />
+            ) : (
+              <InstallRow key={t.id} tool={t} onInstall={onInstall} />
+            ),
+          )}
         </ul>
       ) : (
         <p className="text-body text-ink-soft">{m.noneNeeded}</p>

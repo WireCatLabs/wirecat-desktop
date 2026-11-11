@@ -87,7 +87,7 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
 
   const hasMenu = items.length > 0
   const part =
-    "inline-flex h-[2.4rem] items-center justify-center border border-line-strong bg-app text-ink transition-colors duration-(--motion-fast) hover:bg-app-2 disabled:pointer-events-none disabled:opacity-45"
+    "inline-flex items-center justify-center border border-line-strong bg-app text-ink transition-colors duration-(--motion-fast) hover:bg-app-2 disabled:pointer-events-none disabled:opacity-45"
 
   if (!main && !hasMenu) return null
 
@@ -101,7 +101,7 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
           aria-expanded={main.expanded}
           className={cx(
             part,
-            "gap-2 px-[1rem] text-[0.95rem] font-medium whitespace-nowrap",
+            "h-[2.4rem] gap-2 px-[1rem] text-[0.95rem] font-medium whitespace-nowrap",
             hasMenu ? "rounded-l-[0.4rem] border-r-0" : "rounded-[0.4rem]",
           )}
         >
@@ -131,8 +131,8 @@ export function SplitButton({ main, items, menuLabel, moreLabel, disabled, class
             compact
               ? "h-8 w-8 rounded-[0.35rem] border-transparent bg-transparent text-ink-soft hover:bg-app-3 hover:text-ink"
               : main
-                ? "w-[2.2rem] rounded-r-[0.4rem] text-ink-soft hover:text-ink"
-                : "gap-[0.45rem] rounded-[0.4rem] px-[0.85rem] text-[0.95rem] font-medium whitespace-nowrap",
+                ? "h-[2.4rem] w-[2.2rem] rounded-r-[0.4rem] text-ink-soft hover:text-ink"
+                : "h-[2.4rem] gap-[0.45rem] rounded-[0.4rem] px-[0.85rem] text-[0.95rem] font-medium whitespace-nowrap",
             open && "bg-app-3 text-ink",
           )}
         >

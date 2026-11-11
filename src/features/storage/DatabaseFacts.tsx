@@ -42,7 +42,8 @@ export function DatabaseFacts({ info }: { info: StoreInfo }) {
       <dl className="grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)] gap-x-[1.2rem] gap-y-2 text-[0.95rem]">
         {info.path && (
           <Fact label={m.fact.file}>
-            <span className="flex min-w-0 items-center gap-3">
+            {/* As tall as the button the line gets once the folders are read. */}
+            <span className="flex min-h-8 min-w-0 items-center gap-3">
               <span className="selectable min-w-0 flex-1 truncate font-mono text-[0.9rem]">{info.path}</span>
               <ShowFile path={info.path} />
             </span>
@@ -178,7 +179,7 @@ export function DatabaseFactsSkeleton() {
       </div>
       <dl className="grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)] gap-x-[1.2rem] gap-y-2 text-[0.95rem]">
         <Fact label={m.fact.file}>
-          <span className="block font-mono text-[0.9rem]">
+          <span className="flex min-h-8 items-center font-mono text-[0.9rem]">
             <Skeleton chars={34} />
           </span>
         </Fact>

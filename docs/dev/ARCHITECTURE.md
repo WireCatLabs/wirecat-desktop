@@ -979,11 +979,22 @@ the page down. Only the user's own click may change the layout.
   line's own height. Size `n` to the usual value (`7` for `24.19.0`). Use it in a cell, next to a label, in a sentence.
 - **`<Skeleton className="h-… w-…" />`** stands in for a block. Give it the block's final height, not a token one: a
   row of a list is one skeleton per expected row at that row's height, not one short bar.
+- **A row that fills in parts renders its placeholder through its own frame.** The account row
+  (`src/features/tools/AccountRow.tsx`) has one component that places name, status line, Sync, "⋯" and the schedule
+  line; the real row and `AccountRowPlaceholder` both go through it, and each part's loading state
+  (`SyncStatusLoading`, `ScheduleLoading`) keeps the line's font and height. A list renders as many placeholders as
+  rows it expects, when an earlier read already knows the count. `AccountRow.test.tsx` compares the boxes.
+- **Reads per page run a few at once, not one by one.** Each read is a tool process; `sync-store.ts` runs up to
+  `READS_AT_ONCE` (3) side by side, so rows fill in together instead of one after another.
 - **`label`** goes on the first skeleton of a group only; it is announced as `role="status"`, the rest are silent.
 - **`<StableText value variants />`** is a label that switches between known texts ("Check again" / "Checking…")
   and keeps the width of the widest.
 - **A slot that may appear later** (a note, an error, a "Tasks held by others" box) reserves its room with
   `min-h-[…]` on the wrapper, or sits below everything that loads, where growing moves nothing.
+- **A row's alternative lines share one height.** A tool row's line under its name (tagline, sync, storage, app)
+  is one line height whichever shows; a label that switches ("Install all" / "Update all") is a `StableText`.
+- **A list keeps its order from placeholder to result.** The setup's sign-in step renders its tools in catalog order
+  whether installed or not, the ones it did not choose after them.
 - **Numbers** use `tabular-nums` (or the mono font), so a count changing from 9 to 10 does not move its neighbours.
 - **`.reveal`** fades content in where its placeholder was. Under reduced motion it is instant.
 - **Global:** `main` reserves the scrollbar's gutter, so a page growing past the window does not narrow and re-wrap,
@@ -996,7 +1007,8 @@ pnpm build && pnpm preview --port 1478 --strictPort
 node scripts/layout-shift.mjs tools agents --port 1478 --slow 3   # --port is required; use your own free port
 ```
 
-It prints per page the Cumulative Layout Shift (`CLS`, how far things moved, 0 is best) and `grew`, how many pixels
+Nothing counts while index.html's boot screen still covers the window: the owner sees none of it. It prints per
+page the Cumulative Layout Shift (`CLS`, how far things moved, 0 is best) and `grew`, how many pixels
 the visible part of the page grew after its first frame, which CLS does not see. A page is done when both are under
 the budget (`--budget 0.01`, `--grow 8`); the script exits 1 otherwise. `--shots 150,2000,4000` saves screenshots of
 the loading stages; check them in light and dark (`--dark`). `?slow=3` on any browser-build URL stretches every

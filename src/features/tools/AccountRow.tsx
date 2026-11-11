@@ -1,6 +1,6 @@
 import { LogIn } from "lucide-react"
 import { useId, useState } from "react"
-import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncsHere } from "@/domain/catalog"
+import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncSchedules, syncsHere } from "@/domain/catalog"
 import { advice } from "@/domain/sync"
 import { useMessages } from "@/i18n"
 import type { Profile } from "@/platform/schemas"
@@ -9,6 +9,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Pill } from "@/ui/Pill"
+import { Skeleton } from "@/ui/Skeleton"
 import { type MenuItem, SplitButton } from "@/ui/SplitButton"
 import { CheckPanel, useCheck } from "./CheckResult"
 import { DriveFoldersSettings } from "./DriveFoldersSettings"
@@ -16,8 +17,10 @@ import { toolsMessages } from "./messages"
 import { accountsMessages } from "./messages-accounts"
 import { RemoveAccountDialog } from "./RemoveAccount"
 import { reconnect } from "./SignInLost"
-import { SyncButton, SyncFollowUp, SyncStatus, useSyncControl } from "./Sync"
-import { SyncSchedule } from "./SyncSchedule"
+import { SyncButton, SyncFollowUp, SyncStatus, SyncStatusLoading, useSyncControl } from "./Sync"
+import { ScheduleLoading, SyncSchedule } from "./SyncSchedule"
+
+const ROW_BOX = "flex flex-col gap-1.5 px-3 py-2"
 
 /**
  * One account of a tool, the same wherever accounts are listed: its name and state, Sync where the tool syncs per
@@ -68,7 +71,7 @@ export function AccountRow(props: {
       className={cx("transition-colors duration-(--motion-slow)", leaving && "border-transparent")}
       aria-label={m.region(tool.name, p.name)}
     >
-      <Collapse open={!leaving} className="flex flex-col gap-1.5 px-3 py-2">
+      <Collapse open={!leaving} className={ROW_BOX}>
         <RowLine tool={tool} profile={p} syncs={syncs} items={items} onSignIn={signIn} />
         <Collapse open={check.shown}>
           <CheckPanel tool={tool} c={check} onClose={check.clear} />
@@ -126,18 +129,97 @@ function RowLine(props: {
     </Button>
   )
   const name = <AccountName tool={tool.id} profile={p.name} />
-  if (!syncs) {
-    return (
-      <div className="flex min-h-8 items-center gap-3">
-        {name}
-        {state}
-        <span className="flex-1" />
-        {signIn}
-        {menu}
-      </div>
-    )
-  }
+  if (!syncs) return <PlainLine name={name} state={state} action={signIn} menu={menu} />
   return <SyncingLine tool={tool} profile={p.name} name={name} state={state} menu={menu} />
+}
+
+/** An account row's line without sync. Its placeholder fills the same slots, so both have one height. `name` is
+ * the whole name element: the owner's name and the profile id, or a placeholder in the name's font. */
+function PlainLine(props: {
+  name: React.ReactNode
+  state?: React.ReactNode
+  action?: React.ReactNode
+  menu: React.ReactNode
+}) {
+  return (
+    <div className="flex min-h-8 items-center gap-3">
+      {props.name}
+      {props.state}
+      <span className="flex-1" />
+      {props.action}
+      {props.menu}
+    </div>
+  )
+}
+
+/**
+ * Where a syncing account row puts its parts. The real row and its placeholder both go through it, so the placeholder
+ * cannot drift from the row's height when the row changes.
+ */
+function SyncingFrame(props: {
+  label?: string
+  place?: string
+  name: React.ReactNode
+  state?: React.ReactNode
+  status: React.ReactNode
+  button: React.ReactNode
+  menu: React.ReactNode
+  followUp?: React.ReactNode
+  schedule: React.ReactNode
+}) {
+  return (
+    <section className="flex flex-col gap-1.5" data-place={props.place} aria-label={props.label}>
+      <div className="flex items-center gap-3">
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <div className="flex min-w-0 items-center gap-3">
+            {props.name}
+            {props.state}
+          </div>
+          {props.status}
+        </div>
+        {props.button}
+        {props.menu}
+      </div>
+      {props.followUp}
+      {props.schedule}
+    </section>
+  )
+}
+
+/**
+ * An account row while the profiles are read, in the row's own frame: name, status line, Sync, "⋯" and the schedule
+ * line where the finished row has them.
+ */
+export function AccountRowPlaceholder(props: {
+  tool: CatalogTool
+  label?: string | undefined
+  sync?: boolean | undefined
+}) {
+  const { tool, label, sync = true } = props
+  const name = (
+    <span className="min-w-0 truncate font-medium">
+      <Skeleton chars={8} label={label} />
+    </span>
+  )
+  const menu = <Skeleton className="size-8" />
+  const syncs = sync && syncsHere(tool) && syncNeedsProfile(tool)
+  return (
+    <li>
+      <div className={ROW_BOX}>
+        {syncs ? (
+          <SyncingFrame
+            name={name}
+            status={<SyncStatusLoading />}
+            button={<Skeleton className="h-8 w-28" />}
+            menu={menu}
+            schedule={syncSchedules(tool) && <ScheduleLoading />}
+          />
+        ) : (
+          <PlainLine name={name} menu={menu} />
+        )}
+      </div>
+    </li>
+  )
 }
 
 /** The row of a profile that syncs: when it last synced under the name, Sync beside the menu. */
@@ -154,21 +236,17 @@ function SyncingLine(props: {
   // The row's pill reads a local file, so a sign-in the service just refused would still say "signed in".
   const lost = c.run?.phase === "failed" && c.run.failure && advice(c.run.failure).kind === "signedOut"
   return (
-    <section className="flex flex-col gap-1.5" data-place={`sync:${tool.id}`} aria-label={`${tool.name} ${profile}`}>
-      <div className="flex items-center gap-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <div className="flex min-w-0 items-center gap-3">
-            {name}
-            {lost ? <Pill tone="warn">{health.notSignedIn}</Pill> : state}
-          </div>
-          <SyncStatus c={c} />
-        </div>
-        <SyncButton c={c} name={`${tool.name} ${profile}`} />
-        {menu}
-      </div>
-      <SyncFollowUp c={c} />
-      <SyncSchedule tool={tool} profile={profile} />
-    </section>
+    <SyncingFrame
+      label={`${tool.name} ${profile}`}
+      place={`sync:${tool.id}`}
+      name={name}
+      state={lost ? <Pill tone="warn">{health.notSignedIn}</Pill> : state}
+      status={<SyncStatus c={c} />}
+      button={<SyncButton c={c} name={`${tool.name} ${profile}`} />}
+      menu={menu}
+      followUp={<SyncFollowUp c={c} />}
+      schedule={<SyncSchedule tool={tool} profile={profile} />}
+    />
   )
 }
 

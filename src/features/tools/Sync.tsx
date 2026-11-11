@@ -71,11 +71,23 @@ export function SyncStatus({ c }: { c: Control }) {
       ) : run ? (
         <Outcome run={run} what={what} m={m} />
       ) : last ? (
-        <p className="text-[0.875rem] text-ink-soft tabular-nums">{lastLine(last, what, m)}</p>
+        <p className={LAST_LINE}>{lastLine(last, what, m)}</p>
       ) : (
-        <Skeleton chars={22} label={m.readingLast} />
+        <SyncStatusLoading />
       )}
     </div>
+  )
+}
+
+const LAST_LINE = "text-[0.875rem] text-ink-soft tabular-nums"
+
+/** "Last synced …" while it is read: in the line's own font, so the line keeps its height. */
+export function SyncStatusLoading() {
+  const m = useMessages(syncMessages).sync
+  return (
+    <p className={LAST_LINE}>
+      <Skeleton chars={22} label={m.readingLast} />
+    </p>
   )
 }
 

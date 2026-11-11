@@ -9,6 +9,7 @@ import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
+import { Skeleton } from "@/ui/Skeleton"
 import { ago } from "./connect-steps"
 import { syncMessages } from "./messages-sync"
 import { type SyncScheduleText, syncScheduleMessages } from "./messages-sync-schedule"
@@ -28,6 +29,20 @@ function lastWords(last: ScheduleRun | null, m: SyncScheduleText, why: Record<Ad
   if (last.exitCode === 0) return m.lastOk(ago(last.at))
   const kind = failureOf(last.reason).kind
   return m.lastFailed(ago(last.at), kind === "failed" ? null : why[kind])
+}
+
+// min-h: the line keeps a button's height when the read failed and only words are left.
+const SCHEDULE_LINE = "flex min-h-8 flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.875rem] text-ink-dim"
+
+/** The schedule line while it is read: as tall as the line with its button. */
+export function ScheduleLoading() {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className={SCHEDULE_LINE}>
+        <Skeleton className="h-8 w-44" />
+      </p>
+    </div>
+  )
 }
 
 /**
@@ -55,7 +70,8 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
     return () => clearInterval(timer)
   }, [tool.id, profile])
 
-  if (!syncSchedules(tool) || schedule === undefined) return null
+  if (!syncSchedules(tool)) return null
+  if (schedule === undefined) return <ScheduleLoading />
   const choices = tool.sync?.schedule?.choices ?? []
   const on = schedule?.state === "on" ? schedule : null
   const last = on?.last ?? null
@@ -91,7 +107,7 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
 
   return (
     <section aria-label={m.region(`${tool.name} ${profile}`)} className="flex flex-col gap-1">
-      <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.875rem] text-ink-dim">
+      <p className={SCHEDULE_LINE}>
         {schedule === null ? (
           <span>{m.readFailed}</span>
         ) : on ? (

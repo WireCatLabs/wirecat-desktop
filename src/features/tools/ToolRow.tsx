@@ -141,23 +141,23 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
                 <InstallLine session={installing} name={tool.name} flat />
               </div>
             ) : blocked ? (
-              <p className="mt-1 line-clamp-2 text-[0.95rem] text-warn-ink">{rm.row}</p>
+              <p className="mt-1 line-clamp-2 text-[0.95rem] leading-[1.55rem] text-warn-ink">{rm.row}</p>
             ) : storageLine ? (
               <p
                 title={storageLine}
                 className={cx(
-                  "mt-1 truncate text-[0.95rem] max-[999px]:whitespace-normal",
+                  "mt-1 truncate text-[0.95rem] leading-[1.55rem] max-[999px]:whitespace-normal",
                   severity === "bad" ? "text-bad" : "text-warn-ink",
                 )}
               >
                 {storageLine}
               </p>
             ) : sync && (sync.run || !app) ? (
-              <p className="mt-1 flex text-[0.95rem] text-ink-soft">
+              <p className="mt-1 flex text-[0.95rem] leading-[1.55rem] text-ink-soft">
                 <RowSyncLine entry={tool} info={sync} />
               </p>
             ) : app ? (
-              <p className="mt-1 flex items-center gap-2 text-[0.95rem] text-ink-soft tabular-nums">
+              <p className="mt-1 flex items-center gap-2 text-[0.95rem] leading-[1.55rem] text-ink-soft tabular-nums">
                 <span aria-hidden className="size-[0.45rem] shrink-0 rounded-full bg-ok" />
                 <span className="truncate max-[999px]:whitespace-normal">
                   {app.claimedName ?? m.browserApp} · {activityOf(app)}
@@ -226,7 +226,12 @@ export function ToolRow({ tool }: { tool: CatalogTool }) {
 // While a tool installs, the column keeps saying what is on the machine now; the panel below shows the progress.
 function Version(props: { status: ToolStatus; installed: string | null; m: ToolsText["row"] }) {
   const { status, installed, m } = props
-  if (status.kind === "checking") return <Skeleton className="h-4 w-16" label={m.status.checking} />
+  if (status.kind === "checking")
+    return (
+      <span className="font-mono text-[1.02rem] leading-tight">
+        <Skeleton chars={6} label={m.status.checking} />
+      </span>
+    )
   const text = status.kind === "broken" ? m.doesNotStart : "version" in status ? status.version : installed
   return (
     <span
