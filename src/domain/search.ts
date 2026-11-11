@@ -251,7 +251,7 @@ export function suggestSearch(query: string, cursor: number, ctx: SuggestContext
     const popular = (POPULAR_FIELDS[ctx.what] ?? []).flatMap((name) => ctx.fields.filter((f) => f.name === name))
     const lead = popular.map((f) => ({ ...fieldRow(f, "", ctx.words), group: ctx.words.examplesHeading }))
     const rest = fieldRows(ctx, "").filter((row) => !lead.some((l) => l.insert === row.insert))
-    return { from: 0, to: query.length, items: [...lead, ...tried, ...rest] }
+    return { from: 0, to: query.length, items: lead.length ? [...lead, ...tried, ...rest] : [...rest, ...tried] }
   }
   const tok = tokenAt(query, cursor)
   const sign = /^[-+]/.test(tok.raw) ? (tok.raw[0] as string) : ""

@@ -107,10 +107,6 @@ function Note({ children }: { children: ReactNode }) {
   return <p className="max-w-[62ch] text-[0.9rem] text-ink-dim">{children}</p>
 }
 
-function Link({ href, children }: { href: string; children: ReactNode }) {
-  return <ExtLink href={href}>{children}</ExtLink>
-}
-
 /** This Linux's commands from Tailscale, to copy or run in a terminal; the terminal gets them from Rust, not from here. */
 function Commands({ linux, label, m }: { linux: TailscaleLinux; label: string; m: Words }) {
   const [busy, setBusy] = useState(false)
@@ -143,17 +139,17 @@ function Commands({ linux, label, m }: { linux: TailscaleLinux; label: string; m
 function LinuxInstall({ s, downloaded, m }: { s: TailscaleStatus; downloaded: boolean; m: Words }) {
   const linux = s.linux
   if (!linux) return null
-  const instructions = <Link href={linux.source}>{m.instructions}</Link>
+  const instructions = <ExtLink href={linux.source}>{m.instructions}</ExtLink>
   const source = (
     <Note>
       {linux.method === "script" ? (
         m.noCommands(
           linux.name,
-          <Link href={PAGES.linux}>{m.linuxPage}</Link>,
-          <Link href={PAGES.staticBinaries}>{m.staticBinaries}</Link>,
+          <ExtLink href={PAGES.linux}>{m.linuxPage}</ExtLink>,
+          <ExtLink href={PAGES.staticBinaries}>{m.staticBinaries}</ExtLink>,
         )
       ) : linux.method === "config" ? (
-        m.instructionsAndWiki(instructions, <Link href={PAGES.nixosWiki}>{m.nixosWiki}</Link>)
+        m.instructionsAndWiki(instructions, <ExtLink href={PAGES.nixosWiki}>{m.nixosWiki}</ExtLink>)
       ) : (
         <>
           {linux.method === "repo" ? m.updatesRepo : m.updatesPackage} {m.password} {m.instructionsLink(instructions)}
@@ -199,7 +195,7 @@ function UpdateSource({ linux, m }: { linux: TailscaleLinux; m: Words }) {
         <div className="flex flex-col gap-2.5">
           <Commands linux={linux} label={m.copyCommands} m={m} />
           <Note>
-            {m.updatesRepo} {m.instructionsLink(<Link href={linux.source}>{m.instructions}</Link>)}
+            {m.updatesRepo} {m.instructionsLink(<ExtLink href={linux.source}>{m.instructions}</ExtLink>)}
           </Note>
         </div>
       </Disclosure>
@@ -256,7 +252,7 @@ function InstallStep({ s, m }: { s: TailscaleStatus; m: Words }) {
         </div>
       )}
       {desktop ? (
-        <Note>{m.yourself(<Link href={PAGES.download[s.os]}>{m.downloadPage}</Link>)}</Note>
+        <Note>{m.yourself(<ExtLink href={PAGES.download[s.os]}>{m.downloadPage}</ExtLink>)}</Note>
       ) : (
         <LinuxInstall s={s} downloaded={done !== null} m={m} />
       )}
@@ -471,7 +467,7 @@ export function TailscaleGuide({ tailscale }: { tailscale: ReturnType<typeof use
             <Collapse open={open} className="flex flex-col gap-2.5 pt-2.5 pl-9 text-[0.9rem]">
               {step.missing && checked === step.id && <p className="text-warn-ink">{m.missing[step.missing]}</p>}
               {step.id !== "connect" && body[step.id]}
-              <Note>{m.fullGuide(<Link href={guideUrl(step.id, status)}>{m.fullGuideLink}</Link>)}</Note>
+              <Note>{m.fullGuide(<ExtLink href={guideUrl(step.id, status)}>{m.fullGuideLink}</ExtLink>)}</Note>
             </Collapse>
             {step.id === "install" && step.done && status.package === "deb" && status.linux?.updates === false && (
               <div className="pt-2.5">

@@ -86,7 +86,8 @@ export function PageHeader(props: Props) {
             ref={headingRef}
             tabIndex={headingRef ? -1 : undefined}
             className={cx(
-              "min-w-0 font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em] break-words",
+              "font-display text-[2.1rem] font-extrabold leading-tight tracking-[-0.035em]",
+              Boolean(back) && "min-w-0 break-words",
               headingRef && "step-heading",
             )}
           >
@@ -94,8 +95,8 @@ export function PageHeader(props: Props) {
           </h1>
           {/* Beside the heading, not in it: the β must not become part of the page's name for a screen reader. */}
           {section && <BetaBadge section={section} className="-ml-[0.5rem] self-center" />}
-          {compact && intro && (
-            <InfoTip label={m.aboutPage(String(title))} className="-ml-[0.6rem] self-center">
+          {compact && intro && typeof title === "string" && (
+            <InfoTip label={m.aboutPage(title)} className="-ml-[0.6rem] self-center">
               {intro}
             </InfoTip>
           )}

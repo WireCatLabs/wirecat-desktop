@@ -61,7 +61,13 @@ export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): vo
               {m.disconnect}
             </Button>
           )}
-          <RefreshButton busy={checking} onClick={onCheck} label={m.checkThis} busyLabel={m.checking} />
+          <RefreshButton
+            variant="secondary"
+            busy={checking}
+            onClick={onCheck}
+            label={m.checkThis}
+            busyLabel={m.checking}
+          />
         </span>
       </div>
       <div className="grid gap-4 xl:grid-cols-2">

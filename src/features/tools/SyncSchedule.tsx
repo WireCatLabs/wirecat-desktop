@@ -136,11 +136,11 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
               {saving ? m.saving : on ? m.save : m.turnOn}
             </Button>
             {on && (
-              <Button size="sm" variant="ghost" disabled={saving} onClick={() => change(null)}>
+              <Button size="sm" variant="secondary" disabled={saving} onClick={() => change(null)}>
                 {m.turnOff}
               </Button>
             )}
-            <Button size="sm" variant="ghost" disabled={saving} onClick={() => setOpen(false)}>
+            <Button size="sm" variant="secondary" disabled={saving} onClick={() => setOpen(false)}>
               {m.cancel}
             </Button>
           </div>

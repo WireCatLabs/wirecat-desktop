@@ -115,7 +115,7 @@ describe("A memory whose source changed", () => {
     const decide = vi.spyOn(platform, "memoryReviewDecide").mockResolvedValue(entry({ sourceReview: null }))
     const user = userEvent.setup()
     const row = await opened(user)
-    await user.click(await within(row).findByRole("button", { name: "Dismiss…" }))
+    await user.click(await within(row).findByRole("button", { name: "Dismiss" }))
     const why = within(row).getByRole("textbox", { name: "Why does the change not matter?" })
     expect(why).toHaveFocus()
     await user.click(within(row).getByRole("button", { name: "Dismiss" }))

@@ -260,7 +260,13 @@ export function ManualSetup(props: { tool: CatalogTool; onCheck: () => void; che
         <div className="min-w-0 flex-1">
           <CopyField value={signIn.command} label={m.copyAddAccount(tool.name)} />
         </div>
-        <RefreshButton busy={checking} onClick={onCheck} label={m.checkAgain} busyLabel={m.checking} />
+        <RefreshButton
+          variant="secondary"
+          busy={checking}
+          onClick={onCheck}
+          label={m.checkAgain}
+          busyLabel={m.checking}
+        />
       </div>
     </div>
   )

@@ -199,7 +199,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
         >
           {proposal ? x.saveAndApprove : x.save}
         </Button>
-        <Button size="sm" variant="ghost" disabled={!!busy} onClick={onDone}>
+        <Button size="sm" variant="secondary" disabled={!!busy} onClick={onDone}>
           {x.cancel}
         </Button>
         {!proposal && (
@@ -300,7 +300,7 @@ function AddRole({ list, taken, onAdded }: { list: string; taken: readonly strin
             >
               {x.addRole}
             </Button>
-            <Button size="sm" variant="ghost" onClick={close}>
+            <Button size="sm" variant="secondary" onClick={close}>
               {x.cancel}
             </Button>
           </div>

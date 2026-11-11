@@ -1,9 +1,8 @@
-import { Check, Copy, ExternalLink } from "lucide-react"
+import { Check, Copy } from "lucide-react"
 import { Fragment, useEffect, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { useReport } from "@/shared/report-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
@@ -91,7 +90,9 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5">
             {links(lang).map((l) => (
               <li key={l.href}>
-                <WebLink href={l.href}>{m[l.label]}</WebLink>
+                <ExtLink href={l.href} className="font-medium">
+                  {m[l.label]}
+                </ExtLink>
               </li>
             ))}
             <li>
@@ -103,7 +104,11 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         <p className="border-line border-t pt-4 text-[0.875rem] text-ink-dim">
           {m.madeBy(AUTHOR, COPYRIGHT_YEAR)}
           <br />
-          {m.license(<WebLink href={`${REPO}/blob/main/LICENSE`}>{LICENSE}</WebLink>)}
+          {m.license(
+            <ExtLink href={`${REPO}/blob/main/LICENSE`} className="font-medium">
+              {LICENSE}
+            </ExtLink>,
+          )}
         </p>
       </div>
     </Dialog>
@@ -145,21 +150,6 @@ function CopyButton({ text }: { text: string }) {
       <span className="sr-only" aria-live="polite">
         {copied ? m.copiedAnnounce : ""}
       </span>
-    </button>
-  )
-}
-
-function WebLink({ href, children }: { href: string; children: string }) {
-  return (
-    <button
-      type="button"
-      title={href}
-      onClick={() => platform.openUrl(href)}
-      {...externalHref(href)}
-      className="inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-    >
-      {children}
-      <ExternalLink className="size-[0.85em] shrink-0" strokeWidth={1.8} aria-hidden />
     </button>
   )
 }

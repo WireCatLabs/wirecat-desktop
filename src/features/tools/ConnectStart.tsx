@@ -2,9 +2,10 @@ import type { CatalogTool } from "@/domain/catalog"
 import { type Failure, type Phase, portInUse, startProgress, type Tunnel } from "@/domain/connect-guide"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
+import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
-import { Link, Note, Progress } from "./connect-parts"
+import { Note, Progress } from "./connect-parts"
 import { connectMessages } from "./messages-connect"
 import { helperMessages } from "./messages-helper"
 
@@ -29,7 +30,7 @@ export function StartStep(props: {
         <Progress state={server}>{m.server(tool.bin)}</Progress>
       </ul>
       {phase === "tunnel" && approval && (
-        <p className="text-[0.92rem] text-ink">{m.approve(<Link href={approval}>{m.openAgain}</Link>)}</p>
+        <p className="text-[0.92rem] text-ink">{m.approve(<ExtLink href={approval}>{m.openAgain}</ExtLink>)}</p>
       )}
       {phase === "tunnel" && tunnel === "tailscale" && (
         <div>

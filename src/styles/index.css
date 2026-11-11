@@ -216,6 +216,11 @@ body {
   outline: none;
 }
 
+/* A scrolling box clips what falls outside it, so the ring is drawn inside the row. Unlayered, like the rule it changes. */
+.ring-inside :focus-visible {
+  outline-offset: -2px;
+}
+
 @layer base {
   /* Content selects with the mouse; the window's chrome and controls do not. WebKitGTK knows only the prefixed
      property, and the dev server does not add the prefix, so every user-select here is written twice. */

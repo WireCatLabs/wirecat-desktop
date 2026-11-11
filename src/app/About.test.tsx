@@ -51,7 +51,7 @@ describe("About WireCat", () => {
       ["Apache License 2.0", "https://github.com/WireCatLabs/wirecat-desktop/blob/main/LICENSE"],
     ] as const
     for (const [name, url] of links) {
-      await user.click(within(dialog).getByRole("button", { name }))
+      await user.click(within(dialog).getByRole("link", { name }))
       expect(open).toHaveBeenLastCalledWith(url)
     }
 
@@ -76,7 +76,7 @@ describe("About WireCat", () => {
     useLanguage.setState({ choice: "ru" })
     render(<AboutDialog open onClose={() => undefined} />)
     const dialog = screen.getByRole("dialog", { name: "О WireCat" })
-    await userEvent.click(within(dialog).getByRole("button", { name: "Политика конфиденциальности" }))
+    await userEvent.click(within(dialog).getByRole("link", { name: "Политика конфиденциальности" }))
     expect(open).toHaveBeenLastCalledWith("https://wirecat.dev/ru/privacy")
     expect(within(dialog).getByText(/Свободное ПО с открытым исходным кодом по лицензии/)).toBeInTheDocument()
   })

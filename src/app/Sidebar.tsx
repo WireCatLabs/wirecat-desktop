@@ -35,7 +35,7 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
         <Logo className="flex h-[2.3rem] items-center gap-[0.75rem] [&>svg:last-child]:h-[40%]" />
       </div>
       {/* The rem grows with the window's width, so a wide, short window cannot hold every row: these scroll, the logo stays. */}
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+      <div className="scroll-quiet ring-inside flex min-h-0 flex-1 flex-col overflow-y-auto" data-tauri-drag-region>
         <nav aria-label={m.sectionsNav} className="flex flex-col gap-[0.3rem]">
           {sections
             .filter((s) => !s.group && !s.hidden)
