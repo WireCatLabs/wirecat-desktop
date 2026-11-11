@@ -1,27 +1,27 @@
 import { AlertTriangle, CheckCircle2, CircleStop, LoaderCircle, RefreshCw, ScrollText, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { type CatalogTool, ownerId, signsInHere, syncCommand, syncNeedsProfile, syncsHere } from "@/domain/catalog"
+import { type CatalogTool, ownerId, syncCommand, syncNeedsProfile, syncsHere } from "@/domain/catalog"
 import { toolStatus } from "@/domain/status"
-import { advice, clock, type SyncFailure, type SyncWhat, share } from "@/domain/sync"
+import { type AdviceKind, advice, clock, type SyncFailure, type SyncWhat, share } from "@/domain/sync"
 import { useLogs } from "@/features/logs"
 import { useMessages } from "@/i18n"
 import type { LastSync } from "@/platform/sync-schemas"
 import { useNav } from "@/shared/nav"
 import { ReportThis } from "@/shared/ReportThis"
-import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 import { useElapsed } from "@/shared/use-elapsed"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { ago } from "./connect-steps"
 import { type SyncText, syncMessages } from "./messages-sync"
+import { SignInLost } from "./SignInLost"
 import { blockedBy, type SyncRun, syncKey, useSync } from "./sync-store"
-import { useTerminal } from "./terminal-store"
 
 type Words = SyncText
 
@@ -70,7 +70,7 @@ export function SyncStatus({ c }: { c: Control }) {
       ) : run ? (
         <Outcome run={run} what={what} m={m} />
       ) : last ? (
-        <p className="truncate text-[0.875rem] text-ink-soft tabular-nums">{lastLine(last, what, m)}</p>
+        <p className="text-[0.875rem] text-ink-soft tabular-nums">{lastLine(last, what, m)}</p>
       ) : (
         <Skeleton chars={22} label={m.readingLast} />
       )}
@@ -146,6 +146,9 @@ export function SyncControl({ tool, profile }: { tool: CatalogTool; profile: str
   )
 }
 
+/** A refusal's own words can name chats or people (RISK-44); these kinds speak only of the account or the pause. */
+const OWN_WORDS_SAFE = new Set<AdviceKind>(["signedOut", "keyring", "rateLimited", "unreachable", "timeout"])
+
 function Progress({ run, m }: { run: SyncRun; m: Words }) {
   const elapsed = useElapsed(run.startedAt)
   const counted = run.progress ? m.progress(run.progress) : null
@@ -162,7 +165,7 @@ function Progress({ run, m }: { run: SyncRun; m: Words }) {
         className="w-full max-w-[22rem]"
       />
       <p className="flex gap-2 text-[0.9rem] text-ink-soft tabular-nums">
-        <span className="truncate">
+        <span className="min-w-0">
           {stage}
           {counted ? "" : "…"}
         </span>
@@ -178,7 +181,7 @@ function Outcome({ run, what, m }: { run: SyncRun; what: SyncWhat; m: Words }) {
     return (
       <p className="reveal flex items-center gap-2 text-[0.9rem] font-medium text-ink">
         <CheckCircle2 className="size-4 shrink-0 text-ok" aria-hidden />
-        <span className="truncate">{m.result(what, run.summary)}</span>
+        <span className="min-w-0">{m.result(what, run.summary)}</span>
         {took && (
           <span className="shrink-0 font-mono text-[0.85rem] font-normal text-ink-dim tabular-nums">{took}</span>
         )}
@@ -196,7 +199,7 @@ function Outcome({ run, what, m }: { run: SyncRun; what: SyncWhat; m: Words }) {
   return (
     <p className="reveal flex items-center gap-2 text-[0.9rem] font-medium text-ink">
       <AlertTriangle className="size-4 shrink-0 text-warn" aria-hidden />
-      <span className="truncate">{m.advice[advice(run.failure ?? NO_FAILURE).kind]}</span>
+      <span className="min-w-0">{m.advice[advice(run.failure ?? NO_FAILURE).kind]}</span>
     </p>
   )
 }
@@ -229,53 +232,57 @@ function Next(props: { run: SyncRun; tool: CatalogTool; profile: string | null; 
   } else {
     const failure = run.failure ?? NO_FAILURE
     const a = advice(failure)
-    body = (
-      <div className="flex flex-col gap-2">
-        <p>
-          {a.kind === "rateLimited"
-            ? m.slowDown(entry.name, waitUntil(run.endedAt, failure.retryAfterMs))
-            : m.adviceText(a.kind, profile ?? entry.name, failure.message, Boolean(a.logs))}
-        </p>
-        <div className="flex flex-wrap items-center gap-3">
-          {a.signIn && entry.setup && profile && (
-            <Button
-              size="sm"
-              onClick={() =>
-                signsInHere(entry)
-                  ? useSignIn.getState().start(entry.id, profile)
-                  : useTerminal.getState().open(entry.id, profile)
-              }
-            >
-              {m.signIn}
-            </Button>
-          )}
-          {a.update && outdated && (
-            <Button size="sm" onClick={() => useTools.getState().install(entry.id, { check: true })}>
-              {m.update(entry.name)}
-            </Button>
-          )}
-          {a.report && (
-            <ReportThis
-              what={`Syncing ${entry.name}`}
-              tool={entry.id}
-              error={failure.message || syncMessages.en.sync.adviceText("failed", "", "", false)}
-            />
-          )}
-        </div>
-        {(failure.code || failure.run) && (
-          <div>
-            <Button
-              size="sm"
-              variant="secondary"
-              icon={<ScrollText className="size-4" strokeWidth={1.8} aria-hidden />}
-              onClick={() => openRun(entry, failure.run)}
-            >
-              {m.openRun}
-            </Button>
-          </div>
+    const details = (failure.code || failure.run) && (
+      <div className="flex flex-col items-start gap-2">
+        {OWN_WORDS_SAFE.has(a.kind) && failure.message && <p className="selectable">{failure.message}</p>}
+        {failure.code && (
+          <p className="selectable font-mono text-[0.85rem]">
+            {[failure.code, failure.reason].filter(Boolean).join(" · ")}
+          </p>
         )}
+        <Button
+          size="sm"
+          variant="secondary"
+          icon={<ScrollText className="size-4" strokeWidth={1.8} aria-hidden />}
+          onClick={() => openRun(entry, failure.run)}
+        >
+          {m.openRun}
+        </Button>
       </div>
     )
+    body =
+      a.kind === "signedOut" || a.kind === "keyring" ? (
+        <SignInLost
+          tool={entry}
+          profile={profile}
+          cause={a.kind === "keyring" ? "keyring" : "ended"}
+          details={details}
+          inline
+        />
+      ) : (
+        <div className="flex flex-col gap-2">
+          <p>
+            {a.kind === "rateLimited"
+              ? m.slowDown(entry.name, waitUntil(run.endedAt, failure.retryAfterMs))
+              : m.adviceText(a.kind, profile ?? entry.name, failure.message, Boolean(a.logs))}
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            {a.update && outdated && (
+              <Button size="sm" onClick={() => useTools.getState().install(entry.id, { check: true })}>
+                {m.update(entry.name)}
+              </Button>
+            )}
+            {a.report && (
+              <ReportThis
+                what={`Syncing ${entry.name}`}
+                tool={entry.id}
+                error={failure.message || syncMessages.en.sync.adviceText("failed", "", "", false)}
+              />
+            )}
+          </div>
+          {details && <Disclosure summary={m.details}>{details}</Disclosure>}
+        </div>
+      )
   }
   return (
     <div

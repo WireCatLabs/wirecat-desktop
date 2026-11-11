@@ -106,7 +106,9 @@ export function Enrichment({ tool }: { tool: CatalogTool }) {
         <p className="max-w-[70ch] text-[0.875rem] leading-relaxed text-ink-dim">{m.measured(...measured)}</p>
       )}
       <Collapse open={state.isError}>
-        <ErrorNotice inline>{state.isError && m.readFailed(messageOf(state.error))}</ErrorNotice>
+        <ErrorNotice inline raw={state.isError ? messageOf(state.error) : null}>
+          {state.isError && m.readFailed}
+        </ErrorNotice>
       </Collapse>
       <AutoHeight swap={view} className="max-w-[44rem]">
         <Crossfade swap={view}>
@@ -286,6 +288,7 @@ function Consent(props: {
       {!preview && !error && <Skeleton className="h-[7.5rem] w-full" label={m.counting} />}
       {error && (
         <ErrorNotice
+          raw={error}
           inline
           action={
             <Button size="sm" variant="secondary" onClick={onRetry}>
@@ -293,7 +296,7 @@ function Consent(props: {
             </Button>
           }
         >
-          {m.previewFailed(error)}
+          {m.previewFailed}
         </ErrorNotice>
       )}
       {preview && target && (

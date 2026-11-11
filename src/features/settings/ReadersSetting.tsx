@@ -60,8 +60,8 @@ function Readers() {
         tooOldFor(error) ? (
           <p className="text-[0.95rem] text-ink-soft">{m.tooOld}</p>
         ) : (
-          <ErrorNotice inline>
-            {m.failed} {error}
+          <ErrorNotice raw={error} inline>
+            {m.failed}
           </ErrorNotice>
         )
       ) : readers === null ? (
@@ -74,8 +74,8 @@ function Readers() {
             <ReaderChoice readers={readers} describedBy={help} />
           )}
           <Collapse open={chooseError !== null}>
-            <ErrorNotice inline>
-              {m.chooseFailed} {chooseError}
+            <ErrorNotice raw={chooseError} inline>
+              {m.chooseFailed}
             </ErrorNotice>
           </Collapse>
           {old && <p className="max-w-[70ch] text-[0.9rem] text-ink-soft">{m.updateForAiModel}</p>}

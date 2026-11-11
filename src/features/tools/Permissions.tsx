@@ -194,10 +194,11 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
 
         {error && (
           <ErrorNotice
+            raw={error}
             inline
             action={<ReportThis what={`Reading ${tool.name} permissions`} tool={tool.id} error={error} />}
           >
-            {m.readFailed(error)}
+            {m.readFailed}
           </ErrorNotice>
         )}
         <Notes tool={tool} data={data} defaultsView={defaultsView} m={m} />
@@ -279,10 +280,11 @@ function Notes(props: { tool: CatalogTool; data: Data | null; defaultsView: bool
   if (data.commandsError)
     return (
       <ErrorNotice
+        raw={data.commandsError}
         inline
         action={<ReportThis what={`Listing ${tool.name} commands`} tool={tool.id} error={data.commandsError} />}
       >
-        {m.commandsFailed(data.commandsError)}
+        {m.commandsFailed}
       </ErrorNotice>
     )
   if (data.commands === null)

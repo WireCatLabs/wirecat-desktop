@@ -38,6 +38,7 @@ export type AdviceKind =
   | "busy"
   | "update"
   | "signedOut"
+  | "keyring"
   | "rateLimited"
   | "unreachable"
   | "refused"
@@ -64,6 +65,8 @@ export function advice(f: SyncFailure): Advice {
   if ((f.reason && BUSY.has(f.reason)) || f.code === "conflict") return { ...plain, kind: "busy", again: true }
   if (f.code === "configuration_error" && /newer version|schema/.test(f.message)) return { ...plain, kind: "update" }
   if (f.code === "authentication_error") return { ...plain, kind: "signedOut", signIn: true }
+  // The sign-in is there but the password store would not open: a network message here sends the owner the wrong way.
+  if (f.reason === "credentials.unreachable") return { ...plain, kind: "keyring", again: true, signIn: true }
   if (f.code === "rate_limited") return { ...plain, kind: "rateLimited", again: true }
   if (f.code === "network_error" || f.code === "provider_unavailable")
     return { ...plain, kind: "unreachable", again: true }

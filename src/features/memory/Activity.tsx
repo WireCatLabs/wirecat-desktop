@@ -45,9 +45,7 @@ export function Activity({ calls, error }: { calls: AgentCall[] | null; error: s
         </button>
       </div>
       {calls === null ? (
-        <ErrorNotice>
-          {m.activityFailed} {error}
-        </ErrorNotice>
+        <ErrorNotice raw={error}>{m.activityFailed}</ErrorNotice>
       ) : calls.length === 0 ? (
         <EmptyState>{m.activityNone}</EmptyState>
       ) : (

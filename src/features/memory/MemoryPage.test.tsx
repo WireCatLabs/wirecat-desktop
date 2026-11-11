@@ -311,9 +311,11 @@ describe("Memory", () => {
     vi.spyOn(platform, "memoryRead").mockResolvedValue({ ...read, linksError: "the program did not finish in time" })
     render(<MemoryPage />)
     await rack()
-    expect(screen.getByText(/Links between people and companies are not shown/)).toHaveTextContent(
-      "the program did not finish in time",
-    )
+    expect(screen.getByText("Could not read the links between people and companies.")).toBeInTheDocument()
+    expect(screen.queryByText(/did not finish in time/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Details" }))
+    expect(await screen.findByText("the program did not finish in time")).toBeInTheDocument()
+    expect(within(screen.getByRole("alert")).getByRole("button", { name: "Read again" })).toBeInTheDocument()
   })
   it("decides a mixed group: relationship proposals in one call, a memory on its own", async () => {
     const link = { ref: "relationship:5", type: "relationship", status: "proposed" } as MemoryEntry

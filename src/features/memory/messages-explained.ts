@@ -95,7 +95,7 @@ const en = {
   remove: "Remove link",
   removeHint: "Agents stop using this link. The people and the document stay.",
   removing: "Removing…",
-  editFailed: "Could not save:",
+  editFailed: "Could not save.",
 }
 
 const ru: typeof en = {
@@ -190,7 +190,7 @@ const ru: typeof en = {
   remove: "Удалить связь",
   removeHint: "Агенты перестанут использовать эту связь. Люди и документ останутся.",
   removing: "Удаляю…",
-  editFailed: "Не удалось сохранить:",
+  editFailed: "Не удалось сохранить.",
 }
 
 const es: typeof en = {
@@ -288,7 +288,7 @@ const es: typeof en = {
   remove: "Quitar vínculo",
   removeHint: "Los agentes dejan de usar este vínculo. Las personas y el documento se quedan.",
   removing: "Quitando…",
-  editFailed: "No se pudo guardar:",
+  editFailed: "No se pudo guardar.",
 }
 
 export const explainedMessages: Messages<typeof en> = { en, ru, es }

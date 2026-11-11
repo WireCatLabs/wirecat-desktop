@@ -46,8 +46,8 @@ export function PeoplePage() {
       />
 
       {s.error ? (
-        <ErrorNotice action={<ReportThis what="Reading people" error={s.error} />}>
-          {m.readFailed} {s.error}
+        <ErrorNotice raw={s.error} action={<ReportThis what="Reading people" error={s.error} />}>
+          {m.readFailed}
         </ErrorNotice>
       ) : gap ? (
         <ToolNeeded gap={gap} />

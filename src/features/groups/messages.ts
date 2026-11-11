@@ -45,7 +45,7 @@ const en = {
     version
       ? `Memo ${version} has no account groups yet. They arrive with the next Memo update.`
       : "This Memo has no account groups yet. They arrive with the next Memo update.",
-  readFailed: "Memo could not list the groups.",
+  readFailed: "Could not list the groups.",
   retry: "Try again",
   dismiss: "Dismiss",
   loading: "Loading account groups",
@@ -105,7 +105,7 @@ const ru: typeof en = {
     version
       ? `В Memo ${version} ещё нет групп аккаунтов. Они появятся со следующим обновлением Memo.`
       : "В этой версии Memo ещё нет групп аккаунтов. Они появятся со следующим обновлением Memo.",
-  readFailed: "Memo не смог показать группы.",
+  readFailed: "Не удалось показать группы.",
   retry: "Повторить",
   dismiss: "Скрыть",
   loading: "Загрузка групп аккаунтов",
@@ -163,7 +163,7 @@ const es: typeof en = {
     version
       ? `Memo ${version} aún no tiene grupos de cuentas. Llegan con la próxima actualización de Memo.`
       : "Este Memo aún no tiene grupos de cuentas. Llegan con la próxima actualización de Memo.",
-  readFailed: "Memo no pudo listar los grupos.",
+  readFailed: "No se pudieron listar los grupos.",
   retry: "Reintentar",
   dismiss: "Cerrar",
   loading: "Cargando grupos de cuentas",

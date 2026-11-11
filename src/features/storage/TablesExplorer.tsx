@@ -59,8 +59,12 @@ export function TablesExplorer({ answeredBy }: { answeredBy: string }) {
   return (
     <Frame count={tables ? main.length + search.length : null} className="reveal">
       {tablesError && (
-        <ErrorNotice inline action={<ReportThis what="Listing the storage tables" error={tablesError} />}>
-          {m.listError(tablesError)}
+        <ErrorNotice
+          raw={tablesError}
+          inline
+          action={<ReportThis what="Listing the storage tables" error={tablesError} />}
+        >
+          {m.listError}
         </ErrorNotice>
       )}
       {tables === null ? null : (

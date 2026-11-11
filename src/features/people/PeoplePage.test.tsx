@@ -275,10 +275,35 @@ describe("People", () => {
       .getAllByRole("listitem")
       .find((row) => row.textContent?.startsWith("Viktor Example")) as HTMLElement
     expect(viktor).toHaveTextContent("The accounts carry different names.")
-    expect(viktor).toHaveTextContent("MAX Mila Example")
-    await user.click(within(viktor).getByRole("button", { name: "Split…" }))
+    expect(viktor).toHaveTextContent("Mila Example")
+    expect(within(viktor).getByText("MAX")).toHaveClass("sr-only")
+    await user.click(within(viktor).getByRole("button", { name: "Split" }))
     const dialog = await screen.findByRole("dialog", { name: "Move accounts to a new person" })
     await waitFor(() => expect(within(dialog).getByRole("checkbox", { name: /Mila Example/ })).toBeChecked())
+  })
+
+  it("confirms a doubtful link so it stops being listed, and says so", async () => {
+    const keep = vi.spyOn(platform, "peopleKeep")
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    const viktor = () =>
+      within(panel)
+        .queryAllByRole("listitem")
+        .find((row) => row.textContent?.startsWith("Viktor Example"))
+    await user.click(within(viktor() as HTMLElement).getByRole("button", { name: "These belong together" }))
+    expect(keep).toHaveBeenCalledWith("person:40")
+    expect(await within(panel).findByText(/Viktor Example will not come up here again/)).toBeInTheDocument()
+    await waitFor(() => expect(viktor()).toBeUndefined())
+  })
+
+  it("says what to do when the tool cannot confirm a link yet", async () => {
+    vi.spyOn(platform, "peopleKeep").mockRejectedValue(new Error("memo.too-old"))
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const panel = await screen.findByRole("region", { name: /Check the links/ }, { timeout: 4000 })
+    await user.click(within(panel).getAllByRole("button", { name: "These belong together" })[0] as HTMLElement)
+    expect(await within(panel).findByText(/If the Tools page offers no update yet/)).toBeInTheDocument()
   })
 
   it("shows three people who share a phone as one card, joins the two the owner ticks, then keeps the third apart", async () => {

@@ -81,7 +81,8 @@ export function TokenStep({ tool }: { tool: CatalogTool }) {
   const s = useBotSignIn()
   const key = toolKey(tool.id)
   const shape = tool.bot?.token ?? "opaque"
-  const fields = tool.bot?.fields ?? []
+  const askSettings = !s.reconnecting || (s.failure !== null && botCause(s.failure) === "settings")
+  const fields = askSettings ? (tool.bot?.fields ?? []) : []
   const id = useId()
   const input = useRef<HTMLInputElement>(null)
   const [token, setToken] = useState("")

@@ -315,7 +315,7 @@ describe("the Sign in step", () => {
     })
     vi.spyOn(platform, "signInStop").mockResolvedValue()
 
-    await user.click(await within(screen.getByRole("main")).findByRole("button", { name: "Sign in again" }))
+    await user.click(await within(screen.getByRole("main")).findByRole("button", { name: "Reconnect" }))
     const dialog = await screen.findByRole("dialog")
     await user.click(within(dialog).getByRole("button", { name: planMessages.en.start }))
     await waitFor(() => expect(platform.signIn).toHaveBeenCalled())
@@ -340,7 +340,7 @@ describe("the Sign in step", () => {
     })
     vi.spyOn(platform, "signInStop").mockResolvedValue()
 
-    const rows = await within(screen.getByRole("main")).findAllByRole("button", { name: "Sign in again" })
+    const rows = await within(screen.getByRole("main")).findAllByRole("button", { name: "Reconnect" })
     await user.click(rows[0] as HTMLElement)
     const dialog = await screen.findByRole("dialog")
     await user.click(within(dialog).getByRole("button", { name: planMessages.en.start }))

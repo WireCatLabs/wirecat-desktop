@@ -12,6 +12,7 @@ import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
+import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
@@ -130,7 +131,9 @@ function DeleteDataChoice(props: {
       <div className="mt-2 ml-[1.6rem] min-h-[6rem]">
         {data.folders === null ? (
           data.error ? (
-            <ErrorNotice inline>{m.foldersFailed(data.error)}</ErrorNotice>
+            <ErrorNotice raw={data.error} inline>
+              {m.foldersFailed}
+            </ErrorNotice>
           ) : (
             <Skeleton className="h-[6rem] w-full" label={m.readingFolders} />
           )
@@ -163,7 +166,13 @@ export function ToolDetails({ tool }: { tool: CatalogTool }) {
   const m = t.details
 
   return (
-    <div className="grid gap-x-[2.4rem] gap-y-6 border-line border-t bg-app-2/60 px-[1.3rem] py-[1.4rem] lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">
+    <div
+      className={cx(
+        "grid gap-x-[2.4rem] gap-y-6 border-line border-t bg-app-2/60 px-[1.3rem] py-[1.4rem] lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]",
+        // Accounts and bots side by side need this room; a narrower "about" gives it to them.
+        tool.bot && "min-[106rem]:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]",
+      )}
+    >
       <Collapse open={installs.length > 1} frameClassName="lg:col-span-2">
         <ExtraCopies tool={tool} installs={installs} onRemove={setRemoving} />
       </Collapse>

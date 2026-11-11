@@ -52,16 +52,24 @@ export function ArchiveSummary() {
         {info === undefined ? (
           <ContentsSkeleton />
         ) : infoError ? (
-          <ErrorNotice inline action={<ReportThis what="Reading the message storage" error={infoError} />}>
-            {m.readError(infoError)}
+          <ErrorNotice
+            raw={infoError}
+            inline
+            action={<ReportThis what="Reading the message storage" error={infoError} />}
+          >
+            {m.readError}
           </ErrorNotice>
         ) : info === null ? (
           <p className="text-[0.95rem] text-ink-soft">{m.noTool}</p>
         ) : !info.exists ? (
           <p className="text-[0.95rem] text-ink-soft">{m.notCreated}</p>
         ) : info.problem ? (
-          <ErrorNotice inline action={<ReportThis what="Opening the message storage" error={info.problem} />}>
-            {m.didNotOpen(info.problem)}
+          <ErrorNotice
+            raw={info.problem}
+            inline
+            action={<ReportThis what="Opening the message storage" error={info.problem} />}
+          >
+            {m.didNotOpen}
           </ErrorNotice>
         ) : (
           <Contents info={info} />

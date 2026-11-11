@@ -102,6 +102,12 @@ pub async fn people_split_decide(
     .await
 }
 
+/// The owner says a person's accounts in doubt belong together, with memo's `people links resolve keep`.
+#[tauri::command]
+pub async fn people_keep(reference: String) -> Result<people::Kept, AppError> {
+    crate::log::command("people_keep", async move { attempt(move || people::keep(&reference)).await }).await
+}
+
 /// One page of the people whose identities look wrongly joined, from memo's `people links check`.
 #[tauri::command]
 pub async fn people_doubts(page: u32, size: u32) -> Result<people::Doubts, AppError> {

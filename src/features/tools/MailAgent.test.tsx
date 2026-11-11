@@ -68,13 +68,15 @@ it("turns it off with memo's remove", async () => {
   )
 })
 
-it("shows memo's own words when the schedule cannot be turned on, and leaves the switch off", async () => {
+it("says it could not turn on, keeps the tool's words under Details, and leaves the switch off", async () => {
   vi.spyOn(platform, "mailAgentStatus").mockResolvedValue({ state: "off", harness: true })
   vi.spyOn(platform, "mailAgentSet").mockRejectedValue(new Error("systemctl --user enable failed"))
   render(<MailAgent tool={email} />)
 
   fireEvent.click(await screen.findByRole("switch", { name: "Run on a schedule" }))
 
+  expect(await screen.findByRole("alert")).toHaveTextContent("Could not turn the mail agent on.")
+  fireEvent.click(screen.getByRole("button", { name: "Details" }))
   expect(await screen.findByRole("alert")).toHaveTextContent("systemctl --user enable failed")
   expect(screen.getByRole("switch", { name: "Run on a schedule" })).toHaveAttribute("aria-checked", "false")
 })

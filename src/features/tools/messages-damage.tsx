@@ -3,7 +3,7 @@ import type { Messages } from "@/i18n"
 const en = {
   title: "The message store needs recovery",
   checking: "Checking every page of the message store…",
-  failed: (error: string) => `Could not check the message store: ${error}`,
+  failed: "Could not check the message store.",
   impact: "What this means",
   causes: "Likely causes",
   check: "Copy the check",
@@ -24,7 +24,7 @@ const en = {
 const ru: typeof en = {
   title: "Хранилище сообщений нужно восстановить",
   checking: "Проверяю каждую страницу хранилища сообщений…",
-  failed: (error) => `Не удалось проверить хранилище сообщений: ${error}`,
+  failed: "Не удалось проверить хранилище сообщений.",
   impact: "Что это значит",
   causes: "Вероятные причины",
   check: "Скопировать проверку",
@@ -45,7 +45,7 @@ const ru: typeof en = {
 const es: typeof en = {
   title: "Hay que recuperar el almacén de mensajes",
   checking: "Comprobando cada página del almacén de mensajes…",
-  failed: (error) => `No se pudo comprobar el almacén de mensajes: ${error}`,
+  failed: "No se pudo comprobar el almacén de mensajes.",
   impact: "Qué significa",
   causes: "Causas probables",
   check: "Copiar la comprobación",

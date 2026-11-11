@@ -45,8 +45,8 @@ function Details({ reference }: { reference: string }) {
   if (detail.state === "failed")
     return (
       <div className={box}>
-        <ErrorNotice inline>
-          {m.personFailed} {detail.error}
+        <ErrorNotice raw={detail.error} inline>
+          {m.personFailed}
         </ErrorNotice>
       </div>
     )

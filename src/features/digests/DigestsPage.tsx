@@ -63,7 +63,9 @@ export function DigestsPage() {
       />
 
       {error && !book ? (
-        <ErrorNotice action={<ReportThis what="Reading digests" error={error} />}>{s.readFailed(error)}</ErrorNotice>
+        <ErrorNotice raw={error} action={<ReportThis what="Reading digests" error={error} />}>
+          {s.readFailed}
+        </ErrorNotice>
       ) : book === null ? (
         <Skeleton className="h-[14rem] w-full" label={m.reading} />
       ) : book.state === "noMemo" ? (

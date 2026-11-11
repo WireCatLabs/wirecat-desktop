@@ -13,6 +13,16 @@ export function usePersonName() {
   return (ref: string, listedName?: string | null) => known(ref, listedName) ?? m.noName
 }
 
+/** A person's real name for comparing two sides: `null` for "No name yet" and for the owner's "You". */
+export function useComparableName() {
+  const m = useMessages(peopleMessages)
+  const known = useKnownName()
+  return (ref: string) => {
+    const name = known(ref)
+    return name === m.you ? null : name
+  }
+}
+
 /** As `usePersonName`, but `null` where it would say "No name yet", so a caller can word that case itself. */
 export function useKnownName() {
   const m = useMessages(peopleMessages)

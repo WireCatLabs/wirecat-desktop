@@ -1,9 +1,8 @@
 import { CheckCircle2 } from "lucide-react"
 import { useId, useState } from "react"
-import { type CatalogTool, signsInHere } from "@/domain/catalog"
+import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import type { Background, BackgroundAction, BackgroundFault } from "@/platform/sync-schemas"
-import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -12,7 +11,7 @@ import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { useBackground, useProfiles, useRunBackground } from "./api"
 import { type ServiceText, serviceMessages } from "./messages-service"
-import { useTerminal } from "./terminal-store"
+import { reconnect, SignInLost } from "./SignInLost"
 
 type Done = { action: BackgroundAction; fault: null } | { action: BackgroundAction; fault: BackgroundFault }
 
@@ -70,10 +69,7 @@ function ServiceRow(props: { tool: CatalogTool; profile: string; signedIn: boole
         setDone({ action, fault: { kind: "other", message: e instanceof Error ? e.message : String(e) } }),
     })
   }
-  const signIn = () =>
-    signsInHere(tool)
-      ? useSignIn.getState().start(tool.id, profile, onSignedIn)
-      : useTerminal.getState().open(tool.id, profile)
+  const signIn = () => reconnect(tool, profile, onSignedIn)
 
   const running = state?.state === "running"
   const unit = state?.state === "stopped" ? state.unit : running ? state.startsAtLogin : null
@@ -138,7 +134,7 @@ function ServiceRow(props: { tool: CatalogTool; profile: string; signedIn: boole
             <StableText value={busy === "stop" ? m.working.stop : m.stop} variants={[m.stop, m.working.stop]} />
           </Button>
         )}
-        {unit === true && !needsSignIn && (
+        {atLogin === true && !needsSignIn && (
           <Button
             size="sm"
             variant="ghost"
@@ -157,7 +153,7 @@ function ServiceRow(props: { tool: CatalogTool; profile: string; signedIn: boole
           </Button>
         )}
       </div>
-      <Hints state={state} tool={tool} m={m} onSignIn={signIn} />
+      <Hints state={state} tool={tool} profile={profile} m={m} onSignIn={signIn} />
       <Result tool={tool} done={done} m={m} busy={busy !== null} go={go} signIn={signIn} />
     </li>
   )
@@ -166,34 +162,28 @@ function ServiceRow(props: { tool: CatalogTool; profile: string; signedIn: boole
 function Hints({
   state,
   tool,
+  profile,
   m,
   onSignIn,
 }: {
   state: Background | null
   tool: CatalogTool
+  profile: string
   m: ServiceText
   onSignIn: () => void
 }) {
   const offline = state?.state === "running" && state.connected === false && tool.id === "wa"
   const gaveUp = state?.state === "stopped" ? state.stoppedFor : null
-  const text = offline
-    ? m.phoneOffline
-    : gaveUp
-      ? gaveUp === "authentication_error"
-        ? m.gaveUpSignedOut
-        : m.gaveUp
-      : null
+  const lost = gaveUp === "authentication_error"
+  const text = offline ? m.phoneOffline : gaveUp && !lost ? m.gaveUp : null
+  if (lost)
+    return <SignInLost tool={tool} profile={profile} onReconnect={onSignIn} details={<p>{m.gaveUpSignedOut}</p>} />
   return (
     <Collapse open={text !== null}>
       <div className="flex flex-wrap items-center gap-3 text-[0.875rem] text-ink-soft">
         <p className="min-w-0 flex-1 basis-[16rem]" role="status">
           {text}
         </p>
-        {gaveUp === "authentication_error" && (
-          <Button size="sm" variant="secondary" onClick={onSignIn}>
-            {m.signIn}
-          </Button>
-        )}
       </div>
     </Collapse>
   )

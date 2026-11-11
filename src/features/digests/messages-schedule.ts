@@ -8,7 +8,7 @@ const unitOf = (minutes: number): ["day" | "hour" | "minute", number] =>
 
 const en = {
   title: "Morning digest schedule",
-  readFailed: (message: string) => `Could not read the schedules: ${message}`,
+  readFailed: "Could not read the schedules.",
   toggle: "Write the digest every morning",
   daily: (time: string) => `Every day at ${time}`,
   when: (when: string) => `Runs ${when}`,
@@ -39,7 +39,7 @@ const en = {
     kind === "email" ? "Choose an account and type an address first." : "Choose an account and type a chat id first.",
   removeRoute: (route: string) => `Remove ${route}`,
   caps: (run: string, day: string) => `At most ${run} a run and ${day} a day.`,
-  failedSave: (message: string) => `Could not save the schedule: ${message}`,
+  failedSave: "Could not save the schedule.",
   failedRemove: (message: string) => `Could not turn the schedule off: ${message}`,
   failedRun: (message: string) => `Could not run the digest: ${message}`,
   confirmTitle: "Run the morning digest now?",
@@ -99,7 +99,7 @@ const en = {
 
 const ru: typeof en = {
   title: "Расписание утренней сводки",
-  readFailed: (message) => `Не удалось прочитать расписания: ${message}`,
+  readFailed: "Не удалось прочитать расписания.",
   toggle: "Писать сводку каждое утро",
   daily: (time) => `Каждый день в ${time}`,
   when: (when) => `Запуск: ${when}`,
@@ -139,7 +139,7 @@ const ru: typeof en = {
     kind === "email" ? "Сначала выберите аккаунт и введите адрес." : "Сначала выберите аккаунт и введите id чата.",
   removeRoute: (route) => `Убрать ${route}`,
   caps: (run, day) => `Не больше ${run} за запуск и ${day} в день.`,
-  failedSave: (message) => `Не удалось сохранить расписание: ${message}`,
+  failedSave: "Не удалось сохранить расписание.",
   failedRemove: (message) => `Не удалось выключить расписание: ${message}`,
   failedRun: (message) => `Не удалось запустить сводку: ${message}`,
   confirmTitle: "Запустить утреннюю сводку сейчас?",
@@ -211,7 +211,7 @@ const ru: typeof en = {
 
 const es: typeof en = {
   title: "Horario del resumen matutino",
-  readFailed: (message) => `No se pudieron leer los horarios: ${message}`,
+  readFailed: "No se pudieron leer los horarios.",
   toggle: "Escribir el resumen cada mañana",
   daily: (time) => `Cada día a las ${time}`,
   when: (when) => `Se ejecuta: ${when}`,
@@ -245,7 +245,7 @@ const es: typeof en = {
       : "Primero elige una cuenta y escribe un id de chat.",
   removeRoute: (route) => `Quitar ${route}`,
   caps: (run, day) => `Como mucho ${run} por ejecución y ${day} al día.`,
-  failedSave: (message) => `No se pudo guardar el horario: ${message}`,
+  failedSave: "No se pudo guardar el horario.",
   failedRemove: (message) => `No se pudo desactivar el horario: ${message}`,
   failedRun: (message) => `No se pudo ejecutar el resumen: ${message}`,
   confirmTitle: "¿Ejecutar el resumen matutino ahora?",

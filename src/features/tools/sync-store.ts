@@ -1,11 +1,12 @@
 import { create } from "zustand"
 import { findTool, ownerId, syncNeedsProfile, syncsHere } from "@/domain/catalog"
-import { failureSuperseded, type SyncFailure, type SyncSummary } from "@/domain/sync"
+import { advice, failureSuperseded, type SyncFailure, type SyncSummary } from "@/domain/sync"
 import type { SyncSchedule } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import type { LastSync, SyncEvent } from "@/platform/sync-schemas"
 import { markStale } from "@/shared/fresh"
 import { listProfiles } from "@/shared/query"
+import { useSignIn } from "@/shared/signin-store"
 
 export type SyncRun = {
   phase: "running" | "done" | "stopped" | "failed"
@@ -218,4 +219,11 @@ export const useSync = create<State>()((set, get) => {
       )
     },
   }
+})
+
+useSignIn.subscribe((now, before) => {
+  if (now.phase !== "done" || before.phase === "done" || !now.tool || !now.profile) return
+  const { runs, dismiss } = useSync.getState()
+  const run = runs[syncKey(now.tool, now.profile)]
+  if (run?.phase === "failed" && run.failure && advice(run.failure).kind === "signedOut") dismiss(now.tool, now.profile)
 })

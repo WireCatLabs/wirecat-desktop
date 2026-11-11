@@ -28,7 +28,7 @@ const en = {
   byYear: "Messages by year",
   noStore: "Nothing is stored yet. Install a tool and sync it, and its data shows here.",
   noTool: "No WireCat tool is installed to read the storage.",
-  storeError: (e: string) => `Could not read the storage: ${e}`,
+  storeError: "Could not read the storage.",
   noBreakdown: "This tool's version does not break storage down by source. Update it on the Tools page.",
 
   activity: "Messages over time",
@@ -79,7 +79,7 @@ const en = {
   madeChart: "Tasks made and closed",
   allTimeClosed: "Bars for all time come with a WireCat update; the totals above are complete.",
   madeLater: "How many tasks were made each week arrives with a WireCat update.",
-  tasksError: (e: string) => `Could not read the tasks: ${e}`,
+  tasksError: "Could not read the tasks.",
 
   memory: "Memory",
   memories: "Memories",
@@ -99,7 +99,7 @@ const en = {
   latest500: "From the latest 500 of each; older ones are not counted here yet.",
   memoryMissing: "Memory comes with Memo. Install it on the Tools page.",
   memoryOld: "Update Memo on the Tools page to see its memory here.",
-  memoryError: (e: string) => `Could not read the memory: ${e}`,
+  memoryError: "Could not read the memory.",
   noMemory: "Nothing remembered yet.",
 
   helps: "How WireCat helps",
@@ -113,7 +113,7 @@ const en = {
   helpsNote:
     "Counted from the runs each tool keeps, up to 500 per tool; WireCat's own checks are left out. A tool that keeps only failed runs shows fewer.",
   noRuns: "No agent used the tools in this period.",
-  runsError: (e: string) => `Could not read the runs: ${e}`,
+  runsError: "Could not read the runs.",
 
   explore: "Explore",
   measureLabel: "Show",
@@ -290,7 +290,7 @@ const ru: typeof en = {
   byYear: "Сообщения по годам",
   noStore: "Пока ничего не сохранено. Установите инструмент и синхронизируйте его, и его данные появятся здесь.",
   noTool: "Не установлен ни один инструмент WireCat, который мог бы прочитать хранилище.",
-  storeError: (e) => `Не удалось прочитать хранилище: ${e}`,
+  storeError: "Не удалось прочитать хранилище.",
   noBreakdown: "Эта версия инструмента не разбивает хранилище по источникам. Обновите её на странице «Инструменты».",
 
   activity: "Сообщения по времени",
@@ -340,7 +340,7 @@ const ru: typeof en = {
   madeChart: "Созданные и закрытые задачи",
   allTimeClosed: "Столбцы за всё время появятся с обновлением WireCat; итоги выше полные.",
   madeLater: "Сколько задач создано за каждую неделю, появится с обновлением WireCat.",
-  tasksError: (e) => `Не удалось прочитать задачи: ${e}`,
+  tasksError: "Не удалось прочитать задачи.",
 
   memory: "Память",
   memories: "Воспоминания",
@@ -360,7 +360,7 @@ const ru: typeof en = {
   latest500: "По последним 500 каждого вида; более старые здесь пока не считаются.",
   memoryMissing: "Память приходит с Memo. Установите его на странице «Инструменты».",
   memoryOld: "Обновите Memo на странице «Инструменты», чтобы видеть здесь память.",
-  memoryError: (e) => `Не удалось прочитать память: ${e}`,
+  memoryError: "Не удалось прочитать память.",
   noMemory: "Пока ничего не запомнено.",
 
   helps: "Как помогает WireCat",
@@ -374,7 +374,7 @@ const ru: typeof en = {
   helpsNote:
     "Посчитано по запускам, которые хранит каждый инструмент, до 500 на инструмент; собственные проверки WireCat не учитываются. Инструмент, который хранит только неудачные запуски, покажет меньше.",
   noRuns: "За этот период агенты не пользовались инструментами.",
-  runsError: (e) => `Не удалось прочитать запуски: ${e}`,
+  runsError: "Не удалось прочитать запуски.",
 
   explore: "Исследовать",
   measureLabel: "Показать",
@@ -546,7 +546,7 @@ const es: typeof en = {
   byYear: "Mensajes por año",
   noStore: "Todavía no hay nada guardado. Instala una herramienta y sincronízala, y sus datos aparecerán aquí.",
   noTool: "No hay ninguna herramienta de WireCat instalada que pueda leer el almacenamiento.",
-  storeError: (e) => `No se pudo leer el almacenamiento: ${e}`,
+  storeError: "No se pudo leer el almacenamiento.",
   noBreakdown: "Esta versión de la herramienta no desglosa el almacenamiento por fuente. Actualízala en Herramientas.",
 
   activity: "Mensajes en el tiempo",
@@ -598,7 +598,7 @@ const es: typeof en = {
   allTimeClosed:
     "Las barras de todo el periodo llegan con una actualización de WireCat; los totales de arriba están completos.",
   madeLater: "Cuántas tareas se crearon cada semana llega con una actualización de WireCat.",
-  tasksError: (e) => `No se pudieron leer las tareas: ${e}`,
+  tasksError: "No se pudieron leer las tareas.",
 
   memory: "Memoria",
   memories: "Recuerdos",
@@ -618,7 +618,7 @@ const es: typeof en = {
   latest500: "De los últimos 500 de cada tipo; los más antiguos aún no se cuentan aquí.",
   memoryMissing: "La memoria viene con Memo. Instálalo en Herramientas.",
   memoryOld: "Actualiza Memo en Herramientas para ver aquí su memoria.",
-  memoryError: (e) => `No se pudo leer la memoria: ${e}`,
+  memoryError: "No se pudo leer la memoria.",
   noMemory: "Todavía no hay nada recordado.",
 
   helps: "Cómo ayuda WireCat",
@@ -632,7 +632,7 @@ const es: typeof en = {
   helpsNote:
     "Contado a partir de las ejecuciones que guarda cada herramienta, hasta 500 por herramienta; las comprobaciones de WireCat quedan fuera. Una herramienta que solo guarda las fallidas muestra menos.",
   noRuns: "Ningún agente usó las herramientas en este periodo.",
-  runsError: (e) => `No se pudieron leer las ejecuciones: ${e}`,
+  runsError: "No se pudieron leer las ejecuciones.",
 
   explore: "Explorar",
   measureLabel: "Mostrar",

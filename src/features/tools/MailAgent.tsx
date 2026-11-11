@@ -165,15 +165,15 @@ export function MailAgent({ tool }: { tool: CatalogTool }) {
       </Collapse>
       <Collapse open={state?.state === "on"}>{state?.state === "on" && <Status state={state} m={m} />}</Collapse>
       <Collapse open={failure !== null}>
-        <ErrorNotice inline>
+        <ErrorNotice inline raw={failure?.message ?? null}>
           {failure &&
             (failure.on === null
-              ? m.readFailed(failure.message)
+              ? m.readFailed
               : failure.every
-                ? m.failedEvery(failure.message)
+                ? m.failedEvery
                 : failure.on
-                  ? m.failedOn(failure.message)
-                  : m.failedOff(failure.message))}
+                  ? m.failedOn
+                  : m.failedOff)}
         </ErrorNotice>
       </Collapse>
       <Collapse open={waiting !== null}>

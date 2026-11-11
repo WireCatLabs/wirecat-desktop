@@ -95,8 +95,8 @@ export function SourceContextView({ reference }: { reference: string }) {
   if (ctx.state === "failed")
     return (
       <div className={box}>
-        <ErrorNotice inline>
-          {m.contextFailed} {ctx.error}
+        <ErrorNotice raw={ctx.error} inline>
+          {m.contextFailed}
         </ErrorNotice>
       </div>
     )
@@ -124,8 +124,8 @@ export function SourceContextView({ reference }: { reference: string }) {
               {m.openFile}
             </Button>
             {opening && opening !== "busy" && (
-              <ErrorNotice inline>
-                {m.contextFailed} {opening}
+              <ErrorNotice raw={opening} inline>
+                {m.contextFailed}
               </ErrorNotice>
             )}
           </span>
@@ -167,8 +167,8 @@ export function Sources({ entry }: { entry: MemoryEntry }) {
     )
   if (sources.state === "failed")
     return (
-      <ErrorNotice inline>
-        {m.sourcesFailed} {sources.error}
+      <ErrorNotice raw={sources.error} inline>
+        {m.sourcesFailed}
       </ErrorNotice>
     )
   return (

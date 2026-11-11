@@ -100,6 +100,28 @@ const en = {
   bot: "Bot",
   tokenInFile: "token in a file",
   tokenInEnv: "token from the environment",
+  checkAgain: "Check again",
+  checkingBots: "Checking…",
+  botRegion: (name: string) => `Bot ${name}`,
+  statusOk: "Works",
+  statusRefused: "Token refused",
+  statusUnknown: "Not checked",
+  refusedHelp: (service: string) =>
+    `${service} no longer accepts this bot's token. It may have been changed or revoked. Get a new token and reconnect.`,
+  unknownHelp: (service: string) =>
+    `Could not reach ${service} to check this bot. Check the connection, then check again.`,
+  reconnect: "Reconnect",
+  reconnectNamed: (name: string) => `Reconnect bot ${name}`,
+  remove: "Remove",
+  removeNamed: (name: string) => `Remove bot ${name}`,
+  removeTitle: (name: string) => `Remove bot ${name}?`,
+  removeBody: (service: string) =>
+    `WireCat forgets this bot's token on this computer, so agents can no longer use it. The bot itself stays in ${service}.`,
+  removeConfirm: "Remove bot",
+  removing: "Removing…",
+  removeFailed:
+    "The bot was not removed. Check again in a moment; if it keeps failing, unlock the system password store.",
+  details: "Details",
   announce: {
     checking: "Checking the token.",
     connected: "The bot is connected. Press Done to close.",
@@ -205,6 +227,28 @@ const ru: typeof en = {
   bot: "Бот",
   tokenInFile: "токен в файле",
   tokenInEnv: "токен из переменной окружения",
+  checkAgain: "Проверить снова",
+  checkingBots: "Проверяю…",
+  botRegion: (name) => `Бот ${name}`,
+  statusOk: "Работает",
+  statusRefused: "Токен не принят",
+  statusUnknown: "Не проверен",
+  refusedHelp: (service) =>
+    `${service} больше не принимает токен этого бота. Возможно, его сменили или отозвали. Получите новый токен и переподключите бота.`,
+  unknownHelp: (service) =>
+    `Не удалось связаться с ${service}, чтобы проверить бота. Проверьте подключение и нажмите «Проверить снова».`,
+  reconnect: "Переподключить",
+  reconnectNamed: (name) => `Переподключить бота ${name}`,
+  remove: "Удалить",
+  removeNamed: (name) => `Удалить бота ${name}`,
+  removeTitle: (name) => `Удалить бота ${name}?`,
+  removeBody: (service) =>
+    `WireCat забудет токен этого бота на этом компьютере, и агенты больше не смогут им пользоваться. Сам бот останется в ${service}.`,
+  removeConfirm: "Удалить бота",
+  removing: "Удаляю…",
+  removeFailed:
+    "Бот не удалён. Попробуйте ещё раз через минуту; если не выходит, разблокируйте системное хранилище паролей.",
+  details: "Подробнее",
   announce: {
     checking: "Проверяем токен.",
     connected: "Бот подключён. Нажмите «Готово», чтобы закрыть.",
@@ -309,6 +353,28 @@ const es: typeof en = {
   bot: "Bot",
   tokenInFile: "token en un archivo",
   tokenInEnv: "token del entorno",
+  checkAgain: "Comprobar de nuevo",
+  checkingBots: "Comprobando…",
+  botRegion: (name) => `Bot ${name}`,
+  statusOk: "Funciona",
+  statusRefused: "Token rechazado",
+  statusUnknown: "Sin comprobar",
+  refusedHelp: (service) =>
+    `${service} ya no acepta el token de este bot. Puede que se haya cambiado o revocado. Consigue un token nuevo y vuelve a conectarlo.`,
+  unknownHelp: (service) =>
+    `No se pudo contactar con ${service} para comprobar este bot. Revisa la conexión y comprueba de nuevo.`,
+  reconnect: "Reconectar",
+  reconnectNamed: (name) => `Reconectar el bot ${name}`,
+  remove: "Eliminar",
+  removeNamed: (name) => `Eliminar el bot ${name}`,
+  removeTitle: (name) => `¿Eliminar el bot ${name}?`,
+  removeBody: (service) =>
+    `WireCat olvida el token de este bot en este ordenador, y los agentes ya no podrán usarlo. El bot sigue en ${service}.`,
+  removeConfirm: "Eliminar el bot",
+  removing: "Eliminando…",
+  removeFailed:
+    "El bot no se eliminó. Inténtalo de nuevo en un momento; si sigue fallando, desbloquea el almacén de contraseñas del sistema.",
+  details: "Detalles",
   announce: {
     checking: "Comprobando el token.",
     connected: "El bot está conectado. Pulsa Listo para cerrar.",

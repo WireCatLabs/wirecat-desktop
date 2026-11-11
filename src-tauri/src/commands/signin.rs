@@ -71,6 +71,26 @@ pub async fn list_bots(id: String) -> Result<Vec<bots::BotProfile>, AppError> {
     .await
 }
 
+/// The same list after the tool asked the messenger about each token.
+#[tauri::command]
+pub async fn check_bots(id: String) -> Result<Vec<bots::BotProfile>, AppError> {
+    crate::log::command("check_bots", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || bots::check_all(tool)).await
+    })
+    .await
+}
+
+/// Forgets one bot's token on this computer, with the tool's own `bot auth remove`.
+#[tauri::command]
+pub async fn remove_bot(id: String, profile: String) -> Result<(), AppError> {
+    crate::log::command("remove_bot", async move {
+        let tool = known_tool(&id)?;
+        attempt(move || bots::remove(tool, &profile)).await
+    })
+    .await
+}
+
 /// Hands the running sign-in the answer to its last `needs` step, on its stdin; the value is wiped after the write.
 #[tauri::command]
 pub fn sign_in_answer(id: String, value: String) -> Result<(), AppError> {

@@ -17,10 +17,19 @@ type BotSignInState = {
   failure: BotFailure | null
   /** Every bot name of each tool on this computer; undefined until read, null when the read failed. */
   bots: Record<string, BotProfile[] | null | undefined>
+  /** What the messenger answered about each bot; undefined while it is being asked, null when it could not be. */
+  checked: Record<string, BotProfile[] | null | undefined>
+  /** A new token only: the bot's saved settings stay, so the form does not ask for them. */
+  reconnecting: boolean
   run: number
   onFinish: (() => void) | null
   open(tool: string, onFinish?: () => void): void
+  /** A new token for a bot that already has a name: straight to the token step. */
+  reconnect(tool: string, profile: string): void
   loadBots(tool: string): Promise<void>
+  checkBots(tool: string): Promise<void>
+  /** Rejects with the tool's words; the dialog that asked shows them. */
+  removeBot(tool: string, profile: string): Promise<void>
   toToken(profile: string): void
   back(): void
   setField(key: string, value: string): void
@@ -32,6 +41,7 @@ type BotSignInState = {
 const closed = {
   tool: null,
   step: "name" as BotStep,
+  reconnecting: false,
   profile: "",
   fields: {},
   checking: false,
@@ -40,15 +50,38 @@ const closed = {
   onFinish: null,
 }
 
+const checkSeq: Record<string, number> = {}
+
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
 export const useBotSignIn = create<BotSignInState>()((set, get) => ({
   ...closed,
   bots: {},
+  checked: {},
   run: 0,
   open(tool, onFinish) {
     set({ ...closed, tool, run: get().run + 1, onFinish: onFinish ?? null })
     void get().loadBots(tool)
+  },
+  reconnect(tool, profile) {
+    set({ ...closed, tool, profile, step: "token", reconnecting: true, run: get().run + 1 })
+  },
+  async checkBots(tool) {
+    const seq = (checkSeq[tool] ?? 0) + 1
+    checkSeq[tool] = seq
+    const answer = (list: BotProfile[] | null) => {
+      if (checkSeq[tool] === seq) set((s) => ({ checked: { ...s.checked, [tool]: list } }))
+    }
+    set((s) => ({ checked: { ...s.checked, [tool]: undefined } }))
+    try {
+      answer(await platform.checkBots(tool))
+    } catch {
+      answer(null)
+    }
+  },
+  async removeBot(tool, profile) {
+    await platform.removeBot(tool, profile)
+    await get().loadBots(tool)
   },
   async loadBots(tool) {
     try {
@@ -62,7 +95,7 @@ export const useBotSignIn = create<BotSignInState>()((set, get) => ({
     set({ profile, step: "token", failure: null })
   },
   back() {
-    if (!get().checking) set({ step: "name", failure: null })
+    if (!get().checking) set({ step: "name", reconnecting: false, failure: null })
   },
   setField(key, value) {
     set((s) => ({ fields: { ...s.fields, [key]: value.trim() } }))
@@ -79,6 +112,7 @@ export const useBotSignIn = create<BotSignInState>()((set, get) => ({
       result = { outcome: "failed", message: message(e), code: null, reason: null }
     }
     void get().loadBots(tool)
+    if (result.outcome === "connected") void get().checkBots(tool)
     if (!mine()) return
     if (result.outcome === "connected") {
       set({ checking: false, connected: result, step: "done" })

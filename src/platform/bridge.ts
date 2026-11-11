@@ -275,6 +275,9 @@ function createTauri(): Platform {
     peopleSplitDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_split_decide", { reference: ref, id, answer, reason: reason ?? null }),
     peopleDoubts: (page, size) => call(DoubtsSchema, "people_doubts", { page, size }),
+    peopleKeep: async (reference) => {
+      await invoke("people_keep", { reference })
+    },
     peopleMerge: (refs) => call(MergedSchema, "people_merge", { references: refs }),
     peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
     peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),
@@ -344,6 +347,8 @@ function createTauri(): Platform {
     driveFolderRemove: (id, profile, folder) => invoke("drive_folder_remove", { id, profile, folder }),
     botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
     listBots: (id) => invoke("list_bots", { id }),
+    checkBots: (id) => invoke("check_bots", { id }),
+    removeBot: (id, profile) => invoke("remove_bot", { id, profile }),
     syncRun: (id, profile, onEvent) => {
       const channel = new Channel<SyncEvent>()
       channel.onmessage = onEvent

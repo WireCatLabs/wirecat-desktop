@@ -89,7 +89,7 @@ describe("First start", () => {
     const telegram = await within(signIn).findByRole("list", { name: "Telegram accounts" })
     const personal = within(telegram).getByRole("listitem", { name: "Telegram account personal" })
     expect(within(personal).getByText("signed in")).toBeInTheDocument()
-    await user.click(within(telegram).getByRole("button", { name: "Sign in again" }))
+    await user.click(within(telegram).getByRole("button", { name: "Reconnect" }))
     const dialog = await screen.findByRole("dialog", { name: "Sign in to Telegram" })
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Sign in to Telegram" })).toBeNull())

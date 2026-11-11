@@ -1,5 +1,6 @@
 import type { PeopleReason } from "@/domain/people"
 import { type Messages, plural } from "@/i18n"
+import type { MatchFact } from "./contacts"
 
 const en = {
   title: "Contacts",
@@ -8,7 +9,7 @@ const en = {
   guide: "How people are joined",
   readAgain: "Read again",
   reading: "Reading…",
-  readFailed: "Could not read the people:",
+  readFailed: "Could not read the people.",
   waiting: (n: number) => plural("en", n, { one: "# match waits for you", other: "# matches wait for you" }),
   waitingHelp: "People who may be in WireCat more than once. Join them only if you know they are the same person.",
   search: "Find by name, phone or address",
@@ -20,7 +21,7 @@ const en = {
   noName: "No name yet",
   rows: "Contacts",
   loadingPerson: "Reading this person…",
-  personFailed: "Could not read this person:",
+  personFailed: "Could not read this person.",
   accounts: "Accounts",
   accountsHelp: "Each account and where it was seen. Personal and work show which side of your life saw it.",
   atWork: "work",
@@ -62,6 +63,14 @@ const en = {
     email: "Email",
     "guest-email": "Meeting guest's email",
   } as Record<string, string>,
+  factsLead: "Same:",
+  factNames: {
+    name: "Name",
+    phone: "Phone",
+    email: "Email",
+    domain: "Domain",
+    chat: "A chat they are both in",
+  } as Record<MatchFact["kind"], string>,
   same: "same",
   phoneHidden: "number hidden: accounts keep only its fingerprint",
   phoneHiddenTip:
@@ -139,7 +148,8 @@ const en = {
   companyMailbox: "Company mailbox",
   companyDone: (mailbox: string) =>
     `${mailbox} is a company's mailbox now. The people stay apart and are not suggested again on it.`,
-  companyFailed: "Memo did not take it.",
+  companyFailed: "It was not saved.",
+  ruleFallback: "These look like the same person. Compare the details below.",
   companyReasons: {
     "organization.unnamed": "This is a free mail address, so WireCat cannot tell the company. Type its name.",
     "organization.ambiguous": "More than one company has this address. Pick the one it belongs to.",
@@ -180,7 +190,12 @@ const en = {
   reasons: {
     "identity.stale": "One of them changed since WireCat suggested this. Read again and look at the match once more.",
     "identity.owner-only": "Only you can do this, from WireCat or at a terminal.",
-    "person.not-found": "This person is not in Memo any more. Read again.",
+    "person.not-found": "This person is gone: they were joined with someone or removed. Read the list again.",
+    "person.unknown": "This person is gone: they were joined with someone or removed. Read the list again.",
+    "person.no-doubt": "There is no doubt about this person any more. Read the list again.",
+    "person.test-data": "These accounts look like test data, so they cannot be confirmed. Open the card to check them.",
+    "memo.too-old":
+      "Confirming needs a newer version of WireCat's tools. If the Tools page offers no update yet, it comes with the next one.",
     "proposal.wrong-state": "This match was already decided. Read again.",
   } satisfies Record<PeopleReason, string>,
   merge: "Merge",
@@ -214,7 +229,7 @@ const en = {
   openShort: "Open",
   openChat: (chat: string) => `Open the conversation in ${chat}`,
   contactIn: (source: string) => `${source} contact`,
-  profileFailed: "Could not read their history:",
+  profileFailed: "Could not read their history.",
   splitsWaiting: (n: number) => (n === 1 ? "An agent asks to split one person" : `Agents ask to split ${n} people`),
   splitsHelp: "An agent thinks some accounts of a person belong to someone else. Split them only if you agree.",
   splitsToo: (n: number) =>
@@ -240,17 +255,21 @@ const en = {
   },
   doubtsTitle: "Check the links",
   doubtsCount: (n: number) => (n === 1 ? "1 person to check" : `${n} people to check`),
-  doubtsHelp: "Memo found people whose accounts may not all be theirs. Look at each one and split it if it is wrong.",
+  doubtsHelp:
+    "We found people whose accounts may not all be theirs. Check each one. If it is right, press «These belong together» and they will not come up here again. If an account is someone else's, move it away.",
   doubtReasons: {
     "owner-other-name": "An account of yours carries someone else's name.",
     "test-data": "These accounts look like test data, not a real person.",
     "shared-address": "This address is shared by several people, such as a team inbox.",
     "mixed-names": "The accounts carry different names.",
   } as Record<string, string>,
-  doubtOther: "Memo is not sure these accounts belong together.",
-  doubtSplit: "Split…",
-  doubtOpen: "Open",
-  doubtsFailed: "Could not check the links:",
+  doubtOther: "We are not sure these accounts belong to one person.",
+  doubtSplit: "Split",
+  doubtKeep: "These belong together",
+  doubtKeeping: "Saving…",
+  doubtKept: (name: string) => `Saved: ${name} will not come up here again unless an account moves.`,
+  doubtTestHelp: "Nothing to confirm here. If this is a real person, open the card and check the accounts.",
+  doubtsFailed: "Could not check the links.",
   doubtsShow: "Show",
   doubtsHide: "Hide",
   doubtsPages: "Pages of people to check",
@@ -263,7 +282,7 @@ const ru: typeof en = {
   guide: "Как объединяются люди",
   readAgain: "Прочитать заново",
   reading: "Читаем…",
-  readFailed: "Не удалось прочитать список людей:",
+  readFailed: "Не удалось прочитать список людей.",
   waiting: (n: number) =>
     plural("ru", n, {
       one: "# совпадение ждёт вас",
@@ -282,7 +301,7 @@ const ru: typeof en = {
   noName: "Без имени",
   rows: "Контакты",
   loadingPerson: "Читаем этого человека…",
-  personFailed: "Не удалось прочитать этого человека:",
+  personFailed: "Не удалось прочитать этого человека.",
   accounts: "Аккаунты",
   accountsHelp: "Каждый аккаунт и где он встречался. Личное и рабочее показывают, какая часть вашей жизни его видела.",
   atWork: "работа",
@@ -331,6 +350,11 @@ const ru: typeof en = {
     email: "Почта",
     "guest-email": "Почта гостя встречи",
   },
+  factsLead: "Совпадает:",
+  factNames: { name: "Имя", phone: "Телефон", email: "Почта", domain: "Домен", chat: "Общий чат" } as Record<
+    MatchFact["kind"],
+    string
+  >,
   same: "одинаковый",
   phoneHidden: "номер скрыт: в аккаунтах только отпечаток",
   phoneHiddenTip:
@@ -421,7 +445,8 @@ const ru: typeof en = {
   companyMailbox: "Ящик компании",
   companyDone: (mailbox: string) =>
     `${mailbox} теперь ящик компании. Люди остаются раздельно, и WireCat больше не предложит их по этому адресу.`,
-  companyFailed: "Memo не принял это.",
+  companyFailed: "Это не сохранилось.",
+  ruleFallback: "Похоже, это один человек. Сравните данные ниже.",
   companyReasons: {
     "organization.unnamed": "Это адрес бесплатной почты, по нему не понять компанию. Введите ее название.",
     "organization.ambiguous": "Этот адрес есть у нескольких компаний. Выберите, чей он.",
@@ -463,7 +488,13 @@ const ru: typeof en = {
     "identity.stale":
       "Кто-то из них изменился после предложения. Прочитайте заново и посмотрите на совпадение ещё раз.",
     "identity.owner-only": "Это можете сделать только вы, из WireCat или в терминале.",
-    "person.not-found": "Этого человека больше нет в Memo. Прочитайте заново.",
+    "person.not-found": "Этого человека больше нет: его объединили с другим или удалили. Прочитайте список заново.",
+    "person.unknown": "Этого человека больше нет: его объединили с другим или удалили. Прочитайте список заново.",
+    "person.no-doubt": "Сомнений в этом человеке больше нет. Прочитайте список заново.",
+    "person.test-data":
+      "Эти аккаунты похожи на тестовые данные, поэтому их нельзя подтвердить. Откройте карточку, чтобы проверить.",
+    "memo.too-old":
+      "Для подтверждения нужна новая версия инструментов WireCat. Если на странице «Инструменты» обновления ещё нет, оно придёт со следующим.",
     "proposal.wrong-state": "По этому совпадению уже решили. Прочитайте заново.",
   },
   merge: "Объединить",
@@ -497,7 +528,7 @@ const ru: typeof en = {
   openShort: "Открыть",
   openChat: (chat: string) => `Открыть переписку в ${chat}`,
   contactIn: (source: string) => `Контакт ${source}`,
-  profileFailed: "Не удалось прочитать историю:",
+  profileFailed: "Не удалось прочитать историю.",
   splitsWaiting: (n: number) =>
     n === 1 ? "Агент предлагает разделить человека" : `Агенты предлагают разделить людей: ${n}`,
   splitsHelp: "Агент считает, что часть аккаунтов человека принадлежит другому. Разделяйте, только если согласны.",
@@ -524,17 +555,20 @@ const ru: typeof en = {
   doubtsTitle: "Проверить связи",
   doubtsCount: (n: number) => `Людей на проверку: ${n}`,
   doubtsHelp:
-    "Memo нашёл людей, у которых, возможно, есть чужие аккаунты. Посмотрите каждого и разделите, если связь неверна.",
+    "Нашли людей, у которых, возможно, есть чужие аккаунты. Проверьте каждого. Если всё верно, нажмите «Связь верная», и он больше здесь не появится. Если аккаунт чужой, отделите его.",
   doubtReasons: {
     "owner-other-name": "На вашем аккаунте стоит чужое имя.",
     "test-data": "Эти аккаунты похожи на тестовые данные, а не на человека.",
     "shared-address": "Этим адресом пользуются несколько людей, например общий ящик команды.",
     "mixed-names": "На аккаунтах разные имена.",
   },
-  doubtOther: "Memo не уверен, что эти аккаунты одного человека.",
-  doubtSplit: "Разделить…",
-  doubtOpen: "Открыть",
-  doubtsFailed: "Не удалось проверить связи:",
+  doubtOther: "Мы не уверены, что эти аккаунты одного человека.",
+  doubtSplit: "Разделить",
+  doubtKeep: "Связь верная",
+  doubtKeeping: "Сохраняю…",
+  doubtKept: (name: string) => `Сохранено: ${name} больше не появится здесь, пока не изменятся его аккаунты.`,
+  doubtTestHelp: "Подтверждать тут нечего. Если это настоящий человек, откройте карточку и проверьте аккаунты.",
+  doubtsFailed: "Не удалось проверить связи.",
   doubtsShow: "Показать",
   doubtsHide: "Скрыть",
   doubtsPages: "Страницы людей на проверку",
@@ -547,7 +581,7 @@ const es: typeof en = {
   guide: "Cómo se unen las personas",
   readAgain: "Leer de nuevo",
   reading: "Leyendo…",
-  readFailed: "No se pudo leer la lista de personas:",
+  readFailed: "No se pudo leer la lista de personas.",
   waiting: (n: number) => plural("es", n, { one: "# coincidencia te espera", other: "# coincidencias te esperan" }),
   waitingHelp: "Personas que quizá están en WireCat más de una vez. Únelas solo si sabes que son la misma.",
   search: "Nombre, teléfono o dirección",
@@ -559,7 +593,7 @@ const es: typeof en = {
   noName: "Sin nombre",
   rows: "Contactos",
   loadingPerson: "Leyendo esta persona…",
-  personFailed: "No se pudo leer esta persona:",
+  personFailed: "No se pudo leer esta persona.",
   accounts: "Cuentas",
   accountsHelp: "Cada cuenta y dónde se vio. Personal y trabajo indican qué parte de tu vida la vio.",
   atWork: "trabajo",
@@ -601,6 +635,14 @@ const es: typeof en = {
     email: "Correo",
     "guest-email": "Correo de un invitado",
   },
+  factsLead: "Coincide:",
+  factNames: {
+    name: "Nombre",
+    phone: "Teléfono",
+    email: "Correo",
+    domain: "Dominio",
+    chat: "Un chat en común",
+  } as Record<MatchFact["kind"], string>,
   same: "el mismo",
   phoneHidden: "número oculto: las cuentas guardan solo su huella",
   phoneHiddenTip:
@@ -678,7 +720,8 @@ const es: typeof en = {
   companyMailbox: "Buzón de la empresa",
   companyDone: (mailbox: string) =>
     `${mailbox} es ahora el buzón de una empresa. Las personas siguen separadas y no se sugieren de nuevo por él.`,
-  companyFailed: "Memo no lo aceptó.",
+  companyFailed: "No se guardó.",
+  ruleFallback: "Parece la misma persona. Compara los datos de abajo.",
   companyReasons: {
     "organization.unnamed":
       "Es una dirección de correo gratuito, así que WireCat no sabe la empresa. Escribe su nombre.",
@@ -720,7 +763,13 @@ const es: typeof en = {
   reasons: {
     "identity.stale": "Una de ellas cambió desde que WireCat lo propuso. Lee de nuevo y mira la coincidencia otra vez.",
     "identity.owner-only": "Solo tú puedes hacerlo, desde WireCat o en una terminal.",
-    "person.not-found": "Esta persona ya no está en Memo. Lee de nuevo.",
+    "person.not-found": "Esta persona ya no está: se unió con otra o se eliminó. Vuelve a leer la lista.",
+    "person.unknown": "Esta persona ya no está: se unió con otra o se eliminó. Vuelve a leer la lista.",
+    "person.no-doubt": "Ya no hay dudas sobre esta persona. Vuelve a leer la lista.",
+    "person.test-data":
+      "Estas cuentas parecen datos de prueba, así que no se pueden confirmar. Abre la ficha para revisarlas.",
+    "memo.too-old":
+      "Para confirmar hace falta una versión más nueva de las herramientas de WireCat. Si en Herramientas aún no hay actualización, llegará con la próxima.",
     "proposal.wrong-state": "Esta coincidencia ya se decidió. Lee de nuevo.",
   },
   merge: "Unir",
@@ -756,7 +805,7 @@ const es: typeof en = {
   openShort: "Abrir",
   openChat: (chat: string) => `Abrir la conversación en ${chat}`,
   contactIn: (source: string) => `Contacto de ${source}`,
-  profileFailed: "No se pudo leer su historial:",
+  profileFailed: "No se pudo leer su historial.",
   splitsWaiting: (n: number) =>
     n === 1 ? "Un agente pide separar a una persona" : `Los agentes piden separar a ${n} personas`,
   splitsHelp: "Un agente cree que algunas cuentas de una persona son de otra. Sepáralas solo si estás de acuerdo.",
@@ -783,17 +832,21 @@ const es: typeof en = {
   },
   doubtsTitle: "Revisar los vínculos",
   doubtsCount: (n: number) => (n === 1 ? "1 persona por revisar" : `${n} personas por revisar`),
-  doubtsHelp: "Memo encontró personas cuyas cuentas quizá no son todas suyas. Mira cada una y sepárala si está mal.",
+  doubtsHelp:
+    "Encontramos personas cuyas cuentas quizá no son todas suyas. Revisa cada una. Si está bien, pulsa «El vínculo es correcto» y no volverá a aparecer aquí. Si una cuenta es de otra persona, sepárala.",
   doubtReasons: {
     "owner-other-name": "Una cuenta tuya lleva el nombre de otra persona.",
     "test-data": "Estas cuentas parecen datos de prueba, no una persona real.",
     "shared-address": "Varias personas comparten esta dirección, como un buzón de equipo.",
     "mixed-names": "Las cuentas llevan nombres distintos.",
   },
-  doubtOther: "Memo no está seguro de que estas cuentas sean de la misma persona.",
-  doubtSplit: "Separar…",
-  doubtOpen: "Abrir",
-  doubtsFailed: "No se pudieron revisar los vínculos:",
+  doubtOther: "No estamos seguros de que estas cuentas sean de la misma persona.",
+  doubtSplit: "Separar",
+  doubtKeep: "El vínculo es correcto",
+  doubtKeeping: "Guardando…",
+  doubtKept: (name: string) => `Guardado: ${name} no volverá a aparecer aquí salvo que cambien sus cuentas.`,
+  doubtTestHelp: "Aquí no hay nada que confirmar. Si es una persona real, abre la ficha y revisa las cuentas.",
+  doubtsFailed: "No se pudieron revisar los vínculos.",
   doubtsShow: "Mostrar",
   doubtsHide: "Ocultar",
   doubtsPages: "Páginas de personas por revisar",

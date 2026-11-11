@@ -5,7 +5,7 @@ import { platform } from "@/platform/bridge"
 import { useBotSignIn } from "@/shared/bot-signin-store"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
-import { act, render, screen, within } from "@/testing/render"
+import { act, render, screen, waitFor, within } from "@/testing/render"
 import { BotList } from "../tools/BotList"
 import { ToolRow } from "../tools/ToolRow"
 import { BotSignInDialog } from "./BotSignInDialog"
@@ -20,7 +20,10 @@ const tool = (id: string) => {
 }
 
 beforeEach(() => {
-  vi.spyOn(platform, "listBots").mockResolvedValue([{ name: "sales", source: "keyring" }])
+  vi.spyOn(platform, "listBots").mockResolvedValue([{ name: "sales", source: "keyring", bot: null, problem: null }])
+  vi.spyOn(platform, "checkBots").mockResolvedValue([
+    { name: "sales", source: "keyring", bot: "sales_bot", problem: null },
+  ])
   vi.spyOn(platform, "openUrl").mockResolvedValue()
 })
 
@@ -45,11 +48,41 @@ async function toToken(user: ReturnType<typeof userEvent.setup>, name = "support
 }
 
 describe("the bot list on the Tools page", () => {
-  it("shows each bot the tool reports with a Bot badge", async () => {
+  it("shows each bot the tool reports and what the messenger says of it", async () => {
     openFromTools()
     const list = await screen.findByRole("list")
     expect(within(list).getByText("sales")).toBeInTheDocument()
-    expect(within(list).getByText("Bot")).toBeInTheDocument()
+    expect(await within(list).findByText("Works")).toBeInTheDocument()
+    expect(within(list).getByText("@sales_bot")).toBeInTheDocument()
+  })
+
+  it("marks a token the messenger refused and reconnects straight at the token step", async () => {
+    vi.mocked(platform.checkBots).mockResolvedValue([
+      { name: "sales", source: "keyring", bot: null, problem: "authentication_error" },
+    ])
+    const user = openFromTools()
+    expect(await screen.findByText("Token refused")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Reconnect bot sales" }))
+    expect(useBotSignIn.getState()).toMatchObject({ step: "token", profile: "sales" })
+  })
+
+  it("removes a bot only after confirmation, through the tool", async () => {
+    const remove = vi.spyOn(platform, "removeBot").mockResolvedValue()
+    const user = openFromTools()
+    await user.click(await screen.findByRole("button", { name: "Remove bot sales" }))
+    expect(remove).not.toHaveBeenCalled()
+    await user.click(within(dialog()).getByRole("button", { name: "Remove bot" }))
+    expect(remove).toHaveBeenCalledWith("tg", "sales")
+  })
+
+  it("keeps the confirmation open and says what to do when the removal fails", async () => {
+    vi.spyOn(platform, "removeBot").mockRejectedValue(new Error("keyring locked"))
+    const user = openFromTools()
+    await user.click(await screen.findByRole("button", { name: "Remove bot sales" }))
+    await user.click(within(dialog()).getByRole("button", { name: "Remove bot" }))
+    expect(await within(dialog()).findByText(/The bot was not removed/)).toBeInTheDocument()
+    await user.click(within(dialog()).getByRole("button", { name: "Details" }))
+    expect(within(dialog()).getByText("keyring locked")).toBeInTheDocument()
   })
 })
 
@@ -173,33 +206,44 @@ describe("finding the bot sign-in from elsewhere", () => {
     expect(useSignIn.getState().tool).toBeNull()
   })
 
-  it("puts an Add a bot button on the Tools page row of an installed tool", async () => {
-    useTools.setState({ installs: { tg: [{ path: "~/a/tg", version: "0.89.0", manager: "npm", problem: null }] } })
-    render(
-      <>
-        <ul>
-          <ToolRow tool={tool("tg")} />
-        </ul>
-        <BotSignInDialog />
-      </>,
-    )
-    await userEvent.click(screen.getByRole("button", { name: "Add a bot: Telegram" }))
-    expect(useBotSignIn.getState().tool).toBe("tg")
+  it("asks only for the token when a bot with saved settings reconnects", async () => {
+    render(<BotSignInDialog />)
+    act(() => useBotSignIn.getState().reconnect("wa", "shop"))
+    expect((await screen.findAllByLabelText(/token/i)).length).toBeGreaterThan(0)
+    expect(screen.queryByRole("textbox", { name: /Phone number ID/i })).not.toBeInTheDocument()
   })
 
-  it("places the Add a bot tip against the window, so the list's clipped edge cannot cut it", async () => {
+  it("shows no status for a bot the tool could not check without its profile", async () => {
+    vi.spyOn(platform, "listBots").mockResolvedValue([{ name: "shop", source: "keyring", bot: null, problem: null }])
+    vi.spyOn(platform, "checkBots").mockResolvedValue([
+      { name: "shop", source: "keyring", bot: null, problem: "configuration_error" },
+    ])
+    render(<BotList tool={tool("wa")} />)
+    const row = await screen.findByRole("listitem", { name: /shop/ })
+    await waitFor(() => expect(useBotSignIn.getState().checked.wa).toBeDefined())
+    expect(within(row).queryByText("Works")).not.toBeInTheDocument()
+    expect(within(row).queryByText("Not checked")).not.toBeInTheDocument()
+  })
+
+  it("keeps the newest check of the bots when an older one answers last", async () => {
+    let older: (list: never[]) => void = () => {}
+    vi.spyOn(platform, "checkBots")
+      .mockImplementationOnce(() => new Promise((done) => (older = done)))
+      .mockResolvedValueOnce([{ name: "sales", source: "keyring", bot: "new_bot", problem: null }])
+    const first = useBotSignIn.getState().checkBots("tg")
+    await useBotSignIn.getState().checkBots("tg")
+    older([])
+    await first
+    expect(useBotSignIn.getState().checked.tg?.[0]?.bot).toBe("new_bot")
+  })
+
+  it("leaves adding a bot to the accounts section, off the Tools page row", () => {
     useTools.setState({ installs: { tg: [{ path: "~/a/tg", version: "0.89.0", manager: "npm", problem: null }] } })
     render(
       <ul>
         <ToolRow tool={tool("tg")} />
       </ul>,
     )
-    const button = screen.getByRole("button", { name: "Add a bot: Telegram" })
-    const tip = within(button).getByText("Add a bot")
-    expect(tip).toHaveClass("fixed")
-    await userEvent.hover(button)
-    expect(tip.style.top || tip.style.bottom).not.toBe("")
-    await userEvent.unhover(button)
-    expect(tip.style.opacity).toBe("0")
+    expect(screen.queryByRole("button", { name: /Add a bot/ })).not.toBeInTheDocument()
   })
 })

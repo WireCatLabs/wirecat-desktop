@@ -127,11 +127,17 @@ export function Overview() {
           <Skeleton className="h-[7rem] w-full rounded-[0.2rem]" />
         </>
       ) : volume.state === "error" ? (
-        <ErrorNotice inline>{m.storeError(volume.error)}</ErrorNotice>
+        <ErrorNotice raw={volume.error} inline>
+          {m.storeError}
+        </ErrorNotice>
       ) : volume.data === null ? (
         <Note>{m.noTool}</Note>
-      ) : !volume.data.exists || volume.data.problem ? (
-        <Note>{volume.data.problem ? m.storeError(volume.data.problem) : m.noStore}</Note>
+      ) : volume.data.problem ? (
+        <ErrorNotice raw={volume.data.problem} inline>
+          {m.storeError}
+        </ErrorNotice>
+      ) : !volume.data.exists ? (
+        <Note>{m.noStore}</Note>
       ) : (
         <OverviewBody info={volume.data} />
       )}
@@ -461,7 +467,9 @@ export function Projects() {
       {tasks.state === "missing" ? (
         <SourceProblems problems={MEMO_MISSING} />
       ) : tasks.state === "error" ? (
-        <ErrorNotice inline>{m.tasksError(tasks.error)}</ErrorNotice>
+        <ErrorNotice raw={tasks.error} inline>
+          {m.tasksError}
+        </ErrorNotice>
       ) : tasks.state === "loading" ? (
         <Skeleton className="h-[15rem] w-full rounded-[0.2rem]" label={m.projects} />
       ) : rows.length === 0 ? (
@@ -568,7 +576,9 @@ export function Tasks() {
       {tasks.state === "missing" ? (
         <SourceProblems problems={MEMO_MISSING} />
       ) : tasks.state === "error" ? (
-        <ErrorNotice inline>{m.tasksError(tasks.error)}</ErrorNotice>
+        <ErrorNotice raw={tasks.error} inline>
+          {m.tasksError}
+        </ErrorNotice>
       ) : tasks.state === "loading" ? (
         <>
           <StatsSkeleton n={5} label={m.tasks} />
@@ -668,7 +678,9 @@ export function Memory() {
           <ChartSkeleton />
         </>
       ) : memory.state === "error" ? (
-        <ErrorNotice inline>{m.memoryError(memory.error)}</ErrorNotice>
+        <ErrorNotice raw={memory.error} inline>
+          {m.memoryError}
+        </ErrorNotice>
       ) : memory.data.kind === "missing" ? (
         <SourceProblems problems={MEMO_MISSING} />
       ) : memory.data.kind === "old" ? (
@@ -740,7 +752,9 @@ export function Helps() {
     runs.state === "loading" ? (
       <Skeleton className="h-[12rem] w-full rounded-[0.2rem]" label={m.helps} />
     ) : runs.state === "error" ? (
-      <ErrorNotice inline>{m.runsError(runs.error)}</ErrorNotice>
+      <ErrorNotice raw={runs.error} inline>
+        {m.runsError}
+      </ErrorNotice>
     ) : null
   return (
     <>
@@ -809,7 +823,9 @@ export function MemoryWeeks() {
       {memory.state === "loading" ? (
         <ChartSkeleton />
       ) : memory.state === "error" ? (
-        <ErrorNotice inline>{m.memoryError(memory.error)}</ErrorNotice>
+        <ErrorNotice raw={memory.error} inline>
+          {m.memoryError}
+        </ErrorNotice>
       ) : memory.data.kind !== "ready" ? (
         <Note>{memory.data.kind === "missing" ? m.memoryMissing : m.memoryOld}</Note>
       ) : (

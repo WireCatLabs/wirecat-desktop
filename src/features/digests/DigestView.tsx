@@ -264,8 +264,8 @@ function Days({ name }: { name: string }) {
 
   if (error)
     return (
-      <ErrorNotice action={<ReportThis what="Reading digests" error={error} />}>
-        {m.readFailed} {error}
+      <ErrorNotice raw={error} action={<ReportThis what="Reading digests" error={error} />}>
+        {m.readFailed}
       </ErrorNotice>
     )
   if (mine === null) return <Skeleton className="h-[24rem] w-full" label={m.reading} />
@@ -320,8 +320,8 @@ function Day({ date }: { date: string }) {
   if (!shown || shown.state === "loading") return <Skeleton className={cx(box, "h-[24rem]")} label={m.reading} />
   if (shown.state === "failed")
     return (
-      <ErrorNotice action={<ReportThis what="Reading a digest" error={shown.error} />}>
-        {m.dayFailed} {shown.error}
+      <ErrorNotice raw={shown.error} action={<ReportThis what="Reading a digest" error={shown.error} />}>
+        {m.dayFailed}
       </ErrorNotice>
     )
   return (

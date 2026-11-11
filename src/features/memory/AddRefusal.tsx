@@ -30,6 +30,7 @@ export function Refusal() {
       ) : (
         error && (
           <ErrorNotice
+            raw={reason ? null : error}
             inline
             action={
               !reason ? (
@@ -39,7 +40,7 @@ export function Refusal() {
               ) : undefined
             }
           >
-            {reason ? m.reasons[reason] : `${m.failed} ${error}`}
+            {reason ? m.reasons[reason] : m.failed}
           </ErrorNotice>
         )
       )}

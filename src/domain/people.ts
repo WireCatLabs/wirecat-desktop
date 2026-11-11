@@ -112,6 +112,10 @@ export const PEOPLE_REASONS = [
   "identity.owner-only",
   "person.not-found",
   "proposal.wrong-state",
+  "person.unknown",
+  "person.no-doubt",
+  "person.test-data",
+  "memo.too-old",
 ] as const
 export type PeopleReason = (typeof PEOPLE_REASONS)[number]
 export const reasonOf = (error: string): PeopleReason | null =>

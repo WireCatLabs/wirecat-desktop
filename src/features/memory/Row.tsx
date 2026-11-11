@@ -21,7 +21,6 @@ import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { focusInPlace, holdInPlace } from "@/ui/motion"
 import { Pill } from "@/ui/Pill"
@@ -33,6 +32,7 @@ import { explainedMessages } from "./messages-explained"
 import { InlineCorrect } from "./RowCorrect"
 import { Details } from "./RowDetails"
 import { RelationEdit, StatusPill } from "./RowExplain"
+import { RowFailed } from "./RowFailed"
 import { ReviewMarker } from "./RowReview"
 import { canRevoke, ownerRoles, useMemory } from "./store"
 
@@ -284,9 +284,7 @@ export const Row = memo(function Row({ entry }: { entry: MemoryEntry }) {
         </span>
       </div>
       {failed && !open && (
-        <ErrorNotice inline className="-mt-[0.4rem] pr-[1.3rem] pb-[0.8rem] pl-[6.1rem] xl:pl-[6.7rem]">
-          {m.writeFailed} {failed}
-        </ErrorNotice>
+        <RowFailed failed={failed} className="-mt-[0.4rem] pr-[1.3rem] pb-[0.8rem] pl-[6.1rem] xl:pl-[6.7rem]" />
       )}
       <Collapse open={open} id={panel}>
         <Details entry={entry} />

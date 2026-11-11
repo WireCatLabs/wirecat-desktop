@@ -83,12 +83,12 @@ const en = {
     list: (name: string) => `${name} permissions`,
     defaultsOption: "Defaults (all profiles)",
     reload: "Read permissions again",
-    readFailed: (error: string) => `Could not read permissions: ${error}`,
+    readFailed: "Could not read permissions.",
     totals: (reads: Count, writes: Count) =>
       `${reads.allowed === reads.total ? `Reading: all ${reads.total} allowed` : `Reading: ${reads.allowed} of ${reads.total} allowed`} · ${writes.allowed === writes.total ? `Changing: all ${writes.total} allowed` : `Changing: ${writes.allowed} of ${writes.total} allowed`}`,
     chooseProfile:
       "Choose a profile to see which commands it may run. A level a profile sets wins over these defaults.",
-    commandsFailed: (error: string) => `Could not list the commands: ${error}`,
+    commandsFailed: "Could not list the commands.",
     noCommands: (bin: string, name: string) =>
       `This version of ${bin} does not say which commands a profile may run, so only the levels in its settings file are shown. Update ${name} to see every command.`,
     ceiling: (deny: boolean) =>
@@ -236,12 +236,12 @@ const ru: typeof en = {
     list: (name) => `Разрешения ${name}`,
     defaultsOption: "По умолчанию (все профили)",
     reload: "Прочитать разрешения снова",
-    readFailed: (error) => `Не удалось прочитать разрешения: ${error}`,
+    readFailed: "Не удалось прочитать разрешения.",
     totals: (reads, writes) =>
       `${reads.allowed === reads.total ? `Чтение: разрешено всё (${reads.total})` : `Чтение: разрешено ${reads.allowed} из ${reads.total}`} · ${writes.allowed === writes.total ? `Изменения: разрешено всё (${writes.total})` : `Изменения: разрешено ${writes.allowed} из ${writes.total}`}`,
     chooseProfile:
       "Выберите профиль, чтобы увидеть, какие команды ему доступны. Уровень, заданный в профиле, важнее этих значений по умолчанию.",
-    commandsFailed: (error) => `Не удалось получить список команд: ${error}`,
+    commandsFailed: "Не удалось получить список команд.",
     noCommands: (bin, name) =>
       `Эта версия ${bin} не сообщает, какие команды доступны профилю, поэтому показаны только уровни из файла настроек. Обновите ${name}, чтобы увидеть все команды.`,
     ceiling: (deny) =>
@@ -410,12 +410,12 @@ const es: typeof en = {
     list: (name) => `Permisos de ${name}`,
     defaultsOption: "Predeterminados (todos los perfiles)",
     reload: "Volver a leer los permisos",
-    readFailed: (error) => `No se pudieron leer los permisos: ${error}`,
+    readFailed: "No se pudieron leer los permisos.",
     totals: (reads, writes) =>
       `${reads.allowed === reads.total ? `Lectura: los ${reads.total} permitidos` : `Lectura: ${reads.allowed} de ${reads.total} permitidos`} · ${writes.allowed === writes.total ? `Cambios: los ${writes.total} permitidos` : `Cambios: ${writes.allowed} de ${writes.total} permitidos`}`,
     chooseProfile:
       "Elige un perfil para ver qué comandos puede ejecutar. El nivel que define un perfil manda sobre estos valores predeterminados.",
-    commandsFailed: (error) => `No se pudieron listar los comandos: ${error}`,
+    commandsFailed: "No se pudieron listar los comandos.",
     noCommands: (bin, name) =>
       `Esta versión de ${bin} no dice qué comandos puede ejecutar un perfil, así que solo se muestran los niveles de su archivo de ajustes. Actualiza ${name} para ver todos los comandos.`,
     ceiling: (deny) =>

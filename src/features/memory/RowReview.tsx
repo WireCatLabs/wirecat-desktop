@@ -60,8 +60,8 @@ export function ReviewPanel({ entry }: { entry: MemoryEntry }) {
         {!review || review.state === "loading" ? (
           <Skeleton className="h-[5rem] w-full rounded-[0.35rem]" label={m.reading} />
         ) : review.state === "failed" ? (
-          <ErrorNotice inline>
-            {m.readFailed} {review.error}
+          <ErrorNotice raw={review.error} inline>
+            {m.readFailed}
           </ErrorNotice>
         ) : (
           <ReviewBody entry={entry} review={review.review} />

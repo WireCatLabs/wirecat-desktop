@@ -174,6 +174,30 @@ export function syncMock(): Pick<Platform, "syncRun" | "syncStop" | "syncLast" |
           retryAfterMs: null,
         })
       }
+      if (params.get("sync-signedout") === id) {
+        const message = "the session may have expired; sign in again"
+        const code = "authentication_error"
+        return onEvent({
+          event: "failed",
+          message,
+          code,
+          reason: null,
+          run: recordFailedSync(ownerId(id), { profile, command, code, message }),
+          retryAfterMs: null,
+        })
+      }
+      if (params.get("sync-keyring") === id) {
+        const message = "no token for this profile, although it has logged in on this machine"
+        const code = "provider_unavailable"
+        return onEvent({
+          event: "failed",
+          message,
+          code,
+          reason: "credentials.unreachable",
+          run: recordFailedSync(ownerId(id), { profile, command, code, message }),
+          retryAfterMs: null,
+        })
+      }
       if (params.get("sync-limited") === id) {
         const message = "too many requests; wait"
         const code = "rate_limited"

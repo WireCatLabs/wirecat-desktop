@@ -122,8 +122,8 @@ const en = {
     noHarness: "Digests are written by Claude Code, which is not installed.",
     toAgents: "Install it in Agents",
     saved: "Saved.",
-    failedCreate: (message: string) => `Not created: ${message}`,
-    failedSave: (message: string) => `Not saved: ${message}`,
+    failedCreate: "Not created.",
+    failedSave: "Not saved.",
   },
   one: {
     back: "All digests",
@@ -267,8 +267,8 @@ const ru: typeof en = {
     noHarness: "Сводки пишет Claude Code, а он не установлен.",
     toAgents: "Установить в «Агентах»",
     saved: "Сохранено.",
-    failedCreate: (message) => `Не создано: ${message}`,
-    failedSave: (message) => `Не сохранено: ${message}`,
+    failedCreate: "Не создано.",
+    failedSave: "Не сохранено.",
   },
   one: {
     back: "Все сводки",
@@ -413,8 +413,8 @@ const es: typeof en = {
     noHarness: "Los resúmenes los escribe Claude Code, que no está instalado.",
     toAgents: "Instalarlo en Agentes",
     saved: "Guardado.",
-    failedCreate: (message) => `No se creó: ${message}`,
-    failedSave: (message) => `No se guardó: ${message}`,
+    failedCreate: "No se creó.",
+    failedSave: "No se guardó.",
   },
   one: {
     back: "Todos los resúmenes",

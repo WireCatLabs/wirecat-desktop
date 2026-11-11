@@ -3,11 +3,11 @@ import { byOwner, dayKey, stateLineOf, subjectOf, toneOf, undoOf } from "@/domai
 import { useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { aboutOf, actionLine, authorOf, kindOf, type M, savedAt } from "./labels"
 import { memoryMessages } from "./messages"
 import { DocumentFacts, EditButton, Outcome, RelationSource } from "./RowExplain"
+import { RowFailed } from "./RowFailed"
 import { Findings } from "./RowFindings"
 import { ReviewAnswered, ReviewPanel } from "./RowReview"
 import { Sources } from "./RowSources"
@@ -197,11 +197,7 @@ export function Details({ entry }: { entry: MemoryEntry }) {
             {!revoke ? m.noUndoFact : byOwner(entry) ? m.noUndoOwnFact : m.noUndoCorrection}
           </p>
         )}
-        {failed && !editing && (
-          <ErrorNotice inline>
-            {m.writeFailed} {failed}
-          </ErrorNotice>
-        )}
+        {failed && !editing && <RowFailed failed={failed} />}
       </div>
     </div>
   )

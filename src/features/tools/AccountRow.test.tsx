@@ -62,11 +62,11 @@ describe("an account row", () => {
     await waitFor(() => expect(within(work).queryByText("Technical details")).not.toBeInTheDocument())
   })
 
-  it("offers Sign in again for a signed-out account and no Sync", () => {
+  it("offers Reconnect for a signed-out account and no Sync", () => {
     render(<AccountList tool={tool("tg")} profiles={[{ name: "work", signedIn: false }]} onReload={() => undefined} />)
     const row = screen.getByRole("listitem", { name: "Telegram account work" })
     expect(within(row).getByText("not signed in")).toBeInTheDocument()
-    expect(within(row).getByRole("button", { name: "Sign in again" })).toBeInTheDocument()
+    expect(within(row).getByRole("button", { name: "Reconnect" })).toBeInTheDocument()
     expect(within(row).queryByRole("button", { name: /^Sync/ })).not.toBeInTheDocument()
   })
 })

@@ -1,14 +1,18 @@
 import { useEffect, useId, useState } from "react"
 import { type CatalogTool, syncSchedules } from "@/domain/catalog"
+import { type AdviceKind, advice } from "@/domain/sync"
 import { useLang, useMessages } from "@/i18n"
 import type { ScheduleRun } from "@/platform/bindings"
+import { signedInSince, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Select } from "@/ui/Select"
 import { ago } from "./connect-steps"
+import { syncMessages } from "./messages-sync"
 import { type SyncScheduleText, syncScheduleMessages } from "./messages-sync-schedule"
+import { SignInLost } from "./SignInLost"
 import { syncKey, useSync } from "./sync-store"
 
 /** The schedule is read again this often while the row shows, so a later timed run clears an old failure. */
@@ -16,9 +20,14 @@ export const SCHEDULE_READ_EVERY_MS = 2 * 60_000
 
 const messageOf = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
-function lastWords(last: ScheduleRun | null, m: SyncScheduleText): string {
+/** The run's failure as the sync's own words: `reason` is an error code or a reason id, never for reading. */
+const failureOf = (reason: string | null) => advice({ message: "", code: reason, reason, run: null })
+
+function lastWords(last: ScheduleRun | null, m: SyncScheduleText, why: Record<AdviceKind, string>): string {
   if (!last) return m.noRunYet
-  return last.exitCode === 0 ? m.lastOk(ago(last.at)) : m.lastFailed(ago(last.at), last.reason)
+  if (last.exitCode === 0) return m.lastOk(ago(last.at))
+  const kind = failureOf(last.reason).kind
+  return m.lastFailed(ago(last.at), kind === "failed" ? null : why[kind])
 }
 
 /**
@@ -27,10 +36,13 @@ function lastWords(last: ScheduleRun | null, m: SyncScheduleText): string {
  */
 export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: string }) {
   const m = useMessages(syncScheduleMessages)
+  const why = useMessages(syncMessages).sync.advice
   const lang = useLang()
   const selectId = useId()
   const key = syncKey(tool.id, profile)
   const schedule = useSync((s) => s.schedules[key])
+  const run = useSync((s) => s.runs[key])
+  const signedInAt = useSignIn((s) => s.signedInAt)
   const [open, setOpen] = useState(false)
   const [every, setEvery] = useState(tool.sync?.schedule?.every ?? "")
   const [saving, setSaving] = useState(false)
@@ -48,6 +60,11 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
   const on = schedule?.state === "on" ? schedule : null
   const last = on?.last ?? null
   const failing = last && last.exitCode !== 0 ? last : null
+  const lost =
+    failing &&
+    failureOf(failing.reason).kind === "signedOut" &&
+    !signedInSince({ signedInAt }, tool.id, profile, Date.parse(failing.at)) &&
+    !(run?.phase === "failed" && run.failure && advice(run.failure).kind === "signedOut")
 
   const change = (next: string | null) => {
     setSaving(true)
@@ -78,21 +95,20 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
         {schedule === null ? (
           <span>{m.readFailed}</span>
         ) : on ? (
-          <>
+          <span className="flex min-w-0 items-baseline gap-2">
             <Lamp tone={failing ? "bad" : last ? "ok" : "idle"} size="sm" />
             <span>
-              {on.every ? m.on(m.duration(on.every)) : m.onWhen(on.when)} · {lastWords(last, m)}
+              {on.every ? m.on(m.duration(on.every)) : m.onWhen(on.when)} · {lastWords(last, m, why)}
             </span>
-          </>
-        ) : (
-          <span>{m.off}</span>
-        )}
+          </span>
+        ) : null}
         {!open && schedule !== null && (
-          <Button size="sm" variant="ghost" onClick={openPanel}>
+          <Button size="sm" variant="secondary" onClick={openPanel}>
             {on ? m.change : m.setUp}
           </Button>
         )}
       </p>
+      {lost && <SignInLost tool={tool} profile={profile} inline />}
       {failing?.failingSince && (
         <p className="text-[0.875rem] text-bad">
           {m.failingSince(
@@ -130,7 +146,9 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
           </div>
           <p className="text-[0.85rem] text-ink-dim">{m.hint(tool.name)}</p>
           <Collapse open={error !== null}>
-            <ErrorNotice inline>{error && m.failed(error)}</ErrorNotice>
+            <ErrorNotice inline raw={error}>
+              {error && m.failed}
+            </ErrorNotice>
           </Collapse>
         </div>
       </Collapse>

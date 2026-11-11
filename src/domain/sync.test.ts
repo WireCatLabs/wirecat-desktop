@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest"
 import { advice, clock, share } from "./sync"
 
 describe("a failed sync sorted into the way out", () => {
+  it("tells a closed password store apart from a network failure", () => {
+    const failure = { message: "x", code: "provider_unavailable", reason: "credentials.unreachable", run: null }
+    expect(advice(failure)).toMatchObject({ kind: "keyring", again: true, signIn: true })
+    expect(advice({ ...failure, reason: null }).kind).toBe("unreachable")
+  })
+
   it("keeps progress on the time limit and points to another sync on a lock", () => {
     expect(advice({ message: "x", code: "timeout", reason: null, run: null }).kind).toBe("timeout")
     for (const reason of ["profile.locked", "sync.running", "device.in-use", "app.busy"]) {

@@ -1,10 +1,10 @@
 import { LogIn } from "lucide-react"
 import { useState } from "react"
-import { type CatalogTool, doctorNeedsProfile, signsInHere, syncNeedsProfile, syncsHere } from "@/domain/catalog"
+import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncsHere } from "@/domain/catalog"
+import { advice } from "@/domain/sync"
 import { openSettingsAt } from "@/features/config"
 import { useMessages } from "@/i18n"
 import type { Profile } from "@/platform/schemas"
-import { useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -15,9 +15,9 @@ import { DriveFoldersSettings } from "./DriveFoldersSettings"
 import { toolsMessages } from "./messages"
 import { accountsMessages } from "./messages-accounts"
 import { RemoveAccountDialog } from "./RemoveAccount"
+import { reconnect } from "./SignInLost"
 import { SyncButton, SyncFollowUp, SyncStatus, useSyncControl } from "./Sync"
 import { SyncSchedule } from "./SyncSchedule"
-import { useTerminal } from "./terminal-store"
 
 /**
  * One account of a tool, the same wherever accounts are listed: its name and state, Sync where the tool syncs per
@@ -40,10 +40,7 @@ export function AccountRow(props: {
   const [removing, setRemoving] = useState(false)
   const syncs = (props.sync ?? true) && syncsHere(tool) && syncNeedsProfile(tool) && p.signedIn !== false
 
-  const signIn = () =>
-    signsInHere(tool)
-      ? useSignIn.getState().start(tool.id, p.name, onReload)
-      : void useTerminal.getState().open(tool.id, p.name)
+  const signIn = () => reconnect(tool, p.name, onReload)
 
   const items: MenuItem[] = [
     ...(doctorNeedsProfile(tool)
@@ -146,13 +143,16 @@ function SyncingLine(props: {
 }) {
   const { tool, profile, name, state, menu } = props
   const c = useSyncControl(tool, profile)
+  const health = useMessages(toolsMessages).health
+  // The row's pill reads a local file, so a sign-in the service just refused would still say "signed in".
+  const lost = c.run?.phase === "failed" && c.run.failure && advice(c.run.failure).kind === "signedOut"
   return (
     <section className="flex flex-col gap-1.5" data-place={`sync:${tool.id}`} aria-label={`${tool.name} ${profile}`}>
       <div className="flex items-center gap-3">
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <div className="flex min-w-0 items-center gap-3">
             {name}
-            {state}
+            {lost ? <Pill tone="warn">{health.notSignedIn}</Pill> : state}
           </div>
           <SyncStatus c={c} />
         </div>

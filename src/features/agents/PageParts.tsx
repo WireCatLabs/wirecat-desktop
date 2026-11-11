@@ -47,8 +47,11 @@ export function Notices({ view }: { view: AgentsView }) {
   return (
     <>
       {view.agentsError && (
-        <ErrorNotice action={<ReportThis what="Looking for AI agents" error={view.agentsError} />}>
-          {m.lookFailed(view.agentsError)}
+        <ErrorNotice
+          raw={view.agentsError}
+          action={<ReportThis what="Looking for AI agents" error={view.agentsError} />}
+        >
+          {m.lookFailed}
         </ErrorNotice>
       )}
       {!view.agentsError && noneFound && <ErrorNotice tone="warn">{m.noAgent}</ErrorNotice>}

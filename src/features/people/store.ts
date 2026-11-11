@@ -22,7 +22,7 @@ export type Detail =
   | { state: "loading" }
   | { state: "ready"; person: PersonDetail }
   | { state: "failed"; error: string }
-export type Op = MatchAnswer | "unlink" | "unmerge"
+export type Op = MatchAnswer | "unlink" | "unmerge" | "keep"
 /** What the owner just did on a person, said where it happened until the page is read again (rule 9). */
 export type Done =
   | { op: "confirm" | "reject"; with: string }
@@ -138,6 +138,8 @@ type PeopleState = {
   decideSplit(id: string, answer: MatchAnswer, reason?: string): Promise<boolean>
   /** A page of the people whose accounts look wrongly joined; the page on screen when none is given. */
   readDoubts(page?: number): Promise<void>
+  /** The owner says this person's accounts in doubt are right; the failure lands in `failed` under the person. */
+  keep(ref: string): Promise<boolean>
   unlink(ref: string, identities: string[]): Promise<boolean>
   unmerge(ref: string, merge: string): Promise<boolean>
   askSplit(ref: string | null, preset?: string[]): void
@@ -562,6 +564,15 @@ export const usePeople = create<PeopleState>((set, get) => {
         if (asked !== doubtSeq) return
         set({ doubts: { state: "failed", page: at, error: message(e), last } })
       }
+    },
+    async keep(ref) {
+      const asked = await run(ref, "keep", async () => {
+        await platform.peopleKeep(ref)
+        return true
+      })
+      if (!asked) return false
+      await get().readDoubts()
+      return true
     },
     async unlink(ref, identities) {
       const result = await run(ref, "unlink", () => platform.peopleUnlink(ref, identities))

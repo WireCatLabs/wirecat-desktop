@@ -18,7 +18,17 @@ const QUIET: [&str; 2] = ["--json", "--no-record"];
 /// The app starts memo with no terminal, which memo takes as nobody's run; this says the owner decided here.
 const FROM_APP: &str = "--from-app";
 /// memo's own refusals the page words in the owner's language.
-const WORDED: [&str; 4] = ["identity.stale", "identity.owner-only", "person.not-found", "proposal.wrong-state"];
+const WORDED: [&str; 7] = [
+    "identity.stale",
+    "identity.owner-only",
+    "person.not-found",
+    "person.unknown",
+    "person.no-doubt",
+    "person.test-data",
+    "proposal.wrong-state",
+];
+/// What `people links resolve` is refused with by a memo from before it; the page offers the update.
+const KEEP_TOO_OLD: &str = "memo.too-old";
 /// How a memo older than kinds of people (UX-133) refuses `kind:` and `--sort`: the page then reads it the old way.
 const OLDER: [&str; 2] = ["query.unknown-field", "input.invalid"];
 /// How a memo that has kinds, but not this one (0.131.75 has no `stranger`), refuses it: no one is of that kind yet.
@@ -794,6 +804,28 @@ pub fn doubts(page: u32, size: u32) -> Result<Doubts, String> {
     with_memo(|call| doubts_with(call, page, size))
 }
 
+/// The accounts in doubt the owner says belong together; memo then stops listing the person until one of them moves.
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Kept {
+    pub person: String,
+    pub kept: Vec<String>,
+}
+
+fn keep_with(call: &Call, reference: &str) -> Result<Kept, String> {
+    let reference = person_ref(reference)?;
+    let v = call(&decision(&["people", "links", "resolve", reference, "keep"]))
+        .map_err(|e| if e.contains("unknown command") { KEEP_TOO_OLD.to_string() } else { e })?;
+    let item = body(&v);
+    Ok(Kept {
+        person: person_of(&item["person"]).unwrap_or_else(|| reference.to_string()),
+        kept: strings(&item["kept"]),
+    })
+}
+
+pub fn keep(reference: &str) -> Result<Kept, String> {
+    with_memo(|call| keep_with(call, reference))
+}
+
 /// What joining a group did: the person they are now, the people joined and the matches memo confirmed so far, and why
 /// it stopped, if it did.
 #[derive(Serialize, Debug, PartialEq)]
@@ -1118,6 +1150,24 @@ mod tests {
             r.seen()[0],
             strs(&["people", "reject", "1", "--from-app", "--json", "--no-record", "--reason=one man"])
         );
+    }
+
+    #[test]
+    fn keeping_a_person_passes_from_app_and_names_an_older_memo() {
+        let call = |args: &[String]| {
+            assert_eq!(args[..5], ["people", "links", "resolve", "person:7", "keep"]);
+            assert!(args.iter().any(|a| a == FROM_APP));
+            Ok(json!({"item": {"person": "person:7", "kept": ["email:a@b.c"]}}))
+        };
+        assert_eq!(
+            keep_with(&call, "person:7").unwrap(),
+            Kept { person: "person:7".into(), kept: vec!["email:a@b.c".into()] }
+        );
+        let old = |_: &[String]| Err("unknown command 'resolve'".to_string());
+        assert_eq!(keep_with(&old, "person:7").unwrap_err(), KEEP_TOO_OLD);
+        let refused = |_: &[String]| Err("person.no-doubt".to_string());
+        assert_eq!(keep_with(&refused, "person:7").unwrap_err(), "person.no-doubt");
+        assert!(keep_with(&refused, "--help").is_err());
     }
 
     #[test]

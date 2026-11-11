@@ -19,7 +19,17 @@ export type DeepLinkTarget =
   | { type: "sync"; tool: string; account?: string }
 
 // Links name a messenger as the store does (`telegram`); the catalog knows it by its tool id (`tg`).
-const TOOL_OF: Record<string, string> = { telegram: "tg", whatsapp: "wa", zoom: "zm", mail: "email", calendar: "gcal" }
+const TOOL_OF: Record<string, string> = {
+  telegram: "tg",
+  "telegram-bot": "tg",
+  whatsapp: "wa",
+  "whatsapp-bot": "wa",
+  "max-bot": "max",
+  zoom: "zm",
+  mail: "email",
+  calendar: "gcal",
+  "google-drive": "drive",
+}
 
 export const toolOfProvider = (provider: string): string => TOOL_OF[provider] ?? provider
 

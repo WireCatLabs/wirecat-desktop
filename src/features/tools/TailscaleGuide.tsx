@@ -443,7 +443,9 @@ export function TailscaleGuide({ tailscale }: { tailscale: ReturnType<typeof use
 
   if (!status)
     return error ? (
-      <ErrorNotice inline>{m.unreadable(error)}</ErrorNotice>
+      <ErrorNotice inline raw={error}>
+        {m.unreadable}
+      </ErrorNotice>
     ) : (
       <Skeleton className="h-[14rem] w-full" label={m.reading} />
     )

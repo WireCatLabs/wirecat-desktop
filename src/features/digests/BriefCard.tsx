@@ -48,7 +48,9 @@ export function BriefCard({ name }: { name?: string | undefined }) {
       </h2>
       <p className="max-w-[70ch] text-[0.88rem] text-ink-soft">{m.hint}</p>
       {readError ? (
-        <ErrorNotice inline>{all.readFailed(readError)}</ErrorNotice>
+        <ErrorNotice raw={readError} inline>
+          {all.readFailed}
+        </ErrorNotice>
       ) : value === null ? (
         <Skeleton className="h-[9rem] w-full" label={m.title} />
       ) : value.state === "unsupported" ? (

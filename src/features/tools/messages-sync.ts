@@ -149,11 +149,12 @@ const en = {
     signIn: "Sign in",
     update: (name: string) => `Update ${name}`,
     openRun: "Open the run on Logs",
+    details: "Details",
     slowDown: (service: string, wait: SlowDown) =>
-      `${service} limits how fast history can be downloaded, and asked to pause. What came in is kept. ${
+      `Requests to ${service} are paused for now. What came in is kept. ${
         wait
-          ? `It asked to wait ${plural("en", wait.minutes, { one: "# minute", other: "# minutes" })}: sync again after ${clockOf(wait.at, "en")}.`
-          : "Wait a few minutes before you sync again, and longer if it asks again."
+          ? `Sync again after ${clockOf(wait.at, "en")}, in about ${plural("en", wait.minutes, { one: "# minute", other: "# minutes" })}.`
+          : "Wait a few minutes before you sync again."
       } The sync continues from where it stopped. WireCat does not try again by itself.`,
     dismiss: "Dismiss",
     rowStopped: "Sync stopped; what came in is kept",
@@ -190,7 +191,8 @@ const en = {
       busy: "Another sync is running",
       update: "Update needed",
       signedOut: "Signed out",
-      rateLimited: "The service asked to slow down",
+      keyring: "Could not read the sign-in",
+      rateLimited: "Sync is paused for now",
       unreachable: "The service could not be reached",
       refused: "The tool refused the command",
       failed: "The sync failed",
@@ -205,6 +207,8 @@ const en = {
           return "A newer WireCat tool changed the storage. Update this tool on the Tools page, then sync again."
         case "signedOut":
           return `Sign in to ${account} again, then sync.`
+        case "keyring":
+          return "The computer's password store was closed. Sync again in a minute."
         case "rateLimited":
           return "What came in is kept. Wait a while, then sync again."
         case "unreachable":
@@ -240,11 +244,12 @@ const ru: typeof en = {
     signIn: "Войти",
     update: (name) => `Обновить ${name}`,
     openRun: "Открыть запуск в журнале",
+    details: "Подробнее",
     slowDown: (service, wait) =>
-      `${service} ограничивает скорость загрузки истории и попросил сделать паузу. Полученное сохранено. ${
+      `Запросы к ${service} пока на паузе. Полученное сохранено. ${
         wait
-          ? `Он просит подождать ${plural("ru", wait.minutes, { one: "# минуту", few: "# минуты", many: "# минут", other: "# минуты" })}: синхронизируйте снова после ${clockOf(wait.at, "ru")}.`
-          : "Подождите несколько минут перед следующей синхронизацией, а если он снова попросит паузу, то дольше."
+          ? `Синхронизируйте снова после ${clockOf(wait.at, "ru")}, примерно через ${plural("ru", wait.minutes, { one: "# минуту", few: "# минуты", many: "# минут", other: "# минуты" })}.`
+          : "Подождите несколько минут перед следующей синхронизацией."
       } Синхронизация продолжит с того места, где остановилась. Сам WireCat повторять не будет.`,
     dismiss: "Скрыть",
     rowStopped: "Синхронизация остановлена, полученное сохранено",
@@ -284,7 +289,8 @@ const ru: typeof en = {
       busy: "Идёт другая синхронизация",
       update: "Нужно обновление",
       signedOut: "Вход сброшен",
-      rateLimited: "Сервис просит снизить темп",
+      keyring: "Не удалось прочитать вход",
+      rateLimited: "Синхронизация на паузе",
       unreachable: "Сервис недоступен",
       refused: "Инструмент отклонил команду",
       failed: "Синхронизация не удалась",
@@ -299,6 +305,8 @@ const ru: typeof en = {
           return "Более новый инструмент WireCat изменил хранилище. Обновите этот инструмент на странице «Инструменты» и синхронизируйте снова."
         case "signedOut":
           return `Войдите в ${account} снова, затем синхронизируйте.`
+        case "keyring":
+          return "Хранилище паролей компьютера было закрыто. Синхронизируйте снова через минуту."
         case "rateLimited":
           return "Полученное сохранено. Подождите немного и синхронизируйте снова."
         case "unreachable":
@@ -334,11 +342,12 @@ const es: typeof en = {
     signIn: "Iniciar sesión",
     update: (name) => `Actualizar ${name}`,
     openRun: "Abrir la ejecución en Registros",
+    details: "Detalles",
     slowDown: (service, wait) =>
-      `${service} limita la velocidad de descarga del historial y pidió una pausa. Lo recibido se conserva. ${
+      `Las solicitudes a ${service} están en pausa por ahora. Lo recibido se conserva. ${
         wait
-          ? `Pidió esperar ${plural("es", wait.minutes, { one: "# minuto", other: "# minutos" })}: vuelve a sincronizar después de las ${clockOf(wait.at, "es")}.`
-          : "Espera unos minutos antes de volver a sincronizar, y más si vuelve a pedirlo."
+          ? `Vuelve a sincronizar después de las ${clockOf(wait.at, "es")}, dentro de unos ${plural("es", wait.minutes, { one: "# minuto", other: "# minutos" })}.`
+          : "Espera unos minutos antes de volver a sincronizar."
       } La sincronización sigue desde donde se detuvo. WireCat no lo reintenta por sí solo.`,
     dismiss: "Descartar",
     rowStopped: "Sincronización detenida; lo recibido se conserva",
@@ -377,7 +386,8 @@ const es: typeof en = {
       busy: "Hay otra sincronización en curso",
       update: "Hace falta una actualización",
       signedOut: "Sesión cerrada",
-      rateLimited: "El servicio pidió ir más despacio",
+      keyring: "No se pudo leer la sesión",
+      rateLimited: "La sincronización está en pausa",
       unreachable: "No se pudo conectar con el servicio",
       refused: "La herramienta rechazó el comando",
       failed: "La sincronización falló",
@@ -392,6 +402,8 @@ const es: typeof en = {
           return "Una herramienta de WireCat más nueva cambió el almacenamiento. Actualiza esta herramienta en la página Herramientas y vuelve a sincronizar."
         case "signedOut":
           return `Vuelve a iniciar sesión en ${account} y sincroniza.`
+        case "keyring":
+          return "El almacén de contraseñas del ordenador estaba cerrado. Sincroniza de nuevo dentro de un minuto."
         case "rateLimited":
           return "Lo recibido se conserva. Espera un rato y vuelve a sincronizar."
         case "unreachable":

@@ -8,13 +8,13 @@ import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { Pill } from "@/ui/Pill"
 import { Select } from "@/ui/Select"
 import { relationSentence, textOf } from "./labels"
 import { memoryMessages } from "./messages"
 import { explainedMessages } from "./messages-explained"
+import { RowFailed } from "./RowFailed"
 import { SourceItem } from "./RowSources"
 import { canRevoke, ownerRoles, useMemory } from "./store"
 
@@ -188,11 +188,7 @@ export function RelationEdit({ entry, onDone }: { entry: MemoryEntry; onDone: ()
           {x.removeHint}
         </p>
       )}
-      {failed && (
-        <ErrorNotice inline>
-          {x.editFailed} {failed}
-        </ErrorNotice>
-      )}
+      {failed && <RowFailed failed={failed} label={x.editFailed} />}
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"

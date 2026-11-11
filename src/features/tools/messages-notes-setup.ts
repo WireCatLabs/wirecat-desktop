@@ -74,7 +74,7 @@ const en = {
   modelReady: "The search model is already on this computer.",
   tryAgain: "Try again",
   chooseOther: "Choose another folder…",
-  loadFailed: (message: string) => `Could not read Memo's setup: ${message}`,
+  loadFailed: "Could not read the notes setup.",
   noMemo: "Install Memo to set up your notes.",
   old: (version: string | null, need: string) =>
     `${version ? `Memo ${version}` : "This Memo"} is too old for this setup. Update it to ${need} or later, above, then come back.`,
@@ -178,7 +178,7 @@ const ru: typeof en = {
   modelReady: "Модель поиска уже есть на этом компьютере.",
   tryAgain: "Повторить",
   chooseOther: "Выбрать другую папку…",
-  loadFailed: (message: string) => `Не удалось прочитать настройки Memo: ${message}`,
+  loadFailed: "Не удалось прочитать настройки заметок.",
   noMemo: "Установите Memo, чтобы настроить заметки.",
   old: (version: string | null, need: string) =>
     `${version ? `Memo ${version}` : "Этот Memo"} слишком старый для этой настройки. Обновите его до ${need} или новее выше и вернитесь сюда.`,
@@ -267,7 +267,7 @@ const es: typeof en = {
   modelReady: "El modelo de búsqueda ya está en este equipo.",
   tryAgain: "Reintentar",
   chooseOther: "Elegir otra carpeta…",
-  loadFailed: (message: string) => `No se pudo leer la configuración de Memo: ${message}`,
+  loadFailed: "No se pudo leer la configuración de las notas.",
   noMemo: "Instala Memo para configurar tus notas.",
   old: (version: string | null, need: string) =>
     `${version ? `Memo ${version}` : "Este Memo"} es demasiado antiguo para esta configuración. Actualízalo a ${need} o posterior, arriba, y vuelve aquí.`,

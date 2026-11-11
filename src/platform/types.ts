@@ -400,6 +400,8 @@ export type Platform = {
   peopleSplitDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
   /** One page of the people whose accounts look wrongly joined, the owner first. */
   peopleDoubts(page: number, size: number): Promise<Doubts>
+  /** The owner says this person's accounts in doubt belong together; they stop being listed until one moves. */
+  peopleKeep(reference: string): Promise<void>
   /** Joins the chosen people of one group of matches into one, a match at a time. */
   peopleMerge(refs: string[]): Promise<Merged>
   /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */
@@ -514,6 +516,10 @@ export type Platform = {
   botSignIn(id: string, profile: string, token: string, fields: Record<string, string>): Promise<BotResult>
   /** Every bot name on this computer with a token, from the tool's own `bot list`. */
   listBots(id: string): Promise<BotProfile[]>
+  /** The same list after the tool asked the messenger who each token belongs to. */
+  checkBots(id: string): Promise<BotProfile[]>
+  /** Forgets one bot's token on this computer with the tool's own `bot auth remove`. */
+  removeBot(id: string, profile: string): Promise<void>
   /**
    * Runs the tool's own sync (`sync.run` in the catalog) for the profile the owner chose, or none for a tool without
    * profiles. Stages and the result arrive as events; only counts, never chat or account names.

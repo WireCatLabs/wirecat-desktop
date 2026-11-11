@@ -23,6 +23,10 @@ pub struct BotSource {
     pub set: Vec<String>,
     /// `bot list` names every bot on this computer.
     pub list: Vec<String>,
+    /// `bot list --check` asks the messenger who each token belongs to.
+    pub check: Vec<String>,
+    /// `<profile> bot auth remove` forgets the token on this computer; the bot itself stays with the messenger.
+    pub remove: Vec<String>,
     /// The tool's first version whose `bot list` takes no profile word; an older one is asked to update.
     pub list_min_version: String,
     pub token: TokenShape,
@@ -68,6 +72,10 @@ pub struct BotProfile {
     pub name: String,
     /// Where the token comes from: `keyring`, `file` or `env`.
     pub source: Option<String>,
+    /// The bot's username or name as the messenger reported it; only from a check.
+    pub bot: Option<String>,
+    /// The error code the messenger's answer ended in; only from a check.
+    pub problem: Option<String>,
 }
 
 /// A tool too old for the bot commands: the interface offers the update.
@@ -139,7 +147,8 @@ pub fn connect(
     let shape = source(tool)?.token;
     let token = token.trim();
     validate_token(shape, token)?;
-    let settings = field_args(tool, profile, fields)?;
+    // A reconnect replaces only the token: the settings the bot was added with stay.
+    let settings = if fields.is_empty() { Vec::new() } else { field_args(tool, profile, fields)? };
     let set = set_args(tool, profile)?;
     let Some(bin) = crate::tools::program(&tool.bin) else {
         return Ok(failed(format!("{} is not installed.", tool.name), None, None));
@@ -221,14 +230,44 @@ fn failed(message: String, code: Option<String>, reason: Option<String>) -> BotR
 
 /// Every name on this computer with a bot token, from the tool's own `bot list`; it asks the messenger nothing.
 pub fn list(tool: &Tool) -> Result<Vec<BotProfile>, String> {
+    read(tool, &source(tool)?.list, SETTING_TIMEOUT)
+}
+
+/// The same list after asking the messenger about each token; a bot it refuses carries `problem`.
+pub fn check_all(tool: &Tool) -> Result<Vec<BotProfile>, String> {
+    read(tool, &source(tool)?.check, CHECK_TIMEOUT)
+}
+
+fn read(tool: &Tool, words: &[String], timeout: Duration) -> Result<Vec<BotProfile>, String> {
     let bot = source(tool)?;
     let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
     if crate::tools::older(crate::tools::version_of(&bin).as_deref(), &bot.list_min_version) {
         return Err(format!("needs {} {} or newer", tool.bin, bot.list_min_version));
     }
-    let refs: Vec<&str> = bot.list.iter().map(String::as_str).collect();
-    let out = run::run(&bin, &refs, Some(&paths::search_path()), SETTING_TIMEOUT).map_err(|e| e.to_string())?;
+    let refs: Vec<&str> = words.iter().map(String::as_str).collect();
+    let out = run::run(&bin, &refs, Some(&paths::search_path()), timeout).map_err(|e| e.to_string())?;
     parse_list(&out)
+}
+
+pub fn remove_args(tool: &Tool, profile: &str) -> Result<Vec<String>, String> {
+    catalog::with_profile(&source(tool)?.remove, Some(profile))
+}
+
+/// Forgets one bot's token through the tool's own `bot auth remove`.
+pub fn remove(tool: &Tool, profile: &str) -> Result<(), String> {
+    let words = remove_args(tool, profile)?;
+    let bin = crate::tools::program(&tool.bin).ok_or("the tool is not installed")?;
+    let refs: Vec<&str> = words.iter().map(String::as_str).collect();
+    let out = run::run(&bin, &refs, Some(&paths::search_path()), SETTING_TIMEOUT).map_err(|e| e.to_string())?;
+    removal(&out)
+}
+
+fn removal(out: &Output) -> Result<(), String> {
+    if out.code == Some(0) {
+        return Ok(());
+    }
+    let refused = out.json().and_then(|v| v["error"]["message"].as_str().map(redact::text));
+    Err(refused.unwrap_or_else(|| redact::text(out.stderr.lines().last().unwrap_or_default())))
 }
 
 fn parse_list(out: &Output) -> Result<Vec<BotProfile>, String> {
@@ -244,6 +283,8 @@ fn parse_list(out: &Output) -> Result<Vec<BotProfile>, String> {
             Some(BotProfile {
                 name: row.get("name")?.as_str()?.to_string(),
                 source: row.get("token").and_then(Value::as_str).map(str::to_string),
+                bot: row.get("bot").and_then(Value::as_str).map(str::to_string),
+                problem: row.get("problem").and_then(Value::as_str).map(str::to_string),
             })
         })
         .collect())
@@ -288,6 +329,41 @@ mod tests {
             assert_eq!(bot.list, ["bot", "list", "--no-record", "--json"], "{id}");
             assert!(!bot.list_min_version.is_empty(), "{id}");
         }
+    }
+
+    #[test]
+    fn the_check_asks_the_messenger_and_removal_names_the_bot_the_owner_chose() {
+        for id in ["tg", "max", "wa"] {
+            let tool = catalog::tool(id).unwrap();
+            assert_eq!(tool.bot.as_ref().unwrap().check, ["bot", "list", "--check", "--no-record", "--json"], "{id}");
+            assert_eq!(remove_args(tool, "sales").unwrap(), ["sales", "bot", "auth", "remove", "--record", "--json"]);
+            for bad in ["", "--help", "a;rm -rf ~", "../x", ".hidden"] {
+                assert!(remove_args(tool, bad).is_err(), "{id} {bad}");
+            }
+        }
+    }
+
+    #[test]
+    fn a_checked_bot_says_who_it_is_or_what_the_messenger_answered() {
+        let listed = parse_list(&out(
+            0,
+            r#"{"items":[{"name":"sales","token":"keyring","bot":"sales_bot","id":1},
+                {"name":"old","token":"file","problem":"authentication_error"}]}"#,
+            "",
+        ))
+        .unwrap();
+        assert_eq!(listed[0].bot.as_deref(), Some("sales_bot"));
+        assert_eq!(listed[0].problem, None);
+        assert_eq!(listed[1].problem.as_deref(), Some("authentication_error"));
+    }
+
+    #[test]
+    fn a_refused_removal_says_why_in_the_tools_words() {
+        assert_eq!(removal(&out(0, r#"{"item":{"removed":["keyring"]}}"#, "")), Ok(()));
+        assert_eq!(
+            removal(&out(7, r#"{"error":{"message":"the keyring is locked"}}"#, "")),
+            Err("the keyring is locked".to_string())
+        );
     }
 
     #[test]
@@ -385,8 +461,8 @@ mod tests {
         assert_eq!(
             parse_list(&listed).unwrap(),
             [
-                BotProfile { name: "sales".into(), source: Some("keyring".into()) },
-                BotProfile { name: "ci".into(), source: Some("env".into()) },
+                BotProfile { name: "sales".into(), source: Some("keyring".into()), bot: None, problem: None },
+                BotProfile { name: "ci".into(), source: Some("env".into()), bot: None, problem: None },
             ]
         );
         assert!(parse_list(&out(2, "", r#"{"error":{"message":"no"}}"#)).is_err());
