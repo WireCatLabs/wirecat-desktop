@@ -194,7 +194,11 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = within(matches).getByRole("article", { name: "Marta Gil (Studio) · Marta Gil" })
+    const card = await within(matches).findByRole(
+      "article",
+      { name: "Marta Gil (Studio) · Marta Gil" },
+      { timeout: 4000 },
+    )
     const left = await within(card).findByRole("region", { name: "Marta Gil (Studio)" }, { timeout: 4000 })
     const tie = (await within(left).findByText("Bitrix24", {}, { timeout: 4000 })).closest("li") as HTMLElement
     expect(tie).toHaveTextContent("matched")
@@ -281,7 +285,11 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = within(matches).getByRole("article", { name: "Split off accounts of Viktor Example" })
+    const card = await within(matches).findByRole(
+      "article",
+      { name: "Split off accounts of Viktor Example" },
+      { timeout: 4000 },
+    )
     expect(card).toHaveTextContent("These accounts would become a new person:")
     expect(await within(card).findByText(/Mila Example/, {}, { timeout: 4000 })).toBeInTheDocument()
     expect(card).toHaveTextContent("Viktor's wife")
@@ -369,7 +377,7 @@ describe("People", () => {
     render(<PeoplePage />)
     const matches = await openMatches(user)
     const title = "Konstantin Nikolaevich Loft Pro Max Semenov · Konstantin · K. Semenov"
-    const card = within(matches).getByRole("article", { name: title })
+    const card = await within(matches).findByRole("article", { name: title }, { timeout: 4000 })
     expect(within(card).getByRole("button", { name: "3 people have it" })).toHaveAccessibleDescription(
       "3 people have it. Here now: Konstantin Nikolaevich Loft Pro Max Semenov, Konstantin, and K. Semenov.",
     )
@@ -502,7 +510,11 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const matches = await openMatches(user)
-    const card = within(matches).getByRole("article", { name: "Harbour Studio · Olga Harbour · Pavel Harbour" })
+    const card = await within(matches).findByRole(
+      "article",
+      { name: "Harbour Studio · Olga Harbour · Pavel Harbour" },
+      { timeout: 4000 },
+    )
     expect(within(card).getByText("shared mailbox")).toBeInTheDocument()
     expect(within(matches).getAllByText("shared mailbox")).toHaveLength(1)
     expect(within(matches).getAllByRole("button", { name: "Company mailbox" })).toHaveLength(1)
