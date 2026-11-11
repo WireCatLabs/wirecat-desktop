@@ -12,7 +12,6 @@ import {
   quoteValue,
   suggestSearch,
   toggleSearchTerm,
-  withoutLeadingStars,
   withoutPatterns,
 } from "./search"
 
@@ -264,20 +263,6 @@ describe("nameChoices", () => {
     expect(nameChoices("chat:design", "matches 2 chats", refused, {})?.options.map((o) => o.query)).toEqual([
       'chat:"-1001"',
     ])
-  })
-})
-
-describe("withoutLeadingStars", () => {
-  it("turns topic words into their start and keeps names, files and exact words", () => {
-    expect(withoutLeadingStars("*аренд* from:*Мила* filename:*договор*")).toBe("аренд* from:*Мила* filename:*договор*")
-    expect(withoutLeadingStars("(*rent* OR -subject:*отчет) content:*акт*")).toBe(
-      "(rent* OR -subject:отчет*) content:акт*",
-    )
-    expect(withoutLeadingStars("*договор\\ аренды*")).toBe("договор\\ аренды*")
-  })
-  it("says nothing changed when no word starts with *", () => {
-    expect(withoutLeadingStars('аренд* from:*Мила* "*x*"')).toBeNull()
-    expect(withoutLeadingStars("* invoice")).toBeNull()
   })
 })
 

@@ -630,16 +630,14 @@ come first, and senders who write only in groups are added to the contact list.
 tried once with `search_store(…, limit 1, page 1)` before it is offered. It is put in the bar with the count when the
 tool accepts it, even when the count is 0. A refused parse is sent back to the agent once, with the parser's reason and
 message only, and a second refusal puts nothing in the bar. A name that fits several people or nobody shows the same
-choices as above. The agent writes part-of-value matches in every free-text value: a topic word as the part that keeps
-through its forms (`*договор* *аренд*`, `subject:*отчет*`, `content:*акт*`), a person or chat as part of the name
-(`from:*Мила*`, `chat:*Дизайн*`), a file name or mail folder the same way. Keys with listed values, ids, dates,
+choices as above. The agent writes part-of-value matches by default: a topic word by its start (`договор* аренд*`,
+`subject:отчет*`, `content:акт*`), never `*word*`, which reads the whole word list; a person or chat as part of the
+name (`from:*Мила*`, `chat:*Дизайн*`), a file name or mail folder the same way. Keys with listed values, ids, dates,
 addresses and links stay exact, and so does `from:"Сергей Иванов"` for a full name. Keyless tools (Zoom) get plain
-words. Two refusals are answered without asking the agent again, by matching the reason, never the message:
-`query.too-large` or `query.unsupported-operator` → the topic words by their start (`withoutLeadingStars`: `аренд*`),
-because cli-core reads the whole word list for `*word*` and refuses it above 10 000 words, and an older cli-core takes
-only a start there; then `query.unsupported-operator` again → `withoutPatterns` (`from:Мила`) for a cli-core older
-than name patterns, which matches `from:Мила` as part of a name only when nobody is named exactly that. The bar gets
-the query that ran.
+words. A tool on a cli-core older than name patterns refuses them with `query.unsupported-operator` (matched by the
+reason, never the message); the query is then tried once more as `withoutPatterns` gives it (`from:Мила`), without
+asking the agent again. Such a tool matches `from:Мила` as part of a name only when nobody is named exactly that, and
+reads a bare `word*` in the message text only.
 
 ## Profiles and diagnostics
 
