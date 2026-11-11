@@ -447,15 +447,7 @@ function relationships(): MemoryEntry[] {
       ago(30 * DAY),
     ),
     ...DRIVE_OWNERS.map(([ref, person], i) => ({
-      ...relation(
-        ref,
-        "related-to",
-        SALES_DOC,
-        person,
-        i === 2 ? "last-editor" : "owner",
-        "proposed",
-        ago(DAY + i * HOUR),
-      ),
+      ...relation(ref, "related-to", SALES_DOC, person, "owner", "proposed", ago(DAY + i * HOUR)),
       author: agent("drive"),
       reason: "Google Drive lists this person as the document's owner",
     })),

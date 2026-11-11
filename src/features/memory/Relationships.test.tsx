@@ -40,7 +40,7 @@ it("says what approving changes, shows the document it came from, and edits the 
   const edit = vi.spyOn(platform, "memoryRelationEdit")
   render(<MemoryPage />)
   await rack()
-  await user.click(screen.getByRole("button", { name: /Harry is the last editor/ }))
+  await user.click(screen.getByRole("button", { name: /Harry is the owner/ }))
   expect(screen.getByText("If you approve")).toBeInTheDocument()
   expect(screen.getByText("Where it came from")).toBeInTheDocument()
   expect(screen.getByRole("button", { name: /Show Sales motivation model in context/ })).toBeInTheDocument()
