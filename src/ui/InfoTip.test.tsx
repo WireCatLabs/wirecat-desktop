@@ -21,4 +21,15 @@ describe("InfoTip", () => {
     expect(button).toHaveFocus()
     expect(button).toHaveAttribute("aria-expanded", "false")
   })
+
+  it("opens inside the dialog it stands in, where a modal shows it", async () => {
+    const user = userEvent.setup()
+    render(
+      <dialog open>
+        <InfoTip label="About it">Why it is so</InfoTip>
+      </dialog>,
+    )
+    await user.click(screen.getByRole("button", { name: "About it" }))
+    expect(screen.getByRole("tooltip").closest("dialog")).not.toBeNull()
+  })
 })

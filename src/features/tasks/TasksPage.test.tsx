@@ -160,7 +160,7 @@ describe("Tasks", () => {
     const dialog = await screen.findByRole("dialog", { name: "Task Q-1" })
     expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveValue("")
     expect(within(dialog).getByRole("textbox", { name: "Title" })).toHaveAttribute("placeholder", "Untitled question")
-    expect(dialog).toHaveTextContent("you can close it as Done or Dismissed. Other statuses, priority, type")
+    expect(dialog).toHaveTextContent("three statuses: Open, Done and Dismissed. Priority, type, AI agent and project")
     const update = vi.spyOn(platform, "taskUpdate").mockImplementation(async (_key, _revision, edit) => {
       if (edit.account !== "telegram:1") throw new Error("give --account — the stored accounts: --account telegram:1")
       return {
@@ -187,6 +187,82 @@ describe("Tasks", () => {
     await user.click(screen.getByRole("option", { name: /Projects/ }))
     await waitFor(() => expect(within(column).queryByRole("button", { name: /^Q-1 / })).toBeNull())
     expect(cards().length).toBe(total - 96)
+  })
+
+  it("shows where a found task came from, who has it, and that a filter leaves tasks from messages out", async () => {
+    const user = userEvent.setup()
+    const found = {
+      key: "Q-9",
+      project: "IN0BB44DA4",
+      projectName: "telegram:1",
+      createdBy: { type: "bot", name: "rule", owner: false },
+      title: "Can you send the lease by Friday?",
+      description: null,
+      kind: "question",
+      state: "open" as const,
+      priority: null,
+      priorityLabel: null,
+      agent: null,
+      revision: 2,
+      parent: null,
+      dueAt: null,
+      closedAt: null,
+      claimedBy: null,
+      claimedUntil: null,
+      assignees: [],
+      ready: null,
+      blockedBy: [],
+      createdAt: "2026-11-08T09:12:00.000Z",
+      updatedAt: null,
+      account: "telegram:1",
+      source: "msg:telegram/1/2/15",
+    }
+    // memo lists a found task with no assignees; only `tasks show` with its account names them.
+    vi.spyOn(platform, "taskChats").mockResolvedValue({ tasks: [found], more: false })
+    const show = vi
+      .spyOn(platform, "taskShow")
+      .mockImplementation(async (_key, account) =>
+        account === "telegram:1" ? { ...found, assignees: ["person:1"] } : Promise.reject(new Error("give --source")),
+      )
+    vi.spyOn(platform, "taskHistory").mockResolvedValue([])
+    vi.spyOn(platform, "taskComments").mockResolvedValue([])
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("Q-9")).getByRole("button", { name: /^Q-9 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task Q-9" })
+    expect(show).toHaveBeenCalledWith("Q-9", "telegram:1")
+    await waitFor(() =>
+      expect(within(dialog).getByRole("combobox", { name: "Assignee of Q-9" })).toHaveTextContent("You"),
+    )
+    expect(dialog).toHaveTextContent("No project")
+    expect(dialog).not.toHaveTextContent("by rule")
+    expect(within(dialog).getByText("Question")).toBeInTheDocument()
+    const source = within(dialog).getByRole("region", { name: "Source" })
+    expect(await within(source).findByText("Lease team")).toBeInTheDocument()
+    expect(within(source).getByText("Ana Sample")).toBeInTheDocument()
+    expect(source).toHaveTextContent("Answer it in the chat, then mark the task Done")
+    expect(within(source).getByRole("button", { name: "Open in the chat" })).toBeInTheDocument()
+
+    await user.click(screen.getByRole("button", { name: "Close" }))
+    const counts = vi.spyOn(platform, "taskCounts")
+    await user.click(screen.getByRole("button", { name: "Only mine" }))
+    expect(await screen.findByText(/1 task from messages are not shown/)).toBeInTheDocument()
+    await waitFor(() => expect(row("Q-9")).toBeNull())
+    expect(counts).toHaveBeenCalledWith(expect.stringMatching(/assignee:"?person:1/))
+  })
+
+  it("counts the filters again after an edit", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await waitFor(() => expect(useTasks.getState().counts).not.toBeNull())
+    const count = (ref: string) => useTasks.getState().counts?.assignee.find((f) => f.value === ref)?.count ?? 0
+    const mine = count("person:1")
+    await user.click(within(row("HRB-12")).getByRole("button", { name: /^HRB-12 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-12" })
+    await user.click(within(dialog).getByRole("combobox", { name: "Assignee of HRB-12" }))
+    await user.click(screen.getByRole("option", { name: "Nobody" }))
+    await waitFor(() => expect(count("person:1")).toBe(mine - 1))
   })
 
   it("writes a filter into the search, which memo answers", async () => {

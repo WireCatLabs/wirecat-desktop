@@ -12,6 +12,7 @@ import { InfoTip } from "@/ui/InfoTip"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { Comments } from "./Comments"
 import { AgentCell, AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, StatusCell } from "./cells"
+import { FoundSource } from "./FoundSource"
 import { dueDay, stamp, type TaskWords, taskMessages } from "./messages"
 import { StaleLine } from "./Note"
 import { personName, StateLamp, TaskError, TaskLink, taskTitle } from "./parts"
@@ -197,7 +198,12 @@ export function Details({
   const moved = useTasks((s) => s.moved[task.key])
   const detach = useTasks((s) => s.detach[task.key])
   const made = history?.state === "ready" ? history.events.find((e) => e.kind === "created") : undefined
-  const maker = task.createdBy ? creatorName(task.createdBy, m) : null
+  // memo names the rule that found a task as its maker ("rule"); the person who wrote is in the source message.
+  const maker = task.createdBy
+    ? fromMessages(task) && !task.createdBy.owner
+      ? "Memo"
+      : creatorName(task.createdBy, m)
+    : null
   // memo keeps one notes field, so the thread has one entry: whoever last wrote it, or else whoever made the task.
   const wrote =
     history?.state === "ready"
@@ -322,6 +328,7 @@ export function Details({
           <StaleLine taskKey={task.key} />
           {stale && changed && <p className="text-[0.875rem] text-ink-soft">{m.draftKept}</p>}
         </form>
+        {fromMessages(task) && <FoundSource task={task} dirty={changed || commenting} />}
         <Comments taskKey={task.key} onDirty={setCommenting} />
         <section aria-labelledby={`${id}-waits`} className="flex flex-col gap-[0.4rem]">
           <h3 id={`${id}-waits`} className="flex items-center gap-[0.4rem] text-[0.9rem] font-medium text-ink-dim">

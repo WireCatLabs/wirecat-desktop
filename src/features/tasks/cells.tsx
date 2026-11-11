@@ -8,7 +8,7 @@ import { fieldFocus } from "@/ui/field"
 import { Select } from "@/ui/Select"
 import { dueDay, taskMessages } from "./messages"
 import { PersonFinder } from "./PersonFinder"
-import { DueText, personName, priorityLabel, SourceMark, StateLamp } from "./parts"
+import { DueText, personName, priorityLabel, StateLamp } from "./parts"
 import { useTasks } from "./store"
 
 // A cell reads as text and takes a wash on hover; it is a Select underneath, so keys and screen readers work as there.
@@ -184,12 +184,8 @@ export function ProjectCell({ task }: { task: Task }) {
   const keys = [...new Set([task.project, ...projects.map((p) => p.key)])]
   const nameOf = (key: string) =>
     (key === task.project ? task.projectName : null) ?? projects.find((p) => p.key === key)?.name ?? null
-  if (fromMessages(task))
-    return (
-      <Fixed>
-        <SourceMark task={task} />
-      </Fixed>
-    )
+  // memo keeps a found task in an inbox named after its account, which is no project of the owner's.
+  if (fromMessages(task)) return <Fixed>{m.noProject}</Fixed>
   return (
     <Select
       size="sm"

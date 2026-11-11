@@ -523,8 +523,8 @@ export function tasksMock(): TaskApi {
     async taskChats() {
       await delay(300)
       if (scenario() !== "chats" && scenario() !== "chats96") return { tasks: [], more: false }
-      const chat = (key: string, title: string, minutes: number, kind: string | null = null): Task => ({
-        ...make({ key, title, state: "open", createdAt: ago(minutes), account: "telegram:personal" }),
+      const chat = (key: string, title: string, minutes: number, source: string, kind: string | null = null): Task => ({
+        ...make({ key, title, state: "open", createdAt: ago(minutes), account: "telegram:1", source }),
         project: "INB7",
         projectName: null,
         createdBy: null,
@@ -532,20 +532,23 @@ export function tasksMock(): TaskApi {
         priorityLabel: null,
         ready: null,
       })
+      // memo lists a found task without its assignees; only `tasks show` with its account gives them.
+      const listed = (found: Task[]) => keepFound(found).map((t) => ({ ...t, assignees: [] }))
       // memo before cli-core's readable titles: a found task's title is its kind and the message's locator.
       if (scenario() === "chats96")
         return {
-          tasks: keepFound(
-            Array.from({ length: 96 }, (_, i) =>
-              chat(`Q-${i + 1}`, `question — msg:telegram/1/${7000 + (i % 9)}/${129000 + i}`, 60 * (i + 1), "question"),
-            ),
+          tasks: listed(
+            Array.from({ length: 96 }, (_, i) => {
+              const source = `msg:telegram/1/${7000 + (i % 9)}/${(i % 100) + 1}`
+              return chat(`Q-${i + 1}`, `question — ${source}`, 60 * (i + 1), source, "question")
+            }),
           ),
           more: false,
         }
       return {
-        tasks: keepFound([
-          chat("INB7-1", "Send Ana the signed lease", 60 * 5),
-          chat("INB7-2", "Answer Kai about the Friday call", 60 * 30),
+        tasks: listed([
+          chat("INB7-1", "Send Ana the signed lease", 60 * 5, "msg:telegram/1/2/14"),
+          chat("INB7-2", "Answer Kai about the Friday call", 60 * 30, "msg:telegram/1/4004/9"),
         ]),
         more: false,
       }
@@ -608,8 +611,10 @@ export function tasksMock(): TaskApi {
         ),
       }
     },
-    async taskShow(key) {
+    async taskShow(key, account) {
       await delay(200)
+      const found = find(key).account
+      if (found && account !== found) throw new Error(`give --source — the stored accounts: --source ${found}`)
       return { ...find(key), ready: null }
     },
     async taskHistory(key) {

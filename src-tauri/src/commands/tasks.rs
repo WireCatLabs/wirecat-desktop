@@ -36,8 +36,9 @@ pub async fn task_counts(query: String) -> Result<task_board::Counts, AppError> 
 }
 
 #[tauri::command]
-pub async fn task_show(key: String) -> Result<task_board::Task, AppError> {
-    crate::log::command("task_show", async move { attempt(move || task_board::show(&key)).await }).await
+pub async fn task_show(key: String, account: Option<String>) -> Result<task_board::Task, AppError> {
+    crate::log::command("task_show", async move { attempt(move || task_board::show(&key, account.as_deref())).await })
+        .await
 }
 
 #[tauri::command]
