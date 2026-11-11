@@ -58,11 +58,15 @@ pub async fn task_update(key: String, revision: u64, edit: task_board::Edit) -> 
 }
 
 #[tauri::command]
-pub async fn task_move(key: String, revision: u64, place: task_board::Place) -> Result<task_board::Write, AppError> {
-    crate::log::command(
-        "task_move",
-        async move { attempt(move || task_board::move_task(&key, revision, &place)).await },
-    )
+pub async fn task_move(
+    key: String,
+    revision: u64,
+    place: task_board::Place,
+    account: Option<String>,
+) -> Result<task_board::Write, AppError> {
+    crate::log::command("task_move", async move {
+        attempt(move || task_board::move_task(&key, revision, &place, account.as_deref())).await
+    })
     .await
 }
 

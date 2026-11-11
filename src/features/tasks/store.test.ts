@@ -76,4 +76,22 @@ describe("the Tasks store", () => {
     expect(useTasks.getState().reading).toBe(true)
     expect(list).toHaveBeenCalledTimes(2)
   })
+
+  it("opens a found task the page has not listed as the stored account that holds it", async () => {
+    vi.spyOn(platform, "taskHistory").mockResolvedValue([])
+    vi.spyOn(platform, "taskComments").mockResolvedValue([])
+    const found = { ...(await platform.taskShow("HRB-12")), key: "Q-4", account: "telegram:1" }
+    const show = vi.spyOn(platform, "taskShow").mockImplementation(async (_key, account) => {
+      if (account === "telegram:1") return found
+      throw new Error(
+        account
+          ? "no task Q-4"
+          : "give --source — the stored accounts: --source email:me@example.com; --source telegram:1",
+      )
+    })
+    await useTasks.getState().openTask("Q-4")
+    expect(show).toHaveBeenLastCalledWith("Q-4", "telegram:1")
+    expect(useTasks.getState().outside["Q-4"]).toMatchObject({ key: "Q-4", account: "telegram:1" })
+    expect(useTasks.getState().failed["Q-4"]).toBeUndefined()
+  })
 })

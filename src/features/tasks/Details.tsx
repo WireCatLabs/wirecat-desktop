@@ -430,7 +430,7 @@ export function Details({
           <Field label={m.due}>
             <DueCell task={task} />
           </Field>
-          <Field label={m.project} tip={fromMessages(task) ? undefined : m.projectHint}>
+          <Field label={m.project} tip={m.projectHint}>
             <ProjectCell task={task} />
             <Collapse open={Boolean(moved)}>
               <div role="status" className="mt-[0.3rem] flex flex-col gap-[0.25rem] text-[0.85rem] leading-snug">
@@ -472,7 +472,6 @@ export function Details({
             </Collapse>
           </Field>
         </dl>
-        {fromMessages(task) && <p className="text-[0.85rem] leading-snug text-ink-dim">{m.foundOnly}</p>}
         <dl className="flex flex-col border-line border-t pt-[0.7rem] text-ink-soft">
           <Field label={m.key}>
             <span className="selectable font-mono text-[0.85rem]">{task.key}</span>

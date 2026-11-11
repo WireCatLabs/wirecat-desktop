@@ -51,17 +51,6 @@ export function TaskBoard() {
     columns: STATES,
     cardsIn: column,
     columnOf: (key) => byKey.get(key)?.state,
-    // memo only closes a found task, and keeps no order among them: a drop anywhere else says why.
-    canDrop: (key, to) => {
-      const t = byKey.get(key)
-      if (!t || !fromMessages(t)) return true
-      if (to === t.state) return false
-      if (closed(t.state)) return m.foundClosed
-      return closed(to) ? true : m.foundDrop(m.states[to])
-    },
-    onRefuse: (key, _to, reason) => {
-      if (reason) useTasks.setState({ note: { key, label: null, column: null, text: reason } })
-    },
     onDrop: ({ key, to, before }) => {
       const keys = column(to).filter((k) => k !== key)
       // Dropped below the last card shown, it lands there, not after the cards "Show more" still hides.
@@ -169,7 +158,6 @@ function Card(props: {
   const { task, ghost, held } = props
   const m = useMessages(taskMessages)
   const failed = useTasks((s) => s.failed[moveSlot(task.key)])
-  const movable = !closed(task.state) || !fromMessages(task)
   return (
     // biome-ignore lint/a11y/useSemanticElements: a card holds a picker, so it cannot be a button itself
     <div
@@ -178,8 +166,8 @@ function Card(props: {
       data-card={task.key}
       data-opens={task.key}
       aria-haspopup="dialog"
-      aria-roledescription={movable ? m.draggable : undefined}
-      aria-describedby={movable ? "tasks-drag-hint" : undefined}
+      aria-roledescription={m.draggable}
+      aria-describedby="tasks-drag-hint"
       aria-pressed={held || undefined}
       aria-label={`${task.key} ${taskTitle(task, m)}`}
       onPointerDown={props.onPointerDown}
@@ -188,7 +176,7 @@ function Card(props: {
         if ((e.target as HTMLElement).closest("button,[role=combobox],[role=listbox]")) return
         props.onOpen()
       }}
-      className={cardClass(ghost, held, movable, true)}
+      className={cardClass(ghost, held, true, true)}
     >
       <CardBody task={task} />
       {failed && (
@@ -211,12 +199,10 @@ function CardBody({ task }: { task: Task }) {
   const found = fromMessages(task)
   return (
     <div className="flex flex-col gap-[0.45rem] px-[0.9rem] py-[0.7rem]">
-      {!(found && closed(task.state)) && (
-        <GripVertical
-          className="absolute top-[0.85rem] left-[0.05rem] size-[0.85rem] text-ink-dim opacity-0 group-hover:opacity-100"
-          aria-hidden
-        />
-      )}
+      <GripVertical
+        className="absolute top-[0.85rem] left-[0.05rem] size-[0.85rem] text-ink-dim opacity-0 group-hover:opacity-100"
+        aria-hidden
+      />
       <p
         title={taskTitle(task, m)}
         className={cx(
@@ -242,23 +228,21 @@ function CardBody({ task }: { task: Task }) {
             assignee && <span className="min-w-0 truncate">{personName(assignee, people, m)}</span>
           )}
         </span>
-        {!found && (
-          <Select<State>
-            size="sm"
-            aria-label={m.moveTo(task.key)}
-            value={task.state}
-            disabled={busy}
-            onChange={(to) => {
-              const first = useTasks.getState().order.find((k) => {
-                const x = useTasks.getState().tasks.find((y) => y.key === k)
-                return x?.state === to && k !== task.key
-              })
-              void useTasks.getState().move(task.key, to, first ? { before: first } : {}, first ?? null)
-            }}
-            options={STATES.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
-            className="-mr-[0.3rem] w-8 shrink-0 border-transparent! bg-transparent! px-1! hover:bg-app-3! [&>span]:hidden [&>svg]:block"
-          />
-        )}
+        <Select<State>
+          size="sm"
+          aria-label={m.moveTo(task.key)}
+          value={task.state}
+          disabled={busy}
+          onChange={(to) => {
+            const first = useTasks.getState().order.find((k) => {
+              const x = useTasks.getState().tasks.find((y) => y.key === k)
+              return x?.state === to && k !== task.key
+            })
+            void useTasks.getState().move(task.key, to, first ? { before: first } : {}, first ?? null)
+          }}
+          options={STATES.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
+          className="-mr-[0.3rem] w-8 shrink-0 border-transparent! bg-transparent! px-1! hover:bg-app-3! [&>span]:hidden [&>svg]:block"
+        />
       </div>
     </div>
   )

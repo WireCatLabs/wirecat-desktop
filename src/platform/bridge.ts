@@ -312,7 +312,8 @@ function createTauri(): Platform {
     taskHistory: (key) => call(v.array(TaskEventSchema), "task_history", { key }),
     taskCreate: (task) => call(TaskWriteSchema, "task_create", { task }),
     taskUpdate: (key, revision, edit) => call(TaskWriteSchema, "task_update", { key, revision, edit }),
-    taskMove: (key, revision, place) => call(TaskWriteSchema, "task_move", { key, revision, place }),
+    taskMove: (key, revision, place, account) =>
+      call(TaskWriteSchema, "task_move", { key, revision, place, account: account ?? null }),
     taskAssign: (key, revision, person, account) =>
       call(TaskWriteSchema, "task_assign", { key, revision, person, account: account ?? null }),
     taskComments: (key) => call(v.array(TaskCommentSchema), "task_comments", { key }),

@@ -3,6 +3,9 @@ import * as v from "valibot"
 export const TaskStateSchema = v.picklist(["open", "todo", "in_progress", "done", "dismissed"])
 export const PriorityLabelSchema = v.picklist(["low", "medium", "high", "critical"])
 export const TaskKindSchema = v.picklist(["bug", "feature", "chore"])
+/** What memo finds in messages; a found task keeps one of these until it moves into a project. */
+export const FOUND_KINDS = ["question", "request", "mention", "promise"] as const
+export type FoundKind = (typeof FOUND_KINDS)[number]
 
 /** Who made a task or wrote a comment: the owner, another person, or an agent (`type` "bot"). */
 export const CreatorSchema = v.object({ type: v.string(), name: v.nullable(v.string()), owner: v.boolean() })
@@ -119,10 +122,10 @@ export type TaskEdit = {
   state?: TaskState
   /** Another project's key; the answer's task has its new key there. */
   project?: string
-  kind?: TaskKind
+  kind?: TaskKind | FoundKind
   /** Takes a subtask out of its parent, so it moves to another project on its own. */
   detach?: boolean
-  /** A found task's `provider:account`: memo writes it only as that account, with no revision. */
+  /** A found task's `provider:account`: memo writes it only as that account. */
   account?: string
 }
 

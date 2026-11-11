@@ -55,8 +55,6 @@ type TasksState = {
   total: number
   more: boolean
   counts: TaskCounts | null
-  /** The tasks from messages the last read with no search found: memo leaves them out of any search or filter. */
-  found: number
   people: Person[]
   /** Who has a task on the page, as the rows' assignee choices; the full list is searched in the person finder. */
   assigned: string[]
@@ -147,6 +145,20 @@ const without = <T>(record: Record<string, T>, key: string) => {
 
 const TYPING_MS = 350
 
+/**
+ * memo shows a found task only as its account and refuses without one, listing every account it stores. A task opened
+ * from a link or a row a filter hides has no account on the page yet, so each listed account is tried in turn.
+ */
+const showAsAny = async (key: string, refusal: unknown) => {
+  const text = message(refusal)
+  if (!/\bgive --(source|account)\b/.test(text)) throw refusal
+  for (const [, account] of text.matchAll(/--(?:source|account) ([\w-]+:[^\s;]+)/g)) {
+    const task = await platform.taskShow(key, account).catch(() => null)
+    if (task) return task
+  }
+  throw refusal
+}
+
 export const useTasks = create<TasksState>((set, get) => {
   let seq = 0
   let drafts = 0
@@ -225,7 +237,7 @@ export const useTasks = create<TasksState>((set, get) => {
   /** Neighbours memo renumbered to make room keep their place on screen and get their new revisions. */
   const refresh = async (keys: string[]) => {
     if (keys.length === 0) return
-    const fresh = await Promise.all(keys.map((k) => platform.taskShow(k).catch(() => null)))
+    const fresh = await Promise.all(keys.map((k) => platform.taskShow(k, find(k)?.account).catch(() => null)))
     for (const t of fresh) if (t) replace(t)
   }
 
@@ -282,15 +294,6 @@ export const useTasks = create<TasksState>((set, get) => {
 
   const find = (key: string) => get().tasks.find((t) => t.key === key) ?? get().outside[key]
 
-  /** memo lists a found task without its assignees; read with its account, the dialog shows who has it. */
-  const readFound = async (key: string) => {
-    const t = find(key)
-    if (!t?.account) return
-    const shown = await platform.taskShow(key, t.account).catch(() => null)
-    const now = find(key)
-    if (shown && now && !get().busy[key] && shown.revision >= now.revision) replace(shown)
-  }
-
   /** A task moved to another project has a new key; everything the page keeps by key follows it. */
   const rename = (from: string, task: Task) =>
     set((s) => {
@@ -326,7 +329,6 @@ export const useTasks = create<TasksState>((set, get) => {
     total: 0,
     more: false,
     counts: null,
-    found: 0,
     people: [],
     assigned: [],
     projects: [],
@@ -354,9 +356,6 @@ export const useTasks = create<TasksState>((set, get) => {
       const q = boardQuery(get().query)
       set({ reading: true, ...(quiet ? {} : { error: null }) })
       const counts = platform.taskCounts(q).catch(() => null)
-      // memo cannot filter the tasks it found in chats, so they show only while the owner has typed no search; any
-      // filter shows project tasks alone, as its count says.
-      const chats = get().query.trim() ? null : platform.taskChats().catch(() => null)
       // A keystroke reads the tasks again, not the projects.
       const projects = fresh(get().projectsAt) ? Promise.resolve(null) : platform.projectList().catch(() => null)
       void counts.then((c) => {
@@ -377,7 +376,7 @@ export const useTasks = create<TasksState>((set, get) => {
         set({ projects: j, projectsAt: Date.now() })
       })
       try {
-        const [read, found] = await Promise.all([platform.taskList(q), chats])
+        const read = await platform.taskList(q)
         if (mine !== seq || get().demo) return
         if (read.kind === "missing" || read.kind === "old") {
           set({ unusable: read, loaded: true, reading: false })
@@ -387,8 +386,7 @@ export const useTasks = create<TasksState>((set, get) => {
           set({ unusable: null, badQuery: read.message, loaded: true, reading: false })
           return
         }
-        const fromChats = (found?.tasks ?? []).filter((t) => !read.tasks.some((x) => x.key === t.key))
-        const tasks = [...read.tasks, ...fromChats]
+        const tasks = read.tasks
         set({
           unusable: null,
           badQuery: null,
@@ -396,9 +394,8 @@ export const useTasks = create<TasksState>((set, get) => {
           tasks,
           assigned: [...new Set(tasks.flatMap((t) => t.assignees))],
           order: tasks.map((t) => t.key),
-          total: read.total + fromChats.length,
-          ...(found ? { found: fromChats.length } : {}),
-          more: read.more || Boolean(found?.more),
+          total: read.total,
+          more: read.more,
           // The open task stays readable in its dialog when the new search leaves it out.
           outside: Object.fromEntries(
             [find(get().open ?? "")]
@@ -456,7 +453,6 @@ export const useTasks = create<TasksState>((set, get) => {
       set((s) => ({ open: key === null || s.open === key ? null : key, opened: s.opened + 1 }))
       if (key && get().open === key && !get().history[key]) void get().loadHistory(key)
       if (key && get().open === key && !get().comments[key]) void get().loadComments(key)
-      if (key && get().open === key) void readFound(key)
     },
 
     async openTask(key) {
@@ -467,9 +463,9 @@ export const useTasks = create<TasksState>((set, get) => {
       }))
       if (!get().history[key]) void get().loadHistory(key)
       if (!get().comments[key]) void get().loadComments(key)
-      if (find(key)) return void readFound(key)
+      if (find(key)) return
       try {
-        const task = await platform.taskShow(key)
+        const task = await platform.taskShow(key).catch((e: unknown) => showAsAny(key, e))
         // The list may have arrived meanwhile; the copy in it is the one rows and writes use.
         if (!find(key)) set((s) => ({ outside: { ...s.outside, [key]: task } }))
       } catch (e) {
@@ -511,16 +507,9 @@ export const useTasks = create<TasksState>((set, get) => {
           order: before.order,
           tasks: s.tasks.map((x) => (x.key === key ? { ...x, state: before.state } : x)),
         }))
-      if (t.account) {
-        // memo keeps no board order for a found task and only closes it, with its account.
-        if (state === t.state) return undo()
-        const found = { state, account: t.account }
-        await settle(key, () => platform.taskUpdate(key, t.revision, found), undo, moveSlot(key))
-        return
-      }
       const place = { ...(state !== t.state ? { state } : {}), ...anchor }
       if (!place.state && !place.before && !place.after) return
-      const out = await settle(key, () => platform.taskMove(key, t.revision, place), undo, moveSlot(key))
+      const out = await settle(key, () => platform.taskMove(key, t.revision, place, t.account), undo, moveSlot(key))
       if (out?.kind === "saved" && (out.label || state !== before.state)) {
         set({ note: { key, label: out.label?.to ?? null, column: state !== before.state ? state : null } })
       }

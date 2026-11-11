@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { ExternalLink, Mail, MessageSquare } from "lucide-react"
+import { ExternalLink } from "lucide-react"
 import { useId, useState } from "react"
 import { providerName } from "@/domain/archive"
 import { placeOf } from "@/domain/conversation"
@@ -12,7 +12,7 @@ import type { Task } from "@/platform/task-schemas"
 import { Button } from "@/ui/Button"
 import { Skeleton } from "@/ui/Skeleton"
 import { stamp, taskMessages } from "./messages"
-import { TaskError } from "./parts"
+import { OriginMark, originOf, TaskError, useOriginName } from "./parts"
 import { useTasks } from "./store"
 
 const SOURCE_FRESH_MS = 5 * 60_000
@@ -35,9 +35,10 @@ export function FoundSource({ task, dirty }: { task: Task; dirty: boolean }) {
     enabled: target !== null,
     staleTime: SOURCE_FRESH_MS,
   })
-  const provider = target?.provider ?? task.account?.split(":")[0] ?? ""
-  const mail = provider === "email"
-  const Icon = mail ? Mail : MessageSquare
+  const origin = originOf(task)
+  const nameOf = useOriginName()
+  const provider = origin?.provider ?? ""
+  const mail = origin?.kind === "mail"
   const answer = read.data
   const found = answer?.state === "found" ? answer : null
   const message = found?.messages.find((x) => x.anchor)
@@ -53,7 +54,8 @@ export function FoundSource({ task, dirty }: { task: Task; dirty: boolean }) {
   return (
     <section aria-labelledby={`${id}-source`} className="flex flex-col gap-[0.5rem]">
       <h3 id={`${id}-source`} className="flex items-center gap-[0.4rem] text-[0.9rem] font-medium text-ink-dim">
-        <Icon className="size-[0.95rem]" aria-hidden /> {m.source}
+        {origin && <OriginMark origin={origin} />}
+        {origin ? `${m.source} · ${nameOf(origin)}` : m.source}
       </h3>
       {!target ? (
         <p className="text-[0.95rem] text-ink-soft">{task.source ? m.sourceNotMessage : m.sourceUnknown}</p>

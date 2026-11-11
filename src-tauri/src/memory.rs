@@ -202,8 +202,10 @@ pub(crate) fn strings(v: &Value) -> Vec<String> {
 const FINDINGS: &str = "evidence_findings";
 /// What an agent read in new mail: decided finding by finding like an evidence batch, with no fingerprint required.
 const MAIL_FINDINGS: &str = "mail_findings";
+/// What an agent read in a meeting's transcript: facts and tasks with evidence, decided like an evidence batch.
+const MEETING_FINDINGS: &str = "meeting_findings";
 /// The batches the owner decides finding by finding: `actions confirm` with no finding named accepts them all.
-const BATCHES: [&str; 2] = [FINDINGS, MAIL_FINDINGS];
+const BATCHES: [&str; 3] = [FINDINGS, MAIL_FINDINGS, MEETING_FINDINGS];
 /// A source review is shown as a marker on the memory or fact it is about, and decided there, never as an action:
 /// memo refuses `actions confirm` on it.
 pub(crate) const SOURCE_REVIEW: &str = "memory_source_review";
@@ -212,7 +214,7 @@ pub(crate) const SOURCE_REVIEW: &str = "memory_source_review";
 const NOT_ACTIONS: [&str; 4] = [SOURCE_REVIEW, "identity_link", "identity_split", "relationship"];
 /// The kinds the page has words for (`verbs` and `kinds` in its messages) or memo writes a whole line for.
 const DESCRIBED: [&str; 10] =
-    ["reply", "send", "ban", "mute", "pin", "invite", "create_task", FINDINGS, MAIL_FINDINGS, "meeting_findings"];
+    ["reply", "send", "ban", "mute", "pin", "invite", "create_task", FINDINGS, MAIL_FINDINGS, MEETING_FINDINGS];
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Counts {
@@ -691,7 +693,7 @@ pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
         // `review confirm|reject` exits 2 when it refuses and prints its whole answer: the caller reads `refused`.
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
         // A meeting's findings can still change after the agent read them; memo's own words name its command.
-        Some(_) if reason == "evidence-findings.stale" || reason == "mail-findings.stale" => {
+        Some(_) if ["evidence-findings.stale", "mail-findings.stale", "meeting-findings.stale"].contains(&reason) => {
             Err("These findings changed since the agent proposed them.".into())
         }
         // The page words these in the owner's language, so the reason goes back as it is.
@@ -1975,6 +1977,32 @@ mod tests {
         assert_eq!(
             fake.seen().last().unwrap(),
             &strs(&["actions", "confirm", "12", "t1", "i1", "--from-app", "--json", "--no-record"])
+        );
+    }
+
+    #[test]
+    fn a_meeting_batch_lists_each_finding_and_approves_only_the_ticked_ones() {
+        fn meeting(status: &str) -> Value {
+            let mut v = findings_batch(status, &Value::Null);
+            v["kind"] = json!("meeting_findings");
+            v["verb"] = json!("meeting_findings");
+            v
+        }
+        let batch = action(&meeting("proposed")).unwrap();
+        let found = batch.findings.as_ref().unwrap();
+        assert_eq!(
+            found.iter().map(|f| f.text.as_str()).collect::<Vec<_>>(),
+            ["The eval set moves to 120 queries.", "Add 40 Spanish queries"]
+        );
+
+        let fake = Fake::new(|a| Ok(json!({"item": meeting(if a[1] == "show" { "proposed" } else { "approved" })})));
+        let call = |a: &[String]| fake.call(a);
+        let r = Ref::parse("action:9").unwrap();
+        assert!(confirm_with(&call, &r, None).is_err(), "never every finding unseen");
+        confirm_with(&call, &r, Some(&strs(&["f2"]))).unwrap();
+        assert_eq!(
+            fake.seen().last().unwrap(),
+            &strs(&["actions", "confirm", "9", "f2", "--fingerprint", "5adf3e", "--from-app", "--json", "--no-record"])
         );
     }
 

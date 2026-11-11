@@ -6,7 +6,6 @@ import { type Lang, useLang, useMessages } from "@/i18n"
 import { DemoNote } from "@/shared/DemoNote"
 import { Page, PageHeader } from "@/shared/Page"
 import { Button } from "@/ui/Button"
-import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -117,7 +116,6 @@ function Body() {
     <>
       <Filters />
       <More />
-      <FoundHidden />
       {loaded ? <Rack /> : <Loading />}
       <TaskDialog />
     </>
@@ -130,23 +128,6 @@ function More() {
   const more = useTasks((s) => s.more)
   const total = useTasks((s) => s.total)
   return more ? <p className="-mt-[0.6rem] text-[0.9rem] text-ink-soft">{m.more(total)}</p> : null
-}
-
-/** memo searches and filters project tasks only, so a search hides every task from messages; the page says so. */
-function FoundHidden() {
-  const m = useMessages(taskMessages)
-  const found = useTasks((s) => s.found)
-  const searched = useTasks((s) => s.query.trim() !== "" && s.badQuery === null)
-  return (
-    <Collapse open={searched && found > 0} frameClassName="-mt-[0.6rem]">
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem] text-ink-soft">
-        {m.foundHidden(found)}
-        <Button size="sm" variant="ghost" onClick={() => useTasks.getState().setQuery("")}>
-          {m.clear}
-        </Button>
-      </p>
-    </Collapse>
-  )
 }
 
 function Rack() {

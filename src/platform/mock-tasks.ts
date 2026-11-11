@@ -333,7 +333,7 @@ function fieldMatch(t: Task, field: string, value: string): boolean {
   const range = /^\[(.+) TO (.+)\]$/.exec(value)
   switch (field) {
     case "project":
-      return v === "*" || t.project.toLowerCase() === v
+      return v === "*" ? !t.account : t.project.toLowerCase() === v
     case "state":
       return v === "*" || t.state === v
     case "assignee":
@@ -404,7 +404,7 @@ function whenOf(t: Task): string {
 // memo's default: without a state term, closed tasks stay out.
 const DEFAULT_OPEN = "state:(open OR todo OR in_progress)"
 const filter = (all: Task[], q: string) => {
-  const query = /(^|[\s(-])state:/.test(q) ? q : `(${q || "project:*"}) ${DEFAULT_OPEN}`
+  const query = /(^|[\s(-])state:/.test(q) ? q : q ? `(${q}) ${DEFAULT_OPEN}` : DEFAULT_OPEN
   const node = parse(query)
   return all.filter((t) => matches(t, node))
 }
@@ -433,7 +433,30 @@ type TaskApi = Pick<
 const STATE_ORDER: TaskState[] = ["open", "todo", "in_progress", "done", "dismissed"]
 
 export function tasksMock(): TaskApi {
-  let tasks = seeds()
+  /** Tasks memo found in Telegram chats: memo lists them with the projects' since cli-core's found-task fields. */
+  const fromChats = (): Task[] => {
+    if (scenario() !== "chats" && scenario() !== "chats96") return []
+    const chat = (key: string, title: string, minutes: number, source: string, kind: string | null = null): Task => ({
+      ...make({ key, title, state: "open", createdAt: ago(minutes), account: "telegram:1", source }),
+      project: "INB7",
+      projectName: null,
+      createdBy: null,
+      kind,
+      priorityLabel: null,
+      ready: null,
+    })
+    // memo before cli-core's readable titles: a found task's title is its kind and the message's locator.
+    if (scenario() === "chats96")
+      return Array.from({ length: 96 }, (_, i) => {
+        const source = `msg:telegram/1/${7000 + (i % 9)}/${(i % 100) + 1}`
+        return chat(`Q-${i + 1}`, `question — ${source}`, 60 * (i + 1), source, "question")
+      })
+    return [
+      chat("INB7-1", "Send Ana the signed lease", 60 * 5, "msg:telegram/1/2/14", "request"),
+      chat("INB7-2", "Answer Kai about the Friday call", 60 * 30, "msg:telegram/1/4004/9", "question"),
+    ]
+  }
+  let tasks = [...seeds(), ...fromChats()]
   let people = [...PEOPLE]
   const history = new Map<string, TaskEvent[]>()
   const comments = new Map<string, TaskComment[]>([
@@ -454,9 +477,8 @@ export function tasksMock(): TaskApi {
   const you = { ref: "person:1", name: null, owner: true }
   let conflictLeft = scenario() === "conflict"
   const aliases = new Map<string, string>(Object.entries(TASK_IDS))
-  const foundInChats = new Map<string, Task>()
   const find = (key: string) => {
-    const t = tasks.find((x) => x.key === (aliases.get(key) ?? key)) ?? foundInChats.get(key)
+    const t = tasks.find((x) => x.key === (aliases.get(key) ?? key))
     if (!t) throw new Error(`no task ${key}`)
     return t
   }
@@ -464,13 +486,8 @@ export function tasksMock(): TaskApi {
     history.set(key, [...(history.get(key) ?? []), { at: new Date().toISOString(), kind, by, changes }])
   }
   const put = (t: Task) => {
-    if (foundInChats.has(t.key)) foundInChats.set(t.key, t)
-    else tasks = tasks.map((x) => (x.key === t.key ? t : x))
+    tasks = tasks.map((x) => (x.key === t.key ? t : x))
     return t
-  }
-  const keepFound = (list: Task[]) => {
-    for (const t of list) if (!foundInChats.has(t.key)) foundInChats.set(t.key, t)
-    return list.map((t) => find(t.key))
   }
   const sorted = () =>
     [...tasks].sort((a, b) => (b.priority ?? -1) - (a.priority ?? -1) || a.createdAt.localeCompare(b.createdAt))
@@ -522,36 +539,7 @@ export function tasksMock(): TaskApi {
     },
     async taskChats() {
       await delay(300)
-      if (scenario() !== "chats" && scenario() !== "chats96") return { tasks: [], more: false }
-      const chat = (key: string, title: string, minutes: number, source: string, kind: string | null = null): Task => ({
-        ...make({ key, title, state: "open", createdAt: ago(minutes), account: "telegram:1", source }),
-        project: "INB7",
-        projectName: null,
-        createdBy: null,
-        kind,
-        priorityLabel: null,
-        ready: null,
-      })
-      // memo lists a found task without its assignees; only `tasks show` with its account gives them.
-      const listed = (found: Task[]) => keepFound(found).map((t) => ({ ...t, assignees: [] }))
-      // memo before cli-core's readable titles: a found task's title is its kind and the message's locator.
-      if (scenario() === "chats96")
-        return {
-          tasks: listed(
-            Array.from({ length: 96 }, (_, i) => {
-              const source = `msg:telegram/1/${7000 + (i % 9)}/${(i % 100) + 1}`
-              return chat(`Q-${i + 1}`, `question — ${source}`, 60 * (i + 1), source, "question")
-            }),
-          ),
-          more: false,
-        }
-      return {
-        tasks: listed([
-          chat("INB7-1", "Send Ana the signed lease", 60 * 5, "msg:telegram/1/2/14"),
-          chat("INB7-2", "Answer Kai about the Friday call", 60 * 30, "msg:telegram/1/4004/9"),
-        ]),
-        more: false,
-      }
+      return { tasks: tasks.filter((t) => t.account), more: false }
     },
     async taskCounts(query): Promise<TaskCounts> {
       await delay(420)
@@ -656,14 +644,7 @@ export function tasksMock(): TaskApi {
     },
     async taskUpdate(key, revision, edit: TaskEdit) {
       const found = find(key).account
-      // memo's own refusals for a task found in messages.
       if (found && edit.account !== found) throw new Error(`give --account — the stored accounts: --account ${found}`)
-      // Rust closes a found task with `tasks close` when its state is all that changes.
-      const closing = found && (edit.state === "done" || edit.state === "dismissed") && Object.keys(edit).length === 2
-      if (closing && closed(find(key).state))
-        throw new Error(`task ${key} is already ${find(key).state}; a closed task stays closed`)
-      if (found && !closing && (edit.state || edit.priority || edit.agent || edit.project || edit.kind))
-        throw new Error("--status, --agent, --revision, --project and --type are for a project task")
       const to = edit.project
       if (to !== undefined && to !== find(key).project) {
         const parent = find(key).parent
@@ -711,6 +692,7 @@ export function tasksMock(): TaskApi {
         project: to,
         projectName: PROJECT_SET().find((p) => p.key === to)?.name ?? null,
         parent: null,
+        account: null,
       }
       tasks = tasks.map((t) => (t.key === key ? moved : t))
       aliases.set(key, moved.key)
@@ -740,7 +722,6 @@ export function tasksMock(): TaskApi {
     },
     async taskMove(key, revision, place: TaskPlace) {
       const t = find(key)
-      if (t.account) throw new Error("only a project task moves on the board")
       const state = place.state ?? t.state
       const column = sorted().filter((x) => x.state === state && x.key !== key)
       const anchor = place.before ?? place.after
