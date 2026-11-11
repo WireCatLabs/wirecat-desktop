@@ -25,7 +25,7 @@ function Author({ comment }: { comment: TaskComment }) {
 }
 
 /** What people and agents wrote on the task, oldest first, and a box to add the owner's own. */
-export function Comments({ taskKey }: { taskKey: string }) {
+export function Comments({ taskKey, onDirty }: { taskKey: string; onDirty?: (dirty: boolean) => void }) {
   const m = useMessages(taskMessages)
   const lang = useLang()
   const id = useId()
@@ -35,6 +35,7 @@ export function Comments({ taskKey }: { taskKey: string }) {
   const [text, setText] = useState("")
   const ready = text.trim() !== ""
   const empty = useFieldError(`${id}-text`)
+  useEffect(() => onDirty?.(ready), [ready, onDirty])
   useEffect(() => {
     if (!useTasks.getState().comments[taskKey]) void useTasks.getState().loadComments(taskKey)
   }, [taskKey])
@@ -58,7 +59,16 @@ export function Comments({ taskKey }: { taskKey: string }) {
       {!comments || comments.state === "loading" ? (
         <Skeleton className="h-[3.2rem] w-full rounded-[0.45rem]" label={m.comments} />
       ) : comments.state === "failed" ? (
-        <p className="text-[0.9rem] text-bad">{m.commentsFailed}</p>
+        <TaskError
+          reading
+          lead={m.commentsFailed}
+          raw={comments.message}
+          action={
+            <Button size="sm" onClick={() => void useTasks.getState().loadComments(taskKey)}>
+              {m.tryAgain}
+            </Button>
+          }
+        />
       ) : comments.items.length === 0 ? (
         <p className="text-[0.95rem] text-ink-soft">{m.commentsEmpty}</p>
       ) : (
@@ -82,7 +92,9 @@ export function Comments({ taskKey }: { taskKey: string }) {
                   </time>
                 )}
               </header>
-              <p className="selectable mt-[0.2rem] text-[0.95rem] whitespace-pre-wrap text-ink">{c.text}</p>
+              <p className="selectable mt-[0.2rem] text-[0.95rem] [overflow-wrap:anywhere] whitespace-pre-wrap text-ink">
+                {c.text}
+              </p>
             </li>
           ))}
         </ol>
@@ -116,7 +128,7 @@ export function Comments({ taskKey }: { taskKey: string }) {
         />
         {empty.hint}
         <div className="flex gap-2">
-          <Button variant="primary" size="sm" type="submit">
+          <Button size="sm" type="submit">
             {m.send}
           </Button>
         </div>

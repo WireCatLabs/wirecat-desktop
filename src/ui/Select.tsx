@@ -16,6 +16,8 @@ type Props<T extends string> = {
   placeholder?: string
   size?: "lg" | "md" | "sm"
   disabled?: boolean
+  /** Its own write is running: it ignores the owner but looks the same and keeps focus, unlike `disabled`. */
+  busy?: boolean
   className?: string
   id?: string
   "aria-label"?: string
@@ -43,6 +45,7 @@ export function Select<T extends string>({
   placeholder,
   size = "md",
   disabled = false,
+  busy = false,
   className,
   id,
   ...aria
@@ -82,7 +85,7 @@ export function Select<T extends string>({
   const inside = useMemo(() => [button, list], [])
   const pick = (i: number) => {
     const o = flat[i]
-    if (!o || o.disabled) return
+    if (!o || o.disabled || busy) return
     close(true)
     if (o.value !== value) onChange(o.value)
   }
@@ -107,6 +110,7 @@ export function Select<T extends string>({
 
   const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
     const { key } = e
+    if (busy && !open) return
     if (!open) {
       if (["ArrowDown", "ArrowUp", "Enter", " "].includes(key)) {
         e.preventDefault()
@@ -193,9 +197,11 @@ export function Select<T extends string>({
         aria-activedescendant={open && active >= 0 ? optionId(active) : undefined}
         {...aria}
         disabled={disabled}
+        aria-busy={busy || undefined}
         onKeyDown={onKeyDown}
         onClick={() => {
           button.current?.focus()
+          if (busy && !open) return
           if (open) close(false)
           else show()
         }}

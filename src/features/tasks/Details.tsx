@@ -1,4 +1,4 @@
-import { Bot, CalendarDays, GitBranch, Lock, User } from "lucide-react"
+import { Bot, CalendarDays, Check, GitBranch, LoaderCircle, Lock, Save, User } from "lucide-react"
 import { type ReactNode, useEffect, useId, useRef, useState } from "react"
 import { bareTitleKind, closed, fromMessages, labelOf, STATES, type State } from "@/domain/tasks"
 import { type Lang, useLang, useMessages } from "@/i18n"
@@ -9,13 +9,13 @@ import { cx } from "@/ui/cx"
 import { useFieldError } from "@/ui/FieldError"
 import { fieldFocus } from "@/ui/field"
 import { InfoTip } from "@/ui/InfoTip"
-import { Skeleton } from "@/ui/Skeleton"
+import { Skeleton, StableText } from "@/ui/Skeleton"
 import { Comments } from "./Comments"
 import { AgentCell, AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, StatusCell } from "./cells"
 import { dueDay, stamp, type TaskWords, taskMessages } from "./messages"
 import { StaleLine } from "./Note"
 import { personName, StateLamp, TaskError, TaskLink, taskTitle } from "./parts"
-import { useTasks } from "./store"
+import { moveSlot, useTasks } from "./store"
 
 const isState = (v: unknown): v is State => typeof v === "string" && (STATES as readonly string[]).includes(v)
 
@@ -52,6 +52,18 @@ export function eventText(e: TaskEvent, m: TaskWords, known: Known, lang: Lang):
 
 const KEY = /^[A-Z0-9]{2,4}-\d+$/
 
+const ownTitle = (task: Task) => (bareTitleKind(task) === null ? task.title : "")
+
+const writesDone = (key: string) =>
+  new Promise<void>((done) => {
+    if (!useTasks.getState().busy[key]) return done()
+    const stop = useTasks.subscribe((s) => {
+      if (s.busy[key]) return
+      stop()
+      done()
+    })
+  })
+
 const isAgent = (by: TaskEvent["by"]) => Boolean(by && !by.owner && !by.ref?.startsWith("person:"))
 
 /** "You", a person's name, or the agent's. */
@@ -84,7 +96,15 @@ function Field({ label, children, tip }: { label: string; children: ReactNode; t
  * A task in the dialog: title and notes to edit and save; status, priority, assignee, agent and due date that save
  * on change, as the table's cells do; then what it waits for, what waits for it, and who changed what.
  */
-export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boolean) => void }) {
+export function Details({
+  task,
+  onDirty,
+  onSaving,
+}: {
+  task: Task
+  onDirty?: (dirty: boolean) => void
+  onSaving?: (saving: boolean) => void
+}) {
   const m = useMessages(taskMessages)
   const lang = useLang()
   const id = useId()
@@ -94,34 +114,45 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
   const history = useTasks((s) => s.history[task.key])
   const busy = useTasks((s) => Boolean(s.busy[task.key]))
   const failed = useTasks((s) => s.failed[task.key])
+  const stale = useTasks((s) => s.stale?.key === task.key)
   // The stand-in "<kind> — <locator>" is no title to edit: the box starts empty and shows the readable name.
-  const own = bareTitleKind(task) === null ? task.title : ""
+  const own = ownTitle(task)
   const [title, setTitle] = useState(own)
   const [notes, setNotes] = useState(task.description ?? "")
   const [writing, setWriting] = useState(!task.description)
   const box = useRef<HTMLTextAreaElement>(null)
   const noTitle = useFieldError(`${id}-title`)
-  const clearTitle = noTitle.clear
-  // A write from elsewhere (a stale refusal shows the current task) resets the fields to what the task now says.
-  useEffect(() => {
-    clearTitle()
-    setTitle(own)
-    setNotes(task.description ?? "")
-    setWriting(!task.description)
-  }, [own, task.description, clearTitle])
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [commenting, setCommenting] = useState(false)
+  const memoNotes = task.description ?? ""
+  const [read, setRead] = useState({ title: own, notes: memoNotes })
+  const synced = read.title === own && read.notes === memoNotes
+  // A field follows memo only while it still shows memo's last words: what the owner typed is never replaced, whether
+  // the answer is their own save or a stale refusal that brings someone else's text. Set during render, so no frame
+  // shows an untouched form as changed. Trimmed, as memo stores them: a saved "abc  " is still memo's "abc".
+  if (!synced) {
+    setRead({ title: own, notes: memoNotes })
+    if (title.trim() === read.title.trim()) setTitle(own)
+    if (notes.trim() === read.notes.trim()) setNotes(memoNotes)
+    if (!memoNotes) setWriting(true)
+  }
 
   useEffect(() => {
     if (!useTasks.getState().history[task.key]) void useTasks.getState().loadHistory(task.key)
   }, [task.key])
 
   const edit: TaskEdit = {}
-  if (title.trim() && title.trim() !== task.title) edit.title = title.trim()
+  if (title.trim() && title.trim() !== task.title.trim()) edit.title = title.trim()
   // An emptied box clears the notes.
-  if (notes.trim() ? notes !== (task.description ?? "") : Boolean(task.description))
-    edit.description = notes.trim() && notes
+  // memo trims what it stores, so spaces at the ends are no change.
+  if (notes.trim() !== (task.description ?? "").trim()) edit.description = notes.trim() && notes
   const changed = Object.keys(edit).length > 0
-  const blank = title.trim() === ""
-  useEffect(() => onDirty?.(changed), [changed, onDirty])
+  // A found task with no title of its own starts empty, and may stay so.
+  const blank = title.trim() === "" && own !== ""
+  if (synced && saved && (changed || blank || failed || stale)) setSaved(false)
+  useEffect(() => onDirty?.(changed || commenting), [changed, commenting, onDirty])
+  useEffect(() => () => onDirty?.(false), [onDirty])
   const reset = () => {
     noTitle.clear()
     setTitle(own)
@@ -132,6 +163,36 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
     setWriting(true)
     requestAnimationFrame(() => box.current?.focus())
   }
+  const save = async () => {
+    if (blank) return noTitle.fail(m.titleEmpty)
+    if (!changed || saving) return
+    const sent = { title, notes }
+    setSaving(true)
+    onSaving?.(true)
+    // A field saved on blur may be writing still; this save needs the revision that write answers.
+    const before = useTasks.getState()
+    const waited = Boolean(before.busy[task.key])
+    await writesDone(task.key)
+    const after = useTasks.getState()
+    // That write's refusal is news to the owner: saving over it would hide it and overwrite what they have not seen.
+    const refused =
+      waited && (after.stale?.key === task.key || after.failed[task.key] || after.failed[moveSlot(task.key)])
+    // A move may have renamed this task; another task opened meanwhile must not receive this one's text.
+    const key = after.opened === before.opened ? (after.open ?? task.key) : task.key
+    const ok = !refused && (await useTasks.getState().update(key, edit))
+    setSaving(false)
+    onSaving?.(false)
+    setSaved(ok)
+    const now = useTasks.getState()
+    const stored = now.tasks.find((t) => t.key === key) ?? now.outside[key]
+    if (!ok || !stored) return
+    // memo may store something else than was typed ("none" clears the notes): the form shows what it kept.
+    setTitle((t) => (t === sent.title ? ownTitle(stored) : t))
+    setNotes((n) => (n === sent.notes ? (stored.description ?? "") : n))
+    if (!stored.description) setWriting(true)
+  }
+  const idle = !changed && !blank
+  const hidden = idle && !saving && !saved
 
   const moved = useTasks((s) => s.moved[task.key])
   const detach = useTasks((s) => s.detach[task.key])
@@ -152,8 +213,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
           className="flex min-w-0 flex-col gap-[0.8rem]"
           onSubmit={(e) => {
             e.preventDefault()
-            if (blank) return noTitle.fail(m.titleEmpty)
-            if (changed) void useTasks.getState().update(task.key, edit)
+            void save()
           }}
         >
           <div className="flex flex-col gap-[0.35rem]">
@@ -208,30 +268,61 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
                     {m.editNotes}
                   </Button>
                 </header>
-                <p className="selectable mt-[0.2rem] text-[0.95rem] whitespace-pre-wrap text-ink">{task.description}</p>
+                <p className="selectable mt-[0.2rem] text-[0.95rem] [overflow-wrap:anywhere] whitespace-pre-wrap text-ink">
+                  {task.description}
+                </p>
               </article>
             )}
           </div>
-          {/* The buttons appear with the first change; their line is kept, so nothing below moves. */}
+          {/* The buttons appear with the first change; their line is kept, so nothing below moves. After a save the
+              button stays, as the result, until the next edit. */}
           <div
-            inert={(!changed && !blank && !busy) || undefined}
-            aria-hidden={(!changed && !blank && !busy) || undefined}
+            inert={hidden || undefined}
+            aria-hidden={hidden || undefined}
             className={cx(
               "flex gap-2 transition-opacity duration-(--motion-fast)",
-              !changed && !blank && !busy && "pointer-events-none opacity-0",
+              hidden && "pointer-events-none opacity-0",
             )}
           >
-            <Button variant="primary" size="sm" type="submit" disabled={busy}>
-              {busy ? m.saving : m.save}
+            {/* Enabled while it works: a disabled button drops keyboard focus to the page (UX-67). */}
+            <Button
+              variant={saved ? "secondary" : "primary"}
+              size="sm"
+              type="submit"
+              aria-busy={saving}
+              icon={
+                saving ? (
+                  <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden />
+                ) : saved ? (
+                  <Check className="size-4 text-ok" aria-hidden />
+                ) : (
+                  <Save className="size-4" aria-hidden />
+                )
+              }
+            >
+              <StableText
+                className="justify-items-start"
+                value={saving ? m.saving : saved ? m.saved : m.save}
+                variants={[m.save, m.saving, m.saved]}
+              />
             </Button>
-            <Button size="sm" variant="ghost" onClick={reset} disabled={busy}>
+            <Button
+              size="sm"
+              onClick={reset}
+              inert={idle || saving || undefined}
+              className={cx("transition-opacity duration-(--motion-fast)", (idle || saving) && "opacity-0")}
+            >
               {m.cancel}
             </Button>
+            <span role="status" className="sr-only">
+              {saving ? m.saving : saved ? m.saved : ""}
+            </span>
           </div>
           {failed && <TaskError lead={m.notSaved} raw={failed} />}
           <StaleLine taskKey={task.key} />
+          {stale && changed && <p className="text-[0.875rem] text-ink-soft">{m.draftKept}</p>}
         </form>
-        <Comments taskKey={task.key} />
+        <Comments taskKey={task.key} onDirty={setCommenting} />
         <section aria-labelledby={`${id}-waits`} className="flex flex-col gap-[0.4rem]">
           <h3 id={`${id}-waits`} className="flex items-center gap-[0.4rem] text-[0.9rem] font-medium text-ink-dim">
             <GitBranch className="size-[0.95rem]" aria-hidden /> {m.waitsHeading}
@@ -276,7 +367,16 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
               <Skeleton className="h-[1.1rem] w-[70%]" />
             </div>
           ) : history.state === "failed" ? (
-            <p className="text-[0.9rem] text-bad">{m.historyFailed}</p>
+            <TaskError
+              reading
+              lead={m.historyFailed}
+              raw={history.message}
+              action={
+                <Button size="sm" onClick={() => void useTasks.getState().loadHistory(task.key)}>
+                  {m.tryAgain}
+                </Button>
+              }
+            />
           ) : history.events.length === 0 ? (
             <p className="text-[0.9rem] text-ink-soft">{m.historyEmpty}</p>
           ) : (
@@ -290,7 +390,7 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
                       <span className="self-center text-ink-dim">
                         <Who by={e.by} />
                       </span>
-                      <span className="min-w-0">{line}</span>
+                      <span className="min-w-0 [overflow-wrap:anywhere]">{line}</span>
                     </span>
                   </li>
                 )),
@@ -355,8 +455,10 @@ export function Details({ task, onDirty }: { task: Task; onDirty?: (dirty: boole
                   </span>
                   <Button
                     size="sm"
-                    disabled={busy}
-                    onClick={() => void useTasks.getState().update(task.key, { project: detach.project, detach: true })}
+                    aria-busy={busy}
+                    onClick={() => {
+                      if (!busy) void useTasks.getState().update(task.key, { project: detach.project, detach: true })
+                    }}
                   >
                     {m.moveAlone(detach.parent, detach.project)}
                   </Button>

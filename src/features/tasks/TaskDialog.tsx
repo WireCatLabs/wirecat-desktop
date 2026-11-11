@@ -2,11 +2,12 @@ import { ChevronDown, ChevronUp } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { Details } from "./Details"
 import { taskMessages } from "./messages"
+import { TaskError } from "./parts"
 import { useTasks } from "./store"
 
 /** The keys in the order the owner sees them, whichever view and sort is on screen. */
@@ -22,8 +23,17 @@ export function TaskDialog() {
   const task = useTasks((s) => (s.open ? (s.tasks.find((t) => t.key === s.open) ?? s.outside[s.open]) : undefined))
   const failed = useTasks((s) => (s.open ? s.failed[s.open] : undefined))
   const [dirty, setDirty] = useState(false)
-  const [held, setHeld] = useState(false)
-  if (held && !dirty) setHeld(false)
+  // Why the owner was stopped from leaving unsaved text: stepping to another task, or closing.
+  const [held, setHeld] = useState<"step" | "close" | null>(null)
+  if (held && !dirty) setHeld(null)
+  const opened = useTasks((s) => s.opened)
+  const [saving, setSaving] = useState(false)
+  const content = useRef<HTMLDivElement>(null)
+  // A step replaces the element that held focus; the keyboard's place stays in the dialog.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: it runs for each task opened
+  useEffect(() => {
+    if (document.activeElement === document.body) content.current?.focus({ preventScroll: true })
+  }, [opened])
   const last = useRef<string | null>(null)
   if (open) last.current = open
 
@@ -38,7 +48,7 @@ export function TaskDialog() {
     const now = shownKeys()
     const i = open ? now.indexOf(open) : -1
     if (dirty) {
-      setHeld(true)
+      setHeld("step")
       return
     }
     const next = i < 0 ? undefined : now[i + by]
@@ -67,57 +77,95 @@ export function TaskDialog() {
     if (last.current) document.querySelector<HTMLElement>(`[data-opens="${last.current}"]`)?.focus()
   }
 
+  // A running save keeps the dialog: if memo refuses it, the typed text and the reason must still be here.
+  const canClose = () => {
+    if (saving || (dirty && held !== "close")) {
+      setHeld("close")
+      return false
+    }
+    return true
+  }
+
   return (
     <Dialog
       open={Boolean(open)}
       title={open ? m.details(open) : ""}
       onClose={close}
+      canClose={canClose}
       wide="xl"
       scroll
+      tall
       actions={
-        <span className="mr-auto flex gap-1">
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label={m.previous}
-            title={m.previous}
-            disabled={at <= 0}
-            onClick={() => step(-1)}
-            icon={<ChevronUp className="size-4" aria-hidden />}
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            aria-label={m.next}
-            title={m.next}
-            disabled={at < 0 || at >= keys.length - 1}
-            onClick={() => step(1)}
-            icon={<ChevronDown className="size-4" aria-hidden />}
-          />
-          {/* The place is why ▲ or ▼ is off at either end of the list. */}
-          {at >= 0 && (
-            <span className="self-center px-1 font-mono text-[0.85rem] text-ink-dim tabular-nums">
-              {m.position(at + 1, keys.length)}
-            </span>
-          )}
-        </span>
-      }
-      footer={
-        // One line for both, so the warning takes the hint's place rather than pushing the dialog taller.
-        <p
-          role={held ? "alert" : undefined}
-          className={held ? "text-[0.85rem] text-bad" : "text-[0.8rem] text-ink-dim"}
-        >
-          {held ? m.saveFirst : m.keysHint}
-        </p>
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <span className="flex shrink-0 gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={m.previous}
+              title={m.previous}
+              disabled={at <= 0}
+              onClick={() => step(-1)}
+              icon={<ChevronUp className="size-4" aria-hidden />}
+            />
+            <Button
+              size="sm"
+              variant="ghost"
+              aria-label={m.next}
+              title={m.next}
+              disabled={at < 0 || at >= keys.length - 1}
+              onClick={() => step(1)}
+              icon={<ChevronDown className="size-4" aria-hidden />}
+            />
+            {/* The place is why ▲ or ▼ is off at either end of the list. */}
+            {at >= 0 && (
+              <span className="self-center px-1 font-mono text-[0.85rem] text-ink-dim tabular-nums">
+                {m.position(at + 1, keys.length)}
+              </span>
+            )}
+          </span>
+          {/* One line for both, so the warning takes the hint's place rather than pushing the dialog taller. */}
+          <p
+            role={held ? "alert" : undefined}
+            className={cx(
+              "ml-auto min-w-0 text-right",
+              held ? "text-[0.85rem] text-bad" : "text-[0.8rem] text-ink-dim",
+            )}
+          >
+            {held === "close" ? (saving ? m.stillSaving : m.closeAgain) : held ? m.saveFirst : m.keysHint}
+          </p>
+        </div>
       }
     >
       {task ? (
-        <div key={task.key} className="reveal">
-          <Details task={task} onDirty={setDirty} />
+        // Focus starts here, not in the title: J and K are for moving between tasks, and a field would type them.
+        <div
+          key={opened}
+          ref={content}
+          tabIndex={-1}
+          data-autofocus
+          className="reveal inner-field"
+          // A new word after a warning starts over: the next close warns again.
+          onInput={() => setHeld(null)}
+          onClickCapture={(e) => {
+            if (!dirty || !(e.target instanceof Element) || !e.target.closest("[data-task-link]")) return
+            e.preventDefault()
+            e.stopPropagation()
+            setHeld("step")
+          }}
+        >
+          <Details task={task} onDirty={setDirty} onSaving={setSaving} />
         </div>
       ) : failed ? (
-        <ErrorNotice inline>{m.openFailed(open ?? "", failed)}</ErrorNotice>
+        <TaskError
+          reading
+          lead={m.openFailed(open ?? "")}
+          raw={failed}
+          action={
+            <Button size="sm" onClick={() => void useTasks.getState().openTask(open ?? "")}>
+              {m.tryAgain}
+            </Button>
+          }
+        />
       ) : (
         <div className="flex flex-col gap-[0.6rem] pb-[0.6rem]">
           <Skeleton className="h-[2.4rem] w-full" label={m.readingTask} />

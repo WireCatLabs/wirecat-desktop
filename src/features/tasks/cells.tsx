@@ -65,7 +65,7 @@ export function StatusCell({ task, label }: { task: Task; label?: string }) {
       size="sm"
       aria-label={label ?? m.cell(m.status, task.key)}
       value={task.state}
-      disabled={busy}
+      busy={busy}
       onChange={(state: State) => void useTasks.getState().update(task.key, { state })}
       options={states.map((s) => ({ value: s, label: m.states[s], icon: <StateLamp state={s} /> }))}
       className={BARE}
@@ -80,12 +80,12 @@ export function PriorityCell({ task }: { task: Task }) {
   if (fromMessages(task)) return <Fixed>{current === "none" ? "—" : m.labels[current]}</Fixed>
   // The closed cell shows the bars alone, and nothing for no priority; the words stay in the list and the tooltip.
   return (
-    <span className="flex" title={current === "none" ? undefined : m.priorityIs(m.labels[current])}>
+    <span className="flex w-full" title={current === "none" ? undefined : m.priorityIs(m.labels[current])}>
       <Select
         size="sm"
         aria-label={m.cell(m.priority, task.key)}
         value={current}
-        disabled={busy}
+        busy={busy}
         onChange={(priority) => void useTasks.getState().update(task.key, { priority })}
         options={[...LABELS, "none" as const].map((l) => {
           const [filled, tone] = BAR[l] ?? [0, ""]
@@ -95,7 +95,7 @@ export function PriorityCell({ task }: { task: Task }) {
             ...(l === "none" ? {} : { icon: <Bars filled={filled} tone={tone} /> }),
           }
         })}
-        className={cx(BARE, "[&>span.flex-1]:sr-only")}
+        className={cx(BARE, "[&>span.flex-1]:sr-only [&>svg]:ml-auto")}
       />
     </span>
   )
@@ -135,7 +135,7 @@ export function AssigneeCell({ task }: { task: Task }) {
           size="sm"
           aria-label={m.cell(m.assignee, task.key)}
           value={current}
-          disabled={busy}
+          busy={busy}
           onChange={(v) => {
             if (v === ELSE) setFinding(true)
             else void useTasks.getState().assign(task.key, v === "none" ? null : v)
@@ -163,7 +163,7 @@ export function KindCell({ task }: { task: Task }) {
       size="sm"
       aria-label={m.cell(m.kind, task.key)}
       value={current ?? "other"}
-      disabled={busy}
+      busy={busy}
       onChange={(kind) => kind !== "other" && void useTasks.getState().update(task.key, { kind })}
       options={[
         ...kinds.map((k) => ({ value: k, label: m.kinds[k] ?? k })),
@@ -195,7 +195,7 @@ export function ProjectCell({ task }: { task: Task }) {
       size="sm"
       aria-label={m.cell(m.project, task.key)}
       value={task.project}
-      disabled={busy}
+      busy={busy}
       onChange={(project) => project !== task.project && void useTasks.getState().update(task.key, { project })}
       options={keys.map((k) => ({ value: k, label: nameOf(k) ? `${k} · ${nameOf(k)}` : k }))}
       className={BARE}
@@ -228,6 +228,8 @@ export function AgentCell({ task }: { task: Task }) {
           e.preventDefault()
           save()
         } else if (e.key === "Escape" && agent !== (task.agent ?? "")) {
+          // The native <dialog> would close on this Escape too.
+          e.preventDefault()
           e.stopPropagation()
           setAgent(task.agent ?? "")
         }
@@ -266,7 +268,7 @@ export function DueCell({ task }: { task: Task }) {
         size="sm"
         aria-label={m.cell(m.due, task.key)}
         value="current"
-        disabled={busy}
+        busy={busy}
         onChange={(v) => {
           if (v === "pick") setPicking(true)
           else if (v === "none") save("none")

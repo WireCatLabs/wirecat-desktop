@@ -86,6 +86,7 @@ type Words = {
   save: string
   cancel: string
   saving: string
+  saved: string
   agentField: string
   agentTip: string
   foundOnly: string
@@ -111,7 +112,7 @@ type Words = {
   next: string
   keysHint: string
   readingTask: string
-  openFailed: (key: string, reason: string) => string
+  openFailed: (key: string) => string
   properties: string
   projectHint: string
   movedWith: (n: number) => string
@@ -152,6 +153,10 @@ type Words = {
   needTitle: string
   needProject: string
   saveFirst: string
+  closeAgain: string
+  stillSaving: string
+  readWhy: string
+  draftKept: string
   position: (at: number, of: number) => string
 }
 
@@ -259,6 +264,7 @@ const en: Words = {
   save: "Save",
   cancel: "Cancel",
   saving: "Saving…",
+  saved: "Saved",
   agentField: "AI agent",
   agentTip:
     "The AI agent that should take this task, besides the assignee, written as its name, such as hermes. That agent sees the task as its own.",
@@ -298,7 +304,7 @@ const en: Words = {
   next: "Next task",
   keysHint: "J and K open the next and previous task; Escape closes.",
   readingTask: "Reading the task…",
-  openFailed: (key, reason) => `Could not read ${key}: ${reason}.`,
+  openFailed: (key) => `Could not read ${key}.`,
   properties: "Properties",
   projectHint: "Moving it to another project gives it a new key. The old key still finds it.",
   movedWith: (n) => plural("en", n, { one: "Its subtask moved with it:", other: "Its # subtasks moved with it:" }),
@@ -338,7 +344,11 @@ const en: Words = {
   done: "Done",
   needTitle: "Type a title for the task.",
   needProject: "Choose the project it belongs to.",
-  saveFirst: "Save or discard your changes first.",
+  saveFirst: "Finish what you typed first: save it, send it or clear it.",
+  closeAgain: "What you typed is not saved. Close again to discard it.",
+  stillSaving: "Still saving. You can close this once it is done.",
+  readWhy: "The details say why.",
+  draftKept: "What you typed is still in the form. Save to replace the other version, or Cancel to keep it.",
   position: (at, of) => `${at} of ${of}`,
 }
 
@@ -447,6 +457,7 @@ const ru: Words = {
   save: "Сохранить",
   cancel: "Отмена",
   saving: "Сохраняю…",
+  saved: "Сохранено",
   agentField: "ИИ-агент",
   agentTip:
     "ИИ-агент, который должен взять задачу, помимо исполнителя. Пишется именем, например hermes. Этот агент видит задачу как свою.",
@@ -486,7 +497,7 @@ const ru: Words = {
   next: "Следующая задача",
   keysHint: "J и K открывают следующую и предыдущую задачу; Escape закрывает.",
   readingTask: "Читаю задачу…",
-  openFailed: (key, reason) => `Не удалось прочитать ${key}: ${reason}.`,
+  openFailed: (key) => `Не удалось прочитать ${key}.`,
   properties: "Свойства",
   projectHint: "При переносе в другой проект у задачи будет новый ключ. По старому ее тоже можно найти.",
   movedWith: (n) =>
@@ -532,7 +543,12 @@ const ru: Words = {
   done: "Готово",
   needTitle: "Введите название задачи.",
   needProject: "Выберите проект задачи.",
-  saveFirst: "Сначала сохраните или отмените изменения.",
+  saveFirst: "Сначала сохраните, отправьте или очистите набранный текст.",
+  closeAgain: "Набранный текст не сохранен. Закройте еще раз, чтобы его отбросить.",
+  stillSaving: "Еще сохраняю. Окно можно будет закрыть, когда закончу.",
+  readWhy: "Причина в подробностях.",
+  draftKept:
+    "Ваш текст остался в форме. Сохраните, чтобы заменить другую версию, или нажмите «Отмена», чтобы оставить ее.",
   position: (at, of) => `${at} из ${of}`,
 }
 
@@ -635,6 +651,7 @@ const es: Words = {
   save: "Guardar",
   cancel: "Cancelar",
   saving: "Guardando…",
+  saved: "Guardado",
   agentField: "Agente de IA",
   agentTip:
     "El agente de IA que debe tomar esta tarea, además del responsable, escrito por su nombre, como hermes. Ese agente la ve como suya.",
@@ -674,7 +691,7 @@ const es: Words = {
   next: "Tarea siguiente",
   keysHint: "J y K abren la tarea siguiente y la anterior; Escape cierra.",
   readingTask: "Leyendo la tarea…",
-  openFailed: (key, reason) => `No se pudo leer ${key}: ${reason}.`,
+  openFailed: (key) => `No se pudo leer ${key}.`,
   properties: "Propiedades",
   projectHint: "Al moverla a otro proyecto recibe una clave nueva. La antigua también la encuentra.",
   movedWith: (n) =>
@@ -715,7 +732,12 @@ const es: Words = {
   done: "Hecho",
   needTitle: "Escribe un título para la tarea.",
   needProject: "Elige el proyecto de la tarea.",
-  saveFirst: "Guarda o descarta tus cambios primero.",
+  saveFirst: "Primero guarda, envía o borra lo que escribiste.",
+  closeAgain: "Lo que escribiste no está guardado. Cierra otra vez para descartarlo.",
+  stillSaving: "Aún guardando. Podrás cerrar cuando termine.",
+  readWhy: "Los detalles dicen por qué.",
+  draftKept:
+    "Lo que escribiste sigue en el formulario. Guarda para reemplazar la otra versión o pulsa Cancelar para conservarla.",
   position: (at, of) => `${at} de ${of}`,
 }
 

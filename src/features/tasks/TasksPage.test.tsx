@@ -130,6 +130,8 @@ describe("Tasks", () => {
       tasks: Array.from({ length: 96 }, (_, i) => found(i + 1)),
       more: false,
     })
+    vi.spyOn(platform, "taskHistory").mockResolvedValue([])
+    vi.spyOn(platform, "taskComments").mockResolvedValue([])
     render(<TasksPage />)
     const column = await screen.findByRole("region", { name: /^Open, \d+ tasks/ }, { timeout: 4000 })
     const cards = () => column.querySelectorAll("[data-card]")
@@ -157,6 +159,7 @@ describe("Tasks", () => {
         moved: [],
       }
     })
+    expect(within(dialog).queryByRole("button", { name: "Save" })).not.toBeInTheDocument()
     await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "Hand over the keys")
     await user.click(within(dialog).getByRole("button", { name: "Save" }))
     await waitFor(() =>
@@ -314,7 +317,7 @@ describe("Tasks", () => {
     expect(within(dialog).queryByRole("button", { name: "Save" })).not.toBeInTheDocument()
     await user.type(within(dialog).getByRole("textbox", { name: "Notes" }), " Soon.")
     await user.click(within(dialog).getByRole("button", { name: "Next task" }))
-    expect(within(dialog).getByRole("alert")).toHaveTextContent("Save or discard your changes first.")
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Finish what you typed first")
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
     await user.click(within(dialog).getAllByRole("button", { name: "Open HRB-14" })[0] as HTMLElement)
     expect(await screen.findByRole("dialog", { name: "Task HRB-14" })).toBeInTheDocument()
@@ -324,6 +327,123 @@ describe("Tasks", () => {
     await user.click(screen.getByRole("button", { name: "Close" }))
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     expect([...document.querySelectorAll("[data-row]")].map((r) => r.getAttribute("data-row"))).toEqual(before)
+  })
+
+  it("keeps the form, the fields and the history in place through a save, and ends on Saved", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("HRB-15")).getByRole("button", { name: /^HRB-15 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-15" })
+    const made = await within(dialog).findByText(/hermes created/)
+    await user.click(within(dialog).getByRole("button", { name: "Edit" }))
+    const notes = within(dialog).getByRole("textbox", { name: "Notes" })
+    await user.clear(notes)
+    await user.type(notes, "New notes  ")
+
+    const current = useTasks.getState().tasks.find((t) => t.key === "HRB-15")
+    if (!current) throw new Error("no HRB-15")
+    let answer: () => void = () => undefined
+    vi.spyOn(platform, "taskUpdate").mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = () =>
+            // memo trims what it stores.
+            resolve({
+              kind: "saved",
+              task: { ...current, description: "New notes", revision: current.revision + 1 },
+              label: null,
+              renumbered: [],
+              moved: [],
+            })
+        }),
+    )
+    const save = within(dialog).getByRole("button", { name: "Save" })
+    await user.click(save)
+    await waitFor(() => expect(save).toHaveAttribute("aria-busy", "true"))
+    expect(save).toHaveTextContent("Saving…")
+    expect(save).toBeEnabled()
+    expect(save).toHaveFocus()
+    expect(within(dialog).getByRole("combobox", { name: "Status of HRB-15" })).toBeEnabled()
+
+    answer()
+    await waitFor(() => expect(save).toHaveTextContent("Saved"))
+    expect(save).toHaveFocus()
+    expect(within(dialog).getByRole("textbox", { name: "Notes" })).toBe(notes)
+    expect(made).toBeInTheDocument()
+    expect(within(dialog).getByRole("status", { name: "" })).toHaveTextContent("Saved")
+
+    await user.type(notes, " More")
+    expect(save).toHaveTextContent("Save")
+    expect(save).not.toHaveTextContent("Saved")
+  })
+
+  it("shows what memo kept when it stores something else than was typed", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("HRB-15")).getByRole("button", { name: /^HRB-15 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-15" })
+    await user.click(within(dialog).getByRole("button", { name: "Edit" }))
+    const notes = within(dialog).getByRole("textbox", { name: "Notes" })
+    await user.clear(notes)
+    await user.type(notes, "None")
+    const current = useTasks.getState().tasks.find((t) => t.key === "HRB-15")
+    if (!current) throw new Error("no HRB-15")
+    vi.spyOn(platform, "taskUpdate").mockResolvedValueOnce({
+      kind: "saved",
+      task: { ...current, description: null, revision: current.revision + 1 },
+      label: null,
+      renumbered: [],
+      moved: [],
+    })
+    const save = within(dialog).getByRole("button", { name: "Save" })
+    await user.click(save)
+    await waitFor(() => expect(save).toHaveTextContent("Saved"))
+    expect(notes).toHaveValue("")
+  })
+
+  it("does not lose unsaved text to a close or a link: the first try warns, a second close discards", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("HRB-15")).getByRole("button", { name: /^HRB-15 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-15" })
+    await user.type(within(dialog).getByRole("textbox", { name: "Add a comment" }), "Not sent yet")
+
+    await user.click(within(dialog).getAllByRole("button", { name: "Open HRB-14" })[0] as HTMLElement)
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Finish what you typed first")
+    expect(useTasks.getState().open).toBe("HRB-15")
+
+    const close = within(dialog).getByRole("button", { name: "Close" })
+    await user.click(close)
+    expect(within(dialog).getByRole("alert")).toHaveTextContent("Close again to discard")
+    expect(within(dialog).getByRole("textbox", { name: "Add a comment" })).toHaveValue("Not sent yet")
+    await user.click(close)
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
+  })
+
+  it("keeps what the owner typed when memo refuses the save because someone changed the task", async () => {
+    const user = userEvent.setup()
+    render(<TasksPage />)
+    await loaded()
+    await user.click(within(row("HRB-12")).getByRole("button", { name: /^HRB-12 / }))
+    const dialog = await screen.findByRole("dialog", { name: "Task HRB-12" })
+    const current = useTasks.getState().tasks.find((t) => t.key === "HRB-12")
+    if (!current) throw new Error("no HRB-12")
+    vi.spyOn(platform, "taskUpdate").mockResolvedValueOnce({
+      kind: "stale",
+      current: { ...current, title: "Their title", revision: current.revision + 1 },
+      last: null,
+    })
+    const title = within(dialog).getByRole("textbox", { name: "Title" })
+    await user.clear(title)
+    await user.type(title, "My title")
+    await user.click(within(dialog).getByRole("button", { name: "Save" }))
+    expect(await within(dialog).findByText(/still in the form/)).toBeInTheDocument()
+    expect(title).toHaveValue("My title")
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
+    expect(title).toHaveValue("Their title")
   })
 
   it("edits a task opened before the list arrived, and the row shows the change", async () => {

@@ -454,8 +454,9 @@ export function tasksMock(): TaskApi {
   const you = { ref: "person:1", name: null, owner: true }
   let conflictLeft = scenario() === "conflict"
   const aliases = new Map<string, string>(Object.entries(TASK_IDS))
+  const foundInChats = new Map<string, Task>()
   const find = (key: string) => {
-    const t = tasks.find((x) => x.key === (aliases.get(key) ?? key))
+    const t = tasks.find((x) => x.key === (aliases.get(key) ?? key)) ?? foundInChats.get(key)
     if (!t) throw new Error(`no task ${key}`)
     return t
   }
@@ -463,8 +464,13 @@ export function tasksMock(): TaskApi {
     history.set(key, [...(history.get(key) ?? []), { at: new Date().toISOString(), kind, by, changes }])
   }
   const put = (t: Task) => {
-    tasks = tasks.map((x) => (x.key === t.key ? t : x))
+    if (foundInChats.has(t.key)) foundInChats.set(t.key, t)
+    else tasks = tasks.map((x) => (x.key === t.key ? t : x))
     return t
+  }
+  const keepFound = (list: Task[]) => {
+    for (const t of list) if (!foundInChats.has(t.key)) foundInChats.set(t.key, t)
+    return list.map((t) => find(t.key))
   }
   const sorted = () =>
     [...tasks].sort((a, b) => (b.priority ?? -1) - (a.priority ?? -1) || a.createdAt.localeCompare(b.createdAt))
@@ -529,16 +535,18 @@ export function tasksMock(): TaskApi {
       // memo before cli-core's readable titles: a found task's title is its kind and the message's locator.
       if (scenario() === "chats96")
         return {
-          tasks: Array.from({ length: 96 }, (_, i) =>
-            chat(`Q-${i + 1}`, `question — msg:telegram/1/${7000 + (i % 9)}/${129000 + i}`, 60 * (i + 1), "question"),
+          tasks: keepFound(
+            Array.from({ length: 96 }, (_, i) =>
+              chat(`Q-${i + 1}`, `question — msg:telegram/1/${7000 + (i % 9)}/${129000 + i}`, 60 * (i + 1), "question"),
+            ),
           ),
           more: false,
         }
       return {
-        tasks: [
+        tasks: keepFound([
           chat("INB7-1", "Send Ana the signed lease", 60 * 5),
           chat("INB7-2", "Answer Kai about the Friday call", 60 * 30),
-        ],
+        ]),
         more: false,
       }
     },
