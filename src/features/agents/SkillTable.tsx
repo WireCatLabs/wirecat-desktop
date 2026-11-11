@@ -1,3 +1,4 @@
+import { useState } from "react"
 import type { SkillCell } from "@/domain/skills"
 import { TARGET_FOLDER } from "@/domain/skills"
 import { useMessages } from "@/i18n"
@@ -7,6 +8,7 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Skeleton, StableText } from "@/ui/Skeleton"
 import { openManage } from "./AgentDetails"
 import { askAgentSkills, askSkillInstall } from "./actions"
@@ -106,6 +108,9 @@ export function SkillTable({ view, loading }: { view: AgentView; loading: boolea
   const openSkill = useSkillPreview((s) => s.open)
   const m = useMessages(agentsMessages)
   const { agent } = view
+  const [page, setPage] = useState(1)
+  const [size, setSize] = useState(50)
+  const at = Math.min(page, Math.max(1, Math.ceil(view.skills.length / size)))
   if (loading)
     return (
       <ul aria-label={m.skillsFor(agent.name)} className="divide-y divide-line rounded-[0.45rem] border border-line">
@@ -120,86 +125,104 @@ export function SkillTable({ view, loading }: { view: AgentView; loading: boolea
       </ul>
     )
   return (
-    <ul aria-label={m.skillsFor(agent.name)} className="divide-y divide-line rounded-[0.45rem] border border-line">
-      {view.skills.map((s) => {
-        const look = skillLook(s, m)
-        const version = s.cell.kind === "current" || s.cell.kind === "stale" ? s.cell.installed : null
-        return (
-          <li key={s.tool.id} className="px-4 py-2">
-            <div className={row}>
-              <span className="flex min-w-0 items-center gap-2.5">
-                <ToolIcon id={s.tool.id} className="size-[1.25rem] shrink-0 text-ink" />
-                <span className="truncate font-semibold">{s.tool.name}</span>
-              </span>
-              <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-[0.9rem]">
-                {s.cell.kind === "checking" ? (
-                  <Skeleton chars={14} />
-                ) : s.cell.kind === "unknown" ? (
-                  <span className="text-ink-soft">
-                    {s.newer
-                      ? m.updateToSeeVersion(
-                          s.tool.name,
-                          <span className="font-mono text-[0.9rem] tabular-nums">{s.newer}</span>,
-                        )
-                      : m.updateToSee(s.tool.name)}
-                  </span>
-                ) : s.cell.kind === "unsupported" ? (
-                  <span className="text-ink-soft">{m.needsNewerFor(s.tool.name, agent.name)}</span>
-                ) : (
-                  <>
-                    <Lamp size="sm" tone={look.tone} label={m.skillState(s.tool.name, agent.name, look.word)} />
-                    <span className={cx(s.cell.kind === "stale" && !s.busy && "text-warn-ink")}>{look.word}</span>
-                    {version && <span className="font-mono text-[0.9rem] text-ink-soft tabular-nums">{version}</span>}
-                    <span className="selectable font-mono text-[0.85rem] text-ink-dim">{TARGET_FOLDER[s.target]}</span>
-                  </>
-                )}
-              </span>
-              <span className="flex items-center gap-1">
-                <Button size="sm" onClick={() => openSkill(s.tool.id)} aria-label={m.readSkill(s.tool.name)}>
-                  {m.read}
-                </Button>
-                {/* Sized by every label it can show, in this language, so Read stays put when the check adds one. */}
-                <span className="grid">
-                  {[m.action.Install, m.action.Update, m.openTools].map((word) => (
-                    <Button key={word} size="sm" aria-hidden tabIndex={-1} className="invisible [grid-area:1/1]">
-                      {word}
-                    </Button>
-                  ))}
-                  {s.cell.kind === "unknown" && (
-                    <Button size="sm" className="[grid-area:1/1]" onClick={() => openManage(s.tool.id)}>
-                      {m.openTools}
-                    </Button>
-                  )}
-                  {s.action && (
-                    <Button
-                      size="sm"
-                      className="[grid-area:1/1]"
-                      disabled={s.busy}
-                      onClick={() => s.action && askSkillInstall(s.tool.id, s.target, s.action, agent.name, agent.id)}
-                      aria-label={
-                        s.action === "Install"
-                          ? m.installSkill(s.tool.name, agent.name)
-                          : m.updateSkill(s.tool.name, agent.name)
-                      }
-                    >
-                      {m.action[s.action]}
-                    </Button>
+    <>
+      <ul aria-label={m.skillsFor(agent.name)} className="divide-y divide-line rounded-[0.45rem] border border-line">
+        {view.skills.slice((at - 1) * size, at * size).map((s) => {
+          const look = skillLook(s, m)
+          const version = s.cell.kind === "current" || s.cell.kind === "stale" ? s.cell.installed : null
+          return (
+            <li key={s.tool.id} className="px-4 py-2">
+              <div className={row}>
+                <span className="flex min-w-0 items-center gap-2.5">
+                  <ToolIcon id={s.tool.id} className="size-[1.25rem] shrink-0 text-ink" />
+                  <span className="truncate font-semibold">{s.tool.name}</span>
+                </span>
+                <span className="flex min-w-0 flex-wrap items-center gap-x-2 text-[0.9rem]">
+                  {s.cell.kind === "checking" ? (
+                    <Skeleton chars={14} />
+                  ) : s.cell.kind === "unknown" ? (
+                    <span className="text-ink-soft">
+                      {s.newer
+                        ? m.updateToSeeVersion(
+                            s.tool.name,
+                            <span className="font-mono text-[0.9rem] tabular-nums">{s.newer}</span>,
+                          )
+                        : m.updateToSee(s.tool.name)}
+                    </span>
+                  ) : s.cell.kind === "unsupported" ? (
+                    <span className="text-ink-soft">{m.needsNewerFor(s.tool.name, agent.name)}</span>
+                  ) : (
+                    <>
+                      <Lamp size="sm" tone={look.tone} label={m.skillState(s.tool.name, agent.name, look.word)} />
+                      <span className={cx(s.cell.kind === "stale" && !s.busy && "text-warn-ink")}>{look.word}</span>
+                      {version && <span className="font-mono text-[0.9rem] text-ink-soft tabular-nums">{version}</span>}
+                      <span className="selectable font-mono text-[0.85rem] text-ink-dim">
+                        {TARGET_FOLDER[s.target]}
+                      </span>
+                    </>
                   )}
                 </span>
-              </span>
-            </div>
-            {s.failure && !s.busy && (
-              <ErrorNotice
-                inline
-                className="mt-1"
-                action={<ReportThis what={`Writing the ${s.tool.name} skill`} tool={s.tool.id} error={s.failure} />}
-              >
-                {s.failure}
-              </ErrorNotice>
-            )}
-          </li>
-        )
-      })}
-    </ul>
+                <span className="flex items-center gap-1">
+                  <Button size="sm" onClick={() => openSkill(s.tool.id)} aria-label={m.readSkill(s.tool.name)}>
+                    {m.read}
+                  </Button>
+                  {/* Sized by every label it can show, in this language, so Read stays put when the check adds one. */}
+                  <span className="grid">
+                    {[m.action.Install, m.action.Update, m.openTools].map((word) => (
+                      <Button key={word} size="sm" aria-hidden tabIndex={-1} className="invisible [grid-area:1/1]">
+                        {word}
+                      </Button>
+                    ))}
+                    {s.cell.kind === "unknown" && (
+                      <Button size="sm" className="[grid-area:1/1]" onClick={() => openManage(s.tool.id)}>
+                        {m.openTools}
+                      </Button>
+                    )}
+                    {s.action && (
+                      <Button
+                        size="sm"
+                        className="[grid-area:1/1]"
+                        disabled={s.busy}
+                        onClick={() => s.action && askSkillInstall(s.tool.id, s.target, s.action, agent.name, agent.id)}
+                        aria-label={
+                          s.action === "Install"
+                            ? m.installSkill(s.tool.name, agent.name)
+                            : m.updateSkill(s.tool.name, agent.name)
+                        }
+                      >
+                        {m.action[s.action]}
+                      </Button>
+                    )}
+                  </span>
+                </span>
+              </div>
+              {s.failure && !s.busy && (
+                <ErrorNotice
+                  inline
+                  className="mt-1"
+                  action={<ReportThis what={`Writing the ${s.tool.name} skill`} tool={s.tool.id} error={s.failure} />}
+                >
+                  {s.failure}
+                </ErrorNotice>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+      {view.skills.length > PAGE_SIZES[0] && (
+        <Pager
+          label={m.skillsFor(agent.name)}
+          page={at}
+          onPage={setPage}
+          total={view.skills.length}
+          size={size}
+          sizes={PAGE_SIZES}
+          onSize={(n) => {
+            setSize(n)
+            setPage(1)
+          }}
+        />
+      )}
+    </>
   )
 }

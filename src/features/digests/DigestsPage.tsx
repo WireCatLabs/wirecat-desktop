@@ -68,7 +68,14 @@ export function DigestsPage() {
           {s.readFailed}
         </ErrorNotice>
       ) : book === null ? (
-        <Skeleton className="h-[14rem] w-full" label={m.reading} />
+        // The presets, the search and a table of three digests, at their loaded heights.
+        <div className="flex flex-col gap-[1.5rem]">
+          <Skeleton className="h-[10.25rem] w-full" label={m.reading} />
+          <div className="flex flex-col gap-[0.7rem]">
+            <Skeleton className="h-[2.8rem] w-full" />
+            <Skeleton className="h-[16.75rem] w-full" />
+          </div>
+        </div>
       ) : book.state === "noMemo" ? (
         <ToolNeeded gap={{ kind: "missing", tool: "memo", others: [] }} />
       ) : book.state === "old" ? (

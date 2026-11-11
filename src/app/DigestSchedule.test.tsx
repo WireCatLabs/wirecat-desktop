@@ -21,6 +21,9 @@ beforeEach(() => {
     remembered: null,
     open: null,
     backfill: null,
+    query: "",
+    page: 1,
+    pageSize: 50,
   })
   useDigests.setState({ name: undefined, days: null, error: null, reading: false, shown: {} })
   vi.spyOn(platform, "listenLinks").mockResolvedValue()
@@ -140,6 +143,48 @@ describe("the table of digests", () => {
     expect(screen.getByRole("region", { name: "What to collect" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "All digests" }))
     expect(await screen.findByRole("table", { name: "Digests" })).toBeInTheDocument()
+  }, 15000)
+})
+
+describe("finding a digest in the table", () => {
+  it("narrows the rows by typed words and by the last run, and keeps the search while a digest is open", async () => {
+    const user = await openPage(ready([morning, weekly]))
+    const table = await screen.findByRole("table", { name: "Digests" }, { timeout: 4000 })
+    await user.type(screen.getByRole("searchbox", { name: "Find a digest" }), "week")
+    expect(within(table).getAllByRole("row").slice(1)).toHaveLength(1)
+    expect(table).toHaveTextContent("Weekly digest")
+    await user.clear(screen.getByRole("searchbox", { name: "Find a digest" }))
+    await user.click(screen.getByRole("button", { name: /Last run/ }))
+    await user.click(await screen.findByRole("option", { name: /Not yet/ }))
+    await user.keyboard("{Escape}")
+    expect(screen.getByRole("searchbox", { name: "Find a digest" })).toHaveValue("last:never")
+    await user.click(screen.getByRole("button", { name: "Open Weekly digest" }))
+    await user.click(await screen.findByRole("button", { name: "All digests" }))
+    expect(await screen.findByRole("searchbox", { name: "Find a digest" })).toHaveValue("last:never")
+  }, 15000)
+
+  it("says nothing matches and clears the search", async () => {
+    const user = await openPage(ready([morning, weekly]))
+    await user.type(await screen.findByRole("searchbox", { name: "Find a digest" }, { timeout: 4000 }), "zzz")
+    expect(screen.getByText("No digest matches.")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Clear search" }))
+    expect(await screen.findByRole("table", { name: "Digests" })).toBeInTheDocument()
+  }, 15000)
+
+  it("pages a long list of digests", async () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({
+      ...weekly,
+      name: `d-${String(i + 1).padStart(2, "0")}`,
+      title: `Digest ${String(i + 1).padStart(2, "0")}`,
+    }))
+    const user = await openPage(ready(many))
+    const table = await screen.findByRole("table", { name: "Digests" }, { timeout: 4000 })
+    expect(within(table).getAllByRole("row").slice(1)).toHaveLength(50)
+    const pager = screen.getByRole("navigation", { name: "Digests" })
+    expect(pager).toHaveTextContent("1–50 of 60")
+    await user.click(within(pager).getByRole("button", { name: "Next page" }))
+    expect(within(table).getAllByRole("row").slice(1)).toHaveLength(10)
+    expect(table).toHaveTextContent("Digest 60")
   }, 15000)
 })
 

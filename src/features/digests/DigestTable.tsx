@@ -1,11 +1,16 @@
 import { LoaderCircle } from "lucide-react"
 import { formatUsd } from "@/domain/mail-agent"
+import { freeWords, setField, valuesOf } from "@/domain/query-terms"
 import { ago } from "@/features/tools"
 import { useLang, useMessages } from "@/i18n"
 import type { DigestItem } from "@/platform/bindings"
+import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { type Column, DataTable } from "@/ui/DataTable"
+import { FilterBar } from "@/ui/FilterBar"
+import { FilterMenu } from "@/ui/FilterMenu"
 import { Lamp } from "@/ui/Lamp"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { Switch } from "@/ui/Switch"
 import { type BookText, bookMessages, type Source } from "./messages-book"
 import { scheduleMessages } from "./messages-schedule"
@@ -17,12 +22,46 @@ export const titleOf = (d: DigestItem, m: BookText) => d.title ?? (d.name === MO
 export const nextOf = (iso: string, lang: string) =>
   new Intl.DateTimeFormat(lang, { weekday: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso))
 
+const FIELDS = "schedule|last|source"
+const scheduleOf = (d: DigestItem) => (d.scheduled ? "on" : "off")
+const lastOf = (d: DigestItem) => (d.last ? (d.last.ok ? "ok" : "failed") : "never")
+// A digest with no sources reads every connected one, so it matches whichever source is asked for.
+const reads = (d: DigestItem, source: string) => d.sources.length === 0 || d.sources.includes(source)
+
+/** Whether a digest passes the filter chips and every typed word, which is looked for in its title and name. */
+export function digestMatches(d: DigestItem, query: string, title: string) {
+  const wants = (field: string, value: string) => {
+    const values = valuesOf(query, field)
+    return values.length === 0 || values.includes(value)
+  }
+  const sources = valuesOf(query, "source")
+  const text = `${title} ${d.name}`.toLocaleLowerCase()
+  return (
+    wants("schedule", scheduleOf(d)) &&
+    wants("last", lastOf(d)) &&
+    (sources.length === 0 || sources.some((x) => reads(d, x))) &&
+    freeWords(query, FIELDS).every((w) => text.includes(w.toLocaleLowerCase()))
+  )
+}
+
 /** The digests memo keeps, one row each; a row opens the digest, its switch puts it on or off the schedule. */
 export function DigestTable({ digests, harness }: { digests: DigestItem[]; harness: boolean }) {
   const m = useMessages(bookMessages)
   const s = useMessages(scheduleMessages)
   const lang = useLang()
-  const { busy, openDigest, setScheduled } = useDigestBook()
+  const { busy, openDigest, setScheduled, query, page, pageSize, setQuery, setPage, setPageSize } = useDigestBook()
+  const rows = digests.filter((d) => digestMatches(d, query, titleOf(d, m)))
+  const at = Math.min(page, Math.max(1, Math.ceil(rows.length / pageSize)))
+  const field = (
+    f: string,
+    options: { value: string; label: string }[],
+    has: (d: DigestItem, v: string) => boolean,
+  ) => ({
+    selected: valuesOf(query, f),
+    onChange: (chosen: string[]) => setQuery(setField(query, f, chosen)),
+    options: options.map((o) => ({ ...o, count: digests.filter((d) => has(d, o.value)).length })),
+  })
+  const sources = [...new Set([...digests.flatMap((d) => d.sources), ...valuesOf(query, "source")])]
 
   const columns: Column<DigestItem>[] = [
     {
@@ -133,15 +172,74 @@ export function DigestTable({ digests, harness }: { digests: DigestItem[]; harne
   ]
 
   return (
-    <DataTable
-      label={m.table}
-      rows={digests}
-      rowKey={(d) => d.name}
-      columns={columns}
-      density="roomy"
-      minWidth="60rem"
-      leadWidth="minmax(10rem,1.4fr)"
-      onRowClick={(d) => openDigest(d.name)}
-    />
+    <div className="flex flex-col gap-[0.7rem]">
+      <FilterBar query={query} onQuery={setQuery} label={m.list.search} placeholder={m.list.placeholder} inline>
+        <FilterMenu
+          label={m.list.schedule}
+          single
+          {...field(
+            "schedule",
+            [
+              { value: "on", label: m.list.on },
+              { value: "off", label: m.notScheduled },
+            ],
+            (d, v) => scheduleOf(d) === v,
+          )}
+        />
+        <FilterMenu
+          label={m.list.last}
+          {...field(
+            "last",
+            [
+              { value: "ok", label: m.list.ok },
+              { value: "failed", label: m.list.failed },
+              { value: "never", label: m.never },
+            ],
+            (d, v) => lastOf(d) === v,
+          )}
+        />
+        {sources.length > 0 && (
+          <FilterMenu
+            label={m.col.sources}
+            {...field(
+              "source",
+              sources.map((x) => ({ value: x, label: m.sources[x as Source] ?? x })),
+              reads,
+            )}
+          />
+        )}
+      </FilterBar>
+      {rows.length === 0 ? (
+        <p className="flex flex-wrap items-center gap-3 rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.6rem] text-[0.95rem] text-ink-soft">
+          {m.list.noMatch}
+          <Button size="sm" variant="ghost" onClick={() => setQuery("")}>
+            {m.list.clear}
+          </Button>
+        </p>
+      ) : (
+        <DataTable
+          label={m.table}
+          rows={rows}
+          rowKey={(d) => d.name}
+          columns={columns}
+          density="roomy"
+          minWidth="60rem"
+          leadWidth="minmax(10rem,1.4fr)"
+          onRowClick={(d) => openDigest(d.name)}
+          page={{ index: at, size: pageSize }}
+        />
+      )}
+      {rows.length > PAGE_SIZES[0] && (
+        <Pager
+          label={m.table}
+          page={at}
+          onPage={setPage}
+          total={rows.length}
+          size={pageSize}
+          sizes={PAGE_SIZES}
+          onSize={setPageSize}
+        />
+      )}
+    </div>
   )
 }

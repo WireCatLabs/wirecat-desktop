@@ -33,6 +33,7 @@ import { EmptyState } from "@/ui/EmptyState"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp } from "@/ui/Lamp"
 import { reducedMotion } from "@/ui/motion"
+import { PAGE_SIZES, Pager } from "@/ui/Pager"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Segmented } from "@/ui/Segmented"
@@ -47,7 +48,6 @@ import { fieldLabel, logsDocs, problemText, toolName } from "./names"
 import { RunsTable } from "./RunsTable"
 import { runKey, type Source, useLogs, useShownLogs } from "./store"
 
-const STEP = 100
 const FIELDS = [
   ...Object.keys(logsMessages.en.fields),
   "run_id",
@@ -72,7 +72,8 @@ export function LogsPage() {
   const keeping = useShownLogs((s) => s.keeping)
   const { load, setQuery, setRange, setGroupBy, toggle, setLive } = useLogs.getState()
   const [newest, setNewest] = useState(true)
-  const [shown, setShown] = useState(STEP)
+  const [page, setPage] = useState(1)
+  const [size, setSize] = useState(50)
   const [facetsOpen, setFacetsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsId = useId()
@@ -94,8 +95,8 @@ export function LogsPage() {
   const firstLoad = loadedAt === null
   const now = useMemo(() => new Date(loadedAt ?? Date.now()), [loadedAt])
 
-  // A live round's new runs go on top. Under a reader who scrolled down they wait behind a "new runs" button,
-  // because inserting them would push the rows being read out of place.
+  // A live round's new runs go on top. Under a reader who scrolled down or turned the page they wait behind a "new
+  // runs" button, because inserting them would push the rows being read out of place.
   const tableRef = useRef<HTMLDivElement>(null)
   const seen = useRef<Set<string> | null>(null)
   const [released, setReleased] = useState(0)
@@ -105,16 +106,17 @@ export function LogsPage() {
     const before = seen.current
     if (!liveRound || before === null) return { all: runs, held: 0, fresh: NONE }
     const isNew = (r: Run) => !before.has(runKey(r))
-    if (scrolledPast(tableRef.current)) {
+    if (page > 1 || scrolledPast(tableRef.current)) {
       const kept = runs.filter((r) => !isNew(r))
       return { all: kept, held: runs.length - kept.length, fresh: NONE }
     }
     return { all: runs, held: 0, fresh: new Set(runs.filter(isNew).map(runKey)) }
-  }, [list, liveRound, released])
+  }, [list, liveRound, released, page])
   useEffect(() => {
     if (held === 0) seen.current = new Set(all.map(runKey))
   }, [all, held])
   const showHeld = () => {
+    setPage(1)
     tableRef.current?.closest("main")?.scrollTo({ top: 0, behavior: reducedMotion() ? "auto" : "smooth" })
     setReleased((n) => n + 1)
   }
@@ -150,26 +152,22 @@ export function LogsPage() {
     () => (groupBy && groupBy !== CONVERSATION ? groupRuns(matched, groupBy) : []),
     [matched, groupBy],
   )
-  // Whole conversations only, as many as fit in the runs shown, so one is never cut in half.
-  const { sections, sectionRuns, sectionsTotal } = useMemo(() => {
-    if (!byConversation) return { sections: [], sectionRuns: 0, sectionsTotal: 0 }
-    const every = conversations(matched)
-    if (!newest) every.reverse()
-    let runs = 0
-    const shownSections = every.filter((c, i) => {
-      if (i > 0 && runs + c.runs.length > shown) return false
-      runs += c.runs.length
-      return true
-    })
-    return { sections: shownSections, sectionRuns: runs, sectionsTotal: every.length }
-  }, [byConversation, matched, newest, shown])
+  const every = useMemo(() => {
+    if (!byConversation) return []
+    const found = conversations(matched)
+    return newest ? found : found.reverse()
+  }, [byConversation, matched, newest])
+  // By conversation a page holds whole conversations, so one is never cut in half.
+  const rows = byConversation ? every.length : matched.length
+  const at = Math.min(page, Math.max(1, Math.ceil(rows / size)))
+  const sections = every.slice((at - 1) * size, at * size)
   const bareHidden = useMemo(() => {
     const hides = parsed.terms.some((t) => t.kind === "field" && t.field === NO_COMMAND && t.negate)
     return hides ? ranged.filter(matcher(parsed.terms, NO_COMMAND)).length - matched.length : 0
   }, [parsed, ranged, matched])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: a new filter starts the list from the top again
-  useEffect(() => setShown(STEP), [deferred, range, newest])
+  useEffect(() => setPage(1), [deferred, range, newest, groupBy])
 
   const onFilter = (field: string, value: string, negate: boolean) => setQuery(toggleTerm(query, field, value, negate))
   const onFlip = (field: string, values: readonly string[]) =>
@@ -290,7 +288,7 @@ export function LogsPage() {
                   failed={failed}
                   since={oldest}
                   reading={older}
-                  grouped={byConversation ? sectionsTotal : groupBy ? groups.length : null}
+                  grouped={byConversation ? every.length : groupBy ? groups.length : null}
                   byConversation={byConversation}
                   bareHidden={bareHidden}
                   onShowBare={() => setQuery(toggleTerm(query, NO_COMMAND, "true", true))}
@@ -344,7 +342,7 @@ export function LogsPage() {
                     />
                   ) : (
                     <RunsTable
-                      runs={matched.slice(0, shown)}
+                      runs={matched.slice((at - 1) * size, at * size)}
                       fresh={fresh}
                       now={now}
                       expanded={expanded}
@@ -357,21 +355,18 @@ export function LogsPage() {
                     />
                   )}
                 </div>
-                {byConversation && sections.length < sectionsTotal && (
-                  <div className="flex items-center justify-center gap-3 text-[0.9rem] text-ink-dim">
-                    {m.showingConversations(sections.length, sectionsTotal)}
-                    <Button size="sm" onClick={() => setShown(Math.max(shown, sectionRuns) + STEP)}>
-                      {m.showMore}
-                    </Button>
-                  </div>
-                )}
-                {!groupBy && matched.length > shown && (
-                  <div className="flex items-center justify-center gap-3 text-[0.9rem] text-ink-dim">
-                    {m.showingRuns(shown, matched.length)}
-                    <Button size="sm" onClick={() => setShown(shown + STEP)}>
-                      {m.showNMore(Math.min(STEP, matched.length - shown))}
-                    </Button>
-                  </div>
+                {(!groupBy || byConversation) && rows > PAGE_SIZES[0] && (
+                  <Pager
+                    page={at}
+                    onPage={setPage}
+                    total={rows}
+                    size={size}
+                    sizes={PAGE_SIZES}
+                    onSize={(n) => {
+                      setSize(n)
+                      setPage(1)
+                    }}
+                  />
                 )}
               </div>
             </div>

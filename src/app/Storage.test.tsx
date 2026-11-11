@@ -70,6 +70,8 @@ describe("Storage", () => {
     const tables = await screen.findByRole("table", { name: "Tables" }, { timeout: 4000 })
     expect(within(tables).getByRole("rowheader", { name: "messages" })).toBeInTheDocument()
     expect(screen.getByText(/Search index tables \(30\)/)).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: /Search index tables \(30\)/ }))
+    expect(await screen.findByRole("navigation", { name: "Search index tables" })).toHaveTextContent("1–30 of 30")
     expect(screen.getByText(/The backup job has not finished since/)).toBeInTheDocument()
 
     await user.type(screen.getByRole("searchbox", { name: "Find a table" }), "email")

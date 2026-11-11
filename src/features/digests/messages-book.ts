@@ -158,6 +158,17 @@ const en = {
     spentToday: (usd: string, cap: string | null) => `Spent today: ${usd}${cap ? ` of ${cap}` : ""}`,
     nextRun: (when: string) => `Next run ${when}`,
   },
+  list: {
+    search: "Find a digest",
+    placeholder: "Search by name or title",
+    schedule: "Schedule",
+    on: "On schedule",
+    last: "Last run",
+    ok: "Finished",
+    failed: "Failed",
+    noMatch: "No digest matches.",
+    clear: "Clear search",
+  },
 }
 
 const ruPlural = {
@@ -304,6 +315,17 @@ const ru: typeof en = {
     failedRemove: (message) => `Не удалено: ${message}`,
     spentToday: (usd, cap) => `Потрачено сегодня: ${usd}${cap ? ` из ${cap}` : ""}`,
     nextRun: (when) => `Следующий запуск ${when}`,
+  },
+  list: {
+    search: "Найти сводку",
+    placeholder: "Поиск по имени или названию",
+    schedule: "Расписание",
+    on: "В расписании",
+    last: "Последний запуск",
+    ok: "Готово",
+    failed: "Не удался",
+    noMatch: "Ни одна сводка не подходит.",
+    clear: "Сбросить поиск",
   },
 }
 
@@ -452,6 +474,17 @@ const es: typeof en = {
     failedRemove: (message) => `No se eliminó: ${message}`,
     spentToday: (usd, cap) => `Gastado hoy: ${usd}${cap ? ` de ${cap}` : ""}`,
     nextRun: (when) => `Próxima ejecución ${when}`,
+  },
+  list: {
+    search: "Buscar un resumen",
+    placeholder: "Busca por nombre o título",
+    schedule: "Horario",
+    on: "Programado",
+    last: "Última ejecución",
+    ok: "Terminado",
+    failed: "Falló",
+    noMatch: "Ningún resumen coincide.",
+    clear: "Borrar la búsqueda",
   },
 }
 

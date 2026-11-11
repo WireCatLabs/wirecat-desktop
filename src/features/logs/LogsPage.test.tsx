@@ -325,6 +325,34 @@ describe("Logs", () => {
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 const rows = () => screen.queryAllByRole("button", { name: /^Show run / })
 
+describe("Logs pages", () => {
+  it("shows the runs a page at a time and steps to the next page", async () => {
+    const user = userEvent.setup()
+    const listRuns = platform.listRuns.bind(platform)
+    vi.spyOn(platform, "listRuns").mockImplementation(async (id, ...rest) => {
+      const res = await listRuns(id, ...rest)
+      const model = res.items[0]
+      if (id !== "tg" || !model) return res
+      const extra = Array.from({ length: 80 }, (_, i) => ({
+        ...model,
+        run_id: `many-${i}`,
+        command: `read ${i}`,
+        cli_command: `tg read ${i}`,
+      }))
+      return { ...res, items: [...res.items, ...extra] }
+    })
+    render(<LogsPage />)
+    await loaded()
+    const pager = screen.getByRole("navigation", { name: "Pages" })
+    expect(pager).toHaveTextContent(/^1–50 of \d+/)
+    expect(rows()).toHaveLength(50)
+    const first = rows()[0]?.getAttribute("aria-label")
+    await user.click(within(pager).getByRole("button", { name: "Next page" }))
+    expect(within(pager).getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page")
+    expect(rows()[0]?.getAttribute("aria-label")).not.toBe(first)
+  }, 15000)
+})
+
 describe("Logs snapshot", () => {
   const saved = { ...timing }
   afterEach(() => Object.assign(timing, saved))
