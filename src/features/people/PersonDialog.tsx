@@ -7,7 +7,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { groupMatches } from "./groups"
 import { IdentityList } from "./IdentityList"
-import { usePersonName } from "./labels"
+import { useJoinedFromName, usePersonName } from "./labels"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
 import { Refusal } from "./Refusal"
@@ -86,7 +86,7 @@ function Details({ reference }: { reference: string }) {
 function Merges({ person }: { person: PersonDetail }) {
   const m = useMessages(peopleMessages)
   const lang = useLang()
-  const name = usePersonName()
+  const joinedFrom = useJoinedFromName()
   if (person.merges.length === 0) return null
   return (
     <section className="flex flex-col gap-[0.4rem]">
@@ -95,7 +95,7 @@ function Merges({ person }: { person: PersonDetail }) {
         {person.merges.map((merge) => (
           <li key={merge.id} className="flex flex-wrap items-center justify-between gap-2 text-[0.95rem]">
             <span className="min-w-0">
-              {m.mergeLine(name(merge.from), merge.method ? (m.methods[merge.method] ?? merge.method) : null)}
+              {m.mergeLine(joinedFrom(merge.from), merge.method ? (m.methods[merge.method] ?? merge.method) : null)}
               {merge.at && (
                 <span className="ml-2 font-mono text-[0.85rem] text-ink-dim">
                   {new Date(merge.at).toLocaleDateString(lang, { dateStyle: "medium" })}
@@ -134,13 +134,14 @@ function NowPartOf({ into }: { into: string }) {
 function DoneNote({ reference }: { reference: string }) {
   const m = useMessages(peopleMessages)
   const name = usePersonName()
+  const joinedFrom = useJoinedFromName()
   const done = usePeople((s) => s.done[reference])
   if (!done) return null
   const text =
     done.op === "unlink"
       ? m.done.unlink(done.count, done.movedTo)
       : done.op === "unmerge"
-        ? m.done.unmerge(name(done.from))
+        ? m.done.unmerge(joinedFrom(done.from))
         : m.done[done.op](name(done.with))
   return (
     <p role="status" className="reveal flex items-center gap-2 text-[0.95rem] text-ink-soft">

@@ -9,10 +9,17 @@ import { usePeople } from "./store"
  */
 export function usePersonName() {
   const m = useMessages(peopleMessages)
+  const known = useKnownName()
+  return (ref: string, listedName?: string | null) => known(ref, listedName) ?? m.noName
+}
+
+/** As `usePersonName`, but `null` where it would say "No name yet", so a caller can word that case itself. */
+export function useKnownName() {
+  const m = useMessages(peopleMessages)
   const people = usePeople((s) => s.people)
   const details = usePeople((s) => s.details)
   const seen = usePeople((s) => s.seen)
-  return (ref: string, listedName?: string | null) => {
+  return (ref: string, listedName?: string | null): string | null => {
     const listed = people.find((p) => p.ref === ref)
     if (listed?.owner || seen[ref]?.owner) return m.you
     const detail = details[ref]
@@ -22,9 +29,17 @@ export function usePersonName() {
         displayName: listedName === undefined ? listed?.displayName : null,
         name: listedName ?? listed?.name ?? person?.name,
         contact: listed?.contact,
-      }) ??
-      (person ? handleOf(person.identities) : null) ??
-      m.noName
+      }) ?? (person ? handleOf(person.identities) : null)
     )
   }
+}
+
+/**
+ * The person a join came from, by name while memo still lists them. Read by ref, memo answers with the person they
+ * went into, so a detail cannot say.
+ */
+export function useJoinedFromName() {
+  const known = useKnownName()
+  const people = usePeople((s) => s.people)
+  return (ref: string) => (people.some((p) => p.ref === ref) ? known(ref) : null)
 }

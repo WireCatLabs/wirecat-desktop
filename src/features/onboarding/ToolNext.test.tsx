@@ -1,12 +1,13 @@
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useLogs } from "@/features/logs"
 import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { endInstalls, m, startOnboarding } from "@/testing/onboarding"
 import { screen, waitFor, within } from "@/testing/render"
 import { nextMessages } from "./messages-next"
 
-vi.mock("@/platform/mock-delay", () => ({ delay: () => new Promise((r) => setTimeout(r, 0)) }))
+beforeEach(() => answerAtOnce())
 
 afterEach(async () => {
   await endInstalls()

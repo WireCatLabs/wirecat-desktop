@@ -9,7 +9,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
-import { CreateDialog, draftOf, Starter, type Template, takenNames } from "./CreateDigest"
+import { CreateDialog, draftOf, Starter, type Template } from "./CreateDigest"
 import { DigestTable } from "./DigestTable"
 import { DigestView } from "./DigestView"
 import { digestMessages } from "./messages"
@@ -51,7 +51,7 @@ export function DigestsPage() {
     openDigest(linked)
     useDigestDay.setState({ digest: null })
   }, [linked, openDigest])
-  const pick = (t: Template) => ready && setCreating(draftOf(t, takenNames(ready.digests), b))
+  const pick = (t: Template) => ready && setCreating(draftOf(t, ready.digests, b))
 
   return (
     <Page>

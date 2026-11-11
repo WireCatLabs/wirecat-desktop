@@ -43,11 +43,14 @@ const en = {
   move: (n: number) => (n ? plural("en", n, { one: "Move # account", other: "Move # accounts" }) : "Move accounts"),
   cancel: "Cancel",
   merges: "Joined into this person",
-  mergeLine: (from: string, method: string | null) => `From ${from}${method ? `, ${method}` : ""}`,
+  mergeLine: (from: string | null, method: string | null) =>
+    `${from ? `From ${from}` : "From another person"}${method ? `, ${method}` : ""}`,
   undoMerge: "Undo",
   undoTitle: "Undo this join?",
   undoBody: (from: string) =>
     `These accounts go back to ${from}, as before the join. WireCat will not join them again on its own.`,
+  undoBodyUnnamed:
+    "These accounts go back to the person they were joined from, as before the join. WireCat will not join them again on its own.",
   undo: "Undo the join",
   moveHeading: (account: string, to: string) => `Moves ${account} to ${to}.`,
   moveHelp: "Only this account moves. The rest of its person stays as it is.",
@@ -60,6 +63,9 @@ const en = {
     "guest-email": "Meeting guest's email",
   } as Record<string, string>,
   same: "same",
+  phoneHidden: "number hidden: accounts keep only its fingerprint",
+  phoneHiddenTip:
+    "These accounts have the same phone number, but they keep only a fingerprint of it, not the number. If a profile has the number, Details shows it.",
   sameTip: {
     phone: "They have the same phone number.",
     email: "They have the same email address.",
@@ -146,7 +152,8 @@ const en = {
     reject: (other: string) => `Kept apart from ${other}.`,
     unlink: (n: number, to: string) =>
       `${plural("en", n, { one: "# account", other: "# accounts" })} moved to a new person, ${to}.`,
-    unmerge: (from: string) => `The join is undone. Those accounts are ${from} again.`,
+    unmerge: (from: string | null) =>
+      `The join is undone. Those accounts ${from ? `are ${from} again` : "went back to the person they were joined from"}.`,
   },
   writeFailed: "Could not do it:",
   reasons: {
@@ -285,10 +292,13 @@ const ru: typeof en = {
       : "Перенести аккаунты",
   cancel: "Отмена",
   merges: "Объединено в этого человека",
-  mergeLine: (from: string, method: string | null) => `Из ${from}${method ? `, ${method}` : ""}`,
+  mergeLine: (from: string | null, method: string | null) =>
+    `${from ? `Из ${from}` : "Из другого человека"}${method ? `, ${method}` : ""}`,
   undoMerge: "Отменить",
   undoTitle: "Отменить это объединение?",
   undoBody: (from: string) => `Эти аккаунты вернутся к ${from}, как до объединения. Сам WireCat их снова не объединит.`,
+  undoBodyUnnamed:
+    "Эти аккаунты вернутся к человеку, от которого их присоединили, как до объединения. Сам WireCat их снова не объединит.",
   undo: "Отменить объединение",
   moveHeading: (account: string, to: string) => `Переносит ${account} к ${to}.`,
   moveHelp: "Переносится только этот аккаунт. Остальное у этого человека не меняется.",
@@ -301,6 +311,9 @@ const ru: typeof en = {
     "guest-email": "Почта гостя встречи",
   },
   same: "одинаковый",
+  phoneHidden: "номер скрыт: в аккаунтах только отпечаток",
+  phoneHiddenTip:
+    "У этих аккаунтов один и тот же номер, но в них хранится только его отпечаток, а не сам номер. Если номер есть в профиле, его покажет «Подробнее».",
   sameTip: {
     phone: "У них один и тот же номер телефона.",
     email: "У них один и тот же адрес почты.",
@@ -400,7 +413,8 @@ const ru: typeof en = {
     reject: (other: string) => `Оставлено отдельно от ${other}.`,
     unlink: (n: number, to: string) =>
       `${plural("ru", n, { one: "# аккаунт перенесён", few: "# аккаунта перенесены", many: "# аккаунтов перенесены", other: "# аккаунта перенесены" })} в нового человека, ${to}.`,
-    unmerge: (from: string) => `Объединение отменено. Эти аккаунты снова у ${from}.`,
+    unmerge: (from: string | null) =>
+      `Объединение отменено. Эти аккаунты ${from ? `снова у ${from}` : "вернулись к человеку, от которого их присоединили"}.`,
   },
   writeFailed: "Не получилось:",
   reasons: {
@@ -449,7 +463,7 @@ const ru: typeof en = {
   splitHeading: "Отделить аккаунты от",
   unmergeHeading: "Отменить объединение у",
   becomeNew: "Эти аккаунты станут новым человеком:",
-  goBack: "Эти аккаунты вернутся к человеку, с которым их объединили:",
+  goBack: "Эти аккаунты вернутся к человеку, от которого их присоединили:",
   goBackTo: (name: string) => `Эти аккаунты вернутся к ${name}:`,
   agentSays: "Агент пишет:",
   restsOn: "Основание:",
@@ -526,11 +540,14 @@ const es: typeof en = {
   move: (n: number) => (n ? plural("es", n, { one: "Mover # cuenta", other: "Mover # cuentas" }) : "Mover cuentas"),
   cancel: "Cancelar",
   merges: "Unido a esta persona",
-  mergeLine: (from: string, method: string | null) => `De ${from}${method ? `, ${method}` : ""}`,
+  mergeLine: (from: string | null, method: string | null) =>
+    `${from ? `De ${from}` : "De otra persona"}${method ? `, ${method}` : ""}`,
   undoMerge: "Deshacer",
   undoTitle: "¿Deshacer esta unión?",
   undoBody: (from: string) =>
     `Estas cuentas vuelven a ${from}, como antes de la unión. WireCat no las volverá a unir por su cuenta.`,
+  undoBodyUnnamed:
+    "Estas cuentas vuelven a la persona de la que se unieron, como antes de la unión. WireCat no las volverá a unir por su cuenta.",
   undo: "Deshacer la unión",
   moveHeading: (account: string, to: string) => `Mueve ${account} a ${to}.`,
   moveHelp: "Solo se mueve esta cuenta. El resto de su persona queda igual.",
@@ -543,6 +560,9 @@ const es: typeof en = {
     "guest-email": "Correo de un invitado",
   },
   same: "el mismo",
+  phoneHidden: "número oculto: las cuentas guardan solo su huella",
+  phoneHiddenTip:
+    "Estas cuentas tienen el mismo número de teléfono, pero guardan solo una huella de él, no el número. Si un perfil tiene el número, Detalles lo muestra.",
   sameTip: {
     phone: "Tienen el mismo número de teléfono.",
     email: "Tienen la misma dirección de correo.",
@@ -629,7 +649,8 @@ const es: typeof en = {
     reject: (other: string) => `Separada de ${other}.`,
     unlink: (n: number, to: string) =>
       `${plural("es", n, { one: "# cuenta movida", other: "# cuentas movidas" })} a una persona nueva, ${to}.`,
-    unmerge: (from: string) => `La unión se deshizo. Esas cuentas vuelven a ser de ${from}.`,
+    unmerge: (from: string | null) =>
+      `La unión se deshizo. Esas cuentas ${from ? `vuelven a ser de ${from}` : "volvieron a la persona de la que se unieron"}.`,
   },
   writeFailed: "No se pudo hacer:",
   reasons: {

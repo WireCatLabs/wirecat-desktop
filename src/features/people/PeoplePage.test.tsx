@@ -1,6 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { answerAtOnce } from "@/testing/mock-speed"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { PeoplePage } from "./PeoplePage"
 import { usePeople } from "./store"
@@ -14,7 +15,9 @@ const openPerson = async (user: User, name: string) => {
 }
 const openMatches = async (user: User) => {
   await user.click(await screen.findByRole("button", { name: "Review matches" }, { timeout: 4000 }))
-  return screen.findByRole("region", { name: "Possible duplicates" })
+  const region = await screen.findByRole("region", { name: "Possible duplicates" })
+  await within(region).findAllByRole("article")
+  return region
 }
 
 /** A listed person as a memo older than kinds gives it. */
@@ -185,6 +188,15 @@ describe("People", () => {
     expect(await within(card).findByText("Joined into one person.")).toBeInTheDocument()
   })
 
+  it("says the shared number is hidden when no account shows it, and never makes one up", async () => {
+    answerAtOnce()
+    const user = userEvent.setup()
+    render(<PeoplePage />)
+    const card = within(await openMatches(user)).getByRole("article", { name: "Lena Ortiz · Lena Ortiz" })
+    expect(await within(card).findByText("number hidden: accounts keep only its fingerprint")).toBeInTheDocument()
+    expect(card).not.toHaveTextContent(/\+\d/)
+  })
+
   it("keeps two people apart only with the owner's reason", async () => {
     const decide = vi.spyOn(platform, "peopleDecide").mockRejectedValue(new Error("identity.stale"))
     const user = userEvent.setup()
@@ -328,9 +340,12 @@ describe("People", () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const lena = await openPerson(user, "Lena Ortiz")
-    await user.click(await within(lena).findByRole("button", { name: "Undo" }))
+    expect(await within(lena).findByText(/From another person, joined by the same email address/)).toBeInTheDocument()
+    await user.click(within(lena).getByRole("button", { name: "Undo" }))
     const dialog = screen.getByRole("dialog", { name: "Undo this join?" })
-    expect(dialog).toHaveTextContent("email:lena@example.org")
+    expect(dialog).toHaveTextContent("These accounts go back to the person they were joined from")
+    expect(dialog).not.toHaveTextContent("No name yet")
+    expect(within(dialog).getByRole("listitem")).toHaveTextContent(/Email.*Lena Ortiz/)
     await user.click(within(dialog).getByRole("button", { name: "Undo the join" }))
     expect(unmerge).toHaveBeenCalledWith("person:7", "merge:7-12")
   })

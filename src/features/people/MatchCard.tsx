@@ -1,5 +1,5 @@
 import { Mail, PanelRightOpen, Phone } from "lucide-react"
-import { useEffect, useId } from "react"
+import { useEffect, useId, useRef } from "react"
 import { seenAtWork } from "@/domain/people"
 import { formatDate, formatList, formatNumber, useLang, useMessages } from "@/i18n"
 import type { Identity, Match } from "@/platform/people-schemas"
@@ -50,7 +50,6 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
   const pickList = useId()
   const details = usePeople((s) => s.details)
   const listed = usePeople((s) => s.people)
-  if (!first) return null
   const contacts = people.map((ref) => {
     const d = details[ref]
     return contactsOf(
@@ -59,7 +58,15 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
       listed.find((x) => x.ref === ref),
     )
   })
-  const shared = sharedValue(first, contacts)
+  const shared = first ? sharedValue(first, contacts) : null
+  // Kept once seen: a decision drops the people's details, and the decided card still says what it said (rule 9).
+  const hidden = useRef(false)
+  hidden.current ||=
+    first?.signal === "phone" &&
+    shared === null &&
+    people.every((ref) => details[ref]?.state === "ready") &&
+    contacts.every((c) => c.phones.length === 0)
+  if (!first) return null
 
   const done = open.length === 0
   const moving = first.joins === "identity" && first.identity
@@ -84,7 +91,7 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         </h3>
         <Proposer by={first.proposer} />
       </div>
-      <Signal group={group} match={first} value={shared} names={people.map((p) => name(p))} />
+      <Signal group={group} match={first} value={shared} hidden={hidden.current} names={people.map((p) => name(p))} />
       {moving && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.moveHeading(moveWords(first, m.anAccount), name(first.persons[1] ?? ""))} {m.moveHelp}
@@ -167,11 +174,14 @@ function Signal({
   group,
   match,
   value,
+  hidden,
   names,
 }: {
   group: MatchGroup
   match: Match
   value: string | null
+  /** A phone match where no account shows a number: they keep only its fingerprint. */
+  hidden: boolean
   names: string[]
 }) {
   const m = useMessages(peopleMessages)
@@ -185,6 +195,16 @@ function Signal({
       <span className="text-[0.92rem] font-medium text-ink-soft">{m.signalNames[signal] ?? signal}</span>
       {value ? (
         <span className="selectable font-mono text-[1.05rem] font-semibold text-ink tabular-nums">{value}</span>
+      ) : hidden ? (
+        <InfoTip label={m.phoneHiddenTip} trigger={<Pill>{m.phoneHidden}</Pill>}>
+          {m.phoneHiddenTip}
+          {match.evidence.length > 0 && (
+            <>
+              {" "}
+              {m.evidence} <span className="selectable font-mono text-ink">{match.evidence.join(", ")}</span>
+            </>
+          )}
+        </InfoTip>
       ) : (
         sameTip && (
           <InfoTip label={sameTip} trigger={<Pill>{m.same}</Pill>}>

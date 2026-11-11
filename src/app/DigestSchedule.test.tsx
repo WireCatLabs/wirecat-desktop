@@ -161,6 +161,22 @@ describe("creating a digest", () => {
     expect(await screen.findByRole("region", { name: "Settings" }, { timeout: 4000 })).toBeInTheDocument()
   }, 15000)
 
+  it("numbers the title of a second digest from the same template, and keeps the owner's own title", async () => {
+    const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning, weekly]))
+    const user = await openPage(ready([morning, weekly]))
+    const presets = await screen.findByRole("region", { name: "New digest" }, { timeout: 4000 })
+    await user.click(within(presets).getAllByRole("button", { name: "Set up" })[1] as HTMLElement)
+    const dialog = await screen.findByRole("dialog", { name: "Create digest" })
+    const title = within(dialog).getByRole("textbox", { name: "Title" })
+    expect(title).toHaveValue("Weekly digest 2")
+    await user.clear(title)
+    await user.type(title, "Team week")
+    await user.click(within(dialog).getByRole("button", { name: "Create" }))
+    await waitFor(() =>
+      expect(save).toHaveBeenCalledWith(expect.objectContaining({ name: "weekly-digest-2", title: "Team week" }), true),
+    )
+  }, 15000)
+
   it("saves a digest that runs twice a day", async () => {
     const save = vi.spyOn(platform, "digestSave").mockResolvedValue(ready([morning]))
     const user = await openPage(ready([morning]))
@@ -395,7 +411,9 @@ describe("the digest history", () => {
     const days = await screen.findByRole("navigation", { name: "Days" }, { timeout: 4000 })
     expect(days).toHaveTextContent("built later")
 
-    await user.click(screen.getByRole("button", { name: "Build past days…" }))
+    const fill = screen.getByRole("button", { name: "Build past days…" })
+    await waitFor(() => expect(fill).toBeEnabled(), { timeout: 8000 })
+    await user.click(fill)
     const dialog = await screen.findByRole("dialog", { name: "Build the digests of past days" })
     expect(await within(dialog).findByText(/to build/, {}, { timeout: 4000 })).toHaveTextContent(
       /4 days to build \(3 already have one\), about \$1\.08/,
