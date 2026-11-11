@@ -1,6 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { useDigestBook, useDigests } from "@/features/digests"
+import { editorMessages } from "@/features/digests/messages-editors"
 import { platform } from "@/platform/bridge"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { render, screen, waitFor, within } from "@/testing/render"
@@ -42,6 +43,8 @@ describe("what the digest collects", () => {
     expect(card).toHaveTextContent("where the two differ, yours win")
     const brief = await within(card).findByRole("textbox", { name: "Your instructions for this digest" })
     expect(within(card).getByRole("button", { name: "Undo last change" })).toBeDisabled()
+    expect(brief).toHaveValue(editorMessages.en.brief.template.daily)
+    await user.clear(brief)
     await user.type(brief, "Only HRB.")
     expect(card).toHaveTextContent("9 / 4000")
     await user.click(within(card).getByRole("button", { name: "Save" }))
@@ -50,7 +53,7 @@ describe("what the digest collects", () => {
     await waitFor(() => expect(back).toBeEnabled())
     await user.click(back)
     expect(undo).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(brief).toHaveValue(""))
+    await waitFor(() => expect(brief).toHaveValue(editorMessages.en.brief.template.daily))
   }, 15000)
 
   it("shows memo's own words when it refuses the brief", async () => {
