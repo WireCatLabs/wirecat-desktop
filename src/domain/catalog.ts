@@ -103,6 +103,8 @@ const ToolSchema = v.object({
       v.object({
         set: v.array(v.string()),
         list: v.array(v.string()),
+        check: v.array(v.string()),
+        remove: v.array(v.string()),
         token: v.picklist(["telegram", "opaque"]),
         create: v.pipe(v.string(), v.url()),
         docs: v.pipe(v.string(), v.url()),

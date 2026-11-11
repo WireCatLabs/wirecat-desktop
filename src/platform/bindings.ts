@@ -91,6 +91,10 @@ export type BotProfile = {
 	name: string,
 	/**  Where the token comes from: `keyring`, `file` or `env`. */
 	source: string | null,
+	/**  The bot's username or name as the messenger reported it; only from a check. */
+	bot: string | null,
+	/**  The error code the messenger's answer ended in; only from a check. */
+	problem: string | null,
 };
 
 export type BotResult = 

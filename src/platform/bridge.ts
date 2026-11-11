@@ -344,6 +344,8 @@ function createTauri(): Platform {
     driveFolderRemove: (id, profile, folder) => invoke("drive_folder_remove", { id, profile, folder }),
     botSignIn: (id, profile, token, fields) => invoke("bot_sign_in", { id, profile, token, fields }),
     listBots: (id) => invoke("list_bots", { id }),
+    checkBots: (id) => invoke("check_bots", { id }),
+    removeBot: (id, profile) => invoke("remove_bot", { id, profile }),
     syncRun: (id, profile, onEvent) => {
       const channel = new Channel<SyncEvent>()
       channel.onmessage = onEvent

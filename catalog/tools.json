@@ -394,6 +394,8 @@
       "bot": {
         "set": ["{profile}", "bot", "auth", "set", "--record", "--json"],
         "list": ["bot", "list", "--no-record", "--json"],
+        "check": ["bot", "list", "--check", "--no-record", "--json"],
+        "remove": ["{profile}", "bot", "auth", "remove", "--record", "--json"],
         "listMinVersion": "0.116.0",
         "token": "telegram",
         "create": "https://t.me/BotFather",
@@ -812,6 +814,8 @@
       "bot": {
         "set": ["{profile}", "bot", "auth", "set", "--record", "--json"],
         "list": ["bot", "list", "--no-record", "--json"],
+        "check": ["bot", "list", "--check", "--no-record", "--json"],
+        "remove": ["{profile}", "bot", "auth", "remove", "--record", "--json"],
         "listMinVersion": "0.102.0",
         "token": "opaque",
         "create": "https://business.max.ru/self",
@@ -1233,6 +1237,8 @@
       "bot": {
         "set": ["{profile}", "bot", "auth", "set", "--record", "--json"],
         "list": ["bot", "list", "--no-record", "--json"],
+        "check": ["bot", "list", "--check", "--no-record", "--json"],
+        "remove": ["{profile}", "bot", "auth", "remove", "--record", "--json"],
         "listMinVersion": "0.29.0",
         "token": "opaque",
         "create": "https://developers.facebook.com/apps/",

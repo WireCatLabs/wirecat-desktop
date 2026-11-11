@@ -20,7 +20,10 @@ const tool = (id: string) => {
 }
 
 beforeEach(() => {
-  vi.spyOn(platform, "listBots").mockResolvedValue([{ name: "sales", source: "keyring" }])
+  vi.spyOn(platform, "listBots").mockResolvedValue([{ name: "sales", source: "keyring", bot: null, problem: null }])
+  vi.spyOn(platform, "checkBots").mockResolvedValue([
+    { name: "sales", source: "keyring", bot: "sales_bot", problem: null },
+  ])
   vi.spyOn(platform, "openUrl").mockResolvedValue()
 })
 
@@ -45,11 +48,41 @@ async function toToken(user: ReturnType<typeof userEvent.setup>, name = "support
 }
 
 describe("the bot list on the Tools page", () => {
-  it("shows each bot the tool reports with a Bot badge", async () => {
+  it("shows each bot the tool reports and what the messenger says of it", async () => {
     openFromTools()
     const list = await screen.findByRole("list")
     expect(within(list).getByText("sales")).toBeInTheDocument()
-    expect(within(list).getByText("Bot")).toBeInTheDocument()
+    expect(await within(list).findByText("Works")).toBeInTheDocument()
+    expect(within(list).getByText("@sales_bot")).toBeInTheDocument()
+  })
+
+  it("marks a token the messenger refused and reconnects straight at the token step", async () => {
+    vi.mocked(platform.checkBots).mockResolvedValue([
+      { name: "sales", source: "keyring", bot: null, problem: "authentication_error" },
+    ])
+    const user = openFromTools()
+    expect(await screen.findByText("Token refused")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "Reconnect bot sales" }))
+    expect(useBotSignIn.getState()).toMatchObject({ step: "token", profile: "sales" })
+  })
+
+  it("removes a bot only after confirmation, through the tool", async () => {
+    const remove = vi.spyOn(platform, "removeBot").mockResolvedValue()
+    const user = openFromTools()
+    await user.click(await screen.findByRole("button", { name: "Remove bot sales" }))
+    expect(remove).not.toHaveBeenCalled()
+    await user.click(within(dialog()).getByRole("button", { name: "Remove bot" }))
+    expect(remove).toHaveBeenCalledWith("tg", "sales")
+  })
+
+  it("keeps the confirmation open and says what to do when the removal fails", async () => {
+    vi.spyOn(platform, "removeBot").mockRejectedValue(new Error("keyring locked"))
+    const user = openFromTools()
+    await user.click(await screen.findByRole("button", { name: "Remove bot sales" }))
+    await user.click(within(dialog()).getByRole("button", { name: "Remove bot" }))
+    expect(await within(dialog()).findByText(/The bot was not removed/)).toBeInTheDocument()
+    await user.click(within(dialog()).getByRole("button", { name: "Details" }))
+    expect(within(dialog()).getByText("keyring locked")).toBeInTheDocument()
   })
 })
 

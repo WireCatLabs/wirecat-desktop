@@ -514,6 +514,10 @@ export type Platform = {
   botSignIn(id: string, profile: string, token: string, fields: Record<string, string>): Promise<BotResult>
   /** Every bot name on this computer with a token, from the tool's own `bot list`. */
   listBots(id: string): Promise<BotProfile[]>
+  /** The same list after the tool asked the messenger who each token belongs to. */
+  checkBots(id: string): Promise<BotProfile[]>
+  /** Forgets one bot's token on this computer with the tool's own `bot auth remove`. */
+  removeBot(id: string, profile: string): Promise<void>
   /**
    * Runs the tool's own sync (`sync.run` in the catalog) for the profile the owner chose, or none for a tool without
    * profiles. Stages and the result arrive as events; only counts, never chat or account names.

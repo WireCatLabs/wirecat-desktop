@@ -35,8 +35,7 @@ describe("an account's sync on a timer", () => {
     const user = userEvent.setup()
     render(<SyncSchedule tool={email} profile="personal" />)
     const region = await screen.findByRole("region", { name: "Sync schedule of Email personal" })
-    expect(region).toHaveTextContent("Not on a schedule")
-    await user.click(within(region).getByRole("button", { name: "Sync on a schedule…" }))
+    await user.click(within(region).getByRole("button", { name: "Sync on a schedule" }))
     const how = within(region).getByRole("combobox", { name: "How often" })
     expect(how).toHaveTextContent("5 min")
     await user.click(how)
@@ -44,6 +43,20 @@ describe("an account's sync on a timer", () => {
     await user.click(within(region).getByRole("button", { name: "Turn on" }))
     expect(set).toHaveBeenCalledWith("email", "personal", "15m")
     expect(await within(region).findByText(/Syncs on its own every 15 min · no run yet/)).toBeInTheDocument()
+  })
+
+  it("offers Reconnect when a timed run was refused for its sign-in, in words instead of the error's id", async () => {
+    vi.spyOn(platform, "syncScheduleStatus").mockResolvedValue({
+      state: "on",
+      when: "every 5m",
+      every: "5m",
+      last: run({ exitCode: 4, reason: "authentication_error", failures: 1, failingSince: ago(600) }),
+    })
+    render(<SyncSchedule tool={email} profile="personal" />)
+    const region = await screen.findByRole("region", { name: "Sync schedule of Email personal" })
+    expect(await within(region).findByText("Your Email sign-in for personal has ended.")).toBeInTheDocument()
+    expect(within(region).getByRole("button", { name: "Reconnect" })).toBeInTheDocument()
+    expect(region).not.toHaveTextContent("authentication_error")
   })
 
   it("shows the latest timed run, its failing streak, and turns off with schedule remove", async () => {
@@ -57,12 +70,13 @@ describe("an account's sync on a timer", () => {
     const user = userEvent.setup()
     render(<SyncSchedule tool={email} profile="personal" />)
     const region = await screen.findByRole("region", { name: "Sync schedule of Email personal" })
-    expect(await within(region).findByText(/failed \(configuration_error\)/)).toBeInTheDocument()
+    expect(await within(region).findByText(/failed$/)).toBeInTheDocument()
+    expect(region).not.toHaveTextContent("configuration_error")
     expect(region).toHaveTextContent(/Scheduled syncs fail since .*, 41 in a row/)
-    await user.click(within(region).getByRole("button", { name: "Change…" }))
+    await user.click(within(region).getByRole("button", { name: "Change schedule" }))
     await user.click(within(region).getByRole("button", { name: "Turn off" }))
     expect(set).toHaveBeenCalledWith("email", "personal", null)
-    expect(await within(region).findByText(/Not on a schedule/)).toBeInTheDocument()
+    expect(await within(region).findByRole("button", { name: "Sync on a schedule" })).toBeInTheDocument()
   })
 
   it("says what the tool answered when it refuses", async () => {
@@ -71,7 +85,7 @@ describe("an account's sync on a timer", () => {
     const user = userEvent.setup()
     render(<SyncSchedule tool={email} profile="personal" />)
     const region = await screen.findByRole("region", { name: "Sync schedule of Email personal" })
-    await user.click(within(region).getByRole("button", { name: "Sync on a schedule…" }))
+    await user.click(within(region).getByRole("button", { name: "Sync on a schedule" }))
     await user.click(within(region).getByRole("button", { name: "Turn on" }))
     expect(
       await within(region).findByText("Could not change the schedule: systemctl --user is not available"),

@@ -401,6 +401,8 @@ pub fn run() {
             commands::signin::sign_in,
             commands::signin::bot_sign_in,
             commands::signin::list_bots,
+            commands::signin::check_bots,
+            commands::signin::remove_bot,
             commands::signin::sign_in_answer,
             commands::signin::sign_in_stop,
             commands::setup_extras::zoom_app_setup,

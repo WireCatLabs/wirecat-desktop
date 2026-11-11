@@ -105,6 +105,7 @@ describe("syncing a profile from the Manage panel", () => {
     })
     finish()
     expect(await screen.findByText("The sync failed")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Details" }))
     await userEvent.click(screen.getByRole("button", { name: "Open the run on Logs" }))
     expect(useNav.getState().active).toBe("logs")
     await waitFor(() => expect(useLogs.getState().expanded).toBe("tg:20261027T121457Z-messages-sync-db4f0a"))
@@ -127,7 +128,7 @@ describe("syncing a profile from the Manage panel", () => {
     expect(useLogs.getState().expanded).toBeNull()
   })
 
-  it("explains a rate limit with the wait the service asked for, and says WireCat does not retry", async () => {
+  it("explains a pause with when to sync again, claims nobody asked for it, and says WireCat does not retry", async () => {
     render(<SyncControl tool={tg} profile="personal" />)
     await userEvent.click(await screen.findByRole("button", { name: "Sync now" }))
     send({
@@ -139,11 +140,46 @@ describe("syncing a profile from the Manage panel", () => {
       retryAfterMs: 25 * 60_000,
     })
     finish()
-    expect(await screen.findByText("The service asked to slow down")).toBeInTheDocument()
-    expect(screen.getByText(/^Telegram limits how fast history can be downloaded/)).toHaveTextContent(
-      /It asked to wait 25 minutes: sync again after .+\. .* WireCat does not try again by itself\.$/,
+    expect(await screen.findByText("Sync is paused for now")).toBeInTheDocument()
+    expect(screen.getByText(/^Requests to Telegram are paused/)).toHaveTextContent(
+      /Sync again after .+, in about 25 minutes\. .* WireCat does not try again by itself\.$/,
     )
+    await userEvent.click(screen.getByRole("button", { name: "Details" }))
     expect(screen.getByRole("button", { name: "Open the run on Logs" })).toBeInTheDocument()
+  })
+
+  it("tells an ended sign-in in plain words with Reconnect, and the tool's words under Details", async () => {
+    render(<SyncControl tool={tg} profile="personal" />)
+    await userEvent.click(await screen.findByRole("button", { name: "Sync now" }))
+    send({
+      event: "failed",
+      message: "the session may have expired",
+      code: "authentication_error",
+      reason: null,
+      run: "20261103T091502Z-messages-sync-7c21e0",
+      retryAfterMs: null,
+    })
+    finish()
+    expect(await screen.findByText("Your Telegram sign-in for personal has ended.")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Reconnect" })).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Details" }))
+    expect(screen.getByText("the session may have expired")).toBeInTheDocument()
+  })
+
+  it("does not blame the network when the computer's password store was closed", async () => {
+    render(<SyncControl tool={tg} profile="personal" />)
+    await userEvent.click(await screen.findByRole("button", { name: "Sync now" }))
+    send({
+      event: "failed",
+      message: "no token for this profile",
+      code: "provider_unavailable",
+      reason: "credentials.unreachable",
+      run: null,
+      retryAfterMs: null,
+    })
+    finish()
+    expect(await screen.findByText(/could not read your Telegram sign-in/)).toBeInTheDocument()
+    expect(screen.queryByText(/internet/)).not.toBeInTheDocument()
   })
 
   it("syncs mail per profile, apart from memo's one lock", () => {
