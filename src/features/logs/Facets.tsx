@@ -25,17 +25,19 @@ export function Facets({ counts, terms, total, groupBy, onToggle, onGroup }: Pro
   return (
     <nav aria-label={m.facets} className="flex flex-col gap-[1.1rem]">
       <p className="text-[0.9rem] text-ink-dim">{m.countsOver(total)}</p>
-      {FACETS.map((field) => (
-        <Facet
-          key={field}
-          field={field}
-          counts={counts[field] ?? []}
-          terms={terms}
-          grouped={groupBy === field}
-          onToggle={onToggle}
-          onGroup={onGroup}
-        />
-      ))}
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] items-start gap-x-[1.5rem] gap-y-[1.1rem]">
+        {FACETS.map((field) => (
+          <Facet
+            key={field}
+            field={field}
+            counts={counts[field] ?? []}
+            terms={terms}
+            grouped={groupBy === field}
+            onToggle={onToggle}
+            onGroup={onGroup}
+          />
+        ))}
+      </div>
     </nav>
   )
 }
@@ -78,7 +80,7 @@ function Facet(
             className={cx("size-[0.95rem] transition-transform duration-(--motion-fast)", open && "rotate-90")}
           />
           {label}
-          <span className="ml-auto font-normal tabular-nums">{counts.length || ""}</span>
+          <span className="ml-[0.2rem] font-normal tabular-nums">{counts.length || ""}</span>
         </button>
         <button
           type="button"
@@ -145,7 +147,7 @@ function Value(props: {
         aria-pressed={state === "include"}
         title={(state === "include" ? m.stopKeeping : m.keepOnly)(valueTitle(m, field, count.value))}
         className={cx(
-          "flex min-h-[1.9rem] w-full min-w-0 items-center gap-[0.45rem] rounded-[0.3rem] pr-[0.4rem] pl-[0.15rem] text-left text-[0.95rem]",
+          "flex min-h-[1.9rem] w-full min-w-0 items-center gap-[0.45rem] rounded-[0.3rem] pr-[1.8rem] pl-[0.15rem] text-left text-[0.95rem]",
           "hover:bg-app-3",
           state === "exclude" && "text-ink-dim line-through decoration-ink-dim",
         )}
@@ -163,9 +165,7 @@ function Value(props: {
           {state === "exclude" && <Minus className="size-[0.7rem]" strokeWidth={3} />}
         </span>
         <ValueLabel field={field} value={count.value} />
-        <span className="ml-auto shrink-0 pl-2 text-[0.9rem] text-ink-dim tabular-nums group-hover/value:invisible">
-          {count.count}
-        </span>
+        <span className="shrink-0 text-[0.9rem] text-ink-dim tabular-nums">{count.count}</span>
       </button>
       <button
         type="button"
