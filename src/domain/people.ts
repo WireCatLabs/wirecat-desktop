@@ -21,14 +21,11 @@ export const isBotAccount = (i: { provider: string; bot: boolean; username: stri
 export const allBots = (identities: readonly { provider: string; bot: boolean; username: string | null }[]) =>
   identities.length > 0 && identities.every(isBotAccount)
 
-export const SCOPES = ["personal", "work"] as const
-export type Scope = (typeof SCOPES)[number]
-
 /**
- * Which of the owner's kinds of account, personal or work, saw this one; both when both did. An account seen with no
- * known kind gets no mark rather than a guess.
+ * Whether a work account saw this one. Only work is marked: memo files every new account as personal and has no command
+ * to change it, so a «personal» mark sat on every account and read as "this address is private".
  */
-export const scopesOf = (seenIn: readonly Seen[]): Scope[] => SCOPES.filter((k) => seenIn.some((s) => s.scope === k))
+export const seenAtWork = (seenIn: readonly Seen[]) => seenIn.some((s) => s.scope === "work")
 
 /**
  * The owner's profiles an account was seen in, by the account groups' members: memo's `seen_in` names the owner's

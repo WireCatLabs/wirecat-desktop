@@ -1,4 +1,4 @@
-import type { PeopleReason, Scope } from "@/domain/people"
+import type { PeopleReason } from "@/domain/people"
 import { type Messages, plural } from "@/i18n"
 import type { MatchFact } from "./contacts"
 
@@ -29,7 +29,7 @@ const en = {
   botMark: "Bot",
   unlinkAccount: "Unlink",
   unlinkLabel: (account: string) => `Unlink ${account} from this person`,
-  scopes: { personal: "personal account", work: "work account" } as Record<Scope, string>,
+  atWork: "work",
   seenNowhere: "Not seen in any account yet",
   username: (u: string) => `@${u}`,
   methods: {
@@ -350,7 +350,7 @@ const ru: typeof en = {
   botMark: "Бот",
   unlinkAccount: "Отвязать",
   unlinkLabel: (account: string) => `Отвязать ${account} от этого человека`,
-  scopes: { personal: "личный аккаунт", work: "рабочий аккаунт" },
+  atWork: "работа",
   seenNowhere: "Пока не встречался ни в одном аккаунте",
   username: (u: string) => `@${u}`,
   methods: {
@@ -690,7 +690,7 @@ const es: typeof en = {
   botMark: "Bot",
   unlinkAccount: "Desvincular",
   unlinkLabel: (account: string) => `Desvincular ${account} de esta persona`,
-  scopes: { personal: "cuenta personal", work: "cuenta de trabajo" },
+  atWork: "trabajo",
   seenNowhere: "Aún no se ha visto en ninguna cuenta",
   username: (u: string) => `@${u}`,
   methods: {

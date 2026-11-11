@@ -165,13 +165,13 @@ describe("People", () => {
     expect(within(row("Dmitry Volkov")).queryByText("Bot")).not.toBeInTheDocument()
   })
 
-  it("opens a person in a dialog with their accounts by source, marking personal and work ones", async () => {
+  it("opens a person in a dialog with their accounts by source, marking only work ones", async () => {
     const user = userEvent.setup()
     render(<PeoplePage />)
     const lena = await openPerson(user, "Lena Ortiz")
     const email = await within(lena).findByRole("region", { name: "Email" })
-    expect(within(email).getByText("work account")).toBeInTheDocument()
-    expect(within(email).getByText("personal account")).toBeInTheDocument()
+    expect(within(email).getByText("work")).toBeInTheDocument()
+    expect(within(email).queryByText("personal")).not.toBeInTheDocument()
     expect(within(email).getByText(/joined by the same email address/)).toBeInTheDocument()
     expect(within(lena).getByRole("button", { name: "Undo" })).toBeInTheDocument()
   })
