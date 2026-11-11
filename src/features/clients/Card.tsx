@@ -6,6 +6,7 @@ import type { CrmCard } from "@/platform/bindings"
 import { cardClass } from "@/ui/Board"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { InfoTip } from "@/ui/InfoTip"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { TipPanel, useTip } from "@/ui/Tooltip"
 import { useStageName } from "./api"
@@ -149,7 +150,17 @@ export function CardFacts({
       )}
     >
       <Row label={m.stage}>{stage ?? <StageText card={card} />}</Row>
-      {!compact && <Row label={m.baseStage}>{card.baseStage && label.stage(card.baseStage.name)}</Row>}
+      {!compact && (
+        <Row
+          label={
+            <>
+              {m.baseStage} <InfoTip label={m.baseStage}>{m.baseStageHint}</InfoTip>
+            </>
+          }
+        >
+          {card.baseStage && label.stage(card.baseStage.name)}
+        </Row>
+      )}
       <Row label={m.pipeline}>{pipeline && label.pipeline(pipeline, card.account !== null)}</Row>
       <Row label={m.amount}>{card.amount && card.currency ? moneyOf(card.amount, card.currency, lang) : null}</Row>
       <Row label={m.organization}>{card.organization}</Row>
@@ -178,7 +189,7 @@ export function CardFacts({
   )
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
+function Row({ label, children }: { label: ReactNode; children: ReactNode }) {
   if (children === null || children === undefined || children === "") return null
   return (
     <>

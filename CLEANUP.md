@@ -39,3 +39,5 @@
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-settings-model` (worktree) and branch `fix/settings-model-feedback`: Settings feedback for 0.6.0. Remove both after the PR merges. 2026-11-11
 - `task_chats` (Rust command in `src-tauri/src/commands/tasks.rs` and `task_board.rs`, `taskChats` in `src/platform/bridge.ts`, `types.ts`, `ChatTasksSchema`, the mock's `taskChats`): the Tasks page no longer calls it, memo now lists found tasks with `tasks list`. 2026-11-11
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-found-task-fields` (branch `feat/found-task-fields`): worktree for found-task fields on the board, remove after its PR merges. 2026-11-11
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-inapp-docs` (branch `docs/inapp-help`): worktree for the landing-shot audit and in-app help proposal; keep for stage 2, remove after that lands. 2026-11-11
+- Vite dev server on port 1437 started from that worktree for captures; stop by its PID (`ss -ltnp | grep 1437`) when stage 1 is reviewed. 2026-11-11

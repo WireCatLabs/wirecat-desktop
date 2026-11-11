@@ -31,6 +31,14 @@ const ACME: CrmAccount = { provider: "amocrm", account: "acme.example" }
 /** `?clients=long-stages`: a portal with many long Russian stage names, for the mapping dialog's layout. */
 const SAAS: CrmAccount = { provider: "bitrix24", account: "saas.example" }
 
+/**
+ * Every sample CRM as already asked about. The stage dialog opens by itself on a CRM's first read, as in the real app;
+ * `?showcase` captures want the board under it.
+ */
+export const SAMPLE_PROMPTED = ["deal", "lead"].flatMap((kind) =>
+  [NORTHSTAR, ACME, SAAS].map((a) => `${kind}:${a.provider}:${a.account}`),
+)
+
 type Pipe = {
   ref: string
   name: string
