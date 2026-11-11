@@ -15,8 +15,6 @@ type State = {
   /** Groups the owner named that hold no account yet: Memo makes a group with its first account. */
   drafts: string[]
   load(): Promise<void>
-  /** Loads once for the pages that only read the groups, however many rows ask at the same time. */
-  ensure(): Promise<void>
   change(change: Change): Promise<boolean>
   /** Puts an account on the personal or the work side; work views and work agents read only work accounts. */
   setScope(source: string, scope: AccountScope): Promise<boolean>
@@ -30,8 +28,6 @@ const send = (c: Change) =>
     : c.kind === "remove"
       ? platform.groupsRemove(c.group, c.source)
       : platform.groupsMove(c.source, c.from, c.to)
-
-let loading: Promise<void> | null = null
 
 const names = (read: GroupsRead | null) => (read?.kind === "ready" ? read.groups.map((g) => g.name) : [])
 
@@ -48,15 +44,6 @@ export const useGroups = create<State>()((set, get) => ({
     } catch (e) {
       set({ readError: errorText(e) })
     }
-  },
-  ensure() {
-    if (get().read) return Promise.resolve()
-    loading ??= get()
-      .load()
-      .finally(() => {
-        loading = null
-      })
-    return loading
   },
   async change(change) {
     const before = get().read

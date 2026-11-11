@@ -1,10 +1,8 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { findTool, syncSchedules } from "@/domain/catalog"
-import { useGroups } from "@/features/groups"
 import type { Removal } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import type { GroupsRead } from "@/platform/groups-schemas"
 import { useAccountNames } from "@/shared/account-names-store"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { AccountRowPlaceholder } from "./AccountRow"
@@ -13,9 +11,6 @@ import { AccountList } from "./Health"
 const tool = (id: string) => findTool(id) as NonNullable<ReturnType<typeof findTool>>
 
 beforeEach(() => {
-  // Without Memo the menus hold only the tool's own actions; "personal or work" below sets its own groups.
-  useGroups.setState({ read: null, busy: false, refused: null })
-  vi.spyOn(platform, "groupsRead").mockResolvedValue({ kind: "missing" })
   vi.spyOn(platform, "syncLast").mockResolvedValue({
     at: new Date(Date.now() - 12 * 60_000).toISOString(),
     left: null,
@@ -355,46 +350,5 @@ describe("Drive's folders", () => {
     expect(remove).toHaveBeenCalledWith("drive", "personal", "1Notes")
     expect(await within(panel).findByText(/Sync now to copy or drop their text/)).toBeInTheDocument()
     expect(within(panel).getByText(/Drive copies nothing for this account/)).toBeInTheDocument()
-  })
-})
-
-describe("personal or work", () => {
-  const member = (profile: string, scope: string) => ({
-    source: `telegram:${profile}`,
-    provider: "telegram",
-    profiles: [`${tool("tg").bin} ${profile}`],
-    alsoIn: [],
-    scope,
-  })
-  const read = (scope: string): GroupsRead => ({
-    kind: "ready",
-    groups: [{ name: "all", members: [member("work", scope)], suggested: [] }],
-    unresolved: [],
-  })
-
-  it("switches an account between work and personal from its menu", async () => {
-    useGroups.setState({ read: read("work") })
-    const scope = vi.spyOn(platform, "groupsScope").mockResolvedValue(read("personal"))
-    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
-    const item = within(await openMenu("work")).getByRole("menuitem", { name: /Make it a personal account/ })
-    expect(item).toHaveTextContent("Now work.")
-    await userEvent.click(item)
-    expect(scope).toHaveBeenCalledWith("telegram:work", "personal")
-    expect(within(await openMenu("work")).getByRole("menuitem", { name: /Make it a work account/ })).toBeInTheDocument()
-  })
-
-  it("leaves the item out for an account Memo does not know", async () => {
-    useGroups.setState({ read: read("work") })
-    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
-    expect(within(await openMenu("personal")).queryByRole("menuitem", { name: /Make it a/ })).toBeNull()
-  })
-
-  it("says under the row when Memo refuses the change", async () => {
-    useGroups.setState({ read: read("personal") })
-    vi.spyOn(platform, "groupsScope").mockRejectedValue(new Error("the store is locked"))
-    render(<AccountList tool={tool("tg")} profiles={signedIn} onReload={() => undefined} />)
-    await userEvent.click(within(await openMenu("work")).getByRole("menuitem", { name: /Make it a work account/ }))
-    const row = screen.getByRole("listitem", { name: "Telegram account work" })
-    expect(await within(row).findByRole("alert")).toHaveTextContent("Memo did not change it: the store is locked")
   })
 })

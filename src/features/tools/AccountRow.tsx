@@ -2,14 +2,12 @@ import { LogIn } from "lucide-react"
 import { useId, useState } from "react"
 import { type CatalogTool, doctorNeedsProfile, syncNeedsProfile, syncSchedules, syncsHere } from "@/domain/catalog"
 import { advice } from "@/domain/sync"
-import { useAccountScope, useGroups } from "@/features/groups"
 import { useMessages } from "@/i18n"
 import type { Profile } from "@/platform/schemas"
 import { ACCOUNT_NAME_MAX, nameOf, useAccountNames } from "@/shared/account-names-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { type MenuItem, SplitButton } from "@/ui/SplitButton"
@@ -44,7 +42,6 @@ export function AccountRow(props: {
   const [folders, setFolders] = useState(false)
   const [removing, setRemoving] = useState<"remove" | "signOut" | null>(null)
   const [renaming, setRenaming] = useState(false)
-  const scope = useScopeItem(tool.bin, p.name)
   const syncs = (props.sync ?? true) && syncsHere(tool) && syncNeedsProfile(tool) && p.signedIn !== false
 
   const signIn = () => reconnect(tool, p.name, onReload)
@@ -62,7 +59,6 @@ export function AccountRow(props: {
           },
         ]
       : []),
-    ...(scope.item ? [scope.item] : []),
     { label: m.rename, onSelect: () => setRenaming(true) },
     ...(tool.accountRemove?.signOut && p.signedIn !== false
       ? [{ label: m.signOut, onSelect: () => setRemoving("signOut") }]
@@ -82,19 +78,6 @@ export function AccountRow(props: {
         </Collapse>
         <Collapse open={folders}>
           <DriveFoldersSettings tool={tool} profile={p.name} onClose={() => setFolders(false)} />
-        </Collapse>
-        <Collapse open={scope.refused !== null}>
-          {scope.refused && (
-            <ErrorNotice
-              action={
-                <Button size="sm" variant="ghost" onClick={scope.dismiss}>
-                  {m.scopeDismiss}
-                </Button>
-              }
-            >
-              {scope.refused}
-            </ErrorNotice>
-          )}
         </Collapse>
         <Collapse open={renaming}>
           {renaming && <Rename tool={tool.id} profile={p.name} onClose={() => setRenaming(false)} />}
@@ -121,31 +104,6 @@ export function AccountRow(props: {
       />
     </li>
   )
-}
-
-/** Personal or work, kept by Memo per account: work views, work agents and the «work» mark on people follow it. */
-function useScopeItem(bin: string, profile: string) {
-  const m = useMessages(accountsMessages).row
-  const member = useAccountScope(bin, profile)
-  const [refused, setRefused] = useState<string | null>(null)
-  if (!member) return { item: null, refused, dismiss: () => setRefused(null) }
-  const work = member.scope === "work"
-  const item: MenuItem = {
-    label: work ? m.toPersonal : m.toWork,
-    note: m.scopeNow(work),
-    onSelect: () => {
-      // A press while another change runs is said, not swallowed.
-      if (useGroups.getState().busy) return setRefused(m.scopeBusy)
-      setRefused(null)
-      void useGroups
-        .getState()
-        .setScope(member.source, work ? "personal" : "work")
-        .then((ok) => {
-          if (!ok) setRefused(m.scopeFailed(useGroups.getState().refused?.message ?? ""))
-        })
-    },
-  }
-  return { item, refused, dismiss: () => setRefused(null) }
 }
 
 function RowLine(props: {
