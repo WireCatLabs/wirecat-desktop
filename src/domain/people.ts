@@ -10,6 +10,17 @@ export function bySource<T extends IdentityLike>(identities: readonly T[]): { pr
   return [...groups].map(([provider, list]) => ({ provider, identities: list }))
 }
 
+/**
+ * A bot account: the source says so, or it is a Telegram username ending in "bot", which Telegram requires of every
+ * bot (core.telegram.org/bots/features#botfather) and of no person.
+ */
+export const isBotAccount = (i: { provider: string; bot: boolean; username: string | null }) =>
+  i.bot || (i.provider === "telegram" && /bot$/i.test(i.username?.trim() ?? ""))
+
+/** A person is a bot only when every account of theirs is one: a person may also run a bot. */
+export const allBots = (identities: readonly { provider: string; bot: boolean; username: string | null }[]) =>
+  identities.length > 0 && identities.every(isBotAccount)
+
 export const SCOPES = ["personal", "work"] as const
 export type Scope = (typeof SCOPES)[number]
 

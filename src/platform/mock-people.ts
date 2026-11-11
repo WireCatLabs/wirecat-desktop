@@ -206,6 +206,10 @@ function seed(): Held[] {
         bot: true,
       },
     ]),
+    // A Telegram bot memo has no bot flag for: only its username says so.
+    person("person:50", "Бездушная Машина", [
+      account("telegram:7750", "Бездушная Машина", [["1001", "personal"]], "initial", 5, "vas3k_club_bot"),
+    ]),
     ...crowd(),
   ]
 }

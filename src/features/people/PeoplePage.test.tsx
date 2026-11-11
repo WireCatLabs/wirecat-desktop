@@ -127,10 +127,10 @@ describe("People", () => {
     expect(page).toHaveBeenLastCalledWith({ kind: "person", page: 1, size: 50, query: "", sort: "interactions" })
     expect(within(await table()).getAllByRole("row")).toHaveLength(51)
     const pages = screen.getByRole("navigation", { name: "Pages" })
-    expect(pages).toHaveTextContent(/^1–50 of 130/)
+    expect(pages).toHaveTextContent(/^1–50 of 131/)
     await user.click(within(pages).getByRole("button", { name: "Page 2" }))
     expect(page).toHaveBeenLastCalledWith(expect.objectContaining({ page: 2 }))
-    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 130/))
+    await waitFor(() => expect(pages).toHaveTextContent(/51–100 of 131/))
 
     await user.click(screen.getByRole("combobox", { name: "Order" }))
     await user.click(screen.getByRole("option", { name: "Most tasks" }))
@@ -154,6 +154,15 @@ describe("People", () => {
     await waitFor(() => expect(row("Kai M.")).toHaveTextContent(/Kai M\.MAX/))
     await waitFor(() => expect(row("Eky")).toHaveTextContent(/EkyWhatsApp/))
     expect(row("Eky")).not.toHaveTextContent(/@lid/)
+  })
+
+  it("marks a bot at the end of its name only when every account is a bot", async () => {
+    render(<PeoplePage />)
+    const rows = within(await table()).getAllByRole("row")
+    const row = (name: string) => rows.find((r) => r.textContent?.startsWith(name)) as HTMLElement
+    expect(await within(row("Бездушная Машина")).findByText("Bot", {}, { timeout: 4000 })).toHaveClass("sr-only")
+    await waitFor(() => expect(row("Dmitry Volkov")).toHaveTextContent("@dvolkov"))
+    expect(within(row("Dmitry Volkov")).queryByText("Bot")).not.toBeInTheDocument()
   })
 
   it("opens a person in a dialog with their accounts by source, marking personal and work ones", async () => {

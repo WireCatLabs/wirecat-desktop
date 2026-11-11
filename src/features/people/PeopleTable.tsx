@@ -1,6 +1,6 @@
-import { AtSign, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
-import { type ReactNode, useEffect } from "react"
-import { cleanName, contactOf, filterPeople, isFragment, looksLikeAccount } from "@/domain/people"
+import { AtSign, Bot, Building2, Inbox, Mail, Megaphone, Phone, Users, UserX } from "lucide-react"
+import { type ReactNode, useEffect, useId, useRef } from "react"
+import { allBots, cleanName, contactOf, filterPeople, isFragment, looksLikeAccount } from "@/domain/people"
 import { formatWhen } from "@/domain/runs"
 import { formatNumber, useLang, useMessages } from "@/i18n"
 import { type Listed, PEOPLE_SORTS, PERSON_KINDS, type PersonKind } from "@/platform/people-schemas"
@@ -10,10 +10,10 @@ import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FilterBar, ToggleChip } from "@/ui/FilterBar"
 import { PAGE_SIZES, Pager } from "@/ui/Pager"
-import { Pill } from "@/ui/Pill"
 import { Segmented } from "@/ui/Segmented"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
+import { TipPanel, useTip } from "@/ui/Tooltip"
 import { usePersonName } from "./labels"
 import { peopleMessages } from "./messages"
 import { SourceIcon, sourceOf } from "./sources"
@@ -54,9 +54,18 @@ export function PeopleTable() {
   const at = kinded ? page : Math.min(page, pages)
   const rows = kinded ? people : found.slice((at - 1) * size, at * size)
   // memo's row carries no source: a row with no phone, address or handle reads the person's accounts to show one, and
-  // so does a row named by a fragment, whose accounts may have the full name.
+  // so does a row named by a fragment, whose accounts may have the full name. A possible bot reads them too: it is
+  // marked only when every account is a bot, which the row cannot tell.
   const onScreen = (
-    kinded ? rows.filter((p) => (!p.phone && !p.email && !p.username) || isFragment(p.displayName ?? p.name)) : rows
+    kinded
+      ? rows.filter(
+          (p) =>
+            (!p.phone && !p.email && !p.username) ||
+            isFragment(p.displayName ?? p.name) ||
+            p.bot ||
+            /bot$/i.test(p.username ?? ""),
+        )
+      : rows
   )
     .map((p) => p.ref)
     .join(" ")
@@ -224,10 +233,11 @@ function useColumns(kinded: boolean): Column<Listed>[] {
 }
 
 function Name({ person: p }: { person: Listed }) {
-  const m = useMessages(peopleMessages)
   const name = usePersonName()
   const shown = name(p.ref, p.displayName ?? p.name)
   const raw = p.name?.trim()
+  const detail = usePeople((s) => s.details[p.ref])
+  const bot = detail?.state === "ready" && allBots(detail.person.identities)
   return (
     <button
       type="button"
@@ -249,8 +259,27 @@ function Name({ person: p }: { person: Listed }) {
       >
         {shown}
       </span>
-      {p.bot && <Pill>{m.bot}</Pill>}
+      {bot && <BotMark />}
     </button>
+  )
+}
+
+/** At the end of a bot's name: the word for screen readers, and on hover. */
+function BotMark() {
+  const m = useMessages(peopleMessages)
+  const tip = useTip({ delay: 300 })
+  const anchor = useRef<HTMLSpanElement>(null)
+  const id = useId()
+  return (
+    <span ref={anchor} className="inline-flex shrink-0" {...tip.hover}>
+      <Bot className="size-4 text-ink-dim" aria-hidden />
+      <span className="sr-only">{m.botMark}</span>
+      {tip.open && (
+        <TipPanel id={id} anchor={anchor} open className="w-auto px-2 py-1">
+          {m.botMark}
+        </TipPanel>
+      )}
+    </span>
   )
 }
 

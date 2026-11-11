@@ -18,7 +18,7 @@ export function usePersonName() {
  * A person's phone, address or handle for a name. Kept out of `useKnownName`: comparing two people by a phone shown as
  * their name would call them namesakes.
  */
-function useIdentifier() {
+export function useIdentifier() {
   const people = usePeople((s) => s.people)
   const details = usePeople((s) => s.details)
   return (ref: string): string | null => {
