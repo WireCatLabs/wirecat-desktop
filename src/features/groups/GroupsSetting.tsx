@@ -194,7 +194,7 @@ function GroupsBoard({ groups, unresolved }: { groups: Group[]; unresolved: stri
                   {g.members.some((x) => x.scope !== null) && ` ${m.scopeNote}`}
                 </p>
               )}
-              <ul className="flex flex-1 flex-col">
+              <ul data-scroller className="scroll-quiet flex max-h-[22rem] min-h-0 flex-1 flex-col overflow-y-auto">
                 {g.members.map((x) => (
                   <li key={x.source} className="contents">
                     <GroupCard

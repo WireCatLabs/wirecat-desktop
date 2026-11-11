@@ -2,7 +2,7 @@ import type { Messages } from "@/i18n"
 
 const en = {
   heading: "Reading for facts",
-  help: "When you add a source to memory, WireCat can suggest facts from it. Choose what reads the text. Nothing reads it until you choose.",
+  help: "When you add a source to memory, WireCat can suggest facts from it. Choose who reads the text. Nobody reads it until you choose.",
   names: {
     "ai-model": "AI model",
     "claude-code": "Claude Code",
@@ -20,6 +20,8 @@ const en = {
   stays: "The text does not leave this computer.",
   readsFiles: (reader: string) => `${reader} can also open files on this computer while it reads.`,
   use: "Use this reader",
+  pick: "Choose who reads",
+  recommendedName: (name: string) => `${name} (recommended)`,
   looking: "Looking for readers on this computer…",
   failed: "Could not list the readers:",
   tooOld: "Memo on this computer cannot read sources for facts yet. Update it on the Tools page.",
@@ -36,7 +38,7 @@ const en = {
 
 const ru: typeof en = {
   heading: "Чтение фактов",
-  help: "Когда вы добавляете источник в память, WireCat может предложить из него факты. Выберите, что читает текст. Пока вы не выберете, текст никто не читает.",
+  help: "Когда вы добавляете источник в память, WireCat может предложить из него факты. Выберите, кто читает текст. Пока вы не выберете, текст никто не читает.",
   names: {
     "ai-model": "Модель ИИ",
     "claude-code": "Claude Code",
@@ -54,6 +56,8 @@ const ru: typeof en = {
   stays: "Текст не покидает этот компьютер.",
   readsFiles: (reader: string) => `Пока ${reader} читает, он может открывать и файлы на этом компьютере.`,
   use: "Использовать этого читателя",
+  pick: "Выберите, кто читает",
+  recommendedName: (name: string) => `${name} (рекомендуем)`,
   looking: "Ищем читателей на этом компьютере…",
   failed: "Не удалось получить список читателей:",
   tooOld: "Memo на этом компьютере пока не умеет читать источники ради фактов. Обновите его на странице Инструменты.",
@@ -70,7 +74,7 @@ const ru: typeof en = {
 
 const es: typeof en = {
   heading: "Lectura de hechos",
-  help: "Cuando añades una fuente a la memoria, WireCat puede proponer hechos de ella. Elige qué lee el texto. Nada lo lee hasta que elijas.",
+  help: "Cuando añades una fuente a la memoria, WireCat puede proponer hechos de ella. Elige quién lee el texto. Nadie lo lee hasta que elijas.",
   names: {
     "ai-model": "Modelo de IA",
     "claude-code": "Claude Code",
@@ -88,6 +92,8 @@ const es: typeof en = {
   stays: "El texto no sale de este ordenador.",
   readsFiles: (reader: string) => `Mientras lee, ${reader} también puede abrir archivos de este ordenador.`,
   use: "Usar este lector",
+  pick: "Elige quién lee",
+  recommendedName: (name: string) => `${name} (recomendado)`,
   looking: "Buscando lectores en este ordenador…",
   failed: "No se pudo obtener la lista de lectores:",
   tooOld: "Memo en este ordenador aún no puede leer fuentes para sacar hechos. Actualízalo en la página Herramientas.",

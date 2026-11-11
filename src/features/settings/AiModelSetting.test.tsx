@@ -36,6 +36,12 @@ const checked = (reason: string, over: Partial<AiChecked> = {}): AiChecked => ({
   ...over,
 })
 
+const NO_MODEL = "No model (use your agent)"
+const choose = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+  await user.click(await screen.findByRole("combobox", { name: "Provider" }))
+  await user.click(screen.getByRole("option", { name }))
+}
+
 describe("AI model", () => {
   beforeEach(() => {
     useAiModel.setState(useAiModel.getInitialState(), true)
@@ -52,8 +58,8 @@ describe("AI model", () => {
     const save = await screen.findByRole("button", { name: "Save" })
     expect(save).toBeEnabled()
     await user.click(save)
-    expect(screen.getByText("Choose a provider first.")).toBeInTheDocument()
-    await user.click(screen.getByRole("radio", { name: "Anthropic (Claude)" }))
+    expect(screen.getByText(/Nothing is changed yet/)).toBeInTheDocument()
+    await choose(user, "Anthropic (Claude)")
     await user.click(save)
     expect(screen.getByText("Type the model name first.")).toBeInTheDocument()
     expect(screen.getByLabelText("Model")).toHaveFocus()
@@ -65,7 +71,7 @@ describe("AI model", () => {
     const set = vi.spyOn(platform, "aiModelSet").mockResolvedValue(ANTHROPIC)
     const user = userEvent.setup()
     render(<AiModelSetting />)
-    await user.click(await screen.findByRole("radio", { name: "Anthropic (Claude)" }))
+    await choose(user, "Anthropic (Claude)")
     expect(screen.queryByLabelText("Address (base URL)")).not.toBeInTheDocument()
     const key = screen.getByLabelText("API key")
     await user.type(key, "sk-ant-test-123")
@@ -119,7 +125,7 @@ describe("AI model", () => {
     const set = vi.spyOn(platform, "aiModelSet").mockResolvedValue({ ...ANTHROPIC, provider: "ollama", model: "llava" })
     const user = userEvent.setup()
     render(<AiModelSetting />)
-    await user.click(await screen.findByRole("radio", { name: "Ollama on this computer (beta)" }))
+    await choose(user, "Ollama on this computer (beta)")
     expect(screen.queryByLabelText("API key")).not.toBeInTheDocument()
     expect(screen.queryByLabelText("Address (base URL)")).not.toBeInTheDocument()
     expect(screen.getByText(/Nothing leaves this computer/)).toBeInTheDocument()
@@ -194,11 +200,11 @@ describe("AI model", () => {
     const off = vi.spyOn(platform, "aiModelOff").mockResolvedValue({ changed: true, keyKept: true })
     const user = userEvent.setup()
     render(<AiModelSetting />)
-    await user.click(await screen.findByRole("button", { name: "Turn off" }))
+    await choose(user, NO_MODEL)
+    await user.click(screen.getByRole("button", { name: "Save" }))
     expect(off).toHaveBeenCalledTimes(1)
-    await waitFor(() => expect(screen.queryByRole("button", { name: "Turn off" })).not.toBeInTheDocument())
-    expect(show).toHaveBeenCalledTimes(2)
-    expect(screen.getByText(/No AI model is set/)).toBeInTheDocument()
+    await waitFor(() => expect(show).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText(/leaves this work to your agent/)).toBeInTheDocument()
   })
 
   it("names the action that failed, and words a refusal memo did not explain", async () => {
@@ -208,8 +214,10 @@ describe("AI model", () => {
     const set = vi.spyOn(platform, "aiModelSet").mockRejectedValue(new Error("memo.refused"))
     const user = userEvent.setup()
     render(<AiModelSetting />)
-    await user.click(await screen.findByRole("button", { name: "Turn off" }))
+    await choose(user, NO_MODEL)
+    await user.click(screen.getByRole("button", { name: "Save" }))
     expect(await screen.findByRole("alert")).toHaveTextContent("It was not turned off: another run holds the store")
+    await choose(user, "Anthropic (Claude)")
     await user.click(screen.getByRole("button", { name: "Check" }))
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("The check could not run: the process was killed"),
@@ -227,7 +235,7 @@ describe("AI model", () => {
     const user = userEvent.setup()
     render(<AiModelSetting />)
     await user.type(await screen.findByLabelText("API key"), "sk-ant-secret")
-    await user.click(screen.getByRole("radio", { name: "Ollama on this computer (beta)" }))
+    await choose(user, "Ollama on this computer (beta)")
     expect(screen.getByLabelText("Model")).toHaveValue("")
     await user.type(screen.getByLabelText("Model"), "llava")
     await user.click(screen.getByRole("button", { name: "Save" }))
@@ -239,9 +247,10 @@ describe("AI model", () => {
     vi.spyOn(platform, "aiModelOff").mockResolvedValue({ changed: true, keyKept: true })
     const user = userEvent.setup()
     render(<AiModelSetting />)
-    await user.click(await screen.findByRole("button", { name: "Turn off" }))
+    await choose(user, NO_MODEL)
+    await user.click(screen.getByRole("button", { name: "Save" }))
     expect(await screen.findByText(/The AI model is off/)).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Turn off" })).not.toBeInTheDocument()
+    expect(screen.getByRole("combobox", { name: "Provider" })).toHaveTextContent(NO_MODEL)
   })
 
   it("does not word what memo said about a provider, which may quote a key", async () => {
@@ -258,15 +267,67 @@ describe("AI model", () => {
     vi.spyOn(platform, "aiModelOff").mockResolvedValue({ changed: true, keyKept: true })
     const user = userEvent.setup()
     render(<AiModelSetting />)
-    await user.click(await screen.findByRole("button", { name: "Turn off" }))
+    await choose(user, NO_MODEL)
+    await user.click(screen.getByRole("button", { name: "Save" }))
     expect(await screen.findByText(/The AI model is off. Your key stays where it is/)).toBeInTheDocument()
+  })
+
+  it("offers Ollama's models in the list and still takes a name that is not on it", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(NONE)
+    const list = vi.spyOn(platform, "aiModelList").mockResolvedValue(["llava:latest", "qwen2.5vl:7b"])
+    const set = vi.spyOn(platform, "aiModelSet").mockResolvedValue({ ...ANTHROPIC, provider: "ollama", model: "x" })
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await choose(user, "Ollama on this computer (beta)")
+    expect(list).toHaveBeenCalledWith("ollama")
+    expect(await screen.findByText(/Pick from the list/)).toBeInTheDocument()
+    await user.click(screen.getByLabelText("Model"))
+    await user.click(screen.getByRole("option", { name: "llava:latest" }))
+    expect(screen.getByLabelText("Model")).toHaveValue("llava:latest")
+    await user.clear(screen.getByLabelText("Model"))
+    await user.type(screen.getByLabelText("Model"), "my-own")
+    await user.click(screen.getByRole("button", { name: "Save" }))
+    expect(set).toHaveBeenCalledWith(expect.objectContaining({ provider: "ollama", model: "my-own" }))
+  })
+
+  it("says why there is no list and keeps the field working", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue(NONE)
+    const list = vi.spyOn(platform, "aiModelList").mockRejectedValue(new Error("ai.list-unreachable"))
+    const user = userEvent.setup()
+    render(<AiModelSetting />)
+    await choose(user, "Anthropic (Claude)")
+    expect(list).not.toHaveBeenCalled()
+    expect(screen.getByText(/shows its list of models only with your key/)).toBeInTheDocument()
+    await choose(user, "Ollama on this computer (beta)")
+    expect(await screen.findByText(/it is not running/)).toBeInTheDocument()
+    await user.type(screen.getByLabelText("Model"), "llava")
+    expect(screen.getByLabelText("Model")).toHaveValue("llava")
+  })
+
+  it("says what reads pictures now and that a change touches only new ones", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue({
+      ...ANTHROPIC,
+      provider: "ollama",
+      model: "llava",
+      origin: "http://127.0.0.1:11434",
+    })
+    render(<AiModelSetting />)
+    expect(await screen.findByText("Now llava, a model on this computer, reads pictures.")).toBeInTheDocument()
+    expect(screen.getByText(/usually slower and less accurate/)).toBeInTheDocument()
+    expect(screen.getByText(/nothing is deleted and nothing is read again/)).toBeInTheDocument()
+  })
+
+  it("does not say a model reads pictures when its key is missing", async () => {
+    vi.spyOn(platform, "aiModelShow").mockResolvedValue({ ...ANTHROPIC, key: { stored: false, source: null } })
+    render(<AiModelSetting />)
+    expect(await screen.findByText(/Now no model reads pictures/)).toBeInTheDocument()
   })
 
   it("asks for a memo update when memo has no models ai", async () => {
     vi.spyOn(platform, "aiModelShow").mockRejectedValue(new Error("error: unknown command 'ai'"))
     render(<AiModelSetting />)
     expect(await screen.findByText(/cannot use an AI model yet/)).toBeInTheDocument()
-    expect(screen.queryByRole("radio")).not.toBeInTheDocument()
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument()
   })
 
   it("is not shown, and asks memo nothing, when memo is not installed", () => {
@@ -299,6 +360,11 @@ describe("AI model texts", () => {
       ...CHECK_REASONS.map((r) => m.checkReasons[r]?.(said) ?? ""),
       m.imagesConsent("h", true),
       m.imagesConsent("h", false),
+      m.imagesNow(null, false),
+      m.imagesNow("m", true),
+      m.imagesNow("m", false),
+      m.listNeedsKey("c"),
+      m.listDocs("c"),
     ]
     for (const line of lines) expect(line).not.toMatch(/[;—–]/)
   })

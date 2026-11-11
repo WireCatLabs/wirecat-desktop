@@ -206,6 +206,11 @@ pub async fn ai_model_check() -> Result<ai_model::AiChecked, AppError> {
     crate::log::command("ai_model_check", async move { attempt(ai_model::check).await }).await
 }
 
+#[tauri::command]
+pub async fn ai_model_list(source: String) -> Result<Vec<String>, AppError> {
+    crate::log::command("ai_model_list", async move { attempt(move || ai_model::list(&source)).await }).await
+}
+
 /// Only the file chosen in the system's file window is read, as `memory_source_add` does.
 #[tauri::command]
 pub async fn memory_file_preview(

@@ -145,7 +145,8 @@ src-tauri/src/
   ai_model.rs   Settings "AI model": memo's `models ai show|set|unset|check`, each with `--from-app`. `set` is one call: picture
                 consent is per call (`--allow-remote`), so an unticked box simply omits it. The key goes on stdin, and
                 memo's `ai.*` reasons come back as ids worded in `messages-ai-model.ts`. It needs a memo that has
-                `models ai`: an older one answers like an unknown command and the section asks for an update.
+                `models ai`: an older one answers like an unknown command and the section asks for an update. The model
+                dropdown's lists that need no key (Ollama's, OpenRouter's) come from fixed addresses here.
   task_board.rs the Tasks page: memo's project tasks, counts, history and every edit, each with the revision it read.
   crm_board.rs  the Clients page: memo's deals and leads by the owner's base stages, the cards of every pipeline, and
                 moving the owner's own through `<kind>s move`. A CRM's copy is changed by its own CLI (`writer`); a memo

@@ -15,6 +15,14 @@ const CHECK: Duration = Duration::from_mins(2);
 const PROVIDERS: [&str; 3] = ["anthropic", "openai", "ollama"];
 const MAX_KEY: usize = 400;
 const WORDED: [&str; 1] = ["ai."];
+const OLLAMA_TAGS: &str = "http://127.0.0.1:11434/api/tags";
+const OPENROUTER_MODELS: &str = "https://openrouter.ai/api/v1/models";
+const LIST: Duration = Duration::from_secs(10);
+/// The whole of the bigger list was about 840 KB on 2026-11-11.
+const MAX_LIST_BYTES: u64 = 8 * 1024 * 1024;
+const MAX_MODELS: usize = 2000;
+const MAX_MODEL_NAME: usize = 200;
+const LIST_FAILED: &str = "ai.list-unreachable";
 
 /// memo's message can quote what the provider answered, including part of a key. Only a reason the page words, or
 /// commander's refusal of a command an older memo lacks, goes on; anything else comes back as `memo.refused`.
@@ -179,6 +187,42 @@ pub fn check() -> Result<AiChecked, String> {
     })
 }
 
+fn model_names(v: &Value, array: &str, field: &str) -> Vec<String> {
+    let mut names: Vec<String> = v[array]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|m| text(m, field))
+        .filter(|n| n.len() <= MAX_MODEL_NAME && !n.chars().any(char::is_control))
+        .take(MAX_MODELS)
+        .collect();
+    names.sort();
+    names.dedup();
+    names
+}
+
+/// The lists that need no key, from fixed addresses. The official providers' lists need the key, which only memo
+/// reads, so they wait for a `models ai list` in memo.
+pub fn list(source: &str) -> Result<Vec<String>, String> {
+    let (url, array, field) = match source {
+        "ollama" => (OLLAMA_TAGS, "models", "name"),
+        "openrouter" => (OPENROUTER_MODELS, "data", "id"),
+        _ => return Err(format!("not a model list: {source}")),
+    };
+    let agent: ureq::Agent = ureq::Agent::config_builder().timeout_global(Some(LIST)).max_redirects(0).build().into();
+    let body = agent
+        .get(url)
+        .call()
+        .map_err(|_| LIST_FAILED.to_string())?
+        .body_mut()
+        .with_config()
+        .limit(MAX_LIST_BYTES)
+        .read_to_string()
+        .map_err(|_| LIST_FAILED.to_string())?;
+    let value: Value = serde_json::from_str(&body).map_err(|_| LIST_FAILED.to_string())?;
+    Ok(model_names(&value, array, field))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -298,6 +342,19 @@ mod tests {
         assert_eq!(guarded("ai.no-credit".into()), "ai.no-credit");
         assert_eq!(guarded("error: unknown command 'ai'".into()), "error: unknown command 'ai'");
         assert_eq!(guarded("Incorrect API key provided: sk-proj-****abcd".into()), crate::memory_add::REFUSED);
+    }
+
+    #[test]
+    fn a_model_list_keeps_only_clean_names_in_order() {
+        let v = json!({"data": [{"id": "b/two"}, {"id": "a/one"}, {"id": "a/one"}, {"id": "bad\nname"},
+            {"id": "x".repeat(MAX_MODEL_NAME + 1)}, {"name": "no id"}]});
+        assert_eq!(model_names(&v, "data", "id"), ["a/one", "b/two"]);
+        assert_eq!(model_names(&json!({"error": "nope"}), "data", "id"), Vec::<String>::new());
+    }
+
+    #[test]
+    fn only_the_two_fixed_lists_can_be_asked_for() {
+        assert_eq!(list("https://example.org").unwrap_err(), "not a model list: https://example.org");
     }
 
     #[test]

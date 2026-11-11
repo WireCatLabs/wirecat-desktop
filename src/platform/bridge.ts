@@ -17,7 +17,7 @@ import {
   SkillWrittenSchema,
   TerminalReachSchema,
 } from "./agents-schemas"
-import { AiCheckedSchema, AiModelSchema, AiOffSchema } from "./ai-model-schemas"
+import { AiCheckedSchema, AiModelListSchema, AiModelSchema, AiOffSchema } from "./ai-model-schemas"
 import { AggregateSchema, MessageCountsSchema } from "./analytics-schemas"
 import { StoreCheckSchema, StoreCompatSchema, StoreInfoSchema, TableListSchema } from "./archive-schemas"
 import type { BackupEvent } from "./backup-schemas"
@@ -299,6 +299,7 @@ function createTauri(): Platform {
     aiModelSet: (choice) => call(AiModelSchema, "ai_model_set", { choice }),
     aiModelOff: () => call(AiOffSchema, "ai_model_off"),
     aiModelCheck: () => call(AiCheckedSchema, "ai_model_check"),
+    aiModelList: (source) => call(AiModelListSchema, "ai_model_list", { source }),
     taskList: (query) => call(TaskReadSchema, "task_list", { query }),
     taskChats: () => call(ChatTasksSchema, "task_chats"),
     taskCounts: (query) => call(TaskCountsSchema, "task_counts", { query }),

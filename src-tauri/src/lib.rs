@@ -379,6 +379,7 @@ pub fn run() {
             commands::memory::ai_model_set,
             commands::memory::ai_model_off,
             commands::memory::ai_model_check,
+            commands::memory::ai_model_list,
             commands::search::list_runs,
             commands::search::search_store,
             commands::search::message_stats,

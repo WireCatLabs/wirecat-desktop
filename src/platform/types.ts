@@ -444,6 +444,8 @@ export type Platform = {
   aiModelOff(): Promise<AiOff>
   /** One tiny request to the saved model, which costs a fraction of a cent. */
   aiModelCheck(): Promise<AiChecked>
+  /** The names a provider lists without a key. */
+  aiModelList(source: "ollama" | "openrouter"): Promise<string[]>
   /** memo's project tasks matching the owner's search, highest priority first; "old" below the catalog's minimum. */
   taskList(query: string): Promise<TaskRead>
   /** The open tasks memo found in the owner's chats, mail and notes, of every account; memo cannot filter them more. */
