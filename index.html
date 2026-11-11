@@ -18,6 +18,7 @@
     </script>
     <!-- The app's stylesheet arrives with its scripts, so the boot screen carries its own few colours (index.css). -->
     <!-- Sizes in px: the app sets the root font size by window width when its stylesheet loads, and rem would shrink. -->
+    <!-- The system font only: Onest arrives with the app's stylesheet, and the slogan would change size when it swaps in. -->
     <style>
       html { background: #f1efed; }
       html[data-theme="dark"] { background: #171614; }
@@ -32,7 +33,7 @@
         display: grid;
         place-items: center;
         background: #f1efed;
-        font-family: "Onest Variable", system-ui, sans-serif;
+        font-family: system-ui, sans-serif;
         transition: opacity 260ms cubic-bezier(0.25, 1, 0.5, 1);
       }
       html[data-theme="dark"] #boot {
@@ -47,7 +48,7 @@
       #boot .boot-logo { display: flex; align-items: center; gap: 14px; height: 51px; color: var(--boot-ink); }
       #boot .boot-logo svg { height: 100%; width: auto; }
       #boot .boot-logo svg + svg { height: 58%; }
-      #boot .boot-slogan { margin: 0; font-size: 17px; color: var(--boot-soft); text-align: center; }
+      #boot .boot-slogan { margin: 0; font-size: 17px; line-height: 24px; color: var(--boot-soft); text-align: center; }
       #boot .boot-bar { width: 144px; height: 3px; border-radius: 3px; overflow: hidden; background: var(--boot-track); }
       #boot .boot-bar::after {
         content: "";
@@ -83,7 +84,7 @@
       // The i18n catalog is not loaded yet; the language choice is read the way src/i18n does it.
       try {
         const slogans = {
-          ru: "Ваш ИИ-агент, подключённый к вашим сообщениям и файлам.",
+          ru: "Ваш ИИ-агент, подключенный к вашим сообщениям и файлам.",
           es: "Tu agente de IA, conectado a tus mensajes y archivos.",
         }
         const saved = JSON.parse(localStorage.getItem("wirecat.language") || "{}").state?.choice
