@@ -239,7 +239,7 @@ export function showcaseMock(base: Platform, installed: ReadonlyMap<string, stri
       const tasks = answer.tasks.map((t) => (late(t.dueAt, t.closedAt) ? { ...t, dueAt: soon } : t))
       return localise({ ...answer, tasks })
     },
-    taskShow: async (key) => localise(await base.taskShow(key)),
+    taskShow: async (key, account) => localise(await base.taskShow(key, account)),
     taskCounts: async (query) => localise(await base.taskCounts(query)),
     peopleNamed: async (refs) => localise(await base.peopleNamed(refs)),
     peopleSearch: async (query) => localise(await base.peopleSearch(query)),

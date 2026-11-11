@@ -283,7 +283,7 @@ const en: Words = {
   agentTip:
     "The AI agent that should take this task, besides the assignee, written as its name, such as hermes. That agent sees the task as its own.",
   foundOnly:
-    "Memo found this task in your messages, so it is not in a project. For such a task Memo keeps only the title, notes, due date and assignee, and three statuses: Open, Done and Dismissed. Priority, type, AI agent and project are kept for project tasks only, and Memo cannot move a task from messages into a project yet.",
+    "Memo found this task in your messages, so it is not in a project. For such a task Memo keeps only the title, notes, due date and assignee, and three statuses: Open, Done and Dismissed. Priority, type, AI agent and project are kept for project tasks only, and Memo cannot move a task from messages into a project yet. To give it any of them, make a project task with New task and close this one as Done.",
   noProject: "No project",
   sourceUnknown: "Memo did not keep the message it found this task in.",
   sourceNotMessage: "Memo found this task in a note or a document, not in a chat.",
@@ -305,7 +305,7 @@ const en: Words = {
   openMail: "Open the email",
   saveBeforeOpen: "Save or cancel your changes to the task first.",
   foundHidden: (n) =>
-    `${formatNumber(n, "en")} ${n === 1 ? "task" : "tasks"} from messages are not shown: Memo applies search and filters to project tasks only. Clear the search to see them.`,
+    `${plural("en", n, { one: "# task from messages is", other: "# tasks from messages are" })} not shown: Memo applies search and filters to project tasks only. Clear the search to see them.`,
   agentNone: "No agent",
   waitsHeading: "Waits for",
   nothingBlocks: "Nothing. It can start now.",
@@ -507,7 +507,7 @@ const ru: Words = {
   agentTip:
     "ИИ-агент, который должен взять задачу, помимо исполнителя. Пишется именем, например hermes. Этот агент видит задачу как свою.",
   foundOnly:
-    "Memo нашел эту задачу в ваших сообщениях, поэтому она не входит в проект. У таких задач Memo хранит только название, заметки, срок и исполнителя и три статуса: «Новые», «Готово» и «Отклонено». Приоритет, тип, ИИ-агент и проект есть только у задач проекта, а перенести задачу из сообщений в проект Memo пока не умеет.",
+    "Memo нашел эту задачу в ваших сообщениях, поэтому она не входит в проект. У таких задач Memo хранит только название, заметки, срок и исполнителя и три статуса: «Новые», «Готово» и «Отклонено». Приоритет, тип, ИИ-агент и проект есть только у задач проекта, а перенести задачу из сообщений в проект Memo пока не умеет. Если это нужно, создайте задачу проекта кнопкой «Новая задача» и закройте эту как «Готово».",
   noProject: "Без проекта",
   sourceUnknown: "Memo не сохранил, в каком сообщении нашел эту задачу.",
   sourceNotMessage: "Memo нашел эту задачу в заметке или документе, а не в чате.",
@@ -732,7 +732,7 @@ const es: Words = {
   agentTip:
     "El agente de IA que debe tomar esta tarea, además del responsable, escrito por su nombre, como hermes. Ese agente la ve como suya.",
   foundOnly:
-    "Memo encontró esta tarea en tus mensajes, así que no está en un proyecto. De estas tareas Memo guarda solo el título, las notas, la fecha límite y el responsable, y tres estados: Abiertas, Hechas y Descartadas. La prioridad, el tipo, el agente de IA y el proyecto son solo de las tareas de un proyecto, y Memo aún no puede mover una tarea de los mensajes a un proyecto.",
+    "Memo encontró esta tarea en tus mensajes, así que no está en un proyecto. De estas tareas Memo guarda solo el título, las notas, la fecha límite y el responsable, y tres estados: Abiertas, Hechas y Descartadas. La prioridad, el tipo, el agente de IA y el proyecto son solo de las tareas de un proyecto, y Memo aún no puede mover una tarea de los mensajes a un proyecto. Si lo necesitas, crea una tarea de proyecto con Nueva tarea y cierra esta como Hecha.",
   noProject: "Sin proyecto",
   sourceUnknown: "Memo no guardó el mensaje en el que encontró esta tarea.",
   sourceNotMessage: "Memo encontró esta tarea en una nota o un documento, no en un chat.",

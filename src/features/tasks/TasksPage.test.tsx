@@ -1,6 +1,7 @@
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
+import { useNav } from "@/shared/nav"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { personName } from "./parts"
 import { useSource } from "./source"
@@ -224,7 +225,9 @@ describe("Tasks", () => {
       .mockImplementation(async (_key, account) =>
         account === "telegram:1" ? { ...found, assignees: ["person:1"] } : Promise.reject(new Error("give --source")),
       )
-    vi.spyOn(platform, "taskHistory").mockResolvedValue([])
+    vi.spyOn(platform, "taskHistory").mockResolvedValue([
+      { at: found.createdAt, kind: "created", by: { ref: "bot:1", name: "rule", owner: false }, changes: [] },
+    ])
     vi.spyOn(platform, "taskComments").mockResolvedValue([])
     render(<TasksPage />)
     await loaded()
@@ -235,18 +238,26 @@ describe("Tasks", () => {
       expect(within(dialog).getByRole("combobox", { name: "Assignee of Q-9" })).toHaveTextContent("You"),
     )
     expect(dialog).toHaveTextContent("No project")
-    expect(dialog).not.toHaveTextContent("by rule")
+    expect(await within(dialog).findByText("Memo created it")).toBeInTheDocument()
+    expect(dialog).not.toHaveTextContent("rule")
     expect(within(dialog).getByText("Question")).toBeInTheDocument()
     const source = within(dialog).getByRole("region", { name: "Source" })
     expect(await within(source).findByText("Lease team")).toBeInTheDocument()
     expect(within(source).getByText("Ana Sample")).toBeInTheDocument()
     expect(source).toHaveTextContent("Answer it in the chat, then mark the task Done")
-    expect(within(source).getByRole("button", { name: "Open in the chat" })).toBeInTheDocument()
+    await user.type(within(dialog).getByRole("textbox", { name: "Title" }), "!")
+    await user.click(within(source).getByRole("button", { name: "Open in the chat" }))
+    expect(within(source).getByRole("alert")).toHaveTextContent("Save or cancel your changes to the task first.")
+    expect(useNav.getState().active).not.toBe("conversation")
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }))
+    await user.click(within(source).getByRole("button", { name: "Open in the chat" }))
+    expect(useNav.getState().active).toBe("conversation")
+    expect(useTasks.getState().open).toBeNull()
 
-    await user.click(screen.getByRole("button", { name: "Close" }))
+    useNav.getState().go("tasks")
     const counts = vi.spyOn(platform, "taskCounts")
-    await user.click(screen.getByRole("button", { name: "Only mine" }))
-    expect(await screen.findByText(/1 task from messages are not shown/)).toBeInTheDocument()
+    await user.click(await screen.findByRole("button", { name: "Only mine" }))
+    expect(await screen.findByText(/1 task from messages is not shown/)).toBeInTheDocument()
     await waitFor(() => expect(row("Q-9")).toBeNull())
     expect(counts).toHaveBeenCalledWith(expect.stringMatching(/assignee:"?person:1/))
   })

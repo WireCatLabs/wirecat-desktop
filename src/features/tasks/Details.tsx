@@ -36,8 +36,11 @@ function value(field: string, v: unknown, m: TaskWords, known: Known, lang: Lang
   return null
 }
 
+/** memo's rule that finds tasks in messages signs them "rule"; the owner knows it as Memo. */
+const named = (name: string | null | undefined) => (name === "rule" ? "Memo" : name)
+
 export function eventText(e: TaskEvent, m: TaskWords, known: Known, lang: Lang): string[] {
-  const who = e.by?.owner ? m.you : (e.by?.name ?? m.someone)
+  const who = e.by?.owner ? m.you : (named(e.by?.name) ?? m.someone)
   if (e.kind === "created" || e.changes.length === 0)
     return [e.kind === "created" ? m.created(who) : `${who}: ${e.kind}`]
   return e.changes.map((c) => {
@@ -68,7 +71,7 @@ const writesDone = (key: string) =>
 const isAgent = (by: TaskEvent["by"]) => Boolean(by && !by.owner && !by.ref?.startsWith("person:"))
 
 /** "You", a person's name, or the agent's. */
-export const creatorName = (c: Creator, m: TaskWords) => (c.owner ? m.you : (c.name ?? m.someone))
+export const creatorName = (c: Creator, m: TaskWords) => (c.owner ? m.you : (named(c.name) ?? m.someone))
 
 function Who({ by }: { by: TaskEvent["by"] }) {
   const m = useMessages(taskMessages)
@@ -198,18 +201,13 @@ export function Details({
   const moved = useTasks((s) => s.moved[task.key])
   const detach = useTasks((s) => s.detach[task.key])
   const made = history?.state === "ready" ? history.events.find((e) => e.kind === "created") : undefined
-  // memo names the rule that found a task as its maker ("rule"); the person who wrote is in the source message.
-  const maker = task.createdBy
-    ? fromMessages(task) && !task.createdBy.owner
-      ? "Memo"
-      : creatorName(task.createdBy, m)
-    : null
+  const maker = task.createdBy ? creatorName(task.createdBy, m) : null
   // memo keeps one notes field, so the thread has one entry: whoever last wrote it, or else whoever made the task.
   const wrote =
     history?.state === "ready"
       ? ([...history.events].reverse().find((e) => e.changes.some((c) => c.field === "description")) ?? made)
       : undefined
-  const writer = wrote?.by ? (wrote.by.owner ? m.you : (wrote.by.name ?? m.someone)) : null
+  const writer = wrote?.by ? (wrote.by.owner ? m.you : (named(wrote.by.name) ?? m.someone)) : null
   const holdsUp = all.filter((t) => !closed(t.state) && t.blockedBy.some((b) => b.key === task.key))
 
   return (
