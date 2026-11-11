@@ -100,7 +100,8 @@ export function Details({ entry }: { entry: MemoryEntry }) {
       {entry.findings ? (
         <div className="flex min-w-0 flex-col gap-[1.2rem]">
           <Findings entry={entry} />
-          <Sources entry={entry} />
+          {/* memo reads sources back for an evidence batch only; a mail finding's cited emails open beside it. */}
+          {entry.kind !== "mail_findings" && <Sources entry={entry} />}
         </div>
       ) : entry.type === "action" ? (
         <ActionFacts entry={entry} m={m} />

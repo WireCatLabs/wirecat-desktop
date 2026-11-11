@@ -200,6 +200,10 @@ pub(crate) fn strings(v: &Value) -> Vec<String> {
 /// Memo stages an agent's cited facts and follow-ups as an action of this kind, decided with the fingerprint
 /// `actions show` gives.
 const FINDINGS: &str = "evidence_findings";
+/// What an agent read in new mail: decided finding by finding like an evidence batch, with no fingerprint required.
+const MAIL_FINDINGS: &str = "mail_findings";
+/// The batches the owner decides finding by finding: `actions confirm` with no finding named accepts them all.
+const BATCHES: [&str; 2] = [FINDINGS, MAIL_FINDINGS];
 /// A source review is shown as a marker on the memory or fact it is about, and decided there, never as an action:
 /// memo refuses `actions confirm` on it.
 pub(crate) const SOURCE_REVIEW: &str = "memory_source_review";
@@ -208,7 +212,7 @@ pub(crate) const SOURCE_REVIEW: &str = "memory_source_review";
 const NOT_ACTIONS: [&str; 4] = [SOURCE_REVIEW, "identity_link", "identity_split", "relationship"];
 /// The kinds the page has words for (`verbs` and `kinds` in its messages) or memo writes a whole line for.
 const DESCRIBED: [&str; 10] =
-    ["reply", "send", "ban", "mute", "pin", "invite", "create_task", FINDINGS, "mail_findings", "meeting_findings"];
+    ["reply", "send", "ban", "mute", "pin", "invite", "create_task", FINDINGS, MAIL_FINDINGS, "meeting_findings"];
 
 #[derive(Serialize, Debug, PartialEq)]
 pub struct Counts {
@@ -248,7 +252,7 @@ fn findings_of(v: &Value) -> Vec<Finding> {
                         outcome: decided.and_then(|i| text(i, "status")),
                         created: decided.and_then(|i| text_field(i, "reference")),
                         kind: text(f, "kind")?,
-                        text: text(f, "statement").or_else(|| text(f, "title"))?,
+                        text: finding_text(f)?,
                         reason: text(f, "reason"),
                         evidence: f["evidence"]
                             .as_array()
@@ -260,6 +264,48 @@ fn findings_of(v: &Value) -> Vec<Finding> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+/// A finding's one line. Evidence batches hold facts and tasks; a mail batch also invoices, payments, orders, contacts,
+/// links, memories and task changes, and a finding left without a line would be missing from what the owner ticks.
+fn finding_text(f: &Value) -> Option<String> {
+    // memo answers in snake_case; a payload it passes through unchanged may keep cli-core's camelCase.
+    let get = |snake: &str, camel: &str| text(f, snake).or_else(|| text(f, camel));
+    let join = |parts: &[Option<String>]| {
+        let line = parts.iter().flatten().cloned().collect::<Vec<_>>().join(" ");
+        (!line.is_empty()).then_some(line)
+    };
+    let kind = text(f, "kind")?;
+    match kind.as_str() {
+        "memory" => text(f, "body"),
+        "link" => Some(format!("{} → {}", text(f, "from")?, text(f, "to")?)),
+        "new_contact" => {
+            let address = text(f, "address")?;
+            Some(text(f, "name").map_or(address.clone(), |name| format!("{name} <{address}>")))
+        }
+        "task_update" => join(&[text(f, "task"), get("due_at", "dueAt").or_else(|| text(f, "detail"))]),
+        "invoice" => join(&[
+            text(f, "number"),
+            get("counterparty_name", "counterpartyName").or_else(|| text(f, "counterparty")),
+            text(f, "total"),
+            text(f, "currency"),
+            get("due_date", "dueDate"),
+        ]),
+        "payment" => join(&[
+            get("payee_name", "payeeName").or_else(|| get("payer_name", "payerName")),
+            text(f, "amount"),
+            text(f, "currency"),
+            text(f, "date"),
+        ]),
+        "order" | "order_update" => join(&[
+            get("supplier_name", "supplierName"),
+            text(f, "number"),
+            text(f, "total"),
+            text(f, "currency"),
+            text(f, "date").or_else(|| get("order_date", "orderDate")),
+        ]),
+        _ => text(f, "statement").or_else(|| text(f, "title")),
+    }
 }
 
 pub(crate) fn text(v: &Value, key: &str) -> Option<String> {
@@ -323,7 +369,7 @@ pub(crate) fn action(v: &Value) -> Option<Entry> {
     if !DESCRIBED.contains(&kind.as_str()) && text(v, "text").is_none() {
         return None;
     }
-    let batch = kind == FINDINGS;
+    let batch = BATCHES.contains(&kind.as_str());
     Some(Entry {
         reference: format!("action:{}", text(v, "id")?),
         record: "action",
@@ -633,7 +679,7 @@ pub(crate) fn answer(out: &run::Output) -> Result<Value, String> {
         // `review confirm|reject` exits 2 when it refuses and prints its whole answer: the caller reads `refused`.
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
         // A meeting's findings can still change after the agent read them; memo's own words name its command.
-        Some(_) if reason == "evidence-findings.stale" => {
+        Some(_) if reason == "evidence-findings.stale" || reason == "mail-findings.stale" => {
             Err("These findings changed since the agent proposed them.".into())
         }
         // The page words these in the owner's language, so the reason goes back as it is.
@@ -835,7 +881,8 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     }
     let shown = call(&words(&["actions", "show", &r.memo()]))?;
     let item = body(&shown);
-    if text(item, "kind").as_deref() != Some(FINDINGS) {
+    let kind = text(item, "kind");
+    if !kind.as_deref().is_some_and(|k| BATCHES.contains(&k)) {
         return Ok(None);
     }
     let held: Vec<String> = findings_of(item).into_iter().map(|f| f.id).collect();
@@ -844,12 +891,19 @@ fn review_with(call: &Call, r: &Ref, accept: Option<&[String]>) -> Result<Option
     if accept.iter().any(|id| !held.contains(id) || plain(id).is_none()) {
         return Err("Pick only findings this batch holds.".into());
     }
-    let fingerprint = text_field(item, "fingerprint").ok_or("Memo did not give these findings' fingerprint")?;
+    // memo gives no fingerprint for a mail batch and does not ask for one; an evidence batch cannot be decided without.
+    let fingerprint = text_field(item, "fingerprint");
+    if fingerprint.is_none() && kind.as_deref() == Some(FINDINGS) {
+        return Err("Memo did not give these findings' fingerprint".into());
+    }
     // `actions confirm` with no finding named creates them all, so nothing accepted is a rejection.
     let mut args: Vec<String> = vec!["actions".into(), if accept.is_empty() { "reject" } else { "confirm" }.into()];
     args.push(r.memo());
     args.extend(accept);
-    args.extend(["--fingerprint".into(), fingerprint, FROM_APP.into()]);
+    if let Some(fingerprint) = fingerprint {
+        args.extend(["--fingerprint".into(), fingerprint]);
+    }
+    args.push(FROM_APP.into());
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
     parse_entry(r, &call(&args)?).map(Some)
 }
@@ -1865,6 +1919,43 @@ mod tests {
         assert_eq!(seen.len(), 4, "the decision's answer is the batch as it now is");
         assert!(confirm_with(&call, &r, Some(&strs(&["--all"]))).is_err());
         assert!(confirm_with(&call, &r, None).is_err(), "a batch is never approved without naming its findings");
+    }
+
+    // A mail batch as memo 0.131.82's `actions show` answers it: no fingerprint, no counts, every kind of finding.
+    fn mail_batch(status: &str) -> Value {
+        json!({"id":"12","kind":"mail_findings","account":{"provider":"email","account":"owner@example.com"},
+            "target":null,"payload":{"schema_version":1,"key":"mail-triage:1","extractor":"mail-triage/1","findings":[
+                {"id":"t1","kind":"task","title":"Send the signed lease","reason":"Kai asked","evidence":[{"reference":"msg:email/owner%40example.com/5005/1"}]},
+                {"id":"i1","kind":"invoice","direction":"incoming","counterparty_name":"Acme Ltd","currency":"EUR",
+                 "total":"120.00","number":"INV-7","lines":[],"reason":"An invoice is attached","evidence":[{"reference":"msg:email/owner%40example.com/5006/1"}]},
+                {"id":"c1","kind":"new_contact","address":"lena@example.com","name":"Lena Park","reason":"Signs as Lena","evidence":[]},
+                {"id":"o1","kind":"order_update","supplierName":"Shop One","number":"A-1","status":"delivered","reason":"Delivered","evidence":[]}]},
+            "reason":null,"status":status,"proposed_by":{"type":"bot","id":"4","name":"mail-triage"},
+            "decided_by":null,"decided_at":null,"result":null,"created_at":"2026-11-10T12:19:00.000Z",
+            "summary":"Mail findings","verb":"mail_findings","target_name":null,"chat_name":null,"text":null,
+            "project":null,"project_name":null})
+    }
+
+    #[test]
+    fn a_mail_batch_lists_each_finding_and_approves_only_the_ticked_ones_without_a_fingerprint() {
+        let batch = action(&mail_batch("proposed")).unwrap();
+        let found = batch.findings.as_ref().unwrap();
+        assert_eq!(
+            found.iter().map(|f| f.text.as_str()).collect::<Vec<_>>(),
+            ["Send the signed lease", "INV-7 Acme Ltd 120.00 EUR", "Lena Park <lena@example.com>", "Shop One A-1"]
+        );
+        assert_eq!(found[0].evidence, ["msg:email/owner%40example.com/5005/1"]);
+        assert_eq!(batch.account.as_deref(), Some("email:owner@example.com"));
+
+        let fake = Fake::new(|a| Ok(json!({"item": mail_batch(if a[1] == "show" { "proposed" } else { "approved" })})));
+        let call = |a: &[String]| fake.call(a);
+        let r = Ref::parse("action:12").unwrap();
+        assert!(confirm_with(&call, &r, None).is_err(), "never every finding unseen");
+        confirm_with(&call, &r, Some(&strs(&["t1", "i1"]))).unwrap();
+        assert_eq!(
+            fake.seen().last().unwrap(),
+            &strs(&["actions", "confirm", "12", "t1", "i1", "--from-app", "--json", "--no-record"])
+        );
     }
 
     #[test]

@@ -156,7 +156,8 @@ const en = {
   closeTip: "Private chats and groups of fewer than 10 people. Channels and bigger groups are not counted.",
   closeTipOld: "Private chats only for now. Groups of fewer than 10 people are counted after the messengers update.",
   mineTip: "The messages you sent, in any chat.",
-  meetingsBehind: (date: string) => `Zoom last loaded on ${date}. Newer meetings are not here yet.`,
+  meetingsBehind: (date: string) =>
+    `Zoom last synced without errors on ${date}, so this week's meetings are not here yet. Sync Zoom and they appear.`,
   meetingsUntimed: (n: number) => `${n} on those days last week, length unknown.`,
   lastYearOnly: "For all time, the hours are from the last year.",
   whenNote: "Messages by weekday and hour, in your time zone.",
@@ -414,7 +415,8 @@ const ru: typeof en = {
   closeTip: "Личные чаты и группы меньше 10 человек. Каналы и большие группы не считаются.",
   closeTipOld: "Пока только личные чаты. Группы меньше 10 человек добавятся после обновления мессенджеров.",
   mineTip: "Сообщения, которые написали вы, в любых чатах.",
-  meetingsBehind: (date) => `Zoom загружен ${date}. Более новых встреч здесь пока нет.`,
+  meetingsBehind: (date) =>
+    `Последняя удачная синхронизация Zoom была ${date}, поэтому встреч этой недели здесь пока нет. Синхронизируйте Zoom, и они появятся.`,
   meetingsUntimed: (n) => `В те же дни прошлой недели встреч: ${n}, длительность неизвестна.`,
   lastYearOnly: "За всё время часы взяты за последний год.",
   whenNote: "Сообщения по дням недели и часам, в вашем часовом поясе.",
@@ -674,7 +676,8 @@ const es: typeof en = {
   closeTipOld:
     "Por ahora solo chats privados. Los grupos de menos de 10 personas se contarán cuando se actualicen las apps de mensajería.",
   mineTip: "Los mensajes que enviaste, en cualquier chat.",
-  meetingsBehind: (date) => `Zoom se cargó por última vez el ${date}. Aún no hay reuniones más nuevas.`,
+  meetingsBehind: (date) =>
+    `La última sincronización de Zoom sin errores fue el ${date}, así que las reuniones de esta semana aún no están aquí. Sincroniza Zoom y aparecerán.`,
   meetingsUntimed: (n) => `${n} en esos días de la semana pasada, sin duración conocida.`,
   lastYearOnly: "En todo el periodo, las horas son del último año.",
   whenNote: "Mensajes por día de la semana y hora, en tu zona horaria.",

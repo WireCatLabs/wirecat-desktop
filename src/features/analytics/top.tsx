@@ -122,7 +122,10 @@ export function WeekTiles() {
           .at(-1)
       : null
   // Zoom loaded before this week began: the store cannot know about this week's meetings, so 0 would be a claim.
-  const zoomBehind = Boolean(zoomAt) && todayIn(zone, new Date(zoomAt ?? 0)) < weekOf(today)
+  const zoomDay = zoomAt ? todayIn(zone, new Date(zoomAt)) : null
+  const zoomBehind = zoomDay !== null && zoomDay < weekOf(today)
+  // Last week's same days were loaded unless the last load came before they began.
+  const lastUnknown = zoomDay !== null && zoomDay < addDays(weekOf(today), -7)
   const zoomNote = zoomBehind
     ? m.meetingsBehind(formatDate(zoomAt ?? 0, { day: "numeric", month: "long" }, lang))
     : minutes.last === 0 && untimed.last > 0
@@ -143,7 +146,7 @@ export function WeekTiles() {
       <Tile
         label={m.weekMeetingHours}
         now={meetings.loading ? null : minutes.now}
-        last={meetings.loading || zoomBehind ? null : minutes.last}
+        last={meetings.loading || lastUnknown ? null : minutes.last}
         format={(n) => ((zoomBehind || !meetings.bodies.length) && n === 0 ? "—" : hours(n))}
         {...(zoomNote ? { note: zoomNote } : {})}
       />

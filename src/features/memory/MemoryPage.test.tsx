@@ -8,7 +8,7 @@ import { render, screen, waitFor, within } from "@/testing/render"
 import { useLogs } from "../logs/store"
 import { useTasks } from "../tasks/store"
 import { MEMORY_RUNS } from "./Activity"
-import { actionLine } from "./labels"
+import { actionLine, textOf } from "./labels"
 import { MemoryPage } from "./MemoryPage"
 import { memoryMessages } from "./messages"
 import { useMemory } from "./store"
@@ -22,11 +22,29 @@ const all = async (user: ReturnType<typeof userEvent.setup>) => {
 }
 
 describe("Memory", () => {
-  it("titles a mail findings batch in the page's own words, not memo's kind name", () => {
+  it("titles a mail findings batch by its mailbox and count, not memo's kind name", () => {
     const batch = { kind: "mail_findings", verb: "mail_findings", summary: "Mail findings", text: null } as MemoryEntry
     expect(actionLine(batch, memoryMessages.en, true)).toBe("Findings from mail")
+    const listed = { ...batch, type: "action", status: "proposed", account: "email:me@example.com", findings: [{}, {}] }
+    expect(textOf(listed as MemoryEntry, memoryMessages.en)).toBe(
+      "Found in the mail of me@example.com: 2 findings to review",
+    )
     const evidence = { kind: "evidence_findings", verb: "create", summary: "Create 3 facts", text: null } as MemoryEntry
     expect(actionLine(evidence, memoryMessages.en, false)).toBe("Create 3 facts")
+  })
+
+  it("opens a mail batch as each finding with its kind, the email it cites, and an Approve of only the ticked", async () => {
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    await user.click(screen.getByRole("button", { name: /Found in the mail of owner@example.com/ }))
+    const findings = await screen.findByText(/What an agent found in the mail of owner@example.com/)
+    const list = findings.parentElement as HTMLElement
+    expect(within(list).getByText("Invoice")).toBeInTheDocument()
+    expect(within(list).getByText("New contact")).toBeInTheDocument()
+    expect(within(list).getAllByRole("button", { name: "Open the email" }).length).toBeGreaterThan(0)
+    await user.click(within(list).getByRole("checkbox", { name: /Include: Anna Lind/ }))
+    expect(within(list).getByText(/Approve keeps the 2 ticked ones/)).toBeInTheDocument()
   })
 
   it("approves a waiting row without opening it, and the row turns green where it is", async () => {
