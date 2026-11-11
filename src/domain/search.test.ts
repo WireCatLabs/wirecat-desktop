@@ -123,30 +123,35 @@ describe("suggestSearch", () => {
       between: "b",
     },
     exampleWords: Object.fromEntries(
-      [
-        "photosWeek",
-        "filesMonth",
-        "links30",
-        "voice30",
-        "mailWeek",
-        "attachments30",
-        "invoice30",
-        "changed30",
-        "titled",
-        "words",
-      ].map((k) => [k, k]),
+      ["filesMonth", "links30", "attachments30", "changed30", "titled", "words"].map((k) => [k, k]),
     ) as Record<import("./search").ExampleId, string>,
     what: "messages",
   }
   const labels = (q: string, at = q.length, all = false) =>
     suggestSearch(q, at, { ...ctx, all }).items.map((i) => i.label)
 
-  it("offers the keys to search by in an empty box, then ready queries that replace the whole query", () => {
-    expect(labels("").slice(0, 4)).toEqual(["from:", "chat:", "date", "More fields…"])
-    expect(suggestSearch("", 0, ctx).items[0]).toMatchObject({ insert: "from:", open: true, note: "about from" })
-    const tried = suggestSearch("", 0, ctx).items.filter((i) => i.whole)
-    expect(tried[1]).toMatchObject({ label: "has:file date:[2026-10-01 TO *]", group: "Try" })
-    expect(labels("").some((l) => /^has:photo$|^has:file$/.test(l))).toBe(false)
+  it("leads an empty box with the most used keys, then ready queries, then the other fields once each", () => {
+    expect(labels("")).toEqual([
+      "from:",
+      "chat:",
+      "date",
+      "has:file date:[2026-10-01 TO *]",
+      "has:link date>=30d",
+      "More fields…",
+    ])
+    expect(suggestSearch("", 0, ctx).items[0]).toMatchObject({
+      insert: "from:",
+      open: true,
+      note: "about from",
+      group: "Try",
+    })
+    expect(suggestSearch("", 0, ctx).items[0]?.whole).toBeUndefined()
+    expect(suggestSearch("", 0, ctx).items[3]).toMatchObject({ whole: true, group: "Try" })
+  })
+
+  it("offers only the popular keys the tool has", () => {
+    const items = suggestSearch("", 0, { ...ctx, what: "mail" }).items.map((i) => i.label)
+    expect(items.slice(0, 3)).toEqual(["from:", "date", "has:attachment date>=30d"])
   })
 
   it("shows the first fields by group, the rest behind More fields, and finds a hidden one by name", () => {

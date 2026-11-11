@@ -16,6 +16,7 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldFocus } from "@/ui/field"
 import { Monogram } from "@/ui/Logo"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { Tab as TabButton, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 import { CategoriesEditor, CategoriesPlaceholder } from "./CategoriesEditor"
@@ -90,7 +91,7 @@ export function ConfigPage() {
 
       <div className="flex flex-col gap-4 border-t border-line pt-[1.5rem]">
         <div>
-          <h2 className="text-[1.05rem] font-semibold">{sm.tools}</h2>
+          <SectionTitle>{sm.tools}</SectionTitle>
           <p className="mt-1 max-w-[70ch] text-[0.95rem] text-ink-soft">
             {sm.toolsIntro(<code className="font-mono">config set</code>)}
           </p>

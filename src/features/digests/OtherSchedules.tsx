@@ -7,6 +7,8 @@ import { formatDate, type Lang, useLang, useMessages } from "@/i18n"
 import type { OtherSchedule } from "@/platform/bindings"
 import { type Column, DataTable } from "@/ui/DataTable"
 import { Lamp } from "@/ui/Lamp"
+import { LinkButton } from "@/ui/LinkButton"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { type ScheduleText, scheduleMessages } from "./messages-schedule"
 import { TONE } from "./ScheduleCard"
 
@@ -92,14 +94,9 @@ export function OtherSchedules({ others }: { others: OtherSchedule[] }) {
       cell: (o) => {
         const tool = setUpIn(o.name)
         return tool ? (
-          <button
-            type="button"
-            aria-label={m.changeMailAgent(tool.name)}
-            onClick={() => openToolAt(tool.id, "mailAgent")}
-            className="cursor-pointer text-left font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline"
-          >
+          <LinkButton aria-label={m.changeMailAgent(tool.name)} onClick={() => openToolAt(tool.id, "mailAgent")}>
             {m.mailAgentAt(tool.name)}
-          </button>
+          </LinkButton>
         ) : (
           <span className="text-ink-dim">{m.inTerminal}</span>
         )
@@ -109,9 +106,7 @@ export function OtherSchedules({ others }: { others: OtherSchedule[] }) {
   return (
     <section aria-labelledby={titleId} className="flex flex-col gap-[0.6rem]">
       <div className="flex flex-col gap-[0.2rem]">
-        <h2 id={titleId} className="text-[1.05rem] font-semibold text-ink">
-          {m.others}
-        </h2>
+        <SectionTitle id={titleId}>{m.others}</SectionTitle>
         <p className="max-w-[80ch] text-[0.9rem] text-ink-soft">{m.othersHint}</p>
       </div>
       <DataTable

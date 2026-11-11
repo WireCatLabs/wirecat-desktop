@@ -31,9 +31,7 @@ export function NewTask() {
       actions={
         projects.length === 0 ? undefined : (
           <>
-            <Button variant="ghost" onClick={() => useTasks.getState().startCreate(false)}>
-              {m.cancel}
-            </Button>
+            <Button onClick={() => useTasks.getState().startCreate(false)}>{m.cancel}</Button>
             <Button type="submit" form={id} disabled={busy}>
               {busy ? m.saving : m.add}
             </Button>

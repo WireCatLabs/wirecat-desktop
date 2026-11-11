@@ -2,6 +2,7 @@ import { Eye, EyeOff, TriangleAlert } from "lucide-react"
 import { useEffect, useId, useState } from "react"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
+import { noticeBox } from "@/ui/notice"
 import { MIN_LENGTH, passwordProblem, strength } from "./backup-password"
 import { backupMessages } from "./messages-backup"
 
@@ -100,7 +101,7 @@ export function BackupPassword({ password, repeat, onPassword, onRepeat, disable
           </p>
         </div>
       </div>
-      <p className="flex max-w-[40rem] items-start gap-2 rounded-[0.3rem] border border-warn/50 bg-warn/10 px-3 py-2 text-[0.9rem] text-warn-ink">
+      <p className={cx("flex max-w-[40rem] items-start gap-2 text-[0.9rem] text-warn-ink", noticeBox("warn"))}>
         <TriangleAlert className="mt-[0.15rem] size-4 shrink-0" aria-hidden />
         {m.lose}
       </p>

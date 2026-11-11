@@ -251,7 +251,7 @@ function BaseLoaded({ read, kind }: { read: Based; kind: Kind }) {
           {m.noMatch}{" "}
           <Button
             size="sm"
-            variant="ghost"
+            variant="secondary"
             onClick={() => useClients.setState({ query: "", pipelines: [], accounts: [] })}
           >
             {m.clear}
@@ -282,7 +282,7 @@ function Empty({ kind, synced }: { kind: Kind; synced: boolean }) {
       {synced && <p className="mt-[0.7rem]">{t.emptyScope}</p>}
       <div className="mt-[0.7rem] flex flex-wrap items-center gap-3">
         <p>{t.elsewhere[kind]}</p>
-        <Button size="sm" variant="ghost" onClick={() => useClients.getState().setKind(other)}>
+        <Button size="sm" variant="secondary" onClick={() => useClients.getState().setKind(other)}>
           {t.showOther[kind]}
         </Button>
       </div>

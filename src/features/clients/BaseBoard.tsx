@@ -139,7 +139,7 @@ export function BaseBoard({
               count={items}
               aside={
                 id === UNSORTED ? (
-                  <Button size="sm" variant="ghost" onClick={() => useClients.getState().openMap("")}>
+                  <Button size="sm" variant="secondary" onClick={() => useClients.getState().openMap("")}>
                     {s.mapStages}
                   </Button>
                 ) : undefined
@@ -185,7 +185,7 @@ export function BaseBoard({
                 <li className="px-[0.6rem] pb-[0.6rem]">
                   <Button
                     size="sm"
-                    variant="ghost"
+                    variant="secondary"
                     className="w-full"
                     onClick={() => setLimits((l) => ({ ...l, [id]: limit + COLUMN_PAGE }))}
                   >
@@ -224,7 +224,7 @@ export function Refused({ why, account }: { why: Refusal; account: string }) {
       {mappable && (
         <Button
           size="sm"
-          variant="ghost"
+          variant="secondary"
           onClick={(e) => {
             e.stopPropagation()
             useClients.getState().openMap(account)

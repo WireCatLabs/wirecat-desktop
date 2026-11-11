@@ -3,7 +3,7 @@ import { useLang, useMessages } from "@/i18n"
 import type { OwnStatus } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { reloadAddedTools } from "@/shared/added-tools"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -61,14 +61,9 @@ export function OwnToolsSetting() {
           <InfoTip label={m.ownInfo} className="-ml-1.5">
             {m.ownHelp}
           </InfoTip>
-          <button
-            type="button"
-            className="text-brand underline hover:text-brand-hover"
-            onClick={() => platform.openUrl(ownToolsDocs(lang))}
-            {...externalHref(ownToolsDocs(lang))}
-          >
+          <ExtLink href={ownToolsDocs(lang)} className="font-medium">
             {m.ownDocs}
-          </button>
+          </ExtLink>
         </div>
       </div>
       {status?.flag && <p className="text-[0.9rem] text-ink-soft">{m.ownFlag}</p>}
@@ -87,9 +82,7 @@ export function OwnToolsSetting() {
         onClose={() => setAsking(false)}
         actions={
           <>
-            <Button variant="ghost" onClick={() => setAsking(false)}>
-              {m.cancel}
-            </Button>
+            <Button onClick={() => setAsking(false)}>{m.cancel}</Button>
             <Button
               variant="danger"
               onClick={() => {

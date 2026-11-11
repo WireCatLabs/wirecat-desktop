@@ -411,7 +411,7 @@ describe("the digest history", () => {
     const days = await screen.findByRole("navigation", { name: "Days" }, { timeout: 4000 })
     expect(days).toHaveTextContent("built later")
 
-    const fill = screen.getByRole("button", { name: "Build past days…" })
+    const fill = screen.getByRole("button", { name: "Build past days" })
     await waitFor(() => expect(fill).toBeEnabled(), { timeout: 8000 })
     await user.click(fill)
     const dialog = await screen.findByRole("dialog", { name: "Build the digests of past days" })
@@ -431,7 +431,7 @@ describe("the digest history", () => {
     vi.spyOn(platform, "digestBackfill").mockResolvedValue({ state: "unsupported" })
     await openMorning()
     expect(await screen.findByText("Needs a Memo update")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Build past days…" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Build past days" })).toBeDisabled()
   }, 15000)
 })
 

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
 import { connectMessages } from "./messages-connect"
@@ -15,16 +14,7 @@ export function Note({ children }: { children: ReactNode }) {
 }
 
 export function Link({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      className="text-brand underline hover:text-brand-hover"
-      onClick={() => platform.openUrl(href)}
-      {...externalHref(href)}
-    >
-      {children}
-    </button>
-  )
+  return <ExtLink href={href}>{children}</ExtLink>
 }
 
 export function Progress({ state, children }: { state: "busy" | "done" | "todo" | "failed"; children: ReactNode }) {

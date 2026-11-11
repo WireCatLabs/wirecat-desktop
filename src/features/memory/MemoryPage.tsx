@@ -243,7 +243,7 @@ function Rack({
       <EmptyState
         action={
           filtering ? (
-            <Button size="sm" variant="ghost" className="-ml-2" onClick={() => setQuery("")}>
+            <Button size="sm" onClick={() => setQuery("")}>
               {m.clearFilters}
             </Button>
           ) : (

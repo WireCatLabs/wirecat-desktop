@@ -7,6 +7,7 @@ import type { StoreInfo } from "@/platform/archive-schemas"
 import { ReportThis } from "@/shared/ReportThis"
 import { useStorage } from "@/shared/storage-store"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { DatabaseFacts, DatabaseFactsSkeleton } from "./DatabaseFacts"
@@ -22,9 +23,7 @@ export function ArchiveSummary() {
   return (
     <section aria-labelledby="archive-title" className="rounded-[0.2rem] border border-line-strong bg-app">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-line border-b px-[1.3rem] py-[0.9rem]">
-        <h2 id="archive-title" className="text-[1.08rem] font-semibold">
-          {m.inStorage}
-        </h2>
+        <SectionTitle id="archive-title">{m.inStorage}</SectionTitle>
         {info === undefined && (
           <p className="text-[0.9rem] text-ink-dim">
             <Skeleton chars={44} />

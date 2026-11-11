@@ -507,7 +507,7 @@ function HarderBar({ m, toolId, count }: { m: Words; toolId: string; count: numb
               </span>
             </p>
             {current && (
-              <Button size="sm" variant="ghost" disabled={s.loading} onClick={() => s.search(1)}>
+              <Button size="sm" variant="secondary" disabled={s.loading} onClick={() => s.search(1)}>
                 {m.usualOrder}
               </Button>
             )}

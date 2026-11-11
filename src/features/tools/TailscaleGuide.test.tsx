@@ -83,7 +83,7 @@ describe("Tailscale guide on Linux", () => {
     })
     expect(screen.getByText("services.tailscale.enable = true;")).toBeVisible()
     expect(screen.queryByRole("button", { name: /Open a terminal/ })).toBeNull()
-    expect(screen.getByRole("button", { name: "NixOS wiki" })).toBeVisible()
+    expect(screen.getByRole("link", { name: "NixOS wiki" })).toBeVisible()
   })
 
   it("falls back to Tailscale's script and links on a system it lists no commands for", async () => {
@@ -100,14 +100,14 @@ describe("Tailscale guide on Linux", () => {
       },
     })
     expect(screen.getByText(/Tailscale lists no commands for Void Linux/)).toBeVisible()
-    await userEvent.setup().click(screen.getByRole("button", { name: "static binaries" }))
+    await userEvent.setup().click(screen.getByRole("link", { name: "static binaries" }))
     expect(open).toHaveBeenCalledWith("https://pkgs.tailscale.com/stable/#static")
   })
 
   it("links each step to its section of the website guide", async () => {
     const open = vi.spyOn(platform, "openUrl").mockResolvedValue()
     show(MISSING)
-    await userEvent.setup().click(screen.getByRole("button", { name: "Full guide" }))
+    await userEvent.setup().click(screen.getByRole("link", { name: "Full guide" }))
     expect(open).toHaveBeenCalledWith("https://wirecat.dev/en/docs/desktop/tailscale-funnel#debian-and-ubuntu")
     expect(guideUrl("install", { ...MISSING, os: "macos", linux: null })).toMatch(/#macos$/)
     expect(guideUrl("funnel", MISSING)).toMatch(/#allow-funnel$/)

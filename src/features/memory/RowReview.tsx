@@ -8,6 +8,7 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
+import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { savedAt } from "./labels"
 import { reviewMessages } from "./messages-review"
@@ -17,10 +18,10 @@ import { canRevoke, useMemory } from "./store"
 export function ReviewMarker({ cause }: { cause: string }) {
   const m = useMessages(reviewMessages)
   return (
-    <span className="inline-flex items-center gap-[0.3rem] rounded-[0.3rem] bg-warn/15 px-[0.45rem] py-[0.1rem] text-[0.85rem] font-medium text-warn-ink">
-      <TriangleAlert className="size-[0.85rem]" aria-hidden />
+    <Pill tone="warn">
+      <TriangleAlert className="mr-[0.3rem] size-[0.85rem]" aria-hidden />
       {m.marker[causeOf(cause)]}
-    </span>
+    </Pill>
   )
 }
 
@@ -206,7 +207,7 @@ function Answers({ entry }: { entry: MemoryEntry }) {
             <Button type="submit" size="sm" disabled={!!busy} icon={busy === "dismiss" ? spin : undefined}>
               {m.dismissNow}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setAsking(false)}>
+            <Button size="sm" onClick={() => setAsking(false)}>
               {m.cancel}
             </Button>
           </span>

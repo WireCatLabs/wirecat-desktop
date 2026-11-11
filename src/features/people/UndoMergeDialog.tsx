@@ -26,9 +26,7 @@ export function UndoMergeDialog() {
       onClose={() => askUndo(null)}
       actions={
         <>
-          <Button variant="ghost" onClick={() => askUndo(null)}>
-            {m.cancel}
-          </Button>
+          <Button onClick={() => askUndo(null)}>{m.cancel}</Button>
           <Button
             variant="danger"
             disabled={!merge || !!busy}

@@ -40,7 +40,7 @@ export function ToolNeeded({ gap, inline, children }: { gap: Gap; inline?: boole
     <div
       className={cx(
         "flex flex-wrap items-center justify-between gap-4 text-[0.95rem] text-ink-soft",
-        !inline && "rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.1rem]",
+        !inline && "rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem]",
       )}
     >
       <div className="flex max-w-[70ch] flex-col gap-1">

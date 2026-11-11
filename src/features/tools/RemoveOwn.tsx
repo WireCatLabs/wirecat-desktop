@@ -61,9 +61,7 @@ export function RemoveOwn({
         onClose={() => setAsking(false)}
         actions={
           <>
-            <Button variant="ghost" onClick={() => setAsking(false)}>
-              {m.cancel}
-            </Button>
+            <Button onClick={() => setAsking(false)}>{m.cancel}</Button>
             {installed && (
               <Button
                 variant="secondary"

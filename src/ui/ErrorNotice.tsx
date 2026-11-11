@@ -3,6 +3,7 @@ import { useMessages } from "@/i18n"
 import { cx } from "./cx"
 import { Disclosure } from "./Disclosure"
 import { uiMessages } from "./messages"
+import { noticeFrame } from "./notice"
 
 type Props = {
   children: ReactNode
@@ -27,8 +28,7 @@ export function ErrorNotice({ children, detail, raw, action, inline = false, ton
       className={cx(
         // An error that appears fades in where it happened, so it reads as the answer to the click, not a glitch.
         "reveal flex flex-wrap items-center gap-x-3 gap-y-1.5",
-        inline ? "text-[0.875rem]" : "rounded-[0.2rem] border py-2 pr-2 pl-4 text-body",
-        !inline && (tone === "bad" ? "border-bad/40 bg-bad/10" : "border-warn/40 bg-warn/10"),
+        inline ? "text-[0.875rem]" : cx(noticeFrame(tone), "py-2 pr-2 pl-4 text-body"),
         className,
       )}
     >

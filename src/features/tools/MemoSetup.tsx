@@ -10,6 +10,7 @@ import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { LinkButton } from "@/ui/LinkButton"
 import { Pill } from "@/ui/Pill"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Skeleton } from "@/ui/Skeleton"
@@ -432,15 +433,13 @@ function ModelName({ model, m }: { model: NotesModel; m: NotesSetupText }) {
   const s = useMessages(searchModelMessages)
   if (model.role === "recommended") {
     const word = model.terms ? (
-      <button
-        type="button"
+      <LinkButton
         title={model.terms}
         onClick={() => model.terms && platform.openUrl(model.terms)}
         {...externalHref(model.terms)}
-        className="font-semibold text-brand underline-offset-4 hover:text-brand-hover hover:underline"
       >
         {s.modelWord}
-      </button>
+      </LinkButton>
     ) : (
       s.modelWord
     )

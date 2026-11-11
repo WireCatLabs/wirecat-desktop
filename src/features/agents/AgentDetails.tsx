@@ -1,4 +1,3 @@
-import { RefreshCw } from "lucide-react"
 import type { ReactNode } from "react"
 import { type CheckItem, type Session, sessionQuery } from "@/domain/agents"
 import { formatWhen, shortSession } from "@/domain/runs"
@@ -13,7 +12,8 @@ import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
-import { Skeleton, StableText } from "@/ui/Skeleton"
+import { RefreshButton } from "@/ui/RefreshButton"
+import { Skeleton } from "@/ui/Skeleton"
 import { AdvancedMcp } from "./AdvancedMcp"
 import { ClaimRow } from "./ClaimRow"
 import { useConnect } from "./connect"
@@ -55,22 +55,13 @@ export function AgentDetails({ view, onCheck }: { view: AgentView; onCheck(): vo
           {connected && (
             <Button
               size="sm"
-              variant="ghost"
               onClick={() => useDisconnect.getState().open(agent.id)}
               aria-label={m.disconnectFrom(agent.name)}
             >
               {m.disconnect}
             </Button>
           )}
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={checking}
-            onClick={onCheck}
-            icon={<RefreshCw className={cx("size-[0.95rem]", checking && "animate-spin")} aria-hidden />}
-          >
-            <StableText value={checking ? m.checking : m.checkThis} variants={[m.checkThis, m.checking]} />
-          </Button>
+          <RefreshButton busy={checking} onClick={onCheck} label={m.checkThis} busyLabel={m.checking} />
         </span>
       </div>
       <div className="grid gap-4 xl:grid-cols-2">

@@ -239,11 +239,7 @@ function Actions({
   pasted: string
   on: On
 }) {
-  const cancel = (
-    <Button variant="ghost" onClick={on.close}>
-      {m.cancel}
-    </Button>
-  )
+  const cancel = <Button onClick={on.close}>{m.cancel}</Button>
   switch (step.kind) {
     case "name":
       return (

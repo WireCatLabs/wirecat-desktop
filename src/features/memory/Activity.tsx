@@ -6,6 +6,7 @@ import { useNav } from "@/shared/nav"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { dayLabel, timeOf } from "./labels"
 import { memoryMessages } from "./messages"
 
@@ -33,9 +34,7 @@ export function Activity({ calls, error }: { calls: AgentCall[] | null; error: s
   return (
     <section aria-labelledby="memory-activity" className="flex flex-col gap-[0.6rem]">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="memory-activity" className="text-[1.05rem] font-semibold">
-          {m.activity}
-        </h2>
+        <SectionTitle id="memory-activity">{m.activity}</SectionTitle>
         <button
           type="button"
           onClick={openMemoryLogs}

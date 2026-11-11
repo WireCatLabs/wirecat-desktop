@@ -8,7 +8,7 @@ const en = {
   off: "Off. Nothing leaves this computer.",
   offCost: (records: string, provider: string, usd: string) =>
     `Turning it on would send ${records} to ${provider}, for about ${usd}.`,
-  turnOn: "Turn on…",
+  turnOn: "Turn on",
   consentTitle: "What turning it on sends",
   modelLabel: "Model",
   offer: (provider: string, model: string) => `${provider} ${model}`,
@@ -42,7 +42,7 @@ const en = {
     `Last sync: sent ${sent}, ${enriched} rewritten${failed > 0 ? `, ${failed} failed and wait for the next sync` : ""}${cost ? `, cost ${cost}` : ""}.`,
   lastSyncStopped: (reason: string) => `Last sync rewrote nothing: ${reason}`,
   lastSyncFailed: (reason: string) => `Last sync could not rewrite: ${reason}`,
-  turnOff: "Turn off…",
+  turnOff: "Turn off",
   offTitle: "Turn off and delete the model's text?",
   offWhat: (records: string) =>
     `Memo deletes the facts and questions the model wrote for ${records}. Search reads only the records' own words again. Turning it on later sends the records again and costs again.`,
@@ -78,7 +78,7 @@ const ru: typeof en = {
     `В тестах memo вопрос другими словами находил свою запись в первой десятке ${rewordedOn} раз из 100 вместо ${rewordedOff}. Вопрос словами самой записи ставил её первой чуть реже: ${ownOn} раз из 100 вместо ${ownOff}.`,
   off: "Выключено. Ничего не уходит с этого компьютера.",
   offCost: (records, provider, usd) => `Если включить, в ${provider} уйдёт ${records}, примерно за ${usd}.`,
-  turnOn: "Включить…",
+  turnOn: "Включить",
   consentTitle: "Что отправится, если включить",
   modelLabel: "Модель",
   offer: (provider, model) => `${provider} ${model}`,
@@ -112,7 +112,7 @@ const ru: typeof en = {
     `Последняя синхронизация: отправлено ${sent}, переписано ${enriched}${failed > 0 ? `, не удалось ${failed}, они ждут следующей` : ""}${cost ? `, стоимость ${cost}` : ""}.`,
   lastSyncStopped: (reason) => `Последняя синхронизация ничего не переписала: ${reason}`,
   lastSyncFailed: (reason) => `Последняя синхронизация не смогла переписать: ${reason}`,
-  turnOff: "Выключить…",
+  turnOff: "Выключить",
   offTitle: "Выключить и удалить текст модели?",
   offWhat: (records) =>
     `Memo удалит факты и вопросы, которые модель написала для: ${records}. Поиск снова читает только слова самих записей. Если включить позже, записи отправятся снова и это снова будет стоить денег.`,
@@ -154,7 +154,7 @@ const es: typeof en = {
     `En las pruebas de memo, una pregunta con otras palabras encontró su registro entre los diez primeros resultados ${rewordedOn} veces de 100 en lugar de ${rewordedOff}. Una pregunta con las palabras del propio registro lo puso primero algo menos: ${ownOn} veces de 100 en lugar de ${ownOff}.`,
   off: "Desactivado. Nada sale de este ordenador.",
   offCost: (records, provider, usd) => `Al activarlo se enviarían ${records} a ${provider}, por unos ${usd}.`,
-  turnOn: "Activar…",
+  turnOn: "Activar",
   consentTitle: "Qué se envía al activarlo",
   modelLabel: "Modelo",
   offer: (provider, model) => `${provider} ${model}`,
@@ -188,7 +188,7 @@ const es: typeof en = {
     `Última sincronización: ${sent} enviados, ${enriched} reescritos${failed > 0 ? `, ${failed} fallaron y esperan a la siguiente` : ""}${cost ? `, coste ${cost}` : ""}.`,
   lastSyncStopped: (reason) => `La última sincronización no reescribió nada: ${reason}`,
   lastSyncFailed: (reason) => `La última sincronización no pudo reescribir: ${reason}`,
-  turnOff: "Desactivar…",
+  turnOff: "Desactivar",
   offTitle: "¿Desactivar y borrar el texto del modelo?",
   offWhat: (records) =>
     `Memo borra los hechos y preguntas que el modelo escribió para ${records}. La búsqueda vuelve a leer solo las palabras de los registros. Si lo activas más tarde, los registros se envían otra vez y vuelve a costar.`,

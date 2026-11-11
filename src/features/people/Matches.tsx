@@ -2,8 +2,11 @@ import { ArrowLeft, ArrowRight } from "lucide-react"
 import { useEffect, useId } from "react"
 import { useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
+import { noticeBox } from "@/ui/notice"
 import { Pager } from "@/ui/Pager"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { groupMatches } from "./groups"
 import { MatchCard } from "./MatchCard"
 import { peopleMessages } from "./messages"
@@ -25,7 +28,7 @@ export function MatchesWaiting() {
   return (
     <section
       aria-labelledby={head}
-      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-[0.45rem] border border-warn/35 bg-warn/[0.07] px-[1.1rem] py-[0.85rem]"
+      className={cx("flex flex-wrap items-center justify-between gap-x-6 gap-y-3", noticeBox("warn"))}
     >
       <div className="min-w-0">
         <h2 id={head} className="flex items-center gap-2 font-semibold">
@@ -83,9 +86,7 @@ export function Matches() {
         {m.backToPeople}
       </Button>
       <div>
-        <h2 id={head} className="text-[1.25rem] font-semibold">
-          {m.matchesTitle}
-        </h2>
+        <SectionTitle id={head}>{m.matchesTitle}</SectionTitle>
         <p className="mt-1 max-w-[72ch] text-[0.95rem] text-ink-soft">{m.matchesIntro}</p>
       </div>
       {cards.length === 0 ? (

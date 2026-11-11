@@ -5,6 +5,7 @@ import { formatBytes } from "@/domain/format"
 import { formatDate, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { BackupPassword } from "./BackupPassword"
 import { BackupProgress } from "./BackupProgress"
@@ -66,9 +67,7 @@ export function BackupPanel() {
     <section aria-labelledby="backups-title" className="rounded-[0.2rem] border border-line-strong bg-app">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-line border-b px-[1.3rem] py-[0.9rem]">
         <div>
-          <h2 id="backups-title" className="text-[1.08rem] font-semibold">
-            {m.backups}
-          </h2>
+          <SectionTitle id="backups-title">{m.backups}</SectionTitle>
           <p className="mt-0.5 text-[0.9rem] text-ink-dim">
             {m.backupsIntro(<code className="selectable font-mono">{backups?.folder ?? "~/WireCat backups"}</code>)}
           </p>

@@ -148,9 +148,7 @@ function GetNow({ item, can, harness }: { item: DigestItem; can: Can; harness: b
         onClose={() => setAsked(null)}
         actions={
           <>
-            <Button variant="ghost" onClick={() => setAsked(null)}>
-              {m.form.cancel}
-            </Button>
+            <Button onClick={() => setAsked(null)}>{m.form.cancel}</Button>
             <Button
               variant="primary"
               data-autofocus
@@ -219,7 +217,7 @@ function RemoveButton({ item, title }: { item: DigestItem; title: string }) {
         onClose={() => setAsking(false)}
         actions={
           <>
-            <Button variant="ghost" data-autofocus onClick={() => setAsking(false)}>
+            <Button data-autofocus onClick={() => setAsking(false)}>
               {all.form.cancel}
             </Button>
             <Button

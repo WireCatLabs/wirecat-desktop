@@ -1,4 +1,4 @@
-import { CheckCircle2, QrCode, RefreshCw, Stethoscope, Terminal } from "lucide-react"
+import { CheckCircle2, QrCode, Stethoscope, Terminal } from "lucide-react"
 import { type ReactNode, useRef, useState } from "react"
 import {
   type CatalogTool,
@@ -20,6 +20,7 @@ import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace, MOTION, PANEL_MS, reducedMotion } from "@/ui/motion"
+import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
 import { AccountRow } from "./AccountRow"
 import { useProfiles } from "./api"
@@ -205,14 +206,7 @@ export function TerminalStatus({
   const command = setupCommand(tool, opened.profile) ?? ""
   const code = <code className="font-mono whitespace-nowrap text-ink">{command}</code>
   const check = (
-    <Button
-      size="sm"
-      variant="secondary"
-      onClick={onCheck}
-      icon={<RefreshCw className={cx("size-4", checking && "animate-spin")} aria-hidden />}
-    >
-      {checking ? m.checking : m.checkSignIn}
-    </Button>
+    <RefreshButton variant="secondary" busy={checking} onClick={onCheck} label={m.checkSignIn} busyLabel={m.checking} />
   )
   if (opened.state === "failed") {
     const noTerminal = opened.error.startsWith("Could not open a terminal")
@@ -266,15 +260,7 @@ export function ManualSetup(props: { tool: CatalogTool; onCheck: () => void; che
         <div className="min-w-0 flex-1">
           <CopyField value={signIn.command} label={m.copyAddAccount(tool.name)} />
         </div>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={onCheck}
-          disabled={checking}
-          icon={<RefreshCw className={cx("size-4", checking && "animate-spin")} aria-hidden />}
-        >
-          {checking ? m.checking : m.checkAgain}
-        </Button>
+        <RefreshButton busy={checking} onClick={onCheck} label={m.checkAgain} busyLabel={m.checking} />
       </div>
     </div>
   )

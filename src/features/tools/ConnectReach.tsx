@@ -5,7 +5,9 @@ import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { McpServerStatus } from "@/platform/mcp-server-schemas"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { noticeBox } from "@/ui/notice"
 import { ProgressBar } from "@/ui/ProgressBar"
 import type { AppId } from "./connect-apps"
 import { Note, Para, Progress } from "./connect-parts"
@@ -178,7 +180,7 @@ export function FunnelOff(props: {
     setBusy(false)
   }
   return (
-    <div className="flex flex-col gap-2 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3.5 py-2.5">
+    <div className={cx("flex flex-col gap-2", noticeBox("warn"))}>
       <p className="text-[0.9rem] text-warn-ink">{helper ? hm.off(name) : m.funnel(name)}</p>
       {error && <ErrorNotice inline>{error}</ErrorNotice>}
       <div>
@@ -208,7 +210,7 @@ export function TunnelOff(props: { tool: CatalogTool; port: number; name: string
     setBusy(false)
   }
   return (
-    <div className="flex flex-col gap-2 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3.5 py-2.5">
+    <div className={cx("flex flex-col gap-2", noticeBox("warn"))}>
       <p className="text-[0.9rem] text-warn-ink">{m.tunnel(name)}</p>
       {error && <ErrorNotice inline>{error}</ErrorNotice>}
       <div>

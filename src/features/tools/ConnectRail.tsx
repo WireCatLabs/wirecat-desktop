@@ -1,6 +1,7 @@
 import { Check } from "lucide-react"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
+import { LinkButton } from "@/ui/LinkButton"
 import { type ConnectStepId, stepStates } from "./connect-steps"
 import { connectMessages } from "./messages-connect"
 
@@ -63,13 +64,9 @@ export function Rail(props: {
               <span className="flex min-w-0 items-baseline gap-2 text-[0.85rem] text-ink-dim">
                 <span className="truncate">{summary[step.id]}</span>
                 {step.id === "choose" && onChoose && (
-                  <button
-                    type="button"
-                    className="shrink-0 text-brand underline hover:text-brand-hover"
-                    onClick={onChoose}
-                  >
+                  <LinkButton className="shrink-0" onClick={onChoose}>
                     {m.rail.change}
-                  </button>
+                  </LinkButton>
                 )}
               </span>
             )}

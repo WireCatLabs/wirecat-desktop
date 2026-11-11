@@ -22,7 +22,7 @@ const PREVIEW: ResetPreview = {
 }
 
 const openDialog = async (user: ReturnType<typeof userEvent.setup>) => {
-  await user.click(await screen.findByRole("button", { name: "Clear storage…" }))
+  await user.click(await screen.findByRole("button", { name: "Clear storage" }))
   return screen.findByRole("dialog", { name: "Clear storage?" })
 }
 
@@ -181,7 +181,7 @@ describe("Backups and clearing storage", () => {
     render(<BackupPanel />)
 
     expect(await screen.findByText(/Clearing needs a newer tg/)).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Clear storage…" })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Clear storage" })).toBeDisabled()
   })
 
   it("warns in the dialog when a sync has storage open", async () => {

@@ -8,6 +8,7 @@ import { useReport } from "@/shared/report-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
 import { Dialog } from "@/ui/Dialog"
+import { LinkButton } from "@/ui/LinkButton"
 import { Monogram } from "@/ui/Logo"
 import { aboutMessages } from "./messages"
 
@@ -90,17 +91,11 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5">
             {links(lang).map((l) => (
               <li key={l.href}>
-                <LinkButton href={l.href}>{m[l.label]}</LinkButton>
+                <WebLink href={l.href}>{m[l.label]}</WebLink>
               </li>
             ))}
             <li>
-              <button
-                type="button"
-                onClick={report}
-                className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-              >
-                {m.report}
-              </button>
+              <LinkButton onClick={report}>{m.report}</LinkButton>
             </li>
           </ul>
         </nav>
@@ -108,7 +103,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         <p className="border-line border-t pt-4 text-[0.875rem] text-ink-dim">
           {m.madeBy(AUTHOR, COPYRIGHT_YEAR)}
           <br />
-          {m.license(<LinkButton href={`${REPO}/blob/main/LICENSE`}>{LICENSE}</LinkButton>)}
+          {m.license(<WebLink href={`${REPO}/blob/main/LICENSE`}>{LICENSE}</WebLink>)}
         </p>
       </div>
     </Dialog>
@@ -154,7 +149,7 @@ function CopyButton({ text }: { text: string }) {
   )
 }
 
-function LinkButton({ href, children }: { href: string; children: string }) {
+function WebLink({ href, children }: { href: string; children: string }) {
   return (
     <button
       type="button"

@@ -232,7 +232,8 @@ function Version(props: { status: ToolStatus; installed: string | null; m: Tools
     <span
       className={cx(
         // A version never wraps; "Not installed" may, since the column is sized for versions, not for every language.
-        "font-mono text-[1.02rem] leading-tight tabular-nums",
+        "leading-tight tabular-nums",
+        text ? "font-mono text-[1.02rem]" : "text-body",
         text && status.kind !== "broken" && "whitespace-nowrap",
         text ? "text-ink" : "text-ink-soft",
         status.kind === "broken" && "text-bad",

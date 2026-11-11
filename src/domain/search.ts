@@ -146,34 +146,23 @@ export function dateOptions(now: Date): { query: string; meaning: DateMeaning }[
   ]
 }
 
-export type ExampleId =
-  | "photosWeek"
-  | "filesMonth"
-  | "links30"
-  | "voice30"
-  | "mailWeek"
-  | "attachments30"
-  | "invoice30"
-  | "changed30"
-  | "titled"
-  | "words"
+/** The filters people reach for first, by judgment: there are no usage numbers. */
+const POPULAR_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  messages: ["from", "chat", "date"],
+  mail: ["from", "subject", "date"],
+}
+
+export type ExampleId = "filesMonth" | "links30" | "attachments30" | "changed30" | "titled" | "words"
 
 /** Ready queries the empty bar offers, each run against an installed tool's real data before it was listed. */
 export function examples(what: string, now: Date): { query: string; id: ExampleId }[] {
   const first = day(new Date(now.getFullYear(), now.getMonth(), 1))
   if (what === "messages")
     return [
-      { query: "has:photo date>=7d", id: "photosWeek" },
       { query: `has:file date:[${first} TO *]`, id: "filesMonth" },
       { query: "has:link date>=30d", id: "links30" },
-      { query: "has:voice date>=30d", id: "voice30" },
     ]
-  if (what === "mail")
-    return [
-      { query: "date>=7d", id: "mailWeek" },
-      { query: "has:attachment date>=30d", id: "attachments30" },
-      { query: "invoice date>=30d", id: "invoice30" },
-    ]
+  if (what === "mail") return [{ query: "has:attachment date>=30d", id: "attachments30" }]
   if (what === "notes" || what === "documents")
     return [
       { query: "date>=30d", id: "changed30" },
@@ -259,7 +248,10 @@ export function suggestSearch(query: string, cursor: number, ctx: SuggestContext
       group: ctx.words.examplesHeading,
       whole: true,
     }))
-    return { from: 0, to: query.length, items: [...fieldRows(ctx, ""), ...tried] }
+    const popular = (POPULAR_FIELDS[ctx.what] ?? []).flatMap((name) => ctx.fields.filter((f) => f.name === name))
+    const lead = popular.map((f) => ({ ...fieldRow(f, "", ctx.words), group: ctx.words.examplesHeading }))
+    const rest = fieldRows(ctx, "").filter((row) => !lead.some((l) => l.insert === row.insert))
+    return { from: 0, to: query.length, items: [...lead, ...tried, ...rest] }
   }
   const tok = tokenAt(query, cursor)
   const sign = /^[-+]/.test(tok.raw) ? (tok.raw[0] as string) : ""

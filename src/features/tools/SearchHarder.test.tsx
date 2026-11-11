@@ -45,7 +45,7 @@ it("says that no memo release can search harder yet", async () => {
   expect(
     await screen.findByText("Search harder comes with a memo update that is not released yet."),
   ).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Allow…" })).not.toBeInTheDocument()
+  expect(screen.queryByRole("button", { name: "Allow" })).not.toBeInTheDocument()
 })
 
 it("allows it only after showing what one search sends, where, its price and the missing key", async () => {
@@ -63,7 +63,7 @@ it("allows it only after showing what one search sends, where, its price and the
     .mockResolvedValue({ ...openai, on: true, consentedAt: "2026-11-09T09:12:00.000Z" })
   render(<SearchHarder tool={memo} />)
 
-  await user.click(await screen.findByRole("button", { name: "Allow…" }))
+  await user.click(await screen.findByRole("button", { name: "Allow" }))
   const consent = await screen.findByRole("region", { name: "What searching harder sends" })
   expect(
     await screen.findByText(/its first 30 results, each with its date, title and up to 400 characters/),
@@ -116,7 +116,7 @@ it("says in plain words when memo refuses because WireCat runs from an agent's t
     new Error("memo lets only you allow this, and WireCat was started from an AI agent's terminal."),
   )
   render(<SearchHarder tool={memo} />)
-  await user.click(await screen.findByRole("button", { name: "Allow…" }))
+  await user.click(await screen.findByRole("button", { name: "Allow" }))
   const agree = await screen.findByRole("button", { name: "Allow search harder with Anthropic" })
   await waitFor(() => expect(agree).toBeEnabled())
   await user.click(agree)

@@ -8,6 +8,9 @@ type Props = {
   onClick: () => void
   label: string
   busyLabel: string
+  variant?: "ghost" | "secondary"
+  /** The icon alone, with the label for a screen reader, where a row has no room for the words. */
+  iconOnly?: boolean
   /** Off for a reason other than its own run, such as another check in progress. */
   disabled?: boolean
   tour?: string
@@ -19,11 +22,23 @@ type Props = {
  * Busy, it stays enabled and ignores clicks: a disabled button drops keyboard focus to the page (UX-67), and Logs'
  * live mode reads every few seconds.
  */
-export function RefreshButton({ busy, onClick, label, busyLabel, disabled = false, tour, className }: Props) {
+export function RefreshButton(props: Props) {
+  const {
+    busy,
+    onClick,
+    label,
+    busyLabel,
+    variant = "ghost",
+    iconOnly = false,
+    disabled = false,
+    tour,
+    className,
+  } = props
   return (
     <Button
-      variant="ghost"
+      variant={variant}
       size="sm"
+      aria-label={iconOnly ? label : undefined}
       data-tour={tour}
       disabled={disabled}
       aria-busy={busy}
@@ -33,7 +48,7 @@ export function RefreshButton({ busy, onClick, label, busyLabel, disabled = fals
       className={className}
       icon={<RefreshCw className={cx("size-4", busy && "motion-safe:animate-spin")} aria-hidden />}
     >
-      <StableText value={busy ? busyLabel : label} variants={[label, busyLabel]} />
+      {!iconOnly && <StableText value={busy ? busyLabel : label} variants={[label, busyLabel]} />}
     </Button>
   )
 }

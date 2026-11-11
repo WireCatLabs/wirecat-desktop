@@ -155,12 +155,7 @@ export function SkillTable({ view, loading }: { view: AgentView; loading: boolea
                 )}
               </span>
               <span className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => openSkill(s.tool.id)}
-                  aria-label={m.readSkill(s.tool.name)}
-                >
+                <Button size="sm" onClick={() => openSkill(s.tool.id)} aria-label={m.readSkill(s.tool.name)}>
                   {m.read}
                 </Button>
                 {/* Sized by every label it can show, in this language, so Read stays put when the check adds one. */}
@@ -171,7 +166,7 @@ export function SkillTable({ view, loading }: { view: AgentView; loading: boolea
                     </Button>
                   ))}
                   {s.cell.kind === "unknown" && (
-                    <Button size="sm" variant="ghost" className="[grid-area:1/1]" onClick={() => openManage(s.tool.id)}>
+                    <Button size="sm" className="[grid-area:1/1]" onClick={() => openManage(s.tool.id)}>
                       {m.openTools}
                     </Button>
                   )}

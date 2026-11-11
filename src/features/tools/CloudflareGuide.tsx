@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CloudflareStatus } from "@/platform/cloudflare-schemas"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -67,16 +67,7 @@ function Note({ children }: { children: ReactNode }) {
 }
 
 function Link({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      className="text-brand underline hover:text-brand-hover"
-      onClick={() => platform.openUrl(href)}
-      {...externalHref(href)}
-    >
-      {children}
-    </button>
-  )
+  return <ExtLink href={href}>{children}</ExtLink>
 }
 
 function InstallStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): Promise<void> }) {

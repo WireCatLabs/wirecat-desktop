@@ -415,7 +415,7 @@ function CategoryForm(props: {
         <Button type="submit" size="sm" variant="primary" disabled={off}>
           {busy ? all.list.saving : category ? m.save : m.create}
         </Button>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={onDone}>
+        <Button size="sm" disabled={busy} onClick={onDone}>
           {m.cancel}
         </Button>
         {error && (

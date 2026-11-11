@@ -321,7 +321,7 @@ function Consent(props: {
         <Button size="sm" variant="primary" disabled={!preview || busy} onClick={onAgree}>
           {preview && target ? m.agree(records, providerName(target.provider)) : m.turnOn}
         </Button>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={onCancel}>
+        <Button size="sm" disabled={busy} onClick={onCancel}>
           {m.cancel}
         </Button>
         {busy && (

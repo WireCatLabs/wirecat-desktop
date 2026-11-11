@@ -15,6 +15,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { storageMessages } from "./messages"
@@ -162,10 +163,10 @@ function Frame({
   const m = useMessages(storageMessages)
   return (
     <section aria-labelledby="tables-title" className={cx("flex flex-col gap-3", className)}>
-      <h3 id="tables-title" className="text-[1rem] font-semibold">
+      <SectionTitle as="h3" id="tables-title">
         {m.tables}
         {count !== null && <span className="ml-2 font-mono text-[0.9rem] font-normal text-ink-dim">{count}</span>}
-      </h3>
+      </SectionTitle>
       {children}
     </section>
   )

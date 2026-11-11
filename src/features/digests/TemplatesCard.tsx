@@ -14,6 +14,8 @@ import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
+import { LinkButton } from "@/ui/LinkButton"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { area, card, useMemoEditor } from "./editor-state"
@@ -66,9 +68,7 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
 
   return (
     <section aria-labelledby={titleId} className={card}>
-      <h2 id={titleId} className="text-[1.05rem] font-semibold text-ink">
-        {m.title}
-      </h2>
+      <SectionTitle id={titleId}>{m.title}</SectionTitle>
       <p className="max-w-[70ch] text-[0.88rem] text-ink-soft">
         {m.hint} <TemplateHelp />
       </p>
@@ -191,13 +191,7 @@ function TemplateHelp() {
   const varsId = useId()
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="cursor-pointer font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline"
-      >
-        {m.open}
-      </button>
+      <LinkButton onClick={() => setOpen(true)}>{m.open}</LinkButton>
       <Dialog open={open} title={m.title} onClose={() => setOpen(false)} wide scroll>
         <div className="flex max-w-[72ch] flex-col gap-3 text-[0.92rem] text-ink-soft">
           <p>{m.what}</p>

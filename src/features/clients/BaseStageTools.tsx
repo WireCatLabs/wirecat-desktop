@@ -172,7 +172,7 @@ function NameForm(props: {
       <Button size="sm" type="submit">
         {props.submit}
       </Button>
-      <Button size="sm" variant="ghost" onClick={props.onCancel}>
+      <Button size="sm" onClick={props.onCancel}>
         {s.cancel}
       </Button>
       {tried && problem && <ErrorNotice inline>{s.nameProblem[problem]}</ErrorNotice>}

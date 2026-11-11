@@ -12,6 +12,7 @@ import { Crossfade } from "@/ui/Crossfade"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { focusInPlace } from "@/ui/motion"
+import { noticeBox } from "@/ui/notice"
 import { SecretField } from "@/ui/SecretField"
 import { Tab, TabList, TabPanel, Tabs } from "@/ui/Tabs"
 
@@ -128,7 +129,7 @@ export function TokenStep({ tool }: { tool: CatalogTool }) {
           </div>
         )}
         {key === "wa" && (
-          <p className="flex items-start gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-3 py-2 text-[0.88rem] leading-snug text-ink">
+          <p className={cx("flex items-start gap-2 text-[0.9rem] leading-snug text-ink", noticeBox("warn"))}>
             <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
             <span>{m.waWarning}</span>
           </p>

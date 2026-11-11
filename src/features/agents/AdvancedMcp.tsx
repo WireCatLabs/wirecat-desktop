@@ -64,7 +64,7 @@ export function AdvancedMcp({ agent }: { agent: Agent }) {
         )}
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.9rem] text-ink-soft">
           {m.mcpChatApps}
-          <Button size="sm" variant="ghost" onClick={() => useNav.getState().go("tools")}>
+          <Button size="sm" onClick={() => useNav.getState().go("tools")}>
             {m.openTools}
           </Button>
         </p>

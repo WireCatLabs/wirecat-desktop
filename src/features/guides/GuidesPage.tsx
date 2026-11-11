@@ -161,7 +161,7 @@ export function GuidesPage() {
             }}
             placeholder={m.searchHint}
             spellCheck={false}
-            className={`selectable h-[2.6rem] w-full rounded-[0.35rem] border border-line-strong bg-app pr-[0.8rem] pl-[2.3rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
+            className={`selectable h-[2.8rem] w-full rounded-[0.35rem] border border-line-strong bg-app pr-[0.8rem] pl-[2.3rem] text-[0.95rem] text-ink placeholder:text-ink-dim ${fieldFocus}`}
           />
         </label>
         <nav aria-label={m.jumpTo} className="flex flex-wrap gap-x-[0.3rem] gap-y-[0.3rem]">
@@ -198,7 +198,7 @@ export function GuidesPage() {
                 {welcome ? m.welcomeTitle : m.startHere}
               </h2>
               {ids.length > 1 && (
-                <Button variant="ghost" size="sm" onClick={() => useGuideStart.getState().next()}>
+                <Button size="sm" onClick={() => useGuideStart.getState().next()}>
                   {m.nextGuide}
                 </Button>
               )}

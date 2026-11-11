@@ -302,7 +302,7 @@ function Consent(props: {
         <Button size="sm" variant="primary" disabled={!current || busy} onClick={() => onAgree(choice)}>
           {m.agree(providerName(draft.provider))}
         </Button>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={onCancel}>
+        <Button size="sm" disabled={busy} onClick={onCancel}>
           {m.cancel}
         </Button>
         {busy && (

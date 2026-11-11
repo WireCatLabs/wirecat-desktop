@@ -44,9 +44,7 @@ export function SplitDialog() {
       onClose={close}
       actions={
         <>
-          <Button variant="ghost" onClick={close}>
-            {m.cancel}
-          </Button>
+          <Button onClick={close}>{m.cancel}</Button>
           <Button
             disabled={!!busy}
             icon={busy === "unlink" ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : undefined}

@@ -31,34 +31,37 @@ export function Sidebar(props: { active: string; onSelect: (id: string) => void;
       className="reveal flex w-[12rem] shrink-0 xl:w-[13.5rem] flex-col border-line border-r bg-wall"
       data-tauri-drag-region
     >
-      <div className="flex h-[7rem] items-center px-[1.5rem] pb-[0.6rem]" data-tauri-drag-region>
+      <div className="flex h-[7rem] shrink-0 items-center px-[1.5rem] pb-[0.6rem]" data-tauri-drag-region>
         <Logo className="flex h-[2.3rem] items-center gap-[0.75rem] [&>svg:last-child]:h-[40%]" />
       </div>
-      <nav aria-label={m.sectionsNav} className="flex flex-col gap-[0.3rem]">
-        {sections
-          .filter((s) => !s.group && !s.hidden)
-          .map((s) => (
-            <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
-          ))}
-      </nav>
-      <nav aria-label={m.systemNav} data-tour="nav-system" className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
-        {sections
-          .filter((s) => s.group === "system")
-          .map((s) => (
-            <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
-          ))}
-      </nav>
+      {/* The rem grows with the window's width, so a wide, short window cannot hold every row: these scroll, the logo stays. */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        <nav aria-label={m.sectionsNav} className="flex flex-col gap-[0.3rem]">
+          {sections
+            .filter((s) => !s.group && !s.hidden)
+            .map((s) => (
+              <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
+            ))}
+        </nav>
+        <nav aria-label={m.systemNav} data-tour="nav-system" className="mt-auto flex flex-col gap-[0.3rem] pb-[0.8rem]">
+          {sections
+            .filter((s) => s.group === "system")
+            .map((s) => (
+              <NavItem key={s.id} section={s} active={active} onSelect={onSelect} badge={Boolean(badges[s.id])} />
+            ))}
+        </nav>
+      </div>
       {postponed && (
         <button
           type="button"
           onClick={() => void resumeSetup("reopen")}
-          className="mx-[1rem] mb-[1rem] flex items-center gap-[0.7rem] rounded-[0.4rem] border border-line-strong bg-app px-[0.8rem] py-[0.6rem] text-left text-[0.95rem] text-ink hover:border-brand/50"
+          className="mx-[1rem] mb-[1rem] flex shrink-0 items-center gap-[0.7rem] rounded-[0.4rem] border border-line-strong bg-app px-[0.8rem] py-[0.6rem] text-left text-[0.95rem] text-ink hover:border-brand/50"
         >
           <ListChecks className="size-[1.1rem] shrink-0 text-brand" strokeWidth={1.8} aria-hidden />
           {m.finishSetup}
         </button>
       )}
-      <div className="flex items-center justify-between border-line border-t px-[1.4rem] pt-[1rem] pb-[1.6rem]">
+      <div className="flex shrink-0 items-center justify-between border-line border-t px-[1.4rem] pt-[1rem] pb-[1.6rem]">
         <div className="relative">
           <button
             type="button"

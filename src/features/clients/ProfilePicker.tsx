@@ -41,7 +41,7 @@ export function ProfilePicker(props: { onChoose: (profile: string) => void; onCa
           </Button>
         ) : (
           <>
-            <Button size="sm" variant="ghost" onClick={() => close(false)}>
+            <Button size="sm" onClick={() => close(false)}>
               {m.cancel}
             </Button>
             <Button size="sm" variant="primary" onClick={() => (picked ? close(true) : need.fail(m.profileNeeded))}>

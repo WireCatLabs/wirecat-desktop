@@ -14,6 +14,7 @@ import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { Pill } from "@/ui/Pill"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { readersMessages } from "./messages-readers"
@@ -49,9 +50,9 @@ function Readers() {
   return (
     <section aria-labelledby={head} className="flex flex-col gap-3">
       <div>
-        <h3 id={head} className="font-medium">
+        <SectionTitle as="h3" id={head}>
           {m.heading}
-        </h3>
+        </SectionTitle>
         <p id={help} className="mt-1 max-w-[70ch] text-[0.9rem] text-ink-soft">
           {m.help}
         </p>

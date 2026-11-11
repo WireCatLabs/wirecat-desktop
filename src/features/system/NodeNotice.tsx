@@ -11,8 +11,10 @@ import { useSystem } from "@/shared/system-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
+import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useCreep } from "@/ui/motion"
+import { noticeBox } from "@/ui/notice"
 import { ProgressBar } from "@/ui/ProgressBar"
 import { Stepper, type StepState } from "@/ui/Stepper"
 import { ManagedNode } from "./ManagedNode"
@@ -76,7 +78,7 @@ function NeedsNode({ r }: { r: Readiness }) {
       data-node-notice
       tabIndex={-1}
       aria-label={m.nodeForTools}
-      className="flex flex-col gap-4 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-5 py-4"
+      className={cx("flex flex-col gap-4", noticeBox("warn"))}
     >
       <div>
         <p className="font-semibold">{title}</p>

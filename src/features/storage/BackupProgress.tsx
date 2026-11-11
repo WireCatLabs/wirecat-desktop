@@ -26,7 +26,7 @@ export function BackupProgress({ progress, onCancel }: { progress: Progress; onC
       {unknown ? (
         <span className="min-w-[4.6rem] shrink-0 text-right text-[0.85rem] text-ink-dim">{m.cantStop}</span>
       ) : (
-        <Button variant="ghost" size="sm" className="min-w-[4.6rem]" onClick={onCancel}>
+        <Button size="sm" className="min-w-[4.6rem]" onClick={onCancel}>
           {m.cancel}
         </Button>
       )}

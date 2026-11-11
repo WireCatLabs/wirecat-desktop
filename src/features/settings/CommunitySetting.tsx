@@ -3,7 +3,7 @@ import { useEffect, useId, useState } from "react"
 import { useLang, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CommunityStatus } from "@/platform/community-schemas"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -59,14 +59,9 @@ export function CommunitySetting() {
             {m.communityHelp}
             {status && !status.available && <> {m.communityNoKey}</>}
           </InfoTip>
-          <button
-            type="button"
-            className="text-brand underline hover:text-brand-hover"
-            onClick={() => platform.openUrl(`https://wirecat.dev/${lang}/docs/build-create-cli`)}
-            {...externalHref(`https://wirecat.dev/${lang}/docs/build-create-cli`)}
-          >
+          <ExtLink href={`https://wirecat.dev/${lang}/docs/build-create-cli`} className="font-medium">
             {m.communityHow}
-          </button>
+          </ExtLink>
         </div>
       </div>
       <Collapse open={changed} className="flex flex-wrap items-center gap-3">

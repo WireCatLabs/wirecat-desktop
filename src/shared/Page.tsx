@@ -1,5 +1,5 @@
 import { LoaderCircle } from "lucide-react"
-import type { ReactNode } from "react"
+import type { HTMLAttributes, ReactNode, Ref } from "react"
 import { useMessages } from "@/i18n"
 import { BetaBadge } from "@/shared/BetaBadge"
 import { ExtLink } from "@/shared/ExtLink"
@@ -15,18 +15,19 @@ export function Page({
   children,
   className,
   fill = false,
-}: {
-  children: ReactNode
-  className?: string
+  ...rest
+}: HTMLAttributes<HTMLDivElement> & {
   fill?: boolean
 }) {
   return (
     <div
+      {...rest}
       className={cx(
         "flex min-w-0 flex-col px-[2.1rem] pt-[1.6rem]",
         // A spacer, not padding: when the header and a board at its least overflow the window, the padding of a
         // full-height box would be left behind and the board would end at the window's edge.
-        fill ? "h-full gap-[1rem] after:h-[0.2rem] after:shrink-0 after:content-['']" : "gap-[1.5rem] pb-[2.2rem]",
+        "gap-[1.5rem]",
+        fill ? "h-full after:h-0 after:shrink-0 after:content-['']" : "pb-[2.2rem]",
         className,
       )}
     >
@@ -36,7 +37,7 @@ export function Page({
 }
 
 type Props = {
-  title: string
+  title: ReactNode
   /** The sidebar section this page is; a section marked beta gets its β beside the title. */
   section?: string
   /** A short line beside the title. While `busy` (the default) it has a spinner and is announced, as "Checking…". */
@@ -45,17 +46,22 @@ type Props = {
   intro?: ReactNode
   /** A link to the page's guide on the website, at the end of the intro. */
   guide?: { label: string; href: string }
-  /** On the right, bottom-aligned with the title block: the refresh button, a view switch, the page's one action. */
+  /** On the right, on the title's line on every page: the refresh button, a view switch, the page's one action. */
   actions?: ReactNode
   /**
-   * One line, for a page with a board: a smaller title, the intro behind an "i" beside it, the guide link after it. Set for every view
-   * of the page, so switching to the board moves nothing under the pointer.
+   * One line, for a page with a board: the intro behind an "i" beside the title, the guide link after it. Set for every
+   * view of the page, so switching to the board moves nothing under the pointer.
    */
   compact?: boolean
+  /** Before the title, for a page reached from another: its Back button. */
+  back?: ReactNode
+  /** For a page that moves focus to its title when it opens. */
+  headingRef?: Ref<HTMLHeadingElement>
 }
 
 /** The one page title row (DESIGN.md, Layout): display title, intro capped at 70ch, quiet actions on the right. */
-export function PageHeader({ title, section, status, busy = true, intro, guide, actions, compact }: Props) {
+export function PageHeader(props: Props) {
+  const { title, section, status, busy = true, intro, guide, actions, compact, back, headingRef } = props
   const m = useMessages(uiMessages)
   const introText = (intro || guide) && (
     <>
@@ -71,14 +77,17 @@ export function PageHeader({ title, section, status, busy = true, intro, guide, 
     </>
   )
   return (
-    <div className={cx("flex flex-wrap justify-between gap-4", compact ? "items-center" : "items-end")}>
+    <div className="flex flex-wrap items-start justify-between gap-4">
       {/* A basis, not the content, decides when the actions wrap: a status line appearing must not push them down. */}
       <div className="min-w-0 flex-1 basis-[24rem]">
-        <div className="flex min-w-0 items-baseline gap-[1.2rem]">
+        <div className="flex min-h-[2.1rem] min-w-0 items-baseline gap-[1.2rem]">
+          {back && <div className="shrink-0 self-center">{back}</div>}
           <h1
+            ref={headingRef}
+            tabIndex={headingRef ? -1 : undefined}
             className={cx(
-              "font-display font-extrabold leading-none tracking-[-0.035em]",
-              compact ? "text-[1.6rem]" : "text-[2.1rem]",
+              "min-w-0 font-display text-[2.1rem] font-extrabold leading-none tracking-[-0.035em] break-words",
+              headingRef && "step-heading",
             )}
           >
             {title}
@@ -86,7 +95,7 @@ export function PageHeader({ title, section, status, busy = true, intro, guide, 
           {/* Beside the heading, not in it: the β must not become part of the page's name for a screen reader. */}
           {section && <BetaBadge section={section} className="-ml-[0.5rem] self-center" />}
           {compact && intro && (
-            <InfoTip label={m.aboutPage(title)} className="-ml-[0.6rem] self-center">
+            <InfoTip label={m.aboutPage(String(title))} className="-ml-[0.6rem] self-center">
               {intro}
             </InfoTip>
           )}
