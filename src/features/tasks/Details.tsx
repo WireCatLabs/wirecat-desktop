@@ -15,7 +15,7 @@ import { AgentCell, AssigneeCell, DueCell, KindCell, PriorityCell, ProjectCell, 
 import { dueDay, stamp, type TaskWords, taskMessages } from "./messages"
 import { StaleLine } from "./Note"
 import { personName, StateLamp, TaskError, TaskLink, taskTitle } from "./parts"
-import { useTasks } from "./store"
+import { moveSlot, useTasks } from "./store"
 
 const isState = (v: unknown): v is State => typeof v === "string" && (STATES as readonly string[]).includes(v)
 
@@ -150,7 +150,7 @@ export function Details({
   const changed = Object.keys(edit).length > 0
   // A found task with no title of its own starts empty, and may stay so.
   const blank = title.trim() === "" && own !== ""
-  if (synced && saved && (changed || blank || failed)) setSaved(false)
+  if (synced && saved && (changed || blank || failed || stale)) setSaved(false)
   useEffect(() => onDirty?.(changed || commenting), [changed, commenting, onDirty])
   useEffect(() => () => onDirty?.(false), [onDirty])
   const reset = () => {
@@ -170,13 +170,15 @@ export function Details({
     setSaving(true)
     onSaving?.(true)
     // A field saved on blur may be writing still; this save needs the revision that write answers.
-    const waited = Boolean(useTasks.getState().busy[task.key])
+    const before = useTasks.getState()
+    const waited = Boolean(before.busy[task.key])
     await writesDone(task.key)
     const after = useTasks.getState()
     // That write's refusal is news to the owner: saving over it would hide it and overwrite what they have not seen.
-    const refused = waited && (after.stale?.key === task.key || after.failed[task.key])
-    // A move may have renamed the task meanwhile.
-    const key = after.open ?? task.key
+    const refused =
+      waited && (after.stale?.key === task.key || after.failed[task.key] || after.failed[moveSlot(task.key)])
+    // A move may have renamed this task; another task opened meanwhile must not receive this one's text.
+    const key = after.opened === before.opened ? (after.open ?? task.key) : task.key
     const ok = !refused && (await useTasks.getState().update(key, edit))
     setSaving(false)
     onSaving?.(false)

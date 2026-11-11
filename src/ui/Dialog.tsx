@@ -121,6 +121,12 @@ export function Dialog({
         e.preventDefault()
         requestClose()
       }}
+      // Chromium stops honouring preventDefault on a repeated cancel, so a dialog that may refuse takes Escape first.
+      onKeyDown={(e) => {
+        if (!canClose || e.key !== "Escape" || e.defaultPrevented) return
+        e.preventDefault()
+        requestClose()
+      }}
       onPointerDown={(e) => {
         pressedOutside.current = e.target === e.currentTarget
       }}
