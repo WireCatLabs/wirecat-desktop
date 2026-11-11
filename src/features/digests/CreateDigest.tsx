@@ -213,7 +213,9 @@ export function CreateDialog({
             shown={tried ? problem : null}
           />
           {failed?.name === draft.name && failed.what === "create" && (
-            <ErrorNotice inline>{m.failedCreate(failed.message)}</ErrorNotice>
+            <ErrorNotice raw={failed.message} inline>
+              {m.failedCreate}
+            </ErrorNotice>
           )}
         </div>
       )}

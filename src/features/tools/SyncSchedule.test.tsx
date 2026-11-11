@@ -87,9 +87,9 @@ describe("an account's sync on a timer", () => {
     const region = await screen.findByRole("region", { name: "Sync schedule of Email personal" })
     await user.click(within(region).getByRole("button", { name: "Sync on a schedule" }))
     await user.click(within(region).getByRole("button", { name: "Turn on" }))
-    expect(
-      await within(region).findByText("Could not change the schedule: systemctl --user is not available"),
-    ).toBeInTheDocument()
+    expect(await within(region).findByText("Could not change the schedule.")).toBeInTheDocument()
+    await user.click(within(region).getByRole("button", { name: "Details" }))
+    expect(await within(region).findByText("systemctl --user is not available")).toBeInTheDocument()
   })
 })
 

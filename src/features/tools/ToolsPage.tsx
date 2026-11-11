@@ -65,13 +65,13 @@ export function ToolsPage() {
       <NodeNotice />
       <StoreDamageLine />
       {error && (
-        <ErrorNotice action={<ReportThis what="Looking for WireCat tools" error={error.message} />}>
-          {m.inspectFailed(error.message)}
+        <ErrorNotice raw={error.message} action={<ReportThis what="Looking for WireCat tools" error={error.message} />}>
+          {m.inspectFailed}
         </ErrorNotice>
       )}
       {systemError && (
-        <ErrorNotice action={<ReportThis what="Checking Node.js and npm" error={systemError} />}>
-          {m.systemFailed(systemError)}
+        <ErrorNotice raw={systemError} action={<ReportThis what="Checking Node.js and npm" error={systemError} />}>
+          {m.systemFailed}
         </ErrorNotice>
       )}
 

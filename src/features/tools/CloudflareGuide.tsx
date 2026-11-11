@@ -229,7 +229,9 @@ export function CloudflareGuide({ cloudflare }: { cloudflare: ReturnType<typeof 
 
   if (!status)
     return error ? (
-      <ErrorNotice inline>{m.unreadable(error)}</ErrorNotice>
+      <ErrorNotice inline raw={error}>
+        {m.unreadable}
+      </ErrorNotice>
     ) : (
       <Skeleton className="h-[12rem] w-full" label={m.reading} />
     )

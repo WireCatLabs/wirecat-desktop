@@ -28,7 +28,7 @@ const en = {
   hint: (tool: string) =>
     `${tool} writes its own timer for this account. It runs while you are logged in, even when WireCat is closed.`,
   readFailed: "Could not read this account's schedule.",
-  failed: (message: string) => `Could not change the schedule: ${message}`,
+  failed: "Could not change the schedule.",
 }
 
 const durationRu = (every: string) => {
@@ -59,7 +59,7 @@ const ru: typeof en = {
   hint: (tool) =>
     `${tool} сам создаёт таймер для этого аккаунта. Он работает, пока вы вошли в систему, даже когда WireCat закрыт.`,
   readFailed: "Не удалось прочитать расписание этого аккаунта.",
-  failed: (message) => `Не удалось изменить расписание: ${message}`,
+  failed: "Не удалось изменить расписание.",
 }
 
 const durationEs = (every: string) => {
@@ -90,7 +90,7 @@ const es: typeof en = {
   hint: (tool) =>
     `${tool} crea su propio temporizador para esta cuenta. Funciona mientras tienes la sesión iniciada, aunque WireCat esté cerrado.`,
   readFailed: "No se pudo leer el horario de esta cuenta.",
-  failed: (message) => `No se pudo cambiar el horario: ${message}`,
+  failed: "No se pudo cambiar el horario.",
 }
 
 export type SyncScheduleText = typeof en

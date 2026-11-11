@@ -90,7 +90,9 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
         {ready && <span className="text-[0.85rem] text-ink-dim">{ready.stored ? m.own : m.shipped}</span>}
       </div>
       {readError ? (
-        <ErrorNotice inline>{all.readFailed(readError)}</ErrorNotice>
+        <ErrorNotice raw={readError} inline>
+          {all.readFailed}
+        </ErrorNotice>
       ) : value === null ? (
         <Skeleton className="h-[16rem] w-full" label={m.title} />
       ) : value.state === "unsupported" ? (
@@ -141,7 +143,11 @@ export function TemplatesCard({ name }: { name?: string | undefined }) {
           </div>
           {need.hint}
           {failed && <ErrorNotice inline>{m.failed(failed)}</ErrorNotice>}
-          {shown?.state === "failed" && <ErrorNotice inline>{m.previewFailed(shown.message)}</ErrorNotice>}
+          {shown?.state === "failed" && (
+            <ErrorNotice raw={shown.message} inline>
+              {m.previewFailed}
+            </ErrorNotice>
+          )}
           {shown?.state === "shown" && <Preview preview={shown.preview} />}
         </>
       )}

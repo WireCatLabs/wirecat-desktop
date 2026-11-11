@@ -65,7 +65,9 @@ export function SearchHarder({ tool }: { tool: CatalogTool }) {
       </h4>
       <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-ink-soft">{m.what}</p>
       <Collapse open={state.isError}>
-        <ErrorNotice inline>{state.isError && m.readFailed(messageOf(state.error))}</ErrorNotice>
+        <ErrorNotice inline raw={state.isError ? messageOf(state.error) : null}>
+          {state.isError && m.readFailed}
+        </ErrorNotice>
       </Collapse>
       <AutoHeight swap={view} className="max-w-[44rem]">
         <Crossfade swap={view}>
@@ -257,6 +259,7 @@ function Consent(props: {
       {!shown && !preview.isError && <Skeleton className="h-[6.5rem] w-full" label={m.checking} />}
       <Collapse open={preview.isError}>
         <ErrorNotice
+          raw={preview.isError ? messageOf(preview.error) : null}
           inline
           action={
             <Button
@@ -268,7 +271,7 @@ function Consent(props: {
             </Button>
           }
         >
-          {preview.isError && m.previewFailed(messageOf(preview.error))}
+          {preview.isError && m.previewFailed}
         </ErrorNotice>
       </Collapse>
       {shown && (

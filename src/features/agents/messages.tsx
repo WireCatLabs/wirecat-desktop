@@ -53,7 +53,7 @@ const en = {
   checkAgain: "Check again",
   checking: "Checking…",
   checkingLabel: "Checking",
-  lookFailed: (error: string) => `Could not look for AI agents: ${error}`,
+  lookFailed: "Could not look for AI agents.",
   noAgent: "No AI agent was found on this computer. Skills can still be written; an agent installed later reads them.",
   noTool: "No WireCat tool is installed yet. Each tool brings its own skill; install one on the Tools page first.",
   readingElsewhere: "Reading tasks and run logs",
@@ -371,7 +371,7 @@ const ru: typeof en = {
   checkAgain: "Проверить снова",
   checking: "Проверка…",
   checkingLabel: "Проверка",
-  lookFailed: (error) => `Не удалось найти ИИ-агентов: ${error}`,
+  lookFailed: "Не удалось найти ИИ-агентов.",
   noAgent:
     "На этом компьютере не найдено ни одного ИИ-агента. Навыки всё равно можно записать: агент, установленный позже, их прочитает.",
   noTool:
@@ -693,7 +693,7 @@ const es: typeof en = {
   checkAgain: "Comprobar de nuevo",
   checking: "Comprobando…",
   checkingLabel: "Comprobando",
-  lookFailed: (error) => `No se pudieron buscar agentes de IA: ${error}`,
+  lookFailed: "No se pudieron buscar agentes de IA.",
   noAgent:
     "No se ha encontrado ningún agente de IA en este ordenador. Las skills se pueden escribir igualmente; un agente instalado más tarde las leerá.",
   noTool:

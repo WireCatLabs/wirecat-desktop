@@ -145,6 +145,11 @@ const message = (e: unknown) => {
   )
 }
 
+/** Whether a row's failure is already one of the sentences above, rather than the tool's own text. */
+export const isWorded = (text: string) =>
+  Object.values(messagesOf(memoryMessages).revokeRefused).includes(text) ||
+  Object.values(messagesOf(reviewMessages).refused).includes(text)
+
 /** The installed memo takes back an agent's accepted fact. */
 export const canRevoke = (s: { read: MemoryRead | null }) => s.read?.kind === "ready" && s.read.revoke
 

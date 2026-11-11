@@ -81,7 +81,11 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
           {answer?.applied && ` ${m.applied(answer.applied.mode)}`}
         </InfoTip>
       )}
-      {set.error && <ErrorNotice inline>{m.scopeFailed(set.error.message)}</ErrorNotice>}
+      {set.error && (
+        <ErrorNotice inline raw={set.error.message}>
+          {m.scopeFailed}
+        </ErrorNotice>
+      )}
     </div>
   )
 }

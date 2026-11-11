@@ -53,7 +53,7 @@ const en = {
   namedNone: "WireCat found no names it knows in it.",
   namedPartial: "Only the first organizations were checked.",
   readingNames: "Looking for names…",
-  namesFailed: "Could not look for names in it:",
+  namesFailed: "Could not look for names in it.",
   readerNames: {
     "ai-model": "The AI model",
     "claude-code": "Claude Code",
@@ -127,7 +127,7 @@ const en = {
   use: "Your agents use these when they answer you. You can find the source later in Search.",
   another: "Add another",
   done: "Done",
-  failed: "Could not do it:",
+  failed: "Could not do it.",
   tooOldReaders: "Memo on this computer cannot read sources for facts yet. Update it on the Tools page to get facts.",
   reasons: {
     "memo.refused": "Memo refused it and gave no reason WireCat can show. Try again, or add it from a file.",
@@ -211,7 +211,7 @@ const ru: typeof en = {
   namedNone: "Знакомых WireCat имён в нём нет.",
   namedPartial: "Проверены только первые организации.",
   readingNames: "Ищем имена…",
-  namesFailed: "Не удалось найти в нём имена:",
+  namesFailed: "Не удалось найти в нём имена.",
   readerNames: {
     "ai-model": "модель ИИ",
     "claude-code": "Claude Code",
@@ -288,7 +288,7 @@ const ru: typeof en = {
   use: "Агенты опираются на это, когда отвечают вам. Источник найдётся в Поиске.",
   another: "Добавить ещё",
   done: "Готово",
-  failed: "Не получилось:",
+  failed: "Не получилось.",
   tooOldReaders:
     "Memo на этом компьютере пока не умеет искать факты в источниках. Обновите его на странице Инструменты.",
   reasons: {
@@ -374,7 +374,7 @@ const es: typeof en = {
   namedNone: "WireCat no encontró en él nombres que conozca.",
   namedPartial: "Solo se revisaron las primeras organizaciones.",
   readingNames: "Buscando nombres…",
-  namesFailed: "No se pudieron buscar nombres en él:",
+  namesFailed: "No se pudieron buscar nombres en él.",
   readerNames: {
     "ai-model": "El modelo de IA",
     "claude-code": "Claude Code",
@@ -451,7 +451,7 @@ const es: typeof en = {
   use: "Tus agentes los usan cuando te responden. Encuentras la fuente en Buscar.",
   another: "Añadir otra",
   done: "Listo",
-  failed: "No se pudo hacer:",
+  failed: "No se pudo hacer.",
   tooOldReaders:
     "Memo en este ordenador aún no puede sacar hechos de las fuentes. Actualízalo en la página Herramientas.",
   reasons: {

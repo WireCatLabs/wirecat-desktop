@@ -5,13 +5,13 @@ import { useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
-import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { holdInPlace } from "@/ui/motion"
 import { Select } from "@/ui/Select"
 import { kindOf } from "./labels"
 import { memoryMessages } from "./messages"
 import { explainedMessages } from "./messages-explained"
+import { RowFailed } from "./RowFailed"
 import { useMemory } from "./store"
 
 /** The field grows with the text, so the correction reads like the text it replaces. */
@@ -155,11 +155,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
       <p id={hint} className="text-[0.9rem] text-ink-dim">
         {m.fixHint}
       </p>
-      {failed && (
-        <ErrorNotice inline>
-          {m.writeFailed} {failed}
-        </ErrorNotice>
-      )}
+      {failed && <RowFailed failed={failed} />}
       <div className="flex gap-2">
         <Button
           size="sm"

@@ -61,8 +61,8 @@ export function LinkDoubts() {
             {kept && m.doubtKept(kept)}
           </p>
           {doubts.state === "failed" && (
-            <ErrorNotice inline>
-              {m.doubtsFailed} {doubts.error}
+            <ErrorNotice raw={doubts.error} inline>
+              {m.doubtsFailed}
             </ErrorNotice>
           )}
           {last ? (

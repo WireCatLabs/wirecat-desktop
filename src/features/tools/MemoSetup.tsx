@@ -171,7 +171,11 @@ export function MemoSetup({ tool }: { tool: CatalogTool }) {
       </h4>
       <p className="max-w-[70ch] text-[0.95rem] leading-relaxed text-ink-soft">{m.what}</p>
       {setup === null && loadError === null && <Skeleton className="h-[6rem] w-full max-w-[40rem]" />}
-      {loadError !== null && <ErrorNotice inline>{m.loadFailed(loadError)}</ErrorNotice>}
+      {loadError !== null && (
+        <ErrorNotice raw={loadError} inline>
+          {m.loadFailed}
+        </ErrorNotice>
+      )}
       {setup?.state === "noMemo" && <p className="text-[0.9rem] text-ink-soft">{m.noMemo}</p>}
       {setup?.state === "old" && <p className="text-[0.9rem] text-ink-soft">{m.old(setup.version, setup.need)}</p>}
       {ready && (

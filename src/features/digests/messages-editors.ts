@@ -2,7 +2,7 @@ import type { TemplateChannel } from "@/domain/digest-editors"
 import type { Messages } from "@/i18n"
 
 const en = {
-  readFailed: (message: string) => `Could not read it: ${message}`,
+  readFailed: "Could not read it.",
   saving: "Saving…",
   undo: "Undo last change",
   unchanged: "Nothing is changed yet.",
@@ -40,12 +40,12 @@ const en = {
     reset: "Reset to default",
     unsupported: "This Memo cannot change the digest's templates yet. Update Memo to edit them.",
     failed: (message: string) => `Not saved: ${message}`,
-    previewFailed: (message: string) => `Could not show a preview: ${message}`,
+    previewFailed: "Could not show a preview.",
   },
 }
 
 const ru: typeof en = {
-  readFailed: (message) => `Не удалось прочитать: ${message}`,
+  readFailed: "Не удалось прочитать.",
   saving: "Сохраняю…",
   undo: "Отменить последнее изменение",
   unchanged: "Пока ничего не изменено.",
@@ -83,12 +83,12 @@ const ru: typeof en = {
     reset: "Вернуть по умолчанию",
     unsupported: "Эта версия Memo пока не меняет шаблоны сводки. Обновите Memo, чтобы их править.",
     failed: (message) => `Не сохранено: ${message}`,
-    previewFailed: (message) => `Не удалось показать предпросмотр: ${message}`,
+    previewFailed: "Не удалось показать предпросмотр.",
   },
 }
 
 const es: typeof en = {
-  readFailed: (message) => `No se pudo leer: ${message}`,
+  readFailed: "No se pudo leer.",
   saving: "Guardando…",
   undo: "Deshacer el último cambio",
   unchanged: "Aún no has cambiado nada.",
@@ -127,7 +127,7 @@ const es: typeof en = {
     reset: "Volver a la predeterminada",
     unsupported: "Esta versión de Memo aún no cambia las plantillas del resumen. Actualiza Memo para editarlas.",
     failed: (message) => `No se guardó: ${message}`,
-    previewFailed: (message) => `No se pudo mostrar la vista previa: ${message}`,
+    previewFailed: "No se pudo mostrar la vista previa.",
   },
 }
 

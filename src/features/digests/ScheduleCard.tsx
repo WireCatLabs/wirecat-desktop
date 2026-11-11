@@ -557,7 +557,9 @@ export function ScheduleCard({
       </div>
       {unchanged.hint}
       {failed?.name === item.name && failed.what === "save" && (
-        <ErrorNotice inline>{m.form.failedSave(failed.message)}</ErrorNotice>
+        <ErrorNotice raw={failed.message} inline>
+          {m.form.failedSave}
+        </ErrorNotice>
       )}
     </section>
   )

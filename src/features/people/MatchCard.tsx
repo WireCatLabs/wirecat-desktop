@@ -345,8 +345,8 @@ function Side({
           <Skeleton className="h-[1.6rem] w-[70%]" />
         </div>
       ) : detail.state === "failed" ? (
-        <ErrorNotice inline>
-          {m.personFailed} {detail.error}
+        <ErrorNotice raw={detail.error} inline>
+          {m.personFailed}
         </ErrorNotice>
       ) : (
         <ul className="flex flex-col gap-[0.3rem]">

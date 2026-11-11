@@ -8,7 +8,7 @@ const en = {
     `Checks for new mail every ${every} and runs in Claude Code. One run costs at most $1.`,
   every: "How often",
   changing: "Changing…",
-  failedEvery: (message: string) => `Could not change how often it runs: ${message}`,
+  failedEvery: "Could not change how often it runs.",
   turningOn: "Turning on…",
   turningOff: "Turning off…",
   noMemo: "The mail agent runs in Memo. Install Memo to use it.",
@@ -33,9 +33,9 @@ const en = {
   noneWaiting: "Nothing waits for your decision.",
   review: "Review them in a terminal:",
   copyReview: "Copy the review command",
-  failedOn: (message: string) => `Could not turn the mail agent on: ${message}`,
-  failedOff: (message: string) => `Could not turn the mail agent off: ${message}`,
-  readFailed: (message: string) => `Could not read the schedule: ${message}`,
+  failedOn: "Could not turn the mail agent on.",
+  failedOff: "Could not turn the mail agent off.",
+  readFailed: "Could not read the schedule.",
 }
 
 const ru: typeof en = {
@@ -46,7 +46,7 @@ const ru: typeof en = {
     `Проверяет новую почту каждые ${every} и работает в Claude Code. Один запуск стоит не больше $1.`,
   every: "Как часто",
   changing: "Меняю…",
-  failedEvery: (message) => `Не удалось изменить частоту запуска: ${message}`,
+  failedEvery: "Не удалось изменить частоту запуска.",
   turningOn: "Включаю…",
   turningOff: "Выключаю…",
   noMemo: "Почтовый агент работает в Memo. Установите Memo, чтобы им пользоваться.",
@@ -84,9 +84,9 @@ const ru: typeof en = {
   noneWaiting: "Ничего не ждёт вашего решения.",
   review: "Просмотреть их в терминале:",
   copyReview: "Скопировать команду просмотра",
-  failedOn: (message) => `Не удалось включить почтового агента: ${message}`,
-  failedOff: (message) => `Не удалось выключить почтового агента: ${message}`,
-  readFailed: (message) => `Не удалось прочитать расписание: ${message}`,
+  failedOn: "Не удалось включить почтового агента.",
+  failedOff: "Не удалось выключить почтового агента.",
+  readFailed: "Не удалось прочитать расписание.",
 }
 
 const es: typeof en = {
@@ -97,7 +97,7 @@ const es: typeof en = {
     `Busca correo nuevo cada ${every} y se ejecuta en Claude Code. Cada ejecución cuesta como mucho 1 $.`,
   every: "Con qué frecuencia",
   changing: "Cambiando…",
-  failedEvery: (message) => `No se pudo cambiar la frecuencia: ${message}`,
+  failedEvery: "No se pudo cambiar la frecuencia.",
   turningOn: "Activando…",
   turningOff: "Desactivando…",
   noMemo: "El agente de correo funciona en Memo. Instala Memo para usarlo.",
@@ -122,9 +122,9 @@ const es: typeof en = {
   noneWaiting: "Nada espera tu decisión.",
   review: "Revisa las propuestas en una terminal:",
   copyReview: "Copiar el comando de revisión",
-  failedOn: (message) => `No se pudo activar el agente de correo: ${message}`,
-  failedOff: (message) => `No se pudo desactivar el agente de correo: ${message}`,
-  readFailed: (message) => `No se pudo leer el horario: ${message}`,
+  failedOn: "No se pudo activar el agente de correo.",
+  failedOff: "No se pudo desactivar el agente de correo.",
+  readFailed: "No se pudo leer el horario.",
 }
 
 export type MailAgentText = typeof en

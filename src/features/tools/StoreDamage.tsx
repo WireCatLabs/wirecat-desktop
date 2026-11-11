@@ -62,8 +62,12 @@ export function StoreDamage({ tool }: { tool: CatalogTool }) {
 
   if (error)
     return (
-      <ErrorNotice inline action={<ReportThis what="Checking the message store" tool={tool.id} error={error} />}>
-        {m.failed(error)}
+      <ErrorNotice
+        inline
+        raw={error}
+        action={<ReportThis what="Checking the message store" tool={tool.id} error={error} />}
+      >
+        {m.failed}
       </ErrorNotice>
     )
   if (report === undefined) return <Skeleton className="h-10 w-full" label={m.checking} />

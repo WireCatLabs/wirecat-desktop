@@ -87,8 +87,12 @@ function ProfileList(props: {
   const m = useMessages(toolsMessages).health
   if (error) {
     return (
-      <ErrorNotice inline action={<ReportThis what={`Listing ${tool.name} profiles`} tool={tool.id} error={error} />}>
-        {m.profilesFailed(error)}
+      <ErrorNotice
+        raw={error}
+        inline
+        action={<ReportThis what={`Listing ${tool.name} profiles`} tool={tool.id} error={error} />}
+      >
+        {m.profilesFailed}
       </ErrorNotice>
     )
   }

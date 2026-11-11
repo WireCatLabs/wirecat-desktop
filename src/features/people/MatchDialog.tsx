@@ -286,8 +286,8 @@ function Column({
       <Cell first>
         <h3 className="text-[1.08rem] leading-[1.25] font-semibold text-ink">{name}</h3>
         {failed ? (
-          <ErrorNotice inline>
-            {m.personFailed} {failed}
+          <ErrorNotice raw={failed} inline>
+            {m.personFailed}
           </ErrorNotice>
         ) : person ? (
           <ul className="flex flex-col gap-[0.3rem]">
@@ -336,8 +336,8 @@ function Column({
       </Cell>
       <Cell label={m.activity}>
         {profile?.state === "failed" ? (
-          <ErrorNotice inline>
-            {m.profileFailed} {profile.error}
+          <ErrorNotice raw={profile.error} inline>
+            {m.profileFailed}
           </ErrorNotice>
         ) : ready ? (
           <dl className="grid grid-cols-2 gap-x-[1rem] gap-y-[0.5rem]">

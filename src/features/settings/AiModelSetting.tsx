@@ -96,8 +96,8 @@ function AiModelSection() {
         ) : error === REFUSED ? (
           <ErrorNotice inline>{m.refused}</ErrorNotice>
         ) : (
-          <ErrorNotice inline>
-            {m.failed} {error}
+          <ErrorNotice raw={error} inline>
+            {m.failed}
           </ErrorNotice>
         )
       ) : model === null ? (

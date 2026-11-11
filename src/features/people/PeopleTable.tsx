@@ -319,8 +319,8 @@ function AccountResult({ account }: { account: string }) {
       ) : found.state === "none" ? (
         <span className="text-ink-soft">{m.noAccount(account)}</span>
       ) : found.state === "failed" ? (
-        <ErrorNotice inline>
-          {m.readFailed} {found.error}
+        <ErrorNotice raw={found.error} inline>
+          {m.readFailed}
         </ErrorNotice>
       ) : (
         <span className="flex flex-wrap items-center gap-x-3">

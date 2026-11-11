@@ -839,7 +839,7 @@ export function memoryMock(): Pick<
         page,
         activity: scenario === "none" ? [] : ACTIVITY,
         activityError: null,
-        linksError: null,
+        linksError: params.get("memory-links") === "failed" ? "the command failed; this is a bug" : null,
         revoke: params.get("memory-revoke") !== "old",
         roles,
       }

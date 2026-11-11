@@ -22,8 +22,8 @@ export function ReaderLine() {
     return tooOldFor(error) ? (
       <p className="text-[0.95rem] text-ink-soft">{m.tooOldReaders}</p>
     ) : (
-      <ErrorNotice inline>
-        {m.failed} {error}
+      <ErrorNotice raw={error} inline>
+        {m.failed}
       </ErrorNotice>
     )
   if (readers === null) return <Skeleton className="h-[1.2rem] w-[50%]" />
@@ -81,8 +81,8 @@ function InlineChoice({ readers }: { readers: Reader[] }) {
         </Button>
       </p>
       {chooseError && (
-        <ErrorNotice inline>
-          {m.failed} {chooseError}
+        <ErrorNotice raw={chooseError} inline>
+          {m.failed}
         </ErrorNotice>
       )}
     </div>

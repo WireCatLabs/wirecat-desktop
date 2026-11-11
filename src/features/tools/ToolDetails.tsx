@@ -131,7 +131,9 @@ function DeleteDataChoice(props: {
       <div className="mt-2 ml-[1.6rem] min-h-[6rem]">
         {data.folders === null ? (
           data.error ? (
-            <ErrorNotice inline>{m.foldersFailed(data.error)}</ErrorNotice>
+            <ErrorNotice raw={data.error} inline>
+              {m.foldersFailed}
+            </ErrorNotice>
           ) : (
             <Skeleton className="h-[6rem] w-full" label={m.readingFolders} />
           )

@@ -51,7 +51,7 @@ type Words = {
   scopeAbout: string
   applied: (mode: "mine" | "all") => string
   scopeSaving: string
-  scopeFailed: (reason: string) => string
+  scopeFailed: string
   amount: string
   organization: string
   people: string
@@ -89,7 +89,7 @@ const en: Words = {
   pipeline: "Pipeline",
   ownAccount: "Your own",
   allAccounts: "Every account",
-  readFailed: "Memo could not read the deals.",
+  readFailed: "Could not read the deals.",
   crmWhy: "Deals you add here work without one; a CRM brings in the deals and leads you keep there.",
   notices: "Notices",
   crmChip: {
@@ -138,7 +138,7 @@ const en: Words = {
   scopeAbout: "About the sync scope",
   applied: (mode) => `Last sync downloaded: ${mode === "all" ? "everyone's" : "mine"}.`,
   scopeSaving: "Saving and syncing…",
-  scopeFailed: (reason) => `The sync scope did not change: ${reason}`,
+  scopeFailed: "The sync scope did not change.",
   amount: "Amount",
   organization: "Company",
   people: "People",
@@ -182,7 +182,7 @@ const ru: Words = {
   pipeline: "Воронка",
   ownAccount: "Ваша собственная",
   allAccounts: "Все аккаунты",
-  readFailed: "Memo не смог прочитать сделки.",
+  readFailed: "Не удалось прочитать сделки.",
   crmWhy: "Сделки, добавленные здесь, работают и без неё; CRM приносит сделки и лиды, которые вы ведёте там.",
   notices: "Уведомления",
   crmChip: {
@@ -232,7 +232,7 @@ const ru: Words = {
   scopeAbout: "Об охвате синхронизации",
   applied: (mode) => `Последняя синхронизация скачала: ${mode === "all" ? "все" : "мои"}.`,
   scopeSaving: "Сохраняю и синхронизирую…",
-  scopeFailed: (reason) => `Охват синхронизации не изменился: ${reason}`,
+  scopeFailed: "Охват синхронизации не изменился.",
   amount: "Сумма",
   organization: "Компания",
   people: "Люди",
@@ -278,7 +278,7 @@ const es: Words = {
   pipeline: "Embudo",
   ownAccount: "El tuyo",
   allAccounts: "Todas las cuentas",
-  readFailed: "Memo no pudo leer las negociaciones.",
+  readFailed: "No se pudieron leer las negociaciones.",
   crmWhy:
     "Las negociaciones que añades aquí funcionan sin él; un CRM trae las negociaciones y los leads que llevas allí.",
   notices: "Avisos",
@@ -329,7 +329,7 @@ const es: Words = {
   scopeAbout: "Sobre el alcance de la sincronización",
   applied: (mode) => `La última sincronización descargó: ${mode === "all" ? "de todos" : "mías"}.`,
   scopeSaving: "Guardando y sincronizando…",
-  scopeFailed: (reason) => `El alcance de la sincronización no cambió: ${reason}`,
+  scopeFailed: "El alcance de la sincronización no cambió.",
   amount: "Importe",
   organization: "Empresa",
   people: "Personas",

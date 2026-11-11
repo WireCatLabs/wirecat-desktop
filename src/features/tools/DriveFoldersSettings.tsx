@@ -90,6 +90,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
           <Skeleton className="h-10 w-full" />
         ) : chosen.state === "failed" ? (
           <ErrorNotice
+            raw={chosen.message}
             inline
             action={
               <Button size="sm" variant="secondary" onClick={load}>
@@ -97,7 +98,7 @@ export function DriveFoldersSettings(props: { tool: CatalogTool; profile: string
               </Button>
             }
           >
-            {m.listFailed(chosen.message)}
+            {m.listFailed}
           </ErrorNotice>
         ) : chosen.folders.length === 0 ? (
           <p className="text-[0.9rem] font-medium text-ink">{m.none}</p>

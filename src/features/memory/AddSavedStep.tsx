@@ -131,8 +131,8 @@ export function SourceCard({ added }: { added: AddedSource }) {
         {!stored || stored.state === "loading" ? (
           <Skeleton className="h-[4rem] w-full rounded-[0.35rem]" label={m.readingText} />
         ) : stored.state === "failed" ? (
-          <ErrorNotice inline>
-            {m.failed} {stored.error}
+          <ErrorNotice raw={stored.error} inline>
+            {m.failed}
           </ErrorNotice>
         ) : (
           <p className="selectable max-h-[16rem] overflow-y-auto rounded-[0.35rem] border border-line bg-app px-[0.8rem] py-[0.6rem] text-[0.95rem] whitespace-pre-line">
@@ -161,8 +161,8 @@ function Mentions() {
       {!mentions || mentions.state === "loading" ? (
         <Skeleton className="h-[2rem] w-[60%]" label={m.readingNames} />
       ) : mentions.state === "failed" ? (
-        <ErrorNotice inline>
-          {m.namesFailed} {mentions.error}
+        <ErrorNotice raw={mentions.error} inline>
+          {m.namesFailed}
         </ErrorNotice>
       ) : mentions.mentions.items.length === 0 ? (
         <p className="text-[0.95rem] text-ink-dim">{m.namedNone}</p>

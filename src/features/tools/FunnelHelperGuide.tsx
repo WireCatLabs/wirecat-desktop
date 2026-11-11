@@ -116,7 +116,9 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
           )}
           {!installed && outcome?.event === "failed" && (
             <div className="pl-6">
-              <ErrorNotice inline>{`${m.installFailed} ${outcome.message}`}</ErrorNotice>
+              <ErrorNotice inline raw={outcome.message}>
+                {m.installFailed}
+              </ErrorNotice>
             </div>
           )}
         </li>

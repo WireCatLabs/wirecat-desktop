@@ -128,10 +128,11 @@ export function SkillOffer({ tool }: { tool: CatalogTool }) {
       <Collapse open={Boolean(failure) && !working}>
         {failure && (
           <ErrorNotice
+            raw={failure}
             inline
             action={<ReportThis what={`Adding the ${tool.name} skill`} tool={tool.id} error={failure} />}
           >
-            {m.failed} {failure}
+            {m.failed}
           </ErrorNotice>
         )}
       </Collapse>

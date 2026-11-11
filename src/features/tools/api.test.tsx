@@ -33,6 +33,7 @@ describe("a tool's profiles", () => {
   it("say why they could not be listed", async () => {
     vi.spyOn(platform, "listProfiles").mockRejectedValue(new Error("tg is not installed"))
     render(<Health tool={tg} />)
+    await userEvent.click(await screen.findByRole("button", { name: "Details" }))
     expect(await screen.findByText(/tg is not installed/)).toBeInTheDocument()
   })
 
@@ -77,7 +78,7 @@ describe("a tool's permissions", () => {
     const show = vi.spyOn(platform, "permissionsShow").mockRejectedValueOnce(new Error("config is broken"))
     render(<Permissions tool={tg} />)
     open()
-    expect(await screen.findByText("Could not read permissions: config is broken")).toBeInTheDocument()
+    expect(await screen.findByText("Could not read permissions.")).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "Read permissions again" }))
     expect(await screen.findByRole("list", { name: "Telegram permissions" })).toBeInTheDocument()
     expect(screen.queryByText(/Could not read permissions/)).not.toBeInTheDocument()

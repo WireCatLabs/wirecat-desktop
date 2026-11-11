@@ -139,7 +139,9 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
           </div>
           <p className="text-[0.85rem] text-ink-dim">{m.hint(tool.name)}</p>
           <Collapse open={error !== null}>
-            <ErrorNotice inline>{error && m.failed(error)}</ErrorNotice>
+            <ErrorNotice inline raw={error}>
+              {error && m.failed}
+            </ErrorNotice>
           </Collapse>
         </div>
       </Collapse>

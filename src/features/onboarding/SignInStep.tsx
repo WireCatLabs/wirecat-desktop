@@ -141,10 +141,11 @@ function SignInRow({
       <div className={accountsArea}>
         {error ? (
           <ErrorNotice
+            raw={error}
             inline
             action={<ReportThis what={`Listing ${tool.name} accounts`} tool={tool.id} error={error} />}
           >
-            {m.listFailed(error)}
+            {m.listFailed}
           </ErrorNotice>
         ) : profiles === undefined ? (
           <AccountsSkeleton tool={tool} />

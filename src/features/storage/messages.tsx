@@ -123,11 +123,11 @@ const en = {
     </>
   ),
   schema: (n: number) => `schema ${n}`,
-  readError: (error: string) => `Could not read storage: ${error}`,
+  readError: "Could not read storage.",
   noTool:
     "Install a WireCat tool to see what is in storage: the installed tool that reads the newest schema counts it for the app.",
   notCreated: "Storage is not created yet. It appears after the first sync.",
-  didNotOpen: (problem: string) => `Storage is there but did not open: ${problem}`,
+  didNotOpen: "Storage is there but did not open.",
   total: {
     messages: "Messages",
     chats: "Chats",
@@ -285,7 +285,7 @@ const en = {
   tableGroups: "Show tables",
   allTables: "All",
   listLater: (tool: string) => `The table list arrives with the next update of ${tool}.`,
-  listError: (error: string) => `Could not list the tables: ${error}`,
+  listError: "Could not list the tables.",
   findTable: "Find a table",
   noMatch: (query: string) => `No table name contains “${query}”.`,
   searchTables: (n: number) => `Search index tables (${n})`,
@@ -398,11 +398,11 @@ const ru: typeof en = {
     </>
   ),
   schema: (n) => `схема ${n}`,
-  readError: (error) => `Не удалось прочитать хранилище: ${error}`,
+  readError: "Не удалось прочитать хранилище.",
   noTool:
     "Установите инструмент WireCat, чтобы увидеть, что лежит в хранилище: его посчитает тот установленный инструмент, который знает самую новую схему.",
   notCreated: "Хранилище ещё не создано. Оно появится после первой синхронизации.",
-  didNotOpen: (problem) => `Хранилище есть, но не открылось: ${problem}`,
+  didNotOpen: "Хранилище есть, но не открылось.",
   total: {
     messages: "Сообщения",
     chats: "Чаты",
@@ -560,7 +560,7 @@ const ru: typeof en = {
   tableGroups: "Показать таблицы",
   allTables: "Все",
   listLater: (tool) => `Список таблиц появится со следующим обновлением ${tool}.`,
-  listError: (error) => `Не удалось получить список таблиц: ${error}`,
+  listError: "Не удалось получить список таблиц.",
   findTable: "Найти таблицу",
   noMatch: (query) => `Нет таблиц, в названии которых есть «${query}».`,
   searchTables: (n) => `Таблицы поисковых индексов (${n})`,
@@ -672,11 +672,11 @@ const es: typeof en = {
     </>
   ),
   schema: (n) => `esquema ${n}`,
-  readError: (error) => `No se pudo leer el almacenamiento: ${error}`,
+  readError: "No se pudo leer el almacenamiento.",
   noTool:
     "Instala una herramienta de WireCat para ver qué hay en el almacenamiento: lo cuenta la herramienta instalada que lee el esquema más reciente.",
   notCreated: "El almacenamiento aún no existe. Aparece tras la primera sincronización.",
-  didNotOpen: (problem) => `El almacenamiento existe, pero no se abrió: ${problem}`,
+  didNotOpen: "El almacenamiento existe, pero no se abrió.",
   total: {
     messages: "Mensajes",
     chats: "Chats",
@@ -835,7 +835,7 @@ const es: typeof en = {
   tableGroups: "Mostrar tablas",
   allTables: "Todas",
   listLater: (tool) => `La lista de tablas llega con la próxima actualización de ${tool}.`,
-  listError: (error) => `No se pudieron listar las tablas: ${error}`,
+  listError: "No se pudieron listar las tablas.",
   findTable: "Buscar una tabla",
   noMatch: (query) => `Ningún nombre de tabla contiene «${query}».`,
   searchTables: (n) => `Tablas de índices de búsqueda (${n})`,
