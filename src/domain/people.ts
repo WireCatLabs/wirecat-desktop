@@ -35,7 +35,7 @@ export const touched = (...refs: (string | null | undefined)[]) => [...new Set(r
 
 const QUOTES = "\"'`«»“”„‘’"
 
-/** Words a source writes for a missing name, and a bare `#123` id: never a name (memo's display_name drops them too). */
+/** Words a source writes for a missing name, and a bare `#123` id: never a name. memo's display_name can hold them. */
 const PLACEHOLDER = /(^|\s)(null|undefined|Без имени|Deleted Account|#\d+)(?=\s|$)/giu
 
 /**
@@ -47,6 +47,10 @@ export function cleanName(name: string | null | undefined): string | null {
   while (s.length > 1 && QUOTES.includes(s[0] ?? "") && QUOTES.includes(s.at(-1) ?? "")) s = s.slice(1, -1).trim()
   return /\p{L}/u.test(s) ? s : null
 }
+
+/** For a value that is already memo's display_name, which falls back to a phone number: that number stays. */
+export const nameOrNumber = (name: string | null | undefined) =>
+  cleanName(name) ?? (/^\+?[\d\s()-]*\d[\d\s()-]*$/.test(name ?? "") ? (name ?? "").trim() : null)
 
 /**
  * The one way the app names a person from a list row: memo's display_name, else a cleaned name, else their phone,

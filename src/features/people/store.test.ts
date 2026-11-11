@@ -6,6 +6,7 @@ import { usePeople } from "./store"
 const person = (ref: string, over: Partial<PersonDetail> = {}): PersonDetail => ({
   ref,
   name: ref,
+  displayName: null,
   mergedInto: null,
   identities: [],
   merges: [],

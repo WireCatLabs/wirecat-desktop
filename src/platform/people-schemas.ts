@@ -101,7 +101,7 @@ export const PeopleReadSchema = v.variant("kind", [
 export const PersonDetailSchema = v.object({
   ref: v.string(),
   name: text,
-  displayName: v.optional(text),
+  displayName: v.optional(text, null),
   /** The person asked for was merged into this one, whose ref `ref` is. */
   mergedInto: text,
   identities: v.array(

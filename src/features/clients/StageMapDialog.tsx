@@ -13,7 +13,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
 import { Segmented } from "@/ui/Segmented"
 import { SplitButton } from "@/ui/SplitButton"
-import { type Based, useBaseEdit, useBoard, useConfirm, useMapSet, useStageName } from "./api"
+import { type Based, useBaseEdit, useBoard, useConfirm, useConfirming, useMapSet, useStageName } from "./api"
 import { AddStage, StageMenu, StageRename } from "./BaseStageTools"
 import { OutcomeLamp } from "./Card"
 import { clientMessages } from "./messages"
@@ -49,7 +49,8 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
   const names = useStageName(kind)
   const pipeline = useClients((st) => st.pipeline[kind] ?? null)
   const set = useMapSet(kind, pipeline)
-  const confirm = useConfirm(kind, pipeline)
+  const confirm = useConfirm(kind)
+  const confirming = useConfirming()
   const edit = useBaseEdit(kind, pipeline)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [problem, setProblem] = useState<{ ref: string; text: string } | null>(null)
@@ -83,7 +84,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
     if (!el) return
     el.focus()
     if (document.activeElement === el) focusTo.current = null
-  }, [layout, set.isPending, confirm.isPending])
+  }, [layout, set.isPending, confirming])
   const waiting = columns.get(UNMAPPED) ?? []
   const badgeOf = (ref: string) => `[data-card="${ref}"]`
   /** After a stage leaves Unmapped, the next one there (its confirm, when memo suggests a place), else the stage. */
@@ -125,7 +126,7 @@ function StageMap({ read, kind, asked }: { read: Based; kind: Kind; asked: strin
       putBack: (ref, reason) => m.putBack(label(ref), reason),
     },
   })
-  const busy = edit.isPending || confirm.isPending
+  const busy = edit.isPending || confirming
   const dragged = drag ? byRef.get(drag.key) : undefined
   const failed = set.error ?? confirm.error ?? edit.error
 

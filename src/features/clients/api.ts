@@ -1,4 +1,4 @@
-import { keepPreviousData, useMutation, useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useIsMutating, useMutation, useQuery } from "@tanstack/react-query"
 import { withBaseMove, withMapping } from "@/domain/base-stages"
 import { crmToolOf, findTool } from "@/domain/catalog"
 import { accountKey, type Kind, writerProfile } from "@/domain/clients"
@@ -161,7 +161,11 @@ export function useScopeSet(account: CrmAccount | null, profile: string | null) 
 /** A pipeline's stage onto a base stage; it moves at once and goes back if memo refuses. */
 /** memo's store takes one write at a time: the map writes wait in line, and the owner never waits for the button. */
 const MAP_WRITES = { id: "clients-map" }
+const MAP_CONFIRM = "confirm"
 const mapWritesLeft = () => queryClient().isMutating({ mutationKey: [MAP_WRITES.id] })
+/** Every kind's board: the line of writes is shared, so the last write may be another kind's. */
+const refreshAfterMapWrite = () =>
+  mapWritesLeft() <= 1 ? queryClient().invalidateQueries({ queryKey: clientKeys.all }) : undefined
 
 export function useMapSet(kind: Kind, pipeline: string | null) {
   const key = clientKeys.board(kind, pipeline)
@@ -182,21 +186,24 @@ export function useMapSet(kind: Kind, pipeline: string | null) {
     },
     // Counts per base column change with the mapping: memo counts them again once the line is empty, so a read that
     // ends between two writes never puts back a stage the owner has already moved.
-    onSettled: () => (mapWritesLeft() <= 1 ? queryClient().invalidateQueries({ queryKey: key }) : undefined),
+    onSettled: refreshAfterMapWrite,
   })
 }
 
 /** memo's suggestions confirmed pipeline by pipeline: one CRM's only, and one write at a time, as memo's store allows. */
-export function useConfirm(kind: Kind, pipeline: string | null) {
+export function useConfirm(kind: Kind) {
   return useMutation({
-    mutationKey: [MAP_WRITES.id],
+    mutationKey: [MAP_WRITES.id, MAP_CONFIRM],
     scope: MAP_WRITES,
     mutationFn: async (pipelines: readonly string[]) => {
       for (const p of pipelines) await platform.clientsMapConfirm(kind, p)
     },
-    onSettled: () => queryClient().invalidateQueries({ queryKey: clientKeys.board(kind, pipeline) }),
+    onSettled: refreshAfterMapWrite,
   })
 }
+
+/** Confirming runs from the dialog and from the page's notice: either one makes the other wait. */
+export const useConfirming = () => useIsMutating({ mutationKey: [MAP_WRITES.id, MAP_CONFIRM] }) > 0
 
 export function useBaseEdit(kind: Kind, pipeline: string | null) {
   return useMutation({

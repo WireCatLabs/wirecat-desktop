@@ -6,6 +6,7 @@ import { platform } from "@/platform/bridge"
 import { type CrmWriter, clientsMock, NORTHSTAR } from "@/platform/mock-clients"
 import { useTools } from "@/shared/tools-store"
 import { act, fireEvent, render, screen, waitFor, within } from "@/testing/render"
+import type { Based } from "./api"
 import { COLUMN_PAGE } from "./BaseBoard"
 import { ClientsPage } from "./ClientsPage"
 import { useClients } from "./store"
@@ -467,17 +468,59 @@ describe("Confirming a CRM's stages", () => {
 describe("Accepting every CRM's suggestions from the notice", () => {
   beforeEach(() => freshMemo())
 
-  it("confirms every CRM's suggestions from the stage chip at once, and the chip goes with them", async () => {
-    const confirm = vi.spyOn(platform, "clientsMapConfirm")
+  const memoWith = (change: (read: Based) => Based) => {
+    const memo = clientsMock("none")
+    vi.spyOn(platform, "clientsRead").mockImplementation(async (kind) => {
+      const r = await memo.clientsRead(kind)
+      return r.kind === "base" ? change(r) : r
+    })
+    return vi.spyOn(platform, "clientsMapConfirm").mockImplementation(memo.clientsMapConfirm)
+  }
+  const acceptAll = async () => {
     const user = userEvent.setup()
     render(<ClientsPage />)
     await user.click(await screen.findByRole("button", { name: /stages to confirm/ }, { timeout: 4000 }))
     await user.click(await screen.findByRole("button", { name: /^Accept all \(\d+\)$/ }))
+  }
+
+  it("confirms every CRM's suggestions, leaves the owner's own pipelines, and the chip goes", async () => {
+    const confirm = memoWith((r) => ({
+      ...r,
+      pipelines: [
+        ...r.pipelines,
+        ...r.pipelines.slice(0, 1).map((p) => ({ ...p, ref: "pipeline:own", account: null })),
+      ],
+      mapping: [
+        ...r.mapping.filter((x) => x.base),
+        ...r.mapping
+          .filter((x) => x.base && !x.confirmed)
+          .slice(0, 1)
+          .map((x) => ({ ...x, ref: "stage:own", pipeline: "pipeline:own" })),
+      ],
+    }))
+    await acceptAll()
     await waitFor(() => expect(confirm).toHaveBeenCalledWith("deal", "pipeline:11"), { timeout: 4000 })
     expect(confirm).toHaveBeenCalledWith("deal", "pipeline:9")
-    await waitFor(() => expect(screen.queryByRole("button", { name: /stages to confirm/ })).toBeNull(), {
+    await waitFor(() => expect(screen.queryByRole("button", { name: /stages? to confirm/ })).toBeNull(), {
       timeout: 4000,
     })
+    expect(confirm).not.toHaveBeenCalledWith("deal", "pipeline:own")
+  })
+
+  it("keeps the chip for a stage memo could not place, and says the suggestions are done", async () => {
+    memoWith((r) => r)
+    await acceptAll()
+    expect(await screen.findByText("Every suggestion is confirmed.", {}, { timeout: 4000 })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /1 stage to confirm/ })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /^Accept all/ })).toBeNull()
+  })
+
+  it("makes the stage dialog wait while the notice's Accept all runs", async () => {
+    memoWith((r) => r)
+    await acceptAll()
+    await userEvent.setup().click(screen.getByRole("button", { name: "Confirm stages" }))
+    const map = await screen.findByRole("dialog", { name: "Deal stages of your CRMs" })
+    expect(within(map).getByRole("button", { name: /^Accept suggestions/ })).toBeDisabled()
   })
 })
 

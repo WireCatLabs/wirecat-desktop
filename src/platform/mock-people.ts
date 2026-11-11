@@ -28,7 +28,7 @@ const BUSY = "another process holds the store (store.busy); try again in a minut
 const DAY = 86_400_000
 const ago = (ms: number) => new Date(Date.now() - ms).toISOString()
 
-type Held = Omit<PersonDetail, "matches">
+type Held = Omit<PersonDetail, "matches" | "displayName">
 
 const account = (
   identity: string,
@@ -406,6 +406,7 @@ export function peopleMock(): Pick<
   }
   const shown = (ref: string): PersonDetail => ({
     ...find(ref),
+    displayName: display(find(ref)),
     matches: matches.filter((m) => m.persons.includes(ref)),
   })
   /** As cli-core's settleLinks: the pairs left name the person that stays, and one match is kept per pair. */
@@ -430,7 +431,7 @@ export function peopleMock(): Pick<
     await delay(500)
     if (fail === "write") throw new Error(BUSY)
   }
-  /** As memo's display_name: the name unquoted, else a handle, phone or email; never a placeholder. */
+  /** As memo's display_name: the name unquoted, else a handle, phone or email. */
   const display = (p: Held) => {
     const name = p.name?.replace(/^["\s]+|["\s]+$/g, "") ?? ""
     if (/\p{L}/u.test(name) && !/^(null|Без имени)$/.test(name) && !name.includes("#")) return name
