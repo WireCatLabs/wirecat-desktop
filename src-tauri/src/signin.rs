@@ -385,7 +385,7 @@ mod tests {
         assert!(args(b24, "webhook", "work", typed("https://acme.bitrix24.ru/rest/api/12/s3cr3tk3y/")).is_ok());
         let prepared = args(b24, "webhook", "work", typed(&format!(" {hook} "))).unwrap();
         assert_eq!(prepared.args, ["work", "session", "start", "--json"]);
-        assert!(prepared.env.is_empty());
+        assert_eq!(prepared.env.len(), 0);
         assert_eq!(prepared.stdin.as_deref().map(String::as_str), Some(hook));
         for bad in [
             "http://acme.bitrix24.ru/rest/12/s3cr3tk3y/",
