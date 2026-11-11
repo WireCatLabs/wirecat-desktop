@@ -11,15 +11,13 @@ import {
   type Tab,
 } from "@/domain/memory"
 import { gapFromRead } from "@/domain/needs"
-import { toolStatus } from "@/domain/status"
-import { openTool, ToolNeeded } from "@/features/tools"
+import { ToolNeeded } from "@/features/tools"
 import { type Lang, useLang, useMessages } from "@/i18n"
 import type { MemoryEntry } from "@/platform/memory-schemas"
 import { DemoNote } from "@/shared/DemoNote"
 import { useNav } from "@/shared/nav"
 import { Page, PageHeader } from "@/shared/Page"
 import { ReportThis } from "@/shared/ReportThis"
-import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
@@ -46,32 +44,18 @@ import { MEMORY_PAGE_SIZES, useMemory } from "./store"
 const guide = (lang: Lang) => `https://wirecat.dev/${lang}/docs/memo/memories`
 const TABS: Tab[] = ["review", "inuse", "discarded", "all"]
 
+// A memo too old to read is the page's ToolNeeded line, with its update; a failed read only retries.
 function ReadFailedActions({ what, error }: { what: string; error: string }) {
   const m = useMessages(memoryMessages)
   const reading = useMemory((s) => s.reading)
-  const outdated = useTools(
-    (s) => toolStatus(s.installs.memo, s.latest?.memo ?? null, s.sessions.memo).kind === "outdated",
-  )
   return (
     <>
       <RefreshButton
         busy={reading}
         onClick={() => void useMemory.getState().load()}
-        label={m.readAgain}
+        label={m.tryAgain}
         busyLabel={m.reading}
       />
-      {outdated && (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => {
-            void useTools.getState().install("memo", { check: true })
-            openTool("memo")
-          }}
-        >
-          {m.updateTool}
-        </Button>
-      )}
       <ReportThis what={what} error={error} />
     </>
   )

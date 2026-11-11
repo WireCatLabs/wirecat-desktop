@@ -321,7 +321,7 @@ describe("Memory", () => {
     expect(screen.queryByText(/did not finish in time/)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Details" }))
     expect(await screen.findByText("the program did not finish in time")).toBeInTheDocument()
-    expect(within(screen.getByRole("alert")).getByRole("button", { name: "Read again" })).toBeInTheDocument()
+    expect(within(screen.getByRole("alert")).getByRole("button", { name: "Try again" })).toBeInTheDocument()
   })
   it("decides a mixed group: relationship proposals in one call, a memory on its own", async () => {
     const link = { ref: "relationship:5", type: "relationship", status: "proposed" } as MemoryEntry
