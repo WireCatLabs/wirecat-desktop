@@ -40,7 +40,7 @@ describe("an account row", () => {
       within(menu)
         .getAllByRole("menuitem")
         .map((i) => i.textContent),
-    ).toEqual(["Check", "Settings", "Remove account…"])
+    ).toEqual(["Check", "Settings", "Remove account"])
   })
 
   it("shows a check's result under the row it was asked from, and folds it away", async () => {
@@ -95,7 +95,7 @@ const plan = (data: "kept" | "deleted", dryRun: boolean): Removal => ({
 })
 
 const openRemove = async (profile = "work") => {
-  await userEvent.click(within(await openMenu(profile)).getByRole("menuitem", { name: "Remove account…" }))
+  await userEvent.click(within(await openMenu(profile)).getByRole("menuitem", { name: "Remove account" }))
   return screen.getByRole("dialog", { name: `Remove ${profile}?` })
 }
 

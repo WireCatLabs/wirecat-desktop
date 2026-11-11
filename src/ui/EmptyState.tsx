@@ -21,7 +21,7 @@ export function EmptyState({ title, children, action, busy = false }: Props) {
         busy && "opacity-60",
       )}
     >
-      {titled && <p className="font-medium text-ink">{title}</p>}
+      {titled && <div className="font-medium text-ink">{title}</div>}
       {children != null && children !== "" && <div className={cx("max-w-[70ch]", titled && "mt-1")}>{children}</div>}
       {action && <div className="mt-3">{action}</div>}
     </div>

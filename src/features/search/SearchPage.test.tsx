@@ -110,10 +110,10 @@ describe("Search", () => {
       .map((o) => o.textContent)
     expect(options[0]).toContain("from:")
     expect(options.some((o) => o?.startsWith("chat:"))).toBe(true)
-    expect(options.some((o) => o?.startsWith("has:photo"))).toBe(true)
+    expect(options.some((o) => o?.startsWith("has:link"))).toBe(true)
     expect(within(list).getByText("Try")).toBeInTheDocument()
 
-    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}")
+    await user.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{Enter}")
     expect(bar).toHaveValue("has:")
     expect(within(screen.getByRole("listbox")).getByRole("option", { name: /^voice/ })).toBeInTheDocument()
     await user.keyboard("{Escape}")
@@ -389,12 +389,12 @@ describe("Search", () => {
     const bar = screen.getByRole("combobox", { name: "Search messages" })
 
     await user.click(bar)
-    await user.click(await screen.findByRole("option", { name: /has:photo date>=7d/ }))
-    expect(bar).toHaveValue("has:photo date>=7d ")
+    await user.click(await screen.findByRole("option", { name: /has:link date>=30d/ }))
+    expect(bar).toHaveValue("has:link date>=30d ")
 
     await user.type(bar, "chat:des")
     await user.click(await screen.findByRole("option", { name: /Design crit/ }))
-    expect(bar).toHaveValue('has:photo date>=7d chat:"-1001001" ')
+    expect(bar).toHaveValue('has:link date>=30d chat:"-1001001" ')
     const chip = screen.getByRole("button", { name: "Edit chat: Design crit" })
     expect(chip).toHaveAttribute("title", 'chat: Design crit\nchat:"-1001001"')
     expect(bar).toHaveAccessibleDescription(/Names in this search: chat: Design crit/)
@@ -406,7 +406,7 @@ describe("Search", () => {
     await user.click(chip)
     expect([input.selectionStart, input.selectionEnd]).toEqual([19, 34])
     await user.keyboard("{End}{ArrowLeft}{Backspace}")
-    expect(bar).toHaveValue("has:photo date>=7d")
+    expect(bar).toHaveValue("has:link date>=30d")
     expect(screen.queryByRole("button", { name: "Edit chat: Design crit" })).not.toBeInTheDocument()
   }, 15000)
 

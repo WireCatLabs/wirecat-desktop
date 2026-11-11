@@ -4,12 +4,13 @@ import { errorMessage } from "@/domain/connect-guide"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { McpServerStatus, OAuthSettings } from "@/platform/mcp-server-schemas"
+import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { APPS, type AppId, type AppStep, connectorName } from "./connect-apps"
-import { Link, Note, Para } from "./connect-parts"
+import { Note, Para } from "./connect-parts"
 import { LoginCode } from "./LoginCode"
 import { connectMessages } from "./messages-connect"
 
@@ -52,7 +53,7 @@ export function ConnectStep(props: { tool: CatalogTool; app: AppId; server: McpS
               {step.link && (
                 <>
                   {" "}
-                  <Link href={step.link.href}>{m.appLinks[step.link.label]}</Link>
+                  <ExtLink href={step.link.href}>{m.appLinks[step.link.label]}</ExtLink>
                 </>
               )}
             </span>
@@ -69,7 +70,7 @@ export function ConnectStep(props: { tool: CatalogTool; app: AppId; server: McpS
         {spec.help && (
           <>
             {" "}
-            <Link href={spec.help}>{words.help}</Link>.
+            <ExtLink href={spec.help}>{words.help}</ExtLink>.
           </>
         )}
       </Note>

@@ -74,7 +74,7 @@ it("turns on only after the consent step shows what is sent, to whom, how many, 
   const turnOn = vi.spyOn(platform, "enrichmentOn").mockResolvedValue({ ...on, enriched: 0, pending: 10_444 })
   render(<Enrichment tool={memo} />)
 
-  fireEvent.click(await screen.findByRole("button", { name: "Turn on…" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
 
   const consent = await screen.findByRole("region", { name: "What turning it on sends" })
   expect(preview).toHaveBeenCalledWith("memo", "openai", "gpt-4o-mini")
@@ -103,7 +103,7 @@ it("asks memo again for the other offer, and turns on with that one", async () =
   const turnOn = vi.spyOn(platform, "enrichmentOn").mockResolvedValue(on)
   render(<Enrichment tool={memo} />)
 
-  fireEvent.click(await screen.findByRole("button", { name: "Turn on…" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
   fireEvent.click(await screen.findByRole("radio", { name: /Anthropic claude-haiku-5-5/ }))
 
   expect(
@@ -122,11 +122,11 @@ it("cancelling the consent step sends nothing", async () => {
   const turnOn = vi.spyOn(platform, "enrichmentOn")
   render(<Enrichment tool={memo} />)
 
-  fireEvent.click(await screen.findByRole("button", { name: "Turn on…" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
   await screen.findByText(/10,444 records now/)
   fireEvent.click(screen.getByRole("button", { name: "Cancel" }))
 
-  expect(await screen.findByRole("button", { name: "Turn on…" })).toBeInTheDocument()
+  expect(await screen.findByRole("button", { name: "Turn on" })).toBeInTheDocument()
   expect(turnOn).not.toHaveBeenCalled()
 })
 
@@ -211,7 +211,7 @@ it("asks before turning off, says the model's text is deleted, then says how muc
   const turnOff = vi.spyOn(platform, "enrichmentOff").mockResolvedValue({ ...off, deleted: 10_160 })
   render(<Enrichment tool={memo} />)
 
-  fireEvent.click(await screen.findByRole("button", { name: "Turn off…" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Turn off" }))
   const dialog = await screen.findByRole("dialog", { name: "Turn off and delete the model's text?" })
   expect(within(dialog).getByText(/the model wrote for 10,160 records/)).toBeInTheDocument()
   expect(turnOff).not.toHaveBeenCalled()
@@ -228,7 +228,7 @@ it("shows memo's words when turning on fails, and stays off", async () => {
   vi.spyOn(platform, "enrichmentOn").mockRejectedValue(new Error("permission denied"))
   render(<Enrichment tool={memo} />)
 
-  fireEvent.click(await screen.findByRole("button", { name: "Turn on…" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
   fireEvent.click(await screen.findByRole("button", { name: /^Send 10,444 records/ }))
 
   expect(await screen.findByText("Could not turn it on: permission denied")).toBeInTheDocument()
@@ -242,7 +242,7 @@ it("says a memo without the command needs an update", async () => {
   expect(
     await screen.findByText("Memo 0.131.50 cannot rewrite records yet. It comes with a Memo update."),
   ).toBeInTheDocument()
-  expect(screen.queryByRole("button", { name: "Turn on…" })).toBeNull()
+  expect(screen.queryByRole("button", { name: "Turn on" })).toBeNull()
 })
 
 const synced = (enrichment: object) =>
@@ -358,7 +358,7 @@ it("saving a key in the consent step asks memo's preview again", async () => {
   vi.spyOn(platform, "enrichmentKeySet").mockResolvedValue(off)
   render(<Enrichment tool={memo} />)
 
-  fireEvent.click(await screen.findByRole("button", { name: "Turn on…" }))
+  fireEvent.click(await screen.findByRole("button", { name: "Turn on" }))
   fireEvent.change(await screen.findByLabelText("API key for OpenAI"), { target: { value: TYPED } })
   fireEvent.click(screen.getByRole("button", { name: "Save key" }))
 

@@ -2,6 +2,7 @@ import { useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { useMessages } from "@/i18n"
 import { Dialog } from "@/ui/Dialog"
+import { LinkButton } from "@/ui/LinkButton"
 import { toolsMessages } from "./messages"
 import { permissionsMessages } from "./messages-permissions"
 import { LEVELS } from "./permission-levels"
@@ -15,13 +16,9 @@ export function LevelsHelp({ tool }: { tool: CatalogTool }) {
   const groups = (tool.permissions?.groups ?? []).filter((g) => g.key in m.groups)
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded text-[0.875rem] font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-      >
+      <LinkButton onClick={() => setOpen(true)} className="text-[0.875rem]">
         {m.open}
-      </button>
+      </LinkButton>
       <Dialog open={open} wide scroll title={m.title} onClose={() => setOpen(false)}>
         <p>{m.intro(tool.bin)}</p>
         <dl className="mt-3 flex flex-col gap-2.5">

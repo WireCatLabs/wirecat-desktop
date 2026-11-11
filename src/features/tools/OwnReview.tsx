@@ -5,31 +5,28 @@ import { useLang, useMessages } from "@/i18n"
 import type { OwnReview, OwnSignal, OwnUpdate } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
 import { ExtLink } from "@/shared/ExtLink"
-import { externalHref } from "@/shared/external-href"
 import { ownToolsDocs } from "@/shared/own-tools-docs"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Checkbox } from "@/ui/Checkbox"
+import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import type { FieldNeed } from "@/ui/FieldError"
 import { InfoTip } from "@/ui/InfoTip"
+import { noticeBox } from "@/ui/notice"
 import { Pill } from "@/ui/Pill"
 import type { OwnText } from "./messages-own"
 import { type OwnReviewText, ownReviewMessages } from "./messages-own-review"
 import { signalWords } from "./own-signals"
 
 export function WarnBox({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1 rounded-[0.35rem] border border-warn/40 bg-warn/5 px-3.5 py-3 text-[0.95rem] text-ink">
-      {children}
-    </div>
-  )
+  return <div className={cx("flex flex-col gap-1 text-body text-ink", noticeBox("warn"))}>{children}</div>
 }
 
 /** Red, because the access it describes is the whole of the owner's data; no `alert` role, since nothing went wrong. */
 export function Danger({ lines, m }: { lines: string[]; m: OwnText }) {
   const lang = useLang()
   return (
-    <div className="flex gap-3 rounded-[0.35rem] border border-bad/50 bg-bad/10 px-3.5 py-3 text-[0.95rem] text-ink">
+    <div className={cx("flex gap-3 text-body text-ink", noticeBox("bad"))}>
       <ShieldAlert className="mt-[0.15rem] size-5 shrink-0 text-bad" aria-hidden />
       <div className="flex flex-col gap-1">
         <ul className="flex flex-col gap-1">
@@ -39,14 +36,9 @@ export function Danger({ lines, m }: { lines: string[]; m: OwnText }) {
             </li>
           ))}
         </ul>
-        <button
-          type="button"
-          className="mt-1 self-start text-brand underline hover:text-brand-hover"
-          onClick={() => platform.openUrl(ownToolsDocs(lang))}
-          {...externalHref(ownToolsDocs(lang))}
-        >
+        <ExtLink href={ownToolsDocs(lang)} className="mt-1 self-start">
           {m.docs}
-        </button>
+        </ExtLink>
       </div>
     </div>
   )

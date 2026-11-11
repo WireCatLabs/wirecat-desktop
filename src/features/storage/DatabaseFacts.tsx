@@ -12,6 +12,7 @@ import { Button } from "@/ui/Button"
 import { CopyField } from "@/ui/CopyField"
 import { Disclosure, DisclosureSkeleton } from "@/ui/Disclosure"
 import { Lamp } from "@/ui/Lamp"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { storageMessages } from "./messages"
 
@@ -33,9 +34,9 @@ export function DatabaseFacts({ info }: { info: StoreInfo }) {
   return (
     <section aria-labelledby="database-title" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 id="database-title" className="text-[1rem] font-semibold">
+        <SectionTitle as="h3" id="database-title">
           {m.storageFile}
-        </h3>
+        </SectionTitle>
         <CheckButton />
       </div>
       <dl className="grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)] gap-x-[1.2rem] gap-y-2 text-[0.95rem]">
@@ -170,9 +171,9 @@ export function DatabaseFactsSkeleton() {
   return (
     <section aria-labelledby="database-title" className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 id="database-title" className="text-[1rem] font-semibold">
+        <SectionTitle as="h3" id="database-title">
           {m.storageFile}
-        </h3>
+        </SectionTitle>
         <CheckButton />
       </div>
       <dl className="grid grid-cols-[minmax(7rem,9rem)_minmax(0,1fr)] gap-x-[1.2rem] gap-y-2 text-[0.95rem]">

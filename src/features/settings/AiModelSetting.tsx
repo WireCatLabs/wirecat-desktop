@@ -18,6 +18,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { FieldError, useFieldError } from "@/ui/FieldError"
 import { fieldClass } from "@/ui/field"
 import { SecretField } from "@/ui/SecretField"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { aiModelMessages, SAVE_REASONS, type SaveReason } from "./messages-ai-model"
@@ -85,9 +86,9 @@ function AiModelSection() {
   return (
     <section id="ai-model" aria-labelledby={head} className="flex scroll-mt-4 flex-col gap-3">
       <div>
-        <h3 id={head} className="font-medium">
+        <SectionTitle as="h3" id={head}>
           {m.heading}
-        </h3>
+        </SectionTitle>
         <p className="mt-1 max-w-[70ch] text-[0.9rem] text-ink-soft">{m.intro}</p>
       </div>
       {error ? (

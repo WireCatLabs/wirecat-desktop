@@ -7,6 +7,7 @@ import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { focusInPlace } from "@/ui/motion"
+import { noticeBox } from "@/ui/notice"
 import { preflightMessages } from "./messages-preflight"
 import { namesOf } from "./StorageFit"
 
@@ -47,11 +48,7 @@ export function PreflightNotice(props: {
   }
   const name = nameOf(owner)
   return (
-    <div
-      ref={box}
-      role="alert"
-      className="reveal w-full rounded-[0.4rem] border border-warn/40 bg-warn/10 px-4 py-3 text-[0.95rem]"
-    >
+    <div ref={box} role="alert" className={cx("reveal w-full text-body", noticeBox("warn"))}>
       <p className="flex items-center gap-2 font-medium text-ink">
         <AlertTriangle className="size-5 shrink-0 text-warn-ink" aria-hidden />
         {m.title(op, preflight.version ? `${name} ${preflight.version}` : name)}

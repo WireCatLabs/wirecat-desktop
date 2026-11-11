@@ -2,6 +2,7 @@ import { type ReactNode, useEffect, useId, useState } from "react"
 import { Collapse } from "./Collapse"
 import { cx } from "./cx"
 import { ExpandChevron } from "./ExpandChevron"
+import { noticeFrame } from "./notice"
 
 export type Notice = {
   id: string
@@ -59,8 +60,8 @@ export function NoticeChips({ notices, label }: { notices: readonly Notice[]; la
           {open && (
             <div
               className={cx(
-                "rounded-[0.2rem] border px-[1.1rem] py-[0.9rem] text-[0.95rem]",
-                open.tone === "warn" ? "border-warn/40 bg-warn/10" : "border-line-strong bg-app",
+                "px-[1.1rem] py-[0.9rem] text-[0.95rem]",
+                open.tone === "warn" ? noticeFrame("warn") : "rounded-[0.2rem] border border-line-strong bg-app",
               )}
             >
               {open.body}

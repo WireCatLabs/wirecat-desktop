@@ -1,13 +1,13 @@
-import { Check, Copy, ExternalLink } from "lucide-react"
+import { Check, Copy } from "lucide-react"
 import { Fragment, useEffect, useState } from "react"
 import { tools } from "@/domain/catalog"
 import { type Lang, useLang, useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { useReport } from "@/shared/report-store"
 import { useSystem } from "@/shared/system-store"
 import { useTools } from "@/shared/tools-store"
 import { Dialog } from "@/ui/Dialog"
+import { LinkButton } from "@/ui/LinkButton"
 import { Monogram } from "@/ui/Logo"
 import { aboutMessages } from "./messages"
 
@@ -90,17 +90,13 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5">
             {links(lang).map((l) => (
               <li key={l.href}>
-                <LinkButton href={l.href}>{m[l.label]}</LinkButton>
+                <ExtLink href={l.href} className="font-medium">
+                  {m[l.label]}
+                </ExtLink>
               </li>
             ))}
             <li>
-              <button
-                type="button"
-                onClick={report}
-                className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-              >
-                {m.report}
-              </button>
+              <LinkButton onClick={report}>{m.report}</LinkButton>
             </li>
           </ul>
         </nav>
@@ -108,7 +104,11 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
         <p className="border-line border-t pt-4 text-[0.875rem] text-ink-dim">
           {m.madeBy(AUTHOR, COPYRIGHT_YEAR)}
           <br />
-          {m.license(<LinkButton href={`${REPO}/blob/main/LICENSE`}>{LICENSE}</LinkButton>)}
+          {m.license(
+            <ExtLink href={`${REPO}/blob/main/LICENSE`} className="font-medium">
+              {LICENSE}
+            </ExtLink>,
+          )}
         </p>
       </div>
     </Dialog>
@@ -150,21 +150,6 @@ function CopyButton({ text }: { text: string }) {
       <span className="sr-only" aria-live="polite">
         {copied ? m.copiedAnnounce : ""}
       </span>
-    </button>
-  )
-}
-
-function LinkButton({ href, children }: { href: string; children: string }) {
-  return (
-    <button
-      type="button"
-      title={href}
-      onClick={() => platform.openUrl(href)}
-      {...externalHref(href)}
-      className="inline-flex items-center gap-1 font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-    >
-      {children}
-      <ExternalLink className="size-[0.85em] shrink-0" strokeWidth={1.8} aria-hidden />
     </button>
   )
 }

@@ -9,6 +9,7 @@ import { externalHref } from "@/shared/external-href"
 import { useNav } from "@/shared/nav"
 import { Collapse } from "@/ui/Collapse"
 import { ExpandChevron } from "@/ui/ExpandChevron"
+import { LinkButton } from "@/ui/LinkButton"
 import { nextMessages } from "./messages-next"
 
 type Item = { key: string; label: string; hint?: string; open: () => void; href?: string }
@@ -92,14 +93,9 @@ export function ToolNext(props: {
         <ul aria-label={m.can(tool.name)} className="grid gap-x-6 gap-y-2 px-[1.3rem] pt-1 pb-[1rem] sm:grid-cols-2">
           {items.map((i) => (
             <li key={i.key} className="min-w-0">
-              <button
-                type="button"
-                onClick={i.open}
-                {...(i.href && externalHref(i.href))}
-                className="text-left font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline"
-              >
+              <LinkButton onClick={i.open} {...(i.href && externalHref(i.href))}>
                 {i.label}
-              </button>
+              </LinkButton>
               {i.hint && <p className="text-[0.875rem] leading-snug text-ink-soft">{i.hint}</p>}
             </li>
           ))}

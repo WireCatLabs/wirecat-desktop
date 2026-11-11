@@ -52,7 +52,7 @@ const en = {
   clearNothing: "Storage is not created yet, so there is nothing to clear.",
   clearWhat: "Deletes every message, chat, email, document and meeting in storage. Settings and sign-ins stay.",
   clearing: "Clearing…",
-  clearOpen: "Clear storage…",
+  clearOpen: "Clear storage",
 
   password: "Password",
   repeat: "Repeat password",
@@ -166,7 +166,7 @@ const ru: typeof en = {
   clearNothing: "Хранилище ещё не создано, очищать нечего.",
   clearWhat: "Удаляет все сообщения, чаты, письма, документы и встречи в хранилище. Настройки и входы остаются.",
   clearing: "Очищаем…",
-  clearOpen: "Очистить хранилище…",
+  clearOpen: "Очистить хранилище",
 
   password: "Пароль",
   repeat: "Повторите пароль",
@@ -284,7 +284,7 @@ const es: typeof en = {
   clearWhat:
     "Borra todos los mensajes, chats, correos, documentos y reuniones del almacenamiento. Los ajustes y los inicios de sesión se quedan.",
   clearing: "Vaciando…",
-  clearOpen: "Vaciar el almacenamiento…",
+  clearOpen: "Vaciar el almacenamiento",
 
   password: "Contraseña",
   repeat: "Repite la contraseña",

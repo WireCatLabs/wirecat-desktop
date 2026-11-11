@@ -18,6 +18,7 @@ import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { fieldFocus } from "@/ui/field"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { GroupCard, Profiles } from "./GroupCard"
 import { groupsMessages } from "./messages"
@@ -45,9 +46,7 @@ export function GroupsSetting() {
   return (
     <section aria-labelledby="groups-title" className="flex flex-col gap-4 border-t border-line pt-[1.5rem]">
       <div>
-        <h2 id="groups-title" className="text-[1.05rem] font-semibold">
-          {m.title}
-        </h2>
+        <SectionTitle id="groups-title">{m.title}</SectionTitle>
         <p className="mt-1 max-w-[70ch] text-[0.95rem] text-ink-soft">{m.intro}</p>
       </div>
       {readError ? (

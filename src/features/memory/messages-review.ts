@@ -32,7 +32,7 @@ const en = {
   useWording: "Edit with this wording",
   answers: {
     stillTrue: "Still true",
-    dismiss: "Dismiss…",
+    dismiss: "Dismiss",
     correct: "Edit",
     withdraw: "No longer true",
   },
@@ -88,7 +88,7 @@ const ru: typeof en = {
   useWording: "Исправить на эту формулировку",
   answers: {
     stillTrue: "Всё ещё верно",
-    dismiss: "Отклонить…",
+    dismiss: "Отклонить",
     correct: "Исправить",
     withdraw: "Уже неверно",
   },
@@ -144,7 +144,7 @@ const es: typeof en = {
   useWording: "Editar con esta redacción",
   answers: {
     stillTrue: "Sigue siendo cierto",
-    dismiss: "Descartar…",
+    dismiss: "Descartar",
     correct: "Editar",
     withdraw: "Ya no es cierto",
   },

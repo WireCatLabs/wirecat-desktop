@@ -11,9 +11,11 @@ import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
 import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
+import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp, type LampTone } from "@/ui/Lamp"
+import { noticeBox } from "@/ui/notice"
 import { Skeleton } from "@/ui/Skeleton"
 import { useConnect } from "./connect"
 import { type ConnectPlan, type StepState, type StepText, useConnectFlow } from "./connect-flow"
@@ -213,10 +215,7 @@ export function ConnectDialog({
           </Collapse>
           {chat && <ChatWarning agentName={agent.name} />}
           {chatOthers.length > 0 && (
-            <div
-              role="note"
-              className="flex items-start gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-4 py-3 text-[0.95rem]"
-            >
+            <div role="note" className={cx("flex items-start gap-2 text-body", noticeBox("warn"))}>
               <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
               <p className="max-w-[70ch]">{m.chatSharers(chatOthers)}</p>
             </div>
@@ -273,10 +272,7 @@ function ChatWarning({ agentName }: { agentName: string }) {
     return <p className="max-w-[70ch] text-[0.9rem] text-ink-soft">{m.noChats(agentName)}</p>
   const stopped = chats.state === "ready" && chats.data.running === false
   return (
-    <div
-      role="note"
-      className="flex items-start gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-4 py-3 text-[0.95rem]"
-    >
+    <div role="note" className={cx("flex items-start gap-2 text-body", noticeBox("warn"))}>
       <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
       <p className="max-w-[70ch]">
         {chats.state === "ready" ? m.chatsReady(agentName, apps, stopped) : m.chatsFailed(agentName, chats.error)}

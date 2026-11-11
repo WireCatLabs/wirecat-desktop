@@ -148,7 +148,7 @@ function Rack() {
     return query.trim() ? (
       <EmptyState
         action={
-          <Button size="sm" variant="ghost" className="-ml-2" onClick={() => useTasks.getState().setQuery("")}>
+          <Button size="sm" onClick={() => useTasks.getState().setQuery("")}>
             {m.clear}
           </Button>
         }

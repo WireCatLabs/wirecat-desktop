@@ -63,7 +63,7 @@ function ScopeSwitch({ account, pipelines }: { account: CrmAccount; pipelines: r
       {why === "profile" && writesWith && (
         <Button
           size="sm"
-          variant="ghost"
+          variant="secondary"
           onClick={() =>
             useClients.getState().ask({ account, profiles: writesWith.profiles, why: writesWith.why, move: null })
           }

@@ -1,10 +1,11 @@
-import { Link2Off } from "lucide-react"
 import { useEffect, useRef } from "react"
 import { referenceOf } from "@/domain/links"
 import { useMessages } from "@/i18n"
 import { useNav } from "@/shared/nav"
+import { Page, PageHeader } from "@/shared/Page"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
+import { EmptyState } from "@/ui/EmptyState"
 import { focusInPlace } from "@/ui/motion"
 import { linkMessages } from "./messages"
 import { useLinks } from "./store"
@@ -28,32 +29,28 @@ export function LinkPage() {
   const reference = target ? referenceOf(target) : null
 
   return (
-    <div className="flex flex-col gap-[1.5rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
-      <div className="max-w-[44rem] rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem]">
-        <div className="flex items-start gap-3">
-          <Link2Off className="mt-[0.2rem] size-5 shrink-0 text-ink-dim" aria-hidden />
-          <div className="min-w-0">
-            <h1 ref={heading} tabIndex={-1} className="step-heading text-[1.15rem] font-semibold text-ink">
-              {title}
-            </h1>
-            <p className="mt-1 max-w-[70ch] text-[0.95rem] text-ink-soft">{body}</p>
-            {reference && (
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-[0.85rem] text-ink-dim">{m.reference}</span>
-                <code className="min-w-0 truncate rounded-[0.2rem] bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
-                  {reference}
-                </code>
-                <CopyButton value={reference} label={m.copyReference} />
-              </div>
-            )}
-            {canBack && (
-              <Button size="sm" variant="secondary" className="mt-4" onClick={() => useNav.getState().back()}>
-                {m.back}
-              </Button>
-            )}
+    <Page>
+      <PageHeader title={title} headingRef={heading} />
+      <EmptyState
+        action={
+          canBack && (
+            <Button size="sm" variant="secondary" onClick={() => useNav.getState().back()}>
+              {m.back}
+            </Button>
+          )
+        }
+      >
+        <p>{body}</p>
+        {reference && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-[0.85rem] text-ink-dim">{m.reference}</span>
+            <code className="min-w-0 truncate rounded-[0.2rem] bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
+              {reference}
+            </code>
+            <CopyButton value={reference} label={m.copyReference} />
           </div>
-        </div>
-      </div>
-    </div>
+        )}
+      </EmptyState>
+    </Page>
   )
 }

@@ -164,7 +164,7 @@ it("names the recommended model only as the best local model, its word model lin
   expect(models).toHaveTextContent("Best local model")
   expect(models).toHaveTextContent("Lighter, faster model")
   expect(models).not.toHaveTextContent("Gemma")
-  fireEvent.click(screen.getByRole("button", { name: "model" }))
+  fireEvent.click(screen.getByRole("link", { name: "model" }))
   expect(open).toHaveBeenCalledWith("https://ai.google.dev/gemma/terms")
 })
 

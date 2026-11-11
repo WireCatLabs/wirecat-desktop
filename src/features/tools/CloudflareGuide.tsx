@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import type { CloudflareStatus } from "@/platform/cloudflare-schemas"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { OpenLink } from "@/shared/OpenLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -66,23 +66,10 @@ function Note({ children }: { children: ReactNode }) {
   return <p className="max-w-[62ch] text-[0.9rem] text-ink-dim">{children}</p>
 }
 
-function Link({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      className="text-brand underline hover:text-brand-hover"
-      onClick={() => platform.openUrl(href)}
-      {...externalHref(href)}
-    >
-      {children}
-    </button>
-  )
-}
-
 function InstallStep({ s, m, check }: { s: CloudflareStatus; m: Words; check(): Promise<void> }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  if (!s.supported) return <Para>{m.unsupported(<Link href={PAGES.downloads}>{m.downloads}</Link>)}</Para>
+  if (!s.supported) return <Para>{m.unsupported(<ExtLink href={PAGES.downloads}>{m.downloads}</ExtLink>)}</Para>
   const download = async () => {
     setBusy(true)
     setError(null)
@@ -164,7 +151,10 @@ function AccountStep({ again, m, check }: { again: boolean; m: Words; check(): P
       {error && <ErrorNotice inline>{error}</ErrorNotice>}
       {!again && (
         <Note>
-          {m.noAccount(<Link href={PAGES.signUp}>{m.signUp}</Link>, <Link href={PAGES.addDomain}>{m.addDomain}</Link>)}
+          {m.noAccount(
+            <ExtLink href={PAGES.signUp}>{m.signUp}</ExtLink>,
+            <ExtLink href={PAGES.addDomain}>{m.addDomain}</ExtLink>,
+          )}
         </Note>
       )}
     </>

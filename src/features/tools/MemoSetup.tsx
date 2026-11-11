@@ -5,7 +5,7 @@ import type { SyncSummary } from "@/domain/sync"
 import { useMessages } from "@/i18n"
 import type { NotesFolder, NotesModel, NotesProblem, NotesSetup } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
+import { ExtLink } from "@/shared/ExtLink"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Dialog } from "@/ui/Dialog"
@@ -432,15 +432,9 @@ function ModelName({ model, m }: { model: NotesModel; m: NotesSetupText }) {
   const s = useMessages(searchModelMessages)
   if (model.role === "recommended") {
     const word = model.terms ? (
-      <button
-        type="button"
-        title={model.terms}
-        onClick={() => model.terms && platform.openUrl(model.terms)}
-        {...externalHref(model.terms)}
-        className="font-semibold text-brand underline-offset-4 hover:text-brand-hover hover:underline"
-      >
+      <ExtLink href={model.terms} className="font-medium">
         {s.modelWord}
-      </button>
+      </ExtLink>
     ) : (
       s.modelWord
     )
@@ -519,7 +513,7 @@ function ModelStepView(props: {
           <div className="flex items-center gap-3">
             <span className="text-[0.875rem] text-ink-dim">{text}</span>
             {step.phase === "downloading" && (
-              <Button size="sm" variant="ghost" onClick={onStop}>
+              <Button size="sm" variant="secondary" onClick={onStop}>
                 {m.modelCancel}
               </Button>
             )}

@@ -18,7 +18,7 @@ describe("a link the system cannot open", () => {
     await user.click(screen.getByRole("button", { name: "Help" }))
     await user.click(screen.getByRole("menuitem", { name: "About WireCat" }))
     await user.click(
-      within(await screen.findByRole("dialog", { name: "About WireCat" })).getByRole("button", { name: "Website" }),
+      within(await screen.findByRole("dialog", { name: "About WireCat" })).getByRole("link", { name: "Website" }),
     )
 
     const failed = await screen.findByRole("dialog", { name: "The link did not open" })

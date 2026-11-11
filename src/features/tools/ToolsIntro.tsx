@@ -5,6 +5,7 @@ import { useNav } from "@/shared/nav"
 import { useOnboarding } from "@/shared/onboarding-store"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
+import { LinkButton } from "@/ui/LinkButton"
 import { toolsMessages } from "./messages"
 
 const KEY = "wirecat.tools.intro"
@@ -33,15 +34,7 @@ export function ToolsIntro() {
   const m = useMessages(toolsMessages).intro
   if (hidden && !none) return null
   const em = (text: string) => <span className="font-medium text-ink">{text}</span>
-  const link = (text: string) => (
-    <button
-      type="button"
-      onClick={() => go("agents")}
-      className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-    >
-      {text}
-    </button>
-  )
+  const link = (text: string) => <LinkButton onClick={() => go("agents")}>{text}</LinkButton>
   const steps = [m.install(em), m.signIn(em), m.connect(link)]
 
   return (

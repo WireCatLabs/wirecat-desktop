@@ -1,4 +1,4 @@
-import { RefreshCw, Terminal } from "lucide-react"
+import { Terminal } from "lucide-react"
 import { type ReactNode, useEffect, useId, useState } from "react"
 import type { CatalogTool } from "@/domain/catalog"
 import { setupCommand } from "@/domain/catalog"
@@ -16,6 +16,8 @@ import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { ExpandChevron } from "@/ui/ExpandChevron"
 import { Lamp, type LampTone } from "@/ui/Lamp"
+import { noticeBox } from "@/ui/notice"
+import { RefreshButton } from "@/ui/RefreshButton"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { usePermissions, useProfiles, useSetPermission } from "./api"
@@ -146,10 +148,7 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
       {data?.ceiling && <Ceiling tool={tool} profile={profile} ceiling={data.ceiling} />}
       {data &&
         locks(data.commands, m).map((reason) => (
-          <p
-            key={reason}
-            className="rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-[0.9rem] text-ink"
-          >
+          <p key={reason} className={cx("text-[0.9rem] text-ink", noticeBox("warn"))}>
             {m.blocksSome(tool.name, reason)}
           </p>
         ))}
@@ -181,14 +180,7 @@ export function Permissions({ tool }: { tool: CatalogTool }) {
               ]}
               className="min-w-[11rem]"
             />
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={load}
-              disabled={loading}
-              aria-label={m.reload}
-              icon={<RefreshCw className={cx("size-4", loading && "animate-spin")} aria-hidden />}
-            />
+            <RefreshButton iconOnly busy={loading} onClick={load} label={m.reload} busyLabel={m.reload} />
           </div>
         </div>
 
@@ -296,7 +288,7 @@ function Ceiling({ tool, profile, ceiling }: { tool: CatalogTool; profile: strin
   const command = setupCommand(tool, profile)
   const m = useMessages(permissionsMessages).permissions
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2">
+    <div className={cx("flex flex-wrap items-center gap-x-3 gap-y-2", noticeBox("warn"))}>
       <p className="min-w-0 flex-1 text-[0.9rem] text-ink">{m.ceiling(ceiling === "deny")}</p>
       {tool.setup && profile ? (
         <Button

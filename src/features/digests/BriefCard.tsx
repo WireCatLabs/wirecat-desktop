@@ -6,6 +6,7 @@ import { Button } from "@/ui/Button"
 import { cx } from "@/ui/cx"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Skeleton } from "@/ui/Skeleton"
 import { area, card, useMemoEditor } from "./editor-state"
 import { editorMessages } from "./messages-editors"
@@ -43,9 +44,7 @@ export function BriefCard({ name }: { name?: string | undefined }) {
 
   return (
     <section aria-labelledby={titleId} className={card}>
-      <h2 id={titleId} className="text-[1.05rem] font-semibold text-ink">
-        {m.title}
-      </h2>
+      <SectionTitle id={titleId}>{m.title}</SectionTitle>
       <p className="max-w-[70ch] text-[0.88rem] text-ink-soft">{m.hint}</p>
       {readError ? (
         <ErrorNotice raw={readError} inline>

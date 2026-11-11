@@ -4,6 +4,7 @@ import type { RunError } from "@/domain/runs"
 import { useMessages } from "@/i18n"
 import { Collapse } from "@/ui/Collapse"
 import { cx } from "@/ui/cx"
+import { noticeBox } from "@/ui/notice"
 import { logsMessages } from "./messages"
 
 /** What the tool recorded about how the run failed, before anything else in the run. */
@@ -12,10 +13,7 @@ export function RunFailure({ error, action }: { error: RunError; action?: ReactN
   const { http, provider, causes } = error
   const request = http && [http.method, http.endpoint].filter(Boolean).join(" ")
   return (
-    <section
-      aria-label={m.whatWentWrong}
-      className="flex flex-col gap-[0.7rem] rounded-[0.2rem] border border-bad/40 bg-bad/10 px-[1rem] py-[0.8rem]"
-    >
+    <section aria-label={m.whatWentWrong} className={cx("flex flex-col gap-[0.7rem]", noticeBox("bad"))}>
       <div className="flex flex-col gap-[0.3rem]">
         <div className="flex items-center justify-between gap-3">
           <h4 className="text-[0.9rem] font-medium text-ink-dim">{m.whatWentWrong}</h4>

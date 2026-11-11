@@ -120,7 +120,7 @@ export function Filters() {
             setPicking(false)
           }}
         >
-          <Button size="sm" variant="ghost" onClick={() => setPicking(false)}>
+          <Button size="sm" onClick={() => setPicking(false)}>
             {m.cancel}
           </Button>
         </CalendarFooter>

@@ -165,7 +165,7 @@ export function InlineCorrect({ entry, onDone }: { entry: MemoryEntry; onDone: (
         >
           {m.save}
         </Button>
-        <Button size="sm" variant="ghost" disabled={busy} onClick={onDone}>
+        <Button size="sm" disabled={busy} onClick={onDone}>
           {m.cancel}
         </Button>
       </div>

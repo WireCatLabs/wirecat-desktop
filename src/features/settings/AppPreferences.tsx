@@ -3,6 +3,7 @@ import { type CSSProperties, useEffect, useId, useRef, useState } from "react"
 import { ENDONYMS, LANGS, type LangChoice, systemLang, useLanguage, useMessages } from "@/i18n"
 import { platform } from "@/platform/bridge"
 import { Button } from "@/ui/Button"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { AiModelSetting } from "./AiModelSetting"
 import { CommunitySetting } from "./CommunitySetting"
@@ -109,9 +110,9 @@ function LanguageSetting() {
   return (
     <div className="flex flex-col gap-3">
       <div>
-        <h3 id={id} className="font-medium">
+        <SectionTitle as="h3" id={id}>
           {m.language}
-        </h3>
+        </SectionTitle>
         <p id={help} className="mt-1 max-w-[60ch] text-[0.9rem] text-ink-soft">
           {m.languageHelp}
         </p>

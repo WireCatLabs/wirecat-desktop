@@ -42,7 +42,7 @@ export function StagePicker(props: {
       onClose={() => close(false)}
       actions={
         <>
-          <Button size="sm" variant="ghost" onClick={() => close(false)}>
+          <Button size="sm" onClick={() => close(false)}>
             {s.cancel}
           </Button>
           <Button size="sm" variant="primary" onClick={() => close(true)}>

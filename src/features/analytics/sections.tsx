@@ -30,6 +30,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pager } from "@/ui/Pager"
 import { Pill } from "@/ui/Pill"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Segmented } from "@/ui/Segmented"
 import { Skeleton } from "@/ui/Skeleton"
 import { ColumnChart, Legend, PartsBar, RankBars, type Series, Stat } from "./charts"
@@ -62,10 +63,10 @@ export function Panel({
   return (
     <section aria-labelledby={id} className="min-w-0 rounded-[0.2rem] border border-line-strong bg-app">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-line border-b px-[1.3rem] py-[0.9rem]">
-        <h3 id={id} className="m-0 flex items-center gap-2 text-[1.08rem] font-semibold">
+        <SectionTitle as="h3" id={id} className="m-0 flex items-center gap-2">
           {title}
           {badge}
-        </h3>
+        </SectionTitle>
         <code className="font-mono text-[0.85rem] text-ink-dim">{source}</code>
       </div>
       <div className="flex flex-col gap-[1.3rem] px-[1.3rem] py-[1.1rem]">{children}</div>

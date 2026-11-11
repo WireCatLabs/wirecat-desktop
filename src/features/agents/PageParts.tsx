@@ -10,6 +10,7 @@ import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { EmptyState } from "@/ui/EmptyState"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { LinkButton } from "@/ui/LinkButton"
 import { RefreshButton } from "@/ui/RefreshButton"
 import { Skeleton } from "@/ui/Skeleton"
 import { openManage } from "./AgentDetails"
@@ -75,13 +76,7 @@ export function Elsewhere({ view }: { view: AgentsView }) {
           {m.signedOutTasks(
             findTool(tool)?.name ?? tool,
             profiles,
-            <button
-              type="button"
-              onClick={() => openManage(tool)}
-              className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-            >
-              {m.signIn}
-            </button>,
+            <LinkButton onClick={() => openManage(tool)}>{m.signIn}</LinkButton>,
           )}
         </p>
       ))}
@@ -134,7 +129,6 @@ export function SeenLink({ kind, name }: { kind: string; name: string }) {
   return (
     <Button
       size="sm"
-      variant="ghost"
       aria-label={m.showNameInLogs(name)}
       onClick={() => {
         const logs = useLogs.getState()

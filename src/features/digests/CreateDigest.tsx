@@ -176,9 +176,7 @@ export function CreateDialog({
       scroll
       actions={
         <>
-          <Button variant="ghost" onClick={onClose}>
-            {m.cancel}
-          </Button>
+          <Button onClick={onClose}>{m.cancel}</Button>
           <Button
             variant="primary"
             disabled={!draft || working || !harness}

@@ -17,6 +17,8 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { useFieldError } from "@/ui/FieldError"
 import { ToggleChip } from "@/ui/FilterBar"
 import type { LampTone } from "@/ui/Lamp"
+import { LinkButton } from "@/ui/LinkButton"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { area, card } from "./editor-state"
 import { bookMessages, SOURCES, type Source, WEEKDAYS } from "./messages-book"
@@ -448,14 +450,7 @@ export function NoHarness() {
   const m = useMessages(bookMessages).form
   return (
     <p className="text-[0.92rem] text-warn-ink">
-      {m.noHarness}{" "}
-      <button
-        type="button"
-        onClick={() => useNav.getState().go("agents")}
-        className="cursor-pointer font-medium text-brand underline-offset-2 hover:text-brand-hover hover:underline"
-      >
-        {m.toAgents}
-      </button>
+      {m.noHarness} <LinkButton onClick={() => useNav.getState().go("agents")}>{m.toAgents}</LinkButton>
     </p>
   )
 }
@@ -498,9 +493,7 @@ export function ScheduleCard({
 
   return (
     <section aria-labelledby={titleId} className={card}>
-      <h2 id={titleId} className="text-[1.05rem] font-semibold text-ink">
-        {m.one.settings}
-      </h2>
+      <SectionTitle id={titleId}>{m.one.settings}</SectionTitle>
       {item.spentTodayUsd !== null && (
         <p className="text-[0.88rem] text-ink-soft tabular-nums">
           {m.one.spentToday(formatUsd(item.spentTodayUsd, lang), cap === null ? null : formatUsd(cap, lang))}

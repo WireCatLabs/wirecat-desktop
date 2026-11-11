@@ -10,6 +10,7 @@ import { Collapse } from "@/ui/Collapse"
 import { CopyField } from "@/ui/CopyField"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { LinkButton } from "@/ui/LinkButton"
 import { Skeleton } from "@/ui/Skeleton"
 import { useStoreDamage } from "./damage-store"
 import { openToolAt } from "./go"
@@ -191,13 +192,7 @@ export function StoreDamageLine() {
         <p role="status" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.95rem] text-ink">
           <CircleAlert className="size-4 shrink-0 text-bad" aria-hidden />
           {m.strip}
-          <button
-            type="button"
-            onClick={() => openToolAt(tool.id, "accounts")}
-            className="font-medium text-brand hover:text-brand-hover hover:underline hover:underline-offset-4"
-          >
-            {m.open(tool.name)}
-          </button>
+          <LinkButton onClick={() => openToolAt(tool.id, "accounts")}>{m.open(tool.name)}</LinkButton>
         </p>
       )}
     </Collapse>

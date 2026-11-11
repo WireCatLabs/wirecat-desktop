@@ -14,8 +14,10 @@ import { BackButton } from "@/ui/BackButton"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
 import { Crossfade } from "@/ui/Crossfade"
+import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { MOTION } from "@/ui/motion"
+import { noticeBox } from "@/ui/notice"
 import { explainView } from "./Failure"
 import { type SigninMessages, signinMessages } from "./messages"
 import { mailMessages } from "./messages-mail"
@@ -57,9 +59,7 @@ export function SignInDialog() {
       <div ref={body} className="flex flex-col gap-3 text-[1.1rem]">
         <p>{m.intro(<code className="font-mono text-ink">{s.profile}</code>, name)}</p>
         <Collapse open={notes.length > 0}>
-          <p className="selectable rounded-[0.2rem] border border-warn/40 bg-warn/10 px-3 py-2 text-body leading-snug text-ink">
-            {notes.join(" ")}
-          </p>
+          <p className={cx("selectable text-body leading-snug text-ink", noticeBox("warn"))}>{notes.join(" ")}</p>
         </Collapse>
         <Collapse open={keyring !== null}>{keyring && <KeyringNotice fallback={keyring} />}</Collapse>
         {/* The whole way in with the current step lit: beside the step on wide windows, over it on narrow ones. */}

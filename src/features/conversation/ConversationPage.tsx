@@ -1,4 +1,4 @@
-import { ArrowLeft, Lock, MessageSquareOff } from "lucide-react"
+import { ArrowLeft, Lock } from "lucide-react"
 import { type ReactNode, useEffect, useRef } from "react"
 import { findTool } from "@/domain/catalog"
 import type { ConversationTarget } from "@/domain/conversation"
@@ -7,9 +7,11 @@ import { openToolAt } from "@/features/tools"
 import { useMessages } from "@/i18n"
 import type { ChatHeader } from "@/platform/bindings"
 import { useNav } from "@/shared/nav"
+import { Page, PageHeader } from "@/shared/Page"
 import { AutoHeight } from "@/ui/AutoHeight"
 import { Button } from "@/ui/Button"
 import { CopyButton } from "@/ui/CopyButton"
+import { EmptyState } from "@/ui/EmptyState"
 import { focusInPlace } from "@/ui/motion"
 import { Skeleton } from "@/ui/Skeleton"
 import { MessageList } from "./MessageList"
@@ -27,34 +29,33 @@ function Header({ chat, target }: { chat: ChatHeader | null | undefined; target:
   const place = chat?.place ?? providerName(target.provider)
   const account = chat?.email ? null : (chat?.profile ?? target.account)
   return (
-    <div className="flex items-start gap-3">
-      {canBack && (
-        <Button
-          size="sm"
-          variant="ghost"
-          icon={<ArrowLeft className="size-4" aria-hidden />}
-          onClick={() => useNav.getState().back()}
-        >
-          {m.back}
-        </Button>
-      )}
-      <div className="min-w-0">
-        <h1
-          ref={heading}
-          tabIndex={-1}
-          className="step-heading font-display text-[1.6rem] leading-tight font-extrabold tracking-[-0.03em] break-words"
-        >
-          {chat === undefined ? <Skeleton chars={18} /> : chat ? (chat.title ?? m.untitled) : place}
-        </h1>
-        <p className="mt-1 text-[0.9rem] text-ink-soft">{[chat ? place : null, account].filter(Boolean).join(" · ")}</p>
-        {chat !== null && (
-          <p className="mt-1 inline-flex items-center gap-1 text-[0.82rem] text-ink-dim">
-            <Lock className="size-[0.8rem]" aria-hidden />
-            {m.readOnly}
-          </p>
-        )}
-      </div>
-    </div>
+    <PageHeader
+      headingRef={heading}
+      back={
+        canBack && (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<ArrowLeft className="size-4" aria-hidden />}
+            onClick={() => useNav.getState().back()}
+          >
+            {m.back}
+          </Button>
+        )
+      }
+      title={chat === undefined ? <Skeleton chars={18} /> : chat ? (chat.title ?? m.untitled) : place}
+      intro={
+        <>
+          {[chat ? place : null, account].filter(Boolean).join(" · ")}
+          {chat !== null && (
+            <span className="mt-1 flex items-center gap-1 text-[0.85rem] text-ink-dim">
+              <Lock className="size-[0.8rem]" aria-hidden />
+              {m.readOnly}
+            </span>
+          )}
+        </>
+      }
+    />
   )
 }
 
@@ -68,24 +69,17 @@ function Calm(props: {
   const m = useMessages(conversationMessages)
   const reference = referenceOf(props.target)
   return (
-    <div className="max-w-[44rem] rounded-[0.2rem] border border-line-strong bg-app px-[1.3rem] py-[1.4rem]">
-      <div className="flex items-start gap-3">
-        <MessageSquareOff className="mt-[0.2rem] size-5 shrink-0 text-ink-dim" aria-hidden />
-        <div className="min-w-0">
-          <h2 className="text-[1.1rem] font-semibold text-ink">{props.title}</h2>
-          {props.body && <p className="mt-1 max-w-[70ch] text-[0.95rem] text-ink-soft">{props.body}</p>}
-          {props.detail && <p className="mt-2 font-mono text-[0.82rem] break-words text-ink-dim">{props.detail}</p>}
-          <div className="mt-3 flex min-w-0 items-center gap-2">
-            <span className="text-[0.85rem] text-ink-dim">{m.reference}</span>
-            <code className="min-w-0 truncate rounded-[0.2rem] bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
-              {reference}
-            </code>
-            <CopyButton value={reference} label={m.copyReference} />
-          </div>
-          {props.action && <div className="mt-4">{props.action}</div>}
-        </div>
+    <EmptyState title={<h2>{props.title}</h2>} action={props.action}>
+      {props.body && <p>{props.body}</p>}
+      {props.detail && <p className="mt-2 font-mono text-[0.85rem] break-words text-ink-dim">{props.detail}</p>}
+      <div className="mt-3 flex min-w-0 items-center gap-2">
+        <span className="text-[0.85rem] text-ink-dim">{m.reference}</span>
+        <code className="min-w-0 truncate rounded-[0.2rem] bg-app-2 px-2 py-[0.15rem] font-mono text-[0.85rem]">
+          {reference}
+        </code>
+        <CopyButton value={reference} label={m.copyReference} />
       </div>
-    </div>
+    </EmptyState>
   )
 }
 
@@ -162,11 +156,11 @@ export function ConversationPage() {
   if (!target) return null
   const chat = shown.state === "loading" ? undefined : shown.state === "found" ? shown.chat : null
   return (
-    <div className="flex flex-col gap-[1.2rem] px-[2.1rem] pt-[1.6rem] pb-[2.2rem]">
+    <Page>
       <Header key={referenceOf(target)} chat={chat} target={target} />
       <AutoHeight swap={shown.state}>
         <Body shown={shown} target={target} />
       </AutoHeight>
-    </div>
+    </Page>
   )
 }

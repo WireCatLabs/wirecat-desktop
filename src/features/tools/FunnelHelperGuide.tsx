@@ -8,6 +8,7 @@ import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Lamp } from "@/ui/Lamp"
+import { LinkButton } from "@/ui/LinkButton"
 import { InstallProgress } from "./InstallProgress"
 import { helperMessages } from "./messages-helper"
 
@@ -162,9 +163,9 @@ export function FunnelHelperGuide({ helper, onUseApp }: { helper: Helper; onUseA
         </li>
       </ol>
       <div>
-        <button type="button" className="text-[0.9rem] text-brand underline hover:text-brand-hover" onClick={onUseApp}>
+        <LinkButton className="text-[0.9rem]" onClick={onUseApp}>
           {m.useApp}
-        </button>
+        </LinkButton>
       </div>
     </div>
   )

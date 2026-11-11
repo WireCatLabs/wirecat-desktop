@@ -1,4 +1,4 @@
-import { Bot, HardDrive, RefreshCw, Terminal } from "lucide-react"
+import { Bot, HardDrive, Terminal } from "lucide-react"
 import type { ReactNode } from "react"
 import { findTool, isCommunity, isOwn, maker, ownerId, samePackage, tools } from "@/domain/catalog"
 import { computerLine, doneRow } from "@/domain/onboarding-flow"
@@ -15,7 +15,7 @@ import { Checkbox } from "@/ui/Checkbox"
 import { cx } from "@/ui/cx"
 import { Lamp, type LampTone } from "@/ui/Lamp"
 import { Pill } from "@/ui/Pill"
-import { StableText } from "@/ui/Skeleton"
+import { RefreshButton } from "@/ui/RefreshButton"
 import { onboardingMessages } from "./messages"
 import { useSetupTools } from "./setup-tools"
 import { rack, row } from "./step-styles"
@@ -95,15 +95,12 @@ export function Computer() {
         <p aria-live="polite" className="flex-1 text-body text-ink-soft">
           {!r ? m.checkingComputer : ready ? m.ready : null}
         </p>
-        <Button
-          size="sm"
-          variant="ghost"
-          disabled={refreshing}
+        <RefreshButton
+          busy={refreshing}
           onClick={() => useTools.getState().refresh(true)}
-          icon={<RefreshCw className={cx("size-4", refreshing && "animate-spin")} aria-hidden />}
-        >
-          <StableText value={refreshing ? m.checking : m.again} variants={[m.checking, m.again]} />
-        </Button>
+          label={m.again}
+          busyLabel={m.checking}
+        />
       </div>
     </>
   )

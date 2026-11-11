@@ -154,13 +154,18 @@ body,
 .scroll-quiet::-webkit-scrollbar {
   width: 7px;
 }
+/* The colour goes through a property of the box itself: WebKitGTK redraws a scrollbar only when the box's own style
+   changes, so `.scroll-quiet:hover::-webkit-scrollbar-thumb` alone showed the thumb only over the bar. */
+.scroll-quiet {
+  --quiet-thumb: transparent;
+}
+.scroll-quiet:hover,
+.scroll-quiet:focus-within {
+  --quiet-thumb: color-mix(in srgb, var(--ink-dim) 55%, transparent);
+}
 .scroll-quiet::-webkit-scrollbar-thumb {
   border-left-width: 2px;
-  background-color: transparent;
-}
-.scroll-quiet:hover::-webkit-scrollbar-thumb,
-.scroll-quiet:focus-within::-webkit-scrollbar-thumb {
-  background-color: color-mix(in srgb, var(--ink-dim) 55%, transparent);
+  background-color: var(--quiet-thumb);
 }
 .scroll-quiet::-webkit-scrollbar-thumb:hover {
   background-color: color-mix(in srgb, var(--ink-dim) 80%, transparent);
@@ -175,8 +180,8 @@ body,
   }
 }
 @media (hover: none) {
-  .scroll-quiet::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--ink-dim) 55%, transparent);
+  .scroll-quiet {
+    --quiet-thumb: color-mix(in srgb, var(--ink-dim) 55%, transparent);
   }
 }
 
@@ -209,6 +214,11 @@ body {
    reads as a second rectangle. Unlayered, like the rule above it, because Tailwind's layered outline-none loses. */
 .inner-field:focus-visible {
   outline: none;
+}
+
+/* A scrolling box clips what falls outside it, so the ring is drawn inside the row. Unlayered, like the rule it changes. */
+.ring-inside :focus-visible {
+  outline-offset: -2px;
 }
 
 @layer base {

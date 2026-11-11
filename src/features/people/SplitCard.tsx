@@ -159,7 +159,7 @@ export function SplitCard({ split }: { split: Split }) {
               <Button type="submit" size="sm" disabled={!!busy} icon={busy ? spin : undefined}>
                 {m.keepNow}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setAsking(false)}>
+              <Button size="sm" onClick={() => setAsking(false)}>
                 {m.cancel}
               </Button>
             </span>

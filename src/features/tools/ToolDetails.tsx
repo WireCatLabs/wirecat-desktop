@@ -15,6 +15,7 @@ import { CopyField } from "@/ui/CopyField"
 import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
+import { noticeBox } from "@/ui/notice"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { Enrichment } from "./Enrichment"
@@ -246,10 +247,7 @@ function ExtraCopies(props: { tool: CatalogTool; installs: Copy[]; onRemove: (co
   const button = useMessages(copiesMessages).button
   if (!first) return null
   return (
-    <section
-      aria-label={m.extraLabel(tool.name)}
-      className="flex flex-col gap-2 rounded-[0.35rem] border border-warn/40 bg-warn/10 px-4 py-3"
-    >
+    <section aria-label={m.extraLabel(tool.name)} className={cx("flex flex-col gap-2", noticeBox("warn"))}>
       <p className="flex items-start gap-2 text-[0.95rem] text-ink">
         <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warn" aria-hidden />
         <span>

@@ -1,7 +1,5 @@
 import type { ReactNode } from "react"
 import { useMessages } from "@/i18n"
-import { platform } from "@/platform/bridge"
-import { externalHref } from "@/shared/external-href"
 import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
 import { connectMessages } from "./messages-connect"
@@ -12,19 +10,6 @@ export function Para({ children }: { children: ReactNode }) {
 
 export function Note({ children }: { children: ReactNode }) {
   return <p className="max-w-[64ch] text-[0.9rem] text-ink-dim">{children}</p>
-}
-
-export function Link({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <button
-      type="button"
-      className="text-brand underline hover:text-brand-hover"
-      onClick={() => platform.openUrl(href)}
-      {...externalHref(href)}
-    >
-      {children}
-    </button>
-  )
 }
 
 export function Progress({ state, children }: { state: "busy" | "done" | "todo" | "failed"; children: ReactNode }) {

@@ -4,7 +4,9 @@ import { isNewer } from "@/domain/status"
 import { formatList, useMessages } from "@/i18n"
 import { useTools } from "@/shared/tools-store"
 import { Button } from "@/ui/Button"
+import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
+import { noticeFrame } from "@/ui/notice"
 import { type ToolsText, toolsMessages } from "./messages"
 import { useFits } from "./useFits"
 
@@ -109,7 +111,11 @@ export function StorageSummary() {
   return (
     <div
       role="status"
-      className="flex min-h-[calc(3.25rem+2px)] items-center justify-between gap-4 rounded-[0.2rem] border border-warn/40 bg-warn/10 px-4 py-2.5 text-[0.95rem]"
+      className={cx(
+        "flex min-h-[calc(3.25rem+2px)] items-center justify-between gap-4 text-body",
+        noticeFrame("warn"),
+        "px-4 py-2.5",
+      )}
     >
       {/* The button arrives once the latest versions are known: beside the text and at a height kept from the start,
           it adds no height of its own. */}

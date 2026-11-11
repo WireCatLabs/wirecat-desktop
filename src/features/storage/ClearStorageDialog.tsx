@@ -4,7 +4,9 @@ import { formatBytes } from "@/domain/format"
 import { formatNumber, useMessages } from "@/i18n"
 import { Button } from "@/ui/Button"
 import { Checkbox } from "@/ui/Checkbox"
+import { cx } from "@/ui/cx"
 import { Dialog } from "@/ui/Dialog"
+import { noticeBox } from "@/ui/notice"
 import { Skeleton } from "@/ui/Skeleton"
 import { BackupProgress } from "./BackupProgress"
 import { useBackups } from "./backup-store"
@@ -53,10 +55,7 @@ export function ClearStorageDialog({ open, onClose }: { open: boolean; onClose: 
         </>
       }
     >
-      <p
-        role="note"
-        className="flex items-start gap-2 rounded-[0.3rem] border border-bad/40 bg-bad/10 px-3 py-2 text-[0.95rem] text-ink"
-      >
+      <p role="note" className={cx("flex items-start gap-2 text-body text-ink", noticeBox("bad"))}>
         <TriangleAlert className="mt-[0.2rem] size-4 shrink-0 text-bad" aria-hidden />
         <span>{m.clearWarning(<strong>{m.cannotUndo}</strong>)}</span>
       </p>
@@ -112,7 +111,7 @@ export function ClearStorageDialog({ open, onClose }: { open: boolean; onClose: 
           </p>
 
           {preview.inUse && (
-            <p role="alert" className="mt-3 rounded-[0.3rem] border border-warn/50 bg-warn/10 px-3 py-2 text-warn-ink">
+            <p role="alert" className={cx("mt-3 text-warn-ink", noticeBox("warn"))}>
               {m.inUse}
             </p>
           )}

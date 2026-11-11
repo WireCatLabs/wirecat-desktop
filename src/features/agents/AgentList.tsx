@@ -2,6 +2,7 @@ import { create } from "zustand"
 import { useMessages } from "@/i18n"
 import { cx } from "@/ui/cx"
 import { Lamp } from "@/ui/Lamp"
+import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
 import { Tab, TabList } from "@/ui/Tabs"
 import { agentsMessages } from "./messages"
@@ -83,9 +84,9 @@ function TabBody({ entry, on, first }: { entry: AgentEntry; on: boolean; first: 
         <span className="block truncate text-[0.9rem] text-ink-soft">{checking ? <Skeleton chars={12} /> : note}</span>
       </span>
       {view.todo.length > 0 && (
-        <span className="rounded-[0.3rem] bg-warn/15 px-[0.45rem] py-[0.1rem] text-[0.85rem] font-medium text-warn-ink tabular-nums">
-          {view.todo.length}
-        </span>
+        <Pill tone="warn">
+          <span className="tabular-nums">{view.todo.length}</span>
+        </Pill>
       )}
     </>
   )

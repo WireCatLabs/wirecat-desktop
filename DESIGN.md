@@ -287,6 +287,7 @@ The app follows the site's purple, wall, ink and `app-3` values exactly in light
 - **Title**: the tool name in a rack row; it turns purple when the row is hovered. The command sits beside it in mono at 0.95rem in `ink-soft`.
 - **Nav**: sidebar sections; regular, semibold when current.
 - **Body**: taglines, tool descriptions, instructions, notices, panel prose; `text-body` (1rem), relaxed line-height, prose capped at 70ch. Secondary text keeps this size and steps back by colour (`ink-soft`) and weight; only mono values, captions and pills go smaller. Raised from 0.95rem and 0.9rem on 2026-11-05: at the 960px minimum window the root is 13px, and the descriptions under each tool were too small to read.
+- **Section title**: the heading of a block on a page, `SectionTitle` (`src/ui/SectionTitle.tsx`), the Title size.
 - **Label**: small panel sub-headings ("Install from a terminal", "Installed at", "Profiles") in `ink-dim`, sentence case, never uppercase.
 - **Button**: medium weight, 1rem (0.875rem in the small size).
 - **Mono value**: installed versions, readiness values, byte counts. Tabular figures so columns line up.
@@ -300,13 +301,13 @@ The app follows the site's purple, wall, ink and `app-3` values exactly in light
 
 ## Layout
 
-The window is a fixed shell: a sidebar on the `wall` (12rem, 13.5rem from the `xl` breakpoint at 1280px), and a content column with a 3.3rem top bar (window controls, drag region) and a scrolling page. The operating system, Node.js and npm are listed at the top of the Help menu, which the version number at the bottom of the sidebar also opens; a red dot on the Help button says when Node.js or npm is missing or too old. The body never scrolls; only the page region does. The default window is 1280×840 and the minimum is 960×640 ([src-tauri/tauri.conf.json](src-tauri/tauri.conf.json)).
+The window is a fixed shell: a sidebar on the `wall` (12rem, 13.5rem from the `xl` breakpoint at 1280px), and a content column with a 3.3rem top bar (window controls, drag region) and a scrolling page. The operating system, Node.js and npm are listed at the top of the Help menu, which the version number at the bottom of the sidebar also opens; a red dot on the Help button says when Node.js or npm is missing or too old. The body never scrolls; only the page region does, and in a wide, short window the sidebar's rows, between a logo and a footer that keep their size. The default window is 1280×840 and the minimum is 960×640 ([src-tauri/tauri.conf.json](src-tauri/tauri.conf.json)).
 
 The root font size is fluid, `clamp(13px, 0.5rem + 0.52vw, 18px)`: about 14.7px in the default 1280 window, 13px at the 960 minimum. Body text (`text-body`, 1rem) is then about 14.7px at 1280 and 13px at 960, and captions and labels (0.9rem) about 13px at 1280. The owner first asked for a denser interface, then found the smallest text too hard to read: the root grew from 12.5px to 13.4px with the two smallest steps moved up (captions and labels 0.85rem → 0.9rem, mono small and pills 0.8rem → 0.85rem), and on 2026-10-27, when that was not visibly different, to 14.7px. Nothing in the app is set below 0.85rem except the uppercase group heading in a Select (0.8rem). Every size in the app is in rem, so the whole interface grows and shrinks with the window like native content, and all spacing tokens above scale with it. The clamp is multiplied by `--ui-scale`, the owner's own interface size: Settings → Interface size, 80% to 150% in 10% steps, or Ctrl (Cmd on macOS) with `+`, `-` and `0` anywhere. It is kept in `localStorage` (`wirecat.scale`, beside the theme) and set before the first paint by `index.html`. A new size grows over 200ms (instant under reduced motion) while the focused control, or else what is at the top of the page, stays where it was; the slider applies on release, so it does not grow under the pointer while it is dragged.
 
-A page is a vertical stack with a 1.5rem gap and a 2.1rem side gutter: title row (title left, a quiet secondary action right, bottom-aligned), then any notice banners, then the rack. The rack row is a five-column grid: lamp, icon, name and tagline (flexible), version, action. The fixed columns widen and the gap grows from 0.9rem to 1.2rem at `xl`. Rows are at least 4.5rem tall. The Storage rack uses the same frame with four columns (icon, name and folders, size, action).
+A page is a vertical stack with a 1.5rem gap and a 2.1rem side gutter: title row (title left, the page's actions right, on the title's line on every page, however long the intro), then any notice banners, then the rack. The rack row is a five-column grid: lamp, icon, name and tagline (flexible), version, action. The fixed columns widen and the gap grows from 0.9rem to 1.2rem at `xl`. Rows are at least 4.5rem tall. The Storage rack uses the same frame with four columns (icon, name and folders, size, action).
 
-A page with a board (Clients, Tasks) keeps its title row to one line in every view: a 1.6rem title, the intro behind an "i" beside it and the guide link after it, and the filter chips beside the search field. In board view the page is the window's height with a 1rem gap, and the board takes what is left; its columns scroll their cards inside, never shorter than 22rem.
+A page with a board (Clients, Tasks) keeps its title row to one line in every view: the same 2.1rem title as every page, the intro behind an "i" beside it and the guide link after it, and the filter chips beside the search field. In board view the page is the window's height with the same 1.5rem gap, so Table and Board move nothing, and the board takes what is left; its columns scroll their cards inside, never shorter than 22rem.
 
 A row expands in place: the panel under it opens by animating grid rows from 0fr to 1fr over 300ms with the quart ease-out. The details panel becomes two columns from `lg` (1024px), about and links on the left, profiles and health on the right.
 
@@ -334,10 +335,11 @@ Corners are nearly square and grow slightly with how "detached" an element is: t
 
 - **Shape:** gently squared (0.4rem; 0.35rem in the small size), 1px border, 2.4rem tall (2rem small).
 - **Primary:** filled purple with white text. Used for Install, Update to x, Get Node.js, and Done after an operation.
-- **Secondary:** white surface, `line-strong` border; hover moves to `app-2`. Used for Manage, Cancel, Try again, Check health. The row action keeps a minimum width of 7.6rem so the column stays steady between states.
-- **Ghost:** no fill, `ink-soft`; hover fills `app-3`. Used for Keep it, Close, Check, Sign in.
+- **Secondary:** white surface, `line-strong` border; hover moves to `app-2`. Used for Manage, Cancel, Try again, Check health, and any action on a row or in an empty state. The row action keeps a minimum width of 7.6rem so the column stays steady between states.
+- **Ghost:** no fill, no border, `ink-soft`; hover fills `app-3`. Used for Back, Close, an icon alone, and the page's Read again. Never for a row's action: at rest it reads as plain text.
 - **Danger:** outlined only: white surface, red label, the border tints red on hover. Used for Fix, Uninstall, Delete.
 - **Hover / Focus:** colour transitions at 150ms with the quart ease-out; pressing nudges the button down 1px. Focus is the global 2px purple outline at 2px offset. Disabled buttons drop to 45% opacity and stop taking pointer events.
+- **No ellipsis in a label.** "Turn on", not "Turn on…", even when a dialog follows. An ellipsis is for a state in progress ("Saving…").
 - **Never disable a button for a missing or wrong value** (CLAUDE.md rule 10). It stays clickable and the error shows at the
   field (`useFieldError`, `src/ui/FieldError.tsx`).
 - **Creation presets stay above a list** once it has items (rule 11), and **lists page on the server** (rule 12).
@@ -372,7 +374,7 @@ Four steps joined by a 2px track. Done is a green dot with a check, active is a 
 
 - **The rack:** `app` fill, `line-strong` frame, 0.2rem corners, rows divided by `line`. One per page.
 - **Row panels:** open under a row with a `line` top border and `app-2` at 60%; 1.3rem side inset.
-- **Banners:** 0.2rem corners, 1px border at 40% and fill at 10% of `warn` (notice) or `bad` (error), placed between the title row and the rack.
+- **Banners:** 0.2rem corners, 1px border at 40% and fill at 10% of `warn` (notice) or `bad` (error), placed between the title row and the rack. `ErrorNotice` for a line and an action, `noticeBox` (`src/ui/notice.ts`) for richer content; a test refuses the classes anywhere else.
 - **Inner containers:** profile list and health result use 0.45rem corners, a `line` border and `app` fill inside the `app-2` panel.
 
 ### Inputs / Fields
@@ -395,7 +397,7 @@ Sidebar sections on the wall: a line icon (1.55rem, stroke 1.6) and label. Curre
 
 ### Dialogs
 
-The platform's modal dialog: `app` fill, `line` border, 0.6rem corners, the panel shadow, a 40% black backdrop with a 1px blur, max 32rem wide. A semibold title, body prose in `ink-soft`, actions right-aligned with the safe choice (ghost, focused first) left of the destructive one.
+The platform's modal dialog: `app` fill, `line` border, 0.6rem corners, the panel shadow, a 40% black backdrop with a 1px blur, max 32rem wide. A semibold title, body prose in `ink-soft`, actions right-aligned with the safe choice (secondary, focused first) left of the destructive one.
 
 ### Motion
 

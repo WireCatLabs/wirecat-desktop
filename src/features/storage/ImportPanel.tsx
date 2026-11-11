@@ -7,6 +7,7 @@ import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { invalidBorder, useFieldError } from "@/ui/FieldError"
 import { fieldClass } from "@/ui/field"
+import { SectionTitle } from "@/ui/SectionTitle"
 import { Select } from "@/ui/Select"
 import { Skeleton } from "@/ui/Skeleton"
 import { type Format, useImport } from "./import-store"
@@ -54,9 +55,7 @@ export function ImportPanel() {
   return (
     <section aria-labelledby="import-title" className="rounded-[0.2rem] border border-line-strong bg-app">
       <div className="border-line border-b px-[1.3rem] py-[0.9rem]">
-        <h2 id="import-title" className="text-[1.08rem] font-semibold">
-          {m.title}
-        </h2>
+        <SectionTitle id="import-title">{m.title}</SectionTitle>
         <p className="mt-0.5 max-w-[80ch] text-[0.9rem] text-ink-dim">{m.intro}</p>
       </div>
 
