@@ -12,6 +12,7 @@ import {
   stepIndex,
 } from "@/domain/onboarding-flow"
 import { AgentsMatrix, useSkillMatrix } from "@/features/agents"
+import { confirmChoices } from "@/features/settings"
 import { useNode } from "@/features/system"
 import { StillInstalling, useUnfinishedInstalls } from "@/features/tools"
 import { useMessages } from "@/i18n"
@@ -264,7 +265,13 @@ function Steps({ onExit, onTour }: { onExit: () => void; onTour: () => void }) {
   const kind = primaryAction(step, toInstall, nodeReady)
   const primary: { label: string; run: () => void } =
     kind === "start"
-      ? { label: m.flow.getStarted, run: () => go(nextStep(step, chosen.length)) }
+      ? {
+          label: m.flow.getStarted,
+          run: () => {
+            confirmChoices()
+            go(nextStep(step, chosen.length))
+          },
+        }
       : kind === "install"
         ? {
             label: m.flow.installTools(toInstall),

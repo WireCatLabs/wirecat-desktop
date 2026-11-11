@@ -144,6 +144,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_autostart::Builder::new().build())
         // Every launch, a restart included, opens where the owner left the window. A saved spot on a monitor that is
         // gone is ignored and the window opens centred.
         .plugin(
@@ -419,7 +420,10 @@ pub fn run() {
             commands::sync::sync_stop,
             commands::sync::sync_last,
             commands::sync::sync_schedule_status,
-            commands::sync::sync_schedule_set
+            commands::sync::sync_schedule_set,
+            commands::sync::sync_schedule_test,
+            commands::app::autostart_status,
+            commands::app::autostart_set
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

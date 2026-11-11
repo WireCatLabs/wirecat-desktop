@@ -194,7 +194,7 @@ fn text(v: &Value) -> String {
 }
 
 /// `daily at 08:30` → `08:30`.
-fn daily_time(when: &str) -> Option<String> {
+pub(crate) fn daily_time(when: &str) -> Option<String> {
     when.strip_prefix("daily at ").filter(|t| is_time(t)).map(str::to_string)
 }
 

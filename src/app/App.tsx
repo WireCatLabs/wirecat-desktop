@@ -8,7 +8,7 @@ import { Bell, CHECK_EVERY_MS as NEWS_EVERY_MS, useNotifications } from "@/featu
 import { type HelpActions, HelpMenu, Onboarding, resumeSetup, SetupSteps, Tour, useTour } from "@/features/onboarding"
 import { PrivacyDialog } from "@/features/privacy"
 import { ReportDialog } from "@/features/report"
-import { useApplyScale, useScaleKeys } from "@/features/settings"
+import { useApplyChoices, useApplyScale, useScaleKeys } from "@/features/settings"
 import { BotSignInDialog, SignInDialog } from "@/features/signin"
 import { ClearDataOffer, useRegistry } from "@/features/tools"
 import { CHECK_EVERY_MS, UpdateButton, UpdateDialog, useUpdate } from "@/features/update"
@@ -48,6 +48,7 @@ function Shell() {
   useApplyLang()
   const m = useMessages(appMessages)
   useApplyScale()
+  useApplyChoices()
   useScaleKeys()
   useFinishBoot()
   const active = useNav((s) => s.active)

@@ -253,3 +253,27 @@ pub async fn update_download_package(
 pub async fn update_package_terminal() -> Result<(), AppError> {
     crate::log::command("update_package_terminal", async move { attempt(package_update::open_terminal).await }).await
 }
+
+/// Whether the app opens when the owner logs in: the autostart plugin's entry (an `XDG` autostart file, a launchd agent
+/// or a `Run` key in the registry).
+#[tauri::command]
+pub fn autostart_status(app: tauri::AppHandle) -> Result<bool, AppError> {
+    use tauri_plugin_autostart::ManagerExt;
+    crate::log::command_now("autostart_status", || {
+        app.autolaunch().is_enabled().map_err(|e| AppError::Failed(e.to_string()))
+    })
+}
+
+#[tauri::command]
+pub fn autostart_set(app: tauri::AppHandle, on: bool) -> Result<bool, AppError> {
+    use tauri_plugin_autostart::ManagerExt;
+    crate::log::command_now("autostart_set", || {
+        // The entry names this very program: a test copy or a development build would start at every login instead.
+        if on && (system::sandbox().is_some() || cfg!(debug_assertions)) {
+            return Err(AppError::Failed("a test or development copy of WireCat does not start at login".into()));
+        }
+        let manager = app.autolaunch();
+        if on { manager.enable() } else { manager.disable() }.map_err(|e| AppError::Failed(e.to_string()))?;
+        manager.is_enabled().map_err(|e| AppError::Failed(e.to_string()))
+    })
+}

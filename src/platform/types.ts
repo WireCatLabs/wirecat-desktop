@@ -52,6 +52,7 @@ import type {
   OwnSignal,
   OwnStatus,
   RouteChoices,
+  ScheduleTest,
   SearchHarder,
   SendTo,
   Signed,
@@ -545,8 +546,14 @@ export type Platform = {
   syncLast(id: string, profile: string | null): Promise<LastSync>
   /** The account's sync on a timer (`sync.schedule` in the catalog), from the tool's own `schedule list`. */
   syncScheduleStatus(id: string, profile: string): Promise<SyncSchedule>
-  /** The tool's own `schedule command` at that interval, or `schedule remove` for null. */
-  syncScheduleSet(id: string, profile: string, every: string | null): Promise<SyncSchedule>
+  /** The tool's own `schedule command` at that interval (or daily at `at`, `HH:MM`), or `schedule remove` for null. */
+  syncScheduleSet(id: string, profile: string, every: string | null, at?: string): Promise<SyncSchedule>
+  /** The tool's own `schedule run`: the account's schedule once now, as its timer would; waits for it to end. */
+  syncScheduleTest(id: string, profile: string): Promise<ScheduleTest>
+  /** Whether WireCat opens when the owner logs in to this computer. */
+  autostartStatus(): Promise<boolean>
+  /** Turns opening at login on or off; answers what holds after it. */
+  autostartSet(on: boolean): Promise<boolean>
   /** Whether the tool's own `server status` says its `serve` keeps the profile current (`background` in the catalog). */
   backgroundStatus(id: string, profile: string): Promise<Background>
   /** One of the tool's own `server` commands for one profile; a failure comes back as `fault`, sorted for the page. */
