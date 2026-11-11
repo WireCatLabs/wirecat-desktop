@@ -963,6 +963,8 @@ revision. A comment's text and a new person's name go after `--`. The page's min
 
 Hidden for now: `ConfigPage` does not render `GroupsSetting` until an agent can be connected to a group. The code
 and the Rust commands stay, so bringing it back is one import and one line.
+The personal or work switch stays visible: `useAccountScope` finds the account's member in `all` by
+`<bin> <profile>`, and the account's menu on the Tools page calls the same `groups_scope`.
 
 Settings has a block per memo account group (WC-ACCT-13): a column for `all`, then one per saved group, a card per
 account with its profiles in each tool (`tg work`, `b24 work`), from `memo groups list`. `all` is every account; memo
