@@ -90,6 +90,7 @@ async function testRun(tool: string, profile: string) {
  * another time, and left alone when the owner set an interval of his own. A new one runs once at once, as a test.
  */
 async function nightly(tool: string, profile: string, time: string | null) {
+  if (time !== null && useMachineSetup.getState().offByHand.includes(`${tool}:${profile}`)) return
   put(tool, profile, "nightly", { phase: "working" })
   try {
     const now = await platform.syncScheduleStatus(tool, profile)

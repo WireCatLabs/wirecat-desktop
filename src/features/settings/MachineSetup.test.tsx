@@ -105,6 +105,29 @@ describe("what WireCat does by itself", () => {
     expect(set).not.toHaveBeenCalled()
   })
 
+  it("never turns back on a daily sync the owner turned off by hand, until he turns it on there again", async () => {
+    useTools.setState({ installs: { tg: copy } })
+    vi.spyOn(platform, "listProfiles").mockResolvedValue([{ name: "personal", signedIn: true }])
+    const status = vi.spyOn(platform, "syncScheduleStatus").mockResolvedValue({ state: "off" })
+    const set = vi
+      .spyOn(platform, "syncScheduleSet")
+      .mockResolvedValue({ state: "on", when: "daily at 04:45", every: null, daily: "04:45", last: null })
+    vi.spyOn(platform, "syncScheduleTest").mockResolvedValue({ exitCode: 0, reason: null, output: "" })
+    useMachineSetup.setState({ answered: true, nightly: true, time: "04:45", live: false, offByHand: [] })
+    act(() => useMachineSetup.getState().byHand("tg", "personal", false))
+    render(<Watch />)
+
+    signedIn("tg:personal")
+    act(() => useOnboarding.setState({ status: "done" }))
+    await act(() => new Promise((r) => setTimeout(r, 0)))
+    expect(status).not.toHaveBeenCalled()
+    expect(set).not.toHaveBeenCalled()
+
+    act(() => useMachineSetup.getState().byHand("tg", "personal", true))
+    signedIn("tg:personal")
+    await vi.waitFor(() => expect(set).toHaveBeenCalledWith("tg", "personal", null, "04:45"))
+  })
+
   it("in Settings, keeps serve running for every signed-in messenger account once turned on", async () => {
     useTools.setState({ installs: { tg: copy } })
     useMachineSetup.setState({ answered: true, nightly: false, live: false })

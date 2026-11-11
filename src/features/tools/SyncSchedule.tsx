@@ -3,6 +3,7 @@ import { type CatalogTool, syncSchedules } from "@/domain/catalog"
 import { type AdviceKind, advice } from "@/domain/sync"
 import { useLang, useMessages } from "@/i18n"
 import type { ScheduleRun } from "@/platform/bindings"
+import { useMachineSetup } from "@/shared/machine-setup-store"
 import { signedInSince, useSignIn } from "@/shared/signin-store"
 import { Button } from "@/ui/Button"
 import { Collapse } from "@/ui/Collapse"
@@ -93,6 +94,7 @@ export function SyncSchedule({ tool, profile }: { tool: CatalogTool; profile: st
       .setSchedule(tool.id, profile, next)
       .then(
         () => {
+          useMachineSetup.getState().byHand(tool.id, profile, next !== null)
           setSaving(false)
           setOpen(false)
         },

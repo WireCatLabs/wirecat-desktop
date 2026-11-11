@@ -4,6 +4,7 @@ import { findTool } from "@/domain/catalog"
 import { failureSuperseded } from "@/domain/sync"
 import type { ScheduleRun, SyncSchedule as State } from "@/platform/bindings"
 import { platform } from "@/platform/bridge"
+import { useMachineSetup } from "@/shared/machine-setup-store"
 import { render, screen, waitFor, within } from "@/testing/render"
 import { SyncSchedule } from "./SyncSchedule"
 import { syncKey, useSync } from "./sync-store"
@@ -79,6 +80,7 @@ describe("an account's sync on a timer", () => {
     await user.click(within(region).getByRole("button", { name: "Turn off" }))
     expect(set).toHaveBeenCalledWith("email", "personal", null)
     expect(await within(region).findByRole("button", { name: "Sync on a schedule" })).toBeInTheDocument()
+    expect(useMachineSetup.getState().offByHand).toContain("email:personal")
   })
 
   it("says what the tool answered when it refuses", async () => {

@@ -20,11 +20,17 @@ type MachineSetupState = MachineChoices & {
    * was set up before these questions existed must not get timers nobody asked for.
    */
   answered: boolean
+  /**
+   * `tool:profile` of the accounts whose daily sync the owner turned off on the Tools page: the nightly choice never
+   * turns it back on. Turning it on there again takes the account off this list.
+   */
+  offByHand: string[]
   /** A choice on the first setup screen, applied once the owner goes on. */
   choose(patch: Partial<MachineChoices>): void
   /** A choice that is applied at once (Settings, the last setup step); the first one confirms what is shown. */
   settle(patch: Partial<MachineChoices>): void
   confirm(): void
+  byHand(tool: string, profile: string, on: boolean): void
 }
 
 // Serve stays off until asked: on a new computer the first screen comes before any messenger is chosen, so the
@@ -36,15 +42,29 @@ export const useMachineSetup = create<MachineSetupState>()(
     (set) => ({
       ...DEFAULTS,
       answered: false,
+      offByHand: [],
       choose: (patch) => set(patch),
       settle: (patch) =>
         set((s) => ({ ...(s.answered ? {} : { nightly: false, live: false }), ...patch, answered: true })),
       confirm: () => set({ answered: true }),
+      byHand: (tool, profile, on) =>
+        set((s) => {
+          const key = `${tool}:${profile}`
+          const rest = s.offByHand.filter((one) => one !== key)
+          return { offByHand: on ? rest : [...rest, key] }
+        }),
     }),
     {
       name: "wirecat.machine-setup",
       storage: createJSONStorage(() => safeStorage),
-      partialize: ({ atLogin, nightly, time, live, answered }) => ({ atLogin, nightly, time, live, answered }),
+      partialize: ({ atLogin, nightly, time, live, answered, offByHand }) => ({
+        atLogin,
+        nightly,
+        time,
+        live,
+        answered,
+        offByHand,
+      }),
     },
   ),
 )
