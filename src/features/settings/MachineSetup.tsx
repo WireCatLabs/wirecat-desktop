@@ -155,16 +155,17 @@ export function MachineChoicesList({ applied }: { applied: boolean }) {
 function Results() {
   const m = useMessages(machineMessages)
   const items = Object.values(useMachineRuns((s) => s.items))
-  if (items.length === 0) return null
   return (
-    <section aria-label={m.results} className="flex flex-col gap-1 pt-2">
-      <h4 className="text-[0.95rem] font-semibold">{m.results}</h4>
-      <ul className="flex flex-col gap-2">
-        {items.map((i) => (
-          <ResultRow key={`${i.job}:${i.tool}:${i.profile}`} item={i} m={m} />
-        ))}
-      </ul>
-    </section>
+    <Collapse open={items.length > 0}>
+      <section aria-label={m.results} className="flex flex-col gap-1 pt-2">
+        <h4 className="text-[0.95rem] font-semibold">{m.results}</h4>
+        <ul className="flex flex-col gap-2">
+          {items.map((i) => (
+            <ResultRow key={`${i.job}:${i.tool}:${i.profile}`} item={i} m={m} />
+          ))}
+        </ul>
+      </section>
+    </Collapse>
   )
 }
 

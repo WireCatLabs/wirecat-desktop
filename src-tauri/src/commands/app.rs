@@ -273,6 +273,10 @@ pub fn autostart_set(app: tauri::AppHandle, on: bool) -> Result<bool, AppError> 
             return Err(AppError::Failed("a test or development copy of WireCat does not start at login".into()));
         }
         let manager = app.autolaunch();
+        // Nothing to remove on a computer where it was never on; the platforms differ in how they say so.
+        if !on && !manager.is_enabled().unwrap_or(true) {
+            return Ok(false);
+        }
         if on { manager.enable() } else { manager.disable() }.map_err(|e| AppError::Failed(e.to_string()))?;
         manager.is_enabled().map_err(|e| AppError::Failed(e.to_string()))
     })

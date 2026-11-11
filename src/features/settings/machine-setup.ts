@@ -164,8 +164,11 @@ async function applyOn(only: { tool: string; profile: string } | null) {
   const c = useMachineSetup.getState()
   if (!c.answered) return
   const entry = only && tools.find((t) => t.id === only.tool)
+  // The sweep at the end of the setup leaves alone what a sign-in already set up, so a failed test keeps its Fix.
+  const fresh = (job: Job) => (a: { tool: string; profile: string }) =>
+    !useMachineRuns.getState().items[keyOf(a.tool, a.profile, job)]
   const pick = async (job: Job, fits: (t: CatalogTool) => boolean) =>
-    only ? (entry && fits(entry) ? [only] : []) : accounts(job)
+    only ? (entry && fits(entry) ? [only] : []) : (await accounts(job)).filter(fresh(job))
   const work: Promise<void>[] = []
   if (c.nightly) for (const a of await pick("nightly", forNightly)) work.push(nightly(a.tool, a.profile, c.time))
   if (c.live) for (const a of await pick("live", forLive)) work.push(live(a.tool, a.profile, true))

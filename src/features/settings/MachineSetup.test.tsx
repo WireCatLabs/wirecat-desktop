@@ -2,6 +2,7 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { platform } from "@/platform/bridge"
 import { useMachineSetup } from "@/shared/machine-setup-store"
+import { useOnboarding } from "@/shared/onboarding-store"
 import { useSignIn } from "@/shared/signin-store"
 import { useTools } from "@/shared/tools-store"
 import { act, render, screen, within } from "@/testing/render"
@@ -45,6 +46,8 @@ describe("what WireCat does by itself", () => {
   })
 
   it("makes the daily sync when an account signs in, runs it once, and offers the fix when the run fails", async () => {
+    useTools.setState({ installs: { tg: copy } })
+    const profiles = vi.spyOn(platform, "listProfiles").mockResolvedValue([{ name: "personal", signedIn: true }])
     useMachineSetup.setState({ answered: true, nightly: true, time: "05:10", live: false })
     vi.spyOn(platform, "autostartStatus").mockResolvedValue(true)
     vi.spyOn(platform, "syncScheduleStatus").mockResolvedValue({ state: "off" })
@@ -71,6 +74,11 @@ describe("what WireCat does by itself", () => {
     const results = screen.getByRole("region", { name: "What was set up" })
     expect(within(results).getByText("Daily sync of Telegram personal")).toBeInTheDocument()
     await user.click(within(results).getByRole("button", { name: /Fix/ }))
+    act(() => useOnboarding.setState({ status: "done" }))
+    await vi.waitFor(() => expect(profiles).toHaveBeenCalledWith("tg"))
+    await act(() => new Promise((r) => setTimeout(r, 0)))
+    expect(within(results).getByText("The test run failed.")).toBeInTheDocument()
+    expect(test).toHaveBeenCalledTimes(1)
     await user.click(within(results).getByText("Do it yourself"))
     expect(within(results).getByRole("region", { name: /fix/i })).toHaveTextContent(
       /schedule run[\s\S]*the session has ended/,
