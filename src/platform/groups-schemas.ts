@@ -7,6 +7,8 @@ export const GroupMemberSchema = v.object({
   provider: v.string(),
   profiles: v.array(v.string()),
   alsoIn: v.array(v.string()),
+  /** `personal` or `work`; null from a memo before account scopes. */
+  scope: v.nullable(v.string()),
 })
 
 export const AccountGroupSchema = v.object({
@@ -23,3 +25,5 @@ export const GroupsReadSchema = v.variant("kind", [
 
 export type GroupsRead = v.InferOutput<typeof GroupsReadSchema>
 export type AccountGroup = v.InferOutput<typeof AccountGroupSchema>
+
+export type AccountScope = "personal" | "work"

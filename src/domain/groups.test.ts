@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { ALL, applyChange, changeOf, columnsOf, type Group, isDuplicate, nameProblem, profileParts } from "./groups"
 
-const tgWork = { source: "telegram:2", provider: "telegram", profiles: ["tg work"], alsoIn: [] }
-const tgHome = { source: "telegram:1", provider: "telegram", profiles: ["tg personal"], alsoIn: [] }
-const b24 = { source: "bitrix24:acme.example", provider: "bitrix24", profiles: ["b24 work"], alsoIn: [] }
+const tgWork = { source: "telegram:2", provider: "telegram", profiles: ["tg work"], alsoIn: [], scope: null }
+const tgHome = { source: "telegram:1", provider: "telegram", profiles: ["tg personal"], alsoIn: [], scope: null }
+const b24 = { source: "bitrix24:acme.example", provider: "bitrix24", profiles: ["b24 work"], alsoIn: [], scope: null }
 
 const groups: Group[] = [
   { name: "work", members: [tgWork], suggested: [b24.source] },

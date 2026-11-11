@@ -39,11 +39,13 @@ fn decision(parts: &[&str]) -> Vec<String> {
 /// memo answers a refused review decision with exit code 2 and the whole answer on stdout: it goes back as an answer,
 /// so `decided` names memo's reason, rather than as the last line of its output. Only a `people list` gives an `OLDER`
 /// refusal back bare: elsewhere `input.invalid` is a real refusal and keeps memo's words.
-fn answer(out: &run::Output, listing: bool) -> Result<Value, String> {
+fn answer(out: &run::Output, listing: bool, resolving: bool) -> Result<Value, String> {
     let json = out.json();
     let reason = json.as_ref().and_then(|v| v["error"]["reason"].as_str()).unwrap_or_default();
     match json {
         Some(v) if out.code == Some(0) && v.get("error").is_none() => Ok(v),
+        // `resolve_with` needs memo's reason and its words both: the refs of an ambiguous company are only in the words.
+        Some(v) if resolving && !reason.is_empty() => Ok(v),
         Some(v) if v.get("error").is_none() && body(&v)["refused"].is_array() => Ok(v),
         Some(_) if WORDED.contains(&reason) || (listing && (OLDER.contains(&reason) || reason == UNKNOWN_KIND)) => {
             Err(reason.to_string())
@@ -55,7 +57,8 @@ fn answer(out: &run::Output, listing: bool) -> Result<Value, String> {
 fn call_at(bin: &Path, args: &[String]) -> Result<Value, String> {
     let refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let listing = args.get(1).is_some_and(|w| w == "list");
-    answer(&crate::memo_server::run(bin, &refs, TIMEOUT).map_err(|e| e.to_string())?, listing)
+    let resolving = args.get(1).is_some_and(|w| w == "resolve");
+    answer(&crate::memo_server::run(bin, &refs, TIMEOUT).map_err(|e| e.to_string())?, listing, resolving)
 }
 
 pub(crate) fn text(v: &Value, key: &str) -> Option<String> {
@@ -175,6 +178,11 @@ pub struct Match {
     pub reason: Option<String>,
     pub evidence: Vec<String>,
     pub proposer: Option<Proposer>,
+    /// How sure memo is; `people review` already lists the matches by it, highest first.
+    pub score: Option<f64>,
+    /// `role` or `line`: the address is a shared mailbox, which memo only suggests and never joins by itself.
+    pub shared: Option<String>,
+    pub mailbox: Option<String>,
 }
 
 fn matched(v: &Value) -> Option<Match> {
@@ -190,6 +198,9 @@ fn matched(v: &Value) -> Option<Match> {
         reason: text(v, "reason"),
         evidence: strings(&v["evidence"]),
         proposer: proposer_of(by),
+        score: v["score"].as_f64(),
+        shared: text(v, "shared"),
+        mailbox: text(v, "mailbox"),
         persons: (persons.len() == 2).then_some(persons)?,
     })
 }
@@ -605,6 +616,107 @@ pub fn decide_split(reference: &str, id: &str, answer: Answer, reason: Option<&s
     with_memo(|call| decide_split_with(call, reference, id, answer, reason))
 }
 
+#[derive(Serialize, Debug, PartialEq)]
+pub struct Organization {
+    #[serde(rename = "ref")]
+    pub reference: String,
+    pub name: Option<String>,
+}
+
+/// What `people resolve … company` did: the mailbox went to `organization` and the two people stay apart, or memo's
+/// refusal with its reason and words; `organizations` are the ones an ambiguous address could go to.
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(tag = "kind", rename_all = "camelCase")]
+pub enum Resolved {
+    Done { organization: Option<String>, mailbox: Option<String>, person: Person },
+    Refused { reason: String, message: String, organizations: Vec<Organization> },
+}
+
+/// A memo before `people resolve`: the page asks for its update.
+const OLD_MEMO: &str = "memo.old";
+
+fn organization_ref(s: &str) -> Option<&str> {
+    let id = s.strip_prefix("organization:")?;
+    (!id.is_empty() && id.len() <= 15 && id.bytes().all(|b| b.is_ascii_digit())).then_some(s)
+}
+
+/// memo names the organizations an address matches only in its message: `2 organizations match acme.example
+/// (organization:1, organization:2); name the one meant as a reference`.
+fn named_organizations(message: &str) -> Vec<String> {
+    let mut found: Vec<String> = Vec::new();
+    for word in message.split(|c: char| !(c.is_ascii_alphanumeric() || c == ':')) {
+        if let Some(r) = organization_ref(word).filter(|r| !found.iter().any(|f| f == r)) {
+            found.push(r.to_string());
+        }
+    }
+    found
+}
+
+fn company_name(name: Option<&str>) -> Result<Option<String>, String> {
+    let Some(t) = name.map(str::trim).filter(|t| !t.is_empty()) else { return Ok(None) };
+    if t.chars().count() > 200 || t.chars().any(char::is_control) {
+        return Err("Name the company in one line.".into());
+    }
+    Ok(Some(format!("--name={t}")))
+}
+
+/// The owner says a shared mailbox is a company's: memo gives the address to that organization and turns the match
+/// down, so the two people stay apart and are not suggested again on it.
+fn resolve_with(
+    call: &Call,
+    reference: &str,
+    id: &str,
+    organization: Option<&str>,
+    name: Option<&str>,
+) -> Result<Resolved, String> {
+    let reference = person_ref(reference)?;
+    if number(&json!(id)).is_none() {
+        return Err("Not a match memo listed. Read again.".into());
+    }
+    let organization = match organization {
+        Some(o) => Some(organization_ref(o).ok_or("Not an organization memo listed.")?),
+        None => None,
+    };
+    let name = company_name(name)?;
+    // The pairs of one mailbox go one by one; one memo already closed is skipped, as memo says of a decided one.
+    if !show_with(call, reference)?.matches.into_iter().any(|m| m.id == id) {
+        let message = format!("{id} is not open on {reference} any more");
+        return Ok(Resolved::Refused { reason: "proposal.wrong-state".into(), message, organizations: Vec::new() });
+    }
+    let mut args = decision(&["people", "resolve", id, "company"]);
+    if let Some(o) = organization {
+        args.insert(4, o.to_string());
+    }
+    args.extend(name);
+    let v = call(&args)?;
+    if let Some(reason) = v["error"]["reason"].as_str() {
+        let message = text(&v["error"], "message").unwrap_or_default();
+        let reason = if message.starts_with("unknown command") { OLD_MEMO } else { reason };
+        let organizations = if reason == "organization.ambiguous" {
+            named_organizations(&message)
+                .into_iter()
+                .map(|r| {
+                    let name = call(&words(&["organizations", "show", &r])).ok().and_then(|o| text(body(&o), "name"));
+                    Organization { reference: r, name }
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
+        return Ok(Resolved::Refused { reason: reason.to_string(), message, organizations });
+    }
+    let item = body(&v);
+    Ok(Resolved::Done {
+        organization: text(item, "organization"),
+        mailbox: text(item, "mailbox"),
+        person: show_with(call, reference)?,
+    })
+}
+
+pub fn resolve(reference: &str, id: &str, organization: Option<&str>, name: Option<&str>) -> Result<Resolved, String> {
+    with_memo(|call| resolve_with(call, reference, id, organization, name))
+}
+
 /// The memo move that would set a doubted person right; `None` from a memo that gives only the command line.
 #[derive(Serialize, Debug, PartialEq)]
 #[serde(tag = "op", rename_all = "camelCase")]
@@ -864,6 +976,112 @@ mod tests {
     }
 
     #[test]
+    fn a_match_carries_memos_score_and_its_shared_mailbox() {
+        let v = json!({"id": "7", "persons": ["person:1", "person:2"], "signal": "email", "score": 0.82,
+            "shared": "role", "mailbox": "info@acme.example", "candidates": [], "evidence": []});
+        let m = matched(&v).unwrap();
+        assert_eq!(
+            (m.score, m.shared.as_deref(), m.mailbox.as_deref()),
+            (Some(0.82), Some("role"), Some("info@acme.example"))
+        );
+        let old = matched(&fixture("review")["items"][0]).unwrap();
+        assert_eq!((old.score, old.shared, old.mailbox), (None, None, None));
+    }
+
+    fn resolving(answer: Value) -> (Fake, impl Fn(&[String]) -> Option<Value>) {
+        let f = Fake::new("confirm");
+        let reply = move |a: &[String]| match (a[0].as_str(), a[1].as_str()) {
+            ("people", "resolve") => Some(answer.clone()),
+            ("organizations", "show") => Some(json!({"item": {"ref": a[2], "name": format!("Acme {}", &a[2][13..])}})),
+            _ => None,
+        };
+        (f, reply)
+    }
+
+    #[test]
+    fn a_shared_mailbox_goes_to_a_company_with_memos_own_words() {
+        let done = json!({"item": {"id": "3", "kind": "identity_link", "status": "rejected",
+            "mailbox": "info@acme.example", "organization": "organization:4"}});
+        let (f, reply) = resolving(done);
+        let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
+        let Resolved::Done { organization, mailbox, person } =
+            resolve_with(&call, "person:8", "3", Some("organization:4"), Some(" Acme ")).unwrap()
+        else {
+            panic!("not done")
+        };
+        assert_eq!((organization.as_deref(), mailbox.as_deref()), (Some("organization:4"), Some("info@acme.example")));
+        assert_eq!(person.reference, "person:8");
+        assert!(f.seen().iter().any(|a| a.first().map(String::as_str) == Some("people") && a[1] == "show"));
+        assert!(resolve_with(&call, "person:8", "3", Some("person:4"), None).is_err());
+        let closed = resolve_with(&call, "person:8", "9", None, None).unwrap();
+        assert!(matches!(closed, Resolved::Refused { ref reason, .. } if reason == "proposal.wrong-state"));
+    }
+
+    #[test]
+    fn sends_the_organization_before_the_options_and_the_name_as_one_word() {
+        let seen = Mutex::new(Vec::new());
+        let f = Fake::new("confirm");
+        let call = |a: &[String]| {
+            if a[1] == "resolve" {
+                seen.lock().unwrap().push(a.to_vec());
+                return Ok(json!({"item": {"mailbox": "info@acme.example", "organization": "organization:4"}}));
+            }
+            f.call(a)
+        };
+        resolve_with(&call, "person:8", "3", Some("organization:4"), None).unwrap();
+        resolve_with(&call, "person:8", "3", None, Some("Acme Ltd")).unwrap();
+        let seen = seen.into_inner().unwrap();
+        let tail = ["--from-app", "--json", "--no-record"];
+        assert_eq!(seen[0], strs(&[&["people", "resolve", "3", "company", "organization:4"][..], &tail].concat()));
+        assert_eq!(seen[1], strs(&[&["people", "resolve", "3", "company"][..], &tail, &["--name=Acme Ltd"]].concat()));
+    }
+
+    #[test]
+    fn an_ambiguous_company_comes_back_with_the_organizations_to_pick_from() {
+        let refused = json!({"error": {"code": "validation_error", "reason": "organization.ambiguous",
+            "message": "2 organizations match acme.example (organization:1, organization:12); name the one meant as a reference"}});
+        let (f, reply) = resolving(refused);
+        let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
+        let Resolved::Refused { reason, message, organizations } =
+            resolve_with(&call, "person:8", "3", None, None).unwrap()
+        else {
+            panic!("not refused")
+        };
+        assert_eq!(reason, "organization.ambiguous");
+        assert!(message.contains("organization:12"));
+        assert_eq!(
+            organizations,
+            [
+                Organization { reference: "organization:1".into(), name: Some("Acme 1".into()) },
+                Organization { reference: "organization:12".into(), name: Some("Acme 12".into()) },
+            ]
+        );
+        let unnamed =
+            json!({"error": {"reason": "organization.unnamed", "message": "info@gmail.com is a free mailbox"}});
+        let (f, reply) = resolving(unnamed);
+        let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
+        let r = resolve_with(&call, "person:8", "3", None, None).unwrap();
+        assert!(matches!(r, Resolved::Refused { ref reason, ref organizations, .. }
+            if reason == "organization.unnamed" && organizations.is_empty()));
+        let (f, reply) =
+            resolving(json!({"error": {"reason": "input.invalid", "message": "unknown command 'resolve'"}}));
+        let call = |a: &[String]| reply(a).map_or_else(|| f.call(a), Ok);
+        let r = resolve_with(&call, "person:8", "3", None, None).unwrap();
+        assert!(matches!(r, Resolved::Refused { ref reason, .. } if reason == OLD_MEMO));
+    }
+
+    #[test]
+    fn only_a_resolve_gets_memos_refusal_back_whole() {
+        let out = run::Output {
+            code: Some(2),
+            stdout: r#"{"error":{"reason":"organization.unnamed","message":"a free mailbox"}}"#.into(),
+            stderr: String::new(),
+        };
+        assert_eq!(answer(&out, false, true).unwrap()["error"]["reason"], "organization.unnamed");
+        assert!(answer(&out, false, false).is_err());
+    }
+
+    #[test]
     fn a_split_is_never_read_as_a_match_and_keeps_its_own_row() {
         let call = |a: &[String]| -> Result<Value, String> {
             Ok(if a[1] == "review" { fixture("review-split") } else { fixture("list") })
@@ -1081,8 +1299,8 @@ mod tests {
             stdout: json!({"error": {"code": "validation_error", "reason": "input.invalid", "message": "unknown option '--sort'"}}).to_string(),
             stderr: String::new(),
         };
-        assert_eq!(answer(&out, true), Err("input.invalid".into()));
-        assert_ne!(answer(&out, false), Err("input.invalid".into()), "a decision keeps memo's words");
+        assert_eq!(answer(&out, true, false), Err("input.invalid".into()));
+        assert_ne!(answer(&out, false, false), Err("input.invalid".into()), "a decision keeps memo's words");
     }
 
     #[test]
@@ -1104,7 +1322,7 @@ mod tests {
                     .to_string(),
             stderr: String::new(),
         };
-        assert_eq!(answer(&out, true), Err(UNKNOWN_KIND.into()));
+        assert_eq!(answer(&out, true, false), Err(UNKNOWN_KIND.into()));
     }
 
     #[test]
@@ -1146,13 +1364,13 @@ mod tests {
     fn a_refusal_memo_exits_2_with_is_its_reason_not_raw_output() {
         for (fixture_name, reason) in [("stale", "identity.stale"), ("refused", "proposal.wrong-state")] {
             let out = run::Output { code: Some(2), stdout: fixture(fixture_name).to_string(), stderr: String::new() };
-            let v = answer(&out, false).unwrap();
+            let v = answer(&out, false, false).unwrap();
             let id = body(&v)["refused"][0]["id"].as_str().unwrap().to_string();
             assert_eq!(decided(&v, &id), Err(reason.to_string()));
         }
         assert_eq!(decided(&fixture("confirm"), "4"), Ok(()));
         let broken = run::Output { code: Some(1), stdout: "not json".into(), stderr: "boom".into() };
-        assert_eq!(answer(&broken, false), Err("boom".into()));
+        assert_eq!(answer(&broken, false, false), Err("boom".into()));
     }
 
     #[test]

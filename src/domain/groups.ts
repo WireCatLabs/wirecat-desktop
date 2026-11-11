@@ -3,7 +3,7 @@ export const ALL = "all"
 const RESERVED = [ALL, "bots"]
 const NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 
-export type Member = { source: string; provider: string; profiles: string[]; alsoIn: string[] }
+export type Member = { source: string; provider: string; profiles: string[]; alsoIn: string[]; scope: string | null }
 export type Group = { name: string; members: Member[]; suggested: string[] }
 
 export type Change =

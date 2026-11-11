@@ -11,6 +11,7 @@ import type {
   PeopleSort,
   PersonDetail,
   PersonKind,
+  Resolved,
   Split,
 } from "@/platform/people-schemas"
 import { fresh } from "@/shared/fresh"
@@ -28,6 +29,9 @@ export type Done =
   | { op: "unlink"; movedTo: string; count: number }
   | { op: "unmerge"; from: string }
 export type View = "people" | "matches"
+export type MailboxRefusal = Extract<Resolved, { kind: "refused" }>
+/** Where the owner gave a shared mailbox, and memo's refusal that stopped the rest of its pairs, if one did. */
+export type MailboxDone = { organization: string | null; mailbox: string | null; refused: MailboxRefusal | null }
 /** What joining some of a group did: who was joined, in order, and why the rest were not, if a join failed. */
 export type GroupDone = { joined: string[]; stopped: string | null }
 /** One page of `people links check`; kept on screen while the next page or a read again is on its way. */
@@ -86,6 +90,8 @@ type PeopleState = {
   /** The match, or the group of matches (its key from `groupMatches`), whose Details dialog is open. */
   matchOpen: string | null
   joinedGroup: Record<string, GroupDone>
+  /** By card: a shared mailbox given to a company, or memo's refusal before any pair of it was. */
+  company: Record<string, MailboxDone>
   details: Record<string, Detail>
   busy: Record<string, Op>
   failed: Record<string, string>
@@ -119,6 +125,11 @@ type PeopleState = {
   need(ref: string): void
   /** `ref` is the person the owner decides from: the open one, or the first of the match's two. */
   decide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<boolean>
+  /**
+   * Gives the shared mailbox of a card to a company, one pair after another (memo has no call for the whole address
+   * yet): the first pair finds or makes the organization, the rest go to that same one. Stops at memo's first refusal.
+   */
+  resolveMailbox(key: string, ids: readonly string[], to: { organization?: string; name?: string }): Promise<boolean>
   /** Joins the chosen people of a group into one; `ids` are the group's matches, kept in place as decided. */
   joinGroup(key: string, refs: string[], ids: string[]): Promise<boolean>
   /** Keeps the given pairs of a group apart, for one reason; stops at the first refusal. */
@@ -265,6 +276,7 @@ export const usePeople = create<PeopleState>((set, get) => {
     open: null,
     matchOpen: null,
     joinedGroup: {},
+    company: {},
     details: {},
     busy: {},
     failed: {},
@@ -312,6 +324,7 @@ export const usePeople = create<PeopleState>((set, get) => {
           kinded,
           decided: {},
           joinedGroup: {},
+          company: {},
           reading: kinded && s.reading,
           readAt: Date.now(),
           details: {},
@@ -435,6 +448,47 @@ export const usePeople = create<PeopleState>((set, get) => {
       set((s) => ({ decided: { ...s.decided, [id]: answer }, done: { ...s.done, [ref]: { op: answer, with: other } } }))
       await settle(updated, ref, match?.persons ?? [])
       return true
+    },
+    async resolveMailbox(key, ids, to) {
+      const done = await run(key, "reject", async () => {
+        const closed: string[] = []
+        let last: PersonDetail | null = null
+        let refused: MailboxRefusal | null = null
+        let organization = to.organization ?? null
+        let mailbox: string | null = null
+        try {
+          for (const id of ids) {
+            const m = get().matches.find((x) => x.id === id)
+            if (!m || get().decided[id]) continue
+            const r = await platform.peopleResolve(m.persons[0] ?? "", id, organization ? { organization } : to)
+            if (r.kind === "refused") {
+              // A pair memo already closed, as the first one's answer may close the rest, is no reason to stop.
+              if (r.reason === "proposal.wrong-state") continue
+              refused = r
+              break
+            }
+            closed.push(id)
+            last = r.person
+            organization = r.organization ?? organization
+            mailbox = r.mailbox ?? mailbox
+          }
+        } finally {
+          set((s) => ({
+            decided: { ...s.decided, ...Object.fromEntries(closed.map((id) => [id, "reject" as const])) },
+          }))
+          const answer = last as PersonDetail | null
+          if (answer) {
+            const persons = get()
+              .matches.filter((m) => ids.includes(m.id))
+              .flatMap((m) => m.persons)
+            await settle(answer, answer.ref, persons, ids)
+          }
+        }
+        return { organization: closed.length ? organization : null, mailbox, refused }
+      })
+      if (!done) return false
+      set((s) => ({ company: { ...s.company, [key]: done } }))
+      return done.refused === null
     },
     async joinGroup(key, refs, ids) {
       // The card stays busy until the lists are read again, so it never offers the pairs memo just folded away.

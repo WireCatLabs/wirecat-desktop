@@ -1,4 +1,4 @@
-import { GripVertical } from "lucide-react"
+import { Briefcase, GripVertical, House } from "lucide-react"
 import type { PointerEvent as ReactPointerEvent } from "react"
 import { toolByBin } from "@/domain/catalog"
 import { ALL, accountName, editable, isDuplicate, type Member, profileParts } from "@/domain/groups"
@@ -7,6 +7,7 @@ import { ToolIcon } from "@/shared/ToolIcon"
 import { cardClass } from "@/ui/Board"
 import { cx } from "@/ui/cx"
 import { Pill } from "@/ui/Pill"
+import { Segmented } from "@/ui/Segmented"
 import { Select, type SelectOption } from "@/ui/Select"
 import { groupsMessages } from "./messages"
 import { useGroups } from "./store"
@@ -53,7 +54,7 @@ export function GroupCard(props: {
       onPointerDown={props.onPointerDown}
       className={cx(
         cardClass(props.ghost, false),
-        "flex items-center gap-[0.5rem] px-[0.9rem] py-[0.65rem]",
+        "flex flex-wrap items-center gap-[0.5rem] px-[0.9rem] py-[0.65rem]",
         duplicate && "border-l-[3px] border-l-warn bg-warn/5",
       )}
     >
@@ -84,7 +85,33 @@ export function GroupCard(props: {
           className="shrink-0"
         />
       )}
+      {group === ALL && member.scope !== null && <ScopeSwitch member={member} />}
     </div>
+  )
+}
+
+/** Which side of the owner's life the account is on: work views, work agents and the «work» mark on people follow it. */
+function ScopeSwitch({ member }: { member: Member }) {
+  const m = useMessages(groupsMessages)
+  // A press while another change runs is said, not swallowed: the store refuses it and the notice explains.
+  const busy = useGroups((s) => s.busy)
+  return (
+    <span onPointerDown={(e) => e.stopPropagation()} className="flex basis-full">
+      <Segmented
+        size="sm"
+        labelClass=""
+        label={m.scopeOf(accountName(member))}
+        value={member.scope === "work" ? "work" : "personal"}
+        options={[
+          { value: "personal", label: m.personal, icon: <House className="size-[0.85rem]" aria-hidden /> },
+          { value: "work", label: m.work, icon: <Briefcase className="size-[0.85rem]" aria-hidden /> },
+        ]}
+        onChange={(scope) => {
+          if (busy) useGroups.setState({ refused: { message: m.scopeBusy } })
+          else void useGroups.getState().setScope(member.source, scope)
+        }}
+      />
+    </span>
   )
 }
 

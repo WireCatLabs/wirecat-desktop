@@ -62,7 +62,7 @@ import type { BotProfile, BotResult } from "./bot-schemas"
 import type { CloudflareStatus, TunnelRoute } from "./cloudflare-schemas"
 import type { CommunityStatus, ExtraTools } from "./community-schemas"
 import type { Digest, DigestDay } from "./digest-schemas"
-import type { GroupsRead } from "./groups-schemas"
+import type { AccountScope, GroupsRead } from "./groups-schemas"
 import type { McpServerStatus, OAuthSettings, PublicCheck } from "./mcp-server-schemas"
 import type {
   AddedSource,
@@ -96,6 +96,7 @@ import type {
   PeopleSort,
   PersonDetail,
   PersonKind,
+  Resolved,
   Unlinked,
 } from "./people-schemas"
 import type { Permissions } from "./permissions-schemas"
@@ -318,6 +319,8 @@ export type Platform = {
   groupsRemove(group: string, source: string): Promise<GroupsRead>
   /** Out of one saved group and into another, in one write. */
   groupsMove(source: string, from: string, to: string): Promise<GroupsRead>
+  /** Puts an account on the personal or the work side. Answers every group again. */
+  groupsScope(source: string, scope: AccountScope): Promise<GroupsRead>
   /**
    * One page (from 1) of memo's memories, facts and proposed actions in one list, and the agents' recent calls; "old"
    * below memo 0.130.0.
@@ -388,6 +391,8 @@ export type Platform = {
   peopleShow(ref: string): Promise<PersonDetail>
   /** The owner's answer to a match about this person; answers the person read again. */
   peopleDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
+  /** Says the shared mailbox of a match is a company's (`organization` or a new one `name`d): the people stay apart. */
+  peopleResolve(ref: string, id: string, to: { organization?: string; name?: string }): Promise<Resolved>
   /** The owner's answer to a split an agent proposed on this person; answers the person read again. */
   peopleSplitDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
   /** One page of the people whose accounts look wrongly joined, the owner first. */

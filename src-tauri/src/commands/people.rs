@@ -50,6 +50,20 @@ pub async fn people_decide(
     .await
 }
 
+/// Says the shared mailbox of one match is a company's: the two people stay apart.
+#[tauri::command]
+pub async fn people_resolve(
+    reference: String,
+    id: String,
+    organization: Option<String>,
+    name: Option<String>,
+) -> Result<people::Resolved, AppError> {
+    crate::log::command("people_resolve", async move {
+        attempt(move || people::resolve(&reference, &id, organization.as_deref(), name.as_deref())).await
+    })
+    .await
+}
+
 /// Joins the people the owner chose from one group of matches into one person.
 #[tauri::command]
 pub async fn people_merge(references: Vec<String>) -> Result<people::Merged, AppError> {

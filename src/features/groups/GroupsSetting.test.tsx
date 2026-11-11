@@ -8,9 +8,15 @@ import { GroupsSetting } from "./GroupsSetting"
 
 afterEach(() => vi.restoreAllMocks())
 
-const tgWork = { source: "telegram:2", provider: "telegram", profiles: ["tg work"], alsoIn: ["personal"] }
-const tgHome = { source: "telegram:1", provider: "telegram", profiles: ["tg personal"], alsoIn: [] }
-const mail = { source: "email:me@work.example", provider: "email", profiles: [], alsoIn: [] }
+const tgWork = {
+  source: "telegram:2",
+  provider: "telegram",
+  profiles: ["tg work"],
+  alsoIn: ["personal"],
+  scope: "work",
+}
+const tgHome = { source: "telegram:1", provider: "telegram", profiles: ["tg personal"], alsoIn: [], scope: "personal" }
+const mail = { source: "email:me@work.example", provider: "email", profiles: [], alsoIn: [], scope: "work" }
 
 const groups: Group[] = [
   { name: "work", members: [tgWork], suggested: [] },
@@ -80,4 +86,24 @@ it("says the groups arrive with the next update on an older memo", async () => {
   vi.spyOn(platform, "groupsRead").mockResolvedValue({ kind: "old", version: "0.131.51" })
   render(<GroupsSetting />)
   expect(await screen.findByText(/Memo 0.131.51 has no account groups yet/)).toBeInTheDocument()
+})
+
+it("puts an account on the work side from all", async () => {
+  vi.spyOn(platform, "groupsRead").mockResolvedValue(ready)
+  const scope = vi.spyOn(platform, "groupsScope").mockResolvedValue(ready)
+  render(<GroupsSetting />)
+  await screen.findByRole("region", { name: /^All/ })
+  const switches = column(/^All/).getAllByRole("group", { name: /^Personal or work/ })
+  expect(switches).toHaveLength(3)
+  expect(column(/^work/).queryByRole("group", { name: /^Personal or work/ })).toBeNull()
+  await userEvent.click(column(/^All/).getByRole("radio", { name: "Work", checked: false }))
+  expect(scope).toHaveBeenCalledWith("telegram:1", "work")
+})
+
+it("shows no personal or work switch on a memo before account scopes", async () => {
+  const old = groups.map((g) => ({ ...g, members: g.members.map((x) => ({ ...x, scope: null })) }))
+  vi.spyOn(platform, "groupsRead").mockResolvedValue({ ...ready, groups: old })
+  render(<GroupsSetting />)
+  await screen.findByRole("region", { name: /^All/ })
+  expect(screen.queryByRole("group", { name: /^Personal or work/ })).toBeNull()
 })

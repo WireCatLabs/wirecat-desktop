@@ -5,25 +5,26 @@ import type { Platform } from "./types"
 
 // The groups block's stand-in for memo, with made-up accounts only. `?groups=none` has no saved group, `old` an older
 // memo, `missing` no memo. `?groups-fail=read` fails the read; `?groups-fail=write` refuses every change as memo does a
-// saved entry that names more than one account.
+// saved entry that names more than one account. `?groups=noscope` is a memo before account scopes.
 
 const params = new URLSearchParams(typeof window === "undefined" ? "" : window.location.search)
 const scenario = params.get("groups")
 const fail = params.get("groups-fail")
 
-const member = (source: string, profiles: string[]) => ({
+const member = (source: string, profiles: string[], scope: string | null = "personal") => ({
   source,
   provider: source.slice(0, source.indexOf(":")),
   profiles,
   alsoIn: [],
+  scope: scenario === "noscope" ? null : scope,
 })
 
 const TG_HOME = member("telegram:1001", ["tg personal"])
-const TG_WORK = member("telegram:1002", ["tg work"])
+const TG_WORK = member("telegram:1002", ["tg work"], "work")
 const MAX = member("max:2001", ["max personal"])
 const WA = member("whatsapp:34600000001", ["wa personal"])
-const B24 = member("bitrix24:acme.example", ["b24 work"])
-const MAIL = member("email:me@work.example", [])
+const B24 = member("bitrix24:acme.example", ["b24 work"], "work")
+const MAIL = member("email:me@work.example", [], "work")
 
 function seed(): Group[] {
   const every = [B24, MAIL, MAX, TG_HOME, TG_WORK, WA]
@@ -39,7 +40,10 @@ function seed(): Group[] {
 
 const REFUSED = "email names more than this account — change the group with config set"
 
-export function groupsMock(): Pick<Platform, "groupsRead" | "groupsAdd" | "groupsRemove" | "groupsMove"> {
+export function groupsMock(): Pick<
+  Platform,
+  "groupsRead" | "groupsAdd" | "groupsRemove" | "groupsMove" | "groupsScope"
+> {
   let groups = seed()
   const ready = (): GroupsRead => ({ kind: "ready", groups, unresolved: [] })
   const write = async (change: Change) => {
@@ -59,5 +63,14 @@ export function groupsMock(): Pick<Platform, "groupsRead" | "groupsAdd" | "group
     groupsAdd: (group, source) => write({ kind: "add", group, source }),
     groupsRemove: (group, source) => write({ kind: "remove", group, source }),
     groupsMove: (source, from, to) => write({ kind: "move", source, from, to }),
+    async groupsScope(source, scope) {
+      await delay(500)
+      if (fail === "write") throw new Error(REFUSED)
+      groups = groups.map((g) => ({
+        ...g,
+        members: g.members.map((x) => (x.source === source ? { ...x, scope } : x)),
+      }))
+      return ready()
+    },
   }
 }

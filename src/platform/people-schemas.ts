@@ -18,6 +18,11 @@ export const MatchSchema = v.object({
   reason: text,
   evidence: v.array(v.string()),
   proposer: v.nullable(v.object({ kind: v.string(), name: text })),
+  /** How sure memo is; memo lists the matches by it, highest first, and the page keeps that order. */
+  score: v.nullable(v.number()),
+  /** `role` or `line`: `mailbox` is shared, a company's or a family's, which WireCat never joins people by itself. */
+  shared: text,
+  mailbox: text,
 })
 
 /** Accounts an agent says are not this person: `unlink` moves them to one new person, `unmerge` undoes `merge`. */
@@ -129,7 +134,18 @@ export const MergedSchema = v.object({
   stopped: text,
 })
 
+export const ResolvedSchema = v.variant("kind", [
+  v.object({ kind: v.literal("done"), organization: text, mailbox: text, person: PersonDetailSchema }),
+  v.object({
+    kind: v.literal("refused"),
+    reason: v.string(),
+    message: v.string(),
+    organizations: v.array(v.object({ ref: v.string(), name: text })),
+  }),
+])
+
 export type Match = v.InferOutput<typeof MatchSchema>
+export type Resolved = v.InferOutput<typeof ResolvedSchema>
 export type Split = v.InferOutput<typeof SplitSchema>
 export type Doubts = v.InferOutput<typeof DoubtsSchema>
 export type Doubt = Doubts["items"][number]

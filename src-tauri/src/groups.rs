@@ -28,6 +28,8 @@ pub struct Member {
     pub profiles: Vec<String>,
     /// The other saved groups that hold it too.
     pub also_in: Vec<String>,
+    /// `personal` or `work`: whether work views read it. Absent from a memo before account scopes.
+    pub scope: Option<String>,
 }
 
 #[derive(Serialize, Debug, PartialEq)]
@@ -93,6 +95,7 @@ fn member(v: &Value) -> Option<Member> {
         provider: provider.to_string(),
         profiles: strings(&v["profiles"]),
         also_in: strings(&v["also_in"]),
+        scope: v["scope"].as_str().map(str::to_string),
     })
 }
 
@@ -133,10 +136,14 @@ fn with_version(read: Read, version: Option<String>) -> Read {
 }
 
 fn run(timeout: Duration, args: Vec<String>) -> Result<Read, String> {
+    run_with(timeout, |call| answer(call, &args))
+}
+
+fn run_with(timeout: Duration, f: impl FnOnce(&Call) -> Result<Read, Failure>) -> Result<Read, String> {
     let state = tools::detect(memo()?, false);
     let Some(first) = state.installs.first() else { return Ok(Read::Missing) };
     let version = first.version.clone();
-    Ok(with_version(with_memo(timeout, |call| answer(call, &args))?, version))
+    Ok(with_version(with_memo(timeout, f)?, version))
 }
 
 pub fn read() -> Result<Read, String> {
@@ -156,6 +163,32 @@ fn move_args(source: &str, from: &str, to: &str) -> Result<Vec<String>, String> 
         return Err("an account moves to another group".into());
     }
     Ok(words(&["groups", "move", validate_source(source)?, validate_group(from)?, validate_group(to)?]))
+}
+
+/// A memo before `groups update`; the page asks for its update.
+pub const OLD_MEMO: &str = "memo.old";
+
+fn scope_args(source: &str, scope: &str) -> Result<Vec<String>, String> {
+    if !["personal", "work"].contains(&scope) {
+        return Err("an account is personal or work".into());
+    }
+    Ok(words(&["groups", "update", validate_source(source)?, &format!("--scope={scope}")]))
+}
+
+/// `groups update` answers with the one account, so the board is read again after it.
+fn scope_with(call: &Call, args: &[String]) -> Result<Read, Failure> {
+    match call(args) {
+        // The board stays: only the switch needs a newer memo, and the page says so beside it.
+        Err(f) if f.unknown_command() => Err(Failure::plain(OLD_MEMO)),
+        Err(f) => Err(f),
+        Ok(_) => answer(call, &words(&["groups", "list"])),
+    }
+}
+
+/// Moves an account to the personal or the work side: work views and work agents read only work accounts.
+pub fn set_scope(source: &str, scope: &str) -> Result<Read, String> {
+    let args = scope_args(source, scope)?;
+    run_with(WRITE, |call| scope_with(call, &args))
 }
 
 /// Puts an account in a group, which Memo makes when it is new; the account stays in its other groups.
@@ -185,7 +218,7 @@ mod tests {
     fn listed() -> Value {
         json!({"items":[
             {"group":"work","members":[{"provider":"telegram","account":"1002","entries":["telegram:1002"],
-                "reason":"setting","profiles":["tg work"],"also_in":["personal"]}],
+                "reason":"setting","profiles":["tg work"],"also_in":["personal"],"scope":"work"}],
              "duplicates":[{"member":"telegram:1002","groups":["work","personal"]}],
              "suggested":[{"group":"work","member":"bitrix24:acme.example","because":"profile named work (b24 work)"}]},
             {"group":"personal","members":[{"provider":"telegram","account":"1001","entries":["telegram:1001"],
@@ -232,6 +265,29 @@ mod tests {
             move_args("email:me@work.example", "personal", "work").unwrap(),
             with(&["groups", "move", "email:me@work.example", "personal", "work"])
         );
+    }
+
+    #[test]
+    fn an_accounts_scope_is_set_by_memo_and_the_board_read_again() {
+        let seen = std::sync::Mutex::new(Vec::new());
+        let call = |a: &[String]| {
+            seen.lock().unwrap().push(a.to_vec());
+            Ok(if a[1] == "update" {
+                json!({"item": {"provider": "telegram", "account": "1002", "scope": "work"}})
+            } else {
+                listed()
+            })
+        };
+        let args = scope_args("telegram:1002", "work").unwrap();
+        let Read::Ready { groups, .. } = scope_with(&call, &args).unwrap() else { panic!("not ready") };
+        assert_eq!(groups[0].members[0].scope.as_deref(), Some("work"));
+        let seen = seen.into_inner().unwrap();
+        assert_eq!(seen[0], strs(&["groups", "update", "telegram:1002", "--scope=work", "--json", "--no-record"]));
+        assert_eq!(seen[1], strs(&["groups", "list", "--json", "--no-record"]));
+        let old = |_: &[String]| Err(Failure::plain("unknown command 'update'"));
+        assert_eq!(scope_with(&old, &args).unwrap_err().message, OLD_MEMO);
+        assert!(scope_args("telegram:1002", "account").is_err());
+        assert!(scope_args("-x:1", "work").is_err());
     }
 
     #[test]

@@ -24,6 +24,8 @@ import { groupsMessages } from "./messages"
 import { useGroups } from "./store"
 
 const SEP = "/"
+/** What `groups.rs` answers when memo has no `groups update` yet. */
+const OLD_MEMO = "memo.old"
 /** A card's key on the board: an account can sit in several columns, so the column is part of it. */
 const cardKey = (group: string, source: string) => `${group}${SEP}${source}`
 const split = (key: string) => {
@@ -164,7 +166,7 @@ function GroupsBoard({ groups, unresolved }: { groups: Group[]; unresolved: stri
             </Button>
           }
         >
-          {refused && m.refused(refused.message)}
+          {refused && (refused.message === OLD_MEMO ? m.scopeOld : m.refused(refused.message))}
         </ErrorNotice>
       </Collapse>
       {unresolved.length > 0 && <p className="text-[0.9rem] text-warn-ink">{m.unresolved(unresolved.join(", "))}</p>}
@@ -186,7 +188,12 @@ function GroupsBoard({ groups, unresolved }: { groups: Group[]; unresolved: stri
                 <span className="truncate text-[1rem] font-semibold">{label(g.name)}</span>
                 <span className="font-mono text-[0.85rem] tabular-nums text-ink-dim">{g.members.length}</span>
               </h3>
-              {g.name === ALL && <p className="px-[0.9rem] pt-[0.6rem] text-[0.85rem] text-ink-dim">{m.allNote}</p>}
+              {g.name === ALL && (
+                <p className="px-[0.9rem] pt-[0.6rem] text-[0.85rem] text-ink-dim">
+                  {m.allNote}
+                  {g.members.some((x) => x.scope !== null) && ` ${m.scopeNote}`}
+                </p>
+              )}
               <ul className="flex flex-1 flex-col">
                 {g.members.map((x) => (
                   <li key={x.source} className="contents">
