@@ -58,6 +58,8 @@ type Words = {
   fromChats: string
   onlyMine: string
   mail: string
+  meeting: string
+  document: string
   cell: (what: string, key: string) => string
   open: (key: string) => string
   notSaved: string
@@ -89,8 +91,7 @@ type Words = {
   saved: string
   agentField: string
   agentTip: string
-  foundOnly: string
-  noProject: string
+  moveToProject: string
   sourceUnknown: string
   sourceNotMessage: string
   sourceReading: string
@@ -103,12 +104,7 @@ type Words = {
   openChat: string
   openMail: string
   saveBeforeOpen: string
-  foundHidden: (n: number) => string
-  projectOnlyField: (field: string) => string
-  projectOnlyStates: string
-  foundClosed: string
   foundIn: (source: string) => string
-  foundDrop: (state: string) => string
   agentNone: string
   waitsHeading: string
   nothingBlocks: string
@@ -246,14 +242,14 @@ const en: Words = {
   fromChats: "Chats and mail",
   onlyMine: "Only mine",
   mail: "Mail",
+  meeting: "Meeting",
+  document: "Document",
   cell: (what, key) => `${what} of ${key}`,
   open: (key) => `Open ${key}`,
   notSaved: "Not saved.",
   notMoved: "Not moved, the card is back.",
   failure: {
     account: "Memo could not tell which account the task belongs to. Read the tasks again, then retry.",
-    projectOnly:
-      "Memo found this task in your messages, and only project tasks have a status, priority, type, agent or project.",
     busy: "Memo is busy, most likely with a sync. Try again in a minute.",
     timeout: "Memo took too long to answer. Try again, and report it if it happens again.",
     missing: "Memo is not installed. Install it on the Tools page.",
@@ -287,9 +283,7 @@ const en: Words = {
   agentField: "AI agent",
   agentTip:
     "The AI agent that should take this task, besides the assignee, written as its name, such as hermes. That agent sees the task as its own.",
-  foundOnly:
-    "Memo found this task in your messages, so it is not in a project. For such a task Memo keeps only the title, notes, due date and assignee, and three statuses: Open, Done and Dismissed. Priority, type, AI agent and project are kept for project tasks only, and Memo cannot move a task from messages into a project yet. To give it any of them, make a project task with New task and close this one as Done.",
-  noProject: "No project",
+  moveToProject: "Move to project",
   sourceUnknown: "Memo did not keep the message it found this task in.",
   sourceNotMessage: "Memo found this task in a note or a document, not in a chat.",
   sourceReading: "Reading the message…",
@@ -309,16 +303,7 @@ const en: Words = {
   openChat: "Open in the chat",
   openMail: "Open the email",
   saveBeforeOpen: "Save or cancel your changes to the task first.",
-  projectOnlyField: (field) =>
-    `${field}: Memo keeps it for project tasks only, and this task was found in your messages. To set it, make a project task with New task and close this one as Done.`,
-  projectOnlyStates: "Project tasks only",
-  foundClosed:
-    "Memo keeps a task from messages closed once it is closed. If it needs work again, make a project task with New task.",
   foundIn: (source) => `From messages: ${source}`,
-  foundDrop: (state) =>
-    `Memo only closes a task from messages: drop it on Done or Dismissed. ${state} is for project tasks.`,
-  foundHidden: (n) =>
-    `${plural("en", n, { one: "# task from messages is", other: "# tasks from messages are" })} not shown: Memo applies search and filters to project tasks only. Clear the search to see them.`,
   agentNone: "No agent",
   waitsHeading: "Waits for",
   nothingBlocks: "Nothing. It can start now.",
@@ -471,14 +456,14 @@ const ru: Words = {
   fromChats: "Чаты и почта",
   onlyMine: "Только мои",
   mail: "Почта",
+  meeting: "Встреча",
+  document: "Документ",
   cell: (what, key) => `${what} задачи ${key}`,
   open: (key) => `Открыть ${key}`,
   notSaved: "Не сохранено.",
   notMoved: "Не перенесено, карточка на месте.",
   failure: {
     account: "Memo не понял, к какому аккаунту относится задача. Обновите список и попробуйте снова.",
-    projectOnly:
-      "Memo нашел эту задачу в ваших сообщениях. Статус, приоритет, тип, агент и проект есть только у задач проекта.",
     busy: "Memo занят, скорее всего синхронизацией. Попробуйте через минуту.",
     timeout: "Memo слишком долго не отвечал. Попробуйте еще раз, а если повторится, сообщите об ошибке.",
     missing: "Memo не установлен. Установите его на странице Инструменты.",
@@ -519,9 +504,7 @@ const ru: Words = {
   agentField: "ИИ-агент",
   agentTip:
     "ИИ-агент, который должен взять задачу, помимо исполнителя. Пишется именем, например hermes. Этот агент видит задачу как свою.",
-  foundOnly:
-    "Memo нашел эту задачу в ваших сообщениях, поэтому она не входит в проект. У таких задач Memo хранит только название, заметки, срок и исполнителя и три статуса: «Новые», «Готово» и «Отклонено». Приоритет, тип, ИИ-агент и проект есть только у задач проекта, а перенести задачу из сообщений в проект Memo пока не умеет. Если это нужно, создайте задачу проекта кнопкой «Новая задача» и закройте эту как «Готово».",
-  noProject: "Без проекта",
+  moveToProject: "Перенести в проект",
   sourceUnknown: "Memo не сохранил, в каком сообщении нашел эту задачу.",
   sourceNotMessage: "Memo нашел эту задачу в заметке или документе, а не в чате.",
   sourceReading: "Читаю сообщение…",
@@ -541,16 +524,7 @@ const ru: Words = {
   openChat: "Открыть в чате",
   openMail: "Открыть письмо",
   saveBeforeOpen: "Сначала сохраните или отмените изменения в задаче.",
-  projectOnlyField: (field) =>
-    `${field}: Memo хранит это только у задач проекта, а эта задача найдена в ваших сообщениях. Чтобы задать это, создайте задачу проекта кнопкой «Новая задача» и закройте эту как «Готово».`,
-  projectOnlyStates: "Только у задач проекта",
-  foundClosed:
-    "Закрытая задача из сообщений остается закрытой: Memo не открывает ее снова. Если по ней снова нужна работа, создайте задачу проекта кнопкой «Новая задача».",
   foundIn: (source) => `Из сообщений: ${source}`,
-  foundDrop: (state) =>
-    `Задачу из сообщений Memo может только закрыть: перенесите ее в «Готово» или «Отклонено». Статус «${state}» есть только у задач проекта.`,
-  foundHidden: (n) =>
-    `Задачи из сообщений (${formatNumber(n, "ru")}) не показаны: Memo применяет поиск и фильтры только к задачам проектов. Очистите поиск, чтобы их увидеть.`,
   agentNone: "Без агента",
   waitsHeading: "Ждёт",
   nothingBlocks: "Ничего. Можно начинать.",
@@ -711,14 +685,14 @@ const es: Words = {
   fromChats: "Chats y correo",
   onlyMine: "Solo mías",
   mail: "Correo",
+  meeting: "Reunión",
+  document: "Documento",
   cell: (what, key) => `${what} de ${key}`,
   open: (key) => `Abrir ${key}`,
   notSaved: "No se guardó.",
   notMoved: "No se movió, la tarjeta volvió a su sitio.",
   failure: {
     account: "Memo no supo a qué cuenta pertenece la tarea. Vuelve a leer las tareas e inténtalo de nuevo.",
-    projectOnly:
-      "Memo encontró esta tarea en tus mensajes, y solo las tareas de un proyecto tienen estado, prioridad, tipo, agente o proyecto.",
     busy: "Memo está ocupado, seguramente con una sincronización. Inténtalo dentro de un minuto.",
     timeout: "Memo tardó demasiado en responder. Inténtalo de nuevo y, si se repite, avísanos.",
     missing: "Memo no está instalado. Instálalo en la página Herramientas.",
@@ -752,9 +726,7 @@ const es: Words = {
   agentField: "Agente de IA",
   agentTip:
     "El agente de IA que debe tomar esta tarea, además del responsable, escrito por su nombre, como hermes. Ese agente la ve como suya.",
-  foundOnly:
-    "Memo encontró esta tarea en tus mensajes, así que no está en un proyecto. De estas tareas Memo guarda solo el título, las notas, la fecha límite y el responsable, y tres estados: Abiertas, Hechas y Descartadas. La prioridad, el tipo, el agente de IA y el proyecto son solo de las tareas de un proyecto, y Memo aún no puede mover una tarea de los mensajes a un proyecto. Si lo necesitas, crea una tarea de proyecto con Nueva tarea y cierra esta como Hecha.",
-  noProject: "Sin proyecto",
+  moveToProject: "Mover a un proyecto",
   sourceUnknown: "Memo no guardó el mensaje en el que encontró esta tarea.",
   sourceNotMessage: "Memo encontró esta tarea en una nota o un documento, no en un chat.",
   sourceReading: "Leyendo el mensaje…",
@@ -774,16 +746,7 @@ const es: Words = {
   openChat: "Abrir en el chat",
   openMail: "Abrir el correo",
   saveBeforeOpen: "Primero guarda o cancela los cambios de la tarea.",
-  projectOnlyField: (field) =>
-    `${field}: Memo lo guarda solo en las tareas de un proyecto, y esta tarea se encontró en tus mensajes. Para ponerlo, crea una tarea de proyecto con Nueva tarea y cierra esta como Hecha.`,
-  projectOnlyStates: "Solo tareas de proyecto",
-  foundClosed:
-    "Memo mantiene cerrada una tarea de los mensajes una vez cerrada. Si necesita trabajo otra vez, crea una tarea de proyecto con Nueva tarea.",
   foundIn: (source) => `De los mensajes: ${source}`,
-  foundDrop: (state) =>
-    `Memo solo cierra una tarea de los mensajes: suéltala en Hechas o Descartadas. ${state} es para tareas de proyecto.`,
-  foundHidden: (n) =>
-    `Las tareas de los mensajes (${formatNumber(n, "es")}) no se muestran: Memo aplica la búsqueda y los filtros solo a las tareas de proyectos. Borra la búsqueda para verlas.`,
   agentNone: "Sin agente",
   waitsHeading: "Espera a",
   nothingBlocks: "Nada. Se puede empezar ya.",

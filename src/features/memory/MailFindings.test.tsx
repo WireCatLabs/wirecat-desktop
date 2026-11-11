@@ -25,3 +25,26 @@ describe("A mail findings batch", () => {
     await waitFor(() => expect(confirm).toHaveBeenCalledWith("action:12", ["t1", "i1"]))
   })
 })
+
+describe("A meeting findings batch", () => {
+  it("lists each finding and approves only the ticked ones", async () => {
+    const read = platform.memoryRead.bind(platform)
+    vi.spyOn(platform, "memoryRead").mockImplementation(async (page) => {
+      const out = await read(page)
+      if (out.kind !== "ready") return out
+      const entries = out.entries.map((e) =>
+        e.ref === "action:7" ? { ...e, kind: "meeting_findings", verb: "meeting_findings" } : e,
+      )
+      return { ...out, entries }
+    })
+    const confirm = vi.spyOn(platform, "memoryConfirm")
+    const user = userEvent.setup()
+    render(<MemoryPage />)
+    await rack()
+    const batch = screen.getByText(/2 facts and 2 tasks to review/).closest("[data-row]") as HTMLElement
+    await user.click(within(batch).getByRole("button", { name: "Review 4" }))
+    await user.click(screen.getByRole("checkbox", { name: /Ask Tom Becker for read access/ }))
+    await user.click(within(batch).getByRole("button", { name: "Approve 3" }))
+    await waitFor(() => expect(confirm).toHaveBeenCalledWith("action:7", ["f1", "f2", "f3"]))
+  })
+})

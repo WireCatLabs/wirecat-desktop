@@ -1,6 +1,7 @@
-import { Lock, Mail, MessageSquare } from "lucide-react"
+import { FileText, Lock, Video } from "lucide-react"
 import type { ReactNode } from "react"
-import { providerName } from "@/domain/archive"
+import { findTool } from "@/domain/catalog"
+import { linkTargetOf, toolOfProvider } from "@/domain/links"
 import { nameOrNumber } from "@/domain/people"
 import { taskFailure } from "@/domain/task-failure"
 import {
@@ -13,9 +14,9 @@ import {
   labelOf,
   type State,
 } from "@/domain/tasks"
-import { storageMessages } from "@/features/storage"
 import { useLang, useMessages } from "@/i18n"
 import type { Person, Task } from "@/platform/task-schemas"
+import { ToolIcon } from "@/shared/ToolIcon"
 import { cx } from "@/ui/cx"
 import { Disclosure } from "@/ui/Disclosure"
 import { ErrorNotice } from "@/ui/ErrorNotice"
@@ -153,21 +154,51 @@ export function taskTitle(task: Task, m: TaskWords): string {
 
 const MAIL = new Set(["email", "mail", "gmail"])
 
+export type Origin =
+  | { kind: "chat"; provider: string }
+  | { kind: "mail"; provider: string }
+  | { kind: "meeting"; provider: null }
+  | { kind: "document"; provider: null }
+
+/** What a found task came from: a chat or a mailbox by its provider, or a meeting or a document by its reference. */
+export function originOf(task: Pick<Task, "source" | "account">): Origin | null {
+  const source = task.source ?? ""
+  if (source.startsWith("meeting:")) return { kind: "meeting", provider: null }
+  if (/^(document|note):/.test(source)) return { kind: "document", provider: null }
+  const target = source ? linkTargetOf(source) : null
+  const provider = (target?.type === "message" ? target.provider : null) ?? task.account?.split(":")[0]
+  if (!provider) return null
+  return MAIL.has(provider) ? { kind: "mail", provider } : { kind: "chat", provider }
+}
+
+/** The origin's name and the app's own mark for it: the messenger's logo, mail, a meeting or a document. */
+export function OriginMark({ origin, className }: { origin: Origin; className?: string }) {
+  const size = cx("size-[0.95rem] shrink-0", className)
+  if (origin.kind === "meeting") return <Video className={size} aria-hidden />
+  if (origin.kind === "document") return <FileText className={size} aria-hidden />
+  if (origin.kind === "mail") return <ToolIcon id="email" className={size} />
+  return <ToolIcon id={toolOfProvider(origin.provider)} className={size} />
+}
+
+export function useOriginName() {
+  const m = useMessages(taskMessages)
+  return (origin: Origin) =>
+    origin.kind === "chat" ? (findTool(toolOfProvider(origin.provider))?.name ?? origin.provider) : m[origin.kind]
+}
+
 /**
  * Where a found task came from, as an icon and the app. Plain text, not a tip: on a card a tip opened past the
  * column's edge, and the card is itself the button that opens the task.
  */
 export function SourceMark({ task }: { task: Task }) {
   const m = useMessages(taskMessages)
-  const archive = useMessages(storageMessages).archiveWords
-  if (!fromMessages(task) || !task.account) return null
-  const provider = task.account.split(":")[0] ?? ""
-  const mail = MAIL.has(provider)
-  const Icon = mail ? Mail : MessageSquare
+  const nameOf = useOriginName()
+  const origin = fromMessages(task) ? originOf(task) : null
+  if (!origin) return null
   return (
     <span title={m.fromMessages} className="inline-flex min-w-0 items-center gap-[0.3rem] text-[0.85rem] text-ink-soft">
-      <Icon className="size-[0.85rem] shrink-0" aria-hidden />
-      <span className="truncate">{m.foundIn(mail ? m.mail : providerName(provider, archive))}</span>
+      <OriginMark origin={origin} className="size-[0.85rem]" />
+      <span className="truncate">{m.foundIn(nameOf(origin))}</span>
     </span>
   )
 }

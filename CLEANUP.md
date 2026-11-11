@@ -37,3 +37,5 @@
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-search-analytics` (branch `fix/search-analytics-feedback`): worktree for the Search and Analytics feedback, remove after its PR merges. 2026-11-11
 - `/home/leemour/Projects/AI/cli-core-wt-participants-count` (branch `feat/participants-count-query`): worktree for the query field Analytics asks for, remove after cli-core PR #2854 merges. 2026-11-11
 - `/home/leemour/Projects/AI/wirecat-desktop-wt-settings-model` (worktree) and branch `fix/settings-model-feedback`: Settings feedback for 0.6.0. Remove both after the PR merges. 2026-11-11
+- `task_chats` (Rust command in `src-tauri/src/commands/tasks.rs` and `task_board.rs`, `taskChats` in `src/platform/bridge.ts`, `types.ts`, `ChatTasksSchema`, the mock's `taskChats`): the Tasks page no longer calls it, memo now lists found tasks with `tasks list`. 2026-11-11
+- `/home/leemour/Projects/AI/wirecat-desktop-wt-found-task-fields` (branch `feat/found-task-fields`): worktree for found-task fields on the board, remove after its PR merges. 2026-11-11

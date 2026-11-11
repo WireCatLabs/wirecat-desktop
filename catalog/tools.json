@@ -1822,12 +1822,12 @@
         "config": null
       },
       "memory": {
-        "minVersion": "0.131.82",
+        "minVersion": "0.131.83",
         "revokeMinVersion": "0.131.28"
       },
       "tasks": null,
       "taskBoard": {
-        "minVersion": "0.131.14"
+        "minVersion": "0.131.83"
       },
       "crmBoard": {
         "minVersion": "0.131.71"

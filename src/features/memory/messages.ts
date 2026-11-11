@@ -59,6 +59,7 @@ const en = {
   kinds: {
     evidence_findings: "Findings",
     mail_findings: "Findings from mail",
+    meeting_findings: "Findings from a meeting",
     preference: "Preference",
     summary: "Summary",
     digest: "Digest",
@@ -274,6 +275,7 @@ const en = {
     invite: "Invite",
     create_task: "Make a task for",
     mail_findings: "Findings from mail",
+    meeting_findings: "Findings from a meeting",
   } as Record<string, string>,
   actsOn: "Acts on",
   kindFilter: "Kind",
@@ -327,6 +329,7 @@ const ru: typeof en = {
   kinds: {
     evidence_findings: "Находки",
     mail_findings: "Находки из почты",
+    meeting_findings: "Находки со встречи",
     preference: "Предпочтение",
     summary: "Сводка",
     digest: "Дайджест",
@@ -546,6 +549,7 @@ const ru: typeof en = {
     invite: "Пригласить",
     create_task: "Создать задачу для",
     mail_findings: "Находки из почты",
+    meeting_findings: "Находки со встречи",
   },
   actsOn: "Над чем",
   kindFilter: "Вид",
@@ -601,6 +605,7 @@ const es: typeof en = {
   kinds: {
     evidence_findings: "Hallazgos",
     mail_findings: "Hallazgos del correo",
+    meeting_findings: "Hallazgos de una reunión",
     preference: "Preferencia",
     summary: "Resumen",
     digest: "Compendio",
@@ -818,6 +823,7 @@ const es: typeof en = {
     invite: "Invitar a",
     create_task: "Crear una tarea para",
     mail_findings: "Hallazgos del correo",
+    meeting_findings: "Hallazgos de una reunión",
   },
   actsOn: "Actúa sobre",
   kindFilter: "Tipo",

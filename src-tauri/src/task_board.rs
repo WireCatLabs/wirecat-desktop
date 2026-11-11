@@ -22,6 +22,8 @@ const QUIET: [&str; 2] = ["--json", "--no-record"];
 pub const STATES: [&str; 5] = ["open", "todo", "in_progress", "done", "dismissed"];
 pub const PRIORITIES: [&str; 5] = ["low", "medium", "high", "critical", "none"];
 pub const KINDS: [&str; 3] = ["bug", "feature", "chore"];
+/// What memo finds in messages; a found task keeps one of these until it moves into a project.
+pub const FOUND_KINDS: [&str; 4] = ["question", "request", "mention", "promise"];
 const MAX_NAME: usize = 200;
 
 fn plain_word(s: &str, max: usize, extra: &[char]) -> bool {
@@ -77,7 +79,9 @@ pub fn validate_priority(priority: &str) -> Result<&str, String> {
 }
 
 pub fn validate_kind(kind: &str) -> Result<&str, String> {
-    KINDS.contains(&kind).then_some(kind).ok_or_else(|| format!("not a task type: {kind}"))
+    (KINDS.contains(&kind) || FOUND_KINDS.contains(&kind))
+        .then_some(kind)
+        .ok_or_else(|| format!("not a task type: {kind}"))
 }
 
 /// A calendar day, `YYYY-MM-DD`, which Memo reads as local midnight; or `none` to clear the date.
@@ -127,13 +131,14 @@ pub fn validate_name(name: &str) -> Result<&str, String> {
     Ok(n)
 }
 
-/// The owner's search words. The board shows project tasks only, so the query always narrows to `project:*`.
+/// The owner's search words. With `--sort` memo lists every task, the ones it found in messages too; `project:*` would
+/// narrow that to the owner's projects.
 pub fn board_query(query: &str) -> Result<String, String> {
     let q = query.trim();
     if q.chars().count() > MAX_QUERY || q.chars().any(char::is_control) {
         return Err(format!("a search is at most {MAX_QUERY} characters on one line"));
     }
-    Ok(if q.is_empty() { "project:*".into() } else { format!("project:* ({q})") })
+    Ok(q.to_string())
 }
 
 #[derive(Serialize, Debug, PartialEq, Clone)]
@@ -724,11 +729,12 @@ fn stale(f: &Failure) -> bool {
     f.reason.as_deref() == Some("task.stale")
 }
 
-/// A write, or the task as it now is when Memo refused it as stale.
+#[cfg(test)]
 fn write_with(call: &Call, key: &str, args: &[String]) -> Result<Write, Failure> {
     write_as(call, key, args, None)
 }
 
+/// A write, or the task as it now is when Memo refused it as stale.
 fn write_as(call: &Call, key: &str, args: &[String], account: Option<&str>) -> Result<Write, Failure> {
     match call(args) {
         Ok(v) => {
@@ -812,17 +818,6 @@ pub fn validate_account(account: &str) -> Result<&str, String> {
 /// Text goes as `--title=<text>`, so a title that starts with a dash is never read as an option.
 fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, String> {
     let found = edit.account.as_deref().map(validate_account).transpose()?;
-    // memo refuses these, and a revision, for a task found in messages: they belong to project tasks.
-    if found.is_some()
-        && (edit.priority.is_some()
-            || edit.agent.is_some()
-            || edit.state.is_some()
-            || edit.project.is_some()
-            || edit.kind.is_some()
-            || edit.detach)
-    {
-        return Err("a task found in messages keeps no priority, agent, status, project or kind".into());
-    }
     let mut args = vec!["tasks".to_string(), "update".into(), key.into()];
     if let Some(t) = &edit.title {
         args.push(format!("--title={}", validate_title(t)?));
@@ -855,43 +850,20 @@ fn edit_args(key: &str, revision: u64, edit: &Edit) -> Result<Vec<String>, Strin
     if args.len() == 3 {
         return Err("nothing to change".into());
     }
-    match found {
-        Some(a) => args.push(format!("--account={a}")),
-        None => args.push(format!("--revision={revision}")),
+    if let Some(a) = found {
+        args.push(format!("--account={a}"));
     }
+    args.push(format!("--revision={revision}"));
     args.extend(QUIET.iter().map(|s| (*s).to_string()));
     Ok(args)
 }
 
-/// memo keeps no status for a found task, only `tasks close`: done or dismissed, and closed for good.
-fn close_args(key: &str, edit: &Edit) -> Result<Option<Vec<String>>, String> {
-    let (Some(account), Some(state)) = (edit.account.as_deref(), edit.state.as_deref()) else { return Ok(None) };
-    let only_state = Edit { account: edit.account.clone(), state: edit.state.clone(), ..Edit::default() };
-    if !matches!(state, "done" | "dismissed") || *edit != only_state {
-        return Err("a task found in messages is only closed, as done or dismissed, on its own".into());
-    }
-    let account = validate_account(account)?;
-    Ok(Some(words(&["tasks", "close", key, &format!("--as={state}"), &format!("--account={account}")])))
-}
-
-/// The answer to `tasks close` is the found task's short form, with no title or revision: the task is read again.
-fn close_with(call: &Call, key: &str, args: &[String], account: &str) -> Result<Write, Failure> {
-    call(args)?;
-    Ok(Write::Saved {
-        task: show_in(call, key, Some(account))?,
-        label: None,
-        renumbered: Vec::new(),
-        moved: Vec::new(),
-    })
-}
-
 pub fn update(key: &str, revision: u64, edit: &Edit) -> Result<Write, String> {
     let key = validate_key(key)?;
-    if let (Some(args), Some(account)) = (close_args(key, edit)?, edit.account.as_deref()) {
-        return with_memo(WRITE, |call| close_with(call, key, &args, account));
-    }
     let args = edit_args(key, revision, edit)?;
-    with_memo(WRITE, |call| write_as(call, key, &args, edit.account.as_deref()))
+    // A found task moved into a project is a project task now, and belongs to no account.
+    let account = if edit.project.is_some() { None } else { edit.account.as_deref() };
+    with_memo(WRITE, |call| write_as(call, key, &args, account))
 }
 
 /// Where a dragged card lands: a column, and the card it goes above or below there.
@@ -920,10 +892,12 @@ fn move_args(key: &str, revision: u64, place: &Place) -> Result<Vec<String>, Str
     Ok(args)
 }
 
-pub fn move_task(key: &str, revision: u64, place: &Place) -> Result<Write, String> {
+/// memo moves a found task with no account, but reads it back, when stale, only as its account.
+pub fn move_task(key: &str, revision: u64, place: &Place, account: Option<&str>) -> Result<Write, String> {
     let key = validate_key(key)?;
+    let account = account.map(validate_account).transpose()?;
     let args = move_args(key, revision, place)?;
-    with_memo(WRITE, |call| write_with(call, key, &args))
+    with_memo(WRITE, |call| write_as(call, key, &args, account))
 }
 
 /// Makes `person` the one assignee (or nobody, with `None`): the others are taken off first, each write with the
@@ -1102,6 +1076,7 @@ mod tests {
             assert!(validate_priority(bad).is_err(), "{bad}");
         }
         assert!(validate_kind("bug").is_ok());
+        assert!(validate_kind("question").is_ok());
         assert!(validate_kind("task").is_err());
         assert_eq!(validate_name("  Lena Ortiz ").unwrap(), "Lena Ortiz");
         assert!(validate_name("two\nlines").is_err());
@@ -1124,9 +1099,9 @@ mod tests {
     }
 
     #[test]
-    fn the_query_always_stays_inside_projects() {
-        assert_eq!(board_query("  ").unwrap(), "project:*");
-        assert_eq!(board_query("-project:HRB").unwrap(), "project:* (-project:HRB)");
+    fn the_query_reaches_found_tasks_too() {
+        assert_eq!(board_query("  ").unwrap(), "");
+        assert_eq!(board_query("-project:HRB").unwrap(), "-project:HRB");
         assert!(board_query("a\nb").is_err());
     }
 
@@ -1182,7 +1157,7 @@ mod tests {
                 "--json",
                 "--no-record",
                 "--",
-                "project:* (-project:OPS)"
+                "-project:OPS"
             ])
         );
     }
@@ -1347,14 +1322,32 @@ mod tests {
     }
 
     #[test]
-    fn a_found_task_is_written_as_its_account_with_no_revision() {
+    fn a_found_task_is_written_as_its_account_with_its_revision() {
         let found = |e: Edit| Edit { account: Some("telegram:220195113".into()), ..e };
         assert_eq!(
             edit_args("Q-1", 7, &found(Edit { title: Some("Keys".into()), ..Edit::default() })).unwrap(),
-            strs(&["tasks", "update", "Q-1", "--title=Keys", "--account=telegram:220195113", "--json", "--no-record"])
+            strs(&[
+                "tasks",
+                "update",
+                "Q-1",
+                "--title=Keys",
+                "--account=telegram:220195113",
+                "--revision=7",
+                "--json",
+                "--no-record"
+            ])
         );
-        assert!(edit_args("Q-1", 7, &found(Edit { state: Some("todo".into()), ..Edit::default() })).is_err());
-        assert!(edit_args("Q-1", 7, &found(Edit { agent: Some("none".into()), ..Edit::default() })).is_err());
+        let board = found(Edit {
+            state: Some("in_progress".into()),
+            priority: Some("high".into()),
+            agent: Some("hermes".into()),
+            kind: Some("request".into()),
+            ..Edit::default()
+        });
+        assert_eq!(
+            edit_args("Q-1", 7, &board).unwrap()[3..7],
+            strs(&["--priority=high", "--agent=hermes", "--status=in_progress", "--type=request"])
+        );
         let bad = Edit { title: Some("x".into()), account: Some("--json".into()), ..Edit::default() };
         assert!(edit_args("Q-1", 7, &bad).is_err());
         assert!(validate_account("email:me@example.com").is_ok());
@@ -1404,34 +1397,19 @@ mod tests {
     }
 
     #[test]
-    fn a_found_task_is_closed_as_its_account_and_read_again() {
-        let found =
-            |state: &str| Edit { state: Some(state.into()), account: Some("telegram:1".into()), ..Edit::default() };
-        let args = close_args("Q-1", &found("dismissed")).unwrap().unwrap();
-        assert_eq!(
-            args,
-            strs(&["tasks", "close", "Q-1", "--as=dismissed", "--account=telegram:1", "--json", "--no-record"])
-        );
-        assert!(close_args("Q-1", &found("todo")).is_err());
-        assert!(close_args("Q-1", &Edit { title: Some("x".into()), ..found("done") }).is_err());
-        assert!(close_args("Q-1", &Edit { account: Some("--json".into()), ..found("done") }).is_err());
-        assert_eq!(close_args("HRB-1", &Edit { state: Some("done".into()), ..Edit::default() }), Ok(None));
-
-        let fake = Fake::new(|a| {
-            if a[1] == "close" {
-                return Ok(json!({ "item": { "key": "Q-1", "state": "dismissed", "account": "telegram:1" } }));
-            }
+    fn a_found_task_moved_into_a_project_keeps_no_account() {
+        let fake = Fake::new(|_| {
             let mut item = card(4, &[]);
-            item["key"] = json!("Q-1");
-            item["status"] = json!("dismissed");
+            item["key"] = json!("HRB-12");
             Ok(json!({ "item": item }))
         });
-        let Write::Saved { task, .. } = close_with(&|a: &[String]| fake.call(a), "Q-1", &args, "telegram:1").unwrap()
-        else {
+        let edit = Edit { project: Some("HRB".into()), account: Some("telegram:1".into()), ..Edit::default() };
+        let args = edit_args("Q-1", 3, &edit).unwrap();
+        assert_eq!(args[3..6], strs(&["--project=HRB", "--account=telegram:1", "--revision=3"]));
+        let Write::Saved { task, .. } = write_as(&|a: &[String]| fake.call(a), "Q-1", &args, None).unwrap() else {
             panic!("not saved")
         };
-        assert_eq!((task.state.as_str(), task.account.as_deref()), ("dismissed", Some("telegram:1")));
-        assert_eq!(fake.seen()[1], strs(&["tasks", "show", "Q-1", "--source=telegram:1", "--json", "--no-record"]));
+        assert_eq!((task.key.as_str(), task.account), ("HRB-12", None));
     }
 
     #[test]
@@ -1634,7 +1612,7 @@ mod tests {
     fn reads_and_writes_through_a_real_memo() {
         let bin = std::path::PathBuf::from(std::env::var("MEMO_BIN").expect("MEMO_BIN"));
         let call = |a: &[String]| call_at(&bin, a, READ);
-        let raw = call(&with_query(&["tasks", "list", "--limit", LIMIT], "project:* state:*")).unwrap();
+        let raw = call(&with_query(&["tasks", "list", "--sort", "priority", "--limit", LIMIT], "state:*")).unwrap();
         let Read::Ready { tasks, .. } = list_with(&call, "state:*").unwrap() else { panic!("not ready") };
         assert_eq!(tasks.len(), raw["items"].as_array().unwrap().len(), "a task did not parse");
         assert_ne!(projects_with(&call).unwrap(), Vec::<Project>::new());
@@ -1796,11 +1774,12 @@ mod tests {
         assert!(gone.key.starts_with("OPS-"));
         assert_eq!(show_in(&call, &task.key, None).unwrap().key, gone.key, "the old key still finds it");
         // A store with a found task (one memo took from a stored message) closes it as its account.
-        if let Some(found) = chats_with(&call).unwrap().tasks.into_iter().find(|t| t.state == "open") {
+        let Read::Ready { tasks: open, .. } = list_with(&call, "state:open").unwrap() else { panic!("not ready") };
+        if let Some(found) = open.iter().find(|t| t.account.is_some()) {
             let account = found.account.clone().unwrap();
             let close = Edit { state: Some("dismissed".into()), account: Some(account.clone()), ..Edit::default() };
-            let args = close_args(&found.key, &close).unwrap().unwrap();
-            let Write::Saved { task: shut, .. } = close_with(&call, &found.key, &args, &account).unwrap() else {
+            let args = edit_args(&found.key, found.revision, &close).unwrap();
+            let Write::Saved { task: shut, .. } = write_as(&call, &found.key, &args, Some(&account)).unwrap() else {
                 panic!("not closed")
             };
             assert_eq!((shut.state.as_str(), shut.account), ("dismissed", Some(account)));

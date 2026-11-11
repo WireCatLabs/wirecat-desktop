@@ -465,7 +465,7 @@ export type Platform = {
   /** Every write carries the revision the page read; a stale one answers the task as it now is and writes nothing. */
   taskUpdate(key: string, revision: number, edit: TaskEdit): Promise<TaskWrite>
   /** A card dropped into a column, above or below another card: memo gives it a priority between its neighbours. */
-  taskMove(key: string, revision: number, place: TaskPlace): Promise<TaskWrite>
+  taskMove(key: string, revision: number, place: TaskPlace, account?: string | null): Promise<TaskWrite>
   /** Makes one person the assignee, or nobody with `null`. */
   /** `account` is a found task's own: memo reads such a task only with it. */
   taskAssign(key: string, revision: number, person: string | null, account?: string | null): Promise<TaskWrite>

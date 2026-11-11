@@ -156,19 +156,18 @@ fn assignees(read: &task_board::Read) -> Vec<String> {
     }
 }
 
-/// The table (tasks and chat tasks) with its counts and projects, then the names of the people on it.
+/// The table with its counts and projects, then the names of the people on it.
 fn tasks_page(visit: &str) {
     let (before, started) = mark();
-    let q = "project:*";
+    let q = "";
     let done = together(vec![
         Box::new(move || drop(task_board::list(q))),
-        Box::new(|| drop(task_board::chats())),
         Box::new(move || drop(task_board::counts(q))),
         Box::new(|| drop(task_board::projects())),
         Box::new(|| drop(task_board::list(q).map(|r| task_board::people_named(&assignees(&r))))),
     ]);
-    println!("Tasks    {visit:<8} counts {:>5} ms   projects {:>5} ms   names {:>5} ms", done[2], done[3], done[4]);
-    report("Tasks", visit, done[0].max(done[1]), before, started);
+    println!("Tasks    {visit:<8} counts {:>5} ms   projects {:>5} ms   names {:>5} ms", done[1], done[2], done[3]);
+    report("Tasks", visit, done[0], before, started);
 }
 
 fn digests_page(visit: &str) {
