@@ -10,7 +10,7 @@ import { ErrorNotice } from "@/ui/ErrorNotice"
 import { InfoTip } from "@/ui/InfoTip"
 import { Pill } from "@/ui/Pill"
 import { Skeleton } from "@/ui/Skeleton"
-import { type Contacts, contactsOf, keyOf, sameMark, sharedValue } from "./contacts"
+import { type Contacts, contactsOf, keyOf, type MatchFact, matchFacts, sameMark, sharedValue } from "./contacts"
 import type { MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
@@ -66,6 +66,8 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
     shared === null &&
     people.every((ref) => details[ref]?.state === "ready") &&
     contacts.every((c) => c.phones.length === 0)
+  const names = people.map((p) => name(p))
+  const facts = first ? matchFacts(first, names, contacts) : []
   if (!first) return null
 
   const done = open.length === 0
@@ -91,13 +93,16 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         </h3>
         <Proposer by={first.proposer} />
       </div>
-      <Signal group={group} match={first} value={shared} hidden={hidden.current} names={people.map((p) => name(p))} />
+      {m.signalNames[first.signal ?? ""] && (
+        <Signal group={group} match={first} value={shared} hidden={hidden.current} names={names} />
+      )}
+      <MatchFacts facts={facts} />
       {moving && (
         <p className="text-[0.9rem] text-ink-soft">
           {m.moveHeading(moveWords(first, m.anAccount), name(first.persons[1] ?? ""))} {m.moveHelp}
         </p>
       )}
-      {first.reason && <p className="selectable text-[0.95rem]">{first.reason}</p>}
+      {first.reason && first.proposer?.kind !== "rule" && <p className="selectable text-[0.95rem]">{first.reason}</p>}
       {picking && <p className="text-[0.9rem] text-ink-soft">{m.pickHelp}</p>}
       <div id={pickList} className={cx("grid gap-[0.6rem] md:grid-cols-2", people.length > 2 && "xl:grid-cols-3")}>
         {people.map((ref) => (
@@ -138,6 +143,28 @@ export function MatchCard({ group, from }: { group: MatchGroup; from?: string })
         }
       />
     </article>
+  )
+}
+
+/** What the two sides have in common, each with its value: "Name  Beeline business", "Domain  beeline.ru". */
+export function MatchFacts({ facts }: { facts: MatchFact[] }) {
+  const m = useMessages(peopleMessages)
+  if (facts.length === 0) return null
+  return (
+    <div className="flex flex-wrap items-center gap-x-[0.5rem] gap-y-[0.35rem]">
+      <span className="text-[0.9rem] text-ink-soft">{m.factsLead}</span>
+      <dl className="contents">
+        {facts.map((f) => (
+          <div
+            key={f.kind}
+            className="inline-flex min-w-0 items-baseline gap-[0.4rem] rounded-[0.3rem] bg-app-3 px-[0.5rem] py-[0.1rem]"
+          >
+            <dt className="text-[0.85rem] text-ink-soft">{m.factNames[f.kind]}</dt>
+            {f.value && <dd className="selectable min-w-0 break-words font-medium text-ink">{f.value}</dd>}
+          </div>
+        ))}
+      </dl>
+    </div>
   )
 }
 

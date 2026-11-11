@@ -341,10 +341,35 @@ export function peopleMock(): Pick<
   | "peopleUnmerge"
   | "peopleSplitDecide"
   | "peopleDoubts"
+  | "peopleKeep"
 > {
-  let people = scenario === "none" ? seed().slice(0, 1) : seed()
-  let matches = scenario === "none" ? [] : [...MATCHES]
+  const company: Held[] = ["pro", "b2bmail"].map((box, i) => ({
+    ref: `person:${90 + i}`,
+    name: i === 0 ? "Билайн бизнес" : "билайн бизнес",
+    mergedInto: null,
+    identities: [account(`email:${box}@beeline.ru`, "Билайн бизнес", [["email:work", "work"]], "import", 12)],
+    merges: [],
+  }))
+  // As memo words it for a name match on one company's mail: the card must not show this sentence.
+  const sameCompany: Match = {
+    id: "17190",
+    persons: ["person:90", "person:91"],
+    identity: "email:pro@beeline.ru",
+    with: "email:b2bmail@beeline.ru",
+    joins: "person",
+    signal: "name",
+    candidates: [],
+    reason: "same name «Билайн бизнес» and mail at the same company, beeline.ru",
+    evidence: [],
+    proposer: { kind: "rule", name: "rule" },
+    score: 0.5,
+    shared: null,
+    mailbox: null,
+  }
+  let people = scenario === "none" ? seed().slice(0, 1) : scenario === "company" ? [...seed(), ...company] : seed()
+  let matches = scenario === "none" ? [] : scenario === "company" ? [sameCompany, ...MATCHES] : [...MATCHES]
   let splits = scenario === "none" || scenario === "calm" ? [] : [...SPLITS]
+  const kept = new Set<string>()
   let next = 60
   /** As `people links check`: only while the person still holds the doubted accounts. */
   const doubts = (): Doubt[] => {
@@ -353,7 +378,7 @@ export function peopleMock(): Pick<
       people.some((p) => p.ref === ref && p.identities.length > 1 && p.identities.some((i) => i.identity === identity))
     const of = (ref: string, reason: string, ids: string[], moves: Doubt["moves"]): Doubt[] => {
       const p = people.find((x) => x.ref === ref)
-      if (!p || !ids.every((id) => holds(ref, id))) return []
+      if (!p || kept.has(ref) || !ids.every((id) => holds(ref, id))) return []
       const identities = ids.map((id) => ({
         identity: id,
         name: p.identities.find((i) => i.identity === id)?.name ?? null,
@@ -618,6 +643,12 @@ export function peopleMock(): Pick<
       if (answer === "reject") return shown(ref)
       if (split.op === "unmerge" && split.merge) return api.peopleUnmerge(ref, split.merge)
       return (await api.peopleUnlink(ref, split.identities)).person
+    },
+    async peopleKeep(reference) {
+      await delay(400)
+      if (params.get("people-fail") === "keep-old") throw new Error("memo.too-old")
+      if (params.get("people-fail") === "write") throw new Error("person.no-doubt")
+      kept.add(reference)
     },
     async peopleDoubts(page, size) {
       await delay(450)

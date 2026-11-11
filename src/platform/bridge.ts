@@ -275,6 +275,9 @@ function createTauri(): Platform {
     peopleSplitDecide: (ref, id, answer, reason) =>
       call(PersonDetailSchema, "people_split_decide", { reference: ref, id, answer, reason: reason ?? null }),
     peopleDoubts: (page, size) => call(DoubtsSchema, "people_doubts", { page, size }),
+    peopleKeep: async (reference) => {
+      await invoke("people_keep", { reference })
+    },
     peopleMerge: (refs) => call(MergedSchema, "people_merge", { references: refs }),
     peopleUnlink: (ref, identities) => call(UnlinkedSchema, "people_unlink", { reference: ref, identities }),
     peopleFind: (account) => call(v.nullable(PersonDetailSchema), "people_find", { account }),

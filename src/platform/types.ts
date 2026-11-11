@@ -400,6 +400,8 @@ export type Platform = {
   peopleSplitDecide(ref: string, id: string, answer: MatchAnswer, reason?: string): Promise<PersonDetail>
   /** One page of the people whose accounts look wrongly joined, the owner first. */
   peopleDoubts(page: number, size: number): Promise<Doubts>
+  /** The owner says this person's accounts in doubt belong together; they stop being listed until one moves. */
+  peopleKeep(reference: string): Promise<void>
   /** Joins the chosen people of one group of matches into one, a match at a time. */
   peopleMerge(refs: string[]): Promise<Merged>
   /** Moves some of the person's accounts to one new person; only accounts the person's own read listed. */

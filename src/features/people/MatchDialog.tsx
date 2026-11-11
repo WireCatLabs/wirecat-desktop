@@ -14,11 +14,11 @@ import { Dialog } from "@/ui/Dialog"
 import { ErrorNotice } from "@/ui/ErrorNotice"
 import { Skeleton } from "@/ui/Skeleton"
 import { TextButton } from "@/ui/TextButton"
-import { type Contacts, contactsOf, keyOf, sameMark, sharedValue } from "./contacts"
+import { type Contacts, contactsOf, keyOf, matchFacts, sameMark, sharedValue } from "./contacts"
 import { groupMatches, type MatchGroup } from "./groups"
 import { usePersonName } from "./labels"
 import { MatchActions } from "./MatchActions"
-import { moveWords, tieOf } from "./MatchCard"
+import { MatchFacts, moveWords, tieOf } from "./MatchCard"
 import { peopleMessages } from "./messages"
 import { useUnticked } from "./picks"
 import { type ProfileRead, useProfiles } from "./profiles"
@@ -137,12 +137,21 @@ export function MatchDialog() {
       {group && match && (
         <div className="flex flex-col gap-[1.1rem] pb-[0.4rem]">
           <SharedSignal match={match} value={shared} />
+          <MatchFacts
+            facts={matchFacts(
+              match,
+              people.map((p) => name(p)),
+              contacts,
+            )}
+          />
           {moving && (
             <p className="text-ink-soft">
               {m.moveHeading(moveWords(match, m.anAccount), name(match.persons[1] ?? ""))} {m.moveHelp}
             </p>
           )}
-          {match.reason && <p className="selectable max-w-[70ch] text-ink-soft">“{match.reason}”</p>}
+          {match.reason && match.proposer?.kind !== "rule" && (
+            <p className="selectable max-w-[70ch] text-ink-soft">“{match.reason}”</p>
+          )}
           <div className={cx("grid grid-cols-1 gap-x-[2rem] md:grid-cols-2", people.length > 2 && "xl:grid-cols-3")}>
             {people.map((ref, i) => {
               const d = details[ref]

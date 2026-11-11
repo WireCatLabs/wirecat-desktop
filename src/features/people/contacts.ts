@@ -63,3 +63,68 @@ export function sharedValue(match: Match, contacts: Contacts[]): string | null {
 
 /** How a shared phone or address is marked where it shows: bold and underlined, no coloured box. */
 export const sameMark = "font-semibold text-ink underline decoration-brand/70 decoration-2 underline-offset-[0.25em]"
+
+/** Mailboxes anyone can have: the same one of these says nothing about a company. */
+const PUBLIC_MAIL = new Set([
+  "gmail.com",
+  "googlemail.com",
+  "outlook.com",
+  "hotmail.com",
+  "live.com",
+  "icloud.com",
+  "me.com",
+  "yahoo.com",
+  "proton.me",
+  "protonmail.com",
+  "yandex.ru",
+  "ya.ru",
+  "mail.ru",
+  "bk.ru",
+  "inbox.ru",
+  "list.ru",
+  "rambler.ru",
+])
+
+export type MatchFact = { kind: "name" | "phone" | "email" | "domain" | "chat"; value: string | null }
+
+const nameKey = (name: string) => name.trim().toLocaleLowerCase().replace(/ё/g, "е")
+const domainOf = (email: string) =>
+  email
+    .slice(email.lastIndexOf("@") + 1)
+    .trim()
+    .toLowerCase()
+
+/** What every side has in common, in the first side's spelling. */
+const inCommon = (lists: string[][], key: (v: string) => string) =>
+  (lists[0] ?? []).find((v) => key(v) !== "" && lists.every((l) => l.some((w) => key(w) === key(v)))) ?? null
+
+/**
+ * What a match rests on, worked out from the two sides the card shows. memo gives only an English sentence for a name
+ * match, and the kind of evidence is not in its answer (DEBT-314).
+ */
+export function matchFacts(match: Match, names: string[], contacts: Contacts[]): MatchFact[] {
+  const facts: MatchFact[] = []
+  const name = names[0]
+  if (name && names.length > 1 && (match.signal === "name" || names.every((n) => nameKey(n) === nameKey(name))))
+    facts.push({ kind: "name", value: name })
+  // A phone or address match says its own value on the card's line above these.
+  if (match.signal === "phone" || match.signal === "email" || match.signal === "guest-email") return facts
+  const phone = inCommon(
+    contacts.map((c) => c.phones),
+    keyOf("phone"),
+  )
+  if (phone) facts.push({ kind: "phone", value: phone })
+  const email = inCommon(
+    contacts.map((c) => c.emails),
+    keyOf("email"),
+  )
+  if (email) facts.push({ kind: "email", value: email })
+  const domain = inCommon(
+    contacts.map((c) => c.emails.map(domainOf).filter((d) => !PUBLIC_MAIL.has(d))),
+    (d) => d,
+  )
+  if (domain && !email) facts.push({ kind: "domain", value: domain })
+  if (match.signal === "name" && !phone && !email && !domain && match.evidence.length > 0)
+    facts.push({ kind: "chat", value: null })
+  return facts
+}

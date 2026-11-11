@@ -165,7 +165,7 @@ function Progress({ run, m }: { run: SyncRun; m: Words }) {
         className="w-full max-w-[22rem]"
       />
       <p className="flex gap-2 text-[0.9rem] text-ink-soft tabular-nums">
-        <span className="truncate">
+        <span className="min-w-0">
           {stage}
           {counted ? "" : "…"}
         </span>
@@ -181,7 +181,7 @@ function Outcome({ run, what, m }: { run: SyncRun; what: SyncWhat; m: Words }) {
     return (
       <p className="reveal flex items-center gap-2 text-[0.9rem] font-medium text-ink">
         <CheckCircle2 className="size-4 shrink-0 text-ok" aria-hidden />
-        <span className="truncate">{m.result(what, run.summary)}</span>
+        <span className="min-w-0">{m.result(what, run.summary)}</span>
         {took && (
           <span className="shrink-0 font-mono text-[0.85rem] font-normal text-ink-dim tabular-nums">{took}</span>
         )}
@@ -199,7 +199,7 @@ function Outcome({ run, what, m }: { run: SyncRun; what: SyncWhat; m: Words }) {
   return (
     <p className="reveal flex items-center gap-2 text-[0.9rem] font-medium text-ink">
       <AlertTriangle className="size-4 shrink-0 text-warn" aria-hidden />
-      <span className="truncate">{m.advice[advice(run.failure ?? NO_FAILURE).kind]}</span>
+      <span className="min-w-0">{m.advice[advice(run.failure ?? NO_FAILURE).kind]}</span>
     </p>
   )
 }

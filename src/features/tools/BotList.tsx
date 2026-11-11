@@ -96,7 +96,7 @@ function BotRow(props: {
   return (
     <li className="flex flex-col gap-1.5 px-3 py-2" aria-label={m.botRegion(b.name)}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <div className="flex min-w-0 flex-1 basis-[12rem] items-center gap-2">
+        <div className="flex min-w-0 flex-1 basis-[16rem] flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="min-w-0 truncate font-medium">{b.name}</span>
           {checked?.bot && <span className="min-w-0 truncate text-[0.875rem] text-ink-soft">@{checked.bot}</span>}
           {checked === undefined ? (
